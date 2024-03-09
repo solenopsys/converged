@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "noEmit": true,
+    "target": "esnext",
+    "moduleResolution": "node",
+    "strict": true,
+    "lib": ["dom", "esnext", "dom.iterable"],
+    "jsx": "preserve", 
+    "allowSyntheticDefaultImports": true,
+  },
+  "exclude": ["node_modules"]
+}

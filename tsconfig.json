@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "emitDeclarationOnly": true,
+    "declaration": true,
+    "target": "esnext",
+    "newLine": "LF",
+    "moduleResolution": "node",
+    "strict": true,
+    "jsx": "preserve",
+    // Allows TS to see the Vitest globals
+    "types": ["vitest/globals"],
+    "paths": {
+      "rxcore":["./src/core"]
+    }
+  },
+  "exclude": ["node_modules"]
+}

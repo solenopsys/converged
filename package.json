@@ -1,0 +1,17 @@
+{
+  "name": "@solenopsys/converged",
+  "description": "A declarative JavaScript library for building user interfaces.",
+  "version": "0.0.1",
+  "author": "Alex Storm",
+  "license": "Apache 2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/solidjs/solid"
+  },
+  "private": true,
+  "scripts": {},
+  "devDependencies": {},
+  "dependencies": {
+    "solid-js": "solidjs/solid"
+  }
+}
