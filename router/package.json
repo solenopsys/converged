@@ -1,0 +1,43 @@
+{
+	"name": "@solenopsys/converged-router",
+	"description": "Universal router for Converged",
+	"version": "0.2.4",
+	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"import": "./dist/index.js",
+			"types": "./dist/index.d.ts"
+		}
+	},
+	"files": ["dist"],
+	"sideEffects": false,
+	"scripts": {
+		"format": "bunx @biomejs/biome format src/*.ts --write",
+		"bundle": "bun build  src/index.ts --format esm --dts  --external @solenopsys/converged-reactive --external @solenopsys/converged-renderer  --outfile dist/index.js ",
+		"bundle-tsup": "tsup src/index.ts --format esm --minify ",
+		"types": "bun dts-bundle-generator --external-imports  @solenopsys/converged-reactive --external-imports  @solenopsys/converged-renderer  --no-check -o dist/index.d.ts src/index.ts",
+		"clean": "rm -rf dist",
+		"bundle-all": "bun run clean && bun run bundle ",
+		"package": "bun run format && bun run bundle-all &&  npm publish --access public"
+	},
+	"devDependencies": {
+		"typescript": "^4.8.4",
+		"@solenopsys/converged-reactive": "^1.0.7",
+		"@solenopsys/converged-renderer": "^1.0.4"
+	},
+	"peerDependencies": {
+		"@solenopsys/converged-reactive": "*",
+		"@solenopsys/converged-renderer": "*"
+	},
+	"packageManager": "pnpm@7.14.0",
+	"dependencies": {
+		"@biomejs/biome": "^1.6.2",
+		"dts-bundle-generator": "^9.3.1"
+	},
+	"external": [
+		"@solenopsys/converged-reactive",
+		"@solenopsys/converged-renderer"
+	]
+}

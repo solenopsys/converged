@@ -1,0 +1,49 @@
+{
+	"name": "@solenopsys/converged-renderer",
+	"description": "A high-performance renderer for building rich applications.",
+	"version": "1.0.12",
+	"type": "module",
+	"sideEffects": false,
+	"main": "dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"import": "./dist/index.js",
+			"types": "./dist/index.d.ts"
+		},
+		"./jsx-runtime": {
+			"import": "./dist/jsx.js",
+			"types": "./dist/jsx.d.ts"
+		},
+		"./jsx-dev-runtime": {
+			"import": "./dist/jsx.js",
+			"types": "./dist/jsx.d.ts"
+		}
+	},
+	"typesVersions": {
+		"*": {
+			"jsx-runtime": ["./dist/jsx.d.ts"],
+			"jsx-dev-runtime": ["./dist/jsx.d.ts"]
+		}
+	},
+	"scripts": {
+		"format": "bunx @biomejs/biome format src/**/*.ts --write",
+		"bundle": "bun build  src/index.ts --outfile dist/index.js  --external @solenopsys/converged-reactive ",
+		"types": "bun dts-bundle-generator --no-check  --external-imports  @solenopsys/converged-reactive  -o dist/index.d.ts src/index.ts",
+		"bundle-jsx": "cp  ./src/jsx/runtime.js ./dist/jsx.js",
+		"types-jsx": "cp  ./src/jsx/types.ts ./dist/jsx.d.ts",
+		"clean": "rm -rf dist",
+		"bundle-all": "bun run clean && bun run bundle &&  bun run  types && bun run bundle-jsx && bun run types-jsx",
+		"package": "bun run format && bun run bundle-all &&  npm publish --access public"
+	},
+	"dependencies": {
+		"@solenopsys/converged-reactive": "^1.0.1",
+		"dts-bundle-generator": "^9.3.1",
+		"htm": "^3.1.1"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "1.6.1",
+		"typescript": "latest"
+	},
+	"external": ["@solenopsys/converged-reactive"]
+}
