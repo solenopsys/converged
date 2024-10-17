@@ -1,0 +1,46 @@
+{
+  "name": "@solenopsys/converged-style",
+  "description": "Styles injector",
+  "version": "1.0.8",
+  "module": "index.ts",
+  "type": "module",
+  "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./plugin": {
+      "import": "./dist/plugins/lightningcss-plugin.js",
+      "types": "./dist/plugins/lightningcss-plugin.d.ts"
+    }
+ 
+  },
+  "dependencies": {
+    "@biomejs/biome": "latest",
+    "@types/node": "^20.11.30",
+    "@unocss/core": "latest",
+    "@unocss/preset-attributify": "latest",
+    "@unocss/preset-uno": "latest",
+    "bun-plugin-dts": "^0.2.1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "browserslist": "^4.23.0",
+    "dts-bundle-generator": "^9.3.1",
+    "lightningcss": "^1.24.1"
+  },
+  "peerDependencies": {
+    "typescript": "latest"
+  },
+  "scripts": {
+    "format": "bunx @biomejs/biome format src/*.ts --write",
+    "bundle": "bun build  src/index.ts --format esm --dts    --minify --outfile dist/index.js ",
+    "bundle-lightningcss": "bun run src/plugins/build.ts ",
+    "bundle-tsup": "tsup src/index.ts --format esm --minify ",
+    "types": "bun dts-bundle-generator --no-check -o dist/index.d.ts src/index.ts",
+    "clean": "rm -rf dist",
+    "bundle-all": "bun run clean && bun run bundle && bun run bundle-lightningcss && bun run types",
+    "package": "bun run format && bun run bundle-all &&  npm publish --access public"
+  }
+}

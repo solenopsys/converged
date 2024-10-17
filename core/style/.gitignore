@@ -1,0 +1,7 @@
+*~
+*.err
+*.log
+._*
+bun.lockb
+dist
+node_modules

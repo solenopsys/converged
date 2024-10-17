@@ -1,0 +1,13 @@
+{
+  "layout": {
+    "module":"@solenopsys/mf-auth",
+    "data": {
+      "logo": "/assets/logo.svg",
+      "favicon": "/assets/favicon.svg",
+      "title": "Auth"
+    }
+  },
+  "routes": {
+
+  }
+}

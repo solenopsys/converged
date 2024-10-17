@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",        
+    "module": "ESNext",         
+    "strict": true,           
+    "isolatedModules": false,
+    "noPropertyAccessFromIndexSignature": false,
+     "noImplicitAny": false,
+    "noImplicitReturns": false,
+    "moduleResolution": "Node",
+    "noUnusedParameters": false,
+    "outDir": "./dist",
+    "declaration": true,
+    "declarationDir": "./dist",
+    "types": [],
+  },
+
+ // "include": ["./src/**/*","node"],
+
+
+}
