@@ -1,7 +1,7 @@
 {
   "name": "@solenopsys/converged-reactive",
   "description": "Observable/Signal implementation for Coverged Framework",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "type": "module",
   "sideEffects": false,
   "main": "dist/index.js",
@@ -13,6 +13,7 @@
   },
   "types": "./dist/index.d.ts",
   "scripts": {
+    "update-packs":"npx npm-check-updates -u && bun i",
     "format": "bunx @biomejs/biome format src/**/*.ts --write",
     "bundle": "bun build  src/index.ts --outfile  dist/index.js ",
     "types": "bun dts-bundle-generator  --export-referenced-types -o dist/index.d.ts src/index.ts",
@@ -28,11 +29,11 @@
     "fast"
   ],
   "devDependencies": {
-    "@biomejs/biome": "1.6.1",
+    "@biomejs/biome": "1.9.4",
     "typescript": "latest"
   },
   "dependencies": {
-    "dts-bundle-generator": "^9.3.1"
+    "dts-bundle-generator": "^9.5.1"
   },
   "external": []
 }

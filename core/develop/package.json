@@ -1,6 +1,9 @@
 {
   "name": "@solenopsys/converged-develop",
   "type": "module",
+  "version": "1.0.8",
+  "sideEffects": false,
+  "main": "dist/index.js",
   "dependencies": {
     "@solenopsys/converged-reactive": "latest",
     "@solenopsys/converged-renderer": "latest",
@@ -12,14 +15,17 @@
   },
   "module": "index.ts",
   "devDependencies": {
-    "@biomejs/biome": "1.6.1",
+    "bun-plugin-dts": "^0.3.0",
+    "@biomejs/biome": "1.9.4",
     "@types/bun": "^1.1.11",
-    "bun-types": "latest"
+    "bun-types": "latest",
+    "dts-bundle-generator": "^9.5.1"
   },
   "peerDependencies": {
     "typescript": "^5.6.3"
   },
   "scripts": {
+    "update-packs":"npx npm-check-updates -u && bun i",
     "format": "bunx @biomejs/biome format src/**/*.ts --write",
     "serve": "bun ./src/serve.ts",
     "clear": "rm -rf ../distp",
@@ -28,6 +34,11 @@
     "acopy": "cp -r ../configuration/images ../distp && cp -r ../configuration/assets ../distp",
     "pub": "xs publish dir ../distp ",
     "build-all": " bun build-prod && bun build-bs && bun acopy && bun pub",
-    "name": "xs publish name "
+    "name": "xs publish name ",
+    "bundle": "bun build  src/index.ts --format esm --dts    --minify --outfile dist/index.js ",
+    "types": "bun dts-bundle-generator --no-check -o dist/index.d.ts src/index.ts",
+    "clean": "rm -rf dist",
+    "bundle-all": "bun run clean && bun run bundle  && bun run types",
+    "package": "bun run format && bun run bundle-all &&  npm publish --access public"
   }
 }

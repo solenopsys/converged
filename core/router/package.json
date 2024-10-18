@@ -1,7 +1,7 @@
 {
 	"name": "@solenopsys/converged-router",
 	"description": "Universal router for Converged",
-	"version": "0.2.4",
+	"version": "0.2.5",
 	"type": "module",
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
@@ -14,6 +14,7 @@
 	"files": ["dist"],
 	"sideEffects": false,
 	"scripts": {
+		"update-packs":"npx npm-check-updates -u && bun i",
 		"format": "bunx @biomejs/biome format src/*.ts --write",
 		"bundle": "bun build  src/index.ts --format esm --dts  --external @solenopsys/converged-reactive --external @solenopsys/converged-renderer  --outfile dist/index.js ",
 		"bundle-tsup": "tsup src/index.ts --format esm --minify ",
@@ -23,18 +24,18 @@
 		"package": "bun run format && bun run bundle-all &&  npm publish --access public"
 	},
 	"devDependencies": {
-		"typescript": "^4.8.4",
+		"typescript": "^5.6.3",
 		"@solenopsys/converged-reactive": "^1.0.7",
-		"@solenopsys/converged-renderer": "^1.0.4"
+		"@solenopsys/converged-renderer": "^1.0.12"
 	},
 	"peerDependencies": {
 		"@solenopsys/converged-reactive": "*",
 		"@solenopsys/converged-renderer": "*"
 	},
-	"packageManager": "pnpm@7.14.0",
+	"packageManager": "pnpm@9.12.2",
 	"dependencies": {
-		"@biomejs/biome": "^1.6.2",
-		"dts-bundle-generator": "^9.3.1"
+		"@biomejs/biome": "^1.9.4",
+		"dts-bundle-generator": "^9.5.1"
 	},
 	"external": [
 		"@solenopsys/converged-reactive",

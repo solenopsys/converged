@@ -26,15 +26,8 @@ async function compileCoreLibs() {
 	}
 }
 
-async function buildAll() {
+export async function buildAll() {
 	await compileModules();
 	await compileCoreLibs();
 	//await scanDirs();
 }
-
-let start = Bun.nanoseconds();
-
-buildAll().then(() => {
-	const end = Bun.nanoseconds();
-	console.log("DONE ", (end - start) / 1000000000, "s");
-});
