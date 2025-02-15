@@ -1,0 +1,11 @@
+{
+  "private": true,
+  "workspaces": ["core/*", "libs/*"],
+  "dependencies": {
+    "@solenopsys/converged-style": "workspace:*",
+    "@elysiajs/static": "^1.2.0",
+    "@types/bun": "^1.2.2",
+    "elysia": "^1.2.12",
+    "lowdb": "^7.0.1"
+  }
+}

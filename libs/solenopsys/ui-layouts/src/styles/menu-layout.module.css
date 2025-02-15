@@ -1,0 +1,48 @@
+@media only screen and (max-width: 826px) {
+    .main_menu {
+        display: none;
+        position: absolute;
+    }
+
+    .main_content {
+        margin-left: 0px;
+        padding-top: 0px
+    }
+
+    
+    .main_content_wm {
+        margin-left: 0px;
+        padding-top: 0px
+    }
+}
+
+@media only screen and (min-width: 826px) {
+    .main_menu {
+        position: absolute;
+        width: 250px;
+        border-right-color: black;
+        border-right-style: solid;
+        border-right-width: 1px;
+        height: border-box;
+    }
+
+    .main_menu_wrapper {
+        padding-top: 60px;
+        position: fixed;
+    }
+
+    .main_content {
+        margin-left: 0px;
+        padding-top: 0px
+    }
+
+    .main_content_wm {
+        margin-left: 270px;
+        padding-top: 0px
+    }
+
+    .scrollable {
+        overflow-y: auto;
+        height: 100vh;
+    }
+}

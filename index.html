@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Library Loader</title>
+    <style>
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        input {
+            padding: 8px;
+            margin-right: 10px;
+            width: 300px;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+        }
+        .success {
+            color: green;
+        }
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Dynamic Library Loader</h1>
+        <div class="input-group">
+            <input type="text" id="libraryUrl" placeholder="Введите URL библиотеки (например, https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js)">
+            <button onclick="loadLibrary()">Загрузить библиотеку</button>
+        </div>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        function loadLibrary() {
+            const libraryUrl = document.getElementById('libraryUrl').value;
+            const status = document.getElementById('status');
+            
+            if (!libraryUrl) {
+                status.innerHTML = '<p class="error">Пожалуйста, введите URL библиотеки</p>';
+                return;
+            }
+
+            // Создаем новый элемент script
+            const script = document.createElement('script');
+            script.src = libraryUrl;
+            script.async = true;
+
+            // Обработчики успешной загрузки и ошибки
+            script.onload = function() {
+                status.innerHTML = `<p class="success">Библиотека успешно загружена: ${libraryUrl}</p>`;
+            };
+
+            script.onerror = function() {
+                status.innerHTML = `<p class="error">Ошибка при загрузке библиотеки: ${libraryUrl}</p>`;
+            };
+
+            // Добавляем script элемент в документ
+            document.head.appendChild(script);
+        }
+    </script>
+</body>
+</html>

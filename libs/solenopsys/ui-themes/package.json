@@ -1,0 +1,19 @@
+{
+    "name": "@solenopsys/ui-themes",
+    "module": "src/index.tsx",
+    "type": "module",
+    "dependencies": {},
+    "peerDependencies": {
+        "@solenopsys/converged-reactive":  "workspace:*",
+    "@solenopsys/converged-renderer":  "workspace:*",
+    "@solenopsys/converged-style":  "workspace:*",
+        "typescript": "^5.0.0"
+    },
+    "devDependencies": {
+        "@types/bun": "^1.0.0",
+        "bun-types": "latest"
+    },
+    "external": [
+        "@solenopsys/converged"
+    ]
+}

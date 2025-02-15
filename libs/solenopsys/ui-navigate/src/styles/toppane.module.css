@@ -1,0 +1,25 @@
+ .top-pane {
+   position: relative;
+   border-bottom-width: 1px;
+   border-bottom-color: black;
+   border-bottom-style: solid;
+   background-color: white;
+   display: flex;
+ }
+
+ .logo-container {
+   padding: 5px;
+   margin-left: 10px;
+   color: transparent;
+ }
+
+ .tabs-container {
+   margin-left: 20px;
+   color: transparent;
+ }
+
+ .actions-container {
+   position: absolute;
+   right: 10px;
+   top: 5px;
+ }

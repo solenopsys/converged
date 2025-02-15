@@ -1,0 +1,24 @@
+{
+  "name": "@solenopsys/ui-layouts",
+  "module": "src/index.tsx",
+  "type": "module",
+  "dependencies": {
+    "@solenopsys/converged-reactive": "workspace:*",
+    "@solenopsys/converged-renderer": "workspace:*",
+    "@solenopsys/converged-router": "workspace:*",
+    "@solenopsys/converged-style": "workspace:*",
+    "@solenopsys/ui-controls": "workspace:*"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.0.0",
+    "bun-types": "latest"
+  },
+  "external": [
+    "@solenopsys/converged-style",
+    "@solenopsys/ui-controls",
+    "@solenopsys/ui-state"
+  ]
+}

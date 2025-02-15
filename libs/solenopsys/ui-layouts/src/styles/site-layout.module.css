@@ -1,0 +1,27 @@
+.body_wrapper {
+  background-color: var(--background);
+  color: var(--font) !important;
+  padding: 0;
+  margin: 0;
+}
+
+.full_height {
+  height: border-box;
+}
+
+.top_pane_wrapper {
+  width: 100%;
+  background-color: var(--topPaneBackground);
+  position: fixed;
+  top: 0px;
+  z-index: 1;
+}
+
+.main_menu_mobile {
+  position: absolute;
+  top: 50px;
+  z-index: 1;
+  background-color: white;
+  width: 100%;
+  height: auto;
+}

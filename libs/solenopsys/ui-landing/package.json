@@ -1,0 +1,21 @@
+{
+  "name": "@solenopsys/ui-landing",
+  "module": "src/index.tsx",
+  "type": "module",
+  "dependencies": {
+    "@solenopsys/converged-reactive": "workspace:*",
+    "@solenopsys/converged-renderer": "workspace:*",
+    "@solenopsys/converged-router": "workspace:*",
+    "@solenopsys/converged-style": "workspace:*",
+  
+    "prismjs": "^1.29.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.0.0",
+    "bun-types": "latest"
+  },
+  "external": []
+}

@@ -1,0 +1,18 @@
+{
+  "version": 3,
+  "sources": [
+    "../../libs/solenopsys/ui-controls/src/components/ui-button.tsx",
+    "../../libs/solenopsys/ui-controls/src/components/styles/ui-button.module.css",
+    "../../libs/solenopsys/ui-controls/src/components/icon-button.tsx",
+    "../../libs/solenopsys/ui-controls/src/components/button-group.tsx"
+  ],
+  "sourcesContent": [
+    "import {  Component } from '@solenopsys/converged-renderer';\n\nimport $ from '@solenopsys/converged-reactive';;\nimport {EffectFunction} from '@solenopsys/converged-reactive';;\n\nimport styles from \"./styles/ui-button.module.css\";\n\n\n\ninterface UiButtonProps {\n  title: string;\n  onButtonClick?: EffectFunction;\n}\n\nexport const UiButton: Component<UiButtonProps> = (props) => {\n\nconsole.log(\"CREATE BUTTON\")\n  const state = $(props.title);\n\n  $.effect(() => console.log('Title', state()));\n \n  return ()=>{\n    \n  const handleClick = () => {\n\n    state(\"Button Clicked2!\");\n    if (props.onButtonClick) {\n      props.onButtonClick();\n    }\n  };\n\n    return ()=>\n    (<>\n      <button class={styles.button} onClick={handleClick} title={state()}>\n        {state()} \n      </button>\n    </>)\n  };\n};\n\n\nexport default UiButton",
+    "import { injectStyle } from \"@solenopsys/converged-style\";injectStyle(\"._2C5t0W_button{background-color:var(--control-color);border-radius:3px;padding:10px 20px;color:#fff!important}\")\nexport default {\"button\":\"_2C5t0W_button\",}\n//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIiJdLCJtYXBwaW5ncyI6IkEifQ==",
+    "import { Component } from '@solenopsys/converged-renderer';\n\ninterface IconButtonProps {\n  icon?: string;\n  click : (event:any) => void;\n}\n\nexport const IconButton: Component<IconButtonProps> = (props) => {\n  return (<div onClick={(event) => props.click(event)}>\n    <img\n      src={`${props.icon || ''}`}\n      style={{ height: '16px', cursor: 'pointer', margin: '5px', filter: 'var(--invertIcons)' }}\n    />\n    {props.title}\n    </div>\n  );\n};\n\n ",
+    "import { Component } from '@solenopsys/converged-renderer';\n \nimport {IconButton} from './icon-button'\n\nexport type ActionButton = {\n    key: string;\n    title: string;\n    icon: string;\n}\n\n\ninterface ButtonGroupProps {\n  actions: ActionButton[];\n  emmitAction: (action: string) => void;\n}\n\nexport const ButtonGroup: Component<ButtonGroupProps> = (props) => {\n  console.log(\"BUTTON GROUP\", props);\n  return (\n    <>\n      {props.actions.map((action) => (\n        <IconButton\n          key={action.key}\n          icon={action.icon}\n          title={action.title}\n          click={(e:any)=> props.emmitAction(action.key)}  />\n      ))}\n    </>\n  );\n};\n\n "
+  ],
+  "mappings": "AAEA,8CCFA,sBAAS,oCAAiD,EAAY,iHAAiH,EACvL,IAAe,GAAC,OAAS,gBAAiB,wFDanC,IAAM,EAAqC,CAAC,IAAU,CAE7D,QAAQ,IAAI,eAAe,EACzB,IAAM,EAAQ,EAAE,EAAM,KAAK,EAI3B,OAFA,EAAE,OAAO,IAAM,QAAQ,IAAI,QAAS,EAAM,CAAC,CAAC,EAErC,IAAI,CAEX,IAAM,EAAc,IAAM,CAGxB,GADA,EAAM,kBAAkB,EACpB,EAAM,cACR,EAAM,cAAc,GAItB,MAAO,IACN,cACC,EAEE,SAFF,CAAQ,MAAO,EAAO,OAAQ,QAAS,EAAa,MAAO,EAAM,EAAjE,SACG,EAAM,GADT,qBAEE,GAHH,qBAIC,4EE7BC,IAAM,EAAyC,CAAC,IAAU,CAC/D,OAAQ,EAMJ,MANI,CAAK,QAAS,CAAC,IAAU,EAAM,MAAM,CAAK,EAA1C,SAMJ,CALF,EAAC,MAAD,CACE,IAAK,GAAG,EAAM,MAAQ,KACtB,MAAO,CAAE,OAAQ,OAAQ,OAAQ,UAAW,OAAQ,MAAO,OAAQ,oBAAqB,GAF1F,qBAGA,EACC,EAAM,QALD,qBAMJ,yFCEC,IAAM,EAA2C,CAAC,IAAU,CAEjE,OADA,QAAQ,IAAI,eAAgB,CAAK,EAE/B,cACG,EAAM,QAAQ,IAAI,CAAC,IAClB,EAAC,EAAD,CAEE,KAAM,EAAO,KACb,MAAO,EAAO,MACd,MAAO,CAAC,IAAS,EAAM,YAAY,EAAO,GAAG,GAHxC,EAAO,IADd,cAImD,CACpD,GAPH,qBAQE",
+  "debugId": "0a0ee42f2a8a0e43f9bdab46a17f144cc8ac2de3fe0c3e96f1374b7ca8dc06c8",
+  "names": []
+}

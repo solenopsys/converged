@@ -1,0 +1,26 @@
+/* Default styles for smaller viewports */
+.navList {
+  position: static;
+  visibility: hidden;
+}
+
+.nav {
+  width: 300px;
+  overflow-y: auto;
+}
+
+
+/* Styles for larger viewports */
+@media (min-width: 1480px) {
+  .navList {
+    position: fixed;
+    top: 80px;
+    right: 10px;
+    visibility: visible;
+  }
+
+  .nav {
+    width: 300px;
+
+  }
+}
