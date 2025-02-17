@@ -2,7 +2,6 @@
 import { bindleLibrary } from "../pack_build.ts";
 
 self.onmessage = async (event) => {
-   console.log("WORKER MESSAGE", event.data);
    const { taskId, name, entryPoint, outPutPath,externals } = event.data;
    
    try {

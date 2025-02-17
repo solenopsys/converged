@@ -15,7 +15,7 @@
     "@types/bun": "^1.0.0",
     "bun-types": "latest"
   },
-  "external": [
-    "@solenopsys/ui-highlight"
-  ]
+  "external": {
+    "@solenopsys/ui-highlight":"latest"
+  }
 }

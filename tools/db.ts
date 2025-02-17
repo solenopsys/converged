@@ -5,8 +5,12 @@ class CacheStore {
     db: any;
     constructor(filePath) {
         // Определяем начальную структуру данных
-        const defaultData = {
-            maping: { 
+        const defaultData = { 
+            importconfMapping: { // key hash src dir  = value hash compiler lib
+            },
+            compileMapping: { // key hash src dir  = value hash compiler lib
+            },
+            packMapping: { // key pack name = value hash lib
             }
         };
 
@@ -23,20 +27,25 @@ class CacheStore {
     // Получить хеш директории
     async getHashDir(hashKey) {
         await this.init();
-        return this.db.data.maping[hashKey];
+        return this.db.data.compileMapping[hashKey];
     }
+     
 
     // Сохранить хеш директории
-    async setHashDir(hashKey, hashValue) {
+    async setHashDir(packName,importConfHash, hashKey, hashValue) {
         await this.init();
-        this.db.data.maping[hashKey] = hashValue;
+        this.db.data.compileMapping[hashKey] = hashValue;
+        this.db.data.packMapping[packName] = hashValue;
+        this.db.data.importconfMapping[hashValue] = importConfHash;
         await this.db.write();
     }
+
+   
 
     // Удалить хеш директории
     async deleteHashDir(hashKey) {
         await this.init();
-        delete this.db.data.maping[hashKey];
+        delete this.db.data.compileMapping[hashKey];
         await this.db.write();
     }
 

@@ -1,5 +1,5 @@
 {
-  "name": "@solenopsys/ui-layouts",
+  "name": "@solenopsys/ui-highlight",
   "module": "src/index.tsx",
   "type": "module",
   "dependencies": {

@@ -1,8 +1,23 @@
+
+import { externalToConf,externalsLoad } from "./external_tool.ts";
+type ImportMap = {
+    imports?: Record<string, string>;
+    scopes?: Record<string, Record<string, string>>;
+  };
+
+
+type ImportMapConfig = {
+    config: Record<string, string>;
+    importmap: ImportMap;
+};
+
+
+
 export default class WorkersService {
    private tasks: Map<string, (result: any) => void>;
    private worker: Worker;
    private timeoutDuration: number;
-   private  defaultExternal: string[] = [];
+   public readonly  defaultExternal: Record<string, string> = { };
 
    constructor(worker: Worker, timeoutDuration: number = 30000) {
        this.tasks = new Map();
@@ -12,8 +27,8 @@ export default class WorkersService {
        this.initializeWorker();
    }
 
-   addDefaultExternal(external: string) {
-       this.defaultExternal.push(external);
+   addDefaultExternal(external: string, version  = "latest") {
+       this.defaultExternal[external] = version;
    }
 
    private initializeWorker(): void {
@@ -38,30 +53,9 @@ export default class WorkersService {
    }
 
 
-   protected async externals(packagesFile:string) {
+  
 
-    console.log('PF:',   packagesFile);
-    const tsConfigJson: any = await Bun.file(packagesFile).json();
-
-    console.log("TSCONFIG JSON", tsConfigJson);
-    let packagesFromExternal = tsConfigJson["external"];
-    if (!packagesFromExternal) {
-        packagesFromExternal = [];
-    }
-
-    const combinedExternal = packagesFromExternal.concat(this.defaultExternal);
-    console.log("EXTERNAL", combinedExternal);
-    return combinedExternal;
-}
-
-   protected externalToMap(externals: string[]): Record<string, string> {
-       return externals.reduce((acc, external) => { 
-           acc[external] = external;
-           return acc;
-       }, {});
-   }
-
-   public async runBuildTask(packDir: string): Promise<any> {
+   public async runBuildTask(packDir: string, externals:string[]): Promise<any> {
        const taskId = this.generateTaskId();
        console.log('Generated taskId:', taskId);
        
@@ -83,7 +77,9 @@ export default class WorkersService {
        const dirName=packDir.split("/").pop();
    
 
-       const externals =  this.externalToMap( await this.externals(  packDir+"/package.json"));
+      
+ 
+     
        this.worker.postMessage({
            taskId,
            name: dirName,

@@ -6,17 +6,14 @@ export async function bindleLibrary(
    unicId: string,
     entryPoint: string,
     outPutPath:string,
-    externals:{[key:string]:string}={}
-   
+    external:string[]
    ) {
 
  const prefix=libName +"." +unicId;
    const outNameJS= prefix+ ".js";
 
-   const external=Object.keys(externals)
-
-   console.log("EXTERNALS", externals);
- 
+   
+    console.log("EXTERNAL",external);  
    const out: any = await Bun.build({
       sourcemap: "external",
       entrypoints: [entryPoint],
@@ -26,11 +23,15 @@ export async function bindleLibrary(
          entry:outNameJS, //this problem
       },
       minify: true,
-      external, 
+      external,
       plugins: [lightningcssPlugin()],
    }).catch((e) => {
       console.log("ERROR BUILD", e);
    });
+
+
+
+   
    return {script:outNameJS,map:outNameJS+".map"}
 }
 

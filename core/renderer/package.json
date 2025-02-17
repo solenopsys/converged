@@ -46,5 +46,5 @@
 		"@biomejs/biome": "1.9.4",
 		"typescript": "latest"
 	},
-	"external": ["@solenopsys/converged-reactive"]
+	"external": {"@solenopsys/converged-reactive":"latest"	}
 }
