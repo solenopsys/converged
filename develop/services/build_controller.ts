@@ -83,6 +83,21 @@ export default class BuildController {
 	async runBuildTask(packDir: string): Promise<string| undefined> {
 		const targetDir = this.rootDir + packDir;
 		const srcDir = targetDir + "/src";
+
+		const dirHash = await getDirectoryHash(srcDir);
+
+		
+		// todo refactoring move to cacheController
+		const libHash=await this.cs.getHashDir(dirHash)
+		const libPath=join(this.cacheDir, `/store/${libHash}`);
+		// check exists
+
+		// console.log("libPath",libPath)
+		if(await Bun.file(libPath).exists()){
+			console.log("allready compiled",libPath)
+			return libHash;
+		}
+		
 		const externalsConfig = await externalsLoad(packDir + "/package.json");
 
 		const externals = Object.keys(externalsConfig.external);
@@ -95,16 +110,17 @@ export default class BuildController {
 			const { script, map } = result;
 			const tempPath = this.cacheDir + "/temp/";
 			await fixDebugId(tempPath, script, map);
-			const { jsHash } = await hashRename(tempPath, script, map);
-
-			const dirHash = await getDirectoryHash(srcDir);
+			const { jsHash,mapHash } = await hashRename(tempPath, script, map);
+			await this.cs.setMeta(jsHash, "js", true);
+			await this.cs.setMeta(mapHash, "json", true);
 
 			const fileContent = JSON.stringify(externalsConfig);
-
 			const configHash = generateHash(Buffer.from(fileContent));
-
 			const inportConfig = join(this.cacheDir, `/store/${configHash}`);
+					// todo refactoring move to cacheController
+
 			await Bun.write(inportConfig, fileContent);
+			await this.cs.setMeta(configHash, "json", false);
 
 			this.cs.setHashDir(externalsConfig.package, configHash, dirHash, jsHash);
 			return jsHash;

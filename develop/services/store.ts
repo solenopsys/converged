@@ -8,7 +8,7 @@ export class CacheStore {
 		packMapping: Record<string, string>;
 		importconfMapping: Record<string, string>;
 	}>;
-	constructor(filePath) {
+	constructor(filePath:string) {
 		const defaultData = {
 			importconfMapping: {},
 			compileMapping: {},
@@ -19,12 +19,12 @@ export class CacheStore {
 		this.db = new Low(new JSONFile(filePath), defaultData);
 	}
 
-	async setMeta(hash, type: string, compressed: boolean) {
+	async setMeta(hash:string, type: string, compressed: boolean) {
 		this.db.data.meta[hash] = { type, compressed };
 		await this.db.write();
 	}
 
-	async getMeta(hash): Promise<{ type: string; compressed: boolean }> {
+	async getMeta(hash:string): Promise<{ type: string; compressed: boolean }> {
 		return await this.db.data.meta[hash];
 	}
 
@@ -32,13 +32,13 @@ export class CacheStore {
 		await this.db.read();
 	}
 
-	async getHashDir(hashKey) {
-		await this.init();
+	async getHashDir(hashKey:string) { 
 		return this.db.data.compileMapping[hashKey];
 	}
 
-	async setHashDir(packName, importConfHash, hashKey, hashValue) {
-		await this.init();
+
+
+	async setHashDir(packName:string, importConfHash:string, hashKey:string, hashValue:string) {
 		this.db.data.compileMapping[hashKey] = hashValue;
 		this.db.data.packMapping[packName] = hashValue;
 		this.db.data.importconfMapping[hashValue] = importConfHash;

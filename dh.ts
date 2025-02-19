@@ -21,15 +21,15 @@ buildController.ws.addDefaultExternal("@solenopsys/converged-style");
 
 await buildController.init();
 
-// await buildController.runBuildTask("core/reactive");
-// await buildController.runBuildTask("core/renderer");
-// await buildController.runBuildTask("core/router");
-//  await buildController.runBuildTask("core/style");
+await buildController.runBuildTask("core/reactive");
+await buildController.runBuildTask("core/renderer");
+await buildController.runBuildTask("core/router");
+ await buildController.runBuildTask("core/style");
 
-// await buildController.runBuildTask("libs/solenopsys/ui-controls");
-// await buildController.runBuildTask("libs/solenopsys/ui-forms");
-// await buildController.runBuildTask("libs/solenopsys/ui-lists");
-// await buildController.runBuildTask("libs/solenopsys/ui-content");
+await buildController.runBuildTask("libs/solenopsys/ui-controls");
+await buildController.runBuildTask("libs/solenopsys/ui-forms");
+await buildController.runBuildTask("libs/solenopsys/ui-lists");
+await buildController.runBuildTask("libs/solenopsys/ui-content");
 
 
 await buildController.runBuildTask("libs/solenopsys/lt-website");
