@@ -2,12 +2,12 @@ import type {
 	JsonObject, 
 	FieldHandler,
 	SpecialField,
-} from "../processor.ts";
+} from "../processor.js";
 
-import BuildController from "../../services/build_controller";
+import BuildController from "../../services/build_controller.js";
 
 // Дополнительные процессоры можно добавлять здесь
-export class IncludeHandler implements FieldHandler {
+export class RemoteHandler implements FieldHandler {
     
 
     constructor(private recurseProcess:(fileName:string)=>Promise<string>){}

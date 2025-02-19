@@ -1,6 +1,6 @@
 {
   "name": "@solenopsys/mf-content",
-  "module": "src/index.tsx",
+  "module": "src/index.ts",
   "type": "module",
   "dependencies": {   },
   "peerDependencies": {
@@ -16,9 +16,9 @@
     "@types/bun": "^1.0.0",
     "bun-types": "latest"
   },
-  "external": [
-    "@solenopsys/ui-content",
-    "@solenopsys/ui-navigate",
-    "@solenopsys/ui-state"
-  ]
+  "external": {
+    "@solenopsys/ui-content":"latest",
+    "@solenopsys/ui-navigate":"latest",
+    "@solenopsys/ui-state":"latest"
+  }
 }

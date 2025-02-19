@@ -14,11 +14,11 @@
   "devDependencies": {
     "@types/bun": "^1.0.10"
   },
-  "external": [
-    "@solenopsys/ui-navigate",
-    "@solenopsys/ui-controls",
-    "@solenopsys/ui-layouts"
-  ],
+  "external": {
+    "@solenopsys/ui-navigate":"latest",
+    "@solenopsys/ui-controls":"latest",
+    "@solenopsys/ui-layouts":"latest"
+  },
   "scripts": {
     "tests": " bun test  "
   }

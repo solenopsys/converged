@@ -48,7 +48,27 @@ export async function hashRename(
 	}
 }
 
-import { resolve } from "path";
+import { resolve,dirname } from "path";
+import { fileURLToPath } from "url";
+
+
+
+async function findPackageRoot(modulePath: string): Promise<string> {
+	let currentDir = dirname(modulePath);
+  
+	while (true) {
+	  const pkgJsonPath = join(currentDir, "package.json");
+	  if (await Bun.file(pkgJsonPath).exists()) {
+		return currentDir;
+	  }
+  
+	  const parentDir = dirname(currentDir);
+	  if (parentDir === currentDir) {
+		throw new Error("Package root not found");
+	  }
+	  currentDir = parentDir;
+	}
+  }
 
 export default class BuildController {
 	public readonly ws: WorkersService;
@@ -67,21 +87,30 @@ export default class BuildController {
 		await this.cs.init();
 	}
 
+	
+
 	async runBuildTaskPack(packName: string): Promise<string| undefined> {
-		const packDir = resolve(packName);
+		console.log("FIND PACKAGE",packName)
+		// todo убрато этот костыль нужно переделать конфигурацию
+		const packDir = (await Bun.resolve(packName, import.meta.url)) ;
+		const packageRoot = await findPackageRoot(packDir);
+		console.log("FIND DIR",packageRoot)
 
 		try {
-			const stats = await Bun.file(packDir).exists();
-			if (!stats) {
-				throw new Error(`Pack directory not found: ${packDir}`);
-			}
-			return await this.runBuildTask(packDir);
+			// const stats = await Bun.file(packDir).exists();
+			// if (!stats) {
+			// 	throw new Error(`Pack directory not found: ${packDir}`);
+			// }
+			return await this.runBuildTask(packageRoot,true);
 		} catch (error) {
 			throw new Error(`Failed to build pack ${packName}: ${error.message}`);
 		}
 	}
-	async runBuildTask(packDir: string): Promise<string| undefined> {
-		const targetDir = this.rootDir + packDir;
+
+
+	async runBuildTask(packDir: string, fullPath=false): Promise<string| undefined> {
+
+		const targetDir = fullPath? packDir : this.rootDir + packDir;
 		const srcDir = targetDir + "/src";
 
 		const dirHash = await getDirectoryHash(srcDir);

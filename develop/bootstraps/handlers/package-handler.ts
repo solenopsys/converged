@@ -5,7 +5,7 @@ import type {
 } from "../processor.ts";
 
 
-import BuildController from "../../services/build_controller.ts";
+import BuildController from "../../services/build_controller";
 
 export class PackageHandler implements FieldHandler {
     constructor(private bc:BuildController){}

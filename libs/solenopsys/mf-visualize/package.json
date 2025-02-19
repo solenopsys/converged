@@ -14,7 +14,7 @@
     "@types/bun": "^1.0.0",
     "bun-types": "latest"
   },
-  "external": [
-    "@solenopsys/ui-3d"
-  ]
+  "external": {
+    "@solenopsys/ui-3d":"latest"
+  }
 }

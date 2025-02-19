@@ -13,7 +13,7 @@
         "@types/bun": "^1.0.0",
         "bun-types": "latest"
     },
-    "external": [
-        "@solenopsys/converged"
-    ]
+    "external": {
+        "@solenopsys/converged":"latest"
+    }
 }

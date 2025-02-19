@@ -5,7 +5,7 @@ import type {
 } from "../processor.ts";
  
  
-import { CacheController } from "../../services/cache_controller.ts";
+import { CacheController } from "../../services/cache_controller";
 
 export class FileHandler implements FieldHandler {
 	constructor(private cc: CacheController) {}

@@ -21,12 +21,12 @@
   "scripts": {
     "bundle": "bun build.ts"
   },
-  "external": [
-    "@solenopsys/ui-forms",
-    "@solenopsys/ui-state",
-    "@solenopsys/ui-navigate",
-    "@solenopsys/fl-clusters",
-    "@solenopsys/ui-controls",
-    "@solenopsys/fl-crypto"
-  ]
+  "external": {
+    "@solenopsys/ui-forms":"latest",
+    "@solenopsys/ui-state":"latest",
+    "@solenopsys/ui-navigate":"latest",
+    "@solenopsys/fl-clusters":"latest",
+    "@solenopsys/ui-controls":"latest",
+    "@solenopsys/fl-crypto":"latest"
+  }
 }

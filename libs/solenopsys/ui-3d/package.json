@@ -15,5 +15,5 @@
     "@types/bun": "^1.0.0",
     "bun-types": "latest"
   },
-  "external": []
+  "external": {}
 }

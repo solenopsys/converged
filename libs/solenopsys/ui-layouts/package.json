@@ -16,9 +16,9 @@
     "@types/bun": "^1.0.0",
     "bun-types": "latest"
   },
-  "external": [
-    "@solenopsys/converged-style",
-    "@solenopsys/ui-controls",
-    "@solenopsys/ui-state"
-  ]
+  "external": {
+    "@solenopsys/converged-style" :"latest",
+    "@solenopsys/ui-controls" :"latest",
+    "@solenopsys/ui-state" :"latest"
+   }
 }

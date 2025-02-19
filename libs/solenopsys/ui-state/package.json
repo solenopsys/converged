@@ -13,8 +13,7 @@
   "devDependencies": {
     "@types/bun": "^1.0.10"
   },
-  "external": [
-  ],
+  "external": {},
   "scripts": {
     "tests": "bun test"
   }

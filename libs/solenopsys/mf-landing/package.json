@@ -16,7 +16,7 @@
     "scripts": {
         "build": "bun ../../../build/build.ts"
     },
-    "external": [
-        "@solenopsys/ui-navigate"
-    ]
+    "external": {
+        "@solenopsys/ui-navigate":"latest"
+    }
 }

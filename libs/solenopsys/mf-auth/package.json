@@ -22,9 +22,9 @@
     "scripts": {
         "build": "bun ../../../build/build.ts"
     },
-    "external": [
-        "@solenopsys/ui-navigate",
-        "@solenopsys/ui-forms",
-        "@solenopsys/ui-controls"
-    ]
+    "external": {
+        "@solenopsys/ui-navigate":"latest",
+        "@solenopsys/ui-forms":"latest",
+        "@solenopsys/ui-controls":"latest"
+     }
 }

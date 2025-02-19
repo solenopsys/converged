@@ -3,6 +3,9 @@
 		"module": { "@package": "@solenopsys/lt-website" },
 		"data": {
 			"@include": "./layout-conf.json"
+		},
+		"data2": {
+			"@remote": "./layout-conf.json"
 		}
 	},
 	"routes": {

@@ -1,5 +1,5 @@
-import BuildController from "./develop/services/build_controller.ts";
-import CacheStore from "./develop/services/store.ts";
+import BuildController from "./develop/services/build_controller";
+import CacheStore from "./develop/services/store";
 
 const rootDir = "/home/alexstorm/distrib/hyperconverged/";
 const cacheDir = "/home/alexstorm/distrib/hyperconverged/cache";
@@ -21,16 +21,21 @@ buildController.ws.addDefaultExternal("@solenopsys/converged-style");
 
 await buildController.init();
 
-await buildController.runBuildTask("core/reactive");
-await buildController.runBuildTask("core/renderer");
-await buildController.runBuildTask("core/router");
- await buildController.runBuildTask("core/style");
 
-await buildController.runBuildTask("libs/solenopsys/ui-controls");
-await buildController.runBuildTask("libs/solenopsys/ui-forms");
-await buildController.runBuildTask("libs/solenopsys/ui-lists");
-await buildController.runBuildTask("libs/solenopsys/ui-content");
+await buildController.runBuildTaskPack("@solenopsys/converged-reactive");
+ await buildController.runBuildTaskPack("@solenopsys/mf-content");
 
 
-await buildController.runBuildTask("libs/solenopsys/lt-website");
-await buildController.runBuildTask("libs/solenopsys/mf-landing");
+ //await buildController.runBuildTask("core/reactive");
+// await buildController.runBuildTask("core/renderer");
+// await buildController.runBuildTask("core/router");
+//  await buildController.runBuildTask("core/style");
+
+// await buildController.runBuildTask("libs/solenopsys/ui-controls");
+// await buildController.runBuildTask("libs/solenopsys/ui-forms");
+// await buildController.runBuildTask("libs/solenopsys/ui-lists");
+// await buildController.runBuildTask("libs/solenopsys/ui-content");
+
+
+// await buildController.runBuildTask("libs/solenopsys/lt-website");
+// await buildController.runBuildTask("libs/solenopsys/mf-landing");
