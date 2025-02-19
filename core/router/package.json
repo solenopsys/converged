@@ -28,17 +28,13 @@
 		"@solenopsys/converged-reactive": "workspace:*",
 		"@solenopsys/converged-renderer": "workspace:*"
 	},
-	"peerDependencies": {
-		"@solenopsys/converged-reactive": "workspace:*",
-		"@solenopsys/converged-renderer": "workspace:*"
-	},
-	"packageManager": "pnpm@9.12.2",
+ 
 	"dependencies": {
 		"@biomejs/biome": "^1.9.4",
 		"dts-bundle-generator": "^9.5.1"
 	},
 	"external": {
 		"@solenopsys/converged-reactive":"latest",
-		"@solenopsys/converged-renderer":"latest"
+		"@solenopsys/converged-renderer":"latest" 
 	}
 }

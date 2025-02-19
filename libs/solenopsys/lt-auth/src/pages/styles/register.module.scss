@@ -1,0 +1,25 @@
+input {
+    background-color: var(--inputBackground);
+    border: none;
+    padding: 5px;
+    border-radius: 3px;
+    width: auto;
+    height: 30px;
+    min-width: 250px;
+    border: 0.2px;
+    border-color: #6c6c6c;
+    border-style: solid;
+}
+
+.qrWrapper {
+    background-color: var(--inputBackground);
+    border: none;
+    padding: 5px;
+    border-radius: 3px;
+
+
+    border: 0.2px;
+    border-color: #6c6c6c;
+    border-style: solid;
+    text-align: center
+}

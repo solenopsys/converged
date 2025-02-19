@@ -1,0 +1,30 @@
+{
+  "name": "@solenopsys/lt-website",
+  "description": "Layout website",
+  "module": "src/index.tsx",
+  "type": "module",
+  "dependencies": {
+    "@solenopsys/converged-reactive": "workspace:*",
+    "@solenopsys/converged-renderer": "workspace:*",
+    "@solenopsys/converged-style": "workspace:*",
+    "@solenopsys/converged-router": "workspace:*",
+    "@solenopsys/ui-navigate": "workspace:*",
+    "@solenopsys/ui-layouts": "workspace:*",
+    "@solenopsys/ui-state": "workspace:*",
+     "@solenopsys/mi-auth": "workspace:*"
+  },
+  "devDependencies": { "browserslist": "^4.23.0", "lightningcss": "^1.24.1" },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "scripts": {
+    "bundle": "bun build.ts"
+  },
+  "external": {
+    "@solenopsys/mf-auth":"latest",
+    "@solenopsys/ui-navigate":"latest",
+    "@solenopsys/ui-controls":"latest",
+    "@solenopsys/ui-layouts":"latest",
+    "@solenopsys/ui-state":"latest"
+  }
+}

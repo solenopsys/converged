@@ -1,0 +1,24 @@
+{
+  "name": "@solenopsys/mf-content",
+  "module": "src/index.tsx",
+  "type": "module",
+  "dependencies": {   },
+  "peerDependencies": {
+    "@solenopsys/converged-reactive": "latest",
+    "@solenopsys/converged-renderer": "latest",
+    "@solenopsys/converged-style": "latest",
+    "@solenopsys/converged-router": "latest",
+    "@solenopsys/ui-content": "workspace:*",
+    "@solenopsys/ui-navigate": "workspace:*",
+    "typescript": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.0.0",
+    "bun-types": "latest"
+  },
+  "external": [
+    "@solenopsys/ui-content",
+    "@solenopsys/ui-navigate",
+    "@solenopsys/ui-state"
+  ]
+}

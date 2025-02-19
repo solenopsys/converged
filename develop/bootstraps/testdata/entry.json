@@ -1,0 +1,13 @@
+{
+	"layout": {
+		"module": { "@package": "@solenopsys/lt-website" },
+		"data": {
+			"@include": "./layout-conf.json"
+		}
+	},
+	"routes": {
+		"/": {
+			"module": { "@package": "@solenopsys/mf-landing" }
+		}
+	}
+}

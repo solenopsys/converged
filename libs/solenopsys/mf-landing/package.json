@@ -1,0 +1,22 @@
+{
+    "name": "@solenopsys/mf-landing",
+    "module": "src/index.tsx",
+    "description": "Microfrontend landing",
+    "type": "module",
+    "dependencies": {},
+    "devDependencies": {},
+    "peerDependencies": {
+        "@solenopsys/converged-reactive": "latest",
+        "@solenopsys/converged-renderer": "latest",
+        "@solenopsys/converged-style": "latest",
+        "@solenopsys/converged-router": "latest",
+        "@solenopsys/ui-landing": "workspace:*",
+        "typescript": "^5.0.0"
+    },
+    "scripts": {
+        "build": "bun ../../../build/build.ts"
+    },
+    "external": [
+        "@solenopsys/ui-navigate"
+    ]
+}

@@ -1,0 +1,23 @@
+{
+  "name": "@solenopsys/mf-code",
+  "module": "src/index.tsx",
+  "type": "module",
+  "dependencies": { 
+    "monaco-editor": "^0.49.0"
+
+    },
+  "peerDependencies": {
+    "@solenopsys/converged-reactive": "latest",
+    "@solenopsys/converged-renderer": "latest",
+    "@solenopsys/converged-style": "latest",
+    "@solenopsys/converged-router": "latest",
+
+    "typescript": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.0.0",
+    "bun-types": "latest"
+  },
+  "external": [
+  ]
+}

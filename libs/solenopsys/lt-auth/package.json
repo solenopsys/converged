@@ -1,0 +1,32 @@
+{
+  "name": "@solenopsys/lt-auth",
+  "description": "Authentication",
+  "module": "src/index.tsx",
+  "type": "module",
+  "dependencies": {
+    "@solenopsys/converged-reactive": "latest",
+    "@solenopsys/converged-renderer": "latest",
+    "@solenopsys/converged-router": "latest",
+    "@solenopsys/converged-style": "latest",
+    "@solenopsys/ui-state": "workspace:*",
+    "@solenopsys/ui-navigate": "workspace:*",
+    "@solenopsys/fl-crypto": "workspace:*",
+    "@solenopsys/ui-controls": "workspace:*",
+    "@solenopsys/ui-forms": "workspace:*"
+  },
+  "devDependencies": { "browserslist": "^4.23.0", "lightningcss": "^1.24.1" },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "scripts": {
+    "bundle": "bun build.ts"
+  },
+  "external": [
+    "@solenopsys/ui-forms",
+    "@solenopsys/ui-state",
+    "@solenopsys/ui-navigate",
+    "@solenopsys/fl-clusters",
+    "@solenopsys/ui-controls",
+    "@solenopsys/fl-crypto"
+  ]
+}

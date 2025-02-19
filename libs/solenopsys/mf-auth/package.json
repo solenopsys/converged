@@ -1,0 +1,30 @@
+{
+    "name": "@solenopsys/mf-auth",
+    "module": "src/index.tsx",
+    "description": "Microfrontend landing",
+    "type": "module",
+    "dependencies": {
+        "gapi": "^0.0.3",
+        "google-one-tap": "^1.0.6",
+        "jsonwebtoken": "^9.0.2",
+        "jwt-decode": "^4.0.0"
+    },
+    "devDependencies": {},
+    "peerDependencies": {
+        "@solenopsys/converged-reactive": "workspace:*",
+        "@solenopsys/converged-renderer": "workspace:*",
+        "@solenopsys/converged-style": "workspace:*",
+        "@solenopsys/converged-router": "workspace:*",
+        "@solenopsys/ui-forms": "workspace:*",
+        "@solenopsys/ui-controls": "workspace:*",
+        "typescript": "^5.0.0"
+    },
+    "scripts": {
+        "build": "bun ../../../build/build.ts"
+    },
+    "external": [
+        "@solenopsys/ui-navigate",
+        "@solenopsys/ui-forms",
+        "@solenopsys/ui-controls"
+    ]
+}

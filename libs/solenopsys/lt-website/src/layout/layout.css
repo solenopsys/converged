@@ -1,0 +1,26 @@
+ 
+
+html *
+{
+  font-family:Arial  ;
+  background-color: var(--main-bg-color);
+}
+
+
+a{color: black}
+a:active{color: red}
+
+/* 
+@font-face {
+  font-family: Roboto;
+  src:   url('/fonts/Mono/JetBrainsMono-Regular.ttf')  format('truetype');
+}
+
+
+@font-face {
+  font-family: "Roboto Light";
+  src:   url('/fonts/Mono/JetBrainsMono-Light.ttf')  format('truetype');
+}
+
+
+ */

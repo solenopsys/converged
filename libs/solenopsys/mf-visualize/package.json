@@ -1,0 +1,20 @@
+{
+    "name": "@solenopsys/mf-visualize",
+    "module": "src/index.tsx",
+  "type": "module",
+  "dependencies": {},
+  "peerDependencies": {
+    "@solenopsys/converged-reactive": "latest",
+    "@solenopsys/converged-renderer": "latest",
+    "@solenopsys/converged-style": "latest",
+    "@solenopsys/ui-3d": "workspace:../ui-3d",
+    "typescript": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.0.0",
+    "bun-types": "latest"
+  },
+  "external": [
+    "@solenopsys/ui-3d"
+  ]
+}

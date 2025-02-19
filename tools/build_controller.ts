@@ -148,7 +148,7 @@ export default class BuildController {
 	}
 
 	async runBuildTask(packDir: string): Promise<any> {
-		//this.cs.getHashDir(packDir);
+		//this.cs.getHashDir(packDir); dsfsd
 
 
 		const targetDir = this.rootDir + packDir;
