@@ -1,11 +1,12 @@
 import { readdirSync, fstatSync, openSync, existsSync } from "node:fs";
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
 import { join } from "node:path";
-import { indexHtmlTransform } from "./compile/html.ts";
-import { CacheController } from "./services/cache_controller.ts";
+import { indexHtmlTransform } from "./compile/html";
 import { hash } from "node:crypto";
+import buildController from "./init";
 
-const cacheController = new CacheController("./cache");
+
+
 
 export async function indexBuild(
 	dirPath: string,
@@ -48,6 +49,34 @@ function typeMap(type: string) {
 		default:
 			return "application/octet-stream";
 	}
+}
+
+function wrapTarget(target: string) {
+	return `/kvs/http/${target}`;
+}
+
+async function configMapConvert(conf: {
+	package: string;
+	external: Record<string, string>;
+}) {
+	console.log("obj", conf);
+	const libHash = await cacheController.cs.getPackHash(conf.package);
+	console.log("libHash", libHash);
+
+	Object.keys(conf.external).forEach(async (key) => {
+		let packHash = await cacheController.cs.getPackHash(key);
+		if(!packHash){
+			
+			 const hash = await buildController.runBuildTaskPack(key);
+			 //@ts-ignore
+			 packHash=hash;
+		}
+		conf.external[key] = wrapTarget(packHash);
+	});
+
+	const map: any = {};
+	map[wrapTarget(libHash)] = conf.external;
+	return map;
 }
 
 async function startServer(port: number, bsDir: string, rootDir: string) {
@@ -94,8 +123,16 @@ async function startServer(port: number, bsDir: string, rootDir: string) {
 			return buffer;
 		})
 		.get("/map/:key", async ({ params, set }) => {
-			const conf=cacheController.getImportConf(params.key);
-			return JSON.stringify(conf);
+			const conf = await cacheController.getImportConf(params.key);
+
+			const map = await configMapConvert(conf);
+
+			set.headers = {
+				"Content-Type": "application/json",
+			};
+
+			console.log("map", map);
+			return JSON.stringify(map);
 		})
 
 		.listen(port, () => {

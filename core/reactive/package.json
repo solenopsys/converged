@@ -35,5 +35,5 @@
   "dependencies": {
     "dts-bundle-generator": "^9.5.1"
   },
-  "external": []
+  "external": {}
 }

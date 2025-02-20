@@ -36,6 +36,9 @@ export class CacheStore {
 		return this.db.data.compileMapping[hashKey];
 	}
 
+	async getPackHash(packName:string) {
+		return this.db.data.packMapping[packName];
+	}
 
 
 	async setHashDir(packName:string, importConfHash:string, hashKey:string, hashValue:string) {

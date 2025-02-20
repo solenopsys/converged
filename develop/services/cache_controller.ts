@@ -64,7 +64,7 @@ export class CacheController{
   }
 
    async  readFile(hash: string):Promise<{buffer:ArrayBuffer,type:string,compressed:boolean}> {
-      const data= await this.readBunFile(hash).ArrayBuffer()
+      const data= await (await this.readBunFile(hash)).arrayBuffer();
       const {type,compressed}= await this.cs.getMeta(hash);
       console.log("read",type,compressed)
 

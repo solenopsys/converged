@@ -1,30 +1,9 @@
-import BuildController from "./develop/services/build_controller";
-import CacheStore from "./develop/services/store";
-
-const rootDir = "/home/alexstorm/distrib/hyperconverged/";
-const cacheDir = "/home/alexstorm/distrib/hyperconverged/cache";
-// make dir store
-const store = `${cacheDir}/store`;
-import { promises as fs } from "fs";
-
-if (!(await fs.exists(store))) {
-    await fs.mkdir(cacheDir);
-	await fs.mkdir(store);
-}
-
-const buildController = new BuildController(rootDir, cacheDir);
-
-buildController.ws.addDefaultExternal("@solenopsys/converged-reactive");
-buildController.ws.addDefaultExternal("@solenopsys/converged-renderer");
-buildController.ws.addDefaultExternal("@solenopsys/converged-router");
-buildController.ws.addDefaultExternal("@solenopsys/converged-style");
-
-await buildController.init();
+import buildController from "./develop/init";
 
 
-await buildController.runBuildTaskPack("@solenopsys/converged-reactive");
- await buildController.runBuildTaskPack("@solenopsys/mf-content");
-
+//await buildController.runBuildTaskPack("@solenopsys/converged-reactive");
+ //await buildController.runBuildTaskPack("@solenopsys/ui-navigate");
+ await buildController.runBuildTask("libs/solenopsys/ui-navigate");
 
  //await buildController.runBuildTask("core/reactive");
 // await buildController.runBuildTask("core/renderer");

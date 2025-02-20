@@ -43,5 +43,6 @@
     "clean": "rm -rf dist",
     "bundle-all": "bun run clean && bun run bundle && bun run bundle-lightningcss && bun run types",
     "package": "bun run format && bun run bundle-all &&  npm publish --access public"
-  }
+  },
+  "external": {}
 }

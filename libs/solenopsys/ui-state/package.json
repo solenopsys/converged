@@ -1,10 +1,11 @@
 {
   "name": "@solenopsys/ui-state",
-  "module": "src/index.tsx",
+  "module": "src/index.ts",
   "type": "module",
   "dependencies": {
     "@solenopsys/converged-reactive": "workspace:*",
-    "@solenopsys/converged-renderer": "workspace:*"
+    "@solenopsys/converged-renderer": "workspace:*",
+    "@solenopsys/converged-router": "workspace:*"
   
   },
   "peerDependencies": {
