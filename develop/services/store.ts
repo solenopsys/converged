@@ -44,6 +44,10 @@ export class CacheStore {
 		this.db.data.importconfMapping[hashValue] = importConfHash;
 		await this.db.write();
 	}
+
+	async getImportConf(hash:string){
+		return this.db.data.importconfMapping[hash]
+	}
 }
 
 export default CacheStore;

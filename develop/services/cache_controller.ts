@@ -3,9 +3,10 @@ import { join } from "node:path";
 import { brotliCompressData } from "../tools/compress";
 import {generateHash} from "../tools/hash";
  import { CacheStore } from "./store";
+ import { BunFile } from "bun";
 
 export class CacheController{
-   private cs:CacheStore
+   public readonly cs:CacheStore
  
    constructor(private cacheDir:string ){
       this.cs = new CacheStore(`${cacheDir}/meta.json`);
@@ -40,22 +41,34 @@ export class CacheController{
       return hash;
   }
 
-   async saveFromTemp(fileName,type:string,compress:boolean){
+  async getImportConf(hash:string){
+     const targetHash= await this.cs.getImportConf(hash)
+     const jsonData=await (await this.readBunFile(targetHash)).json()
+     console.log("getImportConf",jsonData)
+      return jsonData
+  }
+
+   async saveFromTemp(fileName:string,type:string,compress:boolean){
       const fullPath = join(this.cacheDir,"temp", fileName);
       const content=  await Bun.file(fullPath).arrayBuffer() ;
 
       this.saveFile(content,type,compress)
    }
 
-   async  readFile(hash: string):Promise<{buffer:ArrayBuffer,type:string,compressed:boolean}> {
-      const fullPath = join(this.cacheDir,"store", hash);
+   async  readBunFile(hash: string):Promise<BunFile> {
+    const fullPath = join(this.cacheDir,"store", hash);
 
-      console.log("read",fullPath)
-      const html= await Bun.file(fullPath).arrayBuffer()
+    console.log("read",fullPath)
+    return await Bun.file(fullPath) 
+     
+  }
+
+   async  readFile(hash: string):Promise<{buffer:ArrayBuffer,type:string,compressed:boolean}> {
+      const data= await this.readBunFile(hash).ArrayBuffer()
       const {type,compressed}= await this.cs.getMeta(hash);
       console.log("read",type,compressed)
 
-      return {buffer:html,type:type,compressed:compressed }
+      return {buffer:data,type:type,compressed:compressed }
     }
 
 }

@@ -14,7 +14,7 @@ export function indexHtmlTransform(
 
 			if (el.tagName === "script") {
 				if (el.getAttribute("type") === "module") {
-					const src = `\nconst entry=JSON.parse(\`${entry}\`);\n${indexJs}`  ;
+					const src = `\nconst entry=JSON.parse(\`${JSON.stringify(entry)}\`);\n${indexJs}`  ;
 
 					el.setInnerContent(src, { html: false });
 				}
