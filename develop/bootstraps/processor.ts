@@ -75,7 +75,7 @@ class JsonFieldProcessor {
 		};
 
 		// Регистрируем процессоры
-		this.processorRegistry.register(new FileHandler(bc.cc));
+		this.processorRegistry.register(new FileHandler(bc.cc,bootstrapDir));
 		this.processorRegistry.register(new IncludeHandler(includeProcess));
 		this.processorRegistry.register(new RemoteHandler(remoteProcess));
 		this.processorRegistry.register(new PackageHandler(bc));

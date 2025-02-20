@@ -1,29 +1,37 @@
 {
   "importconfMapping": {
-    "41e959577f2e0216c350d1b77aa6288d235fcf37130022d88ea3fa4748ea5d20": "7c3f5df5dc8cca876cf2bad939b7a580aae870dfc7be3a3ff6cb624331f5e070"
+    "28de17f43abae94df219c8d7f0915db38a7fe1776926e4d29f085edc756e4438": "7c3f5df5dc8cca876cf2bad939b7a580aae870dfc7be3a3ff6cb624331f5e070"
   },
   "compileMapping": {
-    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": "41e959577f2e0216c350d1b77aa6288d235fcf37130022d88ea3fa4748ea5d20"
+    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": "28de17f43abae94df219c8d7f0915db38a7fe1776926e4d29f085edc756e4438"
   },
   "packMapping": {
-    "@solenopsys/ui-navigate": "41e959577f2e0216c350d1b77aa6288d235fcf37130022d88ea3fa4748ea5d20"
+    "@solenopsys/ui-navigate": "28de17f43abae94df219c8d7f0915db38a7fe1776926e4d29f085edc756e4438"
   },
   "meta": {
-    "41e959577f2e0216c350d1b77aa6288d235fcf37130022d88ea3fa4748ea5d20": {
+    "4345156a7a127f1700884dd2afae7078d68d7ab321a54f2283afbe55a554a0c2": {
+      "type": "html",
+      "compressed": true
+    },
+    "eecdc9c254e2c1e63aff9bf7006ab7599c3373d8ae4057a955776bcbb719d185": {
+      "type": "html",
+      "compressed": true
+    },
+    "307f3ad97621ad20b455b4b7fb5f4b458328e1d356b27b61d1197e6ffaa9cd98": {
+      "type": "html",
+      "compressed": true
+    },
+    "28de17f43abae94df219c8d7f0915db38a7fe1776926e4d29f085edc756e4438": {
       "type": "js",
       "compressed": true
     },
-    "823cf37c9b15c281be7136bd155895ce4024873c5b499d7704bdcf88bfb96e32": {
+    "a051a3a82f535b7a4c0a59b07cc5c35dac68f6af53293cd2c87f915c013ca140": {
       "type": "json",
       "compressed": true
     },
     "7c3f5df5dc8cca876cf2bad939b7a580aae870dfc7be3a3ff6cb624331f5e070": {
       "type": "json",
       "compressed": false
-    },
-    "61f6b8f9cd36ed8bf85c455875b6f4ab54d425ac7e177b0b3450a2b23950f319": {
-      "type": "json",
-      "compressed": true
     },
     "99fc74b642ee36a89f9a056fe0e6cb0bbaa178f9a0b430a3949656f152dd7447": {
       "type": "svg",
@@ -32,10 +40,6 @@
     "90df25206c6ad4009c1fe0c92497634e2fcf67bd63bc498b2e487feb5b7d6477": {
       "type": "svg",
       "compressed": false
-    },
-    "1e490038c2316a0d6488192d2b595e543788dc01895ad4b3e0898847a7ec3fd7": {
-      "type": "json",
-      "compressed": true
     }
   }
 }
