@@ -3,8 +3,7 @@ import type {
 	FieldHandler,
 	SpecialField,
 } from "../processor.ts";
-
-import BuildController from "../../services/build_controller";
+ 
 
 // Дополнительные процессоры можно добавлять здесь
 export class IncludeHandler implements FieldHandler {

@@ -1,33 +1,64 @@
 import { readdirSync, fstatSync, openSync,existsSync } from "node:fs";
 
 import { createHash } from "node:crypto";
-import { readdir, readFile, stat } from "node:fs/promises";
-import { join } from "node:path";
+import { readdir, readFile, stat } from "fs/promises";
+import path, { join } from "node:path";
+import { promises as fs } from "node:fs";
+import { resolve } from 'path';
 
-export async function getDirectoryHash(dirPath: string) {
-  const hash = createHash("sha256");
+async function isDirectory(path: string): Promise<boolean> {
+	try { 
+	  const stats = await fs.lstat(path);
+	  return stats.isDirectory();
+	} catch {
+	  return false;
+	}
+  }
 
-  try {
-	const files = await readdir(dirPath, { recursive: true });
-	for (const file of files.sort()) {
-		const fullPath = join(dirPath, file);
-		const stats = await stat(fullPath);
-		
-		if (stats.isFile()) {  // Проверяем, что это файл, а не директория
+
+export async function getFiles(dirPath: string): Promise<string[]> {
+	try {
+ 
+		console.log("dirPath",dirPath)
+	  const entries = await readdir(dirPath, { withFileTypes: true ,recursive:true });
+	  return entries
+		.filter(entry => !entry.isDirectory())
+		.map(entry => path.join(entry.parentPath, entry.name));
+	} catch (error) {
+	  console.error(`Error reading directory ${dirPath}:`, error);
+	  throw error;
+	}
+  }
+
+export async function getDirectoryHash(dirPath: string): Promise<string> {
+	const hash = createHash("sha256");
+  
+	try { 
+	  // Получаем список всех файлов в директории и поддиректориях
+	  const files = await getFiles(dirPath);
+
+	  console.log("files",files)
+  
+	  // Сортируем файлы для получения стабильного хеша
+	  for (const relativePath of files.sort()) {
+		const fullPath = join(dirPath, relativePath);
+		 
+		// Обрабатываем только файлы, пропускаем директории
+		if (await isDirectory(fullPath)) {
 		  const content = await readFile(fullPath);
 		  hash.update(content);
+		  
+		  // Добавляем путь к файлу в хеш, чтобы учитывать структуру директории
+		  hash.update(relativePath);
 		}
 	  }
-	  
-	  return hash.digest("hex");
-  } catch( e ){
-    console.error(e)
-	throw e
-  }
- 
   
- 
-}
+	  return hash.digest("hex");
+	} catch (error) {
+	  console.error("Error calculating directory hash:", error);
+	  throw error;
+	}
+  }
 
 export function extractBootstrapsDirs(rootDir: string): {
 	[name: string]: string;

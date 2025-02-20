@@ -1,7 +1,7 @@
 {
   "name": "@solenopsys/lt-website",
   "description": "Layout website",
-  "module": "src/index.tsx",
+  "module": "src/index.ts",
   "type": "module",
   "dependencies": {
     "@solenopsys/converged-reactive": "workspace:*",

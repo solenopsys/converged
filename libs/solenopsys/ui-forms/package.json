@@ -1,6 +1,6 @@
 {
   "name": "@solenopsys/ui-forms",
-  "module": "src/index.tsx",
+  "module": "src/index.ts",
   "type": "module",
   "dependencies": {},
   "peerDependencies": {

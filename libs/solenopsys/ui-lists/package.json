@@ -1,6 +1,6 @@
 {
   "name": "@solenopsys/ui-lists",
-  "module": "index.tsx",
+  "module": "index.ts",
   "type": "module",
   "dependencies": {},
   "peerDependencies": {

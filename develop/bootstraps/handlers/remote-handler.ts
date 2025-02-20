@@ -13,7 +13,7 @@ export class RemoteHandler implements FieldHandler {
     constructor(private recurseProcess:(fileName:string)=>Promise<string>){}
 
 	filedName(): string {
-		return "@include";
+		return "@remote";
 	}
 
 	async process(field: SpecialField): Promise<JsonObject> {

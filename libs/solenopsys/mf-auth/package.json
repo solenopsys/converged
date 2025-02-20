@@ -1,6 +1,6 @@
 {
     "name": "@solenopsys/mf-auth",
-    "module": "src/index.tsx",
+    "module": "src/index.ts",
     "description": "Microfrontend landing",
     "type": "module",
     "dependencies": {

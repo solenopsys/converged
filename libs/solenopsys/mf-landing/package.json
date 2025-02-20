@@ -1,6 +1,6 @@
 {
     "name": "@solenopsys/mf-landing",
-    "module": "src/index.tsx",
+    "module": "src/index.ts",
     "description": "Microfrontend landing",
     "type": "module",
     "dependencies": {},

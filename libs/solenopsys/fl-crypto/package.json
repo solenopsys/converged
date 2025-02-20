@@ -1,6 +1,6 @@
 {
   "name": "@solenopsys/fl-crypto",
-  "module": "src/index.tsx",
+  "module": "src/index.ts",
   "description": "Cryptography library",
   "type": "module",
   "dependencies": { "buffer": "^6.0.3" },

@@ -1,6 +1,6 @@
 {
   "name": "@solenopsys/ui-controls",
-  "module": "index.tsx",
+  "module": "index.ts",
   "type": "module",
   "dependencies": {
 

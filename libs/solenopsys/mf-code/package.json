@@ -1,6 +1,6 @@
 {
   "name": "@solenopsys/mf-code",
-  "module": "src/index.tsx",
+  "module": "src/index.ts",
   "type": "module",
   "dependencies": { 
     "monaco-editor": "^0.49.0"

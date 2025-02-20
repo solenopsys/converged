@@ -1,14 +1,15 @@
-import CacheStore from "./store.ts";
-import WorkersService from "./worker_serivice.ts";
+import CacheStore from "./store";
+import {CacheController} from "./cache_controller";
+import WorkersService from "./worker_serivice";
 
 import { join } from "node:path";
 import { rename } from "node:fs/promises";
-import { getDirectoryHash } from "../tools/dirs.ts";
-import { generateHash } from "../tools/hash.ts";
-import { brotliCompressFile } from "../tools/compress.ts";
-import { fixDebugId } from "../tools/debug.ts";
+import { getDirectoryHash } from "../tools/dirs";
+import { generateHash } from "../tools/hash";
+import { brotliCompressFile } from "../tools/compress";
+import { fixDebugId } from "../tools/debug";
 
-import { externalsLoad } from "../tools/external.ts";
+import { externalsLoad } from "../tools/external";
 
 async function fileHash(filePath: string) {
 	const fileContent = await Bun.file(filePath).arrayBuffer();
@@ -72,20 +73,18 @@ async function findPackageRoot(modulePath: string): Promise<string> {
 
 export default class BuildController {
 	public readonly ws: WorkersService;
-	private cs: CacheStore;
+	public  readonly cc: CacheController;
 
 	constructor(
 		private rootDir: string,
 		private cacheDir: string,
 	) {
-		this.cs = new CacheStore(`${cacheDir}/meta.json`);
+		this.cc = new CacheController(cacheDir);
 		const buildWorker = new Worker("./develop/compile/workers/build.ts");
 		this.ws = new WorkersService(buildWorker);
 	}
 
-	async init() {
-		await this.cs.init();
-	}
+	 
 
 	
 
@@ -117,7 +116,7 @@ export default class BuildController {
 
 		
 		// todo refactoring move to cacheController
-		const libHash=await this.cs.getHashDir(dirHash)
+		const libHash=await this.cc.cs.getHashDir(dirHash)
 		const libPath=join(this.cacheDir, `/store/${libHash}`);
 		// check exists
 
@@ -140,8 +139,8 @@ export default class BuildController {
 			const tempPath = this.cacheDir + "/temp/";
 			await fixDebugId(tempPath, script, map);
 			const { jsHash,mapHash } = await hashRename(tempPath, script, map);
-			await this.cs.setMeta(jsHash, "js", true);
-			await this.cs.setMeta(mapHash, "json", true);
+			await this.cc.cs.setMeta(jsHash, "js", true);
+			await this.cc.cs.setMeta(mapHash, "json", true);
 
 			const fileContent = JSON.stringify(externalsConfig);
 			const configHash = generateHash(Buffer.from(fileContent));
@@ -149,9 +148,9 @@ export default class BuildController {
 					// todo refactoring move to cacheController
 
 			await Bun.write(inportConfig, fileContent);
-			await this.cs.setMeta(configHash, "json", false);
+			await this.cc.cs.setMeta(configHash, "json", false);
 
-			this.cs.setHashDir(externalsConfig.package, configHash, dirHash, jsHash);
+			this.cc.cs.setHashDir(externalsConfig.package, configHash, dirHash, jsHash);
 			return jsHash;
 		} 
 	}

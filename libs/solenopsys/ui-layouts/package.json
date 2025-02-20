@@ -1,6 +1,6 @@
 {
   "name": "@solenopsys/ui-layouts",
-  "module": "src/index.tsx",
+  "module": "src/index.ts",
   "type": "module",
   "dependencies": {
     "@solenopsys/converged-reactive": "workspace:*",

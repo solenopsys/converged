@@ -1,33 +1,29 @@
 {
   "importconfMapping": {
-    "02a2659d6f814b0a03f28af23731f94352b870e03ff3bb54693cf5827a463399": "7c3f5df5dc8cca876cf2bad939b7a580aae870dfc7be3a3ff6cb624331f5e070"
+    "41e959577f2e0216c350d1b77aa6288d235fcf37130022d88ea3fa4748ea5d20": "7c3f5df5dc8cca876cf2bad939b7a580aae870dfc7be3a3ff6cb624331f5e070"
   },
   "compileMapping": {
-    "c239f0bb6e098419b78cce7336b3da2315506546fb961350a7bcd84b5a63828b": "02a2659d6f814b0a03f28af23731f94352b870e03ff3bb54693cf5827a463399"
+    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": "41e959577f2e0216c350d1b77aa6288d235fcf37130022d88ea3fa4748ea5d20"
   },
   "packMapping": {
-    "@solenopsys/ui-navigate": "02a2659d6f814b0a03f28af23731f94352b870e03ff3bb54693cf5827a463399"
+    "@solenopsys/ui-navigate": "41e959577f2e0216c350d1b77aa6288d235fcf37130022d88ea3fa4748ea5d20"
   },
   "meta": {
-    "4345156a7a127f1700884dd2afae7078d68d7ab321a54f2283afbe55a554a0c2": {
-      "type": "html",
-      "compressed": true
-    },
-    "eecdc9c254e2c1e63aff9bf7006ab7599c3373d8ae4057a955776bcbb719d185": {
-      "type": "html",
-      "compressed": true
-    },
-    "02a2659d6f814b0a03f28af23731f94352b870e03ff3bb54693cf5827a463399": {
+    "41e959577f2e0216c350d1b77aa6288d235fcf37130022d88ea3fa4748ea5d20": {
       "type": "js",
       "compressed": true
     },
-    "17f461ff33b20ac146e8194b91115348a317e139c0105b1abae99d258857ac12": {
+    "823cf37c9b15c281be7136bd155895ce4024873c5b499d7704bdcf88bfb96e32": {
       "type": "json",
       "compressed": true
     },
     "7c3f5df5dc8cca876cf2bad939b7a580aae870dfc7be3a3ff6cb624331f5e070": {
       "type": "json",
       "compressed": false
+    },
+    "61f6b8f9cd36ed8bf85c455875b6f4ab54d425ac7e177b0b3450a2b23950f319": {
+      "type": "json",
+      "compressed": true
     }
   }
 }

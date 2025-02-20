@@ -60,11 +60,11 @@ async function configMapConvert(conf: {
 	external: Record<string, string>;
 }) {
 	console.log("obj", conf);
-	const libHash = await cacheController.cs.getPackHash(conf.package);
+	const libHash = await buildController.cc.cs.getPackHash(conf.package);
 	console.log("libHash", libHash);
 
 	Object.keys(conf.external).forEach(async (key) => {
-		let packHash = await cacheController.cs.getPackHash(key);
+		let packHash = await buildController.cc.cs.getPackHash(key);
 		if(!packHash){
 			
 			 const hash = await buildController.runBuildTaskPack(key);
@@ -82,14 +82,14 @@ async function configMapConvert(conf: {
 async function startServer(port: number, bsDir: string, rootDir: string) {
 	const html: string = await indexBuild(rootDir, bsDir);
 
-	const currentHash = await cacheController.saveFile(html, "html", true);
+	const currentHash = await buildController.cc.saveFile(html, "html", true);
 
 	new Elysia()
 		.get("/", async ({ set }) => {
 			console.log("READ ", currentHash);
 			// Read the cached file
 			const { buffer, type, compressed } =
-				await cacheController.readFile(currentHash);
+				await buildController.cc.readFile(currentHash);
 
 			console.log("read", type, compressed, hash);
 
@@ -106,7 +106,7 @@ async function startServer(port: number, bsDir: string, rootDir: string) {
 			return buffer;
 		})
 		.get("/kvs/http/:key", async ({ params, set }) => {
-			const { buffer, type, compressed } = await cacheController.readFile(
+			const { buffer, type, compressed } = await buildController.cc.readFile(
 				params.key,
 			);
 
@@ -123,7 +123,7 @@ async function startServer(port: number, bsDir: string, rootDir: string) {
 			return buffer;
 		})
 		.get("/map/:key", async ({ params, set }) => {
-			const conf = await cacheController.getImportConf(params.key);
+			const conf = await buildController.cc.getImportConf(params.key);
 
 			const map = await configMapConvert(conf);
 

@@ -21,7 +21,6 @@ buildController.ws.addDefaultExternal("@solenopsys/converged-reactive");
 buildController.ws.addDefaultExternal("@solenopsys/converged-renderer");
 buildController.ws.addDefaultExternal("@solenopsys/converged-router");
 buildController.ws.addDefaultExternal("@solenopsys/converged-style");
-
-await buildController.init();
+ 
 
 export default buildController;
