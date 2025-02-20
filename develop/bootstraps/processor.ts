@@ -58,15 +58,19 @@ class JsonFieldProcessor {
 	) {
 		this.processorRegistry = new SpecialFieldHandlersRegistry();
 
-		const remoteProcess = (fileName: string) => {
-			const inputJson = Bun.file(join(bootstrapDir, fileName)).json();
-			const result = this.process(inputJson);
+		const remoteProcess = async (fileName: string) => {
+			const inputJson = await Bun.file(join(bootstrapDir, fileName)).json();
+			const result =await this.process(inputJson);
 			return bc.cc.saveFile(JSON.stringify(result), "json", true);
 		};
 
-		const includeProcess = (fileName: string) => {
-			const inputJson = Bun.file(join(bootstrapDir, fileName)).json();
-			const result = this.process(inputJson);
+		const includeProcess = async (fileName: string) => {
+            //INCLUDE PROCESS
+            console.log("NCLUDE PROCESS",fileName)
+			const inputJson = await Bun.file(join(bootstrapDir, fileName)).json();
+            console.log("INCLUDE DATA1",inputJson)
+			const result =await this.process(inputJson);
+            console.log("INCLUDE DATA",result)
 			return result;
 		};
 

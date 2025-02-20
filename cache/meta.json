@@ -24,6 +24,18 @@
     "61f6b8f9cd36ed8bf85c455875b6f4ab54d425ac7e177b0b3450a2b23950f319": {
       "type": "json",
       "compressed": true
+    },
+    "99fc74b642ee36a89f9a056fe0e6cb0bbaa178f9a0b430a3949656f152dd7447": {
+      "type": "svg",
+      "compressed": false
+    },
+    "90df25206c6ad4009c1fe0c92497634e2fcf67bd63bc498b2e487feb5b7d6477": {
+      "type": "svg",
+      "compressed": false
+    },
+    "1e490038c2316a0d6488192d2b595e543788dc01895ad4b3e0898847a7ec3fd7": {
+      "type": "json",
+      "compressed": true
     }
   }
 }
