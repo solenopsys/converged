@@ -1,12 +1,18 @@
 
 
+
+
+
+
 export function indexHtmlTransform(
 	indexHtmlBody: string,
 	indexJs: string,
-	imports: object,
+	importmap: object,
 	entry: object ,
 ): string {
 	const rewriter = new HTMLRewriter();
+
+	console.log("IMPORTMAP1",importmap)
 
 	rewriter.on("*", {
 		element(el) {
@@ -14,12 +20,14 @@ export function indexHtmlTransform(
 
 			if (el.tagName === "script") {
 				if (el.getAttribute("type") === "module") {
-					const src = `\nconst entry=JSON.parse(\`${JSON.stringify(entry)}\`);\n${indexJs}`  ;
+					const src = `\nconst entry=JSON.parse(\`${JSON.stringify(entry, null, 2)}\`);\n${indexJs}
+					`  ;
 
 					el.setInnerContent(src, { html: false });
 				}
 				if (el.getAttribute("type") === "importmap") {
-					el.setInnerContent(JSON.stringify({ imports }), { html: false });
+					el.setInnerContent(JSON.stringify(importmap, null, 2)
+					, { html: false });
 				}
 			}
 		},

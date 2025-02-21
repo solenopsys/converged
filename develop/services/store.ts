@@ -1,6 +1,18 @@
 import { Low } from "lowdb";
 import { JSONFile } from "lowdb/node";
 
+let cacheStore:CacheStore;
+
+
+export function createCacheStore(filePath:string){
+	if (cacheStore){
+		return cacheStore;
+	}
+	cacheStore = new CacheStore(filePath);
+	cacheStore.init();
+	return cacheStore;
+}
+
 export class CacheStore {
 	db: Low<{
 		meta: Record<string, { type: string; compressed: boolean }>;
@@ -9,6 +21,8 @@ export class CacheStore {
 		importconfMapping: Record<string, string>;
 	}>;
 	constructor(filePath:string) {
+
+		console.log("CacheStore START", filePath)
 		const defaultData = {
 			importconfMapping: {},
 			compileMapping: {},

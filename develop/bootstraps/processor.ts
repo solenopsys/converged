@@ -80,16 +80,16 @@ class JsonFieldProcessor {
 		this.processorRegistry.register(new RemoteHandler(remoteProcess));
 		this.processorRegistry.register(new PackageHandler(bc));
 
-        console.log("HANDLERS",this.processorRegistry.handlers)
+       // console.log("HANDLERS",this.processorRegistry.handlers)
 	}
 
-	async processDir() {
+	async processDir(): Promise<object>{
 		const inputJson = await Bun.file(
 			join(this.bootstrapDir, "entry.json"),
 		).json();
 
 		const result = await this.process(inputJson);
-		console.log(JSON.stringify(result, null, 2));
+		return result;
 	}
 
 	private async process(jsonObject: any): Promise<JsonObject> {

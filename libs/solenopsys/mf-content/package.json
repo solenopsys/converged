@@ -4,10 +4,10 @@
   "type": "module",
   "dependencies": {   },
   "peerDependencies": {
-    "@solenopsys/converged-reactive": "latest",
-    "@solenopsys/converged-renderer": "latest",
-    "@solenopsys/converged-style": "latest",
-    "@solenopsys/converged-router": "latest",
+    "@solenopsys/converged-reactive": "workspace:*",
+    "@solenopsys/converged-renderer": "workspace:*",
+    "@solenopsys/converged-style": "workspace:*",
+    "@solenopsys/converged-router": "workspace:*",
     "@solenopsys/ui-content": "workspace:*",
     "@solenopsys/ui-navigate": "workspace:*",
     "typescript": "^5.0.0"

@@ -10,10 +10,10 @@
     "bun-types": "latest"
   },
   "peerDependencies": {
-    "@solenopsys/converged-reactive": "latest",
-    "@solenopsys/converged-renderer": "latest",
-    "@solenopsys/converged-style": "latest",
-    "@solenopsys/converged-router": "latest",
+    "@solenopsys/converged-reactive": "workspace:*",
+    "@solenopsys/converged-renderer": "workspace:*",
+    "@solenopsys/converged-style": "workspace:*",
+    "@solenopsys/converged-router": "workspace:*",
     "typescript": "^5.0.0",
     "bip39": "latest",
     "moment": "^2.29.4",

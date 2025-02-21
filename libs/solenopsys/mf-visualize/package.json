@@ -4,10 +4,10 @@
   "type": "module",
   "dependencies": {},
   "peerDependencies": {
-    "@solenopsys/converged-reactive": "latest",
-    "@solenopsys/converged-renderer": "latest",
-    "@solenopsys/converged-style": "latest",
-    "@solenopsys/ui-3d": "workspace:../ui-3d",
+    "@solenopsys/converged-reactive": "workspace:*",
+    "@solenopsys/converged-renderer": "workspace:*",
+    "@solenopsys/converged-style": "workspace:*",
+    "@solenopsys/ui-3d": "workspace:*",
     "typescript": "^5.0.0"
   },
   "devDependencies": {

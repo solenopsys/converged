@@ -11,7 +11,7 @@ function setFavicon(href:string){
 }
 
 
-export { createLayout } from "./init.tsx";
+export { createLayout } from "./init";
 
 document.documentElement.style.setProperty(`--control-color`, "blue");
 //document.documentElement.style.setProperty(`--main-bg-color`, "white");

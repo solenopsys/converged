@@ -20,7 +20,7 @@
   "scripts": {
     "bundle": "bun build.ts"
   },
-  "external": {
+  "external": { 
     "@solenopsys/mf-auth":"latest",
     "@solenopsys/ui-navigate":"latest",
     "@solenopsys/ui-controls":"latest",

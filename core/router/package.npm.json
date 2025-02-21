@@ -3,7 +3,15 @@
 	"description": "Universal router for Converged",
 	"version": "0.2.5",
 	"type": "module",
-	"main": "./src/index.ts",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"import": "./dist/index.js",
+			"types": "./dist/index.d.ts"
+		}
+	},
+	"files": ["dist"],
 	"sideEffects": false,
 	"scripts": {
 		"update-packs":"npx npm-check-updates -u && bun i",

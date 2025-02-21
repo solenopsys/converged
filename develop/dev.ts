@@ -2,14 +2,11 @@ import { readdirSync, fstatSync, openSync, existsSync } from "node:fs";
 
 import { join } from "node:path";
 import { indexHtmlTransform } from "./compile/html";
-import { hash } from "node:crypto";
 import buildController from "./init";
 import { serverInit } from "./server";
 
-import BuildController from "./services/build_controller"
+import BuildController from "./services/build_controller";
 import { JsonFieldProcessor } from "./bootstraps/processor";
-
-
 
 async function configMapConvert(conf: {
 	package: string;
@@ -19,16 +16,13 @@ async function configMapConvert(conf: {
 	const libHash = await buildController.cc.cs.getPackHash(conf.package);
 	console.log("libHash", libHash);
 
-	Object.keys(conf.external).forEach(async (key) => {
+	await Promise.all(Object.keys(conf.external).map(async (key) => {
 		let packHash = await buildController.cc.cs.getPackHash(key);
-		if(!packHash){
-			
-			 const hash = await buildController.runBuildTaskPack(key);
-			 //@ts-ignore
-			 packHash=hash;
+		if (packHash === undefined) {
+			packHash = await buildController.runBuildTaskPack(key);
 		}
 		conf.external[key] = wrapTarget(packHash);
-	});
+	}));
 
 	const map: any = {};
 	map[wrapTarget(libHash)] = conf.external;
@@ -39,15 +33,28 @@ async function startServer(port: number, bsDir: string, rootDir: string) {
 	const html: string = await indexBuild(rootDir, bsDir);
 
 	const currentHash = await buildController.cc.saveFile(html, "html", true);
- 
-	 
-	const bc = new BuildController("./","./cache");
 
-	const processor=new JsonFieldProcessor(bc,bsDir);
-	const result = await processor.processDir( );
-	console.log(JSON.stringify(result, null, 2));
+	serverInit(
+		port,
+		bsDir,
+		rootDir,
+		currentHash,
+		buildController,
+		configMapConvert,
+	);
+}
 
-    serverInit(	port,bsDir,rootDir,currentHash,buildController,configMapConvert)
+async function buildIndexJs(external: string[]) {
+	await Bun.build({
+		entryPoints: ["./develop/html/entry.ts"],
+		outdir: "./templates",
+		minify: true,
+		target: "browser",
+		define: {
+			"process.env.NODE_ENV": '"production"',
+		},
+		external,
+	});
 }
 
 export async function indexBuild(
@@ -58,26 +65,52 @@ export async function indexBuild(
 		join(dirPath, "./templates/index.html"),
 	).text();
 	const scriptString = await Bun.file(
-		join(dirPath, "./templates/index.js"),
+		join(dirPath, "./templates/entry.js"),
 	).text();
-	const entryString = await Bun.file(join(dirBs, "/entry.json")).json();
 
-	const importMap = {};
+	const bc = new BuildController("./", "./cache");
+
+	const processor = new JsonFieldProcessor(bc, dirBs);
+	const result: any = await processor.processDir();
+
+	const jsHash = result?.layout?.module["@hash"];
+
+	const externals = Object.keys(buildController.ws.defaultExternal);
+	const imports: Record<string, string> = {};
+	for (const e of externals) {
+		let hash = await buildController.cc.cs.getPackHash(e);
+		if (hash === undefined) {
+			hash = await buildController.runBuildTaskPack(e);
+		}
+		if (hash !== undefined) {  // Добавляем проверку перед сохранением
+			imports[e] = wrapTarget(hash);
+		}
+	}
+	let map = {};
+	if (jsHash) {
+		const conf = await buildController.cc.getImportConf(jsHash);
+
+		map = {
+			imports: imports,
+			scopes: await configMapConvert(conf),
+		};
+	}
+
+	console.log("MAP", map);
+	await buildIndexJs(externals);
+
 	const htmlContent = await indexHtmlTransform(
 		htmlStrng,
 		scriptString,
-		importMap,
-		entryString,
+		map,
+		result,
 	);
 	return htmlContent;
 }
 
-
-
 function wrapTarget(target: string) {
 	return `/kvs/http/${target}`;
 }
-
 
 export function extractBootstrapsDirs(rootDir: string): {
 	[name: string]: string;

@@ -91,7 +91,8 @@ export default class BuildController {
 	async runBuildTaskPack(packName: string): Promise<string| undefined> {
 		console.log("FIND PACKAGE",packName)
 		// todo убрато этот костыль нужно переделать конфигурацию
-		const packDir = (await Bun.resolve(packName, import.meta.url)) ;
+		const context=import.meta.url;
+		const packDir = (await Bun.resolve(packName, context)) ;
 		const packageRoot = await findPackageRoot(packDir);
 		console.log("FIND DIR",packageRoot)
 
@@ -100,8 +101,9 @@ export default class BuildController {
 			// if (!stats) {
 			// 	throw new Error(`Pack directory not found: ${packDir}`);
 			// }
-			return await this.runBuildTask(packageRoot,true);
-		} catch (error) {
+			const hash=await this.runBuildTask(packageRoot,true)
+			return hash;
+		} catch (error:any) {
 			throw new Error(`Failed to build pack ${packName}: ${error.message}`);
 		}
 	}

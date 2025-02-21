@@ -6,10 +6,10 @@
     "dependencies": {},
     "devDependencies": {},
     "peerDependencies": {
-        "@solenopsys/converged-reactive": "latest",
-        "@solenopsys/converged-renderer": "latest",
-        "@solenopsys/converged-style": "latest",
-        "@solenopsys/converged-router": "latest",
+        "@solenopsys/converged-reactive": "workspace:*",
+        "@solenopsys/converged-renderer": "workspace:*",
+        "@solenopsys/converged-style": "workspace:*",
+        "@solenopsys/converged-router": "workspace:*",
         "@solenopsys/ui-landing": "workspace:*",
         "typescript": "^5.0.0"
     },

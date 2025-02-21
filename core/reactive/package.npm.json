@@ -4,7 +4,14 @@
   "version": "1.0.8",
   "type": "module",
   "sideEffects": false,
-  "main": "src/index.ts",
+  "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "types": "./dist/index.d.ts",
   "scripts": {
     "update-packs":"npx npm-check-updates -u && bun i",
     "format": "bunx @biomejs/biome format src/**/*.ts --write",

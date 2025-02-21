@@ -5,9 +5,9 @@
   "type": "module",
   "dependencies": { "lil-gui": "^0.19.2" },
   "peerDependencies": {
-    "@solenopsys/converged-reactive": "latest",
-    "@solenopsys/converged-renderer": "latest",
-    "@solenopsys/converged-style": "latest",
+    "@solenopsys/converged-reactive": "workspace:*",
+    "@solenopsys/converged-renderer": "workspace:*",
+    "@solenopsys/converged-style": "workspace:*",
     "@types/three": "^0.164.1",
     "three": "^0.164.1"
   },

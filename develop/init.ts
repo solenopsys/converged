@@ -19,6 +19,7 @@ const buildController = new BuildController(rootDir, cacheDir);
 
 buildController.ws.addDefaultExternal("@solenopsys/converged-reactive");
 buildController.ws.addDefaultExternal("@solenopsys/converged-renderer");
+buildController.ws.addDefaultExternal("@solenopsys/converged-renderer/jsx-dev-runtime");
 buildController.ws.addDefaultExternal("@solenopsys/converged-router");
 buildController.ws.addDefaultExternal("@solenopsys/converged-style");
  
