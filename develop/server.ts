@@ -45,7 +45,7 @@ export function serverInit(port: number, bsDir: string, rootDir: string,currentH
     
         return buffer;
     })
-    .get("/kvs/http/:key", async ({ params, set }) => {
+    .get("/dht/:key", async ({ params, set }) => {
         const { buffer, type, compressed } = await buildController.cc.readFile(
             params.key,
         );
@@ -76,6 +76,6 @@ export function serverInit(port: number, bsDir: string, rootDir: string,currentH
     })
     
     .listen(port, () => {
-        console.log(`🦊 Server is running on http://localhost:${port}`);
+        console.log(`Server is running on http://localhost:${port}  ${bsDir}`);
     });
 }

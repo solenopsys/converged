@@ -7,8 +7,7 @@
     "@solenopsys/converged-reactive": "workspace:*",
     "@solenopsys/converged-renderer": "workspace:*",
     "@solenopsys/converged-router": "workspace:*",
-    "@solenopsys/converged-style": "workspace:*",
-    "@solenopsys/ui-state": "workspace:*",
+    "@solenopsys/converged-style": "workspace:*", 
     "@solenopsys/ui-navigate": "workspace:*",
     "@solenopsys/fl-crypto": "workspace:*",
     "@solenopsys/ui-controls": "workspace:*",
@@ -22,8 +21,7 @@
     "bundle": "bun build.ts"
   },
   "external": {
-    "@solenopsys/ui-forms":"latest",
-    "@solenopsys/ui-state":"latest",
+    "@solenopsys/ui-forms":"latest", 
     "@solenopsys/ui-navigate":"latest",
     "@solenopsys/fl-clusters":"latest",
     "@solenopsys/ui-controls":"latest",

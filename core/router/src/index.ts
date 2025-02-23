@@ -1,5 +1,6 @@
 export * from "components";
 export * from "integration";
+export * from "adaptive"; 
 export {
 	useRouteData,
 	useHref,

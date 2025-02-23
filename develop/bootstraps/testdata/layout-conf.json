@@ -1,5 +1,5 @@
 {
-   "logo": {"@file":"./develop/bootstraps/testdata/assets/logo.svg"},
-   "favicon": {"@file":"./develop/bootstraps/testdata/assets/favicon.svg"},
+   "logo": {"@file":"./assets/logo.svg"},
+   "favicon": {"@file":"./assets/favicon.svg"},
    "title": "Solenopsys vc"
  }

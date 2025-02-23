@@ -2,6 +2,10 @@
 
 import "./singleton";
 import "./jsx/types";
+
+
+export let UiContext={};
+
 import type {
 	Context,
 	Directive,

@@ -1,5 +1,5 @@
-import { Component, useContext } from "@solenopsys/converged-renderer";
-import { UiContext,AdaptiveRouter } from "@solenopsys/ui-state";
+import { Component, useContext,UiContext } from "@solenopsys/converged-renderer";
+import { AdaptiveRouter } from "@solenopsys/converged-router";
 import { SiteLayout } from "@solenopsys/ui-layouts";
 import "./layout.css";
 

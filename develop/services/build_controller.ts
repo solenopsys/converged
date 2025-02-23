@@ -18,7 +18,7 @@ async function fileHash(filePath: string) {
 
 async function insertLink(filePath: string, hash: string) {
 	const fileContent = await Bun.file(filePath).text();
-	const newContent = `${fileContent}//# sourceMappingURL=/kvs/http/${hash}\n`;
+	const newContent = `${fileContent}//# sourceMappingURL=/dht/${hash}\n`;
 	await Bun.write(filePath, newContent);
 }
 

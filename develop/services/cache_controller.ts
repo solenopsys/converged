@@ -17,7 +17,7 @@ export class CacheController {
 		type: string,
 		compress: boolean,
 	): Promise<string> {
-		console.log("SAVE FILE", content);
+		// console.log("SAVE FILE", content);
 
 		// Convert content to ArrayBuffer if it's a string
 		let contentBuffer!: ArrayBuffer;

@@ -6,6 +6,20 @@ import { UiEvents } from "@solenopsys/converged-renderer";
 import $ from "@solenopsys/converged-reactive";
 import { googleOneTap } from "@solenopsys/mf-auth";
 
+function setPageTitle(title:string){
+	document.title=title
+}
+
+function setFavicon(href:string){
+	console.log("FAV HREF",href)
+	const link=document.querySelector("link[rel*='shortcut icon']") as HTMLAnchorElement | null
+	if(link !== null){
+		link.href=href
+	}
+}
+
+
+
 
 export const createLayout = (
 	tagId: string,
@@ -13,8 +27,9 @@ export const createLayout = (
 	conf: any
 ) => {
 	UiEvents({type:"LayoutInit",tag:tagId})
-	setPageTitle(conf.page.title)
-	setFavicon(conf.page.favicon)
+	console.log("CONF", conf)
+	setPageTitle(conf.title)
+	setFavicon(conf.favicon._uri)
 
 	$.effect(() => {
 		const event:any = UiEvents();

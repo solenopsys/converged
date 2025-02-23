@@ -3,9 +3,8 @@ import type {
 	FieldHandler,
 	SpecialField,
 } from "../processor.js";
-
-import BuildController from "../../services/build_controller.js";
-
+ 
+import { wrapUri } from "../../tools/urls";
 // Дополнительные процессоры можно добавлять здесь
 export class RemoteHandler implements FieldHandler {
     
@@ -18,6 +17,6 @@ export class RemoteHandler implements FieldHandler {
 
 	async process(field: SpecialField): Promise<JsonObject> {
 		// Пример обработки URL
-		return { "@hash": await this.recurseProcess(field.value as string) };
+		return wrapUri(  await this.recurseProcess(field.value as string) );
 	}
 }

@@ -38,7 +38,7 @@ class SpecialFieldHandlersRegistry {
 	}
 
 	async processField(field: SpecialField): Promise<JsonObject> {
-		console.log("processField", field);
+		//console.log("processField", field);
     
 		const processor = this.handlers[field.fieldName];
 		if (!processor) {
@@ -66,11 +66,11 @@ class JsonFieldProcessor {
 
 		const includeProcess = async (fileName: string) => {
             //INCLUDE PROCESS
-            console.log("NCLUDE PROCESS",fileName)
+          //  console.log("NCLUDE PROCESS",fileName)
 			const inputJson = await Bun.file(join(bootstrapDir, fileName)).json();
-            console.log("INCLUDE DATA1",inputJson)
+         //   console.log("INCLUDE DATA1",inputJson)
 			const result =await this.process(inputJson);
-            console.log("INCLUDE DATA",result)
+          //  console.log("INCLUDE DATA",result)
 			return result;
 		};
 

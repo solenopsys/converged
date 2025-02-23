@@ -7,6 +7,7 @@ import { serverInit } from "./server";
 
 import BuildController from "./services/build_controller";
 import { JsonFieldProcessor } from "./bootstraps/processor";
+import { wrapTarget } from "./tools/urls";
 
 async function configMapConvert(conf: {
 	package: string;
@@ -73,7 +74,7 @@ export async function indexBuild(
 	const processor = new JsonFieldProcessor(bc, dirBs);
 	const result: any = await processor.processDir();
 
-	const jsHash = result?.layout?.module["@hash"];
+	const jsHashUri = result?.layout?.module["_uri"];
 
 	const externals = Object.keys(buildController.ws.defaultExternal);
 	const imports: Record<string, string> = {};
@@ -87,8 +88,9 @@ export async function indexBuild(
 		}
 	}
 	let map = {};
-	if (jsHash) {
-		const conf = await buildController.cc.getImportConf(jsHash);
+	if (jsHashUri) {
+		const hash= jsHashUri.split("/").pop();
+		const conf = await buildController.cc.getImportConf(hash);
 
 		map = {
 			imports: imports,
@@ -108,9 +110,7 @@ export async function indexBuild(
 	return htmlContent;
 }
 
-function wrapTarget(target: string) {
-	return `/kvs/http/${target}`;
-}
+
 
 export function extractBootstrapsDirs(rootDir: string): {
 	[name: string]: string;

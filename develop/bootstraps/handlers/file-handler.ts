@@ -3,6 +3,7 @@ import type {
 	FieldHandler,
 	SpecialField,
 } from "../processor.ts";
+import { wrapUri } from "../../tools/urls";
  
  import {join} from "path"
 import { CacheController } from "../../services/cache_controller";
@@ -26,7 +27,7 @@ export class FileHandler implements FieldHandler {
 		const type = this.autoType(fileExt!);
 		const hash = await this.cc.saveFile(content, type, false);
 
-		return { "@hash": hash };
+		return    wrapUri(hash);
 	}
 }
 

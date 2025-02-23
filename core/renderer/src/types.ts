@@ -296,6 +296,20 @@ type Truthy<T = unknown> = Exclude<
 	0 | -0 | 0n | -0n | "" | false | null | undefined | void
 >;
 
+type HashLink={
+	_uri:string;
+}
+
+
+type MicroFronted={
+  module:HashLink;
+  data:any;
+}
+
+
+
+
+
 /* EXPORT */
 
 export type {
@@ -372,4 +386,9 @@ export type {
 	TemplateVariableData,
 	TemplateVariablesMap,
 	Truthy,
+	HashLink,
+	MicroFronted,
 };
+
+
+

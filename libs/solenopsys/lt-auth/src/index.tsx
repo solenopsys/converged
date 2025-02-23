@@ -30,7 +30,7 @@ export const createLayout = (
 	conf: any,
 ) => {
 	const logo = $(conf.page.logo);
-	// @ts-ignore
+	
 	render(() => {
 		return (
 			<body class={styles.bodyWrapper}>

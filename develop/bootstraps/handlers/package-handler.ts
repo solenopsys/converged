@@ -3,6 +3,7 @@ import type {
 	FieldHandler,
 	SpecialField,
 } from "../processor.ts";
+import { wrapUri } from "../../tools/urls";
 
 
 import BuildController from "../../services/build_controller";
@@ -17,7 +18,7 @@ export class PackageHandler implements FieldHandler {
 	async process(field: SpecialField): Promise<JsonObject> {
         const packName = field.value as string;
         const hash= await this.bc.runBuildTaskPack(packName);
-		return { "@hash": hash};
+		return  wrapUri(hash);
 	}
 }
 

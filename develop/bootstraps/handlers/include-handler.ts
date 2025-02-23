@@ -9,7 +9,7 @@ import type {
 export class IncludeHandler implements FieldHandler {
     
 
-    constructor(private recurseProcess:(fileName:string)=>Promise<string>){}
+    constructor(private recurseProcess:(fileName:string)=>Promise<JsonObject>){}
 
 	filedName(): string {
 		return "@include";
@@ -17,6 +17,6 @@ export class IncludeHandler implements FieldHandler {
 
 	async process(field: SpecialField): Promise<JsonObject> {
 		// Пример обработки URL
-		return { "@hash": await this.recurseProcess(field.value as string) };
+		return await this.recurseProcess(field.value as string) ;
 	}
 }

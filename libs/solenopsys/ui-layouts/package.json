@@ -18,7 +18,6 @@
   },
   "external": {
     "@solenopsys/converged-style" :"latest",
-    "@solenopsys/ui-controls" :"latest",
-    "@solenopsys/ui-state" :"latest"
+    "@solenopsys/ui-controls" :"latest"
    }
 }

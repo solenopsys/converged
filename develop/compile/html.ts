@@ -12,7 +12,7 @@ export function indexHtmlTransform(
 ): string {
 	const rewriter = new HTMLRewriter();
 
-	console.log("IMPORTMAP1",importmap)
+	console.log("IMPORTMAP",importmap)
 
 	rewriter.on("*", {
 		element(el) {
@@ -20,9 +20,8 @@ export function indexHtmlTransform(
 
 			if (el.tagName === "script") {
 				if (el.getAttribute("type") === "module") {
-					const src = `\nconst entry=JSON.parse(\`${JSON.stringify(entry, null, 2)}\`);\n${indexJs}
-					`  ;
-
+					const entryString=JSON.stringify(entry, null, 2)
+					const src =indexJs.replace("\"$TEMPLATE_ENTRY\"","`"+entryString+"`")
 					el.setInnerContent(src, { html: false });
 				}
 				if (el.getAttribute("type") === "importmap") {
