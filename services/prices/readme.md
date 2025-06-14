@@ -1,1 +1,1 @@
-управление тарифами и ценами по странам.
+Manage pricing plans and country-specific rates.

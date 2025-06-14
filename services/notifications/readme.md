@@ -1,1 +1,1 @@
-уведомления клиентов, заказ готов и другие
+Client notifications such as order ready alerts.

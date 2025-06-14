@@ -1,1 +1,1 @@
-звонки
+Phone call handling.

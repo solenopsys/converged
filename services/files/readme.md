@@ -1,1 +1,1 @@
-файлы клиентов и другие файлы для производства
+Client files and other production files.
