@@ -1,1 +1,1 @@
-отображает платежи и списания
+Displays payments and charges.

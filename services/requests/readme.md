@@ -1,1 +1,1 @@
-заявки клиентов. 
+Client requests.
