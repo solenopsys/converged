@@ -1,0 +1,182 @@
+[
+  {
+    "id": 1,
+    "model_name": "Защитный корпус для смартфона",
+    "printing_type": "FDM",
+    "status": "В процессе",
+    "quantity": "5",
+    "weight_per_item": "28",
+    "material": "TPU"
+  },
+  {
+    "id": 2,
+    "model_name": "Шестеренки для часового механизма",
+    "printing_type": "SLA",
+    "status": "Готово",
+    "quantity": "12",
+    "weight_per_item": "3",
+    "material": "Фотополимерная смола"
+  },
+  {
+    "id": 3,
+    "model_name": "Крепление для GoPro",
+    "printing_type": "SLS",
+    "status": "Готово",
+    "quantity": "8",
+    "weight_per_item": "15",
+    "material": "Нейлон"
+  },
+  {
+    "id": 4,
+    "model_name": "Дрон - набор деталей",
+    "printing_type": "FDM",
+    "status": "Готово",
+    "quantity": "1",
+    "weight_per_item": "125",
+    "material": "PETG"
+  },
+  {
+    "id": 5,
+    "model_name": "Архитектурный макет здания",
+    "printing_type": "SLA",
+    "status": "В процессе",
+    "quantity": "1",
+    "weight_per_item": "350",
+    "material": "Прозрачная смола"
+  },
+  {
+    "id": 6,
+    "model_name": "Корпус для Raspberry Pi",
+    "printing_type": "FDM",
+    "status": "В процессе",
+    "quantity": "10",
+    "weight_per_item": "35",
+    "material": "ABS"
+  },
+  {
+    "id": 7,
+    "model_name": "Кронштейн для монитора",
+    "printing_type": "DMLS",
+    "status": "В процессе",
+    "quantity": "4",
+    "weight_per_item": "78",
+    "material": "Алюминиевый сплав"
+  },
+  {
+    "id": 8,
+    "model_name": "Настольная игра - набор фигур",
+    "printing_type": "PolyJet",
+    "status": "Готово",
+    "quantity": "30",
+    "weight_per_item": "12",
+    "material": "Многоцветный полимер"
+  },
+  {
+    "id": 9,
+    "model_name": "Зубной протез индивидуальный",
+    "printing_type": "SLA",
+    "status": "Готово",
+    "quantity": "1",
+    "weight_per_item": "8",
+    "material": "Биосовместимая смола"
+  },
+  {
+    "id": 10,
+    "model_name": "Лопасти для квадрокоптера",
+    "printing_type": "SLS",
+    "status": "Готово",
+    "quantity": "16",
+    "weight_per_item": "5",
+    "material": "Карбоновый композит"
+  },
+  {
+    "id": 11,
+    "model_name": "Кольцо ювелирное для литья",
+    "printing_type": "DLP",
+    "status": "Готово",
+    "quantity": "1",
+    "weight_per_item": "4",
+    "material": "Литейный воск"
+  },
+  {
+    "id": 12,
+    "model_name": "Робот-манипулятор детали",
+    "printing_type": "FDM",
+    "status": "Готово",
+    "quantity": "15",
+    "weight_per_item": "42",
+    "material": "ABS"
+  },
+  {
+    "id": 13,
+    "model_name": "Сувенир статуэтка",
+    "printing_type": "Binder Jetting",
+    "status": "Готово",
+    "quantity": "5",
+    "weight_per_item": "67",
+    "material": "Гипсовый композит"
+  },
+  {
+    "id": 14,
+    "model_name": "Прототип корпуса наушников",
+    "printing_type": "FDM",
+    "status": "Готово",
+    "quantity": "2",
+    "weight_per_item": "25",
+    "material": "PLA"
+  },
+  {
+    "id": 15,
+    "model_name": "Усиленный корпус для дрона",
+    "printing_type": "SLA",
+    "status": "Готово",
+    "quantity": "1",
+    "weight_per_item": "85",
+    "material": "Ударопрочная смола"
+  },
+  {
+    "id": 16,
+    "model_name": "Детали для протеза руки",
+    "printing_type": "SLS",
+    "status": "В процессе",
+    "quantity": "6",
+    "weight_per_item": "46",
+    "material": "Нейлон"
+  },
+  {
+    "id": 17,
+    "model_name": "Модель двигателя в разрезе",
+    "printing_type": "MJF",
+    "status": "Готово",
+    "quantity": "1",
+    "weight_per_item": "175",
+    "material": "PA12 нейлон"
+  },
+  {
+    "id": 18,
+    "model_name": "Топологически оптимизированный кронштейн",
+    "printing_type": "DMLS",
+    "status": "Готово",
+    "quantity": "3",
+    "weight_per_item": "57",
+    "material": "Титановый сплав"
+  },
+  {
+    "id": 19,
+    "model_name": "Учебные модели анатомии",
+    "printing_type": "PolyJet",
+    "status": "Готово",
+    "quantity": "8",
+    "weight_per_item": "120",
+    "material": "Гибкий фотополимер"
+  },
+  {
+    "id": 20,
+    "model_name": "Форма для литья силикона",
+    "printing_type": "SLA",
+    "status": "В процессе",
+    "quantity": "2",
+    "weight_per_item": "95",
+    "material": "Термостойкая смола"
+  }
+]

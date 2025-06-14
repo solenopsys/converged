@@ -1,0 +1,67 @@
+{
+  "columns": {
+    "model_name": "Modell",
+    "printing_type": "Drucktyp",
+    "status": "Status",
+    "quantity": "Menge",
+    "weight_per_item": "Gewicht (g)",
+    "material": "Material"
+  },
+  "actions": {
+    "select_all": "Alle auswählen",
+    "select_row": "Zeile auswählen",
+    "menu": "Menü öffnen",
+    "edit": "Bearbeiten",
+    "duplicate": "Duplizieren",
+    "favorite": "Favorit",
+    "delete": "Löschen",
+    "view_columns": "Spaltensichtbarkeit"
+  },
+  "status": {
+    "completed": "Fertig",
+    "in_progress": "In Bearbeitung",
+    "count": {
+      "in_progress": "4",
+      "done": "6"
+    }
+  },
+  "material": {
+    "select_placeholder": "Material auswählen",
+    "options": [
+      "PLA",
+      "ABS",
+      "PETG",
+      "TPU",
+      "Nylon",
+      "Photopolymerharz",
+      "Gusswachs",
+      "Titanlegierung",
+      "Aluminiumlegierung"
+    ]
+  },
+  "notifications": {
+    "saving": "Speichern {id}",
+    "success": "Fertig",
+    "error": "Fehler"
+  },
+  "tabs": {
+    "outline": "Bestellstatus",
+    "in_progress": "In Bearbeitung",
+    "done": "Fertig"
+  },
+  "table": {
+    "columns_dropdown": "Spalten",
+    "no_results": "Keine Ergebnisse.",
+    "pagination": {
+      "page_size": "Zeilen pro Seite",
+      "of": "von",
+      "pages": "Seiten",
+      "next": "Nächste",
+      "previous": "Vorherige",
+      "first": "Erste",
+      "last": "Letzte"
+    },
+    "selection_summary": "{selected} von {total} Zeilen ausgewählt.",
+    "page_info": "Seite {current} von {total} Seiten"
+  }
+}

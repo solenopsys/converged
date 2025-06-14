@@ -1,0 +1,27 @@
+import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
+import { SidebarTrigger } from "@/components/ui/sidebar"
+import { useTranslation } from "react-i18next";
+import React from "react";
+
+export function SiteHeader() {
+  const { t, i18n } = useTranslation("menu");
+  
+  // Get the menu data directly from i18n resources
+  const menuData = i18n.getResource(i18n.language, 'menu' , 'navMain');
+
+  return (
+    <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
+      <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
+        <SidebarTrigger className="-ml-1" />
+        <Separator
+          orientation="vertical"
+          className="mx-2 data-[orientation=vertical]:h-4"
+        />
+        <h1 className="text-base font-medium">
+          {menuData?.navMain?.[0]?.title || t('default_title', 'Dashboard')}
+        </h1>
+      </div>
+    </header>
+  )
+}

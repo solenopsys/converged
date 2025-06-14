@@ -1,0 +1,24 @@
+{
+    "title": "Request to Order Conversion",
+    "description": "Data for the last 3 months",
+    "description_short": "Last 3 months",
+    "time_ranges": {
+      "90d": "Last 3 months",
+      "30d": "Last 30 days",
+      "7d": "Last 7 days"
+    },
+    "chart_config": {
+      "visitors": {
+        "label": "Conversions"
+      },
+      "requests": {
+        "label": "Requests"
+      },
+      "orders": {
+        "label": "Orders"
+      },
+      "conversion": {
+        "label": "Conversion"
+      }
+    }
+  }

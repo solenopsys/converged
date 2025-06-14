@@ -1,0 +1,33 @@
+
+{
+    "welcome": {
+      "heading": "Добро пожаловать",
+      "description": "Войдите в свою учетную запись Acme Inc"
+    },
+    "form": {
+      "email": "Электронная почта",
+      "password": "Пароль",
+      "forgotPassword": "Забыли пароль?"
+    },
+    "button": {
+      "login": "Войти",
+      "loggingIn": "Выполняется вход...",
+      "continueWith": "Или продолжить с помощью",
+      "loginWithApple": "Войти через Apple",
+      "loginWithGoogle": "Войти через Google",
+      "loginWithMeta": "Войти через Meta"
+    },
+    "signup": {
+      "text": "Нет учетной записи?",
+      "link": "Зарегистрироваться"
+    },
+    "legal": {
+      "agreement": "Нажимая «продолжить», вы соглашаетесь с нашими {{termsLink}} и {{privacyLink}}.",
+      "termsOfService": "Условиями использования",
+      "privacyPolicy": "Политикой конфиденциальности"
+    },
+    "notification": {
+      "loginFailed": "Ошибка входа",
+      "tryAgain": "Пожалуйста, попробуйте снова"
+    }
+  }
