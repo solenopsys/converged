@@ -4,7 +4,6 @@ export { default as IconChevronRight } from '@tabler/icons-react/dist/esm/icons/
 export { default as IconChevronsLeft } from '@tabler/icons-react/dist/esm/icons/IconChevronsLeft.mjs';
 export { default as IconChevronsRight } from '@tabler/icons-react/dist/esm/icons/IconChevronsRight.mjs';
 export { default as IconCircleCheckFilled } from '@tabler/icons-react/dist/esm/icons/IconCircleCheckFilled.mjs';
-export { default as IconComponent } from '@tabler/icons-react/dist/esm/icons/IconCreditCard.mjs';
 export { default as IconCreditCard } from '@tabler/icons-react/dist/esm/icons/IconCreditCard.mjs';
 export { default as IconDots } from '@tabler/icons-react/dist/esm/icons/IconDots.mjs';
 export { default as IconDotsVertical } from '@tabler/icons-react/dist/esm/icons/IconDotsVertical.mjs';

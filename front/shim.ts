@@ -34,7 +34,7 @@ function extractIcons(files: string[]): string[] {
 }
 
 function generateShim(icons: string[]) {
-  const lines = icons.map(
+  const lines = icons.filter(icon => icon !== 'IconComponent').map(
     (icon) =>
       `export { default as ${icon} } from '@tabler/icons-react/dist/esm/icons/${icon}.mjs';`
   );

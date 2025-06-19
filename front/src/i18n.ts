@@ -64,7 +64,7 @@ import pt_table_data from './locales/pt/table.json';
 import pt_chart from './locales/pt/chart.json';
 import chart_data_pt from './locales/pt/chart-data.json';
 
-export const defaultLanguage = "pt";
+export const defaultLanguage = "ru";
 
 i18n
   .use(initReactI18next)

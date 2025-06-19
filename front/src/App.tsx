@@ -1,41 +1,65 @@
-import LoginPage from "./Login";
-import Panel from "./Panel";
-import { ProtectedRoute } from "./ProtectedRoute";
-
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-
+import { Suspense, lazy } from "react";
 import { ThemeProvider } from "./components/theme-provider";
 import { AuthProvider } from "./AuthContext";
+import { ProtectedRoute } from "./ProtectedRoute";
+import { routeConfig } from "./routes.config";
+import { SidebarLayout } from "./layouts/SidebarLayout";
+import { SimpleLayout } from "./layouts/SimpleLayout";
 
 function App() {
+	// Разделяем роуты на группы по layout'ам
+	const sidebarRoutes = routeConfig.filter(route => route.layout !== 'simple');
+	const simpleRoutes = routeConfig.filter(route => route.layout === 'simple');
+
+	const createRouteElement = ({ component, element, protected: isProtected }) => {
+		if (element) return element;
+		
+		if (component) {
+			const LazyComponent = lazy(component);
+			return isProtected ? (
+				<ProtectedRoute>
+					<LazyComponent />
+				</ProtectedRoute>
+			) : (
+				<LazyComponent />
+			);
+		}
+		return null;
+	};
+
 	return (
 		<BrowserRouter>
-		<AuthProvider>
+			<AuthProvider>
 				<ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-					<Routes>
-						<Route path="/login" element={<LoginPage />} />
+					<Suspense fallback={<div className="flex items-center justify-center min-h-screen">Загрузка...</div>}>
+						<Routes>
+							{/* Роуты с сайдбаром */}
+							<Route element={<SidebarLayout />}>
+								{sidebarRoutes.map((route) => (
+									<Route 
+										key={route.path} 
+										path={route.path}
+										element={createRouteElement(route)} 
+									/>
+								))}
+							</Route>
 
-						<Route
-							path="/auth/callback/:provider"
-							element={
-								<div className="flex h-screen flex-col items-center justify-center p-4">
-									<div className="mb-4 text-xl">
-										Completing authentication...
-									</div>
-								</div>
-							}
-						/>
+							{/* Роуты без сайдбара */}
+							<Route element={<SimpleLayout />}>
+								{simpleRoutes.map((route) => (
+									<Route 
+										key={route.path} 
+										path={route.path}
+										element={createRouteElement(route)} 
+									/>
+								))}
+							</Route>
 
-						<Route
-							path="/dashboard"
-							element={
-								<ProtectedRoute>
-									<Panel />
-								</ProtectedRoute>
-							}
-						/>
-						<Route path="*" element={<Navigate to="/login" replace />} />
-					</Routes>
+							{/* Fallback */}
+							<Route path="*" element={<Navigate to="/login" replace />} />
+						</Routes>
+					</Suspense>
 				</ThemeProvider>
 			</AuthProvider>
 		</BrowserRouter>
