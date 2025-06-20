@@ -16,11 +16,11 @@ export const routeConfig = [
 	},
 	{
 		path: "/dashboard",
-		component: () => import("./modules/Panel"),
+		component: () => import("./modules/panel/Panel"),
 		protected: true,
 	},	{
 		path: "/chats",
-		component: () => import("./modules/Chats"),
+		component: () => import("./modules/chats/Chats"),
 		protected: true,
 	},
 ];
