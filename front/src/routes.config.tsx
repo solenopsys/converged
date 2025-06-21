@@ -1,5 +1,6 @@
 // routes.config.ts
-export const routeConfig = [
+
+const staticRoutes= [
 	{
 		path: "/login",
 		component: () => import("./Login"),
@@ -13,14 +14,24 @@ export const routeConfig = [
 			</div>
 		),
 		protected: false,
-	},
+	}
+];
+
+
+const dunamicRoutes=[
 	{
 		path: "/dashboard",
-		component: () => import("./modules/panel/Panel"),
-		protected: true,
-	},	{
-		path: "/chats",
-		component: () => import("./modules/chats/Chats"),
-		protected: true,
+		link:"/modules/panel.js"
 	},
-];
+	{
+		path: "/chats",
+		link:"/modules/chats.js"
+	},
+]
+
+
+export const routeConfig = [...staticRoutes,...dunamicRoutes.map(item=>({
+	...item,
+	component: () => import(item.link),
+	protected: true,
+}))];

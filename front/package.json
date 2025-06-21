@@ -4,12 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "serve": "bun run server.ts",
-    "generate": "bun run shim.ts",
-    "build": "bun build   src/main.tsx  --outdir ./dist --minify --format esm --splitting        --target browser     ",
-    "css": "bunx postcss-cli src/index.css -o dist/index.css",
-    "copy": "cp public/* dist/ && cp index.html dist/index.html",
-    "bld": "bun run generate && bun run css && bun run build && bun run copy"
+    "serve": "bun run src/tools/server.ts",
+ 
+    "bld": "bun run src/tools/build.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

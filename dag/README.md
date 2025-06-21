@@ -87,3 +87,12 @@ curl -X POST http://localhost:3000/api/workflows/1/execute \
   -H "Content-Type: application/json" \
   -d '{"data": {"test": "value"}}'
 ```
+
+
+### Env EXAMPLE
+LEVEL_DB_PATH=temp/leveldb
+SQLITE_PATH=temp/sqlite.db
+DATABASE_URL=postgresql://postgres:123456@127.0.0.1:35432
+OPENAI_API_KEY=sk-your-openai-api-key-here
+OPENAI_MODEL=gpt-4o-mini
+PORT=3000

@@ -121,7 +121,7 @@ export function AppSidebar({ ...props }) {
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
               <a href="#">
-                <img src="/logo.svg" alt="logo" className="!h-6 !w-auto" />
+                <img src="/assets/logo.svg" alt="logo" className="!h-6 !w-auto" />
                 <span className="text-small font-semibold">CONVERGED</span>
               </a>
             </SidebarMenuButton>

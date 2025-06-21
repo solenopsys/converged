@@ -4,7 +4,8 @@
 	"type": "module",
 	"private": true,
 	"scripts": {
-		"start": "bun run src/server/index.ts"
+		"start": "bun run src/server/index.ts",
+		"dev": "bun run  --env-file ../../CONF/dag.env src/server/index.ts"
 	},
 	"devDependencies": {
 		"@types/bun": "latest"

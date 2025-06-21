@@ -161,7 +161,7 @@ export function LoginForm({
           </form>
           <div className="bg-muted relative hidden md:block">
             <img
-              src="/factory5.png"
+              src="/assets/factory5.png"
               alt="Image"
               className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.5] dark:grayscale"
             />

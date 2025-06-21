@@ -14,7 +14,6 @@
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
-
     /* Linting */
     "strict": false, 
     "noUnusedParameters": true,
@@ -26,7 +25,7 @@
         "./src/*"
       ],
 
-     
+ 
         "@tabler/icons-react": ["./src/icons-shim"]
       
     }

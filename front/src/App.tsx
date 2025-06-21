@@ -9,8 +9,8 @@ import { SimpleLayout } from "./layouts/SimpleLayout";
 
 function App() {
 	// Разделяем роуты на группы по layout'ам
-	const sidebarRoutes = routeConfig.filter(route => route.layout !== 'simple');
-	const simpleRoutes = routeConfig.filter(route => route.layout === 'simple');
+	const sidebarRoutes = routeConfig.filter(route => route.protected);
+	const simpleRoutes = routeConfig.filter(route => !route.protected);
 
 	const createRouteElement = ({ component, element, protected: isProtected }) => {
 		if (element) return element;
