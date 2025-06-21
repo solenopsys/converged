@@ -1,1 +1,0 @@
-bun build src/exp/test.tsx    --external react  --outdir dist  --external=react-dom
