@@ -1,6 +1,5 @@
 import type { INode } from "../core/types";
 import { marked } from "marked";
-import { JSONPath } from "jsonpath-plus";
 import type { ContextAccessor } from "../core/types";
 
 export class MarkNode implements INode {

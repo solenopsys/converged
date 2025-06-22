@@ -1,9 +1,8 @@
 import { type INode } from "../core/types";
 import { type DatabaseProvider } from "../core/types";
-import { extractParams } from "../tools/templator";
-import { Accessor } from "../tools/accessor";
-
-import providers from "../confs/providers";
+import { extractParams } from "../libs/templator";
+import { Accessor } from "../libs/accessor";
+ 
 
 export class SQLQueryNode implements INode {
 	public scope!: string;
@@ -12,6 +11,7 @@ export class SQLQueryNode implements INode {
 		public name: string,
 		private query: string,
 		private provider: string,
+		private providers: Record<string, DatabaseProvider>,
 	) {}
 
 	async execute(data: unknown, context: Accessor): Promise<any> {
@@ -32,7 +32,7 @@ export class SQLQueryNode implements INode {
 		console.log("Transformed SQL:", sql);
 		console.log("Parameter values:", paramValues);
 
-		const realProvider: DatabaseProvider = providers[
+		const realProvider: DatabaseProvider = this.providers[
 			this.provider
 		] as DatabaseProvider;
 		const results = await realProvider.query(sql, paramValues);

@@ -96,3 +96,9 @@ DATABASE_URL=postgresql://postgres:123456@127.0.0.1:35432
 OPENAI_API_KEY=sk-your-openai-api-key-here
 OPENAI_MODEL=gpt-4o-mini
 PORT=3000
+
+
+### build
+aws ecr-public create-repository --repository-name dag --region us-east-1
+buildah bud  -t public.ecr.aws/i5x9u8b2/dag .
+buildah push public.ecr.aws/i5x9u8b2/dag

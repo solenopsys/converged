@@ -1,23 +1,43 @@
-FROM oven/bun:1-alpine
+# Этап сборки
+FROM oven/bun:1-alpine AS builder
 
 WORKDIR /app
 
+# Копируем файлы зависимостей
 COPY package.json bun.lock ./
 
-# Install all dependencies for migration support
+# Устанавливаем все зависимости (включая devDependencies для сборки)
 RUN bun install
 
-# # Copy all necessary files
+# Копируем исходный код
 COPY src ./src
 COPY tsconfig.json ./
 
+# Выполняем сборку проекта
+RUN bun bld
 
-# Create directory for database
+# Продакшн этап
+FROM oven/bun:1-alpine AS production
+
+WORKDIR /app
+
+# Копируем только package.json и bun.lock для установки продакшн зависимостей
+COPY package.json bun.lock ./
+
+# Устанавливаем только продакшн зависимости
+RUN bun install --production
+
+# Копируем собранное приложение из этапа сборки
+COPY --from=builder /app/dist ./dist
+
+# Создаем директорию для базы данных
 RUN mkdir -p /app/data
 
-# Set permissions
+# Устанавливаем права доступа
 RUN chown -R 1000:1000 /app
 
+# Переключаемся на непривилегированного пользователя
 USER 1000
 
-CMD ["bun", "run", "src/server/index.ts"]
+# Запускаем собранное приложение
+CMD ["bun", "run", "dist/index.js"]

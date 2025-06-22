@@ -16,7 +16,9 @@ export class WorkflowLoader {
 		const result = new Map<string, BaseNodeConfig>();
 
 		for (const [id, cfg] of Object.entries(source)) {
-			const NodeClass = this.nodeMap[cfg.type];
+			const fileName = this.nodeMap[cfg.type]
+			const devMode=process.env.NODE_ENV !== "production";
+			const NodeClass = devMode ? require(`../nodes/${fileName}.ts`) : import(`./nodes/${fileName}.js`);
 			if (!NodeClass) throw new Error(`Unknown node type: ${cfg.type}`);
 			result.set(id, cfg); // Сохраняем конфиг, а не инстанс
 		}

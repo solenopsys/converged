@@ -2,7 +2,7 @@
 import { Store } from "../core/store";
 import { type INode, type BaseNodeConfig } from "../core/types";
 import { OpenAiProvider } from "../provider/openai-provider";
-import providers from "../confs/providers";
+
 
 export class AiRequest implements INode {
 	public name: string;
@@ -17,12 +17,14 @@ export class AiRequest implements INode {
 		name: string,
 		config: { system: string; user: string },
 		provider: string,
+		providers: Record<string, OpenAiProvider>,
 		wrapName: string,
 		decodeJson?: boolean,
+
 	) {
 		this.name = name;
 		this.template = config;
-		this.provider = providers[provider];
+		this.provider = this.providers[provider];
 		this.wrapName = wrapName;
 		this.decodeJson = decodeJson ?? false;
 	}

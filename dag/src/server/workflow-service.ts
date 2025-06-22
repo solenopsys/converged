@@ -3,7 +3,7 @@ import { Kysely } from 'kysely';
 import { DB } from './database';
 import { WorkflowLoader } from "../core/workflow-loader";
 import { Workflow } from "../core/workflow";
-import nodeMap from "../nodes";
+import nodeMap from "../node_map";
 import providers from "../confs/providers";
 
 export class WorkflowService {

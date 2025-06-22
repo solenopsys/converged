@@ -1,5 +1,5 @@
 import { type INode } from "../core/types";
-import { processTemplate } from "../tools/templator";
+import { processTemplate } from "../libs/templator";
 import { type ContextAccessor } from "../core/types";
 
 interface HttpNodeConfig {

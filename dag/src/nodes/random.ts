@@ -1,5 +1,5 @@
 import { type INode, type ProcessNode } from "../core/types";
-import { RandomGenerator, CharsetPresets } from "../tools/random";
+import { RandomGenerator, CharsetPresets } from "../libs/random";
 
 export class RandomStringNode implements INode {
 	public scope!: string;

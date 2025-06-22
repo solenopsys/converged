@@ -2,7 +2,8 @@
 import type { INode, NodeMap, WorkflowConfig } from "./types";
 import { v4 as uuidv4 } from "uuid";
 import { Store } from "./store";
-import { Accessor } from "../tools/accessor";
+import { Accessor } from "../libs/accessor";
+import { loadClassByName } from "../libs/loader";
 
 // Функция для создания экземпляра класса с инжекцией полей
 function createInstance(ClassConstructor: any, fieldsObject: any) {
@@ -45,7 +46,9 @@ export class Workflow {
 		// Исправлено: создаем инстансы из конфигурации
 		this.nodes = new Map();
 		for (const [name, nodeCfg] of workflowConfig.nodes) {
-			const NodeClass = constructorMap[nodeCfg.type];
+
+			const fileName = constructorMap[nodeCfg.type]
+				const NodeClass =loadClassByName(fileName);
 			if (!NodeClass) {
 				throw new Error(`Unknown node type: ${nodeCfg.type}`);
 			}
