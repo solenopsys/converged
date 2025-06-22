@@ -1,0 +1,16 @@
+{
+	"name": "auth-service",
+	"scripts": { 
+
+		"bld": "bun build ./src/index.ts --external  elysia --external @elysiajs/jwt --external kysely --external bcryptjs --external openai --external @elysiajs/cors --target bun --outdir ../../dist   --entry-naming store.mjs --minify"
+	},
+	"peerDependencies": {
+
+		   "elysia": "latest",
+    "kysely": "latest"
+	},
+	"devDependencies": {
+		"@types/bcryptjs": "latest",
+		"bun-types": "latest"
+	}
+}
