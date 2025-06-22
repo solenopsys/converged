@@ -1,6 +1,5 @@
 import * as React from "react"
 import * as TablerIcons from "@tabler/icons-react"
-import { useTranslation } from "react-i18next" // Импортируем хук для переводов
 
 import { NavDocuments } from "@/components/nav-documents"
 import { NavMain } from "@/components/nav-main"
@@ -15,6 +14,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { useGlobalTranslation } from "@/hooks/global_i18n";
 
 // Функция для рендеринга иконки по её имени
 const renderIcon = (iconName) => {
@@ -77,7 +77,10 @@ const processData = (data) => {
 
 export function AppSidebar({ ...props }) {
   // Используем namespace "menu" для получения переводов
-  const { i18n } = useTranslation("menu");
+ 
+    const { t, i18n } = useGlobalTranslation("menu");
+    
+ 
   const [menuData, setMenuData] = React.useState(null);
   
   // Загружаем данные меню при монтировании компонента

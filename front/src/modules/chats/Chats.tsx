@@ -10,15 +10,15 @@ import {COLUMN_TYPES} from "@/components/ui/table/UniversalTable";
 import { useState, useCallback, useEffect } from 'react';
 import { Search, MessageSquare, User, ExternalLink } from 'lucide-react';
 
-import { useTranslation } from "react-i18next";
-
 import { Eye, Edit3, Trash2, Archive, Copy } from "lucide-react";
 
 import { TableHeader } from "@/components/ui/table/UniversalTable";
 import { SearchInput } from "@/components/ui/table/UniversalTable";
 
+import { useGlobalTranslation } from "@/hooks/global_i18n";
+
 function Chats() {
-  const { i18n } = useTranslation();
+  const { i18n } = useGlobalTranslation();
   const [searchTerm, setSearchTerm] = useState('');
   const [chatsData, setChatsData] = useState([]);
   const [loading, setLoading] = useState(true);

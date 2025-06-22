@@ -4,10 +4,10 @@ import { ChartAreaInteractive } from "@/components/chart-area-interactive";
 import { DataTable } from "@/components/ui/table/DataTable";
 import { SectionCards } from "@/components/section-cards";
 
-import { useTranslation } from "react-i18next";
+import { useGlobalTranslation } from "@/hooks/global_i18n";
 
 function Panel() {
-  const { i18n } = useTranslation();
+  const { i18n } = useGlobalTranslation();
   
   // Get the table data directly from i18n resources based on current language
   const tableData = i18n.getResource(i18n.language, 'table_data') || [];

@@ -11,34 +11,45 @@ const size = (p: string) => {
   }
 };
 
- 
-const radix=[
-    "@radix-ui/react-avatar",
-    "@radix-ui/react-checkbox",
-    "@radix-ui/react-collapsible",
-    "@radix-ui/react-dialog",
-    "@radix-ui/react-dropdown-menu",
-    "@radix-ui/react-label",
-    "@radix-ui/react-select",
-    "@radix-ui/react-separator",
-    "@radix-ui/react-slot",
-    "@radix-ui/react-tabs",
-    "@radix-ui/react-toggle",
-    "@radix-ui/react-toggle-group",
-    "@radix-ui/react-tooltip",
+
+const radix = [
+  "@radix-ui/react-avatar",
+  "@radix-ui/react-checkbox",
+  "@radix-ui/react-collapsible",
+  "@radix-ui/react-dialog",
+  "@radix-ui/react-dropdown-menu",
+  "@radix-ui/react-label",
+  "@radix-ui/react-select",
+  "@radix-ui/react-separator",
+  "@radix-ui/react-slot",
+  "@radix-ui/react-tabs",
+  "@radix-ui/react-toggle",
+  "@radix-ui/react-toggle-group",
+  "@radix-ui/react-tooltip",
+]
+
+const dndKitPkgs = [
+  "@dnd-kit/core",
+  "@dnd-kit/modifiers",
+  "@dnd-kit/sortable",
+  "@dnd-kit/utilities",
 ]
 
 const externalPkgs = [
   "react",
   "react-dom",
-  "react-dom/client", 
-  "react-router-dom", 
+  "react-dom/client",
+  "react-router-dom",
+  "react-router-dom/client",
   "i18next",
   "react-i18next",
   "react/jsx-runtime",
   "@tanstack/react-table",
   "recharts",
-  ...radix
+  "sonner",
+  "tailwind-merge",
+  ...radix,
+  ...dndKitPkgs
 ];
 
 mkdirSync("dist", { recursive: true });
@@ -80,7 +91,7 @@ for (const dirent of readdirSync(modulesDir, { withFileTypes: true })) {
   const entry = join(modulesDir, name, "index.ts");
   const outName = `/modules/${name}.js`;
   const outPath = join("dist", outName);
-  
+
   try {
     await Bun.build({
       entrypoints: [entry],
@@ -100,8 +111,8 @@ for (const dirent of readdirSync(modulesDir, { withFileTypes: true })) {
 }
 
 /*──────────── 5. копируем статику ────────────────────────*/
- 
-await $`cp -r confs/assets/* dist/assets/ 2>/dev/null || true`;
+
+await $`cp -r confs/assets dist/assets 2>/dev/null || true`;
 await $`cp confs/index.html dist/index.html`;
 await $`cp confs/modules.json dist/modules.json`;
 

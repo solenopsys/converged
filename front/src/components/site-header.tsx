@@ -1,14 +1,14 @@
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
-import { useTranslation } from "react-i18next";
+import { useGlobalTranslation } from "@/hooks/global_i18n";
 import React from "react";
 
 export function SiteHeader() {
-  const { t, i18n } = useTranslation("menu");
+  const { t, i18n } = useGlobalTranslation("menu");
   
-  // Get the menu data directly from i18n resources
-  const menuData = i18n.getResource(i18n.language, 'menu' , 'navMain');
+  // Теперь это работает без проверок! Хук сам все обрабатывает
+  const menuData = i18n.getResource(i18n.language, 'menu', 'navMain');
 
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">

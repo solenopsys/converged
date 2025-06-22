@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts"
-import { useTranslation } from "react-i18next"
+import { useGlobalTranslation } from "@/hooks/global_i18n";
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import {
@@ -32,12 +32,13 @@ import {
 } from "@/components/ui/toggle-group"
 
 export function ChartAreaInteractive() {
-  const { t, i18n } = useTranslation("chart")
+  const { t, i18n } = useGlobalTranslation("chart")
   const isMobile = useIsMobile()
   const [timeRange, setTimeRange] = React.useState("90d")
 
   // Get chart data from i18n resources
   const chartData = i18n.getResource(i18n.language, 'chart_data') || []
+
 
   // Create chart config from translation
   const chartConfig = {
