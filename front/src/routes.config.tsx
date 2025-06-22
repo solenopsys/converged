@@ -1,6 +1,6 @@
 // routes.config.ts
 
-const staticRoutes= [
+export const staticRoutes= [
 	{
 		path: "/login",
 		component: () => import("./Login"),
@@ -18,20 +18,5 @@ const staticRoutes= [
 ];
 
 
-const dunamicRoutes=[
-	{
-		path: "/dashboard",
-		link:"/modules/panel.js"
-	},
-	{
-		path: "/chats",
-		link:"/modules/chats.js"
-	},
-]
 
 
-export const routeConfig = [...staticRoutes,...dunamicRoutes.map(item=>({
-	...item,
-	component: () => import(item.link),
-	protected: true,
-}))];

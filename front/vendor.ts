@@ -1,5 +1,5 @@
 // vendor.ts
-export * from 'recharts';
-export * from '@tanstack/react-table';
+//export * from 'recharts';
+//export * from '@tanstack/react-table';
  
  
