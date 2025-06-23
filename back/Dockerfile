@@ -18,11 +18,11 @@ WORKDIR /app
 COPY package.json bun.lock ./
 RUN bun install --production
 
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/dist ./
 RUN mkdir -p /app/data
 RUN chown -R 1000:1000 /app
 
 USER 1000
 
 ENV NODE_ENV=production
-CMD ["bun", "run", "dist/api.js"]
+CMD ["bun", "run", "api.js"]

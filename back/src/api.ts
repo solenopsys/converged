@@ -5,9 +5,9 @@ import { spawn, ChildProcess } from "child_process";
 import { writeFileSync, readFileSync, existsSync } from "fs";
 
 const CONFIG_PATH = "./plugins-config.json";
+const isDev = process.env.NODE_ENV !== 'production';
 
 //bun load .env
-
 
 const API_PORT = Number(process.env.API_PORT) || 3000;
 
@@ -39,7 +39,7 @@ class ServicesManager {
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
-    this.process = spawn("bun", ["run", "src/services.ts"], {
+    this.process = spawn("bun", ["run", isDev ? "src/services.ts" : "services.js"], {
       stdio: "inherit",
     });
 

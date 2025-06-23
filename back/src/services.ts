@@ -4,7 +4,8 @@ import { readFileSync, existsSync } from "fs";
 import { join, resolve } from "path";
 
 const CONFIG_PATH = "./plugins-config.json";
-const PLUGINS_DIR = resolve("./services"); 
+const PLUGINS_DIR = resolve("./services");
+const isDev = process.env.NODE_ENV !== 'production';
 
 const SERVICES_PORT = Number(process.env.SERVICES_PORT) || 3001 ;
 const DATA_DIR=process.env.DATA_DIR ;
@@ -22,7 +23,9 @@ const loadConfig = (): PluginConfig => {
 
 const loadPlugin = async (app: Elysia, name: string) => {
   try {
-    const pluginPath = join(PLUGINS_DIR, `${name}/src/index.ts`);
+    const pluginPath = isDev 
+      ? join(PLUGINS_DIR, `${name}/src/index.ts`)
+      : join(PLUGINS_DIR, `${name}.js`);
     const module = await import(pluginPath);
     const plugin = module.default || module;
     
