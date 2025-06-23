@@ -1,0 +1,2 @@
+[run]
+envFile = "../../CONF/back.env"

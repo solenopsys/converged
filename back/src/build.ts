@@ -30,7 +30,7 @@ mkdirSync("dist", { recursive: true });
 
 /*──────────── 3. основной бандл приложения ───────────────*/
 await Bun.build({
-  entrypoints: ["./src/server.ts"],
+  entrypoints: ["./src/api.ts"],
   outdir: "./dist",
   format: "esm",
   minify: true, 
@@ -38,7 +38,17 @@ await Bun.build({
 });
 
 
-console.log(`📦 server.js - ${size("dist/server.js")}`);
+await Bun.build({
+  entrypoints: ["./src/services.ts"],
+  outdir: "./dist",
+  format: "esm",
+  minify: true, 
+  target: "node",
+});
+
+
+console.log(`📦 api.js - ${size("dist/api.js")}`);
+console.log(`📦 services.js - ${size("dist/services.js")}`);
 
 /*──────────── 4. бандлы модулей из src/modules ───────────*/
 const modulesDir = "./services";

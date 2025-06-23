@@ -8,6 +8,7 @@ RUN bun install
 COPY src ./src
 COPY services ./services
 COPY tsconfig.json ./
+ENV NODE_ENV=production
 RUN bun bld
 
 FROM oven/bun:1-alpine AS production
@@ -23,4 +24,5 @@ RUN chown -R 1000:1000 /app
 
 USER 1000
 
-CMD ["bun", "run", "dist/server.js"]
+ENV NODE_ENV=production
+CMD ["bun", "run", "dist/api.js"]

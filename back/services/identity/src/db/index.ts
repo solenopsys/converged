@@ -1,17 +1,9 @@
-// src/db/index.ts
+// src/db/auth-db-service.ts
 import { Database } from "bun:sqlite";
-import { Kysely, SqliteDialect, Migrator } from "kysely";
-
-/* Создаём/открываем файл базы данных */
-const sqlite = new Database(
-	process.env.DATABASE_URL?.replace("file:", "") || "local.db",
-	{
-		create: true,
-	},
-);
+import { Kysely, SqliteDialect, Migrator, sql } from "kysely";
 
 // Типы для базы данных
-export interface DatabaseSchema {
+export interface AuthDatabaseSchema {
 	users: {
 		id: string;
 		email: string;
@@ -46,15 +38,15 @@ export interface DatabaseSchema {
 	};
 }
 
-// Создаём Kysely instance
-export const db = new Kysely<DatabaseSchema>({
-	dialect: new SqliteDialect({
-		database: sqlite,
-	}),
-});
+// Типы для вставки данных
+export type NewUser = Omit<AuthDatabaseSchema["users"], "created_at">;
+export type NewAuthMethod = Omit<AuthDatabaseSchema["auth_methods"], "created_at">;
+export type NewSession = Omit<AuthDatabaseSchema["sessions"], "created_at">;
+export type NewPolicy = AuthDatabaseSchema["policies"];
+export type NewUserAttributes = AuthDatabaseSchema["user_attributes"];
 
-// Миграции в коде
-const migrations = {
+// Миграции
+const authMigrations = {
 	"2024-01-01T00-00-00_initial-auth-schema": {
 		async up(db: Kysely<any>) {
 			// Создаём таблицу users
@@ -64,7 +56,7 @@ const migrations = {
 				.addColumn("email", "text", (col) => col.notNull().unique())
 				.addColumn("name", "text")
 				.addColumn("created_at", "text", (col) =>
-					col.notNull().defaultTo("CURRENT_TIMESTAMP"),
+					col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
 				)
 				.execute();
 
@@ -79,7 +71,7 @@ const migrations = {
 				.addColumn("identifier", "text", (col) => col.notNull())
 				.addColumn("credential", "text")
 				.addColumn("created_at", "text", (col) =>
-					col.notNull().defaultTo("CURRENT_TIMESTAMP"),
+					col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
 				)
 				.execute();
 
@@ -93,7 +85,7 @@ const migrations = {
 				.addColumn("token_hash", "text", (col) => col.notNull().unique())
 				.addColumn("expires_at", "text", (col) => col.notNull())
 				.addColumn("created_at", "text", (col) =>
-					col.notNull().defaultTo("CURRENT_TIMESTAMP"),
+					col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
 				)
 				.execute();
 
@@ -158,130 +150,446 @@ const migrations = {
 	},
 };
 
-// Встроенный мигратор Kysely
-const migrator = new Migrator({
-	db,
-	provider: {
-		async getMigrations() {
-			return migrations;
-		},
-	},
+// Интерфейс конфигурации
+export interface AuthDatabaseConfig {
+	path?: string;
+	runMigrations?: boolean;
+}
+
+// Основной сервис для работы с БД аутентификации
+export class AuthDatabaseService {
+	private db: Kysely<AuthDatabaseSchema>;
+	private sqlite: Database;
+
+	constructor(config: AuthDatabaseConfig = {}) {
+		const dbPath = config.path ?? process.env.DATABASE_URL?.replace("file:", "") ?? "./auth.db";
+		
+		this.sqlite = new Database(dbPath, {
+			create: true,
+		});
+
+		this.db = new Kysely<AuthDatabaseSchema>({
+			dialect: new SqliteDialect({
+				database: this.sqlite,
+			}),
+		});
+	}
+
+	// Запуск миграций
+	async runMigrations(): Promise<void> {
+		const migrator = new Migrator({
+			db: this.db,
+			provider: {
+				async getMigrations() {
+					return authMigrations;
+				},
+			},
+		});
+
+		const { error, results } = await migrator.migrateToLatest();
+
+		if (error) {
+			console.error("Migration failed:", error);
+			throw error;
+		}
+
+		if (results) {
+			results.forEach((it) => {
+				if (it.status === "Success") {
+					console.log(`Migration "${it.migrationName}" was executed successfully`);
+				} else if (it.status === "Error") {
+					console.error(`Migration "${it.migrationName}" failed`);
+				}
+			});
+		}
+	}
+
+	// Инициализация
+	async initialize(runMigrations = true): Promise<void> {
+		if (runMigrations) {
+			await this.runMigrations();
+		}
+	}
+
+	// Закрытие соединения
+	async close(): Promise<void> {
+		await this.db.destroy();
+		this.sqlite.close();
+	}
+
+	// Геттер для прямого доступа к Kysely (если нужно)
+	get kysely(): Kysely<AuthDatabaseSchema> {
+		return this.db;
+	}
+
+	// Репозиторий пользователей
+	get users() {
+		return {
+			create: async (data: NewUser) => {
+				const result = await this.db
+					.insertInto("users")
+					.values({
+						...data,
+						id: data.id || crypto.randomUUID(),
+					})
+					.returningAll()
+					.executeTakeFirstOrThrow();
+				return result;
+			},
+
+			findById: (id: string) =>
+				this.db
+					.selectFrom("users")
+					.selectAll()
+					.where("id", "=", id)
+					.executeTakeFirst(),
+
+			findByEmail: (email: string) =>
+				this.db
+					.selectFrom("users")
+					.selectAll()
+					.where("email", "=", email)
+					.executeTakeFirst(),
+
+			list: (limit?: number, offset?: number) => {
+				let query = this.db
+					.selectFrom("users")
+					.selectAll()
+					.orderBy("created_at", "desc");
+				
+				if (limit) query = query.limit(limit);
+				if (offset) query = query.offset(offset);
+				
+				return query.execute();
+			},
+
+			update: (id: string, data: Partial<Omit<NewUser, "id">>) =>
+				this.db
+					.updateTable("users")
+					.set(data)
+					.where("id", "=", id)
+					.returningAll()
+					.executeTakeFirst(),
+
+			delete: (id: string) =>
+				this.db
+					.deleteFrom("users")
+					.where("id", "=", id)
+					.returningAll()
+					.executeTakeFirst(),
+
+			count: () =>
+				this.db
+					.selectFrom("users")
+					.select(this.db.fn.count<number>("id").as("count"))
+					.executeTakeFirstOrThrow()
+					.then(r => r.count),
+		};
+	}
+
+	// Репозиторий методов аутентификации
+	get authMethods() {
+		return {
+			create: async (data: NewAuthMethod) => {
+				const result = await this.db
+					.insertInto("auth_methods")
+					.values({
+						...data,
+						id: data.id || crypto.randomUUID(),
+					})
+					.returningAll()
+					.executeTakeFirstOrThrow();
+				return result;
+			},
+
+			findByUser: (userId: string) =>
+				this.db
+					.selectFrom("auth_methods")
+					.selectAll()
+					.where("user_id", "=", userId)
+					.execute(),
+
+			findByIdentifier: (type: string, identifier: string) =>
+				this.db
+					.selectFrom("auth_methods")
+					.selectAll()
+					.where("type", "=", type)
+					.where("identifier", "=", identifier)
+					.executeTakeFirst(),
+
+			update: (id: string, data: Partial<Omit<NewAuthMethod, "id">>) =>
+				this.db
+					.updateTable("auth_methods")
+					.set(data)
+					.where("id", "=", id)
+					.returningAll()
+					.executeTakeFirst(),
+
+			delete: (id: string) =>
+				this.db
+					.deleteFrom("auth_methods")
+					.where("id", "=", id)
+					.returningAll()
+					.executeTakeFirst(),
+
+			deleteByUser: (userId: string) =>
+				this.db
+					.deleteFrom("auth_methods")
+					.where("user_id", "=", userId)
+					.execute(),
+		};
+	}
+
+	// Репозиторий сессий
+	get sessions() {
+		return {
+			create: async (data: NewSession) => {
+				const result = await this.db
+					.insertInto("sessions")
+					.values({
+						...data,
+						id: data.id || crypto.randomUUID(),
+					})
+					.returningAll()
+					.executeTakeFirstOrThrow();
+				return result;
+			},
+
+			findByTokenHash: (tokenHash: string) =>
+				this.db
+					.selectFrom("sessions")
+					.selectAll()
+					.where("token_hash", "=", tokenHash)
+					.executeTakeFirst(),
+
+			findByUser: (userId: string) =>
+				this.db
+					.selectFrom("sessions")
+					.selectAll()
+					.where("user_id", "=", userId)
+					.execute(),
+
+			findActiveByUser: (userId: string) =>
+				this.db
+					.selectFrom("sessions")
+					.selectAll()
+					.where("user_id", "=", userId)
+					.where("expires_at", ">", new Date().toISOString())
+					.execute(),
+
+			update: (id: string, data: Partial<Omit<NewSession, "id">>) =>
+				this.db
+					.updateTable("sessions")
+					.set(data)
+					.where("id", "=", id)
+					.returningAll()
+					.executeTakeFirst(),
+
+			delete: (id: string) =>
+				this.db
+					.deleteFrom("sessions")
+					.where("id", "=", id)
+					.returningAll()
+					.executeTakeFirst(),
+
+			deleteExpired: () =>
+				this.db
+					.deleteFrom("sessions")
+					.where("expires_at", "<", new Date().toISOString())
+					.execute(),
+
+			deleteByUser: (userId: string) =>
+				this.db
+					.deleteFrom("sessions")
+					.where("user_id", "=", userId)
+					.execute(),
+		};
+	}
+
+	// Репозиторий политик
+	get policies() {
+		return {
+			create: async (data: NewPolicy) => {
+				const result = await this.db
+					.insertInto("policies")
+					.values({
+						...data,
+						id: data.id || crypto.randomUUID(),
+					})
+					.returningAll()
+					.executeTakeFirstOrThrow();
+				return result;
+			},
+
+			findById: (id: string) =>
+				this.db
+					.selectFrom("policies")
+					.selectAll()
+					.where("id", "=", id)
+					.executeTakeFirst(),
+
+			findByName: (name: string) =>
+				this.db
+					.selectFrom("policies")
+					.selectAll()
+					.where("name", "=", name)
+					.executeTakeFirst(),
+
+			list: () =>
+				this.db
+					.selectFrom("policies")
+					.selectAll()
+					.orderBy("priority", "desc")
+					.execute(),
+
+			update: (id: string, data: Partial<NewPolicy>) =>
+				this.db
+					.updateTable("policies")
+					.set(data)
+					.where("id", "=", id)
+					.returningAll()
+					.executeTakeFirst(),
+
+			delete: (id: string) =>
+				this.db
+					.deleteFrom("policies")
+					.where("id", "=", id)
+					.returningAll()
+					.executeTakeFirst(),
+		};
+	}
+
+	// Репозиторий атрибутов пользователей
+	get userAttributes() {
+		return {
+			create: async (data: NewUserAttributes) => {
+				const result = await this.db
+					.insertInto("user_attributes")
+					.values(data)
+					.returningAll()
+					.executeTakeFirstOrThrow();
+				return result;
+			},
+
+			findByUser: (userId: string) =>
+				this.db
+					.selectFrom("user_attributes")
+					.selectAll()
+					.where("user_id", "=", userId)
+					.executeTakeFirst(),
+
+			upsert: async (data: NewUserAttributes) => {
+				// SQLite doesn't support ON CONFLICT DO UPDATE directly with Kysely
+				// So we do it manually
+				const existing = await this.findByUser(data.user_id);
+				
+				if (existing) {
+					return this.db
+						.updateTable("user_attributes")
+						.set({ attributes: data.attributes })
+						.where("user_id", "=", data.user_id)
+						.returningAll()
+						.executeTakeFirstOrThrow();
+				} else {
+					return this.db
+						.insertInto("user_attributes")
+						.values(data)
+						.returningAll()
+						.executeTakeFirstOrThrow();
+				}
+			},
+
+			delete: (userId: string) =>
+				this.db
+					.deleteFrom("user_attributes")
+					.where("user_id", "=", userId)
+					.returningAll()
+					.executeTakeFirst(),
+		};
+	}
+
+	// Транзакции
+	async transaction<T>(
+		callback: (trx: Kysely<AuthDatabaseSchema>) => Promise<T>
+	): Promise<T> {
+		return this.db.transaction().execute(callback);
+	}
+
+	// Утилиты для очистки
+	async cleanup() {
+		// Удаляем просроченные сессии
+		await this.sessions.deleteExpired();
+		
+		// Можно добавить другие операции очистки
+	}
+}
+
+// Фабричная функция
+export function createAuthDatabaseService(
+	config?: AuthDatabaseConfig
+): AuthDatabaseService {
+	return new AuthDatabaseService(config);
+}
+
+// Опциональный синглтон
+let defaultAuthDbInstance: AuthDatabaseService | null = null;
+
+export function getDefaultAuthDatabaseService(
+	config?: AuthDatabaseConfig
+): AuthDatabaseService {
+	if (!defaultAuthDbInstance) {
+		defaultAuthDbInstance = new AuthDatabaseService(config);
+	}
+	return defaultAuthDbInstance;
+}
+
+export async function closeDefaultAuthDatabaseService(): Promise<void> {
+	if (defaultAuthDbInstance) {
+		await defaultAuthDbInstance.close();
+		defaultAuthDbInstance = null;
+	}
+}
+
+/* Пример использования:
+import { createAuthDatabaseService } from './auth-db-service';
+
+// Создание и инициализация
+const authDb = createAuthDatabaseService({ path: './auth.db' });
+await authDb.initialize();
+
+// Создание пользователя с транзакцией
+const newUser = await authDb.transaction(async (trx) => {
+	const user = await trx
+		.insertInto("users")
+		.values({
+			id: crypto.randomUUID(),
+			email: "user@example.com",
+			name: "John Doe"
+		})
+		.returningAll()
+		.executeTakeFirstOrThrow();
+
+	await trx
+		.insertInto("auth_methods")
+		.values({
+			id: crypto.randomUUID(),
+			user_id: user.id,
+			type: "password",
+			identifier: user.email,
+			credential: "hashed_password"
+		})
+		.execute();
+
+	return user;
 });
 
-// Запускаем миграции
-const { error, results } = await migrator.migrateToLatest();
+// Использование репозиториев
+const user = await authDb.users.findByEmail("user@example.com");
+const sessions = await authDb.sessions.findActiveByUser(user.id);
 
-if (error) {
-	console.error("Migration failed:", error);
-	process.exit(1);
-}
+// Периодическая очистка
+setInterval(() => authDb.cleanup(), 60 * 60 * 1000); // каждый час
 
-if (results) {
-	results.forEach((it) => {
-		if (it.status === "Success") {
-			console.log(`Migration "${it.migrationName}" was executed successfully`);
-		} else if (it.status === "Error") {
-			console.error(`Migration "${it.migrationName}" failed`);
-		}
-	});
-}
-
-// Типы для вставки данных
-export type NewUser = Omit<DatabaseSchema["users"], "created_at">;
-export type NewAuthMethod = Omit<DatabaseSchema["auth_methods"], "created_at">;
-export type NewSession = Omit<DatabaseSchema["sessions"], "created_at">;
-export type NewPolicy = DatabaseSchema["policies"];
-export type NewUserAttributes = DatabaseSchema["user_attributes"];
-
-// Типизированные хелперы для работы с таблицами
-export const users = {
-	create: (data: NewUser) =>
-		db.insertInto("users").values({
-			...data,
-			id: data.id || crypto.randomUUID(),
-		}),
-
-	findById: (id: string) =>
-		db.selectFrom("users").selectAll().where("id", "=", id),
-
-	findByEmail: (email: string) =>
-		db.selectFrom("users").selectAll().where("email", "=", email),
-
-	list: () => db.selectFrom("users").selectAll().orderBy("created_at", "desc"),
-};
-
-export const authMethods = {
-	create: (data: NewAuthMethod) =>
-		db.insertInto("auth_methods").values({
-			...data,
-			id: data.id || crypto.randomUUID(),
-		}),
-
-	findByUser: (userId: string) =>
-		db.selectFrom("auth_methods").selectAll().where("user_id", "=", userId),
-
-	findByIdentifier: (type: string, identifier: string) =>
-		db
-			.selectFrom("auth_methods")
-			.selectAll()
-			.where("type", "=", type)
-			.where("identifier", "=", identifier),
-
-	delete: (id: string) => db.deleteFrom("auth_methods").where("id", "=", id),
-};
-
-export const sessions = {
-	create: (data: NewSession) =>
-		db.insertInto("sessions").values({
-			...data,
-			id: data.id || crypto.randomUUID(),
-		}),
-
-	findByTokenHash: (tokenHash: string) =>
-		db.selectFrom("sessions").selectAll().where("token_hash", "=", tokenHash),
-
-	findByUser: (userId: string) =>
-		db.selectFrom("sessions").selectAll().where("user_id", "=", userId),
-
-	delete: (id: string) => db.deleteFrom("sessions").where("id", "=", id),
-
-	deleteExpired: () =>
-		db
-			.deleteFrom("sessions")
-			.where("expires_at", "<", new Date().toISOString()),
-};
-
-export const policies = {
-	create: (data: NewPolicy) =>
-		db.insertInto("policies").values({
-			...data,
-			id: data.id || crypto.randomUUID(),
-		}),
-
-	findByName: (name: string) =>
-		db.selectFrom("policies").selectAll().where("name", "=", name),
-
-	list: () => db.selectFrom("policies").selectAll().orderBy("priority", "desc"),
-
-	update: (id: string, data: Partial<NewPolicy>) =>
-		db.updateTable("policies").set(data).where("id", "=", id),
-
-	delete: (id: string) => db.deleteFrom("policies").where("id", "=", id),
-};
-
-export const userAttributes = {
-	create: (data: NewUserAttributes) =>
-		db.insertInto("user_attributes").values(data),
-
-	findByUser: (userId: string) =>
-		db.selectFrom("user_attributes").selectAll().where("user_id", "=", userId),
-
-	upsert: (data: NewUserAttributes) =>
-		db
-			.insertInto("user_attributes")
-			.values(data)
-			.onConflict((oc) => oc.column("user_id").doUpdateSet(data)),
-
-	delete: (userId: string) =>
-		db.deleteFrom("user_attributes").where("user_id", "=", userId),
-};
+// Закрытие при завершении
+await authDb.close();
+*/

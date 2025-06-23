@@ -77,9 +77,10 @@
   Настройки через переменные окружения:
   
   ```env
-  PORT=3000
-  HOST=0.0.0.0
-  NODE_ENV=development
+SERVICES_PORT=3001
+DATA_DIR=data 
+API_PORT=3000
+OPENAI_API_KEY=
   ```
   
 aws ecr-public create-repository --repository-name back --region us-east-1

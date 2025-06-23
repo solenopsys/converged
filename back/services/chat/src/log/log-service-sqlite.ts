@@ -1,12 +1,6 @@
 // log-service-sqlite.ts
-import {
-	chatConversations,
-	chatMessages,
-	chatRawEvents,
-	type NewMessage,
-	type NewRawEvent,
-} from "../db";
 import type { LogService, ContentBlock, OpenAIEvent } from "../types";
+import { DatabaseService, NewMessage, NewRawEvent } from "../db";
 
 /* Вспомогательный буфер для сборки ответов ассистента */
 interface AssistantBuf {
@@ -16,6 +10,8 @@ interface AssistantBuf {
 
 export class LogServiceSQLite implements LogService {
 	private buf = new Map<string, AssistantBuf>();
+
+	constructor(private db: DatabaseService) {}
 
 	/* ——— 1.  USER MESSAGE ——— */
 	async saveUserMessage(p: {
@@ -34,10 +30,9 @@ export class LogServiceSQLite implements LogService {
 			content: JSON.stringify(p.content),
 			model: p.model ?? null,
 			meta: p.meta ? JSON.stringify(p.meta) : null,
-			ts: p.timestamp.toISOString(),
 		};
 
-		await chatMessages.create(messageData).execute();
+		await this.db.messages.create(messageData);
 	}
 
 	/* ——— 2.  OPENAI EVENT ——— */
@@ -55,24 +50,73 @@ export class LogServiceSQLite implements LogService {
 			event_type: event.type,
 			payload: JSON.stringify(event.payload),
 			model: p.model ?? null,
-			received_at: event.receivedAt.toISOString(),
 		};
 
-		await chatRawEvents.create(eventData).execute();
+		await this.db.rawEvents.create(eventData);
 
 		/* 2.2  собираем ответ ассистента */
 		await this.aggregateAssistant(conversationId, event, p.model);
 	}
 
-	/* ——— 3.  Вспомогательные методы ——— */
+	/* ——— 3.  ДОПОЛНИТЕЛЬНЫЕ МЕТОДЫ (опционально) ——— */
+	
+	/* Получить историю сообщений */
+	async getConversationMessages(conversationId: string) {
+		const messages = await this.db.messages.findByConversation(conversationId);
+		return messages.map(msg => ({
+			...msg,
+			content: JSON.parse(msg.content) as ContentBlock[],
+			meta: msg.meta ? JSON.parse(msg.meta) : undefined,
+		}));
+	}
+
+	/* Получить список диалогов */
+	async listConversations() {
+		return this.db.conversations.list();
+	}
+
+	/* Удалить диалог со всеми сообщениями */
+	async deleteConversation(conversationId: string) {
+		// Используем транзакцию для атомарного удаления
+		await this.db.transaction(async (trx) => {
+			// Удаляем raw events
+			await trx
+				.deleteFrom("chat_raw_events")
+				.where("conversation_id", "=", conversationId)
+				.execute();
+			
+			// Удаляем сообщения
+			await trx
+				.deleteFrom("chat_messages")
+				.where("conversation_id", "=", conversationId)
+				.execute();
+			
+			// Удаляем сам диалог
+			await trx
+				.deleteFrom("chat_conversations")
+				.where("id", "=", conversationId)
+				.execute();
+		});
+	}
+
+	/* Получить сырые события (для отладки) */
+	async getRawEvents(conversationId: string) {
+		const events = await this.db.rawEvents.findByConversation(conversationId);
+		return events.map(ev => ({
+			...ev,
+			payload: ev.payload ? JSON.parse(ev.payload) : null,
+		}));
+	}
+
+	/* ——— 4.  Вспомогательные методы ——— */
 
 	/** Создаёт запись о диалоге, если её ещё нет */
 	private async ensureConversation(id: string) {
-		/* Используем готовый хелпер */
-		await chatConversations
-			.create({ id })
-			.onConflict((oc) => oc.column("id").doNothing())
-			.execute();
+		// Проверяем существование
+		const existing = await this.db.conversations.findById(id);
+		if (!existing) {
+			await this.db.conversations.create({ id });
+		}
 	}
 
 	/** Агрегируем стрим ассистента и сохраняем, когда придёт completed */
@@ -111,9 +155,10 @@ export class LogServiceSQLite implements LogService {
 						role: "assistant",
 						content: JSON.stringify(buf.blocks),
 						model: model ?? null,
+						meta: null,
 					};
 
-					await chatMessages.create(assistantMessage).execute();
+					await this.db.messages.create(assistantMessage);
 				}
 				this.buf.delete(convo);
 				return;
@@ -123,4 +168,11 @@ export class LogServiceSQLite implements LogService {
 		/* если ещё не completed — сохраняем буфер в Map */
 		this.buf.set(convo, buf);
 	}
+
+	/* Очистка буферов (на случай прерывания) */
+	clearBuffers() {
+		this.buf.clear();
+	}
 }
+
+ 

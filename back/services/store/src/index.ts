@@ -23,35 +23,54 @@ export interface ModuleStoreOptions {
 
 export const moduleStorePlugin =
   (opts: ModuleStoreOptions = {}) =>
-  async (app: Elysia) => {
-    const db = new Kysely<DB>({
-      dialect: new SqliteDialect({
-        database: new Database(opts.dbPath ?? 'modules.db'),
-      }),
-    })
+  (app: Elysia) => {
+    console.log("plugin start", opts);
 
-    await db.schema
-      .createTable('modules')
-      .ifNotExists()
-      .addColumn('name', 'text', (col) => col.primaryKey())
-      .addColumn('code', 'text', (col) => col.notNull())
-      .addColumn(
-        'created_at',
-        'text',
-        (col) => col.defaultTo(sql`CURRENT_TIMESTAMP`),
-      )
-      .execute()
-
+    const dbPath = opts.dbPath ?? 'modules.db'
     const prefix = opts.prefix ?? '/registry'
     const AUTH_TOKEN = opts.authToken ?? Bun.env.MODULE_TOKEN ?? ''
+    
+    let db: Kysely<DB> | null = null
+
+    // Функция для ленивой инициализации БД
+    const getDb = async (): Promise<Kysely<DB>> => {
+      if (db) return db
+
+      console.log(`Initializing module store database at ${dbPath}`)
+      
+      db = new Kysely<DB>({
+        dialect: new SqliteDialect({
+          database: new Database(dbPath),
+        }),
+      })
+
+      await db.schema
+        .createTable('modules')
+        .ifNotExists()
+        .addColumn('name', 'text', (col) => col.primaryKey())
+        .addColumn('code', 'text', (col) => col.notNull())
+        .addColumn(
+          'created_at',
+          'text',
+          (col) => col.defaultTo(sql`CURRENT_TIMESTAMP`),
+        )
+        .execute()
+
+      console.log(`Module store database initialized`)
+      return db
+    }
+
+    console.log(`Module store plugin loaded with prefix: ${prefix}`)
 
     return app.group(prefix, (app) =>
       app
-        .get('/modules', async () =>
-          db.selectFrom('modules').select(['name', 'created_at']).execute(),
-        )
+        .get('/modules', async () => {
+          const database = await getDb()
+          return database.selectFrom('modules').select(['name', 'created_at']).execute()
+        })
         .get('/module/:name', async ({ params }) => {
-          const row = await db
+          const database = await getDb()
+          const row = await database
             .selectFrom('modules')
             .select('code')
             .where('name', '=', params.name)
@@ -68,15 +87,18 @@ export const moduleStorePlugin =
           if (!name || !code) return new Response('Bad Request', { status: 400 })
           if (code.length > 100 * 1024)
             return new Response('Payload Too Large', { status: 413 })
+          
           try {
-            await db.insertInto('modules').values({ name, code }).execute()
+            const database = await getDb()
+            await database.insertInto('modules').values({ name, code }).execute()
             return { status: 'ok' }
           } catch {
             return new Response('Conflict', { status: 409 })
           }
         })
         .delete('/module/:name', async ({ params }) => {
-          await db.deleteFrom('modules').where('name', '=', params.name).execute()
+          const database = await getDb()
+          await database.deleteFrom('modules').where('name', '=', params.name).execute()
           return { status: 'deleted' }
         }),
     )
