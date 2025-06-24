@@ -1,12 +1,10 @@
 {
-	"name": "auth-service",
-	 
+	"name": "users-service",
 	"peerDependencies": {
 		"@elysiajs/cors": "latest",
 		"@elysiajs/jwt": "latest",
 		"bcryptjs": "latest",
 		"elysia": "latest",
-		"openai": "latest",
 		"kysely": "latest"
 	},
 	"devDependencies": {

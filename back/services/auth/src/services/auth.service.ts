@@ -1,46 +1,60 @@
+
 // src/services/auth.service.ts
-import { users, authMethods, sessions } from "../db";
+import { getDefaultAuthDatabaseService } from "../db";
 import bcrypt from "bcryptjs";
 
 export class AuthService {
+	private get authDb() {
+		return getDefaultAuthDatabaseService();
+	}
+
 	async register(email: string, password: string, name?: string) {
 		// Check if user exists
-		const existing = await users.findByEmail(email).executeTakeFirst();
+		const existing = await this.authDb.kysely
+			.selectFrom("users")
+			.selectAll()
+			.where("email", "=", email)
+			.executeTakeFirst();
 
 		if (existing) throw new Error("User already exists");
 
-		// Create user
-		const userId = crypto.randomUUID();
-		await users
-			.create({
-				id: userId,
-				email,
-				name: name || null,
-			})
-			.execute();
+		// Create user and auth method in transaction
+		return await this.authDb.transaction(async (trx) => {
+			const userId = crypto.randomUUID();
+			
+			// Create user
+			await trx
+				.insertInto("users")
+				.values({
+					id: userId,
+					email,
+					name: name || null,
+				})
+				.execute();
 
-		// Create password auth method
-		const hashedPassword = await bcrypt.hash(password, 10);
-		await authMethods
-			.create({
+			// Create password auth method
+			const hashedPassword = await bcrypt.hash(password, 10);
+			await this.authDb.authMethods.create({
 				user_id: userId,
 				type: "password",
 				identifier: email,
 				credential: hashedPassword,
-			})
-			.execute();
+			});
 
-		return { id: userId, email, name };
+			return { id: userId, email, name };
+		});
 	}
 
 	async login(email: string, password: string) {
-		const user = await users.findByEmail(email).executeTakeFirst();
+		const user = await this.authDb.kysely
+			.selectFrom("users")
+			.selectAll()
+			.where("email", "=", email)
+			.executeTakeFirst();
 
 		if (!user) throw new Error("Invalid credentials");
 
-		const authMethod = await authMethods
-			.findByIdentifier("password", email)
-			.executeTakeFirst();
+		const authMethod = await this.authDb.authMethods.findByIdentifier("password", email);
 
 		if (!authMethod || !authMethod.credential) {
 			throw new Error("Invalid credentials");
@@ -71,40 +85,34 @@ export class AuthService {
 		const tokenHash = hasher.digest("hex");
 
 		// Store session
-		await sessions
-			.create({
-				id: sessionId,
-				user_id: userId,
-				token_hash: tokenHash,
-				expires_at: new Date(
-					Date.now() + 7 * 24 * 60 * 60 * 1000,
-				).toISOString(),
-			})
-			.execute();
+		await this.authDb.sessions.create({
+			id: sessionId,
+			user_id: userId,
+			token_hash: tokenHash,
+			expires_at: new Date(
+				Date.now() + 7 * 24 * 60 * 60 * 1000,
+			).toISOString(),
+		});
 
 		return { token, userId };
 	}
 
 	async logout(tokenHash: string) {
-		const session = await sessions
-			.findByTokenHash(tokenHash)
-			.executeTakeFirst();
+		const session = await this.authDb.sessions.findByTokenHash(tokenHash);
 
 		if (session) {
-			await sessions.delete(session.id).execute();
+			await this.authDb.sessions.delete(session.id);
 		}
 	}
 
 	async validateSession(tokenHash: string) {
-		const session = await sessions
-			.findByTokenHash(tokenHash)
-			.executeTakeFirst();
+		const session = await this.authDb.sessions.findByTokenHash(tokenHash);
 
 		if (!session) return null;
 
 		// Check if expired
 		if (new Date(session.expires_at) < new Date()) {
-			await sessions.delete(session.id).execute();
+			await this.authDb.sessions.delete(session.id);
 			return null;
 		}
 
@@ -112,7 +120,7 @@ export class AuthService {
 	}
 
 	async cleanupExpiredSessions() {
-		await sessions.deleteExpired().execute();
+		await this.authDb.sessions.deleteExpired();
 	}
 }
 

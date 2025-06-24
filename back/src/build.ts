@@ -72,6 +72,7 @@ for (const dirent of readdirSync(modulesDir, { withFileTypes: true })) {
     console.log(`🧩 ${outName} - ${size(outPath)}`);
   } catch (e: any) {
     console.warn(`⚠️  Module ${name} skipped: ${e.message}`);
+    console.log(e);
   }
 }
 

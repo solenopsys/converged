@@ -1,9 +1,13 @@
 // src/services/oauth.service.ts
-import { users, authMethods, db } from "../db";
+import { getDefaultAuthDatabaseService } from   "../db";
 import { oauthConfig } from "../config/oauth.config";
 import { authService } from "./auth.service";
 
 export class OAuthService {
+	private get authDb() {
+		return getDefaultAuthDatabaseService();
+	}
+
 	getAuthUrl(provider: string) {
 		const config = oauthConfig[provider];
 		if (!config) throw new Error("Unknown provider");
@@ -46,54 +50,65 @@ export class OAuthService {
 		const userInfo = await userResponse.json();
 
 		// Find existing OAuth account
-		const authMethod = await authMethods
-			.findByIdentifier(provider, userInfo.id || userInfo.sub)
-			.executeTakeFirst();
+		const authMethod = await this.authDb.authMethods.findByIdentifier(provider, userInfo.id || userInfo.sub);
 
 		if (authMethod) {
 			// Update tokens for existing account
-			await db
-				.updateTable("auth_methods")
-				.set({ credential: JSON.stringify(tokens) })
-				.where("id", "=", authMethod.id)
-				.execute();
+			await this.authDb.authMethods.update(authMethod.id, {
+				credential: JSON.stringify(tokens)
+			});
 
 			return authService.createSession(authMethod.user_id);
 		}
 
 		// Check if user exists by email
-		let user = await users.findByEmail(userInfo.email).executeTakeFirst();
+		let user = await this.authDb.kysely
+			.selectFrom("users")
+			.selectAll()
+			.where("email", "=", userInfo.email)
+			.executeTakeFirst();
 
 		if (!user) {
-			// Create new user
-			const userId = crypto.randomUUID();
-			await users
-				.create({
-					id: userId,
-					email: userInfo.email,
-					name: userInfo.name || null,
-				})
-				.execute();
+			// Create new user and OAuth method in transaction
+			return await this.authDb.transaction(async (trx) => {
+				const userId = crypto.randomUUID();
+				
+				// Create user
+				await trx
+					.insertInto("users")
+					.values({
+						id: userId,
+						email: userInfo.email,
+						name: userInfo.name || null,
+					})
+					.execute();
 
-			user = { id: userId, email: userInfo.email, name: userInfo.name };
+				// Link OAuth account to user
+				await this.authDb.authMethods.create({
+					user_id: userId,
+					type: provider,
+					identifier: userInfo.id || userInfo.sub,
+					credential: JSON.stringify(tokens),
+				});
+
+				return authService.createSession(userId);
+			});
 		}
 
-		// Link OAuth account to user
-		await authMethods
-			.create({
-				user_id: user.id,
-				type: provider,
-				identifier: userInfo.id || userInfo.sub,
-				credential: JSON.stringify(tokens),
-			})
-			.execute();
+		// Link OAuth account to existing user
+		await this.authDb.authMethods.create({
+			user_id: user.id,
+			type: provider,
+			identifier: userInfo.id || userInfo.sub,
+			credential: JSON.stringify(tokens),
+		});
 
 		return authService.createSession(user.id);
 	}
 
 	async unlinkAccount(userId: string, provider: string) {
 		// Check that user has other auth methods
-		const userAuthMethods = await authMethods.findByUser(userId).execute();
+		const userAuthMethods = await this.authDb.authMethods.findByUser(userId);
 
 		if (userAuthMethods.length <= 1) {
 			throw new Error("Cannot unlink last authentication method");
@@ -102,12 +117,12 @@ export class OAuthService {
 		// Remove OAuth method
 		const oauthMethod = userAuthMethods.find((m) => m.type === provider);
 		if (oauthMethod) {
-			await authMethods.delete(oauthMethod.id).execute();
+			await this.authDb.authMethods.delete(oauthMethod.id);
 		}
 	}
 
 	async refreshTokens(userId: string, provider: string) {
-		const authMethod = await db
+		const authMethod = await this.authDb.kysely
 			.selectFrom("auth_methods")
 			.selectAll()
 			.where("user_id", "=", userId)
@@ -140,11 +155,9 @@ export class OAuthService {
 		const newTokens = await refreshResponse.json();
 
 		// Update stored tokens
-		await db
-			.updateTable("auth_methods")
-			.set({ credential: JSON.stringify(newTokens) })
-			.where("id", "=", authMethod.id)
-			.execute();
+		await this.authDb.authMethods.update(authMethod.id, {
+			credential: JSON.stringify(newTokens)
+		});
 
 		return newTokens;
 	}
