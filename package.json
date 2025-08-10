@@ -1,8 +1,7 @@
 {
-	"name": "bvm",
+	"name": "converged",
 	"version": "0.1.0",
 	"private": true,
-	"workspaces": ["services/*", "dag/*"],
 	"scripts": {
 		"format": "biome format --write .",
 		"lint": "biome lint .",
@@ -10,17 +9,13 @@
 		"fix": "biome check --write ."
 	},
 	"dependencies": {
-		"@elysiajs/cors": "latest",
-		"@elysiajs/jwt": "latest",
-		"bcryptjs": "latest",
-		"elysia": "latest",
-		"kysely": "latest",
-		"openai": "latest"
+		"converged": "."
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^1.9.4",
-		"@types/bcryptjs": "latest",
-		"@types/bun": "latest",
-		"eslint": "^9.26.0"
+		"@typescript-eslint/typescript-estree": "^8.37.0",
+		"eslint": "^9.26.0",
+		"ts-morph": "^26.0.0",
+		"typescript": "^5.8.3"
 	}
 }

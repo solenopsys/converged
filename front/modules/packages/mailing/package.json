@@ -1,0 +1,21 @@
+{
+  "name": "mailing",
+  "private": false,
+  "version": "0.0.1", 
+  "type": "module",
+   
+  "dependencies": { 
+   
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "scripts": {
+    "bld": "bun run ../../node_modules/builders/src/build-frontend.ts ./src/index.ts  ../../../../../private/types/mailing.ts ./dist/"
+  },
+  "module": "src/index.ts",
+  "peerDependencies": {
+    "typescript": "^5"
+  
+  }
+}

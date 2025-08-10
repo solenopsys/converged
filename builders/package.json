@@ -1,0 +1,25 @@
+{
+  "name": "builders",
+  "version": "0.1.8",
+  "module": "src/index.ts",
+  "type": "module",
+  "files":["src","package.json"],
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@typescript-eslint/typescript-estree": "^8.37.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "scripts": {
+    "check":"cd ../front/modules/packages/auth && bun run ../../../../builders/src/build-frontend.ts ./src/index.ts  ../../../../../private/types/mailing.ts ./dist/",
+    "start": "bun run src/index.ts",
+    "build": "bun run src/builder.ts" ,
+    "pack":"bun pm pack  --destination  tgz"
+  },
+  "dependencies": {
+    "nrpc": "file:../nrpc",
+    "elysia": "^1.3.5"
+  }
+}

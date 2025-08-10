@@ -1,0 +1,16 @@
+{
+  "name": "dag-nodes",
+  "type": "commonjs",
+   "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "scripts": {},
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "dag-api": "file:../api",
+    "marked": "^16.1.1"
+  }
+}

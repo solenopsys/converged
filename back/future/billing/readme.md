@@ -1,1 +1,0 @@
-Displays payments and charges.

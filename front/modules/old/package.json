@@ -1,0 +1,25 @@
+{
+  "name": "converged-modules",
+  "private": false,
+  "version": "0.0.0",
+  "workspaces": ["src/*"],
+  "type": "module",
+  "scripts": {
+    "format": "biome format --write .",
+		"lint": "biome lint .",
+		"check": "biome check .",
+		"fix": "biome check --write .", 
+    "bld": "bun run build.ts"
+     
+  },
+  "dependencies": {
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-i18next": "15.5.3",
+    "react-router-dom": "latest",
+    "converged-core": "../core"
+  },
+  "devDependencies": {
+  
+  }
+}

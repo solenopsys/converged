@@ -1,0 +1,35 @@
+[
+    {
+        "path": "/panel",
+        "link": "https://converged-modules.s3.us-east-2.amazonaws.com/front/panel.js",
+        "protected": true,
+        "layout": "SidebarLayout"
+    },
+    {
+        "path": "/dag",
+        "link": "https://converged-modules.s3.us-east-2.amazonaws.com/front/dag.js",
+        "protected": true,
+        "layout": "SimpleLayout"
+    },
+    {
+        "path": "/chats",
+        "link": "https://converged-modules.s3.us-east-2.amazonaws.com/front/chats.js",
+        "protected": true,
+        "layout": "SidebarLayout"
+    },
+    {
+        "path": "/login",
+        "link": "https://converged-modules.s3.us-east-2.amazonaws.com/front/auth.js",
+        "protected": false,
+        "layout": "SimpleLayout"
+    }
+    ,
+    {
+        "path": "/mailing",
+        "link": "https://converged-modules.s3.us-east-2.amazonaws.com/front/mailing.js",
+        "protected": false,
+        "layout": "SidebarLayout"
+    }
+
+ 
+]

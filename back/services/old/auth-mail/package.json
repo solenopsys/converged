@@ -1,0 +1,14 @@
+{
+	"name": "auth-mail-service",
+	"peerDependencies": {
+		"@elysiajs/cors": "latest",
+		"@elysiajs/jwt": "latest",
+		"bcryptjs": "latest",
+		"elysia": "latest",
+		"kysely": "latest"
+	},
+	"devDependencies": {
+		"@types/bcryptjs": "latest",
+		"bun-types": "latest"
+	}
+}

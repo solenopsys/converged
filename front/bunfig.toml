@@ -1,2 +1,0 @@
-[alias]
-"@tabler/icons-react" = "./src/icons-shim/index.ts"

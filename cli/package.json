@@ -1,0 +1,20 @@
+{
+  "name": "dag-cli",
+  "module": "src/cli.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest",
+    "builders": "file:../../builders",
+    "nrpc": "file:../../nrpc"
+  },
+  "scripts": {
+    "gen": "bun run ./node_modules/builders/src/build-frontend-base.ts ../types/interface.ts ./generated/",
+    "cli": "bun run --env-file=../../../conf/dag-server.env ./src/cli.ts "
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": { 
+  }
+}

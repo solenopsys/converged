@@ -1,0 +1,27 @@
+{
+  "name": "dag",
+  "module": "sar/api.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@typescript-eslint/typescript-estree": "^8.38.0"
+  },
+  "scripts": {
+    "cp": "cp ../../nrpc/tgz/nrpc-0.1.2.tgz ./tgz/ && cp ../../builders/tgz/builders-0.1.0.tgz ./tgz/",
+    "gen": "bun run ./node_modules/builders/src/build-backend-base.ts ./src/dag-service.ts  ../types/interface.ts ./generated/",
+    "bld": "bun build src/api.ts --outdir dist --minify --external lmdb --external elysia --external kysely   --target bun",
+    "dev": "bun run --env-file=../../conf/dag-server.env src/api.ts"
+  },
+  "peerDependencies": {
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "builders": "file:./tgz/builders-0.1.0.tgz",
+    "elysia": "^1.3.6",
+    "kysely": "^0.28.3",
+    "lmdb": "^3.4.1",
+    "nrpc": "file:./tgz/nrpc-0.1.2.tgz",
+    "ordered-binary": "^1.6.0"
+  }
+}

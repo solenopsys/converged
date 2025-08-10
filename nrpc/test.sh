@@ -1,0 +1,2 @@
+bun run src/generator/parser.ts /home/alexstorm/distrib/4ir/CONVERGED/private/types/mailing.ts  dist/conf.json
+bun run src/generator/backend.ts dist/conf.json http /home/alexstorm/distrib/4ir/CONVERGED/private/back/services/mailing/src/index.ts dist/result.ts

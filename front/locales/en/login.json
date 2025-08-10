@@ -1,0 +1,35 @@
+{
+    "welcome": {
+      "heading": "Welcome to Converged",
+      "description": "Where Workshops Become Digital Factories"
+    },
+    "form": {
+      "email": "Email",
+      "password": "Password",
+      "forgotPassword": "Forgot your password?",     
+       "loginWithPassword": "Login with Password",
+      "sendLink": "Login with Send Link"
+    },
+    "button": {
+      "login": "Login",
+      "sendAuthLink": "Send Auth Link",
+      "loggingIn": "Logging in...",
+      "continueWith": "Or continue with",
+      "loginWithApple": "Login with Apple",
+      "loginWithGoogle": "Login with Google",
+      "loginWithMeta": "Login with Meta"
+    },
+    "signup": {
+      "text": "Don't have an account?",
+      "link": "Sign up"
+    },
+    "legal": {
+      "agreement": "By clicking continue, you agree to our {{termsLink}} and {{privacyLink}}.",
+      "termsOfService": "Terms of Service",
+      "privacyPolicy": "Privacy Policy"
+    },
+    "notification": {
+      "loginFailed": "Login failed",
+      "tryAgain": "Please try again"
+    }
+  }
