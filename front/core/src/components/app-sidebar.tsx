@@ -1,7 +1,6 @@
 import * as React from "react"
 import * as TablerIcons from "@tabler/icons-react"
 
-import { NavDocuments } from "@/components/nav-documents"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
@@ -14,115 +13,51 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { useGlobalTranslation } from "@/hooks/global_i18n";
+import { useGlobalTranslation } from "@/hooks/global_i18n"
 
-// Функция для рендеринга иконки по её имени
-const renderIcon = (iconName) => {
-  // Проверяем, существует ли такая иконка в TablerIcons
+const renderIcon = (iconName: string) => {
   if (TablerIcons[iconName]) {
-    const IconComponent = TablerIcons[iconName];
-    return <IconComponent />; // Используем JSX синтаксис вместо React.createElement
+    const IconComponent = TablerIcons[iconName]
+    return React.createElement(IconComponent)
   }
-  console.warn(`Icon ${iconName} not found`);
-  return null;
-};
+  return null
+}
 
-// Функция для преобразования данных - заменяет строковые имена иконок на компоненты
-const processData = (data) => {
-  if (!data) return {}; // Защита от undefined data
-  
-  const processItems = (items) => {
-    if (!items || !Array.isArray(items)) return [];
-    
-    return items.map(item => {
-      const processedItem = { ...item };
-      
-      // Преобразуем iconName в компонент icon, если есть
-      if (processedItem.iconName) {
-        processedItem.icon = renderIcon(processedItem.iconName);
-        delete processedItem.iconName;
-      }
-      
-      // Рекурсивно обрабатываем вложенные элементы, если они есть
-      if (processedItem.items && processedItem.items.length > 0) {
-        processedItem.items = processItems(processedItem.items);
-      }
-      
-      return processedItem;
-    });
-  };
-  
-  // Создаем глубокую копию данных
-  const processedData = { ...data };
-  
-  // Обрабатываем все коллекции элементов
-  if (processedData.navMain) {
-    processedData.navMain = processItems(processedData.navMain);
-  }
-  
-  if (processedData.navClouds) {
-    processedData.navClouds = processItems(processedData.navClouds);
-  }
-  
-  if (processedData.navSecondary) {
-    processedData.navSecondary = processItems(processedData.navSecondary);
-  }
-  
-  if (processedData.documents) {
-    processedData.documents = processItems(processedData.documents);
-  }
-  
-  return processedData;
-};
+const processItems = (items: any[]) => {
+  if (!Array.isArray(items)) return []
 
-export function AppSidebar({ ...props }) {
-  // Используем namespace "menu" для получения переводов
- 
-    const { t, i18n } = useGlobalTranslation("menu");
-    
- 
-  const [menuData, setMenuData] = React.useState(null);
-  
-  // Загружаем данные меню при монтировании компонента
-  React.useEffect(() => {
-    // Безопасное получение данных
-    const getMenuData = () => {
-      try {
-        if (i18n.options && i18n.options.resources) {
-          const lang = i18n.language || 'en';
-          if (i18n.options.resources[lang] && i18n.options.resources[lang].menu) {
-            return i18n.options.resources[lang].menu;
-          }
-        }
-        return {};
-      } catch (error) {
-        console.error('Ошибка при получении данных меню:', error);
-        return {};
-      }
-    };
-    
-    // Получаем данные из i18n и обрабатываем их
-    const rawData = getMenuData();
-    console.log("Raw menu data:", rawData);
-    const processed = processData(rawData);
-    console.log("Processed menu data:", processed);
-    setMenuData(processed);
-  }, [i18n.language]); // Обновляем при изменении языка
-  
-  // Если данные еще не загружены, показываем загрузку
-  if (!menuData) {
-    return <div>Loading...</div>;
-  }
+  return items.map(item => {
+    const processedItem = { ...item }
+
+    if (processedItem.iconName) {
+      processedItem.icon = renderIcon(processedItem.iconName)
+      delete processedItem.iconName
+    }
+
+    if (processedItem.items && processedItem.items.length > 0) {
+      processedItem.items = processItems(processedItem.items)
+    }
+
+    return processedItem
+  })
+}
+
+export const AppSidebar = React.forwardRef<
+  HTMLDivElement,
+  React.ComponentProps<typeof Sidebar>
+>(({ ...props }, ref) => {
+  const { i18n } = useGlobalTranslation("menu")
+
+  const navMain = processItems(i18n.t("navMain", { ns: "menu", returnObjects: true }) || [])
+  const navSecondary = processItems(i18n.t("navSecondary", { ns: "menu", returnObjects: true }) || [])
+  const user = i18n.t("user", { ns: "menu", returnObjects: true }) || {}
 
   return (
-    <Sidebar collapsible="offcanvas" {...props}>
+    <Sidebar ref={ref} collapsible="offcanvas" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5"
-            >
+            <SidebarMenuButton asChild>
               <a href="#">
                 <img src="/assets/logo.svg" alt="logo" className="!h-6 !w-auto" />
                 <span className="text-small font-semibold">CONVERGED</span>
@@ -132,13 +67,14 @@ export function AppSidebar({ ...props }) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={menuData.navMain || []} />
-        {/* <NavDocuments items={menuData.documents || []} /> */}
-        <NavSecondary items={menuData.navSecondary || []} className="mt-auto" />
+        <NavMain items={navMain} />
+        <NavSecondary items={navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={menuData.user || {}} />
+        <NavUser user={user} />
       </SidebarFooter>
     </Sidebar>
   )
-}
+})
+
+AppSidebar.displayName = "AppSidebar"

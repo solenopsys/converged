@@ -15,7 +15,7 @@ const metadata = {
       "returnTypeIsArray": false
     },
     {
-      "name": "setCode",
+      "name": "setCodeSource",
       "parameters": [
         {
           "name": "name",
@@ -35,17 +35,10 @@ const metadata = {
       "returnTypeIsArray": false
     },
     {
-      "name": "codeList",
-      "parameters": [],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false
-    },
-    {
       "name": "createNode",
       "parameters": [
         {
-          "name": "nodeCode",
+          "name": "codeSourceName",
           "type": "string",
           "optional": false,
           "isArray": false
@@ -62,38 +55,24 @@ const metadata = {
       "returnTypeIsArray": false
     },
     {
-      "name": "runCode",
+      "name": "createProvider",
       "parameters": [
         {
-          "name": "hash",
-          "type": "HashString",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "params",
-          "type": "any",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false
-    },
-    {
-      "name": "startProcess",
-      "parameters": [
-        {
-          "name": "workflowId",
+          "name": "name",
           "type": "string",
-          "optional": true,
+          "optional": false,
           "isArray": false
         },
         {
-          "name": "meta",
+          "name": "codeSourceName",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "config",
           "type": "any",
-          "optional": true,
+          "optional": false,
           "isArray": false
         }
       ],
@@ -125,6 +104,101 @@ const metadata = {
         {
           "name": "description",
           "type": "string",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false
+    },
+    {
+      "name": "codeSourceList",
+      "parameters": [],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false
+    },
+    {
+      "name": "providerList",
+      "parameters": [],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false
+    },
+    {
+      "name": "workflowList",
+      "parameters": [],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false
+    },
+    {
+      "name": "runCode",
+      "parameters": [
+        {
+          "name": "hash",
+          "type": "HashString",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "params",
+          "type": "any",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false
+    },
+    {
+      "name": "setParam",
+      "parameters": [
+        {
+          "name": "name",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "value",
+          "type": "any",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false
+    },
+    {
+      "name": "getParam",
+      "parameters": [
+        {
+          "name": "name",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false
+    },
+    {
+      "name": "startProcess",
+      "parameters": [
+        {
+          "name": "workflowId",
+          "type": "string",
+          "optional": true,
+          "isArray": false
+        },
+        {
+          "name": "meta",
+          "type": "any",
           "optional": true,
           "isArray": false
         }

@@ -9,7 +9,7 @@
         "path": "/dag",
         "link": "http://localhost:3005/modules/dag.js",
         "protected": true,
-        "layout": "SimpleLayout"
+        "layout": "SidebarLayout"
     },
     {
         "path": "/chats",

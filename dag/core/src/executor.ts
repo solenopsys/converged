@@ -1,19 +1,19 @@
 
-import { type INode } from "../types/interface";
+import { type INode } from "dag-api";
 import { StoreService } from "./store/store";
 import fs from "fs";
+import { ModuleController } from "dag-api";
 
 export class Executor{
   modules=new Map<string,any>();
 
+  moduleController:ModuleController;
+
   constructor(private tempDir:string){
+    this.moduleController = new ModuleController(tempDir);
    }
 
-  async loadModule(hash:string,path:string){ 
-   
-   this.modules.set(hash,await import(path))
-  }
-
+ 
   runModule(hash:string){
     const module=this.modules.get(hash)
     if (!module) {
@@ -22,33 +22,28 @@ export class Executor{
     return module
   }
 
-  async run(nodeHash: string, params: any) {
+  async run(nodeHash: string, data: any) {
+    console.log("run",nodeHash,data);
     const node = StoreService.getInstance().getNode(nodeHash);
-    const codeHash=node.codeHash;
+
+    const nodeCode:{code_hash:string}=StoreService.getInstance().getNodeCode(node.codeName,node.codeVersion);
+    
+    const codeHash=nodeCode.code_hash;
     const codeBody=StoreService.getInstance().getCode(codeHash);
-
-    console.log("node" ,node)
-    const path=this.tempDir+"/"+codeHash+".ts";
-    const absolutePath=process.cwd()+"/"+path;
-    fs.writeFileSync(absolutePath,codeBody);
-
-
-    // Загружаем модуль если он еще не загружен
-    await this.loadModule(codeHash,absolutePath);
     
     // Получаем загруженный модуль
-    const module = this.runModule(codeHash);
+    const module =   await this.moduleController.loadAndGetModule(codeHash, codeBody);;
     
     // Создаем экземпляр класса из default export
     const NodeClass = module.default;
     if (!NodeClass) {
       throw new Error(`Module ${codeHash} does not have a default export`);
     }
-    
-    // Создаем экземпляр с именем узла (можно передать hash или другое имя)
-    const nodeInstance: INode = new NodeClass(...node.config);
+
+   const nodeInstance:any = Reflect.construct(NodeClass, Object.values(node.config));
+   const result=await nodeInstance.execute(data)
     
     // Выполняем метод execute
-    return await nodeInstance.execute(params);
+    return result;
   }
 }

@@ -2,12 +2,13 @@ import { Kysely, SqliteDialect } from 'kysely';
 import Database from 'bun:sqlite';
 import * as lmdb from 'lmdb';
 import { join } from 'path';
-import { mkdirSync } from 'fs';
-import { extractConstructorParams } from './ts-parser';
+import { mkdirSync } from 'fs'; 
 import { HashString } from '../../../types/interface';
 import { genHash } from '../tools';
 import { preciseStringfy } from '../tools';
 import { Database as DBTypes, ProcessStatus, NodeState } from './types';
+import { type ProvidersStore } from 'dag-api';
+
 
 interface MetadataDB {
   metadata: {
@@ -17,7 +18,14 @@ interface MetadataDB {
   };
 }
 
-export class StoreService {
+function extractCommentParam(code:string){
+  const lines = code.split("\n")[0];
+  const strParams = lines.split("//")[1];
+  
+  return JSON.parse(strParams);
+}
+
+export class StoreService implements ProvidersStore{
   private static instance: StoreService;
   private index: Kysely<DBTypes>;
   private dag: lmdb.Database;
@@ -48,6 +56,8 @@ export class StoreService {
     return this.getKeysWithRange(prefix + ":", prefix + ";")
   }
 
+ 
+
   getKeysWithRange(start: string, end: string): string[] {
     const keys: string[] = [];
     console.log("range", start, "-", end)
@@ -65,8 +75,30 @@ export class StoreService {
     return hashString;
   }
 
-  listNodeCode(): string[] {
-    const keys = this.getKeysWithPrefix("node_code")
+  listCodeSoruce(): string[] {
+    const keys = this.getKeysWithPrefix("code_source")
+    const names: Set<string> = new Set();
+    for (const key of keys) {
+      const name = key.split(":")[1];
+      names.add(name);
+    }
+    return Array.from(names);
+  }
+
+  listWorkflow(): string[] {
+    const keys = this.getKeysWithPrefix("workflow")
+    const names: Set<string> = new Set();
+    for (const key of keys) {
+      const name = key.split(":")[1];
+      names.add(name);
+    }
+    return Array.from(names);
+  }
+
+   
+
+  listProvider(): string[] {
+    const keys = this.getKeysWithPrefix("provider")
     const names: Set<string> = new Set();
     for (const key of keys) {
       const name = key.split(":")[1];
@@ -83,23 +115,31 @@ export class StoreService {
     return this.dag.get("code:" + hashString);
   }
 
-  getNode(hashString: string): any {
-    return JSON.parse(this.dag.get("node:" + hashString));
+  getCodeSource(name: string,version: string): {code_hash:string} {
+    return this.dag.get("code_source:" + name+":"+version);
   }
 
-  createNodeCode(name: string, hash: HashString): Promise<{ version: number, fields: { name: string, type: string }[] }> {
+  getNode(hashString: string): any {
+    console.log("node",hashString);
+    const data=this.dag.get("node:" + hashString)
+    return data;
+  }
+
+  createCodeSource(name: string, hash: HashString): Promise<{ version: number, fields: { name: string, type: string }[] }> {
     const code = this.getCode(hash);
     const timeVersion = new Date().getTime();
-    const key = `node_code:${name}:${timeVersion}`;
+    const key = `code_source:${name}:${timeVersion}`;
 
-    const constructorParams = extractConstructorParams(code);
+    const constructorParams = extractCommentParam(code);
     const struct = {
       code_hash: hash,
       params: constructorParams
     }
-    this.dag.put(key, code)
+    this.dag.put(key, struct)
     return { version: timeVersion, fields: constructorParams };
   }
+
+ 
 
   getLastVersion(prefix: string) {
     const keys = this.getKeysWithPrefix(prefix)
@@ -108,8 +148,18 @@ export class StoreService {
     return version;
   }
 
+  setParam(name: string, value: string): Promise<{ replaced: boolean }> {
+    const exists = this.dag.get("param:" + name); 
+    this.dag.put("param:" + name, value);
+    return Promise.resolve({ replaced: exists !== undefined });
+  }
+
+  getParam(name: string): Promise<{ value: string }> {
+    return this.dag.get("param:" + name);
+  }
+
   createNode(nodeCodeName: string, config: any): Promise<{ hash: HashString }> {
-    const nodeCodeVersion = this.getLastVersion("node_code:" + nodeCodeName);
+    const nodeCodeVersion = this.getLastVersion("code_source:" + nodeCodeName);
     const struct = {
       config: config,
       codeName: nodeCodeName,
@@ -121,6 +171,38 @@ export class StoreService {
 
     this.dag.put(key, struct)
     return { hash: hashString };
+  }
+
+  createProvider(name:string,providerCodeName: string, config: any): Promise<{ hash: HashString }> {
+    const providerCodeVersion = this.getLastVersion("code_source:" + providerCodeName);
+    const struct = {
+      config: config,
+      codeName: providerCodeName,
+      codeVersion: providerCodeVersion
+    } 
+ 
+    const key = `provider:${name}`; 
+
+    this.dag.put(key, struct)
+    return { name };
+  }
+
+  getProvider(name: string): Promise<{ hash:string,code: string, config: any }> {
+    const data: {
+      config: any,
+      codeName: string,
+      codeVersion: string
+    } =this.dag.get("provider:" + name)
+    const {code_hash}=this.getProviderCode(data.codeName,data.codeVersion);
+    const code=this.getCode(code_hash);
+    return {hash:code_hash,code,config:data.config};
+  }
+
+
+  providerExists(name: string): Promise<boolean> {
+    const exists = this.dag.get("provider:" + name); 
+    return Promise.resolve(exists !== undefined);
+    
   }
 
   // Добавленные методы для работы с процессами

@@ -5,31 +5,61 @@ import { toHex } from "./tools";
 import { Executor } from "./executor";
 import { genHash } from "./tools";
 import { preciseStringfy } from "./tools";
+import { initProvidersPool } from "dag-api";
 
 export default class DagServiceImpl implements DagService {
 
-    private executor = new Executor("./temp");
+    private executor = new Executor("./temp/nodes");
     private store = StoreService.getInstance();
+
+    constructor() {
+        initProvidersPool(this.store,"./temp/providers")
+    }
 
     async status(): Promise<{ status: string }> {
         const statistic = this.store.stats();
         return Promise.resolve({ status: "ok", db: statistic.root });
     }
 
-    async setCode(name: string, code: string): Promise<{ name: string, version: number, hash: HashString, fields: { name: string, type: string }[] }> {
+    async setCodeSource(name: string, code: string): Promise<{ name: string, version: number, hash: HashString, fields: { name: string, type: string }[] }> {
         const hash = this.store.saveCode(code)
-        const nodeType = await this.store.createNodeCode(name, hash);
+        const nodeType = await this.store.createCodeSource(name, hash);
         return Promise.resolve({ name, version: nodeType.version, hash, fields: nodeType.fields })
     }
 
-    async codeList(): Promise<{ names: string[] }> {
-        return Promise.resolve({ names: this.store.listNodeCode() })
+    async createNode(codeSourceName: string, config: any): Promise<{ hash: HashString }> {
+        return this.store.createNode(codeSourceName, config);
     }
 
-    async createNode(nodeCode: string, config: any): Promise<{ hash: HashString }> {
-        return this.store.createNode(nodeCode, config);
+    async createProvider(name:string,codeSourceName: string, config: any): Promise<{ hash: HashString }> {
+        return this.store.createProvider(name,codeSourceName, config);
+    }
+ 
+
+    async setParam(name: string, value: any): Promise<{ replaced: boolean }> {
+        return this.store.setParam(name, value);
     }
 
+    async getParam(name: string): Promise<{ value: string }> {
+        return this.store.getParam(name);
+    }
+
+    async codeSourceList(): Promise<{ names: string[] }> {
+        return Promise.resolve({ names: this.store.listCodeSoruce() })
+    }
+
+    async workflowList(): Promise<{ names: string[] }> {
+        return Promise.resolve({ names: this.store.listWorkflow() })
+    }
+   
+
+   
+
+    async providerList(): Promise<{ names: string[] }> {
+        return Promise.resolve({ names: this.store.listProvider() })
+    }
+
+  
     runCode(nodeHash: HashString, params: any): Promise<{ result: any }> {
         return this.executor.run(nodeHash, params)
     }

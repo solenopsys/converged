@@ -1,0 +1,16 @@
+{
+  "name": "cron-provider",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "croner": "^9.1.0"
+  },
+  "scripts": {
+    "bld": "bun build src/index.ts --external dag-api --outdir dist"
+  }
+}

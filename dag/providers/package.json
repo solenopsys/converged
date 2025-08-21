@@ -1,0 +1,23 @@
+{
+  "name": "dag-providers",
+  "type": "commonjs",
+  "workspaces": [
+    "packages/*"
+  ],
+   "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "scripts": {
+    "gen": "bun run ./node_modules/builders/src/build-frontend-base.ts ../types/interface.ts ./src/dat-api/",
+    "int":"bun run src/integration-test.ts"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "dag-api": "file:../api" ,
+    "builders": "file:../../builders",
+    "nrpc": "file:../../nrpc"
+  }
+}

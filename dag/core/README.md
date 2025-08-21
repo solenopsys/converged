@@ -1,177 +1,131 @@
-# Workflow Server
+# 📦 Архитектура хранения DAG и процессов
 
-This is a powerful and flexible workflow automation server built with Bun, Elysia, and TypeScript. It allows you to define, manage, and execute complex workflows using a simple JSON-based schema. The server provides a RESTful API for interacting with workflows, webhooks, and processes.
+Система построена на **immutable key-value хранилищах (LMDB)** и **вспомогательной SQLite-индексации**.  
+Цель: 100% воспроизводимость, отсутствие состояния у исполнителей, высокая отказоустойчивость, простота масштабирования.
 
-## Features
+---
 
-*   **Workflow Management:** Create, update, delete, and retrieve workflows.
-*   **Dynamic Execution:** Execute workflows with custom data.
-*   **Extensible Node System:** Easily add new node types to perform custom actions.
-*   **Webhooks:** Trigger workflows and receive notifications via webhooks.
-*   **Process Tracking:** Monitor the status and context of running processes.
-*   **Versioning:** Workflows are versioned, allowing you to roll back to previous versions.
-*   **Swagger Documentation:** Interactive API documentation is available out of the box.
+## 🗃️ Хранилища
 
-## Getting Started
+| Файл               | Тип    | Назначение                                          |
+|--------------------|--------|-----------------------------------------------------|
+| `dag.lmdb`         | LMDB   | Хранение описания DAG, узлов, версий кода          |
+| `processes.lmdb`   | LMDB   | Хранение всех процессов и событий выполнения        |
+| `index.sqlite`     | SQLite | Быстрый индекс (мутабельный), восстанавливаемый     |
 
-### Prerequisites
+---
 
-*   [Bun](https://bun.sh/) installed on your system.
+## 📁 `dag.lmdb` — описание графов
 
-### Installation
+### `code_source:{hash}` → `string`
+Хранит исходный код любой.  
+Ключ формируется как хеш содержимого, значение — код.
 
-1.  Clone the repository:
+### `code:{name}:{version}` → `{ code_hash, params }`
+Версия кода (появляется только если есть новый хеш)
+Позволяет ссылаться на код и его параметры по имени и версии.
 
-    ```bash
-    git clone https://github.com/your-username/your-repo.git
-    cd your-repo
-    ```
+### `node:{hash}` → `{ config, codeName, codeVersion }`
+Конфигурация конкретного узла DAG.  
+Неизменяема (hash зависит от всех параметров).
 
-2.  Install the dependencies:
+### `provider:{hash}` → `{ config, codeName, codeVersion }`
+Конфигурация конкретного провайдера.  
+Неизменяема (hash зависит от всех параметров).
 
-    ```bash
-    bun install
-    ```
+### `workflow_config`:{hash}` → `{ nodes: [...], links: [...], description }`
+Описание DAG-графа, включая связи между узлами.  
+Привязывается к процессу по `workflow_id`.
 
-### Configuration
+### `workflow:{name}:{version}` → `{ workflow_version_hash }`
+Описание DAG-графа, включая связи между узлами.  
+Привязывается к процессу по `workflow_id`.
 
-Create a `.env` file in the root of the project and add the following environment variables:
+### `webhook:{name}:{version}` → `{ url, method, workflow_id, options }`
+Webhook-конечные точки, вызывающие запуск процессов.
 
-```
-LEVEL_DB_PATH=temp/leveldb
-SQLITE_PATH=temp/sqlite.db
-DATABASE_URL=postgresql://postgres:123456@127.0.0.1:35432
-OPENAI_API_KEY=sk-your-openai-api-key-here
-OPENAI_MODEL=gpt-4o-mini
-PORT=3000
-```
+---
 
-### Running the Server
+## 📁 `processes.lmdb` — выполнение процессов
 
-```bash
-bun run dev
-```
+### `process:{id}` → `{ created_at, workflow_id (optional), meta }`
+Контекст выполнения.  
+Может быть вызван вручную, webhook-ом или через другой процесс.
 
-The server will start on `http://localhost:3000`.
+### `event:{process_id}:{ulid}` → `{ type, node_id, payload, ts, executor_id (optional) }`
+Иммутабельное событие, отражающее факт выполнения/ошибки/статуса.  
+Типы событий:
+- `process_started`
+- `node_started`
+- `node_result`
+- `node_error`
+- `custom_event`
 
-## API Documentation
+---
 
-Interactive API documentation is available at `http://localhost:3000/docs`.
+## 🗂️ `index.sqlite` — восстановимый индекс
 
-### Workflow API
+SQLite хранит **быстрое текущее состояние**, не влияет на целостность.  
+Может быть перестроен полностью из LMDB (через `rebuild_index()`).
 
-#### `GET /api/workflows`
+### Таблица `process`
 
-Retrieves all workflows.
+| Поле         | Описание                               |
+|--------------|----------------------------------------|
+| `id`         | ID процесса                            |
+| `workflow_id`| Привязка к workflow                    |
+| `status`     | Текущий статус (`running`, `done`, ...)|
+| `started_at` | Время запуска                          |
+| `updated_at` | Последнее обновление                   |
 
-**Example Response:**
+### Таблица `nodes`
 
-```json
-[
-  {
-    "id": "...",
-    "name": "My Workflow",
-    "before_id": null,
-    "created_at": "...",
-    "nodes": [...],
-    "links": [...]
-  }
-]
-```
+| Поле          | Описание                                |
+|---------------|-----------------------------------------|
+| `node_id`     | ID узла                                 |
+| `state`       | `queued`, `running`, `done`, `failed`  |
 
-#### `POST /api/workflows`
+### Таблица `workflow`
 
-Creates a new workflow.
-
-**Request Body:**
-
-```json
-{
-  "name": "My New Workflow",
-  "workflow": {
-    "nodes": {
-      "start": {
-        "type": "start"
-      },
-      "log": {
-        "type": "print",
-        "params": {
-          "message": "Hello, {{data.name}}!"
-        }
-      }
-    },
-    "connections": {
-      "start": ["log"]
-    }
-  }
-}
-```
-
-#### `GET /api/workflows/:id`
-
-Retrieves a specific workflow by its ID.
-
-#### `PUT /api/workflows/:id`
-
-Updates a workflow. This creates a new version of the workflow.
-
-#### `DELETE /api/workflows/:id`
-
-Deletes a workflow and all its associated nodes and links.
-
-#### `POST /api/workflows/:id/execute`
-
-Executes a workflow.
-
-**Request Body:**
-
-```json
-{
-  "startNode": "start",
-  "data": {
-    "name": "World"
-  }
-}
-```
-
-### Webhook API
-
-#### `POST /api/workflows/:id/webhooks`
-
-Adds a webhook to a workflow.
-
-**Request Body:**
-
-```json
-{
-  "url": "https://example.com/my-webhook",
-  "secret": "my-secret"
-}
-```
-
-### Available Nodes
-
-*   `start`: The entry point of a workflow.
-*   `print`: Logs a message to the console.
-*   `ai-request`: Makes a request to an AI model.
-*   `sql-query`: Executes a SQL query.
-*   `template`: Injects data into a template.
-*   `random`: Generates a random string.
-*   `mark`: A placeholder node.
-*   `mock`: A mock node for testing.
-
-## Building for Production
-
-To build the project for production, run:
-
-```bash
-bun run bld
-```
-
-This will create a production-ready build in the `dist` directory.
+| Поле       | Описание              |
+|------------|-----------------------|
+| `id`       | ID workflow           |
+| `name`     | Название              |
+| `created_at`| Дата создания        |
+| current_version | версия workflow |
 
 
+### Таблица `webhook`
 
-bun bld
-buildah bud  -t public.ecr.aws/i5x9u8b2/dag .
-buildah push public.ecr.aws/i5x9u8b2/dag
+| Поле        | Описание              |
+|-------------|-----------------------|
+| `id`        | ID webhook            |
+| `workflow_id`| Workflow по вызову   |
+| `url`       | Конечная точка        |
+| `method`    | HTTP-метод (GET/POST) |
+
+---
+
+## 💡 Принципы
+
+- Все события **immutable**, хранение — только в LMDB.
+- SQLite индекс — производный, может быть очищен и восстановлен.
+- Каждый узел исполняется реактивно:  
+  `event` → `executor (stateless)` → `new event`.
+
+---
+
+## ✅ Преимущества архитектуры
+
+- 💾 **100% воспроизводимость** — LMDB содержит полную историю.
+- ⚙️ **Масштабируемость** — исполнители не хранят состояния.
+- 🧠 **Отладка и трассировка** — по событиям видна вся история.
+- 🔄 **Replay / Retry** — просто пересоздание событий.
+
+---
+
+## 🛠️ Возможные расширения
+
+- Утилита `rebuild_index.go` (или Rust) — пересоздание SQLite по LMDB.
+- CLI для импорта/экспорта workflow.
+- Live-лог событий через подписку на `tail -f` LMDB.

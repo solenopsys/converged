@@ -1,0 +1,16 @@
+{
+  "name": "openai-provider",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+
+  "dependencies": { 
+  }, 
+  "scripts": {
+    "bld":"bun build src/index.ts --external dag-api --outdir dist"
+  }
+}

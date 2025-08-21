@@ -1,25 +1,7 @@
-// types.ts - исправлен только NodeConstructor
-interface Provider {
-	name: string;
-}
 
-interface StoreProvider {
-	init(): Promise<void>;
-	deinit(): Promise<void>;
-	put(key: string, value: any): Promise<void>;
-	get(key: string): Promise<any>;
-	delete(key: string): Promise<void>;
-	exists(key: string): Promise<boolean>;
-}
 
-interface InitProvider {
-	init(): Promise<void>;
-	deinit(): Promise<void>;
-}
 
-interface DatabaseProvider extends InitProvider {
-	query<T>(sql: string, params: any[]): Promise<T[]>;
-}
+
 
 interface WorkflowEvent {
 	id: string;
@@ -69,8 +51,4 @@ export interface WorkflowConfig {
 export type {
 	ProcessNode,
 	WorkflowEvent,
-	Provider,
-	DatabaseProvider,
-	InitProvider,
-	StoreProvider,
 };

@@ -1,0 +1,17 @@
+{
+  "name": "html-clean-node",
+  "private": true,
+  "module": "src/index.ts",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "scripts": {
+    "bld": "bun build src/index.ts --external dag-api --outdir dist"
+  },
+  "dependencies": {
+    "@mozilla/readability": "^0.6.0"
+  }
+}

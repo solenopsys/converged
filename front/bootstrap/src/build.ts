@@ -57,6 +57,7 @@ await $`cp -r confs/assets dist/assets 2>/dev/null || true`;
 await $`cp -r  ../locales dist/locales 2>/dev/null || true`;
 await $`cp confs/modules.json dist/modules.json`;
 await $`cp ../core/dist/index.js dist/core.js`;
+await $`cp ../core/dist/index.js.map dist/index.js.map`;
 await $`cp ../core/dist/index.css dist/index.css`;
 
 

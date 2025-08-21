@@ -1,0 +1,12 @@
+{
+  "name": "start-node",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }, "scripts": { 
+      "bld":"bun run ../../src/build-node.ts"
+  }
+}

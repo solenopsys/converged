@@ -5,16 +5,17 @@
   "private": true,
   "devDependencies": {
     "@types/bun": "latest",
-    "builders": "file:../../builders",
-    "nrpc": "file:../../nrpc"
+    "builders": "file:../../public/builders",
+    "nrpc": "file:../../public/nrpc"
   },
   "scripts": {
-    "gen": "bun run ./node_modules/builders/src/build-frontend-base.ts ../types/interface.ts ./generated/",
+    "gen-dag": "bun run ./node_modules/builders/src/build-frontend-base.ts ../dag/types/interface.ts ./src/processors/dag/",
     "cli": "bun run --env-file=../../../conf/dag-server.env ./src/cli.ts "
   },
   "peerDependencies": {
     "typescript": "^5"
   },
-  "dependencies": { 
+  "dependencies": {
+    "yaml": "^2.8.1"
   }
 }

@@ -1,0 +1,16 @@
+{
+  "name": "mark-node",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "marked": "^16.1.1"
+  },
+  "scripts": {
+    "bld": "bun run ../../src/build-node.ts"
+  }
+}
