@@ -1,0 +1,19 @@
+{
+	"name": "modules",
+	 "dependencies": { 
+
+	 },
+	"peerDependencies": {
+		"@elysiajs/cors": "latest",
+		"@elysiajs/jwt": "latest",
+		"elysia": "latest", 
+		"lmdb": "latest"
+	},
+	"devDependencies": {
+		"@types/bcryptjs": "latest",
+		"bun-types": "latest"
+	},
+	"scripts": {
+		"bld": "bun run ../../node_modules/builders/src/build-backend.ts ./src/index.ts  ../../../../types/modules.ts ./dist/ --upload"
+	}
+}

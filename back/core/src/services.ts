@@ -30,12 +30,15 @@ const loadConfig = (): PluginConfig => {
 const loadPlugin = async (app: Elysia, name: string, url: string) => {
   try {
     // Скачиваем плагин по URL
+    console.log("URL:",url);
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     
     const code = await response.text();
+
+    console.log("CODE:",code);
     
     // Создаем data URL для загрузки модуля
     const dataUrl = `data:text/javascript;base64,${btoa(code)}`;

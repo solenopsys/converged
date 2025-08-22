@@ -17,8 +17,8 @@
 		"elysia": "latest",
 		"kysely": "latest",
 		"openai": "latest",
-		"builders": "file:./tgz/builders-0.1.8.tgz",
-		"nrpc": "file:./tgz/nrpc-0.1.2.tgz"
+		"builders": "../../builders",
+		"nrpc": "../../nrpc"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^1.9.4",
