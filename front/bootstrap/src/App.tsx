@@ -6,6 +6,10 @@ import { ProtectedRoute } from "./ProtectedRoute";
 import { staticRoutes } from "./routes.config";
 import { SidebarLayout } from "converged-core";
 import { SimpleLayout } from "converged-core";
+import { createModulesServiceClient } from "./generated";
+
+
+const modulesClient=createModulesServiceClient();
 
 function App() {
 	const [dynamicRoutes, setDynamicRoutes] = useState([]);
@@ -17,11 +21,9 @@ function App() {
 	useEffect(() => {
 		const loadDynamicRoutes = async () => {
 			try {
-				const response = await fetch("/modules.json");
-				if (!response.ok) {
-					throw new Error(`HTTP error! status: ${response.status}`);
-				}
-				const data = await response.json();
+		 
+				
+				const data = await modulesClient.list();
 				setDynamicRoutes(data);
 			} catch (err) {
 				console.error("Ошибка загрузки динамических роутов:", err);

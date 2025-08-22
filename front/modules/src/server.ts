@@ -36,6 +36,24 @@ const app = new Elysia()
 
     return Bun.file(path)
   })
+
+  .get('/modules/locale/:name/:locale', async ({ params }) => {
+    const { name } = params
+    const baseName = name.split('.')[0]
+    const path = `./packages/${baseName}/locales/${params.locale}`
+
+    const fileExists = await Bun.file(path).exists()
+
+    if (fileExists) {
+      return Bun.file(path)
+    }
+
+    await Bun.spawn(['bun', 'bld'], {
+      cwd: `./packages/${baseName}`
+    }).exited
+
+    return Bun.file(path)
+  })
   
   // SSE endpoint для уведомлений
   .get('/events', ({ set }) => {

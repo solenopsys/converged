@@ -1,40 +1,41 @@
 
 import { ModulesService } from "../../../../../types/modules";
 
-const staticModules =[
+const remotePrefix="https://converged-modules.s3.us-east-2.amazonaws.com/front/"
+const localPrefix="http://localhost:3005/modules/"
+
+const localesPrefixes=["en","ru","de","fr","it","pt"]
+
+const staticModules:any =[
     {
         "name":"panel",
-        "path": "/panel",
-        "link": "https://converged-modules.s3.us-east-2.amazonaws.com/front/panel.js",
+        "remote": true,
         "protected": true,
         "layout": "SidebarLayout"
     },
     {
-        "name":"dag",
-        "path": "/dag",
-        "link": "http://localhost:3005/modules/dag.js",
+        "name":"dag", 
+        "remote": false,
         "protected": true,
         "layout": "SidebarLayout"
     },
     {
         "name":"chats",
-        "path": "/chats",
-        "link": "https://converged-modules.s3.us-east-2.amazonaws.com/front/chats.js",
+        "remote":true,
         "protected": true,
         "layout": "SidebarLayout"
     },
     {
         "name":"auth",
-        "path": "/login",
-        "link": "http://localhost:3005/modules/auth.js",
+        "path":"/login",
+        "remote":false,
         "protected": false,
         "layout": "SimpleLayout"
     }
     ,
     {
         "name":"mailing",
-        "path": "/mailing",
-        "link": "http://localhost:3005/modules/mailing.js",
+        "remote":false,
         "protected": false,
         "layout": "SidebarLayout"
     }
@@ -58,7 +59,29 @@ class ModulesServiceImpl implements ModulesService {
         protected:boolean,
         layout:string
     }[]> {
-        return Promise.resolve(staticModules)
+        const modules= staticModules.map((module)=>{
+            if(module.remote){
+                module.link=remotePrefix+module.name+".js"
+            }else{
+                module.link=localPrefix+module.name+".js"
+            }
+
+            const locales={}
+
+            for (const locale of localesPrefixes) {
+                locales[locale]=(module.remote?remotePrefix:localPrefix)+"locale/" +module.name+"/"+locale+".json"
+            }
+
+            delete module.remote;
+
+           
+            module.locales=locales;
+            if(module.path===undefined){
+                module.path="/"+module.name;
+            }
+            return module;
+        })
+        return Promise.resolve(modules)
     }
     add(name:string ): Promise<void> {
         return Promise.resolve()

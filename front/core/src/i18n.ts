@@ -32,6 +32,57 @@ const namespaceFileMap: Record<string, string> = {
 // Кеш промиса инициализации для избежания повторных инициализаций
 let initPromise: Promise<typeof i18n> | null = null;
 
+import { useEffect, useState } from 'react';
+import { useGlobalTranslation } from "converged-core";
+
+export const useMicrofrontendTranslation = () => {
+  const { i18n } = useGlobalTranslation("login");
+  const [translations, setTranslations] = useState<any>({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadTranslations = async () => {
+      try {
+        const SELF_URL = import.meta.url;
+        const arr = SELF_URL.split("/");
+        const name = arr[arr.length - 1].split(".")[0];
+        
+        const jsonUrl = new URL("./locale/" + name + "/" + i18n.language + ".json", SELF_URL);
+        console.log("Loading from:", jsonUrl.href);
+        
+        const response = await fetch(jsonUrl.href);
+        if (response.ok) {
+          const data = await response.json();
+          setTranslations(data);
+        }
+      } catch (error) {
+        console.error('Failed to load translations:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTranslations();
+  }, [i18n.language]);
+
+  const t = (key: string) => {
+    const keys = key.split('.');
+    let value = translations;
+    
+    for (const k of keys) {
+      if (value && typeof value === 'object' && k in value) {
+        value = value[k];
+      } else {
+        return key;
+      }
+    }
+    
+    return typeof value === 'string' ? value : key;
+  };
+
+  return { t, translations, loading };
+};
+
 const initI18n = async (): Promise<typeof i18n> => {
   // Если уже инициализируется, возвращаем существующий промис
   if (initPromise) {
@@ -156,4 +207,4 @@ if (typeof window !== 'undefined') {
 }
 
 export default i18nSingleton;
-export { getI18nInstance, getI18nInstanceAsync, initI18n };
+export { getI18nInstance, getI18nInstanceAsync, initI18n};

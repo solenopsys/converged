@@ -1,28 +1,77 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { cn } from "converged-core"
 import { Button } from "converged-core"
 import { Card, CardContent } from "converged-core"
 import { Input } from "converged-core"
 import { Label } from "converged-core"
-import { toast } from "sonner" // Using Sonner instead of the deprecated toast component
+import { toast } from "sonner"
  
 import { useGlobalTranslation } from "converged-core";
 import {Socials} from "./Socials";
+
+const useMicrofrontendTranslation = () => {
+  const { i18n } = useGlobalTranslation("login");
+  const [translations, setTranslations] = useState<any>({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadTranslations = async () => {
+      try {
+        const SELF_URL = import.meta.url;
+        const arr = SELF_URL.split("/");
+        const name = arr[arr.length - 1].split(".")[0];
+        
+        const jsonUrl = new URL("./locale/" + name + "/" + i18n.language + ".json", SELF_URL);
+        console.log("Loading from:", jsonUrl.href);
+        
+        const response = await fetch(jsonUrl.href);
+        if (response.ok) {
+          const data = await response.json();
+          setTranslations(data);
+        }
+      } catch (error) {
+        console.error('Failed to load translations:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTranslations();
+  }, [i18n.language]);
+
+  const t = (key: string) => {
+    const keys = key.split('.');
+    let value = translations;
+    
+    for (const k of keys) {
+      if (value && typeof value === 'object' && k in value) {
+        value = value[k];
+      } else {
+        return key;
+      }
+    }
+    
+    return typeof value === 'string' ? value : key;
+  };
+
+  return { t, translations, loading };
+};
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) { 
 
-  const { t, i18n } = useGlobalTranslation("login");
-  
-  // Получаем данные для legal блока
-  const legalData = i18n.getResource(i18n.language, 'login', 'legal');
+  const { t, translations, loading: translationsLoading } = useMicrofrontendTranslation();
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [showPasswordField, setShowPasswordField] = useState(false)
+
+  if (translationsLoading) {
+    return <div>Loading...</div>;
+  }
 
   // Handle sending auth link
   const handleSendAuthLink = async (e: React.FormEvent) => {
@@ -109,8 +158,6 @@ export function LoginForm({
                 </p>
 
                 <img src="/assets/logo.svg" alt="Logo" className="w-36 h-36 m-10" />
-
-
               </div>
               
               <div className="grid gap-3">
@@ -160,20 +207,6 @@ export function LoginForm({
                   }
                 </Button>
               )}
-
-              {/* <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
-                <span className="bg-card text-muted-foreground relative z-10 px-2">
-                  {t('button.continueWith')}
-                </span>
-              </div> */}
-        
-            {/* <Socials /> 
-              <div className="text-center text-sm">
-                {t('signup.text')}{" "}
-                <a href="#" className="underline underline-offset-4">
-                  {t('signup.link')}
-                </a>
-              </div>*/}
             </div>
           </form>
           <div className="bg-muted relative hidden md:block">
@@ -185,7 +218,6 @@ export function LoginForm({
           </div>
         </CardContent>
       </Card>
-    
     </div>
   )
 }

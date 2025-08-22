@@ -4,6 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "gen": "bun run ./node_modules/builders/src/build-frontend-base.ts ../../types/modules.ts ./src/",
+
     "dev": "bun run src/server.ts",
     "bld": "NODE_ENV=production  bun run src/build.ts",
     "json": "json-server --watch confs/db.json --port 3001"
@@ -21,7 +23,10 @@
     "biome": "^0.3.3",
     "converged-core": "file:../core",
     "elysia": "^1.3.8",
-    "postcss-cli": "^11.0.1"
+    "postcss-cli": "^11.0.1",
+    "builders": "file:../../builders",
+    "nrpc": "file:../../nrpc"
+    
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.11",
