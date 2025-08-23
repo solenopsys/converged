@@ -117,10 +117,13 @@ export const generateFrontendWrapper = (outputFile: string): BuildStep => async 
 
     const wrapperFile = `
     import Component from "../src/index"
+    import {MENU, ID} from "../src/index"
     export default {
         component: Component,
-        css: "${escapedCss}",
-        externals: ${externalsStrings}
+        id: ID,
+        menu: MENU,
+        externals: ${externalsStrings},
+        css: "${escapedCss}"
     }`;
 
     await Bun.write(outputFile, wrapperFile); 
