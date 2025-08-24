@@ -2,7 +2,7 @@
 export const ID = 'mailing';
 export const MENU = {
     "title": "menu.mailing",
-    "url": "#",
+    "url": "/mailing",
     "iconName": "IconAi",
     "items": [
         {

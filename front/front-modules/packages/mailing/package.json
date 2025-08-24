@@ -1,11 +1,10 @@
 {
   "name": "mailing",
   "private": false,
-  "version": "0.0.1", 
+  "version": "0.0.1",
   "type": "module",
-   
-  "dependencies": { 
-   
+  "dependencies": {
+    "react-router-dom": "^7.8.2"
   },
   "devDependencies": {
     "@types/bun": "latest"
@@ -16,6 +15,5 @@
   "module": "src/index.ts",
   "peerDependencies": {
     "typescript": "^5"
-  
   }
 }

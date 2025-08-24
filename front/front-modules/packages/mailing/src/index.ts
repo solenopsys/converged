@@ -2,6 +2,6 @@
 
 
 
-import Panel from "./Panel";
-export default Panel;  
+import App from "./App";
+export default App;  
 export * from "./config";
