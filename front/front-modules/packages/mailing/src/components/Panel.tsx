@@ -3,9 +3,9 @@ import { ChartAreaInteractive } from "converged-core";
 import { DataTable } from "converged-core";
 import { SectionCards } from "converged-core";
 //import { useGlobalTranslation } from "@/hooks/global_i18n";
-import mailingService from "./service";
+import mailingService from "../service";
 import { useMicrofrontendTranslation } from "converged-core";
-import { ID } from "./config";
+import { ID } from "../config";
 
 function Panel() {
   // Перенес хук внутрь компонента

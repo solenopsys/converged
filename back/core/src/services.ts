@@ -1,24 +1,21 @@
 // services.ts
 import { Elysia } from "elysia";
-
+import { writeFileSync, mkdirSync } from "fs";
+import { join } from "path";
+import { tmpdir } from "os";
 
 const SERVICES_PORT = Number(process.env.SERVICES_PORT) || 3001;
-const DATA_DIR = process.env.DATA_DIR;
 
 interface PluginConfig {
   plugins: Record<string, string>;
 }
 
- 
 const loadConfig = (): PluginConfig => {
   const configEnv = process.env.CONFIG;
-  console.log(configEnv);
-  
   if (!configEnv) {
     console.warn("⚠️ CONFIG переменная не найдена");
     return { plugins: {} };
   }
-
   try {
     return JSON.parse(configEnv);
   } catch (error) {
@@ -29,26 +26,25 @@ const loadConfig = (): PluginConfig => {
 
 const loadPlugin = async (app: Elysia, name: string, url: string) => {
   try {
-    // Скачиваем плагин по URL
-    console.log("URL:",url);
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     
     const code = await response.text();
-
-    console.log("CODE:",code);
+    const fileName = url.split('/').pop() || `${name}.js`;
+    const tempDir = join(tmpdir(), 'plugins');
+    mkdirSync(tempDir, { recursive: true });
+    const tempPath = join(tempDir, fileName);
     
-    // Создаем data URL для загрузки модуля
-    const dataUrl = `data:text/javascript;base64,${btoa(code)}`;
-    const module = await import(dataUrl);
+    writeFileSync(tempPath, code, 'utf8');
+    
+    const module = await import(`file://${tempPath}`);
     const plugin = module.default || module;
     
     if (typeof plugin === "function") {
-
-      const value:string=process.env[name.toUpperCase()+"_CONF"]||"{}";
-      const objectValue=JSON.parse(value);
+      const value = process.env[name.toUpperCase() + "_CONF"] || "{}";
+      const objectValue = JSON.parse(value);
       app.use(plugin(objectValue));
       console.log(`✅ Плагин ${name} загружен из ${url}`);
     }
@@ -59,7 +55,6 @@ const loadPlugin = async (app: Elysia, name: string, url: string) => {
 
 const app = new Elysia();
 const config = loadConfig();
-
 const pluginNames = Object.keys(config.plugins);
 
 app.get("/", () => ({
@@ -67,7 +62,6 @@ app.get("/", () => ({
   plugins: pluginNames
 }));
 
-// Загружаем плагины из конфигурации
 for (const [pluginName, pluginUrl] of Object.entries(config.plugins)) {
   await loadPlugin(app, pluginName, pluginUrl);
 }
