@@ -12,7 +12,7 @@
     "@types/bun": "latest"
   },
   "scripts": {
-    "bld": "bun run ../../node_modules/builders/src/build-frontend.ts ./src/index.ts  ../../../../../private/types/mailing.ts ./dist/"
+    "bld": "bun run ../../node_modules/builders/src/build-frontend.ts ./src/index.ts ../../../../types/chats.ts ./dist/"
   },
   "module": "src/index.ts",
   "peerDependencies": {

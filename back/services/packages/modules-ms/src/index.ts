@@ -20,12 +20,13 @@ const staticModules:any =[
         "protected": true,
         "layout": "SidebarLayout"
     },
-    // {
-    //     "name":"chats",
-    //     "remote":true,
-    //     "protected": true,
-    //     "layout": "SidebarLayout"
-    // },
+    {
+        "name":"chats-mf",
+        "path":"/chats",
+        "remote":false,
+        "protected": false,
+        "layout": "SidebarLayout"
+    },
     {
         "name":"auth-mf",
         "path":"/login",

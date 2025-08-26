@@ -1,21 +1,16 @@
 import React from "react";
+ 
+import { UniversalDataTable } from "converged-core";
 
-import { ChartAreaInteractive } from "@/components/chart-area-interactive";
-import { DataTable } from "@/components/ui/table/DataTable";
-import { SectionCards } from "@/components/statcard/section-cards";
-import { UniversalDataTable } from "@/components/ui/table/UniversalTable";
+import {COLUMN_TYPES} from "converged-core";
 
-import {COLUMN_TYPES} from "@/components/ui/table/UniversalTable";
-
-import { useState, useCallback, useEffect } from 'react';
-import { Search, MessageSquare, User, ExternalLink } from 'lucide-react';
+import { useState, useCallback, useEffect } from 'react'; 
 
 import { Eye, Edit3, Trash2, Archive, Copy } from "lucide-react";
 
-import { TableHeader } from "@/components/ui/table/UniversalTable";
-import { SearchInput } from "@/components/ui/table/UniversalTable";
+import { SearchInput } from "converged-core";
 
-import { useGlobalTranslation } from "@/hooks/global_i18n";
+import { useGlobalTranslation } from "converged-core";
 
 function Chats() {
   const { i18n } = useGlobalTranslation();
@@ -138,53 +133,11 @@ function Chats() {
     alert(`Групповое действие "${actionId}" для ${selectedData.length} элементов`);
   };
 
-  if (loading) {
-    return (
-      <div className="h-screen flex flex-col">
-        <TableHeader 
-          title="Управление чатами"
-          subtitle="Загрузка данных..."
-        />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            <p className="text-gray-600">Загрузка чатов...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
-  if (error) {
-    return (
-      <div className="h-screen flex flex-col">
-        <TableHeader 
-          title="Управление чатами"
-          subtitle="Ошибка загрузки данных"
-        />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-red-600 mb-2">Ошибка подключения к серверу:</p>
-            <p className="text-gray-600 mb-4">{error}</p>
-            <p className="text-sm text-gray-500">Используются демонстрационные данные</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
   
   return (
     <div className="h-screen flex flex-col">
-      <TableHeader 
-        title="Управление чатами"
-        subtitle="Загрузка чатов с сервера"
-      >
-        <SearchInput 
-          value={searchTerm}
-          onChange={setSearchTerm}
-          placeholder="Поиск чатов..."
-        />
-      </TableHeader>
+   
       
       <div className="flex-1">
         <UniversalDataTable

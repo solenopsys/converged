@@ -29,3 +29,4 @@ export * from './table/types';
 export * from './table/UniversalTable';
 export * from './textarea';
 export * from './alert';
+export * from "./slider";

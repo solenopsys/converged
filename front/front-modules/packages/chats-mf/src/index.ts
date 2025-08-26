@@ -1,5 +1,8 @@
  import Chats from "./Chats";
+ import Player from "./Player";
 
  
 
- export default Chats;
+ export default Player;
+
+ export * from "./config";
