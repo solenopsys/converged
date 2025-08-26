@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams, useNavigate, Outlet } from 'react-router-dom';
-import { 
+import {
   Sidebar,
   SidebarContent,
   SidebarHeader,
@@ -9,11 +9,15 @@ import {
 import { Button } from 'converged-core';
 import { X } from 'lucide-react';
 
-const MailSidebar = ({ side = "right" }) => {
+const MailSidebar = ({ side = "right", backPath, onClose }) => {
   const navigate = useNavigate();
 
   const handleClose = () => {
-    navigate('/incoming');
+    if (onClose) {
+      onClose();
+    } else {
+      navigate('.');
+    }
   };
 
   return (

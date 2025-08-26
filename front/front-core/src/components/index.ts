@@ -9,3 +9,5 @@ export * from './site-header';
 export * from './theme-provider';
 export * from './statcard';
 export * from './ui';
+export * from './table-view';
+

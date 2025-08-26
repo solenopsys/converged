@@ -5,12 +5,14 @@ import { SectionCards } from "converged-core";
 //import { useGlobalTranslation } from "@/hooks/global_i18n";
 import mailingService from "../service";
 import { useMicrofrontendTranslation } from "converged-core";
+import { MailStatsChart } from "./MailStatChart";
 import { ID } from "../config";
 
 function Panel() {
   // Перенес хук внутрь компонента
   const { t, translations, loading: translationsLoading } = useMicrofrontendTranslation(ID);
   const [mailingStatistic, setMailingStatistic] = useState(null);
+  const [dailyStatistic, setDailyStatistic] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
@@ -23,6 +25,9 @@ function Panel() {
         setError(null);
         const statistic = await mailingService.getStatistic();
         setMailingStatistic(statistic);
+
+        const dailyStatistic = await mailingService.getDailyStatistic();
+        setDailyStatistic(dailyStatistic);
       } catch (err) {
         setError(err.message || 'Ошибка загрузки данных');
       } finally {
@@ -73,6 +78,8 @@ function Panel() {
       <div className="@container/main flex flex-1 flex-col gap-2">
         <div className="flex flex-col gap-4 md:gap-6">
           <SectionCards cardsData={cardsData} />
+
+          <MailStatsChart data={dailyStatistic} />
         </div>
       </div>
     </div>
