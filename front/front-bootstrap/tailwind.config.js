@@ -7,7 +7,7 @@
       "./confs/index.html"
     ],
     corePlugins: {
-      preflight: false, // отключает reset стили
+       preflight: false, // отключает reset стили
     },
     theme: {
       extend: {},

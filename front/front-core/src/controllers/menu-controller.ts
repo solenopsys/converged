@@ -52,6 +52,7 @@ export interface MenuItem {
     
     getAllMenus(): MenuItem[] {
       // Просто склеиваем все меню в один массив
+      console.log("getAllMenus-----------№№", this.menus);
       return this.menus.flatMap(m => m.items);
     }
     

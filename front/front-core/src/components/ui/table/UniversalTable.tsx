@@ -254,6 +254,7 @@ export const UniversalDataTable = ({
   dataProvider,
   bulkActions = [],
   onRowAction,
+  onRowClick, 
   onBulkAction,
   sortable = true,
   selectable = true,
@@ -335,111 +336,114 @@ export const UniversalDataTable = ({
         </div>
       )}
 
-      {/* Table */}
-      <div className="flex-1 overflow-auto">
-        <table className="w-full border-collapse table-fixed">
-          <thead className="sticky top-0 z-10">
-            <tr className="border-b bg-muted/50">
-              {selectable && (
-                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-12">
-                  <input
-                    type="checkbox"
-                    checked={isAllSelected}
-                    ref={input => {
-                      if (input) input.indeterminate = isIndeterminate;
+      {/* Table с правильной оберткой из shadcn/ui */}
+      <div className="flex-1 overflow-hidden rounded-lg border">
+        <div className="overflow-auto h-full">
+          <table className="w-full border-collapse table-fixed">
+            <thead className="sticky top-0 z-10 bg-muted">
+              <tr className="border-b bg-muted/50">
+                {selectable && (
+                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-12">
+                    <input
+                      type="checkbox"
+                      checked={isAllSelected}
+                      ref={input => {
+                        if (input) input.indeterminate = isIndeterminate;
+                      }}
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                      className="h-4 w-4 rounded border-input bg-background data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                    />
+                  </th>
+                )}
+                
+                {columns.map(column => (
+                  <th 
+                    key={column.id}
+                    className="h-12 px-4 text-left align-middle font-medium text-muted-foreground"
+                    style={{ 
+                      width: column.width || 'auto',
+                      minWidth: column.minWidth || 'auto',
+                      maxWidth: column.maxWidth || 'auto'
                     }}
-                    onChange={(e) => handleSelectAll(e.target.checked)}
-                    className="h-4 w-4 rounded border-input bg-background data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-                  />
-                </th>
-              )}
-              
-              {columns.map(column => (
-                <th 
-                  key={column.id}
-                  className="h-12 px-4 text-left align-middle font-medium text-muted-foreground"
-                  style={{ 
-                    width: column.width || 'auto',
-                    minWidth: column.minWidth || 'auto',
-                    maxWidth: column.maxWidth || 'auto'
-                  }}
-                >
-                  {column.sortable !== false && sortable ? (
-                    <button
-                      onClick={() => handleSort(column.id)}
-                      className="flex items-center gap-1 hover:text-foreground transition-colors group w-full text-left"
-                    >
+                  >
+                    {column.sortable !== false && sortable ? (
+                      <button
+                        onClick={() => handleSort(column.id)}
+                        className="flex items-center gap-1 hover:text-foreground transition-colors group w-full text-left"
+                      >
+                        <span className="truncate">{column.title}</span>
+                        <div className="flex flex-col ml-auto flex-shrink-0">
+                          <ChevronUp 
+                            size={12} 
+                            className={`-mb-1 transition-colors ${
+                              sortConfig.key === column.id && sortConfig.direction === 'asc'
+                                ? 'text-foreground' 
+                                : 'text-muted-foreground/50 group-hover:text-muted-foreground'
+                            }`} 
+                          />
+                          <ChevronDown 
+                            size={12} 
+                            className={`transition-colors ${
+                              sortConfig.key === column.id && sortConfig.direction === 'desc'
+                                ? 'text-foreground' 
+                                : 'text-muted-foreground/50 group-hover:text-muted-foreground'
+                            }`} 
+                          />
+                        </div>
+                      </button>
+                    ) : (
                       <span className="truncate">{column.title}</span>
-                      <div className="flex flex-col ml-auto flex-shrink-0">
-                        <ChevronUp 
-                          size={12} 
-                          className={`-mb-1 transition-colors ${
-                            sortConfig.key === column.id && sortConfig.direction === 'asc'
-                              ? 'text-foreground' 
-                              : 'text-muted-foreground/50 group-hover:text-muted-foreground'
-                          }`} 
+                    )}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            
+            <tbody className="[&_tr:last-child]:border-0">
+              {tableData.map((row, index) => {
+                const rowId = row.id || index;
+                const isSelected = selectedRows.includes(rowId);
+                
+                return (
+                  <tr
+                    key={rowId}
+                    className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
+                    data-state={isSelected ? 'selected' : ''}
+                    onClick={onRowClick ? () => onRowClick(row) : undefined}
+                  >
+                    {selectable && (
+                      <td className="p-4 align-middle">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => handleSelectRow(rowId, e.target.checked)}
+                          className="h-4 w-4 rounded border-input bg-background data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                         />
-                        <ChevronDown 
-                          size={12} 
-                          className={`transition-colors ${
-                            sortConfig.key === column.id && sortConfig.direction === 'desc'
-                              ? 'text-foreground' 
-                              : 'text-muted-foreground/50 group-hover:text-muted-foreground'
-                          }`} 
+                      </td>
+                    )}
+                    
+                    {columns.map(column => (
+                      <td key={column.id} className="p-4 align-middle">
+                        <CellRenderer
+                          value={row[column.id]}
+                          column={column}
+                          rowData={row}
+                          onAction={onRowAction}
                         />
-                      </div>
-                    </button>
-                  ) : (
-                    <span className="truncate">{column.title}</span>
-                  )}
-                </th>
-              ))}
-            </tr>
-          </thead>
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
           
-          <tbody className="[&_tr:last-child]:border-0">
-            {tableData.map((row, index) => {
-              const rowId = row.id || index;
-              const isSelected = selectedRows.includes(rowId);
-              
-              return (
-                <tr
-                  key={rowId}
-                  className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
-                  data-state={isSelected ? 'selected' : ''}
-                >
-                  {selectable && (
-                    <td className="p-4 align-middle">
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={(e) => handleSelectRow(rowId, e.target.checked)}
-                        className="h-4 w-4 rounded border-input bg-background data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-                      />
-                    </td>
-                  )}
-                  
-                  {columns.map(column => (
-                    <td key={column.id} className="p-4 align-middle">
-                      <CellRenderer
-                        value={row[column.id]}
-                        column={column}
-                        rowData={row}
-                        onAction={onRowAction}
-                      />
-                    </td>
-                  ))}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        
-        {tableData.length === 0 && (
-          <div className="flex h-24 w-full items-center justify-center">
-            <p className="text-muted-foreground">{emptyMessage}</p>
-          </div>
-        )}
+          {tableData.length === 0 && (
+            <div className="flex h-24 w-full items-center justify-center">
+              <p className="text-muted-foreground">{emptyMessage}</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Side Menu */}

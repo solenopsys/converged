@@ -27,3 +27,5 @@ export * from './table/DataTable';
 export * from './table/TableCellViewer';
 export * from './table/types';
 export * from './table/UniversalTable';
+export * from './textarea';
+export * from './alert';

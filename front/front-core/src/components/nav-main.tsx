@@ -34,6 +34,10 @@ export function NavMain({
     }[]
   }[]
 }) {
+
+ console.log("NavMain inside", items);
+
+
   return (
     <SidebarGroup>
       <SidebarMenu>

@@ -1,0 +1,20 @@
+{
+	"name": "access-ms",
+	 "dependencies": { 
+
+	 },
+	"peerDependencies": {
+		"@elysiajs/cors": "latest",
+		"@elysiajs/jwt": "latest",
+		"bcryptjs": "latest",
+		"elysia": "latest", 
+		"kysely": "latest"
+	},
+	"devDependencies": {
+		"@types/bcryptjs": "latest",
+		"bun-types": "latest"
+	},
+	"scripts": {
+		"bld": "bun run ../../node_modules/builders/src/build-backend.ts ./src/index.ts  ../../../../types/access.ts ./dist/"
+	}
+}

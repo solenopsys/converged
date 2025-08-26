@@ -49,8 +49,8 @@ export const AppSidebar = React.forwardRef<
 >(({ ...props }, ref) => {
   const { i18n } = useGlobalTranslation("menu")
 
-  const navMain =   useMenu(); // processItems(i18n.t("navMain", { ns: "menu", returnObjects: true }) || [])
- console.log("NEW MENU==", navMain);
+  const navMain = processItems(useMenu());
+ 
 
   const navSecondary = processItems(i18n.t("navSecondary", { ns: "menu", returnObjects: true }) || [])
   const user = i18n.t("user", { ns: "menu", returnObjects: true }) || {}

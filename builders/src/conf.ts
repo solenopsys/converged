@@ -2,7 +2,10 @@
 
 const backExternal = [
     'elysia', 
-    'pg'];
+    'pg',
+ ];
+
+ 
 
 const frontExternal = [
     "react",

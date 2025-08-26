@@ -24,6 +24,11 @@
     "typescript": "^5"
   },
   "scripts": {
-    "dev": "bun run src/server.ts"
+    "dev": "bun run src/server.ts",
+    "format": "biome format --write .",
+		"lint": "biome lint .",
+		"check": "biome check .",
+		"fix": "biome check --write .", 
+    "bld": "bun run build.ts"
   }
 }

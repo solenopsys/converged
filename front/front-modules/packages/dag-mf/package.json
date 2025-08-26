@@ -1,0 +1,21 @@
+{
+  "name": "dag-mf",
+  "private": false,
+  "version": "0.0.1",
+  "type": "module",
+  "dependencies": {
+    "dagre": "^0.8.5",
+    "pixi.js": "^8.11.0"
+
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "scripts": {
+    "bld": "bun run ../../node_modules/builders/src/build-frontend.ts ./src/index.ts  ../../../../dag/types/interface.ts ./dist/"
+  },
+  "module": "src/index.ts",
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

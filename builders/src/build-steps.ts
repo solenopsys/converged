@@ -1,16 +1,26 @@
-export const uploadS3 = (bucket: string = 'back'): BuildStep => async (context) => {
-    console.log('Uploading to S3...');
-    await uploadToS3(bucket, context.finalBuildFile);
-    console.log('✅ Upload complete.');
-};import { join } from 'path';
+
+
+
+
+import { join } from 'path';
 import { fileSize } from './tools';import { resolve } from 'path';
 import { InterfaceParser } from '../../nrpc/src/generator/parser';
 import { BackendGenerator } from '../../nrpc/src/generator/backend';
 import { FrontendGenerator } from '../../nrpc/src/generator/frontend'; // Добавил фронтенд генератор
 import { uploadToS3 } from './tools';
 import { BuildStep, BuildContext } from './types';
+import { compressBrottly } from './tools';
 
 import * as Bun from "bun";
+
+export const uploadS3 = (bucket: string = 'back'): BuildStep => async (context) => {
+    console.log('Uploading to S3...');
+   const brFile= await compressBrottly(context.finalBuildFile);
+   
+   console.log(fileSize(brFile));
+    await uploadToS3(bucket, brFile);
+    console.log('✅ Upload complete.');
+};
 
 export const parseService: BuildStep = async (context) => {
     console.log('Parsing service files...');
@@ -116,8 +126,8 @@ export const generateFrontendWrapper = (outputFile: string): BuildStep => async 
     const escapedCss = css.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
 
     const wrapperFile = `
-    import Component from "../src/index"
-    import {MENU, ID} from "../src/index"
+    import Component from "../src/index";
+    import {MENU, ID} from "../src/index";
     export default {
         component: Component,
         id: ID,

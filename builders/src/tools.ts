@@ -13,6 +13,28 @@ async function uploadToS3(prefix: string,filePath: string) {
     }
 }
 
+async function compressBrottly(filePath: string): Promise<string> {
+  const compressedFilePath = `${filePath}.br`;
+  // remove file
+  try {
+    await Bun.$`rm ${compressedFilePath}`;
+  } catch (error) {
+    console.error(`❌ Failed to remove ${compressedFilePath}:`, error);
+    throw error;
+  }
+  
+  console.log(`Compressing ${filePath} with Brotli level 9...`);
+  
+  try {
+      await Bun.$`brotli -q 9 -o ${compressedFilePath} ${filePath}`;
+      console.log(`✅ File compressed successfully: ${compressedFilePath}`);
+      return compressedFilePath;
+  } catch (error) {
+      console.error(`❌ Failed to compress ${filePath}:`, error);
+      throw error;
+  }
+}
+
 const fileSize = (p: string) => {
     try {
       return `${(statSync(p).size / 1024).toFixed(1)}kb`;
@@ -24,4 +46,4 @@ const fileSize = (p: string) => {
 
 
 
-export { uploadToS3,fileSize};
+export { uploadToS3,fileSize,compressBrottly};
