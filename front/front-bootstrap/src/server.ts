@@ -50,51 +50,7 @@ const findStaticFile = (relativePath) => {
 }
 
 const app = new Elysia()
-  // Проксирование POST запросов /services/ на localhost:3001 (убираем префикс /services/)
-  .post('/services/*', async ({ request, path }) => {
-    try {
-      // Убираем префикс /services/ из пути
-      const servicePath = path.replace('/services/', '/')
-      const targetUrl = `http://localhost:3001${servicePath}`
-      
-      console.log(`Proxying POST: ${path} -> ${targetUrl}`)
-      
-      // Копируем заголовки из исходного запроса
-      const headers = new Headers()
-      for (const [key, value] of request.headers.entries()) {
-        // Исключаем заголовки, которые могут конфликтовать
-        if (!['host', 'connection', 'content-length'].includes(key.toLowerCase())) {
-          headers.set(key, value)
-        }
-      }
-      
-      // Создаем POST запрос к целевому серверу
-      const proxyRequest = new Request(targetUrl, {
-        method: 'POST',
-        headers,
-        body: request.body,
-      })
-      
-      // Отправляем запрос и возвращаем ответ
-      const response = await fetch(proxyRequest)
-      
-      // Создаем новый ответ с правильными заголовками
-      const proxyResponse = new Response(response.body, {
-        status: response.status,
-        statusText: response.statusText,
-        headers: response.headers
-      })
-      
-      return proxyResponse
-      
-    } catch (error) {
-      console.error('Proxy error:', error)
-      return new Response('Proxy Error', { 
-        status: 502,
-        headers: { 'Content-Type': 'text/plain' }
-      })
-    }
-  })
+ 
   // Обработка всех GET запросов
   .get('*', ({ path, request }) => {
     // Убираем ведущие слеши и получаем чистый путь

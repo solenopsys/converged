@@ -12,6 +12,7 @@ export interface MethodMetadata {
   returnType: string;
   isAsync: boolean;
   returnTypeIsArray: boolean;
+  isAsyncIterable: boolean; // Новое поле для AsyncIterable методов
 }
 
 export interface PropertyMetadata {
@@ -48,7 +49,6 @@ export interface BackendConfig {
   servicePath?: string;
   metadata: ServiceMetadata;
 }
-
 
 export interface FrontendConfig {
   baseUrl?: string;

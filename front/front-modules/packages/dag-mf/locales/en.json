@@ -2,7 +2,9 @@
   "menu": {
     "dag": "Processes",
     "workflows": "Flows",
-    "code": "Code"
+    "code": "Code",
+    "nodes": "Nodes",
+    "providers": "Providers"
   }
  
 }

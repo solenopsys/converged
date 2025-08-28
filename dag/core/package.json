@@ -11,14 +11,15 @@
     "cp": "cp ../../nrpc/tgz/nrpc-0.1.2.tgz ./tgz/ && cp ../../builders/tgz/builders-0.1.0.tgz ./tgz/",
     "gen": "bun run ./node_modules/builders/src/build-backend-base.ts ./src/dag-service.ts  ../types/interface.ts ./generated/",
     "bld": "bun build src/api.ts --outdir dist --minify --external dag-api --external lmdb --external ordered-binary --external elysia --external kysely   --target bun",
-    "dev": "bun run --env-file=../../conf/dag-server.env src/api.ts"
+    "dev": "bun run --env-file=../../../conf/dag-server.env src/api.ts"
   },
   "peerDependencies": {
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "dag-api": "file:../api",
+    "@elysiajs/cors": "^1.3.3",
     "builders": "file:../../builders",
+    "dag-api": "file:../api",
     "elysia": "^1.3.6",
     "kysely": "^0.28.3",
     "lmdb": "^3.4.1",

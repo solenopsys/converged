@@ -50,9 +50,23 @@ export const ${metadata.serviceName}Client = create${metadata.interfaceName}Clie
       }).join(', ');
       
       const returnTypeArray = method.returnTypeIsArray ? '[]' : '';
-      const returnType = method.returnType === 'void' ? 'void' : `${method.returnType}${returnTypeArray}`;
       
-      return `  ${method.name}(${params}): Promise<${returnType}>;`;
+      // Определяем тип возвращаемого значения
+      let returnType: string;
+      if (method.returnType === 'void') {
+        returnType = 'void';
+      } else if (method.isAsyncIterable) {
+        // Для AsyncIterable методов возвращаем AsyncIterable<T>
+        returnType = `AsyncIterable<${method.returnType}${returnTypeArray}>`;
+      } else {
+        // Для обычных методов возвращаем Promise<T>
+        returnType = `${method.returnType}${returnTypeArray}`;
+      }
+      
+      const asyncPrefix = method.isAsyncIterable ? '' : 'Promise<';
+      const asyncSuffix = method.isAsyncIterable ? '' : '>';
+      
+      return `  ${method.name}(${params}): ${asyncPrefix}${returnType}${asyncSuffix};`;
     }).join('\n');
 
     return `// Service client interface

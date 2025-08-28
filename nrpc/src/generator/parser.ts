@@ -79,6 +79,7 @@ class InterfaceParser {
           returnType: this.extractReturnType(returnTypeAnnotation),
           isAsync: this.isAsyncMethod(returnTypeAnnotation),
           returnTypeIsArray: this.isArrayType(returnTypeAnnotation),
+          isAsyncIterable: this.isAsyncIterableMethod(returnTypeAnnotation), // Новое поле
         };
       });
   }
@@ -128,6 +129,12 @@ class InterfaceParser {
   private extractReturnType(typeNode: any): string {
     if (!typeNode) return 'void';
 
+    // Handle AsyncIterable<T> - unwrap to get T
+    if (this.isAsyncIterableType(typeNode)) {
+      const innerType = typeNode.typeParameters?.params[0];
+      return this.extractType(innerType);
+    }
+
     // Unwrap Promise<T> to get T
     if (typeNode.type === 'TSTypeReference' && typeNode.typeName.name === 'Promise') {
       const innerType = typeNode.typeParameters?.params[0];
@@ -141,6 +148,12 @@ class InterfaceParser {
   private isArrayType(typeNode: any): boolean {
     if (!typeNode) return false;
 
+    // Handle AsyncIterable<T[]> - check if T is an array
+    if (this.isAsyncIterableType(typeNode)) {
+      const innerType = typeNode.typeParameters?.params[0];
+      return innerType?.type === 'TSArrayType';
+    }
+
     // Unwrap Promise<T> to check if T is an array
     if (typeNode.type === 'TSTypeReference' && typeNode.typeName.name === 'Promise') {
       const innerType = typeNode.typeParameters?.params[0];
@@ -152,7 +165,18 @@ class InterfaceParser {
 
   private isAsyncMethod(typeNode: any): boolean {
     if (!typeNode) return false;
-    return typeNode.type === 'TSTypeReference' && typeNode.typeName.name === 'Promise';
+    return typeNode.type === 'TSTypeReference' && 
+           (typeNode.typeName.name === 'Promise' || this.isAsyncIterableType(typeNode));
+  }
+
+  // Новый метод для определения AsyncIterable
+  private isAsyncIterableMethod(typeNode: any): boolean {
+    if (!typeNode) return false;
+    return this.isAsyncIterableType(typeNode);
+  }
+
+  private isAsyncIterableType(typeNode: any): boolean {
+    return typeNode?.type === 'TSTypeReference' && typeNode.typeName.name === 'AsyncIterable';
   }
 }
 

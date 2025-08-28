@@ -9,6 +9,14 @@ export const MENU = {
             "url": "workflows"
         },
         {
+            "title": "menu.nodes",
+            "url": "nodes"
+        },
+        {
+            "title": "menu.providers",
+            "url": "providers"
+        },
+        {
             "title": "menu.code",
             "url": "code"
         }

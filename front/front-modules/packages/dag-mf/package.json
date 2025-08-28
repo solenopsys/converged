@@ -4,9 +4,10 @@
   "version": "0.0.1",
   "type": "module",
   "dependencies": {
+    "@textea/json-viewer": "^4.0.1",
     "dagre": "^0.8.5",
+    "effector": "^23.4.2",
     "pixi.js": "^8.11.0"
-
   },
   "devDependencies": {
     "@types/bun": "latest"
