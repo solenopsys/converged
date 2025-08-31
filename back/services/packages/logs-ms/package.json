@@ -1,0 +1,19 @@
+{
+  "name": "log-mvp",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/main.ts",
+    "start": "bun src/main.ts"
+  },
+  "dependencies": {
+    "@lithdew/chdb-bun": "^0.1.1",
+    "apache-arrow": "^14.0.2",
+    "elysia": "latest",
+    "lmdb": "^3.0.8",
+    "parquet-wasm": "^0.6.1"
+  },
+  "trustedDependencies": [
+    "@lithdew/chdb-bun"
+  ]
+}
