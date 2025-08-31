@@ -8,18 +8,35 @@ type Node = {
     current_version: Uint8Array;
 }
 
-type NodeCode = {
+export type Workflow = {
+    nodes: { [name: string]:  HashString }; 
+    links: { from: string, to: string }[]; 
+    description?: string
+}
+
+export type NodeCode = {
     hash: Hash;
     body: Uint8Array;
     created_at: string;
 }
 
-type CodeSource = {
-    name: string; 
-    version: number; 
-    hash: HashString; 
+export type CodeSource = {
+    name: string;
+    version: number;
+    hash: HashString;
     fields: { name: string, type: string }[]
 }
+
+export interface PaginationParams {
+    offset: number;
+    limit: number;
+}
+
+export interface PaginatedResult<T> {
+    items: T[];
+    totalCount?: number; // если хочешь знать общее число
+}
+
 
 export type { Node, NodeCode }
 
@@ -31,26 +48,27 @@ export interface DagService {
     status(): Promise<{ status: string }>
 
     setCodeSource(name: string, code: string): Promise<CodeSource>
+    getCodeSourceVersions(name: string): Promise<{ versions: CodeSource[] }>
     createNode(codeSourceName: string, config: any): Promise<{ hash: HashString }>
     createProvider(name: string, codeSourceName: string, config: any): Promise<{ hash: HashString }>
 
-    // Методы для workflow
-    createWorkflow(name: string, nodes: HashString[], links: { from: string, to: string }[], description?: string): Promise<{ hash: HashString }>
+    createWorkflow(name:string,workflow: Workflow): Promise<{ hash: HashString }>
+    getWorkflowConfig(hash: HashString): Promise<Workflow>
+    getWorkflowVersions(name: string): Promise<{ versions: string[] }>
+    getWorkflowConfigByName(name: string,version: string): Promise<Workflow> ;
+    getNode(hash: HashString): Promise<{ config: any }>
 
     codeSourceList(): Promise<{ names: string[] }>
     providerList(): Promise<{ names: string[] }>
-    workflowList(): Promise<{ names: string[] }>
-    // todo : AsyncIterable<StatusEvent | Disconnect>
+    workflowList(): Promise<{ names: string[] }> 
 
     runCode(hash: HashString, params: any): Promise<{ result: any }>
+
+    run(pid: string,workflow: HashString,command: string, params?: any): AsyncIterable<{ result: any }>
 
     setParam(name: string, value: any): Promise<{ replaced: boolean }>
     getParam(name: string): Promise<{ value: any }>
 
-    // Методы для процессов
     startProcess(workflowId?: string, meta?: any): Promise<{ processId: string }>
-
-
-    // Методы для webhook
     createWebhook(name: string, url: string, method: string, workflowId: string, options?: any): Promise<{ version: number }>
 }

@@ -1,25 +1,61 @@
-import { useState } from 'react'; 
+// App.tsx
+import { Routes, Route } from 'react-router-dom';
+import dagClient from './service';
+import { TableView } from 'converged-core';
+import { UniversalList } from 'converged-core';
+import WorkflowLayout from './components/Layout';
+import Versions from './panels/versions';
+import WorkflowPanel from './panels/worflowPanel';
+import Statistic from './components/Statistic';
 
-import  dagClient  from './service';
-import JsonExample from './JsonViewer';
-import DagViewer from './Dag';
-import ControlPanel from './Control';
+// Функции загрузки данных
+const loadCodeList = async () => {
+  const res = await dagClient.codeSourceList();
+  return res.names.map((name: string) => ({ id: name, title: name }));
+};
+
+const loadWorkflowList = async () => {
+  const res = await dagClient.workflowList();
+  return res.names.map((name: string) => ({ id: name, title: name }));
+};
+
+const loadVersions = async (codeName: string) => {
+  const res = await dagClient.getCodeSourceVersions(codeName);
+  return res.versions || [];
+};
+
+const loadWorkflow = async (codeName: string) => {
+  const res = await dagClient.getCodeSourceVersions(codeName);
+  return res.versions || [];
+};
 
 const App: React.FC = () => {
-  const [filePath, setFilePath] = useState('');
-
-  dagClient.codeSourceList().then((res) => {
-    console.log(res);
-  });
-
   return (
-    <div className="p-6 max-w-4xl">
-      <h1 className="text-2xl font-bold mb-6">DAG</h1>
-
-      <ControlPanel></ControlPanel>
-      <DagViewer></DagViewer>
-      
-       <JsonExample></JsonExample>
+    <div className="mf-mailing h-screen">
+      <Routes>
+        <Route path="/" element={<Statistic />} />
+        <Route path="/editor/:workflowName" element={<WorkflowLayout />} />
+        <Route path="/editor/:workflowName/node/:nodeName" element={<WorkflowLayout />} />  
+        <Route path="/nodes" element={<TableView />} />
+        <Route path="/providers" element={<TableView />} />
+        <Route path="/workflows/:name?" element={
+          <UniversalList
+            title="Рабочие процессы"
+            basePath="/dag/workflows"          
+          >
+            <WorkflowPanel worflowLoader={loadWorkflow} />
+          </UniversalList>
+        } />
+        <Route path="/code/:codeName?" element={      
+          <UniversalList
+            title="Исходные коды"
+            basePath="/dag/code"
+            dataLoader={loadCodeList}
+          >
+            <Versions versionLoader={loadVersions} />
+          </UniversalList>
+        } />
+      </Routes>
     </div>
   );
 };

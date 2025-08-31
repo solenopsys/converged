@@ -1,6 +1,7 @@
 
 import { type INode } from "dag-api";
-import { StoreService } from "./store/store";
+import { StoreService } from "./store/sheme.store";
+import { HashString } from "../../types/interface";
 import fs from "fs";
 import { ModuleController } from "dag-api";
 
@@ -22,7 +23,11 @@ export class Executor{
     return module
   }
 
-  async run(nodeHash: string, data: any) {
+  run(pid:string,workflow:HashString,command:string,params?:any){
+    
+  }
+
+  async runNode(nodeHash: string, data: any) {
     console.log("run",nodeHash,data);
     const node = StoreService.getInstance().getNode(nodeHash);
 

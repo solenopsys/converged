@@ -13,11 +13,34 @@ export type Node = {
     current_version: Uint8Array;
 };
 
+export type Workflow = {
+    nodes: { [name: string]:  HashString }; 
+    links: { from: string, to: string }[]; 
+    description?: string
+};
+
 export type NodeCode = {
     hash: Hash;
     body: Uint8Array;
     created_at: string;
 };
+
+export type CodeSource = {
+    name: string;
+    version: number;
+    hash: HashString;
+    fields: { name: string, type: string }[]
+};
+
+export interface PaginationParams {
+  offset: number;
+  limit: number;
+}
+
+export interface PaginatedResult {
+  items: T[];
+  totalCount?: number;
+}
 
 export type Base64 = {
     base64: string;
@@ -33,7 +56,8 @@ const metadata = {
       "parameters": [],
       "returnType": "any",
       "isAsync": true,
-      "returnTypeIsArray": false
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     },
     {
       "name": "setCodeSource",
@@ -53,7 +77,8 @@ const metadata = {
       ],
       "returnType": "any",
       "isAsync": true,
-      "returnTypeIsArray": false
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     },
     {
       "name": "createNode",
@@ -73,7 +98,8 @@ const metadata = {
       ],
       "returnType": "any",
       "isAsync": true,
-      "returnTypeIsArray": false
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     },
     {
       "name": "createProvider",
@@ -99,7 +125,8 @@ const metadata = {
       ],
       "returnType": "any",
       "isAsync": true,
-      "returnTypeIsArray": false
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     },
     {
       "name": "createWorkflow",
@@ -111,48 +138,70 @@ const metadata = {
           "isArray": false
         },
         {
-          "name": "nodes",
-          "type": "HashString",
+          "name": "workflow",
+          "type": "Workflow",
           "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "links",
-          "type": "any",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "description",
-          "type": "string",
-          "optional": true,
           "isArray": false
         }
       ],
       "returnType": "any",
       "isAsync": true,
-      "returnTypeIsArray": false
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "uiListCodes",
+      "parameters": [
+        {
+          "name": "params",
+          "type": "PaginationParams",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "uiListWorkflows",
+      "parameters": [
+        {
+          "name": "params",
+          "type": "PaginationParams",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     },
     {
       "name": "codeSourceList",
       "parameters": [],
       "returnType": "any",
       "isAsync": true,
-      "returnTypeIsArray": false
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     },
     {
       "name": "providerList",
       "parameters": [],
       "returnType": "any",
       "isAsync": true,
-      "returnTypeIsArray": false
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     },
     {
       "name": "workflowList",
       "parameters": [],
       "returnType": "any",
       "isAsync": true,
-      "returnTypeIsArray": false
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     },
     {
       "name": "runCode",
@@ -172,7 +221,8 @@ const metadata = {
       ],
       "returnType": "any",
       "isAsync": true,
-      "returnTypeIsArray": false
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     },
     {
       "name": "setParam",
@@ -192,7 +242,8 @@ const metadata = {
       ],
       "returnType": "any",
       "isAsync": true,
-      "returnTypeIsArray": false
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     },
     {
       "name": "getParam",
@@ -206,7 +257,8 @@ const metadata = {
       ],
       "returnType": "any",
       "isAsync": true,
-      "returnTypeIsArray": false
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     },
     {
       "name": "startProcess",
@@ -226,7 +278,8 @@ const metadata = {
       ],
       "returnType": "any",
       "isAsync": true,
-      "returnTypeIsArray": false
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     },
     {
       "name": "createWebhook",
@@ -264,7 +317,8 @@ const metadata = {
       ],
       "returnType": "any",
       "isAsync": true,
-      "returnTypeIsArray": false
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -285,8 +339,52 @@ const metadata = {
       "definition": "{\n    id: number;\n    name: string;\n    current_version: Uint8Array;\n}"
     },
     {
+      "name": "Workflow",
+      "definition": "{\n    nodes: { [name: string]:  HashString }; \n    links: { from: string, to: string }[]; \n    description?: string\n}"
+    },
+    {
       "name": "NodeCode",
       "definition": "{\n    hash: Hash;\n    body: Uint8Array;\n    created_at: string;\n}"
+    },
+    {
+      "name": "CodeSource",
+      "definition": "{\n    name: string;\n    version: number;\n    hash: HashString;\n    fields: { name: string, type: string }[]\n}"
+    },
+    {
+      "name": "PaginationParams",
+      "definition": "",
+      "properties": [
+        {
+          "name": "offset",
+          "type": "number",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "limit",
+          "type": "number",
+          "optional": false,
+          "isArray": false
+        }
+      ]
+    },
+    {
+      "name": "PaginatedResult",
+      "definition": "",
+      "properties": [
+        {
+          "name": "items",
+          "type": "T",
+          "optional": false,
+          "isArray": true
+        },
+        {
+          "name": "totalCount",
+          "type": "number",
+          "optional": true,
+          "isArray": false
+        }
+      ]
     },
     {
       "name": "Base64",
@@ -301,7 +399,9 @@ export interface DagServiceClient {
   setCodeSource(name: string, code: string): Promise<any>;
   createNode(codeSourceName: string, config: any): Promise<any>;
   createProvider(name: string, codeSourceName: string, config: any): Promise<any>;
-  createWorkflow(name: string, nodes: HashString[], links: any[], description?: string): Promise<any>;
+  createWorkflow(name: string, workflow: Workflow): Promise<any>;
+  uiListCodes(params: PaginationParams): Promise<any>;
+  uiListWorkflows(params: PaginationParams): Promise<any>;
   codeSourceList(): Promise<any>;
   providerList(): Promise<any>;
   workflowList(): Promise<any>;

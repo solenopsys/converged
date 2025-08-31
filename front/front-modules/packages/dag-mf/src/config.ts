@@ -6,19 +6,19 @@ export const MENU = {
     "items": [
         {
             "title": "menu.workflows",
-            "url": "workflows"
+            "url": "/dag/workflows"
         },
         {
             "title": "menu.nodes",
-            "url": "nodes"
+            "url": "/dag/nodes"
         },
         {
             "title": "menu.providers",
-            "url": "providers"
+            "url": "/dag/providers"
         },
         {
             "title": "menu.code",
-            "url": "code"
+            "url": "/dag/code"
         }
     ]
 };

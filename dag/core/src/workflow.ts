@@ -1,4 +1,4 @@
-import { StoreService } from './store/store';
+import { StoreService } from './store/sheme.store';
 import { HashString } from '../../types/interface';
 import { Executor } from './executor';
 

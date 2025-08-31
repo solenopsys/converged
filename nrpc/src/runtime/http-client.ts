@@ -36,14 +36,17 @@ class HttpClientImpl {
       throw new Error(`Method ${methodName} not found in service ${this.metadata.serviceName}`);
     }
     
-    // Простой путь: /serviceName/methodName
+    // Для AsyncIterable методов используем streaming
+    if (method.isAsyncIterable) {
+      return this.callStreaming(methodName, params);
+    }
+    
+    // Обычный HTTP запрос
     const path = `/${this.metadata.serviceName}/${methodName}`;
     const body = this.prepareParams(method.parameters, params);
     
-    // Создаем новый AbortController для каждого запроса
     this.abortController = new AbortController();
     
-    // Устанавливаем таймаут
     const timeoutId = setTimeout(() => {
       if (this.abortController) {
         this.abortController.abort();
@@ -51,7 +54,8 @@ class HttpClientImpl {
     }, this.timeout);
     
     try {
-      const response = await fetch(`${this.baseUrl}${path}`, {
+      const url=`${this.baseUrl}${path}`
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -64,9 +68,8 @@ class HttpClientImpl {
       clearTimeout(timeoutId);
       
       if (!response.ok) {
-        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        let errorMessage = `HTTP ${url} ${response.status}: ${response.statusText}`;
         
-        // Пытаемся получить детали ошибки из ответа
         try {
           const errorData = await response.json();
           if (errorData.error) {
@@ -79,7 +82,6 @@ class HttpClientImpl {
         throw new Error(errorMessage);
       }
       
-      // Проверяем, что ответ не пустой для методов, которые должны что-то возвращать
       if (method.returnType === 'void') {
         return undefined;
       }
@@ -103,6 +105,87 @@ class HttpClientImpl {
       this.abortController = null;
     }
   }
+
+  private async callStreaming(methodName: string, params: any[]): Promise<AsyncIterable<any>> {
+    const method = this.metadata.methods.find(m => m.name === methodName);
+    if (!method) {
+      throw new Error(`Method ${methodName} not found in service ${this.metadata.serviceName}`);
+    }
+
+    const path = `/${this.metadata.serviceName}/${methodName}/stream`;
+    const body = this.prepareParams(method.parameters, params);
+    
+    this.abortController = new AbortController();
+    
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'text/event-stream',
+        ...this.headers
+      },
+      body: JSON.stringify(body),
+      signal: this.abortController.signal
+    });
+
+    if (!response.ok) {
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        if (errorData.error) {
+          errorMessage = errorData.error;
+        }
+      } catch {
+        // Игнорируем ошибки парсинга
+      }
+      throw new Error(errorMessage);
+    }
+
+    if (!response.body) {
+      throw new Error('Response body is null');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    return {
+      async *[Symbol.asyncIterator]() {
+        try {
+          let buffer = '';
+          
+          while (true) {
+            const { done, value } = await reader.read();
+            
+            if (done) break;
+            
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+            
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (trimmed) {
+                try {
+                  if (trimmed.startsWith('data: ')) {
+                    const data = trimmed.slice(6);
+                    if (data === '[DONE]') {
+                      return;
+                    }
+                    yield JSON.parse(data);
+                  }
+                } catch (error) {
+                  console.error('Error parsing streaming data:', error);
+                }
+              }
+            }
+          }
+        } finally {
+          reader.releaseLock();
+          this.abortController = null;
+        }
+      }
+    };
+  }
   
   private prepareParams(paramDefs: any[], params: any[]): Record<string, any> {
     const result: Record<string, any> = {};
@@ -118,7 +201,6 @@ class HttpClientImpl {
     return result;
   }
   
-  // Метод для отмены текущего запроса
   abort() {
     if (this.abortController) {
       this.abortController.abort();
@@ -131,7 +213,6 @@ function createProxy(client: HttpClientImpl, metadata: ServiceMetadata): any {
   
   metadata.methods.forEach(method => {
     proxy[method.name] = (...args: any[]) => {
-      // Валидация количества аргументов
       const requiredParamsCount = method.parameters.filter(p => !p.optional).length;
       const totalParamsCount = method.parameters.length;
       
@@ -151,7 +232,6 @@ function createProxy(client: HttpClientImpl, metadata: ServiceMetadata): any {
     };
   });
   
-  // Добавляем вспомогательные методы
   proxy._abort = () => client.abort();
   proxy._metadata = metadata;
   

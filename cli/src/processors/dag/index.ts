@@ -4,6 +4,8 @@ import { BaseCommandProcessor ,type Handler } from '../base';
 import { createDagServiceClient, type DagServiceClient } from './generated';
 import YAML from 'yaml';
 
+import type { Workflow } from '../../../../dag/types/interface';
+
 
 
 const handleList: Handler = async (client:DagServiceClient) => {
@@ -123,12 +125,19 @@ const handleApply: Handler = async (client:DagServiceClient, paramSplitter, para
             
         }
 
-        await client.createWorkflow(workflowData.name, workflowData.nodes,workflowData.edges,workflowData.description);
+        const workflow:Workflow = {
+            nodes:workflowData.nodes,
+            links:workflowData.edges,
+            description:workflowData.description
+        };
+
+        const result =  await client.createWorkflow(workflowData.name, workflow);
 
       
 
      //   const result = await client.createWorkflow(workflowData.name, workflowData.nodes,workflowData.links,workflowData.description);
         console.log(workflowData);
+        console.log(result);
     }
 
 };
@@ -153,6 +162,6 @@ class DagProcessor extends BaseCommandProcessor {
 
 
 export default (prod: boolean)=>{
-    const client:DagServiceClient = createDagServiceClient({ baseUrl: prod ? "https://console.4ir.club/" : "http://localhost:3001/" });
+    const client:DagServiceClient = createDagServiceClient({ baseUrl: prod ? "https://console.4ir.club/" : "http://localhost:3006/" });
     return new DagProcessor(client)
 };

@@ -110,6 +110,5 @@ const app = new Elysia()
   })
   .listen(3000)
 
-console.log('🚀 Server running on http://localhost:3000')
-console.log('🔄 Proxying POST /services/* to http://localhost:3001 (removing /services/ prefix)')
+console.log('🚀 Server running on http://localhost:3000') 
 console.log('📁 Serving SPA from dist/ directory with fallback to index.html')

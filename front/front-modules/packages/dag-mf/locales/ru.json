@@ -1,10 +1,33 @@
 {
   "menu": {
-       "dag": "Процессы",
-       "workflows": "Потоки",
-       "code": "Код",
-       "nodes": "Узлы",
-       "providers": "Поставщики"}
-  
- 
+    "dag": "Процессы",
+    "workflows": "Потоки",
+    "code": "Код",
+    "nodes": "Узлы",
+    "providers": "Поставщики"
+  },
+  "cards": {
+    "workflows": {
+      "title": "Потоков",
+      "badge": {
+        "iconName": "IconTrendingUp",
+        "text": "+15.3%",
+        "className": ""
+      },
+      "footerTitle": "Рост числа потоков",
+      "footerIconName": "IconTrendingUp",
+      "footerDescription": "Новых потоков за последнюю неделю"
+    },
+    "processes": {
+      "title": "Процессов",
+      "badge": {
+        "iconName": "IconPackage",
+        "text": "8 новых",
+        "className": "bg-green-50 dark:bg-green-950"
+      },
+      "footerTitle": "Активных процессов",
+      "footerIconName": "IconPackage",
+      "footerDescription": "Процессов в работе"
+    }
+  }
 }
