@@ -1,5 +1,5 @@
  
-import type { HashString, Workflow, CodeSource } from '../../../types/interface';
+import type { HashString, Workflow, CodeSource } from '../../../dag-types/interface';
 import { genHash } from '../tools';
 import { preciseStringfy } from '../tools';
 import { timeVersion,extractCommentParam } from './utils/utils';

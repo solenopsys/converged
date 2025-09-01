@@ -1,6 +1,6 @@
 // Константы для ключей
 const PROCESS = "process";
-const EVENT = "event"; 
+const TRIGGER = "trigger"; 
 const RESULT = "result";
 const START = "start";
 
@@ -28,10 +28,10 @@ export class ProcessStore {
   }
 
   // Методы для работы с внешними событиями (очереди, триггеры)
-  storeEvent(processId: string, type: string, nodeId?: string, payload?: any, executorId?: string): string {
+  storeTrigger(processId: string, type: string, nodeId?: string, payload?: any, executorId?: string): string {
     const ulid = generateULID();
     
-    this.processes.put([EVENT, processId, ulid], {
+    this.processes.put([TRIGGER, processId, ulid], {
       type,
       node_id: nodeId,
       payload,
@@ -42,15 +42,15 @@ export class ProcessStore {
     return ulid;
   }
 
-  getProcessEvents(processId: string): any[] {
-    const keys = this.processes.getKeysWithPrefix([EVENT, processId]);
+  getProcessTriggers(processId: string): any[] {
+    const keys = this.processes.getKeysWithPrefix([TRIGGER, processId]);
     const events: any[] = [];
     
     for (const key of keys) {
       // Извлекаем ULID из ключа для получения события
       const keyParts = key.split(':');
       const ulid = keyParts[2];
-      const event = this.processes.get([EVENT, processId, ulid]);
+      const event = this.processes.get([TRIGGER, processId, ulid]);
       events.push(event);
     }
     

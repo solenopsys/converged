@@ -17,7 +17,12 @@ export abstract class BaseCommandProcessor {
         const handler = this.commandMap.get(command);
         
         if (!handler) {
-            throw new Error(`Unknown command: ${command}`);
+              //commands
+
+              console.log("commands: ",this.commandMap.keys().toArray());
+            return 
+
+          
         }
 
         try {

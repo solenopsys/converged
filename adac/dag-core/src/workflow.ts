@@ -1,5 +1,5 @@
-import { StoreService } from './store/sheme.store';
-import { HashString } from '../../types/interface';
+import { StoreService } from './store/scheme.store';
+import { HashString } from '../../dag-types/interface';
 import { Executor } from './executor';
 
 // Сервис для работы с графом workflow

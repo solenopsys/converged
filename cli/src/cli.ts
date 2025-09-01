@@ -18,6 +18,7 @@ const command = process.argv[3];
 const param = process.argv[4];
 
 if (sections.includes(section)) {
+    console.log("section",section,command,param);
     dagProcessor.processCommand(command, param);
 } else {
     console.log("Unknown command");

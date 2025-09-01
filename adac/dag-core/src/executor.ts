@@ -1,16 +1,16 @@
 
-import { type INode } from "dag-api";
-import { StoreService } from "./store/sheme.store";
-import { HashString } from "../../types/interface";
+ import { StoreController } from "./store/controller";
+import { HashString } from "../../dag-types/interface";
 import fs from "fs";
 import { ModuleController } from "dag-api";
 
 export class Executor{
   modules=new Map<string,any>();
-
+  controller: StoreController;
   moduleController:ModuleController;
 
   constructor(private tempDir:string){
+    this.controller=StoreController.getInstance();
     this.moduleController = new ModuleController(tempDir);
    }
 
@@ -24,17 +24,21 @@ export class Executor{
   }
 
   run(pid:string,workflow:HashString,command:string,params?:any){
+    const workflowConfig=this.controller.scheme.getWorkflowConfig(workflow);
     
   }
 
+ 
+
   async runNode(nodeHash: string, data: any) {
     console.log("run",nodeHash,data);
-    const node = StoreService.getInstance().getNode(nodeHash);
+   
+    const node = this.controller.scheme.getNode(nodeHash);
 
-    const nodeCode:{code_hash:string}=StoreService.getInstance().getNodeCode(node.codeName,node.codeVersion);
+    const nodeCode:{code_hash:string}=this.controller.scheme.getNodeCode(node.codeName,node.codeVersion);
     
     const codeHash=nodeCode.code_hash;
-    const codeBody=StoreService.getInstance().getCode(codeHash);
+    const codeBody=this.controller.scheme.getCode(codeHash);
     
     // Получаем загруженный модуль
     const module =   await this.moduleController.loadAndGetModule(codeHash, codeBody);;
