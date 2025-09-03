@@ -42,7 +42,7 @@ export class HttpServer {
       });
   }
   
-  start(port = 3000) {
+  start(port  ) {
     this.app.listen(port);
     console.log(`Server running on :${port}`);
   }

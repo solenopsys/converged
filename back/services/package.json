@@ -13,12 +13,13 @@
 		"@elysiajs/cors": "latest",
 		"@elysiajs/jwt": "latest",
 		"@elysiajs/swagger": "^1.3.0",
+		"@lithdew/chdb-bun": "^0.1.1",
 		"bcryptjs": "latest",
+		"builders": "../../builders",
 		"elysia": "latest",
 		"kysely": "latest",
-		"openai": "latest",
-		"builders": "../../builders",
-		"nrpc": "../../nrpc"
+		"nrpc": "../../nrpc",
+		"openai": "latest"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^1.9.4",

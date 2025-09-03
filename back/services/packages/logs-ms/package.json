@@ -4,14 +4,16 @@
   "type": "module",
   "scripts": {
     "dev": "bun --watch src/main.ts",
-    "start": "bun src/main.ts"
+    "start": "bun src/main.ts",
+    "perf": "bun src/utils/test-perfomance.ts",
+    "gen": "bun src/utils/log-generator.ts continuous --rate 50 --duration 300"
   },
   "dependencies": {
-    "@lithdew/chdb-bun": "^0.1.1",
-    "apache-arrow": "^14.0.2",
+    "@lithdew/chdb-bun": "0.1.1",
     "elysia": "latest",
     "lmdb": "^3.0.8",
-    "parquet-wasm": "^0.6.1"
+    "parquetjs": "^0.11.2",
+    "parquets": "^0.10.10"
   },
   "trustedDependencies": [
     "@lithdew/chdb-bun"

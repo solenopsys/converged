@@ -13,7 +13,7 @@
     "@types/bun": "latest"
   },
   "scripts": {
-    "bld": "bun run ../../node_modules/builders/src/build-frontend.ts ./src/index.ts  ../../../../dag/types/interface.ts ./dist/"
+    "bld": "bun run ../../node_modules/builders/src/build-frontend.ts ./src/index.ts  ../../../../adag/dag-types/interface.ts ./dist/"
   },
   "module": "src/index.ts",
   "peerDependencies": {

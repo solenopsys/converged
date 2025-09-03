@@ -1,7 +1,3 @@
-
-
-
-
-import App from "./App";
-export default App;  
 export * from "./config";
+export * from "./capabilities";
+export default {} 

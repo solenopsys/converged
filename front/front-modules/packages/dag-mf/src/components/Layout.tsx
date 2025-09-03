@@ -3,8 +3,8 @@ import { Button } from 'converged-core';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import NodeForm from './NodeForm';
-import DagViewer from '../dag/Dag';
-import JsonExample from './JsonViewer';
+import DagViewer from './DagViewer';
+import JsonExample from './ContextViewer';
 import dagClient from '../service';
 
 interface WorkflowConfig {
