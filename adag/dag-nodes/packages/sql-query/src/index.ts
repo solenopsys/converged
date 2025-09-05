@@ -1,5 +1,5 @@
 import { type INode } from "dag-api";
-import { type Provider,extractParams,getProvidersPool,evaluateJsonPathString } from "dag-api";
+import { type Provider,getProvidersPool,evaluateJsonPathString } from "dag-api";
 function normalize(v: unknown) {
 	if (typeof v === "string" && /^\d+$/.test(v)) return Number(v);
 	return v;

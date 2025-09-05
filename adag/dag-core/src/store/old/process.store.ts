@@ -4,8 +4,8 @@ const TRIGGER = "trigger";
 const RESULT = "result";
 const START = "start";
 
-import { generateULID } from "./utils/utils";
-import { LMWrapper } from "./utils/lmwrapper";
+import { generateULID } from "../utils/utils";
+import { LMWrapper } from "../utils/lmwrapper";
 
 export class ProcessStore {
   private processes: LMWrapper;

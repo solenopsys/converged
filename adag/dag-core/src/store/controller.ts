@@ -1,15 +1,15 @@
 import { type ProvidersStore } from 'dag-api';
 
-import { IndexStore } from './index.store';
+import { IndexStore } from './old/index.store';
 import { SchemeStore } from './scheme.store';
-import { ProcessStore } from './process.store';
+import { ProcessStore } from './old/process.store';
 import { mkdirSync } from 'fs';
 import { join } from 'path';
 import { Database } from 'bun:sqlite';
 import { SqliteDialect } from 'kysely';
 import { Kysely } from 'kysely';
 
-class StoreController implements ProvidersStore {
+class StoreController  {
   private static instance: StoreController;
 
   public readonly index: IndexStore;
@@ -26,9 +26,9 @@ class StoreController implements ProvidersStore {
       })
     });
 
-    this.index = new IndexStore(indexOrm);
+   // this.index = new IndexStore(indexOrm);
     this.scheme = new SchemeStore(dataDir);
-    this.process = new ProcessStore(dataDir);
+   // this.process = new ProcessStore(dataDir);
   }
 
   public static getInstance(): StoreController {

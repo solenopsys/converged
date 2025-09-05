@@ -13,7 +13,7 @@ export default class DagServiceImpl implements DagService {
     private store = StoreController.getInstance();
 
     constructor() {
-        initProvidersPool(this.store, "./temp/providers")
+        initProvidersPool(this.store.scheme.provider, "./temp/providers")
     }
 
     async status(): Promise<{ status: string }> {
@@ -22,42 +22,50 @@ export default class DagServiceImpl implements DagService {
     }
 
     async setCodeSource(name: string, code: string): Promise<{ name: string, version: number, hash: HashString, fields: { name: string, type: string }[] }> {
-        const hash = this.store.scheme.saveCode(code)
-        const nodeType = await this.store.scheme.createCodeSource(name, hash);
+        const hash = await this.store.scheme.code.saveCode(code)
+        const nodeType = await this.store.scheme.code.createCodeSource(name, hash);
         return Promise.resolve({ name, version: nodeType.version, hash, fields: nodeType.fields })
     }
 
     async getCodeSourceVersions(name: string): Promise<{ versions: CodeSource[] }> {
-        return this.store.scheme.getCodeSourceVersions(name);
+        return this.store.scheme.code.getCodeSourceVersions(name);
     }
 
-    async createNode(codeSourceName: string, config: any): Promise<{ hash: HashString }> {
-        return this.store.scheme.createNode(codeSourceName, config);
+    async createNodeConfig(codeSourceName: string, config: any): Promise<{ hash: HashString }> {
+        return this.store.scheme.node.createNodeConfig(codeSourceName, config);
+    }
+
+    async createNode(nodeName: string, config: any): Promise<{ key: string }> {
+        return {key:this.store.scheme.node.createNode(nodeName, config)};
     }
 
     async createProvider(name: string, codeSourceName: string, config: any): Promise<{ hash: HashString }> {
-        return this.store.scheme.createProvider(name, codeSourceName, config);
+        return this.store.scheme.provider.createProvider(name, codeSourceName, config);
     }
 
 
     async setParam(name: string, value: any): Promise<{ replaced: boolean }> {
-        return this.store.scheme.setParam(name, value);
+        return this.store.scheme.param.setParam(name, value);
     }
 
     async getParam(name: string): Promise<{ value: string }> {
-        return this.store.scheme.getParam(name);
+        return this.store.scheme.param.getParam(name);
+    }
+
+    async paramsList(): Promise<{ params: { [name: string]: string } }> {
+        return Promise.resolve({ params: this.store.scheme.param.listParams() })
     }
 
     async codeSourceList(): Promise<{ names: string[] }> {
-        return Promise.resolve({ names: this.store.scheme.listCodeSoruce() })
+        return Promise.resolve({ names: this.store.scheme.code.listCodeSoruce() })
     }
 
     async getWorkflowVersions(name: string): Promise<{ versions: string[] }> {
-        return Promise.resolve({ versions: this.store.scheme.getWorkflowVersions(name) });
+        return Promise.resolve({ versions: this.store.scheme.workflow.getWorkflowVersions(name) });
     }
 
     async getNode(hash: HashString): Promise<{ config: any }> {
-        return this.store.scheme.getNode(hash);
+        return this.store.scheme.node.getNode(hash);
     }
 
     run(pid: string, workflow: HashString, command: string, params?: any): AsyncIterable<{ result: any }> {
@@ -65,27 +73,34 @@ export default class DagServiceImpl implements DagService {
     }
 
     async getWorkflowConfig(hash: HashString): Promise<Workflow> {
-        return this.store.scheme.getWorkflowConfig(hash);
+        return this.store.scheme.workflow.getWorkflowConfig(hash);
     }
     async getWorkflowConfigByName(name: string, version: string): Promise<Workflow> {
-        const hash = this.store.scheme.getWorkflowHash(name, version)
-        return this.store.scheme.getWorkflowConfig(hash);
+        const hash = this.store.scheme.workflow.getWorkflowHash(name, version)
+        return this.store.scheme.workflow.getWorkflowConfig(hash);
     }
 
     async workflowList(): Promise<{ names: string[] }> {
-        return Promise.resolve({ names: this.store.scheme.listWorkflow() })
+        return Promise.resolve({ names: this.store.scheme.workflow.listWorkflow() })
     }
 
-
-
+    async nodeList(): Promise<{ names: string[] }> {
+        return Promise.resolve({ names: this.store.scheme.node.listNodes() })
+    }
 
     async providerList(): Promise<{ names: string[] }> {
-        return Promise.resolve({ names: this.store.scheme.listProvider() })
+        return Promise.resolve({ names: this.store.scheme.provider.listProvider() })
     }
 
+    async runCode(nodeHash: HashString, params: any): Promise<{ result: any }> {
+        this.store.process
+        this.store.index
+        return this.executor.runNodeConfig(nodeHash, params)
+    }
 
-    runCode(nodeHash: HashString, params: any): Promise<{ result: any }> {
-        return this.executor.runNode(nodeHash, params)
+    async runLambda(name: string, params: any): Promise<{ result: any }> {
+        console.log("runLambda",name,params);
+        return this.executor.runLambda(name, params)
     }
 
     async startProcess(workflowId?: string, meta?: any): Promise<{ processId: string }> {

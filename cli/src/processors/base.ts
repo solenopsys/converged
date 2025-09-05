@@ -4,7 +4,7 @@ export abstract class BaseCommandProcessor {
     protected paramSplitter: string;
     protected commandMap: Map<string, Handler>;
 
-    constructor(client: any, paramSplitter: string = ',') {
+    constructor(client: any, paramSplitter: string = '=') {
         this.client = client;
         this.paramSplitter = paramSplitter;
         this.commandMap = this.initializeCommandMap();

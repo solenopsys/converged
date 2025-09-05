@@ -1,5 +1,5 @@
 {
-  "name": "pg-node",
+  "name": "sql-query-node",
   "private": true,
   "devDependencies": {
     "@types/bun": "latest"

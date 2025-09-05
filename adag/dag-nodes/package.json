@@ -10,14 +10,14 @@
   },
   "scripts": {
     "int":"bun run src/integration-test.ts",
-    "gen": "bun run ./node_modules/builders/src/build-frontend-base.ts ../types/interface.ts ./src/dat-api/"
+    "gen": "bun run ./node_modules/builders/src/build-frontend-base.ts ../dag-types/interface.ts ./src/dag-api/"
 
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
-    "dag-api": "file:../api",
+    "dag-api": "file:../dag-api",
     "builders": "file:../../builders",
     "nrpc": "file:../../nrpc"
   }

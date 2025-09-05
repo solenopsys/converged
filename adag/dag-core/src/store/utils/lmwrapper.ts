@@ -1,9 +1,7 @@
 import * as lmdb from 'lmdb';
 import { join } from 'path';
+import { KEY_SEPARATOR, RANGE_END_SUFFIX, RANGE_START_SUFFIX } from './utils';
  
-const KEY_SEPARATOR = ":";
-const RANGE_START_SUFFIX = KEY_SEPARATOR;
-const RANGE_END_SUFFIX = ";";
 
 export class LMWrapper {
     private db!: lmdb.Database;
@@ -25,6 +23,14 @@ export class LMWrapper {
         );
     }
 
+    getVeluesRangeAsObjectWithPrefix(prefixChain: string):  {[key:string]:any} {
+        const prefix = prefixChain;
+        return this.getVeluesRangeAsObject(
+            prefix + RANGE_START_SUFFIX,
+            prefix + RANGE_END_SUFFIX
+        );
+    }
+
     getKeysWithRange(start: string, end: string): string[] {
         const keys: string[] = []; 
         const range = this.db.getRange({ start, end });
@@ -34,9 +40,23 @@ export class LMWrapper {
         return keys;
     }
 
-    put(chain: string[], value: any): void {
+    getVeluesRangeAsObject(start: string, end: string): {[key:string]:any} {
+        const keys: {[key:string]:any} = {}; 
+        const range = this.db.getRange({ start, end });
+  
+        for (const { key, value } of range) { 
+            const keyString = key as string;
+            const lastSegment= keyString.split(KEY_SEPARATOR)[keyString.split(KEY_SEPARATOR).length-1];
+            keys[lastSegment]=value;
+        }
+        return keys;
+    }
+
+
+    put(chain: string[], value: any): string {
         const key = chain.join(KEY_SEPARATOR);
         this.db.put(key, value);
+        return key;
     }
 
     get(chain: string[]): any {

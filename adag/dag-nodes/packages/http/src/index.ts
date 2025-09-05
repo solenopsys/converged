@@ -92,6 +92,8 @@ export default class HttpNode implements INode {
 
 			try {
 				// Выполнение HTTP запроса
+				console.log("processedUrl",processedUrl)
+				console.log("requestOptions",requestOptions)
 				const response = await fetch(processedUrl, requestOptions);
 				clearTimeout(timeoutId);
 

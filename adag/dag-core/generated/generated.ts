@@ -5,7 +5,7 @@ import serviceImpl from '../src/dag-service.ts';
 const metadata = {
   "interfaceName": "DagService",
   "serviceName": "dag",
-  "filePath": "/home/alexstorm/distrib/4ir/CONVERGED/public/dag/types/interface.ts",
+  "filePath": "/home/alexstorm/distrib/4ir/CONVERGED/public/adag/dag-types/interface.ts",
   "methods": [
     {
       "name": "status",
@@ -52,7 +52,36 @@ const metadata = {
       "isAsyncIterable": false
     },
     {
+      "name": "codeSourceList",
+      "parameters": [],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
       "name": "createNode",
+      "parameters": [
+        {
+          "name": "nodeName",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "hash",
+          "type": "HashString",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "createNodeConfig",
       "parameters": [
         {
           "name": "codeSourceName",
@@ -73,27 +102,23 @@ const metadata = {
       "isAsyncIterable": false
     },
     {
-      "name": "createProvider",
+      "name": "getNode",
       "parameters": [
         {
-          "name": "name",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "codeSourceName",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "config",
-          "type": "any",
+          "name": "hash",
+          "type": "HashString",
           "optional": false,
           "isArray": false
         }
       ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "nodeList",
+      "parameters": [],
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
@@ -172,23 +197,35 @@ const metadata = {
       "isAsyncIterable": false
     },
     {
-      "name": "getNode",
-      "parameters": [
-        {
-          "name": "hash",
-          "type": "HashString",
-          "optional": false,
-          "isArray": false
-        }
-      ],
+      "name": "workflowList",
+      "parameters": [],
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
     },
     {
-      "name": "codeSourceList",
-      "parameters": [],
+      "name": "createProvider",
+      "parameters": [
+        {
+          "name": "name",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "codeSourceName",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "config",
+          "type": "any",
+          "optional": false,
+          "isArray": false
+        }
+      ],
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
@@ -203,8 +240,21 @@ const metadata = {
       "isAsyncIterable": false
     },
     {
-      "name": "workflowList",
-      "parameters": [],
+      "name": "runLambda",
+      "parameters": [
+        {
+          "name": "name",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "params",
+          "type": "any",
+          "optional": false,
+          "isArray": false
+        }
+      ],
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
@@ -230,6 +280,39 @@ const metadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
+    },
+    {
+      "name": "run",
+      "parameters": [
+        {
+          "name": "pid",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "workflow",
+          "type": "HashString",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "command",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "params",
+          "type": "any",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": true
     },
     {
       "name": "setParam",
@@ -262,6 +345,14 @@ const metadata = {
           "isArray": false
         }
       ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "paramsList",
+      "parameters": [],
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
@@ -355,7 +446,7 @@ const metadata = {
     },
     {
       "name": "CodeSource",
-      "definition": "{\n    name: string;\n    version: number;\n    hash: HashString;\n    fields: { name: string, type: string }[]\n}"
+      "definition": "{\n    name: string;\n    version: string;\n    hash: HashString;\n    fields: { name: string, type: string }[]\n}"
     },
     {
       "name": "PaginationParams",

@@ -395,14 +395,6 @@ const metadata = {
       "isAsyncIterable": false
     },
     {
-      "name": "paramsList",
-      "parameters": [],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
       "name": "startProcess",
       "parameters": [
         {
@@ -557,7 +549,6 @@ export interface DagServiceClient {
   run(pid: string, workflow: HashString, command: string, params?: any): AsyncIterable<any>;
   setParam(name: string, value: any): Promise<any>;
   getParam(name: string): Promise<any>;
-  paramsList(): Promise<any>;
   startProcess(workflowId?: string, meta?: any): Promise<any>;
   createWebhook(name: string, url: string, method: string, workflowId: string, options?: any): Promise<any>;
 }

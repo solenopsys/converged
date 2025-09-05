@@ -22,7 +22,7 @@ export type NodeCode = {
 
 export type CodeSource = {
     name: string;
-    version: number;
+    version: string;
     hash: HashString;
     fields: { name: string, type: string }[]
 }
@@ -47,28 +47,37 @@ export type Base64 = {
 export interface DagService {
     status(): Promise<{ status: string }>
 
+    // source
     setCodeSource(name: string, code: string): Promise<CodeSource>
     getCodeSourceVersions(name: string): Promise<{ versions: CodeSource[] }>
-    createNode(codeSourceName: string, config: any): Promise<{ hash: HashString }>
-    createProvider(name: string, codeSourceName: string, config: any): Promise<{ hash: HashString }>
+    codeSourceList(): Promise<{ names: string[] }>
 
+    // nodes
+    createNode(nodeName: string, hash: HashString): Promise<{ key: string }>
+    createNodeConfig(codeSourceName: string, config: any): Promise<{ hash: HashString }>
+    getNode(hash: HashString): Promise<{ config: any }>
+    nodeList(): Promise<{ names: string[] }>
+
+    // workflows
     createWorkflow(name:string,workflow: Workflow): Promise<{ hash: HashString }>
     getWorkflowConfig(hash: HashString): Promise<Workflow>
     getWorkflowVersions(name: string): Promise<{ versions: string[] }>
     getWorkflowConfigByName(name: string,version: string): Promise<Workflow> ;
-    getNode(hash: HashString): Promise<{ config: any }>
-
-    codeSourceList(): Promise<{ names: string[] }>
-    nodeList(): Promise<{ names: string[] }>
-    providerList(): Promise<{ names: string[] }>
     workflowList(): Promise<{ names: string[] }> 
 
-    runCode(hash: HashString, params: any): Promise<{ result: any }>
+    // providers
+    createProvider(name: string, codeSourceName: string, config: any): Promise<{ hash: HashString }>
+    providerList(): Promise<{ names: string[] }>
 
+    // run
+    runLambda(name: string, params: any): Promise<{ result: any }>
+    runCode(hash: HashString, params: any): Promise<{ result: any }>
     run(pid: string,workflow: HashString,command: string, params?: any): AsyncIterable<{ result: any }>
 
+    // params
     setParam(name: string, value: any): Promise<{ replaced: boolean }>
     getParam(name: string): Promise<{ value: any }>
+    paramsList(): Promise<{ params: {[name:string]: string} }>
 
     startProcess(workflowId?: string, meta?: any): Promise<{ processId: string }>
     createWebhook(name: string, url: string, method: string, workflowId: string, options?: any): Promise<{ version: number }>
