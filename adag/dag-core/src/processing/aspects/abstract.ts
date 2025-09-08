@@ -59,13 +59,14 @@ interface AspectWorker {
     readonly aspects: Aspect[];
     
     addAspect(aspect: Aspect): AspectWorker;
-    init(context: ExecutionContext, exec: Exec): Promise<string>;
-    event(eventName: string): void;
+    init(context: ExecutionContext, exec: Exec): Promise<{reuslt:string,cascade:boolean}>;
+    activate(cascade:boolean): void;
 }
 
 // Простая реализация Lambda
 class ImmediateLambda extends Lambda {
     async startOrJoin(): Promise<any> {
+        console.log("EXEC ", this.input);
         return await this.exec(this.input);
     }
 }

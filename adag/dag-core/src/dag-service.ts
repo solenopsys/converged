@@ -6,7 +6,7 @@ import { LambdaExecutor,runLambda, } from "./processing/lambda-executor";
 import { genHash } from "./tools";
 import { preciseStringfy } from "./tools";
 import { initProvidersPool } from "dag-api";
-import { WorflowReactor } from "./processing/workflow-reactor";
+import { WorkflowReactor } from "./processing/workflow-reactor";
 
 export default class DagServiceImpl implements DagService {
     tempDir="./temp/nodes"; 
@@ -44,13 +44,22 @@ export default class DagServiceImpl implements DagService {
     }
 
     async createContext(workflowHash: HashString, initState?: any): Promise<{ contextKey: string, startNode: string, endNode: string }> {
-        return {contextKey:this.store.processing.contexts.createContext(workflowHash, initState),startNode:"",endNode:""};
+
+       const contextKey=this.store.processing.contexts.createContext(workflowHash);
+       this.store.processing.contexts.addDataToContext(contextKey,"input",initState);
+
+       // todo start and end
+        return {contextKey:contextKey,startNode:"",endNode:""};
     }
 
     async workflowEvent(contextKey:string, event: string, cascade: boolean): AsyncIterable<{ result: any }> {
-       const reactor=new WorflowReactor(contextKey)
-       // return this.store.processing.executions.workflowEvent(contextKey, event, cascade);
+        console.log("workflowEvent",contextKey,event,cascade);
+       const reactor=new WorkflowReactor(contextKey);
+       await reactor.init();
+       const res= await reactor.action(event,cascade);
        return [];
+        //return this.store.processing.executions.workflowEvent(contextKey, event, cascade);
+    //   return [];
     }
 
 
@@ -128,6 +137,10 @@ export default class DagServiceImpl implements DagService {
         // await this.store.index.indexProcess(processId, workflowId, 'running', meta ? JSON.stringify(meta) : undefined);
 
         return Promise.resolve({ processId });
+    }
+
+    async getContext(contextKey:string): Promise<{ state: any }> {
+        return this.store.processing.contexts.getContext(contextKey);
     }
 
     async createWorkflow(name: string, workflow: Workflow): Promise<{ hash: HashString }> {

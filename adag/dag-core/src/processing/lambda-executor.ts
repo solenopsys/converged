@@ -9,10 +9,10 @@ export class LambdaExecutor {
   constructor(private nodeHash: string,  tempDir: string) {
     this.controller = StoreController.getInstance();
     this.moduleController = new ModuleController(tempDir);
-    this.initializeNode();
+  
   }
 
-  private async initializeNode() {
+  public async initializeNode() {
     const nodeConfig = this.controller.scheme.node.getNodeConfig(this.nodeHash);
     console.log("nodeConfig", nodeConfig);
 
@@ -69,12 +69,15 @@ export async function runLambda(name: string, data: any, tempDir: string) {
   const nodeHash = controller.scheme.node.getNode(name);
   
   const executor = new LambdaExecutor(nodeHash, tempDir);
+  await executor.initializeNode();
   return await executor.execute(data);
 }
 
-export function createLambdaByNodeKey(nodeKey:string,tempDir:string){
+export async function createLambdaByNodeKey(nodeKey:string,tempDir:string){
     const controller = StoreController.getInstance();
     const nodeHash = controller.scheme.node.getNodeByKey(nodeKey);
+    console.log("nodeHash", nodeHash);
     const executor = new LambdaExecutor(nodeHash, tempDir);
+    await executor.initializeNode();
     return executor;
 }

@@ -31,7 +31,7 @@ export class ModuleController {
   private async importModule(codeHash: string, filePath: string): Promise<any> {
     try {
       // Очищаем кеш модуля для возможности перезагрузки
-      delete require.cache[require.resolve(filePath)];
+      //delete require.cache[require.resolve(filePath)];
       
       const module = await import(filePath);
       this.modules.set(codeHash, module);
@@ -63,6 +63,7 @@ export class ModuleController {
 
     // Сохраняем код во временный файл
     const filePath = await this.saveCodeToTemp(codeHash, codeBody);
+    console.log("SAVA CODE TO PATH", filePath, codeHash);
     
     // Импортируем модуль
     const module = await this.importModule(codeHash, filePath);

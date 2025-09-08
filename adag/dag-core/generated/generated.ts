@@ -330,6 +330,21 @@ const metadata = {
       "isAsyncIterable": true
     },
     {
+      "name": "getContext",
+      "parameters": [
+        {
+          "name": "contextKey",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
       "name": "setParam",
       "parameters": [
         {

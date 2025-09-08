@@ -375,6 +375,21 @@ const metadata = {
       "isAsyncIterable": true
     },
     {
+      "name": "getContext",
+      "parameters": [
+        {
+          "name": "contextKey",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
       "name": "setParam",
       "parameters": [
         {
@@ -551,6 +566,7 @@ export interface DagServiceClient {
   runCode(hash: HashString, params: any): Promise<any>;
   createContext(workflowHash: HashString, initState?: any): Promise<any>;
   workflowEvent(contextKey: string, event: string, cascade: boolean): AsyncIterable<any>;
+  getContext(contextKey: string): Promise<any>;
   setParam(name: string, value: any): Promise<any>;
   getParam(name: string): Promise<any>;
   paramsList(): Promise<any>;

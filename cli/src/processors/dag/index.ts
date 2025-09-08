@@ -49,6 +49,34 @@ const handleTest: Handler = async (client, paramSplitter, param) => {
 };
 
 
+const createContext: Handler = async (client:DagServiceClient, paramSplitter, param) => {
+    const workflowHash = param!.split(paramSplitter)[0];
+    const jsonData = param!.split(paramSplitter)[1];
+    console.log("CONTEXT STRING",jsonData);
+    const contextState = JSON.parse(jsonData);
+
+    const result: { contextKey: string } = await client.createContext(workflowHash, contextState);
+    console.log(result);
+};
+
+
+const sendEvent: Handler = async (client:DagServiceClient, paramSplitter, param) => {
+    const contextKey = param!.split(paramSplitter)[0];
+    const eventName = param!.split(paramSplitter)[1];
+
+ 
+    for await (const event of client.workflowEvent(contextKey, eventName, false)) {
+        console.log(event);
+    } 
+};
+
+const getContext: Handler = async (client:DagServiceClient, paramSplitter, param) => {
+    const contextKey = param!.split(paramSplitter)[0];
+    const result = await client.getContext(contextKey);
+    console.log("CONTEXT",JSON.stringify(result,null,2));
+};
+
+
 
 const runWorflow: Handler = async (client:DagServiceClient, paramSplitter, param) => {
     const workflowHash = param!.split(paramSplitter)[0];
@@ -125,10 +153,12 @@ const handleApply: Handler = async (client: DagServiceClient, paramSplitter, par
             console.log(filePath);
             const nodeData = YAML.parse(fs.readFileSync(filePath).toString());
             console.log(nodeData);
-            const result = await client.createNode(nodeData.codeSource, nodeData);
-            console.log("node result", result);
+            const result: { hash: HashString } = await client.createNodeConfig(nodeData.codeSource, nodeData.params);
+            const nodeKey:{key:string} = await client.createNode(nodeData.name, result.hash);
 
-            workflowData.nodes[key] = result.key;
+            console.log("node result", nodeKey);
+
+            workflowData.nodes[key] = nodeKey.key;
 
         }
 
@@ -159,7 +189,9 @@ class DagProcessor extends BaseCommandProcessor {
             ['test', handleTest],
 
 
-            ['run', runWorflow],
+            ['event', sendEvent],
+            ['new_context', createContext],
+            ['context', getContext],
             ['webhook', handleWebhook],
             ['set', saveParam],
             ['get', getParam]

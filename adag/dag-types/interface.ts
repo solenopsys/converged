@@ -76,6 +76,7 @@ export interface DagService {
 
     createContext(workflowHash: HashString, initState?: any):  Promise<{ contextKey: string, startNode: string, endNode: string }>
     workflowEvent(contextKey:string, event: string, cascade: boolean): AsyncIterable<{ result: any }>
+    getContext(contextKey:string): Promise<{ state: any }>
 
     // params
     setParam(name: string, value: any): Promise<{ replaced: boolean }>

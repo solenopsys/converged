@@ -1,5 +1,5 @@
 import {JSONPath} from "jsonpath-plus"
-
+import { ContextAccessor } from "../../store/processing.store";
  
 
 import { ExecutionContext } from "./abstract";
@@ -11,7 +11,9 @@ function evaluateJsonPath(data: any, jsonPath: string): any {
     try {
         const result = JSONPath({ path: jsonPath, json: data });
         const value = Array.isArray(result) ? result[0] : result;
-        return value !== undefined ? value : null;
+        const ret=value !== undefined ? value : null
+        console.log("RESULT EVALUATE",ret)
+        return ret;
     } catch (error) {
         return null;
     }
@@ -21,15 +23,37 @@ function evaluateJsonPathString(data: any, jsonPath: string): string {
     return evaluateJsonPath(data, jsonPath).toString() ?? "";
 }
 
+export class StoreExecutionContext implements ExecutionContext {
+    context:any;
+    constructor(private accessor: ContextAccessor,private contextKey:string) {
+        this.context = this.accessor.getContext(this.contextKey);
+    }
+    
+    getFromPath(path: string): any { 
+        console.log("GET FROM PATH", path,this.context);
+        return evaluateJsonPath(this.context, path);
+    }
+    
+    setToPath(path: string, value: any): void {
+        if(path.indexOf(".")>0){
+            throw new Error("Only simple paths are supported");
+            // todo support complex paths
+        }
+        this.accessor.addDataToContext(this.contextKey, path, value);
+    }
+}
+
 // Реализация ExecutionContext с JSONPath
-class JsonPathExecutionContext implements ExecutionContext {
+export class JsonPathExecutionContext implements ExecutionContext {
     constructor(private data: any) {}
     
     getFromPath(path: string): any {
+        console.log("GET FROM PATH", path,this.data);
         return evaluateJsonPath(this.data, path);
     }
     
     setToPath(path: string, value: any): void {
+        console.log("SET TO PATH", path, value);
         const normalizedPath = path.replace(/^\$\./, '');
         const parts = normalizedPath.split('.');
         
@@ -43,6 +67,7 @@ class JsonPathExecutionContext implements ExecutionContext {
         }
         
         current[parts[parts.length - 1]] = value;
+
     }
 }
 
@@ -76,4 +101,4 @@ class Semaphore {
     }
 }
 
-export {JsonPathExecutionContext,Semaphore}
+export {Semaphore}

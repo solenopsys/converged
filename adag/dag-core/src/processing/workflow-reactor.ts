@@ -1,55 +1,68 @@
-
-
 import { StoreController } from "../store/controller";
 import { WorkerImpl } from "./aspects/worker";
 import { AspectsMapping } from "./aspects/maping";
 import { AspectWorker, AspectBase } from "./aspects/abstract";
 import { createLambdaByNodeKey } from "./lambda-executor";
-import { JsonPathExecutionContext } from "./aspects/utils";
+import { StoreExecutionContext } from "./aspects/utils";
+import { ExecutionContext } from "./aspects/abstract";
 
+// Определяем тип для результата
+export enum ResultType {
+    ok = "ok",
+    error = "error",
+    pending = "pending"
+}
 
-const defaultAspects = ["init", "output"]
+const END = "end";
+const START = "start";
 
-export class WorflowReactor {
-    workers: { [event: string]: AspectWorker } = {}
-    links: { [event: string]: string | string[] } = {}
+export class WorkflowReactor {
+    workers: { [event: string]: AspectWorker } = {};
+    cascade: { [event: string]: string[] } = {};
+    private isInitialized = false;
+    private ctx: ExecutionContext; // Сохраняем контекст как поле класса
 
+    private defaultAspects = ["init", "output"]; // todo config
 
-    constructor(contextKey: string) {
-        this.init(contextKey)
+    constructor(private contextKey: string) {
+        if (!this.contextKey) {
+            throw new Error("Context key is required");
+        }
+        const store = StoreController.getInstance();
+        this.ctx = new StoreExecutionContext(store.processing.contexts, this.contextKey); // Инициализируем контекст
     }
 
-     createAspectInstance(key: string, config?: any): AspectBase | null {
+    createAspectInstance(key: string, config?: any): AspectBase | null {
         const AspectClass = AspectsMapping[key];
         if (!AspectClass) {
             console.warn(`Aspect with key "${key}" not found in AspectsMapping`);
             return null;
         }
-        
+
         try {
             return config !== undefined ? new AspectClass(config) : new AspectClass();
         } catch (error) {
             console.error(`Failed to create aspect "${key}":`, error);
             return null;
         }
-     }
+    }
 
-     createAspectForNode(workflow: {[node: string]: any}, nodeName: string): AspectBase[] {
+    createAspectForNode(workflow: { [node: string]: any }, nodeName: string): AspectBase[] {
         const nodeAspectsConfigs: { [node: string]: any } = workflow.aspects ?? {};
         const aspects: AspectBase[] = [];
-        const aspectsConfig: { [key: string]: any } = nodeAspectsConfigs[nodeName] ?? {}; // Add null coalescing here
+        const aspectsConfig: { [key: string]: any } = nodeAspectsConfigs[nodeName] ?? {};
 
-        if (!aspectsConfig){
-               return [];
-        }          
         // Добавляем аспекты по умолчанию (которых нет в конфигурации)
-        defaultAspects.forEach(key => {                        
-            const aspect = this.createAspectInstance(key);
-            if (aspect) {
-                aspects.push(aspect);
+        this.defaultAspects.forEach(key => {
+            // Проверяем, что аспект не настроен вручную
+            if (!aspectsConfig.hasOwnProperty(key)) {
+                const aspect = this.createAspectInstance(key);
+                if (aspect) {
+                    aspects.push(aspect);
+                }
             }
         });
-                 
+
         // Добавляем настроенные аспекты
         Object.keys(aspectsConfig).forEach(key => {
             const aspect = this.createAspectInstance(key, aspectsConfig[key]);
@@ -57,58 +70,145 @@ export class WorflowReactor {
                 aspects.push(aspect);
             }
         });
+
         return aspects;
     }
 
-     createWorker(workflow:{[node: string]: any},nodeName:string,nodePath:string,ctx:JsonPathExecutionContext):AspectWorker{
-        const aspects=this.createAspectForNode(workflow,nodeName)
-        const worker=new WorkerImpl(nodeName,aspects)
-        const context={};
+    async createWorker(
+        workflow: { [node: string]: any },
+        nodeName: string,
+        nodePath: string,
+        ctx: ExecutionContext
+    ): Promise<AspectWorker> {
+        const aspects = this.createAspectForNode(workflow, nodeName);
+        const worker = new WorkerImpl(nodeName, aspects);
+        const context = {};
 
-        const lambda=createLambdaByNodeKey(nodePath,"./temp/nodes");
-   
-        worker.init(ctx,async ()=>await lambda.execute(context))
-        return worker
-     }
-     
-     async init(contextKey: string) {
-        const ctx=new  JsonPathExecutionContext({});
-        console.log("WORKFLOW", contextKey)
-        const store = StoreController.getInstance()
-        const workflowHash = contextKey.split(":")[1]
-        const workflow = await store.scheme.workflow.getWorkflowConfig(workflowHash)
-        //@ts-ignore
-        this.links=workflow.links;
-        console.log(workflow)
-        const nodes=Object.keys(workflow.nodes);
-        nodes.forEach(nodeName => {
-            this.workers[nodeName] = this.createWorker(workflow,nodeName,workflow.nodes[nodeName],ctx)
-        })
-        
-     
- 
-    
-       
-    }
+        const lambda = await createLambdaByNodeKey(nodePath, "./temp/nodes");
 
-    processResult(event: string, result: ResultType) {
-        if (result == ResultType.ok) {
+        const promise = worker.init(ctx, async (input) => await lambda.execute(input));
 
-            this.react(event)
-        }
-    }
+        // Обрабатываем промис для генерации события
+        promise.then((res) => {
+            if (res.result == ResultType.ok) {
+                if(res.cascade){
+                    this.react(nodeName + ":" + END, true);
+                }
+            } else {
+                console.error(`Worker "${nodeName}" failed:`, res);
+            }
 
-    react(event: string) {
-        const workersNames: string | string[] = this.links[event];
-        if (workersNames is array){
-
-        }
-
-        workersNames.forEach(name => {
-           const worker: AspectWorker= workers[name];
-            this.processResult(worker.name, await worker.run())
+        }).catch((error) => {
+            console.error(`Worker "${nodeName}" failed:`, error);
+            // this.react(nodeName + ":" + END, ResultType.error, true);
         });
-        
- 
+
+        return worker;
     }
+
+    async init(): Promise<void> {
+        try {
+            console.log("WORKFLOW", this.contextKey);
+
+            const store = StoreController.getInstance();
+            const workflowHash = this.contextKey.split(":")[1];
+            const workflow = await store.scheme.workflow.getWorkflowConfig(workflowHash);
+
+            if (!workflow) {
+                throw new Error(`Workflow with hash ${workflowHash} not found`);
+            }
+
+            // Построение каскадных связей
+            for (const eventKey of Object.keys(workflow.links)) {
+                const item = workflow.links[eventKey];
+                let itemArray: string[] = [];
+
+                if (Array.isArray(item)) {
+                    itemArray = item.map((i) => i + ":" + START);
+                } else {
+                    itemArray.push(item + ":" + START); // Исправлено: START вместо END
+                }
+
+                this.cascade[eventKey + ":" + END] = itemArray;
+            }
+
+            console.log("Loaded workflow:", workflow);
+            console.log("Cascade structure:", this.cascade);
+
+            const nodes = Object.keys(workflow.nodes || {});
+
+            // Создаем воркеров для каждого узла
+            for (const nodeName of nodes) {
+                const nodeKey = nodeName + ":" + START;
+                try {
+                    this.workers[nodeKey] = await this.createWorker(
+                        workflow,
+                        nodeName,
+                        workflow.nodes[nodeName],
+                        this.ctx
+                    );
+                } catch (error) {
+                    console.error(`Failed to create worker for node "${nodeKey}":`, error);
+                }
+            }
+
+            this.isInitialized = true;
+            console.log("WorkflowReactor initialized successfully");
+
+        } catch (error) {
+            console.error("Failed to initialize WorkflowReactor:", error);
+            throw error;
+        }
+
+        console.log("KEYS OBJECT", Object.keys(this.workers));
+    }
+
+    react(endedEvent: string, cascade: boolean): void {
+        console.log(`Reacting to event "${endedEvent}" with cacade "${cascade}"`);
+
+
+        console.log("cascade state", this.cascade);
+        const events = this.cascade[endedEvent];
+
+        if (!events || events.length === 0) {
+            console.log(`No cascade events found for "${endedEvent}"`);
+            return;
+        }
+
+        console.log(`Cascading to events:`, events);
+
+        for (const event of events) {
+            this.action(event, true); // Передаем cascade = true для цепочки
+        }
+
+    }
+
+    async action(event: string, cascade: boolean = false): Promise<void> {
+        console.log(`Starting action for event: ${event}`);
+
+        if (!this.isInitialized) {
+            console.warn("WorkflowReactor is not initialized yet");
+            return;
+        }
+
+        const worker: AspectWorker = this.workers[event];
+
+        if (!worker) {
+            console.error(`Worker "${event}" not found`);
+            console.log("Available workers:", Object.keys(this.workers));
+            return;
+        }
+
+        try {
+            console.log(`Running worker: ${event}`);
+
+            worker.activate(cascade);
+
+        } catch (error) {
+            console.error(`Error running worker "${event}":`, error);
+
+        }
+    }
+
+
 }

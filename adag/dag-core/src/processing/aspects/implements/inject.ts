@@ -14,7 +14,7 @@ export class InjectAspect extends AspectBase {
             const value = context.getFromPath(sourcePath);
             injected[targetKey] = value;
         }
-        
+        console.log("INJECTED", injected);
         worker.state.input = injected;
     }
 }

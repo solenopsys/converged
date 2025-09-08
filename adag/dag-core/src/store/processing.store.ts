@@ -6,7 +6,7 @@ import { generateULID } from "./utils/utils";
 const CONTEXT = "context";
 const EXECUTION = "execution";
 
-class ExecutionAccessor extends EntityAcessor<ProcessingStore> {
+export class ExecutionAccessor extends EntityAcessor<ProcessingStore> {
     start(nodeHash: StringHash, data?: any): string {
         const key = this.db.put([EXECUTION, nodeHash, generateULID(),"start"], data);
         return key;
@@ -24,7 +24,7 @@ class ExecutionAccessor extends EntityAcessor<ProcessingStore> {
 
 
 
-class ContextAccessor extends EntityAcessor<ProcessingStore> { // source codes 
+export class ContextAccessor extends EntityAcessor<ProcessingStore> { // source codes 
     createContext(workflowHash: StringHash, meta?: any): string {
         const key = this.db.put([CONTEXT, workflowHash, generateULID()], {
             created_at: new Date(),
