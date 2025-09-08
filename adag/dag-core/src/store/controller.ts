@@ -8,13 +8,14 @@ import { join } from 'path';
 import { Database } from 'bun:sqlite';
 import { SqliteDialect } from 'kysely';
 import { Kysely } from 'kysely';
+import { ProcessingStore } from './processing.store';
 
 class StoreController  {
   private static instance: StoreController;
 
   public readonly index: IndexStore;
   public readonly scheme: SchemeStore;
-  public readonly process: ProcessStore;
+  public readonly processing: ProcessingStore;
 
   private constructor() {
     const dataDir = process.env.DATA_DIR || './data';
@@ -28,6 +29,7 @@ class StoreController  {
 
    // this.index = new IndexStore(indexOrm);
     this.scheme = new SchemeStore(dataDir);
+    this.processing = new ProcessingStore(dataDir);
    // this.process = new ProcessStore(dataDir);
   }
 

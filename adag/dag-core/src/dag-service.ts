@@ -2,14 +2,14 @@ import { Base64, type DagService, type Workflow } from "../../dag-types/interfac
 import { Hash, HashString, CodeSource } from "../../dag-types/interface";
 import { StoreController } from "./store/controller";
 import { toHex } from "./tools";
-import { Executor } from "./executor";
+import { LambdaExecutor,runLambda, } from "./processing/lambda-executor";
 import { genHash } from "./tools";
 import { preciseStringfy } from "./tools";
 import { initProvidersPool } from "dag-api";
+import { WorflowReactor } from "./processing/workflow-reactor";
 
 export default class DagServiceImpl implements DagService {
-
-    private executor = new Executor("./temp/nodes");
+    tempDir="./temp/nodes"; 
     private store = StoreController.getInstance();
 
     constructor() {
@@ -43,6 +43,16 @@ export default class DagServiceImpl implements DagService {
         return this.store.scheme.provider.createProvider(name, codeSourceName, config);
     }
 
+    async createContext(workflowHash: HashString, initState?: any): Promise<{ contextKey: string, startNode: string, endNode: string }> {
+        return {contextKey:this.store.processing.contexts.createContext(workflowHash, initState),startNode:"",endNode:""};
+    }
+
+    async workflowEvent(contextKey:string, event: string, cascade: boolean): AsyncIterable<{ result: any }> {
+       const reactor=new WorflowReactor(contextKey)
+       // return this.store.processing.executions.workflowEvent(contextKey, event, cascade);
+       return [];
+    }
+
 
     async setParam(name: string, value: any): Promise<{ replaced: boolean }> {
         return this.store.scheme.param.setParam(name, value);
@@ -69,6 +79,7 @@ export default class DagServiceImpl implements DagService {
     }
 
     run(pid: string, workflow: HashString, command: string, params?: any): AsyncIterable<{ result: any }> {
+
         return this.executor.run(pid, workflow, command, params)
     }
 
@@ -95,25 +106,26 @@ export default class DagServiceImpl implements DagService {
     async runCode(nodeHash: HashString, params: any): Promise<{ result: any }> {
         this.store.process
         this.store.index
-        return this.executor.runNodeConfig(nodeHash, params)
+        const executor= new LambdaExecutor(nodeHash,this.tempDir)
+        return executor.execute(params)
     }
 
     async runLambda(name: string, params: any): Promise<{ result: any }> {
         console.log("runLambda",name,params);
-        return this.executor.runLambda(name, params)
+        return runLambda(name, params,this.tempDir)
     }
 
     async startProcess(workflowId?: string, meta?: any): Promise<{ processId: string }> {
         const processId = this.generateProcessId();
 
-        // Создаем процесс в LMDB
-        this.store.process.createProcess(processId, workflowId, meta);
+        // // Создаем процесс в LMDB
+        // this.store.process.createProcess(processId, workflowId, meta);
 
-        // Создаем событие запуска
-        this.store.process.storeEvent(processId, 'process_started', undefined, { workflowId, meta });
+        // // Создаем событие запуска
+        // this.store.process.storeEvent(processId, 'process_started', undefined, { workflowId, meta });
 
-        // Индексируем для быстрого поиска
-        await this.store.index.indexProcess(processId, workflowId, 'running', meta ? JSON.stringify(meta) : undefined);
+        // // Индексируем для быстрого поиска
+        // await this.store.index.indexProcess(processId, workflowId, 'running', meta ? JSON.stringify(meta) : undefined);
 
         return Promise.resolve({ processId });
     }
@@ -124,11 +136,11 @@ export default class DagServiceImpl implements DagService {
         const hash = genHash(configString);
 
         // Сохраняем конфигурацию workflow
-        this.store.scheme.createWorkflowConfig(hash, workflow);
+        this.store.scheme.workflow.createWorkflowConfig(hash, workflow);
 
         // Создаем версию workflow
         const version = new Date().getTime().toString();
-        this.store.scheme.createWorkflow(name, version, hash);
+        this.store.scheme.workflow.createWorkflow(name, version, hash);
 
         return Promise.resolve({ hash });
     }
@@ -137,7 +149,7 @@ export default class DagServiceImpl implements DagService {
         const version = new Date().getTime();
 
         // Сохраняем webhook в DAG
-        this.store.scheme.createWebhook(name, version.toString(), url, method, workflowId, options);
+     //   this.store.scheme.createWebhook(name, version.toString(), url, method, workflowId, options);
 
         return Promise.resolve({ version });
     }

@@ -163,9 +163,14 @@ class NodeAccessor extends EntityAcessor<SchemeStore> {
     return data;
   }
 
-  getNode(nodeName: string): any {
+  getNode(nodeName: string): string {
     const lastVersion = this.getLastVersion([this.NODE, nodeName]);
     const nodeConfigHash=this.db.get([this.NODE,nodeName,lastVersion]);
+    return nodeConfigHash;
+  }
+
+  getNodeByKey(key: string): string { 
+    const nodeConfigHash=this.db.get([key]);
     return nodeConfigHash;
   }
 

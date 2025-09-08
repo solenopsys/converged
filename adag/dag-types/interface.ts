@@ -12,6 +12,7 @@ export type Workflow = {
     nodes: { [name: string]:  HashString }; 
     links: { from: string, to: string }[]; 
     description?: string
+    aspects?: { [name: string]: any }
 }
 
 export type NodeCode = {
@@ -72,13 +73,15 @@ export interface DagService {
     // run
     runLambda(name: string, params: any): Promise<{ result: any }>
     runCode(hash: HashString, params: any): Promise<{ result: any }>
-    run(pid: string,workflow: HashString,command: string, params?: any): AsyncIterable<{ result: any }>
+
+    createContext(workflowHash: HashString, initState?: any):  Promise<{ contextKey: string, startNode: string, endNode: string }>
+    workflowEvent(contextKey:string, event: string, cascade: boolean): AsyncIterable<{ result: any }>
 
     // params
     setParam(name: string, value: any): Promise<{ replaced: boolean }>
     getParam(name: string): Promise<{ value: any }>
     paramsList(): Promise<{ params: {[name:string]: string} }>
 
-    startProcess(workflowId?: string, meta?: any): Promise<{ processId: string }>
+   
     createWebhook(name: string, url: string, method: string, workflowId: string, options?: any): Promise<{ version: number }>
 }

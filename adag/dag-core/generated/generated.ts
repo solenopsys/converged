@@ -282,30 +282,45 @@ const metadata = {
       "isAsyncIterable": false
     },
     {
-      "name": "run",
+      "name": "createContext",
       "parameters": [
         {
-          "name": "pid",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "workflow",
+          "name": "workflowHash",
           "type": "HashString",
           "optional": false,
           "isArray": false
         },
         {
-          "name": "command",
+          "name": "initState",
+          "type": "any",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "workflowEvent",
+      "parameters": [
+        {
+          "name": "contextKey",
           "type": "string",
           "optional": false,
           "isArray": false
         },
         {
-          "name": "params",
-          "type": "any",
-          "optional": true,
+          "name": "event",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "cascade",
+          "type": "boolean",
+          "optional": false,
           "isArray": false
         }
       ],
@@ -353,27 +368,6 @@ const metadata = {
     {
       "name": "paramsList",
       "parameters": [],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "startProcess",
-      "parameters": [
-        {
-          "name": "workflowId",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "meta",
-          "type": "any",
-          "optional": true,
-          "isArray": false
-        }
-      ],
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
@@ -438,7 +432,7 @@ const metadata = {
     },
     {
       "name": "Workflow",
-      "definition": "{\n    nodes: { [name: string]:  HashString }; \n    links: { from: string, to: string }[]; \n    description?: string\n}"
+      "definition": "{\n    nodes: { [name: string]:  HashString }; \n    links: { from: string, to: string }[]; \n    description?: string\n    aspects?: { [name: string]: any }\n}"
     },
     {
       "name": "NodeCode",

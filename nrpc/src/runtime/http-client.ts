@@ -30,31 +30,32 @@ class HttpClientImpl {
     this.headers = config.headers || {};
   }
   
-  async call(methodName: string, params: any[]): Promise<any> {
+  call(methodName: string, params: any[]): any {
     const method = this.metadata.methods.find(m => m.name === methodName);
     if (!method) {
       throw new Error(`Method ${methodName} not found in service ${this.metadata.serviceName}`);
     }
     
-    // Для AsyncIterable методов используем streaming
     if (method.isAsyncIterable) {
       return this.callStreaming(methodName, params);
     }
     
-    // Обычный HTTP запрос
+    return this.callRegular(methodName, params);
+  }
+
+  private async callRegular(methodName: string, params: any[]): Promise<any> {
+    const method = this.metadata.methods.find(m => m.name === methodName);
     const path = `/${this.metadata.serviceName}/${methodName}`;
-    const body = this.prepareParams(method.parameters, params);
+    const body = this.prepareParams(method!.parameters, params);
     
     this.abortController = new AbortController();
     
     const timeoutId = setTimeout(() => {
-      if (this.abortController) {
-        this.abortController.abort();
-      }
+      this.abortController?.abort();
     }, this.timeout);
     
     try {
-      const url=`${this.baseUrl}${path}`
+      const url = `${this.baseUrl}${path}`;
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -76,24 +77,24 @@ class HttpClientImpl {
             errorMessage = errorData.error;
           }
         } catch {
-          // Игнорируем ошибки парсинга
+          // ignore
         }
         
         throw new Error(errorMessage);
       }
       
-      if (method.returnType === 'void') {
+      if (method!.returnType === 'void') {
         return undefined;
       }
       
       const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
+      if (contentType?.includes('application/json')) {
         return response.json();
       } else {
         return response.text();
       }
       
-    } catch (error) {
+    } catch (error: any) {
       clearTimeout(timeoutId);
       
       if (error.name === 'AbortError') {
@@ -106,50 +107,47 @@ class HttpClientImpl {
     }
   }
 
-  private async callStreaming(methodName: string, params: any[]): Promise<AsyncIterable<any>> {
+  private callStreaming(methodName: string, params: any[]): AsyncIterable<any> {
     const method = this.metadata.methods.find(m => m.name === methodName);
-    if (!method) {
-      throw new Error(`Method ${methodName} not found in service ${this.metadata.serviceName}`);
-    }
-
     const path = `/${this.metadata.serviceName}/${methodName}/stream`;
-    const body = this.prepareParams(method.parameters, params);
+    const body = this.prepareParams(method!.parameters, params);
+    const self = this;
     
-    this.abortController = new AbortController();
-    
-    const response = await fetch(`${this.baseUrl}${path}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'text/event-stream',
-        ...this.headers
-      },
-      body: JSON.stringify(body),
-      signal: this.abortController.signal
-    });
-
-    if (!response.ok) {
-      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-      try {
-        const errorData = await response.json();
-        if (errorData.error) {
-          errorMessage = errorData.error;
-        }
-      } catch {
-        // Игнорируем ошибки парсинга
-      }
-      throw new Error(errorMessage);
-    }
-
-    if (!response.body) {
-      throw new Error('Response body is null');
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-
     return {
       async *[Symbol.asyncIterator]() {
+        self.abortController = new AbortController();
+        
+        const response = await fetch(`${self.baseUrl}${path}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'text/event-stream',
+            ...self.headers
+          },
+          body: JSON.stringify(body),
+          signal: self.abortController.signal
+        });
+
+        if (!response.ok) {
+          let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+          try {
+            const errorData = await response.json();
+            if (errorData.error) {
+              errorMessage = errorData.error;
+            }
+          } catch {
+            // ignore
+          }
+          throw new Error(errorMessage);
+        }
+
+        if (!response.body) {
+          throw new Error('Response body is null');
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
         try {
           let buffer = '';
           
@@ -164,24 +162,26 @@ class HttpClientImpl {
             
             for (const line of lines) {
               const trimmed = line.trim();
-              if (trimmed) {
-                try {
-                  if (trimmed.startsWith('data: ')) {
-                    const data = trimmed.slice(6);
-                    if (data === '[DONE]') {
-                      return;
-                    }
-                    yield JSON.parse(data);
+              if (!trimmed) continue;
+              
+              try {
+                if (trimmed.startsWith('data: ')) {
+                  const data = trimmed.slice(6);
+                  if (data === '[DONE]') {
+                    return;
                   }
-                } catch (error) {
-                  console.error('Error parsing streaming data:', error);
+                  yield JSON.parse(data);
+                } else if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+                  yield JSON.parse(trimmed);
                 }
+              } catch (error) {
+                console.error('Error parsing streaming data:', error);
               }
             }
           }
         } finally {
           reader.releaseLock();
-          this.abortController = null;
+          self.abortController = null;
         }
       }
     };
@@ -202,9 +202,7 @@ class HttpClientImpl {
   }
   
   abort() {
-    if (this.abortController) {
-      this.abortController.abort();
-    }
+    this.abortController?.abort();
   }
 }
 
@@ -213,6 +211,13 @@ function createProxy(client: HttpClientImpl, metadata: ServiceMetadata): any {
   
   metadata.methods.forEach(method => {
     proxy[method.name] = (...args: any[]) => {
+      console.log('DEBUG proxy call:', {
+        methodName: method.name,
+        args: args,
+        argsLength: args.length,
+        methodParameters: method.parameters
+      });
+      
       const requiredParamsCount = method.parameters.filter(p => !p.optional).length;
       const totalParamsCount = method.parameters.length;
       

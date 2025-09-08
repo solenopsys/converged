@@ -7,13 +7,13 @@ import YAML from 'yaml';
 import type { Workflow } from '../../../../adag/dag-types/interface';
 
 
-const truncateValues = (obj: Record<string, string>) => 
+const truncateValues = (obj: Record<string, string>) =>
     Object.fromEntries(
-      Object.entries(obj).map(([k, v]) => 
-        [k, v.length > 6 ? v.slice(0, 3) + '...' + v.slice(-3) : v]
-      )
+        Object.entries(obj).map(([k, v]) =>
+            [k, v.length > 6 ? v.slice(0, 3) + '...' + v.slice(-3) : v]
+        )
     );
-  
+
 
 const handleList: Handler = async (client: DagServiceClient) => {
     const codeSource = await client.codeSourceList();
@@ -48,44 +48,24 @@ const handleTest: Handler = async (client, paramSplitter, param) => {
     console.log(result);
 };
 
-const handleNode: Handler = async (client, paramSplitter, param) => {
-    const [codeNodeName, fileName] = param!.split(paramSplitter);
-    const data = JSON.parse(fs.readFileSync(fileName).toString());
 
-    const result = await client.createNode(codeNodeName, data);
+
+const runWorflow: Handler = async (client:DagServiceClient, paramSplitter, param) => {
+    const workflowHash = param!.split(paramSplitter)[0];
+    const eventName = param!.split(paramSplitter)[1];
+
+    const result: { contextKey: string } = await client.createContext(workflowHash, {});
     console.log(result);
+    for await (const event of client.workflowEvent(result.contextKey, eventName, true)) {
+        console.log(event);
+    } 
 };
 
-const handleProcess: Handler = async (client, paramSplitter, param) => {
-    let result;
 
-    if (param) {
-        const [workflowId, metaFileName] = param.split(paramSplitter);
-        const meta = metaFileName ? JSON.parse(fs.readFileSync(metaFileName).toString()) : undefined;
-        result = await client.startProcess(workflowId, meta);
-    } else {
-        result = await client.startProcess();
-    }
-
-    console.log(result);
-};
-
-const handleWorkflow: Handler = async (client, paramSplitter, param) => {
-    const [name, fileName] = param!.split(paramSplitter);
-    const data = JSON.parse(fs.readFileSync(fileName).toString());
-
-    const result = await client.createWorkflow(
-        name,
-        data.nodes,
-        data.links,
-        data.description
-    );
-    console.log(result);
-};
 
 const handleWebhook: Handler = async (client, paramSplitter, param) => {
     const [name, url, method, workflowId, optionsFileName] = param!.split(paramSplitter);
-    const options = optionsFileName ? JSON.parse(fs.readFileSync(optionsFileName).toString()) : undefined;
+    const options = optionsFileName ? JSON.parse(fs.readFileSync(optwoionsFileName).toString()) : undefined;
 
     const result = await client.createWebhook(name, url, method, workflowId, options);
     console.log(result);
@@ -138,7 +118,7 @@ const handleApply: Handler = async (client: DagServiceClient, paramSplitter, par
 
     if (data.type === 'workflow') {
         const fileParentPath = path.dirname(fileName);
-        const workflowData: { name: string, nodes: any, edges: any, description: string } = data;
+        const workflowData: { name: string, nodes: any, edges: any, description: string, aspects: any } = data;
 
         for (const [key, value] of Object.entries(workflowData.nodes)) {
             const filePath = path.join(fileParentPath, value);
@@ -146,22 +126,23 @@ const handleApply: Handler = async (client: DagServiceClient, paramSplitter, par
             const nodeData = YAML.parse(fs.readFileSync(filePath).toString());
             console.log(nodeData);
             const result = await client.createNode(nodeData.codeSource, nodeData);
+            console.log("node result", result);
 
-            workflowData.nodes[key] = result.hash;
+            workflowData.nodes[key] = result.key;
 
         }
 
         const workflow: Workflow = {
             nodes: workflowData.nodes,
             links: workflowData.edges,
-            description: workflowData.description
+            description: workflowData.description,
+            aspects: workflowData.aspects
         };
 
         const result = await client.createWorkflow(workflowData.name, workflow);
 
 
 
-        //   const result = await client.createWorkflow(workflowData.name, workflowData.nodes,workflowData.links,workflowData.description);
         console.log(workflowData);
         console.log(result);
     }
@@ -177,9 +158,8 @@ class DagProcessor extends BaseCommandProcessor {
             ['status', handleStatus],
             ['test', handleTest],
 
-            ['node', handleNode],
-            ['process', handleProcess],
-            ['workflow', handleWorkflow],
+
+            ['run', runWorflow],
             ['webhook', handleWebhook],
             ['set', saveParam],
             ['get', getParam]

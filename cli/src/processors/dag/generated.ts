@@ -17,6 +17,7 @@ export type Workflow = {
     nodes: { [name: string]:  HashString }; 
     links: { from: string, to: string }[]; 
     description?: string
+    aspects?: { [name: string]: any }
 };
 
 export type NodeCode = {
@@ -326,30 +327,45 @@ const metadata = {
       "isAsyncIterable": false
     },
     {
-      "name": "run",
+      "name": "createContext",
       "parameters": [
         {
-          "name": "pid",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "workflow",
+          "name": "workflowHash",
           "type": "HashString",
           "optional": false,
           "isArray": false
         },
         {
-          "name": "command",
+          "name": "initState",
+          "type": "any",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "workflowEvent",
+      "parameters": [
+        {
+          "name": "contextKey",
           "type": "string",
           "optional": false,
           "isArray": false
         },
         {
-          "name": "params",
-          "type": "any",
-          "optional": true,
+          "name": "event",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "cascade",
+          "type": "boolean",
+          "optional": false,
           "isArray": false
         }
       ],
@@ -397,27 +413,6 @@ const metadata = {
     {
       "name": "paramsList",
       "parameters": [],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "startProcess",
-      "parameters": [
-        {
-          "name": "workflowId",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "meta",
-          "type": "any",
-          "optional": true,
-          "isArray": false
-        }
-      ],
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
@@ -482,7 +477,7 @@ const metadata = {
     },
     {
       "name": "Workflow",
-      "definition": "{\n    nodes: { [name: string]:  HashString }; \n    links: { from: string, to: string }[]; \n    description?: string\n}"
+      "definition": "{\n    nodes: { [name: string]:  HashString }; \n    links: { from: string, to: string }[]; \n    description?: string\n    aspects?: { [name: string]: any }\n}"
     },
     {
       "name": "NodeCode",
@@ -554,11 +549,11 @@ export interface DagServiceClient {
   providerList(): Promise<any>;
   runLambda(name: string, params: any): Promise<any>;
   runCode(hash: HashString, params: any): Promise<any>;
-  run(pid: string, workflow: HashString, command: string, params?: any): AsyncIterable<any>;
+  createContext(workflowHash: HashString, initState?: any): Promise<any>;
+  workflowEvent(contextKey: string, event: string, cascade: boolean): AsyncIterable<any>;
   setParam(name: string, value: any): Promise<any>;
   getParam(name: string): Promise<any>;
   paramsList(): Promise<any>;
-  startProcess(workflowId?: string, meta?: any): Promise<any>;
   createWebhook(name: string, url: string, method: string, workflowId: string, options?: any): Promise<any>;
 }
 

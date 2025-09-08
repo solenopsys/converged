@@ -12,7 +12,7 @@ export default class BulkInsertNode implements INode {
        private updateOnConflict: boolean 
    ) {}
 
-   async execute(data: unknown): Promise<any> {
+   async execute(data: unknown[]): Promise<any> {
        console.log(`Bulk inserting into ${this.tableName}`);
        
        const records = Array.isArray(data) ? data : [data];
