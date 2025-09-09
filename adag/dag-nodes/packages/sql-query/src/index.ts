@@ -1,61 +1,74 @@
 import { type INode } from "dag-api";
-import { type Provider,getProvidersPool,evaluateJsonPathString } from "dag-api";
+import { type Provider, getProvidersPool, evaluateJsonPathString } from "dag-api";
+
 function normalize(v: unknown) {
-	if (typeof v === "string" && /^\d+$/.test(v)) return Number(v);
-	return v;
-  }
+  if (typeof v === "string" && /^\d+$/.test(v)) return Number(v);
+  return v;
+}
 
 export default class SQLQueryNode implements INode {
-	public scope!: string;
-   
+  public scope!: string;
 
-	constructor(
-		public name: string,
-		private query: string,
-		private provider: string,
-	) {
-	}
+  constructor(
+    public name: string,
+    private query: string,
+    private provider: string,
+  ) {}
 
+  private static readonly PARAM_RE = /:([\$.\w]+)/g;
 
-	  
-	  async execute(data: unknown): Promise<any> {
-		console.log("Executing SQL query:", this.query);
-	  
-		let sql = this.query;
-		const paramValues: any[] = [];
-	  
-		const regex = /:(\w+)/g;
-		let match;
-		let paramIndex = 1;
-	  
-		while ((match = regex.exec(sql)) !== null) {
-		  const name = match[1];
-		  const raw = await evaluateJsonPathString(data, name);
-		  const v = normalize(raw);
-		  paramValues.push(v);
-		  sql = sql.replace(`:${name}`, `$${paramIndex}`);
-		  paramIndex++;
-		}
-	  
-		console.log("Transformed SQL:", sql);
-		console.log("Parameter values (typeof):", paramValues.map(v => [v, typeof v]));
-	  
-		const realProvider: Provider = await getProvidersPool().getOrCreate(this.provider);
-	  
-		// Диагностика окружения одним запросом
-		try {
-		  const env = await (realProvider as any).invoke?.("query", {
-			sql: `select current_database() as db,
-						 current_user as usr,
-						 inet_server_port() as port,
-						 current_setting('search_path') as search_path`,
-			params: []
-		  });
-		  console.log("DB env:", env?.[0]);
-		} catch (_) {}
-	  
-		const results = await realProvider.invoke("query", { sql, params: paramValues });
-		console.log("RowCount:", Array.isArray(results) ? results.length : "(n/a)");
-		return results;
-	  }
+  private static isCast(sql: string, matchIndex: number): boolean {
+    if (matchIndex <= 0) return false;
+    return sql.charCodeAt(matchIndex - 1) === 58; // Check for '::'
+  }
+
+  private static toJsonPath(token: string): string {
+    if (token.startsWith("$")) return token;
+    return token.startsWith("$.") ? token : `$.${token}`;
+  }
+
+  async execute(data: unknown): Promise<any> {
+    const originalSql = this.query;
+
+    // First pass: collect all non-cast parameters
+    const tokens: string[] = [];
+    const matches = Array.from(originalSql.matchAll(SQLQueryNode.PARAM_RE));
+    
+    for (const match of matches) {
+      const matchIndex = match.index ?? -1;
+      if (matchIndex >= 0 && !SQLQueryNode.isCast(originalSql, matchIndex)) {
+        tokens.push(match[1]);
+      }
+    }
+
+    // Create parameter mapping
+    const indexMap = new Map<string, number>();
+    const orderedUniqueTokens: string[] = [];
+    for (const token of tokens) {
+      if (!indexMap.has(token)) {
+        indexMap.set(token, indexMap.size + 1);
+        orderedUniqueTokens.push(token);
+      }
+    }
+
+    // Evaluate parameters
+    const jsonPaths = orderedUniqueTokens.map(SQLQueryNode.toJsonPath);
+    const rawValues = await Promise.all(jsonPaths.map((jp) => evaluateJsonPathString(data, jp)));
+    const paramValues = rawValues.map(normalize);
+
+    // Replace parameters in SQL
+    const sql = originalSql.replace(
+      SQLQueryNode.PARAM_RE,
+      (match, token: string, offset: number) => {
+        if (SQLQueryNode.isCast(originalSql, offset)) {
+          return match; // Keep cast expressions unchanged
+        }
+        const paramIndex = indexMap.get(token);
+        return paramIndex ? `$${paramIndex}` : match;
+      }
+    );
+
+    const realProvider: Provider = await getProvidersPool().getOrCreate(this.provider);
+    return await realProvider.invoke("query", { sql, params: paramValues });
+  }
 }

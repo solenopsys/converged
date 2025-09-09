@@ -14,6 +14,6 @@
   "dependencies": { 
   }, 
   "scripts": {
-    "bld":"bun build src/index.ts --external dag-api --outdir dist  --target node"
+     "bld":"bun run ../../src/build-provider.ts"
   }
 }

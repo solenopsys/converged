@@ -87,7 +87,6 @@ interface QueryParams {
 		return result.rows as T[];
 	  } catch (error: any) {
 		console.error(`[${this.name}] Query failed:`, error.message);
-		this._state = ProviderState.ERROR;
 		throw new Error(`Database query failed: ${error.message}`);
 	  }
 	}

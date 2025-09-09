@@ -1,5 +1,5 @@
 import { build } from "bun";
-import { injectInterface } from "../../api/src/build/inject-interface";
+import { injectInterface } from "../../dag-api/src/build/inject-interface";
 
 async function simpleBuild(name: string) {
     await build({
@@ -57,5 +57,5 @@ export async function buildProvider(moduleName: string, currentDir?: string) {
 
 // if main 
 if (require.main === module) {
-    buildNode('default-module').catch(console.error);
+    buildProvider('default-module').catch(console.error);
 }

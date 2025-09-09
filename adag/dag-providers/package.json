@@ -16,7 +16,7 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "dag-api": "file:../api" ,
+    "dag-api": "file:../dag-api" ,
     "builders": "file:../../builders",
     "nrpc": "file:../../nrpc"
   }

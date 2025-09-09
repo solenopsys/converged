@@ -8,7 +8,7 @@ import {   AspectBase } from "./abstract"
 
 const AspectsMapping:{[key:string]: new (...args: any[]) => AspectBase  }={
     "inputs":InjectAspect,
-    "const":ConstAspect,
+    "consts":ConstAspect,
     "init":InitLambdaAspect,
     "output":CopyResultAspect,
 }

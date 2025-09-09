@@ -16,6 +16,6 @@
 		"@aws-sdk/client-ses": "^3.864.0"
 	},
 	"scripts": {
-		"bld": "bun run ../../node_modules/builders/src/build-backend.ts ./src/index.ts  ../../../../types/ses.ts ./dist/"
+		 "bld":"bun run ../../src/build-provider.ts"
 	}
 }
