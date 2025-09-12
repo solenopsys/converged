@@ -105,6 +105,11 @@ export {
     WorkflowsDetailWidget,
     ContextWidget,
     CodeVersionsWidget,
+    EditNodeAction,
+    ShowWorkflowsDetailAction,
+    ShowContextAction,
+    ShowCodeVersionsAction,
+    GetCodeVersionsAction
 }
 
 export default [

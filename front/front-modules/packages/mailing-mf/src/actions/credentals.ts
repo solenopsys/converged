@@ -82,6 +82,10 @@ sample({ clock: listCredentialsRequest, target: listCredentialsFx });
 
 export {
   CredentialsWidget,
+
+  GetCredentialsAction,
+  ShowCredentialsAction,
+  ShowCredentialDetailAction
 }
 export default [
   GetCredentialsAction,

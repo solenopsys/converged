@@ -88,7 +88,7 @@ const ShowOutgoingMailsAction: Action = {
     entity: "out_mail"
 };
 
-const SendMailFormAction: Action = {
+const ShowSendMailFormAction: Action = {
     id: "outgoing_mails.send_form",
     description: "Открыть форму отправки письма",
     invoke: () => {
@@ -107,5 +107,7 @@ const SendMailAction: Action = {
 export {
     OutgoingMailsWidget,
     SendMailFormWidget,
+
+    GetOutgoingMailsAction, ShowOutgoingMailsAction, ShowSendMailFormAction, SendMailAction
 }
-export default [GetOutgoingMailsAction, ShowOutgoingMailsAction, SendMailFormAction, SendMailAction];
+export default [GetOutgoingMailsAction, ShowOutgoingMailsAction, ShowSendMailFormAction, SendMailAction];

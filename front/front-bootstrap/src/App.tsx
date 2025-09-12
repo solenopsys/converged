@@ -1,28 +1,22 @@
 import React, { Suspense, useState, useEffect } from "react";
 import { ThemeProvider } from "converged-core";
-import { AuthProvider } from "./AuthContext";
+import { AuthProvider } from "./auth/AuthContext";
 import { createModulesServiceClient } from "./generated";
 import { MenuController, LocaleController, translateJson } from "converged-core";
 
-// Импортируем процессоры и рендереры
-import { RoutingProcessor } from "./core/RoutingProcessor";
-import { DynamicRenderer } from "./core/DynamicRenderer";
+
 import { ModuleLoader } from "./core/ModuleLoader";
 import { 
 	ModuleConfig, 
 	LoadedModule, 
-	View, 
-	RenderContext 
+	View,  
 } from "./core/types";
 
 const menuController = MenuController.getInstance();
 const localeController = LocaleController.getInstance();
 const modulesClient = createModulesServiceClient();
 
-// Инициализация процессоров
-const routingProcessor = new RoutingProcessor();
 const moduleLoader = new ModuleLoader();
-const dynamicRenderer = new DynamicRenderer(routingProcessor, moduleLoader);
 
 const App: React.FC = () => {
 	const [modules, setModules] = useState<LoadedModule[]>([]);
@@ -33,8 +27,8 @@ const App: React.FC = () => {
 	// Обработчик изменения URL
 	useEffect(() => {
 		const handleLocationChange = (): void => {
-			const newView = routingProcessor.processRoute(window.location.pathname, modules);
-			setCurrentView(newView);
+			//const newView = routingProcessor.processRoute(window.location.pathname, modules);
+		//	setCurrentView(newView);
 		};
 
 		// Слушаем изменения URL
@@ -82,7 +76,7 @@ const App: React.FC = () => {
 				setModules(validModules);
 				
 				// Инициализируем роутинг с загруженными модулями
-				routingProcessor.initialize(validModules);
+			//	routingProcessor.initialize(validModules);
 
 			} catch (err: any) {
 				console.error("Error loading modules:", err);
@@ -132,9 +126,9 @@ const App: React.FC = () => {
 
 	// Обработчик навигации
 	const navigate = (path: string, params: Record<string, any> = {}): void => {
-		routingProcessor.navigate(path, params);
-		const newView = routingProcessor.processRoute(path, modules);
-		setCurrentView(newView);
+		// routingProcessor.navigate(path, params);
+		// const newView = routingProcessor.processRoute(path, modules);
+		// setCurrentView(newView);
 	};
 
 	// Рендер ошибки
@@ -161,19 +155,19 @@ const App: React.FC = () => {
 		);
 	}
 
-	// Создаем контекст рендеринга
-	const renderContext: RenderContext = {
-		navigate,
-		routingProcessor,
-		moduleLoader,
-		dynamicRenderer
-	};
+	// // Создаем контекст рендеринга
+	// const renderContext: RenderContext = {
+	// 	navigate,
+	// 	//routingProcessor,
+	// 	moduleLoader,
+	// 	dynamicRenderer
+	// };
 
 	return (
 		<AuthProvider>
 			<ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
 				<Suspense fallback={<div className="flex items-center justify-center min-h-screen">Загрузка...</div>}>
-					{dynamicRenderer.render(currentView, renderContext)}
+					{/* {dynamicRenderer.render(currentView, renderContext)} */}
 				</Suspense>
 			</ThemeProvider>
 		</AuthProvider>

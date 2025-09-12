@@ -1,17 +1,19 @@
+import {GetChatsListAction} from './actions';
 
-export const ID = 'chats-mf';
 export const MENU = {
     "title": "menu.chats",
-    "url": "/chats",
+ 
     "iconName": "IconAi",
     "items": [
         {
             "title": "menu.text",
-            "url": "/mailing/outgoing"
+            "key": "text",
+            "action": GetChatsListAction
         },
         {
             "title": "menu.audio",
-            "url": "/mailing/incoming"
+            "key": "audio",
+            "action": GetChatsListAction
         },
     ]
 };

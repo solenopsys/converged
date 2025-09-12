@@ -6,7 +6,7 @@ import { SectionCards } from "converged-core";
 import mailingService from "../../../mailing-mf/src/service";
 import { useMicrofrontendTranslation } from "converged-core";
 import { MailStatsChart } from "../../../mailing-mf/src/components/MailStatChart";
-import { ID } from "../../../mailing-mf/src/config";
+import { ID } from "../index";
 
 export function DashboardLayout() {
   // Перенес хук внутрь компонента

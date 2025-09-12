@@ -39,6 +39,8 @@ const GetWorkflowsStatisticAction: Action = {
 sample({ clock: getWorkflowsStatRequest, target: getWorkflowsStatFx });
 export  {
     WorkflowsStatisticWidget,
+    ShowWorkflowsStatisticAction,
+    GetWorkflowsStatisticAction
 }
 export default [
   

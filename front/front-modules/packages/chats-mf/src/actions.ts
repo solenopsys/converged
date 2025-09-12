@@ -162,6 +162,14 @@ export {
     PlayerWidget,
     ChatsListWidget,
 
+    GetChatsListAction,
+    ShowChatsListAction,
+    OpenTrackAction,
+    ShowPlayerAction,
+    ViewChatAction,
+    EditChatAction,
+    DeleteChatAction
+
 };
 
 export default [

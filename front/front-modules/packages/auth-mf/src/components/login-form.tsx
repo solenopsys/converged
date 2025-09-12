@@ -7,7 +7,7 @@ import { Label } from "converged-core"
 import { toast } from "sonner"
  
 import { useMicrofrontendTranslation } from "converged-core";
-import { ID } from "../config";
+import { ID } from "../index";
  
 import {Socials} from "./Socials";
 

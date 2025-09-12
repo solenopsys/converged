@@ -127,6 +127,12 @@ export {
     IncomingMailsWidget,
     WarmMailsWidget,
     MailDetailWidget,
+
+    GetIncomingMailsAction,
+    ShowIncomingMailsAction,
+    GetWarmMailsAction,
+    ShowWarmMailsAction,
+    ShowMailDetailAction
 }
 
 export default [

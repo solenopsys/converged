@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "gen": "bun run ./node_modules/builders/src/build-frontend-base.ts ../../types/modules.ts ./src/",
-    "dev": "bun run   --watch src/server.ts",
-    "bld": "  bun  run src/build.ts",
+    "dev": "bun run   --watch src/utils/server.ts",
+    "bld": "  bun  run src/utils/build.ts",
     "json": "json-server --watch confs/db.json --port 3001"
   },
   "peerDependencies": {

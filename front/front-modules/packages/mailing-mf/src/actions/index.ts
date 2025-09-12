@@ -16,3 +16,8 @@ export const ENTITIES = [
     'in_mail',
     'credental'
 ]
+
+export * from "./out-mails";
+export * from "./statistic";
+export * from "./in-mails";
+export * from "./credentals";

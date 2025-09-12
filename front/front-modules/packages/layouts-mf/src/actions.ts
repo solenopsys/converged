@@ -38,6 +38,14 @@ export const LayoutMountAction: Action = {
   }
 }
 
+export const MenuAdd: Action = {
+  id: "menu.add",
+  description: "Добавление пунктов меню",
+  invoke: (menu: any, context: any) => {
+     
+  }
+}
+
 
 export const LayoutListAction: Action = {
   id: "layout.list",
@@ -51,7 +59,8 @@ export const LayoutListAction: Action = {
 
 export const ACTIONS= [
   LayoutMountAction,
-  LayoutListAction
+  LayoutListAction,
+  MenuAdd
 ]
 
 

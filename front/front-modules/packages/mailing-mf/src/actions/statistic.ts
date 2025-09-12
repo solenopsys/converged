@@ -91,6 +91,13 @@ export {
     DailyMailsStatisticWidget,
     IncomingMailsStatWidget,
     IncomingWarmStatWidget,
+
+    GetDailyMailsStatisticAction,
+    ShowDailyMailsStatisticAction,
+    GetIncomingMailsStatisticAction,
+    ShowIncomingMailsStatisticAction,
+    GetIncomingWarmStatisticAction,
+    ShowIncomingWarmStatisticAction
 }
 export default [
     GetDailyMailsStatisticAction,

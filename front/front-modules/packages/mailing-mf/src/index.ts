@@ -1,3 +1,5 @@
-export * from "./config";
-export * from "./actions/index"; 
+
+export const ID = 'mailing-mf';
+export * from "./menu";
+export * from "./actions"; 
 export default {} 

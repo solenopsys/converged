@@ -70,8 +70,16 @@ const LogoutAction: Action = {
 // sample({ clock: authEvent, target: authFx });
 // sample({ clock: logoutEvent, target: logoutFx });
 
-export default [
+export{
     LoginWidget,
+    SocialsWidget,
+    ShowLoginAction,
+    ShowSocialLoginAction,
+    AuthAction,
+    LogoutAction
+}
+
+export default [ 
     SocialsWidget,
     ShowLoginAction,
     ShowSocialLoginAction,
