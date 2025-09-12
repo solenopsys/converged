@@ -33,7 +33,7 @@ import {
       <Command className="rounded-lg border shadow-md">
         <CommandList>
           <CommandGroup heading={title}>
-            {items.map(item => (
+            {items?.map(item => (
               <CommandItem 
                 key={item.id} 
                 onSelect={() => onSelect(item.id)}

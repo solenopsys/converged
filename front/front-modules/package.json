@@ -13,7 +13,9 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-i18next": "15.5.3",
-    "react-router-dom": "latest"
+    "react-router-dom": "latest",
+    "effector": "^23.4.2",
+    "effector-react": "^23.3.0"
  
   },
   "devDependencies": {

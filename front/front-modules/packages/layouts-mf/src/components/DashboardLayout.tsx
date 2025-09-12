@@ -3,12 +3,12 @@ import { ChartAreaInteractive } from "converged-core";
 import { DataTable } from "converged-core";
 import { SectionCards } from "converged-core";
 //import { useGlobalTranslation } from "@/hooks/global_i18n";
-import mailingService from "../../packages/mailing-mf/src/service";
+import mailingService from "../../../mailing-mf/src/service";
 import { useMicrofrontendTranslation } from "converged-core";
-import { MailStatsChart } from "../../packages/mailing-mf/src/components/MailStatChart";
-import { ID } from "../../packages/mailing-mf/src/config";
+import { MailStatsChart } from "../../../mailing-mf/src/components/MailStatChart";
+import { ID } from "../../../mailing-mf/src/config";
 
-function Panel() {
+export function DashboardLayout() {
   // Перенес хук внутрь компонента
   const { t, translations, loading: translationsLoading } = useMicrofrontendTranslation(ID);
   const [mailingStatistic, setMailingStatistic] = useState(null);
@@ -84,6 +84,4 @@ function Panel() {
       </div>
     </div>
   );
-}
-
-export default Panel;
+} 

@@ -6,5 +6,6 @@ export const MENU = {
     "title": "menu.mailing",
     "root": "mailing",
     "iconName": "IconAi",
+    "actions":[]
 };
 

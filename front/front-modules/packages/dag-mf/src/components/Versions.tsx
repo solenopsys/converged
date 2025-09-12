@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useState, useEffect } from 'react'; 
 
 interface Version {
   version: string;
@@ -13,7 +12,7 @@ const Versions: React.FC<CompProps> = ({ versionLoader }) => {
   const [versions, setVersions] = useState<Version[]>([]);
   const [loading, setLoading] = useState(false);
   
-  const { codeName } = useParams<{ codeName: string }>();
+  const  codeName  = "bla";//useParams<{ codeName: string }>();
 
   useEffect(() => {
     if (!codeName || !versionLoader) return;

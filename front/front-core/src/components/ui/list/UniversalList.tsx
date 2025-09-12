@@ -1,7 +1,5 @@
-
 // UniversalList.tsx
 import React, { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import SimpleList from "./SimpleList";
 import { SideMenuSimple } from "../SideMenu";
@@ -10,7 +8,9 @@ interface UniversalListProps {
   title: string;
   children: React.ReactNode;
   className?: string;
-  basePath: string;
+  selectedId?: string;
+  onSelect: (id: string) => void;
+  onClose: () => void;
   dataLoader: () => Promise<{ id: string; title: string }[]>;
 }
 
@@ -18,15 +18,14 @@ const UniversalList: React.FC<UniversalListProps> = ({
   title,
   children,
   className = "",
-  basePath,
+  selectedId,
+  onSelect,
+  onClose,
   dataLoader
 }) => {
   const [items, setItems] = useState<{ id: string; title: string }[]>([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
-  const params = useParams();
   
-  const selectedId = params.codeName;
   const isOpen = Boolean(selectedId);
 
   // Загрузка данных через переданную функцию
@@ -48,13 +47,12 @@ const UniversalList: React.FC<UniversalListProps> = ({
   }, [dataLoader]);
 
   const handleSelect = (id: string) => {
-    const toUrl=`${basePath}/${id}`;
-    console.log("Navigate to ",toUrl);
-    navigate(toUrl);
+    console.log("Select item with id:", id);
+    onSelect(id);
   };
 
   const handleClose = () => {
-    navigate(basePath);
+    onClose();
   };
 
   return (

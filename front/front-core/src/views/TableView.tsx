@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { ViewProps } from "./types"; 
 
 import { ID } from '../../../front-modules/packages/mailing-mf/src/config';
 import { useMicrofrontendTranslation } from '@/hooks/global_i18n';
 
-import { UniversalDataTable } from './ui';
+import { UniversalDataTable } from '../components/ui';
 
 import {
   SidebarProvider,
@@ -22,7 +23,7 @@ const TableView = ({
   detailPath = '/mailing/incoming',
   defaultPageSize = 20,
   pageSizeOptions = [10, 20, 50, 100]
-}) => {
+}: ViewProps) => {
   const [data, setData] = useState({ items: [], totalCount: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

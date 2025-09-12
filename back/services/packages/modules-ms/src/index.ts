@@ -15,32 +15,29 @@ const staticModules:any =[
     // },
     {
         "name":"dag-mf", 
-        "path":"/dag",
         "remote": false,
-        "protected": true,
-        "layout": "SidebarLayout"
+        "protected": true
     },
     {
         "name":"chats-mf",
-        "path":"/chats",
         "remote":false,
         "protected": false,
-        "layout": "SidebarLayout"
     },
     {
         "name":"auth-mf",
-        "path":"/login",
         "remote":false,
         "protected": false,
-        "layout": "SimpleLayout"
+    },
+    {
+        "name":"layouts-mf",
+        "remote":false,
+        "protected": false,
     }
     ,
     {
         "name":"mailing-mf",
-        "path":"/mailing",
         "remote":false,
         "protected": false,
-        "layout": "SidebarLayout"
     }
 
  
@@ -56,11 +53,10 @@ class ModulesServiceImpl implements ModulesService {
 
     
     list(): Promise<{
-        name:string,
-        path:string,
+        name:string, 
         link:string,
-        protected:boolean,
-        layout:string
+        protected:boolean
+        locales:{[key:string]:string}
     }[]> {
         const modules= staticModules.map((module)=>{
             if(module.remote){
@@ -79,9 +75,7 @@ class ModulesServiceImpl implements ModulesService {
 
            
             module.locales=locales;
-            if(module.path===undefined){
-                module.path="/"+module.name;
-            }
+             
             return module;
         })
         return Promise.resolve(modules)

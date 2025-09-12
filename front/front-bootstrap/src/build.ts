@@ -1,7 +1,8 @@
 // build.ts — улучшенная версия с динамической загрузкой версий из package.json
 import { $ } from "bun";
 import { readdirSync, statSync, mkdirSync, writeFileSync } from "fs";
-import { join } from "path";
+import { join } from "path"; 
+
 
 const size = (p: string) => {
   try {
@@ -24,7 +25,7 @@ await Bun.build({
   sourcemap: "linked",
   target: "browser",
   importmap: "./import-map.json",
-  external: ["converged-core", "react","react-dom","react-router-dom"],
+  external: ["converged-core", "react","react-dom","react-router-dom","effector","effector-react"],
   jsx: "automatic",
   tsconfig: "./tsconfig.json"
 });

@@ -13,7 +13,8 @@ const metadata = {
       "parameters": [],
       "returnType": "any",
       "isAsync": true,
-      "returnTypeIsArray": false
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     },
     {
       "name": "add",
@@ -27,7 +28,8 @@ const metadata = {
       ],
       "returnType": "any",
       "isAsync": true,
-      "returnTypeIsArray": false
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     },
     {
       "name": "remove",
@@ -41,7 +43,8 @@ const metadata = {
       ],
       "returnType": "any",
       "isAsync": true,
-      "returnTypeIsArray": false
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     }
   ],
   "types": []

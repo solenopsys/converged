@@ -1,20 +1,21 @@
 import { Suspense } from "react";
 import { Outlet } from "react-router-dom";
-import { AppSidebar } from "@/components/app-sidebar";
-import { SiteHeader } from "@/components/site-header";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "converged-core";
+import { SiteHeader } from "converged-core";
+import { SidebarInset, SidebarProvider } from "converged-core";
 
-export const SidebarLayout = () => {
+export const SidebarLayout = ({ children }: { children: React.ReactNode }) => {
 	return (
 		<Suspense fallback={<div>Loading...</div>}>
 			<SidebarProvider>
 				<div className="flex min-h-screen w-full">
-					<AppSidebar variant="inset" />
+					{/* <AppSidebar variant="inset" /> */}
 					<SidebarInset className="flex-1 w-full">
-						<SiteHeader />
+						{/* <SiteHeader /> */}
+						ok
 						<main className="flex-1 w-full px-4 lg:px-6">
 							<div className="w-full py-4 md:py-6">
-								<Outlet />
+								{children}
 							</div>
 						</main>
 					</SidebarInset>

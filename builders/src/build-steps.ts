@@ -125,11 +125,10 @@ export const generateFrontendWrapper = (outputFile: string): BuildStep => async 
     const externalsStrings = JSON.stringify(importMapping, null, 2);
     const escapedCss = css.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
 
-    const wrapperFile = `
-    import Component from "../src/index";
-    import {MENU, ID} from "../src/index";
+    const wrapperFile = ` 
+    import {MENU, ID, ACTIONS} from "../src/index";
     export default {
-        component: Component,
+        actions: ACTIONS,
         id: ID,
         menu: MENU,
         externals: ${externalsStrings},

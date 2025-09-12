@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "gen": "bun run ./node_modules/builders/src/build-frontend-base.ts ../../types/modules.ts ./src/",
-    "dev": "bun run src/server.ts",
-    "bld": "NODE_ENV=production  bun run src/build.ts",
+    "dev": "bun run   --watch src/server.ts",
+    "bld": "  bun  run src/build.ts",
     "json": "json-server --watch confs/db.json --port 3001"
   },
   "peerDependencies": {
@@ -15,15 +15,16 @@
     "react-router-dom": "^7.7.1",
     "tw-animate-css": "^1.3.6",
     "i18next": "^25.3.2",
-    "i18next-http-backend": "^3.0.2"
+    "i18next-http-backend": "^3.0.2",
+    "effector": "^23.4.2",
+    "effector-react": "^23.3.0"
   },
   "dependencies": {
     "@elysiajs/static": "^1.3.0",
     "biome": "^0.3.3",
     "builders": "file:../../builders",
     "converged-core": "file:../front-core",
-    "effector": "^23.4.2",
-    "effector-react": "^23.3.0",
+
     "elysia": "^1.3.8",
     "install": "^0.13.0",
     "nrpc": "file:../../nrpc",

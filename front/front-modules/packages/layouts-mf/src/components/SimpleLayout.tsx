@@ -1,10 +1,10 @@
 import { Outlet } from "react-router-dom";
 
-export const SimpleLayout = () => {
+export const SimpleLayout = ({ children }: { children: React.ReactNode }) => {
 	return (
 		<div className="min-h-screen w-full bg-background">
 			<main className="w-full">
-				<Outlet />
+				{children}
 			</main>
 		</div>
 	);

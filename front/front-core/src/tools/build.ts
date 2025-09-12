@@ -85,6 +85,15 @@ const bundleGroups = [
     ],
     deps: [] // без React deps
   },
+  {
+    name: "effector",
+    mode: "standalone",
+    packages: [
+      "effector",
+      "effector-react",
+    ],
+    deps: [] // effector не требует предустановленных зависимостей
+  },
 ];
 
 // Список всех пакетов (версии будут загружены из package.json)
@@ -135,6 +144,10 @@ const packageList = [
   "vaul",   
   "dagre",
   "i18next-http-backend" ,
+
+  // effector
+  "effector",
+  "effector-react",
  //"@tabler/icons-react"
 ];
 
@@ -157,6 +170,8 @@ const noBundlePackages = [
   "react/jsx-dev-runtime",
   "react-router-dom", // routing тоже лучше без bundle
   "react-router-dom/client",
+  "effector",
+  "effector-react",
 ];
 
 // Пакеты, которые должны использовать bundle для оптимизации

@@ -1,3 +1,3 @@
  export * from "./config";
-export * from "./capabilities";
+export * from "./actions";
 export default {} 

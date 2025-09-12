@@ -1,3 +1,5 @@
 export * from "./config";
-export * from "./capabilities";
+export * from "./actions";
+import ACTIONS from "./actions";
+export {ACTIONS};
 export default {} 

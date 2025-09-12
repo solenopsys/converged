@@ -27,7 +27,7 @@ const steps = [
     generateFrontendWrapper("./dist/wrapper.ts"),
     buildFrontend({
         entry: "./dist/wrapper.ts", 
-        external: ["converged-core", "react", "react-dom", "react-router-dom", "sonner", "recharts"]
+        external: ["converged-core", "react", "react-dom", "react-router-dom", "sonner", "recharts","effector","effector-react"]
     })
 ];
 
