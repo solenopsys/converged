@@ -1,7 +1,6 @@
 "use client"
 
-import { ChevronRight, type LucideIcon } from "lucide-react"
-import { Link } from "react-router-dom"
+import { ChevronRight } from "lucide-react"
 
 import {
   Collapsible,
@@ -19,24 +18,23 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
+import { Action } from "../types_actions";
+import { MenuItem } from "../controllers/menu-controller";
 
 export function NavMain({
   items,
+  onSelect,
 }: {
-  items: {
-    title: string
-    url: string
-    icon: React.ReactNode  // Изменил тип с LucideIcon на ReactNode для поддержки JSX элементов
-    isActive?: boolean
-    items?: {
-      title: string
-      url: string
-    }[]
-  }[]
+  items: MenuItem[]
+  onSelect?: (actionId:string) => void
 }) {
 
  console.log("NavMain inside", items);
 
+  const handleItemClick = (action:Action<any, any>) => {
+    console.log("handleItemClick", action);
+    onSelect?.(action.id)
+  }
 
   return (
     <SidebarGroup>
@@ -44,18 +42,18 @@ export function NavMain({
         {items?.map((item) => (
           <Collapsible key={item.title} asChild defaultOpen={item.isActive}>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip={item.title}>
-               
-
-                <Link to={item.url}>
+              <SidebarMenuButton 
+                tooltip={item.title}
+                onClick={() => handleItemClick(item.action)}
+                className="cursor-pointer hover:bg-accent hover:text-accent-foreground"
+              >
                 {item.icon} 
-                  <span>{item.title}</span>
-                </Link>
+                <span>{item.title}</span>
               </SidebarMenuButton>
               {item.items?.length ? (
                 <>
                   <CollapsibleTrigger asChild>
-                    <SidebarMenuAction className="data-[state=open]:rotate-90">
+                    <SidebarMenuAction className="data-[state=open]:rotate-90 cursor-pointer">
                       <ChevronRight />
                       <span className="sr-only">Toggle</span>
                     </SidebarMenuAction>
@@ -64,10 +62,11 @@ export function NavMain({
                     <SidebarMenuSub>
                       {item.items?.map((subItem) => (
                         <SidebarMenuSubItem key={subItem.title}>
-                          <SidebarMenuSubButton asChild>
-                            <Link to={subItem.url}>
-                              <span>{subItem.title}</span>
-                            </Link>
+                          <SidebarMenuSubButton 
+                            onClick={() => handleItemClick(subItem.action)}
+                            className="cursor-pointer hover:bg-accent hover:text-accent-foreground"
+                          >
+                            <span>{subItem.title}</span>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       ))}

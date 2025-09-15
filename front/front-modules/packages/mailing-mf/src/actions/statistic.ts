@@ -1,6 +1,6 @@
 import { MailStatsChart } from "src/components/MailStatChart";
 import mailingService from "../service";
-import { StatCard, Action, Widget  } from "converged-core";
+import { StatCard, Action, Widget,present  } from "converged-core";
 import { createEffect, createEvent } from "effector";
 
 // Events and Effects

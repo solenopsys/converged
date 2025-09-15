@@ -1,4 +1,4 @@
-import { StatCard, Widget, Action,  } from "converged-core";
+import { StatCard, Widget, Action, present } from "converged-core";
 import { createEffect, createEvent,sample } from "effector";
 import dagClient from "../service";
 

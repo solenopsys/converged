@@ -1,87 +1,38 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { ChartAreaInteractive } from "converged-core";
-import { DataTable } from "converged-core";
-import { SectionCards } from "converged-core";
-//import { useGlobalTranslation } from "@/hooks/global_i18n";
-import mailingService from "../../../mailing-mf/src/service";
-import { useMicrofrontendTranslation } from "converged-core";
-import { MailStatsChart } from "../../../mailing-mf/src/components/MailStatChart";
-import { ID } from "../index";
+import { ReactNode } from "react";
+import { Slot } from "converged-core";
 
-export function DashboardLayout() {
-  // Перенес хук внутрь компонента
-  const { t, translations, loading: translationsLoading } = useMicrofrontendTranslation(ID);
-  const [mailingStatistic, setMailingStatistic] = useState(null);
-  const [dailyStatistic, setDailyStatistic] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  
-  //const { i18n } = useGlobalTranslation();
-
-  useEffect(() => {
-    const fetchStatistic = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const statistic = await mailingService.getStatistic();
-        setMailingStatistic(statistic);
-
-        const dailyStatistic = await mailingService.getDailyStatistic();
-        setDailyStatistic(dailyStatistic);
-      } catch (err) {
-        setError(err.message || 'Ошибка загрузки данных');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStatistic();
-  }, []); // Убрал mailingService из зависимостей
-
-  // Используем useMemo для создания cardsData
-  const cardsData = useMemo(() => {
-    if (!mailingStatistic || !translations?.cards) return [];
-
-    // Используем translations напрямую для получения полных объектов
-    const mails = {
-      ...translations.cards.mails,
-      value: mailingStatistic.mailCount
-    };
-
-    const warms = {
-      ...translations.cards.warms, 
-      value: mailingStatistic.warmedMailCount
-    };
-
-    return [mails, warms];
-  }, [mailingStatistic, translations]);
-
-  // Показываем загрузку
-  if (loading) {
-    return <div>Загрузка...</div>;
-  }
-
-  // Показываем ошибку
-  if (error) {
-    return <div>Ошибка: {error}</div>;
-  }
-
-  // Показываем данные только когда они загружены
-  if (!mailingStatistic) {
-    return <div>Нет данных</div>;
-  }
-
-  // const tableData = i18n.getResource(i18n.language, 'table_data') || [];
-
+export const DashboardLayout = ({ 
+  children,
+  basePath = "dashboard",
+  groups = ["acquisition", "retention"] 
+}: { 
+  children?: ReactNode;
+  basePath?: string;
+  groups?: string[];
+}) => {
   return (
-    <div className="flex flex-1 flex-col">
-      <div className="@container/main flex flex-1 flex-col gap-2">
-        <div className="flex flex-col gap-4 md:gap-6">
-          <SectionCards cardsData={cardsData} />
-
-          <MailStatsChart data={dailyStatistic} />
-        </div>
+    <div className="flex min-h-0 flex-1 flex-col">
+      {/* Закрепленная область */}
+      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur border-b px-4 py-3">
+        <Slot id={`${basePath}:pinned`} />
       </div>
+      
+      {/* Динамические группы */}
+      {groups.map(group => (
+        <section key={group} className="px-4 py-3">
+          <h3 className="text-sm font-medium text-muted-foreground mb-2 uppercase">
+            {group}
+          </h3>
+          <Slot id={`${basePath}:group:${group}`} />
+        </section>
+      ))}
+      
+      {/* Основная область */}
+      <div className="px-4 py-3">
+        <Slot id={`${basePath}:main`} />
+      </div>
+      
+      {children}
     </div>
   );
-} 
+};

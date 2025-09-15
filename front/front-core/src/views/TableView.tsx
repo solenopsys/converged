@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { ViewProps } from "./types"; 
-
-import { ID } from '../../../front-modules/packages/mailing-mf/src/config';
+ 
 import { useMicrofrontendTranslation } from '@/hooks/global_i18n';
 
 import { UniversalDataTable } from '../components/ui';
@@ -17,13 +15,16 @@ const TableView = ({
   columns,
   title,
   dataFunction,
+  onRowClick,
+  onSidebarStateChange,
   SidebarComponent = null,
   sidebarProps = {},
-  basePath = '/incoming',
-  detailPath = '/mailing/incoming',
+  isSidebarOpen = false,
   defaultPageSize = 20,
   pageSizeOptions = [10, 20, 50, 100]
 }: ViewProps) => {
+  console.log("TABLE VIEW init")
+
   const [data, setData] = useState({ items: [], totalCount: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -33,17 +34,10 @@ const TableView = ({
   const [pageSize, setPageSize] = useState(defaultPageSize);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  // Проверяем, открыта ли боковая панель (есть ли дочерний маршрут)
-  const isSidebarOpen = location.pathname !== basePath;
-
-  const { t, translations, loading: translationsLoading } = useMicrofrontendTranslation(ID);
-
   // Функция загрузки данных
   const fetchData = async (page = currentPage, size = pageSize, sort = sortConfig) => {
     try {
+      console.log("TABLE VIEW start load data")
       setLoading(true);
       setError(null);
               
@@ -80,15 +74,19 @@ const TableView = ({
 
   // Загружаем данные при изменении параметров
   useEffect(() => {
+    console.log("TABLE VIEW useEffect",dataFunction)
     if (dataFunction) {
+      console.log("TABLE VIEW fetchData")
       fetchData(currentPage, pageSize, sortConfig);
     }
   }, [dataFunction, currentPage, pageSize, sortConfig]);
 
-  // Функция для открытия детальной информации
+  // Функция для обработки клика по строке
   const handleRowClick = (row) => {
-    console.log(row);
-    navigate(`${detailPath}/${row.id}`);
+    console.log('Row clicked:', row);
+    if (onRowClick) {
+      onRowClick(row);
+    }
   };
 
   // Обработчик изменения страницы
@@ -108,6 +106,13 @@ const TableView = ({
     setCurrentPage(1); // Сбрасываем на первую страницу при сортировке
   };
 
+  // Обработчик изменения состояния сайдбара
+  const handleSidebarToggle = () => {
+    if (onSidebarStateChange) {
+      onSidebarStateChange(!isSidebarOpen);
+    }
+  };
+
   // Провайдер данных для таблицы
   const dataProvider = useMemo(() => {
     return () => {
@@ -124,7 +129,10 @@ const TableView = ({
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
           <h1 className="text-lg font-semibold">{title}</h1>
           {isSidebarOpen && SidebarComponent && (
-            <SidebarTrigger className="-mr-1 ml-auto rotate-180" />
+            <SidebarTrigger 
+              className="-mr-1 ml-auto rotate-180"
+              onClick={handleSidebarToggle}
+            />
           )}
         </header>
                 

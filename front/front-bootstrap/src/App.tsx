@@ -3,13 +3,21 @@ import { ThemeProvider } from "converged-core";
 import { AuthProvider } from "./auth/AuthContext";
 import { createModulesServiceClient } from "./generated";
 import { MenuController, LocaleController, translateJson } from "converged-core";
+import { registry as actions } from "converged-core";
+import { createEvent } from "effector";
+import { SlotProvider, useSlotMount } from "converged-core";
+
+export const $moduleLoadEvent = createEvent<string>();
+$moduleLoadEvent.watch((value) => {
+	console.log("store value:", value);
+});
 
 
 import { ModuleLoader } from "./core/ModuleLoader";
-import { 
-	ModuleConfig, 
-	LoadedModule, 
-	View,  
+import {
+	ModuleConfig,
+	LoadedModule,
+	View,
 } from "./core/types";
 
 const menuController = MenuController.getInstance();
@@ -17,6 +25,7 @@ const localeController = LocaleController.getInstance();
 const modulesClient = createModulesServiceClient();
 
 const moduleLoader = new ModuleLoader();
+
 
 const App: React.FC = () => {
 	const [modules, setModules] = useState<LoadedModule[]>([]);
@@ -28,12 +37,12 @@ const App: React.FC = () => {
 	useEffect(() => {
 		const handleLocationChange = (): void => {
 			//const newView = routingProcessor.processRoute(window.location.pathname, modules);
-		//	setCurrentView(newView);
+			//	setCurrentView(newView);
 		};
 
 		// Слушаем изменения URL
 		window.addEventListener('popstate', handleLocationChange);
-		
+
 		// Обрабатываем текущий URL
 		handleLocationChange();
 
@@ -42,19 +51,21 @@ const App: React.FC = () => {
 		};
 	}, [modules]);
 
+
+
 	// Загрузка модулей
 	useEffect(() => {
 		const loadModules = async (): Promise<void> => {
 			try {
 				const data: ModuleConfig[] = await modulesClient.list();
 				console.log("Loaded modules:", data);
-				
+
 				// Загружаем все модули
 				const loadedModules = await Promise.all(
 					data.map(async (moduleConfig: ModuleConfig): Promise<LoadedModule | null> => {
 						try {
 							const loadedModule = await moduleLoader.loadModule(moduleConfig);
-							
+
 							// Устанавливаем локали
 							if (moduleConfig.locales) {
 								localeController.setLocales(moduleConfig.name, moduleConfig.locales);
@@ -62,6 +73,11 @@ const App: React.FC = () => {
 
 							// Загружаем переводы и добавляем в меню
 							await loadModuleTranslations(loadedModule);
+							loadedModule.actions.forEach(action => {
+								actions.register(action);
+							});
+
+							$moduleLoadEvent(loadedModule.id);
 
 							return loadedModule;
 						} catch (error: any) {
@@ -71,12 +87,28 @@ const App: React.FC = () => {
 					})
 				);
 
+				const map = actions.run("layout.mapping", {});
+				console.log("Layout mapping:", map);
+
+				const SW = map["sidebar"];
+				console.log("Simple widget:", SW);
+
+				actions.run("layout.mount", { widget: SW, ctx: {} });
+				actions.run("left.menu.mount", {  });
+				actions.run("dag.show_code_source_list", {});
+				//actions.run("incoming_mails.show", {});
+
+		 
+
+
+				//	mount(SW, "global:toast")
+
 				// Фильтруем успешно загруженные модули
 				const validModules = loadedModules.filter((module): module is LoadedModule => module !== null);
 				setModules(validModules);
-				
+
 				// Инициализируем роутинг с загруженными модулями
-			//	routingProcessor.initialize(validModules);
+				//	routingProcessor.initialize(validModules);
 
 			} catch (err: any) {
 				console.error("Error loading modules:", err);
@@ -114,7 +146,7 @@ const App: React.FC = () => {
 						}
 						return typeof value === 'string' ? value : key;
 					};
-					
+
 					const translatedMenu = translateJson(module.menu, t);
 					menuController.addMenu(module.id, translatedMenu);
 				}
@@ -166,9 +198,11 @@ const App: React.FC = () => {
 	return (
 		<AuthProvider>
 			<ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-				<Suspense fallback={<div className="flex items-center justify-center min-h-screen">Загрузка...</div>}>
-					{/* {dynamicRenderer.render(currentView, renderContext)} */}
-				</Suspense>
+				<SlotProvider>
+					<Suspense fallback={<div className="flex items-center justify-center min-h-screen">Загрузка...</div>}>
+						{/* {dynamicRenderer.render(currentView, renderContext)} */}
+					</Suspense>
+				</SlotProvider>
 			</ThemeProvider>
 		</AuthProvider>
 	);

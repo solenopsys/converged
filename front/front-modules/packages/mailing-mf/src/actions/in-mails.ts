@@ -1,23 +1,78 @@
 import { TableView } from "converged-core";
 import MailDetail from "../components/MailDetail";
 import mailingService from "../service";
-import { COLUMN_TYPES, Widget, Action,   } from 'converged-core';
+import { COLUMN_TYPES, Widget, Action, present  } from 'converged-core';
 import { createEffect, createEvent } from "effector";
 
-// Events and Effects
+// Интерфейсы
+export type MailingStatistic = {
+    warmedMailCount: number;
+    mailCount: number;
+    date: string;
+}
+
+export interface PaginationParams {
+    offset: number;
+    limit: number;
+}
+
+export interface PaginatedResult<T> {
+    items: T[];
+    totalCount?: number;
+}
+
+export interface Mail {
+    id: string;
+    subject: string;
+    sender: string;
+    recipient: string;
+    date: string;
+}
+
+export interface OutMail {
+    id: string;
+    subject: string;
+    from: string;
+    to: string;
+    date: string;
+}
+
+export interface Credential {
+    id: string;
+    username: string;
+    email: string;
+    password: string;
+    group_name: string;
+    fio: string;
+}
+
+export interface MailingService {
+    getStatistic(): Promise<MailingStatistic>
+    getDailyStatistic(): Promise<MailingStatistic[]>
+    listInMails(params: PaginationParams): Promise<PaginatedResult<Mail>>
+    listWarmMails(params: PaginationParams): Promise<PaginatedResult<Mail>>
+    listOutMails(params: PaginationParams): Promise<PaginatedResult<OutMail>>
+    listCredentials(params: PaginationParams): Promise<PaginatedResult<Credential>>
+    getMail(id: string): Promise<object>
+}
+
+// Effects
 export const listInMailsFx = createEffect<
-    { page?: number; after?: string },
-    { ids: string[]; cursor?: string; itemsById: Record<string, any> }
+    PaginationParams,
+    PaginatedResult<Mail>
 >(mailingService.listInMails);
 
 export const listWarmMailsFx = createEffect<
-    { page?: number; after?: string },
-    { ids: string[]; cursor?: string; itemsById: Record<string, any> }
+    PaginationParams,
+    PaginatedResult<Mail>
 >(mailingService.listWarmMails);
 
+export const getMailFx = createEffect<
+    string,
+    object
+>(mailingService.getMail);
+
 export const openMailDetail = createEvent<{ mailid: string }>();
-export const listIncomingRequest = createEvent<{ page?: number; after?: string }>();
-export const listWarmRequest = createEvent<{ page?: number; after?: string }>();
 
 // Table columns configuration
 const incomingColumns = [
@@ -43,38 +98,74 @@ const incomingColumns = [
     }
 ];
 
+// Wrapper функции для использования в TableView
+const inMailDataFunction = async (params: PaginationParams) => {
+    return await mailingService.listInMails(params);
+};
+
+const warmMailDataFunction = async (params: PaginationParams) => {
+    return await mailingService.listWarmMails(params);
+};
+
 // Widgets
 const IncomingMailsWidget: Widget<typeof TableView> = {
     view: TableView,
     placement: (ctx) => "center",
-    config: { columns: incomingColumns },
-    mount: ({ page, after }) => listIncomingRequest({ page, after }),
+    config: {
+        columns: incomingColumns,
+        title: "Входящие письма",
+        dataFunction: inMailDataFunction,
+        basePath: "/incoming",
+        detailPath: "/mailing/incoming",
+        defaultPageSize: 20,
+        pageSizeOptions: [10, 20, 50, 100]
+    },
+    mount: () => {
+         
+    },
     commands: {
-        rowClick: ({ id }) => openMailDetail({ mailid: id }),
-        loadPage: ({ page, after }) => listIncomingRequest({ page, after })
+        refresh: () => {
+            // TableView будет обновлять данные автоматически при изменении параметров
+        }
     }
 };
 
 const WarmMailsWidget: Widget<typeof TableView> = {
     view: TableView,
     placement: (ctx) => "center",
-    config: { columns: incomingColumns },
-    mount: ({ page, after }) => listWarmRequest({ page, after }),
+    config: {
+        columns: incomingColumns,
+        title: "Прогревочные письма",
+        dataFunction: warmMailDataFunction,
+        basePath: "/warm",
+        detailPath: "/mailing/warm",
+        defaultPageSize: 20,
+        pageSizeOptions: [10, 20, 50, 100]
+    },
+    mount: () => {
+        // TableView сам управляет загрузкой данных через dataFunction
+    },
     commands: {
-        rowClick: ({ id }) => openMailDetail({ mailid: id }),
-        loadPage: ({ page, after }) => listWarmRequest({ page, after })
+        refresh: () => {
+            // TableView будет обновлять данные автоматически при изменении параметров
+        }
     }
 };
 
 const MailDetailWidget: Widget<typeof MailDetail> = {
     view: MailDetail,
     placement: (ctx) => "right",
-    mount: () => {
-        // Initialization logic if needed
+    mount: ({ mailid }) => {
+        if (mailid) {
+            getMailFx(mailid);
+        }
     },
     commands: {
         response: () => {
             // Handle response action
+        },
+        close: () => {
+            // Handle close action
         }
     }
 };
@@ -83,28 +174,32 @@ const MailDetailWidget: Widget<typeof MailDetail> = {
 const GetIncomingMailsAction: Action = {
     id: "incoming_mails.get",
     description: "Получить список входящих писем",
-    invoke: ({ page, after }) => listIncomingRequest({ page, after })
+    invoke: async ({ offset = 0, limit = 20 }) => {
+        return await mailingService.listInMails({ offset, limit });
+    }
 };
 
 const ShowIncomingMailsAction: Action = {
     id: "incoming_mails.show",
     description: "Просмотреть список входящих писем",
     invoke: () => {
-        present(IncomingMailsWidget);
+        present(IncomingMailsWidget,IncomingMailsWidget.placement({}));
     }
 };
 
 const GetWarmMailsAction: Action = {
     id: "warm_mails.get",
     description: "Получить список прогревочных писем",
-    invoke: ({ page, after }) => listWarmRequest({ page, after })
+    invoke: async ({ offset = 0, limit = 20 }) => {
+        return await mailingService.listWarmMails({ offset, limit });
+    }
 };
 
 const ShowWarmMailsAction: Action = {
     id: "warm_mails.show",
     description: "Просмотреть список прогревочных писем",
     invoke: () => {
-        present(WarmMailsWidget);
+        present(WarmMailsWidget,WarmMailsWidget.placement({}));
     }
 };
 
@@ -113,15 +208,9 @@ const ShowMailDetailAction: Action = {
     description: "Просмотр письма",
     invoke: ({ mailid }) => {
         openMailDetail({ mailid });
-        present(MailDetailWidget);
+        present(MailDetailWidget, MailDetailWidget.placement({}));
     }
 };
-
-// Sample connections
-import { sample } from "effector";
-
-sample({ clock: listIncomingRequest, target: listInMailsFx });
-sample({ clock: listWarmRequest, target: listWarmMailsFx });
 
 export {
     IncomingMailsWidget,
@@ -136,7 +225,6 @@ export {
 }
 
 export default [
-
     GetIncomingMailsAction,
     ShowIncomingMailsAction,
     GetWarmMailsAction,

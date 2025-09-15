@@ -1,13 +1,15 @@
 import { TableView } from "converged-core";
 import mailingService from "../service";
-import { COLUMN_TYPES, Widget, Action } from 'converged-core';
+import { COLUMN_TYPES, Widget, Action,present } from 'converged-core';
 import { createEffect, createEvent,sample } from "effector";
+import { PaginationParams } from "converged-core";
 
 // Events and Effects
-export const listCredentialsFx = createEffect<
-  { page?: number; after?: string },
-  { ids: string[]; cursor?: string; itemsById: Record<string, any> }
->(mailingService.getCredentialsSmtp);
+ 
+
+const listCredentals = async (params: PaginationParams) => {
+    return await mailingService.listCredentials(params);
+};
 
 export const openCredentialDetail = createEvent<{ credentialId: string }>();
 export const listCredentialsRequest = createEvent<{ page?: number; after?: string }>();
@@ -45,8 +47,15 @@ const credentialsColumns = [
 const CredentialsWidget: Widget<typeof TableView> = {
   view: TableView,
   placement: (ctx) => "center",
-  config: { columns: credentialsColumns },
-  mount: ({ page, after }) => listCredentialsRequest({ page, after }),
+  config: { columns: credentialsColumns,
+    title: "Пользователи",
+    dataFunction: listCredentals,
+    basePath: "/incoming",
+    detailPath: "/mailing/incoming",
+    defaultPageSize: 20,
+    pageSizeOptions: [10, 20, 50, 100]
+   },
+  mount: ()=>{},
   commands: {
     rowClick: ({ id }) => openCredentialDetail({ credentialId: id }),
     loadPage: ({ page, after }) => listCredentialsRequest({ page, after })
@@ -64,7 +73,7 @@ const ShowCredentialsAction: Action = {
   id: "credentials.show",
   description: "Просмотреть список логинов и паролей",
   invoke: () => {
-    present(CredentialsWidget);
+    present(CredentialsWidget,CredentialsWidget.placement({}));
   }
 };
 
@@ -77,9 +86,7 @@ const ShowCredentialDetailAction: Action = {
   }
 };
 
-// Sample connections
-sample({ clock: listCredentialsRequest, target: listCredentialsFx });
-
+ 
 export {
   CredentialsWidget,
 

@@ -1,8 +1,10 @@
 
+import { type Action } from "../types_actions";
+
 export interface MenuItem {
-    id?: string;
+    key?: string;
     title?: string;
-    path?: string;
+    action?: Action<any, any>;
     icon?: string;
     [key: string]: any;
   }
@@ -34,6 +36,7 @@ export interface MenuItem {
     }
     
     addMenu(microfrontendId: string, menu: MenuItem[]): void {
+      console.log("addMenu", microfrontendId, menu);
  
       // Убираем старое меню этого микрофронтенда
       this.menus = this.menus.filter(m => m.id !== microfrontendId);

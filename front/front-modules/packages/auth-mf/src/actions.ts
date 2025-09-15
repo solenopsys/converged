@@ -1,6 +1,6 @@
 import Login from "./components/Login";
 import { Socials } from "./components/Socials";
-import { Widget, Action,  } from 'converged-core';
+import { Widget, Action,present  } from 'converged-core';
 import {createEvent, createEffect} from "effector";
 
 // Events and Effects

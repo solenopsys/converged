@@ -6,4 +6,5 @@ export * from './controllers';
 export * from './hooks';
 export * from './views';
 export * from './types_actions';
-export const present=()=>{}
+export * from './slots';
+

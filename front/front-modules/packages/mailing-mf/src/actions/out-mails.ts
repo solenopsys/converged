@@ -1,16 +1,48 @@
 import MailForm from "src/components/MailForm";
 import { TableView } from "converged-core";
 import mailingService from "../service";
-import { COLUMN_TYPES, Widget, Action } from 'converged-core';
+import { COLUMN_TYPES, Widget, Action, present } from 'converged-core';
+import { createEvent, createEffect } from "effector";
 
-import { createEvent, createEffect, createStore, sample } from "effector";
+// Интерфейсы (используем те же что и в inmails.ts)
+export interface PaginationParams {
+    offset: number;
+    limit: number;
+}
 
- 
+export interface PaginatedResult<T> {
+    items: T[];
+    totalCount?: number;
+}
 
+export interface OutMail {
+    id: string;
+    subject: string;
+    from: string;
+    to: string;
+    date: string;
+}
+
+// Effects
+export const listOutMailsFx = createEffect<
+    PaginationParams,
+    PaginatedResult<OutMail>
+>(mailingService.listOutMails);
+
+export const sendMailFx = createEffect<
+    any,
+    void
+>(mailingService.sendMail);
+
+// Events
+export const openMailDetail = createEvent<{ mailid: string }>();
+export const sendMailEvent = createEvent<{ mail: any }>();
+
+// Table columns configuration
 const outgoingColumns = [
     {
         id: 'subject',
-        title: 'Тема', //todo в транслитерацию
+        title: 'Тема',
         type: COLUMN_TYPES.TEXT
     },
     {
@@ -30,69 +62,72 @@ const outgoingColumns = [
     }
 ];
 
-export const listOutMailsFx = createEffect<
-    { page?: number; after?: string },
-    { ids: string[]; cursor?: string; itemsById: Record<string, Mail> }
->(mailingService.listOutMails);
+// Wrapper функция для использования в TableView
+const outMailDataFunction = async (params: PaginationParams) => {
+    return await mailingService.listOutMails(params);
+};
 
-export interface Entity { }
-
-export interface Mail extends Entity {
-    id: string;
-    subject: string;
-    from: string;
-    date: string; // ISO
-    // ...
-}
-
-export const openMailDetail = createEvent<{ id: string }>();
-export const listRequest = createEvent<{ page?: number; after?: string }>();
-export const sendMailEvent = createEvent<{ mail: any }>();
-
-sample({ clock: listRequest, target: listOutMailsFx });
-
+// Widgets
 const OutgoingMailsWidget: Widget<typeof TableView> = {
     view: TableView,
     placement: (ctx) => "center",
-    config: { columns: outgoingColumns },
-    mount: ({ page, after }) => listRequest({ page, after }),
+    config: {
+        columns: outgoingColumns,
+        title: "Исходящие письма",
+        dataFunction: outMailDataFunction,
+        basePath: "/outgoing",
+        detailPath: "/mailing/outgoing",
+        defaultPageSize: 20,
+        pageSizeOptions: [10, 20, 50, 100]
+    },
+    mount: () => {
+        // TableView сам управляет загрузкой данных через dataFunction
+    },
     commands: {
-        // Типы автоматически подтягиваются из TableView.CommandsConfig
-        rowClick: ({ id }) => openMailDetail({ id }),
-        loadPage: ({ page, after }) => listRequest({ page, after })
+        refresh: () => {
+            // TableView будет обновлять данные автоматически при изменении параметров
+        }
     }
 };
 
 const SendMailFormWidget: Widget<typeof MailForm> = {
     view: MailForm,
-    placement: (ctx) => "right",
+    placement: (ctx) =>"center", //todo "right",
     mount: () => {
-        present(MailForm);
+        // Инициализация формы
     },
-    commands: { sendMail: sendMailEvent }
+    commands: {
+        sendMail: (mail) => {
+            sendMailFx(mail);
+        },
+        close: () => {
+            // Handle close action
+        }
+    }
 };
 
+// Actions
 const GetOutgoingMailsAction: Action = {
     id: "outgoing_mails.get",
     description: "Получить список исходящих писем",
-    invoke: ({ page, after }) => listRequest({ page, after }),
-    entity:  "out_mail"
+    invoke: async ({ offset = 0, limit = 20 }) => {
+        return await mailingService.listOutMails({ offset, limit });
+    }
 };
 
 const ShowOutgoingMailsAction: Action = {
     id: "outgoing_mails.show",
     description: "Показать список исходящих писем",
     invoke: () => {
-        present(OutgoingMailsWidget);
-    },
-    entity: "out_mail"
+        present(OutgoingMailsWidget, OutgoingMailsWidget.placement({}));
+    }
 };
 
 const ShowSendMailFormAction: Action = {
     id: "outgoing_mails.send_form",
     description: "Открыть форму отправки письма",
     invoke: () => {
-        present(SendMailFormWidget);
+        present(SendMailFormWidget, SendMailFormWidget.placement({}));
     }
 };
 
@@ -100,7 +135,7 @@ const SendMailAction: Action = {
     id: "outgoing_mails.send_mail",
     description: "Отправить письмо",
     invoke: (mail) => {
-        sendMailEvent(mail);
+        sendMailFx(mail);
     }
 };
 
@@ -108,6 +143,15 @@ export {
     OutgoingMailsWidget,
     SendMailFormWidget,
 
-    GetOutgoingMailsAction, ShowOutgoingMailsAction, ShowSendMailFormAction, SendMailAction
-}
-export default [GetOutgoingMailsAction, ShowOutgoingMailsAction, ShowSendMailFormAction, SendMailAction];
+    GetOutgoingMailsAction,
+    ShowOutgoingMailsAction,
+    ShowSendMailFormAction,
+    SendMailAction
+};
+
+export default [
+    GetOutgoingMailsAction,
+    ShowOutgoingMailsAction,
+    ShowSendMailFormAction,
+    SendMailAction
+];

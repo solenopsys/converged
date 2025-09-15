@@ -1,5 +1,5 @@
 import Player from "./components/Player";
-import { COLUMN_TYPES, Widget, Action, UniversalDataTable, sample } from "converged-core";
+import { COLUMN_TYPES, Widget, Action, UniversalDataTable, sample,present } from "converged-core";
 import { Play, Pause, Square, Volume2, Upload, Trash2, Music, Eye, Edit3 } from 'lucide-react';
 import {createEvent, createEffect} from "effector";
 // import { chatsService } from "converged-core";

@@ -1,26 +1,34 @@
-import { Suspense } from "react";
-import { Outlet } from "react-router-dom";
+import { ReactNode, Suspense } from "react";
+import { Slot, SidebarProvider } from "converged-core";
 import { AppSidebar } from "converged-core";
-import { SiteHeader } from "converged-core";
-import { SidebarInset, SidebarProvider } from "converged-core";
 
-export const SidebarLayout = ({ children }: { children: React.ReactNode }) => {
-	return (
-		<Suspense fallback={<div>Loading...</div>}>
-			<SidebarProvider>
-				<div className="flex min-h-screen w-full">
-					{/* <AppSidebar variant="inset" /> */}
-					<SidebarInset className="flex-1 w-full">
-						{/* <SiteHeader /> */}
-						ok
-						<main className="flex-1 w-full px-4 lg:px-6">
-							<div className="w-full py-4 md:py-6">
-								{children}
-							</div>
-						</main>
-					</SidebarInset>
-				</div>
-			</SidebarProvider>
-		</Suspense>
-	);
+export const SidebarLayout = ({
+  children,
+  basePath = "sidebar"
+}: {
+  children?: ReactNode;
+  basePath?: string;
+}) => {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <div className="flex min-h-screen w-full">
+        <aside className="w-64 bg-muted/40">
+          <SidebarProvider>
+            <AppSidebar basePath={basePath} >
+              <Slot id={`${basePath}:left`} />
+            </AppSidebar>
+          </SidebarProvider>
+        </aside>
+        <div className="flex-1">
+          <header className="border-b p-4">
+            <Slot id={`${basePath}:header`} />
+          </header>
+          <main className="flex-1 p-4">
+            <Slot id={`${basePath}:center`} />
+          </main>
+        </div>
+      </div>
+      {children}
+    </Suspense>
+  );
 };
