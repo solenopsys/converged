@@ -9,6 +9,9 @@ export abstract class EntityAcessor<T> {
 
   getLastVersion(prefixArray: string[]) {
     const keys = this.db.getKeysWithPrefix(prefixArray);
+    if (keys.length==0){
+      return undefined;
+    }
     const lastKey = keys[keys.length - 1];
     const version = lastKey.split(KEY_SEPARATOR)[2];
     return version;

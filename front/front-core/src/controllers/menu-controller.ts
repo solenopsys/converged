@@ -1,5 +1,5 @@
 
-import { type Action } from "../types_actions";
+import { type Action } from "../plugin/types_actions";
 
 export interface MenuItem {
     key?: string;

@@ -1,39 +1,20 @@
-import { useState, useEffect } from 'react'; 
+import React from 'react';
 
 interface Version {
   version: string;
 }
 
-interface CompProps {
-  versionLoader?: (codeName: string) => Promise<Version[]>;
+interface VersionsViewProps {
+  versions: Version[];
+  loading: boolean;
+  codeName: string;
 }
 
-const Versions: React.FC<CompProps> = ({ versionLoader }) => {
-  const [versions, setVersions] = useState<Version[]>([]);
-  const [loading, setLoading] = useState(false);
-  
-  const  codeName  = "bla";//useParams<{ codeName: string }>();
-
-  useEffect(() => {
-    if (!codeName || !versionLoader) return;
-
-    const fetchVersions = async () => {
-      setLoading(true);
-      
-      try {
-        const data = await versionLoader(codeName);
-        setVersions(data);
-      } catch (error) {
-        console.error('Error fetching versions:', error);
-        setVersions([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchVersions();
-  }, [codeName, versionLoader]);
-
+export const Versions: React.FC<VersionsViewProps> = ({ 
+  versions, 
+  loading, 
+  codeName 
+}) => {
   if (loading) {
     return (
       <div className="p-4">
@@ -75,5 +56,3 @@ const Versions: React.FC<CompProps> = ({ versionLoader }) => {
     </div>
   );
 };
-
-export default Versions;

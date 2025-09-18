@@ -57,6 +57,7 @@ export interface DagService {
     createNode(nodeName: string, hash: HashString): Promise<{ key: string }>
     createNodeConfig(codeSourceName: string, config: any): Promise<{ hash: HashString }>
     getNode(hash: HashString): Promise<{ config: any }>
+    getNodeByName(name: string): Promise<{ config: any }>
     nodeList(): Promise<{ names: string[] }>
 
     // workflows

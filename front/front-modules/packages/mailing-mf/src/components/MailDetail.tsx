@@ -19,21 +19,10 @@ import {
 
 import mailingService from "../service";
 
-const MailDetail = () => {
-  const { mailid } = useParams();
-  const [mail, setMail] = useState(null);
+const MailDetail = (mail:any) => {
+  
 
-  useEffect(() => {
-    const fetchMail = async () => {
-      try {
-        const mail = await mailingService.getMail(mailid);
-        setMail(mail);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    fetchMail();
-  }, [mailid]);
+ 
 
   if (!mail) {
     return (
@@ -71,7 +60,7 @@ const MailDetail = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <Mail className="h-5 w-5 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">Mail #{mailid}</span>
+          <span className="text-sm text-muted-foreground">Mail #{mail.id}</span>
         </div>
         <div className="flex items-center space-x-2">
           <Button variant="outline" size="sm">

@@ -117,6 +117,21 @@ const metadata = {
       "isAsyncIterable": false
     },
     {
+      "name": "getNodeByName",
+      "parameters": [
+        {
+          "name": "name",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
       "name": "nodeList",
       "parameters": [],
       "returnType": "any",

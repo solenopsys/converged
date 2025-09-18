@@ -2,7 +2,7 @@
 import { Button } from "converged-core"
 import { useGlobalTranslation } from "converged-core";
 
-export function Socials() {
+export function SocialsPanel() {
 
       const { t, i18n } = useGlobalTranslation("login");
       

@@ -1,4 +1,22 @@
-import { NODE_TYPE_MAP, NODE_DESCRIPTION_MAP, DEFAULT_NODE_TYPE, DEFAULT_NODE_DESCRIPTION } from './nodeConfig';
+export const NODE_TYPE_MAP: Record<string, string> = {
+  'start': 'play',
+  'get_object': 'database',
+  'get_template_types': 'file',
+  'get_sender': 'user',
+  'ai_select_template_type': 'brain',
+  'select_one_template_by_type': 'filter',
+  'templateInjectorFooter': 'type',
+  'templateInjectorBody': 'edit',
+  'templateInjectorSubject': 'mail',
+  'randomStringN': 'shuffle',
+  'convertHtmlN': 'code',
+  'insert_mail': 'send'
+};
+
+
+
+export const DEFAULT_NODE_TYPE = 'circle';
+export const DEFAULT_NODE_DESCRIPTION = 'Описание недоступно';
 
 interface WorkflowConfig {
   nodes: Record<string, string>;
@@ -28,6 +46,4 @@ export const getNodeType = async (nodeName: string): Promise<string> => {
   return NODE_TYPE_MAP[nodeName] || DEFAULT_NODE_TYPE;
 };
 
-export const getNodeDescription = async (nodeName: string): Promise<string> => {
-  return NODE_DESCRIPTION_MAP[nodeName] || DEFAULT_NODE_DESCRIPTION;
-};
+ 

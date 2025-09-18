@@ -1,6 +1,9 @@
-
-import { ShowOutgoingMailsAction,ShowIncomingMailsAction ,ShowWarmMailsAction,ShowCredentialsAction,ShowSendMailFormAction} from "./actions";
-
+import { SHOW_OUTGOING_MAILS } from "./functions";
+import { SHOW_INCOMING_MAILS } from "./functions";
+import { SHOW_WARM_MAILS } from "./functions";
+import { SHOW_CREDENTIALS } from "./functions";
+import { SHOW_SEND_MAIL_FORM } from "./functions";
+ 
 export const MENU = {
     "title": "menu.mailing", 
     "iconName": "IconAi",
@@ -8,27 +11,27 @@ export const MENU = {
        {
             "title": "menu.outgoing",
             "key": "outgoing",
-            "action":ShowOutgoingMailsAction
+            "action":  SHOW_OUTGOING_MAILS
         },
          {
             "title": "menu.incoming",
             "key": "incoming",
-            "action":ShowIncomingMailsAction
+            "action":SHOW_INCOMING_MAILS
         },
          {
             "title": "menu.warm",
             "key": "warm",
-            "action":ShowWarmMailsAction
+            "action":SHOW_WARM_MAILS
         },
        {
             "title": "menu.send",
             "key": "send",
-            "action":ShowSendMailFormAction
+            "action":SHOW_SEND_MAIL_FORM
         },
        {
             "title": "menu.credentials",
             "key": "credentials",
-            "action":ShowCredentialsAction
+            "action":SHOW_CREDENTIALS
         }
     ]
 };

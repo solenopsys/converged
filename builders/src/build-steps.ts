@@ -19,6 +19,7 @@ export const uploadS3 = (bucket: string = 'back'): BuildStep => async (context) 
    
    console.log(fileSize(brFile));
     await uploadToS3(bucket, brFile);
+    await uploadToS3(bucket, context.sourceMapFile);
     console.log('✅ Upload complete.');
 };
 
@@ -126,9 +127,10 @@ export const generateFrontendWrapper = (outputFile: string): BuildStep => async 
     const escapedCss = css.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
 
     const wrapperFile = ` 
-    import {MENU, ID, ACTIONS} from "../src/index";
+    import {MENU, ID} from "../src/index";
+    import plugin from "../src/index";
     export default {
-        actions: ACTIONS,
+        plugin,
         id: ID,
         menu: MENU,
         externals: ${externalsStrings},

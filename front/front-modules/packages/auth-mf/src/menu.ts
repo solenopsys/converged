@@ -1,6 +1,6 @@
 
-import { ShowLoginAction } from "./actions";
-import { LogoutAction } from "./actions"; 
+import { SHOW_LOGIN } from "./functions/login";
+import { LOGOUT } from "./functions/logout"; 
 
 export const MENU = {
     "title": "Login",
@@ -10,12 +10,12 @@ export const MENU = {
         {
             "title": "Login",
             "key": "login",
-            "action": ShowLoginAction
+            "action": SHOW_LOGIN
         },
         {
             "title": "Logout",
             "key": "logout",
-            "action": LogoutAction
+            "action": LOGOUT
         } 
     ]
 };

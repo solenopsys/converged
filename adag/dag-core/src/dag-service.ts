@@ -83,9 +83,15 @@ export default class DagServiceImpl implements DagService {
         return Promise.resolve({ versions: this.store.scheme.workflow.getWorkflowVersions(name) });
     }
 
-    async getNode(hash: HashString): Promise<{ config: any }> {
-        return this.store.scheme.node.getNode(hash);
+    async getNode(name: string): Promise<{ config: any }> {
+        console.log("getNode",name);
+        const hash= this.store.scheme.node.getNode(name);
+        console.log("hash",hash);
+        const config= this.store.scheme.node.getNodeConfig(hash);
+        console.log("config",config);
+        return {config};
     }
+  
 
     run(pid: string, workflow: HashString, command: string, params?: any): AsyncIterable<{ result: any }> {
 

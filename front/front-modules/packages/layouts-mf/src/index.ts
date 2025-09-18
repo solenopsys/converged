@@ -1,7 +1,11 @@
-export * from './components/SidebarLayout';
-export * from './components/SimpleLayout';
-export * from './components/DashboardLayout';
-export * from './actions'; 
+import { BasePlugin } from 'converged-core';
+
+export * from './functions'; 
 export * from './config';
+
+export const ID = 'layouts-mf';
+import ACTIONS from './functions'; 
+
+export default new BasePlugin(ID, ACTIONS)
 
  

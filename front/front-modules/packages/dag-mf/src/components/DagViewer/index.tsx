@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { DAGController } from "./Controller";
 
 interface DagViewerProps {
@@ -21,59 +21,92 @@ export default function DagViewer({
   const [nodes, setNodes] = useState<string[]>([]);
   const [controller, setController] = useState<DAGController | null>(null);
 
+  // Стабилизируем completedNodes через useMemo
+  const stableCompletedNodes = useMemo(() => {
+    return Array.from(completedNodes).sort().join(',');
+  }, [completedNodes]);
+
+  // Стабилизируем nodeMap
+  const stableNodeMap = useMemo(() => {
+    const entries = Array.from(nodeMap.entries()).sort();
+    return JSON.stringify(entries);
+  }, [nodeMap]);
+
   useEffect(() => {
     if (!canvasRef.current) return;
 
+    let isCancelled = false; // Флаг для предотвращения race conditions
+
     const initController = async () => {
-      // Создаем контроллер БЕЗ автоматического рендеринга
-      const newController = new DAGController(canvasRef.current!, getNodeType, getNodeDescription);
-
-      // Инициализируем граф из мапы
-      await newController.initFromMap(nodeMap);
-
-      // Применяем выполненные узлы
-      for (const nodeName of completedNodes) {
-        newController.markNodeCompleted(nodeName);
-      }
-
-      // ВАЖНО: получаем отсортированные узлы ПОСЛЕ полной инициализации
-      const nodeList = newController.getNodes(); // Это уже возвращает topologicalSort()
-      setNodes(nodeList);
-
-      // Загружаем описания для отсортированных узлов
       try {
-        const nodeDescriptions = await Promise.all(
-          nodeList.map(async (nodeName) => {
-            try {
-              return await getNodeDescription(nodeName);
-            } catch (error) {
-              console.warn(`Ошибка загрузки описания для ${nodeName}:`, error);
-              return "Ошибка загрузки описания";
-            }
-          })
-        );
-        setDescriptions(nodeDescriptions);
+        // Создаем контроллер БЕЗ автоматического рендеринга
+        const newController = new DAGController(canvasRef.current!, getNodeType, getNodeDescription);
+
+        // Инициализируем граф из мапы
+        await newController.initFromMap(nodeMap);
+
+        if (isCancelled) return; // Проверяем, не отменен ли эффект
+
+        // Применяем выполненные узлы
+        for (const nodeName of completedNodes) {
+          newController.markNodeCompleted(nodeName);
+        }
+
+        // Получаем отсортированные узлы ПОСЛЕ полной инициализации
+        const nodeList = newController.getNodes();
+        
+        if (isCancelled) return;
+        
+        setNodes(nodeList);
+
+        // Загружаем описания для отсортированных узлов
+        try {
+          const nodeDescriptions = await Promise.all(
+            nodeList.map(async (nodeName) => {
+              try {
+                return await getNodeDescription(nodeName);
+              } catch (error) {
+                console.warn(`Ошибка загрузки описания для ${nodeName}:`, error);
+                return "Ошибка загрузки описания";
+              }
+            })
+          );
+          
+          if (isCancelled) return;
+          
+          setDescriptions(nodeDescriptions);
+        } catch (error) {
+          console.error("Ошибка загрузки описаний:", error);
+          if (!isCancelled) {
+            setDescriptions(nodeList.map(() => "Ошибка загрузки описания"));
+          }
+        }
+
+        if (isCancelled) return;
+
+        // ФИНАЛЬНАЯ ПЕРЕРИСОВКА
+        const edges = newController.getEdges();
+        const renderState = {
+          nodes: nodeList,
+          edges: edges,
+          completedNodes: completedNodes
+        };
+
+        newController.renderer.render(renderState, null, []);
+        setController(newController);
+        
       } catch (error) {
-        console.error("Ошибка загрузки описаний:", error);
-        setDescriptions(nodeList.map(() => "Ошибка загрузки описания"));
+        console.error("Ошибка инициализации контроллера:", error);
       }
-
-      // ФИНАЛЬНАЯ ПЕРЕРИСОВКА: теперь рендерим с правильным порядком узлов
-      const edges = newController.getEdges();
-      const renderState = {
-        nodes: nodeList,
-        edges: edges,
-        completedNodes: completedNodes
-      };
-
-      // Принудительно перерисовываем с правильным состоянием
-      newController.renderer.render(renderState, null, []);
-
-      setController(newController);
     };
 
     initController();
-  }, [nodeMap, getNodeType, getNodeDescription, completedNodes]);
+
+    // Cleanup функция
+    return () => {
+      isCancelled = true;
+    };
+  }, [stableNodeMap, stableCompletedNodes, getNodeType, getNodeDescription]);
 
   return (
     <div className="flex w-full h-full min-h-0">
@@ -96,8 +129,9 @@ export default function DagViewer({
           return (
             <div
               key={`${nodeName}-${i}`}
-              className={`text-sm border-l-2 pl-2 cursor-pointer transition-colors duration-200 hover:bg-accent hover:text-accent-foreground min-w-0 ${isCompleted ? 'border-green-500' : 'border-gray-300'
-                }`}
+              className={`text-sm border-l-2 pl-2 cursor-pointer transition-colors duration-200 hover:bg-accent hover:text-accent-foreground min-w-0 ${
+                isCompleted ? 'border-green-500' : 'border-gray-300'
+              }`}
               style={{ height: "40px" }}
               onClick={() => onclick?.(nodeName)}
             >

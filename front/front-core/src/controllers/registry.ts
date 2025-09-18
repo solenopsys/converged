@@ -1,6 +1,6 @@
  
  
-import { Action } from "../types_actions";
+import { Action } from "../plugin/types_actions";
 
 class ActionRegistry {
   private map = new Map<string, Action<any, any>>();

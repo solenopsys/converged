@@ -1,5 +1,6 @@
-export * from "./menu"; 
+export * from "./menu";
 export const ID = 'auth-mf';
-import ACTIONS from "./actions";
-export {ACTIONS};
-export default {} 
+import { BasePlugin } from "converged-core";
+import { ACTIONS } from "./functions";
+
+export default new BasePlugin(ID, ACTIONS)

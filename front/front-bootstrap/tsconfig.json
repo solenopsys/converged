@@ -18,7 +18,9 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "baseUrl": ".",
-    "paths": {},
+    "paths": {
+      "converged-core": ["../front-core/src/index.ts"],
+    },
     "plugins": [
       {
         "name": "@tailwindcss/postcss",

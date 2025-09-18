@@ -13,12 +13,12 @@ $moduleLoadEvent.watch((value) => {
 });
 
 
-import { ModuleLoader } from "./core/ModuleLoader";
+import { ModuleLoader } from "converged-core";
 import {
 	ModuleConfig,
 	LoadedModule,
 	View,
-} from "./core/types";
+} from "converged-core";
 
 const menuController = MenuController.getInstance();
 const localeController = LocaleController.getInstance();

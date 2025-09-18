@@ -18,7 +18,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
-import { Action } from "../types_actions";
+import { Action } from "../plugin/types_actions";
 import { MenuItem } from "../controllers/menu-controller";
 
 export function NavMain({
