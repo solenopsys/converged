@@ -1,5 +1,5 @@
 type Surface = "full" | "center" | "modal" | "chat.inline";
-import { type EventBus } from "./types";
+import { type EventBus } from "../controllers/types";
 
 type Placement =
     | { surface: Surface }

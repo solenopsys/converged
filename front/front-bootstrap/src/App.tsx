@@ -3,8 +3,7 @@ import { ThemeProvider } from "converged-core";
 import { AuthProvider } from "./auth/AuthContext";
 import { createModulesServiceClient } from "./generated";
 import { MenuController, LocaleController, translateJson } from "converged-core";
-import { registry as actions } from "converged-core";
-import { createEvent } from "effector";
+ import { createEvent } from "effector";
 import { SlotProvider, useSlotMount } from "converged-core";
 
 export const $moduleLoadEvent = createEvent<string>();
@@ -17,7 +16,7 @@ import { ModuleLoader } from "converged-core";
 import {
 	ModuleConfig,
 	LoadedModule,
-	View,
+	View,EventBusImpl
 } from "converged-core";
 
 const menuController = MenuController.getInstance();
@@ -32,6 +31,8 @@ const App: React.FC = () => {
 	const [currentView, setCurrentView] = useState<View | null>(null);
 	const [isLoading, setIsLoading] = useState<boolean>(true);
 	const [error, setError] = useState<string | null>(null);
+
+	const bus=new EventBusImpl("main");
 
 	// Обработчик изменения URL
 	useEffect(() => {
@@ -73,9 +74,8 @@ const App: React.FC = () => {
 
 							// Загружаем переводы и добавляем в меню
 							await loadModuleTranslations(loadedModule);
-							loadedModule.actions.forEach(action => {
-								actions.register(action);
-							});
+
+							loadedModule.plugin.plug(bus);
 
 							$moduleLoadEvent(loadedModule.id);
 
@@ -87,15 +87,15 @@ const App: React.FC = () => {
 					})
 				);
 
-				const map = actions.run("layout.mapping", {});
+				const map = bus.run("layout.mapping", {});
 				console.log("Layout mapping:", map);
 
 				const SW = map["sidebar"];
 				console.log("Simple widget:", SW);
 
-				actions.run("layout.mount", { widget: SW, ctx: {} });
-				actions.run("left.menu.mount", {  });
-				actions.run("dag.show_code_source_list", {});
+				bus.run("layout.mount", { widget: SW, ctx: {} });
+				bus.run("left.menu.mount", {  });
+				bus.run("dag.show_code_source_list", {});
 				//actions.run("incoming_mails.show", {});
 
 		 

@@ -1,7 +1,7 @@
 import { Widget } from "@/plugin/types_actions";
 import { mountWhenReady } from ".";
 
-export const present = async (widget: Widget, slot: string, mountParams?: any) => {
+export const present = async (widget: Widget<any>, slot: string, mountParams?: any) => {
     let point = "global:toast";
     if (slot === 'full') {
         point = "global:toast";

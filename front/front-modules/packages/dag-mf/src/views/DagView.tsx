@@ -19,13 +19,13 @@ const loadWorkflowFx = domain.createEffect(async (workflowId: string) => {
     return createNodeMap(config);
 });
 
-export const getNodeDescriptionFx = dagDomain.createEffect(async (nodeName: string) => {
+export const getNodeDescriptionFx = domain.createEffect(async (nodeName: string) => {
     return (await dagClient.getNode(nodeName)).config.codeVersion;
 });
 
-const $nodeMap = dagDomain.createStore<NodeMap | null>(null);
-const $loading = dagDomain.createStore(false);
-const $nodeDescriptions = dagDomain.createStore<Record<string, string>>({});
+const $nodeMap = domain.createStore<NodeMap | null>(null);
+const $loading = domain.createStore(false);
+const $nodeDescriptions = domain.createStore<Record<string, string>>({});
 
 // Связки
 sample({ clock: loadWorkflow, target: loadWorkflowFx });

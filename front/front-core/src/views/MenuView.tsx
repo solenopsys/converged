@@ -5,8 +5,6 @@ import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { useGlobalTranslation } from "@/hooks/global_i18n"
 import { useMenu } from "@/hooks/menu"
-import { registry } from "../controllers/registry";
-
 const renderIcon = (iconName: string) => {
   if (TablerIcons[iconName]) {
     const IconComponent = TablerIcons[iconName]
@@ -34,7 +32,7 @@ const processItems = (items: any[]) => {
   })
 }
 
-export const MenuView = () => {
+export const MenuView = (onClick: (actionId: string) => void) => {
   const { i18n } = useGlobalTranslation("menu")
 
   const navMain = processItems(useMenu())
@@ -46,7 +44,7 @@ export const MenuView = () => {
     <>
       <NavMain items={navMain} onSelect={(actionId: string) => {
         console.log("ACTIONS", actionId);
-        registry.run(actionId, {})
+         onClick(actionId);
       }} />
       <NavSecondary items={navSecondary} className="mt-auto" />
     </>

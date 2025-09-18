@@ -1,10 +1,43 @@
-import { ModuleConfig, LoadedModule, ModuleExport, Capability, ModuleLoadOptions } from './types';
+
+type ModuleConfig = {
+	name: string;
+	link: string;
+	locales?: Record<string, string>;
+	protected?: boolean;
+};
+
+type ModuleLoadOptions = {
+	
+}
+
+type LoadedModule = {
+	name: string;
+	id: string;
+	link: string;
+	locales?: Record<string, string>;
+	isProtected?: boolean; 
+	menu?: any;
+	plugin: Plugin;
+	originalExports: any;
+};
+
+import { Plugin } from "./types";
+
+type ModuleExport = {
+	plugin: Plugin;
+	css?: string;
+	externals?: Record<string, string>;
+	id?: string;
+	menu?: any;
+};
+
+export type {ModuleConfig, ModuleLoadOptions, LoadedModule, ModuleExport};
 
 export class ModuleLoader {
 	private loadedModules: Map<string, LoadedModule> = new Map();
 	private loadingPromises: Map<string, Promise<LoadedModule>> = new Map();
 
-	constructor() {}
+	constructor() { }
 
 	// Загрузка модуля
 	async loadModule(moduleConfig: ModuleConfig, options?: ModuleLoadOptions): Promise<LoadedModule> {
@@ -42,23 +75,20 @@ export class ModuleLoader {
 
 			// Загружаем модуль
 			const moduleExports: { default: ModuleExport } = await import(link);
-			
+
 			if (!moduleExports || !moduleExports.default) {
 				throw new Error(`Module ${name} does not have default export`);
 			}
 
 			const {
-				actions, 
+				plugin,
 				css,
 				externals,
 				id,
 				menu
 			} = moduleExports.default;
 
-			// Проверяем наличие capabilities
-			if (!actions) {
-				console.warn(`Module ${name} does not have capabilities`);
-			}
+			 
 
 			// Загружаем CSS
 			if (css) {
@@ -76,12 +106,12 @@ export class ModuleLoader {
 				id: id || name,
 				link,
 				locales,
-				isProtected,
-				actions: actions || {},
-			 
+				isProtected, 
+				plugin,
 				menu,
 				originalExports: moduleExports.default
 			};
+ 
 
 			console.log(`Successfully loaded module: ${name}`, loadedModule);
 			return loadedModule;
@@ -95,7 +125,7 @@ export class ModuleLoader {
 	// Загрузка CSS
 	private async _loadCSS(moduleName: string, css: string): Promise<void> {
 		const styleId = `module-css-${moduleName}`;
-		
+
 		// Проверяем, не загружен ли CSS уже
 		if (document.getElementById(styleId)) {
 			return;
@@ -113,7 +143,7 @@ export class ModuleLoader {
 	private async _loadExternals(moduleLink: string, externals: Record<string, string>): Promise<void> {
 		try {
 			await this._injectToScopeImportMap(moduleLink, externals);
-			
+
 			Object.entries(externals).forEach(([name, url]) => {
 				console.log(`External dependency loaded: ${name} -> ${url}`);
 			});
@@ -160,44 +190,7 @@ export class ModuleLoader {
 		return this.loadedModules.has(name);
 	}
 
-	// Получение capability из модуля
-	getCapability(moduleName: string, capabilityKey: string): Capability | null {
-		const module = this.getModule(moduleName);
-		if (!module || !module.capabilities) {
-			return null;
-		}
-		return module.capabilities[capabilityKey] || null;
-	}
 
-	// Получение всех capabilities из всех модулей
-	getAllCapabilities(): Array<{
-		moduleName: string;
-		capabilityKey: string;
-		capability: Capability;
-		path: string;
-	}> {
-		const allCapabilities: Array<{
-			moduleName: string;
-			capabilityKey: string;
-			capability: Capability;
-			path: string;
-		}> = [];
-		
-		for (const module of this.loadedModules.values()) {
-			if (module.capabilities) {
-				Object.entries(module.capabilities).forEach(([key, capability]) => {
-					allCapabilities.push({
-						moduleName: module.name,
-						capabilityKey: key,
-						capability,
-						path: `/${module.name}/${key}`
-					});
-				});
-			}
-		}
-		
-		return allCapabilities;
-	}
 
 	// Очистка загруженных модулей
 	clearModules(): void {

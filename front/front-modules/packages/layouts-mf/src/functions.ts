@@ -24,33 +24,32 @@ sample({ clock: menuMountEvent, target: menuMountFx });
 const createSimpleLayoutWidget: CreateWidget<typeof SimpleLayout> = () => ({
   view: SimpleLayout,
   placement: () => "full",
-  config: {},
-  mount: () => { },
-  bindings: {},
+  commands: {},
 });
 
-const createLeftMenuWidget: CreateWidget<typeof MenuView> = () => ({
+const createLeftMenuWidget: CreateWidget<typeof MenuView> = (bus) => ({
   view: MenuView,
   placement: () => "left",
-  config: {},
-  mount: () => { },
-  bindings: {},
+ 
+  commands: {
+    onClick: (actionId: string) => {
+      bus.run(actionId, {});
+    }
+  },
 });
 
 const createSidebarLayoutWidget: CreateWidget<typeof SidebarLayout> = () => ({
   view: SidebarLayout,
   placement: () => "full",
-  config: {},
-  mount: () => { },
-  bindings: {},
+ 
+  commands: {},
 });
 
 const createDashboardLayoutWidget: CreateWidget<typeof DashboardLayout> = () => ({
   view: DashboardLayout,
   placement: () => "center",
-  config: {},
-  mount: () => { },
-  bindings: {},
+ 
+  commands: {},
 });
 
 const LAYOUTS = {

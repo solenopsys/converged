@@ -1,20 +1,20 @@
  
  
-import { Action } from "../plugin/types_actions";
+import { Action, ActionRegistry  } from "../plugin/types_actions";
 
-class ActionRegistry {
-  private map = new Map<string, Action<any, any>>();
+
+export class ActionRegistryImpl implements ActionRegistry{
+  private map = new Map<string, Action<any>>();
  
-  register<P>(action:Action<any, any>):string { 
+  register<P>(action:Action<any>):string { 
     this.map.set(action.id, action);
     console.log("Registered action:", action.id," - " ,action.description)
     return action.id;
   }
 
-  run(actionId:string, params:any): Action<any, any> | undefined {
-    const action:Action<any, any>=this.map.get(actionId);
+  run(actionId:string, params:any): Action<any> | undefined {
+    const action:Action<any>=this.map.get(actionId);
     return action.invoke(params);
   }
 }
 
-export const registry = new ActionRegistry();

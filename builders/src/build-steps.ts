@@ -18,10 +18,20 @@ export const uploadS3 = (bucket: string = 'back'): BuildStep => async (context) 
    const brFile= await compressBrottly(context.finalBuildFile);
    
    console.log(fileSize(brFile));
-    await uploadToS3(bucket, brFile);
+    await uploadToS3(bucket, brFile); 
+    console.log('✅ Upload complete.');
+};
+
+export const uploadS3SourceMap = (bucket: string = 'back'): BuildStep => async (context) => {
+    console.log('Uploading to S3...');
+   const brFile= await compressBrottly(context.finalBuildFile);
+   
+   console.log(fileSize(brFile));
+  //  await uploadToS3(bucket, brFile);
     await uploadToS3(bucket, context.sourceMapFile);
     console.log('✅ Upload complete.');
 };
+
 
 export const parseService: BuildStep = async (context) => {
     console.log('Parsing service files...');

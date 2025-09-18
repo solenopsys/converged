@@ -1,5 +1,5 @@
-import { Plugin } from "./types";
-import { type EventBus } from "./bus";
+import { Plugin } from "../controllers/types";
+import { type EventBus } from "../controllers/bus";
 
 export class BasePlugin implements Plugin {
     bus: EventBus;
