@@ -31,6 +31,7 @@ type CreateAction<I> = (bus: EventBus) => Action<I>;
 
 type Widget<V > = {
     view: V;
+    config?: any;
     placement: (ctx: InsertContext) => Placement | string | null;
     commands?: Record<string, (p: any) => void>;
 };

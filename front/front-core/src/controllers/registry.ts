@@ -1,6 +1,7 @@
  
  
-import { Action, ActionRegistry  } from "../plugin/types_actions";
+import {  ActionRegistry  } from "./types";
+import { Action } from "../plugin/types_actions";
 
 
 export class ActionRegistryImpl implements ActionRegistry{
@@ -8,12 +9,11 @@ export class ActionRegistryImpl implements ActionRegistry{
  
   register<P>(action:Action<any>):string { 
     this.map.set(action.id, action);
-    console.log("Registered action:", action.id," - " ,action.description)
-    return action.id;
+     return action.id;
   }
 
   run(actionId:string, params:any): Action<any> | undefined {
-    const action:Action<any>=this.map.get(actionId);
+     const action:Action<any>=this.map.get(actionId);
     return action.invoke(params);
   }
 }

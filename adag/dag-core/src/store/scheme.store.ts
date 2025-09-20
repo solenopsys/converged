@@ -2,10 +2,10 @@
 import type { HashString, Workflow, CodeSource } from '../../../dag-types/interface';
 import { genHash } from '../tools';
 import { preciseStringfy } from '../tools';
-import { timeVersion, extractCommentParam } from './utils/utils';
+import { timeVersion, extractCommentParam } from 'back-core';
 import { ProvidersStore } from 'dag-api';
 
-import { LMWrapper } from './utils/lmwrapper';
+import { LMWrapper } from 'back-core';
 
 
 
@@ -13,7 +13,7 @@ const PROVIDER = "provider";
 const PARAM = "param";
 const WEBHOOK = "webhook";
 
-import { EntityAcessor } from "./utils/accessor";
+import { EntityAcessor } from "back-core";
 
 
 class CodeSourceAccessor extends EntityAcessor<SchemeStore>{ // code sources width constructor params and types

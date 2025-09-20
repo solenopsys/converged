@@ -1,16 +1,15 @@
 
 import { type EventBus } from "./types";
-import {ActionRegistryImpl} from "./registry";
 import { Widget } from "@/plugin";
 import { createEvent } from "effector";
 import { Action } from "../plugin/types_actions";
-import { type ActionRegistry } from "../plugin/types_actions";
+import { type ActionRegistry } from "../controllers/types";
+import { presentEvent ,runActionEvent,registerActionEvent} from "./effector-integration";
 
 export class EventBusImpl implements EventBus,ActionRegistry {
     domain: any;
     name: string;
-    registry= new  ActionRegistryImpl();
-    present=createEvent<Widget<any>>()
+    present=(widget:Widget<any>)=>presentEvent(widget)
 
     constructor(domain) {
       this.domain = domain;
@@ -18,11 +17,12 @@ export class EventBusImpl implements EventBus,ActionRegistry {
 
 
     register<P>(action:Action<any>):string { 
-        return this.registry.register(action);
+         registerActionEvent(action);
+         return action.id;
     }
 
-    run(actionId:string, params:any): Action<any> | undefined {
-        return this.registry.run(actionId, params);
+    run(actionId:string, params:any):   undefined {
+         runActionEvent({actionId, params});
     }
     
 

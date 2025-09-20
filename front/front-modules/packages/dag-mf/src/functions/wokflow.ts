@@ -1,10 +1,9 @@
 import dagClient from "../service";
-import {ListView} from "converged-core"; // Добавил недостающий импорт
-import DagView from "../views/DagView"; // Добавил недостающий импорт
-import { CreateAction, CreateWidget, StatCard } from "converged-core"; 
+import { ListView } from "converged-core";
+import DagView from "../views/DagView";
+import { CreateAction, CreateWidget, StatCard } from "converged-core";
 import { sample } from "effector";
 import domain from "../domain";
-import { createDataFlow } from "src/helpers";
 
 const SHOW_WORKFLOWS_LIST = "show_workflows_list";
 const GET_WORKFLOWS_LIST = "get_workflows_list";
@@ -12,34 +11,61 @@ const SHOW_WORKFLOWS_STATISTIC = "show_workflows_statistic";
 const GET_WORKFLOWS_STATISTIC = "get_workflows_statistic";
 const SHOW_WORKFLOW = "show_workflow";
 
-const workflowListFx = domain.createEffect<any, any>();
-const getWorkflowsStatFx = domain.createEffect<any, any>();
-const showWorkflowEvent = domain.createEvent<{ workflowId: string }>();
-const openWorkflowEvent = domain.createEvent<{ id: string }>();
-const getWorkflowsStatEvent = domain.createEvent<any>();
-const getWorkflowsListEvent = domain.createEvent<any>();
+const $workflowsStore = domain.createStore<{ id: string, title: string }[]>([]);
+const $workflowsStatStore = domain.createStore<number>(0);
+const showWorkflowEvent = domain.createEvent<{ workflowId: string }>("SHOW_WORKFLOW");
+const openWorkflowEvent = domain.createEvent<{ id: string }>("OPEN_WORKFLOW");
+const getWorkflowsStatEvent = domain.createEvent<any>("GET_WORKFLOWS_STAT");
+const getWorkflowsListEvent = domain.createEvent<any>("GET_WORKFLOWS_LIST");
 
+export const workflowListFx = domain.createEffect({
+    name: "WORKFLOW_LIST",
+    handler: () => dagClient.workflowList() // возвращает массив строк    
+});
 
-sample({ clock: getWorkflowsStatEvent, target: getWorkflowsStatFx });
-sample({ clock: getWorkflowsListEvent, target: workflowListFx });
-sample({ clock: openWorkflowEvent, target: workflowListFx });
+export const getWorkflowsStatFx = domain.createEffect({
+    name: "WORKFLOWS_STAT",
+    handler: () => dagClient.workflowList() // возвращает массив строк для подсчета
+});
 
-export const getWorkflowsStatRequest = createDataFlow(
-    () => dagClient.workflowList(),
-    (names) => names.length
-);
+sample({
+    clock: getWorkflowsListEvent,          // когда срабатывает запрос списка
+    filter: $workflowsStore.map(items => items.length === 0),
+    target: workflowListFx,       // запускаем эффект
+});
 
-export const getWorkflowsListRequest = createDataFlow(
-    () => dagClient.workflowList(),
-    (names) => names.map((name: string) => ({ id: name, title: name }))
-);
+sample({
+    clock: getWorkflowsStatEvent,          // когда срабатывает запрос статистики
+    target: getWorkflowsStatFx,       // запускаем эффект
+});
+
+sample({
+    clock: workflowListFx.doneData,
+    fn: (data) => {
+        console.log('workflowListFx result:', data); // проверьте структуру
+        return data.names.map(name => ({ id: name, title: name }));
+    },
+    target: $workflowsStore,
+});
+
+sample({
+    clock: getWorkflowsStatFx.doneData,
+    fn: (data) => {
+        console.log('getWorkflowsStatFx result:', data); // проверьте структуру
+        return data.length;
+    },
+    target: $workflowsStatStore,
+});
 
 const createWorkflowsStatisticWidget: CreateWidget<typeof StatCard> = () => ({
     view: StatCard,
+    config: {
+        $value: $workflowsStatStore,
+        title: "Workflows Count"
+    },
     placement: () => "float",
-    mount: () => getWorkflowsStatRequest(),
     commands: {
-        refresh: () => getWorkflowsStatRequest()
+        refresh: () => getWorkflowsStatEvent()
     }
 });
 
@@ -55,14 +81,11 @@ const createWorkflowsDetailWidget: CreateWidget<typeof DagView> = () => ({
 
 const createWorkflowsListWidget: CreateWidget<typeof ListView> = () => ({
     view: ListView,
-    placement: () => "center",
-    mount: async () => {
-        const data = await workflowListFx();
-        return {
-            items: data || [],
-            title: "Workflows"
-        }
+    config: {
+        $items: $workflowsStore,
+        title: "Workflows"
     },
+    placement: () => "center",
     commands: {
         onSelect: (id) => {
             console.log("SELECT", id);
@@ -83,28 +106,36 @@ const createShowWorkflowsListAction: CreateAction<any> = (bus) => ({
     id: SHOW_WORKFLOWS_LIST,
     description: "Show workflows list",
     invoke: () => {
+        getWorkflowsListEvent();
         bus.present(createWorkflowsListWidget(bus));
     }
 });
 
-const createGetWorkflowsListAction: CreateAction<any> = (bus) => ({
+const createGetWorkflowsListAction: CreateAction<any> = (bus) => ({ // tut nuzhno kuda vozvrashchat'
     id: GET_WORKFLOWS_LIST,
     description: "Get workflows list",
-    invoke: (params) => getWorkflowsListRequest({ ...params, bus })
+    invoke: (params) => {
+        getWorkflowsListEvent({ ...params, bus });
+        //  bus.respond(resolveStore($workflowsStore),params.id);
+    }
 });
 
 const createShowWorkflowsStatisticAction: CreateAction<any> = (bus) => ({
     id: SHOW_WORKFLOWS_STATISTIC,
     description: "Show workflows statistic",
     invoke: () => {
+        getWorkflowsStatEvent();
         bus.present(createWorkflowsStatisticWidget(bus));
     }
 });
 
-const createGetWorkflowsStatisticAction: CreateAction<any> = (bus) => ({
+const createGetWorkflowsStatisticAction: CreateAction<any> = (bus) => ({ // tut nuzhno kuda vozvrashchat'
     id: GET_WORKFLOWS_STATISTIC,
     description: "Get workflows statistic",
-    invoke: (params) => getWorkflowsStatRequest({ ...params, bus })
+    invoke: (params) => {
+        getWorkflowsStatEvent({ ...params, bus });
+        //  bus.respond(resolveStore($workflowsStatStore),params.id);
+    }
 });
 
 export {

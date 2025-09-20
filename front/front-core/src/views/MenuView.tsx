@@ -1,10 +1,15 @@
+
+
+// MenuView.tsx
 import * as React from "react"
 import * as TablerIcons from "@tabler/icons-react"
+import { useUnit } from 'effector-react'
 
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { useGlobalTranslation } from "@/hooks/global_i18n"
-import { useMenu } from "@/hooks/menu"
+import { $allMenuItems } from '../controllers/menu-store'
+
 const renderIcon = (iconName: string) => {
   if (TablerIcons[iconName]) {
     const IconComponent = TablerIcons[iconName]
@@ -32,11 +37,15 @@ const processItems = (items: any[]) => {
   })
 }
 
-export const MenuView = (onClick: (actionId: string) => void) => {
+export const MenuView = (params:{onClick: (actionId: string) => void}) => {
   const { i18n } = useGlobalTranslation("menu")
-
-  const navMain = processItems(useMenu())
+  
+  // Используем стор напрямую вместо хука
+  const menuItems = useUnit($allMenuItems)
+  
+  const navMain = processItems(menuItems)
   console.log("navMain processed", navMain);
+  
   const navSecondary = processItems(i18n.t("navSecondary", { ns: "menu", returnObjects: true }) || [])
   console.log("navSecondary", navSecondary);
 
@@ -44,9 +53,12 @@ export const MenuView = (onClick: (actionId: string) => void) => {
     <>
       <NavMain items={navMain} onSelect={(actionId: string) => {
         console.log("ACTIONS", actionId);
-         onClick(actionId);
+         params.onClick(actionId);
       }} />
       <NavSecondary items={navSecondary} className="mt-auto" />
     </>
   )
 }
+
+// Пример использования вместо menuController.addMenu():
+// addMenu({ microfrontendId: 'some-id', menu: menuItems });

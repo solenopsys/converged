@@ -32,7 +32,7 @@ const createLeftMenuWidget: CreateWidget<typeof MenuView> = (bus) => ({
   placement: () => "left",
  
   commands: {
-    onClick: (actionId: string) => {
+    onClick: ( actionId: string) => {
       bus.run(actionId, {});
     }
   },
@@ -61,9 +61,9 @@ const LAYOUTS = {
 const createLayoutMountAction: CreateAction<any> = (bus) => ({
   id: LAYOUT_MOUNT,
   description: "Mount layout",
-  invoke: (params: { widget: any, context: any }) => {
+  invoke: (params: { name:string }) => {
     console.log("Layout mount", params);
-    const widgetFactory = params.widget;
+    const widgetFactory = LAYOUTS[params.name];
     const widget = widgetFactory(bus);
     const slot = widget.placement();
     console.log("Slot", slot);

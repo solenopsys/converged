@@ -1,50 +1,70 @@
 import dagClient from "../service";
-import NodeFormView from "../views/NodeFormView"; // Добавил недостающий импорт
-import {ListView} from "converged-core"; // Добавил недостающий импорт
-import { CreateAction, CreateWidget, StatCard } from "converged-core"; 
-import {createEvent,createEffect, sample } from "effector";
+import { NodeFormView } from "../views/NodeFormView";
+import { ListView } from "converged-core";
+import { CreateAction, CreateWidget, StatCard } from "converged-core";
+import { sample } from "effector";
 import domain from "../domain";
-import { createDataFlow } from "src/helpers";
 
 const SHOW_NODES_LIST = "show_nodes_list";
 const GET_NODES_LIST = "get_nodes_list";
 const EDIT_NODE = "edit_node";
 
-const nodeListFx =domain.createEffect<any, any>();
-const editNodeFx =domain.createEffect<any, any>();
-const openNodeEvent =domain.createEvent<{ id: string }>();
-const editNodeEvent =domain.createEvent<{ nodeId: string }>();
-const getNodesListEvent =domain.createEvent<any>();
+const $nodesStore = domain.createStore<{ id: string, title: string }[]>([]);
+const openNodeEvent = domain.createEvent<{ id: string }>("OPEN_NODE");
+const editNodeEvent = domain.createEvent<{ nodeId: string }>("EDIT_NODE");
+const getNodesListEvent = domain.createEvent<any>("GET_NODES_LIST");
 
-sample({ clock: openNodeEvent, target: nodeListFx });
-sample({ clock: editNodeEvent, target: editNodeFx });
-sample({ clock: getNodesListEvent, target: nodeListFx });
+export const nodeListFx = domain.createEffect({
+    name: "NODE_LIST",
+    handler: () => dagClient.nodeList() // возвращает массив строк    
+});
 
-export const getNodesListRequest = createDataFlow(
-    () => dagClient.nodeList(),
-    (names) => names.map((name: string) => ({ id: name, title: name }))
-);
+export const editNodeFx = domain.createEffect({
+    name: "EDIT_NODE",
+    handler: (nodeData) => dagClient.editNode(nodeData) // обработка редактирования узла
+});
 
-const createEditNodeWidget: CreateWidget<typeof NodeForm> = () => ({
-    view: NodeForm,
+sample({
+    clock: getNodesListEvent,          // когда срабатывает запрос
+    filter: $nodesStore.map(items => items.length === 0),
+    target: nodeListFx,       // запускаем эффект
+});
+
+sample({
+    clock: editNodeEvent,
+    target: editNodeFx,
+});
+
+sample({
+    clock: nodeListFx.doneData,
+    fn: (data) => {
+        console.log('nodeListFx result:', data); // проверьте структуру
+        return data.names.map(name => ({ id: name, title: name }));
+    },
+    target: $nodesStore,
+});
+
+const createEditNodeWidget: CreateWidget<typeof NodeFormView> = () => ({
+    view: NodeFormView,
     placement: () => "center",
-    mount: () => { },
     commands: {
-        
+        onSave: (nodeData) => {
+            console.log("SAVE NODE", nodeData);
+            editNodeEvent({ nodeId: nodeData.id, ...nodeData });
+        },
+        onCancel: () => {
+            console.log("CANCEL EDIT");
+        }
     }
 });
 
 const createNodesListWidget: CreateWidget<typeof ListView> = () => ({
     view: ListView,
-    placement: () => "center",
-    mount: async () => {
-        const data = await nodeListFx();
-        console.log("NODES LIST", data);
-        return {
-            items: data || [],
-            title: "Nodes"
-        }
+    config: {
+        $items: $nodesStore,
+        title: "Nodes"
     },
+    placement: () => "center",
     commands: {
         onSelect: (id) => {
             console.log("SELECT", id);
@@ -65,14 +85,18 @@ const createShowNodesListAction: CreateAction<any> = (bus) => ({
     id: SHOW_NODES_LIST,
     description: "Show nodes list",
     invoke: () => {
+        getNodesListEvent();
         bus.present(createNodesListWidget(bus));
     }
 });
 
-const createGetNodesListAction: CreateAction<any> = (bus) => ({
+const createGetNodesListAction: CreateAction<any> = (bus) => ({ // tut nuzhno kuda vozvrashchat'
     id: GET_NODES_LIST,
     description: "Get nodes list",
-    invoke: (params) => getNodesListRequest({ ...params, bus })
+    invoke: (params) => {
+        getNodesListEvent({ ...params, bus });
+        //  bus.respond(resolveStore($nodesStore),params.id);
+    }
 });
 
 export {

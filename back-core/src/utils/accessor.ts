@@ -1,5 +1,5 @@
 
-import { LMWrapper } from "../utils/lmwrapper";
+import { LMWrapper } from "./lmwrapper";
 
 import { KEY_SEPARATOR  } from './utils';
 

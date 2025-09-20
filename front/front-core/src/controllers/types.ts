@@ -2,7 +2,7 @@ import { type } from "os";
 import { Widget } from "../plugin/types_actions";
 import { Action } from "../plugin/types_actions";
 
-interface EventBus{
+interface EventBus extends ActionRegistry{
     present(widget: Widget<any> ): void;
     emit(event: string, data: any): void;
   

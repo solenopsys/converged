@@ -5,9 +5,7 @@
 	"workspaces": ["packages/*"],
 	"module": "build.ts",
 	"scripts": {
-		"bld": "bun run build.ts",
-		"dev": "bun run --env-file=../../CONF/back.env src/api.ts ",
-		"start": "bun --env-file=../../CONF/back-prod.env dist/api.js"
+		"bld": "bun run build.ts"
 	},
 	"dependencies": {
 		"@elysiajs/cors": "latest",

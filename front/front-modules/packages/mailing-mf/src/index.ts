@@ -1,7 +1,7 @@
 
 export const ID = 'mailing-mf';
 export * from "./menu";
-export {ACTIONS} from "./functions"; 
+import {ACTIONS} from "./functions/index"; 
 import {BasePlugin} from "converged-core";
 
 export default new BasePlugin(ID, ACTIONS)

@@ -21,8 +21,7 @@ export const present = async (widget: Widget<any>, slot: string, mountParams?: a
     console.log("Present RUN", widget, slot, point);
 
     const Component = widget.view;
-    const res = {...await widget.mount(mountParams), ...widget.config};
-    console.log("Mount result:", res);
+    const res = {  ...widget.config}; 
 
     // Создаем обработчики команд
     const commandHandlers = {};

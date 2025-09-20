@@ -1,35 +1,43 @@
 import dagClient from "../service";
-import {ListView} from "converged-core"; // Добавил недостающий импорт
-import { CreateAction, CreateWidget, StatCard } from "converged-core"; 
+import { ListView } from "converged-core"; // Добавил недостающий импорт
+import { CreateAction, CreateWidget, StatCard } from "converged-core";
 import { sample } from "effector";
 import domain from "../domain";
-import { createDataFlow } from "src/helpers";
 
 const SHOW_CODE_SOURCE_LIST = "show_code_source_list";
 const GET_CODE_SOURCE_LIST = "get_code_source_list";
 
-const codeSourceListFx =domain.createEffect<any, any>();
-const openCodeSourceEvent =domain.createEvent<{ id: string }>();
-const getCodeSourceListEvent =domain.createEvent<any>();
+const $codeSourceStore = domain.createStore<{ id: string, title: string }[]>([]);
+const openCodeSourceEvent = domain.createEvent<{ id: string }>("OPEN_CODE_SOURCE");
+const getCodeSourceListEvent = domain.createEvent<any>("GET_CODE_SOURCE_LIST");
 
-sample({ clock: getCodeSourceListEvent, target: codeSourceListFx });
-
-export const getCodeSourceListRequest = createDataFlow(
-    () => dagClient.codeSourceList(),
-    (names) => names.map((name: string) => ({ id: name, title: name }))
+export const codeSourceListFx = domain.createEffect({
+    name: "CODE_SOURCE_LIST",
+    handler: () => dagClient.codeSourceList() // возвращает массив строк    
+}
 );
+
+sample({
+    clock: getCodeSourceListEvent,          // когда срабатывает запрос
+    filter: $codeSourceStore.map(items => items.length === 0),
+    target: codeSourceListFx,       // запускаем эффект
+});
+
+sample({
+    clock: codeSourceListFx.doneData,
+    fn: (data) => {
+        console.log('codeSourceListFx result:', data); // проверьте структуру
+        return data.names.map(name => ({ id: name, title: name }));
+    }, target: $codeSourceStore,
+});
 
 const createCodeSourceListWidget: CreateWidget<typeof ListView> = () => ({
     view: ListView,
-    placement: () => "center",
-    mount: async () => {
-        const data = await codeSourceListFx();
-        console.log("CODE SOURCE LIST", data);
-        return {
-            items: data || [],
-            title: "Исходные коды"
-        }
+    config: {
+        $items: $codeSourceStore,
+        title: "Исходные коды"
     },
+    placement: () => "center",
     commands: {
         onSelect: (id) => {
             console.log("SELECT", id);
@@ -42,21 +50,25 @@ const createShowCodeSourceListAction: CreateAction<any> = (bus) => ({
     id: SHOW_CODE_SOURCE_LIST,
     description: "Show code source list",
     invoke: () => {
+        getCodeSourceListEvent()
         bus.present(createCodeSourceListWidget(bus));
     }
 });
 
-const createGetCodeSourceListAction: CreateAction<any> = (bus) => ({
+const createGetCodeSourceListAction: CreateAction<any> = (bus) => ({ // tут нужно куда возвращать
     id: GET_CODE_SOURCE_LIST,
     description: "Get code source list",
-    invoke: (params) => getCodeSourceListRequest({ ...params, bus })
+    invoke: (params) => {
+        getCodeSourceListEvent({ ...params, bus })
+        //  bus.respond(resolveStore($codeSourceStore),params.id);
+    }
 });
 
 export {
     SHOW_CODE_SOURCE_LIST,
     GET_CODE_SOURCE_LIST,
     createShowCodeSourceListAction,
-    createGetCodeSourceListAction 
+    createGetCodeSourceListAction
 };
 
 const ACTIONS = [

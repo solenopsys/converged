@@ -2,9 +2,10 @@ import React, { Suspense, useState, useEffect } from "react";
 import { ThemeProvider } from "converged-core";
 import { AuthProvider } from "./auth/AuthContext";
 import { createModulesServiceClient } from "./generated";
-import { MenuController, LocaleController, translateJson } from "converged-core";
+import {  LocaleController, translateJson } from "converged-core";
  import { createEvent } from "effector";
 import { SlotProvider, useSlotMount } from "converged-core";
+import { addMenuRequested } from "converged-core";
 
 export const $moduleLoadEvent = createEvent<string>();
 $moduleLoadEvent.watch((value) => {
@@ -18,8 +19,7 @@ import {
 	LoadedModule,
 	View,EventBusImpl
 } from "converged-core";
-
-const menuController = MenuController.getInstance();
+ 
 const localeController = LocaleController.getInstance();
 const modulesClient = createModulesServiceClient();
 
@@ -87,15 +87,14 @@ const App: React.FC = () => {
 					})
 				);
 
-				const map = bus.run("layout.mapping", {});
-				console.log("Layout mapping:", map);
+				// const map = bus.run("layout.mapping", {});
+				// console.log("Layout mapping:", map);
 
-				const SW = map["sidebar"];
-				console.log("Simple widget:", SW);
+			 
 
-				bus.run("layout.mount", { widget: SW, ctx: {} });
+				bus.run("layout.mount", { name: "sidebar"  });
 				bus.run("left.menu.mount", {  });
-				bus.run("dag.show_code_source_list", {});
+				bus.run("show_code_source_list", {});
 				//actions.run("incoming_mails.show", {});
 
 		 
@@ -148,7 +147,8 @@ const App: React.FC = () => {
 					};
 
 					const translatedMenu = translateJson(module.menu, t);
-					menuController.addMenu(module.id, translatedMenu);
+					addMenuRequested({microfrontendId: module.id, menu: translatedMenu});
+
 				}
 			}
 		} catch (error: any) {

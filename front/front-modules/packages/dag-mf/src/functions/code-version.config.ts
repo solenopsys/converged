@@ -23,11 +23,10 @@ sample({
     clock: getVersionsEvent,
     source: versionsStore,
     fn: (versions, params) => ({
-        bus: params.bus,
-        targetId: params.targetId,
+    
         data: versions
     }),
-    target: setBusData // предполагаю, что это импортируется откуда-то
+   // target: setBusData // предполагаю, что это импортируется откуда-то
 });
 
 const createCodeVersionsWidget: CreateWidget<typeof VersionsView> = () => ({

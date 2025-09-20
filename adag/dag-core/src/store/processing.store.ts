@@ -1,7 +1,7 @@
-import { LMWrapper } from "./utils/lmwrapper";
+import { LMWrapper } from "back-core";
 import { StringHash } from "dag-api";
-import { EntityAcessor } from "./utils/accessor";
-import { generateULID } from "./utils/utils";
+import { EntityAcessor } from "back-core";
+import { generateULID } from "back-core";
 
 const CONTEXT = "context";
 const EXECUTION = "execution";

@@ -1,2 +1,7 @@
 import { createDomain } from "effector";
-export default  createDomain('dag');
+const domain = createDomain('dag');
+import { createDomainLogger } from "converged-core";
+//logger
+createDomainLogger(domain);
+
+export default domain;

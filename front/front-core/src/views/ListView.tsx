@@ -1,14 +1,18 @@
 
 import SimpleList from "../components/ui/list/SimpleList";
-import { ViewProps } from "./types"; 
-
-export const ListView = (viewProps: ViewProps) => {
-    console.log("VIEW PROX",viewProps)
  
+import { useUnit } from "effector-react";
+import { Store } from "effector";
+
+export const ListView = (viewProps: {$items: Store<{id:string,title:string}[]>, title: string, onSelect: (id: string) => void}) => {
+   
+    const items = useUnit(viewProps.$items)
+    console.log("VIEW PROX",items)
+
     return (
         <div>
             <SimpleList
-              items={viewProps.items}
+              items={items}
               title={viewProps.title} 
               onSelect={viewProps.onSelect}
             />

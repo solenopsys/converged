@@ -19,7 +19,7 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
 import { Action } from "../plugin/types_actions";
-import { MenuItem } from "../controllers/menu-controller";
+import { MenuItem } from "../controllers/menu-store";
 
 export function NavMain({
   items,
@@ -33,7 +33,7 @@ export function NavMain({
 
   const handleItemClick = (action:Action<any, any>) => {
     console.log("handleItemClick", action);
-    onSelect?.(action.id)
+    onSelect?.(action)
   }
 
   return (

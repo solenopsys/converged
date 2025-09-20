@@ -29,7 +29,9 @@
     // Paths (если нужно)
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "dag-api": ["../dag-api/src/index.ts"],
+      "back-core": ["../back-core/src/index.ts"],
     }
   },
   "include": ["src/**/*", "../dag-api/src/tools/extract_params.ts"],

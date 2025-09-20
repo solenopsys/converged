@@ -1,35 +1,43 @@
-import { CreateAction, CreateWidget, ListView } from "converged-core";
-import {  sample } from "effector";
 import dagClient from "../service";
-import { createDataFlow } from "../helpers";
+import { ListView } from "converged-core";
+import { CreateAction, CreateWidget } from "converged-core";
+import { sample } from "effector";
 import domain from "../domain";
 
 const SHOW_PROVIDERS_LIST = "show_providers_list";
 const GET_PROVIDERS_LIST = "get_providers_list";
 
-const providerListFx =domain.createEffect<any, any>();
-const openProviderEvent =domain.createEvent<{ id: string }>();
-const getProvidersListEvent =domain.createEvent<any>();
+const $providersStore = domain.createStore<{ id: string, title: string }[]>([]);
+const openProviderEvent = domain.createEvent<{ id: string }>("OPEN_PROVIDER");
+const getProvidersListEvent = domain.createEvent<any>("GET_PROVIDERS_LIST");
 
-sample({ clock: openProviderEvent, target: providerListFx });
-sample({ clock: getProvidersListEvent, target: providerListFx });
+export const providerListFx = domain.createEffect({
+    name: "PROVIDER_LIST",
+    handler: () => dagClient.providerList() // возвращает массив строк    
+});
 
-export const getProvidersListRequest = createDataFlow(
-    () => dagClient.providerList(),
-    (names) => names.map((name: string) => ({ id: name, title: name }))
-);
+sample({
+    clock: getProvidersListEvent,          // когда срабатывает запрос
+    filter: $providersStore.map(items => items.length === 0),
+    target: providerListFx,       // запускаем эффект
+});
+
+sample({
+    clock: providerListFx.doneData,
+    fn: (data) => {
+        console.log('providerListFx result:', data); // проверьте структуру
+        return data.names.map(name => ({ id: name, title: name }));
+    }, 
+    target: $providersStore,
+});
 
 const createProvidersListWidget: CreateWidget<typeof ListView> = () => ({
     view: ListView,
-    placement: () => "center",
-    mount: async () => {
-        const data = await providerListFx();
-        console.log("PROVIDERS LIST", data);
-        return {
-            items: data || [],
-            title: "Providers"
-        }
+    config: {
+        $items: $providersStore,
+        title: "Providers"
     },
+    placement: () => "center",
     commands: {
         onSelect: (id) => {
             console.log("SELECT", id);
@@ -42,26 +50,30 @@ const createShowProvidersListAction: CreateAction<any> = (bus) => ({
     id: SHOW_PROVIDERS_LIST,
     description: "Show providers list",
     invoke: () => {
+        getProvidersListEvent();
         bus.present(createProvidersListWidget(bus));
     }
 });
 
-const createGetProvidersListAction: CreateAction<any> = (bus) => ({
+const createGetProvidersListAction: CreateAction<any> = (bus) => ({ // tut nuzhno kuda vozvrashchat'
     id: GET_PROVIDERS_LIST,
     description: "Get providers list",
-    invoke: (params) => getProvidersListRequest({ ...params, bus })
+    invoke: (params) => {
+        getProvidersListEvent({ ...params, bus });
+        //  bus.respond(resolveStore($providersStore),params.id);
+    }
 });
-
-const ACTIONS = [
-    createShowProvidersListAction,
-    createGetProvidersListAction
-];
 
 export {
     SHOW_PROVIDERS_LIST,
     GET_PROVIDERS_LIST,
     createShowProvidersListAction,
-    createGetProvidersListAction,  
+    createGetProvidersListAction
 };
+
+const ACTIONS = [
+    createShowProvidersListAction,
+    createGetProvidersListAction
+];
 
 export default ACTIONS;

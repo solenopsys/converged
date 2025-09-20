@@ -1,19 +1,19 @@
 import { Plugin } from "../controllers/types";
-import { type EventBus } from "../controllers/bus";
+import { type ActionRegistry } from "../controllers/types";
 
 export class BasePlugin implements Plugin {
-    bus: EventBus;
+    bus: ActionRegistry;
     
 
     constructor(public name: string,private actions: any[]){}
 
-    plug(bus: EventBus){
+    plug(bus: ActionRegistry){
         this.bus = bus;
-        this.actions.forEach(action => bus.registerAction(action(bus)));
+        this.actions.forEach(action => bus.register(action(bus)));
     }
 
     unplug(): void {
-        this.actions.forEach(action => this.bus.unregisterAction(action(this.bus)));
+        this.actions.forEach(action => this.bus.register(action(this.bus)));
     }
     
 }
