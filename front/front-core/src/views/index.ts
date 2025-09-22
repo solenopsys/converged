@@ -1,3 +1,3 @@
 export { ListView } from "./ListView";
-export { TableView } from "./TableView";
+export * from "./TableView";
 export { MenuView } from "./MenuView";

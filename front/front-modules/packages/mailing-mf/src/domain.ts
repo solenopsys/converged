@@ -1,2 +1,6 @@
+import { createDomainLogger } from "converged-core";
 import { createDomain } from "effector";
-export default  createDomain('mailing');
+const domain =createDomain('mailing');
+//logger
+createDomainLogger(domain);
+export default domain;

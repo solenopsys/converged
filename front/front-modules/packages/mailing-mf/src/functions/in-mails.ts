@@ -1,7 +1,7 @@
 import { TableView } from "converged-core";
 import MailDetail from "../components/MailDetail";
 import mailingService from "../service";
-import { COLUMN_TYPES, CreateWidget, CreateAction, present } from 'converged-core';
+import { COLUMN_TYPES, CreateWidget, CreateAction, createTableStore } from 'converged-core';
 import { sample } from "effector";
 import domain from "../domain";
 import { incomingColumns } from "./columns";
@@ -15,13 +15,13 @@ const SHOW_MAIL_DETAIL = "mail_detail.show";
 
 
 // Effects and Events
-const listInMailsFx = domain.createEffect<PaginationParams, PaginatedResult<Mail>>(mailingService.listInMails);
-const listWarmMailsFx = domain.createEffect<PaginationParams, PaginatedResult<Mail>>(mailingService.listWarmMails);
-const getMailFx = domain.createEffect<string, object>(mailingService.getMail);
+const listInMailsFx = domain.createEffect<PaginationParams, PaginatedResult<Mail>>({name:'LIST_IN_MAILS', handler: mailingService.listInMails});
+const listWarmMailsFx = domain.createEffect<PaginationParams, PaginatedResult<Mail>>({name:'LIST_WARM_MAILS', handler: mailingService.listWarmMails});
+const getMailFx = domain.createEffect<string, object>({name:'GET_MAIL', handler: mailingService.getMail});
 
-const openMailDetail = domain.createEvent<{ mailid: string }>();
-const getIncomingMailsEvent = domain.createEvent<{ offset?: number; limit?: number }>();
-const getWarmMailsEvent = domain.createEvent<{ offset?: number; limit?: number }>();
+const openMailDetail = domain.createEvent<{ mailid: string }>('OPEN_MAIL_DETAIL');
+const getIncomingMailsEvent = domain.createEvent<{ offset?: number; limit?: number }>('GET_INCOMING_MAILS_EVENT');
+const getWarmMailsEvent = domain.createEvent<{ offset?: number; limit?: number }>('GET_WARM_MAILS_EVENT');
 
 sample({ clock: openMailDetail, target: getMailFx });
 sample({ clock: getIncomingMailsEvent, target: listInMailsFx });
@@ -36,19 +36,19 @@ const warmMailDataFunction = async (params: PaginationParams) => {
     return await mailingService.listWarmMails(params);
 };
 
+const $inMailStore = createTableStore(domain, inMailDataFunction);
+const $warmMailStore = createTableStore(domain, warmMailDataFunction);
+
 const createIncomingMailsWidget: CreateWidget<typeof TableView> = (bus) => ({
     view: TableView,
     placement: () => "center",
     config: {
         columns: incomingColumns, // предполагаю, что это импортируется
         title: "Incoming Mails",
-        dataFunction: inMailDataFunction,
-        basePath: "/incoming",
-        detailPath: "/mailing/incoming",
+        store: $inMailStore,
         defaultPageSize: 20,
         pageSizeOptions: [10, 20, 50, 100]
-    },
-    mount: () => {},
+    }, 
     commands: {
         onRowClick: (row: { id: number }) => {
             const mailid = row.id;
@@ -64,13 +64,11 @@ const createWarmMailsWidget: CreateWidget<typeof TableView> = (bus) => ({
     config: {
         columns: incomingColumns, // предполагаю, что это импортируется
         title: "Warm Mails",
-        dataFunction: warmMailDataFunction,
-        basePath: "/warm",
-        detailPath: "/mailing/warm",
+        store: $warmMailStore,
+        
         defaultPageSize: 20,
         pageSizeOptions: [10, 20, 50, 100]
-    },
-    mount: () => {},
+    }, 
     commands: {
         onRowClick: (row: { id: number }) => {
             const mailid = row.id;
@@ -106,6 +104,7 @@ const createGetIncomingMailsAction: CreateAction<any> = () => ({
     id: GET_INCOMING_MAILS,
     description: "Get incoming mails list",
     invoke: async ({ offset = 0, limit = 20 }) => {
+        getIncomingMailsEvent({ offset, limit });
         return await mailingService.listInMails({ offset, limit });
     }
 });
@@ -114,6 +113,7 @@ const createShowIncomingMailsAction: CreateAction<any> = (bus) => ({
     id: SHOW_INCOMING_MAILS,
     description: "Show incoming mails list",
     invoke: () => {
+        getIncomingMailsEvent({ offset: 0, limit: 20 });
         bus.present(createIncomingMailsWidget(bus));
     }
 });
@@ -122,6 +122,7 @@ const createGetWarmMailsAction: CreateAction<any> = () => ({
     id: GET_WARM_MAILS,
     description: "Get warm mails list",
     invoke: async ({ offset = 0, limit = 20 }) => {
+        getWarmMailsEvent({ offset, limit });
         return await mailingService.listWarmMails({ offset, limit });
     }
 });
@@ -130,6 +131,7 @@ const createShowWarmMailsAction: CreateAction<any> = (bus) => ({
     id: SHOW_WARM_MAILS,
     description: "Show warm mails list",
     invoke: () => {
+        getWarmMailsEvent({ offset: 0, limit: 20 });
         bus.present(createWarmMailsWidget(bus));
     }
 });

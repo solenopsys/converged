@@ -4,6 +4,7 @@ import mailingService from "../service";
 import { COLUMN_TYPES, CreateWidget, CreateAction, present } from 'converged-core';
 import { sample } from "effector";
 import { outgoingColumns } from "./columns";
+import { createTableStore } from "converged-core";
 import domain from "../domain";
 
 const GET_OUTGOING_MAILS = "outgoing_mails.get";
@@ -31,12 +32,13 @@ export interface OutMail {
 }
 
 // Effects and Events
-const listOutMailsFx = domain.createEffect<PaginationParams, PaginatedResult<OutMail>>(mailingService.listOutMails);
-const sendMailFx = domain.createEffect<any, void>(mailingService.sendMail);
+// Effects and Events
+const listOutMailsFx = domain.createEffect<PaginationParams, PaginatedResult<OutMail>>({name:'LIST_OUT_MAILS', handler: mailingService.listOutMails});
+const sendMailFx = domain.createEffect<any, void>({name:'SEND_MAIL', handler: mailingService.sendMail});
 
-const openMailDetail = domain.createEvent<{ mailid: string }>();
-const sendMailEvent = domain.createEvent<{ mail: any }>();
-const getOutgoingMailsEvent = domain.createEvent<{ offset?: number; limit?: number }>();
+const openMailDetail = domain.createEvent<{ mailid: string }>('OPEN_MAIL_DETAIL_EVENT');
+const sendMailEvent = domain.createEvent<{ mail: any }>('SEND_MAIL_EVENT');
+const getOutgoingMailsEvent = domain.createEvent<{ offset?: number; limit?: number }>('GET_OUTGOING_MAILS_EVENT');
 
 sample({ clock: sendMailEvent, target: sendMailFx });
 sample({ clock: getOutgoingMailsEvent, target: listOutMailsFx });
@@ -46,19 +48,18 @@ const outMailDataFunction = async (params: PaginationParams) => {
     return await mailingService.listOutMails(params);
 };
 
+const $outMailStore = createTableStore(domain, outMailDataFunction);
+ 
 const createOutgoingMailsWidget: CreateWidget<typeof TableView> = () => ({
     view: TableView,
     placement: () => "center",
     config: {
         columns: outgoingColumns,
         title: "Outgoing Mails",
-        dataFunction: outMailDataFunction,
-        basePath: "/outgoing",
-        detailPath: "/mailing/outgoing",
+        store: $outMailStore, 
         defaultPageSize: 20,
         pageSizeOptions: [10, 20, 50, 100]
-    },
-    mount: () => {},
+    }, 
     commands: {
         refresh: () => {
             // TableView будет обновлять данные автоматически при изменении параметров
@@ -69,9 +70,7 @@ const createOutgoingMailsWidget: CreateWidget<typeof TableView> = () => ({
 const createSendMailFormWidget: CreateWidget<typeof MailForm> = () => ({
     view: MailForm,
     placement: () => "center", // todo "right"
-    mount: () => {
-        // Инициализация формы
-    },
+  
     commands: {
         sendMail: (mail) => {
             sendMailFx(mail);

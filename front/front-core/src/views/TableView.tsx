@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { ViewProps } from "./types"; 
- 
-import { useMicrofrontendTranslation } from '@/hooks/global_i18n';
+import React, { useEffect } from 'react';
+import { useUnit } from 'effector-react';
+import { sample } from 'effector';
 
 import { UniversalDataTable } from '../components/ui';
 
@@ -11,116 +10,170 @@ import {
   SidebarTrigger
 } from "@/components/ui/sidebar";
 
+// Простая фабрика для создания table store в одну строчку
+export const createTableStore = (domain, dataFunction) => {
+  const loadDataFx = domain.createEffect({
+    name: 'LOAD_DATA', 
+    handler: async (params) => {
+      console.log('loadDataFx params:', params); // Для отладки
+      
+      const { page = 1, pageSize = 20, sortBy, sortDirection, ...filters } = params || {};
+      const offset = (page - 1) * pageSize;
+      
+      try {
+        const result = await dataFunction({
+          limit: pageSize,
+          offset,
+          ...(sortBy && { sortBy, sortDirection }),
+          ...filters
+        });
+        
+        console.log('loadDataFx result:', result); // Для отладки
+        return result || { items: [], totalCount: 0 };
+      } catch (error) {
+        console.error('loadDataFx error:', error);
+        throw error;
+      }
+    }
+  });
+
+  const loadData = domain.createEvent('LOAD_DATA_EVENT');
+  const setPage = domain.createEvent('SET_PAGE_EVENT');
+  const setPageSize = domain.createEvent('SET_PAGE_SIZE_EVENT');
+  const setSort = domain.createEvent('SET_SORT_EVENT');
+  const reset = domain.createEvent('RESET_EVENT');
+
+  const $state = domain.createStore({
+    items: [],
+    totalCount: 0,
+    loading: false,
+    error: null,
+    currentPage: 1,
+    pageSize: 20,
+    sortConfig: { key: null, direction: 'asc' }
+  })
+    .on(setPage, (state, page) => ({ ...state, currentPage: page }))
+    .on(setPageSize, (state, pageSize) => ({ ...state, pageSize, currentPage: 1 }))
+    .on(setSort, (state, sortConfig) => ({ ...state, sortConfig, currentPage: 1 }))
+    .on(loadDataFx.pending, (state, loading) => ({ ...state, loading }))
+    .on(loadDataFx.doneData, (state, { items, totalCount }) => {
+      console.log('Store updated with:', { items, totalCount }); // Для отладки
+      return {
+        ...state, 
+        items: items || [], 
+        totalCount: totalCount || 0, 
+        error: null
+      };
+    })
+    .on(loadDataFx.failData, (state, error) => {
+      console.error('Store error:', error); // Для отладки
+      return {
+        ...state, 
+        error: error.message, 
+        items: [], 
+        totalCount: 0
+      };
+    })
+    .on(reset, () => ({
+      items: [], totalCount: 0, loading: false, error: null,
+      currentPage: 1, pageSize: 20, sortConfig: { key: null, direction: 'asc' }
+    }));
+
+  // Связываем события с эффектом
+  sample({ 
+    clock: loadData, 
+    source: $state,
+    fn: (state, params) => ({
+      page: state.currentPage,
+      pageSize: state.pageSize,
+      sortBy: state.sortConfig.key,
+      sortDirection: state.sortConfig.direction,
+      ...params
+    }),
+    target: loadDataFx 
+  });
+
+  return { $state, loadData, setPage, setPageSize, setSort, reset, loadDataFx };
+};
+
 const TableView = ({
+  store,
   columns,
   title,
-  dataFunction,
   onRowClick,
   onSidebarStateChange,
   SidebarComponent = null,
   sidebarProps = {},
   isSidebarOpen = false,
-  defaultPageSize = 20,
-  pageSizeOptions = [10, 20, 50, 100]
-}: ViewProps) => {
-  console.log("TABLE VIEW init")
+  pageSizeOptions = [10, 20, 50, 100],
+  filters = {}
+}) => {
+  const { items, totalCount, loading, error, currentPage, pageSize, sortConfig } = useUnit(store.$state);
+  const { loadData, setPage, setPageSize, setSort } = useUnit(store);
 
-  const [data, setData] = useState({ items: [], totalCount: 0 });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  
-  // Состояние пагинации
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(defaultPageSize);
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
-
-  // Функция загрузки данных
-  const fetchData = async (page = currentPage, size = pageSize, sort = sortConfig) => {
-    try {
-      console.log("TABLE VIEW start load data")
-      setLoading(true);
-      setError(null);
-              
-      // Проверяем, что dataFunction действительно функция
-      if (typeof dataFunction !== 'function') {
-        throw new Error('dataFunction должен быть функцией');
-      }
-      
-      // Вычисляем offset для API
-      const offset = (page - 1) * size;
-      
-      // Подготавливаем параметры для запроса
-      const params = {
-        limit: size,
-        offset: offset
-      };
-      
-      // Добавляем сортировку если есть
-      if (sort.key) {
-        params.sortBy = sort.key;
-        params.sortDirection = sort.direction;
-      }
-              
-      const result = await dataFunction(params);
-      setData(result || { items: [], totalCount: 0 });
-    } catch (err) {
-      console.error('Ошибка при загрузке данных:', err);
-      setError(err.message || 'Ошибка загрузки данных');
-      setData({ items: [], totalCount: 0 });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Загружаем данные при изменении параметров
+  // Добавляем начальную загрузку данных
   useEffect(() => {
-    console.log("TABLE VIEW useEffect",dataFunction)
-    if (dataFunction) {
-      console.log("TABLE VIEW fetchData")
-      fetchData(currentPage, pageSize, sortConfig);
-    }
-  }, [dataFunction, currentPage, pageSize, sortConfig]);
+    console.log('TableView mounted/updated, loading initial data for this store...');
+    // стартуем с первой страницы для нового store
+    loadData({ page: 1, pageSize, ...filters });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadData, pageSize, JSON.stringify(filters)]);
+  
 
-  // Функция для обработки клика по строке
-  const handleRowClick = (row) => {
-    console.log('Row clicked:', row);
-    if (onRowClick) {
-      onRowClick(row);
+  // Перезагружаем данные при изменении фильтров
+  useEffect(() => {
+    if (Object.keys(filters).length > 0) {
+      console.log('Filters changed, reloading data...', filters); // Для отладки
+      loadData({ 
+        page: 1, 
+        pageSize, 
+        ...filters 
+      });
     }
-  };
+  }, [JSON.stringify(filters)]); // Следим за изменениями фильтров
 
-  // Обработчик изменения страницы
   const handlePageChange = (page) => {
-    setCurrentPage(page);
+    setPage(page);
+    loadData({ 
+      page, 
+      pageSize, 
+      ...(sortConfig.key && { sortBy: sortConfig.key, sortDirection: sortConfig.direction }), 
+      ...filters 
+    });
   };
 
-  // Обработчик изменения размера страницы
   const handlePageSizeChange = (newPageSize) => {
     setPageSize(newPageSize);
-    setCurrentPage(1); // Сбрасываем на первую страницу
+    loadData({ 
+      page: 1, 
+      pageSize: newPageSize, 
+      ...(sortConfig.key && { sortBy: sortConfig.key, sortDirection: sortConfig.direction }), 
+      ...filters 
+    });
   };
 
-  // Обработчик сортировки
   const handleSort = (columnId, direction) => {
-    setSortConfig({ key: columnId, direction });
-    setCurrentPage(1); // Сбрасываем на первую страницу при сортировке
+    const newSort = { key: columnId, direction };
+    setSort(newSort);
+    loadData({ 
+      page: 1, 
+      pageSize, 
+      sortBy: columnId, 
+      sortDirection: direction, 
+      ...filters 
+    });
   };
 
-  // Обработчик изменения состояния сайдбара
-  const handleSidebarToggle = () => {
-    if (onSidebarStateChange) {
-      onSidebarStateChange(!isSidebarOpen);
-    }
-  };
+  // Добавляем больше информации для отладки
+  console.log('TableView render:', { 
+    items: items?.length, 
+    totalCount, 
+    loading, 
+    error, 
+    currentPage, 
+    pageSize 
+  });
 
-  // Провайдер данных для таблицы
-  const dataProvider = useMemo(() => {
-    return () => {
-      return data?.items || [];
-    };
-  }, [data]);
-
-  if (loading && currentPage === 1) return <div>Загрузка...</div>;
   if (error) return <div>Ошибка: {error}</div>;
 
   return (
@@ -131,7 +184,7 @@ const TableView = ({
           {isSidebarOpen && SidebarComponent && (
             <SidebarTrigger 
               className="-mr-1 ml-auto rotate-180"
-              onClick={handleSidebarToggle}
+              onClick={() => onSidebarStateChange?.(!isSidebarOpen)}
             />
           )}
         </header>
@@ -140,12 +193,12 @@ const TableView = ({
           <div className="h-full">
             <UniversalDataTable
               columns={columns}
-              dataProvider={dataProvider}
-              onRowClick={handleRowClick}
-              serverSide={true}
-              totalItems={data.totalCount}
+              data={items || []} // Убеждаемся, что передаем массив
+              totalItems={totalCount || 0}
               currentPage={currentPage}
               pageSize={pageSize}
+              sortConfig={sortConfig}
+              onRowClick={onRowClick}
               onPageChange={handlePageChange}
               onPageSizeChange={handlePageSizeChange}
               onSort={handleSort}

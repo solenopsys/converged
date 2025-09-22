@@ -1,10 +1,10 @@
-import { Elysia } from 'elysia'
+import { HttpApp } from 'back-core'
 
 export interface TestPluginOptions {
   prefix?: string
 }
 
-export const testPlugin = (opts: TestPluginOptions = {}) => (app: Elysia) => {
+export const testPlugin = (opts: TestPluginOptions = {}) => (app: HttpApp) => {
   const prefix = opts.prefix ?? '/test'
   
   console.log(`🔌 Test plugin starting with prefix: ${prefix}`)

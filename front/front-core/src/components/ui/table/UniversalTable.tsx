@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Check, X, ChevronDown, ChevronUp, MoreHorizontal, Settings, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {SideMenu} from "../SideMenu";
@@ -330,145 +330,99 @@ const Pagination = ({
   );
 };
 
-
-
 // Основной компонент таблицы
 export const UniversalDataTable = ({ 
   columns = [], 
-  dataProvider,
+  data = [], // Массив строк для отображения
+  totalItems = 0, // Общее количество элементов (для пагинации)
+  currentPage = 1,
+  pageSize = 20,
+  sortConfig = { key: null, direction: 'asc' }, // Текущая конфигурация сортировки
+  loading = false,
+  // События
+  onSort, // (columnId, direction) => void
+  onPageChange, // (page) => void
+  onPageSizeChange, // (pageSize) => void
+  onRowAction, // (actionId, rowData) => void
+  onRowClick, // (rowData) => void
+  onBulkAction, // (actionId, selectedData, selectedIds) => void
+  onSelectionChange, // (selectedIds, selectedData) => void
+  // Настройки UI
   bulkActions = [],
-  onRowAction,
-  onRowClick, 
-  onBulkAction,
   sortable = true,
   selectable = true,
+  pagination = true,
   sideMenuTitle,
   className = "",
   emptyMessage = "Данные не найдены",
-  // Параметры пагинации
-  pagination = true,
-  // Новые пропсы для серверной пагинации
-  serverSide = false,
-  totalItems = 0,
-  currentPage = 1,
-  pageSize = 20,
-  onPageChange,
-  onPageSizeChange,
-  onSort,
-  loading = false,
   pageSizeOptions = [10, 20, 50, 100]
 }) => {
   const [selectedRows, setSelectedRows] = useState([]);
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [sideMenuOpen, setSideMenuOpen] = useState(false);
-  
-  // Состояние пагинации только для клиентской пагинации
-  const [clientCurrentPage, setClientCurrentPage] = useState(1);
-  const [clientPageSize, setClientPageSize] = useState(pageSize);
-
-  // Получение данных только через dataProvider
-  const allData = useMemo(() => {
-    if (!dataProvider || typeof dataProvider !== 'function') {
-      return [];
-    }
-    return dataProvider(serverSide ? null : sortConfig);
-  }, [dataProvider, serverSide ? null : sortConfig]);
-
-  // Данные для отображения
-  const displayData = useMemo(() => {
-    if (serverSide) {
-      // При серверной пагинации просто возвращаем полученные данные
-      return allData;
-    }
-    
-    // При клиентской пагинации делаем пагинацию на фронте
-    if (!pagination) return allData;
-    
-    const startIndex = (clientCurrentPage - 1) * clientPageSize;
-    const endIndex = startIndex + clientPageSize;
-    return allData.slice(startIndex, endIndex);
-  }, [allData, serverSide, pagination, clientCurrentPage, clientPageSize]);
 
   // Подсчет общего количества страниц
-  const totalPages = useMemo(() => {
-    if (serverSide) {
-      return Math.ceil(totalItems / pageSize);
-    }
-    return Math.ceil(allData.length / clientPageSize);
-  }, [serverSide, totalItems, pageSize, allData.length, clientPageSize]);
-
-  // Текущие значения пагинации
-  const paginationCurrentPage = serverSide ? currentPage : clientCurrentPage;
-  const paginationPageSize = serverSide ? pageSize : clientPageSize;
-  const paginationTotalItems = serverSide ? totalItems : allData.length;
+  const totalPages = Math.ceil(totalItems / pageSize);
 
   // Обработчики
   const handleSort = useCallback((columnId) => {
-    if (!sortable) return;
+    if (!sortable || !onSort) return;
     
-    if (serverSide && onSort) {
-      // Для серверной сортировки вызываем колбек
-      const newDirection = sortConfig.key === columnId && sortConfig.direction === 'asc' ? 'desc' : 'asc';
-      setSortConfig({ key: columnId, direction: newDirection });
-      onSort(columnId, newDirection);
-    } else {
-      // Для клиентской сортировки обновляем локальное состояние
-      setSortConfig(prev => ({
-        key: columnId,
-        direction: prev.key === columnId && prev.direction === 'asc' ? 'desc' : 'asc'
-      }));
-      
-      if (serverSide) {
-        // Сбрасываем на первую страницу при сортировке
-        onPageChange && onPageChange(1);
-      } else {
-        setClientCurrentPage(1);
-      }
-    }
-  }, [sortable, serverSide, onSort, sortConfig, onPageChange]);
+    const newDirection = sortConfig.key === columnId && sortConfig.direction === 'asc' ? 'desc' : 'asc';
+    onSort(columnId, newDirection);
+  }, [sortable, onSort, sortConfig]);
 
   const handleSelectAll = useCallback((checked) => {
-    setSelectedRows(checked ? displayData.map((item, index) => item.id || index) : []);
-  }, [displayData]);
+    const newSelection = checked ? data.map((item, index) => item.id || index) : [];
+    setSelectedRows(newSelection);
+    
+    if (onSelectionChange) {
+      const selectedData = checked ? data : [];
+      onSelectionChange(newSelection, selectedData);
+    }
+  }, [data, onSelectionChange]);
 
   const handleSelectRow = useCallback((rowId, checked) => {
-    setSelectedRows(prev =>
-      checked ? [...prev, rowId] : prev.filter(id => id !== rowId)
-    );
-  }, []);
+    const newSelection = checked 
+      ? [...selectedRows, rowId] 
+      : selectedRows.filter(id => id !== rowId);
+    
+    setSelectedRows(newSelection);
+    
+    if (onSelectionChange) {
+      const selectedData = data.filter((item, index) => 
+        newSelection.includes(item.id || index)
+      );
+      onSelectionChange(newSelection, selectedData);
+    }
+  }, [selectedRows, data, onSelectionChange]);
 
   const handleBulkActionClick = useCallback((actionId, selectedIds) => {
     if (onBulkAction) {
-      const selectedData = allData.filter((item, index) => 
+      const selectedData = data.filter((item, index) => 
         selectedIds.includes(item.id || index)
       );
       onBulkAction(actionId, selectedData, selectedIds);
     }
     setSelectedRows([]);
     setSideMenuOpen(false);
-  }, [onBulkAction, allData]);
+  }, [onBulkAction, data]);
 
-  const handlePageChangeInternal = useCallback((page) => {
-    if (serverSide && onPageChange) {
+  const handlePageChange = useCallback((page) => {
+    if (onPageChange) {
       onPageChange(page);
-    } else {
-      setClientCurrentPage(page);
     }
     setSelectedRows([]); // Сбрасываем выбор при смене страницы
-  }, [serverSide, onPageChange]);
+  }, [onPageChange]);
 
-  const handlePageSizeChangeInternal = useCallback((newPageSize) => {
-    if (serverSide && onPageSizeChange) {
+  const handlePageSizeChange = useCallback((newPageSize) => {
+    if (onPageSizeChange) {
       onPageSizeChange(newPageSize);
-    } else {
-      setClientPageSize(newPageSize);
-      setClientCurrentPage(1); // Сбрасываем на первую страницу
     }
     setSelectedRows([]); // Сбрасываем выбор
-  }, [serverSide, onPageSizeChange]);
+  }, [onPageSizeChange]);
 
-  const isAllSelected = selectedRows.length === displayData.length && displayData.length > 0;
-  const isIndeterminate = selectedRows.length > 0 && selectedRows.length < displayData.length;
+  const isAllSelected = selectedRows.length === data.length && data.length > 0;
+  const isIndeterminate = selectedRows.length > 0 && selectedRows.length < data.length;
 
   return (
     <div className={cn("w-full h-full bg-background relative flex flex-col", className)}>
@@ -476,11 +430,14 @@ export const UniversalDataTable = ({
       {selectedRows.length > 0 && (
         <div className="px-6 py-3 bg-muted border-b flex items-center justify-between flex-shrink-0">
           <span className="text-sm font-medium">
-            Выбрано: {selectedRows.length} из {displayData.length}
+            Выбрано: {selectedRows.length} из {data.length}
           </span>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setSelectedRows([])}
+              onClick={() => {
+                setSelectedRows([]);
+                onSelectionChange?.([], []);
+              }}
               className="text-sm text-primary hover:text-primary/80 font-medium"
             >
               Снять выделение
@@ -533,7 +490,7 @@ export const UniversalDataTable = ({
                         maxWidth: column.maxWidth || 'auto'
                       }}
                     >
-                      {column.sortable !== false && sortable ? (
+                      {column.sortable !== false && sortable && onSort ? (
                         <button
                           onClick={() => handleSort(column.id)}
                           className="flex items-center gap-1 hover:text-foreground transition-colors group w-full text-left"
@@ -567,7 +524,7 @@ export const UniversalDataTable = ({
               </thead>
               
               <tbody className="[&_tr:last-child]:border-0">
-                {displayData.map((row, index) => {
+                {data.map((row, index) => {
                   const rowId = row.id || index;
                   const isSelected = selectedRows.includes(rowId);
                   
@@ -606,7 +563,7 @@ export const UniversalDataTable = ({
             </table>
           )}
           
-          {!loading && displayData.length === 0 && (
+          {!loading && data.length === 0 && (
             <div className="flex h-24 w-full items-center justify-center">
               <p className="text-muted-foreground">{emptyMessage}</p>
             </div>
@@ -615,14 +572,14 @@ export const UniversalDataTable = ({
       </div>
 
       {/* Pagination */}
-      {pagination && paginationTotalItems > 0 && (
+      {pagination && totalItems > 0 && onPageChange && (
         <Pagination
-          currentPage={paginationCurrentPage}
+          currentPage={currentPage}
           totalPages={totalPages}
-          pageSize={paginationPageSize}
-          totalItems={paginationTotalItems}
-          onPageChange={handlePageChangeInternal}
-          onPageSizeChange={handlePageSizeChangeInternal}
+          pageSize={pageSize}
+          totalItems={totalItems}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
           pageSizeOptions={pageSizeOptions}
         />
       )}

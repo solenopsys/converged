@@ -5,21 +5,26 @@ import { sample } from "effector";
 import { PaginationParams } from "converged-core";
 import { credentialsColumns } from "./columns";
 import domain from "../domain";
+import { createTableStore } from "converged-core";
 
 const GET_CREDENTIALS = "credentials.get";
 const SHOW_CREDENTIALS = "credentials.show";
 const SHOW_CREDENTIAL_DETAIL = "credential_detail.show";
+const listCredentialsFx = domain.createEffect<PaginationParams, any>({name:'LIST_CREDENTIALS', handler: async (params: PaginationParams) => {
+  return await mailingService.listCredentials(params);
+}});
 
-const listCredentialsFx = domain.createEffect<PaginationParams, any>(async (params: PaginationParams) => {
-    return await mailingService.listCredentials(params);
-});
-
-const openCredentialDetailFx = domain.createEffect<any, any>();
-const openCredentialDetail = domain.createEvent<{ credentialId: string }>();
-const listCredentialsRequest = domain.createEvent<{ page?: number; after?: string }>();
+const openCredentialDetailFx = domain.createEffect<any, any>({name:'OPEN_CREDENTIAL_DETAIL', handler: async (params: any) => {
+  return await mailingService.openCredentialDetail(params);
+}});
+const openCredentialDetail = domain.createEvent<{ credentialId: string }>('OPEN_CREDENTIAL_DETAIL_EVENT');
+const listCredentialsRequest = domain.createEvent<{ page?: number; after?: string }>('LIST_CREDENTIALS_REQUEST_EVENT');
 
 sample({ clock: openCredentialDetail, target: openCredentialDetailFx });
 sample({ clock: listCredentialsRequest, target: listCredentialsFx });
+
+const $outMailStore = createTableStore(domain, listCredentialsFx);
+
 
 const createCredentialsWidget: CreateWidget<typeof TableView> = () => ({
   view: TableView,
@@ -27,13 +32,10 @@ const createCredentialsWidget: CreateWidget<typeof TableView> = () => ({
   config: { 
     columns: credentialsColumns,
     title: "Users",
-    dataFunction: listCredentialsFx,
-    basePath: "/incoming",
-    detailPath: "/mailing/incoming",
+    store:  $outMailStore, 
     defaultPageSize: 20,
     pageSizeOptions: [10, 20, 50, 100]
-   },
-  mount: () => {},
+   }, 
   commands: {
     rowClick: ({ id }) => openCredentialDetail({ credentialId: id }),
     loadPage: ({ page, after }) => listCredentialsRequest({ page, after })
@@ -43,13 +45,14 @@ const createCredentialsWidget: CreateWidget<typeof TableView> = () => ({
 const createGetCredentialsAction: CreateAction<any> = () => ({
   id: GET_CREDENTIALS,
   description: "Get credentials list",
-  invoke: ({ page, after }) => listCredentialsRequest({ page, after })
+  invoke: ({ page, after }) =>  { listCredentialsRequest({ page, after })}
 });
 
 const createShowCredentialsAction: CreateAction<any> = (bus) => ({
   id: SHOW_CREDENTIALS,
   description: "Show credentials list",
   invoke: () => {
+    listCredentialsRequest({ page: 1, after: "" });
     bus.present(createCredentialsWidget(bus));
   }
 });

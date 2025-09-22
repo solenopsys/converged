@@ -1,0 +1,10 @@
+{
+	"name": "threads-ms",
+	"scripts": {
+		"bld": "bun run ../../node_modules/builders/src/build-backend.ts ./src/index.ts  ../../../../types/mailing.ts ./dist/ ",
+		"bldu": "bun run bld --upload"
+	},
+	"devDependencies": {
+		"bun-types": "latest"
+	}
+}
