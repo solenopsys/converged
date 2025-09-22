@@ -51,7 +51,7 @@ const createShowProvidersListAction: CreateAction<any> = (bus) => ({
     description: "Show providers list",
     invoke: () => {
         getProvidersListEvent();
-        bus.present(createProvidersListWidget(bus));
+        bus.present({ widget: createProvidersListWidget(bus) });
     }
 });
 

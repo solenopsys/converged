@@ -21,7 +21,7 @@ const createShowSocialLoginAction: CreateAction<any> = (bus) => ({
     id: SHOW_SOCIAL,
     description: "Show social login",
     invoke: () => {
-        bus.present(createSocialsWidget(bus));
+        bus.present({ widget: createSocialsWidget(bus) });
     }
 });
 

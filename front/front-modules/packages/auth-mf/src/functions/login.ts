@@ -22,7 +22,7 @@ const createShowLoginAction: CreateAction<any> = (bus) => ({
     id: SHOW_LOGIN,
     description: "Show login form",
     invoke: () => {
-        bus.present(createLoginWidget(bus));
+        bus.present({ widget: createLoginWidget(bus) });
     }
 });
 

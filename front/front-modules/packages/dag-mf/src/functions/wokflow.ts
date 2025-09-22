@@ -98,7 +98,7 @@ const createShowWorkflowsDetailAction: CreateAction<any> = (bus) => ({
     id: SHOW_WORKFLOW,
     description: "Show workflow",
     invoke: () => {
-        bus.present(createWorkflowsDetailWidget(bus));
+        bus.present({ widget: createWorkflowsDetailWidget(bus) });
     }
 });
 
@@ -107,7 +107,7 @@ const createShowWorkflowsListAction: CreateAction<any> = (bus) => ({
     description: "Show workflows list",
     invoke: () => {
         getWorkflowsListEvent();
-        bus.present(createWorkflowsListWidget(bus));
+        bus.present({ widget: createWorkflowsListWidget(bus) });
     }
 });
 
@@ -125,7 +125,7 @@ const createShowWorkflowsStatisticAction: CreateAction<any> = (bus) => ({
     description: "Show workflows statistic",
     invoke: () => {
         getWorkflowsStatEvent();
-        bus.present(createWorkflowsStatisticWidget(bus));
+        bus.present({ widget: createWorkflowsStatisticWidget(bus) });
     }
 });
 

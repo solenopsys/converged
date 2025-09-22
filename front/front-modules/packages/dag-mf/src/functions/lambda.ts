@@ -36,7 +36,7 @@ const createShowLambdaAction: CreateAction<any> = (bus) => ({
     id: SHOW_LAMBDA,
     description: "Show lambda",
     invoke: () => {
-        bus.present(createLambdaWidget(bus));
+        bus.present({ widget: createLambdaWidget(bus) });
     }
 });
 

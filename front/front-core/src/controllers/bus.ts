@@ -9,7 +9,7 @@ import { presentEvent ,runActionEvent,registerActionEvent} from "./effector-inte
 export class EventBusImpl implements EventBus,ActionRegistry {
     domain: any;
     name: string;
-    present=(widget:Widget<any>)=>presentEvent(widget)
+    present=({widget,params}: {widget:Widget<any>,params?:any})=>presentEvent({widget,params})
 
     constructor(domain) {
       this.domain = domain;

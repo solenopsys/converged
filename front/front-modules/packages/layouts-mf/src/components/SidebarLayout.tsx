@@ -12,7 +12,7 @@ export const SidebarLayout = ({
 }) => {
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <SidebarProvider style={{ "--sidebar-width": "30rem" }}>
+      <SidebarProvider style={{ "--sidebar-width": "30rem" }} defaultOpen={false}>
         <div className="flex min-h-screen w-full">
           <aside className="w-64 bg-muted/40">
             <SidebarProvider>
@@ -23,8 +23,8 @@ export const SidebarLayout = ({
           </aside>
           <SidebarInset>
             <header className="border-b p-4 flex items-center gap-2">
-              <SidebarTrigger />
-              <Slot id={`${basePath}:header`} />
+            <SidebarTrigger className="ml-auto" />
+            <Slot id={`${basePath}:header`} />
             </header>
             <main className="flex-1 p-4">
               <Slot id={`${basePath}:center`} />

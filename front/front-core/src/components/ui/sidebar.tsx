@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
-import { PanelLeftIcon } from "lucide-react"
+import { PanelRightIcon, PanelRightCloseIcon } from "lucide-react"
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
@@ -253,12 +253,24 @@ function Sidebar({
   )
 }
 
-function SidebarTrigger({
+export default function SidebarTrigger({
   className,
   onClick,
   ...props
 }: React.ComponentProps<typeof Button>) {
-  const { toggleSidebar } = useSidebar()
+  const { toggleSidebar, open } = useSidebar()
+  const [localOpen, setLocalOpen] = React.useState(open)
+
+  // Синхронизация с внешним состоянием
+  React.useEffect(() => {
+    setLocalOpen(open)
+  }, [open])
+
+  const handleClick = (event: React.MouseEvent) => {
+    onClick?.(event)
+    setLocalOpen(prev => !prev) // Немедленное обновление UI
+    toggleSidebar?.()
+  }
 
   return (
     <Button
@@ -267,13 +279,10 @@ function SidebarTrigger({
       variant="ghost"
       size="icon"
       className={cn("size-7", className)}
-      onClick={(event) => {
-        onClick?.(event)
-        toggleSidebar()
-      }}
+      onClick={handleClick}
       {...props}
     >
-      <PanelLeftIcon />
+      {localOpen ? <PanelRightCloseIcon /> : <PanelRightIcon />}
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   )
@@ -569,7 +578,7 @@ function SidebarMenuAction({
         "peer-data-[size=lg]/menu-button:top-2.5",
         "group-data-[collapsible=icon]:hidden",
         showOnHover &&
-          "peer-data-[active=true]/menu-button:text-sidebar-accent-foreground group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 md:opacity-0",
+        "peer-data-[active=true]/menu-button:text-sidebar-accent-foreground group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 md:opacity-0",
         className
       )}
       {...props}

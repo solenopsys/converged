@@ -50,7 +50,7 @@ const outMailDataFunction = async (params: PaginationParams) => {
 
 const $outMailStore = createTableStore(domain, outMailDataFunction);
  
-const createOutgoingMailsWidget: CreateWidget<typeof TableView> = () => ({
+const createOutgoingMailsWidget: CreateWidget<typeof TableView> = (bus) => ({
     view: TableView,
     placement: () => "center",
     config: {
@@ -61,8 +61,10 @@ const createOutgoingMailsWidget: CreateWidget<typeof TableView> = () => ({
         pageSizeOptions: [10, 20, 50, 100]
     }, 
     commands: {
-        refresh: () => {
-            // TableView будет обновлять данные автоматически при изменении параметров
+        onRowClick: (row: { id: number }) => {
+            const mailid = row.id;
+          //  bus.present(createMailDetailWidget(bus), { mailid });
+            console.log("ROW CLICK", row);
         }
     }
 });
@@ -93,7 +95,7 @@ const createShowOutgoingMailsAction: CreateAction<any> = (bus) => ({
     id: SHOW_OUTGOING_MAILS,
     description: "Show outgoing mails list",
     invoke: () => {
-        bus.present(createOutgoingMailsWidget(bus));
+        bus.present({widget:createOutgoingMailsWidget(bus)});
     }
 });
 
@@ -101,7 +103,7 @@ const createShowSendMailFormAction: CreateAction<any> = (bus) => ({
     id: SHOW_SEND_MAIL_FORM,
     description: "Open send mail form",
     invoke: () => {
-        bus.present(createSendMailFormWidget(bus));
+        bus.present({widget:createSendMailFormWidget(bus)});
     }
 });
 

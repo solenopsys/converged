@@ -44,7 +44,7 @@ const createShowCodeVersionsAction: CreateAction<any> = (bus) => ({
     id: SHOW_VERSIONS,
     description: "Show code versions",
     invoke: () => {
-        bus.present(createCodeVersionsWidget(bus));
+        bus.present({ widget: createCodeVersionsWidget(bus) });
     }
 });
 

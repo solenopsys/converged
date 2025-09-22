@@ -19,7 +19,18 @@ import {
 
 import mailingService from "../service";
 
-const MailDetail = (mail:any) => {
+export type Mail = {
+  id: string;
+  subject: string;
+  date: string;
+  from: { value: [{ name: string; address: string }] };
+  to: { value: [{ name: string; address: string }] };
+  attachments: any[];
+  text: string;
+  html: string;
+}
+
+const MailDetail = ({mail}: {mail:Mail}) => {
   
 
  

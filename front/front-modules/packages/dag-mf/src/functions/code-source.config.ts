@@ -51,7 +51,7 @@ const createShowCodeSourceListAction: CreateAction<any> = (bus) => ({
     description: "Show code source list",
     invoke: () => {
         getCodeSourceListEvent()
-        bus.present(createCodeSourceListWidget(bus));
+        bus.present({ widget: createCodeSourceListWidget(bus) });
     }
 });
 

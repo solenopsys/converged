@@ -27,7 +27,7 @@ const createShowContextAction: CreateAction<any> = (bus) => ({
     id: SHOW_CONTEXT,
     description: "Show context",
     invoke: () => {
-        bus.present(createContextWidget(bus));
+        bus.present({ widget: createContextWidget(bus) });
     }
 });
 

@@ -1,11 +1,11 @@
-import { TableView } from "converged-core";
-import MailDetail from "../components/MailDetail";
+import { TableView } from "converged-core"; 
 import mailingService from "../service";
 import { COLUMN_TYPES, CreateWidget, CreateAction, createTableStore } from 'converged-core';
 import { sample } from "effector";
 import domain from "../domain";
 import { incomingColumns } from "./columns";
 import { PaginationParams, PaginatedResult, Mail } from "./types";
+import {MailDetailView} from "../views/MailDetailVeiw";
 
 const GET_INCOMING_MAILS = "incoming_mails.get";
 const SHOW_INCOMING_MAILS = "incoming_mails.show";
@@ -17,7 +17,10 @@ const SHOW_MAIL_DETAIL = "mail_detail.show";
 // Effects and Events
 const listInMailsFx = domain.createEffect<PaginationParams, PaginatedResult<Mail>>({name:'LIST_IN_MAILS', handler: mailingService.listInMails});
 const listWarmMailsFx = domain.createEffect<PaginationParams, PaginatedResult<Mail>>({name:'LIST_WARM_MAILS', handler: mailingService.listWarmMails});
-const getMailFx = domain.createEffect<string, object>({name:'GET_MAIL', handler: mailingService.getMail});
+export const getMailFx = domain.createEffect<string, object>({name:'GET_MAIL', handler: ({ mailid }) => {
+    console.log("GET_MAIL", mailid);
+   return mailingService.getMail(mailid);
+}});
 
 const openMailDetail = domain.createEvent<{ mailid: string }>('OPEN_MAIL_DETAIL');
 const getIncomingMailsEvent = domain.createEvent<{ offset?: number; limit?: number }>('GET_INCOMING_MAILS_EVENT');
@@ -26,6 +29,10 @@ const getWarmMailsEvent = domain.createEvent<{ offset?: number; limit?: number }
 sample({ clock: openMailDetail, target: getMailFx });
 sample({ clock: getIncomingMailsEvent, target: listInMailsFx });
 sample({ clock: getWarmMailsEvent, target: listWarmMailsFx });
+
+const mailStore = domain.createStore(null);
+
+sample({ clock: getMailFx.doneData, target: mailStore });
 
 // Wrapper функции для использования в TableView
 const inMailDataFunction = async (params: PaginationParams) => {
@@ -52,7 +59,10 @@ const createIncomingMailsWidget: CreateWidget<typeof TableView> = (bus) => ({
     commands: {
         onRowClick: (row: { id: number }) => {
             const mailid = row.id;
-            bus.present(createMailDetailWidget(bus), { mailid });
+
+            openMailDetail({ mailid });
+            bus.present({widget:createMailDetailWidget(bus), params: { mailid }});
+
             console.log("ROW CLICK", row);
         }
     }
@@ -72,24 +82,21 @@ const createWarmMailsWidget: CreateWidget<typeof TableView> = (bus) => ({
     commands: {
         onRowClick: (row: { id: number }) => {
             const mailid = row.id;
-            bus.present(createMailDetailWidget(bus), { mailid });
+            openMailDetail({ mailid });
+            bus.present({widget:createMailDetailWidget(bus), params: { mailid }});
+
             console.log("ROW CLICK", row);
         }
     }
 });
 
-const createMailDetailWidget: CreateWidget<typeof MailDetail> = () => ({
-    view: MailDetail,
+const createMailDetailWidget: CreateWidget<typeof MailDetailView> = () => ({
+    view: MailDetailView,
     placement: () => "right",
-    mount: ({ mailid }) => {
-        if (mailid == undefined) {
-            console.error("MailDetailWidget mount: mailid is undefined");
-            return null;
-        } else {
-            const mail = getMailFx(mailid);
-            return mail;
-        }
+    config: {
+        mailStore :mailStore 
     },
+    
     commands: {
         response: () => {
             // Handle response action
@@ -114,7 +121,7 @@ const createShowIncomingMailsAction: CreateAction<any> = (bus) => ({
     description: "Show incoming mails list",
     invoke: () => {
         getIncomingMailsEvent({ offset: 0, limit: 20 });
-        bus.present(createIncomingMailsWidget(bus));
+        bus.present({widget:createIncomingMailsWidget(bus)});
     }
 });
 
@@ -132,7 +139,7 @@ const createShowWarmMailsAction: CreateAction<any> = (bus) => ({
     description: "Show warm mails list",
     invoke: () => {
         getWarmMailsEvent({ offset: 0, limit: 20 });
-        bus.present(createWarmMailsWidget(bus));
+        bus.present({widget:createWarmMailsWidget(bus)});
     }
 });
 
@@ -141,7 +148,7 @@ const createShowMailDetailAction: CreateAction<any> = (bus) => ({
     description: "Show mail details",
     invoke: ({ mailid }) => {
         openMailDetail({ mailid });
-        bus.present(createMailDetailWidget(bus));
+        bus.present({widget:createMailDetailWidget(bus), params: { mailid }});
     }
 });
 

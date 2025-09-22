@@ -1,9 +1,10 @@
 import { type } from "os";
 import { Widget } from "../plugin/types_actions";
 import { Action } from "../plugin/types_actions";
+import { any } from "zod";
 
 interface EventBus extends ActionRegistry{
-    present(widget: Widget<any> ): void;
+    present({widget ,params}: {widget: Widget<any>,params?:any} ): void;
     emit(event: string, data: any): void;
   
 }

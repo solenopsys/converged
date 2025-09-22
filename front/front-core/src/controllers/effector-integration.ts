@@ -38,9 +38,9 @@ sample({
 
 
 
-export const presentEvent = domain.createEvent<Widget<any>>("PRESENT");
-export const presentEffect = domain.createEffect({name: "PRESENT_EFFECT", handler: (widget: Widget<any>) => {
-    present(widget,widget.placement({}));
+export const presentEvent = domain.createEvent<{widget:Widget<any>,params?:any}>("PRESENT");
+export const presentEffect = domain.createEffect({name: "PRESENT_EFFECT", handler: ({widget,params}) => {
+    present(widget,widget.placement({}),params);
 }})
 
 sample({

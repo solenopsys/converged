@@ -19,6 +19,7 @@ export const present = async (widget: Widget<any>, slot: string, mountParams?: a
  
 
     console.log("Present RUN", widget, slot, point);
+    console.log("Present PARAMS", mountParams);
 
     const Component = widget.view;
     const res = {  ...widget.config}; 
@@ -37,7 +38,7 @@ export const present = async (widget: Widget<any>, slot: string, mountParams?: a
     console.log("Present RES", res);
 
     return mountWhenReady(
-        <Component {...res} {...commandHandlers}   />,
+        <Component {...res} {...mountParams} {...commandHandlers}   />,
         point
     );
 }

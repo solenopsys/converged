@@ -65,9 +65,8 @@ const createLayoutMountAction: CreateAction<any> = (bus) => ({
     console.log("Layout mount", params);
     const widgetFactory = LAYOUTS[params.name];
     const widget = widgetFactory(bus);
-    const slot = widget.placement();
-    console.log("Slot", slot);
-    bus.present(widget, slot);
+ 
+    bus.present({widget});
   }
 });
 
@@ -76,9 +75,8 @@ const createLeftMenuMountAction: CreateAction<any> = (bus) => ({
   description: "Mount left menu",
   invoke: (params: { widget: any, context: any }) => {
     const widget = createLeftMenuWidget(bus);
-    const slot = widget.placement();
-    console.log("Slot", slot);
-    bus.present(widget, slot);
+
+    bus.present({widget,params});
   }
 });
 

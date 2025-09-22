@@ -77,7 +77,7 @@ const createEditNodeAction: CreateAction<any> = (bus) => ({
     id: EDIT_NODE,
     description: "Edit node",
     invoke: () => {
-        bus.present(createEditNodeWidget(bus));
+        bus.present({ widget: createEditNodeWidget(bus) });
     }
 });
 
@@ -86,7 +86,7 @@ const createShowNodesListAction: CreateAction<any> = (bus) => ({
     description: "Show nodes list",
     invoke: () => {
         getNodesListEvent();
-        bus.present(createNodesListWidget(bus));
+        bus.present({ widget: createNodesListWidget(bus) });
     }
 });
 
