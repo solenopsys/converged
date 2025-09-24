@@ -1,7 +1,9 @@
-type ULID = string;
-type MessageType = "message" | "link" | "partition";
 
-type Message = {
+export enum MessageType { message = "message", link = "link", partition = "partition" };
+
+import { type ULID } from "back-core";
+
+export type Message = {
     threadId: ULID,
     id?: ULID,
     type: MessageType,

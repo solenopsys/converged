@@ -3,7 +3,9 @@ const RANGE_START_SUFFIX = KEY_SEPARATOR;
 const RANGE_END_SUFFIX = ";";
 export {KEY_SEPARATOR,RANGE_START_SUFFIX,RANGE_END_SUFFIX};
 
-export function generateULID(): string {
+export type ULID = string;
+
+export function generateULID(): ULID {
   const BASE32 = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
   
   // 48 бит времени (6 байт)
@@ -23,6 +25,12 @@ export function generateULID(): string {
   
   return timeStr + randomStr;  // 26 символов
 }
+
+export function newULID(): ULID {
+  return generateULID();
+}
+
+
 
 
 export function generateUUID(): Uint8Array {

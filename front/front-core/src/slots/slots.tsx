@@ -61,6 +61,7 @@ export const mountWhenReady = (
     layoutName?: string;
   } = {}
 ): (() => void) => {
+  console.log("Mount when ready", component, slotId, options);
   const { layoutName } = options;
   let unwatchReady: (() => void) | null = null;
   let unwatchSlots: (() => void) | null = null;

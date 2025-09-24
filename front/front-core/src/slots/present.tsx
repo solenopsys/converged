@@ -1,20 +1,30 @@
 import { Widget } from "@/plugin/types_actions";
 import { mountWhenReady } from ".";
+import { dashboardSlots } from "./dashboard_slots";
 
-export const present = async (widget: Widget<any>, slot: string, mountParams?: any) => {
+function oneOf<T>(value: T, ...options: (T[] | T)[]) {
+    return options.flat().includes(value);
+}
+
+
+
+export const present = async (widget: Widget<any>, slot: string | string[], mountParams?: any) => {
     let point = "global:toast";
-    if (slot === 'full') {
+    if (oneOf('full', slot)) {
         point = "global:toast";
     }
-    if (slot === 'center') {
+    if (oneOf('center', slot)) {
         point = "sidebar:center";
     }
 
-    if (slot === 'left') {
+    if (oneOf('left', slot)) {
         point = "sidebar:left";
     }
-    if (slot === 'right') {
+    if (oneOf('right', slot)) {
         point = "sidebar:right";
+    }
+    if (oneOf('dashboard', slot)) {
+        point ="dashboard:"+ dashboardSlots.next("pinned-");
     }
  
 

@@ -1,9 +1,10 @@
 import * as lmdb from 'lmdb';
 import { join } from 'path';
 import { KEY_SEPARATOR, RANGE_END_SUFFIX, RANGE_START_SUFFIX } from './utils';
+import { Store } from '../stores';
  
 
-export class LMWrapper {
+export class LMWrapper implements Store {
     private db!: lmdb.Database;
 
     constructor(private dataDir: string, private dbName: string) {

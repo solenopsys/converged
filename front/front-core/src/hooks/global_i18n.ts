@@ -283,9 +283,8 @@ export const useNamespacePreload = (namespaces: string | string[]) => {
 
 import { LocaleController } from "../controllers/locale-controller";
  
-
 export const useMicrofrontendTranslation = (microfrontendId: string) => {
-  const { i18n } = useGlobalTranslation( );
+  const { i18n } = useGlobalTranslation();
   const [translations, setTranslations] = useState<any>({});
   const [loading, setLoading] = useState(true);
 
@@ -294,10 +293,8 @@ export const useMicrofrontendTranslation = (microfrontendId: string) => {
   useEffect(() => {
     const loadTranslations = async () => {
       try {
-
         const locales = localeController.getLocales(microfrontendId)
-
-        console.log("Loading locales:", locales,i18n.language);
+        console.log("Loading locales:", locales, i18n.language);
         
         const jsonUrl = locales[i18n.language];
         console.log("Loading from:", jsonUrl);
@@ -318,23 +315,26 @@ export const useMicrofrontendTranslation = (microfrontendId: string) => {
   }, [i18n.language]);
 
   const t = (key: string) => {
+    if (!key) return translations; // Возвращаем все переводы если ключ пустой
+    
     const keys = key.split('.');
     let value = translations;
+    console.log("Translating key:", key, "with value:", value);
     
     for (const k of keys) {
       if (value && typeof value === 'object' && k in value) {
         value = value[k];
       } else {
-        return key;
+        return key; // Возвращаем ключ если путь не найден
       }
     }
     
-    return typeof value === 'string' ? value : key;
+    // ИСПРАВЛЕНИЕ: возвращаем найденное значение независимо от типа
+    return value !== undefined ? value : key;
   };
 
   return { t, translations, loading };
 };
-
 
 export const translateJson = (json, t) => {
   if (typeof json === 'string' && /^[a-zA-Z][a-zA-Z0-9_.]+$/.test(json)) {

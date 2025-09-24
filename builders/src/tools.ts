@@ -17,10 +17,9 @@ async function compressBrottly(filePath: string): Promise<string> {
   const compressedFilePath = `${filePath}.br`;
   // remove file
   try {
-    await Bun.$`rm ${compressedFilePath}`;
+    await Bun.$`rm -f ${compressedFilePath}`;
   } catch (error) {
-    console.error(`❌ Failed to remove ${compressedFilePath}:`, error);
-    throw error;
+    // Игнорируем ошибку, файл может не существовать
   }
   
   console.log(`Compressing ${filePath} with Brotli level 9...`);
