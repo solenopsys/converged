@@ -6,16 +6,17 @@ import { type ULID } from "back-core";
 export type Message = {
     threadId: ULID,
     id?: ULID,
-    type: MessageType,
+    timestamp?: number,
     beforeId?: ULID,
+    user: string,
+    type: MessageType,
     data: string
 }
 
 export interface ThreadsService {
-    newThread(meta: { description: string, author: string }): Promise<ULID>;
-    addText(threadId: ULID, text: string, beforeId?: ULID): Promise<Message>
-    addLink(threadId: ULID, link: string, beforeId?: ULID): Promise<Message>
-    readHead(threadId: ULID, headItemId: ULID, beforeCount: number): Promise<Message[]>
-    readThree(threadId: ULID): Promise<Message[]>
-   
+    saveMessage(message: Message): Promise<string>
+    readMessage(threadId: ULID, messageId: ULID): Promise<Message>
+    readMessageVersions(threadId: ULID, messageId: ULID): Promise<Message[]>
+    readThreadAllVersions(threadId: ULID): Promise<Message[]>
+    readThread(threadId: ULID): Promise<Message[]>
 }

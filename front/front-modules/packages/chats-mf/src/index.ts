@@ -1,7 +1,10 @@
-import ACTIONS from "./actions";
+ 
+
+
 export const ID = 'chats-mf';
 export * from "./menu";
-export {ACTIONS}
-export default {}
+import ACTIONS from "./functions"; 
+import {BasePlugin} from "converged-core";
 
+export default new BasePlugin(ID, ACTIONS)
 

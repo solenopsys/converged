@@ -3,16 +3,17 @@
   "private": false,
   "version": "0.0.1",
   "type": "module",
-  "dependencies": {
-    "dagre": "^0.8.5",
-    "pixi.js": "^8.11.0"
+  "dependencies": { 
 
   },
   "devDependencies": {
+    "builders":"file:../../../../builders",
+    "nrpc": "file:../../../../nrpc",
     "@types/bun": "latest"
   },
   "scripts": {
-    "bld": "bun run ../../node_modules/builders/src/build-frontend.ts ./src/index.ts ../../../../types/chats.ts ./dist/"
+    "gen-threads": "bun run ./node_modules/builders/src/build-frontend-base.ts ../../../../types/threads.ts ./src/threads", 
+    "bld": "bun run gen-threads &&  bun run ../../node_modules/builders/src/build-frontend.ts ./src/index.ts ../../../../types/chats.ts ./dist/"
   },
   "module": "src/index.ts",
   "peerDependencies": {

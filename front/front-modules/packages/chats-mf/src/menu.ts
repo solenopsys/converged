@@ -1,4 +1,4 @@
-import {GetChatsListAction} from './actions';
+import {createGetChatsListAction} from './functions';
 
 export const MENU = {
     "title": "menu.chats",
@@ -8,12 +8,12 @@ export const MENU = {
         {
             "title": "menu.text",
             "key": "text",
-            "action": GetChatsListAction
+            "action": createGetChatsListAction
         },
         {
             "title": "menu.audio",
             "key": "audio",
-            "action": GetChatsListAction
+            "action": createGetChatsListAction
         },
     ]
-};
+};  
