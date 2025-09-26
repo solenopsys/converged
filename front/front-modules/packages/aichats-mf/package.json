@@ -1,5 +1,5 @@
 {
-  "name": "chats-mf",
+  "name": "aichats-mf",
   "private": false,
   "version": "0.0.1",
   "type": "module",
@@ -9,6 +9,7 @@
   "devDependencies": {
     "builders":"file:../../../../builders",
     "nrpc": "file:../../../../nrpc",
+    "front-chat-core": "file:../../../front-chat-core",
     "@types/bun": "latest"
   },
   "scripts": {

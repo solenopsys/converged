@@ -18,11 +18,11 @@ const staticModules:any =[
         "remote": false,
         "protected": true
     },
-    // {
-    //     "name":"chats-mf",
-    //     "remote":false,
-    //     "protected": false,
-    // },
+    {
+        "name":"aichats-mf",
+        "remote":false,
+        "protected": false,
+    },
     {
         "name":"auth-mf",
         "remote":false,

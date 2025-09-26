@@ -20,7 +20,8 @@
     "noUncheckedSideEffectImports": true,
     "baseUrl": ".",
     "paths": {
-      "converged-core": ["../../../front-core/src/index.ts"]
+      "converged-core": ["../../../front-core/src/index.ts"],
+      "front-chat-core": ["../../../front-chat-core/src/index.ts"]
      }
   }, 
 }

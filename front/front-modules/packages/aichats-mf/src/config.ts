@@ -1,5 +1,6 @@
 import { COLUMN_TYPES,  } from "converged-core";
 
+import { Eye, Edit3, Trash2 } from 'lucide-react';
 
 // Table columns configuration
 export  const chatsColumns = [

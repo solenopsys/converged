@@ -1,3 +1,4 @@
 
 export { createChatStore } from './chat-store';
-export type { ChatState, ChatMessage } from './types';
+export { chatDomain } from './domain';
+export * from './types';

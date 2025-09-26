@@ -127,7 +127,7 @@ class HttpClientImpl {
           body: JSON.stringify(body),
           signal: self.abortController.signal
         });
-
+  
         if (!response.ok) {
           let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
           try {
@@ -140,14 +140,14 @@ class HttpClientImpl {
           }
           throw new Error(errorMessage);
         }
-
+  
         if (!response.body) {
           throw new Error('Response body is null');
         }
-
+  
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
-
+  
         try {
           let buffer = '';
           
@@ -157,27 +157,49 @@ class HttpClientImpl {
             if (done) break;
             
             buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split('\n');
-            buffer = lines.pop() || '';
             
-            for (const line of lines) {
-              const trimmed = line.trim();
-              if (!trimmed) continue;
+            // Обрабатываем SSE сообщения, разделенные двойным переносом строки
+            let eventStart = 0;
+            let eventEnd = buffer.indexOf('\n\n');
+            
+            while (eventEnd !== -1) {
+              const eventData = buffer.slice(eventStart, eventEnd);
+              console.log('Processing SSE event:', eventData);
               
-              try {
+              // Обрабатываем каждую строку в событии
+              const lines = eventData.split('\n');
+              for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed) continue;
+                
+                console.log('Processing line:', trimmed);
+                
                 if (trimmed.startsWith('data: ')) {
                   const data = trimmed.slice(6);
+                  console.log('Extracted data:', data);
+                  
                   if (data === '[DONE]') {
+                    console.log('Stream completed with [DONE]');
                     return;
                   }
-                  yield JSON.parse(data);
-                } else if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-                  yield JSON.parse(trimmed);
+                  
+                  try {
+                    const parsed = JSON.parse(data);
+                    console.log('Yielding parsed data:', parsed);
+                    yield parsed;
+                  } catch (error) {
+                    console.error('Error parsing JSON data:', data, error);
+                  }
                 }
-              } catch (error) {
-                console.error('Error parsing streaming data:', error);
               }
+              
+              // Переходим к следующему событию
+              eventStart = eventEnd + 2; // +2 для пропуска \n\n
+              eventEnd = buffer.indexOf('\n\n', eventStart);
             }
+            
+            // Сохраняем остаток для следующей итерации
+            buffer = buffer.slice(eventStart);
           }
         } finally {
           reader.releaseLock();

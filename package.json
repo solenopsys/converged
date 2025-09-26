@@ -9,7 +9,6 @@
 		"fix": "biome check --write ."
 	},
 	"dependencies": {
-		"converged": ".",
 		"converged": "."
 	},
 	"devDependencies": {

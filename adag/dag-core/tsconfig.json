@@ -31,7 +31,7 @@
     "paths": {
       "@/*": ["./src/*"],
       "dag-api": ["../dag-api/src/index.ts"],
-      "back-core": ["../../back-core/src/index.ts"],
+      "back-core": ["../../back/back-core/src/index.ts"],
     } 
   },
   "include": ["src/**/*", "../../dag-api/src/tools/extract_params.ts"],

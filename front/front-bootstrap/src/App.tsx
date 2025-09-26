@@ -94,10 +94,12 @@ const App: React.FC = () => {
 
 				bus.run("layout.mount", { name: "sidebar"  });
 				bus.run("left.menu.mount", {  });
-				bus.run("show_code_source_list", {});
+				bus.run("chats.view", {});
 				bus.run("incoming_mails.mount_to_dashboard", {});
 				bus.run("incoming_warm.mount_to_dashboard", {});
 				bus.run("daily_mails.mount_to_dashboard", {});
+				bus.run("dashboard.mount", {});
+				
 
 
 		 

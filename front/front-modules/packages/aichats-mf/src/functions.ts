@@ -41,7 +41,7 @@ sample({ clock: openChatDetail, target: getChatFx });
 sample({ clock: getChatsListEvent, target: listChatsFx });
 sample({ clock: deleteChatEvent, target: deleteChatFx });
 
-const chatStore = domain.createStore(null);
+const chatStore = domain.createStore({messages: [], isLoading: false, currentResponse: ''});
 
 sample({ clock: getChatFx.doneData, target: chatStore });
 
@@ -91,15 +91,15 @@ const createChatDetailWidget: CreateWidget<typeof ChatDetailView> = () => ({
     view: ChatDetailView,
     placement: () => "right",
     config: {
-        chatStore: chatStore
+       // chatState: chatStore
     },
     commands: {
-        edit: () => {
-            // Handle edit action
-        },
-        close: () => {
-            // Handle close action
-        }
+        // edit: () => {
+        //     // Handle edit action
+        // },
+        // close: () => {
+        //     // Handle close action
+        // }
     }
 });
 

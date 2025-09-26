@@ -11,7 +11,7 @@
 	
 
 	"dependencies": {
-		"back-core":"file:../../../../back-core"
+		"back-core":"file:../../../../back/back-core"
 	}
 
 	

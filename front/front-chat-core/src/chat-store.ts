@@ -1,11 +1,11 @@
-
-import { createStore, createEffect, sample, } from 'effector';
- import { 
+import { createStore, createEffect, sample, createDomain } from 'effector';
+import { 
     ThreadsService, 
     AiChatService, 
     ContentType, 
     MessageType,
-    StreamEventType ,ULID
+    StreamEventType, 
+    ULID
 } from './types';
 import { ChatState } from './types';
 import * as handlers from './handlers';
@@ -17,6 +17,9 @@ import {
     errorOccurred,
     registerFunction
 } from './events';
+import { chatDomain } from './domain';
+
+// Create domain
 
 const initialState: ChatState = {
     threadId: '' as ULID,
@@ -32,22 +35,22 @@ export const createChatStore = (
     threadsService: ThreadsService
 ) => {
     // Store
-    const $chat = createStore<ChatState>(initialState)
+    const $chat = chatDomain.createStore<ChatState>(initialState, { name: 'CHAT' })
         .on(initChat, handlers.initializeChat)
         .on(sendMessage, handlers.addUserMessage)
         .on(receiveChunk, handlers.updateResponse)
         .on(completeResponse, handlers.finalize)
         .on(errorOccurred, handlers.handleError);
 
-    const $functions = createStore<Record<string, Function>>({})
+    const $functions = chatDomain.createStore<Record<string, Function>>({}, { name: 'FUNCTIONS' })
         .on(registerFunction, (registry, { name, handler }) => ({
             ...registry,
             [name]: handler
         }));
 
-    // Effects
-    const createSessionFx = createEffect<ChatState, string>();
-    const sendMessageFx = createEffect<{ content: string; state: ChatState }, void>();
+    // Effects with names
+    const createSessionFx = chatDomain.createEffect<ChatState, string>('CREATE_SESSION_FX');
+    const sendMessageFx = chatDomain.createEffect<{ content: string; state: ChatState }, void>('SEND_MESSAGE_FX');
 
     createSessionFx.use(async ({ serviceType, model }) => 
         await aiService.createSession(serviceType, model)
@@ -114,7 +117,7 @@ export const createChatStore = (
     sample({
         clock: sendMessage,
         source: $chat,
-        filter: (state) => !!state.sessionId && !state.isLoading,
+    //    filter: (state) => !!state.sessionId && !state.isLoading,
         fn: (state, content) => ({ content, state }),
         target: sendMessageFx
     });
@@ -138,4 +141,3 @@ export const createChatStore = (
         get currentResponse() { return $chat.getState().currentResponse; }
     };
 };
- 

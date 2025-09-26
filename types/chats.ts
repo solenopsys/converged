@@ -60,7 +60,7 @@ export interface Chat {
 }
 
 export interface AiChatService {
-    createSession(serviceType: ServiceType, model: string ): Promise<string>;
+    createSession(serviceType: ServiceType, model?: string ): Promise<string>;
     sendMessage(sessionId: string, messages: ContentBlock[], options?: ConversationOptions): AsyncIterable<StreamEvent>;
 
     listOfChats(params: PaginationParams): Promise<PaginatedResult<Chat>>;

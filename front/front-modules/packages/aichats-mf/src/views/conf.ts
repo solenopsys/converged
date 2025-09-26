@@ -1,15 +1,4 @@
-export type ChatMessage = {
-  id: string;
-  type: 'user' | 'assistant';
-  content: string;
-  timestamp: number;
-};
-
-export type ChatState = {
-  messages: ChatMessage[];
-  isLoading: boolean;
-  currentResponse: string;
-};
+import { ChatState } from '../components/ChatDetail';
 
 // Mock chat store for demo (simple object, не effector store)
 export const mockChatStore: {

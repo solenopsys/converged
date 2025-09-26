@@ -1,14 +1,19 @@
-import { createEvent } from 'effector'; 
-import { ServiceType, StreamEvent,ULID } from './types';
+import { createDomain } from 'effector';
+import { ServiceType, StreamEvent, ULID } from './types';
+import { chatDomain } from './domain';
+ 
 
-export const initChat = createEvent<{
+export const initChat = chatDomain.createEvent<{
     threadId: ULID;
     serviceType: ServiceType;
     model: string;
-}>();
+}>('INIT_CHAT');
 
-export const sendMessage = createEvent<string>();
-export const receiveChunk = createEvent<StreamEvent>();
-export const completeResponse = createEvent<void>();
-export const errorOccurred = createEvent<string>();
-export const registerFunction = createEvent<{ name: string; handler: Function }>();
+export const sendMessage = chatDomain.createEvent<string>('SEND_MESSAGE');
+export const receiveChunk = chatDomain.createEvent<StreamEvent>('RECEIVE_CHUNK');
+export const completeResponse = chatDomain.createEvent<void>('COMPLETE_RESPONSE');
+export const errorOccurred = chatDomain.createEvent<string>('ERROR_OCCURRED');
+export const registerFunction = chatDomain.createEvent<{ 
+    name: string; 
+    handler: Function; 
+}>('REGISTER_FUNCTION');

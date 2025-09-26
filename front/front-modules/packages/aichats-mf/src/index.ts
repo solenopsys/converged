@@ -1,7 +1,7 @@
  
 
 
-export const ID = 'chats-mf';
+export const ID = 'aichats-mf';
 export * from "./menu";
 import ACTIONS from "./functions"; 
 import {BasePlugin} from "converged-core";
