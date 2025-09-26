@@ -5,17 +5,19 @@ import { StreamEvent, EventHandler,AiConversation, MessageSource, LogFunction, C
 import { StreamEventType } from "../../types";
  
 
-// Обработчик текстовых дельт (исправленный)
+// Обработчик текстовых дельт (согласно официальной документации)
 class TextDeltaHandler extends EventHandler {
     canHandle(eventType: string): boolean {
         return eventType === "response.output_text.delta";
     }
     
     handle(event: any, totalTokens: number): StreamEvent {
-        console.log(`[TextDeltaHandler] Обрабатываю текстовую дельту: "${event.delta || ""}", токенов: ${totalTokens}`);
+        // Согласно официальной документации Azure OpenAI: event.delta содержит текст
+        const textContent = event.delta || "";
+        console.log(`[TextDeltaHandler] Обрабатываю текстовую дельту: "${textContent}", токенов: ${totalTokens}`);
         return {
             type: StreamEventType.TEXT_DELTA,
-            content: event.delta || "",
+            content: textContent,
             tokens: totalTokens
         };
     }
@@ -209,37 +211,30 @@ export class OpenAIConversation implements AiConversation {
                 })
             );
 
-            // Преобразуем ContentBlock[] в формат OpenAI
-            const input = messages
-                .filter(msg => {
-                    const isText = msg.type === ContentType.TEXT;
-                    if (!isText) {
-                        console.log(`[OpenAIConversation] Пропускаю сообщение типа: ${msg.type}`);
-                    }
-                    return isText;
-                })
-                .map((msg, index) => {
-                    // Определяем роль и контент в зависимости от структуры данных
-                    let role = "user";
-                    let content = "";
-                    
-                    if (typeof msg.data === "string") {
-                        // Если data - это строка, то это контент от пользователя
-                        content = msg.data;
-                    } else if (typeof msg.data === "object" && msg.data !== null) {
-                        // Если data - это объект, извлекаем роль и контент
-                        role = msg.data.role || "user";
-                        content = msg.data.content || "";
-                    }
-                    
-                    console.log(`[OpenAIConversation] Преобразую сообщение ${index + 1}: роль="${role}", длина контента=${content.length} символов`);
-                    console.log(`[OpenAIConversation] Контент: "${content.substring(0, 100)}${content.length > 100 ? '...' : ''}"`);
-                    
-                    return {
-                        role,
-                        content
-                    };
-                });
+            // Преобразуем ContentBlock[] в формат OpenAI Responses API
+            // Согласно документации, input может быть строкой или массивом объектов с role и content
+            const input = messages.map((msg, index) => {
+                // Определяем роль и контент в зависимости от структуры данных
+                let role = "user";
+                let content = "";
+                
+                if (typeof msg.data === "string") {
+                    // Если data - это строка, то это контент от пользователя
+                    content = msg.data;
+                } else if (typeof msg.data === "object" && msg.data !== null) {
+                    // Если data - это объект, извлекаем роль и контент
+                    role = msg.data.role || "user";
+                    content = msg.data.content || "";
+                }
+                
+                console.log(`[OpenAIConversation] Преобразую сообщение ${index + 1}: роль="${role}", длина контента=${content.length} символов`);
+                console.log(`[OpenAIConversation] Контент: "${content.substring(0, 100)}${content.length > 100 ? '...' : ''}"`);
+                
+                return {
+                    role,
+                    content
+                };
+            });
 
             console.log(`[OpenAIConversation] Подготовлено ${input.length} сообщений для OpenAI API`);
 
@@ -266,10 +261,8 @@ export class OpenAIConversation implements AiConversation {
 
                 console.log(`[OpenAIConversation] Событие ${eventCount}: тип="${eventType}"`);
 
-                // Извлекаем токены если есть (обновлено для новой структуры)
-                const tokens = openaiEvent.usage?.total_tokens 
-                    || openaiEvent.response?.usage?.total_tokens 
-                    || 0;
+                // Извлекаем токены из события согласно реальной структуре из логов
+                const tokens = openaiEvent.response?.usage?.total_tokens || 0;
                 
                 if (tokens && tokens !== totalTokens) {
                     console.log(`[OpenAIConversation] Обновляю счетчик токенов: ${totalTokens} → ${tokens}`);

@@ -31,3 +31,4 @@ export * from './list/UniversalList';
 export * from './textarea';
 export * from './alert';
 export * from "./slider";
+export * from "./scroll-area";

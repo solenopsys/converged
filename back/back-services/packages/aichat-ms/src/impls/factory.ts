@@ -1,5 +1,3 @@
-
-
 import { ConversationFactory } from "../types";
 import { ServiceType } from "../types";
 import { LogFunction } from "../types";
@@ -31,7 +29,7 @@ export class SimpleConversationFactory implements ConversationFactory {
                 return new OpenAIConversation(model, apiKey, log);
             
             case ServiceType.ANTHROPIC:
-                throw new ClaudeConversation(model, apiKey, log);
+                return new ClaudeConversation(model, apiKey, log);  // ← ИСПРАВЛЕНО!
             
             default:
                 throw new Error(`Unsupported service type: ${serviceType}`);

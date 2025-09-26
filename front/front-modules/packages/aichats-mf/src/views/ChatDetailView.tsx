@@ -15,7 +15,8 @@ const chatStore = createChatStore(aichatClient, threadsClient);
 
 const uuid=uuidv4();
 
-chatStore.init(uuid, ServiceType.OPENAI, 'gpt-3.5-turbo');
+//chatStore.init(uuid, ServiceType.OPENAI, 'gpt-3.5-turbo'); # gpt-5-mini
+chatStore.init(uuid, ServiceType.ANTHROPIC, 'claude-3-5-haiku-20241022'); 
 
  
 
@@ -32,9 +33,9 @@ const ChatDetailView: React.FC = ( ) => {
     chatStore.send(inputValue);
   
   };
-  return (<div>
+  return (<div className="  h-screen">
    
-    <ChatDetail messages={messages} isLoading={isLoading} currentResponse={currentResponse} send={handleSend} />
+    <ChatDetail  messages={messages} isLoading={isLoading} currentResponse={currentResponse} send={handleSend} />
     </div>);
 };
 
