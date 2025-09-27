@@ -14,6 +14,36 @@ import {
 } from './types';
 import { receiveChunk, completeResponse, errorOccurred, toolCallReceived, toolCallExecuted } from './events';
 
+// Улучшенная функция для обработки переносов строк
+const preserveLineBreaks = (text: string): string => {
+    if (!text) return '';
+    
+    // Обрабатываем различные варианты переносов строк
+    return text
+        .replace(/\\r\\n/g, '\r\n')  // Windows переносы
+        .replace(/\\n/g, '\n')       // Unix переносы
+        .replace(/\\r/g, '\r')       // Mac переносы
+        .replace(/\\\\/g, '\\');     // Экранированные слеши
+};
+
+// Функция для накопления и обработки текста с переносами
+const processAccumulatedText = (text: string): string => {
+    // Применяем preserveLineBreaks только к накопленному тексту
+    return preserveLineBreaks(text);
+};
+
+// Дополнительная функция для отладки - логирование с сохранением форматирования
+export const debugLogContent = (content: string, label: string = 'Content') => {
+    console.log(`${label}:`, {
+        raw: content,
+        length: content.length,
+        hasLineBreaks: content.includes('\n'),
+        lineBreaksCount: (content.match(/\n/g) || []).length,
+        hasEscapedLineBreaks: content.includes('\\n'),
+        escapedLineBreaksCount: (content.match(/\\n/g) || []).length
+    });
+};
+
 export const initializeChat = (
     _: ChatState,
     { threadId, serviceType, model }: { threadId: string; serviceType: any; model: string }
@@ -35,7 +65,7 @@ export const addUserMessage = (
     const message: ChatMessage = {
         id: `msg_${Date.now()}`,
         type: 'user',
-        content,
+        content: preserveLineBreaks(content),
         timestamp: Date.now()
     };
 
@@ -53,13 +83,25 @@ export const updateResponse = (
     event: any
 ): ChatState => {
     if (event.type === StreamEventType.TEXT_DELTA) {
+        // ИСПРАВЛЕНИЕ: Не применяем preserveLineBreaks к отдельным чанкам
+        // Просто накапливаем сырой контент, переносы обработаем при финализации
+        const newContent = event.content || '';
+        
+        // Отладочная информация
+        if (newContent.includes('\\n') || newContent.includes('\n')) {
+            console.log('Найден перенос в чанке:', {
+                content: newContent,
+                hasEscaped: newContent.includes('\\n'),
+                hasReal: newContent.includes('\n')
+            });
+        }
+        
         return {
             ...state,
-            currentResponse: state.currentResponse + event.content
+            currentResponse: state.currentResponse + newContent
         };
     }
 
-    // Убираем вызов toolCallReceived отсюда - он должен происходить в store
     return state;
 };
 
@@ -71,10 +113,17 @@ export const finalize = (state: ChatState): ChatState => {
         };
     }
 
+    // ИСПРАВЛЕНИЕ: Применяем обработку переносов к накопленному тексту
+    const processedContent = processAccumulatedText(state.currentResponse);
+    
+    // Отладочная информация
+    debugLogContent(state.currentResponse, 'Raw accumulated content');
+    debugLogContent(processedContent, 'Processed content');
+
     const assistantMessage: ChatMessage = {
         id: `msg_${Date.now()}`,
         type: 'assistant',
-        content: state.currentResponse,
+        content: processedContent,
         timestamp: Date.now()
     };
 
@@ -110,11 +159,11 @@ export const sendMessage = (
             threadId: state.threadId,
             user: 'user',
             type: MessageType.message,
-            data: content,
+            data: preserveLineBreaks(content),
             timestamp: Date.now()
         });
 
-        const messages = [{ type: ContentType.TEXT, data: content }];
+        const messages = [{ type: ContentType.TEXT, data: preserveLineBreaks(content) }];
         const tools: Tool[] = Object.values($functions.getState()).map(({ execute, ...tool }) => tool);
         const options: ConversationOptions = { tools };
 
@@ -169,17 +218,28 @@ export const sendToolResult = (aiService: AiChatService, threadsService: Threads
             return;
         }
 
-        const toolResultContent = JSON.stringify(result);
+        // Улучшенная обработка результата инструмента с сохранением форматирования
+        let toolResultContent: string;
+        if (typeof result === 'string') {
+            toolResultContent = preserveLineBreaks(result);
+        } else {
+            // Используем JSON.stringify с отступами для читаемости
+            toolResultContent = JSON.stringify(result, null, 2);
+        }
 
         await threadsService.saveMessage({
             threadId: state.threadId,
             user: 'assistant',
             type: MessageType.message,
-            data: `Tool call ${toolCallId} result: ${toolResultContent}`,
+            data: `Tool call ${toolCallId} result:\n${toolResultContent}`,
             timestamp: Date.now()
         });
 
-        const messages = [{ type: ContentType.TOOL_RESULT, tool_call_id: toolCallId, data: toolResultContent }];
+        const messages = [{ 
+            type: ContentType.TOOL_RESULT, 
+            tool_call_id: toolCallId, 
+            data: toolResultContent 
+        }];
 
         try {
             for await (const event of aiService.sendMessage(state.sessionId, messages, {})) {

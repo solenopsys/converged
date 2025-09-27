@@ -3,17 +3,17 @@
   "private": false,
   "version": "0.0.1",
   "type": "module",
-  "dependencies": { 
-
+  "dependencies": {
+    "react-markdown": "^10.1.0"
   },
   "devDependencies": {
-    "builders":"file:../../../../builders",
+    "builders": "file:../../../../builders",
     "nrpc": "file:../../../../nrpc",
     "front-chat-core": "file:../../../front-chat-core",
     "@types/bun": "latest"
   },
   "scripts": {
-    "gen-threads": "bun run ./node_modules/builders/src/build-frontend-base.ts ../../../../types/threads.ts ./src/threads", 
+    "gen-threads": "bun run ./node_modules/builders/src/build-frontend-base.ts ../../../../types/threads.ts ./src/threads",
     "bld": "bun run gen-threads &&  bun run ../../node_modules/builders/src/build-frontend.ts ./src/index.ts ../../../../types/chats.ts ./dist/"
   },
   "module": "src/index.ts",

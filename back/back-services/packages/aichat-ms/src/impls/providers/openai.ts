@@ -14,7 +14,7 @@ import {
 } from "../../types";
 
 
-// Обработчик текстовых дельт для OpenAI Chat Completions
+// Улучшенный обработчик текстовых дельт для OpenAI Chat Completions
 class OpenAITextDeltaHandler extends EventHandler {
     canHandle(eventType: string): boolean {
         return eventType === "content_delta";
@@ -24,11 +24,26 @@ class OpenAITextDeltaHandler extends EventHandler {
         // В Chat Completions API структура: event.choices[0].delta.content
         const delta = event.choices?.[0]?.delta;
         if (delta?.content) {
-            const textContent = delta.content;
-            console.log(`[OpenAITextDeltaHandler] Обрабатываю текстовую дельту: "${textContent}", токенов: ${totalTokens}`);
+            let textContent = delta.content;
+            
+            // ИСПРАВЛЕНИЕ: Не обрабатываем переносы здесь, просто передаем сырой контент
+            // Переносы будут обработаны при финализации всего сообщения
+            
+            // Отладочная информация
+            if (textContent.includes('\\n') || textContent.includes('\n')) {
+                console.log(`[OpenAITextDeltaHandler] Найден перенос в дельте:`, {
+                    content: textContent,
+                    hasEscaped: textContent.includes('\\n'),
+                    hasReal: textContent.includes('\n'),
+                    length: textContent.length
+                });
+            }
+            
+            console.log(`[OpenAITextDeltaHandler] Обрабатываю текстовую дельту (${textContent.length} символов), токенов: ${totalTokens}`);
+            
             return {
                 type: StreamEventType.TEXT_DELTA,
-                content: textContent,
+                content: textContent, // Возвращаем сырой контент без обработки
                 tokens: totalTokens
             };
         }
