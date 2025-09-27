@@ -1,40 +1,21 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { randomUUID } from "crypto";
-
+import { BaseConversation } from "../conversation";
+import { EventHandler } from "../hendler";
 import { 
     StreamEvent, 
-    EventHandler, 
-    AiConversation, 
     MessageSource, 
     LogFunction, 
     ConversationOptions, 
     ContentBlock, 
     ContentType,
-    Tool
+    Tool,
+    StreamEventType
 } from "../../types";
-import { StreamEventType } from "../../types";
 
-// Обработчик текстовых дельт
+// Обработчик текстовых дельт для Claude
 class ClaudeTextDeltaHandler extends EventHandler {
     canHandle(eventType: string): boolean {
         return eventType === "content_block_delta";
-    }
-    
-    // Метод для получения текущей истории разговора
-    getConversationHistory(): Anthropic.MessageParam[] {
-        return [...this.conversationHistory];
-    }
-    
-    // Метод для очистки истории разговора
-    clearHistory(): void {
-        this.conversationHistory = [];
-        console.log(`[ClaudeConversation] История разговора очищена`);
-    }
-    
-    // Метод для установки начальной истории (если нужно восстановить из БД)
-    setConversationHistory(history: Anthropic.MessageParam[]): void {
-        this.conversationHistory = [...history];
-        console.log(`[ClaudeConversation] Установлена история разговора: ${this.conversationHistory.length} сообщений`);
     }
     
     handle(event: any, totalTokens: number): StreamEvent | null {
@@ -52,7 +33,7 @@ class ClaudeTextDeltaHandler extends EventHandler {
     }
 }
 
-// Обработчик начала контента
+// Обработчик начала контента для Claude
 class ClaudeContentStartHandler extends EventHandler {
     canHandle(eventType: string): boolean {
         return eventType === "content_block_start";
@@ -85,7 +66,7 @@ class ClaudeContentStartHandler extends EventHandler {
     }
 }
 
-// Обработчик вызовов функций - дельты для аргументов
+// Обработчик вызовов функций для Claude - дельты для аргументов
 class ClaudeToolCallHandler extends EventHandler {
     private currentArgs: Map<string, string> = new Map();
     
@@ -136,7 +117,7 @@ class ClaudeToolCallHandler extends EventHandler {
     }
 }
 
-// Обработчик завершения блока контента
+// Обработчик завершения блока контента для Claude
 class ClaudeContentStopHandler extends EventHandler {
     canHandle(eventType: string): boolean {
         return eventType === "content_block_stop";
@@ -144,38 +125,11 @@ class ClaudeContentStopHandler extends EventHandler {
     
     handle(event: any, totalTokens: number): StreamEvent | null {
         console.log(`[ClaudeContentStopHandler] Завершен блок контента, индекс: ${event.index}, токенов: ${totalTokens}`);
-        // Очищаем накопленные аргументы для этого блока если это tool call handler
         return null;
     }
 }
 
-// Обработчик начала сообщения
-class ClaudeMessageStartHandler extends EventHandler {
-    canHandle(eventType: string): boolean {
-        return eventType === "message_start";
-    }
-    
-    handle(event: any, totalTokens: number): StreamEvent | null {
-        console.log(`[ClaudeMessageStartHandler] Начато сообщение от ассистента, токенов: ${totalTokens}`);
-        // Просто логируем, не отправляем событие клиенту
-        return null;
-    }
-}
-
-// Обработчик дельты сообщения
-class ClaudeMessageDeltaHandler extends EventHandler {
-    canHandle(eventType: string): boolean {
-        return eventType === "message_delta";
-    }
-    
-    handle(event: any, totalTokens: number): StreamEvent | null {
-        console.log(`[ClaudeMessageDeltaHandler] Дельта сообщения, токенов: ${totalTokens}`);
-        // Просто логируем, не отправляем событие клиенту
-        return null;
-    }
-}
-
-// Обработчик завершения
+// Обработчик завершения для Claude
 class ClaudeCompletionHandler extends EventHandler {
     canHandle(eventType: string): boolean {
         return eventType === "message_stop";
@@ -192,7 +146,7 @@ class ClaudeCompletionHandler extends EventHandler {
     }
 }
 
-// Обработчик ошибок
+// Обработчик ошибок для Claude
 class ClaudeErrorHandler extends EventHandler {
     canHandle(eventType: string): boolean {
         return eventType === "error";
@@ -211,46 +165,46 @@ class ClaudeErrorHandler extends EventHandler {
 }
 
 // Реализация для Claude
-export class ClaudeConversation implements AiConversation {
-    private id: string;
-    private model: string;
+export class ClaudeConversation extends BaseConversation {
     private anthropic: Anthropic;
-    private log: LogFunction;
-    private conversationHistory: Anthropic.MessageParam[] = []; // Добавляем историю разговора
-    private handlers: EventHandler[] = [
-        new ClaudeTextDeltaHandler(),       // Основной обработчик текстовых дельт
-        new ClaudeContentStartHandler(),    // Обработчик начала контента
-        new ClaudeToolCallHandler(),        // Обработчик вызовов функций
-        new ClaudeContentStopHandler(),     // Обработчик завершения блока контента
-        new ClaudeMessageStartHandler(),    // Обработчик начала сообщения
-        new ClaudeMessageDeltaHandler(),    // Обработчик дельты сообщения
-        new ClaudeCompletionHandler(),      // Обработчик завершения
-        new ClaudeErrorHandler()            // Обработчик ошибок
-    ];
+    private currentContent: any[] = [];
+    private assistantMessage: Anthropic.MessageParam | null = null;
     
     constructor(model: string, apiKey: string, log: LogFunction) {
-        this.id = randomUUID();
-        this.model = model;
+        super(model, log);
         this.anthropic = new Anthropic({ apiKey });
-        this.log = log;
-        
-        console.log(`[ClaudeConversation] Создан новый разговор. ID: ${this.id}, модель: ${this.model}`);
-        console.log(`[ClaudeConversation] Зарегистрировано ${this.handlers.length} обработчиков событий:`);
-        this.handlers.forEach((handler, index) => {
-            console.log(`  ${index + 1}. ${handler.constructor.name}`);
-        });
     }
     
-    getId(): string {
-        return this.id;
+    protected initializeHandlers(): void {
+        this.handlers = [
+            new ClaudeTextDeltaHandler(this),
+            new ClaudeContentStartHandler(this),
+            new ClaudeToolCallHandler(this),
+            new ClaudeContentStopHandler(this),
+            new ClaudeCompletionHandler(this),
+            new ClaudeErrorHandler(this)
+        ];
+    }
+    
+    protected getEventType(event: any): string {
+        return event.type;
+    }
+    
+    protected extractTokensFromEvent(event: any): number {
+        if (event.usage) {
+            return (event.usage.input_tokens || 0) + (event.usage.output_tokens || 0);
+        }
+        return 0;
+    }
+    
+    protected isTerminalEvent(result: StreamEvent): boolean {
+        return result.type === StreamEventType.COMPLETED || result.type === StreamEventType.ERROR;
     }
     
     // Преобразование Tool в формат Claude
-    private convertToolToClaudeFormat(tool: Tool): Anthropic.Tool {
+    protected convertToolToClaudeFormat(tool: Tool): Anthropic.Tool {
         console.log(`[ClaudeConversation] Преобразую инструмент: ${tool.name}`);
-        console.log(`[ClaudeConversation] Оригинальные параметры:`, JSON.stringify(tool.parameters, null, 2));
         
-        // Claude требует точную структуру input_schema с обязательными полями
         let inputSchema = tool.parameters;
         
         // Если parameters отсутствует или некорректен, создаем минимальную схему
@@ -263,17 +217,9 @@ export class ClaudeConversation implements AiConversation {
         }
         
         // Убеждаемся, что есть обязательные поля
-        if (!inputSchema.type) {
-            inputSchema.type = "object";
-        }
-        
-        if (!inputSchema.properties) {
-            inputSchema.properties = {};
-        }
-        
-        if (!inputSchema.required) {
-            inputSchema.required = [];
-        }
+        if (!inputSchema.type) inputSchema.type = "object";
+        if (!inputSchema.properties) inputSchema.properties = {};
+        if (!inputSchema.required) inputSchema.required = [];
         
         const claudeTool: Anthropic.Tool = {
             name: tool.name,
@@ -285,296 +231,15 @@ export class ClaudeConversation implements AiConversation {
         return claudeTool;
     }
     
-    async* send(
-        messages: ContentBlock[],
-        options?: ConversationOptions
-    ): AsyncIterable<StreamEvent> {
-        console.log(`[ClaudeConversation] Начинаю отправку ${messages.length} сообщений`);
-        console.log(`[ClaudeConversation] Опции:`, JSON.stringify(options, null, 2));
-        
-        if (options?.tools) {
-            console.log(`[ClaudeConversation] Доступные инструменты: ${options.tools.map(t => t.name).join(', ')}`);
-            options.tools.forEach((tool, index) => {
-                console.log(`[ClaudeConversation] Инструмент ${index + 1}:`, JSON.stringify(tool, null, 2));
-            });
-        }
-        
-        try {
-            // Логируем входящие сообщения пользователя
-            console.log(`[ClaudeConversation] Логирую ${messages.length} входящих сообщений`);
-            await Promise.all(
-                messages.map(async (msg, index) => {
-                    console.log(`[ClaudeConversation] Логирую сообщение ${index + 1}/${messages.length} от пользователя`);
-                    return this.log(msg, MessageSource.USER);
-                })
-            );
-
-            // Преобразуем новые сообщения в формат Claude
-            const newClaudeMessages = this.convertToClaudeFormat(messages);
-            console.log(`[ClaudeConversation] Преобразовано ${newClaudeMessages.length} новых сообщений`);
-            
-            // Добавляем новые сообщения к истории разговора
-            this.conversationHistory.push(...newClaudeMessages);
-            console.log(`[ClaudeConversation] Общая история: ${this.conversationHistory.length} сообщений`);
-            
-            // Валидация: проверяем, что tool_result имеет соответствующий tool_use
-            this.validateToolContext(this.conversationHistory);
-            
-            // Извлекаем system сообщение если есть
-            const systemMessages = this.conversationHistory.filter(msg => msg.role === "system");
-            const conversationMessages = this.conversationHistory.filter(msg => msg.role !== "system");
-            const systemMessage = systemMessages.length > 0 ? systemMessages[0].content as string : undefined;
-
-            console.log(`[ClaudeConversation] System сообщений: ${systemMessages.length}, обычных сообщений: ${conversationMessages.length}`);
-
-            // Подготавливаем параметры запроса
-            const requestParams: any = {
-                model: this.model,
-                max_tokens: options?.maxTokens || 4096,
-                messages: conversationMessages,
-                stream: true,
-                temperature: options?.temperature,
-                top_p: options?.top_p,
-                top_k: options?.top_k
-            };
-
-            // Добавляем system сообщение если есть
-            if (systemMessage) {
-                requestParams.system = systemMessage;
-            }
-
-            // Добавляем инструменты если они есть (формат для Claude)
-            if (options?.tools && options.tools.length > 0) {
-                console.log(`[ClaudeConversation] Начинаю преобразование ${options.tools.length} инструментов`);
-                
-                const convertedTools = options.tools.map((tool, index) => {
-                    console.log(`[ClaudeConversation] Обрабатываю инструмент ${index + 1}: ${tool.name}`);
-                    const converted = this.convertToolToClaudeFormat(tool);
-                    
-                    // Дополнительная валидация
-                    if (!converted.input_schema) {
-                        console.error(`[ClaudeConversation] ОШИБКА: отсутствует input_schema для инструмента ${tool.name}`);
-                        throw new Error(`Missing input_schema for tool ${tool.name}`);
-                    }
-                    
-                    if (!converted.input_schema.type) {
-                        console.error(`[ClaudeConversation] ОШИБКА: отсутствует type в input_schema для инструмента ${tool.name}`);
-                        converted.input_schema.type = "object";
-                    }
-                    
-                    return converted;
-                });
-                
-                requestParams.tools = convertedTools;
-                console.log(`[ClaudeConversation] Добавлено ${requestParams.tools.length} инструментов`);
-                console.log(`[ClaudeConversation] Финальные инструменты:`, JSON.stringify(requestParams.tools, null, 2));
-            }
-
-            // Создаем стрим через Claude Messages API
-            console.log(`[ClaudeConversation] Создаю стрим через Claude Messages API...`);
-            console.log(`[ClaudeConversation] Параметры запроса:`, JSON.stringify({
-                ...requestParams,
-                // Скрываем потенциально длинные массивы для лучшей читаемости
-                messages: `[${requestParams.messages?.length || 0} messages]`,
-                tools: requestParams.tools ? `[${requestParams.tools.length} tools]` : undefined
-            }, null, 2));
-            
-            const stream = await this.anthropic.messages.create(requestParams);
-
-            console.log(`[ClaudeConversation] Стрим создан успешно, начинаю обработку событий`);
-
-            let totalTokens = 0;
-            let eventCount = 0;
-            let assistantMessage: Anthropic.MessageParam | null = null;
-            let currentContent: any[] = [];
-
-            // Обрабатываем события от Claude
-            for await (const event of stream) {
-                eventCount++;
-                const claudeEvent = event as any;
-                const eventType = claudeEvent.type;
-
-                console.log(`[ClaudeConversation] Событие ${eventCount}: тип="${eventType}"`);
-
-                // Собираем контент ассистента для истории
-                if (eventType === "content_block_start") {
-                    if (claudeEvent.content_block?.type === "text") {
-                        currentContent.push({
-                            type: "text",
-                            text: claudeEvent.content_block.text || ""
-                        });
-                    } else if (claudeEvent.content_block?.type === "tool_use") {
-                        currentContent.push({
-                            type: "tool_use",
-                            id: claudeEvent.content_block.id,
-                            name: claudeEvent.content_block.name,
-                            input: claudeEvent.content_block.input || {}
-                        });
-                    }
-                }
-
-                // Обновляем текстовый контент
-                if (eventType === "content_block_delta" && claudeEvent.delta?.type === "text_delta") {
-                    const lastContent = currentContent[currentContent.length - 1];
-                    if (lastContent && lastContent.type === "text") {
-                        lastContent.text += claudeEvent.delta.text;
-                    }
-                }
-
-                // Обновляем input для tool_use
-                if (eventType === "content_block_delta" && claudeEvent.delta?.type === "input_json_delta") {
-                    const lastContent = currentContent[currentContent.length - 1];
-                    if (lastContent && lastContent.type === "tool_use") {
-                        const currentPartial = lastContent._partialInput || "";
-                        const newPartial = currentPartial + claudeEvent.delta.partial_json;
-                        lastContent._partialInput = newPartial;
-                        
-                        // Пытаемся парсить завершенный JSON
-                        try {
-                            if (newPartial.trim().endsWith('}') || newPartial.trim().endsWith(']')) {
-                                lastContent.input = JSON.parse(newPartial);
-                                delete lastContent._partialInput;
-                            }
-                        } catch (e) {
-                            // JSON еще не завершен
-                        }
-                    }
-                }
-
-                // Извлекаем токены из usage если есть
-                if (claudeEvent.usage) {
-                    const newTotal = (claudeEvent.usage.input_tokens || 0) + 
-                                   (claudeEvent.usage.output_tokens || 0);
-                    if (newTotal && newTotal !== totalTokens) {
-                        console.log(`[ClaudeConversation] Обновляю счетчик токенов: ${totalTokens} → ${newTotal}`);
-                        totalTokens = newTotal;
-                    }
-                }
-
-                // Логируем все события от ассистента
-                console.log(`[ClaudeConversation] Логирую событие от ассистента`);
-                await this.log(claudeEvent, MessageSource.ASSISTANT);
-
-                // Ищем подходящий хендлер
-                const handler = this.handlers.find(h => h.canHandle(eventType));
-                if (handler) {
-                    console.log(`[ClaudeConversation] Найден обработчик для события "${eventType}": ${handler.constructor.name}`);
-                    const result = handler.handle(claudeEvent, totalTokens);
-                    if (result) {
-                        console.log(`[ClaudeConversation] Обработчик вернул результат типа: ${result.type}`);
-                        yield result;
-                        
-                        // Завершаем если это completion или error
-                        if (result.type === StreamEventType.COMPLETED || 
-                            result.type === StreamEventType.ERROR) {
-                            
-                            // Сохраняем ответ ассистента в историю (только если не ошибка)
-                            if (result.type === StreamEventType.COMPLETED && currentContent.length > 0) {
-                                assistantMessage = {
-                                    role: "assistant",
-                                    content: currentContent.length === 1 && currentContent[0].type === "text" 
-                                        ? currentContent[0].text 
-                                        : currentContent
-                                };
-                                this.conversationHistory.push(assistantMessage);
-                                console.log(`[ClaudeConversation] Добавлен ответ ассистента в историю. Всего сообщений: ${this.conversationHistory.length}`);
-                            }
-                            
-                            console.log(`[ClaudeConversation] Завершаю обработку стрима. Обработано событий: ${eventCount}`);
-                            return;
-                        }
-                        
-                        // КРИТИЧНО: Если это tool_call - немедленно сохраняем частичный ответ ассистента
-                        if (result.type === StreamEventType.TOOL_CALL && currentContent.length > 0) {
-                            // Проверяем, есть ли уже tool_use в текущем контенте
-                            const hasToolUse = currentContent.some(block => block.type === "tool_use");
-                            if (hasToolUse) {
-                                assistantMessage = {
-                                    role: "assistant",
-                                    content: currentContent.length === 1 && currentContent[0].type === "text" 
-                                        ? currentContent[0].text 
-                                        : currentContent
-                                };
-                                this.conversationHistory.push(assistantMessage);
-                                console.log(`[ClaudeConversation] Немедленно добавлен ответ ассистента с tool_use в историю. Всего сообщений: ${this.conversationHistory.length}`);
-                                
-                                // Очищаем currentContent чтобы не дублировать при завершении
-                                currentContent = [];
-                            }
-                        }
-                    } else {
-                        console.log(`[ClaudeConversation] Обработчик не вернул результат (null)`);
-                    }
-                } else {
-                    console.warn(`[ClaudeConversation] Не найден обработчик для события типа "${eventType}"`);
-                }
-            }
-
-            console.log(`[ClaudeConversation] Стрим завершен. Всего обработано событий: ${eventCount}`);
-
-        } catch (error: any) {
-            console.error(`[ClaudeConversation] Произошла ошибка:`, error);
-            console.error(`[ClaudeConversation] Стек ошибки:`, error.stack);
-            
-            // Логируем ошибку
-            await this.log({ error: error.message }, MessageSource.ASSISTANT);
-            
-            yield {
-                type: StreamEventType.ERROR,
-                message: error?.message || "Request failed",
-                tokens: 0
-            };
-        }
+    protected convertToolToProviderFormat(tool: Tool): any {
+        return this.convertToolToClaudeFormat(tool);
     }
-
-    // Добавляем метод валидации контекста tool
-    private validateToolContext(messages: Anthropic.MessageParam[]): void {
-        console.log(`[ClaudeConversation] Валидирую контекст инструментов для ${messages.length} сообщений`);
-        
-        for (let i = 0; i < messages.length; i++) {
-            const message = messages[i];
-            const content = Array.isArray(message.content) ? message.content : [message.content];
-            
-            for (const block of content) {
-                if (typeof block === 'object' && block.type === 'tool_result') {
-                    console.log(`[ClaudeConversation] Найден tool_result с ID: ${block.tool_use_id}`);
-                    
-                    // Ищем соответствующий tool_use в предыдущих сообщениях
-                    let foundToolUse = false;
-                    for (let j = i - 1; j >= 0; j--) {
-                        const prevMessage = messages[j];
-                        const prevContent = Array.isArray(prevMessage.content) ? prevMessage.content : [prevMessage.content];
-                        
-                        for (const prevBlock of prevContent) {
-                            if (typeof prevBlock === 'object' && 
-                                prevBlock.type === 'tool_use' && 
-                                prevBlock.id === block.tool_use_id) {
-                                foundToolUse = true;
-                                console.log(`[ClaudeConversation] Найден соответствующий tool_use для ID: ${block.tool_use_id}`);
-                                break;
-                            }
-                        }
-                        if (foundToolUse) break;
-                    }
-                    
-                    if (!foundToolUse) {
-                        const errorMsg = `Tool result with ID ${block.tool_use_id} has no corresponding tool_use in conversation history`;
-                        console.error(`[ClaudeConversation] ОШИБКА: ${errorMsg}`);
-                        throw new Error(errorMsg);
-                    }
-                }
-            }
-        }
-        
-        console.log(`[ClaudeConversation] Валидация контекста инструментов пройдена успешно`);
-    }
-
-    private convertToClaudeFormat(messages: ContentBlock[]): Anthropic.MessageParam[] {
+    
+    protected convertToProviderFormat(messages: ContentBlock[]): Anthropic.MessageParam[] {
         console.log(`[ClaudeConversation] Начинаю преобразование ${messages.length} сообщений`);
         
         return messages
             .filter(msg => {
-                // Принимаем TEXT и TOOL_RESULT типы сообщений
                 const isValidType = msg.type === ContentType.TEXT || msg.type === "tool_result";
                 console.log(`[ClaudeConversation] Сообщение тип: ${msg.type}, проходит фильтр: ${isValidType}`);
                 return isValidType;
@@ -598,8 +263,6 @@ export class ClaudeConversation implements AiConversation {
                         }
                     ];
                     
-                    console.log(`[ClaudeConversation] Tool result - ID: ${toolResultData.tool_call_id}, содержимое: ${content[0].content}`);
-                    
                     return {
                         role: "user" as const,
                         content
@@ -608,17 +271,13 @@ export class ClaudeConversation implements AiConversation {
                 
                 // Обработка обычных сообщений
                 if (typeof msg.data === "string") {
-                    // Если data - это строка, то это контент от пользователя
                     content = msg.data;
-                    console.log(`[ClaudeConversation] Сообщение ${index + 1}: строка, длина ${content.length}`);
                 } else if (typeof msg.data === "object" && msg.data !== null) {
-                    // Если data - это объект, извлекаем роль и контент
                     const msgData = msg.data as any;
                     role = msgData.role || "user";
                     
-                    // Проверяем, есть ли tool_calls или tool результаты
                     if (msgData.tool_calls) {
-                        // Это сообщение ассистента с вызовами функций
+                        // Сообщение ассистента с вызовами функций
                         content = msgData.tool_calls.map((toolCall: any) => ({
                             type: "tool_use",
                             id: toolCall.id,
@@ -635,33 +294,155 @@ export class ClaudeConversation implements AiConversation {
                                 ...content
                             ];
                         }
-                    } else if (msgData.tool_call_id) {
-                        // Это результат выполнения функции
-                        content = [
-                            {
-                                type: "tool_result",
-                                tool_use_id: msgData.tool_call_id,
-                                content: msgData.content || ""
-                            }
-                        ];
                     } else {
-                        // Обычное сообщение
                         content = msgData.content || "";
                     }
-                    
-                    console.log(`[ClaudeConversation] Сообщение ${index + 1}: объект, роль="${role}", тип контента=${typeof content}`);
                 }
                 
-                // Claude поддерживает только user, assistant, и system роли
                 const claudeRole = role === "system" ? "system" : 
                                  role === "assistant" ? "assistant" : "user";
-                
-                console.log(`[ClaudeConversation] Преобразованная роль: "${role}" → "${claudeRole}"`);
                 
                 return {
                     role: claudeRole as "user" | "assistant" | "system",
                     content
                 };
             });
+    }
+    
+    protected async createStream(messages: Anthropic.MessageParam[], options?: ConversationOptions): Promise<any> {
+        // Валидация: проверяем, что tool_result имеет соответствующий tool_use
+        this.validateToolContext(messages);
+        
+        // Извлекаем system сообщение если есть
+        const systemMessages = messages.filter(msg => msg.role === "system");
+        const conversationMessages = messages.filter(msg => msg.role !== "system");
+        const systemMessage = systemMessages.length > 0 ? systemMessages[0].content as string : undefined;
+
+        // Подготавливаем параметры запроса
+        const requestParams: any = {
+            model: this.model,
+            max_tokens: options?.maxTokens || 4096,
+            messages: conversationMessages,
+            stream: true,
+            temperature: options?.temperature,
+            top_p: options?.top_p,
+            top_k: options?.top_k
+        };
+
+        // Добавляем system сообщение если есть
+        if (systemMessage) {
+            requestParams.system = systemMessage;
+        }
+
+        // Добавляем инструменты если они есть
+        if (options?.tools && options.tools.length > 0) {
+            const convertedTools = options.tools.map(tool => this.convertToolToClaudeFormat(tool));
+            requestParams.tools = convertedTools;
+            console.log(`[ClaudeConversation] Добавлено ${requestParams.tools.length} инструментов`);
+        }
+
+        console.log(`[ClaudeConversation] Создаю стрим через Claude Messages API...`);
+        return await this.anthropic.messages.create(requestParams);
+    }
+    
+    protected async processStreamEvent(event: any, totalTokens: number): Promise<void> {
+        const eventType = event.type;
+        
+        // Собираем контент ассистента для истории
+        if (eventType === "content_block_start") {
+            if (event.content_block?.type === "text") {
+                this.currentContent.push({
+                    type: "text",
+                    text: event.content_block.text || ""
+                });
+            } else if (event.content_block?.type === "tool_use") {
+                this.currentContent.push({
+                    type: "tool_use",
+                    id: event.content_block.id,
+                    name: event.content_block.name,
+                    input: event.content_block.input || {}
+                });
+            }
+        }
+
+        // Обновляем текстовый контент
+        if (eventType === "content_block_delta" && event.delta?.type === "text_delta") {
+            const lastContent = this.currentContent[this.currentContent.length - 1];
+            if (lastContent && lastContent.type === "text") {
+                lastContent.text += event.delta.text;
+            }
+        }
+
+        // Обновляем input для tool_use
+        if (eventType === "content_block_delta" && event.delta?.type === "input_json_delta") {
+            const lastContent = this.currentContent[this.currentContent.length - 1];
+            if (lastContent && lastContent.type === "tool_use") {
+                const currentPartial = lastContent._partialInput || "";
+                const newPartial = currentPartial + event.delta.partial_json;
+                lastContent._partialInput = newPartial;
+                
+                try {
+                    if (newPartial.trim().endsWith('}') || newPartial.trim().endsWith(']')) {
+                        lastContent.input = JSON.parse(newPartial);
+                        delete lastContent._partialInput;
+                    }
+                } catch (e) {
+                    // JSON еще не завершен
+                }
+            }
+        }
+
+        // Сохраняем ответ ассистента в историю при завершении
+        if (eventType === "message_stop" && this.currentContent.length > 0) {
+            this.assistantMessage = {
+                role: "assistant",
+                content: this.currentContent.length === 1 && this.currentContent[0].type === "text" 
+                    ? this.currentContent[0].text 
+                    : this.currentContent
+            };
+            this.addToHistory(this.assistantMessage);
+            this.currentContent = [];
+        }
+    }
+    
+    // Валидация контекста tool
+    private validateToolContext(messages: Anthropic.MessageParam[]): void {
+        console.log(`[ClaudeConversation] Валидирую контекст инструментов для ${messages.length} сообщений`);
+        
+        for (let i = 0; i < messages.length; i++) {
+            const message = messages[i];
+            const content = Array.isArray(message.content) ? message.content : [message.content];
+            
+            for (const block of content) {
+                if (typeof block === 'object' && block.type === 'tool_result') {
+                    console.log(`[ClaudeConversation] Найден tool_result с ID: ${block.tool_use_id}`);
+                    
+                    // Ищем соответствующий tool_use в предыдущих сообщениях
+                    let foundToolUse = false;
+                    for (let j = i - 1; j >= 0; j--) {
+                        const prevMessage = messages[j];
+                        const prevContent = Array.isArray(prevMessage.content) ? prevMessage.content : [prevMessage.content];
+                        
+                        for (const prevBlock of prevContent) {
+                            if (typeof prevBlock === 'object' && 
+                                prevBlock.type === 'tool_use' && 
+                                prevBlock.id === block.tool_use_id) {
+                                foundToolUse = true;
+                                break;
+                            }
+                        }
+                        if (foundToolUse) break;
+                    }
+                    
+                    if (!foundToolUse) {
+                        const errorMsg = `Tool result with ID ${block.tool_use_id} has no corresponding tool_use in conversation history`;
+                        console.error(`[ClaudeConversation] ОШИБКА: ${errorMsg}`);
+                        throw new Error(errorMsg);
+                    }
+                }
+            }
+        }
+        
+        console.log(`[ClaudeConversation] Валидация контекста инструментов пройдена успешно`);
     }
 }
