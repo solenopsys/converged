@@ -1,18 +1,15 @@
 import OpenAI from "openai";
 import { randomUUID } from "crypto";
  
-import { StreamEvent, EventHandler,AiConversation, MessageSource, LogFunction, ConversationOptions,ContentBlock, ContentType, } from "../../types";
-import { StreamEventType } from "../../types";
- 
+import { StreamEvent, EventHandler, AiConversation, MessageSource, LogFunction, ConversationOptions, ContentBlock, ContentType, StreamEventType, Tool } from "../../types";
 
-// Обработчик текстовых дельт (согласно официальной документации)
+// Обработчик текстовых дельт
 class TextDeltaHandler extends EventHandler {
     canHandle(eventType: string): boolean {
         return eventType === "response.output_text.delta";
     }
     
     handle(event: any, totalTokens: number): StreamEvent {
-        // Согласно официальной документации Azure OpenAI: event.delta содержит текст
         const textContent = event.delta || "";
         console.log(`[TextDeltaHandler] Обрабатываю текстовую дельту: "${textContent}", токенов: ${totalTokens}`);
         return {
@@ -30,7 +27,6 @@ class TextStartHandler extends EventHandler {
     }
     
     handle(event: any, totalTokens: number): StreamEvent | null {
-        // Обрабатываем только текстовые части
         if (event.part?.type === "output_text") {
             console.log(`[TextStartHandler] Начат новый текстовый блок, токенов: ${totalTokens}`);
             return {
@@ -51,8 +47,6 @@ class TextDoneHandler extends EventHandler {
     
     handle(event: any, totalTokens: number): StreamEvent | null {
         console.log(`[TextDoneHandler] Завершен текстовый блок: "${event.text || ""}", токенов: ${totalTokens}`);
-        // Можем отправить финальный текст или просто проигнорировать, 
-        // так как дельты уже были отправлены
         return null;
     }
 }
@@ -65,21 +59,19 @@ class ResponseStartHandler extends EventHandler {
     
     handle(event: any, totalTokens: number): StreamEvent | null {
         console.log(`[ResponseStartHandler] Начат ответ ассистента, токенов: ${totalTokens}`);
-        // Просто логируем, не отправляем событие клиенту
         return null;
     }
 }
 
-// Обработчик добавления элементов вывода
+// Обработчик добавления элементов вывода (только для не-tool событий)
 class OutputItemHandler extends EventHandler {
     canHandle(eventType: string): boolean {
-        return eventType === "response.output_item.added" || 
-               eventType === "response.output_item.done";
+        // Не обрабатываем output_item события, пусть их обрабатывает ToolCallHandler
+        return false;
     }
     
     handle(event: any, totalTokens: number): StreamEvent | null {
         console.log(`[OutputItemHandler] Обработка элемента вывода: ${event.type}, токенов: ${totalTokens}`);
-        // Просто логируем, не отправляем событие клиенту
         return null;
     }
 }
@@ -92,34 +84,65 @@ class ContentPartHandler extends EventHandler {
     
     handle(event: any, totalTokens: number): StreamEvent | null {
         console.log(`[ContentPartHandler] Завершена часть контента, токенов: ${totalTokens}`);
-        // Просто логируем, не отправляем событие клиенту
         return null;
     }
 }
 
-// Обработчик вызовов функций
+ // Обновленный обработчик вызовов функций - отправляет только финальные события
 class ToolCallHandler extends EventHandler {
     canHandle(eventType: string): boolean {
-        return eventType === "response.function_call_delta" || 
-               eventType === "response.tool_calls.delta";
+        // Обрабатываем только финальные события, игнорируем delta
+        return eventType === "response.output_item.added" ||
+               eventType === "response.output_item.done";
     }
     
     handle(event: any, totalTokens: number): StreamEvent | null {
-        if (!event.delta?.name && !event.delta?.arguments) {
-            console.log(`[ToolCallHandler] Пропускаю событие - нет имени функции или аргументов`);
-            return null;
+        console.log(`[ToolCallHandler] Обрабатываю событие инструмента:`, event);
+        
+        // Обработка добавления нового элемента функции
+        if (event.type === "response.output_item.added" && 
+            event.item?.type === "function_call") {
+            
+            console.log(`[ToolCallHandler] Начат вызов функции: ${event.item.name}, токенов: ${totalTokens}`);
+            
+            return {
+                type: StreamEventType.TOOL_CALL,
+                id: event.item.call_id || event.item.id || randomUUID(),
+                name: event.item.name || "",
+                args: {}, // Аргументы будут в done событии
+                tokens: totalTokens
+            };
         }
         
-        console.log(`[ToolCallHandler] Обрабатываю вызов функции: ${event.delta?.name || "unknown"}, токенов: ${totalTokens}`);
-        console.log(`[ToolCallHandler] Аргументы:`, event.delta?.arguments);
+        // Обработка завершения элемента функции - отправляем полную информацию
+        if (event.type === "response.output_item.done" && 
+            event.item?.type === "function_call") {
+            
+            let parsedArgs = {};
+            if (event.item.arguments) {
+                try {
+                    parsedArgs = typeof event.item.arguments === 'string' 
+                        ? JSON.parse(event.item.arguments) 
+                        : event.item.arguments;
+                } catch (e) {
+                    console.warn(`[ToolCallHandler] Не удалось распарсить аргументы: ${event.item.arguments}`);
+                    parsedArgs = { raw: event.item.arguments };
+                }
+            }
+            
+            console.log(`[ToolCallHandler] Завершен вызов функции: ${event.item.name} с аргументами:`, parsedArgs);
+            
+            // Отправляем финальное событие с полными аргументами
+            return {
+                type: StreamEventType.TOOL_CALL,
+                id: event.item.call_id || event.item.id || randomUUID(),
+                name: event.item.name || "",
+                args: parsedArgs,
+                tokens: totalTokens
+            };
+        }
         
-        return {
-            type: StreamEventType.TOOL_CALL,
-            id: event.id || randomUUID(),
-            name: event.delta?.name || "",
-            args: event.delta?.arguments || {},
-            tokens: totalTokens
-        };
+        return null;
     }
 }
 
@@ -159,22 +182,22 @@ class ErrorHandler extends EventHandler {
     }
 }
 
-// Реализация для OpenAI
+// Реализация для OpenAI с поддержкой инструментов
 export class OpenAIConversation implements AiConversation {
     private id: string;
     private model: string;
     private openai: OpenAI;
     private log: LogFunction;
     private handlers: EventHandler[] = [
-        new TextDeltaHandler(),           // Основной обработчик текстовых дельт
-        new TextStartHandler(),           // Обработчик начала текста
-        new TextDoneHandler(),            // Обработчик завершения текста
-        new ResponseStartHandler(),       // Обработчик начала ответа
-        new OutputItemHandler(),          // Обработчик элементов вывода
-        new ContentPartHandler(),         // Обработчик частей контента
-        new ToolCallHandler(),            // Обработчик вызовов функций
-        new CompletionHandler(),          // Обработчик завершения
-        new ErrorHandler()                // Обработчик ошибок
+        new TextDeltaHandler(),
+        new TextStartHandler(),
+        new TextDoneHandler(),
+        new ResponseStartHandler(),
+        new ToolCallHandler(),           // ToolCallHandler должен быть ЗДЕСЬ
+        new OutputItemHandler(),
+        new ContentPartHandler(),
+        new CompletionHandler(),
+        new ErrorHandler()
     ];
     
     constructor(model: string, apiKey: string, log: LogFunction) {
@@ -194,12 +217,26 @@ export class OpenAIConversation implements AiConversation {
         return this.id;
     }
     
+    // Преобразование Tool в формат OpenAI Responses API (правильный формат)
+    private convertToolToOpenAIFormat(tool: Tool): any {
+        return {
+            type: "function",
+            name: tool.name,
+            description: tool.description,
+            parameters: tool.parameters
+        };
+    }
+    
     async* send(
         messages: ContentBlock[],
         options?: ConversationOptions
     ): AsyncIterable<StreamEvent> {
         console.log(`[OpenAIConversation] Начинаю отправку ${messages.length} сообщений`);
         console.log(`[OpenAIConversation] Опции:`, options);
+        
+        if (options?.tools) {
+            console.log(`[OpenAIConversation] Доступные инструменты: ${options.tools.map(t => t.name).join(', ')}`);
+        }
         
         try {
             // Логируем входящие сообщения пользователя
@@ -212,40 +249,51 @@ export class OpenAIConversation implements AiConversation {
             );
 
             // Преобразуем ContentBlock[] в формат OpenAI Responses API
-            // Согласно документации, input может быть строкой или массивом объектов с role и content
             const input = messages.map((msg, index) => {
-                // Определяем роль и контент в зависимости от структуры данных
                 let role = "user";
                 let content = "";
+                let toolCallId: string | undefined;
+                let name: string | undefined;
                 
                 if (typeof msg.data === "string") {
-                    // Если data - это строка, то это контент от пользователя
                     content = msg.data;
                 } else if (typeof msg.data === "object" && msg.data !== null) {
-                    // Если data - это объект, извлекаем роль и контент
                     role = msg.data.role || "user";
                     content = msg.data.content || "";
+                    toolCallId = msg.data.tool_call_id;
+                    name = msg.data.name;
                 }
                 
                 console.log(`[OpenAIConversation] Преобразую сообщение ${index + 1}: роль="${role}", длина контента=${content.length} символов`);
-                console.log(`[OpenAIConversation] Контент: "${content.substring(0, 100)}${content.length > 100 ? '...' : ''}"`);
                 
-                return {
-                    role,
-                    content
-                };
+                const message: any = { role, content };
+                if (toolCallId) message.tool_call_id = toolCallId;
+                if (name) message.name = name;
+                
+                return message;
             });
 
             console.log(`[OpenAIConversation] Подготовлено ${input.length} сообщений для OpenAI API`);
 
-            // Создаем стрим через OpenAI Responses API
-            console.log(`[OpenAIConversation] Создаю стрим через OpenAI Responses API...`);
-            const stream = await this.openai.responses.create({
+            // Подготавливаем параметры запроса
+            const requestParams: any = {
                 model: this.model,
                 input,
                 stream: true,
-                ...options
-            });
+                temperature: options?.temperature,
+                max_tokens: options?.maxTokens
+            };
+
+            // Добавляем инструменты если они есть (формат для Responses API)
+            if (options?.tools && options.tools.length > 0) {
+                requestParams.tools = options.tools.map(tool => this.convertToolToOpenAIFormat(tool));
+                console.log(`[OpenAIConversation] Добавлено ${requestParams.tools.length} инструментов`);
+                console.log(`[OpenAIConversation] Инструменты:`, JSON.stringify(requestParams.tools, null, 2));
+            }
+
+            // Создаем стрим через OpenAI Responses API
+            console.log(`[OpenAIConversation] Создаю стрим через OpenAI Responses API...`);
+            const stream = await this.openai.responses.create(requestParams);
 
             console.log(`[OpenAIConversation] Стрим создан успешно, начинаю обработку событий`);
 
@@ -261,7 +309,7 @@ export class OpenAIConversation implements AiConversation {
 
                 console.log(`[OpenAIConversation] Событие ${eventCount}: тип="${eventType}"`);
 
-                // Извлекаем токены из события согласно реальной структуре из логов
+                // Извлекаем токены из события
                 const tokens = openaiEvent.response?.usage?.total_tokens || 0;
                 
                 if (tokens && tokens !== totalTokens) {
@@ -274,7 +322,13 @@ export class OpenAIConversation implements AiConversation {
                 await this.log(openaiEvent, MessageSource.ASSISTANT);
 
                 // Ищем подходящий хендлер
-                const handler = this.handlers.find(h => h.canHandle(eventType));
+                console.log(`[OpenAIConversation] Ищу обработчик для события "${eventType}"`);
+                const handler = this.handlers.find(h => {
+                    const canHandle = h.canHandle(eventType);
+                    console.log(`[OpenAIConversation] ${h.constructor.name}.canHandle("${eventType}") = ${canHandle}`);
+                    return canHandle;
+                });
+                
                 if (handler) {
                     console.log(`[OpenAIConversation] Найден обработчик для события "${eventType}": ${handler.constructor.name}`);
                     const result = handler.handle(openaiEvent, totalTokens);

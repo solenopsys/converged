@@ -1,11 +1,11 @@
-import { createStore, createEffect, sample, createDomain } from 'effector';
-import { 
-    ThreadsService, 
-    AiChatService, 
-    ContentType, 
-    MessageType,
-    StreamEventType, 
-    ULID
+import { createEffect, sample } from 'effector';
+import {
+    ThreadsService,
+    AiChatService,
+    ULID,
+    ExecutableTool,
+    ToolCall,
+    StreamEventType
 } from './types';
 import { ChatState } from './types';
 import * as handlers from './handlers';
@@ -15,11 +15,11 @@ import {
     receiveChunk,
     completeResponse,
     errorOccurred,
-    registerFunction
+    registerFunction,
+    toolCallReceived,
+    toolCallExecuted
 } from './events';
 import { chatDomain } from './domain';
-
-// Create domain
 
 const initialState: ChatState = {
     threadId: '' as ULID,
@@ -27,81 +27,46 @@ const initialState: ChatState = {
     model: '',
     messages: [],
     isLoading: false,
-    currentResponse: ''
+    currentResponse: '',
+    pendingToolCalls: []
 };
 
 export const createChatStore = (
     aiService: AiChatService,
     threadsService: ThreadsService
 ) => {
-    // Store
     const $chat = chatDomain.createStore<ChatState>(initialState, { name: 'CHAT' })
         .on(initChat, handlers.initializeChat)
         .on(sendMessage, handlers.addUserMessage)
         .on(receiveChunk, handlers.updateResponse)
         .on(completeResponse, handlers.finalize)
-        .on(errorOccurred, handlers.handleError);
+        .on(errorOccurred, handlers.handleError)
+        .on(toolCallReceived, (state, toolCall) => ({
+            ...state,
+            pendingToolCalls: [...state.pendingToolCalls, toolCall]
+        }))
+        .on(toolCallExecuted, (state, { toolCallId }) => ({
+            ...state,
+            pendingToolCalls: state.pendingToolCalls.filter(tc => tc.id !== toolCallId)
+        }));
 
-    const $functions = chatDomain.createStore<Record<string, Function>>({}, { name: 'FUNCTIONS' })
+    const $functions = chatDomain.createStore<Record<string, ExecutableTool>>({}, { name: 'FUNCTIONS' })
         .on(registerFunction, (registry, { name, handler }) => ({
             ...registry,
             [name]: handler
         }));
 
-    // Effects with names
     const createSessionFx = chatDomain.createEffect<ChatState, string>('CREATE_SESSION_FX');
     const sendMessageFx = chatDomain.createEffect<{ content: string; state: ChatState }, void>('SEND_MESSAGE_FX');
+    const executeToolCallFx = chatDomain.createEffect<ToolCall, { toolCallId: string, result: any }, Error>('EXECUTE_TOOL_CALL_FX');
+    const sendToolResultFx = chatDomain.createEffect<{ toolCallId: string, result: any, state: ChatState }, void>('SEND_TOOL_RESULT_FX');
 
-    createSessionFx.use(async ({ serviceType, model }) => 
-        await aiService.createSession(serviceType, model)
-    );
+    createSessionFx.use(handlers.createSession(aiService));
+    sendMessageFx.use(handlers.sendMessage(aiService, threadsService, $functions));
+    executeToolCallFx.use(handlers.executeToolCall($functions));
+    sendToolResultFx.use(handlers.sendToolResult(aiService, threadsService));
 
-    sendMessageFx.use(async ({ content, state }) => {
-        if (!state.sessionId) return;
-
-        // Save to threads
-        await threadsService.saveMessage({
-            threadId: state.threadId,
-            user: 'user',
-            type: MessageType.message,
-            data: content,
-            timestamp: Date.now()
-        });
-
-        // Stream from AI
-        const messages = [{ type: ContentType.TEXT, data: content }];
-        
-        try {
-            for await (const event of aiService.sendMessage(state.sessionId, messages)) {
-                receiveChunk(event);
-
-                if (event.type === StreamEventType.COMPLETED) {
-                    // Save assistant response
-                    const currentState = $chat.getState();
-                    await threadsService.saveMessage({
-                        threadId: state.threadId,
-                        user: 'assistant', 
-                        type: MessageType.message,
-                        data: currentState.currentResponse,
-                        timestamp: Date.now()
-                    });
-                    
-                    completeResponse();
-                    break;
-                }
-
-                if (event.type === StreamEventType.ERROR) {
-                    errorOccurred(event.message);
-                    break;
-                }
-            }
-        } catch (error) {
-            const message = error instanceof Error ? error.message : 'Unknown error';
-            errorOccurred(message);
-        }
-    });
-
-    // Connections
+    // Связки событий и эффектов
     sample({
         clock: initChat,
         target: createSessionFx
@@ -117,25 +82,63 @@ export const createChatStore = (
     sample({
         clock: sendMessage,
         source: $chat,
-    //    filter: (state) => !!state.sessionId && !state.isLoading,
         fn: (state, content) => ({ content, state }),
         target: sendMessageFx
     });
 
-    // Public API
+    // Обработка tool calls - вызов toolCallReceived при получении TOOL_CALL события
+    sample({
+        clock: receiveChunk,
+        filter: (event) => event.type === StreamEventType.TOOL_CALL,
+        fn: (event) => event as ToolCall,
+        target: toolCallReceived
+    });
+
+    // Выполнение tool call
+    sample({
+        clock: toolCallReceived,
+        target: executeToolCallFx
+    });
+
+    // Отправка результата tool call
+    sample({
+        clock: executeToolCallFx.doneData,
+        source: $chat,
+        fn: (state, { toolCallId, result }) => ({ toolCallId, result, state }),
+        target: sendToolResultFx
+    });
+
+    // Обновление состояния после выполнения tool call
+    sample({
+        clock: executeToolCallFx.doneData,
+        fn: ({ toolCallId, result }) => ({ toolCallId, result }),
+        target: toolCallExecuted
+    });
+
+    // Обработка ошибок tool call
+    sample({
+        clock: executeToolCallFx.failData,
+        fn: (error) => {
+            console.error('Tool call execution failed:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            errorOccurred(errorMessage);
+            return { toolCallId: '', result: null, error: errorMessage };
+        },
+        target: toolCallExecuted
+    });
+
     return {
         $chat,
         $functions,
-        
+
         init: (threadId: ULID, serviceType: any, model: string) =>
             initChat({ threadId, serviceType, model }),
-            
+
         send: (content: string) => sendMessage(content),
-        
-        registerFunction: (name: string, handler: Function) =>
+
+        registerFunction: (name: string, handler: ExecutableTool) =>
             registerFunction({ name, handler }),
-            
-        // Getters
+
         get messages() { return $chat.getState().messages; },
         get isLoading() { return $chat.getState().isLoading; },
         get currentResponse() { return $chat.getState().currentResponse; }

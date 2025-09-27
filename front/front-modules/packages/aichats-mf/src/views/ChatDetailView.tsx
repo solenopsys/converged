@@ -5,7 +5,7 @@ import { ChatDetail } from '../components/ChatDetail';
 import { createChatStore } from 'front-chat-core';
 import { useUnit } from 'effector-react';
 import {aichatClient, threadsClient} from '../services';
-import { ChatState,  ServiceType } from 'front-chat-core';
+import { ChatState,  ServiceType,Tool } from 'front-chat-core';
 import { v4 as uuidv4 } from 'uuid';
 
  
@@ -15,9 +15,32 @@ const chatStore = createChatStore(aichatClient, threadsClient);
 
 const uuid=uuidv4();
 
-//chatStore.init(uuid, ServiceType.OPENAI, 'gpt-3.5-turbo'); # gpt-5-mini
-chatStore.init(uuid, ServiceType.ANTHROPIC, 'claude-3-5-haiku-20241022'); 
+chatStore.init(uuid, ServiceType.OPENAI,"gpt-3.5-turbo" );   // 'gpt-3.5-turbo'
+//chatStore.init(uuid, ServiceType.ANTHROPIC, 'claude-3-5-haiku-20241022'); 
 
+const weatherTool:Tool={
+    name: 'weather',
+    description: 'Get the current weather',
+    parameters: {
+        type: 'object',
+        properties: {
+            city: {
+                type: 'string',
+                description: 'The city to get the weather for'
+            }
+        },
+        required: ['city']
+    },
+    execute: async (args: any) => {
+        console.log("ВЫЗОВ ФУНКЦИИ weather----------------------------", args);
+        const city = args.city;
+         
+        return {city: city,temperature: 29,pressure: 1013,windSpeed: 5};
+    }
+};
+
+
+chatStore.registerFunction('weather', weatherTool )
  
 
 const ChatDetailView: React.FC = ( ) => {

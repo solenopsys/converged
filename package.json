@@ -1,6 +1,8 @@
 {
 	"name": "converged",
 	"version": "0.1.0",
+	"author": "Aleksei Shtorm",
+	"license": "AGPL-3.0",
 	"private": true,
 	"scripts": {
 		"format": "biome format --write .",

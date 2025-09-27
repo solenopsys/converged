@@ -2,6 +2,8 @@ export enum StreamEventType {
     TEXT_DELTA = "text_delta",
     TOOL_CALL = "tool_call",
     COMPLETED = "completed",
+    TOOL_CALL_DELTA = "tool_call_delta",  // Новый тип для частичных данных инструментов
+
     ERROR = "error"
 }
 
@@ -21,9 +23,42 @@ export type ContentBlock = {
     data?: any;
 };
 
+export interface ToolParameter {
+    type: 'string' | 'number' | 'boolean' | 'object' | 'array';
+    description: string;
+    required?: boolean;
+    enum?: (string | number)[];
+    items?: ToolParameter;
+    properties?: Record<string, ToolParameter>;
+}
+
+export interface Tool {
+    name: string;
+    description: string;
+    parameters: {
+        type: 'object';
+        properties: Record<string, ToolParameter>;
+        required?: string[];
+    };
+
+    execute: (args: any) => Promise<any> | any;
+}
+
+export interface ToolCall {
+    id: string;
+    name: string;
+    args: Record<string, any>;
+}
+
+export interface ToolResult {
+    toolCallId: string;
+    result: any;
+    error?: string;
+}
+
 export type ConversationOptions = {
     stream?: boolean;
-    tools?: any[];
+    tools?: Tool[];
     temperature?: number;
     maxTokens?: number;
 }
