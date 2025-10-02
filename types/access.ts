@@ -1,19 +1,27 @@
 
+
+export type Permission = string;
+
+
+
+
+
 export interface AccesService {
+    emitJWT(userId: string): Promise<string>
     // user permissions
-    addPermissionToUser(userId: string, permission: string): Promise<void>
-    removePermissionFromUser(userId: string, permission: string): Promise<void>
-    getPermissionsFromUser(userId: string): Promise<string[]>
-    getPermissionsMixinFromUser(userId: string): Promise<string[]>
+   
+    addPermissionToUser(userId: string, permission: Permission): Promise<void>
+    removePermissionFromUser(userId: string, permission: Permission): Promise<void>
+    getPermissionsFromUser(userId: string): Promise<Permission[]>
+    getPermissionsMixinFromUser(userId: string): Promise<Permission[]>
     // user presets
     linkPresetToUser(userId: string, presetName: string): Promise<void>
     unlinkPresetFromUser(userId: string, presetName: string): Promise<void>
-
     // presets
-    createPreset(presetName: string, permissions: string[]): Promise<void>
-    updatePreset(presetName: string, permissions: string[]): Promise<void>
+    createPreset(presetName: string, permissions: Permission[]): Promise<void>
+    updatePreset(presetName: string, permissions: Permission[]): Promise<void>
     deletePreset(presetName: string): Promise<void>
-    getPreset(presetName: string): Promise<string[]>
-    getAllPresets(): Promise<{ name: string, permissions: string[] }[]>
+    getPreset(presetName: string): Promise<Permission[]>
+    getAllPresets(): Promise<{ name: string, permissions: Permission[] }[]>
 }
 

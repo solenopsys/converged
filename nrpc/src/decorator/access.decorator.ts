@@ -43,3 +43,37 @@ export class UserController {
     return res.json({ userId: req.user?.sub });
   }
 }
+
+
+export enum SecureType {
+  AUTH,
+  PERMISSION,
+  
+}
+
+export function secure(type: SecureType) {
+  return function (value: any, context: ClassMethodDecoratorContext) {
+      if (context.kind !== "method") {
+          return value;
+      }
+      const originalMethod = value as (...args: any[]) => any;
+      const name = String(context.name);
+      return async function (this: unknown, ...args: any[]) {
+          console.log(`Method ${name} was called with target: ${target}`);
+          return await originalMethod.apply(this as any, args);
+      };
+  };
+}
+
+export function secureAll(tableName: SecureType) {
+  return function<T extends { new(...args: any[]): {} }>(constructor: T) {
+      return class extends constructor {
+          table = tableName;
+          
+          constructor(...args: any[]) {
+              super(...args);
+              console.log(`Entity created for table: ${tableName}`);
+          }
+      };
+  };
+}

@@ -21,30 +21,30 @@ class CodeSourceAccessor extends EntityAcessor<SchemeStore>{ // code sources wid
   readonly CODE_SOURCE = "code_source";
 
 
-  saveCode(body: string) {
+  saveCode(body: string) { // ok
     const hashString = genHash(body);
     this.db.put([this.CODE, hashString], body);
     return hashString;
   }
 
-  getCode(hashString: string): string {
+  getCode(hashString: string): string { //ok
     return this.db.get([this.CODE, hashString]);
   }
 
-  listCodeSoruce(): string[] {
+  listCodeSoruce(): string[] { // ok
     return this.listKeys([this.CODE_SOURCE],1);
   }
 
-  listCodeSoruceReach(): { id: string, name: string }[] {
+  listCodeSoruceReach(): { id: string, name: string }[] { // ok
     return this.listKeys([this.CODE_SOURCE],1).map((name)=>{return {id:name,name:name}});
   }
 
 
-  getCodeSource(name: string, version: string): { code_hash: string } {
+  getCodeSource(name: string, version: string): { code_hash: string } {//ok
     return this.db.get([this.CODE_SOURCE, name, version]);
   }
 
-  createCodeSource(name: string, hash: HashString): { version: string, fields: { name: string, type: string }[] } {
+  createCodeSource(name: string, hash: HashString): { version: string, fields: { name: string, type: string }[] } {//ok
     const code = this.getCode(hash);
     if (code==undefined){
       throw new Error("Code not found");
@@ -61,7 +61,7 @@ class CodeSourceAccessor extends EntityAcessor<SchemeStore>{ // code sources wid
     return { version, fields: constructorParams };
   }
 
-  getCodeSourceVersions(name: string): { versions: CodeSource[] } {
+  getCodeSourceVersions(name: string): { versions: CodeSource[] } {//ok
     const versions: CodeSource[] = [];
     const keys = this.db.getKeysWithPrefix([this.CODE_SOURCE, name]);
     for (const key of keys) {
@@ -78,15 +78,15 @@ class WorflowAccessor extends EntityAcessor<SchemeStore> {
   readonly WORKFLOW_CONFIG = "workflow_config";
 
 
-  listWorkflowReach(): { id: string, name: string }[] {
+  listWorkflowReach(): { id: string, name: string }[] {//ok
     return this.listKeys([this.WORKFLOW],1).map((name)=>{return {id:name,name:name}});
   }
 
-  listWorkflow(): string[] {
+  listWorkflow(): string[] {//ok
     return this.listKeys([this.WORKFLOW],1);
   }
 
-  getWorkflowVersions(name: string): string[] {
+  getWorkflowVersions(name: string): string[] {//ok
     const keys = this.db.getKeysWithPrefix([this.WORKFLOW, name]);
     const versions: Set<string> = new Set();
     for (const key of keys) {
@@ -97,21 +97,21 @@ class WorflowAccessor extends EntityAcessor<SchemeStore> {
   }
 
   // Методы для работы с workflow
-  createWorkflowConfig(hash: string, workflow: Workflow): void {
+  createWorkflowConfig(hash: string, workflow: Workflow): void {//ok
     this.db.put([this.WORKFLOW_CONFIG, hash], workflow);
   }
 
-  getWorkflowConfig(hash: string): Workflow {
+  getWorkflowConfig(hash: string): Workflow {//ok
     return this.db.get([this.WORKFLOW_CONFIG, hash]);
   }
 
-  createWorkflow(name: string, version: string, workflowVersionHash: string): void {
+  createWorkflow(name: string, version: string, workflowVersionHash: string): void {//ok
     this.db.put([this.WORKFLOW, name, version], {
       workflow_version_hash: workflowVersionHash
     });
   }
 
-  getWorkflowHash(name: string, version: string): HashString {
+  getWorkflowHash(name: string, version: string): HashString {//ok
     return this.db.get([this.WORKFLOW, name, version]).workflow_version_hash;
   }
 
@@ -119,7 +119,7 @@ class WorflowAccessor extends EntityAcessor<SchemeStore> {
 
 class ProviderAccessor extends EntityAcessor<SchemeStore>  implements ProvidersStore  {
 
-  createProvider(name: string, providerCodeName: string, config: any): { name: string } {
+  createProvider(name: string, providerCodeName: string, config: any): { name: string } {//ok
     const providerCodeVersion = this.getLastVersion([this.store.code.CODE_SOURCE, providerCodeName]);
     const struct = {
       config: config,
@@ -134,7 +134,7 @@ class ProviderAccessor extends EntityAcessor<SchemeStore>  implements ProvidersS
     return this.listKeys([PROVIDER],1);
   }
 
-  getProvider(name: string): { hash: string, code: string, config: any } {
+  getProvider(name: string): { hash: string, code: string, config: any } {//ok
     const data: {
       config: any,
       codeName: string,
@@ -145,7 +145,7 @@ class ProviderAccessor extends EntityAcessor<SchemeStore>  implements ProvidersS
     return { hash: code_hash, code, config: data.config };
   }
 
-  providerExists(name: string): boolean {
+  providerExists(name: string): boolean { //OK
     const exists = this.db.get([PROVIDER, name]);
     return exists !== undefined;
   }
@@ -157,29 +157,29 @@ class NodeAccessor extends EntityAcessor<SchemeStore> {
   readonly NODE = "node";
 
 
-  getNodeConfig(hashString: string): any {
+  getNodeConfig(hashString: string): any {//OK
     console.log("node", hashString);
     const data = this.db.get([this.NODE_CONFIG, hashString]);
     return data;
   }
 
-  getNode(nodeName: string): string {
+  getNode(nodeName: string): string {//OK
     const lastVersion = this.getLastVersion([this.NODE, nodeName]);
     const nodeConfigHash=this.db.get([this.NODE,nodeName,lastVersion]);
     return nodeConfigHash;
   }
 
-  getNodeByKey(key: string): string { 
+  getNodeByKey(key: string): string { //OK
     const nodeConfigHash=this.db.get([key]);
     return nodeConfigHash;
   }
 
 
-  listNodes(): string[] {
+  listNodes(): string[] {//ok
     return this.listKeys([this.NODE],1);
   }
 
-  createNodeConfig(nodeCodeName: string, config: any): { hash: HashString } {
+  createNodeConfig(nodeCodeName: string, config: any): { hash: HashString } {//ok
     const nodeCodeVersion = this.getLastVersion([this.store.code.CODE_SOURCE, nodeCodeName]);
     const struct = {
       config: config,
@@ -193,7 +193,7 @@ class NodeAccessor extends EntityAcessor<SchemeStore> {
     return { hash: hashString };
   }
 
-  createNode(nodeName: string, nodeConfigHash: any): string {
+  createNode(nodeName: string, nodeConfigHash: any): string {//ok
     const version = timeVersion();
     const key = this.db.put([this.NODE, nodeName, version], nodeConfigHash);
     return key;
@@ -201,17 +201,17 @@ class NodeAccessor extends EntityAcessor<SchemeStore> {
 }
 
 class ParamAccessor extends EntityAcessor<SchemeStore> { // params 
-  setParam(name: string, value: string): { replaced: boolean } {
+  setParam(name: string, value: string): { replaced: boolean } {//ok
     const exists = this.db.get([PARAM, name]);
     this.db.put([PARAM, name], value);
     return { replaced: exists !== undefined };
   }
 
-  getParam(name: string): { value: string } {
+  getParam(name: string): { value: string } {//ok
     return this.db.get([PARAM, name]);
   }
 
-  listParams(): {  [name: string]: string  } {
+  listParams(): {  [name: string]: string  } {//ok
     return this.db.getVeluesRangeAsObjectWithPrefix(PARAM);
   }
 }

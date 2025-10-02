@@ -15,8 +15,8 @@ const chatStore = createChatStore(aichatClient, threadsClient);
 
 const uuid=uuidv4();
 
-//chatStore.init(uuid, ServiceType.OPENAI,"gpt-3.5-turbo" );   // 'gpt-3.5-turbo'
-chatStore.init(uuid, ServiceType.ANTHROPIC, 'claude-3-5-haiku-20241022'); 
+chatStore.init(uuid, ServiceType.OPENAI,"gpt-5-mini" );   // 'gpt-3.5-turbo'
+//chatStore.init(uuid, ServiceType.ANTHROPIC, 'claude-3-5-haiku-20241022'); 
 
 const weatherTool:Tool={
     name: 'weather',

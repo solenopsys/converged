@@ -7,17 +7,18 @@
     "@types/bun": "latest",
     "@typescript-eslint/typescript-estree": "^8.38.0"
   },
-  "scripts": {
-   
-  },
+  "scripts": {},
   "peerDependencies": {
     "typescript": "^5.8.3"
   },
   "dependencies": {
+    "add": "^2.0.6",
+    "bun": "^1.2.22",
     "elysia": "^1.3.6",
     "kysely": "^0.28.3",
     "lmdb": "^3.4.1",
     "nrpc": "file:../nrpc",
-    "ordered-binary": "^1.6.0"
+    "ordered-binary": "^1.6.0",
+    "sqlite-vec": "^0.1.7-alpha.2"
   }
 }
