@@ -13,7 +13,8 @@
   },
   "scripts": {
     "css": "bunx @tailwindcss/cli -i index.css  -o ./dist/index.css",
-    "bld": "bun run ../../node_modules/builders/src/build-frontend.ts ./src/index.ts  ../../../../../private/types/mailing.ts ./dist/"
+    "bld": "bun run ../../node_modules/builders/src/build-frontend.ts ./src/index.ts  ../../../../../private/types/mailing.ts ./dist/",
+    "bldu": "bun bld --upload"
   },
 
   "module": "src/index.ts",

@@ -14,7 +14,9 @@
   },
   "scripts": {
     "gen-threads": "bun run ./node_modules/builders/src/build-frontend-base.ts ../../../../types/threads.ts ./src/threads",
-    "bld": "bun run gen-threads &&  bun run ../../node_modules/builders/src/build-frontend.ts ./src/index.ts ../../../../types/chats.ts ./dist/"
+    "bld": "bun run gen-threads &&  bun run ../../node_modules/builders/src/build-frontend.ts ./src/index.ts ../../../../types/chats.ts ./dist/",
+    "bldu": "bun bld --upload"
+  
   },
   "module": "src/index.ts",
   "peerDependencies": {

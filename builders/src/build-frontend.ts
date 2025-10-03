@@ -1,5 +1,6 @@
 import { runBuild, createContext } from './builder';
-import { parseService, generateFrontend, buildFrontend, uploadS3, generateFrontendWrapper } from './build-steps';
+import { parseService, generateFrontend, buildFrontend, uploadS3,uploadS3Locale, generateFrontendWrapper } from './build-steps';
+import { fileSize } from './tools';
 
 if (process.argv.length < 5) {
     console.error('Usage: bun run <script> <entrypoint> <serviceFile1> [serviceFile2...] <outDir> [--upload]');
@@ -32,7 +33,8 @@ const steps = [
 ];
 
 if (upload) {
-    steps.push(uploadS3('front'));
+    steps.push(uploadS3('front',false));
+    steps.push(uploadS3Locale('front/locale'));
 }
 
 try {

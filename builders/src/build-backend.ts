@@ -29,7 +29,7 @@ const steps = [
 ];
 
 if (upload) {
-    steps.push(uploadS3('back'));
+    steps.push(uploadS3('back',true));
 }
 
 try {

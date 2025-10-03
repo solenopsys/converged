@@ -28,14 +28,12 @@ try {
  * Получает версию пакета из package.json или возвращает fallback
  */
 function getPackageVersion(packageName: string, fallback: string = "latest"): string {
-  console.log(packageVersions);
-  const version = packageVersions[packageName] ;
+  const version = packageVersions[packageName];
   if (version) return version;
   
- const basePackage= packageName.split('/')[0] ;
-
- const version2 = packageVersions[basePackage] ;
- if (version2) return version2;
+  const basePackage = packageName.split('/')[0];
+  const version2 = packageVersions[basePackage];
+  if (version2) return version2;
 
   throw new Error(`Package ${packageName} not found in package.json`);
 }
@@ -44,7 +42,7 @@ function getPackageVersion(packageName: string, fallback: string = "latest"): st
 const bundleGroups = [
   {
     name: "radix-ui",
-    mode: "bundle", // обычный bundle, не standalone
+    mode: "bundle",
     packages: [
       "@radix-ui/react-avatar",
       "@radix-ui/react-checkbox", 
@@ -81,18 +79,17 @@ const bundleGroups = [
     packages: [
       "tailwind-merge",
       "i18next",
-     
     ],
-    deps: [] // без React deps
+    deps: []
   },
+ 
   {
     name: "effector",
-    mode: "standalone",
-    packages: [
-      "effector",
+    mode: "bundle",
+    packages: [ 
       "effector-react",
     ],
-    deps: [] // effector не требует предустановленных зависимостей
+    deps: ["react", "react-dom", "effector"]
   },
 ];
 
@@ -143,12 +140,11 @@ const packageList = [
   "zod",
   "vaul",   
   "dagre",
-  "i18next-http-backend" ,
+  "i18next-http-backend",
 
   // effector
   "effector",
   "effector-react",
- //"@tabler/icons-react"
 ];
 
 // Группировка пакетов по типу (для статистики)
@@ -159,6 +155,7 @@ const packageGroups = {
   i18n: ["i18next", "react-i18next"],
   radix: packageList.filter(pkg => pkg.startsWith("@radix-ui/")),
   dndKit: packageList.filter(pkg => pkg.startsWith("@dnd-kit/")),
+  effector: ["effector", "effector-react"],
 };
 
 // Пакеты, которые НЕ должны собираться в bundle (runtime пакеты)
@@ -168,10 +165,9 @@ const noBundlePackages = [
   "react-dom/client",
   "react/jsx-runtime",
   "react/jsx-dev-runtime",
-  "react-router-dom", // routing тоже лучше без bundle
+  "react-router-dom",
   "react-router-dom/client",
-  "effector",
-  "effector-react",
+  "effector", // только effector, без effector-react
 ];
 
 // Пакеты, которые должны использовать bundle для оптимизации
@@ -196,9 +192,11 @@ const bundlePackages = [
   "@tanstack/react-table",
   "recharts",
   "sonner",
+  "vaul",
   "tailwind-merge",
   "react-i18next",
-  "i18next", // можно bundle
+  "i18next",
+  "effector-react", // добавлен
 ];
 
 /**
@@ -240,11 +238,28 @@ function generatePreloadLinks(): string[] {
  * Проверяет, требует ли пакет React зависимости
  */
 function requiresReactDeps(packageName: string): boolean {
-  return packageName.includes("react-") || 
+  // Проверяем bundleGroup.deps
+  const bundleGroup = findBundleGroup(packageName);
+  if (bundleGroup && bundleGroup.deps.includes("react")) {
+    return true;
+  }
+  
+  // Исключаем базовые React пакеты
+  if (packageName === "react" || 
+      packageName.startsWith("react/") || 
+      packageName === "react-dom" ||
+      packageName.startsWith("react-dom/")) {
+    return false;
+  }
+  
+  // Все что содержит react или известные React-зависимые пакеты
+  return packageName.includes("react") || 
          packageName.includes("@tanstack") || 
          packageName.includes("recharts") ||
          packageName.includes("@radix-ui/") ||
-         packageName.includes("@dnd-kit/");
+         packageName.includes("@dnd-kit/") ||
+         packageName === "vaul" ||
+         packageName === "sonner";
 }
 
 /**
@@ -281,13 +296,39 @@ function parsePackageName(fullName: string): { packageName: string; subpath?: st
 }
 
 /**
+ * Генерирует deps строку для пакета
+ */
+function generateDepsString(packageName: string): string {
+  const bundleGroup = findBundleGroup(packageName);
+  
+  if (bundleGroup && bundleGroup.deps.length > 0) {
+    // Используем deps из bundleGroup
+    return bundleGroup.deps.map(dep => {
+      const depVersion = getPackageVersion(dep).replace("^", "").replace("~", "");
+      return `${dep}@${depVersion}`;
+    }).join(",");
+  }
+  
+  // Дефолтные React deps
+  if (requiresReactDeps(packageName)) {
+    const reactVersion = getPackageVersion("react").replace("^", "").replace("~", "");
+    const reactDomVersion = getPackageVersion("react-dom").replace("^", "").replace("~", "");
+    return `react@${reactVersion},react-dom@${reactDomVersion}`;
+  }
+  
+  return "";
+}
+
+/**
  * Генерирует URL для пакета на ESM.sh с оптимизацией для уменьшения запросов
  */
 function generatePackageUrl(name: string, version: string): string {
   const { packageName, subpath } = parsePackageName(name);
+
+  const strongVersion = version.replace("^", "").replace("~", "");
   
   // Строим базовый URL
-  let baseUrl = `https://esm.sh/${packageName}@${version}`;
+  let baseUrl = `https://esm.sh/${packageName}@${strongVersion}`;
   if (subpath) {
     baseUrl += `/${subpath}`;
   }
@@ -303,20 +344,16 @@ function generatePackageUrl(name: string, version: string): string {
     // Обычный bundle режим
     baseUrl += "?bundle";
     
-    // Добавляем React зависимости если нужно
-    if (requiresReactDeps(name)) {
-      const reactVersion = getPackageVersion("react");
-      const reactDomVersion = getPackageVersion("react-dom");
-      const reactDeps = `react@${reactVersion},react-dom@${reactDomVersion}`;
-      baseUrl += `&deps=${reactDeps}`;
+    // Добавляем зависимости если нужно
+    const depsString = generateDepsString(name);
+    if (depsString) {
+      baseUrl += `&deps=${depsString}`;
     }
   } else {
     // No bundle режим для runtime пакетов
-    if (requiresReactDeps(name)) {
-      const reactVersion = getPackageVersion("react");
-      const reactDomVersion = getPackageVersion("react-dom");
-      const reactDeps = `react@${reactVersion},react-dom@${reactDomVersion}`;
-      baseUrl += `?deps=${reactDeps}`;
+    const depsString = generateDepsString(name);
+    if (depsString) {
+      baseUrl += `?deps=${depsString}`;
     }
   }
   
@@ -338,19 +375,8 @@ function generateImportMap() {
   
   for (const packageName of packageList) {
     const version = getPackageVersion(packageName);
-    const bundleGroup = findBundleGroup(packageName);
-    
-    if (bundleGroup) {
-      // Пакет входит в bundle группу - используем индивидуальный URL
-      // (ESM.sh не поддерживает множественные пакеты в одном bundle)
-      imports[packageName] = generatePackageUrl(packageName, version);
-    } else {
-      // Обычный пакет - генерируем индивидуальный URL
-      imports[packageName] = generatePackageUrl(packageName, version);
-    }
+    imports[packageName] = generatePackageUrl(packageName, version);
   }
-
- 
   
   return { imports };
 }
@@ -408,8 +434,6 @@ const importMap = generateImportMap();
 writeFileSync("dist/import-map.json", JSON.stringify(importMap, null, 2));
 console.log(`📋 import-map.json - ${Object.keys(importMap.imports).length} packages`);
 
-
-
 await Bun.build({
   entrypoints: ["./src/index.ts"],
   outdir: "./dist",
@@ -423,9 +447,5 @@ await Bun.build({
   tsconfig: "./tsconfig.json"
 });
 console.log(`📦 index.js - ${size("dist/index.js")}`);
-
-
-
-// execut bunx @tailwindcss/cli -i src/index.css -o ../bootstrap/dist/index.css
 
 await $`bunx @tailwindcss/cli -i src/index.css -o ./dist/index.css`;

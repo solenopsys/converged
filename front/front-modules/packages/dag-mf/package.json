@@ -11,7 +11,8 @@
     "@types/bun": "latest"
   },
   "scripts": {
-    "bld": "bun run ../../node_modules/builders/src/build-frontend.ts ./src/index.ts  ../../../../adag/dag-types/interface.ts ./dist/"
+    "bld": "bun run ../../node_modules/builders/src/build-frontend.ts ./src/index.ts  ../../../../adag/dag-types/interface.ts ./dist/",
+    "bldu": "bun bld --upload"
   },
   "module": "src/index.ts",
   "peerDependencies": {

@@ -1,7 +1,7 @@
 {
 	"name": "threads-ms",
 	"scripts": {
-		"bld": "bun run ../../node_modules/builders/src/build-backend.ts ./src/index.ts  ../../../../types/threads.ts ./dist/ ",
+		"bld": "bun run ../../../node_modules/builders/src/build-backend.ts ./src/index.ts  ../../../../../types/threads.ts ./dist/ ",
 		"bldu": "bun run bld --upload"
 	},
 	"devDependencies": {

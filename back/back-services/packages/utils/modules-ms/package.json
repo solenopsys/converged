@@ -14,6 +14,6 @@
 		"bun-types": "latest"
 	},
 	"scripts": {
-		"bld": "bun run ../../node_modules/builders/src/build-backend.ts ./src/index.ts  ../../../../types/modules.ts ./dist/ --upload"
+		"bld": "bun run ../../../node_modules/builders/src/build-backend.ts ./src/index.ts  ../../../../../types/modules.ts ./dist/ --upload"
 	}
 }

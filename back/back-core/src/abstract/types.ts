@@ -2,6 +2,7 @@ export type HashString = string;
 
 export interface KVDB {
     get(key: string[]): any | undefined;
+    getDirect(key:string): any | undefined;
     set(key: string[], value: any): string;
     delete(key: string[]): void;
     listKeys(prefix: string[]): string[];
@@ -53,6 +54,10 @@ export abstract class BaseRepositoryKV<K extends KeyKV, V extends any> implement
 
     get(key: K): V | undefined {
         return this.db.get(key.build()) as V;
+    }
+
+    getDirect(key:string): V | undefined {
+        return this.db.getDirect(key) as V;
     }
 
     delete(key: K): void {

@@ -1,11 +1,12 @@
 import { readdirSync, statSync, mkdirSync } from "fs";
 
 
-async function uploadToS3(prefix: string,filePath: string) {
+async function uploadToS3(prefix: string,filePath: string,targetPath:string) {
     const fileName = filePath.split('/').pop();
     console.log(`Uploading ${fileName} to S3...`);
     try {
-        await Bun.$`aws s3 cp ${filePath} s3://converged-modules/${prefix}/${fileName}`;
+        
+        await Bun.$`aws s3 cp ${filePath} s3://converged-modules/${prefix}/${targetPath} `;
         console.log(`✅ ${fileName} uploaded successfully.`);
     } catch (error) {
         console.error(`❌ Failed to upload ${fileName}:`, error);

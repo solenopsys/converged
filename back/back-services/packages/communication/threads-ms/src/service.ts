@@ -2,42 +2,37 @@
 
 export { StoreType, createStore, LMWrapper, newULID, type ULID } from "back-core";
 export { type ThreadsService, MessageType, type Message } from './types';
+import {ThreadsStoreService} from './store/service';
 
 export class ThreadsServiceImpl implements ThreadsService {
-    store: LMWrapper;
+  
+    storeService: ThreadsStoreService;
 
     constructor() {
         this.store = createStore("threads-ms", "threads", StoreType.KVS) as LMWrapper;
+
+
+        
     }
 
-    async saveMessage(message: Message): Promise<string> {
-        const timeStamp = Date.now()
-        if (!message.id) {
-            message.id = newULID();
-        }
-        message.timestamp = timeStamp;
-        return this.store.put(new MessageKey(message.threadId, message.id, timeStamp), message);
+    async saveMessage(message: Message): Promise<string> { 
+        this.storeService.saveMessage(message);
     }
 
-    async readMessage(threadId: ULID, messageId: ULID): Promise<Message> {
-        return (await this.readMessageVersions(threadId, messageId)).pop() as Message;
+    async readMessage(threadId: ULID, messageId: ULID): Promise<Message> { 
+        this.storeService.readMessage(threadId, messageId);
     }
 
-    async readMessageVersions(threadId: ULID, messageId: ULID): Promise<Message[]> {
-        return this.store.getValuesRangeAsArrayByPrefixChain([threadId, messageId]);
+    async readMessageVersions(threadId: ULID, messageId: ULID): Promise<Message[]> { 
+        this.storeService.readMessageVersions(threadId, messageId);
     }
 
-    async readThreadAllVersions(threadId: ULID): Promise<Message[]> {
-        return this.store.getValuesRangeAsArrayByPrefix(threadId);
+    async readThreadAllVersions(threadId: ULID): Promise<Message[]> { 
+        this.storeService.readThreadAllVersions(threadId);
     }
 
-    async readThread(threadId: ULID): Promise<Message[]> {
-        const last:Record<string,Message>={}
-        const all= (await this.readThreadAllVersions(threadId));
-        all.forEach(m=>{
-            last[m.id]=m;
-        })
-        return Object.values(last);
+    async readThread(threadId: ULID): Promise<Message[]> { 
+        this.storeService.readThread(threadId);
     }
 }
 

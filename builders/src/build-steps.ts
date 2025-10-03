@@ -13,22 +13,45 @@ import { compressBrottly } from './tools';
 
 import * as Bun from "bun";
 
-export const uploadS3 = (bucket: string = 'back'): BuildStep => async (context) => {
+export const uploadS3 = (bucket: string = 'back',compress: boolean = false): BuildStep => async (context) => {
     console.log('Uploading to S3...');
-   const brFile= await compressBrottly(context.finalBuildFile);
+   const resFile= compress ? await compressBrottly(context.finalBuildFile) : context.finalBuildFile;
    
-   console.log(fileSize(brFile));
-    await uploadToS3(bucket, brFile); 
+   console.log(fileSize(resFile));
+    await uploadToS3(bucket, resFile,resFile); 
     console.log('✅ Upload complete.');
 };
 
-export const uploadS3SourceMap = (bucket: string = 'back'): BuildStep => async (context) => {
+export const uploadS3Locale = (bucket: string = 'front/locale'): BuildStep => async (context) => {
     console.log('Uploading to S3...');
-   const brFile= await compressBrottly(context.finalBuildFile);
+    
+    const glob = new Bun.Glob("*.json");
+    const localeFiles = glob.scanSync("locales");
+    const moduleName = context.packageName;
+    
+    for (const fileName of localeFiles) {
+        const srcFile=`locales/${fileName}`;
+        const targetPath = `${moduleName}/${fileName}`;
+         
+        console.log("----------locale file:",srcFile,"target path", targetPath);
+         await uploadToS3(bucket, srcFile,targetPath);
+    }
+    
+    console.log('✅ Upload complete.');
+};
+
+
+
+export const uploadS3SourceMap = (bucket: string = 'back',compress: boolean = false): BuildStep => async (context) => {
+    console.log('Uploading to S3...');
+    if(bucket === 'front') {
+        return;
+    }
+   const brFile= compress ? await compressBrottly(context.finalBuildFile) : context.finalBuildFile;
    
    console.log(fileSize(brFile));
   //  await uploadToS3(bucket, brFile);
-    await uploadToS3(bucket, context.sourceMapFile);
+    await uploadToS3(bucket, context.sourceMapFile,context.sourceMapFile);
     console.log('✅ Upload complete.');
 };
 
