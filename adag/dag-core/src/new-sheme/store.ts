@@ -1,6 +1,6 @@
 
 
-import { StoreControllerAbstract, StoreType } from "./abstract/types";
+import { StoreControllerAbstract, StoreType } from "back-core";
 import { ExecutionService } from "./execution/service";
 import { SchemeService } from "./scheme/service";
 

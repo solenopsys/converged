@@ -2,23 +2,12 @@
   "lockfileVersion": 1,
   "workspaces": {
     "": {
-      "name": "back-core",
+      "name": "threads-ms",
       "dependencies": {
-        "@elysiajs/cors": "latest",
-        "@elysiajs/jwt": "latest",
-        "bcryptjs": "latest",
-        "elysia": "latest",
-        "kysely": "latest",
-        "lmdb": "latest",
-        "pg": "latest",
+        "back-core": "file:../../../../../back/back-core",
       },
       "devDependencies": {
-        "@biomejs/biome": "^1.9.4",
-        "@types/bcryptjs": "latest",
-        "@types/bun": "latest",
-        "@types/pg": "latest",
-        "@typescript-eslint/typescript-estree": "^8.45.0",
-        "typescript": "^5.9.3",
+        "bun-types": "latest",
       },
     },
   },
@@ -98,6 +87,8 @@
     "@typescript-eslint/typescript-estree": ["@typescript-eslint/typescript-estree@8.45.0", "", { "dependencies": { "@typescript-eslint/project-service": "8.45.0", "@typescript-eslint/tsconfig-utils": "8.45.0", "@typescript-eslint/types": "8.45.0", "@typescript-eslint/visitor-keys": "8.45.0", "debug": "^4.3.4", "fast-glob": "^3.3.2", "is-glob": "^4.0.3", "minimatch": "^9.0.4", "semver": "^7.6.0", "ts-api-utils": "^2.1.0" }, "peerDependencies": { "typescript": ">=4.8.4 <6.0.0" } }, "sha512-GfE1NfVbLam6XQ0LcERKwdTTPlLvHvXXhOeUGC1OXi4eQBoyy1iVsW+uzJ/J9jtCz6/7GCQ9MtrQ0fml/jWCnA=="],
 
     "@typescript-eslint/visitor-keys": ["@typescript-eslint/visitor-keys@8.45.0", "", { "dependencies": { "@typescript-eslint/types": "8.45.0", "eslint-visitor-keys": "^4.2.1" } }, "sha512-qsaFBA3e09MIDAGFUrTk+dzqtfv1XPVz8t8d1f0ybTzrCY7BKiMC5cjrl1O/P7UmHsNyW90EYSkU/ZWpmXelag=="],
+
+    "back-core": ["back-core@file:../../../../back-core", { "dependencies": { "@elysiajs/cors": "latest", "@elysiajs/jwt": "latest", "bcryptjs": "latest", "elysia": "latest", "kysely": "latest", "lmdb": "latest", "pg": "latest" }, "devDependencies": { "@biomejs/biome": "^1.9.4", "@types/bcryptjs": "latest", "@types/bun": "latest", "@types/pg": "latest", "@typescript-eslint/typescript-estree": "^8.45.0", "typescript": "^5.9.3" } }],
 
     "balanced-match": ["balanced-match@1.0.2", "", {}, "sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw=="],
 

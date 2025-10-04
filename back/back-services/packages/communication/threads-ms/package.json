@@ -8,10 +8,8 @@
 		"bun-types": "latest"
 	},
 
-	
-
 	"dependencies": {
-		"back-core":"file:../../../../back/back-core"
+		"back-core":"file:../../../../../back/back-core"
 	}
 
 	

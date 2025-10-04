@@ -1,7 +1,7 @@
 import * as lmdb from 'lmdb';
 import { join } from 'path';
 import { KEY_SEPARATOR, RANGE_END_SUFFIX, RANGE_START_SUFFIX } from './utils';
-import { Store } from '../stores';
+import { Store } from '../abstract/stores';
  
 
 export class LMWrapper implements Store {
@@ -12,7 +12,9 @@ export class LMWrapper implements Store {
     }
 
     init() {
+   
         const path = join(this.dataDir, this.dbName + '.lmdb');
+        console.log("DB DIR",path," - ",this.dbName);
         this.db = lmdb.open(path, {});
     }
 

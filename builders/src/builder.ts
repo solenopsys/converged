@@ -22,6 +22,7 @@ export const createContext = async (entrypoint: string, serviceFiles: string[], 
         outDir: resolve(process.cwd(), outDir),
         packageName,
         generatedFile: resolve(outDir, 'generated.ts'),
-        finalBuildFile: resolve(outDir, packageName + ".js")
+        finalBuildFile: resolve(outDir, packageName + ".js"),
+        finalBuildFileName: packageName + ".js"
     };
 };

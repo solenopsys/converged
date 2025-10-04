@@ -18,7 +18,7 @@ export const uploadS3 = (bucket: string = 'back',compress: boolean = false): Bui
    const resFile= compress ? await compressBrottly(context.finalBuildFile) : context.finalBuildFile;
    
    console.log(fileSize(resFile));
-    await uploadToS3(bucket, resFile,resFile); 
+    await uploadToS3(bucket, resFile,context.finalBuildFileName+(compress?'.br':'')); 
     console.log('✅ Upload complete.');
 };
 

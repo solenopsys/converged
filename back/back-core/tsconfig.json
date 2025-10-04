@@ -24,9 +24,11 @@
 		"noUnusedLocals": false,
 		"noUnusedParameters": false,
 		"noPropertyAccessFromIndexSignature": false,
+		"paths": {
+			"back-core": ["./src/index.ts"]
+		}
 	 
 	},
-	"include": ["src/**/*", "../server/src/generator.ts"],
 	"exclude": ["node_modules", "dist"]
 
  }

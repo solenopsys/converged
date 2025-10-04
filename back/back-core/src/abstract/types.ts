@@ -1,3 +1,4 @@
+import { createStore } from "./stores";
 export type HashString = string;
 
 export interface KVDB {
@@ -106,8 +107,13 @@ export abstract class VersionsRepository<K extends KeyKV, V > extends PrefixedRe
     
 }
 
+export interface Store { 
+    open(): Promise<void>;
+    close(): Promise<void>;
+    migrate(): Promise<void>;
+}
 
-class StoreControllerAbstract  {
+export class StoreControllerAbstract  {
  
 
 
@@ -142,8 +148,15 @@ class StoreControllerAbstract  {
     }
 }
 
-interface Store { 
-    open(): Promise<>;
-    close(): Promise<>;
-    migrate(): Promise<>;
+export enum StoreType {
+    SQL = "SQL",
+    FILES = "FILES",
+    COLUMN = "COLUMN",
+    KVS = "KEY_VALUE",
 }
+
+export interface Entity {
+    id: string
+}
+
+export const DATA_DIR="./data"

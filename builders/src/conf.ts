@@ -3,7 +3,9 @@
 const backExternal = [
     'elysia', 
     'pg',
-    'lmdb'
+    'lmdb',
+    'back-core',
+    'kysely'
  ];
 
  

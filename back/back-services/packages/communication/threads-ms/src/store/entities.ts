@@ -23,7 +23,7 @@ class MessageKey extends PrefixKey implements KeyKV {
     }
     
     build(): string[] {
-        return [this.prefix, this.threadId, this.messageId, this.timestamp.toString()];
+        return [  this.threadId, this.messageId, this.timestamp.toString()];
     }
 }
 

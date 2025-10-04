@@ -1,4 +1,0 @@
-[run]
-envFile = "../../CONF/back.env"
-[dependencies]
-cvm = "file:./src/index.js"

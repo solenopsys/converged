@@ -5,6 +5,7 @@ export interface BuildContext {
     packageName: string;
     generatedFile: string;
     finalBuildFile: string;
+    finalBuildFileName: string;
     sourceMapFile: string;
     metadata?: any;
 }
