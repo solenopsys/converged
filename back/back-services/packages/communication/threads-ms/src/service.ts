@@ -2,7 +2,7 @@
 
 export { StoreType, createStore, LMWrapper, newULID, type ULID } from "back-core";
 import { type ThreadsService, MessageType, type Message } from '../../../../../../types/threads';
-import {StoresController} from './store';
+import {StoresController} from './stores';
 
 import { type ULID } from "back-core";
 

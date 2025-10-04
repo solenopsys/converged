@@ -18,6 +18,7 @@
     "elysia": "latest",
     "kysely": "latest",
     "lmdb": "latest",
+    "lowdb": "^7.0.1",
     "pg": "latest"
   },
   "devDependencies": {

@@ -10,6 +10,7 @@
         "elysia": "latest",
         "kysely": "latest",
         "lmdb": "latest",
+        "lowdb": "^7.0.1",
         "pg": "latest",
       },
       "devDependencies": {
@@ -145,6 +146,8 @@
 
     "lmdb": ["lmdb@3.4.2", "", { "dependencies": { "msgpackr": "^1.11.2", "node-addon-api": "^6.1.0", "node-gyp-build-optional-packages": "5.2.2", "ordered-binary": "^1.5.3", "weak-lru-cache": "^1.2.2" }, "optionalDependencies": { "@lmdb/lmdb-darwin-arm64": "3.4.2", "@lmdb/lmdb-darwin-x64": "3.4.2", "@lmdb/lmdb-linux-arm": "3.4.2", "@lmdb/lmdb-linux-arm64": "3.4.2", "@lmdb/lmdb-linux-x64": "3.4.2", "@lmdb/lmdb-win32-arm64": "3.4.2", "@lmdb/lmdb-win32-x64": "3.4.2" }, "bin": { "download-lmdb-prebuilds": "bin/download-prebuilds.js" } }, "sha512-nwVGUfTBUwJKXd6lRV8pFNfnrCC1+l49ESJRM19t/tFb/97QfJEixe5DYRvug5JO7DSFKoKaVy7oGMt5rVqZvg=="],
 
+    "lowdb": ["lowdb@7.0.1", "", { "dependencies": { "steno": "^4.0.2" } }, "sha512-neJAj8GwF0e8EpycYIDFqEPcx9Qz4GUho20jWFR7YiFeXzF1YMLdxB36PypcTSPMA+4+LvgyMacYhlr18Zlymw=="],
+
     "merge2": ["merge2@1.4.1", "", {}, "sha512-8q7VEgMJW4J8tcfVPy8g09NcQwZdbwFEqhe/WZkoIzjn/3TGDwtOCYtXGxA3O8tPzpczCCDgv+P2P5y00ZJOOg=="],
 
     "micromatch": ["micromatch@4.0.8", "", { "dependencies": { "braces": "^3.0.3", "picomatch": "^2.3.1" } }, "sha512-PXwfBhYu0hBCPw8Dn0E+WDYb7af3dSLVWKi3HGv84IdF4TyFoC0ysxFd0Goxw7nSv4T/PzEJQxsYsEiFCKo2BA=="],
@@ -200,6 +203,8 @@
     "semver": ["semver@7.7.2", "", { "bin": { "semver": "bin/semver.js" } }, "sha512-RF0Fw+rO5AMf9MAyaRXI4AV0Ulj5lMHqVxxdSgiVbixSCXoEmmX/jk0CuJw4+3SqroYO9VoUh+HcuJivvtJemA=="],
 
     "split2": ["split2@4.2.0", "", {}, "sha512-UcjcJOWknrNkF6PLX83qcHM6KHgVKNkV62Y8a5uYDVv9ydGQVwAHMKqHdJje1VTWpljG0WYpCDhrCdAOYH4TWg=="],
+
+    "steno": ["steno@4.0.2", "", {}, "sha512-yhPIQXjrlt1xv7dyPQg2P17URmXbuM5pdGkpiMB3RenprfiBlvK415Lctfe0eshk90oA7/tNq7WEiMK8RSP39A=="],
 
     "to-regex-range": ["to-regex-range@5.0.1", "", { "dependencies": { "is-number": "^7.0.0" } }, "sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ=="],
 

@@ -1,5 +1,6 @@
-import { createStore } from "./stores";
+import { createStore } from "../../stores/create";
 export type HashString = string;
+import {Store } from "../../stores";
 
 export interface KVDB {
     get(key: string[]): any | undefined;
@@ -38,6 +39,8 @@ export class NameVersionKey extends PrefixKey implements KeyKV {
     }
 }
 
+import { type  Entity } from "../../types";
+
 
 
 export interface RepositoryKV<K extends KeyKV, V> {
@@ -45,7 +48,7 @@ export interface RepositoryKV<K extends KeyKV, V> {
     get(key: K): V | undefined;
 }
 
-export abstract class BaseRepositoryKV<K extends KeyKV, V extends any> implements RepositoryKV<K, V> {
+export abstract class BaseRepositoryKV<K extends KeyKV, V extends Entity> implements RepositoryKV<K, V> {
 
     constructor(protected db: KVDB) { }
 
@@ -66,7 +69,7 @@ export abstract class BaseRepositoryKV<K extends KeyKV, V extends any> implement
     }
 }
 
-export abstract class PrefixedRepositoryKV<K extends KeyKV, V extends any> extends BaseRepositoryKV<K, V> {
+export abstract class PrefixedRepositoryKV<K extends KeyKV, V extends Entity> extends BaseRepositoryKV<K, V> {
 
     constructor(protected db: KVDB) {
         super(db);
@@ -79,7 +82,7 @@ export abstract class PrefixedRepositoryKV<K extends KeyKV, V extends any> exten
     }
 }
 
-export abstract class VersionsRepository<K extends KeyKV, V > extends PrefixedRepositoryKV<K, V> {
+export abstract class VersionsRepository<K extends KeyKV, V  extends Entity> extends PrefixedRepositoryKV<K, V> {
 
     getVersionsKeys(name: string): string[] {
         return this.db.listKeys([...this.getPrefix(), name]);
@@ -107,11 +110,6 @@ export abstract class VersionsRepository<K extends KeyKV, V > extends PrefixedRe
     
 }
 
-export interface Store { 
-    open(): Promise<void>;
-    close(): Promise<void>;
-    migrate(): Promise<void>;
-}
 
 export class StoreControllerAbstract  {
  
@@ -148,15 +146,3 @@ export class StoreControllerAbstract  {
     }
 }
 
-export enum StoreType {
-    SQL = "SQL",
-    FILES = "FILES",
-    COLUMN = "COLUMN",
-    KVS = "KEY_VALUE",
-}
-
-export interface Entity {
-    id: string
-}
-
-export const DATA_DIR="./data"
