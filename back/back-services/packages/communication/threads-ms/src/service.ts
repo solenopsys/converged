@@ -6,6 +6,8 @@ import { StoresController } from './stores';
 
 import { type ULID } from "back-core";
 
+const MS_ID = "threads-ms";
+
 export class ThreadsServiceImpl implements ThreadsService {
 
     stores: StoresController;
@@ -15,7 +17,7 @@ export class ThreadsServiceImpl implements ThreadsService {
     }
 
     async init(){
-        this.stores = new StoresController("threads-ms");
+        this.stores = new StoresController(MS_ID);
         await this.stores.init();
     }
 

@@ -59,11 +59,20 @@ export class BaseRepositorySQL<K extends KeySQL, V> implements RepositorySQL<K, 
   }
 
   async create(entity: Omit<V, keyof K>): Promise<V> {
-    return this.sqlStore.db
+    const query = this.sqlStore.db
       .insertInto(this.tableName)
       .values(entity as any)
-      .returningAll()
-      .executeTakeFirstOrThrow() as Promise<V>;
+      .returningAll();
+  
+    const compiled = query.compile();
+    console.log('SQL:', compiled.sql);
+    console.log('Params:', compiled.parameters);
+    console.log('Entity:', entity);
+  
+    const result = await query.executeTakeFirstOrThrow();
+    console.log('Result:', result);
+    
+    return result as V;
   }
 
   async update(id: K, entity: Partial<V>): Promise<V | undefined> {

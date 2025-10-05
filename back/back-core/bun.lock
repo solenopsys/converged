@@ -9,6 +9,7 @@
         "bcryptjs": "latest",
         "elysia": "latest",
         "kysely": "latest",
+        "kysely-bun-sqlite": "^0.4.0",
         "lmdb": "latest",
         "lowdb": "^7.0.1",
         "pg": "latest",
@@ -143,6 +144,8 @@
     "jose": ["jose@6.1.0", "", {}, "sha512-TTQJyoEoKcC1lscpVDCSsVgYzUDg/0Bt3WE//WiTPK6uOCQC2KZS4MpugbMWt/zyjkopgZoXhZuCi00gLudfUA=="],
 
     "kysely": ["kysely@0.28.7", "", {}, "sha512-u/cAuTL4DRIiO2/g4vNGRgklEKNIj5Q3CG7RoUB5DV5SfEC2hMvPxKi0GWPmnzwL2ryIeud2VTcEEmqzTzEPNw=="],
+
+    "kysely-bun-sqlite": ["kysely-bun-sqlite@0.4.0", "", { "dependencies": { "bun-types": "^1.1.31" }, "peerDependencies": { "kysely": "^0.28.2" } }, "sha512-2EkQE5sT4ewiw7IWfJsAkpxJ/QPVKXKO5sRYI/xjjJIJlECuOdtG+ssYM0twZJySrdrmuildNPFYVreyu1EdZg=="],
 
     "lmdb": ["lmdb@3.4.2", "", { "dependencies": { "msgpackr": "^1.11.2", "node-addon-api": "^6.1.0", "node-gyp-build-optional-packages": "5.2.2", "ordered-binary": "^1.5.3", "weak-lru-cache": "^1.2.2" }, "optionalDependencies": { "@lmdb/lmdb-darwin-arm64": "3.4.2", "@lmdb/lmdb-darwin-x64": "3.4.2", "@lmdb/lmdb-linux-arm": "3.4.2", "@lmdb/lmdb-linux-arm64": "3.4.2", "@lmdb/lmdb-linux-x64": "3.4.2", "@lmdb/lmdb-win32-arm64": "3.4.2", "@lmdb/lmdb-win32-x64": "3.4.2" }, "bin": { "download-lmdb-prebuilds": "bin/download-prebuilds.js" } }, "sha512-nwVGUfTBUwJKXd6lRV8pFNfnrCC1+l49ESJRM19t/tFb/97QfJEixe5DYRvug5JO7DSFKoKaVy7oGMt5rVqZvg=="],
 

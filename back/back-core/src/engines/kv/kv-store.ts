@@ -97,6 +97,10 @@ export class KVStore implements KVStoreIntf, Store {
         return this.db.get(key);
     }
 
+    getDirect(key:string): any {
+        return this.db.get(key);
+    }
+
     delete(chain: string[]): void {
         const key = chain.join(KEY_SEPARATOR);
         this.db.remove(key);

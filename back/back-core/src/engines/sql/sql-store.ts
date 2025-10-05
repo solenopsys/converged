@@ -5,6 +5,8 @@ import { MigrationStateStorage, Migrator } from "../../migrations";
 import { SqliteDialect } from "kysely";
 import { Database } from "bun:sqlite";
 import path from "path";
+import { BunSqliteDialect } from 'kysely-bun-sqlite'; // нужен этот пакет!
+
 
 export class SqlStore<DB = any> implements Store {
   private kysely: Kysely<DB> | null = null;
@@ -45,7 +47,7 @@ export class SqlStore<DB = any> implements Store {
     console.log(`Opening database at ${this.dataLocation}`);
     
     this.kysely = new Kysely<DB>({
-      dialect: new SqliteDialect({
+      dialect: new BunSqliteDialect({
         database: new Database(this.dataLocation)
       })
     });

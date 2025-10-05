@@ -6,6 +6,8 @@ import { ConversationFactory } from "./types";
 import { AiConversation } from "./types";
 import { StoresController } from "./stores";
 
+const MS_ID = "aichat-ms";
+
 const logFunction: LogFunction = async (message, type) => {
     console.log(`[${type}]`, message);
 };
@@ -19,7 +21,7 @@ class ChatsServiceImpl implements AiChatService {
     private factory: ConversationFactory;
     private conversations: Map<string, AiConversation> = new Map();
     private serviceModelMap = new Map<ServiceType, string>();
-    private stores;
+    private stores:StoresController;
 
     constructor(config: { openai: AiConfig, claude: AiConfig }) {
         console.log(`[ChatsService] Init: OpenAI(${config.openai.model}), Claude(${config.claude.model})`);
@@ -35,7 +37,7 @@ class ChatsServiceImpl implements AiChatService {
      }
  
      async init(){
-         this.stores = new StoresController("threads-ms");
+         this.stores = new StoresController(MS_ID);
          await this.stores.init();
      }
 
@@ -50,6 +52,7 @@ class ChatsServiceImpl implements AiChatService {
         
         const conversation = this.factory.create(serviceType, model, logFunction);
         const sessionId = conversation.getId();
+        this.stores.metadataService.createConversation(sessionId, "conversation"+sessionId)
         this.conversations.set(sessionId, conversation);
         
         console.log(`[ChatsService] Session created: ${sessionId} (${serviceType}), total: ${this.conversations.size}`);

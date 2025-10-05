@@ -32,7 +32,7 @@ export class NameVersionKey extends PrefixKey implements KeyKV {
 }
 
 import { type  Entity } from "../../types";
-
+import { KVStore,KVStoreIntf } from "./kv-store";
 
 
 export interface RepositoryKV<K extends KeyKV, V> {
@@ -40,30 +40,32 @@ export interface RepositoryKV<K extends KeyKV, V> {
     get(key: K): V | undefined;
 }
 
+
+
 export abstract class BaseRepositoryKV<K extends KeyKV, V extends Entity> implements RepositoryKV<K, V> {
 
     constructor(protected store: KVStore) { }
 
     save(key: K, value: V): string {
-       return this.db.set(key.build(), value);
+       return this.store.put(key.build(), value);
     }
 
     get(key: K): V | undefined {
-        return this.db.get(key.build()) as V;
+        return this.store.get(key.build()) as V;
     }
 
     getDirect(key:string): V | undefined {
-        return this.db.getDirect(key) as V;
+        return this.store.getDirect(key) as V;
     }
 
     delete(key: K): void {
-        this.db.delete(key.build());
+        this.store.delete(key.build());
     }
 }
 
 export abstract class PrefixedRepositoryKV<K extends KeyKV, V extends Entity> extends BaseRepositoryKV<K, V> {
 
-    constructor(protected db: KVDB) {
+    constructor(protected db: KVStore) {
         super(db);
     }
 
