@@ -1,4 +1,4 @@
-import {Tool,type    ContentBlock, StreamEvent, ServiceType, ConversationOptions, StreamEventType, ContentType, AiChatService, PaginationParams, PaginatedResult, Chat, MessageSource } from "../../../../../types/chats";
+import {Tool,type    ContentBlock, StreamEvent, ServiceType, ConversationOptions, StreamEventType, ContentType, AiChatService, PaginationParams, PaginatedResult, Chat, MessageSource } from "../../../../../../types/chats";
 
 export {Tool,MessageSource,  ContentBlock, StreamEvent, ServiceType, ConversationOptions, StreamEventType, ContentType, AiChatService, PaginationParams, PaginatedResult, Chat }
 

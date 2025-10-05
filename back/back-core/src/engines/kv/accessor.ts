@@ -1,11 +1,11 @@
 
-import { LMWrapper } from "./lmwrapper";
+import { KVStore } from "./kv-store";
 
-import { KEY_SEPARATOR  } from './utils';
+import { KEY_SEPARATOR  } from '../../utils';
 
 
 export abstract class EntityAcessor<T> { 
-  constructor(protected db: LMWrapper, protected store: T) { }
+  constructor(protected db: KVStore, protected store: T) { }
 
   getLastVersion(prefixArray: string[]) {
     const keys = this.db.getKeysWithPrefix(prefixArray);

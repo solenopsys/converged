@@ -1,21 +1,34 @@
 import * as lmdb from 'lmdb';
 import { join } from 'path';
-import { KEY_SEPARATOR, RANGE_END_SUFFIX, RANGE_START_SUFFIX } from './utils';
-import { Store } from '../stores/create';
- 
+import { KEY_SEPARATOR, RANGE_END_SUFFIX, RANGE_START_SUFFIX } from '../../utils';
+import { Store } from "../../stores";
+import { Migration, Migrator } from "../../migrations";
+import { MigrationStateStorage } from "../../migrations";
 
-export class LMWrapper implements Store {
+export interface KVStoreIntf {
+    get(key: string[]): any | undefined;
+    put(key: string[], value: any): string;
+    delete(key: string[]): void;
+    listKeys(prefix: string[]): string[];
+
+}
+
+export class KVStore implements KVStoreIntf, Store {
     private db!: lmdb.Database;
 
-    constructor(private dataDir: string, private dbName: string) {
-        this.init();
+    constructor(private dataLocation: string,   private migrations: (new (store: Store) => Migration)[],
+        private migrationsState: MigrationStateStorage) {
+
     }
 
-    init() {
-   
-        const path = join(this.dataDir, this.dbName + '.lmdb');
-        console.log("DB DIR",path," - ",this.dbName);
-        this.db = lmdb.open(path, {});
+
+    listKeys(prefix: string[]): string[] {
+        return this.getKeysWithPrefix(prefix);
+    }
+
+    async open() {
+       
+        this.db = lmdb.open(this.dataLocation, {});
     }
 
     getKeysWithPrefix(prefixChain: string[]): string[] {
@@ -26,7 +39,7 @@ export class LMWrapper implements Store {
         );
     }
 
-    getVeluesRangeAsObjectWithPrefix(prefixChain: string):  {[key:string]:any} {
+    getVeluesRangeAsObjectWithPrefix(prefixChain: string): { [key: string]: any } {
         const prefix = prefixChain;
         return this.getVeluesRangeAsObject(
             prefix + RANGE_START_SUFFIX,
@@ -35,22 +48,22 @@ export class LMWrapper implements Store {
     }
 
     getKeysWithRange(start: string, end: string): string[] {
-        const keys: string[] = []; 
+        const keys: string[] = [];
         const range = this.db.getRange({ start, end });
-        for (const { key, value } of range) { 
+        for (const { key, value } of range) {
             keys.push(key as string);
         }
         return keys;
     }
 
-    getVeluesRangeAsObject(start: string, end: string): {[key:string]:any} {
-        const keys: {[key:string]:any} = {}; 
+    getVeluesRangeAsObject(start: string, end: string): { [key: string]: any } {
+        const keys: { [key: string]: any } = {};
         const range = this.db.getRange({ start, end });
-  
-        for (const { key, value } of range) { 
+
+        for (const { key, value } of range) {
             const keyString = key as string;
-            const lastSegment= keyString.split(KEY_SEPARATOR)[keyString.split(KEY_SEPARATOR).length-1];
-            keys[lastSegment]=value;
+            const lastSegment = keyString.split(KEY_SEPARATOR)[keyString.split(KEY_SEPARATOR).length - 1];
+            keys[lastSegment] = value;
         }
         return keys;
     }
@@ -64,9 +77,9 @@ export class LMWrapper implements Store {
     }
 
     getValuesRangeAsArrayByRange(start: string, end: string): any[] {
-        const values: any[] = []; 
+        const values: any[] = [];
         const range = this.db.getRange({ start: start + RANGE_START_SUFFIX, end: end + RANGE_END_SUFFIX });
-        for (const { value } of range) { 
+        for (const { value } of range) {
             values.push(value);
         }
         return values;
@@ -84,18 +97,25 @@ export class LMWrapper implements Store {
         return this.db.get(key);
     }
 
+    delete(chain: string[]): void {
+        const key = chain.join(KEY_SEPARATOR);
+        this.db.remove(key);
+    }
+
     getStats(): any {
         return this.db.getStats?.() || {};
     }
 
-    close(): void {
-        if (this.db) {
-            this.db.close();
-        }
+    async close(): Promise<void> {
+        this.db.close();
     }
 
-    deinit(): void {
-        this.close();
+
+
+    async migrate(): Promise<void> { // todo move to superclass
+        const migrations = this.migrations.map((migration) => new migration(this));
+        const migrator = new Migrator(migrations, this.migrationsState);
+        await migrator.up();
     }
 }
 

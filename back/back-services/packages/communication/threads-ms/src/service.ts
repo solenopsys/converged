@@ -1,36 +1,41 @@
 
 
-export { StoreType, createStore, LMWrapper, newULID, type ULID } from "back-core";
-import { type ThreadsService, MessageType, type Message } from '../../../../../../types/threads';
-import {StoresController} from './stores';
+export { StoreType, createStore, newULID, type ULID } from "back-core";
+import { type ThreadsService, type Message } from '../../../../../../types/threads';
+import { StoresController } from './stores';
 
 import { type ULID } from "back-core";
 
 export class ThreadsServiceImpl implements ThreadsService {
-  
+
     stores: StoresController;
 
     constructor() {
-        this.stores = new StoresController("threads-ms");
+       this.init();
     }
 
-    async saveMessage(message: Message): Promise<string> { 
+    async init(){
+        this.stores = new StoresController("threads-ms");
+        await this.stores.init();
+    }
+
+    async saveMessage(message: Message): Promise<string> {
         return this.stores.threads.saveMessage(message);
     }
 
-    async readMessage(threadId: ULID, messageId: ULID): Promise<Message> { 
+    async readMessage(threadId: ULID, messageId: ULID): Promise<Message> {
         return this.stores.threads.readMessage(threadId, messageId) as Message;
     }
 
-    async readMessageVersions(threadId: ULID, messageId: ULID): Promise<Message[]> { 
+    async readMessageVersions(threadId: ULID, messageId: ULID): Promise<Message[]> {
         return this.stores.threads.readMessageVersions(threadId, messageId) as Message[];
     }
 
-    async readThreadAllVersions(threadId: ULID): Promise<Message[]> { 
+    async readThreadAllVersions(threadId: ULID): Promise<Message[]> {
         return this.stores.threads.readThreadAllVersions(threadId) as Message[];
     }
 
-    async readThread(threadId: ULID): Promise<Message[]> { 
+    async readThread(threadId: ULID): Promise<Message[]> {
         return this.stores.threads.readThread(threadId) as Message[];
     }
 }

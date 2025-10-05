@@ -9,7 +9,7 @@
 		"kysely": "latest"
 	},
 	"scripts": {
-		"bld": "bun run ../../node_modules/builders/src/build-backend.ts ./src/index.ts  ../../../../types/chats.ts ./dist/ --upload"
+		"bld": "bun run ../../../node_modules/builders/src/build-backend.ts ./src/index.ts  ../../../../../types/chats.ts ./dist/ --upload"
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "^0.63.1"

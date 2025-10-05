@@ -1,16 +1,16 @@
 
 import { MessageRepository } from "./entities";
-import { KVDB } from "back-core";
 import { MessageValue } from "./entities";
 import { generateULID } from "back-core";
 import { MessageKey } from "./entities"; 
+import { KVStore } from "back-core";
 
 
 export class ThreadsStoreService {
     public readonly messageRepo: MessageRepository;
 
-    constructor(private db: KVDB) {
-        this.messageRepo = new MessageRepository(db);
+    constructor(private store: KVStore) {
+        this.messageRepo = new MessageRepository(store);
     }
 
     saveMessage(message: MessageValue): string {
@@ -31,7 +31,7 @@ export class ThreadsStoreService {
 
     readMessageVersions(threadId: string, messageId: string): MessageValue[] {
         const prefix = [ threadId, messageId];
-        const keys = this.db.listKeys(prefix);
+        const keys = this.store.listKeys(prefix);
         
         return keys.map(keyStr => { 
             return this.messageRepo.getDirect(keyStr);
@@ -40,7 +40,7 @@ export class ThreadsStoreService {
 
     readThreadAllVersions(threadId: string): MessageValue[] {
         const prefix = [ threadId];
-        const keys = this.db.listKeys(prefix);
+        const keys = this.store.listKeys(prefix);
         
         return keys.map(keyStr => { 
             return this.messageRepo.getDirect(keyStr);

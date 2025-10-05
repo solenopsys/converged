@@ -1,5 +1,8 @@
 
 import { Migration, MigrationStateStorage } from "./types";
+import { Kysely } from "kysely";
+
+export type SqlDB = Kysely<any>;
 
 export class Migrator {
   constructor(
@@ -7,7 +10,7 @@ export class Migrator {
     private storage: MigrationStateStorage
   ) {}
 
-  async up(): Promise<void> {
+  async up( ): Promise<void> {
     const state = await this.storage.getState();
     
     for (const migration of this.migrations) {

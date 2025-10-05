@@ -4,6 +4,7 @@ import { PaginationParams, PaginatedResult, Chat } from "./types";
 import { LogFunction } from "./types";
 import { ConversationFactory } from "./types";
 import { AiConversation } from "./types";
+import { StoresController } from "./stores";
 
 const logFunction: LogFunction = async (message, type) => {
     console.log(`[${type}]`, message);
@@ -18,6 +19,7 @@ class ChatsServiceImpl implements AiChatService {
     private factory: ConversationFactory;
     private conversations: Map<string, AiConversation> = new Map();
     private serviceModelMap = new Map<ServiceType, string>();
+    private stores;
 
     constructor(config: { openai: AiConfig, claude: AiConfig }) {
         console.log(`[ChatsService] Init: OpenAI(${config.openai.model}), Claude(${config.claude.model})`);
@@ -28,7 +30,14 @@ class ChatsServiceImpl implements AiChatService {
         });
         this.serviceModelMap.set(ServiceType.OPENAI, config.openai.model);
         this.serviceModelMap.set(ServiceType.ANTHROPIC, config.claude.model);
-    }
+     
+        this.init();
+     }
+ 
+     async init(){
+         this.stores = new StoresController("threads-ms");
+         await this.stores.init();
+     }
 
     async createSession(serviceType: ServiceType, model?: string): Promise<string> {
         if (!model) {

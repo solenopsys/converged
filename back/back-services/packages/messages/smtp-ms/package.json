@@ -16,6 +16,6 @@
  		"nodemailer": "^7.0.5"
 	},
 	"scripts": {
-		"bld": "bun run ../../node_modules/builders/src/build-backend.ts ./src/index.ts  ../../../../types/smtp.ts ./dist/"
+		"bld": "bun run ../../../node_modules/builders/src/build-backend.ts ./src/index.ts  ../../../../../types/smtp.ts ./dist/"
 	}
 }

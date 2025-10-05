@@ -12,8 +12,7 @@ buildah push public.ecr.aws/i5x9u8b2/back
   - lmdb - key-value хранилище
   - chdb - column-family хранилище
   - lowdb - json хранилище
-  - files - файловое хранилище
-  - sqlite-vec - векторное хранилище
+  - files - файловое хранилище 
   все хранится в общей папке data
   для каждой базы создается подпапка
   в этой подпапке data.db

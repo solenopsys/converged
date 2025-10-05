@@ -1,15 +1,7 @@
-import { createStore } from "../../stores/create";
-export type HashString = string;
-import {Store } from "../../stores";
+ 
+export type HashString = string; 
 
-export interface KVDB {
-    get(key: string[]): any | undefined;
-    getDirect(key:string): any | undefined;
-    set(key: string[], value: any): string;
-    delete(key: string[]): void;
-    listKeys(prefix: string[]): string[];
 
-}
 
 export interface KeyKV {
     build(): string[];
@@ -50,7 +42,7 @@ export interface RepositoryKV<K extends KeyKV, V> {
 
 export abstract class BaseRepositoryKV<K extends KeyKV, V extends Entity> implements RepositoryKV<K, V> {
 
-    constructor(protected db: KVDB) { }
+    constructor(protected store: KVStore) { }
 
     save(key: K, value: V): string {
        return this.db.set(key.build(), value);
@@ -110,39 +102,4 @@ export abstract class VersionsRepository<K extends KeyKV, V  extends Entity> ext
     
 }
 
-
-export class StoreControllerAbstract  {
- 
-
-
-    constructor(protected msName: string) {
-        this.msName = msName;
-    }
-    protected stores:{[key:string]: Store} = {};
-
-
-    async startAll(){
-        for(const store of Object.values(this.stores)){
-            await store.open();
-        }
-    }
-
-    async closeAll(){
-        for(const store of Object.values(this.stores)){
-            await store.close();
-        }
-    }
-
-    async migrateAll(){
-        for(const store of Object.values(this.stores)){
-            await store.migrate();
-        }
-    }
-
-
-    addStore(name,type):Store{
-        this.stores[name] = createStore(this.msName,name, type) ;
-        return this.stores[name];
-    }
-}
 
