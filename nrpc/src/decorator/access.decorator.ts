@@ -38,7 +38,7 @@ export function Access(target: any, propertyName: string, descriptor: PropertyDe
 
 // Пример использования
 export class UserController {
-  @Access
+ // @Access("bla")
   async getProfile(req: RequestWithUser, res: any) {
     return res.json({ userId: req.user?.sub });
   }
