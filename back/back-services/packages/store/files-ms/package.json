@@ -1,0 +1,14 @@
+{
+  "name": "files-ms",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+ 
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "scripts": {
+		"bld": "bun run ../../../node_modules/builders/src/build-backend.ts ./src/index.ts  ../../../../../types/files.ts ./dist/ ",
+		"bldu": "bun run bld --upload"
+	}
+}

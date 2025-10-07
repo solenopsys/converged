@@ -1,5 +1,5 @@
 {
-	"name": "test-service",
+	"name": "store-ms",
 
 	"peerDependencies": {
 		"elysia": "latest",
@@ -8,5 +8,10 @@
 	"devDependencies": {
 		"@types/bcryptjs": "latest",
 		"bun-types": "latest"
+	},
+
+	"scripts": {
+		"bld": "bun run ../../../node_modules/builders/src/build-backend.ts ./src/index.ts  ../../../../../types/store.ts ./dist/ ",
+		"bldu": "bun run bld --upload"
 	}
 }

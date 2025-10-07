@@ -14,7 +14,7 @@ export interface KVStoreIntf {
 }
 
 export class KVStore implements KVStoreIntf, Store {
-    private db!: lmdb.Database;
+    public readonly db!: lmdb.Database;
 
     constructor(private dataLocation: string,   private migrations: (new (store: Store) => Migration)[],
         private migrationsState: MigrationStateStorage) {
