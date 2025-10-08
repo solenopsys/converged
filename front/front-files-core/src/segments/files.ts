@@ -1,8 +1,7 @@
-import {  sample, combine } from 'effector';
+import { sample, combine } from 'effector';
 import { fileTransferDomain } from "../domain";
-
-import { FilesService, FileMetadata, FileChunk, UUID, HashString } from "../../../../types/files";
-export const $filesService = fileTransferDomain.createStore<FilesService | null>(null);
+import { FileMetadata, FileChunk, UUID, HashString } from "../../../../types/files";
+import { services } from "../services";
 
 // Types
 export type ChunkStatus = 'prepared' | 'uploading' | 'uploaded' | 'failed';
@@ -10,8 +9,8 @@ export type ChunkStatus = 'prepared' | 'uploading' | 'uploaded' | 'failed';
 export type ChunkState = {
   fileId: UUID;
   chunkNumber: number;
-  data: Uint8Array;      // СЖАТЫЕ данные (Deflate) - блок 1MB (или меньше для последнего)
-  hash?: HashString;     // SHA-256 hash блока (для дедупликации)
+  data: Uint8Array;
+  hash?: HashString;
   status: ChunkStatus;
   error?: string;
   retryCount: number;
@@ -59,31 +58,26 @@ export const fileChunksLoaded = fileTransferDomain.createEvent<{
   chunks: FileChunk[];
 }>();
 
-export const fileMetadataUpdateRequested = fileTransferDomain.createEvent<{
-  fileId: UUID;
-  updates: Partial<FileMetadata>;
-}>();
-
-// Effects - атомарные операции
+// Effects
 export const saveFileMetadataFx = fileTransferDomain.createEffect<
-  { filesService: FilesService; file: FileMetadata },
+  FileMetadata,
   UUID
->(async ({ filesService, file }) => filesService.save(file));
+>(async (file) => services.filesService.save(file));
 
 export const saveChunkMetadataFx = fileTransferDomain.createEffect<
-  { filesService: FilesService; chunk: FileChunk },
+  FileChunk,
   HashString
->(async ({ filesService, chunk }) => filesService.saveChunk(chunk));
+>(async (chunk) => services.filesService.saveChunk(chunk));
 
 export const loadFileMetadataFx = fileTransferDomain.createEffect<
-  { filesService: FilesService; id: UUID },
+  UUID,
   FileMetadata
->(async ({ filesService, id }) => filesService.get(id));
+>(async (id) => services.filesService.get(id));
 
 export const loadFileChunksFx = fileTransferDomain.createEffect<
-  { filesService: FilesService; id: UUID },
+  UUID,
   FileChunk[]
->(async ({ filesService, id }) => filesService.getChunks(id));
+>(async (id) => services.filesService.getChunks(id));
 
 // Stores
 export const $files = fileTransferDomain.createStore<Map<UUID, FileUploadState>>(new Map());
@@ -116,22 +110,17 @@ export const getFileProgress = (fileId: UUID) =>
 // Logic
 sample({
   clock: fileMetadataCreateRequested,
-  source: $filesService,
-  filter: (service) => service !== null,
-  fn: (service, { fileId, file, owner }) => ({
-    filesService: service!,
-    file: {
-      id: fileId,
-      hash: '',
-      status: 'uploading' as const,
-      name: file.name,
-      fileSize: file.size,
-      fileType: file.type,
-      compression: 'deflate',  // Deflate (без gzip заголовков) - экономия либы и overhead
-      owner,
-      createdAt: new Date().toISOString(),
-      chunksCount: 0
-    }
+  fn: ({ fileId, file, owner }) => ({
+    id: fileId,
+    hash: '',
+    status: 'uploading' as const,
+    name: file.name,
+    fileSize: file.size,
+    fileType: file.type,
+    compression: 'deflate',
+    owner,
+    createdAt: new Date().toISOString(),
+    chunksCount: 0
   }),
   target: saveFileMetadataFx
 });
@@ -143,17 +132,12 @@ sample({
 
 sample({
   clock: chunkMetadataSaveRequested,
-  source: $filesService,
-  filter: (service) => service !== null,
-  fn: (service, { fileId, chunkNumber, hash, chunkSize }) => ({
-    filesService: service!,
-    chunk: {
-      fileId,
-      hash,
-      chunkNumber,
-      chunkSize,
-      createdAt: new Date().toISOString()
-    }
+  fn: ({ fileId, chunkNumber, hash, chunkSize }) => ({
+    fileId,
+    hash,
+    chunkNumber,
+    chunkSize,
+    createdAt: new Date().toISOString()
   }),
   target: saveChunkMetadataFx
 });
@@ -170,9 +154,7 @@ sample({
 
 sample({
   clock: fileMetadataLoadRequested,
-  source: $filesService,
-  filter: (service) => service !== null,
-  fn: (service, fileId) => ({ filesService: service!, id: fileId }),
+  fn: (fileId) => fileId,
   target: loadFileMetadataFx
 });
 
@@ -189,9 +171,7 @@ $fileMetadataCache.on(fileMetadataLoaded, (state, metadata) => {
 
 sample({
   clock: fileChunksLoadRequested,
-  source: $filesService,
-  filter: (service) => service !== null,
-  fn: (service, fileId) => ({ filesService: service!, id: fileId }),
+  fn: (fileId) => fileId,
   target: loadFileChunksFx
 });
 

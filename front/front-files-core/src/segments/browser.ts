@@ -1,13 +1,12 @@
 import { sample, combine } from 'effector';
-
 import { type UUID, HashString } from "../../../../types/files";
 import { fileTransferDomain } from '../domain';
-import { fileChunksLoaded, $fileMetadataCache } from './files';
-import { blockSaveRequested, blockSaved } from './store';
-import { $files, fileMetadataCreateRequested, } from './files';
-import { compressionStarted, chunkPrepared, decompressionStarted, decompressionChunkProcessed, compressionCompleted } from "./streaming"
-import { $chunks, fileMetadataLoadRequested, fileMetadataLoaded, chunkMetadataSaveRequested, chunkMetadataSaved, fileChunksLoadRequested } from './files';
-import { MAX_PARALLEL_UPLOADS } from "../config"
+import { $files, $chunks, $fileMetadataCache } from './files';
+import { MAX_PARALLEL_UPLOADS } from '../config';
+
+function generateUUID(): UUID {
+  return crypto.randomUUID() as UUID;
+}
 
 export const $owner = fileTransferDomain.createStore<string>('anonymous');
 export const openFilePicker = fileTransferDomain.createEvent();
@@ -37,7 +36,6 @@ export const chunkUploaded = fileTransferDomain.createEvent<{
 }>();
 
 export const nextChunkUploadRequested = fileTransferDomain.createEvent<UUID>();
-
 export const uploadCompleted = fileTransferDomain.createEvent<UUID>();
 
 export const retryChunk = fileTransferDomain.createEvent<{
@@ -66,7 +64,7 @@ export const chunkWritten = fileTransferDomain.createEvent<UUID>();
 
 export const clearFileState = fileTransferDomain.createEvent<UUID>();
 
-// Effects - атомарные операции
+// Effects
 export const openFilePickerFx = fileTransferDomain.createEffect<void, File[]>(async () => {
   return new Promise((resolve) => {
     const input = document.createElement('input');
@@ -148,37 +146,6 @@ $files.on(fileInitialized, (state, { fileId, file }) => {
   return newMap;
 });
 
-sample({
-  clock: fileInitialized,
-  target: fileMetadataCreateRequested
-});
-
-sample({
-  clock: fileInitialized,
-  fn: ({ fileId, file }) => ({ fileId, file }),
-  target: compressionStarted
-});
-
-// Logic - Chunk Prepared
-$chunks.on(chunkPrepared, (state, { fileId, chunkNumber, data }) => {
-  const key = `${fileId}-${chunkNumber}`;
-  const newMap = new Map(state);
-  newMap.set(key, {
-    fileId,
-    chunkNumber,
-    data,
-    status: 'prepared',
-    retryCount: 0
-  });
-  return newMap;
-});
-
-sample({
-  clock: chunkPrepared,
-  fn: ({ fileId, chunkNumber }) => ({ fileId, chunkNumber }),
-  target: uploadChunkRequested
-});
-
 // Logic - Upload Chunk
 sample({
   clock: uploadChunkRequested,
@@ -205,44 +172,6 @@ $chunks.on(chunkUploadStarted, (state, { fileId, chunkNumber }) => {
   const newMap = new Map(state);
   newMap.set(key, { ...chunk, status: 'uploading' });
   return newMap;
-});
-
-sample({
-  clock: chunkUploadStarted,
-  source: combine({ chunks: $chunks, files: $files }),
-  filter: ({ files }, { fileId }) => files.get(fileId)?.status !== 'paused',
-  fn: ({ chunks }, { fileId, chunkNumber }) => {
-    const key = `${fileId}-${chunkNumber}`;
-    const chunk = chunks.get(key)!;
-    return {
-      fileId,
-      chunkNumber,
-      data: chunk.data
-    };
-  },
-  target: blockSaveRequested
-});
-
-sample({
-  clock: blockSaved,
-  fn: ({ fileId, chunkNumber, hash }) => ({
-    fileId,
-    chunkNumber,
-    hash,
-    chunkSize: $chunks.getState().get(`${fileId}-${chunkNumber}`)!.data.length
-  }),
-  target: chunkMetadataSaveRequested
-});
-
-sample({
-  clock: chunkMetadataSaved,
-  source: blockSaved,
-  fn: (blockData, metaData) => ({
-    fileId: metaData.fileId,
-    chunkNumber: metaData.chunkNumber,
-    hash: blockData.hash
-  }),
-  target: chunkUploaded
 });
 
 $chunks.on(chunkUploaded, (state, { fileId, chunkNumber, hash }) => {
@@ -304,15 +233,6 @@ $files.on(uploadCompleted, (state, fileId) => {
   return newMap;
 });
 
-$files.on(compressionCompleted, (state, { fileId, totalChunks }) => {
-  const file = state.get(fileId);
-  if (!file) return state;
-
-  const newMap = new Map(state);
-  newMap.set(fileId, { ...file, totalChunks, status: 'uploading' });
-  return newMap;
-});
-
 // Logic - Retry
 $chunks.on(retryChunk, (state, { fileId, chunkNumber }) => {
   const key = `${fileId}-${chunkNumber}`;
@@ -364,82 +284,6 @@ sample({
     return prepared.map(c => ({ fileId: c.fileId, chunkNumber: c.chunkNumber }));
   },
   target: uploadChunkRequested
-});
-
-// Logic - Download
-sample({
-  clock: downloadRequested,
-  target: fileMetadataLoadRequested
-});
-
-sample({
-  clock: fileMetadataLoaded,
-  fn: (metadata) => metadata.id,
-  target: fileChunksLoadRequested
-});
-
-sample({
-  clock: fileChunksLoaded,
-  source: $fileMetadataCache,
-  fn: (cache, { fileId }) => ({
-    fileId,
-    fileName: cache.get(fileId)!.name
-  }),
-  target: saveDialogRequested
-});
-
-sample({
-  clock: saveDialogRequested,
-  fn: ({ fileName }) => ({ fileName }),
-  target: showSaveDialogFx
-});
-
-sample({
-  clock: showSaveDialogFx.doneData,
-  source: saveDialogRequested,
-  fn: (request, handle) => ({
-    fileId: request.fileId,
-    handle
-  }),
-  target: fileHandleReady
-});
-
-$fileHandles.on(fileHandleReady, (state, { fileId, handle }) => {
-  const newMap = new Map(state);
-  newMap.set(fileId, handle);
-  return newMap;
-});
-
-sample({
-  clock: fileHandleReady,
-  fn: ({ fileId }) => ({ fileId }),
-  target: decompressionStarted
-});
-
-sample({
-  clock: decompressionChunkProcessed,
-  fn: ({ fileId, decompressed }) => ({
-    fileId,
-    chunk: decompressed
-  }),
-  target: writeChunkRequested
-});
-
-sample({
-  clock: writeChunkRequested,
-  source: $fileHandles,
-  fn: (handles, { fileId, chunk }) => ({
-    handle: handles.get(fileId),
-    chunk
-  }),
-  target: writeChunkFx
-});
-
-sample({
-  clock: writeChunkFx.doneData,
-  source: writeChunkRequested,
-  fn: (request) => request.fileId,
-  target: chunkWritten
 });
 
 // Logic - Clear

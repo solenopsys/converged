@@ -1,11 +1,7 @@
 import { fileTransferDomain } from "../domain";
 import { type UUID, HashString } from "../../../../types/files";
-
 import { sample } from "effector";
-import { StoreService } from "../../../../types/store";
-
-export const $storeService = fileTransferDomain.createStore<StoreService | null>(null);
-
+import { services } from "../services";
 
 // Events
 export const blockSaveRequested = fileTransferDomain.createEvent<{
@@ -32,16 +28,16 @@ export const blockLoaded = fileTransferDomain.createEvent<{
   data: Uint8Array;
 }>();
 
-// Effects - атомарные операции
+// Effects
 export const saveBlockFx = fileTransferDomain.createEffect<
-  { storeService: StoreService; data: Uint8Array },
+  Uint8Array,
   HashString
->(async ({ storeService, data }) => storeService.save(data));
+>(async (data) => services.storeService.save(data));
 
 export const loadBlockFx = fileTransferDomain.createEffect<
-  { storeService: StoreService; hash: HashString },
+  HashString,
   Uint8Array
->(async ({ storeService, hash }) => storeService.get(hash));
+>(async (hash) => services.storeService.get(hash));
 
 // Stores
 export const $blockCache = fileTransferDomain.createStore<Map<HashString, Uint8Array>>(new Map());
@@ -49,9 +45,7 @@ export const $blockCache = fileTransferDomain.createStore<Map<HashString, Uint8A
 // Logic
 sample({
   clock: blockSaveRequested,
-  source: $storeService,
-  filter: (service) => service !== null,
-  fn: (service, { data }) => ({ storeService: service!, data }),
+  fn: ({ data }) => data,
   target: saveBlockFx
 });
 
@@ -68,9 +62,7 @@ sample({
 
 sample({
   clock: blockLoadRequested,
-  source: $storeService,
-  filter: (service) => service !== null,
-  fn: (service, { hash }) => ({ storeService: service!, hash }),
+  fn: ({ hash }) => hash,
   target: loadBlockFx
 });
 

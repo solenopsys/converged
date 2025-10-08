@@ -1,11 +1,8 @@
 import { fileTransferDomain } from '../domain';
-import { type UUID,  FileChunk } from "../../../../types/files";
+import { type UUID, FileChunk } from "../../../../types/files";
 import { BLOCK_SIZE, COMPRESSION_LEVEL } from '../config';
 import { Deflate, Inflate } from 'fflate';
 import { sample } from 'effector';
-import { fileChunksLoaded, } from './files';
-import { blockLoadRequested, blockLoaded } from './store';
-
 
 // Events
 export const compressionStarted = fileTransferDomain.createEvent<{
@@ -45,6 +42,12 @@ export const decompressionChunkRequested = fileTransferDomain.createEvent<{
   chunkNumber: number;
 }>();
 
+export const decompressionDataReceived = fileTransferDomain.createEvent<{
+  fileId: UUID;
+  chunkNumber: number;
+  data: Uint8Array;
+}>();
+
 export const decompressionChunkProcessed = fileTransferDomain.createEvent<{
   fileId: UUID;
   chunkNumber: number;
@@ -53,7 +56,12 @@ export const decompressionChunkProcessed = fileTransferDomain.createEvent<{
 
 export const decompressionCompleted = fileTransferDomain.createEvent<UUID>();
 
-// Effects - атомарные операции
+export const setDecompressionChunks = fileTransferDomain.createEvent<{
+  fileId: UUID;
+  chunks: FileChunk[];
+}>();
+
+// Effects
 export const readFileChunkFx = fileTransferDomain.createEffect<
   { reader: ReadableStreamDefaultReader<Uint8Array> },
   { data?: Uint8Array; done: boolean }
@@ -66,7 +74,7 @@ export const compressDataFx = fileTransferDomain.createEffect<
   { data: Uint8Array; final: boolean },
   { compressed: Uint8Array; final: boolean }
 >(async ({ data, final }) => {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const deflate = new Deflate({ level: COMPRESSION_LEVEL });
     deflate.ondata = (compressed, isFinal) => {
       resolve({ compressed, final: isFinal });
@@ -79,7 +87,7 @@ export const decompressDataFx = fileTransferDomain.createEffect<
   { data: Uint8Array; final: boolean },
   Uint8Array
 >(async ({ data, final }) => {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const inflate = new Inflate();
     inflate.ondata = (decompressed) => {
       resolve(decompressed);
@@ -88,7 +96,7 @@ export const decompressDataFx = fileTransferDomain.createEffect<
   });
 });
 
-// Stores для streaming state
+// Stores
 export const $compressionState = fileTransferDomain.createStore<Map<UUID, {
   reader?: ReadableStreamDefaultReader<Uint8Array>;
   buffer: Uint8Array;
@@ -101,7 +109,7 @@ export const $decompressionState = fileTransferDomain.createStore<Map<UUID, {
   chunks: FileChunk[];
 }>>(new Map());
 
-// Logic - компрессия через рекурсивные события
+// Compression logic
 $compressionState.on(compressionStarted, (state, { fileId, file }) => {
   const reader = file.stream().getReader();
   const newMap = new Map(state);
@@ -136,7 +144,7 @@ sample({
 
 sample({
   clock: compressionChunkRead,
-  fn: ({ fileId, data, done }) => ({
+  fn: ({ data, done }) => ({
     data,
     final: done
   }),
@@ -154,14 +162,10 @@ sample({
   target: compressionDataProcessed
 });
 
-// КРИТИЧЕСКИ ВАЖНО: Разбиение на блоки происходит ПОСЛЕ сжатия!
-// Поток: Файл → читаем → сжимаем (Deflate) → буфер СЖАТЫХ данных → разбиваем на блоки 1MB
-// Это обеспечивает фиксированные размеры блоков для блочного хранилища
 $compressionState.on(compressionDataProcessed, (state, { fileId, compressed, final }) => {
   const compressionData = state.get(fileId);
   if (!compressionData) return state;
 
-  // Добавляем СЖАТЫЕ данные в буфер
   const newBuffer = new Uint8Array(compressionData.buffer.length + compressed.length);
   newBuffer.set(compressionData.buffer);
   newBuffer.set(compressed, compressionData.buffer.length);
@@ -174,56 +178,6 @@ $compressionState.on(compressionDataProcessed, (state, { fileId, compressed, fin
   return newMap;
 });
 
-// Разбиваем буфер СЖАТЫХ данных на блоки по 1MB (фиксированный размер для хранилища)
-// ВАЖНО: buffer содержит УЖЕ СЖАТЫЕ данные через Deflate!
-// Каждый блок будет ровно 1MB (кроме последнего)
-sample({
-  clock: compressionDataProcessed,
-  source: $compressionState,
-  filter: (state, { fileId, final }) => {
-    const compressionData = state.get(fileId);
-    return compressionData !== undefined &&
-      (compressionData.buffer.length >= BLOCK_SIZE || final);
-  },
-  fn: (state, { fileId, final }) => {
-    const compressionData = state.get(fileId)!;
-    const chunks: { fileId: UUID; chunkNumber: number; data: Uint8Array }[] = [];
-    let buffer = compressionData.buffer;
-    let blockNumber = compressionData.blockNumber;
-
-    // Нарезаем сжатый буфер на блоки по 1MB
-    while (buffer.length >= BLOCK_SIZE) {
-      chunks.push({
-        fileId,
-        chunkNumber: blockNumber++,
-        data: buffer.slice(0, BLOCK_SIZE)  // Ровно 1MB сжатых данных
-      });
-      buffer = buffer.slice(BLOCK_SIZE);
-    }
-
-    // Последний блок (может быть < 1MB)
-    if (final && buffer.length > 0) {
-      chunks.push({
-        fileId,
-        chunkNumber: blockNumber++,
-        data: buffer
-      });
-    }
-
-    // Обновляем state
-    const newMap = new Map(state);
-    newMap.set(fileId, {
-      ...compressionData,
-      buffer,
-      blockNumber
-    });
-    $compressionState.setState(newMap);
-
-    return { fileId, chunks, final, totalChunks: blockNumber };
-  }
-});
-
-// Генерируем события для каждого готового блока СЖАТЫХ данных
 sample({
   clock: compressionDataProcessed,
   source: $compressionState,
@@ -236,17 +190,29 @@ sample({
     return {
       fileId,
       chunkNumber: compressionData.blockNumber,
-      data: compressionData.buffer.slice(0, BLOCK_SIZE)  // Блок 1MB сжатых данных
+      data: compressionData.buffer.slice(0, BLOCK_SIZE)
     };
   },
   target: chunkPrepared
 });
 
-// Рекурсивно читаем следующий chunk
+$compressionState.on(chunkPrepared, (state, { fileId }) => {
+  const compressionData = state.get(fileId);
+  if (!compressionData) return state;
+
+  const newMap = new Map(state);
+  newMap.set(fileId, {
+    ...compressionData,
+    buffer: compressionData.buffer.slice(BLOCK_SIZE),
+    blockNumber: compressionData.blockNumber + 1
+  });
+  return newMap;
+});
+
 sample({
   clock: compressionDataProcessed,
   source: $compressionState,
-  filter: (state, { fileId, final }) => !final,
+  filter: (state, { final }) => !final,
   fn: (state, { fileId }) => {
     const compressionData = state.get(fileId);
     return { reader: compressionData!.reader! };
@@ -254,7 +220,24 @@ sample({
   target: readFileChunkFx
 });
 
-// Завершение компрессии
+sample({
+  clock: compressionDataProcessed,
+  source: $compressionState,
+  filter: (state, { fileId, final }) => {
+    const compressionData = state.get(fileId);
+    return final && compressionData !== undefined && compressionData.buffer.length > 0;
+  },
+  fn: (state, { fileId }) => {
+    const compressionData = state.get(fileId)!;
+    return {
+      fileId,
+      chunkNumber: compressionData.blockNumber,
+      data: compressionData.buffer
+    };
+  },
+  target: chunkPrepared
+});
+
 sample({
   clock: compressionDataProcessed,
   source: $compressionState,
@@ -272,8 +255,8 @@ sample({
   target: compressionCompleted
 });
 
-// Logic - декомпрессия через рекурсивные события
-$decompressionState.on(fileChunksLoaded, (state, { fileId, chunks }) => {
+// Decompression logic
+$decompressionState.on(setDecompressionChunks, (state, { fileId, chunks }) => {
   const sorted = [...chunks].sort((a, b) => a.chunkNumber - b.chunkNumber);
   const newMap = new Map(state);
   newMap.set(fileId, {
@@ -285,9 +268,8 @@ $decompressionState.on(fileChunksLoaded, (state, { fileId, chunks }) => {
 });
 
 sample({
-  clock: decompressionStarted,
-  source: $decompressionState,
-  fn: (state, { fileId }) => ({
+  clock: setDecompressionChunks,
+  fn: ({ fileId }) => ({
     fileId,
     chunkNumber: 0
   }),
@@ -295,22 +277,7 @@ sample({
 });
 
 sample({
-  clock: decompressionChunkRequested,
-  source: $decompressionState,
-  fn: (state, { fileId, chunkNumber }) => {
-    const decompState = state.get(fileId)!;
-    const chunk = decompState.chunks[chunkNumber];
-    return {
-      fileId,
-      hash: chunk.hash,
-      chunkNumber
-    };
-  },
-  target: blockLoadRequested
-});
-
-sample({
-  clock: blockLoaded,
+  clock: decompressionDataReceived,
   source: $decompressionState,
   fn: (state, { fileId, chunkNumber, data }) => {
     const decompState = state.get(fileId)!;
@@ -322,7 +289,7 @@ sample({
 
 sample({
   clock: decompressDataFx.doneData,
-  source: blockLoaded,
+  source: decompressionDataReceived,
   fn: (request, decompressed) => ({
     fileId: request.fileId,
     chunkNumber: request.chunkNumber,
@@ -331,7 +298,6 @@ sample({
   target: decompressionChunkProcessed
 });
 
-// Рекурсивно запрашиваем следующий chunk
 sample({
   clock: decompressionChunkProcessed,
   source: $decompressionState,
@@ -346,7 +312,6 @@ sample({
   target: decompressionChunkRequested
 });
 
-// Завершение декомпрессии
 sample({
   clock: decompressionChunkProcessed,
   source: $decompressionState,
