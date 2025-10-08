@@ -3,9 +3,9 @@ import {
     AiChatService,
     ContentType,ConversationOptions,Tool,
     ToolCall
-} from '../../../types/chats';
+} from '../../../../types/chats';
 
-import { ThreadsService, MessageType } from '../../../types/threads';
+import { ThreadsService, MessageType } from '../../../../types/threads';
 
 export type ULID = string;
 

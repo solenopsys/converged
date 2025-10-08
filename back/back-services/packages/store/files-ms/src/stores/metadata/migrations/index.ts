@@ -1,5 +1,5 @@
 
-import * as CreateFilesTables from './create_files_tables';
+import  CreateFilesTables from './createFiles';
 
 export default [
     CreateFilesTables

@@ -1,6 +1,6 @@
 // types.ts
 import { type Action } from "../plugin/types_actions";
-import { createDomainLogger } from "../utils/logger";
+import { createDomainLogger } from "../../../libs/effector-logger/logger";
 import { sample } from "effector";
 
 

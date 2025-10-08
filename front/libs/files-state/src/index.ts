@@ -6,6 +6,7 @@ export * from './segments/files';
 export * from './segments/store';
 export * from './segments/streaming';
 export * from './segments/browser';
+export * from './domain';
 
 // Integrations
 import './integrations';

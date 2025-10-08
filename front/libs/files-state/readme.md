@@ -26,7 +26,7 @@
 ## Установка и инициализация
 
 ```typescript
-import { services } from './model';
+import { services } from './src';
 import { createFilesService } from './api/files';
 import { createStoreService } from './api/store';
 
@@ -40,7 +40,7 @@ services.setStoreService(createStoreService());
 ### Upload файла
 
 ```typescript
-import { openFilePicker, $files, getFileProgress } from './model';
+import { openFilePicker, $files, getFileProgress } from './src';
 
 // Открыть file picker
 openFilePicker();

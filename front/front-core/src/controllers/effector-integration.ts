@@ -3,7 +3,7 @@ import { createDomain, sample } from "effector";
 import { Action } from "../plugin/types_actions";
 import { Widget } from "@/plugin";
 
-import { createDomainLogger } from "../utils/logger";
+import { createDomainLogger } from "../../../libs/effector-logger/logger";
 import {present} from "../slots/present";
 
 import { ActionRegistryImpl } from "./registry";

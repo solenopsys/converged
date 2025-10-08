@@ -1,12 +1,11 @@
 {
-  "name": "front-files-core",
+  "name": "aichat-state",
   "private": true,
   "version": "0.0.1",
   "module": "src/index.ts",
   "type": "module",
   "dependencies": {
-    "effector": "^23.4.4",
-    "fflate": "^0.8.2"
+    "effector": "^23.4.4"
   },
   "devDependencies": {
     "@types/bun": "latest"
@@ -15,7 +14,6 @@
     "typescript": "^5"
   },
   "scripts": {
-    "bld": "bun build   ./src/index.ts  ",
-    "tests": "bun test ./src/tests"
+    "bld": "bun build   ./src/index.ts  "
   }
 }

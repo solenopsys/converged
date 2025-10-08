@@ -63,7 +63,7 @@ export class SqlStore<DB = any> implements Store {
   async migrate(): Promise<void> { // todo move to superclass
 
 
-    const migrations = this.migrations.map((migration) => new migration(this));
+    const migrations = this.migrations.map((migrationWrap) => new migrationWrap(this));
     const migrator = new Migrator(migrations, this.migrationsState);
     await migrator.up();
   }

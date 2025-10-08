@@ -11,6 +11,7 @@ export class StoresController extends StoreControllerAbstract {
     }
 
     async init() {
+        console.log("Migration:", metadataMigrations);
         const metadataStore = await this.addStore("metadata", StoreType.SQL, metadataMigrations);
         this.metadataService = new MetadataStoreService(metadataStore as SqlStore);
         await this.startAll();

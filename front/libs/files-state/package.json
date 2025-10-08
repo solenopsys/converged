@@ -1,11 +1,12 @@
 {
-  "name": "front-chat-core",
+  "name": "files-state",
   "private": true,
   "version": "0.0.1",
   "module": "src/index.ts",
   "type": "module",
   "dependencies": {
-    "effector": "^23.4.4"
+    "effector": "^23.4.4",
+    "fflate": "^0.8.2"
   },
   "devDependencies": {
     "@types/bun": "latest"
@@ -14,6 +15,7 @@
     "typescript": "^5"
   },
   "scripts": {
-    "bld": "bun build   ./src/index.ts  "
+    "bld": "bun build   ./src/index.ts  ",
+    "tests": "bun test ./src/tests"
   }
 }
