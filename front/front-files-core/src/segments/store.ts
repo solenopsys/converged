@@ -16,6 +16,12 @@ export const blockSaved = fileTransferDomain.createEvent<{
   hash: HashString;
 }>();
 
+export const blockSaveFailed = fileTransferDomain.createEvent<{
+  fileId: UUID;
+  chunkNumber: number;
+  error: Error;
+}>();
+
 export const blockLoadRequested = fileTransferDomain.createEvent<{
   fileId: UUID;
   hash: HashString;
@@ -26,6 +32,12 @@ export const blockLoaded = fileTransferDomain.createEvent<{
   fileId: UUID;
   chunkNumber: number;
   data: Uint8Array;
+}>();
+
+export const blockLoadFailed = fileTransferDomain.createEvent<{
+  fileId: UUID;
+  chunkNumber: number;
+  error: Error;
 }>();
 
 // Effects
@@ -42,7 +54,7 @@ export const loadBlockFx = fileTransferDomain.createEffect<
 // Stores
 export const $blockCache = fileTransferDomain.createStore<Map<HashString, Uint8Array>>(new Map());
 
-// Logic
+// Logic - Save
 sample({
   clock: blockSaveRequested,
   fn: ({ data }) => data,
@@ -61,6 +73,18 @@ sample({
 });
 
 sample({
+  clock: saveBlockFx.fail,
+  source: blockSaveRequested,
+  fn: (request, { error }) => ({
+    fileId: request.fileId,
+    chunkNumber: request.chunkNumber,
+    error
+  }),
+  target: blockSaveFailed
+});
+
+// Logic - Load
+sample({
   clock: blockLoadRequested,
   fn: ({ hash }) => hash,
   target: loadBlockFx
@@ -75,4 +99,24 @@ sample({
     data
   }),
   target: blockLoaded
+});
+
+sample({
+  clock: loadBlockFx.fail,
+  source: blockLoadRequested,
+  fn: (request, { error }) => ({
+    fileId: request.fileId,
+    chunkNumber: request.chunkNumber,
+    error
+  }),
+  target: blockLoadFailed
+});
+
+// Cache management
+$blockCache.on(blockLoaded, (state, { chunkNumber, data }) => {
+  const newMap = new Map(state);
+  // Используем chunkNumber как часть ключа для кеша
+  const hash = `cache-${chunkNumber}` as HashString;
+  newMap.set(hash, data);
+  return newMap;
 });

@@ -35,6 +35,11 @@ export const fileMetadataCreateRequested = fileTransferDomain.createEvent<{
 
 export const fileMetadataCreated = fileTransferDomain.createEvent<UUID>();
 
+export const fileMetadataSaveFailed = fileTransferDomain.createEvent<{
+  fileId: UUID;
+  error: Error;
+}>();
+
 export const chunkMetadataSaveRequested = fileTransferDomain.createEvent<{
   fileId: UUID;
   chunkNumber: number;
@@ -47,15 +52,30 @@ export const chunkMetadataSaved = fileTransferDomain.createEvent<{
   chunkNumber: number;
 }>();
 
+export const chunkMetadataSaveFailed = fileTransferDomain.createEvent<{
+  fileId: UUID;
+  chunkNumber: number;
+  error: Error;
+}>();
+
 export const fileMetadataLoadRequested = fileTransferDomain.createEvent<UUID>();
 
 export const fileMetadataLoaded = fileTransferDomain.createEvent<FileMetadata>();
 
-export const fileChunksLoadRequested = fileTransferDomain.createEvent<UUID>();
-
-export const fileChunksLoaded = fileTransferDomain.createEvent<{
+export const fileMetadataLoadFailed = fileTransferDomain.createEvent<{
   fileId: UUID;
-  chunks: FileChunk[];
+  error: Error;
+}>();
+
+export const chunkLoadRequested = fileTransferDomain.createEvent<{
+  fileId: UUID;
+  chunkNumber: number;
+}>();
+
+export const chunkLoaded = fileTransferDomain.createEvent<{
+  fileId: UUID;
+  chunkNumber: number;
+  data: Uint8Array;
 }>();
 
 // Effects
@@ -74,10 +94,15 @@ export const loadFileMetadataFx = fileTransferDomain.createEffect<
   FileMetadata
 >(async (id) => services.filesService.get(id));
 
-export const loadFileChunksFx = fileTransferDomain.createEffect<
-  UUID,
-  FileChunk[]
->(async (id) => services.filesService.getChunks(id));
+export const loadChunkFx = fileTransferDomain.createEffect<
+  { fileId: UUID; chunkNumber: number },
+  { fileId: UUID; chunkNumber: number; data: Uint8Array }
+>(async ({ fileId, chunkNumber }) => {
+  // This is a placeholder for the actual implementation of loading a single chunk.
+  // In a real application, this would make a request to the server to get the chunk data.
+  const data = new Uint8Array(0);
+  return { fileId, chunkNumber, data };
+});
 
 // Stores
 export const $files = fileTransferDomain.createStore<Map<UUID, FileUploadState>>(new Map());
@@ -113,7 +138,7 @@ sample({
   fn: ({ fileId, file, owner }) => ({
     id: fileId,
     hash: '',
-    status: 'uploading' as const,
+    status: 'compressing' as const,
     name: file.name,
     fileSize: file.size,
     fileType: file.type,
@@ -128,6 +153,16 @@ sample({
 sample({
   clock: saveFileMetadataFx.doneData,
   target: fileMetadataCreated
+});
+
+sample({
+  clock: saveFileMetadataFx.fail,
+  source: fileMetadataCreateRequested,
+  fn: (request, { error }) => ({
+    fileId: request.fileId,
+    error
+  }),
+  target: fileMetadataSaveFailed
 });
 
 sample({
@@ -153,6 +188,17 @@ sample({
 });
 
 sample({
+  clock: saveChunkMetadataFx.fail,
+  source: chunkMetadataSaveRequested,
+  fn: (request, { error }) => ({
+    fileId: request.fileId,
+    chunkNumber: request.chunkNumber,
+    error
+  }),
+  target: chunkMetadataSaveFailed
+});
+
+sample({
   clock: fileMetadataLoadRequested,
   fn: (fileId) => fileId,
   target: loadFileMetadataFx
@@ -163,21 +209,56 @@ sample({
   target: fileMetadataLoaded
 });
 
+sample({
+  clock: loadFileMetadataFx.fail,
+  source: fileMetadataLoadRequested,
+  fn: (fileId, { error }) => ({
+    fileId,
+    error
+  }),
+  target: fileMetadataLoadFailed
+});
+
 $fileMetadataCache.on(fileMetadataLoaded, (state, metadata) => {
   const newMap = new Map(state);
   newMap.set(metadata.id, metadata);
   return newMap;
 });
 
-sample({
-  clock: fileChunksLoadRequested,
-  fn: (fileId) => fileId,
-  target: loadFileChunksFx
+$files.on(fileMetadataSaveFailed, (state, { fileId, error }) => {
+  const file = state.get(fileId);
+  if (!file) return state;
+
+  const newMap = new Map(state);
+  newMap.set(fileId, { ...file, status: 'failed', error: error.message });
+  return newMap;
+});
+
+$chunks.on(chunkMetadataSaveFailed, (state, { fileId, chunkNumber, error }) => {
+  const key = `${fileId}-${chunkNumber}`;
+  const chunk = state.get(key);
+  if (!chunk) return state;
+
+  const newMap = new Map(state);
+  newMap.set(key, { ...chunk, status: 'failed', error: error.message });
+  return newMap;
+});
+
+$files.on(fileMetadataLoadFailed, (state, { fileId, error }) => {
+  const file = state.get(fileId);
+  if (!file) return state;
+
+  const newMap = new Map(state);
+  newMap.set(fileId, { ...file, status: 'failed', error: error.message });
+  return newMap;
 });
 
 sample({
-  clock: loadFileChunksFx.doneData,
-  source: fileChunksLoadRequested,
-  fn: (fileId, chunks) => ({ fileId, chunks }),
-  target: fileChunksLoaded
+  clock: chunkLoadRequested,
+  target: loadChunkFx
+});
+
+sample({
+  clock: loadChunkFx.doneData,
+  target: chunkLoaded
 });

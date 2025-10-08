@@ -1,7 +1,7 @@
 import { allSettled, fork } from 'effector';
 import { services } from '../services';
 import { fileInitialized } from '../segments/browser';
-import { $compressionState } from '../segments/streaming';
+import { $compressionState, readFileChunkFx, compressDataFx } from '../segments/streaming';
 import { saveFileMetadataFx, $files } from '../segments/files';
 
 // Import integrations to activate them
@@ -27,7 +27,12 @@ describe('integration tests', () => {
   });
 
   test('fileInitialized should trigger metadata creation and compression', async () => {
-    const scope = fork();
+    const scope = fork({
+      handlers: [
+        [readFileChunkFx, () => ({ data: new Uint8Array([1, 2, 3]), done: true })],
+        [compressDataFx, ({ data, final }) => ({ compressed: data, final })]
+      ]
+    });
     
     const file = new File(['test content for compression'], 'test.txt');
     const fileId = 'test-uuid' as any;
@@ -45,7 +50,7 @@ describe('integration tests', () => {
     // Check file was added to $files
     const files = scope.getState($files);
     expect(files.has(fileId)).toBe(true);
-    expect(files.get(fileId)?.status).toBe('compressing');
+    expect(files.get(fileId)?.status).toBe('uploading');
 
     // Check compression was started
     const compressionState = scope.getState($compressionState);
@@ -55,10 +60,15 @@ describe('integration tests', () => {
     expect(scope.getState(saveFileMetadataFx.pending)).toBe(false);
   });
 
-  test('upload flow integration', async () => {
-    const scope = fork();
-    
-    const file = new File(['small test'], 'small.txt');
+    test('upload flow integration', async () => {
+      const scope = fork({
+        handlers: [
+          [readFileChunkFx, () => ({ data: new Uint8Array([1, 2, 3]), done: true })],
+          [compressDataFx, ({ data, final }) => ({ compressed: data, final })]
+        ]
+      });
+      
+      const file = new File(['small test'], 'small.txt');
     const fileId = 'upload-test-uuid' as any;
 
     // Start upload

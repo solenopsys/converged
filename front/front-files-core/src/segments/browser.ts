@@ -2,7 +2,7 @@ import { sample, combine } from 'effector';
 import { type UUID, HashString } from "../../../../types/files";
 import { fileTransferDomain } from '../domain';
 import { $files, $chunks, $fileMetadataCache } from './files';
-import { MAX_PARALLEL_UPLOADS } from '../config';
+import { MAX_PARALLEL_UPLOADS, MAX_RETRY_ATTEMPTS } from '../config';
 
 function generateUUID(): UUID {
   return crypto.randomUUID() as UUID;
@@ -35,6 +35,11 @@ export const chunkUploaded = fileTransferDomain.createEvent<{
   hash: HashString;
 }>();
 
+export const chunkUploadFailed = fileTransferDomain.createEvent<{
+  fileId: UUID;
+  chunkNumber: number;
+  error: Error;
+}>();
 export const nextChunkUploadRequested = fileTransferDomain.createEvent<UUID>();
 export const uploadCompleted = fileTransferDomain.createEvent<UUID>();
 
@@ -101,7 +106,16 @@ export const writeChunkFx = fileTransferDomain.createEffect<
   }
 });
 
-// Stores
+export const retryChunkFx = fileTransferDomain.createEffect<
+  { fileId: UUID; chunkNumber: number; retryCount: number },
+  { fileId: UUID; chunkNumber: number }
+>(async ({ fileId, chunkNumber, retryCount }) => {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve({ fileId, chunkNumber });
+    }, 1000 * (retryCount + 1));
+  });
+});// Stores
 export const $fileHandles = fileTransferDomain.createStore<Map<UUID, any>>(new Map());
 
 // Logic - File Picker
@@ -184,6 +198,36 @@ $chunks.on(chunkUploaded, (state, { fileId, chunkNumber, hash }) => {
   return newMap;
 });
 
+$chunks.on(chunkUploadFailed, (state, { fileId, chunkNumber, error }) => {
+  const key = `${fileId}-${chunkNumber}`;
+  const chunk = state.get(key);
+  if (!chunk) return state;
+
+  const newMap = new Map(state);
+  newMap.set(key, { ...chunk, status: 'failed', error: error.message, retryCount: chunk.retryCount + 1 });
+  return newMap;
+});
+
+sample({
+  clock: chunkUploadFailed,
+  source: $chunks,
+  filter: (chunks, { fileId, chunkNumber }) => {
+    const key = `${fileId}-${chunkNumber}`;
+    const chunk = chunks.get(key);
+    return chunk !== undefined && chunk.retryCount < MAX_RETRY_ATTEMPTS;
+  },
+  fn: (chunks, { fileId, chunkNumber }) => {
+    const key = `${fileId}-${chunkNumber}`;
+    const chunk = chunks.get(key)!;
+    return { fileId, chunkNumber, retryCount: chunk.retryCount };
+  },
+  target: retryChunkFx
+});
+
+sample({
+  clock: retryChunkFx.doneData,
+  target: retryChunk
+});
 sample({
   clock: chunkUploaded,
   fn: ({ fileId }) => fileId,

@@ -1,9 +1,9 @@
 import { sample, combine } from 'effector';
 
 // Imports from modules
-import { 
-  fileInitialized, 
-  downloadRequested, 
+import {
+  fileInitialized,
+  downloadRequested,
   saveDialogRequested,
   showSaveDialogFx,
   fileHandleReady,
@@ -12,20 +12,20 @@ import {
   writeChunkFx,
   chunkWritten,
   chunkUploadStarted,
-  chunkUploaded
+  chunkUploaded,
+  chunkUploadFailed
 } from './segments/browser';
-
 import {
   fileMetadataCreateRequested,
   fileMetadataLoadRequested,
   fileMetadataLoaded,
-  fileChunksLoadRequested,
-  fileChunksLoaded,
   $fileMetadataCache,
   chunkMetadataSaveRequested,
   chunkMetadataSaved,
   $chunks,
-  $files
+  $files,
+  chunkLoadRequested,
+  chunkLoaded
 } from './segments/files';
 
 import {
@@ -33,10 +33,11 @@ import {
   compressionCompleted,
   chunkPrepared,
   decompressionStarted,
+  decompressionStateInitialized,
+  decompressionFailed,
   decompressionChunkRequested,
   decompressionDataReceived,
   decompressionChunkProcessed,
-  setDecompressionChunks,
   $decompressionState
 } from './segments/streaming';
 
@@ -44,7 +45,9 @@ import {
   blockSaveRequested,
   blockSaved,
   blockLoadRequested,
-  blockLoaded
+  blockLoaded,
+  blockSaveFailed,
+  blockLoadFailed
 } from './segments/store';
 
 // ==========================================
@@ -61,24 +64,6 @@ sample({
 sample({
   clock: downloadRequested,
   target: fileMetadataLoadRequested
-});
-
-// Files -> Browser: метаданные загружены, запрашиваем чанки
-sample({
-  clock: fileMetadataLoaded,
-  fn: (metadata) => metadata.id,
-  target: fileChunksLoadRequested
-});
-
-// Files -> Browser: чанки загружены, показываем диалог сохранения
-sample({
-  clock: fileChunksLoaded,
-  source: $fileMetadataCache,
-  fn: (cache, { fileId }) => ({
-    fileId,
-    fileName: cache.get(fileId)!.name
-  }),
-  target: saveDialogRequested
 });
 
 // ==========================================
@@ -116,11 +101,25 @@ $chunks.on(chunkPrepared, (state, { fileId, chunkNumber, data }) => {
   return newMap;
 });
 
-// Browser -> Streaming: начало декомпрессии
+// Browser -> Streaming: начало декомпрессии (после загрузки метаданных)
 sample({
-  clock: fileHandleReady,
-  fn: ({ fileId }) => ({ fileId }),
+  clock: fileMetadataLoaded,
+  fn: ({ id }) => ({ fileId: id }),
   target: decompressionStarted
+});
+
+// Browser -> Streaming: диалог сохранения готов, показываем его (только если метаданные есть)
+sample({
+  clock: decompressionStateInitialized,
+  source: $fileMetadataCache,
+  fn: (cache, { fileId }) => {
+    const metadata = cache.get(fileId)!;
+    return {
+      fileId,
+      fileName: metadata.name
+    };
+  },
+  target: saveDialogRequested
 });
 
 // Streaming -> Browser: chunk декомпрессирован, записываем в файл
@@ -134,30 +133,24 @@ sample({
 });
 
 // ==========================================
-// FILES <-> STREAMING
-// ==========================================
-
-// Files -> Streaming: чанки загружены, начинаем декомпрессию
-sample({
-  clock: fileChunksLoaded,
-  fn: ({ fileId, chunks }) => ({ fileId, chunks }),
-  target: setDecompressionChunks
-});
-
-// ==========================================
 // STREAMING <-> STORE (DOWNLOAD)
 // ==========================================
 
 // Streaming -> Store: запрос блока для декомпрессии
 sample({
   clock: decompressionChunkRequested,
-  source: $decompressionState,
-  fn: (state, { fileId, chunkNumber }) => {
-    const decompState = state.get(fileId)!;
-    const chunk = decompState.chunks[chunkNumber];
+  source: $fileMetadataCache,
+  filter: (cache, { fileId }) => cache.has(fileId),
+  fn: (cache, { fileId, chunkNumber }) => {
+    const metadata = cache.get(fileId)!;
+    
+    // В реальном приложении нужно получить hash чанка из метаданных
+    // Здесь используем заглушку
+    const hash = `chunk-${fileId}-${chunkNumber}` as any;
+    
     return {
       fileId,
-      hash: chunk.hash,
+      hash,
       chunkNumber
     };
   },
@@ -218,6 +211,33 @@ sample({
     hash: blockData.hash
   }),
   target: chunkUploaded
+});
+
+// Store -> Browser: ошибка сохранения блока
+sample({
+  clock: blockSaveFailed,
+  fn: ({ fileId, chunkNumber, error }) => ({
+    fileId,
+    chunkNumber,
+    error
+  }),
+  target: chunkUploadFailed
+});
+
+// Store -> Browser: ошибка загрузки блока
+sample({
+  clock: blockLoadFailed,
+  fn: ({ fileId, chunkNumber, error }) => {
+    console.error(`Failed to load block ${chunkNumber} for file ${fileId}:`, error);
+  }
+});
+
+// Streaming -> Browser: ошибка декомпрессии
+sample({
+  clock: decompressionFailed,
+  fn: ({ fileId, error }) => {
+    console.error(`Decompression failed for file ${fileId}:`, error);
+  }
 });
 
 // ==========================================

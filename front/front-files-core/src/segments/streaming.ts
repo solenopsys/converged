@@ -1,4 +1,5 @@
 import { fileTransferDomain } from '../domain';
+import { $fileMetadataCache } from './files';
 import { type UUID, FileChunk } from "../../../../types/files";
 import { BLOCK_SIZE, COMPRESSION_LEVEL } from '../config';
 import { Deflate, Inflate } from 'fflate';
@@ -37,6 +38,16 @@ export const decompressionStarted = fileTransferDomain.createEvent<{
   fileId: UUID;
 }>();
 
+export const decompressionStateInitialized = fileTransferDomain.createEvent<{
+  fileId: UUID;
+  totalChunks: number;
+}>();
+
+export const decompressionFailed = fileTransferDomain.createEvent<{
+  fileId: UUID;
+  error: string;
+}>();
+
 export const decompressionChunkRequested = fileTransferDomain.createEvent<{
   fileId: UUID;
   chunkNumber: number;
@@ -55,11 +66,6 @@ export const decompressionChunkProcessed = fileTransferDomain.createEvent<{
 }>();
 
 export const decompressionCompleted = fileTransferDomain.createEvent<UUID>();
-
-export const setDecompressionChunks = fileTransferDomain.createEvent<{
-  fileId: UUID;
-  chunks: FileChunk[];
-}>();
 
 // Effects
 export const readFileChunkFx = fileTransferDomain.createEffect<
@@ -106,7 +112,6 @@ export const $compressionState = fileTransferDomain.createStore<Map<UUID, {
 export const $decompressionState = fileTransferDomain.createStore<Map<UUID, {
   currentChunkNumber: number;
   totalChunks: number;
-  chunks: FileChunk[];
 }>>(new Map());
 
 // Compression logic
@@ -255,20 +260,43 @@ sample({
   target: compressionCompleted
 });
 
-// Decompression logic
-$decompressionState.on(setDecompressionChunks, (state, { fileId, chunks }) => {
-  const sorted = [...chunks].sort((a, b) => a.chunkNumber - b.chunkNumber);
+// Decompression logic - инициализация состояния с проверкой
+sample({
+  clock: decompressionStarted,
+  source: $fileMetadataCache,
+  filter: (cache, { fileId }) => cache.has(fileId),
+  fn: (cache, { fileId }) => {
+    const metadata = cache.get(fileId)!;
+    return { fileId, totalChunks: metadata.chunksCount };
+  },
+  target: decompressionStateInitialized
+});
+
+// Обработка ошибки отсутствия метаданных
+sample({
+  clock: decompressionStarted,
+  source: $fileMetadataCache,
+  filter: (cache, { fileId }) => !cache.has(fileId),
+  fn: (cache, { fileId }) => ({
+    fileId,
+    error: `File metadata not found for ${fileId}`
+  }),
+  target: decompressionFailed
+});
+
+// Установка состояния декомпрессии
+$decompressionState.on(decompressionStateInitialized, (state, { fileId, totalChunks }) => {
   const newMap = new Map(state);
-  newMap.set(fileId, {
-    currentChunkNumber: 0,
-    totalChunks: sorted.length,
-    chunks: sorted
+  newMap.set(fileId, { 
+    currentChunkNumber: 0, 
+    totalChunks 
   });
   return newMap;
 });
 
+// Начинаем с первого чанка
 sample({
-  clock: setDecompressionChunks,
+  clock: decompressionStateInitialized,
   fn: ({ fileId }) => ({
     fileId,
     chunkNumber: 0
@@ -280,7 +308,10 @@ sample({
   clock: decompressionDataReceived,
   source: $decompressionState,
   fn: (state, { fileId, chunkNumber, data }) => {
-    const decompState = state.get(fileId)!;
+    const decompState = state.get(fileId);
+    if (!decompState) {
+      throw new Error(`Decompression state not found for ${fileId}`);
+    }
     const isLast = chunkNumber === decompState.totalChunks - 1;
     return { data, final: isLast };
   },

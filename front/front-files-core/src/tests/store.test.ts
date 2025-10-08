@@ -28,7 +28,7 @@ describe('store module', () => {
     const chunkNumber = 0;
 
     const savedEvents: any[] = [];
-    scope.getState(blockSaved.watch(event => savedEvents.push(event)));
+    blockSaved.watch(event => savedEvents.push(event));
 
     await allSettled(blockSaveRequested, {
       scope,
@@ -50,7 +50,7 @@ describe('store module', () => {
     const chunkNumber = 0;
 
     const loadedEvents: any[] = [];
-    scope.getState(blockLoaded.watch(event => loadedEvents.push(event)));
+    blockLoaded.watch(event => loadedEvents.push(event));
 
     await allSettled(blockLoadRequested, {
       scope,

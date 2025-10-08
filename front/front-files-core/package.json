@@ -15,6 +15,7 @@
     "typescript": "^5"
   },
   "scripts": {
-    "bld": "bun build   ./src/index.ts  "
+    "bld": "bun build   ./src/index.ts  ",
+    "tests": "bun test ./src/tests"
   }
 }
