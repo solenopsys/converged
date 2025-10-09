@@ -40,15 +40,28 @@ export class SqlStore<DB = any> implements Store {
 
   async open(): Promise<void> {
     if (this.kysely) {
-      return; // Уже открыта
+      return;
     }
+  
+    console.log(`Opening database at WALL ${this.dataLocation}`);
+    
+    const database = new Database(this.dataLocation);
+    
+    // КРИТИЧНО для параллельных запросов:
+    database.exec("PRAGMA journal_mode = WAL;");           // Разрешает одновременное чтение/запись
+    database.exec("PRAGMA busy_timeout = 5000;");          // Ждёт 5 сек вместо immediate fail
+    database.exec("PRAGMA synchronous = NORMAL;");         
+    database.exec("PRAGMA cache_size = -64000;");          
+    database.exec("PRAGMA temp_store = MEMORY;");
 
- 
-    console.log(`Opening database at ${this.dataLocation}`);
+    console.log("journal_mode:", database.query("PRAGMA journal_mode;").get());
+    console.log("synchronous:", database.query("PRAGMA synchronous;").get());
+    console.log("busy_timeout:", database.query("PRAGMA busy_timeout;").get());
+    
     
     this.kysely = new Kysely<DB>({
       dialect: new BunSqliteDialect({
-        database: new Database(this.dataLocation)
+        database
       })
     });
   }

@@ -181,22 +181,21 @@ sample({
   target: saveChunkMetadataFx
 });
 
+// Use effect.done to ensure we pair the result with the exact params
 sample({
-  clock: saveChunkMetadataFx.doneData,
-  source: chunkMetadataSaveRequested,
-  fn: (request) => ({
-    fileId: request.fileId,
-    chunkNumber: request.chunkNumber
+  clock: saveChunkMetadataFx.done,
+  fn: ({ params }) => ({
+    fileId: params.fileId,
+    chunkNumber: params.chunkNumber
   }),
   target: chunkMetadataSaved
 });
 
 sample({
   clock: saveChunkMetadataFx.fail,
-  source: chunkMetadataSaveRequested,
-  fn: (request, { error }) => ({
-    fileId: request.fileId,
-    chunkNumber: request.chunkNumber,
+  fn: ({ params, error }) => ({
+    fileId: params.fileId,
+    chunkNumber: params.chunkNumber,
     error
   }),
   target: chunkMetadataSaveFailed

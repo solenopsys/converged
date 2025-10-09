@@ -19,7 +19,6 @@ class HttpClientImpl {
   private baseUrl: string;
   private timeout: number;
   private headers: Record<string, string>;
-  private abortController: AbortController | null = null;
   
   constructor(
     private metadata: ServiceMetadata,
@@ -48,10 +47,11 @@ class HttpClientImpl {
     const path = `/${this.metadata.serviceName}/${methodName}`;
     const body = this.prepareParams(method!.parameters, params);
     
-    this.abortController = new AbortController();
+    // Локальный AbortController для каждого запроса
+    const abortController = new AbortController();
     
     const timeoutId = setTimeout(() => {
-      this.abortController?.abort();
+      abortController.abort();
     }, this.timeout);
     
     try {
@@ -63,7 +63,7 @@ class HttpClientImpl {
           ...this.headers
         },
         body: JSON.stringify(body),
-        signal: this.abortController.signal
+        signal: abortController.signal
       });
       
       clearTimeout(timeoutId);
@@ -102,8 +102,6 @@ class HttpClientImpl {
       }
       
       throw error;
-    } finally {
-      this.abortController = null;
     }
   }
 
@@ -115,7 +113,8 @@ class HttpClientImpl {
     
     return {
       async *[Symbol.asyncIterator]() {
-        self.abortController = new AbortController();
+        // Локальный AbortController для стрима
+        const abortController = new AbortController();
         
         const response = await fetch(`${self.baseUrl}${path}`, {
           method: 'POST',
@@ -125,7 +124,7 @@ class HttpClientImpl {
             ...self.headers
           },
           body: JSON.stringify(body),
-          signal: self.abortController.signal
+          signal: abortController.signal
         });
   
         if (!response.ok) {
@@ -158,34 +157,26 @@ class HttpClientImpl {
             
             buffer += decoder.decode(value, { stream: true });
             
-            // Обрабатываем SSE сообщения, разделенные двойным переносом строки
             let eventStart = 0;
             let eventEnd = buffer.indexOf('\n\n');
             
             while (eventEnd !== -1) {
               const eventData = buffer.slice(eventStart, eventEnd);
-              console.log('Processing SSE event:', eventData);
               
-              // Обрабатываем каждую строку в событии
               const lines = eventData.split('\n');
               for (const line of lines) {
                 const trimmed = line.trim();
                 if (!trimmed) continue;
                 
-                console.log('Processing line:', trimmed);
-                
                 if (trimmed.startsWith('data: ')) {
                   const data = trimmed.slice(6);
-                  console.log('Extracted data:', data);
                   
                   if (data === '[DONE]') {
-                    console.log('Stream completed with [DONE]');
                     return;
                   }
                   
                   try {
                     const parsed = JSON.parse(data);
-                    console.log('Yielding parsed data:', parsed);
                     yield parsed;
                   } catch (error) {
                     console.error('Error parsing JSON data:', data, error);
@@ -193,17 +184,14 @@ class HttpClientImpl {
                 }
               }
               
-              // Переходим к следующему событию
-              eventStart = eventEnd + 2; // +2 для пропуска \n\n
+              eventStart = eventEnd + 2;
               eventEnd = buffer.indexOf('\n\n', eventStart);
             }
             
-            // Сохраняем остаток для следующей итерации
             buffer = buffer.slice(eventStart);
           }
         } finally {
           reader.releaseLock();
-          self.abortController = null;
         }
       }
     };
@@ -222,10 +210,6 @@ class HttpClientImpl {
     
     return result;
   }
-  
-  abort() {
-    this.abortController?.abort();
-  }
 }
 
 function createProxy(client: HttpClientImpl, metadata: ServiceMetadata): any {
@@ -233,13 +217,6 @@ function createProxy(client: HttpClientImpl, metadata: ServiceMetadata): any {
   
   metadata.methods.forEach(method => {
     proxy[method.name] = (...args: any[]) => {
-      console.log('DEBUG proxy call:', {
-        methodName: method.name,
-        args: args,
-        argsLength: args.length,
-        methodParameters: method.parameters
-      });
-      
       const requiredParamsCount = method.parameters.filter(p => !p.optional).length;
       const totalParamsCount = method.parameters.length;
       
@@ -259,7 +236,6 @@ function createProxy(client: HttpClientImpl, metadata: ServiceMetadata): any {
     };
   });
   
-  proxy._abort = () => client.abort();
   proxy._metadata = metadata;
   
   return proxy;

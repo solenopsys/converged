@@ -1,3 +1,4 @@
+// segments/integration.ts - UPDATED для работы с Workers
 import { sample, combine } from 'effector';
 import { fileTransferDomain } from './domain';
 
@@ -39,7 +40,8 @@ import {
   decompressionChunkRequested,
   decompressionDataReceived,
   decompressionChunkProcessed,
-  $decompressionState
+  $decompressionState,
+  chunkConsumed  // ← NEW для backpressure
 } from './segments/streaming';
 
 import {
@@ -206,29 +208,72 @@ sample({
   target: blockSaveRequested
 });
 
-// Store -> Files: блок сохранен, сохраняем метаданные
+// Временное хранилище для hash chunks (чтобы не потерять при race condition)
+const $chunkHashes = fileTransferDomain.createStore<Map<string, string>>(
+  new Map(), 
+  { name: 'CHUNK_HASHES' }
+);
+
+// Store -> Files: блок сохранен, сохраняем hash и метаданные
 sample({
   clock: blockSaved,
-  fn: ({ fileId, chunkNumber, hash }) => ({
-    fileId,
-    chunkNumber,
-    hash,
-    chunkSize: $chunks.getState().get(`${fileId}-${chunkNumber}`)!.data.length
-  }),
+  fn: ({ fileId, chunkNumber, hash }) => {
+    // Сохраняем hash в temporary store
+    const key = `${fileId}-${chunkNumber}`;
+    $chunkHashes.getState().set(key, hash);
+    
+    return {
+      fileId,
+      chunkNumber,
+      hash,
+      chunkSize: $chunks.getState().get(key)!.data.length
+    };
+  },
   target: chunkMetadataSaveRequested
+});
+
+// Обновляем store с hash
+$chunkHashes.on(blockSaved, (state, { fileId, chunkNumber, hash }) => {
+  const newMap = new Map(state);
+  const key = `${fileId}-${chunkNumber}`;
+  newMap.set(key, hash);
+  return newMap;
 });
 
 // Files -> Browser: метаданные чанка сохранены, отмечаем загруженным
 sample({
   clock: chunkMetadataSaved,
-  source: blockSaved,
-  fn: (blockData, metaData) => ({
-    fileId: metaData.fileId,
-    chunkNumber: metaData.chunkNumber,
-    hash: blockData.hash
-  }),
+  source: $chunkHashes,
+  fn: (hashes, { fileId, chunkNumber }) => {
+    const key = `${fileId}-${chunkNumber}`;
+    const hash = hashes.get(key)!;
+    
+    // Удаляем использованный hash
+    hashes.delete(key);
+    
+    return {
+      fileId,
+      chunkNumber,
+      hash
+    };
+  },
   target: chunkUploaded
 });
+
+// ==========================================
+// BACKPRESSURE для Compression Worker
+// ==========================================
+
+// После успешного upload - сигнализируем worker что можно следующий chunk
+sample({
+  clock: chunkUploaded,
+  fn: ({ fileId }) => fileId,
+  target: chunkConsumed
+});
+
+// ==========================================
+// ERROR HANDLING
+// ==========================================
 
 // Store -> Browser: ошибка сохранения блока
 sample({

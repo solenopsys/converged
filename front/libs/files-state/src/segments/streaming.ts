@@ -1,27 +1,23 @@
+// segments/streaming/index.ts - REFACTORED
 import { fileTransferDomain } from '../domain';
 import { $fileMetadataCache } from './files';
-import { type UUID, FileChunk } from "../../../../../types/files";
-import { BLOCK_SIZE, COMPRESSION_LEVEL } from '../config';
-import { Deflate, Inflate } from 'fflate';
+import { type UUID } from "../../../../../types/files";
 import { sample } from 'effector';
+import type {
+  CompressionWorkerIncomingMessage,
+  CompressionWorkerOutgoingMessage,
+  DecompressionWorkerIncomingMessage,
+  DecompressionWorkerOutgoingMessage,
+} from './workers/types';
 
-// Events
+// ==========================================
+// EVENTS (остаются как API для остальной системы)
+// ==========================================
+
 export const compressionStarted = fileTransferDomain.createEvent<{
   fileId: UUID;
   file: File;
 }>('COMPRESSION_STARTED');
-
-export const compressionChunkRead = fileTransferDomain.createEvent<{
-  fileId: UUID;
-  data: Uint8Array;
-  done: boolean;
-}>('COMPRESSION_CHUNK_READ');
-
-export const compressionDataProcessed = fileTransferDomain.createEvent<{
-  fileId: UUID;
-  compressed: Uint8Array;
-  final: boolean;
-}>('COMPRESSION_DATA_PROCESSED');
 
 export const chunkPrepared = fileTransferDomain.createEvent<{
   fileId: UUID;
@@ -33,6 +29,11 @@ export const compressionCompleted = fileTransferDomain.createEvent<{
   fileId: UUID;
   totalChunks: number;
 }>('COMPRESSION_COMPLETED');
+
+export const compressionFailed = fileTransferDomain.createEvent<{
+  fileId: UUID;
+  error: string;
+}>('COMPRESSION_FAILED');
 
 export const decompressionStarted = fileTransferDomain.createEvent<{
   fileId: UUID;
@@ -67,203 +68,172 @@ export const decompressionChunkProcessed = fileTransferDomain.createEvent<{
 
 export const decompressionCompleted = fileTransferDomain.createEvent<UUID>('DECOMPRESSION_COMPLETED');
 
-// Effects
-export const readFileChunkFx = fileTransferDomain.createEffect<
-  { reader: ReadableStreamDefaultReader<Uint8Array> },
-  { data?: Uint8Array; done: boolean }
->('READ_FILE_CHUNK_FX');
-readFileChunkFx.use(async ({ reader }) => {
-  const result = await reader.read();
-  return { data: result.value, done: result.done };
-});
+export const chunkConsumed = fileTransferDomain.createEvent<UUID>('CHUNK_CONSUMED');
 
-export const compressDataFx = fileTransferDomain.createEffect<
-  { data: Uint8Array; final: boolean },
-  { compressed: Uint8Array; final: boolean }
->('COMPRESS_DATA_FX');
-compressDataFx.use(async ({ data, final }) => {
-  return new Promise((resolve) => {
-    const deflate = new Deflate({ level: COMPRESSION_LEVEL });
-    deflate.ondata = (compressed, isFinal) => {
-      resolve({ compressed, final: isFinal });
-    };
-    deflate.push(data, final);
-  });
-});
+// ==========================================
+// WORKERS INITIALIZATION
+// ==========================================
 
-export const decompressDataFx = fileTransferDomain.createEffect<
-  { data: Uint8Array; final: boolean },
-  Uint8Array
->('DECOMPRESS_DATA_FX');
-decompressDataFx.use(async ({ data, final }) => {
-  return new Promise((resolve) => {
-    const inflate = new Inflate();
-    inflate.ondata = (decompressed) => {
-      resolve(decompressed);
-    };
-    inflate.push(data, final);
-  });
-});
+console.log('[Streaming] Initializing workers...');
 
-// Stores
-export const $compressionState = fileTransferDomain.createStore<Map<UUID, {
-  reader?: ReadableStreamDefaultReader<Uint8Array>;
-  buffer: Uint8Array;
-  blockNumber: number;
-}>>(new Map(), { name: 'COMPRESSION_STATE' });
+// Worker будет создан из blob (inline bundle)
+import { createWorker as createCompressionWorker } from './workers/compression.worker.ts';
+import { createWorker as createDecompressionWorker } from './workers/decompression.worker.ts';
+
+const compressionWorker = createCompressionWorker();
+const decompressionWorker = createDecompressionWorker();
+
+console.log('[Streaming] Workers initialized');
+
+// ==========================================
+// WORKER MESSAGE HANDLERS
+// ==========================================
+
+// Compression Worker messages
+compressionWorker.onmessage = (event: MessageEvent<CompressionWorkerOutgoingMessage>) => {
+  const message = event.data;
+
+  console.log('[Streaming] Compression worker message:', message.type, message);
+
+  switch (message.type) {
+    case 'CHUNK_READY':
+      console.log('[Streaming] Triggering chunkPrepared event:', {
+        fileId: message.fileId,
+        chunkNumber: message.chunkNumber,
+        dataSize: message.data.length
+      });
+      chunkPrepared({
+        fileId: message.fileId,
+        chunkNumber: message.chunkNumber,
+        data: message.data,
+      });
+      break;
+
+    case 'FILE_COMPLETE':
+      console.log('[Streaming] Triggering compressionCompleted event:', {
+        fileId: message.fileId,
+        totalChunks: message.totalChunks
+      });
+      compressionCompleted({
+        fileId: message.fileId,
+        totalChunks: message.totalChunks,
+      });
+      break;
+
+    case 'ERROR':
+      console.error('[Streaming] Compression error:', message);
+      compressionFailed({
+        fileId: message.fileId,
+        error: message.error,
+      });
+      break;
+
+    case 'PROGRESS':
+      console.log('[Streaming] Compression progress:', {
+        fileId: message.fileId,
+        bytesProcessed: message.bytesProcessed,
+        totalBytes: message.totalBytes,
+        percentage: ((message.bytesProcessed / message.totalBytes) * 100).toFixed(2) + '%'
+      });
+      break;
+  }
+};
+
+compressionWorker.onerror = (error) => {
+  console.error('[Streaming] Compression worker error:', error);
+};
+
+// Decompression Worker messages
+decompressionWorker.onmessage = (event: MessageEvent<DecompressionWorkerOutgoingMessage>) => {
+  const message = event.data;
+
+  console.log('[Streaming] Decompression worker message:', message.type, message);
+
+  switch (message.type) {
+    case 'CHUNK_DECOMPRESSED':
+      console.log('[Streaming] Triggering decompressionChunkProcessed event:', {
+        fileId: message.fileId,
+        chunkNumber: message.chunkNumber,
+        dataSize: message.data.length
+      });
+      decompressionChunkProcessed({
+        fileId: message.fileId,
+        chunkNumber: message.chunkNumber,
+        decompressed: message.data,
+      });
+      break;
+
+    case 'ERROR':
+      console.error('[Streaming] Decompression error:', message);
+      decompressionFailed({
+        fileId: message.fileId,
+        error: message.error,
+      });
+      break;
+  }
+};
+
+decompressionWorker.onerror = (error) => {
+  console.error('[Streaming] Decompression worker error:', error);
+};
+
+// ==========================================
+// STORES
+// ==========================================
 
 export const $decompressionState = fileTransferDomain.createStore<Map<UUID, {
   currentChunkNumber: number;
   totalChunks: number;
 }>>(new Map(), { name: 'DECOMPRESSION_STATE' });
 
-// Compression logic
-$compressionState.on(compressionStarted, (state, { fileId, file }) => {
-  const reader = file.stream().getReader();
-  const newMap = new Map(state);
-  newMap.set(fileId, {
-    reader,
-    buffer: new Uint8Array(0),
-    blockNumber: 0
-  });
-  return newMap;
-});
+// ==========================================
+// COMPRESSION LOGIC (через Worker)
+// ==========================================
+
+const MAX_BUFFERED_CHUNKS = 5;
 
 sample({
   clock: compressionStarted,
-  source: $compressionState,
-  fn: (state, { fileId }) => {
-    const compressionData = state.get(fileId);
-    return { reader: compressionData!.reader! };
-  },
-  target: readFileChunkFx
-});
-
-sample({
-  clock: readFileChunkFx.doneData,
-  source: compressionStarted,
-  fn: (request, result) => ({
-    fileId: request.fileId,
-    data: result.data || new Uint8Array(0),
-    done: result.done
-  }),
-  target: compressionChunkRead
-});
-
-sample({
-  clock: compressionChunkRead,
-  fn: ({ data, done }) => ({
-    data,
-    final: done
-  }),
-  target: compressDataFx
-});
-
-sample({
-  clock: compressDataFx.doneData,
-  source: compressionChunkRead,
-  fn: (request, result) => ({
-    fileId: request.fileId,
-    compressed: result.compressed,
-    final: result.final
-  }),
-  target: compressionDataProcessed
-});
-
-$compressionState.on(compressionDataProcessed, (state, { fileId, compressed, final }) => {
-  const compressionData = state.get(fileId);
-  if (!compressionData) return state;
-
-  const newBuffer = new Uint8Array(compressionData.buffer.length + compressed.length);
-  newBuffer.set(compressionData.buffer);
-  newBuffer.set(compressed, compressionData.buffer.length);
-
-  const newMap = new Map(state);
-  newMap.set(fileId, {
-    ...compressionData,
-    buffer: newBuffer
-  });
-  return newMap;
-});
-
-sample({
-  clock: compressionDataProcessed,
-  source: $compressionState,
-  filter: (state, { fileId }) => {
-    const compressionData = state.get(fileId);
-    return compressionData !== undefined && compressionData.buffer.length >= BLOCK_SIZE;
-  },
-  fn: (state, { fileId }) => {
-    const compressionData = state.get(fileId)!;
-    return {
+  fn: ({ fileId, file }) => {
+    console.log('[Streaming] compressionStarted event received:', {
       fileId,
-      chunkNumber: compressionData.blockNumber,
-      data: compressionData.buffer.slice(0, BLOCK_SIZE)
-    };
-  },
-  target: chunkPrepared
-});
+      fileName: file.name,
+      fileSize: file.size
+    });
 
-$compressionState.on(chunkPrepared, (state, { fileId }) => {
-  const compressionData = state.get(fileId);
-  if (!compressionData) return state;
-
-  const newMap = new Map(state);
-  newMap.set(fileId, {
-    ...compressionData,
-    buffer: compressionData.buffer.slice(BLOCK_SIZE),
-    blockNumber: compressionData.blockNumber + 1
-  });
-  return newMap;
-});
-
-sample({
-  clock: compressionDataProcessed,
-  source: $compressionState,
-  filter: (state, { final }) => !final,
-  fn: (state, { fileId }) => {
-    const compressionData = state.get(fileId);
-    return { reader: compressionData!.reader! };
-  },
-  target: readFileChunkFx
-});
-
-sample({
-  clock: compressionDataProcessed,
-  source: $compressionState,
-  filter: (state, { fileId, final }) => {
-    const compressionData = state.get(fileId);
-    return final && compressionData !== undefined && compressionData.buffer.length > 0;
-  },
-  fn: (state, { fileId }) => {
-    const compressionData = state.get(fileId)!;
-    return {
+    const message: CompressionWorkerIncomingMessage = {
+      type: 'ADD_FILE',
       fileId,
-      chunkNumber: compressionData.blockNumber,
-      data: compressionData.buffer
+      file,
+      maxBufferedChunks: MAX_BUFFERED_CHUNKS,
     };
+
+    console.log('[Streaming] Sending ADD_FILE message to worker:', message);
+    compressionWorker.postMessage(message);
   },
-  target: chunkPrepared
 });
 
+// Backpressure: сообщаем worker когда chunk освободился
 sample({
-  clock: compressionDataProcessed,
-  source: $compressionState,
-  filter: (state, { fileId, final }) => {
-    const compressionData = state.get(fileId);
-    return final && compressionData !== undefined && compressionData.buffer.length === 0;
-  },
-  fn: (state, { fileId }) => {
-    const compressionData = state.get(fileId)!;
-    return {
+  clock: chunkConsumed,
+  fn: (fileId) => {
+    console.log('[Streaming] chunkConsumed event received:', fileId);
+
+    const message: CompressionWorkerIncomingMessage = {
+      type: 'CHUNK_CONSUMED',
       fileId,
-      totalChunks: compressionData.blockNumber
     };
+
+    console.log('[Streaming] Sending CHUNK_CONSUMED message to worker:', message);
+    compressionWorker.postMessage(message);
   },
-  target: compressionCompleted
 });
 
-// Decompression logic - инициализация состояния с проверкой
+// ==========================================
+// DECOMPRESSION LOGIC (через Worker)
+// ==========================================
+
+// Инициализация состояния декомпрессии
 sample({
   clock: decompressionStarted,
   source: $fileMetadataCache,
@@ -307,31 +277,42 @@ sample({
   target: decompressionChunkRequested
 });
 
+// Отправляем chunk в worker для декомпрессии
 sample({
   clock: decompressionDataReceived,
   source: $decompressionState,
   fn: (state, { fileId, chunkNumber, data }) => {
+    console.log('[Streaming] decompressionDataReceived event:', {
+      fileId,
+      chunkNumber,
+      dataSize: data.length
+    });
+
     const decompState = state.get(fileId);
     if (!decompState) {
       throw new Error(`Decompression state not found for ${fileId}`);
     }
     const isLast = chunkNumber === decompState.totalChunks - 1;
-    return { data, final: isLast };
+    
+    console.log('[Streaming] Sending DECOMPRESS_CHUNK to worker:', {
+      fileId,
+      chunkNumber,
+      isLastChunk: isLast
+    });
+
+    const message: DecompressionWorkerIncomingMessage = {
+      type: 'DECOMPRESS_CHUNK',
+      fileId,
+      chunkNumber,
+      data,
+      isLastChunk: isLast,
+    };
+    
+    decompressionWorker.postMessage(message, [data.buffer]);
   },
-  target: decompressDataFx
 });
 
-sample({
-  clock: decompressDataFx.doneData,
-  source: decompressionDataReceived,
-  fn: (request, decompressed) => ({
-    fileId: request.fileId,
-    chunkNumber: request.chunkNumber,
-    decompressed
-  }),
-  target: decompressionChunkProcessed
-});
-
+// Запрос следующего chunk
 sample({
   clock: decompressionChunkProcessed,
   source: $decompressionState,
@@ -346,6 +327,7 @@ sample({
   target: decompressionChunkRequested
 });
 
+// Завершение декомпрессии
 sample({
   clock: decompressionChunkProcessed,
   source: $decompressionState,
@@ -356,3 +338,14 @@ sample({
   fn: (state, { fileId }) => fileId,
   target: decompressionCompleted
 });
+
+// ==========================================
+// CLEANUP
+// ==========================================
+
+export function terminateWorkers() {
+  console.log('[Streaming] Terminating workers...');
+  compressionWorker.terminate();
+  decompressionWorker.terminate();
+  console.log('[Streaming] Workers terminated');
+}

@@ -42,10 +42,10 @@ export const blockLoadFailed = fileTransferDomain.createEvent<{
 
 // Effects
 export const saveBlockFx = fileTransferDomain.createEffect<
-  Uint8Array,
+  { fileId: UUID; chunkNumber: number; data: Uint8Array },
   HashString
 >('SAVE_BLOCK_FX');
-saveBlockFx.use(async (data) => services.storeService.save(data));
+saveBlockFx.use(async ({ data }) => services.storeService.save(data));
 
 export const loadBlockFx = fileTransferDomain.createEffect<
   HashString,
@@ -57,29 +57,29 @@ loadBlockFx.use(async (hash) => services.storeService.get(hash));
 export const $blockCache = fileTransferDomain.createStore<Map<HashString, Uint8Array>>(new Map(), { name: 'BLOCK_CACHE' });
 
 // Logic - Save
+// Forward the full request into the effect so params are preserved per call
 sample({
   clock: blockSaveRequested,
-  fn: ({ data }) => data,
+  fn: ({ fileId, chunkNumber, data }) => ({ fileId, chunkNumber, data }),
   target: saveBlockFx
 });
 
+// Use effect.done to pair result with the exact params of that invocation
 sample({
-  clock: saveBlockFx.doneData,
-  source: blockSaveRequested,
-  fn: (request, hash) => ({
-    fileId: request.fileId,
-    chunkNumber: request.chunkNumber,
-    hash
+  clock: saveBlockFx.done,
+  fn: ({ params, result }) => ({
+    fileId: params.fileId,
+    chunkNumber: params.chunkNumber,
+    hash: result
   }),
   target: blockSaved
 });
 
 sample({
   clock: saveBlockFx.fail,
-  source: blockSaveRequested,
-  fn: (request, { error }) => ({
-    fileId: request.fileId,
-    chunkNumber: request.chunkNumber,
+  fn: ({ params, error }) => ({
+    fileId: params.fileId,
+    chunkNumber: params.chunkNumber,
     error
   }),
   target: blockSaveFailed
