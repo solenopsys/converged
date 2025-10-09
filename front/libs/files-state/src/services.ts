@@ -1,5 +1,5 @@
-import { FilesService } from "../../../types/files";
-import { StoreService } from "../../../types/store";
+import { FilesService } from "../../../../types/files";
+import { StoreService } from "../../../../types/store";
 
 class Services {
   private static instance: Services;

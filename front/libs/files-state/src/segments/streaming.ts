@@ -1,6 +1,6 @@
 import { fileTransferDomain } from '../domain';
 import { $fileMetadataCache } from './files';
-import { type UUID, FileChunk } from "../../../../types/files";
+import { type UUID, FileChunk } from "../../../../../types/files";
 import { BLOCK_SIZE, COMPRESSION_LEVEL } from '../config';
 import { Deflate, Inflate } from 'fflate';
 import { sample } from 'effector';
@@ -9,69 +9,70 @@ import { sample } from 'effector';
 export const compressionStarted = fileTransferDomain.createEvent<{
   fileId: UUID;
   file: File;
-}>();
+}>('COMPRESSION_STARTED');
 
 export const compressionChunkRead = fileTransferDomain.createEvent<{
   fileId: UUID;
   data: Uint8Array;
   done: boolean;
-}>();
+}>('COMPRESSION_CHUNK_READ');
 
 export const compressionDataProcessed = fileTransferDomain.createEvent<{
   fileId: UUID;
   compressed: Uint8Array;
   final: boolean;
-}>();
+}>('COMPRESSION_DATA_PROCESSED');
 
 export const chunkPrepared = fileTransferDomain.createEvent<{
   fileId: UUID;
   chunkNumber: number;
   data: Uint8Array;
-}>();
+}>('CHUNK_PREPARED');
 
 export const compressionCompleted = fileTransferDomain.createEvent<{
   fileId: UUID;
   totalChunks: number;
-}>();
+}>('COMPRESSION_COMPLETED');
 
 export const decompressionStarted = fileTransferDomain.createEvent<{
   fileId: UUID;
-}>();
+}>('DECOMPRESSION_STARTED');
 
 export const decompressionStateInitialized = fileTransferDomain.createEvent<{
   fileId: UUID;
   totalChunks: number;
-}>();
+}>('DECOMPRESSION_STATE_INITIALIZED');
 
 export const decompressionFailed = fileTransferDomain.createEvent<{
   fileId: UUID;
   error: string;
-}>();
+}>('DECOMPRESSION_FAILED');
 
 export const decompressionChunkRequested = fileTransferDomain.createEvent<{
   fileId: UUID;
   chunkNumber: number;
-}>();
+}>('DECOMPRESSION_CHUNK_REQUESTED');
 
 export const decompressionDataReceived = fileTransferDomain.createEvent<{
   fileId: UUID;
   chunkNumber: number;
   data: Uint8Array;
-}>();
+}>('DECOMPRESSION_DATA_RECEIVED');
 
 export const decompressionChunkProcessed = fileTransferDomain.createEvent<{
   fileId: UUID;
   chunkNumber: number;
   decompressed: Uint8Array;
-}>();
+}>('DECOMPRESSION_CHUNK_PROCESSED');
 
-export const decompressionCompleted = fileTransferDomain.createEvent<UUID>();
+export const decompressionCompleted = fileTransferDomain.createEvent<UUID>('DECOMPRESSION_COMPLETED');
 
 // Effects
 export const readFileChunkFx = fileTransferDomain.createEffect<
   { reader: ReadableStreamDefaultReader<Uint8Array> },
   { data?: Uint8Array; done: boolean }
->(async ({ reader }) => {
+>('READ_FILE_CHUNK_FX');
+readFileChunkFx.use(async ({ reader }) => {
   const result = await reader.read();
   return { data: result.value, done: result.done };
 });
@@ -79,7 +80,8 @@ export const readFileChunkFx = fileTransferDomain.createEffect<
 export const compressDataFx = fileTransferDomain.createEffect<
   { data: Uint8Array; final: boolean },
   { compressed: Uint8Array; final: boolean }
->(async ({ data, final }) => {
+>('COMPRESS_DATA_FX');
+compressDataFx.use(async ({ data, final }) => {
   return new Promise((resolve) => {
     const deflate = new Deflate({ level: COMPRESSION_LEVEL });
     deflate.ondata = (compressed, isFinal) => {
@@ -92,7 +94,8 @@ export const compressDataFx = fileTransferDomain.createEffect<
 export const decompressDataFx = fileTransferDomain.createEffect<
   { data: Uint8Array; final: boolean },
   Uint8Array
->(async ({ data, final }) => {
+>('DECOMPRESS_DATA_FX');
+decompressDataFx.use(async ({ data, final }) => {
   return new Promise((resolve) => {
     const inflate = new Inflate();
     inflate.ondata = (decompressed) => {
@@ -107,12 +110,12 @@ export const $compressionState = fileTransferDomain.createStore<Map<UUID, {
   reader?: ReadableStreamDefaultReader<Uint8Array>;
   buffer: Uint8Array;
   blockNumber: number;
-}>>(new Map());
+}>>(new Map(), { name: 'COMPRESSION_STATE' });
 
 export const $decompressionState = fileTransferDomain.createStore<Map<UUID, {
   currentChunkNumber: number;
   totalChunks: number;
-}>>(new Map());
+}>>(new Map(), { name: 'DECOMPRESSION_STATE' });
 
 // Compression logic
 $compressionState.on(compressionStarted, (state, { fileId, file }) => {

@@ -1,5 +1,5 @@
 import { sample, combine } from 'effector';
-import { type UUID, HashString } from "../../../../types/files";
+import { type UUID, HashString } from "../../../../../types/files";
 import { fileTransferDomain } from '../domain';
 import { $files, $chunks, $fileMetadataCache } from './files';
 import { MAX_PARALLEL_UPLOADS, MAX_RETRY_ATTEMPTS } from '../config';
@@ -8,69 +8,70 @@ function generateUUID(): UUID {
   return crypto.randomUUID() as UUID;
 }
 
-export const $owner = fileTransferDomain.createStore<string>('anonymous');
-export const openFilePicker = fileTransferDomain.createEvent();
-export const filesPickerOpened = fileTransferDomain.createEvent<File[]>();
-export const fileSelected = fileTransferDomain.createEvent<File>();
+export const $owner = fileTransferDomain.createStore<string>('anonymous', { name: 'OWNER' });
+export const openFilePicker = fileTransferDomain.createEvent('OPEN_FILE_PICKER');
+export const filesPickerOpened = fileTransferDomain.createEvent<File[]>('FILES_PICKER_OPENED');
+export const fileSelected = fileTransferDomain.createEvent<File>('FILE_SELECTED');
 
 export const fileInitialized = fileTransferDomain.createEvent<{
   fileId: UUID;
   file: File;
   owner: string;
-}>();
+}>('FILE_INITIALIZED');
 
 export const uploadChunkRequested = fileTransferDomain.createEvent<{
   fileId: UUID;
   chunkNumber: number;
-}>();
+}>('UPLOAD_CHUNK_REQUESTED');
 
 export const chunkUploadStarted = fileTransferDomain.createEvent<{
   fileId: UUID;
   chunkNumber: number;
-}>();
+}>('CHUNK_UPLOAD_STARTED');
 
 export const chunkUploaded = fileTransferDomain.createEvent<{
   fileId: UUID;
   chunkNumber: number;
   hash: HashString;
-}>();
+}>('CHUNK_UPLOADED');
 
 export const chunkUploadFailed = fileTransferDomain.createEvent<{
   fileId: UUID;
   chunkNumber: number;
   error: Error;
-}>();
-export const nextChunkUploadRequested = fileTransferDomain.createEvent<UUID>();
-export const uploadCompleted = fileTransferDomain.createEvent<UUID>();
+}>('CHUNK_UPLOAD_FAILED');
+export const nextChunkUploadRequested = fileTransferDomain.createEvent<UUID>('NEXT_CHUNK_UPLOAD_REQUESTED');
+export const uploadCompleted = fileTransferDomain.createEvent<UUID>('UPLOAD_COMPLETED');
 
 export const retryChunk = fileTransferDomain.createEvent<{
   fileId: UUID;
   chunkNumber: number;
-}>();
+}>('RETRY_CHUNK');
 
-export const pauseUpload = fileTransferDomain.createEvent<UUID>();
-export const resumeUpload = fileTransferDomain.createEvent<UUID>();
-export const cancelUpload = fileTransferDomain.createEvent<UUID>();
+export const pauseUpload = fileTransferDomain.createEvent<UUID>('PAUSE_UPLOAD');
+export const resumeUpload = fileTransferDomain.createEvent<UUID>('RESUME_UPLOAD');
+export const cancelUpload = fileTransferDomain.createEvent<UUID>('CANCEL_UPLOAD');
 
-export const downloadRequested = fileTransferDomain.createEvent<UUID>();
+export const downloadRequested = fileTransferDomain.createEvent<UUID>('DOWNLOAD_REQUESTED');
 export const saveDialogRequested = fileTransferDomain.createEvent<{
   fileId: UUID;
   fileName: string;
-}>();
+}>('SAVE_DIALOG_REQUESTED');
 export const fileHandleReady = fileTransferDomain.createEvent<{
   fileId: UUID;
   handle: any;
-}>();
+}>('FILE_HANDLE_READY');
 export const writeChunkRequested = fileTransferDomain.createEvent<{
   fileId: UUID;
   chunk: Uint8Array;
-}>();
-export const chunkWritten = fileTransferDomain.createEvent<UUID>();
+}>('WRITE_CHUNK_REQUESTED');
+export const chunkWritten = fileTransferDomain.createEvent<UUID>('CHUNK_WRITTEN');
 
-export const clearFileState = fileTransferDomain.createEvent<UUID>();
+export const clearFileState = fileTransferDomain.createEvent<UUID>('CLEAR_FILE_STATE');
 
 // Effects
-export const openFilePickerFx = fileTransferDomain.createEffect<void, File[]>(async () => {
+export const openFilePickerFx = fileTransferDomain.createEffect<void, File[]>('OPEN_FILE_PICKER_FX');
+openFilePickerFx.use(async () => {
   return new Promise((resolve) => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -86,7 +87,8 @@ export const openFilePickerFx = fileTransferDomain.createEffect<void, File[]>(as
 export const showSaveDialogFx = fileTransferDomain.createEffect<
   { fileName: string },
   any
->(async ({ fileName }) => {
+>('SHOW_SAVE_DIALOG_FX');
+showSaveDialogFx.use(async ({ fileName }) => {
   if ('showSaveFilePicker' in window) {
     return await (window as any).showSaveFilePicker({
       suggestedName: fileName
@@ -98,7 +100,8 @@ export const showSaveDialogFx = fileTransferDomain.createEffect<
 export const writeChunkFx = fileTransferDomain.createEffect<
   { handle: any; chunk: Uint8Array },
   void
->(async ({ handle, chunk }) => {
+>('WRITE_CHUNK_FX');
+writeChunkFx.use(async ({ handle, chunk }) => {
   if (handle) {
     const writable = await handle.createWritable();
     await writable.write(chunk);
@@ -109,14 +112,17 @@ export const writeChunkFx = fileTransferDomain.createEffect<
 export const retryChunkFx = fileTransferDomain.createEffect<
   { fileId: UUID; chunkNumber: number; retryCount: number },
   { fileId: UUID; chunkNumber: number }
->(async ({ fileId, chunkNumber, retryCount }) => {
+>('RETRY_CHUNK_FX');
+retryChunkFx.use(async ({ fileId, chunkNumber, retryCount }) => {
   return new Promise(resolve => {
     setTimeout(() => {
       resolve({ fileId, chunkNumber });
     }, 1000 * (retryCount + 1));
   });
-});// Stores
-export const $fileHandles = fileTransferDomain.createStore<Map<UUID, any>>(new Map());
+});
+
+// Stores
+export const $fileHandles = fileTransferDomain.createStore<Map<UUID, any>>(new Map(), { name: 'FILE_HANDLES' });
 
 // Logic - File Picker
 sample({

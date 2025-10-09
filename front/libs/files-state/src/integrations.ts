@@ -1,4 +1,5 @@
 import { sample, combine } from 'effector';
+import { fileTransferDomain } from './domain';
 
 // Imports from modules
 import {
@@ -49,6 +50,15 @@ import {
   blockSaveFailed,
   blockLoadFailed
 } from './segments/store';
+
+const chunkUploadStartedFx = fileTransferDomain.createEffect<{
+  fileId: any;
+  chunkNumber: number;
+}>('CHUNK_UPLOAD_STARTED_FX');
+
+chunkUploadStartedFx.use(async (params) => {
+  chunkUploadStarted(params);
+});
 
 // ==========================================
 // BROWSER <-> FILES
@@ -171,6 +181,13 @@ sample({
 // ==========================================
 // BROWSER <-> STORE <-> FILES (UPLOAD)
 // ==========================================
+
+// Streaming -> Browser: chunk подготовлен, начинаем загрузку
+sample({
+  clock: chunkPrepared,
+  fn: ({ fileId, chunkNumber }) => ({ fileId, chunkNumber }),
+  target: chunkUploadStartedFx
+});
 
 // Browser -> Store: начинаем сохранение блока
 sample({

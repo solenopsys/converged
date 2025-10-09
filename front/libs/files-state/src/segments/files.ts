@@ -1,6 +1,6 @@
 import { sample, combine } from 'effector';
 import { fileTransferDomain } from "../domain";
-import { FileMetadata, FileChunk, UUID, HashString } from "../../../../types/files";
+import { FileMetadata, FileChunk, UUID, HashString } from "../../../../../types/files";
 import { services } from "../services";
 
 // Types
@@ -31,73 +31,77 @@ export const fileMetadataCreateRequested = fileTransferDomain.createEvent<{
   fileId: UUID;
   file: File;
   owner: string;
-}>();
+}>('FILE_METADATA_CREATE_REQUESTED');
 
-export const fileMetadataCreated = fileTransferDomain.createEvent<UUID>();
+export const fileMetadataCreated = fileTransferDomain.createEvent<UUID>('FILE_METADATA_CREATED');
 
 export const fileMetadataSaveFailed = fileTransferDomain.createEvent<{
   fileId: UUID;
   error: Error;
-}>();
+}>('FILE_METADATA_SAVE_FAILED');
 
 export const chunkMetadataSaveRequested = fileTransferDomain.createEvent<{
   fileId: UUID;
   chunkNumber: number;
   hash: HashString;
   chunkSize: number;
-}>();
+}>('CHUNK_METADATA_SAVE_REQUESTED');
 
 export const chunkMetadataSaved = fileTransferDomain.createEvent<{
   fileId: UUID;
   chunkNumber: number;
-}>();
+}>('CHUNK_METADATA_SAVED');
 
 export const chunkMetadataSaveFailed = fileTransferDomain.createEvent<{
   fileId: UUID;
   chunkNumber: number;
   error: Error;
-}>();
+}>('CHUNK_METADATA_SAVE_FAILED');
 
-export const fileMetadataLoadRequested = fileTransferDomain.createEvent<UUID>();
+export const fileMetadataLoadRequested = fileTransferDomain.createEvent<UUID>('FILE_METADATA_LOAD_REQUESTED');
 
-export const fileMetadataLoaded = fileTransferDomain.createEvent<FileMetadata>();
+export const fileMetadataLoaded = fileTransferDomain.createEvent<FileMetadata>('FILE_METADATA_LOADED');
 
 export const fileMetadataLoadFailed = fileTransferDomain.createEvent<{
   fileId: UUID;
   error: Error;
-}>();
+}>('FILE_METADATA_LOAD_FAILED');
 
 export const chunkLoadRequested = fileTransferDomain.createEvent<{
   fileId: UUID;
   chunkNumber: number;
-}>();
+}>('CHUNK_LOAD_REQUESTED');
 
 export const chunkLoaded = fileTransferDomain.createEvent<{
   fileId: UUID;
   chunkNumber: number;
   data: Uint8Array;
-}>();
+}>('CHUNK_LOADED');
 
 // Effects
 export const saveFileMetadataFx = fileTransferDomain.createEffect<
   FileMetadata,
   UUID
->(async (file) => services.filesService.save(file));
+>('SAVE_FILE_METADATA_FX');
+saveFileMetadataFx.use(async (file) => services.filesService.save(file));
 
 export const saveChunkMetadataFx = fileTransferDomain.createEffect<
   FileChunk,
   HashString
->(async (chunk) => services.filesService.saveChunk(chunk));
+>('SAVE_CHUNK_METADATA_FX');
+saveChunkMetadataFx.use(async (chunk) => services.filesService.saveChunk(chunk));
 
 export const loadFileMetadataFx = fileTransferDomain.createEffect<
   UUID,
   FileMetadata
->(async (id) => services.filesService.get(id));
+>('LOAD_FILE_METADATA_FX');
+loadFileMetadataFx.use(async (id) => services.filesService.get(id));
 
 export const loadChunkFx = fileTransferDomain.createEffect<
   { fileId: UUID; chunkNumber: number },
   { fileId: UUID; chunkNumber: number; data: Uint8Array }
->(async ({ fileId, chunkNumber }) => {
+>('LOAD_CHUNK_FX');
+loadChunkFx.use(async ({ fileId, chunkNumber }) => {
   // This is a placeholder for the actual implementation of loading a single chunk.
   // In a real application, this would make a request to the server to get the chunk data.
   const data = new Uint8Array(0);
@@ -105,9 +109,9 @@ export const loadChunkFx = fileTransferDomain.createEffect<
 });
 
 // Stores
-export const $files = fileTransferDomain.createStore<Map<UUID, FileUploadState>>(new Map());
-export const $chunks = fileTransferDomain.createStore<Map<string, ChunkState>>(new Map());
-export const $fileMetadataCache = fileTransferDomain.createStore<Map<UUID, FileMetadata>>(new Map());
+export const $files = fileTransferDomain.createStore<Map<UUID, FileUploadState>>(new Map(), { name: 'FILES' });
+export const $chunks = fileTransferDomain.createStore<Map<string, ChunkState>>(new Map(), { name: 'CHUNKS' });
+export const $fileMetadataCache = fileTransferDomain.createStore<Map<UUID, FileMetadata>>(new Map(), { name: 'FILE_METADATA_CACHE' });
 
 // Derived
 export const $uploadingFiles = $files.map(files =>

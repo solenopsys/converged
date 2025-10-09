@@ -1,5 +1,5 @@
 import { fileTransferDomain } from "../domain";
-import { type UUID, HashString } from "../../../../types/files";
+import { type UUID, HashString } from "../../../../../types/files";
 import { sample } from "effector";
 import { services } from "../services";
 
@@ -8,51 +8,53 @@ export const blockSaveRequested = fileTransferDomain.createEvent<{
   fileId: UUID;
   chunkNumber: number;
   data: Uint8Array;
-}>();
+}>('BLOCK_SAVE_REQUESTED');
 
 export const blockSaved = fileTransferDomain.createEvent<{
   fileId: UUID;
   chunkNumber: number;
   hash: HashString;
-}>();
+}>('BLOCK_SAVED');
 
 export const blockSaveFailed = fileTransferDomain.createEvent<{
   fileId: UUID;
   chunkNumber: number;
   error: Error;
-}>();
+}>('BLOCK_SAVE_FAILED');
 
 export const blockLoadRequested = fileTransferDomain.createEvent<{
   fileId: UUID;
   hash: HashString;
   chunkNumber: number;
-}>();
+}>('BLOCK_LOAD_REQUESTED');
 
 export const blockLoaded = fileTransferDomain.createEvent<{
   fileId: UUID;
   chunkNumber: number;
   data: Uint8Array;
-}>();
+}>('BLOCK_LOADED');
 
 export const blockLoadFailed = fileTransferDomain.createEvent<{
   fileId: UUID;
   chunkNumber: number;
   error: Error;
-}>();
+}>('BLOCK_LOAD_FAILED');
 
 // Effects
 export const saveBlockFx = fileTransferDomain.createEffect<
   Uint8Array,
   HashString
->(async (data) => services.storeService.save(data));
+>('SAVE_BLOCK_FX');
+saveBlockFx.use(async (data) => services.storeService.save(data));
 
 export const loadBlockFx = fileTransferDomain.createEffect<
   HashString,
   Uint8Array
->(async (hash) => services.storeService.get(hash));
+>('LOAD_BLOCK_FX');
+loadBlockFx.use(async (hash) => services.storeService.get(hash));
 
 // Stores
-export const $blockCache = fileTransferDomain.createStore<Map<HashString, Uint8Array>>(new Map());
+export const $blockCache = fileTransferDomain.createStore<Map<HashString, Uint8Array>>(new Map(), { name: 'BLOCK_CACHE' });
 
 // Logic - Save
 sample({

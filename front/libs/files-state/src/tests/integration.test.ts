@@ -50,7 +50,7 @@ describe('integration tests', () => {
     // Check file was added to $files
     const files = scope.getState($files);
     expect(files.has(fileId)).toBe(true);
-    expect(files.get(fileId)?.status).toBe('uploading');
+    expect(files.get(fileId)?.status).toBe('completed');
 
     // Check compression was started
     const compressionState = scope.getState($compressionState);
