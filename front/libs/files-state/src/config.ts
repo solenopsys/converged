@@ -1,3 +1,5 @@
+import { buildChunkPlan } from './utils/chunk-split';
+
 // segments/config.ts
 // Централизованная конфигурация для file transfer системы
 
@@ -6,10 +8,19 @@
 // ==========================================
 
 /**
- * Размер одного chunk после компрессии (в байтах)
- * 256KB - баланс между количеством HTTP requests и размером payload
+ * Максимальный размер chunk после компрессии (в байтах)
  */
-export const BLOCK_SIZE = 1024 * 1024; // 1024KB
+export const MAX_BLOCK_SIZE = 512 * 1024; // 512KB
+
+/**
+ * Минимальный размер chunk после компрессии (в байтах)
+ */
+export const MIN_BLOCK_SIZE = 4 * 1024; // 4KB
+
+/**
+ * @deprecated Используйте MAX_BLOCK_SIZE
+ */
+export const BLOCK_SIZE = MAX_BLOCK_SIZE;
 
 /**
  * Уровень компрессии Deflate (1-9)
@@ -112,7 +123,7 @@ export function formatBytes(bytes: number): string {
  * Рассчитать количество chunks для файла
  */
 export function calculateTotalChunks(fileSize: number): number {
-  return Math.ceil(fileSize / BLOCK_SIZE);
+  return buildChunkPlan(fileSize).length;
 }
 
 /**

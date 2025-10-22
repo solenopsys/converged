@@ -1,5 +1,5 @@
 import { FilesService } from "../../../../types/files";
-import { StoreService } from "../../../../types/store";
+import { StoreService } from "./store-service";
 
 class Services {
   private static instance: Services;

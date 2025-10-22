@@ -7,7 +7,7 @@ import type {
 } from './types';
 
 // Конфигурация (копия из config.ts)
-const BLOCK_SIZE = 1024 * 1024; // 1MB
+const BLOCK_SIZE = 512 * 1024; // 512KB
 const COMPRESSION_LEVEL = 3;
 
 // ==========================================
