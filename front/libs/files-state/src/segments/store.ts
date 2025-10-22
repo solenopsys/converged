@@ -48,10 +48,10 @@ export const saveBlockFx = fileTransferDomain.createEffect<
 saveBlockFx.use(async ({ data }) => services.storeService.save(data));
 
 export const loadBlockFx = fileTransferDomain.createEffect<
-  HashString,
+  { fileId: UUID; hash: HashString; chunkNumber: number },
   Uint8Array
 >('LOAD_BLOCK_FX');
-loadBlockFx.use(async (hash) => services.storeService.get(hash));
+loadBlockFx.use(async ({ hash }) => services.storeService.get(hash));
 
 // Stores
 export const $blockCache = fileTransferDomain.createStore<Map<HashString, Uint8Array>>(new Map(), { name: 'BLOCK_CACHE' });
@@ -86,29 +86,28 @@ sample({
 });
 
 // Logic - Load
+// Передаем полный объект в effect чтобы сохранить все параметры
 sample({
   clock: blockLoadRequested,
-  fn: ({ hash }) => hash,
+  fn: (request) => request,
   target: loadBlockFx
 });
 
 sample({
-  clock: loadBlockFx.doneData,
-  source: blockLoadRequested,
-  fn: (request, data) => ({
-    fileId: request.fileId,
-    chunkNumber: request.chunkNumber,
-    data
+  clock: loadBlockFx.done,
+  fn: ({ params, result }) => ({
+    fileId: params.fileId,
+    chunkNumber: params.chunkNumber,
+    data: result
   }),
   target: blockLoaded
 });
 
 sample({
   clock: loadBlockFx.fail,
-  source: blockLoadRequested,
-  fn: (request, { error }) => ({
-    fileId: request.fileId,
-    chunkNumber: request.chunkNumber,
+  fn: ({ params, error }) => ({
+    fileId: params.fileId,
+    chunkNumber: params.chunkNumber,
     error
   }),
   target: blockLoadFailed

@@ -318,22 +318,11 @@ $files.on(resumeUpload, (state, fileId) => {
   return newMap;
 });
 
+// При resume запускаем загрузку через очередь
 sample({
   clock: resumeUpload,
-  source: $chunks,
-  filter: (chunks, fileId) => {
-    const prepared = Array.from(chunks.values())
-      .filter(c => c.fileId === fileId && c.status === 'prepared');
-    return prepared.length > 0;
-  },
-  fn: (chunks, fileId) => {
-    const prepared = Array.from(chunks.values())
-      .filter(c => c.fileId === fileId && c.status === 'prepared')
-      .slice(0, MAX_PARALLEL_UPLOADS);
-
-    return prepared.map(c => ({ fileId: c.fileId, chunkNumber: c.chunkNumber }));
-  },
-  target: uploadChunkRequested
+  fn: (fileId) => fileId,
+  target: nextChunkUploadRequested
 });
 
 // Logic - Clear

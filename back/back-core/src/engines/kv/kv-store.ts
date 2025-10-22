@@ -1,9 +1,12 @@
-import * as lmdb from 'lmdb';
-import { join } from 'path';
+import { Database } from "./lmdbx";
 import { KEY_SEPARATOR, RANGE_END_SUFFIX, RANGE_START_SUFFIX } from '../../utils';
 import { Store } from "../../stores";
 import { Migration, Migrator } from "../../migrations";
 import { MigrationStateStorage } from "../../migrations";
+
+const HEADER_JSON = Buffer.from("KVJ0");
+const HEADER_BUFFER = Buffer.from("KVB0");
+const HEADER_LENGTH = HEADER_JSON.length;
 
 export interface KVStoreIntf {
     get(key: string[]): any | undefined;
@@ -14,7 +17,7 @@ export interface KVStoreIntf {
 }
 
 export class KVStore implements KVStoreIntf, Store {
-    public readonly db!: lmdb.Database;
+    public db!: Database;
 
     constructor(private dataLocation: string,   private migrations: (new (store: Store) => Migration)[],
         private migrationsState: MigrationStateStorage) {
@@ -27,8 +30,7 @@ export class KVStore implements KVStoreIntf, Store {
     }
 
     async open() {
-       
-        this.db = lmdb.open(this.dataLocation, {});
+        this.db = new Database(this.dataLocation);
     }
 
     getKeysWithPrefix(prefixChain: string[]): string[] {
@@ -50,8 +52,13 @@ export class KVStore implements KVStoreIntf, Store {
     getKeysWithRange(start: string, end: string): string[] {
         const keys: string[] = [];
         const range = this.db.getRange({ start, end });
-        for (const { key, value } of range) {
-            keys.push(key as string);
+        for (const { key } of range) {
+            const keyString = key.toString();
+            if (!this.isWithinRange(keyString, start, end)) {
+                if (end && keyString > end) break;
+                continue;
+            }
+            keys.push(keyString);
         }
         return keys;
     }
@@ -61,9 +68,14 @@ export class KVStore implements KVStoreIntf, Store {
         const range = this.db.getRange({ start, end });
 
         for (const { key, value } of range) {
-            const keyString = key as string;
-            const lastSegment = keyString.split(KEY_SEPARATOR)[keyString.split(KEY_SEPARATOR).length - 1];
-            keys[lastSegment] = value;
+            const keyString = key.toString();
+            if (!this.isWithinRange(keyString, start, end)) {
+                if (end && keyString > end) break;
+                continue;
+            }
+            const parts = keyString.split(KEY_SEPARATOR);
+            const lastSegment = parts[parts.length - 1];
+            keys[lastSegment] = this.deserializeValue(value);
         }
         return keys;
     }
@@ -78,9 +90,16 @@ export class KVStore implements KVStoreIntf, Store {
 
     getValuesRangeAsArrayByRange(start: string, end: string): any[] {
         const values: any[] = [];
-        const range = this.db.getRange({ start: start + RANGE_START_SUFFIX, end: end + RANGE_END_SUFFIX });
-        for (const { value } of range) {
-            values.push(value);
+        const rangeStart = this.ensureSuffix(start, RANGE_START_SUFFIX);
+        const rangeEnd = this.ensureSuffix(end, RANGE_END_SUFFIX);
+        const range = this.db.getRange({ start: rangeStart, end: rangeEnd });
+        for (const { key, value } of range) {
+            const keyString = key.toString();
+            if (!this.isWithinRange(keyString, rangeStart, rangeEnd)) {
+                if (rangeEnd && keyString > rangeEnd) break;
+                continue;
+            }
+            values.push(this.deserializeValue(value));
         }
         return values;
     }
@@ -88,26 +107,26 @@ export class KVStore implements KVStoreIntf, Store {
 
     put(chain: string[], value: any): string {
         const key = chain.join(KEY_SEPARATOR);
-        this.db.put(key, value);
+        this.db.put(key, this.serializeValue(value));
         return key;
     }
 
     get(chain: string[]): any {
         const key = chain.join(KEY_SEPARATOR);
-        return this.db.get(key);
+        return this.deserializeValue(this.db.get(key));
     }
 
     getDirect(key:string): any {
-        return this.db.get(key);
+        return this.deserializeValue(this.db.get(key));
     }
 
     delete(chain: string[]): void {
         const key = chain.join(KEY_SEPARATOR);
-        this.db.remove(key);
+        this.db.delete(key);
     }
 
     getStats(): any {
-        return this.db.getStats?.() || {};
+        return {};
     }
 
     async close(): Promise<void> {
@@ -121,5 +140,59 @@ export class KVStore implements KVStoreIntf, Store {
         const migrator = new Migrator(migrations, this.migrationsState);
         await migrator.up();
     }
-}
 
+    private serializeValue(value: any): Buffer {
+        if (Buffer.isBuffer(value)) {
+            return Buffer.concat([HEADER_BUFFER, value]);
+        }
+        if (value instanceof Uint8Array) {
+            const buf = Buffer.from(value);
+            return Buffer.concat([HEADER_BUFFER, buf]);
+        }
+        const payload = Buffer.from(JSON.stringify(value ?? null));
+        return Buffer.concat([HEADER_JSON, payload]);
+    }
+
+    private deserializeValue(raw: Buffer | null): any {
+        if (!raw) {
+            return undefined;
+        }
+        if (raw.length >= HEADER_LENGTH) {
+            const prefix = raw.subarray(0, HEADER_LENGTH);
+            const payload = raw.subarray(HEADER_LENGTH);
+            if (prefix.equals(HEADER_BUFFER)) {
+                return Buffer.from(payload);
+            }
+            if (prefix.equals(HEADER_JSON)) {
+                const text = payload.toString();
+                try {
+                    return JSON.parse(text);
+                } catch {
+                    return text;
+                }
+            }
+        }
+        const fallback = raw.toString();
+        if (!fallback.length) {
+            return "";
+        }
+        try {
+            return JSON.parse(fallback);
+        } catch {
+            return fallback;
+        }
+    }
+
+    private isWithinRange(key: string, start?: string, end?: string): boolean {
+        if (start && key < start) return false;
+        if (end && key > end) return false;
+        return true;
+    }
+
+    private ensureSuffix(input: string, suffix: string): string {
+        if (input.endsWith(suffix)) {
+            return input;
+        }
+        return input + suffix;
+    }
+}

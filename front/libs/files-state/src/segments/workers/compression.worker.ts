@@ -7,8 +7,8 @@ import type {
 } from './types';
 
 // Конфигурация (копия из config.ts)
-const BLOCK_SIZE = 256 * 1024; // 256KB
-const COMPRESSION_LEVEL = 6;
+const BLOCK_SIZE = 1024 * 1024; // 1MB
+const COMPRESSION_LEVEL = 3;
 
 // ==========================================
 // STATE MANAGEMENT
@@ -21,12 +21,11 @@ type FileState = {
   deflate: Deflate;
   buffer: Uint8Array;
   blockNumber: number;
-  bufferedChunks: number;
-  maxBufferedChunks: number;
-  paused: boolean;
   cancelled: boolean;
   bytesProcessed: number;
   totalBytes: number;
+  errorCount: number;
+  maxErrors: number;
 };
 
 const fileQueue: FileState[] = [];
@@ -71,12 +70,11 @@ self.onmessage = async (event: MessageEvent<CompressionWorkerIncomingMessage>) =
         deflate,
         buffer: new Uint8Array(0),
         blockNumber: 0,
-        bufferedChunks: 0,
-        maxBufferedChunks: message.maxBufferedChunks,
-        paused: false,
         cancelled: false,
         bytesProcessed: 0,
         totalBytes: message.file.size,
+        errorCount: 0,
+        maxErrors: 3,
       };
 
       fileQueue.push(fileState);
@@ -92,41 +90,17 @@ self.onmessage = async (event: MessageEvent<CompressionWorkerIncomingMessage>) =
     }
 
     case 'CHUNK_CONSUMED': {
-      console.log('[CompressionWorker] CHUNK_CONSUMED:', message.fileId);
-      const fileState = fileQueue.find(f => f.fileId === message.fileId);
-      if (fileState) {
-        fileState.bufferedChunks--;
-        console.log('[CompressionWorker] Decreased bufferedChunks:', {
-          fileId: fileState.fileId,
-          bufferedChunks: fileState.bufferedChunks,
-          maxBufferedChunks: fileState.maxBufferedChunks,
-          paused: fileState.paused
-        });
-        if (fileState.bufferedChunks < fileState.maxBufferedChunks) {
-          fileState.paused = false;
-          console.log('[CompressionWorker] File resumed:', fileState.fileId);
-        }
-      } else {
-        console.warn('[CompressionWorker] File not found for CHUNK_CONSUMED:', message.fileId);
-      }
+      // Больше не нужно - backpressure убран
       break;
     }
 
     case 'PAUSE_FILE': {
-      console.log('[CompressionWorker] PAUSE_FILE:', message.fileId);
-      const fileState = fileQueue.find(f => f.fileId === message.fileId);
-      if (fileState) {
-        fileState.paused = true;
-      }
+      // TODO: implement pause
       break;
     }
 
     case 'RESUME_FILE': {
-      console.log('[CompressionWorker] RESUME_FILE:', message.fileId);
-      const fileState = fileQueue.find(f => f.fileId === message.fileId);
-      if (fileState) {
-        fileState.paused = false;
-      }
+      // TODO: implement resume
       break;
     }
 
@@ -151,83 +125,86 @@ async function processQueue() {
   console.log('[CompressionWorker] processQueue started. Queue length:', fileQueue.length);
 
   while (fileQueue.length > 0) {
-    console.log('[CompressionWorker] Processing iteration. Active files:', fileQueue.length);
+    const fileState = fileQueue[0];
 
-    // Round-robin: по очереди обрабатываем каждый файл
-    for (let i = 0; i < fileQueue.length; i++) {
-      const fileState = fileQueue[i];
+    console.log('[CompressionWorker] Processing file:', {
+      fileId: fileState.fileId,
+      fileName: fileState.file.name,
+      cancelled: fileState.cancelled,
+      bytesProcessed: fileState.bytesProcessed,
+      totalBytes: fileState.totalBytes,
+      blockNumber: fileState.blockNumber,
+      errorCount: fileState.errorCount
+    });
 
-      console.log('[CompressionWorker] Processing file:', {
-        index: i,
-        fileId: fileState.fileId,
-        fileName: fileState.file.name,
-        paused: fileState.paused,
-        cancelled: fileState.cancelled,
-        bytesProcessed: fileState.bytesProcessed,
-        totalBytes: fileState.totalBytes,
-        bufferedChunks: fileState.bufferedChunks,
-        blockNumber: fileState.blockNumber
-      });
-
-      if (fileState.cancelled) {
-        console.log('[CompressionWorker] File cancelled, removing:', fileState.fileId);
-        fileQueue.splice(i, 1);
-        i--;
-        continue;
-      }
-
-      if (fileState.paused) {
-        console.log('[CompressionWorker] File paused, skipping:', fileState.fileId);
-        continue;
-      }
-
-      try {
-        console.log('[CompressionWorker] Reading from stream...');
-        // Читаем следующий кусок из stream
-        const { value, done } = await fileState.reader.read();
-        console.log('[CompressionWorker] Stream read result:', {
-          fileId: fileState.fileId,
-          hasValue: !!value,
-          valueSize: value?.length,
-          done
-        });
-
-        if (value) {
-          fileState.bytesProcessed += value.length;
-
-          console.log('[CompressionWorker] Compressing data...', {
-            fileId: fileState.fileId,
-            dataSize: value.length,
-            bytesProcessed: fileState.bytesProcessed
-          });
-
-          // Компрессируем данные
-          await compressData(fileState, value, done);
-
-          // Отправляем прогресс каждые 1MB
-          if (fileState.bytesProcessed % (1024 * 1024) < value.length) {
-            sendProgress(fileState);
-          }
-        }
-
-        if (done) {
-          console.log('[CompressionWorker] File reading complete:', fileState.fileId);
-          // Файл полностью прочитан
-          await finalizeFile(fileState);
-          fileQueue.splice(i, 1);
-          i--;
-        }
-      } catch (error) {
-        console.error('[CompressionWorker] Error processing file:', fileState.fileId, error);
-        sendError(fileState, error);
-        fileQueue.splice(i, 1);
-        i--;
-      }
+    if (fileState.cancelled) {
+      console.log('[CompressionWorker] File cancelled, removing:', fileState.fileId);
+      fileQueue.shift();
+      continue;
     }
 
-    // Небольшая задержка, чтобы не зажимать CPU
-    if (fileQueue.length > 0) {
-      await new Promise(resolve => setTimeout(resolve, 0));
+    // Проверка лимита ошибок
+    if (fileState.errorCount >= fileState.maxErrors) {
+      console.error('[CompressionWorker] Max errors reached, aborting file:', fileState.fileId);
+      sendError(fileState, new Error(`Max error limit (${fileState.maxErrors}) reached`));
+      fileQueue.shift();
+      continue;
+    }
+
+    try {
+      // Читаем следующий кусок из stream
+      const { value, done } = await fileState.reader.read();
+      console.log('[CompressionWorker] Stream read result:', {
+        fileId: fileState.fileId,
+        hasValue: !!value,
+        valueSize: value?.length,
+        done
+      });
+
+      if (value) {
+        fileState.bytesProcessed += value.length;
+
+        console.log('[CompressionWorker] Compressing data...', {
+          fileId: fileState.fileId,
+          dataSize: value.length,
+          bytesProcessed: fileState.bytesProcessed
+        });
+
+        // Компрессируем данные
+        await compressData(fileState, value, done);
+
+        // Сбрасываем счетчик ошибок при успешной обработке
+        fileState.errorCount = 0;
+
+        // Отправляем прогресс каждые 1MB
+        if (fileState.bytesProcessed % (1024 * 1024) < value.length) {
+          sendProgress(fileState);
+        }
+      }
+
+      if (done) {
+        console.log('[CompressionWorker] File reading complete:', fileState.fileId);
+        // Файл полностью прочитан
+        await finalizeFile(fileState);
+        fileQueue.shift();
+      }
+    } catch (error) {
+      console.error('[CompressionWorker] Error processing file:', fileState.fileId, error);
+      fileState.errorCount++;
+      
+      // Если достигнут лимит ошибок - удаляем файл из очереди
+      if (fileState.errorCount >= fileState.maxErrors) {
+        sendError(fileState, error);
+        fileQueue.shift();
+      } else {
+        console.warn('[CompressionWorker] Error occurred, will retry...', {
+          fileId: fileState.fileId,
+          errorCount: fileState.errorCount,
+          maxErrors: fileState.maxErrors
+        });
+        // Экспоненциальная задержка перед повтором
+        await new Promise(resolve => setTimeout(resolve, 1000 * fileState.errorCount));
+      }
     }
   }
 
@@ -298,31 +275,35 @@ function processBuffer(fileState: FileState, final: boolean) {
 
   // Отправляем полные chunks
   while (fileState.buffer.length >= BLOCK_SIZE) {
+    const currentChunkNumber = fileState.blockNumber;
+    
     console.log('[CompressionWorker] Sending full chunk:', {
       fileId: fileState.fileId,
-      blockNumber: fileState.blockNumber,
+      blockNumber: currentChunkNumber,
       chunkSize: BLOCK_SIZE
     });
 
     const chunkData = fileState.buffer.slice(0, BLOCK_SIZE);
     fileState.buffer = fileState.buffer.slice(BLOCK_SIZE);
     
-    sendChunk(fileState, chunkData);
+    sendChunk(fileState, chunkData, currentChunkNumber);
     fileState.blockNumber++;
   }
 
   // Если это последний кусок и есть остаток - отправляем его
   if (final && fileState.buffer.length > 0) {
+    const currentChunkNumber = fileState.blockNumber;
+    
     console.log('[CompressionWorker] Sending final chunk:', {
       fileId: fileState.fileId,
-      blockNumber: fileState.blockNumber,
+      blockNumber: currentChunkNumber,
       chunkSize: fileState.buffer.length
     });
 
     const chunkData = fileState.buffer;
     fileState.buffer = new Uint8Array(0);
     
-    sendChunk(fileState, chunkData);
+    sendChunk(fileState, chunkData, currentChunkNumber);
     fileState.blockNumber++;
   }
 }
@@ -351,10 +332,10 @@ async function finalizeFile(fileState: FileState) {
 // MESSAGE SENDERS
 // ==========================================
 
-async function sendChunk(fileState: FileState, data: Uint8Array) {
+async function sendChunk(fileState: FileState, data: Uint8Array, chunkNumber: number) {
   console.log('[CompressionWorker] Calculating hash for chunk:', {
     fileId: fileState.fileId,
-    chunkNumber: fileState.blockNumber,
+    chunkNumber: chunkNumber,
     dataSize: data.length
   });
 
@@ -362,14 +343,14 @@ async function sendChunk(fileState: FileState, data: Uint8Array) {
 
   console.log('[CompressionWorker] Hash calculated:', {
     fileId: fileState.fileId,
-    chunkNumber: fileState.blockNumber,
+    chunkNumber: chunkNumber,
     hash
   });
 
   const message: CompressionWorkerOutgoingMessage = {
     type: 'CHUNK_READY',
     fileId: fileState.fileId,
-    chunkNumber: fileState.blockNumber,
+    chunkNumber: chunkNumber,
     data,
     hash,
   };
@@ -379,25 +360,10 @@ async function sendChunk(fileState: FileState, data: Uint8Array) {
 
   console.log('[CompressionWorker] CHUNK_READY message sent:', {
     fileId: fileState.fileId,
-    chunkNumber: fileState.blockNumber,
+    chunkNumber: chunkNumber,
     hash,
     dataSize: data.length
   });
-
-  fileState.bufferedChunks++;
-  console.log('[CompressionWorker] Buffered chunks incremented:', {
-    fileId: fileState.fileId,
-    bufferedChunks: fileState.bufferedChunks,
-    maxBufferedChunks: fileState.maxBufferedChunks
-  });
-
-  if (fileState.bufferedChunks >= fileState.maxBufferedChunks) {
-    fileState.paused = true;
-    console.log('[CompressionWorker] File paused due to backpressure:', {
-      fileId: fileState.fileId,
-      bufferedChunks: fileState.bufferedChunks
-    });
-  }
 }
 
 function sendProgress(fileState: FileState) {

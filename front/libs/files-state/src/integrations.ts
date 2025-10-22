@@ -1,6 +1,7 @@
 // segments/integration.ts - UPDATED для работы с Workers
 import { sample, combine } from 'effector';
 import { fileTransferDomain } from './domain';
+import type { UUID } from '../../../../types/files';
 
 // Imports from modules
 import {
@@ -15,7 +16,8 @@ import {
   chunkWritten,
   chunkUploadStarted,
   chunkUploaded,
-  chunkUploadFailed
+  chunkUploadFailed,
+  nextChunkUploadRequested
 } from './segments/browser';
 import {
   fileMetadataCreateRequested,
@@ -181,21 +183,29 @@ sample({
 });
 
 // ==========================================
-// BROWSER <-> STORE <-> FILES (UPLOAD)
+// STREAMING <-> STORE <-> FILES (UPLOAD)
 // ==========================================
 
-// Streaming -> Browser: chunk подготовлен, начинаем загрузку
+// NOTE: Убран прямой запуск загрузки из chunkPrepared для предотвращения дублирования.
+// Теперь загрузка управляется только через очередь в browser.ts (nextChunkUploadRequested)
+// Streaming -> Browser: chunk подготовлен, запускаем загрузку через очередь
 sample({
   clock: chunkPrepared,
-  fn: ({ fileId, chunkNumber }) => ({ fileId, chunkNumber }),
-  target: chunkUploadStartedFx
+  fn: ({ fileId }) => fileId,
+  target: nextChunkUploadRequested
 });
 
 // Browser -> Store: начинаем сохранение блока
 sample({
   clock: chunkUploadStarted,
   source: combine({ chunks: $chunks, files: $files }),
-  filter: ({ files }, { fileId }) => files.get(fileId)?.status !== 'paused',
+  filter: ({ files, chunks }, { fileId, chunkNumber }) => {
+    // Проверяем что файл не на паузе и chunk существует
+    const file = files.get(fileId);
+    const key = `${fileId}-${chunkNumber}`;
+    const chunk = chunks.get(key);
+    return file?.status !== 'paused' && chunk !== undefined;
+  },
   fn: ({ chunks }, { fileId, chunkNumber }) => {
     const key = `${fileId}-${chunkNumber}`;
     const chunk = chunks.get(key)!;
@@ -208,56 +218,65 @@ sample({
   target: blockSaveRequested
 });
 
-// Временное хранилище для hash chunks (чтобы не потерять при race condition)
-const $chunkHashes = fileTransferDomain.createStore<Map<string, string>>(
-  new Map(), 
-  { name: 'CHUNK_HASHES' }
-);
-
 // Store -> Files: блок сохранен, сохраняем hash и метаданные
 sample({
   clock: blockSaved,
-  fn: ({ fileId, chunkNumber, hash }) => {
-    // Сохраняем hash в temporary store
+  source: $chunks,
+  fn: (chunks, { fileId, chunkNumber, hash }) => {
     const key = `${fileId}-${chunkNumber}`;
-    $chunkHashes.getState().set(key, hash);
+    const chunk = chunks.get(key);
     
     return {
       fileId,
       chunkNumber,
       hash,
-      chunkSize: $chunks.getState().get(key)!.data.length
+      chunkSize: chunk ? chunk.data.length : 0
     };
   },
   target: chunkMetadataSaveRequested
 });
 
-// Обновляем store с hash
-$chunkHashes.on(blockSaved, (state, { fileId, chunkNumber, hash }) => {
+// Files -> Browser: метаданные чанка сохранены, отмечаем загруженным
+// Берем hash из blockSaved события
+const $pendingChunkHashes = fileTransferDomain.createStore<Map<string, { fileId: UUID; chunkNumber: number; hash: string }>>(
+  new Map(),
+  { name: 'PENDING_CHUNK_HASHES' }
+);
+
+$pendingChunkHashes.on(blockSaved, (state, { fileId, chunkNumber, hash }) => {
   const newMap = new Map(state);
   const key = `${fileId}-${chunkNumber}`;
-  newMap.set(key, hash);
+  newMap.set(key, { fileId, chunkNumber, hash });
   return newMap;
 });
 
-// Files -> Browser: метаданные чанка сохранены, отмечаем загруженным
 sample({
   clock: chunkMetadataSaved,
-  source: $chunkHashes,
-  fn: (hashes, { fileId, chunkNumber }) => {
+  source: $pendingChunkHashes,
+  fn: (pending, { fileId, chunkNumber }) => {
     const key = `${fileId}-${chunkNumber}`;
-    const hash = hashes.get(key)!;
+    const data = pending.get(key);
     
-    // Удаляем использованный hash
-    hashes.delete(key);
+    if (!data) {
+      console.error('[Integration] Missing hash for chunk:', { fileId, chunkNumber });
+      return { fileId, chunkNumber, hash: '' as any };
+    }
     
     return {
-      fileId,
-      chunkNumber,
-      hash
+      fileId: data.fileId,
+      chunkNumber: data.chunkNumber,
+      hash: data.hash as any
     };
   },
   target: chunkUploaded
+});
+
+// Очищаем после использования
+$pendingChunkHashes.on(chunkUploaded, (state, { fileId, chunkNumber }) => {
+  const newMap = new Map(state);
+  const key = `${fileId}-${chunkNumber}`;
+  newMap.delete(key);
+  return newMap;
 });
 
 // ==========================================
