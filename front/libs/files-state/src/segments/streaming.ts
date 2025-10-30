@@ -1,8 +1,8 @@
 // segments/streaming/index.ts - REFACTORED
 import { fileTransferDomain } from '../domain';
-import { $fileMetadataCache } from './files';
+import { $fileMetadataCache, $fileChunkHashes } from './files';
 import { type UUID } from "../../../../../types/files";
-import { sample } from 'effector';
+import { sample, combine } from 'effector';
 import type {
   CompressionWorkerIncomingMessage,
   CompressionWorkerOutgoingMessage,
@@ -236,11 +236,19 @@ sample({
 // Инициализация состояния декомпрессии
 sample({
   clock: decompressionStarted,
-  source: $fileMetadataCache,
-  filter: (cache, { fileId }) => cache.has(fileId),
-  fn: (cache, { fileId }) => {
-    const metadata = cache.get(fileId)!;
-    return { fileId, totalChunks: metadata.chunksCount };
+  source: combine({
+    metadata: $fileMetadataCache,
+    hashes: $fileChunkHashes,
+  }),
+  filter: ({ metadata }, { fileId }) => metadata.has(fileId),
+  fn: ({ metadata, hashes }, { fileId }) => {
+    const metadataEntry = metadata.get(fileId)!;
+    const chunkHashes = hashes.get(fileId);
+    const totalChunks =
+      chunkHashes?.size ??
+      metadataEntry.chunksCount ??
+      0;
+    return { fileId, totalChunks };
   },
   target: decompressionStateInitialized
 });
@@ -327,13 +335,12 @@ sample({
   target: decompressionChunkRequested
 });
 
-// Завершение декомпрессии
 sample({
   clock: decompressionChunkProcessed,
   source: $decompressionState,
   filter: (state, { fileId, chunkNumber }) => {
     const decompState = state.get(fileId);
-    return decompState !== undefined && chunkNumber === decompState.totalChunks - 1;
+    return decompState !== undefined && chunkNumber >= decompState.totalChunks - 1;
   },
   fn: (state, { fileId }) => fileId,
   target: decompressionCompleted

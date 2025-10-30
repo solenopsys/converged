@@ -1,4 +1,4 @@
-import { buildChunkPlan } from './utils/chunk-split';
+import { estimateChunkCount } from '../../store-workers/src/utils/chunk-split';
 
 // segments/config.ts
 // Централизованная конфигурация для file transfer системы
@@ -123,7 +123,7 @@ export function formatBytes(bytes: number): string {
  * Рассчитать количество chunks для файла
  */
 export function calculateTotalChunks(fileSize: number): number {
-  return buildChunkPlan(fileSize).length;
+  return estimateChunkCount(fileSize);
 }
 
 /**

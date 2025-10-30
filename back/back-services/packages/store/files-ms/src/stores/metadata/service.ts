@@ -23,10 +23,10 @@ export class MetadataStoreService {
     }
 
     async save(file: FileMetadata): Promise<UUID> {
-        const id = newULID();
-        const entity: FileMetadataEntity = { ...file, id };
+
+        const entity: FileMetadataEntity = { ...file };
         await this.fileMetadataRepo.create(entity);
-        return id;
+        return file.id;
     }
 
     async saveChunk(chunk: FileChunk): Promise<HashString> {
@@ -45,15 +45,25 @@ export class MetadataStoreService {
         await this.fileMetadataRepo.delete(key);
     }
 
-    async get(id: UUID): Promise<FileMetadata> {
-        const key: FileMetadataKey = { id };
-        return await this.fileMetadataRepo.get(key);
+    async get(id: UUID): Promise<FileMetadata | undefined> {
+        console.log('key', id);
+        const value = await this.fileMetadataRepo.findById({ id });
+        console.log('value', value);
+        return value;
     }
 
-    async getChunks(id: UUID): Promise<FileChunk[]> {
-        // This is a simplified implementation. A real implementation would query the chunks table.
-        return [];
-    }
+
+  async getChunks(id: UUID): Promise<FileChunk[]> {
+    const rows = await this.store.db
+      .selectFrom('file_chunks')
+      .selectAll()
+      .where('fileId', '=', id)
+      .orderBy('chunkNumber', 'asc')
+      .execute();
+
+    return rows as FileChunk[];
+  }
+
 
     async list(params: PaginationParams): Promise<PaginatedResult<FileMetadata>> {
         const items = await this.fileMetadataRepo.list(params);

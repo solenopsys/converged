@@ -23,13 +23,18 @@ import {
   fileMetadataCreateRequested,
   fileMetadataLoadRequested,
   fileMetadataLoaded,
+  fileMetadataLoadFailed,
   $fileMetadataCache,
   chunkMetadataSaveRequested,
   chunkMetadataSaved,
   $chunks,
   $files,
   chunkLoadRequested,
-  chunkLoaded
+  chunkLoaded,
+  fileChunksLoadRequested,
+  fileChunksLoaded,
+  fileChunksLoadFailed,
+  $fileChunkHashes
 } from './segments/files';
 
 import {
@@ -43,7 +48,8 @@ import {
   decompressionDataReceived,
   decompressionChunkProcessed,
   $decompressionState,
-  chunkConsumed  // ← NEW для backpressure
+  chunkConsumed,
+  decompressionCompleted
 } from './segments/streaming';
 
 import {
@@ -64,6 +70,37 @@ chunkUploadStartedFx.use(async (params) => {
   chunkUploadStarted(params);
 });
 
+const $pendingDownloads = fileTransferDomain.createStore<Set<UUID>>(new Set(), {
+  name: 'PENDING_DOWNLOADS'
+});
+
+$pendingDownloads
+  .on(downloadRequested, (state, fileId) => {
+    const next = new Set(state);
+    next.add(fileId);
+    return next;
+  })
+  .on(decompressionCompleted, (state, fileId) => {
+    if (!state.has(fileId)) return state;
+    const next = new Set(state);
+    next.delete(fileId);
+    return next;
+  })
+  .on(fileChunksLoadFailed, (state, { fileId }) => {
+    if (!state.has(fileId)) return state;
+    const next = new Set(state);
+    next.delete(fileId);
+    return next;
+  })
+  .on(fileMetadataLoadFailed, (state, { fileId }) => {
+    if (!state.has(fileId)) return state;
+    const next = new Set(state);
+    next.delete(fileId);
+    return next;
+  });
+
+const downloadReady = fileTransferDomain.createEvent<UUID>('DOWNLOAD_READY');
+
 // ==========================================
 // BROWSER <-> FILES
 // ==========================================
@@ -78,6 +115,11 @@ sample({
 sample({
   clock: downloadRequested,
   target: fileMetadataLoadRequested
+});
+
+sample({
+  clock: downloadRequested,
+  target: fileChunksLoadRequested
 });
 
 // ==========================================
@@ -115,10 +157,34 @@ $chunks.on(chunkPrepared, (state, { fileId, chunkNumber, data }) => {
   return newMap;
 });
 
-// Browser -> Streaming: начало декомпрессии (после загрузки метаданных)
+// Browser -> Streaming: подготовка к декомпрессии (ждем метаданные и хэши чанков)
 sample({
   clock: fileMetadataLoaded,
-  fn: ({ id }) => ({ fileId: id }),
+  source: {
+    pending: $pendingDownloads,
+    hashes: $fileChunkHashes,
+  },
+  filter: ({ pending, hashes }, metadata) =>
+    pending.has(metadata.id) && hashes.has(metadata.id),
+  fn: (_, { id }) => id,
+  target: downloadReady
+});
+
+sample({
+  clock: fileChunksLoaded,
+  source: {
+    pending: $pendingDownloads,
+    metadata: $fileMetadataCache,
+  },
+  filter: ({ pending, metadata }, { fileId }) =>
+    pending.has(fileId) && metadata.has(fileId),
+  fn: (_, { fileId }) => fileId,
+  target: downloadReady
+});
+
+sample({
+  clock: downloadReady,
+  fn: (fileId) => ({ fileId }),
   target: decompressionStarted
 });
 
@@ -153,19 +219,17 @@ sample({
 // Streaming -> Store: запрос блока для декомпрессии
 sample({
   clock: decompressionChunkRequested,
-  source: $fileMetadataCache,
-  filter: (cache, { fileId }) => cache.has(fileId),
-  fn: (cache, { fileId, chunkNumber }) => {
-    const metadata = cache.get(fileId)!;
-    
-    // В реальном приложении нужно получить hash чанка из метаданных
-    // Здесь используем заглушку
-    const hash = `chunk-${fileId}-${chunkNumber}` as any;
-    
+  source: $fileChunkHashes,
+  filter: (hashes, { fileId, chunkNumber }) => {
+    const fileHashes = hashes.get(fileId);
+    return fileHashes !== undefined && fileHashes.has(chunkNumber);
+  },
+  fn: (hashes, { fileId, chunkNumber }) => {
+    const fileHashes = hashes.get(fileId)!;
     return {
       fileId,
-      hash,
-      chunkNumber
+      chunkNumber,
+      hash: fileHashes.get(chunkNumber)!
     };
   },
   target: blockLoadRequested

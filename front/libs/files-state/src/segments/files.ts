@@ -3,26 +3,15 @@ import { fileTransferDomain } from "../domain";
 import { FileMetadata, FileChunk, UUID, HashString } from "../../../../../types/files";
 import { services } from "../services";
 
-// Types
-export type ChunkStatus = 'prepared' | 'uploading' | 'uploaded' | 'failed';
-
-export type ChunkState = {
-  fileId: UUID;
-  chunkNumber: number;
-  data: Uint8Array;
-  hash?: HashString;
-  status: ChunkStatus;
-  error?: string;
-  retryCount: number;
-}
-
 export type FileUploadState = {
   fileId: UUID;
   fileName: string;
   fileSize: number;
   fileType: string;
   totalChunks: number | null;
-  status: 'compressing' | 'uploading' | 'completed' | 'failed' | 'paused';
+  uploadedChunks: number;
+  uploadedBytes: number;
+  status: 'pending' | 'uploading' | 'completed' | 'failed' | 'paused' | 'cancelled';
   error?: string;
 }
 
@@ -67,16 +56,15 @@ export const fileMetadataLoadFailed = fileTransferDomain.createEvent<{
   error: Error;
 }>('FILE_METADATA_LOAD_FAILED');
 
-export const chunkLoadRequested = fileTransferDomain.createEvent<{
+export const fileChunksLoadRequested = fileTransferDomain.createEvent<UUID>('FILE_CHUNKS_LOAD_REQUESTED');
+export const fileChunksLoaded = fileTransferDomain.createEvent<{
   fileId: UUID;
-  chunkNumber: number;
-}>('CHUNK_LOAD_REQUESTED');
-
-export const chunkLoaded = fileTransferDomain.createEvent<{
+  chunks: FileChunk[];
+}>('FILE_CHUNKS_LOADED');
+export const fileChunksLoadFailed = fileTransferDomain.createEvent<{
   fileId: UUID;
-  chunkNumber: number;
-  data: Uint8Array;
-}>('CHUNK_LOADED');
+  error: Error;
+}>('FILE_CHUNKS_LOAD_FAILED');
 
 // Effects
 export const saveFileMetadataFx = fileTransferDomain.createEffect<
@@ -97,21 +85,18 @@ export const loadFileMetadataFx = fileTransferDomain.createEffect<
 >('LOAD_FILE_METADATA_FX');
 loadFileMetadataFx.use(async (id) => services.filesService.get(id));
 
-export const loadChunkFx = fileTransferDomain.createEffect<
-  { fileId: UUID; chunkNumber: number },
-  { fileId: UUID; chunkNumber: number; data: Uint8Array }
->('LOAD_CHUNK_FX');
-loadChunkFx.use(async ({ fileId, chunkNumber }) => {
-  // This is a placeholder for the actual implementation of loading a single chunk.
-  // In a real application, this would make a request to the server to get the chunk data.
-  const data = new Uint8Array(0);
-  return { fileId, chunkNumber, data };
-});
+export const loadFileChunksFx = fileTransferDomain.createEffect<UUID, FileChunk[]>(
+  'LOAD_FILE_CHUNKS_FX'
+);
+loadFileChunksFx.use(async (fileId) => services.filesService.getChunks(fileId));
 
 // Stores
 export const $files = fileTransferDomain.createStore<Map<UUID, FileUploadState>>(new Map(), { name: 'FILES' });
-export const $chunks = fileTransferDomain.createStore<Map<string, ChunkState>>(new Map(), { name: 'CHUNKS' });
 export const $fileMetadataCache = fileTransferDomain.createStore<Map<UUID, FileMetadata>>(new Map(), { name: 'FILE_METADATA_CACHE' });
+export const $fileChunkHashes = fileTransferDomain.createStore<Map<UUID, Map<number, HashString>>>(
+  new Map(),
+  { name: 'FILE_CHUNK_HASHES' }
+);
 
 // Derived
 export const $uploadingFiles = $files.map(files =>
@@ -264,4 +249,45 @@ sample({
 sample({
   clock: loadChunkFx.doneData,
   target: chunkLoaded
+});
+
+sample({
+  clock: fileChunksLoadRequested,
+  target: loadFileChunksFx
+});
+
+sample({
+  clock: loadFileChunksFx.done,
+  fn: ({ params, result }) => ({
+    fileId: params,
+    chunks: result
+  }),
+  target: fileChunksLoaded
+});
+
+sample({
+  clock: loadFileChunksFx.fail,
+  fn: ({ params, error }) => ({
+    fileId: params,
+    error
+  }),
+  target: fileChunksLoadFailed
+});
+
+$fileChunkHashes.on(fileChunksLoaded, (state, { fileId, chunks }) => {
+  const newMap = new Map(state);
+  newMap.set(
+    fileId,
+    new Map(chunks.map((chunk) => [chunk.chunkNumber, chunk.hash]))
+  );
+  return newMap;
+});
+
+$files.on(fileChunksLoadFailed, (state, { fileId, error }) => {
+  const file = state.get(fileId);
+  if (!file) return state;
+
+  const newMap = new Map(state);
+  newMap.set(fileId, { ...file, status: 'failed', error: error.message });
+  return newMap;
 });
