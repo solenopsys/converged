@@ -1,17 +1,16 @@
 {
 	"name": "modules-ms",
-	 "dependencies": { 
-
-	 },
+	"dependencies": {},
 	"peerDependencies": {
 		"@elysiajs/cors": "latest",
 		"@elysiajs/jwt": "latest",
-		"elysia": "latest", 
+		"elysia": "latest",
 		"lmdb": "latest"
 	},
 	"devDependencies": {
 		"@types/bcryptjs": "latest",
-		"bun-types": "latest"
+		"bun-types": "latest",
+		"typescript": "latest"
 	},
 	"scripts": {
 		"bld": "bun run ../../../node_modules/builders/src/build-backend.ts ./src/index.ts  ../../../../../types/modules.ts ./dist/ --upload"

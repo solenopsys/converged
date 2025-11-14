@@ -9,7 +9,7 @@
   "devDependencies": {
     "builders": "file:../../../../builders",
     "nrpc": "file:../../../../nrpc",
-    "front-chat-core": "file:../../../front-chat-core",
+    "front-chat-core": "file:../../../libs/aichat-state",
     "@types/bun": "latest"
   },
   "scripts": {

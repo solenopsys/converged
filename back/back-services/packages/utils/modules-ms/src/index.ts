@@ -15,6 +15,10 @@ const staticModules: any = [
         "name": "aichats-mf",
         "remote": true,
         "protected": false,
+    },   {
+        "name": "sales-mf",
+        "remote": true,
+        "protected": false,
     },
     {
         "name": "auth-mf",
@@ -46,7 +50,7 @@ class ModulesServiceImpl implements ModulesService {
         locales: { [key: string]: string }
     }[]> {
         const modules = staticModules.map((module) => {
-            const link = module.remote 
+            const link = module.remote
                 ? remotePrefix + module.name + ".js"
                 : localPrefix + module.name + ".js"
 

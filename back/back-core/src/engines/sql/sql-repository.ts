@@ -2,20 +2,21 @@ import { FindAllOptions, CursorOptions, PaginationResult } from "./sql-types";
 import { KeySQL, RepositorySQL, RepositorySchema } from "./sql-types";
 import { SqlStore } from "./sql-store";
 
-export class BaseRepositorySQL<K extends KeySQL, V> implements RepositorySQL<K, V> {
+export class BaseRepositorySQL<K extends KeySQL, V>
+  implements RepositorySQL<K, V>
+{
   constructor(
     private sqlStore: SqlStore,
     private readonly tableName: string,
-    private readonly schema: RepositorySchema<K, V>
-  ) {
-  }
+    private readonly schema: RepositorySchema<K, V>,
+  ) {}
 
   async findById(id: K): Promise<V | undefined> {
     const whereCondition = this.schema.buildWhereCondition(id);
 
     const query = this.sqlStore.applyWhereConditions(
       this.sqlStore.db.selectFrom(this.tableName).selectAll(),
-      whereCondition
+      whereCondition,
     );
 
     return query.executeTakeFirst() as Promise<V | undefined>;
@@ -30,14 +31,16 @@ export class BaseRepositorySQL<K extends KeySQL, V> implements RepositorySQL<K, 
         .selectFrom(this.tableName)
         .selectAll()
         .limit(limit)
-        .offset(offset)
+        .offset(offset),
     );
 
     return query.execute() as Promise<V[]>;
   }
 
-  async findWithCursor(options: CursorOptions<V>): Promise<PaginationResult<V>> {
-    const { cursorField, cursor, limit = 20, direction = 'desc' } = options;
+  async findWithCursor(
+    options: CursorOptions<V>,
+  ): Promise<PaginationResult<V>> {
+    const { cursorField, cursor, limit = 20, direction = "desc" } = options;
 
     let query = this.sqlStore.db
       .selectFrom(this.tableName)
@@ -46,32 +49,36 @@ export class BaseRepositorySQL<K extends KeySQL, V> implements RepositorySQL<K, 
       .limit(limit + 1);
 
     if (cursor !== undefined) {
-      const operator = direction === 'desc' ? '<' : '>';
+      const operator = direction === "desc" ? "<" : ">";
       query = query.where(cursorField as string, operator, cursor);
     }
 
-    const results = await query.execute() as V[];
+    const results = (await query.execute()) as V[];
     const hasMore = results.length > limit;
     const data = hasMore ? results.slice(0, -1) : results;
-    const nextCursor = hasMore ? data[data.length - 1]?.[cursorField] : undefined;
+    const nextCursor = hasMore
+      ? data[data.length - 1]?.[cursorField]
+      : undefined;
 
     return { data, nextCursor, hasMore };
   }
 
+  async count(): Promise<number> {
+    const result = await this.sqlStore.db
+      .selectFrom(this.tableName)
+      .select(({ fn }) => fn.countAll().as("count"))
+      .executeTakeFirst();
+
+    return Number(result?.count || 0);
+  }
+
   async create(entity: Omit<V, keyof K>): Promise<V> {
-    const query = this.sqlStore.db
+    const result = await this.sqlStore.db
       .insertInto(this.tableName)
       .values(entity as any)
-      .returningAll();
-  
-    const compiled = query.compile();
-    console.log('SQL:', compiled.sql);
-    console.log('Params:', compiled.parameters);
-    console.log('Entity:', entity);
-  
-    const result = await query.executeTakeFirstOrThrow();
-    console.log('Result:', result);
-    
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
     return result as V;
   }
 
@@ -83,7 +90,7 @@ export class BaseRepositorySQL<K extends KeySQL, V> implements RepositorySQL<K, 
         .updateTable(this.tableName)
         .set(entity as any)
         .returningAll(),
-      whereCondition
+      whereCondition,
     );
 
     return query.executeTakeFirst() as Promise<V | undefined>;
@@ -94,7 +101,7 @@ export class BaseRepositorySQL<K extends KeySQL, V> implements RepositorySQL<K, 
 
     const query = this.sqlStore.applyWhereConditions(
       this.sqlStore.db.deleteFrom(this.tableName),
-      whereCondition
+      whereCondition,
     );
 
     const result = await query.executeTakeFirst();

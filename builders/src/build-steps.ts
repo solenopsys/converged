@@ -1,142 +1,151 @@
-
-
-
-
-import { join } from 'path';
-import { fileSize } from './tools';import { resolve } from 'path';
-import { InterfaceParser } from '../../nrpc/src/generator/parser';
-import { BackendGenerator } from '../../nrpc/src/generator/backend';
-import { FrontendGenerator } from '../../nrpc/src/generator/frontend'; // Добавил фронтенд генератор
-import { uploadToS3 } from './tools';
-import { BuildStep, BuildContext } from './types';
-import { compressBrottly } from './tools';
+import { join } from "path";
+import { fileSize } from "./tools";
+import { resolve } from "path";
+import { InterfaceParser } from "../../nrpc/src/generator/parser";
+import { BackendGenerator } from "../../nrpc/src/generator/backend";
+import { FrontendGenerator } from "../../nrpc/src/generator/frontend"; // Добавил фронтенд генератор
+import { uploadToS3 } from "./tools";
+import { BuildStep, BuildContext } from "./types";
+import { compressBrottly } from "./tools";
 
 import * as Bun from "bun";
 
-export const uploadS3 = (bucket: string = 'back',compress: boolean = false): BuildStep => async (context) => {
-    console.log('Uploading to S3...');
-   const resFile= compress ? await compressBrottly(context.finalBuildFile) : context.finalBuildFile;
-   
-   console.log(fileSize(resFile));
-    await uploadToS3(bucket, resFile,context.finalBuildFileName+(compress?'.br':'')); 
-    console.log('✅ Upload complete.');
-};
+export const uploadS3 =
+  (bucket: string = "back", compress: boolean = false): BuildStep =>
+  async (context) => {
+    console.log("Uploading to S3...");
+    const resFile = compress
+      ? await compressBrottly(context.finalBuildFile)
+      : context.finalBuildFile;
 
-export const uploadS3Locale = (bucket: string = 'front/locale'): BuildStep => async (context) => {
-    console.log('Uploading to S3...');
-    
+    console.log(fileSize(resFile));
+    await uploadToS3(
+      bucket,
+      resFile,
+      context.finalBuildFileName + (compress ? ".br" : ""),
+    );
+    console.log("✅ Upload complete.");
+  };
+
+export const uploadS3Locale =
+  (bucket: string = "front/locale"): BuildStep =>
+  async (context) => {
+    console.log("Uploading to S3...");
+
     const glob = new Bun.Glob("*.json");
     const localeFiles = glob.scanSync("locales");
     const moduleName = context.packageName;
-    
+
     for (const fileName of localeFiles) {
-        const srcFile=`locales/${fileName}`;
-        const targetPath = `${moduleName}/${fileName}`;
-         
-        console.log("----------locale file:",srcFile,"target path", targetPath);
-         await uploadToS3(bucket, srcFile,targetPath);
+      const srcFile = `locales/${fileName}`;
+      const targetPath = `${moduleName}/${fileName}`;
+
+      console.log("----------locale file:", srcFile, "target path", targetPath);
+      await uploadToS3(bucket, srcFile, targetPath);
     }
-    
-    console.log('✅ Upload complete.');
-};
 
+    console.log("✅ Upload complete.");
+  };
 
-
-export const uploadS3SourceMap = (bucket: string = 'back',compress: boolean = false): BuildStep => async (context) => {
-    console.log('Uploading to S3...');
-    if(bucket === 'front') {
-        return;
+export const uploadS3SourceMap =
+  (bucket: string = "back", compress: boolean = false): BuildStep =>
+  async (context) => {
+    console.log("Uploading to S3...");
+    if (bucket === "front") {
+      return;
     }
-   const brFile= compress ? await compressBrottly(context.finalBuildFile) : context.finalBuildFile;
-   
-   console.log(fileSize(brFile));
-  //  await uploadToS3(bucket, brFile);
-    await uploadToS3(bucket, context.sourceMapFile,context.sourceMapFile);
-    console.log('✅ Upload complete.');
-};
+    const brFile = compress
+      ? await compressBrottly(context.finalBuildFile)
+      : context.finalBuildFile;
 
+    console.log(fileSize(brFile));
+    //  await uploadToS3(bucket, brFile);
+    await uploadToS3(bucket, context.sourceMapFile, context.sourceMapFile);
+    console.log("✅ Upload complete.");
+  };
 
 export const parseService: BuildStep = async (context) => {
-    console.log('Parsing service files...');
-    const parser = new InterfaceParser();
-    context.metadata = parser.parseInterface(context.serviceFiles[0]);
-    console.log('✅ Parsing complete.');
+  console.log("Parsing service files...");
+  const parser = new InterfaceParser();
+  context.metadata = parser.parseInterface(context.serviceFiles[0]);
+  console.log("✅ Parsing complete.");
 };
 
 export const generateBackend: BuildStep = async (context) => {
-    console.log('Generating backend code...');
-    const generator = new BackendGenerator();
-    generator.generateBackend({
-        transport: 'http' as const,
-        servicePath: context.entrypoint,
-        metadata: context.metadata
-    }, context.generatedFile);
-    console.log('✅ Backend code generated.');
+  console.log("Generating backend code...");
+  const generator = new BackendGenerator();
+  generator.generateBackend(
+    {
+      transport: "http" as const,
+      servicePath: context.entrypoint,
+      metadata: context.metadata,
+    },
+    context.generatedFile,
+  );
+  console.log("✅ Backend code generated.");
 };
 
 export const generateFrontend: BuildStep = async (context) => {
-    console.log('Generating frontend code...');
-    const generator = new FrontendGenerator();
-    generator.generateFrontend(context.metadata, context.generatedFile);
-    console.log('✅ Frontend code generated.');
+  console.log("Generating frontend code...");
+  const generator = new FrontendGenerator();
+  generator.generateFrontend(context.metadata, context.generatedFile);
+  console.log("✅ Frontend code generated.");
 };
 
-export const buildProject = (external: string[] = []): BuildStep => async (context) => {
-    console.log('Building project...');
+export const buildProject =
+  (external: string[] = []): BuildStep =>
+  async (context) => {
+    console.log("Building project...");
     const result = await Bun.build({
-        entrypoints: [context.generatedFile],
-        outdir: context.outDir,
-        target: 'node',
-        external,
-        minify: true,
+      entrypoints: [context.generatedFile],
+      outdir: context.outDir,
+      target: "node",
+      external,
+      minify: true,
     });
 
     if (!result.success) {
-        throw new Error(`Build failed: ${result.logs}`);
+      throw new Error(`Build failed: ${result.logs}`);
     }
 
-    await Bun.$`mv ${resolve(context.outDir, 'generated.js')} ${context.finalBuildFile}`;
-    console.log('✅ Build complete.');
-};
+    await Bun.$`mv ${resolve(context.outDir, "generated.js")} ${context.finalBuildFile}`;
+    console.log("✅ Build complete.");
+  };
 
-export const buildFrontend = ({entry,external}: {entry: string, external: string[]}): BuildStep => async (context) => {
-    console.log('Building project...');
+export const buildFrontend =
+  ({ entry, external }: { entry: string; external: string[] }): BuildStep =>
+  async (context) => {
+    console.log("Building project...");
 
     const packageJson = await Bun.file("./package.json").json();
-    
+
     const externals = packageJson.externals || [];
-    
-  
+
     const outName = `${context.packageName}.js`;
     const outPath = join("dist", outName);
-    
+
     const result = await Bun.build({
-        entrypoints: [entry],
-        outdir: "./dist",
-        naming: outName,
-        format: "esm",
-        minify: true,
-        sourcemap: "linked",
-        target: "browser",
-        external: [...externals,...external],
-        jsx: "automatic"
+      entrypoints: [entry],
+      outdir: "./dist",
+      naming: outName,
+      format: "esm",
+      minify: true,
+      sourcemap: "linked",
+      target: "browser",
+      external: [...externals, ...external],
     });
 
     if (!result.success) {
-        throw new Error(`Build failed: ${result.logs}`);
+      throw new Error(`Build failed: ${result.logs}`);
     }
 
     console.log(`🧩 ${outName} - ${fileSize(outPath)}`);
-    console.log('✅ Build complete.');
+    console.log("✅ Build complete.");
+  };
 
-    
-
-};
-
-
-export const generateFrontendWrapper = (outputFile: string): BuildStep => async (context) => {
-
-
+export const generateFrontendWrapper =
+  (outputFile: string): BuildStep =>
+  async (context) => {
     await Bun.$`bunx @tailwindcss/cli -i index.css -o ./dist/index.css`; // --minify
 
     const css = await Bun.file("./dist/index.css").text();
@@ -148,18 +157,22 @@ export const generateFrontendWrapper = (outputFile: string): BuildStep => async 
     const importMapping: any = {};
 
     for (const external of externals) {
-        if (dependencies[external]) {
-            importMapping[external] = `https://esm.sh/${external}@${dependencies[external]}`;
-        } else {
-            // Если зависимость не найдена в dependencies, используем latest версию
-            importMapping[external] = `https://esm.sh/${external}?bundle`;
-        }
+      if (dependencies[external]) {
+        importMapping[external] =
+          `https://esm.sh/${external}@${dependencies[external]}`;
+      } else {
+        // Если зависимость не найдена в dependencies, используем latest версию
+        importMapping[external] = `https://esm.sh/${external}?bundle`;
+      }
     }
 
     const externalsStrings = JSON.stringify(importMapping, null, 2);
-    const escapedCss = css.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+    const escapedCss = css
+      .replace(/\\/g, "\\\\")
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, "\\n");
 
-    const wrapperFile = ` 
+    const wrapperFile = `
     import {MENU, ID} from "../src/index";
     import plugin from "../src/index";
     export default {
@@ -170,5 +183,5 @@ export const generateFrontendWrapper = (outputFile: string): BuildStep => async 
         css: "${escapedCss}"
     }`;
 
-    await Bun.write(outputFile, wrapperFile); 
-}
+    await Bun.write(outputFile, wrapperFile);
+  };

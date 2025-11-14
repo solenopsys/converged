@@ -27,7 +27,7 @@
     "@types/bcryptjs": "latest",
     "@types/bun": "latest",
     "@types/pg": "latest",
-    "@typescript-eslint/typescript-estree": "^8.45.0",
+    "@typescript-eslint/typescript-estree": "^8.46.4",
     "typescript": "^5.9.3"
   },
   "engines": {
