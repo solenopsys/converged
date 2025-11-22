@@ -1,8 +1,7 @@
 // build.ts — улучшенная версия с динамической загрузкой версий из package.json
 import { $ } from "bun";
 import { readdirSync, statSync, mkdirSync, writeFileSync } from "fs";
-import { join } from "path"; 
-
+import { join } from "path";
 
 const size = (p: string) => {
   try {
@@ -12,7 +11,6 @@ const size = (p: string) => {
   }
 };
 
-
 await $`rm -f dist/index.css`;
 
 /*──────────── 2. Основной бандл приложения ───────────────*/
@@ -21,18 +19,25 @@ await Bun.build({
   outdir: "./dist",
   format: "esm",
   minify: false,
- // sourcemap: false,
+  // sourcemap: false,
   sourcemap: "linked",
   target: "browser",
   importmap: "./import-map.json",
-  external: ["converged-core", "react","react-dom","react-router-dom","effector","effector-react"],
-  jsx: "automatic",
-  tsconfig: "./tsconfig.json"
+  external: [
+    "converged-core",
+    "react",
+    "react-dom",
+    "react-router-dom",
+    "effector",
+    "effector-react",
+  ],
+  jsx: {
+    runtime: "automatic",
+    importSource: "react",
+  },
+  tsconfig: "./tsconfig.json",
 });
 console.log(`📦 main.js - ${size("dist/main.js")}`);
-
-
-
 
 /*──────────── 3. Модифицируем HTML с import map ─────────*/
 const htmlContent = await Bun.file("confs/index.html").text();
@@ -43,10 +48,10 @@ importMap.imports["converged-core"] = "/core.js";
 const rewriter = new HTMLRewriter().on("head", {
   element(element) {
     element.prepend(
-      `<script type=\"importmap\">\n${JSON.stringify(importMap, null, 2)}\n</script>\n`, 
-      { html: true }
+      `<script type=\"importmap\">\n${JSON.stringify(importMap, null, 2)}\n</script>\n`,
+      { html: true },
     );
-  }
+  },
 });
 
 const modifiedHtml = rewriter.transform(new Response(htmlContent));
@@ -60,7 +65,6 @@ await $`cp confs/modules.json dist/modules.json`;
 await $`cp ../front-core/dist/index.js dist/core.js`;
 await $`cp ../front-core/dist/index.js.map dist/index.js.map`;
 await $`cp ../front-core/dist/index.css dist/index.css`;
-
 
 await $`bunx @tailwindcss/cli -i ./src/main.css -o ./dist/main.css`;
 console.log("✅ Build complete");

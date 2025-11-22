@@ -1,5 +1,5 @@
 
-import SimpleList from "../components/ui/list/SimpleList";
+import SimpleList from "@/components/ui/list/SimpleList";
  
 import { useUnit } from "effector-react";
 import { Store } from "effector";

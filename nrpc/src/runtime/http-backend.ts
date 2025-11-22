@@ -42,12 +42,20 @@ export function createHttpBackend(config: ElysiaBackendConfig) {
               });
             }
             return result;
-          } catch (error) {
+          } catch (error: any) {
             console.error(
               `Error in ${config.metadata.serviceName}.${method.name}:`,
               error,
             );
-            throw error;
+
+            // Handle errors with statusCode
+            const statusCode = error.statusCode || 500;
+            const message = error.message || "Internal Server Error";
+
+            return new Response(JSON.stringify({ error: message }), {
+              status: statusCode,
+              headers: { "Content-Type": "application/json" },
+            });
           }
         };
 

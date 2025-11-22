@@ -17,3 +17,9 @@ Converged, as the core of this platform, provides the fundamental building block
 -   `front`: Frontend application and user interface components.
 -   `nrpc`: Remote Procedure Call (RPC) framework.
 -   `types`: Shared type definitions for the project.
+
+ 
+
+podman build -f dag-core.Dockerfile -t dag-core .
+podman build -f back-core.Dockerfile -t back-core .
+podman build -f front-bootstrap.Dockerfile -t front-bootstrap .

@@ -4,7 +4,8 @@
   "version": "0.0.1",
   "type": "module",
   "dependencies": {
-    "dagre": "^0.8.5", 
+    "dagre": "^0.8.5",
+    "lucide-react": "^0.553.0",
     "pixi.js": "^8.11.0"
   },
   "devDependencies": {

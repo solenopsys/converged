@@ -19,7 +19,7 @@
     "noUncheckedSideEffectImports": true,
     "baseUrl": ".",
     "paths": {
-      "converged-core": ["../front-core/src/index.ts"],
+      "converged-core": ["../front-core/src/index.ts"]
     },
     "plugins": [
       {

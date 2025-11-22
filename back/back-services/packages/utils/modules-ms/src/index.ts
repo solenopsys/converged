@@ -6,11 +6,11 @@ const localPrefix = "http://localhost:3005/modules/"
 const localesPrefixes = ["en", "ru", "de", "fr", "it", "pt"]
 
 const staticModules: any = [
-    // {
-    //     "name": "dag-mf",
-    //     "remote": true,
-    //     "protected": true
-    // },
+    {
+        "name": "dag-mf",
+        "remote": true,
+        "protected": true
+    },
     {
         "name": "aichats-mf",
         "remote": true,

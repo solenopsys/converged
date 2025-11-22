@@ -18,7 +18,6 @@
     "elysia": "latest",
     "kysely": "latest",
     "kysely-bun-sqlite": "^0.4.0",
-    "lmdb": "latest",
     "lowdb": "^7.0.1",
     "pg": "latest"
   },

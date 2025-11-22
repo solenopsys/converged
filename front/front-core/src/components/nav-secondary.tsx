@@ -1,8 +1,4 @@
-
-"use client"
-
-import * as React from "react"
-import { type LucideIcon } from "lucide-react"
+"use client";
 
 import {
   SidebarGroup,
@@ -10,18 +6,17 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
-export function NavSecondary({
-  items,
-  ...props
-}: {
+type NavSecondaryProps = Parameters<typeof SidebarGroup>[0] & {
   items: {
-    title: string
-    url: string
-    icon: React.ReactNode  // Изменил тип с LucideIcon на ReactNode для поддержки JSX элементов
-  }[]
-} & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
+    title: string;
+    url: string;
+    icon: JSX.Element | null;
+  }[];
+};
+
+export function NavSecondary({ items, ...props }: NavSecondaryProps) {
   return (
     <SidebarGroup {...props}>
       <SidebarGroupContent>
@@ -30,7 +25,7 @@ export function NavSecondary({
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton asChild size="sm">
                 <a href={item.url}>
-                  {item.icon}  {/* Просто используем icon как React элемент */}
+                  {item.icon} {/* Просто используем icon как React элемент */}
                   <span>{item.title}</span>
                 </a>
               </SidebarMenuButton>
@@ -39,5 +34,5 @@ export function NavSecondary({
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
-  )
+  );
 }

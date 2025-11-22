@@ -5,7 +5,7 @@
   "private": true,
   "devDependencies": {
     "@types/bun": "latest",
-    "@typescript-eslint/typescript-estree": "^8.38.0"
+    "@typescript-eslint/typescript-estree": "^8.46.4"
   },
   "scripts": {
     "cp": "cp ../../nrpc/tgz/nrpc-0.1.2.tgz ./tgz/ && cp ../../builders/tgz/builders-0.1.0.tgz ./tgz/",
@@ -14,15 +14,14 @@
     "dev": "bun run --env-file=../../../conf/dag-server.env src/api.ts"
   },
   "peerDependencies": {
-    "typescript": "^5.8.3"
+    "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@elysiajs/cors": "^1.3.3",
+    "@elysiajs/cors": "^1.4.0",
     "builders": "file:../../builders",
-    "back-core": "file:../../back-core",
-    "elysia": "^1.3.6",
-    "kysely": "^0.28.3",
-    "lmdb": "^3.4.1",
+    "back-core": "file:../../back/back-core",
+    "elysia": "^1.4.16",
+    "kysely": "^0.28.8",
     "nrpc": "file:../../nrpc",
     "ordered-binary": "^1.6.0",
     "dag-api": "file:../dag-api"

@@ -1,5 +1,5 @@
 import { DagService } from "../../../../../adag/dag-types/interface";
 
-import { dagClient } from "../dist/generated";
- 
-export default  dagClient as DagService;    
+import { createDagServiceClient } from "../dist/generated";
+
+export default  createDagServiceClient({baseUrl:"https://console.4ir.club"}) as DagService;

@@ -1,5 +1,5 @@
 {
-  "compilerOptions": { 
+  "compilerOptions": {
     "target": "ES2020",
     "useDefineForClassFields": true,
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
@@ -12,20 +12,21 @@
     "isolatedModules": true,
     "moduleDetection": "force",
     "noEmit": true,
-    "jsx": "react-jsx",
+    "jsx": "preserve",
+    "jsxImportSource": "@solenopsys/converged-renderer",
     /* Linting */
-    "strict": false, 
+    "strict": false,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./src/*"
+      "@/components/ui/*": [
+        "./src/components/ui/simple/*",
+        "./src/components/ui/complex/*"
       ],
-      "@tabler/icons-react": [
-        "./src/icons-shim/index.ts"
-      ]
+      "@/*": ["./src/*"],
+      "@tabler/icons-react": ["./src/icons-shim/index.ts"]
     }
-  },
+  }
 }
