@@ -1,4 +1,0 @@
-# dependencies (bun install)
-node_modules
-dist
-*.tgz
