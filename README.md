@@ -18,33 +18,33 @@ Development track: [github.com/solenopsys/converged](https://github.com/solenops
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        Operator / Client                     │
+│                        Operator / Client                    │
 └───────────────────┬─────────────────────┬───────────────────┘
                     │ Browser              │ Messenger / API
                     ▼                      ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                     Frontend (SPA + Landing)                 │
+│                     Frontend (SPA + Landing)                │
 │   front-core  ┊  microfrontends (x20)  ┊  import map        │
 └───────────────────────────┬─────────────────────────────────┘
                             │ HTTP
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                    back-core (Elysia / Bun)                  │
-│  /health   /services/<name>/<method>   static SPA fallback   │
-│                                                              │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────────┐  │
-│  │ security │ │ business │ │   social │ │  ai / agents  │  │
-│  │ auth     │ │ billing  │ │ telegram │ │  assistant    │  │
-│  │ access   │ │ dag      │ │ discord  │ │  LLM adapters │  │
-│  │ oauth    │ │ requests │ │ notify   │ │  (GPT/Claude/ │  │
-│  └──────────┘ │ scheduler│ └──────────┘ │  DeepSeek...) │  │
-│               └──────────┘              └───────────────┘  │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────────┐  │
-│  │ content  │ │   data   │ │ delivery │ │  analytics    │  │
-│  │ markdown │ │ files    │ │ dhl/ups  │ │  logs         │  │
-│  │ gallery  │ │ store    │ │ fedex    │ │  telemetry    │  │
-│  │ struct   │ │ dumps    │ │ ems      │ │  usage        │  │
-│  └──────────┘ └──────────┘ └──────────┘ └───────────────┘  │
+│                    back-core (Elysia / Bun)                 │
+│  /health   /services/<name>/<method>   static SPA fallback  │
+│                                                             │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────────┐   │
+│  │ security │ │ business │ │   social │ │  ai / agents  │   │
+│  │ auth     │ │ billing  │ │ telegram │ │  assistant    │   │
+│  │ access   │ │ dag      │ │ discord  │ │  LLM adapters │   │
+│  │ oauth    │ │ requests │ │ notify   │ │  (GPT/Claude/ │   │
+│  └──────────┘ │ scheduler│ └──────────┘ │  DeepSeek...) │   │
+│               └──────────┘              └───────────────┘   │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────────┐   │
+│  │ content  │ │   data   │ │ delivery │ │  analytics    │   │
+│  │ markdown │ │ files    │ │ dhl/ups  │ │  logs         │   │
+│  │ gallery  │ │ store    │ │ fedex    │ │  telemetry    │   │
+│  │ struct   │ │ dumps    │ │ ems      │ │  usage        │   │
+│  └──────────┘ └──────────┘ └──────────┘ └───────────────┘   │
 └───────────────────────────┬─────────────────────────────────┘
                             │ FFI / Zig adapters
                             ▼
@@ -144,8 +144,8 @@ Three deployment profiles are available — same codebase, different container t
 │container │                │                  │files │ │ logs │ │notify│
 │          │    ┌───────────┼───────────┐      └──────┘ └──────┘ └──────┘
 └──────────┘    │           │           │      ┌──────┐ ┌──────┐ ┌──────┐
-                ▼           ▼           ▼      │billing│ │smtp │ │ ... │
-           ┌────────┐ ┌─────────┐ ┌────────┐  └──────┘ └──────┘ └──────┘
+                ▼           ▼          ▼      │money │ │smtp  │ │ ...  │
+           ┌────────┐ ┌─────────┐ ┌────────┐   └──────┘ └──────┘ └──────┘
            │security│ │business │ │  data  │
            │  +ai   │ │+content │ │+social │     one container per
            └────────┘ └─────────┘ └────────┘     microservice + gateway
