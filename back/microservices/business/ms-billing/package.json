@@ -1,0 +1,17 @@
+{
+  "name": "ms-billing",
+  "version": "1.0.0",
+  "private": true,
+  "installConfig": {
+    "hoistingLimits": "workspaces"
+  },
+  "type": "module",
+  "exports": {
+    "./plugin": "./plugin.ts"
+  },
+  "dependencies": {
+    "back-core": "workspace:*",
+    "nrpc": "workspace:*",
+    "g-billing": "workspace:*"
+  }
+}

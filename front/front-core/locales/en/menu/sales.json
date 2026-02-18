@@ -1,0 +1,23 @@
+{
+    "title": "Sales",
+    "url": "#",
+    "iconName": "IconBusinessplan",
+    "items": [
+      {
+        "title": "Requests",
+        "url": "#"
+      },
+      {
+        "title": "Orders",
+        "url": "#"
+      },
+      {
+        "title": "Delivery",
+        "url": "#"
+      },
+      {
+        "title": "Clients",
+        "url": "#"
+      }
+    ]
+  }

@@ -1,0 +1,13 @@
+{
+  "name": "ms-requests",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./plugin": "./src/plugin.ts"
+  },
+  "dependencies": {
+    "back-core": "workspace:*",
+    "nrpc": "workspace:*",
+    "g-requests": "workspace:*"
+  }
+}

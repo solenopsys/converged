@@ -1,0 +1,1 @@
+{"title":"Conversão de solicitações em pedidos","description":"Dados dos últimos 3 meses","description_short":"Últimos 3 meses","time_ranges":{"90d":"Últimos 3 meses","30d":"Últimos 30 dias","7d":"Últimos 7 dias"},"chart_config":{"visitors":{"label":"Conversões"},"requests":{"label":"Solicitações"},"orders":{"label":"Pedidos"},"conversion":{"label":"Conversão"}}}

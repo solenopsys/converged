@@ -1,0 +1,14 @@
+{
+  "name": "mf-usage",
+  "private": true,
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "front-core": "workspace:*",
+    "g-usage": "workspace:*",
+    "lucide-react": "^0.553.0"
+  }
+}

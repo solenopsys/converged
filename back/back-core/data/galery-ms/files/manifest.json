@@ -1,0 +1,7 @@
+{
+  "name": "files",
+  "dataLocation": "data/galery-ms/files/data",
+  "version": "1",
+  "type": "FILES",
+  "migrations": []
+}

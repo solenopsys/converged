@@ -1,0 +1,14 @@
+{
+  "name": "g-staff",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "module": "src/index.ts",
+  "files": [
+    "src",
+    "package.json"
+  ],
+  "dependencies": {
+    "nrpc": "*"
+  }
+}

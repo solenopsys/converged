@@ -1,0 +1,7 @@
+{
+  "name": "chunks",
+  "dataLocation": "data/store-ms/chunks/data",
+  "version": "1",
+  "type": "FILES",
+  "migrations": []
+}

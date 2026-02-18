@@ -1,0 +1,99 @@
+{
+  "name": "converged-portal",
+  "container": "converged-app",
+  "landing": "front/landing",
+  "spa": {
+    "core": "front/front-core",
+    "microfrontends": [
+      "auth",
+      "aichats",
+      "calls",
+      "dag",
+      "dasboards",
+      "dumps",
+      "logs",
+      "markdown",
+      "requests",
+      "sheduller",
+      "telemetry",
+      "threads",
+      "usage",
+      "webhooks"
+    ]
+  },
+  "back": {
+    "core": "back/back-core",
+    "microservices": {
+      "ai": [
+        "aichat"
+      ],
+      "analytics": [
+        "logs",
+        "telemetry",
+        "usage"
+      ],
+      "business": [
+        "billing",
+        "dag",
+        "equipment",
+        "requests",
+        "reviews",
+        "sheduller",
+        "webhooks"
+      ],
+      "content": [
+        "galery",
+        "markdown",
+        "struct",
+        "video"
+      ],
+      "data": [
+        "dumps",
+        "files",
+        "store"
+      ],
+      "providers": [
+        "push",
+        "sms",
+        "smtp"
+      ],
+      "sequrity": [
+        "access",
+        "auth",
+        "oauth"
+      ],
+      "social": [
+        "calls",
+        "discord",
+        "facebook",
+        "instagram",
+        "notify",
+        "telegram",
+        "threads",
+        "tiktok",
+        "wechat",
+        "youtube"
+      ]
+    }
+  },
+  "frontend": {
+    "modules": {
+      "auth": true,
+      "aichats": true,
+      "calls": true,
+      "dag": true,
+      "dasboards": true,
+      "dumps": true,
+      "logs": true,
+      "markdown": true,
+      "requests": true,
+      "sheduller": true,
+      "telemetry": true,
+      "threads": true,
+      "usage": true,
+      "webhooks": true
+    },
+    "layout": "sidebar",
+    "mountChatView": true
+  }
+}

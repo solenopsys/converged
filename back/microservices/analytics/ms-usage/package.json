@@ -1,0 +1,14 @@
+{
+  "name": "ms-usage",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./plugin": "./src/plugin.ts"
+  },
+  "dependencies": {
+    "back-core": "workspace:*",
+    "g-usage": "workspace:*",
+    "nrpc": "workspace:*"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "ms-staff",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./plugin": "./src/plugin.ts"
+  },
+  "dependencies": {
+    "back-core": "workspace:*",
+    "nrpc": "workspace:*",
+    "g-staff": "workspace:*"
+  }
+}

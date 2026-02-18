@@ -1,0 +1,17 @@
+{
+  "name": "ms-ses",
+  "version": "1.0.0",
+  "private": true,
+  "installConfig": {
+    "hoistingLimits": "workspaces"
+  },
+  "type": "module",
+  "exports": {
+    "./plugin": "./src/plugin.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-ses": "latest",
+    "nrpc": "workspace:*",
+    "g-ses": "workspace:*"
+  }
+}

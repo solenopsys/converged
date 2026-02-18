@@ -1,0 +1,7 @@
+{
+  "name": "templates",
+  "dataLocation": "data/notify-ms/templates/data",
+  "version": "1",
+  "type": "FILES",
+  "migrations": []
+}

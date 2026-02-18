@@ -1,0 +1,10 @@
+{
+  "name": "access-permissions",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "module": "index.ts",
+  "dependencies": {
+    "nrpc": "*"
+  }
+}

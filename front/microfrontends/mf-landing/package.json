@@ -1,0 +1,14 @@
+{
+  "name": "mf-landing",
+  "private": true,
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "front-core": "workspace:*",
+    "g-struct": "workspace:*",
+    "front-landings": "file:../../../../../../saas/public/front/front-landings"
+  }
+}

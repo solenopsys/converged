@@ -1,0 +1,14 @@
+{
+  "name": "mf-webhooks",
+  "private": true,
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "front-core": "workspace:*",
+    "g-webhooks": "workspace:*",
+    "lucide-react": "^0.553.0"
+  }
+}

@@ -1,0 +1,34 @@
+{
+    "welcome": {
+      "heading": "Bienvenido",
+      "description": "Inicie sesión en su cuenta de Acme Inc"
+    },
+    "form": {
+      "email": "Correo electrónico",
+      "password": "Contraseña",
+      "forgotPassword": "¿Olvidaste tu contraseña?"
+    },
+    "button": {
+      "login": "Iniciar sesión",
+      "loggingIn": "Iniciando sesión...",
+      "continueWith": "O continuar con",
+      "loginWithApple": "Iniciar sesión con Apple",
+      "loginWithGoogle": "Iniciar sesión con Google",
+      "loginWithMeta": "Iniciar sesión con Meta",
+      "loginWithMicrosoft": "Iniciar sesión con Microsoft",
+      "loginWithGithub": "Iniciar sesión con GitHub"
+    },
+    "signup": {
+      "text": "¿No tienes una cuenta?",
+      "link": "Regístrate"
+    },
+    "legal": {
+      "agreement": "Al hacer clic en «continuar», aceptas nuestros {{termsLink}} y {{privacyLink}}.",
+      "termsOfService": "Términos de servicio",
+      "privacyPolicy": "Política de privacidad"
+    },
+    "notification": {
+      "loginFailed": "Error de inicio de sesión",
+      "tryAgain": "Por favor, inténtalo de nuevo"
+    }
+  }

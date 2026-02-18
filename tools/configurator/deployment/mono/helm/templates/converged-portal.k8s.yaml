@@ -1,0 +1,457 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app: converged-portal
+    component: converged-app
+  name: converged-portal-converged-app-config
+data:
+  config.json: |-
+    {
+      "name": "converged-portal",
+      "landing": "front/landing",
+      "spa": {
+        "core": "front/front-core",
+        "microfrontends": [
+          "auth",
+          "aichats",
+          "calls",
+          "dag",
+          "dasboards",
+          "dumps",
+          "logs",
+          "markdown",
+          "requests",
+          "sheduller",
+          "telemetry",
+          "threads",
+          "usage",
+          "webhooks"
+        ]
+      },
+      "back": {
+        "core": "back/back-core",
+        "microservices": {
+          "ai": [
+            "aichat"
+          ],
+          "analytics": [
+            "logs",
+            "telemetry",
+            "usage"
+          ],
+          "business": [
+            "billing",
+            "dag",
+            "equipment",
+            "requests",
+            "reviews",
+            "sheduller",
+            "webhooks"
+          ],
+          "content": [
+            "galery",
+            "markdown",
+            "struct",
+            "video"
+          ],
+          "data": [
+            "dumps",
+            "files",
+            "store"
+          ],
+          "providers": [
+            "push",
+            "sms",
+            "smtp"
+          ],
+          "sequrity": [
+            "access",
+            "auth",
+            "oauth"
+          ],
+          "social": [
+            "calls",
+            "discord",
+            "facebook",
+            "instagram",
+            "notify",
+            "telegram",
+            "threads",
+            "tiktok",
+            "wechat",
+            "youtube"
+          ]
+        }
+      }
+    }
+immutable: false
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: converged-portal-converged-app-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: local-path
+  volumeMode: Filesystem
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: converged-portal-converged-app-sts-service-c8471b02
+spec:
+  clusterIP: None
+  externalIPs: []
+  ports:
+    - port: 3000
+      targetPort: 3000
+  selector:
+    cdk8s.io/metadata.addr: converged-portal-converged-app-sts-c81d3356
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: converged-portal
+    component: converged-app
+  name: converged-portal-converged-app
+spec:
+  minReadySeconds: 0
+  podManagementPolicy: OrderedReady
+  replicas: 1
+  selector:
+    matchLabels:
+      cdk8s.io/metadata.addr: converged-portal-converged-app-sts-c81d3356
+  serviceName: converged-portal-converged-app-sts-service-c8471b02
+  template:
+    metadata:
+      labels:
+        app: converged-portal
+        cdk8s.io/metadata.addr: converged-portal-converged-app-sts-c81d3356
+        component: converged-app
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - env:
+            - name: NODE_ENV
+              value: production
+            - name: PORT
+              value: "3000"
+            - name: CONTAINER_NAME
+              value: converged-app
+            - name: CONFIG_PATH
+              value: /app/config/config.json
+          image: "{{ .Values.image.name }}:{{ .Values.image.tag }}"
+          imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+          name: converged-app
+          ports:
+            - containerPort: 3000
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 1024Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: false
+          volumeMounts:
+            - mountPath: /app/data
+              name: converged-portal-converged-app-data
+            - mountPath: /app/config
+              name: configmap-converged-portal-converged-app-config
+              readOnly: true
+      dnsPolicy: ClusterFirst
+      hostNetwork: false
+      restartPolicy: Always
+      securityContext:
+        fsGroupChangePolicy: Always
+        runAsNonRoot: false
+      setHostnameAsFQDN: false
+      shareProcessNamespace: false
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - configMap:
+            name: converged-portal-converged-app-config
+          name: configmap-converged-portal-converged-app-config
+  updateStrategy:
+    rollingUpdate:
+      partition: 0
+    type: RollingUpdate
+  volumeClaimTemplates:
+    - metadata:
+        name: converged-portal-converged-app-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 5Gi
+        storageClassName: local-path
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: converged-portal
+    component: converged-app
+  name: converged-portal-converged-app-headless
+spec:
+  clusterIP: None
+  externalIPs: []
+  ports:
+    - port: 3000
+      targetPort: 3000
+  selector:
+    cdk8s.io/metadata.addr: converged-portal-converged-app-sts-c81d3356
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: converged-portal
+    component: converged-app
+  name: converged-portal-converged-app
+spec:
+  externalIPs: []
+  ports:
+    - port: 80
+      targetPort: 3000
+  selector:
+    cdk8s.io/metadata.addr: converged-portal-converged-app-sts-c81d3356
+  type: ClusterIP
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: converged-portal-ingress
+spec:
+  entryPoints:
+    - web
+  routes:
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/aichat`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/logs`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/telemetry`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/usage`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/billing`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/dag`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/equipment`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/requests`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/reviews`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/sheduller`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/webhooks`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/galery`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/markdown`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/struct`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/video`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/dumps`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/files`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/store`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/push`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/sms`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/smtp`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/access`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/auth`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/oauth`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/calls`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/discord`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/facebook`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/instagram`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/notify`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/telegram`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/threads`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/tiktok`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/wechat`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/services/youtube`)
+      priority: 100
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/console`)
+      priority: 10
+      services:
+        - name: converged-portal-converged-app
+          port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/`)
+      priority: 1
+      services:
+        - name: converged-portal-converged-app
+          port: 80

@@ -1,0 +1,7 @@
+{
+  "name": "states",
+  "dataLocation": "data/oauth-ms/states/data.lmdb",
+  "version": "1",
+  "type": "KEY_VALUE",
+  "migrations": []
+}

@@ -1,0 +1,14 @@
+{
+  "name": "mf-markdown",
+  "private": true,
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "front-core": "workspace:*",
+    "g-markdown": "workspace:*",
+    "md-tools": "workspace:*"
+  }
+}

@@ -1,0 +1,52 @@
+{
+    "cards": [
+      {
+        "title": "Solicitudes",
+        "value": "45",
+        "badge": {
+          "iconName": "IconTrendingUp",
+          "text": "+15.3%",
+          "className": ""
+        },
+        "footerTitle": "Crecimiento de solicitudes",
+        "footerIconName": "IconTrendingUp",
+        "footerDescription": "Nuevas solicitudes en la última semana"
+      },
+      {
+        "title": "Pedidos",
+        "value": "32",
+        "badge": {
+          "iconName": "IconPackage",
+          "text": "8 nuevos",
+          "className": "bg-green-50 dark:bg-green-950"
+        },
+        "footerTitle": "Pedidos activos en proceso",
+        "footerIconName": "IconPackage",
+        "footerDescription": "Requieren procesamiento y aprobación"
+      },
+      {
+        "title": "Imprimiendo",
+        "value": "18",
+        "badge": {
+          "iconName": "IconPrinter",
+          "text": "en proceso",
+          "className": "bg-blue-50 dark:bg-blue-950"
+        },
+        "footerTitle": "Modelos imprimiéndose ahora",
+        "footerIconName": "IconPrinter",
+        "footerDescription": "Tiempo estimado: 14 horas"
+      },
+      {
+        "title": "Carga",
+        "value": "78%",
+        "badge": {
+          "iconName": "IconDeviceDesktopAnalytics",
+          "text": "alta",
+          "className": "bg-amber-50 dark:bg-amber-950"
+        },
+        "footerTitle": "FDM: 85%, SLA: 73%",
+        "footerIconName": "IconTrendingUp",
+        "footerDescription": "Disponible: 2 de 9 impresoras"
+      }
+    ]
+  }

@@ -1,0 +1,24 @@
+{
+  "name": "mf-assistants",
+  "private": true,
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./components/ChatDetail": "./src/components/ChatDetail.tsx"
+  },
+  "dependencies": {
+    "front-core": "workspace:*",
+    "assistant-state": "workspace:*",
+    "files-state": "workspace:*",
+    "g-assistant": "workspace:*",
+    "g-threads": "workspace:*",
+    "g-store": "workspace:*",
+    "g-files": "workspace:*",
+    "lucide-react": "^0.563.0",
+    "react-markdown": "^10.1.0",
+    "uuid": "^11.1.0",
+    "effector": "23.4.4",
+    "effector-react": "23.3.0"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "users",
+  "dataLocation": "data/auth-ms/users/data.db",
+  "version": "1",
+  "type": "SQL",
+  "migrations": [
+    "create_users",
+    "create_auth_methods",
+    "create_oauth_clients"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "configurator",
+  "version": "2.0.0",
+  "type": "module",
+  "scripts": {},
+  "dependencies": {
+    "cdk8s": "^2.70.26",
+    "cdk8s-plus-31": "^2.6.3",
+    "constructs": "^10.4.3",
+    "yaml": "^2.3.4"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}

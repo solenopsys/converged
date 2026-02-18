@@ -1,0 +1,10 @@
+{
+  "name": "community",
+  "dataLocation": "data/community-ms/community/data.db",
+  "version": "1",
+  "type": "SQL",
+  "migrations": [
+    "create_community_sections",
+    "create_community_topics"
+  ]
+}

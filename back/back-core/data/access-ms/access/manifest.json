@@ -1,0 +1,7 @@
+{
+  "name": "access",
+  "dataLocation": "data/access-ms/access/data.lmdb",
+  "version": "1",
+  "type": "KEY_VALUE",
+  "migrations": []
+}

@@ -1,0 +1,17 @@
+{
+  "name": "ms-millingextractor",
+  "version": "1.0.0",
+  "private": true,
+  "installConfig": {
+    "hoistingLimits": "workspaces"
+  },
+  "type": "module",
+  "exports": {
+    "./plugin": "./src/plugin.ts"
+  },
+  "dependencies": {
+    "nrpc": "workspace:*",
+    "g-millingextractor": "workspace:*",
+    "@opencamlib/opencamlib": "^2023.1.11"
+  }
+}

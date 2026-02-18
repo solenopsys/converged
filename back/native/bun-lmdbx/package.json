@@ -1,0 +1,15 @@
+{
+  "name": "bun-lmdbx",
+  "version": "1.0.0",
+  "module": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "test": "BIN_LIBS_PATH=$(pwd)/bin-libs bun test"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

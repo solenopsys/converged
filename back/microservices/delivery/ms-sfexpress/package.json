@@ -1,0 +1,12 @@
+{
+  "name": "ms-sfexpress",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./plugin": "./src/plugin.ts"
+  },
+  "dependencies": {
+    "nrpc": "workspace:*",
+    "g-shipmentprovider": "workspace:*"
+  }
+}

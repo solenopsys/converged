@@ -1,0 +1,27 @@
+{
+  "name": "back-core",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "dev": "bun run src/dev.ts",
+    "build": "bun build ./src/index.ts --target=bun --outdir=../dist/core --format=esm"
+  },
+  "dependencies": {
+    "bun-lmdbx": "workspace:*",
+    "bun-stanchion": "workspace:*",
+    "bun-vector": "workspace:*",
+    "elysia": "latest",
+    "kysely": "latest",
+    "kysely-bun-sqlite": "latest"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "latest"
+  }
+}

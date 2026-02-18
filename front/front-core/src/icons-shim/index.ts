@@ -1,0 +1,30 @@
+export { default as IconChevronDown } from '@tabler/icons-react/dist/esm/icons/IconChevronDown.mjs';
+export { default as IconChevronLeft } from '@tabler/icons-react/dist/esm/icons/IconChevronLeft.mjs';
+export { default as IconChevronRight } from '@tabler/icons-react/dist/esm/icons/IconChevronRight.mjs';
+export { default as IconChevronsLeft } from '@tabler/icons-react/dist/esm/icons/IconChevronsLeft.mjs';
+export { default as IconChevronsRight } from '@tabler/icons-react/dist/esm/icons/IconChevronsRight.mjs';
+export { default as IconCircleCheckFilled } from '@tabler/icons-react/dist/esm/icons/IconCircleCheckFilled.mjs';
+export { default as IconCreditCard } from '@tabler/icons-react/dist/esm/icons/IconCreditCard.mjs';
+export { default as IconDots } from '@tabler/icons-react/dist/esm/icons/IconDots.mjs';
+export { default as IconDotsVertical } from '@tabler/icons-react/dist/esm/icons/IconDotsVertical.mjs';
+export { default as IconFolder } from '@tabler/icons-react/dist/esm/icons/IconFolder.mjs';
+export { default as IconGripVertical } from '@tabler/icons-react/dist/esm/icons/IconGripVertical.mjs';
+export { default as IconLayoutColumns } from '@tabler/icons-react/dist/esm/icons/IconLayoutColumns.mjs';
+export { default as IconLoader } from '@tabler/icons-react/dist/esm/icons/IconLoader.mjs';
+export { default as IconLogout } from '@tabler/icons-react/dist/esm/icons/IconLogout.mjs';
+export { default as IconNotification } from '@tabler/icons-react/dist/esm/icons/IconNotification.mjs';
+export { default as IconShare3 } from '@tabler/icons-react/dist/esm/icons/IconShare3.mjs';
+export { default as IconTrash } from '@tabler/icons-react/dist/esm/icons/IconTrash.mjs';
+export { default as IconTrendingUp } from '@tabler/icons-react/dist/esm/icons/IconTrendingUp.mjs';
+export { default as IconUserCircle } from '@tabler/icons-react/dist/esm/icons/IconUserCircle.mjs';
+
+import type { ComponentType } from "react";
+import * as TablerIcons from "@tabler/icons-react";
+
+export const getTablerIcon = (
+  name: string
+): ComponentType<{ className?: string }> | null => {
+  return (TablerIcons as Record<string, ComponentType<{ className?: string }>>)[
+    name
+  ] ?? null;
+};

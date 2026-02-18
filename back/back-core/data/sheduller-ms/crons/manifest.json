@@ -1,0 +1,7 @@
+{
+  "name": "crons",
+  "dataLocation": "data/sheduller-ms/crons/data.lmdb",
+  "version": "1",
+  "type": "KEY_VALUE",
+  "migrations": []
+}

@@ -1,0 +1,14 @@
+{
+  "name": "ms-delivery",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./plugin": "./src/plugin.ts"
+  },
+  "dependencies": {
+    "back-core": "workspace:*",
+    "nrpc": "workspace:*",
+    "g-delivery": "workspace:*",
+    "g-shipmentprovider": "workspace:*"
+  }
+}

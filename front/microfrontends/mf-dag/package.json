@@ -1,0 +1,16 @@
+{
+  "name": "mf-dag",
+  "private": true,
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "front-core": "workspace:*",
+    "g-dag": "workspace:*",
+    "dagre": "^0.8.5",
+    "lucide-react": "^0.553.0",
+    "pixi.js": "^8.11.0"
+  }
+}

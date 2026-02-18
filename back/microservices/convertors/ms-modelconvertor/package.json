@@ -1,0 +1,17 @@
+{
+  "name": "ms-modelconvertor",
+  "version": "1.0.0",
+  "private": true,
+  "installConfig": {
+    "hoistingLimits": "workspaces"
+  },
+  "type": "module",
+  "exports": {
+    "./plugin": "./src/plugin.ts"
+  },
+  "dependencies": {
+    "nrpc": "workspace:*",
+    "g-modelconvertor": "workspace:*",
+    "assimpjs": "^0.0.10"
+  }
+}

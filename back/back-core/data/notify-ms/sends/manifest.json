@@ -1,0 +1,9 @@
+{
+  "name": "sends",
+  "dataLocation": "data/notify-ms/sends/data.db",
+  "version": "1",
+  "type": "SQL",
+  "migrations": [
+    "create_notify_sends"
+  ]
+}

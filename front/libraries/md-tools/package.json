@@ -1,0 +1,18 @@
+{
+  "name": "md-tools",
+  "version": "0.1.0",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./renderer": "./src/markdown-renderer.tsx",
+    "./parser": "./src/md4c-wrapper.ts",
+    "./types": "./src/types.ts"
+  },
+  "dependencies": {
+    "bun-md4c": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "*"
+  }
+}

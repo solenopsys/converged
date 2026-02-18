@@ -1,0 +1,16 @@
+{
+  "name": "converged-workflows",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "module": "index.ts",
+  "dependencies": {
+    "back-core": "workspace:*",
+    "marked": "*",
+    "g-logs": "workspace:*",
+    "g-openscadconvertor": "workspace:*",
+    "@mozilla/readability": "*",
+    "jsdom": "*",
+    "turndown": "*"
+  }
+}

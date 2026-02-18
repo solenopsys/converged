@@ -1,0 +1,22 @@
+{
+  "name": "dag-cli",
+  "module": "src/cli.ts",
+  "type": "module",
+  "private": true,
+  "exports": {
+    "./base": "./src/base.ts"
+  },
+  "scripts": {
+    "cli": "bun run --env-file=../../../../confs/cli-dev.env ./src/cli.ts --commands=../../tools/commands",
+    "clip": "bun run --env-file=../../../../cli-prod.env ./src/cli.ts --commands=../../tools/commands"
+  },
+  "dependencies": {
+    "nrpc": "workspace:*",
+    "g-logs": "workspace:*",
+    "g-telemetry": "workspace:*",
+    "g-dumps": "workspace:*",
+    "g-dag": "workspace:*",
+    "g-sheduller": "workspace:*",
+    "yaml": "^2.8.2"
+  }
+}

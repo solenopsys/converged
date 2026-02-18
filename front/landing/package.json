@@ -1,0 +1,35 @@
+{
+  "name": "landing",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./plugin": "./src/plugin.tsx"
+  },
+  "scripts": {
+    "dev": "bun run src/dev.ts",
+    "build:client": "bun run ../ssr/src/tools/build-client.ts",
+    "build:mf": "bun run ../ssr/src/tools/build-microfrontends.ts"
+  },
+  "dependencies": {
+    "react": "latest",
+    "react-dom": "latest",
+    "react-router-dom": "latest",
+    "elysia": "latest",
+    "@elysiajs/static": "latest",
+    "unocss": "latest",
+    "effector": "latest",
+    "effector-react": "latest",
+    "front-core": "workspace:*",
+    "front-ssr": "workspace:*",
+    "md-tools": "workspace:*",
+    "g-markdown": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "@types/bun": "latest",
+    "lightningcss": "^1.30.2",
+    "typescript": "latest"
+  }
+}

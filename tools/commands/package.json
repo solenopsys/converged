@@ -1,0 +1,14 @@
+{
+  "name": "tools-commands",
+  "private": true,
+  "type": "module",
+  "module": "./logs.ts",
+  "dependencies": {
+    "nrpc": "workspace:*",
+    "g-logs": "workspace:*",
+    "g-telemetry": "workspace:*",
+    "g-dumps": "workspace:*",
+    "g-dag": "workspace:*",
+    "g-sheduller": "workspace:*"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "ms-dag",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./plugin": "./src/plugin.ts"
+  },
+  "dependencies": {
+    "@mozilla/readability": "latest",
+    "back-core": "workspace:*",
+    "elysia": "latest",
+    "g-dag": "workspace:*",
+    "jsdom": "latest",
+    "jsonpath-plus": "latest",
+    "marked": "latest",
+    "converged-workflows": "workspace:*",
+    "nrpc": "workspace:*",
+    "pg": "latest",
+    "tiktoken": "latest",
+    "turndown": "latest"
+  }
+}

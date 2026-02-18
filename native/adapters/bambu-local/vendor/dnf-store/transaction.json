@@ -1,0 +1,12 @@
+{
+  "rpms":[
+    {
+      "nevra":"openssl-devel-1:3.5.4-2.fc43.x86_64",
+      "action":"Install",
+      "reason":"User",
+      "repo_id":"updates",
+      "package_path":".\/packages\/openssl-devel-3.5.4-2.fc43.x86_64.rpm"
+    }
+  ],
+  "version":"1.0"
+}

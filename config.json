@@ -1,0 +1,200 @@
+{
+  "name": "converged-portal",
+  "description": "Converged Portal — full platform",
+
+  "baseImage": "docker.io/oven/bun:1.3-alpine",
+
+  "landing": "front/landing",
+
+  "runtimeDeps": {
+    "packages": { "sharp": "latest" },
+    "apk": ["vips"]
+  },
+
+  "spa": {
+    "core": "front/front-core",
+    "microfrontends": [
+      "auth",
+      "assistants",
+      "community",
+      "charts",
+      "calls",
+      "dag",
+      "dasboards",
+      "dumps",
+      "docs",
+      "landing",
+      "logs",
+      "markdown",
+      "requests",
+      "sheduller",
+      "telemetry",
+      "threads",
+      "usage",
+      "webhooks"
+    ]
+  },
+
+  "back": {
+    "core": "back/back-core",
+    "microservices": {
+      "ai": ["assistant"],
+      "analytics": ["logs", "telemetry", "usage"],
+      "business": [
+        "billing",
+        "dag",
+        "equipment",
+        "requests",
+        "reviews",
+        "sheduller",
+        "webhooks"
+      ],
+      "content": ["galery", "markdown", "struct", "video"],
+      "data": ["dumps", "files", "store"],
+      "providers": ["push", "sms", "smtp"],
+      "sequrity": ["access", "auth", "oauth"],
+      "social": [
+        "community",
+        "charts",
+        "calls",
+        "discord",
+        "facebook",
+        "instagram",
+        "notify",
+        "telegram",
+        "threads",
+        "tiktok",
+        "wechat",
+        "youtube"
+      ]
+    }
+  },
+
+  "presets": {
+    "mono": {
+      "description": "Single container with everything",
+      "containers": [
+        {
+          "name": "converged-app",
+          "landing": true,
+          "spa": true,
+          "microfrontends": "*",
+          "microservices": "*",
+          "resources": {
+            "requests": { "cpu": "100m", "memory": "256Mi" },
+            "limits": { "cpu": "1000m", "memory": "1Gi" }
+          }
+        }
+      ]
+    },
+
+    "micro": {
+      "description": "Multiple containers split by domain",
+      "containers": [
+        {
+          "name": "gateway",
+          "landing": true,
+          "spa": true,
+          "microfrontends": ["dasboards"],
+          "microservices": [],
+          "resources": {
+            "requests": { "cpu": "100m", "memory": "128Mi" },
+            "limits": { "cpu": "500m", "memory": "512Mi" }
+          }
+        },
+        {
+          "name": "security",
+          "microfrontends": ["auth"],
+          "microservices": ["sequrity/*"],
+          "resources": {
+            "requests": { "cpu": "100m", "memory": "128Mi" },
+            "limits": { "cpu": "500m", "memory": "256Mi" }
+          }
+        },
+        {
+          "name": "ai",
+          "microfrontends": ["assistants"],
+          "microservices": ["ai/*"],
+          "resources": {
+            "requests": { "cpu": "200m", "memory": "256Mi" },
+            "limits": { "cpu": "1000m", "memory": "1Gi" }
+          }
+        },
+        {
+          "name": "social",
+          "microfrontends": ["community", "calls", "charts", "threads"],
+          "microservices": ["social/*"],
+          "resources": {
+            "requests": { "cpu": "100m", "memory": "128Mi" },
+            "limits": { "cpu": "500m", "memory": "512Mi" }
+          }
+        },
+        {
+          "name": "business",
+          "microfrontends": ["dag", "requests", "sheduller", "webhooks"],
+          "microservices": ["business/*"],
+          "resources": {
+            "requests": { "cpu": "100m", "memory": "128Mi" },
+            "limits": { "cpu": "500m", "memory": "512Mi" }
+          }
+        },
+        {
+          "name": "data",
+          "microfrontends": ["dumps", "logs", "telemetry", "usage"],
+          "microservices": ["data/*", "analytics/*"],
+          "resources": {
+            "requests": { "cpu": "100m", "memory": "128Mi" },
+            "limits": { "cpu": "500m", "memory": "512Mi" }
+          }
+        },
+        {
+          "name": "content",
+          "microfrontends": ["markdown", "docs", "landing"],
+          "microservices": ["content/*"],
+          "resources": {
+            "requests": { "cpu": "100m", "memory": "128Mi" },
+            "limits": { "cpu": "500m", "memory": "256Mi" }
+          }
+        },
+        {
+          "name": "providers",
+          "microservices": ["providers/*"],
+          "resources": {
+            "requests": { "cpu": "100m", "memory": "128Mi" },
+            "limits": { "cpu": "500m", "memory": "256Mi" }
+          }
+        }
+      ]
+    },
+
+    "scale": {
+      "description": "Each microservice in separate container",
+      "containers": "auto"
+    }
+  },
+
+  "storage": {
+    "defaultSize": "5Gi",
+    "mountBase": "/app/data",
+    "overrides": {
+      "files": { "size": "100Gi" },
+      "dumps": { "size": "50Gi" },
+      "store": { "size": "20Gi" }
+    }
+  },
+
+  "ingress": {
+    "className": "traefik",
+    "host": "app.example.com",
+    "tls": {
+      "enabled": false
+    }
+  },
+
+  "env": {
+    "common": {
+      "NODE_ENV": "production"
+    },
+    "secrets": ["OPENAI_API_KEY", "CLAUDE_API_KEY", "JWT_SECRET"]
+  }
+}

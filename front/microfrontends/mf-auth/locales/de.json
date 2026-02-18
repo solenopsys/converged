@@ -1,0 +1,34 @@
+{
+    "welcome": {
+      "heading": "Willkommen",
+      "description": "Melden Sie sich bei Ihrem Acme Inc-Konto an"
+    },
+    "form": {
+      "email": "E-Mail",
+      "password": "Passwort",
+      "forgotPassword": "Passwort vergessen?"
+    },
+    "button": {
+      "login": "Einloggen",
+      "loggingIn": "Anmeldung läuft...",
+      "continueWith": "Oder weiter mit",
+      "loginWithApple": "Mit Apple einloggen",
+      "loginWithGoogle": "Mit Google einloggen",
+      "loginWithMeta": "Mit Meta einloggen",
+      "loginWithMicrosoft": "Mit Microsoft einloggen",
+      "loginWithGithub": "Mit GitHub einloggen"
+    },
+    "signup": {
+      "text": "Kein Konto?",
+      "link": "Registrieren"
+    },
+    "legal": {
+      "agreement": "Indem Sie auf „weiter“ klicken, stimmen Sie unseren {{termsLink}} und {{privacyLink}} zu.",
+      "termsOfService": "Nutzungsbedingungen",
+      "privacyPolicy": "Datenschutzrichtlinie"
+    },
+    "notification": {
+      "loginFailed": "Anmeldefehler",
+      "tryAgain": "Bitte versuchen Sie es erneut"
+    }
+  }

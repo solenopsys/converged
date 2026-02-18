@@ -1,0 +1,12 @@
+{
+  "name": "mf-calls",
+  "private": true,
+  "type": "module",
+  "module": "src/index.ts",
+  "dependencies": {
+    "front-core": "workspace:*",
+    "g-calls": "workspace:*",
+    "dagre": "^0.8.5",
+    "pixi.js": "^8.11.0"
+  }
+}

@@ -1,0 +1,30 @@
+/* Storybook-only fixes.
+   landing-globals.css sets html/body overflow hidden, which blocks scrolling in stories. */
+html,
+body {
+  height: auto !important;
+  min-height: 100% !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+#root,
+#storybook-root {
+  min-height: 100vh;
+  overflow: visible !important;
+}
+
+/* Docs mode: keep text readable inside light code/source blocks. */
+.sbdocs .docblock-source,
+.sbdocs pre,
+.sbdocs pre code,
+.sbdocs .docblock-code-toggle,
+.sbdocs .docblock-argstable,
+.sbdocs .docblock-argstable code {
+  color: #0f172a !important;
+}
+
+.sbdocs .docblock-source,
+.sbdocs pre {
+  background: #f8fafc !important;
+}

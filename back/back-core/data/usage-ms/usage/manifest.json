@@ -1,0 +1,9 @@
+{
+  "name": "usage",
+  "dataLocation": "data/usage-ms/usage/data.db",
+  "version": "1",
+  "type": "SQL",
+  "migrations": [
+    "create_usage"
+  ]
+}

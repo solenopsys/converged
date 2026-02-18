@@ -1,0 +1,7 @@
+{
+  "name": "contexts",
+  "dataLocation": "data/aichat-ms/contexts/data",
+  "version": "1",
+  "type": "FILES",
+  "migrations": []
+}

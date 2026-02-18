@@ -1,0 +1,9 @@
+{
+  "name": "store-workers",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "dependencies": {
+    "fflate": "^0.8.2"
+  }
+}

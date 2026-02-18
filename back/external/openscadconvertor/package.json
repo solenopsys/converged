@@ -1,0 +1,20 @@
+{
+  "name": "openscadconvertor",
+  "version": "1.0.0",
+  "private": true,
+  "installConfig": {
+    "hoistingLimits": "workspaces"
+  },
+  "type": "module",
+  "exports": {
+    "./plugin": "./src/plugin.ts"
+  },
+  "scripts": {
+    "start": "bun run src/server.ts"
+  },
+  "dependencies": {
+    "elysia": "^1.4.15",
+    "nrpc": "workspace:*",
+    "g-openscadconvertor": "workspace:*"
+  }
+}

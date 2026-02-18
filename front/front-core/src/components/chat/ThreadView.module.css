@@ -1,0 +1,61 @@
+.container {
+  height: 100%;
+}
+
+.messageRow {
+  display: flex;
+  margin-bottom: 0.75rem;
+}
+
+.messageRowOwn {
+  justify-content: flex-end;
+  padding-right: 0.5rem;
+}
+
+.messageRowPeer {
+  justify-content: flex-start;
+  padding-left: 0.5rem;
+}
+
+.ownBubble {
+  max-width: 80%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 1rem;
+  border-top-right-radius: 0.25rem;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.peerBubble {
+  max-width: 80%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 1rem;
+  border-top-left-radius: 0.25rem;
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+}
+
+.author {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  margin-bottom: 0.25rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.content {
+  white-space: pre-wrap;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.empty {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.875rem;
+  padding: 0.5rem;
+}
+
+.loading {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.875rem;
+  padding: 0.5rem;
+}

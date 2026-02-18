@@ -1,0 +1,86 @@
+.error {
+  padding: 0.5rem 1rem;
+  color: hsl(var(--destructive));
+  border-bottom: 1px solid hsl(var(--border));
+  font-size: 0.875rem;
+}
+
+.roomsBar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.roomsLabel {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.roomsSelect {
+  border: 1px solid hsl(var(--border));
+  background: transparent;
+  border-radius: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  min-width: 10rem;
+}
+
+.loading {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.875rem;
+  padding: 0.5rem;
+}
+
+.emptyState {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.875rem;
+  padding: 0.5rem;
+}
+
+.messageRow {
+  display: flex;
+  margin-bottom: 0.75rem;
+}
+
+.messageRowUser {
+  justify-content: flex-end;
+  padding-right: 0.5rem;
+}
+
+.messageRowPeer {
+  justify-content: flex-start;
+  padding-left: 0.5rem;
+}
+
+.userBubble {
+  max-width: 80%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 1rem;
+  border-top-right-radius: 0.25rem;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.peerBubble {
+  max-width: 80%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 1rem;
+  border-top-left-radius: 0.25rem;
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+}
+
+.peerUser {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  margin-bottom: 0.25rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.messageText {
+  white-space: pre-wrap;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}

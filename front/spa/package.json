@@ -1,0 +1,27 @@
+{
+  "name": "front-spa",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./plugin": "./src/plugin.ts"
+  },
+  "dependencies": {
+    "elysia": "latest",
+    "front-core": "workspace:*",
+    "react": "latest",
+    "react-dom": "latest",
+    "react-router-dom": "latest",
+    "effector": "23.4.4",
+    "effector-react": "23.3.0",
+    "lucide-react": "^0.563.0",
+    "dagre": "^0.8.5",
+    "pixi.js": "^8.15.0",
+    "recharts": "3.7.0",
+    "sonner": "2.0.7"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "latest"
+  }
+}

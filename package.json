@@ -1,23 +1,52 @@
 {
-	"name": "converged",
-	"version": "0.1.0",
-	"author": "Aleksei Shtorm",
-	"license": "AGPL-3.0",
-	"private": true,
-	"scripts": {
-		"format": "biome format --write .",
-		"lint": "biome lint .",
-		"check": "biome check .",
-		"fix": "biome check --write ."
-	},
-	"dependencies": {
-		"converged": "."
-	},
-	"devDependencies": {
-		"@biomejs/biome": "^1.9.4",
-		"@typescript-eslint/typescript-estree": "^8.37.0",
-		"eslint": "^9.26.0",
-		"ts-morph": "^26.0.0",
-		"typescript": "^5.8.3"
-	}
+  "name": "converged-portal",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "workspaces": [
+    "back/back-core",
+    "back/external/*",
+    "back/native/*",
+    "back/workflows",
+    "back/microservices/**/*",
+    "front/front-core",
+    "front/landing",
+    "front/libraries/*",
+    "front/microfrontends/*",
+    "front/spa",
+    "front/ssr",
+    "front/widget",
+    "tools/*",
+    "tools/integration/*",
+    "tools/integration/generated/*"
+  ],
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.13",
+    "@playwright/test": "^1.58.2",
+    "@types/bun": "latest",
+    "typescript": "latest"
+  },
+  "dependencies": {
+    "@elysiajs/cors": "^1.4.1",
+    "@elysiajs/static": "latest",
+    "elysia": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "react-router": "^7.13.0",
+    "react-router-dom": "latest",
+    "unocss": "latest"
+  },
+  "scripts": {
+    "dev": "BOOTSTRAP_ENV_DIR=../../confs bun run --cwd tools/configurator src/cli.ts dev --project=converged-portal",
+    "build:mono": "BOOTSTRAP_ENV_DIR=../../confs bun run --cwd tools/configurator src/cli.ts build --project=converged-portal --preset=mono --output=../../deployment",
+    "build:micro": "BOOTSTRAP_ENV_DIR=../../confs bun run --cwd tools/configurator src/cli.ts build --project=converged-portal --preset=micro --output=../../deployment",
+    "build:scale": "BOOTSTRAP_ENV_DIR=../../confs bun run --cwd tools/configurator src/cli.ts build --project=converged-portal --preset=scale --output=../../deployment",
+    "build:container": "podman build --layers -f ./deployment/mono/containers/converged-portal.Containerfile -t converged-portal ../../..",
+    "cli": "bun run --env-file=../../confs/cli-dev.env tools/cli/src/cli.ts --commands=tools/commands",
+    "clip": "bun run --env-file=../../cli-prod.env tools/cli/src/cli.ts --commands=tools/commands",
+    "k3s:import": "podman save converged-portal:latest -o /tmp/converged-portal.tar && sudo k3s ctr images import /tmp/converged-portal.tar && rm /tmp/converged-portal.tar",
+    "format": "biome format --write .",
+    "lint": "biome lint .",
+    "check": "biome check ."
+  }
 }

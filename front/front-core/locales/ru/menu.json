@@ -1,0 +1,133 @@
+{
+    "user": {
+      "name": "alexstorm",
+      "email": "register@4ir.club",
+      "avatar": "/avatars/shadcn.jpg"
+    },
+    "navMain": [
+      {
+        "title": "Статистика",
+        "url": "#",
+        "iconName": "IconChartHistogram"
+      },
+      {
+        "title": "Функции ИИ",
+        "url": "#",
+        "iconName": "IconAi",
+        "items": [
+          {
+            "title": "Телефония ИИ",
+            "url": "#"
+          },
+          {
+            "title": "Чат ИИ",
+            "url": "#"
+          },
+          {
+            "title": "Агенты ИИ",
+            "url": "#"
+          }
+        ]
+      },
+      {
+        "title": "Продажи",
+        "url": "#",
+        "iconName": "IconBusinessplan",
+        "items": [
+          {
+            "title": "Заявки",
+            "url": "#"
+          },
+          {
+            "title": "Заказы",
+            "url": "#"
+          },
+          {
+            "title": "Доставка",
+            "url": "#"
+          },
+          {
+            "title": "Клиенты",
+            "url": "#"
+          }
+        ]
+      },
+      {
+        "title": "Персонал",
+        "url": "#",
+        "iconName": "IconUsers"
+      }
+    ],
+    "navClouds": [
+      {
+        "title": "Capture",
+        "iconName": "IconCamera",
+        "isActive": true,
+        "url": "#",
+        "items": [
+          {
+            "title": "Active Proposals",
+            "url": "#"
+          },
+          {
+            "title": "Archived",
+            "url": "#"
+          }
+        ]
+      },
+      {
+        "title": "Proposal",
+        "iconName": "IconFileDescription",
+        "url": "#",
+        "items": [
+          {
+            "title": "Active Proposals",
+            "url": "#"
+          },
+          {
+            "title": "Archived",
+            "url": "#"
+          }
+        ]
+      },
+      {
+        "title": "Prompts",
+        "iconName": "IconFileAi",
+        "url": "#",
+        "items": [
+          {
+            "title": "Active Proposals",
+            "url": "#"
+          },
+          {
+            "title": "Archived",
+            "url": "#"
+          }
+        ]
+      }
+    ],
+    "navSecondary": [
+      {
+        "title": "Settings",
+        "url": "#",
+        "iconName": "IconSettings"
+      }
+    ],
+    "documents": [
+      {
+        "name": "Data Library",
+        "url": "#",
+        "iconName": "IconDatabase"
+      },
+      {
+        "name": "Reports",
+        "url": "#",
+        "iconName": "IconReport"
+      },
+      {
+        "name": "Word Assistant",
+        "url": "#",
+        "iconName": "IconFileWord"
+      }
+    ]
+  }

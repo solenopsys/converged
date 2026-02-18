@@ -1,0 +1,7 @@
+ingress:
+  host: converged-portal.test
+
+image:
+  name: public.ecr.aws/i5x9u8b2/converged-portal
+  tag: latest
+  pullPolicy: Never

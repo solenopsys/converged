@@ -1,0 +1,14 @@
+{
+  "name": "mf-sheduller",
+  "private": true,
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "front-core": "workspace:*",
+    "g-sheduller": "workspace:*",
+    "lucide-react": "^0.553.0"
+  }
+}

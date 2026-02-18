@@ -1,0 +1,9 @@
+{
+  "name": "billing",
+  "dataLocation": "data/billing-ms/billing/data.db",
+  "version": "1",
+  "type": "SQL",
+  "migrations": [
+    "create_billing_entries"
+  ]
+}

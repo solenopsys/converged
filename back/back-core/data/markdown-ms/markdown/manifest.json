@@ -1,0 +1,7 @@
+{
+  "name": "markdown",
+  "dataLocation": "data/markdown-ms/markdown/data",
+  "version": "1",
+  "type": "FILES",
+  "migrations": []
+}

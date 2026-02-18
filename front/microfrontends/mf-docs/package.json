@@ -1,0 +1,15 @@
+{
+  "name": "mf-docs",
+  "private": true,
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "front-core": "workspace:*",
+    "g-markdown": "workspace:*",
+    "g-struct": "workspace:*",
+    "md-tools": "workspace:*"
+  }
+}

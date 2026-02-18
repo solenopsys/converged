@@ -1,0 +1,32 @@
+{
+  "name": "front-ssr",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./plugin": "./src/plugin.tsx",
+    "./tools/build-client": "./src/tools/build-client.ts",
+    "./tools/build-microfrontends": "./src/tools/build-microfrontends.ts"
+  },
+  "scripts": {
+    "build:client": "bun run src/tools/build-client.ts",
+    "build:mf": "bun run src/tools/build-microfrontends.ts"
+  },
+  "dependencies": {
+    "react": "latest",
+    "react-dom": "latest",
+    "react-router-dom": "latest",
+    "elysia": "latest",
+    "@elysiajs/static": "latest",
+    "front-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "@types/bun": "latest",
+    "typescript": "latest",
+    "unocss": "66.5.10",
+    "@unocss/preset-icons": "66.5.10",
+    "@unocss/reset": "66.5.10"
+  }
+}

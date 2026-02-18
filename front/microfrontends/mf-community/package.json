@@ -1,0 +1,14 @@
+{
+  "name": "mf-community",
+  "private": true,
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "front-core": "workspace:*",
+    "g-community": "workspace:*",
+    "g-threads": "workspace:*"
+  }
+}

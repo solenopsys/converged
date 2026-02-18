@@ -1,0 +1,133 @@
+{
+    "user": {
+        "name": "alexstorm",
+        "email": "register@4ir.club",
+        "avatar": "/avatars/shadcn.jpg"
+    },
+    "navMain": [
+        {
+            "title": "Statistik",
+            "url": "#",
+            "iconName": "IconChartHistogram"
+        },
+        {
+            "title": "KI-Funktionen",
+            "url": "#",
+            "iconName": "IconAi",
+            "items": [
+                {
+                    "title": "KI-Telefonie",
+                    "url": "#"
+                },
+                {
+                    "title": "KI-Chat",
+                    "url": "#"
+                },
+                {
+                    "title": "KI-Agenten",
+                    "url": "#"
+                }
+            ]
+        },
+        {
+            "title": "Verkäufe",
+            "url": "#",
+            "iconName": "IconBusinessplan",
+            "items": [
+                {
+                    "title": "Anfragen",
+                    "url": "#"
+                },
+                {
+                    "title": "Bestellungen",
+                    "url": "#"
+                },
+                {
+                    "title": "Lieferung",
+                    "url": "#"
+                },
+                {
+                    "title": "Kunden",
+                    "url": "#"
+                }
+            ]
+        },
+        {
+            "title": "Personal",
+            "url": "#",
+            "iconName": "IconUsers"
+        }
+    ],
+    "navClouds": [
+        {
+            "title": "Erfassen",
+            "iconName": "IconCamera",
+            "isActive": true,
+            "url": "#",
+            "items": [
+                {
+                    "title": "Aktive Vorschläge",
+                    "url": "#"
+                },
+                {
+                    "title": "Archiviert",
+                    "url": "#"
+                }
+            ]
+        },
+        {
+            "title": "Vorschlag",
+            "iconName": "IconFileDescription",
+            "url": "#",
+            "items": [
+                {
+                    "title": "Aktive Vorschläge",
+                    "url": "#"
+                },
+                {
+                    "title": "Archiviert",
+                    "url": "#"
+                }
+            ]
+        },
+        {
+            "title": "Eingabeaufforderungen",
+            "iconName": "IconFileAi",
+            "url": "#",
+            "items": [
+                {
+                    "title": "Aktive Vorschläge",
+                    "url": "#"
+                },
+                {
+                    "title": "Archiviert",
+                    "url": "#"
+                }
+            ]
+        }
+    ],
+    "navSecondary": [
+        {
+            "title": "Einstellungen",
+            "url": "#",
+            "iconName": "IconSettings"
+        }
+    ],
+    "documents": [
+        {
+            "name": "Datenbibliothek",
+            "url": "#",
+            "iconName": "IconDatabase"
+        },
+        {
+            "name": "Berichte",
+            "url": "#",
+            "iconName": "IconReport"
+        },
+        {
+            "name": "Wortassistent",
+            "url": "#",
+            "iconName": "IconFileWord"
+        }
+    ]
+}

@@ -1,0 +1,16 @@
+{
+  "name": "ms-agent",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    "./plugin": "./src/plugin.ts"
+  },
+  "dependencies": {
+    "back-core": "workspace:*",
+    "nrpc": "workspace:*",
+    "g-agent": "workspace:*",
+    "@anthropic-ai/sdk": "latest",
+    "openai": "latest"
+  }
+}

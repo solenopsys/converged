@@ -1,0 +1,40 @@
+import { useUnit } from "effector-react";
+import { HeaderPanel } from "front-core";
+import { Save } from "lucide-react";
+import { $selectedMd, saveMdClicked } from "../domain-markdown";
+
+export const MdEditView = () => {
+  const selectedMd = useUnit($selectedMd);
+
+  if (!selectedMd) {
+    return <div>No file selected</div>;
+  }
+
+  const headerConfig = {
+    title: selectedMd.path,
+    actions: [
+      {
+        id: "save",
+        label: "Save",
+        icon: Save,
+        event: () => saveMdClicked(selectedMd),
+        variant: "default" as const,
+      },
+    ],
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      <HeaderPanel config={headerConfig} />
+      <div className="flex-1 overflow-hidden p-4">
+        <textarea
+          className="w-full h-full p-4 font-mono text-sm border rounded resize-none"
+          value={selectedMd.content}
+          onChange={(e) => {
+            // TODO: update store
+          }}
+        />
+      </div>
+    </div>
+  );
+};
