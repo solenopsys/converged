@@ -10,7 +10,7 @@ A manufacturing company gets one portal with an admin panel instead of a dozen d
 
 Development track: [github.com/solenopsys/converged](https://github.com/solenopsys/converged)
 
-![Converged Portal — Dashboard](./app-screen.png)
+![Converged Portal — Dashboard](./app-screen.jpg)
 
 ---
 
