@@ -1,14 +1,18 @@
 # Converged
 
-Converged is an AI shift supervisor for manufacturing: it watches the entire floor — machines, orders, people, money — and lets anyone on the team ask questions or trigger actions through a chat interface. Instead of learning ten different tools, an operator types "what's the queue on printer 3?" or "send the client an update on order 47" — and the system handles it.
+A CNC shop or 3D print bureau has two kinds of work: making things, and everything around making things.
 
-Under the hood, Converged connects to your equipment (3D printers, CNC machines, robotic arms), aggregates telemetry, manages order queues, tracks inventory and payments, and routes communication across Telegram, email, and other channels. It does not replace what you already have — it sits on top and ties it together into one operational layer.
+The second kind — incoming requests, client messages, order statuses, file handling, queue management, notifications, delivery tracking, payment events, "is it ready yet?" at 11pm — does not require a machinist. It requires a system. That is what Converged is.
 
-Think of it as OctoPrint and OctoFarm taken to the next level. Those tools give you a unified interface to printers, but each machine remains a separate device. Converged goes further — it collects data from the entire fleet and manages it as a single digital factory: shared queues, load balancing, telemetry, and business processes on top. This is not an "interface to devices" — it is an operational layer for the whole shop. The system is clustered and modular: scales horizontally by adding nodes, extends by plugging in new modules without touching the core.
+Converged is the digital layer of a manufacturing business. Every task that can be handled by software is handled by Converged. The shop focuses on production.
 
-The automation engine is a DAG process builder (similar to n8n) — it controls order routing, escalations, queue balancing, and operation chains. AI sits on top of that as a conversational interface: the operator types in chat, the agent figures out what needs to happen and calls the right service or automation. The platform connects to multiple LLM providers simultaneously (OpenAI, Anthropic, DeepSeek, Mistral, Gemini), all within a unified permissions and audit model.
+In practice this means: a client sends a file on Telegram — it gets logged and routed. A new order comes in — it enters the queue, the right person is notified, deadlines are tracked. A machine finishes a job — the next task is assigned automatically. The team asks "what's the status of order 47?" in chat — the AI answers. Nobody has to chase anything manually.
 
-The set of active modules is defined by configuration — the same building blocks compose into any profile: 3D print bureau, contract manufacturing, R&D lab, distributed network of workshops.
+On the equipment side, Converged connects directly to the machines — 3D printers (Bambu Lab, Marlin, Klipper), CNC machines, robotic arms — and manages the entire fleet as one: shared queues, load distribution, real-time telemetry. Think of OctoPrint or OctoFarm, but one level up: instead of an interface to individual printers, you get an operational layer across the whole floor with business processes on top.
+
+Workflows are built on a DAG automation engine (similar to n8n) — order routing, escalations, queue balancing, multi-step chains. AI sits on top as the interaction layer: operators and clients communicate in natural language, the system figures out what to do. Multiple LLM providers run simultaneously (OpenAI, Anthropic, DeepSeek, Mistral, Gemini), each for its own tasks, within a unified permissions and audit model.
+
+The platform is modular and open-source. The same building blocks configure into any profile: 3D print bureau, CNC contract shop, R&D lab, distributed network of workshops.
 
 Development track: [github.com/solenopsys/converged](https://github.com/solenopsys/converged)
 
