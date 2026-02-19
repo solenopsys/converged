@@ -12,7 +12,7 @@ On the equipment side, Converged reads telemetry from the machines — 3D printe
 
 Workflows are built on a DAG automation engine (similar to n8n) — order routing, escalations, queue balancing, multi-step chains. AI sits on top as the interaction layer: operators and clients communicate in natural language, the system figures out what to do. Multiple LLM providers run simultaneously (OpenAI, Anthropic, DeepSeek, Mistral, Gemini), each for its own tasks, within a unified permissions and audit model.
 
-The platform is modular and open-source. The same building blocks configure into any profile: 3D print service, CNC job shop, R&D lab, distributed network of workshops.
+The platform is modular and open-source. The same building blocks configure into any profile: 3D printing service bureau, CNC job shop, R&D lab, distributed network of workshops.
 
 Development track: [github.com/solenopsys/converged](https://github.com/solenopsys/converged)
 

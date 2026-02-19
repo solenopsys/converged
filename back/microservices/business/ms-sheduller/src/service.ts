@@ -5,9 +5,12 @@ import type {
   CronInput,
   CronUpdate,
   CronListParams,
+  CronHistoryEntry,
+  CronHistoryListParams,
   PaginatedResult,
   CronStatus,
   ProviderDefinition,
+  ShedullerStats,
 } from "./types";
 import { StoresController } from "./stores";
 import { getProviderDefinition, listProviderDefinitions } from "./providers";
@@ -73,6 +76,19 @@ export class ShedullerServiceImpl implements ShedullerService {
     return Promise.resolve(listProviderDefinitions());
   }
 
+  listHistory(params: CronHistoryListParams): Promise<PaginatedResult<CronHistoryEntry>> {
+    return Promise.resolve(this.stores.history.list(params));
+  }
+
+  getStats(): Promise<ShedullerStats> {
+    const crons = this.stores.crons.list({ offset: 0, limit: 0 });
+    const history = this.stores.history.list({ offset: 0, limit: 0 });
+    return Promise.resolve({
+      crons: crons.totalCount ?? 0,
+      history: history.totalCount ?? 0,
+    });
+  }
+
   private assertInput(input: CronInput) {
     if (!input?.name || !input?.expression || !input?.provider || !input?.action) {
       const error: any = new Error("name, expression, provider and action are required");
@@ -87,7 +103,7 @@ export class ShedullerServiceImpl implements ShedullerService {
       throw error;
     }
 
-    const action = provider.actions.find((entry) => entry.name === input.action);
+    const action = provider.actions.includes(input.action);
     if (!action) {
       const error: any = new Error(`Unknown action: ${input.action}`);
       error.statusCode = 400;
@@ -106,9 +122,26 @@ export class ShedullerServiceImpl implements ShedullerService {
   private schedule(entry: CronEntry) {
     this.unschedule(entry.id);
     const job = new Cron(entry.expression, () => {
-      // TODO: invoke provider action with entry.params and entry.providerSettings
+      this.invokeProvider(entry);
     });
     this.jobs.set(entry.id, job);
+  }
+
+  private invokeProvider(entry: CronEntry) {
+    if (entry.provider === "log") {
+      const message = entry.params?.message ?? "";
+      const parts = [`[sheduller] cron fired: id=${entry.id} name="${entry.name}"`];
+      if (message) parts.push(`message="${message}"`);
+      console.log(parts.join(" "));
+    }
+
+    this.stores.history.record({
+      cronId: entry.id,
+      cronName: entry.name,
+      provider: entry.provider,
+      action: entry.action,
+      message: entry.params?.message,
+    });
   }
 
   private unschedule(id: string) {

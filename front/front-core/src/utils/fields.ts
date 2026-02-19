@@ -23,6 +23,7 @@ export interface FieldConfig {
   defaultValue?: any;
   formGroup?: string;
   helpText?: string;
+  onChange?: (value: any) => void;
   validation?: {
     pattern?: RegExp;
     min?: number;
@@ -111,14 +112,14 @@ export const getDefaultValues = (fields: FieldConfig[]) => {
  * Validate field value based on field configuration
  */
 export const validateField = (field: FieldConfig, value: any): string | null => {
-  if (!field.validation) return null;
-
-  const { validation } = field;
-
-  // Required check
+  // Required check (independent of validation rules)
   if (field.required && (value === undefined || value === null || value === '')) {
     return `${field.title} is required`;
   }
+
+  if (!field.validation) return null;
+
+  const { validation } = field;
 
   // Pattern validation
   if (validation.pattern && typeof value === 'string' && !validation.pattern.test(value)) {

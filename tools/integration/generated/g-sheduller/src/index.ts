@@ -5,24 +5,10 @@ export type CronStatus = "active" | "paused";
 
 export type ProviderSettings = Record<string, any>;
 
-export type ProviderParam = {
-  name: string;
-  type: string;
-  required?: boolean;
-  description?: string;
-};
-
-export type ProviderActionDefinition = {
-  name: string;
-  description?: string;
-  params?: ProviderParam[];
-};
-
 export type ProviderDefinition = {
   code: string;
   title?: string;
-  settings?: ProviderParam[];
-  actions: ProviderActionDefinition[];
+  actions: string[];
 };
 
 export type CronEntry = {
@@ -68,6 +54,27 @@ export interface PaginatedResult {
   items: T[];
   totalCount?: number;
 }
+
+export type CronHistoryEntry = {
+  id: string;
+  cronId: string;
+  cronName: string;
+  provider: string;
+  action: string;
+  firedAt: string;
+  message?: string;
+};
+
+export type CronHistoryListParams = {
+  offset: number;
+  limit: number;
+  cronId?: string;
+};
+
+export type ShedullerStats = {
+  crons: number;
+  history: number;
+};
 
 export const metadata = {
   "interfaceName": "ShedullerService",
@@ -162,6 +169,29 @@ export const metadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
+    },
+    {
+      "name": "listHistory",
+      "parameters": [
+        {
+          "name": "params",
+          "type": "CronHistoryListParams",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "getStats",
+      "parameters": [],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -174,16 +204,8 @@ export const metadata = {
       "definition": "Record<string, any>"
     },
     {
-      "name": "ProviderParam",
-      "definition": "{\n  name: string;\n  type: string;\n  required?: boolean;\n  description?: string;\n}"
-    },
-    {
-      "name": "ProviderActionDefinition",
-      "definition": "{\n  name: string;\n  description?: string;\n  params?: ProviderParam[];\n}"
-    },
-    {
       "name": "ProviderDefinition",
-      "definition": "{\n  code: string;\n  title?: string;\n  settings?: ProviderParam[];\n  actions: ProviderActionDefinition[];\n}"
+      "definition": "{\n  code: string;\n  title?: string;\n  actions: string[];\n}"
     },
     {
       "name": "CronEntry",
@@ -218,6 +240,18 @@ export const metadata = {
           "isArray": false
         }
       ]
+    },
+    {
+      "name": "CronHistoryEntry",
+      "definition": "{\n  id: string;\n  cronId: string;\n  cronName: string;\n  provider: string;\n  action: string;\n  firedAt: string;\n  message?: string;\n}"
+    },
+    {
+      "name": "CronHistoryListParams",
+      "definition": "{\n  offset: number;\n  limit: number;\n  cronId?: string;\n}"
+    },
+    {
+      "name": "ShedullerStats",
+      "definition": "{\n  crons: number;\n  history: number;\n}"
     }
   ]
 };
@@ -230,6 +264,8 @@ export interface ShedullerService {
   getCron(id: string): Promise<any>;
   listCrons(params: CronListParams): Promise<any>;
   listProviders(): Promise<any>;
+  listHistory(params: CronHistoryListParams): Promise<any>;
+  getStats(): Promise<any>;
 }
 
 // Client interface
@@ -240,6 +276,8 @@ export interface ShedullerServiceClient {
   getCron(id: string): Promise<any>;
   listCrons(params: CronListParams): Promise<any>;
   listProviders(): Promise<any>;
+  listHistory(params: CronHistoryListParams): Promise<any>;
+  getStats(): Promise<any>;
 }
 
 // Factory function

@@ -63,13 +63,18 @@ export const BasicFormView: React.FC<BasicFormViewProps> = ({
   const [formData, setFormData] = useState<Record<string, any>>(() => {
     const initial: Record<string, any> = {};
     fields.forEach(field => {
+      let val: any;
       if (entity && entity[field.id] !== undefined) {
-        initial[field.id] = entity[field.id];
+        val = entity[field.id];
       } else if (field.defaultValue !== undefined) {
-        initial[field.id] = field.defaultValue;
+        val = field.defaultValue;
       } else {
-        initial[field.id] = '';
+        val = '';
       }
+      if (field.type === FIELD_TYPES.TEXTAREA && val !== null && typeof val === 'object') {
+        val = JSON.stringify(val, null, 2);
+      }
+      initial[field.id] = val;
     });
     return initial;
   });
@@ -83,7 +88,11 @@ export const BasicFormView: React.FC<BasicFormViewProps> = ({
     if (entity) {
       const updated: Record<string, any> = {};
       fields.forEach(field => {
-        updated[field.id] = entity[field.id] ?? field.defaultValue ?? '';
+        let val = entity[field.id] ?? field.defaultValue ?? '';
+        if (field.type === FIELD_TYPES.TEXTAREA && val !== null && typeof val === 'object') {
+          val = JSON.stringify(val, null, 2);
+        }
+        updated[field.id] = val;
       });
       setFormData(updated);
     }
@@ -92,6 +101,8 @@ export const BasicFormView: React.FC<BasicFormViewProps> = ({
   const handleChange = (fieldId: string, value: any) => {
     setFormData(prev => ({ ...prev, [fieldId]: value }));
     setTouched(prev => ({ ...prev, [fieldId]: true }));
+    const field = fields.find(f => f.id === fieldId);
+    field?.onChange?.(value);
 
     // Clear error for this field
     if (errors[fieldId]) {

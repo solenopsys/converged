@@ -164,7 +164,7 @@ export const HeaderPanel: React.FC<HeaderPanelProps> = ({ config, children }) =>
                   size="sm"
                   onClick={() => handleActionClick(action)}
                   disabled={action.disabled}
-                  className="hidden sm:inline-flex"
+                  className="inline-flex"
                 >
                   {Icon && <Icon className="h-4 w-4 mr-2" />}
                   {action.label}

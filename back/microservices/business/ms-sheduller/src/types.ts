@@ -5,8 +5,9 @@ export type {
   CronUpdate,
   CronStatus,
   CronListParams,
+  CronHistoryEntry,
+  CronHistoryListParams,
   PaginatedResult,
   ProviderDefinition,
-  ProviderParam,
-  ProviderActionDefinition,
+  ShedullerStats,
 } from "g-sheduller";
