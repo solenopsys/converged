@@ -2,7 +2,7 @@
 export abstract class BaseCommandProcessor {
   protected client: any;
   protected paramSplitter: string;
-  protected commandMap: Map<string, Handler>;
+  protected commandMap: Map<string, CommandEntry>;
 
   constructor(client: any, paramSplitter: string = "=") {
     this.client = client;
@@ -11,22 +11,28 @@ export abstract class BaseCommandProcessor {
   }
 
   // Абстрактный метод - должен быть переопределен в наследниках
-  protected abstract initializeCommandMap(): Map<string, Handler>;
+  protected abstract initializeCommandMap(): Map<string, CommandEntry>;
 
   get commands(): string[] {
     return [...this.commandMap.keys()];
   }
 
   async processCommand(command: string, param?: string): Promise<void> {
-    const handler = this.commandMap.get(command);
+    const entry = this.commandMap.get(command);
 
-    if (!handler) {
-      console.log("commands: ", [...this.commandMap.keys()]);
+    if (!entry) {
+      const nameWidth = Math.max(...[...this.commandMap.keys()].map((k) => k.length), 4);
+      console.log("Available commands:\n");
+      console.log(`  ${"name".padEnd(nameWidth)}  description`);
+      console.log(`  ${"─".repeat(nameWidth)}  ${"─".repeat(40)}`);
+      for (const [name, { description }] of this.commandMap) {
+        console.log(`  ${name.padEnd(nameWidth)}  ${description}`);
+      }
       return;
     }
 
     try {
-      await handler(this.client, this.paramSplitter, param);
+      await entry.handler(this.client, this.paramSplitter, param);
     } catch (error) {
       console.error(`Error processing command '${command}':`, error);
       throw error;
@@ -37,4 +43,9 @@ export abstract class BaseCommandProcessor {
 // Интерфейс для handler функций
 export interface Handler {
   (client: any, paramSplitter: string, param?: string): Promise<void>;
+}
+
+export interface CommandEntry {
+  handler: Handler;
+  description: string;
 }

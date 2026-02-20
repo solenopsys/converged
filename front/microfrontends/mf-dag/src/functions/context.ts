@@ -1,45 +1,32 @@
-import dagClient from "../service";
-import ContextViewer from "../views/ContextView"; // Добавил недостающий импорт
-import { CreateAction, CreateWidget, StatCard } from "front-core"; 
-import {  sample } from "effector";
-import domain from "../domain";
-import { createDataFlow } from "src/helpers";
+import { CreateAction, CreateWidget } from "front-core";
+import ContextViewer from "../views/ContextView";
+import { $selectedContext, openContextDetail } from "../domain-contexts";
 
 const SHOW_CONTEXT = "show_context";
 
-const contextFx =domain.createEffect<any, any>();
-const showContextEvent =domain.createEvent<{ contextId: string }>();
-
-sample({ clock: showContextEvent, target: contextFx });
-
-const createContextWidget: CreateWidget<typeof ContextViewer> = () => ({
-    view: ContextViewer,
-    placement: () => "center",
-    mount: () => { },
-    commands: {
-        response: () => {
-            // Handle response command
-        }
-    }
+const createContextWidget: CreateWidget<typeof ContextViewer> = (bus) => ({
+  view: ContextViewer,
+  placement: () => "sidebar:tab:dag",
+  config: { contextStore: $selectedContext },
+  commands: {},
 });
 
 const createShowContextAction: CreateAction<any> = (bus) => ({
-    id: SHOW_CONTEXT,
-    description: "Show context",
-    invoke: () => {
-        bus.present({ widget: createContextWidget(bus) });
-    }
+  id: SHOW_CONTEXT,
+  description: "Show context",
+  invoke: ({ contextId }: { contextId: string }) => {
+    openContextDetail({ contextId });
+    bus.present({ widget: createContextWidget(bus), params: { contextId } });
+  },
 });
 
 export {
-    SHOW_CONTEXT,
-    createShowContextAction,
-    showContextEvent
+  SHOW_CONTEXT,
+  createShowContextAction,
+  createContextWidget,
+  openContextDetail,
 };
 
-
-const ACTIONS = [
-    createShowContextAction
-];
+const ACTIONS = [createShowContextAction];
 
 export default ACTIONS;

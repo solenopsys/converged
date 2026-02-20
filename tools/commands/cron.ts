@@ -1,4 +1,4 @@
-import { BaseCommandProcessor, type Handler } from "../cli/src/base";
+import { BaseCommandProcessor, type Handler, type CommandEntry } from "../cli/src/base";
 import {
   createShedullerServiceClient,
   type ShedullerServiceClient,
@@ -15,10 +15,10 @@ const providersHandler: Handler = async (client: ShedullerServiceClient) => {
 };
 
 class ShedullerProcessor extends BaseCommandProcessor {
-  protected initializeCommandMap(): Map<string, Handler> {
+  protected initializeCommandMap(): Map<string, CommandEntry> {
     return new Map([
-      ["list", listHandler],
-      ["providers", providersHandler],
+      ["list", { handler: listHandler, description: "List all scheduled cron jobs" }],
+      ["providers", { handler: providersHandler, description: "List available scheduler providers" }],
     ]);
   }
 }

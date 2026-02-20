@@ -1,4 +1,4 @@
-import { BaseCommandProcessor, type Handler } from "../cli/src/base";
+import { BaseCommandProcessor, type Handler, type CommandEntry } from "../cli/src/base";
 import {
   createTelemetryServiceClient,
   type TelemetryServiceClient,
@@ -32,10 +32,10 @@ const listHandler: Handler = async (
 };
 
 class TelemetryProcessor extends BaseCommandProcessor {
-  protected initializeCommandMap(): Map<string, Handler> {
+  protected initializeCommandMap(): Map<string, CommandEntry> {
     return new Map([
-      ["write", writeHandler],
-      ["list", listHandler],
+      ["write", { handler: writeHandler, description: "Write a test telemetry event (optional: device_id)" }],
+      ["list", { handler: listHandler, description: "List recent hot telemetry entries (default: 10)" }],
     ]);
   }
 }

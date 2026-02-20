@@ -1,4 +1,4 @@
-import { BaseCommandProcessor, type Handler } from "../cli/src/base";
+import { BaseCommandProcessor, type Handler, type CommandEntry } from "../cli/src/base";
 import { createLogsServiceClient, type LogsServiceClient } from "g-logs";
 
 const writeHandler: Handler = async (
@@ -53,11 +53,11 @@ const statHandler: Handler = async (client: LogsServiceClient) => {
 };
 
 class LogsProcessor extends BaseCommandProcessor {
-  protected initializeCommandMap(): Map<string, Handler> {
+  protected initializeCommandMap(): Map<string, CommandEntry> {
     return new Map([
-      ["write", writeHandler],
-      ["list", listHandler],
-      ["stat", statHandler],
+      ["write", { handler: writeHandler, description: "Write a test log event (optional: source name)" }],
+      ["list", { handler: listHandler, description: "List recent hot log entries (default: 10)" }],
+      ["stat", { handler: statHandler, description: "Show log statistics by level and source" }],
     ]);
   }
 }

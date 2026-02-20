@@ -2,7 +2,8 @@ import React, { useEffect } from 'react';
 import { useUnit } from 'effector-react';
 import { HeaderPanel, InfiniteScrollDataTable } from 'front-core';
 import { RefreshCw } from 'lucide-react';
-import { $contextsStore, refreshContextsClicked } from '../domain-contexts';
+import { $contextsStore, refreshContextsClicked, openContextDetail } from '../domain-contexts';
+import { createContextWidget } from '../functions/context';
 import { contextsColumns } from '../functions/columns';
 
 export const ContextsView = ({ bus }) => {
@@ -27,6 +28,11 @@ export const ContextsView = ({ bus }) => {
     ],
   };
 
+  const handleRowClick = (row: { id: string }) => {
+    openContextDetail({ contextId: row.id });
+    bus.present({ widget: createContextWidget(bus), params: { contextId: row.id } });
+  };
+
   return (
     <div className="flex flex-col h-full">
       <HeaderPanel config={headerConfig} />
@@ -36,6 +42,7 @@ export const ContextsView = ({ bus }) => {
           hasMore={state.hasMore}
           loading={state.loading}
           columns={contextsColumns}
+          onRowClick={handleRowClick}
           onLoadMore={$contextsStore.loadMore}
           viewMode="table"
         />

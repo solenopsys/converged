@@ -1,4 +1,4 @@
-import { BaseCommandProcessor, type Handler } from "../cli/src/base";
+import { BaseCommandProcessor, type Handler, type CommandEntry } from "../cli/src/base";
 import { createDagServiceClient, type DagServiceClient } from "g-dag";
 
 const statusHandler: Handler = async (client: DagServiceClient) => {
@@ -142,16 +142,16 @@ const getHandler: Handler = async (
 };
 
 class DagProcessor extends BaseCommandProcessor {
-  protected initializeCommandMap(): Map<string, Handler> {
+  protected initializeCommandMap(): Map<string, CommandEntry> {
     return new Map([
-      ["status", statusHandler],
-      ["create", createHandler],
-      ["context", contextHandler],
-      ["emit", emitHandler],
-      ["exec", execHandler],
-      ["list", listHandler],
-      ["stat", statHandler],
-      ["get", getHandler],
+      ["status", { handler: statusHandler, description: "Show DAG service status" }],
+      ["create", { handler: createHandler, description: "Create a new workflow context from JSON file" }],
+      ["context", { handler: contextHandler, description: "Get context details by ID" }],
+      ["emit", { handler: emitHandler, description: "Emit an event to a context (contextId:event)" }],
+      ["exec", { handler: execHandler, description: "Create context and emit event from JSON file" }],
+      ["list", { handler: listHandler, description: "List workflow contexts (default limit: 10)" }],
+      ["stat", { handler: statHandler, description: "Get execution statistics for a workflow" }],
+      ["get", { handler: getHandler, description: "Get full context JSON by ID" }],
     ]);
   }
 }

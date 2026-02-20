@@ -139,7 +139,7 @@ export default class DagServiceImpl implements DagService {
     await this.ensureInit();
     const context = this.store.processing.contexts.getContext(contextId);
     const messages = this.store.processing.messages.list(contextId);
-    const process = await this.store.stats?.getProcess(contextId);
+    const process = await this.store.stats?.processRepo.findById({ id: contextId });
 
     return {
       status: (process?.status as ContextStatus) || "running",
