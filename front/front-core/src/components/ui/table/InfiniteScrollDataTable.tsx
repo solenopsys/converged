@@ -5,6 +5,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { Check, X, ChevronDown, ChevronUp, MoreHorizontal, Settings, GripVertical } from 'lucide-react';
 import { useUnit } from 'effector-react';
 import { cn } from '../../../lib/utils';
+import { Badge } from '../badge';
 import { SideMenu } from "../SideMenu";
 import { COLUMN_TYPES } from "./constants";
 import {
@@ -215,17 +216,9 @@ const CellRenderer = ({ value, column, rowData, onAction }) => {
     case COLUMN_TYPES.STATUS:
       const config = statusConfig[value] || { label: value, variant: 'secondary' };
       return (
-        <span className={cn(
-          "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-          config.variant === 'default' && "bg-primary text-primary-foreground",
-          config.variant === 'secondary' && "bg-secondary text-secondary-foreground",
-          config.variant === 'destructive' && "bg-destructive text-destructive-foreground",
-          config.variant === 'outline' && "text-foreground border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-          !config.variant && "bg-secondary text-secondary-foreground",
-          config.className
-        )}>
+        <Badge variant={config.variant as any} className={config.className}>
           {config.label}
-        </span>
+        </Badge>
       );
 
     case COLUMN_TYPES.TAGS:

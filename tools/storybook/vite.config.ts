@@ -63,11 +63,9 @@ export default defineConfig({
     alias: {
       "md-tools": path.resolve(__dirname, "../../front/libraries/md-tools/src"),
       "front-landings": path.resolve(__dirname, "../../../../../saas/public/front/front-landings/src"),
-      "front-core/components": path.resolve(__dirname, "../../front/front-core/src/index.ts"),
+      "front-core/components": path.resolve(__dirname, "../../front/front-core/src"),
       "front-core": path.resolve(__dirname, "../../front/front-core/src/index.ts"),
-      "framer-motion": path.resolve(__dirname, "./src/widget-design/shims/framer-motion.tsx"),
       "@": path.resolve(__dirname, "../../front/front-core/src"),
-      widget: path.resolve(__dirname, "../../front/widget/src"),
       nrpc: path.resolve(__dirname, "../../tools/integration/nrpc/src"),
       "integration/types": path.resolve(__dirname, "../../tools/integration/types"),
       "g-oauth": path.resolve(__dirname, "./src/mocks/g-oauth.ts"),

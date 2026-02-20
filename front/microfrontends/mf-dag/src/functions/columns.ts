@@ -68,6 +68,12 @@ export const executionsColumns = [
     type: COLUMN_TYPES.STATUS,
     minWidth: 100,
     width: 120,
+    statusConfig: {
+      done: { label: 'done', variant: 'success' },
+      failed: { label: 'failed', variant: 'destructive' },
+      running: { label: 'running', variant: 'secondary' },
+      pending: { label: 'pending', variant: 'outline' },
+    },
   },
   {
     id: 'startedAt',

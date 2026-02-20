@@ -13,8 +13,7 @@ export default defineConfig({
       "src/**/*.{tsx,ts}",
       "../../front/front-core/src/**/*.{tsx,ts}",
       "../../front/microfrontends/mf-assistants/src/**/*.{tsx,ts}",
-      "../../front/widget/src/**/*.{tsx,ts}",
-      "../../../../../saas/public/front/front-landings/src/**/*.{tsx,ts}",
+"../../../../../saas/public/front/front-landings/src/**/*.{tsx,ts}",
       "../../../../../saas/private/landing/app/**/*.{tsx,ts}",
       "../../../../../saas/private/landing/components/**/*.{tsx,ts}",
     ],
@@ -22,9 +21,7 @@ export default defineConfig({
   envMode: process.env.NODE_ENV === "production" ? "build" : "dev",
   transformers: [transformerDirectives(), transformerVariantGroup()],
   presets: [
-    presetWind4({
-      colorSpace: "oklch",
-    }),
+    presetWind4(),
     presetAttributify({
       strict: true,
       prefix: "un-",
@@ -58,6 +55,10 @@ export default defineConfig({
       destructive: {
         DEFAULT: "var(--ui-destructive)",
         foreground: "var(--ui-destructive-foreground)",
+      },
+      success: {
+        DEFAULT: "var(--ui-success)",
+        foreground: "var(--ui-success-foreground)",
       },
       muted: {
         DEFAULT: "var(--ui-muted)",

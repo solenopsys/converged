@@ -2,7 +2,6 @@ import type { Preview } from "@storybook/react-vite";
 import "@unocss/reset/tailwind.css";
 import "virtual:uno.css";
 import "../../../front/ssr/src/app/globals.css";
-import "../src/widget-design/landing-globals.css";
 import "../src/storybook-overrides.css";
 
 const preview: Preview = {
