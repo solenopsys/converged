@@ -1,9 +1,9 @@
-import { BaseCommandProcessor, type Handler, type CommandEntry } from "../cli/src/base";
+import { BaseCommandProcessor, type Handler, type CommandEntry, printJson } from "../cli/src/base";
 import { createDagServiceClient, type DagServiceClient } from "g-dag";
 
 const statusHandler: Handler = async (client: DagServiceClient) => {
   const result = await client.status();
-  console.log(JSON.stringify(result, null, 2));
+  printJson(result);
 };
 
 const createHandler: Handler = async (
@@ -45,7 +45,7 @@ const contextHandler: Handler = async (
     return;
   }
   const result = await client.getContext(param);
-  console.log(JSON.stringify(result, null, 2));
+  printJson(result);
 };
 
 const emitHandler: Handler = async (
@@ -112,7 +112,7 @@ const listHandler: Handler = async (
 ) => {
   const limit = param ? parseInt(param, 10) : 10;
   const result = await client.listContexts({ offset: 0, limit });
-  console.log(JSON.stringify(result, null, 2));
+  printJson(result);
 };
 
 const statHandler: Handler = async (
@@ -125,7 +125,7 @@ const statHandler: Handler = async (
     return;
   }
   const result = await client.getStats(param);
-  console.log(JSON.stringify(result, null, 2));
+  printJson(result);
 };
 
 const getHandler: Handler = async (
@@ -138,7 +138,7 @@ const getHandler: Handler = async (
     return;
   }
   const result = await client.getContext(param);
-  console.log(JSON.stringify(result, null, 2));
+  printJson(result);
 };
 
 class DagProcessor extends BaseCommandProcessor {

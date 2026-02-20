@@ -146,7 +146,7 @@ export default class DagServiceImpl implements DagService {
       params: context?.params || {},
       data: context || {},
       messages: messages.map((m: any) => ({
-        event: m.event,
+        event: m.type,
         status: m.status as MessageStatus,
       })),
     };

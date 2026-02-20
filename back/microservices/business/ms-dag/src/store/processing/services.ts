@@ -56,7 +56,22 @@ export class ProcessingStoreService {
   }
 
   getContext(contextKey: string): any {
-    return this.kvStore.getVeluesRangeAsObjectWithPrefix(contextKey);
+    // contextKey может быть полным ключом "context:<wf>:<id>" или просто "<id>"
+    // Ищем сначала напрямую, если пусто — ищем по суффиксу через contextRepo
+    const direct = this.kvStore.getVeluesRangeAsObjectWithPrefix(contextKey);
+    if (direct && Object.keys(direct).length > 0) return direct;
+    // Ищем полный ключ через prefixSearch по contextId как последнему сегменту
+    const allKeys = this.contextRepo.listKeys();
+    const fullKey = allKeys.find(k => k.endsWith(contextKey));
+    if (!fullKey) return null;
+    return this.kvStore.getVeluesRangeAsObjectWithPrefix(fullKey);
+  }
+
+  resolveContextKey(contextKeyOrId: string): string {
+    // Если уже полный ключ — возвращаем как есть
+    if (this.kvStore.getDirect(contextKeyOrId) !== undefined) return contextKeyOrId;
+    const allKeys = this.contextRepo.listKeys();
+    return allKeys.find(k => k.endsWith(contextKeyOrId)) ?? contextKeyOrId;
   }
 
   getContextMeta(contextKey: string): any {

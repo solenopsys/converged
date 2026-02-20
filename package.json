@@ -28,6 +28,7 @@
   "dependencies": {
     "@elysiajs/cors": "^1.4.1",
     "@elysiajs/static": "latest",
+    "@textea/json-viewer": "^4.0.1",
     "elysia": "latest",
     "react": "latest",
     "react-dom": "latest",

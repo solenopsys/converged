@@ -49,3 +49,7 @@ export interface CommandEntry {
   handler: Handler;
   description: string;
 }
+
+export function printJson(value: any): void {
+  console.log(Bun.inspect(value, { colors: true, depth: 10 }));
+}

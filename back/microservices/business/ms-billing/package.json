@@ -12,6 +12,5 @@
   "dependencies": {
     "back-core": "workspace:*",
     "nrpc": "workspace:*",
-    "g-billing": "workspace:*"
   }
 }
