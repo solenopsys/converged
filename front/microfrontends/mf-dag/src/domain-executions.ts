@@ -1,4 +1,5 @@
 import { createInfiniteTableStore } from 'front-core';
+import { sample } from 'effector';
 import domain from './domain';
 import dagService from './service';
 import type { PaginationParams, NodeExecution } from 'g-dag';
@@ -16,4 +17,7 @@ $executionsStore.$state.on(refreshExecutionsClicked, () => ({
   loading: false,
   hasMore: true,
   isInitialized: false,
+  sortConfig: { key: null, direction: 'asc' },
 }));
+
+sample({ clock: refreshExecutionsClicked, fn: () => ({}), target: $executionsStore.loadMore });

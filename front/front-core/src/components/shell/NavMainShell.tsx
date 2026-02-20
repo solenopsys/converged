@@ -1,5 +1,6 @@
 import type { ReactNode, CSSProperties } from "react";
 import { ChevronRight } from "lucide-react";
+import { cn } from "../../lib/utils";
 
 export interface MenuItemData {
   key?: string;
@@ -10,196 +11,108 @@ export interface MenuItemData {
 }
 
 export interface NavMainShellProps {
-  /** Menu items */
   items: MenuItemData[];
-  /** Currently open sections (by key/title) */
   openSections?: Set<string> | string[];
-  /** Callback when item clicked */
   onItemClick?: (item: MenuItemData) => void;
-  /** Callback when section toggled */
   onSectionToggle?: (key: string, open: boolean) => void;
-  /** Additional class */
   className?: string;
 }
 
-const getItemKey = (item: MenuItemData, index: number): string => {
-  return item.key || item.title || `item-${index}`;
-};
+const getItemKey = (item: MenuItemData, index: number): string =>
+  item.key || item.title || `item-${index}`;
 
-/**
- * NavMainShell - меню без effector
- *
- * Глупый компонент - принимает данные через props.
- * Для SSR: openSections из серверных данных, onItemClick = href navigation
- * Для SPA: openSections из effector store, onItemClick запускает action
- */
 export function NavMainShell({
   items,
   openSections = [],
   onItemClick,
   onSectionToggle,
-  className = "",
+  className,
 }: NavMainShellProps) {
-  const openSet = openSections instanceof Set
-    ? openSections
-    : new Set(openSections);
-
-  const menuStyle: CSSProperties = {
-    listStyle: "none",
-    padding: 0,
-    margin: 0,
-  };
-
-  const itemStyle: CSSProperties = {
-    padding: 0,
-    margin: 0,
-  };
-
-  const buttonStyle: CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    width: "100%",
-    padding: "8px 12px",
-    border: "none",
-    background: "transparent",
-    color: "inherit",
-    cursor: "pointer",
-    fontSize: "14px",
-    textAlign: "left",
-    gap: "8px",
-    borderRadius: "6px",
-    transition: "background-color 0.15s",
-  };
-
-  const chevronStyle = (isOpen: boolean): CSSProperties => ({
-    width: "16px",
-    height: "16px",
-    transition: "transform 0.2s",
-    transform: isOpen ? "rotate(90deg)" : "rotate(0deg)",
-    flexShrink: 0,
-    color: "oklch(var(--muted-foreground))",
-  });
-
-  const subMenuStyle: CSSProperties = {
-    listStyle: "none",
-    padding: "0 0 0 36px",
-    margin: "4px 0",
-  };
-
-  const handleItemClick = (item: MenuItemData) => {
-    if (item.href && !onItemClick) {
-      // SSR fallback - navigate via href
-      window.location.href = item.href;
-    } else {
-      onItemClick?.(item);
-    }
-  };
-
-  const handleToggle = (key: string, currentOpen: boolean) => {
-    onSectionToggle?.(key, !currentOpen);
-  };
+  const openSet = openSections instanceof Set ? openSections : new Set(openSections);
 
   return (
-    <nav className={`nav-main-shell ${className}`}>
-      <ul style={menuStyle}>
+    <div className={cn("relative flex w-full min-w-0 flex-col p-2", className)}>
+      <ul className="flex w-full min-w-0 flex-col gap-1">
         {items.map((item, index) => {
           const key = getItemKey(item, index);
-          const hasChildren = item.items && item.items.length > 0;
+          const hasChildren = Boolean(item.items?.length);
           const isOpen = openSet.has(key);
 
           return (
-            <li key={key} style={itemStyle}>
-              {item.href ? (
-                <a
-                  href={item.href}
-                  onClick={(e) => {
-                    if (onItemClick) {
-                      e.preventDefault();
-                      handleItemClick(item);
-                    }
-                  }}
-                  style={{
-                    ...buttonStyle,
-                    textDecoration: "none",
-                    color: "inherit",
-                    width: "100%",
-                    gap: "8px",
-                  }}
-                >
-                  {hasChildren ? (
-                    <span
-                      onClick={() => handleToggle(key, isOpen)}
-                      style={{ display: "inline-flex", width: "20px" }}
-                      aria-hidden="true"
-                    >
-                      <ChevronRight style={chevronStyle(isOpen)} />
-                    </span>
-                  ) : (
-                    <span style={{ width: "20px", flexShrink: 0 }} />
-                  )}
-                  {item.icon && <span style={{ flexShrink: 0 }}>{item.icon}</span>}
-                  <span>{item.title}</span>
-                </a>
-              ) : (
+            <li key={key} className="group/menu-item relative">
+              <div className="flex w-full items-center gap-1">
+                {hasChildren ? (
+                  <button
+                    type="button"
+                    aria-label="Toggle"
+                    onClick={() => onSectionToggle?.(key, !isOpen)}
+                    className="text-sidebar-foreground/70 hover:text-sidebar-foreground inline-flex h-8 w-6 items-center justify-center rounded-md transition-colors shrink-0"
+                  >
+                    <ChevronRight className={cn("size-4 transition-transform", isOpen && "rotate-90")} />
+                    <span className="sr-only">Toggle</span>
+                  </button>
+                ) : (
+                  <span className="inline-flex h-8 w-6 shrink-0" />
+                )}
                 <button
                   type="button"
-                  onClick={() => handleItemClick(item)}
-                  style={{ ...buttonStyle, width: "100%", gap: "8px" }}
+                  onClick={() => onItemClick?.(item)}
+                  className="peer/menu-button flex flex-1 min-w-0 items-center gap-2 overflow-hidden rounded-md px-2 text-left text-sm outline-hidden ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 h-8"
                 >
-                  {hasChildren ? (
-                    <span
-                      onClick={() => handleToggle(key, isOpen)}
-                      style={{ display: "inline-flex", width: "20px" }}
-                      aria-hidden="true"
-                    >
-                      <ChevronRight style={chevronStyle(isOpen)} />
-                    </span>
-                  ) : (
-                    <span style={{ width: "20px", flexShrink: 0 }} />
-                  )}
-                  {item.icon && <span style={{ flexShrink: 0 }}>{item.icon}</span>}
+                  {item.icon}
                   <span>{item.title}</span>
                 </button>
-              )}
+              </div>
 
-              {/* Submenu */}
               {hasChildren && isOpen && (
-                <ul style={subMenuStyle}>
+                <ul className="border-sidebar-border mx-3.5 flex min-w-0 translate-x-px flex-col gap-1 border-l px-2.5 py-0.5">
                   {item.items!.map((subItem, subIndex) => {
                     const subKey = getItemKey(subItem, subIndex);
+                    const hasSubChildren = Boolean(subItem.items?.length);
+                    const subOpen = openSet.has(subKey);
+
                     return (
-                      <li key={subKey} style={itemStyle}>
-                        {subItem.href ? (
-                          <a
-                            href={subItem.href}
-                            onClick={(e) => {
-                              if (onItemClick) {
-                                e.preventDefault();
-                                handleItemClick(subItem);
-                              }
-                            }}
-                            style={{
-                              ...buttonStyle,
-                              textDecoration: "none",
-                              color: "inherit",
-                              padding: "6px 12px 6px 20px",
-                              fontSize: "13px",
-                            }}
-                          >
-                            {subItem.icon && <span style={{ flexShrink: 0 }}>{subItem.icon}</span>}
-                            <span>{subItem.title}</span>
-                          </a>
+                      <li key={subKey} className="group/menu-sub-item relative">
+                        {hasSubChildren ? (
+                          <>
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => onSectionToggle?.(subKey, !subOpen)}
+                                className="text-sidebar-foreground/70 hover:text-sidebar-foreground inline-flex h-6 w-5 items-center justify-center rounded-md transition-colors shrink-0"
+                              >
+                                <ChevronRight className={cn("size-3 transition-transform", subOpen && "rotate-90")} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => onItemClick?.(subItem)}
+                                className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex flex-1 h-7 min-w-0 items-center gap-2 overflow-hidden rounded-md px-2 text-sm outline-hidden focus-visible:ring-2 [&>span:last-child]:truncate cursor-pointer"
+                              >
+                                <span>{subItem.title}</span>
+                              </button>
+                            </div>
+                            {subOpen && (
+                              <ul className="border-sidebar-border ml-4 flex min-w-0 flex-col gap-1 border-l px-2.5 py-0.5 mt-1">
+                                {subItem.items!.map((subSubItem) => (
+                                  <li key={subSubItem.title} className="group/menu-sub-item relative">
+                                    <button
+                                      type="button"
+                                      onClick={() => onItemClick?.(subSubItem)}
+                                      className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex h-7 w-full min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-sm outline-hidden focus-visible:ring-2 [&>span:last-child]:truncate cursor-pointer"
+                                    >
+                                      <span>{subSubItem.title}</span>
+                                    </button>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </>
                         ) : (
                           <button
                             type="button"
-                            onClick={() => handleItemClick(subItem)}
-                            style={{
-                              ...buttonStyle,
-                              padding: "6px 12px 6px 20px",
-                              fontSize: "13px",
-                            }}
+                            onClick={() => onItemClick?.(subItem)}
+                            className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex h-7 w-full min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-sm outline-hidden focus-visible:ring-2 [&>span:last-child]:truncate cursor-pointer"
                           >
-                            {subItem.icon && <span style={{ flexShrink: 0 }}>{subItem.icon}</span>}
                             <span>{subItem.title}</span>
                           </button>
                         )}
@@ -212,7 +125,7 @@ export function NavMainShell({
           );
         })}
       </ul>
-    </nav>
+    </div>
   );
 }
 

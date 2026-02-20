@@ -3,6 +3,8 @@ import { useUnit } from 'effector-react';
 import { HeaderPanel, InfiniteScrollDataTable } from 'front-core';
 import { RefreshCw } from 'lucide-react';
 import { $executionsStore, refreshExecutionsClicked } from '../domain-executions';
+import { openContextDetail } from '../domain-contexts';
+import { createContextWidget } from '../functions/context';
 import { executionsColumns } from '../functions/columns';
 
 export const ExecutionsView = ({ bus }) => {
@@ -27,6 +29,11 @@ export const ExecutionsView = ({ bus }) => {
     ],
   };
 
+  const handleRowClick = (row: { processId: string }) => {
+    openContextDetail({ contextId: row.processId });
+    bus.present({ widget: createContextWidget(bus), params: { contextId: row.processId } });
+  };
+
   return (
     <div className="flex flex-col h-full">
       <HeaderPanel config={headerConfig} />
@@ -36,6 +43,7 @@ export const ExecutionsView = ({ bus }) => {
           hasMore={state.hasMore}
           loading={state.loading}
           columns={executionsColumns}
+          onRowClick={handleRowClick}
           onLoadMore={$executionsStore.loadMore}
           viewMode="table"
         />

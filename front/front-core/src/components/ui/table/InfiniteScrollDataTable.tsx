@@ -461,7 +461,7 @@ export const InfiniteScrollDataTable = ({
     const threshold = 200;
     const isScrollable = scrollHeight > clientHeight + 1;
 
-    if (!isScrollable || remaining > threshold) {
+    if (isScrollable && remaining > threshold) {
       return;
     }
 
@@ -491,6 +491,8 @@ export const InfiniteScrollDataTable = ({
     if (loadMoreLockRef.current === data.length) {
       loadMoreLockRef.current = null;
     }
+    // После загрузки данных проверяем нужна ли ещё догрузка (если контейнер не скроллируется)
+    maybeLoadMore();
   }, [data.length]);
 
   // Обработчик изменения размера колонки

@@ -19,7 +19,10 @@ $contextsStore.$state.on(refreshContextsClicked, () => ({
   loading: false,
   hasMore: true,
   isInitialized: false,
+  sortConfig: { key: null, direction: 'asc' },
 }));
+
+sample({ clock: refreshContextsClicked, fn: () => ({}), target: $contextsStore.loadMore });
 
 // Детальный просмотр контекста
 export const openContextDetail = domain.createEvent<{ contextId: string }>('OPEN_CONTEXT_DETAIL');
