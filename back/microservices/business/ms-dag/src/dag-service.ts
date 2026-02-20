@@ -182,7 +182,7 @@ export default class DagServiceImpl implements DagService {
   }> {
     await this.ensureInit();
     return this.store.stats.getProcessStats({
-      workflowId: workflowName || undefined,
+      workflowId: typeof workflowName === "string" ? workflowName : undefined,
     });
   }
 

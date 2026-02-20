@@ -9,6 +9,6 @@
     "package.json"
   ],
   "dependencies": {
-    "nrpc": "*"
+    "nrpc": "workspace:*"
   }
 }

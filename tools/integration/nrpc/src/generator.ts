@@ -146,7 +146,7 @@ export const ${metadata.serviceName}Client = create${metadata.interfaceName}Clie
     module: "src/index.ts",
     files: ["src", "package.json"],
     dependencies: {
-      nrpc: "*",
+      nrpc: "workspace:*",
     },
   };
 

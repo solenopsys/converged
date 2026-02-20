@@ -15,7 +15,6 @@
     "front/microfrontends/*",
     "front/spa",
     "front/ssr",
-    "front/widget",
     "tools/*",
     "tools/integration/*",
     "tools/integration/generated/*"
@@ -47,6 +46,7 @@
     "k3s:import": "podman save converged-portal:latest -o /tmp/converged-portal.tar && sudo k3s ctr images import /tmp/converged-portal.tar && rm /tmp/converged-portal.tar",
     "format": "biome format --write .",
     "lint": "biome lint .",
-    "check": "biome check ."
+    "check": "biome check .",
+    "gen": "bun run --cwd tools/integration/nrpc src/gen-all.ts ../types ../generated"
   }
 }
