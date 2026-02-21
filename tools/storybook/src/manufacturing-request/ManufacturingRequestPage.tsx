@@ -14,7 +14,7 @@ import {
   Separator,
   ShimmerButton,
 } from "front-core/components";
-import { Box, Clock3, Download, QrCode, Smartphone } from "lucide-preact";
+import { Box, Clock3, Download, QrCode, Smartphone } from "lucide-react";
 
 type ProcessType = "printing" | "cnc";
 

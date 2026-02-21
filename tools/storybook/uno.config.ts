@@ -76,6 +76,20 @@ export default defineConfig({
         DEFAULT: "var(--ui-card)",
         foreground: "var(--ui-card-foreground)",
       },
+      sidebar: {
+        DEFAULT: "var(--ui-sidebar)",
+        foreground: "var(--ui-sidebar-foreground)",
+        primary: {
+          DEFAULT: "var(--ui-sidebar-primary)",
+          foreground: "var(--ui-sidebar-primary-foreground)",
+        },
+        accent: {
+          DEFAULT: "var(--ui-sidebar-accent)",
+          foreground: "var(--ui-sidebar-accent-foreground)",
+        },
+        border: "var(--ui-sidebar-border)",
+        ring: "var(--ui-sidebar-ring)",
+      },
     },
     borderRadius: {
       sm: "calc(var(--radius) - 4px)",

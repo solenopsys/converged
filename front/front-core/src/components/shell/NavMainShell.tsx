@@ -1,4 +1,4 @@
-import type { ReactNode, CSSProperties } from "react";
+import type { ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
 import { cn } from "../../lib/utils";
 
@@ -49,7 +49,6 @@ export function NavMainShell({
                     className="text-sidebar-foreground/70 hover:text-sidebar-foreground inline-flex h-8 w-6 items-center justify-center rounded-md transition-colors shrink-0"
                   >
                     <ChevronRight className={cn("size-4 transition-transform", isOpen && "rotate-90")} />
-                    <span className="sr-only">Toggle</span>
                   </button>
                 ) : (
                   <span className="inline-flex h-8 w-6 shrink-0" />
@@ -65,7 +64,7 @@ export function NavMainShell({
               </div>
 
               {hasChildren && isOpen && (
-                <ul className="border-sidebar-border mx-3.5 flex min-w-0 translate-x-px flex-col gap-1 border-l px-2.5 py-0.5">
+                <ul className="border-sidebar-border flex min-w-0 flex-col gap-1 border-l py-0.5 ml-[11px] pl-4">
                   {item.items!.map((subItem, subIndex) => {
                     const subKey = getItemKey(subItem, subIndex);
                     const hasSubChildren = Boolean(subItem.items?.length);
@@ -79,7 +78,7 @@ export function NavMainShell({
                               <button
                                 type="button"
                                 onClick={() => onSectionToggle?.(subKey, !subOpen)}
-                                className="text-sidebar-foreground/70 hover:text-sidebar-foreground inline-flex h-6 w-5 items-center justify-center rounded-md transition-colors shrink-0"
+                                className="text-sidebar-foreground/70 hover:text-sidebar-foreground inline-flex h-7 w-5 items-center justify-center rounded-md transition-colors shrink-0"
                               >
                                 <ChevronRight className={cn("size-3 transition-transform", subOpen && "rotate-90")} />
                               </button>
@@ -92,13 +91,13 @@ export function NavMainShell({
                               </button>
                             </div>
                             {subOpen && (
-                              <ul className="border-sidebar-border ml-4 flex min-w-0 flex-col gap-1 border-l px-2.5 py-0.5 mt-1">
+                              <ul className="border-sidebar-border flex min-w-0 flex-col gap-1 border-l py-0.5 ml-[9px] pl-4 mt-0.5">
                                 {subItem.items!.map((subSubItem) => (
-                                  <li key={subSubItem.title} className="group/menu-sub-item relative">
+                                  <li key={subSubItem.title}>
                                     <button
                                       type="button"
                                       onClick={() => onItemClick?.(subSubItem)}
-                                      className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex h-7 w-full min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-sm outline-hidden focus-visible:ring-2 [&>span:last-child]:truncate cursor-pointer"
+                                      className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex h-7 w-full min-w-0 items-center gap-2 overflow-hidden rounded-md px-2 text-sm outline-hidden focus-visible:ring-2 [&>span:last-child]:truncate cursor-pointer"
                                     >
                                       <span>{subSubItem.title}</span>
                                     </button>
@@ -111,7 +110,7 @@ export function NavMainShell({
                           <button
                             type="button"
                             onClick={() => onItemClick?.(subItem)}
-                            className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex h-7 w-full min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-sm outline-hidden focus-visible:ring-2 [&>span:last-child]:truncate cursor-pointer"
+                            className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex h-7 w-full min-w-0 items-center gap-2 overflow-hidden rounded-md px-2 text-sm outline-hidden focus-visible:ring-2 [&>span:last-child]:truncate cursor-pointer"
                           >
                             <span>{subItem.title}</span>
                           </button>

@@ -1,9 +1,7 @@
 import { defineConfig } from "vite";
-import preact from "@preact/preset-vite";
 import UnoCSS from "unocss/vite";
 import path from "path";
 import fs from "fs";
-import { fileURLToPath } from "url";
 
 const bunDirs = [
   path.resolve(__dirname, "../../node_modules/.bun"),
@@ -27,23 +25,10 @@ const effectorReactPath = resolveBunPackage("effector-react", "23.3.0");
 const emblaCarouselPath = resolveBunPackage("embla-carousel", "8.6.0");
 const emblaCarouselReactPath = resolveBunPackage("embla-carousel-react", "8.6.0");
 const emblaCarouselAutoplayPath = resolveBunPackage("embla-carousel-autoplay", "8.6.0");
-const preactCompatPath = fileURLToPath(import.meta.resolve("preact/compat"));
-const preactJsxRuntimePath = fileURLToPath(import.meta.resolve("preact/jsx-runtime"));
-const preactJsxDevRuntimePath = fileURLToPath(import.meta.resolve("preact/jsx-dev-runtime"));
-const lucidePreactPath = fileURLToPath(import.meta.resolve("lucide-preact"));
 const microfrontendsDir = path.resolve(__dirname, "../../front/microfrontends");
 
 export default defineConfig({
   plugins: [
-    {
-      name: "resolve-preact-compat",
-      resolveId(id) {
-        if (id === "preact/compat") return preactCompatPath;
-        if (id === "preact/jsx-runtime") return preactJsxRuntimePath;
-        if (id === "preact/jsx-dev-runtime") return preactJsxDevRuntimePath;
-        return null;
-      },
-    },
     {
       name: "resolve-microfrontends",
       resolveId(id) {
@@ -56,7 +41,6 @@ export default defineConfig({
         return null;
       },
     },
-    preact(),
     UnoCSS(),
   ],
   resolve: {
@@ -70,15 +54,6 @@ export default defineConfig({
       "integration/types": path.resolve(__dirname, "../../tools/integration/types"),
       "g-oauth": path.resolve(__dirname, "./src/mocks/g-oauth.ts"),
       sonner: path.resolve(__dirname, "./src/mocks/sonner.ts"),
-      react: preactCompatPath,
-      "react-dom": preactCompatPath,
-      "lucide-react": lucidePreactPath,
-      "lucide-preact": lucidePreactPath,
-      "react/jsx-runtime": preactJsxRuntimePath,
-      "react/jsx-dev-runtime": preactJsxDevRuntimePath,
-      "preact/compat": preactCompatPath,
-      "preact/jsx-runtime": preactJsxRuntimePath,
-      "preact/jsx-dev-runtime": preactJsxDevRuntimePath,
       ...(effectorPath ? { effector: effectorPath } : {}),
       ...(effectorReactPath ? { "effector-react": effectorReactPath } : {}),
       ...(emblaCarouselPath ? { "embla-carousel": emblaCarouselPath } : {}),
