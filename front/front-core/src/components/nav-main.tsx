@@ -11,8 +11,8 @@ import { MenuItem } from "../controllers/menu-store"
 import { NavMainShell, type MenuItemData } from "./shell/NavMainShell"
 
 const menuItemToMenuItemData = (item: MenuItem): MenuItemData => ({
-  key: item.key
-    || (typeof item.action === "string" ? item.action : item.action?.id)
+  key: (typeof item.action === "string" ? item.action : item.action?.id)
+    || item.key
     || item.title,
   title: item.title || "",
   icon: item.icon,

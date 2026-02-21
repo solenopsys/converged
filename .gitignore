@@ -14,5 +14,5 @@ zig-out
 next
 .bun-install
 .bun-tmp
-storybook-static
+storybook-static/
 deployment

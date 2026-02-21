@@ -1,7 +1,0 @@
-{
-  "name": "recordings",
-  "dataLocation": "data/calls-ms/recordings/data.lmdb",
-  "version": "1",
-  "type": "KEY_VALUE",
-  "migrations": []
-}

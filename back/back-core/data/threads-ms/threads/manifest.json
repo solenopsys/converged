@@ -1,7 +1,0 @@
-{
-  "name": "threads",
-  "dataLocation": "data/threads-ms/threads/data.lmdb",
-  "version": "1",
-  "type": "KEY_VALUE",
-  "migrations": []
-}

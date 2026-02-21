@@ -1,9 +1,0 @@
-{
-  "name": "calls",
-  "dataLocation": "data/calls-ms/calls/data.db",
-  "version": "1",
-  "type": "SQL",
-  "migrations": [
-    "create_calls"
-  ]
-}

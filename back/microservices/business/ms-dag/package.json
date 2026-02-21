@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./plugin": "./src/plugin.ts"
+    "./plugin": "./src/plugin.ts",
+    "./workflow": "./src/workflow.ts"
   },
   "dependencies": {
     "@mozilla/readability": "latest",

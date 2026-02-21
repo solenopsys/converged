@@ -1,9 +1,0 @@
-{
-  "name": "providers",
-  "dataLocation": "data/oauth-ms/providers/data.db",
-  "version": "1",
-  "type": "SQL",
-  "migrations": [
-    "create_oauth_providers"
-  ]
-}

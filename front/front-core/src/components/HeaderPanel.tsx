@@ -92,7 +92,18 @@ export const HeaderPanel: React.FC<HeaderPanelProps> = ({ config, children }) =>
       <div className="flex items-center justify-between h-14 px-4">
         {/* Left: Logo + Children + Title/Subtitle */}
         <div className="flex items-center min-w-0 shrink-0 gap-4">
-          <img src="/console/assets/logo.svg?v=2" alt="logo" className="h-5 w-auto" />
+          <img
+            src="/header-logo-white.svg"
+            alt="project-logo-dark"
+            className="hidden h-5 w-auto dark:block"
+            onError={(event) => { event.currentTarget.style.display = "none"; }}
+          />
+          <img
+            src="/header-logo-black.svg"
+            alt="project-logo-light"
+            className="block h-5 w-auto dark:hidden"
+            onError={(event) => { event.currentTarget.style.display = "none"; }}
+          />
           {children}
           {title && (
             <div className="min-w-0">

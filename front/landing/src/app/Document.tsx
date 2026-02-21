@@ -66,6 +66,7 @@ export function Document({ children, seo, noHydrate, initialData, importMap }: D
             __html: themeBootstrapScript,
           }}
         />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <link rel="stylesheet" href="/styles.css" />
         {importMap && (
           <script type="importmap" dangerouslySetInnerHTML={{

@@ -1,7 +1,0 @@
-{
-  "name": "processing",
-  "dataLocation": "data/dag-ms/processing/data.lmdb",
-  "version": "1",
-  "type": "KEY_VALUE",
-  "migrations": []
-}

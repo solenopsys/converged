@@ -142,6 +142,13 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
       : undefined;
   const isProd = config.production ?? process.env.NODE_ENV === "production";
   const frontRoot = resolve(projectRoot, "front");
+  const brandingProjectRoot = parentProjectRoot ?? projectRoot;
+  const brandingPublicDir = resolve(brandingProjectRoot, "front", "landing", "public");
+  const logoBlackPath = resolve(brandingPublicDir, "logo-black.svg");
+  const logoWhitePath = resolve(brandingPublicDir, "logo-white.svg");
+  const headerLogoBlackPath = resolve(brandingPublicDir, "header-logo-black.svg");
+  const headerLogoWhitePath = resolve(brandingPublicDir, "header-logo-white.svg");
+  const faviconSvgPath = resolve(brandingPublicDir, "favicon.svg");
   const mfRoot = resolve(frontRoot, "microfrontends");
   const localesDir = resolve(frontRoot, "front-core/locales");
   const storeWorkersDir = resolve(frontRoot, "libraries/store-workers/dist");
@@ -324,6 +331,60 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
   // --- Elysia plugin ---
 
   const app = new Elysia({ name: "spa" })
+    .get("/logo-black.svg", ({ set }) => {
+      if (!existsSync(logoBlackPath)) {
+        set.status = 404;
+        return "Not Found";
+      }
+      return new Response(Bun.file(logoBlackPath), {
+        headers: { "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": "no-store" },
+      });
+    })
+    .get("/logo-white.svg", ({ set }) => {
+      if (!existsSync(logoWhitePath)) {
+        set.status = 404;
+        return "Not Found";
+      }
+      return new Response(Bun.file(logoWhitePath), {
+        headers: { "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": "no-store" },
+      });
+    })
+    .get("/header-logo-black.svg", ({ set }) => {
+      if (!existsSync(headerLogoBlackPath)) {
+        set.status = 404;
+        return "Not Found";
+      }
+      return new Response(Bun.file(headerLogoBlackPath), {
+        headers: { "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": "no-store" },
+      });
+    })
+    .get("/header-logo-white.svg", ({ set }) => {
+      if (!existsSync(headerLogoWhitePath)) {
+        set.status = 404;
+        return "Not Found";
+      }
+      return new Response(Bun.file(headerLogoWhitePath), {
+        headers: { "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": "no-store" },
+      });
+    })
+    .get("/favicon.svg", ({ set }) => {
+      if (!existsSync(faviconSvgPath)) {
+        set.status = 404;
+        return "Not Found";
+      }
+      return new Response(Bun.file(faviconSvgPath), {
+        headers: { "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": "no-store" },
+      });
+    })
+    .get("/favicon.ico", ({ set }) => {
+      if (!existsSync(faviconSvgPath)) {
+        set.status = 404;
+        return "Not Found";
+      }
+      set.redirect = "/favicon.svg";
+      set.status = 302;
+      return "";
+    })
     .get("/vendor/*", async ({ request, set }) => {
       const fileName = new URL(request.url).pathname.replace("/vendor/", "");
       const contentType = fileName.endsWith(".map")

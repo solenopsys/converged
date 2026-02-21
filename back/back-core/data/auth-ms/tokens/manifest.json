@@ -1,7 +1,0 @@
-{
-  "name": "tokens",
-  "dataLocation": "data/auth-ms/tokens/data.lmdb",
-  "version": "1",
-  "type": "KEY_VALUE",
-  "migrations": []
-}
