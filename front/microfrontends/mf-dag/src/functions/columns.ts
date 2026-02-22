@@ -39,7 +39,7 @@ export const contextsColumns = [
   },
 ];
 
-export const executionsColumns = [
+export const tasksColumns = [
   {
     id: 'id',
     title: 'ID',
@@ -47,13 +47,6 @@ export const executionsColumns = [
     primary: true,
     minWidth: 80,
     width: 100,
-  },
-  {
-    id: 'processId',
-    title: 'Process',
-    type: COLUMN_TYPES.TEXT,
-    minWidth: 200,
-    width: 250,
   },
   {
     id: 'nodeId',
@@ -71,8 +64,8 @@ export const executionsColumns = [
     statusConfig: {
       done: { label: 'done', variant: 'success' },
       failed: { label: 'failed', variant: 'destructive' },
-      running: { label: 'running', variant: 'secondary' },
-      pending: { label: 'pending', variant: 'outline' },
+      processing: { label: 'processing', variant: 'secondary' },
+      queued: { label: 'queued', variant: 'outline' },
     },
   },
   {
@@ -90,10 +83,61 @@ export const executionsColumns = [
     width: 180,
   },
   {
+    id: 'retryCount',
+    title: 'Retries',
+    type: COLUMN_TYPES.TEXT,
+    minWidth: 80,
+    width: 100,
+  },
+  {
     id: 'errorMessage',
     title: 'Error',
     type: COLUMN_TYPES.TEXT,
     minWidth: 200,
     width: 300,
+  },
+];
+
+export const executionsColumns = [
+  {
+    id: 'id',
+    title: 'ID',
+    type: COLUMN_TYPES.TEXT,
+    primary: true,
+    minWidth: 200,
+    width: 300,
+  },
+  {
+    id: 'workflowName',
+    title: 'Workflow',
+    type: COLUMN_TYPES.TEXT,
+    minWidth: 150,
+    width: 200,
+  },
+  {
+    id: 'status',
+    title: 'Status',
+    type: COLUMN_TYPES.STATUS,
+    minWidth: 100,
+    width: 120,
+    statusConfig: {
+      done: { label: 'done', variant: 'success' },
+      failed: { label: 'failed', variant: 'destructive' },
+      running: { label: 'running', variant: 'secondary' },
+    },
+  },
+  {
+    id: 'startedAt',
+    title: 'Started',
+    type: COLUMN_TYPES.DATE,
+    minWidth: 150,
+    width: 180,
+  },
+  {
+    id: 'updatedAt',
+    title: 'Updated',
+    type: COLUMN_TYPES.DATE,
+    minWidth: 150,
+    width: 180,
   },
 ];

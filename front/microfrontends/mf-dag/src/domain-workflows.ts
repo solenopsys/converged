@@ -14,7 +14,7 @@ export const openWorkflowForm = domain.createEvent<{ workflow: any }>('OPEN_WORK
 const listWorkflowsFx = domain.createEffect<PaginationParams, any>({
   name: 'LIST_WORKFLOWS',
   handler: async () => {
-    const result = await dagClient.workflowList();
+    const result = await dagClient.listWorkflows();
     const items = result.names.map((name: string) => ({
       name,
       description: '',

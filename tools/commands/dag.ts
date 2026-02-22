@@ -1,11 +1,6 @@
 import { BaseCommandProcessor, type Handler, type CommandEntry, printJson } from "../cli/src/base";
 import { createDagServiceClient, type DagServiceClient } from "g-dag";
 
-const statusHandler: Handler = async (client: DagServiceClient) => {
-  const result = await client.status();
-  printJson(result);
-};
-
 const createHandler: Handler = async (
   client: DagServiceClient,
   _splitter: string,
@@ -31,78 +26,21 @@ const createHandler: Handler = async (
     return;
   }
 
-  const { contextId } = await client.createContext(workflowName, params);
-  console.log(contextId);
+  const { id } = await client.createExecution(workflowName, params);
+  console.log(id);
 };
 
-const contextHandler: Handler = async (
+const statusHandler: Handler = async (
   client: DagServiceClient,
   _splitter: string,
   param?: string,
 ) => {
   if (!param) {
-    console.error("Usage: dag context <contextId>");
+    console.error("Usage: dag status <executionId>");
     return;
   }
-  const result = await client.getContext(param);
+  const result = await client.statusExecution(param);
   printJson(result);
-};
-
-const emitHandler: Handler = async (
-  client: DagServiceClient,
-  _splitter: string,
-  param?: string,
-) => {
-  if (!param) {
-    console.error("Usage: dag emit <contextId>:<event>");
-    return;
-  }
-
-  const [contextId, event] = param.split(":");
-  if (!contextId || !event) {
-    console.error("Usage: dag emit <contextId>:<event>");
-    return;
-  }
-
-  await client.emit(contextId, event);
-  console.log("Done");
-};
-
-const execHandler: Handler = async (
-  client: DagServiceClient,
-  _splitter: string,
-  param?: string,
-) => {
-  if (!param) {
-    console.error("Usage: dag exec <path-to-json>");
-    console.error(
-      "JSON: { context: { workflowName, params? }, event: string }",
-    );
-    return;
-  }
-
-  const file = Bun.file(param);
-  if (!(await file.exists())) {
-    console.error(`File not found: ${param}`);
-    return;
-  }
-
-  const config = await file.json();
-  const { context, event } = config;
-
-  if (!context?.workflowName || !event) {
-    console.error("JSON must contain: context.workflowName, event");
-    return;
-  }
-
-  const { contextId } = await client.createContext(
-    context.workflowName,
-    context.params || {},
-  );
-  console.log(`Context: ${contextId}`);
-
-  await client.emit(contextId, event);
-  console.log("Done");
 };
 
 const listHandler: Handler = async (
@@ -111,47 +49,44 @@ const listHandler: Handler = async (
   param?: string,
 ) => {
   const limit = param ? parseInt(param, 10) : 10;
-  const result = await client.listContexts({ offset: 0, limit });
+  const result = await client.listExecutions({ offset: 0, limit });
   printJson(result);
 };
 
-const statHandler: Handler = async (
+const tasksHandler: Handler = async (
   client: DagServiceClient,
   _splitter: string,
   param?: string,
 ) => {
   if (!param) {
-    console.error("Usage: dag stat <workflowName>");
+    console.error("Usage: dag tasks <executionId> [limit]");
     return;
   }
-  const result = await client.getStats(param);
+  const [executionId, limitStr] = param.split(" ");
+  const limit = limitStr ? parseInt(limitStr, 10) : 20;
+  const result = await client.listTasks(executionId, { offset: 0, limit });
   printJson(result);
 };
 
-const getHandler: Handler = async (
-  client: DagServiceClient,
-  _splitter: string,
-  param?: string,
-) => {
-  if (!param) {
-    console.error("Usage: dag get <contextId>");
-    return;
-  }
-  const result = await client.getContext(param);
+const statsHandler: Handler = async (client: DagServiceClient) => {
+  const result = await client.stats();
+  printJson(result);
+};
+
+const workflowsHandler: Handler = async (client: DagServiceClient) => {
+  const result = await client.listWorkflows();
   printJson(result);
 };
 
 class DagProcessor extends BaseCommandProcessor {
   protected initializeCommandMap(): Map<string, CommandEntry> {
     return new Map([
-      ["status", { handler: statusHandler, description: "Show DAG service status" }],
-      ["create", { handler: createHandler, description: "Create a new workflow context from JSON file" }],
-      ["context", { handler: contextHandler, description: "Get context details by ID" }],
-      ["emit", { handler: emitHandler, description: "Emit an event to a context (contextId:event)" }],
-      ["exec", { handler: execHandler, description: "Create context and emit event from JSON file" }],
-      ["list", { handler: listHandler, description: "List workflow contexts (default limit: 10)" }],
-      ["stat", { handler: statHandler, description: "Get execution statistics for a workflow" }],
-      ["get", { handler: getHandler, description: "Get full context JSON by ID" }],
+      ["create", { handler: createHandler, description: "Create a new execution from JSON file" }],
+      ["status", { handler: statusHandler, description: "Show execution status with tasks by ID" }],
+      ["list", { handler: listHandler, description: "List executions (default limit: 10)" }],
+      ["tasks", { handler: tasksHandler, description: "List tasks for execution (executionId [limit])" }],
+      ["stats", { handler: statsHandler, description: "Show executions and tasks statistics" }],
+      ["workflows", { handler: workflowsHandler, description: "List available workflows" }],
     ]);
   }
 }

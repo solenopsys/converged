@@ -3,7 +3,9 @@
     "dag": "Processes",
     "workflows": "Flows",
     "nodes": "Nodes",
-    "providers": "Providers"
+    "providers": "Providers",
+    "executions": "Executions",
+    "tasks": "Tasks"
   },
   "cards": {
     "workflows": {

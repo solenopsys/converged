@@ -3,7 +3,9 @@
     "dag": "Процессы",
     "workflows": "Потоки",
     "nodes": "Узлы",
-    "providers": "Поставщики"
+    "providers": "Поставщики",
+    "executions": "Запуски",
+    "tasks": "Задачи"
   },
   "cards": {
     "workflows": {

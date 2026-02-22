@@ -2,13 +2,13 @@ import { createInfiniteTableStore } from 'front-core';
 import { sample } from 'effector';
 import domain from './domain';
 import dagService from './service';
-import type { PaginationParams, NodeExecution } from 'g-dag';
+import type { PaginationParams, Execution } from 'g-dag';
 
 const executionsDataFunction = async (params: PaginationParams) => {
-  return await dagService.listNodes(params);
+  return await dagService.listExecutions(params);
 };
 
-export const $executionsStore = createInfiniteTableStore<NodeExecution>(domain, executionsDataFunction);
+export const $executionsStore = createInfiniteTableStore<Execution>(domain, executionsDataFunction);
 
 export const refreshExecutionsClicked = domain.createEvent('REFRESH_EXECUTIONS_CLICKED');
 

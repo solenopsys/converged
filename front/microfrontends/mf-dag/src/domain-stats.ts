@@ -15,7 +15,13 @@ export const refreshStatsClicked = domain.createEvent('REFRESH_STATS_CLICKED');
 const loadStatsFx = domain.createEffect<void, DagStats>({
   name: 'LOAD_STATS',
   handler: async () => {
-    return await dagService.getStats();
+    const result = await dagService.stats();
+    return {
+      total: result.executions.total,
+      running: result.executions.running,
+      done: result.executions.done,
+      failed: result.executions.failed,
+    };
   },
 });
 

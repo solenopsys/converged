@@ -1,5 +1,5 @@
-export type ContextStatus = "running" | "done" | "failed";
-export type MessageStatus = "queued" | "processing" | "done" | "failed";
+export type ExecutionStatus = "running" | "done" | "failed";
+export type TaskState = "queued" | "processing" | "done" | "failed";
 
 export interface PaginationParams {
   offset: number;
@@ -11,66 +11,46 @@ export interface PaginatedResult<T> {
   totalCount?: number;
 }
 
-export interface DagService {
-  status(): Promise<{
-    status: string;
-    workflows: string[];
-    nodes: string[];
-    providers: string[];
-  }>;
-
-  createContext(
-    workflowName: string,
-    params: Record<string, any>,
-  ): Promise<{ contextId: string }>;
-
-  emit(contextId: string, event: string): Promise<void>;
-
-  getContext(contextId: string): Promise<{
-    status: ContextStatus;
-    params: Record<string, any>;
-    data: Record<string, any>;
-    messages: { event: string; status: MessageStatus }[];
-  }>;
-
-  listContexts(params: PaginationParams): Promise<PaginatedResult<ContextInfo>>;
-
-  getStats(workflowName?: string): Promise<{
-    total: number;
-    running: number;
-    done: number;
-    failed: number;
-  }>;
-
-  getNodeProcessorStats(): Promise<{
-    totalCalls: number;
-    byNode: Record<
-      string,
-      { calls: number; avgDuration: number; errors: number }
-    >;
-  }>;
-
-  listNodes(params: PaginationParams): Promise<PaginatedResult<NodeExecution>>;
-}
-
-export type ContextInfo = {
+export interface Execution {
   id: string;
   workflowName: string;
-  status: ContextStatus;
-  startedAt: string;
-  updatedAt: string;
-};
+  status: ExecutionStatus;
+  startedAt: number;
+  updatedAt: number;
+  createdAt: number;
+}
 
-export type NodeState = "queued" | "processing" | "done" | "failed";
-
-export type NodeExecution = {
+export interface Task {
   id: number;
-  processId: string;
+  executionId: string;
   nodeId: string;
-  state: NodeState;
-  startedAt: string;
-  completedAt: string;
-  errorMessage: string;
+  state: TaskState;
+  startedAt: number | null;
+  completedAt: number | null;
+  errorMessage: string | null;
   retryCount: number;
-  createdAt: string;
-};
+  createdAt: number;
+}
+
+export interface DagService {
+  createExecution(
+    workflowName: string,
+    params: Record<string, any>,
+  ): Promise<{ id: string }>;
+
+  statusExecution(id: string): Promise<{
+    execution: Execution;
+    tasks: Task[];
+  }>;
+
+  listExecutions(params: PaginationParams): Promise<PaginatedResult<Execution>>;
+
+  listTasks(executionId: string, params: PaginationParams): Promise<PaginatedResult<Task>>;
+
+  stats(): Promise<{
+    executions: { total: number; running: number; done: number; failed: number };
+    tasks: { total: number; queued: number; processing: number; done: number; failed: number };
+  }>;
+
+  listWorkflows(): Promise<{ names: string[] }>;
+}

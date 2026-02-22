@@ -18,7 +18,7 @@ const getWorkflowsStatEvent = domain.createEvent<any>("GET_WORKFLOWS_STAT");
 
 const getWorkflowsStatFx = domain.createEffect({
     name: "WORKFLOWS_STAT",
-    handler: () => dagClient.workflowList()
+    handler: () => dagClient.listWorkflows()
 });
 
 sample({

@@ -3,179 +3,54 @@ import {
   ContextKey,
   ContextRepository,
   ContextValue,
-  MessageKey,
-  MessageRepository,
-  MessageValue,
-  MessageStatus,
-  AspectKey,
-  AspectRepository,
-  AspectValue,
-  AspectPhase,
   PersistentKey,
   PersistentRepository,
   PersistentValue,
-  MESSAGE_PREFIX,
-  ASPECT_PREFIX,
-  CONTEXT_PREFIX,
 } from "./entities";
 
+/**
+ * KV-хранилище состояния воркфлоу.
+ *
+ * Хранит:
+ * - context: мета воркфлоу (id, время создания, входные параметры)
+ * - step cache: workflowId:nodeName -> nodeRecordId (ссылка на запись в NodeProcessor/SQL)
+ * - persistent: долгоживущие данные узлов между запусками
+ */
 export class ProcessingStoreService {
-  public readonly contextRepo: ContextRepository;
-  public readonly messageRepo: MessageRepository;
-  public readonly aspectRepo: AspectRepository;
-  public readonly persistentRepo: PersistentRepository;
-
-  // Backward compatibility aliases
-  public readonly contexts: ProcessingStoreService;
-  public readonly messages: ProcessingStoreService;
-  public readonly aspects: ProcessingStoreService;
-  public readonly persistent: ProcessingStoreService;
+  private readonly contextRepo: ContextRepository;
+  private readonly persistentRepo: PersistentRepository;
 
   constructor(private kvStore: KVStore) {
     this.contextRepo = new ContextRepository(kvStore);
-    this.messageRepo = new MessageRepository(kvStore);
-    this.aspectRepo = new AspectRepository(kvStore);
     this.persistentRepo = new PersistentRepository(kvStore);
-
-    // Self-references for backward compatibility
-    this.contexts = this;
-    this.messages = this;
-    this.aspects = this;
-    this.persistent = this;
   }
 
-  // ============ Context methods ============
-  createContext(workflowHash: string, meta?: any): string {
+  // ============ Workflow context ============
+
+  createContext(workflowId: string, meta?: any): string {
     const contextId = generateULID();
-    const key = new ContextKey(workflowHash, contextId);
-    const value: ContextValue = {
-      createdAt: new Date().toISOString(),
-      meta,
-    };
+    const key = new ContextKey(workflowId, contextId);
+    const value: ContextValue = { createdAt: new Date().toISOString(), meta };
     return this.contextRepo.save(key, value);
   }
 
-  getContext(contextKey: string): any {
-    // contextKey может быть полным ключом "context:<wf>:<id>" или просто "<id>"
-    // Ищем сначала напрямую, если пусто — ищем по суффиксу через contextRepo
-    const direct = this.kvStore.getVeluesRangeAsObjectWithPrefix(contextKey);
-    if (direct && Object.keys(direct).length > 0) return direct;
-    // Ищем полный ключ через prefixSearch по contextId как последнему сегменту
-    const allKeys = this.contextRepo.listKeys();
-    const fullKey = allKeys.find(k => k.endsWith(contextKey));
-    if (!fullKey) return null;
-    return this.kvStore.getVeluesRangeAsObjectWithPrefix(fullKey);
+  // ============ Step cache ============
+  // Хранит nodeRecordId — ссылку на запись в SQL (store/stats)
+
+  getStep(workflowId: string, nodeName: string): string | undefined {
+    return this.kvStore.getDirect(`${workflowId}:${nodeName}`) as string | undefined;
   }
 
-  resolveContextKey(contextKeyOrId: string): string {
-    // Если уже полный ключ — возвращаем как есть
-    if (this.kvStore.getDirect(contextKeyOrId) !== undefined) return contextKeyOrId;
-    const allKeys = this.contextRepo.listKeys();
-    return allKeys.find(k => k.endsWith(contextKeyOrId)) ?? contextKeyOrId;
+  setStep(workflowId: string, nodeName: string, nodeRecordId: string): void {
+    this.kvStore.put([workflowId, nodeName], nodeRecordId);
   }
 
-  getContextMeta(contextKey: string): any {
-    return this.kvStore.getDirect(contextKey);
+  setStatus(workflowId: string, status: string): void {
+    this.kvStore.put([workflowId, "__status__"], status);
   }
 
-  addDataToContext(contextKey: string, dataKey: string, value: any): void {
-    this.kvStore.put([contextKey, dataKey], value);
-  }
+  // ============ Persistent ============
 
-  // ============ Message methods ============
-  emit(contextKey: string, type: string, payload?: any, meta?: any): MessageValue {
-    const id = generateULID();
-    const key = new MessageKey(contextKey, id);
-    const value: MessageValue = {
-      id,
-      type,
-      payload,
-      status: "queued",
-      ts: new Date().toISOString(),
-      meta,
-    };
-    this.messageRepo.save(key, value);
-    return value;
-  }
-
-  getMessage(contextKey: string, messageId: string): MessageValue | undefined {
-    return this.messageRepo.get(new MessageKey(contextKey, messageId));
-  }
-
-  updateMessage(contextKey: string, messageId: string, patch: Partial<MessageValue>): MessageValue | undefined {
-    const key = new MessageKey(contextKey, messageId);
-    const current = this.messageRepo.get(key);
-    if (!current) return undefined;
-    const updated: MessageValue = {
-      ...current,
-      ...patch,
-      updatedAt: new Date().toISOString(),
-    };
-    this.messageRepo.save(key, updated);
-    return updated;
-  }
-
-  setStatus(contextKey: string, messageId: string, status: MessageStatus): void {
-    this.updateMessage(contextKey, messageId, { status });
-  }
-
-  list(contextKey: string): MessageValue[] {
-    const list = this.kvStore.getValuesRangeAsArrayByPrefixChain([contextKey, MESSAGE_PREFIX]) as MessageValue[];
-    return (list ?? []).sort((a, b) => a.id.localeCompare(b.id));
-  }
-
-  listByStatus(contextKey: string, status: MessageStatus): MessageValue[] {
-    return this.list(contextKey).filter((m) => m.status === status);
-  }
-
-  listUnacked(contextKey: string): MessageValue[] {
-    return this.list(contextKey).filter((m) => m.status !== "done");
-  }
-
-  // ============ Aspect methods ============
-  start(contextKey: string, aspect: string, data?: any): string {
-    const id = generateULID();
-    const key = new AspectKey(contextKey, id, "start");
-    const value: AspectValue = {
-      id,
-      aspect,
-      phase: "start",
-      ts: new Date().toISOString(),
-      data,
-    };
-    this.aspectRepo.save(key, value);
-    return id;
-  }
-
-  end(contextKey: string, id: string, aspect: string, data?: any): void {
-    const key = new AspectKey(contextKey, id, "end");
-    const value: AspectValue = {
-      id,
-      aspect,
-      phase: "end",
-      ts: new Date().toISOString(),
-      data,
-    };
-    this.aspectRepo.save(key, value);
-  }
-
-  error(contextKey: string, id: string, aspect: string, errorMsg: string): void {
-    const key = new AspectKey(contextKey, id, "error");
-    const value: AspectValue = {
-      id,
-      aspect,
-      phase: "error",
-      ts: new Date().toISOString(),
-      error: errorMsg,
-    };
-    this.aspectRepo.save(key, value);
-  }
-
-  listAspects(contextKey: string): AspectValue[] {
-    return this.kvStore.getValuesRangeAsArrayByPrefixChain([contextKey, ASPECT_PREFIX]) as AspectValue[];
-  }
-
-  // ============ Persistent methods ============
   set<T = any>(key: string, value: T): void {
     this.persistentRepo.save(new PersistentKey(key), value);
   }
@@ -187,18 +62,6 @@ export class ProcessingStoreService {
   delete(key: string): void {
     this.persistentRepo.delete(new PersistentKey(key));
   }
-
-  has(key: string): boolean {
-    return this.get(key) !== undefined;
-  }
-
-  listPersistent(): PersistentValue[] {
-    return this.persistentRepo.listValues();
-  }
-
-  listPersistentKeys(): string[] {
-    return this.persistentRepo.listKeys();
-  }
 }
 
-export type { MessageStatus, MessageValue, AspectPhase, AspectValue, ContextValue, PersistentValue };
+export type { ContextValue, PersistentValue };

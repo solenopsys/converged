@@ -1,9 +1,9 @@
 // Auto-generated package
 import { createHttpClient } from "nrpc";
 
-export type ContextStatus = "running" | "done" | "failed";
+export type ExecutionStatus = "running" | "done" | "failed";
 
-export type MessageStatus = "queued" | "processing" | "done" | "failed";
+export type TaskState = "queued" | "processing" | "done" | "failed";
 
 export interface PaginationParams {
   offset: number;
@@ -15,27 +15,26 @@ export interface PaginatedResult {
   totalCount?: number;
 }
 
-export type ContextInfo = {
+export interface Execution {
   id: string;
   workflowName: string;
-  status: ContextStatus;
-  startedAt: string;
-  updatedAt: string;
-};
+  status: ExecutionStatus;
+  startedAt: number;
+  updatedAt: number;
+  createdAt: number;
+}
 
-export type NodeState = "queued" | "processing" | "done" | "failed";
-
-export type NodeExecution = {
+export interface Task {
   id: number;
-  processId: string;
+  executionId: string;
   nodeId: string;
-  state: NodeState;
-  startedAt: string;
-  completedAt: string;
-  errorMessage: string;
+  state: TaskState;
+  startedAt: any;
+  completedAt: any;
+  errorMessage: any;
   retryCount: number;
-  createdAt: string;
-};
+  createdAt: number;
+}
 
 export const metadata = {
   "interfaceName": "DagService",
@@ -43,15 +42,7 @@ export const metadata = {
   "filePath": "../types/dag.ts",
   "methods": [
     {
-      "name": "status",
-      "parameters": [],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "createContext",
+      "name": "createExecution",
       "parameters": [
         {
           "name": "workflowName",
@@ -72,16 +63,10 @@ export const metadata = {
       "isAsyncIterable": false
     },
     {
-      "name": "emit",
+      "name": "statusExecution",
       "parameters": [
         {
-          "name": "contextId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "event",
+          "name": "id",
           "type": "string",
           "optional": false,
           "isArray": false
@@ -93,22 +78,7 @@ export const metadata = {
       "isAsyncIterable": false
     },
     {
-      "name": "getContext",
-      "parameters": [
-        {
-          "name": "contextId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "listContexts",
+      "name": "listExecutions",
       "parameters": [
         {
           "name": "params",
@@ -123,12 +93,18 @@ export const metadata = {
       "isAsyncIterable": false
     },
     {
-      "name": "getStats",
+      "name": "listTasks",
       "parameters": [
         {
-          "name": "workflowName",
+          "name": "executionId",
           "type": "string",
-          "optional": true,
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "params",
+          "type": "PaginationParams",
+          "optional": false,
           "isArray": false
         }
       ],
@@ -138,7 +114,7 @@ export const metadata = {
       "isAsyncIterable": false
     },
     {
-      "name": "getNodeProcessorStats",
+      "name": "stats",
       "parameters": [],
       "returnType": "any",
       "isAsync": true,
@@ -146,15 +122,8 @@ export const metadata = {
       "isAsyncIterable": false
     },
     {
-      "name": "listNodes",
-      "parameters": [
-        {
-          "name": "params",
-          "type": "PaginationParams",
-          "optional": false,
-          "isArray": false
-        }
-      ],
+      "name": "listWorkflows",
+      "parameters": [],
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
@@ -163,11 +132,11 @@ export const metadata = {
   ],
   "types": [
     {
-      "name": "ContextStatus",
+      "name": "ExecutionStatus",
       "definition": "\"running\" | \"done\" | \"failed\""
     },
     {
-      "name": "MessageStatus",
+      "name": "TaskState",
       "definition": "\"queued\" | \"processing\" | \"done\" | \"failed\""
     },
     {
@@ -207,42 +176,128 @@ export const metadata = {
       ]
     },
     {
-      "name": "ContextInfo",
-      "definition": "{\n  id: string;\n  workflowName: string;\n  status: ContextStatus;\n  startedAt: string;\n  updatedAt: string;\n}"
+      "name": "Execution",
+      "definition": "",
+      "properties": [
+        {
+          "name": "id",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "workflowName",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "status",
+          "type": "ExecutionStatus",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "startedAt",
+          "type": "number",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "updatedAt",
+          "type": "number",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "createdAt",
+          "type": "number",
+          "optional": false,
+          "isArray": false
+        }
+      ]
     },
     {
-      "name": "NodeState",
-      "definition": "\"queued\" | \"processing\" | \"done\" | \"failed\""
-    },
-    {
-      "name": "NodeExecution",
-      "definition": "{\n  id: number;\n  processId: string;\n  nodeId: string;\n  state: NodeState;\n  startedAt: string;\n  completedAt: string;\n  errorMessage: string;\n  retryCount: number;\n  createdAt: string;\n}"
+      "name": "Task",
+      "definition": "",
+      "properties": [
+        {
+          "name": "id",
+          "type": "number",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "executionId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "nodeId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "state",
+          "type": "TaskState",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "startedAt",
+          "type": "any",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "completedAt",
+          "type": "any",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "errorMessage",
+          "type": "any",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "retryCount",
+          "type": "number",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "createdAt",
+          "type": "number",
+          "optional": false,
+          "isArray": false
+        }
+      ]
     }
   ]
 };
 
 // Server interface (to be implemented in microservice)
 export interface DagService {
-  status(): Promise<any>;
-  createContext(workflowName: string, params: Record): Promise<any>;
-  emit(contextId: string, event: string): Promise<any>;
-  getContext(contextId: string): Promise<any>;
-  listContexts(params: PaginationParams): Promise<any>;
-  getStats(workflowName?: string): Promise<any>;
-  getNodeProcessorStats(): Promise<any>;
-  listNodes(params: PaginationParams): Promise<any>;
+  createExecution(workflowName: string, params: Record): Promise<any>;
+  statusExecution(id: string): Promise<any>;
+  listExecutions(params: PaginationParams): Promise<any>;
+  listTasks(executionId: string, params: PaginationParams): Promise<any>;
+  stats(): Promise<any>;
+  listWorkflows(): Promise<any>;
 }
 
 // Client interface
 export interface DagServiceClient {
-  status(): Promise<any>;
-  createContext(workflowName: string, params: Record): Promise<any>;
-  emit(contextId: string, event: string): Promise<any>;
-  getContext(contextId: string): Promise<any>;
-  listContexts(params: PaginationParams): Promise<any>;
-  getStats(workflowName?: string): Promise<any>;
-  getNodeProcessorStats(): Promise<any>;
-  listNodes(params: PaginationParams): Promise<any>;
+  createExecution(workflowName: string, params: Record): Promise<any>;
+  statusExecution(id: string): Promise<any>;
+  listExecutions(params: PaginationParams): Promise<any>;
+  listTasks(executionId: string, params: PaginationParams): Promise<any>;
+  stats(): Promise<any>;
+  listWorkflows(): Promise<any>;
 }
 
 // Factory function
