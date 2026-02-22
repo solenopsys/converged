@@ -1,32 +1,45 @@
-import { generateULID } from "back-core";
-import type { KVStore } from "back-core";
-
 export type WorkflowStatus = "running" | "done" | "failed";
+
+/**
+ * Инфраструктурный объект, передаваемый ядром в воркфлоу.
+ * Воркфлоу не знает о конкретных хранилищах — только работает через этот интерфейс.
+ * Реализация живёт в ядре и может эволюционировать независимо.
+ */
+export interface WorkflowContext {
+  getStep(workflowId: string, nodeName: string): string | undefined;  // возвращает nodeRecordId
+  setStep(workflowId: string, nodeName: string, nodeRecordId: string): void;
+  setStatus(workflowId: string, status: WorkflowStatus): void;
+}
 
 export abstract class Workflow {
   readonly id: string;
 
-  constructor(private kv: KVStore, id?: string) {
-    this.id = id ?? generateULID();
+  constructor(private ctx: WorkflowContext, id?: string) {
+    this.id = id ?? crypto.randomUUID();
     if (!id) {
-      this.kv.put([this.id, "__status__"], "running" satisfies WorkflowStatus);
+      this.ctx.setStatus(this.id, "running");
     }
   }
 
-  protected async invoke<T = any>(key: string, fn: () => Promise<T>): Promise<T> {
-    const cached = this.kv.getDirect(`${this.id}:${key}`);
-    if (cached !== undefined) return cached as T;
-    const result = await fn();
-    this.kv.put([this.id, key], result);
-    return result;
+  /**
+   * Идемпотентный вызов узла.
+   * KV хранит не результат, а nodeRecordId — ссылку на запись NodeProcessor.
+   * Если узел уже выполнен — fn() не вызывается, возвращается сохранённый id.
+   */
+  protected async invoke(nodeName: string, fn: () => Promise<string>): Promise<string> {
+    const cached = this.ctx.getStep(this.id, nodeName);
+    if (cached !== undefined) return cached;
+    const nodeRecordId = await fn();
+    this.ctx.setStep(this.id, nodeName, nodeRecordId);
+    return nodeRecordId;
   }
 
   async start(params: any): Promise<void> {
     try {
       await this.execute(params);
-      this.kv.put([this.id, "__status__"], "done" satisfies WorkflowStatus);
+      this.ctx.setStatus(this.id, "done");
     } catch (e) {
-      this.kv.put([this.id, "__status__"], "failed" satisfies WorkflowStatus);
+      this.ctx.setStatus(this.id, "failed");
       throw e;
     }
   }

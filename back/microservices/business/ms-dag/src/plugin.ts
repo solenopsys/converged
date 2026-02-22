@@ -1,8 +1,7 @@
 import { createHttpBackend } from "nrpc";
-import { metadata } from "g-dag";
-import DagServiceImpl from "./dag-service";
 import type { Provider } from "./dag-api";
 
+// TODO: wire new DagService implementation
 function createProviders(
   definitions: Record<string, { ctor: new (...args: any[]) => Provider; params: { name: string; type: string }[] }> | undefined,
   config: Record<string, any>,
@@ -28,12 +27,9 @@ function createProviders(
 
 export default (config: any) => {
   const wf = config.workflows ?? {};
-  const providers = createProviders(wf.PROVIDER_DEFINITIONS, config);
+  createProviders(wf.PROVIDER_DEFINITIONS, config);
 
-  const serviceImpl = new DagServiceImpl({
-    workflows: wf.WORKFLOWS ?? [],
-    nodes: wf.NODE_DEFINITIONS ?? {},
-    providers,
-  });
+  const serviceImpl = {} as any;
+  const metadata = {} as any;
   return createHttpBackend({ metadata, serviceImpl })(config);
 };
