@@ -84,6 +84,7 @@ class HttpClientImpl {
           // ignore
         }
 
+        console.error(`[nrpc] ✗ ${url}:`, errorMessage);
         throw new Error(errorMessage);
       }
 
@@ -105,6 +106,7 @@ class HttpClientImpl {
         throw new Error(`Request timeout after ${this.timeout}ms`);
       }
 
+      console.error(`[nrpc] ✗ ${this.baseUrl}${path}:`, error.message);
       throw error;
     }
   }

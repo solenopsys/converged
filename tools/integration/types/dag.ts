@@ -32,7 +32,21 @@ export interface Task {
   createdAt: number;
 }
 
+export type ExecutionEventType = "started" | "task_update" | "completed" | "failed";
+
+export interface ExecutionEvent {
+  type: ExecutionEventType;
+  executionId: string;
+  task?: Task;
+  error?: string;
+}
+
 export interface DagService {
+  startExecution(
+    workflowName: string,
+    params: Record<string, any>,
+  ): AsyncIterable<ExecutionEvent>;
+
   createExecution(
     workflowName: string,
     params: Record<string, any>,

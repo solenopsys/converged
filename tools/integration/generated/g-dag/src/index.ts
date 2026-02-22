@@ -36,11 +36,41 @@ export interface Task {
   createdAt: number;
 }
 
+export type ExecutionEventType = "started" | "task_update" | "completed" | "failed";
+
+export interface ExecutionEvent {
+  type: ExecutionEventType;
+  executionId: string;
+  task?: Task;
+  error?: string;
+}
+
 export const metadata = {
   "interfaceName": "DagService",
   "serviceName": "dag",
   "filePath": "../types/dag.ts",
   "methods": [
+    {
+      "name": "startExecution",
+      "parameters": [
+        {
+          "name": "workflowName",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "params",
+          "type": "Record",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": true
+    },
     {
       "name": "createExecution",
       "parameters": [
@@ -276,12 +306,47 @@ export const metadata = {
           "isArray": false
         }
       ]
+    },
+    {
+      "name": "ExecutionEventType",
+      "definition": "\"started\" | \"task_update\" | \"completed\" | \"failed\""
+    },
+    {
+      "name": "ExecutionEvent",
+      "definition": "",
+      "properties": [
+        {
+          "name": "type",
+          "type": "ExecutionEventType",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "executionId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "task",
+          "type": "Task",
+          "optional": true,
+          "isArray": false
+        },
+        {
+          "name": "error",
+          "type": "string",
+          "optional": true,
+          "isArray": false
+        }
+      ]
     }
   ]
 };
 
 // Server interface (to be implemented in microservice)
 export interface DagService {
+  startExecution(workflowName: string, params: Record): AsyncIterable<any>;
   createExecution(workflowName: string, params: Record): Promise<any>;
   statusExecution(id: string): Promise<any>;
   listExecutions(params: PaginationParams): Promise<any>;
@@ -292,6 +357,7 @@ export interface DagService {
 
 // Client interface
 export interface DagServiceClient {
+  startExecution(workflowName: string, params: Record): AsyncIterable<any>;
   createExecution(workflowName: string, params: Record): Promise<any>;
   statusExecution(id: string): Promise<any>;
   listExecutions(params: PaginationParams): Promise<any>;

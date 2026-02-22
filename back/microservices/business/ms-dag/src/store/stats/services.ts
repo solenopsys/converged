@@ -89,6 +89,10 @@ export class StatsStoreService {
     });
   }
 
+  async getProcess(id: string): Promise<ProcessEntity | undefined> {
+    return this.processRepo.findById({ id });
+  }
+
   async updateProcess(id: string, patch: ProcessPatch): Promise<ProcessEntity | undefined> {
     const next: Partial<ProcessEntity> = {
       ...(patch as Partial<ProcessEntity>),
