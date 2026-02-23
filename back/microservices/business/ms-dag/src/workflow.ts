@@ -1,13 +1,7 @@
 export type WorkflowStatus = "running" | "done" | "failed";
 
-/**
- * Инфраструктурный объект, передаваемый ядром в воркфлоу.
- * Воркфлоу не знает о конкретных хранилищах — только работает через этот интерфейс.
- * Реализация живёт в ядре и может эволюционировать независимо.
- */
 export interface WorkflowContext {
-  getStep(workflowId: string, nodeName: string): string | undefined;  // возвращает nodeRecordId
-  setStep(workflowId: string, nodeName: string, nodeRecordId: string): void;
+  runNode(workflowId: string, nodeName: string, fn: () => Promise<any>): Promise<any>;
   setStatus(workflowId: string, status: WorkflowStatus): void;
 }
 
@@ -16,26 +10,15 @@ export abstract class Workflow {
 
   constructor(private ctx: WorkflowContext, id?: string) {
     this.id = id ?? crypto.randomUUID();
-    if (!id) {
-      this.ctx.setStatus(this.id, "running");
-    }
   }
 
-  /**
-   * Идемпотентный вызов узла.
-   * KV хранит не результат, а nodeRecordId — ссылку на запись NodeProcessor.
-   * Если узел уже выполнен — fn() не вызывается, возвращается сохранённый id.
-   */
-  protected async invoke(nodeName: string, fn: () => Promise<string>): Promise<string> {
-    const cached = this.ctx.getStep(this.id, nodeName);
-    if (cached !== undefined) return cached;
-    const nodeRecordId = await fn();
-    this.ctx.setStep(this.id, nodeName, nodeRecordId);
-    return nodeRecordId;
+  protected async invoke<T = any>(nodeName: string, fn: () => Promise<T>): Promise<T> {
+    return this.ctx.runNode(this.id, nodeName, fn);
   }
 
   async start(params: any): Promise<void> {
     try {
+      this.ctx.setStatus(this.id, "running");
       await this.execute(params);
       this.ctx.setStatus(this.id, "done");
     } catch (e) {

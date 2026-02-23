@@ -127,7 +127,7 @@ export const metadata = {
       "parameters": [
         {
           "name": "executionId",
-          "type": "string",
+          "type": "any",
           "optional": false,
           "isArray": false
         },
@@ -350,7 +350,7 @@ export interface DagService {
   createExecution(workflowName: string, params: Record): Promise<any>;
   statusExecution(id: string): Promise<any>;
   listExecutions(params: PaginationParams): Promise<any>;
-  listTasks(executionId: string, params: PaginationParams): Promise<any>;
+  listTasks(executionId: any, params: PaginationParams): Promise<any>;
   stats(): Promise<any>;
   listWorkflows(): Promise<any>;
 }
@@ -361,7 +361,7 @@ export interface DagServiceClient {
   createExecution(workflowName: string, params: Record): Promise<any>;
   statusExecution(id: string): Promise<any>;
   listExecutions(params: PaginationParams): Promise<any>;
-  listTasks(executionId: string, params: PaginationParams): Promise<any>;
+  listTasks(executionId: any, params: PaginationParams): Promise<any>;
   stats(): Promise<any>;
   listWorkflows(): Promise<any>;
 }

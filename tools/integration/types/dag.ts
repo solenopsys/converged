@@ -59,7 +59,7 @@ export interface DagService {
 
   listExecutions(params: PaginationParams): Promise<PaginatedResult<Execution>>;
 
-  listTasks(executionId: string, params: PaginationParams): Promise<PaginatedResult<Task>>;
+  listTasks(executionId: string | null, params: PaginationParams): Promise<PaginatedResult<Task>>;
 
   stats(): Promise<{
     executions: { total: number; running: number; done: number; failed: number };

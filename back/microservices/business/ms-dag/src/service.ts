@@ -1,14 +1,18 @@
 import type { DagService, Execution, Task, PaginationParams, PaginatedResult, ExecutionEvent } from "g-dag";
 import { StoresController } from "./store";
+import { NodeProcessor } from "./node-processor";
 
 export default class DagServiceImpl implements DagService {
   private stores: StoresController;
+  private nodeProcessor: NodeProcessor;
   private workflows: string[];
   private workflowCtors: Map<string, new (ctx: any, id?: string) => any>;
 
   constructor(config?: any) {
     this.stores = new StoresController("ms-dag");
     this.stores.init().catch((e) => console.error("[ms-dag] store init error", e));
+    this.nodeProcessor = new NodeProcessor();
+    this.nodeProcessor.resetStale();
     const wf = config?.workflows ?? {};
     const list: any[] = wf.WORKFLOWS ?? [];
     this.workflows = list.map((w: any) => w.name ?? w).filter(Boolean);
@@ -21,145 +25,61 @@ export default class DagServiceImpl implements DagService {
 
   async *startExecution(workflowName: string, params: Record<string, any>): AsyncIterable<ExecutionEvent> {
     const id = crypto.randomUUID();
+    const stats = this.stores.statsStoreService;
+    const kv = this.stores.processingStoreService;
 
-    await this.stores.statsStoreService.ensureProcess({
-      id,
-      workflowId: workflowName,
-      status: "running",
-    });
-
+    await stats.ensureProcess({ id, workflowId: workflowName, status: "running" });
     yield { type: "started", executionId: id };
 
     const Ctor = this.workflowCtors.get(workflowName);
     if (!Ctor) {
-      await this.stores.statsStoreService.updateProcess(id, { status: "failed" });
+      await stats.updateProcess(id, { status: "failed" });
       yield { type: "failed", executionId: id, error: `Workflow "${workflowName}" not found` };
       return;
     }
 
-    // Channel для передачи task_update событий из workflow в итератор
     const events: ExecutionEvent[] = [];
     let resolve: (() => void) | null = null;
     let done = false;
+    const push = (e: ExecutionEvent) => { events.push(e); resolve?.(); resolve = null; };
 
-    const push = (e: ExecutionEvent) => {
-      events.push(e);
-      resolve?.();
-      resolve = null;
-    };
-
-    const stats = this.stores.statsStoreService;
-
-    // WorkflowContext с перехватом setStep/setStatus для генерации событий
     const ctx = {
-      getStep: (wfId: string, nodeName: string) =>
-        this.stores.processingStoreService.getStep(wfId, nodeName),
+      runNode: async (workflowId: string, nodeName: string, fn: () => Promise<any>) => {
+        // Идемпотентность: уже выполнялось — достаём результат из NodeProcessor
+        const cachedRecordId = kv.getStep(workflowId, nodeName);
+        if (cachedRecordId !== undefined) {
+          return this.nodeProcessor.getRecord(cachedRecordId)?.result;
+        }
 
-      setStep: (wfId: string, nodeName: string, nodeRecordId: string) => {
-        this.stores.processingStoreService.setStep(wfId, nodeName, nodeRecordId);
+        const nodeRow = await stats.createNode({ processId: id, nodeId: nodeName, state: "queued", startedAt: null });
+        push({ type: "task_update", executionId: id, task: { id: nodeRow.id, executionId: id, nodeId: nodeName, state: "queued", startedAt: null, completedAt: null, errorMessage: null, retryCount: 0, createdAt: Date.now() } });
+
+        const startedAt = Date.now();
+        await stats.updateNode(nodeRow.id, { state: "processing", started_at: startedAt } as any);
+        push({ type: "task_update", executionId: id, task: { id: nodeRow.id, executionId: id, nodeId: nodeName, state: "processing", startedAt, completedAt: null, errorMessage: null, retryCount: 0, createdAt: Date.now() } });
+
+        const event = await this.nodeProcessor.exec(`${workflowName}:${nodeName}`, fn);
+
+        if (event.type === "done") {
+          const completedAt = Date.now();
+          await stats.updateNode(nodeRow.id, { state: "done", completed_at: completedAt } as any);
+          push({ type: "task_update", executionId: id, task: { id: nodeRow.id, executionId: id, nodeId: nodeName, state: "done", startedAt, completedAt, errorMessage: null, retryCount: 0, createdAt: Date.now() } });
+          kv.setStep(workflowId, nodeName, event.id);
+          return event.result;
+        } else {
+          const completedAt = Date.now();
+          await stats.updateNode(nodeRow.id, { state: "failed", error_message: event.error, completed_at: completedAt } as any);
+          push({ type: "task_update", executionId: id, task: { id: nodeRow.id, executionId: id, nodeId: nodeName, state: "failed", startedAt, completedAt, errorMessage: event.error, retryCount: 0, createdAt: Date.now() } });
+          throw new Error(event.error);
+        }
       },
 
       setStatus: (wfId: string, status: string) => {
-        this.stores.processingStoreService.setStatus(wfId, status);
+        kv.setStatus(wfId, status);
       },
     };
 
-    // Запускаем workflow в фоне
     const wf = new Ctor(ctx, id);
-
-    // Создаём записи узлов перед стартом через патч invoke
-    const origInvoke = wf.invoke?.bind(wf);
-    if (origInvoke) {
-      (wf as any).invoke = async (nodeName: string, fn: () => Promise<any>) => {
-        // Идемпотентность: если шаг уже выполнен — не повторяем
-        const cached = ctx.getStep(id, nodeName);
-        if (cached !== undefined) return cached;
-
-        // Создаём запись узла в "queued" состоянии
-        const nodeRow = await stats.createNode({
-          processId: id,
-          nodeId: nodeName,
-          state: "queued",
-          startedAt: null,
-        });
-        push({
-          type: "task_update",
-          executionId: id,
-          task: {
-            id: nodeRow.id,
-            executionId: id,
-            nodeId: nodeName,
-            state: "queued",
-            startedAt: null,
-            completedAt: null,
-            errorMessage: null,
-            retryCount: 0,
-            createdAt: Date.now(),
-          },
-        });
-
-        // Помечаем как processing
-        const startedAt = Date.now();
-        await stats.updateNode(nodeRow.id, { state: "processing", started_at: startedAt } as any);
-        push({
-          type: "task_update",
-          executionId: id,
-          task: {
-            id: nodeRow.id,
-            executionId: id,
-            nodeId: nodeName,
-            state: "processing",
-            startedAt,
-            completedAt: null,
-            errorMessage: null,
-            retryCount: 0,
-            createdAt: Date.now(),
-          },
-        });
-
-        try {
-          const result = await fn();
-          const completedAt = Date.now();
-          await stats.updateNode(nodeRow.id, { state: "done", completed_at: completedAt } as any);
-          push({
-            type: "task_update",
-            executionId: id,
-            task: {
-              id: nodeRow.id,
-              executionId: id,
-              nodeId: nodeName,
-              state: "done",
-              startedAt,
-              completedAt,
-              errorMessage: null,
-              retryCount: 0,
-              createdAt: Date.now(),
-            },
-          });
-          ctx.setStep(id, nodeName, String(nodeRow.id));
-          return result;
-        } catch (e: any) {
-          const now = Date.now();
-          await stats.updateNode(nodeRow.id, { state: "failed", error_message: e?.message ?? String(e), completed_at: now } as any);
-          push({
-            type: "task_update",
-            executionId: id,
-            task: {
-              id: nodeRow.id,
-              executionId: id,
-              nodeId: nodeName,
-              state: "failed",
-              startedAt,
-              completedAt: now,
-              errorMessage: e?.message ?? String(e),
-              retryCount: 0,
-              createdAt: Date.now(),
-            },
-          });
-          throw e;
-        }
-      };
-    }
 
     wf.start(params)
       .then(async () => {
@@ -170,13 +90,8 @@ export default class DagServiceImpl implements DagService {
         await stats.updateProcess(id, { status: "failed" });
         push({ type: "failed", executionId: id, error: e?.message ?? String(e) });
       })
-      .finally(() => {
-        done = true;
-        resolve?.();
-        resolve = null;
-      });
+      .finally(() => { done = true; resolve?.(); resolve = null; });
 
-    // Стримим события
     while (true) {
       while (events.length > 0) {
         const e = events.shift()!;
@@ -186,20 +101,12 @@ export default class DagServiceImpl implements DagService {
       if (done) break;
       await new Promise<void>((r) => { resolve = r; });
     }
-
-    // Дочищаем оставшиеся события
-    for (const e of events) {
-      yield e;
-    }
+    for (const e of events) yield e;
   }
 
   async createExecution(workflowName: string, params: Record<string, any>): Promise<{ id: string }> {
     const id = crypto.randomUUID();
-    await this.stores.statsStoreService.ensureProcess({
-      id,
-      workflowId: workflowName,
-      status: "running",
-    });
+    await this.stores.statsStoreService.ensureProcess({ id, workflowId: workflowName, status: "running" });
     return { id };
   }
 
@@ -247,8 +154,9 @@ export default class DagServiceImpl implements DagService {
     };
   }
 
-  async listTasks(executionId: string, params: PaginationParams): Promise<PaginatedResult<Task>> {
-    const result = await this.stores.statsStoreService.listNodes({ ...params, processId: executionId } as any);
+  async listTasks(executionId: string | null, params: PaginationParams): Promise<PaginatedResult<Task>> {
+    const filter = executionId ? { ...params, processId: executionId } : params;
+    const result = await this.stores.statsStoreService.listNodes(filter as any);
     return {
       items: result.items.map((t) => ({
         id: t.id,

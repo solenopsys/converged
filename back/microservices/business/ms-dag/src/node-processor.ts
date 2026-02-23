@@ -70,6 +70,32 @@ export class NodeProcessor {
     }
   }
 
+  async exec(code: string, fn: () => Promise<any>): Promise<NodeProcessorEvent> {
+    const id = generateULID();
+
+    const record: NodeRecord = {
+      id,
+      code,
+      state: "new",
+      data: null,
+      ts: Date.now(),
+    };
+    this.records.set(id, record);
+    record.state = "start";
+
+    try {
+      const result = await fn();
+      record.state = "end";
+      record.result = result;
+      return { type: "done", id, result };
+    } catch (e) {
+      const error = e instanceof Error ? e.message : String(e);
+      record.state = "err";
+      record.error = error;
+      return { type: "error", id, error };
+    }
+  }
+
   getRecord(id: string): NodeRecord | undefined {
     return this.records.get(id);
   }

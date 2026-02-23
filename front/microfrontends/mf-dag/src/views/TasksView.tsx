@@ -2,13 +2,17 @@ import React, { useEffect } from 'react';
 import { useUnit } from 'effector-react';
 import { HeaderPanelLayout, InfiniteScrollDataTable } from 'front-core';
 import { RefreshCw } from 'lucide-react';
-import { $tasks, $tasksLoading, $currentExecutionId, refreshTasksClicked } from '../domain-tasks';
+import { $tasks, $tasksLoading, $currentExecutionId, refreshTasksClicked, showAllTasks } from '../domain-tasks';
 import { tasksColumns } from '../functions/columns';
 
-export const TasksView = ({ bus, executionId }: { bus: any; executionId?: string }) => {
+export const TasksView = ({ bus }: { bus: any }) => {
   const tasks = useUnit($tasks);
   const loading = useUnit($tasksLoading);
   const currentId = useUnit($currentExecutionId);
+
+  useEffect(() => {
+    showAllTasks();
+  }, []);
 
   const headerConfig = {
     title: `Tasks${currentId ? `: ${currentId.slice(0, 8)}...` : ''}`,
