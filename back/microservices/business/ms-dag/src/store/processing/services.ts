@@ -62,6 +62,14 @@ export class ProcessingStoreService {
   delete(key: string): void {
     this.persistentRepo.delete(new PersistentKey(key));
   }
+
+  listVars(): { key: string; value: any }[] {
+    const keys = this.persistentRepo.listKeys();
+    return keys.map((rawKey) => {
+      const key = rawKey.replace(/^persistent:/, "");
+      return { key, value: this.persistentRepo.getDirect(rawKey) };
+    });
+  }
 }
 
 export type { ContextValue, PersistentValue };

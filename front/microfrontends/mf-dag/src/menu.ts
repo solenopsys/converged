@@ -1,4 +1,4 @@
-import { SHOW_CONTEXTS_LIST, SHOW_EXECUTIONS_LIST, SHOW_TASKS_LIST, SHOW_DAG_STATS } from "./functions";
+import { SHOW_CONTEXTS_LIST, SHOW_EXECUTIONS_LIST, SHOW_TASKS_LIST, SHOW_DAG_STATS, SHOW_VARS_LIST } from "./functions";
 
 export const MENU = {
     "title": "menu.dag",
@@ -14,6 +14,11 @@ export const MENU = {
             "title": "menu.tasks",
             "key": "tasks",
             "action": SHOW_TASKS_LIST
+        },
+        {
+            "title": "menu.vars",
+            "key": "vars",
+            "action": SHOW_VARS_LIST
         }
     ]
 };

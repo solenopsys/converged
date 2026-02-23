@@ -77,6 +77,9 @@ export default class DagServiceImpl implements DagService {
       setStatus: (wfId: string, status: string) => {
         kv.setStatus(wfId, status);
       },
+
+      getVar: (key: string) => kv.get(key),
+      setVar: (key: string, value: any) => kv.set(key, value),
     };
 
     const wf = new Ctor(ctx, id);
@@ -183,5 +186,18 @@ export default class DagServiceImpl implements DagService {
 
   async listWorkflows(): Promise<{ names: string[] }> {
     return { names: this.workflows };
+  }
+
+  async listVars(): Promise<{ items: { key: string; value: any }[] }> {
+    const items = this.stores.processingStoreService.listVars();
+    return { items };
+  }
+
+  async setVar(key: string, value: any): Promise<void> {
+    this.stores.processingStoreService.set(key, value);
+  }
+
+  async deleteVar(key: string): Promise<void> {
+    this.stores.processingStoreService.delete(key);
   }
 }

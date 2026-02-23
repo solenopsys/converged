@@ -67,4 +67,8 @@ export interface DagService {
   }>;
 
   listWorkflows(): Promise<{ names: string[] }>;
+
+  listVars(): Promise<{ items: { key: string; value: any }[] }>;
+  setVar(key: string, value: any): Promise<void>;
+  deleteVar(key: string): Promise<void>;
 }

@@ -158,6 +158,50 @@ export const metadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
+    },
+    {
+      "name": "listVars",
+      "parameters": [],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "setVar",
+      "parameters": [
+        {
+          "name": "key",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "value",
+          "type": "any",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "deleteVar",
+      "parameters": [
+        {
+          "name": "key",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -353,6 +397,9 @@ export interface DagService {
   listTasks(executionId: any, params: PaginationParams): Promise<any>;
   stats(): Promise<any>;
   listWorkflows(): Promise<any>;
+  listVars(): Promise<any>;
+  setVar(key: string, value: any): Promise<any>;
+  deleteVar(key: string): Promise<any>;
 }
 
 // Client interface
@@ -364,6 +411,9 @@ export interface DagServiceClient {
   listTasks(executionId: any, params: PaginationParams): Promise<any>;
   stats(): Promise<any>;
   listWorkflows(): Promise<any>;
+  listVars(): Promise<any>;
+  setVar(key: string, value: any): Promise<any>;
+  deleteVar(key: string): Promise<any>;
 }
 
 // Factory function

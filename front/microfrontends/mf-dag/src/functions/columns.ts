@@ -98,6 +98,24 @@ export const tasksColumns = [
   },
 ];
 
+export const varsColumns = [
+  {
+    id: 'key',
+    title: 'Key',
+    type: COLUMN_TYPES.TEXT,
+    primary: true,
+    minWidth: 200,
+    width: 300,
+  },
+  {
+    id: 'value',
+    title: 'Value',
+    type: COLUMN_TYPES.TEXT,
+    minWidth: 200,
+    width: 400,
+  },
+];
+
 export const executionsColumns = [
   {
     id: 'id',

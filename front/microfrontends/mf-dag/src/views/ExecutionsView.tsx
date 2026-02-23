@@ -3,8 +3,7 @@ import { useUnit } from 'effector-react';
 import { HeaderPanelLayout, InfiniteScrollDataTable } from 'front-core';
 import { RefreshCw } from 'lucide-react';
 import { $executionsStore, refreshExecutionsClicked } from '../domain-executions';
-import { openTasksList } from '../domain-tasks';
-import { createTasksWidget } from '../functions/tasks';
+import { createContextWidget, openContextDetail } from '../functions/context';
 import { executionsColumns } from '../functions/columns';
 
 export const ExecutionsView = ({ bus }) => {
@@ -30,8 +29,8 @@ export const ExecutionsView = ({ bus }) => {
   };
 
   const handleRowClick = (row: { id: string }) => {
-    openTasksList({ executionId: row.id });
-    bus.present({ widget: createTasksWidget(bus) });
+    openContextDetail({ contextId: row.id });
+    bus.present({ widget: createContextWidget(bus) });
   };
 
   return (

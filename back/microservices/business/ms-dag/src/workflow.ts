@@ -3,6 +3,8 @@ export type WorkflowStatus = "running" | "done" | "failed";
 export interface WorkflowContext {
   runNode(workflowId: string, nodeName: string, fn: () => Promise<any>): Promise<any>;
   setStatus(workflowId: string, status: WorkflowStatus): void;
+  getVar(key: string): any;
+  setVar(key: string, value: any): void;
 }
 
 export abstract class Workflow {
@@ -14,6 +16,14 @@ export abstract class Workflow {
 
   protected async invoke<T = any>(nodeName: string, fn: () => Promise<T>): Promise<T> {
     return this.ctx.runNode(this.id, nodeName, fn);
+  }
+
+  protected getVar(key: string): any {
+    return this.ctx.getVar(key);
+  }
+
+  protected setVar(key: string, value: any): void {
+    this.ctx.setVar(key, value);
   }
 
   async start(params: any): Promise<void> {
