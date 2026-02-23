@@ -30,6 +30,8 @@ export interface Task {
   errorMessage: string | null;
   retryCount: number;
   createdAt: number;
+  data?: any;
+  result?: any;
 }
 
 export type ExecutionEventType = "started" | "task_update" | "completed" | "failed";

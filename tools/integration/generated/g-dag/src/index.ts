@@ -34,6 +34,8 @@ export interface Task {
   errorMessage: any;
   retryCount: number;
   createdAt: number;
+  data?: any;
+  result?: any;
 }
 
 export type ExecutionEventType = "started" | "task_update" | "completed" | "failed";
@@ -347,6 +349,18 @@ export const metadata = {
           "name": "createdAt",
           "type": "number",
           "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "data",
+          "type": "any",
+          "optional": true,
+          "isArray": false
+        },
+        {
+          "name": "result",
+          "type": "any",
+          "optional": true,
           "isArray": false
         }
       ]

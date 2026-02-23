@@ -3,7 +3,15 @@ import { useUnit } from 'effector-react';
 import { HeaderPanelLayout, InfiniteScrollDataTable } from 'front-core';
 import { RefreshCw } from 'lucide-react';
 import { $tasks, $tasksLoading, $currentExecutionId, refreshTasksClicked, showAllTasks } from '../domain-tasks';
+import { createContextWidget } from '../functions/context';
+import { openContextDetail, $selectedContext } from '../domain-contexts';
 import { tasksColumns } from '../functions/columns';
+import ContextView from './ContextView';
+import domain from '../domain';
+
+const $selectedTask = domain.createStore<any>(null);
+const selectTask = domain.createEvent<any>('SELECT_TASK');
+$selectedTask.on(selectTask, (_, task) => task);
 
 export const TasksView = ({ bus }: { bus: any }) => {
   const tasks = useUnit($tasks);
@@ -27,16 +35,29 @@ export const TasksView = ({ bus }: { bus: any }) => {
     ],
   };
 
+  const handleRowClick = (task: any) => {
+    selectTask(task);
+    bus.present({
+      widget: {
+        view: ContextView,
+        placement: () => 'sidebar:tab:dag',
+        config: { contextStore: $selectedTask },
+        commands: {},
+      },
+    });
+  };
+
   return (
     <HeaderPanelLayout config={headerConfig}>
-        <InfiniteScrollDataTable
-          data={tasks}
-          hasMore={false}
-          loading={loading}
-          columns={tasksColumns}
-          onLoadMore={() => {}}
-          viewMode="table"
-        />
+      <InfiniteScrollDataTable
+        data={tasks}
+        hasMore={false}
+        loading={loading}
+        columns={tasksColumns}
+        onRowClick={handleRowClick}
+        onLoadMore={() => {}}
+        viewMode="table"
+      />
     </HeaderPanelLayout>
   );
 };

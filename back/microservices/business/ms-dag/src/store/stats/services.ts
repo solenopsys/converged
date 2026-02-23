@@ -295,6 +295,7 @@ export class StatsStoreService {
       retryCount: row.retry_count ?? 0,
       createdAt: row.created_at ?? undefined,
       updatedAt: row.updated_at ?? undefined,
+      recordId: row.record_id ?? undefined,
     };
   }
 

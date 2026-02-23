@@ -1,18 +1,14 @@
 import type { DagService, Execution, Task, PaginationParams, PaginatedResult, ExecutionEvent } from "g-dag";
 import { StoresController } from "./store";
-import { NodeProcessor } from "./node-processor";
 
 export default class DagServiceImpl implements DagService {
   private stores: StoresController;
-  private nodeProcessor: NodeProcessor;
   private workflows: string[];
   private workflowCtors: Map<string, new (ctx: any, id?: string) => any>;
 
   constructor(config?: any) {
     this.stores = new StoresController("ms-dag");
     this.stores.init().catch((e) => console.error("[ms-dag] store init error", e));
-    this.nodeProcessor = new NodeProcessor();
-    this.nodeProcessor.resetStale();
     const wf = config?.workflows ?? {};
     const list: any[] = wf.WORKFLOWS ?? [];
     this.workflows = list.map((w: any) => w.name ?? w).filter(Boolean);
@@ -45,10 +41,10 @@ export default class DagServiceImpl implements DagService {
 
     const ctx = {
       runNode: async (workflowId: string, nodeName: string, fn: () => Promise<any>) => {
-        // Идемпотентность: уже выполнялось — достаём результат из NodeProcessor
+        // Идемпотентность: уже выполнялось — достаём result из KVS
         const cachedRecordId = kv.getStep(workflowId, nodeName);
         if (cachedRecordId !== undefined) {
-          return this.nodeProcessor.getRecord(cachedRecordId)?.result;
+          return kv.getRecord(cachedRecordId)?.result;
         }
 
         const nodeRow = await stats.createNode({ processId: id, nodeId: nodeName, state: "queued", startedAt: null });
@@ -58,19 +54,21 @@ export default class DagServiceImpl implements DagService {
         await stats.updateNode(nodeRow.id, { state: "processing", started_at: startedAt } as any);
         push({ type: "task_update", executionId: id, task: { id: nodeRow.id, executionId: id, nodeId: nodeName, state: "processing", startedAt, completedAt: null, errorMessage: null, retryCount: 0, createdAt: Date.now() } });
 
-        const event = await this.nodeProcessor.exec(`${workflowName}:${nodeName}`, fn);
-
-        if (event.type === "done") {
+        try {
+          const result = await fn();
           const completedAt = Date.now();
-          await stats.updateNode(nodeRow.id, { state: "done", completed_at: completedAt } as any);
+          const recordId = `${workflowId}:${nodeName}`;
+          kv.setRecord(recordId, { data: null, result });
+          kv.setStep(workflowId, nodeName, recordId);
+          await stats.updateNode(nodeRow.id, { state: "done", completed_at: completedAt, record_id: recordId } as any);
           push({ type: "task_update", executionId: id, task: { id: nodeRow.id, executionId: id, nodeId: nodeName, state: "done", startedAt, completedAt, errorMessage: null, retryCount: 0, createdAt: Date.now() } });
-          kv.setStep(workflowId, nodeName, event.id);
-          return event.result;
-        } else {
+          return result;
+        } catch (e: any) {
+          const errorMsg = e instanceof Error ? e.message : String(e);
           const completedAt = Date.now();
-          await stats.updateNode(nodeRow.id, { state: "failed", error_message: event.error, completed_at: completedAt } as any);
-          push({ type: "task_update", executionId: id, task: { id: nodeRow.id, executionId: id, nodeId: nodeName, state: "failed", startedAt, completedAt, errorMessage: event.error, retryCount: 0, createdAt: Date.now() } });
-          throw new Error(event.error);
+          await stats.updateNode(nodeRow.id, { state: "failed", error_message: errorMsg, completed_at: completedAt } as any);
+          push({ type: "task_update", executionId: id, task: { id: nodeRow.id, executionId: id, nodeId: nodeName, state: "failed", startedAt, completedAt, errorMessage: errorMsg, retryCount: 0, createdAt: Date.now() } });
+          throw e;
         }
       },
 
@@ -160,18 +158,24 @@ export default class DagServiceImpl implements DagService {
   async listTasks(executionId: string | null, params: PaginationParams): Promise<PaginatedResult<Task>> {
     const filter = executionId ? { ...params, processId: executionId } : params;
     const result = await this.stores.statsStoreService.listNodes(filter as any);
+    const kv = this.stores.processingStoreService;
     return {
-      items: result.items.map((t) => ({
-        id: t.id,
-        executionId: t.processId,
-        nodeId: t.nodeId,
-        state: t.state as any,
-        startedAt: t.startedAt ?? null,
-        completedAt: t.completedAt ?? null,
-        errorMessage: t.errorMessage ?? null,
-        retryCount: t.retryCount,
-        createdAt: t.createdAt ?? 0,
-      })),
+      items: result.items.map((t) => {
+        const record = t.recordId ? kv.getRecord(t.recordId) : undefined;
+        return {
+          id: t.id,
+          executionId: t.processId,
+          nodeId: t.nodeId,
+          state: t.state as any,
+          startedAt: t.startedAt ?? null,
+          completedAt: t.completedAt ?? null,
+          errorMessage: t.errorMessage ?? null,
+          retryCount: t.retryCount,
+          createdAt: t.createdAt ?? 0,
+          data: record?.data,
+          result: record?.result,
+        };
+      }),
       totalCount: result.totalCount,
     };
   }

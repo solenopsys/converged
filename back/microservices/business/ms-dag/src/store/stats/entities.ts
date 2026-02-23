@@ -34,6 +34,7 @@ export interface NodeEntity {
   retry_count: number;
   created_at: number | null;
   updated_at: number | null;
+  record_id: string | null;
 }
 
 export class NodeRepository extends BaseRepositorySQL<NodeKey, NodeEntity> {}

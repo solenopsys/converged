@@ -6,6 +6,9 @@ import {
   PersistentKey,
   PersistentRepository,
   PersistentValue,
+  RecordKey,
+  RecordRepository,
+  type RecordValue,
 } from "./entities";
 
 /**
@@ -13,16 +16,19 @@ import {
  *
  * Хранит:
  * - context: мета воркфлоу (id, время создания, входные параметры)
- * - step cache: workflowId:nodeName -> nodeRecordId (ссылка на запись в NodeProcessor/SQL)
- * - persistent: долгоживущие данные узлов между запусками
+ * - step cache: workflowId:nodeName -> nodeRecordId
+ * - record: данные ноды по recordId (data, result)
+ * - persistent: vars между запусками
  */
 export class ProcessingStoreService {
   private readonly contextRepo: ContextRepository;
   private readonly persistentRepo: PersistentRepository;
+  private readonly recordRepo: RecordRepository;
 
   constructor(private kvStore: KVStore) {
     this.contextRepo = new ContextRepository(kvStore);
     this.persistentRepo = new PersistentRepository(kvStore);
+    this.recordRepo = new RecordRepository(kvStore);
   }
 
   // ============ Workflow context ============
@@ -34,8 +40,18 @@ export class ProcessingStoreService {
     return this.contextRepo.save(key, value);
   }
 
+  // ============ Node records ============
+
+  setRecord(recordId: string, value: RecordValue): void {
+    this.recordRepo.save(new RecordKey(recordId), value);
+  }
+
+  getRecord(recordId: string): RecordValue | undefined {
+    return this.recordRepo.get(new RecordKey(recordId));
+  }
+
   // ============ Step cache ============
-  // Хранит nodeRecordId — ссылку на запись в SQL (store/stats)
+  // Хранит recordId — ссылку на запись в KVS (recordRepo)
 
   getStep(workflowId: string, nodeName: string): string | undefined {
     return this.kvStore.getDirect(`${workflowId}:${nodeName}`) as string | undefined;
