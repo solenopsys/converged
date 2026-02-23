@@ -1,0 +1,438 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e5]:
+  - main [ref=e6]:
+    - main [ref=e9]:
+      - generic [ref=e10]:
+        - generic [ref=e13]:
+          - generic [ref=e14]:
+            - img [ref=e15]
+            - img
+          - generic [ref=e18]:
+            - heading "Клуб компаний «Индустрия 4.0»" [level=1] [ref=e20]
+            - generic [ref=e21]:
+              - button "Присоединиться" [ref=e22]
+              - link "Узнать больше" [ref=e23] [cursor=pointer]:
+                - /url: /ru/club/
+                - text: Узнать больше
+                - img [ref=e24]
+            - paragraph [ref=e27]: Объединяем тысячи цифровых производств, чтобы вместе внедрять ИИ и передовые технологии, повышая производительность и прибыльность бизнеса.
+        - generic [ref=e28]:
+          - img
+          - generic [ref=e29]:
+            - heading "Спросите нас о чём угодно" [level=2] [ref=e30]
+            - paragraph [ref=e31]: Наш AI ассистент ответит на любые вопросы о клубе.
+            - generic [ref=e33]:
+              - generic [ref=e34]:
+                - img [ref=e35]
+                - textbox "Задайте вопрос AI ассистенту..." [ref=e38]
+              - button "Отправить" [disabled] [ref=e39]:
+                - img [ref=e40]
+                - generic [ref=e43]: Отправить
+            - generic [ref=e44]:
+              - button "Расскажите о клубе" [ref=e45]:
+                - img [ref=e46]
+                - generic [ref=e48]: Расскажите о клубе
+              - button "Какие проекты вы реализовали?" [ref=e49]:
+                - img [ref=e50]
+                - generic [ref=e52]: Какие проекты вы реализовали?
+              - button "Как вступить в клуб?" [ref=e53]:
+                - img [ref=e54]
+                - generic [ref=e56]: Как вступить в клуб?
+            - generic [ref=e57]:
+              - generic [ref=e60]: Мгновенные ответы
+              - generic [ref=e63]: 24/7 доступность
+              - generic [ref=e66]: Точная информация
+        - generic [ref=e68]:
+          - heading "Для чего предназначен клуб?" [level=2] [ref=e69]
+          - generic [ref=e70]:
+            - generic [ref=e71]:
+              - generic [ref=e72]:
+                - heading "Снижение затрат на автоматизацию и ИИ" [level=3] [ref=e73]
+                - paragraph [ref=e74]: ИИ-функционал разрабатывается совместно для всех участников клуба. Стоимость разработки распределяется между компаниями, поэтому вы платите в десятки раз меньше, чем при индивидуальной автоматизации. В результате вы получаете доступ к промышленным ИИ-решениям без капитальных затрат.
+              - generic [ref=e75]:
+                - heading "Резкое удешевление привлечения клиентов" [level=3] [ref=e76]
+                - paragraph [ref=e77]: Заявки автоматически собираются из нишевых запросов, тендеров и досок объявлений по всему интернету. ИИ отбирает и передаёт их только тем компаниям, которые действительно могут выполнить заказ. Это снижает стоимость привлечения клиентов в 5–10 раз.
+              - generic [ref=e78]:
+                - heading "Быстрая поставка ценности" [level=3] [ref=e79]
+                - paragraph [ref=e80]: Мы не строим универсальный софт и не планируем функционал на годы вперёд. Новый функционал создаётся под конкретные задачи участников клуба и может быть реализован в течение одного дня с использованием ИИ. Вы получаете практический результат сразу, а не в конце долгого проекта.
+              - generic [ref=e81]:
+                - button "Присоединиться" [ref=e82]
+                - button "Узнать больше" [ref=e83]:
+                  - link "Узнать больше" [ref=e84] [cursor=pointer]:
+                    - /url: /ru/club/
+                  - img [ref=e85]
+            - generic [ref=e88] [cursor=pointer]: Your browser does not support the video tag.
+        - generic [ref=e90]:
+          - generic [ref=e91]:
+            - heading "Интегрируем передовые ИИ в ваши процессы" [level=2] [ref=e92]
+            - paragraph [ref=e93]: Вы описываете задачу — мы превращаем её в готовое решение
+          - generic [ref=e95]:
+            - generic [ref=e96]:
+              - img "OpenAI" [ref=e97]
+              - img "Claude" [ref=e98]
+              - img "Gemini" [ref=e99]
+              - img "DeepSeek" [ref=e100]
+              - img "Grok" [ref=e101]
+            - generic [ref=e102]:
+              - img "OpenAI" [ref=e103]
+              - img "Claude" [ref=e104]
+              - img "Gemini" [ref=e105]
+              - img "DeepSeek" [ref=e106]
+              - img "Grok" [ref=e107]
+            - generic [ref=e108]:
+              - img "OpenAI" [ref=e109]
+              - img "Claude" [ref=e110]
+              - img "Gemini" [ref=e111]
+              - img "DeepSeek" [ref=e112]
+              - img "Grok" [ref=e113]
+            - generic [ref=e114]:
+              - img "OpenAI" [ref=e115]
+              - img "Claude" [ref=e116]
+              - img "Gemini" [ref=e117]
+              - img "DeepSeek" [ref=e118]
+              - img "Grok" [ref=e119]
+        - generic [ref=e122]:
+          - generic [ref=e124]:
+            - heading "Цифровая платформа Converged" [level=1] [ref=e125]
+            - paragraph [ref=e126]: Цифровая платформа Converged объединяет всё оборудование в единую систему и интегрируется с передовыми системами искусственного интеллекта.
+          - img "Dashboard preview" [ref=e127]
+        - generic [ref=e129]:
+          - generic [ref=e131]:
+            - generic [ref=e132]:
+              - img [ref=e133]
+              - text: Features
+            - heading "Трансформируйте свое производство" [level=2] [ref=e136]
+          - generic [ref=e137]:
+            - generic [ref=e141]:
+              - img [ref=e143]
+              - generic [ref=e151]:
+                - heading "Внедрение Искусственного Интеллекта" [level=3] [ref=e152]
+                - paragraph [ref=e153]: Интеграция ИИ агентов в бизнес процессы. Автоматический прием заказов через ИИ чат и телефония для приема заказов.
+            - generic [ref=e157]:
+              - img [ref=e159]
+              - generic [ref=e165]:
+                - heading "Коллективный маркетинг" [level=3] [ref=e166]
+                - paragraph [ref=e167]: Совместные маркетинговые кампании уменьшают расходы. Обмен заявками Если поступил «неподходящий» заказ его можно обменять на более релевантный вашему оборудованию.
+            - generic [ref=e171]:
+              - img [ref=e173]
+              - generic [ref=e175]:
+                - heading "Умное Производство" [level=3] [ref=e176]
+                - paragraph [ref=e177]: Интеграция всего оборудование в одну цифровую фабрику. Автоматизация рутин, удобная аналитика, оптимизация склада и материалов.
+            - generic [ref=e181]:
+              - img [ref=e183]
+              - generic [ref=e185]:
+                - heading "Аналитическая платформа" [level=3] [ref=e186]
+                - paragraph [ref=e187]: Мониторинг в реальном времени и прогнозное обслуживание. Снижение неожиданных поломок за счёт отслеживающих состояние станков.
+        - generic [ref=e190]:
+          - generic [ref=e191]:
+            - img [ref=e192]
+            - text: Pricing Plans
+          - heading "4ir.club — Тарифы" [level=2] [ref=e194]
+          - paragraph [ref=e195]: "От self-hosted до облачной AI-аналитики: выберите уровень, который соответствует текущему этапу бизнеса."
+          - generic [ref=e196]:
+            - generic [ref=e197]:
+              - generic [ref=e198]:
+                - paragraph [ref=e200]: Free
+                - paragraph [ref=e201]: Self-hosted Converged AI
+              - list [ref=e203]:
+                - listitem [ref=e204]:
+                  - img [ref=e205]
+                  - generic [ref=e208]: Free club (форум поиск исполнителей)
+                - listitem [ref=e209]:
+                  - img [ref=e210]
+                  - generic [ref=e213]: "Полный функционал: сайт, приём заказов, каталог, CRM"
+                - listitem [ref=e214]:
+                  - img [ref=e215]
+                  - generic [ref=e218]: Все 17 решений доступны
+                - listitem [ref=e219]:
+                  - img [ref=e220]
+                  - generic [ref=e223]: API для AI агентов
+                - listitem [ref=e224]:
+                  - img [ref=e225]
+                  - generic [ref=e228]: "Доступ к порталу: обсуждения, форум"
+                - listitem [ref=e229]:
+                  - img [ref=e230]
+                  - generic [ref=e233]: Работает на своём железе (включая raspberry pi)
+                - listitem [ref=e234]:
+                  - img [ref=e235]
+                  - generic [ref=e238]: Без облачных функций и экосистемы
+              - generic [ref=e239]:
+                - generic [ref=e240]:
+                  - generic [ref=e241]: $0
+                  - generic [ref=e242]: /mo
+                - link "Купить" [ref=e243] [cursor=pointer]:
+                  - /url: https://4ir.lemonsqueezy.com/buy/243e4857-e8fc-4be6-9b74-2423da727441
+            - generic [ref=e244]:
+              - generic [ref=e245]:
+                - paragraph [ref=e247]: Pro Club
+                - paragraph [ref=e248]: Профессиональная клубная карта — доступ к бизнес-экосистеме 4ir.club
+              - list [ref=e250]:
+                - listitem [ref=e251]:
+                  - img [ref=e252]
+                  - generic [ref=e255]: Каталог 65000 компаний, 11000 поставщиков
+                - listitem [ref=e256]:
+                  - img [ref=e257]
+                  - generic [ref=e260]: Поиск клиентов и исполнителей, размещение услуг и товаров
+                - listitem [ref=e261]:
+                  - img [ref=e262]
+                  - generic [ref=e265]: Резервные цепочки поставок и поиск партнёров
+                - listitem [ref=e266]:
+                  - img [ref=e267]
+                  - generic [ref=e270]: Полный доступ к порталу с контактами
+                - listitem [ref=e271]:
+                  - img [ref=e272]
+                  - generic [ref=e275]: Участие в маршрутизации заявок
+                - listitem [ref=e276]:
+                  - img [ref=e277]
+                  - generic [ref=e280]: Размещение в каталоге производств/поставщиков
+                - listitem [ref=e281]:
+                  - img [ref=e282]
+                  - generic [ref=e285]: Доступ к базе поставщиков и OEM
+                - listitem [ref=e286]:
+                  - img [ref=e287]
+                  - generic [ref=e290]: Получение заявок от клиентов
+                - listitem [ref=e291]:
+                  - img [ref=e292]
+                  - generic [ref=e295]: API для AI агентов
+              - generic [ref=e296]:
+                - generic [ref=e297]:
+                  - generic [ref=e298]: $8
+                  - generic [ref=e299]: /mo
+                - link "Купить" [ref=e300] [cursor=pointer]:
+                  - /url: https://4ir.lemonsqueezy.com/buy/243e4857-e8fc-4be6-9b74-2423da727441
+            - generic [ref=e301]:
+              - generic [ref=e303]:
+                - img [ref=e304]
+                - text: Popular
+              - generic [ref=e307]:
+                - paragraph [ref=e309]: AI Portal
+                - paragraph [ref=e310]: Hosted Converged AI — AI как исполнитель
+              - list [ref=e312]:
+                - listitem [ref=e313]:
+                  - img [ref=e314]
+                  - generic [ref=e317]: Для производственных компаний и поставщиков
+                - listitem [ref=e318]:
+                  - img [ref=e319]
+                  - generic [ref=e322]: Всё из Club включено
+                - listitem [ref=e323]:
+                  - img [ref=e324]
+                  - generic [ref=e327]: AI генерирует сайт
+                - listitem [ref=e328]:
+                  - img [ref=e329]
+                  - generic [ref=e332]: AI отвечает в чате
+                - listitem [ref=e333]:
+                  - img [ref=e334]
+                  - generic [ref=e337]: AI принимает заявки
+                - listitem [ref=e338]:
+                  - img [ref=e339]
+                  - generic [ref=e342]: Все 17 solutions из коробки
+                - listitem [ref=e343]:
+                  - img [ref=e344]
+                  - generic [ref=e347]: Мессенджеры и телефония
+                - listitem [ref=e348]:
+                  - img [ref=e349]
+                  - generic [ref=e352]: Автоматические бэкапы
+                - listitem [ref=e353]:
+                  - img [ref=e354]
+                  - generic [ref=e357]: Обновления и DevOps по кнопке
+                - listitem [ref=e358]:
+                  - img [ref=e359]
+                  - generic [ref=e362]: API для AI агентов
+                - listitem [ref=e363]:
+                  - img [ref=e364]
+                  - generic [ref=e367]: "Без vendor lock-in: в любой момент выгрузка данных и локальный запуск"
+              - generic [ref=e368]:
+                - generic [ref=e369]:
+                  - generic [ref=e370]: $24
+                  - generic [ref=e371]: /mo
+                - link "Купить" [ref=e372] [cursor=pointer]:
+                  - /url: https://4ir.lemonsqueezy.com/buy/da63c8df-9a87-4ab3-92d8-bffbcac6fd53
+            - generic [ref=e373]:
+              - generic [ref=e374]:
+                - paragraph [ref=e376]: AI Analytics
+                - paragraph [ref=e377]: Глубокая интеграция с облачным AI — AI как советник
+              - list [ref=e379]:
+                - listitem [ref=e380]:
+                  - img [ref=e381]
+                  - generic [ref=e384]: Всё из AI Portal включено
+                - listitem [ref=e385]:
+                  - img [ref=e386]
+                  - generic [ref=e389]: AI анализирует ваши данные и данные всей сети
+                - listitem [ref=e390]:
+                  - img [ref=e391]
+                  - generic [ref=e394]: Тяжёлая аналитика и агрегации
+                - listitem [ref=e395]:
+                  - img [ref=e396]
+                  - generic [ref=e399]: Бенчмарки по отрасли
+                - listitem [ref=e400]:
+                  - img [ref=e401]
+                  - generic [ref=e404]: Поиск паттернов, аномалий и возможностей
+                - listitem [ref=e405]:
+                  - img [ref=e406]
+                  - generic [ref=e409]: Предсказания и рекомендации
+                - listitem [ref=e410]:
+                  - img [ref=e411]
+                  - generic [ref=e414]: Анализ эффективности сотрудников
+                - listitem [ref=e415]:
+                  - img [ref=e416]
+                  - generic [ref=e419]: Мониторинг рынка
+                - listitem [ref=e420]:
+                  - img [ref=e421]
+                  - generic [ref=e424]: API для AI агентов
+              - generic [ref=e425]:
+                - generic [ref=e426]:
+                  - generic [ref=e427]: $82
+                  - generic [ref=e428]: /mo
+                - link "Купить" [ref=e429] [cursor=pointer]:
+                  - /url: https://4ir.lemonsqueezy.com/buy/0499ee6c-a59d-4f7b-86b5-59e42666c7b6
+        - generic [ref=e431]:
+          - generic [ref=e432]:
+            - generic [ref=e433]:
+              - img [ref=e434]
+              - text: Statistics
+            - heading "Повышение эффективности бизнеса" [level=2] [ref=e437]
+          - generic [ref=e438]:
+            - generic [ref=e442]:
+              - generic [ref=e443]: 20%+
+              - paragraph [ref=e444]: Сокращение простоев
+            - generic [ref=e448]:
+              - generic [ref=e449]: 40%-
+              - paragraph [ref=e450]: Уменьшение брака
+            - generic [ref=e454]:
+              - generic [ref=e455]: 20%+
+              - paragraph [ref=e456]: Рост скорости обработки заказов
+            - generic [ref=e460]:
+              - generic [ref=e461]: 30%
+              - paragraph [ref=e462]: Рост прибыли
+        - generic [ref=e465]:
+          - generic [ref=e466]:
+            - paragraph [ref=e467]: Exclusive for members
+            - heading "Клуб компаний «Индустрия 4.0»" [level=2] [ref=e468]
+            - paragraph [ref=e469]: Объединяем тысячи цифровых производств, чтобы вместе внедрять ИИ и передовые технологии, повышая производительность и прибыльность бизнеса.
+          - generic [ref=e470]:
+            - link "Решения" [ref=e471] [cursor=pointer]:
+              - /url: /ru/solutions/
+              - button "Решения" [ref=e472]: Решения
+            - link "Продукт" [ref=e476] [cursor=pointer]:
+              - /url: /ru/product/
+          - generic [ref=e477]:
+            - generic [ref=e478]:
+              - generic [ref=e479]: 20%+
+              - generic [ref=e480]: Сокращение простоев
+            - generic [ref=e481]:
+              - generic [ref=e482]: 40%-
+              - generic [ref=e483]: Уменьшение брака
+            - generic [ref=e484]:
+              - generic [ref=e485]: 20%+
+              - generic [ref=e486]: Рост скорости обработки заказов
+            - generic [ref=e487]:
+              - generic [ref=e488]: 30%
+              - generic [ref=e489]: Рост прибыли
+        - generic [ref=e491]:
+          - generic [ref=e492]:
+            - generic [ref=e493]: FAQ
+            - heading "Часто задаваемые вопросы" [level=1] [ref=e494]
+          - generic [ref=e495]:
+            - generic [ref=e496]:
+              - generic [ref=e497]: "1"
+              - generic [ref=e498]:
+                - heading "Чем клуб отличается от агрегаторов?" [level=2] [ref=e500]
+                - paragraph [ref=e501]: "Большинство агрегаторов просто передаёт вам заказы, не участвуя в оптимизации внутренних процессов. В клубе «Индустрия 4.0» мы идём дальше: Создаём новый уровень ПО и аппаратных платформ (AI, IoT); Внедряем ИИ-агентов во все бизнес-процессы (с помощью OpenAI, Google, Anthropic и др.); Создаём коллективный маркетинг и централизованные системы управления заказами; Объединяем производителей и пользователей оборудования для обмена реальной статистикой."
+            - generic [ref=e502]:
+              - generic [ref=e503]: "2"
+              - generic [ref=e504]:
+                - heading "Почему клуб «Индустрия 4.0» — это выгодно?" [level=2] [ref=e506]
+                - paragraph [ref=e507]: Позволяем вам внедрять AI и передовые IT-решения, которые реально повышают прибыль. Клуб помогает компаниям совместно решать проблемы, делить затраты на разработку и получать доступ к единой цифровой экосистеме. Инженеры, IT-специалисты и эксперты по маркетингу — всё в одном месте, готовом решать ваши задачи.
+            - generic [ref=e508]:
+              - generic [ref=e509]: "3"
+              - generic [ref=e510]:
+                - heading "Какие проблемы решает клуб «Индустрия 4.0»?" [level=2] [ref=e512]
+                - paragraph [ref=e513]: "Усиление маркетинга: поиск клиентов, обработка заявок → AI-автоматизация уменьшает время отклика. Повышение маржинальности: оптимизация склада, удаление «бутылочных горлышек» и ручного учёта. Сокращение затрат: предиктивный ремонт, мониторинг качества в реальном времени, единая админка."
+  - complementary [ref=e514]:
+    - generic [ref=e515]:
+      - generic [ref=e517] [cursor=pointer]:
+        - generic [ref=e518]:
+          - img "Logo" [ref=e520]
+          - generic [ref=e521]:
+            - button "Log out" [ref=e522]:
+              - img [ref=e523]
+            - button "Switch to dark mode" [ref=e526]:
+              - img [ref=e527]
+            - button "Parallel panels" [ref=e529]:
+              - img [ref=e530]
+            - button "Limit width" [ref=e532]:
+              - img [ref=e533]
+            - button "Collapse panels" [ref=e538]:
+              - img [ref=e539]
+        - list [ref=e546]:
+          - listitem [ref=e547]:
+            - generic [ref=e548]:
+              - img [ref=e550]
+              - img [ref=e553]
+              - generic [ref=e561]: AI
+          - listitem [ref=e562]:
+            - generic [ref=e563]:
+              - img [ref=e565]
+              - img [ref=e568]
+              - generic [ref=e571]: Sales
+          - listitem [ref=e572]:
+            - generic [ref=e573]:
+              - img [ref=e575]
+              - img [ref=e578]
+              - generic [ref=e581]: Geo
+          - listitem [ref=e582]:
+            - generic [ref=e583]:
+              - img [ref=e585]
+              - img [ref=e588]
+              - generic [ref=e592]: Marketing
+          - listitem [ref=e593]:
+            - generic [ref=e594]:
+              - img [ref=e596]
+              - img [ref=e599]
+              - generic [ref=e603]: Workflows
+          - listitem [ref=e604]:
+            - generic [ref=e605]:
+              - img [ref=e607]
+              - img [ref=e610]
+              - generic [ref=e612]: Analytics
+          - listitem [ref=e613]:
+            - generic [ref=e614]:
+              - img [ref=e616]
+              - img [ref=e619]
+              - generic [ref=e623]: Data
+      - generic [ref=e628] [cursor=pointer]:
+        - generic [ref=e635]:
+          - generic [ref=e636]: Ask us anything
+          - generic [ref=e637]: Our AI assistant will answer any questions about the club.
+          - generic [ref=e638]:
+            - button "Tell us about the club" [ref=e639]:
+              - img [ref=e640]
+              - generic [ref=e642]: Tell us about the club
+            - button "What projects have you delivered?" [ref=e643]:
+              - img [ref=e644]
+              - generic [ref=e646]: What projects have you delivered?
+            - button "How can I join?" [ref=e647]:
+              - img [ref=e648]
+              - generic [ref=e651]: How can I join?
+            - button "Which plan is right for me?" [ref=e652]:
+              - img [ref=e653]
+              - generic [ref=e655]: Which plan is right for me?
+            - button "Can I migrate from Free to AI Portal?" [ref=e656]:
+              - img [ref=e657]
+              - generic [ref=e660]: Can I migrate from Free to AI Portal?
+            - button "Is there vendor lock-in?" [ref=e661]:
+              - img [ref=e662]
+              - generic [ref=e664]: Is there vendor lock-in?
+            - button "What is included in the Club plan?" [ref=e665]:
+              - img [ref=e666]
+              - generic [ref=e668]: What is included in the Club plan?
+        - generic [ref=e670]:
+          - button "Attach file" [ref=e671]:
+            - img [ref=e672]
+          - textbox "Message" [ref=e674]:
+            - /placeholder: Напишите сообщение...
+          - button "Send" [disabled] [ref=e675]:
+            - img [ref=e676]
+```

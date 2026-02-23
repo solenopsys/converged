@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { useUnit } from "effector-react";
-import { HeaderPanel, InfiniteScrollDataTable } from "front-core";
+import { HeaderPanelLayout, InfiniteScrollDataTable } from "front-core";
 import { RefreshCw, Plus } from "lucide-react";
 import {
   $endpointsStore,
@@ -52,9 +52,7 @@ export const EndpointsListView = ({ bus }) => {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <HeaderPanel config={headerConfig} />
-      <div className="flex-1 overflow-hidden p-4">
+    <HeaderPanelLayout config={headerConfig}>
         <InfiniteScrollDataTable
           data={endpointsState.items}
           hasMore={endpointsState.hasMore}
@@ -64,8 +62,7 @@ export const EndpointsListView = ({ bus }) => {
           onRowClick={handleRowClick}
           viewMode="table"
         />
-      </div>
-    </div>
+    </HeaderPanelLayout>
   );
 };
 

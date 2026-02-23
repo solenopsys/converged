@@ -84,7 +84,7 @@ export const ThreadsView = () => {
   );
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full min-h-0 flex-col">
       <HeaderPanel config={headerConfig} />
       {error ? (
         <div className="px-4 py-2 text-sm text-destructive border-b border-border">

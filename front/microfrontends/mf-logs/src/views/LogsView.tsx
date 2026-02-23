@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { useUnit } from "effector-react";
-import { HeaderPanel, InfiniteScrollDataTable } from "front-core";
+import { HeaderPanelLayout, InfiniteScrollDataTable } from "front-core";
 import { RefreshCw } from "lucide-react";
 import type { LogsMode } from "../domain-logs";
 import { $logsStore, logsViewMounted, refreshLogsClicked } from "../domain-logs";
@@ -31,9 +31,7 @@ export const LogsView = ({ mode = "hot" }: LogsViewProps) => {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <HeaderPanel config={headerConfig} />
-      <div className="flex-1 overflow-hidden p-4">
+    <HeaderPanelLayout config={headerConfig}>
         <InfiniteScrollDataTable
           data={logsState.items}
           hasMore={logsState.hasMore}
@@ -42,7 +40,6 @@ export const LogsView = ({ mode = "hot" }: LogsViewProps) => {
           onLoadMore={$logsStore.loadMore}
           viewMode="table"
         />
-      </div>
-    </div>
+    </HeaderPanelLayout>
   );
 };

@@ -21,7 +21,7 @@ const meta: Meta = {
     (Story) => (
       <div
         className="bg-sidebar text-sidebar-foreground border-sidebar-border rounded-sm border"
-        style={{ width: 360, minHeight: 720, padding: 8 }}
+        style={{ width: 360, minHeight: 720 }}
       >
         <div className="border-sidebar-border mb-2 flex h-[52px] items-center justify-between border-b px-3">
           <div className="text-sm font-semibold tracking-wide">CONVERGED AI</div>
@@ -39,7 +39,8 @@ const meta: Meta = {
 
 export default meta;
 
-const menuItems: MenuItemData[] = [
+// Все пункты с иконками
+const itemsWithIcons: MenuItemData[] = [
   { title: "AI", icon: <Bot size={16} /> },
   {
     title: "Analytics",
@@ -64,23 +65,81 @@ const menuItems: MenuItemData[] = [
   { title: "Workflows", icon: <GitBranch size={16} /> },
 ];
 
-export const Collapsed = () => (
-  <NavMainShell items={menuItems} openSections={[]} />
-);
+// Смешанные: часть с иконками, часть без
+const itemsMixed: MenuItemData[] = [
+  { title: "AI", icon: <Bot size={16} /> },
+  { title: "chats" },
+  {
+    title: "Analytics",
+    icon: <BarChart2 size={16} />,
+    items: [
+      { title: "Telemetry", items: [{ title: "Hot" }, { title: "Cold" }] },
+      { title: "Logs", items: [{ title: "Hot" }, { title: "Cold" }] },
+      { title: "Usage" },
+      { title: "dashboard" },
+    ],
+  },
+  { title: "Business", icon: <BriefcaseBusiness size={16} /> },
+  { title: "requests" },
+  {
+    title: "Content",
+    icon: <FileText size={16} />,
+    items: [
+      { title: "Landing", items: [{ title: "4ir" }] },
+      { title: "Docs", items: [{ title: "club" }] },
+      { title: "markdown" },
+    ],
+  },
+  { title: "Data", icon: <Database size={16} /> },
+  { title: "Threads" },
+  { title: "Social", icon: <Users size={16} /> },
+  { title: "Workflows", icon: <GitBranch size={16} /> },
+];
 
-export const Expanded = () => (
+// Без иконок вообще
+const itemsNoIcons: MenuItemData[] = [
+  { title: "projects", items: [
+    { title: "club-portal" },
+    { title: "converged-portal", items: [
+      { title: "front" },
+      { title: "back" },
+      { title: "tools", items: [
+        { title: "storybook" },
+        { title: "cli" },
+      ]},
+    ]},
+  ]},
+  { title: "docs" },
+  { title: "old" },
+];
+
+export const WithIcons = () => (
   <NavMainShell
-    items={menuItems}
+    items={itemsWithIcons}
     openSections={["Analytics", "Telemetry", "Logs"]}
   />
 );
 
+export const Mixed = () => (
+  <NavMainShell
+    items={itemsMixed}
+    openSections={["Analytics", "Content", "Telemetry", "Logs", "Landing", "Docs"]}
+  />
+);
+
+export const NoIcons = () => (
+  <NavMainShell
+    items={itemsNoIcons}
+    openSections={["projects", "converged-portal", "tools"]}
+  />
+);
+
 export const Interactive = () => {
-  const [openSections, setOpenSections] = useState<string[]>(["Analytics", "Telemetry", "Logs"]);
+  const [openSections, setOpenSections] = useState<string[]>(["Analytics", "Telemetry"]);
 
   return (
     <NavMainShell
-      items={menuItems}
+      items={itemsMixed}
       openSections={openSections}
       onSectionToggle={(key, open) =>
         setOpenSections((prev) => open ? [...prev, key] : prev.filter((k) => k !== key))

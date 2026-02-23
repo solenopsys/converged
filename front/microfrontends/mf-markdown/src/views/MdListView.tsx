@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useUnit } from "effector-react";
-import { HeaderPanel, InfiniteScrollDataTable } from "front-core";
+import { HeaderPanelLayout, InfiniteScrollDataTable } from "front-core";
 import { RefreshCw } from "lucide-react";
 import { $mdStore, mdViewMounted, refreshMdClicked } from "../domain-markdown";
 import { mdColumns } from "../functions/columns";
@@ -26,9 +26,7 @@ export const MdListView = () => {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <HeaderPanel config={headerConfig} />
-      <div className="flex-1 overflow-hidden p-4">
+    <HeaderPanelLayout config={headerConfig}>
         <InfiniteScrollDataTable
           data={mdState.items}
           hasMore={mdState.hasMore}
@@ -37,7 +35,6 @@ export const MdListView = () => {
           onLoadMore={$mdStore.loadMore}
           viewMode="table"
         />
-      </div>
-    </div>
+    </HeaderPanelLayout>
   );
 };

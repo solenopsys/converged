@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useUnit } from 'effector-react';
-import { HeaderPanel, InfiniteScrollDataTable } from 'front-core';
+import { HeaderPanelLayout, InfiniteScrollDataTable } from 'front-core';
 import { RefreshCw } from 'lucide-react';
 import { $tasks, $tasksLoading, $currentExecutionId, refreshTasksClicked } from '../domain-tasks';
 import { tasksColumns } from '../functions/columns';
@@ -24,9 +24,7 @@ export const TasksView = ({ bus, executionId }: { bus: any; executionId?: string
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <HeaderPanel config={headerConfig} />
-      <div className="flex-1 overflow-hidden p-4">
+    <HeaderPanelLayout config={headerConfig}>
         <InfiniteScrollDataTable
           data={tasks}
           hasMore={false}
@@ -35,7 +33,6 @@ export const TasksView = ({ bus, executionId }: { bus: any; executionId?: string
           onLoadMore={() => {}}
           viewMode="table"
         />
-      </div>
-    </div>
+    </HeaderPanelLayout>
   );
 };

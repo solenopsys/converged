@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { useUnit } from "effector-react";
-import { HeaderPanel, ScrollArea, StatisticCard } from "front-core";
+import { HeaderPanelLayout, ScrollArea, StatisticCard } from "front-core";
 import { Clock, History, RefreshCw } from "lucide-react";
 import { $stats, statsViewMounted, refreshStatsClicked } from "../domain-stats";
 
@@ -25,9 +25,7 @@ export const StatsView = () => {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <HeaderPanel config={headerConfig} />
-      <div className="flex-1 overflow-hidden p-4">
+    <HeaderPanelLayout config={headerConfig}>
         <ScrollArea className="h-full pr-2">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <StatisticCard
@@ -44,8 +42,7 @@ export const StatsView = () => {
             />
           </div>
         </ScrollArea>
-      </div>
-    </div>
+    </HeaderPanelLayout>
   );
 };
 

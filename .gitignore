@@ -16,3 +16,4 @@ next
 .bun-tmp
 storybook-static/
 deployment
+.tmp

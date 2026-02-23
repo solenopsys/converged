@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { useUnit } from "effector-react";
 import {
-  HeaderPanel,
+  HeaderPanelLayout,
   ScrollArea,
   StatisticCard,
 } from "front-core";
@@ -43,9 +43,7 @@ export const StatsView = ({ bus }) => {
   ];
 
   return (
-    <div className="flex flex-col h-full">
-      <HeaderPanel config={headerConfig} />
-      <div className="flex-1 overflow-hidden p-4">
+    <HeaderPanelLayout config={headerConfig}>
         <ScrollArea className="h-full pr-2">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {statItems.map(({ key, label, icon: Icon }) => (
@@ -59,7 +57,6 @@ export const StatsView = ({ bus }) => {
             ))}
           </div>
         </ScrollArea>
-      </div>
-    </div>
+    </HeaderPanelLayout>
   );
 };

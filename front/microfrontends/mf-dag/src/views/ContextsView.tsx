@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useUnit } from 'effector-react';
-import { HeaderPanel, InfiniteScrollDataTable } from 'front-core';
+import { HeaderPanelLayout, InfiniteScrollDataTable } from 'front-core';
 import { RefreshCw } from 'lucide-react';
 import { $contextsStore, refreshContextsClicked, openContextDetail } from '../domain-contexts';
 import { createContextWidget } from '../functions/context';
@@ -34,9 +34,7 @@ export const ContextsView = ({ bus }) => {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <HeaderPanel config={headerConfig} />
-      <div className="flex-1 overflow-hidden p-4">
+    <HeaderPanelLayout config={headerConfig}>
         <InfiniteScrollDataTable
           data={state.items}
           hasMore={state.hasMore}
@@ -46,7 +44,6 @@ export const ContextsView = ({ bus }) => {
           onLoadMore={$contextsStore.loadMore}
           viewMode="table"
         />
-      </div>
-    </div>
+    </HeaderPanelLayout>
   );
 };

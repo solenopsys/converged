@@ -58,7 +58,7 @@ const ChatDetailView: React.FC<ChatDetailViewProps> = ({ chatId }) => {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full min-h-0 flex-col">
       <div className="p-4 border-b bg-muted/30">
         <h2 className="text-lg font-semibold">
           Chat: {chatId.slice(0, 8)}...

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useUnit } from 'effector-react';
-import { HeaderPanel, InfiniteScrollDataTable } from 'front-core';
+import { HeaderPanelLayout, InfiniteScrollDataTable } from 'front-core';
 import { RefreshCw, Plus } from 'lucide-react';
 import { $workflowsStore, workflowsViewMounted, refreshWorkflowsClicked, addWorkflowClicked, openWorkflowForm } from '../domain-workflows';
 import { workflowsColumns } from '../functions/columns';
@@ -46,9 +46,7 @@ export const WorkflowsListView = ({ bus }) => {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <HeaderPanel config={headerConfig} />
-      <div className="flex-1 overflow-hidden p-4">
+    <HeaderPanelLayout config={headerConfig}>
         <InfiniteScrollDataTable
           data={workflowsState.items}
           hasMore={workflowsState.hasMore}
@@ -58,8 +56,7 @@ export const WorkflowsListView = ({ bus }) => {
           onRowClick={handleRowClick}
           viewMode="table"
         />
-      </div>
-    </div>
+    </HeaderPanelLayout>
   );
 };
 

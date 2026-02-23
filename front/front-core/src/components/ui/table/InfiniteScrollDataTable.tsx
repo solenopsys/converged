@@ -184,8 +184,10 @@ const CellRenderer = ({ value, column, rowData, onAction }) => {
   }
 
   switch (type) {
-    case COLUMN_TYPES.TEXT:
-      return <div className="text-sm truncate" title={value}>{value}</div>;
+    case COLUMN_TYPES.TEXT: {
+      const str = value == null ? "" : String(value);
+      return <div className="text-sm truncate" title={str}>{str}</div>;
+    }
 
     case COLUMN_TYPES.NUMBER:
       return (

@@ -32,7 +32,7 @@ export const UsageStatsView = () => {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full min-h-0 flex-col">
       <HeaderPanel config={headerConfig} />
       <div className="flex-1 overflow-auto p-4 space-y-4">
         <div className="grid gap-4 md:grid-cols-3">

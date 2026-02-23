@@ -1,5 +1,5 @@
 import { useUnit } from "effector-react";
-import { HeaderPanel } from "front-core";
+import { HeaderPanelLayout } from "front-core";
 import { Save } from "lucide-react";
 import { $selectedMd, saveMdClicked } from "../domain-markdown";
 
@@ -24,9 +24,7 @@ export const MdEditView = () => {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <HeaderPanel config={headerConfig} />
-      <div className="flex-1 overflow-hidden p-4">
+    <HeaderPanelLayout config={headerConfig}>
         <textarea
           className="w-full h-full p-4 font-mono text-sm border rounded resize-none"
           value={selectedMd.content}
@@ -34,7 +32,6 @@ export const MdEditView = () => {
             // TODO: update store
           }}
         />
-      </div>
-    </div>
+    </HeaderPanelLayout>
   );
 };

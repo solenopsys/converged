@@ -10,6 +10,7 @@ export * from './theme-provider';
 export * from './statcard';
 export * from './ui';
 export * from './HeaderPanel';
+export * from './HeaderPanelLayout';
 export * from './json-renderer';
 export * from './magicui';
 export * from './dashboard/DashboardWidget';
