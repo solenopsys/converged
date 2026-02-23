@@ -11,9 +11,12 @@ import { MenuItem } from "../controllers/menu-store"
 import { NavMainShell, type MenuItemData } from "./shell/NavMainShell"
 
 const menuItemToMenuItemData = (item: MenuItem): MenuItemData => ({
-  key: (typeof item.action === "string" ? item.action : item.action?.id)
-    || item.key
-    || item.title,
+  key:
+    (typeof item.action === "string" ? item.action : item.action?.id) ||
+    item.key ||
+    item.title,
+  actionKey:
+    typeof item.action === "string" ? item.action : item.action?.id,
   title: item.title || "",
   icon: item.icon,
   items: item.items?.map(menuItemToMenuItemData),
@@ -49,7 +52,7 @@ export function NavMain({
       openSections={openSections}
       onSectionToggle={(key, open) => toggleMenuSection({ id: key, open })}
       onItemClick={(item) => {
-        if (item.key) onSelect?.(item.key)
+        if (item.actionKey) onSelect?.(item.actionKey)
       }}
     />
   )

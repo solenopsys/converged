@@ -4,6 +4,7 @@ import { cn } from "../../lib/utils";
 
 export interface MenuItemData {
   key?: string;
+  actionKey?: string;
   title: string;
   icon?: ReactNode;
   href?: string;
@@ -45,7 +46,12 @@ function TreeRow({
     <div
       className={cn("flex w-full items-center gap-1 rounded-md text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground cursor-pointer", ROW_H)}
       style={{ paddingLeft: depth * 16 }}
-      onClick={hasChildren ? onToggle : onClick}
+      onClick={() => {
+        if (hasChildren) {
+          onToggle?.();
+        }
+        onClick?.();
+      }}
     >
       {/* chevron — фиксированная ширина, всегда занимает место */}
       <span className="inline-flex w-4 shrink-0 items-center justify-center">
