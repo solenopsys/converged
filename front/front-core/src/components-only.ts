@@ -3,5 +3,4 @@
 
 export * from './components/ui/ui-base';
 export * from './components/magicui';
-export * from './components/app-sidebar';
 export * from './lib/utils';

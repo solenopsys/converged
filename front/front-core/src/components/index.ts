@@ -1,5 +1,4 @@
 
-export * from './app-sidebar';
 export * from './chart-area-interactive';
 export * from './nav-documents';
 export * from './nav-main';
@@ -15,7 +14,6 @@ export * from './json-renderer';
 export * from './magicui';
 export * from './dashboard/DashboardWidget';
 export * from './shell';
-export * from './sidebar-layout';
 export * from './right-rail/BaseLayout';
 export * from './right-rail/RightRailPanels';
 export * from './right-rail/panelController';

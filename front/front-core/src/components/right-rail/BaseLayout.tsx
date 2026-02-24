@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useCallback, useEffect, type CSSProperties, type PointerEvent, type ReactNode } from "react";
 import { Outlet } from "react-router-dom";
 import { useUnit } from "effector-react";
+import { $rightSidebarWidth, sidebarWidthChanged } from "sidebar-controller";
 import {
   $activePanel,
   $collapsed,
@@ -10,6 +11,7 @@ import {
   $device,
   $panelConfig,
   $parallel,
+  type ActivePanel,
   setActivePanel,
   setCollapsed,
   setConstrained,
@@ -19,6 +21,10 @@ import {
 import { ChatPanel, TabsPanel } from "./RightRailPanels";
 import { $centerView } from "../../slots/present";
 import { SlotProvider } from "../../slots/SlotProvider";
+
+const MIN_PANEL_WIDTH = 280;
+const MAX_PANEL_WIDTH = 680;
+const DEFAULT_PANEL_WIDTH = 390;
 
 function CenterContent({ fallback }: { fallback?: ReactNode }) {
   const centerView = useUnit($centerView);
@@ -43,6 +49,7 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
     parallel,
     constrained,
     panelConfig,
+    rightSidebarWidth,
     onDevice,
     onFront,
     onCollapsed,
@@ -55,12 +62,62 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
     constrained: $constrained,
     parallel: $parallel,
     panelConfig: $panelConfig,
+    rightSidebarWidth: $rightSidebarWidth,
     onDevice: setDevice,
     onFront: setActivePanel,
     onCollapsed: setCollapsed,
     onConstrain: setConstrained,
     onParallel: toggleParallel,
   });
+
+  const updatePanelWidth = useCallback((nextWidth: number) => {
+    const width = Math.round(Math.max(MIN_PANEL_WIDTH, Math.min(MAX_PANEL_WIDTH, nextWidth)));
+    sidebarWidthChanged({ side: "right", width });
+  }, []);
+
+  const normalizedPanelWidth =
+    Number.isFinite(rightSidebarWidth) && rightSidebarWidth > 0
+      ? Math.max(MIN_PANEL_WIDTH, Math.min(MAX_PANEL_WIDTH, rightSidebarWidth))
+      : DEFAULT_PANEL_WIDTH;
+
+  const handleResizePointerDown = useCallback(
+    (event: PointerEvent<HTMLButtonElement>) => {
+      if (device !== "desktop" || collapsed) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+
+      const startX = event.clientX;
+      const startWidth = normalizedPanelWidth;
+      const previousUserSelect = document.body.style.userSelect;
+      const previousCursor = document.body.style.cursor;
+
+      document.body.style.userSelect = "none";
+      document.body.style.cursor = "col-resize";
+
+      const onPointerMove = (moveEvent: globalThis.PointerEvent) => {
+        const delta = startX - moveEvent.clientX;
+        updatePanelWidth(startWidth + delta);
+      };
+
+      const cleanup = () => {
+        document.body.style.userSelect = previousUserSelect;
+        document.body.style.cursor = previousCursor;
+        window.removeEventListener("pointermove", onPointerMove);
+        window.removeEventListener("pointerup", onPointerUp);
+        window.removeEventListener("pointercancel", onPointerCancel);
+      };
+
+      const onPointerUp = () => cleanup();
+      const onPointerCancel = () => cleanup();
+
+      window.addEventListener("pointermove", onPointerMove);
+      window.addEventListener("pointerup", onPointerUp);
+      window.addEventListener("pointercancel", onPointerCancel);
+    },
+    [collapsed, device, normalizedPanelWidth, updatePanelWidth],
+  );
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -107,6 +164,11 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
       data-mode={parallel ? "parallel" : "stacked"}
       data-collapsed={collapsed ? "true" : "false"}
       data-constrained={constrained ? "true" : "false"}
+      style={
+        {
+          "--panel-width": `${normalizedPanelWidth}px`,
+        } as CSSProperties
+      }
     >
       <style>{`
         @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap");
@@ -158,6 +220,36 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
 
         .app-layout[data-constrained="false"] {
           --shell-max: 100%;
+        }
+
+        .rail-resizer {
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          left: 0;
+          width: 12px;
+          padding: 0;
+          border: 0;
+          background: transparent;
+          transform: translateX(-50%);
+          cursor: col-resize;
+          z-index: 6;
+        }
+
+        .rail-resizer::after {
+          content: "";
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          left: 50%;
+          width: 1px;
+          background: color-mix(in oklch, var(--panel-edge) 55%, transparent);
+          transition: background-color 160ms ease;
+        }
+
+        .rail-resizer:hover::after,
+        .rail-resizer:focus-visible::after {
+          background: color-mix(in oklch, var(--panel-edge) 88%, transparent);
         }
 
         .app-shell {
@@ -650,6 +742,10 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
           display: none;
         }
 
+        .app-layout[data-device="mobile"] .rail-resizer {
+          display: none;
+        }
+
         .app-layout[data-device="mobile"][data-mode="stacked"]:not([data-collapsed="true"]) .tabs-panel {
           width: var(--stack-width);
           height: auto;
@@ -724,6 +820,14 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
               </div>
             </main>
             <aside className="app-rail">
+              {device === "desktop" && !collapsed ? (
+                <button
+                  type="button"
+                  className="rail-resizer"
+                  aria-label="Resize right panel"
+                  onPointerDown={handleResizePointerDown}
+                />
+              ) : null}
               <div className="panel-stack">
                 <TabsPanel
                   {...panelConfig.tabs}
