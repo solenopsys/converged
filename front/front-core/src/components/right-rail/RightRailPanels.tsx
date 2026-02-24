@@ -8,6 +8,7 @@ import type {
   HeaderIconKind,
   PanelConfig,
 } from "./panelTypes";
+import { rightRailActionSelected } from "./uri-sync";
 import type { MenuItem } from "../../controllers/menu-store";
 import { $allMenuItems } from "../../controllers/menu-store";
 import { registry } from "../../controllers/registry";
@@ -429,6 +430,7 @@ export function TabsPanel({
 
   const handleMenuSelect = useCallback((actionId: string) => {
     console.log("[TabsPanel] Menu selected:", actionId);
+    rightRailActionSelected(actionId);
     registry.run(actionId, {});
   }, []);
 

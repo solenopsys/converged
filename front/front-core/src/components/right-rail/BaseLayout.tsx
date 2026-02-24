@@ -18,6 +18,7 @@ import {
   setDevice,
   toggleParallel,
 } from "./panelController";
+import { startRightRailUriSync } from "./uri-sync";
 import { ChatPanel, TabsPanel } from "./RightRailPanels";
 import { $centerView } from "../../slots/present";
 import { SlotProvider } from "../../slots/SlotProvider";
@@ -118,6 +119,10 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
     },
     [collapsed, device, normalizedPanelWidth, updatePanelWidth],
   );
+
+  useEffect(() => {
+    startRightRailUriSync();
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") {

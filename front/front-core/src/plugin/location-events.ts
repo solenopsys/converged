@@ -1,16 +1,55 @@
-import { createEvent, createEffect, forward, split, createStore, sample } from "effector"
+import { createEvent } from "effector";
 
- 
 // effector-событие для всех изменений адреса
 export const locationChanged = createEvent<Location>();
 
-// подписка на события браузера
-window.addEventListener("popstate", () => locationChanged(window.location));
-window.addEventListener("hashchange", () => locationChanged(window.location));
+let started = false;
+let stop: (() => void) | null = null;
 
-// первый эмит при старте
-locationChanged(window.location);
+const emitLocation = () => {
+  if (typeof window === "undefined") return;
+  locationChanged(window.location);
+};
 
-locationChanged.watch((loc) => {
-    console.log("URL изменился:", loc.pathname, loc.search, loc.hash);
-  });
+export const startLocationEvents = () => {
+  if (typeof window === "undefined" || started) return;
+
+  started = true;
+
+  const onPopState = () => emitLocation();
+  const onHashChange = () => emitLocation();
+
+  const originalPushState = window.history.pushState;
+  const originalReplaceState = window.history.replaceState;
+
+  const patchedPushState: History["pushState"] = function (data, unused, url) {
+    originalPushState.call(window.history, data, unused, url);
+    emitLocation();
+  };
+
+  const patchedReplaceState: History["replaceState"] = function (data, unused, url) {
+    originalReplaceState.call(window.history, data, unused, url);
+    emitLocation();
+  };
+
+  window.history.pushState = patchedPushState;
+  window.history.replaceState = patchedReplaceState;
+  window.addEventListener("popstate", onPopState);
+  window.addEventListener("hashchange", onHashChange);
+
+  // Первый эмит при старте
+  emitLocation();
+
+  stop = () => {
+    window.removeEventListener("popstate", onPopState);
+    window.removeEventListener("hashchange", onHashChange);
+    window.history.pushState = originalPushState;
+    window.history.replaceState = originalReplaceState;
+    stop = null;
+    started = false;
+  };
+};
+
+export const stopLocationEvents = () => {
+  stop?.();
+};
