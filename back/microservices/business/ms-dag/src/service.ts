@@ -115,6 +115,7 @@ export default class DagServiceImpl implements DagService {
     const p = await this.stores.statsStoreService.getProcess(id);
     if (!p) throw Object.assign(new Error("Execution not found"), { statusCode: 404 });
 
+    const kv = this.stores.processingStoreService;
     const tasksResult = await this.stores.statsStoreService.listNodes({ offset: 0, limit: 100, processId: id } as any);
 
     return {
@@ -126,17 +127,22 @@ export default class DagServiceImpl implements DagService {
         updatedAt: (p as any).updated_at ?? (p as any).updatedAt ?? 0,
         createdAt: (p as any).created_at ?? (p as any).createdAt ?? 0,
       },
-      tasks: tasksResult.items.map((t) => ({
-        id: t.id,
-        executionId: t.processId,
-        nodeId: t.nodeId,
-        state: t.state as any,
-        startedAt: t.startedAt ?? null,
-        completedAt: t.completedAt ?? null,
-        errorMessage: t.errorMessage ?? null,
-        retryCount: t.retryCount,
-        createdAt: t.createdAt ?? 0,
-      })),
+      tasks: tasksResult.items.map((t) => {
+        const record = t.recordId ? kv.getRecord(t.recordId) : undefined;
+        return {
+          id: t.id,
+          executionId: t.processId,
+          nodeId: t.nodeId,
+          state: t.state as any,
+          startedAt: t.startedAt ?? null,
+          completedAt: t.completedAt ?? null,
+          errorMessage: t.errorMessage ?? null,
+          retryCount: t.retryCount,
+          createdAt: t.createdAt ?? 0,
+          data: record?.data,
+          result: record?.result,
+        };
+      }),
     };
   }
 
