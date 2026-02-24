@@ -1,19 +1,23 @@
 {
-  "project": "converged-portal",
+  "project": "club-portal",
   "preset": "mono",
-  "generatedAt": "2026-02-14T07:02:12.880Z",
+  "generatedAt": "2026-02-24T08:32:13.456Z",
   "containers": [
     {
-      "name": "converged-app",
+      "name": "club-app",
       "landing": true,
       "spa": true,
       "microfrontends": [
         "auth",
-        "aichats",
+        "assistants",
+        "community",
+        "charts",
         "calls",
         "dag",
         "dasboards",
         "dumps",
+        "docs",
+        "landing",
         "logs",
         "markdown",
         "requests",
@@ -21,10 +25,15 @@
         "telemetry",
         "threads",
         "usage",
-        "webhooks"
+        "webhooks",
+        "geo",
+        "mailing",
+        "marker",
+        "places",
+        "sales"
       ],
       "microservices": [
-        "ai/aichat",
+        "ai/assistant",
         "analytics/logs",
         "analytics/telemetry",
         "analytics/usage",
@@ -42,12 +51,12 @@
         "data/dumps",
         "data/files",
         "data/store",
-        "providers/push",
-        "providers/sms",
-        "providers/smtp",
+        "providers/ses",
         "sequrity/access",
         "sequrity/auth",
         "sequrity/oauth",
+        "social/community",
+        "social/charts",
         "social/calls",
         "social/discord",
         "social/facebook",
@@ -57,7 +66,12 @@
         "social/threads",
         "social/tiktok",
         "social/wechat",
-        "social/youtube"
+        "social/youtube",
+        "club/geo",
+        "club/mailing",
+        "club/marker",
+        "club/places",
+        "club/sales"
       ]
     }
   ],
@@ -73,14 +87,18 @@
       },
       "store": {
         "size": "20Gi"
+      },
+      "mailing": {
+        "size": "10Gi"
       }
     }
   },
   "ingress": {
     "className": "traefik",
-    "host": "app.example.com",
+    "host": "club.example.com",
     "tls": {
-      "enabled": false
+      "enabled": true,
+      "issuer": "letsencrypt-prod"
     }
   }
 }

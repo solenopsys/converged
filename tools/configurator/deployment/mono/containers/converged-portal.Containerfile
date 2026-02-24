@@ -55,8 +55,8 @@ RUN bun build \
     --target bun --format esm --splitting --outdir /build/out/plugins/chunks --minify
 
 RUN bun build /build/converged-portal/front/landing/src/plugin.tsx \
-    --target bun --format esm --outfile /build/out/plugins/landing/plugin.js \
-    --minify --external lightningcss
+    --target bun --format esm --outdir /build/out/plugins/landing \
+    --minify --external lightningcss --no-splitting
 
 RUN cat > /build/out/app/runtime-map.toml <<'TOML'
 [services]

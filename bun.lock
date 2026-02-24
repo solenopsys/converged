@@ -101,6 +101,7 @@
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
+        "g-billing": "workspace:*",
         "nrpc": "workspace:*",
       },
     },
@@ -947,6 +948,13 @@
       "version": "0.0.0",
       "dependencies": {
         "nrpc": "*",
+      },
+    },
+    "tools/integration/generated/g-billing": {
+      "name": "g-billing",
+      "version": "0.0.0",
+      "dependencies": {
+        "nrpc": "workspace:*",
       },
     },
     "tools/integration/generated/g-calls": {
@@ -2469,6 +2477,8 @@
     "g-assistant": ["g-assistant@workspace:tools/integration/generated/g-assistant"],
 
     "g-auth": ["g-auth@workspace:tools/integration/generated/g-auth"],
+
+    "g-billing": ["g-billing@workspace:tools/integration/generated/g-billing"],
 
     "g-calls": ["g-calls@workspace:tools/integration/generated/g-calls"],
 

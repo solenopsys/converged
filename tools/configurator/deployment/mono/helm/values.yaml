@@ -1,7 +1,7 @@
 ingress:
-  host: converged-portal.test
+  host: club.test
 
 image:
-  name: public.ecr.aws/i5x9u8b2/converged-portal
+  name: public.ecr.aws/i5x9u8b2/club-portal
   tag: latest
-  pullPolicy: Never
+  pullPolicy: Always

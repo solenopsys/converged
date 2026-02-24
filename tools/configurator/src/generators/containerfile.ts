@@ -251,8 +251,8 @@ class ContainerfileBuilder {
   private buildLandingPlugin() {
     this.emit("");
     this.emit(`RUN bun build ${this.projectPath(this.landingOwner, `${this.landingPath}/src/plugin.tsx`)} \\`);
-    this.emit("    --target bun --format esm --outfile /build/out/plugins/landing/plugin.js \\");
-    this.emit("    --minify --external lightningcss");
+    this.emit("    --target bun --format esm --outdir /build/out/plugins/landing \\");
+    this.emit("    --minify --external lightningcss --no-splitting");
   }
 
   private writeRuntimeMap() {

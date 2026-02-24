@@ -1,6 +1,6 @@
 apiVersion: v2
-name: converged-portal
-description: Converged Portal — full platform
+name: club
+description: Club Portal — extends converged with club-specific services
 type: application
 version: 1.0.0
 appVersion: "1.0.0"
