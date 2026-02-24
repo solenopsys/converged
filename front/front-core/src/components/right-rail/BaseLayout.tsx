@@ -410,19 +410,49 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
         }
 
         .tabs-body {
+          flex: 1;
+          min-height: 0;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
           padding: 10px 12px 14px;
         }
 
         .panel-tab-content {
           display: flex;
           flex-direction: column;
-          height: 100%;
+          flex: 1;
+          min-height: 0;
+          overflow: hidden;
         }
 
         .panel-tab-slot {
           flex: 1;
           min-height: 0;
-          overflow: auto;
+          overflow-y: auto;
+          overflow-x: hidden;
+        }
+
+        #slot-panel-tab {
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          min-height: 0;
+          height: 100%;
+          overflow-y: auto;
+          overflow-x: hidden;
+        }
+
+        #slot-panel-tab > * {
+          flex: 1;
+          min-height: 0;
+        }
+
+        .panel-menu-wrapper {
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
+          overflow-x: hidden;
         }
 
         .panel-menu-provider {
@@ -435,6 +465,8 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
         .panel-menu {
           min-height: 0;
           width: 100%;
+          overflow-y: auto;
+          overflow-x: hidden;
         }
 
         .panel-menu [data-sidebar="group"] {
@@ -590,8 +622,7 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
 
         .app-layout[data-device="desktop"][data-mode="stacked"]:not([data-collapsed="true"]) .tabs-panel {
           width: var(--panel-width);
-          height: auto;
-          max-height: var(--panel-height);
+          height: var(--panel-height);
           transform: translate(0, 0);
         }
 
@@ -748,8 +779,7 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
 
         .app-layout[data-device="mobile"][data-mode="stacked"]:not([data-collapsed="true"]) .tabs-panel {
           width: var(--stack-width);
-          height: auto;
-          max-height: var(--panel-height);
+          height: var(--panel-height);
           transform: translate(0, 0);
         }
 
