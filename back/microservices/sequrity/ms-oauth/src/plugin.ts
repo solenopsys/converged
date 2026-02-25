@@ -14,19 +14,65 @@ const providers: OAuthProviderName[] = [
 
 type PluginOptions = {
   dbPath?: string;
+  registerStartupTask?: (name: string, task: () => Promise<void>) => void;
   [key: string]: any;
 };
 
 export default (options: PluginOptions = {}) => (app: Elysia) => {
-  const service = new serviceImpl();
+  let service: InstanceType<typeof serviceImpl> | undefined;
+
+  const ensureService = async (): Promise<InstanceType<typeof serviceImpl>> => {
+    if (!service) {
+      service = new serviceImpl();
+    }
+
+    const initPromise = (service as any).initPromise;
+    if (initPromise && typeof initPromise.then === "function") {
+      await initPromise;
+    }
+
+    return service;
+  };
+
+  const serviceProxy = new Proxy(
+    { initPromise: Promise.resolve() } as Record<string, any>,
+    {
+      get(target, prop: string | symbol) {
+        if (prop === "initPromise") {
+          return target.initPromise;
+        }
+
+        if (typeof prop !== "string") {
+          return target[prop as keyof typeof target];
+        }
+
+        return async (...args: any[]) => {
+          const readyService = await ensureService();
+          const value = (readyService as any)[prop];
+
+          if (typeof value !== "function") {
+            return value;
+          }
+
+          return value.apply(readyService, args);
+        };
+      },
+    },
+  );
+
   const nrpcPlugin = createHttpBackend({
     metadata,
-    serviceImpl: service,
+    serviceImpl: serviceProxy,
   });
 
   app.use(nrpcPlugin(options) as any);
 
+  options.registerStartupTask?.("oauth:service", async () => {
+    await ensureService();
+  });
+
   app.get("/oauth/connect/:provider", async ({ params, query, request, set }) => {
+    const service = await ensureService();
     const provider = params.provider as OAuthProviderName;
     if (!providers.includes(provider)) {
       set.status = 400;
@@ -68,6 +114,7 @@ export default (options: PluginOptions = {}) => (app: Elysia) => {
   });
 
   app.get("/oauth/callback/:provider", async ({ params, query, request, set }) => {
+    const service = await ensureService();
     const provider = params.provider as OAuthProviderName;
     const code = typeof query.code === "string" ? query.code : "";
     const state = typeof query.state === "string" ? query.state : "";

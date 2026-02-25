@@ -19,6 +19,7 @@ const MS_ID = "sheduller-ms";
 
 export class ShedullerServiceImpl implements ShedullerService {
   private stores!: StoresController;
+  private initPromise?: Promise<void>;
   private jobs = new Map<string, Cron>();
 
   constructor() {
@@ -26,9 +27,17 @@ export class ShedullerServiceImpl implements ShedullerService {
   }
 
   async init() {
-    this.stores = new StoresController(MS_ID);
-    await this.stores.init();
-    this.rescheduleActive();
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+
+    this.initPromise = (async () => {
+      this.stores = new StoresController(MS_ID);
+      await this.stores.init();
+      this.rescheduleActive();
+    })();
+
+    return this.initPromise;
   }
 
   createCron(input: CronInput): Promise<{ id: string }> {

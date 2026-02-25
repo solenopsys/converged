@@ -3,16 +3,35 @@ import { metadata } from "g-galery";
 import serviceImpl from "./index";
 import { StoresController } from "./stores";
 
-export default (options: Record<string, unknown> = {}) =>
+type PluginOptions = {
+  registerStartupTask?: (name: string, task: () => Promise<void>) => void;
+  [key: string]: unknown;
+};
+
+export default (options: PluginOptions = {}) =>
   (app: any) => {
     const backend = createHttpBackend({ metadata, serviceImpl });
     backend(options)(app);
 
-    const stores = new StoresController("galery-ms");
-    const initPromise = stores.init();
+    let stores: StoresController | undefined;
+    let storesReady: Promise<void> | undefined;
+
+    const ensureStores = async (): Promise<StoresController> => {
+      if (!storesReady) {
+        stores = new StoresController("galery-ms");
+        storesReady = stores.init();
+      }
+
+      await storesReady;
+      return stores as StoresController;
+    };
+
+    options.registerStartupTask?.("galery:file-route", async () => {
+      await ensureStores();
+    });
 
     app.get("/galery/file/:id", async ({ params, query, set }: any) => {
-      await initPromise;
+      const stores = await ensureStores();
       const image = await stores.images.get(params.id);
       if (!image) {
         set.status = 404;

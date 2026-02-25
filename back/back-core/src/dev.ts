@@ -293,4 +293,4 @@ if (config.landing) {
   }
 }
 
-server.start();
+await server.start();

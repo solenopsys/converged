@@ -11,6 +11,7 @@ export interface PluginConfig {
   dbPath: string;
   openai?: AiConfig;
   claude?: AiConfig;
+  registerStartupTask?: (name: string, task: () => Promise<void>) => void;
   [key: string]: any;
 }
 
@@ -54,10 +55,15 @@ export function loadConfigFromEnv(): ServerConfig {
  * Creates and configures an Elysia server instance
  */
 export function createServer({ config, plugins, staticDir }: CreateServerOptions) {
+  const startupTasks: Array<{ name: string; task: () => Promise<void> }> = [];
+
   const pluginConfig: PluginConfig = {
     dbPath: config.dataDir,
     openai: config.openai,
     claude: config.claude,
+    registerStartupTask: (name, task) => {
+      startupTasks.push({ name, task });
+    },
     ...config.extraConfig,
   };
 
@@ -118,7 +124,27 @@ export function createServer({ config, plugins, staticDir }: CreateServerOptions
 
   return {
     app,
-    start: () => {
+    start: async () => {
+      for (let i = 0; i < startupTasks.length; i++) {
+        const startupTask = startupTasks[i];
+        const startedAt = Date.now();
+        console.log(
+          `[back-core] Init ${i + 1}/${startupTasks.length} start: ${startupTask.name}`,
+        );
+        try {
+          await startupTask.task();
+          console.log(
+            `[back-core] Init ${i + 1}/${startupTasks.length} done: ${startupTask.name} (${Date.now() - startedAt}ms)`,
+          );
+        } catch (error) {
+          console.error(
+            `[back-core] Init ${i + 1}/${startupTasks.length} failed: ${startupTask.name}`,
+            error,
+          );
+          throw error;
+        }
+      }
+
       app.listen(
         { port: config.port, hostname: "0.0.0.0" },
         () => {

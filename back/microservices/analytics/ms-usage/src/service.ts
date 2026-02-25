@@ -14,14 +14,23 @@ const MS_ID = "usage-ms";
 
 export class UsageServiceImpl implements UsageService {
   private stores!: StoresController;
+  private initPromise?: Promise<void>;
 
   constructor() {
     this.init();
   }
 
   async init() {
-    this.stores = new StoresController(MS_ID);
-    await this.stores.init();
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+
+    this.initPromise = (async () => {
+      this.stores = new StoresController(MS_ID);
+      await this.stores.init();
+    })();
+
+    return this.initPromise;
   }
 
   async recordUsage(events: UsageEventInput[]): Promise<{ inserted: number }> {

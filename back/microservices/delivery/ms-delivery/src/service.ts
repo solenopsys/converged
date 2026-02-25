@@ -16,14 +16,23 @@ const MS_ID = "delivery-ms";
 
 export class DeliveryServiceImpl implements DeliveryService {
   stores: StoresController;
+  private initPromise?: Promise<void>;
 
   constructor() {
     this.init();
   }
 
   async init() {
-    this.stores = new StoresController(MS_ID);
-    await this.stores.init();
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+
+    this.initPromise = (async () => {
+      this.stores = new StoresController(MS_ID);
+      await this.stores.init();
+    })();
+
+    return this.initPromise;
   }
 
   createDelivery(input: DeliveryInput): Promise<DeliveryId> {

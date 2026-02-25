@@ -14,14 +14,23 @@ const MS_ID = "requests-ms";
 
 export class RequestsServiceImpl implements RequestsService {
   stores: StoresController;
+  private initPromise?: Promise<void>;
 
   constructor() {
     this.init();
   }
 
   async init() {
-    this.stores = new StoresController(MS_ID);
-    await this.stores.init();
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+
+    this.initPromise = (async () => {
+      this.stores = new StoresController(MS_ID);
+      await this.stores.init();
+    })();
+
+    return this.initPromise;
   }
 
   createRequest(input: RequestInput): Promise<RequestId> {

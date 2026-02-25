@@ -6,14 +6,23 @@ const MS_ID = "threads-ms";
 
 export default class ThreadsServiceImpl implements ThreadsService {
   stores: StoresController;
+  private initPromise?: Promise<void>;
 
   constructor() {
     this.init();
   }
 
   async init() {
-    this.stores = new StoresController(MS_ID);
-    await this.stores.init();
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+
+    this.initPromise = (async () => {
+      this.stores = new StoresController(MS_ID);
+      await this.stores.init();
+    })();
+
+    return this.initPromise;
   }
 
   async saveMessage(message: Message): Promise<string> {

@@ -13,14 +13,23 @@ const MS_ID = "equipment-ms";
 
 export class EquipmentServiceImpl implements EquipmentService {
   stores: StoresController;
+  private initPromise?: Promise<void>;
 
   constructor() {
     this.init();
   }
 
   async init() {
-    this.stores = new StoresController(MS_ID);
-    await this.stores.init();
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+
+    this.initPromise = (async () => {
+      this.stores = new StoresController(MS_ID);
+      await this.stores.init();
+    })();
+
+    return this.initPromise;
   }
 
   registerEquipment(input: EquipmentInput): Promise<EquipmentId> {

@@ -21,6 +21,7 @@ export interface ElysiaBackendConfig {
 
 export interface PluginOptions {
   dbPath?: string;
+  registerStartupTask?: (name: string, task: () => Promise<void>) => void;
   [key: string]: any;
 }
 
@@ -39,6 +40,12 @@ export function createHttpBackend(config: ElysiaBackendConfig) {
   return (options: PluginOptions = {}) =>
     (app: Elysia) => {
       const backend = new ElysiaBackend(config, options);
+      if (!config.serviceUrl && config.serviceImpl && options.registerStartupTask) {
+        options.registerStartupTask(
+          `nrpc:${config.metadata.serviceName}`,
+          () => backend.waitUntilReady(),
+        );
+      }
       const pathPrefix = config.pathPrefix || "";
 
       // Регистрируем методы как POST эндпоинты
@@ -129,6 +136,7 @@ export function createHttpBackend(config: ElysiaBackendConfig) {
 
 class ElysiaBackend {
   private serviceInstance: any;
+  private serviceReady?: Promise<void>;
   private isRemoteService: boolean;
   private accessControl: AccessControlConfig;
   private accessSecret: Uint8Array;
@@ -147,20 +155,35 @@ class ElysiaBackend {
       "access-secret";
     this.accessSecret = new TextEncoder().encode(secret);
 
-    if (!this.isRemoteService && config.serviceImpl) {
-      this.initializeLocalService();
-    }
   }
 
-  private initializeLocalService() {
+  async waitUntilReady(): Promise<void> {
+    await this.ensureServiceReady();
+  }
+
+  private ensureServiceReady(): Promise<void> {
+    if (this.isRemoteService || !this.config.serviceImpl) {
+      return Promise.resolve();
+    }
+
+    if (!this.serviceReady) {
+      this.serviceReady = this.initializeLocalService();
+    }
+
+    return this.serviceReady;
+  }
+
+  private async initializeLocalService(): Promise<void> {
     try {
       // If serviceImpl is already an instance (not a class/constructor), use it directly
       if (typeof this.config.serviceImpl === "object" && this.config.serviceImpl !== null) {
         this.serviceInstance = this.config.serviceImpl;
+        await this.awaitServiceInitPromise();
         return;
       }
 
       let serviceConfig = { ...this.options };
+      delete serviceConfig.registerStartupTask;
 
       if (this.config.configEnvVar) {
         const envConfigValue = process.env[this.config.configEnvVar];
@@ -179,12 +202,20 @@ class ElysiaBackend {
       }
 
       this.serviceInstance = new this.config.serviceImpl(serviceConfig);
+      await this.awaitServiceInitPromise();
     } catch (error) {
       console.error(
         `Error initializing service ${this.config.metadata.serviceName}:`,
         error,
       );
       throw error;
+    }
+  }
+
+  private async awaitServiceInitPromise(): Promise<void> {
+    const initPromise = this.serviceInstance?.initPromise;
+    if (initPromise && typeof initPromise.then === "function") {
+      await initPromise;
     }
   }
 
@@ -279,6 +310,8 @@ class ElysiaBackend {
   }
 
   private async callLocalMethod(methodName: string, params: any): Promise<any> {
+    await this.ensureServiceReady();
+
     if (!this.serviceInstance) {
       throw new Error(`Service instance not initialized`);
     }
@@ -305,6 +338,8 @@ class ElysiaBackend {
     methodName: string,
     params: any,
   ): Promise<ReadableStream> {
+    await this.ensureServiceReady();
+
     if (!this.serviceInstance) {
       throw new Error(`Service instance not initialized`);
     }

@@ -13,14 +13,23 @@ const MS_ID = "billing-ms";
 
 export class BillingServiceImpl implements BillingService {
   stores: StoresController;
+  private initPromise?: Promise<void>;
 
   constructor() {
     this.init();
   }
 
   async init() {
-    this.stores = new StoresController(MS_ID);
-    await this.stores.init();
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+
+    this.initPromise = (async () => {
+      this.stores = new StoresController(MS_ID);
+      await this.stores.init();
+    })();
+
+    return this.initPromise;
   }
 
   addEntry(entry: BillingEntryInput): Promise<BillingEntryId> {
