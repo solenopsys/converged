@@ -183,6 +183,7 @@ class ContainerfileBuilder {
     this.prepareOutputDirs();
     this.buildPlugins();
     this.buildLandingPlugin();
+    this.buildSpaPlugin();
     this.writeRuntimeMap();
     this.copyFrontendAssets();
     this.copyNativeLibs();
@@ -255,11 +256,21 @@ class ContainerfileBuilder {
     this.emit("    --minify --external lightningcss --no-splitting");
   }
 
+  private buildSpaPlugin() {
+    const spaPluginOwner = resolveOwnerDir(this.ctx, "front/spa/src/plugin.ts");
+    const spaPluginEntry = this.projectPath(spaPluginOwner, "front/spa/src/plugin.ts");
+    this.emit("");
+    this.emit(`RUN bun build ${spaPluginEntry} \\`);
+    this.emit("    --target bun --format esm --outdir /build/out/plugins/spa \\");
+    this.emit("    --minify --no-splitting");
+  }
+
   private writeRuntimeMap() {
     const toml = ["[services]"];
     for (const p of this.plugins) {
       toml.push(`"${p.key}" = "/app/plugins/chunks/${p.chunkPath}"`);
     }
+    toml.push("", "[spa]", 'plugin = "/app/plugins/spa/plugin.js"');
     toml.push("", "[landing]", 'plugin = "/app/plugins/landing/plugin.js"');
 
     this.emit("");

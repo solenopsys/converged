@@ -8,6 +8,7 @@ import { $activePanel, setActivePanel, setCollapsed, type ActivePanel } from "./
 const SIDEBAR_TAB_PARAM = "sidebarTab";
 const SIDEBAR_PANEL_PARAM = "sidebarPanel";
 const SIDEBAR_ACTION_PARAM = "sidebarAction";
+const CONSOLE_PATH = "/console";
 const DEFAULT_TAB = "menu";
 const DEFAULT_PANEL: ActivePanel = "tabs";
 
@@ -45,10 +46,20 @@ const normalizeAction = (value: string | null): string | null => {
   return normalized.length > 0 ? normalized : null;
 };
 
+const isConsolePath = (pathname: string) =>
+  pathname === CONSOLE_PATH || pathname.startsWith(`${CONSOLE_PATH}/`);
+
+const ensureConsolePath = (url: URL): boolean => {
+  if (isConsolePath(url.pathname)) return false;
+  url.pathname = CONSOLE_PATH;
+  return true;
+};
+
 const replaceQueryParam = (key: string, value: string | null) => {
   if (typeof window === "undefined") return;
 
   const url = new URL(window.location.href);
+  ensureConsolePath(url);
   if (!value) {
     url.searchParams.delete(key);
   } else {
@@ -80,6 +91,11 @@ const syncActionToUriFx = createEffect((actionId: string) => {
 
 const runActionFromUriFx = createEffect((actionId: string): boolean => {
   if (typeof window === "undefined") return false;
+
+  const currentUrl = new URL(window.location.href);
+  if (ensureConsolePath(currentUrl)) {
+    window.history.replaceState(window.history.state, "", `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`);
+  }
 
   // Deep-link should always reveal the right menu panel.
   setCollapsed(false);
@@ -191,5 +207,15 @@ sample({
 export const startRightRailUriSync = () => {
   if (typeof window === "undefined" || syncStarted) return;
   syncStarted = true;
+
+  const url = new URL(window.location.href);
+  const hasSidebarState =
+    url.searchParams.has(SIDEBAR_ACTION_PARAM) ||
+    url.searchParams.has(SIDEBAR_TAB_PARAM) ||
+    url.searchParams.has(SIDEBAR_PANEL_PARAM);
+  if (hasSidebarState && ensureConsolePath(url)) {
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+  }
+
   startLocationEvents();
 };

@@ -6,6 +6,9 @@ import { pathToFileURL } from "node:url";
 
 type RuntimeMap = {
   services: Record<string, string>;
+  spa?: {
+    plugin?: string;
+  };
   landing?: {
     plugin?: string;
   };
@@ -106,7 +109,17 @@ const serveStatic = async (dir: string, path: string) => {
   return null;
 };
 
+const serveFile = async (absPath: string) => {
+  const file = Bun.file(absPath);
+  if (await file.exists()) return file;
+  return new Response("Not Found", { status: 404 });
+};
+
 const frontDir = resolve(appRoot, "dist/front");
+const frontVendorDir = resolve(frontDir, "vendor");
+const mfDir = resolve(appRoot, "dist/mf");
+const landingPublicDir = resolve(appRoot, "front", "landing", "public");
+const frontLocalesDir = resolve(appRoot, "front", "front-core", "locales");
 const hasFront = (() => {
   try {
     return statSync(join(frontDir, "index.html")).isFile();
@@ -133,6 +146,21 @@ const app = new Elysia()
     return api;
   });
 
+app
+  .get("/vendor/*", async ({ params }) =>
+    serveFile(resolve(frontVendorDir, params["*"] || "")),
+  )
+  .get("/mf/:name.js", async ({ params }) =>
+    serveFile(resolve(mfDir, `${params.name}.js`)),
+  )
+  .get("/front-core.js", async () => serveFile(resolve(frontDir, "index.js")))
+  .get("/favicon.svg", async () =>
+    serveFile(resolve(landingPublicDir, "favicon.svg")),
+  )
+  .get("/locales/*", async ({ params }) =>
+    serveFile(resolve(frontLocalesDir, params["*"] || "")),
+  );
+
 if (hasFront) {
   app
     .get("/console", async () => Bun.file(join(frontDir, "index.html")))
@@ -143,7 +171,10 @@ if (hasFront) {
 }
 
 // SPA plugin — vendor libs, front-core, microfrontends
-const spaPluginPath = resolve(projectDir, "front/spa/src/plugin.ts");
+const spaPluginPath = runtimeMap.spa?.plugin
+  ?? (existsSync(resolve(pluginsRoot, "spa/plugin.js"))
+    ? resolve(pluginsRoot, "spa/plugin.js")
+    : resolve(projectDir, "front/spa/src/plugin.ts"));
 if (existsSync(spaPluginPath)) {
   const spaPlugin = await importPlugin(spaPluginPath);
   app.use(spaPlugin({ production: true }));

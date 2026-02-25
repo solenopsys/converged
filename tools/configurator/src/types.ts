@@ -47,6 +47,8 @@ export interface BuildConfig {
 
   baseImage?: string;
 
+  registry?: string;
+
   landing?: string;
 
   /** Categories that belong to this project (not inherited from parent) */

@@ -153,6 +153,12 @@ function hasAuthToken() {
   return Boolean(window.localStorage.getItem(AUTH_TOKEN_KEY));
 }
 
+function isConsoleRoute() {
+  if (typeof window === "undefined") return false;
+  const path = window.location.pathname;
+  return path === "/console" || path.startsWith("/console/");
+}
+
 function rebuildMenus(authenticated: boolean) {
   for (const groupId of Object.keys(groupMenus)) {
     delete groupMenus[groupId];
@@ -170,7 +176,7 @@ function rebuildMenus(authenticated: boolean) {
 }
 
 function presentGuestLanding() {
-  if (hasAuthToken()) return;
+  if (hasAuthToken() || isConsoleRoute()) return;
   const maxAttempts = 50;
   let attempt = 0;
 

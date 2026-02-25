@@ -12,6 +12,24 @@ import { Migration } from "../migrations";
 const DB_NAME = "data";
 import { mkdirSync } from "fs";
 
+const STORE_DEBUG_ENABLED =
+  process.env.STORE_DEBUG === "1" ||
+  process.env.STORE_DEBUG === "true" ||
+  process.env.NODE_ENV === "development";
+
+function logStoreDebug(message: string, meta?: Record<string, unknown>) {
+  if (!STORE_DEBUG_ENABLED) return;
+  if (meta) {
+    console.log(`[stores] ${message}`, meta);
+    return;
+  }
+  console.log(`[stores] ${message}`);
+}
+
+function elapsedMs(startedAt: number): number {
+  return Date.now() - startedAt;
+}
+
 
 function dbExt(type: StoreType): string {
   if (type === StoreType.KVS) return ".lmdb";
@@ -52,6 +70,14 @@ async function createStore(
 
   manifestStorage.createIfNeeded(manifest);
 
+  logStoreDebug("prepare", {
+    msName,
+    store: storeDir,
+    type,
+    directory: storeDirectory,
+    dataLocation: manifest.dataLocation,
+  });
+
   if (type === StoreType.KVS) {
     return new KVStore(manifest.dataLocation, migrations, manifestStorage);
   }
@@ -91,20 +117,71 @@ export abstract class StoreControllerAbstract {
   abstract destroy(): Promise<void>;
 
   async startAll() {
-    for (const store of Object.values(this.stores)) {
-      await store.open();
+    for (const [name, store] of Object.entries(this.stores)) {
+      const startedAt = Date.now();
+      logStoreDebug("open:start", { msName: this.msName, store: name });
+      try {
+        await store.open();
+        logStoreDebug("open:done", {
+          msName: this.msName,
+          store: name,
+          durationMs: elapsedMs(startedAt),
+        });
+      } catch (error) {
+        logStoreDebug("open:failed", {
+          msName: this.msName,
+          store: name,
+          durationMs: elapsedMs(startedAt),
+          error: error instanceof Error ? error.message : String(error),
+        });
+        throw error;
+      }
     }
   }
 
   async closeAll() {
-    for (const store of Object.values(this.stores)) {
-      await store.close();
+    for (const [name, store] of Object.entries(this.stores)) {
+      const startedAt = Date.now();
+      logStoreDebug("close:start", { msName: this.msName, store: name });
+      try {
+        await store.close();
+        logStoreDebug("close:done", {
+          msName: this.msName,
+          store: name,
+          durationMs: elapsedMs(startedAt),
+        });
+      } catch (error) {
+        logStoreDebug("close:failed", {
+          msName: this.msName,
+          store: name,
+          durationMs: elapsedMs(startedAt),
+          error: error instanceof Error ? error.message : String(error),
+        });
+        throw error;
+      }
     }
   }
 
   async migrateAll() {
-    for (const store of Object.values(this.stores)) {
-      await store.migrate();
+    for (const [name, store] of Object.entries(this.stores)) {
+      const startedAt = Date.now();
+      logStoreDebug("migrate:start", { msName: this.msName, store: name });
+      try {
+        await store.migrate();
+        logStoreDebug("migrate:done", {
+          msName: this.msName,
+          store: name,
+          durationMs: elapsedMs(startedAt),
+        });
+      } catch (error) {
+        logStoreDebug("migrate:failed", {
+          msName: this.msName,
+          store: name,
+          durationMs: elapsedMs(startedAt),
+          error: error instanceof Error ? error.message : String(error),
+        });
+        throw error;
+      }
     }
   }
 

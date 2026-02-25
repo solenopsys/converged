@@ -13,7 +13,6 @@ const { positionals, values } = parseArgs({
   options: {
     project: { type: "string", short: "p" },
     preset: { type: "string", default: "mono" },
-    mode: { type: "string", default: "mono" },
     output: { type: "string", short: "o", default: "./deployment" },
     namespace: { type: "string", short: "n" },
     port: { type: "string", default: "3000" },
@@ -38,7 +37,6 @@ Commands:
 Options:
   -p, --project <name>  Project: converged-portal | club-portal (required)
   --preset <name>       Build preset: mono | micro | scale (default: mono)
-  --mode <name>         Dev mode: mono | split (default: mono)
   -o, --output <dir>    Output directory for build (default: ./deployment)
   -n, --namespace <ns>  K8s namespace (default: config name)
   --port <port>         Dev server base port (default: 3000)
@@ -46,7 +44,6 @@ Options:
 
 Examples:
   bun run cli.ts dev --project=converged-portal
-  bun run cli.ts dev --project=converged-portal --mode=split
   bun run cli.ts dev --project=club-portal --port=3001
   bun run cli.ts build --project=converged-portal --preset=mono
   bun run cli.ts build --project=club-portal --preset=micro
@@ -71,7 +68,6 @@ async function main() {
       await runDev({
         projectName: values.project!,
         port: parseInt(values.port!, 10),
-        mode: values.mode as "mono" | "split",
       });
       break;
     }

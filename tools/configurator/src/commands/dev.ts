@@ -9,7 +9,6 @@ const ROOT = resolve(PROJECTS_DIR, "../..");
 export interface DevOptions {
   projectName: string;
   port: number;
-  mode?: "mono" | "split";
 }
 
 /**
@@ -151,7 +150,6 @@ async function loadMergedConfig(
 
 export async function runDev({ projectName, port }: DevOptions) {
   const { config, projectDir, parentDir } = await loadMergedConfig(projectName);
-  const mode = (arguments[0] as DevOptions).mode ?? "mono";
   const loadedEnv = loadDotEnvForSpawn(projectName, projectDir, parentDir);
   const runtimeEnv = {
     ...loadedEnv,
@@ -165,7 +163,6 @@ export async function runDev({ projectName, port }: DevOptions) {
 ║  Project: ${projectName.padEnd(45)}║
 ║  Services: ${Object.values(config.back.microservices).flat().length.toString().padEnd(44)}║
 ║  Microfrontends: ${config.spa.microfrontends.length.toString().padEnd(37)}║
-║  Mode: ${mode.padEnd(48)}║
 ╚══════════════════════════════════════════════════════════╝
 `);
 
@@ -178,44 +175,13 @@ export async function runDev({ projectName, port }: DevOptions) {
   process.on("SIGINT", cleanup);
   process.on("SIGTERM", cleanup);
 
-  // Determine the base dir for back-core and front-core
+  // Determine the base dir for back-core
   const backCoreDir = parentDir
     ? resolve(parentDir, config.back.core || "back/back-core")
     : resolve(projectDir, config.back.core || "back/back-core");
 
-  if (mode === "mono") {
-    console.log(`[mono] Starting on port ${port}...`);
-    const monoProc = spawn({
-      cmd: ["bun", "run", "dev"],
-      cwd: backCoreDir,
-      env: {
-        ...runtimeEnv,
-        PORT: String(port),
-        PROJECT_DIR: projectDir,
-        PARENT_PROJECT_DIR: parentDir || "",
-        MONOLITH: "1",
-      },
-      stdout: "inherit",
-      stderr: "inherit",
-    });
-    procs.push(monoProc);
-
-    console.log(`
-  App:  http://localhost:${port}
-`);
-
-    await Promise.race(procs.map((p) => p.exited));
-    cleanup();
-    return;
-  }
-
-  const frontCoreDir = parentDir
-    ? resolve(parentDir, config.spa.core || "front/front-core")
-    : resolve(projectDir, config.spa.core || "front/front-core");
-
-  // Start backend (back-core dev server that loads all microservices)
-  console.log(`[back-core] Starting on port ${port}...`);
-  const backProc = spawn({
+  console.log(`[mono] Starting on port ${port}...`);
+  const monoProc = spawn({
     cmd: ["bun", "run", "dev"],
     cwd: backCoreDir,
     env: {
@@ -223,52 +189,17 @@ export async function runDev({ projectName, port }: DevOptions) {
       PORT: String(port),
       PROJECT_DIR: projectDir,
       PARENT_PROJECT_DIR: parentDir || "",
+      MONOLITH: "1",
     },
     stdout: "inherit",
     stderr: "inherit",
   });
-  procs.push(backProc);
-
-  // Start frontend dev server (vite)
-  const frontPort = port + 1;
-  console.log(`[front-core] Starting on port ${frontPort}...`);
-  const frontProc = spawn({
-    cmd: ["bun", "run", "dev"],
-    cwd: frontCoreDir,
-    env: {
-      ...runtimeEnv,
-      PORT: String(frontPort),
-      PROJECT_DIR: projectDir,
-      PARENT_PROJECT_DIR: parentDir || "",
-    },
-    stdout: "inherit",
-    stderr: "inherit",
-  });
-  procs.push(frontProc);
-
-  // Start landing dev server
-  const landingDir = resolve(projectDir, config.landing || "front/landing");
-  const landingPort = port + 2;
-  console.log(`[landing] Starting on port ${landingPort}...`);
-  const landingProc = spawn({
-    cmd: ["bun", "run", "dev"],
-    cwd: landingDir,
-    env: {
-      ...runtimeEnv,
-      PORT: String(landingPort),
-    },
-    stdout: "inherit",
-    stderr: "inherit",
-  });
-  procs.push(landingProc);
+  procs.push(monoProc);
 
   console.log(`
-  Backend:  http://localhost:${port}
-  Frontend: http://localhost:${frontPort}
-  Landing:  http://localhost:${landingPort}
+  App:  http://localhost:${port}
 `);
 
-  // Wait for any process to exit
   await Promise.race(procs.map((p) => p.exited));
   cleanup();
 }

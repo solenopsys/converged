@@ -6,7 +6,6 @@ import { generateContainerfiles } from "../generators/containerfile";
 import { generateKubernetesManifests } from "../generators/kubernetes";
 import { generateRuntimeConfigs } from "../generators/server";
 
-const DOCKER_REGISTRY_HOST="public.ecr.aws/i5x9u8b2"
 
 const PROJECTS_DIR = resolve(import.meta.dir, "../../../../../");
 
@@ -136,13 +135,16 @@ appVersion: "1.0.0"
   await writeFile(resolve(helmDir, "Chart.yaml"), chartYaml);
 
   // Write values.yaml with defaults
+  const registry = mergedConfig.registry;
+  const imageName = registry ? `${registry}/${projectName}` : `localhost/${projectName}`;
+  const pullPolicy = registry ? "Always" : "Never";
   const valuesYaml = `ingress:
   host: ${targetNamespace}.test
 
 image:
-  name: ${DOCKER_REGISTRY_HOST}/${projectName}
+  name: ${imageName}
   tag: latest
-  pullPolicy: Always
+  pullPolicy: ${pullPolicy}
 `;
   await writeFile(resolve(helmDir, "values.yaml"), valuesYaml);
 

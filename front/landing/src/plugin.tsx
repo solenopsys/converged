@@ -199,12 +199,15 @@ export default function landingPlugin(config: { publicDir?: string; production?:
     ) => {
       const landingConfId = mfEnv["mf-landing"].landingConfId;
       let landingData: Record<string, LandingPrefetchPayload> = {};
+      const isConsoleRoute = url === "/console" || url.startsWith("/console/");
 
-      try {
-        const preloaded = await prefetchLandingPayload(landingConfId, baseUrl);
-        landingData = { [landingConfId]: preloaded };
-      } catch (error) {
-        console.error("[landing] SSR prefetch failed", error);
+      if (!isConsoleRoute) {
+        try {
+          const preloaded = await prefetchLandingPayload(landingConfId, baseUrl);
+          landingData = { [landingConfId]: preloaded };
+        } catch (error) {
+          console.error("[landing] SSR prefetch failed", error);
+        }
       }
 
       const previousSsrData = globalThis.__LANDING_SSR_DATA__;
