@@ -36,6 +36,12 @@ export interface LandingPluginConfig {
   publicDir?: string;
   /** Force production mode */
   production?: boolean;
+  /**
+   * Override the list of microfrontend names to include in the browser import map.
+   * Use this when the plugin is loaded before PROJECT_DIR is set correctly,
+   * so that runtime-config.ts may have cached a stale microfrontend list.
+   */
+  microfrontends?: string[];
 }
 
 const fallbackBrowserImports: Record<string, string> = {
@@ -56,7 +62,10 @@ const fallbackBrowserImports: Record<string, string> = {
   "front-core/components": "/front-core.js",
 };
 
-function buildBrowserImportMap(baseImports?: Record<string, string>): Record<string, string> {
+function buildBrowserImportMap(
+  baseImports?: Record<string, string>,
+  mfOverride?: string[],
+): Record<string, string> {
   const fallbackEntries = Object.entries(fallbackBrowserImports).sort(
     (a, b) => b[0].length - a[0].length,
   );
@@ -87,7 +96,8 @@ function buildBrowserImportMap(baseImports?: Record<string, string>): Record<str
 
   imports["front-core"] = "/front-core.js";
   imports["front-core/components"] = "/front-core.js";
-  for (const mf of microfrontends) {
+  const mfList = mfOverride ?? microfrontends;
+  for (const mf of mfList) {
     imports[mf] = `/mf/${mf}.js`;
   }
   return imports;
@@ -116,7 +126,7 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
   let clientBrotli: Uint8Array;
   let seoConfig: SeoConfig;
   let assetsPromise: Promise<void> | null = null;
-  let browserImportMap: Record<string, string> = buildBrowserImportMap();
+  let browserImportMap: Record<string, string> = buildBrowserImportMap(undefined, config.microfrontends);
 
   const log = (message: string, extra?: Record<string, unknown>) => {
     if (extra) {
@@ -173,9 +183,10 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
             parsedImportMap && typeof parsedImportMap === "object"
               ? (parsedImportMap as any).imports
               : undefined,
+            config.microfrontends,
           );
         } else {
-          browserImportMap = buildBrowserImportMap();
+          browserImportMap = buildBrowserImportMap(undefined, config.microfrontends);
         }
 
         // Client bundle
