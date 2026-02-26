@@ -41,6 +41,7 @@
     "build:mono": "BOOTSTRAP_ENV_DIR=../../confs bun run --cwd tools/configurator src/cli.ts build --project=converged-portal --preset=mono --output=../../deployment",
     "build:micro": "BOOTSTRAP_ENV_DIR=../../confs bun run --cwd tools/configurator src/cli.ts build --project=converged-portal --preset=micro --output=../../deployment",
     "build:scale": "BOOTSTRAP_ENV_DIR=../../confs bun run --cwd tools/configurator src/cli.ts build --project=converged-portal --preset=scale --output=../../deployment",
+    "secrets": "bun run --cwd tools/configurator src/cli.ts secrets --project=converged-portal --output=../../../../deployment",
     "build:container": "podman build --layers -f ./deployment/mono/containers/converged-portal.Containerfile -t converged-portal ../../..",
     "cli": "bun run --env-file=../../confs/cli-dev.env tools/cli/src/cli.ts --commands=tools/commands",
     "clip": "bun run --env-file=../../cli-prod.env tools/cli/src/cli.ts --commands=tools/commands",

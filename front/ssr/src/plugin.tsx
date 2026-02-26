@@ -96,7 +96,7 @@ function buildBrowserImportMap(
 
   imports["front-core"] = "/front-core.js";
   imports["front-core/components"] = "/front-core.js";
-  const mfList = mfOverride ?? microfrontends;
+  const mfList = (mfOverride && mfOverride.length > 0) ? mfOverride : microfrontends;
   for (const mf of mfList) {
     imports[mf] = `/mf/${mf}.js`;
   }

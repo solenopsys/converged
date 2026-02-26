@@ -36,25 +36,15 @@ function buildMicroserviceMap(container: ResolvedContainer): Record<string, stri
   return map;
 }
 
-function buildEnv(chart: cdk8s.Chart, ctx: GeneratorContext, container: ResolvedContainer): Record<string, kplus.EnvValue> {
+function buildEnv(ctx: GeneratorContext): Record<string, kplus.EnvValue> {
   const env: Record<string, kplus.EnvValue> = {
     NODE_ENV: kplus.EnvValue.fromValue("production"),
     PORT: kplus.EnvValue.fromValue(String(APP_PORT)),
-    CONTAINER_NAME: kplus.EnvValue.fromValue(container.name),
     CONFIG_PATH: kplus.EnvValue.fromValue(`${CONFIG_MOUNT}/${CONFIG_FILE}`),
   };
 
   for (const [k, v] of Object.entries(ctx.config.env?.common ?? {})) {
     if (k !== "NODE_ENV") env[k] = kplus.EnvValue.fromValue(v);
-  }
-
-  const secretNames = ctx.config.env?.secrets ?? [];
-  if (secretNames.length > 0) {
-    const secretName = `${ctx.config.name}-secrets`;
-    const secretObj = kplus.Secret.fromSecretName(chart, `${container.name}-secrets-ref`, secretName);
-    for (const key of secretNames) {
-      env[key] = kplus.EnvValue.fromSecretValue({ secret: secretObj, key });
-    }
   }
 
   return env;
@@ -118,6 +108,8 @@ class ContainerBuilder {
     const dataVolume = this.createDataVolume();
     const configVolume = kplus.Volume.fromConfigMap(this.chart, `${this.container.name}-config-vol`, configMap);
 
+    const secretName = `${this.ctx.config.name}-secrets`;
+
     const sts = new kplus.StatefulSet(this.chart, `${this.container.name}-sts`, {
       metadata: { name: this.prefix, labels: this.labels },
       replicas: 1,
@@ -127,7 +119,7 @@ class ContainerBuilder {
         image: imageUri(),
         imagePullPolicy: HELM_PULL_POLICY as any,
         ports: [{ number: APP_PORT }],
-        envVariables: buildEnv(this.chart, this.ctx, this.container),
+        envVariables: buildEnv(this.ctx),
         resources: toContainerResources(this.container.resources),
         securityContext: { ensureNonRoot: false, readOnlyRootFilesystem: false },
         volumeMounts: [
@@ -139,6 +131,11 @@ class ContainerBuilder {
       podMetadata: { labels: this.labels },
       volumeClaimTemplates: [pvcTemplate],
     });
+
+    (sts as any).apiObject.addJsonPatch(cdk8s.JsonPatch.add(
+      "/spec/template/spec/containers/0/envFrom",
+      [{ secretRef: { name: secretName } }],
+    ));
 
     // Headless service for StatefulSet
     new kplus.Service(this.chart, `${this.container.name}-headless`, {

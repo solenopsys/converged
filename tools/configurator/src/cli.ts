@@ -16,6 +16,7 @@ const { positionals, values } = parseArgs({
     output: { type: "string", short: "o", default: "./deployment" },
     namespace: { type: "string", short: "n" },
     port: { type: "string", default: "3000" },
+    "env-file": { type: "string" },
     help: { type: "boolean", short: "h" },
   },
   allowPositionals: true,
@@ -33,13 +34,15 @@ Usage:
 Commands:
   dev     Start development server (all services + frontend)
   build   Generate Containerfiles and Kubernetes manifests
+  secrets Generate Kubernetes Secret YAML from .env file
 
 Options:
   -p, --project <name>  Project: converged-portal | club-portal (required)
   --preset <name>       Build preset: mono | micro | scale (default: mono)
-  -o, --output <dir>    Output directory for build (default: ./deployment)
+  -o, --output <dir>    Output directory (default: ./deployment)
   -n, --namespace <ns>  K8s namespace (default: config name)
   --port <port>         Dev server base port (default: 3000)
+  --env-file <path>     Path to .env file (secrets: default confs/<project>.env)
   -h, --help            Show this help
 
 Examples:
@@ -47,7 +50,8 @@ Examples:
   bun run cli.ts dev --project=club-portal --port=3001
   bun run cli.ts build --project=converged-portal --preset=mono
   bun run cli.ts build --project=club-portal --preset=micro
-  bun run cli.ts build --project=club-portal --preset=scale
+  bun run cli.ts secrets --project=club-portal
+  bun run cli.ts secrets --project=club-portal --env-file=../../confs/club-portal.env
 `);
   process.exit(values.help ? 0 : 1);
 }
@@ -77,6 +81,17 @@ async function main() {
       await runBuild({
         projectName: values.project!,
         preset: values.preset!,
+        outputDir: values.output!,
+        namespace: values.namespace,
+      });
+      break;
+    }
+
+    case "secrets": {
+      const { runSecrets } = await import("./commands/secrets");
+      await runSecrets({
+        projectName: values.project!,
+        envFile: values["env-file"],
         outputDir: values.output!,
         namespace: values.namespace,
       });
