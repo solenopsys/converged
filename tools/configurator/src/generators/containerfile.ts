@@ -95,6 +95,7 @@ class ContainerfileBuilder {
   private readonly landingOwner: string;
   private readonly storeWorkersOwner: string;
   private readonly runtimeServerOwner: string;
+  private readonly workflowsOwner: string;
 
   // Paths from config
   private readonly spaCorePath: string;
@@ -121,6 +122,7 @@ class ContainerfileBuilder {
     this.landingOwner = resolveOwnerDir(ctx, this.landingPath);
     this.storeWorkersOwner = resolveOwnerDir(ctx, this.storeWorkersPath);
     this.runtimeServerOwner = resolveOwnerDir(ctx, "tools/container-runtime/server.entry.ts");
+    this.workflowsOwner = resolveOwnerDir(ctx, "back/workflows/index.ts");
 
     this.apkPackages = config.runtimeDeps?.apk ?? [];
     this.runtimePackages = config.runtimeDeps?.packages ?? {};
@@ -184,6 +186,7 @@ class ContainerfileBuilder {
     this.buildPlugins();
     this.buildLandingPlugin();
     this.buildSpaPlugin();
+    this.buildWorkflows();
     this.writeRuntimeMap();
     this.copyFrontendAssets();
     this.copyNativeLibs();
@@ -265,10 +268,22 @@ class ContainerfileBuilder {
     this.emit("    --minify --no-splitting");
   }
 
+  private buildWorkflows() {
+    const entry = this.projectPath(this.workflowsOwner, "back/workflows/index.ts");
+    if (!dirExists(this.ctx, this.workflowsOwner, "back/workflows/index.ts")) return;
+    this.emit("");
+    this.emit(`RUN bun build ${entry} \\`);
+    this.emit("    --target bun --format esm --outdir /build/out/plugins/workflows \\");
+    this.emit("    --minify --no-splitting");
+  }
+
   private writeRuntimeMap() {
     const toml = ["[services]"];
     for (const p of this.plugins) {
       toml.push(`"${p.key}" = "/app/plugins/chunks/${p.chunkPath}"`);
+    }
+    if (dirExists(this.ctx, this.workflowsOwner, "back/workflows/index.ts")) {
+      toml.push("", "[workflows]", 'plugin = "/app/plugins/workflows/index.js"');
     }
     toml.push("", "[spa]", 'plugin = "/app/plugins/spa/plugin.js"');
     toml.push("", "[landing]", 'plugin = "/app/plugins/landing/plugin.js"');

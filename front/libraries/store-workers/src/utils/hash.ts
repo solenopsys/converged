@@ -1,4 +1,4 @@
-import type { HashString } from '../../../../../types/files';
+import type { HashString } from '../api/generated';
 
 export async function calculateHash(data: Uint8Array): Promise<HashString> {
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);

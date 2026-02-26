@@ -1,5 +1,5 @@
 import { REQUEST_TIMEOUT } from '../../../files-state/src/config';
-import { HashString } from "../../../../../types/files";
+import type { HashString } from "./generated";
 import type { CompressionType } from '../types';
 
 type FetchLike = typeof fetch;

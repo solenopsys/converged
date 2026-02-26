@@ -139,7 +139,7 @@ appVersion: "1.0.0"
   const imageName = registry ? `${registry}/${projectName}` : `localhost/${projectName}`;
   const pullPolicy = registry ? "Always" : "Never";
   const valuesYaml = `ingress:
-  host: ${targetNamespace}.test
+  host: ${mergedConfig.ingress?.host ?? `${targetNamespace}.test`}
 
 image:
   name: ${imageName}

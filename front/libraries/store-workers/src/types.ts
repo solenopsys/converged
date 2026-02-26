@@ -1,4 +1,5 @@
-import type { UUID, HashString } from '../../../../../types/files';
+import type { HashString } from './api/generated';
+type UUID = string;
 import type { CreateStoreServiceOptions, StoreService } from './api/store.service';
 
 export const BLOCK_SIZE_BYTES = 512 * 1024;
