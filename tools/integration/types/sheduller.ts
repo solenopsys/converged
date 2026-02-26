@@ -59,6 +59,7 @@ export type CronHistoryEntry = {
   provider: string;
   action: string;
   firedAt: string;
+  success: boolean;
   message?: string;
 };
 

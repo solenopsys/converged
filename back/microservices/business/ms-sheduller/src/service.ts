@@ -1,4 +1,5 @@
 import { Cron } from "croner";
+import { DagServiceImpl } from "ms-dag";
 import type {
   ShedullerService,
   CronEntry,
@@ -21,8 +22,10 @@ export class ShedullerServiceImpl implements ShedullerService {
   private stores!: StoresController;
   private initPromise?: Promise<void>;
   private jobs = new Map<string, Cron>();
+  private dagService: DagServiceImpl;
 
-  constructor() {
+  constructor(options?: any) {
+    this.dagService = new DagServiceImpl(options);
     this.init();
   }
 
@@ -136,12 +139,30 @@ export class ShedullerServiceImpl implements ShedullerService {
     this.jobs.set(entry.id, job);
   }
 
-  private invokeProvider(entry: CronEntry) {
-    if (entry.provider === "log") {
-      const message = entry.params?.message ?? "";
-      const parts = [`[sheduller] cron fired: id=${entry.id} name="${entry.name}"`];
-      if (message) parts.push(`message="${message}"`);
-      console.log(parts.join(" "));
+  private async invokeProvider(entry: CronEntry) {
+    let success = true;
+    let message: string | undefined = undefined;
+
+    try {
+      if (entry.provider === "log") {
+        message = entry.params?.message ?? "";
+        const parts = [`[sheduller] cron fired: id=${entry.id} name="${entry.name}"`];
+        if (message) parts.push(`message="${message}"`);
+        console.log(parts.join(" "));
+      } else if (entry.provider === "dag" && entry.action === "runWorkflow") {
+        if (!this.dagService) throw new Error("dag provider: dagService not configured");
+        const workflowName = entry.params?.workflowName;
+        const params = entry.params?.params ?? {};
+        if (!workflowName) throw new Error("dag provider: workflowName is required in params");
+        for await (const event of this.dagService.startExecution(workflowName, params)) {
+          if (event.type === "failed") throw new Error(event.error ?? "dag workflow failed");
+          if (event.type === "completed") { message = `execution ${event.executionId} completed`; break; }
+        }
+      }
+    } catch (err: any) {
+      success = false;
+      message = err?.message ?? String(err);
+      console.error(`[sheduller] provider error: id=${entry.id} name="${entry.name}"`, err);
     }
 
     this.stores.history.record({
@@ -149,7 +170,8 @@ export class ShedullerServiceImpl implements ShedullerService {
       cronName: entry.name,
       provider: entry.provider,
       action: entry.action,
-      message: entry.params?.message,
+      success,
+      message,
     });
   }
 

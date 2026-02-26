@@ -62,6 +62,7 @@ export type CronHistoryEntry = {
   provider: string;
   action: string;
   firedAt: string;
+  success: boolean;
   message?: string;
 };
 
@@ -243,7 +244,7 @@ export const metadata = {
     },
     {
       "name": "CronHistoryEntry",
-      "definition": "{\n  id: string;\n  cronId: string;\n  cronName: string;\n  provider: string;\n  action: string;\n  firedAt: string;\n  message?: string;\n}"
+      "definition": "{\n  id: string;\n  cronId: string;\n  cronName: string;\n  provider: string;\n  action: string;\n  firedAt: string;\n  success: boolean;\n  message?: string;\n}"
     },
     {
       "name": "CronHistoryListParams",
