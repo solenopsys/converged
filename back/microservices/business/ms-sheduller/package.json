@@ -9,7 +9,7 @@
   "dependencies": {
     "back-core": "workspace:*",
     "croner": "^9.1.0",
-    "ms-dag": "workspace:*",
+    "g-dag": "workspace:*",
     "g-sheduller": "workspace:*",
     "nrpc": "workspace:*"
   }

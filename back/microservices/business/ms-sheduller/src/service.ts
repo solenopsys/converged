@@ -1,5 +1,5 @@
 import { Cron } from "croner";
-import { DagServiceImpl } from "ms-dag";
+import { createDagServiceClient } from "g-dag";
 import type {
   ShedullerService,
   CronEntry,
@@ -22,10 +22,7 @@ export class ShedullerServiceImpl implements ShedullerService {
   private stores!: StoresController;
   private initPromise?: Promise<void>;
   private jobs = new Map<string, Cron>();
-  private dagService: DagServiceImpl;
-
-  constructor(options?: any) {
-    this.dagService = new DagServiceImpl(options);
+  constructor() {
     this.init();
   }
 
@@ -150,11 +147,13 @@ export class ShedullerServiceImpl implements ShedullerService {
         if (message) parts.push(`message="${message}"`);
         console.log(parts.join(" "));
       } else if (entry.provider === "dag" && entry.action === "runWorkflow") {
-        if (!this.dagService) throw new Error("dag provider: dagService not configured");
+        const port = process.env.PORT ?? process.env.SERVICES_PORT ?? "3000";
+        const baseUrl = `http://localhost:${port}/services`;
+        const dagClient = createDagServiceClient({ baseUrl });
         const workflowName = entry.params?.workflowName;
         const params = entry.params?.params ?? {};
         if (!workflowName) throw new Error("dag provider: workflowName is required in params");
-        for await (const event of this.dagService.startExecution(workflowName, params)) {
+        for await (const event of dagClient.startExecution(workflowName, params)) {
           if (event.type === "failed") throw new Error(event.error ?? "dag workflow failed");
           if (event.type === "completed") { message = `execution ${event.executionId} completed`; break; }
         }
