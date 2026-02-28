@@ -8,6 +8,9 @@ export interface FieldConfig {
   title: string;
   type: string;
   tableVisible?: boolean;
+  cardPrimary?: boolean;
+  cardVisible?: boolean;
+  cardOrder?: number;
   formVisible?: boolean;
   width?: number;
   minWidth?: number;
@@ -49,6 +52,9 @@ export const getTableColumns = (fields: FieldConfig[]) => {
       minWidth: field.minWidth,
       maxWidth: field.maxWidth,
       sortable: field.sortable,
+      cardPrimary: field.cardPrimary,
+      cardVisible: field.cardVisible,
+      cardOrder: field.cardOrder,
       statusConfig: field.statusConfig,
       render: field.tableRender
     }));

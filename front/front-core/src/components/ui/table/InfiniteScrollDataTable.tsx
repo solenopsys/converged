@@ -28,6 +28,9 @@ export interface ColumnConfig {
   maxWidth?: number;
   sortable?: boolean;
   primary?: boolean; // Главная колонка для mobile
+  cardPrimary?: boolean; // Главная колонка в дефолтной карточке
+  cardVisible?: boolean; // Показывать в дефолтной карточке
+  cardOrder?: number; // Порядок полей в дефолтной карточке
   resizable?: boolean; // Можно ли изменять размер
   render?: (value: any, rowData: any, onAction?: (actionId: string, rowData: any) => void) => React.ReactNode;
   statusConfig?: Record<string, { label: string; variant?: string; className?: string }>;
@@ -277,6 +280,94 @@ const CellRenderer = ({ value, column, rowData, onAction }) => {
   }
 };
 
+const DEFAULT_CARD_SECONDARY_LIMIT = 6;
+
+const formatTitleValue = (value: any, type: string) => {
+  if (value == null || value === '') return '—';
+  if (type === COLUMN_TYPES.NUMBER && typeof value === 'number') return value.toLocaleString();
+  if (type === COLUMN_TYPES.DATE) {
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) return date.toLocaleString('ru-RU');
+  }
+  if (type === COLUMN_TYPES.BOOLEAN) return value ? 'Да' : 'Нет';
+  if (Array.isArray(value)) return value.join(', ');
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+};
+
+const isEmptyCardValue = (value: any) => {
+  if (value == null || value === '') return true;
+  if (Array.isArray(value) && value.length === 0) return true;
+  return false;
+};
+
+const resolveDefaultCardColumns = (columns: ColumnConfig[]) => {
+  const visibleColumns = columns
+    .filter((column) => column.cardVisible !== false && column.type !== COLUMN_TYPES.ACTIONS)
+    .map((column, index) => ({ column, index }));
+
+  if (visibleColumns.length === 0) {
+    return { primaryColumn: null, secondaryColumns: [] as ColumnConfig[] };
+  }
+
+  const orderedColumns = visibleColumns
+    .sort((a, b) => {
+      const aOrder = typeof a.column.cardOrder === 'number' ? a.column.cardOrder : Number.POSITIVE_INFINITY;
+      const bOrder = typeof b.column.cardOrder === 'number' ? b.column.cardOrder : Number.POSITIVE_INFINITY;
+      if (aOrder !== bOrder) return aOrder - bOrder;
+      return a.index - b.index;
+    })
+    .map(({ column }) => column);
+
+  const primaryColumn =
+    orderedColumns.find((column) => column.cardPrimary)
+    ?? orderedColumns.find((column) => column.primary)
+    ?? orderedColumns[0];
+
+  const secondaryColumns = orderedColumns
+    .filter((column) => column.id !== primaryColumn.id)
+    .slice(0, DEFAULT_CARD_SECONDARY_LIMIT);
+
+  return { primaryColumn, secondaryColumns };
+};
+
+const DefaultRowCard = ({ data, columns, onAction }) => {
+  const { primaryColumn, secondaryColumns } = resolveDefaultCardColumns(columns || []);
+  const titleValue = primaryColumn ? data?.[primaryColumn.id] : undefined;
+
+  return (
+    <div className="bg-card border rounded-lg p-3 transition-colors hover:bg-accent/40">
+      {primaryColumn && (
+        <div className="mb-2">
+          <h3 className="text-sm font-semibold leading-snug break-words">
+            {formatTitleValue(titleValue, primaryColumn.type)}
+          </h3>
+        </div>
+      )}
+
+      <div className="space-y-1">
+        {secondaryColumns.map((column) => {
+          const value = data?.[column.id];
+          if (isEmptyCardValue(value)) return null;
+          return (
+            <div key={column.id} className="grid grid-cols-[minmax(96px,max-content)_1fr] items-start gap-2 text-xs">
+              <span className="text-muted-foreground truncate">{column.title}</span>
+              <div className="min-w-0">
+                <CellRenderer
+                  value={value}
+                  column={column}
+                  rowData={data}
+                  onAction={onAction}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 // Основной компонент таблицы с TanStack Virtual
 export const InfiniteScrollDataTable = ({
   columns = [],
@@ -310,6 +401,7 @@ export const InfiniteScrollDataTable = ({
   const tableRef = useRef<HTMLTableElement>(null);
   const loadMoreLockRef = useRef<number | null>(null);
   const initKeyRef = useRef<string | null>(null);
+  const EffectiveCardComponent = CardComponent || DefaultRowCard;
 
   const visibleColumns = useMemo(
     () => columns.filter(col => currentViewMode === 'table' || col.primary),
@@ -444,7 +536,7 @@ export const InfiniteScrollDataTable = ({
   const rowVirtualizer = useVirtualizer({
     count: hasMore ? data.length + 1 : data.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => currentViewMode === 'table' ? 53 : 120, // высота строки таблицы или карточки
+    estimateSize: () => currentViewMode === 'table' ? 53 : 140, // высота строки таблицы или карточки
     overscan: 5,
   });
 
@@ -548,14 +640,6 @@ export const InfiniteScrollDataTable = ({
 
   // Рендер карточек для mobile
   const renderCards = () => {
-    if (!CardComponent) {
-      return (
-        <div className="p-4 text-center text-muted-foreground">
-          CardComponent не указан
-        </div>
-      );
-    }
-
     const virtualItems = rowVirtualizer.getVirtualItems();
 
     return (
@@ -600,18 +684,19 @@ export const InfiniteScrollDataTable = ({
             return (
               <div
                 key={rowId}
+                data-index={virtualRow.index}
+                ref={rowVirtualizer.measureElement}
                 style={{
                   position: 'absolute',
                   top: 0,
                   left: 0,
                   width: '100%',
-                  height: `${virtualRow.size}px`,
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
               >
                 <div className={cn("p-2 relative", isSelected && "ring-2 ring-primary")}>
-                  <CardComponent data={row} columns={columns} onAction={onRowAction} />
+                  <EffectiveCardComponent data={row} columns={columns} onAction={onRowAction} />
                   {selectable && (
                     <div className="absolute bottom-4 left-4 z-10">
                       <input
