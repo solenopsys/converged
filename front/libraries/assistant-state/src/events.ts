@@ -1,5 +1,4 @@
-import { createDomain } from 'effector';
-import type { ServiceType, StreamEvent, ULID, ToolCall } from './types';
+import type { ServiceType, StreamEvent, ULID, ToolCall, ChatMessage } from './types';
 import { chatDomain } from './domain';
 import type { Tool } from './types';
 
@@ -15,6 +14,7 @@ export const addMessage = chatDomain.createEvent<ChatMessage>('ADD_MESSAGE');
 export const receiveChunk = chatDomain.createEvent<StreamEvent>('RECEIVE_CHUNK');
 export const completeResponse = chatDomain.createEvent<void>('COMPLETE_RESPONSE');
 export const errorOccurred = chatDomain.createEvent<string>('ERROR_OCCURRED');
+export const sessionIdUpdated = chatDomain.createEvent<string>('SESSION_ID_UPDATED');
 
 export const registerFunction = chatDomain.createEvent<{
     name: string;

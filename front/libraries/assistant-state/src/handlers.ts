@@ -1,6 +1,6 @@
 import { type Store } from 'effector';
 import * as types from './types';
-import { receiveChunk, completeResponse, errorOccurred, toolCallReceived, toolCallExecuted } from './events';
+import { receiveChunk, completeResponse, errorOccurred, sessionIdUpdated, toolCallReceived, toolCallExecuted } from './events';
 
 // Улучшенная функция для обработки переносов строк
 const preserveLineBreaks = (text: string): string => {
@@ -30,6 +30,77 @@ export const debugLogContent = (content: string, label: string = 'Content') => {
         hasEscapedLineBreaks: content.includes('\\n'),
         escapedLineBreaksCount: (content.match(/\\n/g) || []).length
     });
+};
+
+const SESSION_NOT_FOUND_PATTERNS = [
+    'SESSION_NOT_FOUND',
+    'Conversation not found for sessionId',
+    'Session not found:'
+];
+
+const isSessionNotFoundError = (error: unknown): boolean => {
+    const message = error instanceof Error ? error.message : String(error ?? '');
+    return SESSION_NOT_FOUND_PATTERNS.some((pattern) => message.includes(pattern));
+};
+
+const createAndSyncSession = async (
+    aiService: types.AssistantService,
+    state: types.ChatState
+): Promise<string> => {
+    const sessionId = await aiService.createSession(state.serviceType, state.model);
+    sessionIdUpdated(sessionId);
+    return sessionId;
+};
+
+const resolveSessionId = async (
+    aiService: types.AssistantService,
+    state: types.ChatState
+): Promise<string> => {
+    if (state.sessionId) {
+        return state.sessionId;
+    }
+
+    return createAndSyncSession(aiService, state);
+};
+
+const consumeStreamEvents = async (
+    events: AsyncIterable<types.StreamEvent>
+): Promise<void> => {
+    for await (const event of events) {
+        receiveChunk(event);
+
+        if (event.type === types.StreamEventType.COMPLETED) {
+            completeResponse();
+            break;
+        }
+
+        if (event.type === types.StreamEventType.ERROR) {
+            errorOccurred(event.message);
+            break;
+        }
+    }
+};
+
+const sendWithSessionRecovery = async (
+    aiService: types.AssistantService,
+    state: types.ChatState,
+    messages: any[],
+    options: types.ConversationOptions
+) => {
+    let sessionId = await resolveSessionId(aiService, state);
+
+    try {
+        await consumeStreamEvents(aiService.sendMessage(sessionId, messages, options));
+        return;
+    } catch (error) {
+        if (!isSessionNotFoundError(error)) {
+            throw error;
+        }
+    }
+
+    // Session may be lost after microservice restart, recreate and retry once.
+    sessionId = await createAndSyncSession(aiService, state);
+    await consumeStreamEvents(aiService.sendMessage(sessionId, messages, options));
 };
 
 export const initializeChat = (
@@ -158,8 +229,6 @@ export const sendMessage = (
     $functions: Store<Record<string, types.ExecutableTool>>
 ) =>
     async ({ content, state }: { content: string; state: types.ChatState }) => {
-        if (!state.sessionId) return;
-
         await threadsService.saveMessage({
             threadId: state.threadId,
             user: 'user',
@@ -173,19 +242,7 @@ export const sendMessage = (
         const options: types.ConversationOptions = { tools };
 
         try {
-            for await (const event of aiService.sendMessage(state.sessionId, messages, options)) {
-                receiveChunk(event);
-
-                if (event.type === types.StreamEventType.COMPLETED) {
-                    completeResponse();
-                    break;
-                }
-
-                if (event.type === types.StreamEventType.ERROR) {
-                    errorOccurred(event.message);
-                    break;
-                }
-            }
+            await sendWithSessionRecovery(aiService, state, messages, options);
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Unknown error';
             errorOccurred(message);
@@ -218,11 +275,6 @@ export const sendToolResult = (aiService: types.AssistantService, threadsService
     async ({ toolCallId, result, state }: { toolCallId: string, result: any, state: types.ChatState }) => {
         console.log('Sending tool result:', { toolCallId, result });
 
-        if (!state.sessionId) {
-            console.error('No session ID available for tool result');
-            return;
-        }
-
         // Улучшенная обработка результата инструмента с сохранением форматирования
         let toolResultContent: string;
         if (typeof result === 'string') {
@@ -247,19 +299,7 @@ export const sendToolResult = (aiService: types.AssistantService, threadsService
         }];
 
         try {
-            for await (const event of aiService.sendMessage(state.sessionId, messages, {})) {
-                receiveChunk(event);
-
-                if (event.type === types.StreamEventType.COMPLETED) {
-                    completeResponse();
-                    break;
-                }
-
-                if (event.type === types.StreamEventType.ERROR) {
-                    errorOccurred(event.message);
-                    break;
-                }
-            }
+            await sendWithSessionRecovery(aiService, state, messages, {});
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Unknown error';
             errorOccurred(message);

@@ -16,6 +16,7 @@ import {
     receiveChunk,
     completeResponse,
     errorOccurred,
+    sessionIdUpdated,
     registerFunction,
     toolCallReceived,
     toolCallExecuted
@@ -47,6 +48,7 @@ export const createChatStore = (
         .on(receiveChunk, handlers.updateResponse)
         .on(completeResponse, handlers.finalize)
         .on(errorOccurred, handlers.handleError)
+        .on(sessionIdUpdated, (state, sessionId) => ({ ...state, sessionId }))
         .on(toolCallReceived, (state, toolCall) => ({
             ...state,
             pendingToolCalls: [...state.pendingToolCalls, toolCall]
@@ -82,9 +84,7 @@ export const createChatStore = (
 
     sample({
         clock: createSessionFx.doneData,
-        source: $chat,
-        fn: (state, sessionId) => ({ ...state, sessionId }),
-        target: $chat
+        target: sessionIdUpdated
     });
 
     sample({

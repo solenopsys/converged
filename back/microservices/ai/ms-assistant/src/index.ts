@@ -82,8 +82,12 @@ class ChatsServiceImpl {
   ): AsyncIterable<StreamEvent> {
     const conversation = this.conversations.get(sessionId);
     if (!conversation) {
-      console.error(`[ChatsService] Session not found: ${sessionId}`);
-      throw new Error(`Conversation not found for sessionId: ${sessionId}`);
+      console.error(
+        `[ChatsService] Session not found: ${sessionId}. Session cache may be cleared after restart.`,
+      );
+      throw new Error(
+        `SESSION_NOT_FOUND: Conversation not found for sessionId: ${sessionId}`,
+      );
     }
 
     return conversation.send(messages, options);
