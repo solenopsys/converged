@@ -2,6 +2,7 @@ import { ReactNode, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { useUnit } from "effector-react";
 import { $slotContents, layoutReady } from "./slots";
+import { $activeTab } from "sidebar-controller";
 
 /**
  * Маппинг slotId -> DOM element id
@@ -45,16 +46,30 @@ function SlotPortal({ slotId, content }: { slotId: string; content: ReactNode })
  */
 export function SlotProvider({ children }: { children?: ReactNode }) {
   const slotContents = useUnit($slotContents);
+  const activeTab = useUnit($activeTab);
 
   useLayoutEffect(() => {
     layoutReady("global");
   }, []);
 
+  const visibleSlots = Object.entries(slotContents).filter(([slotId]) => {
+    if (!slotId.startsWith("sidebar:tab:")) {
+      return true;
+    }
+
+    if (!activeTab || activeTab === "menu") {
+      return false;
+    }
+
+    const tabId = slotId.slice("sidebar:tab:".length);
+    return tabId === activeTab;
+  });
+
   return (
     <>
       {children}
       {/* Порталы для всех активных слотов */}
-      {Object.entries(slotContents).map(([slotId, content]) => (
+      {visibleSlots.map(([slotId, content]) => (
         <SlotPortal key={slotId} slotId={slotId} content={content} />
       ))}
     </>
