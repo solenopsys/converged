@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 import { staticPlugin } from "@elysiajs/static";
 import { resolve } from "path";
+import { existsSync } from "fs";
 import { externalPackages, microfrontends } from "front-core/runtime-config";
 import { createWorkspaceResolverPlugin } from "front-core/workspace-resolver";
 import type { SitemapEntry } from "./ssr/sitemap";
@@ -61,6 +62,22 @@ const fallbackBrowserImports: Record<string, string> = {
   "effector/effector.mjs": "/vendor/effector.js",
   "front-core/components": "/front-core.js",
 };
+
+const defaultServiceWorkerScript = [
+  "self.addEventListener('install', () => self.skipWaiting());",
+  "self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));",
+].join("\n");
+
+const pwaRegistrationScript = [
+  "(() => {",
+  "  if (!('serviceWorker' in navigator)) return;",
+  "  const register = () => navigator.serviceWorker.register('/sw.js').catch((error) => {",
+  "    console.warn('[pwa] service worker registration failed', error);",
+  "  });",
+  "  if (document.readyState === 'complete') register();",
+  "  else window.addEventListener('load', register, { once: true });",
+  "})();",
+].join("");
 
 function buildBrowserImportMap(
   baseImports?: Record<string, string>,
@@ -149,6 +166,49 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
     return `${base}${path.startsWith("/") ? path : `/${path}`}`;
   }
 
+  function buildDefaultManifest(baseUrl: string) {
+    const appName = seoConfig?.title?.trim() || "4IR App";
+    const appShortName = appName.length > 16 ? appName.slice(0, 16).trim() : appName;
+    const fallbackIcon = existsSync(resolve(publicDir, "favicon.svg")) ? "/favicon.svg" : "/logo-black.svg";
+    return {
+      name: appName,
+      short_name: appShortName || "4IR",
+      description: seoConfig?.description || appName,
+      start_url: "/",
+      scope: "/",
+      display: "standalone",
+      background_color: "#ffffff",
+      theme_color: "#000000",
+      icons: [
+        {
+          src: fallbackIcon,
+          sizes: "any",
+          type: "image/svg+xml",
+          purpose: "any",
+        },
+      ],
+      id: normalizeBaseUrl(baseUrl),
+    };
+  }
+
+  function injectPwaRegistration(html: string): string {
+    if (html.includes("data-pwa-bootstrap")) return html;
+    const snippet = `<script data-pwa-bootstrap>${pwaRegistrationScript}</script>`;
+    if (html.includes("</body>")) {
+      return html.replace("</body>", `${snippet}</body>`);
+    }
+    return `${html}${snippet}`;
+  }
+
+  function injectManifestLink(html: string): string {
+    if (/\brel=["']manifest["']/i.test(html)) return html;
+    const snippet = `<link rel="manifest" href="/manifest.json" />`;
+    if (html.includes("</head>")) {
+      return html.replace("</head>", `${snippet}</head>`);
+    }
+    return `${snippet}${html}`;
+  }
+
   async function ensureAssets(): Promise<void> {
     if (!assetsPromise) {
       assetsPromise = (async () => {
@@ -228,11 +288,12 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
       seoConfig.ogImage && seoConfig.ogImage.startsWith("/")
         ? `${normalizeBaseUrl(baseUrl)}${seoConfig.ogImage}`
         : seoConfig.ogImage;
-    return await config.renderPage(url, browserImportMap, {
+    const rendered = await config.renderPage(url, browserImportMap, {
       ...seoConfig,
       canonical,
       ogImage,
     }, baseUrl);
+    return injectPwaRegistration(injectManifestLink(rendered));
   }
 
   function supportsEncoding(request: Request, encoding: string): boolean {
@@ -310,6 +371,38 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
       ].join("\n");
       return new Response(body, {
         headers: { "Content-Type": "text/plain; charset=utf-8" },
+      });
+    })
+    .get("/manifest.json", ({ request }) => {
+      const manifestPath = resolve(publicDir, "manifest.json");
+      if (existsSync(manifestPath)) {
+        return new Response(Bun.file(manifestPath), {
+          headers: { "Content-Type": "application/manifest+json; charset=utf-8" },
+        });
+      }
+      const baseUrl =
+        isProd && seoConfig?.canonical
+          ? normalizeBaseUrl(seoConfig.canonical)
+          : new URL(request.url).origin;
+      return new Response(JSON.stringify(buildDefaultManifest(baseUrl), null, 2), {
+        headers: { "Content-Type": "application/manifest+json; charset=utf-8" },
+      });
+    })
+    .get("/sw.js", () => {
+      const serviceWorkerPath = resolve(publicDir, "sw.js");
+      if (existsSync(serviceWorkerPath)) {
+        return new Response(Bun.file(serviceWorkerPath), {
+          headers: {
+            "Content-Type": "application/javascript; charset=utf-8",
+            "Cache-Control": "no-store",
+          },
+        });
+      }
+      return new Response(defaultServiceWorkerScript, {
+        headers: {
+          "Content-Type": "application/javascript; charset=utf-8",
+          "Cache-Control": "no-store",
+        },
       });
     })
     .use(staticPlugin({ assets: publicDir, prefix: "/" }));
