@@ -61,7 +61,7 @@ export default class DagServiceImpl implements DagService {
           kv.setRecord(recordId, { data: null, result });
           kv.setStep(workflowId, nodeName, recordId);
           await stats.updateNode(nodeRow.id, { state: "done", completed_at: completedAt, record_id: recordId } as any);
-          push({ type: "task_update", executionId: id, task: { id: nodeRow.id, executionId: id, nodeId: nodeName, state: "done", startedAt, completedAt, errorMessage: null, retryCount: 0, createdAt: Date.now() } });
+          push({ type: "task_update", executionId: id, task: { id: nodeRow.id, executionId: id, nodeId: nodeName, state: "done", startedAt, completedAt, errorMessage: null, retryCount: 0, createdAt: Date.now(), result } });
           return result;
         } catch (e: any) {
           const errorMsg = e instanceof Error ? e.message : String(e);

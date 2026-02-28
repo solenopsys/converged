@@ -1,5 +1,5 @@
 import { BaseCommandProcessor, type Handler, type CommandEntry, printJson } from "../cli/src/base";
-import { createDagServiceClient, type DagServiceClient } from "g-dag";
+import { createDagServiceClient, type DagServiceClient, type Task } from "g-dag";
 
 const STATE_ICONS: Record<string, string> = {
   queued: "⏳",
@@ -37,9 +37,20 @@ const startHandler: Handler = async (
   const nodeLines = new Map<string, number>();
   let linesWritten = 0;
 
-  const renderNode = (nodeId: string, state: string) => {
+  const compactJson = (value: any, maxLen = 120): string => {
+    const s = JSON.stringify(value);
+    return s.length > maxLen ? s.slice(0, maxLen - 1) + "…" : s;
+  };
+
+  const renderNode = (nodeId: string, state: string, task?: Task) => {
     const icon = STATE_ICONS[state] ?? "·";
-    const line = `  ${icon} [${state.padEnd(10)}] ${nodeId}`;
+    let detail = "";
+    if (state === "failed" && task?.errorMessage) {
+      detail = `  — ${task.errorMessage}`;
+    } else if (state === "done" && task?.result != null) {
+      detail = `  → ${compactJson(task.result)}`;
+    }
+    const line = `  ${icon} [${state.padEnd(10)}] ${nodeId}${detail}`;
 
     if (nodeLines.has(nodeId)) {
       // Move cursor up to the node's line and overwrite
@@ -57,7 +68,7 @@ const startHandler: Handler = async (
     if (event.type === "started") {
       console.log(`▶ Started  execution: ${event.executionId}`);
     } else if (event.type === "task_update" && event.task) {
-      renderNode(event.task.nodeId, event.task.state);
+      renderNode(event.task.nodeId, event.task.state, event.task);
     } else if (event.type === "completed") {
       console.log(`✔ Completed execution: ${event.executionId}`);
     } else if (event.type === "failed") {
