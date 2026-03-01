@@ -127,6 +127,11 @@ export class KVStore implements KVStoreIntf, Store {
     return this.deserializeValue(this.db.get(key));
   }
 
+  getRawDirect(key: string): Buffer | null {
+    const raw = this.db.get(key) as Buffer | null;
+    return raw ?? null;
+  }
+
   delete(chain: string[]): void {
     const key = chain.join(KEY_SEPARATOR);
     this.db.delete(key);

@@ -113,6 +113,19 @@ registry.register("Uint8Array", {
   },
 });
 
+// Register Buffer handler (Node/Bun). Serialize as Uint8Array envelope.
+registry.register("Buffer", {
+  serialize: (value: any) => {
+    if (typeof Buffer !== "undefined" && Buffer.isBuffer(value)) {
+      return registry.getHandler("Uint8Array")!.serialize(new Uint8Array(value));
+    }
+    return value;
+  },
+  deserialize: (value: any) => {
+    return registry.getHandler("Uint8Array")!.deserialize(value);
+  },
+});
+
 export function serializeValue(value: any, typeName?: string): any {
   if (value === null || value === undefined) {
     return value;
@@ -133,6 +146,11 @@ export function serializeValue(value: any, typeName?: string): any {
   const handlerForType = registry.getHandler(value.constructor.name);
   if (handlerForType) {
     return handlerForType.serialize(value);
+  }
+
+  // Buffer extends Uint8Array but constructor name is "Buffer".
+  if (value instanceof Uint8Array) {
+    return registry.getHandler("Uint8Array")!.serialize(value);
   }
 
   if (typeof value === "object") {

@@ -177,10 +177,8 @@ export default class DagServiceImpl implements DagService {
     await this.ensureStoresReady();
     const filter = executionId ? { ...params, processId: executionId } : params;
     const result = await this.stores.statsStoreService.listNodes(filter as any);
-    const kv = this.stores.processingStoreService;
     return {
       items: result.items.map((t) => {
-        const record = t.recordId ? kv.getRecord(t.recordId) : undefined;
         return {
           id: t.id,
           executionId: t.processId,
@@ -191,8 +189,6 @@ export default class DagServiceImpl implements DagService {
           errorMessage: t.errorMessage ?? null,
           retryCount: t.retryCount,
           createdAt: t.createdAt ?? 0,
-          data: record?.data,
-          result: record?.result,
         };
       }),
       totalCount: result.totalCount,

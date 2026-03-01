@@ -21,6 +21,11 @@ import {
  * - persistent: vars между запусками
  */
 export class ProcessingStoreService {
+  private static readonly JSON_HEADER = "KVJ0";
+  private static readonly BUFFER_HEADER = "KVB0";
+  private static readonly HEADER_LENGTH = 4;
+  private static readonly MAX_TEXT_PREVIEW = 2048;
+
   private readonly contextRepo: ContextRepository;
   private readonly persistentRepo: PersistentRepository;
   private readonly recordRepo: RecordRepository;
@@ -83,8 +88,57 @@ export class ProcessingStoreService {
     const keys = this.persistentRepo.listKeys();
     return keys.map((rawKey) => {
       const key = rawKey.replace(/^persistent:/, "");
-      return { key, value: this.persistentRepo.getDirect(rawKey) };
+      const rawValue = this.kvStore.getRawDirect(rawKey);
+      return { key, value: this.buildVarPreview(rawValue) };
     });
+  }
+
+  private buildVarPreview(rawValue: Buffer | null): any {
+    if (!rawValue) {
+      return undefined;
+    }
+
+    if (rawValue.length < ProcessingStoreService.HEADER_LENGTH) {
+      return this.truncateText(rawValue.toString("utf8"));
+    }
+
+    const header = rawValue.subarray(0, ProcessingStoreService.HEADER_LENGTH).toString("utf8");
+    const payload = rawValue.subarray(ProcessingStoreService.HEADER_LENGTH);
+
+    if (header === ProcessingStoreService.BUFFER_HEADER) {
+      return `[binary ${payload.length} bytes]`;
+    }
+
+    if (header === ProcessingStoreService.JSON_HEADER) {
+      if (payload.length > ProcessingStoreService.MAX_TEXT_PREVIEW) {
+        return this.truncateBuffer(payload);
+      }
+      const text = payload.toString("utf8");
+      try {
+        return JSON.parse(text);
+      } catch {
+        return text;
+      }
+    }
+
+    return this.truncateBuffer(rawValue);
+  }
+
+  private truncateText(text: string): string {
+    if (text.length <= ProcessingStoreService.MAX_TEXT_PREVIEW) {
+      return text;
+    }
+    return `${text.slice(0, ProcessingStoreService.MAX_TEXT_PREVIEW)}… [truncated ${text.length} chars]`;
+  }
+
+  private truncateBuffer(buffer: Buffer): string {
+    if (buffer.length <= ProcessingStoreService.MAX_TEXT_PREVIEW) {
+      return buffer.toString("utf8");
+    }
+    const preview = buffer
+      .subarray(0, ProcessingStoreService.MAX_TEXT_PREVIEW)
+      .toString("utf8");
+    return `${preview}… [truncated ${buffer.length} bytes]`;
   }
 }
 

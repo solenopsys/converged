@@ -8,6 +8,7 @@ import { openContextDetail, $selectedContext } from '../domain-contexts';
 import { tasksColumns } from '../functions/columns';
 import ContextView from './ContextView';
 import domain from '../domain';
+import dagService from '../service';
 
 const $selectedTask = domain.createStore<any>(null);
 const selectTask = domain.createEvent<any>('SELECT_TASK');
@@ -35,7 +36,7 @@ export const TasksView = ({ bus }: { bus: any }) => {
     ],
   };
 
-  const handleRowClick = (task: any) => {
+  const handleRowClick = async (task: any) => {
     selectTask(task);
     bus.present({
       widget: {
@@ -45,6 +46,16 @@ export const TasksView = ({ bus }: { bus: any }) => {
         commands: {},
       },
     });
+
+    try {
+      const details = await dagService.statusExecution(task.executionId);
+      const fullTask = details?.tasks?.find((item: any) => item.id === task.id);
+      if (fullTask) {
+        selectTask(fullTask);
+      }
+    } catch (error) {
+      console.error('[mf-dag] failed to load task details', error);
+    }
   };
 
   return (
