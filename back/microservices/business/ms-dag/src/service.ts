@@ -3,12 +3,16 @@ import { StoresController } from "./store";
 
 export default class DagServiceImpl implements DagService {
   private stores: StoresController;
+  private readonly storesReady: Promise<void>;
   private workflows: string[];
   private workflowCtors: Map<string, new (ctx: any, id?: string) => any>;
 
   constructor(config?: any) {
     this.stores = new StoresController("ms-dag");
-    this.stores.init().catch((e) => console.error("[ms-dag] store init error", e));
+    this.storesReady = this.stores.init().catch((e) => {
+      console.error("[ms-dag] store init error", e);
+      throw e;
+    });
     const wf = config?.workflows ?? {};
     const list: any[] = wf.WORKFLOWS ?? [];
     this.workflows = list.map((w: any) => w.name ?? w).filter(Boolean);
@@ -19,7 +23,12 @@ export default class DagServiceImpl implements DagService {
     );
   }
 
+  private async ensureStoresReady(): Promise<void> {
+    await this.storesReady;
+  }
+
   async *startExecution(workflowName: string, params: Record<string, any>): AsyncIterable<ExecutionEvent> {
+    await this.ensureStoresReady();
     const id = crypto.randomUUID();
     const stats = this.stores.statsStoreService;
     const kv = this.stores.processingStoreService;
@@ -106,12 +115,14 @@ export default class DagServiceImpl implements DagService {
   }
 
   async createExecution(workflowName: string, params: Record<string, any>): Promise<{ id: string }> {
+    await this.ensureStoresReady();
     const id = crypto.randomUUID();
     await this.stores.statsStoreService.ensureProcess({ id, workflowId: workflowName, status: "running" });
     return { id };
   }
 
   async statusExecution(id: string): Promise<{ execution: Execution; tasks: Task[] }> {
+    await this.ensureStoresReady();
     const p = await this.stores.statsStoreService.getProcess(id);
     if (!p) throw Object.assign(new Error("Execution not found"), { statusCode: 404 });
 
@@ -147,6 +158,7 @@ export default class DagServiceImpl implements DagService {
   }
 
   async listExecutions(params: PaginationParams): Promise<PaginatedResult<Execution>> {
+    await this.ensureStoresReady();
     const result = await this.stores.statsStoreService.listProcesses(params as any);
     return {
       items: result.items.map((p) => ({
@@ -162,6 +174,7 @@ export default class DagServiceImpl implements DagService {
   }
 
   async listTasks(executionId: string | null, params: PaginationParams): Promise<PaginatedResult<Task>> {
+    await this.ensureStoresReady();
     const filter = executionId ? { ...params, processId: executionId } : params;
     const result = await this.stores.statsStoreService.listNodes(filter as any);
     const kv = this.stores.processingStoreService;
@@ -187,6 +200,7 @@ export default class DagServiceImpl implements DagService {
   }
 
   async stats() {
+    await this.ensureStoresReady();
     const [executions, tasks] = await Promise.all([
       this.stores.statsStoreService.getProcessStats(),
       this.stores.statsStoreService.getNodeStats(),
@@ -195,19 +209,23 @@ export default class DagServiceImpl implements DagService {
   }
 
   async listWorkflows(): Promise<{ names: string[] }> {
+    await this.ensureStoresReady();
     return { names: this.workflows };
   }
 
   async listVars(): Promise<{ items: { key: string; value: any }[] }> {
+    await this.ensureStoresReady();
     const items = this.stores.processingStoreService.listVars();
     return { items };
   }
 
   async setVar(key: string, value: any): Promise<void> {
+    await this.ensureStoresReady();
     this.stores.processingStoreService.set(key, value);
   }
 
   async deleteVar(key: string): Promise<void> {
+    await this.ensureStoresReady();
     this.stores.processingStoreService.delete(key);
   }
 }
