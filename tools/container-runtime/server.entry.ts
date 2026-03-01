@@ -72,6 +72,8 @@ const pluginEntries: Array<{
   path: string;
   plugin: (cfg: any) => any;
 }> = [];
+const startupTasks: Array<{ name: string; task: () => Promise<void> }> = [];
+const shutdownTasks: Array<{ name: string; task: () => Promise<void> }> = [];
 for (const [key, mappedPath] of Object.entries(runtimeMap.services || {})) {
   const pluginPath = mappedPath.startsWith("/")
     ? mappedPath
@@ -102,6 +104,12 @@ if (runtimeMap.workflows?.plugin) {
 const pluginConfig = {
   dbPath: dataRoot,
   dataDir: dataRoot,
+  registerStartupTask: (name: string, task: () => Promise<void>) => {
+    startupTasks.push({ name, task });
+  },
+  registerShutdownTask: (name: string, task: () => Promise<void>) => {
+    shutdownTasks.push({ name, task });
+  },
   openai: {
     key: process.env.OPENAI_API_KEY || "",
     model: process.env.OPENAI_MODEL || "gpt-4o-mini",
@@ -185,8 +193,9 @@ if (hasFront) {
 }
 
 // SPA plugin — vendor libs, front-core, microfrontends
-const spaPluginPath = runtimeMap.spa?.plugin
-  ?? (existsSync(resolve(pluginsRoot, "spa/plugin.js"))
+const spaPluginPath =
+  runtimeMap.spa?.plugin ??
+  (existsSync(resolve(pluginsRoot, "spa/plugin.js"))
     ? resolve(pluginsRoot, "spa/plugin.js")
     : resolve(projectDir, "front/spa/src/plugin.ts"));
 if (existsSync(spaPluginPath)) {
@@ -209,6 +218,71 @@ if (runtimeMap.landing?.plugin) {
     }),
   );
 }
+
+for (let i = 0; i < startupTasks.length; i++) {
+  const startupTask = startupTasks[i];
+  const startedAt = Date.now();
+  console.log(
+    `[runtime] Init ${i + 1}/${startupTasks.length} start: ${startupTask.name}`,
+  );
+  try {
+    await startupTask.task();
+    console.log(
+      `[runtime] Init ${i + 1}/${startupTasks.length} done: ${startupTask.name} (${Date.now() - startedAt}ms)`,
+    );
+  } catch (error) {
+    console.error(
+      `[runtime] Init ${i + 1}/${startupTasks.length} failed: ${startupTask.name}`,
+      error,
+    );
+    throw error;
+  }
+}
+
+let shuttingDown = false;
+const runShutdown = async (reason: string) => {
+  if (shuttingDown) {
+    return;
+  }
+  shuttingDown = true;
+  console.log(`[runtime] Shutdown start (${reason})`);
+
+  try {
+    if (typeof (app as any).stop === "function") {
+      (app as any).stop();
+    }
+  } catch (error) {
+    console.error("[runtime] Failed to stop HTTP listener", error);
+  }
+
+  for (let i = shutdownTasks.length - 1; i >= 0; i--) {
+    const shutdownTask = shutdownTasks[i];
+    const startedAt = Date.now();
+    console.log(
+      `[runtime] Shutdown ${shutdownTasks.length - i}/${shutdownTasks.length} start: ${shutdownTask.name}`,
+    );
+    try {
+      await shutdownTask.task();
+      console.log(
+        `[runtime] Shutdown ${shutdownTasks.length - i}/${shutdownTasks.length} done: ${shutdownTask.name} (${Date.now() - startedAt}ms)`,
+      );
+    } catch (error) {
+      console.error(
+        `[runtime] Shutdown ${shutdownTasks.length - i}/${shutdownTasks.length} failed: ${shutdownTask.name}`,
+        error,
+      );
+    }
+  }
+
+  console.log("[runtime] Shutdown complete");
+};
+
+process.once("SIGTERM", () => {
+  void runShutdown("SIGTERM").finally(() => process.exit(0));
+});
+process.once("SIGINT", () => {
+  void runShutdown("SIGINT").finally(() => process.exit(0));
+});
 
 app.listen({ port, hostname: "0.0.0.0" });
 console.log(

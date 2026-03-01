@@ -22,6 +22,7 @@ export interface ElysiaBackendConfig {
 export interface PluginOptions {
   dbPath?: string;
   registerStartupTask?: (name: string, task: () => Promise<void>) => void;
+  registerShutdownTask?: (name: string, task: () => Promise<void>) => void;
   [key: string]: any;
 }
 
@@ -44,6 +45,12 @@ export function createHttpBackend(config: ElysiaBackendConfig) {
         options.registerStartupTask(
           `nrpc:${config.metadata.serviceName}`,
           () => backend.waitUntilReady(),
+        );
+      }
+      if (!config.serviceUrl && config.serviceImpl && options.registerShutdownTask) {
+        options.registerShutdownTask(
+          `nrpc:${config.metadata.serviceName}`,
+          () => backend.shutdown(),
         );
       }
       const pathPrefix = config.pathPrefix || "";
@@ -137,6 +144,7 @@ export function createHttpBackend(config: ElysiaBackendConfig) {
 class ElysiaBackend {
   private serviceInstance: any;
   private serviceReady?: Promise<void>;
+  private shutdownPromise?: Promise<void>;
   private isRemoteService: boolean;
   private accessControl: AccessControlConfig;
   private accessSecret: Uint8Array;
@@ -159,6 +167,48 @@ class ElysiaBackend {
 
   async waitUntilReady(): Promise<void> {
     await this.ensureServiceReady();
+  }
+
+  async shutdown(): Promise<void> {
+    if (!this.shutdownPromise) {
+      this.shutdownPromise = this.doShutdown();
+    }
+    await this.shutdownPromise;
+  }
+
+  private async doShutdown(): Promise<void> {
+    if (this.isRemoteService || !this.config.serviceImpl) {
+      return;
+    }
+
+    if (this.serviceReady) {
+      try {
+        await this.serviceReady;
+      } catch {
+        // If service init failed, there is nothing to shut down.
+        return;
+      }
+    }
+
+    if (!this.serviceInstance) {
+      return;
+    }
+
+    const service = this.serviceInstance as any;
+
+    if (typeof service.destroy === "function") {
+      await service.destroy();
+      return;
+    }
+
+    if (service.stores && typeof service.stores.destroy === "function") {
+      await service.stores.destroy();
+      return;
+    }
+
+    if (service.stores && typeof service.stores.closeAll === "function") {
+      await service.stores.closeAll();
+    }
   }
 
   private ensureServiceReady(): Promise<void> {

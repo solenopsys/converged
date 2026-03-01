@@ -12,6 +12,7 @@ export interface PluginConfig {
   openai?: AiConfig;
   claude?: AiConfig;
   registerStartupTask?: (name: string, task: () => Promise<void>) => void;
+  registerShutdownTask?: (name: string, task: () => Promise<void>) => void;
   [key: string]: any;
 }
 
@@ -56,6 +57,9 @@ export function loadConfigFromEnv(): ServerConfig {
  */
 export function createServer({ config, plugins, staticDir }: CreateServerOptions) {
   const startupTasks: Array<{ name: string; task: () => Promise<void> }> = [];
+  const shutdownTasks: Array<{ name: string; task: () => Promise<void> }> = [];
+  let shuttingDown = false;
+  let serverHandle: any = null;
 
   const pluginConfig: PluginConfig = {
     dbPath: config.dataDir,
@@ -63,6 +67,9 @@ export function createServer({ config, plugins, staticDir }: CreateServerOptions
     claude: config.claude,
     registerStartupTask: (name, task) => {
       startupTasks.push({ name, task });
+    },
+    registerShutdownTask: (name, task) => {
+      shutdownTasks.push({ name, task });
     },
     ...config.extraConfig,
   };
@@ -125,6 +132,53 @@ export function createServer({ config, plugins, staticDir }: CreateServerOptions
   return {
     app,
     start: async () => {
+      const runShutdown = async (reason: string) => {
+        if (shuttingDown) {
+          return;
+        }
+        shuttingDown = true;
+
+        console.log(`[back-core] Shutdown start (${reason})`);
+
+        try {
+          if (serverHandle && typeof serverHandle.stop === "function") {
+            serverHandle.stop();
+          } else if (typeof (app as any).stop === "function") {
+            (app as any).stop();
+          }
+        } catch (error) {
+          console.error("[back-core] Failed to stop HTTP listener", error);
+        }
+
+        for (let i = shutdownTasks.length - 1; i >= 0; i--) {
+          const shutdownTask = shutdownTasks[i];
+          const startedAt = Date.now();
+          console.log(
+            `[back-core] Shutdown ${shutdownTasks.length - i}/${shutdownTasks.length} start: ${shutdownTask.name}`,
+          );
+          try {
+            await shutdownTask.task();
+            console.log(
+              `[back-core] Shutdown ${shutdownTasks.length - i}/${shutdownTasks.length} done: ${shutdownTask.name} (${Date.now() - startedAt}ms)`,
+            );
+          } catch (error) {
+            console.error(
+              `[back-core] Shutdown ${shutdownTasks.length - i}/${shutdownTasks.length} failed: ${shutdownTask.name}`,
+              error,
+            );
+          }
+        }
+
+        console.log("[back-core] Shutdown complete");
+      };
+
+      process.once("SIGTERM", () => {
+        void runShutdown("SIGTERM").finally(() => process.exit(0));
+      });
+      process.once("SIGINT", () => {
+        void runShutdown("SIGINT").finally(() => process.exit(0));
+      });
+
       for (let i = 0; i < startupTasks.length; i++) {
         const startupTask = startupTasks[i];
         const startedAt = Date.now();
@@ -145,13 +199,39 @@ export function createServer({ config, plugins, staticDir }: CreateServerOptions
         }
       }
 
-      app.listen(
+      serverHandle = app.listen(
         { port: config.port, hostname: "0.0.0.0" },
         () => {
           console.log(`Server ${config.name} running on http://localhost:${config.port}`);
         }
       );
       return app;
+    },
+    stop: async (reason = "manual") => {
+      // Reuse the same code path as signal-based shutdown.
+      if (shuttingDown) {
+        return;
+      }
+      shuttingDown = true;
+      console.log(`[back-core] Shutdown start (${reason})`);
+      try {
+        if (serverHandle && typeof serverHandle.stop === "function") {
+          serverHandle.stop();
+        } else if (typeof (app as any).stop === "function") {
+          (app as any).stop();
+        }
+      } catch (error) {
+        console.error("[back-core] Failed to stop HTTP listener", error);
+      }
+      for (let i = shutdownTasks.length - 1; i >= 0; i--) {
+        const shutdownTask = shutdownTasks[i];
+        try {
+          await shutdownTask.task();
+        } catch (error) {
+          console.error(`[back-core] Shutdown task failed: ${shutdownTask.name}`, error);
+        }
+      }
+      console.log("[back-core] Shutdown complete");
     },
   };
 }
