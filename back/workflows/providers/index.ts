@@ -45,37 +45,76 @@ export function getProviderDefinition(
 
 class ProvidersPool {
   private providers = new Map<string, Provider>();
+  private creating = new Map<string, Promise<Provider>>();
 
   constructor(private store: ProviderStore) {}
 
   async getOrCreate(name: string): Promise<Provider> {
-    if (this.providers.has(name)) {
-      return this.providers.get(name)!;
+    const cached = this.providers.get(name);
+    if (cached) {
+      if (cached.isReady()) {
+        return cached;
+      }
+
+      try {
+        await cached.start();
+        if (cached.isReady()) {
+          return cached;
+        }
+      } catch (error) {
+        console.warn(
+          `[providers] restart failed for "${name}", will recreate provider`,
+          error,
+        );
+      }
+
+      await this.remove(name);
     }
 
-    const data = await this.store.getProvider(name);
-    const providerName = data.codeName ?? name;
-    const definition = getProviderDefinition(providerName);
-
-    if (!definition) {
-      throw new Error(`Provider not found: ${providerName}`);
+    const creating = this.creating.get(name);
+    if (creating) {
+      return await creating;
     }
 
-    const args = definition.params.length
-      ? definition.params.map((param) => data.config?.[param.name])
-      : Object.values(data.config ?? {});
+    const createPromise = (async () => {
+      const data = await this.store.getProvider(name);
+      const providerName = data.codeName ?? name;
+      const definition = getProviderDefinition(providerName);
 
-    const provider: Provider = Reflect.construct(definition.ctor, args);
-    await provider.start();
-    this.providers.set(name, provider);
-    return provider;
+      if (!definition) {
+        throw new Error(`Provider not found: ${providerName}`);
+      }
+
+      const args = definition.params.length
+        ? definition.params.map((param) => data.config?.[param.name])
+        : Object.values(data.config ?? {});
+
+      const provider: Provider = Reflect.construct(definition.ctor, args);
+      await provider.start();
+
+      if (!provider.isReady()) {
+        throw new Error(
+          `Provider "${name}" is not ready after start (state: ${provider.state})`,
+        );
+      }
+
+      this.providers.set(name, provider);
+      return provider;
+    })();
+
+    this.creating.set(name, createPromise);
+    try {
+      return await createPromise;
+    } finally {
+      this.creating.delete(name);
+    }
   }
 
   async remove(name: string) {
     const provider = this.providers.get(name);
     if (provider) {
-      await provider.stop();
       this.providers.delete(name);
+      await provider.stop();
     }
   }
 

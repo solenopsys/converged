@@ -24,11 +24,6 @@ export function processTemplate(
   return result;
 }
 
-export interface Provider {
-  start(): Promise<void>;
-  stop(): Promise<void>;
-}
-
 export enum ProviderState {
   STOPPED = "stopped",
   STARTING = "starting",
@@ -36,6 +31,15 @@ export enum ProviderState {
   RUNNING = "running",
   STOPPING = "stopping",
   ERROR = "error",
+}
+
+export interface Provider {
+  readonly name: string;
+  readonly state: ProviderState;
+  start(): Promise<void>;
+  stop(): Promise<void>;
+  isReady(): boolean;
+  invoke(operation: string, params: any): Promise<any>;
 }
 
 export type AspectDefinition =

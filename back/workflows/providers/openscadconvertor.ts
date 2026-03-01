@@ -26,7 +26,7 @@ export default class OpenScadConvertorProvider implements Provider {
   }
 
   async start(): Promise<void> {
-    if (this._state === ProviderState.STOPPED) {
+    if (this._state !== ProviderState.READY) {
       this._state = ProviderState.READY;
     }
   }
@@ -54,7 +54,6 @@ export default class OpenScadConvertorProvider implements Provider {
     try {
       return await this.client.convert(params.input);
     } catch (error: any) {
-      this._state = ProviderState.ERROR;
       throw new Error(`OpenScadConvertor convert failed: ${error.message}`);
     }
   }

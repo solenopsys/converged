@@ -131,6 +131,10 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
       : undefined;
   const publicDir = config.publicDir ?? resolve(landingRoot, "public");
   const isProd = config.production ?? process.env.NODE_ENV === "production";
+  const enablePwaInDev =
+    process.env.PWA_DEV === "1" ||
+    process.env.PWA_DEV === "true";
+  const pwaEnabled = isProd || enablePwaInDev;
   const logoBlackPath = resolve(publicDir, "logo-black.svg");
   const logoWhitePath = resolve(publicDir, "logo-white.svg");
   const prebuiltStylesPath = resolve(projectRoot, "dist", "landing", "styles.css");
@@ -192,6 +196,7 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
   }
 
   function injectPwaRegistration(html: string): string {
+    if (!pwaEnabled) return html;
     if (html.includes("data-pwa-bootstrap")) return html;
     const snippet = `<script data-pwa-bootstrap>${pwaRegistrationScript}</script>`;
     if (html.includes("</body>")) {
@@ -201,6 +206,7 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
   }
 
   function injectManifestLink(html: string): string {
+    if (!pwaEnabled) return html;
     if (/\brel=["']manifest["']/i.test(html)) return html;
     const snippet = `<link rel="manifest" href="/manifest.json" />`;
     if (html.includes("</head>")) {

@@ -32,7 +32,7 @@ export default class LogsProvider implements Provider {
   }
 
   async start(): Promise<void> {
-    if (this._state === ProviderState.STOPPED) {
+    if (this._state !== ProviderState.READY) {
       this._state = ProviderState.READY;
     }
   }
@@ -69,7 +69,6 @@ export default class LogsProvider implements Provider {
     try {
       await this.client.write(event);
     } catch (error: any) {
-      this._state = ProviderState.ERROR;
       throw new Error(`Logs write failed: ${error.message}`);
     }
   }
@@ -82,7 +81,6 @@ export default class LogsProvider implements Provider {
     try {
       return await this.client.listHot(params);
     } catch (error: any) {
-      this._state = ProviderState.ERROR;
       throw new Error(`Logs listHot failed: ${error.message}`);
     }
   }
