@@ -1,7 +1,7 @@
 import { resolve } from "path";
 import { mkdir, rm, writeFile } from "fs/promises";
 import type { BuildConfig, GeneratorContext } from "../types";
-import { resolvePreset } from "../resolver";
+import { normalizePresetName, resolvePreset } from "../resolver";
 import { generateContainerfiles } from "../generators/containerfile";
 import { generateKubernetesManifests } from "../generators/kubernetes";
 import { generateRuntimeConfigs } from "../generators/server";
@@ -60,6 +60,7 @@ export async function runBuild({
         },
       },
       runtimeDeps: config.runtimeDeps ?? parentConfig.runtimeDeps,
+      frontend: config.frontend ?? parentConfig.frontend,
       storage: {
         ...parentConfig.storage,
         ...config.storage,
@@ -73,12 +74,14 @@ export async function runBuild({
 
   }
 
+  const presetName = normalizePresetName(mergedConfig, preset);
+
   console.log(`Project: ${projectName}`);
-  console.log(`Preset:  ${preset}`);
+  console.log(`Preset:  ${presetName}`);
 
   const containers = resolvePreset(
     mergedConfig,
-    preset,
+    presetName,
     projectName,
     parentDir ? config.extends! : undefined,
   );
@@ -91,11 +94,11 @@ export async function runBuild({
   }
 
   // Output goes into deployment/{preset}/
-  const presetDir = resolve(outputDir, preset);
+  const presetDir = resolve(outputDir, presetName);
 
   const ctx: GeneratorContext = {
     config: mergedConfig,
-    preset,
+    preset: presetName,
     namespace: targetNamespace,
     containers,
     outputDir: resolve(presetDir),
@@ -107,6 +110,8 @@ export async function runBuild({
   // Create output directories
   const containersDir = resolve(presetDir, "containers");
   const helmDir = resolve(presetDir, "helm");
+  await rm(containersDir, { recursive: true, force: true });
+  await rm(helmDir, { recursive: true, force: true });
   await mkdir(containersDir, { recursive: true });
   await mkdir(helmDir, { recursive: true });
 
@@ -136,15 +141,28 @@ appVersion: "1.0.0"
 
   // Write values.yaml with defaults
   const registry = mergedConfig.registry;
-  const imageName = registry ? `${registry}/${projectName}` : `localhost/${projectName}`;
+  const uiImageName = registry ? `${registry}/${projectName}-ui` : `localhost/${projectName}-ui`;
+  const msImageName = registry ? `${registry}/${projectName}-ms` : `localhost/${projectName}-ms`;
+  const storageImageName = registry
+    ? `${registry}/${projectName}-storage`
+    : `localhost/${projectName}-storage`;
   const pullPolicy = registry ? "Always" : "Never";
   const valuesYaml = `ingress:
   host: ${mergedConfig.ingress?.host ?? `${targetNamespace}.test`}
 
-image:
-  name: ${imageName}
-  tag: latest
-  pullPolicy: ${pullPolicy}
+images:
+  ui:
+    name: ${uiImageName}
+    tag: latest
+    pullPolicy: ${pullPolicy}
+  ms:
+    name: ${msImageName}
+    tag: latest
+    pullPolicy: ${pullPolicy}
+  storage:
+    name: ${storageImageName}
+    tag: latest
+    pullPolicy: ${pullPolicy}
 `;
   await writeFile(resolve(helmDir, "values.yaml"), valuesYaml);
 
@@ -154,7 +172,7 @@ image:
 
   // Package Helm chart as .tgz
   console.log("\nPackaging Helm chart...");
-  const chartName = `${ctx.config.name}-${preset}-1.0.0.tgz`;
+  const chartName = `${ctx.config.name}-${presetName}-1.0.0.tgz`;
   const chartPath = resolve(presetDir, chartName);
 
   const proc = Bun.spawn(
@@ -190,7 +208,7 @@ image:
   // Summary
   const summary = {
     project: projectName,
-    preset,
+    preset: presetName,
     generatedAt: new Date().toISOString(),
     containers: containers.map((c) => ({
       name: c.name,

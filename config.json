@@ -73,39 +73,24 @@
 
   "presets": {
     "mono": {
-      "description": "Single container with everything",
+      "description": "One pod with 3 containers: ui + services + storage",
       "containers": [
         {
-          "name": "converged-app",
-          "landing": true,
-          "spa": true,
-          "microfrontends": "*",
+          "name": "services",
           "microservices": "*",
           "resources": {
-            "requests": { "cpu": "100m", "memory": "256Mi" },
-            "limits": { "cpu": "1000m", "memory": "1Gi" }
+            "requests": { "cpu": "300m", "memory": "512Mi" },
+            "limits": { "cpu": "2000m", "memory": "2Gi" }
           }
         }
       ]
     },
 
-    "micro": {
-      "description": "Multiple containers split by domain",
+    "multi": {
+      "description": "UI pod + grouped services/storage pods",
       "containers": [
         {
-          "name": "gateway",
-          "landing": true,
-          "spa": true,
-          "microfrontends": ["dasboards"],
-          "microservices": [],
-          "resources": {
-            "requests": { "cpu": "100m", "memory": "128Mi" },
-            "limits": { "cpu": "500m", "memory": "512Mi" }
-          }
-        },
-        {
           "name": "security",
-          "microfrontends": ["auth"],
           "microservices": ["sequrity/*"],
           "resources": {
             "requests": { "cpu": "100m", "memory": "128Mi" },
@@ -114,7 +99,6 @@
         },
         {
           "name": "ai",
-          "microfrontends": ["assistants"],
           "microservices": ["ai/*"],
           "resources": {
             "requests": { "cpu": "200m", "memory": "256Mi" },
@@ -123,7 +107,6 @@
         },
         {
           "name": "social",
-          "microfrontends": ["community", "calls", "charts", "threads"],
           "microservices": ["social/*"],
           "resources": {
             "requests": { "cpu": "100m", "memory": "128Mi" },
@@ -132,7 +115,6 @@
         },
         {
           "name": "business",
-          "microfrontends": ["dag", "requests", "sheduller", "webhooks"],
           "microservices": ["business/*"],
           "resources": {
             "requests": { "cpu": "100m", "memory": "128Mi" },
@@ -141,7 +123,6 @@
         },
         {
           "name": "data",
-          "microfrontends": ["dumps", "logs", "telemetry", "usage"],
           "microservices": ["data/*", "analytics/*"],
           "resources": {
             "requests": { "cpu": "100m", "memory": "128Mi" },
@@ -150,7 +131,6 @@
         },
         {
           "name": "content",
-          "microfrontends": ["markdown", "docs", "landing"],
           "microservices": ["content/*"],
           "resources": {
             "requests": { "cpu": "100m", "memory": "128Mi" },
@@ -166,11 +146,6 @@
           }
         }
       ]
-    },
-
-    "scale": {
-      "description": "Each microservice in separate container",
-      "containers": "auto"
     }
   },
 
@@ -192,10 +167,19 @@
     }
   },
 
+  "frontend": {
+    "mountChatViewModule": "assistants"
+  },
+
   "env": {
     "common": {
       "NODE_ENV": "production"
     },
-    "secrets": ["OPENAI_API_KEY", "CLAUDE_API_KEY", "JWT_SECRET", "ACCESS_JWT_SECRET"]
+    "secrets": [
+      "OPENAI_API_KEY",
+      "CLAUDE_API_KEY",
+      "JWT_SECRET",
+      "ACCESS_JWT_SECRET"
+    ]
   }
 }

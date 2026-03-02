@@ -1,196 +1,641 @@
-import type { GeneratorContext, ResolvedContainer, StorageConfig } from "../types";
+import type {
+  GeneratorContext,
+  MicroserviceRef,
+  Resources,
+  StorageConfig,
+} from "../types";
+import {
+  buildDeploymentPlan,
+  CONFIG_FILE,
+  CONFIG_MOUNT,
+  DATA_MOUNT,
+  SERVICE_PORT,
+  SERVICES_APP_PORT,
+  STORAGE_BIN_PATH,
+  STORAGE_SOCKET_DIR,
+  STORAGE_SOCKET_PATH,
+  UI_APP_PORT,
+  type DeploymentPlan,
+  type ServiceGroupPlan,
+} from "../topology";
 import * as cdk8s from "cdk8s";
-import * as kplus from "cdk8s-plus-31";
-
-const APP_PORT = 3000;
-const SERVICE_PORT = 80;
-const DATA_MOUNT = "/app/data";
-const CONFIG_MOUNT = "/app/config";
-const CONFIG_FILE = "config.json";
 
 const TRAEFIK_API = "traefik.io/v1alpha1";
 const CERTMANAGER_API = "cert-manager.io/v1";
 const K3S_HELM_API = "helm.cattle.io/v1";
 
 const HELM_HOST = "{{ .Values.ingress.host }}";
-const HELM_IMAGE = "{{ .Values.image.name }}";
-const HELM_TAG = "{{ .Values.image.tag }}";
-const HELM_PULL_POLICY = "{{ .Values.image.pullPolicy }}";
+const HELM_UI_IMAGE = "{{ .Values.images.ui.name }}";
+const HELM_UI_TAG = "{{ .Values.images.ui.tag }}";
+const HELM_UI_PULL_POLICY = "{{ .Values.images.ui.pullPolicy }}";
 
-// --- Helpers ---
+const HELM_MS_IMAGE = "{{ .Values.images.ms.name }}";
+const HELM_MS_TAG = "{{ .Values.images.ms.tag }}";
+const HELM_MS_PULL_POLICY = "{{ .Values.images.ms.pullPolicy }}";
 
-function diskSize(storage: StorageConfig): number {
-  const raw = storage.defaultSize;
-  return parseInt(raw);
+const HELM_STORAGE_IMAGE = "{{ .Values.images.storage.name }}";
+const HELM_STORAGE_TAG = "{{ .Values.images.storage.tag }}";
+const HELM_STORAGE_PULL_POLICY = "{{ .Values.images.storage.pullPolicy }}";
+
+const STORAGE_RESOURCES: Resources = {
+  requests: { cpu: "100m", memory: "128Mi" },
+  limits: { cpu: "500m", memory: "512Mi" },
+};
+
+function uiImageUri(): string {
+  return `${HELM_UI_IMAGE}:${HELM_UI_TAG}`;
 }
 
-function imageUri(): string {
-  return `${HELM_IMAGE}:${HELM_TAG}`;
+function msImageUri(): string {
+  return `${HELM_MS_IMAGE}:${HELM_MS_TAG}`;
 }
 
-function buildMicroserviceMap(container: ResolvedContainer): Record<string, string[]> {
+function storageImageUri(): string {
+  return `${HELM_STORAGE_IMAGE}:${HELM_STORAGE_TAG}`;
+}
+
+function parseSizeGi(raw: string | undefined, fallbackGi: number): number {
+  if (!raw) return fallbackGi;
+  const value = Number.parseInt(raw, 10);
+  return Number.isFinite(value) && value > 0 ? value : fallbackGi;
+}
+
+function diskSizeForGroup(storage: StorageConfig, group?: ServiceGroupPlan): string {
+  let maxGi = parseSizeGi(storage.defaultSize, 5);
+  for (const svc of group?.microservices ?? []) {
+    const overrideSize = storage.overrides?.[svc.name]?.size;
+    maxGi = Math.max(maxGi, parseSizeGi(overrideSize, maxGi));
+  }
+  return `${maxGi}Gi`;
+}
+
+function labels(app: string, component: string): Record<string, string> {
+  return { app, component };
+}
+
+function buildMicroserviceMap(services: MicroserviceRef[]): Record<string, string[]> {
   const map: Record<string, string[]> = {};
-  for (const svc of container.microservices) {
+  for (const svc of services) {
     (map[svc.category] ??= []).push(svc.name);
   }
   return map;
 }
 
-function buildEnv(ctx: GeneratorContext): Record<string, kplus.EnvValue> {
-  const env: Record<string, kplus.EnvValue> = {
-    NODE_ENV: kplus.EnvValue.fromValue("production"),
-    PORT: kplus.EnvValue.fromValue(String(APP_PORT)),
-    CONFIG_PATH: kplus.EnvValue.fromValue(`${CONFIG_MOUNT}/${CONFIG_FILE}`),
+function toEnvList(values: Record<string, string>) {
+  return Object.entries(values).map(([name, value]) => ({ name, value }));
+}
+
+function buildBaseEnv(
+  ctx: GeneratorContext,
+  port: number,
+  extra: Record<string, string> = {},
+) {
+  const env: Record<string, string> = {
+    NODE_ENV: "production",
+    PORT: String(port),
+    DATA_DIR: DATA_MOUNT,
+    CONFIG_PATH: `${CONFIG_MOUNT}/${CONFIG_FILE}`,
+    ...extra,
   };
 
   for (const [k, v] of Object.entries(ctx.config.env?.common ?? {})) {
-    if (k !== "NODE_ENV") env[k] = kplus.EnvValue.fromValue(v);
+    if (k === "NODE_ENV" || k === "PORT" || k === "CONFIG_PATH" || k === "DATA_DIR") continue;
+    env[k] = v;
   }
 
-  return env;
+  return toEnvList(env);
 }
 
-function parseCpu(value?: string): kplus.Cpu | undefined {
-  if (!value) return undefined;
-  const normalized = value.trim().toLowerCase();
-  if (normalized.endsWith("m")) {
-    const millis = Number(normalized.slice(0, -1));
-    return Number.isFinite(millis) ? kplus.Cpu.millis(millis) : undefined;
-  }
-  const units = Number(normalized);
-  return Number.isFinite(units) ? kplus.Cpu.units(units) : undefined;
+function toK8sResources(resources?: Resources): Record<string, any> | undefined {
+  if (!resources) return undefined;
+
+  const requests: Record<string, string> = {};
+  if (resources.requests?.cpu) requests.cpu = resources.requests.cpu;
+  if (resources.requests?.memory) requests.memory = resources.requests.memory;
+
+  const limits: Record<string, string> = {};
+  if (resources.limits?.cpu) limits.cpu = resources.limits.cpu;
+  if (resources.limits?.memory) limits.memory = resources.limits.memory;
+
+  const result: Record<string, any> = {};
+  if (Object.keys(requests).length > 0) result.requests = requests;
+  if (Object.keys(limits).length > 0) result.limits = limits;
+
+  return Object.keys(result).length > 0 ? result : undefined;
 }
 
-function parseMemory(value?: string): cdk8s.Size | undefined {
-  if (!value) return undefined;
-  const match = value.trim().match(/^(\d+)(Ki|Mi|Gi)$/i);
-  if (!match) return undefined;
-  const amount = Number(match[1]);
-  const unit = match[2].toLowerCase();
-  if (!Number.isFinite(amount)) return undefined;
-  if (unit === "ki") return cdk8s.Size.kibibytes(amount);
-  if (unit === "mi") return cdk8s.Size.mebibytes(amount);
-  if (unit === "gi") return cdk8s.Size.gibibytes(amount);
-  return undefined;
+function createConfigMap(
+  chart: cdk8s.Chart,
+  id: string,
+  name: string,
+  resourceLabels: Record<string, string>,
+  config: unknown,
+) {
+  return new cdk8s.ApiObject(chart, id, {
+    apiVersion: "v1",
+    kind: "ConfigMap",
+    metadata: { name, labels: resourceLabels },
+    data: {
+      [CONFIG_FILE]: JSON.stringify(config, null, 2),
+    },
+  });
 }
 
-function toContainerResources(resources: ResolvedContainer["resources"]): kplus.ContainerResources | undefined {
-  const requestCpu = parseCpu(resources.requests?.cpu);
-  const limitCpu = parseCpu(resources.limits?.cpu);
-  const requestMemory = parseMemory(resources.requests?.memory);
-  const limitMemory = parseMemory(resources.limits?.memory);
-
-  const hasCpu = requestCpu || limitCpu;
-  const hasMemory = requestMemory || limitMemory;
-  if (!hasCpu && !hasMemory) return undefined;
-
-  return {
-    ...(hasCpu ? { cpu: { request: requestCpu, limit: limitCpu } } : {}),
-    ...(hasMemory ? { memory: { request: requestMemory, limit: limitMemory } } : {}),
-  };
+function createClusterService(
+  chart: cdk8s.Chart,
+  id: string,
+  name: string,
+  resourceLabels: Record<string, string>,
+  selector: Record<string, string>,
+  targetPort: number,
+) {
+  return new cdk8s.ApiObject(chart, id, {
+    apiVersion: "v1",
+    kind: "Service",
+    metadata: { name, labels: resourceLabels },
+    spec: {
+      type: "ClusterIP",
+      selector,
+      ports: [
+        {
+          port: SERVICE_PORT,
+          targetPort,
+        },
+      ],
+    },
+  });
 }
 
-// --- Chart builders ---
+function createHeadlessService(
+  chart: cdk8s.Chart,
+  id: string,
+  name: string,
+  selector: Record<string, string>,
+  targetPort: number,
+) {
+  return new cdk8s.ApiObject(chart, id, {
+    apiVersion: "v1",
+    kind: "Service",
+    metadata: { name },
+    spec: {
+      type: "ClusterIP",
+      clusterIP: "None",
+      selector,
+      ports: [
+        {
+          port: targetPort,
+          targetPort,
+        },
+      ],
+    },
+  });
+}
 
-class ContainerBuilder {
+class WorkloadBuilder {
   constructor(
     private chart: cdk8s.Chart,
     private ctx: GeneratorContext,
-    private container: ResolvedContainer,
+    private plan: DeploymentPlan,
   ) {}
 
-  private get prefix() { return `${this.ctx.config.name}-${this.container.name}`; }
-  private get labels() { return { app: this.ctx.config.name, component: this.container.name }; }
-
   build() {
-    const configMap = this.createConfigMap();
-    const pvcTemplate = this.createPvcTemplate();
-    const dataVolume = this.createDataVolume();
-    const configVolume = kplus.Volume.fromConfigMap(this.chart, `${this.container.name}-config-vol`, configMap);
+    if (this.plan.mode === "mono") {
+      this.buildMonoPod();
+      return;
+    }
 
-    const secretName = `${this.ctx.config.name}-secrets`;
+    this.buildUiPod();
+    for (const group of this.plan.serviceGroups) {
+      this.buildGroupPod(group);
+    }
+  }
 
-    const sts = new kplus.StatefulSet(this.chart, `${this.container.name}-sts`, {
-      metadata: { name: this.prefix, labels: this.labels },
-      replicas: 1,
-      serviceName: `${this.prefix}-headless`,
-      containers: [{
-        name: this.container.name,
-        image: imageUri(),
-        imagePullPolicy: HELM_PULL_POLICY as any,
-        ports: [{ number: APP_PORT }],
-        envVariables: buildEnv(this.ctx),
-        resources: toContainerResources(this.container.resources),
-        securityContext: { ensureNonRoot: false, readOnlyRootFilesystem: false },
-        volumeMounts: [
-          { path: DATA_MOUNT, volume: dataVolume },
-          { path: CONFIG_MOUNT, volume: configVolume, readOnly: true },
+  private buildUiPod() {
+    const appName = this.ctx.config.name;
+    const podLabels = labels(appName, "ui");
+    const configMapName = `${appName}-ui-config`;
+    const secretName = `${appName}-secrets`;
+
+    createConfigMap(
+      this.chart,
+      "ui-config",
+      configMapName,
+      podLabels,
+      {
+        name: appName,
+        landing: this.plan.ui.landing ? this.ctx.config.landing : undefined,
+        spa: this.plan.ui.spa ? this.ctx.config.spa : undefined,
+        back: {
+          core: this.ctx.config.back.core,
+          microservices: {},
+        },
+      },
+    );
+
+    new cdk8s.ApiObject(this.chart, "ui-deployment", {
+      apiVersion: "apps/v1",
+      kind: "Deployment",
+      metadata: { name: `${appName}-ui`, labels: podLabels },
+      spec: {
+        replicas: 1,
+        selector: { matchLabels: podLabels },
+        template: {
+          metadata: { labels: podLabels },
+          spec: {
+            containers: [
+              {
+                name: "ui",
+                image: uiImageUri(),
+                imagePullPolicy: HELM_UI_PULL_POLICY,
+                ports: [{ containerPort: UI_APP_PORT }],
+                env: buildBaseEnv(this.ctx, UI_APP_PORT),
+                envFrom: [{ secretRef: { name: secretName } }],
+                resources: toK8sResources(this.plan.ui.resources),
+                securityContext: {
+                  allowPrivilegeEscalation: false,
+                  privileged: false,
+                  readOnlyRootFilesystem: false,
+                  runAsNonRoot: false,
+                },
+                volumeMounts: [
+                  { name: "ui-data", mountPath: DATA_MOUNT },
+                  {
+                    name: "ui-config",
+                    mountPath: CONFIG_MOUNT,
+                    readOnly: true,
+                  },
+                ],
+              },
+            ],
+            securityContext: {
+              runAsNonRoot: false,
+            },
+            volumes: [
+              { name: "ui-data", emptyDir: {} },
+              {
+                name: "ui-config",
+                configMap: { name: configMapName },
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    createClusterService(
+      this.chart,
+      "ui-service",
+      this.plan.ui.serviceName,
+      podLabels,
+      podLabels,
+      UI_APP_PORT,
+    );
+  }
+
+  private buildGroupPod(group: ServiceGroupPlan) {
+    const appName = this.ctx.config.name;
+    const podName = `${appName}-${group.name}`;
+    const podLabels = labels(appName, group.name);
+    const configMapName = `${podName}-config`;
+    const dataClaimName = `${podName}-data`;
+    const headlessServiceName = `${podName}-headless`;
+    const secretName = `${appName}-secrets`;
+
+    createConfigMap(
+      this.chart,
+      `${group.name}-config`,
+      configMapName,
+      podLabels,
+      {
+        name: appName,
+        back: {
+          core: this.ctx.config.back.core,
+          microservices: buildMicroserviceMap(group.microservices),
+        },
+      },
+    );
+
+    createHeadlessService(
+      this.chart,
+      `${group.name}-headless`,
+      headlessServiceName,
+      podLabels,
+      SERVICES_APP_PORT,
+    );
+
+    new cdk8s.ApiObject(this.chart, `${group.name}-statefulset`, {
+      apiVersion: "apps/v1",
+      kind: "StatefulSet",
+      metadata: { name: podName, labels: podLabels },
+      spec: {
+        replicas: 1,
+        serviceName: headlessServiceName,
+        selector: { matchLabels: podLabels },
+        template: {
+          metadata: { labels: podLabels },
+          spec: {
+            containers: [
+              {
+                name: "services",
+                image: msImageUri(),
+                imagePullPolicy: HELM_MS_PULL_POLICY,
+                ports: [{ containerPort: SERVICES_APP_PORT }],
+                env: buildBaseEnv(this.ctx, SERVICES_APP_PORT, {
+                  STORAGE_SOCKET_PATH,
+                }),
+                envFrom: [{ secretRef: { name: secretName } }],
+                resources: toK8sResources(group.resources),
+                securityContext: {
+                  allowPrivilegeEscalation: false,
+                  privileged: false,
+                  readOnlyRootFilesystem: false,
+                  runAsNonRoot: false,
+                },
+                volumeMounts: [
+                  { name: dataClaimName, mountPath: DATA_MOUNT },
+                  {
+                    name: "services-config",
+                    mountPath: CONFIG_MOUNT,
+                    readOnly: true,
+                  },
+                  {
+                    name: "storage-socket",
+                    mountPath: STORAGE_SOCKET_DIR,
+                  },
+                ],
+              },
+              {
+                name: "storage",
+                image: storageImageUri(),
+                imagePullPolicy: HELM_STORAGE_PULL_POLICY,
+                command: [
+                  STORAGE_BIN_PATH,
+                  "start",
+                  "--data-dir",
+                  DATA_MOUNT,
+                  "--socket",
+                  STORAGE_SOCKET_PATH,
+                ],
+                resources: toK8sResources(STORAGE_RESOURCES),
+                securityContext: {
+                  allowPrivilegeEscalation: false,
+                  privileged: false,
+                  readOnlyRootFilesystem: false,
+                  runAsNonRoot: false,
+                },
+                volumeMounts: [
+                  { name: dataClaimName, mountPath: DATA_MOUNT },
+                  {
+                    name: "storage-socket",
+                    mountPath: STORAGE_SOCKET_DIR,
+                  },
+                ],
+              },
+            ],
+            securityContext: {
+              runAsNonRoot: false,
+            },
+            volumes: [
+              {
+                name: "services-config",
+                configMap: { name: configMapName },
+              },
+              {
+                name: "storage-socket",
+                emptyDir: {},
+              },
+            ],
+          },
+        },
+        volumeClaimTemplates: [
+          {
+            metadata: { name: dataClaimName },
+            spec: {
+              accessModes: ["ReadWriteOnce"],
+              resources: {
+                requests: {
+                  storage: diskSizeForGroup(this.ctx.storage, group),
+                },
+              },
+              storageClassName: "local-path",
+            },
+          },
         ],
-      }],
-      securityContext: { ensureNonRoot: false },
-      podMetadata: { labels: this.labels },
-      volumeClaimTemplates: [pvcTemplate],
+      },
     });
 
-    (sts as any).apiObject.addJsonPatch(cdk8s.JsonPatch.add(
-      "/spec/template/spec/containers/0/envFrom",
-      [{ secretRef: { name: secretName } }],
-    ));
-
-    // Headless service for StatefulSet
-    new kplus.Service(this.chart, `${this.container.name}-headless`, {
-      metadata: { name: `${this.prefix}-headless`, labels: this.labels },
-      type: kplus.ServiceType.CLUSTER_IP,
-      clusterIP: "None",
-      ports: [{ port: APP_PORT, targetPort: APP_PORT }],
-      selector: sts,
-    });
-
-    // Regular service
-    new kplus.Service(this.chart, `${this.container.name}-svc`, {
-      metadata: { name: this.prefix, labels: this.labels },
-      type: kplus.ServiceType.CLUSTER_IP,
-      ports: [{ port: SERVICE_PORT, targetPort: APP_PORT }],
-      selector: sts,
-    });
+    createClusterService(
+      this.chart,
+      `${group.name}-service`,
+      group.serviceName,
+      podLabels,
+      podLabels,
+      SERVICES_APP_PORT,
+    );
   }
 
-  private createConfigMap(): kplus.ConfigMap {
-    const { config } = this.ctx;
-    const containerConfig = {
-      name: config.name,
-      landing: this.container.landing ? config.landing : undefined,
-      spa: this.container.spa ? config.spa : undefined,
-      back: { core: config.back.core, microservices: buildMicroserviceMap(this.container) },
-    };
+  private buildMonoPod() {
+    const appName = this.ctx.config.name;
+    const monoGroup = this.plan.serviceGroups[0];
+    const podName = `${appName}-mono`;
+    const podLabels = labels(appName, "mono");
+    const uiConfigMapName = `${podName}-ui-config`;
+    const servicesConfigMapName = `${podName}-services-config`;
+    const dataClaimName = `${podName}-data`;
+    const headlessServiceName = `${podName}-headless`;
+    const secretName = `${appName}-secrets`;
 
-    return new kplus.ConfigMap(this.chart, `${this.container.name}-config`, {
-      metadata: { name: `${this.prefix}-config`, labels: this.labels },
-      data: { [CONFIG_FILE]: JSON.stringify(containerConfig, null, 2) },
+    createConfigMap(
+      this.chart,
+      "mono-ui-config",
+      uiConfigMapName,
+      podLabels,
+      {
+        name: appName,
+        landing: this.plan.ui.landing ? this.ctx.config.landing : undefined,
+        spa: this.plan.ui.spa ? this.ctx.config.spa : undefined,
+        back: {
+          core: this.ctx.config.back.core,
+          microservices: {},
+        },
+      },
+    );
+
+    createConfigMap(
+      this.chart,
+      "mono-services-config",
+      servicesConfigMapName,
+      podLabels,
+      {
+        name: appName,
+        back: {
+          core: this.ctx.config.back.core,
+          microservices: buildMicroserviceMap(monoGroup.microservices),
+        },
+      },
+    );
+
+    createHeadlessService(
+      this.chart,
+      "mono-headless",
+      headlessServiceName,
+      podLabels,
+      SERVICES_APP_PORT,
+    );
+
+    new cdk8s.ApiObject(this.chart, "mono-statefulset", {
+      apiVersion: "apps/v1",
+      kind: "StatefulSet",
+      metadata: { name: podName, labels: podLabels },
+      spec: {
+        replicas: 1,
+        serviceName: headlessServiceName,
+        selector: { matchLabels: podLabels },
+        template: {
+          metadata: { labels: podLabels },
+          spec: {
+            containers: [
+              {
+                name: "ui",
+                image: uiImageUri(),
+                imagePullPolicy: HELM_UI_PULL_POLICY,
+                ports: [{ containerPort: UI_APP_PORT }],
+                env: buildBaseEnv(this.ctx, UI_APP_PORT),
+                envFrom: [{ secretRef: { name: secretName } }],
+                resources: toK8sResources(this.plan.ui.resources),
+                securityContext: {
+                  allowPrivilegeEscalation: false,
+                  privileged: false,
+                  readOnlyRootFilesystem: false,
+                  runAsNonRoot: false,
+                },
+                volumeMounts: [
+                  { name: dataClaimName, mountPath: DATA_MOUNT },
+                  {
+                    name: "ui-config",
+                    mountPath: CONFIG_MOUNT,
+                    readOnly: true,
+                  },
+                ],
+              },
+              {
+                name: "services",
+                image: msImageUri(),
+                imagePullPolicy: HELM_MS_PULL_POLICY,
+                ports: [{ containerPort: SERVICES_APP_PORT }],
+                env: buildBaseEnv(this.ctx, SERVICES_APP_PORT, {
+                  STORAGE_SOCKET_PATH,
+                }),
+                envFrom: [{ secretRef: { name: secretName } }],
+                resources: toK8sResources(monoGroup.resources),
+                securityContext: {
+                  allowPrivilegeEscalation: false,
+                  privileged: false,
+                  readOnlyRootFilesystem: false,
+                  runAsNonRoot: false,
+                },
+                volumeMounts: [
+                  { name: dataClaimName, mountPath: DATA_MOUNT },
+                  {
+                    name: "services-config",
+                    mountPath: CONFIG_MOUNT,
+                    readOnly: true,
+                  },
+                  {
+                    name: "storage-socket",
+                    mountPath: STORAGE_SOCKET_DIR,
+                  },
+                ],
+              },
+              {
+                name: "storage",
+                image: storageImageUri(),
+                imagePullPolicy: HELM_STORAGE_PULL_POLICY,
+                command: [
+                  STORAGE_BIN_PATH,
+                  "start",
+                  "--data-dir",
+                  DATA_MOUNT,
+                  "--socket",
+                  STORAGE_SOCKET_PATH,
+                ],
+                resources: toK8sResources(STORAGE_RESOURCES),
+                securityContext: {
+                  allowPrivilegeEscalation: false,
+                  privileged: false,
+                  readOnlyRootFilesystem: false,
+                  runAsNonRoot: false,
+                },
+                volumeMounts: [
+                  { name: dataClaimName, mountPath: DATA_MOUNT },
+                  {
+                    name: "storage-socket",
+                    mountPath: STORAGE_SOCKET_DIR,
+                  },
+                ],
+              },
+            ],
+            securityContext: {
+              runAsNonRoot: false,
+            },
+            volumes: [
+              { name: "ui-config", configMap: { name: uiConfigMapName } },
+              {
+                name: "services-config",
+                configMap: { name: servicesConfigMapName },
+              },
+              {
+                name: "storage-socket",
+                emptyDir: {},
+              },
+            ],
+          },
+        },
+        volumeClaimTemplates: [
+          {
+            metadata: { name: dataClaimName },
+            spec: {
+              accessModes: ["ReadWriteOnce"],
+              resources: {
+                requests: {
+                  storage: diskSizeForGroup(this.ctx.storage, monoGroup),
+                },
+              },
+              storageClassName: "local-path",
+            },
+          },
+        ],
+      },
     });
-  }
 
-  private createPvcTemplate(): kplus.PersistentVolumeClaim {
-    const name = `${this.prefix}-data`;
-    return new kplus.PersistentVolumeClaim(this.chart, `${this.container.name}-pvc-tpl`, {
-      metadata: { name },
-      storage: cdk8s.Size.gibibytes(diskSize(this.ctx.storage)),
-      accessModes: [kplus.PersistentVolumeAccessMode.READ_WRITE_ONCE],
-      storageClassName: "local-path",
-    });
-  }
+    createClusterService(
+      this.chart,
+      "mono-ui-service",
+      this.plan.ui.serviceName,
+      labels(appName, "ui"),
+      podLabels,
+      UI_APP_PORT,
+    );
 
-  private createDataVolume(): kplus.Volume {
-    const claimName = `${this.prefix}-data`;
-    const pvcRef = kplus.PersistentVolumeClaim.fromClaimName(this.chart, `${this.container.name}-pvc-ref`, claimName);
-    return kplus.Volume.fromPersistentVolumeClaim(this.chart, `${this.container.name}-data-vol`, pvcRef, { name: claimName });
+    createClusterService(
+      this.chart,
+      "mono-services-service",
+      monoGroup.serviceName,
+      labels(appName, "services"),
+      podLabels,
+      SERVICES_APP_PORT,
+    );
   }
 }
 
 class IngressBuilder {
   private routes: { match: string; priority: number; service: string }[] = [];
 
-  constructor(private chart: cdk8s.Chart, private ctx: GeneratorContext) {}
+  constructor(
+    private chart: cdk8s.Chart,
+    private ctx: GeneratorContext,
+    private plan: DeploymentPlan,
+  ) {}
 
   build() {
     this.collectRoutes();
@@ -199,26 +644,33 @@ class IngressBuilder {
   }
 
   private collectRoutes() {
-    const { config, containers } = this.ctx;
+    const seenServicePaths = new Set<string>();
 
-    for (const c of containers) {
-      const svc = `${config.name}-${c.name}`;
+    for (const group of this.plan.serviceGroups) {
+      for (const ms of group.microservices) {
+        if (seenServicePaths.has(ms.name)) continue;
+        seenServicePaths.add(ms.name);
 
-      for (const ms of c.microservices) {
         this.routes.push({
           match: `Host(\`${HELM_HOST}\`) && PathPrefix(\`/services/${ms.name}\`)`,
           priority: 100,
-          service: svc,
+          service: group.serviceName,
         });
       }
+    }
 
-      if (c.spa) {
-        this.routes.push({ match: `Host(\`${HELM_HOST}\`) && PathPrefix(\`/console\`)`, priority: 10, service: svc });
-      }
+    this.routes.push({
+      match: `Host(\`${HELM_HOST}\`) && PathPrefix(\`/console\`)`,
+      priority: 10,
+      service: this.plan.ui.serviceName,
+    });
 
-      if (c.landing) {
-        this.routes.push({ match: `Host(\`${HELM_HOST}\`) && PathPrefix(\`/\`)`, priority: 1, service: svc });
-      }
+    if (this.plan.ui.landing) {
+      this.routes.push({
+        match: `Host(\`${HELM_HOST}\`) && PathPrefix(\`/\`)`,
+        priority: 1,
+        service: this.plan.ui.serviceName,
+      });
     }
   }
 
@@ -231,13 +683,15 @@ class IngressBuilder {
       metadata: { name: `${config.name}-ingress` },
       spec: {
         entryPoints: ["web"],
-        routes: this.routes.map((r) => ({
-          match: r.match,
+        routes: this.routes.map((route) => ({
+          match: route.match,
           kind: "Rule",
-          priority: r.priority,
-          services: [{ name: r.service, port: SERVICE_PORT }],
+          priority: route.priority,
+          services: [{ name: route.service, port: SERVICE_PORT }],
         })),
-        ...(config.ingress.tls?.enabled && { tls: { secretName: `${config.name}-tls` } }),
+        ...(config.ingress.tls?.enabled && {
+          tls: { secretName: `${config.name}-tls` },
+        }),
       },
     });
   }
@@ -266,7 +720,11 @@ class CertificateBuilder {
 }
 
 class K3sHelmChartBuilder {
-  constructor(private chart: cdk8s.Chart, private ctx: GeneratorContext, private chartBase64: string) {}
+  constructor(
+    private chart: cdk8s.Chart,
+    private ctx: GeneratorContext,
+    private chartBase64: string,
+  ) {}
 
   build() {
     const { config, preset } = this.ctx;
@@ -284,25 +742,21 @@ class K3sHelmChartBuilder {
   }
 }
 
-// --- Entry point ---
-
-export function generateKubernetesManifests(ctx: GeneratorContext, chartBase64?: string) {
+export function generateKubernetesManifests(
+  ctx: GeneratorContext,
+  chartBase64?: string,
+) {
   const helmDir = `${ctx.outputDir}/helm`;
 
-  // Helm chart templates
   const app = new cdk8s.App({ outdir: `${helmDir}/templates` });
   const chart = new cdk8s.Chart(app, ctx.config.name);
+  const plan = buildDeploymentPlan(ctx);
 
-  for (const container of ctx.containers) {
-    new ContainerBuilder(chart, ctx, container).build();
-  }
-
-  new IngressBuilder(chart, ctx).build();
+  new WorkloadBuilder(chart, ctx, plan).build();
+  new IngressBuilder(chart, ctx, plan).build();
   new CertificateBuilder(chart, ctx).build();
-
   app.synth();
 
-  // K3s HelmChart CRD
   if (chartBase64) {
     const k3sApp = new cdk8s.App({ outdir: ctx.outputDir });
     const k3sChart = new cdk8s.Chart(k3sApp, "k3s-chart");

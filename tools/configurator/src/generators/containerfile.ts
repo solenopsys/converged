@@ -2,6 +2,11 @@ import { existsSync } from "node:fs";
 import { relative, resolve } from "node:path";
 import type { GeneratorContext, MicroserviceRef } from "../types";
 import { getAllMicroservices } from "../resolver";
+import {
+  SERVICES_APP_PORT,
+  STORAGE_BIN_PATH,
+  UI_APP_PORT,
+} from "../topology";
 
 // --- Path resolution helpers ---
 
@@ -23,6 +28,14 @@ function dirExists(ctx: GeneratorContext, ownerDirName: string, relPath: string)
     : ownerDirName === parentDirName ? ctx.parentProjectDir
     : undefined;
   return absDir ? existsSync(resolve(absDir, relPath)) : false;
+}
+
+function resolveOwnerAbsDir(ctx: GeneratorContext, ownerDirName: string): string | undefined {
+  const projectDirName = ctx.projectDir.split("/").pop()!;
+  const parentDirName = ctx.parentProjectDir?.split("/").pop();
+  if (ownerDirName === projectDirName) return ctx.projectDir;
+  if (ownerDirName === parentDirName) return ctx.parentProjectDir;
+  return undefined;
 }
 
 function shellEscape(s: string): string {
@@ -74,9 +87,9 @@ function resolvePlugin(svc: MicroserviceRef, ctx: GeneratorContext): ResolvedPlu
   );
 }
 
-// --- Containerfile builder ---
+type DynamicRole = "ui" | "ms";
 
-class ContainerfileBuilder {
+class DynamicContainerfileBuilder {
   private lines: string[] = [];
   private readonly projectDir: string;
   private readonly parentDir?: string;
@@ -104,7 +117,10 @@ class ContainerfileBuilder {
   private readonly frontLandingsAbsPath: string;
   private readonly hasFrontLandingsSource: boolean;
 
-  constructor(private ctx: GeneratorContext) {
+  constructor(
+    private ctx: GeneratorContext,
+    private role: DynamicRole,
+  ) {
     const { config } = ctx;
 
     this.projectDir = ctx.projectDir.split("/").pop()!;
@@ -129,15 +145,15 @@ class ContainerfileBuilder {
     this.frontLandingsAbsPath = resolve(this.buildContextRoot, "saas/public/front/front-landings");
     this.hasFrontLandingsSource = existsSync(this.frontLandingsAbsPath);
 
-    // All microservices — single image contains everything
     this.allServices = getAllMicroservices(
       config,
       this.projectDir,
       this.parentDir,
     );
-    this.plugins = this.allServices.map((svc) => resolvePlugin(svc, ctx));
+    this.plugins = this.role === "ms"
+      ? this.allServices.map((svc) => resolvePlugin(svc, ctx))
+      : [];
 
-    // All microfrontends
     this.allMfNames = config.spa.microfrontends.map(
       (name) => name.startsWith("mf-") ? name : `mf-${name}`,
     );
@@ -164,32 +180,40 @@ class ContainerfileBuilder {
     return `${this.projectRoot(owner)}/${relPath}`;
   }
 
-  // --- Header ---
+  private runtimePort(): number {
+    return this.role === "ui" ? UI_APP_PORT : SERVICES_APP_PORT;
+  }
 
   private header() {
     this.emit(
       "# Auto-generated Containerfile",
       `# Project: ${this.ctx.config.name}`,
+      `# Role: ${this.role}`,
       "",
     );
   }
-
-  // --- Builder stage ---
 
   private builderStage() {
     this.emit(`FROM ${this.baseImage} AS builder`, "WORKDIR /build", "");
 
     this.copySources();
     this.installDeps();
-    this.buildFrontend();
-    this.prepareOutputDirs();
-    this.buildPlugins();
-    this.buildLandingPlugin();
-    this.buildSpaPlugin();
-    this.buildWorkflows();
-    this.writeRuntimeMap();
-    this.copyFrontendAssets();
-    this.copyNativeLibs();
+
+    if (this.role === "ui") {
+      this.buildFrontend();
+      this.prepareUiOutputDirs();
+      this.buildLandingPlugin();
+      this.buildSpaPlugin();
+      this.copyFrontendAssets();
+      this.writeUiRuntimeMap();
+    } else {
+      this.prepareMsOutputDirs();
+      this.buildServicePlugins();
+      this.buildWorkflows();
+      this.copyNativeLibs();
+      this.writeMsRuntimeMap();
+    }
+
     this.buildRuntimeServer();
     this.writeRuntimeConfig();
   }
@@ -218,6 +242,18 @@ class ContainerfileBuilder {
     this.emit(`RUN cd ${this.projectRoot(this.projectDir)} && bun install --frozen-lockfile`);
   }
 
+  private prepareUiOutputDirs() {
+    this.emit("");
+    this.emit("RUN mkdir -p /build/out/app /build/out/plugins/spa /build/out/plugins/landing \\");
+    this.emit("      /build/out/dist/front /build/out/dist/landing /build/out/dist/mf /build/out/front");
+  }
+
+  private prepareMsOutputDirs() {
+    this.emit("");
+    this.emit("RUN mkdir -p /build/out/app /build/out/plugins/chunks /build/out/plugins/workflows \\");
+    this.emit("      /build/out/plugins/bin-libs /build/out/lib");
+  }
+
   private buildFrontend() {
     this.emit("");
     this.emit(`RUN cd ${this.projectPath(this.spaCoreOwner, this.spaCorePath)} && NODE_ENV=production bun run bld`);
@@ -237,13 +273,7 @@ class ContainerfileBuilder {
     }
   }
 
-  private prepareOutputDirs() {
-    this.emit("");
-    this.emit("RUN mkdir -p /build/out/app /build/out/plugins/chunks /build/out/dist/front \\");
-    this.emit("      /build/out/dist/landing /build/out/dist/mf /build/out/front /build/out/lib");
-  }
-
-  private buildPlugins() {
+  private buildServicePlugins() {
     if (this.plugins.length === 0) return;
 
     const entries = this.plugins.map((p) => `./${p.entry}`).join(" \\\n    ");
@@ -278,7 +308,24 @@ class ContainerfileBuilder {
     this.emit("    --minify --no-splitting");
   }
 
-  private writeRuntimeMap() {
+  private writeUiRuntimeMap() {
+    const toml = [
+      "[services]",
+      "",
+      "[spa]",
+      'plugin = "/app/plugins/spa/plugin.js"',
+      "",
+      "[landing]",
+      'plugin = "/app/plugins/landing/plugin.js"',
+    ];
+
+    this.emit("");
+    this.emit("RUN cat > /build/out/app/runtime-map.toml <<'TOML'");
+    this.emit(toml.join("\n"));
+    this.emit("TOML");
+  }
+
+  private writeMsRuntimeMap() {
     const toml = ["[services]"];
     for (const p of this.plugins) {
       toml.push(`"${p.key}" = "/app/plugins/chunks/${p.chunkPath}"`);
@@ -286,8 +333,6 @@ class ContainerfileBuilder {
     if (dirExists(this.ctx, this.workflowsOwner, "back/workflows/index.ts")) {
       toml.push("", "[workflows]", 'plugin = "/app/plugins/workflows/index.js"');
     }
-    toml.push("", "[spa]", 'plugin = "/app/plugins/spa/plugin.js"');
-    toml.push("", "[landing]", 'plugin = "/app/plugins/landing/plugin.js"');
 
     this.emit("");
     this.emit("RUN cat > /build/out/app/runtime-map.toml <<'TOML'");
@@ -320,6 +365,7 @@ class ContainerfileBuilder {
   }
 
   private copyNativeLibs() {
+    const excludedNativeDirs = ["bun-lmdbx", "bun-stanchion", "bun-vector"];
     const nativeSources = [
       { owner: this.projectDir, path: "back/native" },
       ...(this.hasParent && this.parentDir ? [{ owner: this.parentDir, path: "back/native" }] : []),
@@ -329,7 +375,12 @@ class ContainerfileBuilder {
 
     const cmds = ["mkdir -p /build/out/plugins/bin-libs"];
     for (const { owner, path } of nativeSources) {
-      cmds.push(`find ${this.projectPath(owner, path)} -type f -path '*/bin-libs/*-x86_64-musl.so' -exec cp {} /build/out/plugins/bin-libs/ \\;`);
+      const excludes = excludedNativeDirs
+        .map((dir) => `-not -path '*/${dir}/*'`)
+        .join(" ");
+      cmds.push(
+        `find ${this.projectPath(owner, path)} -type f -path '*/bin-libs/*-x86_64-musl.so' ${excludes} -exec cp {} /build/out/plugins/bin-libs/ \\;`,
+      );
     }
     this.emit("");
     this.emit(`RUN ${cmds.join(" && \\\n    ")}`);
@@ -345,7 +396,7 @@ class ContainerfileBuilder {
     const hasRuntimePkgs = Object.keys(this.runtimePackages).length > 0;
 
     const pkgJson = JSON.stringify({
-      name: "runtime-app",
+      name: `runtime-${this.role}`,
       private: true,
       type: "module",
       ...(hasRuntimePkgs ? { dependencies: this.runtimePackages } : {}),
@@ -361,8 +412,6 @@ class ContainerfileBuilder {
     this.emit("smol = true");
     this.emit("EOF");
   }
-
-  // --- Runtime stage ---
 
   private runtimeStage() {
     const hasRuntimePkgs = Object.keys(this.runtimePackages).length > 0;
@@ -385,34 +434,115 @@ class ContainerfileBuilder {
     this.emit("COPY --from=builder /build/out/app/server.js ./server.js");
     this.emit("COPY --from=builder /build/out/app/bunfig.toml ./bunfig.toml");
     this.emit("COPY --from=builder /build/out/app/runtime-map.toml ./runtime-map.toml");
-    this.emit("COPY --from=builder /build/out/plugins ./plugins");
-    this.emit("COPY --from=builder /build/out/dist ./dist");
-    this.emit("COPY --from=builder /build/out/front ./front");
-    this.emit("COPY --from=builder /build/out/lib ./lib");
+
+    if (this.role === "ui") {
+      this.emit("COPY --from=builder /build/out/plugins/spa ./plugins/spa");
+      this.emit("COPY --from=builder /build/out/plugins/landing ./plugins/landing");
+      this.emit("COPY --from=builder /build/out/dist ./dist");
+      this.emit("COPY --from=builder /build/out/front ./front");
+    } else {
+      this.emit("COPY --from=builder /build/out/plugins/chunks ./plugins/chunks");
+      this.emit("COPY --from=builder /build/out/plugins/workflows ./plugins/workflows");
+      this.emit("COPY --from=builder /build/out/plugins/bin-libs ./plugins/bin-libs");
+      this.emit("COPY --from=builder /build/out/lib ./lib");
+    }
 
     this.emit("");
     this.emit("RUN mkdir -p /app/data");
 
     this.emit("");
     this.emit("ENV NODE_ENV=production");
-    this.emit("ENV PORT=3000");
+    this.emit(`ENV PORT=${this.runtimePort()}`);
     this.emit("ENV DATA_DIR=/app/data");
     this.emit("ENV PROJECT_DIR=/app");
-    this.emit("ENV BIN_LIBS_PATH=/app/plugins/bin-libs");
     this.emit("ENV RUNTIME_MAP_PATH=/app/runtime-map.toml");
-    this.emit("ENV LD_LIBRARY_PATH=/app/lib:/usr/lib");
     this.emit("ENV CONFIG_PATH=/app/config.json");
 
-    this.emit("EXPOSE 3000");
+    if (this.role === "ms") {
+      this.emit("ENV BIN_LIBS_PATH=/app/plugins/bin-libs");
+      this.emit("ENV LD_LIBRARY_PATH=/app/lib:/usr/lib");
+    }
+
+    this.emit(`EXPOSE ${this.runtimePort()}`);
     this.emit('CMD ["bun", "./server.js"]');
   }
 }
 
-// --- Public API ---
+class StorageContainerfileBuilder {
+  private lines: string[] = [];
+  private readonly buildContextRoot: string;
+  private readonly storageBinaryPath = "native/storage/zig-out/bin/storage";
+  private readonly storageBinaryOwner: string;
+
+  constructor(private ctx: GeneratorContext) {
+    this.buildContextRoot = resolve(ctx.projectDir, "../../..");
+    this.storageBinaryOwner = resolveOwnerDir(ctx, this.storageBinaryPath);
+  }
+
+  build(): string {
+    this.header();
+    this.runtimeStage();
+    return this.lines.join("\n");
+  }
+
+  private emit(...lines: string[]) { this.lines.push(...lines); }
+
+  private toContextPath(absPath: string): string {
+    return relative(this.buildContextRoot, absPath).replace(/\\/g, "/");
+  }
+
+  private storageBinaryAbsPath(): string {
+    const ownerAbsDir = resolveOwnerAbsDir(this.ctx, this.storageBinaryOwner);
+    if (!ownerAbsDir) {
+      throw new Error(`Unable to resolve storage binary owner: ${this.storageBinaryOwner}`);
+    }
+    const absPath = resolve(ownerAbsDir, this.storageBinaryPath);
+    if (!existsSync(absPath)) {
+      throw new Error(
+        `Storage binary not found: ${this.storageBinaryPath}. Run "zig build -Doptimize=ReleaseFast" in native/storage first.`,
+      );
+    }
+    return absPath;
+  }
+
+  private header() {
+    this.emit(
+      "# Auto-generated Containerfile",
+      `# Project: ${this.ctx.config.name}`,
+      "# Role: storage",
+      "",
+    );
+  }
+
+  private runtimeStage() {
+    const binaryAbsPath = this.storageBinaryAbsPath();
+
+    this.emit("FROM debian:bookworm-slim AS runtime");
+    this.emit("WORKDIR /app");
+    this.emit("");
+    this.emit(`COPY ${this.toContextPath(binaryAbsPath)} ${STORAGE_BIN_PATH}`);
+    this.emit(`RUN chmod +x ${STORAGE_BIN_PATH} && mkdir -p /app/data /app/socket`);
+    this.emit("");
+    this.emit('CMD ["/app/storage", "start", "--data-dir", "/app/data", "--socket", "/app/socket/storage.sock"]');
+  }
+}
 
 export async function generateContainerfiles(ctx: GeneratorContext): Promise<Map<string, string>> {
   const projectName = ctx.projectDir.split("/").pop()!;
   const result = new Map<string, string>();
-  result.set(`${projectName}.Containerfile`, new ContainerfileBuilder(ctx).build());
+
+  result.set(
+    `${projectName}.ui.Containerfile`,
+    new DynamicContainerfileBuilder(ctx, "ui").build(),
+  );
+  result.set(
+    `${projectName}.ms.Containerfile`,
+    new DynamicContainerfileBuilder(ctx, "ms").build(),
+  );
+  result.set(
+    `${projectName}.storage.Containerfile`,
+    new StorageContainerfileBuilder(ctx).build(),
+  );
+
   return result;
 }

@@ -1,56 +1,76 @@
 import type { GeneratorContext } from "../types";
+import { buildDeploymentPlan } from "../topology";
 
 function buildServiceHostMap(ctx: GeneratorContext): Record<string, string> {
-  const { config, containers } = ctx;
+  const plan = buildDeploymentPlan(ctx);
   const hostMap: Record<string, string> = {};
 
-  for (const container of containers) {
-    const host = `${config.name}-${container.name}`;
-    for (const svc of container.microservices) {
-      hostMap[`${svc.category}/${svc.name}`] = host;
+  for (const group of plan.serviceGroups) {
+    for (const svc of group.microservices) {
+      hostMap[`${svc.category}/${svc.name}`] = group.serviceName;
     }
   }
 
   return hostMap;
 }
 
+function buildMicroserviceMap(services: { category: string; name: string }[]): Record<string, string[]> {
+  const map: Record<string, string[]> = {};
+  for (const svc of services) {
+    (map[svc.category] ??= []).push(svc.name);
+  }
+  return map;
+}
+
 export function generateRuntimeConfigs(ctx: GeneratorContext): Map<string, string> {
   const result = new Map<string, string>();
-  const { config, containers } = ctx;
+  const { config } = ctx;
+  const plan = buildDeploymentPlan(ctx);
 
   // Service host map — single file for the whole cluster
   result.set("service-hosts.json", JSON.stringify(buildServiceHostMap(ctx), null, 2));
 
-  // Per-container config
-  for (const container of containers) {
-    const msMap: Record<string, string[]> = {};
-    for (const svc of container.microservices) {
-      (msMap[svc.category] ??= []).push(svc.name);
-    }
+  const uiModules: Record<string, boolean> = {};
+  for (const mf of plan.ui.microfrontends) {
+    uiModules[mf.name] = true;
+  }
+  const chatModule = config.frontend?.mountChatViewModule;
 
-    const modules: Record<string, boolean> = {};
-    for (const mf of container.microfrontends) {
-      modules[mf.name] = true;
-    }
+  const uiConfig = {
+    name: config.name,
+    container: "ui",
+    landing: plan.ui.landing ? config.landing : undefined,
+    spa: plan.ui.spa ? config.spa : undefined,
+    back: {
+      core: config.back.core,
+      microservices: {},
+    },
+    frontend: {
+      modules: uiModules,
+      layout: "sidebar",
+      mountChatView: chatModule ? Boolean(uiModules[chatModule]) : false,
+    },
+  };
 
+  result.set("ui.config.json", JSON.stringify(uiConfig, null, 2));
+
+  for (const group of plan.serviceGroups) {
     const runtimeConfig = {
       name: config.name,
-      container: container.name,
-      landing: container.landing ? config.landing : undefined,
-      spa: container.spa ? config.spa : undefined,
+      container: group.name,
       back: {
         core: config.back.core,
-        microservices: msMap,
+        microservices: buildMicroserviceMap(group.microservices),
       },
       frontend: {
-        modules,
+        modules: {},
         layout: "sidebar",
-        mountChatView: container.microfrontends.some((mf) => mf.name === "assistants"),
+        mountChatView: false,
       },
     };
 
     result.set(
-      `${container.name}.config.json`,
+      `${group.name}.config.json`,
       JSON.stringify(runtimeConfig, null, 2),
     );
   }

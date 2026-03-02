@@ -44,6 +44,31 @@ function resolveMicroservices(
   return services.map((s) => ({ category, name: s, project }));
 }
 
+function dedupeMicrofrontends(
+  input: { name: string; project: string }[],
+): { name: string; project: string }[] {
+  const seen = new Set<string>();
+  const result: { name: string; project: string }[] = [];
+  for (const item of input) {
+    if (seen.has(item.name)) continue;
+    seen.add(item.name);
+    result.push(item);
+  }
+  return result;
+}
+
+function dedupeMicroservices(input: MicroserviceRef[]): MicroserviceRef[] {
+  const seen = new Set<string>();
+  const result: MicroserviceRef[] = [];
+  for (const item of input) {
+    const key = `${item.category}/${item.name}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(item);
+  }
+  return result;
+}
+
 /**
  * Determine which project a microfrontend belongs to.
  * MFs whose names match an ownCategory's services live in child project.
@@ -105,6 +130,9 @@ export function resolveContainer(
     }
   }
 
+  microfrontends = dedupeMicrofrontends(microfrontends);
+  microservices = dedupeMicroservices(microservices);
+
   return {
     name: container.name,
     landing,
@@ -118,45 +146,20 @@ export function resolveContainer(
   };
 }
 
-/**
- * Generate auto containers (scale mode)
- */
-function generateAutoContainers(
+export function normalizePresetName(
   config: BuildConfig,
-): ContainerConfig[] {
-  const containers: ContainerConfig[] = [];
+  presetName: string,
+): string {
+  if (config.presets[presetName]) return presetName;
 
-  containers.push({
-    name: "gateway",
-    landing: !!config.landing,
-    spa: true,
-    microfrontends: ["dasboards"],
-    microservices: [],
-    resources: {
-      requests: { cpu: "100m", memory: "128Mi" },
-      limits: { cpu: "500m", memory: "512Mi" },
-    },
-  });
+  // Backward compatibility aliases.
+  if (presetName === "multy" && config.presets.multi) return "multi";
+  if (presetName === "micro" && config.presets.multi) return "multi";
+  if (presetName === "multi" && config.presets.micro) return "micro";
+  if (presetName === "multi" && config.presets.multy) return "multy";
+  if (presetName === "multy" && config.presets.micro) return "micro";
 
-  for (const [category, services] of Object.entries(config.back.microservices)) {
-    for (const service of services) {
-      const matchingMf = config.spa.microfrontends.find(
-        (mf) => mf === service || mf === service + "s" || service === mf + "s",
-      );
-
-      containers.push({
-        name: `${category.toLowerCase()}-${service}`,
-        microfrontends: matchingMf ? [matchingMf] : [],
-        microservices: [`${category}/${service}`],
-        resources: {
-          requests: { cpu: "100m", memory: "128Mi" },
-          limits: { cpu: "500m", memory: "256Mi" },
-        },
-      });
-    }
-  }
-
-  return containers;
+  return presetName;
 }
 
 /**
@@ -168,7 +171,8 @@ export function resolvePreset(
   projectName: string,
   parentProjectName?: string,
 ): ResolvedContainer[] {
-  const preset = config.presets[presetName];
+  const normalizedPreset = normalizePresetName(config, presetName);
+  const preset = config.presets[normalizedPreset];
   if (!preset) {
     const available = Object.keys(config.presets).join(", ");
     throw new Error(
@@ -176,12 +180,7 @@ export function resolvePreset(
     );
   }
 
-  const containerConfigs =
-    preset.containers === "auto"
-      ? generateAutoContainers(config)
-      : preset.containers;
-
-  return containerConfigs.map((c) =>
+  return preset.containers.map((c) =>
     resolveContainer(c, config, projectName, parentProjectName),
   );
 }

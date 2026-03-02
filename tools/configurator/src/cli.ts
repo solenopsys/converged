@@ -4,7 +4,7 @@
  *
  * Usage:
  *   bun run cli.ts dev --project=converged-portal|club-portal
- *   bun run cli.ts build --project=converged-portal|club-portal --preset=mono|micro|scale
+ *   bun run cli.ts build --project=converged-portal|club-portal --preset=mono|multi
  */
 import { parseArgs } from "util";
 
@@ -38,7 +38,7 @@ Commands:
 
 Options:
   -p, --project <name>  Project: converged-portal | club-portal (required)
-  --preset <name>       Build preset: mono | micro | scale (default: mono)
+  --preset <name>       Build preset: mono | multi (default: mono)
   -o, --output <dir>    Output directory (default: ./deployment)
   -n, --namespace <ns>  K8s namespace (default: config name)
   --port <port>         Dev server base port (default: 3000)
@@ -49,7 +49,7 @@ Examples:
   bun run cli.ts dev --project=converged-portal
   bun run cli.ts dev --project=club-portal --port=3001
   bun run cli.ts build --project=converged-portal --preset=mono
-  bun run cli.ts build --project=club-portal --preset=micro
+  bun run cli.ts build --project=club-portal --preset=multi
   bun run cli.ts secrets --project=club-portal
   bun run cli.ts secrets --project=club-portal --env-file=../../confs/club-portal.env
 `);

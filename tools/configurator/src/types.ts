@@ -14,7 +14,7 @@ export interface ContainerConfig {
 
 export interface Preset {
   description?: string;
-  containers: ContainerConfig[] | "auto";
+  containers: ContainerConfig[];
 }
 
 export interface StorageConfig {
@@ -71,6 +71,10 @@ export interface BuildConfig {
   storage: StorageConfig;
 
   ingress: IngressConfig;
+
+  frontend?: {
+    mountChatViewModule?: string;
+  };
 
   env?: {
     common?: Record<string, string>;

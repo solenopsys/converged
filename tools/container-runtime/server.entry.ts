@@ -27,17 +27,6 @@ const pluginsRoot = resolve(appRoot, "plugins");
 const binLibsPath =
   process.env.BIN_LIBS_PATH || resolve(pluginsRoot, "bin-libs");
 
-function resolveNativeArch(runtimeArch: string): string {
-  switch (runtimeArch) {
-    case "x64":
-      return "x86_64";
-    case "arm64":
-      return "aarch64";
-    default:
-      return "x86_64";
-  }
-}
-
 function readRuntimeMap(path: string): RuntimeMap {
   const content = readFileSync(path, "utf8");
   return Bun.TOML.parse(content) as RuntimeMap;
@@ -54,12 +43,6 @@ async function importPlugin(path: string) {
 
 process.env.BIN_LIBS_PATH = binLibsPath;
 process.env.PROJECT_DIR = projectDir;
-if (!process.env.BUN_STANCHION_EXTENSION) {
-  process.env.BUN_STANCHION_EXTENSION = resolve(
-    binLibsPath,
-    `libstanchion-${resolveNativeArch(process.arch)}-musl.so`,
-  );
-}
 
 if (!existsSync(runtimeMapPath)) {
   throw new Error(`Runtime map not found: ${runtimeMapPath}`);
