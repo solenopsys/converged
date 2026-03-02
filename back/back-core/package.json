@@ -13,12 +13,9 @@
     "build": "bun build ./src/index.ts --target=bun --outdir=../dist/core --format=esm"
   },
   "dependencies": {
-    "bun-lmdbx": "workspace:*",
-    "bun-stanchion": "workspace:*",
-    "bun-vector": "workspace:*",
+    "bun-transport": "workspace:*",
     "elysia": "latest",
-    "kysely": "latest",
-    "kysely-bun-sqlite": "latest"
+    "kysely": "latest"
   },
   "devDependencies": {
     "@types/bun": "latest",

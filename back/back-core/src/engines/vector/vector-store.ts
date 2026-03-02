@@ -1,22 +1,22 @@
-import { Store } from "../../stores";
+import { StorageConnection } from "bun-transport";
 import {
   Kysely,
   SelectQueryBuilder,
   UpdateQueryBuilder,
   DeleteQueryBuilder,
 } from "kysely";
-import { Migration, Migrator, MigrationStateStorage } from "../../migrations";
-import { SqliteVecDatabase } from "bun-vector";
-import { BunSqliteDialect } from "kysely-bun-sqlite";
+import { Store } from "../../stores";
+import { Migration, Migrator } from "../../migrations";
+import { createTransportDialect, TransportMigrationStateStorage } from "../transport/transport-driver";
 
 export class VectorStore<DB = any> implements Store {
   private kysely: Kysely<DB> | null = null;
-  private sqlite: SqliteVecDatabase | null = null;
 
   constructor(
-    private dataLocation: string,
+    private conn: StorageConnection,
+    private ms: string,
+    private storeName: string,
     private migrations: (new (store: Store) => Migration)[],
-    private migrationsState: MigrationStateStorage,
   ) {}
 
   public applyWhereConditions<T extends string>(
@@ -39,33 +39,11 @@ export class VectorStore<DB = any> implements Store {
     return this.kysely;
   }
 
-  get raw() {
-    if (!this.sqlite) {
-      throw new Error("Database not initialized. Call open() first.");
-    }
-    return this.sqlite;
-  }
-
   async open(): Promise<void> {
-    if (this.kysely) {
-      return;
-    }
-
-    const database = new SqliteVecDatabase(this.dataLocation);
-
-    database.exec("PRAGMA journal_mode = WAL;");
-    database.exec("PRAGMA busy_timeout = 10000;");
-    database.exec("PRAGMA synchronous = NORMAL;");
-    database.exec("PRAGMA cache_size = -64000;");
-    database.exec("PRAGMA temp_store = MEMORY;");
-    database.exec("PRAGMA trusted_schema = ON;");
-
-    this.sqlite = database;
-
+    if (this.kysely) return;
+    this.conn.open(this.ms, this.storeName, "vector");
     this.kysely = new Kysely<DB>({
-      dialect: new BunSqliteDialect({
-        database,
-      }),
+      dialect: createTransportDialect(this.conn, this.ms, this.storeName),
     });
   }
 
@@ -74,16 +52,17 @@ export class VectorStore<DB = any> implements Store {
       await this.kysely.destroy();
       this.kysely = null;
     }
-
-    if (this.sqlite) {
-      this.sqlite.close();
-      this.sqlite = null;
-    }
+    this.conn.close_store(this.ms, this.storeName);
   }
 
   async migrate(): Promise<void> {
-    const migrations = this.migrations.map((migration) => new migration(this));
-    const migrator = new Migrator(migrations, this.migrationsState);
+    const stateStorage = new TransportMigrationStateStorage(
+      this.conn,
+      this.ms,
+      this.storeName,
+    );
+    const migrations = this.migrations.map((M) => new M(this));
+    const migrator = new Migrator(migrations, stateStorage);
     await migrator.up();
   }
 
@@ -93,15 +72,12 @@ export class VectorStore<DB = any> implements Store {
     queryVector: number[],
     limit: number,
   ): Array<{ rowid: number; distance: number }> {
-    const stmt = this.raw.prepare(
-      `SELECT rowid, distance FROM vec_${table}
-       WHERE ${vectorColumn} MATCH ?
-       ORDER BY distance
-       LIMIT ?`,
-    );
-    return stmt.all(JSON.stringify(queryVector), limit) as Array<{
-      rowid: number;
-      distance: number;
-    }>;
+    const vecJson = JSON.stringify(queryVector).replace(/'/g, "''");
+    const sql = `SELECT rowid, distance FROM vec_${table} WHERE ${vectorColumn} MATCH '${vecJson}' ORDER BY distance LIMIT ${limit}`;
+    const rows = this.conn.querySql(this.ms, this.storeName, sql);
+    return rows.map((row) => ({
+      rowid: Number(row["rowid"]),
+      distance: Number(row["distance"]),
+    }));
   }
 }

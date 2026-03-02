@@ -1,27 +1,24 @@
-import { Store } from "../../stores";
+import { StorageConnection } from "bun-transport";
 import {
   Kysely,
   SelectQueryBuilder,
   UpdateQueryBuilder,
   DeleteQueryBuilder,
 } from "kysely";
-import { Migration } from "../../migrations";
-import { MigrationStateStorage, Migrator } from "../../migrations";
-import { SqliteDialect } from "kysely";
-import { Database } from "bun:sqlite";
-import path from "path";
-import { BunSqliteDialect } from "kysely-bun-sqlite"; // нужен этот пакет!
+import { Store } from "../../stores";
+import { Migration, Migrator } from "../../migrations";
+import { createTransportDialect, TransportMigrationStateStorage } from "../transport/transport-driver";
 
 export class SqlStore<DB = any> implements Store {
   private kysely: Kysely<DB> | null = null;
 
   constructor(
-    private dataLocation: string,
+    private conn: StorageConnection,
+    private ms: string,
+    private storeName: string,
     private migrations: (new (store: Store) => Migration)[],
-    private migrationsState: MigrationStateStorage,
   ) {}
 
-  // Применяет WHERE условия через reduce
   public applyWhereConditions<T extends string>(
     query:
       | SelectQueryBuilder<DB, T, any>
@@ -35,7 +32,6 @@ export class SqlStore<DB = any> implements Store {
     );
   }
 
-  // Доступ к оригинальному Kysely если нужно
   get db() {
     if (!this.kysely) {
       throw new Error("Database not initialized. Call open() first.");
@@ -44,23 +40,10 @@ export class SqlStore<DB = any> implements Store {
   }
 
   async open(): Promise<void> {
-    if (this.kysely) {
-      return;
-    }
-
-    const database = new Database(this.dataLocation);
-
-    // КРИТИЧНО для параллельных запросов:
-    database.exec("PRAGMA journal_mode = WAL;");
-    database.exec("PRAGMA busy_timeout = 10000;");
-    database.exec("PRAGMA synchronous = NORMAL;");
-    database.exec("PRAGMA cache_size = -64000;");
-    database.exec("PRAGMA temp_store = MEMORY;");
-
+    if (this.kysely) return;
+    this.conn.open(this.ms, this.storeName, "sql");
     this.kysely = new Kysely<DB>({
-      dialect: new BunSqliteDialect({
-        database,
-      }),
+      dialect: createTransportDialect(this.conn, this.ms, this.storeName),
     });
   }
 
@@ -69,15 +52,17 @@ export class SqlStore<DB = any> implements Store {
       await this.kysely.destroy();
       this.kysely = null;
     }
+    this.conn.close_store(this.ms, this.storeName);
   }
 
   async migrate(): Promise<void> {
-    // todo move to superclass
-
-    const migrations = this.migrations.map(
-      (migrationWrap) => new migrationWrap(this),
+    const stateStorage = new TransportMigrationStateStorage(
+      this.conn,
+      this.ms,
+      this.storeName,
     );
-    const migrator = new Migrator(migrations, this.migrationsState);
+    const migrations = this.migrations.map((M) => new M(this));
+    const migrator = new Migrator(migrations, stateStorage);
     await migrator.up();
   }
 }

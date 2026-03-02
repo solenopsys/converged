@@ -1,22 +1,22 @@
-import { Store } from "../../stores";
+import { StorageConnection } from "bun-transport";
 import {
   Kysely,
   SelectQueryBuilder,
   UpdateQueryBuilder,
   DeleteQueryBuilder,
 } from "kysely";
-import { Migration, Migrator, MigrationStateStorage } from "../../migrations";
-import { StanchionDatabase } from "bun-stanchion";
-import { BunSqliteDialect } from "kysely-bun-sqlite";
+import { Store } from "../../stores";
+import { Migration, Migrator } from "../../migrations";
+import { createTransportDialect, TransportMigrationStateStorage } from "../transport/transport-driver";
 
 export class ColumnStore<DB = any> implements Store {
   private kysely: Kysely<DB> | null = null;
-  private sqlite: StanchionDatabase | null = null;
 
   constructor(
-    private dataLocation: string,
+    private conn: StorageConnection,
+    private ms: string,
+    private storeName: string,
     private migrations: (new (store: Store) => Migration)[],
-    private migrationsState: MigrationStateStorage,
   ) {}
 
   public applyWhereConditions<T extends string>(
@@ -39,35 +39,11 @@ export class ColumnStore<DB = any> implements Store {
     return this.kysely;
   }
 
-  get raw() {
-    if (!this.sqlite) {
-      throw new Error("Database not initialized. Call open() first.");
-    }
-    return this.sqlite;
-  }
-
   async open(): Promise<void> {
-    if (this.kysely) {
-      return;
-    }
-
-    const database = new StanchionDatabase(this.dataLocation, {
-      strict: true,
-      create: true,
-    });
-    this.sqlite = database;
-
-    // Set busy timeout FIRST before other pragmas
-    database.exec("PRAGMA busy_timeout = 5000;");
-    database.exec("PRAGMA journal_mode = WAL;");
-    database.exec("PRAGMA synchronous = NORMAL;");
-    database.exec("PRAGMA cache_size = -64000;");
-    database.exec("PRAGMA temp_store = MEMORY;");
-
+    if (this.kysely) return;
+    this.conn.open(this.ms, this.storeName, "column");
     this.kysely = new Kysely<DB>({
-      dialect: new BunSqliteDialect({
-        database,
-      }),
+      dialect: createTransportDialect(this.conn, this.ms, this.storeName),
     });
   }
 
@@ -76,16 +52,17 @@ export class ColumnStore<DB = any> implements Store {
       await this.kysely.destroy();
       this.kysely = null;
     }
-
-    if (this.sqlite) {
-      this.sqlite.close();
-      this.sqlite = null;
-    }
+    this.conn.close_store(this.ms, this.storeName);
   }
 
   async migrate(): Promise<void> {
-    const migrations = this.migrations.map((migration) => new migration(this));
-    const migrator = new Migrator(migrations, this.migrationsState);
+    const stateStorage = new TransportMigrationStateStorage(
+      this.conn,
+      this.ms,
+      this.storeName,
+    );
+    const migrations = this.migrations.map((M) => new M(this));
+    const migrator = new Migrator(migrations, stateStorage);
     await migrator.up();
   }
 
@@ -94,31 +71,26 @@ export class ColumnStore<DB = any> implements Store {
     columns: string[],
     rows: Array<ReadonlyArray<unknown>>,
   ): void {
-    if (rows.length === 0) {
-      return;
-    }
+    if (rows.length === 0) return;
     if (columns.length === 0) {
       throw new Error("batchInsert requires at least one column");
     }
 
-    const placeholders = columns.map(() => "?").join(", ");
-    const statement = this.raw.prepare(
-      `INSERT INTO ${table} (${columns.join(", ")}) VALUES (${placeholders})`,
-    );
+    const escapeVal = (v: unknown): string => {
+      if (v === null || v === undefined) return "NULL";
+      if (typeof v === "boolean") return v ? "1" : "0";
+      if (typeof v === "number" || typeof v === "bigint") return String(v);
+      if (v instanceof Uint8Array || v instanceof Buffer)
+        return `X'${Buffer.from(v).toString("hex")}'`;
+      return `'${String(v).replace(/'/g, "''")}'`;
+    };
 
-    const runBatch = this.raw.transaction(
-      (batch: Array<ReadonlyArray<unknown>>) => {
-        for (const row of batch) {
-          if (row.length !== columns.length) {
-            throw new Error(
-              `Row length ${row.length} does not match columns length ${columns.length}`,
-            );
-          }
-          statement.run(...row);
-        }
-      },
+    const colList = columns.join(", ");
+    const stmts = rows.map(
+      (row) =>
+        `INSERT INTO ${table} (${colList}) VALUES (${row.map(escapeVal).join(", ")})`,
     );
-
-    runBatch(rows);
+    const sql = `BEGIN;\n${stmts.join(";\n")};\nCOMMIT;`;
+    this.conn.execSql(this.ms, this.storeName, sql);
   }
 }

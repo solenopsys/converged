@@ -1,16 +1,15 @@
+import { StorageConnection } from "bun-transport";
 import { KVStore } from "../engines/kv/kv-store";
 import { SqlStore } from "../engines/sql/sql-store";
 import { FileStore } from "../engines/files/file-store";
 import { ColumnStore } from "../engines/column/column-store";
 import { VectorStore } from "../engines/vector/vector-store";
-import { join } from "path";
 import { StoreType } from "./types";
-import { DATA_DIR } from "./types";
 import { Store } from "./types";
-import { ManifestStorage } from "./manifest";
 import { Migration } from "../migrations";
-const DB_NAME = "data";
-import { mkdirSync } from "fs";
+
+const STORAGE_SOCKET_PATH =
+  process.env.STORAGE_SOCKET_PATH || "/tmp/storage.sock";
 
 const STORE_DEBUG_ENABLED =
   process.env.STORE_DEBUG === "1" ||
@@ -30,77 +29,29 @@ function elapsedMs(startedAt: number): number {
   return Date.now() - startedAt;
 }
 
-
-function dbExt(type: StoreType): string {
-  if (type === StoreType.KVS) return ".lmdb";
-  if (type === StoreType.SQL) return ".db";
-  if (type === StoreType.COLUMN) return ".db";
-  if (type === StoreType.VECTOR) return ".db";
-  if (type === StoreType.FILES) return ""; // директория, не файл
-  return "";
-}
-
-async function createStore(
+function createStore(
+  conn: StorageConnection,
   msName: string,
   storeDir: string,
   type: StoreType,
   migrations: (new (store: Store) => Migration)[],
-): Promise<Store> {
-  const storeDirectory = join(DATA_DIR, msName, storeDir);
-  mkdirSync(storeDirectory, { recursive: true });
-
-  const ext = dbExt(type);
-  const fullName = DB_NAME + ext;
-
-  // Для FILES хранилища dataLocation - это директория data внутри storeDirectory
-  const dataLocation =
-    type === StoreType.FILES
-      ? join(storeDirectory, DB_NAME)
-      : join(storeDirectory, fullName);
-
-  const manifest = {
-    name: storeDir,
-    dataLocation: dataLocation,
-    version: "1",
-    type: type,
-    migrations: [],
-  };
-
-  const manifestStorage = new ManifestStorage(storeDirectory);
-
-  manifestStorage.createIfNeeded(manifest);
-
-  logStoreDebug("prepare", {
-    msName,
-    store: storeDir,
-    type,
-    directory: storeDirectory,
-    dataLocation: manifest.dataLocation,
-  });
+): Store {
+  logStoreDebug("prepare", { msName, store: storeDir, type });
 
   if (type === StoreType.KVS) {
-    return new KVStore(manifest.dataLocation, migrations, manifestStorage);
+    return new KVStore(conn, msName, storeDir, migrations);
   }
-
   if (type === StoreType.SQL) {
-    return new SqlStore(manifest.dataLocation, migrations, manifestStorage);
+    return new SqlStore(conn, msName, storeDir, migrations);
   }
-
   if (type === StoreType.FILES) {
-    // Для файлового хранилища dataLocation - это директория
-    return new FileStore(manifest.dataLocation, migrations, manifestStorage);
+    return new FileStore(conn, msName, storeDir, migrations);
   }
-
   if (type === StoreType.COLUMN) {
-    return new ColumnStore(manifest.dataLocation, migrations, manifestStorage);
+    return new ColumnStore(conn, msName, storeDir, migrations);
   }
-
   if (type === StoreType.VECTOR) {
-    return new VectorStore(
-      manifest.dataLocation,
-      migrations,
-      manifestStorage,
-    );
+    return new VectorStore(conn, msName, storeDir, migrations);
   }
 
   throw new Error(`Store type ${type} not implemented`);
@@ -108,9 +59,10 @@ async function createStore(
 
 export abstract class StoreControllerAbstract {
   protected stores: { [key: string]: Store } = {};
+  protected conn: StorageConnection;
 
   constructor(protected msName: string) {
-    this.msName = msName;
+    this.conn = new StorageConnection(STORAGE_SOCKET_PATH);
   }
 
   abstract init(): Promise<void>;
@@ -160,6 +112,7 @@ export abstract class StoreControllerAbstract {
         throw error;
       }
     }
+    this.conn.close();
   }
 
   async migrateAll() {
@@ -190,7 +143,7 @@ export abstract class StoreControllerAbstract {
     type: StoreType,
     migrations: (new (store: Store) => Migration)[],
   ): Promise<Store> {
-    this.stores[name] = await createStore(this.msName, name, type, migrations);
+    this.stores[name] = createStore(this.conn, this.msName, name, type, migrations);
     return this.stores[name];
   }
 }
