@@ -30,6 +30,11 @@ pub const Telemetry = struct {
         return @intCast(@divFloor(now - self.start_ns, 1000));
     }
 
+    pub fn durationUs(self: *const Telemetry) u64 {
+        const us = self.elapsedUs();
+        return if (us > 0) @intCast(us) else 0;
+    }
+
     pub fn writeJson(self: *const Telemetry, writer: anytype) !void {
         try writer.print(
             \\{{"elapsed_us":{},"op_count":{},"bytes_read":{},"bytes_written":{}}}

@@ -176,6 +176,30 @@ pub fn build(b: *Build) void {
         .optimize = optimize,
     }));
 
+    // ── Cap'n Proto transport (capnp_wrap.cpp + generated wire code) ──
+    const cpp_flags = &[_][]const u8{
+        "-std=c++17",
+        "-fPIC",
+        "-fvisibility=hidden",
+        "-O2",
+        "-Wno-unused-parameter",
+    };
+
+    exe.addCSourceFile(.{
+        .file = b.path("../wrapers/transport/src/generated/wire.capnp.cpp"),
+        .flags = cpp_flags,
+    });
+    exe.addCSourceFile(.{
+        .file = b.path("../wrapers/transport/src/capnp_wrap.cpp"),
+        .flags = cpp_flags,
+    });
+    exe.addIncludePath(b.path("../wrapers/transport/include"));
+    exe.addIncludePath(b.path("../wrapers/transport/src/generated"));
+    exe.addSystemIncludePath(.{ .cwd_relative = "/usr/include" });
+    exe.linkSystemLibrary("capnp");
+    exe.linkSystemLibrary("kj");
+    exe.linkLibCpp();
+
     exe.linkLibC();
     exe.linkSystemLibrary("sqlite3");
 

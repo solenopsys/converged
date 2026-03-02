@@ -26,7 +26,7 @@ pub fn build(b: *std.Build) void {
 
     // Generated from schema/wire.capnp via generate.sh
     lib.addCSourceFile(.{
-        .file  = b.path("src/generated/wire.capnp.c++"),
+        .file  = b.path("src/generated/wire.capnp.cpp"),
         .flags = cpp_flags,
     });
 

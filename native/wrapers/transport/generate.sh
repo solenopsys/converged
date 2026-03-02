@@ -22,8 +22,8 @@ capnp compile \
   schema/wire.capnp
 
 mv schema/wire.capnp.h   src/generated/wire.capnp.h
-mv schema/wire.capnp.c++ src/generated/wire.capnp.c++
+mv schema/wire.capnp.c++ src/generated/wire.capnp.cpp
 
 echo "Generated:"
 echo "  src/generated/wire.capnp.h"
-echo "  src/generated/wire.capnp.c++"
+echo "  src/generated/wire.capnp.cpp"

@@ -350,3 +350,184 @@ extern "C" const char* transport_resp_manifest_migration_at(TransportResponse* r
 }
 
 extern "C" void transport_free_buf(uint8_t* buf, size_t /*len*/) { free(buf); }
+
+// ── Server-side: decode incoming request ──────────────────────────────────────
+
+struct TransportRequestReader {
+    kj::Array<capnp::word>        words;
+    capnp::FlatArrayMessageReader reader;
+    Request::Reader               req;
+    explicit TransportRequestReader(kj::Array<capnp::word> w)
+        : words(kj::mv(w)), reader(words), req(reader.getRoot<Request>()) {}
+};
+
+extern "C" TransportRequestReader* transport_req_reader_decode(const uint8_t* buf, size_t len) {
+    if (!buf || len == 0 || len % sizeof(capnp::word) != 0) return nullptr;
+    try {
+        size_t wc = len / sizeof(capnp::word);
+        auto words = kj::heapArray<capnp::word>(wc);
+        memcpy(words.begin(), buf, len);
+        return new TransportRequestReader(kj::mv(words));
+    } catch (...) { return nullptr; }
+}
+
+extern "C" void transport_req_reader_free(TransportRequestReader* r) { delete r; }
+
+extern "C" RequestCmd transport_req_reader_cmd(TransportRequestReader* r) {
+    if (!r) return REQ_PING;
+    return static_cast<RequestCmd>(r->req.getBody().which());
+}
+
+extern "C" const char* transport_req_reader_ms(TransportRequestReader* r) {
+    return r ? r->req.getMs().cStr() : "";
+}
+extern "C" const char* transport_req_reader_store(TransportRequestReader* r) {
+    return r ? r->req.getStore().cStr() : "";
+}
+
+extern "C" StoreTypeC transport_req_reader_store_type(TransportRequestReader* r) {
+    if (!r || r->req.getBody().which() != Request::Body::OPEN) return STORE_SQL;
+    return static_cast<StoreTypeC>(r->req.getBody().getOpen().getStoreType());
+}
+extern "C" const char* transport_req_reader_sql(TransportRequestReader* r) {
+    if (!r) return "";
+    auto which = r->req.getBody().which();
+    if (which == Request::Body::EXEC_SQL)  return r->req.getBody().getExecSql().getSql().cStr();
+    if (which == Request::Body::QUERY_SQL) return r->req.getBody().getQuerySql().getSql().cStr();
+    return "";
+}
+extern "C" const char* transport_req_reader_migration_id(TransportRequestReader* r) {
+    if (!r || r->req.getBody().which() != Request::Body::MIGRATE) return "";
+    return r->req.getBody().getMigrate().getMigrationId().cStr();
+}
+extern "C" const char* transport_req_reader_output_path(TransportRequestReader* r) {
+    if (!r || r->req.getBody().which() != Request::Body::ARCHIVE) return "";
+    return r->req.getBody().getArchive().getOutputPath().cStr();
+}
+extern "C" const char* transport_req_reader_key(TransportRequestReader* r) {
+    if (!r) return "";
+    auto which = r->req.getBody().which();
+    if (which == Request::Body::KV_PUT)      return r->req.getBody().getKvPut().getKey().cStr();
+    if (which == Request::Body::KV_GET)      return r->req.getBody().getKvGet().getKey().cStr();
+    if (which == Request::Body::KV_DELETE)   return r->req.getBody().getKvDelete().getKey().cStr();
+    if (which == Request::Body::FILE_PUT)    return r->req.getBody().getFilePut().getKey().cStr();
+    if (which == Request::Body::FILE_GET)    return r->req.getBody().getFileGet().getKey().cStr();
+    if (which == Request::Body::FILE_DELETE) return r->req.getBody().getFileDelete().getKey().cStr();
+    return "";
+}
+extern "C" const uint8_t* transport_req_reader_value_ptr(TransportRequestReader* r) {
+    if (!r) return nullptr;
+    auto which = r->req.getBody().which();
+    if (which == Request::Body::KV_PUT)   return reinterpret_cast<const uint8_t*>(r->req.getBody().getKvPut().getValue().begin());
+    if (which == Request::Body::FILE_PUT) return reinterpret_cast<const uint8_t*>(r->req.getBody().getFilePut().getData().begin());
+    return nullptr;
+}
+extern "C" size_t transport_req_reader_value_len(TransportRequestReader* r) {
+    if (!r) return 0;
+    auto which = r->req.getBody().which();
+    if (which == Request::Body::KV_PUT)   return r->req.getBody().getKvPut().getValue().size();
+    if (which == Request::Body::FILE_PUT) return r->req.getBody().getFilePut().getData().size();
+    return 0;
+}
+extern "C" const char* transport_req_reader_prefix(TransportRequestReader* r) {
+    if (!r || r->req.getBody().which() != Request::Body::KV_LIST) return "";
+    return r->req.getBody().getKvList().getPrefix().cStr();
+}
+
+// ── Server-side: encode outgoing response ────────────────────────────────────
+
+static void setTelemetry(Response::Builder& resp, TelemetryC tel) {
+    auto t = resp.getTelemetry();
+    t.setDurationUs(tel.dur_us);
+    t.setOpCount(tel.op_count);
+}
+
+static int32_t encodeResponse(capnp::MallocMessageBuilder& msg, uint8_t** out, size_t* out_len) {
+    try {
+        auto flat  = capnp::messageToFlatArray(msg);
+        auto bytes = flat.asBytes();
+        size_t len = bytes.size();
+        auto*  buf = static_cast<uint8_t*>(malloc(len));
+        if (!buf) return -1;
+        memcpy(buf, bytes.begin(), len);
+        *out = buf; *out_len = len;
+        return 0;
+    } catch (...) { return -1; }
+}
+
+extern "C" int32_t transport_encode_ok(uint8_t** out, size_t* out_len, TelemetryC tel) {
+    capnp::MallocMessageBuilder msg;
+    auto resp = msg.initRoot<Response>();
+    setTelemetry(resp, tel);
+    resp.getResult().setEmpty();
+    return encodeResponse(msg, out, out_len);
+}
+
+extern "C" int32_t transport_encode_error(uint8_t** out, size_t* out_len, const char* error) {
+    capnp::MallocMessageBuilder msg;
+    auto resp = msg.initRoot<Response>();
+    resp.getResult().setError(error ? error : "unknown error");
+    return encodeResponse(msg, out, out_len);
+}
+
+extern "C" int32_t transport_encode_affected(uint8_t** out, size_t* out_len, TelemetryC tel, int64_t affected) {
+    capnp::MallocMessageBuilder msg;
+    auto resp = msg.initRoot<Response>();
+    setTelemetry(resp, tel);
+    resp.getResult().setAffected(affected);
+    return encodeResponse(msg, out, out_len);
+}
+
+extern "C" int32_t transport_encode_size(uint8_t** out, size_t* out_len, TelemetryC tel, uint64_t size) {
+    capnp::MallocMessageBuilder msg;
+    auto resp = msg.initRoot<Response>();
+    setTelemetry(resp, tel);
+    resp.getResult().setSize(size);
+    return encodeResponse(msg, out, out_len);
+}
+
+extern "C" int32_t transport_encode_found(uint8_t** out, size_t* out_len, TelemetryC tel,
+                                           int32_t found, const uint8_t* data, size_t data_len) {
+    capnp::MallocMessageBuilder msg;
+    auto resp = msg.initRoot<Response>();
+    setTelemetry(resp, tel);
+    auto f = resp.getResult().initFound();
+    f.setFound(found != 0);
+    if (found && data && data_len > 0)
+        f.setData(kj::arrayPtr(reinterpret_cast<const kj::byte*>(data), data_len));
+    return encodeResponse(msg, out, out_len);
+}
+
+extern "C" int32_t transport_encode_keys(uint8_t** out, size_t* out_len, TelemetryC tel,
+                                          const char** keys, uint32_t key_count) {
+    capnp::MallocMessageBuilder msg;
+    auto resp  = msg.initRoot<Response>();
+    setTelemetry(resp, tel);
+    auto kList = resp.getResult().initKeys(key_count);
+    for (uint32_t i = 0; i < key_count; i++) kList.set(i, keys[i] ? keys[i] : "");
+    return encodeResponse(msg, out, out_len);
+}
+
+extern "C" int32_t transport_encode_data(uint8_t** out, size_t* out_len, TelemetryC tel,
+                                          const uint8_t* data, size_t data_len) {
+    capnp::MallocMessageBuilder msg;
+    auto resp = msg.initRoot<Response>();
+    setTelemetry(resp, tel);
+    resp.getResult().setData(kj::arrayPtr(reinterpret_cast<const kj::byte*>(data), data_len));
+    return encodeResponse(msg, out, out_len);
+}
+
+extern "C" int32_t transport_encode_manifest(uint8_t** out, size_t* out_len, TelemetryC tel,
+                                              const char* name, uint8_t store_type, uint32_t version,
+                                              const char** migrations, uint32_t mig_count) {
+    capnp::MallocMessageBuilder msg;
+    auto resp = msg.initRoot<Response>();
+    setTelemetry(resp, tel);
+    auto m = resp.getResult().initManifest();
+    m.setName(name ? name : "");
+    m.setStoreType(static_cast<StoreType>(store_type));
+    m.setVersion(version);
+    auto migs = m.initMigrations(mig_count);
+    for (uint32_t i = 0; i < mig_count; i++) migs.set(i, migrations[i] ? migrations[i] : "");
+    return encodeResponse(msg, out, out_len);
+}

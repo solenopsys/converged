@@ -101,6 +101,65 @@ const char* transport_resp_manifest_migration_at(TransportResponse* resp, uint32
 /* Free a buffer returned by this library */
 void transport_free_buf(uint8_t* buf, size_t len);
 
+/* ── Server-side: decode incoming request ──────────────────────────────────── */
+
+typedef struct TransportRequestReader TransportRequestReader;
+
+typedef enum {
+    REQ_PING        = 0,
+    REQ_SHUTDOWN    = 1,
+    REQ_OPEN        = 2,
+    REQ_CLOSE       = 3,
+    REQ_EXEC_SQL    = 4,
+    REQ_QUERY_SQL   = 5,
+    REQ_SIZE        = 6,
+    REQ_MANIFEST    = 7,
+    REQ_MIGRATE     = 8,
+    REQ_ARCHIVE     = 9,
+    REQ_KV_PUT      = 10,
+    REQ_KV_GET      = 11,
+    REQ_KV_DELETE   = 12,
+    REQ_KV_LIST     = 13,
+    REQ_FILE_PUT    = 14,
+    REQ_FILE_GET    = 15,
+    REQ_FILE_DELETE = 16,
+    REQ_FILE_LIST   = 17,
+    REQ_VEC_SEARCH  = 18,
+} RequestCmd;
+
+TransportRequestReader* transport_req_reader_decode(const uint8_t* buf, size_t len);
+void        transport_req_reader_free(TransportRequestReader* r);
+RequestCmd  transport_req_reader_cmd(TransportRequestReader* r);
+const char* transport_req_reader_ms(TransportRequestReader* r);
+const char* transport_req_reader_store(TransportRequestReader* r);
+StoreTypeC  transport_req_reader_store_type(TransportRequestReader* r);
+const char* transport_req_reader_sql(TransportRequestReader* r);
+const char* transport_req_reader_migration_id(TransportRequestReader* r);
+const char* transport_req_reader_output_path(TransportRequestReader* r);
+const char* transport_req_reader_key(TransportRequestReader* r);
+const uint8_t* transport_req_reader_value_ptr(TransportRequestReader* r);
+size_t      transport_req_reader_value_len(TransportRequestReader* r);
+const char* transport_req_reader_prefix(TransportRequestReader* r);
+
+/* ── Server-side: encode outgoing response ─────────────────────────────────── */
+
+typedef struct { uint64_t dur_us; uint32_t op_count; } TelemetryC;
+
+int32_t transport_encode_ok(uint8_t** out, size_t* out_len, TelemetryC tel);
+int32_t transport_encode_error(uint8_t** out, size_t* out_len, const char* error);
+int32_t transport_encode_affected(uint8_t** out, size_t* out_len, TelemetryC tel, int64_t affected);
+int32_t transport_encode_size(uint8_t** out, size_t* out_len, TelemetryC tel, uint64_t size);
+int32_t transport_encode_found(uint8_t** out, size_t* out_len, TelemetryC tel,
+                               int32_t found, const uint8_t* data, size_t data_len);
+int32_t transport_encode_keys(uint8_t** out, size_t* out_len, TelemetryC tel,
+                              const char** keys, uint32_t key_count);
+/* data: raw bytes payload (e.g. JSON-encoded rows for SQL queries) */
+int32_t transport_encode_data(uint8_t** out, size_t* out_len, TelemetryC tel,
+                              const uint8_t* data, size_t data_len);
+int32_t transport_encode_manifest(uint8_t** out, size_t* out_len, TelemetryC tel,
+                                  const char* name, uint8_t store_type, uint32_t version,
+                                  const char** migrations, uint32_t mig_count);
+
 #ifdef __cplusplus
 }
 #endif
