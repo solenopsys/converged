@@ -1,0 +1,3 @@
+[submodule "native/wrapers/transport/vendor/capnproto"]
+	path = native/wrapers/transport/vendor/capnproto
+	url = https://github.com/capnproto/capnproto.git
