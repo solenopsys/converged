@@ -3,7 +3,13 @@ const Build = std.Build;
 const OptimizeMode = std.builtin.OptimizeMode;
 const build_utils = @import("build_utils.zig");
 
-/// Build libmdbx as static library for given target
+const sqlite_dir = "../../../../../solenopsys/detonation/wrapers/sqlite/vendor/sqlite";
+const sqlite_src = sqlite_dir ++ "/sqlite3.c";
+
+fn supportsTransport(target: Build.ResolvedTarget) bool {
+    return target.result.os.tag == .linux and target.result.cpu.arch == .x86_64 and target.result.abi == .gnu;
+}
+
 fn buildMdbx(b: *Build, target: Build.ResolvedTarget, optimize: OptimizeMode) *Build.Step.Compile {
     const target_str = build_utils.getTargetString(target);
     const mdbx_name = build_utils.getLibName(std.heap.page_allocator, "mdbx", target_str);
@@ -68,7 +74,6 @@ fn buildMdbx(b: *Build, target: Build.ResolvedTarget, optimize: OptimizeMode) *B
     return mdbx;
 }
 
-/// Build sqlite-vec as static C object for given target
 fn addSqliteVecObj(b: *Build, target: Build.ResolvedTarget, optimize: OptimizeMode) *Build.Step.Compile {
     const vec = b.addObject(.{
         .name = "sqlite-vec",
@@ -110,17 +115,46 @@ fn addSqliteVecObj(b: *Build, target: Build.ResolvedTarget, optimize: OptimizeMo
     return vec;
 }
 
-pub fn build(b: *Build) void {
-    const target = b.standardTargetOptions(.{});
-    const optimize = b.standardOptimizeOption(.{});
+fn buildSqlite3(b: *Build, target: Build.ResolvedTarget, optimize: OptimizeMode) *Build.Step.Compile {
+    const target_str = build_utils.getTargetString(target);
+    const sqlite_name = build_utils.getLibName(std.heap.page_allocator, "sqlite3", target_str);
 
+    const sqlite = b.addLibrary(.{
+        .name = sqlite_name,
+        .linkage = .static,
+        .root_module = b.createModule(.{
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+
+    sqlite.addCSourceFile(.{
+        .file = b.path(sqlite_src),
+        .flags = &[_][]const u8{
+            "-std=c99",
+            "-O2",
+            "-fPIC",
+        },
+    });
+    sqlite.addIncludePath(b.path(sqlite_dir));
+    sqlite.linkLibC();
+
+    return sqlite;
+}
+
+fn addStorageExecutable(
+    b: *Build,
+    target: Build.ResolvedTarget,
+    optimize: OptimizeMode,
+    name: []const u8,
+    with_transport: bool,
+) *Build.Step.Compile {
     const mdbx = buildMdbx(b, target, optimize);
-
     const sqlite_vec = addSqliteVecObj(b, target, optimize);
+    const sqlite3 = buildSqlite3(b, target, optimize);
 
-    // Main executable — storage engine process
     const exe = b.addExecutable(.{
-        .name = "storage",
+        .name = name,
         .root_module = b.createModule(.{
             .root_source_file = b.path("src/main.zig"),
             .target = target,
@@ -128,26 +162,28 @@ pub fn build(b: *Build) void {
         }),
     });
 
-    // Link lmdbx
-    exe.linkLibrary(mdbx);
+    const exe_options = b.addOptions();
+    exe_options.addOption(bool, "with_transport", with_transport);
+    exe.root_module.addOptions("build_options", exe_options);
 
-    // Link sqlite-vec object
+    exe.linkLibrary(mdbx);
+    exe.linkLibrary(sqlite3);
     exe.addObject(sqlite_vec);
 
-    // Stanchion C shim
     exe.addCSourceFile(.{
         .file = b.path("../wrapers/column/src/sqlite3/c/result-transient.c"),
         .flags = &[_][]const u8{"-std=c99"},
     });
     exe.root_module.addIncludePath(b.path("../wrapers/column/src/sqlite3/c"));
+    exe.root_module.addIncludePath(b.path(sqlite_dir));
 
-    // Import stanchion module from column project
     const stanchion_mod = b.createModule(.{
         .root_source_file = b.path("../wrapers/column/src/main.zig"),
         .target = target,
         .optimize = optimize,
     });
     stanchion_mod.addIncludePath(b.path("../wrapers/column/src/sqlite3/c"));
+    stanchion_mod.addIncludePath(b.path(sqlite_dir));
 
     const stanchion_options = b.addOptions();
     stanchion_options.addOption(bool, "loadable_extension", false);
@@ -155,57 +191,81 @@ pub fn build(b: *Build) void {
 
     exe.root_module.addImport("stanchion", stanchion_mod);
 
-    // Import lmdbx Zig API
     exe.root_module.addImport("lmdbx", b.createModule(.{
         .root_source_file = b.path("../wrapers/lmdbx/src/lmdbx.zig"),
         .target = target,
         .optimize = optimize,
     }));
 
-    // Import lmdbx_pure for low-level FFI constants
     exe.root_module.addImport("lmdbx_pure", b.createModule(.{
         .root_source_file = b.path("../wrapers/lmdbx/src/lmdbx_pure.zig"),
         .target = target,
         .optimize = optimize,
     }));
 
-    // SQLite3 wrapper from column project
     exe.root_module.addImport("sqlite3", b.createModule(.{
         .root_source_file = b.path("../wrapers/column/src/sqlite3.zig"),
         .target = target,
         .optimize = optimize,
     }));
 
-    // ── Cap'n Proto transport (capnp_wrap.cpp + generated wire code) ──
-    const cpp_flags = &[_][]const u8{
-        "-std=c++17",
-        "-fPIC",
-        "-fvisibility=hidden",
-        "-O2",
-        "-Wno-unused-parameter",
-    };
+    if (with_transport) {
+        const cpp_flags = &[_][]const u8{
+            "-std=c++17",
+            "-fPIC",
+            "-fvisibility=hidden",
+            "-O2",
+            "-Wno-unused-parameter",
+        };
 
-    exe.addCSourceFile(.{
-        .file = b.path("../wrapers/transport/src/generated/wire.capnp.cpp"),
-        .flags = cpp_flags,
-    });
-    exe.addCSourceFile(.{
-        .file = b.path("../wrapers/transport/src/capnp_wrap.cpp"),
-        .flags = cpp_flags,
-    });
-    exe.addIncludePath(b.path("../wrapers/transport/include"));
-    exe.addIncludePath(b.path("../wrapers/transport/src/generated"));
-    exe.addSystemIncludePath(.{ .cwd_relative = "/usr/include" });
-    exe.linkSystemLibrary("capnp");
-    exe.linkSystemLibrary("kj");
-    exe.linkLibCpp();
+        exe.addCSourceFile(.{
+            .file = b.path("../wrapers/transport/src/generated/wire.capnp.cpp"),
+            .flags = cpp_flags,
+        });
+        exe.addCSourceFile(.{
+            .file = b.path("../wrapers/transport/src/capnp_wrap.cpp"),
+            .flags = cpp_flags,
+        });
+        exe.addIncludePath(b.path("../wrapers/transport/include"));
+        exe.addIncludePath(b.path("../wrapers/transport/src/generated"));
+        exe.addSystemIncludePath(.{ .cwd_relative = "/usr/include" });
+        exe.addLibraryPath(.{ .cwd_relative = "/usr/lib" });
+        exe.linkSystemLibrary("capnp");
+        exe.linkSystemLibrary("kj");
+        exe.linkLibCpp();
+    }
 
     exe.linkLibC();
-    exe.linkSystemLibrary("sqlite3");
 
+    return exe;
+}
+
+pub fn build(b: *Build) void {
+    const target = b.standardTargetOptions(.{});
+    const optimize = b.standardOptimizeOption(.{});
+    const build_all = b.option(bool, "all", "Build for all supported targets") orelse false;
+    const transport_override = b.option(bool, "transport", "Enable Cap'n Proto transport/server support");
+
+    if (build_all) {
+        for (build_utils.supported_targets) |query| {
+            const resolved_target = b.resolveTargetQuery(query);
+            const with_transport = transport_override orelse supportsTransport(resolved_target);
+            const target_str = build_utils.getTargetString(resolved_target);
+            const exe_name = build_utils.getExeName(std.heap.page_allocator, "storage", target_str);
+            const exe = addStorageExecutable(b, resolved_target, optimize, exe_name, with_transport);
+            b.installArtifact(exe);
+        }
+        return;
+    }
+
+    const with_transport = transport_override orelse supportsTransport(target);
+    const exe = addStorageExecutable(b, target, optimize, "storage", with_transport);
     b.installArtifact(exe);
 
-    // Tests
+    const mdbx = buildMdbx(b, target, optimize);
+    const sqlite_vec = addSqliteVecObj(b, target, optimize);
+    const sqlite3 = buildSqlite3(b, target, optimize);
+
     const tests = b.addTest(.{
         .root_module = b.createModule(.{
             .root_source_file = b.path("src/main.zig"),
@@ -213,13 +273,20 @@ pub fn build(b: *Build) void {
             .optimize = optimize,
         }),
     });
+
+    const tests_options = b.addOptions();
+    tests_options.addOption(bool, "with_transport", false);
+    tests.root_module.addOptions("build_options", tests_options);
+
     tests.linkLibrary(mdbx);
+    tests.linkLibrary(sqlite3);
     tests.addObject(sqlite_vec);
     tests.addCSourceFile(.{
         .file = b.path("../wrapers/column/src/sqlite3/c/result-transient.c"),
         .flags = &[_][]const u8{"-std=c99"},
     });
     tests.root_module.addIncludePath(b.path("../wrapers/column/src/sqlite3/c"));
+    tests.root_module.addIncludePath(b.path(sqlite_dir));
     tests.root_module.addImport("lmdbx", b.createModule(.{
         .root_source_file = b.path("../wrapers/lmdbx/src/lmdbx.zig"),
         .target = target,
@@ -236,13 +303,11 @@ pub fn build(b: *Build) void {
         .optimize = optimize,
     }));
     tests.linkLibC();
-    tests.linkSystemLibrary("sqlite3");
 
     const run_tests = b.addRunArtifact(tests);
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_tests.step);
 
-    // Run step
     const run_cmd = b.addRunArtifact(exe);
     run_cmd.step.dependOn(b.getInstallStep());
     if (b.args) |args| run_cmd.addArgs(args);

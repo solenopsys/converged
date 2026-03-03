@@ -1,12 +1,12 @@
-const std     = @import("std");
-const cmds    = @import("commands.zig");
-const mfst    = @import("manifest.zig");
+const std = @import("std");
+const cmds = @import("commands.zig");
+const mfst = @import("manifest.zig");
 const tel_mod = @import("telemetry.zig");
 
 const StorageCommands = cmds.StorageCommands;
-const StoreType       = mfst.StoreType;
-const Telemetry       = tel_mod.Telemetry;
-const Allocator       = std.mem.Allocator;
+const StoreType = mfst.StoreType;
+const Telemetry = tel_mod.Telemetry;
+const Allocator = std.mem.Allocator;
 
 // C API from capnp_wrap.cpp (compiled directly into the exe via build.zig)
 const c = @cImport(@cInclude("transport.h"));
@@ -110,9 +110,9 @@ fn dispatch(
     reader: ?*c.TransportRequestReader,
     shutdown: *bool,
 ) !CBytes {
-    const cmd       = c.transport_req_reader_cmd(reader);
-    const ms        = std.mem.span(c.transport_req_reader_ms(reader));
-    const store     = std.mem.span(c.transport_req_reader_store(reader));
+    const cmd = c.transport_req_reader_cmd(reader);
+    const ms = std.mem.span(c.transport_req_reader_ms(reader));
+    const store = std.mem.span(c.transport_req_reader_store(reader));
     const store_key = try std.fmt.allocPrint(allocator, "{s}/{s}", .{ ms, store });
     defer allocator.free(store_key);
 
@@ -129,7 +129,7 @@ fn dispatch(
             return encodeOk(tel);
         },
         c.REQ_OPEN => {
-            const raw      = @as(u8, @intCast(@intFromEnum(c.transport_req_reader_store_type(reader))));
+            const raw = @as(u8, @intCast(c.transport_req_reader_store_type(reader)));
             const st: StoreType = @enumFromInt(raw);
             try commands.openStore(ms, store, st);
             tel.op_count += 1;
@@ -163,10 +163,19 @@ fn dispatch(
         c.REQ_MANIFEST => {
             const m = commands.getManifest(store_key) orelse return error.StoreNotFound;
             tel.op_count += 1;
+            const mig_z = try allocator.alloc([:0]u8, m.migrations.items.len);
+            defer {
+                for (mig_z) |item| allocator.free(item);
+                allocator.free(mig_z);
+            }
             const mig_ptrs = try allocator.alloc([*:0]const u8, m.migrations.items.len);
             defer allocator.free(mig_ptrs);
-            for (m.migrations.items, 0..) |mig, i| mig_ptrs[i] = mig.ptr;
-            return encodeManifest(tel, m.name, @intFromEnum(m.store_type), m.version, mig_ptrs);
+            for (m.migrations.items, 0..) |mig, i| {
+                mig_z[i] = try allocator.dupeZ(u8, mig);
+                mig_ptrs[i] = mig_z[i].ptr;
+            }
+            const version = std.fmt.parseUnsigned(u32, m.version, 10) catch 1;
+            return encodeManifest(tel, m.name, @intFromEnum(m.store_type), version, mig_ptrs);
         },
         c.REQ_MIGRATE => {
             const mid = std.mem.span(c.transport_req_reader_migration_id(reader));
@@ -181,7 +190,7 @@ fn dispatch(
             return encodeOk(tel);
         },
         c.REQ_KV_PUT => {
-            const key   = std.mem.span(c.transport_req_reader_key(reader));
+            const key = std.mem.span(c.transport_req_reader_key(reader));
             const v_ptr = c.transport_req_reader_value_ptr(reader);
             const v_len = c.transport_req_reader_value_len(reader);
             const value = if (v_ptr) |p| p[0..v_len] else &[_]u8{};
@@ -189,9 +198,12 @@ fn dispatch(
             return encodeOk(tel);
         },
         c.REQ_KV_GET => {
-            const key  = std.mem.span(c.transport_req_reader_key(reader));
+            const key = std.mem.span(c.transport_req_reader_key(reader));
             const data = try commands.kvGet(store_key, key, &tel);
-            if (data) |d| { defer allocator.free(d); return encodeFound(tel, 1, d); }
+            if (data) |d| {
+                defer allocator.free(d);
+                return encodeFound(tel, 1, d);
+            }
             return encodeFound(tel, 0, &[_]u8{});
         },
         c.REQ_KV_DELETE => {
@@ -200,17 +212,20 @@ fn dispatch(
             return encodeFound(tel, 1, &[_]u8{});
         },
         c.REQ_FILE_PUT => {
-            const key   = std.mem.span(c.transport_req_reader_key(reader));
+            const key = std.mem.span(c.transport_req_reader_key(reader));
             const d_ptr = c.transport_req_reader_value_ptr(reader);
             const d_len = c.transport_req_reader_value_len(reader);
-            const data  = if (d_ptr) |p| p[0..d_len] else &[_]u8{};
+            const data = if (d_ptr) |p| p[0..d_len] else &[_]u8{};
             try commands.filePut(store_key, key, data, &tel);
             return encodeOk(tel);
         },
         c.REQ_FILE_GET => {
-            const key  = std.mem.span(c.transport_req_reader_key(reader));
+            const key = std.mem.span(c.transport_req_reader_key(reader));
             const data = try commands.fileGet(store_key, key, &tel);
-            if (data) |d| { defer allocator.free(d); return encodeFound(tel, 1, d); }
+            if (data) |d| {
+                defer allocator.free(d);
+                return encodeFound(tel, 1, d);
+            }
             return encodeFound(tel, 0, &[_]u8{});
         },
         c.REQ_FILE_DELETE => {
@@ -229,49 +244,56 @@ fn dispatch(
 // ── Encode helpers ────────────────────────────────────────────────────────────
 
 fn telC(tel: Telemetry) c.TelemetryC {
-    return .{ .dur_us = tel.durationUs(), .op_count = tel.op_count };
+    return .{ .dur_us = tel.durationUs(), .op_count = @as(u32, @intCast(tel.op_count)) };
 }
 
 fn encodeOk(tel: Telemetry) CBytes {
-    var p: ?[*]u8 = null; var l: usize = 0;
+    var p: ?[*]u8 = null;
+    var l: usize = 0;
     _ = c.transport_encode_ok(&p, &l, telC(tel));
     return .{ .ptr = p, .len = l };
 }
 fn encodeError(msg: []const u8) CBytes {
-    var p: ?[*]u8 = null; var l: usize = 0;
+    var p: ?[*]u8 = null;
+    var l: usize = 0;
     _ = c.transport_encode_error(&p, &l, msg.ptr);
     return .{ .ptr = p, .len = l };
 }
 fn encodeAffected(tel: Telemetry, n: i64) CBytes {
-    var p: ?[*]u8 = null; var l: usize = 0;
+    var p: ?[*]u8 = null;
+    var l: usize = 0;
     _ = c.transport_encode_affected(&p, &l, telC(tel), n);
     return .{ .ptr = p, .len = l };
 }
 fn encodeSize(tel: Telemetry, size: u64) CBytes {
-    var p: ?[*]u8 = null; var l: usize = 0;
+    var p: ?[*]u8 = null;
+    var l: usize = 0;
     _ = c.transport_encode_size(&p, &l, telC(tel), size);
     return .{ .ptr = p, .len = l };
 }
 fn encodeFound(tel: Telemetry, found: i32, data: []const u8) CBytes {
-    var p: ?[*]u8 = null; var l: usize = 0;
+    var p: ?[*]u8 = null;
+    var l: usize = 0;
     _ = c.transport_encode_found(&p, &l, telC(tel), found, data.ptr, data.len);
     return .{ .ptr = p, .len = l };
 }
 fn encodeKeys(tel: Telemetry, keys: []const [*:0]const u8) CBytes {
-    var p: ?[*]u8 = null; var l: usize = 0;
-    _ = c.transport_encode_keys(&p, &l, telC(tel), @ptrCast(keys.ptr), @intCast(keys.len));
+    var p: ?[*]u8 = null;
+    var l: usize = 0;
+    const key_ptrs: [*c][*c]const u8 = @ptrCast(@constCast(keys.ptr));
+    _ = c.transport_encode_keys(&p, &l, telC(tel), key_ptrs, @intCast(keys.len));
     return .{ .ptr = p, .len = l };
 }
 fn encodeData(tel: Telemetry, data: []const u8) CBytes {
-    var p: ?[*]u8 = null; var l: usize = 0;
+    var p: ?[*]u8 = null;
+    var l: usize = 0;
     _ = c.transport_encode_data(&p, &l, telC(tel), data.ptr, data.len);
     return .{ .ptr = p, .len = l };
 }
 fn encodeManifest(tel: Telemetry, name: []const u8, store_type: u8, version: u32, migs: [][*:0]const u8) CBytes {
-    var p: ?[*]u8 = null; var l: usize = 0;
-    _ = c.transport_encode_manifest(&p, &l, telC(tel),
-        name.ptr, store_type, version,
-        @ptrCast(migs.ptr), @intCast(migs.len));
+    var p: ?[*]u8 = null;
+    var l: usize = 0;
+    _ = c.transport_encode_manifest(&p, &l, telC(tel), name.ptr, store_type, version, @ptrCast(migs.ptr), @intCast(migs.len));
     return .{ .ptr = p, .len = l };
 }
 
@@ -328,7 +350,7 @@ fn installSignalHandlers() void {
         .flags = 0,
     };
     std.posix.sigaction(std.posix.SIG.TERM, &act, null);
-    std.posix.sigaction(std.posix.SIG.INT,  &act, null);
+    std.posix.sigaction(std.posix.SIG.INT, &act, null);
 }
 
 fn onSignal(_: i32) callconv(.c) void {
@@ -360,7 +382,8 @@ fn autoOpenStores(allocator: Allocator, commands: *StorageCommands, data_dir: []
             if (store_entry.kind != .directory) continue;
 
             const manifest_path = try std.fmt.allocPrint(
-                allocator, "{s}/{s}/{s}/manifest.json",
+                allocator,
+                "{s}/{s}/{s}/manifest.json",
                 .{ data_dir, ms_entry.name, store_entry.name },
             );
             defer allocator.free(manifest_path);
@@ -368,8 +391,7 @@ fn autoOpenStores(allocator: Allocator, commands: *StorageCommands, data_dir: []
             var manifest = mfst.Manifest.load(allocator, manifest_path) catch |err| switch (err) {
                 error.FileNotFound => continue,
                 else => {
-                    std.debug.print("storage autoload skip {s}/{s}: {s}\n",
-                        .{ ms_entry.name, store_entry.name, @errorName(err) });
+                    std.debug.print("storage autoload skip {s}/{s}: {s}\n", .{ ms_entry.name, store_entry.name, @errorName(err) });
                     continue;
                 },
             };
@@ -377,8 +399,7 @@ fn autoOpenStores(allocator: Allocator, commands: *StorageCommands, data_dir: []
             manifest.deinit();
 
             commands.openStore(ms_entry.name, store_entry.name, store_type) catch |err| {
-                std.debug.print("storage autoload failed {s}/{s}: {s}\n",
-                    .{ ms_entry.name, store_entry.name, @errorName(err) });
+                std.debug.print("storage autoload failed {s}/{s}: {s}\n", .{ ms_entry.name, store_entry.name, @errorName(err) });
                 continue;
             };
             opened += 1;

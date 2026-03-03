@@ -1,10 +1,16 @@
 const std = @import("std");
 const commands = @import("commands.zig");
 const manifest_mod = @import("manifest.zig");
-const server = @import("server.zig");
+const build_options = @import("build_options");
 const StoreType = manifest_mod.StoreType;
 const Telemetry = @import("telemetry.zig").Telemetry;
 const StorageCommands = commands.StorageCommands;
+const with_transport = build_options.with_transport;
+const server = if (with_transport) @import("server.zig") else struct {
+    pub fn start(_: std.mem.Allocator, _: []const u8, _: []const u8) !void {
+        return error.TransportDisabled;
+    }
+};
 
 fn writeStdout(data: []const u8) void {
     _ = std.posix.write(std.posix.STDOUT_FILENO, data) catch {};
@@ -59,6 +65,10 @@ pub fn main() !void {
     const cmd = args[1];
 
     if (std.mem.eql(u8, cmd, "start")) {
+        if (!with_transport) {
+            printError("start is disabled in this build (transport=false)");
+            return;
+        }
         const socket_path = try getSocketPath(allocator, args, data_dir);
         defer allocator.free(socket_path);
         try server.start(allocator, data_dir, socket_path);
@@ -167,22 +177,41 @@ fn getSocketPath(allocator: std.mem.Allocator, args: []const []const u8, data_di
 }
 
 fn printUsage() void {
-    std.debug.print(
-        \\storage - native storage engine
-        \\
-        \\usage: storage <command> [args...] [--data-dir <path>]
-        \\       storage start [--data-dir <path>] [--socket <path>]
-        \\
-        \\commands:
-        \\  start                                  (unix socket json server)
-        \\  open <ms> <store> <SQL|KEY_VALUE|COLUMN|VECTOR|FILES>
-        \\  close <ms> <store>
-        \\  exec <ms/store> <sql>
-        \\  query <ms/store> <sql>
-        \\  size <ms/store>
-        \\  manifest <ms/store>
-        \\  migrate <ms/store> <migration_id>
-        \\  archive <ms/store> <output_path>
-        \\
-    , .{});
+    if (with_transport) {
+        std.debug.print(
+            \\storage - native storage engine
+            \\
+            \\usage: storage <command> [args...] [--data-dir <path>]
+            \\       storage start [--data-dir <path>] [--socket <path>]
+            \\
+            \\commands:
+            \\  start                                  (unix socket json server)
+            \\  open <ms> <store> <SQL|KEY_VALUE|COLUMN|VECTOR|FILES>
+            \\  close <ms> <store>
+            \\  exec <ms/store> <sql>
+            \\  query <ms/store> <sql>
+            \\  size <ms/store>
+            \\  manifest <ms/store>
+            \\  migrate <ms/store> <migration_id>
+            \\  archive <ms/store> <output_path>
+            \\
+        , .{});
+    } else {
+        std.debug.print(
+            \\storage - native storage engine
+            \\
+            \\usage: storage <command> [args...] [--data-dir <path>]
+            \\
+            \\commands:
+            \\  open <ms> <store> <SQL|KEY_VALUE|COLUMN|VECTOR|FILES>
+            \\  close <ms> <store>
+            \\  exec <ms/store> <sql>
+            \\  query <ms/store> <sql>
+            \\  size <ms/store>
+            \\  manifest <ms/store>
+            \\  migrate <ms/store> <migration_id>
+            \\  archive <ms/store> <output_path>
+            \\
+        , .{});
+    }
 }
