@@ -365,21 +365,26 @@ class DynamicContainerfileBuilder {
   }
 
   private copyNativeLibs() {
-    const excludedNativeDirs = ["bun-lmdbx", "bun-stanchion", "bun-vector"];
     const nativeSources = [
       { owner: this.projectDir, path: "back/native" },
       ...(this.hasParent && this.parentDir ? [{ owner: this.parentDir, path: "back/native" }] : []),
     ].filter(({ owner, path }) => dirExists(this.ctx, owner, path));
+    const transportOverlaySources = [
+      { owner: this.projectDir, path: "native/wrapers/transport/zig-out/lib" },
+      ...(this.hasParent && this.parentDir ? [{ owner: this.parentDir, path: "native/wrapers/transport/zig-out/lib" }] : []),
+    ].filter(({ owner, path }) => dirExists(this.ctx, owner, path));
 
-    if (nativeSources.length === 0) return;
+    if (nativeSources.length === 0 && transportOverlaySources.length === 0) return;
 
     const cmds = ["mkdir -p /build/out/plugins/bin-libs"];
     for (const { owner, path } of nativeSources) {
-      const excludes = excludedNativeDirs
-        .map((dir) => `-not -path '*/${dir}/*'`)
-        .join(" ");
       cmds.push(
-        `find ${this.projectPath(owner, path)} -type f -path '*/bin-libs/*-x86_64-musl.so' ${excludes} -exec cp {} /build/out/plugins/bin-libs/ \\;`,
+        `find ${this.projectPath(owner, path)} -type f -path '*/bin-libs/*-x86_64-*.so' -exec cp {} /build/out/plugins/bin-libs/ \\;`,
+      );
+    }
+    for (const { owner, path } of transportOverlaySources) {
+      cmds.push(
+        `find ${this.projectPath(owner, path)} -type f -name 'libtransport-*-*.so' -exec cp -f {} /build/out/plugins/bin-libs/ \\;`,
       );
     }
     this.emit("");
@@ -448,7 +453,7 @@ class DynamicContainerfileBuilder {
     }
 
     this.emit("");
-    this.emit("RUN mkdir -p /app/data");
+    this.emit("RUN mkdir -p /app/data /app/plugins && chown -R 1000:1000 /app");
 
     this.emit("");
     this.emit("ENV NODE_ENV=production");
@@ -461,7 +466,12 @@ class DynamicContainerfileBuilder {
     if (this.role === "ms") {
       this.emit("ENV BIN_LIBS_PATH=/app/plugins/bin-libs");
       this.emit("ENV LD_LIBRARY_PATH=/app/lib:/usr/lib");
+      this.emit("ENV LIBC_VARIANT=musl");
     }
+
+    this.emit("");
+    this.emit("RUN adduser -D -u 1000 default || true");
+    this.emit("USER 1000");
 
     this.emit(`EXPOSE ${this.runtimePort()}`);
     this.emit('CMD ["bun", "./server.js"]');
@@ -543,7 +553,9 @@ class StorageContainerfileBuilder {
     this.emit("WORKDIR /app");
     this.emit("");
     this.emit(`COPY ${this.toContextPath(binaryAbsPath)} ${STORAGE_BIN_PATH}`);
-    this.emit(`RUN chmod +x ${STORAGE_BIN_PATH} && mkdir -p /app/data /app/socket`);
+    this.emit(`RUN chmod +x ${STORAGE_BIN_PATH} && mkdir -p /app/data /app/socket && chown -R 1000:1000 /app`);
+    this.emit("RUN adduser -D -u 1000 default || true");
+    this.emit("USER 1000");
     this.emit("");
     this.emit('CMD ["/app/storage", "start", "--data-dir", "/app/data", "--socket", "/app/socket/storage.sock"]');
   }

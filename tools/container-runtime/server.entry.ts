@@ -80,7 +80,12 @@ if (runtimeMap.workflows?.plugin) {
     ? runtimeMap.workflows.plugin
     : resolve(appRoot, runtimeMap.workflows.plugin);
   if (existsSync(wfPath)) {
-    workflows = await import(pathToFileURL(wfPath).href);
+    try {
+      workflows = await import(pathToFileURL(wfPath).href);
+    } catch (error) {
+      console.error("[runtime] workflows load failed:", wfPath, error);
+      workflows = {};
+    }
   }
 }
 

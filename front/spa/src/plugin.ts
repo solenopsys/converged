@@ -191,14 +191,25 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
 
   // --- Vendor ---
 
-  const vendorTmpDir = resolve(import.meta.dir, "..", ".vendor-src");
-  mkdirSync(vendorTmpDir, { recursive: true });
+  const vendorTmpDir =
+    process.env.SPA_VENDOR_TMP_DIR ?? resolve(import.meta.dir, "..", ".vendor-src");
+  let vendorTmpDirReady = false;
+
+  function ensureVendorTmpDir(): void {
+    if (isProd || vendorTmpDirReady) return;
+    mkdirSync(vendorTmpDir, { recursive: true });
+    vendorTmpDirReady = true;
+  }
 
   async function buildVendorModule(fileName: string): Promise<Blob> {
+    if (isProd) {
+      throw new Error("Dynamic vendor build is disabled in production");
+    }
     if (vendorBundles.has(fileName)) return vendorBundles.get(fileName)!;
     const specifier = vendorEntries[fileName];
     if (!specifier) throw new Error(`Unknown vendor module: ${fileName}`);
 
+    ensureVendorTmpDir();
     const wrapper = buildVendorWrapper(specifier, specifier);
     const wrapperPath = resolve(vendorTmpDir, `${fileName.replace(/[^a-zA-Z0-9]/g, "_")}.ts`);
     await Bun.write(wrapperPath, wrapper);

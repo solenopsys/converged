@@ -1,7 +1,8 @@
 import type { INode } from "../dag-api";
 
 import { AiRequest } from "./ai-request";
-import { HtmlCleanNode } from "./html-cleaner";
+// Temporarily disabled: pulls jsdom into workflows bundle and breaks ms runtime on alpine.
+// import { HtmlCleanNode } from "./html-cleaner";
 import HttpNode from "./http";
 import MarkNode from "./mark";
 import { MergeNode } from "./merge";
@@ -28,10 +29,10 @@ export const NODE_DEFINITIONS: Record<string, NodeDefinition> = {
       { name: "decodeJson", type: "boolean" },
     ],
   },
-  "html-cleaner": {
-    ctor: HtmlCleanNode,
-    params: [{ name: "name", type: "string" }],
-  },
+  // "html-cleaner": {
+  //   ctor: HtmlCleanNode,
+  //   params: [{ name: "name", type: "string" }],
+  // },
   http: {
     ctor: HttpNode,
     params: [
