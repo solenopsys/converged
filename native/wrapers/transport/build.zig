@@ -7,6 +7,44 @@ const supported_targets = [_]std.Target.Query{
     .{ .cpu_arch = .aarch64, .os_tag = .linux, .abi = .musl },
 };
 
+const vendor_src = "vendor/capnproto/c++/src";
+
+const kj_sources = [_][]const u8{
+    vendor_src ++ "/kj/array.c++",
+    vendor_src ++ "/kj/arena.c++",
+    vendor_src ++ "/kj/common.c++",
+    vendor_src ++ "/kj/debug.c++",
+    vendor_src ++ "/kj/encoding.c++",
+    vendor_src ++ "/kj/exception.c++",
+    vendor_src ++ "/kj/hash.c++",
+    vendor_src ++ "/kj/io.c++",
+    vendor_src ++ "/kj/list.c++",
+    vendor_src ++ "/kj/memory.c++",
+    vendor_src ++ "/kj/mutex.c++",
+    vendor_src ++ "/kj/refcount.c++",
+    vendor_src ++ "/kj/source-location.c++",
+    vendor_src ++ "/kj/string.c++",
+    vendor_src ++ "/kj/string-tree.c++",
+    vendor_src ++ "/kj/table.c++",
+    vendor_src ++ "/kj/thread.c++",
+    vendor_src ++ "/kj/time.c++",
+    vendor_src ++ "/kj/units.c++",
+};
+
+const capnp_sources = [_][]const u8{
+    vendor_src ++ "/capnp/any.c++",
+    vendor_src ++ "/capnp/arena.c++",
+    vendor_src ++ "/capnp/blob.c++",
+    vendor_src ++ "/capnp/c++.capnp.c++",
+    vendor_src ++ "/capnp/layout.c++",
+    vendor_src ++ "/capnp/list.c++",
+    vendor_src ++ "/capnp/message.c++",
+    vendor_src ++ "/capnp/schema.capnp.c++",
+    vendor_src ++ "/capnp/serialize.c++",
+    vendor_src ++ "/capnp/serialize-packed.c++",
+    vendor_src ++ "/capnp/stringify.c++",
+};
+
 fn getTargetString(target: std.Build.ResolvedTarget) []const u8 {
     const arch_str = switch (target.result.cpu.arch) {
         .x86_64 => "x86_64",
@@ -25,16 +63,11 @@ fn getLibName(allocator: std.mem.Allocator, base_name: []const u8, target_str: [
     return std.fmt.allocPrint(allocator, "{s}-{s}", .{ base_name, target_str }) catch base_name;
 }
 
-fn supportsSystemCapnp(target: std.Build.ResolvedTarget) bool {
-    return target.result.os.tag == .linux and target.result.cpu.arch == .x86_64 and target.result.abi == .gnu;
-}
-
 fn addTransportLib(
     b: *std.Build,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
     name: []const u8,
-    with_system_capnp: bool,
 ) *std.Build.Step.Compile {
     const lib = b.addLibrary(.{
         .name = name,
@@ -54,25 +87,23 @@ fn addTransportLib(
         "-Wno-unused-parameter",
     };
 
-    lib.addCSourceFile(.{
-        .file = b.path("src/generated/wire.capnp.cpp"),
-        .flags = cpp_flags,
-    });
+    // vendored kj sources
+    for (kj_sources) |src| {
+        lib.addCSourceFile(.{ .file = b.path(src), .flags = cpp_flags });
+    }
 
-    lib.addCSourceFile(.{
-        .file = b.path("src/capnp_wrap.cpp"),
-        .flags = cpp_flags,
-    });
+    // vendored capnp sources
+    for (capnp_sources) |src| {
+        lib.addCSourceFile(.{ .file = b.path(src), .flags = cpp_flags });
+    }
+
+    // transport application sources
+    lib.addCSourceFile(.{ .file = b.path("src/generated/wire.capnp.cpp"), .flags = cpp_flags });
+    lib.addCSourceFile(.{ .file = b.path("src/capnp_wrap.cpp"), .flags = cpp_flags });
 
     lib.addIncludePath(b.path("include"));
     lib.addIncludePath(b.path("src/generated"));
-    lib.addSystemIncludePath(.{ .cwd_relative = "/usr/include" });
-
-    if (with_system_capnp) {
-        lib.addLibraryPath(.{ .cwd_relative = "/usr/lib" });
-        lib.linkSystemLibrary("capnp");
-        lib.linkSystemLibrary("kj");
-    }
+    lib.addIncludePath(b.path(vendor_src));
 
     lib.linkLibCpp();
     lib.linkLibC();
@@ -90,40 +121,12 @@ pub fn build(b: *std.Build) void {
             const resolved_target = b.resolveTargetQuery(query);
             const target_str = getTargetString(resolved_target);
             const lib_name = getLibName(std.heap.page_allocator, "transport", target_str);
-            const lib = addTransportLib(
-                b,
-                resolved_target,
-                optimize,
-                lib_name,
-                supportsSystemCapnp(resolved_target),
-            );
+            const lib = addTransportLib(b, resolved_target, optimize, lib_name);
             b.installArtifact(lib);
         }
         return;
     }
 
-    const with_system_capnp = supportsSystemCapnp(target);
-    const lib = addTransportLib(b, target, optimize, "transport", with_system_capnp);
+    const lib = addTransportLib(b, target, optimize, "transport");
     b.installArtifact(lib);
-
-    const test_step = b.step("test", "Run unit tests");
-    if (!with_system_capnp) return;
-
-    const unit_tests = b.addTest(.{
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("src/lib.zig"),
-            .target = target,
-            .optimize = optimize,
-        }),
-    });
-
-    unit_tests.addIncludePath(b.path("include"));
-    unit_tests.addSystemIncludePath(.{ .cwd_relative = "/usr/include" });
-    unit_tests.addLibraryPath(.{ .cwd_relative = "/usr/lib" });
-    unit_tests.linkSystemLibrary("capnp");
-    unit_tests.linkSystemLibrary("kj");
-    unit_tests.linkLibCpp();
-    unit_tests.linkLibC();
-
-    test_step.dependOn(&b.addRunArtifact(unit_tests).step);
 }

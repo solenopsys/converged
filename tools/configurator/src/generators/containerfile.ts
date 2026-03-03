@@ -471,12 +471,33 @@ class DynamicContainerfileBuilder {
 class StorageContainerfileBuilder {
   private lines: string[] = [];
   private readonly buildContextRoot: string;
-  private readonly storageBinaryPath = "native/storage/zig-out/bin/storage";
+  private readonly storageBinaryCandidates = [
+    "native/storage/zig-out/bin/storage",
+    "native/storage/zig-out/bin/storage-x86_64-musl",
+    "native/storage/zig-out/bin/storage-x86_64-gnu",
+    "native/storage/zig-out/bin/storage-aarch64-musl",
+    "native/storage/zig-out/bin/storage-aarch64-gnu",
+  ];
+  private readonly storageBinaryPath: string;
   private readonly storageBinaryOwner: string;
 
   constructor(private ctx: GeneratorContext) {
     this.buildContextRoot = resolve(ctx.projectDir, "../../..");
-    this.storageBinaryOwner = resolveOwnerDir(ctx, this.storageBinaryPath);
+    let selectedPath = this.storageBinaryCandidates[0]!;
+    let selectedOwner = resolveOwnerDir(ctx, selectedPath);
+
+    for (const candidate of this.storageBinaryCandidates) {
+      const owner = resolveOwnerDir(ctx, candidate);
+      const ownerAbsDir = resolveOwnerAbsDir(ctx, owner);
+      if (ownerAbsDir && existsSync(resolve(ownerAbsDir, candidate))) {
+        selectedPath = candidate;
+        selectedOwner = owner;
+        break;
+      }
+    }
+
+    this.storageBinaryPath = selectedPath;
+    this.storageBinaryOwner = selectedOwner;
   }
 
   build(): string {
@@ -499,7 +520,8 @@ class StorageContainerfileBuilder {
     const absPath = resolve(ownerAbsDir, this.storageBinaryPath);
     if (!existsSync(absPath)) {
       throw new Error(
-        `Storage binary not found: ${this.storageBinaryPath}. Run "zig build -Doptimize=ReleaseFast" in native/storage first.`,
+        `Storage binary not found. Tried: ${this.storageBinaryCandidates.join(", ")}. ` +
+        `Run "zig build -Doptimize=ReleaseFast" or "zig build -Dall -Doptimize=ReleaseFast" in native/storage first.`,
       );
     }
     return absPath;
@@ -517,7 +539,7 @@ class StorageContainerfileBuilder {
   private runtimeStage() {
     const binaryAbsPath = this.storageBinaryAbsPath();
 
-    this.emit("FROM debian:bookworm-slim AS runtime");
+    this.emit("FROM alpine:3.20 AS runtime");
     this.emit("WORKDIR /app");
     this.emit("");
     this.emit(`COPY ${this.toContextPath(binaryAbsPath)} ${STORAGE_BIN_PATH}`);

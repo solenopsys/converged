@@ -7,8 +7,46 @@ const sqlite_dir = "../../../../../solenopsys/detonation/wrapers/sqlite/vendor/s
 const sqlite_src = sqlite_dir ++ "/sqlite3.c";
 
 fn supportsTransport(target: Build.ResolvedTarget) bool {
-    return target.result.os.tag == .linux and target.result.cpu.arch == .x86_64 and target.result.abi == .gnu;
+    return target.result.os.tag == .linux;
 }
+
+const transport_vendor_src = "../wrapers/transport/vendor/capnproto/c++/src";
+
+const kj_sources = [_][]const u8{
+    transport_vendor_src ++ "/kj/array.c++",
+    transport_vendor_src ++ "/kj/arena.c++",
+    transport_vendor_src ++ "/kj/common.c++",
+    transport_vendor_src ++ "/kj/debug.c++",
+    transport_vendor_src ++ "/kj/encoding.c++",
+    transport_vendor_src ++ "/kj/exception.c++",
+    transport_vendor_src ++ "/kj/hash.c++",
+    transport_vendor_src ++ "/kj/io.c++",
+    transport_vendor_src ++ "/kj/list.c++",
+    transport_vendor_src ++ "/kj/memory.c++",
+    transport_vendor_src ++ "/kj/mutex.c++",
+    transport_vendor_src ++ "/kj/refcount.c++",
+    transport_vendor_src ++ "/kj/source-location.c++",
+    transport_vendor_src ++ "/kj/string.c++",
+    transport_vendor_src ++ "/kj/string-tree.c++",
+    transport_vendor_src ++ "/kj/table.c++",
+    transport_vendor_src ++ "/kj/thread.c++",
+    transport_vendor_src ++ "/kj/time.c++",
+    transport_vendor_src ++ "/kj/units.c++",
+};
+
+const capnp_sources = [_][]const u8{
+    transport_vendor_src ++ "/capnp/any.c++",
+    transport_vendor_src ++ "/capnp/arena.c++",
+    transport_vendor_src ++ "/capnp/blob.c++",
+    transport_vendor_src ++ "/capnp/c++.capnp.c++",
+    transport_vendor_src ++ "/capnp/layout.c++",
+    transport_vendor_src ++ "/capnp/list.c++",
+    transport_vendor_src ++ "/capnp/message.c++",
+    transport_vendor_src ++ "/capnp/schema.capnp.c++",
+    transport_vendor_src ++ "/capnp/serialize.c++",
+    transport_vendor_src ++ "/capnp/serialize-packed.c++",
+    transport_vendor_src ++ "/capnp/stringify.c++",
+};
 
 fn buildMdbx(b: *Build, target: Build.ResolvedTarget, optimize: OptimizeMode) *Build.Step.Compile {
     const target_str = build_utils.getTargetString(target);
@@ -218,6 +256,13 @@ fn addStorageExecutable(
             "-Wno-unused-parameter",
         };
 
+        for (kj_sources) |src| {
+            exe.addCSourceFile(.{ .file = b.path(src), .flags = cpp_flags });
+        }
+        for (capnp_sources) |src| {
+            exe.addCSourceFile(.{ .file = b.path(src), .flags = cpp_flags });
+        }
+
         exe.addCSourceFile(.{
             .file = b.path("../wrapers/transport/src/generated/wire.capnp.cpp"),
             .flags = cpp_flags,
@@ -228,10 +273,7 @@ fn addStorageExecutable(
         });
         exe.addIncludePath(b.path("../wrapers/transport/include"));
         exe.addIncludePath(b.path("../wrapers/transport/src/generated"));
-        exe.addSystemIncludePath(.{ .cwd_relative = "/usr/include" });
-        exe.addLibraryPath(.{ .cwd_relative = "/usr/lib" });
-        exe.linkSystemLibrary("capnp");
-        exe.linkSystemLibrary("kj");
+        exe.addIncludePath(b.path(transport_vendor_src));
         exe.linkLibCpp();
     }
 
