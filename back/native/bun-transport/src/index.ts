@@ -62,9 +62,12 @@ const SYMBOLS = {
 } as const;
 
 function getLibPath(): string {
+  const arch = process.arch === "x64" ? "x86_64" : process.arch === "arm64" ? "aarch64" : process.arch;
+  const libc = process.env.LIBC_VARIANT || "gnu";
+  const filename = `libtransport-${arch}-${libc}.so`;
   const binLibsDir = process.env.BIN_LIBS_PATH;
-  if (binLibsDir && binLibsDir.length > 0) return join(binLibsDir, "libtransport.so");
-  return `${import.meta.dir}/../../bin-libs/libtransport.so`;
+  if (binLibsDir && binLibsDir.length > 0) return join(binLibsDir, filename);
+  return `${import.meta.dir}/../bin-libs/${filename}`;
 }
 
 const lib = dlopen(getLibPath(), SYMBOLS);
@@ -218,6 +221,13 @@ export class StorageConnection {
     return resp.keys();
   }
 
+  /** Returns all open store keys in "ms/store" format. */
+  listStores(): string[] {
+    const req  = s.transport_req_file_list(cstr(""), cstr("")) as bigint;
+    const resp = this.sendRecv(req);
+    return resp.keys();
+  }
+
   // ── Misc ─────────────────────────────────────────────────────────────────
 
   ping(): void {
@@ -275,13 +285,13 @@ class Response {
       const row: Row = {};
       const cols = s.transport_resp_col_count(this.handle, r) as number;
       for (let c = 0; c < cols; c++) {
-        const colName = new CString(s.transport_resp_col_name(this.handle, r, c) as any).toString();
+        const colName = readCStr(s.transport_resp_col_name(this.handle, r, c));
         const vtype   = s.transport_resp_value_type(this.handle, r, c) as number;
         switch (vtype) {
           case 0:  row[colName] = null; break;
           case 1:  row[colName] = s.transport_resp_value_int(this.handle, r, c)  as bigint; break;
           case 2:  row[colName] = s.transport_resp_value_real(this.handle, r, c) as number; break;
-          case 3:  row[colName] = new CString(s.transport_resp_value_text(this.handle, r, c) as any).toString(); break;
+          case 3:  row[colName] = readCStr(s.transport_resp_value_text(this.handle, r, c)); break;
           default: row[colName] = null;
         }
       }
@@ -294,7 +304,7 @@ class Response {
   keys(): string[] {
     const count  = s.transport_resp_key_count(this.handle) as number;
     const result = Array.from({ length: count }, (_, i) =>
-      new CString(s.transport_resp_key_at(this.handle, i) as any).toString()
+      readCStr(s.transport_resp_key_at(this.handle, i))
     );
     this.free();
     return result;
@@ -323,12 +333,12 @@ class Response {
   }
 
   manifest(): ManifestInfo {
-    const name    = new CString(s.transport_resp_manifest_name(this.handle) as any).toString();
+    const name    = readCStr(s.transport_resp_manifest_name(this.handle));
     const type_id = s.transport_resp_manifest_type(this.handle) as number;
     const version = s.transport_resp_manifest_version(this.handle) as number;
     const migCount = s.transport_resp_manifest_migration_count(this.handle) as number;
     const migrations = Array.from({ length: migCount }, (_, i) =>
-      new CString(s.transport_resp_manifest_migration_at(this.handle, i) as any).toString()
+      readCStr(s.transport_resp_manifest_migration_at(this.handle, i))
     );
     const typeKeys = Object.keys(StoreType) as StoreTypeKey[];
     this.free();
@@ -339,3 +349,16 @@ class Response {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function cstr(s: string): Buffer { return Buffer.from(s + "\0"); }
+
+/** Read a C string from an FFI return value.
+ *  Bun may return: a JS string, a CString object, a Buffer (raw bytes), or a number/bigint pointer. */
+function readCStr(raw: any): string {
+  if (raw === null || raw === undefined) return "";
+  if (typeof raw === "string") return raw;
+  if (Buffer.isBuffer(raw)) {
+    const end = (raw as Buffer).indexOf(0);
+    return (raw as Buffer).toString("utf8", 0, end >= 0 ? end : (raw as Buffer).length);
+  }
+  if (typeof raw === "object") return String(raw); // CString object — already decoded by Bun
+  try { return new CString(raw).toString(); } catch { return ""; }
+}

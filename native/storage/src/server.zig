@@ -15,6 +15,7 @@ const c = @cImport(@cInclude("transport.h"));
 const max_msg: u32 = 64 * 1024 * 1024;
 
 var shutdown_requested = std.atomic.Value(bool).init(false);
+var g_mutex: std.Thread.Mutex = .{};
 
 pub fn start(allocator: Allocator, data_dir: []const u8, socket_path: []const u8) !void {
     try std.fs.cwd().makePath(data_dir);
@@ -50,13 +51,7 @@ pub fn start(allocator: Allocator, data_dir: []const u8, socket_path: []const u8
 
     std.debug.print("storage server listening on {s}\n", .{socket_path});
 
-    var should_shutdown = false;
-    while (!should_shutdown) {
-        if (shutdown_requested.load(.seq_cst)) {
-            std.debug.print("storage signal received, shutting down\n", .{});
-            break;
-        }
-
+    while (!shutdown_requested.load(.seq_cst)) {
         const client_fd = std.posix.accept(server_fd, null, null, 0) catch |err| switch (err) {
             error.WouldBlock => {
                 std.Thread.sleep(100 * std.time.ns_per_ms);
@@ -64,40 +59,57 @@ pub fn start(allocator: Allocator, data_dir: []const u8, socket_path: []const u8
             },
             else => return err,
         };
-        defer std.posix.close(client_fd);
-
-        should_shutdown = handleClient(allocator, &commands, client_fd) catch |err| blk: {
-            std.debug.print("storage client error: {s}\n", .{@errorName(err)});
-            break :blk false;
+        const thread = std.Thread.spawn(.{}, handleClientThread, .{ allocator, &commands, client_fd }) catch |err| {
+            std.debug.print("storage thread error: {s}\n", .{@errorName(err)});
+            std.posix.close(client_fd);
+            continue;
         };
+        thread.detach();
     }
+    std.debug.print("storage shutting down\n", .{});
 }
 
 // ── Client handler ────────────────────────────────────────────────────────────
 
+fn handleClientThread(allocator: Allocator, commands: *StorageCommands, fd: std.posix.fd_t) void {
+    defer std.posix.close(fd);
+    const did_shutdown = handleClient(allocator, commands, fd) catch |err| blk: {
+        std.debug.print("storage client error: {s}\n", .{@errorName(err)});
+        break :blk false;
+    };
+    if (did_shutdown) shutdown_requested.store(true, .seq_cst);
+}
+
 fn handleClient(allocator: Allocator, commands: *StorageCommands, fd: std.posix.fd_t) !bool {
-    const req_bytes = recvMessage(fd, allocator) catch |err| {
-        if (err == error.EndOfStream) return false;
-        return err;
-    };
-    defer allocator.free(req_bytes);
+    while (true) {
+        const req_bytes = recvMessage(fd, allocator) catch |err| {
+            if (err == error.EndOfStream) return false;
+            return err;
+        };
+        defer allocator.free(req_bytes);
 
-    const reader = c.transport_req_reader_decode(req_bytes.ptr, req_bytes.len);
-    if (reader == null) {
-        sendErrorMsg(fd, "invalid capnp message");
-        return false;
+        const reader = c.transport_req_reader_decode(req_bytes.ptr, req_bytes.len);
+        if (reader == null) {
+            sendErrorMsg(fd, "invalid capnp message");
+            return false;
+        }
+        defer c.transport_req_reader_free(reader);
+
+        var shutdown = false;
+        const resp: CBytes = blk: {
+            g_mutex.lock();
+            defer g_mutex.unlock();
+            const r = dispatch(allocator, commands, reader, &shutdown) catch |err| {
+                std.debug.print("storage dispatch error: {s}\n", .{@errorName(err)});
+                break :blk encodeError(@errorName(err));
+            };
+            break :blk r;
+        };
+        defer if (resp.ptr) |p| c.transport_free_buf(p, resp.len);
+
+        if (resp.ptr) |p| try sendMessage(fd, p[0..resp.len]);
+        if (shutdown) return true;
     }
-    defer c.transport_req_reader_free(reader);
-
-    var shutdown = false;
-    const resp = dispatch(allocator, commands, reader, &shutdown) catch |err| blk: {
-        std.debug.print("storage dispatch error: {s}\n", .{@errorName(err)});
-        break :blk encodeError(@errorName(err));
-    };
-    defer if (resp.ptr) |p| c.transport_free_buf(p, resp.len);
-
-    if (resp.ptr) |p| try sendMessage(fd, p[0..resp.len]);
-    return shutdown;
 }
 
 // ── Dispatch ──────────────────────────────────────────────────────────────────
@@ -233,8 +245,30 @@ fn dispatch(
             _ = try commands.fileDelete(store_key, key, &tel);
             return encodeFound(tel, 1, &[_]u8{});
         },
-        c.REQ_KV_LIST, c.REQ_FILE_LIST => {
+        c.REQ_KV_LIST => {
             tel.op_count += 1;
+            return encodeKeys(tel, &[_][*:0]const u8{});
+        },
+        c.REQ_FILE_LIST => {
+            tel.op_count += 1;
+            // Convention: ms="" && store="" → list all open store keys ("ms/store")
+            if (ms.len == 0 and store.len == 0) {
+                const count = commands.stores.count();
+                const key_z_arr = try allocator.alloc([:0]u8, count);
+                defer {
+                    for (key_z_arr) |k| allocator.free(k);
+                    allocator.free(key_z_arr);
+                }
+                const key_ptrs = try allocator.alloc([*:0]const u8, count);
+                defer allocator.free(key_ptrs);
+                var i: usize = 0;
+                var it = commands.stores.keyIterator();
+                while (it.next()) |key| : (i += 1) {
+                    key_z_arr[i] = try allocator.dupeZ(u8, key.*);
+                    key_ptrs[i] = key_z_arr[i].ptr;
+                }
+                return encodeKeys(tel, key_ptrs[0..i]);
+            }
             return encodeKeys(tel, &[_][*:0]const u8{});
         },
         else => return error.UnknownCommand,

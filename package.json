@@ -26,6 +26,7 @@
     "typescript": "latest"
   },
   "dependencies": {
+    "bun-transport": "workspace:*",
     "@elysiajs/cors": "^1.4.1",
     "@elysiajs/static": "latest",
     "@textea/json-viewer": "^4.0.1",
@@ -49,6 +50,7 @@
     "format": "biome format --write .",
     "lint": "biome lint .",
     "check": "biome check .",
-    "gen": "bun run --cwd tools/integration/nrpc src/gen-all.ts ../types ../generated"
+    "gen": "bun run --cwd tools/integration/nrpc src/gen-all.ts ../types ../generated",
+    "store-check": "BOOTSTRAP_ENV_DIR=../../confs bun run --env-file=../../confs/converged-portal.env tools/store-check.ts"
   }
 }

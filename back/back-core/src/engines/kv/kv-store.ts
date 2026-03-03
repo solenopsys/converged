@@ -9,7 +9,7 @@ import { Migration, Migrator } from "../../migrations";
 import { MigrationStateStorage } from "../../migrations";
 
 const HEADER_JSON = Buffer.from("KVJ0");
-const HEADER_BUFFER = Buffer.from("KVB0");X
+const HEADER_BUFFER = Buffer.from("KVB0");
 const HEADER_LENGTH = HEADER_JSON.length;
 
 export interface KVStoreIntf {

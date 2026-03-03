@@ -79,7 +79,8 @@ fn addTransportLib(
         }),
     });
 
-    const cpp_flags = &[_][]const u8{
+    // vendored kj/capnp internals — keep hidden to avoid symbol pollution
+    const vendor_flags = &[_][]const u8{
         "-std=c++17",
         "-fPIC",
         "-fvisibility=hidden",
@@ -87,19 +88,27 @@ fn addTransportLib(
         "-Wno-unused-parameter",
     };
 
+    // transport API sources — default visibility so symbols appear in .so
+    const api_flags = &[_][]const u8{
+        "-std=c++17",
+        "-fPIC",
+        "-O2",
+        "-Wno-unused-parameter",
+    };
+
     // vendored kj sources
     for (kj_sources) |src| {
-        lib.addCSourceFile(.{ .file = b.path(src), .flags = cpp_flags });
+        lib.addCSourceFile(.{ .file = b.path(src), .flags = vendor_flags });
     }
 
     // vendored capnp sources
     for (capnp_sources) |src| {
-        lib.addCSourceFile(.{ .file = b.path(src), .flags = cpp_flags });
+        lib.addCSourceFile(.{ .file = b.path(src), .flags = vendor_flags });
     }
 
     // transport application sources
-    lib.addCSourceFile(.{ .file = b.path("src/generated/wire.capnp.cpp"), .flags = cpp_flags });
-    lib.addCSourceFile(.{ .file = b.path("src/capnp_wrap.cpp"), .flags = cpp_flags });
+    lib.addCSourceFile(.{ .file = b.path("src/generated/wire.capnp.cpp"), .flags = api_flags });
+    lib.addCSourceFile(.{ .file = b.path("src/capnp_wrap.cpp"), .flags = api_flags });
 
     lib.addIncludePath(b.path("include"));
     lib.addIncludePath(b.path("src/generated"));
