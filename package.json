@@ -51,6 +51,7 @@
     "lint": "biome lint .",
     "check": "biome check .",
     "gen": "bun run --cwd tools/integration/nrpc src/gen-all.ts ../types ../generated",
-    "store-check": "BOOTSTRAP_ENV_DIR=../../confs bun run --env-file=../../confs/converged-portal.env tools/store-check.ts"
+    "store-check": "BOOTSTRAP_ENV_DIR=../../confs bun run --env-file=../../confs/converged-portal.env tools/store-check.ts",
+    "test:transport": "bun tools/transport-integration.ts"
   }
 }

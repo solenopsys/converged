@@ -6,18 +6,51 @@ import {
   DeleteQueryBuilder,
 } from "kysely";
 import { Store } from "../../stores";
-import { Migration, Migrator } from "../../migrations";
+import { Migration, Migrator, MigrationStateStorage } from "../../migrations";
 import { createTransportDialect, TransportMigrationStateStorage } from "../transport/transport-driver";
+import { BunSqliteLocal } from "../sqlite/bun-sqlite-dialect";
 
 export class ColumnStore<DB = any> implements Store {
   private kysely: Kysely<DB> | null = null;
+  private localSqlite: BunSqliteLocal | null = null;
+  private mode: "transport" | "local";
+  private conn?: StorageConnection;
+  private ms?: string;
+  private storeName?: string;
+  private dataLocation?: string;
+  private migrationsState?: MigrationStateStorage;
+  private migrations: (new (store: Store) => Migration)[];
 
   constructor(
-    private conn: StorageConnection,
-    private ms: string,
-    private storeName: string,
-    private migrations: (new (store: Store) => Migration)[],
-  ) {}
+    conn: StorageConnection,
+    ms: string,
+    storeName: string,
+    migrations: (new (store: Store) => Migration)[],
+  );
+  constructor(
+    dataLocation: string,
+    migrations: (new (store: Store) => Migration)[],
+    migrationsState: MigrationStateStorage,
+  );
+  constructor(
+    connOrDataLocation: StorageConnection | string,
+    msOrMigrations: string | (new (store: Store) => Migration)[],
+    storeOrMigrationsState: string | MigrationStateStorage,
+    maybeMigrations?: (new (store: Store) => Migration)[],
+  ) {
+    if (typeof connOrDataLocation === "string") {
+      this.mode = "local";
+      this.dataLocation = connOrDataLocation;
+      this.migrations = msOrMigrations as (new (store: Store) => Migration)[];
+      this.migrationsState = storeOrMigrationsState as MigrationStateStorage;
+      return;
+    }
+    this.mode = "transport";
+    this.conn = connOrDataLocation;
+    this.ms = msOrMigrations as string;
+    this.storeName = storeOrMigrationsState as string;
+    this.migrations = maybeMigrations ?? [];
+  }
 
   public applyWhereConditions<T extends string>(
     query:
@@ -39,11 +72,32 @@ export class ColumnStore<DB = any> implements Store {
     return this.kysely;
   }
 
+  get raw() {
+    if (this.mode === "transport") {
+      return {
+        exec: (statement: string) =>
+          this.conn!.execSql(this.ms!, this.storeName!, statement),
+      };
+    }
+    if (!this.localSqlite) {
+      throw new Error("Database not initialized. Call open() first.");
+    }
+    return this.localSqlite.db;
+  }
+
   async open(): Promise<void> {
     if (this.kysely) return;
-    this.conn.open(this.ms, this.storeName, "column");
+    if (this.mode === "transport") {
+      this.conn!.open(this.ms!, this.storeName!, "column");
+      this.kysely = new Kysely<DB>({
+        dialect: createTransportDialect(this.conn!, this.ms!, this.storeName!),
+      });
+      return;
+    }
+
+    this.localSqlite = new BunSqliteLocal(this.dataLocation!);
     this.kysely = new Kysely<DB>({
-      dialect: createTransportDialect(this.conn, this.ms, this.storeName),
+      dialect: this.localSqlite.dialect,
     });
   }
 
@@ -52,15 +106,21 @@ export class ColumnStore<DB = any> implements Store {
       await this.kysely.destroy();
       this.kysely = null;
     }
-    this.conn.close_store(this.ms, this.storeName);
+    if (this.mode === "transport") {
+      this.conn!.close_store(this.ms!, this.storeName!);
+      return;
+    }
+    if (this.localSqlite) {
+      this.localSqlite.close();
+      this.localSqlite = null;
+    }
   }
 
   async migrate(): Promise<void> {
-    const stateStorage = new TransportMigrationStateStorage(
-      this.conn,
-      this.ms,
-      this.storeName,
-    );
+    const stateStorage =
+      this.mode === "transport"
+        ? new TransportMigrationStateStorage(this.conn!, this.ms!, this.storeName!)
+        : this.migrationsState!;
     const migrations = this.migrations.map((M) => new M(this));
     const migrator = new Migrator(migrations, stateStorage);
     await migrator.up();
@@ -91,6 +151,10 @@ export class ColumnStore<DB = any> implements Store {
         `INSERT INTO ${table} (${colList}) VALUES (${row.map(escapeVal).join(", ")})`,
     );
     const sql = `BEGIN;\n${stmts.join(";\n")};\nCOMMIT;`;
-    this.conn.execSql(this.ms, this.storeName, sql);
+    if (this.mode === "transport") {
+      this.conn!.execSql(this.ms!, this.storeName!, sql);
+      return;
+    }
+    this.localSqlite!.db.run(sql);
   }
 }

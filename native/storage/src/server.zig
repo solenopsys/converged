@@ -15,7 +15,14 @@ const c = @cImport(@cInclude("transport.h"));
 const max_msg: u32 = 64 * 1024 * 1024;
 
 var shutdown_requested = std.atomic.Value(bool).init(false);
-var g_mutex: std.Thread.Mutex = .{};
+var active_clients = std.atomic.Value(usize).init(0);
+var commands_mutex = std.Thread.Mutex{};
+
+const ClientContext = struct {
+    allocator: Allocator,
+    commands: *StorageCommands,
+    fd: std.posix.fd_t,
+};
 
 pub fn start(allocator: Allocator, data_dir: []const u8, socket_path: []const u8) !void {
     try std.fs.cwd().makePath(data_dir);
@@ -51,33 +58,78 @@ pub fn start(allocator: Allocator, data_dir: []const u8, socket_path: []const u8
 
     std.debug.print("storage server listening on {s}\n", .{socket_path});
 
-    while (!shutdown_requested.load(.seq_cst)) {
+    active_clients.store(0, .seq_cst);
+
+    while (true) {
+        if (shutdown_requested.load(.seq_cst)) {
+            std.debug.print("storage signal received, shutting down\n", .{});
+            break;
+        }
+
         const client_fd = std.posix.accept(server_fd, null, null, 0) catch |err| switch (err) {
             error.WouldBlock => {
-                std.Thread.sleep(100 * std.time.ns_per_ms);
+                std.Thread.sleep(25 * std.time.ns_per_ms);
                 continue;
             },
             else => return err,
         };
-        const thread = std.Thread.spawn(.{}, handleClientThread, .{ allocator, &commands, client_fd }) catch |err| {
-            std.debug.print("storage thread error: {s}\n", .{@errorName(err)});
+        try setSocketBlocking(client_fd);
+
+        const ctx = try allocator.create(ClientContext);
+        ctx.* = .{
+            .allocator = allocator,
+            .commands = &commands,
+            .fd = client_fd,
+        };
+        _ = active_clients.fetchAdd(1, .seq_cst);
+
+        const thread = std.Thread.spawn(.{}, handleClientThread, .{ctx}) catch |err| {
+            _ = active_clients.fetchSub(1, .seq_cst);
+            allocator.destroy(ctx);
             std.posix.close(client_fd);
-            continue;
+            return err;
         };
         thread.detach();
     }
-    std.debug.print("storage shutting down\n", .{});
+
+    const wait_step_ms: usize = 25;
+    const max_wait_ms: usize = 2000;
+    var waited_ms: usize = 0;
+    while (active_clients.load(.seq_cst) != 0 and waited_ms < max_wait_ms) : (waited_ms += wait_step_ms) {
+        std.Thread.sleep(wait_step_ms * std.time.ns_per_ms);
+    }
+
+    const clients_left = active_clients.load(.seq_cst);
+    if (clients_left != 0) {
+        std.debug.print("storage shutdown forced with active clients={d}\n", .{clients_left});
+    }
+}
+
+fn setSocketBlocking(fd: std.posix.fd_t) !void {
+    var flags = try std.posix.fcntl(fd, std.posix.F.GETFL, 0);
+    flags &= ~(@as(usize, 1) << @bitOffsetOf(std.posix.O, "NONBLOCK"));
+    _ = try std.posix.fcntl(fd, std.posix.F.SETFL, flags);
 }
 
 // ── Client handler ────────────────────────────────────────────────────────────
 
-fn handleClientThread(allocator: Allocator, commands: *StorageCommands, fd: std.posix.fd_t) void {
-    defer std.posix.close(fd);
-    const did_shutdown = handleClient(allocator, commands, fd) catch |err| blk: {
+fn handleClientThread(ctx: *ClientContext) void {
+    const allocator = ctx.allocator;
+    const commands = ctx.commands;
+    const fd = ctx.fd;
+    defer {
+        std.posix.close(fd);
+        allocator.destroy(ctx);
+        _ = active_clients.fetchSub(1, .seq_cst);
+    }
+
+    const should_shutdown = handleClient(allocator, commands, fd) catch |err| blk: {
         std.debug.print("storage client error: {s}\n", .{@errorName(err)});
         break :blk false;
     };
-    if (did_shutdown) shutdown_requested.store(true, .seq_cst);
+    if (should_shutdown) {
+        shutdown_requested.store(true, .seq_cst);
+    }
 }
 
 fn handleClient(allocator: Allocator, commands: *StorageCommands, fd: std.posix.fd_t) !bool {
@@ -96,14 +148,9 @@ fn handleClient(allocator: Allocator, commands: *StorageCommands, fd: std.posix.
         defer c.transport_req_reader_free(reader);
 
         var shutdown = false;
-        const resp: CBytes = blk: {
-            g_mutex.lock();
-            defer g_mutex.unlock();
-            const r = dispatch(allocator, commands, reader, &shutdown) catch |err| {
-                std.debug.print("storage dispatch error: {s}\n", .{@errorName(err)});
-                break :blk encodeError(@errorName(err));
-            };
-            break :blk r;
+        const resp = dispatch(allocator, commands, reader, &shutdown) catch |err| blk: {
+            std.debug.print("storage dispatch error: {s}\n", .{@errorName(err)});
+            break :blk encodeError(@errorName(err));
         };
         defer if (resp.ptr) |p| c.transport_free_buf(p, resp.len);
 
@@ -122,6 +169,9 @@ fn dispatch(
     reader: ?*c.TransportRequestReader,
     shutdown: *bool,
 ) !CBytes {
+    commands_mutex.lock();
+    defer commands_mutex.unlock();
+
     const cmd = c.transport_req_reader_cmd(reader);
     const ms = std.mem.span(c.transport_req_reader_ms(reader));
     const store = std.mem.span(c.transport_req_reader_store(reader));

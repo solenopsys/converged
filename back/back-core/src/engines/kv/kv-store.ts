@@ -1,4 +1,5 @@
 import { Database } from "bun-lmdbx";
+import { StorageConnection } from "bun-transport";
 import {
   KEY_SEPARATOR,
   RANGE_END_SUFFIX,
@@ -7,6 +8,7 @@ import {
 import { Store } from "../../stores";
 import { Migration, Migrator } from "../../migrations";
 import { MigrationStateStorage } from "../../migrations";
+import { TransportMigrationStateStorage } from "../transport/transport-driver";
 
 const HEADER_JSON = Buffer.from("KVJ0");
 const HEADER_BUFFER = Buffer.from("KVB0");
@@ -21,19 +23,55 @@ export interface KVStoreIntf {
 
 export class KVStore implements KVStoreIntf, Store {
   public db!: Database;
+  private mode: "local" | "transport";
+  private conn?: StorageConnection;
+  private ms?: string;
+  private storeName?: string;
+  private dataLocation?: string;
+  private migrations: (new (store: Store) => Migration)[];
+  private migrationsState?: MigrationStateStorage;
 
   constructor(
-    private dataLocation: string,
-    private migrations: (new (store: Store) => Migration)[],
-    private migrationsState: MigrationStateStorage,
-  ) {}
+    dataLocation: string,
+    migrations: (new (store: Store) => Migration)[],
+    migrationsState: MigrationStateStorage,
+  );
+  constructor(
+    conn: StorageConnection,
+    ms: string,
+    storeName: string,
+    migrations: (new (store: Store) => Migration)[],
+  );
+  constructor(
+    connOrDataLocation: StorageConnection | string,
+    msOrMigrations: string | (new (store: Store) => Migration)[],
+    storeOrMigrationsState: string | MigrationStateStorage,
+    maybeMigrations?: (new (store: Store) => Migration)[],
+  ) {
+    if (typeof connOrDataLocation === "string") {
+      this.mode = "local";
+      this.dataLocation = connOrDataLocation;
+      this.migrations = msOrMigrations as (new (store: Store) => Migration)[];
+      this.migrationsState = storeOrMigrationsState as MigrationStateStorage;
+      return;
+    }
+    this.mode = "transport";
+    this.conn = connOrDataLocation;
+    this.ms = msOrMigrations as string;
+    this.storeName = storeOrMigrationsState as string;
+    this.migrations = maybeMigrations ?? [];
+  }
 
   listKeys(prefix: string[]): string[] {
     return this.getKeysWithPrefix(prefix);
   }
 
   async open() {
-    this.db = new Database(this.dataLocation);
+    if (this.mode === "transport") {
+      this.conn!.open(this.ms!, this.storeName!, "kv");
+      return;
+    }
+    this.db = new Database(this.dataLocation!);
   }
 
   getKeysWithPrefix(prefixChain: string[]): string[] {
@@ -55,6 +93,10 @@ export class KVStore implements KVStoreIntf, Store {
   }
 
   getKeysWithRange(start: string, end: string): string[] {
+    if (this.mode === "transport") {
+      const prefix = this.extractPrefix(start, end);
+      return this.conn!.kvList(this.ms!, this.storeName!, prefix);
+    }
     const keys: string[] = [];
     const range = this.db.getRange({ start, end });
     for (const { key } of range) {
@@ -69,6 +111,18 @@ export class KVStore implements KVStoreIntf, Store {
   }
 
   getVeluesRangeAsObject(start: string, end: string): { [key: string]: any } {
+    if (this.mode === "transport") {
+      const keys = this.getKeysWithRange(start, end);
+      const result: { [key: string]: any } = {};
+      for (const key of keys) {
+        const value = this.getDirect(key);
+        const parts = key.split(KEY_SEPARATOR);
+        const lastSegment = parts[parts.length - 1];
+        result[lastSegment] = value;
+      }
+      return result;
+    }
+
     const keys: { [key: string]: any } = {};
     const range = this.db.getRange({ start, end });
 
@@ -97,6 +151,11 @@ export class KVStore implements KVStoreIntf, Store {
   }
 
   getValuesRangeAsArrayByRange(start: string, end: string): any[] {
+    if (this.mode === "transport") {
+      const keys = this.getKeysWithRange(start, end);
+      return keys.map((key) => this.getDirect(key));
+    }
+
     const values: any[] = [];
     const rangeStart = this.ensureSuffix(start, RANGE_START_SUFFIX);
     const rangeEnd = this.ensureSuffix(end, RANGE_END_SUFFIX);
@@ -114,26 +173,45 @@ export class KVStore implements KVStoreIntf, Store {
 
   put(chain: string[], value: any): string {
     const key = chain.join(KEY_SEPARATOR);
+    if (this.mode === "transport") {
+      this.conn!.kvPut(
+        this.ms!,
+        this.storeName!,
+        key,
+        this.serializeValue(value),
+      );
+      return key;
+    }
     this.db.put(key, this.serializeValue(value));
     return key;
   }
 
   get(chain: string[]): any {
     const key = chain.join(KEY_SEPARATOR);
-    return this.deserializeValue(this.db.get(key));
+    return this.getDirect(key);
   }
 
   getDirect(key: string): any {
+    if (this.mode === "transport") {
+      return this.deserializeValue(this.conn!.kvGet(this.ms!, this.storeName!, key));
+    }
     return this.deserializeValue(this.db.get(key));
   }
 
   getRawDirect(key: string): Buffer | null {
+    if (this.mode === "transport") {
+      return this.conn!.kvGet(this.ms!, this.storeName!, key);
+    }
     const raw = this.db.get(key) as Buffer | null;
     return raw ?? null;
   }
 
   delete(chain: string[]): void {
     const key = chain.join(KEY_SEPARATOR);
+    if (this.mode === "transport") {
+      this.conn!.kvDelete(this.ms!, this.storeName!, key);
+      return;
+    }
     this.db.delete(key);
   }
 
@@ -142,13 +220,20 @@ export class KVStore implements KVStoreIntf, Store {
   }
 
   async close(): Promise<void> {
+    if (this.mode === "transport") {
+      this.conn!.close_store(this.ms!, this.storeName!);
+      return;
+    }
     this.db.close();
   }
 
   async migrate(): Promise<void> {
-    // todo move to superclass
     const migrations = this.migrations.map((migration) => new migration(this));
-    const migrator = new Migrator(migrations, this.migrationsState);
+    const stateStorage =
+      this.mode === "transport"
+        ? new TransportMigrationStateStorage(this.conn!, this.ms!, this.storeName!)
+        : this.migrationsState!;
+    const migrator = new Migrator(migrations, stateStorage);
     await migrator.up();
   }
 
@@ -205,5 +290,12 @@ export class KVStore implements KVStoreIntf, Store {
       return input;
     }
     return input + suffix;
+  }
+
+  private extractPrefix(start: string, end: string): string {
+    if (start.endsWith(RANGE_START_SUFFIX) && end.endsWith(RANGE_END_SUFFIX)) {
+      return start.slice(0, -RANGE_START_SUFFIX.length);
+    }
+    throw new Error(`Transport KV does not support arbitrary range: ${start}..${end}`);
   }
 }

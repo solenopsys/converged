@@ -12,6 +12,12 @@ const server = if (with_transport) @import("server.zig") else struct {
     }
 };
 
+comptime {
+    if (@import("builtin").is_test) {
+        _ = @import("internal_tests.zig");
+    }
+}
+
 fn writeStdout(data: []const u8) void {
     _ = std.posix.write(std.posix.STDOUT_FILENO, data) catch {};
 }

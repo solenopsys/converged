@@ -16,6 +16,8 @@ pub const WorkItem = struct {
     result: ?[]u8,
     done: std.Thread.ResetEvent,
     err: ?anyerror,
+    exec_ctx: ?*anyopaque = null,
+    exec_fn: ?*const fn (?*anyopaque) void = null,
 
     pub const Op = enum {
         exec_sql,
@@ -90,6 +92,10 @@ pub const StoreWorker = struct {
 
             const item = self.queue.orderedRemove(0);
             self.mutex.unlock();
+
+            if (item.exec_fn) |exec_fn| {
+                exec_fn(item.exec_ctx);
+            }
 
             // Signal done
             item.done.set();

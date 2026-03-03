@@ -66,7 +66,10 @@ pub const StorageCommands = struct {
         const store_key = try std.fmt.allocPrint(self.allocator, "{s}/{s}", .{ ms_name, store_name });
         errdefer self.allocator.free(store_key);
 
-        if (self.stores.contains(store_key)) return error.StoreAlreadyOpen;
+        if (self.stores.contains(store_key)) {
+            self.allocator.free(store_key);
+            return;
+        }
 
         try std.fs.cwd().makePath(store_dir);
 

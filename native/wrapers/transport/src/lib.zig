@@ -64,6 +64,13 @@ pub export fn transport_connect(path: [*:0]const u8) i32 {
     return @intCast(fd);
 }
 
+/// Set per-socket send/receive timeout in milliseconds.
+/// Returns 0 on success, -1 on error.
+pub export fn transport_set_timeout_ms(fd: i32, timeout_ms: u32) i32 {
+    socket.setOperationTimeout(@intCast(fd), timeout_ms) catch return -1;
+    return 0;
+}
+
 /// Create and listen on a Unix socket.  Returns server fd or -1 on error.
 pub export fn transport_listen(path: [*:0]const u8) i32 {
     const fd = socket.listen(path) catch return -1;

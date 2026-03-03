@@ -1,4 +1,4 @@
-import { dlopen, FFIType, ptr, CString } from "bun:ffi";
+import { dlopen, FFIType, ptr, CString, read } from "bun:ffi";
 import { existsSync } from "fs";
 import { join } from "path";
 
@@ -7,6 +7,7 @@ import { join } from "path";
 const SYMBOLS = {
   // Socket
   transport_connect:  { args: [FFIType.cstring],              returns: FFIType.i32 },
+  transport_set_timeout_ms: { args: [FFIType.i32, FFIType.u32], returns: FFIType.i32 },
   transport_listen:   { args: [FFIType.cstring],              returns: FFIType.i32 },
   transport_accept:   { args: [FFIType.i32],                  returns: FFIType.i32 },
   transport_close:    { args: [FFIType.i32],                  returns: FFIType.void },
@@ -91,21 +92,35 @@ export interface ManifestInfo {
   migrations: string[];
 }
 
+export interface StorageConnectionOptions {
+  operationTimeoutMs?: number;
+}
+
 // ── Connection ────────────────────────────────────────────────────────────────
 
 export class StorageConnection {
   private fd: number;
 
-  constructor(socketPath: string) {
+  constructor(socketPath: string, options?: StorageConnectionOptions) {
     const pathBuf = Buffer.from(socketPath + "\0");
     const fd = s.transport_connect(ptr(pathBuf)) as number;
     if (fd < 0) throw new Error(`transport_connect failed: ${fd}`);
     this.fd = fd;
+
+    if (options?.operationTimeoutMs !== undefined) {
+      const rc = s.transport_set_timeout_ms(this.fd, options.operationTimeoutMs >>> 0) as number;
+      if (rc !== 0) {
+        this.close();
+        throw new Error(`transport_set_timeout_ms failed: ${rc}`);
+      }
+    }
   }
 
   close(): void {
-    s.transport_close(this.fd);
-    this.fd = -1;
+    if (this.fd >= 0) {
+      s.transport_close(this.fd);
+      this.fd = -1;
+    }
   }
 
   // ── Internal send/recv ───────────────────────────────────────────────────
@@ -114,12 +129,12 @@ export class StorageConnection {
     const rc = s.transport_send_req(this.fd, req) as number;
     if (rc !== 0) {
       s.transport_req_free(req);
-      throw new Error(`transport_send_req failed: ${rc}`);
+      throw new Error(`transport_send_req failed: ${rc} (timeout or socket error)`);
     }
     s.transport_req_free(req);
 
     const resp = s.transport_recv_resp(this.fd) as bigint;
-    if (!resp) throw new Error("transport_recv_resp returned null");
+    if (!resp) throw new Error("transport timeout while waiting for response (or socket closed)");
     return new Response(resp);
   }
 
@@ -279,6 +294,18 @@ class Response {
   }
 
   rows(): Row[] {
+    const dataLen = Number(s.transport_resp_data_len(this.handle) as bigint);
+    if (dataLen > 0) {
+      const dataPtr = Number(s.transport_resp_data_ptr(this.handle) as bigint);
+      const buf = Buffer.allocUnsafe(dataLen);
+      for (let i = 0; i < dataLen; i++) {
+        buf[i] = read.u8(dataPtr, i);
+      }
+      this.free();
+      const decoded = JSON.parse(buf.toString("utf8"));
+      return Array.isArray(decoded) ? (decoded as Row[]) : [];
+    }
+
     const count = s.transport_resp_row_count(this.handle) as number;
     const result: Row[] = [];
     for (let r = 0; r < count; r++) {
@@ -319,17 +346,15 @@ class Response {
   foundData(): Buffer | null {
     const found = (s.transport_resp_found(this.handle) as number) === 1;
     if (!found) { this.free(); return null; }
-    const dataPtr = s.transport_resp_data_ptr(this.handle) as bigint;
+    const dataPtr = Number(s.transport_resp_data_ptr(this.handle) as bigint);
     const dataLen = s.transport_resp_data_len(this.handle) as bigint;
-    const buf = Buffer.allocUnsafe(Number(dataLen));
-    // Copy from native memory
-    const src = new Uint8Array(Number(dataLen));
-    for (let i = 0; i < Number(dataLen); i++) {
-      src[i] = (dataPtr as any + i);
+    const len = Number(dataLen);
+    const src = Buffer.allocUnsafe(len);
+    for (let i = 0; i < len; i++) {
+      src[i] = read.u8(dataPtr, i);
     }
-    buf.set(src);
     this.free();
-    return found ? buf : null;
+    return src;
   }
 
   manifest(): ManifestInfo {

@@ -1,5 +1,25 @@
 const std = @import("std");
 
+const default_timeout_ms: u32 = 5_000;
+
+fn getOperationTimeoutMs() u32 {
+    const raw = std.posix.getenv("TRANSPORT_OP_TIMEOUT_MS") orelse return default_timeout_ms;
+    const parsed = std.fmt.parseUnsigned(u32, raw, 10) catch return default_timeout_ms;
+    return parsed;
+}
+
+pub fn setOperationTimeout(fd: std.posix.fd_t, timeout_ms: u32) !void {
+    const sec: isize = @intCast(timeout_ms / 1000);
+    const usec: isize = @intCast((timeout_ms % 1000) * 1000);
+    var tv = std.posix.timeval{
+        .sec = sec,
+        .usec = usec,
+    };
+    const opt = std.mem.asBytes(&tv);
+    try std.posix.setsockopt(fd, std.posix.SOL.SOCKET, std.posix.SO.RCVTIMEO, opt);
+    try std.posix.setsockopt(fd, std.posix.SOL.SOCKET, std.posix.SO.SNDTIMEO, opt);
+}
+
 /// Create a Unix domain socket server, bind, and listen.
 /// Returns the server fd.
 pub fn listen(path: [*:0]const u8) !std.posix.fd_t {
@@ -48,6 +68,7 @@ pub fn connect(path: [*:0]const u8) !std.posix.fd_t {
     addr.path[path_slice.len] = 0;
 
     try std.posix.connect(fd, @ptrCast(&addr), @sizeOf(std.posix.sockaddr.un));
+    try setOperationTimeout(fd, getOperationTimeoutMs());
 
     return fd;
 }
