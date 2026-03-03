@@ -62,7 +62,16 @@ export abstract class StoreControllerAbstract {
   protected conn: StorageConnection;
 
   constructor(protected msName: string) {
-    this.conn = new StorageConnection(STORAGE_SOCKET_PATH);
+    try {
+      this.conn = new StorageConnection(STORAGE_SOCKET_PATH);
+    } catch (error) {
+      const wrapped = new Error(
+        `storage transport init failed for "${msName}" (socket: ${STORAGE_SOCKET_PATH}): ` +
+        `${error instanceof Error ? error.message : String(error)}`,
+      ) as Error & { cause?: unknown };
+      wrapped.cause = error;
+      throw wrapped;
+    }
   }
 
   abstract init(): Promise<void>;

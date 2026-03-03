@@ -9,6 +9,7 @@ const STORAGE_BIN = resolve(PROJECT_ROOT, "native/storage/zig-out/bin/storage");
 const DATA_DIR = resolve(PROJECT_ROOT, "../../data");
 const SOCKET_PATH = "/tmp/storage-socket/storage-integration.sock";
 const FAKE_SOCKET_PATH = "/tmp/storage-socket/storage-timeout.sock";
+const MISSING_SOCKET_PATH = "/tmp/storage-socket/storage-missing.sock";
 
 async function waitForSocket(path: string, timeoutMs: number): Promise<void> {
   const started = Date.now();
@@ -133,6 +134,24 @@ async function main() {
       storesCount = verify.listStores().length;
     } finally {
       verify.close();
+    }
+
+    if (existsSync(MISSING_SOCKET_PATH)) {
+      rmSync(MISSING_SOCKET_PATH, { force: true });
+    }
+    let gotMissingSocketError = false;
+    try {
+      // Must fail with a clear and predictable message.
+      new StorageConnection(MISSING_SOCKET_PATH);
+    } catch (error) {
+      const msg = String(error);
+      if (!/socket not found/i.test(msg)) {
+        throw new Error(`Expected missing socket message, got: ${msg}`);
+      }
+      gotMissingSocketError = true;
+    }
+    if (!gotMissingSocketError) {
+      throw new Error("Expected constructor to fail for missing socket");
     }
 
     console.log(

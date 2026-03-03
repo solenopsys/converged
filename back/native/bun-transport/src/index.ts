@@ -1,6 +1,6 @@
 import { dlopen, FFIType, ptr, CString, read } from "bun:ffi";
 import { existsSync } from "fs";
-import { join } from "path";
+import { dirname, join } from "path";
 
 // ── Library loading ────────────────────────────────────────────────────────────
 
@@ -38,28 +38,28 @@ const SYMBOLS = {
   // Response accessors
   transport_resp_free:         { args: [FFIType.ptr], returns: FFIType.void },
   transport_resp_ok:           { args: [FFIType.ptr], returns: FFIType.i32 },
-  transport_resp_error:        { args: [FFIType.ptr], returns: FFIType.cstring },
+  transport_resp_error:        { args: [FFIType.ptr], returns: FFIType.ptr },
   transport_resp_duration_us:  { args: [FFIType.ptr], returns: FFIType.u64 },
   transport_resp_op_count:     { args: [FFIType.ptr], returns: FFIType.u32 },
   transport_resp_affected:     { args: [FFIType.ptr], returns: FFIType.i64 },
   transport_resp_size:         { args: [FFIType.ptr], returns: FFIType.u64 },
   transport_resp_row_count:    { args: [FFIType.ptr], returns: FFIType.u32 },
   transport_resp_col_count:    { args: [FFIType.ptr, FFIType.u32], returns: FFIType.u32 },
-  transport_resp_col_name:     { args: [FFIType.ptr, FFIType.u32, FFIType.u32], returns: FFIType.cstring },
+  transport_resp_col_name:     { args: [FFIType.ptr, FFIType.u32, FFIType.u32], returns: FFIType.ptr },
   transport_resp_value_type:   { args: [FFIType.ptr, FFIType.u32, FFIType.u32], returns: FFIType.i32 },
   transport_resp_value_int:    { args: [FFIType.ptr, FFIType.u32, FFIType.u32], returns: FFIType.i64 },
   transport_resp_value_real:   { args: [FFIType.ptr, FFIType.u32, FFIType.u32], returns: FFIType.f64 },
-  transport_resp_value_text:   { args: [FFIType.ptr, FFIType.u32, FFIType.u32], returns: FFIType.cstring },
+  transport_resp_value_text:   { args: [FFIType.ptr, FFIType.u32, FFIType.u32], returns: FFIType.ptr },
   transport_resp_key_count:    { args: [FFIType.ptr], returns: FFIType.u32 },
-  transport_resp_key_at:       { args: [FFIType.ptr, FFIType.u32], returns: FFIType.cstring },
+  transport_resp_key_at:       { args: [FFIType.ptr, FFIType.u32], returns: FFIType.ptr },
   transport_resp_found:        { args: [FFIType.ptr], returns: FFIType.i32 },
   transport_resp_data_ptr:     { args: [FFIType.ptr], returns: FFIType.ptr },
   transport_resp_data_len:     { args: [FFIType.ptr], returns: FFIType.u64 },
-  transport_resp_manifest_name:             { args: [FFIType.ptr], returns: FFIType.cstring },
+  transport_resp_manifest_name:             { args: [FFIType.ptr], returns: FFIType.ptr },
   transport_resp_manifest_type:             { args: [FFIType.ptr], returns: FFIType.u8 },
   transport_resp_manifest_version:          { args: [FFIType.ptr], returns: FFIType.u32 },
   transport_resp_manifest_migration_count:  { args: [FFIType.ptr], returns: FFIType.u32 },
-  transport_resp_manifest_migration_at:     { args: [FFIType.ptr, FFIType.u32], returns: FFIType.cstring },
+  transport_resp_manifest_migration_at:     { args: [FFIType.ptr, FFIType.u32], returns: FFIType.ptr },
 } as const;
 
 function getLibPath(): string {
@@ -73,6 +73,43 @@ function getLibPath(): string {
 
 const lib = dlopen(getLibPath(), SYMBOLS);
 const s   = lib.symbols;
+const ENABLE_REQ_FREE = process.env.TRANSPORT_DISABLE_REQ_FREE !== "1";
+const ENABLE_RESP_FREE = process.env.TRANSPORT_DISABLE_RESP_FREE !== "1";
+
+export type StorageTransportErrorCode =
+  | "INVALID_SOCKET_PATH"
+  | "SOCKET_DIR_NOT_FOUND"
+  | "SOCKET_NOT_FOUND"
+  | "CONNECT_EXCEPTION"
+  | "CONNECT_FAILED"
+  | "SET_TIMEOUT_EXCEPTION"
+  | "SET_TIMEOUT_FAILED"
+  | "NOT_CONNECTED"
+  | "SEND_EXCEPTION"
+  | "SEND_FAILED"
+  | "RECV_EXCEPTION"
+  | "RECV_TIMEOUT_OR_CLOSED"
+  | "REMOTE_ERROR"
+  | "DECODE_JSON_ERROR";
+
+export class StorageTransportError extends Error {
+  readonly code: StorageTransportErrorCode;
+  readonly socketPath?: string;
+
+  constructor(
+    code: StorageTransportErrorCode,
+    message: string,
+    options?: { socketPath?: string; cause?: unknown },
+  ) {
+    super(message);
+    this.name = "StorageTransportError";
+    this.code = code;
+    this.socketPath = options?.socketPath;
+    if (options && "cause" in options) {
+      (this as Error & { cause?: unknown }).cause = options.cause;
+    }
+  }
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -99,20 +136,78 @@ export interface StorageConnectionOptions {
 // ── Connection ────────────────────────────────────────────────────────────────
 
 export class StorageConnection {
-  private fd: number;
+  private fd: number = -1;
+  private readonly socketPath: string;
 
   constructor(socketPath: string, options?: StorageConnectionOptions) {
+    this.socketPath = socketPath;
+    this.validateSocketPath(socketPath);
+
+    if (!existsSync(socketPath)) {
+      throw new StorageTransportError(
+        "SOCKET_NOT_FOUND",
+        `storage socket not found: ${socketPath}`,
+        { socketPath },
+      );
+    }
+
     const pathBuf = Buffer.from(socketPath + "\0");
-    const fd = s.transport_connect(ptr(pathBuf)) as number;
-    if (fd < 0) throw new Error(`transport_connect failed: ${fd}`);
+    let fd: number;
+    try {
+      fd = s.transport_connect(ptr(pathBuf)) as number;
+    } catch (cause) {
+      throw new StorageTransportError(
+        "CONNECT_EXCEPTION",
+        `transport_connect threw an exception for socket: ${socketPath}`,
+        { socketPath, cause },
+      );
+    }
+    if (fd < 0) {
+      throw new StorageTransportError(
+        "CONNECT_FAILED",
+        `transport_connect failed: ${fd} (socket: ${socketPath})`,
+        { socketPath },
+      );
+    }
     this.fd = fd;
 
     if (options?.operationTimeoutMs !== undefined) {
-      const rc = s.transport_set_timeout_ms(this.fd, options.operationTimeoutMs >>> 0) as number;
+      let rc: number;
+      try {
+        rc = s.transport_set_timeout_ms(this.fd, options.operationTimeoutMs >>> 0) as number;
+      } catch (cause) {
+        this.close();
+        throw new StorageTransportError(
+          "SET_TIMEOUT_EXCEPTION",
+          `transport_set_timeout_ms threw an exception (socket: ${socketPath})`,
+          { socketPath, cause },
+        );
+      }
       if (rc !== 0) {
         this.close();
-        throw new Error(`transport_set_timeout_ms failed: ${rc}`);
+        throw new StorageTransportError(
+          "SET_TIMEOUT_FAILED",
+          `transport_set_timeout_ms failed: ${rc} (socket: ${socketPath})`,
+          { socketPath },
+        );
       }
+    }
+  }
+
+  private validateSocketPath(socketPath: string): void {
+    if (typeof socketPath !== "string" || socketPath.trim().length === 0) {
+      throw new StorageTransportError(
+        "INVALID_SOCKET_PATH",
+        "storage socket path is empty",
+      );
+    }
+    const socketDir = dirname(socketPath);
+    if (!existsSync(socketDir)) {
+      throw new StorageTransportError(
+        "SOCKET_DIR_NOT_FOUND",
+        `storage socket directory not found: ${socketDir}`,
+        { socketPath },
+      );
     }
   }
 
@@ -125,63 +220,101 @@ export class StorageConnection {
 
   // ── Internal send/recv ───────────────────────────────────────────────────
 
-  private sendRecv(req: bigint): Response {
-    const rc = s.transport_send_req(this.fd, req) as number;
-    if (rc !== 0) {
+  private sendRecv(req: number): Response {
+    if (this.fd < 0) {
       s.transport_req_free(req);
-      throw new Error(`transport_send_req failed: ${rc} (timeout or socket error)`);
+      throw new StorageTransportError(
+        "NOT_CONNECTED",
+        `storage transport is not connected (socket: ${this.socketPath})`,
+        { socketPath: this.socketPath },
+      );
     }
-    s.transport_req_free(req);
 
-    const resp = s.transport_recv_resp(this.fd) as bigint;
-    if (!resp) throw new Error("transport timeout while waiting for response (or socket closed)");
-    return new Response(resp);
+    let rc: number;
+    try {
+      rc = s.transport_send_req(this.fd, req) as number;
+    } catch (cause) {
+      if (ENABLE_REQ_FREE) s.transport_req_free(req);
+      throw new StorageTransportError(
+        "SEND_EXCEPTION",
+        `transport_send_req threw an exception (socket: ${this.socketPath})`,
+        { socketPath: this.socketPath, cause },
+      );
+    }
+    if (rc !== 0) {
+      if (ENABLE_REQ_FREE) s.transport_req_free(req);
+      throw new StorageTransportError(
+        "SEND_FAILED",
+        `transport_send_req failed: ${rc} (timeout or socket error, socket: ${this.socketPath})`,
+        { socketPath: this.socketPath },
+      );
+    }
+    if (ENABLE_REQ_FREE) s.transport_req_free(req);
+
+    let resp: number;
+    try {
+      resp = s.transport_recv_resp(this.fd) as number;
+    } catch (cause) {
+      throw new StorageTransportError(
+        "RECV_EXCEPTION",
+        `transport_recv_resp threw an exception (socket: ${this.socketPath})`,
+        { socketPath: this.socketPath, cause },
+      );
+    }
+    if (!resp) {
+      throw new StorageTransportError(
+        "RECV_TIMEOUT_OR_CLOSED",
+        `transport timeout while waiting for response (or socket closed): ${this.socketPath}`,
+        { socketPath: this.socketPath },
+      );
+    }
+    return new Response(resp, this.socketPath);
   }
 
   // ── Store management ─────────────────────────────────────────────────────
 
   open(ms: string, store: string, storeType: StoreTypeKey): Telemetry {
-    const req = s.transport_req_open(cstr(ms), cstr(store), StoreType[storeType]) as bigint;
+    const req = s.transport_req_open(cstr(ms), cstr(store), StoreType[storeType]) as number;
     return this.sendRecv(req).telemetry();
   }
 
   close_store(ms: string, store: string): Telemetry {
-    const req = s.transport_req_close(cstr(ms), cstr(store)) as bigint;
+    const req = s.transport_req_close(cstr(ms), cstr(store)) as number;
     return this.sendRecv(req).telemetry();
   }
 
   getSize(ms: string, store: string): bigint {
-    const req  = s.transport_req_size(cstr(ms), cstr(store)) as bigint;
+    const req  = s.transport_req_size(cstr(ms), cstr(store)) as number;
     const resp = this.sendRecv(req);
     return resp.size();
   }
 
   getManifest(ms: string, store: string): ManifestInfo {
-    const req  = s.transport_req_manifest(cstr(ms), cstr(store)) as bigint;
+    const req  = s.transport_req_manifest(cstr(ms), cstr(store)) as number;
     const resp = this.sendRecv(req);
     return resp.manifest();
   }
 
   recordMigration(ms: string, store: string, migrationId: string): Telemetry {
-    const req = s.transport_req_migrate(cstr(ms), cstr(store), cstr(migrationId)) as bigint;
+    const req = s.transport_req_migrate(cstr(ms), cstr(store), cstr(migrationId)) as number;
     return this.sendRecv(req).telemetry();
   }
 
   createArchive(ms: string, store: string, outputPath: string): Telemetry {
-    const req = s.transport_req_archive(cstr(ms), cstr(store), cstr(outputPath)) as bigint;
+    const req = s.transport_req_archive(cstr(ms), cstr(store), cstr(outputPath)) as number;
     return this.sendRecv(req).telemetry();
   }
 
   // ── SQL / Column ─────────────────────────────────────────────────────────
 
   execSql(ms: string, store: string, sql: string): { rowsAffected: bigint; telemetry: Telemetry } {
-    const req  = s.transport_req_exec_sql(cstr(ms), cstr(store), cstr(sql)) as bigint;
+    const req  = s.transport_req_exec_sql(cstr(ms), cstr(store), cstr(sql)) as number;
     const resp = this.sendRecv(req);
     return { rowsAffected: resp.affected(), telemetry: resp.telemetry() };
   }
 
   querySql(ms: string, store: string, sql: string): Row[] {
-    const req  = s.transport_req_query_sql(cstr(ms), cstr(store), cstr(sql)) as bigint;
+    const req  = s.transport_req_query_sql(cstr(ms), cstr(store), cstr(sql)) as number;
     const resp = this.sendRecv(req);
     return resp.rows();
   }
@@ -189,24 +322,24 @@ export class StorageConnection {
   // ── KV ───────────────────────────────────────────────────────────────────
 
   kvPut(ms: string, store: string, key: string, value: Buffer): Telemetry {
-    const req = s.transport_req_kv_put(cstr(ms), cstr(store), cstr(key), ptr(value), BigInt(value.length)) as bigint;
+    const req = s.transport_req_kv_put(cstr(ms), cstr(store), cstr(key), ptr(value), BigInt(value.length)) as number;
     return this.sendRecv(req).telemetry();
   }
 
   kvGet(ms: string, store: string, key: string): Buffer | null {
-    const req  = s.transport_req_kv_get(cstr(ms), cstr(store), cstr(key)) as bigint;
+    const req  = s.transport_req_kv_get(cstr(ms), cstr(store), cstr(key)) as number;
     const resp = this.sendRecv(req);
     return resp.foundData();
   }
 
   kvDelete(ms: string, store: string, key: string): boolean {
-    const req  = s.transport_req_kv_delete(cstr(ms), cstr(store), cstr(key)) as bigint;
+    const req  = s.transport_req_kv_delete(cstr(ms), cstr(store), cstr(key)) as number;
     const resp = this.sendRecv(req);
     return resp.found();
   }
 
   kvList(ms: string, store: string, prefix = ""): string[] {
-    const req  = s.transport_req_kv_list(cstr(ms), cstr(store), cstr(prefix)) as bigint;
+    const req  = s.transport_req_kv_list(cstr(ms), cstr(store), cstr(prefix)) as number;
     const resp = this.sendRecv(req);
     return resp.keys();
   }
@@ -214,31 +347,31 @@ export class StorageConnection {
   // ── Files ────────────────────────────────────────────────────────────────
 
   filePut(ms: string, store: string, key: string, data: Buffer): Telemetry {
-    const req = s.transport_req_file_put(cstr(ms), cstr(store), cstr(key), ptr(data), BigInt(data.length)) as bigint;
+    const req = s.transport_req_file_put(cstr(ms), cstr(store), cstr(key), ptr(data), BigInt(data.length)) as number;
     return this.sendRecv(req).telemetry();
   }
 
   fileGet(ms: string, store: string, key: string): Buffer | null {
-    const req  = s.transport_req_file_get(cstr(ms), cstr(store), cstr(key)) as bigint;
+    const req  = s.transport_req_file_get(cstr(ms), cstr(store), cstr(key)) as number;
     const resp = this.sendRecv(req);
     return resp.foundData();
   }
 
   fileDelete(ms: string, store: string, key: string): boolean {
-    const req  = s.transport_req_file_delete(cstr(ms), cstr(store), cstr(key)) as bigint;
+    const req  = s.transport_req_file_delete(cstr(ms), cstr(store), cstr(key)) as number;
     const resp = this.sendRecv(req);
     return resp.found();
   }
 
   fileList(ms: string, store: string): string[] {
-    const req  = s.transport_req_file_list(cstr(ms), cstr(store)) as bigint;
+    const req  = s.transport_req_file_list(cstr(ms), cstr(store)) as number;
     const resp = this.sendRecv(req);
     return resp.keys();
   }
 
   /** Returns all open store keys in "ms/store" format. */
   listStores(): string[] {
-    const req  = s.transport_req_file_list(cstr(""), cstr("")) as bigint;
+    const req  = s.transport_req_file_list(cstr(""), cstr("")) as number;
     const resp = this.sendRecv(req);
     return resp.keys();
   }
@@ -246,12 +379,12 @@ export class StorageConnection {
   // ── Misc ─────────────────────────────────────────────────────────────────
 
   ping(): void {
-    const req = s.transport_req_ping() as bigint;
+    const req = s.transport_req_ping() as number;
     this.sendRecv(req);
   }
 
   shutdown(): void {
-    const req = s.transport_req_shutdown() as bigint;
+    const req = s.transport_req_shutdown() as number;
     this.sendRecv(req);
   }
 }
@@ -259,18 +392,27 @@ export class StorageConnection {
 // ── Response helper ───────────────────────────────────────────────────────────
 
 class Response {
-  private handle: bigint;
+  private handle: number;
+  private readonly socketPath: string;
 
-  constructor(handle: bigint) {
+  constructor(handle: number, socketPath: string) {
     this.handle = handle;
+    this.socketPath = socketPath;
     if (!(s.transport_resp_ok(handle) as number)) {
       const err = s.transport_resp_error(handle);
       this.free();
-      throw new Error(`storage error: ${err}`);
+      throw new StorageTransportError(
+        "REMOTE_ERROR",
+        `storage error: ${err} (socket: ${socketPath})`,
+        { socketPath },
+      );
     }
   }
 
-  private free(): void { s.transport_resp_free(this.handle); }
+  private free(): void {
+    if (!ENABLE_RESP_FREE) return;
+    s.transport_resp_free(this.handle);
+  }
 
   telemetry(): Telemetry {
     const t: Telemetry = {
@@ -302,7 +444,16 @@ class Response {
         buf[i] = read.u8(dataPtr, i);
       }
       this.free();
-      const decoded = JSON.parse(buf.toString("utf8"));
+      let decoded: unknown;
+      try {
+        decoded = JSON.parse(buf.toString("utf8"));
+      } catch (cause) {
+        throw new StorageTransportError(
+          "DECODE_JSON_ERROR",
+          `failed to decode JSON response from storage (socket: ${this.socketPath})`,
+          { socketPath: this.socketPath, cause },
+        );
+      }
       return Array.isArray(decoded) ? (decoded as Row[]) : [];
     }
 
