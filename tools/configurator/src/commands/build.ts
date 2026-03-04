@@ -144,8 +144,8 @@ appVersion: "1.0.0"
   const uiImageName = registry ? `${registry}/${projectName}-ui` : `localhost/${projectName}-ui`;
   const msImageName = registry ? `${registry}/${projectName}-ms` : `localhost/${projectName}-ms`;
   const storageImageName = registry
-    ? `${registry}/${projectName}-storage`
-    : `localhost/${projectName}-storage`;
+    ? `${registry}/converged-storage`
+    : `localhost/converged-storage`;
   const pullPolicy = registry ? "Always" : "Never";
   const valuesYaml = `ingress:
   host: ${mergedConfig.ingress?.host ?? `${targetNamespace}.test`}

@@ -573,10 +573,12 @@ export async function generateContainerfiles(ctx: GeneratorContext): Promise<Map
     `${projectName}.ms.Containerfile`,
     new DynamicContainerfileBuilder(ctx, "ms").build(),
   );
-  result.set(
-    `${projectName}.storage.Containerfile`,
-    new StorageContainerfileBuilder(ctx).build(),
-  );
+  if (projectName === "converged-portal") {
+    result.set(
+      `${projectName}.storage.Containerfile`,
+      new StorageContainerfileBuilder(ctx).build(),
+    );
+  }
 
   return result;
 }
