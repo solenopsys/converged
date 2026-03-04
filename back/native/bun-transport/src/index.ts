@@ -410,8 +410,9 @@ class Response {
   }
 
   private free(): void {
-    if (!ENABLE_RESP_FREE) return;
+    if (!ENABLE_RESP_FREE || this.handle === 0) return;
     s.transport_resp_free(this.handle);
+    (this as any).handle = 0;
   }
 
   telemetry(): Telemetry {
@@ -529,7 +530,7 @@ function cstr(s: string): Buffer { return Buffer.from(s + "\0"); }
 /** Read a C string from an FFI return value.
  *  Bun may return: a JS string, a CString object, a Buffer (raw bytes), or a number/bigint pointer. */
 function readCStr(raw: any): string {
-  if (raw === null || raw === undefined) return "";
+  if (raw === null || raw === undefined || raw === 0 || raw === 0n) return "";
   if (typeof raw === "string") return raw;
   if (Buffer.isBuffer(raw)) {
     const end = (raw as Buffer).indexOf(0);
