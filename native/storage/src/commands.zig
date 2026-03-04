@@ -24,6 +24,7 @@ pub const StoreInstance = struct {
     manifest: Manifest,
     manifest_path: []const u8,
     data_path_z: ?[:0]u8,
+    store_dir: []const u8,
 };
 
 pub const StorageCommands = struct {
@@ -53,6 +54,7 @@ pub const StorageCommands = struct {
             if (entry.value_ptr.data_path_z) |path_z| self.allocator.free(path_z);
             entry.value_ptr.manifest.deinit();
             self.allocator.free(entry.value_ptr.manifest_path);
+            self.allocator.free(entry.value_ptr.store_dir);
             self.allocator.free(entry.key_ptr.*);
         }
         self.stores.deinit();
@@ -71,7 +73,14 @@ pub const StorageCommands = struct {
             return;
         }
 
-        try std.fs.cwd().makePath(store_dir);
+        const store_dir_owned = try self.allocator.dupe(u8, store_dir);
+        errdefer self.allocator.free(store_dir_owned);
+
+        // data/ subfolder always exists next to manifest.json
+        const data_dir = try std.fmt.allocPrint(self.allocator, "{s}/data", .{store_dir});
+        defer self.allocator.free(data_dir);
+
+        try std.fs.cwd().makePath(data_dir);
 
         const mfst = try manifest_mod.ensureManifest(self.allocator, store_dir, store_name, store_type);
         errdefer {
@@ -83,28 +92,25 @@ pub const StorageCommands = struct {
         var handle: StoreHandle = undefined;
 
         switch (store_type) {
-            .sql => {
-                const path_z = try self.allocator.dupeZ(u8, mfst.data_location);
+            .sql, .column, .vector => {
+                const path_tmp = try std.fmt.allocPrint(self.allocator, "{s}/data.db", .{data_dir});
+                defer self.allocator.free(path_tmp);
+                const path_z = try self.allocator.dupeZ(u8, path_tmp);
                 data_path_z = path_z;
-                handle = .{ .sql = SqlEngine.init(self.allocator, path_z) };
+                switch (store_type) {
+                    .sql => handle = .{ .sql = SqlEngine.init(self.allocator, path_z) },
+                    .column => handle = .{ .column = ColumnEngine.init(self.allocator, path_z) },
+                    .vector => handle = .{ .vector = VectorEngine.init(self.allocator, path_z) },
+                    else => unreachable,
+                }
             },
             .kv => {
-                const path_z = try self.allocator.dupeZ(u8, mfst.data_location);
+                const path_z = try self.allocator.dupeZ(u8, data_dir);
                 data_path_z = path_z;
                 handle = .{ .kv = KvEngine.init(self.allocator, path_z) };
             },
-            .column => {
-                const path_z = try self.allocator.dupeZ(u8, mfst.data_location);
-                data_path_z = path_z;
-                handle = .{ .column = ColumnEngine.init(self.allocator, path_z) };
-            },
-            .vector => {
-                const path_z = try self.allocator.dupeZ(u8, mfst.data_location);
-                data_path_z = path_z;
-                handle = .{ .vector = VectorEngine.init(self.allocator, path_z) };
-            },
             .files => {
-                handle = .{ .files = FilesEngine.init(self.allocator, mfst.data_location) };
+                handle = .{ .files = FilesEngine.init(self.allocator, data_dir) };
             },
         }
 
@@ -121,17 +127,15 @@ pub const StorageCommands = struct {
         const manifest_path = try std.fmt.allocPrint(self.allocator, "{s}/manifest.json", .{store_dir});
         errdefer self.allocator.free(manifest_path);
 
+        std.debug.print("storage opened {s} type={s}\n", .{ store_key, store_type.toString() });
+
         try self.stores.put(store_key, .{
             .handle = handle,
             .manifest = mfst,
             .manifest_path = manifest_path,
             .data_path_z = data_path_z,
+            .store_dir = store_dir_owned,
         });
-
-        std.debug.print(
-            "storage opened {s} type={s} path={s}\n",
-            .{ store_key, store_type.toString(), mfst.data_location },
-        );
     }
 
     pub fn closeStore(self: *StorageCommands, store_key: []const u8) void {
@@ -149,6 +153,7 @@ pub const StorageCommands = struct {
             if (inst.data_path_z) |path_z| self.allocator.free(path_z);
             inst.manifest.deinit();
             self.allocator.free(inst.manifest_path);
+            self.allocator.free(inst.store_dir);
         }
     }
 
@@ -257,11 +262,10 @@ pub const StorageCommands = struct {
 
     pub fn createArchive(self: *StorageCommands, store_key: []const u8, output_path: []const u8) !void {
         const inst = self.stores.getPtr(store_key) orelse return error.StoreNotFound;
-        const store_dir = std.fs.path.dirname(inst.manifest.data_location) orelse return error.InvalidPath;
 
         const result = try std.process.Child.run(.{
             .allocator = self.allocator,
-            .argv = &[_][]const u8{ "tar", "czf", output_path, "-C", store_dir, "." },
+            .argv = &[_][]const u8{ "tar", "czf", output_path, "-C", inst.store_dir, "." },
         });
         self.allocator.free(result.stdout);
         self.allocator.free(result.stderr);

@@ -26,28 +26,18 @@ pub const StoreType = enum {
         if (std.mem.eql(u8, s, "FILES")) return .files;
         return null;
     }
-
-    pub fn fileExtension(self: StoreType) []const u8 {
-        return switch (self) {
-            .sql, .column, .vector => ".db",
-            .kv => ".lmdb",
-            .files => "",
-        };
-    }
 };
 
 pub const Manifest = struct {
     name: []const u8,
-    data_location: []const u8,
     version: []const u8,
     store_type: StoreType,
     migrations: std.ArrayList([]const u8),
     allocator: Allocator,
 
-    pub fn init(allocator: Allocator, name: []const u8, data_location: []const u8, store_type: StoreType) !Manifest {
+    pub fn init(allocator: Allocator, name: []const u8, store_type: StoreType) !Manifest {
         return .{
             .name = try allocator.dupe(u8, name),
-            .data_location = try allocator.dupe(u8, data_location),
             .version = try allocator.dupe(u8, "1"),
             .store_type = store_type,
             .migrations = .{},
@@ -59,7 +49,6 @@ pub const Manifest = struct {
         for (self.migrations.items) |m| self.allocator.free(m);
         self.migrations.deinit(self.allocator);
         self.allocator.free(self.name);
-        self.allocator.free(self.data_location);
         self.allocator.free(self.version);
     }
 
@@ -88,7 +77,6 @@ pub const Manifest = struct {
         const obj = parsed.value.object;
 
         const name = if (obj.get("name")) |v| try allocator.dupe(u8, v.string) else try allocator.dupe(u8, "");
-        const data_location = if (obj.get("dataLocation")) |v| try allocator.dupe(u8, v.string) else try allocator.dupe(u8, "");
         const version = if (obj.get("version")) |v| try allocator.dupe(u8, v.string) else try allocator.dupe(u8, "1");
         const type_str = if (obj.get("type")) |v| v.string else "SQL";
         const store_type = StoreType.fromString(type_str) orelse .sql;
@@ -106,7 +94,6 @@ pub const Manifest = struct {
 
         return .{
             .name = name,
-            .data_location = data_location,
             .version = version,
             .store_type = store_type,
             .migrations = migrations,
@@ -120,7 +107,7 @@ pub const Manifest = struct {
         defer buf.deinit(self.allocator);
 
         try buf.appendSlice(self.allocator, "{\n");
-        const header = try std.fmt.allocPrint(self.allocator, "  \"name\": \"{s}\",\n  \"dataLocation\": \"{s}\",\n  \"version\": \"{s}\",\n  \"type\": \"{s}\",\n  \"migrations\": [", .{ self.name, self.data_location, self.version, self.store_type.toString() });
+        const header = try std.fmt.allocPrint(self.allocator, "  \"name\": \"{s}\",\n  \"version\": \"{s}\",\n  \"type\": \"{s}\",\n  \"migrations\": [", .{ self.name, self.version, self.store_type.toString() });
         defer self.allocator.free(header);
         try buf.appendSlice(self.allocator, header);
         for (self.migrations.items, 0..) |m, i| {
@@ -142,21 +129,13 @@ pub fn ensureManifest(allocator: Allocator, dir_path: []const u8, name: []const 
     const manifest_path = try std.fmt.allocPrint(allocator, "{s}/manifest.json", .{dir_path});
     defer allocator.free(manifest_path);
 
-    const data_ext = store_type.fileExtension();
-    const data_location = if (store_type == .files)
-        try std.fmt.allocPrint(allocator, "{s}/data", .{dir_path})
-    else
-        try std.fmt.allocPrint(allocator, "{s}/data{s}", .{ dir_path, data_ext });
-    defer allocator.free(data_location);
-
     // Try loading existing
     if (Manifest.load(allocator, manifest_path)) |manifest| {
         return manifest;
     } else |_| {
         // Create new
         std.fs.cwd().makePath(dir_path) catch {};
-
-        var manifest = try Manifest.init(allocator, name, data_location, store_type);
+        var manifest = try Manifest.init(allocator, name, store_type);
         try manifest.save(manifest_path);
         return manifest;
     }

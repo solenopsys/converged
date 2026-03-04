@@ -42,6 +42,33 @@ const STORAGE_RESOURCES: Resources = {
   limits: { cpu: "500m", memory: "512Mi" },
 };
 
+function buildStorageContainer(dataClaimName: string) {
+  return {
+    name: "storage",
+    image: storageImageUri(),
+    imagePullPolicy: HELM_STORAGE_PULL_POLICY,
+    restartPolicy: "Always",
+    command: [STORAGE_BIN_PATH, "start", "--data-dir", DATA_MOUNT, "--socket", STORAGE_SOCKET_PATH],
+    resources: toK8sResources(STORAGE_RESOURCES),
+    readinessProbe: {
+      exec: { command: ["sh", "-c", `[ -S ${STORAGE_SOCKET_PATH} ]`] },
+      initialDelaySeconds: 1,
+      periodSeconds: 1,
+      failureThreshold: 60,
+    },
+    securityContext: {
+      allowPrivilegeEscalation: false,
+      privileged: false,
+      readOnlyRootFilesystem: false,
+      runAsNonRoot: false,
+    },
+    volumeMounts: [
+      { name: dataClaimName, mountPath: DATA_MOUNT },
+      { name: "storage-socket", mountPath: STORAGE_SOCKET_DIR },
+    ],
+  };
+}
+
 function uiImageUri(): string {
   return `${HELM_UI_IMAGE}:${HELM_UI_TAG}`;
 }
@@ -334,6 +361,7 @@ class WorkloadBuilder {
         template: {
           metadata: { labels: podLabels },
           spec: {
+            initContainers: [buildStorageContainer(dataClaimName)],
             containers: [
               {
                 name: "services",
@@ -358,33 +386,6 @@ class WorkloadBuilder {
                     mountPath: CONFIG_MOUNT,
                     readOnly: true,
                   },
-                  {
-                    name: "storage-socket",
-                    mountPath: STORAGE_SOCKET_DIR,
-                  },
-                ],
-              },
-              {
-                name: "storage",
-                image: storageImageUri(),
-                imagePullPolicy: HELM_STORAGE_PULL_POLICY,
-                command: [
-                  STORAGE_BIN_PATH,
-                  "start",
-                  "--data-dir",
-                  DATA_MOUNT,
-                  "--socket",
-                  STORAGE_SOCKET_PATH,
-                ],
-                resources: toK8sResources(STORAGE_RESOURCES),
-                securityContext: {
-                  allowPrivilegeEscalation: false,
-                  privileged: false,
-                  readOnlyRootFilesystem: false,
-                  runAsNonRoot: false,
-                },
-                volumeMounts: [
-                  { name: dataClaimName, mountPath: DATA_MOUNT },
                   {
                     name: "storage-socket",
                     mountPath: STORAGE_SOCKET_DIR,
@@ -494,6 +495,7 @@ class WorkloadBuilder {
         template: {
           metadata: { labels: podLabels },
           spec: {
+            initContainers: [buildStorageContainer(dataClaimName)],
             containers: [
               {
                 name: "ui",
@@ -541,33 +543,6 @@ class WorkloadBuilder {
                     mountPath: CONFIG_MOUNT,
                     readOnly: true,
                   },
-                  {
-                    name: "storage-socket",
-                    mountPath: STORAGE_SOCKET_DIR,
-                  },
-                ],
-              },
-              {
-                name: "storage",
-                image: storageImageUri(),
-                imagePullPolicy: HELM_STORAGE_PULL_POLICY,
-                command: [
-                  STORAGE_BIN_PATH,
-                  "start",
-                  "--data-dir",
-                  DATA_MOUNT,
-                  "--socket",
-                  STORAGE_SOCKET_PATH,
-                ],
-                resources: toK8sResources(STORAGE_RESOURCES),
-                securityContext: {
-                  allowPrivilegeEscalation: false,
-                  privileged: false,
-                  readOnlyRootFilesystem: false,
-                  runAsNonRoot: false,
-                },
-                volumeMounts: [
-                  { name: dataClaimName, mountPath: DATA_MOUNT },
                   {
                     name: "storage-socket",
                     mountPath: STORAGE_SOCKET_DIR,
