@@ -85,17 +85,19 @@ export class ShedullerServiceImpl implements ShedullerService {
     return Promise.resolve(listProviderDefinitions());
   }
 
-  listHistory(params: CronHistoryListParams): Promise<PaginatedResult<CronHistoryEntry>> {
-    return Promise.resolve(this.stores.history.list(params));
+  async listHistory(params: CronHistoryListParams): Promise<PaginatedResult<CronHistoryEntry>> {
+    return this.stores.history.list(params);
   }
 
-  getStats(): Promise<ShedullerStats> {
-    const crons = this.stores.crons.list({ offset: 0, limit: 0 });
-    const history = this.stores.history.list({ offset: 0, limit: 0 });
-    return Promise.resolve({
+  async getStats(): Promise<ShedullerStats> {
+    const [crons, history] = await Promise.all([
+      Promise.resolve(this.stores.crons.list({ offset: 0, limit: 0 })),
+      this.stores.history.list({ offset: 0, limit: 0 }),
+    ]);
+    return {
       crons: crons.totalCount ?? 0,
       history: history.totalCount ?? 0,
-    });
+    };
   }
 
   private assertInput(input: CronInput) {
@@ -164,7 +166,7 @@ export class ShedullerServiceImpl implements ShedullerService {
       console.error(`[sheduller] provider error: id=${entry.id} name="${entry.name}"`, err);
     }
 
-    this.stores.history.record({
+    void this.stores.history.record({
       cronId: entry.id,
       cronName: entry.name,
       provider: entry.provider,
