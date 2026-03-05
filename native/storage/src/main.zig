@@ -7,7 +7,11 @@ const Telemetry = @import("telemetry.zig").Telemetry;
 const StorageCommands = commands.StorageCommands;
 const with_transport = build_options.with_transport;
 const server = if (with_transport) @import("server.zig") else struct {
-    pub fn start(_: std.mem.Allocator, _: []const u8, _: []const u8) !void {
+    pub const BindConfig = union(enum) {
+        unix: []const u8,
+        tcp: struct { host: []const u8, port: u16 },
+    };
+    pub fn start(_: std.mem.Allocator, _: []const u8, _: BindConfig) !void {
         return error.TransportDisabled;
     }
 };
@@ -75,9 +79,12 @@ pub fn main() !void {
             printError("start is disabled in this build (transport=false)");
             return;
         }
-        const socket_path = try getSocketPath(allocator, args, data_dir);
-        defer allocator.free(socket_path);
-        try server.start(allocator, data_dir, socket_path);
+        const bind_cfg = try getBindConfig(allocator, args, data_dir);
+        defer switch (bind_cfg) {
+            .unix => |p| allocator.free(p),
+            .tcp  => |t| allocator.free(t.host),
+        };
+        try server.start(allocator, data_dir, bind_cfg);
         return;
     }
 
@@ -173,13 +180,20 @@ fn getDataDir(args: []const []const u8) []const u8 {
     return std.posix.getenv("DATA_DIR") orelse "./data";
 }
 
-fn getSocketPath(allocator: std.mem.Allocator, args: []const []const u8, data_dir: []const u8) ![]u8 {
+fn getBindConfig(allocator: std.mem.Allocator, args: []const []const u8, data_dir: []const u8) !server.BindConfig {
     for (args, 0..) |arg, i| {
         if (std.mem.eql(u8, arg, "--socket") and i + 1 < args.len) {
-            return allocator.dupe(u8, args[i + 1]);
+            return .{ .unix = try allocator.dupe(u8, args[i + 1]) };
+        }
+        if (std.mem.eql(u8, arg, "--tcp") and i + 1 < args.len) {
+            const addr = args[i + 1];
+            const colon = std.mem.lastIndexOf(u8, addr, ":") orelse return error.InvalidTcpAddress;
+            const host = try allocator.dupe(u8, addr[0..colon]);
+            const port = std.fmt.parseUnsigned(u16, addr[colon + 1 ..], 10) catch return error.InvalidTcpPort;
+            return .{ .tcp = .{ .host = host, .port = port } };
         }
     }
-    return std.fmt.allocPrint(allocator, "{s}/storage.sock", .{data_dir});
+    return .{ .unix = try std.fmt.allocPrint(allocator, "{s}/storage.sock", .{data_dir}) };
 }
 
 fn printUsage() void {
@@ -188,7 +202,7 @@ fn printUsage() void {
             \\storage - native storage engine
             \\
             \\usage: storage <command> [args...] [--data-dir <path>]
-            \\       storage start [--data-dir <path>] [--socket <path>]
+            \\       storage start [--data-dir <path>] [--socket <path>|--tcp <host>:<port>]
             \\
             \\commands:
             \\  start                                  (unix socket json server)

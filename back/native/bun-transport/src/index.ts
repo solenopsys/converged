@@ -6,13 +6,14 @@ import { dirname, join } from "path";
 
 const SYMBOLS = {
   // Socket
-  transport_connect:  { args: [FFIType.cstring],              returns: FFIType.i32 },
-  transport_set_timeout_ms: { args: [FFIType.i32, FFIType.u32], returns: FFIType.i32 },
-  transport_listen:   { args: [FFIType.cstring],              returns: FFIType.i32 },
-  transport_accept:   { args: [FFIType.i32],                  returns: FFIType.i32 },
-  transport_close:    { args: [FFIType.i32],                  returns: FFIType.void },
-  transport_send_req: { args: [FFIType.i32, FFIType.ptr],     returns: FFIType.i32 },
-  transport_recv_resp:{ args: [FFIType.i32],                  returns: FFIType.ptr },
+  transport_connect:      { args: [FFIType.cstring],                returns: FFIType.i32 },
+  transport_connect_tcp:  { args: [FFIType.cstring, FFIType.u16],   returns: FFIType.i32 },
+  transport_set_timeout_ms: { args: [FFIType.i32, FFIType.u32],     returns: FFIType.i32 },
+  transport_listen:       { args: [FFIType.cstring],                returns: FFIType.i32 },
+  transport_accept:       { args: [FFIType.i32],                    returns: FFIType.i32 },
+  transport_close:        { args: [FFIType.i32],                    returns: FFIType.void },
+  transport_send_req:     { args: [FFIType.i32, FFIType.ptr],       returns: FFIType.i32 },
+  transport_recv_resp:    { args: [FFIType.i32],                    returns: FFIType.ptr },
 
   // Request builders
   transport_req_ping:       { args: [],                                                         returns: FFIType.ptr },
@@ -97,6 +98,24 @@ export type StorageTransportErrorCode =
   | "REMOTE_ERROR"
   | "DECODE_JSON_ERROR";
 
+// ── Connection config ─────────────────────────────────────────────────────────
+
+/** Unix domain socket connection. */
+export interface UnixSocketConfig {
+  kind: "unix";
+  socketPath: string;
+}
+
+/** TCP socket connection. */
+export interface TcpSocketConfig {
+  kind: "tcp";
+  host: string;
+  port: number;
+}
+
+/** Pass this (or a plain socket-path string) to StorageConnection. */
+export type StorageConnectionConfig = UnixSocketConfig | TcpSocketConfig;
+
 export class StorageTransportError extends Error {
   readonly code: StorageTransportErrorCode;
   readonly socketPath?: string;
@@ -142,39 +161,81 @@ export interface StorageConnectionOptions {
 
 export class StorageConnection {
   private fd: number = -1;
+  /** For Unix: filesystem path. For TCP: "host:port". Used in error messages. */
   private readonly socketPath: string;
 
-  constructor(socketPath: string, options?: StorageConnectionOptions) {
-    this.socketPath = socketPath;
-    this.validateSocketPath(socketPath);
+  /**
+   * Connect to storage.
+   *
+   * @param config  - Unix socket path string (legacy) OR a {@link StorageConnectionConfig}.
+   * @param options - Optional timeout settings.
+   *
+   * @example Unix socket (legacy string form):
+   *   new StorageConnection("/run/storage.sock")
+   *
+   * @example Unix socket (config form):
+   *   new StorageConnection({ kind: "unix", socketPath: "/run/storage.sock" })
+   *
+   * @example TCP:
+   *   new StorageConnection({ kind: "tcp", host: "127.0.0.1", port: 9000 })
+   */
+  constructor(config: string | StorageConnectionConfig, options?: StorageConnectionOptions) {
+    const cfg: StorageConnectionConfig =
+      typeof config === "string" ? { kind: "unix", socketPath: config } : config;
 
-    if (!existsSync(socketPath)) {
-      throw new StorageTransportError(
-        "SOCKET_NOT_FOUND",
-        `storage socket not found: ${socketPath}`,
-        { socketPath },
-      );
-    }
+    if (cfg.kind === "unix") {
+      this.socketPath = cfg.socketPath;
+      this.validateSocketPath(cfg.socketPath);
 
-    const pathBuf = Buffer.from(socketPath + "\0");
-    let fd: number;
-    try {
-      fd = s.transport_connect(ptr(pathBuf)) as number;
-    } catch (cause) {
-      throw new StorageTransportError(
-        "CONNECT_EXCEPTION",
-        `transport_connect threw an exception for socket: ${socketPath}`,
-        { socketPath, cause },
-      );
+      if (!existsSync(cfg.socketPath)) {
+        throw new StorageTransportError(
+          "SOCKET_NOT_FOUND",
+          `storage socket not found: ${cfg.socketPath}`,
+          { socketPath: cfg.socketPath },
+        );
+      }
+
+      const pathBuf = Buffer.from(cfg.socketPath + "\0");
+      let fd: number;
+      try {
+        fd = s.transport_connect(ptr(pathBuf)) as number;
+      } catch (cause) {
+        throw new StorageTransportError(
+          "CONNECT_EXCEPTION",
+          `transport_connect threw an exception for socket: ${cfg.socketPath}`,
+          { socketPath: cfg.socketPath, cause },
+        );
+      }
+      if (fd < 0) {
+        throw new StorageTransportError(
+          "CONNECT_FAILED",
+          `transport_connect failed: ${fd} (socket: ${cfg.socketPath})`,
+          { socketPath: cfg.socketPath },
+        );
+      }
+      this.fd = fd;
+    } else {
+      this.socketPath = `${cfg.host}:${cfg.port}`;
+      const hostBuf = Buffer.from(cfg.host + "\0");
+      let fd: number;
+      try {
+        fd = s.transport_connect_tcp(ptr(hostBuf), cfg.port) as number;
+      } catch (cause) {
+        throw new StorageTransportError(
+          "CONNECT_EXCEPTION",
+          `transport_connect_tcp threw an exception for ${this.socketPath}`,
+          { socketPath: this.socketPath, cause },
+        );
+      }
+      if (fd < 0) {
+        throw new StorageTransportError(
+          "CONNECT_FAILED",
+          `transport_connect_tcp failed: ${fd} (${this.socketPath})`,
+          { socketPath: this.socketPath },
+        );
+      }
+      this.fd = fd;
     }
-    if (fd < 0) {
-      throw new StorageTransportError(
-        "CONNECT_FAILED",
-        `transport_connect failed: ${fd} (socket: ${socketPath})`,
-        { socketPath },
-      );
-    }
-    this.fd = fd;
 
     if (options?.operationTimeoutMs !== undefined) {
       let rc: number;
@@ -184,16 +245,16 @@ export class StorageConnection {
         this.close();
         throw new StorageTransportError(
           "SET_TIMEOUT_EXCEPTION",
-          `transport_set_timeout_ms threw an exception (socket: ${socketPath})`,
-          { socketPath, cause },
+          `transport_set_timeout_ms threw an exception (${this.socketPath})`,
+          { socketPath: this.socketPath, cause },
         );
       }
       if (rc !== 0) {
         this.close();
         throw new StorageTransportError(
           "SET_TIMEOUT_FAILED",
-          `transport_set_timeout_ms failed: ${rc} (socket: ${socketPath})`,
-          { socketPath },
+          `transport_set_timeout_ms failed: ${rc} (${this.socketPath})`,
+          { socketPath: this.socketPath },
         );
       }
     }

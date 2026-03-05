@@ -24,39 +24,74 @@ const ClientContext = struct {
     fd: std.posix.fd_t,
 };
 
-pub fn start(allocator: Allocator, data_dir: []const u8, socket_path: []const u8) !void {
-    try std.fs.cwd().makePath(data_dir);
-    try ensureSocketParent(socket_path);
-    installSignalHandlers();
-    shutdown_requested.store(false, .seq_cst);
+/// Transport binding configuration — choose Unix domain socket or TCP.
+pub const BindConfig = union(enum) {
+    unix: []const u8,
+    tcp: struct { host: []const u8, port: u16 },
+};
 
+fn createUnixServer(socket_path: []const u8) !std.posix.fd_t {
+    try ensureSocketParent(socket_path);
     std.posix.unlink(socket_path) catch |err| switch (err) {
         error.FileNotFound => {},
         else => return err,
     };
-
-    const server_fd = try std.posix.socket(
+    const fd = try std.posix.socket(
         std.posix.AF.UNIX,
         std.posix.SOCK.STREAM | std.posix.SOCK.NONBLOCK,
         0,
     );
-    defer std.posix.close(server_fd);
-    defer std.posix.unlink(socket_path) catch {};
-
+    errdefer std.posix.close(fd);
     var addr: std.posix.sockaddr.un = std.mem.zeroes(std.posix.sockaddr.un);
     addr.family = std.posix.AF.UNIX;
     if (socket_path.len + 1 > addr.path.len) return error.SocketPathTooLong;
     @memcpy(addr.path[0..socket_path.len], socket_path);
     addr.path[socket_path.len] = 0;
+    try std.posix.bind(fd, @ptrCast(&addr), @sizeOf(std.posix.sockaddr.un));
+    try std.posix.listen(fd, 128);
+    return fd;
+}
 
-    try std.posix.bind(server_fd, @ptrCast(&addr), @sizeOf(std.posix.sockaddr.un));
-    try std.posix.listen(server_fd, 128);
+fn createTcpServer(host: []const u8, port: u16) !std.posix.fd_t {
+    const fd = try std.posix.socket(
+        std.posix.AF.INET,
+        std.posix.SOCK.STREAM | std.posix.SOCK.NONBLOCK,
+        std.posix.IPPROTO.TCP,
+    );
+    errdefer std.posix.close(fd);
+    const one: c_int = 1;
+    try std.posix.setsockopt(fd, std.posix.SOL.SOCKET, std.posix.SO.REUSEADDR, std.mem.asBytes(&one));
+    const ip4 = try std.net.Address.parseIp4(host, port);
+    try std.posix.bind(fd, &ip4.any, ip4.getOsSockLen());
+    try std.posix.listen(fd, 128);
+    return fd;
+}
+
+pub fn start(allocator: Allocator, data_dir: []const u8, cfg: BindConfig) !void {
+    try std.fs.cwd().makePath(data_dir);
+    installSignalHandlers();
+    shutdown_requested.store(false, .seq_cst);
+
+    const server_fd: std.posix.fd_t = switch (cfg) {
+        .unix => |path| try createUnixServer(path),
+        .tcp  => |t|    try createTcpServer(t.host, t.port),
+    };
+    defer std.posix.close(server_fd);
+    // Remove unix socket file on exit; nothing to clean up for TCP.
+    const unix_path: ?[]const u8 = switch (cfg) {
+        .unix => |p| p,
+        .tcp  => null,
+    };
+    defer if (unix_path) |p| std.posix.unlink(p) catch {};
 
     var commands = StorageCommands.init(allocator, data_dir);
     defer commands.deinit();
     try autoOpenStores(allocator, &commands, data_dir);
 
-    std.debug.print("storage server listening on {s}\n", .{socket_path});
+    switch (cfg) {
+        .unix => |path| std.debug.print("storage server listening on unix:{s}\n", .{path}),
+        .tcp  => |t|    std.debug.print("storage server listening on tcp:{s}:{d}\n", .{ t.host, t.port }),
+    }
 
     active_clients.store(0, .seq_cst);
 

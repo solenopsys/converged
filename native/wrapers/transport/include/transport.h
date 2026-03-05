@@ -101,6 +101,40 @@ const char* transport_resp_manifest_migration_at(TransportResponse* resp, uint32
 /* Free a buffer returned by this library */
 void transport_free_buf(uint8_t* buf, size_t len);
 
+/* ── Socket / transport init ───────────────────────────────────────────────── */
+
+typedef enum {
+    TRANSPORT_KIND_UNIX = 0,  /* Unix domain socket; addr = filesystem path */
+    TRANSPORT_KIND_TCP  = 1,  /* TCP socket;          addr = IPv4 host      */
+} TransportKind;
+
+typedef struct {
+    TransportKind   kind;
+    const char*     addr;   /* path (unix) or host (tcp) */
+    uint16_t        port;   /* tcp only; ignored for unix */
+} TransportConfig;
+
+/* Connect using the config.  Returns fd >= 0 on success, -1 on error. */
+int32_t transport_connect_cfg(const TransportConfig* cfg);
+
+/* Listen/bind using the config.  Returns server fd >= 0 on success, -1 on error. */
+int32_t transport_listen_cfg(const TransportConfig* cfg);
+
+/* Low-level helpers (still available for direct use) */
+int32_t transport_connect(const char* unix_path);
+int32_t transport_listen(const char* unix_path);
+int32_t transport_connect_tcp(const char* host, uint16_t port);
+int32_t transport_listen_tcp(const char* host, uint16_t port);
+int32_t transport_set_timeout_ms(int32_t fd, uint32_t timeout_ms);
+int32_t transport_accept(int32_t server_fd);
+void    transport_close(int32_t fd);
+
+/* Send an encoded request over fd.  Returns 0 ok, -1 encode err, -2 send err. */
+int32_t transport_send_req(int32_t fd, TransportRequest* req);
+
+/* Receive and decode a response from fd.  Caller must free with transport_resp_free(). */
+TransportResponse* transport_recv_resp(int32_t fd);
+
 /* ── Server-side: decode incoming request ──────────────────────────────────── */
 
 typedef struct TransportRequestReader TransportRequestReader;

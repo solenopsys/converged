@@ -56,6 +56,25 @@ pub const transport_resp_manifest_migration_count = c.transport_resp_manifest_mi
 pub const transport_resp_manifest_migration_at    = c.transport_resp_manifest_migration_at;
 pub const transport_free_buf            = c.transport_free_buf;
 
+// ── Transport config ──────────────────────────────────────────────────────────
+
+/// Socket kind used in TransportConfig.
+/// 0 = Unix domain socket (addr is filesystem path).
+/// 1 = TCP socket         (addr is IPv4 host string, port is used).
+pub const TransportKind = enum(c_int) { unix = 0, tcp = 1 };
+
+/// Configuration passed to transport_connect_cfg / transport_listen_cfg.
+/// Extern layout so it is usable directly from C / TypeScript N-API.
+pub const TransportConfig = extern struct {
+    /// Socket variant: 0 = unix, 1 = tcp.
+    kind: TransportKind,
+    /// Unix: filesystem path (e.g. "/run/storage.sock").
+    /// TCP:  IPv4 host       (e.g. "127.0.0.1").
+    addr: [*:0]const u8,
+    /// TCP only.  Ignored for unix sockets.
+    port: u16,
+};
+
 // ── Unix socket transport (added on top of capnp encode/decode) ───────────────
 
 /// Connect to a storage Unix socket.  Returns fd or -1 on error.
@@ -75,6 +94,36 @@ pub export fn transport_set_timeout_ms(fd: i32, timeout_ms: u32) i32 {
 pub export fn transport_listen(path: [*:0]const u8) i32 {
     const fd = socket.listen(path) catch return -1;
     return @intCast(fd);
+}
+
+/// Connect to a TCP server at host:port.  Returns fd or -1 on error.
+pub export fn transport_connect_tcp(host: [*:0]const u8, port: u16) i32 {
+    const fd = socket.connectTcp(host, port) catch return -1;
+    return @intCast(fd);
+}
+
+/// Create a TCP server socket bound to host:port.  Returns fd or -1 on error.
+pub export fn transport_listen_tcp(host: [*:0]const u8, port: u16) i32 {
+    const fd = socket.listenTcp(host, port) catch return -1;
+    return @intCast(fd);
+}
+
+/// Config-based connect: selects unix or tcp based on cfg.kind.
+/// Returns fd or -1 on error.
+pub export fn transport_connect_cfg(cfg: *const TransportConfig) i32 {
+    return switch (cfg.kind) {
+        .unix => transport_connect(cfg.addr),
+        .tcp  => transport_connect_tcp(cfg.addr, cfg.port),
+    };
+}
+
+/// Config-based listen: selects unix or tcp based on cfg.kind.
+/// Returns server fd or -1 on error.
+pub export fn transport_listen_cfg(cfg: *const TransportConfig) i32 {
+    return switch (cfg.kind) {
+        .unix => transport_listen(cfg.addr),
+        .tcp  => transport_listen_tcp(cfg.addr, cfg.port),
+    };
 }
 
 /// Accept next client (blocking).  Returns client fd, -1 on would-block, -2 on error.
