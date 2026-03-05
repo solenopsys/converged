@@ -60,6 +60,11 @@ const SYMBOLS = {
   transport_resp_manifest_version:          { args: [FFIType.ptr], returns: FFIType.u32 },
   transport_resp_manifest_migration_count:  { args: [FFIType.ptr], returns: FFIType.u32 },
   transport_resp_manifest_migration_at:     { args: [FFIType.ptr, FFIType.u32], returns: FFIType.ptr },
+  // KV pairs
+  transport_resp_pair_count:     { args: [FFIType.ptr], returns: FFIType.u32 },
+  transport_resp_pair_key_at:    { args: [FFIType.ptr, FFIType.u32], returns: FFIType.ptr },
+  transport_resp_pair_value_ptr: { args: [FFIType.ptr, FFIType.u32], returns: FFIType.ptr },
+  transport_resp_pair_value_len: { args: [FFIType.ptr, FFIType.u32], returns: FFIType.u64 },
 } as const;
 
 function getLibPath(): string {
@@ -341,7 +346,13 @@ export class StorageConnection {
   kvList(ms: string, store: string, prefix = ""): string[] {
     const req  = s.transport_req_kv_list(cstr(ms), cstr(store), cstr(prefix)) as number;
     const resp = this.sendRecv(req);
-    return resp.keys();
+    return resp.pairs().map(p => p.key);
+  }
+
+  kvGetRange(ms: string, store: string, prefix = ""): Buffer[] {
+    const req  = s.transport_req_kv_list(cstr(ms), cstr(store), cstr(prefix)) as number;
+    const resp = this.sendRecv(req);
+    return resp.pairs().map(p => p.value);
   }
 
   // ── Files ────────────────────────────────────────────────────────────────
@@ -485,6 +496,21 @@ class Response {
     const result = Array.from({ length: count }, (_, i) =>
       readCStr(s.transport_resp_key_at(this.handle, i))
     );
+    this.free();
+    return result;
+  }
+
+  pairs(): Array<{ key: string; value: Buffer }> {
+    const count = s.transport_resp_pair_count(this.handle) as number;
+    const result: Array<{ key: string; value: Buffer }> = [];
+    for (let i = 0; i < count; i++) {
+      const key    = readCStr(s.transport_resp_pair_key_at(this.handle, i));
+      const valPtr = Number(s.transport_resp_pair_value_ptr(this.handle, i) as bigint);
+      const valLen = Number(s.transport_resp_pair_value_len(this.handle, i) as bigint);
+      const value  = Buffer.allocUnsafe(valLen);
+      for (let j = 0; j < valLen; j++) value[j] = read.u8(valPtr, j);
+      result.push({ key, value });
+    }
     this.free();
     return result;
   }

@@ -53,38 +53,40 @@ pub const KvEngine = struct {
         return try db.hasKey(key);
     }
 
-    /// List keys with prefix, return as JSON array
-    pub fn listKeysJson(self: *KvEngine, prefix: []const u8, tel: *Telemetry) ![]u8 {
+    pub const Pair = struct {
+        key: []const u8,
+        value: []const u8,
+    };
+
+    /// Prefix scan — one LMDB pass returning key+value pairs.
+    /// Caller owns the returned slice and each pair's key/value and must free them.
+    pub fn getRange(self: *KvEngine, prefix: []const u8, tel: *Telemetry) ![]Pair {
         var db = self.db orelse return error.NotOpen;
         var cursor = try db.openCursor();
         defer lmdbx.Database.closeCursor(cursor);
 
-        var result: std.ArrayList(u8) = .{};
-        errdefer result.deinit(self.allocator);
-        const writer = result.writer(self.allocator);
-        try writer.writeByte('[');
+        var pairs: std.ArrayList(Pair) = .{};
+        errdefer {
+            for (pairs.items) |p| {
+                self.allocator.free(p.key);
+                self.allocator.free(p.value);
+            }
+            pairs.deinit(self.allocator);
+        }
 
-        var idx: usize = 0;
         var entry = try cursor.seekPrefix(self.allocator, prefix);
         while (entry) |e| {
-            // Check prefix match
-            if (e.key.len < prefix.len or !std.mem.eql(u8, e.key[0..prefix.len], prefix)) break;
-
-            if (idx > 0) try writer.writeByte(',');
-            try writer.writeByte('"');
-            try writer.writeAll(e.key);
-            try writer.writeByte('"');
-            idx += 1;
-
-            self.allocator.free(e.key);
-            self.allocator.free(e.value);
-
+            if (e.key.len < prefix.len or !std.mem.eql(u8, e.key[0..prefix.len], prefix)) {
+                self.allocator.free(e.key);
+                self.allocator.free(e.value);
+                break;
+            }
+            tel.addRead(e.value.len);
+            try pairs.append(self.allocator, .{ .key = e.key, .value = e.value });
             entry = try cursor.next(self.allocator);
         }
 
-        try writer.writeByte(']');
-        tel.addRead(result.items.len);
-        return result.toOwnedSlice(self.allocator);
+        return pairs.toOwnedSlice(self.allocator);
     }
 
     pub fn flush(self: *KvEngine) !void {

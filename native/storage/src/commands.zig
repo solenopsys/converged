@@ -206,6 +206,14 @@ pub const StorageCommands = struct {
         };
     }
 
+    pub fn kvGetRange(self: *StorageCommands, store_key: []const u8, prefix: []const u8, tel: *Telemetry) ![]KvEngine.Pair {
+        const inst = self.stores.getPtr(store_key) orelse return error.StoreNotFound;
+        return switch (inst.handle) {
+            .kv => |*e| try e.getRange(prefix, tel),
+            else => return error.UnsupportedOperation,
+        };
+    }
+
     pub fn kvDelete(self: *StorageCommands, store_key: []const u8, key: []const u8, tel: *Telemetry) !void {
         const inst = self.stores.getPtr(store_key) orelse return error.StoreNotFound;
         switch (inst.handle) {

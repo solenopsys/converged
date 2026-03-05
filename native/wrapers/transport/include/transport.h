@@ -160,6 +160,16 @@ int32_t transport_encode_manifest(uint8_t** out, size_t* out_len, TelemetryC tel
                                   const char* name, uint8_t store_type, uint32_t version,
                                   const char** migrations, uint32_t mig_count);
 
+/* KV pairs (key+value list from prefix scan) */
+int32_t transport_encode_kv_pairs(uint8_t** out, size_t* out_len, TelemetryC tel,
+                                  const char** keys, const size_t* key_lens,
+                                  const uint8_t** values, const size_t* value_lens,
+                                  uint32_t count);
+uint32_t       transport_resp_pair_count(TransportResponse* resp);
+const char*    transport_resp_pair_key_at(TransportResponse* resp, uint32_t i);
+const uint8_t* transport_resp_pair_value_ptr(TransportResponse* resp, uint32_t i);
+size_t         transport_resp_pair_value_len(TransportResponse* resp, uint32_t i);
+
 #ifdef __cplusplus
 }
 #endif

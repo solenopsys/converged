@@ -152,8 +152,9 @@ export class KVStore implements KVStoreIntf, Store {
 
   getValuesRangeAsArrayByRange(start: string, end: string): any[] {
     if (this.mode === "transport") {
-      const keys = this.getKeysWithRange(start, end);
-      return keys.map((key) => this.getDirect(key));
+      const prefix = this.extractPrefix(start, end);
+      const rawValues = this.conn!.kvGetRange(this.ms!, this.storeName!, prefix);
+      return rawValues.map((buf) => this.deserializeValue(buf));
     }
 
     const values: any[] = [];

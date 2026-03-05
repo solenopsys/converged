@@ -296,8 +296,39 @@ fn dispatch(
             return encodeFound(tel, 1, &[_]u8{});
         },
         c.REQ_KV_LIST => {
-            tel.op_count += 1;
-            return encodeKeys(tel, &[_][*:0]const u8{});
+            const prefix = std.mem.span(c.transport_req_reader_prefix(reader));
+            const pairs = try commands.kvGetRange(store_key, prefix, &tel);
+            defer {
+                for (pairs) |p| {
+                    allocator.free(p.key);
+                    allocator.free(p.value);
+                }
+                allocator.free(pairs);
+            }
+            const n = pairs.len;
+            const key_ptrs = try allocator.alloc([*c]const u8, n);
+            defer allocator.free(key_ptrs);
+            const key_lens = try allocator.alloc(usize, n);
+            defer allocator.free(key_lens);
+            const val_ptrs = try allocator.alloc([*c]const u8, n);
+            defer allocator.free(val_ptrs);
+            const val_lens = try allocator.alloc(usize, n);
+            defer allocator.free(val_lens);
+            for (pairs, 0..) |p, i| {
+                key_ptrs[i] = p.key.ptr;
+                key_lens[i] = p.key.len;
+                val_ptrs[i] = p.value.ptr;
+                val_lens[i] = p.value.len;
+            }
+            var out_p: ?[*]u8 = null;
+            var out_l: usize = 0;
+            _ = c.transport_encode_kv_pairs(
+                &out_p, &out_l, telC(tel),
+                @ptrCast(key_ptrs.ptr), @ptrCast(key_lens.ptr),
+                @ptrCast(val_ptrs.ptr), @ptrCast(val_lens.ptr),
+                @intCast(n),
+            );
+            return .{ .ptr = out_p, .len = out_l };
         },
         c.REQ_FILE_LIST => {
             tel.op_count += 1;

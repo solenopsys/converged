@@ -76,6 +76,12 @@ struct Response {
     found    @8  :FoundData;
     affected @9  :Int64;
     search   @10 :List(SearchResult);
+    pairs    @11 :List(KvPair);
+  }
+
+  struct KvPair {
+    key   @0 :Text;
+    value @1 :Data;
   }
 
   struct Row {

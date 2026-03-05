@@ -349,6 +349,32 @@ extern "C" const char* transport_resp_manifest_migration_at(TransportResponse* r
     return migs[i].cStr();
 }
 
+extern "C" uint32_t transport_resp_pair_count(TransportResponse* resp) {
+    if (!resp || resp->resp.getResult().which() != Response::Result::PAIRS) return 0;
+    return resp->resp.getResult().getPairs().size();
+}
+
+extern "C" const char* transport_resp_pair_key_at(TransportResponse* resp, uint32_t i) {
+    if (!resp || resp->resp.getResult().which() != Response::Result::PAIRS) return nullptr;
+    auto pairs = resp->resp.getResult().getPairs();
+    if (i >= pairs.size()) return nullptr;
+    return pairs[i].getKey().cStr();
+}
+
+extern "C" const uint8_t* transport_resp_pair_value_ptr(TransportResponse* resp, uint32_t i) {
+    if (!resp || resp->resp.getResult().which() != Response::Result::PAIRS) return nullptr;
+    auto pairs = resp->resp.getResult().getPairs();
+    if (i >= pairs.size()) return nullptr;
+    return reinterpret_cast<const uint8_t*>(pairs[i].getValue().begin());
+}
+
+extern "C" size_t transport_resp_pair_value_len(TransportResponse* resp, uint32_t i) {
+    if (!resp || resp->resp.getResult().which() != Response::Result::PAIRS) return 0;
+    auto pairs = resp->resp.getResult().getPairs();
+    if (i >= pairs.size()) return 0;
+    return pairs[i].getValue().size();
+}
+
 extern "C" void transport_free_buf(uint8_t* buf, size_t /*len*/) { free(buf); }
 
 // ── Server-side: decode incoming request ──────────────────────────────────────
@@ -529,5 +555,21 @@ extern "C" int32_t transport_encode_manifest(uint8_t** out, size_t* out_len, Tel
     m.setVersion(version);
     auto migs = m.initMigrations(mig_count);
     for (uint32_t i = 0; i < mig_count; i++) migs.set(i, migrations[i] ? migrations[i] : "");
+    return encodeResponse(msg, out, out_len);
+}
+
+extern "C" int32_t transport_encode_kv_pairs(uint8_t** out, size_t* out_len, TelemetryC tel,
+                                              const char** keys, const size_t* key_lens,
+                                              const uint8_t** values, const size_t* value_lens,
+                                              uint32_t count) {
+    capnp::MallocMessageBuilder msg;
+    auto resp  = msg.initRoot<Response>();
+    setTelemetry(resp, tel);
+    auto pList = resp.getResult().initPairs(count);
+    for (uint32_t i = 0; i < count; i++) {
+        auto p = pList[i];
+        p.setKey(kj::StringPtr(keys[i], key_lens[i]));
+        p.setValue(kj::arrayPtr(reinterpret_cast<const kj::byte*>(values[i]), value_lens[i]));
+    }
     return encodeResponse(msg, out, out_len);
 }
