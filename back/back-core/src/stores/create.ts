@@ -6,6 +6,7 @@ import { ColumnStore } from "../engines/column/column-store";
 import { VectorStore } from "../engines/vector/vector-store";
 import { StoreType } from "./types";
 import { Store } from "./types";
+import type { StoreSizeInfo } from "./types";
 import { Migration } from "../migrations";
 
 const STORAGE_SOCKET_PATH =
@@ -154,6 +155,57 @@ export abstract class StoreControllerAbstract {
   ): Promise<Store> {
     this.stores[name] = createStore(this.conn, this.msName, name, type, migrations);
     return this.stores[name];
+  }
+
+  async getStoreSize(storeName: string, msName: string = this.msName): Promise<bigint> {
+    return this.conn.getSize(msName, storeName);
+  }
+
+  async listOpenStoreKeys(msName?: string): Promise<string[]> {
+    const keys = this.conn.listStores();
+    if (!msName) {
+      return keys;
+    }
+    const prefix = `${msName}/`;
+    return keys.filter((key) => key.startsWith(prefix));
+  }
+
+  async listOpenStoreNames(msName: string = this.msName): Promise<string[]> {
+    const keys = await this.listOpenStoreKeys(msName);
+    return keys
+      .map((key) => this.parseStoreKey(key))
+      .filter((parsed): parsed is { msName: string; store: string } => parsed !== null)
+      .map((parsed) => parsed.store);
+  }
+
+  async getOpenStoresSize(msName: string = this.msName): Promise<StoreSizeInfo[]> {
+    const keys = await this.listOpenStoreKeys(msName);
+    const result: StoreSizeInfo[] = [];
+
+    for (const key of keys) {
+      const parsed = this.parseStoreKey(key);
+      if (!parsed) continue;
+      const sizeBytes = this.conn.getSize(parsed.msName, parsed.store);
+      result.push({
+        msName: parsed.msName,
+        store: parsed.store,
+        key,
+        sizeBytes,
+      });
+    }
+
+    return result;
+  }
+
+  private parseStoreKey(key: string): { msName: string; store: string } | null {
+    const slashIndex = key.indexOf("/");
+    if (slashIndex <= 0 || slashIndex === key.length - 1) {
+      return null;
+    }
+    return {
+      msName: key.slice(0, slashIndex),
+      store: key.slice(slashIndex + 1),
+    };
   }
 }
 

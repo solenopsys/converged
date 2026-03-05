@@ -410,11 +410,11 @@ class Response {
     this.handle = handle;
     this.socketPath = socketPath;
     if (!(s.transport_resp_ok(handle) as number)) {
-      const err = s.transport_resp_error(handle);
+      const err = readCStr(s.transport_resp_error(handle));
       this.free();
       throw new StorageTransportError(
         "REMOTE_ERROR",
-        `storage error: ${err} (socket: ${socketPath})`,
+        `storage error: ${err || "unknown error"} (socket: ${socketPath})`,
         { socketPath },
       );
     }

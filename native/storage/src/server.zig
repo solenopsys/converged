@@ -371,7 +371,10 @@ fn encodeOk(tel: Telemetry) CBytes {
 fn encodeError(msg: []const u8) CBytes {
     var p: ?[*]u8 = null;
     var l: usize = 0;
-    _ = c.transport_encode_error(&p, &l, msg.ptr);
+    const owned_msg: ?[:0]u8 = std.heap.c_allocator.dupeZ(u8, msg) catch null;
+    defer if (owned_msg) |buf| std.heap.c_allocator.free(buf);
+    const c_msg: [*:0]const u8 = if (owned_msg) |buf| buf.ptr else "unknown error";
+    _ = c.transport_encode_error(&p, &l, c_msg);
     return .{ .ptr = p, .len = l };
 }
 fn encodeAffected(tel: Telemetry, n: i64) CBytes {

@@ -41,9 +41,20 @@ pub const FilesEngine = struct {
         const full_path = try std.fmt.allocPrint(self.allocator, "{s}/{s}", .{ self.base_path, key });
         defer self.allocator.free(full_path);
 
-        const file = std.fs.cwd().openFile(full_path, .{}) catch |err| {
-            if (err == error.FileNotFound) return null;
-            return err;
+        const file = std.fs.cwd().openFile(full_path, .{}) catch |err| blk: {
+            if (err != error.FileNotFound) return err;
+
+            // Backward compatibility: some stores may still keep files directly
+            // under "<store>/" instead of "<store>/data/".
+            const parent = std.fs.path.dirname(self.base_path) orelse return null;
+            const legacy_path = try std.fmt.allocPrint(self.allocator, "{s}/{s}", .{ parent, key });
+            defer self.allocator.free(legacy_path);
+
+            const legacy_file = std.fs.cwd().openFile(legacy_path, .{}) catch |legacy_err| {
+                if (legacy_err == error.FileNotFound) return null;
+                return legacy_err;
+            };
+            break :blk legacy_file;
         };
         defer file.close();
 

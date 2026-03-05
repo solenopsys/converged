@@ -23,6 +23,12 @@ export enum StoreType {
     VECTOR = "VECTOR",
 }
 
+export interface StoreSizeInfo {
+  msName: string;
+  store: string;
+  key: string;
+  sizeBytes: bigint;
+}
 
 
 export const DATA_DIR = process.env.DATA_DIR || "./data"
