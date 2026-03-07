@@ -250,6 +250,11 @@ pub const StorageCommands = struct {
 
     // ── Info ──
 
+    pub fn getStoreType(self: *StorageCommands, store_key: []const u8) ?StoreType {
+        const inst = self.stores.getPtr(store_key) orelse return null;
+        return std.meta.activeTag(inst.handle);
+    }
+
     pub fn getStoreSize(self: *StorageCommands, store_key: []const u8) !u64 {
         const inst = self.stores.getPtr(store_key) orelse return error.StoreNotFound;
         return switch (inst.handle) {

@@ -2,10 +2,14 @@ const std = @import("std");
 const cmds = @import("commands.zig");
 const mfst = @import("manifest.zig");
 const tel_mod = @import("telemetry.zig");
+const threads_mod = @import("threads.zig");
 
 const StorageCommands = cmds.StorageCommands;
 const StoreType = mfst.StoreType;
 const Telemetry = tel_mod.Telemetry;
+const ThreadPool = threads_mod.ThreadPool;
+const WorkItem = threads_mod.WorkItem;
+const KvEngine = @import("engines/kv.zig").KvEngine;
 const Allocator = std.mem.Allocator;
 
 // C API from capnp_wrap.cpp (compiled directly into the exe via build.zig)
@@ -16,7 +20,8 @@ const max_msg: u32 = 64 * 1024 * 1024;
 
 var shutdown_requested = std.atomic.Value(bool).init(false);
 var active_clients = std.atomic.Value(usize).init(0);
-var commands_mutex = std.Thread.Mutex{};
+var stores_rwlock: std.Thread.RwLock = .{};
+var pool: ThreadPool = undefined;
 
 const ClientContext = struct {
     allocator: Allocator,
@@ -87,6 +92,13 @@ pub fn start(allocator: Allocator, data_dir: []const u8, cfg: BindConfig) !void 
     var commands = StorageCommands.init(allocator, data_dir);
     defer commands.deinit();
     try autoOpenStores(allocator, &commands, data_dir);
+
+    pool = ThreadPool.init(allocator);
+    try pool.start();
+    defer {
+        pool.stop();
+        pool.deinit();
+    }
 
     switch (cfg) {
         .unix => |path| std.debug.print("storage server listening on unix:{s}\n", .{path}),
@@ -194,6 +206,158 @@ fn handleClient(allocator: Allocator, commands: *StorageCommands, fd: std.posix.
     }
 }
 
+// ── Store operation context (runs in per-type worker thread) ──────────────────
+
+const StoreOp = struct {
+    commands: *StorageCommands,
+    allocator: Allocator,
+    cmd: c_uint,
+    store_key: []const u8,
+    ms: []const u8,
+    store: []const u8,
+    // Params (borrowed — safe because client thread waits for done)
+    sql_ptr: [*:0]const u8 = "",
+    key: []const u8 = "",
+    value: []const u8 = "",
+    prefix: []const u8 = "",
+    migration_id: []const u8 = "",
+    output_path: []const u8 = "",
+    // Result
+    result: CBytes = .{ .ptr = null, .len = 0 },
+    op_err: ?anyerror = null,
+
+    fn execute(ctx: ?*anyopaque) void {
+        const self: *StoreOp = @ptrCast(@alignCast(ctx));
+        stores_rwlock.lockShared();
+        defer stores_rwlock.unlockShared();
+        self.run() catch |e| {
+            self.op_err = e;
+        };
+    }
+
+    fn run(self: *StoreOp) !void {
+        var tel = Telemetry.begin();
+
+        switch (self.cmd) {
+            c.REQ_EXEC_SQL => {
+                try self.commands.execSql(self.store_key, self.sql_ptr);
+                tel.op_count += 1;
+                self.result = encodeAffected(tel, 0);
+            },
+            c.REQ_QUERY_SQL => {
+                const json = try self.commands.querySql(self.store_key, self.sql_ptr, &tel);
+                defer self.allocator.free(json);
+                self.result = encodeData(tel, json);
+            },
+            c.REQ_SIZE => {
+                const size = try self.commands.getStoreSize(self.store_key);
+                tel.op_count += 1;
+                self.result = encodeSize(tel, size);
+            },
+            c.REQ_MANIFEST => {
+                const m = self.commands.getManifest(self.store_key) orelse return error.StoreNotFound;
+                tel.op_count += 1;
+                const mig_z = try self.allocator.alloc([:0]u8, m.migrations.items.len);
+                defer {
+                    for (mig_z) |item| self.allocator.free(item);
+                    self.allocator.free(mig_z);
+                }
+                const mig_ptrs = try self.allocator.alloc([*:0]const u8, m.migrations.items.len);
+                defer self.allocator.free(mig_ptrs);
+                for (m.migrations.items, 0..) |mig, i| {
+                    mig_z[i] = try self.allocator.dupeZ(u8, mig);
+                    mig_ptrs[i] = mig_z[i].ptr;
+                }
+                const version = std.fmt.parseUnsigned(u32, m.version, 10) catch 1;
+                self.result = encodeManifest(tel, m.name, @intFromEnum(m.store_type), version, mig_ptrs);
+            },
+            c.REQ_MIGRATE => {
+                try self.commands.recordMigration(self.store_key, self.migration_id);
+                tel.op_count += 1;
+                self.result = encodeOk(tel);
+            },
+            c.REQ_ARCHIVE => {
+                try self.commands.createArchive(self.store_key, self.output_path);
+                tel.op_count += 1;
+                self.result = encodeOk(tel);
+            },
+            c.REQ_KV_PUT => {
+                try self.commands.kvPut(self.store_key, self.key, self.value, &tel);
+                self.result = encodeOk(tel);
+            },
+            c.REQ_KV_GET => {
+                const data = try self.commands.kvGet(self.store_key, self.key, &tel);
+                if (data) |d| {
+                    defer self.allocator.free(d);
+                    self.result = encodeFound(tel, 1, d);
+                } else {
+                    self.result = encodeFound(tel, 0, &[_]u8{});
+                }
+            },
+            c.REQ_KV_DELETE => {
+                try self.commands.kvDelete(self.store_key, self.key, &tel);
+                self.result = encodeFound(tel, 1, &[_]u8{});
+            },
+            c.REQ_KV_LIST => {
+                const pairs = try self.commands.kvGetRange(self.store_key, self.prefix, &tel);
+                defer {
+                    for (pairs) |p| {
+                        self.allocator.free(p.key);
+                        self.allocator.free(p.value);
+                    }
+                    self.allocator.free(pairs);
+                }
+                const n = pairs.len;
+                const key_ptrs = try self.allocator.alloc([*c]const u8, n);
+                defer self.allocator.free(key_ptrs);
+                const key_lens = try self.allocator.alloc(usize, n);
+                defer self.allocator.free(key_lens);
+                const val_ptrs = try self.allocator.alloc([*c]const u8, n);
+                defer self.allocator.free(val_ptrs);
+                const val_lens = try self.allocator.alloc(usize, n);
+                defer self.allocator.free(val_lens);
+                for (pairs, 0..) |p, i| {
+                    key_ptrs[i] = p.key.ptr;
+                    key_lens[i] = p.key.len;
+                    val_ptrs[i] = p.value.ptr;
+                    val_lens[i] = p.value.len;
+                }
+                var out_p: ?[*]u8 = null;
+                var out_l: usize = 0;
+                _ = c.transport_encode_kv_pairs(
+                    &out_p, &out_l, telC(tel),
+                    @ptrCast(key_ptrs.ptr), @ptrCast(key_lens.ptr),
+                    @ptrCast(val_ptrs.ptr), @ptrCast(val_lens.ptr),
+                    @intCast(n),
+                );
+                self.result = .{ .ptr = out_p, .len = out_l };
+            },
+            c.REQ_FILE_PUT => {
+                try self.commands.filePut(self.store_key, self.key, self.value, &tel);
+                self.result = encodeOk(tel);
+            },
+            c.REQ_FILE_GET => {
+                const data = try self.commands.fileGet(self.store_key, self.key, &tel);
+                if (data) |d| {
+                    defer self.allocator.free(d);
+                    self.result = encodeFound(tel, 1, d);
+                } else {
+                    self.result = encodeFound(tel, 0, &[_]u8{});
+                }
+            },
+            c.REQ_FILE_DELETE => {
+                _ = try self.commands.fileDelete(self.store_key, self.key, &tel);
+                self.result = encodeFound(tel, 1, &[_]u8{});
+            },
+            c.REQ_FILE_LIST => {
+                tel.op_count += 1;
+                self.result = encodeKeys(tel, &[_][*:0]const u8{});
+            },
+            else => return error.UnknownCommand,
+        }
+    }
+};
+
 // ── Dispatch ──────────────────────────────────────────────────────────────────
 
 const CBytes = struct { ptr: ?[*]u8, len: usize };
@@ -204,17 +368,13 @@ fn dispatch(
     reader: ?*c.TransportRequestReader,
     shutdown: *bool,
 ) !CBytes {
-    commands_mutex.lock();
-    defer commands_mutex.unlock();
-
     const cmd = c.transport_req_reader_cmd(reader);
     const ms = std.mem.span(c.transport_req_reader_ms(reader));
     const store = std.mem.span(c.transport_req_reader_store(reader));
-    const store_key = try std.fmt.allocPrint(allocator, "{s}/{s}", .{ ms, store });
-    defer allocator.free(store_key);
 
     var tel = Telemetry.begin();
 
+    // ── Inline commands (no store worker needed) ──
     switch (cmd) {
         c.REQ_PING => {
             tel.op_count += 1;
@@ -226,6 +386,8 @@ fn dispatch(
             return encodeOk(tel);
         },
         c.REQ_OPEN => {
+            stores_rwlock.lock();
+            defer stores_rwlock.unlock();
             const raw = @as(u8, @intCast(c.transport_req_reader_store_type(reader)));
             const st: StoreType = @enumFromInt(raw);
             try commands.openStore(ms, store, st);
@@ -233,142 +395,20 @@ fn dispatch(
             return encodeOk(tel);
         },
         c.REQ_CLOSE => {
+            stores_rwlock.lock();
+            defer stores_rwlock.unlock();
+            const store_key = try std.fmt.allocPrint(allocator, "{s}/{s}", .{ ms, store });
+            defer allocator.free(store_key);
             commands.closeStore(store_key);
             tel.op_count += 1;
             return encodeOk(tel);
         },
-        c.REQ_EXEC_SQL => {
-            const sql_z = try allocator.dupeZ(u8, std.mem.span(c.transport_req_reader_sql(reader)));
-            defer allocator.free(sql_z);
-            try commands.execSql(store_key, sql_z);
-            tel.op_count += 1;
-            return encodeAffected(tel, 0);
-        },
-        c.REQ_QUERY_SQL => {
-            const sql_z = try allocator.dupeZ(u8, std.mem.span(c.transport_req_reader_sql(reader)));
-            defer allocator.free(sql_z);
-            // queryJson returns JSON bytes — packed into capnp data field
-            const json = try commands.querySql(store_key, sql_z, &tel);
-            defer allocator.free(json);
-            return encodeData(tel, json);
-        },
-        c.REQ_SIZE => {
-            const size = try commands.getStoreSize(store_key);
-            tel.op_count += 1;
-            return encodeSize(tel, size);
-        },
-        c.REQ_MANIFEST => {
-            const m = commands.getManifest(store_key) orelse return error.StoreNotFound;
-            tel.op_count += 1;
-            const mig_z = try allocator.alloc([:0]u8, m.migrations.items.len);
-            defer {
-                for (mig_z) |item| allocator.free(item);
-                allocator.free(mig_z);
-            }
-            const mig_ptrs = try allocator.alloc([*:0]const u8, m.migrations.items.len);
-            defer allocator.free(mig_ptrs);
-            for (m.migrations.items, 0..) |mig, i| {
-                mig_z[i] = try allocator.dupeZ(u8, mig);
-                mig_ptrs[i] = mig_z[i].ptr;
-            }
-            const version = std.fmt.parseUnsigned(u32, m.version, 10) catch 1;
-            return encodeManifest(tel, m.name, @intFromEnum(m.store_type), version, mig_ptrs);
-        },
-        c.REQ_MIGRATE => {
-            const mid = std.mem.span(c.transport_req_reader_migration_id(reader));
-            try commands.recordMigration(store_key, mid);
-            tel.op_count += 1;
-            return encodeOk(tel);
-        },
-        c.REQ_ARCHIVE => {
-            const out_path = std.mem.span(c.transport_req_reader_output_path(reader));
-            try commands.createArchive(store_key, out_path);
-            tel.op_count += 1;
-            return encodeOk(tel);
-        },
-        c.REQ_KV_PUT => {
-            const key = std.mem.span(c.transport_req_reader_key(reader));
-            const v_ptr = c.transport_req_reader_value_ptr(reader);
-            const v_len = c.transport_req_reader_value_len(reader);
-            const value = if (v_ptr) |p| p[0..v_len] else &[_]u8{};
-            try commands.kvPut(store_key, key, value, &tel);
-            return encodeOk(tel);
-        },
-        c.REQ_KV_GET => {
-            const key = std.mem.span(c.transport_req_reader_key(reader));
-            const data = try commands.kvGet(store_key, key, &tel);
-            if (data) |d| {
-                defer allocator.free(d);
-                return encodeFound(tel, 1, d);
-            }
-            return encodeFound(tel, 0, &[_]u8{});
-        },
-        c.REQ_KV_DELETE => {
-            const key = std.mem.span(c.transport_req_reader_key(reader));
-            try commands.kvDelete(store_key, key, &tel);
-            return encodeFound(tel, 1, &[_]u8{});
-        },
-        c.REQ_FILE_PUT => {
-            const key = std.mem.span(c.transport_req_reader_key(reader));
-            const d_ptr = c.transport_req_reader_value_ptr(reader);
-            const d_len = c.transport_req_reader_value_len(reader);
-            const data = if (d_ptr) |p| p[0..d_len] else &[_]u8{};
-            try commands.filePut(store_key, key, data, &tel);
-            return encodeOk(tel);
-        },
-        c.REQ_FILE_GET => {
-            const key = std.mem.span(c.transport_req_reader_key(reader));
-            const data = try commands.fileGet(store_key, key, &tel);
-            if (data) |d| {
-                defer allocator.free(d);
-                return encodeFound(tel, 1, d);
-            }
-            return encodeFound(tel, 0, &[_]u8{});
-        },
-        c.REQ_FILE_DELETE => {
-            const key = std.mem.span(c.transport_req_reader_key(reader));
-            _ = try commands.fileDelete(store_key, key, &tel);
-            return encodeFound(tel, 1, &[_]u8{});
-        },
-        c.REQ_KV_LIST => {
-            const prefix = std.mem.span(c.transport_req_reader_prefix(reader));
-            const pairs = try commands.kvGetRange(store_key, prefix, &tel);
-            defer {
-                for (pairs) |p| {
-                    allocator.free(p.key);
-                    allocator.free(p.value);
-                }
-                allocator.free(pairs);
-            }
-            const n = pairs.len;
-            const key_ptrs = try allocator.alloc([*c]const u8, n);
-            defer allocator.free(key_ptrs);
-            const key_lens = try allocator.alloc(usize, n);
-            defer allocator.free(key_lens);
-            const val_ptrs = try allocator.alloc([*c]const u8, n);
-            defer allocator.free(val_ptrs);
-            const val_lens = try allocator.alloc(usize, n);
-            defer allocator.free(val_lens);
-            for (pairs, 0..) |p, i| {
-                key_ptrs[i] = p.key.ptr;
-                key_lens[i] = p.key.len;
-                val_ptrs[i] = p.value.ptr;
-                val_lens[i] = p.value.len;
-            }
-            var out_p: ?[*]u8 = null;
-            var out_l: usize = 0;
-            _ = c.transport_encode_kv_pairs(
-                &out_p, &out_l, telC(tel),
-                @ptrCast(key_ptrs.ptr), @ptrCast(key_lens.ptr),
-                @ptrCast(val_ptrs.ptr), @ptrCast(val_lens.ptr),
-                @intCast(n),
-            );
-            return .{ .ptr = out_p, .len = out_l };
-        },
         c.REQ_FILE_LIST => {
-            tel.op_count += 1;
-            // Convention: ms="" && store="" → list all open store keys ("ms/store")
+            // Global list (ms="" && store="") — handled inline with read lock
             if (ms.len == 0 and store.len == 0) {
+                stores_rwlock.lockShared();
+                defer stores_rwlock.unlockShared();
+                tel.op_count += 1;
                 const count = commands.stores.count();
                 const key_z_arr = try allocator.alloc([:0]u8, count);
                 defer {
@@ -385,10 +425,83 @@ fn dispatch(
                 }
                 return encodeKeys(tel, key_ptrs[0..i]);
             }
-            return encodeKeys(tel, &[_][*:0]const u8{});
+            // Store-specific FILE_LIST falls through to worker dispatch
         },
-        else => return error.UnknownCommand,
+        else => {},
     }
+
+    // ── Store operations: route through per-type worker ──
+    const store_key = try std.fmt.allocPrint(allocator, "{s}/{s}", .{ ms, store });
+    defer allocator.free(store_key);
+
+    // Brief read lock to determine store type for routing
+    stores_rwlock.lockShared();
+    const store_type = commands.getStoreType(store_key);
+    stores_rwlock.unlockShared();
+
+    if (store_type == null) return error.StoreNotFound;
+
+    // Extract command-specific params from reader (before submitting to worker)
+    var sql_z: ?[:0]u8 = null;
+    if (cmd == c.REQ_EXEC_SQL or cmd == c.REQ_QUERY_SQL) {
+        sql_z = try allocator.dupeZ(u8, std.mem.span(c.transport_req_reader_sql(reader)));
+    }
+    defer if (sql_z) |z| allocator.free(z);
+
+    var op = StoreOp{
+        .commands = commands,
+        .allocator = allocator,
+        .cmd = cmd,
+        .store_key = store_key,
+        .ms = ms,
+        .store = store,
+    };
+
+    if (sql_z) |z| {
+        op.sql_ptr = z.ptr;
+    }
+
+    if (cmd == c.REQ_KV_PUT or cmd == c.REQ_KV_GET or cmd == c.REQ_KV_DELETE or
+        cmd == c.REQ_FILE_PUT or cmd == c.REQ_FILE_GET or cmd == c.REQ_FILE_DELETE)
+    {
+        op.key = std.mem.span(c.transport_req_reader_key(reader));
+    }
+
+    if (cmd == c.REQ_KV_PUT or cmd == c.REQ_FILE_PUT) {
+        const v_ptr = c.transport_req_reader_value_ptr(reader);
+        const v_len = c.transport_req_reader_value_len(reader);
+        op.value = if (v_ptr) |p| p[0..v_len] else &[_]u8{};
+    }
+
+    if (cmd == c.REQ_KV_LIST) {
+        op.prefix = std.mem.span(c.transport_req_reader_prefix(reader));
+    }
+
+    if (cmd == c.REQ_MIGRATE) {
+        op.migration_id = std.mem.span(c.transport_req_reader_migration_id(reader));
+    }
+
+    if (cmd == c.REQ_ARCHIVE) {
+        op.output_path = std.mem.span(c.transport_req_reader_output_path(reader));
+    }
+
+    // Submit to per-type worker and wait
+    var item = WorkItem{
+        .store_key = store_key,
+        .op = .exec_sql,
+        .payload = &[_]u8{},
+        .result = null,
+        .done = .{},
+        .err = null,
+        .exec_ctx = @ptrCast(&op),
+        .exec_fn = StoreOp.execute,
+    };
+
+    pool.getWorker(store_type.?).submit(&item);
+    item.done.wait();
+
+    if (op.op_err) |e| return e;
+    return op.result;
 }
 
 // ── Encode helpers ────────────────────────────────────────────────────────────

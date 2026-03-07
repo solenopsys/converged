@@ -70,7 +70,11 @@ pub const SqlEngine = struct {
         while (true) {
             rc = c.sqlite3_step(stmt.?);
             if (rc == c.SQLITE_DONE) break;
-            if (rc != c.SQLITE_ROW) return error.SqliteStepFailed;
+            if (rc != c.SQLITE_ROW) {
+                const errmsg = c.sqlite3_errmsg(self.db.?);
+                std.debug.print("SqliteStepFailed rc={d} msg={s}\n", .{ rc, errmsg });
+                return error.SqliteStepFailed;
+            }
 
             if (row_idx > 0) try writer.writeByte(',');
 
