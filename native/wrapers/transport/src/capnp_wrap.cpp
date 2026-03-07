@@ -13,6 +13,13 @@
 #include <cstdlib>
 #include <string>
 
+// Generous traversal limit to avoid crashes on large messages.
+static capnp::ReaderOptions safeReaderOptions() {
+    capnp::ReaderOptions opts;
+    opts.traversalLimitInWords = 512 * 1024 * 1024; // 512M words
+    return opts;
+}
+
 // ── Internal structs ──────────────────────────────────────────────────────────
 
 struct TransportRequest {
@@ -29,7 +36,7 @@ struct TransportResponse {
 
     explicit TransportResponse(kj::Array<capnp::word> w)
         : words(kj::mv(w))
-        , reader(words)
+        , reader(words, safeReaderOptions())
         , resp(reader.getRoot<Response>())
     {}
 };
@@ -182,11 +189,17 @@ extern "C" void transport_req_free(TransportRequest* req) { delete req; }
 
 extern "C" TransportResponse* transport_resp_decode(const uint8_t* buf, size_t len) {
     if (!buf || len == 0 || len % sizeof(capnp::word) != 0) return nullptr;
+    if (len > 1024 * 1024) {
+        fprintf(stderr, "[transport] resp_decode: large message len=%zu\n", len);
+    }
     try {
         size_t word_count = len / sizeof(capnp::word);
         auto   words      = kj::heapArray<capnp::word>(word_count);
         memcpy(words.begin(), buf, len);
         return new TransportResponse(kj::mv(words));
+    } catch (const kj::Exception& e) {
+        fprintf(stderr, "[transport] resp_decode failed: %s\n", e.getDescription().cStr());
+        return nullptr;
     } catch (...) { return nullptr; }
 }
 
@@ -196,183 +209,257 @@ extern "C" void transport_resp_free(TransportResponse* resp) { delete resp; }
 
 extern "C" int32_t transport_resp_ok(TransportResponse* resp) {
     if (!resp) return 0;
-    return resp->resp.getResult().which() != Response::Result::ERROR ? 1 : 0;
+    try { return resp->resp.getResult().which() != Response::Result::ERROR ? 1 : 0; }
+    catch (...) { return 0; }
 }
 
 extern "C" const char* transport_resp_error(TransportResponse* resp) {
     if (!resp) return nullptr;
-    if (resp->resp.getResult().which() != Response::Result::ERROR) return nullptr;
-    resp->err_cache = resp->resp.getResult().getError().cStr();
-    return resp->err_cache.c_str();
+    try {
+        if (resp->resp.getResult().which() != Response::Result::ERROR) return nullptr;
+        resp->err_cache = resp->resp.getResult().getError().cStr();
+        return resp->err_cache.c_str();
+    } catch (...) { return "capnp read error"; }
 }
 
 extern "C" uint64_t transport_resp_duration_us(TransportResponse* resp) {
-    return resp ? resp->resp.getTelemetry().getDurationUs() : 0;
+    if (!resp) return 0;
+    try { return resp->resp.getTelemetry().getDurationUs(); }
+    catch (...) { return 0; }
 }
 
 extern "C" uint32_t transport_resp_op_count(TransportResponse* resp) {
-    return resp ? resp->resp.getTelemetry().getOpCount() : 0;
+    if (!resp) return 0;
+    try { return resp->resp.getTelemetry().getOpCount(); }
+    catch (...) { return 0; }
 }
 
 extern "C" int64_t transport_resp_affected(TransportResponse* resp) {
-    if (!resp || resp->resp.getResult().which() != Response::Result::AFFECTED) return 0;
-    return resp->resp.getResult().getAffected();
+    if (!resp) return 0;
+    try {
+        if (resp->resp.getResult().which() != Response::Result::AFFECTED) return 0;
+        return resp->resp.getResult().getAffected();
+    } catch (...) { return 0; }
 }
 
 extern "C" uint64_t transport_resp_size(TransportResponse* resp) {
-    if (!resp || resp->resp.getResult().which() != Response::Result::SIZE) return 0;
-    return resp->resp.getResult().getSize();
+    if (!resp) return 0;
+    try {
+        if (resp->resp.getResult().which() != Response::Result::SIZE) return 0;
+        return resp->resp.getResult().getSize();
+    } catch (...) { return 0; }
 }
 
 extern "C" uint32_t transport_resp_row_count(TransportResponse* resp) {
-    if (!resp || resp->resp.getResult().which() != Response::Result::ROWS) return 0;
-    return resp->resp.getResult().getRows().size();
+    if (!resp) return 0;
+    try {
+        if (resp->resp.getResult().which() != Response::Result::ROWS) return 0;
+        return resp->resp.getResult().getRows().size();
+    } catch (...) { return 0; }
 }
 
 extern "C" uint32_t transport_resp_col_count(TransportResponse* resp, uint32_t row) {
-    if (!resp || resp->resp.getResult().which() != Response::Result::ROWS) return 0;
-    auto rows = resp->resp.getResult().getRows();
-    if (row >= rows.size()) return 0;
-    return rows[row].getColumns().size();
+    if (!resp) return 0;
+    try {
+        if (resp->resp.getResult().which() != Response::Result::ROWS) return 0;
+        auto rows = resp->resp.getResult().getRows();
+        if (row >= rows.size()) return 0;
+        return rows[row].getColumns().size();
+    } catch (...) { return 0; }
 }
 
 extern "C" const char* transport_resp_col_name(TransportResponse* resp, uint32_t row, uint32_t col) {
-    if (!resp || resp->resp.getResult().which() != Response::Result::ROWS) return nullptr;
-    auto rows = resp->resp.getResult().getRows();
-    if (row >= rows.size()) return nullptr;
-    auto cols = rows[row].getColumns();
-    if (col >= cols.size()) return nullptr;
-    return cols[col].cStr();
+    if (!resp) return nullptr;
+    try {
+        if (resp->resp.getResult().which() != Response::Result::ROWS) return nullptr;
+        auto rows = resp->resp.getResult().getRows();
+        if (row >= rows.size()) return nullptr;
+        auto cols = rows[row].getColumns();
+        if (col >= cols.size()) return nullptr;
+        return cols[col].cStr();
+    } catch (...) { return nullptr; }
 }
 
 extern "C" ValueTypeC transport_resp_value_type(TransportResponse* resp, uint32_t row, uint32_t col) {
-    if (!resp || resp->resp.getResult().which() != Response::Result::ROWS) return VALUE_NULL;
-    auto rows = resp->resp.getResult().getRows();
-    if (row >= rows.size()) return VALUE_NULL;
-    auto vals = rows[row].getValues();
-    if (col >= vals.size()) return VALUE_NULL;
-    return static_cast<ValueTypeC>(vals[col].which());
+    if (!resp) return VALUE_NULL;
+    try {
+        if (resp->resp.getResult().which() != Response::Result::ROWS) return VALUE_NULL;
+        auto rows = resp->resp.getResult().getRows();
+        if (row >= rows.size()) return VALUE_NULL;
+        auto vals = rows[row].getValues();
+        if (col >= vals.size()) return VALUE_NULL;
+        return static_cast<ValueTypeC>(vals[col].which());
+    } catch (...) { return VALUE_NULL; }
 }
 
 extern "C" int64_t transport_resp_value_int(TransportResponse* resp, uint32_t row, uint32_t col) {
-    if (!resp || resp->resp.getResult().which() != Response::Result::ROWS) return 0;
-    auto rows = resp->resp.getResult().getRows();
-    if (row >= rows.size()) return 0;
-    auto vals = rows[row].getValues();
-    if (col >= vals.size() || vals[col].which() != Response::Value::INTEGER) return 0;
-    return vals[col].getInteger();
+    if (!resp) return 0;
+    try {
+        if (resp->resp.getResult().which() != Response::Result::ROWS) return 0;
+        auto rows = resp->resp.getResult().getRows();
+        if (row >= rows.size()) return 0;
+        auto vals = rows[row].getValues();
+        if (col >= vals.size() || vals[col].which() != Response::Value::INTEGER) return 0;
+        return vals[col].getInteger();
+    } catch (...) { return 0; }
 }
 
 extern "C" double transport_resp_value_real(TransportResponse* resp, uint32_t row, uint32_t col) {
-    if (!resp || resp->resp.getResult().which() != Response::Result::ROWS) return 0.0;
-    auto rows = resp->resp.getResult().getRows();
-    if (row >= rows.size()) return 0.0;
-    auto vals = rows[row].getValues();
-    if (col >= vals.size() || vals[col].which() != Response::Value::REAL) return 0.0;
-    return vals[col].getReal();
+    if (!resp) return 0.0;
+    try {
+        if (resp->resp.getResult().which() != Response::Result::ROWS) return 0.0;
+        auto rows = resp->resp.getResult().getRows();
+        if (row >= rows.size()) return 0.0;
+        auto vals = rows[row].getValues();
+        if (col >= vals.size() || vals[col].which() != Response::Value::REAL) return 0.0;
+        return vals[col].getReal();
+    } catch (...) { return 0.0; }
 }
 
 extern "C" const char* transport_resp_value_text(TransportResponse* resp, uint32_t row, uint32_t col) {
-    if (!resp || resp->resp.getResult().which() != Response::Result::ROWS) return nullptr;
-    auto rows = resp->resp.getResult().getRows();
-    if (row >= rows.size()) return nullptr;
-    auto vals = rows[row].getValues();
-    if (col >= vals.size() || vals[col].which() != Response::Value::TEXT) return nullptr;
-    return vals[col].getText().cStr();
+    if (!resp) return nullptr;
+    try {
+        if (resp->resp.getResult().which() != Response::Result::ROWS) return nullptr;
+        auto rows = resp->resp.getResult().getRows();
+        if (row >= rows.size()) return nullptr;
+        auto vals = rows[row].getValues();
+        if (col >= vals.size() || vals[col].which() != Response::Value::TEXT) return nullptr;
+        return vals[col].getText().cStr();
+    } catch (...) { return nullptr; }
 }
 
 extern "C" uint32_t transport_resp_key_count(TransportResponse* resp) {
-    if (!resp || resp->resp.getResult().which() != Response::Result::KEYS) return 0;
-    return resp->resp.getResult().getKeys().size();
+    if (!resp) return 0;
+    try {
+        if (resp->resp.getResult().which() != Response::Result::KEYS) return 0;
+        return resp->resp.getResult().getKeys().size();
+    } catch (...) { return 0; }
 }
 
 extern "C" const char* transport_resp_key_at(TransportResponse* resp, uint32_t i) {
-    if (!resp || resp->resp.getResult().which() != Response::Result::KEYS) return nullptr;
-    auto keys = resp->resp.getResult().getKeys();
-    if (i >= keys.size()) return nullptr;
-    return keys[i].cStr();
+    if (!resp) return nullptr;
+    try {
+        if (resp->resp.getResult().which() != Response::Result::KEYS) return nullptr;
+        auto keys = resp->resp.getResult().getKeys();
+        if (i >= keys.size()) return nullptr;
+        return keys[i].cStr();
+    } catch (...) { return nullptr; }
 }
 
 extern "C" int32_t transport_resp_found(TransportResponse* resp) {
-    if (!resp || resp->resp.getResult().which() != Response::Result::FOUND) return 0;
-    return resp->resp.getResult().getFound().getFound() ? 1 : 0;
+    if (!resp) return 0;
+    try {
+        if (resp->resp.getResult().which() != Response::Result::FOUND) return 0;
+        return resp->resp.getResult().getFound().getFound() ? 1 : 0;
+    } catch (...) { return 0; }
 }
 
 extern "C" const uint8_t* transport_resp_data_ptr(TransportResponse* resp) {
     if (!resp) return nullptr;
-    if (resp->resp.getResult().which() == Response::Result::FOUND) {
-        auto f = resp->resp.getResult().getFound();
-        return f.getFound() ? reinterpret_cast<const uint8_t*>(f.getData().begin()) : nullptr;
-    }
-    if (resp->resp.getResult().which() == Response::Result::DATA) {
-        return reinterpret_cast<const uint8_t*>(resp->resp.getResult().getData().begin());
-    }
-    return nullptr;
+    try {
+        if (resp->resp.getResult().which() == Response::Result::FOUND) {
+            auto f = resp->resp.getResult().getFound();
+            return f.getFound() ? reinterpret_cast<const uint8_t*>(f.getData().begin()) : nullptr;
+        }
+        if (resp->resp.getResult().which() == Response::Result::DATA) {
+            return reinterpret_cast<const uint8_t*>(resp->resp.getResult().getData().begin());
+        }
+        return nullptr;
+    } catch (...) { return nullptr; }
 }
 
 extern "C" size_t transport_resp_data_len(TransportResponse* resp) {
     if (!resp) return 0;
-    if (resp->resp.getResult().which() == Response::Result::FOUND) {
-        auto f = resp->resp.getResult().getFound();
-        return f.getFound() ? f.getData().size() : 0;
-    }
-    if (resp->resp.getResult().which() == Response::Result::DATA) {
-        return resp->resp.getResult().getData().size();
-    }
-    return 0;
+    try {
+        if (resp->resp.getResult().which() == Response::Result::FOUND) {
+            auto f = resp->resp.getResult().getFound();
+            return f.getFound() ? f.getData().size() : 0;
+        }
+        if (resp->resp.getResult().which() == Response::Result::DATA) {
+            return resp->resp.getResult().getData().size();
+        }
+        return 0;
+    } catch (...) { return 0; }
 }
 
 extern "C" const char* transport_resp_manifest_name(TransportResponse* resp) {
-    if (!resp || resp->resp.getResult().which() != Response::Result::MANIFEST) return nullptr;
-    return resp->resp.getResult().getManifest().getName().cStr();
+    if (!resp) return nullptr;
+    try {
+        if (resp->resp.getResult().which() != Response::Result::MANIFEST) return nullptr;
+        return resp->resp.getResult().getManifest().getName().cStr();
+    } catch (...) { return nullptr; }
 }
 
 extern "C" uint8_t transport_resp_manifest_type(TransportResponse* resp) {
-    if (!resp || resp->resp.getResult().which() != Response::Result::MANIFEST) return 0;
-    return static_cast<uint8_t>(resp->resp.getResult().getManifest().getStoreType());
+    if (!resp) return 0;
+    try {
+        if (resp->resp.getResult().which() != Response::Result::MANIFEST) return 0;
+        return static_cast<uint8_t>(resp->resp.getResult().getManifest().getStoreType());
+    } catch (...) { return 0; }
 }
 
 extern "C" uint32_t transport_resp_manifest_version(TransportResponse* resp) {
-    if (!resp || resp->resp.getResult().which() != Response::Result::MANIFEST) return 0;
-    return resp->resp.getResult().getManifest().getVersion();
+    if (!resp) return 0;
+    try {
+        if (resp->resp.getResult().which() != Response::Result::MANIFEST) return 0;
+        return resp->resp.getResult().getManifest().getVersion();
+    } catch (...) { return 0; }
 }
 
 extern "C" uint32_t transport_resp_manifest_migration_count(TransportResponse* resp) {
-    if (!resp || resp->resp.getResult().which() != Response::Result::MANIFEST) return 0;
-    return resp->resp.getResult().getManifest().getMigrations().size();
+    if (!resp) return 0;
+    try {
+        if (resp->resp.getResult().which() != Response::Result::MANIFEST) return 0;
+        return resp->resp.getResult().getManifest().getMigrations().size();
+    } catch (...) { return 0; }
 }
 
 extern "C" const char* transport_resp_manifest_migration_at(TransportResponse* resp, uint32_t i) {
-    if (!resp || resp->resp.getResult().which() != Response::Result::MANIFEST) return nullptr;
-    auto migs = resp->resp.getResult().getManifest().getMigrations();
-    if (i >= migs.size()) return nullptr;
-    return migs[i].cStr();
+    if (!resp) return nullptr;
+    try {
+        if (resp->resp.getResult().which() != Response::Result::MANIFEST) return nullptr;
+        auto migs = resp->resp.getResult().getManifest().getMigrations();
+        if (i >= migs.size()) return nullptr;
+        return migs[i].cStr();
+    } catch (...) { return nullptr; }
 }
 
 extern "C" uint32_t transport_resp_pair_count(TransportResponse* resp) {
-    if (!resp || resp->resp.getResult().which() != Response::Result::PAIRS) return 0;
-    return resp->resp.getResult().getPairs().size();
+    if (!resp) return 0;
+    try {
+        if (resp->resp.getResult().which() != Response::Result::PAIRS) return 0;
+        return resp->resp.getResult().getPairs().size();
+    } catch (...) { return 0; }
 }
 
 extern "C" const char* transport_resp_pair_key_at(TransportResponse* resp, uint32_t i) {
-    if (!resp || resp->resp.getResult().which() != Response::Result::PAIRS) return nullptr;
-    auto pairs = resp->resp.getResult().getPairs();
-    if (i >= pairs.size()) return nullptr;
-    return pairs[i].getKey().cStr();
+    if (!resp) return nullptr;
+    try {
+        if (resp->resp.getResult().which() != Response::Result::PAIRS) return nullptr;
+        auto pairs = resp->resp.getResult().getPairs();
+        if (i >= pairs.size()) return nullptr;
+        return pairs[i].getKey().cStr();
+    } catch (...) { return nullptr; }
 }
 
 extern "C" const uint8_t* transport_resp_pair_value_ptr(TransportResponse* resp, uint32_t i) {
-    if (!resp || resp->resp.getResult().which() != Response::Result::PAIRS) return nullptr;
-    auto pairs = resp->resp.getResult().getPairs();
-    if (i >= pairs.size()) return nullptr;
-    return reinterpret_cast<const uint8_t*>(pairs[i].getValue().begin());
+    if (!resp) return nullptr;
+    try {
+        if (resp->resp.getResult().which() != Response::Result::PAIRS) return nullptr;
+        auto pairs = resp->resp.getResult().getPairs();
+        if (i >= pairs.size()) return nullptr;
+        return reinterpret_cast<const uint8_t*>(pairs[i].getValue().begin());
+    } catch (...) { return nullptr; }
 }
 
 extern "C" size_t transport_resp_pair_value_len(TransportResponse* resp, uint32_t i) {
-    if (!resp || resp->resp.getResult().which() != Response::Result::PAIRS) return 0;
-    auto pairs = resp->resp.getResult().getPairs();
-    if (i >= pairs.size()) return 0;
-    return pairs[i].getValue().size();
+    if (!resp) return 0;
+    try {
+        if (resp->resp.getResult().which() != Response::Result::PAIRS) return 0;
+        auto pairs = resp->resp.getResult().getPairs();
+        if (i >= pairs.size()) return 0;
+        return pairs[i].getValue().size();
+    } catch (...) { return 0; }
 }
 
 extern "C" void transport_free_buf(uint8_t* buf, size_t /*len*/) { free(buf); }
@@ -384,16 +471,22 @@ struct TransportRequestReader {
     capnp::FlatArrayMessageReader reader;
     Request::Reader               req;
     explicit TransportRequestReader(kj::Array<capnp::word> w)
-        : words(kj::mv(w)), reader(words), req(reader.getRoot<Request>()) {}
+        : words(kj::mv(w)), reader(words, safeReaderOptions()), req(reader.getRoot<Request>()) {}
 };
 
 extern "C" TransportRequestReader* transport_req_reader_decode(const uint8_t* buf, size_t len) {
     if (!buf || len == 0 || len % sizeof(capnp::word) != 0) return nullptr;
+    if (len > 1024 * 1024) {
+        fprintf(stderr, "[transport] req_reader_decode: large message len=%zu\n", len);
+    }
     try {
         size_t wc = len / sizeof(capnp::word);
         auto words = kj::heapArray<capnp::word>(wc);
         memcpy(words.begin(), buf, len);
         return new TransportRequestReader(kj::mv(words));
+    } catch (const kj::Exception& e) {
+        fprintf(stderr, "[transport] req_reader_decode failed: %s\n", e.getDescription().cStr());
+        return nullptr;
     } catch (...) { return nullptr; }
 }
 
@@ -401,63 +494,88 @@ extern "C" void transport_req_reader_free(TransportRequestReader* r) { delete r;
 
 extern "C" RequestCmd transport_req_reader_cmd(TransportRequestReader* r) {
     if (!r) return REQ_PING;
-    return static_cast<RequestCmd>(r->req.getBody().which());
+    try { return static_cast<RequestCmd>(r->req.getBody().which()); }
+    catch (...) { return REQ_PING; }
 }
 
 extern "C" const char* transport_req_reader_ms(TransportRequestReader* r) {
-    return r ? r->req.getMs().cStr() : "";
+    if (!r) return "";
+    try { return r->req.getMs().cStr(); }
+    catch (...) { return ""; }
 }
 extern "C" const char* transport_req_reader_store(TransportRequestReader* r) {
-    return r ? r->req.getStore().cStr() : "";
+    if (!r) return "";
+    try { return r->req.getStore().cStr(); }
+    catch (...) { return ""; }
 }
 
 extern "C" StoreTypeC transport_req_reader_store_type(TransportRequestReader* r) {
-    if (!r || r->req.getBody().which() != Request::Body::OPEN) return STORE_SQL;
-    return static_cast<StoreTypeC>(r->req.getBody().getOpen().getStoreType());
+    if (!r) return STORE_SQL;
+    try {
+        if (r->req.getBody().which() != Request::Body::OPEN) return STORE_SQL;
+        return static_cast<StoreTypeC>(r->req.getBody().getOpen().getStoreType());
+    } catch (...) { return STORE_SQL; }
 }
 extern "C" const char* transport_req_reader_sql(TransportRequestReader* r) {
     if (!r) return "";
-    auto which = r->req.getBody().which();
-    if (which == Request::Body::EXEC_SQL)  return r->req.getBody().getExecSql().getSql().cStr();
-    if (which == Request::Body::QUERY_SQL) return r->req.getBody().getQuerySql().getSql().cStr();
-    return "";
+    try {
+        auto which = r->req.getBody().which();
+        if (which == Request::Body::EXEC_SQL)  return r->req.getBody().getExecSql().getSql().cStr();
+        if (which == Request::Body::QUERY_SQL) return r->req.getBody().getQuerySql().getSql().cStr();
+        return "";
+    } catch (...) { return ""; }
 }
 extern "C" const char* transport_req_reader_migration_id(TransportRequestReader* r) {
-    if (!r || r->req.getBody().which() != Request::Body::MIGRATE) return "";
-    return r->req.getBody().getMigrate().getMigrationId().cStr();
+    if (!r) return "";
+    try {
+        if (r->req.getBody().which() != Request::Body::MIGRATE) return "";
+        return r->req.getBody().getMigrate().getMigrationId().cStr();
+    } catch (...) { return ""; }
 }
 extern "C" const char* transport_req_reader_output_path(TransportRequestReader* r) {
-    if (!r || r->req.getBody().which() != Request::Body::ARCHIVE) return "";
-    return r->req.getBody().getArchive().getOutputPath().cStr();
+    if (!r) return "";
+    try {
+        if (r->req.getBody().which() != Request::Body::ARCHIVE) return "";
+        return r->req.getBody().getArchive().getOutputPath().cStr();
+    } catch (...) { return ""; }
 }
 extern "C" const char* transport_req_reader_key(TransportRequestReader* r) {
     if (!r) return "";
-    auto which = r->req.getBody().which();
-    if (which == Request::Body::KV_PUT)      return r->req.getBody().getKvPut().getKey().cStr();
-    if (which == Request::Body::KV_GET)      return r->req.getBody().getKvGet().getKey().cStr();
-    if (which == Request::Body::KV_DELETE)   return r->req.getBody().getKvDelete().getKey().cStr();
-    if (which == Request::Body::FILE_PUT)    return r->req.getBody().getFilePut().getKey().cStr();
-    if (which == Request::Body::FILE_GET)    return r->req.getBody().getFileGet().getKey().cStr();
-    if (which == Request::Body::FILE_DELETE) return r->req.getBody().getFileDelete().getKey().cStr();
-    return "";
+    try {
+        auto which = r->req.getBody().which();
+        if (which == Request::Body::KV_PUT)      return r->req.getBody().getKvPut().getKey().cStr();
+        if (which == Request::Body::KV_GET)      return r->req.getBody().getKvGet().getKey().cStr();
+        if (which == Request::Body::KV_DELETE)   return r->req.getBody().getKvDelete().getKey().cStr();
+        if (which == Request::Body::FILE_PUT)    return r->req.getBody().getFilePut().getKey().cStr();
+        if (which == Request::Body::FILE_GET)    return r->req.getBody().getFileGet().getKey().cStr();
+        if (which == Request::Body::FILE_DELETE) return r->req.getBody().getFileDelete().getKey().cStr();
+        return "";
+    } catch (...) { return ""; }
 }
 extern "C" const uint8_t* transport_req_reader_value_ptr(TransportRequestReader* r) {
     if (!r) return nullptr;
-    auto which = r->req.getBody().which();
-    if (which == Request::Body::KV_PUT)   return reinterpret_cast<const uint8_t*>(r->req.getBody().getKvPut().getValue().begin());
-    if (which == Request::Body::FILE_PUT) return reinterpret_cast<const uint8_t*>(r->req.getBody().getFilePut().getData().begin());
-    return nullptr;
+    try {
+        auto which = r->req.getBody().which();
+        if (which == Request::Body::KV_PUT)   return reinterpret_cast<const uint8_t*>(r->req.getBody().getKvPut().getValue().begin());
+        if (which == Request::Body::FILE_PUT) return reinterpret_cast<const uint8_t*>(r->req.getBody().getFilePut().getData().begin());
+        return nullptr;
+    } catch (...) { return nullptr; }
 }
 extern "C" size_t transport_req_reader_value_len(TransportRequestReader* r) {
     if (!r) return 0;
-    auto which = r->req.getBody().which();
-    if (which == Request::Body::KV_PUT)   return r->req.getBody().getKvPut().getValue().size();
-    if (which == Request::Body::FILE_PUT) return r->req.getBody().getFilePut().getData().size();
-    return 0;
+    try {
+        auto which = r->req.getBody().which();
+        if (which == Request::Body::KV_PUT)   return r->req.getBody().getKvPut().getValue().size();
+        if (which == Request::Body::FILE_PUT) return r->req.getBody().getFilePut().getData().size();
+        return 0;
+    } catch (...) { return 0; }
 }
 extern "C" const char* transport_req_reader_prefix(TransportRequestReader* r) {
-    if (!r || r->req.getBody().which() != Request::Body::KV_LIST) return "";
-    return r->req.getBody().getKvList().getPrefix().cStr();
+    if (!r) return "";
+    try {
+        if (r->req.getBody().which() != Request::Body::KV_LIST) return "";
+        return r->req.getBody().getKvList().getPrefix().cStr();
+    } catch (...) { return ""; }
 }
 
 // ── Server-side: encode outgoing response ────────────────────────────────────

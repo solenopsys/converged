@@ -9,10 +9,13 @@ export default class DagServiceImpl implements DagService {
 
   constructor(config?: any) {
     this.stores = new StoresController("ms-dag");
-    this.storesReady = this.stores.init().catch((e) => {
-      console.error("[ms-dag] store init error", e);
-      throw e;
-    });
+    this.storesReady = this.stores.init()
+      .then(() => this.stores.statsStoreService.resetStaleRunning())
+      .then(() => console.log("[ms-dag] reset stale running processes"))
+      .catch((e) => {
+        console.error("[ms-dag] store init error", e);
+        throw e;
+      });
     const wf = config?.workflows ?? {};
     const list: any[] = wf.WORKFLOWS ?? [];
     this.workflows = list.map((w: any) => w.name ?? w).filter(Boolean);

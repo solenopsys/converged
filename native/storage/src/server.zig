@@ -201,7 +201,15 @@ fn handleClient(allocator: Allocator, commands: *StorageCommands, fd: std.posix.
         };
         defer if (resp.ptr) |p| c.transport_free_buf(p, resp.len);
 
-        if (resp.ptr) |p| try sendMessage(fd, p[0..resp.len]);
+        if (resp.ptr) |p| {
+            sendMessage(fd, p[0..resp.len]) catch |err| {
+                std.debug.print("storage send error: {s}\n", .{@errorName(err)});
+                return false;
+            };
+        } else {
+            // encodeError failed — send a hardcoded fallback so the client doesn't hang
+            sendErrorMsg(fd, "internal storage error");
+        }
         if (shutdown) return true;
     }
 }

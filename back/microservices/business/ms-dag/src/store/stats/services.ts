@@ -71,6 +71,20 @@ export class StatsStoreService {
     });
   }
 
+  async resetStaleRunning(): Promise<void> {
+    await this.store.db
+      .updateTable("process")
+      .set({ status: "failed", updated_at: Date.now() })
+      .where("status", "=", "running")
+      .execute();
+
+    await this.store.db
+      .updateTable("nodes")
+      .set({ state: "failed", error_message: "process killed", completed_at: Date.now(), updated_at: Date.now() })
+      .where("state", "in", ["queued", "processing"])
+      .execute();
+  }
+
   async ensureProcess(input: ProcessInput): Promise<ProcessEntity> {
     const existing = await this.processRepo.findById({ id: input.id });
     if (existing) {
