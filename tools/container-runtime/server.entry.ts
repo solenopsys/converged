@@ -119,10 +119,20 @@ const serveStatic = async (dir: string, path: string) => {
   return null;
 };
 
-const serveFile = async (absPath: string) => {
+const serveFile = async (absPath: string, request?: Request) => {
   const file = Bun.file(absPath);
-  if (await file.exists()) return file;
-  return new Response("Not Found", { status: 404 });
+  if (!(await file.exists())) return new Response("Not Found", { status: 404 });
+  const accept = request?.headers.get("accept-encoding") ?? "";
+  if (accept.includes("br")) {
+    const brFile = Bun.file(absPath + ".br");
+    if (await brFile.exists()) {
+      const ct = file.type || "application/octet-stream";
+      return new Response(brFile, {
+        headers: { "Content-Type": ct, "Content-Encoding": "br", "Cache-Control": "no-store" },
+      });
+    }
+  }
+  return file;
 };
 
 const frontDir = resolve(appRoot, "dist/front");
@@ -157,13 +167,13 @@ const app = new Elysia()
   });
 
 app
-  .get("/vendor/*", async ({ params }) =>
-    serveFile(resolve(frontVendorDir, params["*"] || "")),
+  .get("/vendor/*", async ({ params, request }) =>
+    serveFile(resolve(frontVendorDir, params["*"] || ""), request),
   )
-  .get("/mf/:name.js", async ({ params }) =>
-    serveFile(resolve(mfDir, `${params.name}.js`)),
+  .get("/mf/:name.js", async ({ params, request }) =>
+    serveFile(resolve(mfDir, `${params.name}.js`), request),
   )
-  .get("/front-core.js", async () => serveFile(resolve(frontDir, "index.js")))
+  .get("/front-core.js", async ({ request }) => serveFile(resolve(frontDir, "index.js"), request))
   .get("/favicon.svg", async () =>
     serveFile(resolve(landingPublicDir, "favicon.svg")),
   )

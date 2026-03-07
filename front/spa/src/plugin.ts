@@ -164,9 +164,40 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
   let frontCoreBundle: Blob | null = null;
   const mfBundles = new Map<string, Blob>();
 
-  // Prod caches
-  let frontCoreBrotli: Uint8Array;
-  const mfBrotli = new Map<string, Uint8Array>();
+  // LRU cache for prod static files (vendor JS, front-core, MF, SSR pages)
+  type CacheEntry = { raw: Uint8Array; br?: Uint8Array; contentType: string };
+
+  class LRUCache {
+    private map = new Map<string, CacheEntry>();
+    constructor(private maxSize: number) {}
+    get(key: string): CacheEntry | undefined {
+      const v = this.map.get(key);
+      if (!v) return undefined;
+      this.map.delete(key);
+      this.map.set(key, v);
+      return v;
+    }
+    set(key: string, value: CacheEntry): void {
+      this.map.delete(key);
+      this.map.set(key, value);
+      if (this.map.size > this.maxSize) {
+        this.map.delete(this.map.keys().next().value!);
+      }
+    }
+  }
+
+  const staticCache = new LRUCache(2000);
+
+  async function loadAndCache(key: string, filePath: string, contentType: string): Promise<CacheEntry> {
+    const cached = staticCache.get(key);
+    if (cached) return cached;
+    const raw = new Uint8Array(await Bun.file(filePath).arrayBuffer());
+    const brPath = filePath + ".br";
+    const br = existsSync(brPath) ? new Uint8Array(await Bun.file(brPath).arrayBuffer()) : undefined;
+    const entry: CacheEntry = { raw, br, contentType };
+    staticCache.set(key, entry);
+    return entry;
+  }
 
   const mfDirs = [resolve(frontRoot, "microfrontends")];
   if (parentProjectRoot) {
@@ -249,13 +280,11 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
     if (frontCoreBundle) return frontCoreBundle;
 
     if (isProd) {
-      const file = Bun.file(prebuiltFrontCorePath);
-      if (!(await file.exists())) {
+      if (!(await Bun.file(prebuiltFrontCorePath).exists())) {
         throw new Error(`Missing prebuilt front-core: ${prebuiltFrontCorePath}`);
       }
-      frontCoreBundle = file;
-      const bytes = await file.arrayBuffer();
-      frontCoreBrotli = Bun.gzipSync(Buffer.from(bytes), { level: 6 });
+      await loadAndCache("front-core", prebuiltFrontCorePath, "application/javascript; charset=utf-8");
+      frontCoreBundle = Bun.file(prebuiltFrontCorePath);
       log("front-core:prebuilt");
       return frontCoreBundle;
     }
@@ -286,14 +315,12 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
 
     if (isProd) {
       const prebuiltPath = resolve(prebuiltMfDir, `${name}.js`);
-      const file = Bun.file(prebuiltPath);
-      if (!(await file.exists())) {
+      if (!(await Bun.file(prebuiltPath).exists())) {
         throw new Error(`Missing prebuilt microfrontend: ${prebuiltPath}`);
       }
-      mfBundles.set(name, file);
-      const bytes = await file.arrayBuffer();
-      mfBrotli.set(name, Bun.gzipSync(Buffer.from(bytes), { level: 6 }));
-      return file;
+      await loadAndCache(`mf:${name}`, prebuiltPath, "application/javascript; charset=utf-8");
+      mfBundles.set(name, Bun.file(prebuiltPath));
+      return mfBundles.get(name)!;
     }
 
     let entry: string | null = null;
@@ -408,7 +435,13 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
           set.status = 404;
           return "Not Found";
         }
-        return new Response(Bun.file(filePath), {
+        const cached = await loadAndCache(`vendor:${fileName}`, filePath, contentType);
+        if (supportsEncoding(request, "br") && cached.br) {
+          return new Response(cached.br, {
+            headers: { "Content-Type": contentType, "Content-Encoding": "br", "Cache-Control": "no-store" },
+          });
+        }
+        return new Response(cached.raw, {
           headers: { "Content-Type": contentType, "Cache-Control": "no-store" },
         });
       }
@@ -432,14 +465,18 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
     .get("/front-core.js", async ({ request, set }) => {
       try {
         const bundle = await ensureFrontCore();
-        if (isProd && supportsEncoding(request, "gzip")) {
-          return new Response(frontCoreBrotli, {
-            headers: {
-              "Content-Type": "application/javascript; charset=utf-8",
-              "Content-Encoding": "gzip",
-              "Cache-Control": "no-store",
-            },
-          });
+        if (isProd) {
+          const cached = staticCache.get("front-core");
+          if (cached && supportsEncoding(request, "br") && cached.br) {
+            return new Response(cached.br, {
+              headers: { "Content-Type": "application/javascript; charset=utf-8", "Content-Encoding": "br", "Cache-Control": "no-store" },
+            });
+          }
+          if (cached) {
+            return new Response(cached.raw, {
+              headers: { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": "no-store" },
+            });
+          }
         }
         return new Response(bundle, {
           headers: {
@@ -480,15 +517,16 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
 
       try {
         const bundle = await ensureMicrofrontend(name);
-        if (isProd && supportsEncoding(request, "gzip")) {
-          const gz = mfBrotli.get(name);
-          if (gz) {
-            return new Response(gz, {
-              headers: {
-                "Content-Type": "application/javascript; charset=utf-8",
-                "Content-Encoding": "gzip",
-                "Cache-Control": "no-store",
-              },
+        if (isProd) {
+          const cached = staticCache.get(`mf:${name}`);
+          if (cached && supportsEncoding(request, "br") && cached.br) {
+            return new Response(cached.br, {
+              headers: { "Content-Type": "application/javascript; charset=utf-8", "Content-Encoding": "br", "Cache-Control": "no-store" },
+            });
+          }
+          if (cached) {
+            return new Response(cached.raw, {
+              headers: { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": "no-store" },
             });
           }
         }

@@ -1,4 +1,5 @@
 import { existsSync, mkdirSync, readdirSync } from "fs";
+import { brotliCompressSync, constants as zlibConstants } from "zlib";
 import { resolve } from "path";
 import { externalPackages, microfrontends } from "front-core/runtime-config";
 import { createWorkspaceResolverPlugin } from "front-core/workspace-resolver";
@@ -88,7 +89,13 @@ for (const name of microfrontends) {
   if (result.outputs.length === 0) {
     throw new Error(`No output emitted for ${name}`);
   }
-  await Bun.write(resolve(outDir, `${name}.js`), result.outputs[0]);
+  const jsBytes = await result.outputs[0].arrayBuffer();
+  const outPath = resolve(outDir, `${name}.js`);
+  await Bun.write(outPath, jsBytes);
+  const compressed = brotliCompressSync(Buffer.from(jsBytes), {
+    params: { [zlibConstants.BROTLI_PARAM_QUALITY]: 4 },
+  });
+  await Bun.write(outPath + ".br", compressed);
 
-  console.log(`[landing] built ${name}.js`);
+  console.log(`[landing] built ${name}.js (${(jsBytes.byteLength / 1024).toFixed(1)}kb → ${(compressed.byteLength / 1024).toFixed(1)}kb br)`);
 }

@@ -1,5 +1,10 @@
-import { mkdirSync, rmSync, statSync, writeFileSync } from "fs";
+import { mkdirSync, rmSync, statSync, writeFileSync, existsSync, readFileSync } from "fs";
 import { resolve } from "path";
+import { brotliCompressSync, constants as zlibConstants } from "zlib";
+
+function brotliCompress(data: Buffer, quality: number): Buffer {
+  return brotliCompressSync(data, { params: { [zlibConstants.BROTLI_PARAM_QUALITY]: quality } });
+}
 
 const distDir = resolve(import.meta.dir, "..", "..", "dist");
 const vendorDir = resolve(distDir, "vendor");
@@ -95,6 +100,9 @@ function logSize(path: string): string {
   return `${(statSync(path).size / 1024).toFixed(1)}kb`;
 }
 
+// Generate lucide shim (only used icons) before building vendors
+await import("./lucide-shim-gen.ts");
+
 rmSync(vendorDir, { recursive: true, force: true });
 rmSync(vendorSrcDir, { recursive: true, force: true });
 mkdirSync(vendorDir, { recursive: true });
@@ -148,6 +156,14 @@ function buildVendorWrapper(entry: (typeof vendorEntries)[number]): string {
       "export default mod;",
     ].join("\n");
   }
+  // lucide-react: use pre-generated shim with only used icons
+  if (entry.specifier === "lucide-react") {
+    const shimPath = resolve(import.meta.dir, "lucide-vendor-shim.ts");
+    if (existsSync(shimPath)) {
+      return readFileSync(shimPath, "utf-8");
+    }
+  }
+
   // generic: re-export everything
   return [
     `import * as mod from "${entry.source}";`,
@@ -195,6 +211,9 @@ for (const entry of vendorEntries) {
   }
 
   await Bun.write(outPath, result.outputs[0]);
+
+  const vendorBytes = await Bun.file(outPath).arrayBuffer();
+  await Bun.write(outPath + ".br", brotliCompress(Buffer.from(vendorBytes), 4));
 
   imports[entry.specifier] = `/vendor/${entry.file}`;
   console.log(`[front-core] vendor ${entry.specifier} -> ${entry.file} (${logSize(outPath)})`);
@@ -246,5 +265,13 @@ const cssSource = await Bun.file(resolve(import.meta.dir, "..", "index.css")).te
 await Bun.write(resolve(distDir, "index.css"), cssSource);
 rmSync(vendorSrcDir, { recursive: true, force: true });
 
+// Compress front-core.js → front-core.js.br
+const frontCoreBytes = await Bun.file(resolve(distDir, "index.js")).arrayBuffer();
+await Bun.write(
+  resolve(distDir, "index.js.br"),
+  brotliCompress(Buffer.from(frontCoreBytes), 4),
+);
+
 console.log(`[front-core] index.js (${logSize(resolve(distDir, "index.js"))})`);
+console.log(`[front-core] index.js.br (${logSize(resolve(distDir, "index.js.br"))})`);
 console.log(`[front-core] index.css (${logSize(resolve(distDir, "index.css"))})`);
