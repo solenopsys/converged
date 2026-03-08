@@ -9,8 +9,10 @@
 #include <capnp/serialize.h>
 #include <kj/array.h>
 
+#include <cstdio>
 #include <cstring>
 #include <cstdlib>
+#include <exception>
 #include <string>
 
 // Generous traversal limit to avoid crashes on large messages.
@@ -19,6 +21,28 @@ static capnp::ReaderOptions safeReaderOptions() {
     opts.traversalLimitInWords = 512 * 1024 * 1024; // 512M words
     return opts;
 }
+
+static void logException(const char* where, const char* what) {
+    fprintf(stderr, "[transport] %s failed: %s\n", where, what ? what : "unknown");
+}
+
+static void logKjException(const char* where, const kj::Exception& e) {
+    logException(where, e.getDescription().cStr());
+}
+
+#define TRANSPORT_CATCH_RET(ret, where)                                   \
+    catch (const kj::Exception& e) {                                       \
+        logKjException(where, e);                                           \
+        return ret;                                                         \
+    }                                                                       \
+    catch (const std::exception& e) {                                       \
+        logException(where, e.what());                                      \
+        return ret;                                                         \
+    }                                                                       \
+    catch (...) {                                                           \
+        logException(where, "unknown exception");                           \
+        return ret;                                                         \
+    }
 
 // ── Internal structs ──────────────────────────────────────────────────────────
 
@@ -44,126 +68,180 @@ struct TransportResponse {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 static TransportRequest* make_req(const char* ms, const char* store) {
-    auto* r = new TransportRequest();
-    if (ms)    r->req.setMs(ms);
-    if (store) r->req.setStore(store);
-    return r;
+    try {
+        auto* r = new TransportRequest();
+        if (ms)    r->req.setMs(ms);
+        if (store) r->req.setStore(store);
+        return r;
+    } TRANSPORT_CATCH_RET(nullptr, "make_req")
 }
 
 // ── Request constructors ──────────────────────────────────────────────────────
 
 extern "C" TransportRequest* transport_req_ping(void) {
-    auto* r = new TransportRequest();
-    r->req.getBody().setPing();
-    return r;
+    try {
+        auto* r = new TransportRequest();
+        r->req.getBody().setPing();
+        return r;
+    } TRANSPORT_CATCH_RET(nullptr, "transport_req_ping")
 }
 
 extern "C" TransportRequest* transport_req_shutdown(void) {
-    auto* r = new TransportRequest();
-    r->req.getBody().setShutdown();
-    return r;
+    try {
+        auto* r = new TransportRequest();
+        r->req.getBody().setShutdown();
+        return r;
+    } TRANSPORT_CATCH_RET(nullptr, "transport_req_shutdown")
 }
 
 extern "C" TransportRequest* transport_req_open(const char* ms, const char* store, StoreTypeC store_type) {
-    auto* r = make_req(ms, store);
-    r->req.getBody().initOpen().setStoreType(static_cast<StoreType>(store_type));
-    return r;
+    try {
+        auto* r = make_req(ms, store);
+        if (!r) return nullptr;
+        r->req.getBody().initOpen().setStoreType(static_cast<StoreType>(store_type));
+        return r;
+    } TRANSPORT_CATCH_RET(nullptr, "transport_req_open")
 }
 
 extern "C" TransportRequest* transport_req_close(const char* ms, const char* store) {
-    auto* r = make_req(ms, store);
-    r->req.getBody().setClose();
-    return r;
+    try {
+        auto* r = make_req(ms, store);
+        if (!r) return nullptr;
+        r->req.getBody().setClose();
+        return r;
+    } TRANSPORT_CATCH_RET(nullptr, "transport_req_close")
 }
 
 extern "C" TransportRequest* transport_req_exec_sql(const char* ms, const char* store, const char* sql) {
-    auto* r = make_req(ms, store);
-    r->req.getBody().initExecSql().setSql(sql);
-    return r;
+    try {
+        auto* r = make_req(ms, store);
+        if (!r) return nullptr;
+        r->req.getBody().initExecSql().setSql(sql);
+        return r;
+    } TRANSPORT_CATCH_RET(nullptr, "transport_req_exec_sql")
 }
 
 extern "C" TransportRequest* transport_req_query_sql(const char* ms, const char* store, const char* sql) {
-    auto* r = make_req(ms, store);
-    r->req.getBody().initQuerySql().setSql(sql);
-    return r;
+    try {
+        auto* r = make_req(ms, store);
+        if (!r) return nullptr;
+        r->req.getBody().initQuerySql().setSql(sql);
+        return r;
+    } TRANSPORT_CATCH_RET(nullptr, "transport_req_query_sql")
 }
 
 extern "C" TransportRequest* transport_req_size(const char* ms, const char* store) {
-    auto* r = make_req(ms, store);
-    r->req.getBody().setSize();
-    return r;
+    try {
+        auto* r = make_req(ms, store);
+        if (!r) return nullptr;
+        r->req.getBody().setSize();
+        return r;
+    } TRANSPORT_CATCH_RET(nullptr, "transport_req_size")
 }
 
 extern "C" TransportRequest* transport_req_manifest(const char* ms, const char* store) {
-    auto* r = make_req(ms, store);
-    r->req.getBody().setManifest();
-    return r;
+    try {
+        auto* r = make_req(ms, store);
+        if (!r) return nullptr;
+        r->req.getBody().setManifest();
+        return r;
+    } TRANSPORT_CATCH_RET(nullptr, "transport_req_manifest")
 }
 
 extern "C" TransportRequest* transport_req_migrate(const char* ms, const char* store, const char* migration_id) {
-    auto* r = make_req(ms, store);
-    r->req.getBody().initMigrate().setMigrationId(migration_id);
-    return r;
+    try {
+        auto* r = make_req(ms, store);
+        if (!r) return nullptr;
+        r->req.getBody().initMigrate().setMigrationId(migration_id);
+        return r;
+    } TRANSPORT_CATCH_RET(nullptr, "transport_req_migrate")
 }
 
 extern "C" TransportRequest* transport_req_archive(const char* ms, const char* store, const char* output_path) {
-    auto* r = make_req(ms, store);
-    r->req.getBody().initArchive().setOutputPath(output_path);
-    return r;
+    try {
+        auto* r = make_req(ms, store);
+        if (!r) return nullptr;
+        r->req.getBody().initArchive().setOutputPath(output_path);
+        return r;
+    } TRANSPORT_CATCH_RET(nullptr, "transport_req_archive")
 }
 
 extern "C" TransportRequest* transport_req_kv_put(const char* ms, const char* store,
                                                    const char* key, const uint8_t* value, size_t value_len) {
-    auto* r = make_req(ms, store);
-    auto body = r->req.getBody().initKvPut();
-    body.setKey(key);
-    body.setValue(kj::arrayPtr(reinterpret_cast<const kj::byte*>(value), value_len));
-    return r;
+    try {
+        auto* r = make_req(ms, store);
+        if (!r) return nullptr;
+        auto body = r->req.getBody().initKvPut();
+        body.setKey(key);
+        body.setValue(kj::arrayPtr(reinterpret_cast<const kj::byte*>(value), value_len));
+        return r;
+    } TRANSPORT_CATCH_RET(nullptr, "transport_req_kv_put")
 }
 
 extern "C" TransportRequest* transport_req_kv_get(const char* ms, const char* store, const char* key) {
-    auto* r = make_req(ms, store);
-    r->req.getBody().initKvGet().setKey(key);
-    return r;
+    try {
+        auto* r = make_req(ms, store);
+        if (!r) return nullptr;
+        r->req.getBody().initKvGet().setKey(key);
+        return r;
+    } TRANSPORT_CATCH_RET(nullptr, "transport_req_kv_get")
 }
 
 extern "C" TransportRequest* transport_req_kv_delete(const char* ms, const char* store, const char* key) {
-    auto* r = make_req(ms, store);
-    r->req.getBody().initKvDelete().setKey(key);
-    return r;
+    try {
+        auto* r = make_req(ms, store);
+        if (!r) return nullptr;
+        r->req.getBody().initKvDelete().setKey(key);
+        return r;
+    } TRANSPORT_CATCH_RET(nullptr, "transport_req_kv_delete")
 }
 
 extern "C" TransportRequest* transport_req_kv_list(const char* ms, const char* store, const char* prefix) {
-    auto* r = make_req(ms, store);
-    r->req.getBody().initKvList().setPrefix(prefix ? prefix : "");
-    return r;
+    try {
+        auto* r = make_req(ms, store);
+        if (!r) return nullptr;
+        r->req.getBody().initKvList().setPrefix(prefix ? prefix : "");
+        return r;
+    } TRANSPORT_CATCH_RET(nullptr, "transport_req_kv_list")
 }
 
 extern "C" TransportRequest* transport_req_file_put(const char* ms, const char* store,
                                                      const char* key, const uint8_t* data, size_t data_len) {
-    auto* r = make_req(ms, store);
-    auto body = r->req.getBody().initFilePut();
-    body.setKey(key);
-    body.setData(kj::arrayPtr(reinterpret_cast<const kj::byte*>(data), data_len));
-    return r;
+    try {
+        auto* r = make_req(ms, store);
+        if (!r) return nullptr;
+        auto body = r->req.getBody().initFilePut();
+        body.setKey(key);
+        body.setData(kj::arrayPtr(reinterpret_cast<const kj::byte*>(data), data_len));
+        return r;
+    } TRANSPORT_CATCH_RET(nullptr, "transport_req_file_put")
 }
 
 extern "C" TransportRequest* transport_req_file_get(const char* ms, const char* store, const char* key) {
-    auto* r = make_req(ms, store);
-    r->req.getBody().initFileGet().setKey(key);
-    return r;
+    try {
+        auto* r = make_req(ms, store);
+        if (!r) return nullptr;
+        r->req.getBody().initFileGet().setKey(key);
+        return r;
+    } TRANSPORT_CATCH_RET(nullptr, "transport_req_file_get")
 }
 
 extern "C" TransportRequest* transport_req_file_delete(const char* ms, const char* store, const char* key) {
-    auto* r = make_req(ms, store);
-    r->req.getBody().initFileDelete().setKey(key);
-    return r;
+    try {
+        auto* r = make_req(ms, store);
+        if (!r) return nullptr;
+        r->req.getBody().initFileDelete().setKey(key);
+        return r;
+    } TRANSPORT_CATCH_RET(nullptr, "transport_req_file_delete")
 }
 
 extern "C" TransportRequest* transport_req_file_list(const char* ms, const char* store) {
-    auto* r = make_req(ms, store);
-    r->req.getBody().setFileList();
-    return r;
+    try {
+        auto* r = make_req(ms, store);
+        if (!r) return nullptr;
+        r->req.getBody().setFileList();
+        return r;
+    } TRANSPORT_CATCH_RET(nullptr, "transport_req_file_list")
 }
 
 // ── Encode / free request ─────────────────────────────────────────────────────
@@ -183,7 +261,10 @@ extern "C" int32_t transport_req_encode(TransportRequest* req, uint8_t** out_buf
     } catch (...) { return -1; }
 }
 
-extern "C" void transport_req_free(TransportRequest* req) { delete req; }
+extern "C" void transport_req_free(TransportRequest* req) {
+    try { delete req; }
+    catch (...) {}
+}
 
 // ── Decode response ───────────────────────────────────────────────────────────
 
@@ -203,7 +284,10 @@ extern "C" TransportResponse* transport_resp_decode(const uint8_t* buf, size_t l
     } catch (...) { return nullptr; }
 }
 
-extern "C" void transport_resp_free(TransportResponse* resp) { delete resp; }
+extern "C" void transport_resp_free(TransportResponse* resp) {
+    try { delete resp; }
+    catch (...) {}
+}
 
 // ── Response accessors ────────────────────────────────────────────────────────
 
@@ -490,7 +574,10 @@ extern "C" TransportRequestReader* transport_req_reader_decode(const uint8_t* bu
     } catch (...) { return nullptr; }
 }
 
-extern "C" void transport_req_reader_free(TransportRequestReader* r) { delete r; }
+extern "C" void transport_req_reader_free(TransportRequestReader* r) {
+    try { delete r; }
+    catch (...) {}
+}
 
 extern "C" RequestCmd transport_req_reader_cmd(TransportRequestReader* r) {
     if (!r) return REQ_PING;
@@ -600,94 +687,112 @@ static int32_t encodeResponse(capnp::MallocMessageBuilder& msg, uint8_t** out, s
 }
 
 extern "C" int32_t transport_encode_ok(uint8_t** out, size_t* out_len, TelemetryC tel) {
-    capnp::MallocMessageBuilder msg;
-    auto resp = msg.initRoot<Response>();
-    setTelemetry(resp, tel);
-    resp.getResult().setEmpty();
-    return encodeResponse(msg, out, out_len);
+    try {
+        capnp::MallocMessageBuilder msg;
+        auto resp = msg.initRoot<Response>();
+        setTelemetry(resp, tel);
+        resp.getResult().setEmpty();
+        return encodeResponse(msg, out, out_len);
+    } TRANSPORT_CATCH_RET(-1, "transport_encode_ok")
 }
 
 extern "C" int32_t transport_encode_error(uint8_t** out, size_t* out_len, const char* error) {
-    capnp::MallocMessageBuilder msg;
-    auto resp = msg.initRoot<Response>();
-    resp.getResult().setError(error ? error : "unknown error");
-    return encodeResponse(msg, out, out_len);
+    try {
+        capnp::MallocMessageBuilder msg;
+        auto resp = msg.initRoot<Response>();
+        resp.getResult().setError(error ? error : "unknown error");
+        return encodeResponse(msg, out, out_len);
+    } TRANSPORT_CATCH_RET(-1, "transport_encode_error")
 }
 
 extern "C" int32_t transport_encode_affected(uint8_t** out, size_t* out_len, TelemetryC tel, int64_t affected) {
-    capnp::MallocMessageBuilder msg;
-    auto resp = msg.initRoot<Response>();
-    setTelemetry(resp, tel);
-    resp.getResult().setAffected(affected);
-    return encodeResponse(msg, out, out_len);
+    try {
+        capnp::MallocMessageBuilder msg;
+        auto resp = msg.initRoot<Response>();
+        setTelemetry(resp, tel);
+        resp.getResult().setAffected(affected);
+        return encodeResponse(msg, out, out_len);
+    } TRANSPORT_CATCH_RET(-1, "transport_encode_affected")
 }
 
 extern "C" int32_t transport_encode_size(uint8_t** out, size_t* out_len, TelemetryC tel, uint64_t size) {
-    capnp::MallocMessageBuilder msg;
-    auto resp = msg.initRoot<Response>();
-    setTelemetry(resp, tel);
-    resp.getResult().setSize(size);
-    return encodeResponse(msg, out, out_len);
+    try {
+        capnp::MallocMessageBuilder msg;
+        auto resp = msg.initRoot<Response>();
+        setTelemetry(resp, tel);
+        resp.getResult().setSize(size);
+        return encodeResponse(msg, out, out_len);
+    } TRANSPORT_CATCH_RET(-1, "transport_encode_size")
 }
 
 extern "C" int32_t transport_encode_found(uint8_t** out, size_t* out_len, TelemetryC tel,
                                            int32_t found, const uint8_t* data, size_t data_len) {
-    capnp::MallocMessageBuilder msg;
-    auto resp = msg.initRoot<Response>();
-    setTelemetry(resp, tel);
-    auto f = resp.getResult().initFound();
-    f.setFound(found != 0);
-    if (found && data && data_len > 0)
-        f.setData(kj::arrayPtr(reinterpret_cast<const kj::byte*>(data), data_len));
-    return encodeResponse(msg, out, out_len);
+    try {
+        capnp::MallocMessageBuilder msg;
+        auto resp = msg.initRoot<Response>();
+        setTelemetry(resp, tel);
+        auto f = resp.getResult().initFound();
+        f.setFound(found != 0);
+        if (found && data && data_len > 0)
+            f.setData(kj::arrayPtr(reinterpret_cast<const kj::byte*>(data), data_len));
+        return encodeResponse(msg, out, out_len);
+    } TRANSPORT_CATCH_RET(-1, "transport_encode_found")
 }
 
 extern "C" int32_t transport_encode_keys(uint8_t** out, size_t* out_len, TelemetryC tel,
                                           const char** keys, uint32_t key_count) {
-    capnp::MallocMessageBuilder msg;
-    auto resp  = msg.initRoot<Response>();
-    setTelemetry(resp, tel);
-    auto kList = resp.getResult().initKeys(key_count);
-    for (uint32_t i = 0; i < key_count; i++) kList.set(i, keys[i] ? keys[i] : "");
-    return encodeResponse(msg, out, out_len);
+    try {
+        capnp::MallocMessageBuilder msg;
+        auto resp  = msg.initRoot<Response>();
+        setTelemetry(resp, tel);
+        auto kList = resp.getResult().initKeys(key_count);
+        for (uint32_t i = 0; i < key_count; i++) kList.set(i, keys[i] ? keys[i] : "");
+        return encodeResponse(msg, out, out_len);
+    } TRANSPORT_CATCH_RET(-1, "transport_encode_keys")
 }
 
 extern "C" int32_t transport_encode_data(uint8_t** out, size_t* out_len, TelemetryC tel,
                                           const uint8_t* data, size_t data_len) {
-    capnp::MallocMessageBuilder msg;
-    auto resp = msg.initRoot<Response>();
-    setTelemetry(resp, tel);
-    resp.getResult().setData(kj::arrayPtr(reinterpret_cast<const kj::byte*>(data), data_len));
-    return encodeResponse(msg, out, out_len);
+    try {
+        capnp::MallocMessageBuilder msg;
+        auto resp = msg.initRoot<Response>();
+        setTelemetry(resp, tel);
+        resp.getResult().setData(kj::arrayPtr(reinterpret_cast<const kj::byte*>(data), data_len));
+        return encodeResponse(msg, out, out_len);
+    } TRANSPORT_CATCH_RET(-1, "transport_encode_data")
 }
 
 extern "C" int32_t transport_encode_manifest(uint8_t** out, size_t* out_len, TelemetryC tel,
                                               const char* name, uint8_t store_type, uint32_t version,
                                               const char** migrations, uint32_t mig_count) {
-    capnp::MallocMessageBuilder msg;
-    auto resp = msg.initRoot<Response>();
-    setTelemetry(resp, tel);
-    auto m = resp.getResult().initManifest();
-    m.setName(name ? name : "");
-    m.setStoreType(static_cast<StoreType>(store_type));
-    m.setVersion(version);
-    auto migs = m.initMigrations(mig_count);
-    for (uint32_t i = 0; i < mig_count; i++) migs.set(i, migrations[i] ? migrations[i] : "");
-    return encodeResponse(msg, out, out_len);
+    try {
+        capnp::MallocMessageBuilder msg;
+        auto resp = msg.initRoot<Response>();
+        setTelemetry(resp, tel);
+        auto m = resp.getResult().initManifest();
+        m.setName(name ? name : "");
+        m.setStoreType(static_cast<StoreType>(store_type));
+        m.setVersion(version);
+        auto migs = m.initMigrations(mig_count);
+        for (uint32_t i = 0; i < mig_count; i++) migs.set(i, migrations[i] ? migrations[i] : "");
+        return encodeResponse(msg, out, out_len);
+    } TRANSPORT_CATCH_RET(-1, "transport_encode_manifest")
 }
 
 extern "C" int32_t transport_encode_kv_pairs(uint8_t** out, size_t* out_len, TelemetryC tel,
                                               const char** keys, const size_t* key_lens,
                                               const uint8_t** values, const size_t* value_lens,
                                               uint32_t count) {
-    capnp::MallocMessageBuilder msg;
-    auto resp  = msg.initRoot<Response>();
-    setTelemetry(resp, tel);
-    auto pList = resp.getResult().initPairs(count);
-    for (uint32_t i = 0; i < count; i++) {
-        auto p = pList[i];
-        p.setKey(kj::StringPtr(keys[i], key_lens[i]));
-        p.setValue(kj::arrayPtr(reinterpret_cast<const kj::byte*>(values[i]), value_lens[i]));
-    }
-    return encodeResponse(msg, out, out_len);
+    try {
+        capnp::MallocMessageBuilder msg;
+        auto resp  = msg.initRoot<Response>();
+        setTelemetry(resp, tel);
+        auto pList = resp.getResult().initPairs(count);
+        for (uint32_t i = 0; i < count; i++) {
+            auto p = pList[i];
+            p.setKey(kj::StringPtr(keys[i], key_lens[i]));
+            p.setValue(kj::arrayPtr(reinterpret_cast<const kj::byte*>(values[i]), value_lens[i]));
+        }
+        return encodeResponse(msg, out, out_len);
+    } TRANSPORT_CATCH_RET(-1, "transport_encode_kv_pairs")
 }

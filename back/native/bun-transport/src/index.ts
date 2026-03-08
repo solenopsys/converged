@@ -77,7 +77,11 @@ function getLibPath(): string {
   return `${import.meta.dir}/../bin-libs/${filename}`;
 }
 
-const lib = dlopen(getLibPath(), SYMBOLS);
+export const TRANSPORT_LIBRARY_PATH = getLibPath();
+if (process.env.TRANSPORT_DEBUG_LOAD === "1") {
+  console.log(`[bun-transport] loading native lib: ${TRANSPORT_LIBRARY_PATH}`);
+}
+const lib = dlopen(TRANSPORT_LIBRARY_PATH, SYMBOLS);
 const s   = lib.symbols;
 const ENABLE_REQ_FREE = process.env.TRANSPORT_DISABLE_REQ_FREE !== "1";
 const ENABLE_RESP_FREE = process.env.TRANSPORT_DISABLE_RESP_FREE !== "1";
@@ -155,6 +159,7 @@ export interface ManifestInfo {
 
 export interface StorageConnectionOptions {
   operationTimeoutMs?: number;
+  reconnectAttempts?: number;
 }
 
 // ── Connection ────────────────────────────────────────────────────────────────
@@ -163,6 +168,9 @@ export class StorageConnection {
   private fd: number = -1;
   /** For Unix: filesystem path. For TCP: "host:port". Used in error messages. */
   private readonly socketPath: string;
+  private readonly config: StorageConnectionConfig;
+  private readonly operationTimeoutMs?: number;
+  private readonly reconnectAttempts: number;
 
   /**
    * Connect to storage.
@@ -180,46 +188,53 @@ export class StorageConnection {
    *   new StorageConnection({ kind: "tcp", host: "127.0.0.1", port: 9000 })
    */
   constructor(config: string | StorageConnectionConfig, options?: StorageConnectionOptions) {
-    const cfg: StorageConnectionConfig =
-      typeof config === "string" ? { kind: "unix", socketPath: config } : config;
+    this.config = typeof config === "string" ? { kind: "unix", socketPath: config } : config;
+    this.socketPath =
+      this.config.kind === "unix" ? this.config.socketPath : `${this.config.host}:${this.config.port}`;
+    this.operationTimeoutMs = options?.operationTimeoutMs;
+    this.reconnectAttempts = normalizeNonNegativeInt(
+      options?.reconnectAttempts,
+      normalizeNonNegativeInt(process.env.TRANSPORT_RECONNECT_ATTEMPTS, 1),
+    );
+    this.connect();
+  }
 
-    if (cfg.kind === "unix") {
-      this.socketPath = cfg.socketPath;
-      this.validateSocketPath(cfg.socketPath);
-
-      if (!existsSync(cfg.socketPath)) {
+  private connect(): void {
+    if (this.config.kind === "unix") {
+      const socketPath = this.config.socketPath;
+      this.validateSocketPath(socketPath);
+      if (!existsSync(socketPath)) {
         throw new StorageTransportError(
           "SOCKET_NOT_FOUND",
-          `storage socket not found: ${cfg.socketPath}`,
-          { socketPath: cfg.socketPath },
+          `storage socket not found: ${socketPath}`,
+          { socketPath },
         );
       }
 
-      const pathBuf = Buffer.from(cfg.socketPath + "\0");
+      const pathBuf = Buffer.from(socketPath + "\0");
       let fd: number;
       try {
         fd = s.transport_connect(ptr(pathBuf)) as number;
       } catch (cause) {
         throw new StorageTransportError(
           "CONNECT_EXCEPTION",
-          `transport_connect threw an exception for socket: ${cfg.socketPath}`,
-          { socketPath: cfg.socketPath, cause },
+          `transport_connect threw an exception for socket: ${socketPath}`,
+          { socketPath, cause },
         );
       }
       if (fd < 0) {
         throw new StorageTransportError(
           "CONNECT_FAILED",
-          `transport_connect failed: ${fd} (socket: ${cfg.socketPath})`,
-          { socketPath: cfg.socketPath },
+          `transport_connect failed: ${fd} (socket: ${socketPath})`,
+          { socketPath },
         );
       }
       this.fd = fd;
     } else {
-      this.socketPath = `${cfg.host}:${cfg.port}`;
-      const hostBuf = Buffer.from(cfg.host + "\0");
+      const hostBuf = Buffer.from(this.config.host + "\0");
       let fd: number;
       try {
-        fd = s.transport_connect_tcp(ptr(hostBuf), cfg.port) as number;
+        fd = s.transport_connect_tcp(ptr(hostBuf), this.config.port) as number;
       } catch (cause) {
         throw new StorageTransportError(
           "CONNECT_EXCEPTION",
@@ -236,28 +251,35 @@ export class StorageConnection {
       }
       this.fd = fd;
     }
+    this.applyOperationTimeout();
+  }
 
-    if (options?.operationTimeoutMs !== undefined) {
-      let rc: number;
-      try {
-        rc = s.transport_set_timeout_ms(this.fd, options.operationTimeoutMs >>> 0) as number;
-      } catch (cause) {
-        this.close();
-        throw new StorageTransportError(
-          "SET_TIMEOUT_EXCEPTION",
-          `transport_set_timeout_ms threw an exception (${this.socketPath})`,
-          { socketPath: this.socketPath, cause },
-        );
-      }
-      if (rc !== 0) {
-        this.close();
-        throw new StorageTransportError(
-          "SET_TIMEOUT_FAILED",
-          `transport_set_timeout_ms failed: ${rc} (${this.socketPath})`,
-          { socketPath: this.socketPath },
-        );
-      }
+  private applyOperationTimeout(): void {
+    if (this.operationTimeoutMs === undefined) return;
+    let rc: number;
+    try {
+      rc = s.transport_set_timeout_ms(this.fd, this.operationTimeoutMs >>> 0) as number;
+    } catch (cause) {
+      this.close();
+      throw new StorageTransportError(
+        "SET_TIMEOUT_EXCEPTION",
+        `transport_set_timeout_ms threw an exception (${this.socketPath})`,
+        { socketPath: this.socketPath, cause },
+      );
     }
+    if (rc !== 0) {
+      this.close();
+      throw new StorageTransportError(
+        "SET_TIMEOUT_FAILED",
+        `transport_set_timeout_ms failed: ${rc} (${this.socketPath})`,
+        { socketPath: this.socketPath },
+      );
+    }
+  }
+
+  private ensureConnected(): void {
+    if (this.fd >= 0) return;
+    this.connect();
   }
 
   private validateSocketPath(socketPath: string): void {
@@ -279,185 +301,208 @@ export class StorageConnection {
 
   close(): void {
     if (this.fd >= 0) {
-      s.transport_close(this.fd);
+      const fd = this.fd;
       this.fd = -1;
+      try {
+        s.transport_close(fd);
+      } catch {}
     }
+  }
+
+  private reconnectBestEffort(): void {
+    try {
+      this.ensureConnected();
+    } catch {}
   }
 
   // ── Internal send/recv ───────────────────────────────────────────────────
 
-  private sendRecv(req: number): Response {
-    if (this.fd < 0) {
-      s.transport_req_free(req);
-      throw new StorageTransportError(
-        "NOT_CONNECTED",
-        `storage transport is not connected (socket: ${this.socketPath})`,
-        { socketPath: this.socketPath },
-      );
+  private sendRecv(makeReq: () => number): Response {
+    for (let attempt = 0; attempt <= this.reconnectAttempts; attempt++) {
+      this.ensureConnected();
+
+      const req = makeReq();
+      if (!req) {
+        throw new StorageTransportError(
+          "SEND_FAILED",
+          `failed to build transport request (socket: ${this.socketPath})`,
+          { socketPath: this.socketPath },
+        );
+      }
+
+      let sendRc: number;
+      let sendCause: unknown = null;
+      try {
+        sendRc = s.transport_send_req(this.fd, req) as number;
+      } catch (cause) {
+        sendRc = -1;
+        sendCause = cause;
+      } finally {
+        if (ENABLE_REQ_FREE) {
+          try {
+            s.transport_req_free(req);
+          } catch {}
+        }
+      }
+
+      if (sendCause !== null || sendRc !== 0) {
+        this.close();
+        if (attempt < this.reconnectAttempts) {
+          this.ensureConnected();
+          continue;
+        }
+
+        if (sendCause !== null) {
+          throw new StorageTransportError(
+            "SEND_EXCEPTION",
+            `transport_send_req threw an exception (socket: ${this.socketPath})`,
+            { socketPath: this.socketPath, cause: sendCause },
+          );
+        }
+
+        throw new StorageTransportError(
+          "SEND_FAILED",
+          `transport_send_req failed: ${sendRc} (timeout or socket error, socket: ${this.socketPath})`,
+          { socketPath: this.socketPath },
+        );
+      }
+
+      let resp: number;
+      try {
+        resp = s.transport_recv_resp(this.fd) as number;
+      } catch (cause) {
+        this.close();
+        this.reconnectBestEffort();
+        throw new StorageTransportError(
+          "RECV_EXCEPTION",
+          `transport_recv_resp threw an exception (socket: ${this.socketPath})`,
+          { socketPath: this.socketPath, cause },
+        );
+      }
+      if (!resp) {
+        this.close();
+        this.reconnectBestEffort();
+        throw new StorageTransportError(
+          "RECV_TIMEOUT_OR_CLOSED",
+          `transport timeout while waiting for response (or socket closed): ${this.socketPath}`,
+          { socketPath: this.socketPath },
+        );
+      }
+      return new Response(resp, this.socketPath);
     }
 
-    let rc: number;
-    try {
-      rc = s.transport_send_req(this.fd, req) as number;
-    } catch (cause) {
-      if (ENABLE_REQ_FREE) s.transport_req_free(req);
-      throw new StorageTransportError(
-        "SEND_EXCEPTION",
-        `transport_send_req threw an exception (socket: ${this.socketPath})`,
-        { socketPath: this.socketPath, cause },
-      );
-    }
-    if (rc !== 0) {
-      if (ENABLE_REQ_FREE) s.transport_req_free(req);
-      throw new StorageTransportError(
-        "SEND_FAILED",
-        `transport_send_req failed: ${rc} (timeout or socket error, socket: ${this.socketPath})`,
-        { socketPath: this.socketPath },
-      );
-    }
-    if (ENABLE_REQ_FREE) s.transport_req_free(req);
-
-    let resp: number;
-    try {
-      resp = s.transport_recv_resp(this.fd) as number;
-    } catch (cause) {
-      throw new StorageTransportError(
-        "RECV_EXCEPTION",
-        `transport_recv_resp threw an exception (socket: ${this.socketPath})`,
-        { socketPath: this.socketPath, cause },
-      );
-    }
-    if (!resp) {
-      throw new StorageTransportError(
-        "RECV_TIMEOUT_OR_CLOSED",
-        `transport timeout while waiting for response (or socket closed): ${this.socketPath}`,
-        { socketPath: this.socketPath },
-      );
-    }
-    return new Response(resp, this.socketPath);
+    throw new StorageTransportError(
+      "SEND_FAILED",
+      `transport_send_req exhausted reconnect attempts (socket: ${this.socketPath})`,
+      { socketPath: this.socketPath },
+    );
   }
 
   // ── Store management ─────────────────────────────────────────────────────
 
   open(ms: string, store: string, storeType: StoreTypeKey): Telemetry {
-    const req = s.transport_req_open(cstr(ms), cstr(store), StoreType[storeType]) as number;
-    return this.sendRecv(req).telemetry();
+    return this.sendRecv(() => s.transport_req_open(cstr(ms), cstr(store), StoreType[storeType]) as number).telemetry();
   }
 
   close_store(ms: string, store: string): Telemetry {
-    const req = s.transport_req_close(cstr(ms), cstr(store)) as number;
-    return this.sendRecv(req).telemetry();
+    return this.sendRecv(() => s.transport_req_close(cstr(ms), cstr(store)) as number).telemetry();
   }
 
   getSize(ms: string, store: string): bigint {
-    const req  = s.transport_req_size(cstr(ms), cstr(store)) as number;
-    const resp = this.sendRecv(req);
+    const resp = this.sendRecv(() => s.transport_req_size(cstr(ms), cstr(store)) as number);
     return resp.size();
   }
 
   getManifest(ms: string, store: string): ManifestInfo {
-    const req  = s.transport_req_manifest(cstr(ms), cstr(store)) as number;
-    const resp = this.sendRecv(req);
+    const resp = this.sendRecv(() => s.transport_req_manifest(cstr(ms), cstr(store)) as number);
     return resp.manifest();
   }
 
   recordMigration(ms: string, store: string, migrationId: string): Telemetry {
-    const req = s.transport_req_migrate(cstr(ms), cstr(store), cstr(migrationId)) as number;
-    return this.sendRecv(req).telemetry();
+    return this.sendRecv(() => s.transport_req_migrate(cstr(ms), cstr(store), cstr(migrationId)) as number).telemetry();
   }
 
   createArchive(ms: string, store: string, outputPath: string): Telemetry {
-    const req = s.transport_req_archive(cstr(ms), cstr(store), cstr(outputPath)) as number;
-    return this.sendRecv(req).telemetry();
+    return this.sendRecv(() => s.transport_req_archive(cstr(ms), cstr(store), cstr(outputPath)) as number).telemetry();
   }
 
   // ── SQL / Column ─────────────────────────────────────────────────────────
 
   execSql(ms: string, store: string, sql: string): { rowsAffected: bigint; telemetry: Telemetry } {
-    const req  = s.transport_req_exec_sql(cstr(ms), cstr(store), cstr(sql)) as number;
-    const resp = this.sendRecv(req);
+    const resp = this.sendRecv(() => s.transport_req_exec_sql(cstr(ms), cstr(store), cstr(sql)) as number);
     return { rowsAffected: resp.affected(), telemetry: resp.telemetry() };
   }
 
   querySql(ms: string, store: string, sql: string): Row[] {
-    const req  = s.transport_req_query_sql(cstr(ms), cstr(store), cstr(sql)) as number;
-    const resp = this.sendRecv(req);
+    const resp = this.sendRecv(() => s.transport_req_query_sql(cstr(ms), cstr(store), cstr(sql)) as number);
     return resp.rows();
   }
 
   // ── KV ───────────────────────────────────────────────────────────────────
 
   kvPut(ms: string, store: string, key: string, value: Buffer): Telemetry {
-    const req = s.transport_req_kv_put(cstr(ms), cstr(store), cstr(key), ptr(value), BigInt(value.length)) as number;
-    return this.sendRecv(req).telemetry();
+    return this.sendRecv(
+      () => s.transport_req_kv_put(cstr(ms), cstr(store), cstr(key), ptr(value), BigInt(value.length)) as number,
+    ).telemetry();
   }
 
   kvGet(ms: string, store: string, key: string): Buffer | null {
-    const req  = s.transport_req_kv_get(cstr(ms), cstr(store), cstr(key)) as number;
-    const resp = this.sendRecv(req);
+    const resp = this.sendRecv(() => s.transport_req_kv_get(cstr(ms), cstr(store), cstr(key)) as number);
     return resp.foundData();
   }
 
   kvDelete(ms: string, store: string, key: string): boolean {
-    const req  = s.transport_req_kv_delete(cstr(ms), cstr(store), cstr(key)) as number;
-    const resp = this.sendRecv(req);
+    const resp = this.sendRecv(() => s.transport_req_kv_delete(cstr(ms), cstr(store), cstr(key)) as number);
     return resp.found();
   }
 
   kvList(ms: string, store: string, prefix = ""): string[] {
-    const req  = s.transport_req_kv_list(cstr(ms), cstr(store), cstr(prefix)) as number;
-    const resp = this.sendRecv(req);
+    const resp = this.sendRecv(() => s.transport_req_kv_list(cstr(ms), cstr(store), cstr(prefix)) as number);
     return resp.pairs().map(p => p.key);
   }
 
   kvGetRange(ms: string, store: string, prefix = ""): Buffer[] {
-    const req  = s.transport_req_kv_list(cstr(ms), cstr(store), cstr(prefix)) as number;
-    const resp = this.sendRecv(req);
+    const resp = this.sendRecv(() => s.transport_req_kv_list(cstr(ms), cstr(store), cstr(prefix)) as number);
     return resp.pairs().map(p => p.value);
   }
 
   // ── Files ────────────────────────────────────────────────────────────────
 
   filePut(ms: string, store: string, key: string, data: Buffer): Telemetry {
-    const req = s.transport_req_file_put(cstr(ms), cstr(store), cstr(key), ptr(data), BigInt(data.length)) as number;
-    return this.sendRecv(req).telemetry();
+    return this.sendRecv(
+      () => s.transport_req_file_put(cstr(ms), cstr(store), cstr(key), ptr(data), BigInt(data.length)) as number,
+    ).telemetry();
   }
 
   fileGet(ms: string, store: string, key: string): Buffer | null {
-    const req  = s.transport_req_file_get(cstr(ms), cstr(store), cstr(key)) as number;
-    const resp = this.sendRecv(req);
+    const resp = this.sendRecv(() => s.transport_req_file_get(cstr(ms), cstr(store), cstr(key)) as number);
     return resp.foundData();
   }
 
   fileDelete(ms: string, store: string, key: string): boolean {
-    const req  = s.transport_req_file_delete(cstr(ms), cstr(store), cstr(key)) as number;
-    const resp = this.sendRecv(req);
+    const resp = this.sendRecv(() => s.transport_req_file_delete(cstr(ms), cstr(store), cstr(key)) as number);
     return resp.found();
   }
 
   fileList(ms: string, store: string): string[] {
-    const req  = s.transport_req_file_list(cstr(ms), cstr(store)) as number;
-    const resp = this.sendRecv(req);
+    const resp = this.sendRecv(() => s.transport_req_file_list(cstr(ms), cstr(store)) as number);
     return resp.keys();
   }
 
   /** Returns all open store keys in "ms/store" format. */
   listStores(): string[] {
-    const req  = s.transport_req_file_list(cstr(""), cstr("")) as number;
-    const resp = this.sendRecv(req);
+    const resp = this.sendRecv(() => s.transport_req_file_list(cstr(""), cstr("")) as number);
     return resp.keys();
   }
 
   // ── Misc ─────────────────────────────────────────────────────────────────
 
   ping(): void {
-    const req = s.transport_req_ping() as number;
-    this.sendRecv(req);
+    this.sendRecv(() => s.transport_req_ping() as number);
   }
 
   shutdown(): void {
-    const req = s.transport_req_shutdown() as number;
-    this.sendRecv(req);
+    this.sendRecv(() => s.transport_req_shutdown() as number);
   }
 }
 
@@ -483,7 +528,9 @@ class Response {
 
   private free(): void {
     if (!ENABLE_RESP_FREE || this.handle === 0) return;
-    s.transport_resp_free(this.handle);
+    try {
+      s.transport_resp_free(this.handle);
+    } catch {}
     (this as any).handle = 0;
   }
 
@@ -611,6 +658,18 @@ class Response {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+function normalizeNonNegativeInt(value: unknown, fallback: number): number {
+  const parsed =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim().length > 0
+        ? Number.parseInt(value, 10)
+        : Number.NaN;
+
+  if (!Number.isFinite(parsed) || parsed < 0) return fallback;
+  return Math.trunc(parsed);
+}
 
 function cstr(s: string): Buffer { return Buffer.from(s + "\0"); }
 

@@ -6,6 +6,7 @@ const StoreType = manifest_mod.StoreType;
 const Telemetry = @import("telemetry.zig").Telemetry;
 const StorageCommands = commands.StorageCommands;
 const with_transport = build_options.with_transport;
+const c = if (with_transport) @cImport(@cInclude("transport.h")) else struct {};
 const server = if (with_transport) @import("server.zig") else struct {
     pub const BindConfig = union(enum) {
         unix: []const u8,
@@ -15,6 +16,110 @@ const server = if (with_transport) @import("server.zig") else struct {
         return error.TransportDisabled;
     }
 };
+const health_checker = if (with_transport) struct {
+    fn run(allocator: std.mem.Allocator, bind_cfg: server.BindConfig, timeout_ms: u32) !bool {
+        const fd: std.posix.fd_t = switch (bind_cfg) {
+            .unix => |path| connectUnixSocket(path, timeout_ms) catch return false,
+            .tcp => |tcp| connectTcpSocket(tcp.host, tcp.port, timeout_ms) catch return false,
+        };
+        defer std.posix.close(fd);
+
+        const req = c.transport_req_ping() orelse return false;
+        defer c.transport_req_free(req);
+
+        var out_buf: ?[*]u8 = null;
+        var out_len: usize = 0;
+        if (c.transport_req_encode(req, @ptrCast(&out_buf), &out_len) != 0) return false;
+        const raw = out_buf orelse return false;
+        defer c.transport_free_buf(raw, out_len);
+        sendFramed(fd, raw[0..out_len]) catch return false;
+
+        const resp_msg = recvFramed(fd, allocator) catch return false;
+        defer allocator.free(resp_msg);
+        const resp = c.transport_resp_decode(resp_msg.ptr, resp_msg.len) orelse return false;
+        defer c.transport_resp_free(resp);
+
+        return c.transport_resp_ok(resp) == 1;
+    }
+} else struct {
+    fn run(_: std.mem.Allocator, _: server.BindConfig, _: u32) !bool {
+        return error.TransportDisabled;
+    }
+};
+
+const max_probe_message_size: u32 = 64 * 1024 * 1024;
+
+fn setSocketTimeout(fd: std.posix.fd_t, timeout_ms: u32) !void {
+    var tv = std.posix.timeval{
+        .sec = @intCast(timeout_ms / 1000),
+        .usec = @intCast((timeout_ms % 1000) * 1000),
+    };
+    const opt = std.mem.asBytes(&tv);
+    try std.posix.setsockopt(fd, std.posix.SOL.SOCKET, std.posix.SO.RCVTIMEO, opt);
+    try std.posix.setsockopt(fd, std.posix.SOL.SOCKET, std.posix.SO.SNDTIMEO, opt);
+}
+
+fn connectUnixSocket(path: []const u8, timeout_ms: u32) !std.posix.fd_t {
+    const fd = try std.posix.socket(std.posix.AF.UNIX, std.posix.SOCK.STREAM, 0);
+    errdefer std.posix.close(fd);
+
+    var addr: std.posix.sockaddr.un = std.mem.zeroes(std.posix.sockaddr.un);
+    addr.family = std.posix.AF.UNIX;
+    if (path.len + 1 > addr.path.len) return error.SocketPathTooLong;
+    @memcpy(addr.path[0..path.len], path);
+    addr.path[path.len] = 0;
+
+    try std.posix.connect(fd, @ptrCast(&addr), @sizeOf(std.posix.sockaddr.un));
+    try setSocketTimeout(fd, timeout_ms);
+    return fd;
+}
+
+fn connectTcpSocket(host: []const u8, port: u16, timeout_ms: u32) !std.posix.fd_t {
+    const fd = try std.posix.socket(std.posix.AF.INET, std.posix.SOCK.STREAM, std.posix.IPPROTO.TCP);
+    errdefer std.posix.close(fd);
+
+    const ip4 = try std.net.Address.parseIp4(host, port);
+    try std.posix.connect(fd, &ip4.any, ip4.getOsSockLen());
+    try setSocketTimeout(fd, timeout_ms);
+    return fd;
+}
+
+fn sendFramed(fd: std.posix.fd_t, payload: []const u8) !void {
+    if (payload.len > max_probe_message_size) return error.MessageTooLarge;
+    var len_buf: [4]u8 = undefined;
+    std.mem.writeInt(u32, &len_buf, @intCast(payload.len), .little);
+    try writeAll(fd, &len_buf);
+    try writeAll(fd, payload);
+}
+
+fn recvFramed(fd: std.posix.fd_t, allocator: std.mem.Allocator) ![]u8 {
+    var len_buf: [4]u8 = undefined;
+    try readAll(fd, &len_buf);
+    const len = std.mem.readInt(u32, &len_buf, .little);
+    if (len > max_probe_message_size) return error.MessageTooLarge;
+    const payload = try allocator.alloc(u8, len);
+    errdefer allocator.free(payload);
+    try readAll(fd, payload);
+    return payload;
+}
+
+fn writeAll(fd: std.posix.fd_t, data: []const u8) !void {
+    var sent: usize = 0;
+    while (sent < data.len) {
+        const n = try std.posix.write(fd, data[sent..]);
+        if (n == 0) return error.BrokenPipe;
+        sent += n;
+    }
+}
+
+fn readAll(fd: std.posix.fd_t, buf: []u8) !void {
+    var got: usize = 0;
+    while (got < buf.len) {
+        const n = try std.posix.read(fd, buf[got..]);
+        if (n == 0) return error.EndOfStream;
+        got += n;
+    }
+}
 
 comptime {
     if (@import("builtin").is_test) {
@@ -85,6 +190,37 @@ pub fn main() !void {
             .tcp  => |t| allocator.free(t.host),
         };
         try server.start(allocator, data_dir, bind_cfg);
+        return;
+    }
+    if (std.mem.eql(u8, cmd, "health")) {
+        if (!with_transport) {
+            printError("health is disabled in this build (transport=false)");
+            std.process.exit(1);
+        }
+        const bind_cfg = getBindConfig(allocator, args, data_dir) catch |err| {
+            printErrorName("health failed", err);
+            std.process.exit(1);
+        };
+        defer switch (bind_cfg) {
+            .unix => |p| allocator.free(p),
+            .tcp  => |t| allocator.free(t.host),
+        };
+        const timeout_ms = getHealthTimeoutMs(args) catch |err| {
+            printErrorName("health failed", err);
+            std.process.exit(1);
+        };
+        const healthy = health_checker.run(allocator, bind_cfg, timeout_ms) catch |err| {
+            printErrorName("health failed", err);
+            std.process.exit(1);
+        };
+        if (!healthy) {
+            printError("health failed");
+            std.process.exit(1);
+        }
+
+        var tel = Telemetry.begin();
+        tel.op_count += 1;
+        printJson(allocator, true, null, &tel);
         return;
     }
 
@@ -196,6 +332,17 @@ fn getBindConfig(allocator: std.mem.Allocator, args: []const []const u8, data_di
     return .{ .unix = try std.fmt.allocPrint(allocator, "{s}/storage.sock", .{data_dir}) };
 }
 
+fn getHealthTimeoutMs(args: []const []const u8) !u32 {
+    for (args, 0..) |arg, i| {
+        if (std.mem.eql(u8, arg, "--timeout-ms") and i + 1 < args.len) {
+            const timeout = std.fmt.parseUnsigned(u32, args[i + 1], 10) catch return error.InvalidTimeoutMs;
+            if (timeout == 0) return error.InvalidTimeoutMs;
+            return timeout;
+        }
+    }
+    return 1000;
+}
+
 fn printUsage() void {
     if (with_transport) {
         std.debug.print(
@@ -203,9 +350,11 @@ fn printUsage() void {
             \\
             \\usage: storage <command> [args...] [--data-dir <path>]
             \\       storage start [--data-dir <path>] [--socket <path>|--tcp <host>:<port>]
+            \\       storage health [--socket <path>|--tcp <host>:<port>] [--timeout-ms <ms>]
             \\
             \\commands:
             \\  start                                  (unix socket json server)
+            \\  health                                 (transport ping probe)
             \\  open <ms> <store> <SQL|KEY_VALUE|COLUMN|VECTOR|FILES>
             \\  close <ms> <store>
             \\  exec <ms/store> <sql>

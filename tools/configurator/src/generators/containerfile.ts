@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { relative, resolve } from "node:path";
 import type { GeneratorContext, MicroserviceRef } from "../types";
 import { getAllMicroservices } from "../resolver";
@@ -366,12 +366,12 @@ class DynamicContainerfileBuilder {
 
   private copyNativeLibs() {
     const nativeSources = [
-      { owner: this.projectDir, path: "back/native" },
       ...(this.hasParent && this.parentDir ? [{ owner: this.parentDir, path: "back/native" }] : []),
+      { owner: this.projectDir, path: "back/native" },
     ].filter(({ owner, path }) => dirExists(this.ctx, owner, path));
     const transportOverlaySources = [
-      { owner: this.projectDir, path: "native/wrapers/transport/zig-out/lib" },
       ...(this.hasParent && this.parentDir ? [{ owner: this.parentDir, path: "native/wrapers/transport/zig-out/lib" }] : []),
+      { owner: this.projectDir, path: "native/wrapers/transport/zig-out/lib" },
     ].filter(({ owner, path }) => dirExists(this.ctx, owner, path));
 
     if (nativeSources.length === 0 && transportOverlaySources.length === 0) return;
@@ -379,12 +379,12 @@ class DynamicContainerfileBuilder {
     const cmds = ["mkdir -p /build/out/plugins/bin-libs"];
     for (const { owner, path } of nativeSources) {
       cmds.push(
-        `find ${this.projectPath(owner, path)} -type f -path '*/bin-libs/*-x86_64-*.so' -exec cp {} /build/out/plugins/bin-libs/ \\;`,
+        `find ${this.projectPath(owner, path)} -type f -path '*/bin-libs/*-x86_64-*.so' -exec cp -uf {} /build/out/plugins/bin-libs/ \\;`,
       );
     }
     for (const { owner, path } of transportOverlaySources) {
       cmds.push(
-        `find ${this.projectPath(owner, path)} -type f -name 'libtransport-*-*.so' -exec cp -f {} /build/out/plugins/bin-libs/ \\;`,
+        `find ${this.projectPath(owner, path)} -type f -name 'libtransport-*-*.so' -exec cp -uf {} /build/out/plugins/bin-libs/ \\;`,
       );
     }
     this.emit("");
@@ -493,16 +493,30 @@ class StorageContainerfileBuilder {
 
   constructor(private ctx: GeneratorContext) {
     this.buildContextRoot = resolve(ctx.projectDir, "../../..");
+    const projectOwner = ctx.projectDir.split("/").pop()!;
+    const parentOwner = ctx.parentProjectDir?.split("/").pop();
+    const owners = [
+      projectOwner,
+      ...(parentOwner ? [parentOwner] : []),
+    ];
+
     let selectedPath = this.storageBinaryCandidates[0]!;
     let selectedOwner = resolveOwnerDir(ctx, selectedPath);
+    let selectedMtimeMs = -1;
 
-    for (const candidate of this.storageBinaryCandidates) {
-      const owner = resolveOwnerDir(ctx, candidate);
+    for (const owner of owners) {
       const ownerAbsDir = resolveOwnerAbsDir(ctx, owner);
-      if (ownerAbsDir && existsSync(resolve(ownerAbsDir, candidate))) {
-        selectedPath = candidate;
-        selectedOwner = owner;
-        break;
+      if (!ownerAbsDir) continue;
+
+      for (const candidate of this.storageBinaryCandidates) {
+        const absPath = resolve(ownerAbsDir, candidate);
+        if (!existsSync(absPath)) continue;
+        const mtimeMs = statSync(absPath).mtimeMs;
+        if (mtimeMs > selectedMtimeMs) {
+          selectedMtimeMs = mtimeMs;
+          selectedPath = candidate;
+          selectedOwner = owner;
+        }
       }
     }
 

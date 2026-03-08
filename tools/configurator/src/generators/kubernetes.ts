@@ -42,6 +42,63 @@ const STORAGE_RESOURCES: Resources = {
   limits: { cpu: "500m", memory: "512Mi" },
 };
 
+function buildHttpHealthProbes(port: number) {
+  const base = {
+    httpGet: { path: "/health", port },
+    timeoutSeconds: 2,
+  };
+  return {
+    startupProbe: {
+      ...base,
+      periodSeconds: 2,
+      failureThreshold: 120,
+    },
+    readinessProbe: {
+      ...base,
+      periodSeconds: 5,
+      failureThreshold: 6,
+    },
+    livenessProbe: {
+      ...base,
+      periodSeconds: 10,
+      failureThreshold: 3,
+    },
+  };
+}
+
+function buildStorageHealthProbes() {
+  const base = {
+    exec: {
+      command: [
+        STORAGE_BIN_PATH,
+        "health",
+        "--socket",
+        STORAGE_SOCKET_PATH,
+        "--timeout-ms",
+        "1000",
+      ],
+    },
+    timeoutSeconds: 2,
+  };
+  return {
+    startupProbe: {
+      ...base,
+      periodSeconds: 2,
+      failureThreshold: 60,
+    },
+    readinessProbe: {
+      ...base,
+      periodSeconds: 5,
+      failureThreshold: 3,
+    },
+    livenessProbe: {
+      ...base,
+      periodSeconds: 10,
+      failureThreshold: 3,
+    },
+  };
+}
+
 function buildStorageContainer(dataClaimName: string) {
   return {
     name: "storage",
@@ -50,12 +107,7 @@ function buildStorageContainer(dataClaimName: string) {
     restartPolicy: "Always",
     command: [STORAGE_BIN_PATH, "start", "--data-dir", DATA_MOUNT, "--socket", STORAGE_SOCKET_PATH],
     resources: toK8sResources(STORAGE_RESOURCES),
-    readinessProbe: {
-      exec: { command: ["sh", "-c", `[ -S ${STORAGE_SOCKET_PATH} ]`] },
-      initialDelaySeconds: 1,
-      periodSeconds: 1,
-      failureThreshold: 60,
-    },
+    ...buildStorageHealthProbes(),
     securityContext: {
       allowPrivilegeEscalation: false,
       privileged: false,
@@ -277,6 +329,7 @@ class WorkloadBuilder {
                 ports: [{ containerPort: UI_APP_PORT }],
                 env: buildBaseEnv(this.ctx, UI_APP_PORT),
                 envFrom: [{ secretRef: { name: secretName } }],
+                ...buildHttpHealthProbes(UI_APP_PORT),
                 resources: toK8sResources(this.plan.ui.resources),
                 securityContext: {
                   allowPrivilegeEscalation: false,
@@ -372,6 +425,7 @@ class WorkloadBuilder {
                   STORAGE_SOCKET_PATH,
                 }),
                 envFrom: [{ secretRef: { name: secretName } }],
+                ...buildHttpHealthProbes(SERVICES_APP_PORT),
                 resources: toK8sResources(group.resources),
                 securityContext: {
                   allowPrivilegeEscalation: false,
@@ -504,6 +558,7 @@ class WorkloadBuilder {
                 ports: [{ containerPort: UI_APP_PORT }],
                 env: buildBaseEnv(this.ctx, UI_APP_PORT),
                 envFrom: [{ secretRef: { name: secretName } }],
+                ...buildHttpHealthProbes(UI_APP_PORT),
                 resources: toK8sResources(this.plan.ui.resources),
                 securityContext: {
                   allowPrivilegeEscalation: false,
@@ -529,6 +584,7 @@ class WorkloadBuilder {
                   STORAGE_SOCKET_PATH,
                 }),
                 envFrom: [{ secretRef: { name: secretName } }],
+                ...buildHttpHealthProbes(SERVICES_APP_PORT),
                 resources: toK8sResources(monoGroup.resources),
                 securityContext: {
                   allowPrivilegeEscalation: false,
