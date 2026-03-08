@@ -134,6 +134,24 @@ function buildVendorWrapper(specifier: string, source: string): string {
   ].join("\n");
 }
 
+function deepMerge(target: Record<string, any>, source: Record<string, any>): Record<string, any> {
+  for (const [key, value] of Object.entries(source)) {
+    if (
+      value &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      target[key] &&
+      typeof target[key] === "object" &&
+      !Array.isArray(target[key])
+    ) {
+      deepMerge(target[key], value);
+      continue;
+    }
+    target[key] = value;
+  }
+  return target;
+}
+
 export default function spaPlugin(config: SpaPluginConfig = {}) {
   const projectRoot = process.env.PROJECT_DIR ?? resolve(import.meta.dir, "..", "..", "..");
   const parentProjectRoot =
@@ -142,6 +160,10 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
       : undefined;
   const isProd = config.production ?? process.env.NODE_ENV === "production";
   const frontRoot = resolve(projectRoot, "front");
+  const useDevBuildCache =
+    isProd ||
+    process.env.SPA_DEV_BUILD_CACHE === "1" ||
+    process.env.SPA_DEV_BUILD_CACHE === "true";
   const brandingProjectRoot = parentProjectRoot ?? projectRoot;
   const brandingPublicDir = resolve(brandingProjectRoot, "front", "landing", "public");
   const logoBlackPath = resolve(brandingPublicDir, "logo-black.svg");
@@ -277,6 +299,10 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
   // --- Front-core ---
 
   async function ensureFrontCore(): Promise<Blob> {
+    if (!useDevBuildCache) {
+      frontCoreBundle = null;
+    }
+
     if (frontCoreBundle) return frontCoreBundle;
 
     if (isProd) {
@@ -311,6 +337,10 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
   // --- Microfrontends ---
 
   async function ensureMicrofrontend(name: string): Promise<Blob> {
+    if (!useDevBuildCache) {
+      mfBundles.delete(name);
+    }
+
     if (mfBundles.has(name)) return mfBundles.get(name)!;
 
     if (isProd) {
@@ -544,14 +574,16 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
     })
     .get("/locales/:lng/mf-menu.json", async ({ params }) => {
       const lng = params.lng;
-      const merged: Record<string, string> = {};
+      const merged: Record<string, any> = {};
       for (const mf of microfrontends) {
         for (const dir of mfDirs) {
           const localePath = resolve(dir, mf, "locales", `${lng}.json`);
           if (existsSync(localePath)) {
             try {
               const content = await Bun.file(localePath).json();
-              Object.assign(merged, content);
+              if (content && typeof content === "object" && !Array.isArray(content)) {
+                deepMerge(merged, content as Record<string, any>);
+              }
             } catch { /* ignore */ }
             break;
           }

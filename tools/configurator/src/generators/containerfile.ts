@@ -114,8 +114,10 @@ class DynamicContainerfileBuilder {
   private readonly spaCorePath: string;
   private readonly landingPath: string;
   private readonly storeWorkersPath = "front/libraries/store-workers";
+  private readonly pruneToolsScriptPath = "tools/scripts/prune-container-tools.ts";
   private readonly frontLandingsAbsPath: string;
   private readonly hasFrontLandingsSource: boolean;
+  private readonly pruneToolsScriptOwner: string;
 
   constructor(
     private ctx: GeneratorContext,
@@ -139,6 +141,7 @@ class DynamicContainerfileBuilder {
     this.storeWorkersOwner = resolveOwnerDir(ctx, this.storeWorkersPath);
     this.runtimeServerOwner = resolveOwnerDir(ctx, "tools/container-runtime/server.entry.ts");
     this.workflowsOwner = resolveOwnerDir(ctx, "back/workflows/index.ts");
+    this.pruneToolsScriptOwner = resolveOwnerDir(ctx, this.pruneToolsScriptPath);
 
     this.apkPackages = config.runtimeDeps?.apk ?? [];
     this.runtimePackages = config.runtimeDeps?.packages ?? {};
@@ -236,10 +239,30 @@ class DynamicContainerfileBuilder {
 
   private installDeps() {
     this.emit("");
+
+    const pruneProjectTools =
+      this.projectDir === "club-portal" &&
+      dirExists(this.ctx, this.projectDir, "tools/integration");
+    const hasPruneToolsScript = dirExists(
+      this.ctx,
+      this.pruneToolsScriptOwner,
+      this.pruneToolsScriptPath,
+    );
+
+    if (pruneProjectTools && hasPruneToolsScript) {
+      this.emit(
+        `RUN bun ${this.projectPath(this.pruneToolsScriptOwner, this.pruneToolsScriptPath)} ${this.projectRoot(this.projectDir)}`,
+      );
+    }
+
     if (this.hasParent && this.parentDir) {
       this.emit(`RUN cd ${this.projectRoot(this.parentDir)} && bun install --frozen-lockfile`);
     }
-    this.emit(`RUN cd ${this.projectRoot(this.projectDir)} && bun install --frozen-lockfile`);
+    if (pruneProjectTools) {
+      this.emit(`RUN cd ${this.projectRoot(this.projectDir)} && bun install --no-save`);
+    } else {
+      this.emit(`RUN cd ${this.projectRoot(this.projectDir)} && bun install --frozen-lockfile`);
+    }
   }
 
   private prepareUiOutputDirs() {
@@ -358,6 +381,30 @@ class DynamicContainerfileBuilder {
     if (dirExists(this.ctx, this.storeWorkersOwner, this.storeWorkersPath)) {
       copies.push("mkdir -p /build/out/front/libraries/store-workers/dist");
       copies.push(`cp -R ${this.projectPath(this.storeWorkersOwner, `${this.storeWorkersPath}/dist/.`)} /build/out/front/libraries/store-workers/dist/`);
+    }
+
+    const mfLocaleCopySources: Array<{ owner: string; microfrontend: string }> = [];
+    const mfLocaleOwners = [
+      ...(this.hasParent && this.parentDir ? [this.parentDir] : []),
+      this.projectDir,
+    ];
+
+    for (const owner of mfLocaleOwners) {
+      for (const microfrontend of this.allMfNames) {
+        const localeRelPath = `front/microfrontends/${microfrontend}/locales`;
+        if (!dirExists(this.ctx, owner, localeRelPath)) continue;
+        mfLocaleCopySources.push({ owner, microfrontend });
+      }
+    }
+
+    if (mfLocaleCopySources.length > 0) {
+      copies.push("mkdir -p /build/out/front/microfrontends");
+      for (const source of mfLocaleCopySources) {
+        const localeRelPath = `front/microfrontends/${source.microfrontend}/locales`;
+        const targetDir = `/build/out/front/microfrontends/${source.microfrontend}/locales`;
+        copies.push(`mkdir -p ${targetDir}`);
+        copies.push(`cp -R ${this.projectPath(source.owner, `${localeRelPath}/.`)} ${targetDir}/`);
+      }
     }
 
     this.emit("");

@@ -37,13 +37,13 @@ export const useGlobalTranslation = (namespace?: string) => {
       try {
         // Используем промис инициализации или создаем новый
         const instance = await (window.__I18N_INIT_PROMISE__ || initI18n());
-        
+
         if (!mounted) return;
 
         // Проверяем, что namespace загружен (если указан)
         if (namespace) {
           const isNamespaceLoaded = instance.hasLoadedNamespace(namespace, instance.language);
-          
+
           if (!isNamespaceLoaded) {
             // Пытаемся загрузить namespace
             await new Promise<void>((resolve) => {
@@ -75,12 +75,12 @@ export const useGlobalTranslation = (namespace?: string) => {
             setReady(true);
           }
         };
-        
+
         // Подписка на события
         if (instance.on && instance.off) {
           instance.on('languageChanged', handleLanguageChange);
           instance.on('loaded', handleLoaded);
-          
+
           cleanup = () => {
             instance.off('languageChanged', handleLanguageChange);
             instance.off('loaded', handleLoaded);
@@ -88,10 +88,10 @@ export const useGlobalTranslation = (namespace?: string) => {
         }
       } catch (error) {
         if (!mounted) return;
-        
+
         console.error('Failed to initialize i18n:', error);
         setLoadError('Failed to load translations');
-        
+
         // Fallback: пытаемся использовать существующий экземпляр
         if (window.__GLOBAL_I18N_INSTANCE__) {
           setI18nInstance(window.__GLOBAL_I18N_INSTANCE__);
@@ -100,9 +100,9 @@ export const useGlobalTranslation = (namespace?: string) => {
         }
       }
     };
-    
+
     setupI18n();
-    
+
     // Очистка ресурсов
     return () => {
       mounted = false;
@@ -117,14 +117,14 @@ export const useGlobalTranslation = (namespace?: string) => {
     if (!ready || !i18nInstance) {
       return fallback || key;
     }
-    
+
     // Формируем полный ключ с namespace
     const fullKey = namespace ? `${namespace}:${key}` : key;
     const result = i18nInstance.t(fullKey, options);
-    
+
     // Проверяем, найден ли перевод
     const isKeyMissing = result === fullKey || result === key;
-    
+
     // Возврат fallback если перевод не найден
     return isKeyMissing && fallback ? fallback : result;
   }, [ready, i18nInstance, namespace]);
@@ -133,11 +133,11 @@ export const useGlobalTranslation = (namespace?: string) => {
   const safeI18n = {
     language,
     languages: i18nInstance?.languages || ['ru', 'en'],
-    
+
     getResource: (lng: string, ns: string, key?: string) => {
       return i18nInstance?.getResource(lng, ns, key) || null;
     },
-    
+
     changeLanguage: async (lng: string) => {
       if (i18nInstance?.changeLanguage) {
         try {
@@ -147,11 +147,11 @@ export const useGlobalTranslation = (namespace?: string) => {
         }
       }
     },
-    
+
     t: (key: string, options?: any) => {
       return i18nInstance?.t(key, options) || key;
     },
-    
+
     hasLoadedNamespace: (ns: string, lng?: string) => {
       return i18nInstance?.hasLoadedNamespace(ns, lng) || false;
     }
@@ -174,7 +174,7 @@ export const useSimpleTranslation = (namespace?: string) => {
     const checkReady = async () => {
       try {
         const instance = await (window.__I18N_INIT_PROMISE__ || initI18n());
-        
+
         if (namespace) {
           // Ждем загрузки namespace
           if (!instance.hasLoadedNamespace(namespace)) {
@@ -190,7 +190,7 @@ export const useSimpleTranslation = (namespace?: string) => {
             });
           }
         }
-        
+
         setIsReady(true);
       } catch (error) {
         console.error('Failed to check i18n readiness:', error);
@@ -207,7 +207,7 @@ export const useSimpleTranslation = (namespace?: string) => {
   const t = useCallback((key: string, options?: any): string => {
     const instance = getI18nInstance();
     if (!instance) return key;
-    
+
     const fullKey = namespace ? `${namespace}:${key}` : key;
     return instance.t(fullKey, options) || key;
   }, [namespace]);
@@ -242,16 +242,16 @@ export const useSimpleTranslation = (namespace?: string) => {
 // Хук для предзагрузки namespace
 export const useNamespacePreload = (namespaces: string | string[]) => {
   const [loaded, setLoaded] = useState(false);
-  
+
   useEffect(() => {
     const preload = async () => {
       try {
         const instance = await (window.__I18N_INIT_PROMISE__ || initI18n());
         const nsArray = Array.isArray(namespaces) ? namespaces : [namespaces];
-        
+
         // Загружаем все namespace
         await Promise.all(
-          nsArray.map(ns => 
+          nsArray.map(ns =>
             new Promise<void>((resolve) => {
               if (instance.hasLoadedNamespace(ns)) {
                 resolve();
@@ -268,21 +268,21 @@ export const useNamespacePreload = (namespaces: string | string[]) => {
             })
           )
         );
-        
+
         setLoaded(true);
       } catch (error) {
         console.error('Failed to preload namespaces:', error);
       }
     };
-    
+
     preload();
   }, [namespaces]);
-  
+
   return loaded;
 };
 
 import { LocaleController } from "../controllers/locale-controller";
- 
+
 export const useMicrofrontendTranslation = (microfrontendId: string) => {
   const { i18n } = useGlobalTranslation();
   const [translations, setTranslations] = useState<any>({});
@@ -292,45 +292,73 @@ export const useMicrofrontendTranslation = (microfrontendId: string) => {
 
   useEffect(() => {
     const loadTranslations = async () => {
+      setLoading(true);
       try {
-        const locales = localeController.getLocales(microfrontendId)
-        console.log("Loading locales:", locales, i18n.language);
-        
-        const jsonUrl = locales[i18n.language];
-        console.log("Loading from:", jsonUrl);
-        
-        const response = await fetch(jsonUrl);
-        if (response.ok) {
-          const data = await response.json();
-          setTranslations(data);
+        const locales = localeController.getLocales(microfrontendId) || {};
+        const currentLanguage = i18n.language || "en";
+        const shortLanguage = currentLanguage.split("-")[0];
+        const namespace =
+          microfrontendId.startsWith("mf-")
+            ? microfrontendId
+            : microfrontendId.endsWith("-mf")
+              ? `mf-${microfrontendId.slice(0, -3)}`
+              : microfrontendId;
+
+        const localeUrl =
+          locales[currentLanguage] ||
+          locales[currentLanguage.toLowerCase()] ||
+          locales[shortLanguage] ||
+          locales.en ||
+          Object.values(locales).find((url) => typeof url === "string") ||
+          `/locales/${shortLanguage}/${namespace}.json`;
+
+        if (!localeUrl || typeof localeUrl !== "string") {
+          setTranslations({});
+          return;
         }
+
+        const response = await fetch(localeUrl);
+        if (!response.ok) {
+          throw new Error(`Locale load failed: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        setTranslations(data && typeof data === "object" ? data : {});
       } catch (error) {
         console.error('Failed to load translations:', error);
+        setTranslations({});
       } finally {
         setLoading(false);
       }
     };
 
     loadTranslations();
-  }, [i18n.language]);
+  }, [i18n.language, microfrontendId, localeController]);
 
   const t = (key: string) => {
     if (!key) return translations; // Возвращаем все переводы если ключ пустой
-    
+
+    // 1) nested format: { places: { stats: { title: "..." } } }
     const keys = key.split('.');
-    let value = translations;
-    console.log("Translating key:", key, "with value:", value);
-    
+    let nestedValue = translations;
     for (const k of keys) {
-      if (value && typeof value === 'object' && k in value) {
-        value = value[k];
+      if (nestedValue && typeof nestedValue === 'object' && k in nestedValue) {
+        nestedValue = nestedValue[k];
       } else {
-        return key; // Возвращаем ключ если путь не найден
+        nestedValue = undefined;
+        break;
       }
     }
-    
-    // ИСПРАВЛЕНИЕ: возвращаем найденное значение независимо от типа
-    return value !== undefined ? value : key;
+    if (nestedValue !== undefined) {
+      return nestedValue;
+    }
+
+    // 2) flat format: { "places.stats.title": "..." }
+    if (translations && typeof translations === 'object' && key in translations) {
+      return translations[key];
+    }
+
+    return key; // Возвращаем ключ если путь не найден
   };
 
   return { t, translations, loading };
