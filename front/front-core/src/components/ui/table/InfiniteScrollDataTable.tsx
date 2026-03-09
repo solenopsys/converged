@@ -202,7 +202,7 @@ const CellRenderer = ({ value, column, rowData, onAction }) => {
     case COLUMN_TYPES.DATE:
       return (
         <div className="text-sm text-muted-foreground">
-          {value ? new Date(value).toLocaleDateString('ru-RU') : '-'}
+          {value ? new Date(value).toLocaleString('ru-RU') : '-'}
         </div>
       );
 
