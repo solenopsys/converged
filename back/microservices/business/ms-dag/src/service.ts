@@ -24,6 +24,18 @@ export default class DagServiceImpl implements DagService {
         .filter((w: any) => w.name && w.ctor)
         .map((w: any) => [w.name, w.ctor]),
     );
+
+    if (typeof wf.initProvidersPool === "function" && config?.openai?.key) {
+      const openai = config.openai;
+      wf.initProvidersPool({
+        async getProvider(name: string) {
+          if (name === "openai") {
+            return { codeName: "openai", config: { token: openai.key, model: openai.model ?? "gpt-4o-mini" } };
+          }
+          throw new Error(`Provider "${name}" not configured`);
+        },
+      });
+    }
   }
 
   private async ensureStoresReady(): Promise<void> {

@@ -53,31 +53,34 @@ export default class OpenAiProvider implements Provider {
   }
 
   async request(req: ResponsesCall): Promise<ResponsesResult> {
-    const input: any[] = [];
+    const body: Record<string, any> = {
+      model: this.model,
+      input: req.user,
+      stream: false,
+      reasoning: { effort: "low" },
+    };
+
     if (req.system) {
-      input.push({
-        role: "system",
-        content: [{ type: "input_text", text: req.system }],
-      });
+      body.instructions = req.system;
     }
 
-    input.push({
-      role: "user",
-      content: [{ type: "input_text", text: req.user }],
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 120_000);
 
-    const res = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.token}`,
-      },
-      body: JSON.stringify({
-        model: this.model,
-        input,
-        stream: false,
-      }),
-    });
+    let res: Response;
+    try {
+      res = await fetch("https://api.openai.com/v1/responses", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.token}`,
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!res.ok) {
       throw new Error(
@@ -86,9 +89,10 @@ export default class OpenAiProvider implements Provider {
     }
 
     const data = (await res.json()) as {
-      output: { content: { text?: string }[] }[];
+      output: { type: string; content: { type: string; text?: string }[] }[];
     };
 
-    return { body: data.output?.[0]?.content?.[0]?.text ?? "" };
+    const message = data.output?.find((item) => item.type === "message");
+    return { body: message?.content?.find((c) => c.type === "output_text")?.text ?? "" };
   }
 }

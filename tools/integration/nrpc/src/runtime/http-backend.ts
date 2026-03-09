@@ -418,6 +418,14 @@ class ElysiaBackend {
 
     return new ReadableStream({
       async start(controller) {
+        const heartbeat = setInterval(() => {
+          try {
+            controller.enqueue(`: ping\n\n`);
+          } catch {
+            clearInterval(heartbeat);
+          }
+        }, 15_000);
+
         try {
           const asyncIterable = serviceInstance[methodName](...args);
 
@@ -425,6 +433,7 @@ class ElysiaBackend {
             !asyncIterable ||
             typeof asyncIterable[Symbol.asyncIterator] !== "function"
           ) {
+            clearInterval(heartbeat);
             throw new Error(
               `Method ${methodName} did not return an AsyncIterable`,
             );
@@ -467,15 +476,30 @@ class ElysiaBackend {
             }
 
             const sseData = `data: ${JSON.stringify(dataToSend)}\n\n`;
-            controller.enqueue(sseData);
+            try {
+              controller.enqueue(sseData);
+            } catch {
+              // client disconnected, stream already closed
+              return;
+            }
           }
 
-          controller.enqueue(`data: [DONE]\n\n`);
-          controller.close();
+          clearInterval(heartbeat);
+          try {
+            controller.enqueue(`data: [DONE]\n\n`);
+            controller.close();
+          } catch {
+            // client disconnected
+          }
         } catch (error) {
+          clearInterval(heartbeat);
           console.error(`Error in streaming ${methodName}:`, error);
-          controller.enqueue(`data: ${JSON.stringify({ error: error.message })}\n\n`);
-          controller.close();
+          try {
+            controller.enqueue(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+            controller.close();
+          } catch {
+            // client disconnected
+          }
         }
       },
     });
