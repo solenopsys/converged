@@ -3,6 +3,8 @@ import { type Provider, ProviderState } from "../dag-api";
 interface ResponsesCall {
   system?: string;
   user: string;
+  model?: string;
+  reasoning?: string;
 }
 
 interface ResponsesResult {
@@ -13,9 +15,9 @@ export default class OpenAiProvider implements Provider {
   readonly name = "openai";
   private _state: ProviderState = ProviderState.STOPPED;
   private token!: string;
-  private model!: string;
+  private model?: string;
 
-  constructor(token: string, model: string) {
+  constructor(token: string, model?: string) {
     this._state = ProviderState.STARTING;
     this.token = token;
     this.model = model;
@@ -53,12 +55,18 @@ export default class OpenAiProvider implements Provider {
   }
 
   async request(req: ResponsesCall): Promise<ResponsesResult> {
+    const model = req.model ?? this.model;
+    if (!model) throw new Error("OpenAiProvider: model is required (set in constructor or pass in request)");
+
     const body: Record<string, any> = {
-      model: this.model,
+      model,
       input: req.user,
       stream: false,
-      reasoning: { effort: "low" },
     };
+
+    if (req.reasoning) {
+      body.reasoning = { effort: req.reasoning };
+    }
 
     if (req.system) {
       body.instructions = req.system;

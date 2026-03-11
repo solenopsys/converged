@@ -22,7 +22,7 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
     ctor: OpenAiProvider,
     params: [
       { name: "token", type: "string" },
-      { name: "model", type: "string" },
+      { name: "model", type: "string", optional: true },
     ],
   },
 
