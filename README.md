@@ -277,7 +277,7 @@ bun run check    # Biome full check
 4. Register in `config.json`
 
 **Add a microfrontend:**
-1. Create package `front/microfrontends/mf-<name>/` with `src/index.ts(x)`
+1. Create package `front/microfrontends/<category>/mf-<name>/` with `src/index.ts(x)`
 2. Register in `config.json` → `spa.microfrontends`
 
 Architecture invariants (violations block PRs): no cross-service imports, database-per-service, no shared state, HTTP-only inter-service communication.

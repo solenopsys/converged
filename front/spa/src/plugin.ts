@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { existsSync, mkdirSync } from "fs";
+import { existsSync, mkdirSync, readdirSync } from "fs";
 import { resolve } from "path";
 import { externalPackages, microfrontends } from "front-core/runtime-config";
 import { createWorkspaceResolverPlugin } from "front-core/workspace-resolver";
@@ -171,7 +171,6 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
   const headerLogoBlackPath = resolve(brandingPublicDir, "header-logo-black.svg");
   const headerLogoWhitePath = resolve(brandingPublicDir, "header-logo-white.svg");
   const faviconSvgPath = resolve(brandingPublicDir, "favicon.svg");
-  const mfRoot = resolve(frontRoot, "microfrontends");
   const localesDir = resolve(frontRoot, "front-core/locales");
   const storeWorkersDir = resolve(frontRoot, "libraries/store-workers/dist");
 
@@ -224,6 +223,20 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
   const mfDirs = [resolve(frontRoot, "microfrontends")];
   if (parentProjectRoot) {
     mfDirs.push(resolve(parentProjectRoot, "front/microfrontends"));
+  }
+
+  function resolveMicrofrontendRootInDir(dir: string, name: string): string | null {
+    const direct = resolve(dir, name);
+    if (existsSync(direct)) return direct;
+    if (!existsSync(dir)) return null;
+
+    for (const group of readdirSync(dir, { withFileTypes: true })) {
+      if (!group.isDirectory()) continue;
+      const grouped = resolve(dir, group.name, name);
+      if (existsSync(grouped)) return grouped;
+    }
+
+    return null;
   }
 
   const log = (message: string, extra?: Record<string, unknown>) => {
@@ -355,8 +368,10 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
 
     let entry: string | null = null;
     for (const dir of mfDirs) {
-      const tsEntry = resolve(dir, name, "src/index.ts");
-      const tsxEntry = resolve(dir, name, "src/index.tsx");
+      const mfRoot = resolveMicrofrontendRootInDir(dir, name);
+      if (!mfRoot) continue;
+      const tsEntry = resolve(mfRoot, "src/index.ts");
+      const tsxEntry = resolve(mfRoot, "src/index.tsx");
       if (existsSync(tsEntry)) { entry = tsEntry; break; }
       if (existsSync(tsxEntry)) { entry = tsxEntry; break; }
     }
@@ -577,7 +592,9 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
       const merged: Record<string, any> = {};
       for (const mf of microfrontends) {
         for (const dir of mfDirs) {
-          const localePath = resolve(dir, mf, "locales", `${lng}.json`);
+          const mfRoot = resolveMicrofrontendRootInDir(dir, mf);
+          if (!mfRoot) continue;
+          const localePath = resolve(mfRoot, "locales", `${lng}.json`);
           if (existsSync(localePath)) {
             try {
               const content = await Bun.file(localePath).json();
@@ -606,8 +623,10 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
         const namespace = file.slice(0, -5);
         if (namespace.startsWith("mf-")) {
           for (const dir of mfDirs) {
-            const localePath = resolve(dir, namespace, "locales", `${lng}.json`);
-            if (!localePath.startsWith(dir)) continue;
+            const mfRoot = resolveMicrofrontendRootInDir(dir, namespace);
+            if (!mfRoot) continue;
+            const localePath = resolve(mfRoot, "locales", `${lng}.json`);
+            if (!localePath.startsWith(mfRoot)) continue;
             if (!existsSync(localePath)) continue;
             return new Response(Bun.file(localePath), {
               headers: { "Content-Type": "application/json; charset=utf-8" },

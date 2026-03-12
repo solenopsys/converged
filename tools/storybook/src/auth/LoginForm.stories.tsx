@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useEffect } from "react";
 import type { ReactNode } from "react";
-import { LoginForm } from "../../../../front/microfrontends/mf-auth/src/components/LoginForm";
+import { LoginForm } from "../../../../front/microfrontends/sequrity/mf-auth/src/components/LoginForm";
 
 const mockFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = typeof input === "string" ? input : input.toString();

@@ -27,6 +27,24 @@ const emblaCarouselReactPath = resolveBunPackage("embla-carousel-react", "8.6.0"
 const emblaCarouselAutoplayPath = resolveBunPackage("embla-carousel-autoplay", "8.6.0");
 const microfrontendsDir = path.resolve(__dirname, "../../front/microfrontends");
 
+const resolveMicrofrontendEntry = (name: string) => {
+  const directTs = path.join(microfrontendsDir, name, "src", "index.ts");
+  if (fs.existsSync(directTs)) return directTs;
+  const directTsx = path.join(microfrontendsDir, name, "src", "index.tsx");
+  if (fs.existsSync(directTsx)) return directTsx;
+  if (!fs.existsSync(microfrontendsDir)) return null;
+
+  for (const group of fs.readdirSync(microfrontendsDir, { withFileTypes: true })) {
+    if (!group.isDirectory()) continue;
+    const groupedTs = path.join(microfrontendsDir, group.name, name, "src", "index.ts");
+    if (fs.existsSync(groupedTs)) return groupedTs;
+    const groupedTsx = path.join(microfrontendsDir, group.name, name, "src", "index.tsx");
+    if (fs.existsSync(groupedTsx)) return groupedTsx;
+  }
+
+  return null;
+};
+
 export default defineConfig({
   plugins: [
     {
@@ -34,11 +52,7 @@ export default defineConfig({
       resolveId(id) {
         if (!id.startsWith("/mf/") || !id.endsWith(".js")) return null;
         const rawName = id.slice("/mf/".length, -".js".length);
-        const mfPath = path.join(microfrontendsDir, rawName, "src", "index.ts");
-        if (fs.existsSync(mfPath)) return mfPath;
-        const tsxPath = path.join(microfrontendsDir, rawName, "src", "index.tsx");
-        if (fs.existsSync(tsxPath)) return tsxPath;
-        return null;
+        return resolveMicrofrontendEntry(rawName);
       },
     },
     UnoCSS(),

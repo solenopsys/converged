@@ -1,4 +1,4 @@
-import { existsSync } from "fs";
+import { existsSync, readdirSync } from "fs";
 import { resolve, sep } from "path";
 
 function resolveWithExtensions(basePath: string): string | null {
@@ -70,12 +70,27 @@ function resolveMicrofrontendAlias(
   const marker = `${sep}microfrontends${sep}`;
   const idx = importer.indexOf(marker);
   if (idx === -1) return null;
-  const rest = importer.slice(idx + marker.length);
-  const mfName = rest.split(sep)[0];
+  const rest = importer.slice(idx + marker.length).split(sep).filter(Boolean);
+  const mfName = rest.find((segment) => segment.startsWith("mf-"));
   if (!mfName) return null;
-  const mfRoot = resolve(root, "front/microfrontends", mfName);
+  const mfRoot = resolveMicrofrontendRoot(root, mfName);
+  if (!mfRoot) return null;
   const target = resolve(mfRoot, specifier);
   return resolveWithExtensions(target);
+}
+
+function resolveMicrofrontendRoot(root: string, mfName: string): string | null {
+  const mfBase = resolve(root, "front/microfrontends");
+  const direct = resolve(mfBase, mfName);
+  if (existsSync(direct)) return direct;
+  if (!existsSync(mfBase)) return null;
+
+  for (const group of readdirSync(mfBase, { withFileTypes: true })) {
+    if (!group.isDirectory()) continue;
+    const candidate = resolve(mfBase, group.name, mfName);
+    if (existsSync(candidate)) return candidate;
+  }
+  return null;
 }
 
 export function createWorkspaceResolverPlugin(

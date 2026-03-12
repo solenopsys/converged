@@ -12,7 +12,7 @@ export default defineConfig({
     filesystem: [
       "src/**/*.{tsx,ts}",
       "../../front/front-core/src/**/*.{tsx,ts}",
-      "../../front/microfrontends/mf-assistants/src/**/*.{tsx,ts}",
+      "../../front/microfrontends/ai/mf-assistants/src/**/*.{tsx,ts}",
 "../../../../../saas/public/front/front-landings/src/**/*.{tsx,ts}",
       "../../../../../saas/private/landing/app/**/*.{tsx,ts}",
       "../../../../../saas/private/landing/components/**/*.{tsx,ts}",

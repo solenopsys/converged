@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import LandingView from "../../../../microfrontends/mf-landing/src/views/LandingView";
+import LandingView from "../../../../microfrontends/content/mf-landing/src/views/LandingView";
 
 const DEFAULT_LANDING_CONF_ID = "ru/product/landing/4ir-laiding.json";
 

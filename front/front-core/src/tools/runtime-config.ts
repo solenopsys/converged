@@ -92,10 +92,20 @@ function loadMicrofrontendsFromFs(projectRoot: string): string[] {
   const mfRoot = resolve(projectRoot, "front", "microfrontends");
   if (!existsSync(mfRoot)) return [];
 
-  return readdirSync(mfRoot, { withFileTypes: true })
+  const direct = readdirSync(mfRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && entry.name.startsWith("mf-"))
+    .map((entry) => entry.name);
+
+  const grouped = readdirSync(mfRoot, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .filter((name) => name.startsWith("mf-"));
+    .flatMap((group) => {
+      const groupPath = resolve(mfRoot, group.name);
+      return readdirSync(groupPath, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory() && entry.name.startsWith("mf-"))
+        .map((entry) => entry.name);
+    });
+
+  return uniq([...direct, ...grouped]);
 }
 
 function loadMicrofrontendsFromDist(projectRoot: string): string[] {

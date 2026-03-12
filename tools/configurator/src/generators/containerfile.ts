@@ -1,4 +1,4 @@
-import { existsSync, statSync } from "node:fs";
+import { existsSync, readdirSync, statSync } from "node:fs";
 import { relative, resolve } from "node:path";
 import type { GeneratorContext, MicroserviceRef } from "../types";
 import { getAllMicroservices } from "../resolver";
@@ -40,6 +40,23 @@ function resolveOwnerAbsDir(ctx: GeneratorContext, ownerDirName: string): string
 
 function shellEscape(s: string): string {
   return s.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+}
+
+function resolveMicrofrontendRelDir(ownerAbsDir: string, microfrontend: string): string | null {
+  const mfBaseRel = "front/microfrontends";
+  const directRel = `${mfBaseRel}/${microfrontend}`;
+  if (existsSync(resolve(ownerAbsDir, directRel))) return directRel;
+
+  const mfBaseAbs = resolve(ownerAbsDir, mfBaseRel);
+  if (!existsSync(mfBaseAbs)) return null;
+
+  for (const group of readdirSync(mfBaseAbs, { withFileTypes: true })) {
+    if (!group.isDirectory()) continue;
+    const groupedRel = `${mfBaseRel}/${group.name}/${microfrontend}`;
+    if (existsSync(resolve(ownerAbsDir, groupedRel))) return groupedRel;
+  }
+
+  return null;
 }
 
 // --- Plugin resolution ---
@@ -390,8 +407,12 @@ class DynamicContainerfileBuilder {
     ];
 
     for (const owner of mfLocaleOwners) {
+      const ownerAbsDir = resolveOwnerAbsDir(this.ctx, owner);
+      if (!ownerAbsDir) continue;
       for (const microfrontend of this.allMfNames) {
-        const localeRelPath = `front/microfrontends/${microfrontend}/locales`;
+        const mfRelDir = resolveMicrofrontendRelDir(ownerAbsDir, microfrontend);
+        if (!mfRelDir) continue;
+        const localeRelPath = `${mfRelDir}/locales`;
         if (!dirExists(this.ctx, owner, localeRelPath)) continue;
         mfLocaleCopySources.push({ owner, microfrontend });
       }
@@ -400,7 +421,11 @@ class DynamicContainerfileBuilder {
     if (mfLocaleCopySources.length > 0) {
       copies.push("mkdir -p /build/out/front/microfrontends");
       for (const source of mfLocaleCopySources) {
-        const localeRelPath = `front/microfrontends/${source.microfrontend}/locales`;
+        const ownerAbsDir = resolveOwnerAbsDir(this.ctx, source.owner);
+        if (!ownerAbsDir) continue;
+        const mfRelDir = resolveMicrofrontendRelDir(ownerAbsDir, source.microfrontend);
+        if (!mfRelDir) continue;
+        const localeRelPath = `${mfRelDir}/locales`;
         const targetDir = `/build/out/front/microfrontends/${source.microfrontend}/locales`;
         copies.push(`mkdir -p ${targetDir}`);
         copies.push(`cp -R ${this.projectPath(source.owner, `${localeRelPath}/.`)} ${targetDir}/`);

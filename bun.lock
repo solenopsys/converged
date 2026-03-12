@@ -700,7 +700,7 @@
       "name": "token-refresh",
       "version": "0.0.1",
     },
-    "front/microfrontends/mf-assistants": {
+    "front/microfrontends/ai/mf-assistants": {
       "name": "mf-assistants",
       "dependencies": {
         "assistant-state": "workspace:*",
@@ -717,7 +717,7 @@
         "uuid": "^11.1.0",
       },
     },
-    "front/microfrontends/mf-auth": {
+    "front/microfrontends/sequrity/mf-auth": {
       "name": "mf-auth",
       "dependencies": {
         "front-core": "workspace:*",
@@ -725,7 +725,7 @@
         "g-oauth": "workspace:*",
       },
     },
-    "front/microfrontends/mf-calls": {
+    "front/microfrontends/social/mf-calls": {
       "name": "mf-calls",
       "dependencies": {
         "dagre": "^0.8.5",
@@ -734,7 +734,7 @@
         "pixi.js": "^8.11.0",
       },
     },
-    "front/microfrontends/mf-charts": {
+    "front/microfrontends/social/mf-charts": {
       "name": "mf-charts",
       "dependencies": {
         "front-core": "workspace:*",
@@ -742,7 +742,7 @@
         "g-threads": "workspace:*",
       },
     },
-    "front/microfrontends/mf-community": {
+    "front/microfrontends/social/mf-community": {
       "name": "mf-community",
       "dependencies": {
         "front-core": "workspace:*",
@@ -750,7 +750,7 @@
         "g-threads": "workspace:*",
       },
     },
-    "front/microfrontends/mf-dag": {
+    "front/microfrontends/business/mf-dag": {
       "name": "mf-dag",
       "dependencies": {
         "dagre": "^0.8.5",
@@ -760,13 +760,13 @@
         "pixi.js": "^8.11.0",
       },
     },
-    "front/microfrontends/mf-dasboards": {
+    "front/microfrontends/analytics/mf-dasboards": {
       "name": "mf-dasboards",
       "dependencies": {
         "front-core": "workspace:*",
       },
     },
-    "front/microfrontends/mf-docs": {
+    "front/microfrontends/content/mf-docs": {
       "name": "mf-docs",
       "dependencies": {
         "front-core": "workspace:*",
@@ -775,14 +775,14 @@
         "md-tools": "workspace:*",
       },
     },
-    "front/microfrontends/mf-dumps": {
+    "front/microfrontends/data/mf-dumps": {
       "name": "mf-dumps",
       "dependencies": {
         "front-core": "workspace:*",
         "g-dumps": "workspace:*",
       },
     },
-    "front/microfrontends/mf-landing": {
+    "front/microfrontends/content/mf-landing": {
       "name": "mf-landing",
       "dependencies": {
         "front-core": "workspace:*",
@@ -790,14 +790,14 @@
         "g-struct": "workspace:*",
       },
     },
-    "front/microfrontends/mf-logs": {
+    "front/microfrontends/analytics/mf-logs": {
       "name": "mf-logs",
       "dependencies": {
         "front-core": "workspace:*",
         "g-logs": "workspace:*",
       },
     },
-    "front/microfrontends/mf-markdown": {
+    "front/microfrontends/content/mf-markdown": {
       "name": "mf-markdown",
       "dependencies": {
         "front-core": "workspace:*",
@@ -805,14 +805,14 @@
         "md-tools": "workspace:*",
       },
     },
-    "front/microfrontends/mf-requests": {
+    "front/microfrontends/business/mf-requests": {
       "name": "mf-requests",
       "dependencies": {
         "front-core": "workspace:*",
         "g-requests": "workspace:*",
       },
     },
-    "front/microfrontends/mf-sheduller": {
+    "front/microfrontends/business/mf-sheduller": {
       "name": "mf-sheduller",
       "dependencies": {
         "front-core": "workspace:*",
@@ -820,21 +820,21 @@
         "lucide-react": "^0.553.0",
       },
     },
-    "front/microfrontends/mf-telemetry": {
+    "front/microfrontends/analytics/mf-telemetry": {
       "name": "mf-telemetry",
       "dependencies": {
         "front-core": "workspace:*",
         "g-telemetry": "workspace:*",
       },
     },
-    "front/microfrontends/mf-threads": {
+    "front/microfrontends/social/mf-threads": {
       "name": "mf-threads",
       "dependencies": {
         "front-core": "workspace:*",
         "g-threads": "workspace:*",
       },
     },
-    "front/microfrontends/mf-usage": {
+    "front/microfrontends/analytics/mf-usage": {
       "name": "mf-usage",
       "dependencies": {
         "front-core": "workspace:*",
@@ -842,7 +842,7 @@
         "lucide-react": "^0.553.0",
       },
     },
-    "front/microfrontends/mf-webhooks": {
+    "front/microfrontends/business/mf-webhooks": {
       "name": "mf-webhooks",
       "dependencies": {
         "front-core": "workspace:*",
@@ -2805,41 +2805,41 @@
 
     "memoirist": ["memoirist@0.4.0", "", {}, "sha512-zxTgA0mSYELa66DimuNQDvyLq36AwDlTuVRbnQtB+VuTcKWm5Qc4z3WkSpgsFWHNhexqkIooqpv4hdcqrX5Nmg=="],
 
-    "mf-assistants": ["mf-assistants@workspace:front/microfrontends/mf-assistants"],
+    "mf-assistants": ["mf-assistants@workspace:front/microfrontends/ai/mf-assistants"],
 
-    "mf-auth": ["mf-auth@workspace:front/microfrontends/mf-auth"],
+    "mf-auth": ["mf-auth@workspace:front/microfrontends/sequrity/mf-auth"],
 
-    "mf-calls": ["mf-calls@workspace:front/microfrontends/mf-calls"],
+    "mf-calls": ["mf-calls@workspace:front/microfrontends/social/mf-calls"],
 
-    "mf-charts": ["mf-charts@workspace:front/microfrontends/mf-charts"],
+    "mf-charts": ["mf-charts@workspace:front/microfrontends/social/mf-charts"],
 
-    "mf-community": ["mf-community@workspace:front/microfrontends/mf-community"],
+    "mf-community": ["mf-community@workspace:front/microfrontends/social/mf-community"],
 
-    "mf-dag": ["mf-dag@workspace:front/microfrontends/mf-dag"],
+    "mf-dag": ["mf-dag@workspace:front/microfrontends/business/mf-dag"],
 
-    "mf-dasboards": ["mf-dasboards@workspace:front/microfrontends/mf-dasboards"],
+    "mf-dasboards": ["mf-dasboards@workspace:front/microfrontends/analytics/mf-dasboards"],
 
-    "mf-docs": ["mf-docs@workspace:front/microfrontends/mf-docs"],
+    "mf-docs": ["mf-docs@workspace:front/microfrontends/content/mf-docs"],
 
-    "mf-dumps": ["mf-dumps@workspace:front/microfrontends/mf-dumps"],
+    "mf-dumps": ["mf-dumps@workspace:front/microfrontends/data/mf-dumps"],
 
-    "mf-landing": ["mf-landing@workspace:front/microfrontends/mf-landing"],
+    "mf-landing": ["mf-landing@workspace:front/microfrontends/content/mf-landing"],
 
-    "mf-logs": ["mf-logs@workspace:front/microfrontends/mf-logs"],
+    "mf-logs": ["mf-logs@workspace:front/microfrontends/analytics/mf-logs"],
 
-    "mf-markdown": ["mf-markdown@workspace:front/microfrontends/mf-markdown"],
+    "mf-markdown": ["mf-markdown@workspace:front/microfrontends/content/mf-markdown"],
 
-    "mf-requests": ["mf-requests@workspace:front/microfrontends/mf-requests"],
+    "mf-requests": ["mf-requests@workspace:front/microfrontends/business/mf-requests"],
 
-    "mf-sheduller": ["mf-sheduller@workspace:front/microfrontends/mf-sheduller"],
+    "mf-sheduller": ["mf-sheduller@workspace:front/microfrontends/business/mf-sheduller"],
 
-    "mf-telemetry": ["mf-telemetry@workspace:front/microfrontends/mf-telemetry"],
+    "mf-telemetry": ["mf-telemetry@workspace:front/microfrontends/analytics/mf-telemetry"],
 
-    "mf-threads": ["mf-threads@workspace:front/microfrontends/mf-threads"],
+    "mf-threads": ["mf-threads@workspace:front/microfrontends/social/mf-threads"],
 
-    "mf-usage": ["mf-usage@workspace:front/microfrontends/mf-usage"],
+    "mf-usage": ["mf-usage@workspace:front/microfrontends/analytics/mf-usage"],
 
-    "mf-webhooks": ["mf-webhooks@workspace:front/microfrontends/mf-webhooks"],
+    "mf-webhooks": ["mf-webhooks@workspace:front/microfrontends/business/mf-webhooks"],
 
     "micromark": ["micromark@4.0.2", "", { "dependencies": { "@types/debug": "^4.0.0", "debug": "^4.0.0", "decode-named-character-reference": "^1.0.0", "devlop": "^1.0.0", "micromark-core-commonmark": "^2.0.0", "micromark-factory-space": "^2.0.0", "micromark-util-character": "^2.0.0", "micromark-util-chunked": "^2.0.0", "micromark-util-combine-extensions": "^2.0.0", "micromark-util-decode-numeric-character-reference": "^2.0.0", "micromark-util-encode": "^2.0.0", "micromark-util-normalize-identifier": "^2.0.0", "micromark-util-resolve-all": "^2.0.0", "micromark-util-sanitize-uri": "^2.0.0", "micromark-util-subtokenize": "^2.0.0", "micromark-util-symbol": "^2.0.0", "micromark-util-types": "^2.0.0" } }, "sha512-zpe98Q6kvavpCr1NPVSCMebCKfD7CA2NqZ+rykeNhONIJBpc1tFKt9hucLGwha3jNTNI8lHpctWJWoimVF4PfA=="],
 

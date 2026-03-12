@@ -12,7 +12,7 @@
     "front/front-core",
     "front/landing",
     "front/libraries/*",
-    "front/microfrontends/*",
+    "front/microfrontends/**/*",
     "front/spa",
     "front/ssr",
     "tools/*",

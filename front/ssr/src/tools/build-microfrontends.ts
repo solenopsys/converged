@@ -33,24 +33,31 @@ const outDir = resolve(projectRoot, "dist", "mf");
 
 mkdirSync(outDir, { recursive: true });
 
+function resolveMicrofrontendEntry(root: string, name: string): string | undefined {
+  const mfBase = resolve(root, "front", "microfrontends");
+  const directTs = resolve(mfBase, name, "src", "index.ts");
+  const directTsx = resolve(mfBase, name, "src", "index.tsx");
+  if (existsSync(directTs)) return directTs;
+  if (existsSync(directTsx)) return directTsx;
+  if (!existsSync(mfBase)) return undefined;
+
+  for (const group of readdirSync(mfBase, { withFileTypes: true })) {
+    if (!group.isDirectory()) continue;
+    const groupedTs = resolve(mfBase, group.name, name, "src", "index.ts");
+    const groupedTsx = resolve(mfBase, group.name, name, "src", "index.tsx");
+    if (existsSync(groupedTs)) return groupedTs;
+    if (existsSync(groupedTsx)) return groupedTsx;
+  }
+
+  return undefined;
+}
+
 for (const name of microfrontends) {
   let entry: string | undefined;
   for (const root of mfRoots) {
-    const tsEntry = resolve(root, "front", "microfrontends", name, "src", "index.ts");
-    const tsxEntry = resolve(
-      root,
-      "front",
-      "microfrontends",
-      name,
-      "src",
-      "index.tsx",
-    );
-    if (existsSync(tsEntry)) {
-      entry = tsEntry;
-      break;
-    }
-    if (existsSync(tsxEntry)) {
-      entry = tsxEntry;
+    const candidate = resolveMicrofrontendEntry(root, name);
+    if (candidate) {
+      entry = candidate;
       break;
     }
   }
