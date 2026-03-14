@@ -85,7 +85,7 @@ const menuGroups: Record<string, { title: string; iconName: string; microfronten
   content: {
     title: "Content",
     iconName: "IconFileText",
-    microfrontends: ["mf-landing", "mf-docs", "mf-markdown"],
+    microfrontends: ["mf-landing", "mf-docs", "mf-markdown", "mf-struct", "mf-galery"],
   },
   data: {
     title: "Data",

@@ -34,7 +34,7 @@ export const LogsStatsView = ({ bus }: { bus: any }) => {
 
   return (
     <HeaderPanelLayout config={headerConfig}>
-        <ScrollArea className="h-full pr-2">
+        <ScrollArea className="h-full">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <StatisticCard
               title={t("logs.stats.totalHot")}

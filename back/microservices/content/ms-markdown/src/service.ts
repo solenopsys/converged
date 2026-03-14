@@ -67,17 +67,10 @@ export class MarkdownServiceImpl implements MarkdownService {
 
     const start = params.offset;
     const end = params.offset + params.limit;
-    const items: MdFile[] = [];
-
-    for (let i = start; i < end && i < mdKeys.length; i++) {
-      const data = await this.stores.fileStore.get(mdKeys[i]);
-      if (data) {
-        items.push({
-          path: mdKeys[i],
-          content: new TextDecoder().decode(data),
-        });
-      }
-    }
+    // List endpoint must be lightweight: return only paths, not file bodies.
+    const items: MdFile[] = mdKeys
+      .slice(start, end)
+      .map((path) => ({ path, content: "" }));
 
     return {
       items,

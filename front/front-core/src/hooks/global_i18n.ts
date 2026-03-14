@@ -283,19 +283,32 @@ export const useNamespacePreload = (namespaces: string | string[]) => {
 
 import { LocaleController } from "../controllers/locale-controller";
 
+// Module-level cache: language → mfId → translations
+const translationsCache = new Map<string, any>();
+
+const getCacheKey = (microfrontendId: string, language: string) => `${microfrontendId}::${language}`;
+
 export const useMicrofrontendTranslation = (microfrontendId: string) => {
   const { i18n } = useGlobalTranslation();
-  const [translations, setTranslations] = useState<any>({});
-  const [loading, setLoading] = useState(true);
+  const currentLanguage = i18n.language || "en";
+  const cacheKey = getCacheKey(microfrontendId, currentLanguage);
+
+  const [translations, setTranslations] = useState<any>(() => translationsCache.get(cacheKey) ?? {});
+  const [loading, setLoading] = useState(!translationsCache.has(cacheKey));
 
   const localeController = LocaleController.getInstance();
 
   useEffect(() => {
+    if (translationsCache.has(cacheKey)) {
+      setTranslations(translationsCache.get(cacheKey));
+      setLoading(false);
+      return;
+    }
+
     const loadTranslations = async () => {
       setLoading(true);
       try {
         const locales = localeController.getLocales(microfrontendId) || {};
-        const currentLanguage = i18n.language || "en";
         const shortLanguage = currentLanguage.split("-")[0];
         const namespace =
           microfrontendId.startsWith("mf-")
@@ -313,6 +326,7 @@ export const useMicrofrontendTranslation = (microfrontendId: string) => {
           `/locales/${shortLanguage}/${namespace}.json`;
 
         if (!localeUrl || typeof localeUrl !== "string") {
+          translationsCache.set(cacheKey, {});
           setTranslations({});
           return;
         }
@@ -323,9 +337,12 @@ export const useMicrofrontendTranslation = (microfrontendId: string) => {
         }
 
         const data = await response.json();
-        setTranslations(data && typeof data === "object" ? data : {});
+        const result = data && typeof data === "object" ? data : {};
+        translationsCache.set(cacheKey, result);
+        setTranslations(result);
       } catch (error) {
         console.error('Failed to load translations:', error);
+        translationsCache.set(cacheKey, {});
         setTranslations({});
       } finally {
         setLoading(false);
@@ -333,10 +350,10 @@ export const useMicrofrontendTranslation = (microfrontendId: string) => {
     };
 
     loadTranslations();
-  }, [i18n.language, microfrontendId, localeController]);
+  }, [cacheKey, localeController]);
 
-  const t = (key: string) => {
-    if (!key) return translations; // Возвращаем все переводы если ключ пустой
+  const t = useCallback((key: string) => {
+    if (!key) return translations;
 
     // 1) nested format: { places: { stats: { title: "..." } } }
     const keys = key.split('.');
@@ -358,8 +375,8 @@ export const useMicrofrontendTranslation = (microfrontendId: string) => {
       return translations[key];
     }
 
-    return key; // Возвращаем ключ если путь не найден
-  };
+    return key;
+  }, [translations]);
 
   return { t, translations, loading };
 };

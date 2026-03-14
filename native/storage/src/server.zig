@@ -358,8 +358,42 @@ const StoreOp = struct {
                 self.result = encodeFound(tel, 1, &[_]u8{});
             },
             c.REQ_FILE_LIST => {
-                tel.op_count += 1;
-                self.result = encodeKeys(tel, &[_][*:0]const u8{});
+                const inst = self.commands.stores.getPtr(self.store_key) orelse return error.StoreNotFound;
+                switch (inst.handle) {
+                    .files => |*e| {
+                        var dir = std.fs.cwd().openDir(e.base_path, .{ .iterate = true }) catch {
+                            tel.op_count += 1;
+                            self.result = encodeKeys(tel, &[_][*:0]const u8{});
+                            return;
+                        };
+                        defer dir.close();
+
+                        var walker = try dir.walk(self.allocator);
+                        defer walker.deinit();
+
+                        var key_z_arr: std.ArrayList([:0]u8) = .{};
+                        defer {
+                            for (key_z_arr.items) |k| self.allocator.free(k);
+                            key_z_arr.deinit(self.allocator);
+                        }
+
+                        while (try walker.next()) |entry| {
+                            if (entry.kind != .file) continue;
+                            try key_z_arr.append(self.allocator, try self.allocator.dupeZ(u8, entry.path));
+                        }
+
+                        const key_ptrs = try self.allocator.alloc([*:0]const u8, key_z_arr.items.len);
+                        defer self.allocator.free(key_ptrs);
+
+                        for (key_z_arr.items, 0..) |k, i| {
+                            key_ptrs[i] = k.ptr;
+                        }
+
+                        tel.op_count += 1;
+                        self.result = encodeKeys(tel, key_ptrs);
+                    },
+                    else => return error.UnsupportedOperation,
+                }
             },
             else => return error.UnknownCommand,
         }
