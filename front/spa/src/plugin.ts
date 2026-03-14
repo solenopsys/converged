@@ -18,10 +18,11 @@ const vendorEntries: Record<string, string> = {
   "react-router-dom.js": "react-router-dom",
   "effector.js": "effector",
   "effector-react.js": "effector-react",
+  "echarts.js": "echarts",
+  "echarts-for-react.js": "echarts-for-react",
   "lucide-react.js": "lucide-react",
   "dagre.js": "dagre",
   "pixi.js": "pixi.js",
-  "recharts.js": "recharts",
   "sonner.js": "sonner",
 };
 

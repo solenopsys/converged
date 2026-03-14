@@ -19,10 +19,11 @@ const sharedExternals = [
   "react-router-dom",
   "effector",
   "effector-react",
+  "echarts",
+  "echarts-for-react",
   "lucide-react",
   "dagre",
   "pixi.js",
-  "recharts",
   "sonner",
 ];
 
@@ -43,10 +44,11 @@ const vendorEntries: Array<{
   { specifier: "react-router-dom", source: "react-router-dom", file: "react-router-dom.js" },
   { specifier: "effector", source: "effector", file: "effector.js" },
   { specifier: "effector-react", source: "effector-react", file: "effector-react.js" },
+  { specifier: "echarts", source: "echarts", file: "echarts.js" },
+  { specifier: "echarts-for-react", source: "echarts-for-react", file: "echarts-for-react.js" },
   { specifier: "lucide-react", source: "lucide-react", file: "lucide-react.js" },
   { specifier: "dagre", source: "dagre", file: "dagre.js" },
   { specifier: "pixi.js", source: "pixi.js", file: "pixi.js" },
-  { specifier: "recharts", source: "recharts", file: "recharts.js" },
   { specifier: "sonner", source: "sonner", file: "sonner.js" },
 ];
 

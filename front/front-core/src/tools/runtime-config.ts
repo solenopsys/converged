@@ -22,10 +22,11 @@ const defaultSharedPackages = [
   "effector",
   "effector/effector.mjs",
   "effector-react",
+  "echarts",
+  "echarts-for-react",
   "lucide-react",
   "dagre",
   "pixi.js",
-  "recharts",
   "sonner",
   "front-core",
 ];
