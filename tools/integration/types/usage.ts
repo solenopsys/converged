@@ -37,6 +37,11 @@ export type UsageDailyStatsItem = {
   total: number;
 };
 
+export type UsageFunctionStatsItem = {
+  function: string;
+  total: number;
+};
+
 export interface PaginatedResult<T> {
   items: T[];
   totalCount?: number;
@@ -47,4 +52,5 @@ export interface UsageService {
   listUsage(params: UsageListParams): Promise<PaginatedResult<UsageEvent>>;
   getUsageTotal(params?: UsageStatsParams): Promise<UsageTotalStats>;
   getUsageDaily(params?: UsageStatsParams): Promise<UsageDailyStatsItem[]>;
+  getUsageByFunction(params?: UsageStatsParams): Promise<UsageFunctionStatsItem[]>;
 }

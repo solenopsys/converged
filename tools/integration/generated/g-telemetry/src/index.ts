@@ -26,18 +26,17 @@ export type TelemetryQueryParams = {
   to_ts?: number;
 };
 
-export type TelemetryRestoreParams = {
-  device_id?: string;
-  param?: string;
-  from_ts?: number;
-  to_ts?: number;
-  batchSize?: number;
-};
-
 export interface PaginatedResult {
   items: T[];
   totalCount?: number;
 }
+
+export type TelemetryStatistic = {
+  totalHot: number;
+  totalCold: number;
+  byDevice: Record<string, number>;
+  byParam: Record<string, number>;
+};
 
 export const metadata = {
   "interfaceName": "TelemetryService",
@@ -90,38 +89,8 @@ export const metadata = {
       "isAsyncIterable": false
     },
     {
-      "name": "flushHot",
-      "parameters": [
-        {
-          "name": "date",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "flushOldHot",
+      "name": "getStatistic",
       "parameters": [],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "restoreHot",
-      "parameters": [
-        {
-          "name": "params",
-          "type": "TelemetryRestoreParams",
-          "optional": true,
-          "isArray": false
-        }
-      ],
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
@@ -142,10 +111,6 @@ export const metadata = {
       "definition": "{\n  offset: number;\n  limit: number;\n  device_id?: string;\n  param?: string;\n  from_ts?: number;\n  to_ts?: number;\n}"
     },
     {
-      "name": "TelemetryRestoreParams",
-      "definition": "{\n  device_id?: string;\n  param?: string;\n  from_ts?: number;\n  to_ts?: number;\n  batchSize?: number;\n}"
-    },
-    {
       "name": "PaginatedResult",
       "definition": "",
       "properties": [
@@ -162,6 +127,10 @@ export const metadata = {
           "isArray": false
         }
       ]
+    },
+    {
+      "name": "TelemetryStatistic",
+      "definition": "{\n  totalHot: number;\n  totalCold: number;\n  byDevice: Record<string, number>;\n  byParam: Record<string, number>;\n}"
     }
   ]
 };
@@ -171,9 +140,7 @@ export interface TelemetryService {
   write(event: TelemetryEventInput): Promise<any>;
   listHot(params: TelemetryQueryParams): Promise<any>;
   listCold(params: TelemetryQueryParams): Promise<any>;
-  flushHot(date?: string): Promise<any>;
-  flushOldHot(): Promise<any>;
-  restoreHot(params?: TelemetryRestoreParams): Promise<any>;
+  getStatistic(): Promise<any>;
 }
 
 // Client interface
@@ -181,9 +148,7 @@ export interface TelemetryServiceClient {
   write(event: TelemetryEventInput): Promise<any>;
   listHot(params: TelemetryQueryParams): Promise<any>;
   listCold(params: TelemetryQueryParams): Promise<any>;
-  flushHot(date?: string): Promise<any>;
-  flushOldHot(): Promise<any>;
-  restoreHot(params?: TelemetryRestoreParams): Promise<any>;
+  getStatistic(): Promise<any>;
 }
 
 // Factory function

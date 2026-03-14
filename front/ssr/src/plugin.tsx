@@ -80,6 +80,72 @@ const pwaRegistrationScript = [
   "})();",
 ].join("");
 
+type TelemetryEventInput = {
+  ts?: number;
+  device_id: string;
+  param: string;
+  value: number;
+  unit?: string;
+};
+
+function createTelemetryReporter(baseUrl: string) {
+  const queue: TelemetryEventInput[] = [];
+  const maxBatchSize = 25;
+  const maxQueueSize = 1000;
+  const debounceMs = 1000;
+  const retryMs = 5000;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let flushInProgress = false;
+
+  const flush = async () => {
+    if (flushInProgress || queue.length === 0) return;
+    flushInProgress = true;
+    try {
+      while (queue.length > 0) {
+        const batch = queue.splice(0, maxBatchSize);
+        try {
+          await Promise.all(
+            batch.map((event) =>
+              fetch(`${baseUrl}/telemetry/write`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ event }),
+              }),
+            ),
+          );
+        } catch {
+          queue.unshift(...batch);
+          if (timer) clearTimeout(timer);
+          timer = setTimeout(() => {
+            void flush();
+          }, retryMs);
+          break;
+        }
+      }
+    } finally {
+      flushInProgress = false;
+    }
+  };
+
+  const schedule = () => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      void flush();
+    }, debounceMs);
+  };
+
+  return {
+    track(event: TelemetryEventInput) {
+      if (queue.length >= maxQueueSize) {
+        return;
+      }
+      queue.push(event);
+      schedule();
+    },
+    flush,
+  };
+}
+
 function buildBrowserImportMap(
   baseImports?: Record<string, string>,
   mfOverride?: string[],
@@ -141,6 +207,9 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
   const prebuiltStylesPath = resolve(projectRoot, "dist", "landing", "styles.css");
   const prebuiltClientPath = resolve(projectRoot, "dist", "landing", "client.js");
   const prebuiltFrontImportMapPath = resolve(projectRoot, "dist", "front", "import-map.json");
+  const telemetryReporter = createTelemetryReporter(
+    process.env.SERVICES_BASE || "/services",
+  );
 
   let styles: string;
   let stylesBrotli: Uint8Array;
@@ -315,6 +384,9 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
         await ensureAssets();
       }
     })
+    .onStop(async () => {
+      await telemetryReporter.flush();
+    })
     .get("/styles.css", async ({ request }) => {
       await ensureAssets();
       if (isProd && supportsEncoding(request, "gzip")) {
@@ -415,15 +487,37 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
     .use(staticPlugin({ assets: publicDir, prefix: "/" }));
 
   app.get("/*", async ({ request }) => {
+    const requestStartedAt = Date.now();
     const url = new URL(request.url);
     const baseUrl =
       isProd && seoConfig?.canonical
         ? normalizeBaseUrl(seoConfig.canonical)
         : url.origin;
-    const html = await renderPage(url.pathname, baseUrl);
-    return new Response(html, {
-      headers: { "Content-Type": "text/html; charset=utf-8" },
-    });
+
+    try {
+      const html = await renderPage(url.pathname, baseUrl);
+      const durationMs = Date.now() - requestStartedAt;
+      telemetryReporter.track({
+        ts: Date.now(),
+        device_id: "landing-ssr",
+        param: "render_ms",
+        value: durationMs,
+        unit: "ms",
+      });
+
+      return new Response(html, {
+        headers: { "Content-Type": "text/html; charset=utf-8" },
+      });
+    } catch (error) {
+      telemetryReporter.track({
+        ts: Date.now(),
+        device_id: "landing-ssr",
+        param: "render_error",
+        value: 1,
+        unit: "count",
+      });
+      throw error;
+    }
   });
 
   return app;

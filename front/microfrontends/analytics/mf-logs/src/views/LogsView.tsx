@@ -2,23 +2,19 @@ import React, { useEffect } from "react";
 import { useUnit } from "effector-react";
 import { HeaderPanelLayout, InfiniteScrollDataTable } from "front-core";
 import { RefreshCw } from "lucide-react";
-import type { LogsMode } from "../domain-logs";
-import { $logsStore, logsViewMounted, refreshLogsClicked } from "../domain-logs";
+import { $logsHotStore, $logsColdStore, logsViewMounted, refreshLogsClicked, type LogsMode } from "../domain-logs";
 import { logsColumns } from "../functions/columns";
 
-interface LogsViewProps {
-  mode?: LogsMode;
-}
-
-export const LogsView = ({ mode = "hot" }: LogsViewProps) => {
-  const logsState = useUnit($logsStore.$state);
+export const LogsView = ({ mode = "hot" }: { mode?: LogsMode }) => {
+  const $store = mode === "hot" ? $logsHotStore : $logsColdStore;
+  const logsState = useUnit($store.$state);
 
   useEffect(() => {
-    logsViewMounted({ mode });
+    logsViewMounted(mode);
   }, [mode]);
 
   const headerConfig = {
-    title: "Logs",
+    title: mode === "hot" ? "Logs (Hot)" : "Logs (Cold)",
     actions: [
       {
         id: "refresh",
@@ -37,7 +33,7 @@ export const LogsView = ({ mode = "hot" }: LogsViewProps) => {
           hasMore={logsState.hasMore}
           loading={logsState.loading}
           columns={logsColumns}
-          onLoadMore={$logsStore.loadMore}
+          onLoadMore={$store.loadMore}
           viewMode="table"
         />
     </HeaderPanelLayout>

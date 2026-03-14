@@ -5,6 +5,7 @@ export type {
   UsageListParams,
   UsageStatsParams,
   UsageDailyStatsItem,
+  UsageFunctionStatsItem,
   UsageTotalStats,
   PaginatedResult,
 } from "g-usage";

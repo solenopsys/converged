@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 import { resolve } from "path";
+import { installBackendLogBridge } from "./logBridge";
 
 export interface AiConfig {
   key: string;
@@ -56,6 +57,10 @@ export function loadConfigFromEnv(): ServerConfig {
  * Creates and configures an Elysia server instance
  */
 export function createServer({ config, plugins, staticDir }: CreateServerOptions) {
+  const logBridge = installBackendLogBridge({
+    serviceBaseUrl: `http://127.0.0.1:${config.port}/services`,
+    source: "back.core",
+  });
   const startupTasks: Array<{ name: string; task: () => Promise<void> }> = [];
   const shutdownTasks: Array<{ name: string; task: () => Promise<void> }> = [];
   let shuttingDown = false;
@@ -81,6 +86,13 @@ export function createServer({ config, plugins, staticDir }: CreateServerOptions
 
   const app = new Elysia()
     .use(cors())
+    .onError(({ error, path, code }) => {
+      logBridge.enqueue({
+        level: logBridge.level.error,
+        code: logBridge.code.httpHandlerError,
+        message: `[${code}] ${path}: ${error instanceof Error ? error.stack || error.message : String(error)}`,
+      });
+    })
     .get("/health", () => ({
       status: "ok",
       name: config.name,
@@ -170,6 +182,7 @@ export function createServer({ config, plugins, staticDir }: CreateServerOptions
         }
 
         console.log("[back-core] Shutdown complete");
+        await logBridge.flushNow();
       };
 
       process.once("SIGTERM", () => {
@@ -232,6 +245,7 @@ export function createServer({ config, plugins, staticDir }: CreateServerOptions
         }
       }
       console.log("[back-core] Shutdown complete");
+      await logBridge.flushNow();
     },
   };
 }

@@ -2,7 +2,7 @@ import type {
   TelemetryEvent,
   TelemetryEventInput,
   TelemetryQueryParams,
-  TelemetryRestoreParams,
+  TelemetryStatistic,
   TelemetryService,
   PaginatedResult,
 } from "g-telemetry";
@@ -11,7 +11,7 @@ export type {
   TelemetryEvent,
   TelemetryEventInput,
   TelemetryQueryParams,
-  TelemetryRestoreParams,
+  TelemetryStatistic,
   TelemetryService,
   PaginatedResult,
 };

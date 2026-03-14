@@ -2,27 +2,25 @@ import React, { useEffect } from "react";
 import { useUnit } from "effector-react";
 import { HeaderPanelLayout, InfiniteScrollDataTable } from "front-core";
 import { RefreshCw } from "lucide-react";
-import type { TelemetryMode } from "../domain-telemetry";
 import {
-  $telemetryStore,
+  $telemetryHotStore,
+  $telemetryColdStore,
   refreshTelemetryClicked,
   telemetryViewMounted,
+  type TelemetryMode,
 } from "../domain-telemetry";
 import { telemetryColumns } from "../functions/columns";
 
-interface TelemetryViewProps {
-  mode?: TelemetryMode;
-}
-
-export const TelemetryView = ({ mode = "hot" }: TelemetryViewProps) => {
-  const telemetryState = useUnit($telemetryStore.$state);
+export const TelemetryView = ({ mode = "hot" }: { mode?: TelemetryMode }) => {
+  const $store = mode === "hot" ? $telemetryHotStore : $telemetryColdStore;
+  const telemetryState = useUnit($store.$state);
 
   useEffect(() => {
-    telemetryViewMounted({ mode });
+    telemetryViewMounted(mode);
   }, [mode]);
 
   const headerConfig = {
-    title: "Telemetry",
+    title: mode === "hot" ? "Telemetry (Hot)" : "Telemetry (Cold)",
     actions: [
       {
         id: "refresh",
@@ -41,7 +39,7 @@ export const TelemetryView = ({ mode = "hot" }: TelemetryViewProps) => {
           hasMore={telemetryState.hasMore}
           loading={telemetryState.loading}
           columns={telemetryColumns}
-          onLoadMore={$telemetryStore.loadMore}
+          onLoadMore={$store.loadMore}
           viewMode="table"
         />
     </HeaderPanelLayout>

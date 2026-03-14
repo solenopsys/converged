@@ -24,15 +24,6 @@ export type LogQueryParams = {
   to_ts?: number;
 };
 
-export type LogRestoreParams = {
-  source?: string;
-  level?: number;
-  code?: number;
-  from_ts?: number;
-  to_ts?: number;
-  batchSize?: number;
-};
-
 export interface PaginatedResult<T> {
   items: T[];
   totalCount?: number;
@@ -51,8 +42,5 @@ export interface LogsService {
   write(event: LogEventInput): Promise<void>;
   listHot(params: LogQueryParams): Promise<PaginatedResult<LogEvent>>;
   listCold(params: LogQueryParams): Promise<PaginatedResult<LogEvent>>;
-  flushHot(date?: string): Promise<number>;
-  flushOldHot(): Promise<number>;
-  restoreHot(params?: LogRestoreParams): Promise<number>;
   getStatistic(): Promise<LogsStatistic>;
 }

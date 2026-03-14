@@ -6,6 +6,7 @@ import {
   addMenuRequested,
 } from "../slots";
 import { tabRegistered } from "sidebar-controller";
+import { setupBrowserErrorBridge } from "./browser-error-bridge";
 
 export interface AppConfig {
   name: string;
@@ -45,6 +46,7 @@ export function createApp({ config, moduleLoaders }: CreateAppOptions) {
   // Expose bus globally for debugging
   if (typeof window !== "undefined") {
     (window as any).__BUS__ = bus;
+    setupBrowserErrorBridge();
   }
 
   const loadAndPlugModules = async () => {

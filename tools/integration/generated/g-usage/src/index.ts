@@ -40,6 +40,11 @@ export type UsageDailyStatsItem = {
   total: number;
 };
 
+export type UsageFunctionStatsItem = {
+  function: string;
+  total: number;
+};
+
 export interface PaginatedResult {
   items: T[];
   totalCount?: number;
@@ -109,6 +114,21 @@ export const metadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
+    },
+    {
+      "name": "getUsageByFunction",
+      "parameters": [
+        {
+          "name": "params",
+          "type": "UsageStatsParams",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -137,6 +157,10 @@ export const metadata = {
       "definition": "{\n  date: string;\n  total: number;\n}"
     },
     {
+      "name": "UsageFunctionStatsItem",
+      "definition": "{\n  function: string;\n  total: number;\n}"
+    },
+    {
       "name": "PaginatedResult",
       "definition": "",
       "properties": [
@@ -163,6 +187,7 @@ export interface UsageService {
   listUsage(params: UsageListParams): Promise<any>;
   getUsageTotal(params?: UsageStatsParams): Promise<any>;
   getUsageDaily(params?: UsageStatsParams): Promise<any>;
+  getUsageByFunction(params?: UsageStatsParams): Promise<any>;
 }
 
 // Client interface
@@ -171,6 +196,7 @@ export interface UsageServiceClient {
   listUsage(params: UsageListParams): Promise<any>;
   getUsageTotal(params?: UsageStatsParams): Promise<any>;
   getUsageDaily(params?: UsageStatsParams): Promise<any>;
+  getUsageByFunction(params?: UsageStatsParams): Promise<any>;
 }
 
 // Factory function

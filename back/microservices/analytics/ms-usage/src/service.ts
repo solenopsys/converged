@@ -5,6 +5,7 @@ import type {
   UsageStatsParams,
   UsageEvent,
   UsageDailyStatsItem,
+  UsageFunctionStatsItem,
   UsageTotalStats,
   PaginatedResult,
 } from "./types";
@@ -14,10 +15,10 @@ const MS_ID = "usage-ms";
 
 export class UsageServiceImpl implements UsageService {
   private stores!: StoresController;
-  private initPromise?: Promise<void>;
+  private initPromise: Promise<void>;
 
   constructor() {
-    this.init();
+    this.initPromise = this.init();
   }
 
   async init() {
@@ -34,6 +35,7 @@ export class UsageServiceImpl implements UsageService {
   }
 
   async recordUsage(events: UsageEventInput[]): Promise<{ inserted: number }> {
+    await this.ensureReady();
     if (!events?.length) {
       return { inserted: 0 };
     }
@@ -50,16 +52,28 @@ export class UsageServiceImpl implements UsageService {
     return { inserted };
   }
 
-  listUsage(params: UsageListParams): Promise<PaginatedResult<UsageEvent>> {
+  async listUsage(params: UsageListParams): Promise<PaginatedResult<UsageEvent>> {
+    await this.ensureReady();
     return this.stores.usage.listUsage(params);
   }
 
-  getUsageTotal(params?: UsageStatsParams): Promise<UsageTotalStats> {
+  async getUsageTotal(params?: UsageStatsParams): Promise<UsageTotalStats> {
+    await this.ensureReady();
     return this.stores.usage.getUsageTotal(params ?? {});
   }
 
-  getUsageDaily(params?: UsageStatsParams): Promise<UsageDailyStatsItem[]> {
+  async getUsageDaily(params?: UsageStatsParams): Promise<UsageDailyStatsItem[]> {
+    await this.ensureReady();
     return this.stores.usage.getUsageDaily(params ?? {});
+  }
+
+  async getUsageByFunction(params?: UsageStatsParams): Promise<UsageFunctionStatsItem[]> {
+    await this.ensureReady();
+    return this.stores.usage.getUsageByFunction(params ?? {});
+  }
+
+  private async ensureReady(): Promise<void> {
+    await this.initPromise;
   }
 }
 

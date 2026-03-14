@@ -2,7 +2,7 @@ import type {
   LogEvent,
   LogEventInput,
   LogQueryParams,
-  LogRestoreParams,
+  LogsStatistic,
   LogsService,
   PaginatedResult,
 } from "g-logs";
@@ -11,7 +11,7 @@ export type {
   LogEvent,
   LogEventInput,
   LogQueryParams,
-  LogRestoreParams,
+  LogsStatistic,
   LogsService,
   PaginatedResult,
 };

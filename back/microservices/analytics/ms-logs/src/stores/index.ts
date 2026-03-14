@@ -1,24 +1,25 @@
-import { DATA_DIR } from "back-core";
-import { join } from "path";
-import { LogsHotStore } from "./hot/service";
-import { LogsColdStore } from "./cold/service";
+import { StoreControllerAbstract, StoreType, ColumnStore } from "back-core";
+import eventsMigrations from "./events/migrations";
+import { LogsStoreService } from "./events/service";
 
-export class StoresController {
-  public hot: LogsHotStore;
-  public cold: LogsColdStore;
+export class StoresController extends StoreControllerAbstract {
+  public hot!: LogsStoreService;
+  public cold!: LogsStoreService;
 
-  constructor(msName: string, baseDir: string = DATA_DIR) {
-    const serviceDir = join(baseDir, msName);
-    this.hot = new LogsHotStore(join(serviceDir, "hot"));
-    this.cold = new LogsColdStore(join(serviceDir, "cold", "data.db"));
+  constructor(msName: string) {
+    super(msName);
   }
 
   async init(): Promise<void> {
-    await this.cold.init();
+    const hotStore = await this.addStore("hot", StoreType.COLUMN, eventsMigrations);
+    const coldStore = await this.addStore("cold", StoreType.COLUMN, eventsMigrations);
+    this.hot = new LogsStoreService(hotStore as ColumnStore);
+    this.cold = new LogsStoreService(coldStore as ColumnStore);
+    await this.startAll();
+    await this.migrateAll();
   }
 
   async destroy(): Promise<void> {
-    await this.hot.closeCurrent();
-    await this.cold.close();
+    await this.closeAll();
   }
 }

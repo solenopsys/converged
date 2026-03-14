@@ -5,14 +5,17 @@ import { RefreshCw } from "lucide-react";
 import {
   $dailyStats,
   $totalStats,
+  $functionStats,
   usageStatsViewMounted,
   refreshUsageStatsClicked,
 } from "../domain-stats";
 import { UsageStatsChart } from "../components/UsageStatsChart";
+import { UsagePieChart } from "../components/UsagePieChart";
 
 export const UsageStatsView = () => {
   const dailyStats = useUnit($dailyStats);
   const totalStats = useUnit($totalStats);
+  const functionStats = useUnit($functionStats);
 
   useEffect(() => {
     usageStatsViewMounted({});
@@ -52,6 +55,9 @@ export const UsageStatsView = () => {
               description="Usage counts by day"
             />
           </div>
+        </div>
+        <div className="min-h-[280px]">
+          <UsagePieChart data={functionStats} title="Usage by action type" />
         </div>
       </div>
     </div>

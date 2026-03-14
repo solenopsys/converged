@@ -1,26 +1,34 @@
 import { CreateAction, CreateWidget } from "front-core";
 import { TelemetryView } from "./views/TelemetryView";
-import type { TelemetryMode } from "./domain-telemetry";
+import { TelemetryStatsView } from "./views/TelemetryStatsView";
 
-const SHOW_TELEMETRY = "telemetry.show";
-const SHOW_TELEMETRY_COLD = "telemetry.show.cold";
+const SHOW_TELEMETRY_HOT = "telemetry.hot.show";
+const SHOW_TELEMETRY_COLD = "telemetry.cold.show";
+const SHOW_TELEMETRY_STATS = "telemetry.stats.show";
 
-const createTelemetryWidget: CreateWidget<typeof TelemetryView> = (
-  _bus,
-  params?: { mode: TelemetryMode },
-) => ({
+const createTelemetryHotWidget: CreateWidget<typeof TelemetryView> = () => ({
   view: TelemetryView,
   placement: () => "center",
-  config: {
-    mode: params?.mode ?? "hot",
-  },
+  config: { mode: "hot" },
 });
 
-const createShowTelemetryAction: CreateAction<any> = (bus) => ({
-  id: SHOW_TELEMETRY,
+const createTelemetryColdWidget: CreateWidget<typeof TelemetryView> = () => ({
+  view: TelemetryView,
+  placement: () => "center",
+  config: { mode: "cold" },
+});
+
+const createTelemetryStatsWidget: CreateWidget<typeof TelemetryStatsView> = (bus) => ({
+  view: TelemetryStatsView,
+  placement: () => "center",
+  config: { bus },
+});
+
+const createShowTelemetryHotAction: CreateAction<any> = (bus) => ({
+  id: SHOW_TELEMETRY_HOT,
   description: "Show hot telemetry",
   invoke: () => {
-    bus.present({ widget: createTelemetryWidget(bus, { mode: "hot" }) });
+    bus.present({ widget: createTelemetryHotWidget(bus) });
   },
 });
 
@@ -28,16 +36,26 @@ const createShowTelemetryColdAction: CreateAction<any> = (bus) => ({
   id: SHOW_TELEMETRY_COLD,
   description: "Show cold telemetry",
   invoke: () => {
-    bus.present({ widget: createTelemetryWidget(bus, { mode: "cold" }) });
+    bus.present({ widget: createTelemetryColdWidget(bus) });
   },
 });
 
-const ACTIONS = [createShowTelemetryAction, createShowTelemetryColdAction];
+const createShowTelemetryStatsAction: CreateAction<any> = (bus) => ({
+  id: SHOW_TELEMETRY_STATS,
+  description: "Show telemetry statistics",
+  invoke: () => {
+    bus.present({ widget: createTelemetryStatsWidget(bus) });
+  },
+});
+
+const ACTIONS = [createShowTelemetryHotAction, createShowTelemetryColdAction, createShowTelemetryStatsAction];
 
 export {
-  SHOW_TELEMETRY,
+  SHOW_TELEMETRY_HOT,
   SHOW_TELEMETRY_COLD,
-  createShowTelemetryAction,
+  SHOW_TELEMETRY_STATS,
+  createShowTelemetryHotAction,
   createShowTelemetryColdAction,
+  createShowTelemetryStatsAction,
 };
 export default ACTIONS;

@@ -27,15 +27,6 @@ export type LogQueryParams = {
   to_ts?: number;
 };
 
-export type LogRestoreParams = {
-  source?: string;
-  level?: number;
-  code?: number;
-  from_ts?: number;
-  to_ts?: number;
-  batchSize?: number;
-};
-
 export interface PaginatedResult {
   items: T[];
   totalCount?: number;
@@ -101,44 +92,6 @@ export const metadata = {
       "isAsyncIterable": false
     },
     {
-      "name": "flushHot",
-      "parameters": [
-        {
-          "name": "date",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "flushOldHot",
-      "parameters": [],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "restoreHot",
-      "parameters": [
-        {
-          "name": "params",
-          "type": "LogRestoreParams",
-          "optional": true,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
       "name": "getStatistic",
       "parameters": [],
       "returnType": "any",
@@ -159,10 +112,6 @@ export const metadata = {
     {
       "name": "LogQueryParams",
       "definition": "{\n  offset: number;\n  limit: number;\n  source?: string;\n  level?: number;\n  code?: number;\n  from_ts?: number;\n  to_ts?: number;\n}"
-    },
-    {
-      "name": "LogRestoreParams",
-      "definition": "{\n  source?: string;\n  level?: number;\n  code?: number;\n  from_ts?: number;\n  to_ts?: number;\n  batchSize?: number;\n}"
     },
     {
       "name": "PaginatedResult",
@@ -194,9 +143,6 @@ export interface LogsService {
   write(event: LogEventInput): Promise<any>;
   listHot(params: LogQueryParams): Promise<any>;
   listCold(params: LogQueryParams): Promise<any>;
-  flushHot(date?: string): Promise<any>;
-  flushOldHot(): Promise<any>;
-  restoreHot(params?: LogRestoreParams): Promise<any>;
   getStatistic(): Promise<any>;
 }
 
@@ -205,9 +151,6 @@ export interface LogsServiceClient {
   write(event: LogEventInput): Promise<any>;
   listHot(params: LogQueryParams): Promise<any>;
   listCold(params: LogQueryParams): Promise<any>;
-  flushHot(date?: string): Promise<any>;
-  flushOldHot(): Promise<any>;
-  restoreHot(params?: LogRestoreParams): Promise<any>;
   getStatistic(): Promise<any>;
 }
 

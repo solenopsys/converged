@@ -1,53 +1,102 @@
-import { createDomain, sample } from 'effector';
+import { createDomain, createStore, sample } from 'effector';
 import { createInfiniteTableStore } from 'front-core';
 import logsService from './service';
 import { PaginationParams } from './functions/types';
 
-const domain = createDomain('logs');
-
 export type LogsMode = 'hot' | 'cold';
 
-export const logsViewMounted = domain.createEvent<{ mode: LogsMode }>('LOGS_VIEW_MOUNTED');
+const domain = createDomain('logs');
+
+export const logsViewMounted = domain.createEvent<LogsMode>('LOGS_VIEW_MOUNTED');
 export const refreshLogsClicked = domain.createEvent('REFRESH_LOGS_CLICKED');
+export const logsModeChanged = domain.createEvent<LogsMode>('LOGS_MODE_CHANGED');
 
-const $logsMode = domain.createStore<LogsMode>('hot');
+export const $logsMode = createStore<LogsMode>('hot')
+  .on(logsViewMounted, (_, mode) => mode)
+  .on(logsModeChanged, (_, mode) => mode);
 
-$logsMode.on(logsViewMounted, (_state, payload) => payload.mode);
-
-const listLogsFx = domain.createEffect<PaginationParams, any>({
-  name: 'LIST_LOGS',
+const listLogsHotFx = domain.createEffect<PaginationParams, any>({
+  name: 'LIST_LOGS_HOT',
   handler: async (params: PaginationParams) => {
-    const mode = $logsMode.getState();
-    return mode === 'cold'
-      ? await logsService.listCold(params)
-      : await logsService.listHot(params);
+    return await logsService.listHot(params);
   },
 });
 
-export const $logsStore = createInfiniteTableStore(domain, listLogsFx);
+const listLogsColdFx = domain.createEffect<PaginationParams, any>({
+  name: 'LIST_LOGS_COLD',
+  handler: async (params: PaginationParams) => {
+    return await logsService.listCold(params);
+  },
+});
+
+export const $logsHotStore = createInfiniteTableStore(domain, listLogsHotFx);
+export const $logsColdStore = createInfiniteTableStore(domain, listLogsColdFx);
 
 sample({
   clock: logsViewMounted,
-  fn: () => ({}),
-  target: $logsStore.reset,
+  filter: (mode) => mode === 'hot',
+  target: $logsHotStore.reset,
+});
+sample({
+  clock: logsViewMounted,
+  filter: (mode) => mode === 'hot',
+  target: $logsHotStore.loadMore,
+});
+sample({
+  clock: logsViewMounted,
+  filter: (mode) => mode === 'cold',
+  target: $logsColdStore.reset,
+});
+sample({
+  clock: logsViewMounted,
+  filter: (mode) => mode === 'cold',
+  target: $logsColdStore.loadMore,
 });
 
 sample({
-  clock: logsViewMounted,
-  fn: () => ({}),
-  target: $logsStore.loadMore,
+  clock: logsModeChanged,
+  filter: (mode) => mode === 'hot',
+  target: $logsHotStore.reset,
+});
+sample({
+  clock: logsModeChanged,
+  filter: (mode) => mode === 'hot',
+  target: $logsHotStore.loadMore,
+});
+sample({
+  clock: logsModeChanged,
+  filter: (mode) => mode === 'cold',
+  target: $logsColdStore.reset,
+});
+sample({
+  clock: logsModeChanged,
+  filter: (mode) => mode === 'cold',
+  target: $logsColdStore.loadMore,
 });
 
 sample({
   clock: refreshLogsClicked,
-  fn: () => ({}),
-  target: $logsStore.reset,
+  source: $logsMode,
+  filter: (mode) => mode === 'hot',
+  target: $logsHotStore.reset,
 });
-
 sample({
   clock: refreshLogsClicked,
-  fn: () => ({}),
-  target: $logsStore.loadMore,
+  source: $logsMode,
+  filter: (mode) => mode === 'hot',
+  target: $logsHotStore.loadMore,
+});
+sample({
+  clock: refreshLogsClicked,
+  source: $logsMode,
+  filter: (mode) => mode === 'cold',
+  target: $logsColdStore.reset,
+});
+sample({
+  clock: refreshLogsClicked,
+  source: $logsMode,
+  filter: (mode) => mode === 'cold',
+  target: $logsColdStore.loadMore,
 });
 
 export default domain;

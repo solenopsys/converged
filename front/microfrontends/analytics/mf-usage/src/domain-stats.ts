@@ -1,6 +1,6 @@
 import { createDomain, sample } from "effector";
 import usageService from "./service";
-import type { UsageStatsParams, UsageDailyStatsItem, UsageTotalStats } from "g-usage";
+import type { UsageStatsParams, UsageDailyStatsItem, UsageFunctionStatsItem, UsageTotalStats } from "g-usage";
 
 const domain = createDomain("usage-stats");
 
@@ -23,6 +23,13 @@ const loadTotalStatsFx = domain.createEffect<UsageStatsParams | void, UsageTotal
   },
 });
 
+const loadFunctionStatsFx = domain.createEffect<UsageStatsParams | void, UsageFunctionStatsItem[]>({
+  name: "LOAD_FUNCTION_USAGE_STATS",
+  handler: async (params) => {
+    return await usageService.getUsageByFunction(params ?? {});
+  },
+});
+
 export const $dailyStats = domain
   .createStore<UsageDailyStatsItem[]>([])
   .on(loadDailyStatsFx.doneData, (_state, data) => data ?? []);
@@ -31,26 +38,19 @@ export const $totalStats = domain
   .createStore<number>(0)
   .on(loadTotalStatsFx.doneData, (_state, data) => data?.total ?? 0);
 
-sample({
-  clock: usageStatsViewMounted,
-  target: loadDailyStatsFx,
-});
+export const $functionStats = domain
+  .createStore<UsageFunctionStatsItem[]>([])
+  .on(loadFunctionStatsFx.doneData, (_state, data) => data ?? []);
 
 sample({
   clock: usageStatsViewMounted,
-  target: loadTotalStatsFx,
+  target: [loadDailyStatsFx, loadTotalStatsFx, loadFunctionStatsFx],
 });
 
 sample({
   clock: refreshUsageStatsClicked,
   fn: () => ({}),
-  target: loadDailyStatsFx,
-});
-
-sample({
-  clock: refreshUsageStatsClicked,
-  fn: () => ({}),
-  target: loadTotalStatsFx,
+  target: [loadDailyStatsFx, loadTotalStatsFx, loadFunctionStatsFx],
 });
 
 export default domain;

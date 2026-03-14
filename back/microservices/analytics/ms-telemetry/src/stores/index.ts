@@ -1,24 +1,25 @@
-import { DATA_DIR } from "back-core";
-import { join } from "path";
-import { TelemetryHotStore } from "./hot/service";
-import { TelemetryColdStore } from "./cold/service";
+import { StoreControllerAbstract, StoreType, ColumnStore } from "back-core";
+import eventsMigrations from "./events/migrations";
+import { TelemetryStoreService } from "./events/service";
 
-export class StoresController {
-  public hot: TelemetryHotStore;
-  public cold: TelemetryColdStore;
+export class StoresController extends StoreControllerAbstract {
+  public hot!: TelemetryStoreService;
+  public cold!: TelemetryStoreService;
 
-  constructor(msName: string, baseDir: string = DATA_DIR) {
-    const serviceDir = join(baseDir, msName);
-    this.hot = new TelemetryHotStore(join(serviceDir, "hot"));
-    this.cold = new TelemetryColdStore(join(serviceDir, "cold", "data.db"));
+  constructor(msName: string) {
+    super(msName);
   }
 
   async init(): Promise<void> {
-    await this.cold.init();
+    const hotStore = await this.addStore("hot", StoreType.COLUMN, eventsMigrations);
+    const coldStore = await this.addStore("cold", StoreType.COLUMN, eventsMigrations);
+    this.hot = new TelemetryStoreService(hotStore as ColumnStore);
+    this.cold = new TelemetryStoreService(coldStore as ColumnStore);
+    await this.startAll();
+    await this.migrateAll();
   }
 
   async destroy(): Promise<void> {
-    await this.hot.closeCurrent();
-    await this.cold.close();
+    await this.closeAll();
   }
 }

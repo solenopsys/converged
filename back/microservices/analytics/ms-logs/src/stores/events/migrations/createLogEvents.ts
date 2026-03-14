@@ -1,7 +1,7 @@
-import { SqlStore, SqlMigration } from "back-core";
+import { ColumnMigration, ColumnStore } from "back-core";
 
-export default class extends SqlMigration {
-  constructor(store: SqlStore) {
+export default class extends ColumnMigration {
+  constructor(store: ColumnStore) {
     super("create_log_events", store);
   }
 

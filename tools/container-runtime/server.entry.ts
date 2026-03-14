@@ -3,6 +3,7 @@ import { cors } from "@elysiajs/cors";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { installBackendLogBridge } from "../../back/back-core/src/server/logBridge";
 
 type RuntimeMap = {
   services: Record<string, string>;
@@ -43,12 +44,19 @@ async function importPlugin(path: string) {
 
 process.env.BIN_LIBS_PATH = binLibsPath;
 process.env.PROJECT_DIR = projectDir;
+if (!process.env.SERVICES_BASE) {
+  process.env.SERVICES_BASE = `http://127.0.0.1:${port}/services`;
+}
 
 if (!existsSync(runtimeMapPath)) {
   throw new Error(`Runtime map not found: ${runtimeMapPath}`);
 }
 
 const runtimeMap = readRuntimeMap(runtimeMapPath);
+const logBridge = installBackendLogBridge({
+  serviceBaseUrl: `http://127.0.0.1:${port}/services`,
+  source: "back.runtime",
+});
 
 const pluginEntries: Array<{
   key: string;
@@ -128,7 +136,11 @@ const serveFile = async (absPath: string, request?: Request) => {
     if (await brFile.exists()) {
       const ct = file.type || "application/octet-stream";
       return new Response(brFile, {
-        headers: { "Content-Type": ct, "Content-Encoding": "br", "Cache-Control": "no-store" },
+        headers: {
+          "Content-Type": ct,
+          "Content-Encoding": "br",
+          "Cache-Control": "no-store",
+        },
       });
     }
   }
@@ -150,6 +162,13 @@ const hasFront = (() => {
 
 const app = new Elysia()
   .use(cors())
+  .onError(({ error, path, code }) => {
+    logBridge.enqueue({
+      level: logBridge.level.error,
+      code: logBridge.code.httpHandlerError,
+      message: `[${code}] ${path}: ${error instanceof Error ? error.stack || error.message : String(error)}`,
+    });
+  })
   .get("/health", () => ({
     status: "ok",
     plugins: pluginEntries.length,
@@ -173,7 +192,9 @@ app
   .get("/mf/:name.js", async ({ params, request }) =>
     serveFile(resolve(mfDir, `${params.name}.js`), request),
   )
-  .get("/front-core.js", async ({ request }) => serveFile(resolve(frontDir, "index.js"), request))
+  .get("/front-core.js", async ({ request }) =>
+    serveFile(resolve(frontDir, "index.js"), request),
+  )
   .get("/favicon.svg", async () =>
     serveFile(resolve(landingPublicDir, "favicon.svg")),
   )
@@ -273,6 +294,7 @@ const runShutdown = async (reason: string) => {
   }
 
   console.log("[runtime] Shutdown complete");
+  await logBridge.flushNow();
 };
 
 process.once("SIGTERM", () => {

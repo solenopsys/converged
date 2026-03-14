@@ -5,6 +5,7 @@ import { Widget } from "@/plugin";
 
 import { createDomainLogger } from "../../../libraries/effector-logger/logger";
 import {present} from "../slots/present";
+import { trackActionUsage } from "./usage-collector";
 
 import { registry } from "./registry";
 const domain = createDomain("bus");
@@ -18,6 +19,7 @@ export const $registeredCommands = domain.createStore<Action<any>[]>([], { name:
 export const runActionEvent = domain.createEvent<{ actionId: string, params: any }>("RUN_ACTION")
 export const runActionEffect = domain.createEffect(
     ({actionId, params}: {actionId: string, params: any}) => {
+        trackActionUsage(actionId);
         const action = registry.run(actionId, params);
     }
 )

@@ -234,6 +234,9 @@ loadDotEnvFiles(PROJECT_DIR, PARENT_PROJECT_DIR);
 
 const port = Number(process.env.PORT || process.env.SERVICES_PORT || 3000);
 const dataDir = process.env.DATA_DIR || resolve(PROJECT_DIR, "data");
+if (!process.env.SERVICES_BASE) {
+  process.env.SERVICES_BASE = `http://127.0.0.1:${port}/services`;
+}
 
 const { config, parentDir } = await loadMergedConfig(
   PROJECT_DIR,

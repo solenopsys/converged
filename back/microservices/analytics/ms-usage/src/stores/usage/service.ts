@@ -5,6 +5,7 @@ import type {
   UsageListParams,
   UsageStatsParams,
   UsageDailyStatsItem,
+  UsageFunctionStatsItem,
   UsageTotalStats,
   PaginatedResult,
 } from "../../types";
@@ -87,6 +88,25 @@ export class UsageStoreService {
     const rows = await query.execute();
     return rows.map((row: any) => ({
       date: row.date,
+      total: Number(row.total ?? 0),
+    }));
+  }
+
+  async getUsageByFunction(params: UsageStatsParams = {}): Promise<UsageFunctionStatsItem[]> {
+    let query = this.store.db
+      .selectFrom("usage_events")
+      .select([
+        "func",
+        sql<number>`count(*)`.as("total"),
+      ])
+      .groupBy("func")
+      .orderBy(sql`count(*)`, "desc");
+
+    query = this.applyFilters(query, params);
+
+    const rows = await query.execute();
+    return rows.map((row: any) => ({
+      function: row.func,
       total: Number(row.total ?? 0),
     }));
   }

@@ -6,7 +6,7 @@ import {
   StatisticCard,
   useMicrofrontendTranslation,
 } from "front-core";
-import { Database, Archive, AlertTriangle, AlertCircle, RefreshCw } from "lucide-react";
+import { Database, AlertTriangle, AlertCircle, RefreshCw } from "lucide-react";
 import { $logsStats, logsStatsViewMounted, refreshLogsStatsClicked } from "../domain-stats";
 
 const LOGS_MF_ID = "logs-mf";
@@ -40,13 +40,13 @@ export const LogsStatsView = ({ bus }: { bus: any }) => {
               title={t("logs.stats.totalHot")}
               value={stats.totalHot}
               icon={Database}
-              description={t("logs.stats.hotDescription")}
+              description={t("logs.stats.totalHotDescription")}
             />
             <StatisticCard
               title={t("logs.stats.totalCold")}
               value={stats.totalCold}
-              icon={Archive}
-              description={t("logs.stats.coldDescription")}
+              icon={Database}
+              description={t("logs.stats.totalColdDescription")}
             />
             <StatisticCard
               title={t("logs.stats.errors")}

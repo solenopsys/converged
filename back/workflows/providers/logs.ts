@@ -12,7 +12,7 @@ interface WriteParams {
   event: LogEventInput;
 }
 
-interface ListHotParams {
+interface ListParams {
   params: LogQueryParams;
 }
 
@@ -45,7 +45,7 @@ export default class LogsProvider implements Provider {
     return this._state === ProviderState.READY;
   }
 
-  async invoke(operation: string, params: WriteParams | ListHotParams): Promise<void | PaginatedResult<LogEvent>> {
+  async invoke(operation: string, params: WriteParams | ListParams): Promise<void | PaginatedResult<LogEvent>> {
     if (!this.isReady()) {
       throw new Error(`Provider is not ready (state: ${this._state})`);
     }
@@ -54,8 +54,8 @@ export default class LogsProvider implements Provider {
       return await this.write((params as WriteParams).event);
     }
 
-    if (operation === "listHot") {
-      return await this.listHot((params as ListHotParams).params);
+    if (operation === "list") {
+      return await this.list((params as ListParams).params);
     }
 
     throw new Error(`Unknown operation: ${operation}`);
@@ -73,15 +73,15 @@ export default class LogsProvider implements Provider {
     }
   }
 
-  async listHot(params: LogQueryParams): Promise<PaginatedResult<LogEvent>> {
+  async list(params: LogQueryParams): Promise<PaginatedResult<LogEvent>> {
     if (!this.isReady()) {
       throw new Error(`Provider is not ready (state: ${this._state})`);
     }
 
     try {
-      return await this.client.listHot(params);
+      return await this.client.list(params);
     } catch (error: any) {
-      throw new Error(`Logs listHot failed: ${error.message}`);
+      throw new Error(`Logs list failed: ${error.message}`);
     }
   }
 }

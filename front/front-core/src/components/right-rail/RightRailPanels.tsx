@@ -12,6 +12,7 @@ import { rightRailActionSelected } from "./uri-sync";
 import type { MenuItem } from "../../controllers/menu-store";
 import { $allMenuItems } from "../../controllers/menu-store";
 import { registry } from "../../controllers/registry";
+import { runActionEvent } from "../../controllers/effector-integration";
 import { useGlobalTranslation } from "../../hooks/global_i18n";
 import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
@@ -431,7 +432,7 @@ export function TabsPanel({
   const handleMenuSelect = useCallback((actionId: string) => {
     console.log("[TabsPanel] Menu selected:", actionId);
     rightRailActionSelected(actionId);
-    registry.run(actionId, {});
+    runActionEvent({ actionId, params: {} });
   }, []);
 
   const handleBackToMenu = useCallback(() => {

@@ -1,4 +1,4 @@
-import { SHOW_LOGS, SHOW_LOGS_COLD, SHOW_LOGS_STATS } from "./functions";
+import { SHOW_LOGS_HOT, SHOW_LOGS_COLD, SHOW_LOGS_STATS } from "./functions";
 
 export const MENU = {
   title: "menu.logs",
@@ -6,13 +6,13 @@ export const MENU = {
   action: SHOW_LOGS_STATS,
   items: [
     {
-      title: "menu.hot",
-      key: "hot",
-      action: SHOW_LOGS,
+      title: "menu.logs.hot",
+      key: "logs-hot",
+      action: SHOW_LOGS_HOT,
     },
     {
-      title: "menu.cold",
-      key: "cold",
+      title: "menu.logs.cold",
+      key: "logs-cold",
       action: SHOW_LOGS_COLD,
     },
   ],

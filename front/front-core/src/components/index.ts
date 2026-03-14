@@ -13,6 +13,7 @@ export * from './HeaderPanelLayout';
 export * from './json-renderer';
 export * from './magicui';
 export * from './dashboard/DashboardWidget';
+export * from './dashboard/DashboardLayout';
 export * from './shell';
 export * from './right-rail/BaseLayout';
 export * from './right-rail/RightRailPanels';
