@@ -9,7 +9,16 @@ const COLOR = "#3b82f6"
 
 export function UsageStatsChart({ data = [], title, description }: UsageStatsChartProps) {
   const option = useMemo(() => ({
-    grid: { top: 8, right: 12, left: 0, bottom: 20, containLabel: true },
+    grid: { top: 36, right: 12, left: 0, bottom: 20, containLabel: true },
+    legend: {
+      top: 4,
+      right: 0,
+      icon: "circle",
+      itemWidth: 8,
+      itemHeight: 8,
+      textStyle: { fontSize: 12 },
+      data: [{ name: "Usage", itemStyle: { color: COLOR } }],
+    },
     xAxis: { type: "category", data: data.map((d) => d.date), axisLine: { show: false }, axisTick: { show: false }, axisLabel: { formatter: (v: string) => new Date(v).toLocaleDateString("en-US", { month: "short", day: "numeric" }) } },
     yAxis: { type: "value", axisLine: { show: false }, axisTick: { show: false }, splitLine: { lineStyle: { color: "rgba(128,128,128,0.15)" } } },
     tooltip: { trigger: "axis" },

@@ -1,5 +1,18 @@
 {
   "menu.logs": "Логи",
-  "menu.hot": "Горячие",
-  "menu.cold": "Холодные"
+  "menu.logs.hot": "Горячие",
+  "menu.logs.cold": "Холодные",
+  "logs.view.hotTitle": "Логи (горячие)",
+  "logs.view.coldTitle": "Логи (холодные)",
+  "logs.view.refresh": "Обновить",
+  "logs.stats.title": "Статистика логов",
+  "logs.stats.refresh": "Обновить",
+  "logs.stats.totalHot": "Горячие логи",
+  "logs.stats.totalHotDescription": "Всего записей в горячем хранилище",
+  "logs.stats.totalCold": "Холодные логи",
+  "logs.stats.totalColdDescription": "Всего записей в холодном хранилище",
+  "logs.stats.errors": "Ошибки",
+  "logs.stats.errorsDescription": "Записи уровня ERROR",
+  "logs.stats.warnings": "Предупреждения",
+  "logs.stats.warningsDescription": "Записи уровня WARN"
 }

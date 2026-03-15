@@ -35,7 +35,7 @@ export function StatisticCard({
     trend?.direction ? trendClasses[trend.direction] : "text-muted-foreground";
 
   return (
-    <Card className={cn("bg-gradient-to-br from-background to-muted/20", className)}>
+    <Card className={className}>
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div className="space-y-1">
           <CardDescription className="text-xs uppercase tracking-wide">

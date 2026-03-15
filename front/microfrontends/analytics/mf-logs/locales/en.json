@@ -1,5 +1,18 @@
 {
   "menu.logs": "Logs",
-  "menu.hot": "Hot",
-  "menu.cold": "Cold"
+  "menu.logs.hot": "Hot",
+  "menu.logs.cold": "Cold",
+  "logs.view.hotTitle": "Logs (Hot)",
+  "logs.view.coldTitle": "Logs (Cold)",
+  "logs.view.refresh": "Refresh",
+  "logs.stats.title": "Logs Statistics",
+  "logs.stats.refresh": "Refresh",
+  "logs.stats.totalHot": "Hot logs",
+  "logs.stats.totalHotDescription": "Total entries in hot storage",
+  "logs.stats.totalCold": "Cold logs",
+  "logs.stats.totalColdDescription": "Total entries in cold storage",
+  "logs.stats.errors": "Errors",
+  "logs.stats.errorsDescription": "Entries with level ERROR",
+  "logs.stats.warnings": "Warnings",
+  "logs.stats.warningsDescription": "Entries with level WARN"
 }
