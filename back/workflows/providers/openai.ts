@@ -5,6 +5,7 @@ interface ResponsesCall {
   user: string;
   model?: string;
   reasoning?: string;
+  jsonSchema?: { name: string; schema: Record<string, any>; strict?: boolean };
 }
 
 interface ResponsesResult {
@@ -70,6 +71,17 @@ export default class OpenAiProvider implements Provider {
 
     if (req.system) {
       body.instructions = req.system;
+    }
+
+    if (req.jsonSchema) {
+      body.text = {
+        format: {
+          type: "json_schema",
+          name: req.jsonSchema.name,
+          schema: req.jsonSchema.schema,
+          strict: req.jsonSchema.strict ?? true,
+        },
+      };
     }
 
     const controller = new AbortController();
