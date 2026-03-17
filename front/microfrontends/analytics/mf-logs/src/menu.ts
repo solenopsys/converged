@@ -1,5 +1,7 @@
 import { SHOW_LOGS_HOT, SHOW_LOGS_COLD, SHOW_LOGS_STATS } from "./functions";
 
+export const GROUP = { id: "analytics", title: "Analytics", iconName: "IconChartBar" };
+
 export const MENU = {
   title: "menu.logs",
   iconName: "IconListDetails",

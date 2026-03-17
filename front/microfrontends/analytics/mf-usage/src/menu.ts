@@ -1,5 +1,7 @@
 import { SHOW_USAGE_LIST, SHOW_USAGE_STATS } from "./functions/usage.config";
 
+export const GROUP = { id: "analytics", title: "Analytics", iconName: "IconChartBar" };
+
 export const MENU = {
   title: "menu.usage",
   iconName: "IconTrendingUp",

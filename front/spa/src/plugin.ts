@@ -156,8 +156,8 @@ function deepMerge(target: Record<string, any>, source: Record<string, any>): Re
 export default function spaPlugin(config: SpaPluginConfig = {}) {
   const projectRoot = process.env.PROJECT_DIR ?? resolve(import.meta.dir, "..", "..", "..");
   const parentProjectRoot =
-    process.env.PARENT_PROJECT_DIR && process.env.PARENT_PROJECT_DIR.length > 0
-      ? process.env.PARENT_PROJECT_DIR
+    process.env.CHILD_PROJECT_DIR && process.env.CHILD_PROJECT_DIR.length > 0
+      ? process.env.CHILD_PROJECT_DIR
       : undefined;
   const isProd = config.production ?? process.env.NODE_ENV === "production";
   const frontRoot = resolve(projectRoot, "front");

@@ -1,5 +1,5 @@
 export const ID = "sheduller-mf";
-export { MENU } from "./menu";
+export { GROUP, MENU } from "./menu";
 export const SIDEBAR_TABS = [
   {
     id: "sheduller",

@@ -2,6 +2,8 @@ import { SHOW_CRONS_LIST } from "./functions/crons.config";
 import { SHOW_HISTORY } from "./functions/history.config";
 import { SHOW_STATS } from "./functions/stats.config";
 
+export const GROUP = { id: "workflows", title: "Workflows", iconName: "IconGitBranch" };
+
 export const MENU = {
   title: "menu.sheduller",
   iconName: "IconClock",

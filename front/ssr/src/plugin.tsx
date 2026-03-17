@@ -193,8 +193,8 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
     process.env.PROJECT_DIR ??
     resolve(landingRoot, "..", "..");
   const parentProjectRoot =
-    process.env.PARENT_PROJECT_DIR && process.env.PARENT_PROJECT_DIR.length > 0
-      ? process.env.PARENT_PROJECT_DIR
+    process.env.CHILD_PROJECT_DIR && process.env.CHILD_PROJECT_DIR.length > 0
+      ? process.env.CHILD_PROJECT_DIR
       : undefined;
   const publicDir = config.publicDir ?? resolve(landingRoot, "public");
   const isProd = config.production ?? process.env.NODE_ENV === "production";

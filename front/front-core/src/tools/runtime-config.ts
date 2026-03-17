@@ -135,19 +135,31 @@ function loadExternalPackages(projectRoot: string): string[] {
 }
 
 const projectRoot = resolveProjectRoot();
+const parentProjectRoot = process.env.CHILD_PROJECT_DIR || undefined;
+const projectRoots = parentProjectRoot ? [projectRoot, parentProjectRoot] : [projectRoot];
+
 const envMicrofrontends = parseEnvList(process.env.MICROFRONTENDS).map(ensureMfPrefix);
-const configMicrofrontends = loadMicrofrontendsFromConfig(projectRoot);
-const fsMicrofrontends = loadMicrofrontendsFromFs(projectRoot);
-const distMicrofrontends = loadMicrofrontendsFromDist(projectRoot);
+const configMicrofrontends = uniq(projectRoots.flatMap(loadMicrofrontendsFromConfig));
+const fsMicrofrontends = uniq(projectRoots.flatMap(loadMicrofrontendsFromFs));
+const distMicrofrontends = uniq(projectRoots.flatMap(loadMicrofrontendsFromDist));
+const isProduction = process.env.NODE_ENV === "production";
+const discoveredMicrofrontends = isProduction
+  ? uniq([
+      ...configMicrofrontends,
+      ...fsMicrofrontends,
+      ...distMicrofrontends,
+    ])
+  : fsMicrofrontends.length > 0
+    ? fsMicrofrontends
+    : uniq([
+        ...configMicrofrontends,
+        ...distMicrofrontends,
+      ]);
 
 export const microfrontends = uniq(
   envMicrofrontends.length > 0
     ? envMicrofrontends
-    : configMicrofrontends.length > 0
-      ? configMicrofrontends
-      : fsMicrofrontends.length > 0
-        ? fsMicrofrontends
-        : distMicrofrontends,
+    : discoveredMicrofrontends,
 );
 
 export const externalPackages = loadExternalPackages(projectRoot);

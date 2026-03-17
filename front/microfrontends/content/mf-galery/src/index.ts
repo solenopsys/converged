@@ -1,5 +1,5 @@
 export const ID = "galery-mf";
-export { MENU } from "./menu";
+export { GROUP, MENU } from "./menu";
 import ACTIONS from "./functions";
 import { BasePlugin } from "front-core";
 

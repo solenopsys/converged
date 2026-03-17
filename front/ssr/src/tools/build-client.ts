@@ -6,8 +6,8 @@ import { createWorkspaceResolverPlugin } from "front-core/workspace-resolver";
 const landingRoot = process.cwd();
 const projectRoot = process.env.PROJECT_DIR ?? resolve(landingRoot, "..", "..");
 const parentProjectRoot =
-  process.env.PARENT_PROJECT_DIR && process.env.PARENT_PROJECT_DIR.length > 0
-    ? process.env.PARENT_PROJECT_DIR
+  process.env.CHILD_PROJECT_DIR && process.env.CHILD_PROJECT_DIR.length > 0
+    ? process.env.CHILD_PROJECT_DIR
     : undefined;
 
 const result = await Bun.build({

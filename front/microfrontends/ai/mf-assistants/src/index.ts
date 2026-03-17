@@ -1,7 +1,7 @@
 
 
 export const ID = "assistants-mf";
-export { MENU } from "./menu";
+export { GROUP, MENU } from "./menu";
 export { chatStore, initializeChat } from "./chat-store";
 export { ChatDetail } from "./components/ChatDetail";
 export { ChatView } from "./views/ChatView";

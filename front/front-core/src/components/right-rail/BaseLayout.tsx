@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, type CSSProperties, type PointerEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, type CSSProperties, type PointerEvent, type ReactNode } from "react";
 import { Outlet } from "react-router-dom";
 import { useUnit } from "effector-react";
 import { $rightSidebarWidth, sidebarWidthChanged } from "sidebar-controller";
@@ -26,6 +26,9 @@ import { SlotProvider } from "../../slots/SlotProvider";
 const MIN_PANEL_WIDTH = 280;
 const MAX_PANEL_WIDTH = 680;
 const DEFAULT_PANEL_WIDTH = 390;
+const RAIL_PADDING_PX = 4;
+const PARALLEL_OVERLAP_PX = 8;
+const COLLAPSED_WIDTH_PX = 42;
 
 function CenterContent({ fallback }: { fallback?: ReactNode }) {
   const centerView = useUnit($centerView);
@@ -43,6 +46,8 @@ function CenterContent({ fallback }: { fallback?: ReactNode }) {
 }
 
 export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = {}) {
+  const resizeRafRef = useRef<number | null>(null);
+
   const {
     device,
     activePanel,
@@ -71,15 +76,45 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
     onParallel: toggleParallel,
   });
 
+  const notifyLayoutResize = useCallback(() => {
+    if (typeof window === "undefined") return;
+    if (resizeRafRef.current !== null) return;
+    resizeRafRef.current = window.requestAnimationFrame(() => {
+      resizeRafRef.current = null;
+      window.dispatchEvent(new Event("resize"));
+    });
+  }, []);
+
   const updatePanelWidth = useCallback((nextWidth: number) => {
     const width = Math.round(Math.max(MIN_PANEL_WIDTH, Math.min(MAX_PANEL_WIDTH, nextWidth)));
     sidebarWidthChanged({ side: "right", width });
-  }, []);
+    notifyLayoutResize();
+  }, [notifyLayoutResize]);
 
   const normalizedPanelWidth =
     Number.isFinite(rightSidebarWidth) && rightSidebarWidth > 0
       ? Math.max(MIN_PANEL_WIDTH, Math.min(MAX_PANEL_WIDTH, rightSidebarWidth))
       : DEFAULT_PANEL_WIDTH;
+
+  const desktopStackWidth = useMemo(() => {
+    if (collapsed) return COLLAPSED_WIDTH_PX;
+    if (parallel) return normalizedPanelWidth * 2 - PARALLEL_OVERLAP_PX;
+    return normalizedPanelWidth;
+  }, [collapsed, parallel, normalizedPanelWidth]);
+
+  const layoutStyle = useMemo(() => {
+    const vars: CSSProperties = {
+      "--panel-width": `${normalizedPanelWidth}px`,
+    } as CSSProperties;
+
+    if (device === "desktop") {
+      const railWidth = desktopStackWidth + RAIL_PADDING_PX * 2;
+      (vars as Record<string, string>)["--stack-width"] = `${desktopStackWidth}px`;
+      (vars as Record<string, string>)["--rail-width"] = `${railWidth}px`;
+    }
+
+    return vars;
+  }, [device, normalizedPanelWidth, desktopStackWidth]);
 
   const handleResizePointerDown = useCallback(
     (event: PointerEvent<HTMLButtonElement>) => {
@@ -122,6 +157,19 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
 
   useEffect(() => {
     startRightRailUriSync();
+  }, []);
+
+  useEffect(() => {
+    notifyLayoutResize();
+  }, [notifyLayoutResize, normalizedPanelWidth, collapsed, parallel, device]);
+
+  useEffect(() => {
+    return () => {
+      if (resizeRafRef.current !== null) {
+        window.cancelAnimationFrame(resizeRafRef.current);
+        resizeRafRef.current = null;
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -170,9 +218,7 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
       data-collapsed={collapsed ? "true" : "false"}
       data-constrained={constrained ? "true" : "false"}
       style={
-        {
-          "--panel-width": `${normalizedPanelWidth}px`,
-        } as CSSProperties
+        layoutStyle
       }
     >
       <style>{`
@@ -276,6 +322,7 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
           align-items: stretch;
           height: 100%;
           min-height: 100vh;
+          min-width: 0;
           transition: grid-template-columns var(--transition);
         }
 
@@ -290,6 +337,7 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
 
         .app-center {
           flex: 1;
+          min-width: 0;
           min-height: 0;
           overflow-y: auto;
           overflow-x: hidden;

@@ -65,81 +65,91 @@ hydrateRoot(
   <App />
 );
 
-// Группы микрофронтендов (соответствуют директориям back/microservices)
-const menuGroups: Record<string, { title: string; iconName: string; microfrontends: string[] }> = {
-  ai: {
-    title: "AI",
-    iconName: "IconBrain",
-    microfrontends: ["mf-assistants"],
-  },
-  analytics: {
-    title: "Analytics",
-    iconName: "IconChartBar",
-    microfrontends: ["mf-telemetry", "mf-logs", "mf-usage", "mf-dasboards"],
-  },
-  business: {
-    title: "Business",
-    iconName: "IconBriefcase",
-    microfrontends: ["mf-requests", "mf-sheduller"],
-  },
-  content: {
-    title: "Content",
-    iconName: "IconFileText",
-    microfrontends: ["mf-landing", "mf-docs", "mf-markdown", "mf-struct", "mf-galery"],
-  },
-  data: {
-    title: "Data",
-    iconName: "IconDatabase",
-    microfrontends: ["mf-dumps", "mf-threads"],
-  },
-  social: {
-    title: "Social",
-    iconName: "IconUsers",
-    microfrontends: ["mf-community", "mf-charts", "mf-webhooks"],
-  },
-  workflows: {
-    title: "Workflows",
-    iconName: "IconGitBranch",
-    microfrontends: ["mf-dag"],
-  },
+type GroupDef = { id: string; title: string; iconName: string };
+
+const DEFAULT_GROUP: GroupDef = {
+  id: "other",
+  title: "Other",
+  iconName: "IconGridDots",
 };
+
+function uniq(items: string[]): string[] {
+  return [...new Set(items)];
+}
+
+function readImportMapMicrofrontends(): string[] {
+  if (typeof document === "undefined") return [];
+  const importMapScript = document.querySelector('script[type="importmap"]');
+  if (!importMapScript?.textContent) return [];
+  try {
+    const parsed = JSON.parse(importMapScript.textContent) as {
+      imports?: Record<string, string>;
+    };
+    const imports = parsed?.imports && typeof parsed.imports === "object"
+      ? parsed.imports
+      : {};
+    return Object.keys(imports).filter((key) => key.startsWith("mf-"));
+  } catch {
+    return [];
+  }
+}
 
 // Загружаем auth отдельно, остальные MF только для авторизованного пользователя.
 const AUTH_TOKEN_KEY = "authToken";
 const publicMicrofrontends = ["mf-landing", "mf-docs"];
-const systemMicrofrontends = ["mf-auth", ...publicMicrofrontends];
-const protectedMicrofrontends = Object.values(menuGroups).flatMap(
-  (g) => g.microfrontends,
-).filter((mf) => !publicMicrofrontends.includes(mf));
+const publicMicrofrontendsSet = new Set(publicMicrofrontends);
+const discoveredMicrofrontends = readImportMapMicrofrontends();
+const systemMicrofrontends = uniq(
+  ["mf-auth", ...publicMicrofrontends].filter(
+    (mf) => mf === "mf-auth" || discoveredMicrofrontends.includes(mf),
+  ),
+);
+const protectedMicrofrontends = discoveredMicrofrontends.filter(
+  (mf) => mf !== "mf-auth" && !publicMicrofrontendsSet.has(mf),
+);
 const loadedMicrofrontends = new Set<string>();
 const mfMenus: Record<string, any> = {};
-
-// Обратный маппинг: mf-name -> group
+const knownGroups: Record<string, GroupDef> = {};
+const groupOrder: string[] = [];
 const mfToGroup: Record<string, string> = {};
-for (const [groupId, group] of Object.entries(menuGroups)) {
-  for (const mf of group.microfrontends) {
-    mfToGroup[mf] = groupId;
+const groupMenus: Record<string, any[]> = {};
+
+function resolveGroupDef(raw: any): GroupDef {
+  if (
+    raw &&
+    typeof raw.id === "string" &&
+    raw.id.length > 0 &&
+    typeof raw.title === "string" &&
+    raw.title.length > 0 &&
+    typeof raw.iconName === "string" &&
+    raw.iconName.length > 0
+  ) {
+    return { id: raw.id, title: raw.title, iconName: raw.iconName };
   }
+  return DEFAULT_GROUP;
 }
 
-// Хранилище загруженных меню по группам
-const groupMenus: Record<string, any[]> = {};
+function registerMfGroup(mfName: string, rawGroup: any) {
+  const group = resolveGroupDef(rawGroup);
+  if (!knownGroups[group.id]) {
+    knownGroups[group.id] = group;
+    groupOrder.push(group.id);
+  }
+  mfToGroup[mfName] = group.id;
+}
 
 function buildGroupedMenu() {
   const result: any[] = [];
-
-  for (const [groupId, group] of Object.entries(menuGroups)) {
+  for (const groupId of groupOrder) {
+    const group = knownGroups[groupId];
     const services = groupMenus[groupId] || [];
     if (services.length === 0) continue;
-
-    // Группа → Сервисы → Команды (3 уровня)
     result.push({
       title: group.title,
       iconName: group.iconName,
-      items: services, // каждый service = { title, iconName, items: [команды] }
+      items: services,
     });
   }
-
   return result;
 }
 
@@ -165,7 +175,7 @@ function rebuildMenus(authenticated: boolean) {
   }
 
   for (const [mfName, menu] of Object.entries(mfMenus)) {
-    if (!authenticated && !publicMicrofrontends.includes(mfName)) {
+    if (!authenticated && !publicMicrofrontendsSet.has(mfName)) {
       continue;
     }
     const groupId = mfToGroup[mfName];
@@ -224,6 +234,7 @@ async function loadMicrofrontends(names: string[]) {
       if (runtime.default?.plug) {
         runtime.default.plug(bus);
       }
+      registerMfGroup(name, runtime.GROUP);
       let menu = runtime.MENU;
       if (typeof runtime.getMenu === "function") {
         try {

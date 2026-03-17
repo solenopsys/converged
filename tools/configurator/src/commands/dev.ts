@@ -189,7 +189,7 @@ export async function runDev({ projectName, port }: DevOptions) {
       ...runtimeEnv,
       PORT: String(port),
       PROJECT_DIR: projectDir,
-      PARENT_PROJECT_DIR: parentDir || "",
+      CHILD_PROJECT_DIR: parentDir || "",
       MONOLITH: "1",
     },
     stdout: "inherit",

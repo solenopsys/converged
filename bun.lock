@@ -319,6 +319,15 @@
         "nrpc": "workspace:*",
       },
     },
+    "back/microservices/ms-classifier": {
+      "name": "ms-classifier",
+      "version": "1.0.0",
+      "dependencies": {
+        "back-core": "workspace:*",
+        "g-classifier": "workspace:*",
+        "nrpc": "workspace:*",
+      },
+    },
     "back/microservices/providers/ms-push": {
       "name": "ms-push",
       "version": "1.0.0",
@@ -992,6 +1001,13 @@
       "version": "0.0.0",
       "dependencies": {
         "nrpc": "*",
+      },
+    },
+    "tools/integration/generated/g-classifier": {
+      "name": "g-classifier",
+      "version": "0.0.0",
+      "dependencies": {
+        "nrpc": "workspace:*",
       },
     },
     "tools/integration/generated/g-community": {
@@ -2461,6 +2477,8 @@
 
     "g-charts": ["g-charts@workspace:tools/integration/generated/g-charts"],
 
+    "g-classifier": ["g-classifier@workspace:tools/integration/generated/g-classifier"],
+
     "g-community": ["g-community@workspace:tools/integration/generated/g-community"],
 
     "g-dag": ["g-dag@workspace:tools/integration/generated/g-dag"],
@@ -2699,7 +2717,7 @@
 
     "klaw": ["klaw@1.3.1", "", { "optionalDependencies": { "graceful-fs": "^4.1.9" } }, "sha512-TED5xi9gGQjGpNnvRWknrwAB1eL5GciPfVFOt3Vk1OJCVDQbzuSfrF3hkUQKlsgKrG1F+0t5W0m+Fje1jIt8rw=="],
 
-    "kysely": ["kysely@0.28.11", "", {}, "sha512-zpGIFg0HuoC893rIjYX1BETkVWdDnzTzF5e0kWXJFg5lE0k1/LfNWBejrcnOFu8Q2Rfq/hTDTU7XLUM8QOrpzg=="],
+    "kysely": ["kysely@0.28.12", "", {}, "sha512-kWiueDWXhbCchgiotwXkwdxZE/6h56IHAeFWg4euUfW0YsmO9sxbAxzx1KLLv2lox15EfuuxHQvgJ1qIfZuHGw=="],
 
     "landing": ["landing@workspace:front/landing"],
 
@@ -2890,6 +2908,8 @@
     "ms-calls": ["ms-calls@workspace:back/microservices/social/ms-calls"],
 
     "ms-charts": ["ms-charts@workspace:back/microservices/social/ms-charts"],
+
+    "ms-classifier": ["ms-classifier@workspace:back/microservices/ms-classifier"],
 
     "ms-community": ["ms-community@workspace:back/microservices/social/ms-community"],
 

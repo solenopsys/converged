@@ -1,5 +1,5 @@
 export const ID = "community-mf";
-export { MENU } from "./menu";
+export { GROUP, MENU } from "./menu";
 
 import { BasePlugin } from "front-core";
 import ACTIONS from "./functions";

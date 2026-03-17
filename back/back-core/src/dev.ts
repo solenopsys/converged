@@ -3,6 +3,15 @@ import { resolve } from "path";
 import { pathToFileURL } from "url";
 import { createServer, loadConfigFromEnv } from "./server/createServer";
 
+process.on("uncaughtException", (err) => {
+  console.error("[dev] uncaughtException:", err);
+  process.exit(1);
+});
+process.on("unhandledRejection", (reason) => {
+  console.error("[dev] unhandledRejection:", reason);
+  process.exit(1);
+});
+
 type BuildConfig = {
   name?: string;
   extends?: string;
@@ -20,9 +29,9 @@ const PROJECT_DIR =
   process.env.PROJECT_DIR ??
   resolve(import.meta.dir, "../../..");
 
-const PARENT_PROJECT_DIR =
-  process.env.PARENT_PROJECT_DIR && process.env.PARENT_PROJECT_DIR.length > 0
-    ? process.env.PARENT_PROJECT_DIR
+const CHILD_PROJECT_DIR =
+  process.env.CHILD_PROJECT_DIR && process.env.CHILD_PROJECT_DIR.length > 0
+    ? process.env.CHILD_PROJECT_DIR
     : undefined;
 
 const ROOT = resolve(PROJECT_DIR, "../../..");
@@ -230,7 +239,7 @@ async function loadPlugins(
   return plugins;
 }
 
-loadDotEnvFiles(PROJECT_DIR, PARENT_PROJECT_DIR);
+loadDotEnvFiles(PROJECT_DIR, CHILD_PROJECT_DIR);
 
 const port = Number(process.env.PORT || process.env.SERVICES_PORT || 3000);
 const dataDir = process.env.DATA_DIR || resolve(PROJECT_DIR, "data");
@@ -240,7 +249,7 @@ if (!process.env.SERVICES_BASE) {
 
 const { config, parentDir } = await loadMergedConfig(
   PROJECT_DIR,
-  PARENT_PROJECT_DIR,
+  CHILD_PROJECT_DIR,
 );
 
 const plugins = await loadPlugins(PROJECT_DIR, parentDir, config);

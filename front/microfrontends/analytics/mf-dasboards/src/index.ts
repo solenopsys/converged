@@ -6,7 +6,7 @@ export {
   createDashboardLayoutWidget,
   createDashboardMountAction,
 } from "./functions";
-export { MENU } from "./menu";
+export { GROUP, MENU } from "./menu";
 export { DashboardLayout } from "./components/DashboardLayout";
 
 export const ID = "dasboards-mf";
