@@ -74,7 +74,17 @@ export type CronHistoryListParams = {
 
 export type ShedullerStats = {
   crons: number;
+  activeCrons: number;
+  pausedCrons: number;
   history: number;
+  dailyRuns: ShedullerDailyRun[];
+};
+
+export type ShedullerDailyRun = {
+  date: string;
+  total: number;
+  success: number;
+  failed: number;
 };
 
 export const metadata = {

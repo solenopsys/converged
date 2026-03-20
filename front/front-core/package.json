@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "sidebar-controller": "workspace:*",
+    "mf-agents": "workspace:*",
     "mf-assistants": "workspace:*",
     "assistant-state": "workspace:*",
     "files-state": "workspace:*",

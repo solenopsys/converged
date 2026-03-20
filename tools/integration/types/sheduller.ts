@@ -71,7 +71,17 @@ export type CronHistoryListParams = {
 
 export type ShedullerStats = {
   crons: number;
+  activeCrons: number;
+  pausedCrons: number;
   history: number;
+  dailyRuns: ShedullerDailyRun[];
+};
+
+export type ShedullerDailyRun = {
+  date: string;
+  total: number;
+  success: number;
+  failed: number;
 };
 
 export interface ShedullerService {
@@ -81,6 +91,8 @@ export interface ShedullerService {
   getCron(id: string): Promise<CronEntry | null>;
   listCrons(params: CronListParams): Promise<PaginatedResult<CronEntry>>;
   listProviders(): Promise<ProviderDefinition[]>;
-  listHistory(params: CronHistoryListParams): Promise<PaginatedResult<CronHistoryEntry>>;
+  listHistory(
+    params: CronHistoryListParams,
+  ): Promise<PaginatedResult<CronHistoryEntry>>;
   getStats(): Promise<ShedullerStats>;
 }

@@ -34,7 +34,8 @@ export const ChatsListView = ({ bus }) => {
   };
 
   const handleRowClick = (row) => {
-    const recordId = row.id;
+    const recordId = row.id || row.chatId;
+    if (!recordId) return;
     openChatDetail({ recordId });
     bus.present({ widget: createChatDetailWidget(bus, { recordId }), params: { recordId } });
   };

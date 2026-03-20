@@ -12,6 +12,7 @@ export interface PluginConfig {
   dbPath: string;
   openai?: AiConfig;
   claude?: AiConfig;
+  gemini?: AiConfig;
   registerStartupTask?: (name: string, task: () => Promise<void>) => void;
   registerShutdownTask?: (name: string, task: () => Promise<void>) => void;
   [key: string]: any;
@@ -23,6 +24,7 @@ export interface ServerConfig {
   dataDir: string;
   openai?: AiConfig;
   claude?: AiConfig;
+  gemini?: AiConfig;
   extraConfig?: Record<string, any>;
 }
 
@@ -50,6 +52,10 @@ export function loadConfigFromEnv(): ServerConfig {
       key: process.env.CLAUDE_API_KEY || "",
       model: process.env.CLAUDE_MODEL || "claude-3-5-haiku-20241022",
     },
+    gemini: {
+      key: process.env.GEMINI_API_KEY || "",
+      model: process.env.GEMINI_MODEL || "gemini-3.1-flash-lite",
+    },
   };
 }
 
@@ -70,6 +76,7 @@ export function createServer({ config, plugins, staticDir }: CreateServerOptions
     dbPath: config.dataDir,
     openai: config.openai,
     claude: config.claude,
+    gemini: config.gemini,
     registerStartupTask: (name, task) => {
       startupTasks.push({ name, task });
     },

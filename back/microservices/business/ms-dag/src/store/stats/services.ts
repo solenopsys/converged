@@ -13,6 +13,8 @@ import type {
   DagProcessStatsParams,
   DagNodeStatsParams,
   DagProcessStats,
+  DagProcessDailyStatsPoint,
+  DagProcessTypeStats,
   DagNodeStats,
   DagProcessStatus,
   DagNodeState,
@@ -221,6 +223,68 @@ export class StatsStoreService {
       done: Number(result.done ?? 0),
       failed: Number(result.failed ?? 0),
     };
+  }
+
+  async getProcessDailyStats(
+    params: DagProcessStatsParams & { days?: number } = {},
+  ): Promise<DagProcessDailyStatsPoint[]> {
+    const days = params.days ?? 30;
+    const now = Date.now();
+    const effectiveParams: DagProcessStatsParams = {
+      ...params,
+      createdFrom:
+        params.createdFrom ??
+        (days > 0 ? now - ((days - 1) * 24 * 60 * 60 * 1000) : undefined),
+    };
+
+    const dayExpr = sql<string>`date(datetime(created_at / 1000, 'unixepoch'))`;
+
+    let query = this.store.db
+      .selectFrom("process")
+      .select([
+        dayExpr.as("day"),
+        sql<number>`count(*)`.as("total"),
+        sql<number>`sum(case when status = 'running' then 1 else 0 end)`.as("running"),
+        sql<number>`sum(case when status = 'done' then 1 else 0 end)`.as("done"),
+        sql<number>`sum(case when status = 'failed' then 1 else 0 end)`.as("failed"),
+      ])
+      .groupBy(dayExpr)
+      .orderBy(dayExpr, "asc");
+
+    query = this.applyProcessFilters(query, effectiveParams);
+
+    const rows = await query.execute();
+    return rows
+      .filter((row: any) => typeof row?.day === "string" && row.day.length > 0)
+      .map((row: any) => ({
+        date: row.day,
+        total: Number(row.total ?? 0),
+        running: Number(row.running ?? 0),
+        done: Number(row.done ?? 0),
+        failed: Number(row.failed ?? 0),
+      }));
+  }
+
+  async getProcessTypeStats(params: DagProcessStatsParams = {}): Promise<DagProcessTypeStats> {
+    let query = this.store.db
+      .selectFrom("process")
+      .select([
+        sql<string>`coalesce(workflow_id, 'unknown')`.as("workflowId"),
+        sql<number>`count(*)`.as("total"),
+      ])
+      .groupBy(sql`coalesce(workflow_id, 'unknown')`)
+      .orderBy(sql`count(*)`, "desc");
+
+    query = this.applyProcessFilters(query, params);
+
+    const rows = await query.execute();
+    return rows.reduce((acc: DagProcessTypeStats, row: any) => {
+      const key = typeof row?.workflowId === "string" && row.workflowId.length > 0
+        ? row.workflowId
+        : "unknown";
+      acc[key] = Number(row?.total ?? 0);
+      return acc;
+    }, {});
   }
 
   async getNodeStats(params: DagNodeStatsParams = {}): Promise<DagNodeStats> {

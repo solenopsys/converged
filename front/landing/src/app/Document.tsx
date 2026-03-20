@@ -14,9 +14,10 @@ interface DocumentProps {
   noHydrate?: boolean;
   initialData?: Record<string, any>;
   importMap?: Record<string, string>;
+  lang?: string;
 }
 
-export function Document({ children, seo, noHydrate, initialData, importMap }: DocumentProps) {
+export function Document({ children, seo, noHydrate, initialData, importMap, lang = "en" }: DocumentProps) {
   const title = seo?.title ?? "Landing";
   const description = seo?.description ?? "";
   const keywords = seo?.keywords?.filter(Boolean).join(", ") ?? "";
@@ -38,7 +39,7 @@ export function Document({ children, seo, noHydrate, initialData, importMap }: D
   `;
 
   return (
-    <html lang="en">
+    <html lang={lang}>
       <head>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />

@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Check, X, ChevronDown, ChevronUp, MoreHorizontal, Settings, GripVertical } from 'lucide-react';
+import { Check, X, ChevronDown, ChevronUp, MoreHorizontal, Settings, GripVertical, CheckSquare, Square } from 'lucide-react';
 import { useUnit } from 'effector-react';
 import { cn } from '../../../lib/utils';
 import { Badge } from '../badge';
@@ -387,6 +387,7 @@ export const InfiniteScrollDataTable = ({
   onSelectionChange,
   bulkActions = [],
   selectable = true,
+  totalCount = 0,
   sortConfig = { key: null, direction: 'asc' },
   sideMenuTitle,
   className = "",
@@ -394,6 +395,7 @@ export const InfiniteScrollDataTable = ({
   emptyMessage = "Данные не найдены",
 }) => {
   const [selectedRows, setSelectedRows] = useState([]);
+  const [selectionMode, setSelectionMode] = useState(false);
   const [sideMenuOpen, setSideMenuOpen] = useState(false);
   const [currentViewMode, setCurrentViewMode] = useState<ViewMode>(viewMode);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -697,7 +699,7 @@ export const InfiniteScrollDataTable = ({
               >
                 <div className={cn("p-2 relative", isSelected && "ring-2 ring-primary")}>
                   <EffectiveCardComponent data={row} columns={columns} onAction={onRowAction} />
-                  {selectable && (
+                  {selectable && selectionMode && (
                     <div className="absolute bottom-4 left-4 z-10">
                       <input
                         type="checkbox"
@@ -730,7 +732,7 @@ export const InfiniteScrollDataTable = ({
         <div ref={tableRef} className="w-full">
           {/* Header */}
           <div className="sticky top-0 z-10 bg-background/90 border-b flex h-10">
-            {selectable && (
+            {selectable && selectionMode && (
               <div
                 className="pl-2 flex items-center font-medium text-muted-foreground"
                 style={{ width: '48px', flexShrink: 0 }}
@@ -815,7 +817,7 @@ export const InfiniteScrollDataTable = ({
                     transform: `translateY(${virtualRow.start}px)`,
                   }}
                 >
-                  {selectable && (
+                  {selectable && selectionMode && (
                     <div
                       className="py-3 pl-2 flex items-center"
                       style={{ width: '48px', flexShrink: 0 }}
@@ -888,6 +890,39 @@ export const InfiniteScrollDataTable = ({
               </button>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Info bar */}
+      {data.length > 0 && (
+        <div className="flex items-center justify-between px-3 py-1 border-b bg-muted/20 shrink-0 text-xs text-muted-foreground">
+          {selectable ? (
+            <button
+              onClick={() => {
+                setSelectionMode(v => !v);
+                if (selectionMode) {
+                  setSelectedRows([]);
+                  onSelectionChange?.([], []);
+                }
+              }}
+              className={cn(
+                "flex items-center gap-1.5 hover:text-foreground transition-colors",
+                selectionMode && "text-primary"
+              )}
+            >
+              {selectionMode ? <CheckSquare size={13} /> : <Square size={13} />}
+              Выбрать
+            </button>
+          ) : <span />}
+          <span>
+            {(() => {
+              const visibleItems = rowVirtualizer.getVirtualItems().filter(i => i.index < data.length);
+              const lastVisible = visibleItems.at(-1);
+              const pos = lastVisible ? lastVisible.index + 1 : data.length;
+              const total = totalCount > 0 ? totalCount : data.length;
+              return `${pos} / ${total}`;
+            })()}
+          </span>
         </div>
       )}
 

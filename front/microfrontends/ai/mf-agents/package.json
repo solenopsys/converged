@@ -1,0 +1,17 @@
+{
+  "name": "mf-agents",
+  "private": true,
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "front-core": "workspace:*",
+    "g-agent": "workspace:*",
+    "lucide-react": "^0.563.0",
+    "react-markdown": "^10.1.0",
+    "effector": "23.4.4",
+    "effector-react": "23.3.0"
+  }
+}

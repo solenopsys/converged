@@ -1,7 +1,11 @@
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { Button } from "front-core";
+import { DEFAULT_LOCALE, buildLocalePath, isSupportedLocale } from "../i18n";
 
 export function About() {
+  const { locale } = useParams<{ locale: string }>();
+  const activeLocale = isSupportedLocale(locale) ? locale : DEFAULT_LOCALE;
+
   return (
     <div className="min-h-screen">
       <div className="px-6 py-20">
@@ -10,7 +14,7 @@ export function About() {
           This page is server-side rendered and hydrated on the client.
         </p>
         <Button asChild>
-          <Link to="/">Back to Home</Link>
+          <Link to={buildLocalePath(activeLocale, "/")}>Back to Home</Link>
         </Button>
       </div>
     </div>

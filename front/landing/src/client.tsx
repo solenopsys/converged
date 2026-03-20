@@ -1,6 +1,7 @@
 import { hydrateRoot } from "react-dom/client";
 import { App } from "./app/App";
 import { addMenuRequested, bus } from "front-core";
+import { extractLocaleFromPath } from "./app/i18n";
 
 type RuntimeInitialData = {
   mfEnv?: Record<string, unknown>;
@@ -25,6 +26,7 @@ const DEFAULT_MF_ENV: Record<string, unknown> = {
   },
   "mf-threads": {
     threadId: "public-chat",
+    threadIds: ["public-chat"],
     title: "Threads",
   },
 };
@@ -165,7 +167,9 @@ function hasAuthToken() {
 
 function isConsoleRoute() {
   if (typeof window === "undefined") return false;
-  const path = window.location.pathname;
+  const pathname = window.location.pathname;
+  const locale = extractLocaleFromPath(pathname);
+  const path = locale ? (pathname.slice(locale.length + 1) || "/") : pathname;
   return path === "/console" || path.startsWith("/console/");
 }
 

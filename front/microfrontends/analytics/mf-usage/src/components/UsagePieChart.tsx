@@ -6,6 +6,8 @@ interface UsageFunctionStatsItem { function: string; total: number }
 interface UsagePieChartProps { data: UsageFunctionStatsItem[]; title?: string }
 
 const COLORS = ["#3b82f6", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#f97316"]
+const ERROR_COLOR = "#ef4444"
+const isErrorLike = (value: string) => /error|failed|failure|fail|ошиб/i.test(value)
 
 export function UsagePieChart({ data = [], title }: UsagePieChartProps) {
   const chartData = useMemo(
@@ -15,7 +17,7 @@ export function UsagePieChart({ data = [], title }: UsagePieChartProps) {
         .sort((a, b) => b.total - a.total)
         .map((item, index) => ({
           ...item,
-          fill: COLORS[index % COLORS.length],
+          fill: isErrorLike(item.function) ? ERROR_COLOR : COLORS[index % COLORS.length],
         })),
     [data],
   )

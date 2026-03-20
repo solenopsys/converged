@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { ChatDetail } from '../components/ChatDetail';
+import React, { useEffect, useMemo, useState } from 'react';
+import { HeaderPanel, ThreadView } from "front-core";
 import { threadsClient } from "../services";
 
 interface ChatDetailViewProps {
@@ -9,45 +9,42 @@ interface ChatDetailViewProps {
 const ChatDetailView: React.FC<ChatDetailViewProps> = ({ chatId }) => {
   const [messages, setMessages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    console.log("[ChatDetailView] Mounted with chatId:", chatId);
-    return () => {
-      console.log("[ChatDetailView] Unmounted");
-    };
-  }, []);
-
-  useEffect(() => {
-    if (chatId) {
-      console.log("[ChatDetailView] Loading chat messages for:", chatId);
-
-      const loadMessages = () => {
-        setIsLoading(true);
-        // Загружаем сообщения из выбранного чата
-        threadsClient.readThread(chatId).then((thread) => {
-          console.log("[ChatDetailView] Loaded thread:", thread);
-
-          // Преобразуем сообщения в нужный формат
-          const formattedMessages = (thread.messages || []).map((msg: any, index: number) => ({
-            id: msg.id || `msg-${index}`,
-            type: msg.user === 'user' ? 'user' : 'assistant',
-            content: msg.data || msg.content || '',
-            timestamp: msg.timestamp || Date.now(),
-          }));
-
-          setMessages(formattedMessages);
-          setIsLoading(false);
-        }).catch((error) => {
-          console.error("[ChatDetailView] Error loading thread:", error);
-          setIsLoading(false);
-        });
-      };
-
-      loadMessages();
+  const loadMessages = async (threadId: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await threadsClient.readThreadAllVersions(threadId);
+      const rows = Array.isArray(response) ? response : [];
+      const normalized = rows.map((msg: any, index: number) => ({
+        id: msg.id || `msg-${index}`,
+        beforeId: msg.beforeId,
+        user: msg.user,
+        data: msg.data || msg.content || "",
+        timestamp: msg.timestamp || Date.now(),
+      }));
+      setMessages(normalized);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Failed to load chat history");
+      setMessages([]);
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  useEffect(() => {
+    if (!chatId) {
+      setMessages([]);
+      return;
+    }
+    void loadMessages(chatId);
   }, [chatId]);
 
-  console.log("[ChatDetailView] Rendering, chatId:", chatId, "messages:", messages.length);
+  const headerConfig = useMemo(() => ({
+    title: chatId ? `Chat ${chatId.slice(0, 8)}...` : "Chat",
+    actions: [],
+  }), [chatId]);
 
   if (!chatId) {
     return (
@@ -59,21 +56,24 @@ const ChatDetailView: React.FC<ChatDetailViewProps> = ({ chatId }) => {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="p-4 border-b bg-muted/30">
-        <h2 className="text-lg font-semibold">
-          Chat: {chatId.slice(0, 8)}...
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          {messages.length} {messages.length === 1 ? 'message' : 'messages'}
-        </p>
+      <HeaderPanel config={headerConfig} />
+      {error ? (
+        <div className="px-4 py-2 text-sm text-destructive border-b border-border">
+          {error}
+        </div>
+      ) : null}
+      <div className="px-4 py-2 text-sm text-muted-foreground border-b border-border">
+        {messages.length} {messages.length === 1 ? "message" : "messages"}
       </div>
-      <ChatDetail
-        messages={messages}
-        isLoading={isLoading}
-        currentResponse=""
-        send={() => {}}
-        showComposer={false}
-      />
+      <div className="flex-1 min-h-0">
+        <ThreadView
+          messages={messages}
+          isLoading={isLoading}
+          currentUserId="user"
+          emptyText="Thread is empty."
+          loadingText="Loading chat..."
+        />
+      </div>
     </div>
   );
 };

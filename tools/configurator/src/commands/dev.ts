@@ -67,9 +67,9 @@ function loadDotEnvForSpawn(projectName: string, projectDir: string, parentDir?:
       [
         parentDir,
         projectDir,
-        legacyBootstrapDir,
         resolve(ROOT, "saas/private/club-bootstrap"),
         resolve(ROOT, "saas/public/saas-bootstrap"),
+        legacyBootstrapDir,
       ].filter((value): value is string => Boolean(value)),
     ),
   );

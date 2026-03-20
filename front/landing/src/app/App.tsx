@@ -5,6 +5,9 @@ import {
   Outlet,
   useOutlet,
   StaticRouter,
+  Navigate,
+  useLocation,
+  useParams,
 } from "react-router-dom";
 import {
   useState,
@@ -16,6 +19,7 @@ import {
 import { Home } from "./pages/Home";
 import { About } from "./pages/About";
 import { DocsPage } from "./pages/DocsPage";
+import { DEFAULT_LOCALE, buildLocalePath, isSupportedLocale } from "./i18n";
 
 // SSR: simple wrapper, Client: full BaseLayout
 function RootLayout() {
@@ -57,13 +61,58 @@ function RootLayout() {
 
 function renderAppRoutes() {
   return (
-    <Route path="/" element={<RootLayout />}>
-      <Route index element={<Home />} />
-      <Route path="about" element={<About />} />
-      <Route path="docs/:slug" element={<DocsPage />} />
-      <Route path="console" element={null} />
-      <Route path="console/*" element={null} />
-    </Route>
+    <>
+      <Route path="/" element={<Navigate to={`/${DEFAULT_LOCALE}/`} replace />} />
+      <Route path="/console" element={null} />
+      <Route path="/console/*" element={null} />
+      <Route path="/about" element={<LegacyPathRedirect />} />
+      <Route path="/docs/:slug" element={<LegacyPathRedirect />} />
+
+      <Route path="/:locale" element={<LocaleLayout />}>
+        <Route index element={<Home />} />
+        <Route path="about" element={<About />} />
+        <Route path="docs/:slug" element={<DocsPage />} />
+        <Route path="console" element={null} />
+        <Route path="console/*" element={null} />
+      </Route>
+
+      <Route path="*" element={<Navigate to={`/${DEFAULT_LOCALE}/`} replace />} />
+    </>
+  );
+}
+
+function LocaleLayout() {
+  const { locale } = useParams<{ locale: string }>();
+  const location = useLocation();
+
+  if (!isSupportedLocale(locale)) {
+    const restPath = location.pathname.replace(/^\/[^/]+/, "") || "/";
+    return (
+      <Navigate
+        to={{
+          pathname: buildLocalePath(DEFAULT_LOCALE, restPath),
+          search: location.search,
+          hash: location.hash,
+        }}
+        replace
+      />
+    );
+  }
+
+  return <RootLayout />;
+}
+
+function LegacyPathRedirect() {
+  const location = useLocation();
+  return (
+    <Navigate
+      to={{
+        pathname: buildLocalePath(DEFAULT_LOCALE, location.pathname),
+        search: location.search,
+        hash: location.hash,
+      }}
+      replace
+    />
   );
 }
 

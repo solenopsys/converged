@@ -1,6 +1,7 @@
 import type { Provider } from "../dag-api";
 
 import OpenAiProvider from "./openai";
+import GeminiProvider from "./gemini";
 import LogsProvider from "./logs";
 import OpenScadConvertorProvider from "./openscadconvertor";
 
@@ -20,6 +21,14 @@ export interface ProviderStore {
 export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
   openai: {
     ctor: OpenAiProvider,
+    params: [
+      { name: "token", type: "string" },
+      { name: "model", type: "string", optional: true },
+    ],
+  },
+
+  gemini: {
+    ctor: GeminiProvider,
     params: [
       { name: "token", type: "string" },
       { name: "model", type: "string", optional: true },

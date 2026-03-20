@@ -43,6 +43,8 @@ export interface LandingPluginConfig {
    * so that runtime-config.ts may have cached a stale microfrontend list.
    */
   microfrontends?: string[];
+  /** Optional redirect resolver for request pathname */
+  resolveRedirectPath?: (pathname: string) => string | null | undefined;
 }
 
 const fallbackBrowserImports: Record<string, string> = {
@@ -489,6 +491,18 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
   app.get("/*", async ({ request }) => {
     const requestStartedAt = Date.now();
     const url = new URL(request.url);
+    const redirectPath = config.resolveRedirectPath?.(url.pathname);
+    if (
+      redirectPath &&
+      redirectPath !== url.pathname &&
+      redirectPath.startsWith("/")
+    ) {
+      const location = `${redirectPath}${url.search}`;
+      return new Response(null, {
+        status: 302,
+        headers: { Location: location },
+      });
+    }
     const baseUrl =
       isProd && seoConfig?.canonical
         ? normalizeBaseUrl(seoConfig.canonical)

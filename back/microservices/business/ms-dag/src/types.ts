@@ -59,6 +59,16 @@ export interface DagProcessStats {
   failed: number;
 }
 
+export interface DagProcessDailyStatsPoint {
+  date: string;
+  total: number;
+  running: number;
+  done: number;
+  failed: number;
+}
+
+export type DagProcessTypeStats = Record<string, number>;
+
 export interface DagNodeStats {
   total: number;
   queued: number;

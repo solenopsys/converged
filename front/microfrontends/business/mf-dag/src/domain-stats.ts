@@ -2,11 +2,22 @@ import { sample } from 'effector';
 import domain from './domain';
 import dagService from './service';
 
+type DagDailyStatsPoint = {
+  date: string;
+  total: number;
+  running: number;
+  done: number;
+  failed: number;
+};
+
 type DagStats = {
   total: number;
   running: number;
   done: number;
   failed: number;
+  tasksTotal: number;
+  daily: DagDailyStatsPoint[];
+  types: Record<string, number>;
 };
 
 export const statsViewMounted = domain.createEvent('STATS_VIEW_MOUNTED');
@@ -17,10 +28,30 @@ const loadStatsFx = domain.createEffect<void, DagStats>({
   handler: async () => {
     const result = await dagService.stats();
     return {
-      total: result.executions.total,
-      running: result.executions.running,
-      done: result.executions.done,
-      failed: result.executions.failed,
+      total: Number(result?.executions?.total ?? 0),
+      running: Number(result?.executions?.running ?? 0),
+      done: Number(result?.executions?.done ?? 0),
+      failed: Number(result?.executions?.failed ?? 0),
+      tasksTotal: Number(result?.tasks?.total ?? 0),
+      daily: Array.isArray(result?.executionsDaily)
+        ? result.executionsDaily.map((item: any) => ({
+            date: String(item?.date ?? ''),
+            total: Number(item?.total ?? 0),
+            running: Number(item?.running ?? 0),
+            done: Number(item?.done ?? 0),
+            failed: Number(item?.failed ?? 0),
+          }))
+        : [],
+      types:
+        result?.executionsTypes && typeof result.executionsTypes === 'object'
+          ? Object.entries(result.executionsTypes as Record<string, unknown>).reduce(
+              (acc, [key, value]) => {
+                acc[key] = Number(value ?? 0);
+                return acc;
+              },
+              {} as Record<string, number>,
+            )
+          : {},
     };
   },
 });
@@ -30,6 +61,9 @@ export const $dagStats = domain.createStore<DagStats>({
   running: 0,
   done: 0,
   failed: 0,
+  tasksTotal: 0,
+  daily: [],
+  types: {},
 }).on(loadStatsFx.doneData, (_, stats) => stats);
 
 sample({

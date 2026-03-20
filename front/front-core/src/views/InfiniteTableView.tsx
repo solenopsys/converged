@@ -322,6 +322,7 @@ const InfiniteTableView = ({
             CardComponent={CardComponent}
             responsiveBreakpoint={responsiveBreakpoint}
             selectable={selectable}
+            totalCount={totalCount}
             sortConfig={sortConfig}
             onRowClick={onRowClick}
             onLoadMore={handleLoadMore}

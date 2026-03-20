@@ -5,6 +5,12 @@ import type { SeoConfig } from "front-ssr/plugin";
 import { AppSSR } from "./app/App";
 import { Document } from "./app/Document";
 import { appSitemapRoutes } from "./app/routes";
+import {
+  DEFAULT_LOCALE,
+  SUPPORTED_LOCALES,
+  buildLocalePath,
+  extractLocaleFromPath,
+} from "./app/i18n";
 import { loadSeoConfig } from "./ssr/seo";
 
 type DocsInitItem = { name: string; id: string };
@@ -111,6 +117,13 @@ function normalizeBaseUrl(value: string): string {
   return value.replace(/\/+$/, "");
 }
 
+function stripLocalePrefix(path: string): string {
+  const locale = extractLocaleFromPath(path);
+  if (!locale) return path;
+  const rest = path.slice(locale.length + 1);
+  return rest.length > 0 ? rest : "/";
+}
+
 async function structCall<T>(
   servicesBaseUrl: string,
   method: string,
@@ -181,11 +194,48 @@ async function prefetchLandingPayload(
 export default function landingPlugin(config: { publicDir?: string; production?: boolean } = {}) {
   const landingRoot = resolve(import.meta.dir, "..");
   const mfEnv = buildRuntimeMfEnv();
+  const localePrefixes = SUPPORTED_LOCALES.map((locale) => `/${locale}`);
+
+  function resolveRedirectPath(pathname: string): string | null {
+    if (pathname === "/") {
+      return buildLocalePath(DEFAULT_LOCALE, "/");
+    }
+
+    for (const prefix of localePrefixes) {
+      if (pathname === prefix) {
+        return `${prefix}/`;
+      }
+      if (pathname.startsWith(`${prefix}/`)) {
+        return null;
+      }
+    }
+
+    if (
+      pathname.startsWith("/console") ||
+      pathname.startsWith("/services") ||
+      pathname.startsWith("/mf/") ||
+      pathname.startsWith("/locales/") ||
+      pathname.startsWith("/libraries/") ||
+      pathname === "/sitemap.xml" ||
+      pathname === "/robots.txt" ||
+      pathname === "/manifest.json" ||
+      pathname === "/sw.js"
+    ) {
+      return null;
+    }
+
+    if (/\.[a-z0-9]+$/i.test(pathname)) {
+      return null;
+    }
+
+    return buildLocalePath(DEFAULT_LOCALE, pathname);
+  }
 
   return createLandingPlugin({
     ...config,
     landingRoot,
     sitemapRoutes: appSitemapRoutes,
+    resolveRedirectPath,
     buildStyles: async () => {
       const mod = await import("./ssr/styles");
       return mod.buildStyles();
@@ -199,7 +249,8 @@ export default function landingPlugin(config: { publicDir?: string; production?:
     ) => {
       const landingConfId = mfEnv["mf-landing"].landingConfId;
       let landingData: Record<string, LandingPrefetchPayload> = {};
-      const isConsoleRoute = url === "/console" || url.startsWith("/console/");
+      const routePath = stripLocalePrefix(url);
+      const isConsoleRoute = routePath === "/console" || routePath.startsWith("/console/");
 
       if (!isConsoleRoute) {
         try {
@@ -212,10 +263,11 @@ export default function landingPlugin(config: { publicDir?: string; production?:
 
       const previousSsrData = globalThis.__LANDING_SSR_DATA__;
       globalThis.__LANDING_SSR_DATA__ = landingData;
+      const locale = extractLocaleFromPath(url) ?? DEFAULT_LOCALE;
 
       try {
         const html = renderToString(
-          <Document seo={seo} importMap={importMap} initialData={{ mfEnv, landing: landingData }}>
+          <Document lang={locale} seo={seo} importMap={importMap} initialData={{ mfEnv, landing: landingData }}>
             <AppSSR url={url} />
           </Document>,
         );

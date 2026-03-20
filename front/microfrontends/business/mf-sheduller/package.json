@@ -9,6 +9,8 @@
   "dependencies": {
     "front-core": "workspace:*",
     "g-sheduller": "workspace:*",
-    "lucide-react": "^0.553.0"
+    "lucide-react": "^0.553.0",
+    "echarts": "6.0.0",
+    "echarts-for-react": "3.0.6"
   }
 }

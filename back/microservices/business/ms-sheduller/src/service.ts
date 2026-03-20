@@ -90,13 +90,19 @@ export class ShedullerServiceImpl implements ShedullerService {
   }
 
   async getStats(): Promise<ShedullerStats> {
-    const [crons, history] = await Promise.all([
+    const [crons, activeCrons, pausedCrons, history, dailyRuns] = await Promise.all([
       Promise.resolve(this.stores.crons.list({ offset: 0, limit: 0 })),
+      Promise.resolve(this.stores.crons.list({ offset: 0, limit: 0, status: "active" })),
+      Promise.resolve(this.stores.crons.list({ offset: 0, limit: 0, status: "paused" })),
       this.stores.history.list({ offset: 0, limit: 0 }),
+      this.stores.history.getDailyRuns(30),
     ]);
     return {
       crons: crons.totalCount ?? 0,
+      activeCrons: activeCrons.totalCount ?? 0,
+      pausedCrons: pausedCrons.totalCount ?? 0,
       history: history.totalCount ?? 0,
+      dailyRuns,
     };
   }
 
@@ -132,7 +138,8 @@ export class ShedullerServiceImpl implements ShedullerService {
 
   private schedule(entry: CronEntry) {
     this.unschedule(entry.id);
-    const job = new Cron(entry.expression, () => {
+    const expression = entry.expression.trim().replace(/\s+/g, " ");
+    const job = new Cron(expression, () => {
       this.invokeProvider(entry);
     });
     this.jobs.set(entry.id, job);

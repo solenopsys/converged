@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { MdView } from "../components/MdView";
 import { Button } from "front-core";
 import { createMarkdownServiceClient } from "g-markdown";
+import { DEFAULT_LOCALE, buildLocalePath, isSupportedLocale } from "../i18n";
 
 const markdownClient = createMarkdownServiceClient({
   baseUrl: "/services",
@@ -14,7 +15,8 @@ function resolveDocPath(slug: string) {
 }
 
 export function DocsPage() {
-  const { slug } = useParams<{ slug: string }>();
+  const { slug, locale } = useParams<{ slug: string; locale: string }>();
+  const activeLocale = isSupportedLocale(locale) ? locale : DEFAULT_LOCALE;
   const [ast, setAst] = useState<any>(null);
   const [error, setError] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(true);
@@ -54,13 +56,13 @@ export function DocsPage() {
     <div className="min-h-screen px-6 py-20">
       <div className="max-w-3xl mx-auto mb-6 flex gap-3">
         <Button asChild variant={slug === "page1" ? "default" : "outline"}>
-          <Link to="/docs/page1">Page 1</Link>
+          <Link to={buildLocalePath(activeLocale, "/docs/page1")}>Page 1</Link>
         </Button>
         <Button asChild variant={slug === "page2" ? "default" : "outline"}>
-          <Link to="/docs/page2">Page 2</Link>
+          <Link to={buildLocalePath(activeLocale, "/docs/page2")}>Page 2</Link>
         </Button>
         <Button asChild variant="outline">
-          <Link to="/">Home</Link>
+          <Link to={buildLocalePath(activeLocale, "/")}>Home</Link>
         </Button>
       </div>
       <MdView ast={ast} error={error} loading={loading} />

@@ -14,7 +14,13 @@ const getStatsFx = domain.createEffect<void, ShedullerStats>({
   },
 });
 
-export const $stats = domain.createStore<ShedullerStats>({ crons: 0, history: 0 });
+export const $stats = domain.createStore<ShedullerStats>({
+  crons: 0,
+  activeCrons: 0,
+  pausedCrons: 0,
+  history: 0,
+  dailyRuns: [],
+});
 
 $stats.on(getStatsFx.doneData, (_state, stats) => stats);
 

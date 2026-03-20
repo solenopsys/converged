@@ -16,6 +16,7 @@
     "core": "front/front-core",
     "microfrontends": [
       "auth",
+      "agents",
       "assistants",
       "community",
       "charts",
@@ -41,7 +42,7 @@
   "back": {
     "core": "back/back-core",
     "microservices": {
-      "ai": ["assistant"],
+      "ai": ["agent", "assistant"],
       "analytics": ["logs", "telemetry", "usage"],
       "business": [
         "billing",

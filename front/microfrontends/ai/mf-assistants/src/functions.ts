@@ -5,6 +5,7 @@ import { sample } from "effector";
 import domain from "./domain";
 import { PaginatedResult, Chat } from "./types";
 import { ChatView } from "./views/ChatView";
+import { ChatDetailView } from "./views/ChatDetailView";
 import { ChatsListView } from "./views/ChatsListView";
 import { ContextsListView } from "./views/ContextsListView";
 import { CommandsListView } from "./views/CommandsListView";
@@ -70,10 +71,12 @@ const createChatWidget: CreateWidget<typeof ChatView> = (bus) => ({
     commands: {}
 });
 
-export const createChatDetailWidget: CreateWidget<typeof ChatView> = (bus, params?: { recordId: string }) => ({
-    view: ChatView,
+export const createChatDetailWidget: CreateWidget<typeof ChatDetailView> = (_bus, params?: { recordId: string }) => ({
+    view: ChatDetailView,
     placement: () => "sidebar:right",
-    config: {},
+    config: {
+        chatId: params?.recordId
+    },
     commands: {}
 });
 

@@ -25,12 +25,16 @@ export default class DagServiceImpl implements DagService {
         .map((w: any) => [w.name, w.ctor]),
     );
 
-    if (typeof wf.initProvidersPool === "function" && config?.openai?.key) {
-      const openai = config.openai;
+    if (typeof wf.initProvidersPool === "function") {
+      const openai = config?.openai;
+      const gemini = config?.gemini;
       wf.initProvidersPool({
         async getProvider(name: string) {
-          if (name === "openai") {
+          if (name === "openai" && openai?.key) {
             return { codeName: "openai", config: { token: openai.key, model: openai.model ?? "gpt-4o-mini" } };
+          }
+          if (name === "gemini" && gemini?.key) {
+            return { codeName: "gemini", config: { token: gemini.key, model: gemini.model ?? "gemini-3.1-flash-lite" } };
           }
           throw new Error(`Provider "${name}" not configured`);
         },
@@ -212,11 +216,13 @@ export default class DagServiceImpl implements DagService {
 
   async stats() {
     await this.ensureStoresReady();
-    const [executions, tasks] = await Promise.all([
+    const [executions, tasks, executionsDaily, executionsTypes] = await Promise.all([
       this.stores.statsStoreService.getProcessStats(),
       this.stores.statsStoreService.getNodeStats(),
+      this.stores.statsStoreService.getProcessDailyStats({ days: 30 }),
+      this.stores.statsStoreService.getProcessTypeStats(),
     ]);
-    return { executions, tasks };
+    return { executions, tasks, executionsDaily, executionsTypes };
   }
 
   async listWorkflows(): Promise<{ names: string[] }> {

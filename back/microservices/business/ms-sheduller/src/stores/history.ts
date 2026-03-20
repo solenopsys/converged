@@ -1,4 +1,4 @@
-import { SqlStore, generateULID } from "back-core";
+import { SqlStore, generateULID, sql } from "back-core";
 import type { CronHistoryEntry, CronHistoryListParams, PaginatedResult } from "../types";
 
 interface HistoryRow {
@@ -104,5 +104,33 @@ export class HistoryStoreService {
       items: (items as HistoryRow[]).map(toEntry),
       totalCount,
     };
+  }
+
+  async getDailyRuns(days = 30): Promise<Array<{ date: string; total: number; success: number; failed: number }>> {
+    await this.ensureSchema();
+
+    const now = new Date();
+    const from = new Date(now.getTime() - ((days - 1) * 24 * 60 * 60 * 1000));
+    const fromDate = from.toISOString().slice(0, 10);
+
+    const rows = await this.store.db
+      .selectFrom("history" as any)
+      .select([
+        sql<string>`date(firedAt)`.as("date"),
+        sql<number>`count(*)`.as("total"),
+        sql<number>`sum(case when success = 1 then 1 else 0 end)`.as("success"),
+        sql<number>`sum(case when success = 0 then 1 else 0 end)`.as("failed"),
+      ])
+      .where(sql`date(firedAt)`, ">=", fromDate as any)
+      .groupBy(sql`date(firedAt)`)
+      .orderBy(sql`date(firedAt)`, "asc")
+      .execute();
+
+    return rows.map((row: any) => ({
+      date: String(row.date),
+      total: Number(row.total ?? 0),
+      success: Number(row.success ?? 0),
+      failed: Number(row.failed ?? 0),
+    }));
   }
 }

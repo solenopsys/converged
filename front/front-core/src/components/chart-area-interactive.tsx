@@ -14,7 +14,17 @@ export function ChartAreaInteractive() {
   const isMobile = useIsMobile()
   const [timeRange, setTimeRange] = React.useState("90d")
 
-  const chartData = i18n.getResource(i18n.language, "chart_data") || []
+  const rawChartData = i18n.getResource(i18n.language, "chart_data")
+
+  const chartData = useMemo(() => {
+    if (Array.isArray(rawChartData)) return rawChartData
+    if (rawChartData && typeof rawChartData === "object") {
+      const nestedData = (rawChartData as any).data
+      if (Array.isArray(nestedData)) return nestedData
+      return Object.values(rawChartData).filter((item) => item && typeof item === "object")
+    }
+    return []
+  }, [rawChartData])
 
   React.useEffect(() => {
     if (isMobile) setTimeRange("7d")
@@ -25,7 +35,10 @@ export function ChartAreaInteractive() {
     const daysToSubtract = timeRange === "30d" ? 30 : timeRange === "7d" ? 7 : 90
     const startDate = new Date(referenceDate)
     startDate.setDate(startDate.getDate() - daysToSubtract)
-    return chartData.filter((item: { date: string }) => new Date(item.date) >= startDate)
+    return chartData.filter((item: any) => {
+      if (!item || typeof item !== "object" || !item.date) return false
+      return new Date(item.date) >= startDate
+    })
   }, [chartData, timeRange])
 
   const locale = (i18n.language || "en") === "ru" ? "ru-RU" : "en-US"
@@ -94,7 +107,7 @@ export function ChartAreaInteractive() {
           <span className="@[540px]/card:hidden">{t("description_short")}</span>
         </CardDescription>
         <CardAction>
-          <ToggleGroup type="single" value={timeRange} onValueChange={setTimeRange} variant="outline" className="hidden *:data-[slot=toggle-group-item]:!px-4 @[767px]/card:flex">
+          <ToggleGroup type="single" value={timeRange} onValueChange={(value) => value && setTimeRange(value)} variant="outline" className="hidden *:data-[slot=toggle-group-item]:!px-4 @[767px]/card:flex">
             <ToggleGroupItem value="90d">{t("time_ranges.90d")}</ToggleGroupItem>
             <ToggleGroupItem value="30d">{t("time_ranges.30d")}</ToggleGroupItem>
             <ToggleGroupItem value="7d">{t("time_ranges.7d")}</ToggleGroupItem>
