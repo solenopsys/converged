@@ -4,3 +4,18 @@
 [submodule "native/wrapers/ryugraph/vendor/ryugraph"]
 	path = native/wrapers/ryugraph/vendor/ryugraph
 	url = https://github.com/predictable-labs/ryugraph.git
+[submodule "native/wrapers/column"]
+	path = native/wrapers/column
+	url = https://github.com/dgllghr/stanchion.git
+[submodule "native/wrapers/lmdbx"]
+	path = native/wrapers/lmdbx
+	url = https://github.com/solenopsys/zig-lmdbx.git
+[submodule "native/adapters/bambu-local/vendor/paho.mqtt.c"]
+	path = native/adapters/bambu-local/vendor/paho.mqtt.c
+	url = https://github.com/eclipse-paho/paho.mqtt.c.git
+[submodule "native/wrapers/md4c/vendor/md4c"]
+	path = native/wrapers/md4c/vendor/md4c
+	url = https://github.com/mity/md4c.git
+[submodule "native/wrapers/sqlite-vec/vendor/sqlite-vec"]
+	path = native/wrapers/sqlite-vec/vendor/sqlite-vec
+	url = https://github.com/asg017/sqlite-vec.git
