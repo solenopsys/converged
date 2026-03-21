@@ -3,6 +3,11 @@ const Allocator = std.mem.Allocator;
 const Telemetry = @import("../telemetry.zig").Telemetry;
 const sql_engine = @import("sql.zig");
 
+const c = @cImport({
+    @cInclude("sqlite3.h");
+    @cInclude("sqlite-vec.h");
+});
+
 /// Vector engine — SQLite with sqlite-vec extension loaded
 /// Reuses SqlEngine, adds vector search capability
 pub const VectorEngine = struct {
@@ -15,10 +20,13 @@ pub const VectorEngine = struct {
     }
 
     pub fn open(self: *VectorEngine) !void {
+        // Register sqlite-vec as auto extension BEFORE opening the database
+        const rc = c.sqlite3_auto_extension(@ptrCast(&c.sqlite3_vec_init));
+        if (rc != c.SQLITE_OK) return error.VecExtensionFailed;
+
         try self.sql.open();
-        // Enable trusted schema for sqlite-vec
+        // Enable trusted schema for sqlite-vec virtual tables
         try self.sql.execPragma("PRAGMA trusted_schema = ON");
-        // sqlite-vec is linked statically, registers via sqlite3_auto_extension
     }
 
     pub fn close(self: *VectorEngine) void {

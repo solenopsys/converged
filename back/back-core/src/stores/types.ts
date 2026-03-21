@@ -21,6 +21,7 @@ export enum StoreType {
     COLUMN = "COLUMN",
     KVS = "KEY_VALUE",
     VECTOR = "VECTOR",
+    GRAPH = "GRAPH",
 }
 
 export interface StoreSizeInfo {

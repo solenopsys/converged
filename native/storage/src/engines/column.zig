@@ -3,8 +3,9 @@ const Allocator = std.mem.Allocator;
 const Telemetry = @import("../telemetry.zig").Telemetry;
 const sql_engine = @import("sql.zig");
 
-/// Column engine — SQLite with Stanchion extension loaded
-/// Reuses SqlEngine for all SQL operations, just adds stanchion init on open
+/// Column engine — SQLite with Stanchion extension
+/// Currently operates as plain SQL (stanchion virtual table registration pending)
+/// Reuses SqlEngine for all SQL operations
 pub const ColumnEngine = struct {
     sql: sql_engine.SqlEngine,
 
@@ -16,9 +17,6 @@ pub const ColumnEngine = struct {
 
     pub fn open(self: *ColumnEngine) !void {
         try self.sql.open();
-        // Load stanchion extension into this connection
-        // Stanchion registers itself via sqlite3_auto_extension
-        // when built as non-loadable-extension (linked statically)
     }
 
     pub fn close(self: *ColumnEngine) void {

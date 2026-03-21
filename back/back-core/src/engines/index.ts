@@ -3,3 +3,4 @@ export * from "./kv";
 export * from "./files";
 export * from "./column";
 export * from "./vector";
+export * from "./graph";

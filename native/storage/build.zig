@@ -215,6 +215,9 @@ fn addStorageExecutable(
     exe.linkLibrary(sqlite3);
     exe.addObject(sqlite_vec);
 
+    // sqlite-vec header for VectorEngine to call sqlite3_vec_init
+    exe.root_module.addIncludePath(b.path("../wrapers/sqlite-vec/vendor/sqlite-vec"));
+
     exe.addCSourceFile(.{
         .file = b.path("../wrapers/column/src/sqlite3/c/result-transient.c"),
         .flags = &[_][]const u8{"-std=c99"},
@@ -330,6 +333,10 @@ pub fn build(b: *Build) void {
     tests.linkLibrary(mdbx);
     tests.linkLibrary(sqlite3);
     tests.addObject(sqlite_vec);
+
+    // sqlite-vec header for VectorEngine
+    tests.root_module.addIncludePath(b.path("../wrapers/sqlite-vec/vendor/sqlite-vec"));
+
     tests.addCSourceFile(.{
         .file = b.path("../wrapers/column/src/sqlite3/c/result-transient.c"),
         .flags = &[_][]const u8{"-std=c99"},
