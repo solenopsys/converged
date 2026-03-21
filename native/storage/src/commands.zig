@@ -10,6 +10,7 @@ const KvEngine = @import("engines/kv.zig").KvEngine;
 const ColumnEngine = @import("engines/column.zig").ColumnEngine;
 const VectorEngine = @import("engines/vector.zig").VectorEngine;
 const FilesEngine = @import("engines/files.zig").FilesEngine;
+const GraphEngine = @import("engines/graph.zig").GraphEngine;
 
 pub const StoreHandle = union(StoreType) {
     sql: SqlEngine,
@@ -17,6 +18,7 @@ pub const StoreHandle = union(StoreType) {
     column: ColumnEngine,
     vector: VectorEngine,
     files: FilesEngine,
+    graph: GraphEngine,
 };
 
 pub const StoreInstance = struct {
@@ -50,6 +52,7 @@ pub const StorageCommands = struct {
                 .column => |*e| e.close(),
                 .vector => |*e| e.close(),
                 .files => |*e| e.close(),
+                .graph => |*e| e.close(),
             }
             if (entry.value_ptr.data_path_z) |path_z| self.allocator.free(path_z);
             entry.value_ptr.manifest.deinit();
@@ -112,6 +115,13 @@ pub const StorageCommands = struct {
             .files => {
                 handle = .{ .files = FilesEngine.init(self.allocator, data_dir) };
             },
+            .graph => {
+                const path_tmp = try std.fmt.allocPrint(self.allocator, "{s}/graph.db", .{data_dir});
+                defer self.allocator.free(path_tmp);
+                const path_z = try self.allocator.dupeZ(u8, path_tmp);
+                data_path_z = path_z;
+                handle = .{ .graph = GraphEngine.init(self.allocator, path_z) };
+            },
         }
 
         errdefer if (data_path_z) |path_z| self.allocator.free(path_z);
@@ -122,6 +132,7 @@ pub const StorageCommands = struct {
             .column => |*e| try e.open(),
             .vector => |*e| try e.open(),
             .files => |*e| try e.open(),
+            .graph => |*e| try e.open(),
         }
 
         const manifest_path = try std.fmt.allocPrint(self.allocator, "{s}/manifest.json", .{store_dir});
@@ -149,6 +160,7 @@ pub const StorageCommands = struct {
                 .column => |*e| e.close(),
                 .vector => |*e| e.close(),
                 .files => |*e| e.close(),
+                .graph => |*e| e.close(),
             }
             if (inst.data_path_z) |path_z| self.allocator.free(path_z);
             inst.manifest.deinit();
@@ -166,7 +178,7 @@ pub const StorageCommands = struct {
         try inst.manifest.save(inst.manifest_path);
     }
 
-    // ── SQL exec/query (sql, column, vector) ──
+    // ── SQL/Cypher exec/query (sql, column, vector, graph) ──
 
     pub fn execSql(self: *StorageCommands, store_key: []const u8, sql: [*:0]const u8) !void {
         const inst = self.stores.getPtr(store_key) orelse return error.StoreNotFound;
@@ -174,6 +186,7 @@ pub const StorageCommands = struct {
             .sql => |*e| try e.execSql(sql),
             .column => |*e| try e.execSql(sql),
             .vector => |*e| try e.execSql(sql),
+            .graph => |*e| try e.execSql(sql),
             else => return error.UnsupportedOperation,
         }
     }
@@ -184,6 +197,7 @@ pub const StorageCommands = struct {
             .sql => |*e| try e.queryJson(self.allocator, sql, tel),
             .column => |*e| try e.queryJson(self.allocator, sql, tel),
             .vector => |*e| try e.queryJson(self.allocator, sql, tel),
+            .graph => |*e| try e.queryJson(self.allocator, sql, tel),
             else => return error.UnsupportedOperation,
         };
     }
@@ -263,6 +277,7 @@ pub const StorageCommands = struct {
             .column => |*e| try e.getSize(),
             .vector => |*e| try e.getSize(),
             .files => |*e| try e.getSize(),
+            .graph => |*e| try e.getSize(),
         };
     }
 

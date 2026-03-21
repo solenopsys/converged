@@ -4,6 +4,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { installBackendLogBridge } from "../../back/back-core/src/server/logBridge";
+import { loadAiProvidersFromEnv } from "../../back/back-core/src/server/envConfig";
 
 type RuntimeMap = {
   services: Record<string, string>;
@@ -106,14 +107,7 @@ const pluginConfig = {
   registerShutdownTask: (name: string, task: () => Promise<void>) => {
     shutdownTasks.push({ name, task });
   },
-  openai: {
-    key: process.env.OPENAI_API_KEY || "",
-    model: process.env.OPENAI_MODEL || "gpt-4o-mini",
-  },
-  claude: {
-    key: process.env.CLAUDE_API_KEY || "",
-    model: process.env.CLAUDE_MODEL || "claude-3-5-haiku-20241022",
-  },
+  ...loadAiProvidersFromEnv(),
   servicePaths,
   workflows,
 };

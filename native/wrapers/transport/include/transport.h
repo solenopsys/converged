@@ -19,6 +19,7 @@ typedef enum {
     STORE_COLUMN = 2,
     STORE_VECTOR = 3,
     STORE_FILES  = 4,
+    STORE_GRAPH  = 5,
 } StoreTypeC;
 
 /* Value type tags returned by transport_resp_value_type() */

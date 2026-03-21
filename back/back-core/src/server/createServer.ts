@@ -2,17 +2,14 @@ import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 import { resolve } from "path";
 import { installBackendLogBridge } from "./logBridge";
-
-export interface AiConfig {
-  key: string;
-  model: string;
-}
+import { loadAiProvidersFromEnv } from "./envConfig";
+export type { AiConfig } from "./envConfig";
 
 export interface PluginConfig {
   dbPath: string;
-  openai?: AiConfig;
-  claude?: AiConfig;
-  gemini?: AiConfig;
+  openai?: { key: string; model: string };
+  claude?: { key: string; model: string };
+  gemini?: { key: string; model: string };
   registerStartupTask?: (name: string, task: () => Promise<void>) => void;
   registerShutdownTask?: (name: string, task: () => Promise<void>) => void;
   [key: string]: any;
@@ -22,9 +19,9 @@ export interface ServerConfig {
   name: string;
   port: number;
   dataDir: string;
-  openai?: AiConfig;
-  claude?: AiConfig;
-  gemini?: AiConfig;
+  openai?: { key: string; model: string };
+  claude?: { key: string; model: string };
+  gemini?: { key: string; model: string };
   extraConfig?: Record<string, any>;
 }
 
@@ -36,26 +33,13 @@ export interface CreateServerOptions {
   staticDir?: string;
 }
 
-/**
- * Load configuration from environment variables
- */
 export function loadConfigFromEnv(): ServerConfig {
+  const ai = loadAiProvidersFromEnv();
   return {
     name: process.env.APP_NAME || "app",
     port: Number(process.env.PORT) || Number(process.env.SERVICES_PORT) || 3000,
     dataDir: process.env.DATA_DIR || "./data",
-    openai: {
-      key: process.env.OPENAI_API_KEY || "",
-      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
-    },
-    claude: {
-      key: process.env.CLAUDE_API_KEY || "",
-      model: process.env.CLAUDE_MODEL || "claude-3-5-haiku-20241022",
-    },
-    gemini: {
-      key: process.env.GEMINI_API_KEY || "",
-      model: process.env.GEMINI_MODEL || "gemini-3.1-flash-lite",
-    },
+    ...ai,
   };
 }
 

@@ -8,6 +8,7 @@ const KvEngine = @import("engines/kv.zig").KvEngine;
 const ColumnEngine = @import("engines/column.zig").ColumnEngine;
 const VectorEngine = @import("engines/vector.zig").VectorEngine;
 const FilesEngine = @import("engines/files.zig").FilesEngine;
+const GraphEngine = @import("engines/graph.zig").GraphEngine;
 
 pub const WorkItem = struct {
     store_key: []const u8,
@@ -114,6 +115,7 @@ pub const ThreadPool = struct {
     column_worker: StoreWorker,
     vector_worker: StoreWorker,
     files_worker: StoreWorker,
+    graph_worker: StoreWorker,
 
     pub fn init(allocator: Allocator) ThreadPool {
         return .{
@@ -122,6 +124,7 @@ pub const ThreadPool = struct {
             .column_worker = StoreWorker.init(allocator, .column),
             .vector_worker = StoreWorker.init(allocator, .vector),
             .files_worker = StoreWorker.init(allocator, .files),
+            .graph_worker = StoreWorker.init(allocator, .graph),
         };
     }
 
@@ -131,6 +134,7 @@ pub const ThreadPool = struct {
         try self.column_worker.start();
         try self.vector_worker.start();
         try self.files_worker.start();
+        try self.graph_worker.start();
     }
 
     pub fn stop(self: *ThreadPool) void {
@@ -139,6 +143,7 @@ pub const ThreadPool = struct {
         self.column_worker.stop();
         self.vector_worker.stop();
         self.files_worker.stop();
+        self.graph_worker.stop();
     }
 
     pub fn getWorker(self: *ThreadPool, store_type: StoreType) *StoreWorker {
@@ -148,6 +153,7 @@ pub const ThreadPool = struct {
             .column => &self.column_worker,
             .vector => &self.vector_worker,
             .files => &self.files_worker,
+            .graph => &self.graph_worker,
         };
     }
 
@@ -157,5 +163,6 @@ pub const ThreadPool = struct {
         self.column_worker.deinit();
         self.vector_worker.deinit();
         self.files_worker.deinit();
+        self.graph_worker.deinit();
     }
 };

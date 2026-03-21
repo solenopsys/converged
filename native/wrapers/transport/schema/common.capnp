@@ -16,6 +16,7 @@ enum StoreType {
   column @2;  # SQLite + Stanchion column-oriented extension
   vector @3;  # SQLite + sqlite-vec vector search extension
   files  @4;  # raw filesystem
+  graph  @5;  # RyuGraph property-graph store
 }
 
 struct Row {

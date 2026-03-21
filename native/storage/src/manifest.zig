@@ -7,6 +7,7 @@ pub const StoreType = enum {
     column,
     vector,
     files,
+    graph,
 
     pub fn toString(self: StoreType) []const u8 {
         return switch (self) {
@@ -15,6 +16,7 @@ pub const StoreType = enum {
             .column => "COLUMN",
             .vector => "VECTOR",
             .files => "FILES",
+            .graph => "GRAPH",
         };
     }
 
@@ -24,6 +26,7 @@ pub const StoreType = enum {
         if (std.mem.eql(u8, s, "COLUMN")) return .column;
         if (std.mem.eql(u8, s, "VECTOR")) return .vector;
         if (std.mem.eql(u8, s, "FILES")) return .files;
+        if (std.mem.eql(u8, s, "GRAPH")) return .graph;
         return null;
     }
 };

@@ -25,6 +25,7 @@ enum class StoreType_8b1997aae9d03789: uint16_t {
   COLUMN,
   VECTOR,
   FILES,
+  GRAPH,
 };
 CAPNP_DECLARE_ENUM(StoreType, 8b1997aae9d03789);
 CAPNP_DECLARE_SCHEMA(c9d06189012b40f5);

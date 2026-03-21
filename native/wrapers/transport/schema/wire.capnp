@@ -10,6 +10,7 @@ enum StoreType {
   column @2;
   vector @3;
   files  @4;
+  graph  @5;
 }
 
 struct Telemetry {

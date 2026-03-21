@@ -141,7 +141,7 @@ export class StorageTransportError extends Error {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export const StoreType = { sql: 0, kv: 1, column: 2, vector: 3, files: 4 } as const;
+export const StoreType = { sql: 0, kv: 1, column: 2, vector: 3, files: 4, graph: 5 } as const;
 export type  StoreTypeKey = keyof typeof StoreType;
 
 export const ValueType = { null: 0, integer: 1, real: 2, text: 3, blob: 4 } as const;

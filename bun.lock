@@ -601,6 +601,7 @@
         "i18next-http-backend": "^3.0.2",
         "install": "^0.13.0",
         "lucide-react": "^0.563.0",
+        "mf-agents": "workspace:*",
         "mf-assistants": "workspace:*",
         "next-themes": "^0.4.6",
         "pixi.js": "^8.15.0",
@@ -710,6 +711,17 @@
       "name": "token-refresh",
       "version": "0.0.1",
     },
+    "front/microfrontends/ai/mf-agents": {
+      "name": "mf-agents",
+      "dependencies": {
+        "effector": "23.4.4",
+        "effector-react": "23.3.0",
+        "front-core": "workspace:*",
+        "g-agent": "workspace:*",
+        "lucide-react": "^0.563.0",
+        "react-markdown": "^10.1.0",
+      },
+    },
     "front/microfrontends/ai/mf-assistants": {
       "name": "mf-assistants",
       "dependencies": {
@@ -777,6 +789,8 @@
     "front/microfrontends/business/mf-sheduller": {
       "name": "mf-sheduller",
       "dependencies": {
+        "echarts": "6.0.0",
+        "echarts-for-react": "3.0.6",
         "front-core": "workspace:*",
         "g-sheduller": "workspace:*",
         "lucide-react": "^0.553.0",
@@ -967,7 +981,7 @@
       "name": "g-agent",
       "version": "0.0.0",
       "dependencies": {
-        "nrpc": "*",
+        "nrpc": "workspace:*",
       },
     },
     "tools/integration/generated/g-assistant": {
@@ -2790,6 +2804,8 @@
     "mdn-data": ["mdn-data@2.12.2", "", {}, "sha512-IEn+pegP1aManZuckezWCO+XZQDplx1366JoVhTpMpBB1sPey/SbveZQUosKiKiGYjg1wH4pMlNgXbCiYgihQA=="],
 
     "memoirist": ["memoirist@0.4.0", "", {}, "sha512-zxTgA0mSYELa66DimuNQDvyLq36AwDlTuVRbnQtB+VuTcKWm5Qc4z3WkSpgsFWHNhexqkIooqpv4hdcqrX5Nmg=="],
+
+    "mf-agents": ["mf-agents@workspace:front/microfrontends/ai/mf-agents"],
 
     "mf-assistants": ["mf-assistants@workspace:front/microfrontends/ai/mf-assistants"],
 

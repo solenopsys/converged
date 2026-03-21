@@ -1,3 +1,6 @@
 [submodule "native/wrapers/transport/vendor/capnproto"]
 	path = native/wrapers/transport/vendor/capnproto
 	url = https://github.com/capnproto/capnproto.git
+[submodule "native/wrapers/ryugraph/vendor/ryugraph"]
+	path = native/wrapers/ryugraph/vendor/ryugraph
+	url = https://github.com/predictable-labs/ryugraph.git

@@ -21,8 +21,16 @@ capnp compile \
   -I schema \
   schema/wire.capnp
 
-mv schema/wire.capnp.h   src/generated/wire.capnp.h
-mv schema/wire.capnp.c++ src/generated/wire.capnp.cpp
+if [[ -f wire.capnp.h && -f wire.capnp.c++ ]]; then
+  mv wire.capnp.h   src/generated/wire.capnp.h
+  mv wire.capnp.c++ src/generated/wire.capnp.cpp
+elif [[ -f schema/wire.capnp.h && -f schema/wire.capnp.c++ ]]; then
+  mv schema/wire.capnp.h   src/generated/wire.capnp.h
+  mv schema/wire.capnp.c++ src/generated/wire.capnp.cpp
+else
+  echo "ERROR: capnp generated files were not found" >&2
+  exit 1
+fi
 
 echo "Generated:"
 echo "  src/generated/wire.capnp.h"

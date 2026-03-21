@@ -187,7 +187,7 @@ pub fn main() !void {
         const bind_cfg = try getBindConfig(allocator, args, data_dir);
         defer switch (bind_cfg) {
             .unix => |p| allocator.free(p),
-            .tcp  => |t| allocator.free(t.host),
+            .tcp => |t| allocator.free(t.host),
         };
         try server.start(allocator, data_dir, bind_cfg);
         return;
@@ -203,7 +203,7 @@ pub fn main() !void {
         };
         defer switch (bind_cfg) {
             .unix => |p| allocator.free(p),
-            .tcp  => |t| allocator.free(t.host),
+            .tcp => |t| allocator.free(t.host),
         };
         const timeout_ms = getHealthTimeoutMs(args) catch |err| {
             printErrorName("health failed", err);
@@ -355,7 +355,7 @@ fn printUsage() void {
             \\commands:
             \\  start                                  (unix socket json server)
             \\  health                                 (transport ping probe)
-            \\  open <ms> <store> <SQL|KEY_VALUE|COLUMN|VECTOR|FILES>
+            \\  open <ms> <store> <SQL|KEY_VALUE|COLUMN|VECTOR|FILES|GRAPH>
             \\  close <ms> <store>
             \\  exec <ms/store> <sql>
             \\  query <ms/store> <sql>
@@ -372,7 +372,7 @@ fn printUsage() void {
             \\usage: storage <command> [args...] [--data-dir <path>]
             \\
             \\commands:
-            \\  open <ms> <store> <SQL|KEY_VALUE|COLUMN|VECTOR|FILES>
+            \\  open <ms> <store> <SQL|KEY_VALUE|COLUMN|VECTOR|FILES|GRAPH>
             \\  close <ms> <store>
             \\  exec <ms/store> <sql>
             \\  query <ms/store> <sql>
