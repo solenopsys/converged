@@ -6,7 +6,7 @@
 	url = https://github.com/predictable-labs/ryugraph.git
 [submodule "native/wrapers/column"]
 	path = native/wrapers/column
-	url = https://github.com/dgllghr/stanchion.git
+	url = https://github.com/solenopsys/zig-stanchion.git
 [submodule "native/wrapers/lmdbx"]
 	path = native/wrapers/lmdbx
 	url = https://github.com/solenopsys/zig-lmdbx.git

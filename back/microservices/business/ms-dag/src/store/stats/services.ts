@@ -14,6 +14,7 @@ import type {
   DagNodeStatsParams,
   DagProcessStats,
   DagProcessDailyStatsPoint,
+  DagNodeDailyStatsPoint,
   DagProcessTypeStats,
   DagNodeStats,
   DagProcessStatus,
@@ -261,6 +262,37 @@ export class StatsStoreService {
         total: Number(row.total ?? 0),
         running: Number(row.running ?? 0),
         done: Number(row.done ?? 0),
+        failed: Number(row.failed ?? 0),
+      }));
+  }
+
+  async getNodeDailyStats(params: { days?: number } = {}): Promise<DagNodeDailyStatsPoint[]> {
+    const days = params.days ?? 30;
+    const now = Date.now();
+    const createdFrom = days > 0 ? now - ((days - 1) * 24 * 60 * 60 * 1000) : undefined;
+
+    const dayExpr = sql<string>`date(datetime(created_at / 1000, 'unixepoch'))`;
+
+    let query = this.store.db
+      .selectFrom("nodes")
+      .select([
+        dayExpr.as("day"),
+        sql<number>`count(*)`.as("total"),
+        sql<number>`sum(case when state = 'failed' then 1 else 0 end)`.as("failed"),
+      ])
+      .groupBy(dayExpr)
+      .orderBy(dayExpr, "asc");
+
+    if (createdFrom !== undefined) {
+      query = query.where("created_at", ">=", createdFrom) as typeof query;
+    }
+
+    const rows = await query.execute();
+    return rows
+      .filter((row: any) => typeof row?.day === "string" && row.day.length > 0)
+      .map((row: any) => ({
+        date: row.day,
+        total: Number(row.total ?? 0),
         failed: Number(row.failed ?? 0),
       }));
   }

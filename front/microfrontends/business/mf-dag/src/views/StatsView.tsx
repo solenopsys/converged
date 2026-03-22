@@ -113,6 +113,7 @@ export const StatsView = ({ bus }) => {
             <div className="h-[280px]">
               <ExecutionErrorsLineChart
                 data={stats.daily}
+                nodesData={stats.nodesDaily}
                 title="Daily errors"
                 description="Errors count and error rate by day"
               />

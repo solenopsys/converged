@@ -9,19 +9,30 @@ type DailyPoint = {
 };
 
 const COLORS = {
-  failed: "#ef4444",
-  rate: "#f97316",
+  wfFailed: "#ef4444",
+  nodeFailed: "#f97316",
+  rate: "#facc15",
 };
 
 export function ExecutionErrorsLineChart({
   data = [],
+  nodesData = [],
   title,
   description,
 }: {
   data: DailyPoint[];
+  nodesData?: DailyPoint[];
   title?: string;
   description?: string;
 }) {
+  const allDates = useMemo(() => {
+    const set = new Set([...data.map((d) => d.date), ...nodesData.map((d) => d.date)]);
+    return Array.from(set).sort();
+  }, [data, nodesData]);
+
+  const wfMap = useMemo(() => Object.fromEntries(data.map((d) => [d.date, d])), [data]);
+  const nodeMap = useMemo(() => Object.fromEntries(nodesData.map((d) => [d.date, d])), [nodesData]);
+
   const option = useMemo(
     () => ({
       grid: { top: 36, right: 40, left: 0, bottom: 20, containLabel: true },
@@ -33,13 +44,14 @@ export function ExecutionErrorsLineChart({
         itemHeight: 8,
         textStyle: { fontSize: 12 },
         data: [
-          { name: "Errors", itemStyle: { color: COLORS.failed } },
-          { name: "Error rate %", itemStyle: { color: COLORS.rate } },
+          { name: "WF errors", itemStyle: { color: COLORS.wfFailed } },
+          { name: "Node errors", itemStyle: { color: COLORS.nodeFailed } },
+          { name: "WF error rate %", itemStyle: { color: COLORS.rate } },
         ],
       },
       xAxis: {
         type: "category",
-        data: data.map((d) => d.date),
+        data: allDates,
         axisLine: { show: false },
         axisTick: { show: false },
         axisLabel: {
@@ -69,27 +81,34 @@ export function ExecutionErrorsLineChart({
       tooltip: { trigger: "axis" },
       series: [
         {
-          name: "Errors",
+          name: "WF errors",
           type: "bar",
-          data: data.map((d) => d.failed),
-          itemStyle: { color: COLORS.failed, opacity: 0.85 },
+          data: allDates.map((d) => wfMap[d]?.failed ?? 0),
+          itemStyle: { color: COLORS.wfFailed, opacity: 0.85 },
         },
         {
-          name: "Error rate %",
+          name: "Node errors",
+          type: "bar",
+          data: allDates.map((d) => nodeMap[d]?.failed ?? 0),
+          itemStyle: { color: COLORS.nodeFailed, opacity: 0.85 },
+        },
+        {
+          name: "WF error rate %",
           type: "line",
           yAxisIndex: 1,
           smooth: true,
           symbol: "none",
-          data: data.map((d) => {
-            if (!d.total) return 0;
-            return Number(((d.failed / d.total) * 100).toFixed(2));
+          data: allDates.map((d) => {
+            const p = wfMap[d];
+            if (!p?.total) return 0;
+            return Number(((p.failed / p.total) * 100).toFixed(2));
           }),
           lineStyle: { color: COLORS.rate, opacity: 0.95 },
           itemStyle: { color: COLORS.rate },
         },
       ],
     }),
-    [data],
+    [allDates, wfMap, nodeMap],
   );
 
   return (

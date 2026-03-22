@@ -216,13 +216,14 @@ export default class DagServiceImpl implements DagService {
 
   async stats() {
     await this.ensureStoresReady();
-    const [executions, tasks, executionsDaily, executionsTypes] = await Promise.all([
+    const [executions, tasks, executionsDaily, executionsTypes, nodesDaily] = await Promise.all([
       this.stores.statsStoreService.getProcessStats(),
       this.stores.statsStoreService.getNodeStats(),
       this.stores.statsStoreService.getProcessDailyStats({ days: 30 }),
       this.stores.statsStoreService.getProcessTypeStats(),
+      this.stores.statsStoreService.getNodeDailyStats({ days: 30 }),
     ]);
-    return { executions, tasks, executionsDaily, executionsTypes };
+    return { executions, tasks, executionsDaily, executionsTypes, nodesDaily };
   }
 
   async listWorkflows(): Promise<{ names: string[] }> {

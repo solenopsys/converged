@@ -10,6 +10,12 @@ type DagDailyStatsPoint = {
   failed: number;
 };
 
+type DagNodeDailyPoint = {
+  date: string;
+  total: number;
+  failed: number;
+};
+
 type DagStats = {
   total: number;
   running: number;
@@ -17,6 +23,7 @@ type DagStats = {
   failed: number;
   tasksTotal: number;
   daily: DagDailyStatsPoint[];
+  nodesDaily: DagNodeDailyPoint[];
   types: Record<string, number>;
 };
 
@@ -42,6 +49,13 @@ const loadStatsFx = domain.createEffect<void, DagStats>({
             failed: Number(item?.failed ?? 0),
           }))
         : [],
+      nodesDaily: Array.isArray(result?.nodesDaily)
+        ? result.nodesDaily.map((item: any) => ({
+            date: String(item?.date ?? ''),
+            total: Number(item?.total ?? 0),
+            failed: Number(item?.failed ?? 0),
+          }))
+        : [],
       types:
         result?.executionsTypes && typeof result.executionsTypes === 'object'
           ? Object.entries(result.executionsTypes as Record<string, unknown>).reduce(
@@ -63,6 +77,7 @@ export const $dagStats = domain.createStore<DagStats>({
   failed: 0,
   tasksTotal: 0,
   daily: [],
+  nodesDaily: [],
   types: {},
 }).on(loadStatsFx.doneData, (_, stats) => stats);
 

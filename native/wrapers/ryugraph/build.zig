@@ -63,7 +63,7 @@ fn addRyuSharedBuild(
         "-B",
         cmake_build_dir,
         "-G",
-        "Unix Makefiles",
+        "Ninja",
         b.fmt("-DCMAKE_BUILD_TYPE={s}", .{cmake_build_type}),
         "-DCMAKE_SYSTEM_NAME=Linux",
         b.fmt("-DCMAKE_SYSTEM_PROCESSOR={s}", .{target_parts.arch}),
@@ -76,6 +76,7 @@ fn addRyuSharedBuild(
         b.fmt("-DCMAKE_CXX_COMPILER_TARGET={s}", .{target_triple}),
         "-DCMAKE_C_FLAGS=-Wno-error=date-time -DROARING_DISABLE_AVX=1 -DCROARING_COMPILER_SUPPORTS_AVX512=0 -DSIMSIMD_TARGET_HASWELL=0 -DSIMSIMD_TARGET_SKYLAKE=0 -DSIMSIMD_TARGET_ICE=0 -DSIMSIMD_TARGET_GENOA=0 -DSIMSIMD_TARGET_SAPPHIRE=0 -DSIMSIMD_TARGET_TURIN=0",
         "-DCMAKE_CXX_FLAGS=-Wno-error=date-time -DROARING_DISABLE_AVX=1 -DCROARING_COMPILER_SUPPORTS_AVX512=0 -DSIMSIMD_TARGET_HASWELL=0 -DSIMSIMD_TARGET_SKYLAKE=0 -DSIMSIMD_TARGET_ICE=0 -DSIMSIMD_TARGET_GENOA=0 -DSIMSIMD_TARGET_SAPPHIRE=0 -DSIMSIMD_TARGET_TURIN=0",
+        "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,-s",
         "-DAUTO_UPDATE_GRAMMAR=OFF",
         "-DBUILD_PYTHON=OFF",
         "-DBUILD_JAVA=OFF",
@@ -98,6 +99,7 @@ fn addRyuSharedBuild(
         cmake_build_type,
         "--target",
         "ryu_shared",
+        "--parallel",
     });
     build_cmd.setName(b.fmt("build ryu_shared ({s})", .{target_str}));
     build_cmd.step.dependOn(&configure.step);

@@ -17,3 +17,4 @@ next
 storybook-static/
 deployment
 .tmp
+artifacts

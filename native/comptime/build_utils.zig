@@ -68,11 +68,18 @@ pub const HashAndMoveStep = struct {
         const self: *HashAndMoveStep = @fieldParentPtr("step", step);
 
         const path = try std.fmt.allocPrint(step.owner.allocator, "zig-out/lib/lib{s}.so", .{self.lib_name});
-        const content = try std.fs.cwd().readFileAlloc(step.owner.allocator, path, 100 * 1024 * 1024);
-        defer step.owner.allocator.free(content);
 
         var hasher = std.crypto.hash.sha2.Sha256.init(.{});
-        hasher.update(content);
+        {
+            const file = try std.fs.cwd().openFile(path, .{});
+            defer file.close();
+            var buf: [65536]u8 = undefined;
+            while (true) {
+                const n = try file.read(&buf);
+                if (n == 0) break;
+                hasher.update(buf[0..n]);
+            }
+        }
         const digest = hasher.finalResult();
 
         var hash_str: [64]u8 = undefined;
