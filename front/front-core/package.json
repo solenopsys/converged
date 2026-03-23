@@ -14,6 +14,7 @@
     "./landing-common/groups": "./src/landing-common/groups.ts",
     "./landing-common/island-loader": "./src/landing-common/island-loader.ts",
     "./landing-common/island-client": "./src/landing-common/island-client.ts",
+    "./landing-common/ssr-shell": "./src/landing-common/ssr-shell.tsx",
     "./landing-common/seo": "./src/landing-common/seo.ts",
     "./landing-common/sitemap": "./src/landing-common/sitemap.ts",
     "./runtime-config": "./src/tools/runtime-config.ts",

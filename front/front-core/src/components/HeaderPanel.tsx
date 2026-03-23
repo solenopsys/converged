@@ -95,13 +95,13 @@ export const HeaderPanel: React.FC<HeaderPanelProps> = ({ config, children }) =>
           <img
             src="/header-logo-white.svg"
             alt="project-logo-dark"
-            className="hidden h-5 w-auto dark:block"
+            className="header-panel-logo hidden h-5 w-auto dark:block"
             onError={(event) => { event.currentTarget.style.display = "none"; }}
           />
           <img
             src="/header-logo-black.svg"
             alt="project-logo-light"
-            className="block h-5 w-auto dark:hidden"
+            className="header-panel-logo block h-5 w-auto dark:hidden"
             onError={(event) => { event.currentTarget.style.display = "none"; }}
           />
           {children}

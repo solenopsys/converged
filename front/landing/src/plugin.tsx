@@ -240,6 +240,10 @@ export default function landingPlugin(config: { publicDir?: string; production?:
       const mod = await import("./ssr/styles");
       return mod.buildStyles();
     },
+    buildSpaStyles: async () => {
+      const mod = await import("./ssr/styles");
+      return mod.buildSpaStyles();
+    },
     loadSeoConfig,
     renderPage: async (
       url: string,

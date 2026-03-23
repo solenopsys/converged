@@ -12,6 +12,7 @@ import {
 
 const SSR_MENU_STYLE_ID = 'ssr-menu-shell-style';
 const SSR_COUNTER_ID = 'ssr-seconds-counter';
+const SSR_SPA_STYLE_LINK_ID = 'ssr-spa-style-link';
 let startedAtMs = 0;
 let counterTimer: ReturnType<typeof setInterval> | null = null;
 let pendingNavigation: AbortController | null = null;
@@ -26,7 +27,36 @@ let centerRenderWatchStop: (() => void) | null = null;
 let centerRenderHost: HTMLElement | null = null;
 let centerRenderRoot: { render: (node: any) => void; unmount: () => void } | null = null;
 
+function ensureSpaStylesheet(): void {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById(SSR_SPA_STYLE_LINK_ID)) return;
+
+  const existing = Array.from(
+    document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"][href]'),
+  ).find((link) => {
+    try {
+      const href = link.getAttribute('href') || '';
+      const resolved = new URL(href, window.location.origin);
+      return resolved.pathname === '/spa.css';
+    } catch {
+      return false;
+    }
+  });
+
+  if (existing) {
+    existing.id = SSR_SPA_STYLE_LINK_ID;
+    return;
+  }
+
+  const link = document.createElement('link');
+  link.id = SSR_SPA_STYLE_LINK_ID;
+  link.rel = 'stylesheet';
+  link.href = '/spa.css';
+  document.head.appendChild(link);
+}
+
 async function ensureCenterRenderer(): Promise<void> {
+  ensureSpaStylesheet();
   const host = document.getElementById('root');
   if (!host) return;
   const main = host.closest('#ssr-main') as HTMLElement | null;
@@ -176,23 +206,45 @@ function ensureStyles(): void {
   display: flex;
   flex-direction: column;
   min-height: calc(100vh - 28px);
+  height: calc(100vh - 28px);
+  max-height: calc(100vh - 28px);
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
 }
 #root[data-center-runtime="1"] {
   display: flex;
   flex-direction: column;
+  flex: 1 1 auto;
   min-height: 0;
+  min-width: 0;
   height: 100%;
+  width: 100%;
+  max-width: 100%;
   overflow: hidden;
 }
 .ssr-center-runtime {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  min-width: 0;
   height: 100%;
+  width: 100%;
+  max-width: 100%;
   overflow: hidden;
 }
 .ssr-center-runtime > * {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
   min-height: 0;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+#root[data-center-runtime="1"] .header-panel-logo {
+  display: none !important;
 }
 #ssr-left-panel {
   display: flex;
@@ -707,6 +759,7 @@ export function mountSsrMenuShell(): void {
   if (!menuPanel) return;
   menuPanel.dataset.ssrMenuShell = '1';
 
+  ensureSpaStylesheet();
   ensureStyles();
 
   const locale = resolveLocale();
