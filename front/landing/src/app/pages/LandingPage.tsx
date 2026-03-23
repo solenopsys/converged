@@ -18,7 +18,7 @@ function resolveLandingConfigPath(): string {
     : DEFAULT_LANDING_CONF_ID;
 }
 
-export function Home() {
+export function LandingPage() {
   const landingConfigPath = useMemo(resolveLandingConfigPath, []);
   return <LandingView configPath={landingConfigPath} />;
 }

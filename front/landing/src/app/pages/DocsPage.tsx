@@ -61,9 +61,6 @@ export function DocsPage() {
         <Button asChild variant={slug === "page2" ? "default" : "outline"}>
           <Link to={buildLocalePath(activeLocale, "/docs/page2")}>Page 2</Link>
         </Button>
-        <Button asChild variant="outline">
-          <Link to={buildLocalePath(activeLocale, "/")}>Home</Link>
-        </Button>
       </div>
       <MdView ast={ast} error={error} loading={loading} />
     </div>

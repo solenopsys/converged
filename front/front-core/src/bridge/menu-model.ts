@@ -73,11 +73,22 @@ export function normalizeMenuSections(raw: unknown): BridgeMenuSection[] {
       slugify(title)
     ) || `section-${index + 1}`;
     const iconName = asNonEmptyString(rec.iconName) ?? undefined;
+    const sectionActionId = toActionId(rec.action as ActionLike);
     const rawItems = Array.isArray(rec.items) ? rec.items : [];
 
-    const items = rawItems
+    const items: BridgeMenuItem[] = rawItems
       .map((item, itemIndex) => normalizeMenuItem(item, `${id}-${itemIndex + 1}`))
       .filter((item): item is BridgeMenuItem => Boolean(item));
+
+    if (sectionActionId) {
+      items.unshift({
+        id: `${id}__self`,
+        title,
+        actionId: sectionActionId,
+        iconName,
+        items: [],
+      });
+    }
 
     if (items.length === 0) continue;
 

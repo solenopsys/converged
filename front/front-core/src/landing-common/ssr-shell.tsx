@@ -22,9 +22,11 @@ export const themeBootstrapScript = `
 export const preSsrShellCss = `
 body { margin: 0; }
 :root {
-  --ssr-pad: 14px;
+  --ssr-pad: 0px;
   --ssr-menu-width: 276px;
-  --ssr-gap: 14px;
+  --ssr-rail-width: 380px;
+  --ssr-gap: 0px;
+  --ssr-rail-space: 0px;
 }
 #app-shell {
   min-height: 100vh;
@@ -32,9 +34,16 @@ body { margin: 0; }
 #ssr-shell {
   display: block;
   min-height: 100vh;
+  --ssr-rail-space: 0px;
   padding: var(--ssr-pad);
-  padding-left: calc(var(--ssr-pad) + var(--ssr-menu-width) + var(--ssr-gap));
+  padding-left: calc(
+    var(--ssr-pad) + var(--ssr-menu-width) + var(--ssr-gap) + var(--ssr-rail-space)
+  );
   box-sizing: border-box;
+  transition: padding-left 220ms ease;
+}
+#ssr-shell[data-rail-open="1"] {
+  --ssr-rail-space: var(--ssr-rail-width);
 }
 #ssr-left-panel {
   position: fixed;
@@ -47,16 +56,84 @@ body { margin: 0; }
   overflow: auto;
   border: none;
   border-radius: 0;
+  border-right: 1px solid rgba(148, 163, 184, 0.24);
   background: transparent;
   padding: 4px 0 0;
   box-sizing: border-box;
+}
+#ssr-right-rail {
+  position: fixed;
+  top: var(--ssr-pad);
+  left: calc(var(--ssr-pad) + var(--ssr-menu-width) + var(--ssr-gap));
+  bottom: var(--ssr-pad);
+  width: var(--ssr-rail-width);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-left: 1px solid rgba(148, 163, 184, 0.24);
+  border-right: 1px solid rgba(148, 163, 184, 0.24);
+  border-top: none;
+  border-bottom: none;
+  border-radius: 0;
+  background: #0b0d13;
+  backdrop-filter: none;
+  isolation: isolate;
+  box-sizing: border-box;
+  transform: translateX(0);
+  opacity: 1;
+  transition: transform 220ms ease, opacity 220ms ease;
+  z-index: 5;
+}
+#ssr-right-rail[data-open="0"] {
+  transform: translateX(calc(-1 * var(--ssr-rail-width)));
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+#ssr-right-rail[data-open="1"] {
+  visibility: visible;
+}
+#ssr-right-rail-chat,
+#ssr-right-rail-tab {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+#ssr-right-rail[data-mode="chat"] #ssr-right-rail-tab {
+  display: none;
+}
+#ssr-right-rail[data-mode="tab"] #ssr-right-rail-chat {
+  display: none;
+}
+#slot-panel-chat,
+#slot-panel-tab {
+  min-height: 100%;
+  min-width: 0;
+}
+.ssr-right-rail-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 18px;
+}
+.ssr-right-rail-empty h3 {
+  margin: 0;
+  font-size: 30px;
+  line-height: 1.08;
+}
+.ssr-right-rail-empty p {
+  margin: 0;
+  opacity: 0.72;
 }
 .ssr-panel-brand {
   display: flex;
   align-items: center;
   gap: 8px;
   min-height: 24px;
-  margin: 0 0 12px;
+  margin: 0 0 8px;
+  padding: 10px 14px 0;
 }
 .ssr-panel-brand-logo-light,
 .ssr-panel-brand-logo-dark {
@@ -73,23 +150,23 @@ body { margin: 0; }
   display: block;
 }
 .ssr-panel-title {
-  margin: 0 0 10px 2px;
+  margin: 0 0 8px;
+  padding: 0 14px;
   font-size: 14px;
   font-weight: 600;
 }
-.ssr-panel-nav {
-  display: grid;
-  gap: 8px;
-  margin-bottom: 12px;
-}
 .ssr-panel-link {
-  display: block;
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  border-radius: 9px;
-  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  border: none;
+  border-radius: 6px;
+  padding: 0 12px;
   text-decoration: none;
   color: inherit;
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 500;
 }
 .ssr-panel-groups {
   display: grid;
@@ -103,7 +180,7 @@ body { margin: 0; }
 }
 #ssr-seconds-counter {
   margin-top: auto;
-  padding-top: 10px;
+  padding: 10px 14px 0;
   border-top: 1px solid rgba(148, 163, 184, 0.25);
   font-size: 12px;
   opacity: 0.85;
@@ -112,7 +189,7 @@ body { margin: 0; }
   min-width: 0;
   border: none;
   border-radius: 0;
-  padding: 14px 0 0;
+  padding: 0;
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -121,40 +198,63 @@ body { margin: 0; }
 }
 @media (max-width: 980px) {
   #ssr-shell {
-    padding: var(--ssr-pad);
+    padding: 0;
   }
   #ssr-left-panel {
     position: static;
     width: auto;
-    margin-bottom: 12px;
+    margin-bottom: 0;
     max-height: none;
+  }
+  #ssr-right-rail {
+    position: static;
+    left: auto;
+    top: auto;
+    bottom: auto;
+    width: auto;
+    margin-bottom: 0;
+    min-height: 280px;
+    transform: none;
+  }
+  #ssr-right-rail[data-open="0"] {
+    display: none;
+    opacity: 0;
+    visibility: hidden;
+  }
+  #ssr-right-rail[data-open="1"] {
+    display: flex;
+    opacity: 1;
+    visibility: visible;
   }
 }
 `;
 
 export function SsrShellLayout({ children }: { children: ReactNode }) {
   return (
-    <div id="app-shell" data-island="spa-shell" data-island-load="eager">
-      <div id="ssr-shell">
+    <div id="app-shell" data-island="spa-shell" data-island-load="eager" data-rail-open="0">
+      <div id="ssr-shell" data-rail-open="0">
         <aside id="ssr-left-panel" aria-label="Menu">
           <div className="ssr-panel-brand" aria-label="Brand">
             <img className="ssr-panel-brand-logo-light" src="/header-logo-black.svg" alt="Converged AI" />
             <img className="ssr-panel-brand-logo-dark" src="/header-logo-white.svg" alt="Converged AI" />
           </div>
           <h2 className="ssr-panel-title">Menu</h2>
-          <nav className="ssr-panel-nav" data-ssr-menu-links>
-            <a className="ssr-panel-link" href="/">
-              Home
-            </a>
-            <a className="ssr-panel-link" href="/about">
-              About
-            </a>
-            <a className="ssr-panel-link" href="/docs/page1">
-              Docs
-            </a>
-          </nav>
           <div className="ssr-panel-groups" data-ssr-menu-groups />
           <div id="ssr-seconds-counter">uptime 0s</div>
+        </aside>
+        <aside id="ssr-right-rail" aria-label="Panel" data-open="0" data-mode="chat">
+          <section id="ssr-right-rail-chat">
+            <div id="slot-panel-chat">
+              <div className="ssr-right-rail-empty">
+                <h3>Ask us anything</h3>
+                <p>Loading AI assistant...</p>
+              </div>
+            </div>
+          </section>
+          <section id="ssr-right-rail-tab">
+            <div id="slot-panel-tab" />
+          </section>
+          <div id="ssr-slot-provider-root" />
         </aside>
         <div id="ssr-main">
           <div id="root">{children}</div>

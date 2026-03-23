@@ -1,18 +1,14 @@
 import { GROUPS } from './groups';
 import { $allMenuItems, addMenuRequested, bus, runActionEvent } from '../controllers';
 import { rightRailActionSelected } from '../components/right-rail/uri-sync';
-import { $centerView, type CenterViewState } from '../slots/present';
+import { $centerView } from '../slots/present';
 import { createBridgeController } from '../bridge';
-import {
-  DEFAULT_LOCALE,
-  buildLocalePath,
-  isSupportedLocale,
-  type SupportedLocale,
-} from './i18n';
 
 const SSR_MENU_STYLE_ID = 'ssr-menu-shell-style';
 const SSR_COUNTER_ID = 'ssr-seconds-counter';
-const SSR_SPA_STYLE_LINK_ID = 'ssr-spa-style-link';
+const SSR_RIGHT_RAIL_ID = 'ssr-right-rail';
+const SSR_SLOT_PROVIDER_ROOT_ID = 'ssr-slot-provider-root';
+const RIGHT_RAIL_QUERY_KEYS = ['sidebarTab', 'sidebarPanel', 'sidebarAction'] as const;
 let startedAtMs = 0;
 let counterTimer: ReturnType<typeof setInterval> | null = null;
 let pendingNavigation: AbortController | null = null;
@@ -26,37 +22,14 @@ let centerRendererInitPromise: Promise<void> | null = null;
 let centerRenderWatchStop: (() => void) | null = null;
 let centerRenderHost: HTMLElement | null = null;
 let centerRenderRoot: { render: (node: any) => void; unmount: () => void } | null = null;
-
-function ensureSpaStylesheet(): void {
-  if (typeof document === 'undefined') return;
-  if (document.getElementById(SSR_SPA_STYLE_LINK_ID)) return;
-
-  const existing = Array.from(
-    document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"][href]'),
-  ).find((link) => {
-    try {
-      const href = link.getAttribute('href') || '';
-      const resolved = new URL(href, window.location.origin);
-      return resolved.pathname === '/spa.css';
-    } catch {
-      return false;
-    }
-  });
-
-  if (existing) {
-    existing.id = SSR_SPA_STYLE_LINK_ID;
-    return;
-  }
-
-  const link = document.createElement('link');
-  link.id = SSR_SPA_STYLE_LINK_ID;
-  link.rel = 'stylesheet';
-  link.href = '/spa.css';
-  document.head.appendChild(link);
-}
+let rightRailInitPromise: Promise<void> | null = null;
+let rightRailWatchStop: (() => void) | null = null;
+let rightRailHost: HTMLElement | null = null;
+let rightRailPortalRoot: { render: (node: any) => void; unmount: () => void } | null = null;
+let rightRailChatBootstrapped = false;
+type CenterViewState = ReturnType<typeof $centerView.getState>;
 
 async function ensureCenterRenderer(): Promise<void> {
-  ensureSpaStylesheet();
   const host = document.getElementById('root');
   if (!host) return;
   const main = host.closest('#ssr-main') as HTMLElement | null;
@@ -120,18 +93,134 @@ async function ensureCenterRenderer(): Promise<void> {
   return centerRendererInitPromise;
 }
 
+function setRightRailMode(mode: 'chat' | 'tab'): void {
+  const rail = document.getElementById(SSR_RIGHT_RAIL_ID);
+  if (!rail) return;
+  rail.dataset.mode = mode;
+}
+
+function setRightRailOpen(open: boolean): void {
+  const rail = document.getElementById(SSR_RIGHT_RAIL_ID);
+  const appShell = document.getElementById('app-shell');
+  const shell = document.getElementById('ssr-shell');
+  const next = open ? '1' : '0';
+  if (rail) {
+    rail.dataset.open = next;
+  }
+  if (shell) {
+    shell.dataset.railOpen = next;
+  }
+  if (appShell) {
+    appShell.dataset.railOpen = next;
+  }
+}
+
+function syncRightRailMode(tabId: string | null | undefined): void {
+  if (tabId && tabId !== 'menu') {
+    setRightRailOpen(true);
+    setRightRailMode('tab');
+    return;
+  }
+  setRightRailMode('chat');
+}
+
+async function ensureAssistantsLoaded(): Promise<void> {
+  const moduleName = 'mf-assistants';
+  if (loadedModules.has(moduleName)) return;
+
+  initMicrofrontendEnv();
+
+  try {
+    const runtime = await import(moduleName);
+    const group = normalizeGroup(runtime?.GROUP as RuntimeGroup);
+    knownModuleGroup[moduleName] = group.id;
+
+    if (!loadedModules.has(moduleName) && runtime?.default?.plug) {
+      runtime.default.plug(bus);
+      loadedModules.add(moduleName);
+    }
+
+    if (runtime?.MENU) {
+      if (!loadedGroupMenus[group.id]) loadedGroupMenus[group.id] = [];
+      const alreadyAdded = loadedGroupMenus[group.id].some(
+        (item) => item && item.key === runtime.MENU.key,
+      );
+      if (!alreadyAdded) {
+        loadedGroupMenus[group.id].push(runtime.MENU);
+        publishLoadedGroupsMenu();
+      }
+    }
+  } catch (error) {
+    console.error('[ssr-menu] failed to preload mf-assistants', error);
+  }
+}
+
+async function ensureRightRailRuntime(): Promise<void> {
+  const rail = document.getElementById(SSR_RIGHT_RAIL_ID);
+  if (!rail) return;
+
+  const host = document.getElementById(SSR_SLOT_PROVIDER_ROOT_ID);
+  if (!host) return;
+
+  if (rightRailInitPromise && rightRailHost === host && rightRailPortalRoot) {
+    return rightRailInitPromise;
+  }
+
+  rightRailInitPromise = (async () => {
+    if (rightRailPortalRoot && rightRailHost !== host) {
+      try {
+        rightRailPortalRoot.unmount();
+      } catch {
+        // ignore unmount errors
+      }
+      rightRailPortalRoot = null;
+    }
+
+    const [{ createElement }, reactDom, { SlotProvider }, sidebarStore] = await Promise.all([
+      import('react'),
+      import('react-dom/client'),
+      import('../slots/SlotProvider'),
+      import('sidebar-controller'),
+    ]);
+
+    const nextRoot = reactDom.createRoot(host);
+    rightRailHost = host;
+    rightRailPortalRoot = nextRoot;
+    rightRailPortalRoot.render(createElement(SlotProvider));
+
+    syncRightRailMode((sidebarStore.$activeTab.getState?.() as string) ?? 'menu');
+    if (!rightRailWatchStop) {
+      const watchResult = sidebarStore.$activeTab.watch((tabId: string) => {
+        syncRightRailMode(tabId);
+      });
+      rightRailWatchStop =
+        typeof watchResult === 'function'
+          ? watchResult
+          : () => (watchResult as { unsubscribe?: () => void }).unsubscribe?.();
+    }
+
+    await ensureAssistantsLoaded();
+
+    if (!rightRailChatBootstrapped) {
+      rightRailChatBootstrapped = true;
+      const chatSlot = document.getElementById('slot-panel-chat');
+      if (chatSlot) {
+        chatSlot.innerHTML = '';
+      }
+      runActionEvent({ actionId: 'chats.show', params: {} });
+    }
+  })();
+
+  return rightRailInitPromise;
+}
+
 const bridge = createBridgeController({
   onMenuAction: async (actionId) => {
-    await ensureCenterRenderer();
+    await Promise.all([ensureCenterRenderer(), ensureRightRailRuntime()]);
     rightRailActionSelected(actionId);
     runActionEvent({ actionId, params: {} });
   },
 });
-
-function resolveLocale(): SupportedLocale {
-  const lang = document.documentElement.lang.trim().slice(0, 2).toLowerCase();
-  return isSupportedLocale(lang) ? lang : DEFAULT_LOCALE;
-}
 
 function ensureStyles(): void {
   if (document.getElementById(SSR_MENU_STYLE_ID)) return;
@@ -141,16 +230,18 @@ function ensureStyles(): void {
 .ssr-panel-link {
   display: flex;
   align-items: center;
-  gap: 6px;
-  min-height: 28px;
+  gap: 8px;
+  min-height: 34px;
   width: 100%;
   border: none;
   border-radius: 6px;
   text-decoration: none;
   color: inherit;
   background: transparent;
-  padding: 0 8px;
+  padding: 0 12px;
   box-sizing: border-box;
+  font-size: 15px;
+  font-weight: 500;
 }
 .ssr-panel-link:hover {
   background: rgba(148, 163, 184, 0.14);
@@ -177,21 +268,32 @@ function ensureStyles(): void {
   flex: 0 0 14px;
   color: rgba(226, 232, 240, 0.85);
 }
-.ssr-menu-chevron::before {
-  content: "▸";
-  font-size: 10px;
-  line-height: 1;
+.ssr-menu-chevron svg {
+  width: 11px;
+  height: 11px;
+  display: block;
+  transform-origin: 50% 50%;
   transition: transform 120ms ease;
 }
-.ssr-menu-tree[open] > summary .ssr-menu-chevron::before {
+.ssr-menu-tree[open] > summary .ssr-menu-chevron svg {
   transform: rotate(90deg);
 }
-.ssr-menu-chevron-empty::before {
-  content: "";
+.ssr-menu-chevron-empty svg {
+  display: none;
 }
 .ssr-menu-icon {
-  width: 14px;
-  flex: 0 0 14px;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  color: rgba(226, 232, 240, 0.92);
+}
+.ssr-menu-icon svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+.ssr-menu-icon-empty {
+  color: transparent;
 }
 .ssr-menu-label {
   overflow: hidden;
@@ -199,7 +301,7 @@ function ensureStyles(): void {
   white-space: nowrap;
 }
 .ssr-menu-nested {
-  margin: 0;
+  margin: 0 0 0 4px;
   padding: 0;
 }
 #ssr-main[data-center-runtime="1"] {
@@ -250,6 +352,33 @@ function ensureStyles(): void {
   display: flex;
   flex-direction: column;
 }
+#ssr-right-rail {
+  display: flex;
+  flex-direction: column;
+}
+#ssr-right-rail[data-mode="chat"] #ssr-right-rail-tab {
+  display: none;
+}
+#ssr-right-rail[data-mode="tab"] #ssr-right-rail-chat {
+  display: none;
+}
+#ssr-slot-provider-root {
+  display: none;
+}
+#slot-panel-chat,
+#slot-panel-tab {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  min-width: 0;
+}
+#slot-panel-chat > *,
+#slot-panel-tab > * {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
 #${SSR_COUNTER_ID} {
   margin-top: auto;
   padding-top: 10px;
@@ -297,6 +426,8 @@ function extractRootFromHtml(html: string): HTMLElement | null {
 type RuntimeMenuItem = {
   key?: string;
   title?: string;
+  iconName?: string;
+  icon?: unknown;
   action?: unknown;
   items?: RuntimeMenuItem[];
 };
@@ -307,6 +438,29 @@ type InitialDataShape = {
 };
 
 type RuntimeGroup = { id?: string; title?: string; iconName?: string } | null | undefined;
+
+const MENU_ICON_SVG: Record<string, string> = {
+  IconBrain:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 4a3 3 0 0 0-3 3v1.2a2.8 2.8 0 0 0 0 5.6V15a3 3 0 0 0 3 3"/><path d="M14.5 4a3 3 0 0 1 3 3v1.2a2.8 2.8 0 0 1 0 5.6V15a3 3 0 0 1-3 3"/><path d="M9.5 10.5h5"/><path d="M9.5 15.5h5"/><path d="M12 4v14"/></svg>',
+  IconBriefcase:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M3 12h18"/></svg>',
+  IconGlobe:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a13 13 0 0 1 0 18"/><path d="M12 3a13 13 0 0 0 0 18"/></svg>',
+  IconTarget:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/></svg>',
+  IconGitBranch:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="5" r="2"/><circle cx="18" cy="19" r="2"/><circle cx="6" cy="19" r="2"/><path d="M6 7v8a4 4 0 0 0 4 4h6"/><path d="M18 17v-2a4 4 0 0 0-4-4H6"/></svg>',
+  IconChartBar:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V9"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg>',
+  IconDatabase:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v7c0 1.7 3.6 3 8 3s8-1.3 8-3v-7"/></svg>',
+  IconFileText:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/></svg>',
+  IconMessages:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2"/><path d="M8 20l4-4h8a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2z"/></svg>',
+};
+const MENU_CHEVRON_SVG =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
 
 function resolveActionId(action: unknown): string | null {
   if (typeof action === 'string' && action.length > 0) return action;
@@ -327,6 +481,41 @@ function resolveLabel(item: RuntimeMenuItem, index: number): string {
   return raw;
 }
 
+function resolveIconName(item: RuntimeMenuItem, depth: number): string | null {
+  if (typeof item.iconName === 'string' && item.iconName.length > 0) {
+    return item.iconName;
+  }
+  if (typeof item.icon === 'string' && item.icon.length > 0) {
+    return item.icon;
+  }
+  if (depth === 0 && item.key) {
+    const group = GROUPS.find((g) => g.id === item.key);
+    if (group?.iconName) return group.iconName;
+  }
+  return null;
+}
+
+function setMenuIcon(target: HTMLElement, iconName: string | null): void {
+  target.className = 'ssr-menu-icon';
+  if (!iconName) {
+    target.classList.add('ssr-menu-icon-empty');
+    target.innerHTML = '';
+    return;
+  }
+  const svg = MENU_ICON_SVG[iconName];
+  if (!svg) {
+    target.classList.add('ssr-menu-icon-empty');
+    target.innerHTML = '';
+    return;
+  }
+  target.innerHTML = svg;
+}
+
+function setMenuChevron(target: HTMLElement, withArrow: boolean): void {
+  target.className = withArrow ? 'ssr-menu-chevron' : 'ssr-menu-chevron ssr-menu-chevron-empty';
+  target.innerHTML = MENU_CHEVRON_SVG;
+}
+
 function createGroupButton(groupId: string, title: string): HTMLButtonElement {
   const button = document.createElement('button');
   button.type = 'button';
@@ -334,9 +523,10 @@ function createGroupButton(groupId: string, title: string): HTMLButtonElement {
   button.dataset.groupId = groupId;
 
   const chevron = document.createElement('span');
-  chevron.className = 'ssr-menu-chevron ssr-menu-chevron-empty';
+  setMenuChevron(chevron, true);
   const icon = document.createElement('span');
-  icon.className = 'ssr-menu-icon';
+  const groupIconName = GROUPS.find((g) => g.id === groupId)?.iconName ?? null;
+  setMenuIcon(icon, groupIconName);
   const text = document.createElement('span');
   text.className = 'ssr-menu-label';
   text.textContent = title;
@@ -516,6 +706,7 @@ function buildTreeNode(item: RuntimeMenuItem, depth: number, index: number): HTM
   const label = resolveLabel(item, index);
   const children = Array.isArray(item.items) ? item.items : [];
   const actionId = resolveActionId(item.action);
+  const iconName = resolveIconName(item, depth);
 
   if (children.length > 0) {
     const details = document.createElement('details');
@@ -529,9 +720,9 @@ function buildTreeNode(item: RuntimeMenuItem, depth: number, index: number): HTM
     summary.className = 'ssr-panel-link ssr-menu-action';
     summary.style.paddingLeft = `${8 + depth * 16}px`;
     const chevron = document.createElement('span');
-    chevron.className = 'ssr-menu-chevron';
+    setMenuChevron(chevron, true);
     const icon = document.createElement('span');
-    icon.className = 'ssr-menu-icon';
+    setMenuIcon(icon, iconName);
     const text = document.createElement('span');
     text.className = 'ssr-menu-label';
     text.textContent = label;
@@ -554,9 +745,9 @@ function buildTreeNode(item: RuntimeMenuItem, depth: number, index: number): HTM
   button.className = 'ssr-panel-link ssr-menu-action';
   button.style.paddingLeft = `${8 + depth * 16}px`;
   const chevron = document.createElement('span');
-  chevron.className = 'ssr-menu-chevron';
+  setMenuChevron(chevron, false);
   const icon = document.createElement('span');
-  icon.className = 'ssr-menu-icon';
+  setMenuIcon(icon, iconName);
   const text = document.createElement('span');
   text.className = 'ssr-menu-label';
   text.textContent = label;
@@ -610,6 +801,7 @@ function installDynamicMenu(menuPanel: HTMLElement): void {
         const actionId = parentDetails?.dataset.nodeActionId;
         if (actionId) {
           void bridge.selectMenuAction(actionId);
+          return;
         }
       }
       const actionButton = eventEl.closest('[data-action-id]') as HTMLElement | null;
@@ -752,6 +944,11 @@ function startSecondsCounter(menuPanel: HTMLElement): void {
   counterTimer = setInterval(render, 1000);
 }
 
+function hasRightRailDeepLink(): boolean {
+  const search = new URLSearchParams(window.location.search);
+  return RIGHT_RAIL_QUERY_KEYS.some((key) => search.has(key));
+}
+
 export function mountSsrMenuShell(): void {
   if (typeof document === 'undefined') return;
 
@@ -759,23 +956,14 @@ export function mountSsrMenuShell(): void {
   if (!menuPanel) return;
   menuPanel.dataset.ssrMenuShell = '1';
 
-  ensureSpaStylesheet();
   ensureStyles();
-
-  const locale = resolveLocale();
-  const linksHost = menuPanel.querySelector<HTMLElement>('[data-ssr-menu-links]');
-  if (linksHost) {
-    const links = [
-      { label: 'Home', href: buildLocalePath(locale, '/') },
-      { label: 'About', href: buildLocalePath(locale, '/about') },
-      { label: 'Docs', href: buildLocalePath(locale, '/docs/page1') },
-    ];
-    linksHost.innerHTML = links
-      .map((item) => `<a class="ssr-panel-link" href="${item.href}">${item.label}</a>`)
-      .join('');
-  }
 
   installDynamicMenu(menuPanel);
   startSecondsCounter(menuPanel);
   installLinkInterceptor();
+  // Keep first paint stable: bootstrap right rail runtime lazily.
+  // Only eager-init when URL explicitly deep-links into right rail state.
+  if (hasRightRailDeepLink()) {
+    void ensureRightRailRuntime();
+  }
 }

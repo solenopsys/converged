@@ -16,8 +16,7 @@ import {
   type ComponentType,
   type ReactNode,
 } from "react";
-import { Home } from "./pages/Home";
-import { About } from "./pages/About";
+import { LandingPage } from "./pages/LandingPage";
 import { DocsPage } from "./pages/DocsPage";
 import { DEFAULT_LOCALE, buildLocalePath, isSupportedLocale } from "./i18n";
 
@@ -57,10 +56,8 @@ function renderAppRoutes() {
       <Route path="/" element={<Navigate to={buildLocalePath(DEFAULT_LOCALE, "/")} replace />} />
       <Route path="/console" element={null} />
       <Route path="/console/*" element={null} />
-      <Route path="/about" element={<Navigate to={buildLocalePath(DEFAULT_LOCALE, "/about")} replace />} />
       <Route path="/:locale" element={<LocaleWrapper />}>
-        <Route index element={<Home />} />
-        <Route path="about" element={<About />} />
+        <Route index element={<LandingPage />} />
         <Route path="docs/:slug" element={<DocsPage />} />
         <Route path="console" element={null} />
         <Route path="console/*" element={null} />

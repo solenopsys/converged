@@ -122,72 +122,15 @@ async function loadResetCss(): Promise<string> {
 }
 
 /**
- * Parse CSS rules into a Set of selectors for deduplication.
- */
-function extractRuleSelectors(css: string): Set<string> {
-  const selectors = new Set<string>();
-  const ruleRegex = /^([^@{}][^{]*)\{/gm;
-  let match;
-  while ((match = ruleRegex.exec(css)) !== null) {
-    const sel = match[1].trim();
-    if (sel) selectors.add(sel);
-  }
-  return selectors;
-}
-
-/**
- * Remove CSS rules whose selectors appear in the exclusion set.
- */
-function subtractCssRules(css: string, excludeSelectors: Set<string>): string {
-  const lines = css.split("\n");
-  const result: string[] = [];
-  let skip = false;
-  let braceDepth = 0;
-
-  for (const line of lines) {
-    if (skip) {
-      for (const ch of line) {
-        if (ch === "{") braceDepth++;
-        if (ch === "}") braceDepth--;
-      }
-      if (braceDepth <= 0) {
-        skip = false;
-        braceDepth = 0;
-      }
-      continue;
-    }
-
-    const trimmed = line.trim();
-    if (trimmed && !trimmed.startsWith("@") && trimmed.endsWith("{")) {
-      const selector = trimmed.slice(0, -1).trim();
-      if (excludeSelectors.has(selector)) {
-        skip = true;
-        braceDepth = 1;
-        for (let i = trimmed.indexOf("{") + 1; i < trimmed.length; i++) {
-          if (trimmed[i] === "{") braceDepth++;
-          if (trimmed[i] === "}") braceDepth--;
-        }
-        if (braceDepth <= 0) {
-          skip = false;
-          braceDepth = 0;
-        }
-        continue;
-      }
-    }
-
-    result.push(line);
-  }
-
-  return result.join("\n");
-}
-
-/**
  * Build SSR-only styles — scanned from landing/src and front-landings only.
  * Includes reset, preflights, globals.css, and UnoCSS utilities.
  */
 export async function buildStyles(): Promise<string> {
   const sources: string[] = [];
   for (const dir of ssrSourceRoots) {
+    await collectSources(dir, sources);
+  }
+  for (const dir of spaSourceRoots) {
     await collectSources(dir, sources);
   }
 
@@ -211,24 +154,5 @@ export async function buildStyles(): Promise<string> {
  * Excludes any rules already present in the SSR stylesheet to avoid duplication.
  */
 export async function buildSpaStyles(): Promise<string> {
-  const spaSources: string[] = [];
-  for (const dir of spaSourceRoots) {
-    await collectSources(dir, spaSources);
-  }
-
-  const uno = await createGenerator(unoConfig);
-  const { css: spaCss } = await uno.generate(spaSources.join("\n"), {
-    preflights: false,
-  });
-
-  const ssrSources: string[] = [];
-  for (const dir of ssrSourceRoots) {
-    await collectSources(dir, ssrSources);
-  }
-  const { css: ssrCss } = await uno.generate(ssrSources.join("\n"), {
-    preflights: false,
-  });
-
-  const ssrSelectors = extractRuleSelectors(ssrCss);
-  return subtractCssRules(spaCss, ssrSelectors);
+  return "";
 }

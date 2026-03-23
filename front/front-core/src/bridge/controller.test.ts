@@ -25,6 +25,31 @@ describe('bridge/controller', () => {
     expect(selected).toEqual(['docs.open']);
   });
 
+  test('resolves action selection for expandable section node', async () => {
+    const selected: string[] = [];
+    const controller = createBridgeController({
+      onMenuAction: async (actionId) => {
+        selected.push(actionId);
+      },
+    });
+
+    controller.setMenu([
+      {
+        key: 'analytics',
+        title: 'Analytics',
+        action: { id: 'analytics.open' },
+        items: [{ title: 'Logs', action: 'logs.open' }],
+      },
+    ]);
+
+    const sectionOk = await controller.selectMenuAction('analytics.open');
+    const childOk = await controller.selectMenuAction('logs.open');
+
+    expect(sectionOk).toBe(true);
+    expect(childOk).toBe(true);
+    expect(selected).toEqual(['analytics.open', 'logs.open']);
+  });
+
   test('tracks panel commands and module loading state in snapshot', async () => {
     const controller = createBridgeController({
       modules: {

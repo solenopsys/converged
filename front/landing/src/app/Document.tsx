@@ -59,7 +59,6 @@ export function Document({ children, seo, lang = "en", importMap, initialData }:
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="stylesheet" href="/styles.css" />
-        <link rel="stylesheet" href="/spa.css" />
       </head>
       <body>
         {initialDataJson ? (
