@@ -1,3 +1,4 @@
+import { existsSync } from "fs";
 import fs from "fs/promises";
 import path from "path";
 import { createGenerator } from "unocss";
@@ -7,12 +8,32 @@ const landingRoot = path.resolve(import.meta.dir, "../..");
 const projectRoot =
   process.env.PROJECT_DIR ?? path.resolve(landingRoot, "../..");
 const envParentProjectRoot =
-  process.env.CHILD_PROJECT_DIR && process.env.CHILD_PROJECT_DIR.length > 0
+  (process.env.CHILD_PROJECT_DIR && process.env.CHILD_PROJECT_DIR.length > 0
     ? process.env.CHILD_PROJECT_DIR
-    : undefined;
+    : undefined) ??
+  (process.env.PARENT_PROJECT_DIR && process.env.PARENT_PROJECT_DIR.length > 0
+    ? process.env.PARENT_PROJECT_DIR
+    : undefined);
+
+function resolveFrontRoot(root: string): string {
+  const normalized = root.replace(/[\\/]+$/, "");
+  const looksLikeFrontRoot =
+    existsSync(path.join(normalized, "front-core")) &&
+    existsSync(path.join(normalized, "microfrontends"));
+  if (looksLikeFrontRoot) return normalized;
+  return path.join(normalized, "front");
+}
+
+const siblingClubProjectRoot = path.resolve(projectRoot, "..", "club-portal");
+const fallbackParentProjectRoot = existsSync(
+  path.join(resolveFrontRoot(siblingClubProjectRoot), "microfrontends"),
+)
+  ? siblingClubProjectRoot
+  : undefined;
+
 const projectRoots = Array.from(
   new Set(
-    [projectRoot, envParentProjectRoot].filter(
+    [projectRoot, envParentProjectRoot, fallbackParentProjectRoot].filter(
       (root): root is string => Boolean(root),
     ),
   ),
@@ -32,9 +53,9 @@ const ssrSourceRoots = Array.from(
 const spaSourceRoots = Array.from(
   new Set(
     projectRoots.flatMap((root) => [
-      path.join(root, "front", "front-core", "src"),
-      path.join(root, "front", "microfrontends"),
-      path.join(root, "front", "libraries"),
+      path.join(resolveFrontRoot(root), "front-core", "src"),
+      path.join(resolveFrontRoot(root), "microfrontends"),
+      path.join(resolveFrontRoot(root), "libraries"),
     ]),
   ),
 );

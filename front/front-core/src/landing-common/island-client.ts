@@ -1,6 +1,7 @@
 import { GROUPS } from './groups';
 import { $allMenuItems, addMenuRequested, bus, runActionEvent } from '../controllers';
 import { rightRailActionSelected } from '../components/right-rail/uri-sync';
+import { $centerView, type CenterViewState } from '../slots/present';
 import { createBridgeController } from '../bridge';
 import {
   DEFAULT_LOCALE,
@@ -15,9 +16,83 @@ let startedAtMs = 0;
 let counterTimer: ReturnType<typeof setInterval> | null = null;
 let pendingNavigation: AbortController | null = null;
 let stopMenuWatch: (() => void) | null = null;
-let menuBootstrapPromise: Promise<void> | null = null;
+const groupLoadPromises = new Map<string, Promise<void>>();
+const loadedModules = new Set<string>();
+const knownModuleGroup: Record<string, string> = {};
+const loadedGroupMenus: Record<string, any[]> = {};
+let preferredOpenGroupId: string | null = null;
+let centerRendererInitPromise: Promise<void> | null = null;
+let centerRenderWatchStop: (() => void) | null = null;
+let centerRenderHost: HTMLElement | null = null;
+let centerRenderRoot: { render: (node: any) => void; unmount: () => void } | null = null;
+
+async function ensureCenterRenderer(): Promise<void> {
+  const host = document.getElementById('root');
+  if (!host) return;
+  const main = host.closest('#ssr-main') as HTMLElement | null;
+  if (main) {
+    main.setAttribute('data-center-runtime', '1');
+  }
+  host.setAttribute('data-center-runtime', '1');
+
+  if (
+    centerRendererInitPromise &&
+    centerRenderHost === host &&
+    centerRenderHost.isConnected &&
+    centerRenderRoot
+  ) {
+    return centerRendererInitPromise;
+  }
+
+  centerRendererInitPromise = (async () => {
+    if (centerRenderRoot && centerRenderHost !== host) {
+      try {
+        centerRenderRoot.unmount();
+      } catch {
+        // ignore unmount errors
+      }
+      centerRenderRoot = null;
+    }
+
+    const [{ createElement }, reactDom] = await Promise.all([
+      import('react'),
+      import('react-dom/client'),
+    ]);
+    const nextRoot = reactDom.createRoot(host);
+    centerRenderHost = host;
+    centerRenderRoot = nextRoot;
+
+    const renderCenter = (centerView: CenterViewState) => {
+      if (!centerView || !centerRenderRoot) return;
+      const View = centerView.view as any;
+      centerRenderRoot.render(
+        createElement(
+          'div',
+          { className: 'ssr-center-runtime' },
+          createElement(View, centerView.config ?? {}),
+        ),
+      );
+    };
+
+    renderCenter(($centerView.getState?.() as CenterViewState) ?? null);
+
+    if (!centerRenderWatchStop) {
+      const watchResult = $centerView.watch((next) => {
+        renderCenter((next as CenterViewState) ?? null);
+      });
+      centerRenderWatchStop =
+        typeof watchResult === 'function'
+          ? watchResult
+          : () => (watchResult as { unsubscribe?: () => void }).unsubscribe?.();
+    }
+  })();
+
+  return centerRendererInitPromise;
+}
+
 const bridge = createBridgeController({
-  onMenuAction: (actionId) => {
+  onMenuAction: async (actionId) => {
+    await ensureCenterRenderer();
     rightRailActionSelected(actionId);
     runActionEvent({ actionId, params: {} });
   },
@@ -33,27 +108,91 @@ function ensureStyles(): void {
   const style = document.createElement('style');
   style.id = SSR_MENU_STYLE_ID;
   style.textContent = `
+.ssr-panel-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  width: 100%;
+  border: none;
+  border-radius: 6px;
+  text-decoration: none;
+  color: inherit;
+  background: transparent;
+  padding: 0 8px;
+  box-sizing: border-box;
+}
 .ssr-panel-link:hover {
-  background: rgba(148, 163, 184, 0.15);
+  background: rgba(148, 163, 184, 0.14);
 }
 .ssr-menu-action {
-  width: 100%;
   text-align: left;
-  background: transparent;
   cursor: pointer;
 }
-.ssr-menu-action[data-depth="1"] { padding-left: 18px; }
-.ssr-menu-action[data-depth="2"] { padding-left: 28px; }
-.ssr-menu-action[data-depth="3"] { padding-left: 38px; }
-.ssr-menu-tree details {
-  margin: 4px 0;
+.ssr-menu-tree {
+  margin: 0;
 }
-.ssr-menu-tree summary {
+.ssr-menu-tree > summary {
   list-style: none;
-  cursor: default;
+  cursor: pointer;
 }
-.ssr-menu-tree summary::-webkit-details-marker {
+.ssr-menu-tree > summary::-webkit-details-marker {
   display: none;
+}
+.ssr-menu-chevron {
+  width: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 14px;
+  color: rgba(226, 232, 240, 0.85);
+}
+.ssr-menu-chevron::before {
+  content: "▸";
+  font-size: 10px;
+  line-height: 1;
+  transition: transform 120ms ease;
+}
+.ssr-menu-tree[open] > summary .ssr-menu-chevron::before {
+  transform: rotate(90deg);
+}
+.ssr-menu-chevron-empty::before {
+  content: "";
+}
+.ssr-menu-icon {
+  width: 14px;
+  flex: 0 0 14px;
+}
+.ssr-menu-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ssr-menu-nested {
+  margin: 0;
+  padding: 0;
+}
+#ssr-main[data-center-runtime="1"] {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 28px);
+}
+#root[data-center-runtime="1"] {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+.ssr-center-runtime {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+.ssr-center-runtime > * {
+  min-height: 0;
 }
 #ssr-left-panel {
   display: flex;
@@ -89,6 +228,12 @@ function isInterceptableLink(link: HTMLAnchorElement, event: MouseEvent): boolea
   return true;
 }
 
+function resolveEventElement(target: EventTarget | null): Element | null {
+  if (target instanceof Element) return target;
+  if (target instanceof Node) return target.parentElement;
+  return null;
+}
+
 function extractRootFromHtml(html: string): HTMLElement | null {
   const parsed = new DOMParser().parseFromString(html, 'text/html');
   const nextRoot = parsed.getElementById('root');
@@ -121,41 +266,37 @@ function resolveActionId(action: unknown): string | null {
 }
 
 function resolveLabel(item: RuntimeMenuItem, index: number): string {
-  return item.title || item.key || `Item ${index + 1}`;
+  const raw = item.title || item.key || `Item ${index + 1}`;
+  if (raw.startsWith('menu.')) {
+    const short = raw.slice(5).split('.').pop() || raw.slice(5);
+    const normalized = short.replace(/[_-]+/g, ' ').trim();
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+  }
+  return raw;
+}
+
+function createGroupButton(groupId: string, title: string): HTMLButtonElement {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'ssr-panel-link ssr-menu-action';
+  button.dataset.groupId = groupId;
+
+  const chevron = document.createElement('span');
+  chevron.className = 'ssr-menu-chevron ssr-menu-chevron-empty';
+  const icon = document.createElement('span');
+  icon.className = 'ssr-menu-icon';
+  const text = document.createElement('span');
+  text.className = 'ssr-menu-label';
+  text.textContent = title;
+  button.append(chevron, icon, text);
+  return button;
 }
 
 function renderFallbackGroups(host: HTMLElement): void {
-  host.innerHTML = GROUPS
-    .map(
-      (group) => `
-        <button
-          type="button"
-          class="ssr-panel-link ssr-menu-action"
-          data-depth="0"
-          data-group-id="${group.id}"
-        >${group.title}</button>
-      `,
-    )
-    .join('');
-}
-
-function findFirstActionId(items: RuntimeMenuItem[]): string | null {
-  for (const item of items) {
-    const actionId = resolveActionId(item.action);
-    if (actionId) return actionId;
-    if (Array.isArray(item.items) && item.items.length > 0) {
-      const nested = findFirstActionId(item.items);
-      if (nested) return nested;
-    }
+  host.innerHTML = '';
+  for (const group of GROUPS) {
+    host.appendChild(createGroupButton(group.id, group.title));
   }
-  return null;
-}
-
-function findFirstActionIdForGroup(items: RuntimeMenuItem[], groupId: string): string | null {
-  const groupNode = items.find((item) => item.key === groupId);
-  if (!groupNode) return null;
-  const groupItems = Array.isArray(groupNode.items) ? groupNode.items : [];
-  return findFirstActionId(groupItems);
 }
 
 function readInitialData(): InitialDataShape {
@@ -203,32 +344,97 @@ function normalizeGroup(raw: RuntimeGroup) {
   return GROUPS.find((g) => g.id === 'content') ?? GROUPS[0];
 }
 
-async function bootstrapMenuRuntimeIfNeeded(): Promise<void> {
-  if (menuBootstrapPromise) return menuBootstrapPromise;
+function likelyMatchesGroup(name: string, groupId: string): boolean {
+  const n = name.toLowerCase();
+  const explicit: Record<string, string[]> = {
+    ai: ['mf-assistants', 'mf-agents'],
+    analytics: ['mf-logs', 'mf-telemetry', 'mf-usage', 'mf-dasboards'],
+    workflows: ['mf-dag', 'mf-requests', 'mf-sheduller', 'mf-webhooks'],
+    content: ['mf-docs', 'mf-landing', 'mf-markdown', 'mf-struct', 'mf-galery'],
+    data: ['mf-dumps'],
+    social: ['mf-calls', 'mf-community', 'mf-threads', 'mf-charts'],
+    marketing: ['mf-marker'],
+    sales: ['mf-mailing', 'mf-sales', 'mf-companies'],
+    geo: ['mf-geo', 'mf-places'],
+  };
+  const explicitList = explicit[groupId];
+  if (explicitList && explicitList.includes(name)) return true;
 
-  menuBootstrapPromise = (async () => {
-    const current = (($allMenuItems.getState?.() as RuntimeMenuItem[]) || []);
-    if (current.length > 0) return;
+  switch (groupId) {
+    case 'ai':
+      return /(assist|agent|ai)/.test(n);
+    case 'analytics':
+      return /(analytic|logs|telemetry|usage|dash|chart)/.test(n);
+    case 'workflows':
+      return /(workflow|dag|request|sched|webhook|cron|process)/.test(n);
+    case 'content':
+      return /(doc|land|markdown|struct|galery|gallery|content)/.test(n);
+    case 'data':
+      return /(data|dump|db|storage)/.test(n);
+    case 'social':
+      return /(social|community|thread|call|chart)/.test(n);
+    case 'marketing':
+      return /(marketing|marker|mailing|campaign)/.test(n);
+    case 'geo':
+      return /(geo|place|catalog)/.test(n);
+    case 'sales':
+      return /(sales|company|mailing)/.test(n);
+    default:
+      return false;
+  }
+}
 
+function publishLoadedGroupsMenu(): void {
+  const order = [
+    ...GROUPS.map((g) => g.id),
+    ...Object.keys(loadedGroupMenus).filter((id) => !GROUPS.some((g) => g.id === id)),
+  ];
+  const groupedMenu = order
+    .filter((id) => (loadedGroupMenus[id]?.length ?? 0) > 0)
+    .map((id) => {
+      const groupDef = GROUPS.find((g) => g.id === id);
+      return {
+        key: id,
+        title: groupDef?.title ?? id,
+        iconName: groupDef?.iconName,
+        items: loadedGroupMenus[id],
+      };
+    });
+
+  if (groupedMenu.length > 0) {
+    addMenuRequested({ microfrontendId: 'grouped', menu: groupedMenu });
+  }
+}
+
+async function ensureGroupLoaded(groupId: string): Promise<void> {
+  const existing = groupLoadPromises.get(groupId);
+  if (existing) return existing;
+
+  const promise = (async () => {
     const names = discoverMicrofrontends();
     if (names.length === 0) return;
     initMicrofrontendEnv();
 
-    const grouped: Record<string, { title: string; iconName: string; items: any[] }> = {};
-    const order: string[] = [];
+    const prioritized = names.filter((name) => {
+      const known = knownModuleGroup[name];
+      if (known) return known === groupId;
+      return likelyMatchesGroup(name, groupId);
+    });
 
-    for (const name of names) {
+    const toTry = prioritized;
+
+    if (!loadedGroupMenus[groupId]) loadedGroupMenus[groupId] = [];
+
+    for (const name of toTry) {
       try {
         const runtime = await import(name);
-
-        if (runtime?.default?.plug) {
-          runtime.default.plug(bus);
-        }
-
         const group = normalizeGroup(runtime?.GROUP as RuntimeGroup);
-        if (!grouped[group.id]) {
-          grouped[group.id] = { title: group.title, iconName: group.iconName, items: [] };
-          order.push(group.id);
+        knownModuleGroup[name] = group.id;
+        if (group.id !== groupId) continue;
+
+        if (!loadedModules.has(name) && runtime?.default?.plug) {
+          runtime.default.plug(bus);
+          loadedModules.add(name);
         }
 
         let menu = runtime?.MENU;
@@ -239,32 +445,19 @@ async function bootstrapMenuRuntimeIfNeeded(): Promise<void> {
             // ignore getMenu errors per module
           }
         }
-
         if (menu) {
-          grouped[group.id].items.push(menu);
+          loadedGroupMenus[groupId].push(menu);
         }
       } catch (error) {
         console.error(`[ssr-menu] failed to load ${name}`, error);
       }
     }
 
-    const groupedMenu = order
-      .map((id) => grouped[id])
-      .filter(Boolean)
-      .filter((group) => group.items.length > 0)
-      .map((group) => ({
-        key: order.find((id) => grouped[id] === group),
-        title: group.title,
-        iconName: group.iconName,
-        items: group.items,
-      }));
-
-    if (groupedMenu.length > 0) {
-      addMenuRequested({ microfrontendId: 'grouped', menu: groupedMenu });
-    }
+    publishLoadedGroupsMenu();
   })();
 
-  return menuBootstrapPromise;
+  groupLoadPromises.set(groupId, promise);
+  return promise;
 }
 
 function buildTreeNode(item: RuntimeMenuItem, depth: number, index: number): HTMLElement {
@@ -275,18 +468,28 @@ function buildTreeNode(item: RuntimeMenuItem, depth: number, index: number): HTM
   if (children.length > 0) {
     const details = document.createElement('details');
     details.className = 'ssr-menu-tree';
-    details.open = depth < 1;
+    details.open = depth === 0 ? item.key === preferredOpenGroupId : false;
+    if (actionId) {
+      details.dataset.nodeActionId = actionId;
+    }
 
     const summary = document.createElement('summary');
     summary.className = 'ssr-panel-link ssr-menu-action';
-    summary.setAttribute('data-depth', String(depth));
-    summary.textContent = label;
-    if (actionId) {
-      summary.dataset.actionId = actionId;
-    }
+    summary.style.paddingLeft = `${8 + depth * 16}px`;
+    const chevron = document.createElement('span');
+    chevron.className = 'ssr-menu-chevron';
+    const icon = document.createElement('span');
+    icon.className = 'ssr-menu-icon';
+    const text = document.createElement('span');
+    text.className = 'ssr-menu-label';
+    text.textContent = label;
+    summary.append(chevron, icon, text);
+    // Parent nodes should expand/collapse on click.
+    // Keep action binding only on leaf nodes so nested commands stay reachable.
     details.appendChild(summary);
 
     const nested = document.createElement('div');
+    nested.className = 'ssr-menu-nested';
     children.forEach((child, childIndex) => {
       nested.appendChild(buildTreeNode(child, depth + 1, childIndex));
     });
@@ -297,8 +500,15 @@ function buildTreeNode(item: RuntimeMenuItem, depth: number, index: number): HTM
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'ssr-panel-link ssr-menu-action';
-  button.setAttribute('data-depth', String(depth));
-  button.textContent = label;
+  button.style.paddingLeft = `${8 + depth * 16}px`;
+  const chevron = document.createElement('span');
+  chevron.className = 'ssr-menu-chevron';
+  const icon = document.createElement('span');
+  icon.className = 'ssr-menu-icon';
+  const text = document.createElement('span');
+  text.className = 'ssr-menu-label';
+  text.textContent = label;
+  button.append(chevron, icon, text);
   if (actionId) {
     button.dataset.actionId = actionId;
   } else {
@@ -313,23 +523,44 @@ function installDynamicMenu(menuPanel: HTMLElement): void {
   if (!groupsHost) return;
 
   const render = (items: RuntimeMenuItem[]) => {
-    if (!Array.isArray(items) || items.length === 0) {
-      bridge.setMenu([]);
-      renderFallbackGroups(groupsHost);
-      return;
-    }
-    bridge.setMenu(items as unknown[]);
     groupsHost.innerHTML = '';
-    items.forEach((item, index) => {
-      groupsHost.appendChild(buildTreeNode(item, 0, index));
-    });
+    const normalized = Array.isArray(items) ? items : [];
+    bridge.setMenu(normalized as unknown[]);
+
+    const groupedById = new Map<string, RuntimeMenuItem>();
+    for (const item of normalized) {
+      if (item.key) groupedById.set(item.key, item);
+    }
+
+    for (const group of GROUPS) {
+      const node = groupedById.get(group.id);
+      if (node) {
+        groupsHost.appendChild(buildTreeNode(node, 0, 0));
+      } else {
+        groupsHost.appendChild(createGroupButton(group.id, group.title));
+      }
+    }
+
+    for (const item of normalized) {
+      if (!item.key || GROUPS.some((g) => g.id === item.key)) continue;
+      groupsHost.appendChild(buildTreeNode(item, 0, 0));
+    }
   };
 
   if (groupsHost.dataset.menuActionsBound !== '1') {
     groupsHost.dataset.menuActionsBound = '1';
     groupsHost.addEventListener('click', (event) => {
-      if (!(event.target instanceof Element)) return;
-      const actionButton = event.target.closest('[data-action-id]') as HTMLElement | null;
+      const eventEl = resolveEventElement(event.target);
+      if (!eventEl) return;
+      const summaryEl = eventEl.closest('summary');
+      if (summaryEl) {
+        const parentDetails = summaryEl.parentElement as HTMLElement | null;
+        const actionId = parentDetails?.dataset.nodeActionId;
+        if (actionId) {
+          void bridge.selectMenuAction(actionId);
+        }
+      }
+      const actionButton = eventEl.closest('[data-action-id]') as HTMLElement | null;
       if (actionButton) {
         const actionId = actionButton.dataset.actionId;
         if (!actionId) return;
@@ -338,17 +569,15 @@ function installDynamicMenu(menuPanel: HTMLElement): void {
         return;
       }
 
-      const groupButton = event.target.closest('[data-group-id]') as HTMLElement | null;
+      const groupButton = eventEl.closest('[data-group-id]') as HTMLElement | null;
       if (!groupButton) return;
       const groupId = groupButton.dataset.groupId;
       if (!groupId) return;
       event.preventDefault();
-
-      void bootstrapMenuRuntimeIfNeeded().then(() => {
-        const items = (($allMenuItems.getState?.() as RuntimeMenuItem[]) || []);
-        const actionId = findFirstActionIdForGroup(items, groupId);
-        if (!actionId) return;
-        void bridge.selectMenuAction(actionId);
+      preferredOpenGroupId = groupId;
+      render((($allMenuItems.getState?.() as RuntimeMenuItem[]) || []));
+      void ensureGroupLoaded(groupId).then(() => {
+        render((($allMenuItems.getState?.() as RuntimeMenuItem[]) || []));
       });
     });
   }
@@ -369,10 +598,6 @@ function installDynamicMenu(menuPanel: HTMLElement): void {
         : () => (watchResult as { unsubscribe?: () => void }).unsubscribe?.();
   }
 
-  const stateItems = (($allMenuItems.getState?.() as RuntimeMenuItem[]) || []);
-  if (stateItems.length === 0) {
-    void bootstrapMenuRuntimeIfNeeded();
-  }
 }
 
 async function navigateByFragment(url: URL, mode: 'push' | 'replace' | 'none' = 'push'): Promise<void> {
@@ -429,8 +654,9 @@ function installLinkInterceptor(): void {
   document.documentElement.dataset.ssrNavBridge = '1';
 
   document.addEventListener('click', (event) => {
-    if (!(event.target instanceof Element)) return;
-    const link = event.target.closest('a[href]') as HTMLAnchorElement | null;
+    const eventEl = resolveEventElement(event.target);
+    if (!eventEl) return;
+    const link = eventEl.closest('a[href]') as HTMLAnchorElement | null;
     if (!link) return;
     if (!isInterceptableLink(link, event)) return;
 

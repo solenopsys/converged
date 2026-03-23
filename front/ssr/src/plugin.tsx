@@ -241,9 +241,12 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
     process.env.PROJECT_DIR ??
     resolve(landingRoot, "..", "..");
   const parentProjectRoot =
-    process.env.CHILD_PROJECT_DIR && process.env.CHILD_PROJECT_DIR.length > 0
+    (process.env.CHILD_PROJECT_DIR && process.env.CHILD_PROJECT_DIR.length > 0
       ? process.env.CHILD_PROJECT_DIR
-      : undefined;
+      : undefined) ??
+    (process.env.PARENT_PROJECT_DIR && process.env.PARENT_PROJECT_DIR.length > 0
+      ? process.env.PARENT_PROJECT_DIR
+      : undefined);
   const publicDir = config.publicDir ?? resolve(landingRoot, "public");
   const isProd = config.production ?? process.env.NODE_ENV === "production";
   const enablePwaInDev =
@@ -462,7 +465,10 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
       if (!config.buildSpaStyles) {
         return new Response("", { headers: { "Content-Type": "text/css; charset=utf-8" } });
       }
-      if (!spaStyles) {
+      if (!isProd) {
+        spaStyles = await config.buildSpaStyles();
+        spaStylesBrotli = null;
+      } else if (!spaStyles) {
         spaStyles = await config.buildSpaStyles();
         spaStylesBrotli = Bun.gzipSync(Buffer.from(spaStyles), { level: 6 });
         log("spa-styles:built", { bytes: spaStyles.length });
@@ -476,7 +482,10 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
         });
       }
       return new Response(spaStyles, {
-        headers: { "Content-Type": "text/css; charset=utf-8" },
+        headers: {
+          "Content-Type": "text/css; charset=utf-8",
+          "Cache-Control": isProd ? "public, max-age=31536000, immutable" : "no-store",
+        },
       });
     })
     .get("/island-client.js", async ({ request }) => {
