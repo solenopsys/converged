@@ -11,7 +11,7 @@ const parentProjectRoot =
     : undefined;
 
 const result = await Bun.build({
-  entrypoints: [resolve(landingRoot, "src", "client.tsx")],
+  entrypoints: [resolve(landingRoot, "src", "island-client.ts")],
   target: "browser",
   format: "esm",
   minify: true,
@@ -34,8 +34,8 @@ if (!result.success) {
 if (result.outputs.length === 0) {
   throw new Error("Failed to build landing client: no output emitted");
 }
-const outPath = resolve(landingRoot, "dist", "client.js");
+const outPath = resolve(landingRoot, "dist", "island-client.js");
 mkdirSync(resolve(landingRoot, "dist"), { recursive: true });
 await Bun.write(outPath, result.outputs[0]);
 
-console.log("[landing] built client.js");
+console.log("[landing] built island-client.js");

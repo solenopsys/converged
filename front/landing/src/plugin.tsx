@@ -1,4 +1,4 @@
-import { renderToString } from "react-dom/server";
+import { renderToReadableStream } from "react-dom/server";
 import { resolve } from "path";
 import createLandingPlugin from "front-ssr/plugin";
 import type { SeoConfig } from "front-ssr/plugin";
@@ -266,12 +266,21 @@ export default function landingPlugin(config: { publicDir?: string; production?:
       const locale = extractLocaleFromPath(url) ?? DEFAULT_LOCALE;
 
       try {
-        const html = renderToString(
+        const stream = await renderToReadableStream(
           <Document lang={locale} seo={seo} importMap={importMap} initialData={{ mfEnv, landing: landingData }}>
             <AppSSR url={url} />
           </Document>,
         );
-        return `<!DOCTYPE html>${html}`;
+        await stream.allReady;
+        const reader = stream.getReader();
+        const chunks: Uint8Array[] = [];
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (value) chunks.push(value);
+        }
+        const body = Buffer.concat(chunks).toString("utf-8");
+        return `<!DOCTYPE html>${body}`;
       } finally {
         globalThis.__LANDING_SSR_DATA__ = previousSsrData;
       }

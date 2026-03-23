@@ -41,47 +41,36 @@ function RootLayout() {
       .catch((error) => {
         console.error("[landing] Failed to load front-core BaseLayout", error);
       });
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, []);
 
   if (!ClientLayout) {
-    // SSR - простая обёртка без компонентов, завязанных на client-only контекст
-    return (
-      <div className="min-h-screen">
-        {stableOutletNode}
-      </div>
-    );
+    return <div className="min-h-screen">{stableOutletNode}</div>;
   }
 
-  // Client - полный layout с панелями
   return <ClientLayout centerFallback={stableOutletNode} />;
 }
 
 function renderAppRoutes() {
   return (
-    <>
-      <Route path="/" element={<Navigate to={`/${DEFAULT_LOCALE}/`} replace />} />
+    <Route path="/" element={<RootLayout />}>
+      <Route path="/" element={<Navigate to={buildLocalePath(DEFAULT_LOCALE, "/")} replace />} />
       <Route path="/console" element={null} />
       <Route path="/console/*" element={null} />
-      <Route path="/about" element={<LegacyPathRedirect />} />
-      <Route path="/docs/:slug" element={<LegacyPathRedirect />} />
-
-      <Route path="/:locale" element={<LocaleLayout />}>
+      <Route path="/about" element={<Navigate to={buildLocalePath(DEFAULT_LOCALE, "/about")} replace />} />
+      <Route path="/:locale" element={<LocaleWrapper />}>
         <Route index element={<Home />} />
         <Route path="about" element={<About />} />
         <Route path="docs/:slug" element={<DocsPage />} />
         <Route path="console" element={null} />
         <Route path="console/*" element={null} />
       </Route>
-
-      <Route path="*" element={<Navigate to={`/${DEFAULT_LOCALE}/`} replace />} />
-    </>
+      <Route path="*" element={<Navigate to={buildLocalePath(DEFAULT_LOCALE, "/")} replace />} />
+    </Route>
   );
 }
 
-function LocaleLayout() {
+function LocaleWrapper() {
   const { locale } = useParams<{ locale: string }>();
   const location = useLocation();
 
@@ -89,34 +78,16 @@ function LocaleLayout() {
     const restPath = location.pathname.replace(/^\/[^/]+/, "") || "/";
     return (
       <Navigate
-        to={{
-          pathname: buildLocalePath(DEFAULT_LOCALE, restPath),
-          search: location.search,
-          hash: location.hash,
-        }}
+        to={{ pathname: buildLocalePath(DEFAULT_LOCALE, restPath), search: location.search, hash: location.hash }}
         replace
       />
     );
   }
 
-  return <RootLayout />;
+  return <Outlet />;
 }
 
-function LegacyPathRedirect() {
-  const location = useLocation();
-  return (
-    <Navigate
-      to={{
-        pathname: buildLocalePath(DEFAULT_LOCALE, location.pathname),
-        search: location.search,
-        hash: location.hash,
-      }}
-      replace
-    />
-  );
-}
-
-// SSR App component - simple StaticRouter without loaders
+// SSR App component
 export function AppSSR({ url }: { url: string }) {
   return (
     <StaticRouter location={url}>
@@ -127,7 +98,7 @@ export function AppSSR({ url }: { url: string }) {
   );
 }
 
-// Client App component
+// Client App component — mounted via createRoot in spa-shell island
 export function App() {
   return (
     <BrowserRouter>

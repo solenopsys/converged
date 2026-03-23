@@ -45,6 +45,8 @@ export interface LandingPluginConfig {
   microfrontends?: string[];
   /** Optional redirect resolver for request pathname */
   resolveRedirectPath?: (pathname: string) => string | null | undefined;
+  /** Build SPA-only CSS (classes used by microfrontends/admin, excluding SSR classes) */
+  buildSpaStyles?: () => Promise<string>;
 }
 
 const fallbackBrowserImports: Record<string, string> = {
@@ -189,6 +191,50 @@ function buildBrowserImportMap(
   return imports;
 }
 
+function isRootFragmentRequest(request: Request): boolean {
+  const headerValue = request.headers.get("x-fragment-request");
+  if (headerValue && headerValue.toLowerCase() === "root") {
+    return true;
+  }
+  const url = new URL(request.url);
+  return url.searchParams.get("__fragment") === "root";
+}
+
+function extractRootDiv(html: string): string | null {
+  const match = html.match(/<div\b[^>]*\bid=(["'])root\1[^>]*>/i);
+  if (!match || typeof match.index !== "number") return null;
+
+  const start = match.index;
+  const openEnd = html.indexOf(">", start);
+  if (openEnd === -1) return null;
+
+  let depth = 1;
+  let cursor = openEnd + 1;
+
+  while (depth > 0 && cursor < html.length) {
+    const nextOpen = html.indexOf("<div", cursor);
+    const nextClose = html.indexOf("</div", cursor);
+
+    if (nextClose === -1) return null;
+
+    if (nextOpen !== -1 && nextOpen < nextClose) {
+      depth += 1;
+      cursor = nextOpen + 4;
+      continue;
+    }
+
+    depth -= 1;
+    const closeEnd = html.indexOf(">", nextClose);
+    if (closeEnd === -1) return null;
+    cursor = closeEnd + 1;
+  }
+
+  if (depth === 0) {
+    return html.slice(start, cursor);
+  }
+  return null;
+}
+
 export default function createLandingPlugin(config: LandingPluginConfig) {
   const landingRoot = config.landingRoot;
   const projectRoot =
@@ -207,7 +253,7 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
   const logoBlackPath = resolve(publicDir, "logo-black.svg");
   const logoWhitePath = resolve(publicDir, "logo-white.svg");
   const prebuiltStylesPath = resolve(projectRoot, "dist", "landing", "styles.css");
-  const prebuiltClientPath = resolve(projectRoot, "dist", "landing", "client.js");
+  const prebuiltClientPath = resolve(projectRoot, "dist", "landing", "island-client.js");
   const prebuiltFrontImportMapPath = resolve(projectRoot, "dist", "front", "import-map.json");
   const telemetryReporter = createTelemetryReporter(
     process.env.SERVICES_BASE || "/services",
@@ -215,6 +261,8 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
 
   let styles: string;
   let stylesBrotli: Uint8Array;
+  let spaStyles: string | null = null;
+  let spaStylesBrotli: Uint8Array | null = null;
   let clientBundle: Blob;
   let clientBrotli: Uint8Array;
   let seoConfig: SeoConfig;
@@ -339,7 +387,7 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
           log("client:prebuilt", { gzipKB: Number((clientBrotli.length / 1024).toFixed(0)) });
         } else {
           const clientResult = await Bun.build({
-            entrypoints: [resolve(landingRoot, "src/client.tsx")],
+            entrypoints: [resolve(landingRoot, "src/island-client.ts")],
             format: "esm",
             minify: false,
             external: [...externalPackages, ...microfrontends],
@@ -391,44 +439,86 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
     })
     .get("/styles.css", async ({ request }) => {
       await ensureAssets();
+      const cacheHeader = isProd
+        ? "public, max-age=31536000, immutable"
+        : "public, max-age=3600";
       if (isProd && supportsEncoding(request, "gzip")) {
         return new Response(stylesBrotli, {
+          headers: {
+            "Content-Type": "text/css; charset=utf-8",
+            "Content-Encoding": "gzip",
+            "Cache-Control": cacheHeader,
+          },
+        });
+      }
+      return new Response(styles, {
+        headers: {
+          "Content-Type": "text/css; charset=utf-8",
+          "Cache-Control": cacheHeader,
+        },
+      });
+    })
+    .get("/spa.css", async ({ request }) => {
+      if (!config.buildSpaStyles) {
+        return new Response("", { headers: { "Content-Type": "text/css; charset=utf-8" } });
+      }
+      if (!spaStyles) {
+        spaStyles = await config.buildSpaStyles();
+        spaStylesBrotli = Bun.gzipSync(Buffer.from(spaStyles), { level: 6 });
+        log("spa-styles:built", { bytes: spaStyles.length });
+      }
+      if (isProd && supportsEncoding(request, "gzip") && spaStylesBrotli) {
+        return new Response(spaStylesBrotli, {
           headers: {
             "Content-Type": "text/css; charset=utf-8",
             "Content-Encoding": "gzip",
           },
         });
       }
-      return new Response(styles, {
+      return new Response(spaStyles, {
         headers: { "Content-Type": "text/css; charset=utf-8" },
       });
     })
-    .get("/client.js", async ({ request }) => {
+    .get("/island-client.js", async ({ request }) => {
+      // Dev: rebuild on each request so SSR shell always serves latest
+      // interception/takeover logic without server restarts.
+      if (!isProd) {
+        assetsPromise = null;
+      }
       await ensureAssets();
+      const cacheHeader = isProd
+        ? "public, max-age=31536000, immutable"
+        : "no-store";
       if (isProd && supportsEncoding(request, "gzip")) {
         return new Response(clientBrotli, {
           headers: {
             "Content-Type": "application/javascript; charset=utf-8",
             "Content-Encoding": "gzip",
-            "Cache-Control": "no-store",
+            "Cache-Control": cacheHeader,
           },
         });
       }
       return new Response(clientBundle, {
         headers: {
           "Content-Type": "application/javascript; charset=utf-8",
-          "Cache-Control": "no-store",
+          "Cache-Control": cacheHeader,
         },
       });
     })
     .get("/logo-black.svg", () => {
       return new Response(Bun.file(logoBlackPath), {
-        headers: { "Content-Type": "image/svg+xml; charset=utf-8" },
+        headers: {
+          "Content-Type": "image/svg+xml; charset=utf-8",
+          "Cache-Control": "public, max-age=86400",
+        },
       });
     })
     .get("/logo-white.svg", () => {
       return new Response(Bun.file(logoWhitePath), {
-        headers: { "Content-Type": "image/svg+xml; charset=utf-8" },
+        headers: {
+          "Content-Type": "image/svg+xml; charset=utf-8",
+          "Cache-Control": "public, max-age=86400",
+        },
       });
     })
     .get("/sitemap.xml", ({ request }) => {
@@ -486,7 +576,13 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
         },
       });
     })
-    .use(staticPlugin({ assets: publicDir, prefix: "/" }));
+    .use(staticPlugin({
+      assets: publicDir,
+      prefix: "/",
+      headers: {
+        "Cache-Control": "public, max-age=86400",
+      },
+    }));
 
   app.get("/*", async ({ request }) => {
     const requestStartedAt = Date.now();
@@ -519,8 +615,23 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
         unit: "ms",
       });
 
+      if (isRootFragmentRequest(request)) {
+        const rootFragment = extractRootDiv(html);
+        if (rootFragment) {
+          return new Response(rootFragment, {
+            headers: {
+              "Content-Type": "text/html; charset=utf-8",
+              "Vary": "X-Fragment-Request",
+            },
+          });
+        }
+      }
+
       return new Response(html, {
-        headers: { "Content-Type": "text/html; charset=utf-8" },
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "Vary": "X-Fragment-Request",
+        },
       });
     } catch (error) {
       telemetryReporter.track({

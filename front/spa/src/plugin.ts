@@ -181,6 +181,11 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
   const prebuiltFrontVendorDir = resolve(projectRoot, "dist", "front", "vendor");
   const prebuiltMfDir = resolve(projectRoot, "dist", "mf");
 
+  const staticCacheHeader = "public, max-age=86400";
+  const jsCacheHeader = isProd
+    ? "public, max-age=31536000, immutable"
+    : "public, max-age=3600";
+
   // Dev caches
   const vendorBundles = new Map<string, Blob>();
   let frontCoreBundle: Blob | null = null;
@@ -421,7 +426,7 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
         return "Not Found";
       }
       return new Response(Bun.file(logoBlackPath), {
-        headers: { "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": "no-store" },
+        headers: { "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": staticCacheHeader },
       });
     })
     .get("/logo-white.svg", ({ set }) => {
@@ -430,7 +435,7 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
         return "Not Found";
       }
       return new Response(Bun.file(logoWhitePath), {
-        headers: { "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": "no-store" },
+        headers: { "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": staticCacheHeader },
       });
     })
     .get("/header-logo-black.svg", ({ set }) => {
@@ -439,7 +444,7 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
         return "Not Found";
       }
       return new Response(Bun.file(headerLogoBlackPath), {
-        headers: { "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": "no-store" },
+        headers: { "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": staticCacheHeader },
       });
     })
     .get("/header-logo-white.svg", ({ set }) => {
@@ -448,7 +453,7 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
         return "Not Found";
       }
       return new Response(Bun.file(headerLogoWhitePath), {
-        headers: { "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": "no-store" },
+        headers: { "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": staticCacheHeader },
       });
     })
     .get("/favicon.svg", ({ set }) => {
@@ -457,7 +462,7 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
         return "Not Found";
       }
       return new Response(Bun.file(faviconSvgPath), {
-        headers: { "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": "no-store" },
+        headers: { "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": "public, max-age=86400" },
       });
     })
     .get("/favicon.ico", ({ set }) => {
@@ -484,11 +489,11 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
         const cached = await loadAndCache(`vendor:${fileName}`, filePath, contentType);
         if (supportsEncoding(request, "br") && cached.br) {
           return new Response(cached.br, {
-            headers: { "Content-Type": contentType, "Content-Encoding": "br", "Cache-Control": "no-store" },
+            headers: { "Content-Type": contentType, "Content-Encoding": "br", "Cache-Control": jsCacheHeader },
           });
         }
         return new Response(cached.raw, {
-          headers: { "Content-Type": contentType, "Cache-Control": "no-store" },
+          headers: { "Content-Type": contentType, "Cache-Control": jsCacheHeader },
         });
       }
 
@@ -500,7 +505,7 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
       try {
         const blob = await buildVendorModule(fileName);
         return new Response(blob, {
-          headers: { "Content-Type": contentType, "Cache-Control": "no-store" },
+          headers: { "Content-Type": contentType, "Cache-Control": jsCacheHeader },
         });
       } catch (err: any) {
         console.error(`[spa] vendor build error for ${fileName}:`, err);
@@ -515,19 +520,19 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
           const cached = staticCache.get("front-core");
           if (cached && supportsEncoding(request, "br") && cached.br) {
             return new Response(cached.br, {
-              headers: { "Content-Type": "application/javascript; charset=utf-8", "Content-Encoding": "br", "Cache-Control": "no-store" },
+              headers: { "Content-Type": "application/javascript; charset=utf-8", "Content-Encoding": "br", "Cache-Control": jsCacheHeader },
             });
           }
           if (cached) {
             return new Response(cached.raw, {
-              headers: { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": "no-store" },
+              headers: { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": jsCacheHeader },
             });
           }
         }
         return new Response(bundle, {
           headers: {
             "Content-Type": "application/javascript; charset=utf-8",
-            "Cache-Control": "no-store",
+            "Cache-Control": jsCacheHeader,
           },
         });
       } catch (err: any) {
@@ -543,7 +548,7 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
       return new Response(Bun.file(prebuiltFrontCoreMapPath), {
         headers: {
           "Content-Type": "application/json; charset=utf-8",
-          "Cache-Control": "no-store",
+          "Cache-Control": jsCacheHeader,
         },
       });
     })
@@ -567,19 +572,19 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
           const cached = staticCache.get(`mf:${name}`);
           if (cached && supportsEncoding(request, "br") && cached.br) {
             return new Response(cached.br, {
-              headers: { "Content-Type": "application/javascript; charset=utf-8", "Content-Encoding": "br", "Cache-Control": "no-store" },
+              headers: { "Content-Type": "application/javascript; charset=utf-8", "Content-Encoding": "br", "Cache-Control": jsCacheHeader },
             });
           }
           if (cached) {
             return new Response(cached.raw, {
-              headers: { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": "no-store" },
+              headers: { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": jsCacheHeader },
             });
           }
         }
         return new Response(bundle, {
           headers: {
             "Content-Type": "application/javascript; charset=utf-8",
-            "Cache-Control": "no-store",
+            "Cache-Control": jsCacheHeader,
           },
         });
       } catch (err: any) {

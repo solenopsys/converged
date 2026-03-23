@@ -155,7 +155,14 @@ const hasFront = (() => {
 })();
 
 const app = new Elysia()
-  .use(cors())
+  .use(cors({ origin: true }))
+  .onAfterHandle(({ set }) => {
+    // Override Vary: * set by CORS plugin — it prevents browser caching
+    // of static assets loaded via <script type="module"> (Sec-Fetch-Mode: cors)
+    if (set.headers["vary"] === "*") {
+      set.headers["vary"] = "Accept-Encoding";
+    }
+  })
   .onError(({ error, path, code }) => {
     logBridge.enqueue({
       level: logBridge.level.error,

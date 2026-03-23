@@ -8,6 +8,14 @@
     ".": "./src/index.ts",
     "./components": "./src/components-only.ts",
     "./client": "./src/components/components-client.ts",
+    "./bridge": "./src/bridge/index.ts",
+    "./landing-common": "./src/landing-common/index.ts",
+    "./landing-common/i18n": "./src/landing-common/i18n.ts",
+    "./landing-common/groups": "./src/landing-common/groups.ts",
+    "./landing-common/island-loader": "./src/landing-common/island-loader.ts",
+    "./landing-common/island-client": "./src/landing-common/island-client.ts",
+    "./landing-common/seo": "./src/landing-common/seo.ts",
+    "./landing-common/sitemap": "./src/landing-common/sitemap.ts",
     "./runtime-config": "./src/tools/runtime-config.ts",
     "./workspace-resolver": "./src/tools/workspace-resolver.ts"
   },
@@ -16,7 +24,8 @@
     "lint": "biome lint .",
     "check": "biome check .",
     "fix": "biome check --write .",
-    "bld": "NODE_ENV=production  bun run src/tools/build.ts"
+    "bld": "NODE_ENV=production  bun run src/tools/build.ts",
+    "bld:bridge": "NODE_ENV=production bun run src/tools/build-bridge.ts"
   },
   "dependencies": {
     "sidebar-controller": "workspace:*",

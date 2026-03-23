@@ -11,3 +11,4 @@ export * from './utils';
 export * from './plugin';
 export * from "./chat/events";
 export * from "./sidebar-tabs";
+export * from './landing-common/island-client';
