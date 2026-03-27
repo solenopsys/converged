@@ -1,7 +1,5 @@
 import { SHOW_CHATS_LIST, SHOW_CONTEXTS_LIST, SHOW_COMMANDS_LIST } from './functions';
 
-export const GROUP = { id: "ai", title: "AI", iconName: "IconBrain" };
-
 export const MENU = {
     "title": "menu.chats",
     "iconName": "IconAi",

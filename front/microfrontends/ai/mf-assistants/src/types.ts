@@ -5,10 +5,10 @@ import {
     Chat,
     ChatContext,
     ChatContextSummary
-} from 'integration/types/chats';
+} from '../../../../../tools/integration/types/chats';
 
 
-import { ThreadsService, MessageType } from 'integration/types/threads';
+import { ThreadsService, MessageType } from '../../../../../tools/integration/types/threads';
 
 export {ServiceType, StreamEventType, type StreamEvent, type AssistantService, ContentType, type ThreadsService, MessageType,
     type PaginationParams, type PaginatedResult, type Chat, type ChatContext, type ChatContextSummary}

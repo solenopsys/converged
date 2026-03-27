@@ -1,5 +1,5 @@
 export const ID = "webhooks-mf";
-export { GROUP, MENU } from "./menu";
+export { MENU } from "./menu";
 export const SIDEBAR_TABS = [
   {
     id: "webhooks",

@@ -271,14 +271,23 @@ pub const StorageCommands = struct {
 
     pub fn getStoreSize(self: *StorageCommands, store_key: []const u8) !u64 {
         const inst = self.stores.getPtr(store_key) orelse return error.StoreNotFound;
-        return switch (inst.handle) {
-            .sql => |*e| try e.getSize(),
-            .kv => |*e| try e.getSize(),
-            .column => |*e| try e.getSize(),
-            .vector => |*e| try e.getSize(),
-            .files => |*e| try e.getSize(),
-            .graph => |*e| try e.getSize(),
-        };
+        const data_path = try std.fmt.allocPrint(self.allocator, "{s}/data", .{inst.store_dir});
+        defer self.allocator.free(data_path);
+
+        var dir = std.fs.cwd().openDir(data_path, .{ .iterate = true }) catch return 0;
+        defer dir.close();
+
+        var total: u64 = 0;
+        var walker = try dir.walk(self.allocator);
+        defer walker.deinit();
+
+        while (try walker.next()) |entry| {
+            if (entry.kind == .file) {
+                const stat = dir.statFile(entry.path) catch continue;
+                total += stat.size;
+            }
+        }
+        return total;
     }
 
     pub fn getManifest(self: *StorageCommands, store_key: []const u8) ?*const Manifest {

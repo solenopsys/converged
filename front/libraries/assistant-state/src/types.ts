@@ -3,9 +3,9 @@ import {
     type AssistantService,
     ContentType,type ConversationOptions,type Tool,
    type ToolCall
-} from 'integration/types/chats';
+} from '../../../../tools/integration/types/chats';
 
-import { type ThreadsService, MessageType } from 'integration/types/threads';
+import { type ThreadsService, MessageType } from '../../../../tools/integration/types/threads';
 
 export type ULID = string;
 

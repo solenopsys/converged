@@ -135,31 +135,43 @@ function loadExternalPackages(projectRoot: string): string[] {
 }
 
 const projectRoot = resolveProjectRoot();
-const parentProjectRoot = process.env.CHILD_PROJECT_DIR || undefined;
-const projectRoots = parentProjectRoot ? [projectRoot, parentProjectRoot] : [projectRoot];
 
-const envMicrofrontends = parseEnvList(process.env.MICROFRONTENDS).map(ensureMfPrefix);
-const configMicrofrontends = uniq(projectRoots.flatMap(loadMicrofrontendsFromConfig));
-const fsMicrofrontends = uniq(projectRoots.flatMap(loadMicrofrontendsFromFs));
-const distMicrofrontends = uniq(projectRoots.flatMap(loadMicrofrontendsFromDist));
-const isProduction = process.env.NODE_ENV === "production";
-const discoveredMicrofrontends = isProduction
-  ? uniq([
-      ...configMicrofrontends,
-      ...fsMicrofrontends,
-      ...distMicrofrontends,
-    ])
-  : fsMicrofrontends.length > 0
-    ? fsMicrofrontends
-    : uniq([
+let _microfrontends: string[] | null = null;
+
+function resolveMicrofrontends(): string[] {
+  const parentProjectRoot = process.env.CHILD_PROJECT_DIR || undefined;
+  const projectRoots = parentProjectRoot ? [projectRoot, parentProjectRoot] : [projectRoot];
+
+  const envMicrofrontends = parseEnvList(process.env.MICROFRONTENDS).map(ensureMfPrefix);
+  const configMicrofrontends = uniq(projectRoots.flatMap(loadMicrofrontendsFromConfig));
+  const fsMicrofrontends = uniq(projectRoots.flatMap(loadMicrofrontendsFromFs));
+  const distMicrofrontends = uniq(projectRoots.flatMap(loadMicrofrontendsFromDist));
+  const isProduction = process.env.NODE_ENV === "production";
+  const discoveredMicrofrontends = isProduction
+    ? uniq([
         ...configMicrofrontends,
+        ...fsMicrofrontends,
         ...distMicrofrontends,
-      ]);
+      ])
+    : fsMicrofrontends.length > 0
+      ? fsMicrofrontends
+      : uniq([
+          ...configMicrofrontends,
+          ...distMicrofrontends,
+        ]);
 
-export const microfrontends = uniq(
-  envMicrofrontends.length > 0
-    ? envMicrofrontends
-    : discoveredMicrofrontends,
-);
+  return uniq(
+    envMicrofrontends.length > 0
+      ? envMicrofrontends
+      : discoveredMicrofrontends,
+  );
+}
+
+export const microfrontends: string[] = new Proxy([] as string[], {
+  get(_, prop) {
+    if (_microfrontends === null) _microfrontends = resolveMicrofrontends();
+    return Reflect.get(_microfrontends, prop);
+  },
+});
 
 export const externalPackages = loadExternalPackages(projectRoot);

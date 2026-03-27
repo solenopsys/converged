@@ -8,6 +8,7 @@ import type {
   PaginationParams,
   PaginatedResult,
   StorageInfo,
+  StorageStats,
 } from "g-dumps";
 
 export type DumpsConfig = {
@@ -135,6 +136,16 @@ export class DumpsServiceImpl implements DumpsService {
     return results;
   }
 
+  async storageStats(): Promise<StorageStats> {
+    const storages = await this.listStorages();
+    const totalSize = storages.reduce((sum, s) => sum + s.size, 0);
+    return {
+      totalSize,
+      storageCount: storages.length,
+      storages,
+    };
+  }
+
   async listDumps(
     params: PaginationParams,
   ): Promise<PaginatedResult<DumpFile>> {
@@ -220,14 +231,25 @@ export class DumpsServiceImpl implements DumpsService {
     if (!existsSync(this.baseDir)) {
       return [];
     }
-    const entries = await fs.readdir(this.baseDir, { withFileTypes: true });
-    return entries
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => ({
-        name: entry.name,
-        path: path.join(this.baseDir, entry.name),
-      }))
-      .filter((entry) => !this.isDumpsDirectory(entry.path));
+    const topEntries = await fs.readdir(this.baseDir, { withFileTypes: true });
+    const results: Array<{ name: string; path: string }> = [];
+
+    for (const top of topEntries) {
+      if (!top.isDirectory()) continue;
+      const topPath = path.join(this.baseDir, top.name);
+      if (this.isDumpsDirectory(topPath)) continue;
+
+      const subEntries = await fs.readdir(topPath, { withFileTypes: true });
+      for (const sub of subEntries) {
+        if (!sub.isDirectory()) continue;
+        results.push({
+          name: `${top.name}/${sub.name}`,
+          path: path.join(topPath, sub.name),
+        });
+      }
+    }
+
+    return results;
   }
 
   private async getStorageDirectory(name: string) {

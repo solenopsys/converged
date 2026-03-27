@@ -9,29 +9,41 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group"
 
-export function ChartAreaInteractive() {
+type ChartAreaPoint = {
+  date: string
+  requests: number
+  orders: number
+  conversion: number
+}
+
+interface ChartAreaInteractiveProps {
+  data?: ChartAreaPoint[]
+}
+
+export function ChartAreaInteractive({ data = [] }: ChartAreaInteractiveProps) {
   const { t, i18n } = useGlobalTranslation("chart")
   const isMobile = useIsMobile()
   const [timeRange, setTimeRange] = React.useState("90d")
 
-  const rawChartData = i18n.getResource(i18n.language, "chart_data")
-
   const chartData = useMemo(() => {
-    if (Array.isArray(rawChartData)) return rawChartData
-    if (rawChartData && typeof rawChartData === "object") {
-      const nestedData = (rawChartData as any).data
-      if (Array.isArray(nestedData)) return nestedData
-      return Object.values(rawChartData).filter((item) => item && typeof item === "object")
-    }
-    return []
-  }, [rawChartData])
+    if (!Array.isArray(data)) return []
+    return data.filter((item) => item && typeof item === "object" && !!item.date)
+  }, [data])
 
   React.useEffect(() => {
     if (isMobile) setTimeRange("7d")
   }, [isMobile])
 
   const filteredData = useMemo(() => {
-    const referenceDate = new Date("2024-06-30")
+    if (chartData.length === 0) return []
+
+    const validDates = chartData
+      .map((item: any) => new Date(item.date))
+      .filter((date) => !Number.isNaN(date.getTime()))
+
+    if (validDates.length === 0) return []
+
+    const referenceDate = new Date(Math.max(...validDates.map((date) => date.getTime())))
     const daysToSubtract = timeRange === "30d" ? 30 : timeRange === "7d" ? 7 : 90
     const startDate = new Date(referenceDate)
     startDate.setDate(startDate.getDate() - daysToSubtract)
@@ -126,7 +138,13 @@ export function ChartAreaInteractive() {
       </CardHeader>
       <CardContent className="px-2 pt-2">
         <div className="h-[250px] w-full">
-          <ReactECharts option={option} style={{ height: "100%", width: "100%" }} />
+          {filteredData.length > 0 ? (
+            <ReactECharts option={option} style={{ height: "100%", width: "100%" }} />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
+              No data yet
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

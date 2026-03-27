@@ -1,8 +1,6 @@
 import { SHOW_ENDPOINTS_LIST } from "./functions/endpoints.config";
 import { SHOW_WEBHOOK_LOGS } from "./functions/logs.config";
 
-export const GROUP = { id: "workflows", title: "Workflows", iconName: "IconGitBranch" };
-
 export const MENU = {
   title: "menu.webhooks",
   iconName: "IconShare3",

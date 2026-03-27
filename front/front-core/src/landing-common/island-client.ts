@@ -3,19 +3,48 @@ import { $allMenuItems, addMenuRequested, bus, runActionEvent } from '../control
 import { rightRailActionSelected } from '../components/right-rail/uri-sync';
 import { $centerView } from '../slots/present';
 import { createBridgeController } from '../bridge';
+import { chatSendRequested } from '../chat/events';
 
 const SSR_MENU_STYLE_ID = 'ssr-menu-shell-style';
-const SSR_COUNTER_ID = 'ssr-seconds-counter';
 const SSR_RIGHT_RAIL_ID = 'ssr-right-rail';
 const SSR_SLOT_PROVIDER_ROOT_ID = 'ssr-slot-provider-root';
+const SSR_CHAT_DOCK_ID = 'ssr-chat-dock';
+const SSR_CHAT_INPUT_ID = 'ssr-chat-input';
+const SSR_CHAT_FORM_ID = 'ssr-chat-form';
+const SSR_CHAT_QUICK_ID = 'ssr-chat-quick';
 const RIGHT_RAIL_QUERY_KEYS = ['sidebarTab', 'sidebarPanel', 'sidebarAction'] as const;
-let startedAtMs = 0;
-let counterTimer: ReturnType<typeof setInterval> | null = null;
+const QUICK_CHAT_PROMPTS = [
+  'Tell us about the club',
+  'What projects have you delivered?',
+  'How can I join?',
+  'Which plan is right for me?',
+  'Can I migrate from Free to AI Portal?',
+  'Is there vendor lock-in?',
+] as const;
+const CONTROL_ICON = {
+  login:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>',
+  logout:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4"/><path d="M14 7l5 5-5 5"/><path d="M19 12H8"/></svg>',
+  sun:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>',
+  moon:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a7 7 0 1 0 9 9 9 9 0 1 1-9-9z"/></svg>',
+  columns:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/></svg>',
+  maximize:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>',
+  minimize:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H3v5"/><path d="M16 21h5v-5"/><path d="M3 8l7 7"/><path d="M21 16l-7-7"/></svg>',
+  panelOpen:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 4v16"/><path d="m14 9 3 3-3 3"/></svg>',
+  panelClose:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 4v16"/><path d="m17 9-3 3 3 3"/></svg>',
+} as const;
 let pendingNavigation: AbortController | null = null;
 let stopMenuWatch: (() => void) | null = null;
 const groupLoadPromises = new Map<string, Promise<void>>();
 const loadedModules = new Set<string>();
-const knownModuleGroup: Record<string, string> = {};
 const loadedGroupMenus: Record<string, any[]> = {};
 let preferredOpenGroupId: string | null = null;
 let centerRendererInitPromise: Promise<void> | null = null;
@@ -27,7 +56,157 @@ let rightRailWatchStop: (() => void) | null = null;
 let rightRailHost: HTMLElement | null = null;
 let rightRailPortalRoot: { render: (node: any) => void; unmount: () => void } | null = null;
 let rightRailChatBootstrapped = false;
+let controlsBound = false;
+let railTabsBound = false;
+let chatDockBound = false;
+let chatDockOverlapBound = false;
+let parallelMode = false;
+let railWide = false;
 type CenterViewState = ReturnType<typeof $centerView.getState>;
+
+function getControl(name: string): HTMLButtonElement | null {
+  return document.querySelector<HTMLButtonElement>(`[data-ssr-control="${name}"]`);
+}
+
+function setControlIcon(button: HTMLButtonElement | null, icon: string): void {
+  if (!button) return;
+  button.innerHTML = icon;
+}
+
+function isDarkTheme(): boolean {
+  return document.documentElement.classList.contains('dark');
+}
+
+function isAuthenticated(): boolean {
+  return Boolean(window.localStorage.getItem('authToken'));
+}
+
+function isRightRailOpen(): boolean {
+  const rail = document.getElementById(SSR_RIGHT_RAIL_ID);
+  return rail?.dataset.open === '1';
+}
+
+function updateShellWidthMode(): void {
+  const value = railWide ? '1' : '0';
+  document.getElementById('ssr-shell')?.setAttribute('data-rail-wide', value);
+  document.getElementById('app-shell')?.setAttribute('data-rail-wide', value);
+}
+
+function refreshControlStates(): void {
+  const auth = getControl('auth');
+  const theme = getControl('theme');
+  const parallel = getControl('parallel');
+  const constrain = getControl('constrain');
+  const rail = getControl('rail');
+
+  if (auth) {
+    const authed = isAuthenticated();
+    auth.setAttribute('aria-label', authed ? 'Log out' : 'Open login');
+    setControlIcon(auth, authed ? CONTROL_ICON.logout : CONTROL_ICON.login);
+  }
+
+  if (theme) {
+    const dark = isDarkTheme();
+    theme.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+    setControlIcon(theme, dark ? CONTROL_ICON.sun : CONTROL_ICON.moon);
+  }
+
+  if (parallel) {
+    parallel.setAttribute('aria-pressed', parallelMode ? 'true' : 'false');
+    parallel.setAttribute('aria-label', parallelMode ? 'Disable parallel panels' : 'Parallel panels');
+    setControlIcon(parallel, CONTROL_ICON.columns);
+  }
+
+  if (constrain) {
+    constrain.setAttribute('aria-pressed', railWide ? 'true' : 'false');
+    constrain.setAttribute('aria-label', railWide ? 'Reduce panel width' : 'Expand panel width');
+    setControlIcon(constrain, railWide ? CONTROL_ICON.minimize : CONTROL_ICON.maximize);
+  }
+
+  if (rail) {
+    const open = isRightRailOpen();
+    rail.setAttribute('aria-pressed', open ? 'true' : 'false');
+    rail.setAttribute('aria-label', open ? 'Close panel' : 'Open panel');
+    setControlIcon(rail, open ? CONTROL_ICON.panelClose : CONTROL_ICON.panelOpen);
+  }
+}
+
+function applyTheme(next: 'light' | 'dark'): void {
+  localStorage.setItem('theme', next);
+  document.documentElement.classList.toggle('dark', next === 'dark');
+  document.documentElement.style.colorScheme = next;
+}
+
+async function openLoginPanel(): Promise<void> {
+  await ensureRightRailRuntime();
+  setRightRailOpen(true);
+  setRightRailMode('tab');
+  rightRailActionSelected('show_login');
+  runActionEvent({ actionId: 'show_login', params: {} });
+}
+
+function installPanelControls(): void {
+  if (controlsBound) {
+    refreshControlStates();
+    return;
+  }
+
+  const auth = getControl('auth');
+  const theme = getControl('theme');
+  const parallel = getControl('parallel');
+  const constrain = getControl('constrain');
+  const rail = getControl('rail');
+  if (!auth && !theme && !parallel && !constrain && !rail) return;
+
+  controlsBound = true;
+
+  auth?.addEventListener('click', () => {
+    if (isAuthenticated()) {
+      window.localStorage.removeItem('authToken');
+      window.dispatchEvent(new Event('auth-token-changed'));
+      refreshControlStates();
+      return;
+    }
+    void openLoginPanel();
+  });
+
+  theme?.addEventListener('click', () => {
+    applyTheme(isDarkTheme() ? 'light' : 'dark');
+    refreshControlStates();
+  });
+
+  parallel?.addEventListener('click', () => {
+    parallelMode = !parallelMode;
+    if (parallelMode) {
+      setRightRailOpen(true);
+      setRightRailMode('chat');
+    } else if (document.getElementById(SSR_RIGHT_RAIL_ID)?.dataset.mode === 'chat') {
+      setRightRailOpen(false);
+    }
+    refreshControlStates();
+  });
+
+  constrain?.addEventListener('click', () => {
+    railWide = !railWide;
+    updateShellWidthMode();
+    refreshControlStates();
+  });
+
+  rail?.addEventListener('click', () => {
+    const next = !isRightRailOpen();
+    setRightRailOpen(next);
+    if (next && document.getElementById(SSR_RIGHT_RAIL_ID)?.dataset.mode !== 'tab') {
+      setRightRailMode('chat');
+    }
+    refreshControlStates();
+  });
+
+  window.addEventListener('auth-token-changed', refreshControlStates);
+  window.addEventListener('storage', refreshControlStates);
+
+  updateShellWidthMode();
+  refreshControlStates();
+}
 
 async function ensureCenterRenderer(): Promise<void> {
   const host = document.getElementById('root');
@@ -97,6 +276,7 @@ function setRightRailMode(mode: 'chat' | 'tab'): void {
   const rail = document.getElementById(SSR_RIGHT_RAIL_ID);
   if (!rail) return;
   rail.dataset.mode = mode;
+  refreshRightRailTabs();
 }
 
 function setRightRailOpen(open: boolean): void {
@@ -113,6 +293,46 @@ function setRightRailOpen(open: boolean): void {
   if (appShell) {
     appShell.dataset.railOpen = next;
   }
+  refreshControlStates();
+  refreshRightRailTabs();
+}
+
+function refreshRightRailTabs(): void {
+  const rail = document.getElementById(SSR_RIGHT_RAIL_ID);
+  if (!rail) return;
+  const mode = rail.dataset.mode === 'tab' ? 'tab' : 'chat';
+  const chat = rail.querySelector<HTMLButtonElement>('[data-ssr-rail-tab="chat"]');
+  const tab = rail.querySelector<HTMLButtonElement>('[data-ssr-rail-tab="tab"]');
+  if (chat) {
+    chat.setAttribute('aria-pressed', mode === 'chat' ? 'true' : 'false');
+  }
+  if (tab) {
+    tab.setAttribute('aria-pressed', mode === 'tab' ? 'true' : 'false');
+  }
+}
+
+function installRightRailTabs(): void {
+  const rail = document.getElementById(SSR_RIGHT_RAIL_ID);
+  if (!rail) return;
+  const chat = rail.querySelector<HTMLButtonElement>('[data-ssr-rail-tab="chat"]');
+  const tab = rail.querySelector<HTMLButtonElement>('[data-ssr-rail-tab="tab"]');
+  if (!chat && !tab) return;
+
+  if (!railTabsBound) {
+    railTabsBound = true;
+    chat?.addEventListener('click', () => {
+      void ensureRightRailRuntime();
+      setRightRailOpen(true);
+      setRightRailMode('chat');
+      runActionEvent({ actionId: 'chats.show', params: {} });
+    });
+    tab?.addEventListener('click', () => {
+      setRightRailOpen(true);
+      setRightRailMode('tab');
+    });
+  }
+
+  refreshRightRailTabs();
 }
 
 function syncRightRailMode(tabId: string | null | undefined): void {
@@ -120,6 +340,9 @@ function syncRightRailMode(tabId: string | null | undefined): void {
     setRightRailOpen(true);
     setRightRailMode('tab');
     return;
+  }
+  if (parallelMode) {
+    setRightRailOpen(true);
   }
   setRightRailMode('chat');
 }
@@ -132,8 +355,7 @@ async function ensureAssistantsLoaded(): Promise<void> {
 
   try {
     const runtime = await import(moduleName);
-    const group = normalizeGroup(runtime?.GROUP as RuntimeGroup);
-    knownModuleGroup[moduleName] = group.id;
+    const groupId = getMfGroup(moduleName);
 
     if (!loadedModules.has(moduleName) && runtime?.default?.plug) {
       runtime.default.plug(bus);
@@ -141,12 +363,12 @@ async function ensureAssistantsLoaded(): Promise<void> {
     }
 
     if (runtime?.MENU) {
-      if (!loadedGroupMenus[group.id]) loadedGroupMenus[group.id] = [];
-      const alreadyAdded = loadedGroupMenus[group.id].some(
+      if (!loadedGroupMenus[groupId]) loadedGroupMenus[groupId] = [];
+      const alreadyAdded = loadedGroupMenus[groupId].some(
         (item) => item && item.key === runtime.MENU.key,
       );
       if (!alreadyAdded) {
-        loadedGroupMenus[group.id].push(runtime.MENU);
+        loadedGroupMenus[groupId].push(runtime.MENU);
         publishLoadedGroupsMenu();
       }
     }
@@ -244,7 +466,7 @@ function ensureStyles(): void {
   font-weight: 500;
 }
 .ssr-panel-link:hover {
-  background: rgba(148, 163, 184, 0.14);
+  background: color-mix(in oklch, var(--ui-muted) 88%, transparent);
 }
 .ssr-menu-action {
   text-align: left;
@@ -266,7 +488,7 @@ function ensureStyles(): void {
   align-items: center;
   justify-content: center;
   flex: 0 0 14px;
-  color: rgba(226, 232, 240, 0.85);
+  color: color-mix(in oklch, currentColor 72%, transparent);
 }
 .ssr-menu-chevron svg {
   width: 11px;
@@ -285,7 +507,7 @@ function ensureStyles(): void {
   width: 16px;
   height: 16px;
   flex: 0 0 16px;
-  color: rgba(226, 232, 240, 0.92);
+  color: color-mix(in oklch, currentColor 84%, transparent);
 }
 .ssr-menu-icon svg {
   width: 16px;
@@ -379,13 +601,6 @@ function ensureStyles(): void {
   min-height: 0;
   min-width: 0;
 }
-#${SSR_COUNTER_ID} {
-  margin-top: auto;
-  padding-top: 10px;
-  border-top: 1px solid rgba(148, 163, 184, 0.25);
-  font-size: 12px;
-  opacity: 0.85;
-}
 `;
   document.head.appendChild(style);
 }
@@ -437,7 +652,6 @@ type InitialDataShape = {
   mfEnv?: Record<string, unknown>;
 };
 
-type RuntimeGroup = { id?: string; title?: string; iconName?: string } | null | undefined;
 
 const MENU_ICON_SVG: Record<string, string> = {
   IconBrain:
@@ -579,51 +793,37 @@ function discoverMicrofrontends(): string[] {
   return [...new Set([...fromInitial, ...fromImportMap])];
 }
 
-function normalizeGroup(raw: RuntimeGroup) {
-  if (raw?.id && raw?.title && raw?.iconName) {
-    return { id: raw.id, title: raw.title, iconName: raw.iconName };
-  }
-  return GROUPS.find((g) => g.id === 'content') ?? GROUPS[0];
-}
+const MF_GROUPS: Record<string, string> = {
+  'mf-assistants': 'ai',
+  'mf-agents': 'ai',
+  'mf-logs': 'analytics',
+  'mf-telemetry': 'analytics',
+  'mf-usage': 'analytics',
+  'mf-dasboards': 'analytics',
+  'mf-dag': 'workflows',
+  'mf-requests': 'workflows',
+  'mf-sheduller': 'workflows',
+  'mf-webhooks': 'workflows',
+  'mf-docs': 'content',
+  'mf-landing': 'content',
+  'mf-markdown': 'content',
+  'mf-struct': 'content',
+  'mf-galery': 'content',
+  'mf-threads': 'content',
+  'mf-dumps': 'data',
+  'mf-calls': 'social',
+  'mf-community': 'social',
+  'mf-charts': 'social',
+  'mf-marker': 'marketing',
+  'mf-mailing': 'sales',
+  'mf-sales': 'sales',
+  'mf-geo': 'geo',
+  'mf-places': 'geo',
+  'mf-companies': 'geo',
+};
 
-function likelyMatchesGroup(name: string, groupId: string): boolean {
-  const n = name.toLowerCase();
-  const explicit: Record<string, string[]> = {
-    ai: ['mf-assistants', 'mf-agents'],
-    analytics: ['mf-logs', 'mf-telemetry', 'mf-usage', 'mf-dasboards'],
-    workflows: ['mf-dag', 'mf-requests', 'mf-sheduller', 'mf-webhooks'],
-    content: ['mf-docs', 'mf-landing', 'mf-markdown', 'mf-struct', 'mf-galery'],
-    data: ['mf-dumps'],
-    social: ['mf-calls', 'mf-community', 'mf-threads', 'mf-charts'],
-    marketing: ['mf-marker'],
-    sales: ['mf-mailing', 'mf-sales', 'mf-companies'],
-    geo: ['mf-geo', 'mf-places'],
-  };
-  const explicitList = explicit[groupId];
-  if (explicitList && explicitList.includes(name)) return true;
-
-  switch (groupId) {
-    case 'ai':
-      return /(assist|agent|ai)/.test(n);
-    case 'analytics':
-      return /(analytic|logs|telemetry|usage|dash|chart)/.test(n);
-    case 'workflows':
-      return /(workflow|dag|request|sched|webhook|cron|process)/.test(n);
-    case 'content':
-      return /(doc|land|markdown|struct|galery|gallery|content)/.test(n);
-    case 'data':
-      return /(data|dump|db|storage)/.test(n);
-    case 'social':
-      return /(social|community|thread|call|chart)/.test(n);
-    case 'marketing':
-      return /(marketing|marker|mailing|campaign)/.test(n);
-    case 'geo':
-      return /(geo|place|catalog)/.test(n);
-    case 'sales':
-      return /(sales|company|mailing)/.test(n);
-    default:
-      return false;
-  }
+function getMfGroup(name: string): string {
+  return MF_GROUPS[name] ?? 'content';
 }
 
 function publishLoadedGroupsMenu(): void {
@@ -657,22 +857,13 @@ async function ensureGroupLoaded(groupId: string): Promise<void> {
     if (names.length === 0) return;
     initMicrofrontendEnv();
 
-    const prioritized = names.filter((name) => {
-      const known = knownModuleGroup[name];
-      if (known) return known === groupId;
-      return likelyMatchesGroup(name, groupId);
-    });
-
-    const toTry = prioritized;
+    const toLoad = names.filter((name) => getMfGroup(name) === groupId);
 
     if (!loadedGroupMenus[groupId]) loadedGroupMenus[groupId] = [];
 
-    for (const name of toTry) {
+    for (const name of toLoad) {
       try {
         const runtime = await import(name);
-        const group = normalizeGroup(runtime?.GROUP as RuntimeGroup);
-        knownModuleGroup[name] = group.id;
-        if (group.id !== groupId) continue;
 
         if (!loadedModules.has(name) && runtime?.default?.plug) {
           runtime.default.plug(bus);
@@ -922,26 +1113,93 @@ function installLinkInterceptor(): void {
   });
 }
 
-function startSecondsCounter(menuPanel: HTMLElement): void {
-  let counter = menuPanel.querySelector<HTMLElement>(`#${SSR_COUNTER_ID}`);
-  if (!counter) {
-    counter = document.createElement('div');
-    counter.id = SSR_COUNTER_ID;
-    menuPanel.appendChild(counter);
+async function openAiChat(message?: string): Promise<void> {
+  setRightRailOpen(true);
+  setRightRailMode('chat');
+  await ensureRightRailRuntime();
+  runActionEvent({ actionId: 'chats.show', params: {} });
+  const text = message?.trim();
+  if (text) {
+    chatSendRequested(text);
+  }
+}
+
+function installChatDock(menuPanel: HTMLElement): void {
+  const dock = document.getElementById(SSR_CHAT_DOCK_ID);
+  const form = document.getElementById(SSR_CHAT_FORM_ID) as HTMLFormElement | null;
+  const input = document.getElementById(SSR_CHAT_INPUT_ID) as HTMLInputElement | null;
+  const quick = document.getElementById(SSR_CHAT_QUICK_ID);
+  const groupsHost = menuPanel.querySelector<HTMLElement>('[data-ssr-menu-groups]');
+  if (!dock || !form || !input || !quick || !groupsHost) return;
+
+  if (!chatDockBound) {
+    chatDockBound = true;
+
+    const submitMessage = () => {
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      void openAiChat(text);
+    };
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      submitMessage();
+    });
+
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        submitMessage();
+      }
+    });
+    input.addEventListener('focus', () => {
+      void openAiChat();
+    });
+
+    quick.innerHTML = '';
+    QUICK_CHAT_PROMPTS.forEach((prompt) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'ssr-chat-quick-btn';
+      button.textContent = prompt;
+      button.addEventListener('click', () => {
+        void openAiChat(prompt);
+      });
+      quick.appendChild(button);
+    });
   }
 
-  if (!startedAtMs) {
-    startedAtMs = Date.now();
-  }
-
-  const render = () => {
-    const elapsedSec = Math.floor((Date.now() - startedAtMs) / 1000);
-    counter!.textContent = `uptime ${elapsedSec}s`;
+  const syncDockGeometry = () => {
+    const dockHeight = Math.ceil(dock.getBoundingClientRect().height);
+    document.documentElement.style.setProperty('--ssr-dock-height', `${dockHeight}px`);
   };
-  render();
 
-  if (counterTimer) return;
-  counterTimer = setInterval(render, 1000);
+  const updateOverlap = () => {
+    const groupsRect = groupsHost.getBoundingClientRect();
+    const dockRect = dock.getBoundingClientRect();
+    const overlaps = groupsRect.bottom >= dockRect.top - 10;
+    dock.dataset.overlap = overlaps ? '1' : '0';
+  };
+
+  syncDockGeometry();
+  updateOverlap();
+  if (!chatDockOverlapBound) {
+    chatDockOverlapBound = true;
+    const onScroll = () => updateOverlap();
+    const onResize = () => {
+      syncDockGeometry();
+      updateOverlap();
+    };
+    menuPanel.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onResize);
+    const observer = new MutationObserver(() => {
+      syncDockGeometry();
+      updateOverlap();
+    });
+    observer.observe(groupsHost, { childList: true, subtree: true, attributes: true });
+    observer.observe(dock, { childList: true, subtree: true });
+  }
 }
 
 function hasRightRailDeepLink(): boolean {
@@ -958,8 +1216,10 @@ export function mountSsrMenuShell(): void {
 
   ensureStyles();
 
+  installPanelControls();
+  installRightRailTabs();
   installDynamicMenu(menuPanel);
-  startSecondsCounter(menuPanel);
+  installChatDock(menuPanel);
   installLinkInterceptor();
   // Keep first paint stable: bootstrap right rail runtime lazily.
   // Only eager-init when URL explicitly deep-links into right rail state.

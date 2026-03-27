@@ -3,6 +3,12 @@ export type StorageInfo = {
   size: number;
 };
 
+export type StorageStats = {
+  totalSize: number;
+  storageCount: number;
+  storages: StorageInfo[];
+};
+
 export type DumpFile = {
   name: string;
   fileName: string;
@@ -21,6 +27,7 @@ export interface PaginatedResult<T> {
 
 export interface DumpsService {
   listStorages(): Promise<StorageInfo[]>;
+  storageStats(): Promise<StorageStats>;
   listDumps(params: PaginationParams): Promise<PaginatedResult<DumpFile>>;
   dump(name?: string): Promise<DumpFile[]>;
   getLink(fileName: string): Promise<string>;

@@ -124,7 +124,6 @@ pub const SqlEngine = struct {
         return result.toOwnedSlice(allocator);
     }
 
-    /// Get database file size
     pub fn getSize(self: *SqlEngine) !u64 {
         const file = try std.fs.cwd().openFile(self.path, .{});
         defer file.close();

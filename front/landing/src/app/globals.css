@@ -196,71 +196,71 @@
 
 .dark {
     /* Theme colors - full oklch values for presetWind4 */
-    --ui-background: oklch(0.141 0.005 285.823);
+    --ui-background: oklch(0.145 0 0);
     --ui-foreground: oklch(0.985 0 0);
-    --ui-card: oklch(0.21 0.006 285.885);
+    --ui-card: oklch(0.19 0 0);
     --ui-card-foreground: oklch(0.985 0 0);
-    --ui-popover: oklch(0.21 0.006 285.885);
+    --ui-popover: oklch(0.19 0 0);
     --ui-popover-foreground: oklch(0.985 0 0);
-    --ui-primary: oklch(0.92 0.004 286.32);
-    --ui-primary-foreground: oklch(0.21 0.006 285.885);
-    --ui-secondary: oklch(0.274 0.006 286.033);
+    --ui-primary: oklch(0.92 0 0);
+    --ui-primary-foreground: oklch(0.19 0 0);
+    --ui-secondary: oklch(0.24 0 0);
     --ui-secondary-foreground: oklch(0.985 0 0);
-    --ui-muted: oklch(0.274 0.006 286.033);
-    --ui-muted-foreground: oklch(0.705 0.015 286.067);
-    --ui-accent: oklch(0.274 0.006 286.033);
+    --ui-muted: oklch(0.24 0 0);
+    --ui-muted-foreground: oklch(0.72 0 0);
+    --ui-accent: oklch(0.24 0 0);
     --ui-accent-foreground: oklch(0.985 0 0);
     --ui-destructive: oklch(0.704 0.191 22.216);
     --ui-destructive-foreground: oklch(0.985 0 0);
-    --ui-border: oklch(1 0 0 / 10%);
-    --ui-input: oklch(1 0 0 / 15%);
-    --ui-ring: oklch(0.552 0.016 285.938);
+    --ui-border: oklch(1 0 0 / 12%);
+    --ui-input: oklch(1 0 0 / 14%);
+    --ui-ring: oklch(0.68 0 0);
     --ui-chart-1: oklch(0.488 0.243 264.376);
     --ui-chart-2: oklch(0.696 0.17 162.48);
     --ui-chart-3: oklch(0.769 0.188 70.08);
     --ui-chart-4: oklch(0.627 0.265 303.9);
     --ui-chart-5: oklch(0.645 0.246 16.439);
-    --ui-sidebar: oklch(0.21 0.006 285.885);
+    --ui-sidebar: oklch(0.19 0 0);
     --ui-sidebar-foreground: oklch(0.985 0 0);
-    --ui-sidebar-primary: oklch(0.488 0.243 264.376);
+    --ui-sidebar-primary: oklch(0.92 0 0);
     --ui-sidebar-primary-foreground: oklch(0.985 0 0);
-    --ui-sidebar-accent: oklch(0.274 0.006 286.033);
+    --ui-sidebar-accent: oklch(0.24 0 0);
     --ui-sidebar-accent-foreground: oklch(0.985 0 0);
-    --ui-sidebar-border: oklch(1 0 0 / 10%);
-    --ui-sidebar-ring: oklch(0.552 0.016 285.938);
+    --ui-sidebar-border: oklch(1 0 0 / 12%);
+    --ui-sidebar-ring: oklch(0.68 0 0);
 
     /* Legacy variables for backwards compatibility */
-    --background: 0.141 0.005 285.823;
+    --background: 0.145 0 0;
     --foreground: 0.985 0 0;
-    --card: 0.21 0.006 285.885;
+    --card: 0.19 0 0;
     --card-foreground: 0.985 0 0;
-    --popover: 0.21 0.006 285.885;
+    --popover: 0.19 0 0;
     --popover-foreground: 0.985 0 0;
-    --primary: 0.92 0.004 286.32;
-    --primary-foreground: 0.21 0.006 285.885;
-    --secondary: 0.274 0.006 286.033;
+    --primary: 0.92 0 0;
+    --primary-foreground: 0.19 0 0;
+    --secondary: 0.24 0 0;
     --secondary-foreground: 0.985 0 0;
-    --muted: 0.274 0.006 286.033;
-    --muted-foreground: 0.705 0.015 286.067;
-    --accent: 0.274 0.006 286.033;
+    --muted: 0.24 0 0;
+    --muted-foreground: 0.72 0 0;
+    --accent: 0.24 0 0;
     --accent-foreground: 0.985 0 0;
     --destructive: 0.704 0.191 22.216;
-    --border: 1 0 0 / 10%;
-    --input: 1 0 0 / 15%;
-    --ring: 0.552 0.016 285.938;
+    --border: 1 0 0 / 12%;
+    --input: 1 0 0 / 14%;
+    --ring: 0.68 0 0;
     --chart-1: 0.488 0.243 264.376;
     --chart-2: 0.696 0.17 162.48;
     --chart-3: 0.769 0.188 70.08;
     --chart-4: 0.627 0.265 303.9;
     --chart-5: 0.645 0.246 16.439;
-    --sidebar: 0.21 0.006 285.885;
+    --sidebar: 0.19 0 0;
     --sidebar-foreground: 0.985 0 0;
-    --sidebar-primary: 0.488 0.243 264.376;
+    --sidebar-primary: 0.92 0 0;
     --sidebar-primary-foreground: 0.985 0 0;
-    --sidebar-accent: 0.274 0.006 286.033;
+    --sidebar-accent: 0.24 0 0;
     --sidebar-accent-foreground: 0.985 0 0;
-    --sidebar-border: 1 0 0 / 10%;
-    --sidebar-ring: 0.552 0.016 285.938;
+    --sidebar-border: 1 0 0 / 12%;
+    --sidebar-ring: 0.68 0 0;
 }
 
 * {
@@ -287,7 +287,7 @@ body {
 }
 
 ::selection {
-    background: rgba(14, 165, 233, 0.15);
+    background: color-mix(in oklch, var(--ui-foreground) 16%, transparent);
     color: var(--ui-foreground);
 }
 

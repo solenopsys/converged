@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { HeaderPanel, ThreadedChat, cn } from "front-core";
 import type { ChartRoom } from "g-charts";
-import { MessageType } from "integration/types/threads";
+import { MessageType } from "../../../../../../tools/integration/types/threads";
 import { chartsClient, threadsClient } from "../services";
 import styles from "./ChatView.module.css";
 

@@ -6,6 +6,12 @@ export type StorageInfo = {
   size: number;
 };
 
+export type StorageStats = {
+  totalSize: number;
+  storageCount: number;
+  storages: StorageInfo[];
+};
+
 export type DumpFile = {
   name: string;
   fileName: string;
@@ -29,6 +35,14 @@ export const metadata = {
   "methods": [
     {
       "name": "listStorages",
+      "parameters": [],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "storageStats",
       "parameters": [],
       "returnType": "any",
       "isAsync": true,
@@ -132,6 +146,7 @@ export const metadata = {
 // Server interface (to be implemented in microservice)
 export interface DumpsService {
   listStorages(): Promise<any>;
+  storageStats(): Promise<any>;
   listDumps(params: PaginationParams): Promise<any>;
   dump(name?: string): Promise<any>;
   getLink(fileName: string): Promise<any>;
@@ -140,6 +155,7 @@ export interface DumpsService {
 // Client interface
 export interface DumpsServiceClient {
   listStorages(): Promise<any>;
+  storageStats(): Promise<any>;
   listDumps(params: PaginationParams): Promise<any>;
   dump(name?: string): Promise<any>;
   getLink(fileName: string): Promise<any>;

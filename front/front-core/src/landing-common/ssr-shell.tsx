@@ -25,6 +25,7 @@ body { margin: 0; }
   --ssr-pad: 0px;
   --ssr-menu-width: 276px;
   --ssr-rail-width: 380px;
+  --ssr-dock-height: 112px;
   --ssr-gap: 0px;
   --ssr-rail-space: 0px;
 }
@@ -45,19 +46,23 @@ body { margin: 0; }
 #ssr-shell[data-rail-open="1"] {
   --ssr-rail-space: var(--ssr-rail-width);
 }
+#ssr-shell[data-rail-wide="1"] {
+  --ssr-rail-width: 460px;
+}
 #ssr-left-panel {
   position: fixed;
   top: var(--ssr-pad);
   left: var(--ssr-pad);
-  bottom: var(--ssr-pad);
+  bottom: calc(var(--ssr-pad) + var(--ssr-dock-height));
   width: var(--ssr-menu-width);
   display: flex;
   flex-direction: column;
   overflow: auto;
   border: none;
   border-radius: 0;
-  border-right: 1px solid rgba(148, 163, 184, 0.24);
+  border-right: 1px solid color-mix(in oklch, var(--ui-border) 84%, transparent);
   background: transparent;
+  color: var(--ui-foreground);
   padding: 4px 0 0;
   box-sizing: border-box;
 }
@@ -70,12 +75,13 @@ body { margin: 0; }
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-left: 1px solid rgba(148, 163, 184, 0.24);
-  border-right: 1px solid rgba(148, 163, 184, 0.24);
+  border-left: 1px solid color-mix(in oklch, var(--ui-border) 84%, transparent);
+  border-right: 1px solid color-mix(in oklch, var(--ui-border) 84%, transparent);
   border-top: none;
   border-bottom: none;
   border-radius: 0;
-  background: #0b0d13;
+  background: var(--ui-card);
+  color: var(--ui-card-foreground);
   backdrop-filter: none;
   isolation: isolate;
   box-sizing: border-box;
@@ -83,6 +89,35 @@ body { margin: 0; }
   opacity: 1;
   transition: transform 220ms ease, opacity 220ms ease;
   z-index: 5;
+}
+#ssr-right-rail-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border-bottom: 1px solid color-mix(in oklch, var(--ui-border) 74%, transparent);
+}
+.ssr-right-rail-tab-btn {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in oklch, var(--ui-border) 74%, transparent);
+  border-radius: 8px;
+  background: transparent;
+  color: color-mix(in oklch, currentColor 82%, transparent);
+  cursor: pointer;
+}
+.ssr-right-rail-tab-btn svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+.ssr-right-rail-tab-btn[aria-pressed="true"] {
+  background: color-mix(in oklch, var(--ui-muted) 84%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--ui-border) 96%, transparent);
 }
 #ssr-right-rail[data-open="0"] {
   transform: translateX(calc(-1 * var(--ssr-rail-width)));
@@ -132,8 +167,8 @@ body { margin: 0; }
   align-items: center;
   gap: 8px;
   min-height: 24px;
-  margin: 0 0 8px;
-  padding: 10px 14px 0;
+  margin: 0;
+  padding: 0;
 }
 .ssr-panel-brand-logo-light,
 .ssr-panel-brand-logo-dark {
@@ -149,8 +184,45 @@ body { margin: 0; }
 .dark .ssr-panel-brand-logo-dark {
   display: block;
 }
+.ssr-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 52px;
+  padding: 10px 14px 10px;
+  border-bottom: 1px solid color-mix(in oklch, var(--ui-border) 74%, transparent);
+}
+.ssr-panel-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ssr-panel-control {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in oklch, var(--ui-border) 74%, transparent);
+  border-radius: 8px;
+  background: transparent;
+  color: color-mix(in oklch, currentColor 82%, transparent);
+  cursor: pointer;
+}
+.ssr-panel-control svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+.ssr-panel-control:hover {
+  background: color-mix(in oklch, var(--ui-muted) 88%, transparent);
+}
+.ssr-panel-control[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--ui-border) 96%, transparent);
+}
 .ssr-panel-title {
-  margin: 0 0 8px;
+  margin: 8px 0 8px;
   padding: 0 14px;
   font-size: 14px;
   font-weight: 600;
@@ -178,12 +250,93 @@ body { margin: 0; }
   padding: 6px 9px;
   font-size: 13px;
 }
-#ssr-seconds-counter {
-  margin-top: auto;
-  padding: 10px 14px 0;
-  border-top: 1px solid rgba(148, 163, 184, 0.25);
-  font-size: 12px;
-  opacity: 0.85;
+#ssr-chat-dock {
+  position: fixed;
+  left: var(--ssr-pad);
+  bottom: var(--ssr-pad);
+  width: var(--ssr-menu-width);
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px 10px;
+  border-top: 1px solid color-mix(in oklch, var(--ui-border) 84%, transparent);
+  background: color-mix(in oklch, var(--ui-card) 92%, transparent);
+  box-sizing: border-box;
+  transition: width 220ms ease;
+}
+#ssr-shell[data-rail-open="1"] #ssr-chat-dock {
+  width: calc(var(--ssr-menu-width) + var(--ssr-rail-width));
+}
+#ssr-chat-quick {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 8px;
+  max-height: 180px;
+  overflow: hidden;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+#ssr-chat-dock[data-overlap="1"] #ssr-chat-quick {
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+}
+.ssr-chat-quick-btn {
+  border: 1px solid color-mix(in oklch, var(--ui-border) 74%, transparent);
+  background: color-mix(in oklch, var(--ui-muted) 72%, transparent);
+  color: var(--ui-foreground);
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+}
+.ssr-chat-quick-btn:hover {
+  background: color-mix(in oklch, var(--ui-muted) 88%, transparent);
+}
+#ssr-chat-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  border: 1px solid color-mix(in oklch, var(--ui-border) 84%, transparent);
+  border-radius: 10px;
+  padding: 6px 8px 6px 10px;
+  background: color-mix(in oklch, var(--ui-card) 92%, transparent);
+}
+#ssr-chat-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--ui-foreground);
+  font-size: 14px;
+  line-height: 1.35;
+  outline: none;
+}
+#ssr-chat-input::placeholder {
+  color: color-mix(in oklch, var(--ui-foreground) 58%, transparent);
+}
+#ssr-chat-send {
+  width: 30px;
+  height: 30px;
+  border: 1px solid color-mix(in oklch, var(--ui-border) 74%, transparent);
+  border-radius: 8px;
+  background: transparent;
+  color: color-mix(in oklch, currentColor 82%, transparent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+#ssr-chat-send svg {
+  width: 15px;
+  height: 15px;
+  display: block;
 }
 #ssr-main {
   min-width: 0;
@@ -226,6 +379,13 @@ body { margin: 0; }
     opacity: 1;
     visibility: visible;
   }
+  #ssr-chat-dock {
+    position: static;
+    width: auto;
+  }
+  #ssr-shell[data-rail-open="1"] #ssr-chat-dock {
+    width: auto;
+  }
 }
 `;
 
@@ -234,15 +394,84 @@ export function SsrShellLayout({ children }: { children: ReactNode }) {
     <div id="app-shell" data-island="spa-shell" data-island-load="eager" data-rail-open="0">
       <div id="ssr-shell" data-rail-open="0">
         <aside id="ssr-left-panel" aria-label="Menu">
-          <div className="ssr-panel-brand" aria-label="Brand">
-            <img className="ssr-panel-brand-logo-light" src="/header-logo-black.svg" alt="Converged AI" />
-            <img className="ssr-panel-brand-logo-dark" src="/header-logo-white.svg" alt="Converged AI" />
+          <div className="ssr-panel-head">
+            <div className="ssr-panel-brand" aria-label="Brand">
+              <img className="ssr-panel-brand-logo-light" src="/header-logo-black.svg" alt="Converged AI" />
+              <img className="ssr-panel-brand-logo-dark" src="/header-logo-white.svg" alt="Converged AI" />
+            </div>
+            <div className="ssr-panel-controls" aria-label="Menu controls">
+              <button type="button" className="ssr-panel-control" data-ssr-control="auth" aria-label="Open login">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                  <path d="M10 17l5-5-5-5" />
+                  <path d="M15 12H3" />
+                </svg>
+              </button>
+              <button type="button" className="ssr-panel-control" data-ssr-control="theme" aria-label="Toggle theme">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2" />
+                  <path d="M12 20v2" />
+                  <path d="m4.93 4.93 1.41 1.41" />
+                  <path d="m17.66 17.66 1.41 1.41" />
+                  <path d="M2 12h2" />
+                  <path d="M20 12h2" />
+                  <path d="m6.34 17.66-1.41 1.41" />
+                  <path d="m19.07 4.93-1.41 1.41" />
+                </svg>
+              </button>
+              <button type="button" className="ssr-panel-control" data-ssr-control="parallel" aria-label="Parallel panels" aria-pressed="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="16" rx="2" />
+                  <path d="M12 4v16" />
+                </svg>
+              </button>
+              <button type="button" className="ssr-panel-control" data-ssr-control="constrain" aria-label="Expand panel width" aria-pressed="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M15 3h6v6" />
+                  <path d="M9 21H3v-6" />
+                  <path d="M21 3l-7 7" />
+                  <path d="M3 21l7-7" />
+                </svg>
+              </button>
+              <button type="button" className="ssr-panel-control" data-ssr-control="rail" aria-label="Open panel" aria-pressed="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="16" rx="2" />
+                  <path d="M8 4v16" />
+                  <path d="m14 9 3 3-3 3" />
+                </svg>
+              </button>
+            </div>
           </div>
           <h2 className="ssr-panel-title">Menu</h2>
           <div className="ssr-panel-groups" data-ssr-menu-groups />
-          <div id="ssr-seconds-counter">uptime 0s</div>
+          <div id="ssr-chat-dock" data-overlap="0">
+            <div id="ssr-chat-quick" />
+            <form id="ssr-chat-form">
+              <input id="ssr-chat-input" type="text" placeholder="Напишите сообщение..." autoComplete="off" />
+              <button id="ssr-chat-send" type="submit" aria-label="Send message">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 2L11 13" />
+                  <path d="M22 2 15 22 11 13 2 9 22 2z" />
+                </svg>
+              </button>
+            </form>
+          </div>
         </aside>
         <aside id="ssr-right-rail" aria-label="Panel" data-open="0" data-mode="chat">
+          <div id="ssr-right-rail-head">
+            <button type="button" className="ssr-right-rail-tab-btn" data-ssr-rail-tab="chat" aria-label="AI panel" aria-pressed="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+            </button>
+            <button type="button" className="ssr-right-rail-tab-btn" data-ssr-rail-tab="tab" aria-label="Form panel" aria-pressed="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="16" rx="2" />
+                <path d="M12 4v16" />
+              </svg>
+            </button>
+          </div>
           <section id="ssr-right-rail-chat">
             <div id="slot-panel-chat">
               <div className="ssr-right-rail-empty">

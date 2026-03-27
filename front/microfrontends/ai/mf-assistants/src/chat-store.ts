@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from "uuid";
 import { assistantClient, threadsClient } from "./services";
 import { chatSendRequested, chatInitRequested, registry } from "front-core";
 import { $files, uploadCompleted } from "files-state";
-import { MessageType } from "integration/types/threads";
+import { MessageType } from "../../../../../tools/integration/types/threads";
 
 // AI-доступные команды (только меню и навигация)
 const AI_COMMANDS: Record<string, string> = {

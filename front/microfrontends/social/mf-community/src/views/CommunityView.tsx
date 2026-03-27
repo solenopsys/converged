@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { HeaderPanel, ThreadedChat, cn } from "front-core";
 import type { CommunitySection, CommunityTopic, SectionTreeNode } from "g-community";
 import type { Message as ThreadMessage } from "g-threads";
-import { MessageType } from "integration/types/threads";
+import { MessageType } from "../../../../../../tools/integration/types/threads";
 import { communityClient, threadsClient } from "../services";
 import styles from "./CommunityView.module.css";
 
