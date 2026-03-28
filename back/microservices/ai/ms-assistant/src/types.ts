@@ -14,6 +14,7 @@ import {
 export enum ServiceType {
   OPENAI = "openai",
   ANTHROPIC = "anthropic",
+  GEMINI = "gemini",
 }
 
 export enum StreamEventType {

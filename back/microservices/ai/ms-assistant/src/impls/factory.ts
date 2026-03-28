@@ -4,18 +4,22 @@ import { LogFunction } from "../types";
 import { AiConversation } from "../types";
 import { OpenAIConversation } from "./providers/openai";
 import { ClaudeConversation } from "./providers/claude";
-import { getAnthropicClient, getOpenAIClient } from "./aiClients";
+import { GeminiConversation } from "./providers/gemini";
+import { getAnthropicClient, getOpenAIClient, getGeminiClient } from "./aiClients";
 
 // Простая фабрика
 export class SimpleConversationFactory implements ConversationFactory {
     private apiKeys: Map<ServiceType, string> = new Map();
 
-    constructor(config: { openaiApiKey?: string; anthropicApiKey?: string } = {}) {
+    constructor(config: { openaiApiKey?: string; anthropicApiKey?: string; geminiApiKey?: string } = {}) {
         if (config.openaiApiKey) {
             this.apiKeys.set(ServiceType.OPENAI, config.openaiApiKey);
         }
         if (config.anthropicApiKey) {
             this.apiKeys.set(ServiceType.ANTHROPIC, config.anthropicApiKey);
+        }
+        if (config.geminiApiKey) {
+            this.apiKeys.set(ServiceType.GEMINI, config.geminiApiKey);
         }
     }
 
@@ -31,6 +35,9 @@ export class SimpleConversationFactory implements ConversationFactory {
 
             case ServiceType.ANTHROPIC:
                 return new ClaudeConversation(model, getAnthropicClient(apiKey), log);
+
+            case ServiceType.GEMINI:
+                return new GeminiConversation(model, getGeminiClient(apiKey), log);
 
             default:
                 throw new Error(`Unsupported service type: ${serviceType}`);

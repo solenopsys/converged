@@ -1,11 +1,15 @@
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenAI } from "@google/genai";
 
 let openaiClient: OpenAI | null = null;
 let openaiKey: string | undefined;
 
 let anthropicClient: Anthropic | null = null;
 let anthropicKey: string | undefined;
+
+let geminiClient: GoogleGenAI | null = null;
+let geminiKey: string | undefined;
 
 export function getOpenAIClient(apiKey: string): OpenAI {
   if (!openaiClient) {
@@ -33,4 +37,18 @@ export function getAnthropicClient(apiKey: string): Anthropic {
   }
 
   return anthropicClient;
+}
+
+export function getGeminiClient(apiKey: string): GoogleGenAI {
+  if (!geminiClient) {
+    geminiClient = new GoogleGenAI({ apiKey });
+    geminiKey = apiKey;
+    return geminiClient;
+  }
+
+  if (geminiKey && apiKey !== geminiKey) {
+    throw new Error("Gemini client already initialized with a different apiKey");
+  }
+
+  return geminiClient;
 }

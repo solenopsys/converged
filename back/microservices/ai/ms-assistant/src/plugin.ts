@@ -12,12 +12,16 @@ function getServiceImpl() {
   if (!serviceImpl) {
     serviceImpl = new ChatsServiceImpl({
       openai: {
-        key: process.env.OPENAI_API_KEY || "",
-        model: process.env.OPENAI_MODEL || "gpt-5-mini",
+        key: process.env.OPENAI_API_KEY,
+        model: process.env.OPENAI_MODEL,
       },
       claude: {
-        key: process.env.CLAUDE_API_KEY || "",
-        model: process.env.CLAUDE_MODEL || "claude-3-5-haiku-20241022",
+        key: process.env.CLAUDE_API_KEY,
+        model: process.env.CLAUDE_MODEL,
+      },
+      gemini: {
+        key: process.env.GOOGLE_API_KEY,
+        model: process.env.GEMINI_MODEL,
       },
     });
   }

@@ -19,3 +19,12 @@
 [submodule "native/wrapers/sqlite-vec/vendor/sqlite-vec"]
 	path = native/wrapers/sqlite-vec/vendor/sqlite-vec
 	url = https://github.com/asg017/sqlite-vec.git
+[submodule "native/wrapers/ryugraph"]
+	path = native/wrapers/ryugraph
+	url = https://github.com/solenopsys/zig-ryugraph.git
+[submodule "native/wrapers/md4c"]
+	path = native/wrapers/md4c
+	url = https://github.com/solenopsys/zig-md4c.git
+[submodule "native/behemoth"]
+	path = native/behemoth
+	url = https://github.com/solenopsys/behemoth.git

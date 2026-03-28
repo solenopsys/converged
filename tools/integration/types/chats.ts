@@ -9,7 +9,8 @@ export enum StreamEventType {
 
 export enum ServiceType {
     OPENAI = "openai",
-    ANTHROPIC = "anthropic"
+    ANTHROPIC = "anthropic",
+    GEMINI = "gemini"
 }
 
 export enum ContentType {

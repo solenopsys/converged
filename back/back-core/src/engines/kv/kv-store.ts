@@ -216,6 +216,19 @@ export class KVStore implements KVStoreIntf, Store {
     this.db.delete(key);
   }
 
+  getSize(): bigint {
+    if (this.mode === "transport") {
+      return this.conn!.getSize(this.ms!, this.storeName!);
+    }
+    return 0n;
+  }
+
+  compact(): void {
+    if (this.mode === "transport") {
+      this.conn!.kvCompact(this.ms!, this.storeName!);
+    }
+  }
+
   getStats(): any {
     return {};
   }

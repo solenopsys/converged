@@ -46,7 +46,7 @@ let isInitialized = false;
 const ensureInitialized = () => {
   if (!isInitialized) {
     console.log("[Chat] Initializing chat session on first use");
-    chatStore.init(chatThreadId, ServiceType.OPENAI, "gpt-4o-mini");
+    chatStore.init(chatThreadId, ServiceType.GEMINI);
     isInitialized = true;
   }
 };

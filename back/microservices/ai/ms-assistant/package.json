@@ -14,6 +14,7 @@
     "nrpc": "workspace:*",
     "g-assistant": "workspace:*",
     "@anthropic-ai/sdk": "latest",
+    "@google/genai": "latest",
     "openai": "latest"
   }
 }

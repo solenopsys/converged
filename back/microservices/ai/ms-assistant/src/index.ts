@@ -18,8 +18,8 @@ const MS_ID = "assistant-ms";
 const logFunction: LogFunction = async (_message, _type) => {};
 
 type AiConfig = {
-  key: string;
-  model: string;
+  key?: string;
+  model?: string;
 };
 
 class ChatsServiceImpl {
@@ -29,13 +29,17 @@ class ChatsServiceImpl {
   private stores: StoresController;
   private initPromise?: Promise<void>;
 
-  constructor(config: { openai: AiConfig; claude: AiConfig }) {
+  constructor(config: { openai: AiConfig; claude: AiConfig; gemini?: AiConfig }) {
     this.factory = new SimpleConversationFactory({
       openaiApiKey: config.openai.key,
       anthropicApiKey: config.claude.key,
+      geminiApiKey: config.gemini?.key,
     });
     this.serviceModelMap.set(ServiceType.OPENAI, config.openai.model);
     this.serviceModelMap.set(ServiceType.ANTHROPIC, config.claude.model);
+    if (config.gemini) {
+      this.serviceModelMap.set(ServiceType.GEMINI, config.gemini.model);
+    }
 
     this.init();
   }

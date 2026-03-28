@@ -17,7 +17,8 @@
     "front/ssr",
     "tools/*",
     "tools/integration/*",
-    "tools/integration/generated/*"
+    "tools/integration/generated/*",
+    "native/behemoth/*"
   ],
   "devDependencies": {
     "@biomejs/biome": "^2.3.13",
