@@ -21,13 +21,21 @@ export interface HeaderTab {
 
 export interface HeaderAction {
   id: string;
-  label: string;
+  label: string | ((count: number) => string);
   icon?: React.ComponentType<{ className?: string }>;
   event: Event<any>; // Effector event для вызова
   payload?: any; // Опциональный payload для event
   variant?: 'default' | 'outline' | 'ghost' | 'destructive';
   disabled?: boolean;
   hidden?: boolean;
+}
+
+export interface SelectionAction {
+  id: string;
+  label: string | ((count: number) => string);
+  icon?: React.ComponentType<{ className?: string }>;
+  handler: (selectedRows: any[]) => void | Promise<void>;
+  variant?: 'default' | 'outline' | 'ghost' | 'destructive';
 }
 
 export interface HeaderPanelConfig {
@@ -37,11 +45,14 @@ export interface HeaderPanelConfig {
   $activeTab?: Store<string>; // Effector store с активной вкладкой
   tabChanged?: Event<string>; // Event для смены вкладки
   actions?: HeaderAction[];
+  selectionActions?: SelectionAction[];
   className?: string;
 }
 
 export interface HeaderPanelProps {
   config: HeaderPanelConfig;
+  selectedRows?: any[];
+  onClearSelection?: () => void;
   children?: React.ReactNode;
 }
 
@@ -50,7 +61,7 @@ export interface HeaderPanelProps {
  * Работает через Effector stores и events
  * Вкладки на мобильных устройствах превращаются в dropdown меню
  */
-export const HeaderPanel: React.FC<HeaderPanelProps> = ({ config, children }) => {
+export const HeaderPanel: React.FC<HeaderPanelProps> = ({ config, selectedRows = [], onClearSelection, children }) => {
   const {
     title,
     subtitle,
@@ -58,6 +69,7 @@ export const HeaderPanel: React.FC<HeaderPanelProps> = ({ config, children }) =>
     $activeTab,
     tabChanged,
     actions = [],
+    selectionActions = [],
     className
   } = config;
 
@@ -163,11 +175,41 @@ export const HeaderPanel: React.FC<HeaderPanelProps> = ({ config, children }) =>
             </div>
           )}
 
+          {/* Selection Actions */}
+          {selectedRows.length > 0 && selectionActions.length > 0 && (
+            <div className="flex items-center gap-2 shrink-0">
+              {selectionActions.map(action => {
+                const Icon = action.icon;
+                const label = typeof action.label === 'function'
+                  ? action.label(selectedRows.length)
+                  : `${action.label} (${selectedRows.length})`;
+                return (
+                  <Button
+                    key={action.id}
+                    variant={action.variant || 'default'}
+                    size="sm"
+                    onClick={async () => {
+                      await action.handler(selectedRows);
+                      onClearSelection?.();
+                    }}
+                    className="inline-flex"
+                  >
+                    {Icon && <Icon className="h-4 w-4 mr-2" />}
+                    {label}
+                  </Button>
+                );
+              })}
+            </div>
+          )}
+
           {/* Actions */}
           {visibleActions.length > 0 && (
             <div className="flex items-center gap-2 shrink-0">
             {visibleActions.map(action => {
               const Icon = action.icon;
+              const label = typeof action.label === 'function'
+                ? action.label(selectedRows.length)
+                : action.label;
               return (
                 <Button
                   key={action.id}
@@ -178,7 +220,7 @@ export const HeaderPanel: React.FC<HeaderPanelProps> = ({ config, children }) =>
                   className="inline-flex"
                 >
                   {Icon && <Icon className="h-4 w-4 mr-2" />}
-                  {action.label}
+                  {label}
                 </Button>
               );
             })}

@@ -2,11 +2,16 @@
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Check, X, ChevronDown, ChevronUp, MoreHorizontal, Settings, GripVertical, CheckSquare, Square } from 'lucide-react';
+import { Check, X, ChevronDown, ChevronUp, MoreHorizontal, Settings, GripVertical, CheckSquare, Square, ChevronDown as MenuIcon } from 'lucide-react';
+import {
+  DropdownMenu as ShadDropdown,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../dropdown-menu';
 import { useUnit } from 'effector-react';
 import { cn } from '../../../lib/utils';
 import { Badge } from '../badge';
-import { SideMenu } from "../SideMenu";
 import { COLUMN_TYPES } from "./constants";
 import {
   $tableColumnsState,
@@ -396,7 +401,6 @@ export const InfiniteScrollDataTable = ({
 }) => {
   const [selectedRows, setSelectedRows] = useState([]);
   const [selectionMode, setSelectionMode] = useState(false);
-  const [sideMenuOpen, setSideMenuOpen] = useState(false);
   const [currentViewMode, setCurrentViewMode] = useState<ViewMode>(viewMode);
   const containerRef = useRef<HTMLDivElement>(null);
   const parentRef = useRef(null);
@@ -634,7 +638,6 @@ export const InfiniteScrollDataTable = ({
       onBulkAction(actionId, selectedData, selectedIds);
     }
     setSelectedRows([]);
-    setSideMenuOpen(false);
   }, [onBulkAction, data]);
 
   const isAllSelected = selectedRows.length === data.length && data.length > 0;
@@ -881,13 +884,26 @@ export const InfiniteScrollDataTable = ({
               Снять выделение
             </button>
             {bulkActions.length > 0 && (
-              <button
-                onClick={() => setSideMenuOpen(true)}
-                className="px-3 py-1.5 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors flex items-center gap-2 text-sm"
-              >
-                <Settings size={14} />
-                Операции
-              </button>
+              <ShadDropdown>
+                <DropdownMenuTrigger asChild>
+                  <button className="px-3 py-1.5 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors flex items-center gap-2 text-sm">
+                    Операции
+                    <MenuIcon size={14} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {bulkActions.map((action) => (
+                    <DropdownMenuItem
+                      key={action.id}
+                      onClick={() => handleBulkActionClick(action.id, selectedRows)}
+                      className={cn(action.variant === 'destructive' && 'text-destructive focus:text-destructive')}
+                    >
+                      {action.icon && <action.icon size={14} className="mr-2" />}
+                      {action.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </ShadDropdown>
             )}
           </div>
         </div>
@@ -941,17 +957,6 @@ export const InfiniteScrollDataTable = ({
         </>
       )}
 
-      {/* Side Menu */}
-      {bulkActions.length > 0 && (
-        <SideMenu
-          selectedRows={selectedRows}
-          bulkActions={bulkActions}
-          onBulkAction={handleBulkActionClick}
-          isOpen={sideMenuOpen}
-          onClose={() => setSideMenuOpen(false)}
-          title={sideMenuTitle}
-        />
-      )}
     </div>
   );
 };

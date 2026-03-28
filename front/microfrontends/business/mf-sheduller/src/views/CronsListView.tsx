@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useUnit } from "effector-react";
-import { createEvent } from "effector";
 import { HeaderPanelLayout, InfiniteScrollDataTable } from "front-core";
 import { RefreshCw, Plus, Trash2 } from "lucide-react";
 import {
@@ -14,11 +13,8 @@ import { cronsColumns } from "../functions/columns";
 import { createCronFormWidget } from "../functions/crons.config";
 import shedullerService from "../service";
 
-const deleteSelectedEvent = createEvent<any[]>("DELETE_SELECTED_CRONS");
-
 export const CronsListView = ({ bus }) => {
   const cronsState = useUnit($cronsStore.$state);
-  const [selected, setSelected] = useState<any[]>([]);
 
   useEffect(() => {
     cronsViewMounted();
@@ -28,16 +24,7 @@ export const CronsListView = ({ bus }) => {
       bus.present({ widget: createCronFormWidget(bus) });
     });
 
-    const unwatchDelete = deleteSelectedEvent.watch(async (rows) => {
-      await Promise.all(rows.map((row) => shedullerService.deleteCron(row.id)));
-      setSelected([]);
-      refreshCronsClicked();
-    });
-
-    return () => {
-      unwatch();
-      unwatchDelete();
-    };
+    return () => { unwatch(); };
   }, [bus]);
 
   const handleRowClick = (row) => {
@@ -62,18 +49,18 @@ export const CronsListView = ({ bus }) => {
         event: refreshCronsClicked,
         variant: "outline" as const,
       },
-      ...(selected.length > 0
-        ? [
-            {
-              id: "delete",
-              label: `Delete (${selected.length})`,
-              icon: Trash2,
-              event: deleteSelectedEvent,
-              payload: selected,
-              variant: "destructive" as const,
-            },
-          ]
-        : []),
+    ],
+    selectionActions: [
+      {
+        id: "delete",
+        label: (count: number) => `Delete (${count})`,
+        icon: Trash2,
+        variant: "destructive" as const,
+        handler: async (rows) => {
+          await Promise.all(rows.map((row) => shedullerService.deleteCron(row.id)));
+          refreshCronsClicked();
+        },
+      },
     ],
   };
 
@@ -86,7 +73,6 @@ export const CronsListView = ({ bus }) => {
         columns={cronsColumns}
         onLoadMore={$cronsStore.loadMore}
         onRowClick={handleRowClick}
-        onSelectionChange={(_ids, rows) => setSelected(rows)}
         viewMode="table"
       />
     </HeaderPanelLayout>
