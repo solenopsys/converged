@@ -25,7 +25,7 @@ body { margin: 0; }
   --ssr-pad: 0px;
   --ssr-menu-width: 276px;
   --ssr-rail-width: 380px;
-  --ssr-dock-height: 112px;
+  --ssr-dock-height: 220px;
   --ssr-gap: 0px;
   --ssr-rail-space: 0px;
 }
@@ -53,11 +53,13 @@ body { margin: 0; }
   position: fixed;
   top: var(--ssr-pad);
   left: var(--ssr-pad);
-  bottom: calc(var(--ssr-pad) + var(--ssr-dock-height));
+  bottom: auto;
   width: var(--ssr-menu-width);
+  height: fit-content;
+  max-height: calc(100vh - (var(--ssr-pad) * 2) - var(--ssr-dock-height));
   display: flex;
   flex-direction: column;
-  overflow: auto;
+  overflow: hidden;
   border: none;
   border-radius: 0;
   border-right: 1px solid color-mix(in oklch, var(--ui-border) 84%, transparent);
@@ -243,6 +245,9 @@ body { margin: 0; }
 .ssr-panel-groups {
   display: grid;
   gap: 6px;
+  flex: 0 0 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 .ssr-panel-group {
   border: 1px solid rgba(148, 163, 184, 0.28);
@@ -277,11 +282,6 @@ body { margin: 0; }
   opacity: 1;
   transform: translateY(0);
   transition: opacity 140ms ease, transform 140ms ease;
-}
-#ssr-chat-dock[data-overlap="1"] #ssr-chat-quick {
-  opacity: 0;
-  transform: translateY(8px);
-  pointer-events: none;
 }
 .ssr-chat-quick-btn {
   border: 1px solid color-mix(in oklch, var(--ui-border) 74%, transparent);
@@ -357,6 +357,7 @@ body { margin: 0; }
     position: static;
     width: auto;
     margin-bottom: 0;
+    height: auto;
     max-height: none;
   }
   #ssr-right-rail {
@@ -380,11 +381,13 @@ body { margin: 0; }
     visibility: visible;
   }
   #ssr-chat-dock {
-    position: static;
-    width: auto;
+    position: fixed;
+    left: var(--ssr-pad);
+    bottom: var(--ssr-pad);
+    width: var(--ssr-menu-width);
   }
   #ssr-shell[data-rail-open="1"] #ssr-chat-dock {
-    width: auto;
+    width: calc(var(--ssr-menu-width) + var(--ssr-rail-width));
   }
 }
 `;
@@ -426,14 +429,6 @@ export function SsrShellLayout({ children }: { children: ReactNode }) {
                   <path d="M12 4v16" />
                 </svg>
               </button>
-              <button type="button" className="ssr-panel-control" data-ssr-control="constrain" aria-label="Expand panel width" aria-pressed="false">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M15 3h6v6" />
-                  <path d="M9 21H3v-6" />
-                  <path d="M21 3l-7 7" />
-                  <path d="M3 21l7-7" />
-                </svg>
-              </button>
               <button type="button" className="ssr-panel-control" data-ssr-control="rail" aria-label="Open panel" aria-pressed="false">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="4" width="18" height="16" rx="2" />
@@ -443,7 +438,6 @@ export function SsrShellLayout({ children }: { children: ReactNode }) {
               </button>
             </div>
           </div>
-          <h2 className="ssr-panel-title">Menu</h2>
           <div className="ssr-panel-groups" data-ssr-menu-groups />
           <div id="ssr-chat-dock" data-overlap="0">
             <div id="ssr-chat-quick" />

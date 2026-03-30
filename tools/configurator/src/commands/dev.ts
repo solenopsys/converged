@@ -152,10 +152,17 @@ async function loadMergedConfig(
 export async function runDev({ projectName, port }: DevOptions) {
   const { config, projectDir, parentDir } = await loadMergedConfig(projectName);
   const loadedEnv = loadDotEnvForSpawn(projectName, projectDir, parentDir);
+  const dataRoot = resolve(PROJECTS_DIR, "..", "data");
+  const projectDataDir = resolve(
+    dataRoot,
+    projectName === "club-portal" ? "club" : "converged",
+  );
   const runtimeEnv = {
     ...loadedEnv,
     NODE_ENV: "development",
-    DATA_DIR: process.env.DATA_DIR || resolve(PROJECTS_DIR, "..", "data"),
+    DATA_DIR: process.env.DATA_DIR
+      || loadedEnv.DATA_DIR
+      || (existsSync(projectDataDir) ? projectDataDir : dataRoot),
   };
 
   console.log(`
@@ -166,6 +173,26 @@ export async function runDev({ projectName, port }: DevOptions) {
 ║  Microfrontends: ${config.spa.microfrontends.length.toString().padEnd(37)}║
 ╚══════════════════════════════════════════════════════════╝
 `);
+
+  // Generate icons shim before starting
+  const frontCoreDir = parentDir
+    ? resolve(parentDir, "front/front-core")
+    : resolve(projectDir, "front/front-core");
+  const shimScript = resolve(frontCoreDir, "src/tools/shim.ts");
+  if (existsSync(shimScript)) {
+    const mfDirs: string[] = [];
+    if (parentDir) mfDirs.push(resolve(parentDir, "front/microfrontends"));
+    mfDirs.push(resolve(projectDir, "front/microfrontends"));
+
+    console.log("[dev] Generating icons shim...");
+    const shimProc = spawn({
+      cmd: ["bun", "run", shimScript, ...mfDirs.filter(d => existsSync(d))],
+      cwd: frontCoreDir,
+      stdout: "inherit",
+      stderr: "inherit",
+    });
+    await shimProc.exited;
+  }
 
   const procs: Subprocess[] = [];
   const cleanup = () => {

@@ -5,8 +5,8 @@ import {
   IconFolder,
   IconShare3,
   IconTrash,
-  type Icon,
-} from "@tabler/icons-react"
+} from "../icons-shim"
+import type { Icon } from "@tabler/icons-react"
 
 import {
   DropdownMenu,

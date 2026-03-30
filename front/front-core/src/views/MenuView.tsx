@@ -2,7 +2,7 @@
 
 // MenuView.tsx
 import * as React from "react"
-import * as TablerIcons from "@tabler/icons-react"
+import { getTablerIcon } from "../icons-shim"
 import { useUnit } from 'effector-react'
 
 import { NavMain } from "@/components/nav-main"
@@ -13,11 +13,8 @@ import { useGlobalTranslation } from "@/hooks/global_i18n"
 import { $allMenuItems } from '../controllers/menu-store'
 
 const renderIcon = (iconName: string) => {
-  if (TablerIcons[iconName]) {
-    const IconComponent = TablerIcons[iconName]
-    return React.createElement(IconComponent)
-  }
-  return null
+  const IconComponent = getTablerIcon(iconName)
+  return IconComponent ? React.createElement(IconComponent) : null
 }
 
 const processItems = (items: any[], t?: (key: string) => string) => {
@@ -59,14 +56,11 @@ export const MenuView = (params:{onClick: (actionId: string) => void}) => {
   }
 
   const navMain = processItems(menuItems, translateTitle)
-  console.log("navMain processed", navMain);
 
   const navSecondary = processItems(i18n.t("navSecondary", { ns: "menu", returnObjects: true }) || [])
-  console.log("navSecondary", navSecondary);
 
   const handleSelect = (actionId: string) => {
     const beforeTab = $activeTab.getState();
-    console.log("ACTIONS", actionId);
     params.onClick(actionId);
     if (isMobile) {
       requestAnimationFrame(() => {

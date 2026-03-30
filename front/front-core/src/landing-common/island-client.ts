@@ -59,7 +59,8 @@ let rightRailChatBootstrapped = false;
 let controlsBound = false;
 let railTabsBound = false;
 let chatDockBound = false;
-let chatDockOverlapBound = false;
+let chatDockGeometryBound = false;
+let chatDockResizeObserver: ResizeObserver | null = null;
 let parallelMode = false;
 let railWide = false;
 type CenterViewState = ReturnType<typeof $centerView.getState>;
@@ -573,6 +574,14 @@ function ensureStyles(): void {
 #ssr-left-panel {
   display: flex;
   flex-direction: column;
+  bottom: auto !important;
+  height: fit-content !important;
+  max-height: calc(100vh - (var(--ssr-pad) * 2) - var(--ssr-dock-height)) !important;
+  overflow: hidden !important;
+}
+.ssr-panel-groups {
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 #ssr-right-rail {
   display: flex;
@@ -1124,13 +1133,12 @@ async function openAiChat(message?: string): Promise<void> {
   }
 }
 
-function installChatDock(menuPanel: HTMLElement): void {
+function installChatDock(): void {
   const dock = document.getElementById(SSR_CHAT_DOCK_ID);
   const form = document.getElementById(SSR_CHAT_FORM_ID) as HTMLFormElement | null;
   const input = document.getElementById(SSR_CHAT_INPUT_ID) as HTMLInputElement | null;
   const quick = document.getElementById(SSR_CHAT_QUICK_ID);
-  const groupsHost = menuPanel.querySelector<HTMLElement>('[data-ssr-menu-groups]');
-  if (!dock || !form || !input || !quick || !groupsHost) return;
+  if (!dock || !form || !input || !quick) return;
 
   if (!chatDockBound) {
     chatDockBound = true;
@@ -1170,35 +1178,22 @@ function installChatDock(menuPanel: HTMLElement): void {
     });
   }
 
+  let lastDockHeight = -1;
   const syncDockGeometry = () => {
     const dockHeight = Math.ceil(dock.getBoundingClientRect().height);
+    if (dockHeight === lastDockHeight) return;
+    lastDockHeight = dockHeight;
     document.documentElement.style.setProperty('--ssr-dock-height', `${dockHeight}px`);
-  };
-
-  const updateOverlap = () => {
-    const groupsRect = groupsHost.getBoundingClientRect();
-    const dockRect = dock.getBoundingClientRect();
-    const overlaps = groupsRect.bottom >= dockRect.top - 10;
-    dock.dataset.overlap = overlaps ? '1' : '0';
+    dock.dataset.overlap = '0';
   };
 
   syncDockGeometry();
-  updateOverlap();
-  if (!chatDockOverlapBound) {
-    chatDockOverlapBound = true;
-    const onScroll = () => updateOverlap();
-    const onResize = () => {
-      syncDockGeometry();
-      updateOverlap();
-    };
-    menuPanel.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onResize);
-    const observer = new MutationObserver(() => {
-      syncDockGeometry();
-      updateOverlap();
-    });
-    observer.observe(groupsHost, { childList: true, subtree: true, attributes: true });
-    observer.observe(dock, { childList: true, subtree: true });
+  if (!chatDockGeometryBound) {
+    chatDockGeometryBound = true;
+    chatDockResizeObserver = new ResizeObserver(syncDockGeometry);
+    chatDockResizeObserver.observe(dock);
+    const observer = new MutationObserver(syncDockGeometry);
+    observer.observe(dock, { childList: true, subtree: true, attributes: true });
   }
 }
 
@@ -1219,7 +1214,7 @@ export function mountSsrMenuShell(): void {
   installPanelControls();
   installRightRailTabs();
   installDynamicMenu(menuPanel);
-  installChatDock(menuPanel);
+  installChatDock();
   installLinkInterceptor();
   // Keep first paint stable: bootstrap right rail runtime lazily.
   // Only eager-init when URL explicitly deep-links into right rail state.

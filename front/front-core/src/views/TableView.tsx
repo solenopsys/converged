@@ -16,25 +16,17 @@ export const createTableStore = (domain, dataFunction) => {
   const loadDataFx = domain.createEffect({
     name: 'LOAD_DATA',
     handler: async (params) => {
-      console.log('loadDataFx params:', params); // Для отладки
-
       const { page = 1, pageSize = 20, sortBy, sortDirection, ...filters } = params || {};
       const offset = (page - 1) * pageSize;
 
-      try {
-        const result = await dataFunction({
-          limit: pageSize,
-          offset,
-          ...(sortBy && { sortBy, sortDirection }),
-          ...filters
-        });
+      const result = await dataFunction({
+        limit: pageSize,
+        offset,
+        ...(sortBy && { sortBy, sortDirection }),
+        ...filters
+      });
 
-        console.log('loadDataFx result:', result); // Для отладки
-        return result || { items: [], totalCount: 0 };
-      } catch (error) {
-        console.error('loadDataFx error:', error);
-        throw error;
-      }
+      return result || { items: [], totalCount: 0 };
     }
   });
 
@@ -58,7 +50,6 @@ export const createTableStore = (domain, dataFunction) => {
     .on(setSort, (state, sortConfig) => ({ ...state, sortConfig, currentPage: 1 }))
     .on(loadDataFx.pending, (state, loading) => ({ ...state, loading }))
     .on(loadDataFx.doneData, (state, { items, totalCount }) => {
-      console.log('Store updated with:', { items, totalCount }); // Для отладки
       return {
         ...state,
         items: items || [],
@@ -67,7 +58,6 @@ export const createTableStore = (domain, dataFunction) => {
       };
     })
     .on(loadDataFx.failData, (state, error) => {
-      console.error('Store error:', error); // Для отладки
       return {
         ...state,
         error: error.message,
@@ -114,26 +104,20 @@ const TableView = ({
   const rightSidebarWidth = useUnit($rightSidebarWidth);
   const setRightSidebarWidth = (width: number) => sidebarWidthChanged({ side: 'right', width });
 
-  // Добавляем начальную загрузку данных
   useEffect(() => {
-    console.log('TableView mounted/updated, loading initial data for this store...');
-    // стартуем с первой страницы для нового store
     loadData({ page: 1, pageSize, ...filters });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadData, pageSize, JSON.stringify(filters)]);
-
 
   // Перезагружаем данные при изменении фильтров
   useEffect(() => {
     if (Object.keys(filters).length > 0) {
-      console.log('Filters changed, reloading data...', filters); // Для отладки
       loadData({
         page: 1,
         pageSize,
         ...filters
       });
     }
-  }, [JSON.stringify(filters)]); // Следим за изменениями фильтров
+  }, [JSON.stringify(filters)]);
 
   const handlePageChange = (page) => {
     setPage(page);
@@ -166,16 +150,6 @@ const TableView = ({
       ...filters
     });
   };
-
-  // Добавляем больше информации для отладки
-  console.log('TableView render:', {
-    items: items?.length,
-    totalCount,
-    loading,
-    error,
-    currentPage,
-    pageSize
-  });
 
   if (error) return <div>Ошибка: {error}</div>;
 

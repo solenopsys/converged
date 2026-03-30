@@ -37,9 +37,9 @@ const HELM_STORAGE_IMAGE = "{{ .Values.images.storage.name }}";
 const HELM_STORAGE_TAG = "{{ .Values.images.storage.tag }}";
 const HELM_STORAGE_PULL_POLICY = "{{ .Values.images.storage.pullPolicy }}";
 
-const STORAGE_RESOURCES: Resources = {
-  requests: { cpu: "100m", memory: "128Mi" },
-  limits: { cpu: "500m", memory: "512Mi" },
+const DEFAULT_STORAGE_RESOURCES: Resources = {
+  requests: { cpu: "200m", memory: "128Mi" },
+  limits: { cpu: "1000m", memory: "2Gi" },
 };
 
 function buildHttpHealthProbes(port: number) {
@@ -99,14 +99,15 @@ function buildStorageHealthProbes() {
   };
 }
 
-function buildStorageContainer(dataClaimName: string) {
+function buildStorageContainer(dataClaimName: string, ctx: GeneratorContext) {
+  const resources = ctx.storage.resources ?? DEFAULT_STORAGE_RESOURCES;
   return {
     name: "storage",
     image: storageImageUri(),
     imagePullPolicy: HELM_STORAGE_PULL_POLICY,
     restartPolicy: "Always",
     command: [STORAGE_BIN_PATH, "start", "--data-dir", DATA_MOUNT, "--socket", STORAGE_SOCKET_PATH],
-    resources: toK8sResources(STORAGE_RESOURCES),
+    resources: toK8sResources(resources),
     ...buildStorageHealthProbes(),
     securityContext: {
       allowPrivilegeEscalation: false,
@@ -414,7 +415,7 @@ class WorkloadBuilder {
         template: {
           metadata: { labels: podLabels },
           spec: {
-            initContainers: [buildStorageContainer(dataClaimName)],
+            initContainers: [buildStorageContainer(dataClaimName, this.ctx)],
             containers: [
               {
                 name: "services",
@@ -549,14 +550,16 @@ class WorkloadBuilder {
         template: {
           metadata: { labels: podLabels },
           spec: {
-            initContainers: [buildStorageContainer(dataClaimName)],
+            initContainers: [buildStorageContainer(dataClaimName, this.ctx)],
             containers: [
               {
                 name: "ui",
                 image: uiImageUri(),
                 imagePullPolicy: HELM_UI_PULL_POLICY,
                 ports: [{ containerPort: UI_APP_PORT }],
-                env: buildBaseEnv(this.ctx, UI_APP_PORT),
+                env: buildBaseEnv(this.ctx, UI_APP_PORT, {
+                  SERVICES_BASE: `http://127.0.0.1:${SERVICES_APP_PORT}/services`,
+                }),
                 envFrom: [{ secretRef: { name: secretName } }],
                 ...buildHttpHealthProbes(UI_APP_PORT),
                 resources: toK8sResources(this.plan.ui.resources),

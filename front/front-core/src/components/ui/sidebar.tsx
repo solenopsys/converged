@@ -238,7 +238,6 @@ function Sidebar({
   maxWidth?: number
   onWidthChange?: (width: number) => void
 }) {
-  console.log(`Sidebar render - side: ${side}, variant: ${variant}, collapsible: ${collapsible}`);
   const { isMobile, state } = useSidebar(side)
   const [resizableWidth, setResizableWidth] = React.useState<number | null>(
     typeof width === "number" ? width : null
@@ -248,7 +247,7 @@ function Sidebar({
     if (typeof width === "number" && width !== resizableWidth) {
       setResizableWidth(width)
     }
-  }, [width, resizableWidth])
+  }, [width])
 
   const canResize = resizable && !isMobile && typeof resizableWidth === "number"
   const mergedStyle = (canResize
@@ -256,7 +255,6 @@ function Sidebar({
     : width
       ? ({ "--sidebar-width": width, ...style } as React.CSSProperties)
       : style)
-  console.log(`Sidebar context - isMobile: ${isMobile}, state: ${state}`);
 
   if (collapsible === "none") {
     return (

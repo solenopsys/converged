@@ -20,6 +20,7 @@ export interface Preset {
 export interface StorageConfig {
   defaultSize: string;
   mountBase: string;
+  resources?: Resources;
   overrides?: Record<string, { size: string }>;
 }
 

@@ -36,10 +36,20 @@ export class StructServiceImpl implements StructService {
   }
 
   async readJson(path: string): Promise<any> {
+    console.log("[ms-struct] readJson:request", { path });
     const data = await this.stores.fileStore.get(path);
     if (!data) {
+      const allKeys = await this.stores.fileStore.listKeys();
+      console.log("[ms-struct] readJson:not-found", {
+        path,
+        keysCount: allKeys.length,
+        sample: allKeys.slice(0, 30),
+        hasExact: allKeys.includes(path),
+        hasDataPrefixed: allKeys.includes(`data/${path}`),
+      });
       throw new Error(`File not found: ${path}`);
     }
+    console.log("[ms-struct] readJson:found", { path, bytes: data.byteLength });
     const json = new TextDecoder().decode(data);
     return JSON.parse(json);
   }

@@ -1,13 +1,13 @@
 
 
 // utils/iconUtils.ts
-import * as TablerIcons from "@tabler/icons-react";
+import { getTablerIcon } from "../../icons-shim";
 import { IconProps } from "./types";
 
 export const renderIcon = (iconName?: string, props: IconProps = {}) => {
   if (!iconName) return null;
-  
-  const IconComponent = TablerIcons[iconName as keyof typeof TablerIcons];
+
+  const IconComponent = getTablerIcon(iconName);
   return IconComponent ? <IconComponent {...props} /> : null;
 };
 

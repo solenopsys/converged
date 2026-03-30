@@ -47,7 +47,7 @@ export const chartConfig = {
 // file: src/components/DragHandle.tsx
 // -----------------------------------
 import { Button } from "../button";
-import { IconGripVertical } from "@tabler/icons-react";
+import { IconGripVertical } from "../../../icons-shim";
 import { useSortable } from "@dnd-kit/sortable";
 import { type UniqueIdentifier } from "@dnd-kit/core";
 

@@ -82,8 +82,8 @@
           "name": "services",
           "microservices": "*",
           "resources": {
-            "requests": { "cpu": "300m", "memory": "512Mi" },
-            "limits": { "cpu": "2000m", "memory": "2Gi" }
+            "requests": { "cpu": "100m", "memory": "128Mi" },
+            "limits": { "cpu": "1000m", "memory": "1Gi" }
           }
         }
       ]
@@ -155,6 +155,10 @@
   "storage": {
     "defaultSize": "5Gi",
     "mountBase": "/app/data",
+    "resources": {
+      "requests": { "cpu": "200m", "memory": "128Mi" },
+      "limits": { "cpu": "1000m", "memory": "2Gi" }
+    },
     "overrides": {
       "files": { "size": "100Gi" },
       "dumps": { "size": "50Gi" },
@@ -180,7 +184,9 @@
     },
     "secrets": [
       "OPENAI_API_KEY",
+      "OPENAI_MODEL",
       "CLAUDE_API_KEY",
+      "CLAUDE_MODEL",
       "GEMINI_API_KEY",
       "GEMINI_MODEL",
       "JWT_SECRET",

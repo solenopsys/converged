@@ -10,12 +10,13 @@ import {
 import { Button } from "../button";
 import { Checkbox } from "../checkbox";
 import { Badge } from "../badge";
-import { IconChevronDown, IconLayoutColumns } from "@tabler/icons-react";
 import {
+  IconChevronDown,
+  IconLayoutColumns,
   IconCircleCheckFilled,
   IconLoader,
   IconDotsVertical,
-} from "@tabler/icons-react";
+} from "../../../icons-shim";
 import {
   type ColumnDef,
   flexRender,

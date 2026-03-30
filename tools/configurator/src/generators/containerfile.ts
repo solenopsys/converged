@@ -442,8 +442,8 @@ class DynamicContainerfileBuilder {
       { owner: this.projectDir, path: "back/native" },
     ].filter(({ owner, path }) => dirExists(this.ctx, owner, path));
     const transportOverlaySources = [
-      ...(this.hasParent && this.parentDir ? [{ owner: this.parentDir, path: "native/wrapers/transport/zig-out/lib" }] : []),
-      { owner: this.projectDir, path: "native/wrapers/transport/zig-out/lib" },
+      ...(this.hasParent && this.parentDir ? [{ owner: this.parentDir, path: "native/behemoth/bun-transport/bin-libs" }] : []),
+      { owner: this.projectDir, path: "native/behemoth/bun-transport/bin-libs" },
     ].filter(({ owner, path }) => dirExists(this.ctx, owner, path));
 
     if (nativeSources.length === 0 && transportOverlaySources.length === 0) return;

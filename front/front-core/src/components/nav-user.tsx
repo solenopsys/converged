@@ -4,7 +4,7 @@ import {
   IconLogout,
   IconNotification,
   IconUserCircle,
-} from "@tabler/icons-react"
+} from "../icons-shim"
 
 import {
   Avatar,

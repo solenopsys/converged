@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, type CSSProperties, type PointerEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, type CSSProperties, type PointerEvent, type ReactNode } from "react";
 import { Outlet } from "react-router-dom";
 import { useUnit } from "effector-react";
 import { $rightSidebarWidth, sidebarWidthChanged } from "sidebar-controller";
@@ -46,8 +46,6 @@ function CenterContent({ fallback }: { fallback?: ReactNode }) {
 }
 
 export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = {}) {
-  const resizeRafRef = useRef<number | null>(null);
-
   const {
     device,
     activePanel,
@@ -76,20 +74,10 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
     onParallel: toggleParallel,
   });
 
-  const notifyLayoutResize = useCallback(() => {
-    if (typeof window === "undefined") return;
-    if (resizeRafRef.current !== null) return;
-    resizeRafRef.current = window.requestAnimationFrame(() => {
-      resizeRafRef.current = null;
-      window.dispatchEvent(new Event("resize"));
-    });
-  }, []);
-
   const updatePanelWidth = useCallback((nextWidth: number) => {
     const width = Math.round(Math.max(MIN_PANEL_WIDTH, Math.min(MAX_PANEL_WIDTH, nextWidth)));
     sidebarWidthChanged({ side: "right", width });
-    notifyLayoutResize();
-  }, [notifyLayoutResize]);
+  }, []);
 
   const normalizedPanelWidth =
     Number.isFinite(rightSidebarWidth) && rightSidebarWidth > 0
@@ -157,19 +145,6 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
 
   useEffect(() => {
     startRightRailUriSync();
-  }, []);
-
-  useEffect(() => {
-    notifyLayoutResize();
-  }, [notifyLayoutResize, normalizedPanelWidth, collapsed, parallel, device]);
-
-  useEffect(() => {
-    return () => {
-      if (resizeRafRef.current !== null) {
-        window.cancelAnimationFrame(resizeRafRef.current);
-        resizeRafRef.current = null;
-      }
-    };
   }, []);
 
   useEffect(() => {

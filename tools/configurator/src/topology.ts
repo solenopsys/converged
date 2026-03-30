@@ -20,7 +20,7 @@ export const STORAGE_SOCKET_PATH = `${STORAGE_SOCKET_DIR}/storage.sock`;
 
 const DEFAULT_UI_RESOURCES: Resources = {
   requests: { cpu: "100m", memory: "128Mi" },
-  limits: { cpu: "500m", memory: "512Mi" },
+  limits: { cpu: "1000m", memory: "1Gi" },
 };
 
 const DEFAULT_SERVICES_RESOURCES: Resources = {

@@ -5,7 +5,7 @@ import { Drawer, DrawerTrigger, DrawerContent, DrawerHeader, DrawerTitle, Drawer
 import { Button } from "../button"
 import { useIsMobile } from "../../../hooks/use-mobile"
 import { Separator } from "../separator"
-import { IconTrendingUp } from "@tabler/icons-react"
+import { IconTrendingUp } from "../../../icons-shim"
 import { chartData, type Order } from "./types"
 import { useTranslation } from "react-i18next"
 

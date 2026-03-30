@@ -257,7 +257,21 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
   const logoWhitePath = resolve(publicDir, "logo-white.svg");
   const prebuiltStylesPath = resolve(projectRoot, "dist", "landing", "styles.css");
   const prebuiltClientPath = resolve(projectRoot, "dist", "landing", "island-client.js");
+  const prebuiltFrontCorePath = resolve(projectRoot, "dist", "front", "index.js");
   const prebuiltFrontImportMapPath = resolve(projectRoot, "dist", "front", "import-map.json");
+  const frontCoreEntrypoint = (() => {
+    const candidates = [
+      resolve(projectRoot, "front", "front-core", "src", "index.ts"),
+      parentProjectRoot
+        ? resolve(parentProjectRoot, "front", "front-core", "src", "index.ts")
+        : "",
+    ].filter(Boolean);
+
+    for (const candidate of candidates) {
+      if (existsSync(candidate)) return candidate;
+    }
+    return null;
+  })();
   const telemetryReporter = createTelemetryReporter(
     process.env.SERVICES_BASE || "/services",
   );
@@ -268,6 +282,8 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
   let spaStylesBrotli: Uint8Array | null = null;
   let clientBundle: Blob;
   let clientBrotli: Uint8Array;
+  let frontCoreBundle: Blob | null = null;
+  let frontCoreBrotli: Uint8Array | null = null;
   let seoConfig: SeoConfig;
   let assetsPromise: Promise<void> | null = null;
   let browserImportMap: Record<string, string> = buildBrowserImportMap(undefined, config.microfrontends);
@@ -404,6 +420,17 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
           log("client:built", { kb: Number((clientBundle.size / 1024).toFixed(0)) });
         }
 
+        if (isProd) {
+          const prebuiltFrontCore = Bun.file(prebuiltFrontCorePath);
+          if (!(await prebuiltFrontCore.exists())) {
+            throw new Error(`Missing prebuilt front-core: ${prebuiltFrontCorePath}`);
+          }
+          frontCoreBundle = prebuiltFrontCore;
+          const bytes = await prebuiltFrontCore.arrayBuffer();
+          frontCoreBrotli = Bun.gzipSync(Buffer.from(bytes), { level: 6 });
+          log("front-core:prebuilt", { gzipKB: Number((frontCoreBrotli.length / 1024).toFixed(0)) });
+        }
+
         log("ensureAssets:done", { ms: Date.now() - start });
       })();
     }
@@ -511,6 +538,95 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
         headers: {
           "Content-Type": "application/javascript; charset=utf-8",
           "Cache-Control": cacheHeader,
+        },
+      });
+    })
+    .get("/front-core.js", async ({ request }) => {
+      if (!isProd) {
+        if (!frontCoreEntrypoint) {
+          return new Response(
+            "front-core entrypoint not found (expected front/front-core/src/index.ts in PROJECT_DIR or CHILD/PARENT project)",
+            {
+              status: 500,
+              headers: {
+                "Content-Type": "text/plain; charset=utf-8",
+                "Cache-Control": "no-store",
+              },
+            },
+          );
+        }
+        try {
+          const frontCoreResult = await Bun.build({
+            entrypoints: [frontCoreEntrypoint],
+            format: "esm",
+            minify: false,
+            external: externalPackages.filter(
+              (specifier) =>
+                specifier !== "front-core" &&
+                specifier !== "front-core/components",
+            ),
+            plugins: [buildResolverPlugin()],
+          });
+
+          if (!frontCoreResult.success || frontCoreResult.outputs.length === 0) {
+            const errors = frontCoreResult.logs
+              .map((log) => log.message)
+              .filter(Boolean)
+              .join("\n");
+            const message = `front-core build failed${errors ? `:\n${errors}` : ""}`;
+            console.error("[landing] /front-core.js build error", {
+              success: frontCoreResult.success,
+              outputs: frontCoreResult.outputs.length,
+              logs: frontCoreResult.logs.map((log) => log.message),
+            });
+            return new Response(message, {
+              status: 500,
+              headers: {
+                "Content-Type": "text/plain; charset=utf-8",
+                "Cache-Control": "no-store",
+              },
+            });
+          }
+
+          return new Response(frontCoreResult.outputs[0], {
+            headers: {
+              "Content-Type": "application/javascript; charset=utf-8",
+              "Cache-Control": "no-store",
+            },
+          });
+        } catch (error) {
+          console.error("[landing] /front-core.js unexpected error", error);
+          const message =
+            error instanceof Error
+              ? `front-core build exception:\n${error.stack ?? error.message}`
+              : "front-core build exception";
+          return new Response(message, {
+            status: 500,
+            headers: {
+              "Content-Type": "text/plain; charset=utf-8",
+              "Cache-Control": "no-store",
+            },
+          });
+        }
+      }
+
+      await ensureAssets();
+      if (!frontCoreBundle || !frontCoreBrotli) {
+        throw new Error("front-core bundle not initialized");
+      }
+      if (supportsEncoding(request, "gzip")) {
+        return new Response(frontCoreBrotli, {
+          headers: {
+            "Content-Type": "application/javascript; charset=utf-8",
+            "Content-Encoding": "gzip",
+            "Cache-Control": "public, max-age=31536000, immutable",
+          },
+        });
+      }
+      return new Response(frontCoreBundle, {
+        headers: {
+          "Content-Type": "application/javascript; charset=utf-8",
+          "Cache-Control": "public, max-age=31536000, immutable",
         },
       });
     })

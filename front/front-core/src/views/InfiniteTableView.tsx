@@ -16,7 +16,6 @@ const createInfiniteTableStore = (domain, dataFunction) => {
   const loadDataFx = domain.createEffect({
     name: 'LOAD_DATA_INFINITE',
     handler: async (params) => {
-      console.log('loadDataFx params:', params);
 
       const { offset = 0, limit = 20, sortBy, sortDirection, append = false, ...filters } = params || {};
 
@@ -28,14 +27,12 @@ const createInfiniteTableStore = (domain, dataFunction) => {
           ...filters
         });
 
-        console.log('loadDataFx result:', result);
         return {
           items: result?.items || [],
           totalCount: result?.totalCount || 0,
           append
         };
       } catch (error) {
-        console.error('loadDataFx error:', error);
         throw error;
       }
     }
@@ -85,23 +82,9 @@ const createInfiniteTableStore = (domain, dataFunction) => {
       }
     })
     .on(loadDataFx.doneData, (state, { items, totalCount, append }) => {
-      console.log('Store updated with:', {
-        append,
-        receivedItems: items.length,
-        currentItems: state.items.length,
-        totalCount
-      });
-
       const newItems = append ? [...state.items, ...items] : items;
       const newOffset = newItems.length;
       const hasMore = newItems.length < totalCount;
-
-      console.log('New state:', {
-        itemsCount: newItems.length,
-        offset: newOffset,
-        hasMore,
-        totalCount
-      });
 
       return {
         ...state,
@@ -116,7 +99,6 @@ const createInfiniteTableStore = (domain, dataFunction) => {
       };
     })
     .on(loadDataFx.failData, (state, error) => {
-      console.error('Store error:', error);
       return {
         ...state,
         error: error.message,
@@ -145,19 +127,11 @@ const createInfiniteTableStore = (domain, dataFunction) => {
     filter: (state) => {
       // Не загружаем если уже идет загрузка или больше нет данных
       const shouldLoad = !state.loading && !state.loadingMore && state.hasMore;
-      console.log('loadMore filter:', { shouldLoad, loading: state.loading, loadingMore: state.loadingMore, hasMore: state.hasMore });
       return shouldLoad;
     },
     fn: (state, params = {}) => {
       const isAppend = state.items.length > 0;
       const offset = state.items.length; // offset = количество уже загруженных элементов
-
-      console.log('loadMore fn:', {
-        offset,
-        itemsLength: state.items.length,
-        isAppend,
-        limit: state.limit
-      });
 
       return {
         offset,
@@ -241,12 +215,9 @@ const InfiniteTableView = ({
 
   // Начальная загрузка данных при монтировании
   useEffect(() => {
-    console.log('InfiniteTableView mounted, loading initial data...');
     loadMore({ offset: 0 });
 
-    // Сброс состояния при размонтировании компонента
     return () => {
-      console.log('InfiniteTableView unmounting, resetting state...');
       reset();
     };
   }, []);
@@ -254,17 +225,13 @@ const InfiniteTableView = ({
   // Обновление фильтров
   useEffect(() => {
     if (Object.keys(filters).length > 0) {
-      console.log('Filters changed, reloading data...', filters);
       setFilters(filters);
     }
   }, [JSON.stringify(filters), setFilters]);
 
   const handleLoadMore = () => {
     if (!loading && !loadingMore && hasMore) {
-      console.log('Loading more data...');
       loadMore();
-    } else {
-      console.log('Skipping loadMore:', { loading, loadingMore, hasMore });
     }
   };
 
@@ -272,15 +239,6 @@ const InfiniteTableView = ({
     const newSort = { key: columnId, direction };
     setSort(newSort);
   };
-
-  console.log('InfiniteTableView render:', {
-    items: items?.length,
-    totalCount,
-    loading,
-    loadingMore,
-    hasMore,
-    error
-  });
 
   if (error) return <div>Ошибка: {error}</div>;
 

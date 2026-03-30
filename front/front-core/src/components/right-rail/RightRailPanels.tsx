@@ -24,10 +24,8 @@ import {
   LayoutGrid,
   LogIn,
   LogOut,
-  Maximize2,
   MessageCircle,
   Mic,
-  Minimize2,
   Moon,
   MoreHorizontal,
   PanelRightClose,
@@ -253,31 +251,6 @@ function ParallelButton({ parallel, onToggleParallel }: ParallelControl) {
   );
 }
 
-function ConstrainButton({ constrained, onToggleConstrain }: ConstrainControl) {
-  if (!onToggleConstrain) {
-    return null;
-  }
-  const Icon = constrained ? Maximize2 : Minimize2;
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon"
-      className={`panel-icon-button panel-control-button panel-control-constrain${
-        constrained ? " is-constrained" : ""
-      }`}
-      aria-label={constrained ? "Use full width" : "Limit width"}
-      aria-pressed={constrained}
-      onClick={(event) => {
-        event.stopPropagation();
-        onToggleConstrain();
-      }}
-    >
-      <Icon className="panel-icon" />
-    </Button>
-  );
-}
-
 function ThemeButton() {
   const { theme, mounted, toggleTheme } = useThemeToggle();
 
@@ -378,8 +351,6 @@ function PanelHeader({
   onToggleCollapse,
   parallel,
   onToggleParallel,
-  constrained,
-      onToggleConstrain,
 }: {
   icons: HeaderIconKind[];
 } & CollapseControl &
@@ -400,7 +371,6 @@ function PanelHeader({
         <LoginButton />
         <ThemeButton />
         <ParallelButton parallel={parallel} onToggleParallel={onToggleParallel} />
-        <ConstrainButton constrained={constrained} onToggleConstrain={onToggleConstrain} />
         <CollapseButton collapsed={collapsed} onToggleCollapse={onToggleCollapse} />
       </div>
     </div>
@@ -415,8 +385,6 @@ export function TabsPanel({
   onToggleCollapse,
   parallel,
   onToggleParallel,
-  constrained,
-  onToggleConstrain,
 }: TabsConfig & PanelClick & CollapseControl & ParallelControl & ConstrainControl) {
   // Используем динамические меню из store, fallback на статические из конфига
   const dynamicMenuItems = useUnit($allMenuItems);
@@ -448,8 +416,6 @@ export function TabsPanel({
           onToggleCollapse={onToggleCollapse}
           parallel={parallel}
           onToggleParallel={onToggleParallel}
-          constrained={constrained}
-          onToggleConstrain={onToggleConstrain}
         />
         <Separator className="panel-separator panel-separator-tight" />
         <div className="tabs-body">
