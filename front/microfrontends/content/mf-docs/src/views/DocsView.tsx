@@ -4,6 +4,7 @@ import { MarkdownRenderer, type MarkdownASTNode } from "md-tools";
 import { loadDocsSections, type DocsSectionMeta } from "../sections";
 import { getDocsSources } from "../env";
 import { DEFAULT_LOCALE } from "front-core/landing-common/i18n";
+import type { DocsSSRData } from "../ssr";
 
 type RenderSection = DocsSectionMeta & {
   ast: MarkdownASTNode | null;
@@ -11,14 +12,31 @@ type RenderSection = DocsSectionMeta & {
 
 const markdownClient = createMarkdownServiceClient({ baseUrl: "/services" });
 
+function readSsrData(indexPath: string): RenderSection[] | null {
+  const data: DocsSSRData | undefined =
+    typeof window === "undefined"
+      ? (globalThis as any).__DOCS_SSR_DATA__
+      : (() => {
+          try {
+            const el = document.getElementById("__INITIAL_DATA__");
+            return el?.textContent ? (JSON.parse(el.textContent) as any)?.docsContent : undefined;
+          } catch { return undefined; }
+        })();
+  if (!data || data.indexPath !== indexPath) return null;
+  return data.sections as RenderSection[];
+}
+
 export default function DocsView({ indexPath, anchor }: { indexPath?: string; anchor?: string }) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const [sections, setSections] = useState<RenderSection[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const resolvedIndexPath = indexPath ?? getDocsSources()[0]?.id ?? `${DEFAULT_LOCALE}/club/index.json`;
 
+  const ssrSections = readSsrData(resolvedIndexPath);
+  const [sections, setSections] = useState<RenderSection[]>(ssrSections ?? []);
+  const [loading, setLoading] = useState(!ssrSections);
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
+    if (ssrSections) return; // already have SSR data
     let active = true;
 
     const loadAllSections = async () => {
@@ -29,20 +47,13 @@ export default function DocsView({ indexPath, anchor }: { indexPath?: string; an
         if (!active) return;
 
         const paths = docsSections.map((item) => item.markdownPath);
-        const batch = paths.length
-          ? await markdownClient.readMdJsonBatch(paths)
-          : [];
+        const batch = paths.length ? await markdownClient.readMdJsonBatch(paths) : [];
         if (!active) return;
 
-        const nextSections: RenderSection[] = docsSections.map((item, index) => {
-          const payload = Array.isArray(batch) ? batch[index] : null;
-          return {
-            ...item,
-            ast: (payload?.content as MarkdownASTNode | null | undefined) ?? null,
-          };
-        });
-
-        setSections(nextSections);
+        setSections(docsSections.map((item, index) => ({
+          ...item,
+          ast: (Array.isArray(batch) ? batch[index]?.content : null) as MarkdownASTNode | null ?? null,
+        })));
       } catch (e: any) {
         if (!active) return;
         setSections([]);
@@ -53,9 +64,7 @@ export default function DocsView({ indexPath, anchor }: { indexPath?: string; an
     };
 
     loadAllSections();
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [resolvedIndexPath]);
 
   const sortedItems = useMemo(

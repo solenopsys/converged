@@ -4,7 +4,9 @@
   "type": "module",
   "module": "src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./ssr": "./src/ssr.ts",
+    "./views/DocsView": "./src/views/DocsView.tsx"
   },
   "dependencies": {
     "front-core": "workspace:*",

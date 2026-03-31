@@ -16,6 +16,14 @@ export async function loadDocsSections(indexPath: string): Promise<DocsSectionMe
   return normalizeStructDocs(structData, indexPath).sort((a, b) => a.order - b.order);
 }
 
+export async function loadDocsSectionsWithClient(
+  indexPath: string,
+  client: { readJson(path: string): Promise<unknown> },
+): Promise<DocsSectionMeta[]> {
+  const structData = await client.readJson(indexPath);
+  return normalizeStructDocs(structData, indexPath).sort((a, b) => a.order - b.order);
+}
+
 export function anchorActionId(sourceKey: string, anchor: string): string {
   return `docs.anchor.${sourceKey}.${anchor}`;
 }

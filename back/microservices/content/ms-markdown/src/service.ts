@@ -58,7 +58,8 @@ export class MarkdownServiceImpl implements MarkdownService {
   }
 
   async readMdJsonBatch(paths: string[]): Promise<any[]> {
-    return Promise.all(paths.map((p) => this.readMdJson(p)));
+    const results = await Promise.allSettled(paths.map((p) => this.readMdJson(p)));
+    return results.map((r) => (r.status === "fulfilled" ? r.value : null));
   }
 
   async listOfMd(params: PaginationParams): Promise<PaginatedResult<MdFile>> {
