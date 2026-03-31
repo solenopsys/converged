@@ -1,0 +1,9 @@
+{
+  "menu": {
+    "chats": "Chats",
+    "audio": "Audio",
+    "text": "Textuels",
+    "contexts": "Contextes",
+    "commands": "Commandes"
+  }
+}

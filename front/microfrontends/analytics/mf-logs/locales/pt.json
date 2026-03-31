@@ -1,0 +1,18 @@
+{
+  "menu.logs": "Registros",
+  "menu.logs.hot": "Quentes",
+  "menu.logs.cold": "Frios",
+  "logs.view.hotTitle": "Registros (quentes)",
+  "logs.view.coldTitle": "Registros (frios)",
+  "logs.view.refresh": "Atualizar",
+  "logs.stats.title": "Estatísticas de registros",
+  "logs.stats.refresh": "Atualizar",
+  "logs.stats.totalHot": "Registros quentes",
+  "logs.stats.totalHotDescription": "Total de registros no armazenamento quente",
+  "logs.stats.totalCold": "Registros frios",
+  "logs.stats.totalColdDescription": "Total de registros no armazenamento frio",
+  "logs.stats.errors": "Erros",
+  "logs.stats.errorsDescription": "Registros de nível ERROR",
+  "logs.stats.warnings": "Avisos",
+  "logs.stats.warningsDescription": "Registros de nível WARN"
+}

@@ -5,6 +5,7 @@ import { rightRailActionSelected } from '../components/right-rail/uri-sync';
 import { $centerView } from '../slots/present';
 import { createBridgeController } from '../bridge';
 import { chatSendRequested } from '../chat/events';
+import { getI18nInstance } from '../i18n';
 import {
   AVAILABLE_LANGS,
   buildLocalePath,
@@ -705,6 +706,11 @@ function resolveActionId(action: unknown): string | null {
 function resolveLabel(item: RuntimeMenuItem, index: number): string {
   const raw = item.title || item.key || `Item ${index + 1}`;
   if (raw.startsWith('menu.')) {
+    const i18n = getI18nInstance();
+    if (i18n.isInitialized) {
+      const translated = i18n.t(raw, { ns: 'mf-menu' });
+      if (translated && translated !== raw) return translated;
+    }
     const short = raw.slice(5).split('.').pop() || raw.slice(5);
     const normalized = short.replace(/[_-]+/g, ' ').trim();
     return normalized.charAt(0).toUpperCase() + normalized.slice(1);
@@ -1173,17 +1179,34 @@ function installChatDock(): void {
       void openAiChat();
     });
 
-    quick.innerHTML = '';
-    QUICK_CHAT_PROMPTS.forEach((prompt) => {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'ssr-chat-quick-btn';
-      button.textContent = prompt;
-      button.addEventListener('click', () => {
-        void openAiChat(prompt);
+    const renderPrompts = (prompts: readonly string[]) => {
+      quick.innerHTML = '';
+      prompts.forEach((prompt) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'ssr-chat-quick-btn';
+        button.textContent = prompt;
+        button.addEventListener('click', () => {
+          void openAiChat(prompt);
+        });
+        quick.appendChild(button);
       });
-      quick.appendChild(button);
-    });
+    };
+
+    renderPrompts(QUICK_CHAT_PROMPTS);
+
+    const locale = extractLocaleFromPath(window.location.pathname) ?? 'en';
+    fetch('/services/struct/readJson', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: `${locale}/magic/chat-prompts.json` }),
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        const prompts = Array.isArray(data?.prompts) ? data.prompts : null;
+        if (prompts) renderPrompts(prompts);
+      })
+      .catch(() => {});
   }
 
   let lastDockHeight = -1;

@@ -11,7 +11,14 @@ declare global {
   }
 }
 
-export const defaultLanguage = "en";
+import { extractLocaleFromPath, DEFAULT_LOCALE } from './landing-common/i18n';
+
+function resolveInitialLanguage(): string {
+  if (typeof window === 'undefined') return DEFAULT_LOCALE;
+  return extractLocaleFromPath(window.location.pathname) ?? DEFAULT_LOCALE;
+}
+
+export const defaultLanguage = resolveInitialLanguage();
 
 const baseUrl =
   (typeof import.meta !== "undefined" &&

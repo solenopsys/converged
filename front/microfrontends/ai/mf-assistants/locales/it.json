@@ -1,0 +1,9 @@
+{
+  "menu": {
+    "chats": "Chat",
+    "audio": "Audio",
+    "text": "Testuali",
+    "contexts": "Contesti",
+    "commands": "Comandi"
+  }
+}
