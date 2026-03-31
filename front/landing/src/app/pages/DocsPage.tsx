@@ -9,17 +9,32 @@ const markdownClient = createMarkdownServiceClient({
   baseUrl: "/services",
 });
 
-function resolveDocPath(slug: string) {
-  if (slug === "club") return "ru/club/intro.md";
-  return `${slug}.md`;
+declare global {
+  var __DOCS_SSR_DATA__: Record<string, {
+    slug: string;
+    markdownPath: string;
+    ast: any;
+    error?: string;
+  }> | undefined;
+}
+
+function resolveDocPath(locale: string, slug: string) {
+  if (slug === "club") return `${locale}/club/intro.md`;
+  if (slug.includes("/")) return `${locale}/${slug.replace(/^\/+/, "")}`;
+  return `${locale}/${slug}.md`;
 }
 
 export function DocsPage() {
   const { slug, locale } = useParams<{ slug: string; locale: string }>();
   const activeLocale = isSupportedLocale(locale) ? locale : DEFAULT_LOCALE;
-  const [ast, setAst] = useState<any>(null);
-  const [error, setError] = useState<string | undefined>(undefined);
-  const [loading, setLoading] = useState(true);
+  const initialRaw = typeof slug === "string" ? globalThis.__DOCS_SSR_DATA__?.[slug] : undefined;
+  const initialData = initialRaw && typeof initialRaw.markdownPath === "string"
+    && initialRaw.markdownPath.startsWith(`${activeLocale}/`)
+    ? initialRaw
+    : undefined;
+  const [ast, setAst] = useState<any>(initialData?.ast ?? null);
+  const [error, setError] = useState<string | undefined>(initialData?.error);
+  const [loading, setLoading] = useState(!initialData);
 
   useEffect(() => {
     let active = true;
@@ -32,16 +47,34 @@ export function DocsPage() {
         }
         return;
       }
+
+      const preloaded = globalThis.__DOCS_SSR_DATA__?.[slug];
+      if (preloaded) {
+        const isMatchingLocale = typeof preloaded.markdownPath === "string"
+          && preloaded.markdownPath.startsWith(`${activeLocale}/`);
+        if (!isMatchingLocale) {
+          // Ignore stale prefetch from another locale.
+        } else {
+          if (active) {
+            setAst(preloaded.ast ?? null);
+            setError(preloaded.error);
+            setLoading(false);
+          }
+          return;
+        }
+      }
+
       setLoading(true);
       setError(undefined);
       try {
-        const result = await markdownClient.readMdJson(resolveDocPath(slug));
+        const result = await markdownClient.readMdJson(resolveDocPath(activeLocale, slug));
         if (!active) return;
         setAst(result.content ?? null);
       } catch (e: any) {
-        if (!active) return;
-        setAst(null);
-        setError(e?.message ?? "Failed to load document");
+        if (active) {
+          setAst(null);
+          setError(e?.message ?? "Failed to load document");
+        }
       } finally {
         if (active) setLoading(false);
       }
@@ -50,7 +83,7 @@ export function DocsPage() {
     return () => {
       active = false;
     };
-  }, [slug]);
+  }, [activeLocale, slug]);
 
   return (
     <div className="min-h-screen px-6 py-20">

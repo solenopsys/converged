@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { AVAILABLE_LANGS } from "./i18n";
 
 /**
  * Pre-paint script: restores theme from localStorage before first paint.
@@ -223,6 +224,48 @@ body { margin: 0; }
 .ssr-panel-control[aria-pressed="true"] {
   box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--ui-border) 96%, transparent);
 }
+.ssr-lang-control {
+  position: relative;
+}
+.ssr-lang-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  display: none;
+  min-width: 164px;
+  padding: 6px;
+  border: 1px solid color-mix(in oklch, var(--ui-border) 88%, transparent);
+  border-radius: 10px;
+  background: color-mix(in oklch, var(--ui-card) 94%, transparent);
+  box-shadow: 0 12px 30px rgba(2, 6, 23, 0.35);
+  backdrop-filter: blur(10px);
+}
+.ssr-lang-control[data-open="1"] .ssr-lang-popover {
+  display: grid;
+  gap: 4px;
+}
+.ssr-lang-option {
+  width: 100%;
+  min-height: 30px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+  padding: 5px 8px;
+  cursor: pointer;
+}
+.ssr-lang-option:hover {
+  background: color-mix(in oklch, var(--ui-muted) 90%, transparent);
+}
+.ssr-lang-option[aria-pressed="true"] {
+  border-color: color-mix(in oklch, var(--ui-border) 96%, transparent);
+  background: color-mix(in oklch, var(--ui-muted) 84%, transparent);
+}
 .ssr-panel-title {
   margin: 8px 0 8px;
   padding: 0 14px;
@@ -423,6 +466,37 @@ export function SsrShellLayout({ children }: { children: ReactNode }) {
                   <path d="m19.07 4.93-1.41 1.41" />
                 </svg>
               </button>
+              <div className="ssr-lang-control" data-ssr-lang-root data-open="0">
+                <button
+                  type="button"
+                  className="ssr-panel-control"
+                  data-ssr-control="lang"
+                  aria-label="Language"
+                  aria-haspopup="menu"
+                  aria-expanded="false"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M3 12h18" />
+                    <path d="M12 3a13 13 0 0 1 0 18" />
+                    <path d="M12 3a13 13 0 0 0 0 18" />
+                  </svg>
+                </button>
+                <div className="ssr-lang-popover" data-ssr-lang-menu role="menu" aria-label="Language options">
+                  {AVAILABLE_LANGS.map((lang) => (
+                    <button
+                      key={lang.code}
+                      type="button"
+                      role="menuitemradio"
+                      className="ssr-lang-option"
+                      data-ssr-lang-option={lang.code}
+                      aria-pressed="false"
+                    >
+                      {lang.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <button type="button" className="ssr-panel-control" data-ssr-control="parallel" aria-label="Parallel panels" aria-pressed="false">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="4" width="18" height="16" rx="2" />

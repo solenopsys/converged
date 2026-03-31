@@ -3,6 +3,7 @@ import { createMarkdownServiceClient } from "g-markdown";
 import { MarkdownRenderer, type MarkdownASTNode } from "md-tools";
 import { loadDocsSections, type DocsSectionMeta } from "../sections";
 import { getDocsSources } from "../env";
+import { DEFAULT_LOCALE } from "front-core/landing-common/i18n";
 
 type RenderSection = DocsSectionMeta & {
   ast: MarkdownASTNode | null;
@@ -15,7 +16,7 @@ export default function DocsView({ indexPath, anchor }: { indexPath?: string; an
   const [sections, setSections] = useState<RenderSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const resolvedIndexPath = indexPath ?? getDocsSources()[0]?.id ?? "ru/club/index.json";
+  const resolvedIndexPath = indexPath ?? getDocsSources()[0]?.id ?? `${DEFAULT_LOCALE}/club/index.json`;
 
   useEffect(() => {
     let active = true;

@@ -1,4 +1,5 @@
 import { CreateAction, CreateWidget } from "front-core";
+import { DEFAULT_LOCALE, buildLocalePath, extractLocaleFromPath } from "front-core/landing-common/i18n";
 import DocsView from "./views/DocsView";
 import { getDocsSources } from "./env";
 
@@ -26,6 +27,15 @@ const createShowDocsAction: CreateAction<any> = (bus) => ({
 const ACTIONS = [createShowDocsAction];
 
 export function presentDocs(bus: any, indexPath: string, anchor?: string) {
+  if (typeof window !== "undefined") {
+    const locale = extractLocaleFromPath(window.location.pathname) ?? DEFAULT_LOCALE;
+    const source = getDocsSources().find((item) => item.id === indexPath) ?? getDocsSources()[0];
+    const slug = source?.name ?? "docs";
+    const suffix = anchor ? `#${anchor}` : "";
+    window.location.assign(buildLocalePath(locale, `/docs/${slug}`) + suffix);
+    return;
+  }
+
   bus.present({
     widget: createDocsWidget(bus, {
       indexPath,

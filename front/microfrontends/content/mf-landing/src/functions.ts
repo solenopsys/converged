@@ -1,4 +1,5 @@
 import { CreateAction, CreateWidget } from "front-core";
+import { DEFAULT_LOCALE, buildLocalePath, extractLocaleFromPath } from "front-core/landing-common/i18n";
 import LandingView from "./views/LandingView";
 import { getLandingConfigPath } from "./env";
 
@@ -24,6 +25,12 @@ const createShowDefaultLandingAction: CreateAction<any> = (bus) => ({
 const ACTIONS = [createShowDefaultLandingAction];
 
 export function presentLanding(bus: any, configPath?: string) {
+  if (typeof window !== "undefined") {
+    const locale = extractLocaleFromPath(window.location.pathname) ?? DEFAULT_LOCALE;
+    window.location.assign(buildLocalePath(locale, "/"));
+    return;
+  }
+
   bus.present({
     widget: createLandingWidget(bus, {
       configPath: configPath ?? getLandingConfigPath(),

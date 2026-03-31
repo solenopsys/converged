@@ -1,5 +1,4 @@
 export const ID = "docs-mf";
-export { MENU } from "./menu";
 
 import { BasePlugin } from "front-core";
 import ACTIONS, { docsSourceActionId, presentDocs } from "./functions";
@@ -50,40 +49,8 @@ class DocsPlugin extends BasePlugin {
 }
 
 export async function getMenu() {
-  try {
-    const sourceMenus = await Promise.all(
-      getDocsSources().map(async (source) => {
-        const sourceKey = docsSourceKey(source);
-        let sections: Awaited<ReturnType<typeof loadDocsSections>> = [];
-
-        try {
-          sections = await loadDocsSections(source.id);
-        } catch (error) {
-          console.error(`[mf-docs] Failed to load sections for ${source.id}`, error);
-        }
-
-        return {
-          title: source.name,
-          key: sourceKey,
-          action: docsSourceActionId(sourceKey),
-          items: sections.map((section) => ({
-            title: section.slug,
-            key: section.anchor,
-            action: anchorActionId(sourceKey, section.anchor),
-          })),
-        };
-      }),
-    );
-
-    return {
-      title: "Docs",
-      iconName: "IconBook",
-      items: sourceMenus,
-    };
-  } catch (error) {
-    console.error("[mf-docs] Failed to build menu", error);
-    return null;
-  }
+  // Public docs are server-rendered pages and should not appear as admin-side menus.
+  return null;
 }
 
 export default new DocsPlugin(ID, ACTIONS);

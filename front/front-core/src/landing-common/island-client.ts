@@ -1,9 +1,17 @@
 import { GROUPS } from './groups';
 import { $allMenuItems, addMenuRequested, bus, runActionEvent } from '../controllers';
+import { LocaleController } from '../controllers/locale-controller';
 import { rightRailActionSelected } from '../components/right-rail/uri-sync';
 import { $centerView } from '../slots/present';
 import { createBridgeController } from '../bridge';
 import { chatSendRequested } from '../chat/events';
+import {
+  AVAILABLE_LANGS,
+  buildLocalePath,
+  extractLocaleFromPath,
+  isSupportedLocale,
+  type SupportedLocale,
+} from './i18n';
 
 const SSR_MENU_STYLE_ID = 'ssr-menu-shell-style';
 const SSR_RIGHT_RAIL_ID = 'ssr-right-rail';
@@ -1202,6 +1210,128 @@ function hasRightRailDeepLink(): boolean {
   return RIGHT_RAIL_QUERY_KEYS.some((key) => search.has(key));
 }
 
+function stripLocalePrefix(pathname: string): string {
+  const locale = extractLocaleFromPath(pathname);
+  if (!locale) return pathname || '/';
+  const rest = pathname.slice(locale.length + 1);
+  return rest.length > 0 ? rest : '/';
+}
+
+function isSsrPublicRoute(pathname: string): boolean {
+  const locale = extractLocaleFromPath(pathname);
+  if (!locale) return false;
+
+  const rest = pathname.slice(locale.length + 1) || '/';
+  return rest === '/' || rest.startsWith('/docs/');
+}
+
+function buildLocaleTargetUrl(locale: SupportedLocale): URL {
+  const target = new URL(window.location.href);
+  target.pathname = buildLocalePath(locale, stripLocalePrefix(target.pathname));
+  return target;
+}
+
+function setLangMenuOpen(root: HTMLElement, control: HTMLButtonElement, open: boolean): void {
+  root.dataset.open = open ? '1' : '0';
+  control.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+function syncLangMenuSelection(): void {
+  const root = document.querySelector<HTMLElement>('[data-ssr-lang-root]');
+  const control = getControl('lang');
+  if (!root || !control) return;
+
+  const localeController = LocaleController.getInstance();
+  const activeLocale = localeController.hydrateFromPath(window.location.pathname);
+  root.dataset.activeLocale = activeLocale;
+
+  const selectedLabel =
+    AVAILABLE_LANGS.find((item) => item.code === activeLocale)?.name ??
+    activeLocale.toUpperCase();
+  control.setAttribute('aria-label', `Language: ${selectedLabel}`);
+
+  const options = document.querySelectorAll<HTMLButtonElement>('[data-ssr-lang-option]');
+  options.forEach((option) => {
+    const code = option.dataset.ssrLangOption;
+    const isSelected = code === activeLocale;
+    option.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+  });
+}
+
+async function applyLocaleChange(nextLocaleRaw: string): Promise<void> {
+  if (!isSupportedLocale(nextLocaleRaw)) return;
+
+  const nextLocale = nextLocaleRaw;
+  const localeController = LocaleController.getInstance();
+  const targetUrl = buildLocaleTargetUrl(nextLocale);
+
+  if (isSsrPublicRoute(window.location.pathname)) {
+    await navigateByFragment(targetUrl, 'replace');
+    localeController.hydrateFromPath(targetUrl.pathname);
+    syncLangMenuSelection();
+    return;
+  }
+
+  await localeController.switchSpaLocale(nextLocale);
+  const nextHref = `${targetUrl.pathname}${targetUrl.search}${targetUrl.hash}`;
+  window.history.replaceState(window.history.state, '', nextHref);
+  window.dispatchEvent(new PopStateEvent('popstate'));
+  syncLangMenuSelection();
+}
+
+function installLangControl(): void {
+  const root = document.querySelector<HTMLElement>('[data-ssr-lang-root]');
+  const control = getControl('lang');
+  const menu = document.querySelector<HTMLElement>('[data-ssr-lang-menu]');
+  if (!root || !control || !menu) return;
+
+  const closeMenu = () => setLangMenuOpen(root, control, false);
+
+  if (root.dataset.langBound === '1') {
+    syncLangMenuSelection();
+    return;
+  }
+
+  root.dataset.langBound = '1';
+  setLangMenuOpen(root, control, false);
+  syncLangMenuSelection();
+
+  control.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const open = root.dataset.open === '1';
+    setLangMenuOpen(root, control, !open);
+  });
+
+  menu.addEventListener('click', (event) => {
+    const eventEl = resolveEventElement(event.target);
+    if (!eventEl) return;
+    const option = eventEl.closest('[data-ssr-lang-option]') as HTMLButtonElement | null;
+    if (!option) return;
+
+    event.preventDefault();
+    const nextLocale = option.dataset.ssrLangOption;
+    closeMenu();
+    if (!nextLocale) return;
+    void applyLocaleChange(nextLocale);
+  });
+
+  document.addEventListener('click', (event) => {
+    const eventEl = resolveEventElement(event.target);
+    if (!eventEl || !root.contains(eventEl)) {
+      closeMenu();
+    }
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      closeMenu();
+    }
+  });
+
+  window.addEventListener('popstate', syncLangMenuSelection);
+}
+
 export function mountSsrMenuShell(): void {
   if (typeof document === 'undefined') return;
 
@@ -1216,6 +1346,7 @@ export function mountSsrMenuShell(): void {
   installDynamicMenu(menuPanel);
   installChatDock();
   installLinkInterceptor();
+  installLangControl();
   // Keep first paint stable: bootstrap right rail runtime lazily.
   // Only eager-init when URL explicitly deep-links into right rail state.
   if (hasRightRailDeepLink()) {

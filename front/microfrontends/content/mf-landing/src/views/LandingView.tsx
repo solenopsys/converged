@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { createStructServiceClient } from "g-struct";
 import {
+  DEFAULT_LOCALE,
+  extractLocaleFromPath,
+  isSupportedLocale,
+  type SupportedLocale,
+} from "front-core/landing-common/i18n";
+import {
   AISection,
   Faq,
   Feature,
@@ -79,8 +85,18 @@ function getPrefetchedBlocks(configPath: string): ResolvedBlock[] | null {
   return Array.isArray(payload?.blocks) ? payload.blocks : null;
 }
 
+function resolveFallbackLocale(configPath: string): SupportedLocale {
+  const configLocale = configPath.split("/")[0]?.toLowerCase();
+  if (isSupportedLocale(configLocale)) {
+    return configLocale;
+  }
+  if (typeof window === "undefined") return DEFAULT_LOCALE;
+  return extractLocaleFromPath(window.location.pathname) ?? DEFAULT_LOCALE;
+}
+
 export default function LandingView({ configPath }: { configPath: string }) {
   const prefetchedBlocks = useMemo(() => getPrefetchedBlocks(configPath), [configPath]);
+  const fallbackLocale = useMemo(() => resolveFallbackLocale(configPath), [configPath]);
   const [blocks, setBlocks] = useState<ResolvedBlock[]>(() => prefetchedBlocks ?? []);
   const [loading, setLoading] = useState(() => !prefetchedBlocks);
   const [error, setError] = useState<string | null>(null);
@@ -154,8 +170,8 @@ export default function LandingView({ configPath }: { configPath: string }) {
   }, [configPath, prefetchedBlocks]);
 
   const rendered = useMemo(
-    () => blocks.map((block, index) => renderBlock(block, index)),
-    [blocks],
+    () => blocks.map((block, index) => renderBlock(block, index, fallbackLocale)),
+    [blocks, fallbackLocale],
   );
 
   return (
@@ -180,9 +196,9 @@ export default function LandingView({ configPath }: { configPath: string }) {
   );
 }
 
-function renderBlock(block: ResolvedBlock, index: number) {
+function renderBlock(block: ResolvedBlock, index: number, fallbackLocale: SupportedLocale) {
   const key = block.id || `block-${index}`;
-  const lang = toStringOr(block.props.lang, "ru");
+  const lang = toStringOr(block.props.lang, fallbackLocale);
 
   switch (block.type) {
     case "hero-main": {

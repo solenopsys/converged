@@ -650,14 +650,16 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
 
         .app-layout[data-device="desktop"][data-mode="stacked"]:not([data-collapsed="true"]) .tabs-panel {
           width: var(--panel-width);
-          height: var(--panel-height);
+          height: auto;
+          max-height: var(--panel-height);
           transform: translate(0, 0);
+          pointer-events: auto;
         }
 
         .app-layout[data-device="desktop"][data-mode="stacked"]:not([data-collapsed="true"]) .chat-panel {
           width: var(--panel-width);
-          height: calc(var(--panel-height) - var(--panel-header-height));
-          top: var(--panel-header-height);
+          height: var(--panel-height);
+          top: 0;
           transform: translate(0, 0);
         }
 
@@ -866,6 +868,14 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
 
         .app-layout[data-front="chat"] .chat-panel {
           z-index: 3;
+        }
+
+        .app-layout[data-device="desktop"][data-mode="stacked"]:not([data-collapsed="true"])[data-front="tabs"] .tabs-panel {
+          z-index: 3;
+        }
+
+        .app-layout[data-device="desktop"][data-mode="stacked"]:not([data-collapsed="true"])[data-front="tabs"] .chat-panel {
+          z-index: 2;
         }
 
       `}</style>

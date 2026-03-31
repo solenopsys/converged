@@ -1,5 +1,6 @@
 import { renderToReadableStream } from "react-dom/server";
 import { resolve } from "path";
+import { createMarkdownServiceClient } from "g-markdown";
 import createLandingPlugin from "front-ssr/plugin";
 import type { SeoConfig } from "front-ssr/plugin";
 import { AppSSR } from "./app/App";
@@ -10,6 +11,8 @@ import {
   SUPPORTED_LOCALES,
   buildLocalePath,
   extractLocaleFromPath,
+  isSupportedLocale,
+  type SupportedLocale,
 } from "./app/i18n";
 import { loadSeoConfig } from "./ssr/seo";
 
@@ -36,16 +39,26 @@ type LandingPrefetchPayload = {
   blocks: ResolvedBlock[];
 };
 
+type DocsPrefetchPayload = {
+  slug: string;
+  markdownPath: string;
+  ast: unknown | null;
+  error?: string;
+};
+
 type RuntimeMfEnv = {
   "mf-docs": { docs: DocsInitItem[] };
   "mf-landing": { landingConfId: string; title?: string };
 };
 
-const DEFAULT_DOCS: DocsInitItem[] = [{ name: "club", id: "ru/club/index.json" }];
-const DEFAULT_LANDING_CONF_ID = "ru/product/landing/4ir-laiding.json";
+const LANDING_CONF_SUFFIX = "product/landing/4ir-laiding.json";
+const DOCS_INDEX_SUFFIX = "club/index.json";
+const DEFAULT_DOCS: DocsInitItem[] = [{ name: "club", id: `${DEFAULT_LOCALE}/${DOCS_INDEX_SUFFIX}` }];
+const DEFAULT_LANDING_CONF_ID = `${DEFAULT_LOCALE}/${LANDING_CONF_SUFFIX}`;
 
 declare global {
   var __LANDING_SSR_DATA__: Record<string, LandingPrefetchPayload> | undefined;
+  var __DOCS_SSR_DATA__: Record<string, DocsPrefetchPayload> | undefined;
 }
 
 function parseJson(raw: string | undefined): unknown {
@@ -124,6 +137,32 @@ function stripLocalePrefix(path: string): string {
   return rest.length > 0 ? rest : "/";
 }
 
+function withLocalePrefix(path: string, locale: SupportedLocale): string {
+  const normalized = path.trim().replace(/^\/+/, "");
+  if (!normalized) return `${locale}/`;
+  const segments = normalized.split("/");
+  if (isSupportedLocale(segments[0])) {
+    segments[0] = locale;
+    return segments.join("/");
+  }
+  return `${locale}/${normalized}`;
+}
+
+function localizeDocsConfig(docs: DocsInitItem[], locale: SupportedLocale): DocsInitItem[] {
+  return docs.map((item) => ({
+    ...item,
+    id: withLocalePrefix(item.id, locale),
+  }));
+}
+
+function resolveDocPath(slug: string, locale: SupportedLocale): string {
+  const normalizedSlug = slug.trim();
+  if (!normalizedSlug) return `${locale}/club/intro.md`;
+  if (normalizedSlug === "club") return `${locale}/club/intro.md`;
+  if (normalizedSlug.includes("/")) return withLocalePrefix(normalizedSlug, locale);
+  return `${locale}/${normalizedSlug}.md`;
+}
+
 async function structCall<T>(
   servicesBaseUrl: string,
   method: string,
@@ -191,6 +230,32 @@ async function prefetchLandingPayload(
   return { configPath, blocks: resolvedBlocks };
 }
 
+async function prefetchDocsPayload(
+  slug: string,
+  baseUrl: string,
+  locale: SupportedLocale,
+): Promise<DocsPrefetchPayload> {
+  const servicesBaseUrl = `${normalizeBaseUrl(baseUrl)}/services`;
+  const markdownClient = createMarkdownServiceClient({ baseUrl: servicesBaseUrl });
+  const markdownPath = resolveDocPath(slug, locale);
+
+  try {
+    const result = await markdownClient.readMdJson(markdownPath);
+    return {
+      slug,
+      markdownPath,
+      ast: result?.content ?? null,
+    };
+  } catch (error) {
+    return {
+      slug,
+      markdownPath,
+      ast: null,
+      error: error instanceof Error ? error.message : "Failed to load document",
+    };
+  }
+}
+
 export default function landingPlugin(config: { publicDir?: string; production?: boolean } = {}) {
   const landingRoot = resolve(import.meta.dir, "..");
   const mfEnv = buildRuntimeMfEnv();
@@ -251,8 +316,15 @@ export default function landingPlugin(config: { publicDir?: string; production?:
       seo: SeoConfig,
       baseUrl: string,
     ) => {
-      const landingConfId = mfEnv["mf-landing"].landingConfId;
+      const locale = extractLocaleFromPath(url) ?? DEFAULT_LOCALE;
+      const localizedDocs = localizeDocsConfig(mfEnv["mf-docs"].docs, locale);
+      const landingConfId = withLocalePrefix(mfEnv["mf-landing"].landingConfId, locale);
+      const localizedMfEnv: RuntimeMfEnv = {
+        "mf-docs": { docs: localizedDocs },
+        "mf-landing": { ...mfEnv["mf-landing"], landingConfId },
+      };
       let landingData: Record<string, LandingPrefetchPayload> = {};
+      let docsData: Record<string, DocsPrefetchPayload> = {};
       const routePath = stripLocalePrefix(url);
       const isConsoleRoute = routePath === "/console" || routePath.startsWith("/console/");
 
@@ -265,13 +337,31 @@ export default function landingPlugin(config: { publicDir?: string; production?:
         }
       }
 
+      if (!isConsoleRoute && routePath.startsWith("/docs/")) {
+        const slug = routePath.slice("/docs/".length).split("/").filter(Boolean)[0] ?? "";
+        if (slug) {
+          try {
+            const preloaded = await prefetchDocsPayload(slug, baseUrl, locale);
+            docsData = { [slug]: preloaded };
+          } catch (error) {
+            console.error("[landing] SSR docs prefetch failed", error);
+          }
+        }
+      }
+
       const previousSsrData = globalThis.__LANDING_SSR_DATA__;
+      const previousDocsSsrData = globalThis.__DOCS_SSR_DATA__;
       globalThis.__LANDING_SSR_DATA__ = landingData;
-      const locale = extractLocaleFromPath(url) ?? DEFAULT_LOCALE;
+      globalThis.__DOCS_SSR_DATA__ = docsData;
 
       try {
         const stream = await renderToReadableStream(
-          <Document lang={locale} seo={seo} importMap={importMap} initialData={{ mfEnv, landing: landingData }}>
+          <Document
+            lang={locale}
+            seo={seo}
+            importMap={importMap}
+            initialData={{ mfEnv: localizedMfEnv, landing: landingData, docs: docsData }}
+          >
             <AppSSR url={url} />
           </Document>,
         );
@@ -287,6 +377,7 @@ export default function landingPlugin(config: { publicDir?: string; production?:
         return `<!DOCTYPE html>${body}`;
       } finally {
         globalThis.__LANDING_SSR_DATA__ = previousSsrData;
+        globalThis.__DOCS_SSR_DATA__ = previousDocsSsrData;
       }
     },
   });

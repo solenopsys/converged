@@ -9,17 +9,24 @@ import { createRoot } from "react-dom/client";
 import { addMenuRequested, bus } from "front-core";
 import { App } from "../app/App";
 import { GROUPS, type GroupDef } from "../groups";
-import { extractLocaleFromPath } from "../app/i18n";
+import { DEFAULT_LOCALE, extractLocaleFromPath } from "../app/i18n";
 
 // ---- MF env ----
 
-const DEFAULT_MF_ENV: Record<string, unknown> = {
-  "mf-docs": { docs: [{ name: "club", id: "ru/club/index.json" }] },
-  "mf-landing": { landingConfId: "ru/product/landing/4ir-laiding.json", title: "4ir" },
-  "mf-charts": { userId: "guest", title: "Chats" },
-  "mf-community": { userId: "guest", title: "Community" },
-  "mf-threads": { threadId: "public-chat", threadIds: ["public-chat"], title: "Threads" },
-};
+function resolveRuntimeLocale(): string {
+  if (typeof window === "undefined") return DEFAULT_LOCALE;
+  return extractLocaleFromPath(window.location.pathname) ?? DEFAULT_LOCALE;
+}
+
+function buildDefaultMfEnv(locale: string): Record<string, unknown> {
+  return {
+    "mf-docs": { docs: [{ name: "club", id: `${locale}/club/index.json` }] },
+    "mf-landing": { landingConfId: `${locale}/product/landing/4ir-laiding.json`, title: "4ir" },
+    "mf-charts": { userId: "guest", title: "Chats" },
+    "mf-community": { userId: "guest", title: "Community" },
+    "mf-threads": { threadId: "public-chat", threadIds: ["public-chat"], title: "Threads" },
+  };
+}
 
 type RuntimeInitialData = {
   mfEnv?: Record<string, unknown>;
@@ -37,7 +44,8 @@ function initMicrofrontendEnv() {
   const initial = readInitialData();
   const mfEnv = initial.mfEnv && typeof initial.mfEnv === "object" ? initial.mfEnv : {};
   const current = ((globalThis as any).__MF_ENV__ ?? {}) as Record<string, unknown>;
-  (globalThis as any).__MF_ENV__ = { ...DEFAULT_MF_ENV, ...current, ...mfEnv };
+  const locale = resolveRuntimeLocale();
+  (globalThis as any).__MF_ENV__ = { ...buildDefaultMfEnv(locale), ...current, ...mfEnv };
   if (initial.landing && typeof initial.landing === "object") {
     (globalThis as any).__LANDING_SSR_DATA__ = initial.landing;
   }
@@ -65,13 +73,14 @@ function readImportMapMicrofrontends(): string[] {
 // ---- MF loading ----
 
 const AUTH_TOKEN_KEY = "authToken";
-const publicMicrofrontends = ["mf-landing", "mf-docs"];
+const SSR_ONLY_MICROFRONTENDS = new Set(["mf-landing", "mf-docs"]);
+const publicMicrofrontends = [] as string[];
 const publicMicrofrontendsSet = new Set(publicMicrofrontends);
 
 const discoveredMicrofrontends = uniq([
   ...readInitialMicrofrontends(),
   ...readImportMapMicrofrontends(),
-]);
+]).filter((name) => !SSR_ONLY_MICROFRONTENDS.has(name));
 const systemMicrofrontends = uniq(
   ["mf-auth", ...publicMicrofrontends].filter(
     (mf) => mf === "mf-auth" || discoveredMicrofrontends.includes(mf),
@@ -97,6 +106,15 @@ function isConsoleRoute() {
   const locale = extractLocaleFromPath(pathname);
   const path = locale ? (pathname.slice(locale.length + 1) || "/") : pathname;
   return path === "/console" || path.startsWith("/console/");
+}
+
+function isServerRenderedPublicRoute() {
+  const pathname = window.location.pathname;
+  const locale = extractLocaleFromPath(pathname);
+  if (!locale) return false;
+
+  const path = pathname.slice(locale.length + 1) || "/";
+  return path === "/" || path.startsWith("/docs/");
 }
 
 function resolveGroupDef(raw: any): GroupDef {
@@ -141,6 +159,7 @@ function rebuildMenus(authenticated: boolean) {
 
 async function loadMicrofrontends(names: string[]) {
   for (const name of names) {
+    if (SSR_ONLY_MICROFRONTENDS.has(name)) continue;
     if (loadedMicrofrontends.has(name)) continue;
     try {
       const runtime = await import(name);
@@ -194,6 +213,10 @@ async function loadInitialMicrofrontends() {
 // ---- Island mount ----
 
 export function mount(container: HTMLElement, _props: Record<string, unknown>) {
+  if (isServerRenderedPublicRoute()) {
+    return;
+  }
+
   initMicrofrontendEnv();
 
   // Clear SSR placeholder, mount full App (BrowserRouter → RootLayout → BaseLayout)
