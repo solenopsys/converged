@@ -320,7 +320,6 @@ body { margin: 0; }
   display: flex;
   flex-direction: column-reverse;
   gap: 8px;
-  max-height: 180px;
   overflow: hidden;
   opacity: 1;
   transform: translateY(0);
