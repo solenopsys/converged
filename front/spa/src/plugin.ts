@@ -593,7 +593,7 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
         return { error: err?.message ?? "Microfrontend build failed" };
       }
     })
-    .get("/locales/:lng/mf-menu.json", async ({ params }) => {
+    .get("/locales/:lng/menu-groups.json", async ({ params }) => {
       const lng = params.lng;
       const merged: Record<string, any> = {};
       for (const mf of microfrontends) {

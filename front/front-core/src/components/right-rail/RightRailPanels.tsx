@@ -395,7 +395,7 @@ export function TabsPanel({
   const showMenu = !activeTab || activeTab === "menu";
 
   // Локализация для меню микрофронтендов
-  const { t } = useGlobalTranslation("mf-menu");
+  const { t } = useGlobalTranslation("menu-groups");
 
   const handleMenuSelect = useCallback((actionId: string) => {
     console.log("[TabsPanel] Menu selected:", actionId);

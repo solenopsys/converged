@@ -496,13 +496,7 @@ export function SsrShellLayout({ children }: { children: ReactNode }) {
                   ))}
                 </div>
               </div>
-              <button type="button" className="ssr-panel-control" data-ssr-control="parallel" aria-label="Parallel panels" aria-pressed="false">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="4" width="18" height="16" rx="2" />
-                  <path d="M12 4v16" />
-                </svg>
-              </button>
-              <button type="button" className="ssr-panel-control" data-ssr-control="rail" aria-label="Open panel" aria-pressed="false">
+              <button type="button" className="ssr-panel-control" data-ssr-control="rail" aria-label="Show panel" aria-pressed="false">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="4" width="18" height="16" rx="2" />
                   <path d="M8 4v16" />

@@ -39,8 +39,6 @@ const CONTROL_ICON = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>',
   moon:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a7 7 0 1 0 9 9 9 9 0 1 1-9-9z"/></svg>',
-  columns:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/></svg>',
   maximize:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>',
   minimize:
@@ -70,7 +68,6 @@ let railTabsBound = false;
 let chatDockBound = false;
 let chatDockGeometryBound = false;
 let chatDockResizeObserver: ResizeObserver | null = null;
-let parallelMode = false;
 let railWide = false;
 type CenterViewState = ReturnType<typeof $centerView.getState>;
 
@@ -105,7 +102,6 @@ function updateShellWidthMode(): void {
 function refreshControlStates(): void {
   const auth = getControl('auth');
   const theme = getControl('theme');
-  const parallel = getControl('parallel');
   const constrain = getControl('constrain');
   const rail = getControl('rail');
 
@@ -121,12 +117,6 @@ function refreshControlStates(): void {
     setControlIcon(theme, dark ? CONTROL_ICON.sun : CONTROL_ICON.moon);
   }
 
-  if (parallel) {
-    parallel.setAttribute('aria-pressed', parallelMode ? 'true' : 'false');
-    parallel.setAttribute('aria-label', parallelMode ? 'Disable parallel panels' : 'Parallel panels');
-    setControlIcon(parallel, CONTROL_ICON.columns);
-  }
-
   if (constrain) {
     constrain.setAttribute('aria-pressed', railWide ? 'true' : 'false');
     constrain.setAttribute('aria-label', railWide ? 'Reduce panel width' : 'Expand panel width');
@@ -136,7 +126,7 @@ function refreshControlStates(): void {
   if (rail) {
     const open = isRightRailOpen();
     rail.setAttribute('aria-pressed', open ? 'true' : 'false');
-    rail.setAttribute('aria-label', open ? 'Close panel' : 'Open panel');
+    rail.setAttribute('aria-label', open ? 'Collapse panel' : 'Show panel');
     setControlIcon(rail, open ? CONTROL_ICON.panelClose : CONTROL_ICON.panelOpen);
   }
 }
@@ -147,8 +137,24 @@ function applyTheme(next: 'light' | 'dark'): void {
   document.documentElement.style.colorScheme = next;
 }
 
+async function ensureAuthLoaded(): Promise<void> {
+  const moduleName = 'mf-auth';
+  if (loadedModules.has(moduleName)) return;
+  initMicrofrontendEnv();
+  try {
+    const runtime = await import(moduleName);
+    if (!loadedModules.has(moduleName) && runtime?.default?.plug) {
+      runtime.default.plug(bus);
+      loadedModules.add(moduleName);
+    }
+  } catch (error) {
+    console.error('[ssr-menu] failed to load mf-auth', error);
+  }
+}
+
 async function openLoginPanel(): Promise<void> {
   await ensureRightRailRuntime();
+  await ensureAuthLoaded();
   setRightRailOpen(true);
   setRightRailMode('tab');
   rightRailActionSelected('show_login');
@@ -163,10 +169,9 @@ function installPanelControls(): void {
 
   const auth = getControl('auth');
   const theme = getControl('theme');
-  const parallel = getControl('parallel');
   const constrain = getControl('constrain');
   const rail = getControl('rail');
-  if (!auth && !theme && !parallel && !constrain && !rail) return;
+  if (!auth && !theme && !constrain && !rail) return;
 
   controlsBound = true;
 
@@ -182,17 +187,6 @@ function installPanelControls(): void {
 
   theme?.addEventListener('click', () => {
     applyTheme(isDarkTheme() ? 'light' : 'dark');
-    refreshControlStates();
-  });
-
-  parallel?.addEventListener('click', () => {
-    parallelMode = !parallelMode;
-    if (parallelMode) {
-      setRightRailOpen(true);
-      setRightRailMode('chat');
-    } else if (document.getElementById(SSR_RIGHT_RAIL_ID)?.dataset.mode === 'chat') {
-      setRightRailOpen(false);
-    }
     refreshControlStates();
   });
 
@@ -351,13 +345,11 @@ function syncRightRailMode(tabId: string | null | undefined): void {
     setRightRailMode('tab');
     return;
   }
-  if (parallelMode) {
-    setRightRailOpen(true);
-  }
   setRightRailMode('chat');
 }
 
 async function ensureAssistantsLoaded(): Promise<void> {
+  if (!isAuthenticated()) return;
   const moduleName = 'mf-assistants';
   if (loadedModules.has(moduleName)) return;
 
@@ -662,12 +654,14 @@ type RuntimeMenuItem = {
   iconName?: string;
   icon?: unknown;
   action?: unknown;
+  href?: string;
   items?: RuntimeMenuItem[];
 };
 
 type InitialDataShape = {
   microfrontends?: string[];
   mfEnv?: Record<string, unknown>;
+  guestMenu?: Array<{ title: string; href: string; iconName?: string }>;
 };
 
 
@@ -708,7 +702,7 @@ function resolveLabel(item: RuntimeMenuItem, index: number): string {
   if (raw.startsWith('menu.')) {
     const i18n = getI18nInstance();
     if (i18n.isInitialized) {
-      const translated = i18n.t(raw, { ns: 'mf-menu' });
+      const translated = i18n.t(raw, { ns: "menu-groups" });
       if (translated && translated !== raw) return translated;
     }
     const short = raw.slice(5).split('.').pop() || raw.slice(5);
@@ -773,6 +767,7 @@ function createGroupButton(groupId: string, title: string): HTMLButtonElement {
 
 function renderFallbackGroups(host: HTMLElement): void {
   host.innerHTML = '';
+  if (!isAuthenticated()) return;
   for (const group of GROUPS) {
     host.appendChild(createGroupButton(group.id, group.title));
   }
@@ -954,6 +949,23 @@ function buildTreeNode(item: RuntimeMenuItem, depth: number, index: number): HTM
     return details;
   }
 
+  const href = typeof item.href === 'string' && item.href.length > 0 ? item.href : null;
+  if (href) {
+    const a = document.createElement('a');
+    a.href = href;
+    a.className = 'ssr-panel-link ssr-menu-action';
+    a.style.paddingLeft = `${8 + depth * 16}px`;
+    const chevron = document.createElement('span');
+    setMenuChevron(chevron, false);
+    const icon = document.createElement('span');
+    setMenuIcon(icon, iconName);
+    const text = document.createElement('span');
+    text.className = 'ssr-menu-label';
+    text.textContent = label;
+    a.append(chevron, icon, text);
+    return a;
+  }
+
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'ssr-panel-link ssr-menu-action';
@@ -983,6 +995,16 @@ function installDynamicMenu(menuPanel: HTMLElement): void {
     groupsHost.innerHTML = '';
     const normalized = Array.isArray(items) ? items : [];
     bridge.setMenu(normalized as unknown[]);
+
+    if (!isAuthenticated()) {
+      // Guests: render Docs + Catalog links from SSR-embedded initial data
+      const initial = readInitialData();
+      const guestItems: RuntimeMenuItem[] = Array.isArray(initial.guestMenu) ? initial.guestMenu : [];
+      for (const item of guestItems) {
+        groupsHost.appendChild(buildTreeNode(item, 0, 0));
+      }
+      return;
+    }
 
     const groupedById = new Map<string, RuntimeMenuItem>();
     for (const item of normalized) {

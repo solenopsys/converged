@@ -1,0 +1,20 @@
+{
+  "menu.geo": "Geo",
+  "menu.geo.list": "List",
+  "menu.geo.tree": "Tree",
+  "menu.marker": "Marker",
+  "menu.pages": "Pages",
+  "menu.domains": "Domains",
+  "menu.catalog": "Catalog",
+  "menu.catalog.stats": "Statistics",
+  "menu.catalog.companies": "Companies",
+  "group.ai": "AI",
+  "group.sales": "Sales",
+  "group.geo": "Geo",
+  "group.marketing": "Marketing",
+  "group.workflows": "Workflows",
+  "group.analytics": "Analytics",
+  "group.data": "Data",
+  "group.content": "Content",
+  "group.social": "Social"
+}

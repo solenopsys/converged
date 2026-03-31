@@ -40,7 +40,7 @@ const namespaces = [
   'login',
   'cards',
   'menu',
-  'mf-menu',
+  "menu-groups",
   'table_titles',
   'table_data',
   'chart',

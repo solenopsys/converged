@@ -1,0 +1,20 @@
+{
+  "menu.geo": "Гео",
+  "menu.geo.list": "Список",
+  "menu.geo.tree": "Дерево",
+  "menu.marker": "Маркер",
+  "menu.pages": "Страницы",
+  "menu.domains": "Домены",
+  "menu.catalog": "Каталог",
+  "menu.catalog.stats": "Статистика",
+  "menu.catalog.companies": "Компании",
+  "group.ai": "ИИ",
+  "group.sales": "Продажи",
+  "group.geo": "Гео",
+  "group.marketing": "Маркетинг",
+  "group.workflows": "Процессы",
+  "group.analytics": "Аналитика",
+  "group.data": "Данные",
+  "group.content": "Контент",
+  "group.social": "Социальные"
+}
