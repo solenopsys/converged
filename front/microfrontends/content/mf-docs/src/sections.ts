@@ -7,12 +7,19 @@ export type DocsSectionMeta = {
   title: string;
   order: number;
   markdownPath: string;
+  group?: string;
 };
+
+type CompoundGroup = { group: string; index: string };
+type CompoundIndex = { compound: true; groups: CompoundGroup[] };
 
 const structClient = createStructServiceClient({ baseUrl: "/services" });
 
 export async function loadDocsSections(indexPath: string): Promise<DocsSectionMeta[]> {
   const structData = await structClient.readJson(indexPath);
+  if (isCompoundIndex(structData)) {
+    return loadCompoundSections(structData, indexPath, structClient);
+  }
   return normalizeStructDocs(structData, indexPath).sort((a, b) => a.order - b.order);
 }
 
@@ -21,11 +28,48 @@ export async function loadDocsSectionsWithClient(
   client: { readJson(path: string): Promise<unknown> },
 ): Promise<DocsSectionMeta[]> {
   const structData = await client.readJson(indexPath);
+  if (isCompoundIndex(structData)) {
+    return loadCompoundSections(structData, indexPath, client);
+  }
   return normalizeStructDocs(structData, indexPath).sort((a, b) => a.order - b.order);
 }
 
 export function anchorActionId(sourceKey: string, anchor: string): string {
   return `docs.anchor.${sourceKey}.${anchor}`;
+}
+
+function isCompoundIndex(data: unknown): data is CompoundIndex {
+  return (
+    data !== null &&
+    typeof data === "object" &&
+    (data as any).compound === true &&
+    Array.isArray((data as any).groups)
+  );
+}
+
+async function loadCompoundSections(
+  compound: CompoundIndex,
+  compoundPath: string,
+  client: { readJson(path: string): Promise<unknown> },
+): Promise<DocsSectionMeta[]> {
+  const locale = compoundPath.split("/")[0];
+  const all: DocsSectionMeta[] = [];
+  let globalOrder = 0;
+
+  for (const entry of compound.groups) {
+    const subPath = `${locale}/${entry.index}`;
+    try {
+      const subData = await client.readJson(subPath);
+      const sections = normalizeStructDocs(subData, subPath)
+        .sort((a, b) => a.order - b.order)
+        .map((s) => ({ ...s, order: globalOrder++, group: entry.group }));
+      all.push(...sections);
+    } catch {
+      // sub-index missing — skip
+    }
+  }
+
+  return all;
 }
 
 function normalizeStructDocs(data: unknown, indexPath: string): DocsSectionMeta[] {

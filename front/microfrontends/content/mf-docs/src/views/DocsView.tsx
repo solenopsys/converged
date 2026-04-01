@@ -36,7 +36,7 @@ export default function DocsView({ indexPath, anchor }: { indexPath?: string; an
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (ssrSections) return; // already have SSR data
+    if (ssrSections) return;
     let active = true;
 
     const loadAllSections = async () => {
@@ -86,10 +86,7 @@ export default function DocsView({ indexPath, anchor }: { indexPath?: string; an
   }, [anchor, loading, sortedItems.length]);
 
   return (
-    <div
-      ref={scrollRef}
-      className="h-full min-h-0 w-full overflow-y-auto overflow-x-hidden p-6"
-    >
+    <div ref={scrollRef} className="h-full min-h-0 w-full overflow-y-auto overflow-x-hidden p-6">
       {error ? (
         <div className="max-w-4xl">
           <h2 className="mb-3 text-2xl font-semibold text-red-400">Error</h2>
@@ -97,9 +94,7 @@ export default function DocsView({ indexPath, anchor }: { indexPath?: string; an
         </div>
       ) : null}
 
-      {!error && loading ? (
-        <p className="text-slate-300">Loading...</p>
-      ) : null}
+      {!error && loading ? <p className="text-slate-300">Loading...</p> : null}
 
       {!error && !loading && sortedItems.length === 0 ? (
         <p className="text-slate-300">No sections found in struct: {resolvedIndexPath}</p>
@@ -107,11 +102,7 @@ export default function DocsView({ indexPath, anchor }: { indexPath?: string; an
 
       {!error && !loading
         ? sortedItems.map((item) => (
-            <section
-              key={item.anchor}
-              id={item.anchor}
-              className="mb-12 scroll-mt-4"
-            >
+            <section key={item.anchor} id={item.anchor} className="mb-12 scroll-mt-4">
               {item.ast ? (
                 <div className="prose prose-invert max-w-4xl">
                   <MarkdownRenderer ast={item.ast} />

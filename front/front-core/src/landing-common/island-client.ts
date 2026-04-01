@@ -325,10 +325,11 @@ function installRightRailTabs(): void {
   if (!railTabsBound) {
     railTabsBound = true;
     chat?.addEventListener('click', () => {
-      void ensureRightRailRuntime();
       setRightRailOpen(true);
       setRightRailMode('chat');
-      runActionEvent({ actionId: 'chats.show', params: {} });
+      void ensureRightRailRuntime().then(() => {
+        runActionEvent({ actionId: 'chats.show', params: {} });
+      });
     });
     tab?.addEventListener('click', () => {
       setRightRailOpen(true);
@@ -349,7 +350,6 @@ function syncRightRailMode(tabId: string | null | undefined): void {
 }
 
 async function ensureAssistantsLoaded(): Promise<void> {
-  if (!isAuthenticated()) return;
   const moduleName = 'mf-assistants';
   if (loadedModules.has(moduleName)) return;
 
@@ -425,7 +425,7 @@ async function ensureRightRailRuntime(): Promise<void> {
 
     await ensureAssistantsLoaded();
 
-    if (!rightRailChatBootstrapped) {
+    if (!rightRailChatBootstrapped && isAuthenticated()) {
       rightRailChatBootstrapped = true;
       const chatSlot = document.getElementById('slot-panel-chat');
       if (chatSlot) {
