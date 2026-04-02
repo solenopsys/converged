@@ -30,6 +30,7 @@ export function Document({ children, seo, lang = "en", importMap, initialData }:
 
   const importMapJson = importMap ? JSON.stringify({ imports: importMap }) : null;
   const initialDataJson = initialData ? JSON.stringify(initialData) : null;
+  const loginEnabled = String(process.env.LOGIN_ENABLED ?? "").toLowerCase() === "true";
 
   return (
     <html lang={lang}>
@@ -69,7 +70,7 @@ export function Document({ children, seo, lang = "en", importMap, initialData }:
           />
         ) : null}
 
-        <SsrShellLayout>{children}</SsrShellLayout>
+        <SsrShellLayout loginEnabled={loginEnabled}>{children}</SsrShellLayout>
 
         {/* Warmup: preloads SPA modules in background */}
         <div data-island="warmup" data-island-load="eager" style={{ display: "none" }} />

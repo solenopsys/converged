@@ -1284,6 +1284,7 @@ function setLangMenuOpen(root: HTMLElement, control: HTMLButtonElement, open: bo
 function syncLangMenuSelection(): void {
   const root = document.querySelector<HTMLElement>('[data-ssr-lang-root]');
   const control = getControl('lang');
+  const current = document.querySelector<HTMLElement>('[data-ssr-lang-current]');
   if (!root || !control) return;
 
   const localeController = LocaleController.getInstance();
@@ -1294,6 +1295,9 @@ function syncLangMenuSelection(): void {
     AVAILABLE_LANGS.find((item) => item.code === activeLocale)?.name ??
     activeLocale.toUpperCase();
   control.setAttribute('aria-label', `Language: ${selectedLabel}`);
+  if (current) {
+    current.textContent = activeLocale.toUpperCase();
+  }
 
   const options = document.querySelectorAll<HTMLButtonElement>('[data-ssr-lang-option]');
   options.forEach((option) => {

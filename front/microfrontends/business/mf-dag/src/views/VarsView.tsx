@@ -2,8 +2,9 @@ import React, { useEffect } from 'react';
 import { useUnit } from 'effector-react';
 import { HeaderPanelLayout, InfiniteScrollDataTable } from 'front-core';
 import { RefreshCw } from 'lucide-react';
-import { $vars, $varsLoading, refreshVarsClicked, showVars } from '../domain-vars';
+import { $vars, $varsLoading, openVarForm, refreshVarsClicked, showVars } from '../domain-vars';
 import { varsColumns } from '../functions/columns';
+import { createVarFormWidget } from '../functions/vars';
 
 export const VarsView = ({ bus }: { bus: any }) => {
   const vars = useUnit($vars);
@@ -26,6 +27,11 @@ export const VarsView = ({ bus }: { bus: any }) => {
     ],
   };
 
+  const handleRowClick = (row: { key: string; value: any }) => {
+    openVarForm({ variable: row });
+    bus.present({ widget: createVarFormWidget(bus) });
+  };
+
   return (
     <HeaderPanelLayout config={headerConfig}>
       <InfiniteScrollDataTable
@@ -34,6 +40,7 @@ export const VarsView = ({ bus }: { bus: any }) => {
         loading={loading}
         columns={varsColumns}
         onLoadMore={() => {}}
+        onRowClick={handleRowClick}
         viewMode="table"
       />
     </HeaderPanelLayout>

@@ -8,7 +8,7 @@ export { SHOW_CONTEXTS_LIST } from "./contexts";
 export { SHOW_EXECUTIONS_LIST } from "./executions";
 export { SHOW_TASKS_LIST } from "./tasks";
 export { SHOW_DAG_STATS } from "./stats";
-export { SHOW_VARS_LIST } from "./vars";
+export { SHOW_VARS_LIST, SHOW_VAR_FORM } from "./vars";
 
 const ACTIONS = [
     ...CONTEXTS_ACTIONS,

@@ -139,10 +139,18 @@ export class ShedullerServiceImpl implements ShedullerService {
   private schedule(entry: CronEntry) {
     this.unschedule(entry.id);
     const expression = entry.expression.trim().replace(/\s+/g, " ");
-    const job = new Cron(expression, () => {
-      this.invokeProvider(entry);
-    });
-    this.jobs.set(entry.id, job);
+    try {
+      const job = new Cron(expression, () => {
+        this.invokeProvider(entry);
+      });
+      this.jobs.set(entry.id, job);
+    } catch (err) {
+      // Invalid cron should not crash scheduler startup/runtime; keep it unscheduled.
+      console.error(
+        `[sheduller] invalid cron expression ignored: id=${entry.id} name="${entry.name}" expression="${expression}"`,
+        err,
+      );
+    }
   }
 
   private async invokeProvider(entry: CronEntry) {

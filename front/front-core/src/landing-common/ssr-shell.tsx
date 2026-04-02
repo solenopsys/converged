@@ -227,6 +227,19 @@ body { margin: 0; }
 .ssr-lang-control {
   position: relative;
 }
+.ssr-lang-trigger {
+  width: auto;
+  min-width: 30px;
+  padding: 0 8px;
+  gap: 6px;
+}
+.ssr-lang-current {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1;
+}
 .ssr-lang-popover {
   position: absolute;
   top: calc(100% + 6px);
@@ -434,7 +447,13 @@ body { margin: 0; }
 }
 `;
 
-export function SsrShellLayout({ children }: { children: ReactNode }) {
+export function SsrShellLayout({
+  children,
+  loginEnabled = true,
+}: {
+  children: ReactNode;
+  loginEnabled?: boolean;
+}) {
   return (
     <div id="app-shell" data-island="spa-shell" data-island-load="eager" data-rail-open="0">
       <div id="ssr-shell" data-rail-open="0">
@@ -445,13 +464,15 @@ export function SsrShellLayout({ children }: { children: ReactNode }) {
               <img className="ssr-panel-brand-logo-dark" src="/header-logo-white.svg" alt="Converged AI" />
             </div>
             <div className="ssr-panel-controls" aria-label="Menu controls">
-              <button type="button" className="ssr-panel-control" data-ssr-control="auth" aria-label="Open login">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-                  <path d="M10 17l5-5-5-5" />
-                  <path d="M15 12H3" />
-                </svg>
-              </button>
+              {loginEnabled ? (
+                <button type="button" className="ssr-panel-control" data-ssr-control="auth" aria-label="Open login">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                    <path d="M10 17l5-5-5-5" />
+                    <path d="M15 12H3" />
+                  </svg>
+                </button>
+              ) : null}
               <button type="button" className="ssr-panel-control" data-ssr-control="theme" aria-label="Toggle theme">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="4" />
@@ -468,7 +489,7 @@ export function SsrShellLayout({ children }: { children: ReactNode }) {
               <div className="ssr-lang-control" data-ssr-lang-root data-open="0">
                 <button
                   type="button"
-                  className="ssr-panel-control"
+                  className="ssr-panel-control ssr-lang-trigger"
                   data-ssr-control="lang"
                   aria-label="Language"
                   aria-haspopup="menu"
@@ -480,6 +501,7 @@ export function SsrShellLayout({ children }: { children: ReactNode }) {
                     <path d="M12 3a13 13 0 0 1 0 18" />
                     <path d="M12 3a13 13 0 0 0 0 18" />
                   </svg>
+                  <span className="ssr-lang-current" data-ssr-lang-current>EN</span>
                 </button>
                 <div className="ssr-lang-popover" data-ssr-lang-menu role="menu" aria-label="Language options">
                   {AVAILABLE_LANGS.map((lang) => (

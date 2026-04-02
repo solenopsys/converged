@@ -30,6 +30,33 @@ export default (options: PluginOptions = {}) =>
       await ensureStores();
     });
 
+    const MIME: Record<string, string> = {
+      mp4: "video/mp4", webm: "video/webm", mov: "video/quicktime",
+      jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
+      webp: "image/webp", gif: "image/gif", svg: "image/svg+xml",
+      pdf: "application/pdf",
+    };
+
+    app.get("/galery/static/*", async ({ params, set }: any) => {
+      const filePath = params["*"];
+      if (!filePath) { set.status = 400; return "Bad request"; }
+      const stores = await ensureStores();
+      const data = await stores.static.get(filePath);
+      if (!data) { set.status = 404; return "Not found"; }
+      const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
+      if (MIME[ext]) set.headers["Content-Type"] = MIME[ext];
+      return data;
+    });
+
+    app.put("/galery/static/*", async ({ params, request, set }: any) => {
+      const filePath = params["*"];
+      if (!filePath) { set.status = 400; return "Bad request"; }
+      const stores = await ensureStores();
+      const body = await request.arrayBuffer();
+      await stores.static.put(filePath, new Uint8Array(body));
+      set.status = 204;
+    });
+
     app.get("/galery/file/:id", async ({ params, query, set }: any) => {
       const stores = await ensureStores();
       const image = await stores.images.get(params.id);
