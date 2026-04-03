@@ -28,7 +28,11 @@ class HttpClientImpl {
     const envBase = typeof process !== "undefined" ? process.env?.SERVICES_BASE : undefined;
     this.baseUrl = config.baseUrl || envBase || "/services";
     this.timeout = config.timeout || 5000;
-    this.headers = config.headers || {};
+    const serviceToken = typeof process !== "undefined" ? process.env?.SERVICE_TOKEN : undefined;
+    this.headers = {
+      ...(serviceToken ? { authorization: `Bearer ${serviceToken}` } : {}),
+      ...config.headers,
+    };
   }
 
   call(methodName: string, params: any[]): any {

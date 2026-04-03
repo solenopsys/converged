@@ -1,4 +1,5 @@
 import { createHttpBackend } from './runtime/http-backend';
+import { generateServiceToken } from './runtime/service-token';
 import { createHttpClient } from './runtime/http-client';
 import { Access, SecureType, secure, secureAll } from './decorator/access.decorator';
 import {
@@ -23,6 +24,7 @@ import type { AccessControlConfig } from './runtime/http-backend';
 export {
   createHttpBackend,
   createHttpClient,
+  generateServiceToken,
   Access,
   SecureType,
   secure,

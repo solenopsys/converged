@@ -71,9 +71,13 @@ export function installBackendLogBridge(options: BackendLogBridgeOptions) {
   const originalConsoleError = console.error.bind(console);
 
   const postEvent = async (event: LogEventInput) => {
+    const token = process.env.SERVICE_TOKEN;
     await fetch(`${options.serviceBaseUrl}/logs/write`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+      },
       body: JSON.stringify({ event }),
     });
   };

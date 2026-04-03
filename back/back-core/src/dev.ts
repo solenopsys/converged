@@ -241,6 +241,25 @@ async function loadPlugins(
 
 loadDotEnvFiles(PROJECT_DIR, CHILD_PROJECT_DIR);
 
+// Generate service account token from ACCESS_JWT_SECRET at startup
+async function generateServiceToken(secret: string): Promise<string> {
+  const encode = (obj: object) =>
+    Buffer.from(JSON.stringify(obj)).toString("base64url");
+  const header = encode({ alg: "HS256", typ: "JWT" });
+  const payload = encode({ sub: "service-account", perm: ["*/*( rw)"], iat: Math.floor(Date.now() / 1000) });
+  const data = `${header}.${payload}`;
+  const key = await crypto.subtle.importKey(
+    "raw", new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data));
+  return `${data}.${Buffer.from(sig).toString("base64url")}`;
+}
+
+process.env.SERVICE_TOKEN = await generateServiceToken(
+  process.env.ACCESS_JWT_SECRET || "access-secret",
+);
+
 const port = Number(process.env.PORT || process.env.SERVICES_PORT || 3000);
 const dataDir = process.env.DATA_DIR || resolve(PROJECT_DIR, "data");
 if (!process.env.SERVICES_BASE) {

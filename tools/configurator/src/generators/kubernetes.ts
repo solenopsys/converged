@@ -24,7 +24,6 @@ const TRAEFIK_API = "traefik.io/v1alpha1";
 const CERTMANAGER_API = "cert-manager.io/v1";
 const K3S_HELM_API = "helm.cattle.io/v1";
 
-const HELM_HOST = "{{ .Values.ingress.host }}";
 const HELM_UI_IMAGE = "{{ .Values.images.ui.name }}";
 const HELM_UI_TAG = "{{ .Values.images.ui.tag }}";
 const HELM_UI_PULL_POLICY = "{{ .Values.images.ui.pullPolicy }}";
@@ -678,6 +677,7 @@ class IngressBuilder {
   }
 
   private collectRoutes() {
+    const hosts = this.ctx.config.ingress.hosts;
     const seenServicePaths = new Set<string>();
 
     for (const group of this.plan.serviceGroups) {
@@ -685,26 +685,32 @@ class IngressBuilder {
         if (seenServicePaths.has(ms.name)) continue;
         seenServicePaths.add(ms.name);
 
-        this.routes.push({
-          match: `Host(\`${HELM_HOST}\`) && PathPrefix(\`/services/${ms.name}\`)`,
-          priority: 100,
-          service: group.serviceName,
-        });
+        for (const host of hosts) {
+          this.routes.push({
+            match: `Host(\`${host}\`) && PathPrefix(\`/services/${ms.name}\`)`,
+            priority: 100,
+            service: group.serviceName,
+          });
+        }
       }
     }
 
-    this.routes.push({
-      match: `Host(\`${HELM_HOST}\`) && PathPrefix(\`/console\`)`,
-      priority: 10,
-      service: this.plan.ui.serviceName,
-    });
-
-    if (this.plan.ui.landing) {
+    for (const host of hosts) {
       this.routes.push({
-        match: `Host(\`${HELM_HOST}\`) && PathPrefix(\`/\`)`,
-        priority: 1,
+        match: `Host(\`${host}\`) && PathPrefix(\`/console\`)`,
+        priority: 10,
         service: this.plan.ui.serviceName,
       });
+    }
+
+    if (this.plan.ui.landing) {
+      for (const host of hosts) {
+        this.routes.push({
+          match: `Host(\`${host}\`) && PathPrefix(\`/\`)`,
+          priority: 1,
+          service: this.plan.ui.serviceName,
+        });
+      }
     }
   }
 
@@ -747,7 +753,7 @@ class CertificateBuilder {
       spec: {
         secretName: `${config.name}-tls`,
         issuerRef: { name: issuer, kind: "ClusterIssuer" },
-        dnsNames: [HELM_HOST],
+        dnsNames: config.ingress.hosts,
       },
     });
   }

@@ -112,7 +112,10 @@ function createTelemetryReporter(baseUrl: string) {
             batch.map((event) =>
               fetch(`${baseUrl}/telemetry/write`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                  "Content-Type": "application/json",
+                  ...(process.env.SERVICE_TOKEN ? { authorization: `Bearer ${process.env.SERVICE_TOKEN}` } : {}),
+                },
                 body: JSON.stringify({ event }),
               }),
             ),

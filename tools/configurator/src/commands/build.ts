@@ -202,8 +202,11 @@ appVersion: "1.0.0"
     ? `${registry}/converged-storage`
     : `localhost/converged-storage`;
   const pullPolicy = registry ? "Always" : "Never";
+  const ingressHosts = mergedConfig.ingress?.hosts ?? [`${targetNamespace}.test`];
+  const hostsYaml = ingressHosts.map((h) => `    - ${h}`).join("\n");
   const valuesYaml = `ingress:
-  host: ${mergedConfig.ingress?.host ?? `${targetNamespace}.test`}
+  hosts:
+${hostsYaml}
 
 images:
   ui:

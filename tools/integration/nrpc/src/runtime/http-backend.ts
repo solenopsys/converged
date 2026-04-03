@@ -302,9 +302,11 @@ class ElysiaBackend {
       headers?.[headerName.toUpperCase()];
     const token = tokenHeader?.replace(/^Bearer\s+/i, "").trim();
 
+    const svc = `${this.config.metadata.serviceName}.${methodName}`;
+
     if (!token) {
       if (mode === "required") {
-        const error: any = new Error("Unauthorized");
+        const error: any = new Error(`Unauthorized: no token for ${svc}`);
         error.statusCode = 401;
         throw error;
       }
@@ -318,7 +320,7 @@ class ElysiaBackend {
       });
       payload = result.payload;
     } catch {
-      const error: any = new Error("Invalid token");
+      const error: any = new Error(`Invalid token for ${svc}`);
       error.statusCode = 401;
       throw error;
     }
@@ -339,7 +341,7 @@ class ElysiaBackend {
     );
 
     if (!allowed) {
-      const error: any = new Error("Forbidden");
+      const error: any = new Error(`Forbidden: no '${access}' permission for ${svc}`);
       error.statusCode = 403;
       throw error;
     }

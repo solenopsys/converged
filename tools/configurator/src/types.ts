@@ -26,7 +26,7 @@ export interface StorageConfig {
 
 export interface IngressConfig {
   className?: string;
-  host: string;
+  hosts: string[];
   tls?: {
     enabled?: boolean;
     issuer?: string;

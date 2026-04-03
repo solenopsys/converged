@@ -168,7 +168,7 @@
 
   "ingress": {
     "className": "traefik",
-    "host": "app.example.com",
+    "hosts": ["app.example.com"],
     "tls": {
       "enabled": false
     }
@@ -190,7 +190,8 @@
       "GEMINI_API_KEY",
       "GEMINI_MODEL",
       "JWT_SECRET",
-      "ACCESS_JWT_SECRET"
+      "ACCESS_JWT_SECRET",
+      "NRPC_ACCESS_MODE"
     ]
   }
 }
