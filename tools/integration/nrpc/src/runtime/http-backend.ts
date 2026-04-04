@@ -41,6 +41,9 @@ export function createHttpBackend(config: ElysiaBackendConfig) {
   return (options: PluginOptions = {}) =>
     (app: Elysia) => {
       const backend = new ElysiaBackend(config, options);
+      const logRoutes =
+        process.env.NRPC_LOG_ROUTES === "1" ||
+        process.env.NRPC_LOG_ROUTES === "true";
       if (!config.serviceUrl && config.serviceImpl && options.registerStartupTask) {
         options.registerStartupTask(
           `nrpc:${config.metadata.serviceName}`,
@@ -56,10 +59,14 @@ export function createHttpBackend(config: ElysiaBackendConfig) {
       const pathPrefix = config.pathPrefix || "";
 
       // Регистрируем методы как POST эндпоинты
-      console.log(`[nrpc] Registering service: ${config.metadata.serviceName}`);
+      if (logRoutes) {
+        console.log(`[nrpc] Registering service: ${config.metadata.serviceName}`);
+      }
       for (const method of config.metadata.methods) {
         const path = `${pathPrefix}/${config.metadata.serviceName}/${method.name}`;
-        console.log(`[nrpc]   POST ${path}`);
+        if (logRoutes) {
+          console.log(`[nrpc]   POST ${path}`);
+        }
 
         // Обычный HTTP эндпоинт
         const handler = async ({

@@ -13,8 +13,10 @@ type ProviderTemplate = {
 const FALLBACK_TEMPLATES: ProviderTemplate[] = [
   { provider: "google", displayName: "Google" },
   // { provider: "apple", displayName: "Apple" },
-  { provider: "microsoft", displayName: "Microsoft" },
-  { provider: "facebook", displayName: "Facebook" },
+  // временно скрыто
+  // { provider: "microsoft", displayName: "Microsoft" },
+  // временно скрыто
+  // { provider: "facebook", displayName: "Facebook" },
   { provider: "github", displayName: "GitHub" },
 ];
 
@@ -124,6 +126,8 @@ export function SocialsPanel() {
     const seen = new Set<OAuthProviderName>();
     return templates.filter((item) => {
       if (item.provider === "apple") return false;
+      // временно скрываем кнопки Microsoft и Meta/Facebook
+      if (item.provider === "microsoft" || item.provider === "meta" || item.provider === "facebook") return false;
       if (seen.has(item.provider)) return false;
       seen.add(item.provider);
       return true;

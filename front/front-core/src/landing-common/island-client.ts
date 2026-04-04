@@ -612,8 +612,95 @@ function ensureStyles(): void {
   min-height: 0;
   min-width: 0;
 }
+
+/* ── nav progress bar ── */
+#ssr-nav-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  width: 0%;
+  background: var(--primary, #6366f1);
+  z-index: 9999;
+  transition: none;
+  pointer-events: none;
+  border-radius: 0 2px 2px 0;
+}
+#ssr-nav-bar.nav-running {
+  transition: width 1.4s cubic-bezier(0.1, 0.05, 0.0, 1.0);
+  width: 85%;
+}
+#ssr-nav-bar.nav-done {
+  transition: width 0.15s ease-out, opacity 0.25s ease 0.15s;
+  width: 100%;
+  opacity: 0;
+}
+
+/* ── root leave (old content, menu not affected) ── */
+#root.nav-leaving {
+  transition: opacity 0.45s ease, filter 0.45s ease;
+  opacity: 0.5;
+  filter: blur(2px);
+  pointer-events: none;
+}
+
+/* ── root enter (new content) ── */
+#root.nav-entering {
+  opacity: 0;
+  transform: translateY(6px);
+}
+#root.nav-entered {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  opacity: 1;
+  transform: translateY(0);
+}
 `;
   document.head.appendChild(style);
+}
+
+/* ── navigation progress ── */
+let navBarEl: HTMLElement | null = null;
+let navDoneTimer: ReturnType<typeof setTimeout> | null = null;
+
+function getNavBar(): HTMLElement {
+  if (!navBarEl) {
+    navBarEl = document.createElement('div');
+    navBarEl.id = 'ssr-nav-bar';
+    document.body.appendChild(navBarEl);
+  }
+  return navBarEl;
+}
+
+function navProgressStart(): void {
+  const bar = getNavBar();
+  if (navDoneTimer) { clearTimeout(navDoneTimer); navDoneTimer = null; }
+  bar.className = '';
+  bar.style.opacity = '1';
+  bar.getBoundingClientRect();
+  bar.className = 'nav-running';
+
+  const root = document.getElementById('root');
+  if (root) {
+    root.classList.remove('nav-entering', 'nav-entered');
+    root.getBoundingClientRect();
+    root.classList.add('nav-leaving');
+  }
+}
+
+function navProgressDone(): void {
+  const bar = getNavBar();
+  bar.className = 'nav-done';
+  navDoneTimer = setTimeout(() => {
+    bar.className = '';
+    bar.style.opacity = '1';
+  }, 450);
+
+  const root = document.getElementById('root');
+  if (root) {
+    root.classList.add('nav-entering');
+    root.getBoundingClientRect();
+    root.classList.replace('nav-entering', 'nav-entered');
+  }
 }
 
 function isInterceptableLink(link: HTMLAnchorElement, event: MouseEvent): boolean {
@@ -1101,6 +1188,7 @@ async function navigateByFragment(url: URL, mode: 'push' | 'replace' | 'none' = 
     });
 
     if (!response.ok) {
+      navProgressDone();
       window.location.assign(url.toString());
       return;
     }
@@ -1108,11 +1196,13 @@ async function navigateByFragment(url: URL, mode: 'push' | 'replace' | 'none' = 
     const html = await response.text();
     const nextRoot = extractRootFromHtml(html);
     if (!nextRoot) {
+      navProgressDone();
       window.location.assign(url.toString());
       return;
     }
 
     currentRoot.replaceWith(nextRoot);
+    navProgressDone();
 
     if (mode === 'push') {
       history.pushState({ by: 'fragment-nav' }, '', url.toString());
@@ -1121,6 +1211,7 @@ async function navigateByFragment(url: URL, mode: 'push' | 'replace' | 'none' = 
     }
   } catch {
     if (!controller.signal.aborted) {
+      navProgressDone();
       window.location.assign(url.toString());
     }
   } finally {
@@ -1150,11 +1241,13 @@ function installLinkInterceptor(): void {
     }
 
     event.preventDefault();
+    navProgressStart();
     void navigateByFragment(url, 'push');
   });
 
   window.addEventListener('popstate', () => {
     const url = new URL(window.location.href);
+    navProgressStart();
     void navigateByFragment(url, 'none');
   });
 }
@@ -1219,12 +1312,16 @@ function installChatDock(): void {
     renderPrompts(QUICK_CHAT_PROMPTS);
 
     const locale = extractLocaleFromPath(window.location.pathname) ?? 'en';
-    structClient.readJson(`${locale}/magic/chat-prompts.json`)
-      .then((data) => {
-        const prompts = Array.isArray(data?.prompts) ? data.prompts : null;
-        if (prompts) renderPrompts(prompts);
-      })
-      .catch(() => {});
+    try {
+      structClient.readJson(`${locale}/magic/chat-prompts.json`)
+        .then((data) => {
+          const prompts = Array.isArray(data?.prompts) ? data.prompts : null;
+          if (prompts) renderPrompts(prompts);
+        })
+        .catch(() => {});
+    } catch {
+      // no auth token in browser — skip
+    }
   }
 
   let lastDockHeight = -1;

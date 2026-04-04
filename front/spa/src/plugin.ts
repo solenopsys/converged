@@ -174,10 +174,6 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
   const isProd = config.production ?? process.env.NODE_ENV === "production";
   const useDevCompress = !isProd && (config.compress ?? process.env.SPA_DEV_COMPRESS === "1");
   const frontRoot = resolve(projectRoot, "front");
-  const useDevBuildCache =
-    isProd ||
-    process.env.SPA_DEV_BUILD_CACHE === "1" ||
-    process.env.SPA_DEV_BUILD_CACHE === "true";
   const brandingProjectRoot = parentProjectRoot ?? projectRoot;
   const brandingPublicDir = resolve(brandingProjectRoot, "front", "landing", "public");
   const logoBlackPath = resolve(brandingPublicDir, "logo-black.svg");
@@ -356,11 +352,6 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
   // --- Front-core ---
 
   async function ensureFrontCore(): Promise<Blob> {
-    if (!useDevBuildCache) {
-      frontCoreBundle = null;
-      devBr.delete("front-core");
-    }
-
     if (frontCoreBundle) return frontCoreBundle;
 
     if (isProd) {
@@ -396,11 +387,6 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
   // --- Microfrontends ---
 
   async function ensureMicrofrontend(name: string): Promise<Blob> {
-    if (!useDevBuildCache) {
-      mfBundles.delete(name);
-      devBr.delete(`mf:${name}`);
-    }
-
     if (mfBundles.has(name)) return mfBundles.get(name)!;
 
     if (isProd) {

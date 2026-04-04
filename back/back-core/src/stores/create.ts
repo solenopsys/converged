@@ -14,8 +14,7 @@ const STORAGE_SOCKET_PATH =
 
 const STORE_DEBUG_ENABLED =
   process.env.STORE_DEBUG === "1" ||
-  process.env.STORE_DEBUG === "true" ||
-  process.env.NODE_ENV === "development";
+  process.env.STORE_DEBUG === "true";
 
 function logStoreDebug(message: string, meta?: Record<string, unknown>) {
   if (!STORE_DEBUG_ENABLED) return;

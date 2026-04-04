@@ -33,6 +33,25 @@ export interface CreateServerOptions {
   staticDir?: string;
 }
 
+function toModuleName(taskName: string): string {
+  const [kind, rest] = taskName.split(":", 2);
+  if (!rest) return taskName;
+  if (kind === "nrpc") return rest;
+  return `${kind}:${rest}`;
+}
+
+function collectActiveModules(taskNames: string[]): string[] {
+  const modules: string[] = [];
+  const seen = new Set<string>();
+  for (const taskName of taskNames) {
+    const moduleName = toModuleName(taskName);
+    if (seen.has(moduleName)) continue;
+    seen.add(moduleName);
+    modules.push(moduleName);
+  }
+  return modules;
+}
+
 export function loadConfigFromEnv(): ServerConfig {
   const ai = loadAiProvidersFromEnv();
   return {
@@ -190,17 +209,15 @@ export function createServer({ config, plugins, staticDir }: CreateServerOptions
         void runShutdown("SIGINT").finally(() => process.exit(0));
       });
 
+      const activeModules = collectActiveModules(startupTasks.map((t) => t.name));
+      if (activeModules.length > 0) {
+        console.log(`Active modules (${activeModules.length}): ${activeModules.join(", ")}`);
+      }
+
       for (let i = 0; i < startupTasks.length; i++) {
         const startupTask = startupTasks[i];
-        const startedAt = Date.now();
-        console.log(
-          `[back-core] Init ${i + 1}/${startupTasks.length} start: ${startupTask.name}`,
-        );
         try {
           await startupTask.task();
-          console.log(
-            `[back-core] Init ${i + 1}/${startupTasks.length} done: ${startupTask.name} (${Date.now() - startedAt}ms)`,
-          );
         } catch (error) {
           console.error(
             `[back-core] Init ${i + 1}/${startupTasks.length} failed: ${startupTask.name}`,
