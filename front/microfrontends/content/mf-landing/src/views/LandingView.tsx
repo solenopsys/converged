@@ -6,6 +6,7 @@ import {
   isSupportedLocale,
   type SupportedLocale,
 } from "front-core/landing-common/i18n";
+import { openLoginPanel } from "front-core/landing-common/island-client";
 import {
   AISection,
   Faq,
@@ -247,6 +248,7 @@ function renderBlock(block: ResolvedBlock, index: number, fallbackLocale: Suppor
           plans={pricing?.plans}
           heading={pricing?.heading}
           description={pricing?.description}
+          onJoin={() => void openLoginPanel()}
         />
       );
     }

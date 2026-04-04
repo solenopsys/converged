@@ -1,6 +1,7 @@
 import React from "react";
 
-import { ChartAreaInteractive, SectionCards, useGlobalTranslation } from "front-core";
+import { SectionCards, useGlobalTranslation } from "front-core";
+import { ChartAreaInteractive } from "./components/ChartAreaInteractive";
 
 function Panel() {
   const { i18n } = useGlobalTranslation();

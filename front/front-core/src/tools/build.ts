@@ -25,6 +25,7 @@ const sharedExternals = [
   "dagre",
   "pixi.js",
   "sonner",
+  "framer-motion",
 ];
 
 const vendorEntries: Array<{
@@ -50,6 +51,7 @@ const vendorEntries: Array<{
   { specifier: "dagre", source: "dagre", file: "dagre.js" },
   { specifier: "pixi.js", source: "pixi.js", file: "pixi.js" },
   { specifier: "sonner", source: "sonner", file: "sonner.js" },
+  { specifier: "framer-motion", source: "framer-motion", file: "framer-motion.js" },
 ];
 
 const jsxRuntimeSources: Record<string, string> = {

@@ -28,6 +28,7 @@ const defaultSharedPackages = [
   "dagre",
   "pixi.js",
   "sonner",
+  "framer-motion",
   "front-core",
 ];
 

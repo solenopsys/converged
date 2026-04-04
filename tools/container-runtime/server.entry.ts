@@ -49,6 +49,25 @@ if (!process.env.SERVICES_BASE) {
   process.env.SERVICES_BASE = `http://127.0.0.1:${port}/services`;
 }
 
+async function generateServiceToken(secret: string): Promise<string> {
+  const encode = (obj: object) =>
+    Buffer.from(JSON.stringify(obj)).toString("base64url");
+  const header = encode({ alg: "HS256", typ: "JWT" });
+  const payload = encode({ sub: "service-account", perm: ["*/*( rw)"], iat: Math.floor(Date.now() / 1000) });
+  const data = `${header}.${payload}`;
+  const key = await crypto.subtle.importKey(
+    "raw", new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data));
+  return `${data}.${Buffer.from(sig).toString("base64url")}`;
+}
+
+if (!process.env.ACCESS_JWT_SECRET) {
+  throw new Error("ACCESS_JWT_SECRET is not set");
+}
+process.env.SERVICE_TOKEN = await generateServiceToken(process.env.ACCESS_JWT_SECRET);
+
 if (!existsSync(runtimeMapPath)) {
   throw new Error(`Runtime map not found: ${runtimeMapPath}`);
 }

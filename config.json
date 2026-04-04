@@ -44,29 +44,23 @@
     "microservices": {
       "ai": ["agent", "assistant"],
       "analytics": ["logs", "telemetry", "usage"],
+      "automation": ["dag", "sheduller", "webhooks"],
       "business": [
         "billing",
-        "dag",
         "equipment",
         "requests",
-        "reviews",
-        "sheduller",
-        "webhooks"
+        "reviews"
       ],
-      "content": ["galery", "markdown", "struct", "video"],
+      "communications": ["calls", "charts", "community", "notify", "threads"],
+      "content": ["classifier", "galery", "markdown", "struct", "video"],
       "data": ["dumps", "files", "store"],
       "providers": ["push", "sms", "smtp"],
       "sequrity": ["access", "auth", "oauth"],
       "social": [
-        "community",
-        "charts",
-        "calls",
         "discord",
         "facebook",
         "instagram",
-        "notify",
         "telegram",
-        "threads",
         "tiktok",
         "wechat",
         "youtube"
@@ -110,7 +104,7 @@
         },
         {
           "name": "social",
-          "microservices": ["social/*"],
+          "microservices": ["social/*", "communications/*"],
           "resources": {
             "requests": { "cpu": "100m", "memory": "128Mi" },
             "limits": { "cpu": "500m", "memory": "512Mi" }
@@ -118,7 +112,7 @@
         },
         {
           "name": "business",
-          "microservices": ["business/*"],
+          "microservices": ["business/*", "automation/*"],
           "resources": {
             "requests": { "cpu": "100m", "memory": "128Mi" },
             "limits": { "cpu": "500m", "memory": "512Mi" }

@@ -1,0 +1,14 @@
+{
+  "name": "mf-charts",
+  "private": true,
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "front-core": "workspace:*",
+    "g-charts": "workspace:*",
+    "g-threads": "workspace:*"
+  }
+}

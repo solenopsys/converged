@@ -256,9 +256,10 @@ async function generateServiceToken(secret: string): Promise<string> {
   return `${data}.${Buffer.from(sig).toString("base64url")}`;
 }
 
-process.env.SERVICE_TOKEN = await generateServiceToken(
-  process.env.ACCESS_JWT_SECRET || "access-secret",
-);
+if (!process.env.ACCESS_JWT_SECRET) {
+  throw new Error("ACCESS_JWT_SECRET is not set");
+}
+process.env.SERVICE_TOKEN = await generateServiceToken(process.env.ACCESS_JWT_SECRET);
 
 const port = Number(process.env.PORT || process.env.SERVICES_PORT || 3000);
 const dataDir = process.env.DATA_DIR || resolve(PROJECT_DIR, "data");

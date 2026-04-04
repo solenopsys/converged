@@ -1,3 +1,4 @@
+import { structClient } from "g-struct";
 import { GROUPS } from './groups';
 import { $allMenuItems, addMenuRequested, bus, runActionEvent } from '../controllers';
 import { LocaleController } from '../controllers/locale-controller';
@@ -152,7 +153,7 @@ async function ensureAuthLoaded(): Promise<void> {
   }
 }
 
-async function openLoginPanel(): Promise<void> {
+export async function openLoginPanel(): Promise<void> {
   await ensureRightRailRuntime();
   await ensureAuthLoaded();
   setRightRailOpen(true);
@@ -1218,12 +1219,7 @@ function installChatDock(): void {
     renderPrompts(QUICK_CHAT_PROMPTS);
 
     const locale = extractLocaleFromPath(window.location.pathname) ?? 'en';
-    fetch('/services/struct/readJson', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path: `${locale}/magic/chat-prompts.json` }),
-    })
-      .then((r) => r.ok ? r.json() : null)
+    structClient.readJson(`${locale}/magic/chat-prompts.json`)
       .then((data) => {
         const prompts = Array.isArray(data?.prompts) ? data.prompts : null;
         if (prompts) renderPrompts(prompts);

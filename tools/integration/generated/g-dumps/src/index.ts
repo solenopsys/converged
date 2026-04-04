@@ -14,13 +14,8 @@ export type StorageStats = {
 
 export type DumpFile = {
   name: string;
-  fileName?: string;
+  fileName: string;
   size?: number;
-};
-
-export type CompactResult = {
-  name: string;
-  size: number;
 };
 
 export interface PaginationParams {
@@ -28,7 +23,7 @@ export interface PaginationParams {
   limit: number;
 }
 
-export interface PaginatedResult<T = any> {
+export interface PaginatedResult {
   items: T[];
   totalCount?: number;
 }
@@ -55,45 +50,37 @@ export const metadata = {
       "isAsyncIterable": false
     },
     {
-      "name": "compact",
-      "parameters": [
-        {
-          "name": "name",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "createDump",
-      "parameters": [
-        {
-          "name": "name",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
       "name": "listDumps",
-      "parameters": [],
+      "parameters": [
+        {
+          "name": "params",
+          "type": "PaginationParams",
+          "optional": false,
+          "isArray": false
+        }
+      ],
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
     },
     {
-      "name": "deleteDump",
+      "name": "dump",
+      "parameters": [
+        {
+          "name": "name",
+          "type": "string",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "getLink",
       "parameters": [
         {
           "name": "fileName",
@@ -114,12 +101,12 @@ export const metadata = {
       "definition": "{\n  name: string;\n  size: number;\n}"
     },
     {
-      "name": "DumpFile",
-      "definition": "{\n  name: string;\n  fileName?: string;\n  size?: number;\n}"
+      "name": "StorageStats",
+      "definition": "{\n  totalSize: number;\n  storageCount: number;\n  storages: StorageInfo[];\n}"
     },
     {
-      "name": "CompactResult",
-      "definition": "{\n  name: string;\n  size: number;\n}"
+      "name": "DumpFile",
+      "definition": "{\n  name: string;\n  fileName: string;\n  size?: number;\n}"
     },
     {
       "name": "PaginationParams",
@@ -164,20 +151,18 @@ export const metadata = {
 export interface DumpsService {
   listStorages(): Promise<any>;
   storageStats(): Promise<any>;
-  compact(name: string): Promise<any>;
-  createDump(name: string): Promise<any>;
-  listDumps(): Promise<any>;
-  deleteDump(fileName: string): Promise<any>;
+  listDumps(params: PaginationParams): Promise<any>;
+  dump(name?: string): Promise<any>;
+  getLink(fileName: string): Promise<any>;
 }
 
 // Client interface
 export interface DumpsServiceClient {
   listStorages(): Promise<any>;
   storageStats(): Promise<any>;
-  compact(name: string): Promise<any>;
-  createDump(name: string): Promise<any>;
-  listDumps(): Promise<any>;
-  deleteDump(fileName: string): Promise<any>;
+  listDumps(params: PaginationParams): Promise<any>;
+  dump(name?: string): Promise<any>;
+  getLink(fileName: string): Promise<any>;
 }
 
 // Factory function

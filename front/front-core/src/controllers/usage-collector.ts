@@ -1,8 +1,5 @@
-type UsageEventInput = {
-  function: string;
-  user: string;
-  date?: string;
-};
+import { usageClient } from "g-usage";
+import type { UsageEventInput } from "g-usage";
 
 const FLUSH_DEBOUNCE_MS = 1200;
 const RETRY_MS = 5000;
@@ -74,11 +71,7 @@ async function flushNow(): Promise<void> {
     while (queue.length > 0) {
       const batch = queue.splice(0, MAX_BATCH_SIZE);
       try {
-        await fetch("/services/usage/recordUsage", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ events: batch }),
-        });
+        await usageClient.recordUsage(batch);
       } catch {
         queue = [...batch, ...queue];
         scheduleFlush(RETRY_MS);

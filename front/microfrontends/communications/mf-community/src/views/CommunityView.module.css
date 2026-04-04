@@ -1,0 +1,243 @@
+.layout {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+}
+
+.sidebar {
+  width: 320px;
+  min-width: 280px;
+  max-width: 360px;
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebarBody {
+  padding: 12px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+}
+
+.treeRoot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.treeNode {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.treeLine {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.treeToggle {
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.treeSpacer {
+  width: 22px;
+  height: 22px;
+}
+
+.treeButton {
+  border: 0;
+  background: transparent;
+  color: var(--foreground);
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  flex: 1;
+}
+
+.treeButton:hover {
+  background: color-mix(in oklab, var(--muted) 65%, transparent);
+}
+
+.treeButtonActive {
+  background: color-mix(in oklab, var(--muted) 85%, transparent);
+}
+
+.treeChildren {
+  margin-left: 16px;
+  border-left: 1px solid var(--border);
+  padding-left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.contentPad {
+  padding: 12px;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.placeholder {
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+
+.error {
+  margin: 8px 12px;
+  color: var(--destructive);
+  font-size: 13px;
+}
+
+.tableWrap {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table thead th {
+  text-align: left;
+  font-size: 12px;
+  color: var(--muted-foreground);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.table tbody td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.tableRowButton {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--foreground);
+  text-align: left;
+  cursor: pointer;
+  padding: 0;
+}
+
+.topicToolbar {
+  border-bottom: 1px solid var(--border);
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topicBack {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--foreground);
+  border-radius: 8px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.topicTitle {
+  font-weight: 600;
+}
+
+.replyHint {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.replyCancel {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--foreground);
+  border-radius: 8px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.messageRow {
+  display: flex;
+  width: 100%;
+}
+
+.messageRowUser {
+  justify-content: flex-end;
+}
+
+.messageRowPeer {
+  justify-content: flex-start;
+}
+
+.userBubble,
+.peerBubble {
+  max-width: min(90%, 780px);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  background: color-mix(in oklab, var(--card) 90%, transparent);
+}
+
+.peerUser {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  margin-bottom: 4px;
+}
+
+.messageText {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 14px;
+}
+
+.messageActions {
+  margin-top: 8px;
+  display: flex;
+  gap: 6px;
+}
+
+.messageReply {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--foreground);
+  border-radius: 8px;
+  padding: 2px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.loading {
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+
+.emptyState {
+  color: var(--muted-foreground);
+  font-size: 14px;
+}

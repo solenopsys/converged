@@ -262,7 +262,11 @@ export const metadata = {
     },
     {
       "name": "ShedullerStats",
-      "definition": "{\n  crons: number;\n  history: number;\n}"
+      "definition": "{\n  crons: number;\n  activeCrons: number;\n  pausedCrons: number;\n  history: number;\n  dailyRuns: ShedullerDailyRun[];\n}"
+    },
+    {
+      "name": "ShedullerDailyRun",
+      "definition": "{\n  date: string;\n  total: number;\n  success: number;\n  failed: number;\n}"
     }
   ]
 };

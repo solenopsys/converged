@@ -1,27 +1,20 @@
 // =========================
 // file: src/types/orders.ts
 // -------------------------
-import { z } from "zod";
-
-/**
- * Central place for all row‑level data types used by the orders UI.
- */
-export const orderSchema = z.object({
-  id: z.number(),
-  header: z.string(),
-  type: z.string(),
-  status: z.string(),
-  target: z.string(),
-  limit: z.string(),
-  reviewer: z.string(),
-  model_name: z.string().optional(),
-  printing_type: z.string().optional(),
-  quantity: z.union([z.string(), z.number()]).optional(),
-  weight_per_item: z.union([z.string(), z.number()]).optional(),
-  material: z.string().optional(),
-});
-
-export type Order = z.infer<typeof orderSchema>;
+export type Order = {
+  id: number;
+  header: string;
+  type: string;
+  status: string;
+  target: string;
+  limit: string;
+  reviewer: string;
+  model_name?: string;
+  printing_type?: string;
+  quantity?: string | number;
+  weight_per_item?: string | number;
+  material?: string;
+};
 
 // =========================
 // file: src/constants/charts.ts

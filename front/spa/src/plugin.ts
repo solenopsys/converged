@@ -1,5 +1,6 @@
 import { Elysia } from "elysia";
 import { existsSync, mkdirSync, readdirSync } from "fs";
+import { brotliCompressSync } from "zlib";
 import { resolve } from "path";
 import { externalPackages, microfrontends } from "front-core/runtime-config";
 import { createWorkspaceResolverPlugin } from "front-core/workspace-resolver";
@@ -24,6 +25,7 @@ const vendorEntries: Record<string, string> = {
   "dagre.js": "dagre",
   "pixi.js": "pixi.js",
   "sonner.js": "sonner",
+  "framer-motion.js": "framer-motion",
 };
 
 const sharedExternals = Object.values(vendorEntries);
@@ -190,6 +192,28 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
   const vendorBundles = new Map<string, Blob>();
   let frontCoreBundle: Blob | null = null;
   const mfBundles = new Map<string, Blob>();
+  const devBr = new Map<string, Uint8Array>();
+
+  async function compressBr(key: string, blob: Blob): Promise<Uint8Array> {
+    if (devBr.has(key)) return devBr.get(key)!;
+    const raw = new Uint8Array(await blob.arrayBuffer());
+    const compressed = brotliCompressSync(raw);
+    devBr.set(key, compressed);
+    log(`compress ${key} ${(raw.length / 1024).toFixed(0)}kb → ${(compressed.length / 1024).toFixed(0)}kb`);
+    return compressed;
+  }
+
+  function serveDev(blob: Blob, brData: Uint8Array, request: Request, contentType: string): Response {
+    const acceptEncoding = request.headers.get("accept-encoding") || "";
+    if (brData.length > 0 && (acceptEncoding.includes("br") || !acceptEncoding)) {
+      return new Response(brData, {
+        headers: { "Content-Type": contentType, "Content-Encoding": "br", "Cache-Control": jsCacheHeader },
+      });
+    }
+    return new Response(blob, {
+      headers: { "Content-Type": contentType, "Cache-Control": jsCacheHeader },
+    });
+  }
 
   // LRU cache for prod static files (vendor JS, front-core, MF, SSR pages)
   type CacheEntry = { raw: Uint8Array; br?: Uint8Array; contentType: string };
@@ -295,6 +319,7 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
       (s) => s !== specifier && s !== parentPkg,
     );
 
+    log(`startBuild vendor:${specifier}`);
     const result = await Bun.build({
       entrypoints: [wrapperPath],
       target: "browser",
@@ -302,6 +327,7 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
       minify: false,
       bundle: true,
       external: externals,
+      plugins: [buildResolverPlugin()],
     });
 
     if (!result.success || result.outputs.length === 0) {
@@ -311,7 +337,8 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
 
     const blob = result.outputs[0];
     vendorBundles.set(fileName, blob);
-    log("vendor:built", { module: specifier });
+    log(`endBuild vendor:${specifier} ${(blob.size / 1024).toFixed(0)}kb`);
+
     return blob;
   }
 
@@ -320,6 +347,7 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
   async function ensureFrontCore(): Promise<Blob> {
     if (!useDevBuildCache) {
       frontCoreBundle = null;
+      devBr.delete("front-core");
     }
 
     if (frontCoreBundle) return frontCoreBundle;
@@ -335,6 +363,7 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
     }
 
     const entry = resolve(frontRoot, "front-core/src/index.ts");
+    log("startBuild front-core");
     const result = await Bun.build({
       entrypoints: [entry],
       format: "esm",
@@ -349,7 +378,7 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
     }
 
     frontCoreBundle = result.outputs[0];
-    log("front-core:built", { kb: Number((frontCoreBundle.size / 1024).toFixed(0)) });
+    log(`endBuild front-core ${(frontCoreBundle.size / 1024).toFixed(0)}kb`);
     return frontCoreBundle;
   }
 
@@ -358,6 +387,7 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
   async function ensureMicrofrontend(name: string): Promise<Blob> {
     if (!useDevBuildCache) {
       mfBundles.delete(name);
+      devBr.delete(`mf:${name}`);
     }
 
     if (mfBundles.has(name)) return mfBundles.get(name)!;
@@ -385,6 +415,7 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
       throw new Error(`Microfrontend ${name} not found in any mfDir`);
     }
 
+    log(`startBuild mf:${name}`);
     const result = await Bun.build({
       entrypoints: [entry],
       format: "esm",
@@ -400,7 +431,7 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
 
     const blob = result.outputs[0];
     mfBundles.set(name, blob);
-    log("mf:built", { name });
+    log(`endBuild mf:${name} ${(blob.size / 1024).toFixed(0)}kb`);
     return blob;
   }
 
@@ -504,9 +535,8 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
 
       try {
         const blob = await buildVendorModule(fileName);
-        return new Response(blob, {
-          headers: { "Content-Type": contentType, "Cache-Control": jsCacheHeader },
-        });
+        const br = await compressBr(`vendor:${fileName}`, blob);
+        return serveDev(blob, br, request, contentType);
       } catch (err: any) {
         console.error(`[spa] vendor build error for ${fileName}:`, err);
         set.status = 500;
@@ -529,12 +559,8 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
             });
           }
         }
-        return new Response(bundle, {
-          headers: {
-            "Content-Type": "application/javascript; charset=utf-8",
-            "Cache-Control": jsCacheHeader,
-          },
-        });
+        const br = await compressBr("front-core", bundle);
+        return serveDev(bundle, br, request, "application/javascript; charset=utf-8");
       } catch (err: any) {
         set.status = 500;
         return { error: err?.message ?? "front-core build failed" };
@@ -581,12 +607,8 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
             });
           }
         }
-        return new Response(bundle, {
-          headers: {
-            "Content-Type": "application/javascript; charset=utf-8",
-            "Cache-Control": jsCacheHeader,
-          },
-        });
+        const br = await compressBr(`mf:${name}`, bundle);
+        return serveDev(bundle, br, request, "application/javascript; charset=utf-8");
       } catch (err: any) {
         console.error(`[spa] ${name} build failed:`, err);
         set.status = 500;
