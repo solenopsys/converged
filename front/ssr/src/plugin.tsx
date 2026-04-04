@@ -26,7 +26,7 @@ export interface LandingPluginConfig {
     baseUrl: string,
   ) => string | Promise<string>;
   /** Sitemap route entries */
-  sitemapRoutes: SitemapEntry[];
+  sitemapRoutes: SitemapEntry[] | ((baseUrl: string) => SitemapEntry[] | Promise<SitemapEntry[]>);
   /** Build CSS styles (dev only, in prod uses prebuilt) */
   buildStyles: () => Promise<string>;
   /** Load SEO config from public dir */
@@ -248,6 +248,19 @@ function extractRootDiv(html: string): string | null {
   return null;
 }
 
+function extractPageTitle(html: string): string | null {
+  const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  if (!match) return null;
+  const raw = match[1]
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, "\"")
+    .replace(/&#39;/g, "'")
+    .trim();
+  return raw.length > 0 ? raw : null;
+}
+
 export default function createLandingPlugin(config: LandingPluginConfig) {
   const landingRoot = config.landingRoot;
   const projectRoot =
@@ -266,6 +279,7 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
     process.env.PWA_DEV === "1" ||
     process.env.PWA_DEV === "true";
   const pwaEnabled = isProd || enablePwaInDev;
+  const sitemapChunkSize = Math.max(1, Number(process.env.SITEMAP_MAX_URLS_PER_FILE) || 5000);
   const logoBlackPath = resolve(publicDir, "logo-black.svg");
   const logoWhitePath = resolve(publicDir, "logo-white.svg");
   const prebuiltStylesPath = resolve(projectRoot, "dist", "landing", "styles.css");
@@ -304,6 +318,48 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
     const base = normalizeBaseUrl(baseUrl);
     if (path === "/" || path === "") return base;
     return `${base}${path.startsWith("/") ? path : `/${path}`}`;
+  }
+
+  async function resolveSitemapRoutes(baseUrl: string): Promise<SitemapEntry[]> {
+    const routes = config.sitemapRoutes;
+    if (typeof routes === "function") {
+      const resolved = await routes(baseUrl);
+      return Array.isArray(resolved) ? resolved : [];
+    }
+    return Array.isArray(routes) ? routes : [];
+  }
+
+  function normalizeSitemapPath(path: string): string {
+    return path.startsWith("/") ? path : `/${path}`;
+  }
+
+  function uniqSitemapRoutes(routes: SitemapEntry[]): SitemapEntry[] {
+    const seen = new Set<string>();
+    const result: SitemapEntry[] = [];
+    for (const route of routes) {
+      const normalizedPath = normalizeSitemapPath(route.path);
+      if (normalizedPath === "/favicon.ico") continue;
+      if (seen.has(normalizedPath)) continue;
+      seen.add(normalizedPath);
+      result.push({
+        ...route,
+        path: normalizedPath,
+      });
+    }
+    return result;
+  }
+
+  function buildSitemapIndexXml(origin: string, pages: number): string {
+    const body = Array.from({ length: pages }, (_, index) => {
+      const loc = `${origin}/sitemap-${index + 1}.xml`;
+      return `  <sitemap>\n    <loc>${loc}</loc>\n  </sitemap>`;
+    }).join("\n");
+    return (
+      `<?xml version="1.0" encoding="UTF-8"?>\n` +
+      `<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+      `${body}\n` +
+      `</sitemapindex>`
+    );
   }
 
   function buildDefaultManifest(baseUrl: string) {
@@ -543,12 +599,62 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
         },
       });
     })
-    .get("/sitemap.xml", ({ request }) => {
+    .get("/sitemap.xml", async ({ request }) => {
       const origin =
         isProd && seoConfig?.canonical
           ? normalizeBaseUrl(seoConfig.canonical)
           : new URL(request.url).origin;
-      return new Response(buildSitemapXml(origin, config.sitemapRoutes), {
+      const resolvedRoutes = await resolveSitemapRoutes(origin);
+      const routes = uniqSitemapRoutes(resolvedRoutes);
+
+      if (routes.length > sitemapChunkSize) {
+        const pages = Math.ceil(routes.length / sitemapChunkSize);
+        return new Response(buildSitemapIndexXml(origin, pages), {
+          headers: { "Content-Type": "application/xml; charset=utf-8" },
+        });
+      }
+
+      return new Response(buildSitemapXml(origin, routes), {
+        headers: { "Content-Type": "application/xml; charset=utf-8" },
+      });
+    })
+    .get("/sitemap-:page", async ({ request, params, set }) => {
+      const origin =
+        isProd && seoConfig?.canonical
+          ? normalizeBaseUrl(seoConfig.canonical)
+          : new URL(request.url).origin;
+      const rawPage = String((params as any).page ?? "");
+      const match = rawPage.match(/^(\d+)\.xml$/);
+      const page = match ? Number(match[1]) : Number.NaN;
+      if (!Number.isInteger(page) || page < 1) {
+        set.status = 404;
+        return "Not found";
+      }
+
+      const resolvedRoutes = await resolveSitemapRoutes(origin);
+      const routes = uniqSitemapRoutes(resolvedRoutes);
+      const pages = Math.ceil(routes.length / sitemapChunkSize);
+
+      if (pages <= 1) {
+        if (page !== 1) {
+          set.status = 404;
+          return "Not found";
+        }
+        return new Response(buildSitemapXml(origin, routes), {
+          headers: { "Content-Type": "application/xml; charset=utf-8" },
+        });
+      }
+
+      if (page > pages) {
+        set.status = 404;
+        return "Not found";
+      }
+
+      const start = (page - 1) * sitemapChunkSize;
+      const end = start + sitemapChunkSize;
+      const chunk = routes.slice(start, end);
+
+      return new Response(buildSitemapXml(origin, chunk), {
         headers: { "Content-Type": "application/xml; charset=utf-8" },
       });
     })
@@ -628,6 +734,7 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
 
     try {
       const html = await renderPage(url.pathname, baseUrl);
+      const pageTitle = extractPageTitle(html);
       const durationMs = Date.now() - requestStartedAt;
       telemetryReporter.track({
         ts: Date.now(),
@@ -644,6 +751,7 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
             headers: {
               "Content-Type": "text/html; charset=utf-8",
               "Vary": "X-Fragment-Request",
+              ...(pageTitle ? { "X-Page-Title": pageTitle } : {}),
             },
           });
         }
@@ -653,6 +761,7 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
         headers: {
           "Content-Type": "text/html; charset=utf-8",
           "Vary": "X-Fragment-Request",
+          ...(pageTitle ? { "X-Page-Title": pageTitle } : {}),
         },
       });
     } catch (error) {

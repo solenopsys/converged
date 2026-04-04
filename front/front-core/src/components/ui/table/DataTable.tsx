@@ -154,7 +154,7 @@ export function DataTable<TData>({
     getRowId,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    getPaginationRowModel: isControlledPagination ? undefined : getPaginationRowModel(),
   });
 
   const rows = table.getRowModel().rows;

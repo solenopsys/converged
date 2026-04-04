@@ -1194,6 +1194,7 @@ async function navigateByFragment(url: URL, mode: 'push' | 'replace' | 'none' = 
     }
 
     const html = await response.text();
+    const nextTitle = response.headers.get('X-Page-Title')?.trim() || '';
     const nextRoot = extractRootFromHtml(html);
     if (!nextRoot) {
       navProgressDone();
@@ -1202,6 +1203,9 @@ async function navigateByFragment(url: URL, mode: 'push' | 'replace' | 'none' = 
     }
 
     currentRoot.replaceWith(nextRoot);
+    if (nextTitle.length > 0) {
+      document.title = nextTitle;
+    }
     navProgressDone();
 
     if (mode === 'push') {
