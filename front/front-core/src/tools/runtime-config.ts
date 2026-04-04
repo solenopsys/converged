@@ -29,6 +29,15 @@ const defaultSharedPackages = [
   "pixi.js",
   "sonner",
   "framer-motion",
+  "@dnd-kit/core",
+  "@dnd-kit/sortable",
+  "@tanstack/react-virtual",
+  "@tanstack/react-table",
+  "embla-carousel-react",
+  "embla-carousel-autoplay",
+  "vaul",
+  "cmdk",
+  "@textea/json-viewer",
   "front-core",
 ];
 

@@ -9,6 +9,7 @@ const ROOT = resolve(PROJECTS_DIR, "../..");
 export interface DevOptions {
   projectName: string;
   port: number;
+  compress?: boolean;
 }
 
 /**
@@ -149,7 +150,7 @@ async function loadMergedConfig(
   return { config: merged, projectDir, parentDir };
 }
 
-export async function runDev({ projectName, port }: DevOptions) {
+export async function runDev({ projectName, port, compress }: DevOptions) {
   const { config, projectDir, parentDir } = await loadMergedConfig(projectName);
   const loadedEnv = loadDotEnvForSpawn(projectName, projectDir, parentDir);
   const dataRoot = resolve(PROJECTS_DIR, "..", "data");
@@ -218,6 +219,7 @@ export async function runDev({ projectName, port }: DevOptions) {
       PROJECT_DIR: projectDir,
       CHILD_PROJECT_DIR: parentDir || "",
       MONOLITH: "1",
+      ...(compress ? { SPA_DEV_COMPRESS: "1" } : {}),
     },
     stdout: "inherit",
     stderr: "inherit",

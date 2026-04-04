@@ -20,7 +20,16 @@
     "echarts": "6.0.0",
     "echarts-for-react": "3.0.6",
     "sonner": "2.0.7",
-    "framer-motion": "latest"
+    "framer-motion": "latest",
+    "@dnd-kit/core": "latest",
+    "@dnd-kit/sortable": "latest",
+    "@tanstack/react-virtual": "latest",
+    "@tanstack/react-table": "latest",
+    "embla-carousel-react": "latest",
+    "embla-carousel-autoplay": "latest",
+    "vaul": "latest",
+    "cmdk": "latest",
+    "@textea/json-viewer": "latest"
   },
   "devDependencies": {
     "@types/bun": "latest",

@@ -305,7 +305,7 @@ if (existsSync(spaPath)) {
   const spaMod = await import(pathToFileURL(spaPath).href);
   const spaPlugin = spaMod.default ?? spaMod;
   if (typeof spaPlugin === "function") {
-    server.app.use(spaPlugin({ production: false }));
+    server.app.use(spaPlugin({ production: false, compress: process.env.SPA_DEV_COMPRESS === "1" }));
   }
 }
 

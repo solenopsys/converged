@@ -17,6 +17,7 @@ const { positionals, values } = parseArgs({
     namespace: { type: "string", short: "n" },
     port: { type: "string", default: "3000" },
     "env-file": { type: "string" },
+    compress: { type: "boolean", short: "c" },
     help: { type: "boolean", short: "h" },
   },
   allowPositionals: true,
@@ -72,6 +73,7 @@ async function main() {
       await runDev({
         projectName: values.project!,
         port: parseInt(values.port!, 10),
+        compress: values.compress ?? false,
       });
       break;
     }

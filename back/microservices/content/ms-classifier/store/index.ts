@@ -10,10 +10,10 @@ export class StoresController extends StoreControllerAbstract {
   }
 
   async init() {
-    const sqlStore = await this.addStore("sql", StoreType.SQL, sqlMigrations);
-    this.sqlStoreService = new SqlStoreService(sqlStore as SqlStore);
+    const sqlStore = await this.addStore("nodes", StoreType.SQL, sqlMigrations);
     await this.startAll();
     await this.migrateAll();
+    this.sqlStoreService = new SqlStoreService(sqlStore as SqlStore);
   }
 
   async destroy() {

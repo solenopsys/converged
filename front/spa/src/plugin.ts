@@ -7,6 +7,7 @@ import { createWorkspaceResolverPlugin } from "front-core/workspace-resolver";
 
 export interface SpaPluginConfig {
   production?: boolean;
+  compress?: boolean;
 }
 
 // fileName → npm specifier
@@ -26,6 +27,15 @@ const vendorEntries: Record<string, string> = {
   "pixi.js": "pixi.js",
   "sonner.js": "sonner",
   "framer-motion.js": "framer-motion",
+  "dnd-kit-core.js": "@dnd-kit/core",
+  "dnd-kit-sortable.js": "@dnd-kit/sortable",
+  "tanstack-virtual.js": "@tanstack/react-virtual",
+  "tanstack-table.js": "@tanstack/react-table",
+  "embla-carousel-react.js": "embla-carousel-react",
+  "embla-carousel-autoplay.js": "embla-carousel-autoplay",
+  "vaul.js": "vaul",
+  "cmdk.js": "cmdk",
+  "json-viewer.js": "@textea/json-viewer",
 };
 
 const sharedExternals = Object.values(vendorEntries);
@@ -162,6 +172,7 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
       ? process.env.CHILD_PROJECT_DIR
       : undefined;
   const isProd = config.production ?? process.env.NODE_ENV === "production";
+  const useDevCompress = !isProd && (config.compress ?? process.env.SPA_DEV_COMPRESS === "1");
   const frontRoot = resolve(projectRoot, "front");
   const useDevBuildCache =
     isProd ||
@@ -324,7 +335,7 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
       entrypoints: [wrapperPath],
       target: "browser",
       format: "esm",
-      minify: false,
+      minify: useDevCompress,
       bundle: true,
       external: externals,
       plugins: [buildResolverPlugin()],
@@ -367,7 +378,7 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
     const result = await Bun.build({
       entrypoints: [entry],
       format: "esm",
-      minify: false,
+      minify: useDevCompress,
       external: externalPackages,
       plugins: [buildResolverPlugin()],
     });
@@ -419,7 +430,7 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
     const result = await Bun.build({
       entrypoints: [entry],
       format: "esm",
-      minify: false,
+      minify: useDevCompress,
       external: externalPackages,
       plugins: [buildResolverPlugin()],
     });
@@ -535,8 +546,11 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
 
       try {
         const blob = await buildVendorModule(fileName);
-        const br = await compressBr(`vendor:${fileName}`, blob);
-        return serveDev(blob, br, request, contentType);
+        if (useDevCompress) {
+          const br = await compressBr(`vendor:${fileName}`, blob);
+          return serveDev(blob, br, request, contentType);
+        }
+        return new Response(blob, { headers: { "Content-Type": contentType, "Cache-Control": jsCacheHeader } });
       } catch (err: any) {
         console.error(`[spa] vendor build error for ${fileName}:`, err);
         set.status = 500;
@@ -559,8 +573,11 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
             });
           }
         }
-        const br = await compressBr("front-core", bundle);
-        return serveDev(bundle, br, request, "application/javascript; charset=utf-8");
+        if (useDevCompress) {
+          const br = await compressBr("front-core", bundle);
+          return serveDev(bundle, br, request, "application/javascript; charset=utf-8");
+        }
+        return new Response(bundle, { headers: { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": jsCacheHeader } });
       } catch (err: any) {
         set.status = 500;
         return { error: err?.message ?? "front-core build failed" };
@@ -607,8 +624,11 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
             });
           }
         }
-        const br = await compressBr(`mf:${name}`, bundle);
-        return serveDev(bundle, br, request, "application/javascript; charset=utf-8");
+        if (useDevCompress) {
+          const br = await compressBr(`mf:${name}`, bundle);
+          return serveDev(bundle, br, request, "application/javascript; charset=utf-8");
+        }
+        return new Response(bundle, { headers: { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": jsCacheHeader } });
       } catch (err: any) {
         console.error(`[spa] ${name} build failed:`, err);
         set.status = 500;

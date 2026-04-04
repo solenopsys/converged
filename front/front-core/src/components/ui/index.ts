@@ -33,6 +33,7 @@ export * from './navigation-menu';
 export * from './accordion';
 export * from './input-pro';
 export * from './table/InfiniteScrollDataTable';
+export * from './table/DataTable';
 export * from './table/columns';
 export * from './table/types';
 export * from './table/constants';
