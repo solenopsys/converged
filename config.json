@@ -52,7 +52,7 @@
         "reviews"
       ],
       "communications": ["calls", "charts", "community", "notify", "threads"],
-      "content": ["classifier", "galery", "markdown", "struct", "video"],
+      "content": ["ceo", "classifier", "galery", "markdown", "struct", "video"],
       "data": ["dumps", "files", "store"],
       "providers": ["push", "sms", "smtp"],
       "sequrity": ["access", "auth", "oauth"],

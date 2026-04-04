@@ -26,6 +26,15 @@ const sharedExternals = [
   "pixi.js",
   "sonner",
   "framer-motion",
+  "@dnd-kit/core",
+  "@dnd-kit/sortable",
+  "@tanstack/react-virtual",
+  "@tanstack/react-table",
+  "embla-carousel-react",
+  "embla-carousel-autoplay",
+  "vaul",
+  "cmdk",
+  "@textea/json-viewer",
 ];
 
 const vendorEntries: Array<{
@@ -52,6 +61,15 @@ const vendorEntries: Array<{
   { specifier: "pixi.js", source: "pixi.js", file: "pixi.js" },
   { specifier: "sonner", source: "sonner", file: "sonner.js" },
   { specifier: "framer-motion", source: "framer-motion", file: "framer-motion.js" },
+  { specifier: "@dnd-kit/core", source: "@dnd-kit/core", file: "dnd-kit-core.js" },
+  { specifier: "@dnd-kit/sortable", source: "@dnd-kit/sortable", file: "dnd-kit-sortable.js" },
+  { specifier: "@tanstack/react-virtual", source: "@tanstack/react-virtual", file: "tanstack-virtual.js" },
+  { specifier: "@tanstack/react-table", source: "@tanstack/react-table", file: "tanstack-table.js" },
+  { specifier: "embla-carousel-react", source: "embla-carousel-react", file: "embla-carousel-react.js" },
+  { specifier: "embla-carousel-autoplay", source: "embla-carousel-autoplay", file: "embla-carousel-autoplay.js" },
+  { specifier: "vaul", source: "vaul", file: "vaul.js" },
+  { specifier: "cmdk", source: "cmdk", file: "cmdk.js" },
+  { specifier: "@textea/json-viewer", source: "@textea/json-viewer", file: "json-viewer.js" },
 ];
 
 const jsxRuntimeSources: Record<string, string> = {
