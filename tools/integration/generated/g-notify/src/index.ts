@@ -53,7 +53,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "getTemplate",
@@ -68,7 +69,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "listTemplates",
@@ -76,7 +78,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "deleteTemplate",
@@ -91,7 +94,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "recordSend",
@@ -106,7 +110,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "getSend",
@@ -121,7 +126,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "listSends",
@@ -129,7 +135,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     }
   ],
   "types": [

@@ -105,7 +105,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "updateCron",
@@ -126,7 +127,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "deleteCron",
@@ -141,7 +143,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "getCron",
@@ -156,7 +159,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "listCrons",
@@ -171,7 +175,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "listProviders",
@@ -179,7 +184,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "listHistory",
@@ -194,7 +200,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "getStats",
@@ -202,7 +209,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     }
   ],
   "types": [

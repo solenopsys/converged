@@ -5,6 +5,7 @@ import { Input } from "front-core"
 import { Label } from "front-core"
 import { toast } from "sonner"
 import { useMicrofrontendTranslation } from "front-core"
+import { authClient } from "../service"
 import { SocialsPanel } from "./Socials"
 
 const AUTH_MF_ID = "auth-mf";
@@ -29,20 +30,7 @@ export function LoginForm({
     setLoading(true)
 
     try {
-      const response = await fetch("/auth/send-link", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email }),
-        credentials: "include",
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || t("notification.sendLinkFailed"))
-      }
+      await authClient.sendLink(email.trim())
 
       toast.success(t("notification.linkSent"), {
         description: t("notification.checkEmail"),
@@ -62,20 +50,7 @@ export function LoginForm({
     setLoading(true)
 
     try {
-      const response = await fetch("/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-        credentials: "include",
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || t("notification.loginFailed"))
-      }
+      const data = await authClient.login(email.trim(), password)
 
       // Save token or handle successful login
       if (data.token) {

@@ -126,7 +126,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "createShipment",
@@ -141,7 +142,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "label",
@@ -156,7 +158,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "tracking",
@@ -171,7 +174,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "webhook",
@@ -186,7 +190,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "validateAddress",
@@ -201,7 +206,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "customsLookup",
@@ -216,7 +222,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     }
   ],
   "types": [

@@ -34,7 +34,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "readMd",
@@ -49,7 +50,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "readMdJson",
@@ -64,7 +66,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "readMdJsonBatch",
@@ -79,7 +82,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "listOfMd",
@@ -94,7 +98,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     }
   ],
   "types": [

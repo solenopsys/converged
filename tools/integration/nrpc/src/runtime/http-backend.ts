@@ -296,6 +296,9 @@ class ElysiaBackend {
     methodName: string,
     headers: Record<string, string | undefined>,
   ): Promise<void> {
+    const method = this.config.metadata.methods.find((m) => m.name === methodName);
+    if (method?.isPublic) return;
+
     const mode = this.accessMode;
     if (mode === "off") {
       return;

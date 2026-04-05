@@ -58,7 +58,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "getPartner",
@@ -73,7 +74,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "updatePartner",
@@ -94,7 +96,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "deletePartner",
@@ -109,7 +112,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "listPartners",
@@ -124,7 +128,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     }
   ],
   "types": [

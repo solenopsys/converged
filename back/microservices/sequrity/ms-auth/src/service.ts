@@ -13,7 +13,10 @@ import type {
   MagicLink,
   MagicLinkInput,
   CleanupResult,
+  SendLinkResult,
+  LoginResult,
 } from "./types";
+import { createHttpClient } from "nrpc";
 import { StoresController } from "./stores";
 
 export class AuthServiceImpl implements AuthService {
@@ -37,6 +40,45 @@ export class AuthServiceImpl implements AuthService {
 
   private async ready(): Promise<void> {
     await this.init();
+  }
+
+  private accessClient() {
+    const baseUrl =
+      (typeof process !== "undefined" && process.env?.SERVICES_BASE) ||
+      "http://127.0.0.1:3000/services";
+    return createHttpClient<{ emitJWT(userId: string): Promise<string> }>(
+      {
+        serviceName: "access",
+        methods: [
+          {
+            name: "emitJWT",
+            parameters: [{ name: "userId", type: "string", optional: false, isArray: false }],
+            returnType: "any",
+            isAsync: true,
+            returnTypeIsArray: false,
+            isAsyncIterable: false,
+          },
+        ],
+      } as any,
+      { baseUrl },
+    );
+  }
+
+  private normalizeEmail(email: string): string {
+    return (email ?? "").trim().toLowerCase();
+  }
+
+  private async ensureUserByEmail(email: string): Promise<User> {
+    const normalizedEmail = this.normalizeEmail(email);
+    let user = await this.stores.users.getUserByEmail(normalizedEmail);
+    if (user) return user;
+    user = await this.stores.users.createUser({
+      id: crypto.randomUUID(),
+      email: normalizedEmail,
+      name: normalizedEmail.split("@")[0] || "User",
+      emailVerified: false,
+    });
+    return user;
   }
 
   async createUser(user: UserInput): Promise<User> {
@@ -205,6 +247,38 @@ export class AuthServiceImpl implements AuthService {
     const magicLinks = this.stores.tokens.cleanupExpiredMagicLinks();
     const refreshTokens = this.stores.tokens.cleanupExpiredRefreshTokens();
     return { authCodes, magicLinks, refreshTokens };
+  }
+
+  async sendLink(email: string, returnTo?: string): Promise<SendLinkResult> {
+    await this.ready();
+    const normalizedEmail = this.normalizeEmail(email);
+    const expiresAt = Date.now() + 15 * 60 * 1000;
+    const token = crypto.randomUUID();
+    this.stores.tokens.createMagicLink({
+      token,
+      email: normalizedEmail,
+      returnTo,
+      expiresAt,
+      used: false,
+    });
+    return {
+      ok: true,
+      token,
+      expiresAt,
+    };
+  }
+
+  async login(email: string, password: string): Promise<LoginResult> {
+    await this.ready();
+    if (!password || !password.trim()) {
+      throw new Error("Password is required");
+    }
+    const user = await this.ensureUserByEmail(email);
+    const token = await this.accessClient().emitJWT(user.id);
+    return {
+      token,
+      user,
+    };
   }
 }
 

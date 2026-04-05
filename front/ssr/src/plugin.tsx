@@ -261,6 +261,10 @@ function extractPageTitle(html: string): string | null {
   return raw.length > 0 ? raw : null;
 }
 
+function encodeHeaderBase64(value: string): string {
+  return Buffer.from(value, "utf8").toString("base64");
+}
+
 export default function createLandingPlugin(config: LandingPluginConfig) {
   const landingRoot = config.landingRoot;
   const projectRoot =
@@ -735,6 +739,7 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
     try {
       const html = await renderPage(url.pathname, baseUrl);
       const pageTitle = extractPageTitle(html);
+      const pageTitleB64 = pageTitle ? encodeHeaderBase64(pageTitle) : null;
       const durationMs = Date.now() - requestStartedAt;
       telemetryReporter.track({
         ts: Date.now(),
@@ -751,7 +756,7 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
             headers: {
               "Content-Type": "text/html; charset=utf-8",
               "Vary": "X-Fragment-Request",
-              ...(pageTitle ? { "X-Page-Title": pageTitle } : {}),
+              ...(pageTitleB64 ? { "X-Page-Title-B64": pageTitleB64 } : {}),
             },
           });
         }
@@ -761,7 +766,7 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
         headers: {
           "Content-Type": "text/html; charset=utf-8",
           "Vary": "X-Fragment-Request",
-          ...(pageTitle ? { "X-Page-Title": pageTitle } : {}),
+          ...(pageTitleB64 ? { "X-Page-Title-B64": pageTitleB64 } : {}),
         },
       });
     } catch (error) {

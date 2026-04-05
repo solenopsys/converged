@@ -108,6 +108,17 @@ export interface CleanupResult {
   refreshTokens: number;
 }
 
+export interface SendLinkResult {
+  ok: boolean;
+  token: string;
+  expiresAt: number;
+}
+
+export interface LoginResult {
+  token: string;
+  user: User;
+}
+
 export const metadata = {
   "interfaceName": "AuthService",
   "serviceName": "auth",
@@ -126,7 +137,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "getUser",
@@ -141,7 +153,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "getUserByEmail",
@@ -156,7 +169,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "updateUser",
@@ -177,7 +191,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "deleteUser",
@@ -192,7 +207,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "linkAuthMethod",
@@ -225,7 +241,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "unlinkAuthMethod",
@@ -246,7 +263,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "getAuthMethodByProvider",
@@ -267,7 +285,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "getUserAuthMethods",
@@ -282,7 +301,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "createOAuthClient",
@@ -297,7 +317,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "updateOAuthClient",
@@ -318,7 +339,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "getOAuthClient",
@@ -333,7 +355,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "listOAuthClients",
@@ -341,7 +364,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "deleteOAuthClient",
@@ -356,7 +380,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "createAuthCode",
@@ -371,7 +396,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "getAuthCode",
@@ -386,7 +412,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "markAuthCodeAsUsed",
@@ -401,7 +428,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "deleteAuthCode",
@@ -416,7 +444,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "createRefreshToken",
@@ -455,7 +484,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "getRefreshToken",
@@ -470,7 +500,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "revokeRefreshToken",
@@ -485,7 +516,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "revokeAllUserTokens",
@@ -506,7 +538,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "createMagicLink",
@@ -521,7 +554,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "getMagicLink",
@@ -536,7 +570,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "markMagicLinkAsUsed",
@@ -551,7 +586,8 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "cleanupExpired",
@@ -559,7 +595,52 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false
+      "isAsyncIterable": false,
+      "isPublic": false
+    },
+    {
+      "name": "sendLink",
+      "parameters": [
+        {
+          "name": "email",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "returnTo",
+          "type": "string",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false,
+      "isPublic": true
+    },
+    {
+      "name": "login",
+      "parameters": [
+        {
+          "name": "email",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "password",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false,
+      "isPublic": true
     }
   ],
   "types": [
@@ -1040,6 +1121,48 @@ export const metadata = {
           "isArray": false
         }
       ]
+    },
+    {
+      "name": "SendLinkResult",
+      "definition": "",
+      "properties": [
+        {
+          "name": "ok",
+          "type": "boolean",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "token",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "expiresAt",
+          "type": "number",
+          "optional": false,
+          "isArray": false
+        }
+      ]
+    },
+    {
+      "name": "LoginResult",
+      "definition": "",
+      "properties": [
+        {
+          "name": "token",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "user",
+          "type": "User",
+          "optional": false,
+          "isArray": false
+        }
+      ]
     }
   ]
 };
@@ -1072,6 +1195,8 @@ export interface AuthService {
   getMagicLink(token: string): Promise<any>;
   markMagicLinkAsUsed(token: string): Promise<any>;
   cleanupExpired(): Promise<any>;
+  sendLink(email: string, returnTo?: string): Promise<any>;
+  login(email: string, password: string): Promise<any>;
 }
 
 // Client interface
@@ -1102,6 +1227,8 @@ export interface AuthServiceClient {
   getMagicLink(token: string): Promise<any>;
   markMagicLinkAsUsed(token: string): Promise<any>;
   cleanupExpired(): Promise<any>;
+  sendLink(email: string, returnTo?: string): Promise<any>;
+  login(email: string, password: string): Promise<any>;
 }
 
 // Factory function

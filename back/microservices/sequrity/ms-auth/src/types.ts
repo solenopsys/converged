@@ -13,5 +13,7 @@ export type {
   MagicLink,
   MagicLinkInput,
   CleanupResult,
+  SendLinkResult,
+  LoginResult,
   ISODateString,
 } from "g-auth";

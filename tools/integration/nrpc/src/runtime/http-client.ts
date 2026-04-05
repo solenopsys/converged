@@ -43,13 +43,6 @@ class HttpClientImpl {
       );
     }
 
-    const hasToken = this.headers.authorization || this.headers.Authorization;
-    if (!hasToken) {
-      throw new Error(
-        `Unauthorized: no token for ${this.metadata.serviceName}.${methodName}`,
-      );
-    }
-
     if (method.isAsyncIterable) {
       return this.callStreaming(methodName, params);
     }

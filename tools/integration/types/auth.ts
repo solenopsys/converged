@@ -105,6 +105,17 @@ export interface CleanupResult {
   refreshTokens: number;
 }
 
+export interface SendLinkResult {
+  ok: boolean;
+  token: string;
+  expiresAt: number;
+}
+
+export interface LoginResult {
+  token: string;
+  user: User;
+}
+
 export interface AuthService {
   createUser(user: UserInput): Promise<User>;
   getUser(userId: string): Promise<User | null>;
@@ -152,4 +163,9 @@ export interface AuthService {
   markMagicLinkAsUsed(token: string): Promise<void>;
 
   cleanupExpired(): Promise<CleanupResult>;
+
+  /** @public */
+  sendLink(email: string, returnTo?: string): Promise<SendLinkResult>;
+  /** @public */
+  login(email: string, password: string): Promise<LoginResult>;
 }

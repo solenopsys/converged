@@ -1194,7 +1194,17 @@ async function navigateByFragment(url: URL, mode: 'push' | 'replace' | 'none' = 
     }
 
     const html = await response.text();
-    const nextTitle = response.headers.get('X-Page-Title')?.trim() || '';
+    const encodedTitle = response.headers.get('X-Page-Title-B64')?.trim() || '';
+    let nextTitle = '';
+    if (encodedTitle.length > 0) {
+      try {
+        const binary = atob(encodedTitle);
+        const bytes = Uint8Array.from(binary, (ch) => ch.charCodeAt(0));
+        nextTitle = new TextDecoder().decode(bytes);
+      } catch {
+        nextTitle = '';
+      }
+    }
     const nextRoot = extractRootFromHtml(html);
     if (!nextRoot) {
       navProgressDone();
