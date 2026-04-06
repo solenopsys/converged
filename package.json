@@ -39,7 +39,7 @@
     "unocss": "latest"
   },
   "scripts": {
-    "dev": "BOOTSTRAP_ENV_DIR=../../confs bun run --cwd tools/configurator src/cli.ts dev --project=converged-portal",
+    "dev": "NODE_ENV=development BOOTSTRAP_ENV_DIR=../../confs bun run --cwd tools/configurator src/cli.ts dev --project=converged-portal",
     "build:mono": "BOOTSTRAP_ENV_DIR=../../confs bun run --cwd tools/configurator src/cli.ts build --project=converged-portal --preset=mono --output=../../deployment",
     "build:multi": "BOOTSTRAP_ENV_DIR=../../confs bun run --cwd tools/configurator src/cli.ts build --project=converged-portal --preset=multi --output=../../deployment",
     "secrets": "bun run --cwd tools/configurator src/cli.ts secrets --project=converged-portal --output=../../../../deployment",

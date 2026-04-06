@@ -3,38 +3,6 @@ import { createHttpClient } from "nrpc";
 
 export type ISODateString = string;
 
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  picture?: string;
-  emailVerified: boolean;
-  createdAt: ISODateString;
-}
-
-export interface UserInput {
-  id: string;
-  email: string;
-  name: string;
-  picture?: string;
-  emailVerified?: boolean;
-}
-
-export interface UserUpdate {
-  email?: string;
-  name?: string;
-  picture?: string;
-  emailVerified?: boolean;
-}
-
-export interface AuthMethod {
-  userId: string;
-  provider: string;
-  providerUserId: string;
-  email: string;
-  lastUsedAt: ISODateString;
-}
-
 export interface OAuthClient {
   clientId: string;
   clientSecret: string;
@@ -59,47 +27,22 @@ export interface OAuthClientUpdate {
   trusted?: boolean;
 }
 
-export interface AuthCode {
-  code: string;
-  clientId: string;
-  userId: string;
-  codeChallenge?: string;
-  expiresAt: number;
-  used: boolean;
-}
-
-export interface AuthCodeInput {
-  code: string;
-  clientId: string;
-  userId: string;
-  codeChallenge?: string;
-  expiresAt: number;
-  used?: boolean;
-}
-
-export interface RefreshToken {
-  tokenHash: string;
-  clientId: string;
-  userId: string;
-  scope: string;
-  expiresAt: number;
-  revoked: boolean;
-}
-
-export interface MagicLink {
+export interface SendLinkResult {
+  ok: boolean;
   token: string;
+  expiresAt: number;
+}
+
+export interface VerifyLinkResult {
+  userId: string;
   email: string;
   returnTo?: string;
-  expiresAt: number;
-  used: boolean;
 }
 
-export interface MagicLinkInput {
+export interface LoginResult {
   token: string;
+  userId: string;
   email: string;
-  returnTo?: string;
-  expiresAt: number;
-  used?: boolean;
 }
 
 export interface CleanupResult {
@@ -108,1135 +51,173 @@ export interface CleanupResult {
   refreshTokens: number;
 }
 
-export interface SendLinkResult {
-  ok: boolean;
-  token: string;
-  expiresAt: number;
-}
-
-export interface LoginResult {
-  token: string;
-  user: User;
-}
-
 export const metadata = {
   "interfaceName": "AuthService",
   "serviceName": "auth",
   "filePath": "../types/auth.ts",
   "methods": [
     {
-      "name": "createUser",
-      "parameters": [
-        {
-          "name": "user",
-          "type": "UserInput",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
-    },
-    {
-      "name": "getUser",
-      "parameters": [
-        {
-          "name": "userId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
-    },
-    {
-      "name": "getUserByEmail",
-      "parameters": [
-        {
-          "name": "email",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
-    },
-    {
-      "name": "updateUser",
-      "parameters": [
-        {
-          "name": "userId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "updates",
-          "type": "UserUpdate",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
-    },
-    {
-      "name": "deleteUser",
-      "parameters": [
-        {
-          "name": "userId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
-    },
-    {
-      "name": "linkAuthMethod",
-      "parameters": [
-        {
-          "name": "userId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "provider",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "providerUserId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "email",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
-    },
-    {
-      "name": "unlinkAuthMethod",
-      "parameters": [
-        {
-          "name": "userId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "provider",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
-    },
-    {
-      "name": "getAuthMethodByProvider",
-      "parameters": [
-        {
-          "name": "provider",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "providerUserId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
-    },
-    {
-      "name": "getUserAuthMethods",
-      "parameters": [
-        {
-          "name": "userId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
-    },
-    {
-      "name": "createOAuthClient",
-      "parameters": [
-        {
-          "name": "client",
-          "type": "OAuthClientInput",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
-    },
-    {
-      "name": "updateOAuthClient",
-      "parameters": [
-        {
-          "name": "clientId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "updates",
-          "type": "OAuthClientUpdate",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
-    },
-    {
-      "name": "getOAuthClient",
-      "parameters": [
-        {
-          "name": "clientId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
-    },
-    {
-      "name": "listOAuthClients",
-      "parameters": [],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
-    },
-    {
-      "name": "deleteOAuthClient",
-      "parameters": [
-        {
-          "name": "clientId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
-    },
-    {
-      "name": "createAuthCode",
-      "parameters": [
-        {
-          "name": "authCode",
-          "type": "AuthCodeInput",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
-    },
-    {
-      "name": "getAuthCode",
-      "parameters": [
-        {
-          "name": "code",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
-    },
-    {
-      "name": "markAuthCodeAsUsed",
-      "parameters": [
-        {
-          "name": "code",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
-    },
-    {
-      "name": "deleteAuthCode",
-      "parameters": [
-        {
-          "name": "code",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
-    },
-    {
-      "name": "createRefreshToken",
-      "parameters": [
-        {
-          "name": "userId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "clientId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "tokenHash",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "scope",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "expiresAt",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
-    },
-    {
-      "name": "getRefreshToken",
-      "parameters": [
-        {
-          "name": "tokenHash",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
-    },
-    {
-      "name": "revokeRefreshToken",
-      "parameters": [
-        {
-          "name": "tokenHash",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
-    },
-    {
-      "name": "revokeAllUserTokens",
-      "parameters": [
-        {
-          "name": "userId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "clientId",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
-    },
-    {
-      "name": "createMagicLink",
-      "parameters": [
-        {
-          "name": "magicLink",
-          "type": "MagicLinkInput",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
-    },
-    {
-      "name": "getMagicLink",
-      "parameters": [
-        {
-          "name": "token",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
-    },
-    {
-      "name": "markMagicLinkAsUsed",
-      "parameters": [
-        {
-          "name": "token",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
-    },
-    {
-      "name": "cleanupExpired",
-      "parameters": [],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
-    },
-    {
       "name": "sendLink",
       "parameters": [
-        {
-          "name": "email",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "returnTo",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        }
+        { "name": "email", "type": "string", "optional": false, "isArray": false },
+        { "name": "returnTo", "type": "string", "optional": true, "isArray": false }
       ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": true
+      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": true
+    },
+    {
+      "name": "verifyLink",
+      "parameters": [{ "name": "token", "type": "string", "optional": false, "isArray": false }],
+      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": true
     },
     {
       "name": "login",
       "parameters": [
-        {
-          "name": "email",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "password",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        }
+        { "name": "email", "type": "string", "optional": false, "isArray": false },
+        { "name": "password", "type": "string", "optional": false, "isArray": false }
       ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": true
+      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": true
+    },
+    {
+      "name": "logout",
+      "parameters": [
+        { "name": "userId", "type": "string", "optional": false, "isArray": false },
+        { "name": "clientId", "type": "string", "optional": true, "isArray": false }
+      ],
+      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": false
+    },
+    {
+      "name": "createOAuthClient",
+      "parameters": [{ "name": "client", "type": "OAuthClientInput", "optional": false, "isArray": false }],
+      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": false
+    },
+    {
+      "name": "getOAuthClient",
+      "parameters": [{ "name": "clientId", "type": "string", "optional": false, "isArray": false }],
+      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": false
+    },
+    {
+      "name": "updateOAuthClient",
+      "parameters": [
+        { "name": "clientId", "type": "string", "optional": false, "isArray": false },
+        { "name": "updates", "type": "OAuthClientUpdate", "optional": false, "isArray": false }
+      ],
+      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": false
+    },
+    {
+      "name": "listOAuthClients",
+      "parameters": [],
+      "returnType": "any", "isAsync": true, "returnTypeIsArray": true, "isAsyncIterable": false, "isPublic": false
+    },
+    {
+      "name": "deleteOAuthClient",
+      "parameters": [{ "name": "clientId", "type": "string", "optional": false, "isArray": false }],
+      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": false
+    },
+    {
+      "name": "cleanupExpired",
+      "parameters": [],
+      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": false
     }
   ],
   "types": [
+    { "name": "ISODateString", "definition": "string" },
     {
-      "name": "ISODateString",
-      "definition": "string"
-    },
-    {
-      "name": "User",
-      "definition": "",
+      "name": "OAuthClient", "definition": "",
       "properties": [
-        {
-          "name": "id",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "email",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "name",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "picture",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "emailVerified",
-          "type": "boolean",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "createdAt",
-          "type": "ISODateString",
-          "optional": false,
-          "isArray": false
-        }
+        { "name": "clientId", "type": "string", "optional": false, "isArray": false },
+        { "name": "clientSecret", "type": "string", "optional": false, "isArray": false },
+        { "name": "redirectUris", "type": "string", "optional": false, "isArray": true },
+        { "name": "grantTypes", "type": "string", "optional": false, "isArray": true },
+        { "name": "trusted", "type": "boolean", "optional": false, "isArray": false },
+        { "name": "createdAt", "type": "ISODateString", "optional": false, "isArray": false }
       ]
     },
     {
-      "name": "UserInput",
-      "definition": "",
+      "name": "OAuthClientInput", "definition": "",
       "properties": [
-        {
-          "name": "id",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "email",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "name",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "picture",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "emailVerified",
-          "type": "boolean",
-          "optional": true,
-          "isArray": false
-        }
+        { "name": "clientId", "type": "string", "optional": false, "isArray": false },
+        { "name": "clientSecret", "type": "string", "optional": false, "isArray": false },
+        { "name": "redirectUris", "type": "string", "optional": false, "isArray": true },
+        { "name": "grantTypes", "type": "string", "optional": false, "isArray": true },
+        { "name": "trusted", "type": "boolean", "optional": false, "isArray": false }
       ]
     },
     {
-      "name": "UserUpdate",
-      "definition": "",
+      "name": "OAuthClientUpdate", "definition": "",
       "properties": [
-        {
-          "name": "email",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "name",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "picture",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "emailVerified",
-          "type": "boolean",
-          "optional": true,
-          "isArray": false
-        }
+        { "name": "clientSecret", "type": "string", "optional": true, "isArray": false },
+        { "name": "redirectUris", "type": "string", "optional": true, "isArray": true },
+        { "name": "grantTypes", "type": "string", "optional": true, "isArray": true },
+        { "name": "trusted", "type": "boolean", "optional": true, "isArray": false }
       ]
     },
     {
-      "name": "AuthMethod",
-      "definition": "",
+      "name": "SendLinkResult", "definition": "",
       "properties": [
-        {
-          "name": "userId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "provider",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "providerUserId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "email",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "lastUsedAt",
-          "type": "ISODateString",
-          "optional": false,
-          "isArray": false
-        }
+        { "name": "ok", "type": "boolean", "optional": false, "isArray": false },
+        { "name": "token", "type": "string", "optional": false, "isArray": false },
+        { "name": "expiresAt", "type": "number", "optional": false, "isArray": false }
       ]
     },
     {
-      "name": "OAuthClient",
-      "definition": "",
+      "name": "VerifyLinkResult", "definition": "",
       "properties": [
-        {
-          "name": "clientId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "clientSecret",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "redirectUris",
-          "type": "string",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "grantTypes",
-          "type": "string",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "trusted",
-          "type": "boolean",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "createdAt",
-          "type": "ISODateString",
-          "optional": false,
-          "isArray": false
-        }
+        { "name": "userId", "type": "string", "optional": false, "isArray": false },
+        { "name": "email", "type": "string", "optional": false, "isArray": false },
+        { "name": "returnTo", "type": "string", "optional": true, "isArray": false }
       ]
     },
     {
-      "name": "OAuthClientInput",
-      "definition": "",
+      "name": "LoginResult", "definition": "",
       "properties": [
-        {
-          "name": "clientId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "clientSecret",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "redirectUris",
-          "type": "string",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "grantTypes",
-          "type": "string",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "trusted",
-          "type": "boolean",
-          "optional": false,
-          "isArray": false
-        }
+        { "name": "token", "type": "string", "optional": false, "isArray": false },
+        { "name": "userId", "type": "string", "optional": false, "isArray": false },
+        { "name": "email", "type": "string", "optional": false, "isArray": false }
       ]
     },
     {
-      "name": "OAuthClientUpdate",
-      "definition": "",
+      "name": "CleanupResult", "definition": "",
       "properties": [
-        {
-          "name": "clientSecret",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "redirectUris",
-          "type": "string",
-          "optional": true,
-          "isArray": true
-        },
-        {
-          "name": "grantTypes",
-          "type": "string",
-          "optional": true,
-          "isArray": true
-        },
-        {
-          "name": "trusted",
-          "type": "boolean",
-          "optional": true,
-          "isArray": false
-        }
-      ]
-    },
-    {
-      "name": "AuthCode",
-      "definition": "",
-      "properties": [
-        {
-          "name": "code",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "clientId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "userId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "codeChallenge",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "expiresAt",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "used",
-          "type": "boolean",
-          "optional": false,
-          "isArray": false
-        }
-      ]
-    },
-    {
-      "name": "AuthCodeInput",
-      "definition": "",
-      "properties": [
-        {
-          "name": "code",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "clientId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "userId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "codeChallenge",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "expiresAt",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "used",
-          "type": "boolean",
-          "optional": true,
-          "isArray": false
-        }
-      ]
-    },
-    {
-      "name": "RefreshToken",
-      "definition": "",
-      "properties": [
-        {
-          "name": "tokenHash",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "clientId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "userId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "scope",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "expiresAt",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "revoked",
-          "type": "boolean",
-          "optional": false,
-          "isArray": false
-        }
-      ]
-    },
-    {
-      "name": "MagicLink",
-      "definition": "",
-      "properties": [
-        {
-          "name": "token",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "email",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "returnTo",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "expiresAt",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "used",
-          "type": "boolean",
-          "optional": false,
-          "isArray": false
-        }
-      ]
-    },
-    {
-      "name": "MagicLinkInput",
-      "definition": "",
-      "properties": [
-        {
-          "name": "token",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "email",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "returnTo",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "expiresAt",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "used",
-          "type": "boolean",
-          "optional": true,
-          "isArray": false
-        }
-      ]
-    },
-    {
-      "name": "CleanupResult",
-      "definition": "",
-      "properties": [
-        {
-          "name": "authCodes",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "magicLinks",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "refreshTokens",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        }
-      ]
-    },
-    {
-      "name": "SendLinkResult",
-      "definition": "",
-      "properties": [
-        {
-          "name": "ok",
-          "type": "boolean",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "token",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "expiresAt",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        }
-      ]
-    },
-    {
-      "name": "LoginResult",
-      "definition": "",
-      "properties": [
-        {
-          "name": "token",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "user",
-          "type": "User",
-          "optional": false,
-          "isArray": false
-        }
+        { "name": "authCodes", "type": "number", "optional": false, "isArray": false },
+        { "name": "magicLinks", "type": "number", "optional": false, "isArray": false },
+        { "name": "refreshTokens", "type": "number", "optional": false, "isArray": false }
       ]
     }
   ]
 };
 
-// Server interface (to be implemented in microservice)
+// Server interface
 export interface AuthService {
-  createUser(user: UserInput): Promise<any>;
-  getUser(userId: string): Promise<any>;
-  getUserByEmail(email: string): Promise<any>;
-  updateUser(userId: string, updates: UserUpdate): Promise<any>;
-  deleteUser(userId: string): Promise<any>;
-  linkAuthMethod(userId: string, provider: string, providerUserId: string, email: string): Promise<any>;
-  unlinkAuthMethod(userId: string, provider: string): Promise<any>;
-  getAuthMethodByProvider(provider: string, providerUserId: string): Promise<any>;
-  getUserAuthMethods(userId: string): Promise<any>;
+  sendLink(email: string, returnTo?: string): Promise<any>;
+  verifyLink(token: string): Promise<any>;
+  login(email: string, password: string): Promise<any>;
+  logout(userId: string, clientId?: string): Promise<any>;
   createOAuthClient(client: OAuthClientInput): Promise<any>;
-  updateOAuthClient(clientId: string, updates: OAuthClientUpdate): Promise<any>;
   getOAuthClient(clientId: string): Promise<any>;
+  updateOAuthClient(clientId: string, updates: OAuthClientUpdate): Promise<any>;
   listOAuthClients(): Promise<any>;
   deleteOAuthClient(clientId: string): Promise<any>;
-  createAuthCode(authCode: AuthCodeInput): Promise<any>;
-  getAuthCode(code: string): Promise<any>;
-  markAuthCodeAsUsed(code: string): Promise<any>;
-  deleteAuthCode(code: string): Promise<any>;
-  createRefreshToken(userId: string, clientId: string, tokenHash: string, scope: string, expiresAt: number): Promise<any>;
-  getRefreshToken(tokenHash: string): Promise<any>;
-  revokeRefreshToken(tokenHash: string): Promise<any>;
-  revokeAllUserTokens(userId: string, clientId?: string): Promise<any>;
-  createMagicLink(magicLink: MagicLinkInput): Promise<any>;
-  getMagicLink(token: string): Promise<any>;
-  markMagicLinkAsUsed(token: string): Promise<any>;
   cleanupExpired(): Promise<any>;
-  sendLink(email: string, returnTo?: string): Promise<any>;
-  login(email: string, password: string): Promise<any>;
 }
 
 // Client interface
 export interface AuthServiceClient {
-  createUser(user: UserInput): Promise<any>;
-  getUser(userId: string): Promise<any>;
-  getUserByEmail(email: string): Promise<any>;
-  updateUser(userId: string, updates: UserUpdate): Promise<any>;
-  deleteUser(userId: string): Promise<any>;
-  linkAuthMethod(userId: string, provider: string, providerUserId: string, email: string): Promise<any>;
-  unlinkAuthMethod(userId: string, provider: string): Promise<any>;
-  getAuthMethodByProvider(provider: string, providerUserId: string): Promise<any>;
-  getUserAuthMethods(userId: string): Promise<any>;
+  sendLink(email: string, returnTo?: string): Promise<any>;
+  verifyLink(token: string): Promise<any>;
+  login(email: string, password: string): Promise<any>;
+  logout(userId: string, clientId?: string): Promise<any>;
   createOAuthClient(client: OAuthClientInput): Promise<any>;
-  updateOAuthClient(clientId: string, updates: OAuthClientUpdate): Promise<any>;
   getOAuthClient(clientId: string): Promise<any>;
+  updateOAuthClient(clientId: string, updates: OAuthClientUpdate): Promise<any>;
   listOAuthClients(): Promise<any>;
   deleteOAuthClient(clientId: string): Promise<any>;
-  createAuthCode(authCode: AuthCodeInput): Promise<any>;
-  getAuthCode(code: string): Promise<any>;
-  markAuthCodeAsUsed(code: string): Promise<any>;
-  deleteAuthCode(code: string): Promise<any>;
-  createRefreshToken(userId: string, clientId: string, tokenHash: string, scope: string, expiresAt: number): Promise<any>;
-  getRefreshToken(tokenHash: string): Promise<any>;
-  revokeRefreshToken(tokenHash: string): Promise<any>;
-  revokeAllUserTokens(userId: string, clientId?: string): Promise<any>;
-  createMagicLink(magicLink: MagicLinkInput): Promise<any>;
-  getMagicLink(token: string): Promise<any>;
-  markMagicLinkAsUsed(token: string): Promise<any>;
   cleanupExpired(): Promise<any>;
-  sendLink(email: string, returnTo?: string): Promise<any>;
-  login(email: string, password: string): Promise<any>;
 }
 
-// Factory function
 export function createAuthServiceClient(
   config?: { baseUrl?: string },
 ): AuthServiceClient {
   return createHttpClient<AuthServiceClient>(metadata, config);
 }
 
-// Ready-to-use client
 export const authClient = createAuthServiceClient();

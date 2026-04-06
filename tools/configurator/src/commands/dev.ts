@@ -160,7 +160,6 @@ export async function runDev({ projectName, port, compress }: DevOptions) {
   );
   const runtimeEnv = {
     ...loadedEnv,
-    NODE_ENV: "development",
     DATA_DIR: process.env.DATA_DIR
       || loadedEnv.DATA_DIR
       || (existsSync(projectDataDir) ? projectDataDir : dataRoot),

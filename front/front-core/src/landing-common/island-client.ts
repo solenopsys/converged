@@ -1223,6 +1223,10 @@ async function navigateByFragment(url: URL, mode: 'push' | 'replace' | 'none' = 
     } else if (mode === 'replace') {
       history.replaceState({ by: 'fragment-nav' }, '', url.toString());
     }
+
+    if (typeof (globalThis as any).gtag === 'function') {
+      (globalThis as any).gtag('event', 'page_view', { page_path: url.pathname + url.search });
+    }
   } catch {
     if (!controller.signal.aborted) {
       navProgressDone();

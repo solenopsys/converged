@@ -30,25 +30,4 @@ export interface AuthMethodEntity {
   createdAt: ISODateString;
 }
 
-export class AuthMethodRepository extends BaseRepositorySQL<
-  AuthMethodKey,
-  AuthMethodEntity
-> {}
-
-export interface OAuthClientKey extends KeySQL {
-  clientId: string;
-}
-
-export interface OAuthClientEntity {
-  clientId: string;
-  clientSecret: string;
-  redirectUris: string;
-  grantTypes: string;
-  trusted: number;
-  createdAt: ISODateString;
-}
-
-export class OAuthClientRepository extends BaseRepositorySQL<
-  OAuthClientKey,
-  OAuthClientEntity
-> {}
+export class AuthMethodRepository extends BaseRepositorySQL<AuthMethodKey, AuthMethodEntity> {}

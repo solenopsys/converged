@@ -1,20 +1,12 @@
 import type {
   AuthService,
-  User,
-  UserInput,
-  UserUpdate,
-  AuthMethod,
   OAuthClient,
   OAuthClientInput,
   OAuthClientUpdate,
-  AuthCode,
-  AuthCodeInput,
-  RefreshToken,
-  MagicLink,
-  MagicLinkInput,
-  CleanupResult,
   SendLinkResult,
+  VerifyLinkResult,
   LoginResult,
+  CleanupResult,
 } from "./types";
 import { createHttpClient } from "nrpc";
 import { StoresController } from "./stores";
@@ -42,25 +34,38 @@ export class AuthServiceImpl implements AuthService {
     await this.init();
   }
 
-  private accessClient() {
-    const baseUrl =
+  private get baseUrl(): string {
+    return (
       (typeof process !== "undefined" && process.env?.SERVICES_BASE) ||
-      "http://127.0.0.1:3000/services";
+      "http://127.0.0.1:3000/services"
+    );
+  }
+
+  private identityClient() {
+    return createHttpClient<{
+      getUserByEmail(email: string): Promise<{ id: string; email: string } | null>;
+      createUser(user: { id: string; email: string; name: string }): Promise<{ id: string; email: string }>;
+    }>(
+      {
+        serviceName: "identity",
+        methods: [
+          { name: "getUserByEmail", parameters: [{ name: "email", type: "string", optional: false, isArray: false }], returnType: "any", isAsync: true, returnTypeIsArray: false, isAsyncIterable: false },
+          { name: "createUser", parameters: [{ name: "user", type: "any", optional: false, isArray: false }], returnType: "any", isAsync: true, returnTypeIsArray: false, isAsyncIterable: false },
+        ],
+      } as any,
+      { baseUrl: this.baseUrl },
+    );
+  }
+
+  private accessClient() {
     return createHttpClient<{ emitJWT(userId: string): Promise<string> }>(
       {
         serviceName: "access",
         methods: [
-          {
-            name: "emitJWT",
-            parameters: [{ name: "userId", type: "string", optional: false, isArray: false }],
-            returnType: "any",
-            isAsync: true,
-            returnTypeIsArray: false,
-            isAsyncIterable: false,
-          },
+          { name: "emitJWT", parameters: [{ name: "userId", type: "string", optional: false, isArray: false }], returnType: "any", isAsync: true, returnTypeIsArray: false, isAsyncIterable: false },
         ],
       } as any,
-      { baseUrl },
+      { baseUrl: this.baseUrl },
     );
   }
 
@@ -68,185 +73,17 @@ export class AuthServiceImpl implements AuthService {
     return (email ?? "").trim().toLowerCase();
   }
 
-  private async ensureUserByEmail(email: string): Promise<User> {
+  private async ensureUserByEmail(email: string): Promise<{ id: string; email: string }> {
+    const identity = this.identityClient();
     const normalizedEmail = this.normalizeEmail(email);
-    let user = await this.stores.users.getUserByEmail(normalizedEmail);
+    let user = await identity.getUserByEmail(normalizedEmail);
     if (user) return user;
-    user = await this.stores.users.createUser({
+    user = await identity.createUser({
       id: crypto.randomUUID(),
       email: normalizedEmail,
       name: normalizedEmail.split("@")[0] || "User",
-      emailVerified: false,
     });
     return user;
-  }
-
-  async createUser(user: UserInput): Promise<User> {
-    await this.ready();
-    return this.stores.users.createUser(user);
-  }
-
-  async getUser(userId: string): Promise<User | null> {
-    await this.ready();
-    return this.stores.users.getUser(userId);
-  }
-
-  async getUserByEmail(email: string): Promise<User | null> {
-    await this.ready();
-    return this.stores.users.getUserByEmail(email);
-  }
-
-  async updateUser(userId: string, updates: UserUpdate): Promise<User> {
-    await this.ready();
-    return this.stores.users.updateUser(userId, updates);
-  }
-
-  async deleteUser(userId: string): Promise<boolean> {
-    await this.ready();
-    return this.stores.users.deleteUser(userId);
-  }
-
-  async linkAuthMethod(
-    userId: string,
-    provider: string,
-    providerUserId: string,
-    email: string,
-  ): Promise<void> {
-    await this.ready();
-    await this.stores.users.linkAuthMethod(
-      userId,
-      provider,
-      providerUserId,
-      email,
-    );
-  }
-
-  async unlinkAuthMethod(userId: string, provider: string): Promise<void> {
-    await this.ready();
-    await this.stores.users.unlinkAuthMethod(userId, provider);
-  }
-
-  async getAuthMethodByProvider(
-    provider: string,
-    providerUserId: string,
-  ): Promise<AuthMethod | null> {
-    await this.ready();
-    return this.stores.users.getAuthMethodByProvider(provider, providerUserId);
-  }
-
-  async getUserAuthMethods(userId: string): Promise<AuthMethod[]> {
-    await this.ready();
-    return this.stores.users.getUserAuthMethods(userId);
-  }
-
-  async createOAuthClient(client: OAuthClientInput): Promise<OAuthClient> {
-    await this.ready();
-    return this.stores.users.createOAuthClient(client);
-  }
-
-  async updateOAuthClient(
-    clientId: string,
-    updates: OAuthClientUpdate,
-  ): Promise<OAuthClient> {
-    await this.ready();
-    return this.stores.users.updateOAuthClient(clientId, updates);
-  }
-
-  async getOAuthClient(clientId: string): Promise<OAuthClient | null> {
-    await this.ready();
-    return this.stores.users.getOAuthClient(clientId);
-  }
-
-  async listOAuthClients(): Promise<OAuthClient[]> {
-    await this.ready();
-    return this.stores.users.listOAuthClients();
-  }
-
-  async deleteOAuthClient(clientId: string): Promise<boolean> {
-    await this.ready();
-    return this.stores.users.deleteOAuthClient(clientId);
-  }
-
-  async createAuthCode(authCode: AuthCodeInput): Promise<void> {
-    await this.ready();
-    this.stores.tokens.createAuthCode({
-      ...authCode,
-      used: authCode.used ?? false,
-    });
-  }
-
-  async getAuthCode(code: string): Promise<AuthCode | null> {
-    await this.ready();
-    return this.stores.tokens.getAuthCode(code);
-  }
-
-  async markAuthCodeAsUsed(code: string): Promise<void> {
-    await this.ready();
-    this.stores.tokens.markAuthCodeAsUsed(code);
-  }
-
-  async deleteAuthCode(code: string): Promise<void> {
-    await this.ready();
-    this.stores.tokens.deleteAuthCode(code);
-  }
-
-  async createRefreshToken(
-    userId: string,
-    clientId: string,
-    tokenHash: string,
-    scope: string,
-    expiresAt: number,
-  ): Promise<void> {
-    await this.ready();
-    this.stores.tokens.createRefreshToken({
-      tokenHash,
-      userId,
-      clientId,
-      scope,
-      expiresAt,
-      revoked: false,
-    });
-  }
-
-  async getRefreshToken(tokenHash: string): Promise<RefreshToken | null> {
-    await this.ready();
-    return this.stores.tokens.getRefreshToken(tokenHash);
-  }
-
-  async revokeRefreshToken(tokenHash: string): Promise<void> {
-    await this.ready();
-    this.stores.tokens.revokeRefreshToken(tokenHash);
-  }
-
-  async revokeAllUserTokens(userId: string, clientId?: string): Promise<number> {
-    await this.ready();
-    return this.stores.tokens.revokeAllUserTokens(userId, clientId);
-  }
-
-  async createMagicLink(magicLink: MagicLinkInput): Promise<void> {
-    await this.ready();
-    this.stores.tokens.createMagicLink({
-      ...magicLink,
-      used: magicLink.used ?? false,
-    });
-  }
-
-  async getMagicLink(token: string): Promise<MagicLink | null> {
-    await this.ready();
-    return this.stores.tokens.getMagicLink(token);
-  }
-
-  async markMagicLinkAsUsed(token: string): Promise<void> {
-    await this.ready();
-    this.stores.tokens.markMagicLinkAsUsed(token);
-  }
-
-  async cleanupExpired(): Promise<CleanupResult> {
-    await this.ready();
-    const authCodes = this.stores.tokens.cleanupExpiredAuthCodes();
-    const magicLinks = this.stores.tokens.cleanupExpiredMagicLinks();
-    const refreshTokens = this.stores.tokens.cleanupExpiredRefreshTokens();
-    return { authCodes, magicLinks, refreshTokens };
   }
 
   async sendLink(email: string, returnTo?: string): Promise<SendLinkResult> {
@@ -261,11 +98,22 @@ export class AuthServiceImpl implements AuthService {
       expiresAt,
       used: false,
     });
-    return {
-      ok: true,
-      token,
-      expiresAt,
-    };
+    return { ok: true, token, expiresAt };
+  }
+
+  async verifyLink(token: string): Promise<VerifyLinkResult> {
+    await this.ready();
+    const magicLink = this.stores.tokens.getMagicLink(token);
+    if (!magicLink || magicLink.used || magicLink.expiresAt < Date.now()) {
+      throw new Error("Invalid or expired magic link");
+    }
+    this.stores.tokens.markMagicLinkAsUsed(token);
+    const identity = this.identityClient();
+    const user = await identity.getUserByEmail(magicLink.email);
+    if (!user) {
+      throw new Error("User not found");
+    }
+    return { userId: user.id, email: magicLink.email, returnTo: magicLink.returnTo };
   }
 
   async login(email: string, password: string): Promise<LoginResult> {
@@ -275,10 +123,45 @@ export class AuthServiceImpl implements AuthService {
     }
     const user = await this.ensureUserByEmail(email);
     const token = await this.accessClient().emitJWT(user.id);
-    return {
-      token,
-      user,
-    };
+    return { token, userId: user.id, email: user.email };
+  }
+
+  async logout(userId: string, clientId?: string): Promise<void> {
+    await this.ready();
+    this.stores.tokens.revokeAllUserTokens(userId, clientId);
+  }
+
+  async createOAuthClient(client: OAuthClientInput): Promise<OAuthClient> {
+    await this.ready();
+    return this.stores.clients.createOAuthClient(client);
+  }
+
+  async getOAuthClient(clientId: string): Promise<OAuthClient | null> {
+    await this.ready();
+    return this.stores.clients.getOAuthClient(clientId);
+  }
+
+  async updateOAuthClient(clientId: string, updates: OAuthClientUpdate): Promise<OAuthClient> {
+    await this.ready();
+    return this.stores.clients.updateOAuthClient(clientId, updates);
+  }
+
+  async listOAuthClients(): Promise<OAuthClient[]> {
+    await this.ready();
+    return this.stores.clients.listOAuthClients();
+  }
+
+  async deleteOAuthClient(clientId: string): Promise<boolean> {
+    await this.ready();
+    return this.stores.clients.deleteOAuthClient(clientId);
+  }
+
+  async cleanupExpired(): Promise<CleanupResult> {
+    await this.ready();
+    const authCodes = this.stores.tokens.cleanupExpiredAuthCodes();
+    const magicLinks = this.stores.tokens.cleanupExpiredMagicLinks();
+    const refreshTokens = this.stores.tokens.cleanupExpiredRefreshTokens();
+    return { authCodes, magicLinks, refreshTokens };
   }
 }
 

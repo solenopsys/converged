@@ -1,10 +1,10 @@
 import { StoreControllerAbstract, StoreType, SqlStore, KVStore } from "back-core";
-import { UsersStoreService } from "./users/service";
+import { ClientsStoreService } from "./clients/service";
 import { TokensStoreService } from "./tokens/service";
-import usersMigrations from "./users/migrations";
+import clientsMigrations from "./clients/migrations";
 
 export class StoresController extends StoreControllerAbstract {
-  public users: UsersStoreService;
+  public clients: ClientsStoreService;
   public tokens: TokensStoreService;
 
   constructor(protected msName: string) {
@@ -12,10 +12,10 @@ export class StoresController extends StoreControllerAbstract {
   }
 
   async init() {
-    const usersStore = await this.addStore("users", StoreType.SQL, usersMigrations);
+    const clientsStore = await this.addStore("clients", StoreType.SQL, clientsMigrations);
     const tokensStore = await this.addStore("tokens", StoreType.KVS, []);
 
-    this.users = new UsersStoreService(usersStore as SqlStore);
+    this.clients = new ClientsStoreService(clientsStore as SqlStore);
     this.tokens = new TokensStoreService(tokensStore as KVStore);
 
     await this.startAll();

@@ -215,6 +215,7 @@ class DynamicContainerfileBuilder {
 
   private builderStage() {
     this.emit(`FROM ${this.baseImage} AS builder`, "WORKDIR /build", "");
+    this.emit("ENV NODE_ENV=production", "");
 
     this.copySources();
     this.installDeps();
