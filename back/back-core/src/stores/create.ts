@@ -2,6 +2,7 @@ import { StorageConnection } from "bun-transport";
 import { KVStore } from "../engines/kv/kv-store";
 import { SqlStore } from "../engines/sql/sql-store";
 import { FileStore } from "../engines/files/file-store";
+import { JsonStore } from "../engines/json/json-store";
 import { ColumnStore } from "../engines/column/column-store";
 import { VectorStore } from "../engines/vector/vector-store";
 import { StoreType } from "./types";
@@ -46,6 +47,9 @@ function createStore(
   }
   if (type === StoreType.FILES) {
     return new FileStore(conn, msName, storeDir, migrations);
+  }
+  if (type === StoreType.JSON) {
+    return new JsonStore(conn, msName, storeDir, migrations);
   }
   if (type === StoreType.COLUMN) {
     return new ColumnStore(conn, msName, storeDir, migrations);
