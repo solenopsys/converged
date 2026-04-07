@@ -68,7 +68,7 @@ export const metadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false,
-      "isPublic": false
+      "isPublic": true
     },
     {
       "name": "getProviderTemplate",
@@ -84,7 +84,7 @@ export const metadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false,
-      "isPublic": false
+      "isPublic": true
     },
     {
       "name": "createProvider",
@@ -100,7 +100,7 @@ export const metadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false,
-      "isPublic": false
+      "isPublic": true
     },
     {
       "name": "getProvider",
@@ -116,7 +116,7 @@ export const metadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false,
-      "isPublic": false
+      "isPublic": true
     },
     {
       "name": "updateProvider",

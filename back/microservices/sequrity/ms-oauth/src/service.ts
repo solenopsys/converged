@@ -8,6 +8,7 @@ import type {
   OAuthState,
 } from "./types";
 import { StoresController } from "./stores";
+import { Access } from "nrpc";
 
 const PROVIDER_TEMPLATES: OAuthProviderTemplate[] = [
   {
@@ -108,10 +109,12 @@ export class OAuthServiceImpl implements OAuthService {
     } as OAuthProvider;
   }
 
+  @Access("public")
   async listProviderTemplates(): Promise<OAuthProviderTemplate[]> {
     return PROVIDER_TEMPLATES;
   }
 
+  @Access("public")
   async getProviderTemplate(
     provider: OAuthProviderName,
   ): Promise<OAuthProviderTemplate | null> {

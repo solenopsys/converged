@@ -3,6 +3,7 @@ import { Elysia } from "elysia";
 import { jwtVerify } from "jose";
 import type { ServiceMetadata } from "../types";
 import { serializeValue, deserializeValue } from "./serialization";
+import { resolveMethodAccess } from "../decorator/access.decorator";
 import {
   AccessMatcher,
   extractPermissionsFromPayload,
@@ -296,12 +297,27 @@ class ElysiaBackend {
     methodName: string,
     headers: Record<string, string | undefined>,
   ): Promise<void> {
-    const method = this.config.metadata.methods.find((m) => m.name === methodName);
-    if (method?.isPublic) return;
-
     const mode = this.accessMode;
-    if (mode === "off") {
-      return;
+    if (mode === "off") return;
+
+    // Check access level from decorator on service impl
+    if (this.config.serviceImpl) {
+      const implRef = typeof this.config.serviceImpl === "function"
+        ? this.config.serviceImpl.prototype
+        : this.config.serviceImpl;
+      const level = resolveMethodAccess(implRef, methodName);
+      if (level === "public") return;
+      if (level === "internal") {
+        const serviceToken = process.env.SERVICE_TOKEN;
+        const headerName = this.accessControl.headerName ?? "authorization";
+        const tokenHeader = headers?.[headerName.toLowerCase()] ?? headers?.[headerName];
+        const token = tokenHeader?.replace(/^Bearer\s+/i, "").trim();
+        if (serviceToken && token === serviceToken) return;
+        const error: any = new Error(`Forbidden: internal-only method ${this.config.metadata.serviceName}.${methodName}`);
+        error.statusCode = 403;
+        throw error;
+      }
+      // level === "user" — fall through to JWT check
     }
 
     const headerName = this.accessControl.headerName ?? "authorization";

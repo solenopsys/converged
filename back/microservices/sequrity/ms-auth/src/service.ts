@@ -8,7 +8,7 @@ import type {
   LoginResult,
   CleanupResult,
 } from "./types";
-import { createHttpClient } from "nrpc";
+import { createHttpClient, Access } from "nrpc";
 import { StoresController } from "./stores";
 
 export class AuthServiceImpl implements AuthService {
@@ -86,6 +86,7 @@ export class AuthServiceImpl implements AuthService {
     return user;
   }
 
+  @Access("public")
   async sendLink(email: string, returnTo?: string): Promise<SendLinkResult> {
     await this.ready();
     const normalizedEmail = this.normalizeEmail(email);

@@ -34,35 +34,9 @@ export default (options: PluginOptions = {}) => (app: Elysia) => {
     return service;
   };
 
-  const serviceProxy = new Proxy(
-    { initPromise: Promise.resolve() } as Record<string, any>,
-    {
-      get(target, prop: string | symbol) {
-        if (prop === "initPromise") {
-          return target.initPromise;
-        }
-
-        if (typeof prop !== "string") {
-          return target[prop as keyof typeof target];
-        }
-
-        return async (...args: any[]) => {
-          const readyService = await ensureService();
-          const value = (readyService as any)[prop];
-
-          if (typeof value !== "function") {
-            return value;
-          }
-
-          return value.apply(readyService, args);
-        };
-      },
-    },
-  );
-
   const nrpcPlugin = createHttpBackend({
     metadata,
-    serviceImpl: serviceProxy,
+    serviceImpl,
   });
 
   app.use(nrpcPlugin(options) as any);

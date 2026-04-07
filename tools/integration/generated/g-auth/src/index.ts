@@ -59,134 +59,387 @@ export const metadata = {
     {
       "name": "sendLink",
       "parameters": [
-        { "name": "email", "type": "string", "optional": false, "isArray": false },
-        { "name": "returnTo", "type": "string", "optional": true, "isArray": false }
+        {
+          "name": "email",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "returnTo",
+          "type": "string",
+          "optional": true,
+          "isArray": false
+        }
       ],
-      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": true
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false,
+      "isPublic": true
     },
     {
       "name": "verifyLink",
-      "parameters": [{ "name": "token", "type": "string", "optional": false, "isArray": false }],
-      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": true
+      "parameters": [
+        {
+          "name": "token",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false,
+      "isPublic": true
     },
     {
       "name": "login",
       "parameters": [
-        { "name": "email", "type": "string", "optional": false, "isArray": false },
-        { "name": "password", "type": "string", "optional": false, "isArray": false }
+        {
+          "name": "email",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "password",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
       ],
-      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": true
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false,
+      "isPublic": true
     },
     {
       "name": "logout",
       "parameters": [
-        { "name": "userId", "type": "string", "optional": false, "isArray": false },
-        { "name": "clientId", "type": "string", "optional": true, "isArray": false }
+        {
+          "name": "userId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "clientId",
+          "type": "string",
+          "optional": true,
+          "isArray": false
+        }
       ],
-      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": false
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false,
+      "isPublic": true
     },
     {
       "name": "createOAuthClient",
-      "parameters": [{ "name": "client", "type": "OAuthClientInput", "optional": false, "isArray": false }],
-      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": false
+      "parameters": [
+        {
+          "name": "client",
+          "type": "OAuthClientInput",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false,
+      "isPublic": true
     },
     {
       "name": "getOAuthClient",
-      "parameters": [{ "name": "clientId", "type": "string", "optional": false, "isArray": false }],
-      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": false
+      "parameters": [
+        {
+          "name": "clientId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "updateOAuthClient",
       "parameters": [
-        { "name": "clientId", "type": "string", "optional": false, "isArray": false },
-        { "name": "updates", "type": "OAuthClientUpdate", "optional": false, "isArray": false }
+        {
+          "name": "clientId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "updates",
+          "type": "OAuthClientUpdate",
+          "optional": false,
+          "isArray": false
+        }
       ],
-      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": false
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "listOAuthClients",
       "parameters": [],
-      "returnType": "any", "isAsync": true, "returnTypeIsArray": true, "isAsyncIterable": false, "isPublic": false
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "deleteOAuthClient",
-      "parameters": [{ "name": "clientId", "type": "string", "optional": false, "isArray": false }],
-      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": false
+      "parameters": [
+        {
+          "name": "clientId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "cleanupExpired",
       "parameters": [],
-      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": false
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false,
+      "isPublic": false
     }
   ],
   "types": [
-    { "name": "ISODateString", "definition": "string" },
     {
-      "name": "OAuthClient", "definition": "",
+      "name": "ISODateString",
+      "definition": "string"
+    },
+    {
+      "name": "OAuthClient",
+      "definition": "",
       "properties": [
-        { "name": "clientId", "type": "string", "optional": false, "isArray": false },
-        { "name": "clientSecret", "type": "string", "optional": false, "isArray": false },
-        { "name": "redirectUris", "type": "string", "optional": false, "isArray": true },
-        { "name": "grantTypes", "type": "string", "optional": false, "isArray": true },
-        { "name": "trusted", "type": "boolean", "optional": false, "isArray": false },
-        { "name": "createdAt", "type": "ISODateString", "optional": false, "isArray": false }
+        {
+          "name": "clientId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "clientSecret",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "redirectUris",
+          "type": "string",
+          "optional": false,
+          "isArray": true
+        },
+        {
+          "name": "grantTypes",
+          "type": "string",
+          "optional": false,
+          "isArray": true
+        },
+        {
+          "name": "trusted",
+          "type": "boolean",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "createdAt",
+          "type": "ISODateString",
+          "optional": false,
+          "isArray": false
+        }
       ]
     },
     {
-      "name": "OAuthClientInput", "definition": "",
+      "name": "OAuthClientInput",
+      "definition": "",
       "properties": [
-        { "name": "clientId", "type": "string", "optional": false, "isArray": false },
-        { "name": "clientSecret", "type": "string", "optional": false, "isArray": false },
-        { "name": "redirectUris", "type": "string", "optional": false, "isArray": true },
-        { "name": "grantTypes", "type": "string", "optional": false, "isArray": true },
-        { "name": "trusted", "type": "boolean", "optional": false, "isArray": false }
+        {
+          "name": "clientId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "clientSecret",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "redirectUris",
+          "type": "string",
+          "optional": false,
+          "isArray": true
+        },
+        {
+          "name": "grantTypes",
+          "type": "string",
+          "optional": false,
+          "isArray": true
+        },
+        {
+          "name": "trusted",
+          "type": "boolean",
+          "optional": false,
+          "isArray": false
+        }
       ]
     },
     {
-      "name": "OAuthClientUpdate", "definition": "",
+      "name": "OAuthClientUpdate",
+      "definition": "",
       "properties": [
-        { "name": "clientSecret", "type": "string", "optional": true, "isArray": false },
-        { "name": "redirectUris", "type": "string", "optional": true, "isArray": true },
-        { "name": "grantTypes", "type": "string", "optional": true, "isArray": true },
-        { "name": "trusted", "type": "boolean", "optional": true, "isArray": false }
+        {
+          "name": "clientSecret",
+          "type": "string",
+          "optional": true,
+          "isArray": false
+        },
+        {
+          "name": "redirectUris",
+          "type": "string",
+          "optional": true,
+          "isArray": true
+        },
+        {
+          "name": "grantTypes",
+          "type": "string",
+          "optional": true,
+          "isArray": true
+        },
+        {
+          "name": "trusted",
+          "type": "boolean",
+          "optional": true,
+          "isArray": false
+        }
       ]
     },
     {
-      "name": "SendLinkResult", "definition": "",
+      "name": "SendLinkResult",
+      "definition": "",
       "properties": [
-        { "name": "ok", "type": "boolean", "optional": false, "isArray": false },
-        { "name": "token", "type": "string", "optional": false, "isArray": false },
-        { "name": "expiresAt", "type": "number", "optional": false, "isArray": false }
+        {
+          "name": "ok",
+          "type": "boolean",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "token",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "expiresAt",
+          "type": "number",
+          "optional": false,
+          "isArray": false
+        }
       ]
     },
     {
-      "name": "VerifyLinkResult", "definition": "",
+      "name": "VerifyLinkResult",
+      "definition": "",
       "properties": [
-        { "name": "userId", "type": "string", "optional": false, "isArray": false },
-        { "name": "email", "type": "string", "optional": false, "isArray": false },
-        { "name": "returnTo", "type": "string", "optional": true, "isArray": false }
+        {
+          "name": "userId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "returnTo",
+          "type": "string",
+          "optional": true,
+          "isArray": false
+        }
       ]
     },
     {
-      "name": "LoginResult", "definition": "",
+      "name": "LoginResult",
+      "definition": "",
       "properties": [
-        { "name": "token", "type": "string", "optional": false, "isArray": false },
-        { "name": "userId", "type": "string", "optional": false, "isArray": false },
-        { "name": "email", "type": "string", "optional": false, "isArray": false }
+        {
+          "name": "token",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "userId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
       ]
     },
     {
-      "name": "CleanupResult", "definition": "",
+      "name": "CleanupResult",
+      "definition": "",
       "properties": [
-        { "name": "authCodes", "type": "number", "optional": false, "isArray": false },
-        { "name": "magicLinks", "type": "number", "optional": false, "isArray": false },
-        { "name": "refreshTokens", "type": "number", "optional": false, "isArray": false }
+        {
+          "name": "authCodes",
+          "type": "number",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "magicLinks",
+          "type": "number",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "refreshTokens",
+          "type": "number",
+          "optional": false,
+          "isArray": false
+        }
       ]
     }
   ]
 };
 
-// Server interface
+// Server interface (to be implemented in microservice)
 export interface AuthService {
   sendLink(email: string, returnTo?: string): Promise<any>;
   verifyLink(token: string): Promise<any>;
@@ -214,10 +467,12 @@ export interface AuthServiceClient {
   cleanupExpired(): Promise<any>;
 }
 
+// Factory function
 export function createAuthServiceClient(
   config?: { baseUrl?: string },
 ): AuthServiceClient {
   return createHttpClient<AuthServiceClient>(metadata, config);
 }
 
+// Ready-to-use client
 export const authClient = createAuthServiceClient();

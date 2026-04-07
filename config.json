@@ -45,17 +45,22 @@
       "ai": ["agent", "assistant"],
       "analytics": ["logs", "telemetry", "usage"],
       "automation": ["dag", "sheduller", "webhooks"],
+      "convertors": ["modelconvertor"],
       "business": [
         "billing",
         "equipment",
+        "partners",
         "requests",
-        "reviews"
+        "reviews",
+        "staff"
       ],
       "communications": ["calls", "charts", "community", "notify", "threads"],
       "content": ["ceo", "classifier", "galery", "markdown", "struct", "video"],
       "data": ["dumps", "files", "store"],
-      "providers": ["push", "sms", "smtp"],
-      "sequrity": ["access", "auth", "oauth"],
+      "delivery": ["delivery", "dhl", "ems", "fedex", "sfexpress", "ups"],
+      "extractors": ["millingextractor", "printextractor"],
+      "providers": ["push", "ses", "sms", "smtp"],
+      "sequrity": ["access", "auth", "identity", "oauth"],
       "social": [
         "discord",
         "facebook",
@@ -84,59 +89,44 @@
     },
 
     "multi": {
-      "description": "UI pod + grouped services/storage pods",
+      "description": "UI pod + 4 services/storage pods: ui-user-core, ai-chat, dag-business, observability",
       "containers": [
         {
-          "name": "security",
-          "microservices": ["sequrity/*"],
-          "resources": {
-            "requests": { "cpu": "100m", "memory": "128Mi" },
-            "limits": { "cpu": "500m", "memory": "256Mi" }
-          }
-        },
-        {
-          "name": "ai",
-          "microservices": ["ai/*"],
+          "name": "ui-user-core",
+          "microservices": ["sequrity/*", "content/*"],
           "resources": {
             "requests": { "cpu": "200m", "memory": "256Mi" },
             "limits": { "cpu": "1000m", "memory": "1Gi" }
           }
         },
         {
-          "name": "social",
-          "microservices": ["social/*", "communications/*"],
+          "name": "ai-chat",
+          "microservices": ["ai/*", "communications/*"],
           "resources": {
-            "requests": { "cpu": "100m", "memory": "128Mi" },
-            "limits": { "cpu": "500m", "memory": "512Mi" }
+            "requests": { "cpu": "200m", "memory": "256Mi" },
+            "limits": { "cpu": "1000m", "memory": "1Gi" }
           }
         },
         {
-          "name": "business",
-          "microservices": ["business/*", "automation/*"],
+          "name": "dag-business",
+          "microservices": [
+            "automation/*",
+            "business/*",
+            "data/*",
+            "delivery/*",
+            "extractors/*",
+            "providers/*",
+            "social/*",
+            "convertors/*"
+          ],
           "resources": {
-            "requests": { "cpu": "100m", "memory": "128Mi" },
-            "limits": { "cpu": "500m", "memory": "512Mi" }
+            "requests": { "cpu": "300m", "memory": "384Mi" },
+            "limits": { "cpu": "1500m", "memory": "2Gi" }
           }
         },
         {
-          "name": "data",
-          "microservices": ["data/*", "analytics/*"],
-          "resources": {
-            "requests": { "cpu": "100m", "memory": "128Mi" },
-            "limits": { "cpu": "500m", "memory": "512Mi" }
-          }
-        },
-        {
-          "name": "content",
-          "microservices": ["content/*"],
-          "resources": {
-            "requests": { "cpu": "100m", "memory": "128Mi" },
-            "limits": { "cpu": "500m", "memory": "256Mi" }
-          }
-        },
-        {
-          "name": "providers",
-          "microservices": ["providers/*"],
+          "name": "observability",
+          "microservices": ["analytics/logs", "analytics/telemetry"],
           "resources": {
             "requests": { "cpu": "100m", "memory": "128Mi" },
             "limits": { "cpu": "500m", "memory": "256Mi" }

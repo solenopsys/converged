@@ -114,6 +114,17 @@ async function loadConfig(projectDir: string): Promise<BuildConfig> {
   return await file.json() as BuildConfig;
 }
 
+function mergeStringArrays(base: string[] = [], extra: string[] = []): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of [...base, ...extra]) {
+    if (seen.has(item)) continue;
+    seen.add(item);
+    out.push(item);
+  }
+  return out;
+}
+
 async function loadMergedConfig(
   projectName: string,
 ): Promise<{ config: BuildConfig; projectDir: string; parentDir?: string }> {
@@ -133,10 +144,10 @@ async function loadMergedConfig(
     frontend: config.frontend ?? parentConfig.frontend,
     spa: {
       core: config.spa.core || parentConfig.spa.core,
-      microfrontends: [
-        ...parentConfig.spa.microfrontends,
-        ...config.spa.microfrontends,
-      ],
+      microfrontends: mergeStringArrays(
+        parentConfig.spa.microfrontends,
+        config.spa.microfrontends,
+      ),
     },
     back: {
       core: config.back.core || parentConfig.back.core,

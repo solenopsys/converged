@@ -1,7 +1,8 @@
 import { createHttpBackend } from './runtime/http-backend';
 import { generateServiceToken } from './runtime/service-token';
 import { createHttpClient } from './runtime/http-client';
-import { Access, SecureType, secure, secureAll } from './decorator/access.decorator';
+import { Access, resolveMethodAccess } from './decorator/access.decorator';
+import type { AccessLevel } from './decorator/access.decorator';
 import {
   AccessMatcher,
   canCallMethod,
@@ -26,9 +27,7 @@ export {
   createHttpClient,
   generateServiceToken,
   Access,
-  SecureType,
-  secure,
-  secureAll,
+  resolveMethodAccess,
   AccessMatcher,
   canCallMethod,
   parsePermission,
@@ -41,5 +40,6 @@ export {
 };
 
 export type { AccessMode, PermissionEntry, PermissionIndex };
+export type { AccessLevel };
 export type { ServiceMetadata };
 export type { AccessControlConfig };

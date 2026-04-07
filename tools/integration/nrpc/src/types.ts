@@ -12,8 +12,7 @@ export interface MethodMetadata {
   returnType: string;
   isAsync: boolean;
   returnTypeIsArray: boolean;
-  isAsyncIterable: boolean; // Новое поле для AsyncIterable методов
-  isPublic?: boolean; // Метод доступен без токена
+  isAsyncIterable: boolean;
 }
 
 export interface PropertyMetadata {

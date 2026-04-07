@@ -72,6 +72,17 @@ async function loadConfig(projectDir: string): Promise<BuildConfig> {
   return await file.json() as BuildConfig;
 }
 
+function mergeStringArrays(base: string[] = [], extra: string[] = []): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of [...base, ...extra]) {
+    if (seen.has(item)) continue;
+    seen.add(item);
+    out.push(item);
+  }
+  return out;
+}
+
 export async function runBuild({
   projectName,
   preset,
@@ -94,10 +105,10 @@ export async function runBuild({
       baseImage: config.baseImage || parentConfig.baseImage,
       spa: {
         core: config.spa.core || parentConfig.spa.core,
-        microfrontends: [
-          ...parentConfig.spa.microfrontends,
-          ...config.spa.microfrontends,
-        ],
+        microfrontends: mergeStringArrays(
+          parentConfig.spa.microfrontends,
+          config.spa.microfrontends,
+        ),
       },
       back: {
         core: config.back.core || parentConfig.back.core,

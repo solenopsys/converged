@@ -42,115 +42,347 @@ export const metadata = {
   "methods": [
     {
       "name": "createUser",
-      "parameters": [{ "name": "user", "type": "UserInput", "optional": false, "isArray": false }],
-      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": false
+      "parameters": [
+        {
+          "name": "user",
+          "type": "UserInput",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "listUsers",
       "parameters": [],
-      "returnType": "any", "isAsync": true, "returnTypeIsArray": true, "isAsyncIterable": false, "isPublic": false
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "getUser",
-      "parameters": [{ "name": "userId", "type": "string", "optional": false, "isArray": false }],
-      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": false
+      "parameters": [
+        {
+          "name": "userId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "getUserByEmail",
-      "parameters": [{ "name": "email", "type": "string", "optional": false, "isArray": false }],
-      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": false
+      "parameters": [
+        {
+          "name": "email",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "updateUser",
       "parameters": [
-        { "name": "userId", "type": "string", "optional": false, "isArray": false },
-        { "name": "updates", "type": "UserUpdate", "optional": false, "isArray": false }
+        {
+          "name": "userId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "updates",
+          "type": "UserUpdate",
+          "optional": false,
+          "isArray": false
+        }
       ],
-      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": false
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "deleteUser",
-      "parameters": [{ "name": "userId", "type": "string", "optional": false, "isArray": false }],
-      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": false
+      "parameters": [
+        {
+          "name": "userId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "linkAuthMethod",
       "parameters": [
-        { "name": "userId", "type": "string", "optional": false, "isArray": false },
-        { "name": "provider", "type": "string", "optional": false, "isArray": false },
-        { "name": "providerUserId", "type": "string", "optional": false, "isArray": false },
-        { "name": "email", "type": "string", "optional": false, "isArray": false }
+        {
+          "name": "userId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "provider",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "providerUserId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
       ],
-      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": false
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "unlinkAuthMethod",
       "parameters": [
-        { "name": "userId", "type": "string", "optional": false, "isArray": false },
-        { "name": "provider", "type": "string", "optional": false, "isArray": false }
+        {
+          "name": "userId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "provider",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
       ],
-      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": false
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "getAuthMethodByProvider",
       "parameters": [
-        { "name": "provider", "type": "string", "optional": false, "isArray": false },
-        { "name": "providerUserId", "type": "string", "optional": false, "isArray": false }
+        {
+          "name": "provider",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "providerUserId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
       ],
-      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": false
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false,
+      "isPublic": false
     },
     {
       "name": "getUserAuthMethods",
-      "parameters": [{ "name": "userId", "type": "string", "optional": false, "isArray": false }],
-      "returnType": "any", "isAsync": true, "returnTypeIsArray": true, "isAsyncIterable": false, "isPublic": false
+      "parameters": [
+        {
+          "name": "userId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false,
+      "isPublic": false
     }
   ],
   "types": [
-    { "name": "ISODateString", "definition": "string" },
     {
-      "name": "User", "definition": "",
+      "name": "ISODateString",
+      "definition": "string"
+    },
+    {
+      "name": "User",
+      "definition": "",
       "properties": [
-        { "name": "id", "type": "string", "optional": false, "isArray": false },
-        { "name": "email", "type": "string", "optional": false, "isArray": false },
-        { "name": "name", "type": "string", "optional": false, "isArray": false },
-        { "name": "picture", "type": "string", "optional": true, "isArray": false },
-        { "name": "emailVerified", "type": "boolean", "optional": false, "isArray": false },
-        { "name": "createdAt", "type": "ISODateString", "optional": false, "isArray": false }
+        {
+          "name": "id",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "picture",
+          "type": "string",
+          "optional": true,
+          "isArray": false
+        },
+        {
+          "name": "emailVerified",
+          "type": "boolean",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "createdAt",
+          "type": "ISODateString",
+          "optional": false,
+          "isArray": false
+        }
       ]
     },
     {
-      "name": "UserInput", "definition": "",
+      "name": "UserInput",
+      "definition": "",
       "properties": [
-        { "name": "id", "type": "string", "optional": false, "isArray": false },
-        { "name": "email", "type": "string", "optional": false, "isArray": false },
-        { "name": "name", "type": "string", "optional": false, "isArray": false },
-        { "name": "picture", "type": "string", "optional": true, "isArray": false },
-        { "name": "emailVerified", "type": "boolean", "optional": true, "isArray": false }
+        {
+          "name": "id",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "picture",
+          "type": "string",
+          "optional": true,
+          "isArray": false
+        },
+        {
+          "name": "emailVerified",
+          "type": "boolean",
+          "optional": true,
+          "isArray": false
+        }
       ]
     },
     {
-      "name": "UserUpdate", "definition": "",
+      "name": "UserUpdate",
+      "definition": "",
       "properties": [
-        { "name": "email", "type": "string", "optional": true, "isArray": false },
-        { "name": "name", "type": "string", "optional": true, "isArray": false },
-        { "name": "picture", "type": "string", "optional": true, "isArray": false },
-        { "name": "emailVerified", "type": "boolean", "optional": true, "isArray": false }
+        {
+          "name": "email",
+          "type": "string",
+          "optional": true,
+          "isArray": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "optional": true,
+          "isArray": false
+        },
+        {
+          "name": "picture",
+          "type": "string",
+          "optional": true,
+          "isArray": false
+        },
+        {
+          "name": "emailVerified",
+          "type": "boolean",
+          "optional": true,
+          "isArray": false
+        }
       ]
     },
     {
-      "name": "AuthMethod", "definition": "",
+      "name": "AuthMethod",
+      "definition": "",
       "properties": [
-        { "name": "userId", "type": "string", "optional": false, "isArray": false },
-        { "name": "provider", "type": "string", "optional": false, "isArray": false },
-        { "name": "providerUserId", "type": "string", "optional": false, "isArray": false },
-        { "name": "email", "type": "string", "optional": false, "isArray": false },
-        { "name": "lastUsedAt", "type": "ISODateString", "optional": false, "isArray": false }
+        {
+          "name": "userId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "provider",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "providerUserId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "lastUsedAt",
+          "type": "ISODateString",
+          "optional": false,
+          "isArray": false
+        }
       ]
     }
   ]
 };
 
-// Server interface
+// Server interface (to be implemented in microservice)
 export interface IdentityService {
   createUser(user: UserInput): Promise<any>;
   listUsers(): Promise<any>;
@@ -178,10 +410,12 @@ export interface IdentityServiceClient {
   getUserAuthMethods(userId: string): Promise<any>;
 }
 
+// Factory function
 export function createIdentityServiceClient(
   config?: { baseUrl?: string },
 ): IdentityServiceClient {
   return createHttpClient<IdentityServiceClient>(metadata, config);
 }
 
+// Ready-to-use client
 export const identityClient = createIdentityServiceClient();

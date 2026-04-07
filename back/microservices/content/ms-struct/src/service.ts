@@ -4,6 +4,7 @@ import {
   PaginationParams,
 } from "g-struct";
 import { StoresController } from "./stores";
+import { Access } from "nrpc";
 
 const MS_ID = "struct-ms";
 
@@ -35,6 +36,7 @@ export class StructServiceImpl implements StructService {
     return path;
   }
 
+  @Access("public")
   async readJson(path: string): Promise<any> {
     console.log("[ms-struct] readJson:request", { path });
     const data = await this.stores.fileStore.get(path);
@@ -54,6 +56,7 @@ export class StructServiceImpl implements StructService {
     return JSON.parse(json);
   }
 
+  @Access("public")
   async readJsonBatch(paths: string[]): Promise<any[]> {
     return Promise.all(paths.map((p) => this.readJson(p)));
   }

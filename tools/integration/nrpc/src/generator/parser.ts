@@ -81,21 +81,6 @@ class InterfaceParser {
     return interfaceName.replace("Service", "").toLowerCase();
   }
 
-  private hasPublicTag(node: any, sourceContent: string): boolean {
-    const comments: any[] = node.leadingComments ?? [];
-    for (const comment of comments) {
-      if (comment.type === "Block" && comment.value.includes("@public")) {
-        return true;
-      }
-    }
-    // Fallback: check raw source slice just before node range
-    if (node.range) {
-      const before = sourceContent.slice(Math.max(0, node.range[0] - 200), node.range[0]);
-      if (/@public\b/.test(before)) return true;
-    }
-    return false;
-  }
-
   private extractMethods(members: any[], sourceContent = ""): MethodMetadata[] {
     return members
       .filter((member) => member.type === "TSMethodSignature")
@@ -108,7 +93,6 @@ class InterfaceParser {
           isAsync: this.isAsyncMethod(returnTypeAnnotation),
           returnTypeIsArray: this.isArrayType(returnTypeAnnotation),
           isAsyncIterable: this.isAsyncIterableMethod(returnTypeAnnotation),
-          isPublic: this.hasPublicTag(method, sourceContent),
         };
       });
   }
