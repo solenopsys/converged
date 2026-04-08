@@ -110,17 +110,36 @@ Contracts are TypeScript interfaces in `tools/integration/types/*.ts`. The code 
 - `POST /services/<serviceName>/<methodName>/stream` — streaming (`AsyncIterable`)
 - JWT HS256 for access control (modes: `optional` / `required` / `off`)
 
-### Data Storage
+### Data Storage: Behemoth
 
-Each service stores data under `$DATA_DIR/<msName>/` — no overlap between services. The unified `StoresController` abstraction supports multiple backends:
+Storage is handled by **Behemoth** — a native storage engine written in Zig, purpose-built for microservice architectures. Each microservice owns its own isolated store boundary. No shared databases, no cross-service index coupling.
 
-| Type | Technology | Use case |
-|------|-----------|----------|
-| SQL | SQLite + Kysely (WAL) | Relational data |
-| KVS | LMDB (Zig binding) | Fast key-value |
-| FILES | File system | Binary files, media |
-| COLUMN | Column store | Metrics, time series |
-| VECTOR | Vector store | Embeddings, semantic search |
+Behemoth runs as a separate process and communicates with application services over Unix domain sockets using Cap'n Proto as the wire format — minimal serialization overhead, no event-loop contention.
+
+Data is stored under `$DATA_DIR/<msName>/<storeName>/` — zero overlap between services by design.
+
+| Store type | Engine | Use case |
+|------------|--------|----------|
+| `sql` | SQLite (WAL) | Relational data, transactions |
+| `kv` | lmdbx | Fast key-value, low-latency access |
+| `column` | SQLite (column layer) | Metrics, time series, analytics |
+| `vector` | SQLite + sqlite-vec | Embeddings, similarity search |
+| `files` | std.fs | Binary blobs, media |
+| `graph` | ryugraph | Graph-shaped data, traversal queries |
+
+The graph store (`ryugraph`) is new — it handles relationship-heavy data that would otherwise require complex JOIN chains in SQL.
+
+Bun services connect to Behemoth via `bun-transport` — a native FFI binding that exposes the full store API to TypeScript without HTTP overhead:
+
+```ts
+import { StorageConnection } from "bun-transport";
+
+const conn = new StorageConnection({ kind: "unix", socketPath: "/run/behemoth.sock" });
+conn.open("ms-orders", "tenant-42-sql", "sql");
+const rows = conn.querySql("ms-orders", "tenant-42-sql", "select * from orders limit 10");
+```
+
+Source: `native/behemoth/`
 
 ### Frontend: Micro-frontends
 
