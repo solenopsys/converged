@@ -10,9 +10,10 @@ const authFx = domain.createEffect<any, any>();
 const authEvent = domain.createEvent<{ credentials?: any; social?: string }>();
 sample({ clock: authEvent, target: authFx });
 
-const createLoginWidget: CreateWidget<typeof LoginView> = () => ({
+const createLoginWidget: CreateWidget<typeof LoginView> = (bus) => ({
     view: LoginView,
     placement: () => "sidebar:tab:auth",
+    config: { bus },
     commands: {
         auth: authEvent
     }

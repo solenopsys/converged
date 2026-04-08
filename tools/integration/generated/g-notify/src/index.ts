@@ -35,6 +35,20 @@ export type NotifySendInput = {
   status?: string;
 };
 
+export type NotifyChannelId = string;
+
+export type NotifyChannel = {
+  id: NotifyChannelId;
+  type: string;
+  config: Record<string, any>;
+};
+
+export type NotifyChannelInput = {
+  id: NotifyChannelId;
+  type: string;
+  config: Record<string, any>;
+};
+
 export const metadata = {
   "interfaceName": "NotifyService",
   "serviceName": "notify",
@@ -96,6 +110,31 @@ export const metadata = {
       "returnTypeIsArray": false,
       "isAsyncIterable": false,
       "isPublic": false
+    },
+    {
+      "name": "saveChannel",
+      "parameters": [{ "name": "channel", "type": "NotifyChannelInput", "optional": false, "isArray": false }],
+      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": false
+    },
+    {
+      "name": "getChannel",
+      "parameters": [{ "name": "id", "type": "NotifyChannelId", "optional": false, "isArray": false }],
+      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": false
+    },
+    {
+      "name": "listChannels",
+      "parameters": [],
+      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": false
+    },
+    {
+      "name": "deleteChannel",
+      "parameters": [{ "name": "id", "type": "NotifyChannelId", "optional": false, "isArray": false }],
+      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": false
+    },
+    {
+      "name": "send",
+      "parameters": [{ "name": "input", "type": "NotifySendInput", "optional": false, "isArray": false }],
+      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": false
     },
     {
       "name": "recordSend",
@@ -177,6 +216,11 @@ export interface NotifyService {
   getTemplate(id: NotifyTemplateId): Promise<any>;
   listTemplates(): Promise<any>;
   deleteTemplate(id: NotifyTemplateId): Promise<any>;
+  saveChannel(channel: NotifyChannelInput): Promise<any>;
+  getChannel(id: NotifyChannelId): Promise<any>;
+  listChannels(): Promise<any>;
+  deleteChannel(id: NotifyChannelId): Promise<any>;
+  send(input: NotifySendInput): Promise<any>;
   recordSend(input: NotifySendInput): Promise<any>;
   getSend(id: NotifySendId): Promise<any>;
   listSends(): Promise<any>;
@@ -188,6 +232,11 @@ export interface NotifyServiceClient {
   getTemplate(id: NotifyTemplateId): Promise<any>;
   listTemplates(): Promise<any>;
   deleteTemplate(id: NotifyTemplateId): Promise<any>;
+  saveChannel(channel: NotifyChannelInput): Promise<any>;
+  getChannel(id: NotifyChannelId): Promise<any>;
+  listChannels(): Promise<any>;
+  deleteChannel(id: NotifyChannelId): Promise<any>;
+  send(input: NotifySendInput): Promise<any>;
   recordSend(input: NotifySendInput): Promise<any>;
   getSend(id: NotifySendId): Promise<any>;
   listSends(): Promise<any>;

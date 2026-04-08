@@ -8,6 +8,8 @@
     "back-core": "workspace:*",
     "marked": "*",
     "g-logs": "workspace:*",
+    "g-notify": "workspace:*",
+    "g-auth": "workspace:*",
     "g-openscadconvertor": "workspace:*",
     "@mozilla/readability": "*",
     "jsdom": "*",

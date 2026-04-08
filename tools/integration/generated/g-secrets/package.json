@@ -1,5 +1,6 @@
 {
-  "name": "mf-auth",
+  "name": "g-secrets",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "module": "src/index.ts",
@@ -7,9 +8,6 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "front-core": "workspace:*",
-    "g-auth": "workspace:*",
-    "g-dag": "workspace:*",
-    "g-oauth": "workspace:*"
+    "nrpc": "workspace:*"
   }
 }

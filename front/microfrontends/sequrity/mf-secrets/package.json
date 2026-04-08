@@ -1,5 +1,5 @@
 {
-  "name": "mf-auth",
+  "name": "mf-secrets",
   "private": true,
   "type": "module",
   "module": "src/index.ts",
@@ -8,8 +8,6 @@
   },
   "dependencies": {
     "front-core": "workspace:*",
-    "g-auth": "workspace:*",
-    "g-dag": "workspace:*",
-    "g-oauth": "workspace:*"
+    "g-secrets": "workspace:*"
   }
 }

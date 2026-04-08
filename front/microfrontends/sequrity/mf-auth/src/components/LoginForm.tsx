@@ -6,6 +6,7 @@ import { Label } from "front-core"
 import { toast } from "sonner"
 import { useMicrofrontendTranslation } from "front-core"
 import { authClient } from "../service"
+import { sendMagicLinkFx } from "../functions/send-magic-link"
 import { SocialsPanel } from "./Socials"
 
 const AUTH_MF_ID = "auth-mf";
@@ -30,7 +31,7 @@ export function LoginForm({
     setLoading(true)
 
     try {
-      await authClient.sendLink(email.trim())
+      await sendMagicLinkFx({ email: email.trim() })
 
       toast.success(t("notification.linkSent"), {
         description: t("notification.checkEmail"),

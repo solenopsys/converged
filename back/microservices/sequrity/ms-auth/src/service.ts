@@ -3,7 +3,7 @@ import type {
   OAuthClient,
   OAuthClientInput,
   OAuthClientUpdate,
-  SendLinkResult,
+  GetMagicLinkResult,
   VerifyLinkResult,
   LoginResult,
   CleanupResult,
@@ -87,7 +87,7 @@ export class AuthServiceImpl implements AuthService {
   }
 
   @Access("public")
-  async sendLink(email: string, returnTo?: string): Promise<SendLinkResult> {
+  async getMagicLink(email: string, returnTo?: string): Promise<GetMagicLinkResult> {
     await this.ready();
     const normalizedEmail = this.normalizeEmail(email);
     const expiresAt = Date.now() + 15 * 60 * 1000;

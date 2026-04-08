@@ -3,7 +3,7 @@ export type {
   OAuthClient,
   OAuthClientInput,
   OAuthClientUpdate,
-  SendLinkResult,
+  GetMagicLinkResult,
   VerifyLinkResult,
   LoginResult,
   CleanupResult,

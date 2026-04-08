@@ -30,11 +30,31 @@ export type NotifySendInput = {
   status?: string;
 };
 
+export type NotifyChannelId = string;
+
+export type NotifyChannel = {
+  id: NotifyChannelId;
+  type: string;
+  config: Record<string, any>;
+};
+
+export type NotifyChannelInput = {
+  id: NotifyChannelId;
+  type: string;
+  config: Record<string, any>;
+};
+
 export interface NotifyService {
   saveTemplate(template: NotifyTemplateInput): Promise<NotifyTemplateId>;
   getTemplate(id: NotifyTemplateId): Promise<NotifyTemplate | undefined>;
   listTemplates(): Promise<NotifyTemplate[]>;
   deleteTemplate(id: NotifyTemplateId): Promise<boolean>;
+  saveChannel(channel: NotifyChannelInput): Promise<NotifyChannelId>;
+  getChannel(id: NotifyChannelId): Promise<NotifyChannel | undefined>;
+  listChannels(): Promise<NotifyChannel[]>;
+  deleteChannel(id: NotifyChannelId): Promise<boolean>;
+  /** Route notification through the appropriate channel provider and record the send */
+  send(input: NotifySendInput): Promise<NotifySendId>;
   recordSend(input: NotifySendInput): Promise<NotifySendId>;
   getSend(id: NotifySendId): Promise<NotifySend | undefined>;
   listSends(): Promise<NotifySend[]>;

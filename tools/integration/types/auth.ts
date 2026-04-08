@@ -24,7 +24,7 @@ export interface OAuthClientUpdate {
   trusted?: boolean;
 }
 
-export interface SendLinkResult {
+export interface GetMagicLinkResult {
   ok: boolean;
   token: string;
   expiresAt: number;
@@ -50,7 +50,7 @@ export interface CleanupResult {
 
 export interface AuthService {
   /** @public */
-  sendLink(email: string, returnTo?: string): Promise<SendLinkResult>;
+  getMagicLink(email: string, returnTo?: string): Promise<GetMagicLinkResult>;
   /** @public */
   verifyLink(token: string): Promise<VerifyLinkResult>;
   /** @public */

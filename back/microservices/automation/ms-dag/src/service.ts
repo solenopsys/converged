@@ -134,10 +134,17 @@ export default class DagServiceImpl implements DagService {
   }
 
   async createExecution(workflowName: string, params: Record<string, any>): Promise<{ id: string }> {
-    await this.ensureStoresReady();
-    const id = crypto.randomUUID();
-    await this.stores.statsStoreService.ensureProcess({ id, workflowId: workflowName, status: "running" });
-    return { id };
+    let executionId = "";
+    (async () => {
+      for await (const event of this.startExecution(workflowName, params)) {
+        if (event.type === "started") executionId = event.executionId;
+      }
+    })().catch((e) => console.error(`[dag] createExecution failed: ${e?.message}`));
+    // wait until started event sets the id
+    await new Promise<void>((resolve) => {
+      const check = setInterval(() => { if (executionId) { clearInterval(check); resolve(); } }, 5);
+    });
+    return { id: executionId };
   }
 
   async statusExecution(id: string): Promise<{ execution: Execution; tasks: Task[] }> {

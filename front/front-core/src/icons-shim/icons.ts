@@ -22,6 +22,7 @@ export { default as IconFolder } from '@tabler/icons-react/dist/esm/icons/IconFo
 export { default as IconGitBranch } from '@tabler/icons-react/dist/esm/icons/IconGitBranch.mjs';
 export { default as IconGlobe } from '@tabler/icons-react/dist/esm/icons/IconGlobe.mjs';
 export { default as IconGripVertical } from '@tabler/icons-react/dist/esm/icons/IconGripVertical.mjs';
+export { default as IconKey } from '@tabler/icons-react/dist/esm/icons/IconKey.mjs';
 export { default as IconLayoutColumns } from '@tabler/icons-react/dist/esm/icons/IconLayoutColumns.mjs';
 export { default as IconLayoutDashboard } from '@tabler/icons-react/dist/esm/icons/IconLayoutDashboard.mjs';
 export { default as IconListDetails } from '@tabler/icons-react/dist/esm/icons/IconListDetails.mjs';

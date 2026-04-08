@@ -94,6 +94,9 @@ const pwaRegistrationScript = [
   "})();",
 ].join("");
 
+const SITEMAP_XML_DECLARATION = `<?xml version="1.0" encoding="UTF-8"?>`;
+const SITEMAP_XMLNS = "http://www.sitemaps.org/schemas/sitemap/0.9";
+
 type TelemetryEventInput = {
   ts?: number;
   device_id: string;
@@ -318,6 +321,34 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
     return value.replace(/\/+$/, "");
   }
 
+  function resolveRequestOrigin(request: Request): string {
+    const url = new URL(request.url);
+    const forwardedProtoRaw = request.headers.get("x-forwarded-proto");
+    const forwardedHostRaw = request.headers.get("x-forwarded-host");
+    const hostRaw = request.headers.get("host");
+
+    const proto = (forwardedProtoRaw?.split(",")[0]?.trim() || url.protocol.replace(/:$/, "")).toLowerCase();
+    const host = forwardedHostRaw?.split(",")[0]?.trim() || hostRaw?.trim() || url.host;
+
+    return `${proto}://${host}`;
+  }
+
+  function resolvePublicOrigin(request: Request): string {
+    if (isProd && seoConfig?.canonical) {
+      return normalizeBaseUrl(seoConfig.canonical);
+    }
+    return normalizeBaseUrl(resolveRequestOrigin(request));
+  }
+
+  function escapeXml(value: string): string {
+    return value
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&apos;");
+  }
+
   function buildCanonical(baseUrl: string, path: string): string {
     const base = normalizeBaseUrl(baseUrl);
     if (path === "/" || path === "") return base;
@@ -356,11 +387,11 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
   function buildSitemapIndexXml(origin: string, pages: number): string {
     const body = Array.from({ length: pages }, (_, index) => {
       const loc = `${origin}/sitemap-${index + 1}.xml`;
-      return `  <sitemap>\n    <loc>${loc}</loc>\n  </sitemap>`;
+      return `  <sitemap>\n    <loc>${escapeXml(loc)}</loc>\n  </sitemap>`;
     }).join("\n");
     return (
-      `<?xml version="1.0" encoding="UTF-8"?>\n` +
-      `<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+      `${SITEMAP_XML_DECLARATION}\n` +
+      `<sitemapindex xmlns="${SITEMAP_XMLNS}">\n` +
       `${body}\n` +
       `</sitemapindex>`
     );
@@ -604,29 +635,23 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
       });
     })
     .get("/sitemap.xml", async ({ request }) => {
-      const origin =
-        isProd && seoConfig?.canonical
-          ? normalizeBaseUrl(seoConfig.canonical)
-          : new URL(request.url).origin;
+      const origin = resolvePublicOrigin(request);
       const resolvedRoutes = await resolveSitemapRoutes(origin);
       const routes = uniqSitemapRoutes(resolvedRoutes);
 
       if (routes.length > sitemapChunkSize) {
         const pages = Math.ceil(routes.length / sitemapChunkSize);
         return new Response(buildSitemapIndexXml(origin, pages), {
-          headers: { "Content-Type": "application/xml; charset=utf-8" },
+          headers: { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "no-transform" },
         });
       }
 
       return new Response(buildSitemapXml(origin, routes), {
-        headers: { "Content-Type": "application/xml; charset=utf-8" },
+        headers: { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "no-transform" },
       });
     })
     .get("/sitemap-:page", async ({ request, params, set }) => {
-      const origin =
-        isProd && seoConfig?.canonical
-          ? normalizeBaseUrl(seoConfig.canonical)
-          : new URL(request.url).origin;
+      const origin = resolvePublicOrigin(request);
       const rawPage = String((params as any).page ?? "");
       const match = rawPage.match(/^(\d+)\.xml$/);
       const page = match ? Number(match[1]) : Number.NaN;
@@ -645,7 +670,7 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
           return "Not found";
         }
         return new Response(buildSitemapXml(origin, routes), {
-          headers: { "Content-Type": "application/xml; charset=utf-8" },
+          headers: { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "no-transform" },
         });
       }
 
@@ -659,14 +684,11 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
       const chunk = routes.slice(start, end);
 
       return new Response(buildSitemapXml(origin, chunk), {
-        headers: { "Content-Type": "application/xml; charset=utf-8" },
+        headers: { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "no-transform" },
       });
     })
     .get("/robots.txt", ({ request }) => {
-      const origin =
-        isProd && seoConfig?.canonical
-          ? normalizeBaseUrl(seoConfig.canonical)
-          : new URL(request.url).origin;
+      const origin = resolvePublicOrigin(request);
       const body = [
         "User-agent: *",
         "Allow: /",
@@ -683,10 +705,7 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
           headers: { "Content-Type": "application/manifest+json; charset=utf-8" },
         });
       }
-      const baseUrl =
-        isProd && seoConfig?.canonical
-          ? normalizeBaseUrl(seoConfig.canonical)
-          : new URL(request.url).origin;
+      const baseUrl = resolvePublicOrigin(request);
       return new Response(JSON.stringify(buildDefaultManifest(baseUrl), null, 2), {
         headers: { "Content-Type": "application/manifest+json; charset=utf-8" },
       });
@@ -731,10 +750,7 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
         headers: { Location: location },
       });
     }
-    const baseUrl =
-      isProd && seoConfig?.canonical
-        ? normalizeBaseUrl(seoConfig.canonical)
-        : url.origin;
+    const baseUrl = resolvePublicOrigin(request);
 
     try {
       const html = await renderPage(url.pathname, baseUrl);

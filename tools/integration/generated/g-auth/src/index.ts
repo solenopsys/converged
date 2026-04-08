@@ -27,7 +27,7 @@ export interface OAuthClientUpdate {
   trusted?: boolean;
 }
 
-export interface SendLinkResult {
+export interface GetMagicLinkResult {
   ok: boolean;
   token: string;
   expiresAt: number;
@@ -57,7 +57,7 @@ export const metadata = {
   "filePath": "../types/auth.ts",
   "methods": [
     {
-      "name": "sendLink",
+      "name": "getMagicLink",
       "parameters": [
         {
           "name": "email",
@@ -341,7 +341,7 @@ export const metadata = {
       ]
     },
     {
-      "name": "SendLinkResult",
+      "name": "GetMagicLinkResult",
       "definition": "",
       "properties": [
         {
@@ -441,7 +441,7 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface AuthService {
-  sendLink(email: string, returnTo?: string): Promise<any>;
+  getMagicLink(email: string, returnTo?: string): Promise<any>;
   verifyLink(token: string): Promise<any>;
   login(email: string, password: string): Promise<any>;
   logout(userId: string, clientId?: string): Promise<any>;
@@ -455,7 +455,7 @@ export interface AuthService {
 
 // Client interface
 export interface AuthServiceClient {
-  sendLink(email: string, returnTo?: string): Promise<any>;
+  getMagicLink(email: string, returnTo?: string): Promise<any>;
   verifyLink(token: string): Promise<any>;
   login(email: string, password: string): Promise<any>;
   logout(userId: string, clientId?: string): Promise<any>;
