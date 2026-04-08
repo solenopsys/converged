@@ -1,5 +1,4 @@
-import { Cron } from "croner";
-import { createDagServiceClient } from "g-dag";
+import { CronEngine } from "converged-runtime/engines/cron";
 import type {
   ShedullerService,
   CronEntry,
@@ -9,7 +8,6 @@ import type {
   CronHistoryEntry,
   CronHistoryListParams,
   PaginatedResult,
-  CronStatus,
   ProviderDefinition,
   ShedullerStats,
 } from "./types";
@@ -21,7 +19,8 @@ const MS_ID = "sheduller-ms";
 export class ShedullerServiceImpl implements ShedullerService {
   private stores!: StoresController;
   private initPromise?: Promise<void>;
-  private jobs = new Map<string, Cron>();
+  private engine!: CronEngine;
+
   constructor() {
     this.init();
   }
@@ -34,6 +33,9 @@ export class ShedullerServiceImpl implements ShedullerService {
     this.initPromise = (async () => {
       this.stores = new StoresController(MS_ID);
       await this.stores.init();
+      this.engine = new CronEngine((record) => {
+        void this.stores.history.record(record);
+      });
       this.rescheduleActive();
     })();
 
@@ -65,7 +67,7 @@ export class ShedullerServiceImpl implements ShedullerService {
     }
     const removed = this.stores.crons.delete(id);
     if (removed) {
-      this.unschedule(id);
+      this.engine.unschedule(id);
     }
     return Promise.resolve(removed);
   }
@@ -130,82 +132,15 @@ export class ShedullerServiceImpl implements ShedullerService {
 
   private syncJob(entry: CronEntry) {
     if (entry.status === "active") {
-      this.schedule(entry);
+      this.engine.schedule(entry);
     } else {
-      this.unschedule(entry.id);
-    }
-  }
-
-  private schedule(entry: CronEntry) {
-    this.unschedule(entry.id);
-    const expression = entry.expression.trim().replace(/\s+/g, " ");
-    try {
-      const job = new Cron(expression, () => {
-        this.invokeProvider(entry);
-      });
-      this.jobs.set(entry.id, job);
-    } catch (err) {
-      // Invalid cron should not crash scheduler startup/runtime; keep it unscheduled.
-      console.error(
-        `[sheduller] invalid cron expression ignored: id=${entry.id} name="${entry.name}" expression="${expression}"`,
-        err,
-      );
-    }
-  }
-
-  private async invokeProvider(entry: CronEntry) {
-    let success = true;
-    let message: string | undefined = undefined;
-
-    try {
-      if (entry.provider === "log") {
-        message = entry.params?.message ?? "";
-        const parts = [`[sheduller] cron fired: id=${entry.id} name="${entry.name}"`];
-        if (message) parts.push(`message="${message}"`);
-        console.log(parts.join(" "));
-      } else if (entry.provider === "dag" && entry.action === "runWorkflow") {
-        const port = process.env.PORT ?? process.env.SERVICES_PORT ?? "3000";
-        const baseUrl = `http://localhost:${port}/services`;
-        const dagClient = createDagServiceClient({ baseUrl });
-        const workflowName = entry.params?.workflowName;
-        const params = entry.params?.params ?? {};
-        if (!workflowName) throw new Error("dag provider: workflowName is required in params");
-        for await (const event of dagClient.startExecution(workflowName, params)) {
-          if (event.type === "failed") throw new Error(event.error ?? "dag workflow failed");
-          if (event.type === "completed") { message = `execution ${event.executionId} completed`; break; }
-        }
-      }
-    } catch (err: any) {
-      success = false;
-      message = err?.message ?? String(err);
-      console.error(`[sheduller] provider error: id=${entry.id} name="${entry.name}"`, err);
-    }
-
-    void this.stores.history.record({
-      cronId: entry.id,
-      cronName: entry.name,
-      provider: entry.provider,
-      action: entry.action,
-      success,
-      message,
-    });
-  }
-
-  private unschedule(id: string) {
-    const job = this.jobs.get(id);
-    if (job) {
-      job.stop();
-      this.jobs.delete(id);
+      this.engine.unschedule(entry.id);
     }
   }
 
   private rescheduleActive() {
     const list = this.stores.crons.list({ offset: 0, limit: 10000 });
-    for (const entry of list.items) {
-      if (entry.status === "active") {
-        this.schedule(entry);
-      }
-    }
+    this.engine.rescheduleAll(list.items);
   }
 }
 

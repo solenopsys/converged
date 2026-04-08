@@ -3,6 +3,7 @@ import { relative, resolve } from "node:path";
 import type { GeneratorContext, MicroserviceRef } from "../types";
 import { getAllMicroservices } from "../resolver";
 import {
+  RUNTIME_APP_PORT,
   SERVICES_APP_PORT,
   STORAGE_BIN_PATH,
   UI_APP_PORT,
@@ -104,7 +105,7 @@ function resolvePlugin(svc: MicroserviceRef, ctx: GeneratorContext): ResolvedPlu
   );
 }
 
-type DynamicRole = "ui" | "ms";
+type DynamicRole = "ui" | "ms" | "rt";
 
 class DynamicContainerfileBuilder {
   private lines: string[] = [];
@@ -157,7 +158,7 @@ class DynamicContainerfileBuilder {
     this.landingOwner = resolveOwnerDir(ctx, this.landingPath);
     this.storeWorkersOwner = resolveOwnerDir(ctx, this.storeWorkersPath);
     this.runtimeServerOwner = resolveOwnerDir(ctx, "tools/container-runtime/server.entry.ts");
-    this.workflowsOwner = resolveOwnerDir(ctx, "back/workflows/index.ts");
+    this.workflowsOwner = resolveOwnerDir(ctx, "back/runtime/workflows/index.ts");
     this.pruneToolsScriptOwner = resolveOwnerDir(ctx, this.pruneToolsScriptPath);
 
     this.apkPackages = config.runtimeDeps?.apk ?? [];
@@ -173,6 +174,8 @@ class DynamicContainerfileBuilder {
     this.plugins = this.role === "ms"
       ? this.allServices.map((svc) => resolvePlugin(svc, ctx))
       : [];
+
+
 
     this.allMfNames = config.spa.microfrontends.map(
       (name) => name.startsWith("mf-") ? name : `mf-${name}`,
@@ -201,7 +204,9 @@ class DynamicContainerfileBuilder {
   }
 
   private runtimePort(): number {
-    return this.role === "ui" ? UI_APP_PORT : SERVICES_APP_PORT;
+    if (this.role === "ui") return UI_APP_PORT;
+    if (this.role === "rt") return RUNTIME_APP_PORT;
+    return SERVICES_APP_PORT;
   }
 
   private header() {
@@ -227,10 +232,13 @@ class DynamicContainerfileBuilder {
       this.buildSpaPlugin();
       this.copyFrontendAssets();
       this.writeUiRuntimeMap();
+    } else if (this.role === "rt") {
+      this.prepareMsOutputDirs();
+      this.buildWorkflows();
+      this.writeRtRuntimeMap();
     } else {
       this.prepareMsOutputDirs();
       this.buildServicePlugins();
-      this.buildWorkflows();
       this.copyNativeLibs();
       this.writeMsRuntimeMap();
     }
@@ -341,8 +349,8 @@ class DynamicContainerfileBuilder {
   }
 
   private buildWorkflows() {
-    const entry = this.projectPath(this.workflowsOwner, "back/workflows/index.ts");
-    if (!dirExists(this.ctx, this.workflowsOwner, "back/workflows/index.ts")) return;
+    const entry = this.projectPath(this.workflowsOwner, "back/runtime/workflows/index.ts");
+    if (!dirExists(this.ctx, this.workflowsOwner, "back/runtime/workflows/index.ts")) return;
     this.emit("");
     this.emit(`RUN bun build ${entry} \\`);
     this.emit("    --target bun --format esm --outdir /build/out/plugins/workflows \\");
@@ -371,8 +379,17 @@ class DynamicContainerfileBuilder {
     for (const p of this.plugins) {
       toml.push(`"${p.key}" = "/app/plugins/chunks/${p.chunkPath}"`);
     }
-    if (dirExists(this.ctx, this.workflowsOwner, "back/workflows/index.ts")) {
-      toml.push("", "[workflows]", 'plugin = "/app/plugins/workflows/index.js"');
+
+    this.emit("");
+    this.emit("RUN cat > /build/out/app/runtime-map.toml <<'TOML'");
+    this.emit(toml.join("\n"));
+    this.emit("TOML");
+  }
+
+  private writeRtRuntimeMap() {
+    const toml = ["[workflows]"];
+    if (dirExists(this.ctx, this.workflowsOwner, "back/runtime/workflows/index.ts")) {
+      toml.push('plugin = "/app/plugins/workflows/index.js"');
     }
 
     this.emit("");
@@ -518,9 +535,10 @@ class DynamicContainerfileBuilder {
       this.emit("COPY --from=builder /build/out/plugins/landing ./plugins/landing");
       this.emit("COPY --from=builder /build/out/dist ./dist");
       this.emit("COPY --from=builder /build/out/front ./front");
+    } else if (this.role === "rt") {
+      this.emit("COPY --from=builder /build/out/plugins/workflows ./plugins/workflows");
     } else {
       this.emit("COPY --from=builder /build/out/plugins/chunks ./plugins/chunks");
-      this.emit("COPY --from=builder /build/out/plugins/workflows ./plugins/workflows");
       this.emit("COPY --from=builder /build/out/plugins/bin-libs ./plugins/bin-libs");
       this.emit("COPY --from=builder /build/out/lib ./lib");
     }
@@ -659,6 +677,10 @@ export async function generateContainerfiles(ctx: GeneratorContext): Promise<Map
   result.set(
     `${projectName}.ms.Containerfile`,
     new DynamicContainerfileBuilder(ctx, "ms").build(),
+  );
+  result.set(
+    `${projectName}.rt.Containerfile`,
+    new DynamicContainerfileBuilder(ctx, "rt").build(),
   );
   if (projectName === "converged-portal") {
     result.set(

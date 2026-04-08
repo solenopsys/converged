@@ -1,0 +1,87 @@
+import { type Provider, ProviderState } from "../dag-api";
+import {
+  createLogsServiceClient,
+  type LogsServiceClient,
+  type LogEventInput,
+  type LogQueryParams,
+  type PaginatedResult,
+  type LogEvent,
+} from "g-logs";
+
+interface WriteParams {
+  event: LogEventInput;
+}
+
+interface ListParams {
+  params: LogQueryParams;
+}
+
+export default class LogsProvider implements Provider {
+  readonly name = "logs";
+  private _state: ProviderState = ProviderState.STOPPED;
+  private client: LogsServiceClient;
+
+  constructor(host: string) {
+    this._state = ProviderState.STARTING;
+    this.client = createLogsServiceClient({ baseUrl: host });
+    this._state = ProviderState.READY;
+  }
+
+  get state(): ProviderState {
+    return this._state;
+  }
+
+  async start(): Promise<void> {
+    if (this._state !== ProviderState.READY) {
+      this._state = ProviderState.READY;
+    }
+  }
+
+  async stop(): Promise<void> {
+    this._state = ProviderState.STOPPED;
+  }
+
+  isReady(): boolean {
+    return this._state === ProviderState.READY;
+  }
+
+  async invoke(operation: string, params: WriteParams | ListParams): Promise<void | PaginatedResult<LogEvent>> {
+    if (!this.isReady()) {
+      throw new Error(`Provider is not ready (state: ${this._state})`);
+    }
+
+    if (operation === "write") {
+      return await this.write((params as WriteParams).event);
+    }
+
+    if (operation === "list") {
+      return await this.list((params as ListParams).params);
+    }
+
+    throw new Error(`Unknown operation: ${operation}`);
+  }
+
+  async write(event: LogEventInput): Promise<void> {
+    if (!this.isReady()) {
+      throw new Error(`Provider is not ready (state: ${this._state})`);
+    }
+
+    try {
+      await this.client.write(event);
+    } catch (error: any) {
+      throw new Error(`Logs write failed: ${error.message}`);
+    }
+  }
+
+  async list(params: LogQueryParams): Promise<PaginatedResult<LogEvent>> {
+    if (!this.isReady()) {
+      throw new Error(`Provider is not ready (state: ${this._state})`);
+    }
+
+    try {
+      return await this.client.list(params);
+    } catch (error: any) {
+      throw new Error(`Logs list failed: ${error.message}`);
+    }
+  }
+}

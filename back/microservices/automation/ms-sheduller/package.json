@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "back-core": "workspace:*",
-    "croner": "^9.1.0",
+    "converged-runtime": "workspace:*",
     "g-dag": "workspace:*",
     "g-sheduller": "workspace:*",
     "nrpc": "workspace:*"

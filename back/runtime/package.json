@@ -1,0 +1,17 @@
+{
+  "name": "converged-runtime",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "module": "index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./engines/dag": "./engines/dag/index.ts",
+    "./engines/cron": "./engines/cron/index.ts"
+  },
+  "dependencies": {
+    "back-core": "workspace:*",
+    "croner": "^9.1.0",
+    "g-dag": "workspace:*"
+  }
+}

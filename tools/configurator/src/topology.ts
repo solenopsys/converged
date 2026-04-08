@@ -43,10 +43,23 @@ export interface UiPlan {
   resources: Resources;
 }
 
+export const RUNTIME_APP_PORT = 3002;
+
+const DEFAULT_RUNTIME_RESOURCES: Resources = {
+  requests: { cpu: "200m", memory: "256Mi" },
+  limits: { cpu: "2000m", memory: "2Gi" },
+};
+
+export interface RuntimePlan {
+  serviceName: string;
+  resources: Resources;
+}
+
 export interface DeploymentPlan {
   mode: PresetMode;
   ui: UiPlan;
   serviceGroups: ServiceGroupPlan[];
+  runtime: RuntimePlan;
 }
 
 function normalizePresetMode(preset: string): PresetMode {
@@ -158,9 +171,17 @@ function collectMultiGroups(ctx: GeneratorContext): ServiceGroupPlan[] {
   });
 }
 
+function buildRuntimePlan(ctx: GeneratorContext): RuntimePlan {
+  return {
+    serviceName: `${ctx.config.name}-runtime`,
+    resources: DEFAULT_RUNTIME_RESOURCES,
+  };
+}
+
 export function buildDeploymentPlan(ctx: GeneratorContext): DeploymentPlan {
   const mode = normalizePresetMode(ctx.preset);
   const ui = buildUiPlan(ctx);
+  const runtime = buildRuntimePlan(ctx);
 
   if (mode === "mono") {
     const monoServices = collectMonoServices(ctx.containers, ctx.config);
@@ -177,6 +198,7 @@ export function buildDeploymentPlan(ctx: GeneratorContext): DeploymentPlan {
           serviceName: `${ctx.config.name}-services`,
         },
       ],
+      runtime,
     };
   }
 
@@ -184,5 +206,6 @@ export function buildDeploymentPlan(ctx: GeneratorContext): DeploymentPlan {
     mode,
     ui,
     serviceGroups: collectMultiGroups(ctx),
+    runtime,
   };
 }

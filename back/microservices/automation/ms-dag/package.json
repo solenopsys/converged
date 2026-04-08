@@ -16,6 +16,7 @@
     "jsdom": "latest",
     "jsonpath-plus": "latest",
     "marked": "latest",
+    "converged-runtime": "workspace:*",
     "converged-workflows": "workspace:*",
     "nrpc": "workspace:*",
     "pg": "latest",

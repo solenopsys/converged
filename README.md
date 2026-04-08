@@ -10,7 +10,7 @@ In practice: a client submits a request through the website or the mobile app �
 
 On the equipment side, Converged reads telemetry from the machines — 3D printers (Bambu Lab, Marlin, Klipper), CNC machines, robotic arms — and uses it to manage work distribution: which job goes to which machine, what's idle, what's overloaded, what's at risk of missing a deadline. The machines themselves are operated by your team as always; Converged handles the scheduling and visibility layer on top. Think of OctoPrint or OctoFarm, but one level up: instead of a window into individual printers, you get a live picture of the whole floor tied into the order and client workflow.
 
-Workflows are built on a DAG automation engine (similar to n8n) — order routing, escalations, queue balancing, multi-step chains. AI sits on top as the interaction layer: operators and clients communicate in natural language, the system figures out what to do. Multiple LLM providers run simultaneously (OpenAI, Anthropic, DeepSeek, Mistral, Gemini), each for its own tasks, within a unified permissions and audit model.
+Workflows are built on a DAG automation engine — order routing, escalations, queue balancing, multi-step chains. A dedicated Runtime layer (RT) handles all workflow execution and cron scheduling as a stateless service, keeping microservices as pure data stores. AI sits on top as the interaction layer: operators and clients communicate in natural language, the system figures out what to do. Multiple LLM providers run simultaneously (OpenAI, Anthropic, DeepSeek, Mistral, Gemini), each for its own tasks, within a unified permissions and audit model.
 
 The platform is modular and open-source. The same building blocks configure into any profile: 3D printing service bureau, CNC job shop, R&D lab, distributed network of workshops.
 
@@ -69,7 +69,11 @@ Development track: [github.com/solenopsys/converged](https://github.com/solenops
 converged-portal/
 ├── back/                  # Backend
 │   ├── back-core/         # Elysia runtime + dynamic plugin loading
-│   └── microservices/     # 49 microservices organized by domain
+│   ├── microservices/     # 49 microservices organized by domain
+│   └── runtime/           # Runtime layer (stateless workflow executor)
+│       ├── engines/dag/   # Workflow base class, NodeProcessor
+│       ├── engines/cron/  # Cron scheduling engine
+│       └── workflows/     # Workflow definitions (package: converged-workflows)
 ├── front/                 # Frontend
 │   ├── front-core/        # React core, components, state (Effector)
 │   ├── spa/               # SPA plugin (Elysia)
@@ -129,9 +133,29 @@ Models connect through adapters (GPT, Claude, DeepSeek, Mistral, Gemini). An age
 
 All actions are logged and executed within the same access model (ABAC) as human users — each model has its own permission profile.
 
-### DAG Engine
+### Runtime Layer (RT)
 
-Business logic lives outside microservices in a DAG process builder. Workflows — task distribution across equipment, automated order checkout, SLA escalations — are assembled visually or built dynamically by agents. Each cluster node executes its fragment of the process independently.
+The platform separates storage from execution. Each microservice owns its domain data and exposes a CRUD API — nothing more. All multi-step orchestration and integration logic lives in the Runtime layer.
+
+**Microservices** are thin wrappers around a database. They handle storage, validation, and expose typed APIs to the UI and RT. `ms-dag` stores execution history and variables. `ms-sheduller` stores cron configurations.
+
+**Runtime (RT)** is a stateless executor. It holds active cron jobs in memory, runs workflow logic, and writes results back to the relevant microservice stores via API. RT is compiled with all workflow definitions baked in — no dynamic loading.
+
+```
+UI → ms-dag        list executions, status, stats, vars (CRUD)
+UI → ms-sheduller  create/update/delete crons (CRUD)
+UI → RT            start workflow execution
+RT → ms-dag        write execution records and node state
+RT → ms-sheduller  read cron schedule on startup / refresh
+```
+
+When a cron config changes in `ms-sheduller`, the UI notifies RT to reload its in-memory schedule.
+
+**Workflow definitions** are TypeScript classes compiled into the RT image at build time. They live in `back/runtime/workflows/` and import domain API clients (`g-dag`, `g-sheduller`, etc.) to interact with microservices.
+
+The two runtime engines:
+- `engines/dag` — `Workflow` base class and `NodeProcessor` for step tracking
+- `engines/cron` — `CronEngine` for managing in-memory cron jobs via `croner`
 
 ---
 
@@ -142,38 +166,40 @@ The platform runs equally well on single-board computers (Orange Pi, 2 GB RAM) a
 Three deployment profiles are available — same codebase, different container topology:
 
 ```
-  mono                     micro                         scale
-  ─────                    ─────                         ─────
+  mono                              multi
+  ─────                             ─────
 
-┌──────────┐         ┌──────────────┐          ┌──────┐ ┌──────┐ ┌──────┐
-│          │         │   gateway    │          │ auth │ │  ai  │ │ dag  │
-│  all-in  │         │  spa+landing │          └──────┘ └──────┘ └──────┘
-│   one    │         └──────┬───────┘          ┌──────┐ ┌──────┐ ┌──────┐
-│container │                │                  │files │ │ logs │ │notify│
-│          │    ┌───────────┼───────────┐      └──────┘ └──────┘ └──────┘
-└──────────┘    │           │           │      ┌──────┐ ┌──────┐ ┌──────┐
-                ▼           ▼          ▼      │money │ │smtp  │ │ ...  │
-           ┌────────┐ ┌─────────┐ ┌────────┐   └──────┘ └──────┘ └──────┘
-           │security│ │business │ │  data  │
-           │  +ai   │ │+content │ │+social │     one container per
-           └────────┘ └─────────┘ └────────┘     microservice + gateway
+┌──────────┐            ┌──────────────┐  ┌─────────────┐
+│  [UI]    │            │   [UI]       │  │   [RT]      │
+├──────────┤            │  spa+landing │  │  workflows  │
+│  [RT]    │            └──────┬───────┘  └──────┬──────┘
+├──────────┤                   │                 │
+│  [MS]    │       ┌───────────┼─────────────────┘
+│all svc   │       │           │
+├──────────┤       ▼           ▼            ▼
+│ [storage]│  ┌────────┐ ┌─────────┐ ┌─────────┐
+└──────────┘  │security│ │business │ │  data   │
+              │  +ai   │ │+content │ │ +social │
+              └────────┘ └─────────┘ └─────────┘
 
-  dev / proto          standard prod              high-load / cloud
+              ┌──────────────────────────────┐
+              │  [storage]                   │
+              └──────────────────────────────┘
+
+  dev / proto             standard prod
 ```
 
 Deployment profiles are defined in `config.json`:
 
 | Profile | Description | Use case |
 |---------|-------------|----------|
-| `mono` | Single container | Development, prototyping |
-| `micro` | 8 domain-split containers | Standard production |
-| `scale` | Per-service containers + gateway | High-load |
+| `mono` | 4 containers: UI + RT + MS + storage | Development, prototyping |
+| `multi` | UI + RT + domain-split MS groups + storage | Standard production |
 
 Generating artifacts:
 ```bash
-bun run build:mono   # single container
-bun run build:micro  # domain split
-bun run build:scale  # per-service deployment
+bun run build:mono   # mono profile
+bun run build:multi  # multi profile
 ```
 
 Output (`deployment/<preset>/`): `Containerfile`, Helm chart, k3s HelmChart CRD, runtime configs.
