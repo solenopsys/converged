@@ -47,8 +47,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "getReview",
@@ -63,8 +62,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "listReviews",
@@ -79,8 +77,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "deleteReview",
@@ -95,8 +92,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     }
   ],
   "types": [

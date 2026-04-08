@@ -64,8 +64,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "getEntry",
@@ -80,8 +79,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "listEntries",
@@ -96,8 +94,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "total",
@@ -112,8 +109,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     }
   ],
   "types": [

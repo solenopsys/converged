@@ -26,8 +26,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "getNode",
@@ -42,8 +41,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "getChildren",
@@ -58,8 +56,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "listRoots",
@@ -67,8 +64,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     }
   ],
   "types": [

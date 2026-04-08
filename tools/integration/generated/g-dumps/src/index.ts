@@ -39,8 +39,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "storageStats",
@@ -48,8 +47,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "listDumps",
@@ -64,8 +62,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "dump",
@@ -80,8 +77,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "getLink",
@@ -96,8 +92,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     }
   ],
   "types": [

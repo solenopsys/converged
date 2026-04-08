@@ -60,8 +60,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "sendMessage",
@@ -82,8 +81,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": true,
-      "isPublic": false
+      "isAsyncIterable": true
     },
     {
       "name": "getSession",
@@ -98,8 +96,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "listSessions",
@@ -114,8 +111,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "deleteSession",
@@ -130,8 +126,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "listTools",
@@ -139,8 +134,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "getStats",
@@ -148,8 +142,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     }
   ],
   "types": [

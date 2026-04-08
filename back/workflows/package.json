@@ -6,6 +6,7 @@
   "module": "index.ts",
   "dependencies": {
     "back-core": "workspace:*",
+    "converged-runtime": "workspace:*",
     "marked": "*",
     "g-logs": "workspace:*",
     "g-notify": "workspace:*",

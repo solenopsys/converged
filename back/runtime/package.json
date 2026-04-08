@@ -12,6 +12,6 @@
   "dependencies": {
     "back-core": "workspace:*",
     "croner": "^9.1.0",
-    "g-dag": "workspace:*"
+    "g-runtime": "workspace:*"
   }
 }

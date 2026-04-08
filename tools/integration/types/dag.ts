@@ -44,16 +44,6 @@ export interface ExecutionEvent {
 }
 
 export interface DagService {
-  startExecution(
-    workflowName: string,
-    params: Record<string, any>,
-  ): AsyncIterable<ExecutionEvent>;
-
-  createExecution(
-    workflowName: string,
-    params: Record<string, any>,
-  ): Promise<{ id: string }>;
-
   statusExecution(id: string): Promise<{
     execution: Execution;
     tasks: Task[];

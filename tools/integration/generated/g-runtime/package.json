@@ -1,5 +1,5 @@
 {
-  "name": "g-secrets",
+  "name": "g-runtime",
   "version": "0.0.0",
   "type": "module",
   "private": true,

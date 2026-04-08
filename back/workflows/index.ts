@@ -6,8 +6,4 @@ export {
   getProvidersPool,
 } from "./providers";
 
-import { SendMagicLinkWorkflow } from "./wf-magic-link";
-
-export const WORKFLOWS = [
-  { name: "send-magic-link", ctor: SendMagicLinkWorkflow },
-];
+export const WORKFLOWS: { name: string; ctor: any }[] = [];

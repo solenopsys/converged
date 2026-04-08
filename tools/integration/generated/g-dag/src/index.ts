@@ -53,50 +53,6 @@ export const metadata = {
   "filePath": "../types/dag.ts",
   "methods": [
     {
-      "name": "startExecution",
-      "parameters": [
-        {
-          "name": "workflowName",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "params",
-          "type": "Record",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": true,
-      "isPublic": false
-    },
-    {
-      "name": "createExecution",
-      "parameters": [
-        {
-          "name": "workflowName",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "params",
-          "type": "Record",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
-    },
-    {
       "name": "statusExecution",
       "parameters": [
         {
@@ -109,8 +65,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "listExecutions",
@@ -125,8 +80,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "listTasks",
@@ -147,8 +101,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "stats",
@@ -156,8 +109,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "listWorkflows",
@@ -165,8 +117,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "listVars",
@@ -174,8 +125,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "setVar",
@@ -196,8 +146,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "deleteVar",
@@ -212,8 +161,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -414,8 +362,6 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface DagService {
-  startExecution(workflowName: string, params: Record): AsyncIterable<any>;
-  createExecution(workflowName: string, params: Record): Promise<any>;
   statusExecution(id: string): Promise<any>;
   listExecutions(params: PaginationParams): Promise<any>;
   listTasks(executionId: any, params: PaginationParams): Promise<any>;
@@ -428,8 +374,6 @@ export interface DagService {
 
 // Client interface
 export interface DagServiceClient {
-  startExecution(workflowName: string, params: Record): AsyncIterable<any>;
-  createExecution(workflowName: string, params: Record): Promise<any>;
   statusExecution(id: string): Promise<any>;
   listExecutions(params: PaginationParams): Promise<any>;
   listTasks(executionId: any, params: PaginationParams): Promise<any>;

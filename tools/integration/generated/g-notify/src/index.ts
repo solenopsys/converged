@@ -67,8 +67,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "getTemplate",
@@ -83,8 +82,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "listTemplates",
@@ -92,8 +90,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "deleteTemplate",
@@ -108,33 +105,75 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "saveChannel",
-      "parameters": [{ "name": "channel", "type": "NotifyChannelInput", "optional": false, "isArray": false }],
-      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": false
+      "parameters": [
+        {
+          "name": "channel",
+          "type": "NotifyChannelInput",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     },
     {
       "name": "getChannel",
-      "parameters": [{ "name": "id", "type": "NotifyChannelId", "optional": false, "isArray": false }],
-      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": false
+      "parameters": [
+        {
+          "name": "id",
+          "type": "NotifyChannelId",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     },
     {
       "name": "listChannels",
       "parameters": [],
-      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": false
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     },
     {
       "name": "deleteChannel",
-      "parameters": [{ "name": "id", "type": "NotifyChannelId", "optional": false, "isArray": false }],
-      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": false
+      "parameters": [
+        {
+          "name": "id",
+          "type": "NotifyChannelId",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     },
     {
       "name": "send",
-      "parameters": [{ "name": "input", "type": "NotifySendInput", "optional": false, "isArray": false }],
-      "returnType": "any", "isAsync": true, "returnTypeIsArray": false, "isAsyncIterable": false, "isPublic": false
+      "parameters": [
+        {
+          "name": "input",
+          "type": "NotifySendInput",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     },
     {
       "name": "recordSend",
@@ -149,8 +188,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "getSend",
@@ -165,8 +203,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     },
     {
       "name": "listSends",
@@ -174,8 +211,7 @@ export const metadata = {
       "returnType": "any",
       "isAsync": true,
       "returnTypeIsArray": false,
-      "isAsyncIterable": false,
-      "isPublic": false
+      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -206,6 +242,18 @@ export const metadata = {
     {
       "name": "NotifySendInput",
       "definition": "{\n  templateId: NotifyTemplateId;\n  channel: string;\n  recipient: string;\n  params?: Record<string, string | number | boolean | null>;\n  status?: string;\n}"
+    },
+    {
+      "name": "NotifyChannelId",
+      "definition": "string"
+    },
+    {
+      "name": "NotifyChannel",
+      "definition": "{\n  id: NotifyChannelId;\n  type: string;\n  config: Record<string, any>;\n}"
+    },
+    {
+      "name": "NotifyChannelInput",
+      "definition": "{\n  id: NotifyChannelId;\n  type: string;\n  config: Record<string, any>;\n}"
     }
   ]
 };

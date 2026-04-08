@@ -1,5 +1,5 @@
 import { Cron } from "croner";
-import { createDagServiceClient } from "g-dag";
+import { createRuntimeServiceClient } from "g-runtime";
 
 export type CronEntryBase = {
   id: string;
@@ -70,11 +70,11 @@ export class CronEngine {
       } else if (entry.provider === "dag" && entry.action === "runWorkflow") {
         const port = process.env.PORT ?? process.env.SERVICES_PORT ?? "3000";
         const baseUrl = `http://localhost:${port}/services`;
-        const dagClient = createDagServiceClient({ baseUrl });
+        const rtClient = createRuntimeServiceClient({ baseUrl });
         const workflowName = entry.params?.workflowName;
         const params = entry.params?.params ?? {};
         if (!workflowName) throw new Error("dag provider: workflowName is required in params");
-        for await (const event of dagClient.startExecution(workflowName, params)) {
+        for await (const event of rtClient.startExecution(workflowName, params)) {
           if (event.type === "failed") throw new Error(event.error ?? "dag workflow failed");
           if (event.type === "completed") { message = `execution ${event.executionId} completed`; break; }
         }
