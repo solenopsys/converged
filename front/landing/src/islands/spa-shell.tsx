@@ -6,7 +6,7 @@
  * After mount: full BaseLayout from front-core with chat + menu panel.
  */
 import { createRoot } from "react-dom/client";
-import { addMenuRequested, bus } from "front-core";
+import { addMenuRequested, bus, authToken } from "front-core";
 import { App } from "../app/App";
 import { GROUPS, type GroupDef } from "../groups";
 import { DEFAULT_LOCALE, extractLocaleFromPath } from "../app/i18n";
@@ -99,7 +99,9 @@ const groupOrder: string[] = [];
 const mfToGroup: Record<string, string> = {};
 const groupMenus: Record<string, any[]> = {};
 
-function hasAuthToken() { return Boolean(window.localStorage.getItem(AUTH_TOKEN_KEY)); }
+function hasAuthToken(): boolean {
+  return authToken.isAuthenticated();
+}
 
 function isConsoleRoute() {
   const pathname = window.location.pathname;

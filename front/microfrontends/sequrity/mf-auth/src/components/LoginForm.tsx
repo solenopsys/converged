@@ -1,75 +1,36 @@
-import { useState } from "react"
-import { cn } from "front-core"
-import { Button } from "front-core"
-import { Input } from "front-core"
-import { Label } from "front-core"
-import { toast } from "sonner"
-import { useMicrofrontendTranslation } from "front-core"
-import { authClient } from "../service"
-import { sendMagicLinkFx } from "../functions/send-magic-link"
-import { SocialsPanel } from "./Socials"
+import { useState } from "react";
+import { useStore } from "effector-react";
+import { cn, Button, Input, Label, useMicrofrontendTranslation } from "front-core";
+import { toast } from "sonner";
+import { SocialsPanel } from "./Socials";
+import { $magicLinkStatus, $magicLinkError, magicLinkSend } from "../model";
 
 const AUTH_MF_ID = "auth-mf";
 
-export function LoginForm({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
-
+export function LoginForm({ className, ...props }: React.ComponentProps<"div">) {
   const { t } = useMicrofrontendTranslation(AUTH_MF_ID);
+  const status = useStore($magicLinkStatus);
+  const error  = useStore($magicLinkError);
 
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [showPasswordField, setShowPasswordField] = useState(false)
+  const [email, setEmail] = useState("");
 
-  // Handle sending auth link
-  const handleSendAuthLink = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!email.trim()) return
+  const sending = status === "sending";
+  const sent    = status === "sent";
 
-    setLoading(true)
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || sending) return;
+    magicLinkSend(email.trim());
+  };
 
-    try {
-      await sendMagicLinkFx({ email: email.trim() })
-
-      toast.success(t("notification.linkSent"), {
-        description: t("notification.checkEmail"),
-      })
-    } catch (error) {
-      toast.error(t("notification.sendLinkFailed"), {
-        description: error instanceof Error ? error.message : t("notification.tryAgain"),
-      })
-    } finally {
-      setLoading(false)
-    }
+  if (sent) {
+    return (
+      <div className={cn("flex h-full flex-col items-center justify-center gap-2 px-6", className)} {...props}>
+        <p className="text-center text-sm font-medium">{t("notification.linkSent")}</p>
+        <p className="text-center text-xs text-muted-foreground">{t("notification.checkEmail")}</p>
+      </div>
+    );
   }
-
-  // Handle email/password login
-  const handleEmailLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-
-    try {
-      const data = await authClient.login(email.trim(), password)
-
-      // Save token or handle successful login
-      if (data.token) {
-        localStorage.setItem("authToken", data.token)
-        window.dispatchEvent(new Event("auth-token-changed"))
-        window.location.href = "/dashboard" // Redirect to dashboard
-      }
-    } catch (error) {
-      toast.error(t("notification.loginFailed"), {
-        description: error instanceof Error ? error.message : t("notification.tryAgain"),
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleSubmit = showPasswordField ? handleEmailLogin : handleSendAuthLink
-  const canSubmit = email.trim() && (!showPasswordField || password.trim())
 
   return (
     <div className={cn("flex h-full flex-col", className)} {...props}>
@@ -81,21 +42,7 @@ export function LoginForm({
       <form className="flex-1 overflow-auto px-6 py-4" onSubmit={handleSubmit}>
         <div className="space-y-4">
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="email">{t("form.email")}</Label>
-              {email.trim() && (
-                <a
-                  href="#"
-                  className="ml-auto text-xs underline-offset-2 hover:underline"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    setShowPasswordField(!showPasswordField)
-                  }}
-                >
-                  {showPasswordField ? t("form.sendLink") : t("form.loginWithPassword")}
-                </a>
-              )}
-            </div>
+            <Label htmlFor="email">{t("form.email")}</Label>
             <Input
               id="email"
               type="email"
@@ -106,24 +53,12 @@ export function LoginForm({
             />
           </div>
 
-          {showPasswordField && (
-            <div className="space-y-2">
-              <Label htmlFor="password">{t("form.password")}</Label>
-              <Input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
+          {error && (
+            <p className="text-xs text-destructive">{error}</p>
           )}
 
-          <Button type="submit" className="w-full" disabled={!canSubmit || loading}>
-            {loading
-              ? (showPasswordField ? t("button.loggingIn") : t("button.sendingLink"))
-              : (showPasswordField ? t("button.login") : t("button.sendAuthLink"))
-            }
+          <Button type="submit" className="w-full" disabled={!email.trim() || sending}>
+            {sending ? t("button.sendingLink") : t("button.sendAuthLink")}
           </Button>
         </div>
       </form>
@@ -132,5 +67,5 @@ export function LoginForm({
         <SocialsPanel />
       </div>
     </div>
-  )
+  );
 }

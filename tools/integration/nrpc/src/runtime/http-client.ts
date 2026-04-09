@@ -50,6 +50,22 @@ class HttpClientImpl {
     return this.callRegular(methodName, params);
   }
 
+  private resolveRequestHeaders(): Record<string, string> {
+    const resolved: Record<string, string> = { ...this.headers };
+    const hasAuthorization = Object.keys(resolved).some(
+      (key) => key.toLowerCase() === "authorization",
+    );
+
+    if (!hasAuthorization && typeof window !== "undefined") {
+      const token = window.localStorage.getItem("authToken");
+      if (token && token.trim().length > 0) {
+        resolved.authorization = `Bearer ${token}`;
+      }
+    }
+
+    return resolved;
+  }
+
   private async callRegular(methodName: string, params: any[]): Promise<any> {
     const method = this.metadata.methods.find((m) => m.name === methodName);
     const path = `/${this.metadata.serviceName}/${methodName}`;
@@ -64,11 +80,12 @@ class HttpClientImpl {
 
     try {
       const url = `${this.baseUrl}${path}`;
+      const requestHeaders = this.resolveRequestHeaders();
       const response = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...this.headers,
+          ...requestHeaders,
         },
         body: JSON.stringify(body),
         signal: abortController.signal,
@@ -126,12 +143,13 @@ class HttpClientImpl {
         // Локальный AbortController для стрима
         const abortController = new AbortController();
 
+        const requestHeaders = self.resolveRequestHeaders();
         const response = await fetch(`${self.baseUrl}${path}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Accept: "text/event-stream",
-            ...self.headers,
+            ...requestHeaders,
           },
           body: JSON.stringify(body),
           signal: abortController.signal,

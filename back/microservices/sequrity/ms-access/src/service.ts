@@ -1,5 +1,6 @@
 import type { AccessService, AccessPreset, Permission } from "./types";
 import { StoresController } from "./stores";
+import { SignJWT } from "jose";
 
 const DEFAULT_TTL_SECONDS = 15 * 60;
 export class AccessServiceImpl implements AccessService {
@@ -39,17 +40,13 @@ export class AccessServiceImpl implements AccessService {
   async emitJWT(userId: string): Promise<string> {
     await this.ready();
     const permissions = await this.getPermissionsMixinFromUser(userId);
-    const now = Math.floor(Date.now() / 1000);
-    const exp = now + this.ttlSeconds;
-    return await Bun.sign(
-      {
-        sub: userId,
-        perm: permissions,
-        iat: now,
-        exp,
-      },
-      this.jwtSecret,
-    );
+    const secret = new TextEncoder().encode(this.jwtSecret);
+    return await new SignJWT({ perm: permissions })
+      .setProtectedHeader({ alg: "HS256" })
+      .setSubject(userId)
+      .setIssuedAt()
+      .setExpirationTime(`${this.ttlSeconds}s`)
+      .sign(secret);
   }
 
   async addPermissionToUser(

@@ -45,6 +45,13 @@ export interface LoginResult {
   email: string;
 }
 
+export interface TemporaryUserResult {
+  token: string;
+  userId: string;
+  email: string;
+  temporary: any;
+}
+
 export interface CleanupResult {
   authCodes: number;
   magicLinks: number;
@@ -105,6 +112,21 @@ export const metadata = {
           "name": "password",
           "type": "string",
           "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "createTemporaryUser",
+      "parameters": [
+        {
+          "name": "sessionId",
+          "type": "string",
+          "optional": true,
           "isArray": false
         }
       ],
@@ -403,6 +425,36 @@ export const metadata = {
       ]
     },
     {
+      "name": "TemporaryUserResult",
+      "definition": "",
+      "properties": [
+        {
+          "name": "token",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "userId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "temporary",
+          "type": "any",
+          "optional": false,
+          "isArray": false
+        }
+      ]
+    },
+    {
       "name": "CleanupResult",
       "definition": "",
       "properties": [
@@ -434,6 +486,7 @@ export interface AuthService {
   getMagicLink(email: string, returnTo?: string): Promise<any>;
   verifyLink(token: string): Promise<any>;
   login(email: string, password: string): Promise<any>;
+  createTemporaryUser(sessionId?: string): Promise<any>;
   logout(userId: string, clientId?: string): Promise<any>;
   createOAuthClient(client: OAuthClientInput): Promise<any>;
   getOAuthClient(clientId: string): Promise<any>;
@@ -448,6 +501,7 @@ export interface AuthServiceClient {
   getMagicLink(email: string, returnTo?: string): Promise<any>;
   verifyLink(token: string): Promise<any>;
   login(email: string, password: string): Promise<any>;
+  createTemporaryUser(sessionId?: string): Promise<any>;
   logout(userId: string, clientId?: string): Promise<any>;
   createOAuthClient(client: OAuthClientInput): Promise<any>;
   getOAuthClient(clientId: string): Promise<any>;

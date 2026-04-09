@@ -42,6 +42,13 @@ export interface LoginResult {
   email: string;
 }
 
+export interface TemporaryUserResult {
+  token: string;
+  userId: string;
+  email: string;
+  temporary: true;
+}
+
 export interface CleanupResult {
   authCodes: number;
   magicLinks: number;
@@ -55,6 +62,8 @@ export interface AuthService {
   verifyLink(token: string): Promise<VerifyLinkResult>;
   /** @public */
   login(email: string, password: string): Promise<LoginResult>;
+  /** @public */
+  createTemporaryUser(sessionId?: string): Promise<TemporaryUserResult>;
   logout(userId: string, clientId?: string): Promise<void>;
 
   createOAuthClient(client: OAuthClientInput): Promise<OAuthClient>;

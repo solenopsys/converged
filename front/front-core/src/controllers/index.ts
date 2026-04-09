@@ -1,3 +1,4 @@
+export * from './auth-token';
 export * from './menu-store';
 export * from './locale-controller';
 export * from './registry';

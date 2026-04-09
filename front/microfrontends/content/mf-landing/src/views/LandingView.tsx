@@ -96,6 +96,8 @@ function resolveFallbackLocale(configPath: string): SupportedLocale {
 }
 
 export default function LandingView({ configPath }: { configPath: string }) {
+  if (typeof window === "undefined") return <div id="landing-ssr-placeholder" />;
+
   const prefetchedBlocks = useMemo(() => getPrefetchedBlocks(configPath), [configPath]);
   const fallbackLocale = useMemo(() => resolveFallbackLocale(configPath), [configPath]);
   const [blocks, setBlocks] = useState<ResolvedBlock[]>(() => prefetchedBlocks ?? []);
@@ -112,6 +114,13 @@ export default function LandingView({ configPath }: { configPath: string }) {
 
     let active = true;
 
+    const locale = configPath.split("/")[0] ?? "";
+
+    function localizeSourcePath(p: string): string {
+      if (!locale || p.startsWith(`${locale}/`)) return p;
+      return `${locale}/${p}`;
+    }
+
     const loadLanding = async () => {
       setLoading(true);
       setError(null);
@@ -120,7 +129,7 @@ export default function LandingView({ configPath }: { configPath: string }) {
         if (!active) return;
 
         const baseBlocks = Array.isArray(raw?.blocks) ? raw.blocks : [];
-        const sourcePaths = Array.from(
+        const rawSourcePaths = Array.from(
           new Set(
             baseBlocks.flatMap((block) =>
               Object.values(block.sources ?? {}).filter(
@@ -130,6 +139,7 @@ export default function LandingView({ configPath }: { configPath: string }) {
             ),
           ),
         );
+        const sourcePaths = rawSourcePaths.map(localizeSourcePath);
 
         const sourceValues = sourcePaths.length
           ? await structClient.readJsonBatch(sourcePaths)
@@ -144,7 +154,7 @@ export default function LandingView({ configPath }: { configPath: string }) {
         const resolved: ResolvedBlock[] = baseBlocks.map((block, index) => {
           const data: Record<string, unknown> = {};
           for (const [alias, path] of Object.entries(block.sources ?? {})) {
-            data[alias] = sourceMap.get(path);
+            data[alias] = sourceMap.get(localizeSourcePath(path));
           }
           return {
             id: block.id || `${block.type}-${index}`,

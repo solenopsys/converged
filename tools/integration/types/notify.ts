@@ -53,8 +53,6 @@ export interface NotifyService {
   getChannel(id: NotifyChannelId): Promise<NotifyChannel | undefined>;
   listChannels(): Promise<NotifyChannel[]>;
   deleteChannel(id: NotifyChannelId): Promise<boolean>;
-  /** Route notification through the appropriate channel provider and record the send */
-  send(input: NotifySendInput): Promise<NotifySendId>;
   recordSend(input: NotifySendInput): Promise<NotifySendId>;
   getSend(id: NotifySendId): Promise<NotifySend | undefined>;
   listSends(): Promise<NotifySend[]>;

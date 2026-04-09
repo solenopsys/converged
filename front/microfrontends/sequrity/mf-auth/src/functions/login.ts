@@ -1,41 +1,23 @@
-import LoginView from "../views/LoginView";
 import { CreateWidget, CreateAction } from "front-core";
-import { sample } from "effector";
-import domain from "../domain";
+import LoginView from "../views/LoginView";
 
-const SHOW_LOGIN = "show_login";
-const LOGIN = "login";
-
-const authFx = domain.createEffect<any, any>();
-const authEvent = domain.createEvent<{ credentials?: any; social?: string }>();
-sample({ clock: authEvent, target: authFx });
+export const SHOW_LOGIN = "auth.show-login";
 
 const createLoginWidget: CreateWidget<typeof LoginView> = (bus) => ({
-    view: LoginView,
-    placement: () => "sidebar:tab:auth",
-    config: { bus },
-    commands: {
-        auth: authEvent
-    }
+  view: LoginView,
+  placement: () => "sidebar:tab:auth",
+  config: { bus },
+  commands: {},
 });
 
-const createShowLoginAction: CreateAction<any> = (bus) => ({
-    id: SHOW_LOGIN,
-    description: "Show login form",
-    invoke: () => {
-        bus.present({ widget: createLoginWidget(bus) });
-    }
+export const createShowLoginAction: CreateAction<any> = (bus) => ({
+  id: SHOW_LOGIN,
+  description: "Show login form",
+  invoke: () => bus.present({ widget: createLoginWidget(bus) }),
 });
 
-const createAuthAction: CreateAction<any> = () => ({
-    id: LOGIN,
-    description: "Auth user",
-    invoke: authEvent
+export const createAuthAction: CreateAction<any> = () => ({
+  id: "auth.login",
+  description: "Auth user",
+  invoke: () => {},
 });
-
-export {
-    LOGIN,
-    SHOW_LOGIN,
-    createShowLoginAction,
-    createAuthAction
-}

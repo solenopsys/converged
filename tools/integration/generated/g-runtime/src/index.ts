@@ -57,6 +57,21 @@ export const metadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
+    },
+    {
+      "name": "sendMagicLink",
+      "parameters": [
+        {
+          "name": "params",
+          "type": "any",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     }
   ],
   "types": []
@@ -67,6 +82,7 @@ export interface RuntimeService {
   startExecution(workflowName: string, params: Record): AsyncIterable<any>;
   createExecution(workflowName: string, params: Record): Promise<any>;
   refreshCrons(): Promise<any>;
+  sendMagicLink(params: any): Promise<any>;
 }
 
 // Client interface
@@ -74,6 +90,7 @@ export interface RuntimeServiceClient {
   startExecution(workflowName: string, params: Record): AsyncIterable<any>;
   createExecution(workflowName: string, params: Record): Promise<any>;
   refreshCrons(): Promise<any>;
+  sendMagicLink(params: any): Promise<any>;
 }
 
 // Factory function

@@ -13,7 +13,10 @@ export class ActionRegistryImpl implements ActionRegistry{
   }
 
   run(actionId:string, params:any): Action<any> | undefined {
-     const action:Action<any>=this.map.get(actionId);
+     const action: Action<any> | undefined = this.map.get(actionId);
+    if (!action) {
+      throw new Error(`[bus] Action not registered: ${actionId}`);
+    }
     return action.invoke(params);
   }
 

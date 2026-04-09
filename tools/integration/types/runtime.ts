@@ -12,4 +12,11 @@ export interface RuntimeService {
   ): Promise<{ id: string }>;
 
   refreshCrons(): Promise<void>;
+
+  sendMagicLink(params: {
+    email: string;
+    returnTo?: string;
+    channel?: string;
+    templateId?: string;
+  }): Promise<void>;
 }

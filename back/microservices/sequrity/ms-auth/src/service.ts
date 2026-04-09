@@ -6,6 +6,7 @@ import type {
   GetMagicLinkResult,
   VerifyLinkResult,
   LoginResult,
+  TemporaryUserResult,
   CleanupResult,
 } from "./types";
 import { createHttpClient, Access } from "nrpc";
@@ -44,13 +45,29 @@ export class AuthServiceImpl implements AuthService {
   private identityClient() {
     return createHttpClient<{
       getUserByEmail(email: string): Promise<{ id: string; email: string } | null>;
-      createUser(user: { id: string; email: string; name: string }): Promise<{ id: string; email: string }>;
+      getUser(userId: string): Promise<{ id: string; email: string } | null>;
+      getAuthMethodByProvider(
+        provider: string,
+        providerUserId: string,
+      ): Promise<{ userId: string } | null>;
+      createUser(
+        user: { id: string; email: string; name: string; emailVerified?: boolean },
+      ): Promise<{ id: string; email: string }>;
+      linkAuthMethod(
+        userId: string,
+        provider: string,
+        providerUserId: string,
+        email: string,
+      ): Promise<void>;
     }>(
       {
         serviceName: "identity",
         methods: [
           { name: "getUserByEmail", parameters: [{ name: "email", type: "string", optional: false, isArray: false }], returnType: "any", isAsync: true, returnTypeIsArray: false, isAsyncIterable: false },
+          { name: "getUser", parameters: [{ name: "userId", type: "string", optional: false, isArray: false }], returnType: "any", isAsync: true, returnTypeIsArray: false, isAsyncIterable: false },
+          { name: "getAuthMethodByProvider", parameters: [{ name: "provider", type: "string", optional: false, isArray: false }, { name: "providerUserId", type: "string", optional: false, isArray: false }], returnType: "any", isAsync: true, returnTypeIsArray: false, isAsyncIterable: false },
           { name: "createUser", parameters: [{ name: "user", type: "any", optional: false, isArray: false }], returnType: "any", isAsync: true, returnTypeIsArray: false, isAsyncIterable: false },
+          { name: "linkAuthMethod", parameters: [{ name: "userId", type: "string", optional: false, isArray: false }, { name: "provider", type: "string", optional: false, isArray: false }, { name: "providerUserId", type: "string", optional: false, isArray: false }, { name: "email", type: "string", optional: false, isArray: false }], returnType: "void", isAsync: true, returnTypeIsArray: false, isAsyncIterable: false },
         ],
       } as any,
       { baseUrl: this.baseUrl },
@@ -58,11 +75,15 @@ export class AuthServiceImpl implements AuthService {
   }
 
   private accessClient() {
-    return createHttpClient<{ emitJWT(userId: string): Promise<string> }>(
+    return createHttpClient<{
+      emitJWT(userId: string): Promise<string>;
+      addPermissionToUser(userId: string, permission: string): Promise<void>;
+    }>(
       {
         serviceName: "access",
         methods: [
           { name: "emitJWT", parameters: [{ name: "userId", type: "string", optional: false, isArray: false }], returnType: "any", isAsync: true, returnTypeIsArray: false, isAsyncIterable: false },
+          { name: "addPermissionToUser", parameters: [{ name: "userId", type: "string", optional: false, isArray: false }, { name: "permission", type: "string", optional: false, isArray: false }], returnType: "void", isAsync: true, returnTypeIsArray: false, isAsyncIterable: false },
         ],
       } as any,
       { baseUrl: this.baseUrl },
@@ -71,6 +92,12 @@ export class AuthServiceImpl implements AuthService {
 
   private normalizeEmail(email: string): string {
     return (email ?? "").trim().toLowerCase();
+  }
+
+  private normalizeSessionId(sessionId?: string): string {
+    const raw = (sessionId ?? "").trim();
+    if (!raw) return crypto.randomUUID();
+    return raw.replace(/[^a-zA-Z0-9:_-]/g, "").slice(0, 128) || crypto.randomUUID();
   }
 
   private async ensureUserByEmail(email: string): Promise<{ id: string; email: string }> {
@@ -125,6 +152,45 @@ export class AuthServiceImpl implements AuthService {
     const user = await this.ensureUserByEmail(email);
     const token = await this.accessClient().emitJWT(user.id);
     return { token, userId: user.id, email: user.email };
+  }
+
+  @Access("public")
+  async createTemporaryUser(sessionId?: string): Promise<TemporaryUserResult> {
+    await this.ready();
+    const identity = this.identityClient();
+    const normalizedSessionId = this.normalizeSessionId(sessionId);
+    const provider = "temporary";
+
+    const existing = await identity.getAuthMethodByProvider(provider, normalizedSessionId);
+    const user = existing
+      ? await identity.getUser(existing.userId)
+      : null;
+
+    const resolvedUser = user ?? await identity.createUser({
+      id: `temp:${crypto.randomUUID()}`,
+      email: `temp+${normalizedSessionId}@guest.local`,
+      name: "Guest",
+      emailVerified: false,
+    });
+
+    if (!existing) {
+      await identity.linkAuthMethod(
+        resolvedUser.id,
+        provider,
+        normalizedSessionId,
+        resolvedUser.email,
+      );
+    }
+
+    const access = this.accessClient();
+    await access.addPermissionToUser(resolvedUser.id, "usage/recordUsage(w)");
+    const token = await access.emitJWT(resolvedUser.id);
+    return {
+      token,
+      userId: resolvedUser.id,
+      email: resolvedUser.email,
+      temporary: true,
+    };
   }
 
   async logout(userId: string, clientId?: string): Promise<void> {

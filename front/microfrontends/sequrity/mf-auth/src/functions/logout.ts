@@ -1,21 +1,10 @@
- 
-import {  CreateAction } from 'front-core';
-import { sample } from "effector";
-import domain from "../domain";
+import type { CreateAction } from "front-core";
+import { logoutPressed } from "../model";
 
-const LOGOUT = "logout";
+export const LOGOUT = "auth.logout";
 
-const logoutFx = domain.createEffect<any, any>();
-const logoutEvent = domain.createEvent();
-sample({ clock: logoutEvent, target: logoutFx });
-
-const createLogoutAction: CreateAction<any> = () => ({
-    id: LOGOUT,
-    description: "Logout user",
-    invoke: logoutEvent
+export const createLogoutAction: CreateAction<any> = () => ({
+  id: LOGOUT,
+  description: "Logout user",
+  invoke: () => logoutPressed(),
 });
-
-export {
-    LOGOUT,
-    createLogoutAction
-};

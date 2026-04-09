@@ -23,7 +23,8 @@
     "front-core": "workspace:*",
     "front-ssr": "workspace:*",
     "md-tools": "workspace:*",
-    "g-markdown": "workspace:*"
+    "g-markdown": "workspace:*",
+    "g-runtime": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "latest",

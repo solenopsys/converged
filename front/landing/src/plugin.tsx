@@ -190,8 +190,15 @@ async function prefetchLandingPayload(
     path: configPath,
   });
 
+  const locale = configPath.split("/")[0] ?? "";
+
+  function localizeSourcePath(p: string): string {
+    if (!locale || p.startsWith(`${locale}/`)) return p;
+    return `${locale}/${p}`;
+  }
+
   const blocks = Array.isArray(config?.blocks) ? config.blocks : [];
-  const sourcePaths = Array.from(
+  const rawSourcePaths = Array.from(
     new Set(
       blocks.flatMap((block) =>
         Object.values(block.sources ?? {}).filter(
@@ -201,6 +208,7 @@ async function prefetchLandingPayload(
       ),
     ),
   );
+  const sourcePaths = rawSourcePaths.map(localizeSourcePath);
 
   const sourceValues = sourcePaths.length > 0
     ? await structCall<any[]>(servicesBaseUrl, "readJsonBatch", {
@@ -216,7 +224,7 @@ async function prefetchLandingPayload(
   const resolvedBlocks: ResolvedBlock[] = blocks.map((block, index) => {
     const data: Record<string, unknown> = {};
     for (const [alias, sourcePath] of Object.entries(block.sources ?? {})) {
-      data[alias] = sourceMap.get(sourcePath);
+      data[alias] = sourceMap.get(localizeSourcePath(sourcePath));
     }
 
     return {

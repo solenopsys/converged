@@ -1,13 +1,9 @@
-import {
-  StructService,
-  PaginatedResult,
-  PaginationParams,
-} from "g-struct";
+import type { CeoService, PaginatedResult, PaginationParams } from "g-ceo";
 import { StoresController } from "./stores";
 
 const MS_ID = "ceo-ms";
 
-export class CeoServiceImpl implements StructService {
+export class CeoServiceImpl implements CeoService {
   stores: StoresController;
   private initPromise?: Promise<void>;
 

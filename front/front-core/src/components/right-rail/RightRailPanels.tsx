@@ -11,7 +11,9 @@ import type {
 import { rightRailActionSelected } from "./uri-sync";
 import type { MenuItem } from "../../controllers/menu-store";
 import { $allMenuItems } from "../../controllers/menu-store";
+import { authToken } from "../../controllers/auth-token";
 import { registry } from "../../controllers/registry";
+import { bus } from "../../controllers/bus";
 import { runActionEvent } from "../../controllers/effector-integration";
 import { useGlobalTranslation } from "../../hooks/global_i18n";
 import { Button } from "../ui/button";
@@ -275,13 +277,10 @@ function ThemeButton() {
 }
 
 function LoginButton() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => authToken.isAuthenticated());
 
   useEffect(() => {
-    const syncAuth = () => {
-      setIsAuthenticated(Boolean(window.localStorage.getItem("authToken")));
-    };
-    syncAuth();
+    const syncAuth = () => setIsAuthenticated(authToken.isAuthenticated());
     window.addEventListener("auth-token-changed", syncAuth);
     window.addEventListener("storage", syncAuth);
     return () => {
@@ -316,8 +315,7 @@ function LoginButton() {
   }, []);
 
   const handleLogout = useCallback(() => {
-    window.localStorage.removeItem("authToken");
-    window.dispatchEvent(new Event("auth-token-changed"));
+    bus.run("auth.logout", {});
   }, []);
 
   return (

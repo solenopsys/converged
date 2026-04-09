@@ -161,21 +161,6 @@ export const metadata = {
       "isAsyncIterable": false
     },
     {
-      "name": "send",
-      "parameters": [
-        {
-          "name": "input",
-          "type": "NotifySendInput",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
       "name": "recordSend",
       "parameters": [
         {
@@ -268,7 +253,6 @@ export interface NotifyService {
   getChannel(id: NotifyChannelId): Promise<any>;
   listChannels(): Promise<any>;
   deleteChannel(id: NotifyChannelId): Promise<any>;
-  send(input: NotifySendInput): Promise<any>;
   recordSend(input: NotifySendInput): Promise<any>;
   getSend(id: NotifySendId): Promise<any>;
   listSends(): Promise<any>;
@@ -284,7 +268,6 @@ export interface NotifyServiceClient {
   getChannel(id: NotifyChannelId): Promise<any>;
   listChannels(): Promise<any>;
   deleteChannel(id: NotifyChannelId): Promise<any>;
-  send(input: NotifySendInput): Promise<any>;
   recordSend(input: NotifySendInput): Promise<any>;
   getSend(id: NotifySendId): Promise<any>;
   listSends(): Promise<any>;

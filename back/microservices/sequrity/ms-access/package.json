@@ -12,6 +12,7 @@
   "dependencies": {
     "back-core": "workspace:*",
     "nrpc": "workspace:*",
-    "g-access": "workspace:*"
+    "g-access": "workspace:*",
+    "jose": "^6.1.0"
   }
 }
