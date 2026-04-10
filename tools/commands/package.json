@@ -9,6 +9,8 @@
     "g-telemetry": "workspace:*",
     "g-dumps": "workspace:*",
     "g-dag": "workspace:*",
-    "g-sheduller": "workspace:*"
+    "g-sheduller": "workspace:*",
+    "g-auth": "workspace:*",
+    "g-identity": "workspace:*"
   }
 }

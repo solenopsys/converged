@@ -31,6 +31,7 @@ export class UsersStoreService {
       name: input.name,
       picture: input.picture ?? null,
       emailVerified: input.emailVerified ? 1 : 0,
+      preset: input.preset ?? "user",
       createdAt: new Date().toISOString(),
     };
     const created = await this.userRepo.create(entity as any);
@@ -61,6 +62,7 @@ export class UsersStoreService {
       email: updates.email,
       name: updates.name,
       picture: updates.picture,
+      preset: updates.preset,
       emailVerified:
         updates.emailVerified === undefined
           ? undefined
@@ -141,6 +143,7 @@ export class UsersStoreService {
       name: entity.name,
       picture: entity.picture ?? undefined,
       emailVerified: Boolean(entity.emailVerified),
+      preset: entity.preset,
       createdAt: entity.createdAt,
     };
   }

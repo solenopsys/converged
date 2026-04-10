@@ -76,7 +76,7 @@ export class AccessServiceImpl implements AccessService {
     const permissions = new Set(access.permissions);
 
     for (const presetName of access.presets) {
-      const presetPerms = this.stores.access.getPermissionsFromPreset(
+      const presetPerms = await this.stores.access.getPermissionsFromPreset(
         presetName,
       );
       presetPerms.forEach((perm) => permissions.add(perm));
@@ -97,32 +97,33 @@ export class AccessServiceImpl implements AccessService {
 
   async createPreset(presetName: string, permissions: Permission[]): Promise<void> {
     await this.ready();
-    this.stores.access.createPreset(presetName, permissions);
+    await this.stores.access.createPreset(presetName, permissions);
   }
 
   async updatePreset(presetName: string, permissions: Permission[]): Promise<void> {
     await this.ready();
-    this.stores.access.updatePreset(presetName, permissions);
+    await this.stores.access.updatePreset(presetName, permissions);
   }
 
   async deletePreset(presetName: string): Promise<void> {
     await this.ready();
-    this.stores.access.deletePreset(presetName);
+    await this.stores.access.deletePreset(presetName);
   }
 
   async getPreset(presetName: string): Promise<Permission[] | null> {
     await this.ready();
-    const permissions = this.stores.access.getPermissionsFromPreset(presetName);
+    const permissions = await this.stores.access.getPermissionsFromPreset(presetName);
     return permissions.length > 0 ? permissions : null;
   }
 
   async getAllPresets(): Promise<AccessPreset[]> {
     await this.ready();
-    const presets = this.stores.access.getPresets();
-    return presets.map((name) => ({
+    const presets = await this.stores.access.getPresets();
+    const items = await Promise.all(presets.map(async (name) => ({
       name,
-      permissions: this.stores.access.getPermissionsFromPreset(name),
-    }));
+      permissions: await this.stores.access.getPermissionsFromPreset(name),
+    })));
+    return items;
   }
 }
 

@@ -1,4 +1,4 @@
-import { PrefixedRepositoryKV, SimpleKey } from "back-core";
+import { PrefixedRepositoryKV, SimpleKey, BaseKeyJson, BaseRepositoryJson } from "back-core";
 import type { Permission } from "../../types";
 
 const USER_ACCESS_PREFIX = "user_access";
@@ -22,17 +22,13 @@ class UserAccessRepository extends PrefixedRepositoryKV<
 }
 
 const PRESET_PREFIX = "preset";
-class PresetKey extends SimpleKey {
-  readonly prefix = PRESET_PREFIX;
+class PresetKey extends BaseKeyJson {
+  readonly type = PRESET_PREFIX;
 }
 
 export type PresetValue = Permission[];
 
-class PresetRepository extends PrefixedRepositoryKV<PresetKey, PresetValue> {
-  getPrefix(): string[] {
-    return [PRESET_PREFIX];
-  }
-}
+class PresetRepository extends BaseRepositoryJson<PresetKey, PresetValue> {}
 
 export {
   USER_ACCESS_PREFIX,

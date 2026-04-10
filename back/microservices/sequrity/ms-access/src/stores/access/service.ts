@@ -1,20 +1,38 @@
-import { KVStore } from "back-core";
+import { KVStore, JsonStore } from "back-core";
 import {
   UserAccessRepository,
   UserAccessKey,
   UserAccessValue,
   PresetRepository,
   PresetKey,
+  PRESET_PREFIX,
 } from "./entities";
 import type { Permission } from "../../types";
 
 export class AccessStoreService {
+  private readonly accessStore: KVStore;
   public readonly userAccessRepo: UserAccessRepository;
   public readonly presetRepo: PresetRepository;
 
-  constructor(store: KVStore) {
-    this.userAccessRepo = new UserAccessRepository(store);
-    this.presetRepo = new PresetRepository(store);
+  constructor(accessStore: KVStore, presetsStore: JsonStore) {
+    this.accessStore = accessStore;
+    this.userAccessRepo = new UserAccessRepository(accessStore);
+    this.presetRepo = new PresetRepository(presetsStore);
+  }
+
+  async migrateLegacyPresetsFromAccessStore(): Promise<void> {
+    const legacyKeys = this.accessStore.listKeys([PRESET_PREFIX]);
+    for (const legacyKey of legacyKeys) {
+      const presetName = legacyKey.split(":").slice(1).join(":");
+      if (!presetName) continue;
+
+      const key = new PresetKey(presetName);
+      if (this.presetRepo.exists(key)) continue;
+
+      const legacyValue = this.accessStore.getDirect(legacyKey);
+      if (!Array.isArray(legacyValue)) continue;
+      await this.presetRepo.save(key, legacyValue as Permission[]);
+    }
   }
 
   getUserAccess(userId: string): UserAccessValue {
@@ -33,14 +51,14 @@ export class AccessStoreService {
     return this.getUserAccess(userId).permissions;
   }
 
-  getPermissionsFromPreset(presetName: string): Permission[] {
-    return this.presetRepo.get(new PresetKey(presetName)) ?? [];
+  async getPermissionsFromPreset(presetName: string): Promise<Permission[]> {
+    return (await this.presetRepo.get(new PresetKey(presetName))) ?? [];
   }
 
-  getPresets(): string[] {
-    return this.presetRepo
-      .listKeys()
-      .map((key) => key.split(":").slice(1).join(":"))
+  async getPresets(): Promise<string[]> {
+    const keys = await this.presetRepo.listKeys();
+    return keys
+      .map((key) => key.split("/").slice(1).join("/"))
       .filter((name) => name.length > 0);
   }
 
@@ -58,16 +76,16 @@ export class AccessStoreService {
     this.saveUserAccess(userId, data);
   }
 
-  createPreset(presetName: string, permissions: Permission[]): void {
-    this.presetRepo.save(new PresetKey(presetName), permissions);
+  async createPreset(presetName: string, permissions: Permission[]): Promise<void> {
+    await this.presetRepo.save(new PresetKey(presetName), permissions);
   }
 
-  updatePreset(presetName: string, permissions: Permission[]): void {
-    this.presetRepo.save(new PresetKey(presetName), permissions);
+  async updatePreset(presetName: string, permissions: Permission[]): Promise<void> {
+    await this.presetRepo.save(new PresetKey(presetName), permissions);
   }
 
-  deletePreset(presetName: string): void {
-    this.presetRepo.delete(new PresetKey(presetName));
+  async deletePreset(presetName: string): Promise<void> {
+    await this.presetRepo.delete(new PresetKey(presetName));
   }
 
   addPermissionToUser(userId: string, permission: Permission): void {

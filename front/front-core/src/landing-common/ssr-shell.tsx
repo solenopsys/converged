@@ -7,6 +7,26 @@ import { AVAILABLE_LANGS } from "./i18n";
 export const themeBootstrapScript = `
 (function(){
   try{
+    var AUTH_KEYS=["oauth_provider","oauth_code","oauth_state","auth_token","token","access_token"];
+    var href=String(window.location&&window.location.href||"");
+    if(href){
+      var url=new URL(href);
+      var authToken=url.searchParams.get("auth_token")||url.searchParams.get("access_token")||url.searchParams.get("token");
+      var hasOauthCallback=Boolean(url.searchParams.get("oauth_provider")&&url.searchParams.get("oauth_code"));
+      if(authToken){
+        var parts=authToken.split(".");
+        var isJwt=parts.length===3&&parts[0].trim()&&parts[1].trim()&&parts[2].trim();
+        if(isJwt){
+          localStorage.setItem("authToken",authToken);
+          sessionStorage.removeItem("tempUserId");
+          sessionStorage.removeItem("tempSessionId");
+        }
+      }
+      if(authToken||hasOauthCallback){
+        for(var i=0;i<AUTH_KEYS.length;i++){ url.searchParams.delete(AUTH_KEYS[i]); }
+        history.replaceState(history.state,"",url.toString());
+      }
+    }
     var stored=localStorage.getItem("theme");
     var prefersDark=window.matchMedia&&window.matchMedia("(prefers-color-scheme:dark)").matches;
     var theme=stored==="light"||stored==="dark"?stored:(prefersDark?"dark":"light");

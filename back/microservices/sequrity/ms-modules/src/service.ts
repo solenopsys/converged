@@ -5,6 +5,7 @@ import type {
   ModulePreset,
   UserModuleConfig,
 } from "./types";
+import { createHttpClient, Access } from "nrpc";
 import { StoresController } from "./stores";
 
 const LOCALES = ["en", "ru", "de", "fr", "it", "pt"];
@@ -37,6 +38,27 @@ export class ModulesServiceImpl implements ModulesService {
     await this.init();
   }
 
+  private get baseUrl(): string {
+    return (
+      (typeof process !== "undefined" && process.env?.SERVICES_BASE) ||
+      "http://127.0.0.1:3000/services"
+    );
+  }
+
+  private identityClient() {
+    return createHttpClient<{
+      getUser(userId: string): Promise<{ id: string; preset?: string } | null>;
+    }>(
+      {
+        serviceName: "identity",
+        methods: [
+          { name: "getUser", parameters: [{ name: "userId", type: "string", optional: false, isArray: false }], returnType: "any", isAsync: true, returnTypeIsArray: false, isAsyncIterable: false },
+        ],
+      } as any,
+      { baseUrl: this.baseUrl },
+    );
+  }
+
   private resolveModule(def: ModuleDefinition): Module {
     const base = def.remote ? REMOTE_BASE : LOCAL_BASE;
     const locales: Record<string, string> = {};
@@ -51,15 +73,24 @@ export class ModulesServiceImpl implements ModulesService {
     };
   }
 
+  @Access("public")
   async listForUser(userId: string): Promise<Module[]> {
     await this.ready();
-    const config = await this.stores.users.getConfig(userId);
     const allModules = await this.stores.config.listModules();
+    const config = await this.stores.users.getConfig(userId);
+    const identityUser = await this.identityClient()
+      .getUser(userId)
+      .catch(() => null);
+
     const moduleMap = new Map(allModules.map((m) => [m.name, m]));
 
     const included = new Set<string>();
+    const presetNames = new Set<string>(config.presets as string[]);
+    if (identityUser?.preset) {
+      presetNames.add(identityUser.preset);
+    }
 
-    for (const presetName of config.presets) {
+    for (const presetName of presetNames) {
       const preset = await this.stores.config.getPreset(presetName);
       if (preset) {
         for (const name of preset.modules) included.add(name);

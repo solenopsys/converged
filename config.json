@@ -60,7 +60,7 @@
       "delivery": ["delivery", "dhl", "ems", "fedex", "sfexpress", "ups"],
       "extractors": ["millingextractor", "printextractor"],
       "providers": ["push", "ses", "sms", "smtp"],
-      "sequrity": ["access", "auth", "identity", "oauth"],
+      "sequrity": ["access", "auth", "identity", "modules", "oauth", "secrets"],
       "social": [
         "discord",
         "facebook",
@@ -175,7 +175,8 @@
       "GEMINI_MODEL",
       "JWT_SECRET",
       "ACCESS_JWT_SECRET",
-      "NRPC_ACCESS_MODE"
+      "NRPC_ACCESS_MODE",
+      "ROOT_EMAIL"
     ]
   }
 }

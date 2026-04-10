@@ -553,6 +553,7 @@
         "g-delivery": "workspace:*",
         "g-notify": "workspace:*",
         "g-runtime": "workspace:*",
+        "g-ses": "workspace:*",
         "g-shipmentprovider": "workspace:*",
         "g-smtp": "workspace:*",
         "nrpc": "workspace:*",
@@ -989,8 +990,10 @@
     "tools/cli": {
       "name": "dag-cli",
       "dependencies": {
+        "g-auth": "workspace:*",
         "g-dag": "workspace:*",
         "g-dumps": "workspace:*",
+        "g-identity": "workspace:*",
         "g-logs": "workspace:*",
         "g-sheduller": "workspace:*",
         "g-telemetry": "workspace:*",
@@ -1001,8 +1004,10 @@
     "tools/commands": {
       "name": "tools-commands",
       "dependencies": {
+        "g-auth": "workspace:*",
         "g-dag": "workspace:*",
         "g-dumps": "workspace:*",
+        "g-identity": "workspace:*",
         "g-logs": "workspace:*",
         "g-sheduller": "workspace:*",
         "g-telemetry": "workspace:*",
@@ -1271,7 +1276,7 @@
       "name": "g-ses",
       "version": "0.0.0",
       "dependencies": {
-        "nrpc": "*",
+        "nrpc": "workspace:*",
       },
     },
     "tools/integration/generated/g-sheduller": {
@@ -1334,7 +1339,7 @@
       "name": "g-telemetry",
       "version": "0.0.0",
       "dependencies": {
-        "nrpc": "*",
+        "nrpc": "workspace:*",
       },
     },
     "tools/integration/generated/g-threads": {

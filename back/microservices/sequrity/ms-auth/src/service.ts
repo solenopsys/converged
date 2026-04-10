@@ -12,6 +12,10 @@ import type {
 import { createHttpClient, Access } from "nrpc";
 import { StoresController } from "./stores";
 
+const MAGIC_LINK_TTL_MS = 365 * 24 * 60 * 60 * 1000;
+const ROOT_PRESET = "root";
+const USER_PRESET = "user";
+
 export class AuthServiceImpl implements AuthService {
   private stores: StoresController;
   private initPromise?: Promise<void>;
@@ -44,15 +48,19 @@ export class AuthServiceImpl implements AuthService {
 
   private identityClient() {
     return createHttpClient<{
-      getUserByEmail(email: string): Promise<{ id: string; email: string } | null>;
-      getUser(userId: string): Promise<{ id: string; email: string } | null>;
+      getUserByEmail(email: string): Promise<{ id: string; email: string; preset?: string } | null>;
+      getUser(userId: string): Promise<{ id: string; email: string; preset?: string } | null>;
       getAuthMethodByProvider(
         provider: string,
         providerUserId: string,
       ): Promise<{ userId: string } | null>;
       createUser(
-        user: { id: string; email: string; name: string; emailVerified?: boolean },
-      ): Promise<{ id: string; email: string }>;
+        user: { id: string; email: string; name: string; emailVerified?: boolean; preset?: string },
+      ): Promise<{ id: string; email: string; preset?: string }>;
+      updateUser(
+        userId: string,
+        updates: { preset?: string },
+      ): Promise<{ id: string; email: string; preset?: string }>;
       linkAuthMethod(
         userId: string,
         provider: string,
@@ -67,6 +75,7 @@ export class AuthServiceImpl implements AuthService {
           { name: "getUser", parameters: [{ name: "userId", type: "string", optional: false, isArray: false }], returnType: "any", isAsync: true, returnTypeIsArray: false, isAsyncIterable: false },
           { name: "getAuthMethodByProvider", parameters: [{ name: "provider", type: "string", optional: false, isArray: false }, { name: "providerUserId", type: "string", optional: false, isArray: false }], returnType: "any", isAsync: true, returnTypeIsArray: false, isAsyncIterable: false },
           { name: "createUser", parameters: [{ name: "user", type: "any", optional: false, isArray: false }], returnType: "any", isAsync: true, returnTypeIsArray: false, isAsyncIterable: false },
+          { name: "updateUser", parameters: [{ name: "userId", type: "string", optional: false, isArray: false }, { name: "updates", type: "any", optional: false, isArray: false }], returnType: "any", isAsync: true, returnTypeIsArray: false, isAsyncIterable: false },
           { name: "linkAuthMethod", parameters: [{ name: "userId", type: "string", optional: false, isArray: false }, { name: "provider", type: "string", optional: false, isArray: false }, { name: "providerUserId", type: "string", optional: false, isArray: false }, { name: "email", type: "string", optional: false, isArray: false }], returnType: "void", isAsync: true, returnTypeIsArray: false, isAsyncIterable: false },
         ],
       } as any,
@@ -78,12 +87,16 @@ export class AuthServiceImpl implements AuthService {
     return createHttpClient<{
       emitJWT(userId: string): Promise<string>;
       addPermissionToUser(userId: string, permission: string): Promise<void>;
+      linkPresetToUser(userId: string, presetName: string): Promise<void>;
+      unlinkPresetFromUser(userId: string, presetName: string): Promise<void>;
     }>(
       {
         serviceName: "access",
         methods: [
           { name: "emitJWT", parameters: [{ name: "userId", type: "string", optional: false, isArray: false }], returnType: "any", isAsync: true, returnTypeIsArray: false, isAsyncIterable: false },
           { name: "addPermissionToUser", parameters: [{ name: "userId", type: "string", optional: false, isArray: false }, { name: "permission", type: "string", optional: false, isArray: false }], returnType: "void", isAsync: true, returnTypeIsArray: false, isAsyncIterable: false },
+          { name: "linkPresetToUser", parameters: [{ name: "userId", type: "string", optional: false, isArray: false }, { name: "presetName", type: "string", optional: false, isArray: false }], returnType: "void", isAsync: true, returnTypeIsArray: false, isAsyncIterable: false },
+          { name: "unlinkPresetFromUser", parameters: [{ name: "userId", type: "string", optional: false, isArray: false }, { name: "presetName", type: "string", optional: false, isArray: false }], returnType: "void", isAsync: true, returnTypeIsArray: false, isAsyncIterable: false },
         ],
       } as any,
       { baseUrl: this.baseUrl },
@@ -94,22 +107,46 @@ export class AuthServiceImpl implements AuthService {
     return (email ?? "").trim().toLowerCase();
   }
 
+  private presetForEmail(email: string): string {
+    const rootEmail = this.normalizeEmail(process.env.ROOT_EMAIL ?? "");
+    return rootEmail && this.normalizeEmail(email) === rootEmail
+      ? ROOT_PRESET
+      : USER_PRESET;
+  }
+
   private normalizeSessionId(sessionId?: string): string {
     const raw = (sessionId ?? "").trim();
     if (!raw) return crypto.randomUUID();
     return raw.replace(/[^a-zA-Z0-9:_-]/g, "").slice(0, 128) || crypto.randomUUID();
   }
 
-  private async ensureUserByEmail(email: string): Promise<{ id: string; email: string }> {
+  private async syncAccessPreset(userId: string, preset?: string): Promise<void> {
+    const resolvedPreset = preset === ROOT_PRESET ? ROOT_PRESET : USER_PRESET;
+    const stalePreset = resolvedPreset === ROOT_PRESET ? USER_PRESET : ROOT_PRESET;
+    const access = this.accessClient();
+    await access.unlinkPresetFromUser(userId, stalePreset);
+    await access.linkPresetToUser(userId, resolvedPreset);
+  }
+
+  private async ensureUserByEmail(email: string): Promise<{ id: string; email: string; preset?: string }> {
     const identity = this.identityClient();
     const normalizedEmail = this.normalizeEmail(email);
+    const desiredPreset = this.presetForEmail(normalizedEmail);
     let user = await identity.getUserByEmail(normalizedEmail);
-    if (user) return user;
+    if (user) {
+      if (user.preset !== desiredPreset) {
+        user = await identity.updateUser(user.id, { preset: desiredPreset });
+      }
+      await this.syncAccessPreset(user.id, user.preset ?? desiredPreset);
+      return user;
+    }
     user = await identity.createUser({
       id: crypto.randomUUID(),
       email: normalizedEmail,
       name: normalizedEmail.split("@")[0] || "User",
+      preset: desiredPreset,
     });
+    await this.syncAccessPreset(user.id, user.preset ?? desiredPreset);
     return user;
   }
 
@@ -117,7 +154,7 @@ export class AuthServiceImpl implements AuthService {
   async getMagicLink(email: string, returnTo?: string): Promise<GetMagicLinkResult> {
     await this.ready();
     const normalizedEmail = this.normalizeEmail(email);
-    const expiresAt = Date.now() + 15 * 60 * 1000;
+    const expiresAt = Date.now() + MAGIC_LINK_TTL_MS;
     const token = crypto.randomUUID();
     this.stores.tokens.createMagicLink({
       token,
@@ -133,10 +170,9 @@ export class AuthServiceImpl implements AuthService {
   async verifyLink(token: string): Promise<VerifyLinkResult> {
     await this.ready();
     const magicLink = this.stores.tokens.getMagicLink(token);
-    if (!magicLink || magicLink.used || magicLink.expiresAt < Date.now()) {
+    if (!magicLink || magicLink.expiresAt < Date.now()) {
       throw new Error("Invalid or expired magic link");
     }
-    this.stores.tokens.markMagicLinkAsUsed(token);
     const user = await this.ensureUserByEmail(magicLink.email);
     const jwt = await this.accessClient().emitJWT(user.id);
     return { token: jwt, userId: user.id, email: magicLink.email, returnTo: magicLink.returnTo };

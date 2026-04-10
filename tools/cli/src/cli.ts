@@ -19,7 +19,8 @@ for (const arg of process.argv.slice(2)) {
   }
 }
 
-const [section, command, param] = passArgs;
+const [section, command, ...paramParts] = passArgs;
+const param = paramParts.length > 0 ? paramParts.join(" ") : undefined;
 
 // Scan directories and load command modules
 const processors: Record<string, Processor> = {};

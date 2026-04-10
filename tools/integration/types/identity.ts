@@ -6,6 +6,7 @@ export type User = {
   name: string;
   picture?: string;
   emailVerified: boolean;
+  preset?: string;
   createdAt: ISODateString;
 }
 
@@ -15,6 +16,7 @@ export type UserInput = {
   name: string;
   picture?: string;
   emailVerified?: boolean;
+  preset?: string;
 }
 
 export type UserUpdate = {
@@ -22,6 +24,7 @@ export type UserUpdate = {
   name?: string;
   picture?: string;
   emailVerified?: boolean;
+  preset?: string;
 }
 
 export type AuthMethod = {

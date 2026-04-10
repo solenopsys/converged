@@ -1,3 +1,5 @@
+import { prepareModulesFilterBootstrap } from '../bridge/modules-filter';
+
 type IslandModule = {
   mount: (
     container: HTMLElement,
@@ -77,7 +79,9 @@ function mountOnIdle(el: HTMLElement): void {
   }
 }
 
-function processIslands(): void {
+async function processIslands(): Promise<void> {
+  await prepareModulesFilterBootstrap();
+
   const islands = document.querySelectorAll<HTMLElement>('[data-island]');
 
   for (const el of islands) {
@@ -102,10 +106,12 @@ function processIslands(): void {
 
 if (typeof document !== 'undefined') {
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', processIslands, {
+    document.addEventListener('DOMContentLoaded', () => {
+      void processIslands();
+    }, {
       once: true,
     });
   } else {
-    processIslands();
+    void processIslands();
   }
 }

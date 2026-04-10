@@ -72,7 +72,7 @@ function readImportMapMicrofrontends(): string[] {
 
 // ---- MF loading ----
 
-const AUTH_TOKEN_KEY = "authToken";
+const MODULES_LIST_FOR_USER_PATH = "/services/modules/listForUser";
 const SSR_ONLY_MICROFRONTENDS = new Set(["mf-landing", "mf-docs"]);
 const publicMicrofrontends = [] as string[];
 const publicMicrofrontendsSet = new Set(publicMicrofrontends);
@@ -91,6 +91,10 @@ const protectedMicrofrontends = discoveredMicrofrontends.filter(
 );
 
 const loadedMicrofrontends = new Set<string>();
+let allowedProtectedMicrofrontends: Set<string> | null = null;
+let allowedMicrofrontendsCacheKey: string | null = null;
+let allowedMicrofrontendsCache: string[] | null = null;
+let allowedMicrofrontendsPromise: Promise<string[] | null> | null = null;
 const mfMenus: Record<string, any> = {};
 const DEFAULT_GROUP: GroupDef =
   GROUPS.find((g) => g.id === "content") ?? { id: "other", title: "Other", iconName: "IconGridDots" };
@@ -101,6 +105,87 @@ const groupMenus: Record<string, any[]> = {};
 
 function hasAuthToken(): boolean {
   return authToken.isAuthenticated();
+}
+
+function normalizeMfName(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return trimmed.startsWith("mf-") ? trimmed : `mf-${trimmed}`;
+}
+
+async function fetchAllowedMicrofrontends(): Promise<string[] | null> {
+  const token = authToken.get();
+  const payload = authToken.payload();
+  if (!token || !payload?.sub) return null;
+
+  const cacheKey = `${payload.sub}:${token}`;
+  if (allowedMicrofrontendsCacheKey === cacheKey && allowedMicrofrontendsCache) {
+    return allowedMicrofrontendsCache;
+  }
+  if (allowedMicrofrontendsCacheKey === cacheKey && allowedMicrofrontendsPromise) {
+    return allowedMicrofrontendsPromise;
+  }
+
+  const endpoint = typeof window !== "undefined"
+    ? `${window.location.origin}${MODULES_LIST_FOR_USER_PATH}`
+    : MODULES_LIST_FOR_USER_PATH;
+
+  const pending = (async () => {
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ userId: payload.sub }),
+      });
+      if (!response.ok) return null;
+      const body = await response.json();
+      const rows = Array.isArray(body)
+        ? body
+        : Array.isArray((body as any)?.items)
+          ? (body as any).items
+          : [];
+
+      const names = rows
+        .map((entry: any) => normalizeMfName(entry?.name ?? entry?.module ?? entry?.id))
+        .filter((name): name is string => Boolean(name));
+      const unique = [...new Set(names)];
+      allowedMicrofrontendsCacheKey = cacheKey;
+      allowedMicrofrontendsCache = unique;
+      return unique;
+    } catch (e) {
+      console.error("[mf] Failed to fetch allowed modules", e);
+      return null;
+    } finally {
+      allowedMicrofrontendsPromise = null;
+    }
+  })();
+
+  allowedMicrofrontendsCacheKey = cacheKey;
+  allowedMicrofrontendsPromise = pending;
+  return pending;
+}
+
+async function resolveAllowedProtectedMicrofrontends(): Promise<string[]> {
+  if (!hasAuthToken()) {
+    allowedProtectedMicrofrontends = null;
+    return [];
+  }
+
+  const allowed = await fetchAllowedMicrofrontends();
+  if (!allowed) {
+    allowedProtectedMicrofrontends = new Set();
+    return [];
+  }
+
+  const allowedSet = new Set(allowed);
+  allowedProtectedMicrofrontends = new Set(
+    protectedMicrofrontends.filter((mf) => allowedSet.has(mf)),
+  );
+  return [...allowedProtectedMicrofrontends];
 }
 
 function isConsoleRoute() {
@@ -152,6 +237,9 @@ function rebuildMenus(authenticated: boolean) {
   for (const groupId of Object.keys(groupMenus)) delete groupMenus[groupId];
   for (const [mfName, menu] of Object.entries(mfMenus)) {
     if (!authenticated && !publicMicrofrontendsSet.has(mfName)) continue;
+    if (authenticated && !publicMicrofrontendsSet.has(mfName)) {
+      if (!allowedProtectedMicrofrontends?.has(mfName)) continue;
+    }
     const groupId = mfToGroup[mfName];
     if (!groupId) continue;
     if (!groupMenus[groupId]) groupMenus[groupId] = [];
@@ -206,7 +294,12 @@ function presentGuestLanding() {
 
 async function loadInitialMicrofrontends() {
   await loadMicrofrontends(systemMicrofrontends);
-  if (hasAuthToken()) await loadMicrofrontends(protectedMicrofrontends);
+  if (hasAuthToken()) {
+    const allowed = await resolveAllowedProtectedMicrofrontends();
+    await loadMicrofrontends(allowed);
+  } else {
+    allowedProtectedMicrofrontends = null;
+  }
   rebuildMenus(hasAuthToken());
   publishGroupedMenu();
   presentGuestLanding();
@@ -230,7 +323,12 @@ export function mount(container: HTMLElement, _props: Record<string, unknown>) {
   loadInitialMicrofrontends();
 
   window.addEventListener("auth-token-changed", async () => {
-    if (hasAuthToken()) await loadMicrofrontends(protectedMicrofrontends);
+    if (hasAuthToken()) {
+      const allowed = await resolveAllowedProtectedMicrofrontends();
+      await loadMicrofrontends(allowed);
+    } else {
+      allowedProtectedMicrofrontends = null;
+    }
     rebuildMenus(hasAuthToken());
     publishGroupedMenu();
     presentGuestLanding();

@@ -9,6 +9,7 @@ export type User = {
   name: string;
   picture?: string;
   emailVerified: boolean;
+  preset?: string;
   createdAt: ISODateString;
 };
 
@@ -18,6 +19,7 @@ export type UserInput = {
   name: string;
   picture?: string;
   emailVerified?: boolean;
+  preset?: string;
 };
 
 export type UserUpdate = {
@@ -25,6 +27,7 @@ export type UserUpdate = {
   name?: string;
   picture?: string;
   emailVerified?: boolean;
+  preset?: string;
 };
 
 export type AuthMethod = {
@@ -227,15 +230,15 @@ export const metadata = {
     },
     {
       "name": "User",
-      "definition": "{\n  id: string;\n  email: string;\n  name: string;\n  picture?: string;\n  emailVerified: boolean;\n  createdAt: ISODateString;\n}"
+      "definition": "{\n  id: string;\n  email: string;\n  name: string;\n  picture?: string;\n  emailVerified: boolean;\n  preset?: string;\n  createdAt: ISODateString;\n}"
     },
     {
       "name": "UserInput",
-      "definition": "{\n  id: string;\n  email: string;\n  name: string;\n  picture?: string;\n  emailVerified?: boolean;\n}"
+      "definition": "{\n  id: string;\n  email: string;\n  name: string;\n  picture?: string;\n  emailVerified?: boolean;\n  preset?: string;\n}"
     },
     {
       "name": "UserUpdate",
-      "definition": "{\n  email?: string;\n  name?: string;\n  picture?: string;\n  emailVerified?: boolean;\n}"
+      "definition": "{\n  email?: string;\n  name?: string;\n  picture?: string;\n  emailVerified?: boolean;\n  preset?: string;\n}"
     },
     {
       "name": "AuthMethod",

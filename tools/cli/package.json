@@ -17,6 +17,8 @@
     "g-dumps": "workspace:*",
     "g-dag": "workspace:*",
     "g-sheduller": "workspace:*",
+    "g-auth": "workspace:*",
+    "g-identity": "workspace:*",
     "yaml": "^2.8.2"
   }
 }

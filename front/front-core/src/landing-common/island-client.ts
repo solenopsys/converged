@@ -1,6 +1,6 @@
 import { structClient } from "g-struct";
 import { GROUPS } from './groups';
-import { $allMenuItems, addMenuRequested, authToken, bus, runActionEvent } from '../controllers';
+import { $allMenuItems, addMenuRequested, authToken, bus, clearAllMenus, runActionEvent } from '../controllers';
 import { LocaleController } from '../controllers/locale-controller';
 import { rightRailActionSelected } from '../components/right-rail/uri-sync';
 import { $centerView } from '../slots/present';
@@ -31,6 +31,7 @@ const QUICK_CHAT_PROMPTS = [
   'Can I migrate from Free to AI Portal?',
   'Is there vendor lock-in?',
 ] as const;
+const MODULES_LIST_FOR_USER_PATH = '/services/modules/listForUser';
 const CONTROL_ICON = {
   login:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>',
@@ -70,6 +71,10 @@ let chatDockBound = false;
 let chatDockGeometryBound = false;
 let chatDockResizeObserver: ResizeObserver | null = null;
 let railWide = false;
+let visibleGroupIds: Set<string> | null = null;
+let allowedMicrofrontendsCacheKey: string | null = null;
+let allowedMicrofrontendsCache: string[] | null = null;
+let allowedMicrofrontendsPromise: Promise<string[] | null> | null = null;
 type CenterViewState = ReturnType<typeof $centerView.getState>;
 
 function getControl(name: string): HTMLButtonElement | null {
@@ -353,6 +358,10 @@ function syncRightRailMode(tabId: string | null | undefined): void {
 async function ensureAssistantsLoaded(): Promise<void> {
   const moduleName = 'mf-assistants';
   if (loadedModules.has(moduleName)) return;
+  if (isAuthenticated()) {
+    const available = await discoverMicrofrontends();
+    if (!available.includes(moduleName)) return;
+  }
 
   initMicrofrontendEnv();
 
@@ -856,7 +865,8 @@ function createGroupButton(groupId: string, title: string): HTMLButtonElement {
 function renderFallbackGroups(host: HTMLElement): void {
   host.innerHTML = '';
   if (!isAuthenticated()) return;
-  for (const group of GROUPS) {
+  const availableGroups = GROUPS.filter((group) => !visibleGroupIds || visibleGroupIds.has(group.id));
+  for (const group of availableGroups) {
     host.appendChild(createGroupButton(group.id, group.title));
   }
 }
@@ -878,12 +888,19 @@ function initMicrofrontendEnv(): void {
   (globalThis as any).__MF_ENV__ = { ...current, ...next };
 }
 
-function discoverMicrofrontends(): string[] {
+function normalizeMfName(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) return '';
+  return trimmed.startsWith('mf-') ? trimmed : `mf-${trimmed}`;
+}
+
+function discoverMicrofrontendsFromRuntime(): string[] {
   const initial = readInitialData();
   const list = Array.isArray(initial.microfrontends) ? initial.microfrontends : [];
   const fromInitial = list
     .filter((name): name is string => typeof name === 'string' && name.length > 0)
-    .map((name) => (name.startsWith('mf-') ? name : `mf-${name}`));
+    .map((name) => normalizeMfName(name))
+    .filter((name) => name.length > 0);
 
   const script = document.querySelector('script[type="importmap"]');
   let fromImportMap: string[] = [];
@@ -897,6 +914,80 @@ function discoverMicrofrontends(): string[] {
   }
 
   return [...new Set([...fromInitial, ...fromImportMap])];
+}
+
+async function fetchAllowedMicrofrontends(): Promise<string[] | null> {
+  if (!isAuthenticated()) return [];
+
+  const token = authToken.get();
+  const payload = authToken.payload();
+  if (!token || !payload?.sub) return null;
+
+  const cacheKey = `${payload.sub}:${token}`;
+  if (allowedMicrofrontendsCacheKey === cacheKey && allowedMicrofrontendsCache) {
+    return allowedMicrofrontendsCache;
+  }
+  if (allowedMicrofrontendsCacheKey === cacheKey && allowedMicrofrontendsPromise) {
+    return allowedMicrofrontendsPromise;
+  }
+
+  const promise = (async () => {
+    try {
+      const response = await fetch(MODULES_LIST_FOR_USER_PATH, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${token}`,
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({ userId: payload.sub }),
+      });
+
+      if (!response.ok) return null;
+
+      const data = await response.json();
+      const names = Array.isArray(data)
+        ? data
+            .map((item) => {
+              if (!item || typeof item !== 'object') return '';
+              const rawName = (item as { name?: unknown }).name;
+              return typeof rawName === 'string' ? normalizeMfName(rawName) : '';
+            })
+            .filter((name): name is string => name.length > 0)
+        : [];
+
+      return [...new Set(names)];
+    } catch {
+      return null;
+    }
+  })();
+
+  allowedMicrofrontendsCacheKey = cacheKey;
+  allowedMicrofrontendsPromise = promise;
+  const resolved = await promise;
+  allowedMicrofrontendsCache = resolved;
+  allowedMicrofrontendsPromise = null;
+  return resolved;
+}
+
+async function discoverMicrofrontends(): Promise<string[]> {
+  const discovered = discoverMicrofrontendsFromRuntime();
+
+  if (!isAuthenticated()) {
+    visibleGroupIds = null;
+    return discovered;
+  }
+
+  const allowed = await fetchAllowedMicrofrontends();
+  if (allowed === null) {
+    visibleGroupIds = new Set<string>();
+    return [];
+  }
+
+  const allowedSet = new Set(allowed);
+  const filtered = discovered.filter((name) => allowedSet.has(name));
+  visibleGroupIds = new Set(filtered.map((name) => getMfGroup(name)));
+  return filtered;
 }
 
 const MF_GROUPS: Record<string, string> = {
@@ -959,7 +1050,7 @@ async function ensureGroupLoaded(groupId: string): Promise<void> {
   if (existing) return existing;
 
   const promise = (async () => {
-    const names = discoverMicrofrontends();
+    const names = await discoverMicrofrontends();
     if (names.length === 0) return;
     initMicrofrontendEnv();
 
@@ -997,6 +1088,19 @@ async function ensureGroupLoaded(groupId: string): Promise<void> {
 
   groupLoadPromises.set(groupId, promise);
   return promise;
+}
+
+function resetDynamicMenuRuntimeState(): void {
+  groupLoadPromises.clear();
+  for (const key of Object.keys(loadedGroupMenus)) {
+    delete loadedGroupMenus[key];
+  }
+  loadedModules.clear();
+  visibleGroupIds = null;
+  allowedMicrofrontendsCacheKey = null;
+  allowedMicrofrontendsCache = null;
+  allowedMicrofrontendsPromise = null;
+  clearAllMenus();
 }
 
 function buildTreeNode(item: RuntimeMenuItem, depth: number, index: number): HTMLElement {
@@ -1099,7 +1203,10 @@ function installDynamicMenu(menuPanel: HTMLElement): void {
       if (item.key) groupedById.set(item.key, item);
     }
 
-    for (const group of GROUPS) {
+    const availableGroups = GROUPS.filter((group) => !visibleGroupIds || visibleGroupIds.has(group.id));
+    const availableGroupSet = new Set(availableGroups.map((group) => group.id));
+
+    for (const group of availableGroups) {
       const node = groupedById.get(group.id);
       if (node) {
         groupsHost.appendChild(buildTreeNode(node, 0, 0));
@@ -1109,9 +1216,24 @@ function installDynamicMenu(menuPanel: HTMLElement): void {
     }
 
     for (const item of normalized) {
-      if (!item.key || GROUPS.some((g) => g.id === item.key)) continue;
+      if (!item.key) continue;
+      if (visibleGroupIds && !visibleGroupIds.has(item.key)) continue;
+      if (availableGroupSet.has(item.key)) continue;
       groupsHost.appendChild(buildTreeNode(item, 0, 0));
     }
+  };
+
+  const renderCurrent = () => {
+    render((($allMenuItems.getState?.() as RuntimeMenuItem[]) || []));
+  };
+
+  const refreshAvailableModulesAndRender = async () => {
+    if (isAuthenticated()) {
+      await discoverMicrofrontends();
+    } else {
+      visibleGroupIds = null;
+    }
+    renderCurrent();
   };
 
   if (groupsHost.dataset.menuActionsBound !== '1') {
@@ -1143,18 +1265,28 @@ function installDynamicMenu(menuPanel: HTMLElement): void {
       if (!groupId) return;
       event.preventDefault();
       preferredOpenGroupId = groupId;
-      render((($allMenuItems.getState?.() as RuntimeMenuItem[]) || []));
+      renderCurrent();
       void ensureGroupLoaded(groupId).then(() => {
-        render((($allMenuItems.getState?.() as RuntimeMenuItem[]) || []));
+        renderCurrent();
       });
     });
   }
 
+  if (groupsHost.dataset.menuAuthBound !== '1') {
+    groupsHost.dataset.menuAuthBound = '1';
+    window.addEventListener('auth-token-changed', () => {
+      resetDynamicMenuRuntimeState();
+      void refreshAvailableModulesAndRender();
+    });
+  }
+
   try {
-    render(($allMenuItems.getState?.() as RuntimeMenuItem[]) || []);
+    renderCurrent();
   } catch {
     renderFallbackGroups(groupsHost);
   }
+
+  void refreshAvailableModulesAndRender();
 
   if (!stopMenuWatch) {
     const watchResult = $allMenuItems.watch((items) => {

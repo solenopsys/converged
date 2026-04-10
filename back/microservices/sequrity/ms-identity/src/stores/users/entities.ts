@@ -11,6 +11,7 @@ export interface UserEntity {
   name: string;
   picture?: string | null;
   emailVerified: number;
+  preset: string;
   createdAt: ISODateString;
 }
 
