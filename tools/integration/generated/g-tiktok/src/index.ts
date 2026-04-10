@@ -45,7 +45,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "TikTokPostResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -73,12 +73,12 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface TikTokService {
-  publishVideo(input: TikTokPostInput, credentials: TikTokCredentials): Promise<any>;
+  publishVideo(input: TikTokPostInput, credentials: TikTokCredentials): Promise<TikTokPostResult>;
 }
 
 // Client interface
 export interface TikTokServiceClient {
-  publishVideo(input: TikTokPostInput, credentials: TikTokCredentials): Promise<any>;
+  publishVideo(input: TikTokPostInput, credentials: TikTokCredentials): Promise<TikTokPostResult>;
 }
 
 // Factory function

@@ -1,6 +1,6 @@
 export type ISODateString = string;
 
-export interface User {
+export type User = {
   id: string;
   email: string;
   name: string;
@@ -9,7 +9,7 @@ export interface User {
   createdAt: ISODateString;
 }
 
-export interface UserInput {
+export type UserInput = {
   id: string;
   email: string;
   name: string;
@@ -17,14 +17,14 @@ export interface UserInput {
   emailVerified?: boolean;
 }
 
-export interface UserUpdate {
+export type UserUpdate = {
   email?: string;
   name?: string;
   picture?: string;
   emailVerified?: boolean;
 }
 
-export interface AuthMethod {
+export type AuthMethod = {
   userId: string;
   provider: string;
   providerUserId: string;

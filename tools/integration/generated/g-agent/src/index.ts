@@ -12,35 +12,35 @@ export type AgentStreamEvent = {
   | { type: AgentStreamEventType.ERROR; message: string }
 );
 
-export interface SessionInfo {
+export type SessionInfo = {
   id: string;
   model: string;
   createdAt: number;
   updatedAt: number;
   messageCount: number;
-}
+};
 
-export interface PaginationParams {
+export type PaginationParams = {
   offset: number;
   limit: number;
-}
+};
 
-export interface PaginatedResult {
+export type PaginatedResult = {
   items: T[];
   totalCount?: number;
-}
+};
 
-export interface ToolDefinition {
+export type ToolDefinition = {
   name: string;
   description: string;
   parameters: any;
-}
+};
 
-export interface TokenUsage {
+export type TokenUsage = {
   total: number;
   input: number;
   output: number;
-}
+};
 
 export const metadata = {
   "interfaceName": "AgentService",
@@ -57,7 +57,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "SessionInfo",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -78,7 +78,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "AgentStreamEvent",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": true
@@ -93,7 +93,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "SessionInfo",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -108,7 +108,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -123,7 +123,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -131,9 +131,9 @@ export const metadata = {
     {
       "name": "listTools",
       "parameters": [],
-      "returnType": "any",
+      "returnType": "ToolDefinition",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     },
     {
@@ -152,146 +152,46 @@ export const metadata = {
     },
     {
       "name": "SessionInfo",
-      "definition": "",
-      "properties": [
-        {
-          "name": "id",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "model",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "createdAt",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "updatedAt",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "messageCount",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  id: string;\n  model: string;\n  createdAt: number;\n  updatedAt: number;\n  messageCount: number;\n}"
     },
     {
       "name": "PaginationParams",
-      "definition": "",
-      "properties": [
-        {
-          "name": "offset",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "limit",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  offset: number;\n  limit: number;\n}"
     },
     {
       "name": "PaginatedResult",
-      "definition": "",
-      "properties": [
-        {
-          "name": "items",
-          "type": "T",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "totalCount",
-          "type": "number",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     },
     {
       "name": "ToolDefinition",
-      "definition": "",
-      "properties": [
-        {
-          "name": "name",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "description",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "parameters",
-          "type": "any",
-          "optional": false,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  name: string;\n  description: string;\n  parameters: any;\n}"
     },
     {
       "name": "TokenUsage",
-      "definition": "",
-      "properties": [
-        {
-          "name": "total",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "input",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "output",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  total: number;\n  input: number;\n  output: number;\n}"
     }
   ]
 };
 
 // Server interface (to be implemented in microservice)
 export interface AgentService {
-  createSession(model?: string): Promise<any>;
-  sendMessage(sessionId: string, content: string): AsyncIterable<any>;
-  getSession(sessionId: string): Promise<any>;
-  listSessions(params: PaginationParams): Promise<any>;
-  deleteSession(sessionId: string): Promise<any>;
-  listTools(): Promise<any>;
+  createSession(model?: string): Promise<SessionInfo>;
+  sendMessage(sessionId: string, content: string): AsyncIterable<AgentStreamEvent>;
+  getSession(sessionId: string): Promise<SessionInfo>;
+  listSessions(params: PaginationParams): Promise<PaginatedResult>;
+  deleteSession(sessionId: string): Promise<void>;
+  listTools(): Promise<ToolDefinition[]>;
   getStats(): Promise<any>;
 }
 
 // Client interface
 export interface AgentServiceClient {
-  createSession(model?: string): Promise<any>;
-  sendMessage(sessionId: string, content: string): AsyncIterable<any>;
-  getSession(sessionId: string): Promise<any>;
-  listSessions(params: PaginationParams): Promise<any>;
-  deleteSession(sessionId: string): Promise<any>;
-  listTools(): Promise<any>;
+  createSession(model?: string): Promise<SessionInfo>;
+  sendMessage(sessionId: string, content: string): AsyncIterable<AgentStreamEvent>;
+  getSession(sessionId: string): Promise<SessionInfo>;
+  listSessions(params: PaginationParams): Promise<PaginatedResult>;
+  deleteSession(sessionId: string): Promise<void>;
+  listTools(): Promise<ToolDefinition[]>;
   getStats(): Promise<any>;
 }
 

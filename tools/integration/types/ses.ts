@@ -2,7 +2,7 @@ export interface SesService {
   sendEmail(payload: EmailPayload, credentials: SesCredentials): Promise<EmailResult>;
 }
 
-export interface SesCredentials {
+export type SesCredentials = {
   accessKeyId: string;
   secretAccessKey: string;
   region: string;

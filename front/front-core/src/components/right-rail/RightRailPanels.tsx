@@ -293,12 +293,12 @@ function LoginButton() {
     tabActivated("auth");
 
     const runShowLogin = () => {
-      const action = registry.get("show_login");
+      const action = registry.get("auth.show-login");
       if (!action) return false;
       try {
-        registry.run("show_login", {});
+        registry.run("auth.show-login", {});
       } catch (error) {
-        console.error("[RightRail] Failed to run show_login", error);
+        console.error("[RightRail] Failed to run auth.show-login", error);
       }
       return true;
     };

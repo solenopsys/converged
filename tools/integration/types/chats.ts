@@ -24,7 +24,7 @@ export type ContentBlock = {
     data?: any;
 };
 
-export interface ToolParameter {
+export type ToolParameter = {
     type: 'string' | 'number' | 'boolean' | 'object' | 'array';
     description: string;
     required?: boolean;
@@ -33,7 +33,7 @@ export interface ToolParameter {
     properties?: Record<string, ToolParameter>;
 }
 
-export interface Tool {
+export type Tool = {
     name: string;
     description: string;
     parameters: {
@@ -45,13 +45,13 @@ export interface Tool {
     execute: (args: any) => Promise<any> | any;
 }
 
-export interface ToolCall {
+export type ToolCall = {
     id: string;
     name: string;
     args: Record<string, any>;
 }
 
-export interface ToolResult {
+export type ToolResult = {
     toolCallId: string;
     result: any;
     error?: string;
@@ -78,31 +78,31 @@ export enum MessageSource {
     ASSISTANT = "assistant"
 }
 
-export interface PaginationParams {
+export type PaginationParams = {
     offset: number;
     limit: number;
 }
 
-export interface PaginatedResult<T> {
+export type PaginatedResult<T> = {
     items: T[];
     totalCount?: number; // если хочешь знать общее число
 }
 
-export interface Chat {
+export type Chat = {
     id: string;
     name: string;
     description: string;
 
 }
 
-export interface ChatContextSummary {
+export type ChatContextSummary = {
     id: string;
     chatId: string;
     updatedAt: number;
     size?: number;
 }
 
-export interface ChatContext extends ChatContextSummary {
+export type ChatContext = ChatContextSummary & {
     data: any;
 }
 

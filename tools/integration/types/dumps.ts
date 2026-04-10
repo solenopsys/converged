@@ -15,12 +15,12 @@ export type DumpFile = {
   size?: number;
 };
 
-export interface PaginationParams {
+export type PaginationParams = {
   offset: number;
   limit: number;
 }
 
-export interface PaginatedResult<T> {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 }

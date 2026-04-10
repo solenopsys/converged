@@ -33,7 +33,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "ModelConvertResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -61,12 +61,12 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface ModelConvertorService {
-  convert(input: ModelConvertInput): Promise<any>;
+  convert(input: ModelConvertInput): Promise<ModelConvertResult>;
 }
 
 // Client interface
 export interface ModelConvertorServiceClient {
-  convert(input: ModelConvertInput): Promise<any>;
+  convert(input: ModelConvertInput): Promise<ModelConvertResult>;
 }
 
 // Factory function

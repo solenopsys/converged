@@ -11,7 +11,7 @@ import { ACTIONS } from "./functions";
 import { SHOW_LOGIN } from "./functions/login";
 import { LOGOUT } from "./functions/logout";
 import { $isAuthenticated, tokenChanged } from "./model";
-import { authClient } from "./service";
+import { authClient, sendMagicLink } from "./service";
 
 const SEND_MAGIC_LINK   = "auth.send-magic-link";
 const TEMP_USER_ID_KEY  = "tempUserId";
@@ -54,11 +54,28 @@ function resolveOrCreateTempSessionId(): string {
   return next;
 }
 
+function isValidJwtToken(token: string): boolean {
+  const parts = token.split(".");
+  if (parts.length !== 3) return false;
+  return parts.every((p) => p.trim().length > 0);
+}
+
 async function ensureTemporarySession(): Promise<void> {
   if (typeof window === "undefined") return;
   if (authToken.isAuthenticated()) return;
   const current = authToken.get();
-  if (current && !authToken.isAuthenticated()) return;
+  if (current) {
+    const payload = authToken.payload();
+    const isTemporary =
+      Boolean(payload?.temporary) || payload?.sub.startsWith("temp:");
+    const isExpired = typeof payload?.exp === "number"
+      ? payload.exp * 1000 < Date.now()
+      : true;
+
+    // Keep a still-valid temporary JWT; replace stale/invalid tokens.
+    if (isValidJwtToken(current) && isTemporary && !isExpired) return;
+    window.localStorage.removeItem("authToken");
+  }
 
   const sessionId = resolveOrCreateTempSessionId();
   const payload = await authClient.createTemporaryUser(sessionId);
@@ -76,24 +93,19 @@ function applyAuthStateFromCallback(): void {
   const url = new URL(window.location.href);
   const authTokenParam =
     url.searchParams.get("auth_token") ||
-    url.searchParams.get("token") ||
     url.searchParams.get("access_token");
   const oauthProvider = url.searchParams.get("oauth_provider");
   const oauthCode    = url.searchParams.get("oauth_code");
-  const oauthState   = url.searchParams.get("oauth_state");
+  const hasOauthCallback = Boolean(oauthProvider && oauthCode);
 
-  const token =
-    authTokenParam ||
-    (oauthProvider && oauthCode
-      ? `oauth:${oauthProvider}:${oauthState ?? "nostate"}:${oauthCode}`
-      : null);
+  if (authTokenParam && isValidJwtToken(authTokenParam)) {
+    window.localStorage.setItem("authToken", authTokenParam);
+    window.sessionStorage.removeItem(TEMP_USER_ID_KEY);
+    window.sessionStorage.removeItem(TEMP_SESSION_ID_KEY);
+    tokenChanged();
+  }
 
-  if (!token) return;
-
-  window.localStorage.setItem("authToken", token);
-  window.sessionStorage.removeItem(TEMP_USER_ID_KEY);
-  window.sessionStorage.removeItem(TEMP_SESSION_ID_KEY);
-  window.dispatchEvent(new Event("auth-token-changed"));
+  if (!authTokenParam && !hasOauthCallback) return;
 
   ["oauth_provider", "oauth_code", "oauth_state", "auth_token", "token", "access_token"]
     .forEach((k) => url.searchParams.delete(k));
@@ -125,12 +137,9 @@ class AuthPlugin {
       id: SEND_MAGIC_LINK,
       description: "Send magic link",
       invoke: (params: { email: string; returnTo?: string }) =>
-        authClient.getMagicLink(params.email, params.returnTo),
+        sendMagicLink(params.email, params.returnTo),
     });
     ACTIONS.forEach((action) => bus.register(action(bus)));
-
-    applyAuthStateFromCallback();
-    ensureTemporarySession().catch(console.error);
 
     // Subscribe to model — single source of truth for sidebar tab
     this.unsubscribe = $isAuthenticated.watch((isAuth) => syncAuthTab(isAuth));
@@ -161,6 +170,11 @@ class AuthPlugin {
       window.addEventListener("auth-token-changed", this.onStorageChange as EventListener);
       window.addEventListener("storage", this.onStorageChange as EventListener);
     }
+
+    // Listeners must be registered before applying callback state,
+    // so that auth-token-changed event reaches tokenChanged() in effector.
+    applyAuthStateFromCallback();
+    ensureTemporarySession().catch(console.error);
   }
 
   unplug() {

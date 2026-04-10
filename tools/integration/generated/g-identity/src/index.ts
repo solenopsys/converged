@@ -3,37 +3,37 @@ import { createHttpClient } from "nrpc";
 
 export type ISODateString = string;
 
-export interface User {
+export type User = {
   id: string;
   email: string;
   name: string;
   picture?: string;
   emailVerified: boolean;
   createdAt: ISODateString;
-}
+};
 
-export interface UserInput {
+export type UserInput = {
   id: string;
   email: string;
   name: string;
   picture?: string;
   emailVerified?: boolean;
-}
+};
 
-export interface UserUpdate {
+export type UserUpdate = {
   email?: string;
   name?: string;
   picture?: string;
   emailVerified?: boolean;
-}
+};
 
-export interface AuthMethod {
+export type AuthMethod = {
   userId: string;
   provider: string;
   providerUserId: string;
   email: string;
   lastUsedAt: ISODateString;
-}
+};
 
 export const metadata = {
   "interfaceName": "IdentityService",
@@ -50,7 +50,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "User",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -58,9 +58,9 @@ export const metadata = {
     {
       "name": "listUsers",
       "parameters": [],
-      "returnType": "any",
+      "returnType": "User",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     },
     {
@@ -109,7 +109,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "User",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -124,7 +124,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "boolean",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -157,7 +157,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -178,7 +178,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -214,9 +214,9 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "AuthMethod",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     }
   ],
@@ -227,177 +227,49 @@ export const metadata = {
     },
     {
       "name": "User",
-      "definition": "",
-      "properties": [
-        {
-          "name": "id",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "email",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "name",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "picture",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "emailVerified",
-          "type": "boolean",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "createdAt",
-          "type": "ISODateString",
-          "optional": false,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  id: string;\n  email: string;\n  name: string;\n  picture?: string;\n  emailVerified: boolean;\n  createdAt: ISODateString;\n}"
     },
     {
       "name": "UserInput",
-      "definition": "",
-      "properties": [
-        {
-          "name": "id",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "email",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "name",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "picture",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "emailVerified",
-          "type": "boolean",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  id: string;\n  email: string;\n  name: string;\n  picture?: string;\n  emailVerified?: boolean;\n}"
     },
     {
       "name": "UserUpdate",
-      "definition": "",
-      "properties": [
-        {
-          "name": "email",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "name",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "picture",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "emailVerified",
-          "type": "boolean",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  email?: string;\n  name?: string;\n  picture?: string;\n  emailVerified?: boolean;\n}"
     },
     {
       "name": "AuthMethod",
-      "definition": "",
-      "properties": [
-        {
-          "name": "userId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "provider",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "providerUserId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "email",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "lastUsedAt",
-          "type": "ISODateString",
-          "optional": false,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  userId: string;\n  provider: string;\n  providerUserId: string;\n  email: string;\n  lastUsedAt: ISODateString;\n}"
     }
   ]
 };
 
 // Server interface (to be implemented in microservice)
 export interface IdentityService {
-  createUser(user: UserInput): Promise<any>;
-  listUsers(): Promise<any>;
+  createUser(user: UserInput): Promise<User>;
+  listUsers(): Promise<User[]>;
   getUser(userId: string): Promise<any>;
   getUserByEmail(email: string): Promise<any>;
-  updateUser(userId: string, updates: UserUpdate): Promise<any>;
-  deleteUser(userId: string): Promise<any>;
-  linkAuthMethod(userId: string, provider: string, providerUserId: string, email: string): Promise<any>;
-  unlinkAuthMethod(userId: string, provider: string): Promise<any>;
+  updateUser(userId: string, updates: UserUpdate): Promise<User>;
+  deleteUser(userId: string): Promise<boolean>;
+  linkAuthMethod(userId: string, provider: string, providerUserId: string, email: string): Promise<void>;
+  unlinkAuthMethod(userId: string, provider: string): Promise<void>;
   getAuthMethodByProvider(provider: string, providerUserId: string): Promise<any>;
-  getUserAuthMethods(userId: string): Promise<any>;
+  getUserAuthMethods(userId: string): Promise<AuthMethod[]>;
 }
 
 // Client interface
 export interface IdentityServiceClient {
-  createUser(user: UserInput): Promise<any>;
-  listUsers(): Promise<any>;
+  createUser(user: UserInput): Promise<User>;
+  listUsers(): Promise<User[]>;
   getUser(userId: string): Promise<any>;
   getUserByEmail(email: string): Promise<any>;
-  updateUser(userId: string, updates: UserUpdate): Promise<any>;
-  deleteUser(userId: string): Promise<any>;
-  linkAuthMethod(userId: string, provider: string, providerUserId: string, email: string): Promise<any>;
-  unlinkAuthMethod(userId: string, provider: string): Promise<any>;
+  updateUser(userId: string, updates: UserUpdate): Promise<User>;
+  deleteUser(userId: string): Promise<boolean>;
+  linkAuthMethod(userId: string, provider: string, providerUserId: string, email: string): Promise<void>;
+  unlinkAuthMethod(userId: string, provider: string): Promise<void>;
   getAuthMethodByProvider(provider: string, providerUserId: string): Promise<any>;
-  getUserAuthMethods(userId: string): Promise<any>;
+  getUserAuthMethods(userId: string): Promise<AuthMethod[]>;
 }
 
 // Factory function

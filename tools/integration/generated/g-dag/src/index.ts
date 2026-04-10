@@ -5,47 +5,47 @@ export type ExecutionStatus = "running" | "done" | "failed";
 
 export type TaskState = "queued" | "processing" | "done" | "failed";
 
-export interface PaginationParams {
+export type PaginationParams = {
   offset: number;
   limit: number;
-}
+};
 
-export interface PaginatedResult {
+export type PaginatedResult = {
   items: T[];
   totalCount?: number;
-}
+};
 
-export interface Execution {
+export type Execution = {
   id: string;
   workflowName: string;
   status: ExecutionStatus;
   startedAt: number;
   updatedAt: number;
   createdAt: number;
-}
+};
 
-export interface Task {
+export type Task = {
   id: number;
   executionId: string;
   nodeId: string;
   state: TaskState;
-  startedAt: any;
-  completedAt: any;
-  errorMessage: any;
+  startedAt: number | null;
+  completedAt: number | null;
+  errorMessage: string | null;
   retryCount: number;
   createdAt: number;
   data?: any;
   result?: any;
-}
+};
 
 export type ExecutionEventType = "started" | "task_update" | "completed" | "failed";
 
-export interface ExecutionEvent {
+export type ExecutionEvent = {
   type: ExecutionEventType;
   executionId: string;
   task?: Task;
   error?: string;
-}
+};
 
 export const metadata = {
   "interfaceName": "DagService",
@@ -77,7 +77,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -98,7 +98,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -143,7 +143,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -158,7 +158,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -175,153 +175,19 @@ export const metadata = {
     },
     {
       "name": "PaginationParams",
-      "definition": "",
-      "properties": [
-        {
-          "name": "offset",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "limit",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  offset: number;\n  limit: number;\n}"
     },
     {
       "name": "PaginatedResult",
-      "definition": "",
-      "properties": [
-        {
-          "name": "items",
-          "type": "T",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "totalCount",
-          "type": "number",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     },
     {
       "name": "Execution",
-      "definition": "",
-      "properties": [
-        {
-          "name": "id",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "workflowName",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "status",
-          "type": "ExecutionStatus",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "startedAt",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "updatedAt",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "createdAt",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  id: string;\n  workflowName: string;\n  status: ExecutionStatus;\n  startedAt: number;\n  updatedAt: number;\n  createdAt: number;\n}"
     },
     {
       "name": "Task",
-      "definition": "",
-      "properties": [
-        {
-          "name": "id",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "executionId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "nodeId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "state",
-          "type": "TaskState",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "startedAt",
-          "type": "any",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "completedAt",
-          "type": "any",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "errorMessage",
-          "type": "any",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "retryCount",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "createdAt",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "data",
-          "type": "any",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "result",
-          "type": "any",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  id: number;\n  executionId: string;\n  nodeId: string;\n  state: TaskState;\n  startedAt: number | null;\n  completedAt: number | null;\n  errorMessage: string | null;\n  retryCount: number;\n  createdAt: number;\n  data?: any;\n  result?: any;\n}"
     },
     {
       "name": "ExecutionEventType",
@@ -329,33 +195,7 @@ export const metadata = {
     },
     {
       "name": "ExecutionEvent",
-      "definition": "",
-      "properties": [
-        {
-          "name": "type",
-          "type": "ExecutionEventType",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "executionId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "task",
-          "type": "Task",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "error",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  type: ExecutionEventType;\n  executionId: string;\n  task?: Task;\n  error?: string;\n}"
     }
   ]
 };
@@ -363,25 +203,25 @@ export const metadata = {
 // Server interface (to be implemented in microservice)
 export interface DagService {
   statusExecution(id: string): Promise<any>;
-  listExecutions(params: PaginationParams): Promise<any>;
-  listTasks(executionId: any, params: PaginationParams): Promise<any>;
+  listExecutions(params: PaginationParams): Promise<PaginatedResult>;
+  listTasks(executionId: any, params: PaginationParams): Promise<PaginatedResult>;
   stats(): Promise<any>;
   listWorkflows(): Promise<any>;
   listVars(): Promise<any>;
-  setVar(key: string, value: any): Promise<any>;
-  deleteVar(key: string): Promise<any>;
+  setVar(key: string, value: any): Promise<void>;
+  deleteVar(key: string): Promise<void>;
 }
 
 // Client interface
 export interface DagServiceClient {
   statusExecution(id: string): Promise<any>;
-  listExecutions(params: PaginationParams): Promise<any>;
-  listTasks(executionId: any, params: PaginationParams): Promise<any>;
+  listExecutions(params: PaginationParams): Promise<PaginatedResult>;
+  listTasks(executionId: any, params: PaginationParams): Promise<PaginatedResult>;
   stats(): Promise<any>;
   listWorkflows(): Promise<any>;
   listVars(): Promise<any>;
-  setVar(key: string, value: any): Promise<any>;
-  deleteVar(key: string): Promise<any>;
+  setVar(key: string, value: any): Promise<void>;
+  deleteVar(key: string): Promise<void>;
 }
 
 // Factory function

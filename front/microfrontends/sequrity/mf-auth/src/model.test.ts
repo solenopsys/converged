@@ -13,11 +13,9 @@ mock.module("front-core", () => ({
 }));
 
 mock.module("./service", () => ({
-  authClient: {
-    getMagicLink: async (email: string) => {
-      if (email === "fail@example.com") throw new Error("Rate limit exceeded");
-      return { token: "magic-token" };
-    },
+  sendMagicLink: async (email: string) => {
+    if (email === "fail@example.com") throw new Error("Rate limit exceeded");
+    return undefined;
   },
 }));
 

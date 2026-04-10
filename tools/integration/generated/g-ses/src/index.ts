@@ -1,11 +1,11 @@
 // Auto-generated package
 import { createHttpClient } from "nrpc";
 
-export interface SesCredentials {
+export type SesCredentials = {
   accessKeyId: string;
   secretAccessKey: string;
   region: string;
-}
+};
 
 export type EmailPayload = {
   from?: string;
@@ -42,7 +42,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "EmailResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -51,27 +51,7 @@ export const metadata = {
   "types": [
     {
       "name": "SesCredentials",
-      "definition": "",
-      "properties": [
-        {
-          "name": "accessKeyId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "secretAccessKey",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "region",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  accessKeyId: string;\n  secretAccessKey: string;\n  region: string;\n}"
     },
     {
       "name": "EmailPayload",
@@ -86,12 +66,12 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface SesService {
-  sendEmail(payload: EmailPayload, credentials: SesCredentials): Promise<any>;
+  sendEmail(payload: EmailPayload, credentials: SesCredentials): Promise<EmailResult>;
 }
 
 // Client interface
 export interface SesServiceClient {
-  sendEmail(payload: EmailPayload, credentials: SesCredentials): Promise<any>;
+  sendEmail(payload: EmailPayload, credentials: SesCredentials): Promise<EmailResult>;
 }
 
 // Factory function

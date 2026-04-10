@@ -2,18 +2,18 @@ export type HashString = string;
 
 export type CompressionType = "none" | "deflate" | "gzip" | "brotli";
 
-export interface PaginationParams {
+export type PaginationParams = {
   key: string;
   offset: number;
   limit: number;
 }
 
-export interface PaginatedResult<T> {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 }
 
-export interface BlockMetadata {
+export type BlockMetadata = {
   hash: HashString;
   size: number;
   originalSize: number;

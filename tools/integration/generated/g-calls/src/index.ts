@@ -44,10 +44,10 @@ export type CallsListParams = {
   toTime?: number;
 };
 
-export interface PaginatedResult {
+export type PaginatedResult = {
   items: T[];
   totalCount?: number;
-}
+};
 
 export const metadata = {
   "interfaceName": "CallsService",
@@ -64,7 +64,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "CallRecordingResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -79,7 +79,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -109,7 +109,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -165,40 +165,26 @@ export const metadata = {
     },
     {
       "name": "PaginatedResult",
-      "definition": "",
-      "properties": [
-        {
-          "name": "items",
-          "type": "T",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "totalCount",
-          "type": "number",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     }
   ]
 };
 
 // Server interface (to be implemented in microservice)
 export interface CallsService {
-  saveRecording(input: CallRecordingInput): Promise<any>;
-  saveDialogue(input: CallDialogueInput): Promise<any>;
+  saveRecording(input: CallRecordingInput): Promise<CallRecordingResult>;
+  saveDialogue(input: CallDialogueInput): Promise<void>;
   getCall(id: CallId): Promise<any>;
-  listCalls(params: CallsListParams): Promise<any>;
+  listCalls(params: CallsListParams): Promise<PaginatedResult>;
   getRecording(recordId: CallRecordId): Promise<any>;
 }
 
 // Client interface
 export interface CallsServiceClient {
-  saveRecording(input: CallRecordingInput): Promise<any>;
-  saveDialogue(input: CallDialogueInput): Promise<any>;
+  saveRecording(input: CallRecordingInput): Promise<CallRecordingResult>;
+  saveDialogue(input: CallDialogueInput): Promise<void>;
   getCall(id: CallId): Promise<any>;
-  listCalls(params: CallsListParams): Promise<any>;
+  listCalls(params: CallsListParams): Promise<PaginatedResult>;
   getRecording(recordId: CallRecordId): Promise<any>;
 }
 

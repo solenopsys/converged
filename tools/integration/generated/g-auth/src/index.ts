@@ -3,60 +3,61 @@ import { createHttpClient } from "nrpc";
 
 export type ISODateString = string;
 
-export interface OAuthClient {
+export type OAuthClient = {
   clientId: string;
   clientSecret: string;
   redirectUris: string[];
   grantTypes: string[];
   trusted: boolean;
   createdAt: ISODateString;
-}
+};
 
-export interface OAuthClientInput {
+export type OAuthClientInput = {
   clientId: string;
   clientSecret: string;
   redirectUris: string[];
   grantTypes: string[];
   trusted: boolean;
-}
+};
 
-export interface OAuthClientUpdate {
+export type OAuthClientUpdate = {
   clientSecret?: string;
   redirectUris?: string[];
   grantTypes?: string[];
   trusted?: boolean;
-}
+};
 
-export interface GetMagicLinkResult {
+export type GetMagicLinkResult = {
   ok: boolean;
   token: string;
   expiresAt: number;
-}
+};
 
-export interface VerifyLinkResult {
+export type VerifyLinkResult = {
+  token: string;
   userId: string;
   email: string;
   returnTo?: string;
-}
+};
 
-export interface LoginResult {
+export type LoginResult = {
   token: string;
   userId: string;
   email: string;
-}
+};
 
-export interface TemporaryUserResult {
+export type TemporaryUserResult = {
   token: string;
   userId: string;
   email: string;
-  temporary: any;
-}
+  temporary: true;
+};
 
-export interface CleanupResult {
+export type CleanupResult = {
   authCodes: number;
   magicLinks: number;
   refreshTokens: number;
-}
+};
 
 export const metadata = {
   "interfaceName": "AuthService",
@@ -79,7 +80,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "GetMagicLinkResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -94,7 +95,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "VerifyLinkResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -115,7 +116,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "LoginResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -130,7 +131,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "TemporaryUserResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -151,7 +152,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -166,7 +167,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "OAuthClient",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -202,7 +203,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "OAuthClient",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -210,9 +211,9 @@ export const metadata = {
     {
       "name": "listOAuthClients",
       "parameters": [],
-      "returnType": "any",
+      "returnType": "OAuthClient",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     },
     {
@@ -225,7 +226,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "boolean",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -233,7 +234,7 @@ export const metadata = {
     {
       "name": "cleanupExpired",
       "parameters": [],
-      "returnType": "any",
+      "returnType": "CleanupResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -246,269 +247,67 @@ export const metadata = {
     },
     {
       "name": "OAuthClient",
-      "definition": "",
-      "properties": [
-        {
-          "name": "clientId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "clientSecret",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "redirectUris",
-          "type": "string",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "grantTypes",
-          "type": "string",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "trusted",
-          "type": "boolean",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "createdAt",
-          "type": "ISODateString",
-          "optional": false,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  clientId: string;\n  clientSecret: string;\n  redirectUris: string[];\n  grantTypes: string[];\n  trusted: boolean;\n  createdAt: ISODateString;\n}"
     },
     {
       "name": "OAuthClientInput",
-      "definition": "",
-      "properties": [
-        {
-          "name": "clientId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "clientSecret",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "redirectUris",
-          "type": "string",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "grantTypes",
-          "type": "string",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "trusted",
-          "type": "boolean",
-          "optional": false,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  clientId: string;\n  clientSecret: string;\n  redirectUris: string[];\n  grantTypes: string[];\n  trusted: boolean;\n}"
     },
     {
       "name": "OAuthClientUpdate",
-      "definition": "",
-      "properties": [
-        {
-          "name": "clientSecret",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "redirectUris",
-          "type": "string",
-          "optional": true,
-          "isArray": true
-        },
-        {
-          "name": "grantTypes",
-          "type": "string",
-          "optional": true,
-          "isArray": true
-        },
-        {
-          "name": "trusted",
-          "type": "boolean",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  clientSecret?: string;\n  redirectUris?: string[];\n  grantTypes?: string[];\n  trusted?: boolean;\n}"
     },
     {
       "name": "GetMagicLinkResult",
-      "definition": "",
-      "properties": [
-        {
-          "name": "ok",
-          "type": "boolean",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "token",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "expiresAt",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  ok: boolean;\n  token: string;\n  expiresAt: number;\n}"
     },
     {
       "name": "VerifyLinkResult",
-      "definition": "",
-      "properties": [
-        {
-          "name": "userId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "email",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "returnTo",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  token: string;\n  userId: string;\n  email: string;\n  returnTo?: string;\n}"
     },
     {
       "name": "LoginResult",
-      "definition": "",
-      "properties": [
-        {
-          "name": "token",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "userId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "email",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  token: string;\n  userId: string;\n  email: string;\n}"
     },
     {
       "name": "TemporaryUserResult",
-      "definition": "",
-      "properties": [
-        {
-          "name": "token",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "userId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "email",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "temporary",
-          "type": "any",
-          "optional": false,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  token: string;\n  userId: string;\n  email: string;\n  temporary: true;\n}"
     },
     {
       "name": "CleanupResult",
-      "definition": "",
-      "properties": [
-        {
-          "name": "authCodes",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "magicLinks",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "refreshTokens",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  authCodes: number;\n  magicLinks: number;\n  refreshTokens: number;\n}"
     }
   ]
 };
 
 // Server interface (to be implemented in microservice)
 export interface AuthService {
-  getMagicLink(email: string, returnTo?: string): Promise<any>;
-  verifyLink(token: string): Promise<any>;
-  login(email: string, password: string): Promise<any>;
-  createTemporaryUser(sessionId?: string): Promise<any>;
-  logout(userId: string, clientId?: string): Promise<any>;
-  createOAuthClient(client: OAuthClientInput): Promise<any>;
+  getMagicLink(email: string, returnTo?: string): Promise<GetMagicLinkResult>;
+  verifyLink(token: string): Promise<VerifyLinkResult>;
+  login(email: string, password: string): Promise<LoginResult>;
+  createTemporaryUser(sessionId?: string): Promise<TemporaryUserResult>;
+  logout(userId: string, clientId?: string): Promise<void>;
+  createOAuthClient(client: OAuthClientInput): Promise<OAuthClient>;
   getOAuthClient(clientId: string): Promise<any>;
-  updateOAuthClient(clientId: string, updates: OAuthClientUpdate): Promise<any>;
-  listOAuthClients(): Promise<any>;
-  deleteOAuthClient(clientId: string): Promise<any>;
-  cleanupExpired(): Promise<any>;
+  updateOAuthClient(clientId: string, updates: OAuthClientUpdate): Promise<OAuthClient>;
+  listOAuthClients(): Promise<OAuthClient[]>;
+  deleteOAuthClient(clientId: string): Promise<boolean>;
+  cleanupExpired(): Promise<CleanupResult>;
 }
 
 // Client interface
 export interface AuthServiceClient {
-  getMagicLink(email: string, returnTo?: string): Promise<any>;
-  verifyLink(token: string): Promise<any>;
-  login(email: string, password: string): Promise<any>;
-  createTemporaryUser(sessionId?: string): Promise<any>;
-  logout(userId: string, clientId?: string): Promise<any>;
-  createOAuthClient(client: OAuthClientInput): Promise<any>;
+  getMagicLink(email: string, returnTo?: string): Promise<GetMagicLinkResult>;
+  verifyLink(token: string): Promise<VerifyLinkResult>;
+  login(email: string, password: string): Promise<LoginResult>;
+  createTemporaryUser(sessionId?: string): Promise<TemporaryUserResult>;
+  logout(userId: string, clientId?: string): Promise<void>;
+  createOAuthClient(client: OAuthClientInput): Promise<OAuthClient>;
   getOAuthClient(clientId: string): Promise<any>;
-  updateOAuthClient(clientId: string, updates: OAuthClientUpdate): Promise<any>;
-  listOAuthClients(): Promise<any>;
-  deleteOAuthClient(clientId: string): Promise<any>;
-  cleanupExpired(): Promise<any>;
+  updateOAuthClient(clientId: string, updates: OAuthClientUpdate): Promise<OAuthClient>;
+  listOAuthClients(): Promise<OAuthClient[]>;
+  deleteOAuthClient(clientId: string): Promise<boolean>;
+  cleanupExpired(): Promise<CleanupResult>;
 }
 
 // Factory function

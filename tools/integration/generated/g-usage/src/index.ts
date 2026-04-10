@@ -45,10 +45,10 @@ export type UsageFunctionStatsItem = {
   total: number;
 };
 
-export interface PaginatedResult {
+export type PaginatedResult = {
   items: T[];
   totalCount?: number;
-}
+};
 
 export const metadata = {
   "interfaceName": "UsageService",
@@ -80,7 +80,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -95,7 +95,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "UsageTotalStats",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -110,9 +110,9 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "UsageDailyStatsItem",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     },
     {
@@ -125,9 +125,9 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "UsageFunctionStatsItem",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     }
   ],
@@ -162,21 +162,7 @@ export const metadata = {
     },
     {
       "name": "PaginatedResult",
-      "definition": "",
-      "properties": [
-        {
-          "name": "items",
-          "type": "T",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "totalCount",
-          "type": "number",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     }
   ]
 };
@@ -184,19 +170,19 @@ export const metadata = {
 // Server interface (to be implemented in microservice)
 export interface UsageService {
   recordUsage(events: UsageEventInput[]): Promise<any>;
-  listUsage(params: UsageListParams): Promise<any>;
-  getUsageTotal(params?: UsageStatsParams): Promise<any>;
-  getUsageDaily(params?: UsageStatsParams): Promise<any>;
-  getUsageByFunction(params?: UsageStatsParams): Promise<any>;
+  listUsage(params: UsageListParams): Promise<PaginatedResult>;
+  getUsageTotal(params?: UsageStatsParams): Promise<UsageTotalStats>;
+  getUsageDaily(params?: UsageStatsParams): Promise<UsageDailyStatsItem[]>;
+  getUsageByFunction(params?: UsageStatsParams): Promise<UsageFunctionStatsItem[]>;
 }
 
 // Client interface
 export interface UsageServiceClient {
   recordUsage(events: UsageEventInput[]): Promise<any>;
-  listUsage(params: UsageListParams): Promise<any>;
-  getUsageTotal(params?: UsageStatsParams): Promise<any>;
-  getUsageDaily(params?: UsageStatsParams): Promise<any>;
-  getUsageByFunction(params?: UsageStatsParams): Promise<any>;
+  listUsage(params: UsageListParams): Promise<PaginatedResult>;
+  getUsageTotal(params?: UsageStatsParams): Promise<UsageTotalStats>;
+  getUsageDaily(params?: UsageStatsParams): Promise<UsageDailyStatsItem[]>;
+  getUsageByFunction(params?: UsageStatsParams): Promise<UsageFunctionStatsItem[]>;
 }
 
 // Factory function

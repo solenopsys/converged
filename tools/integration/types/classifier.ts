@@ -1,5 +1,5 @@
 /** A node in the classifier tree */
-export interface ClassifierNode {
+export type ClassifierNode = {
   id: string;
   parentId: string | null;
   name: string;

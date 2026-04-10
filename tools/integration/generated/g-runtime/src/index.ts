@@ -1,7 +1,22 @@
 // Auto-generated package
 import { createHttpClient } from "nrpc";
 
+export type ExecutionId = string;
 
+export type ExecutionResult = {
+  id: ExecutionId;
+};
+
+export type MagicLinkParams = {
+  email: string;
+  returnTo?: string;
+  channel?: string;
+  templateId?: string;
+};
+
+export type MagicLinkResult = {
+  success: boolean;
+};
 
 export const metadata = {
   "interfaceName": "RuntimeService",
@@ -24,7 +39,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "ExecutionEvent",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": true
@@ -45,7 +60,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "ExecutionResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -53,7 +68,7 @@ export const metadata = {
     {
       "name": "refreshCrons",
       "parameters": [],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -63,34 +78,51 @@ export const metadata = {
       "parameters": [
         {
           "name": "params",
-          "type": "any",
+          "type": "MagicLinkParams",
           "optional": false,
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "MagicLinkResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
     }
   ],
-  "types": []
+  "types": [
+    {
+      "name": "ExecutionId",
+      "definition": "string"
+    },
+    {
+      "name": "ExecutionResult",
+      "definition": "{\n  id: ExecutionId;\n}"
+    },
+    {
+      "name": "MagicLinkParams",
+      "definition": "{\n  email: string;\n  returnTo?: string;\n  channel?: string;\n  templateId?: string;\n}"
+    },
+    {
+      "name": "MagicLinkResult",
+      "definition": "{\n  success: boolean;\n}"
+    }
+  ]
 };
 
 // Server interface (to be implemented in microservice)
 export interface RuntimeService {
-  startExecution(workflowName: string, params: Record): AsyncIterable<any>;
-  createExecution(workflowName: string, params: Record): Promise<any>;
-  refreshCrons(): Promise<any>;
-  sendMagicLink(params: any): Promise<any>;
+  startExecution(workflowName: string, params: Record): AsyncIterable<ExecutionEvent>;
+  createExecution(workflowName: string, params: Record): Promise<ExecutionResult>;
+  refreshCrons(): Promise<void>;
+  sendMagicLink(params: MagicLinkParams): Promise<MagicLinkResult>;
 }
 
 // Client interface
 export interface RuntimeServiceClient {
-  startExecution(workflowName: string, params: Record): AsyncIterable<any>;
-  createExecution(workflowName: string, params: Record): Promise<any>;
-  refreshCrons(): Promise<any>;
-  sendMagicLink(params: any): Promise<any>;
+  startExecution(workflowName: string, params: Record): AsyncIterable<ExecutionEvent>;
+  createExecution(workflowName: string, params: Record): Promise<ExecutionResult>;
+  refreshCrons(): Promise<void>;
+  sendMagicLink(params: MagicLinkParams): Promise<MagicLinkResult>;
 }
 
 // Factory function

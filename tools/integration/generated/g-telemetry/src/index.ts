@@ -26,10 +26,10 @@ export type TelemetryQueryParams = {
   to_ts?: number;
 };
 
-export interface PaginatedResult {
+export type PaginatedResult = {
   items: T[];
   totalCount?: number;
-}
+};
 
 export type TelemetryStatistic = {
   totalHot: number;
@@ -53,7 +53,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -68,7 +68,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -83,7 +83,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -91,7 +91,7 @@ export const metadata = {
     {
       "name": "getStatistic",
       "parameters": [],
-      "returnType": "any",
+      "returnType": "TelemetryStatistic",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -112,21 +112,7 @@ export const metadata = {
     },
     {
       "name": "PaginatedResult",
-      "definition": "",
-      "properties": [
-        {
-          "name": "items",
-          "type": "T",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "totalCount",
-          "type": "number",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     },
     {
       "name": "TelemetryStatistic",
@@ -137,18 +123,18 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface TelemetryService {
-  write(event: TelemetryEventInput): Promise<any>;
-  listHot(params: TelemetryQueryParams): Promise<any>;
-  listCold(params: TelemetryQueryParams): Promise<any>;
-  getStatistic(): Promise<any>;
+  write(event: TelemetryEventInput): Promise<void>;
+  listHot(params: TelemetryQueryParams): Promise<PaginatedResult>;
+  listCold(params: TelemetryQueryParams): Promise<PaginatedResult>;
+  getStatistic(): Promise<TelemetryStatistic>;
 }
 
 // Client interface
 export interface TelemetryServiceClient {
-  write(event: TelemetryEventInput): Promise<any>;
-  listHot(params: TelemetryQueryParams): Promise<any>;
-  listCold(params: TelemetryQueryParams): Promise<any>;
-  getStatistic(): Promise<any>;
+  write(event: TelemetryEventInput): Promise<void>;
+  listHot(params: TelemetryQueryParams): Promise<PaginatedResult>;
+  listCold(params: TelemetryQueryParams): Promise<PaginatedResult>;
+  getStatistic(): Promise<TelemetryStatistic>;
 }
 
 // Factory function

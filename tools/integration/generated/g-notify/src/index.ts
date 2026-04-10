@@ -64,7 +64,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "NotifyTemplateId",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -87,9 +87,9 @@ export const metadata = {
     {
       "name": "listTemplates",
       "parameters": [],
-      "returnType": "any",
+      "returnType": "NotifyTemplate",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     },
     {
@@ -102,7 +102,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "boolean",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -117,7 +117,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "NotifyChannelId",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -140,9 +140,9 @@ export const metadata = {
     {
       "name": "listChannels",
       "parameters": [],
-      "returnType": "any",
+      "returnType": "NotifyChannel",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     },
     {
@@ -155,7 +155,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "boolean",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -170,7 +170,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "NotifySendId",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -193,9 +193,9 @@ export const metadata = {
     {
       "name": "listSends",
       "parameters": [],
-      "returnType": "any",
+      "returnType": "NotifySend",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     }
   ],
@@ -245,32 +245,32 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface NotifyService {
-  saveTemplate(template: NotifyTemplateInput): Promise<any>;
+  saveTemplate(template: NotifyTemplateInput): Promise<NotifyTemplateId>;
   getTemplate(id: NotifyTemplateId): Promise<any>;
-  listTemplates(): Promise<any>;
-  deleteTemplate(id: NotifyTemplateId): Promise<any>;
-  saveChannel(channel: NotifyChannelInput): Promise<any>;
+  listTemplates(): Promise<NotifyTemplate[]>;
+  deleteTemplate(id: NotifyTemplateId): Promise<boolean>;
+  saveChannel(channel: NotifyChannelInput): Promise<NotifyChannelId>;
   getChannel(id: NotifyChannelId): Promise<any>;
-  listChannels(): Promise<any>;
-  deleteChannel(id: NotifyChannelId): Promise<any>;
-  recordSend(input: NotifySendInput): Promise<any>;
+  listChannels(): Promise<NotifyChannel[]>;
+  deleteChannel(id: NotifyChannelId): Promise<boolean>;
+  recordSend(input: NotifySendInput): Promise<NotifySendId>;
   getSend(id: NotifySendId): Promise<any>;
-  listSends(): Promise<any>;
+  listSends(): Promise<NotifySend[]>;
 }
 
 // Client interface
 export interface NotifyServiceClient {
-  saveTemplate(template: NotifyTemplateInput): Promise<any>;
+  saveTemplate(template: NotifyTemplateInput): Promise<NotifyTemplateId>;
   getTemplate(id: NotifyTemplateId): Promise<any>;
-  listTemplates(): Promise<any>;
-  deleteTemplate(id: NotifyTemplateId): Promise<any>;
-  saveChannel(channel: NotifyChannelInput): Promise<any>;
+  listTemplates(): Promise<NotifyTemplate[]>;
+  deleteTemplate(id: NotifyTemplateId): Promise<boolean>;
+  saveChannel(channel: NotifyChannelInput): Promise<NotifyChannelId>;
   getChannel(id: NotifyChannelId): Promise<any>;
-  listChannels(): Promise<any>;
-  deleteChannel(id: NotifyChannelId): Promise<any>;
-  recordSend(input: NotifySendInput): Promise<any>;
+  listChannels(): Promise<NotifyChannel[]>;
+  deleteChannel(id: NotifyChannelId): Promise<boolean>;
+  recordSend(input: NotifySendInput): Promise<NotifySendId>;
   getSend(id: NotifySendId): Promise<any>;
-  listSends(): Promise<any>;
+  listSends(): Promise<NotifySend[]>;
 }
 
 // Factory function

@@ -36,7 +36,7 @@ export type RequestProcessingEntry = {
   createdAt: ISODateString;
 };
 
-export interface PaginatedResult<T> {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 }

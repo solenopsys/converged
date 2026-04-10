@@ -129,6 +129,7 @@ export class AuthServiceImpl implements AuthService {
     return { ok: true, token, expiresAt };
   }
 
+  @Access("public")
   async verifyLink(token: string): Promise<VerifyLinkResult> {
     await this.ready();
     const magicLink = this.stores.tokens.getMagicLink(token);
@@ -136,12 +137,9 @@ export class AuthServiceImpl implements AuthService {
       throw new Error("Invalid or expired magic link");
     }
     this.stores.tokens.markMagicLinkAsUsed(token);
-    const identity = this.identityClient();
-    const user = await identity.getUserByEmail(magicLink.email);
-    if (!user) {
-      throw new Error("User not found");
-    }
-    return { userId: user.id, email: magicLink.email, returnTo: magicLink.returnTo };
+    const user = await this.ensureUserByEmail(magicLink.email);
+    const jwt = await this.accessClient().emitJWT(user.id);
+    return { token: jwt, userId: user.id, email: magicLink.email, returnTo: magicLink.returnTo };
   }
 
   async login(email: string, password: string): Promise<LoginResult> {

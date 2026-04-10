@@ -50,10 +50,10 @@ export type CronListParams = {
   status?: CronStatus;
 };
 
-export interface PaginatedResult {
+export type PaginatedResult = {
   items: T[];
   totalCount?: number;
-}
+};
 
 export type CronHistoryEntry = {
   id: string;
@@ -138,7 +138,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "boolean",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -168,7 +168,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -176,9 +176,9 @@ export const metadata = {
     {
       "name": "listProviders",
       "parameters": [],
-      "returnType": "any",
+      "returnType": "ProviderDefinition",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     },
     {
@@ -191,7 +191,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -199,7 +199,7 @@ export const metadata = {
     {
       "name": "getStats",
       "parameters": [],
-      "returnType": "any",
+      "returnType": "ShedullerStats",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -236,21 +236,7 @@ export const metadata = {
     },
     {
       "name": "PaginatedResult",
-      "definition": "",
-      "properties": [
-        {
-          "name": "items",
-          "type": "T",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "totalCount",
-          "type": "number",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     },
     {
       "name": "CronHistoryEntry",
@@ -275,24 +261,24 @@ export const metadata = {
 export interface ShedullerService {
   createCron(input: CronInput): Promise<any>;
   updateCron(id: string, updates: CronUpdate): Promise<any>;
-  deleteCron(id: string): Promise<any>;
+  deleteCron(id: string): Promise<boolean>;
   getCron(id: string): Promise<any>;
-  listCrons(params: CronListParams): Promise<any>;
-  listProviders(): Promise<any>;
-  listHistory(params: CronHistoryListParams): Promise<any>;
-  getStats(): Promise<any>;
+  listCrons(params: CronListParams): Promise<PaginatedResult>;
+  listProviders(): Promise<ProviderDefinition[]>;
+  listHistory(params: CronHistoryListParams): Promise<PaginatedResult>;
+  getStats(): Promise<ShedullerStats>;
 }
 
 // Client interface
 export interface ShedullerServiceClient {
   createCron(input: CronInput): Promise<any>;
   updateCron(id: string, updates: CronUpdate): Promise<any>;
-  deleteCron(id: string): Promise<any>;
+  deleteCron(id: string): Promise<boolean>;
   getCron(id: string): Promise<any>;
-  listCrons(params: CronListParams): Promise<any>;
-  listProviders(): Promise<any>;
-  listHistory(params: CronHistoryListParams): Promise<any>;
-  getStats(): Promise<any>;
+  listCrons(params: CronListParams): Promise<PaginatedResult>;
+  listProviders(): Promise<ProviderDefinition[]>;
+  listHistory(params: CronHistoryListParams): Promise<PaginatedResult>;
+  getStats(): Promise<ShedullerStats>;
 }
 
 // Factory function

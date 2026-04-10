@@ -65,7 +65,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "GaleryId",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -95,7 +95,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -110,7 +110,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "boolean",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -125,7 +125,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "GaleryImage",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -161,7 +161,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -176,7 +176,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "boolean",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -224,26 +224,26 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface GaleryService {
-  createGalery(input: GaleryInput): Promise<any>;
+  createGalery(input: GaleryInput): Promise<GaleryId>;
   getGalery(id: GaleryId): Promise<any>;
-  listGaleries(params: PaginationParams): Promise<any>;
-  deleteGalery(id: GaleryId): Promise<any>;
-  saveImage(input: GaleryImageInput): Promise<any>;
+  listGaleries(params: PaginationParams): Promise<PaginatedResult>;
+  deleteGalery(id: GaleryId): Promise<boolean>;
+  saveImage(input: GaleryImageInput): Promise<GaleryImage>;
   getImage(id: GaleryImageId): Promise<any>;
-  listImages(galeryId: GaleryId, params: PaginationParams): Promise<any>;
-  deleteImage(id: GaleryImageId): Promise<any>;
+  listImages(galeryId: GaleryId, params: PaginationParams): Promise<PaginatedResult>;
+  deleteImage(id: GaleryImageId): Promise<boolean>;
 }
 
 // Client interface
 export interface GaleryServiceClient {
-  createGalery(input: GaleryInput): Promise<any>;
+  createGalery(input: GaleryInput): Promise<GaleryId>;
   getGalery(id: GaleryId): Promise<any>;
-  listGaleries(params: PaginationParams): Promise<any>;
-  deleteGalery(id: GaleryId): Promise<any>;
-  saveImage(input: GaleryImageInput): Promise<any>;
+  listGaleries(params: PaginationParams): Promise<PaginatedResult>;
+  deleteGalery(id: GaleryId): Promise<boolean>;
+  saveImage(input: GaleryImageInput): Promise<GaleryImage>;
   getImage(id: GaleryImageId): Promise<any>;
-  listImages(galeryId: GaleryId, params: PaginationParams): Promise<any>;
-  deleteImage(id: GaleryImageId): Promise<any>;
+  listImages(galeryId: GaleryId, params: PaginationParams): Promise<PaginatedResult>;
+  deleteImage(id: GaleryImageId): Promise<boolean>;
 }
 
 // Factory function

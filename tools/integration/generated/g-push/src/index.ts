@@ -55,7 +55,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PushSendResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -91,12 +91,12 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface PushService {
-  sendPush(input: PushMessageInput, credentials: PushCredentials): Promise<any>;
+  sendPush(input: PushMessageInput, credentials: PushCredentials): Promise<PushSendResult>;
 }
 
 // Client interface
 export interface PushServiceClient {
-  sendPush(input: PushMessageInput, credentials: PushCredentials): Promise<any>;
+  sendPush(input: PushMessageInput, credentials: PushCredentials): Promise<PushSendResult>;
 }
 
 // Factory function

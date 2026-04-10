@@ -34,7 +34,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "TelegramSendResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -62,12 +62,12 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface TelegramService {
-  sendMessage(input: TelegramMessageInput): Promise<any>;
+  sendMessage(input: TelegramMessageInput): Promise<TelegramSendResult>;
 }
 
 // Client interface
 export interface TelegramServiceClient {
-  sendMessage(input: TelegramMessageInput): Promise<any>;
+  sendMessage(input: TelegramMessageInput): Promise<TelegramSendResult>;
 }
 
 // Factory function

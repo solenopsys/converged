@@ -1,15 +1,15 @@
 // Auto-generated package
 import { createHttpClient } from "nrpc";
 
-export interface PaginatedResult {
+export type PaginatedResult = {
   items: T[];
   totalCount?: number;
-}
+};
 
-export interface PaginationParams {
+export type PaginationParams = {
   offset: number;
   limit: number;
-}
+};
 
 export const metadata = {
   "interfaceName": "CeoService",
@@ -32,7 +32,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "string",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -64,7 +64,7 @@ export const metadata = {
       ],
       "returnType": "any",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     },
     {
@@ -77,7 +77,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -92,7 +92,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -101,59 +101,31 @@ export const metadata = {
   "types": [
     {
       "name": "PaginatedResult",
-      "definition": "",
-      "properties": [
-        {
-          "name": "items",
-          "type": "T",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "totalCount",
-          "type": "number",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     },
     {
       "name": "PaginationParams",
-      "definition": "",
-      "properties": [
-        {
-          "name": "offset",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "limit",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  offset: number;\n  limit: number;\n}"
     }
   ]
 };
 
 // Server interface (to be implemented in microservice)
 export interface CeoService {
-  saveJson(path: string, data: any): Promise<any>;
+  saveJson(path: string, data: any): Promise<string>;
   readJson(path: string): Promise<any>;
-  readJsonBatch(paths: string[]): Promise<any>;
-  deleteJson(path: string): Promise<any>;
-  listJson(params: PaginationParams): Promise<any>;
+  readJsonBatch(paths: string[]): Promise<any[]>;
+  deleteJson(path: string): Promise<void>;
+  listJson(params: PaginationParams): Promise<PaginatedResult>;
 }
 
 // Client interface
 export interface CeoServiceClient {
-  saveJson(path: string, data: any): Promise<any>;
+  saveJson(path: string, data: any): Promise<string>;
   readJson(path: string): Promise<any>;
-  readJsonBatch(paths: string[]): Promise<any>;
-  deleteJson(path: string): Promise<any>;
-  listJson(params: PaginationParams): Promise<any>;
+  readJsonBatch(paths: string[]): Promise<any[]>;
+  deleteJson(path: string): Promise<void>;
+  listJson(params: PaginationParams): Promise<PaginatedResult>;
 }
 
 // Factory function

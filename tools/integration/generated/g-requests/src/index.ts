@@ -42,10 +42,10 @@ export type RequestProcessingEntry = {
   createdAt: ISODateString;
 };
 
-export interface PaginatedResult {
+export type PaginatedResult = {
   items: T[];
   totalCount?: number;
-}
+};
 
 export const metadata = {
   "interfaceName": "RequestsService",
@@ -62,7 +62,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "RequestId",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -92,7 +92,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -125,7 +125,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -140,9 +140,9 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "RequestProcessingEntry",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     }
   ],
@@ -185,41 +185,27 @@ export const metadata = {
     },
     {
       "name": "PaginatedResult",
-      "definition": "",
-      "properties": [
-        {
-          "name": "items",
-          "type": "T",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "totalCount",
-          "type": "number",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     }
   ]
 };
 
 // Server interface (to be implemented in microservice)
 export interface RequestsService {
-  createRequest(input: RequestInput): Promise<any>;
+  createRequest(input: RequestInput): Promise<RequestId>;
   getRequest(id: RequestId): Promise<any>;
-  listRequests(params: RequestListParams): Promise<any>;
-  updateStatus(id: RequestId, status: RequestStatus, actor: string, comment?: string): Promise<any>;
-  listProcessing(requestId: RequestId): Promise<any>;
+  listRequests(params: RequestListParams): Promise<PaginatedResult>;
+  updateStatus(id: RequestId, status: RequestStatus, actor: string, comment?: string): Promise<void>;
+  listProcessing(requestId: RequestId): Promise<RequestProcessingEntry[]>;
 }
 
 // Client interface
 export interface RequestsServiceClient {
-  createRequest(input: RequestInput): Promise<any>;
+  createRequest(input: RequestInput): Promise<RequestId>;
   getRequest(id: RequestId): Promise<any>;
-  listRequests(params: RequestListParams): Promise<any>;
-  updateStatus(id: RequestId, status: RequestStatus, actor: string, comment?: string): Promise<any>;
-  listProcessing(requestId: RequestId): Promise<any>;
+  listRequests(params: RequestListParams): Promise<PaginatedResult>;
+  updateStatus(id: RequestId, status: RequestStatus, actor: string, comment?: string): Promise<void>;
+  listProcessing(requestId: RequestId): Promise<RequestProcessingEntry[]>;
 }
 
 // Factory function

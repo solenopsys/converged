@@ -1,22 +1,22 @@
-export interface Module {
+export type Module = {
   name: string;
   link: string;
   protected: boolean;
   locales: Record<string, string>;
 }
 
-export interface ModuleDefinition {
+export type ModuleDefinition = {
   name: string;
   remote: boolean;
   protected: boolean;
 }
 
-export interface ModulePreset {
+export type ModulePreset = {
   name: string;
   modules: string[];
 }
 
-export interface UserModuleConfig {
+export type UserModuleConfig = {
   presets: string[];
   additions: string[];
   removals: string[];

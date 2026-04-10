@@ -63,7 +63,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "UUID",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -78,7 +78,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "HashString",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -99,7 +99,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -114,7 +114,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -129,7 +129,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "FileMetadata",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -144,9 +144,9 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "FileChunk",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     },
     {
@@ -159,7 +159,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -215,25 +215,25 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface FilesService {
-  save(file: FileMetadata): Promise<any>;
-  saveChunk(chunk: FileChunk): Promise<any>;
-  update(id: UUID, file: FileMetadata): Promise<any>;
-  delete(id: UUID): Promise<any>;
-  get(id: UUID): Promise<any>;
-  getChunks(id: UUID): Promise<any>;
-  list(params: PaginationParams): Promise<any>;
+  save(file: FileMetadata): Promise<UUID>;
+  saveChunk(chunk: FileChunk): Promise<HashString>;
+  update(id: UUID, file: FileMetadata): Promise<void>;
+  delete(id: UUID): Promise<void>;
+  get(id: UUID): Promise<FileMetadata>;
+  getChunks(id: UUID): Promise<FileChunk[]>;
+  list(params: PaginationParams): Promise<PaginatedResult>;
   statistic(): Promise<any>;
 }
 
 // Client interface
 export interface FilesServiceClient {
-  save(file: FileMetadata): Promise<any>;
-  saveChunk(chunk: FileChunk): Promise<any>;
-  update(id: UUID, file: FileMetadata): Promise<any>;
-  delete(id: UUID): Promise<any>;
-  get(id: UUID): Promise<any>;
-  getChunks(id: UUID): Promise<any>;
-  list(params: PaginationParams): Promise<any>;
+  save(file: FileMetadata): Promise<UUID>;
+  saveChunk(chunk: FileChunk): Promise<HashString>;
+  update(id: UUID, file: FileMetadata): Promise<void>;
+  delete(id: UUID): Promise<void>;
+  get(id: UUID): Promise<FileMetadata>;
+  getChunks(id: UUID): Promise<FileChunk[]>;
+  list(params: PaginationParams): Promise<PaginatedResult>;
   statistic(): Promise<any>;
 }
 

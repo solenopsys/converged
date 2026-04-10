@@ -37,7 +37,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "DiscordSendResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -52,7 +52,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "DiscordSendResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -76,14 +76,14 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface DiscordService {
-  sendWebhookMessage(input: DiscordWebhookMessageInput): Promise<any>;
-  sendBotMessage(input: DiscordBotMessageInput): Promise<any>;
+  sendWebhookMessage(input: DiscordWebhookMessageInput): Promise<DiscordSendResult>;
+  sendBotMessage(input: DiscordBotMessageInput): Promise<DiscordSendResult>;
 }
 
 // Client interface
 export interface DiscordServiceClient {
-  sendWebhookMessage(input: DiscordWebhookMessageInput): Promise<any>;
-  sendBotMessage(input: DiscordBotMessageInput): Promise<any>;
+  sendWebhookMessage(input: DiscordWebhookMessageInput): Promise<DiscordSendResult>;
+  sendBotMessage(input: DiscordBotMessageInput): Promise<DiscordSendResult>;
 }
 
 // Factory function

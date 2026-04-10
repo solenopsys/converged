@@ -47,7 +47,7 @@ export type CronListParams = {
   status?: CronStatus;
 };
 
-export interface PaginatedResult<T> {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 }

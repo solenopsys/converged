@@ -3,12 +3,12 @@ export type MdFile = {
   content: string;
 };
 
-export interface PaginatedResult<T> {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 }
 
-export interface PaginationParams {
+export type PaginationParams = {
   offset: number;
   limit: number;
 }

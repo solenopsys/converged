@@ -41,7 +41,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "SmsSendResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -65,12 +65,12 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface SmsService {
-  sendSms(input: SmsMessageInput, credentials: SmsCredentials): Promise<any>;
+  sendSms(input: SmsMessageInput, credentials: SmsCredentials): Promise<SmsSendResult>;
 }
 
 // Client interface
 export interface SmsServiceClient {
-  sendSms(input: SmsMessageInput, credentials: SmsCredentials): Promise<any>;
+  sendSms(input: SmsMessageInput, credentials: SmsCredentials): Promise<SmsSendResult>;
 }
 
 // Factory function

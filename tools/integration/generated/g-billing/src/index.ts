@@ -25,26 +25,26 @@ export type BillingEntryInput = {
   description?: string;
 };
 
-export interface PaginatedResult {
+export type PaginatedResult = {
   items: T[];
   totalCount?: number;
-}
+};
 
-export interface BillingListParams {
+export type BillingListParams = {
   offset: number;
   limit: number;
   owner?: string;
   category?: BillingCategory;
   from?: ISODateString;
   to?: ISODateString;
-}
+};
 
-export interface BillingTotalParams {
+export type BillingTotalParams = {
   owner?: string;
   category?: BillingCategory;
   from?: ISODateString;
   to?: ISODateString;
-}
+};
 
 export const metadata = {
   "interfaceName": "BillingService",
@@ -61,7 +61,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "BillingEntryId",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -91,7 +91,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -106,7 +106,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "number",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -135,111 +135,33 @@ export const metadata = {
     },
     {
       "name": "PaginatedResult",
-      "definition": "",
-      "properties": [
-        {
-          "name": "items",
-          "type": "T",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "totalCount",
-          "type": "number",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     },
     {
       "name": "BillingListParams",
-      "definition": "",
-      "properties": [
-        {
-          "name": "offset",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "limit",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "owner",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "category",
-          "type": "BillingCategory",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "from",
-          "type": "ISODateString",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "to",
-          "type": "ISODateString",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  offset: number;\n  limit: number;\n  owner?: string;\n  category?: BillingCategory;\n  from?: ISODateString;\n  to?: ISODateString;\n}"
     },
     {
       "name": "BillingTotalParams",
-      "definition": "",
-      "properties": [
-        {
-          "name": "owner",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "category",
-          "type": "BillingCategory",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "from",
-          "type": "ISODateString",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "to",
-          "type": "ISODateString",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  owner?: string;\n  category?: BillingCategory;\n  from?: ISODateString;\n  to?: ISODateString;\n}"
     }
   ]
 };
 
 // Server interface (to be implemented in microservice)
 export interface BillingService {
-  addEntry(entry: BillingEntryInput): Promise<any>;
+  addEntry(entry: BillingEntryInput): Promise<BillingEntryId>;
   getEntry(id: BillingEntryId): Promise<any>;
-  listEntries(params: BillingListParams): Promise<any>;
-  total(params: BillingTotalParams): Promise<any>;
+  listEntries(params: BillingListParams): Promise<PaginatedResult>;
+  total(params: BillingTotalParams): Promise<number>;
 }
 
 // Client interface
 export interface BillingServiceClient {
-  addEntry(entry: BillingEntryInput): Promise<any>;
+  addEntry(entry: BillingEntryInput): Promise<BillingEntryId>;
   getEntry(id: BillingEntryId): Promise<any>;
-  listEntries(params: BillingListParams): Promise<any>;
-  total(params: BillingTotalParams): Promise<any>;
+  listEntries(params: BillingListParams): Promise<PaginatedResult>;
+  total(params: BillingTotalParams): Promise<number>;
 }
 
 // Factory function

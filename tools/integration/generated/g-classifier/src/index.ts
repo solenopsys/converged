@@ -1,12 +1,12 @@
 // Auto-generated package
 import { createHttpClient } from "nrpc";
 
-export interface ClassifierNode {
+export type ClassifierNode = {
   id: string;
-  parentId: any;
+  parentId: string | null;
   name: string;
   slug: string;
-}
+};
 
 export const metadata = {
   "interfaceName": "ClassifierService",
@@ -23,7 +23,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "string",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -53,68 +53,42 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "ClassifierNode",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     },
     {
       "name": "listRoots",
       "parameters": [],
-      "returnType": "any",
+      "returnType": "ClassifierNode",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     }
   ],
   "types": [
     {
       "name": "ClassifierNode",
-      "definition": "",
-      "properties": [
-        {
-          "name": "id",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "parentId",
-          "type": "any",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "name",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "slug",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  id: string;\n  parentId: string | null;\n  name: string;\n  slug: string;\n}"
     }
   ]
 };
 
 // Server interface (to be implemented in microservice)
 export interface ClassifierService {
-  addNode(node: any): Promise<any>;
+  addNode(node: any): Promise<string>;
   getNode(id: string): Promise<any>;
-  getChildren(parentId: string): Promise<any>;
-  listRoots(): Promise<any>;
+  getChildren(parentId: string): Promise<ClassifierNode[]>;
+  listRoots(): Promise<ClassifierNode[]>;
 }
 
 // Client interface
 export interface ClassifierServiceClient {
-  addNode(node: any): Promise<any>;
+  addNode(node: any): Promise<string>;
   getNode(id: string): Promise<any>;
-  getChildren(parentId: string): Promise<any>;
-  listRoots(): Promise<any>;
+  getChildren(parentId: string): Promise<ClassifierNode[]>;
+  listRoots(): Promise<ClassifierNode[]>;
 }
 
 // Factory function

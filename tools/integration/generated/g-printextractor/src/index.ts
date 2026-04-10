@@ -51,7 +51,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "SliceEstimateResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -66,7 +66,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PrintEstimate",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -98,14 +98,14 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface PrintExtractorService {
-  extractFromSlice(input: SliceEstimateInput): Promise<any>;
-  extractFromGcode(input: GcodeEstimateInput): Promise<any>;
+  extractFromSlice(input: SliceEstimateInput): Promise<SliceEstimateResult>;
+  extractFromGcode(input: GcodeEstimateInput): Promise<PrintEstimate>;
 }
 
 // Client interface
 export interface PrintExtractorServiceClient {
-  extractFromSlice(input: SliceEstimateInput): Promise<any>;
-  extractFromGcode(input: GcodeEstimateInput): Promise<any>;
+  extractFromSlice(input: SliceEstimateInput): Promise<SliceEstimateResult>;
+  extractFromGcode(input: GcodeEstimateInput): Promise<PrintEstimate>;
 }
 
 // Factory function

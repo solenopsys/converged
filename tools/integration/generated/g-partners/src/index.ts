@@ -35,10 +35,10 @@ export type PartnerListParams = {
   query?: string;
 };
 
-export interface PaginatedResult {
+export type PaginatedResult = {
   items: T[];
   totalCount?: number;
-}
+};
 
 export const metadata = {
   "interfaceName": "PartnersService",
@@ -55,7 +55,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PartnerId",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -91,7 +91,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -106,7 +106,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "boolean",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -121,7 +121,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -158,41 +158,27 @@ export const metadata = {
     },
     {
       "name": "PaginatedResult",
-      "definition": "",
-      "properties": [
-        {
-          "name": "items",
-          "type": "T",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "totalCount",
-          "type": "number",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     }
   ]
 };
 
 // Server interface (to be implemented in microservice)
 export interface PartnersService {
-  createPartner(input: PartnerInput): Promise<any>;
+  createPartner(input: PartnerInput): Promise<PartnerId>;
   getPartner(id: PartnerId): Promise<any>;
-  updatePartner(id: PartnerId, patch: PartnerUpdate): Promise<any>;
-  deletePartner(id: PartnerId): Promise<any>;
-  listPartners(params: PartnerListParams): Promise<any>;
+  updatePartner(id: PartnerId, patch: PartnerUpdate): Promise<void>;
+  deletePartner(id: PartnerId): Promise<boolean>;
+  listPartners(params: PartnerListParams): Promise<PaginatedResult>;
 }
 
 // Client interface
 export interface PartnersServiceClient {
-  createPartner(input: PartnerInput): Promise<any>;
+  createPartner(input: PartnerInput): Promise<PartnerId>;
   getPartner(id: PartnerId): Promise<any>;
-  updatePartner(id: PartnerId, patch: PartnerUpdate): Promise<any>;
-  deletePartner(id: PartnerId): Promise<any>;
-  listPartners(params: PartnerListParams): Promise<any>;
+  updatePartner(id: PartnerId, patch: PartnerUpdate): Promise<void>;
+  deletePartner(id: PartnerId): Promise<boolean>;
+  listPartners(params: PartnerListParams): Promise<PaginatedResult>;
 }
 
 // Factory function

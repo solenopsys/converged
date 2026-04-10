@@ -46,7 +46,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "YouTubeUploadResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -74,12 +74,12 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface YouTubeService {
-  uploadShort(input: YouTubeShortsInput, credentials: YouTubeCredentials): Promise<any>;
+  uploadShort(input: YouTubeShortsInput, credentials: YouTubeCredentials): Promise<YouTubeUploadResult>;
 }
 
 // Client interface
 export interface YouTubeServiceClient {
-  uploadShort(input: YouTubeShortsInput, credentials: YouTubeCredentials): Promise<any>;
+  uploadShort(input: YouTubeShortsInput, credentials: YouTubeCredentials): Promise<YouTubeUploadResult>;
 }
 
 // Factory function

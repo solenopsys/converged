@@ -288,6 +288,16 @@ if (existsSync(workflowsPath)) {
   workflows = await import(pathToFileURL(workflowsPath).href);
 }
 
+// Load RT plugin from back/runtime and add to plugins (mounts inside /services group)
+const runtimePluginPath = resolve(PROJECT_DIR, "back/runtime/plugin.ts");
+if (existsSync(runtimePluginPath)) {
+  const runtimeMod = await import(pathToFileURL(runtimePluginPath).href);
+  const runtimePluginFactory = runtimeMod.default ?? runtimeMod;
+  if (typeof runtimePluginFactory === "function") {
+    plugins.push(runtimePluginFactory({ workflows }));
+  }
+}
+
 const server = createServer({
   config: {
     ...loadConfigFromEnv(),
@@ -298,17 +308,6 @@ const server = createServer({
   },
   plugins,
 });
-
-// Load RT plugin from back/runtime
-const runtimePluginPath = resolve(PROJECT_DIR, "back/runtime/plugin.ts");
-if (existsSync(runtimePluginPath)) {
-  const runtimeMod = await import(pathToFileURL(runtimePluginPath).href);
-  const runtimePlugin = runtimeMod.default ?? runtimeMod;
-  if (typeof runtimePlugin === "function") {
-    const rtConfig = { workflows };
-    server.app.use(runtimePlugin(rtConfig));
-  }
-}
 
 // SPA plugin — vendor libs, front-core, microfrontends
 const spaPath = resolve(PROJECT_DIR, "front/spa/src/plugin.ts");

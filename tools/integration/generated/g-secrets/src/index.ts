@@ -11,9 +11,9 @@ export const metadata = {
     {
       "name": "listSecrets",
       "parameters": [],
-      "returnType": "any",
+      "returnType": "string",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     },
     {
@@ -26,7 +26,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "Record",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -47,7 +47,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -62,7 +62,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -73,18 +73,18 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface SecretsService {
-  listSecrets(): Promise<any>;
-  getSecret(name: string): Promise<any>;
-  setSecret(name: string, data: Record): Promise<any>;
-  deleteSecret(name: string): Promise<any>;
+  listSecrets(): Promise<string[]>;
+  getSecret(name: string): Promise<Record>;
+  setSecret(name: string, data: Record): Promise<void>;
+  deleteSecret(name: string): Promise<void>;
 }
 
 // Client interface
 export interface SecretsServiceClient {
-  listSecrets(): Promise<any>;
-  getSecret(name: string): Promise<any>;
-  setSecret(name: string, data: Record): Promise<any>;
-  deleteSecret(name: string): Promise<any>;
+  listSecrets(): Promise<string[]>;
+  getSecret(name: string): Promise<Record>;
+  setSecret(name: string, data: Record): Promise<void>;
+  deleteSecret(name: string): Promise<void>;
 }
 
 // Factory function

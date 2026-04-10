@@ -40,7 +40,7 @@ export type CallsListParams = {
   toTime?: number;
 };
 
-export interface PaginatedResult<T> {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 }

@@ -1,12 +1,15 @@
 // Auto-generated package
 import { createHttpClient } from "nrpc";
 
-export interface SmtpCredentials {
+export type SmtpCredentials = {
   host: string;
   port: number;
   secure: boolean;
-  auth?: any;
-}
+  auth?: {
+    user: string;
+    pass: string;
+  };
+};
 
 export type EmailPayload = {
   from?: string;
@@ -43,7 +46,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "EmailResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -52,33 +55,7 @@ export const metadata = {
   "types": [
     {
       "name": "SmtpCredentials",
-      "definition": "",
-      "properties": [
-        {
-          "name": "host",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "port",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "secure",
-          "type": "boolean",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "auth",
-          "type": "any",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  host: string;\n  port: number;\n  secure: boolean;\n  auth?: {\n    user: string;\n    pass: string;\n  };\n}"
     },
     {
       "name": "EmailPayload",
@@ -93,12 +70,12 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface SmtpService {
-  sendEmail(payload: EmailPayload, credentials: SmtpCredentials): Promise<any>;
+  sendEmail(payload: EmailPayload, credentials: SmtpCredentials): Promise<EmailResult>;
 }
 
 // Client interface
 export interface SmtpServiceClient {
-  sendEmail(payload: EmailPayload, credentials: SmtpCredentials): Promise<any>;
+  sendEmail(payload: EmailPayload, credentials: SmtpCredentials): Promise<EmailResult>;
 }
 
 // Factory function

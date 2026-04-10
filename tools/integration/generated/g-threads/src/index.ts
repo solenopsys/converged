@@ -28,7 +28,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "string",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -49,7 +49,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "Message",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -70,9 +70,9 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "Message",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     },
     {
@@ -85,9 +85,9 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "Message",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     },
     {
@@ -100,9 +100,9 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "Message",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     }
   ],
@@ -120,20 +120,20 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface ThreadsService {
-  saveMessage(message: Message): Promise<any>;
-  readMessage(threadId: ULID, messageId: ULID): Promise<any>;
-  readMessageVersions(threadId: ULID, messageId: ULID): Promise<any>;
-  readThreadAllVersions(threadId: ULID): Promise<any>;
-  readThread(threadId: ULID): Promise<any>;
+  saveMessage(message: Message): Promise<string>;
+  readMessage(threadId: ULID, messageId: ULID): Promise<Message>;
+  readMessageVersions(threadId: ULID, messageId: ULID): Promise<Message[]>;
+  readThreadAllVersions(threadId: ULID): Promise<Message[]>;
+  readThread(threadId: ULID): Promise<Message[]>;
 }
 
 // Client interface
 export interface ThreadsServiceClient {
-  saveMessage(message: Message): Promise<any>;
-  readMessage(threadId: ULID, messageId: ULID): Promise<any>;
-  readMessageVersions(threadId: ULID, messageId: ULID): Promise<any>;
-  readThreadAllVersions(threadId: ULID): Promise<any>;
-  readThread(threadId: ULID): Promise<any>;
+  saveMessage(message: Message): Promise<string>;
+  readMessage(threadId: ULID, messageId: ULID): Promise<Message>;
+  readMessageVersions(threadId: ULID, messageId: ULID): Promise<Message[]>;
+  readThreadAllVersions(threadId: ULID): Promise<Message[]>;
+  readThread(threadId: ULID): Promise<Message[]>;
 }
 
 // Factory function

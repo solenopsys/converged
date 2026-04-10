@@ -27,7 +27,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "OpenScadConvertResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -47,12 +47,12 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface OpenScadConvertorService {
-  convert(input: OpenScadConvertInput): Promise<any>;
+  convert(input: OpenScadConvertInput): Promise<OpenScadConvertResult>;
 }
 
 // Client interface
 export interface OpenScadConvertorServiceClient {
-  convert(input: OpenScadConvertInput): Promise<any>;
+  convert(input: OpenScadConvertInput): Promise<OpenScadConvertResult>;
 }
 
 // Factory function

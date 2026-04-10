@@ -11,10 +11,10 @@ export type UserId = string;
 
 export type ISODateString = string;
 
-export interface PaginatedResult {
+export type PaginatedResult = {
   items: T[];
   totalCount?: number;
-}
+};
 
 export type ListParams = {
   offset: number;
@@ -99,7 +99,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "SectionId",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -129,7 +129,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "boolean",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -144,7 +144,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -165,9 +165,9 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "SectionTreeNode",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     },
     {
@@ -180,7 +180,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "TopicId",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -210,7 +210,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "boolean",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -225,7 +225,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -254,21 +254,7 @@ export const metadata = {
     },
     {
       "name": "PaginatedResult",
-      "definition": "",
-      "properties": [
-        {
-          "name": "items",
-          "type": "T",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "totalCount",
-          "type": "number",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     },
     {
       "name": "ListParams",
@@ -307,28 +293,28 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface CommunityService {
-  saveSection(input: CommunitySectionInput): Promise<any>;
+  saveSection(input: CommunitySectionInput): Promise<SectionId>;
   readSection(id: SectionId): Promise<any>;
-  deleteSection(id: SectionId): Promise<any>;
-  listSections(params: SectionListParams): Promise<any>;
-  readSectionsTree(rootId?: SectionId, includeHidden?: boolean): Promise<any>;
-  saveTopic(input: CommunityTopicInput): Promise<any>;
+  deleteSection(id: SectionId): Promise<boolean>;
+  listSections(params: SectionListParams): Promise<PaginatedResult>;
+  readSectionsTree(rootId?: SectionId, includeHidden?: boolean): Promise<SectionTreeNode[]>;
+  saveTopic(input: CommunityTopicInput): Promise<TopicId>;
   readTopic(id: TopicId): Promise<any>;
-  deleteTopic(id: TopicId): Promise<any>;
-  listTopics(params: TopicListParams): Promise<any>;
+  deleteTopic(id: TopicId): Promise<boolean>;
+  listTopics(params: TopicListParams): Promise<PaginatedResult>;
 }
 
 // Client interface
 export interface CommunityServiceClient {
-  saveSection(input: CommunitySectionInput): Promise<any>;
+  saveSection(input: CommunitySectionInput): Promise<SectionId>;
   readSection(id: SectionId): Promise<any>;
-  deleteSection(id: SectionId): Promise<any>;
-  listSections(params: SectionListParams): Promise<any>;
-  readSectionsTree(rootId?: SectionId, includeHidden?: boolean): Promise<any>;
-  saveTopic(input: CommunityTopicInput): Promise<any>;
+  deleteSection(id: SectionId): Promise<boolean>;
+  listSections(params: SectionListParams): Promise<PaginatedResult>;
+  readSectionsTree(rootId?: SectionId, includeHidden?: boolean): Promise<SectionTreeNode[]>;
+  saveTopic(input: CommunityTopicInput): Promise<TopicId>;
   readTopic(id: TopicId): Promise<any>;
-  deleteTopic(id: TopicId): Promise<any>;
-  listTopics(params: TopicListParams): Promise<any>;
+  deleteTopic(id: TopicId): Promise<boolean>;
+  listTopics(params: TopicListParams): Promise<PaginatedResult>;
 }
 
 // Factory function

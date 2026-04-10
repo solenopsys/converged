@@ -6,33 +6,38 @@ export type ContentBlock = {
     data?: any;
 };
 
-export interface ToolParameter {
-  type: any;
-  description: string;
-  required?: boolean;
-  enum?: any[];
-  items?: ToolParameter;
-  properties?: Record;
-}
+export type ToolParameter = {
+    type: 'string' | 'number' | 'boolean' | 'object' | 'array';
+    description: string;
+    required?: boolean;
+    enum?: (string | number)[];
+    items?: ToolParameter;
+    properties?: Record<string, ToolParameter>;
+};
 
-export interface Tool {
-  name: string;
-  description: string;
-  parameters: any;
-  execute: any;
-}
+export type Tool = {
+    name: string;
+    description: string;
+    parameters: {
+        type: 'object';
+        properties: Record<string, ToolParameter>;
+        required?: string[];
+    };
 
-export interface ToolCall {
-  id: string;
-  name: string;
-  args: Record;
-}
+    execute: (args: any) => Promise<any> | any;
+};
 
-export interface ToolResult {
-  toolCallId: string;
-  result: any;
-  error?: string;
-}
+export type ToolCall = {
+    id: string;
+    name: string;
+    args: Record<string, any>;
+};
+
+export type ToolResult = {
+    toolCallId: string;
+    result: any;
+    error?: string;
+};
 
 export type ConversationOptions = {
     stream?: boolean;
@@ -50,32 +55,33 @@ export type StreamEvent = {
     | { type: StreamEventType.ERROR; message: string }
 );
 
-export interface PaginationParams {
-  offset: number;
-  limit: number;
-}
+export type PaginationParams = {
+    offset: number;
+    limit: number;
+};
 
-export interface PaginatedResult {
-  items: T[];
-  totalCount?: number;
-}
+export type PaginatedResult = {
+    items: T[];
+    totalCount?: number; // если хочешь знать общее число
+};
 
-export interface Chat {
-  id: string;
-  name: string;
-  description: string;
-}
+export type Chat = {
+    id: string;
+    name: string;
+    description: string;
 
-export interface ChatContextSummary {
-  id: string;
-  chatId: string;
-  updatedAt: number;
-  size?: number;
-}
+};
 
-export interface ChatContext {
-  data: any;
-}
+export type ChatContextSummary = {
+    id: string;
+    chatId: string;
+    updatedAt: number;
+    size?: number;
+};
+
+export type ChatContext = ChatContextSummary & {
+    data: any;
+};
 
 export const metadata = {
   "interfaceName": "AssistantService",
@@ -98,7 +104,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "string",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -125,7 +131,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "StreamEvent",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": true
@@ -140,7 +146,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -155,7 +161,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -170,7 +176,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "Chat",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -191,7 +197,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "ChatContextSummary",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -221,7 +227,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -234,123 +240,19 @@ export const metadata = {
     },
     {
       "name": "ToolParameter",
-      "definition": "",
-      "properties": [
-        {
-          "name": "type",
-          "type": "any",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "description",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "required",
-          "type": "boolean",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "enum",
-          "type": "any",
-          "optional": true,
-          "isArray": true
-        },
-        {
-          "name": "items",
-          "type": "ToolParameter",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "properties",
-          "type": "Record",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n    type: 'string' | 'number' | 'boolean' | 'object' | 'array';\n    description: string;\n    required?: boolean;\n    enum?: (string | number)[];\n    items?: ToolParameter;\n    properties?: Record<string, ToolParameter>;\n}"
     },
     {
       "name": "Tool",
-      "definition": "",
-      "properties": [
-        {
-          "name": "name",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "description",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "parameters",
-          "type": "any",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "execute",
-          "type": "any",
-          "optional": false,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n    name: string;\n    description: string;\n    parameters: {\n        type: 'object';\n        properties: Record<string, ToolParameter>;\n        required?: string[];\n    };\n\n    execute: (args: any) => Promise<any> | any;\n}"
     },
     {
       "name": "ToolCall",
-      "definition": "",
-      "properties": [
-        {
-          "name": "id",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "name",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "args",
-          "type": "Record",
-          "optional": false,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n    id: string;\n    name: string;\n    args: Record<string, any>;\n}"
     },
     {
       "name": "ToolResult",
-      "definition": "",
-      "properties": [
-        {
-          "name": "toolCallId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "result",
-          "type": "any",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "error",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n    toolCallId: string;\n    result: any;\n    error?: string;\n}"
     },
     {
       "name": "ConversationOptions",
@@ -362,131 +264,49 @@ export const metadata = {
     },
     {
       "name": "PaginationParams",
-      "definition": "",
-      "properties": [
-        {
-          "name": "offset",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "limit",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n    offset: number;\n    limit: number;\n}"
     },
     {
       "name": "PaginatedResult",
-      "definition": "",
-      "properties": [
-        {
-          "name": "items",
-          "type": "T",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "totalCount",
-          "type": "number",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n    items: T[];\n    totalCount?: number; // если хочешь знать общее число\n}"
     },
     {
       "name": "Chat",
-      "definition": "",
-      "properties": [
-        {
-          "name": "id",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "name",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "description",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n    id: string;\n    name: string;\n    description: string;\n\n}"
     },
     {
       "name": "ChatContextSummary",
-      "definition": "",
-      "properties": [
-        {
-          "name": "id",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "chatId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "updatedAt",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "size",
-          "type": "number",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n    id: string;\n    chatId: string;\n    updatedAt: number;\n    size?: number;\n}"
     },
     {
       "name": "ChatContext",
-      "definition": "",
-      "properties": [
-        {
-          "name": "data",
-          "type": "any",
-          "optional": false,
-          "isArray": false
-        }
-      ]
+      "definition": "ChatContextSummary & {\n    data: any;\n}"
     }
   ]
 };
 
 // Server interface (to be implemented in microservice)
 export interface AssistantService {
-  createSession(serviceType: ServiceType, model?: string): Promise<any>;
-  sendMessage(sessionId: string, messages: ContentBlock[], options?: ConversationOptions): AsyncIterable<any>;
-  listOfChats(params: PaginationParams): Promise<any>;
-  deleteChat(chatId: string): Promise<any>;
-  getChat(chatId: string): Promise<any>;
-  saveContext(chatId: string, context: any): Promise<any>;
+  createSession(serviceType: ServiceType, model?: string): Promise<string>;
+  sendMessage(sessionId: string, messages: ContentBlock[], options?: ConversationOptions): AsyncIterable<StreamEvent>;
+  listOfChats(params: PaginationParams): Promise<PaginatedResult>;
+  deleteChat(chatId: string): Promise<void>;
+  getChat(chatId: string): Promise<Chat>;
+  saveContext(chatId: string, context: any): Promise<ChatContextSummary>;
   getContext(chatId: string): Promise<any>;
-  listContexts(params: PaginationParams): Promise<any>;
+  listContexts(params: PaginationParams): Promise<PaginatedResult>;
 }
 
 // Client interface
 export interface AssistantServiceClient {
-  createSession(serviceType: ServiceType, model?: string): Promise<any>;
-  sendMessage(sessionId: string, messages: ContentBlock[], options?: ConversationOptions): AsyncIterable<any>;
-  listOfChats(params: PaginationParams): Promise<any>;
-  deleteChat(chatId: string): Promise<any>;
-  getChat(chatId: string): Promise<any>;
-  saveContext(chatId: string, context: any): Promise<any>;
+  createSession(serviceType: ServiceType, model?: string): Promise<string>;
+  sendMessage(sessionId: string, messages: ContentBlock[], options?: ConversationOptions): AsyncIterable<StreamEvent>;
+  listOfChats(params: PaginationParams): Promise<PaginatedResult>;
+  deleteChat(chatId: string): Promise<void>;
+  getChat(chatId: string): Promise<Chat>;
+  saveContext(chatId: string, context: any): Promise<ChatContextSummary>;
   getContext(chatId: string): Promise<any>;
-  listContexts(params: PaginationParams): Promise<any>;
+  listContexts(params: PaginationParams): Promise<PaginatedResult>;
 }
 
 // Factory function

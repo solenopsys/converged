@@ -42,7 +42,7 @@ export type UsageFunctionStatsItem = {
   total: number;
 };
 
-export interface PaginatedResult<T> {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 }

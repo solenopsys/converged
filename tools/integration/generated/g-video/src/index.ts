@@ -92,7 +92,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "CameraId",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -122,7 +122,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -137,7 +137,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "boolean",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -152,7 +152,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "VideoStreamId",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -188,7 +188,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -203,7 +203,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "boolean",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -218,7 +218,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "VideoSegmentId",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -248,7 +248,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -263,7 +263,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "boolean",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -278,7 +278,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "string",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -308,7 +308,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "boolean",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -376,40 +376,40 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface VideoService {
-  createCamera(input: CameraInput): Promise<any>;
+  createCamera(input: CameraInput): Promise<CameraId>;
   getCamera(id: CameraId): Promise<any>;
-  listCameras(params: PaginationParams): Promise<any>;
-  deleteCamera(id: CameraId): Promise<any>;
-  createStream(input: VideoStreamInput): Promise<any>;
+  listCameras(params: PaginationParams): Promise<PaginatedResult>;
+  deleteCamera(id: CameraId): Promise<boolean>;
+  createStream(input: VideoStreamInput): Promise<VideoStreamId>;
   getStream(id: VideoStreamId): Promise<any>;
-  listStreams(cameraId: CameraId, params: PaginationParams): Promise<any>;
-  deleteStream(id: VideoStreamId): Promise<any>;
-  saveSegment(input: VideoSegmentInput): Promise<any>;
+  listStreams(cameraId: CameraId, params: PaginationParams): Promise<PaginatedResult>;
+  deleteStream(id: VideoStreamId): Promise<boolean>;
+  saveSegment(input: VideoSegmentInput): Promise<VideoSegmentId>;
   getSegment(id: VideoSegmentId): Promise<any>;
-  listSegments(params: VideoSegmentListParams): Promise<any>;
-  deleteSegment(id: VideoSegmentId): Promise<any>;
-  saveThumb(input: VideoThumbSaveInput): Promise<any>;
+  listSegments(params: VideoSegmentListParams): Promise<PaginatedResult>;
+  deleteSegment(id: VideoSegmentId): Promise<boolean>;
+  saveThumb(input: VideoThumbSaveInput): Promise<string>;
   getThumb(path: string): Promise<any>;
-  deleteThumb(path: string): Promise<any>;
+  deleteThumb(path: string): Promise<boolean>;
 }
 
 // Client interface
 export interface VideoServiceClient {
-  createCamera(input: CameraInput): Promise<any>;
+  createCamera(input: CameraInput): Promise<CameraId>;
   getCamera(id: CameraId): Promise<any>;
-  listCameras(params: PaginationParams): Promise<any>;
-  deleteCamera(id: CameraId): Promise<any>;
-  createStream(input: VideoStreamInput): Promise<any>;
+  listCameras(params: PaginationParams): Promise<PaginatedResult>;
+  deleteCamera(id: CameraId): Promise<boolean>;
+  createStream(input: VideoStreamInput): Promise<VideoStreamId>;
   getStream(id: VideoStreamId): Promise<any>;
-  listStreams(cameraId: CameraId, params: PaginationParams): Promise<any>;
-  deleteStream(id: VideoStreamId): Promise<any>;
-  saveSegment(input: VideoSegmentInput): Promise<any>;
+  listStreams(cameraId: CameraId, params: PaginationParams): Promise<PaginatedResult>;
+  deleteStream(id: VideoStreamId): Promise<boolean>;
+  saveSegment(input: VideoSegmentInput): Promise<VideoSegmentId>;
   getSegment(id: VideoSegmentId): Promise<any>;
-  listSegments(params: VideoSegmentListParams): Promise<any>;
-  deleteSegment(id: VideoSegmentId): Promise<any>;
-  saveThumb(input: VideoThumbSaveInput): Promise<any>;
+  listSegments(params: VideoSegmentListParams): Promise<PaginatedResult>;
+  deleteSegment(id: VideoSegmentId): Promise<boolean>;
+  saveThumb(input: VideoThumbSaveInput): Promise<string>;
   getThumb(path: string): Promise<any>;
-  deleteThumb(path: string): Promise<any>;
+  deleteThumb(path: string): Promise<boolean>;
 }
 
 // Factory function

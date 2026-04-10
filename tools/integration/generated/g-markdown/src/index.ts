@@ -6,15 +6,15 @@ export type MdFile = {
   content: string;
 };
 
-export interface PaginatedResult {
+export type PaginatedResult = {
   items: T[];
   totalCount?: number;
-}
+};
 
-export interface PaginationParams {
+export type PaginationParams = {
   offset: number;
   limit: number;
-}
+};
 
 export const metadata = {
   "interfaceName": "MarkdownService",
@@ -31,7 +31,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "string",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -46,7 +46,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "MdFile",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -61,7 +61,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "MdFile",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -76,9 +76,9 @@ export const metadata = {
           "isArray": true
         }
       ],
-      "returnType": "any",
+      "returnType": "MdFile",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     },
     {
@@ -91,7 +91,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -104,59 +104,31 @@ export const metadata = {
     },
     {
       "name": "PaginatedResult",
-      "definition": "",
-      "properties": [
-        {
-          "name": "items",
-          "type": "T",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "totalCount",
-          "type": "number",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     },
     {
       "name": "PaginationParams",
-      "definition": "",
-      "properties": [
-        {
-          "name": "offset",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "limit",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  offset: number;\n  limit: number;\n}"
     }
   ]
 };
 
 // Server interface (to be implemented in microservice)
 export interface MarkdownService {
-  saveMd(mdFile: MdFile): Promise<any>;
-  readMd(path: string): Promise<any>;
-  readMdJson(path: string): Promise<any>;
-  readMdJsonBatch(paths: string[]): Promise<any>;
-  listOfMd(params: PaginationParams): Promise<any>;
+  saveMd(mdFile: MdFile): Promise<string>;
+  readMd(path: string): Promise<MdFile>;
+  readMdJson(path: string): Promise<MdFile>;
+  readMdJsonBatch(paths: string[]): Promise<MdFile[]>;
+  listOfMd(params: PaginationParams): Promise<PaginatedResult>;
 }
 
 // Client interface
 export interface MarkdownServiceClient {
-  saveMd(mdFile: MdFile): Promise<any>;
-  readMd(path: string): Promise<any>;
-  readMdJson(path: string): Promise<any>;
-  readMdJsonBatch(paths: string[]): Promise<any>;
-  listOfMd(params: PaginationParams): Promise<any>;
+  saveMd(mdFile: MdFile): Promise<string>;
+  readMd(path: string): Promise<MdFile>;
+  readMdJson(path: string): Promise<MdFile>;
+  readMdJsonBatch(paths: string[]): Promise<MdFile[]>;
+  listOfMd(params: PaginationParams): Promise<PaginatedResult>;
 }
 
 // Factory function

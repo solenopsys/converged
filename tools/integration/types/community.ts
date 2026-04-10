@@ -4,7 +4,7 @@ export type ThreadId = string;
 export type UserId = string;
 export type ISODateString = string;
 
-export interface PaginatedResult<T> {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 }

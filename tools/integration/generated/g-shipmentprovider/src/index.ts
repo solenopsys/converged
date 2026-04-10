@@ -123,7 +123,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "QuoteResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -138,7 +138,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "CreateShipmentResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -153,7 +153,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "LabelResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -168,7 +168,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "TrackingResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -183,7 +183,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -198,7 +198,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "AddressValidationResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -213,7 +213,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "CustomsLookupResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -305,24 +305,24 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface ShipmentProviderService {
-  quote(input: QuoteRequest): Promise<any>;
-  createShipment(input: CreateShipmentRequest): Promise<any>;
-  label(input: LabelRequest): Promise<any>;
-  tracking(input: TrackingRequest): Promise<any>;
-  webhook(input: WebhookRequest): Promise<any>;
-  validateAddress(input: AddressValidationRequest): Promise<any>;
-  customsLookup(input: CustomsLookupRequest): Promise<any>;
+  quote(input: QuoteRequest): Promise<QuoteResult>;
+  createShipment(input: CreateShipmentRequest): Promise<CreateShipmentResult>;
+  label(input: LabelRequest): Promise<LabelResult>;
+  tracking(input: TrackingRequest): Promise<TrackingResult>;
+  webhook(input: WebhookRequest): Promise<void>;
+  validateAddress(input: AddressValidationRequest): Promise<AddressValidationResult>;
+  customsLookup(input: CustomsLookupRequest): Promise<CustomsLookupResult>;
 }
 
 // Client interface
 export interface ShipmentProviderServiceClient {
-  quote(input: QuoteRequest): Promise<any>;
-  createShipment(input: CreateShipmentRequest): Promise<any>;
-  label(input: LabelRequest): Promise<any>;
-  tracking(input: TrackingRequest): Promise<any>;
-  webhook(input: WebhookRequest): Promise<any>;
-  validateAddress(input: AddressValidationRequest): Promise<any>;
-  customsLookup(input: CustomsLookupRequest): Promise<any>;
+  quote(input: QuoteRequest): Promise<QuoteResult>;
+  createShipment(input: CreateShipmentRequest): Promise<CreateShipmentResult>;
+  label(input: LabelRequest): Promise<LabelResult>;
+  tracking(input: TrackingRequest): Promise<TrackingResult>;
+  webhook(input: WebhookRequest): Promise<void>;
+  validateAddress(input: AddressValidationRequest): Promise<AddressValidationResult>;
+  customsLookup(input: CustomsLookupRequest): Promise<CustomsLookupResult>;
 }
 
 // Factory function

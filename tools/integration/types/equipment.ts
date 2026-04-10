@@ -34,7 +34,7 @@ export type EquipmentListParams = {
   jobId?: JobId;
 };
 
-export interface PaginatedResult<T> {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 }

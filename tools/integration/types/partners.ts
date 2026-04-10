@@ -31,7 +31,7 @@ export type PartnerListParams = {
   query?: string;
 };
 
-export interface PaginatedResult<T> {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 }

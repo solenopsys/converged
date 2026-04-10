@@ -48,7 +48,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "InstagramPostResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -80,12 +80,12 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface InstagramService {
-  publishPost(input: InstagramPostInput, credentials: InstagramCredentials): Promise<any>;
+  publishPost(input: InstagramPostInput, credentials: InstagramCredentials): Promise<InstagramPostResult>;
 }
 
 // Client interface
 export interface InstagramServiceClient {
-  publishPost(input: InstagramPostInput, credentials: InstagramCredentials): Promise<any>;
+  publishPost(input: InstagramPostInput, credentials: InstagramCredentials): Promise<InstagramPostResult>;
 }
 
 // Factory function

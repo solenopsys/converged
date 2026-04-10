@@ -113,10 +113,10 @@ export type DeliveryListParams = {
   to?: ISODateString;
 };
 
-export interface PaginatedResult {
+export type PaginatedResult = {
   items: T[];
   totalCount?: number;
-}
+};
 
 export const metadata = {
   "interfaceName": "DeliveryService",
@@ -133,7 +133,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "DeliveryId",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -169,7 +169,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -184,7 +184,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "boolean",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -199,7 +199,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -226,7 +226,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -241,9 +241,9 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "DeliveryStatusEntry",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     }
   ],
@@ -310,45 +310,31 @@ export const metadata = {
     },
     {
       "name": "PaginatedResult",
-      "definition": "",
-      "properties": [
-        {
-          "name": "items",
-          "type": "T",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "totalCount",
-          "type": "number",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     }
   ]
 };
 
 // Server interface (to be implemented in microservice)
 export interface DeliveryService {
-  createDelivery(input: DeliveryInput): Promise<any>;
+  createDelivery(input: DeliveryInput): Promise<DeliveryId>;
   getDelivery(id: DeliveryId): Promise<any>;
-  updateDelivery(id: DeliveryId, patch: DeliveryUpdate): Promise<any>;
-  deleteDelivery(id: DeliveryId): Promise<any>;
-  listDeliveries(params: DeliveryListParams): Promise<any>;
-  setStatus(id: DeliveryId, status: DeliveryStatus, source: StatusSourceInput): Promise<any>;
-  listStatusLog(deliveryId: DeliveryId): Promise<any>;
+  updateDelivery(id: DeliveryId, patch: DeliveryUpdate): Promise<void>;
+  deleteDelivery(id: DeliveryId): Promise<boolean>;
+  listDeliveries(params: DeliveryListParams): Promise<PaginatedResult>;
+  setStatus(id: DeliveryId, status: DeliveryStatus, source: StatusSourceInput): Promise<void>;
+  listStatusLog(deliveryId: DeliveryId): Promise<DeliveryStatusEntry[]>;
 }
 
 // Client interface
 export interface DeliveryServiceClient {
-  createDelivery(input: DeliveryInput): Promise<any>;
+  createDelivery(input: DeliveryInput): Promise<DeliveryId>;
   getDelivery(id: DeliveryId): Promise<any>;
-  updateDelivery(id: DeliveryId, patch: DeliveryUpdate): Promise<any>;
-  deleteDelivery(id: DeliveryId): Promise<any>;
-  listDeliveries(params: DeliveryListParams): Promise<any>;
-  setStatus(id: DeliveryId, status: DeliveryStatus, source: StatusSourceInput): Promise<any>;
-  listStatusLog(deliveryId: DeliveryId): Promise<any>;
+  updateDelivery(id: DeliveryId, patch: DeliveryUpdate): Promise<void>;
+  deleteDelivery(id: DeliveryId): Promise<boolean>;
+  listDeliveries(params: DeliveryListParams): Promise<PaginatedResult>;
+  setStatus(id: DeliveryId, status: DeliveryStatus, source: StatusSourceInput): Promise<void>;
+  listStatusLog(deliveryId: DeliveryId): Promise<DeliveryStatusEntry[]>;
 }
 
 // Factory function

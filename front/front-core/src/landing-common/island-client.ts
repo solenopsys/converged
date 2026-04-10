@@ -1,6 +1,6 @@
 import { structClient } from "g-struct";
 import { GROUPS } from './groups';
-import { $allMenuItems, addMenuRequested, bus, runActionEvent } from '../controllers';
+import { $allMenuItems, addMenuRequested, authToken, bus, runActionEvent } from '../controllers';
 import { LocaleController } from '../controllers/locale-controller';
 import { rightRailActionSelected } from '../components/right-rail/uri-sync';
 import { $centerView } from '../slots/present';
@@ -86,7 +86,7 @@ function isDarkTheme(): boolean {
 }
 
 function isAuthenticated(): boolean {
-  return Boolean(window.localStorage.getItem('authToken'));
+  return authToken.isAuthenticated();
 }
 
 function isRightRailOpen(): boolean {
@@ -158,8 +158,8 @@ export async function openLoginPanel(): Promise<void> {
   await ensureAuthLoaded();
   setRightRailOpen(true);
   setRightRailMode('tab');
-  rightRailActionSelected('show_login');
-  runActionEvent({ actionId: 'show_login', params: {} });
+  rightRailActionSelected('auth.show-login');
+  runActionEvent({ actionId: 'auth.show-login', params: {} });
 }
 
 function installPanelControls(): void {

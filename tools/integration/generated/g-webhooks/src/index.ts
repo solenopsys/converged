@@ -66,10 +66,10 @@ export type WebhookLogListParams = {
   provider?: string;
 };
 
-export interface PaginatedResult {
+export type PaginatedResult = {
   items: T[];
   totalCount?: number;
-}
+};
 
 export const metadata = {
   "interfaceName": "WebhooksService",
@@ -79,9 +79,9 @@ export const metadata = {
     {
       "name": "listProviders",
       "parameters": [],
-      "returnType": "any",
+      "returnType": "ProviderDefinition",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     },
     {
@@ -130,7 +130,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "boolean",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -160,7 +160,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -175,7 +175,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -216,45 +216,31 @@ export const metadata = {
     },
     {
       "name": "PaginatedResult",
-      "definition": "",
-      "properties": [
-        {
-          "name": "items",
-          "type": "T",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "totalCount",
-          "type": "number",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     }
   ]
 };
 
 // Server interface (to be implemented in microservice)
 export interface WebhooksService {
-  listProviders(): Promise<any>;
+  listProviders(): Promise<ProviderDefinition[]>;
   createEndpoint(input: WebhookEndpointInput): Promise<any>;
   updateEndpoint(id: string, updates: WebhookEndpointUpdate): Promise<any>;
-  deleteEndpoint(id: string): Promise<any>;
+  deleteEndpoint(id: string): Promise<boolean>;
   getEndpoint(id: string): Promise<any>;
-  listEndpoints(params: WebhookEndpointListParams): Promise<any>;
-  listLogs(params: WebhookLogListParams): Promise<any>;
+  listEndpoints(params: WebhookEndpointListParams): Promise<PaginatedResult>;
+  listLogs(params: WebhookLogListParams): Promise<PaginatedResult>;
 }
 
 // Client interface
 export interface WebhooksServiceClient {
-  listProviders(): Promise<any>;
+  listProviders(): Promise<ProviderDefinition[]>;
   createEndpoint(input: WebhookEndpointInput): Promise<any>;
   updateEndpoint(id: string, updates: WebhookEndpointUpdate): Promise<any>;
-  deleteEndpoint(id: string): Promise<any>;
+  deleteEndpoint(id: string): Promise<boolean>;
   getEndpoint(id: string): Promise<any>;
-  listEndpoints(params: WebhookEndpointListParams): Promise<any>;
-  listLogs(params: WebhookLogListParams): Promise<any>;
+  listEndpoints(params: WebhookEndpointListParams): Promise<PaginatedResult>;
+  listLogs(params: WebhookLogListParams): Promise<PaginatedResult>;
 }
 
 // Factory function

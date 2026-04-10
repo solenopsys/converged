@@ -39,10 +39,10 @@ export type EquipmentListParams = {
   jobId?: JobId;
 };
 
-export interface PaginatedResult {
+export type PaginatedResult = {
   items: T[];
   totalCount?: number;
-}
+};
 
 export const metadata = {
   "interfaceName": "EquipmentService",
@@ -59,7 +59,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "EquipmentId",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -89,7 +89,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -110,7 +110,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -151,39 +151,25 @@ export const metadata = {
     },
     {
       "name": "PaginatedResult",
-      "definition": "",
-      "properties": [
-        {
-          "name": "items",
-          "type": "T",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "totalCount",
-          "type": "number",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     }
   ]
 };
 
 // Server interface (to be implemented in microservice)
 export interface EquipmentService {
-  registerEquipment(input: EquipmentInput): Promise<any>;
+  registerEquipment(input: EquipmentInput): Promise<EquipmentId>;
   getEquipment(id: EquipmentId): Promise<any>;
-  listEquipment(params: EquipmentListParams): Promise<any>;
-  updateState(id: EquipmentId, state: EquipmentStateInput): Promise<any>;
+  listEquipment(params: EquipmentListParams): Promise<PaginatedResult>;
+  updateState(id: EquipmentId, state: EquipmentStateInput): Promise<void>;
 }
 
 // Client interface
 export interface EquipmentServiceClient {
-  registerEquipment(input: EquipmentInput): Promise<any>;
+  registerEquipment(input: EquipmentInput): Promise<EquipmentId>;
   getEquipment(id: EquipmentId): Promise<any>;
-  listEquipment(params: EquipmentListParams): Promise<any>;
-  updateState(id: EquipmentId, state: EquipmentStateInput): Promise<any>;
+  listEquipment(params: EquipmentListParams): Promise<PaginatedResult>;
+  updateState(id: EquipmentId, state: EquipmentStateInput): Promise<void>;
 }
 
 // Factory function

@@ -44,7 +44,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "ReviewId",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -74,7 +74,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -89,7 +89,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "boolean",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -125,18 +125,18 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface ReviewsService {
-  createReview(input: ReviewInput): Promise<any>;
+  createReview(input: ReviewInput): Promise<ReviewId>;
   getReview(id: ReviewId): Promise<any>;
-  listReviews(params: PaginationParams): Promise<any>;
-  deleteReview(id: ReviewId): Promise<any>;
+  listReviews(params: PaginationParams): Promise<PaginatedResult>;
+  deleteReview(id: ReviewId): Promise<boolean>;
 }
 
 // Client interface
 export interface ReviewsServiceClient {
-  createReview(input: ReviewInput): Promise<any>;
+  createReview(input: ReviewInput): Promise<ReviewId>;
   getReview(id: ReviewId): Promise<any>;
-  listReviews(params: PaginationParams): Promise<any>;
-  deleteReview(id: ReviewId): Promise<any>;
+  listReviews(params: PaginationParams): Promise<PaginatedResult>;
+  deleteReview(id: ReviewId): Promise<boolean>;
 }
 
 // Factory function

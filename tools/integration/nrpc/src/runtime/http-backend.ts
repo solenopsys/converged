@@ -87,7 +87,7 @@ export function createHttpBackend(config: ElysiaBackendConfig) {
               typeof result === "number" ||
               typeof result === "boolean"
             ) {
-              return new Response(JSON.stringify(result), {
+              return new Response(JSON.stringify(result ?? null), {
                 headers: { "Content-Type": "application/json" },
               });
             }

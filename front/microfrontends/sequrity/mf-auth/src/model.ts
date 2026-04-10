@@ -1,6 +1,6 @@
 import { createStore, createEvent, createEffect, sample } from "effector";
 import { authToken } from "front-core";
-import { authClient } from "./service";
+import { sendMagicLink } from "./service";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -24,7 +24,7 @@ export const logoutFx = createEffect("logoutFx", {
 
 export const sendMagicLinkFx = createEffect("sendMagicLinkFx", {
   async handler(email: string) {
-    await authClient.getMagicLink(email);
+    await sendMagicLink(email);
   },
 });
 

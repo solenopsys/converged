@@ -18,15 +18,15 @@ export type DumpFile = {
   size?: number;
 };
 
-export interface PaginationParams {
+export type PaginationParams = {
   offset: number;
   limit: number;
-}
+};
 
-export interface PaginatedResult {
+export type PaginatedResult = {
   items: T[];
   totalCount?: number;
-}
+};
 
 export const metadata = {
   "interfaceName": "DumpsService",
@@ -36,15 +36,15 @@ export const metadata = {
     {
       "name": "listStorages",
       "parameters": [],
-      "returnType": "any",
+      "returnType": "StorageInfo",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     },
     {
       "name": "storageStats",
       "parameters": [],
-      "returnType": "any",
+      "returnType": "StorageStats",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -59,7 +59,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -74,9 +74,9 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "DumpFile",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     },
     {
@@ -89,7 +89,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "string",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -110,59 +110,31 @@ export const metadata = {
     },
     {
       "name": "PaginationParams",
-      "definition": "",
-      "properties": [
-        {
-          "name": "offset",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "limit",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  offset: number;\n  limit: number;\n}"
     },
     {
       "name": "PaginatedResult",
-      "definition": "",
-      "properties": [
-        {
-          "name": "items",
-          "type": "T",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "totalCount",
-          "type": "number",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     }
   ]
 };
 
 // Server interface (to be implemented in microservice)
 export interface DumpsService {
-  listStorages(): Promise<any>;
-  storageStats(): Promise<any>;
-  listDumps(params: PaginationParams): Promise<any>;
-  dump(name?: string): Promise<any>;
-  getLink(fileName: string): Promise<any>;
+  listStorages(): Promise<StorageInfo[]>;
+  storageStats(): Promise<StorageStats>;
+  listDumps(params: PaginationParams): Promise<PaginatedResult>;
+  dump(name?: string): Promise<DumpFile[]>;
+  getLink(fileName: string): Promise<string>;
 }
 
 // Client interface
 export interface DumpsServiceClient {
-  listStorages(): Promise<any>;
-  storageStats(): Promise<any>;
-  listDumps(params: PaginationParams): Promise<any>;
-  dump(name?: string): Promise<any>;
-  getLink(fileName: string): Promise<any>;
+  listStorages(): Promise<StorageInfo[]>;
+  storageStats(): Promise<StorageStats>;
+  listDumps(params: PaginationParams): Promise<PaginatedResult>;
+  dump(name?: string): Promise<DumpFile[]>;
+  getLink(fileName: string): Promise<string>;
 }
 
 // Factory function

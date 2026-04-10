@@ -93,10 +93,10 @@ export type AbsenceListParams = {
   to?: ISODateString;
 };
 
-export interface PaginatedResult {
+export type PaginatedResult = {
   items: T[];
   totalCount?: number;
-}
+};
 
 export const metadata = {
   "interfaceName": "StaffService",
@@ -113,7 +113,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "StaffId",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -149,7 +149,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -164,7 +164,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "boolean",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -179,7 +179,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -194,7 +194,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "ShiftId",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -230,7 +230,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -245,7 +245,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "boolean",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -260,7 +260,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -275,7 +275,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "AbsenceId",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -290,7 +290,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "boolean",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -305,7 +305,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -378,57 +378,43 @@ export const metadata = {
     },
     {
       "name": "PaginatedResult",
-      "definition": "",
-      "properties": [
-        {
-          "name": "items",
-          "type": "T",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "totalCount",
-          "type": "number",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     }
   ]
 };
 
 // Server interface (to be implemented in microservice)
 export interface StaffService {
-  createStaff(input: StaffInput): Promise<any>;
+  createStaff(input: StaffInput): Promise<StaffId>;
   getStaff(id: StaffId): Promise<any>;
-  updateStaff(id: StaffId, patch: StaffUpdate): Promise<any>;
-  deleteStaff(id: StaffId): Promise<any>;
-  listStaff(params: StaffListParams): Promise<any>;
-  createShift(input: ShiftInput): Promise<any>;
+  updateStaff(id: StaffId, patch: StaffUpdate): Promise<void>;
+  deleteStaff(id: StaffId): Promise<boolean>;
+  listStaff(params: StaffListParams): Promise<PaginatedResult>;
+  createShift(input: ShiftInput): Promise<ShiftId>;
   getShift(id: ShiftId): Promise<any>;
-  updateShift(id: ShiftId, patch: ShiftUpdate): Promise<any>;
-  deleteShift(id: ShiftId): Promise<any>;
-  listShifts(params: ShiftListParams): Promise<any>;
-  createAbsence(input: AbsenceInput): Promise<any>;
-  deleteAbsence(id: AbsenceId): Promise<any>;
-  listAbsences(params: AbsenceListParams): Promise<any>;
+  updateShift(id: ShiftId, patch: ShiftUpdate): Promise<void>;
+  deleteShift(id: ShiftId): Promise<boolean>;
+  listShifts(params: ShiftListParams): Promise<PaginatedResult>;
+  createAbsence(input: AbsenceInput): Promise<AbsenceId>;
+  deleteAbsence(id: AbsenceId): Promise<boolean>;
+  listAbsences(params: AbsenceListParams): Promise<PaginatedResult>;
 }
 
 // Client interface
 export interface StaffServiceClient {
-  createStaff(input: StaffInput): Promise<any>;
+  createStaff(input: StaffInput): Promise<StaffId>;
   getStaff(id: StaffId): Promise<any>;
-  updateStaff(id: StaffId, patch: StaffUpdate): Promise<any>;
-  deleteStaff(id: StaffId): Promise<any>;
-  listStaff(params: StaffListParams): Promise<any>;
-  createShift(input: ShiftInput): Promise<any>;
+  updateStaff(id: StaffId, patch: StaffUpdate): Promise<void>;
+  deleteStaff(id: StaffId): Promise<boolean>;
+  listStaff(params: StaffListParams): Promise<PaginatedResult>;
+  createShift(input: ShiftInput): Promise<ShiftId>;
   getShift(id: ShiftId): Promise<any>;
-  updateShift(id: ShiftId, patch: ShiftUpdate): Promise<any>;
-  deleteShift(id: ShiftId): Promise<any>;
-  listShifts(params: ShiftListParams): Promise<any>;
-  createAbsence(input: AbsenceInput): Promise<any>;
-  deleteAbsence(id: AbsenceId): Promise<any>;
-  listAbsences(params: AbsenceListParams): Promise<any>;
+  updateShift(id: ShiftId, patch: ShiftUpdate): Promise<void>;
+  deleteShift(id: ShiftId): Promise<boolean>;
+  listShifts(params: ShiftListParams): Promise<PaginatedResult>;
+  createAbsence(input: AbsenceInput): Promise<AbsenceId>;
+  deleteAbsence(id: AbsenceId): Promise<boolean>;
+  listAbsences(params: AbsenceListParams): Promise<PaginatedResult>;
 }
 
 // Factory function

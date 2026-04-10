@@ -75,7 +75,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "ChartRoom",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -111,7 +111,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "ChartRoom",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -126,7 +126,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "boolean",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -141,7 +141,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "ChartRoomsListResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -168,7 +168,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -189,7 +189,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -204,9 +204,9 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "ChartRoomUser",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     },
     {
@@ -225,7 +225,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "ChartRoomsListResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -281,28 +281,28 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface ChartsService {
-  createRoom(input: CreateChartRoomInput): Promise<any>;
+  createRoom(input: CreateChartRoomInput): Promise<ChartRoom>;
   getRoom(roomId: ChartRoomId): Promise<any>;
-  updateRoom(roomId: ChartRoomId, patch: UpdateChartRoomInput): Promise<any>;
-  deleteRoom(roomId: ChartRoomId): Promise<any>;
-  listRooms(params: ChartRoomsListParams): Promise<any>;
-  addRoomUser(roomId: ChartRoomId, userId: ChartUserId, role?: ChartRoomRole): Promise<any>;
-  removeRoomUser(roomId: ChartRoomId, userId: ChartUserId): Promise<any>;
-  listRoomUsers(roomId: ChartRoomId): Promise<any>;
-  listUserRooms(userId: ChartUserId, params: ChartRoomsListParams): Promise<any>;
+  updateRoom(roomId: ChartRoomId, patch: UpdateChartRoomInput): Promise<ChartRoom>;
+  deleteRoom(roomId: ChartRoomId): Promise<boolean>;
+  listRooms(params: ChartRoomsListParams): Promise<ChartRoomsListResult>;
+  addRoomUser(roomId: ChartRoomId, userId: ChartUserId, role?: ChartRoomRole): Promise<void>;
+  removeRoomUser(roomId: ChartRoomId, userId: ChartUserId): Promise<void>;
+  listRoomUsers(roomId: ChartRoomId): Promise<ChartRoomUser[]>;
+  listUserRooms(userId: ChartUserId, params: ChartRoomsListParams): Promise<ChartRoomsListResult>;
 }
 
 // Client interface
 export interface ChartsServiceClient {
-  createRoom(input: CreateChartRoomInput): Promise<any>;
+  createRoom(input: CreateChartRoomInput): Promise<ChartRoom>;
   getRoom(roomId: ChartRoomId): Promise<any>;
-  updateRoom(roomId: ChartRoomId, patch: UpdateChartRoomInput): Promise<any>;
-  deleteRoom(roomId: ChartRoomId): Promise<any>;
-  listRooms(params: ChartRoomsListParams): Promise<any>;
-  addRoomUser(roomId: ChartRoomId, userId: ChartUserId, role?: ChartRoomRole): Promise<any>;
-  removeRoomUser(roomId: ChartRoomId, userId: ChartUserId): Promise<any>;
-  listRoomUsers(roomId: ChartRoomId): Promise<any>;
-  listUserRooms(userId: ChartUserId, params: ChartRoomsListParams): Promise<any>;
+  updateRoom(roomId: ChartRoomId, patch: UpdateChartRoomInput): Promise<ChartRoom>;
+  deleteRoom(roomId: ChartRoomId): Promise<boolean>;
+  listRooms(params: ChartRoomsListParams): Promise<ChartRoomsListResult>;
+  addRoomUser(roomId: ChartRoomId, userId: ChartUserId, role?: ChartRoomRole): Promise<void>;
+  removeRoomUser(roomId: ChartRoomId, userId: ChartUserId): Promise<void>;
+  listRoomUsers(roomId: ChartRoomId): Promise<ChartRoomUser[]>;
+  listUserRooms(userId: ChartUserId, params: ChartRoomsListParams): Promise<ChartRoomsListResult>;
 }
 
 // Factory function

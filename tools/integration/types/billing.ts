@@ -21,12 +21,12 @@ export type BillingEntryInput = {
   description?: string;
 };
 
-export interface PaginatedResult<T> {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 }
 
-export interface BillingListParams {
+export type BillingListParams = {
   offset: number;
   limit: number;
   owner?: string;
@@ -35,7 +35,7 @@ export interface BillingListParams {
   to?: ISODateString;
 }
 
-export interface BillingTotalParams {
+export type BillingTotalParams = {
   owner?: string;
   category?: BillingCategory;
   from?: ISODateString;

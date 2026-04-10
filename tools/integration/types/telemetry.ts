@@ -23,7 +23,7 @@ export type TelemetryQueryParams = {
   to_ts?: number;
 };
 
-export interface PaginatedResult<T> {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 }

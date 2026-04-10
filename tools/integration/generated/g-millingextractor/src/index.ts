@@ -53,7 +53,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "MillingEstimateResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -77,12 +77,12 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface MillingExtractorService {
-  extract(input: MillingEstimateInput): Promise<any>;
+  extract(input: MillingEstimateInput): Promise<MillingEstimateResult>;
 }
 
 // Client interface
 export interface MillingExtractorServiceClient {
-  extract(input: MillingEstimateInput): Promise<any>;
+  extract(input: MillingEstimateInput): Promise<MillingEstimateResult>;
 }
 
 // Factory function

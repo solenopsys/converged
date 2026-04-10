@@ -2,7 +2,7 @@ export interface SmtpService {
   sendEmail(payload: EmailPayload, credentials: SmtpCredentials): Promise<EmailResult>;
 }
 
-export interface SmtpCredentials {
+export type SmtpCredentials = {
   host: string;
   port: number;
   secure: boolean;

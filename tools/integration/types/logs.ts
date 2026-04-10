@@ -24,7 +24,7 @@ export type LogQueryParams = {
   to_ts?: number;
 };
 
-export interface PaginatedResult<T> {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 }

@@ -27,10 +27,10 @@ export type LogQueryParams = {
   to_ts?: number;
 };
 
-export interface PaginatedResult {
+export type PaginatedResult = {
   items: T[];
   totalCount?: number;
-}
+};
 
 export type LogsStatistic = {
   totalHot: number;
@@ -56,7 +56,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -71,7 +71,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -86,7 +86,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "PaginatedResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -94,7 +94,7 @@ export const metadata = {
     {
       "name": "getStatistic",
       "parameters": [],
-      "returnType": "any",
+      "returnType": "LogsStatistic",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -115,21 +115,7 @@ export const metadata = {
     },
     {
       "name": "PaginatedResult",
-      "definition": "",
-      "properties": [
-        {
-          "name": "items",
-          "type": "T",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "totalCount",
-          "type": "number",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     },
     {
       "name": "LogsStatistic",
@@ -140,18 +126,18 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface LogsService {
-  write(event: LogEventInput): Promise<any>;
-  listHot(params: LogQueryParams): Promise<any>;
-  listCold(params: LogQueryParams): Promise<any>;
-  getStatistic(): Promise<any>;
+  write(event: LogEventInput): Promise<void>;
+  listHot(params: LogQueryParams): Promise<PaginatedResult>;
+  listCold(params: LogQueryParams): Promise<PaginatedResult>;
+  getStatistic(): Promise<LogsStatistic>;
 }
 
 // Client interface
 export interface LogsServiceClient {
-  write(event: LogEventInput): Promise<any>;
-  listHot(params: LogQueryParams): Promise<any>;
-  listCold(params: LogQueryParams): Promise<any>;
-  getStatistic(): Promise<any>;
+  write(event: LogEventInput): Promise<void>;
+  listHot(params: LogQueryParams): Promise<PaginatedResult>;
+  listCold(params: LogQueryParams): Promise<PaginatedResult>;
+  getStatistic(): Promise<LogsStatistic>;
 }
 
 // Factory function

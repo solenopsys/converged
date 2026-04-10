@@ -1,6 +1,6 @@
 export type ISODateString = string;
 
-export interface OAuthClient {
+export type OAuthClient = {
   clientId: string;
   clientSecret: string;
   redirectUris: string[];
@@ -9,7 +9,7 @@ export interface OAuthClient {
   createdAt: ISODateString;
 }
 
-export interface OAuthClientInput {
+export type OAuthClientInput = {
   clientId: string;
   clientSecret: string;
   redirectUris: string[];
@@ -17,39 +17,40 @@ export interface OAuthClientInput {
   trusted: boolean;
 }
 
-export interface OAuthClientUpdate {
+export type OAuthClientUpdate = {
   clientSecret?: string;
   redirectUris?: string[];
   grantTypes?: string[];
   trusted?: boolean;
 }
 
-export interface GetMagicLinkResult {
+export type GetMagicLinkResult = {
   ok: boolean;
   token: string;
   expiresAt: number;
 }
 
-export interface VerifyLinkResult {
+export type VerifyLinkResult = {
+  token: string;
   userId: string;
   email: string;
   returnTo?: string;
 }
 
-export interface LoginResult {
+export type LoginResult = {
   token: string;
   userId: string;
   email: string;
 }
 
-export interface TemporaryUserResult {
+export type TemporaryUserResult = {
   token: string;
   userId: string;
   email: string;
   temporary: true;
 }
 
-export interface CleanupResult {
+export type CleanupResult = {
   authCodes: number;
   magicLinks: number;
   refreshTokens: number;

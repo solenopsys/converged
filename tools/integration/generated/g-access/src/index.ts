@@ -3,10 +3,10 @@ import { createHttpClient } from "nrpc";
 
 export type Permission = string;
 
-export interface AccessPreset {
+export type AccessPreset = {
   name: string;
   permissions: Permission[];
-}
+};
 
 export const metadata = {
   "interfaceName": "AccessService",
@@ -23,7 +23,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "string",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -44,7 +44,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -65,7 +65,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -80,9 +80,9 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "Permission",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     },
     {
@@ -95,9 +95,9 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "Permission",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     },
     {
@@ -116,7 +116,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -137,7 +137,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -158,7 +158,7 @@ export const metadata = {
           "isArray": true
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -179,7 +179,7 @@ export const metadata = {
           "isArray": true
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -194,7 +194,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -217,9 +217,9 @@ export const metadata = {
     {
       "name": "getAllPresets",
       "parameters": [],
-      "returnType": "any",
+      "returnType": "AccessPreset",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     }
   ],
@@ -230,55 +230,41 @@ export const metadata = {
     },
     {
       "name": "AccessPreset",
-      "definition": "",
-      "properties": [
-        {
-          "name": "name",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "permissions",
-          "type": "Permission",
-          "optional": false,
-          "isArray": true
-        }
-      ]
+      "definition": "{\n  name: string;\n  permissions: Permission[];\n}"
     }
   ]
 };
 
 // Server interface (to be implemented in microservice)
 export interface AccessService {
-  emitJWT(userId: string): Promise<any>;
-  addPermissionToUser(userId: string, permission: Permission): Promise<any>;
-  removePermissionFromUser(userId: string, permission: Permission): Promise<any>;
-  getPermissionsFromUser(userId: string): Promise<any>;
-  getPermissionsMixinFromUser(userId: string): Promise<any>;
-  linkPresetToUser(userId: string, presetName: string): Promise<any>;
-  unlinkPresetFromUser(userId: string, presetName: string): Promise<any>;
-  createPreset(presetName: string, permissions: Permission[]): Promise<any>;
-  updatePreset(presetName: string, permissions: Permission[]): Promise<any>;
-  deletePreset(presetName: string): Promise<any>;
+  emitJWT(userId: string): Promise<string>;
+  addPermissionToUser(userId: string, permission: Permission): Promise<void>;
+  removePermissionFromUser(userId: string, permission: Permission): Promise<void>;
+  getPermissionsFromUser(userId: string): Promise<Permission[]>;
+  getPermissionsMixinFromUser(userId: string): Promise<Permission[]>;
+  linkPresetToUser(userId: string, presetName: string): Promise<void>;
+  unlinkPresetFromUser(userId: string, presetName: string): Promise<void>;
+  createPreset(presetName: string, permissions: Permission[]): Promise<void>;
+  updatePreset(presetName: string, permissions: Permission[]): Promise<void>;
+  deletePreset(presetName: string): Promise<void>;
   getPreset(presetName: string): Promise<any>;
-  getAllPresets(): Promise<any>;
+  getAllPresets(): Promise<AccessPreset[]>;
 }
 
 // Client interface
 export interface AccessServiceClient {
-  emitJWT(userId: string): Promise<any>;
-  addPermissionToUser(userId: string, permission: Permission): Promise<any>;
-  removePermissionFromUser(userId: string, permission: Permission): Promise<any>;
-  getPermissionsFromUser(userId: string): Promise<any>;
-  getPermissionsMixinFromUser(userId: string): Promise<any>;
-  linkPresetToUser(userId: string, presetName: string): Promise<any>;
-  unlinkPresetFromUser(userId: string, presetName: string): Promise<any>;
-  createPreset(presetName: string, permissions: Permission[]): Promise<any>;
-  updatePreset(presetName: string, permissions: Permission[]): Promise<any>;
-  deletePreset(presetName: string): Promise<any>;
+  emitJWT(userId: string): Promise<string>;
+  addPermissionToUser(userId: string, permission: Permission): Promise<void>;
+  removePermissionFromUser(userId: string, permission: Permission): Promise<void>;
+  getPermissionsFromUser(userId: string): Promise<Permission[]>;
+  getPermissionsMixinFromUser(userId: string): Promise<Permission[]>;
+  linkPresetToUser(userId: string, presetName: string): Promise<void>;
+  unlinkPresetFromUser(userId: string, presetName: string): Promise<void>;
+  createPreset(presetName: string, permissions: Permission[]): Promise<void>;
+  updatePreset(presetName: string, permissions: Permission[]): Promise<void>;
+  deletePreset(presetName: string): Promise<void>;
   getPreset(presetName: string): Promise<any>;
-  getAllPresets(): Promise<any>;
+  getAllPresets(): Promise<AccessPreset[]>;
 }
 
 // Factory function

@@ -1,6 +1,6 @@
 export type Permission = string;
 
-export interface AccessPreset {
+export type AccessPreset = {
   name: string;
   permissions: Permission[];
 }

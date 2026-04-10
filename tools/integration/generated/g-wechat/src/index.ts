@@ -30,7 +30,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "WeChatSendResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -54,12 +54,12 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface WeChatService {
-  sendTextMessage(input: WeChatTextMessageInput): Promise<any>;
+  sendTextMessage(input: WeChatTextMessageInput): Promise<WeChatSendResult>;
 }
 
 // Client interface
 export interface WeChatServiceClient {
-  sendTextMessage(input: WeChatTextMessageInput): Promise<any>;
+  sendTextMessage(input: WeChatTextMessageInput): Promise<WeChatSendResult>;
 }
 
 // Factory function

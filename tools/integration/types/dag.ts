@@ -1,17 +1,17 @@
 export type ExecutionStatus = "running" | "done" | "failed";
 export type TaskState = "queued" | "processing" | "done" | "failed";
 
-export interface PaginationParams {
+export type PaginationParams = {
   offset: number;
   limit: number;
 }
 
-export interface PaginatedResult<T> {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 }
 
-export interface Execution {
+export type Execution = {
   id: string;
   workflowName: string;
   status: ExecutionStatus;
@@ -20,7 +20,7 @@ export interface Execution {
   createdAt: number;
 }
 
-export interface Task {
+export type Task = {
   id: number;
   executionId: string;
   nodeId: string;
@@ -36,7 +36,7 @@ export interface Task {
 
 export type ExecutionEventType = "started" | "task_update" | "completed" | "failed";
 
-export interface ExecutionEvent {
+export type ExecutionEvent = {
   type: ExecutionEventType;
   executionId: string;
   task?: Task;

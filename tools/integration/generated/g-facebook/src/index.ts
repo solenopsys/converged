@@ -46,7 +46,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "FacebookPostResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -78,12 +78,12 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface FacebookService {
-  publishPost(input: FacebookPostInput, credentials: FacebookCredentials): Promise<any>;
+  publishPost(input: FacebookPostInput, credentials: FacebookCredentials): Promise<FacebookPostResult>;
 }
 
 // Client interface
 export interface FacebookServiceClient {
-  publishPost(input: FacebookPostInput, credentials: FacebookCredentials): Promise<any>;
+  publishPost(input: FacebookPostInput, credentials: FacebookCredentials): Promise<FacebookPostResult>;
 }
 
 // Factory function

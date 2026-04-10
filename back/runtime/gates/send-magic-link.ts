@@ -9,7 +9,7 @@ const auth = createAuthServiceClient({ baseUrl: host });
 export async function sendMagicLink({
   email,
   returnTo,
-  channel = "smtp",
+  channel = process.env.MAGIC_LINK_CHANNEL ?? "smtp",
   templateId = "magic-link",
 }: {
   email: string;
@@ -18,6 +18,6 @@ export async function sendMagicLink({
   templateId?: string;
 }): Promise<void> {
   const { token } = await auth.getMagicLink(email, returnTo);
-  const link = `${frontendUrl}/auth/verify?token=${token}`;
+  const link = `${frontendUrl}/services/auth/verify?token=${token}`;
   await sendNotification({ channel, templateId, recipient: email, params: { link, email, token } });
 }

@@ -154,7 +154,7 @@ class InterfaceParser {
 
     // Handle AsyncIterable<T> - unwrap to get T
     if (this.isAsyncIterableType(typeNode)) {
-      const innerType = typeNode.typeParameters?.params[0];
+      const innerType = (typeNode.typeArguments ?? typeNode.typeParameters)?.params[0];
       return this.extractType(innerType);
     }
 
@@ -163,7 +163,7 @@ class InterfaceParser {
       typeNode.type === "TSTypeReference" &&
       typeNode.typeName.name === "Promise"
     ) {
-      const innerType = typeNode.typeParameters?.params[0];
+      const innerType = (typeNode.typeArguments ?? typeNode.typeParameters)?.params[0];
       return this.extractType(innerType);
     }
 
@@ -176,7 +176,7 @@ class InterfaceParser {
 
     // Handle AsyncIterable<T[]> - check if T is an array
     if (this.isAsyncIterableType(typeNode)) {
-      const innerType = typeNode.typeParameters?.params[0];
+      const innerType = (typeNode.typeArguments ?? typeNode.typeParameters)?.params[0];
       return innerType?.type === "TSArrayType";
     }
 
@@ -185,7 +185,7 @@ class InterfaceParser {
       typeNode.type === "TSTypeReference" &&
       typeNode.typeName.name === "Promise"
     ) {
-      const innerType = typeNode.typeParameters?.params[0];
+      const innerType = (typeNode.typeArguments ?? typeNode.typeParameters)?.params[0];
       return innerType?.type === "TSArrayType";
     }
 

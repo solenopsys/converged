@@ -6,6 +6,7 @@
   "module": "index.ts",
   "exports": {
     ".": "./index.ts",
+    "./plugin": "./plugin.ts",
     "./engines/dag": "./engines/dag/index.ts",
     "./engines/cron": "./engines/cron/index.ts"
   },
@@ -16,6 +17,7 @@
     "g-dag": "workspace:*",
     "g-delivery": "workspace:*",
     "g-notify": "workspace:*",
+    "g-ses": "workspace:*",
     "g-runtime": "workspace:*",
     "g-shipmentprovider": "workspace:*",
     "g-smtp": "workspace:*",

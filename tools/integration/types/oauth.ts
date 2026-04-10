@@ -5,7 +5,7 @@ export type OAuthProviderName =
   | "meta"
   | "github";
 
-export interface OAuthProviderTemplate {
+export type OAuthProviderTemplate = {
   provider: OAuthProviderName;
   displayName: string;
   authorizeUrl: string;
@@ -14,7 +14,7 @@ export interface OAuthProviderTemplate {
   scopes: string[];
 }
 
-export interface OAuthProvider {
+export type OAuthProvider = {
   provider: OAuthProviderName;
   clientId: string;
   clientSecret: string;
@@ -26,7 +26,7 @@ export interface OAuthProvider {
   createdAt: number;
 }
 
-export interface OAuthProviderInput {
+export type OAuthProviderInput = {
   provider: OAuthProviderName;
   clientId: string;
   clientSecret: string;
@@ -37,7 +37,7 @@ export interface OAuthProviderInput {
   enabled?: boolean;
 }
 
-export interface OAuthProviderUpdate {
+export type OAuthProviderUpdate = {
   clientId?: string;
   clientSecret?: string;
   authorizeUrl?: string;
@@ -47,7 +47,7 @@ export interface OAuthProviderUpdate {
   enabled?: boolean;
 }
 
-export interface OAuthState {
+export type OAuthState = {
   state: string;
   returnTo: string;
   provider: OAuthProviderName;

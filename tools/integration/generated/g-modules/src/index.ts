@@ -1,29 +1,29 @@
 // Auto-generated package
 import { createHttpClient } from "nrpc";
 
-export interface Module {
+export type Module = {
   name: string;
   link: string;
   protected: boolean;
-  locales: Record;
-}
+  locales: Record<string, string>;
+};
 
-export interface ModuleDefinition {
+export type ModuleDefinition = {
   name: string;
   remote: boolean;
   protected: boolean;
-}
+};
 
-export interface ModulePreset {
+export type ModulePreset = {
   name: string;
   modules: string[];
-}
+};
 
-export interface UserModuleConfig {
+export type UserModuleConfig = {
   presets: string[];
   additions: string[];
   removals: string[];
-}
+};
 
 export const metadata = {
   "interfaceName": "ModulesService",
@@ -40,9 +40,9 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "Module",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     },
     {
@@ -55,7 +55,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "UserModuleConfig",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -76,7 +76,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -97,7 +97,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -118,7 +118,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -139,7 +139,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -160,7 +160,7 @@ export const metadata = {
           "isArray": true
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -181,7 +181,7 @@ export const metadata = {
           "isArray": true
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -196,7 +196,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -219,9 +219,9 @@ export const metadata = {
     {
       "name": "listPresets",
       "parameters": [],
-      "returnType": "any",
+      "returnType": "ModulePreset",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     },
     {
@@ -234,7 +234,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -249,7 +249,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -272,148 +272,68 @@ export const metadata = {
     {
       "name": "listModules",
       "parameters": [],
-      "returnType": "any",
+      "returnType": "ModuleDefinition",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     }
   ],
   "types": [
     {
       "name": "Module",
-      "definition": "",
-      "properties": [
-        {
-          "name": "name",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "link",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "protected",
-          "type": "boolean",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "locales",
-          "type": "Record",
-          "optional": false,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  name: string;\n  link: string;\n  protected: boolean;\n  locales: Record<string, string>;\n}"
     },
     {
       "name": "ModuleDefinition",
-      "definition": "",
-      "properties": [
-        {
-          "name": "name",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "remote",
-          "type": "boolean",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "protected",
-          "type": "boolean",
-          "optional": false,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  name: string;\n  remote: boolean;\n  protected: boolean;\n}"
     },
     {
       "name": "ModulePreset",
-      "definition": "",
-      "properties": [
-        {
-          "name": "name",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "modules",
-          "type": "string",
-          "optional": false,
-          "isArray": true
-        }
-      ]
+      "definition": "{\n  name: string;\n  modules: string[];\n}"
     },
     {
       "name": "UserModuleConfig",
-      "definition": "",
-      "properties": [
-        {
-          "name": "presets",
-          "type": "string",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "additions",
-          "type": "string",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "removals",
-          "type": "string",
-          "optional": false,
-          "isArray": true
-        }
-      ]
+      "definition": "{\n  presets: string[];\n  additions: string[];\n  removals: string[];\n}"
     }
   ]
 };
 
 // Server interface (to be implemented in microservice)
 export interface ModulesService {
-  listForUser(userId: string): Promise<any>;
-  getUserConfig(userId: string): Promise<any>;
-  addModuleToUser(userId: string, moduleName: string): Promise<any>;
-  removeModuleFromUser(userId: string, moduleName: string): Promise<any>;
-  linkPresetToUser(userId: string, presetName: string): Promise<any>;
-  unlinkPresetFromUser(userId: string, presetName: string): Promise<any>;
-  createPreset(name: string, modules: string[]): Promise<any>;
-  updatePreset(name: string, modules: string[]): Promise<any>;
-  deletePreset(name: string): Promise<any>;
+  listForUser(userId: string): Promise<Module[]>;
+  getUserConfig(userId: string): Promise<UserModuleConfig>;
+  addModuleToUser(userId: string, moduleName: string): Promise<void>;
+  removeModuleFromUser(userId: string, moduleName: string): Promise<void>;
+  linkPresetToUser(userId: string, presetName: string): Promise<void>;
+  unlinkPresetFromUser(userId: string, presetName: string): Promise<void>;
+  createPreset(name: string, modules: string[]): Promise<void>;
+  updatePreset(name: string, modules: string[]): Promise<void>;
+  deletePreset(name: string): Promise<void>;
   getPreset(name: string): Promise<any>;
-  listPresets(): Promise<any>;
-  registerModule(module: ModuleDefinition): Promise<any>;
-  unregisterModule(name: string): Promise<any>;
+  listPresets(): Promise<ModulePreset[]>;
+  registerModule(module: ModuleDefinition): Promise<void>;
+  unregisterModule(name: string): Promise<void>;
   getModule(name: string): Promise<any>;
-  listModules(): Promise<any>;
+  listModules(): Promise<ModuleDefinition[]>;
 }
 
 // Client interface
 export interface ModulesServiceClient {
-  listForUser(userId: string): Promise<any>;
-  getUserConfig(userId: string): Promise<any>;
-  addModuleToUser(userId: string, moduleName: string): Promise<any>;
-  removeModuleFromUser(userId: string, moduleName: string): Promise<any>;
-  linkPresetToUser(userId: string, presetName: string): Promise<any>;
-  unlinkPresetFromUser(userId: string, presetName: string): Promise<any>;
-  createPreset(name: string, modules: string[]): Promise<any>;
-  updatePreset(name: string, modules: string[]): Promise<any>;
-  deletePreset(name: string): Promise<any>;
+  listForUser(userId: string): Promise<Module[]>;
+  getUserConfig(userId: string): Promise<UserModuleConfig>;
+  addModuleToUser(userId: string, moduleName: string): Promise<void>;
+  removeModuleFromUser(userId: string, moduleName: string): Promise<void>;
+  linkPresetToUser(userId: string, presetName: string): Promise<void>;
+  unlinkPresetFromUser(userId: string, presetName: string): Promise<void>;
+  createPreset(name: string, modules: string[]): Promise<void>;
+  updatePreset(name: string, modules: string[]): Promise<void>;
+  deletePreset(name: string): Promise<void>;
   getPreset(name: string): Promise<any>;
-  listPresets(): Promise<any>;
-  registerModule(module: ModuleDefinition): Promise<any>;
-  unregisterModule(name: string): Promise<any>;
+  listPresets(): Promise<ModulePreset[]>;
+  registerModule(module: ModuleDefinition): Promise<void>;
+  unregisterModule(name: string): Promise<void>;
   getModule(name: string): Promise<any>;
-  listModules(): Promise<any>;
+  listModules(): Promise<ModuleDefinition[]>;
 }
 
 // Factory function

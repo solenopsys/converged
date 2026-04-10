@@ -1,7 +1,8 @@
-import type { RuntimeService, ExecutionEvent } from "g-runtime";
+import type { RuntimeService, ExecutionEvent, MagicLinkParams, MagicLinkResult } from "g-runtime";
 import { createDagServiceClient } from "g-dag";
 import { CronEngine } from "./engines/cron";
 import { sendMagicLink } from "./gates/send-magic-link";
+import { Access } from "nrpc";
 
 export class RuntimeServiceImpl implements RuntimeService {
   private dagClient: ReturnType<typeof createDagServiceClient>;
@@ -86,13 +87,10 @@ export class RuntimeServiceImpl implements RuntimeService {
     console.log("[runtime] refreshCrons called");
   }
 
-  async sendMagicLink(params: {
-    email: string;
-    returnTo?: string;
-    channel?: string;
-    templateId?: string;
-  }): Promise<void> {
+  @Access("public")
+  async sendMagicLink(params: MagicLinkParams): Promise<MagicLinkResult> {
     await sendMagicLink(params);
+    return { success: true };
   }
 }
 

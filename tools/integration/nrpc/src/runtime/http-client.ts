@@ -16,6 +16,12 @@ export function createHttpClient<T>(
   return createProxy(client, metadata) as T;
 }
 
+function isLikelyJwtToken(token: string): boolean {
+  const parts = token.split(".");
+  if (parts.length !== 3) return false;
+  return parts.every((part) => part.trim().length > 0);
+}
+
 class HttpClientImpl {
   private baseUrl: string;
   private timeout: number;
@@ -58,7 +64,7 @@ class HttpClientImpl {
 
     if (!hasAuthorization && typeof window !== "undefined") {
       const token = window.localStorage.getItem("authToken");
-      if (token && token.trim().length > 0) {
+      if (token && isLikelyJwtToken(token)) {
         resolved.authorization = `Bearer ${token}`;
       }
     }

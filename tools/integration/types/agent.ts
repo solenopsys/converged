@@ -18,7 +18,7 @@ export type AgentStreamEvent = {
   | { type: AgentStreamEventType.ERROR; message: string }
 );
 
-export interface SessionInfo {
+export type SessionInfo = {
   id: string;
   model: string;
   createdAt: number;
@@ -26,23 +26,23 @@ export interface SessionInfo {
   messageCount: number;
 }
 
-export interface PaginationParams {
+export type PaginationParams = {
   offset: number;
   limit: number;
 }
 
-export interface PaginatedResult<T> {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 }
 
-export interface ToolDefinition {
+export type ToolDefinition = {
   name: string;
   description: string;
   parameters: any;
 }
 
-export interface TokenUsage {
+export type TokenUsage = {
   total: number;
   input: number;
   output: number;

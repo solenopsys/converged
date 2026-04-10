@@ -7,16 +7,16 @@ export type OAuthProviderName = | "google"
   | "meta"
   | "github";
 
-export interface OAuthProviderTemplate {
+export type OAuthProviderTemplate = {
   provider: OAuthProviderName;
   displayName: string;
   authorizeUrl: string;
   tokenUrl: string;
   userinfoUrl: string;
   scopes: string[];
-}
+};
 
-export interface OAuthProvider {
+export type OAuthProvider = {
   provider: OAuthProviderName;
   clientId: string;
   clientSecret: string;
@@ -26,9 +26,9 @@ export interface OAuthProvider {
   scopes: string[];
   enabled: boolean;
   createdAt: number;
-}
+};
 
-export interface OAuthProviderInput {
+export type OAuthProviderInput = {
   provider: OAuthProviderName;
   clientId: string;
   clientSecret: string;
@@ -37,9 +37,9 @@ export interface OAuthProviderInput {
   userinfoUrl: string;
   scopes: string[];
   enabled?: boolean;
-}
+};
 
-export interface OAuthProviderUpdate {
+export type OAuthProviderUpdate = {
   clientId?: string;
   clientSecret?: string;
   authorizeUrl?: string;
@@ -47,14 +47,14 @@ export interface OAuthProviderUpdate {
   userinfoUrl?: string;
   scopes?: string[];
   enabled?: boolean;
-}
+};
 
-export interface OAuthState {
+export type OAuthState = {
   state: string;
   returnTo: string;
   provider: OAuthProviderName;
   expiresAt: number;
-}
+};
 
 export const metadata = {
   "interfaceName": "OAuthService",
@@ -64,9 +64,9 @@ export const metadata = {
     {
       "name": "listProviderTemplates",
       "parameters": [],
-      "returnType": "any",
+      "returnType": "OAuthProviderTemplate",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     },
     {
@@ -94,7 +94,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -130,7 +130,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -145,7 +145,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -153,17 +153,17 @@ export const metadata = {
     {
       "name": "listProviders",
       "parameters": [],
-      "returnType": "any",
+      "returnType": "OAuthProvider",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     },
     {
       "name": "listEnabledProviders",
       "parameters": [],
-      "returnType": "any",
+      "returnType": "OAuthProvider",
       "isAsync": true,
-      "returnTypeIsArray": false,
+      "returnTypeIsArray": true,
       "isAsyncIterable": false
     },
     {
@@ -176,7 +176,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -191,7 +191,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -206,7 +206,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "boolean",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -221,7 +221,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -251,7 +251,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -274,7 +274,7 @@ export const metadata = {
     {
       "name": "cleanupExpiredStates",
       "parameters": [],
-      "returnType": "any",
+      "returnType": "number",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -301,7 +301,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "string",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -314,281 +314,67 @@ export const metadata = {
     },
     {
       "name": "OAuthProviderTemplate",
-      "definition": "",
-      "properties": [
-        {
-          "name": "provider",
-          "type": "OAuthProviderName",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "displayName",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "authorizeUrl",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "tokenUrl",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "userinfoUrl",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "scopes",
-          "type": "string",
-          "optional": false,
-          "isArray": true
-        }
-      ]
+      "definition": "{\n  provider: OAuthProviderName;\n  displayName: string;\n  authorizeUrl: string;\n  tokenUrl: string;\n  userinfoUrl: string;\n  scopes: string[];\n}"
     },
     {
       "name": "OAuthProvider",
-      "definition": "",
-      "properties": [
-        {
-          "name": "provider",
-          "type": "OAuthProviderName",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "clientId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "clientSecret",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "authorizeUrl",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "tokenUrl",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "userinfoUrl",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "scopes",
-          "type": "string",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "enabled",
-          "type": "boolean",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "createdAt",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  provider: OAuthProviderName;\n  clientId: string;\n  clientSecret: string;\n  authorizeUrl: string;\n  tokenUrl: string;\n  userinfoUrl: string;\n  scopes: string[];\n  enabled: boolean;\n  createdAt: number;\n}"
     },
     {
       "name": "OAuthProviderInput",
-      "definition": "",
-      "properties": [
-        {
-          "name": "provider",
-          "type": "OAuthProviderName",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "clientId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "clientSecret",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "authorizeUrl",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "tokenUrl",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "userinfoUrl",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "scopes",
-          "type": "string",
-          "optional": false,
-          "isArray": true
-        },
-        {
-          "name": "enabled",
-          "type": "boolean",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  provider: OAuthProviderName;\n  clientId: string;\n  clientSecret: string;\n  authorizeUrl: string;\n  tokenUrl: string;\n  userinfoUrl: string;\n  scopes: string[];\n  enabled?: boolean;\n}"
     },
     {
       "name": "OAuthProviderUpdate",
-      "definition": "",
-      "properties": [
-        {
-          "name": "clientId",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "clientSecret",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "authorizeUrl",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "tokenUrl",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "userinfoUrl",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "scopes",
-          "type": "string",
-          "optional": true,
-          "isArray": true
-        },
-        {
-          "name": "enabled",
-          "type": "boolean",
-          "optional": true,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  clientId?: string;\n  clientSecret?: string;\n  authorizeUrl?: string;\n  tokenUrl?: string;\n  userinfoUrl?: string;\n  scopes?: string[];\n  enabled?: boolean;\n}"
     },
     {
       "name": "OAuthState",
-      "definition": "",
-      "properties": [
-        {
-          "name": "state",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "returnTo",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "provider",
-          "type": "OAuthProviderName",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "expiresAt",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        }
-      ]
+      "definition": "{\n  state: string;\n  returnTo: string;\n  provider: OAuthProviderName;\n  expiresAt: number;\n}"
     }
   ]
 };
 
 // Server interface (to be implemented in microservice)
 export interface OAuthService {
-  listProviderTemplates(): Promise<any>;
+  listProviderTemplates(): Promise<OAuthProviderTemplate[]>;
   getProviderTemplate(provider: OAuthProviderName): Promise<any>;
-  createProvider(provider: OAuthProviderInput): Promise<any>;
+  createProvider(provider: OAuthProviderInput): Promise<void>;
   getProvider(provider: OAuthProviderName): Promise<any>;
-  updateProvider(providerName: OAuthProviderName, updates: OAuthProviderUpdate): Promise<any>;
-  deleteProvider(providerName: OAuthProviderName): Promise<any>;
-  listProviders(): Promise<any>;
-  listEnabledProviders(): Promise<any>;
-  enableProvider(providerName: OAuthProviderName): Promise<any>;
-  disableProvider(providerName: OAuthProviderName): Promise<any>;
-  isProviderEnabled(providerName: OAuthProviderName): Promise<any>;
-  createState(state: OAuthState): Promise<any>;
+  updateProvider(providerName: OAuthProviderName, updates: OAuthProviderUpdate): Promise<void>;
+  deleteProvider(providerName: OAuthProviderName): Promise<void>;
+  listProviders(): Promise<OAuthProvider[]>;
+  listEnabledProviders(): Promise<OAuthProvider[]>;
+  enableProvider(providerName: OAuthProviderName): Promise<void>;
+  disableProvider(providerName: OAuthProviderName): Promise<void>;
+  isProviderEnabled(providerName: OAuthProviderName): Promise<boolean>;
+  createState(state: OAuthState): Promise<void>;
   getState(stateToken: string): Promise<any>;
-  deleteState(stateToken: string): Promise<any>;
+  deleteState(stateToken: string): Promise<void>;
   consumeState(stateToken: string): Promise<any>;
-  cleanupExpiredStates(): Promise<any>;
-  generateState(provider: OAuthProviderName, returnTo: string, ttlSeconds?: number): Promise<any>;
+  cleanupExpiredStates(): Promise<number>;
+  generateState(provider: OAuthProviderName, returnTo: string, ttlSeconds?: number): Promise<string>;
 }
 
 // Client interface
 export interface OAuthServiceClient {
-  listProviderTemplates(): Promise<any>;
+  listProviderTemplates(): Promise<OAuthProviderTemplate[]>;
   getProviderTemplate(provider: OAuthProviderName): Promise<any>;
-  createProvider(provider: OAuthProviderInput): Promise<any>;
+  createProvider(provider: OAuthProviderInput): Promise<void>;
   getProvider(provider: OAuthProviderName): Promise<any>;
-  updateProvider(providerName: OAuthProviderName, updates: OAuthProviderUpdate): Promise<any>;
-  deleteProvider(providerName: OAuthProviderName): Promise<any>;
-  listProviders(): Promise<any>;
-  listEnabledProviders(): Promise<any>;
-  enableProvider(providerName: OAuthProviderName): Promise<any>;
-  disableProvider(providerName: OAuthProviderName): Promise<any>;
-  isProviderEnabled(providerName: OAuthProviderName): Promise<any>;
-  createState(state: OAuthState): Promise<any>;
+  updateProvider(providerName: OAuthProviderName, updates: OAuthProviderUpdate): Promise<void>;
+  deleteProvider(providerName: OAuthProviderName): Promise<void>;
+  listProviders(): Promise<OAuthProvider[]>;
+  listEnabledProviders(): Promise<OAuthProvider[]>;
+  enableProvider(providerName: OAuthProviderName): Promise<void>;
+  disableProvider(providerName: OAuthProviderName): Promise<void>;
+  isProviderEnabled(providerName: OAuthProviderName): Promise<boolean>;
+  createState(state: OAuthState): Promise<void>;
   getState(stateToken: string): Promise<any>;
-  deleteState(stateToken: string): Promise<any>;
+  deleteState(stateToken: string): Promise<void>;
   consumeState(stateToken: string): Promise<any>;
-  cleanupExpiredStates(): Promise<any>;
-  generateState(provider: OAuthProviderName, returnTo: string, ttlSeconds?: number): Promise<any>;
+  cleanupExpiredStates(): Promise<number>;
+  generateState(provider: OAuthProviderName, returnTo: string, ttlSeconds?: number): Promise<string>;
 }
 
 // Factory function
