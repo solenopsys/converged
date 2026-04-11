@@ -209,6 +209,7 @@ appVersion: "1.0.0"
   const registry = mergedConfig.registry;
   const uiImageName = registry ? `${registry}/${projectName}-ui` : `localhost/${projectName}-ui`;
   const msImageName = registry ? `${registry}/${projectName}-ms` : `localhost/${projectName}-ms`;
+  const rtImageName = registry ? `${registry}/${projectName}-rt` : `localhost/${projectName}-rt`;
   const storageImageName = registry
     ? `${registry}/converged-storage`
     : `localhost/converged-storage`;
@@ -226,6 +227,10 @@ images:
     pullPolicy: ${pullPolicy}
   ms:
     name: ${msImageName}
+    tag: latest
+    pullPolicy: ${pullPolicy}
+  rt:
+    name: ${rtImageName}
     tag: latest
     pullPolicy: ${pullPolicy}
   storage:

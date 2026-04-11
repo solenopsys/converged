@@ -9,6 +9,7 @@ import {
   CONFIG_FILE,
   CONFIG_MOUNT,
   DATA_MOUNT,
+  RUNTIME_APP_PORT,
   SERVICE_PORT,
   SERVICES_APP_PORT,
   STORAGE_BIN_PATH,
@@ -31,6 +32,10 @@ const HELM_UI_PULL_POLICY = "{{ .Values.images.ui.pullPolicy }}";
 const HELM_MS_IMAGE = "{{ .Values.images.ms.name }}";
 const HELM_MS_TAG = "{{ .Values.images.ms.tag }}";
 const HELM_MS_PULL_POLICY = "{{ .Values.images.ms.pullPolicy }}";
+
+const HELM_RT_IMAGE = "{{ .Values.images.rt.name }}";
+const HELM_RT_TAG = "{{ .Values.images.rt.tag }}";
+const HELM_RT_PULL_POLICY = "{{ .Values.images.rt.pullPolicy }}";
 
 const HELM_STORAGE_IMAGE = "{{ .Values.images.storage.name }}";
 const HELM_STORAGE_TAG = "{{ .Values.images.storage.tag }}";
@@ -127,6 +132,10 @@ function uiImageUri(): string {
 
 function msImageUri(): string {
   return `${HELM_MS_IMAGE}:${HELM_MS_TAG}`;
+}
+
+function rtImageUri(): string {
+  return `${HELM_RT_IMAGE}:${HELM_RT_TAG}`;
 }
 
 function storageImageUri(): string {
@@ -606,6 +615,26 @@ class WorkloadBuilder {
                     mountPath: STORAGE_SOCKET_DIR,
                   },
                 ],
+              },
+              {
+                name: "rt",
+                image: rtImageUri(),
+                imagePullPolicy: HELM_RT_PULL_POLICY,
+                ports: [{ containerPort: RUNTIME_APP_PORT }],
+                env: toEnvList({
+                  NODE_ENV: "production",
+                  PORT: String(RUNTIME_APP_PORT),
+                  SERVICES_BASE: `http://127.0.0.1:${SERVICES_APP_PORT}/services`,
+                }),
+                envFrom: [{ secretRef: { name: secretName } }],
+                ...buildHttpHealthProbes(RUNTIME_APP_PORT),
+                resources: toK8sResources(monoGroup.resources),
+                securityContext: {
+                  allowPrivilegeEscalation: false,
+                  privileged: false,
+                  readOnlyRootFilesystem: false,
+                  runAsNonRoot: false,
+                },
               },
             ],
             securityContext: {

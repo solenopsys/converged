@@ -12,13 +12,13 @@
   },
   "dependencies": {
     "back-core": "workspace:*",
-    "croner": "^9.1.0",
+    "croner": "^10.0.1",
     "g-auth": "workspace:*",
     "g-dag": "workspace:*",
     "g-delivery": "workspace:*",
     "g-notify": "workspace:*",
-    "g-ses": "workspace:*",
     "g-runtime": "workspace:*",
+    "g-ses": "workspace:*",
     "g-shipmentprovider": "workspace:*",
     "g-smtp": "workspace:*",
     "nrpc": "workspace:*"

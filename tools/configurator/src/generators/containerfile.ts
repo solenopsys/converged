@@ -158,7 +158,7 @@ class DynamicContainerfileBuilder {
     this.landingOwner = resolveOwnerDir(ctx, this.landingPath);
     this.storeWorkersOwner = resolveOwnerDir(ctx, this.storeWorkersPath);
     this.runtimeServerOwner = resolveOwnerDir(ctx, "tools/container-runtime/server.entry.ts");
-    this.workflowsOwner = resolveOwnerDir(ctx, "back/runtime/workflows/index.ts");
+    this.workflowsOwner = resolveOwnerDir(ctx, "back/workflows/index.ts");
     this.pruneToolsScriptOwner = resolveOwnerDir(ctx, this.pruneToolsScriptPath);
 
     this.apkPackages = config.runtimeDeps?.apk ?? [];
@@ -349,8 +349,8 @@ class DynamicContainerfileBuilder {
   }
 
   private buildWorkflows() {
-    const entry = this.projectPath(this.workflowsOwner, "back/runtime/workflows/index.ts");
-    if (!dirExists(this.ctx, this.workflowsOwner, "back/runtime/workflows/index.ts")) return;
+    const entry = this.projectPath(this.workflowsOwner, "back/workflows/index.ts");
+    if (!dirExists(this.ctx, this.workflowsOwner, "back/workflows/index.ts")) return;
     this.emit("");
     this.emit(`RUN bun build ${entry} \\`);
     this.emit("    --target bun --format esm --outdir /build/out/plugins/workflows \\");
@@ -388,7 +388,7 @@ class DynamicContainerfileBuilder {
 
   private writeRtRuntimeMap() {
     const toml = ["[workflows]"];
-    if (dirExists(this.ctx, this.workflowsOwner, "back/runtime/workflows/index.ts")) {
+    if (dirExists(this.ctx, this.workflowsOwner, "back/workflows/index.ts")) {
       toml.push('plugin = "/app/plugins/workflows/index.js"');
     }
 

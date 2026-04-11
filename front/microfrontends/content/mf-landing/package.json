@@ -10,6 +10,6 @@
   "dependencies": {
     "front-core": "workspace:*",
     "g-struct": "workspace:*",
-    "front-landings": "file:../../../../../../saas/public/front/front-landings"
+    "front-landings": "file:../../../../../../../saas/public/front/front-landings"
   }
 }

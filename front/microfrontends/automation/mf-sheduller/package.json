@@ -7,10 +7,10 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "echarts": "6.0.0",
+    "echarts-for-react": "3.0.6",
     "front-core": "workspace:*",
     "g-sheduller": "workspace:*",
-    "lucide-react": "^0.553.0",
-    "echarts": "6.0.0",
-    "echarts-for-react": "3.0.6"
+    "lucide-react": "^1.8.0"
   }
 }

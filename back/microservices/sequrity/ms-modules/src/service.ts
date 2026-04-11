@@ -97,6 +97,15 @@ export class ModulesServiceImpl implements ModulesService {
       }
     }
 
+    // Backward-compatible default: if user preset is empty/not configured,
+    // serve baseline modules from `root` preset instead of returning nothing.
+    if (included.size === 0) {
+      const rootPreset = await this.stores.config.getPreset("root");
+      if (rootPreset) {
+        for (const name of rootPreset.modules) included.add(name);
+      }
+    }
+
     for (const name of config.additions) included.add(name);
     for (const name of config.removals) included.delete(name);
 

@@ -8,13 +8,13 @@
     "build-storybook": "storybook build"
   },
   "devDependencies": {
-    "@storybook/addon-links": "^10.2.1",
-    "@storybook/react-vite": "^10.2.1",
-    "@types/react": "^18.3.18",
-    "@types/react-dom": "^18.3.5",
-    "storybook": "^10.2.1",
-    "vite": "^6.1.0",
-    "@storybook/addon-docs": "^10.2.1"
+    "@storybook/addon-links": "^10.3.5",
+    "@storybook/react-vite": "^10.3.5",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "storybook": "^10.3.5",
+    "vite": "^8.0.8",
+    "@storybook/addon-docs": "^10.3.5"
   },
   "dependencies": {
     "@unocss/reset": "latest",
@@ -24,13 +24,13 @@
     "effector-react": "23.3.0",
     "files-state": "workspace:*",
     "front-core": "workspace:*",
-    "lucide-react": "^0.563.0",
-    "marked": "^16.3.0",
+    "lucide-react": "^1.8.0",
+    "marked": "^18.0.0",
     "md-tools": "workspace:*",
     "mf-assistants": "workspace:*",
     "qrcode": "^1.5.4",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
     "unocss": "latest"
   }
 }

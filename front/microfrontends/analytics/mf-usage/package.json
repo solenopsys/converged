@@ -9,6 +9,6 @@
   "dependencies": {
     "front-core": "workspace:*",
     "g-usage": "workspace:*",
-    "lucide-react": "^0.553.0"
+    "lucide-react": "^1.8.0"
   }
 }
