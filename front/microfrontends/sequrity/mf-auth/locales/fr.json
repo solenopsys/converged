@@ -10,6 +10,8 @@
   },
   "button": {
     "login": "Se connecter",
+    "sendAuthLink": "Envoyer le lien de connexion",
+    "sendingLink": "Envoi du lien...",
     "loggingIn": "Connexion en cours...",
     "continueWith": "Ou continuer avec",
     "loginWithApple": "Se connecter avec Apple",
@@ -28,6 +30,8 @@
     "privacyPolicy": "Politique de confidentialité"
   },
   "notification": {
+    "linkSent": "Lien de connexion envoyé",
+    "checkEmail": "Vérifiez votre e-mail pour continuer",
     "loginFailed": "Échec de la connexion",
     "tryAgain": "Veuillez réessayer"
   }

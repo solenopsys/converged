@@ -10,6 +10,8 @@
   },
   "button": {
     "login": "Accedi",
+    "sendAuthLink": "Invia link di accesso",
+    "sendingLink": "Invio del link...",
     "loggingIn": "Accesso in corso...",
     "continueWith": "Oppure continua con",
     "loginWithApple": "Accedi con Apple",
@@ -28,6 +30,8 @@
     "privacyPolicy": "Informativa sulla privacy"
   },
   "notification": {
+    "linkSent": "Link di accesso inviato",
+    "checkEmail": "Controlla la tua email per continuare",
     "loginFailed": "Accesso non riuscito",
     "tryAgain": "Riprova"
   }

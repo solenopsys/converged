@@ -126,6 +126,7 @@ class DynamicContainerfileBuilder {
   private readonly landingOwner: string;
   private readonly storeWorkersOwner: string;
   private readonly runtimeServerOwner: string;
+  private readonly runtimePluginOwner: string;
   private readonly workflowsOwner: string;
 
   // Paths from config
@@ -158,6 +159,7 @@ class DynamicContainerfileBuilder {
     this.landingOwner = resolveOwnerDir(ctx, this.landingPath);
     this.storeWorkersOwner = resolveOwnerDir(ctx, this.storeWorkersPath);
     this.runtimeServerOwner = resolveOwnerDir(ctx, "tools/container-runtime/server.entry.ts");
+    this.runtimePluginOwner = resolveOwnerDir(ctx, "back/runtime/plugin.ts");
     this.workflowsOwner = resolveOwnerDir(ctx, "back/workflows/index.ts");
     this.pruneToolsScriptOwner = resolveOwnerDir(ctx, this.pruneToolsScriptPath);
 
@@ -234,6 +236,7 @@ class DynamicContainerfileBuilder {
       this.writeUiRuntimeMap();
     } else if (this.role === "rt") {
       this.prepareMsOutputDirs();
+      this.buildRuntimePlugin();
       this.buildWorkflows();
       this.writeRtRuntimeMap();
     } else {
@@ -357,6 +360,16 @@ class DynamicContainerfileBuilder {
     this.emit("    --minify --no-splitting");
   }
 
+  private buildRuntimePlugin() {
+    const runtimePluginPath = "back/runtime/plugin.ts";
+    if (!dirExists(this.ctx, this.runtimePluginOwner, runtimePluginPath)) return;
+
+    this.emit("");
+    this.emit(`RUN bun build ${this.projectPath(this.runtimePluginOwner, runtimePluginPath)} \\`);
+    this.emit("    --target bun --format esm --outdir /build/out/plugins/runtime \\");
+    this.emit("    --minify --no-splitting");
+  }
+
   private writeUiRuntimeMap() {
     const toml = [
       "[services]",
@@ -387,7 +400,15 @@ class DynamicContainerfileBuilder {
   }
 
   private writeRtRuntimeMap() {
-    const toml = ["[workflows]"];
+    const toml: string[] = [];
+
+    if (dirExists(this.ctx, this.runtimePluginOwner, "back/runtime/plugin.ts")) {
+      toml.push("[services]");
+      toml.push('"runtime" = "/app/plugins/runtime/plugin.js"');
+      toml.push("");
+    }
+
+    toml.push("[workflows]");
     if (dirExists(this.ctx, this.workflowsOwner, "back/workflows/index.ts")) {
       toml.push('plugin = "/app/plugins/workflows/index.js"');
     }
@@ -536,6 +557,7 @@ class DynamicContainerfileBuilder {
       this.emit("COPY --from=builder /build/out/dist ./dist");
       this.emit("COPY --from=builder /build/out/front ./front");
     } else if (this.role === "rt") {
+      this.emit("COPY --from=builder /build/out/plugins/runtime ./plugins/runtime");
       this.emit("COPY --from=builder /build/out/plugins/workflows ./plugins/workflows");
     } else {
       this.emit("COPY --from=builder /build/out/plugins/chunks ./plugins/chunks");

@@ -10,6 +10,8 @@
   },
   "button": {
     "login": "Iniciar sesión",
+    "sendAuthLink": "Enviar enlace de acceso",
+    "sendingLink": "Enviando enlace...",
     "loggingIn": "Iniciando sesión...",
     "continueWith": "O continuar con",
     "loginWithApple": "Iniciar sesión con Apple",
@@ -28,6 +30,8 @@
     "privacyPolicy": "Política de privacidad"
   },
   "notification": {
+    "linkSent": "Enlace de acceso enviado",
+    "checkEmail": "Revisa tu correo para continuar",
     "loginFailed": "Error de inicio de sesión",
     "tryAgain": "Por favor, inténtalo de nuevo"
   }

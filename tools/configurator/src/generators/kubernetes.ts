@@ -687,6 +687,15 @@ class WorkloadBuilder {
       podLabels,
       SERVICES_APP_PORT,
     );
+
+    createClusterService(
+      this.chart,
+      "mono-runtime-service",
+      this.plan.runtime.serviceName,
+      labels(appName, "runtime"),
+      podLabels,
+      RUNTIME_APP_PORT,
+    );
   }
 }
 
@@ -708,6 +717,16 @@ class IngressBuilder {
   private collectRoutes() {
     const hosts = this.ctx.config.ingress.hosts;
     const seenServicePaths = new Set<string>();
+
+    if (this.plan.mode === "mono") {
+      for (const host of hosts) {
+        this.routes.push({
+          match: `Host(\`${host}\`) && PathPrefix(\`/services/runtime\`)`,
+          priority: 110,
+          service: this.plan.runtime.serviceName,
+        });
+      }
+    }
 
     for (const group of this.plan.serviceGroups) {
       for (const ms of group.microservices) {

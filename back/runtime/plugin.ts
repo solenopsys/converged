@@ -4,5 +4,5 @@ import RuntimeServiceImpl from "./service";
 
 export default function runtimePlugin(config?: any) {
   const serviceImpl = new RuntimeServiceImpl(config);
-  return createHttpBackend({ metadata, serviceImpl });
+  return createHttpBackend({ metadata, serviceImpl })(config);
 }

@@ -90,10 +90,15 @@ for (const [key, mappedPath] of Object.entries(runtimeMap.services || {})) {
     ? mappedPath
     : resolve(appRoot, mappedPath);
   if (!existsSync(pluginPath)) {
-    throw new Error(`Mapped plugin file does not exist: ${pluginPath}`);
+    console.error("[runtime] mapped plugin file does not exist:", pluginPath);
+    continue;
   }
-  const plugin = await importPlugin(pluginPath);
-  pluginEntries.push({ key, path: pluginPath, plugin });
+  try {
+    const plugin = await importPlugin(pluginPath);
+    pluginEntries.push({ key, path: pluginPath, plugin });
+  } catch (error) {
+    console.error("[runtime] plugin import failed:", pluginPath, error);
+  }
 }
 
 const servicePaths: Record<string, string> = {};

@@ -13,6 +13,7 @@
     "button": {
       "login": "Login",
       "sendAuthLink": "Send Auth Link",
+      "sendingLink": "Sending link...",
       "loggingIn": "Logging in...",
       "continueWith": "Or continue with",
       "loginWithApple": "Login with Apple",
@@ -31,6 +32,8 @@
       "privacyPolicy": "Privacy Policy"
     },
     "notification": {
+      "linkSent": "Magic link sent",
+      "checkEmail": "Check your email to continue",
       "loginFailed": "Login failed",
       "tryAgain": "Please try again"
     }

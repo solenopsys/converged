@@ -10,6 +10,8 @@
   },
   "button": {
     "login": "Anmelden",
+    "sendAuthLink": "Anmeldelink senden",
+    "sendingLink": "Link wird gesendet...",
     "loggingIn": "Anmeldung läuft...",
     "continueWith": "Oder fortfahren mit",
     "loginWithApple": "Mit Apple anmelden",
@@ -28,6 +30,8 @@
     "privacyPolicy": "Datenschutzrichtlinie"
   },
   "notification": {
+    "linkSent": "Anmeldelink wurde gesendet",
+    "checkEmail": "Bitte prüfen Sie Ihre E-Mails",
     "loginFailed": "Anmeldung fehlgeschlagen",
     "tryAgain": "Bitte versuchen Sie es erneut"
   }
