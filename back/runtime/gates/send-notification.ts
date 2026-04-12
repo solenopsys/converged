@@ -61,24 +61,57 @@ async function handleSes(
   if (!result.success) throw new Error(`SES send failed: ${result.error}`);
 }
 
+function normalizeLocale(input?: string): string | undefined {
+  if (!input) return undefined;
+  const cleaned = input.trim().toLowerCase().replace("_", "-");
+  if (!cleaned) return undefined;
+  const short = cleaned.split("-")[0];
+  return short || undefined;
+}
+
+async function resolveTemplate(
+  templateId: string,
+  locale?: string,
+): Promise<{ templateId: string; content: Record<string, string> }> {
+  const candidates: string[] = [];
+  const normalizedLocale = normalizeLocale(locale);
+
+  if (normalizedLocale) {
+    candidates.push(`${normalizedLocale}/${templateId}`);
+    // Backward-compatible fallback for old naming scheme
+    candidates.push(`${templateId}.${normalizedLocale}`);
+  }
+  candidates.push(templateId);
+
+  for (const candidate of candidates) {
+    const template = await notify.getTemplate(candidate);
+    if (template) {
+      return { templateId: candidate, content: template.content };
+    }
+  }
+
+  throw new Error(`Template "${templateId}" not found`);
+}
+
 export async function sendNotification({
   channel,
   templateId,
   recipient,
+  locale,
   params = {},
 }: {
   channel: string;
   templateId: string;
   recipient: string;
+  locale?: string;
   params?: Record<string, string | number | boolean | null>;
 }): Promise<void> {
   const channelConfig = await notify.getChannel(channel);
   if (!channelConfig) throw new Error(`Channel "${channel}" not configured`);
 
-  const template = await notify.getTemplate(templateId);
-  if (!template) throw new Error(`Template "${templateId}" not found`);
+  const selected = await resolveTemplate(templateId, locale);
 
-  const rendered = renderTemplate(template.content, params);
+  const rendered = renderTemplate(selected.content, params);
 
   const handlers: Record<string, (config: Record<string, any>, recipient: string, rendered: Record<string, string>) => Promise<void>> = {
     smtp: handleSmtp,
@@ -89,5 +122,11 @@ export async function sendNotification({
   if (!handler) throw new Error(`Unsupported channel type "${channelConfig.type}"`);
   await handler(channelConfig.config, recipient, rendered);
 
-  await notify.recordSend({ channel, templateId, recipient, params, status: "sent" });
+  await notify.recordSend({
+    channel,
+    templateId: selected.templateId,
+    recipient,
+    params,
+    status: "sent",
+  });
 }

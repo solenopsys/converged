@@ -10,6 +10,7 @@ export type ExecutionResult = {
 export type MagicLinkParams = {
   email: string;
   returnTo?: string;
+  locale?: string;
   channel?: string;
   templateId?: string;
 };
@@ -100,7 +101,7 @@ export const metadata = {
     },
     {
       "name": "MagicLinkParams",
-      "definition": "{\n  email: string;\n  returnTo?: string;\n  channel?: string;\n  templateId?: string;\n}"
+      "definition": "{\n  email: string;\n  returnTo?: string;\n  locale?: string;\n  channel?: string;\n  templateId?: string;\n}"
     },
     {
       "name": "MagicLinkResult",

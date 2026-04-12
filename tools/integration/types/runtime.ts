@@ -9,6 +9,7 @@ export type ExecutionResult = {
 export type MagicLinkParams = {
   email: string;
   returnTo?: string;
+  locale?: string;
   channel?: string;
   templateId?: string;
 }
