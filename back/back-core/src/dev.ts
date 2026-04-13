@@ -294,7 +294,9 @@ if (existsSync(runtimePluginPath)) {
   const runtimeMod = await import(pathToFileURL(runtimePluginPath).href);
   const runtimePluginFactory = runtimeMod.default ?? runtimeMod;
   if (typeof runtimePluginFactory === "function") {
-    plugins.push(runtimePluginFactory({ workflows }));
+    plugins.push((pluginConfig: any) =>
+      runtimePluginFactory({ ...pluginConfig, workflows }),
+    );
   }
 }
 

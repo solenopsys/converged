@@ -36,23 +36,51 @@ export class AccessStoreService {
   }
 
   getUserAccess(userId: string): UserAccessValue {
-    const existing = this.userAccessRepo.get(new UserAccessKey(userId));
+    const existing = this.findUserAccess(userId);
     if (existing) {
       return existing;
     }
     return { userId, presets: [], permissions: [] };
   }
 
+  findUserAccess(userId: string): UserAccessValue | null {
+    return this.userAccessRepo.get(new UserAccessKey(userId)) ?? null;
+  }
+
   saveUserAccess(userId: string, value: UserAccessValue): void {
     this.userAccessRepo.save(new UserAccessKey(userId), value);
+  }
+
+  hasUserAccess(userId: string): boolean {
+    return this.userAccessRepo.get(new UserAccessKey(userId)) !== null;
   }
 
   getPermissionsFromUser(userId: string): Permission[] {
     return this.getUserAccess(userId).permissions;
   }
 
+  async getPermissionsFromPresetWithMeta(
+    presetName: string,
+  ): Promise<{ permissions: Permission[]; found: boolean }> {
+    const preset = await this.presetRepo.get(new PresetKey(presetName));
+    if (!preset) {
+      return { permissions: [], found: false };
+    }
+    return { permissions: preset, found: true };
+  }
+
   async getPermissionsFromPreset(presetName: string): Promise<Permission[]> {
-    return (await this.presetRepo.get(new PresetKey(presetName))) ?? [];
+    const preset = await this.getPermissionsFromPresetWithMeta(presetName);
+    return preset.permissions;
+  }
+
+  async getPresetWithMeta(
+    presetName: string,
+  ): Promise<{ exists: boolean; permissions: Permission[] }> {
+    const key = new PresetKey(presetName);
+    const exists = this.presetRepo.exists(key);
+    const permissions = (await this.presetRepo.get(key)) ?? [];
+    return { exists, permissions };
   }
 
   async getPresets(): Promise<string[]> {

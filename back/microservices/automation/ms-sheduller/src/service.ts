@@ -1,4 +1,3 @@
-import { CronEngine } from "converged-runtime/engines/cron";
 import type {
   ShedullerService,
   CronEntry,
@@ -19,7 +18,6 @@ const MS_ID = "sheduller-ms";
 export class ShedullerServiceImpl implements ShedullerService {
   private stores!: StoresController;
   private initPromise?: Promise<void>;
-  private engine!: CronEngine;
 
   constructor() {
     this.init();
@@ -33,10 +31,6 @@ export class ShedullerServiceImpl implements ShedullerService {
     this.initPromise = (async () => {
       this.stores = new StoresController(MS_ID);
       await this.stores.init();
-      this.engine = new CronEngine((record) => {
-        void this.stores.history.record(record);
-      });
-      this.rescheduleActive();
     })();
 
     return this.initPromise;
@@ -45,7 +39,6 @@ export class ShedullerServiceImpl implements ShedullerService {
   createCron(input: CronInput): Promise<{ id: string }> {
     this.assertInput(input);
     const entry = this.stores.crons.create(input);
-    this.syncJob(entry);
     return Promise.resolve({ id: entry.id });
   }
 
@@ -57,7 +50,6 @@ export class ShedullerServiceImpl implements ShedullerService {
     if (!updated) {
       return Promise.resolve(null);
     }
-    this.syncJob(updated);
     return Promise.resolve(updated);
   }
 
@@ -65,11 +57,7 @@ export class ShedullerServiceImpl implements ShedullerService {
     if (!id) {
       throw new Error("id is required");
     }
-    const removed = this.stores.crons.delete(id);
-    if (removed) {
-      this.engine.unschedule(id);
-    }
-    return Promise.resolve(removed);
+    return Promise.resolve(this.stores.crons.delete(id));
   }
 
   getCron(id: string): Promise<CronEntry | null> {
@@ -130,18 +118,6 @@ export class ShedullerServiceImpl implements ShedullerService {
     }
   }
 
-  private syncJob(entry: CronEntry) {
-    if (entry.status === "active") {
-      this.engine.schedule(entry);
-    } else {
-      this.engine.unschedule(entry.id);
-    }
-  }
-
-  private rescheduleActive() {
-    const list = this.stores.crons.list({ offset: 0, limit: 10000 });
-    this.engine.rescheduleAll(list.items);
-  }
 }
 
 export default ShedullerServiceImpl;

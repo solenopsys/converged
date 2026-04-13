@@ -60,6 +60,22 @@ function isValidJwtToken(token: string): boolean {
   return parts.every((p) => p.trim().length > 0);
 }
 
+function parseJwtPermissions(token: string): string[] {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return [];
+    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const paddedBase64 = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+    const payload = JSON.parse(atob(paddedBase64)) as {
+      perm?: unknown;
+    };
+    if (!Array.isArray(payload.perm)) return [];
+    return payload.perm.filter((item): item is string => typeof item === "string");
+  } catch {
+    return [];
+  }
+}
+
 async function ensureTemporarySession(): Promise<void> {
   if (typeof window === "undefined") return;
   if (authToken.isAuthenticated()) return;
@@ -97,11 +113,25 @@ function applyAuthStateFromCallback(): void {
   const oauthProvider = url.searchParams.get("oauth_provider");
   const oauthCode    = url.searchParams.get("oauth_code");
   const hasOauthCallback = Boolean(oauthProvider && oauthCode);
+  const callbackFlow = hasOauthCallback ? "oauth_callback" : "magic_link_or_direct_token";
 
   if (authTokenParam && isValidJwtToken(authTokenParam)) {
     window.localStorage.setItem("authToken", authTokenParam);
     window.sessionStorage.removeItem(TEMP_USER_ID_KEY);
     window.sessionStorage.removeItem(TEMP_SESSION_ID_KEY);
+    const permissions = parseJwtPermissions(authTokenParam);
+    if (permissions.length === 0) {
+      console.warn("[mf-auth] callback token has empty permissions", {
+        flow: callbackFlow,
+        reasonHint: "check ms-auth/ms-access logs for empty permission diagnostics",
+        permissions,
+      });
+    } else {
+      console.info("[mf-auth] callback token permissions resolved", {
+        flow: callbackFlow,
+        permissionsCount: permissions.length,
+      });
+    }
     tokenChanged();
   }
 

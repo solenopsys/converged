@@ -4,12 +4,12 @@ import { existsSync, readFileSync } from "fs";
 import type { BuildConfig } from "../types";
 
 const PROJECTS_DIR = resolve(import.meta.dir, "../../../../../");
-const ROOT = resolve(PROJECTS_DIR, "../..");
 
 export interface DevOptions {
   projectName: string;
   port: number;
   compress?: boolean;
+  envFile?: string;
 }
 
 /**
@@ -58,49 +58,23 @@ function parseDotEnv(content: string): Record<string, string> {
   return env;
 }
 
-function loadDotEnvForSpawn(projectName: string, projectDir: string, parentDir?: string) {
-  const legacyBootstrapDirRaw = process.env.BOOTSTRAP_ENV_DIR;
-  const legacyBootstrapDir = legacyBootstrapDirRaw
-    ? resolve(projectDir, legacyBootstrapDirRaw)
-    : undefined;
-  const dirs = Array.from(
-    new Set(
-      [
-        parentDir,
-        projectDir,
-        resolve(ROOT, "saas/private/club-bootstrap"),
-        resolve(ROOT, "saas/public/saas-bootstrap"),
-        legacyBootstrapDir,
-      ].filter((value): value is string => Boolean(value)),
-    ),
-  );
-  const names = [
-    `${projectName}.env`,
-    ".env",
-    ".env.local",
-    ".env.development",
-    ".env.development.local",
-  ];
-  const fromFiles: Record<string, string> = {};
-  let filesCount = 0;
-
-  for (const dir of dirs) {
-    for (const name of names) {
-      const envPath = resolve(dir, name);
-      if (!existsSync(envPath)) continue;
-      filesCount += 1;
-      const parsed = parseDotEnv(readFileSync(envPath, "utf8"));
-      Object.assign(fromFiles, parsed);
-    }
+function loadDotEnvForSpawn(
+  projectDir: string,
+  envFile?: string,
+) {
+  if (!envFile) {
+    throw new Error("[configurator] --env-file is required for dev command");
   }
 
-  if (filesCount > 0) {
-    console.log(`[configurator] Loaded env from ${filesCount} .env file(s)`);
+  const explicitPath = resolve(projectDir, envFile);
+  if (!existsSync(explicitPath)) {
+    throw new Error(`[configurator] --env-file not found: ${explicitPath}`);
   }
+  const parsed = parseDotEnv(readFileSync(explicitPath, "utf8"));
+  console.log(`[configurator] Loaded env from: ${explicitPath}`);
 
-  // Shell/exported variables keep priority over file values.
   return {
-    ...fromFiles,
+    ...parsed,
     ...process.env,
   };
 }
@@ -161,9 +135,9 @@ async function loadMergedConfig(
   return { config: merged, projectDir, parentDir };
 }
 
-export async function runDev({ projectName, port, compress }: DevOptions) {
+export async function runDev({ projectName, port, compress, envFile }: DevOptions) {
   const { config, projectDir, parentDir } = await loadMergedConfig(projectName);
-  const loadedEnv = loadDotEnvForSpawn(projectName, projectDir, parentDir);
+  const loadedEnv = loadDotEnvForSpawn(projectDir, envFile);
   const dataRoot = resolve(PROJECTS_DIR, "..", "data");
   const projectDataDir = resolve(
     dataRoot,

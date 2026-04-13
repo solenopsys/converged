@@ -175,6 +175,7 @@
       "GEMINI_MODEL",
       "JWT_SECRET",
       "ACCESS_JWT_SECRET",
+      "ACCESS_JWT_TTL",
       "NRPC_ACCESS_MODE",
       "ROOT_EMAIL"
     ]

@@ -238,6 +238,7 @@ class DynamicContainerfileBuilder {
       this.prepareMsOutputDirs();
       this.buildRuntimePlugin();
       this.buildWorkflows();
+      this.copyNativeLibs();
       this.writeRtRuntimeMap();
     } else {
       this.prepareMsOutputDirs();
@@ -559,6 +560,7 @@ class DynamicContainerfileBuilder {
     } else if (this.role === "rt") {
       this.emit("COPY --from=builder /build/out/plugins/runtime ./plugins/runtime");
       this.emit("COPY --from=builder /build/out/plugins/workflows ./plugins/workflows");
+      this.emit("COPY --from=builder /build/out/plugins/bin-libs ./plugins/bin-libs");
     } else {
       this.emit("COPY --from=builder /build/out/plugins/chunks ./plugins/chunks");
       this.emit("COPY --from=builder /build/out/plugins/bin-libs ./plugins/bin-libs");
@@ -576,10 +578,12 @@ class DynamicContainerfileBuilder {
     this.emit("ENV RUNTIME_MAP_PATH=/app/runtime-map.toml");
     this.emit("ENV CONFIG_PATH=/app/config.json");
 
-    if (this.role === "ms") {
+    if (this.role === "ms" || this.role === "rt") {
       this.emit("ENV BIN_LIBS_PATH=/app/plugins/bin-libs");
-      this.emit("ENV LD_LIBRARY_PATH=/app/lib:/usr/lib");
       this.emit("ENV LIBC_VARIANT=musl");
+    }
+    if (this.role === "ms") {
+      this.emit("ENV LD_LIBRARY_PATH=/app/lib:/usr/lib");
     }
 
     this.emit("");

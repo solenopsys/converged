@@ -18,6 +18,7 @@
     "g-delivery": "workspace:*",
     "g-notify": "workspace:*",
     "g-runtime": "workspace:*",
+    "g-sheduller": "workspace:*",
     "g-ses": "workspace:*",
     "g-shipmentprovider": "workspace:*",
     "g-smtp": "workspace:*",

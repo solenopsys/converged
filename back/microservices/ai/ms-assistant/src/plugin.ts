@@ -20,7 +20,7 @@ function getServiceImpl() {
         model: process.env.CLAUDE_MODEL,
       },
       gemini: {
-        key: process.env.GOOGLE_API_KEY,
+        key: process.env.GEMINI_API_KEY,
         model: process.env.GEMINI_MODEL,
       },
     });

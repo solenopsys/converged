@@ -11,6 +11,49 @@ import {
   type AccessMode,
 } from "./access-control";
 
+type RuntimeError = Error & {
+  statusCode?: number;
+  code?: string;
+  details?: Record<string, unknown>;
+};
+
+function normalizeError(error: unknown): RuntimeError {
+  if (error instanceof Error) return error as RuntimeError;
+  const wrapped = new Error(typeof error === "string" ? error : "Unknown error") as RuntimeError;
+  return wrapped;
+}
+
+function isVerboseErrorsEnabled(): boolean {
+  const value = (process.env.NRPC_VERBOSE_ERRORS ?? "").toLowerCase();
+  return value === "1" || value === "true" || value === "yes";
+}
+
+function logMethodError(
+  kind: "call" | "stream",
+  serviceName: string,
+  methodName: string,
+  error: unknown,
+) {
+  const err = normalizeError(error);
+  const statusCode = typeof err.statusCode === "number" ? err.statusCode : 500;
+  const code = err.code ?? "UNEXPECTED_ERROR";
+  const message = err.message || "Internal Server Error";
+  const details = err.details && Object.keys(err.details).length > 0
+    ? ` details=${JSON.stringify(err.details)}`
+    : "";
+  const line = `[nrpc:${kind}] ${serviceName}.${methodName} status=${statusCode} code=${code} message="${message}"${details}`;
+
+  if (statusCode >= 400 && statusCode < 500) {
+    console.warn(line);
+    return;
+  }
+
+  console.error(line);
+  if (isVerboseErrorsEnabled() && err.stack) {
+    console.error(err.stack);
+  }
+}
+
 export interface ElysiaBackendConfig {
   metadata: ServiceMetadata;
   serviceImpl?: any;
@@ -93,10 +136,7 @@ export function createHttpBackend(config: ElysiaBackendConfig) {
             }
             return result;
           } catch (error: any) {
-            console.error(
-              `Error in ${config.metadata.serviceName}.${method.name}:`,
-              error,
-            );
+            logMethodError("call", config.metadata.serviceName, method.name, error);
 
             // Handle errors with statusCode
             const statusCode = error.statusCode || 500;
@@ -133,10 +173,7 @@ export function createHttpBackend(config: ElysiaBackendConfig) {
 
               return backend.streamMethod(method.name, body || {});
             } catch (error) {
-              console.error(
-                `Error in streaming ${config.metadata.serviceName}.${method.name}:`,
-                error,
-              );
+              logMethodError("stream", config.metadata.serviceName, method.name, error);
               throw error;
             }
           };
@@ -315,6 +352,11 @@ class ElysiaBackend {
         if (serviceToken && token === serviceToken) return;
         const error: any = new Error(`Forbidden: internal-only method ${this.config.metadata.serviceName}.${methodName}`);
         error.statusCode = 403;
+        error.code = "FORBIDDEN_INTERNAL_METHOD";
+        error.details = {
+          serviceName: this.config.metadata.serviceName,
+          methodName,
+        };
         throw error;
       }
       // level === "user" — fall through to JWT check
@@ -334,6 +376,11 @@ class ElysiaBackend {
       if (mode === "required") {
         const error: any = new Error(`Unauthorized: no token for ${svc}`);
         error.statusCode = 401;
+        error.code = "UNAUTHORIZED_MISSING_TOKEN";
+        error.details = {
+          serviceName: this.config.metadata.serviceName,
+          methodName,
+        };
         throw error;
       }
       return;
@@ -348,6 +395,11 @@ class ElysiaBackend {
     } catch {
       const error: any = new Error(`Invalid token for ${svc}`);
       error.statusCode = 401;
+      error.code = "UNAUTHORIZED_INVALID_TOKEN";
+      error.details = {
+        serviceName: this.config.metadata.serviceName,
+        methodName,
+      };
       throw error;
     }
 
@@ -369,6 +421,14 @@ class ElysiaBackend {
     if (!allowed) {
       const error: any = new Error(`Forbidden: no '${access}' permission for ${svc}`);
       error.statusCode = 403;
+      error.code = "FORBIDDEN_PERMISSION";
+      error.details = {
+        serviceName: this.config.metadata.serviceName,
+        methodName,
+        required: access,
+        userId: typeof payload?.sub === "string" ? payload.sub : undefined,
+        permissionsCount: permissions.length,
+      };
       throw error;
     }
   }
@@ -443,6 +503,8 @@ class ElysiaBackend {
 
     // Сохраняем ссылку на serviceInstance для использования в ReadableStream
     const serviceInstance = this.serviceInstance;
+
+    const serviceName = this.config.metadata.serviceName;
 
     return new ReadableStream({
       async start(controller) {
@@ -521,9 +583,10 @@ class ElysiaBackend {
           }
         } catch (error) {
           clearInterval(heartbeat);
-          console.error(`Error in streaming ${methodName}:`, error);
+          logMethodError("stream", serviceName, methodName, error);
+          const err = normalizeError(error);
           try {
-            controller.enqueue(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+            controller.enqueue(`data: ${JSON.stringify({ error: err.message || "Internal Server Error" })}\n\n`);
             controller.close();
           } catch {
             // client disconnected

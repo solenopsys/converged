@@ -8,7 +8,6 @@
   },
   "dependencies": {
     "back-core": "workspace:*",
-    "converged-runtime": "workspace:*",
     "g-dag": "workspace:*",
     "g-sheduller": "workspace:*",
     "nrpc": "workspace:*"

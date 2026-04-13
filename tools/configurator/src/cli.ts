@@ -43,12 +43,13 @@ Options:
   -o, --output <dir>    Output directory (default: ./deployment)
   -n, --namespace <ns>  K8s namespace (default: config name)
   --port <port>         Dev server base port (default: 3000)
-  --env-file <path>     Path to .env file (secrets: default confs/<project>.env)
+  --env-file <path>     Path to .env file (dev: required, secrets: override default)
   -h, --help            Show this help
 
 Examples:
-  bun run cli.ts dev --project=converged-portal
-  bun run cli.ts dev --project=club-portal --port=3001
+  bun run cli.ts dev --project=converged-portal --env-file=../../confs/converged-portal.env
+  bun run cli.ts dev --project=club-portal --port=3001 --env-file=../../confs/club-portal-local.env
+  bun run cli.ts dev --project=club-portal --env-file=../../confs/club-portal-local.env
   bun run cli.ts build --project=converged-portal --preset=mono
   bun run cli.ts build --project=club-portal --preset=multi
   bun run cli.ts secrets --project=club-portal
@@ -69,11 +70,16 @@ if (!values.project || !VALID_PROJECTS.includes(values.project)) {
 async function main() {
   switch (command) {
     case "dev": {
+      if (!values["env-file"]) {
+        console.error("Error: dev command requires --env-file=<path>");
+        process.exit(1);
+      }
       const { runDev } = await import("./commands/dev");
       await runDev({
         projectName: values.project!,
         port: parseInt(values.port!, 10),
         compress: values.compress ?? false,
+        envFile: values["env-file"],
       });
       break;
     }
