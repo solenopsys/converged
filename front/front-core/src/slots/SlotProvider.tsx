@@ -1,4 +1,4 @@
-import { ReactNode, useLayoutEffect } from "react";
+import { ReactNode, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useUnit } from "effector-react";
 import { $slotContents, layoutReady } from "./slots";
@@ -18,6 +18,8 @@ const SLOT_MOUNT_POINTS: Record<string, string> = {
   "global:toast": "slot-toast",
   "global:overlay": "slot-overlay",
 };
+
+const SLOT_PROVIDER_OWNER_KEY = "__front_core_slot_provider_owner__";
 
 /**
  * SlotPortal - рендерит контент слота в DOM элемент через portal
@@ -47,9 +49,31 @@ function SlotPortal({ slotId, content }: { slotId: string; content: ReactNode })
 export function SlotProvider({ children }: { children?: ReactNode }) {
   const slotContents = useUnit($slotContents);
   const activeTab = useUnit($activeTab);
+  const ownerIdRef = useRef(`slot-provider-${Math.random().toString(36).slice(2)}`);
+  const [isOwner, setIsOwner] = useState(false);
 
   useLayoutEffect(() => {
     layoutReady("global");
+  }, []);
+
+  useLayoutEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const win = window as Window & { [SLOT_PROVIDER_OWNER_KEY]?: string };
+    if (!win[SLOT_PROVIDER_OWNER_KEY]) {
+      win[SLOT_PROVIDER_OWNER_KEY] = ownerIdRef.current;
+      setIsOwner(true);
+    } else {
+      setIsOwner(win[SLOT_PROVIDER_OWNER_KEY] === ownerIdRef.current);
+    }
+
+    return () => {
+      if (win[SLOT_PROVIDER_OWNER_KEY] === ownerIdRef.current) {
+        delete win[SLOT_PROVIDER_OWNER_KEY];
+      }
+    };
   }, []);
 
   const visibleSlots = Object.entries(slotContents).filter(([slotId]) => {
@@ -69,9 +93,11 @@ export function SlotProvider({ children }: { children?: ReactNode }) {
     <>
       {children}
       {/* Порталы для всех активных слотов */}
-      {visibleSlots.map(([slotId, content]) => (
-        <SlotPortal key={slotId} slotId={slotId} content={content} />
-      ))}
+      {isOwner
+        ? visibleSlots.map(([slotId, content]) => (
+            <SlotPortal key={slotId} slotId={slotId} content={content} />
+          ))
+        : null}
     </>
   );
 }

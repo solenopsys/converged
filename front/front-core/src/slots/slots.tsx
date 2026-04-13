@@ -3,6 +3,24 @@ import { ReactNode } from "react";
 
 export type SlotId = string;
 
+const SLOT_MOUNT_POINTS: Record<string, string> = {
+  "sidebar:center": "slot-center",
+  "sidebar:left": "slot-panel-menu",
+  "sidebar:tabs": "slot-tabs",
+  "sidebar:input": "slot-input",
+  "sidebar:right": "slot-panel-chat",
+  "global:modal": "slot-modal",
+  "global:toast": "slot-toast",
+  "global:overlay": "slot-overlay",
+};
+
+function resolveMountPointId(slotId: SlotId): string {
+  if (slotId.startsWith("sidebar:tab:")) {
+    return "slot-panel-tab";
+  }
+  return SLOT_MOUNT_POINTS[slotId] || slotId;
+}
+
 // События
 export const slotContentSet = createEvent<{ slotId: SlotId; content: ReactNode }>();
 export const slotContentCleared = createEvent<SlotId>();
@@ -30,6 +48,13 @@ export const $slotContents = createStore<Record<SlotId, ReactNode>>({})
  */
 export const mount = (content: ReactNode, slotId: SlotId): void => {
   console.log(`[slots] mount to ${slotId}`);
+  if (typeof document !== "undefined") {
+    const mountPointId = resolveMountPointId(slotId);
+    const mountPoint = document.getElementById(mountPointId);
+    if (mountPoint) {
+      mountPoint.replaceChildren();
+    }
+  }
   slotContentSet({ slotId, content });
 };
 
