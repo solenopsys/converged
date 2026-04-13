@@ -28,3 +28,12 @@
 [submodule "native/behemoth"]
 	path = native/behemoth
 	url = https://github.com/solenopsys/behemoth.git
+[submodule "native/wrapers/mbedtls"]
+	path = native/wrapers/mbedtls
+	url = https://github.com/solenopsys/zig-mbedtls.git
+[submodule "native/wrapers/baresip"]
+	path = native/wrapers/baresip
+	url = https://github.com/solenopsys/zig-baresip.git
+[submodule "native/wrapers/libdatachannel"]
+	path = native/wrapers/libdatachannel
+	url = https://github.com/solenopsys/zig-libdatachannel.git
