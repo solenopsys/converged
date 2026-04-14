@@ -221,14 +221,14 @@ const resumeHandler: Handler = async (
   _splitter: string,
   param?: string,
 ) => {
-  const resume = (client.dag as any).resumeActiveExecutions;
+  const resume = (client.runtime as any).resumeActiveExecutions;
   if (typeof resume !== "function") {
-    throw new Error("dag service does not expose resumeActiveExecutions");
+    throw new Error("runtime service does not expose resumeActiveExecutions");
   }
 
   const limit = param ? parseInt(param, 10) : 200;
   const safeLimit = Number.isFinite(limit) && limit > 0 ? limit : 200;
-  const result = await resume.call(client.dag, safeLimit);
+  const result = await resume.call(client.runtime, safeLimit);
   printJson(result);
 };
 

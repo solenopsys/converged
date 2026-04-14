@@ -26,32 +26,9 @@ function toEntry(row: HistoryRow): CronHistoryEntry {
 }
 
 export class HistoryStoreService {
-  private ensureSchemaPromise?: Promise<void>;
-
   constructor(private readonly store: SqlStore) {}
 
-  private async ensureSchema(): Promise<void> {
-    if (!this.ensureSchemaPromise) {
-      this.ensureSchemaPromise = this.store.db.schema
-        .createTable("history")
-        .ifNotExists()
-        .addColumn("id", "text", (col) => col.primaryKey())
-        .addColumn("cronId", "text", (col) => col.notNull())
-        .addColumn("cronName", "text", (col) => col.notNull())
-        .addColumn("provider", "text", (col) => col.notNull())
-        .addColumn("action", "text", (col) => col.notNull())
-        .addColumn("firedAt", "text", (col) => col.notNull())
-        .addColumn("success", "integer", (col) => col.notNull())
-        .addColumn("message", "text")
-        .execute()
-        .then(() => undefined);
-    }
-    await this.ensureSchemaPromise;
-  }
-
   async record(entry: CronHistoryInput): Promise<CronHistoryEntry> {
-    await this.ensureSchema();
-
     const record: CronHistoryEntry = {
       ...entry,
       id: generateULID(),
@@ -74,8 +51,6 @@ export class HistoryStoreService {
   }
 
   async list(params: CronHistoryListParams): Promise<PaginatedResult<CronHistoryEntry>> {
-    await this.ensureSchema();
-
     const limit = params.limit ?? 50;
     const offset = params.offset ?? 0;
 
@@ -107,8 +82,6 @@ export class HistoryStoreService {
   }
 
   async getDailyRuns(days = 30): Promise<Array<{ date: string; total: number; success: number; failed: number }>> {
-    await this.ensureSchema();
-
     const now = new Date();
     const from = new Date(now.getTime() - ((days - 1) * 24 * 60 * 60 * 1000));
     const fromDate = from.toISOString().slice(0, 10);

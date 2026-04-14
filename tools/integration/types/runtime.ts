@@ -1,4 +1,4 @@
-import type { ExecutionEvent } from "./dag";
+import type { ExecutionEvent, ResumeExecutionsResult } from "./dag";
 
 export type ExecutionId = string;
 
@@ -21,6 +21,7 @@ export type MagicLinkResult = {
 export interface RuntimeService {
   startExecution(workflowName: string, params: Record<string, any>): AsyncIterable<ExecutionEvent>;
   createExecution(workflowName: string, params: Record<string, any>): Promise<ExecutionResult>;
+  resumeActiveExecutions(limit?: number): Promise<ResumeExecutionsResult>;
   listWorkflows(): Promise<{ names: string[] }>;
   refreshCrons(): Promise<void>;
   /** @public */

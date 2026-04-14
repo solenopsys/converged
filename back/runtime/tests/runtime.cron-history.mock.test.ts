@@ -12,21 +12,27 @@ const createShedullerServiceClientMock = mock(() => ({
   recordHistory: recordHistoryMock,
 }));
 
-const dagStartExecutionMock = mock(
-  (_workflowName: string, _params: Record<string, any>): AsyncIterable<any> =>
-    (async function* () {})(),
-);
-const dagCreateExecutionMock = mock(async () => ({ id: "exec-1" }));
-const dagResumeActiveExecutionsMock = mock(async () => ({
-  resumed: 0,
-  skipped: 0,
-  failed: 0,
-  ids: [],
-}));
+const dagListResumableExecutionsMock = mock(async () => ({ items: [] }));
+const dagListVarsMock = mock(async () => ({ items: [] }));
+const dagSetVarMock = mock(async (_key: string, _value: any) => {});
+const dagOpenExecutionMock = mock(async (_id: string, _workflowName: string, _params: Record<string, any>) => {});
+const dagSetExecutionStatusMock = mock(async (_id: string, _status: string) => {});
+const dagGetCachedNodeResultMock = mock(async (_executionId: string, _nodeId: string) => ({ hit: false }));
+const dagCreateTaskMock = mock(async () => ({ id: 1, createdAt: 10 }));
+const dagSetTaskProcessingMock = mock(async (_taskId: number, _startedAt: number) => {});
+const dagSetTaskDoneMock = mock(async (_taskId: number, _executionId: string, _nodeId: string, _completedAt: number, _result: any) => {});
+const dagSetTaskFailedMock = mock(async (_taskId: number, _completedAt: number, _errorMessage: string) => {});
 const createDagServiceClientMock = mock(() => ({
-  startExecution: dagStartExecutionMock,
-  createExecution: dagCreateExecutionMock,
-  resumeActiveExecutions: dagResumeActiveExecutionsMock,
+  listResumableExecutions: dagListResumableExecutionsMock,
+  listVars: dagListVarsMock,
+  setVar: dagSetVarMock,
+  openExecution: dagOpenExecutionMock,
+  setExecutionStatus: dagSetExecutionStatusMock,
+  getCachedNodeResult: dagGetCachedNodeResultMock,
+  createTask: dagCreateTaskMock,
+  setTaskProcessing: dagSetTaskProcessingMock,
+  setTaskDone: dagSetTaskDoneMock,
+  setTaskFailed: dagSetTaskFailedMock,
 }));
 
 mock.module("g-sheduller", () => ({
@@ -65,9 +71,16 @@ describe("Runtime cron history bridge with mocked cron engine", () => {
     recordHistoryMock.mockClear();
     listCronsMock.mockClear();
     createShedullerServiceClientMock.mockClear();
-    dagStartExecutionMock.mockClear();
-    dagCreateExecutionMock.mockClear();
-    dagResumeActiveExecutionsMock.mockClear();
+    dagListResumableExecutionsMock.mockClear();
+    dagListVarsMock.mockClear();
+    dagSetVarMock.mockClear();
+    dagOpenExecutionMock.mockClear();
+    dagSetExecutionStatusMock.mockClear();
+    dagGetCachedNodeResultMock.mockClear();
+    dagCreateTaskMock.mockClear();
+    dagSetTaskProcessingMock.mockClear();
+    dagSetTaskDoneMock.mockClear();
+    dagSetTaskFailedMock.mockClear();
     createDagServiceClientMock.mockClear();
   });
 
@@ -107,6 +120,72 @@ describe("Runtime cron history bridge with mocked cron engine", () => {
 
     const result = await service.listWorkflows();
     expect(result).toEqual({ names: ["wf.alpha", "wf.beta"] });
+
+    await shutdown();
+  });
+
+  test("should execute workflow in runtime and persist node state through dag storage API", async () => {
+    class MockWorkflow {
+      readonly id: string;
+
+      constructor(private readonly ctx: any, id?: string) {
+        this.id = id ?? "wf-id";
+      }
+
+      async start(params: any): Promise<void> {
+        await this.ctx.runNode(this.id, "node.mock", async () => ({ value: params.value }));
+      }
+    }
+
+    const { service, shutdown } = await createRuntimeService({
+      workflows: {
+        WORKFLOWS: [{ name: "wf.mock", ctor: MockWorkflow }],
+      },
+    });
+
+    const events: any[] = [];
+    for await (const event of service.startExecution("wf.mock", { value: 9 })) {
+      events.push(event);
+    }
+
+    expect(events.some((event) => event.type === "started")).toBe(true);
+    expect(events.some((event) => event.type === "completed")).toBe(true);
+    expect(dagOpenExecutionMock).toHaveBeenCalledTimes(1);
+    expect(dagCreateTaskMock).toHaveBeenCalledTimes(1);
+    expect(dagSetTaskProcessingMock).toHaveBeenCalledTimes(1);
+    expect(dagSetTaskDoneMock).toHaveBeenCalledTimes(1);
+    expect(dagSetTaskFailedMock).toHaveBeenCalledTimes(0);
+
+    await shutdown();
+  });
+
+  test("should persist null task result when node handler returns void", async () => {
+    class VoidWorkflow {
+      readonly id: string;
+
+      constructor(private readonly ctx: any, id?: string) {
+        this.id = id ?? "wf-void";
+      }
+
+      async start(): Promise<void> {
+        await this.ctx.runNode(this.id, "node.void", async () => {
+          return;
+        });
+      }
+    }
+
+    const { service, shutdown } = await createRuntimeService({
+      workflows: {
+        WORKFLOWS: [{ name: "wf.void", ctor: VoidWorkflow }],
+      },
+    });
+
+    for await (const _event of service.startExecution("wf.void", {})) {
+      // consume all events until completion
+    }
+
+    expect(dagSetTaskDoneMock).toHaveBeenCalledTimes(1);
+    expect(dagSetTaskDoneMock.mock.calls[0][4]).toBeNull();
 
     await shutdown();
   });

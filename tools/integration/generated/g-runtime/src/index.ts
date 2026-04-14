@@ -67,6 +67,21 @@ export const metadata = {
       "isAsyncIterable": false
     },
     {
+      "name": "resumeActiveExecutions",
+      "parameters": [
+        {
+          "name": "limit",
+          "type": "number",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "ResumeExecutionsResult",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
       "name": "listWorkflows",
       "parameters": [],
       "returnType": "any",
@@ -122,6 +137,7 @@ export const metadata = {
 export interface RuntimeService {
   startExecution(workflowName: string, params: Record): AsyncIterable<ExecutionEvent>;
   createExecution(workflowName: string, params: Record): Promise<ExecutionResult>;
+  resumeActiveExecutions(limit?: number): Promise<ResumeExecutionsResult>;
   listWorkflows(): Promise<any>;
   refreshCrons(): Promise<void>;
   sendMagicLink(params: MagicLinkParams): Promise<MagicLinkResult>;
@@ -131,6 +147,7 @@ export interface RuntimeService {
 export interface RuntimeServiceClient {
   startExecution(workflowName: string, params: Record): AsyncIterable<ExecutionEvent>;
   createExecution(workflowName: string, params: Record): Promise<ExecutionResult>;
+  resumeActiveExecutions(limit?: number): Promise<ResumeExecutionsResult>;
   listWorkflows(): Promise<any>;
   refreshCrons(): Promise<void>;
   sendMagicLink(params: MagicLinkParams): Promise<MagicLinkResult>;

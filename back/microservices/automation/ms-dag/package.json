@@ -5,22 +5,11 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./plugin": "./src/plugin.ts",
-    "./workflow": "./src/workflow.ts"
+    "./plugin": "./src/plugin.ts"
   },
   "dependencies": {
-    "@mozilla/readability": "latest",
     "back-core": "workspace:*",
-    "elysia": "latest",
     "g-dag": "workspace:*",
-    "jsdom": "latest",
-    "jsonpath-plus": "latest",
-    "marked": "latest",
-    "converged-runtime": "workspace:*",
-    "converged-workflows": "workspace:*",
-    "nrpc": "workspace:*",
-    "pg": "latest",
-    "tiktoken": "latest",
-    "turndown": "latest"
+    "nrpc": "workspace:*"
   }
 }

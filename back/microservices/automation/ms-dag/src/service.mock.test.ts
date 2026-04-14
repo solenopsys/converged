@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
-import type { ExecutionEvent } from "g-dag";
 
 type ProcessRow = {
   id: string;
@@ -65,10 +64,6 @@ class FakeProcessingStoreService {
     this.vars.set(key, value);
   }
 
-  get(key: string): any {
-    return this.vars.get(key);
-  }
-
   delete(key: string): void {
     this.vars.delete(key);
   }
@@ -127,7 +122,7 @@ class FakeStatsStoreService {
     return this.processes.get(id);
   }
 
-  async createNode(input: any): Promise<{ id: number }> {
+  async createNode(input: any): Promise<{ id: number; created_at: number }> {
     const now = Date.now();
     const row: NodeRow = {
       id: this.nextNodeId++,
@@ -143,7 +138,7 @@ class FakeStatsStoreService {
       recordId: input.recordId,
     };
     this.nodes.push(row);
-    return { id: row.id };
+    return { id: row.id, created_at: row.createdAt };
   }
 
   async updateNode(id: number, patch: any): Promise<NodeRow | undefined> {
@@ -258,54 +253,28 @@ mock.module("./store", () => ({
 
 import DagServiceImpl from "./service";
 
-let nodeExecutionCount = 0;
-
-class MockWorkflow {
-  readonly id: string;
-
-  constructor(private ctx: any, id?: string) {
-    this.id = id ?? crypto.randomUUID();
-  }
-
-  async start(params: any): Promise<void> {
-    await this.ctx.runNode(this.id, "node.mock", async () => {
-      nodeExecutionCount += 1;
-      return { value: params?.value ?? null };
-    });
-  }
-}
-
 function createService(): DagServiceImpl {
-  nodeExecutionCount = 0;
   latestStores = null;
-  return new DagServiceImpl({
-    workflows: {
-      WORKFLOWS: [{ name: "wf.mock", ctor: MockWorkflow }],
-    },
-  });
+  return new DagServiceImpl({});
 }
 
-describe("DagServiceImpl with mocked store", () => {
+describe("DagServiceImpl storage API with mocked stores", () => {
   beforeEach(() => {
-    nodeExecutionCount = 0;
     latestStores = null;
   });
 
-  test("startExecution should persist step result and expose it in statusExecution", async () => {
+  test("should persist node result and expose it through statusExecution/getCachedNodeResult", async () => {
     const service = createService();
+    const executionId = "exec-1";
 
-    const events: ExecutionEvent[] = [];
-    for await (const event of service.startExecution("wf.mock", { value: 42 })) {
-      events.push(event);
-    }
+    await service.openExecution(executionId, "wf.mock", { value: 42 });
+    const ticket = await service.createTask(executionId, "node.mock");
+    await service.setTaskProcessing(ticket.id, 1000);
+    await service.setTaskDone(ticket.id, executionId, "node.mock", 2000, { value: 42 });
+    await service.setExecutionStatus(executionId, "done");
 
-    const started = events.find((event) => event.type === "started");
-    expect(started).toBeDefined();
-    const executionId = started!.executionId;
-
-    expect(nodeExecutionCount).toBe(1);
-    const cachedStepId = latestStores!.processingStoreService.getStep(executionId, "node.mock");
-    expect(typeof cachedStepId).toBe("string");
+    const cached = await service.getCachedNodeResult(executionId, "node.mock");
+    expect(cached).toEqual({ hit: true, result: { value: 42 } });
 
     const status = await service.statusExecution(executionId);
     expect(status.execution.status).toBe("done");
@@ -313,39 +282,15 @@ describe("DagServiceImpl with mocked store", () => {
     expect(status.tasks[0].result).toEqual({ value: 42 });
   });
 
-  test("resumeActiveExecutions should reuse cached node result without re-running node", async () => {
+  test("should list resumable executions only when params are present in execution context", async () => {
     const service = createService();
+    await service.openExecution("exec-r1", "wf.resume", { x: 1 });
+    await service.openExecution("exec-r2", "wf.resume", {} as any);
+    await latestStores!.statsStoreService.updateProcess("exec-r2", { workflowId: null, status: "running" });
 
-    let executionId = "";
-    for await (const event of service.startExecution("wf.mock", { value: 7 })) {
-      if (event.type === "started") {
-        executionId = event.executionId;
-      }
-    }
-
-    expect(executionId.length).toBeGreaterThan(0);
-    expect(nodeExecutionCount).toBe(1);
-
-    await latestStores!.statsStoreService.updateProcess(
-      executionId,
-      { status: "running", updated_at: Date.now() } as any,
-    );
-
-    const summary = await service.resumeActiveExecutions(20);
-    expect(summary.resumed).toBe(1);
-    expect(summary.failed).toBe(0);
-
-    for (let i = 0; i < 10; i++) {
-      const status = await service.statusExecution(executionId);
-      if (status.execution.status === "done") {
-        break;
-      }
-      await Bun.sleep(0);
-    }
-
-    const finalStatus = await service.statusExecution(executionId);
-    expect(finalStatus.execution.status).toBe("done");
-    expect(finalStatus.tasks.length).toBe(1);
-    expect(nodeExecutionCount).toBe(1);
+    const resumable = await service.listResumableExecutions(20);
+    expect(resumable.items).toEqual([
+      { id: "exec-r1", workflowName: "wf.resume", params: { x: 1 } },
+    ]);
   });
 });

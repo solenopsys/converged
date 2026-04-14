@@ -1,7 +1,7 @@
 # ms-sheduller
 
 ## Purpose
-Schedules recurring and delayed background jobs.
+Stores and serves automation schedule data and execution history.
 
 ## Responsibility Boundary
-Owns job timing, dispatch, and retry windows; does not own per-domain job business logic.
+Owns CRUD/list/stats for cron entries and history records; does not execute workflows, timers, retries, or background dispatch.

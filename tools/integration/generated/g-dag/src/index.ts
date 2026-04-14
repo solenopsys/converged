@@ -58,14 +58,36 @@ export type ResumeExecutionsResult = {
   ids: string[];
 };
 
+export type ResumableExecution = {
+  id: string;
+  workflowName: string;
+  params: Record<string, any>;
+};
+
+export type CachedNodeResult = {
+  hit: boolean;
+  result?: any;
+};
+
+export type TaskTicket = {
+  id: number;
+  createdAt: number;
+};
+
 export const metadata = {
   "interfaceName": "DagService",
   "serviceName": "dag",
   "filePath": "../types/dag.ts",
   "methods": [
     {
-      "name": "startExecution",
+      "name": "openExecution",
       "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
         {
           "name": "workflowName",
           "type": "string",
@@ -79,34 +101,34 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "ExecutionEvent",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": true
-    },
-    {
-      "name": "createExecution",
-      "parameters": [
-        {
-          "name": "workflowName",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "params",
-          "type": "Record",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "ExecutionResult",
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
     },
     {
-      "name": "resumeActiveExecutions",
+      "name": "setExecutionStatus",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "status",
+          "type": "ExecutionStatus",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "void",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "listResumableExecutions",
       "parameters": [
         {
           "name": "limit",
@@ -115,7 +137,136 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "ResumeExecutionsResult",
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "getCachedNodeResult",
+      "parameters": [
+        {
+          "name": "executionId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "nodeId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "CachedNodeResult",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "createTask",
+      "parameters": [
+        {
+          "name": "executionId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "nodeId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "TaskTicket",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "setTaskProcessing",
+      "parameters": [
+        {
+          "name": "taskId",
+          "type": "number",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "startedAt",
+          "type": "number",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "void",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "setTaskDone",
+      "parameters": [
+        {
+          "name": "taskId",
+          "type": "number",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "executionId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "nodeId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "completedAt",
+          "type": "number",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "result",
+          "type": "any",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "void",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "setTaskFailed",
+      "parameters": [
+        {
+          "name": "taskId",
+          "type": "number",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "completedAt",
+          "type": "number",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "errorMessage",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -264,15 +415,32 @@ export const metadata = {
     {
       "name": "ResumeExecutionsResult",
       "definition": "{\n  resumed: number;\n  skipped: number;\n  failed: number;\n  ids: string[];\n}"
+    },
+    {
+      "name": "ResumableExecution",
+      "definition": "{\n  id: string;\n  workflowName: string;\n  params: Record<string, any>;\n}"
+    },
+    {
+      "name": "CachedNodeResult",
+      "definition": "{\n  hit: boolean;\n  result?: any;\n}"
+    },
+    {
+      "name": "TaskTicket",
+      "definition": "{\n  id: number;\n  createdAt: number;\n}"
     }
   ]
 };
 
 // Server interface (to be implemented in microservice)
 export interface DagService {
-  startExecution(workflowName: string, params: Record): AsyncIterable<ExecutionEvent>;
-  createExecution(workflowName: string, params: Record): Promise<ExecutionResult>;
-  resumeActiveExecutions(limit?: number): Promise<ResumeExecutionsResult>;
+  openExecution(id: string, workflowName: string, params: Record): Promise<void>;
+  setExecutionStatus(id: string, status: ExecutionStatus): Promise<void>;
+  listResumableExecutions(limit?: number): Promise<any>;
+  getCachedNodeResult(executionId: string, nodeId: string): Promise<CachedNodeResult>;
+  createTask(executionId: string, nodeId: string): Promise<TaskTicket>;
+  setTaskProcessing(taskId: number, startedAt: number): Promise<void>;
+  setTaskDone(taskId: number, executionId: string, nodeId: string, completedAt: number, result: any): Promise<void>;
+  setTaskFailed(taskId: number, completedAt: number, errorMessage: string): Promise<void>;
   statusExecution(id: string): Promise<any>;
   listExecutions(params: PaginationParams): Promise<PaginatedResult>;
   listTasks(executionId: any, params: PaginationParams): Promise<PaginatedResult>;
@@ -284,9 +452,14 @@ export interface DagService {
 
 // Client interface
 export interface DagServiceClient {
-  startExecution(workflowName: string, params: Record): AsyncIterable<ExecutionEvent>;
-  createExecution(workflowName: string, params: Record): Promise<ExecutionResult>;
-  resumeActiveExecutions(limit?: number): Promise<ResumeExecutionsResult>;
+  openExecution(id: string, workflowName: string, params: Record): Promise<void>;
+  setExecutionStatus(id: string, status: ExecutionStatus): Promise<void>;
+  listResumableExecutions(limit?: number): Promise<any>;
+  getCachedNodeResult(executionId: string, nodeId: string): Promise<CachedNodeResult>;
+  createTask(executionId: string, nodeId: string): Promise<TaskTicket>;
+  setTaskProcessing(taskId: number, startedAt: number): Promise<void>;
+  setTaskDone(taskId: number, executionId: string, nodeId: string, completedAt: number, result: any): Promise<void>;
+  setTaskFailed(taskId: number, completedAt: number, errorMessage: string): Promise<void>;
   statusExecution(id: string): Promise<any>;
   listExecutions(params: PaginationParams): Promise<PaginatedResult>;
   listTasks(executionId: any, params: PaginationParams): Promise<PaginatedResult>;
