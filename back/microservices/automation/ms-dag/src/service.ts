@@ -1,24 +1,71 @@
-import type { DagService, Execution, Task, PaginationParams, PaginatedResult, ExecutionEvent } from "g-dag";
+import type {
+  DagService,
+  Execution,
+  Task,
+  PaginationParams,
+  PaginatedResult,
+  ExecutionEvent,
+  ResumeExecutionsResult,
+} from "g-dag";
 import { StoresController } from "./store";
+
+class ExecutionEventChannel implements AsyncIterable<ExecutionEvent> {
+  private queue: ExecutionEvent[] = [];
+  private waiters: Array<() => void> = [];
+  private closed = false;
+
+  push(event: ExecutionEvent): void {
+    this.queue.push(event);
+    const waiter = this.waiters.shift();
+    waiter?.();
+  }
+
+  close(): void {
+    this.closed = true;
+    while (this.waiters.length > 0) {
+      const waiter = this.waiters.shift();
+      waiter?.();
+    }
+  }
+
+  async *[Symbol.asyncIterator](): AsyncGenerator<ExecutionEvent> {
+    while (true) {
+      if (this.queue.length > 0) {
+        yield this.queue.shift()!;
+        continue;
+      }
+
+      if (this.closed) {
+        return;
+      }
+
+      await new Promise<void>((resolve) => {
+        this.waiters.push(resolve);
+      });
+    }
+  }
+}
+
+type RunExecutionOptions = {
+  emit?: (event: ExecutionEvent) => void;
+};
 
 export default class DagServiceImpl implements DagService {
   private stores: StoresController;
   private readonly storesReady: Promise<void>;
-  private workflows: string[];
-  private workflowCtors: Map<string, new (ctx: any, id?: string) => any>;
+  private readonly workflowCtors: Map<string, new (ctx: any, id?: string) => any>;
+  private readonly activeExecutionIds = new Set<string>();
 
   constructor(config?: any) {
     this.stores = new StoresController("dag-ms");
     this.storesReady = this.stores.init()
-      .then(() => this.stores.statsStoreService.resetStaleRunning())
-      .then(() => console.log("[dag-ms] reset stale running processes"))
-      .catch((e) => {
-        console.error("[dag-ms] store init error", e);
-        throw e;
+      .catch((error) => {
+        console.error("[dag-ms] store init error", error);
+        throw error;
       });
+
     const wf = config?.workflows ?? {};
     const list: any[] = wf.WORKFLOWS ?? [];
-    this.workflows = list.map((w: any) => w.name ?? w).filter(Boolean);
     this.workflowCtors = new Map(
       list
         .filter((w: any) => w.name && w.ctor)
@@ -31,151 +78,314 @@ export default class DagServiceImpl implements DagService {
       wf.initProvidersPool({
         async getProvider(name: string) {
           if (name === "openai" && openai?.key) {
-            return { codeName: "openai", config: { token: openai.key, model: openai.model ?? "gpt-4o-mini" } };
+            return {
+              codeName: "openai",
+              config: { token: openai.key, model: openai.model ?? "gpt-4o-mini" },
+            };
           }
           if (name === "gemini" && gemini?.key) {
-            return { codeName: "gemini", config: { token: gemini.key, model: gemini.model ?? "gemini-3.1-flash-lite" } };
+            return {
+              codeName: "gemini",
+              config: { token: gemini.key, model: gemini.model ?? "gemini-3.1-flash-lite" },
+            };
           }
           throw new Error(`Provider "${name}" not configured`);
         },
       });
     }
+
+    void this.resumeActiveExecutions()
+      .then((summary) => {
+        if (summary.resumed || summary.skipped || summary.failed) {
+          console.info(
+            `[dag-ms] resumeActiveExecutions resumed=${summary.resumed} skipped=${summary.skipped} failed=${summary.failed}`,
+          );
+        }
+      })
+      .catch((error) => {
+        console.error("[dag-ms] resumeActiveExecutions failed", error);
+      });
   }
 
   private async ensureStoresReady(): Promise<void> {
     await this.storesReady;
   }
 
-  async *startExecution(workflowName: string, params: Record<string, any>): AsyncIterable<ExecutionEvent> {
+  private async runExecution(
+    executionId: string,
+    workflowName: string,
+    params: Record<string, any>,
+    options: RunExecutionOptions = {},
+  ): Promise<void> {
     await this.ensureStoresReady();
-    const id = crypto.randomUUID();
-    const stats = this.stores.statsStoreService;
-    const kv = this.stores.processingStoreService;
-
-    await stats.ensureProcess({ id, workflowId: workflowName, status: "running" });
-    yield { type: "started", executionId: id };
-
-    const Ctor = this.workflowCtors.get(workflowName);
-    if (!Ctor) {
-      await stats.updateProcess(id, { status: "failed" });
-      yield { type: "failed", executionId: id, error: `Workflow "${workflowName}" not found` };
+    if (this.activeExecutionIds.has(executionId)) {
       return;
     }
 
-    const events: ExecutionEvent[] = [];
-    let resolve: (() => void) | null = null;
-    let done = false;
-    const push = (e: ExecutionEvent) => { events.push(e); resolve?.(); resolve = null; };
+    this.activeExecutionIds.add(executionId);
+    const emit = options.emit ?? (() => {});
+    const stats = this.stores.statsStoreService;
+    const kv = this.stores.processingStoreService;
 
-    const ctx = {
-      runNode: async (workflowId: string, nodeName: string, fn: () => Promise<any>) => {
-        // Идемпотентность: уже выполнялось — достаём result из KVS
-        const cachedRecordId = kv.getStep(workflowId, nodeName);
-        if (cachedRecordId !== undefined) {
-          return kv.getRecord(cachedRecordId)?.result;
-        }
+    try {
+      await stats.ensureProcess({ id: executionId, workflowId: workflowName, status: "running" });
+      kv.saveExecutionContext(workflowName, executionId, { workflowName, params });
+      emit({ type: "started", executionId });
 
-        const nodeRow = await stats.createNode({ processId: id, nodeId: nodeName, state: "queued", startedAt: null });
-        push({ type: "task_update", executionId: id, task: { id: nodeRow.id, executionId: id, nodeId: nodeName, state: "queued", startedAt: null, completedAt: null, errorMessage: null, retryCount: 0, createdAt: Date.now() } });
-
-        const startedAt = Date.now();
-        await stats.updateNode(nodeRow.id, { state: "processing", started_at: startedAt } as any);
-        push({ type: "task_update", executionId: id, task: { id: nodeRow.id, executionId: id, nodeId: nodeName, state: "processing", startedAt, completedAt: null, errorMessage: null, retryCount: 0, createdAt: Date.now() } });
-
-        try {
-          const result = await fn();
-          const completedAt = Date.now();
-          const recordId = `${workflowId}:${nodeName}`;
-          kv.setRecord(recordId, { data: null, result });
-          kv.setStep(workflowId, nodeName, recordId);
-          await stats.updateNode(nodeRow.id, { state: "done", completed_at: completedAt, record_id: recordId } as any);
-          push({ type: "task_update", executionId: id, task: { id: nodeRow.id, executionId: id, nodeId: nodeName, state: "done", startedAt, completedAt, errorMessage: null, retryCount: 0, createdAt: Date.now(), result } });
-          return result;
-        } catch (e: any) {
-          const errorMsg = e instanceof Error ? e.message : String(e);
-          const completedAt = Date.now();
-          await stats.updateNode(nodeRow.id, { state: "failed", error_message: errorMsg, completed_at: completedAt } as any);
-          push({ type: "task_update", executionId: id, task: { id: nodeRow.id, executionId: id, nodeId: nodeName, state: "failed", startedAt, completedAt, errorMessage: errorMsg, retryCount: 0, createdAt: Date.now() } });
-          throw e;
-        }
-      },
-
-      setStatus: (wfId: string, status: string) => {
-        kv.setStatus(wfId, status);
-      },
-
-      getVar: (key: string) => kv.get(key),
-      setVar: (key: string, value: any) => kv.set(key, value),
-    };
-
-    const wf = new Ctor(ctx, id);
-
-    wf.start(params)
-      .then(async () => {
-        await stats.updateProcess(id, { status: "done" });
-        push({ type: "completed", executionId: id });
-      })
-      .catch(async (e: any) => {
-        await stats.updateProcess(id, { status: "failed" });
-        push({ type: "failed", executionId: id, error: e?.message ?? String(e) });
-      })
-      .finally(() => { done = true; resolve?.(); resolve = null; });
-
-    while (true) {
-      while (events.length > 0) {
-        const e = events.shift()!;
-        yield e;
-        if (e.type === "completed" || e.type === "failed") return;
+      const Ctor = this.workflowCtors.get(workflowName);
+      if (!Ctor) {
+        await stats.updateProcess(executionId, { status: "failed", updated_at: Date.now() } as any);
+        emit({ type: "failed", executionId, error: `Workflow "${workflowName}" not found` });
+        return;
       }
-      if (done) break;
-      await new Promise<void>((r) => { resolve = r; });
+
+      const ctx = {
+        runNode: async (workflowId: string, nodeName: string, fn: () => Promise<any>) => {
+          const cachedRecordId = kv.getStep(workflowId, nodeName);
+          if (cachedRecordId !== undefined) {
+            const cached = kv.getRecord(cachedRecordId);
+            if (cached !== undefined) {
+              return cached.result;
+            }
+          }
+
+          const nodeRow = await stats.createNode({
+            processId: executionId,
+            nodeId: nodeName,
+            state: "queued",
+            startedAt: null,
+          });
+          emit({
+            type: "task_update",
+            executionId,
+            task: {
+              id: nodeRow.id,
+              executionId,
+              nodeId: nodeName,
+              state: "queued",
+              startedAt: null,
+              completedAt: null,
+              errorMessage: null,
+              retryCount: 0,
+              createdAt: Date.now(),
+            },
+          });
+
+          const startedAt = Date.now();
+          await stats.updateNode(nodeRow.id, { state: "processing", started_at: startedAt } as any);
+          emit({
+            type: "task_update",
+            executionId,
+            task: {
+              id: nodeRow.id,
+              executionId,
+              nodeId: nodeName,
+              state: "processing",
+              startedAt,
+              completedAt: null,
+              errorMessage: null,
+              retryCount: 0,
+              createdAt: Date.now(),
+            },
+          });
+
+          try {
+            const result = await fn();
+            const completedAt = Date.now();
+            const recordId = `${workflowId}:${nodeName}`;
+            kv.setRecord(recordId, { data: null, result });
+            kv.setStep(workflowId, nodeName, recordId);
+            await stats.updateNode(
+              nodeRow.id,
+              { state: "done", completed_at: completedAt, record_id: recordId } as any,
+            );
+            emit({
+              type: "task_update",
+              executionId,
+              task: {
+                id: nodeRow.id,
+                executionId,
+                nodeId: nodeName,
+                state: "done",
+                startedAt,
+                completedAt,
+                errorMessage: null,
+                retryCount: 0,
+                createdAt: Date.now(),
+                result,
+              },
+            });
+            return result;
+          } catch (error: any) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            const completedAt = Date.now();
+            await stats.updateNode(
+              nodeRow.id,
+              { state: "failed", error_message: errorMessage, completed_at: completedAt } as any,
+            );
+            emit({
+              type: "task_update",
+              executionId,
+              task: {
+                id: nodeRow.id,
+                executionId,
+                nodeId: nodeName,
+                state: "failed",
+                startedAt,
+                completedAt,
+                errorMessage,
+                retryCount: 0,
+                createdAt: Date.now(),
+              },
+            });
+            throw error;
+          }
+        },
+        setStatus: (workflowId: string, status: string) => {
+          kv.setStatus(workflowId, status);
+          void stats.updateProcess(workflowId, { status: status as any, updated_at: Date.now() } as any);
+        },
+        getVar: (key: string) => kv.get(key),
+        setVar: (key: string, value: any) => kv.set(key, value),
+      };
+
+      const workflow = new Ctor(ctx, executionId);
+      try {
+        await workflow.start(params);
+        await stats.updateProcess(executionId, { status: "done", updated_at: Date.now() } as any);
+        emit({ type: "completed", executionId });
+      } catch (error: any) {
+        await stats.updateProcess(executionId, { status: "failed", updated_at: Date.now() } as any);
+        emit({ type: "failed", executionId, error: error?.message ?? String(error) });
+      }
+    } finally {
+      this.activeExecutionIds.delete(executionId);
     }
-    for (const e of events) yield e;
+  }
+
+  async *startExecution(workflowName: string, params: Record<string, any>): AsyncIterable<ExecutionEvent> {
+    const executionId = crypto.randomUUID();
+    const channel = new ExecutionEventChannel();
+
+    void this.runExecution(executionId, workflowName, params, {
+      emit: (event) => channel.push(event),
+    })
+      .catch((error) => {
+        console.error(`[dag-ms] startExecution failed for workflow "${workflowName}"`, error);
+      })
+      .finally(() => {
+        channel.close();
+      });
+
+    for await (const event of channel) {
+      yield event;
+    }
   }
 
   async createExecution(workflowName: string, params: Record<string, any>): Promise<{ id: string }> {
-    let executionId = "";
-    (async () => {
-      for await (const event of this.startExecution(workflowName, params)) {
-        if (event.type === "started") executionId = event.executionId;
-      }
-    })().catch((e) => console.error(`[dag] createExecution failed: ${e?.message}`));
-    // wait until started event sets the id
-    await new Promise<void>((resolve) => {
-      const check = setInterval(() => { if (executionId) { clearInterval(check); resolve(); } }, 5);
-    });
+    const executionId = crypto.randomUUID();
+    void this.runExecution(executionId, workflowName, params)
+      .catch((error) => {
+        console.error(
+          `[dag-ms] createExecution failed for workflow "${workflowName}" id=${executionId}`,
+          error,
+        );
+      });
     return { id: executionId };
+  }
+
+  async resumeActiveExecutions(limit = 200): Promise<ResumeExecutionsResult> {
+    await this.ensureStoresReady();
+
+    const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 200;
+    const stats = this.stores.statsStoreService;
+    const kv = this.stores.processingStoreService;
+    const running = await stats.listProcesses({ offset: 0, limit: safeLimit, status: "running" } as any);
+
+    let resumed = 0;
+    let skipped = 0;
+    let failed = 0;
+    const ids: string[] = [];
+
+    for (const process of running.items) {
+      const executionId = process.id;
+      const workflowName = process.workflowId ?? "";
+
+      if (!workflowName) {
+        failed += 1;
+        await stats.updateProcess(executionId, { status: "failed", updated_at: Date.now() } as any);
+        continue;
+      }
+
+      if (this.activeExecutionIds.has(executionId)) {
+        skipped += 1;
+        continue;
+      }
+
+      const context = kv.getExecutionContext(workflowName, executionId);
+      const params =
+        context && context.meta && typeof context.meta === "object"
+          ? (context.meta as any).params
+          : undefined;
+
+      if (!params || typeof params !== "object") {
+        failed += 1;
+        await stats.updateProcess(executionId, { status: "failed", updated_at: Date.now() } as any);
+        console.warn(
+          `[dag-ms] skip resume execution=${executionId} workflow=${workflowName}: missing params in execution context`,
+        );
+        continue;
+      }
+
+      resumed += 1;
+      ids.push(executionId);
+      void this.runExecution(executionId, workflowName, params as Record<string, any>)
+        .catch((error) => {
+          console.error(
+            `[dag-ms] resume failed execution=${executionId} workflow=${workflowName}`,
+            error,
+          );
+        });
+    }
+
+    return { resumed, skipped, failed, ids };
   }
 
   async statusExecution(id: string): Promise<{ execution: Execution; tasks: Task[] }> {
     await this.ensureStoresReady();
-    const p = await this.stores.statsStoreService.getProcess(id);
-    if (!p) throw Object.assign(new Error("Execution not found"), { statusCode: 404 });
+    const process = await this.stores.statsStoreService.getProcess(id);
+    if (!process) {
+      throw Object.assign(new Error("Execution not found"), { statusCode: 404 });
+    }
 
     const kv = this.stores.processingStoreService;
-    const tasksResult = await this.stores.statsStoreService.listNodes({ offset: 0, limit: 100, processId: id } as any);
+    const tasksResult = await this.stores.statsStoreService.listNodes({
+      offset: 0,
+      limit: 100,
+      processId: id,
+    } as any);
 
     return {
       execution: {
-        id: p.id,
-        workflowName: (p as any).workflow_id ?? (p as any).workflowId ?? "",
-        status: p.status as any,
-        startedAt: (p as any).started_at ?? (p as any).startedAt ?? 0,
-        updatedAt: (p as any).updated_at ?? (p as any).updatedAt ?? 0,
-        createdAt: (p as any).created_at ?? (p as any).createdAt ?? 0,
+        id: process.id,
+        workflowName: (process as any).workflow_id ?? (process as any).workflowId ?? "",
+        status: process.status as any,
+        startedAt: (process as any).started_at ?? (process as any).startedAt ?? 0,
+        updatedAt: (process as any).updated_at ?? (process as any).updatedAt ?? 0,
+        createdAt: (process as any).created_at ?? (process as any).createdAt ?? 0,
       },
-      tasks: tasksResult.items.map((t) => {
-        const record = t.recordId ? kv.getRecord(t.recordId) : undefined;
+      tasks: tasksResult.items.map((task) => {
+        const record = task.recordId ? kv.getRecord(task.recordId) : undefined;
         return {
-          id: t.id,
-          executionId: t.processId,
-          nodeId: t.nodeId,
-          state: t.state as any,
-          startedAt: t.startedAt ?? null,
-          completedAt: t.completedAt ?? null,
-          errorMessage: t.errorMessage ?? null,
-          retryCount: t.retryCount,
-          createdAt: t.createdAt ?? 0,
+          id: task.id,
+          executionId: task.processId,
+          nodeId: task.nodeId,
+          state: task.state as any,
+          startedAt: task.startedAt ?? null,
+          completedAt: task.completedAt ?? null,
+          errorMessage: task.errorMessage ?? null,
+          retryCount: task.retryCount,
+          createdAt: task.createdAt ?? 0,
           data: record?.data,
           result: record?.result,
         };
@@ -187,13 +397,13 @@ export default class DagServiceImpl implements DagService {
     await this.ensureStoresReady();
     const result = await this.stores.statsStoreService.listProcesses(params as any);
     return {
-      items: result.items.map((p) => ({
-        id: p.id,
-        workflowName: p.workflowId ?? "",
-        status: p.status as any,
-        startedAt: p.startedAt ?? 0,
-        updatedAt: p.updatedAt ?? 0,
-        createdAt: p.createdAt ?? 0,
+      items: result.items.map((process) => ({
+        id: process.id,
+        workflowName: process.workflowId ?? "",
+        status: process.status as any,
+        startedAt: process.startedAt ?? 0,
+        updatedAt: process.updatedAt ?? 0,
+        createdAt: process.createdAt ?? 0,
       })),
       totalCount: result.totalCount,
     };
@@ -204,19 +414,17 @@ export default class DagServiceImpl implements DagService {
     const filter = executionId ? { ...params, processId: executionId } : params;
     const result = await this.stores.statsStoreService.listNodes(filter as any);
     return {
-      items: result.items.map((t) => {
-        return {
-          id: t.id,
-          executionId: t.processId,
-          nodeId: t.nodeId,
-          state: t.state as any,
-          startedAt: t.startedAt ?? null,
-          completedAt: t.completedAt ?? null,
-          errorMessage: t.errorMessage ?? null,
-          retryCount: t.retryCount,
-          createdAt: t.createdAt ?? 0,
-        };
-      }),
+      items: result.items.map((task) => ({
+        id: task.id,
+        executionId: task.processId,
+        nodeId: task.nodeId,
+        state: task.state as any,
+        startedAt: task.startedAt ?? null,
+        completedAt: task.completedAt ?? null,
+        errorMessage: task.errorMessage ?? null,
+        retryCount: task.retryCount,
+        createdAt: task.createdAt ?? 0,
+      })),
       totalCount: result.totalCount,
     };
   }
@@ -231,11 +439,6 @@ export default class DagServiceImpl implements DagService {
       this.stores.statsStoreService.getNodeDailyStats({ days: 30 }),
     ]);
     return { executions, tasks, executionsDaily, executionsTypes, nodesDaily };
-  }
-
-  async listWorkflows(): Promise<{ names: string[] }> {
-    await this.ensureStoresReady();
-    return { names: this.workflows };
   }
 
   async listVars(): Promise<{ items: { key: string; value: any }[] }> {

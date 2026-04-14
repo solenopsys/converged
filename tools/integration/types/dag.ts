@@ -43,7 +43,22 @@ export type ExecutionEvent = {
   error?: string;
 }
 
+export type ExecutionResult = {
+  id: string;
+}
+
+export type ResumeExecutionsResult = {
+  resumed: number;
+  skipped: number;
+  failed: number;
+  ids: string[];
+}
+
 export interface DagService {
+  startExecution(workflowName: string, params: Record<string, any>): AsyncIterable<ExecutionEvent>;
+  createExecution(workflowName: string, params: Record<string, any>): Promise<ExecutionResult>;
+  resumeActiveExecutions(limit?: number): Promise<ResumeExecutionsResult>;
+
   statusExecution(id: string): Promise<{
     execution: Execution;
     tasks: Task[];
@@ -57,8 +72,6 @@ export interface DagService {
     executions: { total: number; running: number; done: number; failed: number };
     tasks: { total: number; queued: number; processing: number; done: number; failed: number };
   }>;
-
-  listWorkflows(): Promise<{ names: string[] }>;
 
   listVars(): Promise<{ items: { key: string; value: any }[] }>;
   setVar(key: string, value: any): Promise<void>;

@@ -66,6 +66,15 @@ export type CronHistoryEntry = {
   message?: string;
 };
 
+export type CronHistoryInput = {
+  cronId: string;
+  cronName: string;
+  provider: string;
+  action: string;
+  success: boolean;
+  message?: string;
+};
+
 export type CronHistoryListParams = {
   offset: number;
   limit: number;
@@ -174,6 +183,21 @@ export const metadata = {
       "isAsyncIterable": false
     },
     {
+      "name": "recordHistory",
+      "parameters": [
+        {
+          "name": "entry",
+          "type": "CronHistoryInput",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "CronHistoryEntry",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
       "name": "listProviders",
       "parameters": [],
       "returnType": "ProviderDefinition",
@@ -243,6 +267,10 @@ export const metadata = {
       "definition": "{\n  id: string;\n  cronId: string;\n  cronName: string;\n  provider: string;\n  action: string;\n  firedAt: string;\n  success: boolean;\n  message?: string;\n}"
     },
     {
+      "name": "CronHistoryInput",
+      "definition": "{\n  cronId: string;\n  cronName: string;\n  provider: string;\n  action: string;\n  success: boolean;\n  message?: string;\n}"
+    },
+    {
       "name": "CronHistoryListParams",
       "definition": "{\n  offset: number;\n  limit: number;\n  cronId?: string;\n}"
     },
@@ -264,6 +292,7 @@ export interface ShedullerService {
   deleteCron(id: string): Promise<boolean>;
   getCron(id: string): Promise<any>;
   listCrons(params: CronListParams): Promise<PaginatedResult>;
+  recordHistory(entry: CronHistoryInput): Promise<CronHistoryEntry>;
   listProviders(): Promise<ProviderDefinition[]>;
   listHistory(params: CronHistoryListParams): Promise<PaginatedResult>;
   getStats(): Promise<ShedullerStats>;
@@ -276,6 +305,7 @@ export interface ShedullerServiceClient {
   deleteCron(id: string): Promise<boolean>;
   getCron(id: string): Promise<any>;
   listCrons(params: CronListParams): Promise<PaginatedResult>;
+  recordHistory(entry: CronHistoryInput): Promise<CronHistoryEntry>;
   listProviders(): Promise<ProviderDefinition[]>;
   listHistory(params: CronHistoryListParams): Promise<PaginatedResult>;
   getStats(): Promise<ShedullerStats>;

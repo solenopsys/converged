@@ -45,6 +45,16 @@ export class ProcessingStoreService {
     return this.contextRepo.save(key, value);
   }
 
+  saveExecutionContext(workflowId: string, executionId: string, meta?: any): string {
+    const key = new ContextKey(workflowId, executionId);
+    const value: ContextValue = { createdAt: new Date().toISOString(), meta };
+    return this.contextRepo.save(key, value);
+  }
+
+  getExecutionContext(workflowId: string, executionId: string): ContextValue | undefined {
+    return this.contextRepo.get(new ContextKey(workflowId, executionId));
+  }
+
   // ============ Node records ============
 
   setRecord(recordId: string, value: RecordValue): void {

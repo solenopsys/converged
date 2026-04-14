@@ -2,7 +2,7 @@ import { BasicFormView, getAllFormFields, CreateWidget, CreateAction, StatCard }
 import { sample } from "effector";
 import { workflowsFields } from "./fields";
 import domain from "../domain";
-import dagClient from "../service";
+import { runtimeClient } from "g-runtime";
 import DagView from "../views/DagView";
 import { WorkflowsListView } from "../views/WorkflowsListView";
 import { $workflowsStore, openWorkflowForm, $currentWorkflow } from "../domain-workflows";
@@ -18,7 +18,7 @@ const getWorkflowsStatEvent = domain.createEvent<any>("GET_WORKFLOWS_STAT");
 
 const getWorkflowsStatFx = domain.createEffect({
     name: "WORKFLOWS_STAT",
-    handler: () => dagClient.listWorkflows()
+    handler: () => runtimeClient.listWorkflows()
 });
 
 sample({

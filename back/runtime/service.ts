@@ -11,45 +11,32 @@ export class RuntimeServiceImpl implements RuntimeService {
   private cronEngine: CronEngine;
   private cronRefreshTimer?: ReturnType<typeof setInterval>;
   private scheduledCronIds = new Set<string>();
+  private workflowNames: string[] = [];
 
   constructor(config?: any) {
     const baseUrl = process.env.SERVICES_BASE ?? "http://localhost:3000/services";
     this.dagClient = createDagServiceClient({ baseUrl });
     this.shedullerClient = createShedullerServiceClient({ baseUrl });
-
-    const workflows = config?.workflows ?? {};
-    const list: any[] = workflows.WORKFLOWS ?? [];
-    const ctors = new Map(
-      list.filter((w: any) => w.name && w.ctor).map((w: any) => [w.name, w.ctor]),
-    );
-
-    if (typeof workflows.initProvidersPool === "function") {
-      const openai = config?.openai;
-      const gemini = config?.gemini;
-      workflows.initProvidersPool({
-        async getProvider(name: string) {
-          if (name === "openai" && openai?.key)
-            return { codeName: "openai", config: { token: openai.key, model: openai.model ?? "gpt-4o-mini" } };
-          if (name === "gemini" && gemini?.key)
-            return { codeName: "gemini", config: { token: gemini.key, model: gemini.model ?? "gemini-3.1-flash-lite" } };
-          throw new Error(`Provider "${name}" not configured`);
-        },
-      });
-    }
+    this.workflowNames = this.resolveWorkflowNames(config?.workflows);
 
     this.cronEngine = new CronEngine((record) => {
       console.log(`[runtime] cron fired: ${record.cronName} success=${record.success}`);
+      void this.recordCronHistory(record);
     });
 
     const refreshIntervalMs = Number(process.env.CRON_REFRESH_INTERVAL_MS || 30000);
     this.cronRefreshTimer = setInterval(() => {
       void this.refreshCrons().catch((error) => {
-        console.error("[runtime] refreshCrons periodic failed", error);
+        this.logRefreshCronsFailure("periodic", error);
       });
     }, Number.isFinite(refreshIntervalMs) && refreshIntervalMs > 0 ? refreshIntervalMs : 30000);
 
     void this.refreshCrons().catch((error) => {
-      console.error("[runtime] refreshCrons initial failed", error);
+      this.logRefreshCronsFailure("initial", error);
+    });
+
+    void this.resumeActiveDagExecutions().catch((error) => {
+      this.logResumeDagFailure(error);
     });
 
     if (typeof config?.registerShutdownTask === "function" && this.cronRefreshTimer) {
@@ -57,51 +44,130 @@ export class RuntimeServiceImpl implements RuntimeService {
         clearInterval(this.cronRefreshTimer!);
       });
     }
-
-    this._workflowCtors = ctors;
   }
 
-  private _workflowCtors: Map<string, new (ctx: any, id?: string) => any>;
+  private resolveWorkflowNames(workflowsConfig: any): string[] {
+    const list = Array.isArray(workflowsConfig?.WORKFLOWS) ? workflowsConfig.WORKFLOWS : [];
+    const names = list
+      .map((entry: any) => {
+        if (typeof entry === "string") return entry;
+        if (entry && typeof entry.name === "string") return entry.name;
+        return "";
+      })
+      .filter((name: string) => name.length > 0);
+    return Array.from(new Set(names));
+  }
 
-  async *startExecution(workflowName: string, params: Record<string, any>): AsyncIterable<ExecutionEvent> {
-    const Ctor = this._workflowCtors.get(workflowName);
-    if (!Ctor) {
-      yield { type: "failed", executionId: "", error: `Workflow "${workflowName}" not found` };
+  private isTemporaryHostUnavailable(error: unknown): boolean {
+    const message = (error instanceof Error ? error.message : String(error ?? "")).toLowerCase();
+    return (
+      message.includes("unable to connect") ||
+      message.includes("connectionrefused") ||
+      message.includes("connection refused") ||
+      message.includes("econnrefused") ||
+      message.includes("enotfound") ||
+      message.includes("eai_again") ||
+      message.includes("etimedout") ||
+      message.includes("request timeout")
+    );
+  }
+
+  private logRefreshCronsFailure(stage: "initial" | "periodic", error: unknown): void {
+    if (this.isTemporaryHostUnavailable(error)) {
+      const details = error instanceof Error ? error.message : String(error ?? "unknown error");
+      console.info(`[runtime] refreshCrons ${stage}: sheduller host temporarily unavailable (${details})`);
       return;
     }
 
-    const id = crypto.randomUUID();
-    yield { type: "started", executionId: id };
+    console.error(`[runtime] refreshCrons ${stage} failed`, error);
+  }
 
-    const ctx = {
-      runNode: async (workflowId: string, nodeName: string, fn: () => Promise<any>) => {
-        return fn();
-      },
-      setStatus: (_wfId: string, _status: string) => {},
-      getVar: (key: string) => undefined,
-      setVar: (_key: string, _value: any) => {},
-    };
+  private logResumeDagFailure(error: unknown): void {
+    if (this.isTemporaryHostUnavailable(error)) {
+      const details = error instanceof Error ? error.message : String(error ?? "unknown error");
+      console.info(`[runtime] resumeActiveExecutions skipped: dag host temporarily unavailable (${details})`);
+      return;
+    }
+    console.error("[runtime] resumeActiveExecutions failed", error);
+  }
 
-    const wf = new Ctor(ctx, id);
+  private async recordCronHistory(entry: {
+    cronId: string;
+    cronName: string;
+    provider: string;
+    action: string;
+    success: boolean;
+    message?: string;
+  }): Promise<void> {
+    const recordHistory = (this.shedullerClient as any).recordHistory;
+    if (typeof recordHistory !== "function") {
+      return;
+    }
+
     try {
-      await wf.start(params);
-      yield { type: "completed", executionId: id };
-    } catch (e: any) {
-      yield { type: "failed", executionId: id, error: e?.message ?? String(e) };
+      await recordHistory.call(this.shedullerClient, entry);
+    } catch (error) {
+      if (this.isTemporaryHostUnavailable(error)) {
+        const details = error instanceof Error ? error.message : String(error ?? "unknown error");
+        console.info(`[runtime] recordCronHistory skipped: sheduller host temporarily unavailable (${details})`);
+        return;
+      }
+      console.error("[runtime] recordCronHistory failed", error);
+    }
+  }
+
+  private async resumeActiveDagExecutions(): Promise<void> {
+    const resume = (this.dagClient as any).resumeActiveExecutions;
+    if (typeof resume !== "function") {
+      console.info("[runtime] resumeActiveExecutions skipped: g-dag client has no resume method");
+      return;
+    }
+
+    const summary = await resume.call(this.dagClient, 200);
+    if (!summary || typeof summary !== "object") {
+      return;
+    }
+
+    const resumed = Number((summary as any).resumed ?? 0);
+    const skipped = Number((summary as any).skipped ?? 0);
+    const failed = Number((summary as any).failed ?? 0);
+    if (resumed > 0 || skipped > 0 || failed > 0) {
+      console.info(
+        `[runtime] resumeActiveExecutions resumed=${resumed} skipped=${skipped} failed=${failed}`,
+      );
+    }
+  }
+
+  async *startExecution(workflowName: string, params: Record<string, any>): AsyncIterable<ExecutionEvent> {
+    try {
+      for await (const event of this.dagClient.startExecution(workflowName, params)) {
+        yield event as ExecutionEvent;
+      }
+    } catch (error) {
+      console.error(
+        `[runtime] startExecution proxy failed workflow=${workflowName}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      throw error;
     }
   }
 
   async createExecution(workflowName: string, params: Record<string, any>): Promise<{ id: string }> {
-    let executionId = "";
-    (async () => {
-      for await (const event of this.startExecution(workflowName, params)) {
-        if (event.type === "started") executionId = event.executionId;
-      }
-    })().catch((e) => console.error(`[runtime] createExecution failed: ${e?.message}`));
-    await new Promise<void>((resolve) => {
-      const check = setInterval(() => { if (executionId) { clearInterval(check); resolve(); } }, 5);
-    });
-    return { id: executionId };
+    try {
+      return await this.dagClient.createExecution(workflowName, params);
+    } catch (error) {
+      console.error(
+        `[runtime] createExecution proxy failed workflow=${workflowName}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      throw error;
+    }
+  }
+
+  async listWorkflows(): Promise<{ names: string[] }> {
+    return { names: this.workflowNames };
   }
 
   async refreshCrons(): Promise<void> {

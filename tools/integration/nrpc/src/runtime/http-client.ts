@@ -22,6 +22,21 @@ function isLikelyJwtToken(token: string): boolean {
   return parts.every((part) => part.trim().length > 0);
 }
 
+function isConnectivityIssue(error: any): boolean {
+  const code = typeof error?.code === "string" ? error.code.toLowerCase() : "";
+  const message = typeof error?.message === "string" ? error.message.toLowerCase() : "";
+  return (
+    code.includes("connrefused") ||
+    code.includes("econnrefused") ||
+    code.includes("enotfound") ||
+    code.includes("eai_again") ||
+    code.includes("etimedout") ||
+    message.includes("unable to connect") ||
+    message.includes("connection refused") ||
+    message.includes("fetch failed")
+  );
+}
+
 class HttpClientImpl {
   private baseUrl: string;
   private timeout: number;
@@ -133,7 +148,11 @@ class HttpClientImpl {
         throw new Error(`Request timeout after ${this.timeout}ms`);
       }
 
-      console.error(`[nrpc] ✗ ${this.baseUrl}${path}:`, error.message);
+      if (isConnectivityIssue(error)) {
+        console.info(`[nrpc] · ${this.baseUrl}${path}:`, error.message);
+      } else {
+        console.error(`[nrpc] ✗ ${this.baseUrl}${path}:`, error.message);
+      }
       throw error;
     }
   }

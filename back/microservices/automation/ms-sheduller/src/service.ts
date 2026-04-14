@@ -5,6 +5,7 @@ import type {
   CronUpdate,
   CronListParams,
   CronHistoryEntry,
+  CronHistoryInput,
   CronHistoryListParams,
   PaginatedResult,
   ProviderDefinition,
@@ -73,6 +74,10 @@ export class ShedullerServiceImpl implements ShedullerService {
 
   listProviders(): Promise<ProviderDefinition[]> {
     return Promise.resolve(listProviderDefinitions());
+  }
+
+  async recordHistory(entry: CronHistoryInput): Promise<CronHistoryEntry> {
+    return this.stores.history.record(entry);
   }
 
   async listHistory(params: CronHistoryListParams): Promise<PaginatedResult<CronHistoryEntry>> {

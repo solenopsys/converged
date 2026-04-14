@@ -47,11 +47,79 @@ export type ExecutionEvent = {
   error?: string;
 };
 
+export type ExecutionResult = {
+  id: string;
+};
+
+export type ResumeExecutionsResult = {
+  resumed: number;
+  skipped: number;
+  failed: number;
+  ids: string[];
+};
+
 export const metadata = {
   "interfaceName": "DagService",
   "serviceName": "dag",
   "filePath": "../types/dag.ts",
   "methods": [
+    {
+      "name": "startExecution",
+      "parameters": [
+        {
+          "name": "workflowName",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "params",
+          "type": "Record",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "ExecutionEvent",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": true
+    },
+    {
+      "name": "createExecution",
+      "parameters": [
+        {
+          "name": "workflowName",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "params",
+          "type": "Record",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "ExecutionResult",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "resumeActiveExecutions",
+      "parameters": [
+        {
+          "name": "limit",
+          "type": "number",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "ResumeExecutionsResult",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
     {
       "name": "statusExecution",
       "parameters": [
@@ -105,14 +173,6 @@ export const metadata = {
     },
     {
       "name": "stats",
-      "parameters": [],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "listWorkflows",
       "parameters": [],
       "returnType": "any",
       "isAsync": true,
@@ -196,17 +256,27 @@ export const metadata = {
     {
       "name": "ExecutionEvent",
       "definition": "{\n  type: ExecutionEventType;\n  executionId: string;\n  task?: Task;\n  error?: string;\n}"
+    },
+    {
+      "name": "ExecutionResult",
+      "definition": "{\n  id: string;\n}"
+    },
+    {
+      "name": "ResumeExecutionsResult",
+      "definition": "{\n  resumed: number;\n  skipped: number;\n  failed: number;\n  ids: string[];\n}"
     }
   ]
 };
 
 // Server interface (to be implemented in microservice)
 export interface DagService {
+  startExecution(workflowName: string, params: Record): AsyncIterable<ExecutionEvent>;
+  createExecution(workflowName: string, params: Record): Promise<ExecutionResult>;
+  resumeActiveExecutions(limit?: number): Promise<ResumeExecutionsResult>;
   statusExecution(id: string): Promise<any>;
   listExecutions(params: PaginationParams): Promise<PaginatedResult>;
   listTasks(executionId: any, params: PaginationParams): Promise<PaginatedResult>;
   stats(): Promise<any>;
-  listWorkflows(): Promise<any>;
   listVars(): Promise<any>;
   setVar(key: string, value: any): Promise<void>;
   deleteVar(key: string): Promise<void>;
@@ -214,11 +284,13 @@ export interface DagService {
 
 // Client interface
 export interface DagServiceClient {
+  startExecution(workflowName: string, params: Record): AsyncIterable<ExecutionEvent>;
+  createExecution(workflowName: string, params: Record): Promise<ExecutionResult>;
+  resumeActiveExecutions(limit?: number): Promise<ResumeExecutionsResult>;
   statusExecution(id: string): Promise<any>;
   listExecutions(params: PaginationParams): Promise<PaginatedResult>;
   listTasks(executionId: any, params: PaginationParams): Promise<PaginatedResult>;
   stats(): Promise<any>;
-  listWorkflows(): Promise<any>;
   listVars(): Promise<any>;
   setVar(key: string, value: any): Promise<void>;
   deleteVar(key: string): Promise<void>;

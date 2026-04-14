@@ -1,6 +1,6 @@
 import { createDomain, sample } from 'effector';
 import { createInfiniteTableStore, PaginationParams } from 'front-core';
-import dagClient from './service';
+import { runtimeClient } from 'g-runtime';
 
 const domain = createDomain('dag-workflows');
 
@@ -14,7 +14,7 @@ export const openWorkflowForm = domain.createEvent<{ workflow: any }>('OPEN_WORK
 const listWorkflowsFx = domain.createEffect<PaginationParams, any>({
   name: 'LIST_WORKFLOWS',
   handler: async () => {
-    const result = await dagClient.listWorkflows();
+    const result = await runtimeClient.listWorkflows();
     const items = result.names.map((name: string) => ({
       name,
       description: '',

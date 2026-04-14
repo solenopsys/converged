@@ -1,5 +1,5 @@
 import { SqlStore, generateULID, sql } from "back-core";
-import type { CronHistoryEntry, CronHistoryListParams, PaginatedResult } from "../types";
+import type { CronHistoryEntry, CronHistoryInput, CronHistoryListParams, PaginatedResult } from "../types";
 
 interface HistoryRow {
   id: string;
@@ -49,7 +49,7 @@ export class HistoryStoreService {
     await this.ensureSchemaPromise;
   }
 
-  async record(entry: Omit<CronHistoryEntry, "id" | "firedAt">): Promise<CronHistoryEntry> {
+  async record(entry: CronHistoryInput): Promise<CronHistoryEntry> {
     await this.ensureSchema();
 
     const record: CronHistoryEntry = {

@@ -67,6 +67,14 @@ export const metadata = {
       "isAsyncIterable": false
     },
     {
+      "name": "listWorkflows",
+      "parameters": [],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
       "name": "refreshCrons",
       "parameters": [],
       "returnType": "void",
@@ -114,6 +122,7 @@ export const metadata = {
 export interface RuntimeService {
   startExecution(workflowName: string, params: Record): AsyncIterable<ExecutionEvent>;
   createExecution(workflowName: string, params: Record): Promise<ExecutionResult>;
+  listWorkflows(): Promise<any>;
   refreshCrons(): Promise<void>;
   sendMagicLink(params: MagicLinkParams): Promise<MagicLinkResult>;
 }
@@ -122,6 +131,7 @@ export interface RuntimeService {
 export interface RuntimeServiceClient {
   startExecution(workflowName: string, params: Record): AsyncIterable<ExecutionEvent>;
   createExecution(workflowName: string, params: Record): Promise<ExecutionResult>;
+  listWorkflows(): Promise<any>;
   refreshCrons(): Promise<void>;
   sendMagicLink(params: MagicLinkParams): Promise<MagicLinkResult>;
 }

@@ -63,6 +63,15 @@ export type CronHistoryEntry = {
   message?: string;
 };
 
+export type CronHistoryInput = {
+  cronId: string;
+  cronName: string;
+  provider: string;
+  action: string;
+  success: boolean;
+  message?: string;
+};
+
 export type CronHistoryListParams = {
   offset: number;
   limit: number;
@@ -90,6 +99,7 @@ export interface ShedullerService {
   deleteCron(id: string): Promise<boolean>;
   getCron(id: string): Promise<CronEntry | null>;
   listCrons(params: CronListParams): Promise<PaginatedResult<CronEntry>>;
+  recordHistory(entry: CronHistoryInput): Promise<CronHistoryEntry>;
   listProviders(): Promise<ProviderDefinition[]>;
   listHistory(
     params: CronHistoryListParams,

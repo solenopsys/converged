@@ -1,6 +1,7 @@
 import { resolve, basename } from "path";
 import { readdirSync } from "fs";
 import { pathToFileURL } from "url";
+import { generateServiceToken } from "nrpc";
 
 type Processor = {
   commands?: string[];
@@ -21,6 +22,25 @@ for (const arg of process.argv.slice(2)) {
 
 const [section, command, ...paramParts] = passArgs;
 const param = paramParts.length > 0 ? paramParts.join(" ") : undefined;
+
+async function ensureServiceToken(): Promise<void> {
+  if (process.env.SERVICE_TOKEN && process.env.SERVICE_TOKEN.trim().length > 0) {
+    return;
+  }
+
+  const secret = process.env.ACCESS_JWT_SECRET;
+  if (!secret || secret.trim().length === 0) {
+    return;
+  }
+
+  try {
+    process.env.SERVICE_TOKEN = await generateServiceToken(secret.trim());
+  } catch (error) {
+    console.warn("[cli] Failed to generate SERVICE_TOKEN:", error);
+  }
+}
+
+await ensureServiceToken();
 
 // Scan directories and load command modules
 const processors: Record<string, Processor> = {};
