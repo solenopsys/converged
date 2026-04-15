@@ -12,6 +12,18 @@
     "apk": ["vips"]
   },
 
+  "cache": {
+    "image": "docker.io/valkey/valkey:8.1-alpine",
+    "port": 6379,
+    "database": 0,
+    "keyPrefix": "converged-portal",
+    "ssrTtlSeconds": 120,
+    "resources": {
+      "requests": { "cpu": "50m", "memory": "64Mi" },
+      "limits": { "cpu": "500m", "memory": "256Mi" }
+    }
+  },
+
   "spa": {
     "core": "front/front-core",
     "microfrontends": [

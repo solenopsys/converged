@@ -3,8 +3,10 @@ import { cors } from "@elysiajs/cors";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import type { CacheAdapter } from "../../back/back-core/src/server/createServer";
 import { installBackendLogBridge } from "../../back/back-core/src/server/logBridge";
 import { loadAiProvidersFromEnv } from "../../back/back-core/src/server/envConfig";
+import { createValkeyCache } from "./valkey";
 
 type RuntimeMap = {
   services: Record<string, string>;
@@ -16,6 +18,11 @@ type RuntimeMap = {
   };
   landing?: {
     plugin?: string;
+  };
+  cache?: {
+    url?: string;
+    keyPrefix?: string;
+    ssrTtlSeconds?: number;
   };
 };
 
@@ -73,6 +80,21 @@ if (!existsSync(runtimeMapPath)) {
 }
 
 const runtimeMap = readRuntimeMap(runtimeMapPath);
+const runtimeCacheConfig = runtimeMap.cache?.url
+  ? {
+      url: runtimeMap.cache.url,
+      keyPrefix: runtimeMap.cache.keyPrefix,
+      defaultTtlSeconds: runtimeMap.cache.ssrTtlSeconds,
+    }
+  : null;
+
+if (runtimeCacheConfig?.url) {
+  process.env.VALKEY_URL ||= runtimeCacheConfig.url;
+}
+
+const runtimeCache: CacheAdapter | undefined = runtimeCacheConfig
+  ? createValkeyCache(runtimeCacheConfig)
+  : undefined;
 const logBridge = installBackendLogBridge({
   serviceBaseUrl: `http://127.0.0.1:${port}/services`,
   source: "back.runtime",
@@ -125,6 +147,8 @@ if (runtimeMap.workflows?.plugin) {
 const pluginConfig = {
   dbPath: dataRoot,
   dataDir: dataRoot,
+  cache: runtimeCache,
+  valkey: runtimeCache,
   registerStartupTask: (name: string, task: () => Promise<void>) => {
     startupTasks.push({ name, task });
   },
@@ -135,6 +159,15 @@ const pluginConfig = {
   servicePaths,
   workflows,
 };
+
+if (runtimeCache) {
+  shutdownTasks.push({
+    name: "valkey:close",
+    task: async () => {
+      runtimeCache.close();
+    },
+  });
+}
 
 const serveStatic = async (dir: string, path: string) => {
   const requested = path === "/" ? "/index.html" : path;
@@ -244,7 +277,12 @@ const spaPluginPath =
     : resolve(projectDir, "front/spa/src/plugin.ts"));
 if (existsSync(spaPluginPath)) {
   const spaPlugin = await importPlugin(spaPluginPath);
-  app.use(spaPlugin({ production: true }));
+  app.use(
+    spaPlugin({
+      production: true,
+      cache: runtimeCache,
+    }),
+  );
 }
 
 if (runtimeMap.landing?.plugin) {

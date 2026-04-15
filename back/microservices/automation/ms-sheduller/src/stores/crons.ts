@@ -1,12 +1,20 @@
-import { KVStore, generateULID } from "back-core";
-import type { CronEntry, CronInput, CronListParams, CronStatus, PaginatedResult, CronUpdate } from "../types";
+import { BaseKeyJson, BaseRepositoryJson, JsonStore, generateULID } from "back-core";
+import type { CronEntry, CronInput, CronListParams, PaginatedResult, CronUpdate } from "../types";
 
-const CRON_PREFIX = "cron";
+class CronKey extends BaseKeyJson {
+  readonly type = "cron";
+}
+
+class CronsRepository extends BaseRepositoryJson<CronKey, CronEntry> {}
 
 export class CronsStoreService {
-  constructor(private readonly store: KVStore) {}
+  private readonly repo: CronsRepository;
 
-  create(input: CronInput): CronEntry {
+  constructor(store: JsonStore) {
+    this.repo = new CronsRepository(store);
+  }
+
+  async create(input: CronInput): Promise<CronEntry> {
     const id = generateULID();
     const now = new Date().toISOString();
     const entry: CronEntry = {
@@ -21,12 +29,12 @@ export class CronsStoreService {
       createdAt: now,
       updatedAt: now,
     };
-    this.store.put([CRON_PREFIX, id], entry);
+    await this.repo.save(new CronKey(id), entry);
     return entry;
   }
 
-  update(id: string, updates: CronUpdate): CronEntry | null {
-    const existing = this.get(id);
+  async update(id: string, updates: CronUpdate): Promise<CronEntry | null> {
+    const existing = await this.get(id);
     if (!existing) {
       return null;
     }
@@ -35,42 +43,29 @@ export class CronsStoreService {
       ...updates,
       updatedAt: new Date().toISOString(),
     };
-    this.store.put([CRON_PREFIX, id], updated);
+    await this.repo.save(new CronKey(id), updated);
     return updated;
   }
 
-  delete(id: string): boolean {
-    const existing = this.get(id);
+  async delete(id: string): Promise<boolean> {
+    const existing = await this.get(id);
     if (!existing) {
       return false;
     }
-    this.store.delete([CRON_PREFIX, id]);
-    return true;
+    return this.repo.delete(new CronKey(id));
   }
 
-  get(id: string): CronEntry | null {
-    const entry = this.store.get([CRON_PREFIX, id]);
+  async get(id: string): Promise<CronEntry | null> {
+    const entry = await this.repo.get(new CronKey(id));
     return entry ?? null;
   }
 
-  list(params: CronListParams): PaginatedResult<CronEntry> {
+  async list(params: CronListParams): Promise<PaginatedResult<CronEntry>> {
     const limit = params.limit ?? 50;
     const offset = params.offset ?? 0;
     const status = params.status;
 
-    const keys = this.store.getKeysWithPrefix([CRON_PREFIX]);
-    const items: CronEntry[] = [];
-
-    for (const key of keys) {
-      const entry = this.store.getDirect(key);
-      if (!entry) {
-        continue;
-      }
-      if (status && entry.status !== status) {
-        continue;
-      }
-      items.push(entry as CronEntry);
-    }
+    const items = (await this.repo.listAll()).filter((entry) => !status || entry.status === status);
 
     items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 

@@ -37,39 +37,44 @@ export class ShedullerServiceImpl implements ShedullerService {
     return this.initPromise;
   }
 
-  createCron(input: CronInput): Promise<{ id: string }> {
+  async createCron(input: CronInput): Promise<{ id: string }> {
+    await this.init();
     this.assertInput(input);
-    const entry = this.stores.crons.create(input);
-    return Promise.resolve({ id: entry.id });
+    const entry = await this.stores.crons.create(input);
+    return { id: entry.id };
   }
 
-  updateCron(id: string, updates: CronUpdate): Promise<CronEntry | null> {
+  async updateCron(id: string, updates: CronUpdate): Promise<CronEntry | null> {
+    await this.init();
     if (!id) {
       throw new Error("id is required");
     }
-    const updated = this.stores.crons.update(id, updates);
+    const updated = await this.stores.crons.update(id, updates);
     if (!updated) {
-      return Promise.resolve(null);
+      return null;
     }
-    return Promise.resolve(updated);
+    return updated;
   }
 
-  deleteCron(id: string): Promise<boolean> {
+  async deleteCron(id: string): Promise<boolean> {
+    await this.init();
     if (!id) {
       throw new Error("id is required");
     }
-    return Promise.resolve(this.stores.crons.delete(id));
+    return this.stores.crons.delete(id);
   }
 
-  getCron(id: string): Promise<CronEntry | null> {
+  async getCron(id: string): Promise<CronEntry | null> {
+    await this.init();
     if (!id) {
       throw new Error("id is required");
     }
-    return Promise.resolve(this.stores.crons.get(id));
+    return this.stores.crons.get(id);
   }
 
-  listCrons(params: CronListParams): Promise<PaginatedResult<CronEntry>> {
-    return Promise.resolve(this.stores.crons.list(params));
+  async listCrons(params: CronListParams): Promise<PaginatedResult<CronEntry>> {
+    await this.init();
+    return this.stores.crons.list(params);
   }
 
   listProviders(): Promise<ProviderDefinition[]> {
@@ -77,18 +82,21 @@ export class ShedullerServiceImpl implements ShedullerService {
   }
 
   async recordHistory(entry: CronHistoryInput): Promise<CronHistoryEntry> {
+    await this.init();
     return this.stores.history.record(entry);
   }
 
   async listHistory(params: CronHistoryListParams): Promise<PaginatedResult<CronHistoryEntry>> {
+    await this.init();
     return this.stores.history.list(params);
   }
 
   async getStats(): Promise<ShedullerStats> {
+    await this.init();
     const [crons, activeCrons, pausedCrons, history, dailyRuns] = await Promise.all([
-      Promise.resolve(this.stores.crons.list({ offset: 0, limit: 0 })),
-      Promise.resolve(this.stores.crons.list({ offset: 0, limit: 0, status: "active" })),
-      Promise.resolve(this.stores.crons.list({ offset: 0, limit: 0, status: "paused" })),
+      this.stores.crons.list({ offset: 0, limit: 0 }),
+      this.stores.crons.list({ offset: 0, limit: 0, status: "active" }),
+      this.stores.crons.list({ offset: 0, limit: 0, status: "paused" }),
       this.stores.history.list({ offset: 0, limit: 0 }),
       this.stores.history.getDailyRuns(30),
     ]);

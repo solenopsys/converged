@@ -95,6 +95,14 @@ export const metadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
+    },
+    {
+      "name": "archiveHotToCold",
+      "parameters": [],
+      "returnType": "number",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -127,6 +135,7 @@ export interface TelemetryService {
   listHot(params: TelemetryQueryParams): Promise<PaginatedResult>;
   listCold(params: TelemetryQueryParams): Promise<PaginatedResult>;
   getStatistic(): Promise<TelemetryStatistic>;
+  archiveHotToCold(): Promise<number>;
 }
 
 // Client interface
@@ -135,6 +144,7 @@ export interface TelemetryServiceClient {
   listHot(params: TelemetryQueryParams): Promise<PaginatedResult>;
   listCold(params: TelemetryQueryParams): Promise<PaginatedResult>;
   getStatistic(): Promise<TelemetryStatistic>;
+  archiveHotToCold(): Promise<number>;
 }
 
 // Factory function

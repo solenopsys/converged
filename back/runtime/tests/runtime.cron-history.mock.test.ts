@@ -12,6 +12,16 @@ const createShedullerServiceClientMock = mock(() => ({
   recordHistory: recordHistoryMock,
 }));
 
+const logsArchiveHotToColdMock = mock(async () => 0);
+const createLogsServiceClientMock = mock(() => ({
+  archiveHotToCold: logsArchiveHotToColdMock,
+}));
+
+const telemetryArchiveHotToColdMock = mock(async () => 0);
+const createTelemetryServiceClientMock = mock(() => ({
+  archiveHotToCold: telemetryArchiveHotToColdMock,
+}));
+
 const dagListResumableExecutionsMock = mock(async () => ({ items: [] }));
 const dagListVarsMock = mock(async () => ({ items: [] }));
 const dagSetVarMock = mock(async (_key: string, _value: any) => {});
@@ -43,6 +53,14 @@ mock.module("g-dag", () => ({
   createDagServiceClient: createDagServiceClientMock,
 }));
 
+mock.module("g-logs", () => ({
+  createLogsServiceClient: createLogsServiceClientMock,
+}));
+
+mock.module("g-telemetry", () => ({
+  createTelemetryServiceClient: createTelemetryServiceClientMock,
+}));
+
 mock.module("./gates/send-magic-link", () => ({
   sendMagicLink: mock(async (_params: any) => {}),
 }));
@@ -71,6 +89,10 @@ describe("Runtime cron history bridge with mocked cron engine", () => {
     recordHistoryMock.mockClear();
     listCronsMock.mockClear();
     createShedullerServiceClientMock.mockClear();
+    logsArchiveHotToColdMock.mockClear();
+    createLogsServiceClientMock.mockClear();
+    telemetryArchiveHotToColdMock.mockClear();
+    createTelemetryServiceClientMock.mockClear();
     dagListResumableExecutionsMock.mockClear();
     dagListVarsMock.mockClear();
     dagSetVarMock.mockClear();
@@ -122,6 +144,54 @@ describe("Runtime cron history bridge with mocked cron engine", () => {
     expect(result).toEqual({ names: ["wf.alpha", "wf.beta"] });
 
     await shutdown();
+  });
+
+  test("should run logs and telemetry archive through cron providers", async () => {
+    const { CronEngine } = await import("../engines/cron");
+    logsArchiveHotToColdMock.mockResolvedValueOnce(7);
+    telemetryArchiveHotToColdMock.mockResolvedValueOnce(11);
+    const history: any[] = [];
+    const engine = new CronEngine((entry) => {
+      history.push(entry);
+    });
+
+    await (engine as any).invokeProvider({
+      id: "cron-logs",
+      name: "logs archive",
+      expression: "* * * * *",
+      provider: "logs",
+      action: "archiveHotToCold",
+      status: "active",
+    });
+    await (engine as any).invokeProvider({
+      id: "cron-telemetry",
+      name: "telemetry archive",
+      expression: "* * * * *",
+      provider: "telemetry",
+      action: "archiveHotToCold",
+      status: "active",
+    });
+
+    expect(logsArchiveHotToColdMock).toHaveBeenCalledTimes(1);
+    expect(telemetryArchiveHotToColdMock).toHaveBeenCalledTimes(1);
+    expect(history).toEqual([
+      {
+        cronId: "cron-logs",
+        cronName: "logs archive",
+        provider: "logs",
+        action: "archiveHotToCold",
+        success: true,
+        message: "archived 7 log events",
+      },
+      {
+        cronId: "cron-telemetry",
+        cronName: "telemetry archive",
+        provider: "telemetry",
+        action: "archiveHotToCold",
+        success: true,
+        message: "archived 11 telemetry events",
+      },
+    ]);
   });
 
   test("should execute workflow in runtime and persist node state through dag storage API", async () => {

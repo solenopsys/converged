@@ -1,5 +1,7 @@
 import { Cron } from "croner";
+import { createLogsServiceClient } from "g-logs";
 import { createRuntimeServiceClient } from "g-runtime";
+import { createTelemetryServiceClient } from "g-telemetry";
 
 export type CronEntryBase = {
   id: string;
@@ -68,9 +70,7 @@ export class CronEngine {
         if (message) parts.push(`message="${message}"`);
         console.log(parts.join(" "));
       } else if (entry.provider === "dag" && entry.action === "runWorkflow") {
-        const port = process.env.PORT ?? process.env.SERVICES_PORT ?? "3000";
-        const baseUrl = `http://localhost:${port}/services`;
-        const rtClient = createRuntimeServiceClient({ baseUrl });
+        const rtClient = createRuntimeServiceClient({ baseUrl: this.resolveServicesBaseUrl() });
         const workflowName = entry.params?.workflowName;
         const params = entry.params?.params ?? {};
         if (!workflowName) throw new Error("dag provider: workflowName is required in params");
@@ -78,6 +78,14 @@ export class CronEngine {
           if (event.type === "failed") throw new Error(event.error ?? "dag workflow failed");
           if (event.type === "completed") { message = `execution ${event.executionId} completed`; break; }
         }
+      } else if (entry.provider === "logs" && entry.action === "archiveHotToCold") {
+        const logsClient = createLogsServiceClient({ baseUrl: this.resolveServicesBaseUrl() });
+        const archived = await logsClient.archiveHotToCold();
+        message = `archived ${archived} log events`;
+      } else if (entry.provider === "telemetry" && entry.action === "archiveHotToCold") {
+        const telemetryClient = createTelemetryServiceClient({ baseUrl: this.resolveServicesBaseUrl() });
+        const archived = await telemetryClient.archiveHotToCold();
+        message = `archived ${archived} telemetry events`;
       }
     } catch (err: any) {
       success = false;
@@ -93,5 +101,10 @@ export class CronEngine {
       success,
       message,
     });
+  }
+
+  private resolveServicesBaseUrl(): string {
+    const port = process.env.PORT ?? process.env.SERVICES_PORT ?? "3000";
+    return `http://localhost:${port}/services`;
   }
 }

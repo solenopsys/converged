@@ -83,6 +83,18 @@ function mergeStringArrays(base: string[] = [], extra: string[] = []): string[] 
   return out;
 }
 
+function splitImageRef(imageRef: string): { name: string; tag: string } {
+  const slash = imageRef.lastIndexOf("/");
+  const colon = imageRef.lastIndexOf(":");
+  if (colon > slash) {
+    return {
+      name: imageRef.slice(0, colon),
+      tag: imageRef.slice(colon + 1),
+    };
+  }
+  return { name: imageRef, tag: "latest" };
+}
+
 export async function runBuild({
   projectName,
   preset,
@@ -118,6 +130,7 @@ export async function runBuild({
         },
       },
       runtimeDeps: config.runtimeDeps ?? parentConfig.runtimeDeps,
+      cache: config.cache ?? parentConfig.cache,
       frontend: config.frontend ?? parentConfig.frontend,
       storage: {
         ...parentConfig.storage,
@@ -213,6 +226,9 @@ appVersion: "1.0.0"
   const storageImageName = registry
     ? `${registry}/converged-storage`
     : `localhost/converged-storage`;
+  const valkeyImageRef = splitImageRef(
+    mergedConfig.cache?.image || "docker.io/valkey/valkey:latest",
+  );
   const pullPolicy = registry ? "Always" : "Never";
   const ingressHosts = mergedConfig.ingress?.hosts ?? [`${targetNamespace}.test`];
   const hostsYaml = ingressHosts.map((h) => `    - ${h}`).join("\n");
@@ -237,6 +253,10 @@ images:
     name: ${storageImageName}
     tag: latest
     pullPolicy: ${pullPolicy}
+  valkey:
+    name: ${valkeyImageRef.name}
+    tag: ${valkeyImageRef.tag}
+    pullPolicy: IfNotPresent
 `;
   await writeFile(resolve(helmDir, "values.yaml"), valuesYaml);
 

@@ -34,14 +34,14 @@ export const TelemetryView = ({ mode = "hot" }: { mode?: TelemetryMode }) => {
 
   return (
     <HeaderPanelLayout config={headerConfig}>
-        <InfiniteScrollDataTable
-          data={telemetryState.items}
-          hasMore={telemetryState.hasMore}
-          loading={telemetryState.loading}
-          columns={telemetryColumns}
-          onLoadMore={$store.loadMore}
-          viewMode="table"
-        />
+      <InfiniteScrollDataTable
+        data={telemetryState.items}
+        hasMore={telemetryState.hasMore}
+        loading={telemetryState.loading}
+        columns={telemetryColumns}
+        onLoadMore={$store.loadMore}
+        viewMode="table"
+      />
     </HeaderPanelLayout>
   );
 };

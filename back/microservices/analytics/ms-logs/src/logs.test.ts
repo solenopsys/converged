@@ -1,179 +1,105 @@
-import { describe, it, expect, beforeAll, afterAll } from "bun:test";
-import { mkdtemp, rm } from "fs/promises";
-import { tmpdir } from "os";
-import { join } from "path";
-import { LogsHotStore } from "./stores/hot/service";
-import { LogsColdStore } from "./stores/cold/service";
-import type { LogEventInput } from "./types";
+import { describe, expect, mock, test } from "bun:test";
+import type { LogEvent, LogQueryParams } from "./types";
 
-async function makeTempDir(prefix: string): Promise<string> {
-  return mkdtemp(join(tmpdir(), prefix));
+class FakeLogsStore {
+  private items: LogEvent[] = [];
+
+  async insert(events: LogEvent[]): Promise<void> {
+    this.items.push(...events);
+  }
+
+  async list(params: LogQueryParams) {
+    const offset = params.offset ?? 0;
+    const limit = params.limit ?? 100;
+    let rows = this.items.slice();
+    if (params.source) rows = rows.filter((row) => row.source === params.source);
+    if (params.level !== undefined) rows = rows.filter((row) => row.level === params.level);
+    if (params.code !== undefined) rows = rows.filter((row) => row.code === params.code);
+    if (params.from_ts !== undefined) rows = rows.filter((row) => row.ts >= params.from_ts!);
+    if (params.to_ts !== undefined) rows = rows.filter((row) => row.ts <= params.to_ts!);
+    rows.sort((a, b) => b.ts - a.ts);
+    return { items: rows.slice(offset, offset + limit), totalCount: rows.length };
+  }
+
+  async getStatistic() {
+    const byLevel: Record<number, number> = {};
+    const bySource: Record<string, number> = {};
+    for (const item of this.items) {
+      byLevel[item.level] = (byLevel[item.level] ?? 0) + 1;
+      bySource[item.source] = (bySource[item.source] ?? 0) + 1;
+    }
+    return {
+      total: this.items.length,
+      byLevel,
+      bySource,
+      errors: byLevel[3] ?? 0,
+      warnings: byLevel[2] ?? 0,
+    };
+  }
+
+  async moveOldestTo(target: FakeLogsStore, limit = 1000): Promise<number> {
+    const batch = this.items
+      .map((item, index) => ({ item, index }))
+      .sort((a, b) => a.item.ts - b.item.ts)
+      .slice(0, limit);
+    if (batch.length === 0) return 0;
+
+    await target.insert(batch.map(({ item }) => item));
+    const indexes = new Set(batch.map(({ index }) => index));
+    this.items = this.items.filter((_item, index) => !indexes.has(index));
+    return batch.length;
+  }
 }
 
-describe("Logs hot store", () => {
-  let tempDir = "";
-  let hot: LogsHotStore;
+class FakeStoresController {
+  public hot = new FakeLogsStore();
+  public cold = new FakeLogsStore();
 
-  beforeAll(async () => {
-    tempDir = await makeTempDir("logs-hot-");
-    hot = new LogsHotStore(join(tempDir, "hot"));
-  });
+  constructor(_msName: string) {}
+  async init(): Promise<void> {}
+  async destroy(): Promise<void> {}
+}
 
-  afterAll(async () => {
-    await hot.closeCurrent();
-    await rm(tempDir, { recursive: true, force: true });
-  });
+mock.module("./stores", () => ({
+  StoresController: FakeStoresController,
+}));
 
-  it("writes and lists hot logs", async () => {
-    const event: LogEventInput = {
-      source: "db",
-      level: 2,
-      code: 100,
-      message: "connection lost",
-    };
+import { LogsServiceImpl } from "./service";
 
-    await hot.write(event);
-
-    const list = await hot.list({
-      offset: 0,
-      limit: 10,
-      source: "db",
+describe("LogsServiceImpl hot/cold storage", () => {
+  test("archives hot logs into cold storage", async () => {
+    const service = new LogsServiceImpl({
+      archiveBatchSize: 1,
     });
 
-    expect(list.items.length).toBe(1);
-    expect(list.items[0].message).toBe("connection lost");
-  });
-});
-
-describe("Logs cold store", () => {
-  let tempDir = "";
-  let cold: LogsColdStore;
-
-  beforeAll(async () => {
-    tempDir = await makeTempDir("logs-cold-");
-    cold = new LogsColdStore(join(tempDir, "cold", "data.db"));
-    await cold.init();
-  });
-
-  afterAll(async () => {
-    await cold.close();
-    await rm(tempDir, { recursive: true, force: true });
-  });
-
-  it("inserts and lists cold logs", async () => {
-    const now = Date.now();
-    await cold.insertBatch([
-      {
-        ts: now,
-        source: "printer",
-        level: 1,
-        code: 200,
-        message: "ok",
-      },
-      {
-        ts: now + 1,
-        source: "printer",
-        level: 3,
-        code: 500,
-        message: "fault",
-      },
-    ]);
-
-    const list = await cold.list({
-      offset: 0,
-      limit: 10,
-      source: "printer",
-    });
-
-    expect(list.items.length).toBe(2);
-    expect(list.items[0].source).toBe("printer");
-  });
-});
-
-describe("Logs hot to cold migration", () => {
-  let tempDir = "";
-  let hot: LogsHotStore;
-  let cold: LogsColdStore;
-
-  beforeAll(async () => {
-    tempDir = await makeTempDir("logs-migrate-");
-    hot = new LogsHotStore(join(tempDir, "hot"));
-    cold = new LogsColdStore(join(tempDir, "cold", "data.db"));
-    await cold.init();
-  });
-
-  afterAll(async () => {
-    await hot.closeCurrent();
-    await cold.close();
-    await rm(tempDir, { recursive: true, force: true });
-  });
-
-  it("flushes hot logs into cold store", async () => {
-    await hot.write({
+    await service.write({
+      ts: 10,
       source: "api",
       level: 1,
-      code: 101,
+      code: 100,
       message: "started",
     });
-    await hot.write({
+    await service.write({
+      ts: 11,
       source: "api",
-      level: 2,
-      code: 102,
-      message: "running",
+      level: 3,
+      code: 500,
+      message: "failed",
     });
 
-    const flushed = await hot.flushToCold(cold);
-    expect(flushed).toBe(2);
+    const moved = await service.archiveHotToCold();
+    expect(moved).toBe(2);
 
-    const coldList = await cold.list({ offset: 0, limit: 10 });
-    expect(coldList.items.length).toBe(2);
+    const hot = await service.listHot({ offset: 0, limit: 10 });
+    const cold = await service.listCold({ offset: 0, limit: 10 });
+    const stats = await service.getStatistic();
 
-    const hotList = await hot.list({ offset: 0, limit: 10 });
-    expect(hotList.items.length).toBe(0);
-  });
-});
+    expect(hot.totalCount).toBe(0);
+    expect(cold.totalCount).toBe(2);
+    expect(stats.totalHot).toBe(0);
+    expect(stats.totalCold).toBe(2);
+    expect(stats.errors).toBe(1);
 
-describe("Logs cold to hot migration", () => {
-  let tempDir = "";
-  let hot: LogsHotStore;
-  let cold: LogsColdStore;
-
-  beforeAll(async () => {
-    tempDir = await makeTempDir("logs-restore-");
-    hot = new LogsHotStore(join(tempDir, "hot"));
-    cold = new LogsColdStore(join(tempDir, "cold", "data.db"));
-    await cold.init();
-  });
-
-  afterAll(async () => {
-    await hot.closeCurrent();
-    await cold.close();
-    await rm(tempDir, { recursive: true, force: true });
-  });
-
-  it("restores cold logs into hot store", async () => {
-    const now = Date.now();
-    await cold.insertBatch([
-      {
-        ts: now,
-        source: "edge",
-        level: 1,
-        code: 201,
-        message: "up",
-      },
-      {
-        ts: now + 1,
-        source: "edge",
-        level: 4,
-        code: 503,
-        message: "down",
-      },
-    ]);
-
-    const restored = await hot.restoreFromCold(cold, { source: "edge" });
-    expect(restored).toBe(2);
-
-    const hotList = await hot.list({ offset: 0, limit: 10, source: "edge" });
-    expect(hotList.items.length).toBe(2);
+    await service.destroy();
   });
 });

@@ -94,9 +94,6 @@ const pwaRegistrationScript = [
   "})();",
 ].join("");
 
-const SITEMAP_XML_DECLARATION = `<?xml version="1.0" encoding="UTF-8"?>`;
-const SITEMAP_XMLNS = "http://www.sitemaps.org/schemas/sitemap/0.9";
-
 type TelemetryEventInput = {
   ts?: number;
   device_id: string;
@@ -286,7 +283,6 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
     process.env.PWA_DEV === "1" ||
     process.env.PWA_DEV === "true";
   const pwaEnabled = isProd || enablePwaInDev;
-  const sitemapChunkSize = Math.max(1, Number(process.env.SITEMAP_MAX_URLS_PER_FILE) || 5000);
   const logoBlackPath = resolve(publicDir, "logo-black.svg");
   const logoWhitePath = resolve(publicDir, "logo-white.svg");
   const prebuiltStylesPath = resolve(projectRoot, "dist", "landing", "styles.css");
@@ -340,15 +336,6 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
     return normalizeBaseUrl(resolveRequestOrigin(request));
   }
 
-  function escapeXml(value: string): string {
-    return value
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&apos;");
-  }
-
   function buildCanonical(baseUrl: string, path: string): string {
     const base = normalizeBaseUrl(baseUrl);
     if (path === "/" || path === "") return base;
@@ -382,19 +369,6 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
       });
     }
     return result;
-  }
-
-  function buildSitemapIndexXml(origin: string, pages: number): string {
-    const body = Array.from({ length: pages }, (_, index) => {
-      const loc = `${origin}/sitemap-${index + 1}.xml`;
-      return `  <sitemap>\n    <loc>${escapeXml(loc)}</loc>\n  </sitemap>`;
-    }).join("\n");
-    return (
-      `${SITEMAP_XML_DECLARATION}\n` +
-      `<sitemapindex xmlns="${SITEMAP_XMLNS}">\n` +
-      `${body}\n` +
-      `</sitemapindex>`
-    );
   }
 
   function buildDefaultManifest(baseUrl: string) {
@@ -639,51 +613,7 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
       const resolvedRoutes = await resolveSitemapRoutes(origin);
       const routes = uniqSitemapRoutes(resolvedRoutes);
 
-      if (routes.length > sitemapChunkSize) {
-        const pages = Math.ceil(routes.length / sitemapChunkSize);
-        return new Response(buildSitemapIndexXml(origin, pages), {
-          headers: { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "no-transform" },
-        });
-      }
-
       return new Response(buildSitemapXml(origin, routes), {
-        headers: { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "no-transform" },
-      });
-    })
-    .get("/sitemap-:page", async ({ request, params, set }) => {
-      const origin = resolvePublicOrigin(request);
-      const rawPage = String((params as any).page ?? "");
-      const match = rawPage.match(/^(\d+)\.xml$/);
-      const page = match ? Number(match[1]) : Number.NaN;
-      if (!Number.isInteger(page) || page < 1) {
-        set.status = 404;
-        return "Not found";
-      }
-
-      const resolvedRoutes = await resolveSitemapRoutes(origin);
-      const routes = uniqSitemapRoutes(resolvedRoutes);
-      const pages = Math.ceil(routes.length / sitemapChunkSize);
-
-      if (pages <= 1) {
-        if (page !== 1) {
-          set.status = 404;
-          return "Not found";
-        }
-        return new Response(buildSitemapXml(origin, routes), {
-          headers: { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "no-transform" },
-        });
-      }
-
-      if (page > pages) {
-        set.status = 404;
-        return "Not found";
-      }
-
-      const start = (page - 1) * sitemapChunkSize;
-      const end = start + sitemapChunkSize;
-      const chunk = routes.slice(start, end);
-
-      return new Response(buildSitemapXml(origin, chunk), {
         headers: { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "no-transform" },
       });
     })

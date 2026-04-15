@@ -115,6 +115,7 @@ async function loadMergedConfig(
   // Merge: parent microservices + child microservices
   const merged: BuildConfig = {
     ...config,
+    cache: config.cache ?? parentConfig.cache,
     frontend: config.frontend ?? parentConfig.frontend,
     spa: {
       core: config.spa.core || parentConfig.spa.core,

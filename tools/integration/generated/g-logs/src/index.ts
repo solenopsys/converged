@@ -98,6 +98,14 @@ export const metadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
+    },
+    {
+      "name": "archiveHotToCold",
+      "parameters": [],
+      "returnType": "number",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -130,6 +138,7 @@ export interface LogsService {
   listHot(params: LogQueryParams): Promise<PaginatedResult>;
   listCold(params: LogQueryParams): Promise<PaginatedResult>;
   getStatistic(): Promise<LogsStatistic>;
+  archiveHotToCold(): Promise<number>;
 }
 
 // Client interface
@@ -138,6 +147,7 @@ export interface LogsServiceClient {
   listHot(params: LogQueryParams): Promise<PaginatedResult>;
   listCold(params: LogQueryParams): Promise<PaginatedResult>;
   getStatistic(): Promise<LogsStatistic>;
+  archiveHotToCold(): Promise<number>;
 }
 
 // Factory function

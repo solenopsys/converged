@@ -43,4 +43,5 @@ export interface LogsService {
   listHot(params: LogQueryParams): Promise<PaginatedResult<LogEvent>>;
   listCold(params: LogQueryParams): Promise<PaginatedResult<LogEvent>>;
   getStatistic(): Promise<LogsStatistic>;
+  archiveHotToCold(): Promise<number>;
 }

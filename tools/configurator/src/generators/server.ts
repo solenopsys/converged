@@ -26,6 +26,11 @@ export function generateRuntimeConfigs(ctx: GeneratorContext): Map<string, strin
   const result = new Map<string, string>();
   const { config } = ctx;
   const plan = buildDeploymentPlan(ctx);
+  const cacheConfig = {
+    url: plan.cache.url,
+    keyPrefix: plan.cache.keyPrefix,
+    ssrTtlSeconds: plan.cache.ssrTtlSeconds,
+  };
 
   // Service host map — single file for the whole cluster
   result.set("service-hosts.json", JSON.stringify(buildServiceHostMap(ctx), null, 2));
@@ -50,6 +55,7 @@ export function generateRuntimeConfigs(ctx: GeneratorContext): Map<string, strin
       layout: "sidebar",
       mountChatView: chatModule ? Boolean(uiModules[chatModule]) : false,
     },
+    cache: cacheConfig,
   };
 
   result.set("ui.config.json", JSON.stringify(uiConfig, null, 2));
@@ -67,6 +73,7 @@ export function generateRuntimeConfigs(ctx: GeneratorContext): Map<string, strin
         layout: "sidebar",
         mountChatView: false,
       },
+      cache: cacheConfig,
     };
 
     result.set(

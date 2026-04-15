@@ -1,4 +1,4 @@
-import { ColumnStore } from "back-core";
+import { ColumnStore, sql } from "back-core";
 import type { LogEvent, LogEventInput, LogQueryParams, LogsStatistic, PaginatedResult } from "../../types";
 
 const TABLE_NAME = "log_events";
@@ -71,6 +71,29 @@ export class LogsStoreService {
       errors: byLevel[3] ?? 0,
       warnings: byLevel[2] ?? 0,
     };
+  }
+
+  async moveOldestTo(target: LogsStoreService, limit = 1000): Promise<number> {
+    const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 1000;
+    const rows = await this.store.db
+      .selectFrom(TABLE_NAME)
+      .selectAll()
+      .select(sql<number>`rowid`.as("__rowid"))
+      .orderBy("ts", "asc")
+      .limit(safeLimit)
+      .execute() as Array<LogEvent & { __rowid: number }>;
+
+    if (rows.length === 0) {
+      return 0;
+    }
+
+    await target.insert(rows.map(({ __rowid: _rowid, ...event }) => event));
+    await this.store.db
+      .deleteFrom(TABLE_NAME)
+      .where("rowid" as any, "in", rows.map((row) => row.__rowid))
+      .execute();
+
+    return rows.length;
   }
 
   private applyFilters(query: any, params: LogQueryParams) {

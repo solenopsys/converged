@@ -40,4 +40,5 @@ export interface TelemetryService {
   listHot(params: TelemetryQueryParams): Promise<PaginatedResult<TelemetryEvent>>;
   listCold(params: TelemetryQueryParams): Promise<PaginatedResult<TelemetryEvent>>;
   getStatistic(): Promise<TelemetryStatistic>;
+  archiveHotToCold(): Promise<number>;
 }

@@ -16,11 +16,13 @@
     "g-auth": "workspace:*",
     "g-dag": "workspace:*",
     "g-delivery": "workspace:*",
+    "g-logs": "workspace:*",
     "g-notify": "workspace:*",
     "g-runtime": "workspace:*",
     "g-sheduller": "workspace:*",
     "g-ses": "workspace:*",
     "g-shipmentprovider": "workspace:*",
+    "g-telemetry": "workspace:*",
     "g-smtp": "workspace:*",
     "nrpc": "workspace:*"
   }

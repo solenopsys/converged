@@ -1,13 +1,20 @@
 import { Elysia } from "elysia";
-import { existsSync, mkdirSync, readdirSync } from "fs";
+import { existsSync, mkdirSync, readdirSync, statSync } from "fs";
 import { brotliCompressSync } from "zlib";
 import { resolve } from "path";
 import { externalPackages, microfrontends } from "front-core/runtime-config";
 import { createWorkspaceResolverPlugin } from "front-core/workspace-resolver";
 
+interface SharedCacheAdapter {
+  buildKey: (...segments: Array<string | number>) => string;
+  getJson: <T>(key: string) => Promise<T | null>;
+  setJson: (key: string, value: unknown, ttlSeconds?: number) => Promise<void>;
+}
+
 export interface SpaPluginConfig {
   production?: boolean;
   compress?: boolean;
+  cache?: SharedCacheAdapter;
 }
 
 // fileName → npm specifier
@@ -194,6 +201,8 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
   const jsCacheHeader = isProd
     ? "public, max-age=31536000, immutable"
     : "public, max-age=3600";
+  const sharedCache = isProd ? config.cache : undefined;
+  const assetCacheTtlSeconds = 3600;
 
   // Dev caches
   const vendorBundles = new Map<string, Blob>();
@@ -222,38 +231,65 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
     });
   }
 
-  // LRU cache for prod static files (vendor JS, front-core, MF, SSR pages)
   type CacheEntry = { raw: Uint8Array; br?: Uint8Array; contentType: string };
 
-  class LRUCache {
-    private map = new Map<string, CacheEntry>();
-    constructor(private maxSize: number) {}
-    get(key: string): CacheEntry | undefined {
-      const v = this.map.get(key);
-      if (!v) return undefined;
-      this.map.delete(key);
-      this.map.set(key, v);
-      return v;
-    }
-    set(key: string, value: CacheEntry): void {
-      this.map.delete(key);
-      this.map.set(key, value);
-      if (this.map.size > this.maxSize) {
-        this.map.delete(this.map.keys().next().value!);
-      }
-    }
+  type SerializedCacheEntry = {
+    raw: string;
+    br?: string;
+    contentType: string;
+  };
+
+  function encodeCacheEntry(entry: CacheEntry): SerializedCacheEntry {
+    return {
+      raw: Buffer.from(entry.raw).toString("base64"),
+      br: entry.br ? Buffer.from(entry.br).toString("base64") : undefined,
+      contentType: entry.contentType,
+    };
   }
 
-  const staticCache = new LRUCache(2000);
+  function decodeCacheEntry(entry: SerializedCacheEntry): CacheEntry {
+    return {
+      raw: new Uint8Array(Buffer.from(entry.raw, "base64")),
+      br: entry.br ? new Uint8Array(Buffer.from(entry.br, "base64")) : undefined,
+      contentType: entry.contentType,
+    };
+  }
+
+  function buildAssetCacheKey(key: string, filePath: string): string {
+    const stat = statSync(filePath);
+    return sharedCache!.buildKey(
+      "ui-asset",
+      key,
+      stat.size,
+      Math.floor(stat.mtimeMs),
+    );
+  }
 
   async function loadAndCache(key: string, filePath: string, contentType: string): Promise<CacheEntry> {
-    const cached = staticCache.get(key);
-    if (cached) return cached;
+    if (sharedCache) {
+      try {
+        const cacheKey = buildAssetCacheKey(key, filePath);
+        const cached = await sharedCache.getJson<SerializedCacheEntry>(cacheKey);
+        if (cached) return decodeCacheEntry(cached);
+      } catch (error) {
+        console.warn(`[spa] shared cache read failed for ${key}:`, error);
+      }
+    }
+
     const raw = new Uint8Array(await Bun.file(filePath).arrayBuffer());
     const brPath = filePath + ".br";
     const br = existsSync(brPath) ? new Uint8Array(await Bun.file(brPath).arrayBuffer()) : undefined;
     const entry: CacheEntry = { raw, br, contentType };
-    staticCache.set(key, entry);
+
+    if (sharedCache) {
+      try {
+        const cacheKey = buildAssetCacheKey(key, filePath);
+        await sharedCache.setJson(cacheKey, encodeCacheEntry(entry), assetCacheTtlSeconds);
+      } catch (error) {
+        console.warn(`[spa] shared cache write failed for ${key}:`, error);
+      }
+    }
+
     return entry;
   }
 
@@ -525,9 +561,9 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
         });
       }
 
-      if (!vendorEntries[fileName]) {
-        set.status = 404;
-        return "Not Found";
+        if (!vendorEntries[fileName]) {
+          set.status = 404;
+          return "Not Found";
       }
 
       try {
@@ -547,17 +583,19 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
       try {
         const bundle = await ensureFrontCore();
         if (isProd) {
-          const cached = staticCache.get("front-core");
-          if (cached && supportsEncoding(request, "br") && cached.br) {
+          const cached = await loadAndCache(
+            "front-core",
+            prebuiltFrontCorePath,
+            "application/javascript; charset=utf-8",
+          );
+          if (supportsEncoding(request, "br") && cached.br) {
             return new Response(cached.br, {
               headers: { "Content-Type": "application/javascript; charset=utf-8", "Content-Encoding": "br", "Cache-Control": jsCacheHeader },
             });
           }
-          if (cached) {
-            return new Response(cached.raw, {
-              headers: { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": jsCacheHeader },
-            });
-          }
+          return new Response(cached.raw, {
+            headers: { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": jsCacheHeader },
+          });
         }
         if (useDevCompress) {
           const br = await compressBr("front-core", bundle);
@@ -598,17 +636,19 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
       try {
         const bundle = await ensureMicrofrontend(name);
         if (isProd) {
-          const cached = staticCache.get(`mf:${name}`);
-          if (cached && supportsEncoding(request, "br") && cached.br) {
+          const cached = await loadAndCache(
+            `mf:${name}`,
+            resolve(prebuiltMfDir, `${name}.js`),
+            "application/javascript; charset=utf-8",
+          );
+          if (supportsEncoding(request, "br") && cached.br) {
             return new Response(cached.br, {
               headers: { "Content-Type": "application/javascript; charset=utf-8", "Content-Encoding": "br", "Cache-Control": jsCacheHeader },
             });
           }
-          if (cached) {
-            return new Response(cached.raw, {
-              headers: { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": jsCacheHeader },
-            });
-          }
+          return new Response(cached.raw, {
+            headers: { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": jsCacheHeader },
+          });
         }
         if (useDevCompress) {
           const br = await compressBr(`mf:${name}`, bundle);

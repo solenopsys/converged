@@ -5,11 +5,26 @@ import { installBackendLogBridge } from "./logBridge";
 import { loadAiProvidersFromEnv } from "./envConfig";
 export type { AiConfig } from "./envConfig";
 
+export interface CacheAdapter {
+  url: string;
+  keyPrefix: string;
+  defaultTtlSeconds: number;
+  buildKey: (...segments: Array<string | number>) => string;
+  get: (key: string) => Promise<string | null>;
+  set: (key: string, value: string, ttlSeconds?: number) => Promise<void>;
+  del: (key: string) => Promise<void>;
+  getJson: <T>(key: string) => Promise<T | null>;
+  setJson: (key: string, value: unknown, ttlSeconds?: number) => Promise<void>;
+  close: () => void;
+}
+
 export interface PluginConfig {
   dbPath: string;
   openai?: { key: string; model: string };
   claude?: { key: string; model: string };
   gemini?: { key: string; model: string };
+  cache?: CacheAdapter;
+  valkey?: CacheAdapter;
   registerStartupTask?: (name: string, task: () => Promise<void>) => void;
   registerShutdownTask?: (name: string, task: () => Promise<void>) => void;
   [key: string]: any;

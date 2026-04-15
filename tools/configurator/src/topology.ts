@@ -1,4 +1,5 @@
 import type {
+  CacheConfig,
   GeneratorContext,
   MicroserviceRef,
   ResolvedContainer,
@@ -10,6 +11,7 @@ export type PresetMode = "mono" | "multi";
 export const UI_APP_PORT = 3000;
 export const SERVICES_APP_PORT = 3001;
 export const SERVICE_PORT = 80;
+export const VALKEY_PORT = 6379;
 
 export const DATA_MOUNT = "/app/data";
 export const CONFIG_MOUNT = "/app/config";
@@ -50,6 +52,31 @@ const DEFAULT_RUNTIME_RESOURCES: Resources = {
   limits: { cpu: "2000m", memory: "2Gi" },
 };
 
+const DEFAULT_CACHE_RESOURCES: Resources = {
+  requests: { cpu: "50m", memory: "64Mi" },
+  limits: { cpu: "500m", memory: "256Mi" },
+};
+
+interface ResolvedCacheConfig {
+  image: string;
+  port: number;
+  database: number;
+  keyPrefix: string;
+  ssrTtlSeconds: number;
+  resources: Resources;
+}
+
+export interface CachePlan {
+  serviceName: string;
+  image: string;
+  port: number;
+  database: number;
+  keyPrefix: string;
+  ssrTtlSeconds: number;
+  url: string;
+  resources: Resources;
+}
+
 export interface RuntimePlan {
   serviceName: string;
   resources: Resources;
@@ -60,10 +87,23 @@ export interface DeploymentPlan {
   ui: UiPlan;
   serviceGroups: ServiceGroupPlan[];
   runtime: RuntimePlan;
+  cache: CachePlan;
 }
 
 function normalizePresetMode(preset: string): PresetMode {
   return preset === "mono" ? "mono" : "multi";
+}
+
+function resolveCacheConfig(config: GeneratorContext["config"]): ResolvedCacheConfig {
+  const cache = config.cache as CacheConfig | undefined;
+  return {
+    image: cache?.image || "docker.io/valkey/valkey:8.1-alpine",
+    port: cache?.port ?? VALKEY_PORT,
+    database: cache?.database ?? 0,
+    keyPrefix: cache?.keyPrefix || config.name,
+    ssrTtlSeconds: cache?.ssrTtlSeconds ?? 120,
+    resources: cache?.resources ?? DEFAULT_CACHE_RESOURCES,
+  };
 }
 
 function sanitizeName(raw: string): string {
@@ -178,10 +218,31 @@ function buildRuntimePlan(ctx: GeneratorContext): RuntimePlan {
   };
 }
 
+function buildCachePlan(
+  ctx: GeneratorContext,
+  mode: PresetMode,
+): CachePlan {
+  const cache = resolveCacheConfig(ctx.config);
+  const serviceName = `${ctx.config.name}-valkey`;
+  const host = mode === "mono" ? "127.0.0.1" : serviceName;
+
+  return {
+    serviceName,
+    image: cache.image,
+    port: cache.port,
+    database: cache.database,
+    keyPrefix: cache.keyPrefix,
+    ssrTtlSeconds: cache.ssrTtlSeconds,
+    url: `redis://${host}:${cache.port}/${cache.database}`,
+    resources: cache.resources,
+  };
+}
+
 export function buildDeploymentPlan(ctx: GeneratorContext): DeploymentPlan {
   const mode = normalizePresetMode(ctx.preset);
   const ui = buildUiPlan(ctx);
   const runtime = buildRuntimePlan(ctx);
+  const cache = buildCachePlan(ctx, mode);
 
   if (mode === "mono") {
     const monoServices = collectMonoServices(ctx.containers, ctx.config);
@@ -199,6 +260,7 @@ export function buildDeploymentPlan(ctx: GeneratorContext): DeploymentPlan {
         },
       ],
       runtime,
+      cache,
     };
   }
 
@@ -207,5 +269,6 @@ export function buildDeploymentPlan(ctx: GeneratorContext): DeploymentPlan {
     ui,
     serviceGroups: collectMultiGroups(ctx),
     runtime,
+    cache,
   };
 }

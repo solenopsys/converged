@@ -20,6 +20,16 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
     title: "Log",
     actions: ["log"],
   },
+  logs: {
+    code: "logs",
+    title: "Logs",
+    actions: ["archiveHotToCold"],
+  },
+  telemetry: {
+    code: "telemetry",
+    title: "Telemetry",
+    actions: ["archiveHotToCold"],
+  },
 };
 
 export const listProviderDefinitions = () => Object.values(PROVIDER_DEFINITIONS);

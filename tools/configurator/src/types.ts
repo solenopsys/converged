@@ -40,6 +40,15 @@ export interface RuntimeDeps {
   apk?: string[];
 }
 
+export interface CacheConfig {
+  image: string;
+  port?: number;
+  database?: number;
+  keyPrefix?: string;
+  ssrTtlSeconds?: number;
+  resources?: Resources;
+}
+
 export interface BuildConfig {
   name: string;
   description?: string;
@@ -66,6 +75,8 @@ export interface BuildConfig {
   };
 
   runtimeDeps?: RuntimeDeps;
+
+  cache?: CacheConfig;
 
   presets: Record<string, Preset>;
 

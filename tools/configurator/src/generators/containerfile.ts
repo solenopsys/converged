@@ -3,6 +3,7 @@ import { relative, resolve } from "node:path";
 import type { GeneratorContext, MicroserviceRef } from "../types";
 import { getAllMicroservices } from "../resolver";
 import {
+  buildDeploymentPlan,
   RUNTIME_APP_PORT,
   SERVICES_APP_PORT,
   STORAGE_BIN_PATH,
@@ -120,6 +121,7 @@ class DynamicContainerfileBuilder {
   private readonly baseImage: string;
   private readonly apkPackages: string[];
   private readonly runtimePackages: Record<string, string>;
+  private readonly deploymentPlan: ReturnType<typeof buildDeploymentPlan>;
 
   // Resolved owners
   private readonly spaCoreOwner: string;
@@ -151,6 +153,7 @@ class DynamicContainerfileBuilder {
 
     this.baseImage = config.baseImage!;
     if (!this.baseImage) throw new Error(`"baseImage" is required in config`);
+    this.deploymentPlan = buildDeploymentPlan(ctx);
 
     this.spaCorePath = config.spa.core || "front/front-core";
     this.landingPath = config.landing || "front/landing";
@@ -380,6 +383,11 @@ class DynamicContainerfileBuilder {
       "",
       "[landing]",
       'plugin = "/app/plugins/landing/plugin.js"',
+      "",
+      "[cache]",
+      `url = "${this.deploymentPlan.cache.url}"`,
+      `keyPrefix = "${this.deploymentPlan.cache.keyPrefix}"`,
+      `ssrTtlSeconds = ${this.deploymentPlan.cache.ssrTtlSeconds}`,
     ];
 
     this.emit("");
@@ -393,6 +401,11 @@ class DynamicContainerfileBuilder {
     for (const p of this.plugins) {
       toml.push(`"${p.key}" = "/app/plugins/chunks/${p.chunkPath}"`);
     }
+    toml.push("");
+    toml.push("[cache]");
+    toml.push(`url = "${this.deploymentPlan.cache.url}"`);
+    toml.push(`keyPrefix = "${this.deploymentPlan.cache.keyPrefix}"`);
+    toml.push(`ssrTtlSeconds = ${this.deploymentPlan.cache.ssrTtlSeconds}`);
 
     this.emit("");
     this.emit("RUN cat > /build/out/app/runtime-map.toml <<'TOML'");
@@ -413,6 +426,11 @@ class DynamicContainerfileBuilder {
     if (dirExists(this.ctx, this.workflowsOwner, "back/workflows/index.ts")) {
       toml.push('plugin = "/app/plugins/workflows/index.js"');
     }
+    toml.push("");
+    toml.push("[cache]");
+    toml.push(`url = "${this.deploymentPlan.cache.url}"`);
+    toml.push(`keyPrefix = "${this.deploymentPlan.cache.keyPrefix}"`);
+    toml.push(`ssrTtlSeconds = ${this.deploymentPlan.cache.ssrTtlSeconds}`);
 
     this.emit("");
     this.emit("RUN cat > /build/out/app/runtime-map.toml <<'TOML'");

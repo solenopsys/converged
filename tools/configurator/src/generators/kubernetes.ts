@@ -41,6 +41,10 @@ const HELM_STORAGE_IMAGE = "{{ .Values.images.storage.name }}";
 const HELM_STORAGE_TAG = "{{ .Values.images.storage.tag }}";
 const HELM_STORAGE_PULL_POLICY = "{{ .Values.images.storage.pullPolicy }}";
 
+const HELM_VALKEY_IMAGE = "{{ .Values.images.valkey.name }}";
+const HELM_VALKEY_TAG = "{{ .Values.images.valkey.tag }}";
+const HELM_VALKEY_PULL_POLICY = "{{ .Values.images.valkey.pullPolicy }}";
+
 const DEFAULT_STORAGE_RESOURCES: Resources = {
   requests: { cpu: "200m", memory: "128Mi" },
   limits: { cpu: "1000m", memory: "2Gi" },
@@ -103,6 +107,30 @@ function buildStorageHealthProbes() {
   };
 }
 
+function buildValkeyHealthProbes(port: number) {
+  const base = {
+    tcpSocket: { port },
+    timeoutSeconds: 2,
+  };
+  return {
+    startupProbe: {
+      ...base,
+      periodSeconds: 2,
+      failureThreshold: 60,
+    },
+    readinessProbe: {
+      ...base,
+      periodSeconds: 5,
+      failureThreshold: 6,
+    },
+    livenessProbe: {
+      ...base,
+      periodSeconds: 10,
+      failureThreshold: 3,
+    },
+  };
+}
+
 function buildStorageContainer(dataClaimName: string, ctx: GeneratorContext) {
   const resources = ctx.storage.resources ?? DEFAULT_STORAGE_RESOURCES;
   return {
@@ -140,6 +168,10 @@ function rtImageUri(): string {
 
 function storageImageUri(): string {
   return `${HELM_STORAGE_IMAGE}:${HELM_STORAGE_TAG}`;
+}
+
+function valkeyImageUri(): string {
+  return `${HELM_VALKEY_IMAGE}:${HELM_VALKEY_TAG}`;
 }
 
 function parseSizeGi(raw: string | undefined, fallbackGi: number): number {
@@ -292,10 +324,63 @@ class WorkloadBuilder {
       return;
     }
 
+    this.buildValkeyDeployment();
     this.buildUiPod();
     for (const group of this.plan.serviceGroups) {
       this.buildGroupPod(group);
     }
+  }
+
+  private buildValkeyDeployment() {
+    const appName = this.ctx.config.name;
+    const podLabels = labels(appName, "valkey");
+
+    new cdk8s.ApiObject(this.chart, "valkey-deployment", {
+      apiVersion: "apps/v1",
+      kind: "Deployment",
+      metadata: { name: this.plan.cache.serviceName, labels: podLabels },
+      spec: {
+        replicas: 1,
+        selector: { matchLabels: podLabels },
+        template: {
+          metadata: { labels: podLabels },
+          spec: {
+            containers: [
+              {
+                name: "valkey",
+                image: valkeyImageUri(),
+                imagePullPolicy: HELM_VALKEY_PULL_POLICY,
+                command: ["valkey-server", "--save", "", "--appendonly", "no"],
+                ports: [{ containerPort: this.plan.cache.port }],
+                env: toEnvList({
+                  PORT: String(this.plan.cache.port),
+                }),
+                ...buildValkeyHealthProbes(this.plan.cache.port),
+                resources: toK8sResources(this.plan.cache.resources),
+                securityContext: {
+                  allowPrivilegeEscalation: false,
+                  privileged: false,
+                  readOnlyRootFilesystem: false,
+                  runAsNonRoot: false,
+                },
+              },
+            ],
+            securityContext: {
+              runAsNonRoot: false,
+            },
+          },
+        },
+      },
+    });
+
+    createClusterService(
+      this.chart,
+      "valkey-service",
+      this.plan.cache.serviceName,
+      podLabels,
+      podLabels,
+      this.plan.cache.port,
+    );
   }
 
   private buildUiPod() {
@@ -336,7 +421,9 @@ class WorkloadBuilder {
                 image: uiImageUri(),
                 imagePullPolicy: HELM_UI_PULL_POLICY,
                 ports: [{ containerPort: UI_APP_PORT }],
-                env: buildBaseEnv(this.ctx, UI_APP_PORT),
+                env: buildBaseEnv(this.ctx, UI_APP_PORT, {
+                  VALKEY_URL: this.plan.cache.url,
+                }),
                 envFrom: [{ secretRef: { name: secretName } }],
                 ...buildHttpHealthProbes(UI_APP_PORT),
                 resources: toK8sResources(this.plan.ui.resources),
@@ -432,6 +519,7 @@ class WorkloadBuilder {
                 ports: [{ containerPort: SERVICES_APP_PORT }],
                 env: buildBaseEnv(this.ctx, SERVICES_APP_PORT, {
                   STORAGE_SOCKET_PATH,
+                  VALKEY_URL: this.plan.cache.url,
                 }),
                 envFrom: [{ secretRef: { name: secretName } }],
                 ...buildHttpHealthProbes(SERVICES_APP_PORT),
@@ -567,6 +655,7 @@ class WorkloadBuilder {
                 ports: [{ containerPort: UI_APP_PORT }],
                 env: buildBaseEnv(this.ctx, UI_APP_PORT, {
                   SERVICES_BASE: `http://127.0.0.1:${SERVICES_APP_PORT}/services`,
+                  VALKEY_URL: this.plan.cache.url,
                 }),
                 envFrom: [{ secretRef: { name: secretName } }],
                 ...buildHttpHealthProbes(UI_APP_PORT),
@@ -593,6 +682,7 @@ class WorkloadBuilder {
                 ports: [{ containerPort: SERVICES_APP_PORT }],
                 env: buildBaseEnv(this.ctx, SERVICES_APP_PORT, {
                   STORAGE_SOCKET_PATH,
+                  VALKEY_URL: this.plan.cache.url,
                 }),
                 envFrom: [{ secretRef: { name: secretName } }],
                 ...buildHttpHealthProbes(SERVICES_APP_PORT),
@@ -625,10 +715,29 @@ class WorkloadBuilder {
                   NODE_ENV: "production",
                   PORT: String(RUNTIME_APP_PORT),
                   SERVICES_BASE: `http://127.0.0.1:${SERVICES_APP_PORT}/services`,
+                  VALKEY_URL: this.plan.cache.url,
                 }),
                 envFrom: [{ secretRef: { name: secretName } }],
                 ...buildHttpHealthProbes(RUNTIME_APP_PORT),
                 resources: toK8sResources(monoGroup.resources),
+                securityContext: {
+                  allowPrivilegeEscalation: false,
+                  privileged: false,
+                  readOnlyRootFilesystem: false,
+                  runAsNonRoot: false,
+                },
+              },
+              {
+                name: "valkey",
+                image: valkeyImageUri(),
+                imagePullPolicy: HELM_VALKEY_PULL_POLICY,
+                command: ["valkey-server", "--save", "", "--appendonly", "no"],
+                ports: [{ containerPort: this.plan.cache.port }],
+                env: toEnvList({
+                  PORT: String(this.plan.cache.port),
+                }),
+                ...buildValkeyHealthProbes(this.plan.cache.port),
+                resources: toK8sResources(this.plan.cache.resources),
                 securityContext: {
                   allowPrivilegeEscalation: false,
                   privileged: false,

@@ -1,4 +1,4 @@
-import { StoreControllerAbstract, StoreType, KVStore, SqlStore } from "back-core";
+import { StoreControllerAbstract, StoreType, JsonStore, SqlStore } from "back-core";
 import { CronsStoreService } from "./crons";
 import { HistoryStoreService } from "./history";
 import historyMigrations from "./history-migrations";
@@ -12,8 +12,8 @@ export class StoresController extends StoreControllerAbstract {
   }
 
   async init() {
-    const cronsStore = await this.addStore("crons", StoreType.KVS, []);
-    this.crons = new CronsStoreService(cronsStore as KVStore);
+    const cronsStore = await this.addStore("crons", StoreType.JSON, []);
+    this.crons = new CronsStoreService(cronsStore as JsonStore);
 
     const historyStore = await this.addStore("history", StoreType.SQL, historyMigrations);
     this.history = new HistoryStoreService(historyStore as SqlStore);
