@@ -41,6 +41,7 @@
       "landing",
       "logs",
       "markdown",
+      "scripts",
       "static",
       "struct",
       "requests",
@@ -68,7 +69,7 @@
         "staff"
       ],
       "communications": ["calls", "charts", "community", "notify", "threads"],
-      "content": ["ceo", "classifier", "galery", "markdown", "static", "struct", "video"],
+      "content": ["ceo", "classifier", "galery", "markdown", "scripts", "static", "struct", "video"],
       "data": ["dumps", "files", "store"],
       "delivery": ["delivery", "dhl", "ems", "fedex", "sfexpress", "ups"],
       "extractors": ["millingextractor", "printextractor"],
