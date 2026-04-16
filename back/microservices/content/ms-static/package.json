@@ -1,0 +1,20 @@
+{
+  "name": "ms-static",
+  "version": "1.0.0",
+  "private": true,
+  "installConfig": {
+    "hoistingLimits": "workspaces"
+  },
+  "type": "module",
+  "scripts": {
+    "test": "bun test"
+  },
+  "exports": {
+    "./plugin": "./plugin.ts"
+  },
+  "dependencies": {
+    "back-core": "workspace:*",
+    "g-static": "workspace:*",
+    "nrpc": "workspace:*"
+  }
+}

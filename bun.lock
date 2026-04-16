@@ -278,6 +278,15 @@
         "nrpc": "workspace:*",
       },
     },
+    "back/microservices/content/ms-static": {
+      "name": "ms-static",
+      "version": "1.0.0",
+      "dependencies": {
+        "back-core": "workspace:*",
+        "g-static": "workspace:*",
+        "nrpc": "workspace:*",
+      },
+    },
     "back/microservices/content/ms-struct": {
       "name": "ms-struct",
       "version": "1.0.0",
@@ -909,6 +918,16 @@
         "md-tools": "workspace:*",
       },
     },
+    "front/microfrontends/content/mf-static": {
+      "name": "mf-static",
+      "dependencies": {
+        "effector": "23.4.4",
+        "effector-react": "23.3.0",
+        "front-core": "workspace:*",
+        "g-static": "workspace:*",
+        "lucide-react": "^1.8.0",
+      },
+    },
     "front/microfrontends/content/mf-struct": {
       "name": "mf-struct",
       "dependencies": {
@@ -1324,6 +1343,13 @@
     },
     "tools/integration/generated/g-staff": {
       "name": "g-staff",
+      "version": "0.0.0",
+      "dependencies": {
+        "nrpc": "workspace:*",
+      },
+    },
+    "tools/integration/generated/g-static": {
+      "name": "g-static",
       "version": "0.0.0",
       "dependencies": {
         "nrpc": "workspace:*",
@@ -2782,6 +2808,8 @@
 
     "g-staff": ["g-staff@workspace:tools/integration/generated/g-staff"],
 
+    "g-static": ["g-static@workspace:tools/integration/generated/g-static"],
+
     "g-store": ["g-store@workspace:tools/integration/generated/g-store"],
 
     "g-struct": ["g-struct@workspace:tools/integration/generated/g-struct"],
@@ -3090,6 +3118,8 @@
 
     "mf-sheduller": ["mf-sheduller@workspace:front/microfrontends/automation/mf-sheduller"],
 
+    "mf-static": ["mf-static@workspace:front/microfrontends/content/mf-static"],
+
     "mf-struct": ["mf-struct@workspace:front/microfrontends/content/mf-struct"],
 
     "mf-telemetry": ["mf-telemetry@workspace:front/microfrontends/analytics/mf-telemetry"],
@@ -3249,6 +3279,8 @@
     "ms-smtp": ["ms-smtp@workspace:back/microservices/providers/ms-smtp"],
 
     "ms-staff": ["ms-staff@workspace:back/microservices/business/ms-staff"],
+
+    "ms-static": ["ms-static@workspace:back/microservices/content/ms-static"],
 
     "ms-store": ["ms-store@workspace:back/microservices/data/ms-store"],
 
