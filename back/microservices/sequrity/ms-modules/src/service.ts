@@ -5,6 +5,8 @@ import type {
   ModulePreset,
   UserModuleConfig,
 } from "./types";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { createHttpClient, Access } from "nrpc";
 import { StoresController } from "./stores";
 
@@ -16,6 +18,54 @@ const REMOTE_BASE =
 
 const LOCAL_BASE =
   process.env.MODULES_LOCAL_BASE || "http://localhost:3005/modules";
+
+type RuntimeConfig = {
+  spa?: {
+    microfrontends?: string[];
+  };
+  frontend?: {
+    modules?: Record<string, boolean>;
+  };
+};
+
+function normalizeModuleName(name: string): string {
+  return name.startsWith("mf-") ? name : `mf-${name}`;
+}
+
+function readRuntimeConfig(): RuntimeConfig {
+  const configPath =
+    process.env.CONFIG_PATH ||
+    (process.env.PROJECT_DIR
+      ? resolve(process.env.PROJECT_DIR, "config.json")
+      : "");
+
+  if (!configPath || !existsSync(configPath)) return {};
+
+  try {
+    return JSON.parse(readFileSync(configPath, "utf8")) as RuntimeConfig;
+  } catch (error) {
+    console.warn("[modules] failed to read runtime config:", configPath, error);
+    return {};
+  }
+}
+
+function runtimeModuleDefinitions(): ModuleDefinition[] {
+  const config = readRuntimeConfig();
+  const fromSpa = Array.isArray(config.spa?.microfrontends)
+    ? config.spa.microfrontends
+    : [];
+  const fromModules = Object.entries(config.frontend?.modules ?? {})
+    .filter(([, enabled]) => enabled)
+    .map(([name]) => name);
+
+  return [...new Set([...fromSpa, ...fromModules].map(normalizeModuleName))].map(
+    (name) => ({
+      name,
+      remote: false,
+      protected: true,
+    }),
+  );
+}
 
 export class ModulesServiceImpl implements ModulesService {
   private stores: StoresController;
@@ -77,12 +127,16 @@ export class ModulesServiceImpl implements ModulesService {
   async listForUser(userId: string): Promise<Module[]> {
     await this.ready();
     const allModules = await this.stores.config.listModules();
+    const runtimeModules = runtimeModuleDefinitions();
+    const runtimeModuleNames = runtimeModules.map((m) => m.name);
     const config = await this.stores.users.getConfig(userId);
     const identityUser = await this.identityClient()
       .getUser(userId)
       .catch(() => null);
 
-    const moduleMap = new Map(allModules.map((m) => [m.name, m]));
+    const moduleMap = new Map<string, ModuleDefinition>();
+    for (const module of runtimeModules) moduleMap.set(module.name, module);
+    for (const module of allModules) moduleMap.set(module.name, module);
 
     const included = new Set<string>();
     const presetNames = new Set<string>(config.presets as string[]);
@@ -90,21 +144,27 @@ export class ModulesServiceImpl implements ModulesService {
       presetNames.add(identityUser.preset);
     }
 
+    let hasPresetModules = false;
     for (const presetName of presetNames) {
       const preset = await this.stores.config.getPreset(presetName);
       if (preset) {
-        for (const name of preset.modules) included.add(name);
+        for (const name of preset.modules) {
+          included.add(name);
+          hasPresetModules = true;
+        }
       }
     }
 
     // Backward-compatible default: if user preset is empty/not configured,
     // serve baseline modules from `root` preset instead of returning nothing.
-    if (included.size === 0) {
+    if (!hasPresetModules) {
       const rootPreset = await this.stores.config.getPreset("root");
       if (rootPreset) {
         for (const name of rootPreset.modules) included.add(name);
       }
     }
+
+    for (const name of runtimeModuleNames) included.add(name);
 
     for (const name of config.additions) included.add(name);
     for (const name of config.removals) included.delete(name);
@@ -180,12 +240,30 @@ export class ModulesServiceImpl implements ModulesService {
 
   async getModule(name: string): Promise<ModuleDefinition | null> {
     await this.ready();
-    return (await this.stores.config.getModule(name)) ?? null;
+    const normalizedName = normalizeModuleName(name);
+    const storedModule =
+      (await this.stores.config.getModule(normalizedName)) ??
+      (normalizedName === name
+        ? undefined
+        : await this.stores.config.getModule(name));
+    if (storedModule) return storedModule;
+
+    const runtimeModule = runtimeModuleDefinitions().find(
+      (module) => module.name === normalizedName,
+    );
+    return runtimeModule ?? null;
   }
 
   async listModules(): Promise<ModuleDefinition[]> {
     await this.ready();
-    return this.stores.config.listModules();
+    const moduleMap = new Map<string, ModuleDefinition>();
+    for (const module of runtimeModuleDefinitions()) {
+      moduleMap.set(module.name, module);
+    }
+    for (const module of await this.stores.config.listModules()) {
+      moduleMap.set(module.name, module);
+    }
+    return [...moduleMap.values()];
   }
 }
 

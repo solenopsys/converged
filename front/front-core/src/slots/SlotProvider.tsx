@@ -2,7 +2,6 @@ import { ReactNode, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useUnit } from "effector-react";
 import { $slotContents, layoutReady } from "./slots";
-import { $activeTab } from "sidebar-controller";
 
 /**
  * Маппинг slotId -> DOM element id
@@ -21,14 +20,18 @@ const SLOT_MOUNT_POINTS: Record<string, string> = {
 
 const SLOT_PROVIDER_OWNER_KEY = "__front_core_slot_provider_owner__";
 
+function resolveMountPointId(slotId: string): string {
+  if (slotId === "sidebar:tab" || slotId.startsWith("sidebar:tab:")) {
+    return "slot-panel-tab";
+  }
+  return SLOT_MOUNT_POINTS[slotId] || slotId;
+}
+
 /**
  * SlotPortal - рендерит контент слота в DOM элемент через portal
  */
 function SlotPortal({ slotId, content }: { slotId: string; content: ReactNode }) {
-  const mountPointId =
-    slotId.startsWith("sidebar:tab:")
-      ? "slot-panel-tab"
-      : SLOT_MOUNT_POINTS[slotId] || slotId;
+  const mountPointId = resolveMountPointId(slotId);
   const element = document.getElementById(mountPointId);
 
   if (!element) {
@@ -48,7 +51,6 @@ function SlotPortal({ slotId, content }: { slotId: string; content: ReactNode })
  */
 export function SlotProvider({ children }: { children?: ReactNode }) {
   const slotContents = useUnit($slotContents);
-  const activeTab = useUnit($activeTab);
   const ownerIdRef = useRef(`slot-provider-${Math.random().toString(36).slice(2)}`);
   const [isOwner, setIsOwner] = useState(false);
 
@@ -76,25 +78,12 @@ export function SlotProvider({ children }: { children?: ReactNode }) {
     };
   }, []);
 
-  const visibleSlots = Object.entries(slotContents).filter(([slotId]) => {
-    if (!slotId.startsWith("sidebar:tab:")) {
-      return true;
-    }
-
-    if (!activeTab || activeTab === "menu") {
-      return false;
-    }
-
-    const tabId = slotId.slice("sidebar:tab:".length);
-    return tabId === activeTab;
-  });
-
   return (
     <>
       {children}
       {/* Порталы для всех активных слотов */}
       {isOwner
-        ? visibleSlots.map(([slotId, content]) => (
+        ? Object.entries(slotContents).map(([slotId, content]) => (
             <SlotPortal key={slotId} slotId={slotId} content={content} />
           ))
         : null}

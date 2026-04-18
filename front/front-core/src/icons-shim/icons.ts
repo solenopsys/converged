@@ -13,12 +13,14 @@ export { default as IconChevronsLeft } from '@tabler/icons-react/dist/esm/icons/
 export { default as IconChevronsRight } from '@tabler/icons-react/dist/esm/icons/IconChevronsRight.mjs';
 export { default as IconCircleCheckFilled } from '@tabler/icons-react/dist/esm/icons/IconCircleCheckFilled.mjs';
 export { default as IconClock } from '@tabler/icons-react/dist/esm/icons/IconClock.mjs';
+export { default as IconCode } from '@tabler/icons-react/dist/esm/icons/IconCode.mjs';
 export { default as IconCreditCard } from '@tabler/icons-react/dist/esm/icons/IconCreditCard.mjs';
 export { default as IconDatabase } from '@tabler/icons-react/dist/esm/icons/IconDatabase.mjs';
 export { default as IconDots } from '@tabler/icons-react/dist/esm/icons/IconDots.mjs';
 export { default as IconDotsVertical } from '@tabler/icons-react/dist/esm/icons/IconDotsVertical.mjs';
 export { default as IconFileText } from '@tabler/icons-react/dist/esm/icons/IconFileText.mjs';
 export { default as IconFolder } from '@tabler/icons-react/dist/esm/icons/IconFolder.mjs';
+export { default as IconGauge } from '@tabler/icons-react/dist/esm/icons/IconGauge.mjs';
 export { default as IconGitBranch } from '@tabler/icons-react/dist/esm/icons/IconGitBranch.mjs';
 export { default as IconGlobe } from '@tabler/icons-react/dist/esm/icons/IconGlobe.mjs';
 export { default as IconGripVertical } from '@tabler/icons-react/dist/esm/icons/IconGripVertical.mjs';

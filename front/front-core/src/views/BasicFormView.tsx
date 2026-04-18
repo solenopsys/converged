@@ -35,12 +35,148 @@ interface BasicFormViewProps {
   entityStore?: Store<any>;
   title?: string;
   subtitle?: string;
+  relatedSections?: RelatedSectionConfig[];
   onSave?: (data: any) => void | Promise<void>;
   onCancel?: () => void;
   saveButtonText?: string;
   cancelButtonText?: string;
   loading?: boolean;
 }
+
+export interface RelatedSectionConfig {
+  id: string;
+  title: string;
+  columns: any[];
+  parentKey?: string;
+  tableId?: string;
+  emptyMessage?: string;
+  load: (params: {
+    parent: any;
+    parentId: any;
+  }) => Promise<{ items?: any[]; totalCount?: number } | any[]>;
+  onRowClick?: (row: any, parent: any) => void;
+  renderItem?: (params: {
+    item: any;
+    parent: any;
+    index: number;
+    onClick: () => void;
+  }) => React.ReactNode;
+}
+
+const formatRelatedValue = (value: any) => {
+  if (value == null || value === '') return '-';
+  if (value instanceof Date) return value.toLocaleString();
+  if (Array.isArray(value)) return value.join(', ');
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+};
+
+const RelatedSection = ({
+  section,
+  entity,
+}: {
+  section: RelatedSectionConfig;
+  entity: any;
+}) => {
+  const parentKey = section.parentKey ?? 'id';
+  const parentId = entity?.[parentKey];
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadItems = async () => {
+    if (parentId == null || loading) return;
+
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await section.load({
+        parent: entity,
+        parentId,
+      });
+      const nextItems = Array.isArray(result) ? result : result?.items ?? [];
+      setItems(nextItems);
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to load related records');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    setItems([]);
+    setError(null);
+
+    if (parentId != null) {
+      void loadItems();
+    }
+  }, [section.id, parentId]);
+
+  if (parentId == null) return null;
+
+  return (
+    <section className="flex min-h-[180px] flex-1 flex-col border-t">
+      <div className="flex items-center justify-between px-6 py-3">
+        <h3 className="text-sm font-semibold">{section.title}</h3>
+        <span className="text-xs text-muted-foreground">{items.length}</span>
+      </div>
+      {error ? (
+        <div className="px-6 pb-4 text-sm text-destructive">{error}</div>
+      ) : loading ? (
+        <div className="px-6 pb-4 text-sm text-muted-foreground">Loading...</div>
+      ) : items.length === 0 ? (
+        <div className="px-6 pb-4 text-sm text-muted-foreground">
+          {section.emptyMessage ?? 'No related records'}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2 px-3 pb-4">
+          {items.map((item, index) => {
+            const key = item?.id ?? `${section.id}-${index}`;
+            const onClick = () => section.onRowClick?.(item, entity);
+
+            if (section.renderItem) {
+              return (
+                <React.Fragment key={key}>
+                  {section.renderItem({ item, parent: entity, index, onClick })}
+                </React.Fragment>
+              );
+            }
+
+            const titleColumn = section.columns[0];
+            const detailColumns = section.columns.slice(1).filter((column) => column.id !== 'createdAt');
+            const titleValue = titleColumn ? item?.[titleColumn.id] : key;
+
+            return (
+              <button
+                key={key}
+                type="button"
+                className="w-full rounded-md border bg-background px-4 py-3 text-left hover:bg-accent"
+                onClick={onClick}
+              >
+                <div className="mb-2 truncate text-sm font-semibold">
+                  {formatRelatedValue(titleValue)}
+                </div>
+                <div className="grid grid-cols-[120px_1fr] gap-x-3 gap-y-1 text-sm">
+                  {detailColumns.map((column) => {
+                    const rendered = column.render?.(item?.[column.id], item);
+                    return (
+                      <React.Fragment key={column.id}>
+                        <span className="text-muted-foreground">{column.title}</span>
+                        <span className="min-w-0 break-words">
+                          {rendered ?? formatRelatedValue(item?.[column.id])}
+                        </span>
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+};
 
 /**
  * Universal form component that renders based on field configuration
@@ -51,6 +187,7 @@ export const BasicFormView: React.FC<BasicFormViewProps> = ({
   entityStore,
   title = 'Form',
   subtitle,
+  relatedSections = [],
   onSave,
   onCancel,
   saveButtonText = 'Save',
@@ -312,10 +449,17 @@ export const BasicFormView: React.FC<BasicFormViewProps> = ({
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="flex-1 overflow-auto">
-        <div className="px-6 py-4 space-y-4">
+      <form onSubmit={handleSubmit} className="flex flex-1 min-h-0 flex-col overflow-auto">
+        <div className="shrink-0 px-6 py-4 space-y-4">
           {fields.map(renderField)}
         </div>
+        {relatedSections.length > 0 && entity && (
+          <div className="flex min-h-0 flex-1 flex-col pb-4">
+            {relatedSections.map((section) => (
+              <RelatedSection key={section.id} section={section} entity={entity} />
+            ))}
+          </div>
+        )}
       </form>
 
       {/* Footer */}

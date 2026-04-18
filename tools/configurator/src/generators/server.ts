@@ -69,7 +69,7 @@ export function generateRuntimeConfigs(ctx: GeneratorContext): Map<string, strin
         microservices: buildMicroserviceMap(group.microservices),
       },
       frontend: {
-        modules: {},
+        modules: uiModules,
         layout: "sidebar",
         mountChatView: false,
       },

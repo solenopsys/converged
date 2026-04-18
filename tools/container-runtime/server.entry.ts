@@ -26,6 +26,15 @@ type RuntimeMap = {
   };
 };
 
+type RuntimeConfig = {
+  spa?: {
+    microfrontends?: string[];
+  };
+  frontend?: {
+    modules?: Record<string, boolean>;
+  };
+};
+
 const appRoot = process.env.APP_ROOT || process.cwd();
 const projectDir = process.env.PROJECT_DIR || appRoot;
 const port = Number(process.env.PORT || "3000");
@@ -39,6 +48,30 @@ const binLibsPath =
 function readRuntimeMap(path: string): RuntimeMap {
   const content = readFileSync(path, "utf8");
   return Bun.TOML.parse(content) as RuntimeMap;
+}
+
+function readRuntimeConfig(path: string): RuntimeConfig {
+  if (!existsSync(path)) return {};
+  try {
+    return JSON.parse(readFileSync(path, "utf8")) as RuntimeConfig;
+  } catch (error) {
+    console.warn("[runtime] failed to read config:", path, error);
+    return {};
+  }
+}
+
+function normalizeMfName(name: string): string {
+  return name.startsWith("mf-") ? name : `mf-${name}`;
+}
+
+function resolveRuntimeMicrofrontends(config: RuntimeConfig): string[] {
+  const fromSpa = Array.isArray(config.spa?.microfrontends)
+    ? config.spa.microfrontends
+    : [];
+  const fromModules = Object.entries(config.frontend?.modules ?? {})
+    .filter(([, enabled]) => enabled)
+    .map(([name]) => name);
+  return [...new Set([...fromSpa, ...fromModules].map(normalizeMfName))];
 }
 
 async function importPlugin(path: string) {
@@ -80,6 +113,8 @@ if (!existsSync(runtimeMapPath)) {
 }
 
 const runtimeMap = readRuntimeMap(runtimeMapPath);
+const runtimeConfig = readRuntimeConfig(process.env.CONFIG_PATH || resolve(appRoot, "config.json"));
+const runtimeMicrofrontends = resolveRuntimeMicrofrontends(runtimeConfig);
 const runtimeCacheConfig = runtimeMap.cache?.url
   ? {
       url: runtimeMap.cache.url,
@@ -281,6 +316,7 @@ if (existsSync(spaPluginPath)) {
     spaPlugin({
       production: true,
       cache: runtimeCache,
+      microfrontends: runtimeMicrofrontends,
     }),
   );
 }
@@ -297,6 +333,7 @@ if (runtimeMap.landing?.plugin) {
     landingPlugin({
       production: true,
       publicDir: resolve(projectDir, "front", "landing", "public"),
+      microfrontends: runtimeMicrofrontends,
     }),
   );
 }

@@ -1014,6 +1014,7 @@ const MF_GROUPS: Record<string, string> = {
   'mf-marker': 'marketing',
   'mf-mailing': 'sales',
   'mf-sales': 'sales',
+  'mf-parameters': 'business',
   'mf-geo': 'geo',
   'mf-places': 'geo',
   'mf-companies': 'geo',

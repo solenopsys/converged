@@ -81,7 +81,7 @@ export const present = async (widget: Widget<any>, slot: string | string[], moun
         });
     }
 
-    const componentKey = res.tableId || point;
+    const componentKey = res.instanceKey || res.tableId || point;
 
     return mountWhenReady(
         <Component key={componentKey} {...res} {...mountParams} {...commandHandlers} />,

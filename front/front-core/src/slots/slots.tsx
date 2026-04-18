@@ -15,10 +15,26 @@ const SLOT_MOUNT_POINTS: Record<string, string> = {
 };
 
 function resolveMountPointId(slotId: SlotId): string {
-  if (slotId.startsWith("sidebar:tab:")) {
+  if (slotId === "sidebar:tab" || slotId.startsWith("sidebar:tab:")) {
     return "slot-panel-tab";
   }
   return SLOT_MOUNT_POINTS[slotId] || slotId;
+}
+
+function normalizeSlotId(slotId: SlotId): SlotId {
+  if (slotId.startsWith("sidebar:tab:")) {
+    return "sidebar:tab";
+  }
+  return slotId;
+}
+
+function hasContentForMountPoint(
+  contents: Record<SlotId, ReactNode>,
+  mountPointId: string,
+): boolean {
+  return Object.keys(contents).some(
+    (existingSlotId) => resolveMountPointId(existingSlotId) === mountPointId,
+  );
 }
 
 // События
@@ -48,14 +64,20 @@ export const $slotContents = createStore<Record<SlotId, ReactNode>>({})
  */
 export const mount = (content: ReactNode, slotId: SlotId): void => {
   console.log(`[slots] mount to ${slotId}`);
-  if (typeof document !== "undefined") {
-    const mountPointId = resolveMountPointId(slotId);
+  const normalizedSlotId = normalizeSlotId(slotId);
+  const mountPointId = resolveMountPointId(normalizedSlotId);
+  const existingContent = hasContentForMountPoint(
+    $slotContents.getState(),
+    mountPointId,
+  );
+
+  if (!existingContent && typeof document !== "undefined") {
     const mountPoint = document.getElementById(mountPointId);
     if (mountPoint) {
       mountPoint.replaceChildren();
     }
   }
-  slotContentSet({ slotId, content });
+  slotContentSet({ slotId: normalizedSlotId, content });
 };
 
 /**
@@ -63,7 +85,7 @@ export const mount = (content: ReactNode, slotId: SlotId): void => {
  */
 export const unmount = (slotId: SlotId): void => {
   console.log(`[slots] unmount ${slotId}`);
-  slotContentCleared(slotId);
+  slotContentCleared(normalizeSlotId(slotId));
 };
 
 /**

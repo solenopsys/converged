@@ -15,6 +15,7 @@ export interface SpaPluginConfig {
   production?: boolean;
   compress?: boolean;
   cache?: SharedCacheAdapter;
+  microfrontends?: string[];
 }
 
 // fileName → npm specifier
@@ -203,6 +204,9 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
     : "public, max-age=3600";
   const sharedCache = isProd ? config.cache : undefined;
   const assetCacheTtlSeconds = 3600;
+  const activeMicrofrontends = config.microfrontends?.length
+    ? config.microfrontends.map((name) => name.startsWith("mf-") ? name : `mf-${name}`)
+    : microfrontends;
 
   // Dev caches
   const vendorBundles = new Map<string, Blob>();
@@ -628,7 +632,7 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
       const cleaned = rawName.endsWith(".js") ? rawName.slice(0, -3) : rawName;
       const name = cleaned.startsWith("mf-") ? cleaned : `mf-${cleaned}`;
 
-      if (microfrontends.length > 0 && !microfrontends.includes(name)) {
+      if (activeMicrofrontends.length > 0 && !activeMicrofrontends.includes(name)) {
         set.status = 404;
         return { error: "Unknown microfrontend" };
       }
@@ -664,7 +668,7 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
     .get("/locales/:lng/menu-groups.json", async ({ params }) => {
       const lng = params.lng;
       const merged: Record<string, any> = {};
-      for (const mf of microfrontends) {
+      for (const mf of activeMicrofrontends) {
         for (const dir of mfDirs) {
           const mfRoot = resolveMicrofrontendRootInDir(dir, mf);
           if (!mfRoot) continue;
