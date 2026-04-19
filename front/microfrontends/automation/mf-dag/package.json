@@ -10,8 +10,11 @@
     "dagre": "^0.8.5",
     "echarts": "6.0.0",
     "echarts-for-react": "3.0.6",
+    "effector": "23.4.4",
+    "effector-react": "23.3.0",
     "front-core": "workspace:*",
     "g-dag": "workspace:*",
+    "g-scripts": "workspace:*",
     "lucide-react": "^1.8.0",
     "pixi.js": "^8.11.0"
   }

@@ -581,7 +581,9 @@
         "g-delivery": "workspace:*",
         "g-logs": "workspace:*",
         "g-notify": "workspace:*",
+        "g-openscadconvertor": "workspace:*",
         "g-runtime": "workspace:*",
+        "g-scripts": "workspace:*",
         "g-ses": "workspace:*",
         "g-sheduller": "workspace:*",
         "g-shipmentprovider": "workspace:*",
@@ -831,8 +833,11 @@
         "dagre": "^0.8.5",
         "echarts": "6.0.0",
         "echarts-for-react": "3.0.6",
+        "effector": "23.4.4",
+        "effector-react": "23.3.0",
         "front-core": "workspace:*",
         "g-dag": "workspace:*",
+        "g-scripts": "workspace:*",
         "lucide-react": "^1.8.0",
         "pixi.js": "^8.11.0",
       },
@@ -3760,6 +3765,8 @@
     "dom-helpers/@babel/runtime": ["@babel/runtime@7.28.6", "", {}, "sha512-05WQkdpL9COIMz4LjTxGpPNCdlpyimKppYNoJ5Di5EUObifl8t4tuLuUBBZEpoLYOmfvIWrsp9fCl0HoPRVTdA=="],
 
     "echarts/tslib": ["tslib@2.3.0", "", {}, "sha512-N82ooyxVNm6h1riLCoyS9e3fuJ3AMG2zIZs2Gd1ATcSFjSA23Q0fzjjZeh0jbJvWVDZ0cJT8yaNNaaXHzueNjg=="],
+
+    "front-core/typescript": ["typescript@6.0.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw=="],
 
     "gaxios/node-fetch": ["node-fetch@3.3.2", "", { "dependencies": { "data-uri-to-buffer": "^4.0.0", "fetch-blob": "^3.1.4", "formdata-polyfill": "^4.0.10" } }, "sha512-dRB78srN/l6gqWulah9SrxeYnxeddIG30+GOqK/9OlLVyLg3HPnr6SqOWTWOXKRwC2eGYCkZ59NNuSgvSrpgOA=="],
 

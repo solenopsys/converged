@@ -4,8 +4,8 @@ import { createShedullerServiceClient } from "g-sheduller";
 import { CronEngine } from "./engines/cron";
 import { sendMagicLink } from "./gates/send-magic-link";
 import { Access } from "nrpc";
-
-type WorkflowCtor = new (ctx: any, id?: string) => { start(params: any): Promise<void> };
+import { initProvidersPool } from "./workflows/providers";
+import { RuntimeScriptResolver, type WorkflowCtor } from "./script-resolver";
 
 type RunExecutionOptions = {
   emit?: (event: ExecutionEvent) => void;
@@ -58,6 +58,7 @@ export class RuntimeServiceImpl implements RuntimeService {
   private workflowNames: string[] = [];
   private workflowCtors: Map<string, WorkflowCtor> = new Map();
   private activeExecutionIds = new Set<string>();
+  private scriptResolver: RuntimeScriptResolver;
 
   constructor(config?: any) {
     const baseUrl = process.env.SERVICES_BASE ?? "http://localhost:3000/services";
@@ -73,27 +74,36 @@ export class RuntimeServiceImpl implements RuntimeService {
         .map((entry: any) => [entry.name, entry.ctor]),
     );
 
+    const openai = config?.openai;
+    const gemini = config?.gemini;
+    const providerStore = {
+      async getProvider(name: string) {
+        if (name === "openai" && openai?.key) {
+          return {
+            codeName: "openai",
+            config: { token: openai.key, model: openai.model ?? "gpt-4o-mini" },
+          };
+        }
+        if (name === "gemini" && gemini?.key) {
+          return {
+            codeName: "gemini",
+            config: { token: gemini.key, model: gemini.model ?? "gemini-3.1-flash-lite" },
+          };
+        }
+        throw new Error(`Provider "${name}" not configured`);
+      },
+    };
+    initProvidersPool(providerStore);
     if (typeof workflows.initProvidersPool === "function") {
-      const openai = config?.openai;
-      const gemini = config?.gemini;
-      workflows.initProvidersPool({
-        async getProvider(name: string) {
-          if (name === "openai" && openai?.key) {
-            return {
-              codeName: "openai",
-              config: { token: openai.key, model: openai.model ?? "gpt-4o-mini" },
-            };
-          }
-          if (name === "gemini" && gemini?.key) {
-            return {
-              codeName: "gemini",
-              config: { token: gemini.key, model: gemini.model ?? "gemini-3.1-flash-lite" },
-            };
-          }
-          throw new Error(`Provider "${name}" not configured`);
-        },
-      });
+      workflows.initProvidersPool(providerStore);
     }
+
+    this.scriptResolver = new RuntimeScriptResolver({
+      baseUrl,
+      checkIntervalMs: Number(process.env.RUNTIME_SCRIPT_HASH_CHECK_INTERVAL_MS || 0),
+      refreshIntervalMs: Number(process.env.RUNTIME_SCRIPT_HASH_REFRESH_INTERVAL_MS || 0),
+      registerShutdownTask: config?.registerShutdownTask,
+    });
 
     this.cronEngine = new CronEngine((record) => {
       console.log(`[runtime] cron fired: ${record.cronName} success=${record.success}`);
@@ -263,7 +273,7 @@ export class RuntimeServiceImpl implements RuntimeService {
       }
       emit({ type: "started", executionId });
 
-      const Ctor = this.workflowCtors.get(workflowName);
+      const Ctor = await this.resolveWorkflowCtor(workflowName);
       if (!Ctor) {
         await setExecutionStatus(executionId, "failed");
         emit({ type: "failed", executionId, error: `Workflow "${workflowName}" not found` });
@@ -370,6 +380,8 @@ export class RuntimeServiceImpl implements RuntimeService {
             console.error(`[runtime] setVar failed key=${key}`, error);
           });
         },
+        scripts: this.scriptResolver,
+        importScript: (path: string) => this.scriptResolver.import(path),
       };
 
       const workflow = new Ctor(ctx, executionId);
@@ -450,7 +462,29 @@ export class RuntimeServiceImpl implements RuntimeService {
   }
 
   async listWorkflows(): Promise<{ names: string[] }> {
-    return { names: this.workflowNames };
+    try {
+      const dynamicNames = await this.scriptResolver.listWorkflowNames();
+      return { names: Array.from(new Set([...dynamicNames, ...this.workflowNames])).sort() };
+    } catch (error) {
+      if (!this.isTemporaryHostUnavailable(error)) {
+        console.error("[runtime] listWorkflows from ms-scripts failed", error);
+      }
+      return { names: this.workflowNames };
+    }
+  }
+
+  private async resolveWorkflowCtor(workflowName: string): Promise<WorkflowCtor | undefined> {
+    const staticCtor = this.workflowCtors.get(workflowName);
+    if (staticCtor) return staticCtor;
+
+    try {
+      return await this.scriptResolver.resolveWorkflowCtor(workflowName);
+    } catch (error) {
+      if (!this.isTemporaryHostUnavailable(error)) {
+        console.error(`[runtime] resolve workflow from ms-scripts failed workflow=${workflowName}`, error);
+      }
+    }
+    return undefined;
   }
 
   async refreshCrons(): Promise<void> {

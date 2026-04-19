@@ -7,6 +7,8 @@
   "exports": {
     ".": "./index.ts",
     "./plugin": "./plugin.ts",
+    "./dag-api": "./workflows/dag-api.ts",
+    "./providers": "./workflows/providers/index.ts",
     "./engines/dag": "./engines/dag/index.ts",
     "./engines/cron": "./engines/cron/index.ts"
   },
@@ -18,8 +20,10 @@
     "g-delivery": "workspace:*",
     "g-logs": "workspace:*",
     "g-notify": "workspace:*",
+    "g-openscadconvertor": "workspace:*",
     "g-runtime": "workspace:*",
     "g-sheduller": "workspace:*",
+    "g-scripts": "workspace:*",
     "g-ses": "workspace:*",
     "g-shipmentprovider": "workspace:*",
     "g-telemetry": "workspace:*",

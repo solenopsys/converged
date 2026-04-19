@@ -10,9 +10,6 @@ import { createValkeyCache } from "./valkey";
 
 type RuntimeMap = {
   services: Record<string, string>;
-  workflows?: {
-    plugin?: string;
-  };
   spa?: {
     plugin?: string;
   };
@@ -164,21 +161,6 @@ for (const { key } of pluginEntries) {
   if (name) servicePaths[name] = resolve(dataRoot, name);
 }
 
-let workflows: any = {};
-if (runtimeMap.workflows?.plugin) {
-  const wfPath = runtimeMap.workflows.plugin.startsWith("/")
-    ? runtimeMap.workflows.plugin
-    : resolve(appRoot, runtimeMap.workflows.plugin);
-  if (existsSync(wfPath)) {
-    try {
-      workflows = await import(pathToFileURL(wfPath).href);
-    } catch (error) {
-      console.error("[runtime] workflows load failed:", wfPath, error);
-      workflows = {};
-    }
-  }
-}
-
 const pluginConfig = {
   dbPath: dataRoot,
   dataDir: dataRoot,
@@ -192,7 +174,6 @@ const pluginConfig = {
   },
   ...loadAiProvidersFromEnv(),
   servicePaths,
-  workflows,
 };
 
 if (runtimeCache) {

@@ -281,22 +281,13 @@ for (const services of Object.values(config.back.microservices)) {
   }
 }
 
-// Load workflows from project's back/workflows package
-let workflows: any = {};
-const workflowsPath = resolve(PROJECT_DIR, "back/workflows/index.ts");
-if (existsSync(workflowsPath)) {
-  workflows = await import(pathToFileURL(workflowsPath).href);
-}
-
 // Load RT plugin from back/runtime and add to plugins (mounts inside /services group)
 const runtimePluginPath = resolve(PROJECT_DIR, "back/runtime/plugin.ts");
 if (existsSync(runtimePluginPath)) {
   const runtimeMod = await import(pathToFileURL(runtimePluginPath).href);
   const runtimePluginFactory = runtimeMod.default ?? runtimeMod;
   if (typeof runtimePluginFactory === "function") {
-    plugins.push((pluginConfig: any) =>
-      runtimePluginFactory({ ...pluginConfig, workflows }),
-    );
+    plugins.push((pluginConfig: any) => runtimePluginFactory(pluginConfig));
   }
 }
 
@@ -306,7 +297,7 @@ const server = createServer({
     name: config.name || "converged",
     port,
     dataDir,
-    extraConfig: { servicePaths, workflows, apiKey: process.env.GOOGLE_API_KEY || "", cx: process.env.GOOGLE_CX || "" },
+    extraConfig: { servicePaths, apiKey: process.env.GOOGLE_API_KEY || "", cx: process.env.GOOGLE_CX || "" },
   },
   plugins,
 });

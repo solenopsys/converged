@@ -129,7 +129,6 @@ class DynamicContainerfileBuilder {
   private readonly storeWorkersOwner: string;
   private readonly runtimeServerOwner: string;
   private readonly runtimePluginOwner: string;
-  private readonly workflowsOwner: string;
 
   // Paths from config
   private readonly spaCorePath: string;
@@ -163,7 +162,6 @@ class DynamicContainerfileBuilder {
     this.storeWorkersOwner = resolveOwnerDir(ctx, this.storeWorkersPath);
     this.runtimeServerOwner = resolveOwnerDir(ctx, "tools/container-runtime/server.entry.ts");
     this.runtimePluginOwner = resolveOwnerDir(ctx, "back/runtime/plugin.ts");
-    this.workflowsOwner = resolveOwnerDir(ctx, "back/workflows/index.ts");
     this.pruneToolsScriptOwner = resolveOwnerDir(ctx, this.pruneToolsScriptPath);
 
     this.apkPackages = config.runtimeDeps?.apk ?? [];
@@ -240,7 +238,6 @@ class DynamicContainerfileBuilder {
     } else if (this.role === "rt") {
       this.prepareMsOutputDirs();
       this.buildRuntimePlugin();
-      this.buildWorkflows();
       this.copyNativeLibs();
       this.writeRtRuntimeMap();
     } else {
@@ -306,7 +303,7 @@ class DynamicContainerfileBuilder {
 
   private prepareMsOutputDirs() {
     this.emit("");
-    this.emit("RUN mkdir -p /build/out/app /build/out/plugins/chunks /build/out/plugins/workflows \\");
+    this.emit("RUN mkdir -p /build/out/app /build/out/plugins/chunks \\");
     this.emit("      /build/out/plugins/bin-libs /build/out/lib");
   }
 
@@ -352,15 +349,6 @@ class DynamicContainerfileBuilder {
     this.emit("");
     this.emit(`RUN bun build ${spaPluginEntry} \\`);
     this.emit("    --target bun --format esm --outdir /build/out/plugins/spa \\");
-    this.emit("    --minify --no-splitting");
-  }
-
-  private buildWorkflows() {
-    const entry = this.projectPath(this.workflowsOwner, "back/workflows/index.ts");
-    if (!dirExists(this.ctx, this.workflowsOwner, "back/workflows/index.ts")) return;
-    this.emit("");
-    this.emit(`RUN bun build ${entry} \\`);
-    this.emit("    --target bun --format esm --outdir /build/out/plugins/workflows \\");
     this.emit("    --minify --no-splitting");
   }
 
@@ -422,11 +410,6 @@ class DynamicContainerfileBuilder {
       toml.push("");
     }
 
-    toml.push("[workflows]");
-    if (dirExists(this.ctx, this.workflowsOwner, "back/workflows/index.ts")) {
-      toml.push('plugin = "/app/plugins/workflows/index.js"');
-    }
-    toml.push("");
     toml.push("[cache]");
     toml.push(`url = "${this.deploymentPlan.cache.url}"`);
     toml.push(`keyPrefix = "${this.deploymentPlan.cache.keyPrefix}"`);
@@ -577,7 +560,6 @@ class DynamicContainerfileBuilder {
       this.emit("COPY --from=builder /build/out/front ./front");
     } else if (this.role === "rt") {
       this.emit("COPY --from=builder /build/out/plugins/runtime ./plugins/runtime");
-      this.emit("COPY --from=builder /build/out/plugins/workflows ./plugins/workflows");
       this.emit("COPY --from=builder /build/out/plugins/bin-libs ./plugins/bin-libs");
     } else {
       this.emit("COPY --from=builder /build/out/plugins/chunks ./plugins/chunks");
