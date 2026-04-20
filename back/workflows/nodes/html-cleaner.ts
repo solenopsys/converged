@@ -1,4 +1,4 @@
-import { type INode } from "../dag-api";
+import { type INode } from "@rt/dag-api";
 import { Readability } from "@mozilla/readability";
 import { JSDOM } from "jsdom";
 import TurndownService from "turndown";

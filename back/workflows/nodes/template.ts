@@ -1,4 +1,4 @@
-import { type INode,type ContextAccessor,processTemplate } from "../dag-api";
+import { type INode,type ContextAccessor,processTemplate } from "@rt/dag-api";
  
 
 export interface TemplateNodeConfig {

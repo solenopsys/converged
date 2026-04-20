@@ -1,6 +1,6 @@
 // src/nodes/ai-request.ts
-import { type INode, type Provider } from "../dag-api";
-import { getProvidersPool } from "../providers";
+import { type INode, type Provider } from "@rt/dag-api";
+import { getProvidersPool } from "@rt/providers";
 
 
 

@@ -1,4 +1,4 @@
-import { type INode,processTemplate } from "../dag-api";
+import { type INode,processTemplate } from "@rt/dag-api";
 
 
 type Method = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";

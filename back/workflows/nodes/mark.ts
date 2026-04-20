@@ -1,4 +1,4 @@
-import type { INode } from "../dag-api";
+import type { INode } from "@rt/dag-api";
 import { marked } from "marked"; 
 
 export  default class MarkNode implements INode {

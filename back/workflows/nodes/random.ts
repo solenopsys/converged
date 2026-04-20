@@ -1,5 +1,5 @@
 
-import { type INode } from "../dag-api";
+import { type INode } from "@rt/dag-api";
 
 export default class RandomStringNode implements INode {
 	public scope!: string;

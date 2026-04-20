@@ -1,6 +1,6 @@
-import { type INode, type Provider } from "../dag-api";
+import { type INode, type Provider } from "@rt/dag-api";
 import { evaluateJsonPathString } from "back-core";
-import { getProvidersPool } from "../providers";
+import { getProvidersPool } from "@rt/providers";
 
 function normalize(v: unknown) {
   if (typeof v === "string" && /^\d+$/.test(v)) return Number(v);

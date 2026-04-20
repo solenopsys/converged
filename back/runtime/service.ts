@@ -54,6 +54,7 @@ export class RuntimeServiceImpl implements RuntimeService {
   private shedullerClient: ReturnType<typeof createShedullerServiceClient>;
   private cronEngine: CronEngine;
   private cronRefreshTimer?: ReturnType<typeof setInterval>;
+  private startupSyncTimer?: ReturnType<typeof setTimeout>;
   private scheduledCronIds = new Set<string>();
   private workflowNames: string[] = [];
   private workflowCtors: Map<string, WorkflowCtor> = new Map();
@@ -117,27 +118,44 @@ export class RuntimeServiceImpl implements RuntimeService {
       });
     }, Number.isFinite(refreshIntervalMs) && refreshIntervalMs > 0 ? refreshIntervalMs : 30000);
 
-    void this.refreshCrons().catch((error) => {
-      this.logRefreshCronsFailure("initial", error);
-    });
+    this.scheduleStartupSync();
 
-    void this.resumeActiveExecutions(200)
-      .then((summary) => {
-        if (summary.resumed || summary.skipped || summary.failed) {
-          console.info(
-            `[runtime] resumeActiveExecutions resumed=${summary.resumed} skipped=${summary.skipped} failed=${summary.failed}`,
-          );
-        }
-      })
-      .catch((error) => {
-        this.logResumeDagFailure(error);
-      });
-
-    if (typeof config?.registerShutdownTask === "function" && this.cronRefreshTimer) {
+    if (typeof config?.registerShutdownTask === "function") {
       config.registerShutdownTask("runtime:cron-refresh", async () => {
-        clearInterval(this.cronRefreshTimer!);
+        if (this.cronRefreshTimer) {
+          clearInterval(this.cronRefreshTimer);
+        }
+        if (this.startupSyncTimer) {
+          clearTimeout(this.startupSyncTimer);
+        }
       });
     }
+  }
+
+  private scheduleStartupSync(): void {
+    const configuredDelay = Number(process.env.RUNTIME_STARTUP_SYNC_DELAY_MS ?? 1000);
+    const delayMs = Number.isFinite(configuredDelay) && configuredDelay > 0 ? configuredDelay : 0;
+
+    this.startupSyncTimer = setTimeout(() => {
+      this.startupSyncTimer = undefined;
+      void this.refreshCrons().catch((error) => {
+        this.logRefreshCronsFailure("initial", error);
+      });
+
+      void this.resumeActiveExecutions(200)
+        .then((summary) => {
+          if (summary.resumed || summary.skipped || summary.failed) {
+            console.info(
+              `[runtime] resumeActiveExecutions resumed=${summary.resumed} skipped=${summary.skipped} failed=${summary.failed}`,
+            );
+          }
+        })
+        .catch((error) => {
+          this.logResumeDagFailure(error);
+        });
+    }, delayMs);
+
+    (this.startupSyncTimer as any)?.unref?.();
   }
 
   private resolveWorkflowNames(workflowList: any[]): string[] {
@@ -153,12 +171,16 @@ export class RuntimeServiceImpl implements RuntimeService {
 
   private isTemporaryHostUnavailable(error: unknown): boolean {
     const message = (error instanceof Error ? error.message : String(error ?? "")).toLowerCase();
+    if (message.includes("storage error: storenotfound") || message === "storenotfound") {
+      return true;
+    }
+
     return (
       message.includes("unable to connect") ||
       message.includes("connectionrefused") ||
       message.includes("connection refused") ||
       message.includes("econnrefused") ||
-      message.includes("enotfound") ||
+      /(^|[^a-z])enotfound([^a-z]|$)/.test(message) ||
       message.includes("eai_again") ||
       message.includes("etimedout") ||
       message.includes("request timeout")
@@ -480,11 +502,12 @@ export class RuntimeServiceImpl implements RuntimeService {
     try {
       return await this.scriptResolver.resolveWorkflowCtor(workflowName);
     } catch (error) {
-      if (!this.isTemporaryHostUnavailable(error)) {
-        console.error(`[runtime] resolve workflow from ms-scripts failed workflow=${workflowName}`, error);
+      if (this.isTemporaryHostUnavailable(error)) {
+        console.error(`[runtime] resolve workflow from ms-scripts temporarily unavailable workflow=${workflowName}`, error);
+        return undefined;
       }
+      throw error;
     }
-    return undefined;
   }
 
   async refreshCrons(): Promise<void> {

@@ -1,0 +1,7 @@
+{
+  "compilerOptions": {
+    "paths": {
+      "@rt/converged/*": ["./back/runtime/workflows/*"]
+    }
+  }
+}

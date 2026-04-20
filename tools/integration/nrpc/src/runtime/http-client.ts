@@ -8,6 +8,8 @@ export interface ClientConfig {
   headers?: Record<string, string>;
 }
 
+const NRPC_HTTP_ERROR_LOGGED = Symbol("nrpc.httpErrorLogged");
+
 export function createHttpClient<T>(
   metadata: ServiceMetadata,
   config: ClientConfig = {},
@@ -25,12 +27,16 @@ function isLikelyJwtToken(token: string): boolean {
 function isConnectivityIssue(error: any): boolean {
   const code = typeof error?.code === "string" ? error.code.toLowerCase() : "";
   const message = typeof error?.message === "string" ? error.message.toLowerCase() : "";
+  const connectivityCodes = new Set([
+    "connrefused",
+    "econnrefused",
+    "enotfound",
+    "eai_again",
+    "etimedout",
+    "econnreset",
+  ]);
   return (
-    code.includes("connrefused") ||
-    code.includes("econnrefused") ||
-    code.includes("enotfound") ||
-    code.includes("eai_again") ||
-    code.includes("etimedout") ||
+    connectivityCodes.has(code) ||
     message.includes("unable to connect") ||
     message.includes("connection refused") ||
     message.includes("fetch failed")
@@ -127,7 +133,9 @@ class HttpClientImpl {
         }
 
         console.error(`[nrpc] ✗ ${url}:`, errorMessage);
-        throw new Error(errorMessage);
+        const error = new Error(errorMessage);
+        Object.defineProperty(error, NRPC_HTTP_ERROR_LOGGED, { value: true });
+        throw error;
       }
 
       if (method!.returnType === "void") {
@@ -146,6 +154,10 @@ class HttpClientImpl {
 
       if (error.name === "AbortError") {
         throw new Error(`Request timeout after ${this.timeout}ms`);
+      }
+
+      if (error?.[NRPC_HTTP_ERROR_LOGGED]) {
+        throw error;
       }
 
       if (isConnectivityIssue(error)) {

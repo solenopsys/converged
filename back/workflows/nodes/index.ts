@@ -1,4 +1,4 @@
-import type { INode } from "../dag-api";
+import type { INode } from "@rt/dag-api";
 
 import { AiRequest } from "./ai-request";
 // Temporarily disabled: pulls jsdom into workflows bundle and breaks ms runtime on alpine.

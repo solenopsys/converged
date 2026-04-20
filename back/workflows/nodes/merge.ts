@@ -1,4 +1,4 @@
-import { type INode } from "../dag-api";
+import { type INode } from "@rt/dag-api";
 
 export class MergeNode implements INode {
 	public scope!: string;

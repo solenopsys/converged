@@ -7,7 +7,6 @@
 		"back/back-core",
 		"back/external/*",
 		"back/native/*",
-		"back/workflows",
 		"back/runtime",
 		"back/microservices/**/*",
 		"front/front-core",

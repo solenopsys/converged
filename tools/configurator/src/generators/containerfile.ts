@@ -238,6 +238,7 @@ class DynamicContainerfileBuilder {
     } else if (this.role === "rt") {
       this.prepareMsOutputDirs();
       this.buildRuntimePlugin();
+      this.copyRuntimeCore();
       this.copyNativeLibs();
       this.writeRtRuntimeMap();
     } else {
@@ -304,7 +305,7 @@ class DynamicContainerfileBuilder {
   private prepareMsOutputDirs() {
     this.emit("");
     this.emit("RUN mkdir -p /build/out/app /build/out/plugins/chunks \\");
-    this.emit("      /build/out/plugins/bin-libs /build/out/lib");
+    this.emit("      /build/out/plugins/bin-libs /build/out/lib /build/out/back/runtime");
   }
 
   private buildFrontend() {
@@ -360,6 +361,36 @@ class DynamicContainerfileBuilder {
     this.emit(`RUN bun build ${this.projectPath(this.runtimePluginOwner, runtimePluginPath)} \\`);
     this.emit("    --target bun --format esm --outdir /build/out/plugins/runtime \\");
     this.emit("    --minify --no-splitting");
+  }
+
+  private copyRuntimeCore() {
+    const sources = [
+      ...(this.hasParent && this.parentDir ? [{ owner: this.parentDir, target: "converged-workflows" }] : []),
+      {
+        owner: this.projectDir,
+        target: this.projectDir === "club-portal" ? "club-workflows" : "converged-workflows",
+      },
+    ].filter(({ owner }) => dirExists(this.ctx, owner, "back/runtime/workflows"));
+
+    if (sources.length === 0) return;
+
+    const copies = sources.map(({ owner, target }) =>
+      `cp -R ${this.projectPath(owner, "back/runtime/workflows/.")} /build/out/back/runtime/${target}/`,
+    );
+    const providerBundles = sources
+      .filter(({ owner }) => dirExists(this.ctx, owner, "back/runtime/workflows/providers/index.ts"))
+      .map(({ owner, target }) =>
+        `bun build ${this.projectPath(owner, "back/runtime/workflows/providers/index.ts")} --target bun --format esm --outfile /build/out/back/runtime/${target}/providers/index.js --minify`,
+      );
+
+    this.emit("");
+    this.emit("RUN mkdir -p /build/out/back/runtime && \\");
+    this.emit(`    ${copies.join(" && \\\n    ")}`);
+
+    if (providerBundles.length > 0) {
+      this.emit("");
+      this.emit(`RUN ${providerBundles.join(" && \\\n    ")}`);
+    }
   }
 
   private writeUiRuntimeMap() {
@@ -529,6 +560,22 @@ class DynamicContainerfileBuilder {
     this.emit("[run]");
     this.emit("smol = true");
     this.emit("EOF");
+
+    if (this.role === "rt") {
+      const tsconfig = JSON.stringify({
+        compilerOptions: {
+          paths: {
+            "@rt/converged/*": ["./back/runtime/converged-workflows/*"],
+            "@rt/club/*": ["./back/runtime/club-workflows/*"],
+          },
+        },
+      }, null, 2);
+
+      this.emit("");
+      this.emit("RUN cat > /build/out/app/tsconfig.json <<'EOF'");
+      this.emit(tsconfig);
+      this.emit("EOF");
+    }
   }
 
   private runtimeStage() {
@@ -552,6 +599,9 @@ class DynamicContainerfileBuilder {
     this.emit("COPY --from=builder /build/out/app/server.js ./server.js");
     this.emit("COPY --from=builder /build/out/app/bunfig.toml ./bunfig.toml");
     this.emit("COPY --from=builder /build/out/app/runtime-map.toml ./runtime-map.toml");
+    if (this.role === "rt") {
+      this.emit("COPY --from=builder /build/out/app/tsconfig.json ./tsconfig.json");
+    }
 
     if (this.role === "ui") {
       this.emit("COPY --from=builder /build/out/plugins/spa ./plugins/spa");
@@ -561,6 +611,7 @@ class DynamicContainerfileBuilder {
     } else if (this.role === "rt") {
       this.emit("COPY --from=builder /build/out/plugins/runtime ./plugins/runtime");
       this.emit("COPY --from=builder /build/out/plugins/bin-libs ./plugins/bin-libs");
+      this.emit("COPY --from=builder /build/out/back ./back");
     } else {
       this.emit("COPY --from=builder /build/out/plugins/chunks ./plugins/chunks");
       this.emit("COPY --from=builder /build/out/plugins/bin-libs ./plugins/bin-libs");
