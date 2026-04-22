@@ -105,7 +105,7 @@ const sendWithSessionRecovery = async (
 
 export const initializeChat = (
     _: types.ChatState,
-    { threadId, serviceType, model }: { threadId: string; serviceType: any; model: string }
+    { threadId, serviceType, model }: { threadId: string; serviceType?: types.ServiceType; model?: string }
 ): types.ChatState => ({
     threadId,
     serviceType,

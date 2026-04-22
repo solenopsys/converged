@@ -71,6 +71,15 @@ function resolveRuntimeMicrofrontends(config: RuntimeConfig): string[] {
   return [...new Set([...fromSpa, ...fromModules].map(normalizeMfName))];
 }
 
+function resolveEnabledRuntimes(): Set<string> | null {
+  const raw = process.env.RT_RUNTIMES || process.env.RUNTIMES || "";
+  const values = raw
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return values.length > 0 ? new Set(values) : null;
+}
+
 async function importPlugin(path: string) {
   const mod = await import(pathToFileURL(path).href);
   const plugin = mod.default ?? mod.plugin ?? mod;
@@ -139,7 +148,9 @@ const pluginEntries: Array<{
 }> = [];
 const startupTasks: Array<{ name: string; task: () => Promise<void> }> = [];
 const shutdownTasks: Array<{ name: string; task: () => Promise<void> }> = [];
+const enabledRuntimes = resolveEnabledRuntimes();
 for (const [key, mappedPath] of Object.entries(runtimeMap.services || {})) {
+  if (enabledRuntimes && !enabledRuntimes.has(key)) continue;
   const pluginPath = mappedPath.startsWith("/")
     ? mappedPath
     : resolve(appRoot, mappedPath);

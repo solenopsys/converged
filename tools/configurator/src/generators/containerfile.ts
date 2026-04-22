@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { relative, resolve } from "node:path";
-import type { GeneratorContext, MicroserviceRef } from "../types";
+import type { GeneratorContext, MicroserviceRef, RuntimeRef } from "../types";
 import { getAllMicroservices } from "../resolver";
 import {
   buildDeploymentPlan,
@@ -71,6 +71,13 @@ interface ResolvedPlugin {
   chunkPath: string;
 }
 
+interface ResolvedRuntimePlugin {
+  key: string;
+  entry: string;
+  outputDir: string;
+  outputPath: string;
+}
+
 function resolvePlugin(svc: MicroserviceRef, ctx: GeneratorContext): ResolvedPlugin {
   const projectDirName = ctx.projectDir.split("/").pop()!;
   const parentDirName = ctx.parentProjectDir?.split("/").pop();
@@ -106,6 +113,48 @@ function resolvePlugin(svc: MicroserviceRef, ctx: GeneratorContext): ResolvedPlu
   );
 }
 
+function sanitizePathPart(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9-]+/g, "-");
+}
+
+function resolveRuntimePlugin(runtime: RuntimeRef, ctx: GeneratorContext): ResolvedRuntimePlugin {
+  const category = sanitizePathPart(runtime.category);
+  const name = sanitizePathPart(runtime.name);
+  const projectDirName = ctx.projectDir.split("/").pop()!;
+  const parentDirName = ctx.parentProjectDir?.split("/").pop();
+  const owner = runtime.project || projectDirName;
+  const owners = [
+    owner,
+    ...[projectDirName, ...(parentDirName ? [parentDirName] : [])].filter((candidate) => candidate !== owner),
+  ];
+  const relCandidates = [
+    `back/runtimes/${category}/rt-${name}/src/plugin.ts`,
+    `back/runtimes/${category}/rt-${name}/plugin.ts`,
+    `back/runtimes/${category}/${name}/src/plugin.ts`,
+    `back/runtimes/${category}/${name}/plugin.ts`,
+  ];
+
+  for (const ownerName of owners) {
+    const ownerAbsDir = resolveOwnerAbsDir(ctx, ownerName);
+    if (!ownerAbsDir) continue;
+    for (const rel of relCandidates) {
+      if (existsSync(resolve(ownerAbsDir, rel))) {
+        const outputDir = `runtimes/${category}/rt-${name}`;
+        return {
+          key: `${category}/${name}`,
+          entry: `${ownerName}/${rel}`,
+          outputDir,
+          outputPath: `/app/plugins/${outputDir}/plugin.js`,
+        };
+      }
+    }
+  }
+
+  throw new Error(
+    `Runtime plugin "${runtime.category}/${runtime.name}" not found. Searched: ${relCandidates.join(", ")}`,
+  );
+}
+
 type DynamicRole = "ui" | "ms" | "rt";
 
 class DynamicContainerfileBuilder {
@@ -117,6 +166,7 @@ class DynamicContainerfileBuilder {
   private readonly workspaceRoot = "/build/clarity/projects";
   private readonly allServices: MicroserviceRef[];
   private readonly plugins: ResolvedPlugin[];
+  private readonly runtimePlugins: ResolvedRuntimePlugin[];
   private readonly allMfNames: string[];
   private readonly baseImage: string;
   private readonly apkPackages: string[];
@@ -128,7 +178,6 @@ class DynamicContainerfileBuilder {
   private readonly landingOwner: string;
   private readonly storeWorkersOwner: string;
   private readonly runtimeServerOwner: string;
-  private readonly runtimePluginOwner: string;
 
   // Paths from config
   private readonly spaCorePath: string;
@@ -161,7 +210,6 @@ class DynamicContainerfileBuilder {
     this.landingOwner = resolveOwnerDir(ctx, this.landingPath);
     this.storeWorkersOwner = resolveOwnerDir(ctx, this.storeWorkersPath);
     this.runtimeServerOwner = resolveOwnerDir(ctx, "tools/container-runtime/server.entry.ts");
-    this.runtimePluginOwner = resolveOwnerDir(ctx, "back/runtime/plugin.ts");
     this.pruneToolsScriptOwner = resolveOwnerDir(ctx, this.pruneToolsScriptPath);
 
     this.apkPackages = config.runtimeDeps?.apk ?? [];
@@ -176,6 +224,14 @@ class DynamicContainerfileBuilder {
     );
     this.plugins = this.role === "ms"
       ? this.allServices.map((svc) => resolvePlugin(svc, ctx))
+      : [];
+    this.runtimePlugins = this.role === "rt"
+      ? this.deploymentPlan.runtime.containers
+          .flatMap((container) => container.runtimes)
+          .filter((runtime, index, arr) =>
+            arr.findIndex((item) => `${item.category}/${item.name}` === `${runtime.category}/${runtime.name}`) === index
+          )
+          .map((runtime) => resolveRuntimePlugin(runtime, ctx))
       : [];
 
 
@@ -237,7 +293,7 @@ class DynamicContainerfileBuilder {
       this.writeUiRuntimeMap();
     } else if (this.role === "rt") {
       this.prepareMsOutputDirs();
-      this.buildRuntimePlugin();
+      this.buildRuntimePlugins();
       this.copyRuntimeCore();
       this.copyNativeLibs();
       this.writeRtRuntimeMap();
@@ -353,14 +409,17 @@ class DynamicContainerfileBuilder {
     this.emit("    --minify --no-splitting");
   }
 
-  private buildRuntimePlugin() {
-    const runtimePluginPath = "back/runtime/plugin.ts";
-    if (!dirExists(this.ctx, this.runtimePluginOwner, runtimePluginPath)) return;
+  private buildRuntimePlugins() {
+    if (this.runtimePlugins.length === 0) return;
 
     this.emit("");
-    this.emit(`RUN bun build ${this.projectPath(this.runtimePluginOwner, runtimePluginPath)} \\`);
-    this.emit("    --target bun --format esm --outdir /build/out/plugins/runtime \\");
-    this.emit("    --minify --no-splitting");
+    for (const plugin of this.runtimePlugins) {
+      const [owner, ...relParts] = plugin.entry.split("/");
+      const relPath = relParts.join("/");
+      this.emit(`RUN bun build ${this.projectPath(owner, relPath)} \\`);
+      this.emit(`    --target bun --format esm --outdir /build/out/plugins/${plugin.outputDir} \\`);
+      this.emit("    --minify --no-splitting");
+    }
   }
 
   private copyRuntimeCore() {
@@ -435,9 +494,11 @@ class DynamicContainerfileBuilder {
   private writeRtRuntimeMap() {
     const toml: string[] = [];
 
-    if (dirExists(this.ctx, this.runtimePluginOwner, "back/runtime/plugin.ts")) {
+    if (this.runtimePlugins.length > 0) {
       toml.push("[services]");
-      toml.push('"runtime" = "/app/plugins/runtime/plugin.js"');
+      for (const plugin of this.runtimePlugins) {
+        toml.push(`"${plugin.key}" = "${plugin.outputPath}"`);
+      }
       toml.push("");
     }
 
@@ -609,7 +670,9 @@ class DynamicContainerfileBuilder {
       this.emit("COPY --from=builder /build/out/dist ./dist");
       this.emit("COPY --from=builder /build/out/front ./front");
     } else if (this.role === "rt") {
-      this.emit("COPY --from=builder /build/out/plugins/runtime ./plugins/runtime");
+      for (const plugin of this.runtimePlugins) {
+        this.emit(`COPY --from=builder /build/out/plugins/${plugin.outputDir} ./plugins/${plugin.outputDir}`);
+      }
       this.emit("COPY --from=builder /build/out/plugins/bin-libs ./plugins/bin-libs");
       this.emit("COPY --from=builder /build/out/back ./back");
     } else {

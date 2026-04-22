@@ -7,6 +7,7 @@
   "exports": {
     ".": "./index.ts",
     "./plugin": "./plugin.ts",
+    "./service": "./service.ts",
     "./dag-api": "./workflows/dag-api.ts",
     "./providers": "./workflows/providers/index.ts",
     "./providers/*": "./workflows/providers/*.ts",

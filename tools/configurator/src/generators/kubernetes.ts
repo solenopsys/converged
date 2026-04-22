@@ -2,6 +2,7 @@ import type {
   GeneratorContext,
   MicroserviceRef,
   Resources,
+  RuntimeRef,
   StorageConfig,
 } from "../types";
 import {
@@ -17,6 +18,7 @@ import {
   STORAGE_SOCKET_PATH,
   UI_APP_PORT,
   type DeploymentPlan,
+  type RuntimeContainerPlan,
   type ServiceGroupPlan,
 } from "../topology";
 import * as cdk8s from "cdk8s";
@@ -201,6 +203,14 @@ function buildMicroserviceMap(services: MicroserviceRef[]): Record<string, strin
   return map;
 }
 
+function buildFrontendModules(plan: DeploymentPlan): Record<string, boolean> {
+  const modules: Record<string, boolean> = {};
+  for (const mf of plan.ui.microfrontends) {
+    modules[mf.name] = true;
+  }
+  return modules;
+}
+
 function toEnvList(values: Record<string, string>) {
   return Object.entries(values).map(([name, value]) => ({ name, value }));
 }
@@ -326,9 +336,17 @@ class WorkloadBuilder {
 
     this.buildValkeyDeployment();
     this.buildUiPod();
+    for (const runtime of this.plan.runtime.containers) {
+      this.buildRuntimePod(runtime);
+    }
     for (const group of this.plan.serviceGroups) {
       this.buildGroupPod(group);
     }
+  }
+
+  private runtimeServicesBase(): string {
+    const firstGroup = this.plan.serviceGroups[0];
+    return firstGroup ? `http://${firstGroup.serviceName}:${SERVICE_PORT}/services` : "";
   }
 
   private buildValkeyDeployment() {
@@ -468,6 +486,62 @@ class WorkloadBuilder {
     );
   }
 
+  private buildRuntimePod(runtime: RuntimeContainerPlan) {
+    const appName = this.ctx.config.name;
+    const podName = runtime.serviceName;
+    const podLabels = labels(appName, runtime.name);
+    const secretName = `${appName}-secrets`;
+
+    new cdk8s.ApiObject(this.chart, `${runtime.name}-deployment`, {
+      apiVersion: "apps/v1",
+      kind: "Deployment",
+      metadata: { name: podName, labels: podLabels },
+      spec: {
+        replicas: 1,
+        selector: { matchLabels: podLabels },
+        template: {
+          metadata: { labels: podLabels },
+          spec: {
+            containers: [
+              {
+                name: runtime.name,
+                image: rtImageUri(),
+                imagePullPolicy: HELM_RT_PULL_POLICY,
+                ports: [{ containerPort: RUNTIME_APP_PORT }],
+                env: buildBaseEnv(this.ctx, RUNTIME_APP_PORT, {
+                  SERVICES_BASE: this.runtimeServicesBase(),
+                  VALKEY_URL: this.plan.cache.url,
+                  RT_RUNTIMES: runtime.runtimes.map((rt) => `${rt.category}/${rt.name}`).join(","),
+                }),
+                envFrom: [{ secretRef: { name: secretName } }],
+                ...buildHttpHealthProbes(RUNTIME_APP_PORT),
+                resources: toK8sResources(runtime.resources),
+                securityContext: {
+                  allowPrivilegeEscalation: false,
+                  privileged: false,
+                  readOnlyRootFilesystem: false,
+                  runAsNonRoot: false,
+                },
+              },
+            ],
+            securityContext: {
+              runAsNonRoot: false,
+            },
+          },
+        },
+      },
+    });
+
+    createClusterService(
+      this.chart,
+      `${runtime.name}-service`,
+      runtime.serviceName,
+      podLabels,
+      podLabels,
+      RUNTIME_APP_PORT,
+    );
+  }
+
   private buildGroupPod(group: ServiceGroupPlan) {
     const appName = this.ctx.config.name;
     const podName = `${appName}-${group.name}`;
@@ -484,9 +558,13 @@ class WorkloadBuilder {
       podLabels,
       {
         name: appName,
+        spa: this.plan.ui.spa ? this.ctx.config.spa : undefined,
         back: {
           core: this.ctx.config.back.core,
           microservices: buildMicroserviceMap(group.microservices),
+        },
+        frontend: {
+          modules: buildFrontendModules(this.plan),
         },
       },
     );
@@ -620,9 +698,13 @@ class WorkloadBuilder {
       podLabels,
       {
         name: appName,
+        spa: this.plan.ui.spa ? this.ctx.config.spa : undefined,
         back: {
           core: this.ctx.config.back.core,
           microservices: buildMicroserviceMap(monoGroup.microservices),
+        },
+        frontend: {
+          modules: buildFrontendModules(this.plan),
         },
       },
     );
@@ -719,7 +801,7 @@ class WorkloadBuilder {
                 }),
                 envFrom: [{ secretRef: { name: secretName } }],
                 ...buildHttpHealthProbes(RUNTIME_APP_PORT),
-                resources: toK8sResources(monoGroup.resources),
+                resources: toK8sResources(this.plan.runtime.containers[0]?.resources ?? monoGroup.resources),
                 securityContext: {
                   allowPrivilegeEscalation: false,
                   privileged: false,
@@ -800,7 +882,7 @@ class WorkloadBuilder {
     createClusterService(
       this.chart,
       "mono-runtime-service",
-      this.plan.runtime.serviceName,
+      this.plan.runtime.containers[0]?.serviceName ?? `${appName}-runtime`,
       labels(appName, "runtime"),
       podLabels,
       RUNTIME_APP_PORT,
@@ -827,13 +909,16 @@ class IngressBuilder {
     const hosts = this.ctx.config.ingress.hosts;
     const seenServicePaths = new Set<string>();
 
-    if (this.plan.mode === "mono") {
-      for (const host of hosts) {
-        this.routes.push({
-          match: `Host(\`${host}\`) && PathPrefix(\`/services/runtime\`)`,
-          priority: 110,
-          service: this.plan.runtime.serviceName,
-        });
+    for (const runtime of this.plan.runtime.containers) {
+      for (const servicePath of this.runtimeServicePaths(runtime.runtimes)) {
+        seenServicePaths.add(servicePath.split("/")[0]);
+        for (const host of hosts) {
+          this.routes.push({
+            match: `Host(\`${host}\`) && PathPrefix(\`/services/${servicePath}\`)`,
+            priority: 110,
+            service: runtime.serviceName,
+          });
+        }
       }
     }
 
@@ -869,6 +954,31 @@ class IngressBuilder {
         });
       }
     }
+  }
+
+  private runtimeServicePaths(runtimes: RuntimeRef[]): string[] {
+    const paths = new Set<string>();
+    for (const runtime of runtimes) {
+      if (runtime.category === "automation" && runtime.name === "dag") {
+        paths.add("runtime/startExecution");
+        paths.add("runtime/createExecution");
+        paths.add("runtime/resumeActiveExecutions");
+        paths.add("runtime/listWorkflows");
+      }
+      if (runtime.category === "automation" && runtime.name === "cron") {
+        paths.add("runtime/refreshCrons");
+      }
+      if (runtime.category === "automation" && runtime.name === "gates") {
+        paths.add("runtime/sendMagicLink");
+      }
+      if (runtime.category === "ai" && runtime.name === "agents") {
+        paths.add("agent");
+      }
+      if (runtime.category === "ai" && runtime.name === "chat") {
+        paths.add("assistant");
+      }
+    }
+    return Array.from(paths);
   }
 
   private createIngressRoute() {

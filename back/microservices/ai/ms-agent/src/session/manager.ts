@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import type { StoresController } from "../store";
-import type { AgentMessage } from "../core/types";
+import type { AgentMessage } from "rt-agents/agent";
 import type { SessionInfo } from "../types";
 import type { MessageEntity } from "../store/history/entities";
 

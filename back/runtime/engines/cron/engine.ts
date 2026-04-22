@@ -104,6 +104,8 @@ export class CronEngine {
   }
 
   private resolveServicesBaseUrl(): string {
+    if (process.env.RUNTIME_BASE) return process.env.RUNTIME_BASE;
+    if (process.env.RT_DAG_BASE) return process.env.RT_DAG_BASE;
     const port = process.env.PORT ?? process.env.SERVICES_PORT ?? "3000";
     return `http://localhost:${port}/services`;
   }

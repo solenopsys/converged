@@ -117,6 +117,8 @@ async function loadMergedConfig(
     ...config,
     cache: config.cache ?? parentConfig.cache,
     frontend: config.frontend ?? parentConfig.frontend,
+    runtime: config.runtime ?? parentConfig.runtime,
+    runtimeDeps: config.runtimeDeps ?? parentConfig.runtimeDeps,
     spa: {
       core: config.spa.core || parentConfig.spa.core,
       microfrontends: mergeStringArrays(
@@ -129,6 +131,10 @@ async function loadMergedConfig(
       microservices: {
         ...parentConfig.back.microservices,
         ...config.back.microservices,
+      },
+      runtimes: {
+        ...parentConfig.back.runtimes,
+        ...config.back.runtimes,
       },
     },
   };

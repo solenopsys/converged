@@ -25,8 +25,8 @@ import { chatDomain } from './domain';
 
 const initialState: ChatState = {
     threadId: '' as ULID,
-    serviceType: '' as any,
-    model: '',
+    serviceType: undefined,
+    model: undefined,
     sessionId: undefined,
     messages: [],
     isLoading: false,
@@ -146,7 +146,7 @@ export const createChatStore = (
         $chat,
         $functions,
 
-        init: (threadId: ULID, serviceType: any, model: string) =>
+        init: (threadId: ULID, serviceType?: ChatState['serviceType'], model?: string) =>
             initChat({ threadId, serviceType, model }),
 
         send: (content: string) => sendMessage(content),

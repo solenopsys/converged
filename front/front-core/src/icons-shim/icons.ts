@@ -5,6 +5,7 @@ export { default as IconBrain } from '@tabler/icons-react/dist/esm/icons/IconBra
 export { default as IconBriefcase } from '@tabler/icons-react/dist/esm/icons/IconBriefcase.mjs';
 export { default as IconBuilding } from '@tabler/icons-react/dist/esm/icons/IconBuilding.mjs';
 export { default as IconCalendar } from '@tabler/icons-react/dist/esm/icons/IconCalendar.mjs';
+export { default as IconCategory } from '@tabler/icons-react/dist/esm/icons/IconCategory.mjs';
 export { default as IconChartBar } from '@tabler/icons-react/dist/esm/icons/IconChartBar.mjs';
 export { default as IconChevronDown } from '@tabler/icons-react/dist/esm/icons/IconChevronDown.mjs';
 export { default as IconChevronLeft } from '@tabler/icons-react/dist/esm/icons/IconChevronLeft.mjs';

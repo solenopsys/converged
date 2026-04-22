@@ -5,8 +5,8 @@ import type { Tool } from './types';
 
 export const initChat = chatDomain.createEvent<{
     threadId: ULID;
-    serviceType: ServiceType;
-    model: string;
+    serviceType?: ServiceType;
+    model?: string;
 }>('INIT_CHAT');
 
 export const sendMessage = chatDomain.createEvent<string>('SEND_MESSAGE');

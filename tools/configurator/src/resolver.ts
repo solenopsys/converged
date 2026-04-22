@@ -1,8 +1,9 @@
 import type {
   BuildConfig,
   ContainerConfig,
-  ResolvedContainer,
   MicroserviceRef,
+  ResolvedContainer,
+  RuntimeRef,
 } from "./types";
 
 /**
@@ -44,6 +45,23 @@ function resolveMicroservices(
   return services.map((s) => ({ category, name: s, project }));
 }
 
+/**
+ * Resolve runtime selector (e.g., "automation/*" or "ai/agents")
+ */
+function resolveRuntimes(
+  selector: string,
+  allRuntimes: Record<string, string[]>,
+  config: BuildConfig,
+  projectName: string,
+  parentProjectName?: string,
+): RuntimeRef[] {
+  const [category, name] = selector.split("/");
+  const runtimes = name === "*" ? (allRuntimes[category] || []) : [name];
+  const project = resolveProjectForCategory(category, config, projectName, parentProjectName);
+
+  return runtimes.map((runtimeName) => ({ category, name: runtimeName, project }));
+}
+
 function dedupeMicrofrontends(
   input: { name: string; project: string }[],
 ): { name: string; project: string }[] {
@@ -60,6 +78,18 @@ function dedupeMicrofrontends(
 function dedupeMicroservices(input: MicroserviceRef[]): MicroserviceRef[] {
   const seen = new Set<string>();
   const result: MicroserviceRef[] = [];
+  for (const item of input) {
+    const key = `${item.category}/${item.name}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(item);
+  }
+  return result;
+}
+
+function dedupeRuntimes(input: RuntimeRef[]): RuntimeRef[] {
+  const seen = new Set<string>();
+  const result: RuntimeRef[] = [];
   for (const item of input) {
     const key = `${item.category}/${item.name}`;
     if (seen.has(key)) continue;
@@ -130,8 +160,26 @@ export function resolveContainer(
     }
   }
 
+  let runtimes: RuntimeRef[] = [];
+  const configuredRuntimes = config.back.runtimes ?? {};
+  if (container.runtimes === "*") {
+    for (const [category, runtimeNames] of Object.entries(configuredRuntimes)) {
+      const project = resolveProjectForCategory(category, config, projectName, parentProjectName);
+      for (const name of runtimeNames) {
+        runtimes.push({ category, name, project });
+      }
+    }
+  } else if (Array.isArray(container.runtimes)) {
+    for (const selector of container.runtimes) {
+      runtimes.push(
+        ...resolveRuntimes(selector, configuredRuntimes, config, projectName, parentProjectName),
+      );
+    }
+  }
+
   microfrontends = dedupeMicrofrontends(microfrontends);
   microservices = dedupeMicroservices(microservices);
+  runtimes = dedupeRuntimes(runtimes);
 
   return {
     name: container.name,
@@ -139,6 +187,7 @@ export function resolveContainer(
     spa: container.spa ?? false,
     microfrontends,
     microservices,
+    runtimes,
     resources: container.resources ?? {
       requests: { cpu: "100m", memory: "128Mi" },
       limits: { cpu: "500m", memory: "512Mi" },
@@ -197,6 +246,24 @@ export function getAllMicroservices(
   for (const [category, services] of Object.entries(config.back.microservices)) {
     const project = resolveProjectForCategory(category, config, projectName, parentProjectName);
     for (const name of services) {
+      result.push({ category, name, project });
+    }
+  }
+  return result;
+}
+
+/**
+ * Get flat list of all stateless runtimes
+ */
+export function getAllRuntimes(
+  config: BuildConfig,
+  projectName: string,
+  parentProjectName?: string,
+): RuntimeRef[] {
+  const result: RuntimeRef[] = [];
+  for (const [category, runtimes] of Object.entries(config.back.runtimes ?? {})) {
+    const project = resolveProjectForCategory(category, config, projectName, parentProjectName);
+    for (const name of runtimes) {
       result.push({ category, name, project });
     }
   }

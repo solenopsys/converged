@@ -128,8 +128,16 @@ export async function runBuild({
           ...parentConfig.back.microservices,
           ...config.back.microservices,
         },
+        runtimes: {
+          ...parentConfig.back.runtimes,
+          ...config.back.runtimes,
+        },
       },
       runtimeDeps: config.runtimeDeps ?? parentConfig.runtimeDeps,
+      runtime: {
+        ...parentConfig.runtime,
+        ...config.runtime,
+      },
       cache: config.cache ?? parentConfig.cache,
       frontend: config.frontend ?? parentConfig.frontend,
       storage: {
@@ -160,7 +168,7 @@ export async function runBuild({
   console.log(`Resolved ${containers.length} container(s):`);
   for (const c of containers) {
     console.log(
-      `  - ${c.name}: ${c.microservices.length} services, ${c.microfrontends.length} MFs, spa=${c.spa}, landing=${c.landing}`,
+      `  - ${c.name}: ${c.microservices.length} services, ${c.runtimes.length} runtimes, ${c.microfrontends.length} MFs, spa=${c.spa}, landing=${c.landing}`,
     );
   }
 
@@ -310,6 +318,7 @@ images:
       spa: c.spa,
       microfrontends: c.microfrontends.map((m) => m.name),
       microservices: c.microservices.map((s) => `${s.category}/${s.name}`),
+      runtimes: c.runtimes.map((r) => `${r.category}/${r.name}`),
     })),
     storage: mergedConfig.storage,
     ingress: mergedConfig.ingress,

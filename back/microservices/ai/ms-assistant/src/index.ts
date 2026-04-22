@@ -6,7 +6,7 @@ import {
   ChatContext,
   ChatContextSummary,
 } from "./types";
-import { SimpleConversationFactory } from "./impls/factory";
+import { SimpleConversationFactory } from "rt-chat";
 import { PaginationParams, PaginatedResult, Chat } from "./types";
 import { LogFunction } from "./types";
 import { ConversationFactory } from "./types";
@@ -22,10 +22,28 @@ type AiConfig = {
   model?: string;
 };
 
+const CHAT_PROVIDER_ENV = "CHAT_PROVIDER";
+const CHAT_MODEL_ENV = "CHAT_MODEL";
+
+function resolveServiceType(value?: string): ServiceType | undefined {
+  const normalized = value?.trim().toLowerCase();
+  if (!normalized) return undefined;
+
+  if (normalized === "openai" || normalized === "gpt") return ServiceType.OPENAI;
+  if (normalized === "claude" || normalized === "anthropic") return ServiceType.ANTHROPIC;
+  if (normalized === "gemini" || normalized === "gemin" || normalized === "google") return ServiceType.GEMINI;
+
+  throw new Error(
+    `Unsupported ${CHAT_PROVIDER_ENV}: ${value}. Expected one of: openai, claude, anthropic, gemini`,
+  );
+}
+
 class ChatsServiceImpl {
   private factory: ConversationFactory;
   private conversations: Map<string, AiConversation> = new Map();
   private serviceModelMap = new Map<ServiceType, string>();
+  private defaultServiceType?: ServiceType;
+  private defaultModel?: string;
   private stores: StoresController;
   private initPromise?: Promise<void>;
 
@@ -40,6 +58,8 @@ class ChatsServiceImpl {
     if (config.gemini) {
       this.serviceModelMap.set(ServiceType.GEMINI, config.gemini.model);
     }
+    this.defaultServiceType = resolveServiceType(process.env[CHAT_PROVIDER_ENV]);
+    this.defaultModel = process.env[CHAT_MODEL_ENV]?.trim() || undefined;
 
     this.init();
   }
@@ -58,9 +78,12 @@ class ChatsServiceImpl {
   }
 
   async createSession(
-    serviceType: ServiceType,
+    serviceType?: ServiceType,
     model?: string,
   ): Promise<string> {
+    serviceType = this.defaultServiceType ?? serviceType ?? ServiceType.OPENAI;
+    model = this.defaultModel ?? model;
+
     if (!model) {
       model = this.serviceModelMap.get(serviceType);
       if (!model) {

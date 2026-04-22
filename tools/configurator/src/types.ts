@@ -9,6 +9,7 @@ export interface ContainerConfig {
   spa?: boolean;
   microfrontends?: string[] | "*";
   microservices?: string[] | "*";
+  runtimes?: string[] | "*";
   resources?: Resources;
 }
 
@@ -38,6 +39,10 @@ export interface RuntimeDeps {
   packages?: Record<string, string>;
   /** apk packages for the runtime image, e.g. ["vips"] */
   apk?: string[];
+}
+
+export interface RuntimeConfig {
+  resources?: Resources;
 }
 
 export interface CacheConfig {
@@ -72,9 +77,12 @@ export interface BuildConfig {
   back: {
     core?: string;
     microservices: Record<string, string[]>;
+    runtimes?: Record<string, string[]>;
   };
 
   runtimeDeps?: RuntimeDeps;
+
+  runtime?: RuntimeConfig;
 
   cache?: CacheConfig;
 
@@ -100,12 +108,19 @@ export interface MicroserviceRef {
   project: string; // which project dir this service lives in
 }
 
+export interface RuntimeRef {
+  category: string;
+  name: string;
+  project: string; // which project dir this runtime lives in
+}
+
 export interface ResolvedContainer {
   name: string;
   landing: boolean;
   spa: boolean;
   microfrontends: { name: string; project: string }[];
   microservices: MicroserviceRef[];
+  runtimes: RuntimeRef[];
   resources: Resources;
 }
 

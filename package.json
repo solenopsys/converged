@@ -5,6 +5,7 @@
 	"private": true,
 	"workspaces": [
 		"back/back-core",
+		"back/runtimes/**/*",
 		"back/external/*",
 		"back/native/*",
 		"back/runtime",

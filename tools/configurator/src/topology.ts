@@ -4,7 +4,9 @@ import type {
   MicroserviceRef,
   ResolvedContainer,
   Resources,
+  RuntimeRef,
 } from "./types";
+import { getAllRuntimes } from "./resolver";
 
 export type PresetMode = "mono" | "multi";
 
@@ -78,8 +80,15 @@ export interface CachePlan {
 }
 
 export interface RuntimePlan {
-  serviceName: string;
+  containers: RuntimeContainerPlan[];
   resources: Resources;
+}
+
+export interface RuntimeContainerPlan {
+  name: string;
+  runtimes: RuntimeRef[];
+  resources: Resources;
+  serviceName: string;
 }
 
 export interface DeploymentPlan {
@@ -127,6 +136,18 @@ function dedupeMicroservices(services: MicroserviceRef[]): MicroserviceRef[] {
   return result;
 }
 
+function dedupeRuntimes(runtimes: RuntimeRef[]): RuntimeRef[] {
+  const seen = new Set<string>();
+  const result: RuntimeRef[] = [];
+  for (const runtime of runtimes) {
+    const key = `${runtime.category}/${runtime.name}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(runtime);
+  }
+  return result;
+}
+
 function dedupeMicrofrontends(
   frontends: { name: string; project: string }[],
 ): { name: string; project: string }[] {
@@ -148,6 +169,15 @@ function collectAllMicroservices(config: GeneratorContext["config"]): Microservi
     }
   }
   return all;
+}
+
+function collectAllRuntimes(ctx: GeneratorContext): RuntimeRef[] {
+  const projectName = ctx.projectDir.split("/").pop() || "project";
+  const parentProjectName = ctx.parentProjectDir?.split("/").pop();
+  const configured = getAllRuntimes(ctx.config, projectName, parentProjectName);
+  return configured.length > 0
+    ? configured
+    : [{ category: "automation", name: "runtime", project: projectName }];
 }
 
 function buildUiPlan(ctx: GeneratorContext): UiPlan {
@@ -211,10 +241,46 @@ function collectMultiGroups(ctx: GeneratorContext): ServiceGroupPlan[] {
   });
 }
 
-function buildRuntimePlan(ctx: GeneratorContext): RuntimePlan {
+function buildRuntimePlan(ctx: GeneratorContext, mode: PresetMode): RuntimePlan {
+  const defaultResources = ctx.config.runtime?.resources ?? DEFAULT_RUNTIME_RESOURCES;
+  const allRuntimes = dedupeRuntimes(collectAllRuntimes(ctx));
+
+  const runtimeContainers = ctx.containers
+    .filter((container) => container.runtimes.length > 0)
+    .map((container) => ({
+        name: sanitizeName(container.name),
+        runtimes: dedupeRuntimes(container.runtimes),
+        resources: container.resources ?? defaultResources,
+        serviceName: `${ctx.config.name}-${sanitizeName(container.name)}`,
+      }));
+
+  const containers = runtimeContainers.length > 0
+    ? runtimeContainers
+    : [{
+        name: "runtime",
+        runtimes: allRuntimes,
+        resources: defaultResources,
+        serviceName: `${ctx.config.name}-runtime`,
+      }];
+
+  if (mode === "mono") {
+    const mergedRuntimes = dedupeRuntimes(containers.flatMap((container) => container.runtimes));
+    return {
+      containers: [
+        {
+          name: "runtime",
+          runtimes: mergedRuntimes.length > 0 ? mergedRuntimes : allRuntimes,
+          resources: containers[0]?.resources ?? defaultResources,
+          serviceName: `${ctx.config.name}-runtime`,
+        },
+      ],
+      resources: containers[0]?.resources ?? defaultResources,
+    };
+  }
+
   return {
-    serviceName: `${ctx.config.name}-runtime`,
-    resources: DEFAULT_RUNTIME_RESOURCES,
+    containers,
+    resources: defaultResources,
   };
 }
 
@@ -241,7 +307,7 @@ function buildCachePlan(
 export function buildDeploymentPlan(ctx: GeneratorContext): DeploymentPlan {
   const mode = normalizePresetMode(ctx.preset);
   const ui = buildUiPlan(ctx);
-  const runtime = buildRuntimePlan(ctx);
+  const runtime = buildRuntimePlan(ctx, mode);
   const cache = buildCachePlan(ctx, mode);
 
   if (mode === "mono") {

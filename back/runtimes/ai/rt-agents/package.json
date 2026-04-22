@@ -1,0 +1,21 @@
+{
+  "name": "rt-agents",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./plugin": "./src/plugin.ts",
+    "./agent": "./src/agent/index.ts",
+    "./agent/*": "./src/agent/*.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "latest",
+    "back-core": "workspace:*",
+    "elysia": "^1.4.28",
+    "g-agent": "workspace:*",
+    "nrpc": "workspace:*",
+    "openai": "latest"
+  }
+}

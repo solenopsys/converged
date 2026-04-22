@@ -1,196 +1,228 @@
 {
-  "name": "converged-portal",
-  "description": "Converged Portal — full platform",
+	"name": "converged-portal",
+	"description": "Converged Portal — full platform",
 
-  "baseImage": "docker.io/oven/bun:1.3-alpine",
-  "registry": "public.ecr.aws/i5x9u8b2",
+	"baseImage": "docker.io/oven/bun:1.3-alpine",
+	"registry": "public.ecr.aws/i5x9u8b2",
 
-  "landing": "front/landing",
+	"landing": "front/landing",
 
-  "runtimeDeps": {
-    "packages": { "sharp": "latest" },
-    "apk": ["vips"]
-  },
+	"runtimeDeps": {
+		"packages": { "sharp": "latest" },
+		"apk": ["vips"]
+	},
 
-  "cache": {
-    "image": "docker.io/valkey/valkey:8.1-alpine",
-    "port": 6379,
-    "database": 0,
-    "keyPrefix": "converged-portal",
-    "ssrTtlSeconds": 120,
-    "resources": {
-      "requests": { "cpu": "50m", "memory": "64Mi" },
-      "limits": { "cpu": "500m", "memory": "256Mi" }
-    }
-  },
+	"cache": {
+		"image": "docker.io/valkey/valkey:8.1-alpine",
+		"port": 6379,
+		"database": 0,
+		"keyPrefix": "converged-portal",
+		"ssrTtlSeconds": 120,
+		"resources": {
+			"requests": { "cpu": "50m", "memory": "64Mi" },
+			"limits": { "cpu": "500m", "memory": "256Mi" }
+		}
+	},
 
-  "spa": {
-    "core": "front/front-core",
-    "microfrontends": [
-      "auth",
-      "agents",
-      "assistants",
-      "community",
-      "charts",
-      "calls",
-      "dag",
-      "dasboards",
-      "dumps",
-      "docs",
-      "galery",
-      "landing",
-      "logs",
-      "markdown",
-      "static",
-      "struct",
-      "requests",
-      "sheduller",
-      "telemetry",
-      "threads",
-      "usage",
-      "webhooks"
-    ]
-  },
+	"spa": {
+		"core": "front/front-core",
+		"microfrontends": [
+			"auth",
+			"agents",
+			"assistants",
+			"community",
+			"charts",
+			"calls",
+			"classifier",
+			"dag",
+			"dasboards",
+			"dumps",
+			"docs",
+			"galery",
+			"landing",
+			"logs",
+			"markdown",
+			"static",
+			"struct",
+			"requests",
+			"sheduller",
+			"telemetry",
+			"threads",
+			"usage",
+			"webhooks"
+		]
+	},
 
-  "back": {
-    "core": "back/back-core",
-    "microservices": {
-      "ai": ["agent", "assistant"],
-      "analytics": ["logs", "telemetry", "usage"],
-      "automation": ["dag", "sheduller", "webhooks"],
-      "convertors": ["modelconvertor"],
-      "business": [
-        "billing",
-        "equipment",
-        "partners",
-        "requests",
-        "reviews",
-        "staff"
-      ],
-      "communications": ["calls", "charts", "community", "notify", "threads"],
-      "content": ["ceo", "classifier", "galery", "markdown", "scripts", "static", "struct", "video"],
-      "data": ["dumps", "files", "store"],
-      "delivery": ["delivery", "dhl", "ems", "fedex", "sfexpress", "ups"],
-      "extractors": ["millingextractor", "printextractor"],
-      "providers": ["push", "ses", "sms", "smtp"],
-      "sequrity": ["access", "auth", "identity", "modules", "oauth", "secrets"],
-      "social": [
-        "discord",
-        "facebook",
-        "instagram",
-        "telegram",
-        "tiktok",
-        "wechat",
-        "youtube"
-      ]
-    }
-  },
+	"back": {
+		"core": "back/back-core",
+		"runtimes": {
+			"automation": ["dag", "cron", "gates"],
+			"ai": ["agents", "chat"]
+		},
+		"microservices": {
+			"ai": ["agent", "assistant"],
+			"analytics": ["logs", "telemetry", "usage"],
+			"automation": ["dag", "sheduller", "webhooks"],
+			"convertors": ["modelconvertor"],
+			"business": [
+				"billing",
+				"equipment",
+				"partners",
+				"requests",
+				"reviews",
+				"staff"
+			],
+			"communications": ["calls", "charts", "community", "notify", "threads"],
+			"content": [
+				"ceo",
+				"classifier",
+				"galery",
+				"markdown",
+				"scripts",
+				"static",
+				"struct",
+				"video"
+			],
+			"data": ["dumps", "files", "store"],
+			"delivery": ["delivery", "dhl", "ems", "fedex", "sfexpress", "ups"],
+			"extractors": ["millingextractor", "printextractor"],
+			"providers": ["push", "ses", "sms", "smtp"],
+			"sequrity": ["access", "auth", "identity", "modules", "oauth", "secrets"],
+			"social": [
+				"discord",
+				"facebook",
+				"instagram",
+				"telegram",
+				"tiktok",
+				"wechat",
+				"youtube"
+			]
+		}
+	},
 
-  "presets": {
-    "mono": {
-      "description": "One pod with 3 containers: ui + services + storage",
-      "containers": [
-        {
-          "name": "services",
-          "microservices": "*",
-          "resources": {
-            "requests": { "cpu": "100m", "memory": "128Mi" },
-            "limits": { "cpu": "1000m", "memory": "1Gi" }
-          }
-        }
-      ]
-    },
+	"presets": {
+		"mono": {
+			"description": "One pod with ui + rt + ms + storage + cache",
+			"containers": [
+				{
+					"name": "services",
+					"microservices": "*",
+					"resources": {
+						"requests": { "cpu": "100m", "memory": "128Mi" },
+						"limits": { "cpu": "1000m", "memory": "1Gi" }
+					}
+				}
+			]
+		},
 
-    "multi": {
-      "description": "UI pod + 4 services/storage pods: ui-user-core, ai-chat, dag-business, observability",
-      "containers": [
-        {
-          "name": "ui-user-core",
-          "microservices": ["sequrity/*", "content/*"],
-          "resources": {
-            "requests": { "cpu": "200m", "memory": "256Mi" },
-            "limits": { "cpu": "1000m", "memory": "1Gi" }
-          }
-        },
-        {
-          "name": "ai-chat",
-          "microservices": ["ai/*", "communications/*"],
-          "resources": {
-            "requests": { "cpu": "200m", "memory": "256Mi" },
-            "limits": { "cpu": "1000m", "memory": "1Gi" }
-          }
-        },
-        {
-          "name": "dag-business",
-          "microservices": [
-            "automation/*",
-            "business/*",
-            "data/*",
-            "delivery/*",
-            "extractors/*",
-            "providers/*",
-            "social/*",
-            "convertors/*"
-          ],
-          "resources": {
-            "requests": { "cpu": "300m", "memory": "384Mi" },
-            "limits": { "cpu": "1500m", "memory": "2Gi" }
-          }
-        },
-        {
-          "name": "observability",
-          "microservices": ["analytics/logs", "analytics/telemetry"],
-          "resources": {
-            "requests": { "cpu": "100m", "memory": "128Mi" },
-            "limits": { "cpu": "500m", "memory": "256Mi" }
-          }
-        }
-      ]
-    }
-  },
+		"multi": {
+			"description": "UI pod + runtime groups + domain-split services/storage pods",
+			"containers": [
+				{
+					"name": "ui-user-core",
+					"microservices": ["sequrity/*", "content/*"],
+					"resources": {
+						"requests": { "cpu": "200m", "memory": "256Mi" },
+						"limits": { "cpu": "1000m", "memory": "1Gi" }
+					}
+				},
+				{
+					"name": "ai-chat",
+					"microservices": ["ai/*", "communications/*"],
+					"resources": {
+						"requests": { "cpu": "200m", "memory": "256Mi" },
+						"limits": { "cpu": "1000m", "memory": "1Gi" }
+					}
+				},
+				{
+					"name": "dag-business",
+					"microservices": [
+						"automation/*",
+						"business/*",
+						"data/*",
+						"delivery/*",
+						"extractors/*",
+						"providers/*",
+						"social/*",
+						"convertors/*"
+					],
+					"resources": {
+						"requests": { "cpu": "300m", "memory": "384Mi" },
+						"limits": { "cpu": "1500m", "memory": "2Gi" }
+					}
+				},
+				{
+					"name": "observability",
+					"microservices": ["analytics/logs", "analytics/telemetry"],
+					"resources": {
+						"requests": { "cpu": "100m", "memory": "128Mi" },
+						"limits": { "cpu": "500m", "memory": "256Mi" }
+					}
+				},
+				{
+					"name": "automation",
+					"runtimes": ["automation/*"],
+					"resources": {
+						"requests": { "cpu": "100m", "memory": "128Mi" },
+						"limits": { "cpu": "1000m", "memory": "1Gi" }
+					}
+				},
+				{
+					"name": "ai",
+					"runtimes": ["ai/*"],
+					"resources": {
+						"requests": { "cpu": "200m", "memory": "256Mi" },
+						"limits": { "cpu": "2000m", "memory": "2Gi" }
+					}
+				}
+			]
+		}
+	},
 
-  "storage": {
-    "defaultSize": "5Gi",
-    "mountBase": "/app/data",
-    "resources": {
-      "requests": { "cpu": "200m", "memory": "128Mi" },
-      "limits": { "cpu": "1000m", "memory": "2Gi" }
-    },
-    "overrides": {
-      "files": { "size": "100Gi" },
-      "dumps": { "size": "50Gi" },
-      "store": { "size": "20Gi" }
-    }
-  },
+	"storage": {
+		"defaultSize": "5Gi",
+		"mountBase": "/app/data",
+		"resources": {
+			"requests": { "cpu": "200m", "memory": "128Mi" },
+			"limits": { "cpu": "1000m", "memory": "2Gi" }
+		},
+		"overrides": {
+			"files": { "size": "100Gi" },
+			"dumps": { "size": "50Gi" },
+			"store": { "size": "20Gi" }
+		}
+	},
 
-  "ingress": {
-    "className": "traefik",
-    "hosts": ["app.example.com"],
-    "tls": {
-      "enabled": false
-    }
-  },
+	"ingress": {
+		"className": "traefik",
+		"hosts": ["app.example.com"],
+		"tls": {
+			"enabled": false
+		}
+	},
 
-  "frontend": {
-    "mountChatViewModule": "assistants"
-  },
+	"frontend": {
+		"mountChatViewModule": "assistants"
+	},
 
-  "env": {
-    "common": {
-      "NODE_ENV": "production"
-    },
-    "secrets": [
-      "OPENAI_API_KEY",
-      "OPENAI_MODEL",
-      "CLAUDE_API_KEY",
-      "CLAUDE_MODEL",
-      "GEMINI_API_KEY",
-      "GEMINI_MODEL",
-      "JWT_SECRET",
-      "ACCESS_JWT_SECRET",
-      "ACCESS_JWT_TTL",
-      "NRPC_ACCESS_MODE",
-      "ROOT_EMAIL"
-    ]
-  }
+	"env": {
+		"common": {
+			"NODE_ENV": "production"
+		},
+		"secrets": [
+			"CHAT_PROVIDER",
+			"CHAT_MODEL",
+			"OPENAI_API_KEY",
+			"OPENAI_MODEL",
+			"CLAUDE_API_KEY",
+			"CLAUDE_MODEL",
+			"GEMINI_API_KEY",
+			"GEMINI_MODEL",
+			"JWT_SECRET",
+			"ACCESS_JWT_SECRET",
+			"ACCESS_JWT_TTL",
+			"NRPC_ACCESS_MODE",
+			"ROOT_EMAIL"
+		]
+	}
 }

@@ -1,0 +1,16 @@
+{
+  "name": "rt-cron",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "module": "src/plugin.ts",
+  "exports": {
+    ".": "./src/plugin.ts",
+    "./plugin": "./src/plugin.ts"
+  },
+  "dependencies": {
+    "converged-runtime": "workspace:*",
+    "g-runtime": "workspace:*",
+    "nrpc": "workspace:*"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "rt-chat",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./plugin": "./src/plugin.ts",
+    "./*": "./src/*.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "latest",
+    "@google/genai": "latest",
+    "elysia": "^1.4.28",
+    "g-assistant": "workspace:*",
+    "nrpc": "workspace:*",
+    "openai": "latest"
+  }
+}

@@ -94,7 +94,7 @@ export const metadata = {
         {
           "name": "serviceType",
           "type": "ServiceType",
-          "optional": false,
+          "optional": true,
           "isArray": false
         },
         {
@@ -287,7 +287,7 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface AssistantService {
-  createSession(serviceType: ServiceType, model?: string): Promise<string>;
+  createSession(serviceType?: ServiceType, model?: string): Promise<string>;
   sendMessage(sessionId: string, messages: ContentBlock[], options?: ConversationOptions): AsyncIterable<StreamEvent>;
   listOfChats(params: PaginationParams): Promise<PaginatedResult>;
   deleteChat(chatId: string): Promise<void>;
@@ -299,7 +299,7 @@ export interface AssistantService {
 
 // Client interface
 export interface AssistantServiceClient {
-  createSession(serviceType: ServiceType, model?: string): Promise<string>;
+  createSession(serviceType?: ServiceType, model?: string): Promise<string>;
   sendMessage(sessionId: string, messages: ContentBlock[], options?: ConversationOptions): AsyncIterable<StreamEvent>;
   listOfChats(params: PaginationParams): Promise<PaginatedResult>;
   deleteChat(chatId: string): Promise<void>;

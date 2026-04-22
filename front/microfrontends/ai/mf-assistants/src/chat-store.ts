@@ -1,6 +1,5 @@
 import { addMessage, createChatStore } from "assistant-state";
 import type { ExecutableTool } from "assistant-state";
-import { ServiceType } from "assistant-state";
 import { v4 as uuidv4 } from "uuid";
 
 import { assistantClient, threadsClient } from "./services";
@@ -46,7 +45,7 @@ let isInitialized = false;
 const ensureInitialized = () => {
   if (!isInitialized) {
     console.log("[Chat] Initializing chat session on first use");
-    chatStore.init(chatThreadId, ServiceType.GEMINI);
+    chatStore.init(chatThreadId);
     isInitialized = true;
   }
 };

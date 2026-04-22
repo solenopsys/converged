@@ -76,6 +76,7 @@
         "g-agent": "workspace:*",
         "nrpc": "workspace:*",
         "openai": "latest",
+        "rt-agents": "workspace:*",
       },
     },
     "back/microservices/ai/ms-assistant": {
@@ -88,6 +89,7 @@
         "g-assistant": "workspace:*",
         "nrpc": "workspace:*",
         "openai": "latest",
+        "rt-chat": "workspace:*",
       },
     },
     "back/microservices/analytics/ms-logs": {
@@ -592,6 +594,57 @@
         "nrpc": "workspace:*",
       },
     },
+    "back/runtimes/ai/rt-agents": {
+      "name": "rt-agents",
+      "version": "1.0.0",
+      "dependencies": {
+        "@anthropic-ai/sdk": "latest",
+        "back-core": "workspace:*",
+        "elysia": "^1.4.28",
+        "g-agent": "workspace:*",
+        "nrpc": "workspace:*",
+        "openai": "latest",
+      },
+    },
+    "back/runtimes/ai/rt-chat": {
+      "name": "rt-chat",
+      "version": "1.0.0",
+      "dependencies": {
+        "@anthropic-ai/sdk": "latest",
+        "@google/genai": "latest",
+        "elysia": "^1.4.28",
+        "g-assistant": "workspace:*",
+        "nrpc": "workspace:*",
+        "openai": "latest",
+      },
+    },
+    "back/runtimes/automation/rt-cron": {
+      "name": "rt-cron",
+      "version": "1.0.0",
+      "dependencies": {
+        "converged-runtime": "workspace:*",
+        "g-runtime": "workspace:*",
+        "nrpc": "workspace:*",
+      },
+    },
+    "back/runtimes/automation/rt-dag": {
+      "name": "rt-dag",
+      "version": "1.0.0",
+      "dependencies": {
+        "converged-runtime": "workspace:*",
+        "g-runtime": "workspace:*",
+        "nrpc": "workspace:*",
+      },
+    },
+    "back/runtimes/automation/rt-gates": {
+      "name": "rt-gates",
+      "version": "1.0.0",
+      "dependencies": {
+        "converged-runtime": "workspace:*",
+        "g-runtime": "workspace:*",
+        "nrpc": "workspace:*",
+      },
+    },
     "front/front-core": {
       "name": "front-core",
       "version": "0.0.1",
@@ -881,6 +934,13 @@
       "dependencies": {
         "front-core": "workspace:*",
         "g-threads": "workspace:*",
+      },
+    },
+    "front/microfrontends/content/mf-classifier": {
+      "name": "mf-classifier",
+      "dependencies": {
+        "front-core": "workspace:*",
+        "g-classifier": "workspace:*",
       },
     },
     "front/microfrontends/content/mf-docs": {
@@ -1494,7 +1554,7 @@
 
     "@antfu/install-pkg": ["@antfu/install-pkg@1.1.0", "", { "dependencies": { "package-manager-detector": "^1.3.0", "tinyexec": "^1.0.1" } }, "sha512-MGQsmw10ZyI+EJo45CdSER4zEb+p31LpDAFp2Z3gkSd1yqVZGi0Ebx++YTEMonJy4oChEMLsxZ64j8FH6sSqtQ=="],
 
-    "@anthropic-ai/sdk": ["@anthropic-ai/sdk@0.88.0", "", { "dependencies": { "json-schema-to-ts": "^3.1.1" }, "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" }, "optionalPeers": ["zod"], "bin": { "anthropic-ai-sdk": "bin/cli" } }, "sha512-QQOtB5U9ZBJQj6y1ICmDZl14LWa4JCiJRoihI+0yuZ4OjbONrakP0yLwPv4DJFb3VYCtQM31bTOpCBMs2zghPw=="],
+    "@anthropic-ai/sdk": ["@anthropic-ai/sdk@0.90.0", "", { "dependencies": { "json-schema-to-ts": "^3.1.1" }, "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" }, "optionalPeers": ["zod"], "bin": { "anthropic-ai-sdk": "bin/cli" } }, "sha512-MzZtPabJF1b0FTDl6Z6H5ljphPwACLGP13lu8MTiB8jXaW/YXlpOp+Po2cVou3MPM5+f5toyLnul9whKCy7fBg=="],
 
     "@aws-crypto/sha256-browser": ["@aws-crypto/sha256-browser@5.2.0", "", { "dependencies": { "@aws-crypto/sha256-js": "^5.2.0", "@aws-crypto/supports-web-crypto": "^5.2.0", "@aws-crypto/util": "^5.2.0", "@aws-sdk/types": "^3.222.0", "@aws-sdk/util-locate-window": "^3.0.0", "@smithy/util-utf8": "^2.0.0", "tslib": "^2.6.2" } }, "sha512-AXfN/lGotSQwu6HNcEsIASo7kWXZ5HYWvfOmSNKDsEqC4OashTp8alTmaz+F7TC2L083SFv5RdB+qU3Vs1kZqw=="],
 
@@ -1712,7 +1772,7 @@
 
     "@floating-ui/utils": ["@floating-ui/utils@0.2.10", "", {}, "sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ=="],
 
-    "@google/genai": ["@google/genai@1.49.0", "", { "dependencies": { "google-auth-library": "^10.3.0", "p-retry": "^4.6.2", "protobufjs": "^7.5.4", "ws": "^8.18.0" }, "peerDependencies": { "@modelcontextprotocol/sdk": "^1.25.2" }, "optionalPeers": ["@modelcontextprotocol/sdk"] }, "sha512-hO69Zl0H3x+L0KL4stl1pLYgnqnwHoLqtKy6MRlNnW8TAxjqMdOUVafomKd4z1BePkzoxJWbYILny9a2Zk43VQ=="],
+    "@google/genai": ["@google/genai@1.50.1", "", { "dependencies": { "google-auth-library": "^10.3.0", "p-retry": "^4.6.2", "protobufjs": "^7.5.4", "ws": "^8.18.0" }, "peerDependencies": { "@modelcontextprotocol/sdk": "^1.25.2" }, "optionalPeers": ["@modelcontextprotocol/sdk"] }, "sha512-YbkX7H9+1Pt8wOt7DDREy8XSoiL6fRDzZQRyaVBarFf8MR3zHGqVdvM4cLbDXqPhxqvegZShgfxb8kw9C7YhAQ=="],
 
     "@iconify/types": ["@iconify/types@2.0.0", "", {}, "sha512-+wluvCrRhXrhyOmRDJ3q8mux9JkKy5SJ/v8ol2tu4FVjyYvtEzkc/3pK15ET6RKg4b4w4BmTk1+gsCUhf21Ykg=="],
 
@@ -2968,6 +3028,8 @@
 
     "mf-charts": ["mf-charts@workspace:front/microfrontends/communications/mf-charts"],
 
+    "mf-classifier": ["mf-classifier@workspace:front/microfrontends/content/mf-classifier"],
+
     "mf-community": ["mf-community@workspace:front/microfrontends/communications/mf-community"],
 
     "mf-dag": ["mf-dag@workspace:front/microfrontends/automation/mf-dag"],
@@ -3349,6 +3411,16 @@
     "rolldown": ["rolldown@1.0.0-rc.15", "", { "dependencies": { "@oxc-project/types": "=0.124.0", "@rolldown/pluginutils": "1.0.0-rc.15" }, "optionalDependencies": { "@rolldown/binding-android-arm64": "1.0.0-rc.15", "@rolldown/binding-darwin-arm64": "1.0.0-rc.15", "@rolldown/binding-darwin-x64": "1.0.0-rc.15", "@rolldown/binding-freebsd-x64": "1.0.0-rc.15", "@rolldown/binding-linux-arm-gnueabihf": "1.0.0-rc.15", "@rolldown/binding-linux-arm64-gnu": "1.0.0-rc.15", "@rolldown/binding-linux-arm64-musl": "1.0.0-rc.15", "@rolldown/binding-linux-ppc64-gnu": "1.0.0-rc.15", "@rolldown/binding-linux-s390x-gnu": "1.0.0-rc.15", "@rolldown/binding-linux-x64-gnu": "1.0.0-rc.15", "@rolldown/binding-linux-x64-musl": "1.0.0-rc.15", "@rolldown/binding-openharmony-arm64": "1.0.0-rc.15", "@rolldown/binding-wasm32-wasi": "1.0.0-rc.15", "@rolldown/binding-win32-arm64-msvc": "1.0.0-rc.15", "@rolldown/binding-win32-x64-msvc": "1.0.0-rc.15" }, "bin": { "rolldown": "bin/cli.mjs" } }, "sha512-Ff31guA5zT6WjnGp0SXw76X6hzGRk/OQq2hE+1lcDe+lJdHSgnSX6nK3erbONHyCbpSj9a9E+uX/OvytZoWp2g=="],
 
     "rollup": ["rollup@4.57.1", "", { "dependencies": { "@types/estree": "1.0.8" }, "optionalDependencies": { "@rollup/rollup-android-arm-eabi": "4.57.1", "@rollup/rollup-android-arm64": "4.57.1", "@rollup/rollup-darwin-arm64": "4.57.1", "@rollup/rollup-darwin-x64": "4.57.1", "@rollup/rollup-freebsd-arm64": "4.57.1", "@rollup/rollup-freebsd-x64": "4.57.1", "@rollup/rollup-linux-arm-gnueabihf": "4.57.1", "@rollup/rollup-linux-arm-musleabihf": "4.57.1", "@rollup/rollup-linux-arm64-gnu": "4.57.1", "@rollup/rollup-linux-arm64-musl": "4.57.1", "@rollup/rollup-linux-loong64-gnu": "4.57.1", "@rollup/rollup-linux-loong64-musl": "4.57.1", "@rollup/rollup-linux-ppc64-gnu": "4.57.1", "@rollup/rollup-linux-ppc64-musl": "4.57.1", "@rollup/rollup-linux-riscv64-gnu": "4.57.1", "@rollup/rollup-linux-riscv64-musl": "4.57.1", "@rollup/rollup-linux-s390x-gnu": "4.57.1", "@rollup/rollup-linux-x64-gnu": "4.57.1", "@rollup/rollup-linux-x64-musl": "4.57.1", "@rollup/rollup-openbsd-x64": "4.57.1", "@rollup/rollup-openharmony-arm64": "4.57.1", "@rollup/rollup-win32-arm64-msvc": "4.57.1", "@rollup/rollup-win32-ia32-msvc": "4.57.1", "@rollup/rollup-win32-x64-gnu": "4.57.1", "@rollup/rollup-win32-x64-msvc": "4.57.1", "fsevents": "~2.3.2" }, "bin": { "rollup": "dist/bin/rollup" } }, "sha512-oQL6lgK3e2QZeQ7gcgIkS2YZPg5slw37hYufJ3edKlfQSGGm8ICoxswK15ntSzF/a8+h7ekRy7k7oWc3BQ7y8A=="],
+
+    "rt-agents": ["rt-agents@workspace:back/runtimes/ai/rt-agents"],
+
+    "rt-chat": ["rt-chat@workspace:back/runtimes/ai/rt-chat"],
+
+    "rt-cron": ["rt-cron@workspace:back/runtimes/automation/rt-cron"],
+
+    "rt-dag": ["rt-dag@workspace:back/runtimes/automation/rt-dag"],
+
+    "rt-gates": ["rt-gates@workspace:back/runtimes/automation/rt-gates"],
 
     "run-applescript": ["run-applescript@7.1.0", "", {}, "sha512-DPe5pVFaAsinSaV6QjQ6gdiedWDcRCbUuiQfQa2wmWV7+xC9bGulGI8+TdRmoFkAPaBXk8CrAbnlY2ISniJ47Q=="],
 

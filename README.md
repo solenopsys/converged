@@ -74,8 +74,9 @@ This keeps microservices stable and independently deployable, while RT becomes t
 converged-portal/
 ├── back/                  # Backend
 │   ├── back-core/         # Elysia runtime + dynamic plugin loading
-│   ├── microservices/     # 49 microservices organized by domain
-│   └── runtime/           # Runtime layer (stateless workflow executor)
+│   ├── microservices/     # Stateful data/API plugins: back/microservices/<category>/ms-<name>
+│   ├── runtimes/          # Stateless RT plugins: back/runtimes/<category>/rt-<name>
+│   └── runtime/           # Runtime core: engines, gates, workflow resolver, shared services
 │       ├── engines/dag/   # Workflow base class, NodeProcessor
 │       ├── engines/cron/  # Cron scheduling engine
 │       └── workflows/     # Workflow definitions (package: converged-workflows)
@@ -95,7 +96,7 @@ converged-portal/
 
 The backend is built on [Elysia](https://elysiajs.com/) and runs on [Bun](https://bun.sh/) — the fastest and most lightweight JS runtime available today. Bun is written in Zig, runs 2–3× faster than Node.js, and consumes significantly less memory, making it ideal for edge deployment — the platform runs comfortably on single-board computers for $100. In development mode, `back-core` reads `config.json`, dynamically imports plugins for all active microservices, and mounts them into a single HTTP application.
 
-In production, the runtime reads `runtime-map.toml` with the specific plugin list for a given container — the same code runs as a monolith or as a set of independent services.
+In production, each application image reads `runtime-map.toml` with the plugin list for that image. The MS image loads `microservices`; the RT image loads `runtimes`. A mono deployment runs one RT container with all configured runtimes, while a multi deployment can split the same RT image into several stateless runtime containers by config.
 
 Each microservice is an Elysia plugin with a factory function `createHttpBackend({ metadata, serviceImpl })`. Configuration is passed via `PluginConfig`: data path, AI keys, addresses of neighboring services.
 
@@ -163,7 +164,7 @@ The platform separates storage from execution. Each microservice owns its domain
 
 **Microservices** are thin wrappers around a database. They handle storage, validation, and expose typed APIs to the UI and RT. `ms-dag` stores execution history and variables. `ms-sheduller` stores cron configurations.
 
-**Runtime (RT)** is a stateless executor. It holds active cron jobs in memory, runs workflow logic, and writes results back to the relevant microservice stores via API. RT is compiled with all workflow definitions baked in — no dynamic loading.
+**Runtime (RT)** is the stateless execution layer. It can be one container or several containers, all built from the same `rt` image. Individual runtime plugins live under `back/runtimes/<category>/rt-<name>`; container grouping is selected in `config.json` with `back.runtimes` and preset `runtimes` selectors.
 
 ```
 UI → ms-dag        list executions, status, stats, vars (CRUD)
@@ -175,7 +176,9 @@ RT → ms-sheduller  read cron schedule on startup / refresh
 
 When a cron config changes in `ms-sheduller`, the UI notifies RT to reload its in-memory schedule.
 
-**Workflow definitions** are TypeScript classes compiled into the RT image at build time. They live in `back/runtime/workflows/` and import domain API clients (`g-dag`, `g-sheduller`, etc.) to interact with microservices.
+`back/runtime` is the runtime core package. It owns shared engines, gates, the workflow resolver, and common service classes. Concrete stateless plugins are thin entrypoints under `back/runtimes`: `automation/rt-dag`, `automation/rt-cron`, `automation/rt-gates`, `ai/rt-agents`, and `ai/rt-chat`.
+
+**Workflow definitions** are TypeScript classes compiled into the RT image at build time. The automation core keeps workflows in `back/runtime/workflows/`; `rt-dag` exposes DAG execution, `rt-cron` owns in-memory cron refresh/scheduling, and `rt-gates` exposes integration gates such as magic-link delivery.
 
 The two runtime engines:
 - `engines/dag` — `Workflow` base class and `NodeProcessor` for step tracking
@@ -215,8 +218,8 @@ Deployment profiles are defined in `config.json`:
 
 | Profile | Description | Use case |
 |---------|-------------|----------|
-| `mono` | 4 containers: UI + RT + MS + storage | Development, prototyping |
-| `multi` | UI + RT + domain-split MS groups + storage | Standard production |
+| `mono` | UI + one RT + one MS + storage + cache | Development, prototyping |
+| `multi` | UI + one or more RT groups + domain-split MS groups + storage/cache | Standard production |
 
 Generating artifacts:
 ```bash

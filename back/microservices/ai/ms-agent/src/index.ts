@@ -8,15 +8,17 @@ import {
   type ToolDefinition,
   type TokenUsage,
 } from "./types";
-import type { LoopStreamEvent } from "./core/types";
+import type { LoopStreamEvent } from "rt-agents/agent";
 import { StoresController } from "./store";
-import { ProviderRegistry } from "./providers/registry";
-import { ToolRegistry } from "./tools/registry";
-import { BootstrapLoader } from "./bootstrap/loader";
+import {
+  AgentLoop,
+  BootstrapLoader,
+  ContextBuilder,
+  ProviderRegistry,
+  ToolRegistry,
+  type Tool,
+} from "rt-agents/agent";
 import { SessionManager } from "./session/manager";
-import { ContextBuilder } from "./core/context";
-import { AgentLoop } from "./core/loop";
-import type { Tool } from "./tools/base";
 
 export default class AgentServiceImpl {
   private stores!: StoresController;

@@ -12,6 +12,12 @@ type RunExecutionOptions = {
   skipOpen?: boolean;
 };
 
+export type RuntimeFeature = "dag" | "cron" | "gates";
+
+export type RuntimeServiceConfig = Record<string, any> & {
+  features?: RuntimeFeature[];
+};
+
 class ExecutionEventChannel implements AsyncIterable<ExecutionEvent> {
   private queue: ExecutionEvent[] = [];
   private waiters: Array<() => void> = [];
@@ -52,7 +58,7 @@ class ExecutionEventChannel implements AsyncIterable<ExecutionEvent> {
 export class RuntimeServiceImpl implements RuntimeService {
   private dagClient: ReturnType<typeof createDagServiceClient>;
   private shedullerClient: ReturnType<typeof createShedullerServiceClient>;
-  private cronEngine: CronEngine;
+  private cronEngine?: CronEngine;
   private cronRefreshTimer?: ReturnType<typeof setInterval>;
   private startupSyncTimer?: ReturnType<typeof setTimeout>;
   private scheduledCronIds = new Set<string>();
@@ -60,8 +66,10 @@ export class RuntimeServiceImpl implements RuntimeService {
   private workflowCtors: Map<string, WorkflowCtor> = new Map();
   private activeExecutionIds = new Set<string>();
   private scriptResolver: RuntimeScriptResolver;
+  private features: Set<RuntimeFeature>;
 
-  constructor(config?: any) {
+  constructor(config?: RuntimeServiceConfig) {
+    this.features = new Set(config?.features ?? ["dag", "cron", "gates"]);
     const baseUrl = process.env.SERVICES_BASE ?? "http://localhost:3000/services";
     this.dagClient = createDagServiceClient({ baseUrl });
     this.shedullerClient = createShedullerServiceClient({ baseUrl });
@@ -106,22 +114,26 @@ export class RuntimeServiceImpl implements RuntimeService {
       registerShutdownTask: config?.registerShutdownTask,
     });
 
-    this.cronEngine = new CronEngine((record) => {
-      console.log(`[runtime] cron fired: ${record.cronName} success=${record.success}`);
-      void this.recordCronHistory(record);
-    });
-
-    const refreshIntervalMs = Number(process.env.CRON_REFRESH_INTERVAL_MS || 30000);
-    this.cronRefreshTimer = setInterval(() => {
-      void this.refreshCrons().catch((error) => {
-        this.logRefreshCronsFailure("periodic", error);
+    if (this.hasFeature("cron")) {
+      this.cronEngine = new CronEngine((record) => {
+        console.log(`[runtime] cron fired: ${record.cronName} success=${record.success}`);
+        void this.recordCronHistory(record);
       });
-    }, Number.isFinite(refreshIntervalMs) && refreshIntervalMs > 0 ? refreshIntervalMs : 30000);
 
-    this.scheduleStartupSync();
+      const refreshIntervalMs = Number(process.env.CRON_REFRESH_INTERVAL_MS || 30000);
+      this.cronRefreshTimer = setInterval(() => {
+        void this.refreshCrons().catch((error) => {
+          this.logRefreshCronsFailure("periodic", error);
+        });
+      }, Number.isFinite(refreshIntervalMs) && refreshIntervalMs > 0 ? refreshIntervalMs : 30000);
+    }
+
+    if (this.hasFeature("cron") || this.hasFeature("dag")) {
+      this.scheduleStartupSync();
+    }
 
     if (typeof config?.registerShutdownTask === "function") {
-      config.registerShutdownTask("runtime:cron-refresh", async () => {
+      config.registerShutdownTask(`runtime:${Array.from(this.features).join("+")}:timers`, async () => {
         if (this.cronRefreshTimer) {
           clearInterval(this.cronRefreshTimer);
         }
@@ -132,27 +144,35 @@ export class RuntimeServiceImpl implements RuntimeService {
     }
   }
 
+  private hasFeature(feature: RuntimeFeature): boolean {
+    return this.features.has(feature);
+  }
+
   private scheduleStartupSync(): void {
     const configuredDelay = Number(process.env.RUNTIME_STARTUP_SYNC_DELAY_MS ?? 1000);
     const delayMs = Number.isFinite(configuredDelay) && configuredDelay > 0 ? configuredDelay : 0;
 
     this.startupSyncTimer = setTimeout(() => {
       this.startupSyncTimer = undefined;
-      void this.refreshCrons().catch((error) => {
-        this.logRefreshCronsFailure("initial", error);
-      });
-
-      void this.resumeActiveExecutions(200)
-        .then((summary) => {
-          if (summary.resumed || summary.skipped || summary.failed) {
-            console.info(
-              `[runtime] resumeActiveExecutions resumed=${summary.resumed} skipped=${summary.skipped} failed=${summary.failed}`,
-            );
-          }
-        })
-        .catch((error) => {
-          this.logResumeDagFailure(error);
+      if (this.hasFeature("cron")) {
+        void this.refreshCrons().catch((error) => {
+          this.logRefreshCronsFailure("initial", error);
         });
+      }
+
+      if (this.hasFeature("dag")) {
+        void this.resumeActiveExecutions(200)
+          .then((summary) => {
+            if (summary.resumed || summary.skipped || summary.failed) {
+              console.info(
+                `[runtime] resumeActiveExecutions resumed=${summary.resumed} skipped=${summary.skipped} failed=${summary.failed}`,
+              );
+            }
+          })
+          .catch((error) => {
+            this.logResumeDagFailure(error);
+          });
+      }
     }, delayMs);
 
     (this.startupSyncTimer as any)?.unref?.();
@@ -511,6 +531,10 @@ export class RuntimeServiceImpl implements RuntimeService {
   }
 
   async refreshCrons(): Promise<void> {
+    if (!this.cronEngine) {
+      throw new Error("Cron runtime feature is not enabled");
+    }
+
     const list = await this.shedullerClient.listCrons({
       offset: 0,
       limit: 10000,
@@ -538,6 +562,24 @@ export class RuntimeServiceImpl implements RuntimeService {
   async sendMagicLink(params: MagicLinkParams): Promise<MagicLinkResult> {
     await sendMagicLink(params);
     return { success: true };
+  }
+}
+
+export class DagRuntimeService extends RuntimeServiceImpl {
+  constructor(config?: RuntimeServiceConfig) {
+    super({ ...config, features: ["dag"] });
+  }
+}
+
+export class CronRuntimeService extends RuntimeServiceImpl {
+  constructor(config?: RuntimeServiceConfig) {
+    super({ ...config, features: ["cron"] });
+  }
+}
+
+export class GatesRuntimeService extends RuntimeServiceImpl {
+  constructor(config?: RuntimeServiceConfig) {
+    super({ ...config, features: ["gates"] });
   }
 }
 
