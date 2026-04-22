@@ -24,7 +24,7 @@ export type PaginationParams = {
   limit: number;
 };
 
-export type PaginatedResult = {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 };
@@ -32,7 +32,7 @@ export type PaginatedResult = {
 export const metadata = {
   "interfaceName": "ReviewsService",
   "serviceName": "reviews",
-  "filePath": "../types/reviews.ts",
+  "filePath": "services/business/reviews.ts",
   "methods": [
     {
       "name": "createReview",
@@ -59,7 +59,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "Review | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -74,7 +74,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "PaginatedResult",
+      "returnType": "PaginatedResult<Review>",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -98,26 +98,33 @@ export const metadata = {
   "types": [
     {
       "name": "ReviewId",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "ISODateString",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "Review",
+      "kind": "type",
       "definition": "{\n  id: ReviewId;\n  author: string;\n  text: string;\n  rating: number;\n  createdAt: ISODateString;\n}"
     },
     {
       "name": "ReviewInput",
+      "kind": "type",
       "definition": "{\n  author: string;\n  text: string;\n  rating: number;\n}"
     },
     {
       "name": "PaginationParams",
+      "kind": "type",
       "definition": "{\n  offset: number;\n  limit: number;\n}"
     },
     {
       "name": "PaginatedResult",
+      "kind": "type",
+      "typeParameters": "<T>",
       "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     }
   ]
@@ -126,16 +133,16 @@ export const metadata = {
 // Server interface (to be implemented in microservice)
 export interface ReviewsService {
   createReview(input: ReviewInput): Promise<ReviewId>;
-  getReview(id: ReviewId): Promise<any>;
-  listReviews(params: PaginationParams): Promise<PaginatedResult>;
+  getReview(id: ReviewId): Promise<Review | any>;
+  listReviews(params: PaginationParams): Promise<PaginatedResult<Review>>;
   deleteReview(id: ReviewId): Promise<boolean>;
 }
 
 // Client interface
 export interface ReviewsServiceClient {
   createReview(input: ReviewInput): Promise<ReviewId>;
-  getReview(id: ReviewId): Promise<any>;
-  listReviews(params: PaginationParams): Promise<PaginatedResult>;
+  getReview(id: ReviewId): Promise<Review | any>;
+  listReviews(params: PaginationParams): Promise<PaginatedResult<Review>>;
   deleteReview(id: ReviewId): Promise<boolean>;
 }
 

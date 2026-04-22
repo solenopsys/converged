@@ -30,7 +30,7 @@ export type InstagramPostResult = {
 export const metadata = {
   "interfaceName": "InstagramService",
   "serviceName": "instagram",
-  "filePath": "../types/instagram.ts",
+  "filePath": "services/social/instagram.ts",
   "methods": [
     {
       "name": "publishPost",
@@ -57,22 +57,27 @@ export const metadata = {
   "types": [
     {
       "name": "InstagramMediaType",
+      "kind": "type",
       "definition": "\"image\" | \"video\""
     },
     {
       "name": "InstagramMediaInput",
+      "kind": "type",
       "definition": "{\n  type: InstagramMediaType;\n  url: string;\n  coverUrl?: string;\n}"
     },
     {
       "name": "InstagramPostInput",
+      "kind": "type",
       "definition": "{\n  caption?: string;\n  media: InstagramMediaInput[];\n}"
     },
     {
       "name": "InstagramCredentials",
+      "kind": "type",
       "definition": "{\n  accessToken: string;\n  igUserId: string;\n  apiBaseUrl?: string;\n}"
     },
     {
       "name": "InstagramPostResult",
+      "kind": "type",
       "definition": "{\n  success: boolean;\n  postId?: string;\n  containerId?: string;\n  error?: string;\n}"
     }
   ]

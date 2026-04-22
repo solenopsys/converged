@@ -55,7 +55,7 @@ export type SetStatusPatternResult = {
 export const metadata = {
   "interfaceName": "StaticService",
   "serviceName": "static",
-  "filePath": "../types/static.ts",
+  "filePath": "services/content/static.ts",
   "methods": [
     {
       "name": "getData",
@@ -67,7 +67,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "string | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -112,7 +112,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "StaticMeta | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -142,7 +142,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "StaticMeta | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -225,42 +225,52 @@ export const metadata = {
   "types": [
     {
       "name": "StaticStatus",
+      "kind": "type",
       "definition": "\"todo\" | \"loaded\" | \"outdated\""
     },
     {
       "name": "StaticContentType",
+      "kind": "type",
       "definition": "\"html\" | \"svg\""
     },
     {
       "name": "StaticMeta",
+      "kind": "type",
       "definition": "{\n  id: string;\n  status: StaticStatus;\n  contentType: StaticContentType;\n  size: number;\n  loadedAt: number | null;\n  updatedAt: number;\n}"
     },
     {
       "name": "SetMetaParams",
+      "kind": "type",
       "definition": "{\n  id: string;\n  contentType: StaticContentType;\n  status?: StaticStatus;\n}"
     },
     {
       "name": "SetDataParams",
+      "kind": "type",
       "definition": "{\n  id: string;\n  content: string;\n  contentType: StaticContentType;\n}"
     },
     {
       "name": "ListMetaParams",
+      "kind": "type",
       "definition": "{\n  offset: number;\n  limit: number;\n  status?: StaticStatus;\n  contentType?: StaticContentType;\n  search?: string;\n}"
     },
     {
       "name": "StaticMetaListResult",
+      "kind": "type",
       "definition": "{\n  items: StaticMeta[];\n  totalCount?: number;\n}"
     },
     {
       "name": "FlushResult",
+      "kind": "type",
       "definition": "{\n  removed: number;\n}"
     },
     {
       "name": "SetStatusPatternParams",
+      "kind": "type",
       "definition": "{\n  pattern: string;\n  status: StaticStatus;\n}"
     },
     {
       "name": "SetStatusPatternResult",
+      "kind": "type",
       "definition": "{\n  updated: number;\n}"
     }
   ]
@@ -268,12 +278,12 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface StaticService {
-  getData(id: string): Promise<any>;
+  getData(id: string): Promise<string | any>;
   setData(params: SetDataParams): Promise<StaticMeta>;
   setMeta(params: SetMetaParams): Promise<StaticMeta>;
-  getMeta(id: string): Promise<any>;
+  getMeta(id: string): Promise<StaticMeta | any>;
   listMeta(params: ListMetaParams): Promise<StaticMetaListResult>;
-  getOneByStatus(status: StaticStatus): Promise<any>;
+  getOneByStatus(status: StaticStatus): Promise<StaticMeta | any>;
   setStatus(id: string, status: StaticStatus): Promise<StaticMeta>;
   setStatusPattern(params: SetStatusPatternParams): Promise<SetStatusPatternResult>;
   deleteMeta(id: string): Promise<void>;
@@ -283,12 +293,12 @@ export interface StaticService {
 
 // Client interface
 export interface StaticServiceClient {
-  getData(id: string): Promise<any>;
+  getData(id: string): Promise<string | any>;
   setData(params: SetDataParams): Promise<StaticMeta>;
   setMeta(params: SetMetaParams): Promise<StaticMeta>;
-  getMeta(id: string): Promise<any>;
+  getMeta(id: string): Promise<StaticMeta | any>;
   listMeta(params: ListMetaParams): Promise<StaticMetaListResult>;
-  getOneByStatus(status: StaticStatus): Promise<any>;
+  getOneByStatus(status: StaticStatus): Promise<StaticMeta | any>;
   setStatus(id: string, status: StaticStatus): Promise<StaticMeta>;
   setStatusPattern(params: SetStatusPatternParams): Promise<SetStatusPatternResult>;
   deleteMeta(id: string): Promise<void>;

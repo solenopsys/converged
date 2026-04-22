@@ -42,6 +42,8 @@ class InterfaceParser {
           types.push({
             name: declaration.id.name,
             definition: "", // Definition can be complex, focusing on properties
+            kind: "interface",
+            typeParameters: this.extractTypeParameters(declaration, content),
             properties: this.extractProperties(declaration.body.body),
           });
         }
@@ -49,11 +51,20 @@ class InterfaceParser {
         // It's a type alias
         types.push({
           name: declaration.id.name,
+          kind: "type",
+          typeParameters: this.extractTypeParameters(declaration, content),
           // A simple representation of the type definition
           definition: content.substring(
             declaration.typeAnnotation.range[0],
             declaration.typeAnnotation.range[1],
           ),
+        });
+      } else if (declaration.type === "TSEnumDeclaration") {
+        const enumSource = content.substring(declaration.range[0], declaration.range[1]);
+        types.push({
+          name: declaration.id.name,
+          kind: "raw",
+          definition: enumSource.startsWith("export ") ? enumSource : `export ${enumSource}`,
         });
       }
     }
@@ -65,20 +76,33 @@ class InterfaceParser {
     }
 
     const interfaceName = serviceInterface.id.name;
-    const serviceName = this.extractServiceName(interfaceName);
+    const serviceName = this.extractDirective(content, "service") ?? this.extractServiceName(interfaceName);
+    const packageName = this.extractDirective(content, "package");
     const methods = this.extractMethods(serviceInterface.body.body, content);
 
     return {
       interfaceName,
       serviceName,
+      ...(packageName ? { packageName } : {}),
       filePath,
       methods,
       types,
     };
   }
 
+  private extractDirective(content: string, name: "service" | "package"): string | undefined {
+    const match = content.match(new RegExp(`@nrpc-${name}\\s+([a-zA-Z0-9_-]+)`));
+    return match?.[1];
+  }
+
   private extractServiceName(interfaceName: string): string {
     return interfaceName.replace("Service", "").toLowerCase();
+  }
+
+  private extractTypeParameters(node: any, sourceContent: string): string | undefined {
+    const typeParameters = node.typeParameters;
+    if (!typeParameters?.range) return undefined;
+    return sourceContent.substring(typeParameters.range[0], typeParameters.range[1]);
   }
 
   private extractMethods(members: any[], sourceContent = ""): MethodMetadata[] {
@@ -138,15 +162,38 @@ class InterfaceParser {
         return "void";
       case "TSAnyKeyword":
         return "any";
+      case "TSUnknownKeyword":
+        return "unknown";
       case "TSTypeReference":
         // Распознаем встроенные типы, включая Date
-        const typeName = typeNode.typeName.name;
-        return typeName;
+        const typeName = this.extractTypeName(typeNode.typeName);
+        const typeArguments = (typeNode.typeArguments ?? typeNode.typeParameters)?.params;
+        if (!typeArguments?.length) return typeName;
+        return `${typeName}<${typeArguments.map((arg: any) => this.extractType(arg)).join(", ")}>`;
       case "TSArrayType":
         return this.extractType(typeNode.elementType);
+      case "TSUnionType":
+        return typeNode.types.map((item: any) => this.extractType(item)).join(" | ");
+      case "TSLiteralType":
+        return this.extractLiteralType(typeNode.literal);
       default:
         return "any";
     }
+  }
+
+  private extractTypeName(typeNameNode: any): string {
+    if (!typeNameNode) return "any";
+    if (typeNameNode.type === "Identifier") return typeNameNode.name;
+    if (typeNameNode.type === "TSQualifiedName") {
+      return `${this.extractTypeName(typeNameNode.left)}.${this.extractTypeName(typeNameNode.right)}`;
+    }
+    return "any";
+  }
+
+  private extractLiteralType(literalNode: any): string {
+    if (!literalNode) return "any";
+    if (literalNode.type === "Literal") return JSON.stringify(literalNode.value);
+    return "any";
   }
 
   private extractReturnType(typeNode: any): string {

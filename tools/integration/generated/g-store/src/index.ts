@@ -11,7 +11,7 @@ export type PaginationParams = {
   limit: number;
 };
 
-export type PaginatedResult = {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 };
@@ -27,7 +27,7 @@ export type BlockMetadata = {
 export const metadata = {
   "interfaceName": "StoreService",
   "serviceName": "store",
-  "filePath": "../types/store.ts",
+  "filePath": "services/data/store.ts",
   "methods": [
     {
       "name": "save",
@@ -171,7 +171,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "PaginatedResult",
+      "returnType": "PaginatedResult<HashString>",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -188,22 +188,28 @@ export const metadata = {
   "types": [
     {
       "name": "HashString",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "CompressionType",
+      "kind": "type",
       "definition": "\"none\" | \"deflate\" | \"gzip\" | \"brotli\""
     },
     {
       "name": "PaginationParams",
+      "kind": "type",
       "definition": "{\n  key: string;\n  offset: number;\n  limit: number;\n}"
     },
     {
       "name": "PaginatedResult",
+      "kind": "type",
+      "typeParameters": "<T>",
       "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     },
     {
       "name": "BlockMetadata",
+      "kind": "type",
       "definition": "{\n  hash: HashString;\n  size: number;\n  originalSize: number;\n  compression: CompressionType;\n  owner: string;\n}"
     }
   ]
@@ -217,7 +223,7 @@ export interface StoreService {
   get(hash: HashString): Promise<Uint8Array>;
   getWithMeta(hash: HashString): Promise<any>;
   exists(hash: HashString): Promise<boolean>;
-  list(params: PaginationParams): Promise<PaginatedResult>;
+  list(params: PaginationParams): Promise<PaginatedResult<HashString>>;
   storeStatistic(): Promise<any>;
 }
 
@@ -229,7 +235,7 @@ export interface StoreServiceClient {
   get(hash: HashString): Promise<Uint8Array>;
   getWithMeta(hash: HashString): Promise<any>;
   exists(hash: HashString): Promise<boolean>;
-  list(params: PaginationParams): Promise<PaginatedResult>;
+  list(params: PaginationParams): Promise<PaginatedResult<HashString>>;
   storeStatistic(): Promise<any>;
 }
 

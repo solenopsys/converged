@@ -11,7 +11,7 @@ export type UserId = string;
 
 export type ISODateString = string;
 
-export type PaginatedResult = {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 };
@@ -87,7 +87,7 @@ export type SectionTreeNode = CommunitySection & {
 export const metadata = {
   "interfaceName": "CommunityService",
   "serviceName": "community",
-  "filePath": "../types/community.ts",
+  "filePath": "services/communications/community.ts",
   "methods": [
     {
       "name": "saveSection",
@@ -114,7 +114,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "CommunitySection | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -144,7 +144,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "PaginatedResult",
+      "returnType": "PaginatedResult<CommunitySection>",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -195,7 +195,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "CommunityTopic | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -225,7 +225,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "PaginatedResult",
+      "returnType": "PaginatedResult<CommunityTopic>",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -234,58 +234,73 @@ export const metadata = {
   "types": [
     {
       "name": "SectionId",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "TopicId",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "ThreadId",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "UserId",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "ISODateString",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "PaginatedResult",
+      "kind": "type",
+      "typeParameters": "<T>",
       "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     },
     {
       "name": "ListParams",
+      "kind": "type",
       "definition": "{\n  offset: number;\n  limit: number;\n}"
     },
     {
       "name": "CommunitySection",
+      "kind": "type",
       "definition": "{\n  id: SectionId;\n  parentId?: SectionId;\n  slug: string;\n  title: string;\n  description?: string;\n  sortOrder: number;\n  isHidden: boolean;\n  createdAt: ISODateString;\n  updatedAt: ISODateString;\n}"
     },
     {
       "name": "CommunitySectionInput",
+      "kind": "type",
       "definition": "{\n  id?: SectionId;\n  parentId?: SectionId;\n  slug: string;\n  title: string;\n  description?: string;\n  sortOrder?: number;\n  isHidden?: boolean;\n}"
     },
     {
       "name": "CommunityTopic",
+      "kind": "type",
       "definition": "{\n  id: TopicId;\n  sectionId: SectionId;\n  threadId: ThreadId;\n  title: string;\n  createdBy: UserId;\n  isPinned: boolean;\n  isLocked: boolean;\n  isArchived: boolean;\n  lastActivityAt: ISODateString;\n  createdAt: ISODateString;\n  updatedAt: ISODateString;\n}"
     },
     {
       "name": "CommunityTopicInput",
+      "kind": "type",
       "definition": "{\n  id?: TopicId;\n  sectionId: SectionId;\n  threadId: ThreadId;\n  title: string;\n  createdBy: UserId;\n  isPinned?: boolean;\n  isLocked?: boolean;\n  isArchived?: boolean;\n  lastActivityAt?: ISODateString;\n}"
     },
     {
       "name": "SectionListParams",
+      "kind": "type",
       "definition": "ListParams & {\n  parentId?: SectionId;\n  includeHidden?: boolean;\n}"
     },
     {
       "name": "TopicListParams",
+      "kind": "type",
       "definition": "ListParams & {\n  sectionId?: SectionId;\n  includeArchived?: boolean;\n  query?: string;\n}"
     },
     {
       "name": "SectionTreeNode",
+      "kind": "type",
       "definition": "CommunitySection & {\n  children: SectionTreeNode[];\n}"
     }
   ]
@@ -294,27 +309,27 @@ export const metadata = {
 // Server interface (to be implemented in microservice)
 export interface CommunityService {
   saveSection(input: CommunitySectionInput): Promise<SectionId>;
-  readSection(id: SectionId): Promise<any>;
+  readSection(id: SectionId): Promise<CommunitySection | any>;
   deleteSection(id: SectionId): Promise<boolean>;
-  listSections(params: SectionListParams): Promise<PaginatedResult>;
+  listSections(params: SectionListParams): Promise<PaginatedResult<CommunitySection>>;
   readSectionsTree(rootId?: SectionId, includeHidden?: boolean): Promise<SectionTreeNode[]>;
   saveTopic(input: CommunityTopicInput): Promise<TopicId>;
-  readTopic(id: TopicId): Promise<any>;
+  readTopic(id: TopicId): Promise<CommunityTopic | any>;
   deleteTopic(id: TopicId): Promise<boolean>;
-  listTopics(params: TopicListParams): Promise<PaginatedResult>;
+  listTopics(params: TopicListParams): Promise<PaginatedResult<CommunityTopic>>;
 }
 
 // Client interface
 export interface CommunityServiceClient {
   saveSection(input: CommunitySectionInput): Promise<SectionId>;
-  readSection(id: SectionId): Promise<any>;
+  readSection(id: SectionId): Promise<CommunitySection | any>;
   deleteSection(id: SectionId): Promise<boolean>;
-  listSections(params: SectionListParams): Promise<PaginatedResult>;
+  listSections(params: SectionListParams): Promise<PaginatedResult<CommunitySection>>;
   readSectionsTree(rootId?: SectionId, includeHidden?: boolean): Promise<SectionTreeNode[]>;
   saveTopic(input: CommunityTopicInput): Promise<TopicId>;
-  readTopic(id: TopicId): Promise<any>;
+  readTopic(id: TopicId): Promise<CommunityTopic | any>;
   deleteTopic(id: TopicId): Promise<boolean>;
-  listTopics(params: TopicListParams): Promise<PaginatedResult>;
+  listTopics(params: TopicListParams): Promise<PaginatedResult<CommunityTopic>>;
 }
 
 // Factory function

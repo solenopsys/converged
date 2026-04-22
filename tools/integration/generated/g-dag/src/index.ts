@@ -10,7 +10,7 @@ export type PaginationParams = {
   limit: number;
 };
 
-export type PaginatedResult = {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 };
@@ -77,7 +77,7 @@ export type TaskTicket = {
 export const metadata = {
   "interfaceName": "DagService",
   "serviceName": "dag",
-  "filePath": "../types/dag.ts",
+  "filePath": "services/automation/dag.ts",
   "methods": [
     {
       "name": "openExecution",
@@ -96,7 +96,7 @@ export const metadata = {
         },
         {
           "name": "params",
-          "type": "Record",
+          "type": "Record<string, any>",
           "optional": false,
           "isArray": false
         }
@@ -296,7 +296,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "PaginatedResult",
+      "returnType": "PaginatedResult<Execution>",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -306,7 +306,7 @@ export const metadata = {
       "parameters": [
         {
           "name": "executionId",
-          "type": "any",
+          "type": "string | any",
           "optional": false,
           "isArray": false
         },
@@ -317,7 +317,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "PaginatedResult",
+      "returnType": "PaginatedResult<Task>",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -378,54 +378,68 @@ export const metadata = {
   "types": [
     {
       "name": "ExecutionStatus",
+      "kind": "type",
       "definition": "\"running\" | \"done\" | \"failed\""
     },
     {
       "name": "TaskState",
+      "kind": "type",
       "definition": "\"queued\" | \"processing\" | \"done\" | \"failed\""
     },
     {
       "name": "PaginationParams",
+      "kind": "type",
       "definition": "{\n  offset: number;\n  limit: number;\n}"
     },
     {
       "name": "PaginatedResult",
+      "kind": "type",
+      "typeParameters": "<T>",
       "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     },
     {
       "name": "Execution",
+      "kind": "type",
       "definition": "{\n  id: string;\n  workflowName: string;\n  status: ExecutionStatus;\n  startedAt: number;\n  updatedAt: number;\n  createdAt: number;\n}"
     },
     {
       "name": "Task",
+      "kind": "type",
       "definition": "{\n  id: number;\n  executionId: string;\n  nodeId: string;\n  state: TaskState;\n  startedAt: number | null;\n  completedAt: number | null;\n  errorMessage: string | null;\n  retryCount: number;\n  createdAt: number;\n  data?: any;\n  result?: any;\n}"
     },
     {
       "name": "ExecutionEventType",
+      "kind": "type",
       "definition": "\"started\" | \"task_update\" | \"completed\" | \"failed\""
     },
     {
       "name": "ExecutionEvent",
+      "kind": "type",
       "definition": "{\n  type: ExecutionEventType;\n  executionId: string;\n  task?: Task;\n  error?: string;\n}"
     },
     {
       "name": "ExecutionResult",
+      "kind": "type",
       "definition": "{\n  id: string;\n}"
     },
     {
       "name": "ResumeExecutionsResult",
+      "kind": "type",
       "definition": "{\n  resumed: number;\n  skipped: number;\n  failed: number;\n  ids: string[];\n}"
     },
     {
       "name": "ResumableExecution",
+      "kind": "type",
       "definition": "{\n  id: string;\n  workflowName: string;\n  params: Record<string, any>;\n}"
     },
     {
       "name": "CachedNodeResult",
+      "kind": "type",
       "definition": "{\n  hit: boolean;\n  result?: any;\n}"
     },
     {
       "name": "TaskTicket",
+      "kind": "type",
       "definition": "{\n  id: number;\n  createdAt: number;\n}"
     }
   ]
@@ -433,7 +447,7 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface DagService {
-  openExecution(id: string, workflowName: string, params: Record): Promise<void>;
+  openExecution(id: string, workflowName: string, params: Record<string, any>): Promise<void>;
   setExecutionStatus(id: string, status: ExecutionStatus): Promise<void>;
   listResumableExecutions(limit?: number): Promise<any>;
   getCachedNodeResult(executionId: string, nodeId: string): Promise<CachedNodeResult>;
@@ -442,8 +456,8 @@ export interface DagService {
   setTaskDone(taskId: number, executionId: string, nodeId: string, completedAt: number, result: any): Promise<void>;
   setTaskFailed(taskId: number, completedAt: number, errorMessage: string): Promise<void>;
   statusExecution(id: string): Promise<any>;
-  listExecutions(params: PaginationParams): Promise<PaginatedResult>;
-  listTasks(executionId: any, params: PaginationParams): Promise<PaginatedResult>;
+  listExecutions(params: PaginationParams): Promise<PaginatedResult<Execution>>;
+  listTasks(executionId: string | any, params: PaginationParams): Promise<PaginatedResult<Task>>;
   stats(): Promise<any>;
   listVars(): Promise<any>;
   setVar(key: string, value: any): Promise<void>;
@@ -452,7 +466,7 @@ export interface DagService {
 
 // Client interface
 export interface DagServiceClient {
-  openExecution(id: string, workflowName: string, params: Record): Promise<void>;
+  openExecution(id: string, workflowName: string, params: Record<string, any>): Promise<void>;
   setExecutionStatus(id: string, status: ExecutionStatus): Promise<void>;
   listResumableExecutions(limit?: number): Promise<any>;
   getCachedNodeResult(executionId: string, nodeId: string): Promise<CachedNodeResult>;
@@ -461,8 +475,8 @@ export interface DagServiceClient {
   setTaskDone(taskId: number, executionId: string, nodeId: string, completedAt: number, result: any): Promise<void>;
   setTaskFailed(taskId: number, completedAt: number, errorMessage: string): Promise<void>;
   statusExecution(id: string): Promise<any>;
-  listExecutions(params: PaginationParams): Promise<PaginatedResult>;
-  listTasks(executionId: any, params: PaginationParams): Promise<PaginatedResult>;
+  listExecutions(params: PaginationParams): Promise<PaginatedResult<Execution>>;
+  listTasks(executionId: string | any, params: PaginationParams): Promise<PaginatedResult<Task>>;
   stats(): Promise<any>;
   listVars(): Promise<any>;
   setVar(key: string, value: any): Promise<void>;

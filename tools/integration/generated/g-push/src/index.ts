@@ -37,7 +37,7 @@ export type PushSendResult = {
 export const metadata = {
   "interfaceName": "PushService",
   "serviceName": "push",
-  "filePath": "../types/push.ts",
+  "filePath": "services/providers/push.ts",
   "methods": [
     {
       "name": "sendPush",
@@ -64,26 +64,32 @@ export const metadata = {
   "types": [
     {
       "name": "PushUrgency",
+      "kind": "type",
       "definition": "\"very-low\" | \"low\" | \"normal\" | \"high\""
     },
     {
       "name": "WebPushKeys",
+      "kind": "type",
       "definition": "{\n  p256dh: string;\n  auth: string;\n}"
     },
     {
       "name": "WebPushSubscription",
+      "kind": "type",
       "definition": "{\n  endpoint: string;\n  keys: WebPushKeys;\n}"
     },
     {
       "name": "PushCredentials",
+      "kind": "type",
       "definition": "{\n  vapidPublicKey: string;\n  vapidPrivateKey: string;\n  subject: string;\n}"
     },
     {
       "name": "PushMessageInput",
+      "kind": "type",
       "definition": "{\n  subscription: WebPushSubscription;\n  payload?: string;\n  ttl?: number;\n  urgency?: PushUrgency;\n  topic?: string;\n}"
     },
     {
       "name": "PushSendResult",
+      "kind": "type",
       "definition": "{\n  success: boolean;\n  statusCode?: number;\n  body?: string;\n  error?: string;\n}"
     }
   ]

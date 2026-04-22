@@ -1,6 +1,6 @@
 import { Elysia } from "elysia";
 import { createHttpBackend } from "nrpc";
-import { metadata as agentMetadata } from "g-agent";
+import { metadata as agentMetadata } from "g-rt-agents";
 import { AgentRuntimeService } from "./agent/service";
 
 export type AgentsRuntimePluginConfig = {
@@ -18,6 +18,7 @@ export default function agentsRuntimePlugin(config: AgentsRuntimePluginConfig = 
   const agentBackend = createHttpBackend({
     metadata: agentMetadata,
     serviceImpl: agentService,
+    pathPrefix: "/runtime",
   })(config);
 
   return (app: Elysia) => app.use(agentBackend);

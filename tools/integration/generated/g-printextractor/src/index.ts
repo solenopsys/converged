@@ -39,7 +39,7 @@ export type SliceEstimateResult = {
 export const metadata = {
   "interfaceName": "PrintExtractorService",
   "serviceName": "printextractor",
-  "filePath": "../types/printextractor.ts",
+  "filePath": "services/extractors/printextractor.ts",
   "methods": [
     {
       "name": "extractFromSlice",
@@ -75,22 +75,27 @@ export const metadata = {
   "types": [
     {
       "name": "NamedBinaryFile",
+      "kind": "type",
       "definition": "{\n  name: string;\n  data: Uint8Array;\n}"
     },
     {
       "name": "SliceEstimateInput",
+      "kind": "type",
       "definition": "{\n  modelStl: Uint8Array;\n  modelName?: string;\n  definitionJson: Uint8Array;\n  definitionName?: string;\n  searchFiles?: NamedBinaryFile[];\n  settings?: string[];\n  density?: number;\n  filamentDiameter?: number;\n  threads?: number;\n}"
     },
     {
       "name": "GcodeEstimateInput",
+      "kind": "type",
       "definition": "{\n  gcode: Uint8Array;\n  density?: number;\n  filamentDiameter?: number;\n}"
     },
     {
       "name": "PrintEstimate",
+      "kind": "type",
       "definition": "{\n  timeSeconds?: number;\n  filamentLengthMeters?: number;\n  materialVolumeMm3?: number;\n  weightGrams?: number;\n}"
     },
     {
       "name": "SliceEstimateResult",
+      "kind": "type",
       "definition": "{\n  estimate: PrintEstimate;\n  gcode: Uint8Array;\n}"
     }
   ]

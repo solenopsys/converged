@@ -59,7 +59,7 @@ export type OAuthState = {
 export const metadata = {
   "interfaceName": "OAuthService",
   "serviceName": "oauth",
-  "filePath": "../types/oauth.ts",
+  "filePath": "services/sequrity/oauth.ts",
   "methods": [
     {
       "name": "listProviderTemplates",
@@ -79,7 +79,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "OAuthProviderTemplate | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -109,7 +109,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "OAuthProvider | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -236,7 +236,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "OAuthState | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -266,7 +266,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "OAuthState | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -310,26 +310,32 @@ export const metadata = {
   "types": [
     {
       "name": "OAuthProviderName",
+      "kind": "type",
       "definition": "| \"google\"\n  | \"apple\"\n  | \"microsoft\"\n  | \"meta\"\n  | \"github\""
     },
     {
       "name": "OAuthProviderTemplate",
+      "kind": "type",
       "definition": "{\n  provider: OAuthProviderName;\n  displayName: string;\n  authorizeUrl: string;\n  tokenUrl: string;\n  userinfoUrl: string;\n  scopes: string[];\n}"
     },
     {
       "name": "OAuthProvider",
+      "kind": "type",
       "definition": "{\n  provider: OAuthProviderName;\n  clientId: string;\n  clientSecret: string;\n  authorizeUrl: string;\n  tokenUrl: string;\n  userinfoUrl: string;\n  scopes: string[];\n  enabled: boolean;\n  createdAt: number;\n}"
     },
     {
       "name": "OAuthProviderInput",
+      "kind": "type",
       "definition": "{\n  provider: OAuthProviderName;\n  clientId: string;\n  clientSecret: string;\n  authorizeUrl: string;\n  tokenUrl: string;\n  userinfoUrl: string;\n  scopes: string[];\n  enabled?: boolean;\n}"
     },
     {
       "name": "OAuthProviderUpdate",
+      "kind": "type",
       "definition": "{\n  clientId?: string;\n  clientSecret?: string;\n  authorizeUrl?: string;\n  tokenUrl?: string;\n  userinfoUrl?: string;\n  scopes?: string[];\n  enabled?: boolean;\n}"
     },
     {
       "name": "OAuthState",
+      "kind": "type",
       "definition": "{\n  state: string;\n  returnTo: string;\n  provider: OAuthProviderName;\n  expiresAt: number;\n}"
     }
   ]
@@ -338,9 +344,9 @@ export const metadata = {
 // Server interface (to be implemented in microservice)
 export interface OAuthService {
   listProviderTemplates(): Promise<OAuthProviderTemplate[]>;
-  getProviderTemplate(provider: OAuthProviderName): Promise<any>;
+  getProviderTemplate(provider: OAuthProviderName): Promise<OAuthProviderTemplate | any>;
   createProvider(provider: OAuthProviderInput): Promise<void>;
-  getProvider(provider: OAuthProviderName): Promise<any>;
+  getProvider(provider: OAuthProviderName): Promise<OAuthProvider | any>;
   updateProvider(providerName: OAuthProviderName, updates: OAuthProviderUpdate): Promise<void>;
   deleteProvider(providerName: OAuthProviderName): Promise<void>;
   listProviders(): Promise<OAuthProvider[]>;
@@ -349,9 +355,9 @@ export interface OAuthService {
   disableProvider(providerName: OAuthProviderName): Promise<void>;
   isProviderEnabled(providerName: OAuthProviderName): Promise<boolean>;
   createState(state: OAuthState): Promise<void>;
-  getState(stateToken: string): Promise<any>;
+  getState(stateToken: string): Promise<OAuthState | any>;
   deleteState(stateToken: string): Promise<void>;
-  consumeState(stateToken: string): Promise<any>;
+  consumeState(stateToken: string): Promise<OAuthState | any>;
   cleanupExpiredStates(): Promise<number>;
   generateState(provider: OAuthProviderName, returnTo: string, ttlSeconds?: number): Promise<string>;
 }
@@ -359,9 +365,9 @@ export interface OAuthService {
 // Client interface
 export interface OAuthServiceClient {
   listProviderTemplates(): Promise<OAuthProviderTemplate[]>;
-  getProviderTemplate(provider: OAuthProviderName): Promise<any>;
+  getProviderTemplate(provider: OAuthProviderName): Promise<OAuthProviderTemplate | any>;
   createProvider(provider: OAuthProviderInput): Promise<void>;
-  getProvider(provider: OAuthProviderName): Promise<any>;
+  getProvider(provider: OAuthProviderName): Promise<OAuthProvider | any>;
   updateProvider(providerName: OAuthProviderName, updates: OAuthProviderUpdate): Promise<void>;
   deleteProvider(providerName: OAuthProviderName): Promise<void>;
   listProviders(): Promise<OAuthProvider[]>;
@@ -370,9 +376,9 @@ export interface OAuthServiceClient {
   disableProvider(providerName: OAuthProviderName): Promise<void>;
   isProviderEnabled(providerName: OAuthProviderName): Promise<boolean>;
   createState(state: OAuthState): Promise<void>;
-  getState(stateToken: string): Promise<any>;
+  getState(stateToken: string): Promise<OAuthState | any>;
   deleteState(stateToken: string): Promise<void>;
-  consumeState(stateToken: string): Promise<any>;
+  consumeState(stateToken: string): Promise<OAuthState | any>;
   cleanupExpiredStates(): Promise<number>;
   generateState(provider: OAuthProviderName, returnTo: string, ttlSeconds?: number): Promise<string>;
 }

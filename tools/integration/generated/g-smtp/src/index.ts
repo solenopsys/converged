@@ -28,7 +28,7 @@ export type EmailResult = {
 export const metadata = {
   "interfaceName": "SmtpService",
   "serviceName": "smtp",
-  "filePath": "../types/smtp.ts",
+  "filePath": "services/providers/smtp.ts",
   "methods": [
     {
       "name": "sendEmail",
@@ -55,14 +55,17 @@ export const metadata = {
   "types": [
     {
       "name": "SmtpCredentials",
+      "kind": "type",
       "definition": "{\n  host: string;\n  port: number;\n  secure: boolean;\n  auth?: {\n    user: string;\n    pass: string;\n  };\n}"
     },
     {
       "name": "EmailPayload",
+      "kind": "type",
       "definition": "{\n  from?: string;\n  to: string | string[];\n  subject: string;\n  body?: string;\n  type?: \"html\" | \"text\";\n}"
     },
     {
       "name": "EmailResult",
+      "kind": "type",
       "definition": "{\n  success: boolean;\n  messageId?: string;\n  error?: string;\n}"
     }
   ]

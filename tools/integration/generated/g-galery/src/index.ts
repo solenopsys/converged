@@ -45,7 +45,7 @@ export type PaginationParams = {
   limit: number;
 };
 
-export type PaginatedResult = {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 };
@@ -53,7 +53,7 @@ export type PaginatedResult = {
 export const metadata = {
   "interfaceName": "GaleryService",
   "serviceName": "galery",
-  "filePath": "../types/galery.ts",
+  "filePath": "services/content/galery.ts",
   "methods": [
     {
       "name": "createGalery",
@@ -80,7 +80,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "Galery | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -95,7 +95,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "PaginatedResult",
+      "returnType": "PaginatedResult<Galery>",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -140,7 +140,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "GaleryImage | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -161,7 +161,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "PaginatedResult",
+      "returnType": "PaginatedResult<GaleryImage>",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -185,38 +185,48 @@ export const metadata = {
   "types": [
     {
       "name": "GaleryId",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "GaleryImageId",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "ISODateString",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "Galery",
+      "kind": "type",
       "definition": "{\n  id: GaleryId;\n  name: string;\n  description?: string;\n  createdAt: ISODateString;\n}"
     },
     {
       "name": "GaleryInput",
+      "kind": "type",
       "definition": "{\n  name: string;\n  description?: string;\n}"
     },
     {
       "name": "GaleryImage",
+      "kind": "type",
       "definition": "{\n  id: GaleryImageId;\n  galeryId: GaleryId;\n  title?: string;\n  description?: string;\n  originalName?: string;\n  mimeType?: string;\n  filePath: string;\n  thumbPath: string;\n  createdAt: ISODateString;\n}"
     },
     {
       "name": "GaleryImageInput",
+      "kind": "type",
       "definition": "{\n  galeryId: GaleryId;\n  data: Uint8Array;\n  mimeType?: string;\n  originalName?: string;\n  title?: string;\n  description?: string;\n}"
     },
     {
       "name": "PaginationParams",
+      "kind": "type",
       "definition": "{\n  offset: number;\n  limit: number;\n}"
     },
     {
       "name": "PaginatedResult",
+      "kind": "type",
+      "typeParameters": "<T>",
       "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     }
   ]
@@ -225,24 +235,24 @@ export const metadata = {
 // Server interface (to be implemented in microservice)
 export interface GaleryService {
   createGalery(input: GaleryInput): Promise<GaleryId>;
-  getGalery(id: GaleryId): Promise<any>;
-  listGaleries(params: PaginationParams): Promise<PaginatedResult>;
+  getGalery(id: GaleryId): Promise<Galery | any>;
+  listGaleries(params: PaginationParams): Promise<PaginatedResult<Galery>>;
   deleteGalery(id: GaleryId): Promise<boolean>;
   saveImage(input: GaleryImageInput): Promise<GaleryImage>;
-  getImage(id: GaleryImageId): Promise<any>;
-  listImages(galeryId: GaleryId, params: PaginationParams): Promise<PaginatedResult>;
+  getImage(id: GaleryImageId): Promise<GaleryImage | any>;
+  listImages(galeryId: GaleryId, params: PaginationParams): Promise<PaginatedResult<GaleryImage>>;
   deleteImage(id: GaleryImageId): Promise<boolean>;
 }
 
 // Client interface
 export interface GaleryServiceClient {
   createGalery(input: GaleryInput): Promise<GaleryId>;
-  getGalery(id: GaleryId): Promise<any>;
-  listGaleries(params: PaginationParams): Promise<PaginatedResult>;
+  getGalery(id: GaleryId): Promise<Galery | any>;
+  listGaleries(params: PaginationParams): Promise<PaginatedResult<Galery>>;
   deleteGalery(id: GaleryId): Promise<boolean>;
   saveImage(input: GaleryImageInput): Promise<GaleryImage>;
-  getImage(id: GaleryImageId): Promise<any>;
-  listImages(galeryId: GaleryId, params: PaginationParams): Promise<PaginatedResult>;
+  getImage(id: GaleryImageId): Promise<GaleryImage | any>;
+  listImages(galeryId: GaleryId, params: PaginationParams): Promise<PaginatedResult<GaleryImage>>;
   deleteImage(id: GaleryImageId): Promise<boolean>;
 }
 

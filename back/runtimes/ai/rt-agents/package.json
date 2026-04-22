@@ -14,7 +14,7 @@
     "@anthropic-ai/sdk": "latest",
     "back-core": "workspace:*",
     "elysia": "^1.4.28",
-    "g-agent": "workspace:*",
+    "g-rt-agents": "workspace:*",
     "nrpc": "workspace:*",
     "openai": "latest"
   }

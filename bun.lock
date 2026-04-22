@@ -71,12 +71,9 @@
       "name": "ms-agent",
       "version": "1.0.0",
       "dependencies": {
-        "@anthropic-ai/sdk": "latest",
         "back-core": "workspace:*",
         "g-agent": "workspace:*",
         "nrpc": "workspace:*",
-        "openai": "latest",
-        "rt-agents": "workspace:*",
       },
     },
     "back/microservices/ai/ms-assistant": {
@@ -584,7 +581,9 @@
         "g-logs": "workspace:*",
         "g-notify": "workspace:*",
         "g-openscadconvertor": "workspace:*",
-        "g-runtime": "workspace:*",
+        "g-rt-cron": "workspace:*",
+        "g-rt-dag": "workspace:*",
+        "g-rt-gates": "workspace:*",
         "g-scripts": "workspace:*",
         "g-ses": "workspace:*",
         "g-sheduller": "workspace:*",
@@ -601,7 +600,7 @@
         "@anthropic-ai/sdk": "latest",
         "back-core": "workspace:*",
         "elysia": "^1.4.28",
-        "g-agent": "workspace:*",
+        "g-rt-agents": "workspace:*",
         "nrpc": "workspace:*",
         "openai": "latest",
       },
@@ -613,7 +612,7 @@
         "@anthropic-ai/sdk": "latest",
         "@google/genai": "latest",
         "elysia": "^1.4.28",
-        "g-assistant": "workspace:*",
+        "g-rt-chat": "workspace:*",
         "nrpc": "workspace:*",
         "openai": "latest",
       },
@@ -623,7 +622,7 @@
       "version": "1.0.0",
       "dependencies": {
         "converged-runtime": "workspace:*",
-        "g-runtime": "workspace:*",
+        "g-rt-cron": "workspace:*",
         "nrpc": "workspace:*",
       },
     },
@@ -632,7 +631,7 @@
       "version": "1.0.0",
       "dependencies": {
         "converged-runtime": "workspace:*",
-        "g-runtime": "workspace:*",
+        "g-rt-dag": "workspace:*",
         "nrpc": "workspace:*",
       },
     },
@@ -641,7 +640,7 @@
       "version": "1.0.0",
       "dependencies": {
         "converged-runtime": "workspace:*",
-        "g-runtime": "workspace:*",
+        "g-rt-gates": "workspace:*",
         "nrpc": "workspace:*",
       },
     },
@@ -732,7 +731,7 @@
         "front-core": "workspace:*",
         "front-ssr": "workspace:*",
         "g-markdown": "workspace:*",
-        "g-runtime": "workspace:*",
+        "g-rt-gates": "workspace:*",
         "md-tools": "workspace:*",
         "react": "latest",
         "react-dom": "latest",
@@ -812,7 +811,7 @@
         "effector": "23.4.4",
         "effector-react": "23.3.0",
         "front-core": "workspace:*",
-        "g-agent": "workspace:*",
+        "g-rt-agents": "workspace:*",
         "lucide-react": "^1.8.0",
         "react-markdown": "^10.1.0",
       },
@@ -825,8 +824,8 @@
         "effector-react": "23.3.0",
         "files-state": "workspace:*",
         "front-core": "workspace:*",
-        "g-assistant": "workspace:*",
         "g-files": "workspace:*",
+        "g-rt-chat": "workspace:*",
         "g-store": "workspace:*",
         "g-threads": "workspace:*",
         "lucide-react": "^1.8.0",
@@ -874,6 +873,7 @@
         "effector-react": "23.3.0",
         "front-core": "workspace:*",
         "g-dag": "workspace:*",
+        "g-rt-dag": "workspace:*",
         "g-scripts": "workspace:*",
         "lucide-react": "^1.8.0",
         "pixi.js": "^8.11.0",
@@ -1017,7 +1017,7 @@
         "front-core": "workspace:*",
         "g-auth": "workspace:*",
         "g-oauth": "workspace:*",
-        "g-runtime": "workspace:*",
+        "g-rt-gates": "workspace:*",
       },
     },
     "front/microfrontends/sequrity/mf-secrets": {
@@ -1359,8 +1359,36 @@
         "nrpc": "workspace:*",
       },
     },
-    "tools/integration/generated/g-runtime": {
-      "name": "g-runtime",
+    "tools/integration/generated/g-rt-agents": {
+      "name": "g-rt-agents",
+      "version": "0.0.0",
+      "dependencies": {
+        "nrpc": "workspace:*",
+      },
+    },
+    "tools/integration/generated/g-rt-chat": {
+      "name": "g-rt-chat",
+      "version": "0.0.0",
+      "dependencies": {
+        "nrpc": "workspace:*",
+      },
+    },
+    "tools/integration/generated/g-rt-cron": {
+      "name": "g-rt-cron",
+      "version": "0.0.0",
+      "dependencies": {
+        "nrpc": "workspace:*",
+      },
+    },
+    "tools/integration/generated/g-rt-dag": {
+      "name": "g-rt-dag",
+      "version": "0.0.0",
+      "dependencies": {
+        "nrpc": "workspace:*",
+      },
+    },
+    "tools/integration/generated/g-rt-gates": {
+      "name": "g-rt-gates",
       "version": "0.0.0",
       "dependencies": {
         "nrpc": "workspace:*",
@@ -2768,7 +2796,15 @@
 
     "g-reviews": ["g-reviews@workspace:tools/integration/generated/g-reviews"],
 
-    "g-runtime": ["g-runtime@workspace:tools/integration/generated/g-runtime"],
+    "g-rt-agents": ["g-rt-agents@workspace:tools/integration/generated/g-rt-agents"],
+
+    "g-rt-chat": ["g-rt-chat@workspace:tools/integration/generated/g-rt-chat"],
+
+    "g-rt-cron": ["g-rt-cron@workspace:tools/integration/generated/g-rt-cron"],
+
+    "g-rt-dag": ["g-rt-dag@workspace:tools/integration/generated/g-rt-dag"],
+
+    "g-rt-gates": ["g-rt-gates@workspace:tools/integration/generated/g-rt-gates"],
 
     "g-scripts": ["g-scripts@workspace:tools/integration/generated/g-scripts"],
 
@@ -3748,7 +3784,17 @@
 
     "echarts/tslib": ["tslib@2.3.0", "", {}, "sha512-N82ooyxVNm6h1riLCoyS9e3fuJ3AMG2zIZs2Gd1ATcSFjSA23Q0fzjjZeh0jbJvWVDZ0cJT8yaNNaaXHzueNjg=="],
 
+    "front-core/@elysiajs/static": ["@elysiajs/static@1.4.9", "", { "peerDependencies": { "elysia": ">= 1.4.0" } }, "sha512-b4niBOvl1daqkBqQEStugUfYL0/LaEJHywAzH9Wxhv2tc6d0H6PmwOKl9jEpzhj2PDsG4iJ1kyqDNCKG0Pl36A=="],
+
+    "front-core/react-router-dom": ["react-router-dom@7.14.2", "", { "dependencies": { "react-router": "7.14.2" }, "peerDependencies": { "react": ">=18", "react-dom": ">=18" } }, "sha512-YZcM5ES8jJSM+KrJ9BdvHHqlnGTg5tH3sC5ChFRj4inosKctdyzBDhOyyHdGk597q2OT6NTrCA1OvB/YDwfekQ=="],
+
     "front-core/typescript": ["typescript@6.0.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw=="],
+
+    "front-ssr/@elysiajs/static": ["@elysiajs/static@1.4.9", "", { "peerDependencies": { "elysia": ">= 1.4.0" } }, "sha512-b4niBOvl1daqkBqQEStugUfYL0/LaEJHywAzH9Wxhv2tc6d0H6PmwOKl9jEpzhj2PDsG4iJ1kyqDNCKG0Pl36A=="],
+
+    "front-ssr/react-router-dom": ["react-router-dom@7.14.2", "", { "dependencies": { "react-router": "7.14.2" }, "peerDependencies": { "react": ">=18", "react-dom": ">=18" } }, "sha512-YZcM5ES8jJSM+KrJ9BdvHHqlnGTg5tH3sC5ChFRj4inosKctdyzBDhOyyHdGk597q2OT6NTrCA1OvB/YDwfekQ=="],
+
+    "front-ssr/typescript": ["typescript@6.0.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw=="],
 
     "gaxios/node-fetch": ["node-fetch@3.3.2", "", { "dependencies": { "data-uri-to-buffer": "^4.0.0", "fetch-blob": "^3.1.4", "formdata-polyfill": "^4.0.10" } }, "sha512-dRB78srN/l6gqWulah9SrxeYnxeddIG30+GOqK/9OlLVyLg3HPnr6SqOWTWOXKRwC2eGYCkZ59NNuSgvSrpgOA=="],
 
@@ -3757,6 +3803,12 @@
     "hoist-non-react-statics/react-is": ["react-is@16.13.1", "", {}, "sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ=="],
 
     "json-schema-to-ts/@babel/runtime": ["@babel/runtime@7.28.6", "", {}, "sha512-05WQkdpL9COIMz4LjTxGpPNCdlpyimKppYNoJ5Di5EUObifl8t4tuLuUBBZEpoLYOmfvIWrsp9fCl0HoPRVTdA=="],
+
+    "landing/@elysiajs/static": ["@elysiajs/static@1.4.9", "", { "peerDependencies": { "elysia": ">= 1.4.0" } }, "sha512-b4niBOvl1daqkBqQEStugUfYL0/LaEJHywAzH9Wxhv2tc6d0H6PmwOKl9jEpzhj2PDsG4iJ1kyqDNCKG0Pl36A=="],
+
+    "landing/react-router-dom": ["react-router-dom@7.14.2", "", { "dependencies": { "react-router": "7.14.2" }, "peerDependencies": { "react": ">=18", "react-dom": ">=18" } }, "sha512-YZcM5ES8jJSM+KrJ9BdvHHqlnGTg5tH3sC5ChFRj4inosKctdyzBDhOyyHdGk597q2OT6NTrCA1OvB/YDwfekQ=="],
+
+    "landing/typescript": ["typescript@6.0.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw=="],
 
     "magic-regexp/estree-walker": ["estree-walker@3.0.3", "", { "dependencies": { "@types/estree": "^1.0.0" } }, "sha512-7RUKfXgSMMkzt6ZuXmqapOurLGPPfgj6l9uRZ7lRGolvk0y2yocc35LdcxKC5PQZdn2DMqioAQ2NoWcrTKmm6g=="],
 
@@ -3823,6 +3875,12 @@
     "bun-types/@types/node/undici-types": ["undici-types@7.16.0", "", {}, "sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw=="],
 
     "cdk8s-plus-31/minimatch/brace-expansion": ["brace-expansion@2.0.2", "", { "dependencies": { "balanced-match": "^1.0.0" } }, "sha512-Jt0vHyM+jmUBqojB7E1NIYadt0vI0Qxjxd2TErW94wDz+E2LAm5vKMXXwg6ZZBTHPuUlDgQHKXvjGBdfcF1ZDQ=="],
+
+    "front-core/react-router-dom/react-router": ["react-router@7.14.2", "", { "dependencies": { "cookie": "^1.0.1", "set-cookie-parser": "^2.6.0" }, "peerDependencies": { "react": ">=18", "react-dom": ">=18" }, "optionalPeers": ["react-dom"] }, "sha512-yCqNne6I8IB6rVCH7XUvlBK7/QKyqypBFGv+8dj4QBFJiiRX+FG7/nkdAvGElyvVZ/HQP5N19wzteuTARXi5Gw=="],
+
+    "front-ssr/react-router-dom/react-router": ["react-router@7.14.2", "", { "dependencies": { "cookie": "^1.0.1", "set-cookie-parser": "^2.6.0" }, "peerDependencies": { "react": ">=18", "react-dom": ">=18" }, "optionalPeers": ["react-dom"] }, "sha512-yCqNne6I8IB6rVCH7XUvlBK7/QKyqypBFGv+8dj4QBFJiiRX+FG7/nkdAvGElyvVZ/HQP5N19wzteuTARXi5Gw=="],
+
+    "landing/react-router-dom/react-router": ["react-router@7.14.2", "", { "dependencies": { "cookie": "^1.0.1", "set-cookie-parser": "^2.6.0" }, "peerDependencies": { "react": ">=18", "react-dom": ">=18" }, "optionalPeers": ["react-dom"] }, "sha512-yCqNne6I8IB6rVCH7XUvlBK7/QKyqypBFGv+8dj4QBFJiiRX+FG7/nkdAvGElyvVZ/HQP5N19wzteuTARXi5Gw=="],
 
     "mf-landing/front-landings/lucide-react": ["lucide-react@0.562.0", "", { "peerDependencies": { "react": "^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-82hOAu7y0dbVuFfmO4bYF1XEwYk/mEbM5E+b1jgci/udUBEE/R7LF5Ip0CCEmXe8AybRM8L+04eP+LGZeDvkiw=="],
 

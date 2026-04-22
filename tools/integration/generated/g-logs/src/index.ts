@@ -27,7 +27,7 @@ export type LogQueryParams = {
   to_ts?: number;
 };
 
-export type PaginatedResult = {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 };
@@ -44,7 +44,7 @@ export type LogsStatistic = {
 export const metadata = {
   "interfaceName": "LogsService",
   "serviceName": "logs",
-  "filePath": "../types/logs.ts",
+  "filePath": "services/analytics/logs.ts",
   "methods": [
     {
       "name": "write",
@@ -71,7 +71,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "PaginatedResult",
+      "returnType": "PaginatedResult<LogEvent>",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -86,7 +86,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "PaginatedResult",
+      "returnType": "PaginatedResult<LogEvent>",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -111,22 +111,28 @@ export const metadata = {
   "types": [
     {
       "name": "LogEvent",
+      "kind": "type",
       "definition": "{\n  ts: number;\n  source: string;\n  level: number;\n  code: number;\n  message: string;\n}"
     },
     {
       "name": "LogEventInput",
+      "kind": "type",
       "definition": "{\n  ts?: number;\n  source: string;\n  level: number;\n  code: number;\n  message: string;\n}"
     },
     {
       "name": "LogQueryParams",
+      "kind": "type",
       "definition": "{\n  offset: number;\n  limit: number;\n  source?: string;\n  level?: number;\n  code?: number;\n  from_ts?: number;\n  to_ts?: number;\n}"
     },
     {
       "name": "PaginatedResult",
+      "kind": "type",
+      "typeParameters": "<T>",
       "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     },
     {
       "name": "LogsStatistic",
+      "kind": "type",
       "definition": "{\n  totalHot: number;\n  totalCold: number;\n  byLevel: Record<number, number>;\n  bySource: Record<string, number>;\n  errors: number;\n  warnings: number;\n}"
     }
   ]
@@ -135,8 +141,8 @@ export const metadata = {
 // Server interface (to be implemented in microservice)
 export interface LogsService {
   write(event: LogEventInput): Promise<void>;
-  listHot(params: LogQueryParams): Promise<PaginatedResult>;
-  listCold(params: LogQueryParams): Promise<PaginatedResult>;
+  listHot(params: LogQueryParams): Promise<PaginatedResult<LogEvent>>;
+  listCold(params: LogQueryParams): Promise<PaginatedResult<LogEvent>>;
   getStatistic(): Promise<LogsStatistic>;
   archiveHotToCold(): Promise<number>;
 }
@@ -144,8 +150,8 @@ export interface LogsService {
 // Client interface
 export interface LogsServiceClient {
   write(event: LogEventInput): Promise<void>;
-  listHot(params: LogQueryParams): Promise<PaginatedResult>;
-  listCold(params: LogQueryParams): Promise<PaginatedResult>;
+  listHot(params: LogQueryParams): Promise<PaginatedResult<LogEvent>>;
+  listCold(params: LogQueryParams): Promise<PaginatedResult<LogEvent>>;
   getStatistic(): Promise<LogsStatistic>;
   archiveHotToCold(): Promise<number>;
 }

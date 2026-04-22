@@ -8,10 +8,7 @@
   },
   "dependencies": {
     "back-core": "workspace:*",
-    "rt-agents": "workspace:*",
     "nrpc": "workspace:*",
-    "g-agent": "workspace:*",
-    "@anthropic-ai/sdk": "latest",
-    "openai": "latest"
+    "g-agent": "workspace:*"
   }
 }

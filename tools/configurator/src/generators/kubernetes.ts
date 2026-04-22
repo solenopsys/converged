@@ -910,11 +910,10 @@ class IngressBuilder {
     const seenServicePaths = new Set<string>();
 
     for (const runtime of this.plan.runtime.containers) {
-      for (const servicePath of this.runtimeServicePaths(runtime.runtimes)) {
-        seenServicePaths.add(servicePath.split("/")[0]);
+      for (const runtimePath of this.runtimeServicePaths(runtime.runtimes)) {
         for (const host of hosts) {
           this.routes.push({
-            match: `Host(\`${host}\`) && PathPrefix(\`/services/${servicePath}\`)`,
+            match: `Host(\`${host}\`) && PathPrefix(\`/runtime/${runtimePath}\`)`,
             priority: 110,
             service: runtime.serviceName,
           });
@@ -959,24 +958,7 @@ class IngressBuilder {
   private runtimeServicePaths(runtimes: RuntimeRef[]): string[] {
     const paths = new Set<string>();
     for (const runtime of runtimes) {
-      if (runtime.category === "automation" && runtime.name === "dag") {
-        paths.add("runtime/startExecution");
-        paths.add("runtime/createExecution");
-        paths.add("runtime/resumeActiveExecutions");
-        paths.add("runtime/listWorkflows");
-      }
-      if (runtime.category === "automation" && runtime.name === "cron") {
-        paths.add("runtime/refreshCrons");
-      }
-      if (runtime.category === "automation" && runtime.name === "gates") {
-        paths.add("runtime/sendMagicLink");
-      }
-      if (runtime.category === "ai" && runtime.name === "agents") {
-        paths.add("agent");
-      }
-      if (runtime.category === "ai" && runtime.name === "chat") {
-        paths.add("assistant");
-      }
+      paths.add(runtime.name);
     }
     return Array.from(paths);
   }

@@ -1,6 +1,6 @@
 import { Cron } from "croner";
 import { createLogsServiceClient } from "g-logs";
-import { createRuntimeServiceClient } from "g-runtime";
+import { createRuntimeDagServiceClient } from "g-rt-dag";
 import { createTelemetryServiceClient } from "g-telemetry";
 
 export type CronEntryBase = {
@@ -70,7 +70,7 @@ export class CronEngine {
         if (message) parts.push(`message="${message}"`);
         console.log(parts.join(" "));
       } else if (entry.provider === "dag" && entry.action === "runWorkflow") {
-        const rtClient = createRuntimeServiceClient({ baseUrl: this.resolveServicesBaseUrl() });
+        const rtClient = createRuntimeDagServiceClient({ baseUrl: this.resolveRuntimeBaseUrl() });
         const workflowName = entry.params?.workflowName;
         const params = entry.params?.params ?? {};
         if (!workflowName) throw new Error("dag provider: workflowName is required in params");
@@ -103,9 +103,15 @@ export class CronEngine {
     });
   }
 
-  private resolveServicesBaseUrl(): string {
+  private resolveRuntimeBaseUrl(): string {
     if (process.env.RUNTIME_BASE) return process.env.RUNTIME_BASE;
     if (process.env.RT_DAG_BASE) return process.env.RT_DAG_BASE;
+    const port = process.env.PORT ?? process.env.SERVICES_PORT ?? "3000";
+    return `http://localhost:${port}/runtime`;
+  }
+
+  private resolveServicesBaseUrl(): string {
+    if (process.env.SERVICES_BASE) return process.env.SERVICES_BASE;
     const port = process.env.PORT ?? process.env.SERVICES_PORT ?? "3000";
     return `http://localhost:${port}/services`;
   }

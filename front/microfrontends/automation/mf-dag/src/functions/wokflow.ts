@@ -2,10 +2,12 @@ import { BasicFormView, getAllFormFields, CreateWidget, CreateAction, StatCard }
 import { sample } from "effector";
 import { workflowsFields } from "./fields";
 import domain from "../domain";
-import { runtimeClient } from "g-runtime";
+import { createRuntimeDagServiceClient } from "g-rt-dag";
 import DagView from "../views/DagView";
 import { WorkflowsListView } from "../views/WorkflowsListView";
 import { $workflowsStore, openWorkflowForm, $currentWorkflow } from "../domain-workflows";
+
+const dagClient = createRuntimeDagServiceClient({ baseUrl: "/runtime" });
 
 const SHOW_WORKFLOWS_LIST = "workflows.show";
 const SHOW_WORKFLOW_FORM = "workflow_form.show";
@@ -18,7 +20,7 @@ const getWorkflowsStatEvent = domain.createEvent<any>("GET_WORKFLOWS_STAT");
 
 const getWorkflowsStatFx = domain.createEffect({
     name: "WORKFLOWS_STAT",
-    handler: () => runtimeClient.listWorkflows()
+    handler: () => dagClient.listWorkflows()
 });
 
 sample({

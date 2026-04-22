@@ -1,6 +1,27 @@
 // Auto-generated package
 import { createHttpClient } from "nrpc";
 
+export enum StreamEventType {
+    TEXT_DELTA = "text_delta",
+    TOOL_CALL = "tool_call",
+    COMPLETED = "completed",
+    TOOL_CALL_DELTA = "tool_call_delta",  // Новый тип для частичных данных инструментов
+
+    ERROR = "error"
+}
+
+export enum ServiceType {
+    OPENAI = "openai",
+    ANTHROPIC = "anthropic",
+    GEMINI = "gemini"
+}
+
+export enum ContentType {
+    TEXT = "text",
+    TOOL_RESULT = "tool_result",
+    ATTACHMENT = "attachment"
+}
+
 export type ContentBlock = {
     type: ContentType;
     data?: any;
@@ -55,12 +76,17 @@ export type StreamEvent = {
     | { type: StreamEventType.ERROR; message: string }
 );
 
+export enum MessageSource {
+    USER = "user",
+    ASSISTANT = "assistant"
+}
+
 export type PaginationParams = {
     offset: number;
     limit: number;
 };
 
-export type PaginatedResult = {
+export type PaginatedResult<T> = {
     items: T[];
     totalCount?: number; // если хочешь знать общее число
 };
@@ -86,7 +112,7 @@ export type ChatContext = ChatContextSummary & {
 export const metadata = {
   "interfaceName": "AssistantService",
   "serviceName": "assistant",
-  "filePath": "../types/chats.ts",
+  "filePath": "services/ai/chats.ts",
   "methods": [
     {
       "name": "createSession",
@@ -146,7 +172,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "PaginatedResult",
+      "returnType": "PaginatedResult<Chat>",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -212,7 +238,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "ChatContext | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -227,7 +253,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "PaginatedResult",
+      "returnType": "PaginatedResult<ChatContextSummary>",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -235,51 +261,84 @@ export const metadata = {
   ],
   "types": [
     {
+      "name": "StreamEventType",
+      "kind": "raw",
+      "definition": "export enum StreamEventType {\n    TEXT_DELTA = \"text_delta\",\n    TOOL_CALL = \"tool_call\",\n    COMPLETED = \"completed\",\n    TOOL_CALL_DELTA = \"tool_call_delta\",  // Новый тип для частичных данных инструментов\n\n    ERROR = \"error\"\n}"
+    },
+    {
+      "name": "ServiceType",
+      "kind": "raw",
+      "definition": "export enum ServiceType {\n    OPENAI = \"openai\",\n    ANTHROPIC = \"anthropic\",\n    GEMINI = \"gemini\"\n}"
+    },
+    {
+      "name": "ContentType",
+      "kind": "raw",
+      "definition": "export enum ContentType {\n    TEXT = \"text\",\n    TOOL_RESULT = \"tool_result\",\n    ATTACHMENT = \"attachment\"\n}"
+    },
+    {
       "name": "ContentBlock",
+      "kind": "type",
       "definition": "{\n    type: ContentType;\n    data?: any;\n}"
     },
     {
       "name": "ToolParameter",
+      "kind": "type",
       "definition": "{\n    type: 'string' | 'number' | 'boolean' | 'object' | 'array';\n    description: string;\n    required?: boolean;\n    enum?: (string | number)[];\n    items?: ToolParameter;\n    properties?: Record<string, ToolParameter>;\n}"
     },
     {
       "name": "Tool",
+      "kind": "type",
       "definition": "{\n    name: string;\n    description: string;\n    parameters: {\n        type: 'object';\n        properties: Record<string, ToolParameter>;\n        required?: string[];\n    };\n\n    execute: (args: any) => Promise<any> | any;\n}"
     },
     {
       "name": "ToolCall",
+      "kind": "type",
       "definition": "{\n    id: string;\n    name: string;\n    args: Record<string, any>;\n}"
     },
     {
       "name": "ToolResult",
+      "kind": "type",
       "definition": "{\n    toolCallId: string;\n    result: any;\n    error?: string;\n}"
     },
     {
       "name": "ConversationOptions",
+      "kind": "type",
       "definition": "{\n    stream?: boolean;\n    tools?: Tool[];\n    temperature?: number;\n    maxTokens?: number;\n}"
     },
     {
       "name": "StreamEvent",
+      "kind": "type",
       "definition": "{\n    tokens?: number;\n} & (\n    | { type: StreamEventType.TEXT_DELTA; content: string }\n    | { type: StreamEventType.TOOL_CALL; id: string; name: string; args: any }\n    | { type: StreamEventType.COMPLETED; finishReason?: string }\n    | { type: StreamEventType.ERROR; message: string }\n)"
     },
     {
+      "name": "MessageSource",
+      "kind": "raw",
+      "definition": "export enum MessageSource {\n    USER = \"user\",\n    ASSISTANT = \"assistant\"\n}"
+    },
+    {
       "name": "PaginationParams",
+      "kind": "type",
       "definition": "{\n    offset: number;\n    limit: number;\n}"
     },
     {
       "name": "PaginatedResult",
+      "kind": "type",
+      "typeParameters": "<T>",
       "definition": "{\n    items: T[];\n    totalCount?: number; // если хочешь знать общее число\n}"
     },
     {
       "name": "Chat",
+      "kind": "type",
       "definition": "{\n    id: string;\n    name: string;\n    description: string;\n\n}"
     },
     {
       "name": "ChatContextSummary",
+      "kind": "type",
       "definition": "{\n    id: string;\n    chatId: string;\n    updatedAt: number;\n    size?: number;\n}"
     },
     {
       "name": "ChatContext",
+      "kind": "type",
       "definition": "ChatContextSummary & {\n    data: any;\n}"
     }
   ]
@@ -289,24 +348,24 @@ export const metadata = {
 export interface AssistantService {
   createSession(serviceType?: ServiceType, model?: string): Promise<string>;
   sendMessage(sessionId: string, messages: ContentBlock[], options?: ConversationOptions): AsyncIterable<StreamEvent>;
-  listOfChats(params: PaginationParams): Promise<PaginatedResult>;
+  listOfChats(params: PaginationParams): Promise<PaginatedResult<Chat>>;
   deleteChat(chatId: string): Promise<void>;
   getChat(chatId: string): Promise<Chat>;
   saveContext(chatId: string, context: any): Promise<ChatContextSummary>;
-  getContext(chatId: string): Promise<any>;
-  listContexts(params: PaginationParams): Promise<PaginatedResult>;
+  getContext(chatId: string): Promise<ChatContext | any>;
+  listContexts(params: PaginationParams): Promise<PaginatedResult<ChatContextSummary>>;
 }
 
 // Client interface
 export interface AssistantServiceClient {
   createSession(serviceType?: ServiceType, model?: string): Promise<string>;
   sendMessage(sessionId: string, messages: ContentBlock[], options?: ConversationOptions): AsyncIterable<StreamEvent>;
-  listOfChats(params: PaginationParams): Promise<PaginatedResult>;
+  listOfChats(params: PaginationParams): Promise<PaginatedResult<Chat>>;
   deleteChat(chatId: string): Promise<void>;
   getChat(chatId: string): Promise<Chat>;
   saveContext(chatId: string, context: any): Promise<ChatContextSummary>;
-  getContext(chatId: string): Promise<any>;
-  listContexts(params: PaginationParams): Promise<PaginatedResult>;
+  getContext(chatId: string): Promise<ChatContext | any>;
+  listContexts(params: PaginationParams): Promise<PaginatedResult<ChatContextSummary>>;
 }
 
 // Factory function

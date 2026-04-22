@@ -1,11 +1,11 @@
 import {
     ServiceType, StreamEventType, type StreamEvent,
-    type AssistantService,
+    type RuntimeChatService,
     ContentType,type ConversationOptions,type Tool,
    type ToolCall
-} from '../../../../tools/integration/types/chats';
+} from '../../../../tools/integration/types/runtime/ai/chat';
 
-import { type ThreadsService, MessageType } from '../../../../tools/integration/types/threads';
+import { type ThreadsService, MessageType } from '../../../../tools/integration/types/services/communications/threads';
 
 export type ULID = string;
 
@@ -43,7 +43,7 @@ export {
     StreamEventType,
     type StreamEvent,
     type ThreadsService,
-    type AssistantService,
+    type RuntimeChatService,
     ContentType,
     MessageType,
     type ConversationOptions,

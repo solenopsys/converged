@@ -62,7 +62,7 @@ export type CleanupResult = {
 export const metadata = {
   "interfaceName": "AuthService",
   "serviceName": "auth",
-  "filePath": "../types/auth.ts",
+  "filePath": "services/sequrity/auth.ts",
   "methods": [
     {
       "name": "getMagicLink",
@@ -182,7 +182,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "OAuthClient | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -243,38 +243,47 @@ export const metadata = {
   "types": [
     {
       "name": "ISODateString",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "OAuthClient",
+      "kind": "type",
       "definition": "{\n  clientId: string;\n  clientSecret: string;\n  redirectUris: string[];\n  grantTypes: string[];\n  trusted: boolean;\n  createdAt: ISODateString;\n}"
     },
     {
       "name": "OAuthClientInput",
+      "kind": "type",
       "definition": "{\n  clientId: string;\n  clientSecret: string;\n  redirectUris: string[];\n  grantTypes: string[];\n  trusted: boolean;\n}"
     },
     {
       "name": "OAuthClientUpdate",
+      "kind": "type",
       "definition": "{\n  clientSecret?: string;\n  redirectUris?: string[];\n  grantTypes?: string[];\n  trusted?: boolean;\n}"
     },
     {
       "name": "GetMagicLinkResult",
+      "kind": "type",
       "definition": "{\n  ok: boolean;\n  token: string;\n  expiresAt: number;\n}"
     },
     {
       "name": "VerifyLinkResult",
+      "kind": "type",
       "definition": "{\n  token: string;\n  userId: string;\n  email: string;\n  returnTo?: string;\n}"
     },
     {
       "name": "LoginResult",
+      "kind": "type",
       "definition": "{\n  token: string;\n  userId: string;\n  email: string;\n}"
     },
     {
       "name": "TemporaryUserResult",
+      "kind": "type",
       "definition": "{\n  token: string;\n  userId: string;\n  email: string;\n  temporary: true;\n}"
     },
     {
       "name": "CleanupResult",
+      "kind": "type",
       "definition": "{\n  authCodes: number;\n  magicLinks: number;\n  refreshTokens: number;\n}"
     }
   ]
@@ -288,7 +297,7 @@ export interface AuthService {
   createTemporaryUser(sessionId?: string): Promise<TemporaryUserResult>;
   logout(userId: string, clientId?: string): Promise<void>;
   createOAuthClient(client: OAuthClientInput): Promise<OAuthClient>;
-  getOAuthClient(clientId: string): Promise<any>;
+  getOAuthClient(clientId: string): Promise<OAuthClient | any>;
   updateOAuthClient(clientId: string, updates: OAuthClientUpdate): Promise<OAuthClient>;
   listOAuthClients(): Promise<OAuthClient[]>;
   deleteOAuthClient(clientId: string): Promise<boolean>;
@@ -303,7 +312,7 @@ export interface AuthServiceClient {
   createTemporaryUser(sessionId?: string): Promise<TemporaryUserResult>;
   logout(userId: string, clientId?: string): Promise<void>;
   createOAuthClient(client: OAuthClientInput): Promise<OAuthClient>;
-  getOAuthClient(clientId: string): Promise<any>;
+  getOAuthClient(clientId: string): Promise<OAuthClient | any>;
   updateOAuthClient(clientId: string, updates: OAuthClientUpdate): Promise<OAuthClient>;
   listOAuthClients(): Promise<OAuthClient[]>;
   deleteOAuthClient(clientId: string): Promise<boolean>;

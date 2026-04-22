@@ -18,7 +18,7 @@ export type WeChatSendResult = {
 export const metadata = {
   "interfaceName": "WeChatService",
   "serviceName": "wechat",
-  "filePath": "../types/wechat.ts",
+  "filePath": "services/social/wechat.ts",
   "methods": [
     {
       "name": "sendTextMessage",
@@ -39,14 +39,17 @@ export const metadata = {
   "types": [
     {
       "name": "WeChatMessageType",
+      "kind": "type",
       "definition": "\"text\""
     },
     {
       "name": "WeChatTextMessageInput",
+      "kind": "type",
       "definition": "{\n  accessToken: string;\n  toUser: string;\n  content: string;\n}"
     },
     {
       "name": "WeChatSendResult",
+      "kind": "type",
       "definition": "{\n  success: boolean;\n  messageId?: string;\n  error?: string;\n}"
     }
   ]

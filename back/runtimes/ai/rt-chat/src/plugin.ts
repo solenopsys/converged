@@ -1,6 +1,6 @@
 import { Elysia } from "elysia";
 import { createHttpBackend } from "nrpc";
-import { metadata as assistantMetadata } from "g-assistant";
+import { metadata as chatMetadata } from "g-rt-chat";
 import { ChatRuntimeService } from "./service";
 
 export type ChatRuntimePluginConfig = {
@@ -17,8 +17,9 @@ export default function chatRuntimePlugin(config: ChatRuntimePluginConfig = {}) 
   });
 
   const assistantBackend = createHttpBackend({
-    metadata: assistantMetadata,
+    metadata: chatMetadata,
     serviceImpl: chatService,
+    pathPrefix: "/runtime",
   })(config);
 
   return (app: Elysia) => app.use(assistantBackend);

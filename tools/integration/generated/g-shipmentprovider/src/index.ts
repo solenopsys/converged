@@ -111,7 +111,7 @@ export type CustomsLookupResult = {
 export const metadata = {
   "interfaceName": "ShipmentProviderService",
   "serviceName": "shipmentprovider",
-  "filePath": "../types/shipmentprovider.ts",
+  "filePath": "services/providers/shipmentprovider.ts",
   "methods": [
     {
       "name": "quote",
@@ -222,82 +222,102 @@ export const metadata = {
   "types": [
     {
       "name": "ISODateString",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "ProviderId",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "ShipmentStatus",
+      "kind": "type",
       "definition": "\"ready\" | \"in_transit\" | \"delivered\" | \"problem\""
     },
     {
       "name": "Address",
+      "kind": "type",
       "definition": "{\n  name?: string;\n  phone?: string;\n  line1: string;\n  city?: string;\n  region?: string;\n  postalCode?: string;\n  country: string;\n}"
     },
     {
       "name": "Parcel",
+      "kind": "type",
       "definition": "{\n  weightKg: number;\n  lengthCm?: number;\n  widthCm?: number;\n  heightCm?: number;\n}"
     },
     {
       "name": "CustomsItem",
+      "kind": "type",
       "definition": "{\n  name: string;\n  qty: number;\n  price?: number;\n  currency?: string;\n  hsCode?: string;\n  originCountry?: string;\n}"
     },
     {
       "name": "Shipment",
+      "kind": "type",
       "definition": "{\n  from: Address;\n  to: Address;\n  parcels: Parcel[];\n  description?: string;\n  value?: number;\n  currency?: string;\n  items?: CustomsItem[];\n}"
     },
     {
       "name": "QuoteRequest",
+      "kind": "type",
       "definition": "{\n  shipment: Shipment;\n}"
     },
     {
       "name": "QuoteResult",
+      "kind": "type",
       "definition": "{\n  price: number;\n  currency: string;\n  etaDays?: number;\n  serviceCode?: string;\n  raw?: any;\n}"
     },
     {
       "name": "CreateShipmentRequest",
+      "kind": "type",
       "definition": "{\n  shipment: Shipment;\n  serviceCode?: string;\n}"
     },
     {
       "name": "CreateShipmentResult",
+      "kind": "type",
       "definition": "{\n  tracking: string;\n  providerRef?: string;\n  raw?: any;\n}"
     },
     {
       "name": "LabelRequest",
+      "kind": "type",
       "definition": "{\n  tracking: string;\n}"
     },
     {
       "name": "LabelResult",
+      "kind": "type",
       "definition": "{\n  pdfBase64: string;\n  raw?: any;\n}"
     },
     {
       "name": "TrackingRequest",
+      "kind": "type",
       "definition": "{\n  tracking: string;\n}"
     },
     {
       "name": "TrackingResult",
+      "kind": "type",
       "definition": "{\n  status: ShipmentStatus;\n  lastUpdate?: ISODateString;\n  raw?: any;\n}"
     },
     {
       "name": "WebhookRequest",
+      "kind": "type",
       "definition": "{\n  payload: any;\n}"
     },
     {
       "name": "AddressValidationRequest",
+      "kind": "type",
       "definition": "{\n  address: Address;\n}"
     },
     {
       "name": "AddressValidationResult",
+      "kind": "type",
       "definition": "{\n  valid: boolean;\n  normalized?: Address;\n  raw?: any;\n}"
     },
     {
       "name": "CustomsLookupRequest",
+      "kind": "type",
       "definition": "{\n  items: CustomsItem[];\n}"
     },
     {
       "name": "CustomsLookupResult",
+      "kind": "type",
       "definition": "{\n  items: CustomsItem[];\n  raw?: any;\n}"
     }
   ]

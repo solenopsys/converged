@@ -24,7 +24,7 @@
     "front-ssr": "workspace:*",
     "md-tools": "workspace:*",
     "g-markdown": "workspace:*",
-    "g-runtime": "workspace:*"
+    "g-rt-gates": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "latest",

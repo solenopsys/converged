@@ -1,4 +1,5 @@
-import type { RuntimeService, ExecutionEvent, MagicLinkParams, MagicLinkResult } from "g-runtime";
+import type { ExecutionEvent } from "g-rt-dag";
+import type { MagicLinkParams, MagicLinkResult } from "g-rt-gates";
 import { createDagServiceClient, type ResumeExecutionsResult } from "g-dag";
 import { createShedullerServiceClient } from "g-sheduller";
 import { CronEngine } from "./engines/cron";
@@ -55,7 +56,7 @@ class ExecutionEventChannel implements AsyncIterable<ExecutionEvent> {
   }
 }
 
-export class RuntimeServiceImpl implements RuntimeService {
+export class RuntimeServiceImpl {
   private dagClient: ReturnType<typeof createDagServiceClient>;
   private shedullerClient: ReturnType<typeof createShedullerServiceClient>;
   private cronEngine?: CronEngine;

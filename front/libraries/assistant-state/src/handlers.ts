@@ -44,7 +44,7 @@ const isSessionNotFoundError = (error: unknown): boolean => {
 };
 
 const createAndSyncSession = async (
-    aiService: types.AssistantService,
+    aiService: types.RuntimeChatService,
     state: types.ChatState
 ): Promise<string> => {
     const sessionId = await aiService.createSession(state.serviceType, state.model);
@@ -53,7 +53,7 @@ const createAndSyncSession = async (
 };
 
 const resolveSessionId = async (
-    aiService: types.AssistantService,
+    aiService: types.RuntimeChatService,
     state: types.ChatState
 ): Promise<string> => {
     if (state.sessionId) {
@@ -82,7 +82,7 @@ const consumeStreamEvents = async (
 };
 
 const sendWithSessionRecovery = async (
-    aiService: types.AssistantService,
+    aiService: types.RuntimeChatService,
     state: types.ChatState,
     messages: any[],
     options: types.ConversationOptions
@@ -201,7 +201,7 @@ export const handleError = (state: types.ChatState): types.ChatState => ({
     pendingToolCalls: []
 });
 
-export const createSession = (aiService: types.AssistantService) =>
+export const createSession = (aiService: types.RuntimeChatService) =>
     async ({ serviceType, model }: types.ChatState) => {
         return await aiService.createSession(serviceType, model);
     };
@@ -224,7 +224,7 @@ export const saveAssistantMessage = (threadsService: types.ThreadsService) =>
     };
 
 export const sendMessage = (
-    aiService: types.AssistantService,
+    aiService: types.RuntimeChatService,
     threadsService: types.ThreadsService,
     $functions: Store<Record<string, types.ExecutableTool>>
 ) =>
@@ -271,7 +271,7 @@ export const executeToolCall = ($functions: Store<Record<string, types.Executabl
         }
     };
 
-export const sendToolResult = (aiService: types.AssistantService, threadsService: types.ThreadsService) =>
+export const sendToolResult = (aiService: types.RuntimeChatService, threadsService: types.ThreadsService) =>
     async ({ toolCallId, result, state }: { toolCallId: string, result: any, state: types.ChatState }) => {
         console.log('Sending tool result:', { toolCallId, result });
 

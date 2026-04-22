@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "fs";
 import { resolve } from "path";
 import { pathToFileURL } from "url";
 import { createServer, loadConfigFromEnv } from "./server/createServer";
+import type { PluginFactory } from "./server/createServer";
 
 process.on("uncaughtException", (err) => {
   console.error("[dev] uncaughtException:", err);
@@ -17,6 +18,7 @@ type BuildConfig = {
   extends?: string;
   back: {
     core?: string;
+    runtimes?: Record<string, string[]>;
     microservices: Record<string, string[]>;
   };
   spa?: {
@@ -137,6 +139,10 @@ async function loadMergedConfig(projectDir: string, parentDir?: string) {
     ...config,
     back: {
       core: config.back.core || parentConfig.back.core,
+      runtimes: {
+        ...(parentConfig.back.runtimes ?? {}),
+        ...(config.back.runtimes ?? {}),
+      },
       microservices: {
         ...parentConfig.back.microservices,
         ...config.back.microservices,
@@ -183,6 +189,31 @@ function resolveServiceDir(
       `ms-${name}`,
     );
     if (existsSync(parentFlat)) return parentFlat;
+  }
+  return null;
+}
+
+function resolveRuntimeDir(
+  projectDir: string,
+  parentDir: string | undefined,
+  category: string,
+  name: string,
+) {
+  const categorized = resolve(
+    projectDir,
+    "back/runtimes",
+    category,
+    `rt-${name}`,
+  );
+  if (existsSync(categorized)) return categorized;
+  if (parentDir) {
+    const parentCategorized = resolve(
+      parentDir,
+      "back/runtimes",
+      category,
+      `rt-${name}`,
+    );
+    if (existsSync(parentCategorized)) return parentCategorized;
   }
   return null;
 }
@@ -239,6 +270,47 @@ async function loadPlugins(
   return plugins;
 }
 
+async function loadRuntimePlugins(
+  projectDir: string,
+  parentDir: string | undefined,
+  config: BuildConfig,
+) {
+  const plugins: PluginFactory[] = [];
+  const missing: string[] = [];
+
+  for (const [category, runtimes] of Object.entries(config.back.runtimes ?? {})) {
+    for (const name of runtimes) {
+      const rtDir = resolveRuntimeDir(projectDir, parentDir, category, name);
+      if (!rtDir) {
+        missing.push(`${category}/${name}`);
+        continue;
+      }
+      const pluginPath = resolvePluginPath(rtDir);
+      try {
+        const mod = await import(pathToFileURL(pluginPath).href);
+        const pluginFactory = mod.default ?? mod.plugin ?? mod;
+        if (typeof pluginFactory !== "function") {
+          throw new Error(`Invalid runtime plugin factory for ${category}/${name}`);
+        }
+        const rootPlugin = ((pluginConfig: any) => pluginFactory(pluginConfig)) as PluginFactory;
+        rootPlugin.mount = "root";
+        plugins.push(rootPlugin);
+      } catch (err) {
+        console.error(
+          `[back-core] Failed to import runtime plugin ${category}/${name} at ${pluginPath}`,
+        );
+        throw err;
+      }
+    }
+  }
+
+  if (missing.length > 0) {
+    console.warn(`[back-core] Missing runtimes: ${missing.join(", ")}`);
+  }
+
+  return plugins;
+}
+
 loadDotEnvFiles(PROJECT_DIR, CHILD_PROJECT_DIR);
 
 // Generate service account token from ACCESS_JWT_SECRET at startup
@@ -273,21 +345,12 @@ const { config, parentDir } = await loadMergedConfig(
 );
 
 const plugins = await loadPlugins(PROJECT_DIR, parentDir, config);
+plugins.push(...await loadRuntimePlugins(PROJECT_DIR, parentDir, config));
 
 const servicePaths: Record<string, string> = {};
 for (const services of Object.values(config.back.microservices)) {
   for (const name of services) {
     servicePaths[name] = resolve(dataDir, name);
-  }
-}
-
-// Load RT plugin from back/runtime and add to plugins (mounts inside /services group)
-const runtimePluginPath = resolve(PROJECT_DIR, "back/runtime/plugin.ts");
-if (existsSync(runtimePluginPath)) {
-  const runtimeMod = await import(pathToFileURL(runtimePluginPath).href);
-  const runtimePluginFactory = runtimeMod.default ?? runtimeMod;
-  if (typeof runtimePluginFactory === "function") {
-    plugins.push((pluginConfig: any) => runtimePluginFactory(pluginConfig));
   }
 }
 

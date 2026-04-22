@@ -6,7 +6,7 @@ import { createHttpClient } from "nrpc";
 export const metadata = {
   "interfaceName": "SecretsService",
   "serviceName": "secrets",
-  "filePath": "../types/secrets.ts",
+  "filePath": "services/sequrity/secrets.ts",
   "methods": [
     {
       "name": "listSecrets",
@@ -26,7 +26,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "Record",
+      "returnType": "Record<string, string>",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -42,7 +42,7 @@ export const metadata = {
         },
         {
           "name": "data",
-          "type": "Record",
+          "type": "Record<string, string>",
           "optional": false,
           "isArray": false
         }
@@ -74,16 +74,16 @@ export const metadata = {
 // Server interface (to be implemented in microservice)
 export interface SecretsService {
   listSecrets(): Promise<string[]>;
-  getSecret(name: string): Promise<Record>;
-  setSecret(name: string, data: Record): Promise<void>;
+  getSecret(name: string): Promise<Record<string, string>>;
+  setSecret(name: string, data: Record<string, string>): Promise<void>;
   deleteSecret(name: string): Promise<void>;
 }
 
 // Client interface
 export interface SecretsServiceClient {
   listSecrets(): Promise<string[]>;
-  getSecret(name: string): Promise<Record>;
-  setSecret(name: string, data: Record): Promise<void>;
+  getSecret(name: string): Promise<Record<string, string>>;
+  setSecret(name: string, data: Record<string, string>): Promise<void>;
   deleteSecret(name: string): Promise<void>;
 }
 

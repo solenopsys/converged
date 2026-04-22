@@ -6,7 +6,7 @@ export type MdFile = {
   content: string;
 };
 
-export type PaginatedResult = {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 };
@@ -19,7 +19,7 @@ export type PaginationParams = {
 export const metadata = {
   "interfaceName": "MarkdownService",
   "serviceName": "markdown",
-  "filePath": "../types/markdown.ts",
+  "filePath": "services/content/markdown.ts",
   "methods": [
     {
       "name": "saveMd",
@@ -91,7 +91,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "PaginatedResult",
+      "returnType": "PaginatedResult<MdFile>",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -100,14 +100,18 @@ export const metadata = {
   "types": [
     {
       "name": "MdFile",
+      "kind": "type",
       "definition": "{\n  path: string;\n  content: string;\n}"
     },
     {
       "name": "PaginatedResult",
+      "kind": "type",
+      "typeParameters": "<T>",
       "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     },
     {
       "name": "PaginationParams",
+      "kind": "type",
       "definition": "{\n  offset: number;\n  limit: number;\n}"
     }
   ]
@@ -119,7 +123,7 @@ export interface MarkdownService {
   readMd(path: string): Promise<MdFile>;
   readMdJson(path: string): Promise<MdFile>;
   readMdJsonBatch(paths: string[]): Promise<MdFile[]>;
-  listOfMd(params: PaginationParams): Promise<PaginatedResult>;
+  listOfMd(params: PaginationParams): Promise<PaginatedResult<MdFile>>;
 }
 
 // Client interface
@@ -128,7 +132,7 @@ export interface MarkdownServiceClient {
   readMd(path: string): Promise<MdFile>;
   readMdJson(path: string): Promise<MdFile>;
   readMdJsonBatch(paths: string[]): Promise<MdFile[]>;
-  listOfMd(params: PaginationParams): Promise<PaginatedResult>;
+  listOfMd(params: PaginationParams): Promise<PaginatedResult<MdFile>>;
 }
 
 // Factory function

@@ -7,9 +7,10 @@ import type { MethodMetadata, TypeMetadata } from "./types";
 // Аргументы: <types-file> <gen-parent-dir>
 const typesFile = process.argv[2];
 const genParentDir = process.argv[3];
+const typesRoot = process.argv[4];
 
 if (!typesFile || !genParentDir) {
-  console.error("Usage: gen <types-file> <gen-parent-dir>");
+  console.error("Usage: gen <types-file> <gen-parent-dir> [types-root]");
   console.error(
     "Example: gen /abs/path/to/types/markdown.ts /abs/path/to/integration/generated",
   );
@@ -19,6 +20,9 @@ if (!typesFile || !genParentDir) {
 function generateTypeDefinitions(types: TypeMetadata[]): string {
   return types
     .map((type) => {
+      if (type.kind === "raw") {
+        return type.definition;
+      }
       if (type.properties && type.properties.length > 0) {
         const props = type.properties
           .map((prop) => {
@@ -28,9 +32,9 @@ function generateTypeDefinitions(types: TypeMetadata[]): string {
           })
           .join("\n");
 
-        return `export interface ${type.name} {\n${props}\n}`;
+        return `export interface ${type.name}${type.typeParameters || ""} {\n${props}\n}`;
       }
-      return `export type ${type.name} = ${type.definition || "any"};`;
+      return `export type ${type.name}${type.typeParameters || ""} = ${type.definition || "any"};`;
     })
     .join("\n\n");
 }
@@ -76,6 +80,7 @@ function renderClientReturnType(method: MethodMetadata): string {
 try {
   const cwd = process.cwd();
   const typesPath = resolve(cwd, typesFile);
+  const typesRootPath = typesRoot ? resolve(cwd, typesRoot) : cwd;
 
   console.log(`🔧 Generating from ${typesPath}...`);
 
@@ -83,10 +88,10 @@ try {
   const metadata = parser.parseInterface(typesPath);
   const metadataWithRelativePath = {
     ...metadata,
-    filePath: relative(cwd, typesPath).replaceAll("\\", "/"),
+    filePath: relative(typesRootPath, typesPath).replaceAll("\\", "/"),
   };
 
-  const packageName = `g-${metadata.serviceName}`;
+  const packageName = metadata.packageName || `g-${metadata.serviceName}`;
   const packageDir = resolve(cwd, genParentDir, packageName);
   const srcDir = join(packageDir, "src");
 

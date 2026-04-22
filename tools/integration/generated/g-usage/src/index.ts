@@ -45,7 +45,7 @@ export type UsageFunctionStatsItem = {
   total: number;
 };
 
-export type PaginatedResult = {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 };
@@ -53,7 +53,7 @@ export type PaginatedResult = {
 export const metadata = {
   "interfaceName": "UsageService",
   "serviceName": "usage",
-  "filePath": "../types/usage.ts",
+  "filePath": "services/analytics/usage.ts",
   "methods": [
     {
       "name": "recordUsage",
@@ -80,7 +80,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "PaginatedResult",
+      "returnType": "PaginatedResult<UsageEvent>",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -134,34 +134,43 @@ export const metadata = {
   "types": [
     {
       "name": "UsageEventInput",
+      "kind": "type",
       "definition": "{\n  function: string;\n  user: string;\n  date?: string;\n}"
     },
     {
       "name": "UsageEvent",
+      "kind": "type",
       "definition": "{\n  id: string;\n  function: string;\n  user: string;\n  date: string;\n  createdAt?: string;\n}"
     },
     {
       "name": "UsageListParams",
+      "kind": "type",
       "definition": "{\n  offset: number;\n  limit: number;\n  function?: string;\n  user?: string;\n  dateFrom?: string;\n  dateTo?: string;\n}"
     },
     {
       "name": "UsageStatsParams",
+      "kind": "type",
       "definition": "{\n  function?: string;\n  user?: string;\n  dateFrom?: string;\n  dateTo?: string;\n}"
     },
     {
       "name": "UsageTotalStats",
+      "kind": "type",
       "definition": "{\n  total: number;\n}"
     },
     {
       "name": "UsageDailyStatsItem",
+      "kind": "type",
       "definition": "{\n  date: string;\n  total: number;\n}"
     },
     {
       "name": "UsageFunctionStatsItem",
+      "kind": "type",
       "definition": "{\n  function: string;\n  total: number;\n}"
     },
     {
       "name": "PaginatedResult",
+      "kind": "type",
+      "typeParameters": "<T>",
       "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     }
   ]
@@ -170,7 +179,7 @@ export const metadata = {
 // Server interface (to be implemented in microservice)
 export interface UsageService {
   recordUsage(events: UsageEventInput[]): Promise<any>;
-  listUsage(params: UsageListParams): Promise<PaginatedResult>;
+  listUsage(params: UsageListParams): Promise<PaginatedResult<UsageEvent>>;
   getUsageTotal(params?: UsageStatsParams): Promise<UsageTotalStats>;
   getUsageDaily(params?: UsageStatsParams): Promise<UsageDailyStatsItem[]>;
   getUsageByFunction(params?: UsageStatsParams): Promise<UsageFunctionStatsItem[]>;
@@ -179,7 +188,7 @@ export interface UsageService {
 // Client interface
 export interface UsageServiceClient {
   recordUsage(events: UsageEventInput[]): Promise<any>;
-  listUsage(params: UsageListParams): Promise<PaginatedResult>;
+  listUsage(params: UsageListParams): Promise<PaginatedResult<UsageEvent>>;
   getUsageTotal(params?: UsageStatsParams): Promise<UsageTotalStats>;
   getUsageDaily(params?: UsageStatsParams): Promise<UsageDailyStatsItem[]>;
   getUsageByFunction(params?: UsageStatsParams): Promise<UsageFunctionStatsItem[]>;

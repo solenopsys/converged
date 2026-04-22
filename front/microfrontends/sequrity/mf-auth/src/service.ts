@@ -1,9 +1,9 @@
 import { createAuthServiceClient } from "g-auth";
-import { createRuntimeServiceClient } from "g-runtime";
+import { createRuntimeGatesServiceClient } from "g-rt-gates";
 import { LocaleController } from "front-core";
 
 export const authClient = createAuthServiceClient({ baseUrl: "/services" });
-export const runtimeClient = createRuntimeServiceClient({ baseUrl: "/services" });
+export const gatesClient = createRuntimeGatesServiceClient({ baseUrl: "/runtime" });
 
 export async function sendMagicLink(email: string, returnTo?: string): Promise<void> {
   const fallbackReturnTo =
@@ -12,7 +12,7 @@ export async function sendMagicLink(email: string, returnTo?: string): Promise<v
       : undefined;
   const locale = LocaleController.getInstance().getActiveLocale();
 
-  await runtimeClient.sendMagicLink({
+  await gatesClient.sendMagicLink({
     email,
     returnTo: returnTo ?? fallbackReturnTo,
     locale,

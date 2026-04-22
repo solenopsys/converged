@@ -23,7 +23,7 @@ export type PaginationParams = {
   limit: number;
 };
 
-export type PaginatedResult = {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 };
@@ -31,7 +31,7 @@ export type PaginatedResult = {
 export const metadata = {
   "interfaceName": "DumpsService",
   "serviceName": "dumps",
-  "filePath": "../types/dumps.ts",
+  "filePath": "services/data/dumps.ts",
   "methods": [
     {
       "name": "listStorages",
@@ -59,7 +59,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "PaginatedResult",
+      "returnType": "PaginatedResult<DumpFile>",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -98,22 +98,28 @@ export const metadata = {
   "types": [
     {
       "name": "StorageInfo",
+      "kind": "type",
       "definition": "{\n  name: string;\n  size: number;\n}"
     },
     {
       "name": "StorageStats",
+      "kind": "type",
       "definition": "{\n  totalSize: number;\n  storageCount: number;\n  storages: StorageInfo[];\n}"
     },
     {
       "name": "DumpFile",
+      "kind": "type",
       "definition": "{\n  name: string;\n  fileName: string;\n  size?: number;\n}"
     },
     {
       "name": "PaginationParams",
+      "kind": "type",
       "definition": "{\n  offset: number;\n  limit: number;\n}"
     },
     {
       "name": "PaginatedResult",
+      "kind": "type",
+      "typeParameters": "<T>",
       "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     }
   ]
@@ -123,7 +129,7 @@ export const metadata = {
 export interface DumpsService {
   listStorages(): Promise<StorageInfo[]>;
   storageStats(): Promise<StorageStats>;
-  listDumps(params: PaginationParams): Promise<PaginatedResult>;
+  listDumps(params: PaginationParams): Promise<PaginatedResult<DumpFile>>;
   dump(name?: string): Promise<DumpFile[]>;
   getLink(fileName: string): Promise<string>;
 }
@@ -132,7 +138,7 @@ export interface DumpsService {
 export interface DumpsServiceClient {
   listStorages(): Promise<StorageInfo[]>;
   storageStats(): Promise<StorageStats>;
-  listDumps(params: PaginationParams): Promise<PaginatedResult>;
+  listDumps(params: PaginationParams): Promise<PaginatedResult<DumpFile>>;
   dump(name?: string): Promise<DumpFile[]>;
   getLink(fileName: string): Promise<string>;
 }

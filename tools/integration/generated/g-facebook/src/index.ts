@@ -28,7 +28,7 @@ export type FacebookPostResult = {
 export const metadata = {
   "interfaceName": "FacebookService",
   "serviceName": "facebook",
-  "filePath": "../types/facebook.ts",
+  "filePath": "services/social/facebook.ts",
   "methods": [
     {
       "name": "publishPost",
@@ -55,22 +55,27 @@ export const metadata = {
   "types": [
     {
       "name": "FacebookMediaType",
+      "kind": "type",
       "definition": "\"photo\" | \"video\""
     },
     {
       "name": "FacebookMediaInput",
+      "kind": "type",
       "definition": "{\n  type: FacebookMediaType;\n  url: string;\n}"
     },
     {
       "name": "FacebookPostInput",
+      "kind": "type",
       "definition": "{\n  message?: string;\n  media: FacebookMediaInput[];\n}"
     },
     {
       "name": "FacebookCredentials",
+      "kind": "type",
       "definition": "{\n  accessToken: string;\n  pageId: string;\n  apiBaseUrl?: string;\n}"
     },
     {
       "name": "FacebookPostResult",
+      "kind": "type",
       "definition": "{\n  success: boolean;\n  postId?: string;\n  error?: string;\n}"
     }
   ]

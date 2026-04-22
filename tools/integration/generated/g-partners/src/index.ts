@@ -35,7 +35,7 @@ export type PartnerListParams = {
   query?: string;
 };
 
-export type PaginatedResult = {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 };
@@ -43,7 +43,7 @@ export type PaginatedResult = {
 export const metadata = {
   "interfaceName": "PartnersService",
   "serviceName": "partners",
-  "filePath": "../types/partners.ts",
+  "filePath": "services/business/partners.ts",
   "methods": [
     {
       "name": "createPartner",
@@ -70,7 +70,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "Partner | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -121,7 +121,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "PaginatedResult",
+      "returnType": "PaginatedResult<Partner>",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -130,34 +130,43 @@ export const metadata = {
   "types": [
     {
       "name": "PartnerId",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "ISODateString",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "PartnerKind",
+      "kind": "type",
       "definition": "\"client\" | \"supplier\" | \"both\""
     },
     {
       "name": "Partner",
+      "kind": "type",
       "definition": "{\n  id: PartnerId;\n  kind: PartnerKind;\n  name: string;\n  contact?: string;\n  tags?: string[];\n  note?: string;\n  createdAt: ISODateString;\n  updatedAt: ISODateString;\n}"
     },
     {
       "name": "PartnerInput",
+      "kind": "type",
       "definition": "{\n  kind: PartnerKind;\n  name: string;\n  contact?: string;\n  tags?: string[];\n  note?: string;\n}"
     },
     {
       "name": "PartnerUpdate",
+      "kind": "type",
       "definition": "Partial<PartnerInput>"
     },
     {
       "name": "PartnerListParams",
+      "kind": "type",
       "definition": "{\n  offset: number;\n  limit: number;\n  kind?: PartnerKind;\n  query?: string;\n}"
     },
     {
       "name": "PaginatedResult",
+      "kind": "type",
+      "typeParameters": "<T>",
       "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     }
   ]
@@ -166,19 +175,19 @@ export const metadata = {
 // Server interface (to be implemented in microservice)
 export interface PartnersService {
   createPartner(input: PartnerInput): Promise<PartnerId>;
-  getPartner(id: PartnerId): Promise<any>;
+  getPartner(id: PartnerId): Promise<Partner | any>;
   updatePartner(id: PartnerId, patch: PartnerUpdate): Promise<void>;
   deletePartner(id: PartnerId): Promise<boolean>;
-  listPartners(params: PartnerListParams): Promise<PaginatedResult>;
+  listPartners(params: PartnerListParams): Promise<PaginatedResult<Partner>>;
 }
 
 // Client interface
 export interface PartnersServiceClient {
   createPartner(input: PartnerInput): Promise<PartnerId>;
-  getPartner(id: PartnerId): Promise<any>;
+  getPartner(id: PartnerId): Promise<Partner | any>;
   updatePartner(id: PartnerId, patch: PartnerUpdate): Promise<void>;
   deletePartner(id: PartnerId): Promise<boolean>;
-  listPartners(params: PartnerListParams): Promise<PaginatedResult>;
+  listPartners(params: PartnerListParams): Promise<PaginatedResult<Partner>>;
 }
 
 // Factory function

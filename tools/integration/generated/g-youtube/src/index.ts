@@ -28,7 +28,7 @@ export type YouTubeUploadResult = {
 export const metadata = {
   "interfaceName": "YouTubeService",
   "serviceName": "youtube",
-  "filePath": "../types/youtube.ts",
+  "filePath": "services/social/youtube.ts",
   "methods": [
     {
       "name": "uploadShort",
@@ -55,18 +55,22 @@ export const metadata = {
   "types": [
     {
       "name": "YouTubeVideoInput",
+      "kind": "type",
       "definition": "{\n  data?: Uint8Array;\n  url?: string;\n  mimeType?: string;\n}"
     },
     {
       "name": "YouTubeShortsInput",
+      "kind": "type",
       "definition": "{\n  title: string;\n  description?: string;\n  tags?: string[];\n  privacyStatus?: \"public\" | \"unlisted\" | \"private\";\n  video: YouTubeVideoInput;\n}"
     },
     {
       "name": "YouTubeCredentials",
+      "kind": "type",
       "definition": "{\n  accessToken: string;\n}"
     },
     {
       "name": "YouTubeUploadResult",
+      "kind": "type",
       "definition": "{\n  success: boolean;\n  postId?: string;\n  error?: string;\n}"
     }
   ]

@@ -11,7 +11,7 @@ export type AccessPreset = {
 export const metadata = {
   "interfaceName": "AccessService",
   "serviceName": "access",
-  "filePath": "../types/access.ts",
+  "filePath": "services/sequrity/access.ts",
   "methods": [
     {
       "name": "emitJWT",
@@ -209,7 +209,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "Permission | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -226,10 +226,12 @@ export const metadata = {
   "types": [
     {
       "name": "Permission",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "AccessPreset",
+      "kind": "type",
       "definition": "{\n  name: string;\n  permissions: Permission[];\n}"
     }
   ]
@@ -247,7 +249,7 @@ export interface AccessService {
   createPreset(presetName: string, permissions: Permission[]): Promise<void>;
   updatePreset(presetName: string, permissions: Permission[]): Promise<void>;
   deletePreset(presetName: string): Promise<void>;
-  getPreset(presetName: string): Promise<any>;
+  getPreset(presetName: string): Promise<Permission | any>;
   getAllPresets(): Promise<AccessPreset[]>;
 }
 
@@ -263,7 +265,7 @@ export interface AccessServiceClient {
   createPreset(presetName: string, permissions: Permission[]): Promise<void>;
   updatePreset(presetName: string, permissions: Permission[]): Promise<void>;
   deletePreset(presetName: string): Promise<void>;
-  getPreset(presetName: string): Promise<any>;
+  getPreset(presetName: string): Promise<Permission | any>;
   getAllPresets(): Promise<AccessPreset[]>;
 }
 

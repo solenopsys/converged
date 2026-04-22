@@ -63,7 +63,7 @@ export type ChartRoomsListResult = {
 export const metadata = {
   "interfaceName": "ChartsService",
   "serviceName": "charts",
-  "filePath": "../types/charts.ts",
+  "filePath": "services/communications/charts.ts",
   "methods": [
     {
       "name": "createRoom",
@@ -90,7 +90,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "ChartRoom | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -234,46 +234,57 @@ export const metadata = {
   "types": [
     {
       "name": "ChartRoomId",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "ChartUserId",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "ChartThreadId",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "ChartRoomType",
+      "kind": "type",
       "definition": "\"direct\" | \"group\" | \"channel\""
     },
     {
       "name": "ChartRoomRole",
+      "kind": "type",
       "definition": "\"owner\" | \"admin\" | \"member\""
     },
     {
       "name": "ChartRoom",
+      "kind": "type",
       "definition": "{\n  id: ChartRoomId;\n  title?: string;\n  type: ChartRoomType;\n  threadId: ChartThreadId;\n  createdBy?: ChartUserId;\n  archived: boolean;\n  createdAt: string;\n  updatedAt: string;\n  membersCount?: number;\n}"
     },
     {
       "name": "ChartRoomUser",
+      "kind": "type",
       "definition": "{\n  id: string;\n  roomId: ChartRoomId;\n  userId: ChartUserId;\n  role: ChartRoomRole;\n  joinedAt: string;\n  updatedAt: string;\n}"
     },
     {
       "name": "CreateChartRoomInput",
+      "kind": "type",
       "definition": "{\n  title?: string;\n  type: ChartRoomType;\n  threadId: ChartThreadId;\n  createdBy?: ChartUserId;\n  userIds: ChartUserId[];\n}"
     },
     {
       "name": "UpdateChartRoomInput",
+      "kind": "type",
       "definition": "{\n  title?: string;\n  threadId?: ChartThreadId;\n  archived?: boolean;\n}"
     },
     {
       "name": "ChartRoomsListParams",
+      "kind": "type",
       "definition": "{\n  offset: number;\n  limit: number;\n  userId?: ChartUserId;\n  query?: string;\n  type?: ChartRoomType;\n  archived?: boolean;\n}"
     },
     {
       "name": "ChartRoomsListResult",
+      "kind": "type",
       "definition": "{\n  items: ChartRoom[];\n  totalCount: number;\n}"
     }
   ]
@@ -282,7 +293,7 @@ export const metadata = {
 // Server interface (to be implemented in microservice)
 export interface ChartsService {
   createRoom(input: CreateChartRoomInput): Promise<ChartRoom>;
-  getRoom(roomId: ChartRoomId): Promise<any>;
+  getRoom(roomId: ChartRoomId): Promise<ChartRoom | any>;
   updateRoom(roomId: ChartRoomId, patch: UpdateChartRoomInput): Promise<ChartRoom>;
   deleteRoom(roomId: ChartRoomId): Promise<boolean>;
   listRooms(params: ChartRoomsListParams): Promise<ChartRoomsListResult>;
@@ -295,7 +306,7 @@ export interface ChartsService {
 // Client interface
 export interface ChartsServiceClient {
   createRoom(input: CreateChartRoomInput): Promise<ChartRoom>;
-  getRoom(roomId: ChartRoomId): Promise<any>;
+  getRoom(roomId: ChartRoomId): Promise<ChartRoom | any>;
   updateRoom(roomId: ChartRoomId, patch: UpdateChartRoomInput): Promise<ChartRoom>;
   deleteRoom(roomId: ChartRoomId): Promise<boolean>;
   listRooms(params: ChartRoomsListParams): Promise<ChartRoomsListResult>;

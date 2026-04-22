@@ -25,7 +25,7 @@ export type DiscordSendResult = {
 export const metadata = {
   "interfaceName": "DiscordService",
   "serviceName": "discord",
-  "filePath": "../types/discord.ts",
+  "filePath": "services/social/discord.ts",
   "methods": [
     {
       "name": "sendWebhookMessage",
@@ -61,14 +61,17 @@ export const metadata = {
   "types": [
     {
       "name": "DiscordWebhookMessageInput",
+      "kind": "type",
       "definition": "{\n  webhookUrl: string;\n  content: string;\n  username?: string;\n  avatarUrl?: string;\n  tts?: boolean;\n}"
     },
     {
       "name": "DiscordBotMessageInput",
+      "kind": "type",
       "definition": "{\n  botToken: string;\n  channelId: string;\n  content: string;\n  tts?: boolean;\n}"
     },
     {
       "name": "DiscordSendResult",
+      "kind": "type",
       "definition": "{\n  success: boolean;\n  messageId?: string;\n  error?: string;\n}"
     }
   ]

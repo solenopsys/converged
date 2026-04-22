@@ -40,7 +40,9 @@ export interface ServerConfig {
   extraConfig?: Record<string, any>;
 }
 
-export type PluginFactory = (config: PluginConfig) => (app: Elysia) => Elysia;
+export type PluginFactory = ((config: PluginConfig) => (app: Elysia) => Elysia) & {
+  mount?: "root" | "services";
+};
 
 export interface CreateServerOptions {
   config: ServerConfig;
@@ -129,10 +131,30 @@ export function createServer({ config, plugins, staticDir }: CreateServerOptions
       status: "ok",
       name: config.name,
       timestamp: Date.now(),
-    }))
-    .group("/services", (api) => {
+    }));
+
+  for (let i = 0; i < plugins.length; i++) {
+    const plugin = plugins[i];
+    if (plugin.mount !== "root") continue;
+    try {
+      const pluginInstance = plugin(pluginConfig);
+      if (!pluginInstance) {
+        console.warn("[back-core] Skipping empty root plugin");
+        continue;
+      }
+      app.use(pluginInstance as any);
+    } catch (err) {
+      console.error(
+        `[back-core] Root plugin #${i + 1} failed to register and was skipped`,
+        err,
+      );
+    }
+  }
+
+  app.group("/services", (api) => {
       for (let i = 0; i < plugins.length; i++) {
         const plugin = plugins[i];
+        if (plugin.mount === "root") continue;
         try {
           const pluginInstance = plugin(pluginConfig);
           if (!pluginInstance) {

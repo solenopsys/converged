@@ -26,7 +26,7 @@ export type TelemetryQueryParams = {
   to_ts?: number;
 };
 
-export type PaginatedResult = {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 };
@@ -41,7 +41,7 @@ export type TelemetryStatistic = {
 export const metadata = {
   "interfaceName": "TelemetryService",
   "serviceName": "telemetry",
-  "filePath": "../types/telemetry.ts",
+  "filePath": "services/analytics/telemetry.ts",
   "methods": [
     {
       "name": "write",
@@ -68,7 +68,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "PaginatedResult",
+      "returnType": "PaginatedResult<TelemetryEvent>",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -83,7 +83,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "PaginatedResult",
+      "returnType": "PaginatedResult<TelemetryEvent>",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -108,22 +108,28 @@ export const metadata = {
   "types": [
     {
       "name": "TelemetryEvent",
+      "kind": "type",
       "definition": "{\n  ts: number;\n  device_id: string;\n  param: string;\n  value: number;\n  unit: string;\n}"
     },
     {
       "name": "TelemetryEventInput",
+      "kind": "type",
       "definition": "{\n  ts?: number;\n  device_id: string;\n  param: string;\n  value: number;\n  unit?: string;\n}"
     },
     {
       "name": "TelemetryQueryParams",
+      "kind": "type",
       "definition": "{\n  offset: number;\n  limit: number;\n  device_id?: string;\n  param?: string;\n  from_ts?: number;\n  to_ts?: number;\n}"
     },
     {
       "name": "PaginatedResult",
+      "kind": "type",
+      "typeParameters": "<T>",
       "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     },
     {
       "name": "TelemetryStatistic",
+      "kind": "type",
       "definition": "{\n  totalHot: number;\n  totalCold: number;\n  byDevice: Record<string, number>;\n  byParam: Record<string, number>;\n}"
     }
   ]
@@ -132,8 +138,8 @@ export const metadata = {
 // Server interface (to be implemented in microservice)
 export interface TelemetryService {
   write(event: TelemetryEventInput): Promise<void>;
-  listHot(params: TelemetryQueryParams): Promise<PaginatedResult>;
-  listCold(params: TelemetryQueryParams): Promise<PaginatedResult>;
+  listHot(params: TelemetryQueryParams): Promise<PaginatedResult<TelemetryEvent>>;
+  listCold(params: TelemetryQueryParams): Promise<PaginatedResult<TelemetryEvent>>;
   getStatistic(): Promise<TelemetryStatistic>;
   archiveHotToCold(): Promise<number>;
 }
@@ -141,8 +147,8 @@ export interface TelemetryService {
 // Client interface
 export interface TelemetryServiceClient {
   write(event: TelemetryEventInput): Promise<void>;
-  listHot(params: TelemetryQueryParams): Promise<PaginatedResult>;
-  listCold(params: TelemetryQueryParams): Promise<PaginatedResult>;
+  listHot(params: TelemetryQueryParams): Promise<PaginatedResult<TelemetryEvent>>;
+  listCold(params: TelemetryQueryParams): Promise<PaginatedResult<TelemetryEvent>>;
   getStatistic(): Promise<TelemetryStatistic>;
   archiveHotToCold(): Promise<number>;
 }

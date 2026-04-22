@@ -3,13 +3,13 @@ import {
   type ContentBlock,
   type StreamEvent,
   type ConversationOptions,
-  type AssistantService,
+  type RuntimeChatService,
   type PaginationParams,
   type PaginatedResult,
   type Chat,
   type ChatContext,
   type ChatContextSummary,
-} from "g-assistant";
+} from "g-rt-chat";
 
 export enum ServiceType {
   OPENAI = "openai",
@@ -41,7 +41,7 @@ export {
   type ContentBlock,
   type StreamEvent,
   type ConversationOptions,
-  type AssistantService,
+  type RuntimeChatService,
   type PaginationParams,
   type PaginatedResult,
   type Chat,

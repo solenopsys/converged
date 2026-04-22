@@ -145,6 +145,7 @@ const pluginEntries: Array<{
   key: string;
   path: string;
   plugin: (cfg: any) => any;
+  mount: "root" | "services";
 }> = [];
 const startupTasks: Array<{ name: string; task: () => Promise<void> }> = [];
 const shutdownTasks: Array<{ name: string; task: () => Promise<void> }> = [];
@@ -160,7 +161,10 @@ for (const [key, mappedPath] of Object.entries(runtimeMap.services || {})) {
   }
   try {
     const plugin = await importPlugin(pluginPath);
-    pluginEntries.push({ key, path: pluginPath, plugin });
+    const mount = pluginPath.includes("/plugins/runtimes/") || pluginPath.includes("/back/runtimes/")
+      ? "root"
+      : "services";
+    pluginEntries.push({ key, path: pluginPath, plugin, mount });
   } catch (error) {
     console.error("[runtime] plugin import failed:", pluginPath, error);
   }
@@ -258,17 +262,26 @@ const app = new Elysia()
     status: "ok",
     plugins: pluginEntries.length,
     timestamp: Date.now(),
-  }))
-  .group("/services", (api) => {
-    for (const p of pluginEntries) {
-      try {
-        api.use(p.plugin(pluginConfig));
-      } catch (err) {
-        console.error("[runtime] plugin load failed:", p.path, err);
-      }
-    }
-    return api;
   });
+
+for (const p of pluginEntries.filter((entry) => entry.mount === "root")) {
+  try {
+    app.use(p.plugin(pluginConfig));
+  } catch (err) {
+    console.error("[runtime] root plugin load failed:", p.path, err);
+  }
+}
+
+app.group("/services", (api) => {
+  for (const p of pluginEntries.filter((entry) => entry.mount === "services")) {
+    try {
+      api.use(p.plugin(pluginConfig));
+    } catch (err) {
+      console.error("[runtime] service plugin load failed:", p.path, err);
+    }
+  }
+  return api;
+});
 
 app
   .get("/vendor/*", async ({ params, request }) =>

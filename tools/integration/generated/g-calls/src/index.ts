@@ -44,7 +44,7 @@ export type CallsListParams = {
   toTime?: number;
 };
 
-export type PaginatedResult = {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 };
@@ -52,7 +52,7 @@ export type PaginatedResult = {
 export const metadata = {
   "interfaceName": "CallsService",
   "serviceName": "calls",
-  "filePath": "../types/calls.ts",
+  "filePath": "services/communications/calls.ts",
   "methods": [
     {
       "name": "saveRecording",
@@ -94,7 +94,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "Call | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -109,7 +109,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "PaginatedResult",
+      "returnType": "PaginatedResult<Call>",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -124,7 +124,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "Uint8Array | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -133,38 +133,48 @@ export const metadata = {
   "types": [
     {
       "name": "CallId",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "CallRecordId",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "CallDialogueItem",
+      "kind": "type",
       "definition": "{\n  text: string;\n  timestamp: number;\n  who: string;\n}"
     },
     {
       "name": "Call",
+      "kind": "type",
       "definition": "{\n  id: CallId;\n  startedAt: number;\n  phone: string;\n  threadId?: string;\n  recordId: CallRecordId;\n}"
     },
     {
       "name": "CallRecordingInput",
+      "kind": "type",
       "definition": "{\n  startedAt?: number;\n  phone: string;\n  data: Uint8Array;\n}"
     },
     {
       "name": "CallRecordingResult",
+      "kind": "type",
       "definition": "{\n  callId: CallId;\n  recordId: CallRecordId;\n}"
     },
     {
       "name": "CallDialogueInput",
+      "kind": "type",
       "definition": "{\n  callId: CallId;\n  threadId?: string;\n  dialogue: CallDialogueItem[];\n}"
     },
     {
       "name": "CallsListParams",
+      "kind": "type",
       "definition": "{\n  offset: number;\n  limit: number;\n  phone?: string;\n  fromTime?: number;\n  toTime?: number;\n}"
     },
     {
       "name": "PaginatedResult",
+      "kind": "type",
+      "typeParameters": "<T>",
       "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     }
   ]
@@ -174,18 +184,18 @@ export const metadata = {
 export interface CallsService {
   saveRecording(input: CallRecordingInput): Promise<CallRecordingResult>;
   saveDialogue(input: CallDialogueInput): Promise<void>;
-  getCall(id: CallId): Promise<any>;
-  listCalls(params: CallsListParams): Promise<PaginatedResult>;
-  getRecording(recordId: CallRecordId): Promise<any>;
+  getCall(id: CallId): Promise<Call | any>;
+  listCalls(params: CallsListParams): Promise<PaginatedResult<Call>>;
+  getRecording(recordId: CallRecordId): Promise<Uint8Array | any>;
 }
 
 // Client interface
 export interface CallsServiceClient {
   saveRecording(input: CallRecordingInput): Promise<CallRecordingResult>;
   saveDialogue(input: CallDialogueInput): Promise<void>;
-  getCall(id: CallId): Promise<any>;
-  listCalls(params: CallsListParams): Promise<PaginatedResult>;
-  getRecording(recordId: CallRecordId): Promise<any>;
+  getCall(id: CallId): Promise<Call | any>;
+  listCalls(params: CallsListParams): Promise<PaginatedResult<Call>>;
+  getRecording(recordId: CallRecordId): Promise<Uint8Array | any>;
 }
 
 // Factory function

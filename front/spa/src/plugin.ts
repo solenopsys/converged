@@ -235,6 +235,28 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
     });
   }
 
+  async function injectCssIntoModule(module: Blob, css: Blob | undefined, id: string): Promise<Blob> {
+    if (!css || css.size === 0) return module;
+    const jsText = await module.text();
+    const cssText = await css.text();
+    const styleId = `mf-style-${id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+    const injector = [
+      "",
+      `const __mfCss = ${JSON.stringify(cssText)};`,
+      `const __mfStyleId = ${JSON.stringify(styleId)};`,
+      "if (typeof document !== \"undefined\" && !document.getElementById(__mfStyleId)) {",
+      "  const style = document.createElement(\"style\");",
+      "  style.id = __mfStyleId;",
+      "  style.textContent = __mfCss;",
+      "  document.head.appendChild(style);",
+      "}",
+      "",
+    ].join("\n");
+    return new Blob([injector, jsText], {
+      type: "application/javascript; charset=utf-8",
+    });
+  }
+
   type CacheEntry = { raw: Uint8Array; br?: Uint8Array; contentType: string };
 
   type SerializedCacheEntry = {
@@ -434,8 +456,13 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
       if (!(await Bun.file(prebuiltPath).exists())) {
         throw new Error(`Missing prebuilt microfrontend: ${prebuiltPath}`);
       }
-      await loadAndCache(`mf:${name}`, prebuiltPath, "application/javascript; charset=utf-8");
-      mfBundles.set(name, Bun.file(prebuiltPath));
+      const cssPath = resolve(prebuiltMfDir, `${name}.css`);
+      const bundle = await injectCssIntoModule(
+        Bun.file(prebuiltPath),
+        existsSync(cssPath) ? Bun.file(cssPath) : undefined,
+        name,
+      );
+      mfBundles.set(name, bundle);
       return mfBundles.get(name)!;
     }
 
@@ -466,7 +493,16 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
       throw new Error(`${name} build failed:\n${errors}`);
     }
 
-    const blob = result.outputs[0];
+    const jsOutput = result.outputs.find((output) =>
+      output.type.includes("javascript") || output.path.endsWith(".js"),
+    );
+    if (!jsOutput) {
+      throw new Error(`${name} build failed: JavaScript output not found`);
+    }
+    const cssOutput = result.outputs.find((output) =>
+      output.type.includes("css") || output.path.endsWith(".css"),
+    );
+    const blob = await injectCssIntoModule(jsOutput, cssOutput, name);
     mfBundles.set(name, blob);
     log(`endBuild mf:${name} ${(blob.size / 1024).toFixed(0)}kb`);
     return blob;

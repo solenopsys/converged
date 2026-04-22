@@ -2,7 +2,7 @@ import { createEffect, sample } from 'effector';
 import { StreamEventType } from './types';
 import  type {
     ThreadsService,
-    AssistantService,
+    RuntimeChatService,
     ULID,
     ExecutableTool,
     ToolCall
@@ -35,7 +35,7 @@ const initialState: ChatState = {
 };
 
 export const createChatStore = (
-    aiService: AssistantService,
+    aiService: RuntimeChatService,
     threadsService: ThreadsService
 ) => {
     const $chat = chatDomain.createStore<ChatState>(initialState, { name: 'CHAT' })

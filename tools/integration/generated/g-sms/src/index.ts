@@ -23,7 +23,7 @@ export type SmsSendResult = {
 export const metadata = {
   "interfaceName": "SmsService",
   "serviceName": "sms",
-  "filePath": "../types/sms.ts",
+  "filePath": "services/providers/sms.ts",
   "methods": [
     {
       "name": "sendSms",
@@ -50,14 +50,17 @@ export const metadata = {
   "types": [
     {
       "name": "SmsMessageInput",
+      "kind": "type",
       "definition": "{\n  to: string;\n  text: string;\n  from?: string;\n  messagingProfileId?: string;\n}"
     },
     {
       "name": "SmsCredentials",
+      "kind": "type",
       "definition": "{\n  apiKey: string;\n  from?: string;\n  messagingProfileId?: string;\n}"
     },
     {
       "name": "SmsSendResult",
+      "kind": "type",
       "definition": "{\n  success: boolean;\n  messageId?: string;\n  error?: string;\n}"
     }
   ]

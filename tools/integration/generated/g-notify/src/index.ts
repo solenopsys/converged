@@ -52,7 +52,7 @@ export type NotifyChannelInput = {
 export const metadata = {
   "interfaceName": "NotifyService",
   "serviceName": "notify",
-  "filePath": "../types/notify.ts",
+  "filePath": "services/communications/notify.ts",
   "methods": [
     {
       "name": "saveTemplate",
@@ -79,7 +79,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "NotifyTemplate | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -132,7 +132,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "NotifyChannel | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -185,7 +185,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "NotifySend | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -202,42 +202,52 @@ export const metadata = {
   "types": [
     {
       "name": "NotifyTemplateId",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "NotifySendId",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "ISODateString",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "NotifyTemplate",
+      "kind": "type",
       "definition": "{\n  id: NotifyTemplateId;\n  content: Record<string, string>;\n}"
     },
     {
       "name": "NotifyTemplateInput",
+      "kind": "type",
       "definition": "{\n  id: NotifyTemplateId;\n  content: Record<string, string>;\n}"
     },
     {
       "name": "NotifySend",
+      "kind": "type",
       "definition": "{\n  id: NotifySendId;\n  templateId: NotifyTemplateId;\n  channel: string;\n  recipient: string;\n  params: Record<string, string | number | boolean | null>;\n  status: string;\n  createdAt: ISODateString;\n}"
     },
     {
       "name": "NotifySendInput",
+      "kind": "type",
       "definition": "{\n  templateId: NotifyTemplateId;\n  channel: string;\n  recipient: string;\n  params?: Record<string, string | number | boolean | null>;\n  status?: string;\n}"
     },
     {
       "name": "NotifyChannelId",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "NotifyChannel",
+      "kind": "type",
       "definition": "{\n  id: NotifyChannelId;\n  type: string;\n  config: Record<string, any>;\n}"
     },
     {
       "name": "NotifyChannelInput",
+      "kind": "type",
       "definition": "{\n  id: NotifyChannelId;\n  type: string;\n  config: Record<string, any>;\n}"
     }
   ]
@@ -246,30 +256,30 @@ export const metadata = {
 // Server interface (to be implemented in microservice)
 export interface NotifyService {
   saveTemplate(template: NotifyTemplateInput): Promise<NotifyTemplateId>;
-  getTemplate(id: NotifyTemplateId): Promise<any>;
+  getTemplate(id: NotifyTemplateId): Promise<NotifyTemplate | any>;
   listTemplates(): Promise<NotifyTemplate[]>;
   deleteTemplate(id: NotifyTemplateId): Promise<boolean>;
   saveChannel(channel: NotifyChannelInput): Promise<NotifyChannelId>;
-  getChannel(id: NotifyChannelId): Promise<any>;
+  getChannel(id: NotifyChannelId): Promise<NotifyChannel | any>;
   listChannels(): Promise<NotifyChannel[]>;
   deleteChannel(id: NotifyChannelId): Promise<boolean>;
   recordSend(input: NotifySendInput): Promise<NotifySendId>;
-  getSend(id: NotifySendId): Promise<any>;
+  getSend(id: NotifySendId): Promise<NotifySend | any>;
   listSends(): Promise<NotifySend[]>;
 }
 
 // Client interface
 export interface NotifyServiceClient {
   saveTemplate(template: NotifyTemplateInput): Promise<NotifyTemplateId>;
-  getTemplate(id: NotifyTemplateId): Promise<any>;
+  getTemplate(id: NotifyTemplateId): Promise<NotifyTemplate | any>;
   listTemplates(): Promise<NotifyTemplate[]>;
   deleteTemplate(id: NotifyTemplateId): Promise<boolean>;
   saveChannel(channel: NotifyChannelInput): Promise<NotifyChannelId>;
-  getChannel(id: NotifyChannelId): Promise<any>;
+  getChannel(id: NotifyChannelId): Promise<NotifyChannel | any>;
   listChannels(): Promise<NotifyChannel[]>;
   deleteChannel(id: NotifyChannelId): Promise<boolean>;
   recordSend(input: NotifySendInput): Promise<NotifySendId>;
-  getSend(id: NotifySendId): Promise<any>;
+  getSend(id: NotifySendId): Promise<NotifySend | any>;
   listSends(): Promise<NotifySend[]>;
 }
 

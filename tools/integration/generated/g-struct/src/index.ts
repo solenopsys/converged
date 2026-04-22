@@ -1,7 +1,7 @@
 // Auto-generated package
 import { createHttpClient } from "nrpc";
 
-export type PaginatedResult = {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 };
@@ -14,7 +14,7 @@ export type PaginationParams = {
 export const metadata = {
   "interfaceName": "StructService",
   "serviceName": "struct",
-  "filePath": "../types/struct.ts",
+  "filePath": "services/content/struct.ts",
   "methods": [
     {
       "name": "saveJson",
@@ -92,7 +92,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "PaginatedResult",
+      "returnType": "PaginatedResult<string>",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -101,10 +101,13 @@ export const metadata = {
   "types": [
     {
       "name": "PaginatedResult",
+      "kind": "type",
+      "typeParameters": "<T>",
       "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     },
     {
       "name": "PaginationParams",
+      "kind": "type",
       "definition": "{\n  offset: number;\n  limit: number;\n}"
     }
   ]
@@ -116,7 +119,7 @@ export interface StructService {
   readJson(path: string): Promise<any>;
   readJsonBatch(paths: string[]): Promise<any[]>;
   deleteJson(path: string): Promise<void>;
-  listJson(params: PaginationParams): Promise<PaginatedResult>;
+  listJson(params: PaginationParams): Promise<PaginatedResult<string>>;
 }
 
 // Client interface
@@ -125,7 +128,7 @@ export interface StructServiceClient {
   readJson(path: string): Promise<any>;
   readJsonBatch(paths: string[]): Promise<any[]>;
   deleteJson(path: string): Promise<void>;
-  listJson(params: PaginationParams): Promise<PaginatedResult>;
+  listJson(params: PaginationParams): Promise<PaginatedResult<string>>;
 }
 
 // Factory function

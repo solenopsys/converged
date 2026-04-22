@@ -6,9 +6,9 @@ import {
   type Task,
 } from "g-dag";
 import {
-  createRuntimeServiceClient,
+  createRuntimeDagServiceClient,
   type RuntimeServiceClient,
-} from "../integration/generated/g-runtime/src";
+} from "../integration/generated/g-rt-dag/src";
 
 const STATE_ICONS: Record<string, string> = {
   queued: "⏳",
@@ -251,7 +251,7 @@ export default () => {
   const baseUrl = process.env.SERVICES_URL;
   const client: DagCommandClient = {
     dag: createDagServiceClient({ baseUrl }),
-    runtime: createRuntimeServiceClient({ baseUrl }),
+    runtime: createRuntimeDagServiceClient({ baseUrl: baseUrl.replace(/\/services\/?$/, "/runtime") }),
   };
   return new DagProcessor(client);
 };

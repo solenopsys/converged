@@ -50,7 +50,7 @@ export type CronListParams = {
   status?: CronStatus;
 };
 
-export type PaginatedResult = {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 };
@@ -99,7 +99,7 @@ export type ShedullerDailyRun = {
 export const metadata = {
   "interfaceName": "ShedullerService",
   "serviceName": "sheduller",
-  "filePath": "../types/sheduller.ts",
+  "filePath": "services/automation/sheduller.ts",
   "methods": [
     {
       "name": "createCron",
@@ -132,7 +132,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "CronEntry | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -162,7 +162,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "CronEntry | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -177,7 +177,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "PaginatedResult",
+      "returnType": "PaginatedResult<CronEntry>",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -215,7 +215,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "PaginatedResult",
+      "returnType": "PaginatedResult<CronHistoryEntry>",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -232,54 +232,68 @@ export const metadata = {
   "types": [
     {
       "name": "CronStatus",
+      "kind": "type",
       "definition": "\"active\" | \"paused\""
     },
     {
       "name": "ProviderSettings",
+      "kind": "type",
       "definition": "Record<string, any>"
     },
     {
       "name": "ProviderDefinition",
+      "kind": "type",
       "definition": "{\n  code: string;\n  title?: string;\n  actions: string[];\n}"
     },
     {
       "name": "CronEntry",
+      "kind": "type",
       "definition": "{\n  id: string;\n  name: string;\n  expression: string;\n  provider: string;\n  action: string;\n  params?: Record<string, any>;\n  providerSettings?: ProviderSettings;\n  status: CronStatus;\n  createdAt: string;\n  updatedAt?: string;\n}"
     },
     {
       "name": "CronInput",
+      "kind": "type",
       "definition": "{\n  name: string;\n  expression: string;\n  provider: string;\n  action: string;\n  params?: Record<string, any>;\n  providerSettings?: ProviderSettings;\n  status?: CronStatus;\n}"
     },
     {
       "name": "CronUpdate",
+      "kind": "type",
       "definition": "{\n  name?: string;\n  expression?: string;\n  provider?: string;\n  action?: string;\n  params?: Record<string, any>;\n  providerSettings?: ProviderSettings;\n  status?: CronStatus;\n}"
     },
     {
       "name": "CronListParams",
+      "kind": "type",
       "definition": "{\n  offset: number;\n  limit: number;\n  status?: CronStatus;\n}"
     },
     {
       "name": "PaginatedResult",
+      "kind": "type",
+      "typeParameters": "<T>",
       "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     },
     {
       "name": "CronHistoryEntry",
+      "kind": "type",
       "definition": "{\n  id: string;\n  cronId: string;\n  cronName: string;\n  provider: string;\n  action: string;\n  firedAt: string;\n  success: boolean;\n  message?: string;\n}"
     },
     {
       "name": "CronHistoryInput",
+      "kind": "type",
       "definition": "{\n  cronId: string;\n  cronName: string;\n  provider: string;\n  action: string;\n  success: boolean;\n  message?: string;\n}"
     },
     {
       "name": "CronHistoryListParams",
+      "kind": "type",
       "definition": "{\n  offset: number;\n  limit: number;\n  cronId?: string;\n}"
     },
     {
       "name": "ShedullerStats",
+      "kind": "type",
       "definition": "{\n  crons: number;\n  activeCrons: number;\n  pausedCrons: number;\n  history: number;\n  dailyRuns: ShedullerDailyRun[];\n}"
     },
     {
       "name": "ShedullerDailyRun",
+      "kind": "type",
       "definition": "{\n  date: string;\n  total: number;\n  success: number;\n  failed: number;\n}"
     }
   ]
@@ -288,26 +302,26 @@ export const metadata = {
 // Server interface (to be implemented in microservice)
 export interface ShedullerService {
   createCron(input: CronInput): Promise<any>;
-  updateCron(id: string, updates: CronUpdate): Promise<any>;
+  updateCron(id: string, updates: CronUpdate): Promise<CronEntry | any>;
   deleteCron(id: string): Promise<boolean>;
-  getCron(id: string): Promise<any>;
-  listCrons(params: CronListParams): Promise<PaginatedResult>;
+  getCron(id: string): Promise<CronEntry | any>;
+  listCrons(params: CronListParams): Promise<PaginatedResult<CronEntry>>;
   recordHistory(entry: CronHistoryInput): Promise<CronHistoryEntry>;
   listProviders(): Promise<ProviderDefinition[]>;
-  listHistory(params: CronHistoryListParams): Promise<PaginatedResult>;
+  listHistory(params: CronHistoryListParams): Promise<PaginatedResult<CronHistoryEntry>>;
   getStats(): Promise<ShedullerStats>;
 }
 
 // Client interface
 export interface ShedullerServiceClient {
   createCron(input: CronInput): Promise<any>;
-  updateCron(id: string, updates: CronUpdate): Promise<any>;
+  updateCron(id: string, updates: CronUpdate): Promise<CronEntry | any>;
   deleteCron(id: string): Promise<boolean>;
-  getCron(id: string): Promise<any>;
-  listCrons(params: CronListParams): Promise<PaginatedResult>;
+  getCron(id: string): Promise<CronEntry | any>;
+  listCrons(params: CronListParams): Promise<PaginatedResult<CronEntry>>;
   recordHistory(entry: CronHistoryInput): Promise<CronHistoryEntry>;
   listProviders(): Promise<ProviderDefinition[]>;
-  listHistory(params: CronHistoryListParams): Promise<PaginatedResult>;
+  listHistory(params: CronHistoryListParams): Promise<PaginatedResult<CronHistoryEntry>>;
   getStats(): Promise<ShedullerStats>;
 }
 

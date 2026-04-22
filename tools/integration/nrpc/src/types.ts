@@ -25,11 +25,14 @@ export interface PropertyMetadata {
 export interface TypeMetadata {
   name: string;
   definition: string;
+  kind?: "type" | "interface" | "raw";
+  typeParameters?: string;
   properties?: PropertyMetadata[];
 }
 
 export interface ServiceMetadata {
   serviceName: string;
+  packageName?: string;
   interfaceName: string;
   filePath: string;
   methods: MethodMetadata[];

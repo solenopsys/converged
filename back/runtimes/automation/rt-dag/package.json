@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "converged-runtime": "workspace:*",
-    "g-runtime": "workspace:*",
+    "g-rt-dag": "workspace:*",
     "nrpc": "workspace:*"
   }
 }

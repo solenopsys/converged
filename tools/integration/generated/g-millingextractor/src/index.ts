@@ -41,7 +41,7 @@ export type MillingEstimateResult = {
 export const metadata = {
   "interfaceName": "MillingExtractorService",
   "serviceName": "millingextractor",
-  "filePath": "../types/millingextractor.ts",
+  "filePath": "services/extractors/millingextractor.ts",
   "methods": [
     {
       "name": "extract",
@@ -62,14 +62,17 @@ export const metadata = {
   "types": [
     {
       "name": "MillingEstimateInput",
+      "kind": "type",
       "definition": "{\n  modelStl: Uint8Array;\n  modelName?: string;\n  toolDiameter?: number;\n  toolLength?: number;\n  stepover?: number;\n  sampling?: number;\n  minSampling?: number;\n  feed?: number;\n  rapid?: number;\n  safeZ?: number;\n  includeGcode?: boolean;\n}"
     },
     {
       "name": "MillingEstimate",
+      "kind": "type",
       "definition": "{\n  triangles: number;\n  minX: number;\n  minY: number;\n  minZ: number;\n  maxX: number;\n  maxY: number;\n  maxZ: number;\n  safeZ: number;\n  passes: number;\n  points: number;\n  cutLengthMm: number;\n  rapidLengthMm: number;\n  cutTimeSec: number;\n  rapidTimeSec: number;\n  totalTimeSec: number;\n}"
     },
     {
       "name": "MillingEstimateResult",
+      "kind": "type",
       "definition": "{\n  estimate: MillingEstimate;\n  gcode?: Uint8Array;\n}"
     }
   ]

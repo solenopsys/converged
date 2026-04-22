@@ -28,7 +28,7 @@ export type UserModuleConfig = {
 export const metadata = {
   "interfaceName": "ModulesService",
   "serviceName": "modules",
-  "filePath": "../types/modules.ts",
+  "filePath": "services/sequrity/modules.ts",
   "methods": [
     {
       "name": "listForUser",
@@ -211,7 +211,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "ModulePreset | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -264,7 +264,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "ModuleDefinition | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -281,18 +281,22 @@ export const metadata = {
   "types": [
     {
       "name": "Module",
+      "kind": "type",
       "definition": "{\n  name: string;\n  link: string;\n  protected: boolean;\n  locales: Record<string, string>;\n}"
     },
     {
       "name": "ModuleDefinition",
+      "kind": "type",
       "definition": "{\n  name: string;\n  remote: boolean;\n  protected: boolean;\n}"
     },
     {
       "name": "ModulePreset",
+      "kind": "type",
       "definition": "{\n  name: string;\n  modules: string[];\n}"
     },
     {
       "name": "UserModuleConfig",
+      "kind": "type",
       "definition": "{\n  presets: string[];\n  additions: string[];\n  removals: string[];\n}"
     }
   ]
@@ -309,11 +313,11 @@ export interface ModulesService {
   createPreset(name: string, modules: string[]): Promise<void>;
   updatePreset(name: string, modules: string[]): Promise<void>;
   deletePreset(name: string): Promise<void>;
-  getPreset(name: string): Promise<any>;
+  getPreset(name: string): Promise<ModulePreset | any>;
   listPresets(): Promise<ModulePreset[]>;
   registerModule(module: ModuleDefinition): Promise<void>;
   unregisterModule(name: string): Promise<void>;
-  getModule(name: string): Promise<any>;
+  getModule(name: string): Promise<ModuleDefinition | any>;
   listModules(): Promise<ModuleDefinition[]>;
 }
 
@@ -328,11 +332,11 @@ export interface ModulesServiceClient {
   createPreset(name: string, modules: string[]): Promise<void>;
   updatePreset(name: string, modules: string[]): Promise<void>;
   deletePreset(name: string): Promise<void>;
-  getPreset(name: string): Promise<any>;
+  getPreset(name: string): Promise<ModulePreset | any>;
   listPresets(): Promise<ModulePreset[]>;
   registerModule(module: ModuleDefinition): Promise<void>;
   unregisterModule(name: string): Promise<void>;
-  getModule(name: string): Promise<any>;
+  getModule(name: string): Promise<ModuleDefinition | any>;
   listModules(): Promise<ModuleDefinition[]>;
 }
 

@@ -55,10 +55,5 @@ export interface AgentServiceConfig {
     temperature: number;
     maxIterations: number;
   };
-  providers: {
-    anthropic?: { apiKey: string; apiBase?: string };
-    openai?: { apiKey: string; apiBase?: string };
-  };
-  bootstrap: { dir?: string };
   session: { maxHistoryMessages: number };
 }

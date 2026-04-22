@@ -25,7 +25,7 @@ export type BillingEntryInput = {
   description?: string;
 };
 
-export type PaginatedResult = {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 };
@@ -49,7 +49,7 @@ export type BillingTotalParams = {
 export const metadata = {
   "interfaceName": "BillingService",
   "serviceName": "billing",
-  "filePath": "../types/billing.ts",
+  "filePath": "services/business/billing.ts",
   "methods": [
     {
       "name": "addEntry",
@@ -76,7 +76,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "BillingEntry | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -91,7 +91,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "PaginatedResult",
+      "returnType": "PaginatedResult<BillingEntry>",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -115,34 +115,43 @@ export const metadata = {
   "types": [
     {
       "name": "BillingEntryId",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "ISODateString",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "BillingCategory",
+      "kind": "type",
       "definition": "\"tokens\" | \"resources\" | \"module\""
     },
     {
       "name": "BillingEntry",
+      "kind": "type",
       "definition": "{\n  id: BillingEntryId;\n  owner: string;\n  category: BillingCategory;\n  amount: number;\n  currency: string;\n  description?: string;\n  createdAt: ISODateString;\n}"
     },
     {
       "name": "BillingEntryInput",
+      "kind": "type",
       "definition": "{\n  owner: string;\n  category: BillingCategory;\n  amount: number;\n  currency?: string;\n  description?: string;\n}"
     },
     {
       "name": "PaginatedResult",
+      "kind": "type",
+      "typeParameters": "<T>",
       "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     },
     {
       "name": "BillingListParams",
+      "kind": "type",
       "definition": "{\n  offset: number;\n  limit: number;\n  owner?: string;\n  category?: BillingCategory;\n  from?: ISODateString;\n  to?: ISODateString;\n}"
     },
     {
       "name": "BillingTotalParams",
+      "kind": "type",
       "definition": "{\n  owner?: string;\n  category?: BillingCategory;\n  from?: ISODateString;\n  to?: ISODateString;\n}"
     }
   ]
@@ -151,16 +160,16 @@ export const metadata = {
 // Server interface (to be implemented in microservice)
 export interface BillingService {
   addEntry(entry: BillingEntryInput): Promise<BillingEntryId>;
-  getEntry(id: BillingEntryId): Promise<any>;
-  listEntries(params: BillingListParams): Promise<PaginatedResult>;
+  getEntry(id: BillingEntryId): Promise<BillingEntry | any>;
+  listEntries(params: BillingListParams): Promise<PaginatedResult<BillingEntry>>;
   total(params: BillingTotalParams): Promise<number>;
 }
 
 // Client interface
 export interface BillingServiceClient {
   addEntry(entry: BillingEntryInput): Promise<BillingEntryId>;
-  getEntry(id: BillingEntryId): Promise<any>;
-  listEntries(params: BillingListParams): Promise<PaginatedResult>;
+  getEntry(id: BillingEntryId): Promise<BillingEntry | any>;
+  listEntries(params: BillingListParams): Promise<PaginatedResult<BillingEntry>>;
   total(params: BillingTotalParams): Promise<number>;
 }
 

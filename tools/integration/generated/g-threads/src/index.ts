@@ -3,6 +3,12 @@ import { createHttpClient } from "nrpc";
 
 export type ULID = string;
 
+export enum MessageType {
+  message = "message",
+  link = "link",
+  partition = "partition",
+}
+
 export type Message = {
   threadId: ULID;
   id?: ULID;
@@ -16,7 +22,7 @@ export type Message = {
 export const metadata = {
   "interfaceName": "ThreadsService",
   "serviceName": "threads",
-  "filePath": "../types/threads.ts",
+  "filePath": "services/communications/threads.ts",
   "methods": [
     {
       "name": "saveMessage",
@@ -109,10 +115,17 @@ export const metadata = {
   "types": [
     {
       "name": "ULID",
+      "kind": "type",
       "definition": "string"
     },
     {
+      "name": "MessageType",
+      "kind": "raw",
+      "definition": "export enum MessageType {\n  message = \"message\",\n  link = \"link\",\n  partition = \"partition\",\n}"
+    },
+    {
       "name": "Message",
+      "kind": "type",
       "definition": "{\n  threadId: ULID;\n  id?: ULID;\n  timestamp?: number;\n  beforeId?: ULID;\n  user: string;\n  type: MessageType;\n  data: string;\n}"
     }
   ]

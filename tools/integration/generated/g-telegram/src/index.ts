@@ -22,7 +22,7 @@ export type TelegramSendResult = {
 export const metadata = {
   "interfaceName": "TelegramService",
   "serviceName": "telegram",
-  "filePath": "../types/telegram.ts",
+  "filePath": "services/social/telegram.ts",
   "methods": [
     {
       "name": "sendMessage",
@@ -43,18 +43,22 @@ export const metadata = {
   "types": [
     {
       "name": "TelegramChatId",
+      "kind": "type",
       "definition": "string | number"
     },
     {
       "name": "TelegramParseMode",
+      "kind": "type",
       "definition": "\"Markdown\" | \"MarkdownV2\" | \"HTML\""
     },
     {
       "name": "TelegramMessageInput",
+      "kind": "type",
       "definition": "{\n  botToken: string;\n  chatId: TelegramChatId;\n  text: string;\n  parseMode?: TelegramParseMode;\n  disableWebPagePreview?: boolean;\n}"
     },
     {
       "name": "TelegramSendResult",
+      "kind": "type",
       "definition": "{\n  success: boolean;\n  messageId?: number;\n  error?: string;\n}"
     }
   ]

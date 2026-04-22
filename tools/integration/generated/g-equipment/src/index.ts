@@ -39,7 +39,7 @@ export type EquipmentListParams = {
   jobId?: JobId;
 };
 
-export type PaginatedResult = {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 };
@@ -47,7 +47,7 @@ export type PaginatedResult = {
 export const metadata = {
   "interfaceName": "EquipmentService",
   "serviceName": "equipment",
-  "filePath": "../types/equipment.ts",
+  "filePath": "services/business/equipment.ts",
   "methods": [
     {
       "name": "registerEquipment",
@@ -74,7 +74,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "Equipment | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -89,7 +89,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "PaginatedResult",
+      "returnType": "PaginatedResult<Equipment>",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -119,38 +119,48 @@ export const metadata = {
   "types": [
     {
       "name": "EquipmentId",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "JobId",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "ISODateString",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "EquipmentStatus",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "Equipment",
+      "kind": "type",
       "definition": "{\n  id: EquipmentId;\n  kind: string;\n  name?: string;\n  status: EquipmentStatus;\n  jobId?: JobId;\n  createdAt: ISODateString;\n  updatedAt: ISODateString;\n}"
     },
     {
       "name": "EquipmentInput",
+      "kind": "type",
       "definition": "{\n  kind: string;\n  name?: string;\n  status?: EquipmentStatus;\n  jobId?: JobId;\n}"
     },
     {
       "name": "EquipmentStateInput",
+      "kind": "type",
       "definition": "{\n  status: EquipmentStatus;\n  jobId?: JobId;\n}"
     },
     {
       "name": "EquipmentListParams",
+      "kind": "type",
       "definition": "{\n  offset: number;\n  limit: number;\n  kind?: string;\n  status?: EquipmentStatus;\n  jobId?: JobId;\n}"
     },
     {
       "name": "PaginatedResult",
+      "kind": "type",
+      "typeParameters": "<T>",
       "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     }
   ]
@@ -159,16 +169,16 @@ export const metadata = {
 // Server interface (to be implemented in microservice)
 export interface EquipmentService {
   registerEquipment(input: EquipmentInput): Promise<EquipmentId>;
-  getEquipment(id: EquipmentId): Promise<any>;
-  listEquipment(params: EquipmentListParams): Promise<PaginatedResult>;
+  getEquipment(id: EquipmentId): Promise<Equipment | any>;
+  listEquipment(params: EquipmentListParams): Promise<PaginatedResult<Equipment>>;
   updateState(id: EquipmentId, state: EquipmentStateInput): Promise<void>;
 }
 
 // Client interface
 export interface EquipmentServiceClient {
   registerEquipment(input: EquipmentInput): Promise<EquipmentId>;
-  getEquipment(id: EquipmentId): Promise<any>;
-  listEquipment(params: EquipmentListParams): Promise<PaginatedResult>;
+  getEquipment(id: EquipmentId): Promise<Equipment | any>;
+  listEquipment(params: EquipmentListParams): Promise<PaginatedResult<Equipment>>;
   updateState(id: EquipmentId, state: EquipmentStateInput): Promise<void>;
 }
 

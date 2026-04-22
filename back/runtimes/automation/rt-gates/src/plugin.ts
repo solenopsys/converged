@@ -1,15 +1,8 @@
 import { createHttpBackend } from "nrpc";
-import { metadata } from "g-runtime";
+import { metadata } from "g-rt-gates";
 import { GatesRuntimeService } from "converged-runtime/service";
-
-const methodNames = new Set(["sendMagicLink"]);
-
-const gatesMetadata = {
-  ...metadata,
-  methods: metadata.methods.filter((method) => methodNames.has(method.name)),
-};
 
 export default function gatesRuntimePlugin(config?: any) {
   const serviceImpl = new GatesRuntimeService(config);
-  return createHttpBackend({ metadata: gatesMetadata, serviceImpl })(config);
+  return createHttpBackend({ metadata, serviceImpl, pathPrefix: "/runtime" })(config);
 }

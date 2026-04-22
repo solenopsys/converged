@@ -42,7 +42,7 @@ export type RequestProcessingEntry = {
   createdAt: ISODateString;
 };
 
-export type PaginatedResult = {
+export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
 };
@@ -50,7 +50,7 @@ export type PaginatedResult = {
 export const metadata = {
   "interfaceName": "RequestsService",
   "serviceName": "requests",
-  "filePath": "../types/requests.ts",
+  "filePath": "services/business/requests.ts",
   "methods": [
     {
       "name": "createRequest",
@@ -77,7 +77,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "Request | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -92,7 +92,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "PaginatedResult",
+      "returnType": "PaginatedResult<Request>",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -149,42 +149,53 @@ export const metadata = {
   "types": [
     {
       "name": "RequestId",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "ISODateString",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "RequestStatus",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "RequestFields",
+      "kind": "type",
       "definition": "Record<string, string | number | boolean | null>"
     },
     {
       "name": "RequestFiles",
+      "kind": "type",
       "definition": "Record<string, string>"
     },
     {
       "name": "Request",
+      "kind": "type",
       "definition": "{\n  id: RequestId;\n  source?: string;\n  status: RequestStatus;\n  fields: RequestFields;\n  files: RequestFiles;\n  createdAt: ISODateString;\n}"
     },
     {
       "name": "RequestInput",
+      "kind": "type",
       "definition": "{\n  source?: string;\n  status?: RequestStatus;\n  fields: RequestFields;\n  files?: RequestFiles;\n}"
     },
     {
       "name": "RequestListParams",
+      "kind": "type",
       "definition": "{\n  offset: number;\n  limit: number;\n  source?: string;\n}"
     },
     {
       "name": "RequestProcessingEntry",
+      "kind": "type",
       "definition": "{\n  id: string;\n  requestId: RequestId;\n  status: RequestStatus;\n  actor: string;\n  comment: string;\n  createdAt: ISODateString;\n}"
     },
     {
       "name": "PaginatedResult",
+      "kind": "type",
+      "typeParameters": "<T>",
       "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
     }
   ]
@@ -193,8 +204,8 @@ export const metadata = {
 // Server interface (to be implemented in microservice)
 export interface RequestsService {
   createRequest(input: RequestInput): Promise<RequestId>;
-  getRequest(id: RequestId): Promise<any>;
-  listRequests(params: RequestListParams): Promise<PaginatedResult>;
+  getRequest(id: RequestId): Promise<Request | any>;
+  listRequests(params: RequestListParams): Promise<PaginatedResult<Request>>;
   updateStatus(id: RequestId, status: RequestStatus, actor: string, comment?: string): Promise<void>;
   listProcessing(requestId: RequestId): Promise<RequestProcessingEntry[]>;
 }
@@ -202,8 +213,8 @@ export interface RequestsService {
 // Client interface
 export interface RequestsServiceClient {
   createRequest(input: RequestInput): Promise<RequestId>;
-  getRequest(id: RequestId): Promise<any>;
-  listRequests(params: RequestListParams): Promise<PaginatedResult>;
+  getRequest(id: RequestId): Promise<Request | any>;
+  listRequests(params: RequestListParams): Promise<PaginatedResult<Request>>;
   updateStatus(id: RequestId, status: RequestStatus, actor: string, comment?: string): Promise<void>;
   listProcessing(requestId: RequestId): Promise<RequestProcessingEntry[]>;
 }

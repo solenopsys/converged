@@ -41,7 +41,7 @@ export type AuthMethod = {
 export const metadata = {
   "interfaceName": "IdentityService",
   "serviceName": "identity",
-  "filePath": "../types/identity.ts",
+  "filePath": "services/sequrity/identity.ts",
   "methods": [
     {
       "name": "createUser",
@@ -76,7 +76,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "User | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -91,7 +91,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "User | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -202,7 +202,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "any",
+      "returnType": "AuthMethod | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -226,22 +226,27 @@ export const metadata = {
   "types": [
     {
       "name": "ISODateString",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "User",
+      "kind": "type",
       "definition": "{\n  id: string;\n  email: string;\n  name: string;\n  picture?: string;\n  emailVerified: boolean;\n  preset?: string;\n  createdAt: ISODateString;\n}"
     },
     {
       "name": "UserInput",
+      "kind": "type",
       "definition": "{\n  id: string;\n  email: string;\n  name: string;\n  picture?: string;\n  emailVerified?: boolean;\n  preset?: string;\n}"
     },
     {
       "name": "UserUpdate",
+      "kind": "type",
       "definition": "{\n  email?: string;\n  name?: string;\n  picture?: string;\n  emailVerified?: boolean;\n  preset?: string;\n}"
     },
     {
       "name": "AuthMethod",
+      "kind": "type",
       "definition": "{\n  userId: string;\n  provider: string;\n  providerUserId: string;\n  email: string;\n  lastUsedAt: ISODateString;\n}"
     }
   ]
@@ -251,13 +256,13 @@ export const metadata = {
 export interface IdentityService {
   createUser(user: UserInput): Promise<User>;
   listUsers(): Promise<User[]>;
-  getUser(userId: string): Promise<any>;
-  getUserByEmail(email: string): Promise<any>;
+  getUser(userId: string): Promise<User | any>;
+  getUserByEmail(email: string): Promise<User | any>;
   updateUser(userId: string, updates: UserUpdate): Promise<User>;
   deleteUser(userId: string): Promise<boolean>;
   linkAuthMethod(userId: string, provider: string, providerUserId: string, email: string): Promise<void>;
   unlinkAuthMethod(userId: string, provider: string): Promise<void>;
-  getAuthMethodByProvider(provider: string, providerUserId: string): Promise<any>;
+  getAuthMethodByProvider(provider: string, providerUserId: string): Promise<AuthMethod | any>;
   getUserAuthMethods(userId: string): Promise<AuthMethod[]>;
 }
 
@@ -265,13 +270,13 @@ export interface IdentityService {
 export interface IdentityServiceClient {
   createUser(user: UserInput): Promise<User>;
   listUsers(): Promise<User[]>;
-  getUser(userId: string): Promise<any>;
-  getUserByEmail(email: string): Promise<any>;
+  getUser(userId: string): Promise<User | any>;
+  getUserByEmail(email: string): Promise<User | any>;
   updateUser(userId: string, updates: UserUpdate): Promise<User>;
   deleteUser(userId: string): Promise<boolean>;
   linkAuthMethod(userId: string, provider: string, providerUserId: string, email: string): Promise<void>;
   unlinkAuthMethod(userId: string, provider: string): Promise<void>;
-  getAuthMethodByProvider(provider: string, providerUserId: string): Promise<any>;
+  getAuthMethodByProvider(provider: string, providerUserId: string): Promise<AuthMethod | any>;
   getUserAuthMethods(userId: string): Promise<AuthMethod[]>;
 }
 

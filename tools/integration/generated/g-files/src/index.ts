@@ -13,7 +13,7 @@ export type PaginationParams = {
     limit: number;
 };
 
-export type PaginatedResult = {
+export type PaginatedResult<T> = {
     items: T[];
     totalCount?: number;
 };
@@ -51,7 +51,7 @@ export type FileStatistic = {
 export const metadata = {
   "interfaceName": "FilesService",
   "serviceName": "files",
-  "filePath": "../types/files.ts",
+  "filePath": "services/data/files.ts",
   "methods": [
     {
       "name": "save",
@@ -159,7 +159,7 @@ export const metadata = {
           "isArray": false
         }
       ],
-      "returnType": "PaginatedResult",
+      "returnType": "PaginatedResult<FileMetadata>",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -176,38 +176,48 @@ export const metadata = {
   "types": [
     {
       "name": "HashString",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "UUID",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "ISODateString",
+      "kind": "type",
       "definition": "string"
     },
     {
       "name": "PaginationParams",
+      "kind": "type",
       "definition": "{\n    key: string;\n    offset: number;\n    limit: number;\n}"
     },
     {
       "name": "PaginatedResult",
+      "kind": "type",
+      "typeParameters": "<T>",
       "definition": "{\n    items: T[];\n    totalCount?: number;\n}"
     },
     {
       "name": "FileStatus",
+      "kind": "type",
       "definition": "'uploading' | 'uploaded' | 'failed'"
     },
     {
       "name": "FileMetadata",
+      "kind": "type",
       "definition": "{\n    id:UUID\n    hash: HashString; \n    status: FileStatus;\n    name: string;\n    fileSize: number;\n    fileType: string;\n    compression: string;\n    owner: string;\n    createdAt: ISODateString; \n    chunksCount: number;\n}"
     },
     {
       "name": "FileChunk",
+      "kind": "type",
       "definition": "{\n    fileId:UUID\n    hash: HashString;\n    chunkNumber: number;\n    chunkSize: number;\n    createdAt: ISODateString; \n}"
     },
     {
       "name": "FileStatistic",
+      "kind": "type",
       "definition": "{\n    totalFiles: number;\n    totalChunks: number;\n    totalSize: number;\n    createdAt: ISODateString;\n}"
     }
   ]
@@ -221,7 +231,7 @@ export interface FilesService {
   delete(id: UUID): Promise<void>;
   get(id: UUID): Promise<FileMetadata>;
   getChunks(id: UUID): Promise<FileChunk[]>;
-  list(params: PaginationParams): Promise<PaginatedResult>;
+  list(params: PaginationParams): Promise<PaginatedResult<FileMetadata>>;
   statistic(): Promise<any>;
 }
 
@@ -233,7 +243,7 @@ export interface FilesServiceClient {
   delete(id: UUID): Promise<void>;
   get(id: UUID): Promise<FileMetadata>;
   getChunks(id: UUID): Promise<FileChunk[]>;
-  list(params: PaginationParams): Promise<PaginatedResult>;
+  list(params: PaginationParams): Promise<PaginatedResult<FileMetadata>>;
   statistic(): Promise<any>;
 }
 

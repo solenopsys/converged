@@ -21,7 +21,7 @@ export type ModelConvertResult = {
 export const metadata = {
   "interfaceName": "ModelConvertorService",
   "serviceName": "modelconvertor",
-  "filePath": "../types/modelconvertor.ts",
+  "filePath": "services/convertors/modelconvertor.ts",
   "methods": [
     {
       "name": "convert",
@@ -42,18 +42,22 @@ export const metadata = {
   "types": [
     {
       "name": "ConvertFormat",
+      "kind": "type",
       "definition": "\"assjson\" | \"gltf\" | \"gltf2\" | \"glb\" | \"glb2\""
     },
     {
       "name": "ModelConvertInput",
+      "kind": "type",
       "definition": "{\n  sourceName: string;\n  sourceData: Uint8Array;\n  format?: ConvertFormat;\n}"
     },
     {
       "name": "ConvertedBinaryFile",
+      "kind": "type",
       "definition": "{\n  name: string;\n  data: Uint8Array;\n}"
     },
     {
       "name": "ModelConvertResult",
+      "kind": "type",
       "definition": "{\n  files: ConvertedBinaryFile[];\n}"
     }
   ]

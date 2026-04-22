@@ -15,7 +15,7 @@ export type OpenScadConvertResult = {
 export const metadata = {
   "interfaceName": "OpenScadConvertorService",
   "serviceName": "openscadconvertor",
-  "filePath": "../types/openscadconvertor.ts",
+  "filePath": "services/convertors/openscadconvertor.ts",
   "methods": [
     {
       "name": "convert",
@@ -36,10 +36,12 @@ export const metadata = {
   "types": [
     {
       "name": "OpenScadConvertInput",
+      "kind": "type",
       "definition": "{\n  sourceName: string;\n  sourceData: Uint8Array;\n}"
     },
     {
       "name": "OpenScadConvertResult",
+      "kind": "type",
       "definition": "{\n  fileName: string;\n  fileData: Uint8Array;\n  contentType: string;\n}"
     }
   ]

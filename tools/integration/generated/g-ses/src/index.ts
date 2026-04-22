@@ -24,7 +24,7 @@ export type EmailResult = {
 export const metadata = {
   "interfaceName": "SesService",
   "serviceName": "ses",
-  "filePath": "../types/ses.ts",
+  "filePath": "services/providers/ses.ts",
   "methods": [
     {
       "name": "sendEmail",
@@ -51,14 +51,17 @@ export const metadata = {
   "types": [
     {
       "name": "SesCredentials",
+      "kind": "type",
       "definition": "{\n  accessKeyId: string;\n  secretAccessKey: string;\n  region: string;\n}"
     },
     {
       "name": "EmailPayload",
+      "kind": "type",
       "definition": "{\n  from?: string;\n  to: string | string[];\n  subject: string;\n  body?: string;\n  type?: \"html\" | \"text\";\n}"
     },
     {
       "name": "EmailResult",
+      "kind": "type",
       "definition": "{\n  success: boolean;\n  messageId?: string;\n  error?: string;\n}"
     }
   ]
