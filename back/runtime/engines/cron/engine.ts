@@ -2,6 +2,7 @@ import { Cron } from "croner";
 import { createLogsServiceClient } from "g-logs";
 import { createRuntimeDagServiceClient } from "g-rt-dag";
 import { createTelemetryServiceClient } from "g-telemetry";
+import { requireRuntimeBaseUrl, requireServicesBaseUrl } from "../../env";
 
 export type CronEntryBase = {
   id: string;
@@ -104,15 +105,10 @@ export class CronEngine {
   }
 
   private resolveRuntimeBaseUrl(): string {
-    if (process.env.RUNTIME_BASE) return process.env.RUNTIME_BASE;
-    if (process.env.RT_DAG_BASE) return process.env.RT_DAG_BASE;
-    const port = process.env.PORT ?? process.env.SERVICES_PORT ?? "3000";
-    return `http://localhost:${port}/runtime`;
+    return requireRuntimeBaseUrl();
   }
 
   private resolveServicesBaseUrl(): string {
-    if (process.env.SERVICES_BASE) return process.env.SERVICES_BASE;
-    const port = process.env.PORT ?? process.env.SERVICES_PORT ?? "3000";
-    return `http://localhost:${port}/services`;
+    return requireServicesBaseUrl();
   }
 }

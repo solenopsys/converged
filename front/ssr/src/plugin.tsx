@@ -78,6 +78,12 @@ const fallbackBrowserImports: Record<string, string> = {
   "front-core/components": "/front-core.js",
 };
 
+const uiAssetVersion =
+  process.env.MF_ASSET_VERSION ||
+  process.env.UI_ASSET_VERSION ||
+  process.env.BUILD_ID ||
+  String(Date.now());
+
 const defaultServiceWorkerScript = [
   "self.addEventListener('install', () => self.skipWaiting());",
   "self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));",
@@ -195,11 +201,14 @@ function buildBrowserImportMap(
     }
   }
 
-  imports["front-core"] = "/front-core.js";
-  imports["front-core/components"] = "/front-core.js";
+  const uiAssetQuery = uiAssetVersion
+    ? `?v=${encodeURIComponent(uiAssetVersion)}`
+    : "";
+  imports["front-core"] = `/front-core.js${uiAssetQuery}`;
+  imports["front-core/components"] = `/front-core.js${uiAssetQuery}`;
   const mfList = (mfOverride && mfOverride.length > 0) ? mfOverride : microfrontends;
   for (const mf of mfList) {
-    imports[mf] = `/mf/${mf}.js`;
+    imports[mf] = `/mf/${mf}.js${uiAssetQuery}`;
   }
   return imports;
 }
@@ -573,9 +582,7 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
         assetsPromise = null;
       }
       await ensureAssets();
-      const cacheHeader = isProd
-        ? "public, max-age=31536000, immutable"
-        : "no-store";
+      const cacheHeader = "no-store";
       if (isProd && supportsEncoding(request, "gzip")) {
         return new Response(clientBrotli, {
           headers: {

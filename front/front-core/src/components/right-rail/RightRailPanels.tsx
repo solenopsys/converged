@@ -74,6 +74,19 @@ type ChatRuntime = {
   };
 };
 
+function resolveChatRuntimeModuleUrl(): string {
+  const fallback = "/mf/mf-assistants.js";
+  if (typeof document === "undefined") return fallback;
+  const script = document.querySelector<HTMLScriptElement>('script[type="importmap"]');
+  if (!script?.textContent) return fallback;
+  try {
+    const parsed = JSON.parse(script.textContent) as { imports?: Record<string, string> };
+    return parsed.imports?.["mf-assistants"] || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 function useThemeToggle() {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [mounted, setMounted] = useState(false);
@@ -608,7 +621,7 @@ export function ChatPanel({
     let active = true;
     const loadChatRuntime = async () => {
       try {
-        const runtime = await import(/* @vite-ignore */ "/mf/mf-assistants.js");
+        const runtime = await import(/* @vite-ignore */ resolveChatRuntimeModuleUrl());
         if (!active) return;
         setChatRuntime({
           ChatDetail: runtime.ChatDetail,

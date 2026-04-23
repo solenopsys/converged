@@ -33,6 +33,41 @@ const outDir = resolve(projectRoot, "dist", "mf");
 
 mkdirSync(outDir, { recursive: true });
 
+type BuildOutput = Blob & { path: string; type: string };
+
+function isJavaScriptOutput(output: BuildOutput): boolean {
+  return output.type.includes("javascript") || output.path.endsWith(".js");
+}
+
+function isCssOutput(output: BuildOutput): boolean {
+  return output.type.includes("css") || output.path.endsWith(".css");
+}
+
+async function injectCssIntoModule(
+  module: BuildOutput,
+  css: BuildOutput | undefined,
+  id: string,
+): Promise<string> {
+  const jsText = await module.text();
+  if (!css || css.size === 0) return jsText;
+
+  const cssText = await css.text();
+  const styleId = `mf-style-${id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+  const injector = [
+    `const __mfCss = ${JSON.stringify(cssText)};`,
+    `const __mfStyleId = ${JSON.stringify(styleId)};`,
+    "if (typeof document !== \"undefined\" && !document.getElementById(__mfStyleId)) {",
+    "  const style = document.createElement(\"style\");",
+    "  style.id = __mfStyleId;",
+    "  style.textContent = __mfCss;",
+    "  document.head.appendChild(style);",
+    "}",
+    "",
+  ].join("\n");
+
+  return injector + jsText;
+}
+
 function resolveMicrofrontendEntry(root: string, name: string): string | undefined {
   const mfBase = resolve(root, "front", "microfrontends");
   const directTs = resolve(mfBase, name, "src", "index.ts");
@@ -93,12 +128,20 @@ for (const name of microfrontends) {
     throw new Error(`Failed to build ${name}:\n${errors}`);
   }
 
-  if (result.outputs.length === 0) {
-    throw new Error(`No output emitted for ${name}`);
+  const jsOutput = result.outputs.find(isJavaScriptOutput);
+  if (!jsOutput) {
+    throw new Error(`No JavaScript output emitted for ${name}`);
   }
-  const jsBytes = await result.outputs[0].arrayBuffer();
+  const cssOutput = result.outputs.find(isCssOutput);
+  const jsText = await injectCssIntoModule(jsOutput, cssOutput, name);
+  const jsBytes = new TextEncoder().encode(jsText);
   const outPath = resolve(outDir, `${name}.js`);
   await Bun.write(outPath, jsBytes);
+
+  if (cssOutput) {
+    await Bun.write(resolve(outDir, `${name}.css`), await cssOutput.text());
+  }
+
   const compressed = brotliCompressSync(Buffer.from(jsBytes), {
     params: { [zlibConstants.BROTLI_PARAM_QUALITY]: 4 },
   });

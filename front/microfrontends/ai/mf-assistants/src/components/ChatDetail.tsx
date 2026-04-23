@@ -152,6 +152,7 @@ const ChatDetail: React.FC = (props: {
 
   return (
     <ThreadedChat
+      className={styles.chatRoot}
       messages={props.messages}
       isLoading={props.isLoading}
       currentResponse={props.currentResponse}

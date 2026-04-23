@@ -1,8 +1,9 @@
 import { createNotifyServiceClient } from "g-notify";
 import { createSmtpServiceClient } from "g-smtp";
 import { createSesServiceClient } from "g-ses";
+import { requireServicesBaseUrl } from "../env";
 
-const host = process.env.SERVICES_BASE ?? "http://localhost:3000/services";
+const host = requireServicesBaseUrl();
 
 const notify = createNotifyServiceClient({ baseUrl: host });
 const ses = createSesServiceClient({ baseUrl: host });

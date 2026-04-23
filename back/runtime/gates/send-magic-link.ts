@@ -1,7 +1,8 @@
 import { createAuthServiceClient } from "g-auth";
 import { sendNotification } from "./send-notification";
+import { requireServicesBaseUrl } from "../env";
 
-const host = process.env.SERVICES_BASE ?? "http://localhost:3000/services";
+const host = requireServicesBaseUrl();
 const magicHost =
   process.env.MAGIC_HOST ??
   process.env.FRONTEND_URL ??

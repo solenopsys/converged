@@ -321,6 +321,14 @@ function createHeadlessService(
   });
 }
 
+function localBaseUrl(port: number, path: "services" | "runtime"): string {
+  return `http://127.0.0.1:${port}/${path}`;
+}
+
+function serviceBaseUrl(serviceName: string, path: "services" | "runtime"): string {
+  return `http://${serviceName}:${SERVICE_PORT}/${path}`;
+}
+
 class WorkloadBuilder {
   constructor(
     private chart: cdk8s.Chart,
@@ -346,7 +354,19 @@ class WorkloadBuilder {
 
   private runtimeServicesBase(): string {
     const firstGroup = this.plan.serviceGroups[0];
-    return firstGroup ? `http://${firstGroup.serviceName}:${SERVICE_PORT}/services` : "";
+    return firstGroup ? serviceBaseUrl(firstGroup.serviceName, "services") : "";
+  }
+
+  private runtimeOwnBase(runtime: RuntimeContainerPlan): string {
+    return serviceBaseUrl(runtime.serviceName, "runtime");
+  }
+
+  private runtimeDagBase(): string {
+    const dagRuntime = this.plan.runtime.containers.find((container) =>
+      container.runtimes.some((runtime) => runtime.category === "automation" && runtime.name === "dag")
+    );
+    const target = dagRuntime ?? this.plan.runtime.containers[0];
+    return target ? serviceBaseUrl(target.serviceName, "runtime") : "";
   }
 
   private buildValkeyDeployment() {
@@ -510,6 +530,8 @@ class WorkloadBuilder {
                 ports: [{ containerPort: RUNTIME_APP_PORT }],
                 env: buildBaseEnv(this.ctx, RUNTIME_APP_PORT, {
                   SERVICES_BASE: this.runtimeServicesBase(),
+                  RUNTIME_BASE: this.runtimeOwnBase(runtime),
+                  RT_DAG_BASE: this.runtimeDagBase(),
                   VALKEY_URL: this.plan.cache.url,
                   RT_RUNTIMES: runtime.runtimes.map((rt) => `${rt.category}/${rt.name}`).join(","),
                 }),
@@ -596,6 +618,7 @@ class WorkloadBuilder {
                 imagePullPolicy: HELM_MS_PULL_POLICY,
                 ports: [{ containerPort: SERVICES_APP_PORT }],
                 env: buildBaseEnv(this.ctx, SERVICES_APP_PORT, {
+                  SERVICES_BASE: serviceBaseUrl(group.serviceName, "services"),
                   STORAGE_SOCKET_PATH,
                   VALKEY_URL: this.plan.cache.url,
                 }),
@@ -736,7 +759,7 @@ class WorkloadBuilder {
                 imagePullPolicy: HELM_UI_PULL_POLICY,
                 ports: [{ containerPort: UI_APP_PORT }],
                 env: buildBaseEnv(this.ctx, UI_APP_PORT, {
-                  SERVICES_BASE: `http://127.0.0.1:${SERVICES_APP_PORT}/services`,
+                  SERVICES_BASE: localBaseUrl(SERVICES_APP_PORT, "services"),
                   VALKEY_URL: this.plan.cache.url,
                 }),
                 envFrom: [{ secretRef: { name: secretName } }],
@@ -763,6 +786,7 @@ class WorkloadBuilder {
                 imagePullPolicy: HELM_MS_PULL_POLICY,
                 ports: [{ containerPort: SERVICES_APP_PORT }],
                 env: buildBaseEnv(this.ctx, SERVICES_APP_PORT, {
+                  SERVICES_BASE: localBaseUrl(SERVICES_APP_PORT, "services"),
                   STORAGE_SOCKET_PATH,
                   VALKEY_URL: this.plan.cache.url,
                 }),
@@ -796,7 +820,9 @@ class WorkloadBuilder {
                 env: toEnvList({
                   NODE_ENV: "production",
                   PORT: String(RUNTIME_APP_PORT),
-                  SERVICES_BASE: `http://127.0.0.1:${SERVICES_APP_PORT}/services`,
+                  SERVICES_BASE: localBaseUrl(SERVICES_APP_PORT, "services"),
+                  RUNTIME_BASE: localBaseUrl(RUNTIME_APP_PORT, "runtime"),
+                  RT_DAG_BASE: localBaseUrl(RUNTIME_APP_PORT, "runtime"),
                   VALKEY_URL: this.plan.cache.url,
                 }),
                 envFrom: [{ secretRef: { name: secretName } }],

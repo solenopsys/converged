@@ -1,8 +1,9 @@
 import { createDeliveryServiceClient } from "g-delivery";
 import { createShipmentProviderServiceClient } from "g-shipmentprovider";
 import type { DeliveryInput } from "g-delivery";
+import { requireServicesBaseUrl } from "../env";
 
-const host = process.env.SERVICES_BASE ?? "http://localhost:3000/services";
+const host = requireServicesBaseUrl();
 
 const delivery = createDeliveryServiceClient({ baseUrl: host });
 

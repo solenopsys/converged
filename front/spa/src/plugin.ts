@@ -202,6 +202,7 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
   const jsCacheHeader = isProd
     ? "public, max-age=31536000, immutable"
     : "public, max-age=3600";
+  const mfCacheHeader = isProd ? "no-store" : jsCacheHeader;
   const sharedCache = isProd ? config.cache : undefined;
   const assetCacheTtlSeconds = 3600;
   const activeMicrofrontends = config.microfrontends?.length
@@ -223,15 +224,21 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
     return compressed;
   }
 
-  function serveDev(blob: Blob, brData: Uint8Array, request: Request, contentType: string): Response {
+  function serveDev(
+    blob: Blob,
+    brData: Uint8Array,
+    request: Request,
+    contentType: string,
+    cacheHeader = jsCacheHeader,
+  ): Response {
     const acceptEncoding = request.headers.get("accept-encoding") || "";
     if (brData.length > 0 && (acceptEncoding.includes("br") || !acceptEncoding)) {
       return new Response(brData, {
-        headers: { "Content-Type": contentType, "Content-Encoding": "br", "Cache-Control": jsCacheHeader },
+        headers: { "Content-Type": contentType, "Content-Encoding": "br", "Cache-Control": cacheHeader },
       });
     }
     return new Response(blob, {
-      headers: { "Content-Type": contentType, "Cache-Control": jsCacheHeader },
+      headers: { "Content-Type": contentType, "Cache-Control": cacheHeader },
     });
   }
 
@@ -683,18 +690,18 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
           );
           if (supportsEncoding(request, "br") && cached.br) {
             return new Response(cached.br, {
-              headers: { "Content-Type": "application/javascript; charset=utf-8", "Content-Encoding": "br", "Cache-Control": jsCacheHeader },
+              headers: { "Content-Type": "application/javascript; charset=utf-8", "Content-Encoding": "br", "Cache-Control": mfCacheHeader },
             });
           }
           return new Response(cached.raw, {
-            headers: { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": jsCacheHeader },
+            headers: { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": mfCacheHeader },
           });
         }
         if (useDevCompress) {
           const br = await compressBr(`mf:${name}`, bundle);
-          return serveDev(bundle, br, request, "application/javascript; charset=utf-8");
+          return serveDev(bundle, br, request, "application/javascript; charset=utf-8", mfCacheHeader);
         }
-        return new Response(bundle, { headers: { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": jsCacheHeader } });
+        return new Response(bundle, { headers: { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": mfCacheHeader } });
       } catch (err: any) {
         console.error(`[spa] ${name} build failed:`, err);
         set.status = 500;

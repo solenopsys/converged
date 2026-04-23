@@ -80,6 +80,14 @@ function resolveEnabledRuntimes(): Set<string> | null {
   return values.length > 0 ? new Set(values) : null;
 }
 
+function requireEnvUrl(name: string, example: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} is required. Set it to ${example}.`);
+  }
+  return value.replace(/\/+$/, "");
+}
+
 async function importPlugin(path: string) {
   const mod = await import(pathToFileURL(path).href);
   const plugin = mod.default ?? mod.plugin ?? mod;
@@ -91,9 +99,11 @@ async function importPlugin(path: string) {
 
 process.env.BIN_LIBS_PATH = binLibsPath;
 process.env.PROJECT_DIR = projectDir;
-if (!process.env.SERVICES_BASE) {
-  process.env.SERVICES_BASE = `http://127.0.0.1:${port}/services`;
-}
+const servicesBaseUrl = requireEnvUrl(
+  "SERVICES_BASE",
+  "the services endpoint, for example http://host:port/services",
+);
+process.env.SERVICES_BASE = servicesBaseUrl;
 
 async function generateServiceToken(secret: string): Promise<string> {
   const encode = (obj: object) =>
@@ -137,7 +147,7 @@ const runtimeCache: CacheAdapter | undefined = runtimeCacheConfig
   ? createValkeyCache(runtimeCacheConfig)
   : undefined;
 const logBridge = installBackendLogBridge({
-  serviceBaseUrl: `http://127.0.0.1:${port}/services`,
+  serviceBaseUrl: servicesBaseUrl,
   source: "back.runtime",
 });
 
@@ -209,10 +219,15 @@ const serveStatic = async (dir: string, path: string) => {
   return null;
 };
 
-const serveFile = async (absPath: string, request?: Request) => {
+const serveFile = async (
+  absPath: string,
+  request?: Request,
+  options: { cacheControl?: string } = {},
+) => {
   const file = Bun.file(absPath);
   if (!(await file.exists())) return new Response("Not Found", { status: 404 });
   const accept = request?.headers.get("accept-encoding") ?? "";
+  const cacheControl = options.cacheControl ?? "no-store";
   if (accept.includes("br")) {
     const brFile = Bun.file(absPath + ".br");
     if (await brFile.exists()) {
@@ -221,12 +236,17 @@ const serveFile = async (absPath: string, request?: Request) => {
         headers: {
           "Content-Type": ct,
           "Content-Encoding": "br",
-          "Cache-Control": "no-store",
+          "Cache-Control": cacheControl,
         },
       });
     }
   }
-  return file;
+  return new Response(file, {
+    headers: {
+      "Content-Type": file.type || "application/octet-stream",
+      "Cache-Control": cacheControl,
+    },
+  });
 };
 
 const frontDir = resolve(appRoot, "dist/front");
@@ -262,7 +282,7 @@ const app = new Elysia()
     status: "ok",
     plugins: pluginEntries.length,
     timestamp: Date.now(),
-  });
+  }));
 
 for (const p of pluginEntries.filter((entry) => entry.mount === "root")) {
   try {
@@ -288,7 +308,7 @@ app
     serveFile(resolve(frontVendorDir, params["*"] || ""), request),
   )
   .get("/mf/:name.js", async ({ params, request }) =>
-    serveFile(resolve(mfDir, `${params.name}.js`), request),
+    serveFile(resolve(mfDir, `${params.name}.js`), request, { cacheControl: "no-store" }),
   )
   .get("/front-core.js", async ({ request }) =>
     serveFile(resolve(frontDir, "index.js"), request),

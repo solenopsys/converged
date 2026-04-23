@@ -86,6 +86,8 @@ async function createRuntimeService(config: Record<string, any> = {}) {
 
 describe("Runtime cron history bridge with mocked cron engine", () => {
   beforeEach(() => {
+    process.env.SERVICES_BASE = "http://test-services/services";
+    process.env.RUNTIME_BASE = "http://test-runtime/runtime";
     recordHistoryMock.mockClear();
     listCronsMock.mockClear();
     createShedullerServiceClientMock.mockClear();

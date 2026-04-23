@@ -7,6 +7,7 @@ import { sendMagicLink } from "./gates/send-magic-link";
 import { Access } from "nrpc";
 import { initProvidersPool } from "./workflows/providers";
 import { RuntimeScriptResolver, type WorkflowCtor } from "./script-resolver";
+import { requireServicesBaseUrl, servicesHealthUrl } from "./env";
 
 type RunExecutionOptions = {
   emit?: (event: ExecutionEvent) => void;
@@ -17,6 +18,7 @@ export type RuntimeFeature = "dag" | "cron" | "gates";
 
 export type RuntimeServiceConfig = Record<string, any> & {
   features?: RuntimeFeature[];
+  serviceBaseUrl?: string;
 };
 
 class ExecutionEventChannel implements AsyncIterable<ExecutionEvent> {
@@ -68,10 +70,12 @@ export class RuntimeServiceImpl {
   private activeExecutionIds = new Set<string>();
   private scriptResolver: RuntimeScriptResolver;
   private features: Set<RuntimeFeature>;
+  private serviceBaseUrl: string;
 
   constructor(config?: RuntimeServiceConfig) {
     this.features = new Set(config?.features ?? ["dag", "cron", "gates"]);
-    const baseUrl = process.env.SERVICES_BASE ?? "http://localhost:3000/services";
+    const baseUrl = requireServicesBaseUrl(config?.serviceBaseUrl);
+    this.serviceBaseUrl = baseUrl;
     this.dagClient = createDagServiceClient({ baseUrl });
     this.shedullerClient = createShedullerServiceClient({ baseUrl });
 
@@ -155,28 +159,55 @@ export class RuntimeServiceImpl {
 
     this.startupSyncTimer = setTimeout(() => {
       this.startupSyncTimer = undefined;
-      if (this.hasFeature("cron")) {
-        void this.refreshCrons().catch((error) => {
-          this.logRefreshCronsFailure("initial", error);
-        });
-      }
-
-      if (this.hasFeature("dag")) {
-        void this.resumeActiveExecutions(200)
-          .then((summary) => {
-            if (summary.resumed || summary.skipped || summary.failed) {
-              console.info(
-                `[runtime] resumeActiveExecutions resumed=${summary.resumed} skipped=${summary.skipped} failed=${summary.failed}`,
-              );
-            }
-          })
-          .catch((error) => {
-            this.logResumeDagFailure(error);
-          });
-      }
+      void this.runStartupSync();
     }, delayMs);
 
     (this.startupSyncTimer as any)?.unref?.();
+  }
+
+  private async waitForServicesReady(): Promise<boolean> {
+    const timeoutMs = Number(process.env.RUNTIME_SERVICES_READY_TIMEOUT_MS ?? 30000);
+    const intervalMs = Number(process.env.RUNTIME_SERVICES_READY_INTERVAL_MS ?? 1000);
+    const deadline = Date.now() + (Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 30000);
+    const retryMs = Number.isFinite(intervalMs) && intervalMs > 0 ? intervalMs : 1000;
+    const healthUrl = servicesHealthUrl(this.serviceBaseUrl);
+
+    while (Date.now() <= deadline) {
+      try {
+        const response = await fetch(healthUrl);
+        if (response.ok) return true;
+      } catch {
+        // Services may still be starting in the same pod.
+      }
+      await new Promise((resolve) => setTimeout(resolve, retryMs));
+    }
+
+    console.info(`[runtime] startup sync skipped: services not ready at ${healthUrl}`);
+    return false;
+  }
+
+  private async runStartupSync(): Promise<void> {
+    if (!(await this.waitForServicesReady())) return;
+
+    if (this.hasFeature("cron")) {
+      await this.refreshCrons().catch((error) => {
+        this.logRefreshCronsFailure("initial", error);
+      });
+    }
+
+    if (this.hasFeature("dag")) {
+      await this.resumeActiveExecutions(200)
+        .then((summary) => {
+          if (summary.resumed || summary.skipped || summary.failed) {
+            console.info(
+              `[runtime] resumeActiveExecutions resumed=${summary.resumed} skipped=${summary.skipped} failed=${summary.failed}`,
+            );
+          }
+        })
+        .catch((error) => {
+          this.logResumeDagFailure(error);
+        });
+    }
   }
 
   private resolveWorkflowNames(workflowList: any[]): string[] {
