@@ -9,7 +9,6 @@ const domain = createDomain('assistants-list');
 export const chatsListViewMounted = domain.createEvent('CHATS_LIST_VIEW_MOUNTED');
 export const refreshChatsClicked = domain.createEvent('REFRESH_CHATS_CLICKED');
 export const addChatClicked = domain.createEvent('ADD_CHAT_CLICKED');
-export const openChatDetail = domain.createEvent<{ recordId: string }>('OPEN_CHAT_DETAIL');
 
 // Effects
 const listChatsFx = domain.createEffect<PaginationParams, any>({

@@ -92,7 +92,10 @@ export type Chat = {
     id: string;
     name: string;
     description: string;
-
+    threadId?: string;
+    messagesCount?: number;
+    createdAt?: number;
+    updatedAt?: number;
 }
 
 export type ChatContextSummary = {
@@ -111,6 +114,8 @@ export interface AssistantService {
     sendMessage(sessionId: string, messages: ContentBlock[], options?: ConversationOptions): AsyncIterable<StreamEvent>;
 
     listOfChats(params: PaginationParams): Promise<PaginatedResult<Chat>>;
+    registerChat(threadId: string, title?: string): Promise<Chat>;
+    recordChatMessage(threadId: string): Promise<Chat>;
     deleteChat(chatId: string): Promise<void>;
     getChat(chatId: string): Promise<Chat>;
 

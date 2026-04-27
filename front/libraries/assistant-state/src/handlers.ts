@@ -207,7 +207,10 @@ export const createSession = (aiService: types.RuntimeChatService) =>
         return await aiService.createSession(serviceType, model, contextName);
     };
 
-export const saveAssistantMessage = (threadsService: types.ThreadsService) =>
+export const saveAssistantMessage = (
+    threadsService: types.ThreadsService,
+    metadataService?: types.ChatMetadataService
+) =>
     async (state: types.ChatState) => {
         if (!state.currentResponse.trim()) {
             return;
@@ -222,11 +225,26 @@ export const saveAssistantMessage = (threadsService: types.ThreadsService) =>
             data: processedContent,
             timestamp: Date.now()
         });
+        await recordChatMessage(metadataService, state.threadId);
     };
+
+const recordChatMessage = async (
+    metadataService: types.ChatMetadataService | undefined,
+    threadId: string
+) => {
+    if (!metadataService || !threadId) return;
+
+    try {
+        await metadataService.recordChatMessage(threadId);
+    } catch (error) {
+        console.warn('[assistant-state] Failed to update chat metadata', error);
+    }
+};
 
 export const sendMessage = (
     aiService: types.RuntimeChatService,
     threadsService: types.ThreadsService,
+    metadataService: types.ChatMetadataService | undefined,
     $functions: Store<Record<string, types.ExecutableTool>>
 ) =>
     async ({ content, state }: { content: string; state: types.ChatState }) => {
@@ -237,6 +255,7 @@ export const sendMessage = (
             data: preserveLineBreaks(content),
             timestamp: Date.now()
         });
+        await recordChatMessage(metadataService, state.threadId);
 
         const messages = [{ type: types.ContentType.TEXT, data: preserveLineBreaks(content) }];
         const tools: types.Tool[] = Object.values($functions.getState()).map(({ execute, ...tool }) => tool);
@@ -272,7 +291,11 @@ export const executeToolCall = ($functions: Store<Record<string, types.Executabl
         }
     };
 
-export const sendToolResult = (aiService: types.RuntimeChatService, threadsService: types.ThreadsService) =>
+export const sendToolResult = (
+    aiService: types.RuntimeChatService,
+    threadsService: types.ThreadsService,
+    metadataService?: types.ChatMetadataService
+) =>
     async ({ toolCallId, result, state }: { toolCallId: string, result: any, state: types.ChatState }) => {
         console.log('Sending tool result:', { toolCallId, result });
 
@@ -292,6 +315,7 @@ export const sendToolResult = (aiService: types.RuntimeChatService, threadsServi
             data: `Tool call ${toolCallId} result:\n${toolResultContent}`,
             timestamp: Date.now()
         });
+        await recordChatMessage(metadataService, state.threadId);
 
         const messages = [{
             type: types.ContentType.TOOL_RESULT,

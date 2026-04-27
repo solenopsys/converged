@@ -95,7 +95,10 @@ export type Chat = {
     id: string;
     name: string;
     description: string;
-
+    threadId?: string;
+    messagesCount?: number;
+    createdAt?: number;
+    updatedAt?: number;
 };
 
 export type ChatContextSummary = {
@@ -173,6 +176,42 @@ export const metadata = {
         }
       ],
       "returnType": "PaginatedResult<Chat>",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "registerChat",
+      "parameters": [
+        {
+          "name": "threadId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "Chat",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "recordChatMessage",
+      "parameters": [
+        {
+          "name": "threadId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "Chat",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -329,7 +368,7 @@ export const metadata = {
     {
       "name": "Chat",
       "kind": "type",
-      "definition": "{\n    id: string;\n    name: string;\n    description: string;\n\n}"
+      "definition": "{\n    id: string;\n    name: string;\n    description: string;\n    threadId?: string;\n    messagesCount?: number;\n    createdAt?: number;\n    updatedAt?: number;\n}"
     },
     {
       "name": "ChatContextSummary",
@@ -349,6 +388,8 @@ export interface AssistantService {
   createSession(serviceType?: ServiceType, model?: string): Promise<string>;
   sendMessage(sessionId: string, messages: ContentBlock[], options?: ConversationOptions): AsyncIterable<StreamEvent>;
   listOfChats(params: PaginationParams): Promise<PaginatedResult<Chat>>;
+  registerChat(threadId: string, title?: string): Promise<Chat>;
+  recordChatMessage(threadId: string): Promise<Chat>;
   deleteChat(chatId: string): Promise<void>;
   getChat(chatId: string): Promise<Chat>;
   saveContext(chatId: string, context: any): Promise<ChatContextSummary>;
@@ -361,6 +402,8 @@ export interface AssistantServiceClient {
   createSession(serviceType?: ServiceType, model?: string): Promise<string>;
   sendMessage(sessionId: string, messages: ContentBlock[], options?: ConversationOptions): AsyncIterable<StreamEvent>;
   listOfChats(params: PaginationParams): Promise<PaginatedResult<Chat>>;
+  registerChat(threadId: string, title?: string): Promise<Chat>;
+  recordChatMessage(threadId: string): Promise<Chat>;
   deleteChat(chatId: string): Promise<void>;
   getChat(chatId: string): Promise<Chat>;
   saveContext(chatId: string, context: any): Promise<ChatContextSummary>;

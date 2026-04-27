@@ -1,9 +1,48 @@
 {
   "menu": {
-     "chats": "Чаты",
-     "audio": "Аудио",
-     "text": "Текстовые",
-     "contexts": "Контексты",
-     "commands": "Команды"
+    "chats": "Чаты",
+    "audio": "Аудио",
+    "text": "Текстовые",
+    "contexts": "Контексты",
+    "commands": "Команды"
+  },
+  "chatsList": {
+    "title": "Список чатов",
+    "actions": {
+      "newChat": "Новый чат",
+      "refresh": "Обновить"
+    },
+    "columns": {
+      "name": "Название",
+      "messages": "Сообщения",
+      "createdAt": "Создан",
+      "updatedAt": "Обновлен"
+    }
+  },
+  "contextsList": {
+    "title": "Контексты",
+    "columns": {
+      "chatId": "ID чата",
+      "updatedAt": "Обновлен",
+      "size": "Размер"
+    },
+    "contextJson": "JSON контекста",
+    "selectRow": "Выберите строку, чтобы посмотреть контекст.",
+    "errors": {
+      "loadFailed": "Не удалось загрузить контекст"
+    }
+  },
+  "commandsList": {
+    "title": "Команды",
+    "searchPlaceholder": "Поиск команд...",
+    "available": "Доступно команд: {count}",
+    "execute": "Выполнить команду",
+    "empty": "Команды не найдены",
+    "functionInterface": "Интерфейс AI-функции",
+    "functionHint": "Используйте эту функцию из AI-чата для выполнения UI-команд"
+  },
+  "common": {
+    "refresh": "Обновить",
+    "loading": "Загрузка..."
   }
 }

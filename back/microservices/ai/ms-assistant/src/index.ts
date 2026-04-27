@@ -120,6 +120,24 @@ class ChatsServiceImpl {
     return conversation.send(messages, options);
   }
 
+  private toChat(conversation: {
+    id: string;
+    title: string;
+    messagesCount: number | string;
+    createdAt: number | string;
+    updatedAt: number | string;
+  }): Chat {
+    return {
+      id: conversation.id,
+      name: conversation.title,
+      threadId: conversation.id,
+      description: conversation.title,
+      messagesCount: Number(conversation.messagesCount ?? 0),
+      createdAt: Number(conversation.createdAt),
+      updatedAt: Number(conversation.updatedAt),
+    };
+  }
+
   async listOfChats(params: PaginationParams): Promise<PaginatedResult<Chat>> {
     const conversations = await this.stores.metadataService.conversationRepo.findAll({
       limit: params.limit,
@@ -129,13 +147,26 @@ class ChatsServiceImpl {
 
     const totalCount = await this.stores.metadataService.conversationRepo.count();
 
-    const items: Chat[] = conversations.map(conv => ({
-      id: conv.id,
-      name: conv.title,
-      description: `${conv.messagesCount} messages`
-    }));
+    const items: Chat[] = conversations.map((conv) => this.toChat(conv));
 
     return { items, totalCount };
+  }
+
+  async registerChat(threadId: string, title?: string): Promise<Chat> {
+    await this.init();
+    const conversation = await this.stores.metadataService.registerConversation(
+      threadId,
+      title || `Chat ${threadId.slice(0, 8)}`,
+    );
+
+    return this.toChat(conversation);
+  }
+
+  async recordChatMessage(threadId: string): Promise<Chat> {
+    await this.init();
+    const conversation = await this.stores.metadataService.recordMessage(threadId);
+
+    return this.toChat(conversation);
   }
 
   deleteChat(chatId: string): Promise<void> {

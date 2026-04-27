@@ -5,5 +5,44 @@
     "text": "Testuali",
     "contexts": "Contesti",
     "commands": "Comandi"
+  },
+  "chatsList": {
+    "title": "Elenco chat",
+    "actions": {
+      "newChat": "Nuova chat",
+      "refresh": "Aggiorna"
+    },
+    "columns": {
+      "name": "Nome",
+      "messages": "Messaggi",
+      "createdAt": "Creato",
+      "updatedAt": "Aggiornato"
+    }
+  },
+  "contextsList": {
+    "title": "Contesti",
+    "columns": {
+      "chatId": "ID chat",
+      "updatedAt": "Aggiornato",
+      "size": "Dimensione"
+    },
+    "contextJson": "JSON del contesto",
+    "selectRow": "Seleziona una riga per vedere il contesto.",
+    "errors": {
+      "loadFailed": "Impossibile caricare il contesto"
+    }
+  },
+  "commandsList": {
+    "title": "Comandi",
+    "searchPlaceholder": "Cerca comandi...",
+    "available": "{count} comandi disponibili",
+    "execute": "Esegui comando",
+    "empty": "Nessun comando trovato",
+    "functionInterface": "Interfaccia funzione AI",
+    "functionHint": "Usa questa funzione dalla chat AI per eseguire comandi UI"
+  },
+  "common": {
+    "refresh": "Aggiorna",
+    "loading": "Caricamento..."
   }
 }

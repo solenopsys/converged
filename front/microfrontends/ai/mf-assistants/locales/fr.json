@@ -5,5 +5,44 @@
     "text": "Textuels",
     "contexts": "Contextes",
     "commands": "Commandes"
+  },
+  "chatsList": {
+    "title": "Liste des chats",
+    "actions": {
+      "newChat": "Nouveau chat",
+      "refresh": "Actualiser"
+    },
+    "columns": {
+      "name": "Nom",
+      "messages": "Messages",
+      "createdAt": "Cree",
+      "updatedAt": "Mis a jour"
+    }
+  },
+  "contextsList": {
+    "title": "Contextes",
+    "columns": {
+      "chatId": "ID du chat",
+      "updatedAt": "Mis a jour",
+      "size": "Taille"
+    },
+    "contextJson": "JSON du contexte",
+    "selectRow": "Selectionnez une ligne pour afficher le contexte.",
+    "errors": {
+      "loadFailed": "Impossible de charger le contexte"
+    }
+  },
+  "commandsList": {
+    "title": "Commandes",
+    "searchPlaceholder": "Rechercher des commandes...",
+    "available": "{count} commandes disponibles",
+    "execute": "Executer la commande",
+    "empty": "Aucune commande trouvee",
+    "functionInterface": "Interface de fonction AI",
+    "functionHint": "Utilisez cette fonction depuis le chat AI pour executer des commandes UI"
+  },
+  "common": {
+    "refresh": "Actualiser",
+    "loading": "Chargement..."
   }
 }

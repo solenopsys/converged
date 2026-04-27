@@ -207,13 +207,17 @@ const getIcon = (iconName?: string) => {
 const resolveMenuItems = (items: MenuItem[], t?: (key: string) => string): MenuItem[] => {
   return items.map((item) => {
     const iconName = (item as { iconName?: string }).iconName;
+    const microfrontendId = (item as { __microfrontendId?: string }).__microfrontendId;
     const Icon = getIcon(iconName);
 
     // Переводим title если есть функция перевода и title похож на ключ
     let title = item.title;
     if (t && title && title.includes('.')) {
-      const translated = t(title);
-      title = translated !== title ? translated : title.split('.').pop() || title;
+      const scopedKey = microfrontendId && title.startsWith("menu.")
+        ? `${microfrontendId}.${title}`
+        : title;
+      const translated = t(scopedKey);
+      title = translated !== scopedKey ? translated : title.split('.').pop() || title;
     }
 
     const resolved: MenuItem = {

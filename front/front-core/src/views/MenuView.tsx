@@ -17,7 +17,7 @@ const renderIcon = (iconName: string) => {
   return IconComponent ? React.createElement(IconComponent) : null
 }
 
-const processItems = (items: any[], t?: (key: string) => string) => {
+const processItems = (items: any[], t?: (key: string, owner?: string) => string) => {
   if (!Array.isArray(items)) return []
 
   return items.map(item => {
@@ -25,7 +25,7 @@ const processItems = (items: any[], t?: (key: string) => string) => {
 
     // Переводим title если есть функция перевода
     if (t && processedItem.title) {
-      processedItem.title = t(processedItem.title)
+      processedItem.title = t(processedItem.title, processedItem.__microfrontendId)
     }
 
     if (processedItem.iconName) {
@@ -42,16 +42,21 @@ const processItems = (items: any[], t?: (key: string) => string) => {
 }
 
 export const MenuView = (params:{onClick: (actionId: string) => void}) => {
-  const { t, i18n } = useGlobalTranslation("menu")
+  const { t: tMenu, i18n } = useGlobalTranslation("menu")
+  const { t: tMenuGroups } = useGlobalTranslation("menu-groups")
   const { isMobile, setOpenMobile } = useSidebar("left")
 
   // Используем стор напрямую вместо хука
   const menuItems = useUnit($allMenuItems)
 
   // Функция перевода для пунктов меню
-  const translateTitle = (key: string) => {
-    // key типа "menu.mailing" -> ищем в menu.json по ключу "menu.mailing"
-    const translated = t(key)
+  const translateTitle = (key: string, microfrontendId?: string) => {
+    const scopedKey = microfrontendId && key.startsWith("menu.")
+      ? `${microfrontendId}.${key}`
+      : key
+    const scoped = tMenuGroups(scopedKey)
+    if (scoped !== scopedKey) return scoped
+    const translated = tMenu(key)
     return translated !== key ? translated : key.split('.').pop() || key
   }
 

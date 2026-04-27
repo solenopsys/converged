@@ -1,8 +1,8 @@
 {
   "menu": {
-     "chats": "Чаты",
-     "audio": "Аудио",
-     "text": "Текстовые"
+     "chats": "Chats",
+     "audio": "Audio",
+     "text": "Text"
   }
  
 }

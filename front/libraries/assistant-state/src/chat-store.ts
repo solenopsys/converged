@@ -3,6 +3,7 @@ import { StreamEventType } from './types';
 import  type {
     ThreadsService,
     RuntimeChatService,
+    ChatMetadataService,
     ULID,
     ExecutableTool,
     ToolCall
@@ -37,7 +38,8 @@ const initialState: ChatState = {
 
 export const createChatStore = (
     aiService: RuntimeChatService,
-    threadsService: ThreadsService
+    threadsService: ThreadsService,
+    metadataService?: ChatMetadataService
 ) => {
     const $chat = chatDomain.createStore<ChatState>(initialState, { name: 'CHAT' })
         .on(initChat, handlers.initializeChat)
@@ -72,10 +74,10 @@ export const createChatStore = (
     const saveAssistantMessageFx = chatDomain.createEffect<ChatState, void>('SAVE_ASSISTANT_MESSAGE_FX');
 
     createSessionFx.use(handlers.createSession(aiService));
-    sendMessageFx.use(handlers.sendMessage(aiService, threadsService, $functions));
+    sendMessageFx.use(handlers.sendMessage(aiService, threadsService, metadataService, $functions));
     executeToolCallFx.use(handlers.executeToolCall($functions));
-    sendToolResultFx.use(handlers.sendToolResult(aiService, threadsService));
-    saveAssistantMessageFx.use(handlers.saveAssistantMessage(threadsService));
+    sendToolResultFx.use(handlers.sendToolResult(aiService, threadsService, metadataService));
+    saveAssistantMessageFx.use(handlers.saveAssistantMessage(threadsService, metadataService));
 
     // Связки событий и эффектов
     sample({
@@ -136,10 +138,11 @@ export const createChatStore = (
         target: toolCallExecuted
     });
 
-    // Сохранение ответа ассистента в thread при завершении
+    // Сохранение ответа ассистента в thread до finalize, который очищает currentResponse.
     sample({
-        clock: completeResponse,
+        clock: receiveChunk,
         source: $chat,
+        filter: (_, event) => event.type === StreamEventType.COMPLETED,
         target: saveAssistantMessageFx
     });
 

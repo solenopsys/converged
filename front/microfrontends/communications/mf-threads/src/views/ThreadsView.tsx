@@ -15,6 +15,7 @@ type ThreadsEnv = {
   threadIds?: string[];
   title?: string;
   userId?: string;
+  variant?: "dashboard" | "thread";
 };
 
 type ResolvedThreadsEnv = {
@@ -22,6 +23,7 @@ type ResolvedThreadsEnv = {
   threadIds: string[];
   title: string;
   userId: string;
+  variant: "dashboard" | "thread";
 };
 
 type ThreadSummary = {
@@ -32,20 +34,24 @@ type ThreadSummary = {
   preview: string;
 };
 
-function readThreadsEnv(): ResolvedThreadsEnv {
+type ThreadsViewProps = ThreadsEnv;
+
+function readThreadsEnv(props: ThreadsViewProps = {}): ResolvedThreadsEnv {
   const globalEnv = (globalThis as any).__MF_ENV__ as Record<string, unknown> | undefined;
   const raw = (globalEnv?.["mf-threads"] ?? {}) as ThreadsEnv;
-  const fallbackThreadId = raw.threadId ?? "public-chat";
-  const threadIdsFromEnv = Array.isArray(raw.threadIds)
-    ? raw.threadIds.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+  const fallbackThreadId = props.threadId ?? raw.threadId ?? "public-chat";
+  const rawThreadIds = props.threadIds ?? raw.threadIds;
+  const threadIdsFromEnv = Array.isArray(rawThreadIds)
+    ? rawThreadIds.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
     : [];
   const threadIds = [...new Set([fallbackThreadId, ...threadIdsFromEnv])];
 
   return {
     threadId: fallbackThreadId,
     threadIds,
-    title: raw.title ?? "Threads",
-    userId: raw.userId ?? "",
+    title: props.title ?? raw.title ?? "Threads",
+    userId: props.userId ?? raw.userId ?? "",
+    variant: props.variant ?? raw.variant ?? "dashboard",
   };
 }
 
@@ -59,8 +65,11 @@ function normalizeMessages(input: ThreadMessage[]): ThreadMessageView[] {
   }));
 }
 
-export const ThreadsView = () => {
-  const env = useMemo(() => readThreadsEnv(), []);
+export const ThreadsView = (props: ThreadsViewProps = {}) => {
+  const env = useMemo(
+    () => readThreadsEnv(props),
+    [props.threadId, props.threadIds, props.title, props.userId, props.variant],
+  );
   const [messagesByThread, setMessagesByThread] = useState<Record<string, ThreadMessageView[]>>({});
   const [summaries, setSummaries] = useState<ThreadSummary[]>([]);
   const [selectedThreadId, setSelectedThreadId] = useState(env.threadId);
@@ -156,6 +165,28 @@ export const ThreadsView = () => {
     }
     return users.size;
   }, [messagesByThread]);
+
+  if (env.variant === "thread") {
+    return (
+      <div className="flex h-full min-h-0 flex-col">
+        <HeaderPanel config={headerConfig} />
+        {error ? (
+          <div className="px-4 py-2 text-sm text-destructive border-b border-border">
+            {error}
+          </div>
+        ) : null}
+        <div className="flex-1 min-h-0">
+          <ThreadView
+            messages={selectedMessages}
+            isLoading={isLoading}
+            currentUserId={env.userId || undefined}
+            emptyText="Thread is empty."
+            loadingText="Loading thread..."
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full min-h-0 flex-col">

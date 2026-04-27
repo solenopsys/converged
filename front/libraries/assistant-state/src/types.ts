@@ -11,6 +11,7 @@ export type ULID = string;
 
 export type ChatMessage = {
     id: string;
+    beforeId?: string;
     type: 'user' | 'assistant';
     content: string;
     timestamp: number;
@@ -32,6 +33,10 @@ export type ChatState = {
     isLoading: boolean;
     currentResponse: string;
     pendingToolCalls: ToolCall[]; // Новое поле для хранения tool calls
+}
+
+export type ChatMetadataService = {
+    recordChatMessage(threadId: string): Promise<any>;
 }
 
 // Расширенный тип Tool с функцией execute

@@ -3,17 +3,26 @@ import { ThreadsView } from "./views/ThreadsView";
 
 const SHOW_THREADS = "threads.show";
 
-const createThreadsWidget: CreateWidget<typeof ThreadsView> = (_bus) => ({
+type ShowThreadsParams = {
+  threadId?: string;
+  threadIds?: string[];
+  title?: string;
+  userId?: string;
+  placement?: "center" | "sidebar:right";
+  variant?: "dashboard" | "thread";
+};
+
+const createThreadsWidget = (_bus: any, params?: ShowThreadsParams) => ({
   view: ThreadsView,
-  placement: () => "center",
-  config: {},
-});
+  placement: () => params?.placement ?? "center",
+  config: params ?? {},
+}) satisfies ReturnType<CreateWidget<typeof ThreadsView>>;
 
 const createShowThreadsAction: CreateAction<any> = (bus) => ({
   id: SHOW_THREADS,
   description: "Show threads",
-  invoke: () => {
-    bus.present({ widget: createThreadsWidget(bus) });
+  invoke: (params?: ShowThreadsParams) => {
+    bus.present({ widget: createThreadsWidget(bus, params), params });
   },
 });
 

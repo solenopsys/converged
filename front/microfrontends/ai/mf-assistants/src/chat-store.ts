@@ -2,7 +2,7 @@ import { addMessage, createChatStore } from "assistant-state";
 import type { ExecutableTool } from "assistant-state";
 import { v4 as uuidv4 } from "uuid";
 
-import { assistantClient, threadsClient } from "./services";
+import { assistantClient, chatClient, threadsClient } from "./services";
 import { chatSendRequested, chatInitRequested, registry } from "front-core";
 import { $files, uploadCompleted } from "files-state";
 import { MessageType } from "../../../../../tools/integration/types/services/communications/threads";
@@ -36,17 +36,31 @@ const AI_COMMANDS: Record<string, string> = {
   "chats.show_commands_list": "Показать список команд",
 };
 
-const chatStore = createChatStore(assistantClient, threadsClient);
+const chatStore = createChatStore(chatClient, threadsClient, assistantClient);
 const chatThreadId = uuidv4();
 
 // Флаг для ленивой инициализации
 let isInitialized = false;
+let isRegistered = false;
+
+const registerThread = () => {
+  if (isRegistered) return;
+  isRegistered = true;
+  void assistantClient.registerChat(
+    chatThreadId,
+    `Chat ${chatThreadId.slice(0, 8)}`,
+  ).catch((error) => {
+    isRegistered = false;
+    console.warn("[Chat] Failed to register chat in assistant service", error);
+  });
+};
 
 const ensureInitialized = (contextName?: string) => {
   const currentContextName = chatStore.$chat.getState().contextName;
   const shouldSwitchContext = contextName !== undefined && currentContextName !== contextName;
   if (!isInitialized || shouldSwitchContext) {
     console.log("[Chat] Initializing chat session on first use", { contextName });
+    registerThread();
     chatStore.init(chatThreadId, undefined, undefined, contextName);
     isInitialized = true;
   }
@@ -222,6 +236,8 @@ uploadCompleted.watch((fileId) => {
       fileSize: fileState.fileSize,
       fileType: fileState.fileType,
     }),
+  }).then(() => assistantClient.recordChatMessage(chatThreadId)).catch((error) => {
+    console.warn("[Chat] Failed to save file message", error);
   });
 });
 

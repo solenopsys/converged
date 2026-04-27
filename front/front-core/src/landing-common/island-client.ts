@@ -413,7 +413,12 @@ async function ensureAssistantsLoaded(): Promise<void> {
         (item) => item && item.key === runtime.MENU.key,
       );
       if (!alreadyAdded) {
-        loadedGroupMenus[groupId].push(runtime.MENU);
+        loadedGroupMenus[groupId].push(
+          bindMenuToMicrofrontend(
+            runtime.MENU,
+            resolveMicrofrontendNamespace(moduleName, runtime),
+          ),
+        );
         publishLoadedGroupsMenu();
       }
     }
@@ -795,6 +800,7 @@ type RuntimeMenuItem = {
   icon?: unknown;
   action?: unknown;
   href?: string;
+  __microfrontendId?: string;
   items?: RuntimeMenuItem[];
 };
 
@@ -842,6 +848,10 @@ function resolveLabel(item: RuntimeMenuItem, index: number): string {
   if (raw.startsWith('menu.')) {
     const i18n = getI18nInstance();
     if (i18n.isInitialized) {
+      if (item.__microfrontendId) {
+        const scoped = i18n.t(`${item.__microfrontendId}.${raw}`, { ns: "menu-groups" });
+        if (scoped && scoped !== `${item.__microfrontendId}.${raw}`) return scoped;
+      }
       const translated = i18n.t(raw, { ns: "menu-groups" });
       if (translated && translated !== raw) return translated;
     }
@@ -850,6 +860,26 @@ function resolveLabel(item: RuntimeMenuItem, index: number): string {
     return normalized.charAt(0).toUpperCase() + normalized.slice(1);
   }
   return raw;
+}
+
+function bindMenuToMicrofrontend(item: RuntimeMenuItem, microfrontendId: string): RuntimeMenuItem {
+  return {
+    ...item,
+    __microfrontendId: microfrontendId,
+    items: Array.isArray(item.items)
+      ? item.items.map((child) => bindMenuToMicrofrontend(child, microfrontendId))
+      : item.items,
+  };
+}
+
+function resolveMicrofrontendNamespace(moduleName: string, runtime: any): string {
+  const id = runtime?.ID ?? runtime?.default?.name;
+  if (typeof id === 'string' && id.length > 0) {
+    if (id.startsWith('mf-')) return id;
+    if (id.endsWith('-mf')) return `mf-${id.slice(0, -3)}`;
+    return id;
+  }
+  return moduleName;
 }
 
 function resolveIconName(item: RuntimeMenuItem, depth: number): string | null {
@@ -1120,7 +1150,9 @@ async function ensureGroupLoaded(groupId: string): Promise<void> {
           }
         }
         if (menu) {
-          loadedGroupMenus[groupId].push(menu);
+          loadedGroupMenus[groupId].push(
+            bindMenuToMicrofrontend(menu, resolveMicrofrontendNamespace(name, runtime)),
+          );
         }
       } catch (error) {
         console.error(`[ssr-menu] failed to load ${name}`, error);

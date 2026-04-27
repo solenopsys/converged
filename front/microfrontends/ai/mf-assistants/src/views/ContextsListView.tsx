@@ -1,18 +1,19 @@
 import React, { useEffect, useState } from "react";
 import { useUnit } from "effector-react";
-import { HeaderPanelLayout, InfiniteScrollDataTable } from "front-core";
+import { HeaderPanelLayout, InfiniteScrollDataTable, useMicrofrontendTranslation } from "front-core";
 import { RefreshCw } from "lucide-react";
 import {
   $contextsStore,
   contextsViewMounted,
   refreshContextsClicked,
 } from "../domain-contexts";
-import { contextsColumns } from "../config";
+import { createContextsColumns } from "../config";
 import { assistantClient } from "../services";
 import type { ChatContext } from "../types";
 
 export const ContextsListView = ({ bus: _bus }) => {
   const contextsState = useUnit($contextsStore.$state);
+  const { t } = useMicrofrontendTranslation("assistants-mf");
   const [selectedContext, setSelectedContext] = useState<ChatContext | null>(
     null,
   );
@@ -24,11 +25,11 @@ export const ContextsListView = ({ bus: _bus }) => {
   }, []);
 
   const headerConfig = {
-    title: "Contexts",
+    title: t("contextsList.title"),
     actions: [
       {
         id: "refresh",
-        label: "Refresh",
+        label: t("common.refresh"),
         icon: RefreshCw,
         event: refreshContextsClicked,
         variant: "outline" as const,
@@ -55,7 +56,7 @@ export const ContextsListView = ({ bus: _bus }) => {
       const context = await assistantClient.getContext(chatId);
       setSelectedContext(context);
     } catch (error: any) {
-      setContextError(error?.message || "Failed to load context");
+      setContextError(error?.message || t("contextsList.errors.loadFailed"));
       setSelectedContext(null);
     } finally {
       setContextLoading(false);
@@ -69,15 +70,15 @@ export const ContextsListView = ({ bus: _bus }) => {
           data={items}
           hasMore={contextsState.hasMore}
           loading={contextsState.loading}
-          columns={contextsColumns}
+          columns={createContextsColumns(t)}
           onLoadMore={$contextsStore.loadMore}
           onRowClick={handleRowClick}
           viewMode="table"
         />
         <div className="border-t bg-muted/30 p-4">
-          <div className="text-sm font-semibold">Context JSON</div>
+          <div className="text-sm font-semibold">{t("contextsList.contextJson")}</div>
           {contextLoading && (
-            <div className="mt-2 text-sm text-muted-foreground">Loading...</div>
+            <div className="mt-2 text-sm text-muted-foreground">{t("common.loading")}</div>
           )}
           {!contextLoading && contextError && (
             <div className="mt-2 text-sm text-destructive">{contextError}</div>
@@ -89,7 +90,7 @@ export const ContextsListView = ({ bus: _bus }) => {
           )}
           {!contextLoading && !contextError && !selectedContext && (
             <div className="mt-2 text-sm text-muted-foreground">
-              Select a row to view the context.
+              {t("contextsList.selectRow")}
             </div>
           )}
         </div>

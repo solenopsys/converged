@@ -4,6 +4,7 @@ import { mountWhenReady } from ".";
 import { dashboardSlots } from "./dashboard_slots";
 import { createStore, createEvent } from "effector";
 import type { ComponentType } from "react";
+import { setActivePanel, setCollapsed } from "../components/right-rail/panelController";
 
 // Store для центральной области
 export type CenterViewState = {
@@ -65,6 +66,11 @@ export const present = async (widget: Widget<any>, slot: string | string[], moun
 
     if (point.startsWith("sidebar:tab:")) {
         tabActivated(point.replace("sidebar:tab:", ""));
+        setActivePanel("tabs");
+        setCollapsed(false);
+    } else if (point === "sidebar:right") {
+        setActivePanel("chat");
+        setCollapsed(false);
     }
 
     console.log("Present RUN", widget, slot, point);

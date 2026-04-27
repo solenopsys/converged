@@ -1,15 +1,13 @@
 import { CreateAction, chatInitRequested } from "front-core";
-import {assistantClient as chatsService, threadsClient} from "./services";
+import {assistantClient as chatsService} from "./services";
 import { CreateWidget } from 'front-core';
 import { sample } from "effector";
 import domain from "./domain";
-import { PaginatedResult, Chat } from "./types";
 import { ChatView } from "./views/ChatView";
-import { ChatDetailView } from "./views/ChatDetailView";
+import { ChatHistoryView } from "./views/ChatHistoryView";
 import { ChatsListView } from "./views/ChatsListView";
 import { ContextsListView } from "./views/ContextsListView";
 import { CommandsListView } from "./views/CommandsListView";
-import { $chatsStore, openChatDetail } from "./domain-chats";
 
 const GET_CHATS_LIST = "chats.get_list";
 const SHOW_CHATS_LIST = "chats.show_list";
@@ -26,18 +24,9 @@ const deleteChatFx = domain.createEffect<{ recordId: string }, void>({
     handler: ({ recordId }) => chatsService.deleteChat(recordId)
 });
 
-export const getChatFx = domain.createEffect<string, object>({
-    name: 'GET_CHAT',
-    handler: (recordId) => {
-        console.log("GET_CHAT", recordId);
-        return chatsService.getChat(recordId);
-    }
-});
-
 const deleteChatEvent = domain.createEvent<{ recordId: string }>('DELETE_CHAT_EVENT');
 const editChatEvent = domain.createEvent<{ recordId: string }>('EDIT_CHAT_EVENT');
 
-sample({ clock: openChatDetail, target: getChatFx });
 sample({ clock: deleteChatEvent, target: deleteChatFx });
 
 const createChatsListWidget: CreateWidget<typeof ChatsListView> = (bus) => ({
@@ -71,14 +60,12 @@ const createChatWidget: CreateWidget<typeof ChatView> = () => ({
     commands: {}
 });
 
-export const createChatDetailWidget: CreateWidget<typeof ChatDetailView> = () => ({
-    view: ChatDetailView,
-    placement: () => "sidebar:right",
-    config: {},
+const createChatHistoryWidget = (params: { threadId: string }) => ({
+    view: ChatHistoryView,
+    placement: () => "sidebar:tab:chat",
+    config: params,
     commands: {}
 });
-
-
 
 const createShowChatAction: CreateAction<any> = (bus) => ({
     id: SHOW_CHAT,
@@ -120,8 +107,8 @@ const createViewChatAction: CreateAction<any> = (bus) => ({
     id: VIEW_CHAT,
     description: "View chat details",
     invoke: ({ recordId }) => {
-        openChatDetail({ recordId });
-        bus.present({ widget: createChatDetailWidget(bus), params: { chatId: recordId } });
+        if (!recordId) return;
+        bus.present({ widget: createChatHistoryWidget({ threadId: recordId }) });
     }
 });
 

@@ -720,6 +720,12 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
             try {
               const content = await Bun.file(localePath).json();
               if (content && typeof content === "object" && !Array.isArray(content)) {
+                merged[mf] = deepMerge(
+                  typeof merged[mf] === "object" && merged[mf] && !Array.isArray(merged[mf])
+                    ? merged[mf]
+                    : {},
+                  content as Record<string, any>,
+                );
                 deepMerge(merged, content as Record<string, any>);
               }
             } catch { /* ignore */ }

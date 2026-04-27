@@ -103,6 +103,27 @@ const groupOrder: string[] = [];
 const mfToGroup: Record<string, string> = {};
 const groupMenus: Record<string, any[]> = {};
 
+function bindMenuToMicrofrontend(item: any, microfrontendId: string): any {
+  if (!item || typeof item !== "object") return item;
+  return {
+    ...item,
+    __microfrontendId: microfrontendId,
+    items: Array.isArray(item.items)
+      ? item.items.map((child) => bindMenuToMicrofrontend(child, microfrontendId))
+      : item.items,
+  };
+}
+
+function resolveMicrofrontendNamespace(moduleName: string, runtime: any): string {
+  const id = runtime?.ID ?? runtime?.default?.name;
+  if (typeof id === "string" && id.length > 0) {
+    if (id.startsWith("mf-")) return id;
+    if (id.endsWith("-mf")) return `mf-${id.slice(0, -3)}`;
+    return id;
+  }
+  return moduleName;
+}
+
 function hasAuthToken(): boolean {
   return authToken.isAuthenticated();
 }
@@ -261,11 +282,15 @@ async function loadMicrofrontends(names: string[]) {
         try { const dm = await runtime.getMenu(); if (dm) menu = dm; } catch (e) { console.error(`[mf] getMenu ${name}`, e); }
       }
       if (menu) {
-        mfMenus[name] = menu;
+        const boundMenu = bindMenuToMicrofrontend(
+          menu,
+          resolveMicrofrontendNamespace(name, runtime),
+        );
+        mfMenus[name] = boundMenu;
         const groupId = mfToGroup[name];
         if (groupId) {
           if (!groupMenus[groupId]) groupMenus[groupId] = [];
-          groupMenus[groupId].push(menu);
+          groupMenus[groupId].push(boundMenu);
         }
       }
       console.log(`[mf] Loaded ${name}`);

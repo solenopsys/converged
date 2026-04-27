@@ -11,6 +11,7 @@ export interface MenuItem {
   title?: string;
   action?: Action<any, any> | string;
   icon?: ReactNode | string;
+  __microfrontendId?: string;
   [key: string]: any;
 }
 

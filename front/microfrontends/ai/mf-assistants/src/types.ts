@@ -1,11 +1,12 @@
 import {
     ServiceType, StreamEventType, StreamEvent,
-    RuntimeChatService,
-    ContentType,  PaginationParams, PaginatedResult,
+    ContentType, PaginationParams, PaginatedResult,
     Chat,
     ChatContext,
     ChatContextSummary
-} from '../../../../../tools/integration/types/runtime/ai/chat';
+} from '../../../../../tools/integration/types/services/ai/chats';
+
+import { RuntimeChatService } from '../../../../../tools/integration/types/runtime/ai/chat';
 
 
 import { ThreadsService, MessageType } from '../../../../../tools/integration/types/services/communications/threads';

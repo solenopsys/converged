@@ -5,5 +5,44 @@
     "text": "Text",
     "contexts": "Kontexte",
     "commands": "Befehle"
+  },
+  "chatsList": {
+    "title": "Chatliste",
+    "actions": {
+      "newChat": "Neuer Chat",
+      "refresh": "Aktualisieren"
+    },
+    "columns": {
+      "name": "Name",
+      "messages": "Nachrichten",
+      "createdAt": "Erstellt",
+      "updatedAt": "Aktualisiert"
+    }
+  },
+  "contextsList": {
+    "title": "Kontexte",
+    "columns": {
+      "chatId": "Chat-ID",
+      "updatedAt": "Aktualisiert",
+      "size": "Groesse"
+    },
+    "contextJson": "Kontext JSON",
+    "selectRow": "Waehlen Sie eine Zeile aus, um den Kontext anzuzeigen.",
+    "errors": {
+      "loadFailed": "Kontext konnte nicht geladen werden"
+    }
+  },
+  "commandsList": {
+    "title": "Befehle",
+    "searchPlaceholder": "Befehle suchen...",
+    "available": "{count} Befehle verfuegbar",
+    "execute": "Befehl ausfuehren",
+    "empty": "Keine Befehle gefunden",
+    "functionInterface": "AI-Funktionsschnittstelle",
+    "functionHint": "Verwenden Sie diese Funktion im AI-Chat, um UI-Befehle auszufuehren"
+  },
+  "common": {
+    "refresh": "Aktualisieren",
+    "loading": "Laedt..."
   }
 }

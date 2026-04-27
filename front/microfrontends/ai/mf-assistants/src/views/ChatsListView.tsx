@@ -1,31 +1,31 @@
 import React, { useEffect } from 'react';
 import { useUnit } from 'effector-react';
-import { HeaderPanelLayout, InfiniteScrollDataTable } from 'front-core';
+import { HeaderPanelLayout, InfiniteScrollDataTable, useMicrofrontendTranslation } from 'front-core';
 import { Plus, RefreshCw } from 'lucide-react';
-import { $chatsStore, chatsListViewMounted, refreshChatsClicked, addChatClicked, openChatDetail } from '../domain-chats';
-import { chatsColumns } from '../config';
-import { createChatDetailWidget } from '../functions';
+import { $chatsStore, chatsListViewMounted, refreshChatsClicked, addChatClicked } from '../domain-chats';
+import { createChatsColumns } from '../config';
 
 export const ChatsListView = ({ bus }) => {
   const chatsState = useUnit($chatsStore.$state);
+  const { t } = useMicrofrontendTranslation('assistants-mf');
 
   useEffect(() => {
     chatsListViewMounted();
   }, []);
 
   const headerConfig = {
-    title: 'Chats List',
+    title: t('chatsList.title'),
     actions: [
       {
         id: 'add',
-        label: 'New Chat',
+        label: t('chatsList.actions.newChat'),
         icon: Plus,
         event: addChatClicked,
         variant: 'default' as const
       },
       {
         id: 'refresh',
-        label: 'Refresh',
+        label: t('chatsList.actions.refresh'),
         icon: RefreshCw,
         event: refreshChatsClicked,
         variant: 'outline' as const
@@ -34,10 +34,9 @@ export const ChatsListView = ({ bus }) => {
   };
 
   const handleRowClick = (row) => {
-    const recordId = row.id || row.chatId;
+    const recordId = row.threadId || row.id || row.chatId;
     if (!recordId) return;
-    openChatDetail({ recordId });
-    bus.present({ widget: createChatDetailWidget(bus), params: { chatId: recordId } });
+    bus.run('chats.view', { recordId });
   };
 
   return (
@@ -46,7 +45,7 @@ export const ChatsListView = ({ bus }) => {
           data={chatsState.items}
           hasMore={chatsState.hasMore}
           loading={chatsState.loading}
-          columns={chatsColumns}
+          columns={createChatsColumns(t)}
           onRowClick={handleRowClick}
           onLoadMore={$chatsStore.loadMore}
           viewMode="table"

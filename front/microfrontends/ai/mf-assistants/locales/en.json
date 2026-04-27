@@ -1,9 +1,48 @@
 {
   "menu": {
-     "chats": "Chats",
-     "audio": "Audio",
-     "text": "Text",
-     "contexts": "Contexts",
-     "commands": "Commands"
+    "chats": "Chats",
+    "audio": "Audio",
+    "text": "Text",
+    "contexts": "Contexts",
+    "commands": "Commands"
+  },
+  "chatsList": {
+    "title": "Chats List",
+    "actions": {
+      "newChat": "New Chat",
+      "refresh": "Refresh"
+    },
+    "columns": {
+      "name": "Name",
+      "messages": "Messages",
+      "createdAt": "Created",
+      "updatedAt": "Updated"
+    }
+  },
+  "contextsList": {
+    "title": "Contexts",
+    "columns": {
+      "chatId": "Chat ID",
+      "updatedAt": "Updated",
+      "size": "Size"
+    },
+    "contextJson": "Context JSON",
+    "selectRow": "Select a row to view the context.",
+    "errors": {
+      "loadFailed": "Failed to load context"
+    }
+  },
+  "commandsList": {
+    "title": "Commands",
+    "searchPlaceholder": "Search commands...",
+    "available": "{count} commands available",
+    "execute": "Execute command",
+    "empty": "No commands found",
+    "functionInterface": "AI Function Interface",
+    "functionHint": "Use this function from AI chat to execute UI commands"
+  },
+  "common": {
+    "refresh": "Refresh",
+    "loading": "Loading..."
   }
 }

@@ -6,7 +6,7 @@ export default class extends SqlMigration {
   }
 
   async up(): Promise<void> {
-    this.store.db.schema
+    await this.store.db.schema
       .createTable("conversations")
       .ifNotExists()
       .addColumn("id", "text", (col) => col.primaryKey())
@@ -22,6 +22,6 @@ export default class extends SqlMigration {
   }
 
   async down(): Promise<void> {
-    this.store.db.schema.dropTable("conversations").ifExists().execute();
+    await this.store.db.schema.dropTable("conversations").ifExists().execute();
   }
 }
