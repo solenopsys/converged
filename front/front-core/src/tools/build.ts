@@ -283,8 +283,16 @@ if (!appBuild.success) {
   throw new Error(`Failed to build front-core:\n${errors}`);
 }
 
-const cssSource = await Bun.file(resolve(import.meta.dir, "..", "index.css")).text();
-await Bun.write(resolve(distDir, "index.css"), cssSource);
+const baseCss = await Bun.file(resolve(import.meta.dir, "..", "index.css")).text();
+const bundledCss = await Promise.all(
+  appBuild.outputs
+    .filter((output) => output.type.includes("css") || output.path.endsWith(".css"))
+    .map((output) => output.text()),
+);
+await Bun.write(
+  resolve(distDir, "index.css"),
+  [baseCss, ...bundledCss].filter((css) => css.trim().length > 0).join("\n"),
+);
 rmSync(vendorSrcDir, { recursive: true, force: true });
 
 // Compress front-core.js → front-core.js.br

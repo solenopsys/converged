@@ -310,11 +310,11 @@ app
   .get("/mf/:name.js", async ({ params, request }) =>
     serveFile(resolve(mfDir, `${params.name}.js`), request, { cacheControl: "no-store" }),
   )
-  .get("/mf/:name.css", async ({ params, request }) =>
-    serveFile(resolve(mfDir, `${params.name}.css`), request, { cacheControl: "no-store" }),
-  )
   .get("/front-core.js", async ({ request }) =>
     serveFile(resolve(frontDir, "index.js"), request),
+  )
+  .get("/front-core.css", async ({ request }) =>
+    serveFile(resolve(frontDir, "index.css"), request),
   )
   .get("/favicon.svg", async () =>
     serveFile(resolve(landingPublicDir, "favicon.svg")),

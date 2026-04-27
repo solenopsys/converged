@@ -16,6 +16,7 @@ import {
 } from './i18n';
 
 const SSR_MENU_STYLE_ID = 'ssr-menu-shell-style';
+const FRONT_CORE_STYLE_ID = 'front-core-runtime-style';
 const SSR_RIGHT_RAIL_ID = 'ssr-right-rail';
 const SSR_SLOT_PROVIDER_ROOT_ID = 'ssr-slot-provider-root';
 const SSR_CHAT_DOCK_ID = 'ssr-chat-dock';
@@ -697,6 +698,16 @@ function ensureStyles(): void {
 }
 `;
   document.head.appendChild(style);
+}
+
+function ensureFrontCoreStyles(): void {
+  if (document.getElementById(FRONT_CORE_STYLE_ID)) return;
+
+  const link = document.createElement('link');
+  link.id = FRONT_CORE_STYLE_ID;
+  link.rel = 'stylesheet';
+  link.href = '/front-core.css';
+  document.head.appendChild(link);
 }
 
 /* ── navigation progress ── */
@@ -1773,6 +1784,7 @@ export function mountSsrMenuShell(): void {
   menuPanel.dataset.ssrMenuShell = '1';
 
   ensureStyles();
+  ensureFrontCoreStyles();
 
   installPanelControls();
   installRightRailTabs();
