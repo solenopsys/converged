@@ -37,7 +37,7 @@ export const ChatsListView = ({ bus }) => {
     const recordId = row.id || row.chatId;
     if (!recordId) return;
     openChatDetail({ recordId });
-    bus.present({ widget: createChatDetailWidget(bus, { recordId }), params: { recordId } });
+    bus.present({ widget: createChatDetailWidget(bus), params: { chatId: recordId } });
   };
 
   return (

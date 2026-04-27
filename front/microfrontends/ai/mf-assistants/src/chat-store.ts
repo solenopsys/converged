@@ -42,23 +42,25 @@ const chatThreadId = uuidv4();
 // Флаг для ленивой инициализации
 let isInitialized = false;
 
-const ensureInitialized = () => {
-  if (!isInitialized) {
-    console.log("[Chat] Initializing chat session on first use");
-    chatStore.init(chatThreadId);
+const ensureInitialized = (contextName?: string) => {
+  const currentContextName = chatStore.$chat.getState().contextName;
+  const shouldSwitchContext = contextName !== undefined && currentContextName !== contextName;
+  if (!isInitialized || shouldSwitchContext) {
+    console.log("[Chat] Initializing chat session on first use", { contextName });
+    chatStore.init(chatThreadId, undefined, undefined, contextName);
     isInitialized = true;
   }
 };
 
 // Подписываемся на событие инициализации из front-core
-chatInitRequested.watch(() => {
+chatInitRequested.watch((payload) => {
   console.log("[Chat] Chat initialization requested via event");
-  ensureInitialized();
+  ensureInitialized(payload && typeof payload === "object" ? payload.contextName : undefined);
 });
 
 // Экспортируем функцию для явной инициализации
-export const initializeChat = () => {
-  ensureInitialized();
+export const initializeChat = (contextName?: string) => {
+  ensureInitialized(contextName);
 };
 
 const weatherTool: ExecutableTool = {

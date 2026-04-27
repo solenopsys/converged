@@ -5,7 +5,7 @@ import { LocaleController } from '../controllers/locale-controller';
 import { rightRailActionSelected } from '../components/right-rail/uri-sync';
 import { $centerView } from '../slots/present';
 import { createBridgeController } from '../bridge';
-import { chatSendRequested } from '../chat/events';
+import { chatInitRequested, chatSendRequested } from '../chat/events';
 import { getI18nInstance } from '../i18n';
 import {
   AVAILABLE_LANGS,
@@ -23,14 +23,45 @@ const SSR_CHAT_INPUT_ID = 'ssr-chat-input';
 const SSR_CHAT_FORM_ID = 'ssr-chat-form';
 const SSR_CHAT_QUICK_ID = 'ssr-chat-quick';
 const RIGHT_RAIL_QUERY_KEYS = ['sidebarTab', 'sidebarPanel', 'sidebarAction'] as const;
+type QuickChatPrompt = string | {
+  label?: string;
+  message?: string;
+  prompt?: string;
+  contextName?: string;
+  icon?: string;
+};
+
 const QUICK_CHAT_PROMPTS = [
-  'Tell us about the club',
-  'What projects have you delivered?',
-  'How can I join?',
-  'Which plan is right for me?',
-  'Can I migrate from Free to AI Portal?',
-  'Is there vendor lock-in?',
+  { label: 'What is this site about?', message: 'What is this site about and what is 4IR Club?', contextName: 'club', icon: 'BadgeHelp' },
+  { label: 'I need CNC or 3D printing', message: 'I need CNC machining or 3D printing. How can I submit a request?', contextName: 'club', icon: 'FileText' },
+  { label: 'What should I prepare?', message: 'What information should I prepare before sending a manufacturing request?', contextName: 'club', icon: 'ClipboardList' },
+  { label: 'Who is in the club?', message: 'Who participates in 4IR Club: customers, workshops, and suppliers?', contextName: 'club', icon: 'Users' },
+  { label: 'For workshops', message: 'How does 4IR Club help CNC and 3D printing workshops?', contextName: 'club', icon: 'Factory' },
+  { label: 'For suppliers', message: 'How does 4IR Club help equipment, spare parts, and material suppliers?', contextName: 'club', icon: 'Truck' },
+  { label: 'How does an order work?', message: 'How does a request move from intake to calculation, production, quality control, and shipment?', contextName: 'club', icon: 'Workflow' },
+  { label: 'What is AI Portal?', message: 'What are Converged and AI Portal, and why would a company use them?', contextName: 'club', icon: 'Sparkles' },
+  { label: 'How can I join?', message: 'How can a customer, workshop, or supplier join 4IR Club?', contextName: 'club', icon: 'UserPlus' },
 ] as const;
+const QUICK_CHAT_ICON: Record<string, string> = {
+  BadgeHelp:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.78 4.78 4 4 0 0 1-6.74 0 4 4 0 0 1-4.78-4.78 4 4 0 0 1 0-6.75Z"/><path d="M9.1 9a3 3 0 0 1 5.82 1c0 2-3 2-3 4"/><path d="M12 17h.01"/></svg>',
+  ClipboardList:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6"/><path d="M9 16h6"/></svg>',
+  Factory:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20"/><path d="M3 20V8l7 5V8l7 5V4h4v16"/><path d="M13 18h2"/><path d="M18 18h1"/><path d="M8 18h2"/></svg>',
+  FileText:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>',
+  Sparkles:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 10.8 8 16l-1.9-5.2L1 9l5.1-1.8L8 2l1.9 5.2L15 9l-5.1 1.8Z"/><path d="m19 14 1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3Z"/></svg>',
+  Truck:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H3v14h2"/><path d="M15 18H9"/><path d="M19 18h2v-5l-3-5h-4"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>',
+  UserPlus:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></svg>',
+  Users:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  Workflow:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="8" x="3" y="3" rx="2"/><rect width="8" height="8" x="13" y="13" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><path d="M11 7h4a2 2 0 0 1 2 2v4"/></svg>',
+};
 const MODULES_LIST_FOR_USER_PATH = '/services/modules/listForUser';
 const CONTROL_ICON = {
   login:
@@ -68,6 +99,7 @@ let rightRailChatBootstrapped = false;
 let controlsBound = false;
 let railTabsBound = false;
 let chatDockBound = false;
+let landingEventGatewayBound = false;
 let chatDockGeometryBound = false;
 let chatDockResizeObserver: ResizeObserver | null = null;
 let railWide = false;
@@ -1403,15 +1435,110 @@ function installLinkInterceptor(): void {
   });
 }
 
-async function openAiChat(message?: string): Promise<void> {
+async function openAiChat(message?: string, options?: { contextName?: string }): Promise<void> {
   setRightRailOpen(true);
   setRightRailMode('chat');
   await ensureRightRailRuntime();
-  runActionEvent({ actionId: 'chats.show', params: {} });
+  chatInitRequested({ contextName: options?.contextName });
+  runActionEvent({ actionId: 'chats.show', params: { contextName: options?.contextName } });
   const text = message?.trim();
   if (text) {
     chatSendRequested(text);
   }
+}
+
+type LandingEventPayload = {
+  message?: string;
+  contextName?: string;
+  payload?: unknown;
+};
+type LandingEventHandler = (payload: LandingEventPayload) => void;
+
+const LANDING_EVENT_HANDLERS: Record<string, LandingEventHandler> = {
+  'chat.open': ({ message, contextName }) => {
+    void openAiChat(message, { contextName });
+  },
+};
+
+function parseLandingPayload(raw: string | undefined): unknown {
+  if (!raw) return undefined;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return raw;
+  }
+}
+
+function readLandingEventPayload(source: HTMLElement): LandingEventPayload {
+  const form = source instanceof HTMLFormElement ? source : source.closest('form');
+  const messageSelector = source.dataset.landingMessageInput || form?.dataset.landingMessageInput;
+  const messageInput = messageSelector
+    ? form?.querySelector<HTMLInputElement | HTMLTextAreaElement>(messageSelector)
+    : form?.querySelector<HTMLInputElement | HTMLTextAreaElement>('[name="message"]');
+  const message = source.dataset.landingMessage ?? messageInput?.value;
+
+  return {
+    message,
+    contextName: source.dataset.landingContextName || form?.dataset.landingContextName,
+    payload: parseLandingPayload(source.dataset.landingPayload || form?.dataset.landingPayload),
+  };
+}
+
+function dispatchLandingEvent(eventName: string, payload: LandingEventPayload): void {
+  const handler = LANDING_EVENT_HANDLERS[eventName];
+  if (handler) {
+    handler(payload);
+    return;
+  }
+
+  console.warn(`[landing-event] unknown event "${eventName}"`, payload);
+}
+
+function installLandingEventGateway(): void {
+  if (landingEventGatewayBound) return;
+  landingEventGatewayBound = true;
+
+  document.addEventListener('submit', (event) => {
+    const form = event.target instanceof HTMLFormElement ? event.target : null;
+    const eventName = form?.dataset.landingEvent;
+    if (!form || !eventName) return;
+
+    event.preventDefault();
+    dispatchLandingEvent(eventName, readLandingEventPayload(form));
+  });
+
+  document.addEventListener('click', (event) => {
+    const eventEl = resolveEventElement(event.target);
+    const source = eventEl?.closest<HTMLElement>('[data-landing-event]');
+    if (!source || source instanceof HTMLFormElement) return;
+
+    event.preventDefault();
+    dispatchLandingEvent(source.dataset.landingEvent ?? '', readLandingEventPayload(source));
+  });
+}
+
+function normalizeQuickChatPrompt(prompt: QuickChatPrompt): {
+  label: string;
+  message: string;
+  contextName?: string;
+  icon?: string;
+} | null {
+  if (typeof prompt === 'string') {
+    const text = prompt.trim();
+    return text ? { label: text, message: text } : null;
+  }
+  if (!prompt || typeof prompt !== 'object') return null;
+
+  const message = (prompt.message ?? prompt.prompt ?? prompt.label ?? '').trim();
+  const label = (prompt.label ?? prompt.message ?? prompt.prompt ?? '').trim();
+  if (!message || !label) return null;
+
+  return {
+    label,
+    message,
+    contextName: prompt.contextName?.trim() || undefined,
+    icon: prompt.icon?.trim() || undefined,
+  };
 }
 
 function installChatDock(): void {
@@ -1446,15 +1573,28 @@ function installChatDock(): void {
       void openAiChat();
     });
 
-    const renderPrompts = (prompts: readonly string[]) => {
+    const renderPrompts = (prompts: readonly QuickChatPrompt[]) => {
       quick.innerHTML = '';
       prompts.forEach((prompt) => {
+        const item = normalizeQuickChatPrompt(prompt);
+        if (!item) return;
+
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'ssr-chat-quick-btn';
-        button.textContent = prompt;
+        const icon = item.icon ? QUICK_CHAT_ICON[item.icon] : null;
+        if (icon) {
+          const iconNode = document.createElement('span');
+          iconNode.className = 'ssr-chat-quick-icon';
+          iconNode.setAttribute('aria-hidden', 'true');
+          iconNode.innerHTML = icon;
+          button.appendChild(iconNode);
+        }
+        const labelNode = document.createElement('span');
+        labelNode.textContent = item.label;
+        button.appendChild(labelNode);
         button.addEventListener('click', () => {
-          void openAiChat(prompt);
+          void openAiChat(item.message, { contextName: item.contextName });
         });
         quick.appendChild(button);
       });
@@ -1638,6 +1778,7 @@ export function mountSsrMenuShell(): void {
   installRightRailTabs();
   installDynamicMenu(menuPanel);
   installChatDock();
+  installLandingEventGateway();
   installLinkInterceptor();
   installLangControl();
   // Keep first paint stable: bootstrap right rail runtime lazily.

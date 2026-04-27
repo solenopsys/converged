@@ -129,6 +129,12 @@ export const metadata = {
           "type": "string",
           "optional": true,
           "isArray": false
+        },
+        {
+          "name": "contextName",
+          "type": "string",
+          "optional": true,
+          "isArray": false
         }
       ],
       "returnType": "string",
@@ -347,7 +353,7 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface RuntimeChatService {
-  createSession(serviceType?: ServiceType, model?: string): Promise<string>;
+  createSession(serviceType?: ServiceType, model?: string, contextName?: string): Promise<string>;
   sendMessage(sessionId: string, messages: ContentBlock[], options?: ConversationOptions): AsyncIterable<StreamEvent>;
   listOfChats(params: PaginationParams): Promise<PaginatedResult<Chat>>;
   deleteChat(chatId: string): Promise<void>;
@@ -359,7 +365,7 @@ export interface RuntimeChatService {
 
 // Client interface
 export interface RuntimeChatServiceClient {
-  createSession(serviceType?: ServiceType, model?: string): Promise<string>;
+  createSession(serviceType?: ServiceType, model?: string, contextName?: string): Promise<string>;
   sendMessage(sessionId: string, messages: ContentBlock[], options?: ConversationOptions): AsyncIterable<StreamEvent>;
   listOfChats(params: PaginationParams): Promise<PaginatedResult<Chat>>;
   deleteChat(chatId: string): Promise<void>;

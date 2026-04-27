@@ -47,7 +47,7 @@ const createAndSyncSession = async (
     aiService: types.RuntimeChatService,
     state: types.ChatState
 ): Promise<string> => {
-    const sessionId = await aiService.createSession(state.serviceType, state.model);
+    const sessionId = await aiService.createSession(state.serviceType, state.model, state.contextName);
     sessionIdUpdated(sessionId);
     return sessionId;
 };
@@ -105,11 +105,12 @@ const sendWithSessionRecovery = async (
 
 export const initializeChat = (
     _: types.ChatState,
-    { threadId, serviceType, model }: { threadId: string; serviceType?: types.ServiceType; model?: string }
+    { threadId, serviceType, model, contextName }: { threadId: string; serviceType?: types.ServiceType; model?: string; contextName?: string }
 ): types.ChatState => ({
     threadId,
     serviceType,
     model,
+    contextName,
     sessionId: undefined,
     messages: [],
     isLoading: false,
@@ -202,8 +203,8 @@ export const handleError = (state: types.ChatState): types.ChatState => ({
 });
 
 export const createSession = (aiService: types.RuntimeChatService) =>
-    async ({ serviceType, model }: types.ChatState) => {
-        return await aiService.createSession(serviceType, model);
+    async ({ serviceType, model, contextName }: types.ChatState) => {
+        return await aiService.createSession(serviceType, model, contextName);
     };
 
 export const saveAssistantMessage = (threadsService: types.ThreadsService) =>

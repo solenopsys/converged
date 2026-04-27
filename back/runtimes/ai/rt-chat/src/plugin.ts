@@ -7,6 +7,7 @@ export type ChatRuntimePluginConfig = {
   openai?: { key?: string; model?: string };
   claude?: { key?: string; model?: string };
   gemini?: { key?: string; model?: string };
+  assistant?: { baseUrl?: string };
 };
 
 export default function chatRuntimePlugin(config: ChatRuntimePluginConfig = {}) {
@@ -14,6 +15,7 @@ export default function chatRuntimePlugin(config: ChatRuntimePluginConfig = {}) 
     openai: config.openai,
     claude: config.claude,
     gemini: config.gemini,
+    assistant: config.assistant,
   });
 
   const assistantBackend = createHttpBackend({

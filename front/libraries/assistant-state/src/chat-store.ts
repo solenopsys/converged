@@ -27,6 +27,7 @@ const initialState: ChatState = {
     threadId: '' as ULID,
     serviceType: undefined,
     model: undefined,
+    contextName: undefined,
     sessionId: undefined,
     messages: [],
     isLoading: false,
@@ -146,8 +147,8 @@ export const createChatStore = (
         $chat,
         $functions,
 
-        init: (threadId: ULID, serviceType?: ChatState['serviceType'], model?: string) =>
-            initChat({ threadId, serviceType, model }),
+        init: (threadId: ULID, serviceType?: ChatState['serviceType'], model?: string, contextName?: string) =>
+            initChat({ threadId, serviceType, model, contextName }),
 
         send: (content: string) => sendMessage(content),
 

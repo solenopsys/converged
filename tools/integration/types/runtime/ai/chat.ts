@@ -112,7 +112,7 @@ export type ChatContext = ChatContextSummary & {
 }
 
 export interface RuntimeChatService {
-    createSession(serviceType?: ServiceType, model?: string ): Promise<string>;
+    createSession(serviceType?: ServiceType, model?: string, contextName?: string): Promise<string>;
     sendMessage(sessionId: string, messages: ContentBlock[], options?: ConversationOptions): AsyncIterable<StreamEvent>;
 
     listOfChats(params: PaginationParams): Promise<PaginatedResult<Chat>>;

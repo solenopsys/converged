@@ -4,18 +4,22 @@ import { useUnit } from 'effector-react';
 import { ChatState } from 'assistant-state';
 import { chatStore, initializeChat } from "../chat-store";
 
-const ChatView: React.FC = () => {
+type ChatViewProps = {
+  contextName?: string;
+};
+
+const ChatView: React.FC<ChatViewProps> = ({ contextName }) => {
   const { messages, isLoading, currentResponse }: ChatState = useUnit(chatStore.$chat);
 
   useEffect(() => {
     console.log("[ChatView] Mounted - initializing chat immediately");
     // Инициализируем чат сразу при монтировании компонента
-    initializeChat();
+    initializeChat(contextName);
     console.log("[ChatView] State:", { messages: messages.length, isLoading, hasResponse: !!currentResponse });
     return () => {
       console.log("[ChatView] Unmounted");
     };
-  }, []);
+  }, [contextName]);
 
   useEffect(() => {
     console.log("[ChatView] State updated:", { messages: messages.length, isLoading, hasResponse: !!currentResponse });

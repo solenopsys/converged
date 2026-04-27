@@ -373,9 +373,23 @@ body { margin: 0; }
   line-height: 1.25;
   text-align: left;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .ssr-chat-quick-btn:hover {
   background: color-mix(in oklch, var(--ui-muted) 88%, transparent);
+}
+.ssr-chat-quick-icon {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  flex: 0 0 16px;
+  color: color-mix(in oklch, var(--ui-foreground) 72%, transparent);
+}
+.ssr-chat-quick-icon svg {
+  width: 16px;
+  height: 16px;
 }
 #ssr-chat-form {
   display: flex;

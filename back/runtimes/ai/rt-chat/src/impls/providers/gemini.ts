@@ -146,7 +146,11 @@ export class GeminiConversation extends BaseConversation {
 
             if (typeof msg.data === "object" && msg.data !== null) {
                 const d = msg.data as any;
-                const role = d.role === "assistant" ? "model" : "user";
+                const role = d.role === "system"
+                    ? "system"
+                    : d.role === "assistant"
+                        ? "model"
+                        : "user";
 
                 if (d.tool_calls) {
                     const parts: any[] = [];

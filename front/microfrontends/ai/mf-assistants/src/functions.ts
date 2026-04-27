@@ -1,4 +1,4 @@
-import { CreateAction } from "front-core";
+import { CreateAction, chatInitRequested } from "front-core";
 import {assistantClient as chatsService, threadsClient} from "./services";
 import { CreateWidget } from 'front-core';
 import { sample } from "effector";
@@ -64,19 +64,17 @@ const createCommandsListWidget: CreateWidget<typeof CommandsListView> = (bus) =>
     }
 });
 
-const createChatWidget: CreateWidget<typeof ChatView> = (bus) => ({
+const createChatWidget: CreateWidget<typeof ChatView> = () => ({
     view: ChatView,
     placement: () => "sidebar:right",
     config: {},
     commands: {}
 });
 
-export const createChatDetailWidget: CreateWidget<typeof ChatDetailView> = (_bus, params?: { recordId: string }) => ({
+export const createChatDetailWidget: CreateWidget<typeof ChatDetailView> = () => ({
     view: ChatDetailView,
     placement: () => "sidebar:right",
-    config: {
-        chatId: params?.recordId
-    },
+    config: {},
     commands: {}
 });
 
@@ -85,11 +83,12 @@ export const createChatDetailWidget: CreateWidget<typeof ChatDetailView> = (_bus
 const createShowChatAction: CreateAction<any> = (bus) => ({
     id: SHOW_CHAT,
     description: "Show chat widget",
-    invoke: () => {
+    invoke: (params?: { contextName?: string }) => {
         console.log("[createShowChatAction] Presenting chat widget to sidebar:right");
         const widget = createChatWidget(bus);
         console.log("[createShowChatAction] Widget config:", widget);
-        bus.present({ widget });
+        chatInitRequested({ contextName: params?.contextName });
+        bus.present({ widget, params });
     }
 });
 
@@ -122,7 +121,7 @@ const createViewChatAction: CreateAction<any> = (bus) => ({
     description: "View chat details",
     invoke: ({ recordId }) => {
         openChatDetail({ recordId });
-        bus.present({ widget: createChatDetailWidget(bus, { recordId }), params: { recordId } });
+        bus.present({ widget: createChatDetailWidget(bus), params: { chatId: recordId } });
     }
 });
 

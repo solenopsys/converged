@@ -26,6 +26,7 @@ export type ChatState = {
     threadId: ULID;
     serviceType?: ServiceType;
     model?: string;
+    contextName?: string;
     sessionId?: string;
     messages: ChatMessage[];
     isLoading: boolean;

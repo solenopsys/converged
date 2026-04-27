@@ -87,6 +87,32 @@ function resolveChatRuntimeModuleUrl(): string {
   }
 }
 
+function resolveChatRuntimeStyleUrl(moduleUrl: string): string | null {
+  try {
+    const url = new URL(moduleUrl, window.location.href);
+    if (!url.pathname.endsWith(".js")) return null;
+    url.pathname = url.pathname.replace(/\.js$/, ".css");
+    return url.toString();
+  } catch {
+    return moduleUrl.endsWith(".js") ? moduleUrl.replace(/\.js(\?.*)?$/, ".css$1") : null;
+  }
+}
+
+function ensureChatRuntimeStyles(moduleUrl: string): void {
+  if (typeof document === "undefined") return;
+  const href = resolveChatRuntimeStyleUrl(moduleUrl);
+  if (!href) return;
+
+  const styleId = `mf-style-link-${href.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+  if (document.getElementById(styleId)) return;
+
+  const link = document.createElement("link");
+  link.id = styleId;
+  link.rel = "stylesheet";
+  link.href = href;
+  document.head.appendChild(link);
+}
+
 function useThemeToggle() {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [mounted, setMounted] = useState(false);
@@ -621,7 +647,9 @@ export function ChatPanel({
     let active = true;
     const loadChatRuntime = async () => {
       try {
-        const runtime = await import(/* @vite-ignore */ resolveChatRuntimeModuleUrl());
+        const runtimeUrl = resolveChatRuntimeModuleUrl();
+        ensureChatRuntimeStyles(runtimeUrl);
+        const runtime = await import(/* @vite-ignore */ runtimeUrl);
         if (!active) return;
         setChatRuntime({
           ChatDetail: runtime.ChatDetail,
