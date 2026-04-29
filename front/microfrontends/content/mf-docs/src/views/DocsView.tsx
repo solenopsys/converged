@@ -85,8 +85,18 @@ export default function DocsView({ indexPath, anchor }: { indexPath?: string; an
     });
   }, [anchor, loading, sortedItems.length]);
 
+  useEffect(() => {
+    if (typeof document === "undefined" || loading) return;
+    document.dispatchEvent(new CustomEvent("club:docs:sections-changed"));
+  }, [loading, sortedItems.length, resolvedIndexPath]);
+
   return (
-    <div ref={scrollRef} className="h-full min-h-0 w-full overflow-y-auto overflow-x-hidden p-6">
+    <div
+      ref={scrollRef}
+      className="h-full min-h-0 w-full overflow-y-auto overflow-x-hidden px-6 py-8"
+      data-docs-root="1"
+      data-docs-index-path={resolvedIndexPath}
+    >
       {error ? (
         <div className="max-w-4xl">
           <h2 className="mb-3 text-2xl font-semibold text-red-400">Error</h2>
@@ -102,9 +112,16 @@ export default function DocsView({ indexPath, anchor }: { indexPath?: string; an
 
       {!error && !loading
         ? sortedItems.map((item) => (
-            <section key={item.anchor} id={item.anchor} className="mb-12 scroll-mt-4">
+            <section
+              key={item.anchor}
+              id={item.anchor}
+              className="mb-12 scroll-mt-4"
+              data-docs-section="1"
+              data-docs-section-anchor={item.anchor}
+              data-docs-section-name={item.title || item.anchor}
+            >
               {item.ast ? (
-                <div className="prose prose-invert max-w-4xl">
+                <div className="docs-markdown max-w-4xl">
                   <MarkdownRenderer ast={item.ast} />
                 </div>
               ) : (

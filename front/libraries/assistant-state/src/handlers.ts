@@ -2,6 +2,8 @@ import { type Store } from 'effector';
 import * as types from './types';
 import { receiveChunk, completeResponse, errorOccurred, sessionIdUpdated, toolCallReceived, toolCallExecuted } from './events';
 
+const pendingSessionCreations = new Map<string, Promise<string>>();
+
 // Улучшенная функция для обработки переносов строк
 const preserveLineBreaks = (text: string): string => {
     if (!text) return '';
@@ -43,13 +45,37 @@ const isSessionNotFoundError = (error: unknown): boolean => {
     return SESSION_NOT_FOUND_PATTERNS.some((pattern) => message.includes(pattern));
 };
 
+const getSessionCreationKey = (state: types.ChatState): string => {
+    return [
+        state.threadId,
+        state.serviceType ?? '',
+        state.model ?? '',
+        state.contextName ?? ''
+    ].join('|');
+};
+
 const createAndSyncSession = async (
     aiService: types.RuntimeChatService,
     state: types.ChatState
 ): Promise<string> => {
-    const sessionId = await aiService.createSession(state.serviceType, state.model, state.contextName);
-    sessionIdUpdated(sessionId);
-    return sessionId;
+    const key = getSessionCreationKey(state);
+    const pending = pendingSessionCreations.get(key);
+    if (pending) {
+        return pending;
+    }
+
+    const sessionPromise = aiService
+        .createSession(state.serviceType, state.model, state.contextName)
+        .then((sessionId) => {
+            sessionIdUpdated(sessionId);
+            return sessionId;
+        })
+        .finally(() => {
+            pendingSessionCreations.delete(key);
+        });
+
+    pendingSessionCreations.set(key, sessionPromise);
+    return sessionPromise;
 };
 
 const resolveSessionId = async (
@@ -203,8 +229,18 @@ export const handleError = (state: types.ChatState): types.ChatState => ({
 });
 
 export const createSession = (aiService: types.RuntimeChatService) =>
-    async ({ serviceType, model, contextName }: types.ChatState) => {
-        return await aiService.createSession(serviceType, model, contextName);
+    async ({ threadId, serviceType, model, contextName }: types.ChatState) => {
+        return await createAndSyncSession(aiService, {
+            threadId,
+            serviceType,
+            model,
+            contextName,
+            sessionId: undefined,
+            messages: [],
+            isLoading: false,
+            currentResponse: '',
+            pendingToolCalls: []
+        });
     };
 
 export const saveAssistantMessage = (

@@ -146,7 +146,7 @@ function MdBlock({ node }: MdBlockProps): React.ReactNode {
 
     case "table":
       return (
-        <div className="my-6 w-full overflow-y-auto">
+        <div className="my-6 w-full overflow-x-auto">
           <table className="w-full">{children}</table>
         </div>
       );

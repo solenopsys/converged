@@ -1,88 +1,150 @@
 import { structClient } from "g-struct";
-import { GROUPS } from './groups';
-import { $allMenuItems, addMenuRequested, authToken, bus, clearAllMenus, runActionEvent } from '../controllers';
-import { LocaleController } from '../controllers/locale-controller';
-import { rightRailActionSelected } from '../components/right-rail/uri-sync';
-import { $centerView } from '../slots/present';
-import { createBridgeController } from '../bridge';
-import { chatInitRequested, chatSendRequested } from '../chat/events';
-import { getI18nInstance } from '../i18n';
+import { createBridgeController } from "../bridge";
+import { chatInitRequested, chatSendRequested } from "../chat/events";
+import { rightRailActionSelected } from "../components/right-rail/uri-sync";
 import {
-  AVAILABLE_LANGS,
-  buildLocalePath,
-  extractLocaleFromPath,
-  isSupportedLocale,
-  type SupportedLocale,
-} from './i18n';
+	$allMenuItems,
+	addMenuRequested,
+	authToken,
+	bus,
+	clearAllMenus,
+	runActionEvent,
+} from "../controllers";
+import { LocaleController } from "../controllers/locale-controller";
+import { getI18nInstance } from "../i18n";
+import { $centerView } from "../slots/present";
+import { GROUPS } from "./groups";
+import {
+	AVAILABLE_LANGS,
+	buildLocalePath,
+	extractLocaleFromPath,
+	isSupportedLocale,
+	type SupportedLocale,
+} from "./i18n";
 
-const SSR_MENU_STYLE_ID = 'ssr-menu-shell-style';
-const FRONT_CORE_STYLE_ID = 'front-core-runtime-style';
-const SSR_RIGHT_RAIL_ID = 'ssr-right-rail';
-const SSR_SLOT_PROVIDER_ROOT_ID = 'ssr-slot-provider-root';
-const SSR_CHAT_DOCK_ID = 'ssr-chat-dock';
-const SSR_CHAT_INPUT_ID = 'ssr-chat-input';
-const SSR_CHAT_FORM_ID = 'ssr-chat-form';
-const SSR_CHAT_QUICK_ID = 'ssr-chat-quick';
-const RIGHT_RAIL_QUERY_KEYS = ['sidebarTab', 'sidebarPanel', 'sidebarAction'] as const;
-type QuickChatPrompt = string | {
-  label?: string;
-  message?: string;
-  prompt?: string;
-  contextName?: string;
-  icon?: string;
-};
+const SSR_MENU_STYLE_ID = "ssr-menu-shell-style";
+const FRONT_CORE_STYLE_ID = "front-core-runtime-style";
+const SSR_RIGHT_RAIL_ID = "ssr-right-rail";
+const SSR_SLOT_PROVIDER_ROOT_ID = "ssr-slot-provider-root";
+const SSR_CHAT_DOCK_ID = "ssr-chat-dock";
+const SSR_CHAT_INPUT_ID = "ssr-chat-input";
+const SSR_CHAT_FORM_ID = "ssr-chat-form";
+const SSR_CHAT_QUICK_ID = "ssr-chat-quick";
+const RIGHT_RAIL_QUERY_KEYS = [
+	"sidebarTab",
+	"sidebarPanel",
+	"sidebarAction",
+] as const;
+type QuickChatPrompt =
+	| string
+	| {
+			label?: string;
+			message?: string;
+			prompt?: string;
+			contextName?: string;
+			icon?: string;
+	  };
 
 const QUICK_CHAT_PROMPTS = [
-  { label: 'What is this site about?', message: 'What is this site about and what is 4IR Club?', contextName: 'club', icon: 'BadgeHelp' },
-  { label: 'I need CNC or 3D printing', message: 'I need CNC machining or 3D printing. How can I submit a request?', contextName: 'club', icon: 'FileText' },
-  { label: 'What should I prepare?', message: 'What information should I prepare before sending a manufacturing request?', contextName: 'club', icon: 'ClipboardList' },
-  { label: 'Who is in the club?', message: 'Who participates in 4IR Club: customers, workshops, and suppliers?', contextName: 'club', icon: 'Users' },
-  { label: 'For workshops', message: 'How does 4IR Club help CNC and 3D printing workshops?', contextName: 'club', icon: 'Factory' },
-  { label: 'For suppliers', message: 'How does 4IR Club help equipment, spare parts, and material suppliers?', contextName: 'club', icon: 'Truck' },
-  { label: 'How does an order work?', message: 'How does a request move from intake to calculation, production, quality control, and shipment?', contextName: 'club', icon: 'Workflow' },
-  { label: 'What is AI Portal?', message: 'What are Converged and AI Portal, and why would a company use them?', contextName: 'club', icon: 'Sparkles' },
-  { label: 'How can I join?', message: 'How can a customer, workshop, or supplier join 4IR Club?', contextName: 'club', icon: 'UserPlus' },
+	{
+		label: "What is this site about?",
+		message: "What is this site about and what is 4IR Club?",
+		contextName: "club",
+		icon: "BadgeHelp",
+	},
+	{
+		label: "I need CNC or 3D printing",
+		message: "I need CNC machining or 3D printing. How can I submit a request?",
+		contextName: "club",
+		icon: "FileText",
+	},
+	{
+		label: "What should I prepare?",
+		message:
+			"What information should I prepare before sending a manufacturing request?",
+		contextName: "club",
+		icon: "ClipboardList",
+	},
+	{
+		label: "Who is in the club?",
+		message:
+			"Who participates in 4IR Club: customers, workshops, and suppliers?",
+		contextName: "club",
+		icon: "Users",
+	},
+	{
+		label: "For workshops",
+		message: "How does 4IR Club help CNC and 3D printing workshops?",
+		contextName: "club",
+		icon: "Factory",
+	},
+	{
+		label: "For suppliers",
+		message:
+			"How does 4IR Club help equipment, spare parts, and material suppliers?",
+		contextName: "club",
+		icon: "Truck",
+	},
+	{
+		label: "How does an order work?",
+		message:
+			"How does a request move from intake to calculation, production, quality control, and shipment?",
+		contextName: "club",
+		icon: "Workflow",
+	},
+	{
+		label: "What is AI Portal?",
+		message:
+			"What are Converged and AI Portal, and why would a company use them?",
+		contextName: "club",
+		icon: "Sparkles",
+	},
+	{
+		label: "How can I join?",
+		message: "How can a customer, workshop, or supplier join 4IR Club?",
+		contextName: "club",
+		icon: "UserPlus",
+	},
 ] as const;
 const QUICK_CHAT_ICON: Record<string, string> = {
-  BadgeHelp:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.78 4.78 4 4 0 0 1-6.74 0 4 4 0 0 1-4.78-4.78 4 4 0 0 1 0-6.75Z"/><path d="M9.1 9a3 3 0 0 1 5.82 1c0 2-3 2-3 4"/><path d="M12 17h.01"/></svg>',
-  ClipboardList:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6"/><path d="M9 16h6"/></svg>',
-  Factory:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20"/><path d="M3 20V8l7 5V8l7 5V4h4v16"/><path d="M13 18h2"/><path d="M18 18h1"/><path d="M8 18h2"/></svg>',
-  FileText:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>',
-  Sparkles:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 10.8 8 16l-1.9-5.2L1 9l5.1-1.8L8 2l1.9 5.2L15 9l-5.1 1.8Z"/><path d="m19 14 1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3Z"/></svg>',
-  Truck:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H3v14h2"/><path d="M15 18H9"/><path d="M19 18h2v-5l-3-5h-4"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>',
-  UserPlus:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></svg>',
-  Users:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
-  Workflow:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="8" x="3" y="3" rx="2"/><rect width="8" height="8" x="13" y="13" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><path d="M11 7h4a2 2 0 0 1 2 2v4"/></svg>',
+	BadgeHelp:
+		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.78 4.78 4 4 0 0 1-6.74 0 4 4 0 0 1-4.78-4.78 4 4 0 0 1 0-6.75Z"/><path d="M9.1 9a3 3 0 0 1 5.82 1c0 2-3 2-3 4"/><path d="M12 17h.01"/></svg>',
+	ClipboardList:
+		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6"/><path d="M9 16h6"/></svg>',
+	Factory:
+		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20"/><path d="M3 20V8l7 5V8l7 5V4h4v16"/><path d="M13 18h2"/><path d="M18 18h1"/><path d="M8 18h2"/></svg>',
+	FileText:
+		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>',
+	Sparkles:
+		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 10.8 8 16l-1.9-5.2L1 9l5.1-1.8L8 2l1.9 5.2L15 9l-5.1 1.8Z"/><path d="m19 14 1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3Z"/></svg>',
+	Truck:
+		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H3v14h2"/><path d="M15 18H9"/><path d="M19 18h2v-5l-3-5h-4"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>',
+	UserPlus:
+		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></svg>',
+	Users:
+		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+	Workflow:
+		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="8" x="3" y="3" rx="2"/><rect width="8" height="8" x="13" y="13" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><path d="M11 7h4a2 2 0 0 1 2 2v4"/></svg>',
 };
-const MODULES_LIST_FOR_USER_PATH = '/services/modules/listForUser';
+const MODULES_LIST_FOR_USER_PATH = "/services/modules/listForUser";
 const CONTROL_ICON = {
-  login:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>',
-  logout:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4"/><path d="M14 7l5 5-5 5"/><path d="M19 12H8"/></svg>',
-  sun:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>',
-  moon:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a7 7 0 1 0 9 9 9 9 0 1 1-9-9z"/></svg>',
-  maximize:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>',
-  minimize:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H3v5"/><path d="M16 21h5v-5"/><path d="M3 8l7 7"/><path d="M21 16l-7-7"/></svg>',
-  panelOpen:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 4v16"/><path d="m14 9 3 3-3 3"/></svg>',
-  panelClose:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 4v16"/><path d="m17 9-3 3 3 3"/></svg>',
+	login:
+		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>',
+	logout:
+		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4"/><path d="M14 7l5 5-5 5"/><path d="M19 12H8"/></svg>',
+	sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>',
+	moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a7 7 0 1 0 9 9 9 9 0 1 1-9-9z"/></svg>',
+	maximize:
+		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>',
+	minimize:
+		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H3v5"/><path d="M16 21h5v-5"/><path d="M3 8l7 7"/><path d="M21 16l-7-7"/></svg>',
+	panelOpen:
+		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 4v16"/><path d="m14 9 3 3-3 3"/></svg>',
+	panelClose:
+		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 4v16"/><path d="m17 9-3 3 3 3"/></svg>',
 } as const;
 let pendingNavigation: AbortController | null = null;
+let linkInterceptorDocumentPath: string | null = null;
 let stopMenuWatch: (() => void) | null = null;
 const groupLoadPromises = new Map<string, Promise<void>>();
 const loadedModules = new Set<string>();
@@ -91,11 +153,17 @@ let preferredOpenGroupId: string | null = null;
 let centerRendererInitPromise: Promise<void> | null = null;
 let centerRenderWatchStop: (() => void) | null = null;
 let centerRenderHost: HTMLElement | null = null;
-let centerRenderRoot: { render: (node: any) => void; unmount: () => void } | null = null;
+let centerRenderRoot: {
+	render: (node: any) => void;
+	unmount: () => void;
+} | null = null;
 let rightRailInitPromise: Promise<void> | null = null;
 let rightRailWatchStop: (() => void) | null = null;
 let rightRailHost: HTMLElement | null = null;
-let rightRailPortalRoot: { render: (node: any) => void; unmount: () => void } | null = null;
+let rightRailPortalRoot: {
+	render: (node: any) => void;
+	unmount: () => void;
+} | null = null;
 let rightRailChatBootstrapped = false;
 let controlsBound = false;
 let railTabsBound = false;
@@ -111,394 +179,422 @@ let allowedMicrofrontendsPromise: Promise<string[] | null> | null = null;
 type CenterViewState = ReturnType<typeof $centerView.getState>;
 
 function getControl(name: string): HTMLButtonElement | null {
-  return document.querySelector<HTMLButtonElement>(`[data-ssr-control="${name}"]`);
+	return document.querySelector<HTMLButtonElement>(
+		`[data-ssr-control="${name}"]`,
+	);
 }
 
 function setControlIcon(button: HTMLButtonElement | null, icon: string): void {
-  if (!button) return;
-  button.innerHTML = icon;
+	if (!button) return;
+	button.innerHTML = icon;
 }
 
 function isDarkTheme(): boolean {
-  return document.documentElement.classList.contains('dark');
+	return document.documentElement.classList.contains("dark");
 }
 
 function isAuthenticated(): boolean {
-  return authToken.isAuthenticated();
+	return authToken.isAuthenticated();
 }
 
 function isRightRailOpen(): boolean {
-  const rail = document.getElementById(SSR_RIGHT_RAIL_ID);
-  return rail?.dataset.open === '1';
+	const rail = document.getElementById(SSR_RIGHT_RAIL_ID);
+	return rail?.dataset.open === "1";
 }
 
 function updateShellWidthMode(): void {
-  const value = railWide ? '1' : '0';
-  document.getElementById('ssr-shell')?.setAttribute('data-rail-wide', value);
-  document.getElementById('app-shell')?.setAttribute('data-rail-wide', value);
+	const value = railWide ? "1" : "0";
+	document.getElementById("ssr-shell")?.setAttribute("data-rail-wide", value);
+	document.getElementById("app-shell")?.setAttribute("data-rail-wide", value);
 }
 
 function refreshControlStates(): void {
-  const auth = getControl('auth');
-  const theme = getControl('theme');
-  const constrain = getControl('constrain');
-  const rail = getControl('rail');
+	const auth = getControl("auth");
+	const theme = getControl("theme");
+	const constrain = getControl("constrain");
+	const rail = getControl("rail");
 
-  if (auth) {
-    const authed = isAuthenticated();
-    auth.setAttribute('aria-label', authed ? 'Log out' : 'Open login');
-    setControlIcon(auth, authed ? CONTROL_ICON.logout : CONTROL_ICON.login);
-  }
+	if (auth) {
+		const authed = isAuthenticated();
+		auth.setAttribute("aria-label", authed ? "Log out" : "Open login");
+		setControlIcon(auth, authed ? CONTROL_ICON.logout : CONTROL_ICON.login);
+	}
 
-  if (theme) {
-    const dark = isDarkTheme();
-    theme.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
-    setControlIcon(theme, dark ? CONTROL_ICON.sun : CONTROL_ICON.moon);
-  }
+	if (theme) {
+		const dark = isDarkTheme();
+		theme.setAttribute(
+			"aria-label",
+			dark ? "Switch to light mode" : "Switch to dark mode",
+		);
+		setControlIcon(theme, dark ? CONTROL_ICON.sun : CONTROL_ICON.moon);
+	}
 
-  if (constrain) {
-    constrain.setAttribute('aria-pressed', railWide ? 'true' : 'false');
-    constrain.setAttribute('aria-label', railWide ? 'Reduce panel width' : 'Expand panel width');
-    setControlIcon(constrain, railWide ? CONTROL_ICON.minimize : CONTROL_ICON.maximize);
-  }
+	if (constrain) {
+		constrain.setAttribute("aria-pressed", railWide ? "true" : "false");
+		constrain.setAttribute(
+			"aria-label",
+			railWide ? "Reduce panel width" : "Expand panel width",
+		);
+		setControlIcon(
+			constrain,
+			railWide ? CONTROL_ICON.minimize : CONTROL_ICON.maximize,
+		);
+	}
 
-  if (rail) {
-    const open = isRightRailOpen();
-    rail.setAttribute('aria-pressed', open ? 'true' : 'false');
-    rail.setAttribute('aria-label', open ? 'Collapse panel' : 'Show panel');
-    setControlIcon(rail, open ? CONTROL_ICON.panelClose : CONTROL_ICON.panelOpen);
-  }
+	if (rail) {
+		const open = isRightRailOpen();
+		rail.setAttribute("aria-pressed", open ? "true" : "false");
+		rail.setAttribute("aria-label", open ? "Collapse panel" : "Show panel");
+		setControlIcon(
+			rail,
+			open ? CONTROL_ICON.panelClose : CONTROL_ICON.panelOpen,
+		);
+	}
 }
 
-function applyTheme(next: 'light' | 'dark'): void {
-  localStorage.setItem('theme', next);
-  document.documentElement.classList.toggle('dark', next === 'dark');
-  document.documentElement.style.colorScheme = next;
+function applyTheme(next: "light" | "dark"): void {
+	localStorage.setItem("theme", next);
+	document.documentElement.classList.toggle("dark", next === "dark");
+	document.documentElement.style.colorScheme = next;
 }
 
 async function ensureAuthLoaded(): Promise<void> {
-  const moduleName = 'mf-auth';
-  if (loadedModules.has(moduleName)) return;
-  initMicrofrontendEnv();
-  try {
-    const runtime = await import(moduleName);
-    if (!loadedModules.has(moduleName) && runtime?.default?.plug) {
-      runtime.default.plug(bus);
-      loadedModules.add(moduleName);
-    }
-  } catch (error) {
-    console.error('[ssr-menu] failed to load mf-auth', error);
-  }
+	const moduleName = "mf-auth";
+	if (loadedModules.has(moduleName)) return;
+	initMicrofrontendEnv();
+	try {
+		const runtime = await import(moduleName);
+		if (!loadedModules.has(moduleName) && runtime?.default?.plug) {
+			runtime.default.plug(bus);
+			loadedModules.add(moduleName);
+		}
+	} catch (error) {
+		console.error("[ssr-menu] failed to load mf-auth", error);
+	}
 }
 
 export async function openLoginPanel(): Promise<void> {
-  await ensureRightRailRuntime();
-  await ensureAuthLoaded();
-  setRightRailOpen(true);
-  setRightRailMode('tab');
-  rightRailActionSelected('auth.show-login');
-  runActionEvent({ actionId: 'auth.show-login', params: {} });
+	await ensureRightRailRuntime();
+	await ensureAuthLoaded();
+	setRightRailOpen(true);
+	setRightRailMode("tab");
+	rightRailActionSelected("auth.show-login");
+	runActionEvent({ actionId: "auth.show-login", params: {} });
 }
 
 function installPanelControls(): void {
-  if (controlsBound) {
-    refreshControlStates();
-    return;
-  }
+	if (controlsBound) {
+		refreshControlStates();
+		return;
+	}
 
-  const auth = getControl('auth');
-  const theme = getControl('theme');
-  const constrain = getControl('constrain');
-  const rail = getControl('rail');
-  if (!auth && !theme && !constrain && !rail) return;
+	const auth = getControl("auth");
+	const theme = getControl("theme");
+	const constrain = getControl("constrain");
+	const rail = getControl("rail");
+	if (!auth && !theme && !constrain && !rail) return;
 
-  controlsBound = true;
+	controlsBound = true;
 
-  auth?.addEventListener('click', () => {
-    if (isAuthenticated()) {
-      window.localStorage.removeItem('authToken');
-      window.dispatchEvent(new Event('auth-token-changed'));
-      refreshControlStates();
-      return;
-    }
-    void openLoginPanel();
-  });
+	auth?.addEventListener("click", () => {
+		if (isAuthenticated()) {
+			window.localStorage.removeItem("authToken");
+			window.dispatchEvent(new Event("auth-token-changed"));
+			refreshControlStates();
+			return;
+		}
+		void openLoginPanel();
+	});
 
-  theme?.addEventListener('click', () => {
-    applyTheme(isDarkTheme() ? 'light' : 'dark');
-    refreshControlStates();
-  });
+	theme?.addEventListener("click", () => {
+		applyTheme(isDarkTheme() ? "light" : "dark");
+		refreshControlStates();
+	});
 
-  constrain?.addEventListener('click', () => {
-    railWide = !railWide;
-    updateShellWidthMode();
-    refreshControlStates();
-  });
+	constrain?.addEventListener("click", () => {
+		railWide = !railWide;
+		updateShellWidthMode();
+		refreshControlStates();
+	});
 
-  rail?.addEventListener('click', () => {
-    const next = !isRightRailOpen();
-    setRightRailOpen(next);
-    if (next && document.getElementById(SSR_RIGHT_RAIL_ID)?.dataset.mode !== 'tab') {
-      setRightRailMode('chat');
-    }
-    refreshControlStates();
-  });
+	rail?.addEventListener("click", () => {
+		const next = !isRightRailOpen();
+		setRightRailOpen(next);
+		if (
+			next &&
+			document.getElementById(SSR_RIGHT_RAIL_ID)?.dataset.mode !== "tab"
+		) {
+			setRightRailMode("chat");
+		}
+		refreshControlStates();
+	});
 
-  window.addEventListener('auth-token-changed', refreshControlStates);
-  window.addEventListener('storage', refreshControlStates);
+	window.addEventListener("auth-token-changed", refreshControlStates);
+	window.addEventListener("storage", refreshControlStates);
 
-  updateShellWidthMode();
-  refreshControlStates();
+	updateShellWidthMode();
+	refreshControlStates();
 }
 
 async function ensureCenterRenderer(): Promise<void> {
-  const host = document.getElementById('root');
-  if (!host) return;
-  const main = host.closest('#ssr-main') as HTMLElement | null;
-  if (main) {
-    main.setAttribute('data-center-runtime', '1');
-  }
-  host.setAttribute('data-center-runtime', '1');
+	const host = document.getElementById("root");
+	if (!host) return;
+	const main = host.closest("#ssr-main") as HTMLElement | null;
+	if (main) {
+		main.setAttribute("data-center-runtime", "1");
+	}
+	host.setAttribute("data-center-runtime", "1");
 
-  if (
-    centerRendererInitPromise &&
-    centerRenderHost === host &&
-    centerRenderHost.isConnected &&
-    centerRenderRoot
-  ) {
-    return centerRendererInitPromise;
-  }
+	if (
+		centerRendererInitPromise &&
+		centerRenderHost === host &&
+		centerRenderHost.isConnected &&
+		centerRenderRoot
+	) {
+		return centerRendererInitPromise;
+	}
 
-  centerRendererInitPromise = (async () => {
-    if (centerRenderRoot && centerRenderHost !== host) {
-      try {
-        centerRenderRoot.unmount();
-      } catch {
-        // ignore unmount errors
-      }
-      centerRenderRoot = null;
-    }
+	centerRendererInitPromise = (async () => {
+		if (centerRenderRoot && centerRenderHost !== host) {
+			try {
+				centerRenderRoot.unmount();
+			} catch {
+				// ignore unmount errors
+			}
+			centerRenderRoot = null;
+		}
 
-    const [{ createElement }, reactDom] = await Promise.all([
-      import('react'),
-      import('react-dom/client'),
-    ]);
-    const nextRoot = reactDom.createRoot(host);
-    centerRenderHost = host;
-    centerRenderRoot = nextRoot;
+		const [{ createElement }, reactDom] = await Promise.all([
+			import("react"),
+			import("react-dom/client"),
+		]);
+		const nextRoot = reactDom.createRoot(host);
+		centerRenderHost = host;
+		centerRenderRoot = nextRoot;
 
-    const renderCenter = (centerView: CenterViewState) => {
-      if (!centerView || !centerRenderRoot) return;
-      const View = centerView.view as any;
-      centerRenderRoot.render(
-        createElement(
-          'div',
-          { className: 'ssr-center-runtime' },
-          createElement(View, centerView.config ?? {}),
-        ),
-      );
-    };
+		const renderCenter = (centerView: CenterViewState) => {
+			if (!centerView || !centerRenderRoot) return;
+			const View = centerView.view as any;
+			centerRenderRoot.render(
+				createElement(
+					"div",
+					{ className: "ssr-center-runtime" },
+					createElement(View, centerView.config ?? {}),
+				),
+			);
+		};
 
-    renderCenter(($centerView.getState?.() as CenterViewState) ?? null);
+		renderCenter(($centerView.getState?.() as CenterViewState) ?? null);
 
-    if (!centerRenderWatchStop) {
-      const watchResult = $centerView.watch((next) => {
-        renderCenter((next as CenterViewState) ?? null);
-      });
-      centerRenderWatchStop =
-        typeof watchResult === 'function'
-          ? watchResult
-          : () => (watchResult as { unsubscribe?: () => void }).unsubscribe?.();
-    }
-  })();
+		if (!centerRenderWatchStop) {
+			const watchResult = $centerView.watch((next) => {
+				renderCenter((next as CenterViewState) ?? null);
+			});
+			centerRenderWatchStop =
+				typeof watchResult === "function"
+					? watchResult
+					: () => (watchResult as { unsubscribe?: () => void }).unsubscribe?.();
+		}
+	})();
 
-  return centerRendererInitPromise;
+	return centerRendererInitPromise;
 }
 
-function setRightRailMode(mode: 'chat' | 'tab'): void {
-  const rail = document.getElementById(SSR_RIGHT_RAIL_ID);
-  if (!rail) return;
-  rail.dataset.mode = mode;
-  refreshRightRailTabs();
+function setRightRailMode(mode: "chat" | "tab"): void {
+	const rail = document.getElementById(SSR_RIGHT_RAIL_ID);
+	if (!rail) return;
+	rail.dataset.mode = mode;
+	refreshRightRailTabs();
 }
 
 function setRightRailOpen(open: boolean): void {
-  const rail = document.getElementById(SSR_RIGHT_RAIL_ID);
-  const appShell = document.getElementById('app-shell');
-  const shell = document.getElementById('ssr-shell');
-  const next = open ? '1' : '0';
-  if (rail) {
-    rail.dataset.open = next;
-  }
-  if (shell) {
-    shell.dataset.railOpen = next;
-  }
-  if (appShell) {
-    appShell.dataset.railOpen = next;
-  }
-  refreshControlStates();
-  refreshRightRailTabs();
+	const rail = document.getElementById(SSR_RIGHT_RAIL_ID);
+	const appShell = document.getElementById("app-shell");
+	const shell = document.getElementById("ssr-shell");
+	const next = open ? "1" : "0";
+	if (rail) {
+		rail.dataset.open = next;
+	}
+	if (shell) {
+		shell.dataset.railOpen = next;
+	}
+	if (appShell) {
+		appShell.dataset.railOpen = next;
+	}
+	refreshControlStates();
+	refreshRightRailTabs();
 }
 
 function refreshRightRailTabs(): void {
-  const rail = document.getElementById(SSR_RIGHT_RAIL_ID);
-  if (!rail) return;
-  const mode = rail.dataset.mode === 'tab' ? 'tab' : 'chat';
-  const chat = rail.querySelector<HTMLButtonElement>('[data-ssr-rail-tab="chat"]');
-  const tab = rail.querySelector<HTMLButtonElement>('[data-ssr-rail-tab="tab"]');
-  if (chat) {
-    chat.setAttribute('aria-pressed', mode === 'chat' ? 'true' : 'false');
-  }
-  if (tab) {
-    tab.setAttribute('aria-pressed', mode === 'tab' ? 'true' : 'false');
-  }
+	const rail = document.getElementById(SSR_RIGHT_RAIL_ID);
+	if (!rail) return;
+	const mode = rail.dataset.mode === "tab" ? "tab" : "chat";
+	const chat = rail.querySelector<HTMLButtonElement>(
+		'[data-ssr-rail-tab="chat"]',
+	);
+	const tab = rail.querySelector<HTMLButtonElement>(
+		'[data-ssr-rail-tab="tab"]',
+	);
+	if (chat) {
+		chat.setAttribute("aria-pressed", mode === "chat" ? "true" : "false");
+	}
+	if (tab) {
+		tab.setAttribute("aria-pressed", mode === "tab" ? "true" : "false");
+	}
 }
 
 function installRightRailTabs(): void {
-  const rail = document.getElementById(SSR_RIGHT_RAIL_ID);
-  if (!rail) return;
-  const chat = rail.querySelector<HTMLButtonElement>('[data-ssr-rail-tab="chat"]');
-  const tab = rail.querySelector<HTMLButtonElement>('[data-ssr-rail-tab="tab"]');
-  if (!chat && !tab) return;
+	const rail = document.getElementById(SSR_RIGHT_RAIL_ID);
+	if (!rail) return;
+	const chat = rail.querySelector<HTMLButtonElement>(
+		'[data-ssr-rail-tab="chat"]',
+	);
+	const tab = rail.querySelector<HTMLButtonElement>(
+		'[data-ssr-rail-tab="tab"]',
+	);
+	if (!chat && !tab) return;
 
-  if (!railTabsBound) {
-    railTabsBound = true;
-    chat?.addEventListener('click', () => {
-      setRightRailOpen(true);
-      setRightRailMode('chat');
-      void ensureRightRailRuntime().then(() => {
-        runActionEvent({ actionId: 'chats.show', params: {} });
-      });
-    });
-    tab?.addEventListener('click', () => {
-      setRightRailOpen(true);
-      setRightRailMode('tab');
-    });
-  }
+	if (!railTabsBound) {
+		railTabsBound = true;
+		chat?.addEventListener("click", () => {
+			setRightRailOpen(true);
+			setRightRailMode("chat");
+			void ensureRightRailRuntime().then(() => {
+				runActionEvent({ actionId: "chats.show", params: {} });
+			});
+		});
+		tab?.addEventListener("click", () => {
+			setRightRailOpen(true);
+			setRightRailMode("tab");
+		});
+	}
 
-  refreshRightRailTabs();
+	refreshRightRailTabs();
 }
 
 function syncRightRailMode(tabId: string | null | undefined): void {
-  if (tabId && tabId !== 'menu') {
-    setRightRailOpen(true);
-    setRightRailMode('tab');
-    return;
-  }
-  setRightRailMode('chat');
+	if (tabId && tabId !== "menu") {
+		setRightRailOpen(true);
+		setRightRailMode("tab");
+		return;
+	}
+	setRightRailMode("chat");
 }
 
 async function ensureAssistantsLoaded(): Promise<void> {
-  const moduleName = 'mf-assistants';
-  if (loadedModules.has(moduleName)) return;
-  if (isAuthenticated()) {
-    const available = await discoverMicrofrontends();
-    if (!available.includes(moduleName)) return;
-  }
+	const moduleName = "mf-assistants";
+	if (loadedModules.has(moduleName)) return;
+	if (isAuthenticated()) {
+		const available = await discoverMicrofrontends();
+		if (!available.includes(moduleName)) return;
+	}
 
-  initMicrofrontendEnv();
+	initMicrofrontendEnv();
 
-  try {
-    const runtime = await import(moduleName);
-    const groupId = getMfGroup(moduleName);
+	try {
+		const runtime = await import(moduleName);
+		const groupId = getMfGroup(moduleName);
 
-    if (!loadedModules.has(moduleName) && runtime?.default?.plug) {
-      runtime.default.plug(bus);
-      loadedModules.add(moduleName);
-    }
+		if (!loadedModules.has(moduleName) && runtime?.default?.plug) {
+			runtime.default.plug(bus);
+			loadedModules.add(moduleName);
+		}
 
-    if (runtime?.MENU) {
-      if (!loadedGroupMenus[groupId]) loadedGroupMenus[groupId] = [];
-      const alreadyAdded = loadedGroupMenus[groupId].some(
-        (item) => item && item.key === runtime.MENU.key,
-      );
-      if (!alreadyAdded) {
-        loadedGroupMenus[groupId].push(
-          bindMenuToMicrofrontend(
-            runtime.MENU,
-            resolveMicrofrontendNamespace(moduleName, runtime),
-          ),
-        );
-        publishLoadedGroupsMenu();
-      }
-    }
-  } catch (error) {
-    console.error('[ssr-menu] failed to preload mf-assistants', error);
-  }
+		if (runtime?.MENU) {
+			if (!loadedGroupMenus[groupId]) loadedGroupMenus[groupId] = [];
+			const alreadyAdded = loadedGroupMenus[groupId].some(
+				(item) => item && item.key === runtime.MENU.key,
+			);
+			if (!alreadyAdded) {
+				loadedGroupMenus[groupId].push(
+					bindMenuToMicrofrontend(
+						runtime.MENU,
+						resolveMicrofrontendNamespace(moduleName, runtime),
+					),
+				);
+				publishLoadedGroupsMenu();
+			}
+		}
+	} catch (error) {
+		console.error("[ssr-menu] failed to preload mf-assistants", error);
+	}
 }
 
 async function ensureRightRailRuntime(): Promise<void> {
-  const rail = document.getElementById(SSR_RIGHT_RAIL_ID);
-  if (!rail) return;
+	const rail = document.getElementById(SSR_RIGHT_RAIL_ID);
+	if (!rail) return;
 
-  const host = document.getElementById(SSR_SLOT_PROVIDER_ROOT_ID);
-  if (!host) return;
+	const host = document.getElementById(SSR_SLOT_PROVIDER_ROOT_ID);
+	if (!host) return;
 
-  if (rightRailInitPromise && rightRailHost === host && rightRailPortalRoot) {
-    return rightRailInitPromise;
-  }
+	if (rightRailInitPromise && rightRailHost === host && rightRailPortalRoot) {
+		return rightRailInitPromise;
+	}
 
-  rightRailInitPromise = (async () => {
-    if (rightRailPortalRoot && rightRailHost !== host) {
-      try {
-        rightRailPortalRoot.unmount();
-      } catch {
-        // ignore unmount errors
-      }
-      rightRailPortalRoot = null;
-    }
+	rightRailInitPromise = (async () => {
+		if (rightRailPortalRoot && rightRailHost !== host) {
+			try {
+				rightRailPortalRoot.unmount();
+			} catch {
+				// ignore unmount errors
+			}
+			rightRailPortalRoot = null;
+		}
 
-    const [{ createElement }, reactDom, { SlotProvider }, sidebarStore] = await Promise.all([
-      import('react'),
-      import('react-dom/client'),
-      import('../slots/SlotProvider'),
-      import('sidebar-controller'),
-    ]);
+		const [{ createElement }, reactDom, { SlotProvider }, sidebarStore] =
+			await Promise.all([
+				import("react"),
+				import("react-dom/client"),
+				import("../slots/SlotProvider"),
+				import("sidebar-controller"),
+			]);
 
-    const nextRoot = reactDom.createRoot(host);
-    rightRailHost = host;
-    rightRailPortalRoot = nextRoot;
-    rightRailPortalRoot.render(createElement(SlotProvider));
+		const nextRoot = reactDom.createRoot(host);
+		rightRailHost = host;
+		rightRailPortalRoot = nextRoot;
+		rightRailPortalRoot.render(createElement(SlotProvider));
 
-    syncRightRailMode((sidebarStore.$activeTab.getState?.() as string) ?? 'menu');
-    if (!rightRailWatchStop) {
-      const watchResult = sidebarStore.$activeTab.watch((tabId: string) => {
-        syncRightRailMode(tabId);
-      });
-      rightRailWatchStop =
-        typeof watchResult === 'function'
-          ? watchResult
-          : () => (watchResult as { unsubscribe?: () => void }).unsubscribe?.();
-    }
+		syncRightRailMode(
+			(sidebarStore.$activeTab.getState?.() as string) ?? "menu",
+		);
+		if (!rightRailWatchStop) {
+			const watchResult = sidebarStore.$activeTab.watch((tabId: string) => {
+				syncRightRailMode(tabId);
+			});
+			rightRailWatchStop =
+				typeof watchResult === "function"
+					? watchResult
+					: () => (watchResult as { unsubscribe?: () => void }).unsubscribe?.();
+		}
 
-    await ensureAssistantsLoaded();
+		await ensureAssistantsLoaded();
 
-    if (!rightRailChatBootstrapped && isAuthenticated()) {
-      rightRailChatBootstrapped = true;
-      const chatSlot = document.getElementById('slot-panel-chat');
-      if (chatSlot) {
-        chatSlot.innerHTML = '';
-      }
-      runActionEvent({ actionId: 'chats.show', params: {} });
-    }
-  })();
+		if (!rightRailChatBootstrapped && isAuthenticated()) {
+			rightRailChatBootstrapped = true;
+			const chatSlot = document.getElementById("slot-panel-chat");
+			if (chatSlot) {
+				chatSlot.innerHTML = "";
+			}
+			runActionEvent({ actionId: "chats.show", params: {} });
+		}
+	})();
 
-  return rightRailInitPromise;
+	return rightRailInitPromise;
 }
 
 const bridge = createBridgeController({
-  onMenuAction: async (actionId) => {
-    await Promise.all([ensureCenterRenderer(), ensureRightRailRuntime()]);
-    rightRailActionSelected(actionId);
-    runActionEvent({ actionId, params: {} });
-  },
+	onMenuAction: async (actionId) => {
+		await Promise.all([ensureCenterRenderer(), ensureRightRailRuntime()]);
+		rightRailActionSelected(actionId);
+		runActionEvent({ actionId, params: {} });
+	},
 });
 
 function ensureStyles(): void {
-  if (document.getElementById(SSR_MENU_STYLE_ID)) return;
-  const style = document.createElement('style');
-  style.id = SSR_MENU_STYLE_ID;
-  style.textContent = `
+	if (document.getElementById(SSR_MENU_STYLE_ID)) return;
+	const style = document.createElement("style");
+	style.id = SSR_MENU_STYLE_ID;
+	style.textContent = `
 .ssr-panel-link {
   display: flex;
   align-items: center;
@@ -702,17 +798,17 @@ function ensureStyles(): void {
   transform: translateY(0);
 }
 `;
-  document.head.appendChild(style);
+	document.head.appendChild(style);
 }
 
 function ensureFrontCoreStyles(): void {
-  if (document.getElementById(FRONT_CORE_STYLE_ID)) return;
+	if (document.getElementById(FRONT_CORE_STYLE_ID)) return;
 
-  const link = document.createElement('link');
-  link.id = FRONT_CORE_STYLE_ID;
-  link.rel = 'stylesheet';
-  link.href = '/front-core.css';
-  document.head.appendChild(link);
+	const link = document.createElement("link");
+	link.id = FRONT_CORE_STYLE_ID;
+	link.rel = "stylesheet";
+	link.href = "/front-core.css";
+	document.head.appendChild(link);
 }
 
 /* ── navigation progress ── */
@@ -720,1114 +816,1299 @@ let navBarEl: HTMLElement | null = null;
 let navDoneTimer: ReturnType<typeof setTimeout> | null = null;
 
 function getNavBar(): HTMLElement {
-  if (!navBarEl) {
-    navBarEl = document.createElement('div');
-    navBarEl.id = 'ssr-nav-bar';
-    document.body.appendChild(navBarEl);
-  }
-  return navBarEl;
+	if (!navBarEl) {
+		navBarEl = document.createElement("div");
+		navBarEl.id = "ssr-nav-bar";
+		document.body.appendChild(navBarEl);
+	}
+	return navBarEl;
 }
 
 function navProgressStart(): void {
-  const bar = getNavBar();
-  if (navDoneTimer) { clearTimeout(navDoneTimer); navDoneTimer = null; }
-  bar.className = '';
-  bar.style.opacity = '1';
-  bar.getBoundingClientRect();
-  bar.className = 'nav-running';
+	const bar = getNavBar();
+	if (navDoneTimer) {
+		clearTimeout(navDoneTimer);
+		navDoneTimer = null;
+	}
+	bar.className = "";
+	bar.style.opacity = "1";
+	bar.getBoundingClientRect();
+	bar.className = "nav-running";
 
-  const root = document.getElementById('root');
-  if (root) {
-    root.classList.remove('nav-entering', 'nav-entered');
-    root.getBoundingClientRect();
-    root.classList.add('nav-leaving');
-  }
+	const root = document.getElementById("root");
+	if (root) {
+		root.classList.remove("nav-entering", "nav-entered");
+		root.getBoundingClientRect();
+		root.classList.add("nav-leaving");
+	}
 }
 
 function navProgressDone(): void {
-  const bar = getNavBar();
-  bar.className = 'nav-done';
-  navDoneTimer = setTimeout(() => {
-    bar.className = '';
-    bar.style.opacity = '1';
-  }, 450);
+	const bar = getNavBar();
+	bar.className = "nav-done";
+	navDoneTimer = setTimeout(() => {
+		bar.className = "";
+		bar.style.opacity = "1";
+	}, 450);
 
-  const root = document.getElementById('root');
-  if (root) {
-    root.classList.add('nav-entering');
-    root.getBoundingClientRect();
-    root.classList.replace('nav-entering', 'nav-entered');
-  }
+	const root = document.getElementById("root");
+	if (root) {
+		root.classList.add("nav-entering");
+		root.getBoundingClientRect();
+		root.classList.replace("nav-entering", "nav-entered");
+	}
 }
 
-function isInterceptableLink(link: HTMLAnchorElement, event: MouseEvent): boolean {
-  if (event.defaultPrevented) return false;
-  if (event.button !== 0) return false;
-  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return false;
-  if (link.target && link.target !== '_self') return false;
-  if (link.hasAttribute('download')) return false;
+function isInterceptableLink(
+	link: HTMLAnchorElement,
+	event: MouseEvent,
+): boolean {
+	if (event.defaultPrevented) return false;
+	if (event.button !== 0) return false;
+	if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+		return false;
+	if (link.target && link.target !== "_self") return false;
+	if (link.hasAttribute("download")) return false;
 
-  const href = link.getAttribute('href');
-  if (!href) return false;
-  if (href.startsWith('#')) return false;
-  if (href.startsWith('mailto:') || href.startsWith('tel:') || href.startsWith('javascript:')) {
-    return false;
-  }
+	const href = link.getAttribute("href");
+	if (!href) return false;
+	if (href.startsWith("#")) return false;
+	if (
+		href.startsWith("mailto:") ||
+		href.startsWith("tel:") ||
+		href.startsWith("javascript:")
+	) {
+		return false;
+	}
 
-  const url = new URL(link.href, window.location.href);
-  if (url.origin !== window.location.origin) return false;
-  return true;
+	const url = new URL(link.href, window.location.href);
+	if (url.origin !== window.location.origin) return false;
+	return true;
 }
 
 function resolveEventElement(target: EventTarget | null): Element | null {
-  if (target instanceof Element) return target;
-  if (target instanceof Node) return target.parentElement;
-  return null;
+	if (target instanceof Element) return target;
+	if (target instanceof Node) return target.parentElement;
+	return null;
 }
 
 function extractRootFromHtml(html: string): HTMLElement | null {
-  const parsed = new DOMParser().parseFromString(html, 'text/html');
-  const nextRoot = parsed.getElementById('root');
-  if (!nextRoot) return null;
-  document.title = parsed.title || document.title;
-  return nextRoot;
+	const parsed = new DOMParser().parseFromString(html, "text/html");
+	const nextRoot = parsed.getElementById("root");
+	if (!nextRoot) return null;
+	document.title = parsed.title || document.title;
+	return nextRoot;
+}
+
+function scrollToHashTarget(hash: string): void {
+	const rawId = hash.replace(/^#/, "");
+	if (!rawId) return;
+
+	let id = rawId;
+	try {
+		id = decodeURIComponent(rawId);
+	} catch {
+		id = rawId;
+	}
+
+	document
+		.getElementById(id)
+		?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 type RuntimeMenuItem = {
-  key?: string;
-  title?: string;
-  iconName?: string;
-  icon?: unknown;
-  action?: unknown;
-  href?: string;
-  __microfrontendId?: string;
-  items?: RuntimeMenuItem[];
+	key?: string;
+	title?: string;
+	iconName?: string;
+	icon?: unknown;
+	action?: unknown;
+	href?: string;
+	__microfrontendId?: string;
+	items?: RuntimeMenuItem[];
 };
 
 type InitialDataShape = {
-  microfrontends?: string[];
-  mfEnv?: Record<string, unknown>;
-  guestMenu?: Array<{ title: string; href: string; iconName?: string }>;
+	microfrontends?: string[];
+	mfEnv?: Record<string, unknown>;
+	guestMenu?: RuntimeMenuItem[];
 };
-
 
 const MENU_ICON_SVG: Record<string, string> = {
-  IconBrain:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 4a3 3 0 0 0-3 3v1.2a2.8 2.8 0 0 0 0 5.6V15a3 3 0 0 0 3 3"/><path d="M14.5 4a3 3 0 0 1 3 3v1.2a2.8 2.8 0 0 1 0 5.6V15a3 3 0 0 1-3 3"/><path d="M9.5 10.5h5"/><path d="M9.5 15.5h5"/><path d="M12 4v14"/></svg>',
-  IconBriefcase:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M3 12h18"/></svg>',
-  IconGlobe:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a13 13 0 0 1 0 18"/><path d="M12 3a13 13 0 0 0 0 18"/></svg>',
-  IconTarget:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/></svg>',
-  IconGitBranch:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="5" r="2"/><circle cx="18" cy="19" r="2"/><circle cx="6" cy="19" r="2"/><path d="M6 7v8a4 4 0 0 0 4 4h6"/><path d="M18 17v-2a4 4 0 0 0-4-4H6"/></svg>',
-  IconChartBar:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V9"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg>',
-  IconDatabase:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v7c0 1.7 3.6 3 8 3s8-1.3 8-3v-7"/></svg>',
-  IconFileText:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/></svg>',
-  IconMessages:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2"/><path d="M8 20l4-4h8a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2z"/></svg>',
+	IconBrain:
+		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 4a3 3 0 0 0-3 3v1.2a2.8 2.8 0 0 0 0 5.6V15a3 3 0 0 0 3 3"/><path d="M14.5 4a3 3 0 0 1 3 3v1.2a2.8 2.8 0 0 1 0 5.6V15a3 3 0 0 1-3 3"/><path d="M9.5 10.5h5"/><path d="M9.5 15.5h5"/><path d="M12 4v14"/></svg>',
+	IconBriefcase:
+		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M3 12h18"/></svg>',
+	IconGlobe:
+		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a13 13 0 0 1 0 18"/><path d="M12 3a13 13 0 0 0 0 18"/></svg>',
+	IconTarget:
+		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/></svg>',
+	IconGitBranch:
+		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="5" r="2"/><circle cx="18" cy="19" r="2"/><circle cx="6" cy="19" r="2"/><path d="M6 7v8a4 4 0 0 0 4 4h6"/><path d="M18 17v-2a4 4 0 0 0-4-4H6"/></svg>',
+	IconChartBar:
+		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V9"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg>',
+	IconDatabase:
+		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v7c0 1.7 3.6 3 8 3s8-1.3 8-3v-7"/></svg>',
+	IconFileText:
+		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/></svg>',
+	IconMessages:
+		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2"/><path d="M8 20l4-4h8a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2z"/></svg>',
 };
 const MENU_CHEVRON_SVG =
-  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
+	'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
 
 function resolveActionId(action: unknown): string | null {
-  if (typeof action === 'string' && action.length > 0) return action;
-  if (action && typeof action === 'object' && 'id' in action) {
-    const id = (action as { id?: unknown }).id;
-    if (typeof id === 'string' && id.length > 0) return id;
-  }
-  return null;
+	if (typeof action === "string" && action.length > 0) return action;
+	if (action && typeof action === "object" && "id" in action) {
+		const id = (action as { id?: unknown }).id;
+		if (typeof id === "string" && id.length > 0) return id;
+	}
+	return null;
 }
 
 function resolveLabel(item: RuntimeMenuItem, index: number): string {
-  const raw = item.title || item.key || `Item ${index + 1}`;
-  if (raw.startsWith('menu.')) {
-    const i18n = getI18nInstance();
-    if (i18n.isInitialized) {
-      if (item.__microfrontendId) {
-        const scoped = i18n.t(`${item.__microfrontendId}.${raw}`, { ns: "menu-groups" });
-        if (scoped && scoped !== `${item.__microfrontendId}.${raw}`) return scoped;
-      }
-      const translated = i18n.t(raw, { ns: "menu-groups" });
-      if (translated && translated !== raw) return translated;
-    }
-    const short = raw.slice(5).split('.').pop() || raw.slice(5);
-    const normalized = short.replace(/[_-]+/g, ' ').trim();
-    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
-  }
-  return raw;
+	const raw = item.title || item.key || `Item ${index + 1}`;
+	if (raw.startsWith("menu.")) {
+		const i18n = getI18nInstance();
+		if (i18n.isInitialized) {
+			if (item.__microfrontendId) {
+				const scoped = i18n.t(`${item.__microfrontendId}.${raw}`, {
+					ns: "menu-groups",
+				});
+				if (scoped && scoped !== `${item.__microfrontendId}.${raw}`)
+					return scoped;
+			}
+			const translated = i18n.t(raw, { ns: "menu-groups" });
+			if (translated && translated !== raw) return translated;
+		}
+		const short = raw.slice(5).split(".").pop() || raw.slice(5);
+		const normalized = short.replace(/[_-]+/g, " ").trim();
+		return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+	}
+	return raw;
 }
 
-function bindMenuToMicrofrontend(item: RuntimeMenuItem, microfrontendId: string): RuntimeMenuItem {
-  return {
-    ...item,
-    __microfrontendId: microfrontendId,
-    items: Array.isArray(item.items)
-      ? item.items.map((child) => bindMenuToMicrofrontend(child, microfrontendId))
-      : item.items,
-  };
+function bindMenuToMicrofrontend(
+	item: RuntimeMenuItem,
+	microfrontendId: string,
+): RuntimeMenuItem {
+	return {
+		...item,
+		__microfrontendId: microfrontendId,
+		items: Array.isArray(item.items)
+			? item.items.map((child) =>
+					bindMenuToMicrofrontend(child, microfrontendId),
+				)
+			: item.items,
+	};
 }
 
-function resolveMicrofrontendNamespace(moduleName: string, runtime: any): string {
-  const id = runtime?.ID ?? runtime?.default?.name;
-  if (typeof id === 'string' && id.length > 0) {
-    if (id.startsWith('mf-')) return id;
-    if (id.endsWith('-mf')) return `mf-${id.slice(0, -3)}`;
-    return id;
-  }
-  return moduleName;
+function resolveMicrofrontendNamespace(
+	moduleName: string,
+	runtime: any,
+): string {
+	const id = runtime?.ID ?? runtime?.default?.name;
+	if (typeof id === "string" && id.length > 0) {
+		if (id.startsWith("mf-")) return id;
+		if (id.endsWith("-mf")) return `mf-${id.slice(0, -3)}`;
+		return id;
+	}
+	return moduleName;
 }
 
 function resolveIconName(item: RuntimeMenuItem, depth: number): string | null {
-  if (typeof item.iconName === 'string' && item.iconName.length > 0) {
-    return item.iconName;
-  }
-  if (typeof item.icon === 'string' && item.icon.length > 0) {
-    return item.icon;
-  }
-  if (depth === 0 && item.key) {
-    const group = GROUPS.find((g) => g.id === item.key);
-    if (group?.iconName) return group.iconName;
-  }
-  return null;
+	if (typeof item.iconName === "string" && item.iconName.length > 0) {
+		return item.iconName;
+	}
+	if (typeof item.icon === "string" && item.icon.length > 0) {
+		return item.icon;
+	}
+	if (depth === 0 && item.key) {
+		const group = GROUPS.find((g) => g.id === item.key);
+		if (group?.iconName) return group.iconName;
+	}
+	return null;
 }
 
 function setMenuIcon(target: HTMLElement, iconName: string | null): void {
-  target.className = 'ssr-menu-icon';
-  if (!iconName) {
-    target.classList.add('ssr-menu-icon-empty');
-    target.innerHTML = '';
-    return;
-  }
-  const svg = MENU_ICON_SVG[iconName];
-  if (!svg) {
-    target.classList.add('ssr-menu-icon-empty');
-    target.innerHTML = '';
-    return;
-  }
-  target.innerHTML = svg;
+	target.className = "ssr-menu-icon";
+	if (!iconName) {
+		target.classList.add("ssr-menu-icon-empty");
+		target.innerHTML = "";
+		return;
+	}
+	const svg = MENU_ICON_SVG[iconName];
+	if (!svg) {
+		target.classList.add("ssr-menu-icon-empty");
+		target.innerHTML = "";
+		return;
+	}
+	target.innerHTML = svg;
 }
 
 function setMenuChevron(target: HTMLElement, withArrow: boolean): void {
-  target.className = withArrow ? 'ssr-menu-chevron' : 'ssr-menu-chevron ssr-menu-chevron-empty';
-  target.innerHTML = MENU_CHEVRON_SVG;
+	target.className = withArrow
+		? "ssr-menu-chevron"
+		: "ssr-menu-chevron ssr-menu-chevron-empty";
+	target.innerHTML = MENU_CHEVRON_SVG;
 }
 
 function createGroupButton(groupId: string, title: string): HTMLButtonElement {
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = 'ssr-panel-link ssr-menu-action';
-  button.dataset.groupId = groupId;
+	const button = document.createElement("button");
+	button.type = "button";
+	button.className = "ssr-panel-link ssr-menu-action";
+	button.dataset.groupId = groupId;
 
-  const chevron = document.createElement('span');
-  setMenuChevron(chevron, true);
-  const icon = document.createElement('span');
-  const groupIconName = GROUPS.find((g) => g.id === groupId)?.iconName ?? null;
-  setMenuIcon(icon, groupIconName);
-  const text = document.createElement('span');
-  text.className = 'ssr-menu-label';
-  text.textContent = title;
-  button.append(chevron, icon, text);
-  return button;
+	const chevron = document.createElement("span");
+	setMenuChevron(chevron, true);
+	const icon = document.createElement("span");
+	const groupIconName = GROUPS.find((g) => g.id === groupId)?.iconName ?? null;
+	setMenuIcon(icon, groupIconName);
+	const text = document.createElement("span");
+	text.className = "ssr-menu-label";
+	text.textContent = title;
+	button.append(chevron, icon, text);
+	return button;
 }
 
 function renderFallbackGroups(host: HTMLElement): void {
-  host.innerHTML = '';
-  if (!isAuthenticated()) return;
-  const availableGroups = GROUPS.filter((group) => !visibleGroupIds || visibleGroupIds.has(group.id));
-  for (const group of availableGroups) {
-    host.appendChild(createGroupButton(group.id, group.title));
-  }
+	host.innerHTML = "";
+	if (!isAuthenticated()) return;
+	const availableGroups = GROUPS.filter(
+		(group) => !visibleGroupIds || visibleGroupIds.has(group.id),
+	);
+	for (const group of availableGroups) {
+		host.appendChild(createGroupButton(group.id, group.title));
+	}
 }
 
 function readInitialData(): InitialDataShape {
-  const el = document.getElementById('__INITIAL_DATA__');
-  if (!el?.textContent) return {};
-  try {
-    return JSON.parse(el.textContent) as InitialDataShape;
-  } catch {
-    return {};
-  }
+	const el = document.getElementById("__INITIAL_DATA__");
+	if (!el?.textContent) return {};
+	try {
+		return JSON.parse(el.textContent) as InitialDataShape;
+	} catch {
+		return {};
+	}
 }
 
 function initMicrofrontendEnv(): void {
-  const initial = readInitialData();
-  const current = ((globalThis as any).__MF_ENV__ ?? {}) as Record<string, unknown>;
-  const next = initial.mfEnv && typeof initial.mfEnv === 'object' ? initial.mfEnv : {};
-  (globalThis as any).__MF_ENV__ = { ...current, ...next };
+	const initial = readInitialData();
+	const current = ((globalThis as any).__MF_ENV__ ?? {}) as Record<
+		string,
+		unknown
+	>;
+	const next =
+		initial.mfEnv && typeof initial.mfEnv === "object" ? initial.mfEnv : {};
+	(globalThis as any).__MF_ENV__ = { ...current, ...next };
 }
 
 function normalizeMfName(name: string): string {
-  const trimmed = name.trim();
-  if (!trimmed) return '';
-  return trimmed.startsWith('mf-') ? trimmed : `mf-${trimmed}`;
+	const trimmed = name.trim();
+	if (!trimmed) return "";
+	return trimmed.startsWith("mf-") ? trimmed : `mf-${trimmed}`;
 }
 
 function discoverMicrofrontendsFromRuntime(): string[] {
-  const initial = readInitialData();
-  const list = Array.isArray(initial.microfrontends) ? initial.microfrontends : [];
-  const fromInitial = list
-    .filter((name): name is string => typeof name === 'string' && name.length > 0)
-    .map((name) => normalizeMfName(name))
-    .filter((name) => name.length > 0);
+	const initial = readInitialData();
+	const list = Array.isArray(initial.microfrontends)
+		? initial.microfrontends
+		: [];
+	const fromInitial = list
+		.filter(
+			(name): name is string => typeof name === "string" && name.length > 0,
+		)
+		.map((name) => normalizeMfName(name))
+		.filter((name) => name.length > 0);
 
-  const script = document.querySelector('script[type="importmap"]');
-  let fromImportMap: string[] = [];
-  if (script?.textContent) {
-    try {
-      const parsed = JSON.parse(script.textContent) as { imports?: Record<string, string> };
-      fromImportMap = Object.keys(parsed.imports ?? {}).filter((key) => key.startsWith('mf-'));
-    } catch {
-      fromImportMap = [];
-    }
-  }
+	const script = document.querySelector('script[type="importmap"]');
+	let fromImportMap: string[] = [];
+	if (script?.textContent) {
+		try {
+			const parsed = JSON.parse(script.textContent) as {
+				imports?: Record<string, string>;
+			};
+			fromImportMap = Object.keys(parsed.imports ?? {}).filter((key) =>
+				key.startsWith("mf-"),
+			);
+		} catch {
+			fromImportMap = [];
+		}
+	}
 
-  return [...new Set([...fromInitial, ...fromImportMap])];
+	return [...new Set([...fromInitial, ...fromImportMap])];
 }
 
 async function fetchAllowedMicrofrontends(): Promise<string[] | null> {
-  if (!isAuthenticated()) return [];
+	if (!isAuthenticated()) return [];
 
-  const token = authToken.get();
-  const payload = authToken.payload();
-  if (!token || !payload?.sub) return null;
+	const token = authToken.get();
+	const payload = authToken.payload();
+	if (!token || !payload?.sub) return null;
 
-  const cacheKey = `${payload.sub}:${token}`;
-  if (allowedMicrofrontendsCacheKey === cacheKey && allowedMicrofrontendsCache) {
-    return allowedMicrofrontendsCache;
-  }
-  if (allowedMicrofrontendsCacheKey === cacheKey && allowedMicrofrontendsPromise) {
-    return allowedMicrofrontendsPromise;
-  }
+	const cacheKey = `${payload.sub}:${token}`;
+	if (
+		allowedMicrofrontendsCacheKey === cacheKey &&
+		allowedMicrofrontendsCache
+	) {
+		return allowedMicrofrontendsCache;
+	}
+	if (
+		allowedMicrofrontendsCacheKey === cacheKey &&
+		allowedMicrofrontendsPromise
+	) {
+		return allowedMicrofrontendsPromise;
+	}
 
-  const promise = (async () => {
-    try {
-      const response = await fetch(MODULES_LIST_FOR_USER_PATH, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          authorization: `Bearer ${token}`,
-        },
-        credentials: 'same-origin',
-        body: JSON.stringify({ userId: payload.sub }),
-      });
+	const promise = (async () => {
+		try {
+			const response = await fetch(MODULES_LIST_FOR_USER_PATH, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					authorization: `Bearer ${token}`,
+				},
+				credentials: "same-origin",
+				body: JSON.stringify({ userId: payload.sub }),
+			});
 
-      if (!response.ok) return null;
+			if (!response.ok) return null;
 
-      const data = await response.json();
-      const names = Array.isArray(data)
-        ? data
-            .map((item) => {
-              if (!item || typeof item !== 'object') return '';
-              const rawName = (item as { name?: unknown }).name;
-              return typeof rawName === 'string' ? normalizeMfName(rawName) : '';
-            })
-            .filter((name): name is string => name.length > 0)
-        : [];
+			const data = await response.json();
+			const names = Array.isArray(data)
+				? data
+						.map((item) => {
+							if (!item || typeof item !== "object") return "";
+							const rawName = (item as { name?: unknown }).name;
+							return typeof rawName === "string"
+								? normalizeMfName(rawName)
+								: "";
+						})
+						.filter((name): name is string => name.length > 0)
+				: [];
 
-      return [...new Set(names)];
-    } catch {
-      return null;
-    }
-  })();
+			return [...new Set(names)];
+		} catch {
+			return null;
+		}
+	})();
 
-  allowedMicrofrontendsCacheKey = cacheKey;
-  allowedMicrofrontendsPromise = promise;
-  const resolved = await promise;
-  allowedMicrofrontendsCache = resolved;
-  allowedMicrofrontendsPromise = null;
-  return resolved;
+	allowedMicrofrontendsCacheKey = cacheKey;
+	allowedMicrofrontendsPromise = promise;
+	const resolved = await promise;
+	allowedMicrofrontendsCache = resolved;
+	allowedMicrofrontendsPromise = null;
+	return resolved;
 }
 
 async function discoverMicrofrontends(): Promise<string[]> {
-  const discovered = discoverMicrofrontendsFromRuntime();
+	const discovered = discoverMicrofrontendsFromRuntime();
 
-  if (!isAuthenticated()) {
-    visibleGroupIds = null;
-    return discovered;
-  }
+	if (!isAuthenticated()) {
+		visibleGroupIds = null;
+		return discovered;
+	}
 
-  const allowed = await fetchAllowedMicrofrontends();
-  if (allowed === null) {
-    visibleGroupIds = new Set<string>();
-    return [];
-  }
+	const allowed = await fetchAllowedMicrofrontends();
+	if (allowed === null) {
+		visibleGroupIds = new Set<string>();
+		return [];
+	}
 
-  const allowedSet = new Set(allowed);
-  const filtered = discovered.filter((name) => allowedSet.has(name));
-  visibleGroupIds = new Set(filtered.map((name) => getMfGroup(name)));
-  return filtered;
+	const allowedSet = new Set(allowed);
+	const filtered = discovered.filter((name) => allowedSet.has(name));
+	visibleGroupIds = new Set(filtered.map((name) => getMfGroup(name)));
+	return filtered;
 }
 
 const MF_GROUPS: Record<string, string> = {
-  'mf-assistants': 'ai',
-  'mf-agents': 'ai',
-  'mf-logs': 'analytics',
-  'mf-telemetry': 'analytics',
-  'mf-usage': 'analytics',
-  'mf-dasboards': 'analytics',
-  'mf-dag': 'workflows',
-  'mf-requests': 'workflows',
-  'mf-sheduller': 'workflows',
-  'mf-webhooks': 'workflows',
-  'mf-docs': 'content',
-  'mf-landing': 'content',
-  'mf-markdown': 'content',
-  'mf-struct': 'content',
-  'mf-galery': 'content',
-  'mf-threads': 'content',
-  'mf-dumps': 'data',
-  'mf-calls': 'social',
-  'mf-community': 'social',
-  'mf-charts': 'social',
-  'mf-marker': 'marketing',
-  'mf-mailing': 'sales',
-  'mf-sales': 'sales',
-  'mf-parameters': 'business',
-  'mf-geo': 'geo',
-  'mf-places': 'geo',
-  'mf-companies': 'geo',
+	"mf-assistants": "ai",
+	"mf-agents": "ai",
+	"mf-logs": "analytics",
+	"mf-telemetry": "analytics",
+	"mf-usage": "analytics",
+	"mf-dasboards": "analytics",
+	"mf-dag": "workflows",
+	"mf-requests": "workflows",
+	"mf-sheduller": "workflows",
+	"mf-webhooks": "workflows",
+	"mf-docs": "content",
+	"mf-landing": "content",
+	"mf-markdown": "content",
+	"mf-struct": "content",
+	"mf-galery": "content",
+	"mf-threads": "content",
+	"mf-dumps": "data",
+	"mf-calls": "social",
+	"mf-community": "social",
+	"mf-charts": "social",
+	"mf-marker": "marketing",
+	"mf-mailing": "sales",
+	"mf-sales": "sales",
+	"mf-parameters": "business",
+	"mf-geo": "geo",
+	"mf-places": "geo",
+	"mf-companies": "geo",
 };
 
 function getMfGroup(name: string): string {
-  return MF_GROUPS[name] ?? 'content';
+	return MF_GROUPS[name] ?? "content";
 }
 
 function publishLoadedGroupsMenu(): void {
-  const order = [
-    ...GROUPS.map((g) => g.id),
-    ...Object.keys(loadedGroupMenus).filter((id) => !GROUPS.some((g) => g.id === id)),
-  ];
-  const groupedMenu = order
-    .filter((id) => (loadedGroupMenus[id]?.length ?? 0) > 0)
-    .map((id) => {
-      const groupDef = GROUPS.find((g) => g.id === id);
-      return {
-        key: id,
-        title: groupDef?.title ?? id,
-        iconName: groupDef?.iconName,
-        items: loadedGroupMenus[id],
-      };
-    });
+	const order = [
+		...GROUPS.map((g) => g.id),
+		...Object.keys(loadedGroupMenus).filter(
+			(id) => !GROUPS.some((g) => g.id === id),
+		),
+	];
+	const groupedMenu = order
+		.filter((id) => (loadedGroupMenus[id]?.length ?? 0) > 0)
+		.map((id) => {
+			const groupDef = GROUPS.find((g) => g.id === id);
+			return {
+				key: id,
+				title: groupDef?.title ?? id,
+				iconName: groupDef?.iconName,
+				items: loadedGroupMenus[id],
+			};
+		});
 
-  if (groupedMenu.length > 0) {
-    addMenuRequested({ microfrontendId: 'grouped', menu: groupedMenu });
-  }
+	if (groupedMenu.length > 0) {
+		addMenuRequested({ microfrontendId: "grouped", menu: groupedMenu });
+	}
 }
 
 async function ensureGroupLoaded(groupId: string): Promise<void> {
-  const existing = groupLoadPromises.get(groupId);
-  if (existing) return existing;
+	const existing = groupLoadPromises.get(groupId);
+	if (existing) return existing;
 
-  const promise = (async () => {
-    const names = await discoverMicrofrontends();
-    if (names.length === 0) return;
-    initMicrofrontendEnv();
+	const promise = (async () => {
+		const names = await discoverMicrofrontends();
+		if (names.length === 0) return;
+		initMicrofrontendEnv();
 
-    const toLoad = names.filter((name) => getMfGroup(name) === groupId);
+		const toLoad = names.filter((name) => getMfGroup(name) === groupId);
 
-    if (!loadedGroupMenus[groupId]) loadedGroupMenus[groupId] = [];
+		if (!loadedGroupMenus[groupId]) loadedGroupMenus[groupId] = [];
 
-    for (const name of toLoad) {
-      try {
-        const runtime = await import(name);
+		for (const name of toLoad) {
+			try {
+				const runtime = await import(name);
 
-        if (!loadedModules.has(name) && runtime?.default?.plug) {
-          runtime.default.plug(bus);
-          loadedModules.add(name);
-        }
+				if (!loadedModules.has(name) && runtime?.default?.plug) {
+					runtime.default.plug(bus);
+					loadedModules.add(name);
+				}
 
-        let menu = runtime?.MENU;
-        if (!menu && typeof runtime?.getMenu === 'function') {
-          try {
-            menu = await runtime.getMenu();
-          } catch {
-            // ignore getMenu errors per module
-          }
-        }
-        if (menu) {
-          loadedGroupMenus[groupId].push(
-            bindMenuToMicrofrontend(menu, resolveMicrofrontendNamespace(name, runtime)),
-          );
-        }
-      } catch (error) {
-        console.error(`[ssr-menu] failed to load ${name}`, error);
-      }
-    }
+				let menu = runtime?.MENU;
+				if (!menu && typeof runtime?.getMenu === "function") {
+					try {
+						menu = await runtime.getMenu();
+					} catch {
+						// ignore getMenu errors per module
+					}
+				}
+				if (menu) {
+					loadedGroupMenus[groupId].push(
+						bindMenuToMicrofrontend(
+							menu,
+							resolveMicrofrontendNamespace(name, runtime),
+						),
+					);
+				}
+			} catch (error) {
+				console.error(`[ssr-menu] failed to load ${name}`, error);
+			}
+		}
 
-    publishLoadedGroupsMenu();
-  })();
+		publishLoadedGroupsMenu();
+	})();
 
-  groupLoadPromises.set(groupId, promise);
-  return promise;
+	groupLoadPromises.set(groupId, promise);
+	return promise;
 }
 
 function resetDynamicMenuRuntimeState(): void {
-  groupLoadPromises.clear();
-  for (const key of Object.keys(loadedGroupMenus)) {
-    delete loadedGroupMenus[key];
-  }
-  loadedModules.clear();
-  visibleGroupIds = null;
-  allowedMicrofrontendsCacheKey = null;
-  allowedMicrofrontendsCache = null;
-  allowedMicrofrontendsPromise = null;
-  clearAllMenus();
+	groupLoadPromises.clear();
+	for (const key of Object.keys(loadedGroupMenus)) {
+		delete loadedGroupMenus[key];
+	}
+	loadedModules.clear();
+	visibleGroupIds = null;
+	allowedMicrofrontendsCacheKey = null;
+	allowedMicrofrontendsCache = null;
+	allowedMicrofrontendsPromise = null;
+	clearAllMenus();
 }
 
-function buildTreeNode(item: RuntimeMenuItem, depth: number, index: number): HTMLElement {
-  const label = resolveLabel(item, index);
-  const children = Array.isArray(item.items) ? item.items : [];
-  const actionId = resolveActionId(item.action);
-  const iconName = resolveIconName(item, depth);
+function buildTreeNode(
+	item: RuntimeMenuItem,
+	depth: number,
+	index: number,
+): HTMLElement {
+	const label = resolveLabel(item, index);
+	const children = Array.isArray(item.items) ? item.items : [];
+	const actionId = resolveActionId(item.action);
+	const iconName = resolveIconName(item, depth);
+	const href =
+		typeof item.href === "string" && item.href.length > 0 ? item.href : null;
 
-  if (children.length > 0) {
-    const details = document.createElement('details');
-    details.className = 'ssr-menu-tree';
-    details.open = depth === 0 ? item.key === preferredOpenGroupId : false;
-    if (actionId) {
-      details.dataset.nodeActionId = actionId;
-    }
+	if (children.length > 0) {
+		const details = document.createElement("details");
+		details.className = "ssr-menu-tree";
+		details.open = depth === 0 ? item.key === preferredOpenGroupId : false;
+		if (actionId) {
+			details.dataset.nodeActionId = actionId;
+		}
+		if (href) {
+			details.dataset.nodeHref = href;
+		}
 
-    const summary = document.createElement('summary');
-    summary.className = 'ssr-panel-link ssr-menu-action';
-    summary.style.paddingLeft = `${8 + depth * 16}px`;
-    const chevron = document.createElement('span');
-    setMenuChevron(chevron, true);
-    const icon = document.createElement('span');
-    setMenuIcon(icon, iconName);
-    const text = document.createElement('span');
-    text.className = 'ssr-menu-label';
-    text.textContent = label;
-    summary.append(chevron, icon, text);
-    // Parent nodes should expand/collapse on click.
-    // Keep action binding only on leaf nodes so nested commands stay reachable.
-    details.appendChild(summary);
+		const summary = document.createElement("summary");
+		summary.className = "ssr-panel-link ssr-menu-action";
+		summary.style.paddingLeft = `${8 + depth * 16}px`;
+		const chevron = document.createElement("span");
+		setMenuChevron(chevron, true);
+		const icon = document.createElement("span");
+		setMenuIcon(icon, iconName);
+		const text = document.createElement("span");
+		text.className = "ssr-menu-label";
+		text.textContent = label;
+		summary.append(chevron, icon, text);
+		// Parent nodes should expand/collapse on click.
+		// Keep action binding only on leaf nodes so nested commands stay reachable.
+		details.appendChild(summary);
 
-    const nested = document.createElement('div');
-    nested.className = 'ssr-menu-nested';
-    children.forEach((child, childIndex) => {
-      nested.appendChild(buildTreeNode(child, depth + 1, childIndex));
-    });
-    details.appendChild(nested);
-    return details;
-  }
+		const nested = document.createElement("div");
+		nested.className = "ssr-menu-nested";
+		children.forEach((child, childIndex) => {
+			nested.appendChild(buildTreeNode(child, depth + 1, childIndex));
+		});
+		details.appendChild(nested);
+		return details;
+	}
 
-  const href = typeof item.href === 'string' && item.href.length > 0 ? item.href : null;
-  if (href) {
-    const a = document.createElement('a');
-    a.href = href;
-    a.className = 'ssr-panel-link ssr-menu-action';
-    a.style.paddingLeft = `${8 + depth * 16}px`;
-    const chevron = document.createElement('span');
-    setMenuChevron(chevron, false);
-    const icon = document.createElement('span');
-    setMenuIcon(icon, iconName);
-    const text = document.createElement('span');
-    text.className = 'ssr-menu-label';
-    text.textContent = label;
-    a.append(chevron, icon, text);
-    return a;
-  }
+	if (href) {
+		const a = document.createElement("a");
+		a.href = href;
+		a.className = "ssr-panel-link ssr-menu-action";
+		a.style.paddingLeft = `${8 + depth * 16}px`;
+		const chevron = document.createElement("span");
+		setMenuChevron(chevron, false);
+		const icon = document.createElement("span");
+		setMenuIcon(icon, iconName);
+		const text = document.createElement("span");
+		text.className = "ssr-menu-label";
+		text.textContent = label;
+		a.append(chevron, icon, text);
+		return a;
+	}
 
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = 'ssr-panel-link ssr-menu-action';
-  button.style.paddingLeft = `${8 + depth * 16}px`;
-  const chevron = document.createElement('span');
-  setMenuChevron(chevron, false);
-  const icon = document.createElement('span');
-  setMenuIcon(icon, iconName);
-  const text = document.createElement('span');
-  text.className = 'ssr-menu-label';
-  text.textContent = label;
-  button.append(chevron, icon, text);
-  if (actionId) {
-    button.dataset.actionId = actionId;
-  } else {
-    button.disabled = true;
-    button.style.opacity = '0.7';
-  }
-  return button;
+	const button = document.createElement("button");
+	button.type = "button";
+	button.className = "ssr-panel-link ssr-menu-action";
+	button.style.paddingLeft = `${8 + depth * 16}px`;
+	const chevron = document.createElement("span");
+	setMenuChevron(chevron, false);
+	const icon = document.createElement("span");
+	setMenuIcon(icon, iconName);
+	const text = document.createElement("span");
+	text.className = "ssr-menu-label";
+	text.textContent = label;
+	button.append(chevron, icon, text);
+	if (actionId) {
+		button.dataset.actionId = actionId;
+	} else {
+		button.disabled = true;
+		button.style.opacity = "0.7";
+	}
+	return button;
 }
 
 function installDynamicMenu(menuPanel: HTMLElement): void {
-  const groupsHost = menuPanel.querySelector<HTMLElement>('[data-ssr-menu-groups]');
-  if (!groupsHost) return;
+	const groupsHost = menuPanel.querySelector<HTMLElement>(
+		"[data-ssr-menu-groups]",
+	);
+	if (!groupsHost) return;
 
-  const render = (items: RuntimeMenuItem[]) => {
-    groupsHost.innerHTML = '';
-    const normalized = Array.isArray(items) ? items : [];
-    bridge.setMenu(normalized as unknown[]);
+	const render = (items: RuntimeMenuItem[]) => {
+		groupsHost.innerHTML = "";
+		const normalized = Array.isArray(items) ? items : [];
+		bridge.setMenu(normalized as unknown[]);
 
-    if (!isAuthenticated()) {
-      // Guests: render Docs + Catalog links from SSR-embedded initial data
-      const initial = readInitialData();
-      const guestItems: RuntimeMenuItem[] = Array.isArray(initial.guestMenu) ? initial.guestMenu : [];
-      for (const item of guestItems) {
-        groupsHost.appendChild(buildTreeNode(item, 0, 0));
-      }
-      return;
-    }
+		if (!isAuthenticated()) {
+			// Guests: render Docs + Catalog links from SSR-embedded initial data
+			const initial = readInitialData();
+			const guestItems: RuntimeMenuItem[] = Array.isArray(initial.guestMenu)
+				? initial.guestMenu
+				: [];
+			for (const item of guestItems) {
+				groupsHost.appendChild(buildTreeNode(item, 0, 0));
+			}
+			return;
+		}
 
-    const groupedById = new Map<string, RuntimeMenuItem>();
-    for (const item of normalized) {
-      if (item.key) groupedById.set(item.key, item);
-    }
+		const groupedById = new Map<string, RuntimeMenuItem>();
+		for (const item of normalized) {
+			if (item.key) groupedById.set(item.key, item);
+		}
 
-    const availableGroups = GROUPS.filter((group) => !visibleGroupIds || visibleGroupIds.has(group.id));
-    const availableGroupSet = new Set(availableGroups.map((group) => group.id));
+		const availableGroups = GROUPS.filter(
+			(group) => !visibleGroupIds || visibleGroupIds.has(group.id),
+		);
+		const availableGroupSet = new Set(availableGroups.map((group) => group.id));
 
-    for (const group of availableGroups) {
-      const node = groupedById.get(group.id);
-      if (node) {
-        groupsHost.appendChild(buildTreeNode(node, 0, 0));
-      } else {
-        groupsHost.appendChild(createGroupButton(group.id, group.title));
-      }
-    }
+		for (const group of availableGroups) {
+			const node = groupedById.get(group.id);
+			if (node) {
+				groupsHost.appendChild(buildTreeNode(node, 0, 0));
+			} else {
+				groupsHost.appendChild(createGroupButton(group.id, group.title));
+			}
+		}
 
-    for (const item of normalized) {
-      if (!item.key) continue;
-      if (visibleGroupIds && !visibleGroupIds.has(item.key)) continue;
-      if (availableGroupSet.has(item.key)) continue;
-      groupsHost.appendChild(buildTreeNode(item, 0, 0));
-    }
-  };
+		for (const item of normalized) {
+			if (!item.key) continue;
+			if (visibleGroupIds && !visibleGroupIds.has(item.key)) continue;
+			if (availableGroupSet.has(item.key)) continue;
+			groupsHost.appendChild(buildTreeNode(item, 0, 0));
+		}
+	};
 
-  const renderCurrent = () => {
-    render((($allMenuItems.getState?.() as RuntimeMenuItem[]) || []));
-  };
+	const renderCurrent = () => {
+		render(($allMenuItems.getState?.() as RuntimeMenuItem[]) || []);
+	};
 
-  const refreshAvailableModulesAndRender = async () => {
-    if (isAuthenticated()) {
-      await discoverMicrofrontends();
-    } else {
-      visibleGroupIds = null;
-    }
-    renderCurrent();
-  };
+	const refreshAvailableModulesAndRender = async () => {
+		if (isAuthenticated()) {
+			await discoverMicrofrontends();
+		} else {
+			visibleGroupIds = null;
+		}
+		renderCurrent();
+	};
 
-  if (groupsHost.dataset.menuActionsBound !== '1') {
-    groupsHost.dataset.menuActionsBound = '1';
-    groupsHost.addEventListener('click', (event) => {
-      const eventEl = resolveEventElement(event.target);
-      if (!eventEl) return;
-      const summaryEl = eventEl.closest('summary');
-      if (summaryEl) {
-        const parentDetails = summaryEl.parentElement as HTMLElement | null;
-        const actionId = parentDetails?.dataset.nodeActionId;
-        if (actionId) {
-          void bridge.selectMenuAction(actionId);
-          return;
-        }
-      }
-      const actionButton = eventEl.closest('[data-action-id]') as HTMLElement | null;
-      if (actionButton) {
-        const actionId = actionButton.dataset.actionId;
-        if (!actionId) return;
-        event.preventDefault();
-        void bridge.selectMenuAction(actionId);
-        return;
-      }
+	if (groupsHost.dataset.menuActionsBound !== "1") {
+		groupsHost.dataset.menuActionsBound = "1";
+		groupsHost.addEventListener("click", (event) => {
+			const eventEl = resolveEventElement(event.target);
+			if (!eventEl) return;
+			const summaryEl = eventEl.closest("summary");
+			if (summaryEl) {
+				const parentDetails = summaryEl.parentElement as HTMLElement | null;
+				const actionId = parentDetails?.dataset.nodeActionId;
+				if (actionId) {
+					void bridge.selectMenuAction(actionId);
+					return;
+				}
+				const href = parentDetails?.dataset.nodeHref;
+				if (href) {
+					navigateInternalHref(href);
+					return;
+				}
+			}
+			const actionButton = eventEl.closest(
+				"[data-action-id]",
+			) as HTMLElement | null;
+			if (actionButton) {
+				const actionId = actionButton.dataset.actionId;
+				if (!actionId) return;
+				event.preventDefault();
+				void bridge.selectMenuAction(actionId);
+				return;
+			}
 
-      const groupButton = eventEl.closest('[data-group-id]') as HTMLElement | null;
-      if (!groupButton) return;
-      const groupId = groupButton.dataset.groupId;
-      if (!groupId) return;
-      event.preventDefault();
-      preferredOpenGroupId = groupId;
-      renderCurrent();
-      void ensureGroupLoaded(groupId).then(() => {
-        renderCurrent();
-      });
-    });
-  }
+			const groupButton = eventEl.closest(
+				"[data-group-id]",
+			) as HTMLElement | null;
+			if (!groupButton) return;
+			const groupId = groupButton.dataset.groupId;
+			if (!groupId) return;
+			event.preventDefault();
+			preferredOpenGroupId = groupId;
+			renderCurrent();
+			void ensureGroupLoaded(groupId).then(() => {
+				renderCurrent();
+			});
+		});
+	}
 
-  if (groupsHost.dataset.menuAuthBound !== '1') {
-    groupsHost.dataset.menuAuthBound = '1';
-    window.addEventListener('auth-token-changed', () => {
-      resetDynamicMenuRuntimeState();
-      void refreshAvailableModulesAndRender();
-    });
-  }
+	if (groupsHost.dataset.menuAuthBound !== "1") {
+		groupsHost.dataset.menuAuthBound = "1";
+		window.addEventListener("auth-token-changed", () => {
+			resetDynamicMenuRuntimeState();
+			void refreshAvailableModulesAndRender();
+		});
+	}
 
-  try {
-    renderCurrent();
-  } catch {
-    renderFallbackGroups(groupsHost);
-  }
+	try {
+		renderCurrent();
+	} catch {
+		renderFallbackGroups(groupsHost);
+	}
 
-  void refreshAvailableModulesAndRender();
+	void refreshAvailableModulesAndRender();
 
-  if (!stopMenuWatch) {
-    const watchResult = $allMenuItems.watch((items) => {
-      render((items as RuntimeMenuItem[]) || []);
-    });
-    stopMenuWatch =
-      typeof watchResult === 'function'
-        ? watchResult
-        : () => (watchResult as { unsubscribe?: () => void }).unsubscribe?.();
-  }
-
+	if (!stopMenuWatch) {
+		const watchResult = $allMenuItems.watch((items) => {
+			render((items as RuntimeMenuItem[]) || []);
+		});
+		stopMenuWatch =
+			typeof watchResult === "function"
+				? watchResult
+				: () => (watchResult as { unsubscribe?: () => void }).unsubscribe?.();
+	}
 }
 
-async function navigateByFragment(url: URL, mode: 'push' | 'replace' | 'none' = 'push'): Promise<void> {
-  const currentRoot = document.getElementById('root');
-  if (!currentRoot) return;
+async function navigateByFragment(
+	url: URL,
+	mode: "push" | "replace" | "none" = "push",
+): Promise<void> {
+	const currentRoot = document.getElementById("root");
+	if (!currentRoot) return;
 
-  if (pendingNavigation) pendingNavigation.abort();
-  const controller = new AbortController();
-  pendingNavigation = controller;
+	if (pendingNavigation) pendingNavigation.abort();
+	const controller = new AbortController();
+	pendingNavigation = controller;
 
-  try {
-    const response = await fetch(url.toString(), {
-      method: 'GET',
-      headers: {
-        Accept: 'text/html',
-        'X-Fragment-Request': 'root',
-      },
-      signal: controller.signal,
-      credentials: 'same-origin',
-    });
+	try {
+		const response = await fetch(url.toString(), {
+			method: "GET",
+			headers: {
+				Accept: "text/html",
+				"X-Fragment-Request": "root",
+			},
+			signal: controller.signal,
+			credentials: "same-origin",
+		});
 
-    if (!response.ok) {
-      navProgressDone();
-      window.location.assign(url.toString());
-      return;
-    }
+		if (!response.ok) {
+			navProgressDone();
+			window.location.assign(url.toString());
+			return;
+		}
 
-    const html = await response.text();
-    const encodedTitle = response.headers.get('X-Page-Title-B64')?.trim() || '';
-    let nextTitle = '';
-    if (encodedTitle.length > 0) {
-      try {
-        const binary = atob(encodedTitle);
-        const bytes = Uint8Array.from(binary, (ch) => ch.charCodeAt(0));
-        nextTitle = new TextDecoder().decode(bytes);
-      } catch {
-        nextTitle = '';
-      }
-    }
-    const nextRoot = extractRootFromHtml(html);
-    if (!nextRoot) {
-      navProgressDone();
-      window.location.assign(url.toString());
-      return;
-    }
+		const html = await response.text();
+		const encodedTitle = response.headers.get("X-Page-Title-B64")?.trim() || "";
+		let nextTitle = "";
+		if (encodedTitle.length > 0) {
+			try {
+				const binary = atob(encodedTitle);
+				const bytes = Uint8Array.from(binary, (ch) => ch.charCodeAt(0));
+				nextTitle = new TextDecoder().decode(bytes);
+			} catch {
+				nextTitle = "";
+			}
+		}
+		const nextRoot = extractRootFromHtml(html);
+		if (!nextRoot) {
+			navProgressDone();
+			window.location.assign(url.toString());
+			return;
+		}
 
-    currentRoot.replaceWith(nextRoot);
-    if (nextTitle.length > 0) {
-      document.title = nextTitle;
-    }
-    navProgressDone();
+		currentRoot.replaceWith(nextRoot);
+		if (nextTitle.length > 0) {
+			document.title = nextTitle;
+		}
+		navProgressDone();
 
-    if (mode === 'push') {
-      history.pushState({ by: 'fragment-nav' }, '', url.toString());
-    } else if (mode === 'replace') {
-      history.replaceState({ by: 'fragment-nav' }, '', url.toString());
-    }
+		if (mode === "push") {
+			history.pushState({ by: "fragment-nav" }, "", url.toString());
+		} else if (mode === "replace") {
+			history.replaceState({ by: "fragment-nav" }, "", url.toString());
+		}
 
-    if (typeof (globalThis as any).gtag === 'function') {
-      (globalThis as any).gtag('event', 'page_view', { page_path: url.pathname + url.search });
-    }
-  } catch {
-    if (!controller.signal.aborted) {
-      navProgressDone();
-      window.location.assign(url.toString());
-    }
-  } finally {
-    if (pendingNavigation === controller) {
-      pendingNavigation = null;
-    }
-  }
+		if (typeof (globalThis as any).gtag === "function") {
+			(globalThis as any).gtag("event", "page_view", {
+				page_path: url.pathname + url.search,
+			});
+		}
+
+		if (url.hash) {
+			requestAnimationFrame(() => scrollToHashTarget(url.hash));
+		}
+	} catch {
+		if (!controller.signal.aborted) {
+			navProgressDone();
+			window.location.assign(url.toString());
+		}
+	} finally {
+		if (pendingNavigation === controller) {
+			pendingNavigation = null;
+		}
+	}
+}
+
+function navigateInternalHref(href: string): void {
+	const url = new URL(href, window.location.href);
+	if (
+		url.pathname === window.location.pathname &&
+		url.search === window.location.search
+	) {
+		if (!url.hash) return;
+
+		if (window.location.hash === url.hash) {
+			scrollToHashTarget(url.hash);
+		} else {
+			window.location.hash = url.hash;
+		}
+		return;
+	}
+
+	navProgressStart();
+	linkInterceptorDocumentPath = `${url.pathname}${url.search}`;
+	void navigateByFragment(url, "push");
 }
 
 function installLinkInterceptor(): void {
-  if (document.documentElement.dataset.ssrNavBridge === '1') return;
-  document.documentElement.dataset.ssrNavBridge = '1';
+	if (document.documentElement.dataset.ssrNavBridge === "1") return;
+	document.documentElement.dataset.ssrNavBridge = "1";
+	linkInterceptorDocumentPath = `${window.location.pathname}${window.location.search}`;
 
-  document.addEventListener('click', (event) => {
-    const eventEl = resolveEventElement(event.target);
-    if (!eventEl) return;
-    const link = eventEl.closest('a[href]') as HTMLAnchorElement | null;
-    if (!link) return;
-    if (!isInterceptableLink(link, event)) return;
+	document.addEventListener("click", (event) => {
+		const eventEl = resolveEventElement(event.target);
+		if (!eventEl) return;
+		const link = eventEl.closest("a[href]") as HTMLAnchorElement | null;
+		if (!link) return;
+		if (!isInterceptableLink(link, event)) return;
 
-    const url = new URL(link.href, window.location.href);
-    if (url.pathname === window.location.pathname && url.search === window.location.search) {
-      if (url.hash) {
-        window.location.hash = url.hash;
-      }
-      return;
-    }
+		const url = new URL(link.href, window.location.href);
+		if (
+			url.pathname === window.location.pathname &&
+			url.search === window.location.search
+		) {
+			event.preventDefault();
+			if (!url.hash) return;
 
-    event.preventDefault();
-    navProgressStart();
-    void navigateByFragment(url, 'push');
-  });
+			if (window.location.hash === url.hash) {
+				scrollToHashTarget(url.hash);
+			} else {
+				window.location.hash = url.hash;
+			}
+			return;
+		}
 
-  window.addEventListener('popstate', () => {
-    const url = new URL(window.location.href);
-    navProgressStart();
-    void navigateByFragment(url, 'none');
-  });
+		event.preventDefault();
+		navigateInternalHref(url.toString());
+	});
+
+	window.addEventListener("popstate", () => {
+		const url = new URL(window.location.href);
+		const nextDocumentPath = `${url.pathname}${url.search}`;
+		if (nextDocumentPath === linkInterceptorDocumentPath) {
+			if (url.hash) {
+				scrollToHashTarget(url.hash);
+			}
+			return;
+		}
+
+		linkInterceptorDocumentPath = nextDocumentPath;
+		navProgressStart();
+		void navigateByFragment(url, "none");
+	});
 }
 
-async function openAiChat(message?: string, options?: { contextName?: string }): Promise<void> {
-  setRightRailOpen(true);
-  setRightRailMode('chat');
-  await ensureRightRailRuntime();
-  chatInitRequested({ contextName: options?.contextName });
-  runActionEvent({ actionId: 'chats.show', params: { contextName: options?.contextName } });
-  const text = message?.trim();
-  if (text) {
-    chatSendRequested(text);
-  }
+async function openAiChat(
+	message?: string,
+	options?: { contextName?: string },
+): Promise<void> {
+	setRightRailOpen(true);
+	setRightRailMode("chat");
+	await ensureRightRailRuntime();
+	chatInitRequested({ contextName: options?.contextName });
+	runActionEvent({
+		actionId: "chats.show",
+		params: { contextName: options?.contextName },
+	});
+	const text = message?.trim();
+	if (text) {
+		chatSendRequested(text);
+	}
 }
 
 type LandingEventPayload = {
-  message?: string;
-  contextName?: string;
-  payload?: unknown;
+	message?: string;
+	contextName?: string;
+	payload?: unknown;
 };
 type LandingEventHandler = (payload: LandingEventPayload) => void;
 
 const LANDING_EVENT_HANDLERS: Record<string, LandingEventHandler> = {
-  'chat.open': ({ message, contextName }) => {
-    void openAiChat(message, { contextName });
-  },
+	"chat.open": ({ message, contextName }) => {
+		void openAiChat(message, { contextName });
+	},
 };
 
 function parseLandingPayload(raw: string | undefined): unknown {
-  if (!raw) return undefined;
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return raw;
-  }
+	if (!raw) return undefined;
+	try {
+		return JSON.parse(raw);
+	} catch {
+		return raw;
+	}
 }
 
 function readLandingEventPayload(source: HTMLElement): LandingEventPayload {
-  const form = source instanceof HTMLFormElement ? source : source.closest('form');
-  const messageSelector = source.dataset.landingMessageInput || form?.dataset.landingMessageInput;
-  const messageInput = messageSelector
-    ? form?.querySelector<HTMLInputElement | HTMLTextAreaElement>(messageSelector)
-    : form?.querySelector<HTMLInputElement | HTMLTextAreaElement>('[name="message"]');
-  const message = source.dataset.landingMessage ?? messageInput?.value;
+	const form =
+		source instanceof HTMLFormElement ? source : source.closest("form");
+	const messageSelector =
+		source.dataset.landingMessageInput || form?.dataset.landingMessageInput;
+	const messageInput = messageSelector
+		? form?.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+				messageSelector,
+			)
+		: form?.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+				'[name="message"]',
+			);
+	const message = source.dataset.landingMessage ?? messageInput?.value;
 
-  return {
-    message,
-    contextName: source.dataset.landingContextName || form?.dataset.landingContextName,
-    payload: parseLandingPayload(source.dataset.landingPayload || form?.dataset.landingPayload),
-  };
+	return {
+		message,
+		contextName:
+			source.dataset.landingContextName || form?.dataset.landingContextName,
+		payload: parseLandingPayload(
+			source.dataset.landingPayload || form?.dataset.landingPayload,
+		),
+	};
 }
 
-function dispatchLandingEvent(eventName: string, payload: LandingEventPayload): void {
-  const handler = LANDING_EVENT_HANDLERS[eventName];
-  if (handler) {
-    handler(payload);
-    return;
-  }
+function dispatchLandingEvent(
+	eventName: string,
+	payload: LandingEventPayload,
+): void {
+	const handler = LANDING_EVENT_HANDLERS[eventName];
+	if (handler) {
+		handler(payload);
+		return;
+	}
 
-  console.warn(`[landing-event] unknown event "${eventName}"`, payload);
+	console.warn(`[landing-event] unknown event "${eventName}"`, payload);
 }
 
 function installLandingEventGateway(): void {
-  if (landingEventGatewayBound) return;
-  landingEventGatewayBound = true;
+	if (landingEventGatewayBound) return;
+	landingEventGatewayBound = true;
 
-  document.addEventListener('submit', (event) => {
-    const form = event.target instanceof HTMLFormElement ? event.target : null;
-    const eventName = form?.dataset.landingEvent;
-    if (!form || !eventName) return;
+	document.addEventListener("submit", (event) => {
+		const form = event.target instanceof HTMLFormElement ? event.target : null;
+		const eventName = form?.dataset.landingEvent;
+		if (!form || !eventName) return;
 
-    event.preventDefault();
-    dispatchLandingEvent(eventName, readLandingEventPayload(form));
-  });
+		event.preventDefault();
+		dispatchLandingEvent(eventName, readLandingEventPayload(form));
+	});
 
-  document.addEventListener('click', (event) => {
-    const eventEl = resolveEventElement(event.target);
-    const source = eventEl?.closest<HTMLElement>('[data-landing-event]');
-    if (!source || source instanceof HTMLFormElement) return;
+	document.addEventListener("click", (event) => {
+		const eventEl = resolveEventElement(event.target);
+		const source = eventEl?.closest<HTMLElement>("[data-landing-event]");
+		if (!source || source instanceof HTMLFormElement) return;
 
-    event.preventDefault();
-    dispatchLandingEvent(source.dataset.landingEvent ?? '', readLandingEventPayload(source));
-  });
+		event.preventDefault();
+		dispatchLandingEvent(
+			source.dataset.landingEvent ?? "",
+			readLandingEventPayload(source),
+		);
+	});
 }
 
 function normalizeQuickChatPrompt(prompt: QuickChatPrompt): {
-  label: string;
-  message: string;
-  contextName?: string;
-  icon?: string;
+	label: string;
+	message: string;
+	contextName?: string;
+	icon?: string;
 } | null {
-  if (typeof prompt === 'string') {
-    const text = prompt.trim();
-    return text ? { label: text, message: text } : null;
-  }
-  if (!prompt || typeof prompt !== 'object') return null;
+	if (typeof prompt === "string") {
+		const text = prompt.trim();
+		return text ? { label: text, message: text } : null;
+	}
+	if (!prompt || typeof prompt !== "object") return null;
 
-  const message = (prompt.message ?? prompt.prompt ?? prompt.label ?? '').trim();
-  const label = (prompt.label ?? prompt.message ?? prompt.prompt ?? '').trim();
-  if (!message || !label) return null;
+	const message = (
+		prompt.message ??
+		prompt.prompt ??
+		prompt.label ??
+		""
+	).trim();
+	const label = (prompt.label ?? prompt.message ?? prompt.prompt ?? "").trim();
+	if (!message || !label) return null;
 
-  return {
-    label,
-    message,
-    contextName: prompt.contextName?.trim() || undefined,
-    icon: prompt.icon?.trim() || undefined,
-  };
+	return {
+		label,
+		message,
+		contextName: prompt.contextName?.trim() || undefined,
+		icon: prompt.icon?.trim() || undefined,
+	};
 }
 
 function installChatDock(): void {
-  const dock = document.getElementById(SSR_CHAT_DOCK_ID);
-  const form = document.getElementById(SSR_CHAT_FORM_ID) as HTMLFormElement | null;
-  const input = document.getElementById(SSR_CHAT_INPUT_ID) as HTMLInputElement | null;
-  const quick = document.getElementById(SSR_CHAT_QUICK_ID);
-  if (!dock || !form || !input || !quick) return;
+	const dock = document.getElementById(SSR_CHAT_DOCK_ID);
+	const form = document.getElementById(
+		SSR_CHAT_FORM_ID,
+	) as HTMLFormElement | null;
+	const input = document.getElementById(
+		SSR_CHAT_INPUT_ID,
+	) as HTMLInputElement | null;
+	const quick = document.getElementById(SSR_CHAT_QUICK_ID);
+	if (!dock || !form || !input || !quick) return;
 
-  if (!chatDockBound) {
-    chatDockBound = true;
+	if (!chatDockBound) {
+		chatDockBound = true;
 
-    const submitMessage = () => {
-      const text = input.value.trim();
-      if (!text) return;
-      input.value = '';
-      void openAiChat(text);
-    };
+		const submitMessage = () => {
+			const text = input.value.trim();
+			if (!text) return;
+			input.value = "";
+			void openAiChat(text);
+		};
 
-    form.addEventListener('submit', (event) => {
-      event.preventDefault();
-      submitMessage();
-    });
+		form.addEventListener("submit", (event) => {
+			event.preventDefault();
+			submitMessage();
+		});
 
-    input.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' && !event.shiftKey) {
-        event.preventDefault();
-        submitMessage();
-      }
-    });
-    input.addEventListener('focus', () => {
-      void openAiChat();
-    });
+		input.addEventListener("keydown", (event) => {
+			if (event.key === "Enter" && !event.shiftKey) {
+				event.preventDefault();
+				submitMessage();
+			}
+		});
+		input.addEventListener("focus", () => {
+			void openAiChat();
+		});
 
-    const renderPrompts = (prompts: readonly QuickChatPrompt[]) => {
-      quick.innerHTML = '';
-      prompts.forEach((prompt) => {
-        const item = normalizeQuickChatPrompt(prompt);
-        if (!item) return;
+		const renderPrompts = (prompts: readonly QuickChatPrompt[]) => {
+			quick.innerHTML = "";
+			prompts.forEach((prompt) => {
+				const item = normalizeQuickChatPrompt(prompt);
+				if (!item) return;
 
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'ssr-chat-quick-btn';
-        const icon = item.icon ? QUICK_CHAT_ICON[item.icon] : null;
-        if (icon) {
-          const iconNode = document.createElement('span');
-          iconNode.className = 'ssr-chat-quick-icon';
-          iconNode.setAttribute('aria-hidden', 'true');
-          iconNode.innerHTML = icon;
-          button.appendChild(iconNode);
-        }
-        const labelNode = document.createElement('span');
-        labelNode.textContent = item.label;
-        button.appendChild(labelNode);
-        button.addEventListener('click', () => {
-          void openAiChat(item.message, { contextName: item.contextName });
-        });
-        quick.appendChild(button);
-      });
-    };
+				const button = document.createElement("button");
+				button.type = "button";
+				button.className = "ssr-chat-quick-btn";
+				const icon = item.icon ? QUICK_CHAT_ICON[item.icon] : null;
+				if (icon) {
+					const iconNode = document.createElement("span");
+					iconNode.className = "ssr-chat-quick-icon";
+					iconNode.setAttribute("aria-hidden", "true");
+					iconNode.innerHTML = icon;
+					button.appendChild(iconNode);
+				}
+				const labelNode = document.createElement("span");
+				labelNode.textContent = item.label;
+				button.appendChild(labelNode);
+				button.addEventListener("click", () => {
+					void openAiChat(item.message, { contextName: item.contextName });
+				});
+				quick.appendChild(button);
+			});
+		};
 
-    renderPrompts(QUICK_CHAT_PROMPTS);
+		renderPrompts(QUICK_CHAT_PROMPTS);
 
-    const locale = extractLocaleFromPath(window.location.pathname) ?? 'en';
-    try {
-      structClient.readJson(`${locale}/magic/chat-prompts.json`)
-        .then((data) => {
-          const prompts = Array.isArray(data?.prompts) ? data.prompts : null;
-          if (prompts) renderPrompts(prompts);
-        })
-        .catch(() => {});
-    } catch {
-      // no auth token in browser — skip
-    }
-  }
+		const locale = extractLocaleFromPath(window.location.pathname) ?? "en";
+		try {
+			structClient
+				.readJson(`${locale}/magic/chat-prompts.json`)
+				.then((data) => {
+					const prompts = Array.isArray(data?.prompts) ? data.prompts : null;
+					if (prompts) renderPrompts(prompts);
+				})
+				.catch(() => {});
+		} catch {
+			// no auth token in browser — skip
+		}
+	}
 
-  let lastDockHeight = -1;
-  const syncDockGeometry = () => {
-    const dockHeight = Math.ceil(dock.getBoundingClientRect().height);
-    if (dockHeight === lastDockHeight) return;
-    lastDockHeight = dockHeight;
-    document.documentElement.style.setProperty('--ssr-dock-height', `${dockHeight}px`);
-    dock.dataset.overlap = '0';
-  };
+	let lastDockHeight = -1;
+	const syncDockGeometry = () => {
+		const dockHeight = Math.ceil(dock.getBoundingClientRect().height);
+		if (dockHeight === lastDockHeight) return;
+		lastDockHeight = dockHeight;
+		document.documentElement.style.setProperty(
+			"--ssr-dock-height",
+			`${dockHeight}px`,
+		);
+		dock.dataset.overlap = "0";
+	};
 
-  syncDockGeometry();
-  if (!chatDockGeometryBound) {
-    chatDockGeometryBound = true;
-    chatDockResizeObserver = new ResizeObserver(syncDockGeometry);
-    chatDockResizeObserver.observe(dock);
-    const observer = new MutationObserver(syncDockGeometry);
-    observer.observe(dock, { childList: true, subtree: true, attributes: true });
-  }
+	syncDockGeometry();
+	if (!chatDockGeometryBound) {
+		chatDockGeometryBound = true;
+		chatDockResizeObserver = new ResizeObserver(syncDockGeometry);
+		chatDockResizeObserver.observe(dock);
+		const observer = new MutationObserver(syncDockGeometry);
+		observer.observe(dock, {
+			childList: true,
+			subtree: true,
+			attributes: true,
+		});
+	}
 }
 
 function hasRightRailDeepLink(): boolean {
-  const search = new URLSearchParams(window.location.search);
-  return RIGHT_RAIL_QUERY_KEYS.some((key) => search.has(key));
+	const search = new URLSearchParams(window.location.search);
+	return RIGHT_RAIL_QUERY_KEYS.some((key) => search.has(key));
 }
 
 function stripLocalePrefix(pathname: string): string {
-  const locale = extractLocaleFromPath(pathname);
-  if (!locale) return pathname || '/';
-  const rest = pathname.slice(locale.length + 1);
-  return rest.length > 0 ? rest : '/';
+	const locale = extractLocaleFromPath(pathname);
+	if (!locale) return pathname || "/";
+	const rest = pathname.slice(locale.length + 1);
+	return rest.length > 0 ? rest : "/";
 }
 
 function isSsrPublicRoute(pathname: string): boolean {
-  const locale = extractLocaleFromPath(pathname);
-  if (!locale) return false;
+	const locale = extractLocaleFromPath(pathname);
+	if (!locale) return false;
 
-  const rest = pathname.slice(locale.length + 1) || '/';
-  return rest === '/' || rest.startsWith('/docs/');
+	const rest = pathname.slice(locale.length + 1) || "/";
+	return rest === "/" || rest === "/club" || rest.startsWith("/docs/");
 }
 
 function buildLocaleTargetUrl(locale: SupportedLocale): URL {
-  const target = new URL(window.location.href);
-  target.pathname = buildLocalePath(locale, stripLocalePrefix(target.pathname));
-  return target;
+	const target = new URL(window.location.href);
+	target.pathname = buildLocalePath(locale, stripLocalePrefix(target.pathname));
+	return target;
 }
 
-function setLangMenuOpen(root: HTMLElement, control: HTMLButtonElement, open: boolean): void {
-  root.dataset.open = open ? '1' : '0';
-  control.setAttribute('aria-expanded', open ? 'true' : 'false');
+function setLangMenuOpen(
+	root: HTMLElement,
+	control: HTMLButtonElement,
+	open: boolean,
+): void {
+	root.dataset.open = open ? "1" : "0";
+	control.setAttribute("aria-expanded", open ? "true" : "false");
 }
 
 function syncLangMenuSelection(): void {
-  const root = document.querySelector<HTMLElement>('[data-ssr-lang-root]');
-  const control = getControl('lang');
-  const current = document.querySelector<HTMLElement>('[data-ssr-lang-current]');
-  if (!root || !control) return;
+	const root = document.querySelector<HTMLElement>("[data-ssr-lang-root]");
+	const control = getControl("lang");
+	const current = document.querySelector<HTMLElement>(
+		"[data-ssr-lang-current]",
+	);
+	if (!root || !control) return;
 
-  const localeController = LocaleController.getInstance();
-  const activeLocale = localeController.hydrateFromPath(window.location.pathname);
-  root.dataset.activeLocale = activeLocale;
+	const localeController = LocaleController.getInstance();
+	const activeLocale = localeController.hydrateFromPath(
+		window.location.pathname,
+	);
+	root.dataset.activeLocale = activeLocale;
 
-  const selectedLabel =
-    AVAILABLE_LANGS.find((item) => item.code === activeLocale)?.name ??
-    activeLocale.toUpperCase();
-  control.setAttribute('aria-label', `Language: ${selectedLabel}`);
-  if (current) {
-    current.textContent = activeLocale.toUpperCase();
-  }
+	const selectedLabel =
+		AVAILABLE_LANGS.find((item) => item.code === activeLocale)?.name ??
+		activeLocale.toUpperCase();
+	control.setAttribute("aria-label", `Language: ${selectedLabel}`);
+	if (current) {
+		current.textContent = activeLocale.toUpperCase();
+	}
 
-  const options = document.querySelectorAll<HTMLButtonElement>('[data-ssr-lang-option]');
-  options.forEach((option) => {
-    const code = option.dataset.ssrLangOption;
-    const isSelected = code === activeLocale;
-    option.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
-  });
+	const options = document.querySelectorAll<HTMLButtonElement>(
+		"[data-ssr-lang-option]",
+	);
+	options.forEach((option) => {
+		const code = option.dataset.ssrLangOption;
+		const isSelected = code === activeLocale;
+		option.setAttribute("aria-pressed", isSelected ? "true" : "false");
+	});
 }
 
 async function applyLocaleChange(nextLocaleRaw: string): Promise<void> {
-  if (!isSupportedLocale(nextLocaleRaw)) return;
+	if (!isSupportedLocale(nextLocaleRaw)) return;
 
-  const nextLocale = nextLocaleRaw;
-  const localeController = LocaleController.getInstance();
-  const targetUrl = buildLocaleTargetUrl(nextLocale);
+	const nextLocale = nextLocaleRaw;
+	const localeController = LocaleController.getInstance();
+	const targetUrl = buildLocaleTargetUrl(nextLocale);
 
-  if (isSsrPublicRoute(window.location.pathname)) {
-    await navigateByFragment(targetUrl, 'replace');
-    localeController.hydrateFromPath(targetUrl.pathname);
-    syncLangMenuSelection();
-    return;
-  }
+	if (isSsrPublicRoute(window.location.pathname)) {
+		await navigateByFragment(targetUrl, "replace");
+		localeController.hydrateFromPath(targetUrl.pathname);
+		syncLangMenuSelection();
+		return;
+	}
 
-  await localeController.switchSpaLocale(nextLocale);
-  const nextHref = `${targetUrl.pathname}${targetUrl.search}${targetUrl.hash}`;
-  window.history.replaceState(window.history.state, '', nextHref);
-  window.dispatchEvent(new PopStateEvent('popstate'));
-  syncLangMenuSelection();
+	await localeController.switchSpaLocale(nextLocale);
+	const nextHref = `${targetUrl.pathname}${targetUrl.search}${targetUrl.hash}`;
+	window.history.replaceState(window.history.state, "", nextHref);
+	window.dispatchEvent(new PopStateEvent("popstate"));
+	syncLangMenuSelection();
 }
 
 function installLangControl(): void {
-  const root = document.querySelector<HTMLElement>('[data-ssr-lang-root]');
-  const control = getControl('lang');
-  const menu = document.querySelector<HTMLElement>('[data-ssr-lang-menu]');
-  if (!root || !control || !menu) return;
+	const root = document.querySelector<HTMLElement>("[data-ssr-lang-root]");
+	const control = getControl("lang");
+	const menu = document.querySelector<HTMLElement>("[data-ssr-lang-menu]");
+	if (!root || !control || !menu) return;
 
-  const closeMenu = () => setLangMenuOpen(root, control, false);
+	const closeMenu = () => setLangMenuOpen(root, control, false);
 
-  if (root.dataset.langBound === '1') {
-    syncLangMenuSelection();
-    return;
-  }
+	if (root.dataset.langBound === "1") {
+		syncLangMenuSelection();
+		return;
+	}
 
-  root.dataset.langBound = '1';
-  setLangMenuOpen(root, control, false);
-  syncLangMenuSelection();
+	root.dataset.langBound = "1";
+	setLangMenuOpen(root, control, false);
+	syncLangMenuSelection();
 
-  control.addEventListener('click', (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    const open = root.dataset.open === '1';
-    setLangMenuOpen(root, control, !open);
-  });
+	control.addEventListener("click", (event) => {
+		event.preventDefault();
+		event.stopPropagation();
+		const open = root.dataset.open === "1";
+		setLangMenuOpen(root, control, !open);
+	});
 
-  menu.addEventListener('click', (event) => {
-    const eventEl = resolveEventElement(event.target);
-    if (!eventEl) return;
-    const option = eventEl.closest('[data-ssr-lang-option]') as HTMLButtonElement | null;
-    if (!option) return;
+	menu.addEventListener("click", (event) => {
+		const eventEl = resolveEventElement(event.target);
+		if (!eventEl) return;
+		const option = eventEl.closest(
+			"[data-ssr-lang-option]",
+		) as HTMLButtonElement | null;
+		if (!option) return;
 
-    event.preventDefault();
-    const nextLocale = option.dataset.ssrLangOption;
-    closeMenu();
-    if (!nextLocale) return;
-    void applyLocaleChange(nextLocale);
-  });
+		event.preventDefault();
+		const nextLocale = option.dataset.ssrLangOption;
+		closeMenu();
+		if (!nextLocale) return;
+		void applyLocaleChange(nextLocale);
+	});
 
-  document.addEventListener('click', (event) => {
-    const eventEl = resolveEventElement(event.target);
-    if (!eventEl || !root.contains(eventEl)) {
-      closeMenu();
-    }
-  });
+	document.addEventListener("click", (event) => {
+		const eventEl = resolveEventElement(event.target);
+		if (!eventEl || !root.contains(eventEl)) {
+			closeMenu();
+		}
+	});
 
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') {
-      closeMenu();
-    }
-  });
+	document.addEventListener("keydown", (event) => {
+		if (event.key === "Escape") {
+			closeMenu();
+		}
+	});
 
-  window.addEventListener('popstate', syncLangMenuSelection);
+	window.addEventListener("popstate", syncLangMenuSelection);
 }
 
 export function mountSsrMenuShell(): void {
-  if (typeof document === 'undefined') return;
+	if (typeof document === "undefined") return;
 
-  const menuPanel = document.getElementById('ssr-left-panel');
-  if (!menuPanel) return;
-  menuPanel.dataset.ssrMenuShell = '1';
+	const menuPanel = document.getElementById("ssr-left-panel");
+	if (!menuPanel) return;
+	menuPanel.dataset.ssrMenuShell = "1";
 
-  ensureStyles();
-  ensureFrontCoreStyles();
+	ensureStyles();
+	ensureFrontCoreStyles();
 
-  installPanelControls();
-  installRightRailTabs();
-  installDynamicMenu(menuPanel);
-  installChatDock();
-  installLandingEventGateway();
-  installLinkInterceptor();
-  installLangControl();
-  // Keep first paint stable: bootstrap right rail runtime lazily.
-  // Only eager-init when URL explicitly deep-links into right rail state.
-  if (hasRightRailDeepLink()) {
-    void ensureRightRailRuntime();
-  }
+	installPanelControls();
+	installRightRailTabs();
+	installDynamicMenu(menuPanel);
+	installChatDock();
+	installLandingEventGateway();
+	installLinkInterceptor();
+	installLangControl();
+	// Keep first paint stable: bootstrap right rail runtime lazily.
+	// Only eager-init when URL explicitly deep-links into right rail state.
+	if (hasRightRailDeepLink()) {
+		void ensureRightRailRuntime();
+	}
 }

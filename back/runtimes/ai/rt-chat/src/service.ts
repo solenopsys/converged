@@ -42,7 +42,7 @@ function resolveServiceType(value?: string): ServiceType | undefined {
 export class ChatRuntimeService {
   private factory: SimpleConversationFactory;
   private conversations = new Map<string, AiConversation>();
-  private pendingContextMessages = new Map<string, ContentBlock>();
+  private pendingContextMessages = new Map<string, Promise<ContentBlock | null>>();
   private serviceModelMap = new Map<ServiceType, string | undefined>();
   private assistantClient: AssistantServiceClient;
   private defaultServiceType?: ServiceType;
@@ -75,12 +75,11 @@ export class ChatRuntimeService {
       throw new Error(`Model not found for service type: ${serviceType}`);
     }
 
-    const contextMessage = await this.loadContextMessage(contextName);
     const conversation = this.factory.create(serviceType, model, this.logFunction);
     const sessionId = conversation.getId();
     this.conversations.set(sessionId, conversation);
-    if (contextMessage) {
-      this.pendingContextMessages.set(sessionId, contextMessage);
+    if (contextName?.trim()) {
+      this.pendingContextMessages.set(sessionId, this.loadContextMessage(contextName));
     }
     return sessionId;
   }
@@ -90,17 +89,32 @@ export class ChatRuntimeService {
     messages: ContentBlock[],
     options?: ConversationOptions,
   ): AsyncIterable<StreamEvent> {
+    return this.sendMessageInternal(sessionId, messages, options);
+  }
+
+  private async *sendMessageInternal(
+    sessionId: string,
+    messages: ContentBlock[],
+    options?: ConversationOptions,
+  ): AsyncIterable<StreamEvent> {
     const conversation = this.conversations.get(sessionId);
     if (!conversation) {
       throw new Error(`SESSION_NOT_FOUND: Conversation not found for sessionId: ${sessionId}`);
     }
-    const contextMessage = this.pendingContextMessages.get(sessionId);
-    if (!contextMessage) {
-      return conversation.send(messages, options);
+    const contextMessagePromise = this.pendingContextMessages.get(sessionId);
+    if (!contextMessagePromise) {
+      yield* conversation.send(messages, options);
+      return;
     }
 
     this.pendingContextMessages.delete(sessionId);
-    return conversation.send([contextMessage, ...messages], options);
+    const contextMessage = await contextMessagePromise;
+    if (!contextMessage) {
+      yield* conversation.send(messages, options);
+      return;
+    }
+
+    yield* conversation.send([contextMessage, ...messages], options);
   }
 
   async listOfChats(params: PaginationParams): Promise<PaginatedResult<Chat>> {
