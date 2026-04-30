@@ -9,6 +9,7 @@ import {
 import { openLoginPanel } from "front-core/landing-common/island-client";
 import {
   AISection,
+  ComparisonTable,
   Faq,
   Feature,
   Hero,
@@ -261,6 +262,9 @@ function renderBlock(block: ResolvedBlock, index: number, fallbackLocale: Suppor
           onJoin={() => void openLoginPanel()}
         />
       );
+    }
+    case "comparison-table": {
+      return <ComparisonTable key={key} content={block.data.comparison as any} />;
     }
     case "stats": {
       return <Stats key={key} content={block.data.stats as any} />;
