@@ -11,6 +11,8 @@ export interface ConversationEntity {
   createdAt: number;
   updatedAt: number;
   messagesCount: number;
+  filesCount: number;
+  filesSize: number;
 }
 
 export class ConversationRepository extends BaseRepositorySQL<

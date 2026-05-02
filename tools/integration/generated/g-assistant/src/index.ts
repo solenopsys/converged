@@ -97,6 +97,8 @@ export type Chat = {
     description: string;
     threadId?: string;
     messagesCount?: number;
+    filesCount?: number;
+    filesSize?: number;
     createdAt?: number;
     updatedAt?: number;
 };
@@ -208,6 +210,27 @@ export const metadata = {
           "name": "threadId",
           "type": "string",
           "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "Chat",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "recordChatFile",
+      "parameters": [
+        {
+          "name": "threadId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "fileSize",
+          "type": "number",
+          "optional": true,
           "isArray": false
         }
       ],
@@ -368,7 +391,7 @@ export const metadata = {
     {
       "name": "Chat",
       "kind": "type",
-      "definition": "{\n    id: string;\n    name: string;\n    description: string;\n    threadId?: string;\n    messagesCount?: number;\n    createdAt?: number;\n    updatedAt?: number;\n}"
+      "definition": "{\n    id: string;\n    name: string;\n    description: string;\n    threadId?: string;\n    messagesCount?: number;\n    filesCount?: number;\n    filesSize?: number;\n    createdAt?: number;\n    updatedAt?: number;\n}"
     },
     {
       "name": "ChatContextSummary",
@@ -390,6 +413,7 @@ export interface AssistantService {
   listOfChats(params: PaginationParams): Promise<PaginatedResult<Chat>>;
   registerChat(threadId: string, title?: string): Promise<Chat>;
   recordChatMessage(threadId: string): Promise<Chat>;
+  recordChatFile(threadId: string, fileSize?: number): Promise<Chat>;
   deleteChat(chatId: string): Promise<void>;
   getChat(chatId: string): Promise<Chat>;
   saveContext(chatId: string, context: any): Promise<ChatContextSummary>;
@@ -404,6 +428,7 @@ export interface AssistantServiceClient {
   listOfChats(params: PaginationParams): Promise<PaginatedResult<Chat>>;
   registerChat(threadId: string, title?: string): Promise<Chat>;
   recordChatMessage(threadId: string): Promise<Chat>;
+  recordChatFile(threadId: string, fileSize?: number): Promise<Chat>;
   deleteChat(chatId: string): Promise<void>;
   getChat(chatId: string): Promise<Chat>;
   saveContext(chatId: string, context: any): Promise<ChatContextSummary>;

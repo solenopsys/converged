@@ -3,8 +3,8 @@ import type { ExecutableTool } from "assistant-state";
 import { v4 as uuidv4 } from "uuid";
 
 import { assistantClient, chatClient, threadsClient } from "./services";
-import { chatSendRequested, chatInitRequested, registry } from "front-core";
-import { $files, uploadCompleted } from "files-state";
+import { chatAttachRequested, chatSendRequested, chatInitRequested, registry } from "front-core";
+import { $files, openFilePicker, uploadCompleted } from "files-state";
 import { MessageType } from "../../../../../tools/integration/types/services/communications/threads";
 
 // AI-доступные команды (только меню и навигация)
@@ -207,6 +207,11 @@ chatSendRequested.watch((message) => {
   chatStore.send(message);
 });
 
+chatAttachRequested.watch(() => {
+  ensureInitialized();
+  openFilePicker();
+});
+
 uploadCompleted.watch((fileId) => {
   const fileState = $files.getState().get(fileId);
   if (!fileState) return;
@@ -226,17 +231,29 @@ uploadCompleted.watch((fileId) => {
 
   addMessage(chatMessage);
 
-  threadsClient.saveMessage({
-    threadId: chatThreadId,
-    user: "user",
-    type: MessageType.link,
-    data: JSON.stringify({
-      fileId,
-      fileName: fileState.fileName,
-      fileSize: fileState.fileSize,
-      fileType: fileState.fileType,
-    }),
-  }).then(() => assistantClient.recordChatMessage(chatThreadId)).catch((error) => {
+  void (async () => {
+    const rows = await threadsClient.readThread(chatThreadId).catch(() => []);
+    const parent = [...rows].sort((left, right) => (right.timestamp ?? 0) - (left.timestamp ?? 0))[0];
+
+    await threadsClient.saveMessage({
+      threadId: chatThreadId,
+      id: chatMessage.id,
+      beforeId: parent?.id,
+      user: "user",
+      type: MessageType.link,
+      data: JSON.stringify({
+        kind: "file",
+        target: "store:file",
+        label: fileState.fileName,
+        fileId,
+        fileName: fileState.fileName,
+        fileSize: fileState.fileSize,
+        fileType: fileState.fileType,
+      }),
+    });
+
+    await assistantClient.recordChatFile(chatThreadId, fileState.fileSize);
+  })().catch((error) => {
     console.warn("[Chat] Failed to save file message", error);
   });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, type CSSProperties, type PointerEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
 import { Outlet } from "react-router-dom";
 import { useUnit } from "effector-react";
 import { $rightSidebarWidth, sidebarWidthChanged } from "sidebar-controller";
@@ -22,6 +22,8 @@ import { startRightRailUriSync } from "./uri-sync";
 import { ChatPanel, TabsPanel } from "./RightRailPanels";
 import { $centerView } from "../../slots/present";
 import { SlotProvider } from "../../slots/SlotProvider";
+import { chatAttachRequested, chatSendRequested } from "../../chat/events";
+import { Paperclip, Send } from "lucide-react";
 
 const MIN_PANEL_WIDTH = 280;
 const MAX_PANEL_WIDTH = 680;
@@ -46,6 +48,8 @@ function CenterContent({ fallback }: { fallback?: ReactNode }) {
 }
 
 export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = {}) {
+  const [footerValue, setFooterValue] = useState("");
+  const [footerFocused, setFooterFocused] = useState(false);
   const {
     device,
     activePanel,
@@ -89,6 +93,8 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
     if (parallel) return normalizedPanelWidth * 2 - PARALLEL_OVERLAP_PX;
     return normalizedPanelWidth;
   }, [collapsed, parallel, normalizedPanelWidth]);
+
+  const superPanelExpanded = !collapsed && (activePanel === "chat" || footerFocused);
 
   const layoutStyle = useMemo(() => {
     const vars: CSSProperties = {
@@ -184,6 +190,31 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
     onFront(panel);
   };
 
+  const handleFooterFocus = () => {
+    if (collapsed) {
+      onCollapsed(false);
+    }
+    setFooterFocused(true);
+    onFront("chat");
+  };
+
+  const handleFooterBlur = () => {
+    window.setTimeout(() => setFooterFocused(false), 0);
+  };
+
+  const handleFooterSubmit = () => {
+    const text = footerValue.trim();
+    if (!text) return;
+    chatSendRequested(text);
+    setFooterValue("");
+    onFront("chat");
+  };
+
+  const handleFooterAttach = () => {
+    chatAttachRequested();
+    onFront("chat");
+  };
+
   return (
     <div
       className="app-layout"
@@ -192,6 +223,7 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
       data-mode={parallel ? "parallel" : "stacked"}
       data-collapsed={collapsed ? "true" : "false"}
       data-constrained={constrained ? "true" : "false"}
+      data-super-expanded={superPanelExpanded ? "true" : "false"}
       style={
         layoutStyle
       }
@@ -218,6 +250,11 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
           --panel-header-height: 52px;
           --rail-padding: 4px;
           --panel-width: 390px;
+          --super-menu-width: var(--panel-width);
+          --super-chat-width: var(--panel-width);
+          --super-panel-width: var(--super-menu-width);
+          --footer-height: 64px;
+          --footer-expanded-height: 132px;
           --stack-width: var(--panel-width);
           --rail-width: calc(var(--stack-width) + var(--rail-padding) * 2);
           --panel-height: calc(100vh - var(--rail-padding) * 2);
@@ -292,13 +329,17 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
 
         .app-stage {
           display: grid;
-          grid-template-columns: minmax(0, 1fr) var(--rail-width);
+          grid-template-columns: var(--super-panel-width) minmax(0, 1fr);
           gap: 0px;
           align-items: stretch;
           height: 100%;
           min-height: 100vh;
           min-width: 0;
           transition: grid-template-columns var(--transition);
+        }
+
+        .app-layout[data-super-expanded="true"] .app-stage {
+          --super-panel-width: calc(var(--super-menu-width) + var(--super-chat-width));
         }
 
         .app-content {
@@ -322,30 +363,40 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
           position: sticky;
           top: 0;
           align-self: start;
-          width: var(--rail-width);
+          width: var(--super-panel-width);
           height: 100%;
           min-height: 100vh;
           transition: width var(--transition);
           font-family: "Space Grotesk", "Segoe UI", sans-serif;
-          padding: var(--rail-padding);
+          padding: 0;
           box-sizing: border-box;
         }
 
         .panel-stack {
+          display: grid;
+          grid-template-columns: var(--super-menu-width) 0px;
+          grid-template-rows: minmax(0, 1fr) var(--footer-height);
           position: relative;
-          width: var(--stack-width);
-          height: var(--panel-height);
-          margin-left: auto;
-          transition: width var(--transition), height var(--transition);
+          width: var(--super-panel-width);
+          height: 100vh;
+          margin-left: 0;
+          overflow: hidden;
+          transition: width var(--transition), grid-template-columns var(--transition), grid-template-rows var(--transition);
+        }
+
+        .app-layout[data-super-expanded="true"] .panel-stack {
+          grid-template-columns: var(--super-menu-width) minmax(0, var(--super-chat-width));
+          grid-template-rows: minmax(0, 1fr) var(--footer-expanded-height);
         }
 
         .panel {
-          position: absolute;
-          right: 0;
-          top: 0;
-          border-radius: 4px;
-          border: 1px solid var(--panel-edge);
-          box-shadow: var(--panel-shadow);
+          position: relative;
+          right: auto;
+          top: auto;
+          border-radius: 0;
+          border: 0;
+          border-right: 1px solid var(--panel-edge);
+          box-shadow: none;
           transition:
             transform var(--transition),
             width var(--transition),
@@ -353,6 +404,31 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
             opacity var(--transition);
           overflow: hidden;
           cursor: pointer;
+        }
+
+        .tabs-panel {
+          grid-column: 1;
+          grid-row: 1;
+          width: var(--super-menu-width);
+          height: auto;
+          min-height: 0;
+        }
+
+        .chat-panel {
+          grid-column: 2;
+          grid-row: 1;
+          width: var(--super-chat-width);
+          height: auto;
+          min-width: 0;
+          min-height: 0;
+          transform: none;
+          opacity: 0;
+          pointer-events: none;
+        }
+
+        .app-layout[data-super-expanded="true"] .chat-panel {
+          opacity: 1;
+          pointer-events: auto;
         }
 
         .tabs-panel {
@@ -476,6 +552,21 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
           min-height: 0;
         }
 
+        .chat-panel-slot {
+          flex: 1;
+          min-height: 0;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+
+        .chat-panel-slot > * {
+          flex: 1 1 auto;
+          min-height: 0;
+          min-width: 0;
+        }
+
         .panel-menu-wrapper {
           flex: 1;
           min-height: 0;
@@ -555,6 +646,12 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
           padding: 0 0 12px;
         }
 
+        .tabs-footer-quick {
+          margin-top: auto;
+          padding: 10px 12px 12px;
+          flex: 0 0 auto;
+        }
+
         .chat-quick-button {
           border-radius: 999px;
           padding: 8px 14px;
@@ -584,6 +681,88 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
           font-size: 12px;
           letter-spacing: 0.08em;
           text-transform: none;
+        }
+
+        .super-chat-footer {
+          grid-column: 1;
+          grid-row: 2;
+          display: flex;
+          min-width: 0;
+          padding: 10px 12px;
+          border-top: 1px solid var(--panel-edge);
+          background: var(--chat-input-surface);
+          color: var(--chat-input-ink);
+          box-sizing: border-box;
+          transition: grid-column var(--transition), padding var(--transition);
+        }
+
+        .app-layout[data-super-expanded="true"] .super-chat-footer {
+          grid-column: 1 / -1;
+        }
+
+        .super-chat-form {
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          gap: 8px;
+          width: 100%;
+          min-width: 0;
+          min-height: 44px;
+          border: 1px solid color-mix(in oklch, currentColor 16%, transparent);
+          border-radius: 10px;
+          padding: 6px 8px;
+          background: color-mix(in oklch, var(--ui-card) 92%, transparent);
+          box-sizing: border-box;
+          transition: min-height 180ms ease, border-color 180ms ease;
+        }
+
+        .app-layout[data-super-expanded="true"] .super-chat-form {
+          flex-direction: column;
+          align-items: stretch;
+          min-height: 112px;
+        }
+
+        .super-chat-input {
+          order: 2;
+          flex: 1 1 auto;
+          width: auto;
+          min-width: 0;
+          min-height: 1.35em;
+          max-height: calc(1.35em * 3);
+          border: 0;
+          background: transparent;
+          color: inherit;
+          outline: none;
+          resize: none;
+          padding: 0;
+          font: inherit;
+          line-height: 1.35;
+        }
+
+        .app-layout[data-super-expanded="true"] .super-chat-input {
+          width: 100%;
+          min-height: calc(1.35em * 3);
+        }
+
+        .super-chat-actions {
+          display: contents;
+        }
+
+        .app-layout[data-super-expanded="true"] .super-chat-actions {
+          order: 2;
+          display: flex;
+          width: 100%;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+        }
+
+        .super-chat-attach {
+          order: 1;
+        }
+
+        .super-chat-send {
+          order: 3;
         }
 
         .chat-footer {
@@ -658,7 +837,7 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
 
         .app-layout[data-device="desktop"][data-mode="stacked"]:not([data-collapsed="true"]) .chat-panel {
           width: var(--panel-width);
-          height: var(--panel-height);
+          height: auto;
           top: 0;
           transform: translate(0, 0);
         }
@@ -809,13 +988,13 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
 
         .app-layout[data-device="mobile"][data-mode="stacked"]:not([data-collapsed="true"]) .tabs-panel {
           width: var(--stack-width);
-          height: var(--panel-height);
+          height: auto;
           transform: translate(0, 0);
         }
 
         .app-layout[data-device="mobile"][data-mode="stacked"]:not([data-collapsed="true"]) .chat-panel {
           width: var(--stack-width);
-          height: calc(var(--panel-height) - var(--panel-header-height));
+          height: auto;
           top: var(--panel-header-height);
           transform: translate(0, 0);
         }
@@ -878,15 +1057,31 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
           z-index: 2;
         }
 
+        .app-layout[data-device="desktop"]:not([data-collapsed="true"]) .tabs-panel,
+        .app-layout[data-device="desktop"]:not([data-collapsed="true"]) .chat-panel {
+          position: relative;
+          top: auto;
+          height: auto;
+          max-height: none;
+          transform: none;
+        }
+
+        .app-layout[data-device="desktop"]:not([data-collapsed="true"]) .tabs-panel {
+          grid-column: 1;
+          grid-row: 1;
+          width: var(--super-menu-width);
+        }
+
+        .app-layout[data-device="desktop"]:not([data-collapsed="true"]) .chat-panel {
+          grid-column: 2;
+          grid-row: 1;
+          width: var(--super-chat-width);
+        }
+
       `}</style>
       <SlotProvider>
         <div className="app-shell">
           <div className="app-stage">
-            <main className="app-content">
-              <div className="app-center">
-                <CenterContent fallback={centerFallback} />
-              </div>
-            </main>
             <aside className="app-rail">
               {device === "desktop" && !collapsed ? (
                 <button
@@ -899,6 +1094,7 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
               <div className="panel-stack">
                 <TabsPanel
                   {...panelConfig.tabs}
+                  quickCommands={panelConfig.chat.quickCommands}
                   collapsed={collapsed}
                   onToggleCollapse={constrained ? undefined : handleToggleCollapse}
                   parallel={parallel}
@@ -909,10 +1105,59 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
                 />
                 <ChatPanel
                   {...panelConfig.chat}
+                  quickCommands={undefined}
+                  showComposer={false}
                   onClick={() => handlePanelClick("chat")}
                 />
+                <div className="super-chat-footer">
+                  <form
+                    className="super-chat-form"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      handleFooterSubmit();
+                    }}
+                  >
+                    <textarea
+                      className="super-chat-input"
+                      value={footerValue}
+                      rows={superPanelExpanded ? 3 : 1}
+                      placeholder="Напишите сообщение..."
+                      onChange={(event) => setFooterValue(event.target.value)}
+                      onFocus={handleFooterFocus}
+                      onBlur={handleFooterBlur}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" && !event.shiftKey) {
+                          event.preventDefault();
+                          handleFooterSubmit();
+                        }
+                      }}
+                    />
+                    <div className="super-chat-actions">
+                      <button
+                        type="button"
+                        className="panel-icon-button panel-action-button super-chat-attach"
+                        aria-label="Attach file"
+                        onClick={handleFooterAttach}
+                      >
+                        <Paperclip className="panel-icon" />
+                      </button>
+                      <button
+                        type="submit"
+                        className="panel-icon-button panel-action-button super-chat-send"
+                        aria-label="Send"
+                      >
+                        <Send className="panel-icon" />
+                      </button>
+                    </div>
+                  </form>
+                </div>
               </div>
             </aside>
+            <main className="app-content">
+              <div className="app-center">
+                <CenterContent fallback={centerFallback} />
+              </div>
+            </main>
           </div>
         </div>
       </SlotProvider>

@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { ChatDetail } from '../components/ChatDetail';
 import { useUnit } from 'effector-react';
 import { ChatState } from 'assistant-state';
+import { $fileListItems } from 'files-state';
 import { chatStore, initializeChat } from "../chat-store";
 
 type ChatViewProps = {
@@ -10,6 +11,7 @@ type ChatViewProps = {
 
 const ChatView: React.FC<ChatViewProps> = ({ contextName }) => {
   const { messages, isLoading, currentResponse }: ChatState = useUnit(chatStore.$chat);
+  const fileItems = useUnit($fileListItems);
 
   useEffect(() => {
     console.log("[ChatView] Mounted - initializing chat immediately");
@@ -33,6 +35,7 @@ const ChatView: React.FC<ChatViewProps> = ({ contextName }) => {
       isLoading={isLoading}
       currentResponse={currentResponse}
       send={chatStore.send}
+      files={fileItems}
       showComposer={false}
     />
   );

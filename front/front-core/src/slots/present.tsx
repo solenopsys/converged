@@ -66,7 +66,7 @@ export const present = async (widget: Widget<any>, slot: string | string[], moun
 
     if (point.startsWith("sidebar:tab:")) {
         tabActivated(point.replace("sidebar:tab:", ""));
-        setActivePanel("tabs");
+        setActivePanel("chat");
         setCollapsed(false);
     } else if (point === "sidebar:right") {
         setActivePanel("chat");

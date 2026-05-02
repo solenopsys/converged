@@ -19,9 +19,79 @@
   min-width: 0;
 }
 
+.composerFooter {
+  padding: 0.75rem;
+}
+
+.filesTray {
+  width: 100%;
+  min-width: 0;
+}
+
+.composerBar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid color-mix(in oklch, currentColor 14%, transparent);
+  border-radius: 10px;
+  background: color-mix(in oklch, currentColor 4%, transparent);
+  transition: min-height 180ms ease, border-color 180ms ease, background-color 180ms ease;
+}
+
+.composerBarExpanded {
+  flex-direction: column;
+  align-items: stretch;
+  min-height: 82px;
+  border-color: color-mix(in oklch, currentColor 26%, transparent);
+  background: color-mix(in oklch, currentColor 6%, transparent);
+}
+
+.composerAction {
+  width: 32px;
+  height: 32px;
+  border: 1px solid color-mix(in oklch, currentColor 18%, transparent);
+  border-radius: 8px;
+}
+
+.composerActions {
+  display: contents;
+}
+
+.composerBarExpanded .composerActions {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
 .composerTextarea {
+  order: 2;
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
   background: transparent;
   border: none;
   outline: none;
   box-shadow: none;
+  min-height: 1.5em;
+  max-height: 4.5em;
+  line-height: 1.5;
+  overflow-y: auto;
+}
+
+.composerBarExpanded .composerTextarea {
+  width: 100%;
+}
+
+.composerAction:first-child {
+  order: 1;
+}
+
+.composerAction:last-child {
+  order: 3;
 }

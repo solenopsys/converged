@@ -6,6 +6,7 @@ type FetchLike = typeof fetch;
 
 export interface CreateStoreServiceOptions {
   baseUrl?: string;
+  headers?: Record<string, string>;
   fetchImpl?: FetchLike;
   requestTimeoutMs?: number;
 }
@@ -41,6 +42,7 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T
 export function createStoreService(options: CreateStoreServiceOptions = {}): StoreService {
   const {
     baseUrl = DEFAULT_BASE_URL,
+    headers = {},
     fetchImpl = fetch,
     requestTimeoutMs = REQUEST_TIMEOUT,
   } = options;
@@ -56,6 +58,7 @@ export function createStoreService(options: CreateStoreServiceOptions = {}): Sto
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...headers,
         },
         body: JSON.stringify({
           data: base64Data,
@@ -83,6 +86,7 @@ export function createStoreService(options: CreateStoreServiceOptions = {}): Sto
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...headers,
         },
         body: JSON.stringify({ hash }),
       }),
@@ -105,6 +109,7 @@ export function createStoreService(options: CreateStoreServiceOptions = {}): Sto
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...headers,
         },
         body: JSON.stringify({ hash }),
       }),

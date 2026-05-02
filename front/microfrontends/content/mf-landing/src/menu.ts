@@ -8,6 +8,7 @@ export const MENU = {
     {
       title: getLandingMenuTitle(),
       key: "4ir",
+      iconName: "IconTrendingUp",
       action: SHOW_DEFAULT_LANDING,
     },
   ],

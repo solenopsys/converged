@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import type { ChatMessage } from "assistant-state";
-import type { Message as ThreadMessage } from "g-threads";
+import { MessageType, type Message as ThreadMessage } from "g-threads";
 
 import { ChatDetail } from "../components/ChatDetail";
 import { threadsClient } from "../services";
@@ -9,10 +9,66 @@ type ChatHistoryViewProps = {
   threadId: string;
 };
 
-function toChatMessage(message: ThreadMessage, index: number): ChatMessage | null {
-  if (message.type !== "message") return null;
+type LinkData = {
+  kind?: string;
+  target?: string;
+  label?: string;
+  fileId?: string;
+  fileName?: string;
+  fileSize?: number;
+  fileType?: string;
+  file?: {
+    fileId?: string;
+    fileName?: string;
+    fileSize?: number;
+    fileType?: string;
+  };
+};
 
+function parseLinkData(data: string): LinkData | null {
+  try {
+    const parsed = JSON.parse(data) as unknown;
+    return parsed && typeof parsed === "object" ? parsed as LinkData : null;
+  } catch {
+    return null;
+  }
+}
+
+function toChatMessage(message: ThreadMessage, index: number): ChatMessage | null {
   const user = message.user === "assistant" ? "assistant" : "user";
+
+  if (message.type === MessageType.link || message.type === "link") {
+    const linkData = parseLinkData(message.data ?? "");
+    const fileId = linkData?.fileId ?? linkData?.file?.fileId;
+    const fileName = linkData?.fileName ?? linkData?.file?.fileName ?? linkData?.label;
+
+    if (fileId && fileName) {
+      return {
+        id: message.id ?? `history-file-${index}-${message.timestamp ?? Date.now()}`,
+        beforeId: message.beforeId,
+        type: user,
+        content: `Файл загружен: ${fileName}`,
+        timestamp: message.timestamp ?? 0,
+        fileData: {
+          fileId,
+          fileName,
+          fileSize: linkData?.fileSize ?? linkData?.file?.fileSize,
+          fileType: linkData?.fileType ?? linkData?.file?.fileType,
+        },
+      };
+    }
+
+    return {
+      id: message.id ?? `history-link-${index}-${message.timestamp ?? Date.now()}`,
+      beforeId: message.beforeId,
+      type: user,
+      content: linkData?.label ?? message.data ?? "",
+      timestamp: message.timestamp ?? 0,
+    };
+  }
+
+  if (message.type !== MessageType.message && message.type !== "message") return null;
+
   return {
     id: message.id ?? `history-${index}-${message.timestamp ?? Date.now()}`,
     beforeId: message.beforeId,

@@ -46,6 +46,7 @@ export function ThreadedChat<TMessage extends ThreadMessageBase>({
   indentSize = 14,
 }: ThreadedChatProps<TMessage>) {
   const [inputValue, setInputValue] = useState("");
+  const [composerFocused, setComposerFocused] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -132,51 +133,70 @@ export function ThreadedChat<TMessage extends ThreadMessageBase>({
           </ScrollArea>
         </CardContent>
 
-        {showComposer ? (
-          <CardFooter className="p-4 shrink-0 flex-col gap-3">
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              className="hidden"
-              onChange={handleFileChange}
-            />
-            {files ? <div className="w-full">{files}</div> : null}
-            <div className="flex w-full items-center gap-2">
-              {onFilesSelected ? (
-                <Button
-                  onClick={handleAttachClick}
-                  disabled={isLoading}
-                  size="icon"
-                  variant="ghost"
-                  aria-label="Attach file"
-                >
-                  <Paperclip size={16} />
-                </Button>
-              ) : null}
-              <textarea
-                value={inputValue}
-                onChange={(event) => setInputValue(event.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={placeholder}
-                className={cn(
-                  "flex-1 resize-none p-0 m-0 text-sm",
-                  styles.composerTextarea,
-                )}
-                rows={1}
-                disabled={isLoading}
-                aria-label="Message"
+        {showComposer || files ? (
+          <CardFooter className={cn("shrink-0 flex-col gap-3", styles.composerFooter)}>
+            {showComposer ? (
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={handleFileChange}
               />
-              <Button
-                onClick={handleSend}
-                disabled={!inputValue.trim() || isLoading}
-                size="icon"
-                variant="ghost"
-                aria-label="Send"
+            ) : null}
+            {files ? <div className={styles.filesTray}>{files}</div> : null}
+            {showComposer ? (
+              <div
+                className={cn(
+                  styles.composerBar,
+                  composerFocused || inputValue ? styles.composerBarExpanded : undefined,
+                )}
               >
-                <Send size={16} />
-              </Button>
-            </div>
+                <textarea
+                  value={inputValue}
+                  onChange={(event) => setInputValue(event.target.value)}
+                  onKeyDown={handleKeyDown}
+                  onFocus={() => setComposerFocused(true)}
+                  onBlur={() => setComposerFocused(false)}
+                  placeholder={placeholder}
+                  className={cn(
+                    "flex-1 resize-none p-0 m-0 text-sm",
+                    styles.composerTextarea,
+                  )}
+                  rows={composerFocused || inputValue ? 3 : 1}
+                  disabled={isLoading}
+                  aria-label="Message"
+                />
+                <div className={styles.composerActions}>
+                  {onFilesSelected ? (
+                    <Button
+                      type="button"
+                      onClick={handleAttachClick}
+                      disabled={isLoading}
+                      size="icon"
+                      variant="ghost"
+                      className={styles.composerAction}
+                      aria-label="Attach file"
+                    >
+                      <Paperclip size={16} />
+                    </Button>
+                  ) : (
+                    <span />
+                  )}
+                  <Button
+                    type="button"
+                    onClick={handleSend}
+                    disabled={!inputValue.trim() || isLoading}
+                    size="icon"
+                    variant="ghost"
+                    className={styles.composerAction}
+                    aria-label="Send"
+                  >
+                    <Send size={16} />
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </CardFooter>
         ) : null}
       </Card>

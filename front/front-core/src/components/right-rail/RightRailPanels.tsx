@@ -21,6 +21,7 @@ import { Separator } from "../ui/separator";
 import { SidebarProvider } from "../ui/sidebar";
 import { NavMain } from "../nav-main";
 import { chatInitRequested, chatSendRequested } from "../../chat/events";
+import { $slotContents } from "../../slots";
 import {
   Columns2,
   LayoutGrid,
@@ -53,6 +54,7 @@ import {
   HardDrive,
   Globe,
   Target,
+  TrendingUp,
 } from "lucide-react";
 import type { ChatState } from "assistant-state";
 import { $fileListItems, fileSelected } from "files-state";
@@ -197,6 +199,8 @@ const menuIconMap: Record<string, any> = {
   IconServer: HardDrive,
   IconGlobe: Globe,
   IconTarget: Target,
+  IconTrendingUp: TrendingUp,
+  IconCreditCard: TrendingUp,
 };
 
 const getIcon = (iconName?: string) => {
@@ -204,11 +208,23 @@ const getIcon = (iconName?: string) => {
   return menuIconMap[iconName];
 };
 
+const resolveFallbackMenuIconName = (item: MenuItem, title?: string): string | undefined => {
+  const values = [
+    item.key,
+    title,
+    typeof item.action === "string" ? item.action : item.action?.id,
+  ]
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => value.toLowerCase());
+
+  return values.some((value) => value.includes("upgrade"))
+    ? "IconTrendingUp"
+    : undefined;
+};
+
 const resolveMenuItems = (items: MenuItem[], t?: (key: string) => string): MenuItem[] => {
   return items.map((item) => {
-    const iconName = (item as { iconName?: string }).iconName;
     const microfrontendId = (item as { __microfrontendId?: string }).__microfrontendId;
-    const Icon = getIcon(iconName);
 
     // Переводим title если есть функция перевода и title похож на ключ
     let title = item.title;
@@ -219,6 +235,9 @@ const resolveMenuItems = (items: MenuItem[], t?: (key: string) => string): MenuI
       const translated = t(scopedKey);
       title = translated !== scopedKey ? translated : title.split('.').pop() || title;
     }
+
+    const iconName = (item as { iconName?: string }).iconName ?? resolveFallbackMenuIconName(item, title);
+    const Icon = getIcon(iconName);
 
     const resolved: MenuItem = {
       ...item,
@@ -421,19 +440,21 @@ function PanelHeader({
 export function TabsPanel({
   headerIcons,
   menuItems,
+  quickCommands,
   onClick,
   collapsed,
   onToggleCollapse,
   parallel,
   onToggleParallel,
-}: TabsConfig & PanelClick & CollapseControl & ParallelControl & ConstrainControl) {
+}: TabsConfig &
+  Pick<ChatConfig, "quickCommands"> &
+  PanelClick &
+  CollapseControl &
+  ParallelControl &
+  ConstrainControl) {
   // Используем динамические меню из store, fallback на статические из конфига
   const dynamicMenuItems = useUnit($allMenuItems);
   const items = dynamicMenuItems.length > 0 ? dynamicMenuItems : menuItems;
-
-  // Активная вкладка
-  const activeTab = useUnit($activeTab);
-  const showMenu = !activeTab || activeTab === "menu";
 
   // Локализация для меню микрофронтендов
   const { t } = useGlobalTranslation("menu-groups");
@@ -444,9 +465,9 @@ export function TabsPanel({
     runActionEvent({ actionId, params: {} });
   }, []);
 
-  const handleBackToMenu = useCallback(() => {
-    tabActivated("menu");
-  }, []);
+  const handleQuickCommand = useCallback((command: { label: string; icon?: ChatQuickKind }) => {
+    chatSendRequested(command.label);
+  }, [chatSendRequested]);
 
   return (
     <div className="panel tabs-panel" onClick={onClick}>
@@ -460,23 +481,15 @@ export function TabsPanel({
         />
         <Separator className="panel-separator panel-separator-tight" />
         <div className="tabs-body">
-          <div className="panel-menu-wrapper" style={{ display: showMenu ? 'block' : 'none' }}>
+          <div className="panel-menu-wrapper">
             <SidebarProvider className="panel-menu-provider" defaultOpen>
               <div className="panel-menu">
                 <NavMain items={resolveMenuItems(items, t)} onSelect={handleMenuSelect} />
               </div>
             </SidebarProvider>
           </div>
-          <div className="panel-tab-content" style={{ display: showMenu ? 'none' : 'flex' }}>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleBackToMenu}
-              className="mb-2"
-            >
-              ← Back to menu
-            </Button>
-            <div id="slot-panel-tab" className="panel-tab-slot" />
+          <div className="tabs-footer-quick">
+            <ChatQuickCommands commands={quickCommands} onCommand={handleQuickCommand} />
           </div>
         </div>
       </div>
@@ -586,12 +599,14 @@ function ChatRuntimePanel({
   description,
   quickCommands,
   fileItems,
+  showComposer = true,
 }: {
   runtime: ChatRuntime;
   title: string;
   description?: string;
   quickCommands?: { label: string; icon?: ChatQuickKind }[];
   fileItems: FileListItem[];
+  showComposer?: boolean;
 }) {
   const { messages, isLoading, currentResponse } = useUnit(runtime.chatStore.$chat) as ChatState;
   const showIntro = messages.length === 0 && !isLoading && !currentResponse;
@@ -620,7 +635,7 @@ function ChatRuntimePanel({
           send={chatSendRequested}
           onFilesSelected={handleFilesSelected}
           files={fileItems}
-          showComposer={true}
+          showComposer={showComposer}
           intro={
             showIntro ? (
               <ChatBody
@@ -643,9 +658,18 @@ export function ChatPanel({
   title,
   description,
   quickCommands,
-}: ChatConfig & PanelClick) {
+  showComposer = true,
+}: ChatConfig & PanelClick & { showComposer?: boolean }) {
   const fileItems = useUnit($fileListItems);
+  const activeTab = useUnit($activeTab);
+  const slotContents = useUnit($slotContents);
   const [chatRuntime, setChatRuntime] = useState<ChatRuntime | null>(null);
+  const showTabPanel = Boolean(activeTab && activeTab !== "menu");
+  const hasChatSlotContent = Boolean(slotContents["sidebar:right"]);
+
+  const handleBackToMenu = useCallback(() => {
+    tabActivated("menu");
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -673,20 +697,37 @@ export function ChatPanel({
   return (
     <div className="panel chat-panel" onClick={onClick}>
       <div className="panel-content chat-panel-content">
-        {chatRuntime ? (
-          <ChatRuntimePanel
-            runtime={chatRuntime}
-            title={title}
-            description={description}
-            quickCommands={quickCommands}
-            fileItems={fileItems}
-          />
+        {showTabPanel ? (
+          <div className="panel-tab-content">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBackToMenu}
+              className="mb-2"
+            >
+              Back to menu
+            </Button>
+            <div id="slot-panel-tab" className="panel-tab-slot" />
+          </div>
         ) : (
-          <ChatBody
-            title={title}
-            description={description}
-            quickCommands={quickCommands}
-          />
+          <div id="slot-panel-chat" className="chat-panel-slot">
+            {!hasChatSlotContent && chatRuntime ? (
+              <ChatRuntimePanel
+                runtime={chatRuntime}
+                title={title}
+                description={description}
+                quickCommands={quickCommands}
+                fileItems={fileItems}
+                showComposer={showComposer}
+              />
+            ) : !hasChatSlotContent ? (
+              <ChatBody
+                title={title}
+                description={description}
+                quickCommands={quickCommands}
+              />
+            ) : null}
+          </div>
         )}
         <Button
           type="button"

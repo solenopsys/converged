@@ -1,6 +1,6 @@
 import { structClient } from "g-struct";
 import { createBridgeController } from "../bridge";
-import { chatInitRequested, chatSendRequested } from "../chat/events";
+import { chatAttachRequested, chatInitRequested, chatSendRequested } from "../chat/events";
 import { rightRailActionSelected } from "../components/right-rail/uri-sync";
 import {
 	$allMenuItems,
@@ -24,10 +24,12 @@ import {
 
 const SSR_MENU_STYLE_ID = "ssr-menu-shell-style";
 const FRONT_CORE_STYLE_ID = "front-core-runtime-style";
+const SSR_SHELL_ID = "ssr-shell";
 const SSR_RIGHT_RAIL_ID = "ssr-right-rail";
 const SSR_SLOT_PROVIDER_ROOT_ID = "ssr-slot-provider-root";
 const SSR_CHAT_DOCK_ID = "ssr-chat-dock";
 const SSR_CHAT_INPUT_ID = "ssr-chat-input";
+const SSR_CHAT_ATTACH_ID = "ssr-chat-attach";
 const SSR_CHAT_FORM_ID = "ssr-chat-form";
 const SSR_CHAT_QUICK_ID = "ssr-chat-quick";
 const RIGHT_RAIL_QUERY_KEYS = [
@@ -204,7 +206,7 @@ function isRightRailOpen(): boolean {
 
 function updateShellWidthMode(): void {
 	const value = railWide ? "1" : "0";
-	document.getElementById("ssr-shell")?.setAttribute("data-rail-wide", value);
+	document.getElementById(SSR_SHELL_ID)?.setAttribute("data-rail-wide", value);
 	document.getElementById("app-shell")?.setAttribute("data-rail-wide", value);
 }
 
@@ -410,7 +412,7 @@ function setRightRailMode(mode: "chat" | "tab"): void {
 function setRightRailOpen(open: boolean): void {
 	const rail = document.getElementById(SSR_RIGHT_RAIL_ID);
 	const appShell = document.getElementById("app-shell");
-	const shell = document.getElementById("ssr-shell");
+	const shell = document.getElementById(SSR_SHELL_ID);
 	const next = open ? "1" : "0";
 	if (rail) {
 		rail.dataset.open = next;
@@ -716,12 +718,13 @@ function ensureStyles(): void {
 #root[data-center-runtime="1"] .header-panel-logo {
   display: none !important;
 }
+#ssr-super-panel {
+  min-height: 0;
+}
 #ssr-left-panel {
   display: flex;
   flex-direction: column;
-  bottom: auto !important;
-  height: fit-content !important;
-  max-height: calc(100vh - (var(--ssr-pad) * 2) - var(--ssr-dock-height)) !important;
+  min-height: 0;
   overflow: hidden !important;
 }
 .ssr-panel-groups {
@@ -952,6 +955,8 @@ const MENU_ICON_SVG: Record<string, string> = {
 		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/></svg>',
 	IconMessages:
 		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2"/><path d="M8 20l4-4h8a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2z"/></svg>',
+	IconTrendingUp:
+		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 17 6-6 4 4 7-7"/><path d="M14 8h6v6"/></svg>',
 };
 const MENU_CHEVRON_SVG =
 	'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
@@ -1021,6 +1026,13 @@ function resolveIconName(item: RuntimeMenuItem, depth: number): string | null {
 	}
 	if (typeof item.icon === "string" && item.icon.length > 0) {
 		return item.icon;
+	}
+	const actionId = resolveActionId(item.action);
+	const values = [item.key, item.title, actionId]
+		.filter((value): value is string => typeof value === "string")
+		.map((value) => value.toLowerCase());
+	if (values.some((value) => value.includes("upgrade"))) {
+		return "IconTrendingUp";
 	}
 	if (depth === 0 && item.key) {
 		const group = GROUPS.find((g) => g.id === item.key);
@@ -1842,13 +1854,17 @@ function normalizeQuickChatPrompt(prompt: QuickChatPrompt): {
 }
 
 function installChatDock(): void {
+	const shell = document.getElementById(SSR_SHELL_ID);
 	const dock = document.getElementById(SSR_CHAT_DOCK_ID);
 	const form = document.getElementById(
 		SSR_CHAT_FORM_ID,
 	) as HTMLFormElement | null;
 	const input = document.getElementById(
 		SSR_CHAT_INPUT_ID,
-	) as HTMLInputElement | null;
+	) as HTMLTextAreaElement | null;
+	const attach = document.getElementById(
+		SSR_CHAT_ATTACH_ID,
+	) as HTMLButtonElement | null;
 	const quick = document.getElementById(SSR_CHAT_QUICK_ID);
 	if (!dock || !form || !input || !quick) return;
 
@@ -1867,6 +1883,11 @@ function installChatDock(): void {
 			submitMessage();
 		});
 
+		attach?.addEventListener("click", () => {
+			if (shell) shell.dataset.chatFocus = "1";
+			void openAiChat().then(() => chatAttachRequested());
+		});
+
 		input.addEventListener("keydown", (event) => {
 			if (event.key === "Enter" && !event.shiftKey) {
 				event.preventDefault();
@@ -1874,7 +1895,15 @@ function installChatDock(): void {
 			}
 		});
 		input.addEventListener("focus", () => {
+			if (shell) shell.dataset.chatFocus = "1";
 			void openAiChat();
+		});
+
+		dock.addEventListener("focusout", () => {
+			window.setTimeout(() => {
+				if (dock.contains(document.activeElement)) return;
+				if (shell) shell.dataset.chatFocus = "0";
+			}, 0);
 		});
 
 		const renderPrompts = (prompts: readonly QuickChatPrompt[]) => {

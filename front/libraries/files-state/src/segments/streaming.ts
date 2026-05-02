@@ -39,6 +39,22 @@ import {
 let storeWorker: Worker | null = null;
 let storeConfig: any = null;
 
+function resolveStoreConfig(): any {
+  const config = { ...(storeConfig || {}) };
+  if (typeof window === 'undefined') return config;
+
+  const token = window.localStorage.getItem('authToken');
+  if (!token) return config;
+
+  return {
+    ...config,
+    headers: {
+      ...(config.headers || {}),
+      authorization: `Bearer ${token}`,
+    },
+  };
+}
+
 // Функция для установки кастомного worker (для виджетов и т.д.)
 export function setStoreWorker(worker: Worker, config?: any) {
   if (storeWorker) {
@@ -155,9 +171,13 @@ sample({
     };
 
     // Добавляем конфигурацию store если есть
-    if (storeConfig) {
-      message.store = storeConfig;
-      console.log('[Streaming] Adding store config to message:', storeConfig);
+    const resolvedStoreConfig = resolveStoreConfig();
+    if (Object.keys(resolvedStoreConfig).length > 0) {
+      message.store = resolvedStoreConfig;
+      console.log('[Streaming] Adding store config to message:', {
+        ...resolvedStoreConfig,
+        headers: resolvedStoreConfig.headers ? { ...resolvedStoreConfig.headers, authorization: '[redacted]' } : undefined,
+      });
     }
 
     console.log('[Streaming] Sending UploadStart to worker');

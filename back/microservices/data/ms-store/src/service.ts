@@ -5,6 +5,7 @@ import {
   StoreService,
   CompressionType,
 } from "g-store";
+import { Access } from "nrpc";
 import { StoresController } from "./stores";
 import * as path from "path";
 
@@ -43,6 +44,7 @@ export class StoreServiceImpl implements StoreService {
     return path.join(prefix, hash);
   }
 
+  @Access("public")
   async save(
     data: Uint8Array,
     originalSize?: number,
@@ -61,6 +63,7 @@ export class StoreServiceImpl implements StoreService {
     return hash;
   }
 
+  @Access("public")
   async saveWithHash(
     hash: HashString,
     data: Uint8Array,
@@ -87,6 +90,7 @@ export class StoreServiceImpl implements StoreService {
     }
   }
 
+  @Access("public")
   async get(hash: HashString): Promise<Uint8Array> {
     const data = await this.stores.fileStore.get(this.toKey(hash));
     if (!data) {
@@ -95,6 +99,7 @@ export class StoreServiceImpl implements StoreService {
     return data;
   }
 
+  @Access("public")
   async getWithMeta(hash: HashString): Promise<{
     data: Uint8Array;
     compression: CompressionType;
@@ -112,6 +117,7 @@ export class StoreServiceImpl implements StoreService {
     };
   }
 
+  @Access("public")
   async exists(hash: HashString): Promise<boolean> {
     return this.stores.fileStore.exists(this.toKey(hash));
   }

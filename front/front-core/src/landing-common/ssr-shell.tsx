@@ -68,17 +68,39 @@ body { margin: 0; }
 #ssr-shell[data-rail-open="1"] {
   --ssr-rail-space: var(--ssr-rail-width);
 }
+#ssr-shell[data-chat-focus="1"] {
+  --ssr-rail-space: var(--ssr-rail-width);
+}
 #ssr-shell[data-rail-wide="1"] {
   --ssr-rail-width: 460px;
 }
-#ssr-left-panel {
+#ssr-super-panel {
   position: fixed;
   top: var(--ssr-pad);
   left: var(--ssr-pad);
-  bottom: auto;
+  bottom: var(--ssr-pad);
   width: var(--ssr-menu-width);
-  height: fit-content;
-  max-height: calc(100vh - (var(--ssr-pad) * 2) - var(--ssr-dock-height));
+  display: grid;
+  grid-template-columns: var(--ssr-menu-width) 0px;
+  grid-template-rows: minmax(0, 1fr) auto;
+  column-gap: 0;
+  overflow: hidden;
+  isolation: isolate;
+  box-sizing: border-box;
+  z-index: 6;
+  transition: width 220ms ease, grid-template-columns 220ms ease;
+}
+#ssr-shell[data-rail-open="1"] #ssr-super-panel,
+#ssr-shell[data-chat-focus="1"] #ssr-super-panel {
+  width: calc(var(--ssr-menu-width) + var(--ssr-gap) + var(--ssr-rail-width));
+  grid-template-columns: var(--ssr-menu-width) minmax(0, var(--ssr-rail-width));
+  column-gap: var(--ssr-gap);
+}
+#ssr-left-panel {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -89,14 +111,13 @@ body { margin: 0; }
   color: var(--ui-foreground);
   padding: 0;
   box-sizing: border-box;
-  z-index: 6;
 }
 #ssr-right-rail {
-  position: fixed;
-  top: var(--ssr-pad);
-  left: calc(var(--ssr-pad) + var(--ssr-menu-width) + var(--ssr-gap));
-  bottom: var(--ssr-pad);
-  width: var(--ssr-rail-width);
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -110,10 +131,9 @@ body { margin: 0; }
   backdrop-filter: none;
   isolation: isolate;
   box-sizing: border-box;
-  transform: translateX(0);
+  transform: none;
   opacity: 1;
-  transition: transform 220ms ease, opacity 220ms ease;
-  z-index: 5;
+  transition: opacity 180ms ease;
 }
 #ssr-right-rail-head {
   display: flex;
@@ -146,7 +166,6 @@ body { margin: 0; }
   box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--ui-border) 96%, transparent);
 }
 #ssr-right-rail[data-open="0"] {
-  transform: translateX(calc(-1 * (var(--ssr-menu-width) + var(--ssr-rail-width))));
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -336,11 +355,10 @@ body { margin: 0; }
   font-size: 13px;
 }
 #ssr-chat-dock {
-  position: fixed;
-  left: var(--ssr-pad);
-  bottom: var(--ssr-pad);
-  width: var(--ssr-menu-width);
-  z-index: 8;
+  grid-column: 1;
+  grid-row: 2;
+  min-width: 0;
+  width: auto;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -348,15 +366,18 @@ body { margin: 0; }
   border-top: 1px solid color-mix(in oklch, var(--ui-border) 84%, transparent);
   background: color-mix(in oklch, var(--ui-card) 92%, transparent);
   box-sizing: border-box;
-  transition: width 220ms ease;
+  transition: background 180ms ease;
 }
-#ssr-shell[data-rail-open="1"] #ssr-chat-dock {
-  width: var(--ssr-menu-width);
+#ssr-shell[data-rail-open="1"] #ssr-chat-dock,
+#ssr-shell[data-chat-focus="1"] #ssr-chat-dock {
+  grid-column: 1 / -1;
 }
 #ssr-chat-quick {
   display: flex;
   flex-direction: column-reverse;
   gap: 8px;
+  margin-top: auto;
+  padding: 10px 12px 0;
   overflow: hidden;
   opacity: 1;
   transform: translateY(0);
@@ -393,23 +414,60 @@ body { margin: 0; }
 }
 #ssr-chat-form {
   display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 8px;
   min-height: 44px;
   border: 1px solid color-mix(in oklch, var(--ui-border) 84%, transparent);
   border-radius: 10px;
-  padding: 6px 8px 6px 10px;
+  padding: 6px 8px;
   background: color-mix(in oklch, var(--ui-card) 92%, transparent);
+  transition: min-height 180ms ease, border-color 180ms ease;
+}
+#ssr-chat-form:focus-within {
+  flex-direction: column;
+  align-items: stretch;
+  min-height: 82px;
+  border-color: color-mix(in oklch, var(--ui-border) 100%, transparent);
+}
+#ssr-chat-attach {
+  width: 30px;
+  height: 30px;
+  border: 1px solid color-mix(in oklch, var(--ui-border) 74%, transparent);
+  border-radius: 8px;
+  background: transparent;
+  color: color-mix(in oklch, currentColor 82%, transparent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+#ssr-chat-attach svg {
+  width: 15px;
+  height: 15px;
+  display: block;
 }
 #ssr-chat-input {
+  order: 2;
   flex: 1 1 auto;
+  width: auto;
   min-width: 0;
+  min-height: 1.35em;
+  max-height: calc(1.35em * 3);
   border: none;
   background: transparent;
   color: var(--ui-foreground);
   font-size: 14px;
   line-height: 1.35;
   outline: none;
+  resize: none;
+  overflow-y: auto;
+  padding: 0;
+  font-family: inherit;
+}
+#ssr-chat-form:focus-within #ssr-chat-input {
+  width: 100%;
+  min-height: calc(1.35em * 3);
 }
 #ssr-chat-input::placeholder {
   color: color-mix(in oklch, var(--ui-foreground) 58%, transparent);
@@ -431,6 +489,23 @@ body { margin: 0; }
   height: 15px;
   display: block;
 }
+#ssr-chat-actions {
+  display: contents;
+}
+#ssr-chat-form:focus-within #ssr-chat-actions {
+  order: 2;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+#ssr-chat-attach {
+  order: 1;
+}
+#ssr-chat-send {
+  order: 3;
+}
 #ssr-main {
   min-width: 0;
   border: none;
@@ -446,18 +521,29 @@ body { margin: 0; }
   #ssr-shell {
     padding: 0;
   }
-  #ssr-left-panel {
+  #ssr-super-panel {
     position: static;
+    width: auto;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+  }
+  #ssr-shell[data-rail-open="1"] #ssr-super-panel,
+  #ssr-shell[data-chat-focus="1"] #ssr-super-panel {
+    width: auto;
+    grid-template-columns: 1fr;
+  }
+  #ssr-left-panel {
+    grid-column: 1;
+    grid-row: 1;
     width: auto;
     margin-bottom: 0;
     height: auto;
     max-height: none;
   }
   #ssr-right-rail {
-    position: static;
-    left: auto;
-    top: auto;
-    bottom: auto;
+    grid-column: 1;
+    grid-row: 2;
     width: auto;
     margin-bottom: 0;
     min-height: 280px;
@@ -474,13 +560,9 @@ body { margin: 0; }
     visibility: visible;
   }
   #ssr-chat-dock {
-    position: fixed;
-    left: var(--ssr-pad);
-    bottom: var(--ssr-pad);
-    width: var(--ssr-menu-width);
-  }
-  #ssr-shell[data-rail-open="1"] #ssr-chat-dock {
-    width: calc(var(--ssr-menu-width) + var(--ssr-rail-width));
+    grid-column: 1;
+    grid-row: 3;
+    width: auto;
   }
 }
 `;
@@ -494,118 +576,127 @@ export function SsrShellLayout({
 }) {
   return (
     <div id="app-shell" data-island="spa-shell" data-island-load="eager" data-rail-open="0">
-      <div id="ssr-shell" data-rail-open="0">
-        <aside id="ssr-left-panel" aria-label="Menu">
-          <div className="ssr-panel-head">
-            <div className="ssr-panel-brand" aria-label="Brand">
-              <img className="ssr-panel-brand-logo-light" src="/header-logo-black.svg" alt="Converged AI" />
-              <img className="ssr-panel-brand-logo-dark" src="/header-logo-white.svg" alt="Converged AI" />
-            </div>
-            <div className="ssr-panel-controls" aria-label="Menu controls">
-              {loginEnabled ? (
-                <button type="button" className="ssr-panel-control" data-ssr-control="auth" aria-label="Open login">
+      <div id="ssr-shell" data-rail-open="0" data-chat-focus="0">
+        <div id="ssr-super-panel">
+          <aside id="ssr-left-panel" aria-label="Menu">
+            <div className="ssr-panel-head">
+              <div className="ssr-panel-brand" aria-label="Brand">
+                <img className="ssr-panel-brand-logo-light" src="/header-logo-black.svg" alt="Converged AI" />
+                <img className="ssr-panel-brand-logo-dark" src="/header-logo-white.svg" alt="Converged AI" />
+              </div>
+              <div className="ssr-panel-controls" aria-label="Menu controls">
+                {loginEnabled ? (
+                  <button type="button" className="ssr-panel-control" data-ssr-control="auth" aria-label="Open login">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                      <path d="M10 17l5-5-5-5" />
+                      <path d="M15 12H3" />
+                    </svg>
+                  </button>
+                ) : null}
+                <button type="button" className="ssr-panel-control" data-ssr-control="theme" aria-label="Toggle theme">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-                    <path d="M10 17l5-5-5-5" />
-                    <path d="M15 12H3" />
+                    <circle cx="12" cy="12" r="4" />
+                    <path d="M12 2v2" />
+                    <path d="M12 20v2" />
+                    <path d="m4.93 4.93 1.41 1.41" />
+                    <path d="m17.66 17.66 1.41 1.41" />
+                    <path d="M2 12h2" />
+                    <path d="M20 12h2" />
+                    <path d="m6.34 17.66-1.41 1.41" />
+                    <path d="m19.07 4.93-1.41 1.41" />
                   </svg>
                 </button>
-              ) : null}
-              <button type="button" className="ssr-panel-control" data-ssr-control="theme" aria-label="Toggle theme">
+                <div className="ssr-lang-control" data-ssr-lang-root data-open="0">
+                  <button
+                    type="button"
+                    className="ssr-panel-control ssr-lang-trigger"
+                    data-ssr-control="lang"
+                    aria-label="Language"
+                    aria-haspopup="menu"
+                    aria-expanded="false"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="9" />
+                      <path d="M3 12h18" />
+                      <path d="M12 3a13 13 0 0 1 0 18" />
+                      <path d="M12 3a13 13 0 0 0 0 18" />
+                    </svg>
+                    <span className="ssr-lang-current" data-ssr-lang-current>EN</span>
+                  </button>
+                  <div className="ssr-lang-popover" data-ssr-lang-menu role="menu" aria-label="Language options">
+                    {AVAILABLE_LANGS.map((lang) => (
+                      <button
+                        key={lang.code}
+                        type="button"
+                        role="menuitemradio"
+                        className="ssr-lang-option"
+                        data-ssr-lang-option={lang.code}
+                        aria-pressed="false"
+                      >
+                        {lang.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <button type="button" className="ssr-panel-control" data-ssr-control="rail" aria-label="Show panel" aria-pressed="false">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="4" width="18" height="16" rx="2" />
+                    <path d="M8 4v16" />
+                    <path d="m14 9 3 3-3 3" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="ssr-panel-groups" data-ssr-menu-groups />
+            <div id="ssr-chat-quick" />
+          </aside>
+          <aside id="ssr-right-rail" aria-label="Panel" data-open="0" data-mode="chat">
+            <div id="ssr-right-rail-head">
+              <button type="button" className="ssr-right-rail-tab-btn" data-ssr-rail-tab="chat" aria-label="AI panel" aria-pressed="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="4" />
-                  <path d="M12 2v2" />
-                  <path d="M12 20v2" />
-                  <path d="m4.93 4.93 1.41 1.41" />
-                  <path d="m17.66 17.66 1.41 1.41" />
-                  <path d="M2 12h2" />
-                  <path d="M20 12h2" />
-                  <path d="m6.34 17.66-1.41 1.41" />
-                  <path d="m19.07 4.93-1.41 1.41" />
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                 </svg>
               </button>
-              <div className="ssr-lang-control" data-ssr-lang-root data-open="0">
-                <button
-                  type="button"
-                  className="ssr-panel-control ssr-lang-trigger"
-                  data-ssr-control="lang"
-                  aria-label="Language"
-                  aria-haspopup="menu"
-                  aria-expanded="false"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="9" />
-                    <path d="M3 12h18" />
-                    <path d="M12 3a13 13 0 0 1 0 18" />
-                    <path d="M12 3a13 13 0 0 0 0 18" />
-                  </svg>
-                  <span className="ssr-lang-current" data-ssr-lang-current>EN</span>
-                </button>
-                <div className="ssr-lang-popover" data-ssr-lang-menu role="menu" aria-label="Language options">
-                  {AVAILABLE_LANGS.map((lang) => (
-                    <button
-                      key={lang.code}
-                      type="button"
-                      role="menuitemradio"
-                      className="ssr-lang-option"
-                      data-ssr-lang-option={lang.code}
-                      aria-pressed="false"
-                    >
-                      {lang.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <button type="button" className="ssr-panel-control" data-ssr-control="rail" aria-label="Show panel" aria-pressed="false">
+              <button type="button" className="ssr-right-rail-tab-btn" data-ssr-rail-tab="tab" aria-label="Form panel" aria-pressed="false">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="4" width="18" height="16" rx="2" />
-                  <path d="M8 4v16" />
-                  <path d="m14 9 3 3-3 3" />
+                  <path d="M12 4v16" />
                 </svg>
               </button>
             </div>
-          </div>
-          <div className="ssr-panel-groups" data-ssr-menu-groups />
+            <section id="ssr-right-rail-chat">
+              <div id="slot-panel-chat">
+                <div className="ssr-right-rail-empty">
+                  <h3>Ask us anything</h3>
+                  <p>Loading AI assistant...</p>
+                </div>
+              </div>
+            </section>
+            <section id="ssr-right-rail-tab">
+              <div id="slot-panel-tab" />
+            </section>
+            <div id="ssr-slot-provider-root" />
+          </aside>
           <div id="ssr-chat-dock" data-overlap="0">
-            <div id="ssr-chat-quick" />
             <form id="ssr-chat-form">
-              <input id="ssr-chat-input" type="text" placeholder="Напишите сообщение..." autoComplete="off" />
-              <button id="ssr-chat-send" type="submit" aria-label="Send message">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 2L11 13" />
-                  <path d="M22 2 15 22 11 13 2 9 22 2z" />
-                </svg>
-              </button>
+              <textarea id="ssr-chat-input" rows={1} placeholder="Напишите сообщение..." autoComplete="off" />
+              <div id="ssr-chat-actions">
+                <button id="ssr-chat-attach" type="button" aria-label="Attach file">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                  </svg>
+                </button>
+                <button id="ssr-chat-send" type="submit" aria-label="Send message">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 2L11 13" />
+                    <path d="M22 2 15 22 11 13 2 9 22 2z" />
+                  </svg>
+                </button>
+              </div>
             </form>
           </div>
-        </aside>
-        <aside id="ssr-right-rail" aria-label="Panel" data-open="0" data-mode="chat">
-          <div id="ssr-right-rail-head">
-            <button type="button" className="ssr-right-rail-tab-btn" data-ssr-rail-tab="chat" aria-label="AI panel" aria-pressed="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-            </button>
-            <button type="button" className="ssr-right-rail-tab-btn" data-ssr-rail-tab="tab" aria-label="Form panel" aria-pressed="false">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="4" width="18" height="16" rx="2" />
-                <path d="M12 4v16" />
-              </svg>
-            </button>
-          </div>
-          <section id="ssr-right-rail-chat">
-            <div id="slot-panel-chat">
-              <div className="ssr-right-rail-empty">
-                <h3>Ask us anything</h3>
-                <p>Loading AI assistant...</p>
-              </div>
-            </div>
-          </section>
-          <section id="ssr-right-rail-tab">
-            <div id="slot-panel-tab" />
-          </section>
-          <div id="ssr-slot-provider-root" />
-        </aside>
+        </div>
         <div id="ssr-main">
           <div id="root">{children}</div>
         </div>

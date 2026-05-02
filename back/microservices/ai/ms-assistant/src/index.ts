@@ -124,6 +124,8 @@ class ChatsServiceImpl {
     id: string;
     title: string;
     messagesCount: number | string;
+    filesCount?: number | string;
+    filesSize?: number | string;
     createdAt: number | string;
     updatedAt: number | string;
   }): Chat {
@@ -133,6 +135,8 @@ class ChatsServiceImpl {
       threadId: conversation.id,
       description: conversation.title,
       messagesCount: Number(conversation.messagesCount ?? 0),
+      filesCount: Number(conversation.filesCount ?? 0),
+      filesSize: Number(conversation.filesSize ?? 0),
       createdAt: Number(conversation.createdAt),
       updatedAt: Number(conversation.updatedAt),
     };
@@ -165,6 +169,13 @@ class ChatsServiceImpl {
   async recordChatMessage(threadId: string): Promise<Chat> {
     await this.init();
     const conversation = await this.stores.metadataService.recordMessage(threadId);
+
+    return this.toChat(conversation);
+  }
+
+  async recordChatFile(threadId: string, fileSize?: number): Promise<Chat> {
+    await this.init();
+    const conversation = await this.stores.metadataService.recordFile(threadId, fileSize);
 
     return this.toChat(conversation);
   }

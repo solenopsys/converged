@@ -338,11 +338,8 @@ sample({
   target: filesPickerOpened
 });
 
-sample({
-  clock: filesPickerOpened,
-  fn: (files) => files[0],
-  filter: (files) => files.length > 0,
-  target: fileSelected
+filesPickerOpened.watch((files) => {
+  files.forEach((file) => fileSelected(file));
 });
 
 // Logic - File Initialization
