@@ -9,6 +9,7 @@ interface MarqueeProps {
   vertical?: boolean;
   repeat?: number;
   durationSeconds?: number;
+  gap?: string;
 }
 
 export function Marquee({
@@ -20,17 +21,23 @@ export function Marquee({
   vertical = false,
   repeat = 4,
   durationSeconds = 40,
+  gap = "1rem",
 }: MarqueeProps) {
   const content = items || children;
 
   return (
     <div
-      style={{ "--duration": `${durationSeconds}s` } as React.CSSProperties}
+      style={{
+        "--duration": `${durationSeconds}s`,
+        "--gap": gap,
+        gap: "var(--gap)",
+      } as React.CSSProperties}
       className={cn(
-        "group flex overflow-hidden p-2 [--gap:1rem] [gap:var(--gap)]",
+        "group flex overflow-hidden p-2",
         {
           "flex-row": !vertical,
           "flex-col": vertical,
+          "marquee-pause-on-hover": pauseOnHover,
         },
         className,
       )}
@@ -40,11 +47,14 @@ export function Marquee({
         .map((_, i) => (
           <div
             key={i}
-            className={cn("flex shrink-0 justify-around [gap:var(--gap)]", {
-              "animate-marquee flex-row": !vertical,
-              "animate-marquee-vertical flex-col": vertical,
-              "group-hover:[animation-play-state:paused]": pauseOnHover,
-              "[animation-direction:reverse]": reverse,
+            style={{
+              gap: "var(--gap)",
+              animation: `${vertical ? "marquee-vertical" : "marquee"} var(--duration) linear infinite`,
+              animationDirection: reverse ? "reverse" : undefined,
+            }}
+            className={cn("marquee-content flex shrink-0 justify-around", {
+              "flex-row": !vertical,
+              "flex-col": vertical,
             })}
           >
             {content}

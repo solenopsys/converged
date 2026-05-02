@@ -15,6 +15,23 @@ import { StoresController } from "./stores";
 const MAGIC_LINK_TTL_MS = 365 * 24 * 60 * 60 * 1000;
 const ROOT_PRESET = "root";
 const USER_PRESET = "user";
+const TEMPORARY_USER_PERMISSIONS = [
+  "usage/recordUsage(w)",
+  "assistant/registerChat(w)",
+  "assistant/recordChatMessage(w)",
+  "assistant/recordChatFile(w)",
+  "threads/saveMessage(w)",
+  "threads/readThread(r)",
+  "chat/createSession(w)",
+  "chat/sendMessage(w)",
+  "store/save(w)",
+  "store/get(r)",
+  "files/save(w)",
+  "files/saveChunk(w)",
+  "files/update(w)",
+  "files/get(r)",
+  "files/getChunks(r)",
+];
 
 export class AuthServiceImpl implements AuthService {
   private stores: StoresController;
@@ -335,7 +352,9 @@ export class AuthServiceImpl implements AuthService {
     }
 
     const access = this.accessClient();
-    await access.addPermissionToUser(resolvedUser.id, "usage/recordUsage(w)");
+    for (const permission of TEMPORARY_USER_PERMISSIONS) {
+      await access.addPermissionToUser(resolvedUser.id, permission);
+    }
     const token = await access.emitJWT(resolvedUser.id);
     this.logJwtPermissions("temporary_session", token, {
       userId: resolvedUser.id,

@@ -13,6 +13,14 @@ mock.module("front-core", () => ({
 }));
 
 mock.module("./service", () => ({
+  authClient: {
+    createTemporaryUser: async () => ({
+      token: "header.payload.signature",
+      userId: "temp:test",
+      email: "temp+test@guest.local",
+      temporary: true,
+    }),
+  },
   sendMagicLink: async (email: string) => {
     if (email === "fail@example.com") throw new Error("Rate limit exceeded");
     return undefined;

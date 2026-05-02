@@ -10,13 +10,17 @@ import type { EventBus } from "front-core";
 import { ACTIONS } from "./functions";
 import { SHOW_LOGIN } from "./functions/login";
 import { LOGOUT } from "./functions/logout";
-import { $isAuthenticated, tokenChanged } from "./model";
-import { authClient, sendMagicLink } from "./service";
+import {
+  $isAuthenticated,
+  ensureTemporarySessionFx,
+  temporarySessionRequested,
+  tokenChanged,
+} from "./model";
+import { sendMagicLink } from "./service";
 
 const SEND_MAGIC_LINK   = "auth.send-magic-link";
 const TEMP_USER_ID_KEY  = "tempUserId";
 const TEMP_SESSION_ID_KEY = "tempSessionId";
-const TEMP_SESSION_COOKIE = "temp_sid";
 
 LocaleController.getInstance().setLocales(ID, {
   en: "/locales/en/mf-auth.json",
@@ -27,32 +31,6 @@ LocaleController.getInstance().setLocales(ID, {
   it: "/locales/it/mf-auth.json",
   pt: "/locales/pt/mf-auth.json",
 });
-
-// ─── Temporary session ────────────────────────────────────────────────────────
-
-function readCookie(name: string): string | null {
-  if (typeof document === "undefined") return null;
-  const prefix = `${name}=`;
-  const item = document.cookie.split(";").map((p) => p.trim()).find((p) => p.startsWith(prefix));
-  return item ? decodeURIComponent(item.slice(prefix.length)) : null;
-}
-
-function writeSessionCookie(name: string, value: string): void {
-  if (typeof document === "undefined") return;
-  document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; SameSite=Lax`;
-}
-
-function resolveOrCreateTempSessionId(): string {
-  if (typeof window === "undefined") return crypto.randomUUID();
-  const fromSession = window.sessionStorage.getItem(TEMP_SESSION_ID_KEY);
-  if (fromSession) return fromSession;
-  const fromCookie = readCookie(TEMP_SESSION_COOKIE);
-  if (fromCookie) { window.sessionStorage.setItem(TEMP_SESSION_ID_KEY, fromCookie); return fromCookie; }
-  const next = crypto.randomUUID();
-  window.sessionStorage.setItem(TEMP_SESSION_ID_KEY, next);
-  writeSessionCookie(TEMP_SESSION_COOKIE, next);
-  return next;
-}
 
 function isValidJwtToken(token: string): boolean {
   const parts = token.split(".");
@@ -74,34 +52,6 @@ function parseJwtPermissions(token: string): string[] {
   } catch {
     return [];
   }
-}
-
-async function ensureTemporarySession(): Promise<void> {
-  if (typeof window === "undefined") return;
-  if (authToken.isAuthenticated()) return;
-  const current = authToken.get();
-  if (current) {
-    const payload = authToken.payload();
-    const isTemporary =
-      Boolean(payload?.temporary) || payload?.sub.startsWith("temp:");
-    const isExpired = typeof payload?.exp === "number"
-      ? payload.exp * 1000 < Date.now()
-      : true;
-
-    // Keep a still-valid temporary JWT; replace stale/invalid tokens.
-    if (isValidJwtToken(current) && isTemporary && !isExpired) return;
-    window.localStorage.removeItem("authToken");
-  }
-
-  const sessionId = resolveOrCreateTempSessionId();
-  const payload = await authClient.createTemporaryUser(sessionId);
-
-  if (authToken.isAuthenticated()) return;
-  window.localStorage.setItem("authToken", payload.token);
-  window.sessionStorage.setItem(TEMP_USER_ID_KEY, payload.userId);
-  window.sessionStorage.setItem(TEMP_SESSION_ID_KEY, sessionId);
-  writeSessionCookie(TEMP_SESSION_COOKIE, sessionId);
-  window.dispatchEvent(new Event("auth-token-changed"));
 }
 
 function applyAuthStateFromCallback(): void {
@@ -194,7 +144,7 @@ class AuthPlugin {
         tokenChanged();
         if (!authToken.isAuthenticated()) {
           this.panelInitialized = false;
-          ensureTemporarySession().catch(console.error);
+          void ensureTemporarySessionFx();
         }
       };
       window.addEventListener("auth-token-changed", this.onStorageChange as EventListener);
@@ -204,7 +154,7 @@ class AuthPlugin {
     // Listeners must be registered before applying callback state,
     // so that auth-token-changed event reaches tokenChanged() in effector.
     applyAuthStateFromCallback();
-    ensureTemporarySession().catch(console.error);
+    temporarySessionRequested();
   }
 
   unplug() {
@@ -221,3 +171,4 @@ class AuthPlugin {
 }
 
 export default new AuthPlugin();
+export { ensureTemporarySessionFx } from "./model";

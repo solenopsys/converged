@@ -8,6 +8,7 @@ import {
 	authToken,
 	bus,
 	clearAllMenus,
+	registry,
 	runActionEvent,
 } from "../controllers";
 import { LocaleController } from "../controllers/locale-controller";
@@ -32,6 +33,7 @@ const SSR_CHAT_INPUT_ID = "ssr-chat-input";
 const SSR_CHAT_ATTACH_ID = "ssr-chat-attach";
 const SSR_CHAT_FORM_ID = "ssr-chat-form";
 const SSR_CHAT_QUICK_ID = "ssr-chat-quick";
+const ENSURE_TEMPORARY_SESSION_ACTION = "auth.ensure-temporary-session";
 const RIGHT_RAIL_QUERY_KEYS = [
 	"sidebarTab",
 	"sidebarPanel",
@@ -275,6 +277,13 @@ async function ensureAuthLoaded(): Promise<void> {
 	}
 }
 
+async function ensureTemporarySessionForChat(): Promise<void> {
+	await ensureAuthLoaded();
+	const action = registry.get(ENSURE_TEMPORARY_SESSION_ACTION);
+	if (!action) return;
+	await action.invoke(undefined);
+}
+
 export async function openLoginPanel(): Promise<void> {
 	await ensureRightRailRuntime();
 	await ensureAuthLoaded();
@@ -461,9 +470,12 @@ function installRightRailTabs(): void {
 		chat?.addEventListener("click", () => {
 			setRightRailOpen(true);
 			setRightRailMode("chat");
-			void ensureRightRailRuntime().then(() => {
-				runActionEvent({ actionId: "chats.show", params: {} });
-			});
+			void ensureRightRailRuntime()
+				.then(() => ensureAssistantsLoaded())
+				.then(() => ensureTemporarySessionForChat())
+				.then(() => {
+					runActionEvent({ actionId: "chats.show", params: {} });
+				});
 		});
 		tab?.addEventListener("click", () => {
 			setRightRailOpen(true);
@@ -486,10 +498,6 @@ function syncRightRailMode(tabId: string | null | undefined): void {
 async function ensureAssistantsLoaded(): Promise<void> {
 	const moduleName = "mf-assistants";
 	if (loadedModules.has(moduleName)) return;
-	if (isAuthenticated()) {
-		const available = await discoverMicrofrontends();
-		if (!available.includes(moduleName)) return;
-	}
 
 	initMicrofrontendEnv();
 
@@ -1728,6 +1736,8 @@ async function openAiChat(
 	setRightRailOpen(true);
 	setRightRailMode("chat");
 	await ensureRightRailRuntime();
+	await ensureAssistantsLoaded();
+	await ensureTemporarySessionForChat();
 	chatInitRequested({ contextName: options?.contextName });
 	runActionEvent({
 		actionId: "chats.show",
