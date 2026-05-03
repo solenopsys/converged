@@ -87,8 +87,8 @@ converged-portal/
 │   └── microfrontends/    # 20 independent UI modules
 ├── tools/
 │   ├── integration/       # NRPC contracts and client codegen
-│   ├── configurator/      # Containerfile/Helm/k3s artifact generator
 │   └── cli/               # CLI utilities
+├── deployment/            # Generated Containerfiles, Helm/k3s artifacts, runtime configs
 └── native/                # Native Zig adapters (LMDB, printers, IoT)
 ```
 
@@ -220,14 +220,9 @@ Deployment profiles are defined in `config.json`:
 |---------|-------------|----------|
 | `mono` | UI + one RT + one MS + storage + cache | Development, prototyping |
 | `multi` | UI + one or more RT groups + domain-split MS groups + storage/cache | Standard production |
+| `cloud` | UI + one RT + one MS + cache + tenant storage in separate pods over TCP | SaaS cloud deployments |
 
-Generating artifacts:
-```bash
-bun run build:mono   # mono profile
-bun run build:multi  # multi profile
-```
-
-Output (`deployment/<preset>/`): `Containerfile`, Helm chart, k3s HelmChart CRD, runtime configs.
+Generated artifacts are checked in under `deployment/<preset>/`: Containerfiles, Helm chart, k3s HelmChart CRD, and runtime configs.
 
 Secrets (API keys, JWT) are not created automatically — integrate with vault, SealedSecret, or env injection.
 
@@ -368,6 +363,6 @@ AGPL-3.0. The platform is fully open for self-hosted deployment. If you modify t
 | UI | Radix UI, UnoCSS, Framer Motion |
 | Database | SQLite + Kysely, LMDB, Column/Vector stores |
 | Native | Zig |
-| Orchestration | Kubernetes, k3s, Helm, cdk8s |
+| Orchestration | Kubernetes, k3s, Helm |
 | AI | OpenAI, Anthropic Claude, DeepSeek, Mistral, Gemini |
 | Code quality | Biome |

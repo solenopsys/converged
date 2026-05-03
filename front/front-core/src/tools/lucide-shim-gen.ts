@@ -10,7 +10,6 @@ import { join, extname, resolve } from "path";
 
 const defaultScanDirs = [
   resolve(import.meta.dir, "../../../.."),
-  resolve(import.meta.dir, "../../../../../club-portal/front"),
   resolve(import.meta.dir, "../../../../../../../saas/public/front/front-landings"),
 ];
 

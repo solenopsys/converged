@@ -1,0 +1,73 @@
+{
+  "project": "converged-portal",
+  "preset": "mono",
+  "generatedAt": "2026-03-03T06:04:21.116Z",
+  "containers": [
+    {
+      "name": "services",
+      "landing": false,
+      "spa": false,
+      "microfrontends": [],
+      "microservices": [
+        "ai/assistant",
+        "analytics/logs",
+        "analytics/telemetry",
+        "analytics/usage",
+        "business/billing",
+        "business/dag",
+        "business/equipment",
+        "business/requests",
+        "business/reviews",
+        "business/sheduller",
+        "business/webhooks",
+        "content/galery",
+        "content/markdown",
+        "content/struct",
+        "content/video",
+        "data/dumps",
+        "data/files",
+        "data/store",
+        "providers/push",
+        "providers/sms",
+        "providers/smtp",
+        "sequrity/access",
+        "sequrity/auth",
+        "sequrity/oauth",
+        "social/community",
+        "social/charts",
+        "social/calls",
+        "social/discord",
+        "social/facebook",
+        "social/instagram",
+        "social/notify",
+        "social/telegram",
+        "social/threads",
+        "social/tiktok",
+        "social/wechat",
+        "social/youtube"
+      ]
+    }
+  ],
+  "storage": {
+    "defaultSize": "5Gi",
+    "mountBase": "/app/data",
+    "overrides": {
+      "files": {
+        "size": "100Gi"
+      },
+      "dumps": {
+        "size": "50Gi"
+      },
+      "store": {
+        "size": "20Gi"
+      }
+    }
+  },
+  "ingress": {
+    "className": "traefik",
+    "host": "app.example.com",
+    "tls": {
+      "enabled": false
+    }
+  }
+}

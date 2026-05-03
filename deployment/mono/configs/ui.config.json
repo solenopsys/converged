@@ -1,0 +1,56 @@
+{
+  "name": "converged-portal",
+  "container": "ui",
+  "landing": "front/landing",
+  "spa": {
+    "core": "front/front-core",
+    "microfrontends": [
+      "auth",
+      "assistants",
+      "community",
+      "charts",
+      "calls",
+      "dag",
+      "dasboards",
+      "dumps",
+      "docs",
+      "landing",
+      "logs",
+      "markdown",
+      "requests",
+      "sheduller",
+      "telemetry",
+      "threads",
+      "usage",
+      "webhooks"
+    ]
+  },
+  "back": {
+    "core": "back/back-core",
+    "microservices": {}
+  },
+  "frontend": {
+    "modules": {
+      "auth": true,
+      "assistants": true,
+      "community": true,
+      "charts": true,
+      "calls": true,
+      "dag": true,
+      "dasboards": true,
+      "dumps": true,
+      "docs": true,
+      "landing": true,
+      "logs": true,
+      "markdown": true,
+      "requests": true,
+      "sheduller": true,
+      "telemetry": true,
+      "threads": true,
+      "usage": true,
+      "webhooks": true
+    },
+    "layout": "sidebar",
+    "mountChatView": true
+  }
+}

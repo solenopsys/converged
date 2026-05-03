@@ -1,0 +1,18 @@
+ingress:
+  hosts:
+    - app.example.com
+  hostsMatch: "Host(`app.example.com`)"
+
+images:
+  ui:
+    name: public.ecr.aws/i5x9u8b2/converged-portal-ui
+    tag: latest
+    pullPolicy: Always
+  ms:
+    name: public.ecr.aws/i5x9u8b2/converged-portal-ms
+    tag: latest
+    pullPolicy: Always
+  storage:
+    name: public.ecr.aws/i5x9u8b2/converged-portal-storage
+    tag: latest
+    pullPolicy: Always

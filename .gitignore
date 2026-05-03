@@ -16,5 +16,7 @@ next
 .bun-tmp
 storybook-static/
 deployment
+!/deployment/
+!/deployment/**
 .tmp
 artifacts

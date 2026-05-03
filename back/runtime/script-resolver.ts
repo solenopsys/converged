@@ -140,84 +140,54 @@ function resolveRuntimePackageSpecifier(specifier: string): string | undefined {
 	if (specifier.startsWith("rt/providers/")) {
 		return `converged-runtime/providers/${specifier.slice("rt/providers/".length)}`;
 	}
-	if (specifier === "rt/converged/dag-api") {
-		return "converged-runtime/dag-api";
-	}
-	if (specifier === "rt/converged/providers") {
-		return "converged-runtime/providers";
-	}
-	if (specifier.startsWith("rt/converged/providers/")) {
-		return `converged-runtime/providers/${specifier.slice("rt/converged/providers/".length)}`;
-	}
-	if (specifier === "rt/club/dag-types") {
-		return "club-runtime/dag-types";
-	}
-	if (specifier === "rt/club/providers") {
-		return "club-runtime/providers";
-	}
-	if (specifier.startsWith("rt/club/providers/")) {
-		return `club-runtime/providers/${specifier.slice("rt/club/providers/".length)}`;
-	}
-	if (specifier === "rt/club/vars") {
-		return "club-runtime/vars";
-	}
-	if (specifier.startsWith("rt/club/lib/")) {
-		return `club-runtime/lib/${specifier.slice("rt/club/lib/".length)}`;
+	const runtimeMatch = /^rt\/([^/]+)\/(.+)$/.exec(specifier);
+	if (runtimeMatch) {
+		const [, scope, subpath] = runtimeMatch;
+		return `${scope}-runtime/${subpath}`;
 	}
 	return undefined;
 }
 
 function runtimeSpecifierToPath(packageSpecifier: string, projectDir: string): string | undefined {
-	const packageRoots: Record<string, string[]> = {
-		"club-runtime": [
-			"back/runtime/club-workflows",
-			"back/runtime/workflows",
-		],
-		"converged-runtime": [
-			"back/runtime/converged-workflows",
-			"back/runtime/workflows",
-		],
-	};
+	const runtimeMatch = /^([a-z0-9-]+)-runtime\/(.+)$/.exec(packageSpecifier);
+	if (!runtimeMatch) return undefined;
 
-	for (const [packageName, roots] of Object.entries(packageRoots)) {
-		const prefix = `${packageName}/`;
-		if (!packageSpecifier.startsWith(prefix)) continue;
+	const [, packageScope, subpath] = runtimeMatch;
+	const roots = [
+		`back/runtime/${packageScope}-workflows`,
+		"back/runtime/workflows",
+	];
+	const candidates = roots.flatMap((root) => {
+		if (subpath === "dag-api") return [resolve(projectDir, root, "dag-api.ts")];
+		if (subpath === "dag-types") return [resolve(projectDir, root, "dag-types.ts")];
+		if (subpath === "providers") {
+			return [
+				resolve(projectDir, root, "providers/index.js"),
+				resolve(projectDir, root, "providers/index.ts"),
+			];
+		}
+		if (subpath.startsWith("providers/")) {
+			const providerPath = subpath.slice("providers/".length);
+			return [
+				resolve(projectDir, root, "providers", `${providerPath}.js`),
+				resolve(projectDir, root, "providers", `${providerPath}.ts`),
+			];
+		}
+		if (subpath === "vars") return [resolve(projectDir, root, "vars.ts")];
+		if (subpath.startsWith("lib/")) {
+			return [resolve(projectDir, root, "lib", `${subpath.slice("lib/".length)}.ts`)];
+		}
+		return [];
+	});
 
-		const subpath = packageSpecifier.slice(prefix.length);
-		const candidates = roots.flatMap((root) => {
-			if (subpath === "dag-api") return [resolve(projectDir, root, "dag-api.ts")];
-			if (subpath === "dag-types") return [resolve(projectDir, root, "dag-types.ts")];
-			if (subpath === "providers") {
-				return [
-					resolve(projectDir, root, "providers/index.js"),
-					resolve(projectDir, root, "providers/index.ts"),
-				];
-			}
-			if (subpath.startsWith("providers/")) {
-				const providerPath = subpath.slice("providers/".length);
-				return [
-					resolve(projectDir, root, "providers", `${providerPath}.js`),
-					resolve(projectDir, root, "providers", `${providerPath}.ts`),
-				];
-			}
-			if (subpath === "vars") return [resolve(projectDir, root, "vars.ts")];
-			if (subpath.startsWith("lib/")) {
-				return [resolve(projectDir, root, "lib", `${subpath.slice("lib/".length)}.ts`)];
-			}
-			return [];
-		});
-
-		return candidates.find((path) => existsSync(path)) ?? candidates[0];
-	}
-
-	return undefined;
+	return candidates.find((path) => existsSync(path)) ?? candidates[0];
 }
 
 function resolveRuntimeModuleUrl(packageSpecifier: string): string {
 	try {
 		return import.meta.resolve(packageSpecifier);
 	} catch {
-		// `club-runtime` is the child project runtime when converged-runtime is reused as a parent package.
+		// Extension runtimes can be copied into the container without being npm packages.
 	}
 
 	const projectDirs = [process.env.PROJECT_DIR, process.env.CHILD_PROJECT_DIR]

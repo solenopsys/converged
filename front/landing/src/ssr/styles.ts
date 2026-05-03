@@ -14,6 +14,10 @@ const envParentProjectRoot =
   (process.env.PARENT_PROJECT_DIR && process.env.PARENT_PROJECT_DIR.length > 0
     ? process.env.PARENT_PROJECT_DIR
     : undefined);
+const extraProjectRoots = (process.env.EXTRA_PROJECT_DIRS ?? "")
+  .split(path.delimiter)
+  .map((root) => root.trim())
+  .filter(Boolean);
 
 function resolveFrontRoot(root: string): string {
   const normalized = root.replace(/[\\/]+$/, "");
@@ -24,16 +28,9 @@ function resolveFrontRoot(root: string): string {
   return path.join(normalized, "front");
 }
 
-const siblingClubProjectRoot = path.resolve(projectRoot, "..", "club-portal");
-const fallbackParentProjectRoot = existsSync(
-  path.join(resolveFrontRoot(siblingClubProjectRoot), "microfrontends"),
-)
-  ? siblingClubProjectRoot
-  : undefined;
-
 const projectRoots = Array.from(
   new Set(
-    [projectRoot, envParentProjectRoot, fallbackParentProjectRoot].filter(
+    [projectRoot, envParentProjectRoot, ...extraProjectRoots].filter(
       (root): root is string => Boolean(root),
     ),
   ),

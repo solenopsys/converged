@@ -81,11 +81,12 @@ function parseDotEnv(content: string): Record<string, string> {
 
 function loadDotEnvFiles(projectDir: string, parentDir?: string) {
   const legacyBootstrapDir = process.env.BOOTSTRAP_ENV_DIR;
+  const privateBootstrapDir = process.env.PRIVATE_BOOTSTRAP_ENV_DIR;
   const dirCandidates = [
     projectDir,
     parentDir,
     legacyBootstrapDir,
-    resolve(ROOT, "saas/private/club-bootstrap"),
+    privateBootstrapDir,
     resolve(ROOT, "saas/public/saas-bootstrap"),
   ].filter(
     (value): value is string => Boolean(value),

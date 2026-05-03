@@ -99,7 +99,7 @@ const itemsMixed: MenuItemData[] = [
 // Без иконок вообще
 const itemsNoIcons: MenuItemData[] = [
   { title: "projects", items: [
-    { title: "club-portal" },
+    { title: "extension-portal" },
     { title: "converged-portal", items: [
       { title: "front" },
       { title: "back" },

@@ -115,6 +115,20 @@
 			]
 		},
 
+		"cloud": {
+			"description": "UI, runtime, services, cache and tenant storage in separate pods",
+			"containers": [
+				{
+					"name": "services",
+					"microservices": "*",
+					"resources": {
+						"requests": { "cpu": "100m", "memory": "128Mi" },
+						"limits": { "cpu": "1000m", "memory": "1Gi" }
+					}
+				}
+			]
+		},
+
 		"multi": {
 			"description": "UI pod + runtime groups + domain-split services/storage pods",
 			"containers": [
@@ -182,6 +196,10 @@
 	"storage": {
 		"defaultSize": "5Gi",
 		"mountBase": "/app/data",
+		"port": 9000,
+		"tenants": [
+			{ "name": "default" }
+		],
 		"resources": {
 			"requests": { "cpu": "200m", "memory": "128Mi" },
 			"limits": { "cpu": "1000m", "memory": "2Gi" }

@@ -1,0 +1,71 @@
+{
+  "name": "converged-portal",
+  "container": "ui",
+  "landing": "front/landing",
+  "spa": {
+    "core": "front/front-core",
+    "microfrontends": [
+      "auth",
+      "agents",
+      "assistants",
+      "community",
+      "charts",
+      "calls",
+      "classifier",
+      "dag",
+      "dasboards",
+      "dumps",
+      "docs",
+      "galery",
+      "landing",
+      "logs",
+      "markdown",
+      "static",
+      "struct",
+      "requests",
+      "sheduller",
+      "telemetry",
+      "threads",
+      "usage",
+      "webhooks"
+    ]
+  },
+  "back": {
+    "core": "back/back-core",
+    "microservices": {}
+  },
+  "frontend": {
+    "modules": {
+      "auth": true,
+      "agents": true,
+      "assistants": true,
+      "community": true,
+      "charts": true,
+      "calls": true,
+      "classifier": true,
+      "dag": true,
+      "dasboards": true,
+      "dumps": true,
+      "docs": true,
+      "galery": true,
+      "landing": true,
+      "logs": true,
+      "markdown": true,
+      "static": true,
+      "struct": true,
+      "requests": true,
+      "sheduller": true,
+      "telemetry": true,
+      "threads": true,
+      "usage": true,
+      "webhooks": true
+    },
+    "layout": "sidebar",
+    "mountChatView": true
+  },
+  "cache": {
+    "url": "redis://converged-portal-valkey:6379/0",
+    "keyPrefix": "converged-portal",
+    "ssrTtlSeconds": 120
+  }
+}

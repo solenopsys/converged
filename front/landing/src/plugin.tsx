@@ -1,6 +1,7 @@
 import { renderToReadableStream } from "react-dom/server";
 import { resolve } from "path";
 import { createMarkdownServiceClient } from "g-markdown";
+import { buildWorkspaceHeaders } from "front-core/workspace-domain";
 import createLandingPlugin from "front-ssr/plugin";
 import type { SeoConfig } from "front-ssr/plugin";
 import { AppSSR } from "./app/App";
@@ -53,7 +54,9 @@ type RuntimeMfEnv = {
 
 const LANDING_CONF_SUFFIX = "product/landing/4ir-laiding.json";
 const DOCS_INDEX_SUFFIX = "club/index.json";
-const DEFAULT_DOCS: DocsInitItem[] = [{ name: "club", id: `${DEFAULT_LOCALE}/${DOCS_INDEX_SUFFIX}` }];
+const DEFAULT_DOCS: DocsInitItem[] = [
+  { name: "club", id: `${DEFAULT_LOCALE}/${DOCS_INDEX_SUFFIX}` },
+];
 const DEFAULT_LANDING_CONF_ID = `${DEFAULT_LOCALE}/${LANDING_CONF_SUFFIX}`;
 
 declare global {
@@ -80,8 +83,10 @@ function normalizeDocs(value: unknown): DocsInitItem[] {
   const normalized = list
     .map((item) => {
       if (!item || typeof item !== "object") return null;
-      const name = typeof (item as any).name === "string" ? (item as any).name.trim() : "";
-      const id = typeof (item as any).id === "string" ? (item as any).id.trim() : "";
+      const name =
+        typeof (item as any).name === "string" ? (item as any).name.trim() : "";
+      const id =
+        typeof (item as any).id === "string" ? (item as any).id.trim() : "";
       if (!id) return null;
       return { name: name || "docs", id };
     })
@@ -90,19 +95,24 @@ function normalizeDocs(value: unknown): DocsInitItem[] {
   return normalized.length > 0 ? normalized : DEFAULT_DOCS;
 }
 
-function normalizeLanding(value: unknown): { landingConfId: string; title?: string } {
+function normalizeLanding(value: unknown): {
+  landingConfId: string;
+  title?: string;
+} {
   const record =
     value && typeof value === "object"
       ? (value as Record<string, unknown>)
       : {};
 
   const fallbackId =
-    typeof process.env.MF_LANDING_CONF_ID === "string" && process.env.MF_LANDING_CONF_ID.trim().length > 0
+    typeof process.env.MF_LANDING_CONF_ID === "string" &&
+    process.env.MF_LANDING_CONF_ID.trim().length > 0
       ? process.env.MF_LANDING_CONF_ID.trim()
       : DEFAULT_LANDING_CONF_ID;
 
   const landingConfId =
-    typeof record.landingConfId === "string" && record.landingConfId.trim().length > 0
+    typeof record.landingConfId === "string" &&
+    record.landingConfId.trim().length > 0
       ? record.landingConfId.trim()
       : fallbackId;
 
@@ -148,7 +158,10 @@ function withLocalePrefix(path: string, locale: SupportedLocale): string {
   return `${locale}/${normalized}`;
 }
 
-function localizeDocsConfig(docs: DocsInitItem[], locale: SupportedLocale): DocsInitItem[] {
+function localizeDocsConfig(
+  docs: DocsInitItem[],
+  locale: SupportedLocale,
+): DocsInitItem[] {
   return docs.map((item) => ({
     ...item,
     id: withLocalePrefix(item.id, locale),
@@ -159,7 +172,8 @@ function resolveDocPath(slug: string, locale: SupportedLocale): string {
   const normalizedSlug = slug.trim();
   if (!normalizedSlug) return `${locale}/club/intro.md`;
   if (normalizedSlug === "club") return `${locale}/club/intro.md`;
-  if (normalizedSlug.includes("/")) return withLocalePrefix(normalizedSlug, locale);
+  if (normalizedSlug.includes("/"))
+    return withLocalePrefix(normalizedSlug, locale);
   return `${locale}/${normalizedSlug}.md`;
 }
 
@@ -167,15 +181,21 @@ async function structCall<T>(
   servicesBaseUrl: string,
   method: string,
   payload: Record<string, unknown>,
+  workspace?: string,
 ): Promise<T> {
   const response = await fetch(`${servicesBaseUrl}/struct/${method}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...buildWorkspaceHeaders(workspace),
+    },
     body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
-    throw new Error(`struct/${method} failed: ${response.status} ${response.statusText}`);
+    throw new Error(
+      `struct/${method} failed: ${response.status} ${response.statusText}`,
+    );
   }
 
   return response.json() as Promise<T>;
@@ -184,11 +204,17 @@ async function structCall<T>(
 async function prefetchLandingPayload(
   configPath: string,
   baseUrl: string,
+  workspace?: string,
 ): Promise<LandingPrefetchPayload> {
   const servicesBaseUrl = `${normalizeBaseUrl(baseUrl)}/services`;
-  const config = await structCall<LandingConfig>(servicesBaseUrl, "readJson", {
-    path: configPath,
-  });
+  const config = await structCall<LandingConfig>(
+    servicesBaseUrl,
+    "readJson",
+    {
+      path: configPath,
+    },
+    workspace,
+  );
 
   const locale = configPath.split("/")[0] ?? "";
 
@@ -210,15 +236,24 @@ async function prefetchLandingPayload(
   );
   const sourcePaths = rawSourcePaths.map(localizeSourcePath);
 
-  const sourceValues = sourcePaths.length > 0
-    ? await structCall<any[]>(servicesBaseUrl, "readJsonBatch", {
-        paths: sourcePaths,
-      })
-    : [];
+  const sourceValues =
+    sourcePaths.length > 0
+      ? await structCall<any[]>(
+          servicesBaseUrl,
+          "readJsonBatch",
+          {
+            paths: sourcePaths,
+          },
+          workspace,
+        )
+      : [];
 
   const sourceMap = new Map<string, unknown>();
   sourcePaths.forEach((path, index) => {
-    sourceMap.set(path, Array.isArray(sourceValues) ? sourceValues[index] : undefined);
+    sourceMap.set(
+      path,
+      Array.isArray(sourceValues) ? sourceValues[index] : undefined,
+    );
   });
 
   const resolvedBlocks: ResolvedBlock[] = blocks.map((block, index) => {
@@ -242,9 +277,13 @@ async function prefetchDocsPayload(
   slug: string,
   baseUrl: string,
   locale: SupportedLocale,
+  workspace?: string,
 ): Promise<DocsPrefetchPayload> {
   const servicesBaseUrl = `${normalizeBaseUrl(baseUrl)}/services`;
-  const markdownClient = createMarkdownServiceClient({ baseUrl: servicesBaseUrl });
+  const markdownClient = createMarkdownServiceClient({
+    baseUrl: servicesBaseUrl,
+    workspace,
+  });
   const markdownPath = resolveDocPath(slug, locale);
 
   try {
@@ -264,7 +303,9 @@ async function prefetchDocsPayload(
   }
 }
 
-export default function landingPlugin(config: { publicDir?: string; production?: boolean } = {}) {
+export default function landingPlugin(
+  config: { publicDir?: string; production?: boolean } = {},
+) {
   const landingRoot = resolve(import.meta.dir, "..");
   const mfEnv = buildRuntimeMfEnv();
   const localePrefixes = SUPPORTED_LOCALES.map((locale) => `/${locale}`);
@@ -323,10 +364,14 @@ export default function landingPlugin(config: { publicDir?: string; production?:
       importMap: Record<string, string>,
       seo: SeoConfig,
       baseUrl: string,
+      workspace?: string,
     ) => {
       const locale = extractLocaleFromPath(url) ?? DEFAULT_LOCALE;
       const localizedDocs = localizeDocsConfig(mfEnv["mf-docs"].docs, locale);
-      const landingConfId = withLocalePrefix(mfEnv["mf-landing"].landingConfId, locale);
+      const landingConfId = withLocalePrefix(
+        mfEnv["mf-landing"].landingConfId,
+        locale,
+      );
       const localizedMfEnv: RuntimeMfEnv = {
         "mf-docs": { docs: localizedDocs },
         "mf-landing": { ...mfEnv["mf-landing"], landingConfId },
@@ -334,11 +379,16 @@ export default function landingPlugin(config: { publicDir?: string; production?:
       let landingData: Record<string, LandingPrefetchPayload> = {};
       let docsData: Record<string, DocsPrefetchPayload> = {};
       const routePath = stripLocalePrefix(url);
-      const isConsoleRoute = routePath === "/console" || routePath.startsWith("/console/");
+      const isConsoleRoute =
+        routePath === "/console" || routePath.startsWith("/console/");
 
       if (!isConsoleRoute) {
         try {
-          const preloaded = await prefetchLandingPayload(landingConfId, baseUrl);
+          const preloaded = await prefetchLandingPayload(
+            landingConfId,
+            baseUrl,
+            workspace,
+          );
           landingData = { [landingConfId]: preloaded };
         } catch (error) {
           console.error("[landing] SSR prefetch failed", error);
@@ -346,10 +396,16 @@ export default function landingPlugin(config: { publicDir?: string; production?:
       }
 
       if (!isConsoleRoute && routePath.startsWith("/docs/")) {
-        const slug = routePath.slice("/docs/".length).split("/").filter(Boolean)[0] ?? "";
+        const slug =
+          routePath.slice("/docs/".length).split("/").filter(Boolean)[0] ?? "";
         if (slug) {
           try {
-            const preloaded = await prefetchDocsPayload(slug, baseUrl, locale);
+            const preloaded = await prefetchDocsPayload(
+              slug,
+              baseUrl,
+              locale,
+              workspace,
+            );
             docsData = { [slug]: preloaded };
           } catch (error) {
             console.error("[landing] SSR docs prefetch failed", error);
@@ -368,7 +424,12 @@ export default function landingPlugin(config: { publicDir?: string; production?:
             lang={locale}
             seo={seo}
             importMap={importMap}
-            initialData={{ mfEnv: localizedMfEnv, landing: landingData, docs: docsData }}
+            initialData={{
+              mfEnv: localizedMfEnv,
+              landing: landingData,
+              docs: docsData,
+              workspace,
+            }}
           >
             <AppSSR url={url} />
           </Document>,

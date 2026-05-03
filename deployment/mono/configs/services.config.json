@@ -1,0 +1,66 @@
+{
+  "name": "converged-portal",
+  "container": "services",
+  "back": {
+    "core": "back/back-core",
+    "microservices": {
+      "ai": [
+        "assistant"
+      ],
+      "analytics": [
+        "logs",
+        "telemetry",
+        "usage"
+      ],
+      "business": [
+        "billing",
+        "dag",
+        "equipment",
+        "requests",
+        "reviews",
+        "sheduller",
+        "webhooks"
+      ],
+      "content": [
+        "galery",
+        "markdown",
+        "struct",
+        "video"
+      ],
+      "data": [
+        "dumps",
+        "files",
+        "store"
+      ],
+      "providers": [
+        "push",
+        "sms",
+        "smtp"
+      ],
+      "sequrity": [
+        "access",
+        "auth",
+        "oauth"
+      ],
+      "social": [
+        "community",
+        "charts",
+        "calls",
+        "discord",
+        "facebook",
+        "instagram",
+        "notify",
+        "telegram",
+        "threads",
+        "tiktok",
+        "wechat",
+        "youtube"
+      ]
+    }
+  },
+  "frontend": {
+    "modules": {},
+    "layout": "sidebar",
+    "mountChatView": false
+  }
+}

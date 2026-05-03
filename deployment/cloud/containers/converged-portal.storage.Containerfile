@@ -1,0 +1,14 @@
+# Auto-generated Containerfile
+# Project: converged-portal
+# Role: storage
+
+FROM alpine:3.20 AS runtime
+WORKDIR /app
+
+COPY clarity/projects/converged-portal/native/behemoth/storage/zig-out/bin/storage-x86_64-musl /app/storage
+RUN chmod +x /app/storage && mkdir -p /app/data /app/socket && chown -R 1000:1000 /app
+RUN adduser -D -u 1000 default || true
+USER 1000
+
+EXPOSE 9000
+CMD ["/app/storage", "start", "--data-dir", "/app/data", "--tcp", "0.0.0.0:9000"]

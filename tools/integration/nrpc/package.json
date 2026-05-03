@@ -10,6 +10,7 @@
     "@elysiajs/cors": "^1.4.0",
     "@types/msgpack-lite": "^0.1.12",
     "@typescript-eslint/typescript-estree": "^8.59.0",
+    "back-core": "workspace:*",
     "elysia": "^1.4.15",
     "jose": "^6.1.1",
     "msgpack-lite": "^0.1.26",

@@ -2,12 +2,23 @@ import { Elysia } from "elysia";
 import { staticPlugin } from "@elysiajs/static";
 import { resolve } from "path";
 import { existsSync } from "fs";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { externalPackages, microfrontends } from "front-core/runtime-config";
 import { createWorkspaceResolverPlugin } from "front-core/workspace-resolver";
+import {
+  buildWorkspaceHeaders,
+  createWorkspaceBootstrapScript,
+  resolveWorkspaceFromRequest,
+} from "front-core/workspace-domain";
 import type { SitemapEntry } from "./ssr/sitemap";
 import { buildSitemapXml } from "./ssr/sitemap";
 
 export type { SitemapEntry };
+
+declare global {
+  var __NRPC_WORKSPACE__: string | undefined;
+  var __NRPC_WORKSPACE_RESOLVER__: (() => string | undefined) | undefined;
+}
 
 export interface SeoConfig {
   title: string;
@@ -24,9 +35,12 @@ export interface LandingPluginConfig {
     importMap: Record<string, string>,
     seo: SeoConfig,
     baseUrl: string,
+    workspace?: string,
   ) => string | Promise<string>;
   /** Sitemap route entries */
-  sitemapRoutes: SitemapEntry[] | ((baseUrl: string) => SitemapEntry[] | Promise<SitemapEntry[]>);
+  sitemapRoutes:
+    | SitemapEntry[]
+    | ((baseUrl: string) => SitemapEntry[] | Promise<SitemapEntry[]>);
   /** Build CSS styles (dev only, in prod uses prebuilt) */
   buildStyles: () => Promise<string>;
   /** Load SEO config from public dir */
@@ -50,20 +64,20 @@ export interface LandingPluginConfig {
 }
 
 const fallbackBrowserImports: Record<string, string> = {
-  "react": "/vendor/react.js",
+  react: "/vendor/react.js",
   "react-dom": "/vendor/react-dom.js",
   "react-dom/client": "/vendor/react-dom-client.js",
   "react/jsx-runtime": "/vendor/react-jsx-runtime.js",
   "react/jsx-dev-runtime": "/vendor/react-jsx-dev-runtime.js",
   "react-router-dom": "/vendor/react-router-dom.js",
-  "effector": "/vendor/effector.js",
+  effector: "/vendor/effector.js",
   "effector-react": "/vendor/effector-react.js",
-  "echarts": "/vendor/echarts.js",
+  echarts: "/vendor/echarts.js",
   "echarts-for-react": "/vendor/echarts-for-react.js",
   "lucide-react": "/vendor/lucide-react.js",
-  "dagre": "/vendor/dagre.js",
+  dagre: "/vendor/dagre.js",
   "pixi.js": "/vendor/pixi.js",
-  "sonner": "/vendor/sonner.js",
+  sonner: "/vendor/sonner.js",
   "framer-motion": "/vendor/framer-motion.js",
   "@dnd-kit/core": "/vendor/dnd-kit-core.js",
   "@dnd-kit/sortable": "/vendor/dnd-kit-sortable.js",
@@ -71,8 +85,8 @@ const fallbackBrowserImports: Record<string, string> = {
   "@tanstack/react-table": "/vendor/tanstack-table.js",
   "embla-carousel-react": "/vendor/embla-carousel-react.js",
   "embla-carousel-autoplay": "/vendor/embla-carousel-autoplay.js",
-  "vaul": "/vendor/vaul.js",
-  "cmdk": "/vendor/cmdk.js",
+  vaul: "/vendor/vaul.js",
+  cmdk: "/vendor/cmdk.js",
   "@textea/json-viewer": "/vendor/json-viewer.js",
   "effector/effector.mjs": "/vendor/effector.js",
   "front-core/components": "/front-core.js",
@@ -100,6 +114,18 @@ const pwaRegistrationScript = [
   "})();",
 ].join("");
 
+const ssrWorkspaceStorage = new AsyncLocalStorage<string | undefined>();
+
+globalThis.__NRPC_WORKSPACE_RESOLVER__ ??= () =>
+  ssrWorkspaceStorage.getStore() ?? globalThis.__NRPC_WORKSPACE__;
+
+function runWithSsrWorkspace<T>(
+  workspace: string | undefined,
+  callback: () => T | Promise<T>,
+): Promise<T> {
+  return ssrWorkspaceStorage.run(workspace, async () => callback());
+}
+
 type TelemetryEventInput = {
   ts?: number;
   device_id: string;
@@ -109,7 +135,7 @@ type TelemetryEventInput = {
 };
 
 function createTelemetryReporter(baseUrl: string) {
-  const queue: TelemetryEventInput[] = [];
+  const queue: Array<{ event: TelemetryEventInput; workspace?: string }> = [];
   const maxBatchSize = 25;
   const maxQueueSize = 1000;
   const debounceMs = 1000;
@@ -125,12 +151,15 @@ function createTelemetryReporter(baseUrl: string) {
         const batch = queue.splice(0, maxBatchSize);
         try {
           await Promise.all(
-            batch.map((event) =>
+            batch.map(({ event, workspace }) =>
               fetch(`${baseUrl}/telemetry/write`, {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
-                  ...(process.env.SERVICE_TOKEN ? { authorization: `Bearer ${process.env.SERVICE_TOKEN}` } : {}),
+                  ...buildWorkspaceHeaders(workspace),
+                  ...(process.env.SERVICE_TOKEN
+                    ? { authorization: `Bearer ${process.env.SERVICE_TOKEN}` }
+                    : {}),
                 },
                 body: JSON.stringify({ event }),
               }),
@@ -158,11 +187,11 @@ function createTelemetryReporter(baseUrl: string) {
   };
 
   return {
-    track(event: TelemetryEventInput) {
+    track(event: TelemetryEventInput, workspace?: string) {
       if (queue.length >= maxQueueSize) {
         return;
       }
-      queue.push(event);
+      queue.push({ event, workspace });
       schedule();
     },
     flush,
@@ -206,7 +235,8 @@ function buildBrowserImportMap(
     : "";
   imports["front-core"] = `/front-core.js${uiAssetQuery}`;
   imports["front-core/components"] = `/front-core.js${uiAssetQuery}`;
-  const mfList = (mfOverride && mfOverride.length > 0) ? mfOverride : microfrontends;
+  const mfList =
+    mfOverride && mfOverride.length > 0 ? mfOverride : microfrontends;
   for (const mf of mfList) {
     imports[mf] = `/mf/${mf}.js${uiAssetQuery}`;
   }
@@ -264,7 +294,7 @@ function extractPageTitle(html: string): string | null {
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, "\"")
+    .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .trim();
   return raw.length > 0 ? raw : null;
@@ -277,8 +307,7 @@ function encodeHeaderBase64(value: string): string {
 export default function createLandingPlugin(config: LandingPluginConfig) {
   const landingRoot = config.landingRoot;
   const projectRoot =
-    process.env.PROJECT_DIR ??
-    resolve(landingRoot, "..", "..");
+    process.env.PROJECT_DIR ?? resolve(landingRoot, "..", "..");
   const parentProjectRoot =
     (process.env.CHILD_PROJECT_DIR && process.env.CHILD_PROJECT_DIR.length > 0
       ? process.env.CHILD_PROJECT_DIR
@@ -289,14 +318,28 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
   const publicDir = config.publicDir ?? resolve(landingRoot, "public");
   const isProd = config.production ?? process.env.NODE_ENV === "production";
   const enablePwaInDev =
-    process.env.PWA_DEV === "1" ||
-    process.env.PWA_DEV === "true";
+    process.env.PWA_DEV === "1" || process.env.PWA_DEV === "true";
   const pwaEnabled = isProd || enablePwaInDev;
   const logoBlackPath = resolve(publicDir, "logo-black.svg");
   const logoWhitePath = resolve(publicDir, "logo-white.svg");
-  const prebuiltStylesPath = resolve(projectRoot, "dist", "landing", "styles.css");
-  const prebuiltClientPath = resolve(projectRoot, "dist", "landing", "island-client.js");
-  const prebuiltFrontImportMapPath = resolve(projectRoot, "dist", "front", "import-map.json");
+  const prebuiltStylesPath = resolve(
+    projectRoot,
+    "dist",
+    "landing",
+    "styles.css",
+  );
+  const prebuiltClientPath = resolve(
+    projectRoot,
+    "dist",
+    "landing",
+    "island-client.js",
+  );
+  const prebuiltFrontImportMapPath = resolve(
+    projectRoot,
+    "dist",
+    "front",
+    "import-map.json",
+  );
   const telemetryReporter = createTelemetryReporter(
     process.env.SERVICES_BASE || "/services",
   );
@@ -309,7 +352,10 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
   let clientBrotli: Uint8Array;
   let seoConfig: SeoConfig;
   let assetsPromise: Promise<void> | null = null;
-  let browserImportMap: Record<string, string> = buildBrowserImportMap(undefined, config.microfrontends);
+  let browserImportMap: Record<string, string> = buildBrowserImportMap(
+    undefined,
+    config.microfrontends,
+  );
 
   const log = (message: string, extra?: Record<string, unknown>) => {
     if (extra) {
@@ -332,8 +378,11 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
     const forwardedHostRaw = request.headers.get("x-forwarded-host");
     const hostRaw = request.headers.get("host");
 
-    const proto = (forwardedProtoRaw?.split(",")[0]?.trim() || url.protocol.replace(/:$/, "")).toLowerCase();
-    const host = forwardedHostRaw?.split(",")[0]?.trim() || hostRaw?.trim() || url.host;
+    const proto = (
+      forwardedProtoRaw?.split(",")[0]?.trim() || url.protocol.replace(/:$/, "")
+    ).toLowerCase();
+    const host =
+      forwardedHostRaw?.split(",")[0]?.trim() || hostRaw?.trim() || url.host;
 
     return `${proto}://${host}`;
   }
@@ -351,7 +400,9 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
     return `${base}${path.startsWith("/") ? path : `/${path}`}`;
   }
 
-  async function resolveSitemapRoutes(baseUrl: string): Promise<SitemapEntry[]> {
+  async function resolveSitemapRoutes(
+    baseUrl: string,
+  ): Promise<SitemapEntry[]> {
     const routes = config.sitemapRoutes;
     if (typeof routes === "function") {
       const resolved = await routes(baseUrl);
@@ -382,8 +433,11 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
 
   function buildDefaultManifest(baseUrl: string) {
     const appName = seoConfig?.title?.trim() || "4IR App";
-    const appShortName = appName.length > 16 ? appName.slice(0, 16).trim() : appName;
-    const fallbackIcon = existsSync(resolve(publicDir, "favicon.svg")) ? "/favicon.svg" : "/logo-black.svg";
+    const appShortName =
+      appName.length > 16 ? appName.slice(0, 16).trim() : appName;
+    const fallbackIcon = existsSync(resolve(publicDir, "favicon.svg"))
+      ? "/favicon.svg"
+      : "/logo-black.svg";
     return {
       name: appName,
       short_name: appShortName || "4IR",
@@ -425,6 +479,19 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
     return `${snippet}${html}`;
   }
 
+  function injectWorkspaceBootstrap(
+    html: string,
+    workspace: string | undefined,
+  ): string {
+    const script = createWorkspaceBootstrapScript(workspace);
+    if (!script || html.includes("__NRPC_WORKSPACE__")) return html;
+    const snippet = `<script>${script}</script>`;
+    if (html.includes("</head>")) {
+      return html.replace("</head>", `${snippet}</head>`);
+    }
+    return `${snippet}${html}`;
+  }
+
   async function ensureAssets(): Promise<void> {
     if (!assetsPromise) {
       assetsPromise = (async () => {
@@ -452,7 +519,9 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
         if (isProd) {
           const prebuiltImportMap = Bun.file(prebuiltFrontImportMapPath);
           if (!(await prebuiltImportMap.exists())) {
-            throw new Error(`Missing prebuilt front import-map: ${prebuiltFrontImportMapPath}`);
+            throw new Error(
+              `Missing prebuilt front import-map: ${prebuiltFrontImportMapPath}`,
+            );
           }
           const parsedImportMap = await prebuiltImportMap.json();
           browserImportMap = buildBrowserImportMap(
@@ -462,7 +531,10 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
             config.microfrontends,
           );
         } else {
-          browserImportMap = buildBrowserImportMap(undefined, config.microfrontends);
+          browserImportMap = buildBrowserImportMap(
+            undefined,
+            config.microfrontends,
+          );
         }
 
         // Client bundle
@@ -474,7 +546,9 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
           clientBundle = prebuiltClient;
           const bytes = await clientBundle.arrayBuffer();
           clientBrotli = Bun.gzipSync(Buffer.from(bytes), { level: 6 });
-          log("client:prebuilt", { gzipKB: Number((clientBrotli.length / 1024).toFixed(0)) });
+          log("client:prebuilt", {
+            gzipKB: Number((clientBrotli.length / 1024).toFixed(0)),
+          });
         } else {
           const clientResult = await Bun.build({
             entrypoints: [resolve(landingRoot, "src/island-client.ts")],
@@ -488,7 +562,9 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
             throw new Error("client build failed:\n" + errors);
           }
           clientBundle = clientResult.outputs[0];
-          log("client:built", { kb: Number((clientBundle.size / 1024).toFixed(0)) });
+          log("client:built", {
+            kb: Number((clientBundle.size / 1024).toFixed(0)),
+          });
         }
 
         log("ensureAssets:done", { ms: Date.now() - start });
@@ -497,19 +573,34 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
     await assetsPromise;
   }
 
-  async function renderPage(url: string, baseUrl: string): Promise<string> {
+  async function renderPage(
+    url: string,
+    baseUrl: string,
+    workspace?: string,
+  ): Promise<string> {
     await ensureAssets();
     const canonical = buildCanonical(baseUrl, url);
     const ogImage =
       seoConfig.ogImage && seoConfig.ogImage.startsWith("/")
         ? `${normalizeBaseUrl(baseUrl)}${seoConfig.ogImage}`
         : seoConfig.ogImage;
-    const rendered = await config.renderPage(url, browserImportMap, {
-      ...seoConfig,
-      canonical,
-      ogImage,
-    }, baseUrl);
-    return injectPwaRegistration(injectManifestLink(rendered));
+    const rendered = await runWithSsrWorkspace(workspace, () =>
+      config.renderPage(
+        url,
+        browserImportMap,
+        {
+          ...seoConfig,
+          canonical,
+          ogImage,
+        },
+        baseUrl,
+        workspace,
+      ),
+    );
+    return injectWorkspaceBootstrap(
+      injectPwaRegistration(injectManifestLink(rendered)),
+      workspace,
+    );
   }
 
   function supportsEncoding(request: Request, encoding: string): boolean {
@@ -550,7 +641,9 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
     })
     .get("/spa.css", async ({ request }) => {
       if (!config.buildSpaStyles) {
-        return new Response("", { headers: { "Content-Type": "text/css; charset=utf-8" } });
+        return new Response("", {
+          headers: { "Content-Type": "text/css; charset=utf-8" },
+        });
       }
       if (!isProd) {
         spaStyles = await config.buildSpaStyles();
@@ -571,7 +664,9 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
       return new Response(spaStyles, {
         headers: {
           "Content-Type": "text/css; charset=utf-8",
-          "Cache-Control": isProd ? "public, max-age=31536000, immutable" : "no-store",
+          "Cache-Control": isProd
+            ? "public, max-age=31536000, immutable"
+            : "no-store",
         },
       });
     })
@@ -621,7 +716,10 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
       const routes = uniqSitemapRoutes(resolvedRoutes);
 
       return new Response(buildSitemapXml(origin, routes), {
-        headers: { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "no-transform" },
+        headers: {
+          "Content-Type": "application/xml; charset=utf-8",
+          "Cache-Control": "no-transform",
+        },
       });
     })
     .get("/robots.txt", ({ request }) => {
@@ -639,13 +737,20 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
       const manifestPath = resolve(publicDir, "manifest.json");
       if (existsSync(manifestPath)) {
         return new Response(Bun.file(manifestPath), {
-          headers: { "Content-Type": "application/manifest+json; charset=utf-8" },
+          headers: {
+            "Content-Type": "application/manifest+json; charset=utf-8",
+          },
         });
       }
       const baseUrl = resolvePublicOrigin(request);
-      return new Response(JSON.stringify(buildDefaultManifest(baseUrl), null, 2), {
-        headers: { "Content-Type": "application/manifest+json; charset=utf-8" },
-      });
+      return new Response(
+        JSON.stringify(buildDefaultManifest(baseUrl), null, 2),
+        {
+          headers: {
+            "Content-Type": "application/manifest+json; charset=utf-8",
+          },
+        },
+      );
     })
     .get("/sw.js", () => {
       const serviceWorkerPath = resolve(publicDir, "sw.js");
@@ -664,13 +769,15 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
         },
       });
     })
-    .use(staticPlugin({
-      assets: publicDir,
-      prefix: "/",
-      headers: {
-        "Cache-Control": "public, max-age=86400",
-      },
-    }));
+    .use(
+      staticPlugin({
+        assets: publicDir,
+        prefix: "/",
+        headers: {
+          "Cache-Control": "public, max-age=86400",
+        },
+      }),
+    );
 
   app.get("/*", async ({ request }) => {
     const requestStartedAt = Date.now();
@@ -688,19 +795,23 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
       });
     }
     const baseUrl = resolvePublicOrigin(request);
+    const workspace = resolveWorkspaceFromRequest(request);
 
     try {
-      const html = await renderPage(url.pathname, baseUrl);
+      const html = await renderPage(url.pathname, baseUrl, workspace);
       const pageTitle = extractPageTitle(html);
       const pageTitleB64 = pageTitle ? encodeHeaderBase64(pageTitle) : null;
       const durationMs = Date.now() - requestStartedAt;
-      telemetryReporter.track({
-        ts: Date.now(),
-        device_id: "landing-ssr",
-        param: "render_ms",
-        value: durationMs,
-        unit: "ms",
-      });
+      telemetryReporter.track(
+        {
+          ts: Date.now(),
+          device_id: "landing-ssr",
+          param: "render_ms",
+          value: durationMs,
+          unit: "ms",
+        },
+        workspace,
+      );
 
       if (isRootFragmentRequest(request)) {
         const rootFragment = extractRootDiv(html);
@@ -708,7 +819,7 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
           return new Response(rootFragment, {
             headers: {
               "Content-Type": "text/html; charset=utf-8",
-              "Vary": "X-Fragment-Request",
+              Vary: "X-Fragment-Request",
               ...(pageTitleB64 ? { "X-Page-Title-B64": pageTitleB64 } : {}),
             },
           });
@@ -718,18 +829,21 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
       return new Response(html, {
         headers: {
           "Content-Type": "text/html; charset=utf-8",
-          "Vary": "X-Fragment-Request",
+          Vary: "X-Fragment-Request",
           ...(pageTitleB64 ? { "X-Page-Title-B64": pageTitleB64 } : {}),
         },
       });
     } catch (error) {
-      telemetryReporter.track({
-        ts: Date.now(),
-        device_id: "landing-ssr",
-        param: "render_error",
-        value: 1,
-        unit: "count",
-      });
+      telemetryReporter.track(
+        {
+          ts: Date.now(),
+          device_id: "landing-ssr",
+          param: "render_error",
+          value: 1,
+          unit: "count",
+        },
+        workspace,
+      );
       throw error;
     }
   });
