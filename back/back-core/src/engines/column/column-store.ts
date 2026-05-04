@@ -88,7 +88,7 @@ export class ColumnStore<DB = any> implements Store {
   async open(): Promise<void> {
     if (this.kysely) return;
     if (this.mode === "transport") {
-      this.conn!.open(this.ms!, this.storeName!, "column");
+      this.conn!.open(this.ms!, this.storeName!);
       this.kysely = new Kysely<DB>({
         dialect: createTransportDialect(this.conn!, this.ms!, this.storeName!),
       });

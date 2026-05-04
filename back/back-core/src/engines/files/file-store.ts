@@ -14,7 +14,7 @@ export class FileStore implements Store {
   ) {}
 
   async open(): Promise<void> {
-    this.conn.open(this.ms, this.storeName, "files");
+    this.conn.open(this.ms, this.storeName);
   }
 
   async close(): Promise<void> {

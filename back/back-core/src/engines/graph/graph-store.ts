@@ -12,7 +12,7 @@ export class GraphStore implements Store {
   ) {}
 
   async open(): Promise<void> {
-    this.conn.open(this.ms, this.storeName, "graph");
+    this.conn.open(this.ms, this.storeName);
   }
 
   async close(): Promise<void> {

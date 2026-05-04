@@ -41,7 +41,7 @@ export class VectorStore<DB = any> implements Store {
 
   async open(): Promise<void> {
     if (this.kysely) return;
-    this.conn.open(this.ms, this.storeName, "vector");
+    this.conn.open(this.ms, this.storeName);
     this.kysely = new Kysely<DB>({
       dialect: createTransportDialect(this.conn, this.ms, this.storeName),
     });

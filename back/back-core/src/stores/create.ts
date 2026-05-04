@@ -353,6 +353,51 @@ function createStore(
 	throw new Error(`Store type ${type} not implemented`);
 }
 
+function toTransportStoreType(type: StoreType): TransportStoreTypeKey {
+	switch (type) {
+		case StoreType.SQL:
+			return "sql";
+		case StoreType.KVS:
+			return "kv";
+		case StoreType.COLUMN:
+			return "column";
+		case StoreType.VECTOR:
+			return "vector";
+		case StoreType.FILES:
+		case StoreType.JSON:
+			return "files";
+		case StoreType.GRAPH:
+			return "graph";
+		default:
+			throw new Error(`Store type ${type} not implemented`);
+	}
+}
+
+function fromTransportStoreType(
+	type: TransportStoreTypeKey,
+	declaredType: StoreType,
+): StoreType {
+	if (declaredType === StoreType.JSON && type === "files") {
+		return StoreType.JSON;
+	}
+	switch (type) {
+		case "sql":
+			return StoreType.SQL;
+		case "kv":
+			return StoreType.KVS;
+		case "column":
+			return StoreType.COLUMN;
+		case "vector":
+			return StoreType.VECTOR;
+		case "files":
+			return StoreType.FILES;
+		case "graph":
+			return StoreType.GRAPH;
+		default:
+			throw new Error(`Transport store type ${type} not implemented`);
+	}
+}
+
 const STORE_OPERATION_METHODS = new Set<PropertyKey>([
 	"getSize",
 	"getManifest",
@@ -376,7 +421,6 @@ const STORE_OPERATION_METHODS = new Set<PropertyKey>([
 function createRequestScopedStorageConnection(
 	fixedStorageHost?: string,
 ): StorageConnection {
-	const storeTypes = new Map<string, TransportStoreTypeKey>();
 	const openedStores = new Map<string, Set<string>>();
 
 	const storeKey = (msName: string, storeName: string) =>
@@ -410,11 +454,9 @@ function createRequestScopedStorageConnection(
 		storeName: string,
 	) => {
 		const key = storeKey(msName, storeName);
-		const storeType = storeTypes.get(key);
-		if (!storeType) return;
 		const opened = openedStores.get(lease.key);
 		if (opened?.has(key)) return;
-		lease.conn.open(msName, storeName, storeType);
+		lease.conn.open(msName, storeName);
 		markOpen(lease.key, msName, storeName);
 	};
 
@@ -423,14 +465,22 @@ function createRequestScopedStorageConnection(
 		{
 			get(_target, prop) {
 				if (prop === "open") {
+					return (msName: string, storeName: string) => {
+						const lease = resolveConnection();
+						const result = lease.conn.open(msName, storeName);
+						markOpen(lease.key, msName, storeName);
+						return result;
+					};
+				}
+
+				if (prop === "create") {
 					return (
 						msName: string,
 						storeName: string,
 						storeType: TransportStoreTypeKey,
 					) => {
-						storeTypes.set(storeKey(msName, storeName), storeType);
 						const lease = resolveConnection();
-						const result = lease.conn.open(msName, storeName, storeType);
+						const result = lease.conn.create(msName, storeName, storeType);
 						markOpen(lease.key, msName, storeName);
 						return result;
 					};
@@ -579,11 +629,17 @@ export abstract class StoreControllerAbstract {
 		type: StoreType,
 		migrations: (new (store: Store) => Migration)[],
 	): Promise<Store> {
+		const declaredTransportType = toTransportStoreType(type);
+		// create is idempotent on the server side: opens existing or creates new
+		this.conn.create(this.msName, name, declaredTransportType);
+		const manifest = this.conn.getManifest(this.msName, name);
+		const actualType = fromTransportStoreType(manifest.storeType, type);
+
 		this.stores[name] = createStore(
 			this.conn,
 			this.msName,
 			name,
-			type,
+			actualType,
 			migrations,
 		);
 		return this.stores[name];

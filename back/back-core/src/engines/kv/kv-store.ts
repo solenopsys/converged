@@ -42,7 +42,7 @@ export class KVStore implements KVStoreIntf, Store {
   }
 
   async open() {
-    this.conn.open(this.ms, this.storeName, "kv");
+    this.conn.open(this.ms, this.storeName);
   }
 
   getKeysWithPrefix(prefixChain: string[]): string[] {
