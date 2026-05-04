@@ -2,6 +2,8 @@
 
 ![Converged](./front/landing/public/logo-black.svg)
 
+![status](https://img.shields.io/badge/status-active%20development-orange) ![build](https://img.shields.io/badge/build-manual%20checks-blue) ![version](https://img.shields.io/badge/version-1.0.0-purple) ![license](https://img.shields.io/badge/license-AGPL--3.0-brightgreen)
+
 A CNC shop or 3D print bureau has two kinds of work: making things, and everything around making things.
 
 The second kind — incoming requests, client messages, order statuses, file handling, queue management, notifications, delivery tracking, payment events, "is it ready yet?" at 11pm — does not require a machinist. It requires a system. That is what Converged is.
@@ -114,8 +116,6 @@ Contracts are TypeScript interfaces in `tools/integration/types/*.ts`. The code 
 - JWT HS256 for access control (modes: `optional` / `required` / `off`)
 
 ### Data Storage: Behemoth
-
-![status](https://img.shields.io/badge/status-active%20development-orange) ![build](https://img.shields.io/badge/build-manual%20checks-blue) ![version](https://img.shields.io/badge/version-0.1.0-purple) ![license](https://img.shields.io/badge/license-Apache--2.0-brightgreen)
 
 Storage is handled by [**Behemoth**](https://github.com/solenopsys/behemoth) — a native multi-model storage engine written in Zig, purpose-built for microservice architectures.
 
