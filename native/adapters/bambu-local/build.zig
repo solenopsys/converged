@@ -16,16 +16,16 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
-    lib.linkLibC();
-    lib.addIncludePath(openssl_inc);
-    lib.addIncludePath(b.path("vendor/paho.mqtt.c/src"));
-    lib.addLibraryPath(openssl_lib);
-    lib.linkSystemLibrary("ssl");
-    lib.linkSystemLibrary("crypto");
-    lib.linkSystemLibrary("pthread");
-    lib.linkSystemLibrary("dl");
-    lib.linkSystemLibrary("rt");
-    lib.addCSourceFiles(.{
+    lib.root_module.link_libc = true;
+    lib.root_module.addIncludePath(openssl_inc);
+    lib.root_module.addIncludePath(b.path("vendor/paho.mqtt.c/src"));
+    lib.root_module.addLibraryPath(openssl_lib);
+    lib.root_module.linkSystemLibrary("ssl", .{});
+    lib.root_module.linkSystemLibrary("crypto", .{});
+    lib.root_module.linkSystemLibrary("pthread", .{});
+    lib.root_module.linkSystemLibrary("dl", .{});
+    lib.root_module.linkSystemLibrary("rt", .{});
+    lib.root_module.addCSourceFiles(.{
         .root = b.path("vendor/paho.mqtt.c/src"),
         .files = &.{
             "MQTTTime.c",
@@ -72,16 +72,17 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
         }),
     });
-    tests.linkLibC();
-    tests.addIncludePath(openssl_inc);
-    tests.addIncludePath(b.path("vendor/paho.mqtt.c/src"));
-    tests.addLibraryPath(openssl_lib);
-    tests.linkSystemLibrary("ssl");
-    tests.linkSystemLibrary("crypto");
-    tests.linkSystemLibrary("pthread");
-    tests.linkSystemLibrary("dl");
-    tests.linkSystemLibrary("rt");
-    tests.addCSourceFiles(.{
+    tests.root_module.link_libc = true;
+    tests.use_new_linker = false;
+    tests.root_module.addIncludePath(openssl_inc);
+    tests.root_module.addIncludePath(b.path("vendor/paho.mqtt.c/src"));
+    tests.root_module.addLibraryPath(openssl_lib);
+    tests.root_module.linkSystemLibrary("ssl", .{});
+    tests.root_module.linkSystemLibrary("crypto", .{});
+    tests.root_module.linkSystemLibrary("pthread", .{});
+    tests.root_module.linkSystemLibrary("dl", .{});
+    tests.root_module.linkSystemLibrary("rt", .{});
+    tests.root_module.addCSourceFiles(.{
         .root = b.path("vendor/paho.mqtt.c/src"),
         .files = &.{
             "MQTTTime.c",

@@ -6,6 +6,24 @@ const c = @cImport({
 
 const Allocator = std.mem.Allocator;
 
+const Mutex = struct {
+    handle: std.c.pthread_mutex_t = std.c.PTHREAD_MUTEX_INITIALIZER,
+
+    fn lock(self: *Mutex) void {
+        std.debug.assert(std.c.pthread_mutex_lock(&self.handle) == .SUCCESS);
+    }
+
+    fn unlock(self: *Mutex) void {
+        std.debug.assert(std.c.pthread_mutex_unlock(&self.handle) == .SUCCESS);
+    }
+};
+
+fn milliTimestamp() i64 {
+    var ts: std.c.timespec = undefined;
+    std.debug.assert(std.c.clock_gettime(.MONOTONIC, &ts) == 0);
+    return @as(i64, ts.sec) * std.time.ms_per_s + @as(i64, @intCast(@divTrunc(ts.nsec, std.time.ns_per_ms)));
+}
+
 fn allocPrintZ(allocator: Allocator, comptime fmt: []const u8, args: anytype) ![:0]u8 {
     const tmp = try std.fmt.allocPrint(allocator, fmt, args);
     defer allocator.free(tmp);
@@ -79,7 +97,7 @@ const Telemetry = struct {
 
 const Adapter = struct {
     allocator: Allocator,
-    mutex: std.Thread.Mutex = .{},
+    mutex: Mutex = .{},
 
     state: AdapterState = .disconnected,
     client: c.MQTTClient = null,
@@ -151,7 +169,7 @@ const Adapter = struct {
         const server_uri = try allocPrintZ(self.allocator, "ssl://{s}:{d}", .{ host, port });
         defer self.allocator.free(server_uri);
 
-        const client_id = try allocPrintZ(self.allocator, "zig-bambu-{d}", .{std.time.milliTimestamp()});
+        const client_id = try allocPrintZ(self.allocator, "zig-bambu-{d}", .{milliTimestamp()});
         defer self.allocator.free(client_id);
 
         var mqtt_client: c.MQTTClient = undefined;
@@ -286,7 +304,7 @@ const Adapter = struct {
         var msg: c.MQTTClient_message = std.mem.zeroes(c.MQTTClient_message);
         msg.struct_id = .{ 'M', 'Q', 'T', 'M' };
         msg.struct_version = 1;
-        msg.payload = @constCast(@ptrCast(payload.ptr));
+        msg.payload = @ptrCast(@constCast(payload.ptr));
         msg.payloadlen = @intCast(payload.len);
         msg.qos = 0;
         msg.retained = 0;
@@ -385,9 +403,9 @@ const Adapter = struct {
         defer self.allocator.free(mc_print_error_code);
         defer self.allocator.free(last_error);
 
-        var out: std.ArrayListUnmanaged(u8) = .{};
-        errdefer out.deinit(self.allocator);
-        const w = out.writer(self.allocator);
+        var out: std.Io.Writer.Allocating = .init(self.allocator);
+        errdefer out.deinit();
+        const w = &out.writer;
 
         try w.writeByte('{');
         try writeJsonBoolField(w, "connected", connected);
@@ -421,7 +439,7 @@ const Adapter = struct {
         try writeJsonStringField(w, self.allocator, "last_error", last_error);
         try w.writeByte('}');
 
-        return out.toOwnedSlice(self.allocator);
+        return out.toOwnedSlice();
     }
 
     fn onMessage(self: *Adapter, payload: []const u8) void {

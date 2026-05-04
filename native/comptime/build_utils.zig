@@ -66,20 +66,15 @@ pub const HashAndMoveStep = struct {
 
     fn make(step: *std.Build.Step, _: std.Build.Step.MakeOptions) !void {
         const self: *HashAndMoveStep = @fieldParentPtr("step", step);
+        const io = step.owner.graph.io;
+        const cwd = std.Io.Dir.cwd();
 
         const path = try std.fmt.allocPrint(step.owner.allocator, "zig-out/lib/lib{s}.so", .{self.lib_name});
 
         var hasher = std.crypto.hash.sha2.Sha256.init(.{});
-        {
-            const file = try std.fs.cwd().openFile(path, .{});
-            defer file.close();
-            var buf: [65536]u8 = undefined;
-            while (true) {
-                const n = try file.read(&buf);
-                if (n == 0) break;
-                hasher.update(buf[0..n]);
-            }
-        }
+        const content = try cwd.readFileAlloc(io, path, step.owner.allocator, .limited(100 * 1024 * 1024));
+        defer step.owner.allocator.free(content);
+        hasher.update(content);
         const digest = hasher.finalResult();
 
         var hash_str: [64]u8 = undefined;
@@ -91,8 +86,8 @@ pub const HashAndMoveStep = struct {
 
         const dest_path = try std.fmt.allocPrint(step.owner.allocator, "{s}/{s}.so", .{ self.artifacts_dir, hash_str });
 
-        try std.fs.cwd().makePath(self.artifacts_dir);
-        try std.fs.cwd().copyFile(path, std.fs.cwd(), dest_path, .{});
+        try cwd.createDirPath(io, self.artifacts_dir);
+        try cwd.copyFile(path, cwd, dest_path, io, .{});
 
         const hash_copy = try step.owner.allocator.dupe(u8, &hash_str);
         try self.hashes.put(self.target_str, hash_copy);
@@ -127,26 +122,20 @@ pub const WriteJsonStep = struct {
     fn make(step: *std.Build.Step, _: std.Build.Step.MakeOptions) !void {
         const self: *WriteJsonStep = @fieldParentPtr("step", step);
 
-        var obj = std.json.ObjectMap.init(step.owner.allocator);
+        var json = std.array_list.Managed(u8).init(step.owner.allocator);
+        defer json.deinit();
+        try json.appendSlice("{\n");
+        var first = true;
         var it = self.hashes.iterator();
         while (it.next()) |entry| {
-            try obj.put(entry.key_ptr.*, .{ .string = entry.value_ptr.* });
-        }
-
-        const file = try std.fs.cwd().createFile(self.json_path, .{});
-        defer file.close();
-
-        // Write JSON manually
-        try file.writeAll("{\n");
-        var first = true;
-        var it2 = obj.iterator();
-        while (it2.next()) |entry| {
-            if (!first) try file.writeAll(",\n");
+            if (!first) try json.appendSlice(",\n");
             first = false;
-            const line = try std.fmt.allocPrint(step.owner.allocator, "  \"{s}\": \"{s}\"", .{ entry.key_ptr.*, entry.value_ptr.*.string });
-            try file.writeAll(line);
+            const line = try std.fmt.allocPrint(step.owner.allocator, "  \"{s}\": \"{s}\"", .{ entry.key_ptr.*, entry.value_ptr.* });
+            defer step.owner.allocator.free(line);
+            try json.appendSlice(line);
         }
-        try file.writeAll("\n}\n");
+        try json.appendSlice("\n}\n");
+        try std.Io.Dir.cwd().writeFile(step.owner.graph.io, .{ .sub_path = self.json_path, .data = json.items });
     }
 };
 
@@ -174,7 +163,7 @@ pub fn loadArtifactPath(
     artifacts_dir: []const u8,
     target_str: []const u8,
 ) ![]const u8 {
-    const json_content = try std.fs.cwd().readFileAlloc(allocator, json_path, 10 * 1024);
+    const json_content = try std.Io.Dir.cwd().readFileAlloc(std.Options.debug_io, json_path, allocator, .limited(10 * 1024));
     defer allocator.free(json_content);
 
     const parsed = try std.json.parseFromSlice(std.json.Value, allocator, json_content, .{});
@@ -192,7 +181,7 @@ pub fn loadArtifactHash(
     json_path: []const u8,
     target_str: []const u8,
 ) ![]const u8 {
-    const json_content = try std.fs.cwd().readFileAlloc(allocator, json_path, 10 * 1024);
+    const json_content = try std.Io.Dir.cwd().readFileAlloc(std.Options.debug_io, json_path, allocator, .limited(10 * 1024));
     defer allocator.free(json_content);
 
     const parsed = try std.json.parseFromSlice(std.json.Value, allocator, json_content, .{});
@@ -237,9 +226,11 @@ pub const HashAndMoveExeStep = struct {
 
     fn make(step: *std.Build.Step, _: std.Build.Step.MakeOptions) !void {
         const self: *HashAndMoveExeStep = @fieldParentPtr("step", step);
+        const io = step.owner.graph.io;
+        const cwd = std.Io.Dir.cwd();
 
         const path = try std.fmt.allocPrint(step.owner.allocator, "zig-out/bin/{s}", .{self.exe_name});
-        const content = try std.fs.cwd().readFileAlloc(step.owner.allocator, path, 100 * 1024 * 1024);
+        const content = try cwd.readFileAlloc(io, path, step.owner.allocator, .limited(100 * 1024 * 1024));
         defer step.owner.allocator.free(content);
 
         var hasher = std.crypto.hash.sha2.Sha256.init(.{});
@@ -255,9 +246,9 @@ pub const HashAndMoveExeStep = struct {
 
         const dest_path = try std.fmt.allocPrint(step.owner.allocator, "{s}/{s}", .{ self.artifacts_dir, hash_str });
 
-        try std.fs.cwd().makePath(self.artifacts_dir);
-        try std.fs.cwd().copyFile(path, std.fs.cwd(), dest_path, .{});
-        try std.fs.cwd().deleteFile(path);
+        try cwd.createDirPath(io, self.artifacts_dir);
+        try cwd.copyFile(path, cwd, dest_path, io, .{});
+        try cwd.deleteFile(io, path);
 
         const hash_copy = try step.owner.allocator.dupe(u8, &hash_str);
         try self.hashes.put(self.target_str, hash_copy);

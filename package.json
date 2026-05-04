@@ -64,6 +64,7 @@
 		"build:container:rt": "podman build --layers --ignorefile ./deployment/mono/containers/.containerignore -f ./deployment/mono/containers/converged-portal.rt.Containerfile -t converged-portal-rt ../../..",
 		"cli": "bun run --env-file=../../confs/cli-dev.env tools/cli/src/cli.ts --commands=tools/commands",
 		"clip": "bun run --env-file=../../cli-prod.env tools/cli/src/cli.ts --commands=tools/commands",
+		"secrets": "bun run --cwd ../club-portal/tools/configurator src/cli.ts secrets --project=converged-portal --output=/home/alexstorm/distrib/4ir/gestalt/clarity/confs",
 		"k3s:import": "podman save converged-portal:latest -o /tmp/converged-portal.tar && sudo k3s ctr images import /tmp/converged-portal.tar && rm /tmp/converged-portal.tar",
 		"format": "biome format --write .",
 		"lint": "biome lint .",

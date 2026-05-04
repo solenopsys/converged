@@ -12,7 +12,7 @@ fn addSqliteVecLib(b: *std.Build, target: std.Build.ResolvedTarget, optimize: st
         }),
     });
 
-    lib.linkLibC();
+    lib.root_module.link_libc = true;
 
     const cpu_arch = target.result.cpu.arch;
     const abi = target.result.abi;
@@ -44,13 +44,13 @@ fn addSqliteVecLib(b: *std.Build, target: std.Build.ResolvedTarget, optimize: st
     else
         &base_flags;
 
-    lib.addCSourceFile(.{
+    lib.root_module.addCSourceFile(.{
         .file = b.path("vendor/sqlite-vec/sqlite-vec.c"),
         .flags = flags,
     });
 
-    lib.addIncludePath(b.path("vendor/sqlite-vec"));
-    lib.addIncludePath(b.path("vendor/sqlite-vec/vendor"));
+    lib.root_module.addIncludePath(b.path("vendor/sqlite-vec"));
+    lib.root_module.addIncludePath(b.path("vendor/sqlite-vec/vendor"));
 
     return lib;
 }

@@ -20,3 +20,4 @@ deployment
 !/deployment/**
 .tmp
 artifacts
+.playwright-mcp

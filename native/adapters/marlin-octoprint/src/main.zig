@@ -9,6 +9,35 @@ const c = @cImport({
 
 const Allocator = std.mem.Allocator;
 
+const Mutex = struct {
+    handle: std.c.pthread_mutex_t = std.c.PTHREAD_MUTEX_INITIALIZER,
+
+    fn lock(self: *Mutex) void {
+        std.debug.assert(std.c.pthread_mutex_lock(&self.handle) == .SUCCESS);
+    }
+
+    fn unlock(self: *Mutex) void {
+        std.debug.assert(std.c.pthread_mutex_unlock(&self.handle) == .SUCCESS);
+    }
+};
+
+fn milliTimestamp() i64 {
+    var ts: std.c.timespec = undefined;
+    std.debug.assert(std.c.clock_gettime(.MONOTONIC, &ts) == 0);
+    return @as(i64, ts.sec) * std.time.ms_per_s + @as(i64, @intCast(@divTrunc(ts.nsec, std.time.ns_per_ms)));
+}
+
+fn sleepNs(ns: u64) void {
+    std.Io.sleep(std.Options.debug_io, .fromNanoseconds(@intCast(ns)), .awake) catch {};
+}
+
+fn enumFromInt(comptime T: type, value: anytype) ?T {
+    inline for (std.meta.fields(T)) |field| {
+        if (value == field.value) return @enumFromInt(field.value);
+    }
+    return null;
+}
+
 const temp_poll_interval_ms: i64 = 2_000;
 const pos_poll_interval_ms: i64 = 5_000;
 const loop_sleep_ns: u64 = 20 * std.time.ns_per_ms;
@@ -123,7 +152,7 @@ const Telemetry = struct {
 
 const Adapter = struct {
     allocator: Allocator,
-    mutex: std.Thread.Mutex = .{},
+    mutex: Mutex = .{},
 
     running: bool = false,
     io_thread: ?std.Thread = null,
@@ -219,7 +248,7 @@ const Adapter = struct {
         try self.startIoThread();
 
         const fd = try openSerial(port_z, baudrate);
-        const now_ms = std.time.milliTimestamp();
+        const now_ms = milliTimestamp();
 
         self.mutex.lock();
         defer self.mutex.unlock();
@@ -372,7 +401,7 @@ const Adapter = struct {
     }
 
     fn executeInterfaceCommand(self: *Adapter, command: MarlinInterfaceCommand) !void {
-        const cmd_id = std.meta.intToEnum(InterfaceCommandId, command.command_id) catch return error.InvalidCommand;
+        const cmd_id = enumFromInt(InterfaceCommandId, command.command_id) orelse return error.InvalidCommand;
         switch (cmd_id) {
             .job_start, .job_restart => try self.startPrint(),
             .job_pause => try self.pausePrint(),
@@ -442,16 +471,16 @@ const Adapter = struct {
 
         try move.appendSlice(self.allocator, "G0");
         if (command.axis_mask & axis_x_mask != 0) {
-            try move.writer(self.allocator).print(" X{d}", .{command.value_a});
+            try move.print(self.allocator, " X{d}", .{command.value_a});
         }
         if (command.axis_mask & axis_y_mask != 0) {
-            try move.writer(self.allocator).print(" Y{d}", .{command.value_b});
+            try move.print(self.allocator, " Y{d}", .{command.value_b});
         }
         if (command.axis_mask & axis_z_mask != 0) {
-            try move.writer(self.allocator).print(" Z{d}", .{command.value_c});
+            try move.print(self.allocator, " Z{d}", .{command.value_c});
         }
         if (command.value_d > 0.0) {
-            try move.writer(self.allocator).print(" F{d}", .{command.value_d});
+            try move.print(self.allocator, " F{d}", .{command.value_d});
         }
 
         if (command.flags & jog_flag_absolute != 0) {
@@ -495,7 +524,7 @@ const Adapter = struct {
     }
 
     fn handleToolTarget(self: *Adapter, command: MarlinInterfaceCommand) !void {
-        const heater = std.meta.intToEnum(HeaterKind, command.heater) catch HeaterKind.current_tool;
+        const heater = enumFromInt(HeaterKind, command.heater) orelse HeaterKind.current_tool;
         if (command.value_a < 0.0) return error.InvalidValue;
 
         switch (heater) {
@@ -640,7 +669,7 @@ const Adapter = struct {
             .last_line = self.last_line,
         };
 
-        var out: std.io.Writer.Allocating = .init(self.allocator);
+        var out: std.Io.Writer.Allocating = .init(self.allocator);
         defer out.deinit();
 
         var stringify: std.json.Stringify = .{
@@ -662,13 +691,13 @@ const Adapter = struct {
             if (!keep_running) break;
 
             if (!connected or fd < 0) {
-                std.Thread.sleep(loop_sleep_ns);
+                sleepNs(loop_sleep_ns);
                 continue;
             }
 
             self.readFromSerial(fd);
 
-            const now_ms = std.time.milliTimestamp();
+            const now_ms = milliTimestamp();
             var outbound: ?[]u8 = null;
             self.mutex.lock();
             if (self.connected and self.fd == fd) {
@@ -688,7 +717,7 @@ const Adapter = struct {
                 }
             }
 
-            std.Thread.sleep(loop_sleep_ns);
+            sleepNs(loop_sleep_ns);
         }
     }
 
@@ -718,7 +747,7 @@ const Adapter = struct {
 
         while (std.mem.indexOfScalar(u8, self.rx_buffer.items, '\n')) |idx| {
             const line_raw = self.rx_buffer.items[0..idx];
-            const line = std.mem.trimRight(u8, line_raw, "\r");
+            const line = std.mem.trimEnd(u8, line_raw, "\r");
             self.processLineLocked(line);
 
             const consume = idx + 1;
@@ -1076,7 +1105,7 @@ fn writeLine(fd: c_int, line: []const u8) !bool {
         const err_no = std.posix.errno(rc);
         if (err_no == .INTR) continue;
         if (err_no == .AGAIN) {
-            std.Thread.sleep(std.time.ns_per_ms);
+            sleepNs(std.time.ns_per_ms);
             continue;
         }
         return false;
@@ -1107,12 +1136,7 @@ fn normalizeGcode(allocator: Allocator, source: []const u8) ?[]u8 {
 }
 
 fn readFileAlloc(allocator: Allocator, path: []const u8, max_len: usize) ![]u8 {
-    if (std.fs.path.isAbsolute(path)) {
-        const file = try std.fs.openFileAbsolute(path, .{});
-        defer file.close();
-        return file.readToEndAlloc(allocator, max_len);
-    }
-    return std.fs.cwd().readFileAlloc(allocator, path, max_len);
+    return std.Io.Dir.cwd().readFileAlloc(std.Options.debug_io, path, allocator, .limited(max_len));
 }
 
 fn parseResendLine(line: []const u8) ?u32 {

@@ -2,6 +2,25 @@ const std = @import("std");
 
 const Allocator = std.mem.Allocator;
 
+const Mutex = struct {
+    handle: std.c.pthread_mutex_t = std.c.PTHREAD_MUTEX_INITIALIZER,
+
+    fn lock(self: *Mutex) void {
+        std.debug.assert(std.c.pthread_mutex_lock(&self.handle) == .SUCCESS);
+    }
+
+    fn unlock(self: *Mutex) void {
+        std.debug.assert(std.c.pthread_mutex_unlock(&self.handle) == .SUCCESS);
+    }
+};
+
+fn enumFromInt(comptime T: type, value: anytype) ?T {
+    inline for (std.meta.fields(T)) |field| {
+        if (value == field.value) return @enumFromInt(field.value);
+    }
+    return null;
+}
+
 const default_timeout_ms: u32 = 300_000;
 const default_max_output_bytes: usize = 16 * 1024 * 1024;
 
@@ -46,7 +65,7 @@ pub const UvtoolsInterfaceCommand = extern struct {
 
 const Adapter = struct {
     allocator: Allocator,
-    mutex: std.Thread.Mutex = .{},
+    mutex: Mutex = .{},
 
     state: AdapterState = .idle,
     executable: []u8 = &[_]u8{},
@@ -136,7 +155,7 @@ const Adapter = struct {
     }
 
     fn executeCommand(self: *Adapter, command: UvtoolsInterfaceCommand) !void {
-        const command_id = std.meta.intToEnum(UvtoolsCommandId, command.command_id) catch return error.InvalidArgument;
+        const command_id = enumFromInt(UvtoolsCommandId, command.command_id) orelse return error.InvalidArgument;
         if (command_id == .raw) {
             const raw = cStringToSlice(command.extra_args) orelse return error.InvalidArgument;
             try self.executeRaw(raw);
@@ -297,13 +316,13 @@ const Adapter = struct {
         defer self.allocator.free(args_preview);
         try self.replaceOwnedStringLocked(&self.last_args, args_preview);
 
-        const cwd_opt: ?[]const u8 = if (self.workdir.len == 0) null else self.workdir;
+        const cwd: std.process.Child.Cwd = if (self.workdir.len == 0) .inherit else .{ .path = self.workdir };
 
-        const run_result = std.process.Child.run(.{
-            .allocator = self.allocator,
+        const run_result = std.process.run(self.allocator, std.Options.debug_io, .{
             .argv = command_argv.items,
-            .cwd = cwd_opt,
-            .max_output_bytes = self.max_output_bytes,
+            .cwd = cwd,
+            .stdout_limit = .limited(self.max_output_bytes),
+            .stderr_limit = .limited(self.max_output_bytes),
         }) catch |err| {
             self.state = .failed;
             try self.replaceOwnedStringLockedFmt(&self.last_error, "spawn failed: {s}", .{@errorName(err)});
@@ -315,16 +334,16 @@ const Adapter = struct {
 
         var exit_code: c_int = -1;
         switch (run_result.term) {
-            .Exited => |code| {
+            .exited => |code| {
                 exit_code = @intCast(code);
             },
-            .Signal => |sig| {
-                exit_code = 128 + @as(c_int, @intCast(sig));
+            .signal => |sig| {
+                exit_code = 128 + @as(c_int, @intCast(@intFromEnum(sig)));
             },
-            .Stopped => |sig| {
-                exit_code = 128 + @as(c_int, @intCast(sig));
+            .stopped => |sig| {
+                exit_code = 128 + @as(c_int, @intCast(@intFromEnum(sig)));
             },
-            .Unknown => {
+            .unknown => {
                 exit_code = -1;
             },
         }

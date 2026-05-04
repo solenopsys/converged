@@ -3,6 +3,28 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const c_allocator = std.heap.c_allocator;
 
+const Mutex = struct {
+    handle: std.c.pthread_mutex_t = std.c.PTHREAD_MUTEX_INITIALIZER,
+
+    fn lock(self: *Mutex) void {
+        std.debug.assert(std.c.pthread_mutex_lock(&self.handle) == .SUCCESS);
+    }
+
+    fn unlock(self: *Mutex) void {
+        std.debug.assert(std.c.pthread_mutex_unlock(&self.handle) == .SUCCESS);
+    }
+};
+
+fn milliTimestamp() i64 {
+    var ts: std.c.timespec = undefined;
+    std.debug.assert(std.c.clock_gettime(.MONOTONIC, &ts) == 0);
+    return @as(i64, ts.sec) * std.time.ms_per_s + @as(i64, @intCast(@divTrunc(ts.nsec, std.time.ns_per_ms)));
+}
+
+fn sleepNs(ns: u64) void {
+    std.Io.sleep(std.Options.debug_io, .fromNanoseconds(@intCast(ns)), .awake) catch {};
+}
+
 const default_host = "127.0.0.1";
 const default_probe_path = "/probe";
 const default_port: u16 = 5000;
@@ -12,7 +34,7 @@ const default_stop_timeout_ms: u32 = 3_000;
 
 const Wrapper = struct {
     allocator: Allocator,
-    mutex: std.Thread.Mutex = .{},
+    mutex: Mutex = .{},
 
     pid: ?std.posix.pid_t = null,
     last_exit_status: ?u32 = null,
@@ -84,7 +106,7 @@ const Wrapper = struct {
 
     fn stop(self: *Wrapper, timeout_ms: u32) !void {
         const effective_timeout: u32 = if (timeout_ms == 0) default_stop_timeout_ms else timeout_ms;
-        const deadline = std.time.milliTimestamp() + effective_timeout;
+        const deadline = milliTimestamp() + effective_timeout;
 
         var target_pid: std.posix.pid_t = undefined;
 
@@ -101,12 +123,12 @@ const Wrapper = struct {
             else => {},
         };
 
-        while (std.time.milliTimestamp() < deadline) {
+        while (milliTimestamp() < deadline) {
             self.mutex.lock();
             const running = self.refreshProcessStateLocked();
             self.mutex.unlock();
             if (!running) return;
-            std.Thread.sleep(stop_poll_interval_ns);
+            sleepNs(stop_poll_interval_ns);
         }
 
         std.posix.kill(target_pid, std.posix.SIG.KILL) catch |err| switch (err) {
@@ -119,7 +141,7 @@ const Wrapper = struct {
             const running = self.refreshProcessStateLocked();
             self.mutex.unlock();
             if (!running) break;
-            std.Thread.sleep(stop_poll_interval_ns);
+            sleepNs(stop_poll_interval_ns);
         }
     }
 
@@ -166,11 +188,11 @@ const Wrapper = struct {
     }
 
     fn waitReady(self: *Wrapper, timeout_ms: u32) bool {
-        const deadline = std.time.milliTimestamp() + timeout_ms;
-        while (std.time.milliTimestamp() < deadline) {
+        const deadline = milliTimestamp() + timeout_ms;
+        while (milliTimestamp() < deadline) {
             if (!self.isRunning()) return false;
             if (self.checkHealth()) return true;
-            std.Thread.sleep(ready_poll_interval_ns);
+            sleepNs(ready_poll_interval_ns);
         }
         return false;
     }
@@ -179,10 +201,12 @@ const Wrapper = struct {
         if (self.pid == null) return false;
 
         const pid = self.pid.?;
-        const wait_res = std.posix.waitpid(pid, std.posix.W.NOHANG);
-        if (wait_res.pid == 0) return true;
+        var status: c_int = 0;
+        const wait_pid = std.c.waitpid(pid, &status, std.c.W.NOHANG);
+        if (wait_pid == 0) return true;
+        if (wait_pid < 0) return true;
 
-        self.last_exit_status = wait_res.status;
+        self.last_exit_status = @bitCast(status);
         self.pid = null;
         return false;
     }
@@ -229,15 +253,16 @@ fn spawnCppAgent(
     argv[1] = "run";
     argv[2] = config_path_z.ptr;
 
-    const fork_result = try std.posix.fork();
+    const fork_result = std.c.fork();
+    if (fork_result < 0) return error.ForkFailed;
     if (fork_result == 0) {
         if (work_dir_z) |wd| {
-            std.posix.chdir(wd) catch std.posix.exit(125);
+            if (std.c.chdir(wd.ptr) != 0) std.c._exit(125);
         }
 
         const envp: [*:null]const ?[*:0]const u8 = @ptrCast(std.c.environ);
-        _ = std.posix.execvpeZ(agent_bin_z.ptr, argv.ptr, envp) catch {};
-        std.posix.exit(127);
+        _ = std.c.execve(agent_bin_z.ptr, argv.ptr, envp);
+        std.c._exit(127);
     }
 
     return fork_result;
@@ -249,8 +274,9 @@ fn isHttpEndpointHealthy(
     port: u16,
     path: []const u8,
 ) !bool {
-    var stream = try std.net.tcpConnectToHost(allocator, host, port);
-    defer stream.close();
+    const address = try std.Io.net.IpAddress.resolve(std.Options.debug_io, host, port);
+    const stream = try address.connect(std.Options.debug_io, .{ .mode = .stream });
+    defer stream.close(std.Options.debug_io);
 
     const request = try std.fmt.allocPrint(allocator, "GET {s} HTTP/1.1\r\nHost: {s}\r\nConnection: close\r\n\r\n", .{
         path,
@@ -258,10 +284,15 @@ fn isHttpEndpointHealthy(
     });
     defer allocator.free(request);
 
-    try stream.writeAll(request);
+    var write_buffer: [512]u8 = undefined;
+    var stream_writer = stream.writer(std.Options.debug_io, &write_buffer);
+    try stream_writer.interface.writeAll(request);
+    try stream_writer.interface.flush();
 
+    var reader_buffer: [512]u8 = undefined;
+    var stream_reader = stream.reader(std.Options.debug_io, &reader_buffer);
     var header_buf: [512]u8 = undefined;
-    const n = try stream.read(&header_buf);
+    const n = try stream_reader.interface.readSliceShort(&header_buf);
     if (n == 0) return false;
 
     const first_line_end = std.mem.indexOfScalar(u8, header_buf[0..n], '\n') orelse return false;
