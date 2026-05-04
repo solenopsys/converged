@@ -113,34 +113,11 @@ Contracts are TypeScript interfaces in `tools/integration/types/*.ts`. The code 
 
 ### Data Storage: Behemoth
 
-Storage is handled by **Behemoth** — a native storage engine written in Zig, purpose-built for microservice architectures. Each microservice owns its own isolated store boundary. No shared databases, no cross-service index coupling.
+Storage is handled by [**Behemoth**](https://github.com/solenopsys/behemoth) — a native multi-model storage engine written in Zig, purpose-built for microservice architectures.
 
-Behemoth runs as a separate process and communicates with application services over Unix domain sockets using Cap'n Proto as the wire format — minimal serialization overhead, no event-loop contention.
+Each microservice owns an isolated store boundary — no shared databases, no cross-service index coupling. Behemoth runs as a separate process alongside the application and communicates over Unix domain sockets (local) or TCP (cloud/multi-tenant). It supports SQL, key-value, column, vector, file, and graph store types in a unified API, with data stored under `$DATA_DIR/<msName>/<storeName>/` — zero overlap between services by design.
 
-Data is stored under `$DATA_DIR/<msName>/<storeName>/` — zero overlap between services by design.
-
-| Store type | Engine | Use case |
-|------------|--------|----------|
-| `sql` | SQLite (WAL) | Relational data, transactions |
-| `kv` | lmdbx | Fast key-value, low-latency access |
-| `column` | SQLite (column layer) | Metrics, time series, analytics |
-| `vector` | SQLite + sqlite-vec | Embeddings, similarity search |
-| `files` | std.fs | Binary blobs, media |
-| `graph` | ryugraph | Graph-shaped data, traversal queries |
-
-The graph store (`ryugraph`) is new — it handles relationship-heavy data that would otherwise require complex JOIN chains in SQL.
-
-Bun services connect to Behemoth via `bun-transport` — a native FFI binding that exposes the full store API to TypeScript without HTTP overhead:
-
-```ts
-import { StorageConnection } from "bun-transport";
-
-const conn = new StorageConnection({ kind: "unix", socketPath: "/run/behemoth.sock" });
-conn.open("ms-orders", "tenant-42-sql", "sql");
-const rows = conn.querySql("ms-orders", "tenant-42-sql", "select * from orders limit 10");
-```
-
-Source: `native/behemoth/`
+In cloud deployments each tenant gets a dedicated Behemoth pod managed by the converged-operator, providing full data isolation at the infrastructure level.
 
 ### Frontend: Micro-frontends
 
@@ -361,7 +338,7 @@ AGPL-3.0. The platform is fully open for self-hosted deployment. If you modify t
 | Runtime | Bun, Elysia |
 | Frontend | React 19, React Router 7, Effector |
 | UI | Radix UI, UnoCSS, Framer Motion |
-| Database | SQLite + Kysely, LMDB, Column/Vector stores |
+| Storage | [Behemoth](https://github.com/solenopsys/behemoth) (SQL, KV, Column, Vector, Graph, Files) |
 | Native | Zig |
 | Orchestration | Kubernetes, k3s, Helm |
 | AI | OpenAI, Anthropic Claude, DeepSeek, Mistral, Gemini |
