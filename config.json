@@ -197,9 +197,7 @@
 		"defaultSize": "5Gi",
 		"mountBase": "/app/data",
 		"port": 9000,
-		"tenants": [
-			{ "name": "default" }
-		],
+		"tenants": [],
 		"resources": {
 			"requests": { "cpu": "200m", "memory": "128Mi" },
 			"limits": { "cpu": "1000m", "memory": "2Gi" }

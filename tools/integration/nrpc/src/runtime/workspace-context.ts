@@ -6,7 +6,7 @@ import {
 	runWithRequestScopeContext,
 	STORAGE_SCOPE_HEADER,
 	STORAGE_SCOPE_HEADER_ALT,
-} from "back-core";
+} from "back-core/request-context";
 import {
 	WORKSPACE_HEADER as NRPC_WORKSPACE_HEADER,
 	WORKSPACE_HEADER_ALT as NRPC_WORKSPACE_HEADER_ALT,

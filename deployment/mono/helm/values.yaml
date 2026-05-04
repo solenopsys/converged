@@ -1,7 +1,6 @@
 ingress:
   hosts:
     - app.example.com
-  hostsMatch: "Host(`app.example.com`)"
 
 images:
   ui:
@@ -12,7 +11,15 @@ images:
     name: public.ecr.aws/i5x9u8b2/converged-portal-ms
     tag: latest
     pullPolicy: Always
-  storage:
-    name: public.ecr.aws/i5x9u8b2/converged-portal-storage
+  rt:
+    name: public.ecr.aws/i5x9u8b2/converged-portal-rt
     tag: latest
     pullPolicy: Always
+  storage:
+    name: public.ecr.aws/i5x9u8b2/converged-storage
+    tag: latest
+    pullPolicy: Always
+  valkey:
+    name: docker.io/valkey/valkey
+    tag: 8.1-alpine
+    pullPolicy: IfNotPresent

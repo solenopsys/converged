@@ -1,7 +1,7 @@
 {
   "project": "converged-portal",
   "preset": "mono",
-  "generatedAt": "2026-03-03T06:04:21.116Z",
+  "generatedAt": "2026-05-04T16:23:27.046Z",
   "containers": [
     {
       "name": "services",
@@ -9,48 +9,85 @@
       "spa": false,
       "microfrontends": [],
       "microservices": [
+        "ai/agent",
         "ai/assistant",
         "analytics/logs",
         "analytics/telemetry",
         "analytics/usage",
+        "automation/dag",
+        "automation/sheduller",
+        "automation/webhooks",
+        "convertors/modelconvertor",
         "business/billing",
-        "business/dag",
         "business/equipment",
+        "business/partners",
         "business/requests",
         "business/reviews",
-        "business/sheduller",
-        "business/webhooks",
+        "business/staff",
+        "communications/calls",
+        "communications/charts",
+        "communications/community",
+        "communications/notify",
+        "communications/threads",
+        "content/ceo",
+        "content/classifier",
         "content/galery",
         "content/markdown",
+        "content/scripts",
+        "content/static",
         "content/struct",
         "content/video",
         "data/dumps",
         "data/files",
         "data/store",
+        "delivery/delivery",
+        "delivery/dhl",
+        "delivery/ems",
+        "delivery/fedex",
+        "delivery/sfexpress",
+        "delivery/ups",
+        "extractors/millingextractor",
+        "extractors/printextractor",
         "providers/push",
+        "providers/ses",
         "providers/sms",
         "providers/smtp",
         "sequrity/access",
         "sequrity/auth",
+        "sequrity/identity",
+        "sequrity/modules",
         "sequrity/oauth",
-        "social/community",
-        "social/charts",
-        "social/calls",
+        "sequrity/secrets",
         "social/discord",
         "social/facebook",
         "social/instagram",
-        "social/notify",
         "social/telegram",
-        "social/threads",
         "social/tiktok",
         "social/wechat",
         "social/youtube"
-      ]
+      ],
+      "runtimes": []
     }
   ],
   "storage": {
     "defaultSize": "5Gi",
     "mountBase": "/app/data",
+    "port": 9000,
+    "tenants": [
+      {
+        "name": "default"
+      }
+    ],
+    "resources": {
+      "requests": {
+        "cpu": "200m",
+        "memory": "128Mi"
+      },
+      "limits": {
+        "cpu": "1000m",
+        "memory": "2Gi"
+      }
+    },
     "overrides": {
       "files": {
         "size": "100Gi"
@@ -65,7 +102,9 @@
   },
   "ingress": {
     "className": "traefik",
-    "host": "app.example.com",
+    "hosts": [
+      "app.example.com"
+    ],
     "tls": {
       "enabled": false
     }

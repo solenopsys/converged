@@ -5,6 +5,7 @@
     "core": "back/back-core",
     "microservices": {
       "ai": [
+        "agent",
         "assistant"
       ],
       "analytics": [
@@ -12,18 +13,36 @@
         "telemetry",
         "usage"
       ],
-      "business": [
-        "billing",
+      "automation": [
         "dag",
-        "equipment",
-        "requests",
-        "reviews",
         "sheduller",
         "webhooks"
       ],
+      "convertors": [
+        "modelconvertor"
+      ],
+      "business": [
+        "billing",
+        "equipment",
+        "partners",
+        "requests",
+        "reviews",
+        "staff"
+      ],
+      "communications": [
+        "calls",
+        "charts",
+        "community",
+        "notify",
+        "threads"
+      ],
       "content": [
+        "ceo",
+        "classifier",
         "galery",
         "markdown",
+        "scripts",
+        "static",
         "struct",
         "video"
       ],
@@ -32,26 +51,37 @@
         "files",
         "store"
       ],
+      "delivery": [
+        "delivery",
+        "dhl",
+        "ems",
+        "fedex",
+        "sfexpress",
+        "ups"
+      ],
+      "extractors": [
+        "millingextractor",
+        "printextractor"
+      ],
       "providers": [
         "push",
+        "ses",
         "sms",
         "smtp"
       ],
       "sequrity": [
         "access",
         "auth",
-        "oauth"
+        "identity",
+        "modules",
+        "oauth",
+        "secrets"
       ],
       "social": [
-        "community",
-        "charts",
-        "calls",
         "discord",
         "facebook",
         "instagram",
-        "notify",
         "telegram",
-        "threads",
         "tiktok",
         "wechat",
         "youtube"
@@ -59,8 +89,37 @@
     }
   },
   "frontend": {
-    "modules": {},
+    "modules": {
+      "auth": true,
+      "agents": true,
+      "assistants": true,
+      "community": true,
+      "charts": true,
+      "calls": true,
+      "classifier": true,
+      "dag": true,
+      "dasboards": true,
+      "dumps": true,
+      "docs": true,
+      "galery": true,
+      "landing": true,
+      "logs": true,
+      "markdown": true,
+      "static": true,
+      "struct": true,
+      "requests": true,
+      "sheduller": true,
+      "telemetry": true,
+      "threads": true,
+      "usage": true,
+      "webhooks": true
+    },
     "layout": "sidebar",
     "mountChatView": false
+  },
+  "cache": {
+    "url": "redis://127.0.0.1:6379/0",
+    "keyPrefix": "converged-portal",
+    "ssrTtlSeconds": 120
   }
 }
