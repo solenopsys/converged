@@ -12,6 +12,10 @@ import {
 	WORKSPACE_HEADER_ALT as NRPC_WORKSPACE_HEADER_ALT,
 	resolveWorkspaceFromHeaders as resolveWorkspaceFromBackHeaders,
 } from "back-core/workspace-domain";
+import {
+	setWorkspaceContextResolver,
+	type WorkspaceContext,
+} from "./workspace-context-registry";
 
 export {
 	NRPC_WORKSPACE_HEADER,
@@ -22,13 +26,8 @@ export {
 	STORAGE_SCOPE_HEADER_ALT as NRPC_STORAGE_SCOPE_HEADER_ALT,
 };
 
-export interface WorkspaceContext {
-	workspace?: string;
-	scope?: string;
-	headers?: Record<string, string | undefined>;
-}
-
 const storage = new AsyncLocalStorage<WorkspaceContext>();
+setWorkspaceContextResolver(() => storage.getStore());
 
 export function resolveWorkspaceFromHeaders(
 	headers: Record<string, string | undefined> | undefined,

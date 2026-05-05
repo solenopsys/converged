@@ -1,3 +1,5 @@
+import "./nrpc-client-env";
+
 export * from './components/index';
 export * from './i18n';
 export * from './icons-shim';

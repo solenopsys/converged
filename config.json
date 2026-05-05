@@ -211,9 +211,10 @@
 
 	"ingress": {
 		"className": "traefik",
-		"hosts": ["app.example.com"],
+		"hosts": ["*.4ir.club"],
 		"tls": {
-			"enabled": false
+			"enabled": true,
+			"secretName": "4ir-club-tls"
 		}
 	},
 

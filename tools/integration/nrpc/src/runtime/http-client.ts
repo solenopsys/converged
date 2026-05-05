@@ -1,7 +1,10 @@
 // nrpc-runtime/http-client.ts
 import type { ServiceMetadata } from "../types";
+import {
+	getNrpcClientHeaders,
+} from "./client-env";
 import { deserializeValue, serializeValue } from "./serialization";
-import { getCurrentWorkspaceContext } from "./workspace-context";
+import { getRegisteredWorkspaceContext } from "./workspace-context-registry";
 
 const NRPC_WORKSPACE_HEADER = "workspace";
 const NRPC_SCOPE_HEADER = "scope";
@@ -125,6 +128,11 @@ class HttpClientImpl {
 		if (scope && !this.hasHeader(resolved, this.scopeHeaderName)) {
 			resolved[this.scopeHeaderName] = scope;
 		}
+		for (const [key, value] of Object.entries(getNrpcClientHeaders())) {
+			if (!this.hasHeader(resolved, key)) {
+				resolved[key] = value;
+			}
+		}
 
 		return resolved;
 	}
@@ -133,7 +141,7 @@ class HttpClientImpl {
 		const explicit =
 			typeof this.workspace === "function" ? this.workspace() : this.workspace;
 		const runtimeWorkspace =
-			getCurrentWorkspaceContext()?.workspace ??
+			getRegisteredWorkspaceContext()?.workspace ??
 			(typeof globalThis !== "undefined"
 				? globalThis.__NRPC_WORKSPACE_RESOLVER__?.()
 				: undefined);
@@ -154,7 +162,7 @@ class HttpClientImpl {
 	private resolveScope(workspace?: string): string | undefined {
 		const explicit =
 			typeof this.scope === "function" ? this.scope() : this.scope;
-		const contextScope = getCurrentWorkspaceContext()?.scope;
+		const contextScope = getRegisteredWorkspaceContext()?.scope;
 		const runtimeScope =
 			typeof globalThis !== "undefined"
 				? globalThis.__NRPC_SCOPE_RESOLVER__?.()

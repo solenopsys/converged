@@ -1,6 +1,9 @@
 {
   "name": "nrpc",
   "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+  },
   "type": "module",
   "private": true,
   "scripts": {

@@ -97,8 +97,6 @@ function resolveFallbackLocale(configPath: string): SupportedLocale {
 }
 
 export default function LandingView({ configPath }: { configPath: string }) {
-  if (typeof window === "undefined") return <div id="landing-ssr-placeholder" />;
-
   const prefetchedBlocks = useMemo(() => getPrefetchedBlocks(configPath), [configPath]);
   const fallbackLocale = useMemo(() => resolveFallbackLocale(configPath), [configPath]);
   const [blocks, setBlocks] = useState<ResolvedBlock[]>(() => prefetchedBlocks ?? []);

@@ -30,7 +30,7 @@ const { values } = parseArgs({
   args: Bun.argv.slice(2),
   options: {
     project: { type: "string", short: "p", default: DEFAULT_PROJECT },
-    port: { type: "string", default: "3000" },
+    port: { type: "string" },
     "env-file": { type: "string", default: "../../confs/converged-portal.env" },
     compress: { type: "boolean", short: "c" },
     help: { type: "boolean", short: "h" },
@@ -47,7 +47,7 @@ Usage:
 
 Options:
   -p, --project <name>     Project under clarity/projects (default: ${DEFAULT_PROJECT})
-  --port <port>            HTTP port (default: 3000)
+  --port <port>            HTTP port (default: PORT from env file, then 3000)
   --env-file <path>        Env file relative to project root (default: ../../confs/converged-portal.env)
   -c, --compress           Enable SPA_DEV_COMPRESS
   -h, --help               Show this help
@@ -167,13 +167,15 @@ async function loadMergedConfig(projectName: string) {
 
 async function runDev() {
   const projectName = values.project!;
-  const port = Number.parseInt(values.port!, 10);
-  if (!Number.isFinite(port)) {
-    throw new Error(`[servers] invalid --port value: ${values.port}`);
-  }
-
   const { config, projectDir, parentDir } = await loadMergedConfig(projectName);
   const loadedEnv = loadDotEnv(projectDir, values["env-file"]!);
+  const port = values.port
+    ? Number.parseInt(values.port, 10)
+    : Number.parseInt(loadedEnv.PORT ?? "3000", 10);
+  if (!Number.isFinite(port)) {
+    throw new Error(`[servers] invalid PORT value: ${values.port ?? loadedEnv.PORT}`);
+  }
+
   const dataRoot = resolve(PROJECTS_DIR, "..", "data");
   const projectDataDir = resolve(dataRoot, defaultDataDirName(config.name));
   const runtimeEnv = {

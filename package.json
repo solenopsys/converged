@@ -59,9 +59,8 @@
 		"yaml": "^2.8.3"
 	},
 	"scripts": {
-		"dev": "NODE_ENV=development bun run tools/servers/src/dev.ts",
+		"dev": "NODE_ENV=development bun run --cwd ../club-portal/tools/configurator src/cli.ts dev --project=converged-portal --env-file=../../confs/converged-portal.env",
 		"gen:mono": "bun run --cwd ../club-portal/tools/configurator src/cli.ts build --project=converged-portal --preset=mono --output=../../../converged-portal/deployment",
-		"gen:cloud": "bun run --cwd ../club-portal/tools/configurator src/cli.ts build --project=converged-portal --preset=cloud --output=../../../converged-portal/deployment",
 		"build:container:ui": "podman build --layers --ignorefile ./deployment/mono/containers/.containerignore -f ./deployment/mono/containers/converged-portal.ui.Containerfile -t localhost/converged-portal-ui:latest ../../..",
 		"build:container:ms": "podman build --layers --ignorefile ./deployment/mono/containers/.containerignore -f ./deployment/mono/containers/converged-portal.ms.Containerfile -t localhost/converged-portal-ms:latest ../../..",
 		"build:container:rt": "podman build --layers --ignorefile ./deployment/mono/containers/.containerignore -f ./deployment/mono/containers/converged-portal.rt.Containerfile -t localhost/converged-portal-rt:latest ../../..",

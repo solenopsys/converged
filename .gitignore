@@ -15,9 +15,11 @@ next
 .bun-install
 .bun-tmp
 storybook-static/
-deployment
-!/deployment/
-!/deployment/**
+deployment/*
+!/deployment/mono/
+!/deployment/mono/**
+!/deployment/multi/
+!/deployment/multi/**
 .tmp
 artifacts
 .playwright-mcp

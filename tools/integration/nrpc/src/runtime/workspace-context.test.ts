@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { getCurrentRequestScope } from "back-core";
 import { Elysia } from "elysia";
 import type { ServiceMetadata } from "../types";
+import { configureNrpcClientEnv } from "./client-env";
 import { createHttpBackend } from "./http-backend";
 import { createHttpClient } from "./http-client";
 import { getCurrentWorkspace } from "./workspace-context";
@@ -100,6 +101,31 @@ describe("Workspace context", () => {
 
 			expect(await response.json()).toBe("runtime-tenant");
 		} finally {
+			if (previousMap === undefined) {
+				delete process.env.WORKSPACE_DOMAIN_MAP;
+			} else {
+				process.env.WORKSPACE_DOMAIN_MAP = previousMap;
+			}
+		}
+	});
+
+	test("resolves workspace from transport forwarded host header", async () => {
+		const previousMap = process.env.WORKSPACE_DOMAIN_MAP;
+		const previousEnv = globalThis.__NRPC_CLIENT_ENV__;
+		process.env.WORKSPACE_DOMAIN_MAP = JSON.stringify({
+			"portal.example.com": "portal-tenant",
+		});
+		configureNrpcClientEnv({
+			headers: {
+				"x-forwarded-host": "portal.example.com",
+			},
+		});
+		try {
+			const client = createHttpClient<any>(metadata, { baseUrl });
+
+			expect(await client.currentWorkspace()).toBe("portal-tenant");
+		} finally {
+			globalThis.__NRPC_CLIENT_ENV__ = previousEnv;
 			if (previousMap === undefined) {
 				delete process.env.WORKSPACE_DOMAIN_MAP;
 			} else {

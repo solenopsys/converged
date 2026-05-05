@@ -115,7 +115,7 @@ try {
     })
     .join("\n");
 
-  const indexCode = `// Auto-generated package
+const indexCode = `// Auto-generated package
 import { createHttpClient } from "nrpc";
 
 ${typeDefinitions}
