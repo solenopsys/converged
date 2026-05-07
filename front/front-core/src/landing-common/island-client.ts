@@ -1804,6 +1804,38 @@ function installLandingEventGateway(): void {
 	});
 }
 
+function installRequestNavigationBridge(): void {
+	if (document.documentElement.dataset.requestNavigationBridge === "1") return;
+	document.documentElement.dataset.requestNavigationBridge = "1";
+
+	window.addEventListener("request:open", (event) => {
+		const root = document.getElementById("root");
+		if (!root) return;
+
+		const detail = (event as CustomEvent<any>).detail ?? {};
+		const requestId =
+			typeof detail.requestId === "string"
+				? detail.requestId
+				: typeof detail.model?.id === "string"
+					? detail.model.id
+					: "";
+		if (!requestId) return;
+
+		const path =
+			typeof detail.path === "string" && detail.path.trim().length > 0
+				? detail.path
+				: `/request/${encodeURIComponent(requestId)}`;
+		const url = new URL(path, window.location.href);
+		const sameLocation =
+			url.pathname === window.location.pathname &&
+			url.search === window.location.search;
+
+		event.preventDefault();
+		navProgressStart();
+		void navigateByFragment(url, sameLocation ? "none" : "push");
+	});
+}
+
 function normalizeQuickChatPrompt(prompt: QuickChatPrompt): {
 	label: string;
 	message: string;
@@ -2115,6 +2147,7 @@ export function mountSsrMenuShell(): void {
 	installDynamicMenu(menuPanel);
 	installChatDock();
 	installLandingEventGateway();
+	installRequestNavigationBridge();
 	installLinkInterceptor();
 	installLangControl();
 	// Keep first paint stable: bootstrap right rail runtime lazily.

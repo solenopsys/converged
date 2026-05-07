@@ -18,6 +18,7 @@ import {
 } from "react";
 import { LandingPage } from "./pages/LandingPage";
 import { DocsPage } from "./pages/DocsPage";
+import { RequestPage } from "./pages/RequestPage";
 import { DEFAULT_LOCALE, buildLocalePath, isSupportedLocale } from "./i18n";
 
 // SSR: simple wrapper, Client: full BaseLayout
@@ -54,10 +55,12 @@ function renderAppRoutes() {
   return (
     <Route path="/" element={<RootLayout />}>
       <Route path="/" element={<Navigate to={buildLocalePath(DEFAULT_LOCALE, "/")} replace />} />
+      <Route path="/request/:requestId" element={<RequestPage />} />
       <Route path="/console" element={null} />
       <Route path="/console/*" element={null} />
       <Route path="/:locale" element={<LocaleWrapper />}>
         <Route index element={<LandingPage />} />
+        <Route path="request/:requestId" element={<RequestPage />} />
         <Route path="docs/:slug" element={<DocsPage />} />
         <Route path="console" element={null} />
         <Route path="console/*" element={null} />

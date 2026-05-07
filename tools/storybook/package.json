@@ -29,8 +29,8 @@
     "md-tools": "workspace:*",
     "mf-assistants": "workspace:*",
     "qrcode": "^1.5.4",
-    "react": "^19.2.5",
-    "react-dom": "^19.2.5",
+    "react": "19.2.5",
+    "react-dom": "19.2.5",
     "unocss": "latest"
   }
 }

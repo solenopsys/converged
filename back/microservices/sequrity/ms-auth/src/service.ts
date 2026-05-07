@@ -31,6 +31,17 @@ const TEMPORARY_USER_PERMISSIONS = [
   "files/update(w)",
   "files/get(r)",
   "files/getChunks(r)",
+  "requests/createRequest(w)",
+  "requests/patchRequest(w)",
+  "requests/getRequest(r)",
+  "requests/createRequestModel(w)",
+  "requests/applyRequestUpdate(w)",
+  "requests/getRequestModel(r)",
+  "requests/getRequestRequirementProfile(r)",
+  "requests/listRequestRequirementProfiles(r)",
+  "dag/startExecution(w)",
+  "dag/createExecution(w)",
+  "dag/listWorkflows(r)",
 ];
 
 export class AuthServiceImpl implements AuthService {

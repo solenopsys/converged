@@ -31,6 +31,7 @@ function buildDefaultMfEnv(locale: string): Record<string, unknown> {
 type RuntimeInitialData = {
   mfEnv?: Record<string, unknown>;
   landing?: Record<string, unknown>;
+  request?: Record<string, unknown>;
   microfrontends?: string[];
 };
 
@@ -48,6 +49,9 @@ function initMicrofrontendEnv() {
   (globalThis as any).__MF_ENV__ = { ...buildDefaultMfEnv(locale), ...current, ...mfEnv };
   if (initial.landing && typeof initial.landing === "object") {
     (globalThis as any).__LANDING_SSR_DATA__ = initial.landing;
+  }
+  if (initial.request && typeof initial.request === "object") {
+    (globalThis as any).__REQUEST_SSR_DATA__ = initial.request;
   }
 }
 
@@ -216,6 +220,13 @@ function isConsoleRoute() {
   return path === "/console" || path.startsWith("/console/");
 }
 
+function isRequestRoute() {
+  const pathname = window.location.pathname;
+  const locale = extractLocaleFromPath(pathname);
+  const path = locale ? (pathname.slice(locale.length + 1) || "/") : pathname;
+  return path.startsWith("/request/");
+}
+
 function isServerRenderedPublicRoute() {
   const pathname = window.location.pathname;
   const locale = extractLocaleFromPath(pathname);
@@ -299,7 +310,7 @@ async function loadMicrofrontends(names: string[]) {
 }
 
 function presentGuestLanding() {
-  if (hasAuthToken() || isConsoleRoute()) return;
+  if (hasAuthToken() || isConsoleRoute() || isRequestRoute()) return;
   const maxAttempts = 50;
   let attempt = 0;
   const run = () => {

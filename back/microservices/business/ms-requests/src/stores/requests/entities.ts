@@ -11,7 +11,9 @@ export interface RequestEntity {
   status: string;
   fields: string;
   files: string;
+  model?: string;
   createdAt: ISODateString;
+  updatedAt?: ISODateString;
 }
 
 export class RequestRepository extends BaseRepositorySQL<

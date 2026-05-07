@@ -1,4 +1,5 @@
 import { resolve } from 'path';
+import { createWorkspaceResolverPlugin } from '../../../../front-core/src/tools/workspace-resolver';
 
 interface BundleConfig {
   name: string;
@@ -27,6 +28,7 @@ async function buildDevelopmentBundle({ name, entry, fileName, globalName }: Bun
     target: 'browser',
     format: 'esm',
     globalName,
+    plugins: [createWorkspaceResolverPlugin(resolve('../../..'))],
 
     minify: true,
 

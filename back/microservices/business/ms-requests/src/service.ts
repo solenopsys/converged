@@ -5,8 +5,13 @@ import type {
 	RequestId,
 	RequestInput,
 	RequestListParams,
+	RequestModel,
+	RequestModelInput,
+	RequestModelPatch,
 	RequestPatch,
 	RequestProcessingEntry,
+	RequestProcessType,
+	RequestRequirementProfile,
 	RequestStatus,
 	RequestsService,
 } from "./types";
@@ -40,6 +45,33 @@ export class RequestsServiceImpl implements RequestsService {
 
 	getRequest(id: RequestId): Promise<Request | undefined> {
 		return this.stores.requests.getRequest(id);
+	}
+
+	getRequestModel(id: RequestId): Promise<RequestModel | undefined> {
+		return this.stores.requests.getRequestModel(id);
+	}
+
+	getRequestRequirementProfile(
+		processType: RequestProcessType,
+	): Promise<RequestRequirementProfile | undefined> {
+		return this.stores.requests.getRequestRequirementProfile(processType);
+	}
+
+	listRequestRequirementProfiles(): Promise<RequestRequirementProfile[]> {
+		return this.stores.requests.listRequestRequirementProfiles();
+	}
+
+	createRequestModel(input: RequestModelInput): Promise<RequestModel> {
+		return this.stores.requests.createRequestModel(input);
+	}
+
+	applyRequestUpdate(
+		id: RequestId,
+		patch: RequestModelPatch,
+		actor: string,
+		comment?: string,
+	): Promise<RequestModel> {
+		return this.stores.requests.applyRequestUpdate(id, patch, actor, comment);
 	}
 
 	patchRequest(

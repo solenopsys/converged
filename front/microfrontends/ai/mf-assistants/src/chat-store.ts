@@ -6,8 +6,14 @@ import {
 	chatInitRequested,
 	chatSendRequested,
 	registry,
+	setCenterView,
 } from "front-core";
 import { v4 as uuidv4 } from "uuid";
+import type {
+	RequestModel,
+	RequestProcessType,
+	RequestRequirementProfile,
+} from "g-requests";
 import { MessageType } from "../../../../../tools/integration/types/services/communications/threads";
 import {
 	assistantClient,
@@ -52,6 +58,7 @@ const chatThreadId = uuidv4();
 // Флаг для ленивой инициализации
 let isInitialized = false;
 let isRegistered = false;
+let activeRequestId: string | undefined;
 
 const registerThread = () => {
 	if (isRegistered) return;
@@ -133,6 +140,52 @@ const normalizeRecord = (value: unknown): Record<string, any> => {
 	return value as Record<string, any>;
 };
 
+const normalizeParameters = (value: unknown): Array<Record<string, any>> => {
+	if (!Array.isArray(value)) return [];
+	return value.filter(
+		(item): item is Record<string, any> =>
+			Boolean(item) && typeof item === "object" && !Array.isArray(item),
+	);
+};
+
+const openRequestPage = (model: { id: string }) => {
+	if (typeof window === "undefined" || !model.id) return;
+
+	const nextPath = `/request/${model.id}`;
+	const nextUrl = `${nextPath}${window.location.search}${window.location.hash}`;
+
+	setCenterView(null);
+	const event = new CustomEvent("request:open", {
+		cancelable: true,
+		detail: { requestId: model.id, model, path: nextUrl },
+	});
+	const handledBySsrShell = !window.dispatchEvent(event);
+
+	if (!handledBySsrShell && window.location.pathname !== nextPath) {
+		window.history.pushState({ requestId: model.id }, "", nextUrl);
+		window.dispatchEvent(new PopStateEvent("popstate"));
+	}
+	window.dispatchEvent(
+		new CustomEvent("request:model-updated", { detail: model }),
+	);
+};
+
+const requestModelToolPayload = (model: RequestModel) => {
+	const collectedFields = Object.fromEntries(
+		Object.entries(model.fields)
+			.filter(([, field]) => field.value !== undefined)
+			.map(([key, field]) => [key, field.value]),
+	);
+
+	return {
+		model,
+		collectedFields,
+		remainingRequired: model.remainingRequired ?? model.missingRequired ?? [],
+		remainingDelta: model.remainingDelta ?? [],
+		completion: model.completion,
+	};
+};
+
 const getUploadedChatFilesTool: ExecutableTool = {
 	name: "getUploadedChatFiles",
 	description:
@@ -157,10 +210,48 @@ const getUploadedChatFilesTool: ExecutableTool = {
 	},
 };
 
+const getCncRequestRequirementsTool: ExecutableTool = {
+	name: "getCncRequestRequirements",
+	description:
+		"Get request requirement profiles from ms-requests JSON store. Use this to know canonical field keys and remaining questions.",
+	parameters: {
+		type: "object",
+		properties: {
+			processType: {
+				type: "string",
+				description:
+					"Optional process profile: cnc_machining, 3d_printing, laser_cutting, plastic_cutting or generic",
+			},
+		},
+		required: [],
+	},
+	execute: async (
+		rawArgs:
+			| {
+					processType?: RequestProcessType;
+			  }
+			| string
+			| undefined,
+	) => {
+		const args = parseToolArgs(rawArgs);
+		if (args.processType) {
+			const profile = await requestsClient.getRequestRequirementProfile(
+				args.processType,
+			);
+			return { ok: true, profile };
+		}
+
+		const profiles = (await requestsClient.listRequestRequirementProfiles()) as
+			| RequestRequirementProfile[]
+			| undefined;
+		return { ok: true, profiles: profiles ?? [] };
+	},
+};
+
 const createCncRequestTool: ExecutableTool = {
 	name: "createCncRequest",
 	description:
-		"Create a CNC machining request in ms-requests from collected chat data",
+		"Create a manufacturing request draft in ms-requests from collected chat data. Send collected values as fields map keyed by requirement profile keys.",
 	parameters: {
 		type: "object",
 		properties: {
@@ -172,7 +263,47 @@ const createCncRequestTool: ExecutableTool = {
 			fields: {
 				type: "object",
 				description:
-					"Structured CNC request fields such as material, quantity, tolerances, deadline and contact",
+					"Flat map of collected values. Keys must be canonical request requirement keys, for example part_description, material, quantity, dimensions, tolerances, color, infill.",
+			},
+			parameters: {
+				type: "array",
+				description:
+					"Alternative dynamic parameter list. Use when you have named fields with metadata such as label, type, unit, required or confidence.",
+				items: {
+					type: "object",
+					properties: {
+						key: { type: "string" },
+						value: {},
+						label: { type: "string" },
+						type: { type: "string" },
+						required: { type: "boolean" },
+						group: { type: "string" },
+						unit: { type: "string" },
+						confidence: { type: "number" },
+					},
+					required: ["key", "value"],
+				},
+			},
+			fieldDefinitions: {
+				type: "array",
+				description:
+					"Optional dynamic field definitions for corporate-specific requirements.",
+				items: {
+					type: "object",
+				},
+			},
+			processType: {
+				type: "string",
+				description:
+					"Request process profile. Use 3d_printing for 3D/FDM/SLA/STL/ABS print requests, cnc_machining for milling/turning/CNC, laser_cutting/plastic_cutting for cutting, or generic when unclear.",
+			},
+			title: {
+				type: "string",
+				description: "Short human readable request title",
+			},
+			summary: {
+				type: "string",
+				description: "Compact request summary visible on the request page",
 			},
 			files: {
 				type: "object",
@@ -189,7 +320,12 @@ const createCncRequestTool: ExecutableTool = {
 		rawArgs:
 			| {
 					status?: string;
+					processType?: any;
+					title?: string;
+					summary?: string;
 					fields?: Record<string, any>;
+					parameters?: Array<Record<string, any>>;
+					fieldDefinitions?: Array<Record<string, any>>;
 					files?: Record<string, string>;
 					comment?: string;
 			  }
@@ -197,23 +333,32 @@ const createCncRequestTool: ExecutableTool = {
 	) => {
 		const args = parseToolArgs(rawArgs);
 		const fields = normalizeRecord(args.fields);
+		const parameters = normalizeParameters(args.parameters);
 		const files = Object.fromEntries(
 			Object.entries(normalizeRecord(args.files)).filter(
 				([, value]) => typeof value === "string",
 			),
 		) as Record<string, string>;
 
-		const requestId = await requestsClient.createRequest({
-			source: "assistant:cnc-request",
-			status: args.status || "new",
+		const model = await requestsClient.createRequestModel({
+			source: "assistant:request",
+			status: args.status || "draft",
+			processType: args.processType,
+			title: args.title,
+			summary: args.summary,
 			fields,
+			parameters: parameters as any,
+			fieldDefinitions: normalizeParameters(args.fieldDefinitions) as any,
 			files,
 		});
+		activeRequestId = model.id;
+		openRequestPage(model);
 
 		return {
 			ok: true,
-			requestId,
-			status: args.status || "new",
+			requestId: model.id,
+			status: model.status,
+			...requestModelToolPayload(model),
 			comment: args.comment,
 		};
 	},
@@ -222,13 +367,14 @@ const createCncRequestTool: ExecutableTool = {
 const patchCncRequestTool: ExecutableTool = {
 	name: "patchCncRequest",
 	description:
-		"Patch an existing CNC request fields, files or status in ms-requests",
+		"Patch an existing manufacturing request with a fields map, files, status or request-specific field definitions. Returns enriched model and remaining delta.",
 	parameters: {
 		type: "object",
 		properties: {
 			requestId: {
 				type: "string",
-				description: "Existing request ID",
+				description:
+					"Existing request ID. May be omitted when patching the active request created in this chat.",
 			},
 			status: {
 				type: "string",
@@ -236,7 +382,32 @@ const patchCncRequestTool: ExecutableTool = {
 			},
 			fields: {
 				type: "object",
-				description: "Fields to merge into the existing request",
+				description:
+					"Flat map of newly collected values keyed by canonical request requirement keys",
+			},
+			parameters: {
+				type: "array",
+				description:
+					"Named dynamic parameters to merge into the server-side request model",
+				items: { type: "object" },
+			},
+			fieldDefinitions: {
+				type: "array",
+				description:
+					"Dynamic field definitions to add or update for this request",
+				items: { type: "object" },
+			},
+			processType: {
+				type: "string",
+				description: "Optional process profile override",
+			},
+			title: {
+				type: "string",
+				description: "Optional request title",
+			},
+			summary: {
+				type: "string",
+				description: "Optional request summary",
 			},
 			files: {
 				type: "object",
@@ -247,22 +418,31 @@ const patchCncRequestTool: ExecutableTool = {
 				description: "Short processing history comment",
 			},
 		},
-		required: ["requestId"],
+		required: [],
 	},
 	execute: async (
 		rawArgs:
 			| {
 					requestId?: string;
 					status?: string;
+					processType?: any;
+					title?: string;
+					summary?: string;
 					fields?: Record<string, any>;
+					parameters?: Array<Record<string, any>>;
+					fieldDefinitions?: Array<Record<string, any>>;
 					files?: Record<string, string>;
 					comment?: string;
 			  }
 			| string,
 	) => {
 		const args = parseToolArgs(rawArgs);
-		if (!args.requestId) {
-			return { ok: false, error: "requestId is required" };
+		const requestId = args.requestId || activeRequestId;
+		if (!requestId) {
+			return {
+				ok: false,
+				error: "requestId is required because no active request exists",
+			};
 		}
 
 		const files = Object.fromEntries(
@@ -271,18 +451,25 @@ const patchCncRequestTool: ExecutableTool = {
 			),
 		) as Record<string, string>;
 
-		await requestsClient.patchRequest(
-			args.requestId,
+		const model = await requestsClient.applyRequestUpdate(
+			requestId,
 			{
 				status: args.status,
+				processType: args.processType,
+				title: args.title,
+				summary: args.summary,
 				fields: normalizeRecord(args.fields),
+				parameters: normalizeParameters(args.parameters) as any,
+				fieldDefinitions: normalizeParameters(args.fieldDefinitions) as any,
 				files,
 			},
 			"assistant",
 			args.comment || "updated by assistant",
 		);
+		activeRequestId = model.id;
+		openRequestPage(model);
 
-		return { ok: true, requestId: args.requestId };
+		return { ok: true, requestId, ...requestModelToolPayload(model) };
 	},
 };
 
@@ -302,11 +489,20 @@ const getCncRequestTool: ExecutableTool = {
 	execute: async (rawArgs: { requestId?: string } | string) => {
 		const args = parseToolArgs(rawArgs);
 		if (!args.requestId) {
-			return { ok: false, error: "requestId is required" };
+			if (!activeRequestId) {
+				return { ok: false, error: "requestId is required" };
+			}
+			args.requestId = activeRequestId;
 		}
 
-		const request = await requestsClient.getRequest(args.requestId);
-		return { ok: true, request };
+		const model = await requestsClient.getRequestModel(args.requestId);
+		if (model) {
+			activeRequestId = model.id;
+			openRequestPage(model);
+		}
+		return model
+			? { ok: true, request: model, ...requestModelToolPayload(model) }
+			: { ok: true, request: model };
 	},
 };
 
@@ -502,6 +698,10 @@ const execCommandTool: ExecutableTool = {
 
 chatStore.registerFunction("weather", weatherTool);
 chatStore.registerFunction("getUploadedChatFiles", getUploadedChatFilesTool);
+chatStore.registerFunction(
+	"getCncRequestRequirements",
+	getCncRequestRequirementsTool,
+);
 chatStore.registerFunction("createCncRequest", createCncRequestTool);
 chatStore.registerFunction("patchCncRequest", patchCncRequestTool);
 chatStore.registerFunction("getCncRequest", getCncRequestTool);

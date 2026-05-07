@@ -27,6 +27,17 @@ const REQUIRED_TEMPORARY_PERMISSIONS = [
   "files/update(w)",
   "files/get(r)",
   "files/getchunks(r)",
+  "requests/createrequest(w)",
+  "requests/patchrequest(w)",
+  "requests/getrequest(r)",
+  "requests/createrequestmodel(w)",
+  "requests/applyrequestupdate(w)",
+  "requests/getrequestmodel(r)",
+  "requests/getrequestrequirementprofile(r)",
+  "requests/listrequestrequirementprofiles(r)",
+  "dag/startexecution(w)",
+  "dag/createexecution(w)",
+  "dag/listworkflows(r)",
 ];
 
 type JwtPayload = {

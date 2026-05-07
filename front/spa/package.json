@@ -25,8 +25,8 @@
     "front-core": "workspace:*",
     "lucide-react": "^1.8.0",
     "pixi.js": "^8.15.0",
-    "react": "latest",
-    "react-dom": "latest",
+    "react": "19.2.5",
+    "react-dom": "19.2.5",
     "react-router-dom": "latest",
     "sonner": "2.0.7",
     "vaul": "latest"

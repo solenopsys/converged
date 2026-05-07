@@ -13,8 +13,8 @@
     "build:mf": "bun run src/tools/build-microfrontends.ts"
   },
   "dependencies": {
-    "react": "latest",
-    "react-dom": "latest",
+    "react": "19.2.5",
+    "react-dom": "19.2.5",
     "react-router-dom": "latest",
     "elysia": "latest",
     "@elysiajs/static": "latest",

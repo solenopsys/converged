@@ -12,8 +12,8 @@
     "build:mf": "bun run ../ssr/src/tools/build-microfrontends.ts"
   },
   "dependencies": {
-    "react": "latest",
-    "react-dom": "latest",
+    "react": "19.2.5",
+    "react-dom": "19.2.5",
     "react-router-dom": "latest",
     "elysia": "latest",
     "@elysiajs/static": "latest",
@@ -22,9 +22,11 @@
     "effector-react": "latest",
     "front-core": "workspace:*",
     "front-ssr": "workspace:*",
+    "g-requests": "workspace:*",
     "md-tools": "workspace:*",
     "g-markdown": "workspace:*",
-    "g-rt-gates": "workspace:*"
+    "g-rt-gates": "workspace:*",
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "@types/react": "latest",

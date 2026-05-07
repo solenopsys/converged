@@ -1,6 +1,7 @@
 import { renderToReadableStream } from "react-dom/server";
 import { resolve } from "path";
 import { createMarkdownServiceClient } from "g-markdown";
+import { createRequestsServiceClient, type RequestModel } from "g-requests";
 import { buildWorkspaceHeaders } from "front-core/workspace-domain";
 import createLandingPlugin from "front-ssr/plugin";
 import type { SeoConfig } from "front-ssr/plugin";
@@ -62,6 +63,7 @@ const DEFAULT_LANDING_CONF_ID = `${DEFAULT_LOCALE}/${LANDING_CONF_SUFFIX}`;
 declare global {
   var __LANDING_SSR_DATA__: Record<string, LandingPrefetchPayload> | undefined;
   var __DOCS_SSR_DATA__: Record<string, DocsPrefetchPayload> | undefined;
+  var __REQUEST_SSR_DATA__: Record<string, RequestModel> | undefined;
 }
 
 function parseJson(raw: string | undefined): unknown {
@@ -145,6 +147,12 @@ function stripLocalePrefix(path: string): string {
   if (!locale) return path;
   const rest = path.slice(locale.length + 1);
   return rest.length > 0 ? rest : "/";
+}
+
+function extractRequestId(path: string): string | null {
+	const routePath = stripLocalePrefix(path);
+	const match = routePath.match(/^\/request\/([^/?#]+)/);
+	return match?.[1] ? decodeURIComponent(match[1]) : null;
 }
 
 function withLocalePrefix(path: string, locale: SupportedLocale): string {
@@ -303,6 +311,18 @@ async function prefetchDocsPayload(
   }
 }
 
+async function prefetchRequestModel(
+	requestId: string,
+	baseUrl: string,
+	workspace?: string,
+): Promise<RequestModel | null> {
+	const servicesBaseUrl = `${normalizeBaseUrl(baseUrl)}/services`;
+	const requestsClient = createRequestsServiceClient({
+		baseUrl: servicesBaseUrl,
+	});
+	return (await requestsClient.getRequestModel(requestId)) ?? null;
+}
+
 export default function landingPlugin(
   config: { publicDir?: string; production?: boolean } = {},
 ) {
@@ -378,11 +398,13 @@ export default function landingPlugin(
       };
       let landingData: Record<string, LandingPrefetchPayload> = {};
       let docsData: Record<string, DocsPrefetchPayload> = {};
+      let requestData: Record<string, RequestModel> = {};
       const routePath = stripLocalePrefix(url);
+      const requestId = extractRequestId(url);
       const isConsoleRoute =
         routePath === "/console" || routePath.startsWith("/console/");
 
-      if (!isConsoleRoute) {
+      if (!isConsoleRoute && !requestId) {
         try {
           const preloaded = await prefetchLandingPayload(
             landingConfId,
@@ -392,6 +414,17 @@ export default function landingPlugin(
           landingData = { [landingConfId]: preloaded };
         } catch (error) {
           console.error("[landing] SSR prefetch failed", error);
+        }
+      }
+
+      if (!isConsoleRoute && requestId) {
+        try {
+          const model = await prefetchRequestModel(requestId, baseUrl, workspace);
+          if (model) {
+            requestData = { [requestId]: model };
+          }
+        } catch (error) {
+          console.error("[landing] SSR request prefetch failed", error);
         }
       }
 
@@ -415,8 +448,10 @@ export default function landingPlugin(
 
       const previousSsrData = globalThis.__LANDING_SSR_DATA__;
       const previousDocsSsrData = globalThis.__DOCS_SSR_DATA__;
+      const previousRequestSsrData = globalThis.__REQUEST_SSR_DATA__;
       globalThis.__LANDING_SSR_DATA__ = landingData;
       globalThis.__DOCS_SSR_DATA__ = docsData;
+      globalThis.__REQUEST_SSR_DATA__ = requestData;
 
       try {
         const stream = await renderToReadableStream(
@@ -428,6 +463,7 @@ export default function landingPlugin(
               mfEnv: localizedMfEnv,
               landing: landingData,
               docs: docsData,
+              request: requestData,
               workspace,
             }}
           >
@@ -447,6 +483,7 @@ export default function landingPlugin(
       } finally {
         globalThis.__LANDING_SSR_DATA__ = previousSsrData;
         globalThis.__DOCS_SSR_DATA__ = previousDocsSsrData;
+        globalThis.__REQUEST_SSR_DATA__ = previousRequestSsrData;
       }
     },
   });

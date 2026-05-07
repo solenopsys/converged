@@ -1,0 +1,12 @@
+{
+	"workflowName": "file-analysis",
+	"params": {
+		"fileIds": ["replace-with-ms-files-id"],
+		"options": {
+			"target": "cnc",
+			"convertPreview": true,
+			"includeGcode": false,
+			"maxArchiveDepth": 2
+		}
+	}
+}
