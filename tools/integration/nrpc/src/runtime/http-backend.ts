@@ -584,6 +584,7 @@ class ElysiaBackend {
 
 		// Сохраняем ссылку на serviceInstance для использования в ReadableStream
 		const serviceInstance = this.serviceInstance;
+		const ensureStoresForContext = () => this.ensureStoresForContext();
 
 		const serviceName = this.config.metadata.serviceName;
 
@@ -598,7 +599,7 @@ class ElysiaBackend {
 				}, 15_000);
 
 				const stream = async () => {
-					await this.ensureStoresForContext();
+					await ensureStoresForContext();
 					const asyncIterable = serviceInstance[methodName](...args);
 
 					if (

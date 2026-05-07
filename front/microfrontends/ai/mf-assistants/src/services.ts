@@ -1,32 +1,53 @@
-import { createRuntimeChatServiceClient } from "g-rt-chat";
+import { services, setStoreWorker } from "files-state";
 import { createAssistantServiceClient } from "g-assistant";
-import { threadsClient } from "g-threads";
-import { createStoreServiceClient } from "g-store";
 import { createFilesServiceClient } from "g-files";
-import { services, setStoreWorker } from 'files-state';
+import { createRequestsServiceClient } from "g-requests";
+import { createRuntimeChatServiceClient } from "g-rt-chat";
+import { createRuntimeDagServiceClient } from "g-rt-dag";
+import { createStoreServiceClient } from "g-store";
+import { threadsClient } from "g-threads";
 
 const chatClient = createRuntimeChatServiceClient({
-  baseUrl: '/runtime',
+	baseUrl: "/runtime",
+});
+
+const dagClient = createRuntimeDagServiceClient({
+	baseUrl: "/runtime",
 });
 
 const assistantClient = createAssistantServiceClient({
-  baseUrl: '/services',
+	baseUrl: "/services",
+});
+
+const requestsClient = createRequestsServiceClient({
+	baseUrl: "/services",
 });
 
 const storeClient = createStoreServiceClient({
-  baseUrl: '/services',
+	baseUrl: "/services",
 });
 
 const filesClient = createFilesServiceClient({
-  baseUrl: '/services',
+	baseUrl: "/services",
 });
 
 services.setStoreService(storeClient);
 services.setFilesService(filesClient);
 
 // Настройка worker с правильным baseUrl
-const workerUrl = new URL('../../../libraries/store-workers/dist/store.worker.js', import.meta.url);
-const worker = new Worker(workerUrl, { type: 'module' });
-setStoreWorker(worker, { baseUrl: '/services/store' });
+const workerUrl = new URL(
+	"../../../libraries/store-workers/dist/store.worker.js",
+	import.meta.url,
+);
+const worker = new Worker(workerUrl, { type: "module" });
+setStoreWorker(worker, { baseUrl: "/services/store" });
 
-export {chatClient, assistantClient, threadsClient, storeClient, filesClient};
+export {
+	assistantClient,
+	chatClient,
+	dagClient,
+	filesClient,
+	requestsClient,
+	storeClient,
+	threadsClient,
+};

@@ -6,7 +6,7 @@ import {
 } from "front-core/landing-common/i18n";
 
 const MF_NAME = "mf-landing";
-const CONFIG_SUFFIX = "product/landing/4ir-laiding.json";
+const CONFIG_SUFFIX = "product/landing/cnc-landing.json";
 const DEFAULT_TITLE = "4ir";
 
 function resolveRuntimeLocale(): SupportedLocale {

@@ -52,10 +52,10 @@ type RuntimeMfEnv = {
   "mf-landing": { landingConfId: string; title?: string };
 };
 
-const LANDING_CONF_SUFFIX = "product/landing/4ir-laiding.json";
-const DOCS_INDEX_SUFFIX = "club/index.json";
+const LANDING_CONF_SUFFIX = "product/landing/cnc-landing.json";
+const DOCS_INDEX_SUFFIX = "product/docs/index.json";
 const DEFAULT_DOCS: DocsInitItem[] = [
-  { name: "club", id: `${DEFAULT_LOCALE}/${DOCS_INDEX_SUFFIX}` },
+  { name: "cnc", id: `${DEFAULT_LOCALE}/${DOCS_INDEX_SUFFIX}` },
 ];
 const DEFAULT_LANDING_CONF_ID = `${DEFAULT_LOCALE}/${LANDING_CONF_SUFFIX}`;
 
@@ -170,8 +170,8 @@ function localizeDocsConfig(
 
 function resolveDocPath(slug: string, locale: SupportedLocale): string {
   const normalizedSlug = slug.trim();
-  if (!normalizedSlug) return `${locale}/club/intro.md`;
-  if (normalizedSlug === "club") return `${locale}/club/intro.md`;
+  if (!normalizedSlug) return `${locale}/product/docs/intro.md`;
+  if (normalizedSlug === "cnc") return `${locale}/product/docs/intro.md`;
   if (normalizedSlug.includes("/"))
     return withLocalePrefix(normalizedSlug, locale);
   return `${locale}/${normalizedSlug}.md`;

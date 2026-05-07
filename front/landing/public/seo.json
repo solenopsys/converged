@@ -1,15 +1,15 @@
 {
-  "title": "Converged AI",
-  "description": "AI assistant and club ecosystem from 4ir.club. Ask anything about plans, onboarding, and capabilities.",
+  "title": "Converged CNC",
+  "description": "Precision CNC machining services with guided request intake for drawings, CAD files, materials and production details.",
   "keywords": [
-    "Converged AI",
-    "4ir.club",
-    "AI assistant",
-    "AI portal",
-    "AI analytics",
-    "club",
-    "self-hosted"
+    "Converged CNC",
+    "CNC machining",
+    "CNC milling",
+    "CNC turning",
+    "machining quote",
+    "CAD file upload",
+    "manufacturing request"
   ],
-  "canonical": "https://4ir.club",
+  "canonical": "/",
   "ogImage": "/og-cover.png"
 }

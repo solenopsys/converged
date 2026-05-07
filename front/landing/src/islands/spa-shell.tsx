@@ -20,8 +20,8 @@ function resolveRuntimeLocale(): string {
 
 function buildDefaultMfEnv(locale: string): Record<string, unknown> {
   return {
-    "mf-docs": { docs: [{ name: "club", id: `${locale}/club/index.json` }] },
-    "mf-landing": { landingConfId: `${locale}/product/landing/4ir-laiding.json`, title: "4ir" },
+    "mf-docs": { docs: [{ name: "cnc", id: `${locale}/product/docs/index.json` }] },
+    "mf-landing": { landingConfId: `${locale}/product/landing/cnc-landing.json`, title: "Converged CNC" },
     "mf-charts": { userId: "guest", title: "Chats" },
     "mf-community": { userId: "guest", title: "Community" },
     "mf-threads": { threadId: "public-chat", threadIds: ["public-chat"], title: "Threads" },

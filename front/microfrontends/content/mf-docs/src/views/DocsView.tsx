@@ -28,7 +28,7 @@ function readSsrData(indexPath: string): RenderSection[] | null {
 
 export default function DocsView({ indexPath, anchor }: { indexPath?: string; anchor?: string }) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const resolvedIndexPath = indexPath ?? getDocsSources()[0]?.id ?? `${DEFAULT_LOCALE}/club/index.json`;
+  const resolvedIndexPath = indexPath ?? getDocsSources()[0]?.id ?? `${DEFAULT_LOCALE}/product/docs/index.json`;
 
   const ssrSections = readSsrData(resolvedIndexPath);
   const [sections, setSections] = useState<RenderSection[]>(ssrSections ?? []);
@@ -87,7 +87,7 @@ export default function DocsView({ indexPath, anchor }: { indexPath?: string; an
 
   useEffect(() => {
     if (typeof document === "undefined" || loading) return;
-    document.dispatchEvent(new CustomEvent("club:docs:sections-changed"));
+    document.dispatchEvent(new CustomEvent("cnc:docs:sections-changed"));
   }, [loading, sortedItems.length, resolvedIndexPath]);
 
   return (

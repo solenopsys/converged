@@ -1,137 +1,161 @@
-import { existsSync, readdirSync } from "fs";
-import { resolve, sep } from "path";
+import { existsSync, readdirSync } from "node:fs";
+import { resolve, sep } from "node:path";
 
 function resolveWithExtensions(basePath: string): string | null {
-  const candidates = [
-    basePath,
-    `${basePath}.ts`,
-    `${basePath}.tsx`,
-    `${basePath}.js`,
-    `${basePath}.jsx`,
-    `${basePath}.mjs`,
-    `${basePath}.cjs`,
-    `${basePath}.json`,
-    resolve(basePath, "index.ts"),
-    resolve(basePath, "index.tsx"),
-    resolve(basePath, "index.js"),
-    resolve(basePath, "index.jsx"),
-  ];
-  for (const candidate of candidates) {
-    if (existsSync(candidate)) return candidate;
-  }
-  return null;
+	const candidates = [
+		basePath,
+		`${basePath}.ts`,
+		`${basePath}.tsx`,
+		`${basePath}.js`,
+		`${basePath}.jsx`,
+		`${basePath}.mjs`,
+		`${basePath}.cjs`,
+		`${basePath}.json`,
+		resolve(basePath, "index.ts"),
+		resolve(basePath, "index.tsx"),
+		resolve(basePath, "index.js"),
+		resolve(basePath, "index.jsx"),
+	];
+	for (const candidate of candidates) {
+		if (existsSync(candidate)) return candidate;
+	}
+	return null;
 }
 
-function resolveWorkspaceImport(specifier: string, root: string): string | null {
-  const [base, ...restParts] = specifier.split("/");
-  const rest = restParts.join("/");
+function resolveWorkspaceImport(
+	specifier: string,
+	root: string,
+): string | null {
+	const [base, ...restParts] = specifier.split("/");
+	const rest = restParts.join("/");
 
-  if (base.startsWith("g-")) {
-    const baseDir = resolve(root, "tools/integration/generated", base, "src");
-    const target = rest.length > 0 ? resolve(baseDir, rest) : resolve(baseDir, "index");
-    return resolveWithExtensions(target);
-  }
+	if (base.startsWith("g-")) {
+		const baseDir = resolve(root, "tools/integration/generated", base, "src");
+		const target =
+			rest.length > 0 ? resolve(baseDir, rest) : resolve(baseDir, "index");
+		return resolveWithExtensions(target);
+	}
 
-  if (base === "nrpc") {
-    const baseDir = resolve(root, "tools/integration/nrpc/src");
-    const target = rest.length > 0 ? resolve(baseDir, rest) : resolve(baseDir, "index");
-    return resolveWithExtensions(target);
-  }
+	if (base === "nrpc") {
+		const baseDir = resolve(root, "tools/integration/nrpc/src");
+		const target =
+			rest.length > 0 ? resolve(baseDir, rest) : resolve(baseDir, "client");
+		return resolveWithExtensions(target);
+	}
 
-  if (base === "assistant-state" || base === "files-state" || base === "md-tools") {
-    const baseDir = resolve(root, "front/libraries", base, "src");
-    const target = rest.length > 0 ? resolve(baseDir, rest) : resolve(baseDir, "index");
-    return resolveWithExtensions(target);
-  }
+	if (
+		base === "assistant-state" ||
+		base === "files-state" ||
+		base === "md-tools"
+	) {
+		const baseDir = resolve(root, "front/libraries", base, "src");
+		const target =
+			rest.length > 0 ? resolve(baseDir, rest) : resolve(baseDir, "index");
+		return resolveWithExtensions(target);
+	}
 
-  return null;
+	return null;
 }
 
 function resolveIntegrationTypesImport(
-  specifier: string,
-  root: string,
+	specifier: string,
+	root: string,
 ): string | null {
-  const marker = "integration/types/";
-  const idx = specifier.indexOf(marker);
-  if (idx === -1) return null;
-  const rest = specifier.slice(idx + marker.length);
-  if (!rest) return null;
-  const baseDir = resolve(root, "tools/integration/types");
-  const target = resolve(baseDir, rest);
-  return resolveWithExtensions(target);
+	const marker = "integration/types/";
+	const idx = specifier.indexOf(marker);
+	if (idx === -1) return null;
+	const rest = specifier.slice(idx + marker.length);
+	if (!rest) return null;
+	const baseDir = resolve(root, "tools/integration/types");
+	const target = resolve(baseDir, rest);
+	return resolveWithExtensions(target);
 }
 
 function resolveMicrofrontendAlias(
-  specifier: string,
-  importer: string,
-  root: string,
+	specifier: string,
+	importer: string,
+	root: string,
 ): string | null {
-  if (!specifier.startsWith("src/")) return null;
-  const marker = `${sep}microfrontends${sep}`;
-  const idx = importer.indexOf(marker);
-  if (idx === -1) return null;
-  const rest = importer.slice(idx + marker.length).split(sep).filter(Boolean);
-  const mfName = rest.find((segment) => segment.startsWith("mf-"));
-  if (!mfName) return null;
-  const mfRoot = resolveMicrofrontendRoot(root, mfName);
-  if (!mfRoot) return null;
-  const target = resolve(mfRoot, specifier);
-  return resolveWithExtensions(target);
+	if (!specifier.startsWith("src/")) return null;
+	const marker = `${sep}microfrontends${sep}`;
+	const idx = importer.indexOf(marker);
+	if (idx === -1) return null;
+	const rest = importer
+		.slice(idx + marker.length)
+		.split(sep)
+		.filter(Boolean);
+	const mfName = rest.find((segment) => segment.startsWith("mf-"));
+	if (!mfName) return null;
+	const mfRoot = resolveMicrofrontendRoot(root, mfName);
+	if (!mfRoot) return null;
+	const target = resolve(mfRoot, specifier);
+	return resolveWithExtensions(target);
 }
 
 function resolveMicrofrontendRoot(root: string, mfName: string): string | null {
-  const mfBase = resolve(root, "front/microfrontends");
-  const direct = resolve(mfBase, mfName);
-  if (existsSync(direct)) return direct;
-  if (!existsSync(mfBase)) return null;
+	const mfBase = resolve(root, "front/microfrontends");
+	const direct = resolve(mfBase, mfName);
+	if (existsSync(direct)) return direct;
+	if (!existsSync(mfBase)) return null;
 
-  for (const group of readdirSync(mfBase, { withFileTypes: true })) {
-    if (!group.isDirectory()) continue;
-    const candidate = resolve(mfBase, group.name, mfName);
-    if (existsSync(candidate)) return candidate;
-  }
-  return null;
+	for (const group of readdirSync(mfBase, { withFileTypes: true })) {
+		if (!group.isDirectory()) continue;
+		const candidate = resolve(mfBase, group.name, mfName);
+		if (existsSync(candidate)) return candidate;
+	}
+	return null;
 }
 
 export function createWorkspaceResolverPlugin(
-  projectRoot: string,
-  parentProjectRoot?: string,
+	projectRoot: string,
+	parentProjectRoot?: string,
 ) {
-  return {
-    name: "workspace-resolver",
-    setup(builder: any) {
-      builder.onResolve(
-        {
-          filter: /^(g-|nrpc|assistant-state|files-state|md-tools)(\/|$)|^src\/|integration\/types\//,
-        },
-        (args: any) => {
-          if (args.path.startsWith("src/")) {
-            const resolved =
-              resolveMicrofrontendAlias(args.path, args.importer, projectRoot) ??
-              (parentProjectRoot
-                ? resolveMicrofrontendAlias(args.path, args.importer, parentProjectRoot)
-                : null);
-            if (resolved) return { path: resolved };
-            return;
-          }
+	return {
+		name: "workspace-resolver",
+		setup(builder: any) {
+			builder.onResolve(
+				{
+					filter:
+						/^(g-|nrpc|assistant-state|files-state|md-tools)(\/|$)|^src\/|integration\/types\//,
+				},
+				(args: any) => {
+					if (args.path.startsWith("src/")) {
+						const resolved =
+							resolveMicrofrontendAlias(
+								args.path,
+								args.importer,
+								projectRoot,
+							) ??
+							(parentProjectRoot
+								? resolveMicrofrontendAlias(
+										args.path,
+										args.importer,
+										parentProjectRoot,
+									)
+								: null);
+						if (resolved) return { path: resolved };
+						return;
+					}
 
-          if (args.path.includes("integration/types/")) {
-            const resolved =
-              resolveIntegrationTypesImport(args.path, projectRoot) ??
-              (parentProjectRoot
-                ? resolveIntegrationTypesImport(args.path, parentProjectRoot)
-                : null);
-            if (resolved) return { path: resolved };
-            return;
-          }
+					if (args.path.includes("integration/types/")) {
+						const resolved =
+							resolveIntegrationTypesImport(args.path, projectRoot) ??
+							(parentProjectRoot
+								? resolveIntegrationTypesImport(args.path, parentProjectRoot)
+								: null);
+						if (resolved) return { path: resolved };
+						return;
+					}
 
-          const resolved =
-            resolveWorkspaceImport(args.path, projectRoot) ??
-            (parentProjectRoot ? resolveWorkspaceImport(args.path, parentProjectRoot) : null);
-          if (resolved) return { path: resolved };
-          return;
-        },
-      );
-    },
-  };
+					const resolved =
+						resolveWorkspaceImport(args.path, projectRoot) ??
+						(parentProjectRoot
+							? resolveWorkspaceImport(args.path, parentProjectRoot)
+							: null);
+					if (resolved) return { path: resolved };
+					return;
+				},
+			);
+		},
+	};
 }

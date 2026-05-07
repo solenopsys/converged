@@ -672,8 +672,8 @@ export function SsrShellLayout({
             <section id="ssr-right-rail-chat">
               <div id="slot-panel-chat">
                 <div className="ssr-right-rail-empty">
-                  <h3>Ask us anything</h3>
-                  <p>Loading AI assistant...</p>
+                  <h3>CNC request assistant</h3>
+                  <p>Loading request intake...</p>
                 </div>
               </div>
             </section>
@@ -684,7 +684,7 @@ export function SsrShellLayout({
           </aside>
           <div id="ssr-chat-dock" data-overlap="0">
             <form id="ssr-chat-form">
-              <textarea id="ssr-chat-input" rows={1} placeholder="Напишите сообщение..." autoComplete="off" />
+              <textarea id="ssr-chat-input" rows={1} placeholder="Describe your CNC request..." autoComplete="off" />
               <div id="ssr-chat-actions">
                 <button id="ssr-chat-attach" type="button" aria-label="Attach file">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">

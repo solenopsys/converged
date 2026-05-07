@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import LandingView from "../../../../microfrontends/content/mf-landing/src/views/LandingView";
 import { DEFAULT_LOCALE, extractLocaleFromPath, isSupportedLocale, type SupportedLocale } from "../i18n";
 
-const LANDING_CONF_SUFFIX = "product/landing/4ir-laiding.json";
+const LANDING_CONF_SUFFIX = "product/landing/cnc-landing.json";
 
 function withLocalePrefix(path: string, locale: SupportedLocale): string {
   const normalized = path.trim().replace(/^\/+/, "");

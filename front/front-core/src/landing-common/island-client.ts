@@ -51,63 +51,30 @@ type QuickChatPrompt =
 
 const QUICK_CHAT_PROMPTS = [
 	{
-		label: "What is this site about?",
-		message: "What is this site about and what is 4IR Club?",
-		contextName: "club",
-		icon: "BadgeHelp",
-	},
-	{
-		label: "I need CNC or 3D printing",
-		message: "I need CNC machining or 3D printing. How can I submit a request?",
-		contextName: "club",
+		label: "Start CNC request",
+		message: "I need CNC machining. Help me create a request.",
+		contextName: "request",
 		icon: "FileText",
 	},
 	{
-		label: "What should I prepare?",
+		label: "What files to upload?",
 		message:
-			"What information should I prepare before sending a manufacturing request?",
-		contextName: "club",
+			"What files and parameters should I prepare for a CNC machining quote?",
+		contextName: "request",
 		icon: "ClipboardList",
 	},
 	{
-		label: "Who is in the club?",
+		label: "I have STEP files",
 		message:
-			"Who participates in 4IR Club: customers, workshops, and suppliers?",
-		contextName: "club",
-		icon: "Users",
-	},
-	{
-		label: "For workshops",
-		message: "How does 4IR Club help CNC and 3D printing workshops?",
-		contextName: "club",
+			"I have STEP files for parts. Start a machining request and tell me what else is needed.",
+		contextName: "request",
 		icon: "Factory",
 	},
 	{
-		label: "For suppliers",
-		message:
-			"How does 4IR Club help equipment, spare parts, and material suppliers?",
-		contextName: "club",
-		icon: "Truck",
-	},
-	{
-		label: "How does an order work?",
-		message:
-			"How does a request move from intake to calculation, production, quality control, and shipment?",
-		contextName: "club",
-		icon: "Workflow",
-	},
-	{
-		label: "What is AI Portal?",
-		message:
-			"What are Converged and AI Portal, and why would a company use them?",
-		contextName: "club",
-		icon: "Sparkles",
-	},
-	{
-		label: "How can I join?",
-		message: "How can a customer, workshop, or supplier join 4IR Club?",
-		contextName: "club",
-		icon: "UserPlus",
+		label: "Ask missing questions",
+		message: "Ask me the missing questions for a CNC machining request.",
+		contextName: "request",
+		icon: "BadgeHelp",
 	},
 ] as const;
 const QUICK_CHAT_ICON: Record<string, string> = {
@@ -1760,6 +1727,9 @@ const LANDING_EVENT_HANDLERS: Record<string, LandingEventHandler> = {
 	"chat.open": ({ message, contextName }) => {
 		void openAiChat(message, { contextName });
 	},
+	"chat.attach": ({ contextName }) => {
+		void openAiChat(undefined, { contextName }).then(() => chatAttachRequested());
+	},
 };
 
 function parseLandingPayload(raw: string | undefined): unknown {
@@ -1881,22 +1851,24 @@ function installChatDock(): void {
 	if (!chatDockBound) {
 		chatDockBound = true;
 
-		const submitMessage = () => {
-			const text = input.value.trim();
-			if (!text) return;
-			input.value = "";
-			void openAiChat(text);
-		};
+			const submitMessage = () => {
+				const text = input.value.trim();
+				if (!text) return;
+				input.value = "";
+				void openAiChat(text, { contextName: "request" });
+			};
 
 		form.addEventListener("submit", (event) => {
 			event.preventDefault();
 			submitMessage();
 		});
 
-		attach?.addEventListener("click", () => {
-			if (shell) shell.dataset.chatFocus = "1";
-			void openAiChat().then(() => chatAttachRequested());
-		});
+			attach?.addEventListener("click", () => {
+				if (shell) shell.dataset.chatFocus = "1";
+				void openAiChat(undefined, { contextName: "request" }).then(() =>
+					chatAttachRequested(),
+				);
+			});
 
 		input.addEventListener("keydown", (event) => {
 			if (event.key === "Enter" && !event.shiftKey) {
@@ -1904,10 +1876,10 @@ function installChatDock(): void {
 				submitMessage();
 			}
 		});
-		input.addEventListener("focus", () => {
-			if (shell) shell.dataset.chatFocus = "1";
-			void openAiChat();
-		});
+			input.addEventListener("focus", () => {
+				if (shell) shell.dataset.chatFocus = "1";
+				void openAiChat(undefined, { contextName: "request" });
+			});
 
 		dock.addEventListener("focusout", () => {
 			window.setTimeout(() => {
@@ -2002,7 +1974,7 @@ function isSsrPublicRoute(pathname: string): boolean {
 	if (!locale) return false;
 
 	const rest = pathname.slice(locale.length + 1) || "/";
-	return rest === "/" || rest === "/club" || rest.startsWith("/docs/");
+	return rest === "/" || rest === "/cnc" || rest.startsWith("/docs/");
 }
 
 function buildLocaleTargetUrl(locale: SupportedLocale): URL {

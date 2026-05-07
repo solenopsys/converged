@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createStructServiceClient } from "g-struct";
+import { Paperclip, SendHorizontal } from "lucide-react";
 import {
   DEFAULT_LOCALE,
   extractLocaleFromPath,
@@ -43,6 +44,28 @@ type ResolvedBlock = {
 type LandingPrefetchPayload = {
   configPath: string;
   blocks: ResolvedBlock[];
+};
+
+type CncHeroRequestData = {
+  badge?: string;
+  brand?: string;
+  nav?: string[];
+  headline?: string;
+  highlight?: string;
+  description?: string;
+  backgroundImage?: string;
+  primaryAction?: string;
+  secondaryAction?: string;
+  request?: {
+    title?: string;
+    description?: string;
+    placeholder?: string;
+    submitLabel?: string;
+    attachLabel?: string;
+    contextName?: string;
+    chips?: string[];
+  };
+  metrics?: Array<{ value: string; label: string }>;
 };
 
 const structClient = createStructServiceClient({ baseUrl: "/services" });
@@ -180,23 +203,33 @@ export default function LandingView({ configPath }: { configPath: string }) {
   }, [configPath, prefetchedBlocks]);
 
   const rendered = useMemo(
-    () => blocks.map((block, index) => renderBlock(block, index, fallbackLocale)),
+    () =>
+      blocks.map((block, index) => {
+        const key = block.id || `block-${index}`;
+        const node = renderBlock(block, index, fallbackLocale);
+        if (isFullWidthBlock(block.type)) return node;
+        return (
+          <div key={`wrap-${key}`} className="w-full max-w-6xl px-4">
+            {node}
+          </div>
+        );
+      }),
     [blocks, fallbackLocale],
   );
 
   return (
     <div className="h-full w-full overflow-y-auto overflow-x-hidden">
-      <main className="mx-auto px-4">
-        <div className="mx-auto flex max-w-6xl flex-col items-center">
+      <main className="w-full">
+        <div className="flex w-full flex-col items-center">
           {error ? (
-            <div className="w-full py-6">
+            <div className="w-full max-w-6xl px-4 py-6">
               <h2 className="mb-3 text-2xl font-semibold text-red-400">Error</h2>
               <p className="text-slate-300">{error}</p>
             </div>
           ) : null}
 
           {!error && loading ? (
-            <div className="w-full py-6 text-slate-300">Loading...</div>
+            <div className="w-full max-w-6xl px-4 py-6 text-slate-300">Loading...</div>
           ) : null}
 
           {!error && !loading ? rendered : null}
@@ -204,6 +237,10 @@ export default function LandingView({ configPath }: { configPath: string }) {
       </main>
     </div>
   );
+}
+
+function isFullWidthBlock(type: string): boolean {
+  return type === "cnc-hero-request";
 }
 
 function renderBlock(block: ResolvedBlock, index: number, fallbackLocale: SupportedLocale) {
@@ -215,6 +252,9 @@ function renderBlock(block: ResolvedBlock, index: number, fallbackLocale: Suppor
       const heroMain = block.data.heroMain as any;
       const texts = block.data.texts as any;
       return <HeroMain key={key} {...heroMain} texts={texts} lang={lang} />;
+    }
+    case "cnc-hero-request": {
+      return <CncHeroRequest key={key} data={block.data.intake as CncHeroRequestData} />;
     }
     case "ai-section": {
       const ui = block.data.ui as any;
@@ -300,4 +340,107 @@ function renderBlock(block: ResolvedBlock, index: number, fallbackLocale: Suppor
 
 function toStringOr(value: unknown, fallback: string): string {
   return typeof value === "string" && value.length > 0 ? value : fallback;
+}
+
+function CncHeroRequest({ data }: { data?: CncHeroRequestData }) {
+  const request = data?.request ?? {};
+  const contextName = request.contextName || "request";
+  const placeholder =
+    request.placeholder ||
+    "Describe the part, material, quantity, tolerances, deadline and attach files in chat.";
+  const submitLabel = request.submitLabel || "Start request";
+
+  return (
+    <section id="request" className="w-full py-0">
+      <div
+        className="relative min-h-[620px] overflow-hidden bg-slate-950 text-white shadow-2xl"
+        style={{
+          background: data?.backgroundImage
+            ? `linear-gradient(180deg, rgba(2, 6, 23, 0.62) 0%, rgba(2, 6, 23, 0.74) 42%, rgba(2, 6, 23, 0.96) 100%), url(${data.backgroundImage}) center / cover no-repeat`
+            : "linear-gradient(135deg, #020617 0%, #0f172a 100%)",
+          backgroundPosition: "center",
+          backgroundSize: "cover",
+        }}
+      >
+        <div className="relative z-10 flex min-h-[620px] flex-col px-5 py-5 sm:px-8 lg:px-12">
+          <div className="flex flex-1 flex-col items-center justify-center py-10 text-center">
+            <div className="mx-auto max-w-4xl">
+              {data?.badge ? (
+                <div className="mb-5 inline-flex items-center rounded-full border border-sky-300/25 bg-sky-300/10 px-3 py-1 text-xs font-medium text-sky-100">
+                  {data.badge}
+                </div>
+              ) : null}
+              <h1 className="mx-auto max-w-4xl text-4xl font-semibold leading-tight tracking-normal sm:text-5xl lg:text-6xl">
+                {data?.headline || "Precision CNC machining"}
+                {data?.highlight ? (
+                  <>
+                    <br />
+                    <span className="text-slate-300">{data.highlight}</span>
+                  </>
+                ) : null}
+              </h1>
+              <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
+                {data?.description ||
+                  "Send drawings, STEP/STL/DXF/PDF files or a plain text description. We collect the request details and prepare it for review."}
+              </p>
+            </div>
+
+            <form
+              className="mt-8 w-full max-w-3xl rounded-lg text-left shadow-2xl"
+              style={{
+                backgroundColor: "#ffffff",
+                border: "1px solid rgba(226, 232, 240, 0.95)",
+                boxShadow: "0 28px 80px rgba(2, 6, 23, 0.34)",
+              }}
+              autoComplete="off"
+              data-landing-event="chat.open"
+              data-landing-context-name={contextName}
+              data-landing-message-input='[name="cnc_request_text"]'
+            >
+              <div className="flex items-end gap-3 p-3">
+                <button
+                  type="button"
+                  aria-label="Attach file"
+                  className="mb-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition hover:opacity-80"
+                  style={{ color: "#475569" }}
+                  data-landing-event="chat.attach"
+                  data-landing-context-name={contextName}
+                >
+                  <Paperclip size={18} strokeWidth={1.8} />
+                </button>
+                <textarea
+                  name="cnc_request_text"
+                  aria-label="CNC request details"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  data-lpignore="true"
+                  data-form-type="other"
+                  className="block min-h-14 flex-1 resize-none border-0 px-1 py-3 text-base leading-7 outline-none"
+                  style={{
+                    backgroundColor: "#ffffff",
+                    color: "#0f172a",
+                  }}
+                  placeholder={placeholder}
+                />
+                <button
+                  type="submit"
+                  aria-label={submitLabel}
+                  className="mb-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition hover:opacity-90"
+                  style={{
+                    backgroundColor: "#0f172a",
+                    color: "#ffffff",
+                    boxShadow: "0 8px 18px rgba(15, 23, 42, 0.22)",
+                  }}
+                >
+                  <SendHorizontal size={17} strokeWidth={2} />
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 }

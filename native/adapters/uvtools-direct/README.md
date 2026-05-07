@@ -49,7 +49,7 @@ For maximum flexibility, use `uvtools_adapter_execute_argv()` or `uvtools_adapte
 ## Requirements
 
 - Linux
-- Zig `0.15.x`
+- Zig `0.16.0+`
 - UVtools CLI available as executable in `PATH` (default: `UVtoolsCmd`) or explicit path
 - If you set executable to a `.dll`, `dotnet` runtime must be available
 - `timeout` utility (GNU coreutils) for timeout enforcement

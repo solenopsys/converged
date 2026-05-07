@@ -29,7 +29,7 @@ function withLocalePrefix(path: string, locale: SupportedLocale): string {
 }
 
 function buildDefaultDocs(locale: SupportedLocale): DocsSource[] {
-  return [{ name: "club", id: `${locale}/club/index.json` }];
+  return [{ name: "cnc", id: `${locale}/product/docs/index.json` }];
 }
 
 export function getDocsSources(): DocsSource[] {

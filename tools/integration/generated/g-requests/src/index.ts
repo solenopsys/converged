@@ -27,6 +27,13 @@ export type RequestInput = {
   files?: RequestFiles;
 };
 
+export type RequestPatch = {
+  source?: string;
+  status?: RequestStatus;
+  fields?: RequestFields;
+  files?: RequestFiles;
+};
+
 export type RequestListParams = {
   offset: number;
   limit: number;
@@ -78,6 +85,39 @@ export const metadata = {
         }
       ],
       "returnType": "Request | any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "patchRequest",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "RequestId",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "patch",
+          "type": "RequestPatch",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "comment",
+          "type": "string",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -183,6 +223,11 @@ export const metadata = {
       "definition": "{\n  source?: string;\n  status?: RequestStatus;\n  fields: RequestFields;\n  files?: RequestFiles;\n}"
     },
     {
+      "name": "RequestPatch",
+      "kind": "type",
+      "definition": "{\n  source?: string;\n  status?: RequestStatus;\n  fields?: RequestFields;\n  files?: RequestFiles;\n}"
+    },
+    {
       "name": "RequestListParams",
       "kind": "type",
       "definition": "{\n  offset: number;\n  limit: number;\n  source?: string;\n}"
@@ -205,6 +250,7 @@ export const metadata = {
 export interface RequestsService {
   createRequest(input: RequestInput): Promise<RequestId>;
   getRequest(id: RequestId): Promise<Request | any>;
+  patchRequest(id: RequestId, patch: RequestPatch, actor: string, comment?: string): Promise<void>;
   listRequests(params: RequestListParams): Promise<PaginatedResult<Request>>;
   updateStatus(id: RequestId, status: RequestStatus, actor: string, comment?: string): Promise<void>;
   listProcessing(requestId: RequestId): Promise<RequestProcessingEntry[]>;
@@ -214,6 +260,7 @@ export interface RequestsService {
 export interface RequestsServiceClient {
   createRequest(input: RequestInput): Promise<RequestId>;
   getRequest(id: RequestId): Promise<Request | any>;
+  patchRequest(id: RequestId, patch: RequestPatch, actor: string, comment?: string): Promise<void>;
   listRequests(params: RequestListParams): Promise<PaginatedResult<Request>>;
   updateStatus(id: RequestId, status: RequestStatus, actor: string, comment?: string): Promise<void>;
   listProcessing(requestId: RequestId): Promise<RequestProcessingEntry[]>;

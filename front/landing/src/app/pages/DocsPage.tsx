@@ -19,7 +19,7 @@ declare global {
 }
 
 function resolveDocPath(locale: string, slug: string) {
-  if (slug === "club") return `${locale}/club/intro.md`;
+  if (slug === "cnc") return `${locale}/product/docs/intro.md`;
   if (slug.includes("/")) return `${locale}/${slug.replace(/^\/+/, "")}`;
   return `${locale}/${slug}.md`;
 }
