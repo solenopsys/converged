@@ -39,13 +39,14 @@ export class RequestsStoreService {
 		const id = generateULID();
 		const createdAt = new Date().toISOString();
 		const status = input.status ?? "new";
+		const profiles = await this.listRequirementProfiles();
 		const processType = inferRequestProcessType({
 			source: input.source,
 			processType: input.processType,
 			title: input.title,
 			summary: input.summary,
 			fields: input.fields,
-		});
+		}, profiles);
 		const requirementProfile = await this.getRequirementProfile(processType);
 		const model = buildRequestModel({
 			id,
@@ -138,6 +139,7 @@ export class RequestsStoreService {
 
 		const previous = await this.toModel(existing);
 		const nextStatus = patch.status ?? existing.status;
+		const profiles = await this.listRequirementProfiles();
 		const processType =
 			patch.processType ??
 			inferRequestProcessType({
@@ -147,7 +149,7 @@ export class RequestsStoreService {
 				summary: patch.summary ?? previous.summary,
 				fields: patch.fields,
 				previous,
-			});
+			}, profiles);
 		const requirementProfile = await this.getRequirementProfile(processType);
 		const model = buildRequestModel({
 			id,
@@ -313,6 +315,10 @@ export class RequestsStoreService {
 		processType: RequestProcessType,
 	): Promise<RequestRequirementProfile | undefined> {
 		return this.requirements?.getProfile(processType);
+	}
+
+	private async listRequirementProfiles(): Promise<RequestRequirementProfile[]> {
+		return this.requirements?.listProfiles() ?? [];
 	}
 
 	private getRequirementProfileSync(

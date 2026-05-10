@@ -93,6 +93,16 @@ const consumeStreamEvents = async (
     events: AsyncIterable<types.StreamEvent>
 ): Promise<void> => {
     for await (const event of events) {
+        // NRPC streaming backend sends errors as { error: "..." } without a type field
+        const rawError = (event as any).error;
+        if (rawError && !(event as any).type) {
+            if (isSessionNotFoundError(rawError)) {
+                throw new Error(rawError);
+            }
+            errorOccurred(String(rawError));
+            return;
+        }
+
         receiveChunk(event);
 
         if (event.type === types.StreamEventType.COMPLETED) {
@@ -330,17 +340,16 @@ export const executeToolCall = ($functions: Store<Record<string, types.Executabl
 export const sendToolResult = (
     aiService: types.RuntimeChatService,
     threadsService: types.ThreadsService,
-    metadataService?: types.ChatMetadataService
+    metadataService?: types.ChatMetadataService,
+    $functions?: Store<Record<string, types.ExecutableTool>>
 ) =>
     async ({ toolCallId, result, state }: { toolCallId: string, result: any, state: types.ChatState }) => {
         console.log('Sending tool result:', { toolCallId, result });
 
-        // Улучшенная обработка результата инструмента с сохранением форматирования
         let toolResultContent: string;
         if (typeof result === 'string') {
             toolResultContent = preserveLineBreaks(result);
         } else {
-            // Используем JSON.stringify с отступами для читаемости
             toolResultContent = JSON.stringify(result, null, 2);
         }
 
@@ -359,8 +368,13 @@ export const sendToolResult = (
             data: toolResultContent
         }];
 
+        const tools: types.Tool[] = $functions
+            ? Object.values($functions.getState()).map(({ execute, ...tool }) => tool)
+            : [];
+        const options: types.ConversationOptions = tools.length > 0 ? { tools } : {};
+
         try {
-            await sendWithSessionRecovery(aiService, state, messages, {});
+            await sendWithSessionRecovery(aiService, state, messages, options);
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Unknown error';
             errorOccurred(message);

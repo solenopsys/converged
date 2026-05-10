@@ -240,4 +240,35 @@ describe("RequestsService in-memory", () => {
 		expect(model.remainingRequired).toContain("dimensions");
 		expect(model.remainingDelta.map((field) => field.key)).toEqual(["dimensions"]);
 	});
+
+	it("replaces a previously collected material field", async () => {
+		const model = await requests.createRequestModel({
+			source: "assistant:request",
+			status: "draft",
+			processType: "3d_printing",
+			summary: "мне нужно распечатать 10 кубиков из пластика",
+			fields: {
+				part_description: "Кубики",
+				material: "PLA",
+				quantity: 10,
+			},
+		});
+
+		const updated = await requests.applyRequestUpdate(
+			model.id,
+			{
+				fields: {
+					material: "ABS",
+				},
+			},
+			"assistant",
+			"material changed",
+		);
+
+		expect(updated.fields.material.value).toBe("ABS");
+
+		const saved = await requests.getRequestModel(model.id);
+		expect(saved?.fields.material.value).toBe("ABS");
+		expect(saved?.fields.quantity.value).toBe(10);
+	});
 });

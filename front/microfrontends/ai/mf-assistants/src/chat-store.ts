@@ -59,6 +59,20 @@ const chatThreadId = uuidv4();
 let isInitialized = false;
 let isRegistered = false;
 let activeRequestId: string | undefined;
+let pendingInitialRequestPromise: Promise<void> | null = null;
+
+type RequestDraftArgs = {
+	status?: string;
+	processType?: RequestProcessType;
+	title?: string;
+	summary?: string;
+	fields?: Record<string, any>;
+	parameters?: Array<Record<string, any>>;
+	fieldDefinitions?: Array<Record<string, any>>;
+	files?: Record<string, string>;
+	comment?: string;
+	forceNew?: boolean;
+};
 
 const registerThread = () => {
 	if (isRegistered) return;
@@ -148,23 +162,95 @@ const normalizeParameters = (value: unknown): Array<Record<string, any>> => {
 	);
 };
 
+const hasPatchPayload = (args: RequestDraftArgs) =>
+	Boolean(
+		args.status !== undefined ||
+			args.processType !== undefined ||
+			args.title !== undefined ||
+			args.summary !== undefined ||
+			Object.keys(normalizeRecord(args.fields)).length > 0 ||
+			normalizeParameters(args.parameters).length > 0 ||
+			normalizeParameters(args.fieldDefinitions).length > 0 ||
+			Object.keys(normalizeRecord(args.files)).length > 0,
+	);
+
+const requestFieldsSnapshot = (model?: Partial<RequestModel>) => {
+	if (!model?.fields) return {};
+	return Object.fromEntries(
+		Object.entries(model.fields).map(([key, field]) => [key, field.value]),
+	);
+};
+
+const requestModelSummary = (model?: Partial<RequestModel>) => {
+	if (!model) return undefined;
+	return {
+		id: model.id,
+		status: model.status,
+		processType: model.processType,
+		revision: model.revision,
+		title: model.title,
+		fields: requestFieldsSnapshot(model),
+		remainingRequired: model.remainingRequired ?? model.missingRequired,
+		completion: model.completion,
+		updatedAt: model.updatedAt,
+	};
+};
+
+const requestArgsSummary = (args: RequestDraftArgs) => ({
+	status: args.status,
+	processType: args.processType,
+	title: args.title,
+	summary: args.summary,
+	fields: normalizeRecord(args.fields),
+	parameters: normalizeParameters(args.parameters).map((parameter) => ({
+		key: parameter.key,
+		value: parameter.value,
+		label: parameter.label,
+	})),
+	fieldDefinitions: normalizeParameters(args.fieldDefinitions).map(
+		(definition) => ({
+			key: definition.key,
+			label: definition.label,
+			required: definition.required,
+		}),
+	),
+	files: normalizeRecord(args.files),
+	forceNew: args.forceNew,
+});
+
+const logRequestFlow = (step: string, payload?: Record<string, any>) => {
+	console.info(`[request-flow] ${step}`, payload ?? {});
+};
+
 const openRequestPage = (model: { id: string }) => {
 	if (typeof window === "undefined" || !model.id) return;
 
 	const nextPath = `/request/${model.id}`;
 	const nextUrl = `${nextPath}${window.location.search}${window.location.hash}`;
 
+	logRequestFlow("ui.open.start", {
+		nextUrl,
+		model: requestModelSummary(model as RequestModel),
+	});
 	setCenterView(null);
 	const event = new CustomEvent("request:open", {
 		cancelable: true,
 		detail: { requestId: model.id, model, path: nextUrl },
 	});
 	const handledBySsrShell = !window.dispatchEvent(event);
+	logRequestFlow("ui.request-open.dispatched", {
+		requestId: model.id,
+		handledBySsrShell,
+		currentPath: window.location.pathname,
+	});
 
 	if (!handledBySsrShell && window.location.pathname !== nextPath) {
 		window.history.pushState({ requestId: model.id }, "", nextUrl);
 		window.dispatchEvent(new PopStateEvent("popstate"));
 	}
+	logRequestFlow("ui.model-updated.dispatch", {
+		model: requestModelSummary(model as RequestModel),
+	});
 	window.dispatchEvent(
 		new CustomEvent("request:model-updated", { detail: model }),
 	);
@@ -184,6 +270,131 @@ const requestModelToolPayload = (model: RequestModel) => {
 		remainingDelta: model.remainingDelta ?? [],
 		completion: model.completion,
 	};
+};
+
+const inferInitialRequestDraft = (message: string): RequestDraftArgs | null => {
+	const text = message.trim();
+	if (text.length < 4) return null;
+
+	return {
+		status: "draft",
+		title: "Производственная заявка",
+		summary: text,
+		fields: {},
+		comment: "created from initial chat message",
+	};
+};
+
+const createOrUpdateRequestDraft = async (
+	args: RequestDraftArgs,
+	options: { preferExisting?: boolean } = {},
+) => {
+	const fields = normalizeRecord(args.fields);
+	const parameters = normalizeParameters(args.parameters);
+	const files = Object.fromEntries(
+		Object.entries(normalizeRecord(args.files)).filter(
+			([, value]) => typeof value === "string",
+		),
+	) as Record<string, string>;
+	const preferExisting = options.preferExisting ?? !args.forceNew;
+
+	if (preferExisting && activeRequestId) {
+		logRequestFlow("ms-requests.patch.start", {
+			requestId: activeRequestId,
+			args: requestArgsSummary(args),
+		});
+		const model = await requestsClient.applyRequestUpdate(
+			activeRequestId,
+			{
+				status: args.status,
+				processType: args.processType,
+				title: args.title,
+				summary: args.summary,
+				fields,
+				parameters: parameters as any,
+				fieldDefinitions: normalizeParameters(args.fieldDefinitions) as any,
+				files,
+			},
+			"assistant",
+			args.comment || "updated by assistant",
+		);
+		activeRequestId = model.id;
+		logRequestFlow("ms-requests.patch.done", {
+			reusedActiveRequest: true,
+			model: requestModelSummary(model),
+		});
+		openRequestPage(model);
+		return { model, reusedActiveRequest: true };
+	}
+
+	logRequestFlow("ms-requests.create.start", {
+		args: requestArgsSummary(args),
+	});
+	const model = await requestsClient.createRequestModel({
+		source: "assistant:request",
+		status: args.status || "draft",
+		processType: args.processType,
+		title: args.title,
+		summary: args.summary,
+		fields,
+		parameters: parameters as any,
+		fieldDefinitions: normalizeParameters(args.fieldDefinitions) as any,
+		files,
+	});
+	activeRequestId = model.id;
+	logRequestFlow("ms-requests.create.done", {
+		reusedActiveRequest: false,
+		model: requestModelSummary(model),
+	});
+	openRequestPage(model);
+	return { model, reusedActiveRequest: false };
+};
+
+const ensureInitialRequestDraft = async (message: string): Promise<boolean> => {
+	const isRequestContext = chatStore.$chat.getState().contextName === "request";
+	if (!isRequestContext || activeRequestId) {
+		logRequestFlow("auto-create.skip", {
+			reason: !isRequestContext ? "not_request_context" : "active_request_exists",
+			activeRequestId,
+		});
+		return false;
+	}
+
+	const draft = inferInitialRequestDraft(message);
+	if (!draft) {
+		logRequestFlow("auto-create.skip", {
+			reason: "no_manufacturing_draft_inferred",
+			message,
+		});
+		return false;
+	}
+	logRequestFlow("auto-create.inferred", {
+		message,
+		args: requestArgsSummary(draft),
+	});
+
+	let created = false;
+	if (!pendingInitialRequestPromise) {
+		pendingInitialRequestPromise = (async () => {
+			const { model } = await createOrUpdateRequestDraft(draft, {
+				preferExisting: false,
+			});
+			created = true;
+			console.info("[Chat] Auto-created request draft from first message", {
+				requestId: model.id,
+				processType: model.processType,
+			});
+		})()
+			.catch((error) => {
+				console.warn("[Chat] Failed to auto-create request draft", error);
+			})
+			.finally(() => {
+				pendingInitialRequestPromise = null;
+			});
+	}
+
+	await pendingInitialRequestPromise;
+	return created;
 };
 
 const getUploadedChatFilesTool: ExecutableTool = {
@@ -213,7 +424,7 @@ const getUploadedChatFilesTool: ExecutableTool = {
 const getCncRequestRequirementsTool: ExecutableTool = {
 	name: "getCncRequestRequirements",
 	description:
-		"Get request requirement profiles from ms-requests JSON store. Use this to know canonical field keys and remaining questions.",
+		"Inspect request requirement profiles from ms-requests JSON store. Do not use before createCncRequest for an ordinary user job description; createCncRequest can infer and normalize fields.",
 	parameters: {
 		type: "object",
 		properties: {
@@ -251,7 +462,7 @@ const getCncRequestRequirementsTool: ExecutableTool = {
 const createCncRequestTool: ExecutableTool = {
 	name: "createCncRequest",
 	description:
-		"Create a manufacturing request draft in ms-requests from collected chat data. Send collected values as fields map keyed by requirement profile keys.",
+		"Create the manufacturing request draft as the first tool call for a real user job description. Send collected values as fields map; aliases are normalized by ms-requests. If a draft is already active, enrich that draft instead of duplicating it.",
 	parameters: {
 		type: "object",
 		properties: {
@@ -263,7 +474,7 @@ const createCncRequestTool: ExecutableTool = {
 			fields: {
 				type: "object",
 				description:
-					"Flat map of collected values. Keys must be canonical request requirement keys, for example part_description, material, quantity, dimensions, tolerances, color, infill.",
+					"Flat map of collected values. Prefer canonical keys such as part_description, material, quantity, dimensions, tolerances, color, infill; raw aliases are accepted and normalized by ms-requests.",
 			},
 			parameters: {
 				type: "array",
@@ -313,51 +524,54 @@ const createCncRequestTool: ExecutableTool = {
 				type: "string",
 				description: "Short note explaining why the request was created",
 			},
+			forceNew: {
+				type: "boolean",
+				description:
+					"Set true only when the user explicitly wants a separate new request instead of enriching the active draft.",
+			},
 		},
 		required: ["fields"],
 	},
-	execute: async (
-		rawArgs:
-			| {
-					status?: string;
-					processType?: any;
-					title?: string;
-					summary?: string;
-					fields?: Record<string, any>;
-					parameters?: Array<Record<string, any>>;
-					fieldDefinitions?: Array<Record<string, any>>;
-					files?: Record<string, string>;
-					comment?: string;
-			  }
-			| string,
-	) => {
+	execute: async (rawArgs: RequestDraftArgs | string) => {
 		const args = parseToolArgs(rawArgs);
-		const fields = normalizeRecord(args.fields);
-		const parameters = normalizeParameters(args.parameters);
-		const files = Object.fromEntries(
-			Object.entries(normalizeRecord(args.files)).filter(
-				([, value]) => typeof value === "string",
-			),
-		) as Record<string, string>;
-
-		const model = await requestsClient.createRequestModel({
-			source: "assistant:request",
-			status: args.status || "draft",
-			processType: args.processType,
-			title: args.title,
-			summary: args.summary,
-			fields,
-			parameters: parameters as any,
-			fieldDefinitions: normalizeParameters(args.fieldDefinitions) as any,
-			files,
+		logRequestFlow("tool.createCncRequest.received", {
+			activeRequestId,
+			hasPayload: hasPatchPayload(args),
+			args: requestArgsSummary(args),
 		});
-		activeRequestId = model.id;
-		openRequestPage(model);
+		if (activeRequestId && !hasPatchPayload(args)) {
+			const model = await requestsClient.getRequestModel(activeRequestId);
+			logRequestFlow("tool.createCncRequest.noop", {
+				requestId: activeRequestId,
+				reason: "empty_payload_for_active_request",
+				model: requestModelSummary(model),
+			});
+			return {
+				ok: false,
+				requestId: activeRequestId,
+				error:
+					"createCncRequest was called with an active request but no fields provided. Extract any values you can determine from the conversation (quantity, technology, material, dimensions, etc.) and call patchCncRequest with those fields immediately. Then ask only for truly unknown fields.",
+				hint: "Call patchCncRequest now with whatever field values you can infer from the user message.",
+				...(model ? requestModelToolPayload(model) : {}),
+			};
+		}
+		const { model, reusedActiveRequest } = await createOrUpdateRequestDraft(
+			args,
+		);
+		logRequestFlow("tool.createCncRequest.result", {
+			ok: true,
+			requestId: model.id,
+			reusedActiveRequest,
+			appliedFields: normalizeRecord(args.fields),
+			model: requestModelSummary(model),
+		});
 
 		return {
 			ok: true,
 			requestId: model.id,
 			status: model.status,
+			reusedActiveRequest,
+			appliedFields: normalizeRecord(args.fields),
 			...requestModelToolPayload(model),
 			comment: args.comment,
 		};
@@ -438,10 +652,35 @@ const patchCncRequestTool: ExecutableTool = {
 	) => {
 		const args = parseToolArgs(rawArgs);
 		const requestId = args.requestId || activeRequestId;
+		logRequestFlow("tool.patchCncRequest.received", {
+			requestId,
+			activeRequestId,
+			hasPayload: hasPatchPayload(args),
+			args: requestArgsSummary(args),
+		});
 		if (!requestId) {
+			logRequestFlow("tool.patchCncRequest.noop", {
+				reason: "missing_request_id",
+				args: requestArgsSummary(args),
+			});
 			return {
 				ok: false,
 				error: "requestId is required because no active request exists",
+			};
+		}
+		if (!hasPatchPayload(args)) {
+			const model = await requestsClient.getRequestModel(requestId);
+			logRequestFlow("tool.patchCncRequest.noop", {
+				requestId,
+				reason: "empty_payload",
+				model: requestModelSummary(model),
+			});
+			return {
+				ok: false,
+				requestId,
+				error:
+					"patchCncRequest received no fields/files/status/title/summary to apply",
+				...(model ? requestModelToolPayload(model) : {}),
 			};
 		}
 
@@ -468,8 +707,19 @@ const patchCncRequestTool: ExecutableTool = {
 		);
 		activeRequestId = model.id;
 		openRequestPage(model);
+		logRequestFlow("tool.patchCncRequest.result", {
+			ok: true,
+			requestId,
+			appliedFields: normalizeRecord(args.fields),
+			model: requestModelSummary(model),
+		});
 
-		return { ok: true, requestId, ...requestModelToolPayload(model) };
+		return {
+			ok: true,
+			requestId,
+			appliedFields: normalizeRecord(args.fields),
+			...requestModelToolPayload(model),
+		};
 	},
 };
 
@@ -698,11 +948,11 @@ const execCommandTool: ExecutableTool = {
 
 chatStore.registerFunction("weather", weatherTool);
 chatStore.registerFunction("getUploadedChatFiles", getUploadedChatFilesTool);
+chatStore.registerFunction("createCncRequest", createCncRequestTool);
 chatStore.registerFunction(
 	"getCncRequestRequirements",
 	getCncRequestRequirementsTool,
 );
-chatStore.registerFunction("createCncRequest", createCncRequestTool);
 chatStore.registerFunction("patchCncRequest", patchCncRequestTool);
 chatStore.registerFunction("getCncRequest", getCncRequestTool);
 chatStore.registerFunction("startFileAnalysis", startFileAnalysisTool);
@@ -710,8 +960,21 @@ chatStore.registerFunction("getCommands", getCommandsTool);
 chatStore.registerFunction("execCommand", execCommandTool);
 
 chatSendRequested.watch((message) => {
-	ensureInitialized(); // Инициализируем чат только при первой отправке сообщения
-	chatStore.send(message);
+	void (async () => {
+		ensureInitialized(); // Инициализируем чат только при первой отправке сообщения
+		logRequestFlow("message.received", {
+			contextName: chatStore.$chat.getState().contextName,
+			activeRequestId,
+			message,
+		});
+		const created = await ensureInitialRequestDraft(message);
+		logRequestFlow("message.forward-to-llm", {
+			activeRequestId,
+			createdDraftBeforeSend: created,
+			note: "field extraction is delegated to LLM tool calls and ms-requests requirements",
+		});
+		chatStore.send(message);
+	})();
 });
 
 chatAttachRequested.watch(() => {

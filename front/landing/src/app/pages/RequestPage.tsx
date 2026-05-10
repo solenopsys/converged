@@ -7,7 +7,6 @@ import {
 	$requestError,
 	$requestLoading,
 	$requestModel,
-	requestModelReceived,
 	requestRefreshRequested,
 	requestRouteOpened,
 } from "../request/request-store";
@@ -337,16 +336,6 @@ export function RequestPage() {
 			requestRefreshRequested();
 		}, 2500);
 		return () => window.clearInterval(timer);
-	}, [requestId]);
-
-	useEffect(() => {
-		const listener = (event: Event) => {
-			const detail = (event as CustomEvent<RequestModel>).detail;
-			if (!detail || !requestId || detail.id !== requestId) return;
-			requestModelReceived(detail);
-		};
-		window.addEventListener("request:model-updated", listener);
-		return () => window.removeEventListener("request:model-updated", listener);
 	}, [requestId]);
 
 	if (error) {

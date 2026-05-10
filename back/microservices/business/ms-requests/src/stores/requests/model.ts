@@ -111,6 +111,36 @@ function normalizeAlias(value: string): string {
 		.replace(/^_+|_+$/g, "");
 }
 
+function normalizeSearchText(value: string): string {
+	return value
+		.toLowerCase()
+		.replace(/ё/g, "е")
+		.replace(/[^a-zа-я0-9]+/g, " ")
+		.replace(/\s+/g, " ")
+		.trim();
+}
+
+function profileAliasScore(
+	profile: RequestRequirementProfile,
+	searchText: string,
+): number {
+	const candidates = [
+		profile.processType,
+		profile.title,
+		...(profile.aliases ?? []),
+	]
+		.map((value) => normalizeSearchText(value ?? ""))
+		.filter(Boolean);
+
+	let score = 0;
+	for (const candidate of candidates) {
+		if (candidate.length > 0 && searchText.includes(candidate)) {
+			score += candidate.length;
+		}
+	}
+	return score;
+}
+
 function createFieldAliasMap(
 	profile?: RequestRequirementProfile,
 ): Map<string, string> {
@@ -169,52 +199,33 @@ export function inferRequestProcessType(
 		| "title"
 		| "summary"
 	>,
+	profiles: RequestRequirementProfile[] = [],
 ): RequestProcessType {
 	if (input.processType) return input.processType;
 	if (input.previous?.processType) return input.previous.processType;
 
-	const source = input.source?.toLowerCase() ?? "";
-	const operation = String(input.fields?.operation ?? "").toLowerCase();
+	const source = input.source ?? "";
+	const operation = String(input.fields?.operation ?? "");
 	const fieldsText = Object.values(input.fields ?? {})
 		.map((value) =>
 			typeof value === "string" || typeof value === "number"
 				? String(value)
 				: "",
 		)
-		.join(" ")
-		.toLowerCase();
-	const text = `${source} ${operation} ${input.title ?? ""} ${input.summary ?? ""} ${fieldsText}`
-		.toLowerCase()
-		.replace(/ё/g, "е");
-	if (
-		text.includes("3d") ||
-		text.includes("3д") ||
-		text.includes("печать") ||
-		text.includes("распечат") ||
-		text.includes("fdm") ||
-		text.includes("sla") ||
-		text.includes("stl")
-	) {
-		return "3d_printing";
-	}
-	if (text.includes("laser") || text.includes("лазер")) return "laser_cutting";
-	if (
-		text.includes("plastic_cut") ||
-		text.includes("резка пластика") ||
-		text.includes("акрил") ||
-		text.includes("оргстекло")
-	) {
-		return "plastic_cutting";
-	}
-	if (
-		text.includes("cnc") ||
-		text.includes("чпу") ||
-		text.includes("machining") ||
-		text.includes("фрезер") ||
-		text.includes("точен")
-	) {
-		return "cnc_machining";
-	}
+		.join(" ");
+	const text = normalizeSearchText(
+		`${source} ${operation} ${input.title ?? ""} ${input.summary ?? ""} ${fieldsText}`,
+	);
+	const bestProfile = profiles
+		.filter((profile) => profile.processType !== "generic")
+		.map((profile) => ({
+			profile,
+			score: profileAliasScore(profile, text),
+		}))
+		.filter((entry) => entry.score > 0)
+		.sort((left, right) => right.score - left.score)[0]?.profile;
+
+	if (bestProfile) return bestProfile.processType;
 	return "generic";
 }
 

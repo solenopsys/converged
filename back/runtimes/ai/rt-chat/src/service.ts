@@ -148,10 +148,13 @@ export class ChatRuntimeService {
     const name = contextName?.trim();
     if (!name) return null;
 
-    const context = await this.assistantClient.getContext(name);
-    if (!context) {
-      throw new Error(`CHAT_CONTEXT_NOT_FOUND: ${name}`);
+    let context: any = null;
+    try {
+      context = await this.assistantClient.getContext(name);
+    } catch {
+      return null;
     }
+    if (!context) return null;
 
     return {
       type: ContentType.TEXT,

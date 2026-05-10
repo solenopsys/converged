@@ -76,7 +76,7 @@ export const createChatStore = (
     createSessionFx.use(handlers.createSession(aiService));
     sendMessageFx.use(handlers.sendMessage(aiService, threadsService, metadataService, $functions));
     executeToolCallFx.use(handlers.executeToolCall($functions));
-    sendToolResultFx.use(handlers.sendToolResult(aiService, threadsService, metadataService));
+    sendToolResultFx.use(handlers.sendToolResult(aiService, threadsService, metadataService, $functions));
     saveAssistantMessageFx.use(handlers.saveAssistantMessage(threadsService, metadataService));
 
     // Связки событий и эффектов
