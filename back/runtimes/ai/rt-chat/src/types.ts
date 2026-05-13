@@ -69,7 +69,3 @@ export interface ConversationFactory {
   ): AiConversation;
 }
 
-export abstract class EventHandler {
-  abstract canHandle(eventType: string): boolean;
-  abstract handle(event: any, totalTokens: number): StreamEvent | null;
-}

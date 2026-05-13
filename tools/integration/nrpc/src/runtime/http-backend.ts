@@ -1,5 +1,5 @@
 // nrpc-runtime/elysia-backend.ts
-import { Elysia } from "elysia";
+import type { Elysia } from "elysia";
 import { jwtVerify } from "jose";
 import { resolveMethodAccess } from "../decorator/access.decorator";
 import type { ServiceMetadata } from "../types";
@@ -173,11 +173,16 @@ export function createHttpBackend(config: ElysiaBackendConfig) {
 						// Handle errors with statusCode
 						const statusCode = error.statusCode || 500;
 						const message = error.message || "Internal Server Error";
+						const code = error.code || "UNEXPECTED_ERROR";
+						const details = error.details;
 
-						return new Response(JSON.stringify({ error: message }), {
-							status: statusCode,
-							headers: { "Content-Type": "application/json" },
-						});
+						return new Response(
+							JSON.stringify({ error: message, code, details }),
+							{
+								status: statusCode,
+								headers: { "Content-Type": "application/json" },
+							},
+						);
 					}
 				};
 

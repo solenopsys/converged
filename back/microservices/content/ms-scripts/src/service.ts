@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { notFoundError } from "back-core";
 import type {
 	PaginationParams,
 	ScriptFile,
@@ -77,7 +78,7 @@ export class ScriptsServiceImpl implements ScriptsService {
 		const path = ensurePath(filePath);
 		const data = await this.stores.fileStore.get(path);
 		if (!data) {
-			throw new Error(`Script not found: ${path}`);
+			throw notFoundError(`Script not found: ${path}`, { path });
 		}
 		return {
 			path,

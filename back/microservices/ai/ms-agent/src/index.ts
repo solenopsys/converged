@@ -86,6 +86,21 @@ export default class AgentServiceImpl {
     return [];
   }
 
+  async appendMessage(sessionId: string, message: any, tokenUsage?: number): Promise<void> {
+    await this.ensureInit();
+    await this.sessionManager.appendMessage(sessionId, message, tokenUsage ?? 0);
+  }
+
+  async getMessages(sessionId: string, limit: number): Promise<any[]> {
+    await this.ensureInit();
+    return this.sessionManager.getHistory(sessionId, limit);
+  }
+
+  async updateTokenUsage(sessionId: string, input: number, output: number): Promise<void> {
+    await this.ensureInit();
+    await this.sessionManager.updateTokenUsage(sessionId, input, output);
+  }
+
   async getStats(): Promise<{
     sessions: number;
     messages: number;

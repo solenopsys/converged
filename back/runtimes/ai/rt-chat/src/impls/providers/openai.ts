@@ -1,227 +1,86 @@
 import { randomUUID } from "crypto";
-import { BaseConversation } from "../conversation";
-import { EventHandler } from "../hendler";
-import {
-    StreamEvent,
-    LogFunction,
-    ConversationOptions,
-    ContentBlock,
-    Tool,
-    StreamEventType
-} from "../../types";
 import type OpenAI from "openai";
+import type { ChatLLMProvider, ChatMessage, ProviderStreamEvent } from "./base";
+import type { ConversationOptions } from "../../types";
 
+export class OpenAIProvider implements ChatLLMProvider {
+  constructor(private readonly client: OpenAI) {}
 
-// Улучшенный обработчик текстовых дельт для OpenAI Chat Completions
-class OpenAITextDeltaHandler extends EventHandler {
-    canHandle(eventType: string): boolean {
-        return eventType === "content_delta";
+  async *stream(messages: ChatMessage[], model: string, options?: ConversationOptions): AsyncGenerator<ProviderStreamEvent> {
+    const req: any = {
+      model,
+      messages: this.toOpenAIMessages(messages),
+      stream: true,
+      stream_options: { include_usage: true },
+      temperature: options?.temperature,
+      max_tokens: options?.maxTokens,
+    };
+    if (options?.tools?.length) {
+      req.tools = options.tools.map(t => ({ type: "function", function: { name: t.name, description: t.description, parameters: t.parameters } }));
     }
 
-    handle(event: any, totalTokens: number): StreamEvent | null {
-        // В Chat Completions API структура: event.choices[0].delta.content
-        const delta = event.choices?.[0]?.delta;
-        if (delta?.content) {
-            let textContent = delta.content;
+    const stream = await this.client.chat.completions.create(req);
 
-            return {
-                type: StreamEventType.TEXT_DELTA,
-                content: textContent, // Возвращаем сырой контент без обработки
-                tokens: totalTokens
-            };
+    const builders = new Map<number, { id: string; name: string; argsJson: string }>();
+
+    for await (const chunk of stream as any) {
+      const delta = chunk.choices?.[0]?.delta;
+      const finishReason = chunk.choices?.[0]?.finish_reason;
+
+      if (delta?.content) {
+        yield { type: "text_delta", content: delta.content };
+      }
+
+      if (delta?.tool_calls) {
+        for (const tc of delta.tool_calls) {
+          const idx: number = tc.index ?? 0;
+          if (!builders.has(idx)) {
+            const id = tc.id ?? randomUUID();
+            builders.set(idx, { id, name: tc.function?.name ?? "", argsJson: "" });
+            yield { type: "tool_call_start", id, name: tc.function?.name ?? "" };
+          }
+          const b = builders.get(idx)!;
+          if (tc.id && !b.id) b.id = tc.id;
+          if (tc.function?.name && !b.name) b.name = tc.function.name;
+          const chunk = tc.function?.arguments ?? "";
+          b.argsJson += chunk;
+          if (chunk) yield { type: "tool_call_delta", id: b.id, argsJson: chunk };
         }
-        return null;
-    }
-}
+      }
 
-// Обработчик вызовов функций для OpenAI Chat Completions
-class OpenAIToolCallHandler extends EventHandler {
-    canHandle(eventType: string): boolean {
-        return eventType === "tool_calls_delta";
-    }
-
-    handle(event: any, totalTokens: number): StreamEvent | null {
-        // В Chat Completions API структура: event.choices[0].delta.tool_calls
-        const delta = event.choices?.[0]?.delta;
-        const toolCalls = delta?.tool_calls;
-
-        if (!toolCalls || !Array.isArray(toolCalls)) {
-            return null;
+      if (finishReason) {
+        for (const b of builders.values()) {
+          let args: Record<string, unknown> = {};
+          try { args = JSON.parse(b.argsJson); } catch {}
+          yield { type: "tool_call_end", id: b.id, name: b.name, args };
         }
-
-        // Обрабатываем каждый tool call
-        for (const toolCall of toolCalls) {
-            if (toolCall.type === "function" && toolCall.function) {
-                let parsedArgs = {};
-                if (toolCall.function.arguments) {
-                    try {
-                        parsedArgs = JSON.parse(toolCall.function.arguments);
-                    } catch (e) {
-                        parsedArgs = { raw: toolCall.function.arguments };
-                    }
-                }
-
-                return {
-                    type: StreamEventType.TOOL_CALL,
-                    id: toolCall.id || randomUUID(),
-                    name: toolCall.function.name || "",
-                    args: parsedArgs,
-                    tokens: totalTokens
-                };
-            }
-        }
-
-        return null;
-    }
-}
-
-// Обработчик завершения для OpenAI Chat Completions
-class OpenAICompletionHandler extends EventHandler {
-    canHandle(eventType: string): boolean {
-        return eventType === "done";
-    }
-
-    handle(event: any, totalTokens: number): StreamEvent {
-        const finishReason = event.choices?.[0]?.finish_reason || "stop";
-
-        return {
-            type: StreamEventType.COMPLETED,
-            finishReason,
-            tokens: totalTokens
+        const usage = chunk.usage;
+        yield {
+          type: "message_complete",
+          finishReason,
+          usage: { input: usage?.prompt_tokens ?? 0, output: usage?.completion_tokens ?? 0 },
         };
+      }
     }
-}
+  }
 
-// Обработчик ошибок для OpenAI
-class OpenAIErrorHandler extends EventHandler {
-    canHandle(eventType: string): boolean {
-        return eventType === "error";
-    }
-
-    handle(event: any, totalTokens: number): StreamEvent {
-        const errorMessage = event.error?.message || "Unknown error";
-        console.error(`[OpenAIErrorHandler] Обрабатываю ошибку: ${errorMessage}, токенов: ${totalTokens}`);
-
+  private toOpenAIMessages(messages: ChatMessage[]): any[] {
+    return messages.map(msg => {
+      if (msg.role === "assistant" && "toolCalls" in msg && msg.toolCalls?.length) {
         return {
-            type: StreamEventType.ERROR,
-            message: errorMessage,
-            tokens: totalTokens
-        };
-    }
-}
-
-// Реализация для OpenAI с Chat Completions API
-export class OpenAIConversation extends BaseConversation {
-    private openai: OpenAI;
-
-    constructor(model: string, client: OpenAI, log: LogFunction) {
-        super(model, log);
-        this.openai = client;
-    }
-
-    protected initializeHandlers(): void {
-        this.handlers = [
-            new OpenAITextDeltaHandler(this),
-            new OpenAIToolCallHandler(this),
-            new OpenAICompletionHandler(this),
-            new OpenAIErrorHandler(this)
-        ];
-    }
-
-    protected getEventType(event: any): string {
-        // Chat Completions API использует простые типы событий
-        if (event.choices?.[0]?.delta?.content) return "content_delta";
-        if (event.choices?.[0]?.delta?.tool_calls) return "tool_calls_delta";
-        if (event.choices?.[0]?.finish_reason) return "done";
-        return event.type || "unknown";
-    }
-
-    protected extractTokensFromEvent(event: any): number {
-        return event.usage?.total_tokens || 0;
-    }
-
-    protected isTerminalEvent(result: StreamEvent): boolean {
-        return result.type === StreamEventType.COMPLETED || result.type === StreamEventType.ERROR;
-    }
-
-    // Преобразование Tool в формат OpenAI Chat Completions
-    protected convertToolToProviderFormat(tool: Tool): any {
-        return {
+          role: "assistant",
+          content: msg.content || null,
+          tool_calls: msg.toolCalls.map(tc => ({
+            id: tc.id,
             type: "function",
-            function: {
-                name: tool.name,
-                description: tool.description,
-                parameters: tool.parameters
-            }
+            function: { name: tc.name, arguments: JSON.stringify(tc.args) },
+          })),
         };
-    }
-
-    protected convertToProviderFormat(messages: ContentBlock[]): any[] {
-        return messages.map((msg) => {
-            let role = "user";
-            let content: any = "";
-            let toolCallId: string | undefined;
-            let toolCalls: any[] | undefined;
-
-            if (typeof msg.data === "string") {
-                content = msg.data;
-            } else if (typeof msg.data === "object" && msg.data !== null) {
-                const msgData = msg.data as any;
-                role = msgData.role || "user";
-                content = msgData.content || "";
-
-                // Обработка tool_result для OpenAI Chat Completions
-                if (msg.type === "tool_result") {
-                    role = "tool";
-                    content = typeof msgData.data === 'string'
-                        ? msgData.data
-                        : JSON.stringify(msgData.data || msgData);
-                    toolCallId = msgData.tool_call_id || msg.tool_call_id;
-                }
-
-                // Обработка tool_calls от ассистента
-                if (msgData.tool_calls) {
-                    toolCalls = msgData.tool_calls.map((tc: any) => ({
-                        id: tc.id,
-                        type: "function",
-                        function: {
-                            name: tc.function?.name || tc.name,
-                            arguments: typeof tc.function?.arguments === 'string'
-                                ? tc.function.arguments
-                                : JSON.stringify(tc.function?.arguments || tc.args || {})
-                        }
-                    }));
-                }
-            }
-
-            const message: any = { role, content };
-            if (toolCallId) message.tool_call_id = toolCallId;
-            if (toolCalls) message.tool_calls = toolCalls;
-
-            return message;
-        });
-    }
-
-    protected async createStream(messages: any[], options?: ConversationOptions): Promise<any> {
-        // Подготавливаем параметры запроса для Chat Completions API
-        const requestParams: any = {
-            model: this.model,
-            messages: messages, // Chat Completions использует messages
-            stream: true,
-            temperature: options?.temperature,
-            max_tokens: options?.maxTokens
-        };
-
-        // Добавляем инструменты если они есть
-        if (options?.tools && options.tools.length > 0) {
-            requestParams.tools = options.tools.map(tool => this.convertToolToProviderFormat(tool));
-        }
-
-        return await this.openai.chat.completions.create(requestParams);
-    }
-
-    protected async processStreamEvent(event: any, totalTokens: number): Promise<void> {
-        void event;
-        void totalTokens;
-    }
+      }
+      if (msg.role === "tool") {
+        return { role: "tool", tool_call_id: msg.toolCallId, content: msg.content };
+      }
+      return { role: msg.role, content: msg.content };
+    });
+  }
 }

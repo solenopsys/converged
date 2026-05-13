@@ -6,6 +6,7 @@ import type {
 import type { ContextBuilder } from "./context";
 import type { ProviderRegistry } from "../providers/registry";
 import type { ToolRegistry } from "../tools/registry";
+import type { AgentLogger } from "../telemetry";
 
 export interface AgentMessageStore {
   appendMessage(sessionId: string, message: AgentMessage, tokenUsage?: number): Promise<void>;
@@ -31,6 +32,7 @@ export class AgentLoop {
     private toolRegistry: ToolRegistry,
     private sessionManager: AgentMessageStore,
     private processing: AgentProcessingStore,
+    private logger?: AgentLogger,
   ) {}
 
   async *run(
@@ -61,16 +63,19 @@ export class AgentLoop {
 
     let iteration = 0;
     const totalTokens = { input: 0, output: 0 };
+    const sessionStartedAt = this.logger?.sessionStart(sessionId, config.model);
 
     try {
       while (iteration < config.maxIterations) {
         iteration++;
+        this.logger?.iterationStart(sessionId, iteration, config.maxIterations);
         yield {
           type: "iteration",
           iteration,
           maxIterations: config.maxIterations,
         };
 
+        const llmStartedAt = this.logger?.llmStart(sessionId, config.model);
         const stream = provider.chat({
           messages,
           tools: toolDefs.length > 0 ? toolDefs : undefined,
@@ -134,6 +139,7 @@ export class AgentLoop {
               finishReason = event.finishReason;
               totalTokens.input += event.usage.input;
               totalTokens.output += event.usage.output;
+              if (llmStartedAt) this.logger?.llmEnd(sessionId, llmStartedAt, event.usage);
               break;
 
             case "error":
@@ -159,9 +165,12 @@ export class AgentLoop {
           break;
         }
 
+        const toolTimers = new Map(toolCalls.map(c => [c.id, this.logger?.toolStart(sessionId, c.name)]));
         const toolResults = await this.toolRegistry.executeBatch(toolCalls);
 
         for (const result of toolResults) {
+          const startedAt = toolTimers.get(result.id);
+          if (startedAt) this.logger?.toolEnd(sessionId, result.name, startedAt, result.isError);
           const toolMessage: AgentMessage = {
             role: "tool",
             content: result.result,
@@ -192,6 +201,7 @@ export class AgentLoop {
         totalTokens.output,
       );
 
+      if (sessionStartedAt) this.logger?.sessionComplete(sessionId, sessionStartedAt, iteration, totalTokens);
       yield {
         type: "completed",
         finishReason:

@@ -51,6 +51,16 @@ export type TokenUsage = {
   output: number;
 };
 
+export type MessageRole = "system" | "user" | "assistant" | "tool";
+
+export type AgentMessage = {
+  role: MessageRole;
+  content: string;
+  toolCalls?: { id: string; name: string; args: Record<string, unknown> }[];
+  toolCallId?: string;
+  name?: string;
+};
+
 export const metadata = {
   "interfaceName": "AgentService",
   "serviceName": "agent",
@@ -152,6 +162,81 @@ export const metadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
+    },
+    {
+      "name": "appendMessage",
+      "parameters": [
+        {
+          "name": "sessionId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "message",
+          "type": "AgentMessage",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "tokenUsage",
+          "type": "number",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "void",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "getMessages",
+      "parameters": [
+        {
+          "name": "sessionId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "limit",
+          "type": "number",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "AgentMessage",
+      "isAsync": true,
+      "returnTypeIsArray": true,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "updateTokenUsage",
+      "parameters": [
+        {
+          "name": "sessionId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "input",
+          "type": "number",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "output",
+          "type": "number",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "void",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -190,6 +275,16 @@ export const metadata = {
       "name": "TokenUsage",
       "kind": "type",
       "definition": "{\n  total: number;\n  input: number;\n  output: number;\n}"
+    },
+    {
+      "name": "MessageRole",
+      "kind": "type",
+      "definition": "\"system\" | \"user\" | \"assistant\" | \"tool\""
+    },
+    {
+      "name": "AgentMessage",
+      "kind": "type",
+      "definition": "{\n  role: MessageRole;\n  content: string;\n  toolCalls?: { id: string; name: string; args: Record<string, unknown> }[];\n  toolCallId?: string;\n  name?: string;\n}"
     }
   ]
 };
@@ -203,6 +298,9 @@ export interface AgentService {
   deleteSession(sessionId: string): Promise<void>;
   listTools(): Promise<ToolDefinition[]>;
   getStats(): Promise<any>;
+  appendMessage(sessionId: string, message: AgentMessage, tokenUsage?: number): Promise<void>;
+  getMessages(sessionId: string, limit: number): Promise<AgentMessage[]>;
+  updateTokenUsage(sessionId: string, input: number, output: number): Promise<void>;
 }
 
 // Client interface
@@ -214,6 +312,9 @@ export interface AgentServiceClient {
   deleteSession(sessionId: string): Promise<void>;
   listTools(): Promise<ToolDefinition[]>;
   getStats(): Promise<any>;
+  appendMessage(sessionId: string, message: AgentMessage, tokenUsage?: number): Promise<void>;
+  getMessages(sessionId: string, limit: number): Promise<AgentMessage[]>;
+  updateTokenUsage(sessionId: string, input: number, output: number): Promise<void>;
 }
 
 // Factory function

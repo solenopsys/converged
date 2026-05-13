@@ -14,6 +14,8 @@ import { ContextBuilder } from "./core/context";
 import { ProviderRegistry } from "./providers/registry";
 import { ToolRegistry } from "./tools/registry";
 import type { Tool } from "./tools/base";
+import { createAgentServiceClient } from "g-agent";
+import { AgentLogger } from "./telemetry";
 
 type AgentRuntimeConfig = {
   defaults?: {
@@ -30,110 +32,28 @@ type AgentRuntimeConfig = {
   session?: { maxHistoryMessages?: number };
 };
 
-class RuntimeSessionStore {
-  private sessions = new Map<string, SessionInfo & { input: number; output: number }>();
-  private histories = new Map<string, AgentMessage[]>();
-  private loopStates = new Map<string, unknown>();
+class PersistentSessionStore {
+  private readonly client = createAgentServiceClient({ baseUrl: process.env.SERVICES_BASE });
+  private readonly loopStates = new Map<string, unknown>();
 
-  async createSession(model: string): Promise<SessionInfo> {
-    const now = Date.now();
-    const session = {
-      id: crypto.randomUUID(),
-      model,
-      createdAt: now,
-      updatedAt: now,
-      messageCount: 0,
-      input: 0,
-      output: 0,
-    };
-    this.sessions.set(session.id, session);
-    this.histories.set(session.id, []);
-    return this.toSessionInfo(session);
-  }
+  createSession(model: string)                                          { return this.client.createSession(model); }
+  getSession(sessionId: string)                                         { return this.client.getSession(sessionId); }
+  listSessions(offset: number, limit: number)                           { return this.client.listSessions({ offset, limit }); }
+  deleteSession(sessionId: string)                                      { return this.client.deleteSession(sessionId); }
+  getHistory(sessionId: string, maxMessages: number)                    { return this.client.getMessages(sessionId, maxMessages); }
+  appendMessage(sessionId: string, message: AgentMessage, usage = 0)   { return this.client.appendMessage(sessionId, message, usage); }
+  updateTokenUsage(sessionId: string, input: number, output: number)    { return this.client.updateTokenUsage(sessionId, input, output); }
 
-  async getSession(sessionId: string): Promise<SessionInfo | undefined> {
-    const session = this.sessions.get(sessionId);
-    return session ? this.toSessionInfo(session) : undefined;
-  }
+  saveLoopState(sessionId: string, state: unknown): void  { this.loopStates.set(sessionId, state); }
+  deleteLoopState(sessionId: string): void                { this.loopStates.delete(sessionId); }
 
-  async listSessions(offset: number, limit: number): Promise<PaginatedResult<SessionInfo>> {
-    const items = Array.from(this.sessions.values())
-      .sort((a, b) => b.updatedAt - a.updatedAt)
-      .slice(offset, offset + limit)
-      .map((session) => this.toSessionInfo(session));
-    return { items, totalCount: this.sessions.size };
-  }
-
-  async deleteSession(sessionId: string): Promise<void> {
-    this.sessions.delete(sessionId);
-    this.histories.delete(sessionId);
-    this.loopStates.delete(sessionId);
-  }
-
-  async getHistory(sessionId: string, maxMessages: number): Promise<AgentMessage[]> {
-    return (this.histories.get(sessionId) ?? []).slice(-maxMessages);
-  }
-
-  async appendMessage(
-    sessionId: string,
-    message: AgentMessage,
-    tokenUsage: number = 0,
-  ): Promise<void> {
-    const session = this.sessions.get(sessionId);
-    if (!session) return;
-    session.updatedAt = Date.now();
-    session.messageCount += 1;
-    session.output += tokenUsage;
-    const history = this.histories.get(sessionId) ?? [];
-    history.push(message);
-    this.histories.set(sessionId, history);
-  }
-
-  async updateTokenUsage(sessionId: string, input: number, output: number): Promise<void> {
-    const session = this.sessions.get(sessionId);
-    if (!session) return;
-    session.input += input;
-    session.output += output;
-    session.updatedAt = Date.now();
-  }
-
-  saveLoopState(sessionId: string, state: unknown): void {
-    this.loopStates.set(sessionId, state);
-  }
-
-  deleteLoopState(sessionId: string): void {
-    this.loopStates.delete(sessionId);
-  }
-
-  stats(): { sessions: number; messages: number; tokens: TokenUsage } {
-    let messages = 0;
-    let input = 0;
-    let output = 0;
-    for (const session of this.sessions.values()) {
-      messages += session.messageCount;
-      input += session.input;
-      output += session.output;
-    }
-    return {
-      sessions: this.sessions.size,
-      messages,
-      tokens: { total: input + output, input, output },
-    };
-  }
-
-  private toSessionInfo(session: SessionInfo & { input: number; output: number }): SessionInfo {
-    return {
-      id: session.id,
-      model: session.model,
-      createdAt: session.createdAt,
-      updatedAt: session.updatedAt,
-      messageCount: session.messageCount,
-    };
+  async stats(): Promise<{ sessions: number; messages: number; tokens: TokenUsage }> {
+    return this.client.getStats();
   }
 }
 
 export class AgentRuntimeService {
-  private store = new RuntimeSessionStore();
+  private store = new PersistentSessionStore();
   private providerRegistry: ProviderRegistry;
   private toolRegistry = new ToolRegistry();
   private contextBuilder: ContextBuilder;
@@ -167,6 +87,7 @@ export class AgentRuntimeService {
       this.toolRegistry,
       this.store,
       this.store,
+      new AgentLogger(),
     );
   }
 

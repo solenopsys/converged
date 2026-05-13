@@ -48,6 +48,16 @@ export type TokenUsage = {
   output: number;
 }
 
+export type MessageRole = "system" | "user" | "assistant" | "tool";
+
+export type AgentMessage = {
+  role: MessageRole;
+  content: string;
+  toolCalls?: { id: string; name: string; args: Record<string, unknown> }[];
+  toolCallId?: string;
+  name?: string;
+}
+
 export interface AgentService {
   createSession(model?: string): Promise<SessionInfo>;
   sendMessage(sessionId: string, content: string): AsyncIterable<AgentStreamEvent>;
@@ -56,4 +66,7 @@ export interface AgentService {
   deleteSession(sessionId: string): Promise<void>;
   listTools(): Promise<ToolDefinition[]>;
   getStats(): Promise<{ sessions: number; messages: number; tokens: TokenUsage }>;
+  appendMessage(sessionId: string, message: AgentMessage, tokenUsage?: number): Promise<void>;
+  getMessages(sessionId: string, limit: number): Promise<AgentMessage[]>;
+  updateTokenUsage(sessionId: string, input: number, output: number): Promise<void>;
 }

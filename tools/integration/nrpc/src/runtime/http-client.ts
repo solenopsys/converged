@@ -208,18 +208,33 @@ class HttpClientImpl {
 
 			if (!response.ok) {
 				let errorMessage = `HTTP ${url} ${response.status}: ${response.statusText}`;
+				let errorCode: string | undefined;
+				let errorDetails: Record<string, unknown> | undefined;
 
 				try {
 					const errorData = await response.json();
 					if (errorData.error) {
 						errorMessage = errorData.error;
 					}
+					if (typeof errorData.code === "string") {
+						errorCode = errorData.code;
+					}
+					if (errorData.details && typeof errorData.details === "object") {
+						errorDetails = errorData.details;
+					}
 				} catch {
 					// ignore
 				}
 
 				console.error(`[nrpc] ✗ ${url}:`, errorMessage);
-				const error = new Error(errorMessage);
+				const error = new Error(errorMessage) as Error & {
+					statusCode?: number;
+					code?: string;
+					details?: Record<string, unknown>;
+				};
+				error.statusCode = response.status;
+				if (errorCode) error.code = errorCode;
+				if (errorDetails) error.details = errorDetails;
 				Object.defineProperty(error, NRPC_HTTP_ERROR_LOGGED, { value: true });
 				throw error;
 			}

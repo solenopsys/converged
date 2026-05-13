@@ -75,7 +75,7 @@ export class ChatRuntimeService {
       throw new Error(`Model not found for service type: ${serviceType}`);
     }
 
-    const conversation = this.factory.create(serviceType, model, this.logFunction);
+    const conversation = this.factory.create(serviceType, model);
     const sessionId = conversation.getId();
     this.conversations.set(sessionId, conversation);
     if (contextName?.trim()) {

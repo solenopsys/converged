@@ -21,6 +21,7 @@
 		"g-store": "workspace:*",
 		"g-threads": "workspace:*",
 		"lucide-react": "^1.8.0",
+		"model3d": "workspace:*",
 		"react-markdown": "^10.1.0",
 		"uuid": "^13.0.0"
 	}

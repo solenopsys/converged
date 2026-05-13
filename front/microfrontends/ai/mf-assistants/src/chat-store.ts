@@ -8,12 +8,12 @@ import {
 	registry,
 	setCenterView,
 } from "front-core";
-import { v4 as uuidv4 } from "uuid";
 import type {
 	RequestModel,
 	RequestProcessType,
 	RequestRequirementProfile,
 } from "g-requests";
+import { v4 as uuidv4 } from "uuid";
 import { MessageType } from "../../../../../tools/integration/types/services/communications/threads";
 import {
 	assistantClient,
@@ -354,7 +354,9 @@ const ensureInitialRequestDraft = async (message: string): Promise<boolean> => {
 	const isRequestContext = chatStore.$chat.getState().contextName === "request";
 	if (!isRequestContext || activeRequestId) {
 		logRequestFlow("auto-create.skip", {
-			reason: !isRequestContext ? "not_request_context" : "active_request_exists",
+			reason: !isRequestContext
+				? "not_request_context"
+				: "active_request_exists",
 			activeRequestId,
 		});
 		return false;
@@ -550,14 +552,13 @@ const createCncRequestTool: ExecutableTool = {
 				ok: false,
 				requestId: activeRequestId,
 				error:
-					"createCncRequest was called with an active request but no fields provided. Extract any values you can determine from the conversation (quantity, technology, material, dimensions, etc.) and call patchCncRequest with those fields immediately. Then ask only for truly unknown fields.",
-				hint: "Call patchCncRequest now with whatever field values you can infer from the user message.",
+					"createCncRequest was called with an active request but no fields provided. Do not call createCncRequest or patchCncRequest again with empty arguments. Call patchCncRequest only if you have concrete fields/files/status/title/summary to apply; otherwise answer the user and ask only for truly unknown fields.",
+				hint: "Stop calling request tools with empty arguments. Respond to the user unless you can provide a non-empty patch payload.",
 				...(model ? requestModelToolPayload(model) : {}),
 			};
 		}
-		const { model, reusedActiveRequest } = await createOrUpdateRequestDraft(
-			args,
-		);
+		const { model, reusedActiveRequest } =
+			await createOrUpdateRequestDraft(args);
 		logRequestFlow("tool.createCncRequest.result", {
 			ok: true,
 			requestId: model.id,
@@ -679,7 +680,8 @@ const patchCncRequestTool: ExecutableTool = {
 				ok: false,
 				requestId,
 				error:
-					"patchCncRequest received no fields/files/status/title/summary to apply",
+					"patchCncRequest received no fields/files/status/title/summary to apply. Do not call patchCncRequest again with empty arguments; respond to the user or ask for the missing information.",
+				hint: "Stop calling patchCncRequest until you have a non-empty patch payload.",
 				...(model ? requestModelToolPayload(model) : {}),
 			};
 		}
