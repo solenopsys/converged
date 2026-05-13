@@ -1,6 +1,8 @@
 export const NRPC_FORWARDED_HOST_HEADER = "x-forwarded-host";
 
 export interface NrpcClientEnv {
+	baseUrl?: string;
+	serviceToken?: string;
 	headers?: Record<string, string | undefined>;
 }
 
@@ -26,6 +28,14 @@ export function configureNrpcClientEnv(env: NrpcClientEnv): void {
 
 export function getNrpcClientEnv(): NrpcClientEnv {
 	return globalThis.__NRPC_CLIENT_ENV__ ?? {};
+}
+
+export function getNrpcClientBaseUrl(): string | undefined {
+	return normalize(getNrpcClientEnv().baseUrl);
+}
+
+export function getNrpcClientServiceToken(): string | undefined {
+	return normalize(getNrpcClientEnv().serviceToken);
 }
 
 export function getNrpcClientHeaders(): Record<string, string> {

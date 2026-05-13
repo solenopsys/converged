@@ -26,22 +26,6 @@ export class RequestRequirementsStoreService {
 		this.repo = new RequirementProfileRepository(store);
 	}
 
-	async seedBundledDefaults(): Promise<void> {
-		const catalog = await loadBundledDefaultRequirements();
-		await this.seedDefaults(catalog);
-	}
-
-	async seedDefaults(catalog: RequestRequirementsCatalog): Promise<void> {
-		for (const profile of catalog.profiles ?? []) {
-			if (!profile.processType) continue;
-			const key = new RequirementProfileKey(profile.processType);
-			if (!this.repo.exists(key)) {
-				await this.repo.save(key, profile);
-			}
-		}
-		await this.refreshCache();
-	}
-
 	async refreshCache(): Promise<void> {
 		const profiles = await this.listProfiles();
 		this.cache.clear();
@@ -92,7 +76,3 @@ export type RequestRequirementsProvider = Pick<
 	"getProfile" | "getProfileSync" | "listProfiles"
 >;
 
-export async function loadBundledDefaultRequirements(): Promise<RequestRequirementsCatalog> {
-	const file = Bun.file(new URL("./defaults.json", import.meta.url));
-	return (await file.json()) as RequestRequirementsCatalog;
-}

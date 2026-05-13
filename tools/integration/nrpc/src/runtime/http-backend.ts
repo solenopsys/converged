@@ -79,6 +79,7 @@ export interface PluginOptions {
 	dbPath?: string;
 	registerStartupTask?: (name: string, task: () => Promise<void>) => void;
 	registerShutdownTask?: (name: string, task: () => Promise<void>) => void;
+	runWithContext?: <T>(context: WorkspaceContext, callback: () => T) => T;
 	[key: string]: any;
 }
 
@@ -143,10 +144,12 @@ export function createHttpBackend(config: ElysiaBackendConfig) {
 				}) => {
 					try {
 						const context = backend.createWorkspaceContext(headers);
-						const result = await runWithWorkspaceContext(context, async () => {
-							await backend.authorize(method.name, headers);
-							return backend.callMethod(method.name, body || {}, context);
-						});
+						await backend.authorize(method.name, headers);
+						const result = await backend.callMethod(
+							method.name,
+							body || {},
+							context,
+						);
 						if (
 							result === null ||
 							result === undefined ||
@@ -501,20 +504,24 @@ class ElysiaBackend {
 	createWorkspaceContext(
 		headers: Record<string, string | undefined>,
 	): WorkspaceContext {
+		const workspace = resolveWorkspaceFromHeaders(
+			headers,
+			this.config.workspaceHeaderName || NRPC_WORKSPACE_HEADER,
+		);
 		return {
-			workspace: resolveWorkspaceFromHeaders(
-				headers,
-				this.config.workspaceHeaderName || NRPC_WORKSPACE_HEADER,
-			),
-			scope: resolveScopeFromHeaders(
-				headers,
-				resolveWorkspaceFromHeaders(
-					headers,
-					this.config.workspaceHeaderName || NRPC_WORKSPACE_HEADER,
-				),
-			),
+			workspace,
+			scope: resolveScopeFromHeaders(headers, workspace),
 			headers,
 		};
+	}
+
+	private runWithContext<T>(context: WorkspaceContext, callback: () => T): T {
+		return runWithWorkspaceContext(context, () => {
+			if (typeof this.options.runWithContext === "function") {
+				return this.options.runWithContext(context, callback);
+			}
+			return callback();
+		});
 	}
 
 	private async callLocalMethod(
@@ -547,7 +554,7 @@ class ElysiaBackend {
 			return this.serviceInstance[methodName](...args);
 		};
 		const result = context
-			? await runWithWorkspaceContext(context, invoke)
+			? await this.runWithContext(context, invoke)
 			: await invoke();
 		return serializeValue(result, methodMetadata.returnType);
 	}
@@ -585,6 +592,8 @@ class ElysiaBackend {
 		// Сохраняем ссылку на serviceInstance для использования в ReadableStream
 		const serviceInstance = this.serviceInstance;
 		const ensureStoresForContext = () => this.ensureStoresForContext();
+		const runInContext = <T>(ctx: WorkspaceContext, callback: () => T) =>
+			this.runWithContext(ctx, callback);
 
 		const serviceName = this.config.metadata.serviceName;
 
@@ -668,7 +677,7 @@ class ElysiaBackend {
 
 				try {
 					if (context) {
-						await runWithWorkspaceContext(context, stream);
+						await runInContext(context, stream);
 					} else {
 						await stream();
 					}

@@ -17,3 +17,11 @@ export function setWorkspaceContextResolver(
 export function getRegisteredWorkspaceContext(): WorkspaceContext | undefined {
 	return workspaceContextResolver?.();
 }
+
+export function getCurrentWorkspaceContext(): WorkspaceContext | undefined {
+	return getRegisteredWorkspaceContext();
+}
+
+export function getCurrentWorkspace(): string | undefined {
+	return getCurrentWorkspaceContext()?.workspace;
+}

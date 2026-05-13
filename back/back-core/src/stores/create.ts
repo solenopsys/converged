@@ -116,6 +116,21 @@ function storageConnectionKey(config: StorageConnectionTarget): string {
 		: `tcp:${normalized.host}:${normalized.port}`;
 }
 
+function discoverStorageHosts(): string[] {
+	const prefix = process.env.STORAGE_SERVICE_PREFIX;
+	if (!prefix) return [];
+	const envPrefix = prefix.toUpperCase().replace(/-/g, "_") + "_";
+	const envSuffix = "_SERVICE_HOST";
+	const hosts: string[] = [];
+	for (const key of Object.keys(process.env)) {
+		if (key.startsWith(envPrefix) && key.endsWith(envSuffix)) {
+			const mid = key.slice(envPrefix.length, -envSuffix.length);
+			hosts.push(`${prefix}-${mid.toLowerCase().replace(/_/g, "-")}`);
+		}
+	}
+	return hosts;
+}
+
 function readStorageConnectionConfig(): StorageConnectionTarget {
 	const tenantEndpoint = readTenantStorageEndpoint();
 	if (tenantEndpoint) {
@@ -125,10 +140,14 @@ function readStorageConnectionConfig(): StorageConnectionTarget {
 	const transport =
 		process.env.STORAGE_TRANSPORT || process.env.STORAGE_CONNECTION_KIND;
 	if (transport === "tcp") {
+		const discovered = discoverStorageHosts();
 		return {
 			kind: "tcp",
 			host:
-				process.env.STORAGE_TCP_HOST || process.env.STORAGE_HOST || "127.0.0.1",
+				process.env.STORAGE_TCP_HOST ||
+				process.env.STORAGE_HOST ||
+				discovered[0] ||
+				"127.0.0.1",
 			port: normalizeTcpPort(
 				process.env.STORAGE_TCP_PORT || process.env.STORAGE_PORT,
 			),
@@ -143,6 +162,18 @@ function readStorageConnectionConfigForScope(
 	const tenantEndpoint = readTenantStorageEndpoint(scope);
 	if (tenantEndpoint) {
 		return storageEndpointToTarget(tenantEndpoint);
+	}
+	const prefix = process.env.STORAGE_SERVICE_PREFIX;
+	const transport =
+		process.env.STORAGE_TRANSPORT || process.env.STORAGE_CONNECTION_KIND;
+	if (prefix && scope && transport === "tcp") {
+		return {
+			kind: "tcp",
+			host: `${prefix}-${scope}`,
+			port: normalizeTcpPort(
+				process.env.STORAGE_TCP_PORT || process.env.STORAGE_PORT,
+			),
+		};
 	}
 	return readStorageConnectionConfig();
 }

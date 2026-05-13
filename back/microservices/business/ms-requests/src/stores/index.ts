@@ -36,7 +36,6 @@ export class StoresController extends StoreControllerAbstract {
     );
     await this.startAll();
     await this.migrateAll();
-    await this.requirements.seedBundledDefaults();
   }
 
   async destroy() {

@@ -1,17 +1,11 @@
 import * as fs from "fs/promises";
 import { existsSync, type Dirent } from "fs";
 import path from "path";
-import { DATA_DIR } from "back-core";
-import { StorageConnection } from "bun-transport";
-
-const STORAGE_SOCKET_PATH =
-  process.env.STORAGE_SOCKET_PATH || "/tmp/storage.sock";
+import { DATA_DIR, getStorageConnection } from "back-core";
 
 const MAX_SEGMENT = 1024 * 1024; // 1 MB
 
-export type DumpsConfig = {
-  socketPath?: string;
-};
+export type DumpsConfig = {};
 
 // Filesystem-based recursive directory size (for listing, no need to open store)
 const directorySize = async (dir: string): Promise<number> => {
@@ -36,11 +30,9 @@ const directorySize = async (dir: string): Promise<number> => {
 };
 
 export class DumpsServiceImpl {
-  private conn: StorageConnection;
   private baseDir: string;
 
-  constructor(config: DumpsConfig = {}) {
-    this.conn = new StorageConnection(config.socketPath ?? STORAGE_SOCKET_PATH);
+  constructor(_config: DumpsConfig = {}) {
     this.baseDir = path.resolve(DATA_DIR);
   }
 
@@ -76,19 +68,19 @@ export class DumpsServiceImpl {
     if (slashIdx <= 0) throw new Error("Invalid storage name, expected ms/store");
     const ms = name.slice(0, slashIdx);
     const store = name.slice(slashIdx + 1);
-    this.conn.kvCompact(ms, store);
+    getStorageConnection().kvCompact(ms, store);
     return { name };
   }
 
   async createDump(name: string) {
     const [ms, store] = name.split("/");
     if (!ms || !store) throw new Error("Invalid storage name, expected ms/store");
-    const fileName = this.conn.dumpCreate(ms, store);
+    const fileName = getStorageConnection().dumpCreate(ms, store);
     return { name, fileName };
   }
 
   async listDumps() {
-    const dumps = this.conn.dumpList();
+    const dumps = getStorageConnection().dumpList();
     return dumps.map(d => ({
       name: d.name,
       size: Number(d.size),
@@ -96,18 +88,18 @@ export class DumpsServiceImpl {
   }
 
   async deleteDump(fileName: string) {
-    this.conn.dumpDelete(fileName);
+    getStorageConnection().dumpDelete(fileName);
   }
 
   async getDumpSize(fileName: string): Promise<number> {
-    const dumps = this.conn.dumpList();
+    const dumps = getStorageConnection().dumpList();
     const found = dumps.find(d => d.name === fileName);
     if (!found) throw new Error("Dump not found");
     return Number(found.size);
   }
 
   readDumpSegment(fileName: string, offset: bigint, length: number): Buffer {
-    return this.conn.dumpRead(fileName, offset, Math.min(length, MAX_SEGMENT));
+    return getStorageConnection().dumpRead(fileName, offset, Math.min(length, MAX_SEGMENT));
   }
 }
 

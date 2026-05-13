@@ -1,11 +1,14 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { getCurrentRequestScope } from "back-core";
+import {
+	getCurrentRequestScope,
+	runWithRequestScopeContext,
+} from "back-core/request-context";
 import { Elysia } from "elysia";
 import type { ServiceMetadata } from "../types";
-import { configureNrpcClientEnv } from "./client-env";
 import { createHttpBackend } from "./http-backend";
 import { createHttpClient } from "./http-client";
 import { getCurrentWorkspace } from "./workspace-context";
+import type { WorkspaceContext } from "./workspace-context-registry";
 
 class WorkspaceTestService {
 	currentWorkspace(): string | null {
@@ -42,6 +45,20 @@ const metadata: ServiceMetadata = {
 	types: [],
 };
 
+function runBackCoreContext<T>(
+	context: WorkspaceContext,
+	callback: () => T,
+): T {
+	return runWithRequestScopeContext(
+		{
+			workspace: context.workspace,
+			scope: context.scope ?? context.workspace,
+			headers: context.headers,
+		},
+		callback,
+	);
+}
+
 describe("Workspace context", () => {
 	let app: Elysia;
 	let previousFetch: typeof fetch;
@@ -54,7 +71,9 @@ describe("Workspace context", () => {
 				metadata,
 				serviceImpl: WorkspaceTestService,
 				pathPrefix: "/services",
-			})({}),
+			})({
+				runWithContext: runBackCoreContext,
+			}),
 		);
 		baseUrl = "http://nrpc.test/services";
 		previousFetch = globalThis.fetch;
@@ -81,76 +100,50 @@ describe("Workspace context", () => {
 		expect(await client.currentWorkspace()).toBe("acme");
 	});
 
-	test("resolves workspace from host domain map for direct runtime requests", async () => {
-		const previousMap = process.env.WORKSPACE_DOMAIN_MAP;
-		process.env.WORKSPACE_DOMAIN_MAP = JSON.stringify({
-			"runtime.example.com": "runtime-tenant",
-		});
-		try {
-			const response = await fetch(
-				`${baseUrl}/workspacetest/currentWorkspace`,
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						host: "runtime.example.com",
-					},
-					body: JSON.stringify({}),
-				},
-			);
-
-			expect(await response.json()).toBe("runtime-tenant");
-		} finally {
-			if (previousMap === undefined) {
-				delete process.env.WORKSPACE_DOMAIN_MAP;
-			} else {
-				process.env.WORKSPACE_DOMAIN_MAP = previousMap;
-			}
-		}
-	});
-
-	test("resolves workspace from transport forwarded host header", async () => {
-		const previousMap = process.env.WORKSPACE_DOMAIN_MAP;
-		const previousEnv = globalThis.__NRPC_CLIENT_ENV__;
-		process.env.WORKSPACE_DOMAIN_MAP = JSON.stringify({
-			"portal.example.com": "portal-tenant",
-		});
-		configureNrpcClientEnv({
-			headers: {
-				"x-forwarded-host": "portal.example.com",
-			},
-		});
-		try {
-			const client = createHttpClient<any>(metadata, { baseUrl });
-
-			expect(await client.currentWorkspace()).toBe("portal-tenant");
-		} finally {
-			globalThis.__NRPC_CLIENT_ENV__ = previousEnv;
-			if (previousMap === undefined) {
-				delete process.env.WORKSPACE_DOMAIN_MAP;
-			} else {
-				process.env.WORKSPACE_DOMAIN_MAP = previousMap;
-			}
-		}
-	});
-
-	test("passes explicit scope into back-core request context", async () => {
+	test("passes explicit scope into external request context", async () => {
 		const client = createHttpClient<any>(metadata, {
 			baseUrl,
 			workspace: "acme",
-			scope: "acme-storage",
+			scope: "acme-data",
 		});
 
-		expect(await client.currentScope()).toBe("acme-storage");
+		expect(await client.currentScope()).toBe("acme-data");
 	});
 
-	test("falls back to workspace as request storage scope", async () => {
+	test("falls back to workspace as generic request scope", async () => {
 		const client = createHttpClient<any>(metadata, {
 			baseUrl,
 			workspace: "acme",
 		});
 
 		expect(await client.currentScope()).toBe("acme");
+	});
+
+	test("reads direct workspace and scope headers", async () => {
+		const response = await fetch(`${baseUrl}/workspacetest/currentScope`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				workspace: "direct",
+				"x-scope": "direct-scope",
+			},
+			body: JSON.stringify({}),
+		});
+
+		expect(await response.json()).toBe("direct-scope");
+	});
+
+	test("does not resolve workspace from host inside nrpc transport", async () => {
+		const response = await fetch(`${baseUrl}/workspacetest/currentWorkspace`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				host: "runtime.example.com",
+			},
+			body: JSON.stringify({}),
+		});
+
+		expect(await response.json()).toBeNull();
 	});
 
 	test("keeps workspace optional for existing clients", async () => {

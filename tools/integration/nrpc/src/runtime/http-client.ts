@@ -1,7 +1,9 @@
 // nrpc-runtime/http-client.ts
 import type { ServiceMetadata } from "../types";
 import {
+	getNrpcClientBaseUrl,
 	getNrpcClientHeaders,
+	getNrpcClientServiceToken,
 } from "./client-env";
 import { deserializeValue, serializeValue } from "./serialization";
 import { getRegisteredWorkspaceContext } from "./workspace-context-registry";
@@ -63,7 +65,7 @@ function isConnectivityIssue(error: any): boolean {
 }
 
 class HttpClientImpl {
-	private baseUrl: string;
+	private baseUrl?: string;
 	private timeout: number;
 	private headers: Record<string, string>;
 	private workspace?: string | (() => string | undefined);
@@ -75,21 +77,18 @@ class HttpClientImpl {
 		private metadata: ServiceMetadata,
 		config: ClientConfig,
 	) {
-		const envBase =
-			typeof process !== "undefined" ? process.env?.SERVICES_BASE : undefined;
-		this.baseUrl = config.baseUrl || envBase || "/services";
+		this.baseUrl = config.baseUrl;
 		this.timeout = config.timeout || 5000;
-		const serviceToken =
-			typeof process !== "undefined" ? process.env?.SERVICE_TOKEN : undefined;
-		this.headers = {
-			...(serviceToken ? { authorization: `Bearer ${serviceToken}` } : {}),
-			...config.headers,
-		};
+		this.headers = { ...config.headers };
 		this.workspace = config.workspace;
 		this.scope = config.scope;
 		this.workspaceHeaderName =
 			config.workspaceHeaderName || NRPC_WORKSPACE_HEADER;
 		this.scopeHeaderName = config.scopeHeaderName || NRPC_SCOPE_HEADER;
+	}
+
+	private resolveBaseUrl(): string {
+		return this.baseUrl || getNrpcClientBaseUrl() || "/services";
 	}
 
 	call(methodName: string, params: any[]): any {
@@ -108,7 +107,11 @@ class HttpClientImpl {
 	}
 
 	private resolveRequestHeaders(): Record<string, string> {
-		const resolved: Record<string, string> = { ...this.headers };
+		const serviceToken = getNrpcClientServiceToken();
+		const resolved: Record<string, string> = {
+			...(serviceToken ? { authorization: `Bearer ${serviceToken}` } : {}),
+			...this.headers,
+		};
 		const hasAuthorization = Object.keys(resolved).some(
 			(key) => key.toLowerCase() === "authorization",
 		);
@@ -149,12 +152,7 @@ class HttpClientImpl {
 			typeof globalThis !== "undefined"
 				? globalThis.__NRPC_WORKSPACE__
 				: undefined;
-		const envWorkspace =
-			typeof process !== "undefined"
-				? process.env?.NRPC_WORKSPACE || process.env?.WORKSPACE
-				: undefined;
-		const workspace =
-			explicit || runtimeWorkspace || globalWorkspace || envWorkspace;
+		const workspace = explicit || runtimeWorkspace || globalWorkspace;
 		const normalized = workspace?.trim();
 		return normalized || undefined;
 	}
@@ -169,17 +167,8 @@ class HttpClientImpl {
 				: undefined;
 		const globalScope =
 			typeof globalThis !== "undefined" ? globalThis.__NRPC_SCOPE__ : undefined;
-		const envScope =
-			typeof process !== "undefined"
-				? process.env?.NRPC_SCOPE || process.env?.STORAGE_SCOPE
-				: undefined;
 		const scope =
-			explicit ||
-			contextScope ||
-			runtimeScope ||
-			globalScope ||
-			envScope ||
-			workspace;
+			explicit || contextScope || runtimeScope || globalScope || workspace;
 		const normalized = scope?.trim();
 		return normalized || undefined;
 	}
@@ -203,7 +192,7 @@ class HttpClientImpl {
 		}, this.timeout);
 
 		try {
-			const url = `${this.baseUrl}${path}`;
+			const url = `${this.resolveBaseUrl()}${path}`;
 			const requestHeaders = this.resolveRequestHeaders();
 			const response = await fetch(url, {
 				method: "POST",
@@ -258,9 +247,15 @@ class HttpClientImpl {
 			}
 
 			if (isConnectivityIssue(error)) {
-				console.info(`[nrpc] · ${this.baseUrl}${path}:`, error.message);
+				console.info(
+					`[nrpc] · ${this.resolveBaseUrl()}${path}:`,
+					error.message,
+				);
 			} else {
-				console.error(`[nrpc] ✗ ${this.baseUrl}${path}:`, error.message);
+				console.error(
+					`[nrpc] ✗ ${this.resolveBaseUrl()}${path}:`,
+					error.message,
+				);
 			}
 			throw error;
 		}
@@ -278,7 +273,7 @@ class HttpClientImpl {
 				const abortController = new AbortController();
 
 				const requestHeaders = self.resolveRequestHeaders();
-				const response = await fetch(`${self.baseUrl}${path}`, {
+				const response = await fetch(`${self.resolveBaseUrl()}${path}`, {
 					method: "POST",
 					headers: {
 						"Content-Type": "application/json",

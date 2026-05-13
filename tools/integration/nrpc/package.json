@@ -2,9 +2,10 @@
   "name": "nrpc",
   "module": "src/index.ts",
   "exports": {
-    ".": "./src/index.ts",
+    ".": "./src/index.ts"
   },
   "type": "module",
+  "sideEffects": false,
   "private": true,
   "scripts": {
     "gen": "bun run src/gen-all.ts ../types ../generated"
