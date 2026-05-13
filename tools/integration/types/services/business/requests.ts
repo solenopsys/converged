@@ -181,6 +181,68 @@ export type RequestListParams = {
 	source?: string;
 };
 
+export type RequestOrderStatusGroup =
+	| "all"
+	| "requests"
+	| "ready"
+	| "in_progress"
+	| "completed"
+	| "blocked";
+
+export type RequestOrderListParams = RequestListParams & {
+	statusGroup?: RequestOrderStatusGroup;
+	processType?: RequestProcessType;
+};
+
+export type RequestOrderRow = {
+	id: RequestId;
+	requestId: RequestId;
+	model: string;
+	printingType: string;
+	status: RequestStatus;
+	statusGroup: RequestOrderStatusGroup;
+	quantity: number;
+	weightGrams?: number;
+	material?: string;
+	processType: RequestProcessType;
+	completionPercent: number;
+	createdAt: ISODateString;
+	updatedAt: ISODateString;
+};
+
+export type RequestConversionPoint = {
+	date: string;
+	requests: number;
+	orders: number;
+	conversion: number;
+};
+
+export type RequestStatusCount = {
+	group: RequestOrderStatusGroup;
+	label: string;
+	count: number;
+};
+
+export type RequestDashboardStats = {
+	requestsTotal: number;
+	ordersTotal: number;
+	printingTotal: number;
+	inProgressTotal: number;
+	completedTotal: number;
+	conversionPercent: number;
+	utilizationPercent: number;
+	printerCapacity: number;
+	availablePrinters: number;
+	estimatedPrintingHours: number;
+	materialWeightGrams: number;
+};
+
+export type RequestDashboard = {
+	stats: RequestDashboardStats;
+	conversion: RequestConversionPoint[];
+	statusCounts: RequestStatusCount[];
+};
+
 export type RequestProcessingEntry = {
 	id: string;
 	requestId: RequestId;
@@ -224,4 +286,8 @@ export interface RequestsService {
 		comment?: string,
 	): Promise<void>;
 	listProcessing(requestId: RequestId): Promise<RequestProcessingEntry[]>;
+	listRequestOrders(
+		params: RequestOrderListParams,
+	): Promise<PaginatedResult<RequestOrderRow>>;
+	getRequestDashboard(): Promise<RequestDashboard>;
 }

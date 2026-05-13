@@ -185,6 +185,67 @@ export type RequestListParams = {
 	source?: string;
 };
 
+export type RequestOrderStatusGroup = | "all"
+	| "requests"
+	| "ready"
+	| "in_progress"
+	| "completed"
+	| "blocked";
+
+export type RequestOrderListParams = RequestListParams & {
+	statusGroup?: RequestOrderStatusGroup;
+	processType?: RequestProcessType;
+};
+
+export type RequestOrderRow = {
+	id: RequestId;
+	requestId: RequestId;
+	model: string;
+	printingType: string;
+	status: RequestStatus;
+	statusGroup: RequestOrderStatusGroup;
+	quantity: number;
+	weightGrams?: number;
+	material?: string;
+	processType: RequestProcessType;
+	completionPercent: number;
+	createdAt: ISODateString;
+	updatedAt: ISODateString;
+};
+
+export type RequestConversionPoint = {
+	date: string;
+	requests: number;
+	orders: number;
+	conversion: number;
+};
+
+export type RequestStatusCount = {
+	group: RequestOrderStatusGroup;
+	label: string;
+	count: number;
+};
+
+export type RequestDashboardStats = {
+	requestsTotal: number;
+	ordersTotal: number;
+	printingTotal: number;
+	inProgressTotal: number;
+	completedTotal: number;
+	conversionPercent: number;
+	utilizationPercent: number;
+	printerCapacity: number;
+	availablePrinters: number;
+	estimatedPrintingHours: number;
+	materialWeightGrams: number;
+};
+
+export type RequestDashboard = {
+	stats: RequestDashboardStats;
+	conversion: RequestConversionPoint[];
+	statusCounts: RequestStatusCount[];
+};
+
 export type RequestProcessingEntry = {
 	id: string;
 	requestId: RequestId;
@@ -415,6 +476,29 @@ export const metadata = {
       "isAsync": true,
       "returnTypeIsArray": true,
       "isAsyncIterable": false
+    },
+    {
+      "name": "listRequestOrders",
+      "parameters": [
+        {
+          "name": "params",
+          "type": "RequestOrderListParams",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "PaginatedResult<RequestOrderRow>",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "getRequestDashboard",
+      "parameters": [],
+      "returnType": "RequestDashboard",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -534,6 +618,41 @@ export const metadata = {
       "definition": "{\n\toffset: number;\n\tlimit: number;\n\tsource?: string;\n}"
     },
     {
+      "name": "RequestOrderStatusGroup",
+      "kind": "type",
+      "definition": "| \"all\"\n\t| \"requests\"\n\t| \"ready\"\n\t| \"in_progress\"\n\t| \"completed\"\n\t| \"blocked\""
+    },
+    {
+      "name": "RequestOrderListParams",
+      "kind": "type",
+      "definition": "RequestListParams & {\n\tstatusGroup?: RequestOrderStatusGroup;\n\tprocessType?: RequestProcessType;\n}"
+    },
+    {
+      "name": "RequestOrderRow",
+      "kind": "type",
+      "definition": "{\n\tid: RequestId;\n\trequestId: RequestId;\n\tmodel: string;\n\tprintingType: string;\n\tstatus: RequestStatus;\n\tstatusGroup: RequestOrderStatusGroup;\n\tquantity: number;\n\tweightGrams?: number;\n\tmaterial?: string;\n\tprocessType: RequestProcessType;\n\tcompletionPercent: number;\n\tcreatedAt: ISODateString;\n\tupdatedAt: ISODateString;\n}"
+    },
+    {
+      "name": "RequestConversionPoint",
+      "kind": "type",
+      "definition": "{\n\tdate: string;\n\trequests: number;\n\torders: number;\n\tconversion: number;\n}"
+    },
+    {
+      "name": "RequestStatusCount",
+      "kind": "type",
+      "definition": "{\n\tgroup: RequestOrderStatusGroup;\n\tlabel: string;\n\tcount: number;\n}"
+    },
+    {
+      "name": "RequestDashboardStats",
+      "kind": "type",
+      "definition": "{\n\trequestsTotal: number;\n\tordersTotal: number;\n\tprintingTotal: number;\n\tinProgressTotal: number;\n\tcompletedTotal: number;\n\tconversionPercent: number;\n\tutilizationPercent: number;\n\tprinterCapacity: number;\n\tavailablePrinters: number;\n\testimatedPrintingHours: number;\n\tmaterialWeightGrams: number;\n}"
+    },
+    {
+      "name": "RequestDashboard",
+      "kind": "type",
+      "definition": "{\n\tstats: RequestDashboardStats;\n\tconversion: RequestConversionPoint[];\n\tstatusCounts: RequestStatusCount[];\n}"
+    },
+    {
       "name": "RequestProcessingEntry",
       "kind": "type",
       "definition": "{\n\tid: string;\n\trequestId: RequestId;\n\tstatus: RequestStatus;\n\tactor: string;\n\tcomment: string;\n\tcreatedAt: ISODateString;\n}"
@@ -560,6 +679,8 @@ export interface RequestsService {
   listRequests(params: RequestListParams): Promise<PaginatedResult<Request>>;
   updateStatus(id: RequestId, status: RequestStatus, actor: string, comment?: string): Promise<void>;
   listProcessing(requestId: RequestId): Promise<RequestProcessingEntry[]>;
+  listRequestOrders(params: RequestOrderListParams): Promise<PaginatedResult<RequestOrderRow>>;
+  getRequestDashboard(): Promise<RequestDashboard>;
 }
 
 // Client interface
@@ -575,6 +696,8 @@ export interface RequestsServiceClient {
   listRequests(params: RequestListParams): Promise<PaginatedResult<Request>>;
   updateStatus(id: RequestId, status: RequestStatus, actor: string, comment?: string): Promise<void>;
   listProcessing(requestId: RequestId): Promise<RequestProcessingEntry[]>;
+  listRequestOrders(params: RequestOrderListParams): Promise<PaginatedResult<RequestOrderRow>>;
+  getRequestDashboard(): Promise<RequestDashboard>;
 }
 
 // Factory function
