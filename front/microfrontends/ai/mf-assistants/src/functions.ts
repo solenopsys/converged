@@ -1,4 +1,4 @@
-import { CreateAction, chatInitRequested } from "front-core";
+import { CreateAction, chatInitRequested, upsertSidebarTab } from "front-core";
 import {assistantClient as chatsService} from "./services";
 import { CreateWidget } from 'front-core';
 import { sample } from "effector";
@@ -8,6 +8,7 @@ import { ChatHistoryView } from "./views/ChatHistoryView";
 import { ChatsListView } from "./views/ChatsListView";
 import { ContextsListView } from "./views/ContextsListView";
 import { CommandsListView } from "./views/CommandsListView";
+import { ToolCallJsonView } from "./views/ToolCallJsonView";
 
 const GET_CHATS_LIST = "chats.get_list";
 const SHOW_CHATS_LIST = "chats.show_list";
@@ -15,8 +16,11 @@ const SHOW_CONTEXTS_LIST = "chats.show_contexts_list";
 const SHOW_COMMANDS_LIST = "chats.show_commands_list";
 const SHOW_CHAT = "chats.show";
 const VIEW_CHAT = "chats.view";
+const VIEW_TOOL_CALL_JSON = "chats.view_tool_call_json";
 const EDIT_CHAT = "chats.edit";
 const DELETE_CHAT = "chats.delete";
+const CHAT_HISTORY_TAB_ID = "chat-history";
+const TOOL_CALL_JSON_TAB_ID = "chat-json";
 
 // Effects and Events
 const deleteChatFx = domain.createEffect<{ recordId: string }, void>({
@@ -60,10 +64,34 @@ const createChatWidget: CreateWidget<typeof ChatView> = () => ({
     commands: {}
 });
 
-const createChatHistoryWidget = (params: { threadId: string }) => ({
+const createChatHistoryWidget = (bus, params: { threadId: string }) => ({
     view: ChatHistoryView,
-    placement: () => "sidebar:tab:chat",
-    config: params,
+    placement: () => `sidebar:tab:${CHAT_HISTORY_TAB_ID}`,
+    config: {
+        ...params,
+        bus,
+        openToolCallJson: (payload) => {
+            bus.present({ widget: createToolCallJsonWidget(bus, payload) });
+        },
+    },
+    commands: {}
+});
+
+const createToolCallJsonWidget = (
+    bus,
+    params: {
+        threadId: string;
+        title: string;
+        toolCallId?: string;
+        summary?: string;
+        details?: Record<string, unknown> | Array<unknown> | string;
+    },
+) => ({
+    view: ToolCallJsonView,
+    placement: () => `sidebar:tab:${TOOL_CALL_JSON_TAB_ID}`,
+    config: {
+        ...params,
+    },
     commands: {}
 });
 
@@ -108,7 +136,36 @@ const createViewChatAction: CreateAction<any> = (bus) => ({
     description: "View chat details",
     invoke: ({ recordId }) => {
         if (!recordId) return;
-        bus.present({ widget: createChatHistoryWidget({ threadId: recordId }) });
+        upsertSidebarTab({
+            id: CHAT_HISTORY_TAB_ID,
+            title: "History",
+            iconName: "history",
+            order: 999,
+        });
+        bus.present({ widget: createChatHistoryWidget(bus, { threadId: recordId }) });
+    }
+});
+
+const createViewToolCallJsonAction: CreateAction<any> = (bus) => ({
+    id: VIEW_TOOL_CALL_JSON,
+    description: "View tool call JSON",
+    invoke: ({ threadId, title, toolCallId, summary, details }) => {
+        if (!threadId) return;
+        upsertSidebarTab({
+            id: TOOL_CALL_JSON_TAB_ID,
+            title: "JSON",
+            iconName: "json",
+            order: 1000,
+        });
+        bus.present({
+            widget: createToolCallJsonWidget(bus, {
+                threadId,
+                title: title ?? "Вызов функции",
+                toolCallId,
+                summary,
+                details,
+            })
+        });
     }
 });
 
@@ -135,6 +192,7 @@ const ACTIONS = [
     createShowContextsListAction,
     createShowCommandsListAction,
     createViewChatAction,
+    createViewToolCallJsonAction,
     createEditChatAction,
     createDeleteChatAction
 ];
@@ -146,6 +204,7 @@ export {
     SHOW_CONTEXTS_LIST,
     SHOW_COMMANDS_LIST,
     VIEW_CHAT,
+    VIEW_TOOL_CALL_JSON,
     EDIT_CHAT,
     DELETE_CHAT,
     createShowChatAction,
@@ -153,6 +212,7 @@ export {
     createShowContextsListAction,
     createShowCommandsListAction,
     createViewChatAction,
+    createViewToolCallJsonAction,
     createEditChatAction,
     createDeleteChatAction
 };

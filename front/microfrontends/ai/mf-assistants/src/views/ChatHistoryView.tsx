@@ -7,6 +7,14 @@ import { threadsClient } from "../services";
 
 type ChatHistoryViewProps = {
   threadId: string;
+  bus?: any;
+  openToolCallJson?: (payload: {
+    threadId: string;
+    title: string;
+    toolCallId?: string;
+    summary?: string;
+    details?: Record<string, unknown> | Array<unknown> | string;
+  }) => void;
 };
 
 type LinkData = {
@@ -25,6 +33,14 @@ type LinkData = {
   };
 };
 
+type ToolCallResultData = {
+  toolCallId?: string;
+  parsed?: Record<string, unknown> | Array<unknown>;
+  raw: string;
+};
+
+const TOOL_CALL_RESULT_RE = /^Tool call\s+(\S+)\s+result:\s*([\s\S]*)$/i;
+
 function parseLinkData(data: string): LinkData | null {
   try {
     const parsed = JSON.parse(data) as unknown;
@@ -32,6 +48,40 @@ function parseLinkData(data: string): LinkData | null {
   } catch {
     return null;
   }
+}
+
+function parseToolCallResult(data: string): ToolCallResultData | null {
+  const match = TOOL_CALL_RESULT_RE.exec(data);
+  if (!match) return null;
+
+  const [, toolCallId, rawBody = ""] = match;
+  const raw = rawBody.trim();
+  if (!raw) {
+    return { toolCallId, raw: "" };
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown> | Array<unknown>;
+    return { toolCallId, parsed, raw };
+  } catch {
+    return { toolCallId, raw };
+  }
+}
+
+function buildToolCallSummary(parsed?: Record<string, unknown> | Array<unknown>) {
+  if (!parsed || Array.isArray(parsed)) return undefined;
+
+  const summary = typeof parsed.summary === "string" ? parsed.summary : undefined;
+  const title = typeof parsed.title === "string" ? parsed.title : undefined;
+  const status = typeof parsed.status === "string" ? parsed.status : undefined;
+  const modelId =
+    parsed.model && typeof parsed.model === "object" && parsed.model !== null
+      ? typeof (parsed.model as Record<string, unknown>).id === "string"
+        ? (parsed.model as Record<string, unknown>).id as string
+        : undefined
+      : undefined;
+
+  return [summary, title, status, modelId].filter(Boolean).join(" • ") || undefined;
 }
 
 function toChatMessage(message: ThreadMessage, index: number): ChatMessage | null {
@@ -69,6 +119,23 @@ function toChatMessage(message: ThreadMessage, index: number): ChatMessage | nul
 
   if (message.type !== MessageType.message && message.type !== "message") return null;
 
+  const toolCall = parseToolCallResult(message.data ?? "");
+  if (toolCall) {
+    return {
+      id: message.id ?? `history-tool-${index}-${message.timestamp ?? Date.now()}`,
+      beforeId: message.beforeId,
+      type: user,
+      content: "Вызов функции",
+      timestamp: message.timestamp ?? 0,
+      toolCallData: {
+        toolCallId: toolCall.toolCallId,
+        title: "Вызов функции",
+        summary: buildToolCallSummary(toolCall.parsed),
+        details: toolCall.parsed ?? toolCall.raw,
+      },
+    };
+  }
+
   return {
     id: message.id ?? `history-${index}-${message.timestamp ?? Date.now()}`,
     beforeId: message.beforeId,
@@ -78,7 +145,11 @@ function toChatMessage(message: ThreadMessage, index: number): ChatMessage | nul
   };
 }
 
-export const ChatHistoryView: React.FC<ChatHistoryViewProps> = ({ threadId }) => {
+export const ChatHistoryView: React.FC<ChatHistoryViewProps> = ({
+  threadId,
+  bus,
+  openToolCallJson,
+}) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -131,6 +202,22 @@ export const ChatHistoryView: React.FC<ChatHistoryViewProps> = ({ threadId }) =>
       send={() => {}}
       showComposer={false}
       intro={intro}
+      onOpenToolCallJson={(toolCall) => {
+        const payload = {
+          threadId,
+          title: toolCall.title,
+          toolCallId: toolCall.toolCallId,
+          summary: toolCall.summary,
+          details: toolCall.details,
+        };
+
+        if (openToolCallJson) {
+          openToolCallJson(payload);
+          return;
+        }
+
+        bus?.command?.("chats.view_tool_call_json", payload);
+      }}
     />
   );
 };

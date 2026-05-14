@@ -842,6 +842,39 @@ const startFileAnalysisTool: ExecutableTool = {
 			}
 		}
 
+		// Автоматически прикрепляем файлы к активной заявке
+		if (result && activeRequestId) {
+			const files: Record<string, string> = {};
+
+			// Входные файлы
+			for (const f of result.inputs ?? []) {
+				if (f.fileId && f.name) files[f.name] = f.fileId;
+			}
+			// Извлечённые из архива
+			for (const f of result.extracted ?? []) {
+				if (f.fileId && f.name) files[f.name] = f.fileId;
+			}
+			// Конвертированные превью (GLB и т.д.)
+			for (const f of result.converted ?? []) {
+				if (f.fileId && f.name) files[f.name] = f.fileId;
+			}
+
+			if (Object.keys(files).length > 0) {
+				try {
+					const updated = await requestsClient.applyRequestUpdate(
+						activeRequestId,
+						{ files, status: "file_analysis_done" },
+						"assistant",
+						"files attached after analysis",
+					);
+					openRequestPage(updated);
+					result = { ...result, attachedFiles: Object.keys(files).length };
+				} catch (e: any) {
+					console.warn("[FileAnalysis] Failed to attach files to request", e);
+				}
+			}
+		}
+
 		return { ok: true, executionId, result };
 	},
 };
@@ -1027,6 +1060,10 @@ uploadCompleted.watch((fileId) => {
 		});
 
 		await assistantClient.recordChatFile(chatThreadId, fileState.fileSize);
+
+		chatStore.send(
+			`[FILE] id=${fileId} name="${fileState.fileName}" size=${fileState.fileSize} type="${fileState.fileType}" — запусти анализ файла`,
+		);
 	})().catch((error) => {
 		console.warn("[Chat] Failed to save file message", error);
 	});

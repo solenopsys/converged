@@ -1,12 +1,14 @@
-import { generateULID, type SqlStore } from "back-core";
+import { generateULID, sql, type SqlStore } from "back-core";
 import type {
 	PaginatedResult,
 	Request,
+	RequestDailyPoint,
 	RequestFields,
 	RequestFiles,
 	RequestId,
 	RequestInput,
 	RequestListParams,
+	RequestMetrics,
 	RequestModel,
 	RequestModelInput,
 	RequestModelPatch,
@@ -262,6 +264,32 @@ export class RequestsStoreService {
 		return items as RequestProcessingEntry[];
 	}
 
+	async getRequestMetrics(): Promise<RequestMetrics> {
+		const countResult = await this.store.db
+			.selectFrom("requests")
+			.select(({ fn }) => fn.countAll().as("count"))
+			.executeTakeFirst();
+		const dailyRows = await this.store.db
+			.selectFrom("requests")
+			.select(sql<string>`substr(createdAt, 1, 10)`.as("date"))
+			.select(({ fn }) => fn.countAll().as("requests"))
+			.groupBy(sql`substr(createdAt, 1, 10)`)
+			.orderBy("date", "asc")
+			.execute();
+
+		return {
+			total: Number(countResult?.count ?? 0),
+			daily: this.fillDailyRequests(
+				(dailyRows as Array<{ date: string; requests: number | string }>).map(
+					(row) => ({
+						date: row.date,
+						requests: Number(row.requests ?? 0),
+					}),
+				),
+			),
+		};
+	}
+
 	private serializeMap(value: RequestFields | RequestFiles): string {
 		return JSON.stringify(value ?? {});
 	}
@@ -319,6 +347,27 @@ export class RequestsStoreService {
 
 	private async listRequirementProfiles(): Promise<RequestRequirementProfile[]> {
 		return this.requirements?.listProfiles() ?? [];
+	}
+
+	private fillDailyRequests(rows: RequestDailyPoint[]): RequestDailyPoint[] {
+		const byDate = new Map(rows.map((row) => [row.date, row.requests]));
+		const end = new Date();
+		const start = new Date(end);
+		start.setDate(start.getDate() - 89);
+
+		const points: RequestDailyPoint[] = [];
+		for (
+			const cursor = new Date(start);
+			cursor <= end;
+			cursor.setDate(cursor.getDate() + 1)
+		) {
+			const date = cursor.toISOString().slice(0, 10);
+			points.push({
+				date,
+				requests: byDate.get(date) ?? 0,
+			});
+		}
+		return points;
 	}
 
 	private getRequirementProfileSync(

@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import "@google/model-viewer";
 import { downloadFile, services } from "files-state";
 
 declare global {
@@ -28,6 +27,10 @@ export function ModelViewer({ fileId, alt = "3D model", style, className }: Prop
   const [url, setUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const prevUrl = useRef<string | null>(null);
+
+  useEffect(() => {
+    import("@google/model-viewer").catch(() => {});
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

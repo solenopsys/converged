@@ -1,19 +1,30 @@
-import { useEffect, useMemo, useState } from "react";
 import { useUnit } from "effector-react";
-import { useParams } from "react-router-dom";
-import QRCode from "qrcode";
+import { services } from "files-state";
+import { createFilesServiceClient } from "g-files";
 import type { RequestFieldState, RequestModel } from "g-requests";
-import {
-	$requestError,
-	$requestLoading,
-	$requestModel,
-	requestRefreshRequested,
-	requestRouteOpened,
-} from "../request/request-store";
+import { createStoreServiceClient } from "g-store";
+import { ModelViewer } from "model3d";
+import QRCode from "qrcode";
+import { useEffect, useMemo, useState } from "react";
+import { useParams } from "react-router-dom";
 
 declare global {
 	var __REQUEST_SSR_DATA__: Record<string, RequestModel> | undefined;
 }
+
+if (typeof window !== "undefined" && !services.getFilesService()) {
+	services.setFilesService(createFilesServiceClient({ baseUrl: "/services" }));
+	services.setStoreService(createStoreServiceClient({ baseUrl: "/services" }));
+}
+
+import {
+	$requestError,
+	$requestLoading,
+	$requestModel,
+	requestModelReceived,
+	requestRefreshRequested,
+	requestRouteOpened,
+} from "../request/request-store";
 
 const groupLabels: Record<string, string> = {
 	basic: "Основное",
@@ -30,7 +41,7 @@ const statusLabels: Record<string, string> = {
 	needs_clarification: "Нужно уточнение",
 	needs_files: "Нужны файлы",
 	file_analysis_pending: "Файлы обрабатываются",
-	file_analysis_complete: "Файлы обработаны",
+	file_analysis_done: "Файлы обработаны",
 };
 
 const processLabels: Record<string, string> = {
@@ -43,7 +54,7 @@ const processLabels: Record<string, string> = {
 
 function publicRequestUrl(requestId: string): string {
 	if (typeof window === "undefined") return `/request/${requestId}`;
-	return `${window.location.origin}${window.location.pathname}`;
+	return `${window.location.origin}/request/${requestId}`;
 }
 
 function formatDate(value?: string): string {
@@ -92,15 +103,9 @@ function RequestQr({ url }: { url: string }) {
 			errorCorrectionLevel: "M",
 			color: { dark: "#101827", light: "#ffffff" },
 		})
-			.then((next) => {
-				if (active) setDataUrl(next);
-			})
-			.catch(() => {
-				if (active) setDataUrl("");
-			});
-		return () => {
-			active = false;
-		};
+			.then((next) => { if (active) setDataUrl(next); })
+			.catch(() => { if (active) setDataUrl(""); });
+		return () => { active = false; };
 	}, [url]);
 
 	return (
@@ -179,34 +184,24 @@ function RequestPageBody({ model }: { model: RequestModel }) {
 									{processLabels[model.processType] ?? model.processType}
 								</span>
 							</div>
-
 							<div>
 								<h1 className="max-w-4xl text-3xl font-semibold leading-[1.05] tracking-normal text-white sm:text-5xl">
 									{model.title || "Производственная заявка"}
 								</h1>
 								<p className="mt-4 max-w-3xl text-sm leading-6 text-slate-300 sm:text-base">
-									{model.summary ||
-										"Черновик обогащается из чата и серверной обработки файлов. Все параметры ниже сохранены в ms-requests."}
+									{model.summary || ""}
 								</p>
 							</div>
-
 							<div className="grid gap-3 sm:grid-cols-3">
 								<div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-									<div className="text-2xl font-semibold">
-										{model.completion.percent}%
-									</div>
+									<div className="text-2xl font-semibold">{model.completion.percent}%</div>
 									<div className="mt-1 text-xs text-slate-400">заполнено по обязательным полям</div>
 									<div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
-										<div
-											className="h-full rounded-full bg-emerald-300"
-											style={{ width: `${model.completion.percent}%` }}
-										/>
+										<div className="h-full rounded-full bg-emerald-300" style={{ width: `${model.completion.percent}%` }} />
 									</div>
 								</div>
 								<div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-									<div className="text-2xl font-semibold">
-										{model.completion.filledRequired}/{model.completion.required}
-									</div>
+									<div className="text-2xl font-semibold">{model.completion.filledRequired}/{model.completion.required}</div>
 									<div className="mt-1 text-xs text-slate-400">обязательные параметры</div>
 								</div>
 								<div className="rounded-2xl border border-white/10 bg-black/20 p-4">
@@ -215,7 +210,6 @@ function RequestPageBody({ model }: { model: RequestModel }) {
 								</div>
 							</div>
 						</div>
-
 						<aside className="flex flex-col items-start gap-3 lg:items-end">
 							<RequestQr url={url} />
 							<div className="w-full rounded-2xl border border-white/10 bg-black/20 p-3 text-xs leading-relaxed text-slate-300 lg:w-64">
@@ -229,22 +223,15 @@ function RequestPageBody({ model }: { model: RequestModel }) {
 				<div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
 					<main className="flex min-w-0 flex-col gap-5">
 						{grouped.map(([group, fields]) => (
-							<section
-								key={group}
-								className="rounded-3xl border border-white/10 bg-[#0b0d11] p-4 shadow-xl shadow-black/20 sm:p-5"
-							>
+							<section key={group} className="rounded-3xl border border-white/10 bg-[#0b0d11] p-4 shadow-xl shadow-black/20 sm:p-5">
 								<div className="mb-4 flex items-center justify-between gap-3">
-									<h2 className="text-lg font-semibold text-white">
-										{groupLabels[group] ?? group}
-									</h2>
+									<h2 className="text-lg font-semibold text-white">{groupLabels[group] ?? group}</h2>
 									<span className="rounded-full border border-white/10 px-2.5 py-1 text-xs text-slate-400">
-										{fields.filter((field) => field.status !== "missing").length}/{fields.length}
+										{fields.filter((f) => f.status !== "missing").length}/{fields.length}
 									</span>
 								</div>
 								<div className="grid gap-3 md:grid-cols-2">
-									{fields.map((field) => (
-										<FieldCard key={field.key} field={field} />
-									))}
+									{fields.map((field) => <FieldCard key={field.key} field={field} />)}
 								</div>
 							</section>
 						))}
@@ -276,21 +263,22 @@ function RequestPageBody({ model }: { model: RequestModel }) {
 						<section className="rounded-3xl border border-white/10 bg-[#0b0d11] p-5 shadow-xl shadow-black/20">
 							<h2 className="text-lg font-semibold text-white">Файлы</h2>
 							{files.length > 0 ? (
-								<div className="mt-4 space-y-2">
-									{files.map(([label, fileId]) => (
-										<div
-											key={`${label}:${fileId}`}
-											className="rounded-xl border border-white/10 bg-white/[0.045] p-3"
-										>
-											<div className="text-sm font-medium text-white">{label}</div>
-											<div className="mt-1 break-all text-xs text-slate-400">{fileId}</div>
-										</div>
-									))}
+								<div className="mt-4 space-y-3">
+									{files.map(([label, fileId]) => {
+										const isModel = /\.(glb|gltf)$/i.test(label);
+										return (
+											<div key={`${label}:${fileId}`} className="rounded-xl border border-white/10 bg-white/[0.045] overflow-hidden">
+												{isModel ? <ModelViewer fileId={fileId} alt={label} style={{ height: 280 }} /> : null}
+												<div className="p-3">
+													<div className="text-sm font-medium text-white">{label}</div>
+													<div className="mt-1 break-all text-xs text-slate-400">{fileId}</div>
+												</div>
+											</div>
+										);
+									})}
 								</div>
 							) : (
-								<p className="mt-3 text-sm leading-6 text-slate-400">
-									Файлы пока не прикреплены.
-								</p>
+								<p className="mt-3 text-sm leading-6 text-slate-400">Файлы пока не прикреплены.</p>
 							)}
 						</section>
 
@@ -299,10 +287,7 @@ function RequestPageBody({ model }: { model: RequestModel }) {
 								<h2 className="text-lg font-semibold text-amber-100">Нужно уточнить</h2>
 								<div className="mt-3 flex flex-wrap gap-2">
 									{model.missingRequired.map((key) => (
-										<span
-											key={key}
-											className="rounded-full border border-amber-200/30 px-2.5 py-1 text-xs text-amber-100"
-										>
+										<span key={key} className="rounded-full border border-amber-200/30 px-2.5 py-1 text-xs text-amber-100">
 											{model.fields[key]?.label ?? key}
 										</span>
 									))}
@@ -323,20 +308,27 @@ export function RequestPage() {
 		loading: $requestLoading,
 		error: $requestError,
 	});
-	const initialModel =
-		requestId && globalThis.__REQUEST_SSR_DATA__?.[requestId]
-			? globalThis.__REQUEST_SSR_DATA__[requestId]
-			: null;
-	const activeModel = model?.id === requestId ? model : initialModel;
+
+	// Модель из history.state (передаётся при SPA-навигации) или из SSR-данных
+	const stateModel: RequestModel | null =
+		typeof window !== "undefined" && window.history.state?.model?.id === requestId
+			? window.history.state.model
+			: requestId && globalThis.__REQUEST_SSR_DATA__?.[requestId]
+				? globalThis.__REQUEST_SSR_DATA__[requestId]
+				: null;
+
+	const activeModel = model?.id === requestId ? model : stateModel;
 
 	useEffect(() => {
 		if (!requestId) return;
+		// Сразу заливаем модель из state в стор, не ждём сетевого запроса
+		if (stateModel?.id === requestId) {
+			requestModelReceived(stateModel);
+		}
 		requestRouteOpened({ requestId });
-		const timer = window.setInterval(() => {
-			requestRefreshRequested();
-		}, 2500);
+		const timer = window.setInterval(() => { requestRefreshRequested(); }, 2500);
 		return () => window.clearInterval(timer);
-	}, [requestId]);
+	}, [requestId, stateModel]);
 
 	if (error) {
 		return (

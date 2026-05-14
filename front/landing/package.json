@@ -26,7 +26,11 @@
     "md-tools": "workspace:*",
     "g-markdown": "workspace:*",
     "g-rt-gates": "workspace:*",
-    "qrcode": "^1.5.4"
+    "qrcode": "^1.5.4",
+    "model3d": "workspace:*",
+    "files-state": "workspace:*",
+    "g-files": "workspace:*",
+    "g-store": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "latest",

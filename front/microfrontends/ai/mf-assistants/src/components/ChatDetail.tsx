@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Bot, FileDown } from 'lucide-react';
+import { Bot, Braces, FileDown } from 'lucide-react';
 import {
   ThreadedChat,
   cn
@@ -42,6 +42,45 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         </div>
         <div className={styles.markdown}>
           <ReactMarkdown>{message.content}</ReactMarkdown>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ToolCallMessage: React.FC<{
+  message: ChatMessage;
+  onOpenJson: (toolCall: NonNullable<ChatMessage['toolCallData']>) => void;
+}> = ({ message, onOpenJson }) => {
+  const toolCall = message.toolCallData;
+  if (!toolCall) return <MessageBubble message={message} />;
+
+  const toolCallId = toolCall.toolCallId ? toolCall.toolCallId.slice(0, 12) : undefined;
+
+  return (
+    <div className={cn(styles.messageRow, styles.messageRowAssistant)}>
+      <div className={styles.assistantText}>
+        <div className={styles.messageHeader}>
+          <Bot size={14} />
+        </div>
+        <div className={styles.toolCallCard}>
+          <div className={styles.toolCallTitleRow}>
+            <span className={styles.toolCallTitle}>{toolCall.title}</span>
+            {toolCallId ? <span className={styles.toolCallMeta}>#{toolCallId}</span> : null}
+          </div>
+          {toolCall.summary ? (
+            <div className={styles.toolCallSummary}>{toolCall.summary}</div>
+          ) : (
+            <div className={styles.toolCallSummary}>Вызов функции выполнен.</div>
+          )}
+          <button
+            type="button"
+            className={styles.toolCallLink}
+            onClick={() => onOpenJson(toolCall)}
+          >
+            <Braces size={14} />
+            <span>JSON</span>
+          </button>
         </div>
       </div>
     </div>
@@ -143,6 +182,7 @@ const ChatDetail: React.FC = (props: {
   files?: FileListItem[];
   showComposer?: boolean;
   intro?: React.ReactNode;
+  onOpenToolCallJson?: (toolCall: NonNullable<ChatMessage['toolCallData']>) => void;
 }) => {
   const showIntro =
     Boolean(props.intro) &&
@@ -170,6 +210,14 @@ const ChatDetail: React.FC = (props: {
               fileName={message.fileData.fileName}
               fileSize={message.fileData.fileSize}
               fileType={message.fileData.fileType}
+            />
+          );
+        }
+        if (message.toolCallData) {
+          return (
+            <ToolCallMessage
+              message={message}
+              onOpenJson={(toolCall) => props.onOpenToolCallJson?.(toolCall)}
             />
           );
         }

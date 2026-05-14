@@ -1,0 +1,16 @@
+export type {
+  MaterialId,
+  MovementId,
+  ISODateString,
+  MovementType,
+  Material,
+  MaterialInput,
+  MaterialPatch,
+  StockMovement,
+  StockMovementInput,
+  MaterialListParams,
+  MovementListParams,
+  LowStockAlert,
+  MaterialsService,
+  PaginatedResult,
+} from "g-materials";

@@ -2,8 +2,83 @@ import { beforeAll, describe, expect, it } from "bun:test";
 import { InMemoryMigrationState, SqlStore } from "back-core";
 import requestsMigrations from "./stores/requests/migrations";
 import { RequestsStoreService } from "./stores/requests/service";
-import { loadBundledDefaultRequirements } from "./stores/requirements/service";
 import type { RequestInput, RequestRequirementProfile } from "./types";
+
+const testProfiles: RequestRequirementProfile[] = [
+	{
+		processType: "cnc_machining",
+		title: "CNC machining",
+		aliases: ["cnc", "чпу"],
+		fields: [
+			{
+				key: "material",
+				label: "Материал",
+				type: "material",
+				required: true,
+				group: "basic",
+				order: 10,
+			},
+			{
+				key: "quantity",
+				label: "Количество",
+				type: "number",
+				required: true,
+				group: "basic",
+				order: 20,
+			},
+			{
+				key: "tolerance",
+				label: "Допуск",
+				type: "tolerance",
+				required: false,
+				group: "quality",
+				order: 30,
+			},
+		],
+	},
+	{
+		processType: "3d_printing",
+		title: "3D printing",
+		aliases: ["3d printing", "3d печать", "распечатать", "печать"],
+		fields: [
+			{
+				key: "part_description",
+				label: "Описание детали",
+				type: "text",
+				required: true,
+				group: "basic",
+				order: 10,
+				aliases: ["описание", "деталь"],
+			},
+			{
+				key: "material",
+				label: "Материал",
+				type: "material",
+				required: true,
+				group: "basic",
+				order: 20,
+				aliases: ["материал", "пластик"],
+			},
+			{
+				key: "quantity",
+				label: "Количество",
+				type: "number",
+				required: true,
+				group: "basic",
+				order: 30,
+				aliases: ["шт", "количество"],
+			},
+			{
+				key: "dimensions",
+				label: "Габариты",
+				type: "dimension",
+				required: true,
+				group: "geometry",
+				order: 40,
+			},
+		],
+	},
+];
 
 describe("RequestsService in-memory", () => {
 	let store: SqlStore;
@@ -18,9 +93,8 @@ describe("RequestsService in-memory", () => {
 		await store.open();
 		await store.migrate();
 
-		const catalog = await loadBundledDefaultRequirements();
 		const profiles = new Map(
-			catalog.profiles.map((profile) => [profile.processType, profile]),
+			testProfiles.map((profile) => [profile.processType, profile]),
 		);
 		const requirements = {
 			getProfile: async (processType: RequestRequirementProfile["processType"]) =>
@@ -76,6 +150,21 @@ describe("RequestsService in-memory", () => {
 
 		expect(list.items.length).toBeGreaterThan(0);
 		expect(list.items.every((item) => item.source === "landing")).toBe(true);
+	});
+
+	it("reports request metrics without treating requests as orders", async () => {
+		await requests.createRequest({
+			source: "landing",
+			fields: { name: "Metric request" },
+			files: {},
+		});
+
+		const metrics = await requests.getRequestMetrics();
+		expect(metrics.total).toBeGreaterThan(0);
+		expect(metrics.daily).toHaveLength(90);
+		expect(metrics.daily.reduce((sum, point) => sum + point.requests, 0)).toBe(
+			metrics.total,
+		);
 	});
 
 	it("updates status and records processing log", async () => {

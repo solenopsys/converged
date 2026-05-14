@@ -24,6 +24,7 @@
       "business": [
         "billing",
         "equipment",
+        "orders",
         "partners",
         "requests",
         "reviews",
@@ -107,6 +108,7 @@
       "markdown": true,
       "static": true,
       "struct": true,
+      "orders": true,
       "requests": true,
       "sheduller": true,
       "telemetry": true,

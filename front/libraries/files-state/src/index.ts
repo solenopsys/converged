@@ -13,6 +13,9 @@ export * from './domain';
 export { createStoreService } from './api/store';
 export type { StoreService } from './store-service';
 
+// Download
+export { downloadFile } from './download';
+
 // Worker control
 export { setStoreWorker, terminateWorkers } from './segments/streaming';
 

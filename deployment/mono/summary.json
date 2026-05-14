@@ -20,6 +20,7 @@
         "convertors/modelconvertor",
         "business/billing",
         "business/equipment",
+        "business/orders",
         "business/partners",
         "business/requests",
         "business/reviews",

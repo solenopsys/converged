@@ -11,6 +11,7 @@ import type {
 	RequestPatch,
 	RequestProcessingEntry,
 	RequestProcessType,
+	RequestMetrics,
 	RequestRequirementProfile,
 	RequestStatus,
 	RequestsService,
@@ -98,5 +99,9 @@ export class RequestsServiceImpl implements RequestsService {
 
 	listProcessing(requestId: RequestId): Promise<RequestProcessingEntry[]> {
 		return this.stores.requests.listProcessing(requestId);
+	}
+
+	getRequestMetrics(): Promise<RequestMetrics> {
+		return this.stores.requests.getRequestMetrics();
 	}
 }

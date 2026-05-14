@@ -15,6 +15,12 @@ export type ChatMessage = {
     type: 'user' | 'assistant';
     content: string;
     timestamp: number;
+    toolCallData?: {
+        toolCallId?: string;
+        title: string;
+        summary?: string;
+        details?: Record<string, any> | Array<unknown> | string;
+    };
     fileData?: {
         fileId: string;
         fileName: string;

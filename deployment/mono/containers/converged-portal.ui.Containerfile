@@ -14,7 +14,7 @@ RUN cd /build/clarity/projects/converged-portal && bun install --frozen-lockfile
 
 RUN cd /build/clarity/projects/converged-portal/front/front-core && NODE_ENV=production bun run bld
 RUN cd /build/clarity/projects/converged-portal/front/landing && bun run build:client
-RUN cd /build/clarity/projects/converged-portal/front/landing && MICROFRONTENDS=$'mf-auth,mf-agents,mf-assistants,mf-community,mf-charts,mf-calls,mf-classifier,mf-dag,mf-dasboards,mf-dumps,mf-docs,mf-galery,mf-landing,mf-logs,mf-markdown,mf-static,mf-struct,mf-requests,mf-sheduller,mf-telemetry,mf-threads,mf-usage,mf-webhooks' bun run build:mf
+RUN cd /build/clarity/projects/converged-portal/front/landing && MICROFRONTENDS=$'mf-auth,mf-agents,mf-assistants,mf-community,mf-charts,mf-calls,mf-classifier,mf-dag,mf-dasboards,mf-dumps,mf-docs,mf-galery,mf-landing,mf-logs,mf-markdown,mf-static,mf-struct,mf-orders,mf-requests,mf-sheduller,mf-telemetry,mf-threads,mf-usage,mf-webhooks' bun run build:mf
 RUN cd /build/clarity/projects/converged-portal/front/landing && bun -e "const { buildStyles } = await import('./src/ssr/styles.ts'); const css = await buildStyles(); await Bun.write('./dist/styles.css', css);"
 RUN cd /build/clarity/projects/converged-portal/front/landing && bun -e "import { existsSync, mkdirSync, writeFileSync } from 'node:fs'; import { resolve } from 'node:path'; const publicDir = resolve(process.cwd(), 'public'); mkdirSync(publicDir, { recursive: true }); const manifestPath = resolve(publicDir, 'manifest.json'); if (!existsSync(manifestPath)) { const manifest = { name: '4IR App', short_name: '4IR', description: '4IR application', start_url: '/', scope: '/', display: 'standalone', background_color: '#ffffff', theme_color: '#000000', icons: [{ src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }] }; writeFileSync(manifestPath, JSON.stringify(manifest, null, 2)); } const swPath = resolve(publicDir, 'sw.js'); if (!existsSync(swPath)) { writeFileSync(swPath, \"self.addEventListener('install', () => self.skipWaiting());\\nself.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));\\n\"); }"
 RUN cd /build/clarity/projects/converged-portal/front/libraries/store-workers && bun run src/tools/build.ts
@@ -56,6 +56,8 @@ RUN cp -R /build/clarity/projects/converged-portal/front/front-core/dist/. /buil
     cp -R /build/clarity/projects/converged-portal/front/microfrontends/data/mf-dumps/locales/. /build/out/front/microfrontends/mf-dumps/locales/ && \
     mkdir -p /build/out/front/microfrontends/mf-logs/locales && \
     cp -R /build/clarity/projects/converged-portal/front/microfrontends/analytics/mf-logs/locales/. /build/out/front/microfrontends/mf-logs/locales/ && \
+    mkdir -p /build/out/front/microfrontends/mf-orders/locales && \
+    cp -R /build/clarity/projects/converged-portal/front/microfrontends/business/mf-orders/locales/. /build/out/front/microfrontends/mf-orders/locales/ && \
     mkdir -p /build/out/front/microfrontends/mf-requests/locales && \
     cp -R /build/clarity/projects/converged-portal/front/microfrontends/business/mf-requests/locales/. /build/out/front/microfrontends/mf-requests/locales/ && \
     mkdir -p /build/out/front/microfrontends/mf-sheduller/locales && \

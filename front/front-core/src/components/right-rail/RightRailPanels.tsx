@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useUnit } from "effector-react";
-import { $activeTab, tabActivated } from "sidebar-controller";
+import { $activeTab, tabActivated, tabRemoved } from "sidebar-controller";
 import type {
   ChatActionKind,
   ChatQuickKind,
@@ -668,8 +668,11 @@ export function ChatPanel({
   const hasChatSlotContent = Boolean(slotContents["sidebar:right"]);
 
   const handleBackToMenu = useCallback(() => {
+    if (activeTab === "chat-json" || activeTab === "chat-history") {
+      tabRemoved(activeTab);
+    }
     tabActivated("menu");
-  }, []);
+  }, [activeTab]);
 
   useEffect(() => {
     let active = true;
@@ -699,14 +702,6 @@ export function ChatPanel({
       <div className="panel-content chat-panel-content">
         {showTabPanel ? (
           <div className="panel-tab-content">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleBackToMenu}
-              className="mb-2"
-            >
-              Back to menu
-            </Button>
             <div id="slot-panel-tab" className="panel-tab-slot" />
           </div>
         ) : (
@@ -735,6 +730,12 @@ export function ChatPanel({
           size="icon"
           className="panel-icon-button panel-action-button panel-chat-button"
           aria-label="Open chat"
+          onClick={(event) => {
+            event.stopPropagation();
+            if (showTabPanel) {
+              handleBackToMenu();
+            }
+          }}
         >
           <MessageCircle className="panel-icon" />
         </Button>

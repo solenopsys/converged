@@ -33,6 +33,27 @@ const logRequestStore = (step: string, payload?: Record<string, any>) => {
 	console.info(`[request-store] ${step}`, payload ?? {});
 };
 
+const isIncomingModelStale = (
+	current: RequestModel | null,
+	incoming: RequestModel,
+) => {
+	if (!current || current.id !== incoming.id) return false;
+	if (
+		typeof current.revision === "number" &&
+		typeof incoming.revision === "number" &&
+		incoming.revision < current.revision
+	) {
+		return true;
+	}
+	const currentTime = Date.parse(current.updatedAt ?? "");
+	const incomingTime = Date.parse(incoming.updatedAt ?? "");
+	return (
+		Number.isFinite(currentTime) &&
+		Number.isFinite(incomingTime) &&
+		incomingTime < currentTime
+	);
+};
+
 export const requestRouteOpened = createEvent<{ requestId: string }>();
 export const requestRefreshRequested = createEvent();
 export const requestModelReceived = createEvent<RequestModel>();
@@ -53,7 +74,15 @@ export const $requestId = createStore<string | null>(null).on(
 );
 
 export const $requestModel = createStore<RequestModel | null>(null)
-	.on(loadRequestModelFx.doneData, (_, model) => {
+	.on(loadRequestModelFx.doneData, (current, model) => {
+		if (isIncomingModelStale(current, model)) {
+			logRequestStore("store.ignore.loaded-model", {
+				reason: "stale_revision",
+				current: requestModelSummary(current),
+				incoming: requestModelSummary(model),
+			});
+			return current;
+		}
 		logRequestStore("store.apply.loaded-model", {
 			model: requestModelSummary(model),
 		});
@@ -64,6 +93,14 @@ export const $requestModel = createStore<RequestModel | null>(null)
 			logRequestStore("store.ignore.model-updated", {
 				reason: "different_request_id",
 				currentId: current.id,
+				incoming: requestModelSummary(model),
+			});
+			return current;
+		}
+		if (isIncomingModelStale(current, model)) {
+			logRequestStore("store.ignore.model-updated", {
+				reason: "stale_revision",
+				current: requestModelSummary(current),
 				incoming: requestModelSummary(model),
 			});
 			return current;

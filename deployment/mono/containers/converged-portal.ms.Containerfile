@@ -27,6 +27,7 @@ RUN cd /build/clarity/projects && bun build \
     ./converged-portal/back/microservices/convertors/ms-modelconvertor/src/plugin.ts \
     ./converged-portal/back/microservices/business/ms-billing/src/plugin.ts \
     ./converged-portal/back/microservices/business/ms-equipment/src/plugin.ts \
+    ./converged-portal/back/microservices/business/ms-orders/src/plugin.ts \
     ./converged-portal/back/microservices/business/ms-partners/src/plugin.ts \
     ./converged-portal/back/microservices/business/ms-requests/src/plugin.ts \
     ./converged-portal/back/microservices/business/ms-reviews/src/plugin.ts \
@@ -91,6 +92,7 @@ RUN cat > /build/out/app/runtime-map.toml <<'TOML'
 "convertors/modelconvertor" = "/app/plugins/chunks/converged-portal/back/microservices/convertors/ms-modelconvertor/src/plugin.js"
 "business/billing" = "/app/plugins/chunks/converged-portal/back/microservices/business/ms-billing/src/plugin.js"
 "business/equipment" = "/app/plugins/chunks/converged-portal/back/microservices/business/ms-equipment/src/plugin.js"
+"business/orders" = "/app/plugins/chunks/converged-portal/back/microservices/business/ms-orders/src/plugin.js"
 "business/partners" = "/app/plugins/chunks/converged-portal/back/microservices/business/ms-partners/src/plugin.js"
 "business/requests" = "/app/plugins/chunks/converged-portal/back/microservices/business/ms-requests/src/plugin.js"
 "business/reviews" = "/app/plugins/chunks/converged-portal/back/microservices/business/ms-reviews/src/plugin.js"
