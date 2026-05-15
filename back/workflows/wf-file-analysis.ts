@@ -402,7 +402,11 @@ async function extractMilling(
 	state.result.estimates.push({
 		sourceFileId,
 		type: "milling",
-		data: extracted.estimate as Record<string, unknown>,
+		data: {
+			...(extracted.estimate as Record<string, unknown>),
+			estimator: "millingextractor",
+			sourceName,
+		},
 		artifactFileIds,
 	});
 }

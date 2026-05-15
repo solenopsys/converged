@@ -229,14 +229,60 @@ function estimateRows(estimate: AnalysisEstimate): Array<[string, string]> {
 	return rows.filter((row): row is [string, string] => Boolean(row[1]));
 }
 
+function fileBaseName(name: string): string {
+	return name
+		.replace(/\\/g, "/")
+		.split("/")
+		.pop()!
+		.replace(/\.[^.]+$/, "")
+		.toLowerCase();
+}
+
+function findEstimatePreview(
+	estimate: AnalysisEstimate,
+	sourceLabel: string | undefined,
+	files: Array<[string, string]>,
+	fileMetadata: Record<string, FileMetadata>,
+): [string, string] | undefined {
+	const sourceName =
+		typeof estimate.data?.sourceName === "string"
+			? estimate.data.sourceName
+			: sourceLabel;
+	const sourceBase = sourceName ? fileBaseName(sourceName) : undefined;
+
+	if (sourceBase) {
+		const exactPreview = files.find(([label, fileId]) => {
+			return (
+				isModelFile(label, fileMetadata[fileId]?.fileType) &&
+				fileBaseName(label) === sourceBase
+			);
+		});
+		if (exactPreview) return exactPreview;
+	}
+
+	if (estimate.sourceFileId) {
+		const directModel = files.find(([label, fileId]) => {
+			return (
+				fileId === estimate.sourceFileId &&
+				isModelFile(label, fileMetadata[fileId]?.fileType)
+			);
+		});
+		if (directModel) return directModel;
+	}
+
+	return undefined;
+}
+
 function AnalysisSection({
 	estimates,
 	errors,
 	files,
+	fileMetadata,
 }: {
 	estimates: AnalysisEstimate[];
 	errors: Array<Record<string, any>>;
 	files: Array<[string, string]>;
+	fileMetadata: Record<string, FileMetadata>;
 }) {
 	if (estimates.length === 0 && errors.length === 0) return null;
 	const fileLabels = new Map(files.map(([label, id]) => [id, label]));
@@ -250,48 +296,72 @@ function AnalysisSection({
 				</span>
 			</div>
 			{estimates.length > 0 ? (
-				<div className="grid gap-3 md:grid-cols-2">
+				<div className="flex flex-col gap-4">
 					{estimates.map((estimate, index) => {
 						const rows = estimateRows(estimate);
+						const sourceLabel = estimate.sourceFileId
+							? fileLabels.get(estimate.sourceFileId)
+							: undefined;
+						const preview = findEstimatePreview(
+							estimate,
+							sourceLabel,
+							files,
+							fileMetadata,
+						);
 						const title =
-							(estimate.sourceFileId && fileLabels.get(estimate.sourceFileId)) ||
+							sourceLabel ||
 							(typeof estimate.data?.sourceName === "string"
 								? estimate.data.sourceName
 								: `Расчет ${index + 1}`);
 						return (
 							<div
 								key={`${estimate.sourceFileId ?? "estimate"}:${index}`}
-								className="rounded-xl border border-white/10 bg-white/[0.045] p-4"
+								className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.045]"
 							>
-								<div className="mb-3 flex items-start justify-between gap-3">
-									<div>
-										<div className="text-sm font-medium text-white">{title}</div>
-										<div className="mt-1 text-xs text-slate-400">
-											{estimate.type === "printing"
-												? "3D печать"
-												: estimate.type === "milling"
-													? "ЧПУ"
-													: estimate.type ?? "Расчет"}
-										</div>
+								<div className="border-b border-white/10 p-4">
+									<div className="text-sm font-medium text-white">{title}</div>
+									<div className="mt-1 text-xs text-slate-400">
+										{estimate.type === "printing"
+											? "3D печать"
+											: estimate.type === "milling"
+												? "ЧПУ"
+												: estimate.type ?? "Расчет"}
 									</div>
 								</div>
-								<div className="space-y-2 text-sm">
-									{rows.map(([label, value]) => (
-										<div
-											key={label}
-											className="flex justify-between gap-3 border-b border-white/10 pb-2 last:border-b-0 last:pb-0"
-										>
-											<span className="text-slate-400">{label}</span>
-											<span className="text-right text-slate-100">{value}</span>
-										</div>
-									))}
-								</div>
-								{estimate.data?.assumptions ? (
-									<div className="mt-3 rounded-lg border border-amber-200/20 bg-amber-300/8 p-2 text-xs leading-relaxed text-amber-100">
-										Грубая оценка по геометрии STL. Для точного времени нужен
-										Cura definition.
+								<div className="grid gap-0 min-[560px]:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] min-[900px]:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
+									<div className="border-b border-white/10 bg-black/20 min-[560px]:border-b-0 min-[560px]:border-r">
+										{preview ? (
+											<ModelViewer
+												fileId={preview[1]}
+												alt={preview[0]}
+												style={{ height: 280 }}
+											/>
+										) : (
+											<div className="flex h-64 items-center justify-center px-5 text-center text-sm text-slate-500">
+												Preview модели не найден
+											</div>
+										)}
 									</div>
-								) : null}
+									<div className="p-4">
+										<div className="space-y-2 text-sm">
+											{rows.map(([label, value]) => (
+												<div
+													key={label}
+													className="flex justify-between gap-3 border-b border-white/10 pb-2 last:border-b-0 last:pb-0"
+												>
+													<span className="text-slate-400">{label}</span>
+													<span className="text-right text-slate-100">{value}</span>
+												</div>
+											))}
+										</div>
+										{estimate.data?.assumptions ? (
+											<div className="mt-3 rounded-lg border border-amber-200/20 bg-amber-300/8 p-2 text-xs leading-relaxed text-amber-100">
+												Грубая оценка по геометрии STL. Для точного времени нужен
+												Cura definition.
+											</div>
+										) : null}
+									</div>
+								</div>
 							</div>
 						);
 					})}
@@ -499,6 +569,7 @@ function RequestPageBody({ model }: { model: RequestModel }) {
 							estimates={analysisEstimates}
 							errors={analysisErrors}
 							files={files}
+							fileMetadata={fileMetadata}
 						/>
 						{grouped.map(([group, fields]) => (
 							<section
@@ -563,12 +634,13 @@ function RequestPageBody({ model }: { model: RequestModel }) {
 								<div className="mt-4 space-y-3">
 									{sortedFiles.map(([label, fileId]) => {
 										const isModel = isModelFile(label, fileMetadata[fileId]?.fileType);
+										const showFilePreview = isModel && analysisEstimates.length === 0;
 										return (
 											<div
 												key={`${label}:${fileId}`}
 												className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.045]"
 											>
-												{isModel ? (
+												{showFilePreview ? (
 													<ModelViewer
 														fileId={fileId}
 														alt={label}

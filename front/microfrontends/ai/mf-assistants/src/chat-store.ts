@@ -830,11 +830,12 @@ const startFileAnalysisTool: ExecutableTool = {
 		let executionId: string | undefined;
 		let result: any = null;
 		let target = args.target;
-		if (!target && activeRequestId) {
+		if (activeRequestId) {
 			try {
 				const model = await requestsClient.getRequestModel(activeRequestId);
-				if (model?.processType === "3d_printing") target = "print";
+				// The request profile is the source of truth; LLM-provided target can be stale.
 				if (model?.processType === "cnc_machining") target = "cnc";
+				if (model?.processType === "3d_printing") target = "print";
 			} catch (error) {
 				console.warn("[FileAnalysis] Failed to infer request target", error);
 			}
