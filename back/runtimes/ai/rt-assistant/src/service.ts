@@ -9,12 +9,14 @@ import {
   MessageSource,
   type PaginatedResult,
   type PaginationParams,
+  type RequestModelSnapshot,
   ServiceType,
   type StreamEvent,
 } from "./types";
 import { SimpleConversationFactory } from "./impls/factory";
 import type { AiConversation } from "./types";
 import { createAssistantServiceClient, type AssistantServiceClient } from "g-assistant";
+import { createRequestsServiceClient } from "g-requests";
 
 type AiConfig = {
   key?: string;
@@ -39,7 +41,7 @@ function resolveServiceType(value?: string): ServiceType | undefined {
   );
 }
 
-export class ChatRuntimeService {
+export class AssistantRuntimeService {
   private factory: SimpleConversationFactory;
   private conversations = new Map<string, AiConversation>();
   private pendingContextMessages = new Map<string, Promise<ContentBlock | null>>();
@@ -48,6 +50,8 @@ export class ChatRuntimeService {
   private defaultServiceType?: ServiceType;
   private defaultModel?: string;
   private logFunction: LogFunction = async (_message, _type = MessageSource.ASSISTANT) => {};
+
+  private requestsClient = createRequestsServiceClient({ baseUrl: process.env.SERVICES_BASE });
 
   constructor(config: { openai?: AiConfig; claude?: AiConfig; gemini?: AiConfig; assistant?: ContextConfig } = {}) {
     this.factory = new SimpleConversationFactory({
@@ -115,6 +119,25 @@ export class ChatRuntimeService {
     }
 
     yield* conversation.send([contextMessage, ...messages], options);
+  }
+
+  async *subscribeToRequestModel(requestId: string): AsyncIterable<RequestModelSnapshot> {
+    const POLL_INTERVAL = 1000;
+    let lastUpdatedAt: string | undefined;
+    let lastRevision: number | undefined;
+
+    while (true) {
+      const model = await this.requestsClient.getRequestModel(requestId).catch(() => null);
+      if (!model) break;
+
+      if (model.updatedAt !== lastUpdatedAt || model.revision !== lastRevision) {
+        lastUpdatedAt = model.updatedAt;
+        lastRevision = model.revision;
+        yield model as RequestModelSnapshot;
+      }
+
+      await new Promise((r) => setTimeout(r, POLL_INTERVAL));
+    }
   }
 
   async listOfChats(params: PaginationParams): Promise<PaginatedResult<Chat>> {

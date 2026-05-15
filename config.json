@@ -58,7 +58,7 @@
 		"core": "back/back-core",
 		"runtimes": {
 			"automation": ["dag", "cron", "gates"],
-			"ai": ["agents", "chat"]
+			"ai": ["agents", "assistant"]
 		},
 		"microservices": {
 			"ai": ["agent", "assistant"],

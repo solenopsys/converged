@@ -11,6 +11,7 @@ export interface RequestEntity {
   status: string;
   fields: string;
   files: string;
+  collections: string;
   model?: string;
   createdAt: ISODateString;
   updatedAt?: ISODateString;

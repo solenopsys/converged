@@ -2,6 +2,7 @@ import type {
   FilesService,
   FileMetadata,
   FileChunk,
+  FileCollection,
   UUID,
   HashString,
   PaginationParams,
@@ -46,5 +47,17 @@ export class FilesServiceImpl implements FilesService {
   }
   statistic(): Promise<any> {
     return this.stores.metadataService.statistic();
+  }
+  saveCollection(collection: FileCollection): Promise<UUID> {
+    return this.stores.metadataService.saveCollection(collection);
+  }
+  getCollection(id: UUID): Promise<FileCollection> {
+    return this.stores.metadataService.getCollection(id);
+  }
+  deleteCollection(id: UUID): Promise<void> {
+    return this.stores.metadataService.deleteCollection(id);
+  }
+  listByCollection(collectionId: UUID): Promise<FileMetadata[]> {
+    return this.stores.metadataService.listByCollection(collectionId);
   }
 }

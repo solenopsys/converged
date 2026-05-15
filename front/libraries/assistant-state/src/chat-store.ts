@@ -17,7 +17,7 @@ import type {
 	ChatMetadataService,
 	ChatState,
 	ExecutableTool,
-	RuntimeChatService,
+	RuntimeAssistantService,
 	ThreadsService,
 	ToolCall,
 	ULID,
@@ -37,7 +37,7 @@ const initialState: ChatState = {
 };
 
 export const createChatStore = (
-	aiService: RuntimeChatService,
+	aiService: RuntimeAssistantService,
 	threadsService: ThreadsService,
 	metadataService?: ChatMetadataService,
 ) => {
@@ -56,6 +56,7 @@ export const createChatStore = (
 		.on(toolCallReceived, (state, toolCall) => ({
 			...state,
 			pendingToolCalls: [...state.pendingToolCalls, toolCall],
+			lastToolCallName: toolCall.name,
 		}))
 		.on(toolCallExecuted, (state, { toolCallId }) => ({
 			...state,

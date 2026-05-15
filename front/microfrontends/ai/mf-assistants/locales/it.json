@@ -44,5 +44,18 @@
   "common": {
     "refresh": "Aggiorna",
     "loading": "Caricamento..."
+  },
+  "toolAction": {
+    "thinking": "Sto pensando alla tua richiesta...",
+    "request": "Sto lavorando sulla richiesta...",
+    "file": "Sto elaborando i file...",
+    "search": "Sto cercando informazioni...",
+    "analyze": "Sto analizzando i dati...",
+    "convert": "Sto convertendo i file...",
+    "update": "Sto aggiornando i dati...",
+    "create": "Sto creando un record...",
+    "load": "Sto caricando i dati...",
+    "delete": "Sto eliminando un record...",
+    "notify": "Sto inviando una notifica..."
   }
 }

@@ -1,6 +1,23 @@
 import { BaseRepositorySQL, KeySQL } from "back-core";
 import { UUID, HashString, FileStatus, ISODateString } from "../../types";
 
+export interface FileCollectionKey extends KeySQL {
+  id: UUID;
+}
+
+export interface FileCollectionEntity {
+  id: UUID;
+  name: string;
+  description?: string;
+  owner: string;
+  createdAt: ISODateString;
+}
+
+export class FileCollectionRepository extends BaseRepositorySQL<
+  FileCollectionKey,
+  FileCollectionEntity
+> {}
+
 export interface FileMetadataKey extends KeySQL {
   id: UUID;
 }
@@ -16,6 +33,7 @@ export interface FileMetadataEntity {
   owner: string;
   createdAt: ISODateString;
   chunksCount: number;
+  collectionId?: UUID;
 }
 
 export class FileMetadataRepository extends BaseRepositorySQL<

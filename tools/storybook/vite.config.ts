@@ -45,8 +45,43 @@ const resolveMicrofrontendEntry = (name: string) => {
   return null;
 };
 
+const WORKSPACE_CTX_STUB = `
+export const NRPC_WORKSPACE_HEADER = "workspace";
+export const NRPC_WORKSPACE_HEADER_ALT = "x-workspace";
+export const NRPC_SCOPE_HEADER = "scope";
+export const NRPC_SCOPE_HEADER_ALT = "x-scope";
+export const resolveWorkspaceFromHeaders = () => undefined;
+export const resolveScopeFromHeaders = () => undefined;
+export const getCurrentWorkspace = () => undefined;
+export const getCurrentWorkspaceContext = () => undefined;
+export const runWithWorkspaceContext = (_ctx, fn) => fn();
+`;
+
+const NODE_ASYNC_HOOKS_STUB = `
+export class AsyncLocalStorage {
+  getStore() { return undefined; }
+  run(_store, fn) { return fn(); }
+}
+export class AsyncResource {}
+export const createHook = () => ({ enable() {}, disable() {} });
+export const executionAsyncId = () => 0;
+export const triggerAsyncId = () => 0;
+`;
+
 export default defineConfig({
   plugins: [
+    {
+      name: "mock-node-browser-incompatible",
+      enforce: "pre" as const,
+      resolveId(id: string) {
+        if (id === "node:async_hooks" || id === "async_hooks") return "\0mock:async_hooks";
+        if (id.includes("nrpc") && id.includes("workspace-context") && !id.includes("registry")) return "\0mock:workspace-context";
+      },
+      load(id: string) {
+        if (id === "\0mock:async_hooks") return NODE_ASYNC_HOOKS_STUB;
+        if (id === "\0mock:workspace-context") return WORKSPACE_CTX_STUB;
+      },
+    },
     {
       name: "resolve-microfrontends",
       resolveId(id) {

@@ -1,7 +1,7 @@
-import { SHOW_REQUESTS } from "./functions";
+import { SHOW_REQUESTS } from "./commands";
 
 export const MENU = {
-  title: "menu.requests",
-  iconName: "IconServer",
-  action: SHOW_REQUESTS,
+	title: "menu.requests",
+	iconName: "IconServer",
+	action: SHOW_REQUESTS,
 };

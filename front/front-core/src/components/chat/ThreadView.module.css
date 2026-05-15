@@ -4,7 +4,15 @@
 
 .messageRow {
   display: flex;
+  min-width: 0;
+  max-width: 100%;
   margin-bottom: 0.75rem;
+  overflow: hidden;
+}
+
+.messageRow > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .messageRowOwn {
@@ -18,21 +26,31 @@
 }
 
 .ownBubble {
-  max-width: 80%;
+  flex: 0 1 auto;
+  width: fit-content;
+  max-width: min(80%, calc(100% - 0.5rem));
   padding: 0.5rem 0.75rem;
   border-radius: 1rem;
   border-top-right-radius: 0.25rem;
   background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-all;
 }
 
 .peerBubble {
-  max-width: 80%;
+  flex: 0 1 auto;
+  width: fit-content;
+  max-width: min(80%, calc(100% - 0.5rem));
   padding: 0.5rem 0.75rem;
   border-radius: 1rem;
   border-top-left-radius: 0.25rem;
   background: hsl(var(--muted));
   color: hsl(var(--foreground));
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-all;
 }
 
 .author {
@@ -46,6 +64,8 @@
   white-space: pre-wrap;
   font-size: 0.875rem;
   line-height: 1.5;
+  overflow-wrap: anywhere;
+  word-break: break-all;
 }
 
 .empty {

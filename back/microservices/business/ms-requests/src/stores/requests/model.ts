@@ -1,5 +1,6 @@
 import type {
 	ISODateString,
+	RequestCollections,
 	RequestFieldDefinition,
 	RequestFieldState,
 	RequestFieldType,
@@ -26,6 +27,7 @@ type BuildRequestModelInput = {
 	fieldDefinitions?: RequestFieldDefinition[];
 	requirementProfile?: RequestRequirementProfile;
 	files?: RequestFiles;
+	collections?: RequestCollections;
 	createdAt: ISODateString;
 	updatedAt?: ISODateString;
 	previous?: RequestModel;
@@ -386,6 +388,11 @@ export function buildRequestModel(input: BuildRequestModelInput): RequestModel {
 				? Math.round((filledTotal / ordered.length) * 100)
 				: 0;
 
+	const collections: RequestCollections = {
+		...(input.previous?.collections ?? {}),
+		...(input.collections ?? {}),
+	};
+
 	return {
 		id: input.id,
 		source: input.source || input.previous?.source,
@@ -400,6 +407,7 @@ export function buildRequestModel(input: BuildRequestModelInput): RequestModel {
 		fields,
 		fieldOrder,
 		files,
+		collections: Object.keys(collections).length > 0 ? collections : undefined,
 		missingRequired,
 		remainingRequired: missingRequired,
 		remainingDelta,

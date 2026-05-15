@@ -1,17 +1,17 @@
 import { Elysia } from "elysia";
 import { createHttpBackend } from "nrpc";
-import { metadata as chatMetadata } from "g-rt-chat";
-import { ChatRuntimeService } from "./service";
+import { metadata as assistantMetadata } from "g-rt-assistant";
+import { AssistantRuntimeService } from "./service";
 
-export type ChatRuntimePluginConfig = {
+export type AssistantRuntimePluginConfig = {
   openai?: { key?: string; model?: string };
   claude?: { key?: string; model?: string };
   gemini?: { key?: string; model?: string };
   assistant?: { baseUrl?: string };
 };
 
-export default function chatRuntimePlugin(config: ChatRuntimePluginConfig = {}) {
-  const chatService = new ChatRuntimeService({
+export default function assistantRuntimePlugin(config: AssistantRuntimePluginConfig = {}) {
+  const assistantService = new AssistantRuntimeService({
     openai: config.openai,
     claude: config.claude,
     gemini: config.gemini,
@@ -19,8 +19,8 @@ export default function chatRuntimePlugin(config: ChatRuntimePluginConfig = {}) 
   });
 
   const assistantBackend = createHttpBackend({
-    metadata: chatMetadata,
-    serviceImpl: chatService,
+    metadata: assistantMetadata,
+    serviceImpl: assistantService,
     pathPrefix: "/runtime",
   })(config);
 

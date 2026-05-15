@@ -1,13 +1,19 @@
 {
-  "name": "mf-requests",
-  "private": true,
-  "type": "module",
-  "module": "src/index.ts",
-  "exports": {
-    ".": "./src/index.ts"
-  },
-  "dependencies": {
-    "front-core": "workspace:*",
-    "g-requests": "workspace:*"
-  }
+	"name": "mf-requests",
+	"private": true,
+	"type": "module",
+	"module": "src/index.ts",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"dependencies": {
+		"files-state": "workspace:*",
+		"front-core": "workspace:*",
+		"g-files": "workspace:*",
+		"g-requests": "workspace:*",
+		"g-rt-assistant": "workspace:*",
+		"g-store": "workspace:*",
+		"model3d": "workspace:*",
+		"qrcode": "^1.5.4"
+	}
 }

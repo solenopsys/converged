@@ -99,9 +99,7 @@ const createShowChatAction: CreateAction<any> = (bus) => ({
     id: SHOW_CHAT,
     description: "Show chat widget",
     invoke: (params?: { contextName?: string }) => {
-        console.log("[createShowChatAction] Presenting chat widget to sidebar:right");
         const widget = createChatWidget(bus);
-        console.log("[createShowChatAction] Widget config:", widget);
         chatInitRequested({ contextName: params?.contextName });
         bus.present({ widget, params });
     }

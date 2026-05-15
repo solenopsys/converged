@@ -44,5 +44,18 @@
   "common": {
     "refresh": "Refresh",
     "loading": "Loading..."
+  },
+  "toolAction": {
+    "thinking": "Thinking about your request...",
+    "request": "Working on your request...",
+    "file": "Processing files...",
+    "search": "Searching for information...",
+    "analyze": "Analyzing data...",
+    "convert": "Converting files...",
+    "update": "Updating data...",
+    "create": "Creating a record...",
+    "load": "Loading data...",
+    "delete": "Deleting a record...",
+    "notify": "Sending a notification..."
   }
 }

@@ -1,38 +1,38 @@
+import { externalPackages, microfrontends } from "front-core/runtime-config";
+import { createWorkspaceResolverPlugin } from "front-core/workspace-resolver";
 import { mkdirSync } from "fs";
 import { resolve } from "path";
-import { externalPackages } from "front-core/runtime-config";
-import { createWorkspaceResolverPlugin } from "front-core/workspace-resolver";
 
 const landingRoot = process.cwd();
 const projectRoot = process.env.PROJECT_DIR ?? resolve(landingRoot, "..", "..");
 const parentProjectRoot =
-  process.env.CHILD_PROJECT_DIR && process.env.CHILD_PROJECT_DIR.length > 0
-    ? process.env.CHILD_PROJECT_DIR
-    : undefined;
+	process.env.CHILD_PROJECT_DIR && process.env.CHILD_PROJECT_DIR.length > 0
+		? process.env.CHILD_PROJECT_DIR
+		: undefined;
 
 const result = await Bun.build({
-  entrypoints: [resolve(landingRoot, "src", "island-client.ts")],
-  target: "browser",
-  format: "esm",
-  minify: true,
-  define: {
-    "process.env.NODE_ENV": "\"production\"",
-    "import.meta.env.PROD": "true",
-    "import.meta.env.DEV": "false",
-  },
-  jsx: {
-    runtime: "automatic",
-  },
-  external: externalPackages,
-  plugins: [createWorkspaceResolverPlugin(projectRoot, parentProjectRoot)],
+	entrypoints: [resolve(landingRoot, "src", "island-client.ts")],
+	target: "browser",
+	format: "esm",
+	minify: true,
+	define: {
+		"process.env.NODE_ENV": '"production"',
+		"import.meta.env.PROD": "true",
+		"import.meta.env.DEV": "false",
+	},
+	jsx: {
+		runtime: "automatic",
+	},
+	external: [...externalPackages, ...microfrontends],
+	plugins: [createWorkspaceResolverPlugin(projectRoot, parentProjectRoot)],
 });
 
 if (!result.success) {
-  const errors = result.logs.map((item) => item.message).join("\n");
-  throw new Error(`Failed to build landing client:\n${errors}`);
+	const errors = result.logs.map((item) => item.message).join("\n");
+	throw new Error(`Failed to build landing client:\n${errors}`);
 }
 if (result.outputs.length === 0) {
-  throw new Error("Failed to build landing client: no output emitted");
+	throw new Error("Failed to build landing client: no output emitted");
 }
 const outPath = resolve(landingRoot, "dist", "island-client.js");
 mkdirSync(resolve(landingRoot, "dist"), { recursive: true });

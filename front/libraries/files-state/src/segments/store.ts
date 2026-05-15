@@ -107,10 +107,8 @@ export const saveBlockFx = fileTransferDomain.createEffect<
   HashString
 >('SAVE_BLOCK_FX');
 saveBlockFx.use(async ({ fileId, chunkNumber, data, originalSize, compression }) => {
-  console.log(`[saveBlockFx] Starting save for chunk ${chunkNumber}, size=${data.length}, originalSize=${originalSize}, compression=${compression}`);
   try {
     const result = await services.storeService.save(data, originalSize, compression);
-    console.log(`[saveBlockFx] Success for chunk ${chunkNumber}, hash=${result}`);
     return result;
   } catch (error) {
     console.error(`[saveBlockFx] Failed for chunk ${chunkNumber}:`, error);

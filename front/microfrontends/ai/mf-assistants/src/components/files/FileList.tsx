@@ -16,7 +16,7 @@ export function FileList({ items, emptyLabel }: FileListProps) {
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex min-w-0 max-w-full flex-col gap-2 overflow-hidden">
       {activeItems.map((item) => (
         <FileView key={item.fileId} item={item} />
       ))}

@@ -29,17 +29,6 @@ const processAccumulatedText = (text: string): string => {
 	return preserveLineBreaks(text);
 };
 
-// Дополнительная функция для отладки - логирование с сохранением форматирования
-export const debugLogContent = (content: string, label: string = "Content") => {
-	console.log(`${label}:`, {
-		raw: content,
-		length: content.length,
-		hasLineBreaks: content.includes("\n"),
-		lineBreaksCount: (content.match(/\n/g) || []).length,
-		hasEscapedLineBreaks: content.includes("\\n"),
-		escapedLineBreaksCount: (content.match(/\\n/g) || []).length,
-	});
-};
 
 const SESSION_NOT_FOUND_PATTERNS = [
 	"SESSION_NOT_FOUND",
@@ -64,7 +53,7 @@ const getSessionCreationKey = (state: types.ChatState): string => {
 };
 
 const createAndSyncSession = async (
-	aiService: types.RuntimeChatService,
+	aiService: types.RuntimeAssistantService,
 	state: types.ChatState,
 ): Promise<string> => {
 	const key = getSessionCreationKey(state);
@@ -88,7 +77,7 @@ const createAndSyncSession = async (
 };
 
 const resolveSessionId = async (
-	aiService: types.RuntimeChatService,
+	aiService: types.RuntimeAssistantService,
 	state: types.ChatState,
 ): Promise<string> => {
 	if (state.sessionId) {
@@ -131,7 +120,7 @@ const consumeStreamEvents = async (
 };
 
 const sendWithSessionRecovery = async (
-	aiService: types.RuntimeChatService,
+	aiService: types.RuntimeAssistantService,
 	state: types.ChatState,
 	messages: any[],
 	options: types.ConversationOptions,
@@ -179,6 +168,7 @@ export const initializeChat = (
 	isLoading: false,
 	currentResponse: "",
 	pendingToolCalls: [],
+	lastToolCallName: undefined,
 });
 
 export const addUserMessage = (
@@ -198,6 +188,7 @@ export const addUserMessage = (
 		isLoading: true,
 		currentResponse: "",
 		pendingToolCalls: [],
+		lastToolCallName: undefined,
 	};
 };
 
@@ -209,15 +200,6 @@ export const updateResponse = (
 		// ИСПРАВЛЕНИЕ: Не применяем preserveLineBreaks к отдельным чанкам
 		// Просто накапливаем сырой контент, переносы обработаем при финализации
 		const newContent = event.content || "";
-
-		// Отладочная информация
-		if (newContent.includes("\\n") || newContent.includes("\n")) {
-			console.log("Найден перенос в чанке:", {
-				content: newContent,
-				hasEscaped: newContent.includes("\\n"),
-				hasReal: newContent.includes("\n"),
-			});
-		}
 
 		return {
 			...state,
@@ -236,12 +218,7 @@ export const finalize = (state: types.ChatState): types.ChatState => {
 		};
 	}
 
-	// ИСПРАВЛЕНИЕ: Применяем обработку переносов к накопленному тексту
 	const processedContent = processAccumulatedText(state.currentResponse);
-
-	// Отладочная информация
-	debugLogContent(state.currentResponse, "Raw accumulated content");
-	debugLogContent(processedContent, "Processed content");
 
 	const assistantMessage: types.ChatMessage = {
 		id: `msg_${Date.now()}`,
@@ -255,6 +232,7 @@ export const finalize = (state: types.ChatState): types.ChatState => {
 		messages: [...state.messages, assistantMessage],
 		isLoading: false,
 		currentResponse: "",
+		lastToolCallName: undefined,
 	};
 };
 
@@ -263,10 +241,11 @@ export const handleError = (state: types.ChatState): types.ChatState => ({
 	isLoading: false,
 	currentResponse: "",
 	pendingToolCalls: [],
+	lastToolCallName: undefined,
 });
 
 export const createSession =
-	(aiService: types.RuntimeChatService) =>
+	(aiService: types.RuntimeAssistantService) =>
 	async ({ threadId, serviceType, model, contextName }: types.ChatState) => {
 		return await createAndSyncSession(aiService, {
 			threadId,
@@ -318,7 +297,7 @@ const recordChatMessage = async (
 
 export const sendMessage =
 	(
-		aiService: types.RuntimeChatService,
+		aiService: types.RuntimeAssistantService,
 		threadsService: types.ThreadsService,
 		metadataService: types.ChatMetadataService | undefined,
 		$functions: Store<Record<string, types.ExecutableTool>>,
@@ -352,30 +331,25 @@ export const sendMessage =
 export const executeToolCall =
 	($functions: Store<Record<string, types.ExecutableTool>>) =>
 	async (toolCall: types.ToolCall) => {
-		console.log("Executing tool call:", toolCall);
 		const functions = $functions.getState();
 		const func = functions[toolCall.name];
 		if (func) {
 			try {
 				const result = await func.execute(toolCall.args);
-				console.log("Tool call result:", result);
 				return { toolCallId: toolCall.id, result };
 			} catch (error) {
 				const message =
 					error instanceof Error ? error.message : "Unknown error";
-				console.error("Tool call execution error:", message);
 				throw new Error(message);
 			}
 		} else {
-			const errorMessage = `Function "${toolCall.name}" not found`;
-			console.error(errorMessage);
-			throw new Error(errorMessage);
+			throw new Error(`Function "${toolCall.name}" not found`);
 		}
 	};
 
 export const sendToolResult =
 	(
-		aiService: types.RuntimeChatService,
+		aiService: types.RuntimeAssistantService,
 		threadsService: types.ThreadsService,
 		metadataService?: types.ChatMetadataService,
 		$functions?: Store<Record<string, types.ExecutableTool>>,
@@ -389,8 +363,6 @@ export const sendToolResult =
 		result: any;
 		state: types.ChatState;
 	}) => {
-		console.log("Sending tool result:", { toolCallId, result });
-
 		let toolResultContent: string;
 		if (typeof result === "string") {
 			toolResultContent = preserveLineBreaks(result);

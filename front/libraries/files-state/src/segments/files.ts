@@ -123,9 +123,8 @@ export const saveChunkMetadataFx = fileTransferDomain.createEffect<
   HashString
 >('SAVE_CHUNK_METADATA_FX');
 saveChunkMetadataFx.use(async (chunk) => {
-  console.log('[saveChunkMetadataFx] Calling filesService.saveChunk with:', JSON.stringify(chunk));
+  
   const result = await services.filesService.saveChunk(chunk);
-  console.log('[saveChunkMetadataFx] Result:', result);
   return result;
 });
 
@@ -134,9 +133,7 @@ export const loadFileMetadataFx = fileTransferDomain.createEffect<
   FileMetadata
 >('LOAD_FILE_METADATA_FX');
 loadFileMetadataFx.use(async (id) => {
-  console.log('[loadFileMetadataFx] Loading metadata for fileId:', id);
   const result = await services.filesService.get(id);
-  console.log('[loadFileMetadataFx] Result:', result);
   return result;
 });
 
@@ -145,9 +142,7 @@ export const loadFileChunksFx = fileTransferDomain.createEffect<
   FileChunk[]
 >('LOAD_FILE_CHUNKS_FX');
 loadFileChunksFx.use(async (id) => {
-  console.log('[loadFileChunksFx] Loading chunks for fileId:', id);
   const result = await services.filesService.getChunks(id);
-  console.log('[loadFileChunksFx] Result:', result.length, 'chunks');
   return result;
 });
 
@@ -280,7 +275,7 @@ sample({
       chunkSize,
       createdAt: new Date().toISOString()
     };
-    console.log('[files.ts] chunkMetadataSaveRequested -> saveChunkMetadataFx:', JSON.stringify(chunk));
+    
     return chunk;
   },
   target: saveChunkMetadataFx
@@ -294,7 +289,7 @@ sample({
       fileId: params.fileId,
       chunkNumber: params.chunkNumber
     };
-    console.log('[files.ts] saveChunkMetadataFx.done -> chunkMetadataSaved:', JSON.stringify(event));
+    
     return event;
   },
   target: chunkMetadataSaved

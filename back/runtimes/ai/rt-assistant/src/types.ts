@@ -9,7 +9,7 @@ import {
   type Chat,
   type ChatContext,
   type ChatContextSummary,
-} from "g-rt-chat";
+} from "g-rt-assistant";
 
 export enum ServiceType {
   OPENAI = "openai",

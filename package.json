@@ -79,6 +79,8 @@
 		"format": "biome format --write .",
 		"lint": "biome lint .",
 		"check": "biome check .",
+		"storybook": "bun run --cwd tools/storybook sb",
+		"storybook:build": "bun run --cwd tools/storybook build-storybook",
 		"gen": "bun run --cwd tools/integration/nrpc src/gen-all.ts ../types ../generated",
 		"store-check": "BOOTSTRAP_ENV_DIR=../../confs bun run --env-file=../../confs/converged-portal.env tools/store-check.ts",
 		"test:transport": "bun tools/transport-integration.ts"

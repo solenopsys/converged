@@ -1,42 +1,37 @@
 {
-  "name": "landing",
-  "version": "1.0.0",
-  "private": true,
-  "type": "module",
-  "exports": {
-    "./plugin": "./src/plugin.tsx"
-  },
-  "scripts": {
-    "dev": "bun run src/dev.ts",
-    "build:client": "bun run ../ssr/src/tools/build-client.ts",
-    "build:mf": "bun run ../ssr/src/tools/build-microfrontends.ts"
-  },
-  "dependencies": {
-    "react": "19.2.5",
-    "react-dom": "19.2.5",
-    "react-router-dom": "latest",
-    "elysia": "latest",
-    "@elysiajs/static": "latest",
-    "unocss": "latest",
-    "effector": "latest",
-    "effector-react": "latest",
-    "front-core": "workspace:*",
-    "front-ssr": "workspace:*",
-    "g-requests": "workspace:*",
-    "md-tools": "workspace:*",
-    "g-markdown": "workspace:*",
-    "g-rt-gates": "workspace:*",
-    "qrcode": "^1.5.4",
-    "model3d": "workspace:*",
-    "files-state": "workspace:*",
-    "g-files": "workspace:*",
-    "g-store": "workspace:*"
-  },
-  "devDependencies": {
-    "@types/react": "latest",
-    "@types/react-dom": "latest",
-    "@types/bun": "latest",
-    "lightningcss": "^1.30.2",
-    "typescript": "6.0.3"
-  }
+	"name": "landing",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./plugin": "./src/plugin.tsx"
+	},
+	"scripts": {
+		"dev": "bun run src/dev.ts",
+		"build:client": "bun run ../ssr/src/tools/build-client.ts",
+		"build:mf": "bun run ../ssr/src/tools/build-microfrontends.ts"
+	},
+	"dependencies": {
+		"react": "19.2.5",
+		"react-dom": "19.2.5",
+		"react-router-dom": "latest",
+		"elysia": "latest",
+		"@elysiajs/static": "latest",
+		"unocss": "latest",
+		"effector": "latest",
+		"effector-react": "latest",
+		"front-core": "workspace:*",
+		"front-ssr": "workspace:*",
+		"mf-requests": "workspace:*",
+		"md-tools": "workspace:*",
+		"g-markdown": "workspace:*",
+		"g-rt-gates": "workspace:*"
+	},
+	"devDependencies": {
+		"@types/react": "latest",
+		"@types/react-dom": "latest",
+		"@types/bun": "latest",
+		"lightningcss": "^1.30.2",
+		"typescript": "6.0.3"
+	}
 }

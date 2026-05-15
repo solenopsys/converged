@@ -1,6 +1,10 @@
 import { structClient } from "g-struct";
 import { createBridgeController } from "../bridge";
-import { chatAttachRequested, chatInitRequested, chatSendRequested } from "../chat/events";
+import {
+	chatAttachRequested,
+	chatInitRequested,
+	chatSendRequested,
+} from "../chat/events";
 import { rightRailActionSelected } from "../components/right-rail/uri-sync";
 import {
 	$allMenuItems,
@@ -27,6 +31,7 @@ const SSR_MENU_STYLE_ID = "ssr-menu-shell-style";
 const FRONT_CORE_STYLE_ID = "front-core-runtime-style";
 const SSR_SHELL_ID = "ssr-shell";
 const SSR_RIGHT_RAIL_ID = "ssr-right-rail";
+const SSR_RAIL_RESIZER_ID = "ssr-rail-resizer";
 const SSR_SLOT_PROVIDER_ROOT_ID = "ssr-slot-provider-root";
 const SSR_CHAT_DOCK_ID = "ssr-chat-dock";
 const SSR_CHAT_INPUT_ID = "ssr-chat-input";
@@ -34,6 +39,10 @@ const SSR_CHAT_ATTACH_ID = "ssr-chat-attach";
 const SSR_CHAT_FORM_ID = "ssr-chat-form";
 const SSR_CHAT_QUICK_ID = "ssr-chat-quick";
 const ENSURE_TEMPORARY_SESSION_ACTION = "auth.ensure-temporary-session";
+const SSR_RAIL_WIDTH_STORAGE_KEY = "ssr_rail_width";
+const SSR_RAIL_MIN_WIDTH = 280;
+const SSR_RAIL_MAX_WIDTH = 680;
+const SSR_RAIL_DEFAULT_WIDTH = 380;
 const RIGHT_RAIL_QUERY_KEYS = [
 	"sidebarTab",
 	"sidebarPanel",
@@ -138,6 +147,7 @@ let rightRailPortalRoot: {
 let rightRailChatBootstrapped = false;
 let controlsBound = false;
 let railTabsBound = false;
+let railResizerBound = false;
 let chatDockBound = false;
 let landingEventGatewayBound = false;
 let chatDockGeometryBound = false;
@@ -171,6 +181,68 @@ function isAuthenticated(): boolean {
 function isRightRailOpen(): boolean {
 	const rail = document.getElementById(SSR_RIGHT_RAIL_ID);
 	return rail?.dataset.open === "1";
+}
+
+function clampSsrRailWidth(width: number): number {
+	return Math.round(
+		Math.max(SSR_RAIL_MIN_WIDTH, Math.min(SSR_RAIL_MAX_WIDTH, width)),
+	);
+}
+
+function getCurrentSsrRailWidth(): number {
+	const rail = document.getElementById(SSR_RIGHT_RAIL_ID);
+	const rectWidth = rail?.getBoundingClientRect().width ?? 0;
+	if (Number.isFinite(rectWidth) && rectWidth > 0) {
+		return clampSsrRailWidth(rectWidth);
+	}
+
+	const shell = document.getElementById(SSR_SHELL_ID);
+	const raw = window.getComputedStyle(shell ?? document.documentElement)
+		.getPropertyValue("--ssr-rail-width")
+		.trim();
+	const parsed = Number.parseFloat(raw);
+	return clampSsrRailWidth(
+		Number.isFinite(parsed) ? parsed : SSR_RAIL_DEFAULT_WIDTH,
+	);
+}
+
+function applySsrRailWidth(width: number, persist = false): number {
+	const nextWidth = clampSsrRailWidth(width);
+	const value = `${nextWidth}px`;
+	document.documentElement.style.setProperty("--ssr-rail-width", value);
+	document.getElementById(SSR_SHELL_ID)?.style.setProperty(
+		"--ssr-rail-width",
+		value,
+	);
+	document.getElementById("app-shell")?.style.setProperty(
+		"--ssr-rail-width",
+		value,
+	);
+
+	if (persist) {
+		try {
+			window.localStorage.setItem(
+				SSR_RAIL_WIDTH_STORAGE_KEY,
+				String(nextWidth),
+			);
+		} catch {
+			// localStorage can be unavailable in restricted browser modes.
+		}
+	}
+
+	return nextWidth;
+}
+
+function restoreSsrRailWidth(): void {
+	try {
+		const stored = window.localStorage.getItem(SSR_RAIL_WIDTH_STORAGE_KEY);
+		if (!stored) return;
+		const parsed = Number.parseFloat(stored);
+		if (!Number.isFinite(parsed)) return;
+		applySsrRailWidth(parsed);
+	} catch {
+		// ignore storage errors
+	}
 }
 
 function updateShellWidthMode(): void {
@@ -314,6 +386,76 @@ function installPanelControls(): void {
 	refreshControlStates();
 }
 
+function installSsrRailResizer(): void {
+	const resizer = document.getElementById(
+		SSR_RAIL_RESIZER_ID,
+	) as HTMLButtonElement | null;
+	if (!resizer) return;
+
+	restoreSsrRailWidth();
+
+	if (resizer.dataset.resizeBound === "1") return;
+	if (railResizerBound) return;
+	railResizerBound = true;
+	resizer.dataset.resizeBound = "1";
+
+	resizer.addEventListener("pointerdown", (event) => {
+		const shell = document.getElementById(SSR_SHELL_ID);
+		if (!shell || window.matchMedia("(max-width: 980px)").matches) return;
+		if (shell.dataset.railOpen !== "1" && shell.dataset.chatFocus !== "1") {
+			return;
+		}
+
+		event.preventDefault();
+		event.stopPropagation();
+
+		const startX = event.clientX;
+		const startWidth = getCurrentSsrRailWidth();
+		const previousUserSelect = document.body.style.userSelect;
+		const previousCursor = document.body.style.cursor;
+		const appShell = document.getElementById("app-shell");
+
+		document.body.style.userSelect = "none";
+		document.body.style.cursor = "col-resize";
+		shell.dataset.railResizing = "1";
+		appShell?.setAttribute("data-rail-resizing", "1");
+
+		try {
+			resizer.setPointerCapture(event.pointerId);
+		} catch {
+			// Safari may reject capture after a fast pointer transition.
+		}
+
+		const onPointerMove = (moveEvent: globalThis.PointerEvent) => {
+			moveEvent.preventDefault();
+			applySsrRailWidth(startWidth + moveEvent.clientX - startX);
+		};
+
+		const cleanup = () => {
+			applySsrRailWidth(getCurrentSsrRailWidth(), true);
+			document.body.style.userSelect = previousUserSelect;
+			document.body.style.cursor = previousCursor;
+			delete shell.dataset.railResizing;
+			appShell?.removeAttribute("data-rail-resizing");
+			try {
+				resizer.releasePointerCapture(event.pointerId);
+			} catch {
+				// ignore
+			}
+			window.removeEventListener("pointermove", onPointerMove);
+			window.removeEventListener("pointerup", onPointerUp);
+			window.removeEventListener("pointercancel", onPointerCancel);
+		};
+
+		const onPointerUp = () => cleanup();
+		const onPointerCancel = () => cleanup();
+
+		window.addEventListener("pointermove", onPointerMove);
+		window.addEventListener("pointerup", onPointerUp);
+		window.addEventListener("pointercancel", onPointerCancel);
+	});
+}
+
 async function ensureCenterRenderer(): Promise<void> {
 	const host = document.getElementById("root");
 	if (!host) return;
@@ -376,6 +518,10 @@ async function ensureCenterRenderer(): Promise<void> {
 	})();
 
 	return centerRendererInitPromise;
+}
+
+export async function ensureSsrCenterRuntime(): Promise<void> {
+	await ensureCenterRenderer();
 }
 
 function setRightRailMode(mode: "chat" | "tab"): void {
@@ -695,6 +841,18 @@ function ensureStyles(): void {
 }
 #ssr-super-panel {
   min-height: 0;
+  overflow: visible;
+}
+#ssr-shell[data-rail-resizing="1"],
+#app-shell[data-rail-resizing="1"] {
+  cursor: col-resize;
+}
+#ssr-shell[data-rail-resizing="1"],
+#ssr-shell[data-rail-resizing="1"] #ssr-super-panel {
+  transition: none;
+}
+#ssr-shell[data-rail-resizing="1"] #ssr-main {
+  pointer-events: none;
 }
 #ssr-left-panel {
   display: flex;
@@ -710,11 +868,50 @@ function ensureStyles(): void {
   display: flex;
   flex-direction: column;
 }
+#ssr-rail-resizer {
+  position: absolute;
+  top: 0;
+  right: -8px;
+  bottom: 0;
+  width: 16px;
+  display: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: col-resize;
+  z-index: 40;
+  touch-action: none;
+}
+#ssr-rail-resizer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 7px;
+  width: 1px;
+  background: color-mix(in oklch, var(--ui-border) 72%, transparent);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+#ssr-rail-resizer:hover::after,
+#ssr-rail-resizer:focus-visible::after,
+#ssr-shell[data-rail-resizing="1"] #ssr-rail-resizer::after {
+  opacity: 1;
+}
+#ssr-shell[data-rail-open="1"] #ssr-rail-resizer,
+#ssr-shell[data-chat-focus="1"] #ssr-rail-resizer {
+  display: block;
+}
 #ssr-right-rail[data-mode="chat"] #ssr-right-rail-tab {
   display: none;
 }
 #ssr-right-rail[data-mode="tab"] #ssr-right-rail-chat {
   display: none;
+}
+@media (max-width: 980px) {
+  #ssr-rail-resizer {
+    display: none !important;
+  }
 }
 #ssr-slot-provider-root {
   display: none;
@@ -1728,7 +1925,9 @@ const LANDING_EVENT_HANDLERS: Record<string, LandingEventHandler> = {
 		void openAiChat(message, { contextName });
 	},
 	"chat.attach": ({ contextName }) => {
-		void openAiChat(undefined, { contextName }).then(() => chatAttachRequested());
+		void openAiChat(undefined, { contextName }).then(() =>
+			chatAttachRequested(),
+		);
 	},
 };
 
@@ -1804,38 +2003,6 @@ function installLandingEventGateway(): void {
 	});
 }
 
-function installRequestNavigationBridge(): void {
-	if (document.documentElement.dataset.requestNavigationBridge === "1") return;
-	document.documentElement.dataset.requestNavigationBridge = "1";
-
-	window.addEventListener("request:open", (event) => {
-		const root = document.getElementById("root");
-		if (!root) return;
-
-		const detail = (event as CustomEvent<any>).detail ?? {};
-		const requestId =
-			typeof detail.requestId === "string"
-				? detail.requestId
-				: typeof detail.model?.id === "string"
-					? detail.model.id
-					: "";
-		if (!requestId) return;
-
-		const path =
-			typeof detail.path === "string" && detail.path.trim().length > 0
-				? detail.path
-				: `/request/${encodeURIComponent(requestId)}`;
-		const url = new URL(path, window.location.href);
-		const sameLocation =
-			url.pathname === window.location.pathname &&
-			url.search === window.location.search;
-
-		event.preventDefault();
-		navProgressStart();
-		void navigateByFragment(url, sameLocation ? "none" : "push");
-	});
-}
-
 function normalizeQuickChatPrompt(prompt: QuickChatPrompt): {
 	label: string;
 	message: string;
@@ -1883,24 +2050,24 @@ function installChatDock(): void {
 	if (!chatDockBound) {
 		chatDockBound = true;
 
-			const submitMessage = () => {
-				const text = input.value.trim();
-				if (!text) return;
-				input.value = "";
-				void openAiChat(text, { contextName: "request" });
-			};
+		const submitMessage = () => {
+			const text = input.value.trim();
+			if (!text) return;
+			input.value = "";
+			void openAiChat(text, { contextName: "request" });
+		};
 
 		form.addEventListener("submit", (event) => {
 			event.preventDefault();
 			submitMessage();
 		});
 
-			attach?.addEventListener("click", () => {
-				if (shell) shell.dataset.chatFocus = "1";
-				void openAiChat(undefined, { contextName: "request" }).then(() =>
-					chatAttachRequested(),
-				);
-			});
+		attach?.addEventListener("click", () => {
+			if (shell) shell.dataset.chatFocus = "1";
+			void openAiChat(undefined, { contextName: "request" }).then(() =>
+				chatAttachRequested(),
+			);
+		});
 
 		input.addEventListener("keydown", (event) => {
 			if (event.key === "Enter" && !event.shiftKey) {
@@ -1908,10 +2075,10 @@ function installChatDock(): void {
 				submitMessage();
 			}
 		});
-			input.addEventListener("focus", () => {
-				if (shell) shell.dataset.chatFocus = "1";
-				void openAiChat(undefined, { contextName: "request" });
-			});
+		input.addEventListener("focus", () => {
+			if (shell) shell.dataset.chatFocus = "1";
+			void openAiChat(undefined, { contextName: "request" });
+		});
 
 		dock.addEventListener("focusout", () => {
 			window.setTimeout(() => {
@@ -2143,11 +2310,11 @@ export function mountSsrMenuShell(): void {
 	ensureFrontCoreStyles();
 
 	installPanelControls();
+	installSsrRailResizer();
 	installRightRailTabs();
 	installDynamicMenu(menuPanel);
 	installChatDock();
 	installLandingEventGateway();
-	installRequestNavigationBridge();
 	installLinkInterceptor();
 	installLangControl();
 	// Keep first paint stable: bootstrap right rail runtime lazily.

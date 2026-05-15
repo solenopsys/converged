@@ -2,9 +2,11 @@ import type { ExecutableTool } from "assistant-state";
 import { addMessage, createChatStore } from "assistant-state";
 import { $files, openFilePicker, uploadCompleted } from "files-state";
 import {
+	bus,
 	chatAttachRequested,
 	chatInitRequested,
 	chatSendRequested,
+	ensureSsrCenterRuntime,
 	registry,
 	setCenterView,
 } from "front-core";
@@ -60,6 +62,12 @@ let isInitialized = false;
 let isRegistered = false;
 let activeRequestId: string | undefined;
 let pendingInitialRequestPromise: Promise<void> | null = null;
+// Файлы из анализа, которые ещё не прикреплены к заявке
+let pendingAnalysisFiles: Record<string, string> = {};
+let pendingAnalysisParameters: Array<Record<string, any>> = [];
+const OPEN_REQUEST_ACTION = "requests.open";
+const REQUESTS_RUNTIME = "mf-requests";
+let requestsRuntimePromise: Promise<void> | null = null;
 
 type RequestDraftArgs = {
 	status?: string;
@@ -93,9 +101,6 @@ const ensureInitialized = (contextName?: string) => {
 	const shouldSwitchContext =
 		contextName !== undefined && currentContextName !== contextName;
 	if (!isInitialized || shouldSwitchContext) {
-		console.log("[Chat] Initializing chat session on first use", {
-			contextName,
-		});
 		registerThread();
 		chatStore.init(chatThreadId, undefined, undefined, contextName);
 		isInitialized = true;
@@ -104,7 +109,6 @@ const ensureInitialized = (contextName?: string) => {
 
 // Подписываемся на событие инициализации из front-core
 chatInitRequested.watch((payload) => {
-	console.log("[Chat] Chat initialization requested via event");
 	ensureInitialized(
 		payload && typeof payload === "object" ? payload.contextName : undefined,
 	);
@@ -218,42 +222,88 @@ const requestArgsSummary = (args: RequestDraftArgs) => ({
 	forceNew: args.forceNew,
 });
 
-const logRequestFlow = (step: string, payload?: Record<string, any>) => {
-	console.info(`[request-flow] ${step}`, payload ?? {});
+const buildFileAnalysisParameters = (result: any): Array<Record<string, any>> => {
+	const parameters: Array<Record<string, any>> = [];
+	const estimates = Array.isArray(result?.estimates)
+		? result.estimates.filter(
+				(item: unknown) =>
+					Boolean(item) && typeof item === "object" && !Array.isArray(item),
+			)
+		: [];
+	const errors = Array.isArray(result?.errors)
+		? result.errors.filter(
+				(item: unknown) =>
+					Boolean(item) && typeof item === "object" && !Array.isArray(item),
+			)
+		: [];
+
+	if (estimates.length > 0) {
+		parameters.push({
+			key: "file_analysis_estimates",
+			value: estimates,
+			label: "Расчеты по файлам",
+			type: "json",
+			group: "analysis",
+			order: 10,
+			source: "workflow:file-analysis",
+		});
+	}
+
+	if (errors.length > 0) {
+		parameters.push({
+			key: "file_analysis_errors",
+			value: errors,
+			label: "Ошибки анализа файлов",
+			type: "json",
+			group: "analysis",
+			order: 90,
+			source: "workflow:file-analysis",
+		});
+	}
+
+	return parameters;
+};
+
+
+const ensureRequestsRuntime = async () => {
+	if (registry.get(OPEN_REQUEST_ACTION)) return;
+	if (!requestsRuntimePromise) {
+		requestsRuntimePromise = import(REQUESTS_RUNTIME)
+			.then((runtime) => {
+				if (!registry.get(OPEN_REQUEST_ACTION)) {
+					runtime.default?.plug?.(bus);
+				}
+			})
+			.catch((error) => {
+				requestsRuntimePromise = null;
+				throw error;
+			});
+	}
+	await requestsRuntimePromise;
 };
 
 const openRequestPage = (model: { id: string }) => {
 	if (typeof window === "undefined" || !model.id) return;
 
-	const nextPath = `/request/${model.id}`;
-	const nextUrl = `${nextPath}${window.location.search}${window.location.hash}`;
-
-	logRequestFlow("ui.open.start", {
-		nextUrl,
-		model: requestModelSummary(model as RequestModel),
-	});
 	setCenterView(null);
-	const event = new CustomEvent("request:open", {
-		cancelable: true,
-		detail: { requestId: model.id, model, path: nextUrl },
-	});
-	const handledBySsrShell = !window.dispatchEvent(event);
-	logRequestFlow("ui.request-open.dispatched", {
-		requestId: model.id,
-		handledBySsrShell,
-		currentPath: window.location.pathname,
-	});
-
-	if (!handledBySsrShell && window.location.pathname !== nextPath) {
-		window.history.pushState({ requestId: model.id }, "", nextUrl);
-		window.dispatchEvent(new PopStateEvent("popstate"));
-	}
-	logRequestFlow("ui.model-updated.dispatch", {
-		model: requestModelSummary(model as RequestModel),
-	});
-	window.dispatchEvent(
-		new CustomEvent("request:model-updated", { detail: model }),
-	);
+	void ensureRequestsRuntime()
+		.then(() => ensureSsrCenterRuntime())
+		.then(() => {
+			if (!registry.get(OPEN_REQUEST_ACTION)) {
+				throw new Error(`${OPEN_REQUEST_ACTION} is not registered`);
+			}
+			registry.run(OPEN_REQUEST_ACTION, {
+				requestId: model.id,
+				model,
+				syncUrl: true,
+			});
+		})
+		.catch((error) => {
+			console.error(
+				"[request-flow] failed to open request microfrontend",
+				error,
+			);
+		});
 };
 
 const requestModelToolPayload = (model: RequestModel) => {
@@ -290,19 +340,24 @@ const createOrUpdateRequestDraft = async (
 	options: { preferExisting?: boolean } = {},
 ) => {
 	const fields = normalizeRecord(args.fields);
-	const parameters = normalizeParameters(args.parameters);
-	const files = Object.fromEntries(
-		Object.entries(normalizeRecord(args.files)).filter(
-			([, value]) => typeof value === "string",
+	const parameters = [
+		...pendingAnalysisParameters,
+		...normalizeParameters(args.parameters),
+	];
+	const files: Record<string, string> = {
+		...pendingAnalysisFiles,
+		...Object.fromEntries(
+			Object.entries(normalizeRecord(args.files)).filter(
+				([, value]) => typeof value === "string",
+			),
 		),
-	) as Record<string, string>;
+	};
+	// Сбрасываем pending после применения
+	pendingAnalysisFiles = {};
+	pendingAnalysisParameters = [];
 	const preferExisting = options.preferExisting ?? !args.forceNew;
 
 	if (preferExisting && activeRequestId) {
-		logRequestFlow("ms-requests.patch.start", {
-			requestId: activeRequestId,
-			args: requestArgsSummary(args),
-		});
 		const model = await requestsClient.applyRequestUpdate(
 			activeRequestId,
 			{
@@ -319,17 +374,10 @@ const createOrUpdateRequestDraft = async (
 			args.comment || "updated by assistant",
 		);
 		activeRequestId = model.id;
-		logRequestFlow("ms-requests.patch.done", {
-			reusedActiveRequest: true,
-			model: requestModelSummary(model),
-		});
 		openRequestPage(model);
 		return { model, reusedActiveRequest: true };
 	}
 
-	logRequestFlow("ms-requests.create.start", {
-		args: requestArgsSummary(args),
-	});
 	const model = await requestsClient.createRequestModel({
 		source: "assistant:request",
 		status: args.status || "draft",
@@ -342,10 +390,6 @@ const createOrUpdateRequestDraft = async (
 		files,
 	});
 	activeRequestId = model.id;
-	logRequestFlow("ms-requests.create.done", {
-		reusedActiveRequest: false,
-		model: requestModelSummary(model),
-	});
 	openRequestPage(model);
 	return { model, reusedActiveRequest: false };
 };
@@ -353,27 +397,13 @@ const createOrUpdateRequestDraft = async (
 const ensureInitialRequestDraft = async (message: string): Promise<boolean> => {
 	const isRequestContext = chatStore.$chat.getState().contextName === "request";
 	if (!isRequestContext || activeRequestId) {
-		logRequestFlow("auto-create.skip", {
-			reason: !isRequestContext
-				? "not_request_context"
-				: "active_request_exists",
-			activeRequestId,
-		});
 		return false;
 	}
 
 	const draft = inferInitialRequestDraft(message);
 	if (!draft) {
-		logRequestFlow("auto-create.skip", {
-			reason: "no_manufacturing_draft_inferred",
-			message,
-		});
 		return false;
 	}
-	logRequestFlow("auto-create.inferred", {
-		message,
-		args: requestArgsSummary(draft),
-	});
 
 	let created = false;
 	if (!pendingInitialRequestPromise) {
@@ -382,10 +412,6 @@ const ensureInitialRequestDraft = async (message: string): Promise<boolean> => {
 				preferExisting: false,
 			});
 			created = true;
-			console.info("[Chat] Auto-created request draft from first message", {
-				requestId: model.id,
-				processType: model.processType,
-			});
 		})()
 			.catch((error) => {
 				console.warn("[Chat] Failed to auto-create request draft", error);
@@ -536,18 +562,8 @@ const createCncRequestTool: ExecutableTool = {
 	},
 	execute: async (rawArgs: RequestDraftArgs | string) => {
 		const args = parseToolArgs(rawArgs);
-		logRequestFlow("tool.createCncRequest.received", {
-			activeRequestId,
-			hasPayload: hasPatchPayload(args),
-			args: requestArgsSummary(args),
-		});
 		if (activeRequestId && !hasPatchPayload(args)) {
 			const model = await requestsClient.getRequestModel(activeRequestId);
-			logRequestFlow("tool.createCncRequest.noop", {
-				requestId: activeRequestId,
-				reason: "empty_payload_for_active_request",
-				model: requestModelSummary(model),
-			});
 			return {
 				ok: false,
 				requestId: activeRequestId,
@@ -559,13 +575,6 @@ const createCncRequestTool: ExecutableTool = {
 		}
 		const { model, reusedActiveRequest } =
 			await createOrUpdateRequestDraft(args);
-		logRequestFlow("tool.createCncRequest.result", {
-			ok: true,
-			requestId: model.id,
-			reusedActiveRequest,
-			appliedFields: normalizeRecord(args.fields),
-			model: requestModelSummary(model),
-		});
 
 		return {
 			ok: true,
@@ -653,17 +662,7 @@ const patchCncRequestTool: ExecutableTool = {
 	) => {
 		const args = parseToolArgs(rawArgs);
 		const requestId = args.requestId || activeRequestId;
-		logRequestFlow("tool.patchCncRequest.received", {
-			requestId,
-			activeRequestId,
-			hasPayload: hasPatchPayload(args),
-			args: requestArgsSummary(args),
-		});
 		if (!requestId) {
-			logRequestFlow("tool.patchCncRequest.noop", {
-				reason: "missing_request_id",
-				args: requestArgsSummary(args),
-			});
 			return {
 				ok: false,
 				error: "requestId is required because no active request exists",
@@ -671,11 +670,6 @@ const patchCncRequestTool: ExecutableTool = {
 		}
 		if (!hasPatchPayload(args)) {
 			const model = await requestsClient.getRequestModel(requestId);
-			logRequestFlow("tool.patchCncRequest.noop", {
-				requestId,
-				reason: "empty_payload",
-				model: requestModelSummary(model),
-			});
 			return {
 				ok: false,
 				requestId,
@@ -709,12 +703,6 @@ const patchCncRequestTool: ExecutableTool = {
 		);
 		activeRequestId = model.id;
 		openRequestPage(model);
-		logRequestFlow("tool.patchCncRequest.result", {
-			ok: true,
-			requestId,
-			appliedFields: normalizeRecord(args.fields),
-			model: requestModelSummary(model),
-		});
 
 		return {
 			ok: true,
@@ -787,6 +775,24 @@ const startFileAnalysisTool: ExecutableTool = {
 				type: "boolean",
 				description: "Whether extractors may return generated G-code artifacts",
 			},
+			definitionFileId: {
+				type: "string",
+				description:
+					"Optional Cura printer definition JSON file ID for exact STL print slicing estimates",
+			},
+			density: {
+				type: "number",
+				description: "Filament density g/cm³, default 1.24 for PLA",
+			},
+			filamentDiameter: {
+				type: "number",
+				description: "Filament diameter in mm, default 1.75",
+			},
+			infillPercent: {
+				type: "number",
+				description:
+					"Infill percent for rough STL geometry print estimate when no Cura definition is provided",
+			},
 			maxArchiveDepth: {
 				type: "number",
 				description: "Maximum archive recursion depth",
@@ -801,6 +807,10 @@ const startFileAnalysisTool: ExecutableTool = {
 					target?: "cnc" | "print" | "generic";
 					convertPreview?: boolean;
 					includeGcode?: boolean;
+					definitionFileId?: string;
+					density?: number;
+					filamentDiameter?: number;
+					infillPercent?: number;
 					maxArchiveDepth?: number;
 			  }
 			| string,
@@ -819,13 +829,27 @@ const startFileAnalysisTool: ExecutableTool = {
 
 		let executionId: string | undefined;
 		let result: any = null;
+		let target = args.target;
+		if (!target && activeRequestId) {
+			try {
+				const model = await requestsClient.getRequestModel(activeRequestId);
+				if (model?.processType === "3d_printing") target = "print";
+				if (model?.processType === "cnc_machining") target = "cnc";
+			} catch (error) {
+				console.warn("[FileAnalysis] Failed to infer request target", error);
+			}
+		}
 
 		for await (const event of dagClient.startExecution("file-analysis", {
 			fileIds,
 			options: {
-				target: args.target || "cnc",
+				target: target || "cnc",
 				convertPreview: args.convertPreview ?? true,
 				includeGcode: args.includeGcode ?? false,
+				definitionFileId: args.definitionFileId,
+				density: args.density,
+				filamentDiameter: args.filamentDiameter,
+				infillPercent: args.infillPercent,
 				maxArchiveDepth: args.maxArchiveDepth ?? 2,
 			},
 		})) {
@@ -842,35 +866,84 @@ const startFileAnalysisTool: ExecutableTool = {
 			}
 		}
 
-		// Автоматически прикрепляем файлы к активной заявке
-		if (result && activeRequestId) {
+		// Собираем файлы из результата анализа
+		if (result) {
 			const files: Record<string, string> = {};
-
-			// Входные файлы
+			const analysisParameters = buildFileAnalysisParameters(result);
+			const sourceNamesById = new Map<string, string>();
+			const putFile = (name: string, fileId: string) => {
+				let key = name;
+				let suffix = 2;
+				while (files[key] && files[key] !== fileId) {
+					const dot = name.lastIndexOf(".");
+					key =
+						dot > 0
+							? `${name.slice(0, dot)}-${suffix}${name.slice(dot)}`
+							: `${name}-${suffix}`;
+					suffix += 1;
+				}
+				files[key] = fileId;
+			};
 			for (const f of result.inputs ?? []) {
-				if (f.fileId && f.name) files[f.name] = f.fileId;
+				if (f.fileId && f.name) {
+					sourceNamesById.set(f.fileId, f.name);
+					putFile(f.name, f.fileId);
+				}
 			}
-			// Извлечённые из архива
 			for (const f of result.extracted ?? []) {
-				if (f.fileId && f.name) files[f.name] = f.fileId;
+				if (f.fileId && f.name) {
+					sourceNamesById.set(f.fileId, f.name);
+					putFile(f.name, f.fileId);
+				}
 			}
-			// Конвертированные превью (GLB и т.д.)
 			for (const f of result.converted ?? []) {
-				if (f.fileId && f.name) files[f.name] = f.fileId;
+				if (!f.fileId || !f.name) continue;
+				const sourceName =
+					typeof f.sourceFileId === "string"
+						? sourceNamesById.get(f.sourceFileId)
+						: undefined;
+				const name =
+					f.kind === "preview" && sourceName
+						? `${sourceName.replace(/\.[^.]+$/, "")}.glb`
+						: f.name;
+				putFile(name, f.fileId);
 			}
 
-			if (Object.keys(files).length > 0) {
-				try {
-					const updated = await requestsClient.applyRequestUpdate(
-						activeRequestId,
-						{ files, status: "file_analysis_done" },
-						"assistant",
-						"files attached after analysis",
-					);
-					openRequestPage(updated);
-					result = { ...result, attachedFiles: Object.keys(files).length };
-				} catch (e: any) {
-					console.warn("[FileAnalysis] Failed to attach files to request", e);
+			if (Object.keys(files).length > 0 || analysisParameters.length > 0) {
+				if (activeRequestId) {
+					// Есть активная заявка — прикрепляем сразу
+					try {
+						const updated = await requestsClient.applyRequestUpdate(
+							activeRequestId,
+							{
+								files,
+								parameters: analysisParameters as any,
+								status: "file_analysis_done",
+							},
+							"assistant",
+							"file analysis attached to request",
+						);
+						openRequestPage(updated);
+						result = {
+							...result,
+							attachedFiles: Object.keys(files).length,
+							attachedEstimates: analysisParameters.length,
+						};
+					} catch (e: any) {
+						console.warn("[FileAnalysis] Failed to attach files to request", e);
+					}
+				} else {
+					// Нет заявки — буферизуем, прикрепим когда заявка будет создана
+					Object.assign(pendingAnalysisFiles, files);
+					pendingAnalysisParameters = [
+						...pendingAnalysisParameters,
+						...analysisParameters,
+					];
+					result = {
+						...result,
+						pendingFiles: Object.keys(files).length,
+						pendingEstimates: analysisParameters.length,
+					};
 				}
 			}
 		}
@@ -908,9 +981,6 @@ const execCommandTool: ExecutableTool = {
 		required: ["id"],
 	},
 	execute: async (args: { id: string } | string) => {
-		console.log("[execCommand] Raw args:", args, typeof args);
-
-		// Парсим аргументы - могут прийти как объект или как строка JSON
 		let commandId: string | undefined;
 		if (typeof args === "string") {
 			try {
@@ -922,9 +992,6 @@ const execCommandTool: ExecutableTool = {
 		} else {
 			commandId = args?.id;
 		}
-
-		console.log("[execCommand] Parsed commandId:", commandId);
-		console.log("[execCommand] Registered commands:", registry.getAllIds());
 
 		// Проверяем что команда указана
 		if (!commandId) {
@@ -950,7 +1017,6 @@ const execCommandTool: ExecutableTool = {
 
 		const cmd = registry.get(commandId);
 		if (!cmd) {
-			console.log("[execCommand] Command not found in registry:", commandId);
 			addMessage({
 				id: `cmd_err_${Date.now()}`,
 				type: "assistant",
@@ -997,17 +1063,7 @@ chatStore.registerFunction("execCommand", execCommandTool);
 chatSendRequested.watch((message) => {
 	void (async () => {
 		ensureInitialized(); // Инициализируем чат только при первой отправке сообщения
-		logRequestFlow("message.received", {
-			contextName: chatStore.$chat.getState().contextName,
-			activeRequestId,
-			message,
-		});
 		const created = await ensureInitialRequestDraft(message);
-		logRequestFlow("message.forward-to-llm", {
-			activeRequestId,
-			createdDraftBeforeSend: created,
-			note: "field extraction is delegated to LLM tool calls and ms-requests requirements",
-		});
 		chatStore.send(message);
 	})();
 });

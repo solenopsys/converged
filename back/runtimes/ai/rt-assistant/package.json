@@ -1,5 +1,5 @@
 {
-  "name": "rt-chat",
+  "name": "rt-assistant",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -14,7 +14,8 @@
     "@google/genai": "latest",
     "elysia": "^1.4.28",
     "g-assistant": "workspace:*",
-    "g-rt-chat": "workspace:*",
+    "g-requests": "workspace:*",
+    "g-rt-assistant": "workspace:*",
     "nrpc": "workspace:*",
     "openai": "latest"
   }

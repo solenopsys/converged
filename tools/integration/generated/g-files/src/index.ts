@@ -20,17 +20,26 @@ export type PaginatedResult<T> = {
 
 export type FileStatus = 'uploading' | 'uploaded' | 'failed';
 
+export type FileCollection = {
+    id: UUID;
+    name: string;
+    description?: string;
+    owner: string;
+    createdAt: ISODateString;
+};
+
 export type FileMetadata = {
     id:UUID
-    hash: HashString; 
+    hash: HashString;
     status: FileStatus;
     name: string;
     fileSize: number;
     fileType: string;
     compression: string;
     owner: string;
-    createdAt: ISODateString; 
+    createdAt: ISODateString;
     chunksCount: number;
+    collectionId?: UUID;
 };
 
 export type FileChunk = {
@@ -171,6 +180,66 @@ export const metadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
+    },
+    {
+      "name": "saveCollection",
+      "parameters": [
+        {
+          "name": "collection",
+          "type": "FileCollection",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "UUID",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "getCollection",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "FileCollection",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "deleteCollection",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "void",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "listByCollection",
+      "parameters": [
+        {
+          "name": "collectionId",
+          "type": "UUID",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "FileMetadata",
+      "isAsync": true,
+      "returnTypeIsArray": true,
+      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -206,9 +275,14 @@ export const metadata = {
       "definition": "'uploading' | 'uploaded' | 'failed'"
     },
     {
+      "name": "FileCollection",
+      "kind": "type",
+      "definition": "{\n    id: UUID;\n    name: string;\n    description?: string;\n    owner: string;\n    createdAt: ISODateString;\n}"
+    },
+    {
       "name": "FileMetadata",
       "kind": "type",
-      "definition": "{\n    id:UUID\n    hash: HashString; \n    status: FileStatus;\n    name: string;\n    fileSize: number;\n    fileType: string;\n    compression: string;\n    owner: string;\n    createdAt: ISODateString; \n    chunksCount: number;\n}"
+      "definition": "{\n    id:UUID\n    hash: HashString;\n    status: FileStatus;\n    name: string;\n    fileSize: number;\n    fileType: string;\n    compression: string;\n    owner: string;\n    createdAt: ISODateString;\n    chunksCount: number;\n    collectionId?: UUID;\n}"
     },
     {
       "name": "FileChunk",
@@ -233,6 +307,10 @@ export interface FilesService {
   getChunks(id: UUID): Promise<FileChunk[]>;
   list(params: PaginationParams): Promise<PaginatedResult<FileMetadata>>;
   statistic(): Promise<any>;
+  saveCollection(collection: FileCollection): Promise<UUID>;
+  getCollection(id: UUID): Promise<FileCollection>;
+  deleteCollection(id: UUID): Promise<void>;
+  listByCollection(collectionId: UUID): Promise<FileMetadata[]>;
 }
 
 // Client interface
@@ -245,6 +323,10 @@ export interface FilesServiceClient {
   getChunks(id: UUID): Promise<FileChunk[]>;
   list(params: PaginationParams): Promise<PaginatedResult<FileMetadata>>;
   statistic(): Promise<any>;
+  saveCollection(collection: FileCollection): Promise<UUID>;
+  getCollection(id: UUID): Promise<FileCollection>;
+  deleteCollection(id: UUID): Promise<void>;
+  listByCollection(collectionId: UUID): Promise<FileMetadata[]>;
 }
 
 // Factory function

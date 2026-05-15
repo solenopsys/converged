@@ -1,45 +1,61 @@
-import React, { useEffect } from "react";
 import { useUnit } from "effector-react";
 import { HeaderPanelLayout, InfiniteScrollDataTable } from "front-core";
 import { RefreshCw } from "lucide-react";
-import { $requestsStore, requestsListMounted, refreshRequestsClicked, openRequestDetail } from "../domain-requests";
+import { useEffect } from "react";
+import { OPEN_REQUEST } from "../commands";
 import { requestsColumns } from "../config";
+import {
+	$requestsStore,
+	openRequestDetail,
+	refreshRequestsClicked,
+	requestsListMounted,
+} from "../domain-requests";
 
-export const RequestsListView = ({ bus }: { bus: any }) => {
-  const state = useUnit($requestsStore.$state);
+type RequestBus = {
+	run?: (actionId: string, params?: unknown) => unknown;
+};
 
-  useEffect(() => {
-    requestsListMounted();
-  }, []);
+export const RequestsListView = ({ bus }: { bus?: RequestBus }) => {
+	const state = useUnit($requestsStore.$state);
 
-  const headerConfig = {
-    title: "Заявки",
-    actions: [
-      {
-        id: "refresh",
-        label: "Обновить",
-        icon: RefreshCw,
-        event: refreshRequestsClicked,
-        variant: "outline" as const,
-      },
-    ],
-  };
+	useEffect(() => {
+		requestsListMounted();
+	}, []);
 
-  const handleRowClick = (row: any) => {
-    if (row?.id) openRequestDetail({ recordId: row.id });
-  };
+	const headerConfig = {
+		title: "Заявки",
+		actions: [
+			{
+				id: "refresh",
+				label: "Обновить",
+				icon: RefreshCw,
+				event: refreshRequestsClicked,
+				variant: "outline" as const,
+			},
+		],
+	};
 
-  return (
-    <HeaderPanelLayout config={headerConfig}>
-      <InfiniteScrollDataTable
-        data={state.items}
-        hasMore={state.hasMore}
-        loading={state.loading}
-        columns={requestsColumns}
-        onRowClick={handleRowClick}
-        onLoadMore={$requestsStore.loadMore}
-        viewMode="table"
-      />
-    </HeaderPanelLayout>
-  );
+	const handleRowClick = (row: unknown) => {
+		const id =
+			row && typeof row === "object" && "id" in row
+				? (row as { id?: unknown }).id
+				: undefined;
+		if (typeof id !== "string" || id.length === 0) return;
+		openRequestDetail({ recordId: id });
+		bus?.run?.(OPEN_REQUEST, { requestId: id });
+	};
+
+	return (
+		<HeaderPanelLayout config={headerConfig}>
+			<InfiniteScrollDataTable
+				data={state.items}
+				hasMore={state.hasMore}
+				loading={state.loading}
+				columns={requestsColumns}
+				onRowClick={handleRowClick}
+				onLoadMore={$requestsStore.loadMore}
+				viewMode="table"
+			/>
+		</HeaderPanelLayout>
+	);
 };

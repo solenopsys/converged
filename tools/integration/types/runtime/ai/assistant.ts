@@ -1,6 +1,6 @@
 /**
- * @nrpc-service chat
- * @nrpc-package g-rt-chat
+ * @nrpc-service assistant
+ * @nrpc-package g-rt-assistant
  */
 
 export enum StreamEventType {
@@ -111,9 +111,29 @@ export type ChatContext = ChatContextSummary & {
     data: any;
 }
 
-export interface RuntimeChatService {
+export type RequestModelSnapshot = {
+    id: string;
+    status: string;
+    processType: string;
+    title?: string;
+    summary?: string;
+    fields: Record<string, any>;
+    fieldOrder: string[];
+    files: Record<string, string>;
+    collections?: Record<string, string>;
+    missingRequired: string[];
+    remainingRequired: string[];
+    completion: { required: number; filledRequired: number; total: number; filledTotal: number; percent: number };
+    createdAt: string;
+    updatedAt: string;
+    revision: number;
+};
+
+export interface RuntimeAssistantService {
     createSession(serviceType?: ServiceType, model?: string, contextName?: string): Promise<string>;
     sendMessage(sessionId: string, messages: ContentBlock[], options?: ConversationOptions): AsyncIterable<StreamEvent>;
+
+    subscribeToRequestModel(requestId: string): AsyncIterable<RequestModelSnapshot>;
 
     listOfChats(params: PaginationParams): Promise<PaginatedResult<Chat>>;
     deleteChat(chatId: string): Promise<void>;

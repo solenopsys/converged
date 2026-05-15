@@ -84,11 +84,22 @@ body { margin: 0; }
   grid-template-columns: var(--ssr-menu-width) 0px;
   grid-template-rows: minmax(0, 1fr) auto;
   column-gap: 0;
-  overflow: hidden;
+  overflow: visible;
   isolation: isolate;
   box-sizing: border-box;
   z-index: 6;
   transition: width 220ms ease, grid-template-columns 220ms ease;
+}
+#ssr-shell[data-rail-resizing="1"],
+#app-shell[data-rail-resizing="1"] {
+  cursor: col-resize;
+}
+#ssr-shell[data-rail-resizing="1"],
+#ssr-shell[data-rail-resizing="1"] #ssr-super-panel {
+  transition: none;
+}
+#ssr-shell[data-rail-resizing="1"] #ssr-main {
+  pointer-events: none;
 }
 #ssr-shell[data-rail-open="1"] #ssr-super-panel,
 #ssr-shell[data-chat-focus="1"] #ssr-super-panel {
@@ -172,6 +183,40 @@ body { margin: 0; }
 }
 #ssr-right-rail[data-open="1"] {
   visibility: visible;
+}
+#ssr-rail-resizer {
+  position: absolute;
+  top: 0;
+  right: -8px;
+  bottom: 0;
+  width: 16px;
+  display: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: col-resize;
+  z-index: 40;
+  touch-action: none;
+}
+#ssr-rail-resizer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 7px;
+  width: 1px;
+  background: color-mix(in oklch, var(--ui-border) 72%, transparent);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+#ssr-rail-resizer:hover::after,
+#ssr-rail-resizer:focus-visible::after,
+#ssr-shell[data-rail-resizing="1"] #ssr-rail-resizer::after {
+  opacity: 1;
+}
+#ssr-shell[data-rail-open="1"] #ssr-rail-resizer,
+#ssr-shell[data-chat-focus="1"] #ssr-rail-resizer {
+  display: block;
 }
 #ssr-right-rail-chat,
 #ssr-right-rail-tab {
@@ -563,6 +608,9 @@ body { margin: 0; }
     opacity: 1;
     visibility: visible;
   }
+  #ssr-rail-resizer {
+    display: none !important;
+  }
   #ssr-chat-dock {
     grid-column: 1;
     grid-row: 3;
@@ -682,6 +730,7 @@ export function SsrShellLayout({
             </section>
             <div id="ssr-slot-provider-root" />
           </aside>
+          <button id="ssr-rail-resizer" type="button" aria-label="Resize panel" />
           <div id="ssr-chat-dock" data-overlap="0">
             <form id="ssr-chat-form">
               <textarea id="ssr-chat-input" rows={1} placeholder="Describe your CNC request..." autoComplete="off" />

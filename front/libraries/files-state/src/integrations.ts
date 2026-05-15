@@ -130,18 +130,14 @@ sample({
   clock: chunkUploadStarted,
   source: combine({ chunks: $chunks, files: $files }),
   filter: ({ files, chunks }, { fileId, chunkNumber }) => {
-    // Проверяем что файл не на паузе и chunk существует
     const file = files.get(fileId);
     const key = `${fileId}-${chunkNumber}`;
     const chunk = chunks.get(key);
-    const result = file?.status !== 'paused' && chunk !== undefined;
-    console.log(`[Integration] chunkUploadStarted filter: chunk=${chunkNumber}, fileStatus=${file?.status}, chunkExists=${!!chunk}, pass=${result}`);
-    return result;
+    return file?.status !== 'paused' && chunk !== undefined;
   },
   fn: ({ chunks }, { fileId, chunkNumber }) => {
     const key = `${fileId}-${chunkNumber}`;
     const chunk = chunks.get(key)!;
-    console.log(`[Integration] -> blockSaveRequested: chunk=${chunkNumber}, dataSize=${chunk.data.length}, originalSize=${chunk.originalSize}`);
     return {
       fileId,
       chunkNumber,
@@ -156,16 +152,7 @@ sample({
 // Store -> Files: блок сохранен, сохраняем hash и метаданные
 sample({
   clock: blockSaved,
-  fn: ({ fileId, chunkNumber, hash, chunkSize }) => {
-    console.log(`[Integration] blockSaved -> chunkMetadataSaveRequested: chunk=${chunkNumber}, hash=${hash}, chunkSize=${chunkSize}`);
-
-    return {
-      fileId,
-      chunkNumber,
-      hash,
-      chunkSize
-    };
-  },
+  fn: ({ fileId, chunkNumber, hash, chunkSize }) => ({ fileId, chunkNumber, hash, chunkSize }),
   target: chunkMetadataSaveRequested
 });
 
@@ -178,9 +165,7 @@ const $pendingChunkHashes = fileTransferDomain.createStore<Map<string, { fileId:
 
 $pendingChunkHashes.on(blockSaved, (state, { fileId, chunkNumber, hash }) => {
   const newMap = new Map(state);
-  const key = `${fileId}-${chunkNumber}`;
-  console.log('[Integration] $pendingChunkHashes.on(blockSaved):', { fileId, chunkNumber, hash });
-  newMap.set(key, { fileId, chunkNumber, hash });
+  newMap.set(`${fileId}-${chunkNumber}`, { fileId, chunkNumber, hash });
   return newMap;
 });
 
@@ -188,21 +173,9 @@ sample({
   clock: chunkMetadataSaved,
   source: $pendingChunkHashes,
   fn: (pending, { fileId, chunkNumber }) => {
-    const key = `${fileId}-${chunkNumber}`;
-    const data = pending.get(key);
-
-    console.log('[Integration] chunkMetadataSaved -> chunkUploaded:', { fileId, chunkNumber, hasPending: !!data });
-
-    if (!data) {
-      console.error('[Integration] Missing hash for chunk:', { fileId, chunkNumber });
-      return { fileId, chunkNumber, hash: '' as any };
-    }
-
-    return {
-      fileId: data.fileId,
-      chunkNumber: data.chunkNumber,
-      hash: data.hash as any
-    };
+    const data = pending.get(`${fileId}-${chunkNumber}`);
+    if (!data) return { fileId, chunkNumber, hash: '' as any };
+    return { fileId: data.fileId, chunkNumber: data.chunkNumber, hash: data.hash as any };
   },
   target: chunkUploaded
 });
@@ -226,13 +199,6 @@ $pendingChunkHashes.on(chunkUploaded, (state, { fileId, chunkNumber }) => {
 // Store -> Browser: ошибка сохранения блока
 sample({
   clock: blockSaveFailed,
-  fn: ({ fileId, chunkNumber, error }) => {
-    console.error(`[Integration] blockSaveFailed -> chunkUploadFailed: chunk=${chunkNumber}, error=`, error);
-    return {
-      fileId,
-      chunkNumber,
-      error
-    };
-  },
+  fn: ({ fileId, chunkNumber, error }) => ({ fileId, chunkNumber, error }),
   target: chunkUploadFailed
 });

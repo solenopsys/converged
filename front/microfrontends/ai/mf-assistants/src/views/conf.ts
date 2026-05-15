@@ -14,7 +14,6 @@ export const mockChatStore: {
     currentResponse: ''
   },
   send: (content: string) => {
-    console.log('Sending message:', content);
     // Для демо просто пушим в массив (в реальном приложении — через store/action)
     mockChatStore.$chat.messages.push({
       id: String(Date.now()),

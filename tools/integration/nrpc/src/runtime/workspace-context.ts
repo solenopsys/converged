@@ -1,4 +1,3 @@
-import { AsyncLocalStorage } from "node:async_hooks";
 import {
 	setWorkspaceContextResolver,
 	type WorkspaceContext,
@@ -8,16 +7,6 @@ export const NRPC_WORKSPACE_HEADER = "workspace";
 export const NRPC_WORKSPACE_HEADER_ALT = "x-workspace";
 export const NRPC_SCOPE_HEADER = "scope";
 export const NRPC_SCOPE_HEADER_ALT = "x-scope";
-
-let storage: AsyncLocalStorage<WorkspaceContext> | undefined;
-
-function getStorage(): AsyncLocalStorage<WorkspaceContext> {
-	if (!storage) {
-		storage = new AsyncLocalStorage<WorkspaceContext>();
-		setWorkspaceContextResolver(() => storage?.getStore());
-	}
-	return storage;
-}
 
 function normalize(value: string | undefined): string | undefined {
 	const normalized = value?.trim();
@@ -60,17 +49,50 @@ export function resolveScopeFromHeaders(
 	);
 }
 
+// Server-side storage — lazily initialized only in Node.js/Bun
+// In browser environments this is always undefined (no-op)
+type ALS = {
+	getStore(): WorkspaceContext | undefined;
+	run<T>(store: WorkspaceContext, fn: () => T): T;
+};
+
+let _storage: ALS | null = null;
+let _storageInitialized = false;
+
+function getStorage(): ALS | null {
+	if (_storageInitialized) return _storage;
+	_storageInitialized = true;
+	try {
+		// Indirect reference prevents Vite from statically analyzing the import
+		const modName = ["node", "async_hooks"].join(":");
+		// biome-ignore lint: intentional dynamic require for server-only code
+		// eslint-disable-next-line @typescript-eslint/no-var-requires
+		const mod = (typeof require !== "undefined" ? require(modName) : null) as
+			| { AsyncLocalStorage: new <T>() => ALS }
+			| null;
+		if (mod?.AsyncLocalStorage) {
+			_storage = new mod.AsyncLocalStorage<WorkspaceContext>();
+			setWorkspaceContextResolver(() => _storage?.getStore());
+		}
+	} catch {
+		// Browser or environments without async_hooks — storage stays null
+	}
+	return _storage;
+}
+
 export function getCurrentWorkspace(): string | undefined {
-	return storage?.getStore()?.workspace;
+	return getStorage()?.getStore()?.workspace;
 }
 
 export function getCurrentWorkspaceContext(): WorkspaceContext | undefined {
-	return storage?.getStore();
+	return getStorage()?.getStore();
 }
 
 export function runWithWorkspaceContext<T>(
 	context: WorkspaceContext,
 	callback: () => T,
 ): T {
-	return getStorage().run(context, callback);
+	const storage = getStorage();
+	if (storage) return storage.run(context, callback);
+	return callback();
 }

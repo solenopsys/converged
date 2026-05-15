@@ -2,6 +2,7 @@ export type {
 	ISODateString,
 	PaginatedResult,
 	Request,
+	RequestCollections,
 	RequestCompletion,
 	RequestFieldDefinition,
 	RequestFieldOption,

@@ -670,6 +670,16 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
         },
       });
     })
+    .get("/front-core.css", () =>
+      new Response("", {
+        headers: {
+          "Content-Type": "text/css; charset=utf-8",
+          "Cache-Control": isProd
+            ? "public, max-age=31536000, immutable"
+            : "no-store",
+        },
+      }),
+    )
     .get("/island-client.js", async ({ request }) => {
       // Dev: rebuild on each request so SSR shell always serves latest
       // interception/takeover logic without server restarts.

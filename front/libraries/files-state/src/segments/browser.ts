@@ -106,22 +106,16 @@ export const showSaveDialogFx = fileTransferDomain.createEffect<
 >('SHOW_SAVE_DIALOG_FX');
 showSaveDialogFx.use(async ({ fileName }) => {
   const hasFileSystemAPI = 'showSaveFilePicker' in window;
-  console.log('[Browser] showSaveDialogFx:', {
-    fileName,
-    hasFileSystemAPI,
-    browser: navigator.userAgent.includes('Firefox') ? 'Firefox' : 'Other'
-  });
+  
 
   if (hasFileSystemAPI) {
     try {
       const handle = await (window as any).showSaveFilePicker({
         suggestedName: fileName
       });
-      console.log('[Browser] File handle obtained via showSaveFilePicker');
       return handle;
     } catch (error: any) {
       if (error?.name === 'AbortError') {
-        console.log('[Browser] User cancelled save dialog');
         throw error;
       }
       console.error('[Browser] showSaveFilePicker failed:', error);
@@ -129,7 +123,6 @@ showSaveDialogFx.use(async ({ fileName }) => {
     }
   }
 
-  console.log('[Browser] File System Access API not supported, using buffer mode');
   return null;
 });
 
@@ -150,8 +143,6 @@ export const downloadFileFx = fileTransferDomain.createEffect<
   void
 >('DOWNLOAD_FILE_FX');
 downloadFileFx.use(async ({ fileId, fileName }) => {
-  console.log('[Browser] downloadFileFx called:', { fileId, fileName });
-
   const { downloadFile } = await import('../download');
 
   const filesService = services.getFilesService();
@@ -162,17 +153,14 @@ downloadFileFx.use(async ({ fileId, fileName }) => {
     throw new Error('Services not initialized');
   }
 
-  console.log('[Browser] Starting download...');
   const result = await downloadFile(fileId, filesService, storeService);
 
   // Если blob пустой, значит файл уже записан через File System Access API
   if (result.blob.size === 0) {
-    console.log('[Browser] File already written via File System Access API');
     return;
   }
 
   // Fallback: используем blob URL для скачивания
-  console.log('[Browser] Download complete, creating blob URL');
   const url = URL.createObjectURL(result.blob);
 
   const link = document.createElement('a');
@@ -180,16 +168,13 @@ downloadFileFx.use(async ({ fileId, fileName }) => {
   link.download = fileName || result.fileName;
   document.body.appendChild(link);
 
-  console.log('[Browser] Triggering download click for:', link.download);
   link.click();
 
   setTimeout(() => {
-    console.log('[Browser] Cleaning up blob URL and link');
     URL.revokeObjectURL(url);
     document.body.removeChild(link);
   }, 1000);
 
-  console.log('[Browser] Download initiated successfully');
 });
 
 export const downloadBufferedFileFx = fileTransferDomain.createEffect<
@@ -197,11 +182,7 @@ export const downloadBufferedFileFx = fileTransferDomain.createEffect<
   void
 >('DOWNLOAD_BUFFERED_FILE_FX');
 downloadBufferedFileFx.use(async ({ fileName, chunks }) => {
-  console.log('[Browser] downloadBufferedFileFx called:', {
-    fileName,
-    chunksCount: chunks.length,
-    totalSize: chunks.reduce((sum, c) => sum + c.length, 0)
-  });
+  
 
   if (typeof document === 'undefined' || typeof URL === 'undefined' || typeof Blob === 'undefined') {
     console.error('[Browser] Browser APIs not available');
@@ -215,11 +196,7 @@ downloadBufferedFileFx.use(async ({ fileName, chunks }) => {
 
   try {
     const blob = new Blob(chunks as BlobPart[]);
-    console.log('[Browser] Blob created:', { size: blob.size, type: blob.type });
-
     const url = URL.createObjectURL(blob);
-    console.log('[Browser] Blob URL created:', url);
-
     const link = document.createElement('a');
     link.href = url;
     link.download = fileName;
@@ -227,17 +204,14 @@ downloadBufferedFileFx.use(async ({ fileName, chunks }) => {
     // Важно: не скрываем элемент, в некоторых браузерах это блокирует скачивание
     document.body.appendChild(link);
 
-    console.log('[Browser] Triggering download click for:', fileName);
     link.click();
 
     // Даем браузеру время начать загрузку перед очисткой
     setTimeout(() => {
-      console.log('[Browser] Cleaning up blob URL and link');
       URL.revokeObjectURL(url);
       document.body.removeChild(link);
     }, 1000);
 
-    console.log('[Browser] Download initiated successfully');
   } catch (error) {
     console.error('[Browser] Download failed:', error);
     throw error;
@@ -264,20 +238,17 @@ export const $downloadOffsets = fileTransferDomain.createStore<Map<UUID, number>
 
 $downloadMode
   .on(downloadRequested, (state, { fileId }) => {
-    console.log('[Browser] downloadRequested - clearing mode for:', fileId);
     const newMap = new Map(state);
     newMap.delete(fileId);
     return newMap;
   })
   .on(fileHandleReady, (state, { fileId, handle }) => {
     const mode = handle ? 'file' : 'buffer';
-    console.log('[Browser] fileHandleReady - setting mode:', { fileId, handle: !!handle, mode });
     const newMap = new Map(state);
     newMap.set(fileId, mode);
     return newMap;
   })
   .on(downloadCancelled, (state, fileId) => {
-    console.log('[Browser] downloadCancelled:', fileId);
     const newMap = new Map(state);
     newMap.set(fileId, 'cancelled');
     return newMap;
@@ -285,7 +256,6 @@ $downloadMode
 
 $downloadBuffers
   .on(downloadRequested, (state, { fileId }) => {
-    console.log('[Browser] downloadRequested - clearing buffer for:', fileId);
     const newMap = new Map(state);
     newMap.delete(fileId);
     return newMap;
@@ -294,17 +264,11 @@ $downloadBuffers
     const newMap = new Map(state);
     const existing = newMap.get(fileId) ?? [];
     const updated = [...existing, new Uint8Array(chunk)];
-    console.log('[Browser] downloadBufferAppended:', {
-      fileId,
-      chunkSize: chunk.length,
-      totalChunks: updated.length,
-      totalBytes: updated.reduce((sum, c) => sum + c.length, 0)
-    });
+    
     newMap.set(fileId, updated);
     return newMap;
   })
   .on(downloadBufferCleared, (state, fileId) => {
-    console.log('[Browser] downloadBufferCleared:', fileId);
     const newMap = new Map(state);
     newMap.delete(fileId);
     return newMap;
@@ -377,7 +341,6 @@ sample({
     const key = `${fileId}-${chunkNumber}`;
     const chunk = chunks.get(key);
     if (!chunk || chunk.status !== 'prepared') {
-      console.log(`[Browser] uploadChunkRequested BLOCKED: chunk=${chunkNumber}, exists=${!!chunk}, status=${chunk?.status}`);
       return false;
     }
 
@@ -385,11 +348,9 @@ sample({
       .filter(c => c.fileId === fileId && c.status === 'uploading').length;
 
     const result = uploading < MAX_PARALLEL_UPLOADS;
-    console.log(`[Browser] uploadChunkRequested: chunk=${chunkNumber}, uploading=${uploading}, maxParallel=${MAX_PARALLEL_UPLOADS}, pass=${result}`);
     return result;
   },
   fn: (chunks, { fileId, chunkNumber }) => {
-    console.log(`[Browser] -> chunkUploadStarted: chunk=${chunkNumber}`);
     return { fileId, chunkNumber };
   },
   target: chunkUploadStarted
@@ -428,7 +389,6 @@ $files.on(chunkUploaded, (state, { fileId }) => {
 $chunks.on(chunkUploadFailed, (state, { fileId, chunkNumber, error }) => {
   const key = `${fileId}-${chunkNumber}`;
   const chunk = state.get(key);
-  console.log(`[Browser] chunkUploadFailed: chunk=${chunkNumber}, error=${error.message}, retryCount=${chunk?.retryCount}`);
   if (!chunk) return state;
 
   const newMap = new Map(state);
@@ -564,7 +524,6 @@ $chunks.on(clearFileState, (state, fileId) => {
 sample({
   clock: downloadRequested,
   fn: ({ fileId, fileName }) => {
-    console.log('[Browser] downloadRequested -> downloadFileFx:', { fileId, fileName });
     return { fileId, fileName };
   },
   target: downloadFileFx

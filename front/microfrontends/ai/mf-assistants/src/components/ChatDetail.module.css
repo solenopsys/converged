@@ -1,5 +1,7 @@
 .chatRoot {
   color: var(--foreground, #111827);
+  min-width: 0;
+  overflow: hidden;
   --chat-user-bg: #f1f5f9;
   --chat-user-fg: #0f172a;
   --chat-user-border: rgba(15, 23, 42, 0.14);
@@ -46,6 +48,15 @@
   color: inherit;
   font-size: 0.875rem; /* 14px */
   line-height: 1.5;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+.markdown * {
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* Сброс крайних отступов */
@@ -57,6 +68,7 @@
   margin: 0 0 0.5rem 0;
   font-size: inherit;
   line-height: inherit;
+  overflow-wrap: anywhere;
 }
 
 .markdown p:last-child {
@@ -108,6 +120,8 @@
   font-family: ui-monospace, monospace;
   font-size: 0.8125rem;
   line-height: 1.2;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 /* Блоки кода */
@@ -117,6 +131,7 @@
   padding: 0.75rem;
   border-radius: 0.375rem;
   overflow-x: auto;
+  max-width: 100%;
 }
 
 .markdown pre code {
@@ -129,6 +144,7 @@
   color: var(--chat-link);
   text-decoration: underline;
   text-underline-offset: 2px;
+  overflow-wrap: anywhere;
 }
 
 /* Списки */
@@ -150,6 +166,8 @@
   line-height: inherit;
   position: relative;
   padding-left: 0.5rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .markdown ul > li::before,
@@ -212,9 +230,11 @@
 /* Таблицы */
 .markdown table {
   width: 100%;
+  max-width: 100%;
   margin: 0.5rem 0;
   border-collapse: collapse;
   font-size: 0.8125rem;
+  table-layout: fixed;
 }
 
 .markdown th,
@@ -222,6 +242,7 @@
   padding: 0.375rem 0.5rem;
   border: 1px solid var(--chat-border);
   text-align: left;
+  overflow-wrap: anywhere;
 }
 
 .markdown th {
@@ -232,7 +253,17 @@
 /* Контейнер сообщения */
 .messageRow {
   display: flex;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   margin-bottom: 0.75rem;
+  overflow: hidden;
+}
+
+.messageRow > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .messageRowUser {
@@ -247,7 +278,10 @@
 
 /* Пузырь юзера */
 .userBubble {
-  max-width: 75%;
+  flex: 0 1 auto;
+  min-width: 0;
+  width: fit-content;
+  max-width: min(75%, calc(100% - 0.5rem));
   padding: 0.5rem 0.75rem;
   border-radius: 1rem;
   border-top-right-radius: 0.25rem;
@@ -258,17 +292,72 @@
   font-size: 0.875rem;
   line-height: 1.5;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  overflow: hidden;
+}
+
+.fileBubble {
+  flex: 0 1 auto;
+  min-width: 0;
+  width: fit-content;
+  max-width: min(75%, calc(100% - 0.5rem));
+  overflow: hidden;
+  padding: 0.5rem 0.75rem;
+  border-radius: 1rem;
+  border-top-right-radius: 0.25rem;
+  background: color-mix(in oklch, var(--chat-user-bg) 78%, transparent);
+  color: var(--chat-user-fg);
+  border: 1px solid var(--chat-user-border);
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+
+.fileBubble:hover {
+  background: var(--chat-user-bg);
+}
+
+.fileBubbleInner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.fileName {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+.fileSize {
+  flex: 0 0 auto;
+  color: var(--chat-muted-fg);
+  font-size: 0.75rem;
+  white-space: nowrap;
 }
 
 /* Текст ассистента (без пузыря) */
 .assistantText {
-  max-width: 85%;
+  min-width: 0;
+  max-width: 100%;
   color: var(--chat-assistant-fg);
+  overflow-wrap: anywhere;
+  word-break: break-all;
 }
 
 .toolCallCard {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  max-width: 100%;
   gap: 0.5rem;
   padding: 0.75rem 0.875rem;
   border: 1px solid var(--chat-border);
@@ -279,14 +368,17 @@
 .toolCallTitleRow {
   display: flex;
   align-items: center;
+  min-width: 0;
   gap: 0.5rem;
   justify-content: space-between;
 }
 
 .toolCallTitle {
+  min-width: 0;
   font-size: 0.875rem;
   font-weight: 600;
   line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .toolCallMeta {
@@ -300,6 +392,7 @@
   line-height: 1.45;
   color: var(--chat-muted-fg);
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .toolCallLink {
@@ -340,12 +433,18 @@
   display: flex;
   flex-direction: column;
   min-height: 100%;
+  min-width: 0;
+  max-width: 100%;
   padding: 0.75rem;
+  overflow-x: hidden;
 }
 
 .chatMessages {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .chatMessagesIntro {
@@ -375,6 +474,25 @@
 @keyframes bounce {
   0%, 80%, 100% { transform: scale(0); }
   40% { transform: scale(1); }
+}
+
+/* Обёртка индикатора загрузки */
+.loadingWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.loadingActionText {
+  font-size: 0.8125rem;
+  color: var(--chat-muted-fg);
+  line-height: 1.4;
+  animation: fadeIn 0.25s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(2px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* Курсор стриминга */

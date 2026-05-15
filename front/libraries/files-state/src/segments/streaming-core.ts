@@ -77,7 +77,6 @@ export const $decompressionState = fileTransferDomain.createStore<Map<UUID, {
 
 // Установка состояния декомпрессии
 $decompressionState.on(decompressionStateInitialized, (state, { fileId, totalChunks }) => {
-  console.log('[streaming-core] decompressionStateInitialized:', { fileId, totalChunks });
   const newMap = new Map(state);
   newMap.set(fileId, {
     currentChunkNumber: 0,
@@ -96,13 +95,11 @@ sample({
   source: combine({ metadata: $fileMetadataCache, chunks: $fileChunksCache }),
   filter: ({ chunks }, { fileId }) => {
     const hasChunks = chunks.has(fileId);
-    console.log('[streaming-core] decompressionStarted -> check chunks:', { fileId, hasChunks });
     return hasChunks;
   },
   fn: ({ chunks }, { fileId }) => {
     const fileChunks = chunks.get(fileId)!;
     const totalChunks = fileChunks.length;
-    console.log('[streaming-core] Initializing decompression state:', { fileId, totalChunks });
     return { fileId, totalChunks };
   },
   target: decompressionStateInitialized
@@ -124,7 +121,6 @@ sample({
 sample({
   clock: decompressionStateInitialized,
   fn: ({ fileId }) => {
-    console.log('[streaming-core] Requesting first chunk for:', fileId);
     return { fileId, chunkNumber: 0 };
   },
   target: decompressionChunkRequested

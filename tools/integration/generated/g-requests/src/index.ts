@@ -92,6 +92,7 @@ export type RequestModel = {
 	fields: Record<string, RequestFieldState>;
 	fieldOrder: string[];
 	files: RequestFiles;
+	collections?: RequestCollections;
 	missingRequired: string[];
 	remainingRequired: string[];
 	remainingDelta: RequestRequirementField[];
@@ -126,6 +127,7 @@ export type RequestModelInput = {
 	parameters?: RequestParameterInput[];
 	fieldDefinitions?: RequestFieldDefinition[];
 	files?: RequestFiles;
+	collections?: RequestCollections;
 };
 
 export type RequestModelPatch = {
@@ -138,11 +140,14 @@ export type RequestModelPatch = {
 	parameters?: RequestParameterInput[];
 	fieldDefinitions?: RequestFieldDefinition[];
 	files?: RequestFiles;
+	collections?: RequestCollections;
 };
 
 export type RequestFields = Record<string, RequestFieldValue>;
 
 export type RequestFiles = Record<string, string>;
+
+export type RequestCollections = Record<string, string>;
 
 export type Request = {
 	id: RequestId;
@@ -150,6 +155,7 @@ export type Request = {
 	status: RequestStatus;
 	fields: RequestFields;
 	files: RequestFiles;
+	collections?: RequestCollections;
 	createdAt: ISODateString;
 	updatedAt?: ISODateString;
 	model?: RequestModel;
@@ -165,6 +171,7 @@ export type RequestInput = {
 	parameters?: RequestParameterInput[];
 	fieldDefinitions?: RequestFieldDefinition[];
 	files?: RequestFiles;
+	collections?: RequestCollections;
 };
 
 export type RequestPatch = {
@@ -177,6 +184,7 @@ export type RequestPatch = {
 	parameters?: RequestParameterInput[];
 	fieldDefinitions?: RequestFieldDefinition[];
 	files?: RequestFiles;
+	collections?: RequestCollections;
 };
 
 export type RequestListParams = {
@@ -504,7 +512,7 @@ export const metadata = {
     {
       "name": "RequestModel",
       "kind": "type",
-      "definition": "{\n\tid: RequestId;\n\tsource?: string;\n\tstatus: RequestStatus;\n\tprocessType: RequestProcessType;\n\ttitle?: string;\n\tsummary?: string;\n\tfields: Record<string, RequestFieldState>;\n\tfieldOrder: string[];\n\tfiles: RequestFiles;\n\tmissingRequired: string[];\n\tremainingRequired: string[];\n\tremainingDelta: RequestRequirementField[];\n\tcompletion: RequestCompletion;\n\tcreatedAt: ISODateString;\n\tupdatedAt: ISODateString;\n\trevision: number;\n}"
+      "definition": "{\n\tid: RequestId;\n\tsource?: string;\n\tstatus: RequestStatus;\n\tprocessType: RequestProcessType;\n\ttitle?: string;\n\tsummary?: string;\n\tfields: Record<string, RequestFieldState>;\n\tfieldOrder: string[];\n\tfiles: RequestFiles;\n\tcollections?: RequestCollections;\n\tmissingRequired: string[];\n\tremainingRequired: string[];\n\tremainingDelta: RequestRequirementField[];\n\tcompletion: RequestCompletion;\n\tcreatedAt: ISODateString;\n\tupdatedAt: ISODateString;\n\trevision: number;\n}"
     },
     {
       "name": "RequestParameterInput",
@@ -514,12 +522,12 @@ export const metadata = {
     {
       "name": "RequestModelInput",
       "kind": "type",
-      "definition": "{\n\tsource?: string;\n\tstatus?: RequestStatus;\n\tprocessType?: RequestProcessType;\n\ttitle?: string;\n\tsummary?: string;\n\tfields?: RequestFields;\n\tparameters?: RequestParameterInput[];\n\tfieldDefinitions?: RequestFieldDefinition[];\n\tfiles?: RequestFiles;\n}"
+      "definition": "{\n\tsource?: string;\n\tstatus?: RequestStatus;\n\tprocessType?: RequestProcessType;\n\ttitle?: string;\n\tsummary?: string;\n\tfields?: RequestFields;\n\tparameters?: RequestParameterInput[];\n\tfieldDefinitions?: RequestFieldDefinition[];\n\tfiles?: RequestFiles;\n\tcollections?: RequestCollections;\n}"
     },
     {
       "name": "RequestModelPatch",
       "kind": "type",
-      "definition": "{\n\tsource?: string;\n\tstatus?: RequestStatus;\n\tprocessType?: RequestProcessType;\n\ttitle?: string;\n\tsummary?: string;\n\tfields?: RequestFields;\n\tparameters?: RequestParameterInput[];\n\tfieldDefinitions?: RequestFieldDefinition[];\n\tfiles?: RequestFiles;\n}"
+      "definition": "{\n\tsource?: string;\n\tstatus?: RequestStatus;\n\tprocessType?: RequestProcessType;\n\ttitle?: string;\n\tsummary?: string;\n\tfields?: RequestFields;\n\tparameters?: RequestParameterInput[];\n\tfieldDefinitions?: RequestFieldDefinition[];\n\tfiles?: RequestFiles;\n\tcollections?: RequestCollections;\n}"
     },
     {
       "name": "RequestFields",
@@ -532,19 +540,24 @@ export const metadata = {
       "definition": "Record<string, string>"
     },
     {
+      "name": "RequestCollections",
+      "kind": "type",
+      "definition": "Record<string, string>"
+    },
+    {
       "name": "Request",
       "kind": "type",
-      "definition": "{\n\tid: RequestId;\n\tsource?: string;\n\tstatus: RequestStatus;\n\tfields: RequestFields;\n\tfiles: RequestFiles;\n\tcreatedAt: ISODateString;\n\tupdatedAt?: ISODateString;\n\tmodel?: RequestModel;\n}"
+      "definition": "{\n\tid: RequestId;\n\tsource?: string;\n\tstatus: RequestStatus;\n\tfields: RequestFields;\n\tfiles: RequestFiles;\n\tcollections?: RequestCollections;\n\tcreatedAt: ISODateString;\n\tupdatedAt?: ISODateString;\n\tmodel?: RequestModel;\n}"
     },
     {
       "name": "RequestInput",
       "kind": "type",
-      "definition": "{\n\tsource?: string;\n\tstatus?: RequestStatus;\n\tprocessType?: RequestProcessType;\n\ttitle?: string;\n\tsummary?: string;\n\tfields: RequestFields;\n\tparameters?: RequestParameterInput[];\n\tfieldDefinitions?: RequestFieldDefinition[];\n\tfiles?: RequestFiles;\n}"
+      "definition": "{\n\tsource?: string;\n\tstatus?: RequestStatus;\n\tprocessType?: RequestProcessType;\n\ttitle?: string;\n\tsummary?: string;\n\tfields: RequestFields;\n\tparameters?: RequestParameterInput[];\n\tfieldDefinitions?: RequestFieldDefinition[];\n\tfiles?: RequestFiles;\n\tcollections?: RequestCollections;\n}"
     },
     {
       "name": "RequestPatch",
       "kind": "type",
-      "definition": "{\n\tsource?: string;\n\tstatus?: RequestStatus;\n\tprocessType?: RequestProcessType;\n\ttitle?: string;\n\tsummary?: string;\n\tfields?: RequestFields;\n\tparameters?: RequestParameterInput[];\n\tfieldDefinitions?: RequestFieldDefinition[];\n\tfiles?: RequestFiles;\n}"
+      "definition": "{\n\tsource?: string;\n\tstatus?: RequestStatus;\n\tprocessType?: RequestProcessType;\n\ttitle?: string;\n\tsummary?: string;\n\tfields?: RequestFields;\n\tparameters?: RequestParameterInput[];\n\tfieldDefinitions?: RequestFieldDefinition[];\n\tfiles?: RequestFiles;\n\tcollections?: RequestCollections;\n}"
     },
     {
       "name": "RequestListParams",

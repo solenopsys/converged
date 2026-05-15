@@ -1,9 +1,9 @@
 import {
     ServiceType, StreamEventType, type StreamEvent,
-    type RuntimeChatService,
+    type RuntimeAssistantService,
     ContentType,type ConversationOptions,type Tool,
    type ToolCall
-} from '../../../../tools/integration/types/runtime/ai/chat';
+} from '../../../../tools/integration/types/runtime/ai/assistant';
 
 import { type ThreadsService, MessageType } from '../../../../tools/integration/types/services/communications/threads';
 
@@ -38,7 +38,8 @@ export type ChatState = {
     messages: ChatMessage[];
     isLoading: boolean;
     currentResponse: string;
-    pendingToolCalls: ToolCall[]; // Новое поле для хранения tool calls
+    pendingToolCalls: ToolCall[];
+    lastToolCallName?: string;
 }
 
 export type ChatMetadataService = {
@@ -55,7 +56,7 @@ export {
     StreamEventType,
     type StreamEvent,
     type ThreadsService,
-    type RuntimeChatService,
+    type RuntimeAssistantService,
     ContentType,
     MessageType,
     type ConversationOptions,

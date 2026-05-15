@@ -2,7 +2,8 @@ import React, { useCallback } from 'react';
 import { Bot, Braces, FileDown } from 'lucide-react';
 import {
   ThreadedChat,
-  cn
+  cn,
+  useMicrofrontendTranslation,
 } from 'front-core';
 import ReactMarkdown from 'react-markdown';
 
@@ -136,13 +137,13 @@ const FileLinkMessage: React.FC<FileLinkMessageProps> = ({ fileId, fileName, fil
     <div className={cn(styles.messageRow, styles.messageRowUser)}>
       <div
         onClick={handleDownload}
-        className="max-w-[75%] rounded-2xl rounded-tr-sm bg-primary/10 border border-primary/20 px-3 py-2 cursor-pointer hover:bg-primary/20 transition-colors"
+        className={styles.fileBubble}
       >
-        <div className="flex items-center gap-2">
+        <div className={styles.fileBubbleInner}>
           <FileDown className="h-4 w-4 text-primary shrink-0" />
-          <span className="text-sm font-medium truncate">{fileName}</span>
+          <span className={styles.fileName}>{fileName}</span>
           {fileSize && (
-            <span className="text-xs text-muted-foreground shrink-0">{formatFileSize(fileSize)}</span>
+            <span className={styles.fileSize}>{formatFileSize(fileSize)}</span>
           )}
         </div>
       </div>
@@ -151,19 +152,46 @@ const FileLinkMessage: React.FC<FileLinkMessageProps> = ({ fileId, fileName, fil
 };
 
 // ==========================
+// Маппинг имени инструмента → ключ локали
+// ==========================
+function getActionKey(toolName: string): string {
+  const n = toolName.toLowerCase();
+  if (n.includes('request') || n.includes('order')) return 'toolAction.request';
+  if (n.includes('file') || n.includes('upload') || n.includes('download') || n.includes('attach') || n.includes('storage')) return 'toolAction.file';
+  if (n.includes('search') || n.includes('find') || n.includes('query') || n.includes('lookup')) return 'toolAction.search';
+  if (n.includes('analyz') || n.includes('extract') || n.includes('detect') || n.includes('parse')) return 'toolAction.analyze';
+  if (n.includes('convert') || n.includes('transform') || n.includes('render')) return 'toolAction.convert';
+  if (n.includes('update') || n.includes('patch') || n.includes('modify') || n.includes('edit') || n.includes('set')) return 'toolAction.update';
+  if (n.includes('create') || n.includes('save') || n.includes('write') || n.includes('add') || n.includes('insert') || n.includes('register')) return 'toolAction.create';
+  if (n.includes('get') || n.includes('read') || n.includes('fetch') || n.includes('load') || n.includes('list') || n.includes('show')) return 'toolAction.load';
+  if (n.includes('delete') || n.includes('remove') || n.includes('drop')) return 'toolAction.delete';
+  if (n.includes('send') || n.includes('notify') || n.includes('message') || n.includes('email')) return 'toolAction.notify';
+  return 'toolAction.thinking';
+}
+
+// ==========================
 // Компонент индикатора загрузки
 // ==========================
-const LoadingIndicator: React.FC = () => {
+const LoadingIndicator: React.FC<{ toolName?: string }> = ({ toolName }) => {
+  const { t } = useMicrofrontendTranslation('assistants-mf');
+  const actionKey = toolName ? getActionKey(toolName) : 'toolAction.thinking';
+  const actionText = t(actionKey);
+
   return (
     <div className={cn(styles.messageRow, styles.messageRowAssistant)}>
       <div className={styles.assistantText}>
         <div className={styles.messageHeader}>
           <Bot size={14} />
         </div>
-        <div className={styles.loadingDots}>
-          <div className={styles.loadingDot} />
-          <div className={styles.loadingDot} />
-          <div className={styles.loadingDot} />
+        <div className={styles.loadingWrap}>
+          <div className={styles.loadingDots}>
+            <div className={styles.loadingDot} />
+            <div className={styles.loadingDot} />
+            <div className={styles.loadingDot} />
+          </div>
+          {actionText ? (
+            <span className={styles.loadingActionText}>{actionText}</span>
+          ) : null}
         </div>
       </div>
     </div>
@@ -177,6 +205,7 @@ const ChatDetail: React.FC = (props: {
   messages: ChatMessage[];
   isLoading: boolean;
   currentResponse: string;
+  lastToolCallName?: string;
   send: (content: string) => void;
   onFilesSelected?: (files: File[]) => void;
   files?: FileListItem[];
@@ -224,7 +253,7 @@ const ChatDetail: React.FC = (props: {
         return <MessageBubble message={message} />;
       }}
       renderStreaming={(content) => <StreamingMessage content={content} />}
-      renderLoading={() => <LoadingIndicator />}
+      renderLoading={() => <LoadingIndicator toolName={props.lastToolCallName} />}
     />
   );
 };

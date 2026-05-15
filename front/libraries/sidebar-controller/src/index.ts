@@ -35,6 +35,8 @@ export {
   $sidebarTabs,
   $activeTab,
   $menuSectionsState,
+  persistState,
+  restoreState,
 } from "./store";
 
 // DOM utils

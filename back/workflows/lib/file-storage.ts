@@ -32,6 +32,7 @@ export type SaveStoredFileInput = {
 	fileType?: string;
 	owner?: string;
 	chunkSize?: number;
+	collectionId?: string;
 };
 
 export function createStorageClients(
@@ -131,6 +132,7 @@ export async function saveFileToStorage(
 		owner,
 		createdAt,
 		chunksCount,
+		...(input.collectionId ? { collectionId: input.collectionId } : {}),
 	};
 
 	await clients.files.save(metadata);

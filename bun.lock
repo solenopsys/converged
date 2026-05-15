@@ -89,7 +89,7 @@
         "g-assistant": "workspace:*",
         "nrpc": "workspace:*",
         "openai": "latest",
-        "rt-chat": "workspace:*",
+        "rt-assistant": "workspace:*",
       },
     },
     "back/microservices/analytics/ms-logs": {
@@ -645,15 +645,16 @@
         "openai": "latest",
       },
     },
-    "back/runtimes/ai/rt-chat": {
-      "name": "rt-chat",
+    "back/runtimes/ai/rt-assistant": {
+      "name": "rt-assistant",
       "version": "1.0.0",
       "dependencies": {
         "@anthropic-ai/sdk": "latest",
         "@google/genai": "latest",
         "elysia": "^1.4.28",
         "g-assistant": "workspace:*",
-        "g-rt-chat": "workspace:*",
+        "g-requests": "workspace:*",
+        "g-rt-assistant": "workspace:*",
         "nrpc": "workspace:*",
         "openai": "latest",
       },
@@ -769,15 +770,12 @@
         "effector": "latest",
         "effector-react": "latest",
         "elysia": "latest",
-        "files-state": "workspace:*",
         "front-core": "workspace:*",
         "front-ssr": "workspace:*",
         "g-markdown": "workspace:*",
-        "g-requests": "workspace:*",
         "g-rt-gates": "workspace:*",
         "md-tools": "workspace:*",
-        "model3d": "workspace:*",
-        "qrcode": "^1.5.4",
+        "mf-requests": "workspace:*",
         "react": "19.2.5",
         "react-dom": "19.2.5",
         "react-router-dom": "latest",
@@ -884,11 +882,12 @@
         "g-assistant": "workspace:*",
         "g-files": "workspace:*",
         "g-requests": "workspace:*",
-        "g-rt-chat": "workspace:*",
+        "g-rt-assistant": "workspace:*",
         "g-rt-dag": "workspace:*",
         "g-store": "workspace:*",
         "g-threads": "workspace:*",
         "lucide-react": "^1.8.0",
+        "mf-requests": "workspace:*",
         "model3d": "workspace:*",
         "react-markdown": "^10.1.0",
         "uuid": "^13.0.0",
@@ -972,8 +971,14 @@
     "front/microfrontends/business/mf-requests": {
       "name": "mf-requests",
       "dependencies": {
+        "files-state": "workspace:*",
         "front-core": "workspace:*",
+        "g-files": "workspace:*",
         "g-requests": "workspace:*",
+        "g-rt-assistant": "workspace:*",
+        "g-store": "workspace:*",
+        "model3d": "workspace:*",
+        "qrcode": "^1.5.4",
       },
     },
     "front/microfrontends/communications/mf-calls": {
@@ -1446,8 +1451,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "tools/integration/generated/g-rt-chat": {
-      "name": "g-rt-chat",
+    "tools/integration/generated/g-rt-assistant": {
+      "name": "g-rt-assistant",
       "version": "0.0.0",
       "dependencies": {
         "nrpc": "workspace:*",
@@ -1632,6 +1637,7 @@
       "name": "storybook",
       "version": "1.0.0",
       "dependencies": {
+        "@google/model-viewer": "^4.0.0",
         "@unocss/reset": "latest",
         "assistant-state": "workspace:*",
         "capsize": "^2.0.0",
@@ -1664,7 +1670,7 @@
 
     "@antfu/install-pkg": ["@antfu/install-pkg@1.1.0", "", { "dependencies": { "package-manager-detector": "^1.3.0", "tinyexec": "^1.0.1" } }, "sha512-MGQsmw10ZyI+EJo45CdSER4zEb+p31LpDAFp2Z3gkSd1yqVZGi0Ebx++YTEMonJy4oChEMLsxZ64j8FH6sSqtQ=="],
 
-    "@anthropic-ai/sdk": ["@anthropic-ai/sdk@0.90.0", "", { "dependencies": { "json-schema-to-ts": "^3.1.1" }, "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" }, "optionalPeers": ["zod"], "bin": { "anthropic-ai-sdk": "bin/cli" } }, "sha512-MzZtPabJF1b0FTDl6Z6H5ljphPwACLGP13lu8MTiB8jXaW/YXlpOp+Po2cVou3MPM5+f5toyLnul9whKCy7fBg=="],
+    "@anthropic-ai/sdk": ["@anthropic-ai/sdk@0.96.0", "", { "dependencies": { "json-schema-to-ts": "^3.1.1", "standardwebhooks": "^1.0.0" }, "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" }, "optionalPeers": ["zod"], "bin": { "anthropic-ai-sdk": "bin/cli" } }, "sha512-KlCsODtTyb17bLUVCSDC2HtSvAbJf60sEiPEax9dInF+aDF92vS4TZJ5XD7YCQXNb1/5icYaw8Y7wMjPlIV9Zg=="],
 
     "@aws-crypto/sha256-browser": ["@aws-crypto/sha256-browser@5.2.0", "", { "dependencies": { "@aws-crypto/sha256-js": "^5.2.0", "@aws-crypto/supports-web-crypto": "^5.2.0", "@aws-crypto/util": "^5.2.0", "@aws-sdk/types": "^3.222.0", "@aws-sdk/util-locate-window": "^3.0.0", "@smithy/util-utf8": "^2.0.0", "tslib": "^2.6.2" } }, "sha512-AXfN/lGotSQwu6HNcEsIASo7kWXZ5HYWvfOmSNKDsEqC4OashTp8alTmaz+F7TC2L083SFv5RdB+qU3Vs1kZqw=="],
 
@@ -1882,7 +1888,7 @@
 
     "@floating-ui/utils": ["@floating-ui/utils@0.2.10", "", {}, "sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ=="],
 
-    "@google/genai": ["@google/genai@1.50.1", "", { "dependencies": { "google-auth-library": "^10.3.0", "p-retry": "^4.6.2", "protobufjs": "^7.5.4", "ws": "^8.18.0" }, "peerDependencies": { "@modelcontextprotocol/sdk": "^1.25.2" }, "optionalPeers": ["@modelcontextprotocol/sdk"] }, "sha512-YbkX7H9+1Pt8wOt7DDREy8XSoiL6fRDzZQRyaVBarFf8MR3zHGqVdvM4cLbDXqPhxqvegZShgfxb8kw9C7YhAQ=="],
+    "@google/genai": ["@google/genai@2.3.0", "", { "dependencies": { "google-auth-library": "^10.3.0", "p-retry": "^4.6.2", "protobufjs": "^7.5.4", "ws": "^8.18.0" }, "peerDependencies": { "@modelcontextprotocol/sdk": "^1.25.2" }, "optionalPeers": ["@modelcontextprotocol/sdk"] }, "sha512-rXDhXUBj31gZafcwQFbXvt8jMrMxZoK7ECjQpk88UfA/OkZls3PtZDprT9lM3jjqRtwRjQoNLoPoNq6MlV8qLw=="],
 
     "@google/model-viewer": ["@google/model-viewer@4.2.0", "", { "dependencies": { "@monogrid/gainmap-js": "^3.1.0", "lit": "^3.2.1" }, "peerDependencies": { "three": "^0.182.0" } }, "sha512-RjpAI5cLs9CdvPcMRsOs8Bea/lNmGTTyaPyl16o9Fv6Qn8VSpgBMmXFr/11yb0hTrsojp2dOACEcY77R8hVUVA=="],
 
@@ -2888,7 +2894,7 @@
 
     "g-rt-agents": ["g-rt-agents@workspace:tools/integration/generated/g-rt-agents"],
 
-    "g-rt-chat": ["g-rt-chat@workspace:tools/integration/generated/g-rt-chat"],
+    "g-rt-assistant": ["g-rt-assistant@workspace:tools/integration/generated/g-rt-assistant"],
 
     "g-rt-cron": ["g-rt-cron@workspace:tools/integration/generated/g-rt-cron"],
 
@@ -3428,7 +3434,7 @@
 
     "open": ["open@10.2.0", "", { "dependencies": { "default-browser": "^5.2.1", "define-lazy-prop": "^3.0.0", "is-inside-container": "^1.0.0", "wsl-utils": "^0.1.0" } }, "sha512-YgBpdJHPyQ2UE5x+hlSXcnejzAvD0b22U2OuAP+8OnlJT+PjWPxtgmGqKKc+RgTM63U9gN0YzrYc71R2WT/hTA=="],
 
-    "openai": ["openai@6.34.0", "", { "peerDependencies": { "ws": "^8.18.0", "zod": "^3.25 || ^4.0" }, "optionalPeers": ["ws", "zod"], "bin": { "openai": "bin/cli" } }, "sha512-yEr2jdGf4tVFYG6ohmr3pF6VJuveP0EA/sS8TBx+4Eq5NT10alu5zg2dmxMXMgqpihRDQlFGpRt2XwsGj+Fyxw=="],
+    "openai": ["openai@6.37.0", "", { "peerDependencies": { "ws": "^8.18.0", "zod": "^3.25 || ^4.0" }, "optionalPeers": ["ws", "zod"], "bin": { "openai": "bin/cli" } }, "sha512-0H5dEGFmmLv6KSd0W1w2nyL8WsLkX6yoLeQpU+dZAOuGcany5qkYQMmj35ZrKgb6yiyYqpUzFOpR8mZQkgqeEQ=="],
 
     "openapi-types": ["openapi-types@12.1.3", "", {}, "sha512-N4YtSYJqghVu4iek2ZUvcN/0aqH1kRDuNqzcycDxhOUpg7GdvLa2F3DgS6yBNhInhv2r/6I0Flkn7CqL8+nIcw=="],
 
@@ -3564,7 +3570,7 @@
 
     "rt-agents": ["rt-agents@workspace:back/runtimes/ai/rt-agents"],
 
-    "rt-chat": ["rt-chat@workspace:back/runtimes/ai/rt-chat"],
+    "rt-assistant": ["rt-assistant@workspace:back/runtimes/ai/rt-assistant"],
 
     "rt-cron": ["rt-cron@workspace:back/runtimes/automation/rt-cron"],
 
@@ -3957,10 +3963,6 @@
     "redent/strip-indent": ["strip-indent@3.0.0", "", { "dependencies": { "min-indent": "^1.0.0" } }, "sha512-laJTa3Jb+VQpaC6DseHhF7dXVqHTfJPCRDaEbid/drOhgitgYku/letMUqOXFoWV0zIIUbjpdH2t+tYj4bQMRQ=="],
 
     "rt-agents/@anthropic-ai/sdk": ["@anthropic-ai/sdk@0.95.2", "", { "dependencies": { "json-schema-to-ts": "^3.1.1", "standardwebhooks": "^1.0.0" }, "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" }, "optionalPeers": ["zod"], "bin": { "anthropic-ai-sdk": "bin/cli" } }, "sha512-Egddwo3sheo1PzUrMkZnH6VkQYwS0h/b/i8vSK8Ta9M45UQipAMeDFH57dYuDAfXMEUUGeKw6CMlremgMZgrSQ=="],
-
-    "rt-agents/openai": ["openai@6.37.0", "", { "peerDependencies": { "ws": "^8.18.0", "zod": "^3.25 || ^4.0" }, "optionalPeers": ["ws", "zod"], "bin": { "openai": "bin/cli" } }, "sha512-0H5dEGFmmLv6KSd0W1w2nyL8WsLkX6yoLeQpU+dZAOuGcany5qkYQMmj35ZrKgb6yiyYqpUzFOpR8mZQkgqeEQ=="],
-
-    "rt-chat/@anthropic-ai/sdk": ["@anthropic-ai/sdk@0.91.1", "", { "dependencies": { "json-schema-to-ts": "^3.1.1" }, "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" }, "optionalPeers": ["zod"], "bin": { "anthropic-ai-sdk": "bin/cli" } }, "sha512-LAmu761tSN9r66ixvmciswUj/ZC+1Q4iAfpedTfSVLeswRwnY3n2Nb6Tsk+cLPP28aLOPWeMgIuTuCcMC6W/iw=="],
 
     "storybook/storybook": ["storybook@10.3.5", "", { "dependencies": { "@storybook/global": "^5.0.0", "@storybook/icons": "^2.0.1", "@testing-library/jest-dom": "^6.9.1", "@testing-library/user-event": "^14.6.1", "@vitest/expect": "3.2.4", "@vitest/spy": "3.2.4", "@webcontainer/env": "^1.1.1", "esbuild": "^0.18.0 || ^0.19.0 || ^0.20.0 || ^0.21.0 || ^0.22.0 || ^0.23.0 || ^0.24.0 || ^0.25.0 || ^0.26.0 || ^0.27.0", "open": "^10.2.0", "recast": "^0.23.5", "semver": "^7.7.3", "use-sync-external-store": "^1.5.0", "ws": "^8.18.0" }, "peerDependencies": { "prettier": "^2 || ^3" }, "optionalPeers": ["prettier"], "bin": "./dist/bin/dispatcher.js" }, "sha512-uBSZu/GZa9aEIW3QMGvdQPMZWhGxSe4dyRWU8B3/Vd47Gy/XLC7tsBxRr13txmmPOEDHZR94uLuq0H50fvuqBw=="],
 

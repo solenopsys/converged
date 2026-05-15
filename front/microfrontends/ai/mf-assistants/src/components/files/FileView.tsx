@@ -21,13 +21,13 @@ export function FileView({ item }: { item: FileListItem }) {
   const totalChunksLabel = item.totalChunks > 0 ? item.totalChunks : '-';
 
   return (
-    <div className="flex flex-col gap-2 p-3 rounded-lg bg-muted/50 border">
-      <div className="flex items-center justify-between gap-2">
+    <div className="flex min-w-0 max-w-full flex-col gap-2 overflow-hidden rounded-lg border bg-muted/50 p-3">
+      <div className="flex min-w-0 items-center justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-medium truncate" title={item.name ?? item.fileId}>
+          <div className="break-all text-sm font-medium" title={item.name ?? item.fileId}>
             {item.name ?? item.fileId}
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="flex min-w-0 flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span className={cn(statusColor[item.status])}>
               {statusLabel[item.status]}
             </span>

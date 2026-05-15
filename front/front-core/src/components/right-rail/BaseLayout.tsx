@@ -3,12 +3,13 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
 import { Outlet } from "react-router-dom";
 import { useUnit } from "effector-react";
-import { $rightSidebarWidth, sidebarWidthChanged } from "sidebar-controller";
+import { $rightSidebarWidth, restoreState, sidebarWidthChanged } from "sidebar-controller";
 import {
   $activePanel,
   $collapsed,
   $constrained,
   $device,
+  $panelResizing,
   $panelConfig,
   $parallel,
   type ActivePanel,
@@ -16,6 +17,7 @@ import {
   setCollapsed,
   setConstrained,
   setDevice,
+  setPanelResizing,
   toggleParallel,
 } from "./panelController";
 import { startRightRailUriSync } from "./uri-sync";
@@ -56,12 +58,14 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
     collapsed,
     parallel,
     constrained,
+    panelResizing,
     panelConfig,
     rightSidebarWidth,
     onDevice,
     onFront,
     onCollapsed,
     onConstrain,
+    onPanelResizing,
     onParallel,
   } = useUnit({
     device: $device,
@@ -69,12 +73,14 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
     collapsed: $collapsed,
     constrained: $constrained,
     parallel: $parallel,
+    panelResizing: $panelResizing,
     panelConfig: $panelConfig,
     rightSidebarWidth: $rightSidebarWidth,
     onDevice: setDevice,
     onFront: setActivePanel,
     onCollapsed: setCollapsed,
     onConstrain: setConstrained,
+    onPanelResizing: setPanelResizing,
     onParallel: toggleParallel,
   });
 
@@ -124,14 +130,19 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
       const previousCursor = document.body.style.cursor;
 
       document.body.style.userSelect = "none";
-      document.body.style.cursor = "col-resize";
+      document.body.style.cursor = "ew-resize";
+      onPanelResizing(true);
 
       const onPointerMove = (moveEvent: globalThis.PointerEvent) => {
-        const delta = startX - moveEvent.clientX;
+        moveEvent.preventDefault();
+        // The rail is mounted before the center area, so dragging its outer edge
+        // to the right grows the panel.
+        const delta = moveEvent.clientX - startX;
         updatePanelWidth(startWidth + delta);
       };
 
       const cleanup = () => {
+        onPanelResizing(false);
         document.body.style.userSelect = previousUserSelect;
         document.body.style.cursor = previousCursor;
         window.removeEventListener("pointermove", onPointerMove);
@@ -146,10 +157,11 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
       window.addEventListener("pointerup", onPointerUp);
       window.addEventListener("pointercancel", onPointerCancel);
     },
-    [collapsed, device, normalizedPanelWidth, updatePanelWidth],
+    [collapsed, device, normalizedPanelWidth, onPanelResizing, updatePanelWidth],
   );
 
   useEffect(() => {
+    restoreState();
     startRightRailUriSync();
   }, []);
 
@@ -223,6 +235,7 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
       data-mode={parallel ? "parallel" : "stacked"}
       data-collapsed={collapsed ? "true" : "false"}
       data-constrained={constrained ? "true" : "false"}
+      data-resizing={panelResizing ? "true" : "false"}
       data-super-expanded={superPanelExpanded ? "true" : "false"}
       style={
         layoutStyle
@@ -288,31 +301,76 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
         .rail-resizer {
           position: absolute;
           top: 0;
+          right: -9px;
           bottom: 0;
-          left: 0;
-          width: 12px;
+          width: 18px;
           padding: 0;
           border: 0;
           background: transparent;
-          transform: translateX(-50%);
-          cursor: col-resize;
-          z-index: 6;
+          cursor: ew-resize;
+          display: block;
+          touch-action: none;
+          z-index: 20;
+          color: color-mix(in oklch, var(--chat-ink) 58%, transparent);
+          appearance: none;
+        }
+
+        .rail-resizer::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          left: 8px;
+          width: 1px;
+          background: color-mix(in oklch, var(--panel-edge) 45%, transparent);
+          opacity: 0.7;
+          pointer-events: none;
+          transition: background-color 160ms ease, opacity 160ms ease;
         }
 
         .rail-resizer::after {
           content: "";
           position: absolute;
-          top: 0;
-          bottom: 0;
-          left: 50%;
-          width: 1px;
-          background: color-mix(in oklch, var(--panel-edge) 55%, transparent);
-          transition: background-color 160ms ease;
+          right: 2px;
+          bottom: 14px;
+          width: 18px;
+          height: 18px;
+          border-right: 2px solid currentColor;
+          border-bottom: 2px solid currentColor;
+          border-radius: 0 0 7px 0;
+          opacity: 0.65;
+          pointer-events: none;
+          transition: opacity 160ms ease, transform 160ms ease;
+        }
+
+        .rail-resizer:hover::before,
+        .rail-resizer:focus-visible::before,
+        .app-layout[data-resizing="true"] .rail-resizer::before {
+          background: color-mix(in oklch, var(--panel-edge) 88%, transparent);
+          opacity: 1;
         }
 
         .rail-resizer:hover::after,
-        .rail-resizer:focus-visible::after {
-          background: color-mix(in oklch, var(--panel-edge) 88%, transparent);
+        .rail-resizer:focus-visible::after,
+        .app-layout[data-resizing="true"] .rail-resizer::after {
+          opacity: 1;
+          transform: translate(-1px, -1px);
+        }
+
+        .rail-resizer:hover,
+        .rail-resizer:focus-visible,
+        .app-layout[data-resizing="true"] .rail-resizer {
+          color: var(--chat-ink);
+          outline: none;
+        }
+
+        .app-layout[data-resizing="true"] .app-stage,
+        .app-layout[data-resizing="true"] .app-rail,
+        .app-layout[data-resizing="true"] .panel-stack,
+        .app-layout[data-resizing="true"] .panel,
+        .app-layout[data-resizing="true"] .chat-panel,
+        .app-layout[data-resizing="true"] .super-chat-footer {
+          transition: none;
         }
 
         .app-shell {
@@ -370,6 +428,7 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
           font-family: "Space Grotesk", "Segoe UI", sans-serif;
           padding: 0;
           box-sizing: border-box;
+          z-index: 10;
         }
 
         .panel-stack {
@@ -380,7 +439,7 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
           width: var(--super-panel-width);
           height: 100vh;
           margin-left: 0;
-          overflow: hidden;
+          overflow: visible;
           transition: width var(--transition), grid-template-columns var(--transition), grid-template-rows var(--transition);
         }
 
@@ -1083,14 +1142,6 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
         <div className="app-shell">
           <div className="app-stage">
             <aside className="app-rail">
-              {device === "desktop" && !collapsed ? (
-                <button
-                  type="button"
-                  className="rail-resizer"
-                  aria-label="Resize right panel"
-                  onPointerDown={handleResizePointerDown}
-                />
-              ) : null}
               <div className="panel-stack">
                 <TabsPanel
                   {...panelConfig.tabs}
@@ -1109,6 +1160,14 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
                   showComposer={false}
                   onClick={() => handlePanelClick("chat")}
                 />
+                {device === "desktop" && !collapsed ? (
+                  <button
+                    type="button"
+                    className="rail-resizer"
+                    aria-label="Resize chat panel"
+                    onPointerDown={handleResizePointerDown}
+                  />
+                ) : null}
                 <div className="super-chat-footer">
                   <form
                     className="super-chat-form"

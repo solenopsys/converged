@@ -6,7 +6,7 @@ import {
   ChatContext,
   ChatContextSummary,
 } from "./types";
-import { SimpleConversationFactory } from "rt-chat";
+import { SimpleConversationFactory } from "rt-assistant";
 import { PaginationParams, PaginatedResult, Chat } from "./types";
 import { LogFunction } from "./types";
 import { ConversationFactory } from "./types";

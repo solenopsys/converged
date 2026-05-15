@@ -2,6 +2,7 @@ import { generateULID, sql, type SqlStore } from "back-core";
 import type {
 	PaginatedResult,
 	Request,
+	RequestCollections,
 	RequestDailyPoint,
 	RequestFields,
 	RequestFiles,
@@ -62,6 +63,7 @@ export class RequestsStoreService {
 			fieldDefinitions: input.fieldDefinitions,
 			requirementProfile,
 			files: input.files ?? {},
+			collections: input.collections,
 			createdAt,
 			updatedAt: createdAt,
 		});
@@ -71,6 +73,7 @@ export class RequestsStoreService {
 			status,
 			fields: this.serializeMap(snapshotFields(model)),
 			files: this.serializeMap(model.files),
+			collections: this.serializeMap(model.collections ?? {}),
 			model: this.serializeJson(model),
 			createdAt,
 			updatedAt: createdAt,
@@ -165,6 +168,7 @@ export class RequestsStoreService {
 			fieldDefinitions: patch.fieldDefinitions,
 			requirementProfile,
 			files: patch.files,
+			collections: patch.collections,
 			createdAt: existing.createdAt,
 			updatedAt: new Date().toISOString(),
 			previous,
@@ -177,6 +181,7 @@ export class RequestsStoreService {
 				status: model.status,
 				fields: this.serializeMap(snapshotFields(model)),
 				files: this.serializeMap(model.files),
+				collections: this.serializeMap(model.collections ?? {}),
 				model: this.serializeJson(model),
 				updatedAt: model.updatedAt,
 			} as any,
@@ -379,12 +384,14 @@ export class RequestsStoreService {
 	private async toRequest(entity: RequestEntity): Promise<Request> {
 		const source = entity.source ?? "";
 		const model = await this.toModel(entity);
+		const collections = this.parseMap(entity.collections) as RequestCollections;
 		return {
 			id: entity.id,
 			source: source.length > 0 ? source : undefined,
 			status: entity.status,
 			fields: this.parseMap(entity.fields) as RequestFields,
 			files: this.parseMap(entity.files) as RequestFiles,
+			collections: Object.keys(collections).length > 0 ? collections : undefined,
 			createdAt: entity.createdAt,
 			updatedAt: entity.updatedAt ?? entity.createdAt,
 			model,
@@ -406,6 +413,7 @@ export class RequestsStoreService {
 			summary: previous?.summary,
 			fields: this.parseMap(entity.fields) as RequestFields,
 			files: this.parseMap(entity.files) as RequestFiles,
+			collections: this.parseMap(entity.collections) as RequestCollections,
 			requirementProfile,
 			createdAt: entity.createdAt,
 			updatedAt: entity.updatedAt ?? previous?.updatedAt ?? entity.createdAt,

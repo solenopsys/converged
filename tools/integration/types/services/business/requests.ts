@@ -89,6 +89,7 @@ export type RequestModel = {
 	fields: Record<string, RequestFieldState>;
 	fieldOrder: string[];
 	files: RequestFiles;
+	collections?: RequestCollections;
 	missingRequired: string[];
 	remainingRequired: string[];
 	remainingDelta: RequestRequirementField[];
@@ -123,6 +124,7 @@ export type RequestModelInput = {
 	parameters?: RequestParameterInput[];
 	fieldDefinitions?: RequestFieldDefinition[];
 	files?: RequestFiles;
+	collections?: RequestCollections;
 };
 
 export type RequestModelPatch = {
@@ -135,10 +137,12 @@ export type RequestModelPatch = {
 	parameters?: RequestParameterInput[];
 	fieldDefinitions?: RequestFieldDefinition[];
 	files?: RequestFiles;
+	collections?: RequestCollections;
 };
 
 export type RequestFields = Record<string, RequestFieldValue>;
 export type RequestFiles = Record<string, string>;
+export type RequestCollections = Record<string, string>; // key -> collectionId
 
 export type Request = {
 	id: RequestId;
@@ -146,6 +150,7 @@ export type Request = {
 	status: RequestStatus;
 	fields: RequestFields;
 	files: RequestFiles;
+	collections?: RequestCollections;
 	createdAt: ISODateString;
 	updatedAt?: ISODateString;
 	model?: RequestModel;
@@ -161,6 +166,7 @@ export type RequestInput = {
 	parameters?: RequestParameterInput[];
 	fieldDefinitions?: RequestFieldDefinition[];
 	files?: RequestFiles;
+	collections?: RequestCollections;
 };
 
 export type RequestPatch = {
@@ -173,6 +179,7 @@ export type RequestPatch = {
 	parameters?: RequestParameterInput[];
 	fieldDefinitions?: RequestFieldDefinition[];
 	files?: RequestFiles;
+	collections?: RequestCollections;
 };
 
 export type RequestListParams = {

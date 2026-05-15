@@ -44,16 +44,10 @@ export async function downloadFile(
   filesService: FilesService,
   storeService: StoreService
 ): Promise<{ blob: Blob; fileName: string }> {
-  console.log('[downloadFile] Starting download for:', fileId);
-
   // 1. Загружаем метаданные файла
   const metadata = await filesService.get(fileId);
-  console.log('[downloadFile] Metadata loaded:', metadata);
-
   // 2. Загружаем список чанков
   const chunks = await filesService.getChunks(fileId);
-  console.log('[downloadFile] Chunks loaded:', chunks.length);
-
   // Сортируем чанки по номеру
   chunks.sort((a, b) => a.chunkNumber - b.chunkNumber);
 
@@ -74,8 +68,6 @@ export async function downloadFile(
 
       // Загружаем и записываем чанки по одному
       for (const chunk of chunks) {
-        console.log('[downloadFile] Processing chunk:', chunk.chunkNumber);
-
         const rawData = await storeService.get(chunk.hash);
         const compressedData = normalizeBlockData(rawData);
         const decompressedData = inflateSync(compressedData);
@@ -84,8 +76,6 @@ export async function downloadFile(
       }
 
       await writable.close();
-      console.log('[downloadFile] File written successfully via File System Access API');
-
       // Возвращаем пустой blob, т.к. файл уже записан
       return {
         blob: new Blob([]),
@@ -100,7 +90,6 @@ export async function downloadFile(
   }
 
   // 4. Fallback: собираем в память и создаем blob
-  console.log('[downloadFile] Using blob fallback');
   const decompressedChunks: Uint8Array[] = [];
 
   for (const chunk of chunks) {
@@ -111,8 +100,6 @@ export async function downloadFile(
   }
 
   const blob = new Blob(decompressedChunks as BlobPart[], { type: metadata.fileType });
-  console.log('[downloadFile] Blob created:', blob.size, 'bytes');
-
   return {
     blob,
     fileName: metadata.name

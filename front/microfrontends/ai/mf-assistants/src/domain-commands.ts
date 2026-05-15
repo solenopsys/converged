@@ -21,7 +21,6 @@ export const $filteredCommands = $registeredCommands.map((commands) => commands)
 export const executeCommandFx = domain.createEffect<{ commandId: string; params?: any }, void>({
   name: "EXECUTE_COMMAND",
   handler: ({ commandId, params }) => {
-    console.log("[Commands] Executing command:", commandId, params);
     runActionEvent({ actionId: commandId, params: params || {} });
   },
 });

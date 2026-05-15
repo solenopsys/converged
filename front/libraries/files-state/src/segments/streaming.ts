@@ -64,18 +64,15 @@ export function setStoreWorker(worker: Worker, config?: any) {
   storeWorker = worker;
   storeConfig = config || null;
   setupWorkerHandlers(worker);
-  console.log('[Streaming] Custom worker set', config ? 'with config' : '');
 }
 
 // Получение worker (ленивая инициализация)
 function getStoreWorker(): Worker {
   if (!storeWorker) {
-    console.log('[Streaming] Initializing default store-worker...');
     // Динамический импорт для vite
     const workerUrl = new URL('../../../store-workers/dist/store.worker.js', import.meta.url);
     storeWorker = new Worker(workerUrl, { type: 'module' });
     setupWorkerHandlers(storeWorker);
-    console.log('[Streaming] Default store worker initialized');
   }
   return storeWorker;
 }
@@ -90,17 +87,8 @@ function setupWorkerHandlers(worker: Worker) {
   worker.onmessage = (event: MessageEvent<UploadWorkerOutgoingMessage>) => {
     const message = event.data;
 
-    console.log('[Streaming] Worker message:', message.type, message);
-
     switch (message.type) {
       case UploadWorkerEventType.ChunkReady:
-        console.log('[Streaming] ChunkReady event:', {
-          fileId: message.fileId,
-          chunkNumber: message.chunkNumber,
-          chunkSize: message.chunkSize,
-          hash: message.hash,
-        });
-
         // Пропускаем пустые чанки (баг в worker или race condition)
         if (message.chunkSize === 0) {
           console.warn('[Streaming] Skipping empty chunk:', message.chunkNumber);
@@ -117,10 +105,6 @@ function setupWorkerHandlers(worker: Worker) {
         break;
 
       case UploadWorkerEventType.FileUploaded:
-        console.log('[Streaming] FileUploaded event:', {
-          fileId: message.fileId,
-          totalChunks: message.totalChunks,
-        });
         compressionCompleted({
           fileId: message.fileId,
           totalChunks: message.totalChunks,
@@ -136,12 +120,7 @@ function setupWorkerHandlers(worker: Worker) {
         break;
 
       case UploadWorkerEventType.Progress:
-        console.log('[Streaming] Upload progress:', {
-          fileId: message.fileId,
-          bytesProcessed: message.bytesProcessed,
-          totalBytes: message.totalBytes,
-          percentage: ((message.bytesProcessed / message.totalBytes) * 100).toFixed(2) + '%',
-        });
+        
         break;
     }
   };
@@ -158,12 +137,6 @@ function setupWorkerHandlers(worker: Worker) {
 sample({
   clock: compressionStarted,
   fn: ({ fileId, file }) => {
-    console.log('[Streaming] compressionStarted:', {
-      fileId,
-      fileName: file.name,
-      fileSize: file.size,
-    });
-
     const message: any = {
       type: UploadWorkerCommandType.UploadStart,
       fileId,
@@ -174,13 +147,8 @@ sample({
     const resolvedStoreConfig = resolveStoreConfig();
     if (Object.keys(resolvedStoreConfig).length > 0) {
       message.store = resolvedStoreConfig;
-      console.log('[Streaming] Adding store config to message:', {
-        ...resolvedStoreConfig,
-        headers: resolvedStoreConfig.headers ? { ...resolvedStoreConfig.headers, authorization: '[redacted]' } : undefined,
-      });
     }
 
-    console.log('[Streaming] Sending UploadStart to worker');
     const worker = getStoreWorker();
     worker.postMessage(message);
   },
@@ -191,10 +159,8 @@ sample({
 // ==========================================
 
 export function terminateWorkers() {
-  console.log('[Streaming] Terminating workers...');
   if (storeWorker) {
     storeWorker.terminate();
     storeWorker = null;
   }
-  console.log('[Streaming] Workers terminated');
 }

@@ -2,14 +2,15 @@ import { SqlStore } from "back-core";
 import {
   FileMetadataRepository,
   FileChunkRepository,
-  FileMetadataEntity,
-  FileChunkEntity,
+  FileCollectionRepository,
   FileMetadataKey,
   FileChunkKey,
+  FileCollectionKey,
 } from "./entities";
 import {
   FileMetadata,
   FileChunk,
+  FileCollection,
   UUID,
   HashString,
   PaginationParams,
@@ -20,6 +21,7 @@ export class MetadataStoreService {
   private readonly store: SqlStore;
   public readonly fileMetadataRepo: FileMetadataRepository;
   public readonly fileChunkRepo: FileChunkRepository;
+  public readonly fileCollectionRepo: FileCollectionRepository;
 
   constructor(store: SqlStore) {
     this.store = store;
@@ -38,6 +40,11 @@ export class MetadataStoreService {
         fileId: key.fileId,
         chunkNumber: key.chunkNumber,
       }),
+    });
+    this.fileCollectionRepo = new FileCollectionRepository(store, "file_collections", {
+      primaryKey: "id",
+      extractKey: (col) => ({ id: col.id }),
+      buildWhereCondition: (key) => ({ id: key.id }),
     });
   }
 
@@ -113,7 +120,30 @@ export class MetadataStoreService {
   }
 
   async statistic(): Promise<any> {
-    // This is a simplified implementation. A real implementation would query the database for stats.
     return {};
+  }
+
+  async saveCollection(collection: FileCollection): Promise<UUID> {
+    const { createdAt, ...rest } = collection as any;
+    await this.fileCollectionRepo.create(rest);
+    return collection.id;
+  }
+
+  async getCollection(id: UUID): Promise<FileCollection | undefined> {
+    return await this.fileCollectionRepo.findById({ id });
+  }
+
+  async deleteCollection(id: UUID): Promise<void> {
+    await this.fileCollectionRepo.delete({ id });
+  }
+
+  async listByCollection(collectionId: UUID): Promise<FileMetadata[]> {
+    const rows = await this.store.db
+      .selectFrom("file_metadata")
+      .selectAll()
+      .where("collectionId", "=", collectionId)
+      .orderBy("createdAt", "asc")
+      .execute();
+    return rows as FileMetadata[];
   }
 }

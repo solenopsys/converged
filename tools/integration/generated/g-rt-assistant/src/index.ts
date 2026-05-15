@@ -109,11 +109,29 @@ export type ChatContext = ChatContextSummary & {
     data: any;
 };
 
+export type RequestModelSnapshot = {
+    id: string;
+    status: string;
+    processType: string;
+    title?: string;
+    summary?: string;
+    fields: Record<string, any>;
+    fieldOrder: string[];
+    files: Record<string, string>;
+    collections?: Record<string, string>;
+    missingRequired: string[];
+    remainingRequired: string[];
+    completion: { required: number; filledRequired: number; total: number; filledTotal: number; percent: number };
+    createdAt: string;
+    updatedAt: string;
+    revision: number;
+};
+
 export const metadata = {
-  "interfaceName": "RuntimeChatService",
-  "serviceName": "chat",
-  "packageName": "g-rt-chat",
-  "filePath": "runtime/ai/chat.ts",
+  "interfaceName": "RuntimeAssistantService",
+  "serviceName": "assistant",
+  "packageName": "g-rt-assistant",
+  "filePath": "runtime/ai/assistant.ts",
   "methods": [
     {
       "name": "createSession",
@@ -165,6 +183,21 @@ export const metadata = {
         }
       ],
       "returnType": "StreamEvent",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": true
+    },
+    {
+      "name": "subscribeToRequestModel",
+      "parameters": [
+        {
+          "name": "requestId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "RequestModelSnapshot",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": true
@@ -347,14 +380,20 @@ export const metadata = {
       "name": "ChatContext",
       "kind": "type",
       "definition": "ChatContextSummary & {\n    data: any;\n}"
+    },
+    {
+      "name": "RequestModelSnapshot",
+      "kind": "type",
+      "definition": "{\n    id: string;\n    status: string;\n    processType: string;\n    title?: string;\n    summary?: string;\n    fields: Record<string, any>;\n    fieldOrder: string[];\n    files: Record<string, string>;\n    collections?: Record<string, string>;\n    missingRequired: string[];\n    remainingRequired: string[];\n    completion: { required: number; filledRequired: number; total: number; filledTotal: number; percent: number };\n    createdAt: string;\n    updatedAt: string;\n    revision: number;\n}"
     }
   ]
 };
 
 // Server interface (to be implemented in microservice)
-export interface RuntimeChatService {
+export interface RuntimeAssistantService {
   createSession(serviceType?: ServiceType, model?: string, contextName?: string): Promise<string>;
   sendMessage(sessionId: string, messages: ContentBlock[], options?: ConversationOptions): AsyncIterable<StreamEvent>;
+  subscribeToRequestModel(requestId: string): AsyncIterable<RequestModelSnapshot>;
   listOfChats(params: PaginationParams): Promise<PaginatedResult<Chat>>;
   deleteChat(chatId: string): Promise<void>;
   getChat(chatId: string): Promise<Chat>;
@@ -364,9 +403,10 @@ export interface RuntimeChatService {
 }
 
 // Client interface
-export interface RuntimeChatServiceClient {
+export interface RuntimeAssistantServiceClient {
   createSession(serviceType?: ServiceType, model?: string, contextName?: string): Promise<string>;
   sendMessage(sessionId: string, messages: ContentBlock[], options?: ConversationOptions): AsyncIterable<StreamEvent>;
+  subscribeToRequestModel(requestId: string): AsyncIterable<RequestModelSnapshot>;
   listOfChats(params: PaginationParams): Promise<PaginatedResult<Chat>>;
   deleteChat(chatId: string): Promise<void>;
   getChat(chatId: string): Promise<Chat>;
@@ -376,11 +416,11 @@ export interface RuntimeChatServiceClient {
 }
 
 // Factory function
-export function createRuntimeChatServiceClient(
+export function createRuntimeAssistantServiceClient(
   config?: { baseUrl?: string },
-): RuntimeChatServiceClient {
-  return createHttpClient<RuntimeChatServiceClient>(metadata, config);
+): RuntimeAssistantServiceClient {
+  return createHttpClient<RuntimeAssistantServiceClient>(metadata, config);
 }
 
 // Ready-to-use client
-export const chatClient = createRuntimeChatServiceClient();
+export const assistantClient = createRuntimeAssistantServiceClient();

@@ -44,5 +44,18 @@
   "common": {
     "refresh": "Actualiser",
     "loading": "Chargement..."
+  },
+  "toolAction": {
+    "thinking": "Je reflechis a votre demande...",
+    "request": "Je travaille sur la demande...",
+    "file": "Je traite les fichiers...",
+    "search": "Je recherche des informations...",
+    "analyze": "J'analyse les donnees...",
+    "convert": "Je convertis les fichiers...",
+    "update": "Je mets a jour les donnees...",
+    "create": "Je cree un enregistrement...",
+    "load": "Je charge les donnees...",
+    "delete": "Je supprime un enregistrement...",
+    "notify": "J'envoie une notification..."
   }
 }

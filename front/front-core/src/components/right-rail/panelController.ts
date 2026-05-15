@@ -18,6 +18,7 @@ export const setParallel = createEvent<boolean>();
 export const toggleParallel = createEvent();
 export const setConstrained = createEvent<boolean>();
 export const toggleConstrained = createEvent();
+export const setPanelResizing = createEvent<boolean>();
 
 export const $device = createStore<DeviceMode>("desktop").on(setDevice, (_, next) => next);
 export const $layoutId = createStore<LayoutId>("d1")
@@ -39,6 +40,7 @@ export const $parallel = createStore(false)
 export const $constrained = createStore(false)
   .on(setConstrained, (_, next) => next)
   .on(toggleConstrained, (state) => !state);
+export const $panelResizing = createStore(false).on(setPanelResizing, (_, next) => next);
 
 export const $panelConfig = createStore<PanelConfig>({
   tabs: {
