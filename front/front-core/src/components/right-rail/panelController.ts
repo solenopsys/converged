@@ -1,5 +1,16 @@
 import { createEvent, createStore, sample } from "effector";
+import { chatSendRequested } from "../../chat/events";
 import type { PanelConfig } from "./panelTypes";
+
+export type LayoutMode = "landing" | "app";
+export const setLayoutMode = createEvent<LayoutMode>();
+export const $layoutMode = createStore<LayoutMode>("landing").on(setLayoutMode, (_, next) => next);
+
+sample({
+  clock: chatSendRequested,
+  fn: (): LayoutMode => "app",
+  target: setLayoutMode,
+});
 
 export type DeviceMode = "desktop" | "mobile";
 export type LayoutId = "d1" | "d2" | "d3" | "d4" | "m1" | "m2" | "m3";

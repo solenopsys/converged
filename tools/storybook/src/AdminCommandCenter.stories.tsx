@@ -1,539 +1,686 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { AlertTriangle, ArrowUpRight, FileText, Gauge, PackageCheck } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { Badge, Button, Card, CardContent, CardHeader, ScrollArea } from "front-core";
 
-// ─── Chart helpers ─────────────────────────────────────────────────────────
+type Tone = "neutral" | "attention" | "positive";
 
-let _id = 0;
-const uid = () => `c${++_id}`;
+type StreamObject = {
+  fields: Array<[string, string]>;
+  icon: LucideIcon;
+  title: string;
+};
 
-function smoothPath(pts: { x: number; y: number }[]): string {
-  return pts.reduce((acc, p, i) => {
-    if (i === 0) return `M${p.x.toFixed(1)},${p.y.toFixed(1)}`;
-    const prev = pts[i - 1];
-    const cx = ((prev.x + p.x) / 2).toFixed(1);
-    return `${acc} C${cx},${prev.y.toFixed(1)} ${cx},${p.y.toFixed(1)} ${p.x.toFixed(1)},${p.y.toFixed(1)}`;
+type StreamItem = {
+  action?: string;
+  body: string;
+  id: string;
+  object?: StreamObject;
+  source: string;
+  time: string;
+  title: string;
+  tone?: Tone;
+};
+
+type Signal = {
+  detail: string;
+  label: string;
+  series: number[];
+  tone?: Tone;
+  value: string;
+};
+
+const stream: StreamItem[] = [
+  {
+    id: "request-ready",
+    time: "09:51",
+    source: "New request",
+    title: "Bracket assembly is ready for automatic quote",
+    body: "Files parsed, material and tolerance are present. AI can produce route and price estimate without manager review.",
+    tone: "positive",
+    action: "Generate quote",
+    object: {
+      icon: PackageCheck,
+      title: "Petrov A.V. · 12 pcs · D16T aluminum",
+      fields: [
+        ["process", "5-axis milling"],
+        ["size", "180 x 94 x 52 mm"],
+        ["deadline", "May 26"],
+      ],
+    },
+  },
+  {
+    id: "ivanov-blocked",
+    time: "09:42",
+    source: "AI intake",
+    title: "Ivanov order cannot be quoted yet",
+    body: "Missing alloy grade and seating diameter tolerance. One short clarification is faster than escalating the order.",
+    tone: "attention",
+    action: "Draft question",
+    object: {
+      icon: AlertTriangle,
+      title: "Ivanov · turning · urgent",
+      fields: [
+        ["missing", "material spec"],
+        ["missing", "diameter tolerance"],
+        ["status", "quote blocked"],
+      ],
+    },
+  },
+  {
+    id: "planner-vmx42",
+    time: "09:35",
+    source: "AI planner",
+    title: "Use VMX42 for plate housing",
+    body: "VMX42 opens at 11:00. Booking it keeps Friday delivery and leaves DMU 50 free for 5-axis work.",
+    action: "Reserve slot",
+  },
+  {
+    id: "material-accepted",
+    time: "09:18",
+    source: "Mailings",
+    title: "Customer accepted material substitution",
+    body: "AISI 304 replacement approved. Friday deadline holds if laser cutting starts before 14:00.",
+    tone: "positive",
+  },
+  {
+    id: "nlx-changed",
+    time: "09:05",
+    source: "Production",
+    title: "NLX 2500 queue changed",
+    body: "Turning-mill cell is busy until 21:00. Two shaft jobs can shift to morning without deadline risk.",
+    action: "Rebalance",
+  },
+  {
+    id: "step-parsed",
+    time: "08:54",
+    source: "Files",
+    title: "STEP file parsed for quote #1842",
+    body: "Thin wall risk found near two threaded holes. Inspection pack can be generated after route approval.",
+    object: {
+      icon: FileText,
+      title: "housing_v7.step",
+      fields: [
+        ["geometry", "valid"],
+        ["risk", "thin wall"],
+        ["next", "route approval"],
+      ],
+    },
+  },
+];
+
+const signals: Signal[] = [
+  { label: "Requests", value: "18", detail: "5 need route check", series: [23, 22, 21, 23, 20, 19, 18] },
+  { label: "Machines", value: "14 / 47", detail: "in work now", series: [9, 10, 12, 12, 13, 14, 14], tone: "positive" },
+  { label: "Decisions", value: "3", detail: "blocking quote flow", series: [1, 1, 2, 2, 4, 3, 3], tone: "attention" },
+  { label: "Queue", value: "2.6 d", detail: "median deadline", series: [3.2, 3.1, 2.9, 3.0, 2.8, 2.7, 2.6] },
+];
+
+const machineLoad = [
+  { label: "busy", value: 14 },
+  { label: "available", value: 6 },
+  { label: "idle", value: 22 },
+  { label: "service", value: 5 },
+];
+
+const riskRows = [
+  ["Ivanov", "missing material + tolerance", "blocked"],
+  ["Quote #1842", "thin wall needs route decision", "review"],
+  ["NLX 2500", "queue moved to 21:00", "watch"],
+  ["VMX42", "slot opens from 11:00", "ready"],
+];
+
+function Sparkline({ values, tone = "neutral" }: { values: number[]; tone?: Tone }) {
+  const width = 132;
+  const height = 42;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const points = values.map((value, index) => {
+    const x = (index / (values.length - 1)) * width;
+    const y = height - ((value - min) / range) * (height - 6) - 3;
+    return { x, y };
+  });
+  const path = points.reduce((acc, point, index) => {
+    if (index === 0) return `M ${point.x.toFixed(1)} ${point.y.toFixed(1)}`;
+    const prev = points[index - 1];
+    const cx = ((prev.x + point.x) / 2).toFixed(1);
+    return `${acc} C ${cx} ${prev.y.toFixed(1)} ${cx} ${point.y.toFixed(1)} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`;
   }, "");
-}
-
-// ─── Area chart ────────────────────────────────────────────────────────────
-
-function AreaChart({
-  data,
-  xLabels,
-  color = "rgba(150,165,210,0.9)",
-}: {
-  data: number[];
-  xLabels: string[];
-  color?: string;
-}) {
-  const id = uid();
-  const VW = 270, VH = 88;
-  const pL = 26, pR = 4, pT = 6, pB = 18;
-  const cW = VW - pL - pR, cH = VH - pT - pB;
-  const max = Math.max(...data);
-
-  const pts = data.map((v, i) => ({
-    x: pL + (i / (data.length - 1)) * cW,
-    y: pT + (1 - v / max) * cH,
-  }));
-
-  const line = smoothPath(pts);
-  const area = `${line} L${(pL + cW).toFixed(1)},${(pT + cH).toFixed(1)} L${pL.toFixed(1)},${(pT + cH).toFixed(1)}Z`;
-
-  const ticks = [0, Math.floor((xLabels.length - 1) / 2), xLabels.length - 1];
-  const yTicks = [0, 0.5, 1];
+  const area = `${path} L ${width} ${height} L 0 ${height} Z`;
 
   return (
-    <svg viewBox={`0 0 ${VW} ${VH}`} width="100%" aria-hidden="true" className="ws-achart">
-      <defs>
-        <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.22" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-
-      {yTicks.map((frac) => {
-        const y = pT + frac * cH;
-        const val = Math.round(max * (1 - frac));
-        return (
-          <g key={frac}>
-            <line x1={pL} y1={y} x2={pL + cW} y2={y} stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-            <text x={pL - 3} y={y + 3.5} fontSize="8.5" fill="rgba(255,255,255,0.2)" textAnchor="end" fontFamily="SF Mono,JetBrains Mono,monospace">
-              {val}
-            </text>
-          </g>
-        );
-      })}
-
-      <path d={area} fill={`url(#${id})`} />
-      <path d={line} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
-
-      {ticks.map((idx) => (
-        <text key={idx} x={pts[idx].x} y={VH - 3} fontSize="8.5" fill="rgba(255,255,255,0.2)" textAnchor="middle">
-          {xLabels[idx]}
-        </text>
-      ))}
+    <svg className="sparkline" data-tone={tone} viewBox={`0 0 ${width} ${height}`} aria-hidden="true">
+      <path d={area} className="sparkline__area" />
+      <path d={path} className="sparkline__line" />
     </svg>
   );
 }
 
-// ─── Donut chart ───────────────────────────────────────────────────────────
-
-type DonutSeg = { label: string; value: number; color: string };
-
-function DonutChart({ segments }: { segments: DonutSeg[] }) {
-  const S = 96, cx = 48, cy = 48, r = 34, sw = 11;
-  const C = 2 * Math.PI * r;
-  const total = segments.reduce((a, s) => a + s.value, 0);
-
-  let cum = 0;
-  const arcs = segments.map((s) => {
-    const len = (s.value / total) * C;
-    const offset = C - cum;
-    cum += len;
-    return { ...s, len, offset };
-  });
+function LoadChart() {
+  const total = machineLoad.reduce((sum, item) => sum + item.value, 0);
 
   return (
-    <div className="ws-donut">
-      <svg viewBox={`0 0 ${S} ${S}`} width={S} height={S} aria-hidden="true">
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={sw} />
-        {arcs.map((arc, i) => (
-          <circle
-            key={i}
-            cx={cx} cy={cy} r={r}
-            fill="none"
-            stroke={arc.color}
-            strokeWidth={sw}
-            strokeDasharray={`${arc.len.toFixed(2)} ${(C - arc.len).toFixed(2)}`}
-            strokeDashoffset={arc.offset.toFixed(2)}
-            transform={`rotate(-90 ${cx} ${cy})`}
-          />
-        ))}
-        <text x={cx} y={cy + 1} textAnchor="middle" dominantBaseline="middle" fontSize="15" fontWeight="800" fill="rgba(230,230,240,0.9)" fontFamily="SF Mono,JetBrains Mono,monospace" letterSpacing="-1">
-          {total}
-        </text>
-      </svg>
-      <div className="ws-donut__legend">
-        {segments.map((s) => (
-          <div className="ws-donut__item" key={s.label}>
-            <span className="ws-donut__dot" style={{ background: s.color }} />
-            <span className="ws-donut__lbl">{s.label}</span>
-            <span className="ws-donut__val">{s.value}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── Feed types ────────────────────────────────────────────────────────────
-
-type ObjectData = { type: "order" | "machine" | "file"; title: string; lines: string[] };
-
-type RequestParam = { label: string; value: string };
-type RequestFile  = { name: string; ext: "step" | "pdf" | "dxf" };
-
-type FeedItem =
-  | { kind: "alert";    id: string; time: string; source: string; title: string; body: string; action?: string; rec?: string; recCta?: string; object?: ObjectData }
-  | { kind: "event" | "resolved"; id: string; time: string; source: string; title: string; body: string; action?: string; object?: ObjectData }
-  | { kind: "bot";      id: string; time: string; body: string }
-  | { kind: "request";  id: string; time: string; client: string; part: string; qty: number; params: RequestParam[]; files: RequestFile[]; aiNote?: string };
-
-// ─── Feed data ─────────────────────────────────────────────────────────────
-
-const feed: FeedItem[] = [
-  {
-    kind: "request", id: "r1", time: "09:51",
-    client: "Petrov A.V.",
-    part: "Bracket assembly",
-    qty: 12,
-    params: [
-      { label: "material",   value: "D16T aluminum" },
-      { label: "process",    value: "5-axis milling" },
-      { label: "size",       value: "180 × 94 × 52 mm" },
-      { label: "tolerance",  value: "±0.05 · IT7 bores" },
-      { label: "deadline",   value: "May 26 · 6 d" },
-    ],
-    files: [
-      { name: "bracket_v3.step",  ext: "step" },
-      { name: "drawing_rev2.pdf", ext: "pdf" },
-    ],
-    aiNote: "Can generate quote in ~4 min",
-  },
-  {
-    kind: "alert", id: "a1", time: "09:42", source: "AI intake",
-    title: "Ivanov order cannot be quoted yet",
-    body: "Missing alloy grade and seating diameter tolerance. One short clarification is faster than a manager review.",
-    action: "Draft question",
-    rec: "Ask Ivanov for material spec and tolerance. Keep VMX42 slot for the plate housing.",
-    recCta: "Create next-hour plan",
-    object: { type: "order", title: "Ivanov · turning · urgent", lines: ["material missing", "tolerance missing", "quote blocked"] },
-  },
-  {
-    kind: "bot", id: "b1", time: "09:35",
-    body: "VMX42 slot opens at 11:00 — aluminum route confirmed. Booking it locks Friday and keeps DMU 50 free for 5-axis all day.",
-  },
-  {
-    kind: "event", id: "e1", time: "09:31", source: "Sales inbox",
-    title: "Plate housing moved to route check",
-    body: "24 pcs aluminum housing. VMX42 can start today; DMU 50 stays reserved for 5-axis work.",
-    action: "Open route",
-    object: { type: "machine", title: "VMX42 available today", lines: ["1067×610 travel", "aluminum route", "no deadline risk"] },
-  },
-  {
-    kind: "resolved", id: "e2", time: "09:18", source: "Mailings",
-    title: "Customer accepted material substitution",
-    body: "AISI 304 approved. Friday deadline holds if laser starts before 14:00.",
-  },
-  {
-    kind: "event", id: "e3", time: "09:05", source: "Production",
-    title: "NLX 2500 queue changed",
-    body: "Turning-mill busy until 21:00. Two shaft jobs can shift to morning without deadline risk.",
-    action: "Rebalance",
-  },
-];
-
-// ─── Indicator data ─────────────────────────────────────────────────────────
-
-const stats = [
-  { value: "7",   label: "orders done", sub: "of 18 queued" },
-  { value: "142", label: "parts machined", sub: "+23 since 08:00" },
-];
-
-const queueData   = { labels: ["07:00", "07:30", "08:00", "08:30", "09:00", "09:30", "10:00"], values: [24, 22, 21, 23, 20, 19, 18] };
-const throughData = { labels: ["07:00", "07:30", "08:00", "08:30", "09:00", "09:30", "10:00"], values: [8, 12, 15, 11, 17, 19, 21] };
-
-const orderDonut: DonutSeg[] = [
-  { label: "in progress", value: 8,  color: "rgba(90,159,212,0.85)" },
-  { label: "queued",      value: 6,  color: "rgba(196,150,61,0.85)" },
-  { label: "done",        value: 4,  color: "rgba(77,184,106,0.85)" },
-  { label: "blocked",     value: 2,  color: "rgba(196,90,90,0.75)" },
-];
-
-const machineDonut: DonutSeg[] = [
-  { label: "busy",        value: 14, color: "rgba(90,159,212,0.85)" },
-  { label: "idle",        value: 22, color: "rgba(70,70,90,0.7)" },
-  { label: "available",   value: 6,  color: "rgba(77,184,106,0.85)" },
-  { label: "maintenance", value: 3,  color: "rgba(196,150,61,0.85)" },
-  { label: "down",        value: 2,  color: "rgba(196,90,90,0.75)" },
-];
-
-// ─── Feed components ────────────────────────────────────────────────────────
-
-function AlertBlock({ item }: { item: Extract<FeedItem, { kind: "alert" }> }) {
-  return (
-    <section className="ws-alert">
-      <div className="ws-hd">
-        <span className="ws-src ws-src--alert">{item.source}</span>
-        <time className="ws-time">{item.time}</time>
-      </div>
-      <h2 className="ws-alert__h">{item.title}</h2>
-      <p className="ws-body">{item.body}</p>
-      {item.rec && (
-        <p className="ws-rec">
-          <span className="ws-rec__mark" aria-hidden="true">◆</span>
-          {item.rec}
-        </p>
-      )}
-    </section>
-  );
-}
-
-function EventBlock({ item }: { item: Extract<FeedItem, { kind: "event" | "resolved" }> }) {
-  return (
-    <section className="ws-event" data-resolved={item.kind === "resolved" || undefined}>
-      <div className="ws-hd">
-        <span className="ws-src">{item.source}</span>
-        <time className="ws-time">{item.time}</time>
-      </div>
-      <h3 className="ws-event__h">{item.title}</h3>
-      <p className="ws-body">{item.body}</p>
-    </section>
-  );
-}
-
-function BotBlock({ item }: { item: Extract<FeedItem, { kind: "bot" }> }) {
-  return (
-    <section className="ws-bot">
-      <p className="ws-bot__text">
-        <span className="ws-bot__mark" aria-hidden="true">◆</span>
-        {item.body}
-        <time className="ws-bot__time">{item.time}</time>
-      </p>
-    </section>
-  );
-}
-
-function Divider({ label }: { label: string }) {
-  return <div className="ws-div">{label}</div>;
-}
-
-function RequestCard({ item }: { item: Extract<FeedItem, { kind: "request" }> }) {
-  const files = item.files.map((f) => f.name).join("  ·  ");
-
-  return (
-    <section className="ws-req">
-      <div className="ws-hd">
-        <span className="ws-src ws-src--new">new request</span>
-        <time className="ws-time">{item.time}</time>
-      </div>
-
-      <h2 className="ws-req__part">{item.part}</h2>
-      <p className="ws-req__meta">{item.client} · {item.qty} pcs</p>
-
-      <dl className="ws-req__params">
-        {item.params.map((p) => (
-          <div className="ws-req__row" key={p.label}>
-            <dt>{p.label}</dt>
-            <dd>{p.value}</dd>
-          </div>
-        ))}
-      </dl>
-
-      <p className="ws-req__files">
-        {files}
-        {item.aiNote && <span className="ws-req__ai"> · ◆ {item.aiNote}</span>}
-      </p>
-    </section>
-  );
-}
-
-function FeedCard({ item }: { item: FeedItem }) {
-  if (item.kind === "alert")   return <AlertBlock   item={item} />;
-  if (item.kind === "bot")     return <BotBlock     item={item} />;
-  if (item.kind === "request") return <RequestCard  item={item} />;
-  return <EventBlock item={item as Extract<FeedItem, { kind: "event" | "resolved" }>} />;
-}
-
-// ─── Indicators ─────────────────────────────────────────────────────────────
-
-function IndicatorsPanel() {
-  return (
-    <aside className="ws-ind" aria-label="Indicators">
-
-      {/* stat cards */}
-      <div className="ws-ind__row">
-        {stats.map((s) => (
-          <div className="ws-icard" key={s.label}>
-            <div className="ws-icard__val">{s.value}</div>
-            <div className="ws-icard__label">{s.label}</div>
-            <div className="ws-icard__sub">{s.sub}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* area charts */}
-      <div className="ws-ind__row">
-        <div className="ws-icard ws-icard--chart">
-          <div className="ws-icard__title">Queue depth</div>
-          <AreaChart data={queueData.values} xLabels={queueData.labels} color="rgba(196,150,61,0.85)" />
+    <Card>
+      <CardHeader className="ss-section-head">
+        <h3>Machine load</h3>
+        <span>47 machines</span>
+      </CardHeader>
+      <CardContent className="ss-load-body">
+        <div className="ss-load-bar" aria-hidden="true">
+          {machineLoad.map((item) => (
+            <i key={item.label} data-kind={item.label} style={{ width: `${(item.value / total) * 100}%` }} />
+          ))}
         </div>
-        <div className="ws-icard ws-icard--chart">
-          <div className="ws-icard__title">Parts / hour</div>
-          <AreaChart data={throughData.values} xLabels={throughData.labels} color="rgba(90,159,212,0.85)" />
+        <div className="ss-load-legend">
+          {machineLoad.map((item) => (
+            <div key={item.label}>
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+            </div>
+          ))}
         </div>
-      </div>
-
-      {/* donuts */}
-      <div className="ws-ind__row">
-        <div className="ws-icard ws-icard--donut">
-          <div className="ws-icard__title">Order status</div>
-          <DonutChart segments={orderDonut} />
-        </div>
-        <div className="ws-icard ws-icard--donut">
-          <div className="ws-icard__title">Machines</div>
-          <DonutChart segments={machineDonut} />
-        </div>
-      </div>
-
-    </aside>
+      </CardContent>
+    </Card>
   );
 }
-
-// ─── Root ───────────────────────────────────────────────────────────────────
 
 function StateStream() {
   return (
-    <main className="ws-root">
+    <main className="ss">
       <style>{css}</style>
 
-      <header className="ws-bar" aria-label="Status">
-        <span className="ws-bar__dot" aria-hidden="true" />
-        <span className="ws-bar__name">Workshop</span>
-        <span className="ws-bar__sep" aria-hidden="true" />
-        <span className="ws-bar__stat"><b>18</b> requests</span>
-        <span className="ws-bar__stat"><b>14/47</b> machines</span>
-        <span className="ws-bar__stat"><b>3</b> decisions</span>
-        <span className="ws-bar__stat"><b>2.6 d</b> queue</span>
-        <span className="ws-bar__spacer" />
-        <span className="ws-bar__live"><span className="ws-bar__pulse" aria-hidden="true" />live</span>
+      <header className="ss-top">
+        <div className="ss-title">
+          <span className="ss-title__dot" aria-hidden="true" />
+          <h1>State stream</h1>
+        </div>
+        <p>Two live flows: what happened, and what the system state looks like now.</p>
       </header>
 
-      <div className="ws-body">
-        <div className="ws-stream" aria-label="Event stream">
-          {feed.slice(0, 4).map((item) => <FeedCard item={item} key={item.id} />)}
-          <Divider label="Earlier today" />
-          {feed.slice(4).map((item) => <FeedCard item={item} key={item.id} />)}
-        </div>
-        <IndicatorsPanel />
-      </div>
+      <div className="ss-grid">
+        <section className="ss-events" aria-label="Events">
+          <div className="ss-col-head">
+            <h2>Events</h2>
+            <span>latest first · 09:52</span>
+          </div>
+          <ScrollArea className="ss-scroll">
+            {stream.map((item) => (
+              <StreamEvent item={item} key={item.id} />
+            ))}
+          </ScrollArea>
+        </section>
 
+        <aside className="ss-rail" aria-label="Current indicators">
+          <div className="ss-col-head">
+            <div>
+              <h2>Indicators</h2>
+              <p>current state</p>
+            </div>
+            <Gauge aria-hidden="true" size={21} />
+          </div>
+
+          <ScrollArea className="ss-scroll">
+            <div className="ss-signal-list">
+              {signals.map((signal) => (
+                <SignalCard key={signal.label} signal={signal} />
+              ))}
+            </div>
+
+            <LoadChart />
+
+            <section className="ss-risk" aria-label="Attention list">
+              <h3>Attention</h3>
+              {riskRows.map(([name, detail, status]) => (
+                <div className="ss-risk-row" data-status={status} key={name}>
+                  <strong>{name}</strong>
+                  <span>{detail}</span>
+                  <Badge variant="outline" className={`ss-badge ss-badge--${status}`}>{status}</Badge>
+                </div>
+              ))}
+            </section>
+          </ScrollArea>
+        </aside>
+      </div>
     </main>
   );
 }
 
-// ─── Styles ─────────────────────────────────────────────────────────────────
+function StreamEvent({ item }: { item: StreamItem }) {
+  return (
+    <article className="ss-event" data-tone={item.tone ?? "neutral"}>
+      <time>{item.time}</time>
+      <div className="ss-event__main">
+        <div className="ss-event__meta">
+          <span>{item.source}</span>
+          {item.action ? (
+            <Button className="ss-event__action" size="sm" type="button" variant="ghost">
+              {item.action}
+              <ArrowUpRight aria-hidden="true" size={14} />
+            </Button>
+          ) : null}
+        </div>
+        <h2>{item.title}</h2>
+        <p>{item.body}</p>
+        {item.object ? <StreamObjectView object={item.object} /> : null}
+      </div>
+    </article>
+  );
+}
+
+function StreamObjectView({ object }: { object: StreamObject }) {
+  const Icon = object.icon;
+
+  return (
+    <Card className="ss-object">
+      <CardContent className="ss-object__inner">
+        <Icon aria-hidden="true" size={17} className="ss-object__icon" />
+        <strong>{object.title}</strong>
+        <dl>
+          {object.fields.map(([label, value]) => (
+            <div key={`${label}-${value}`}>
+              <dt>{label}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
+        </dl>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SignalCard({ signal }: { signal: Signal }) {
+  return (
+    <Card className="ss-signal" data-tone={signal.tone ?? "neutral"}>
+      <CardContent className="ss-signal__inner">
+        <div>
+          <span>{signal.label}</span>
+          <strong>{signal.value}</strong>
+          <p>{signal.detail}</p>
+        </div>
+        <Sparkline values={signal.series} tone={signal.tone ?? "neutral"} />
+      </CardContent>
+    </Card>
+  );
+}
 
 const css = `
-/*
-  Type scale — 4 sizes only:
-
-    display  clamp(24px, 3vw, 38px)  weight 800  tracking -0.06em  lh 0.95
-    title    18px                    weight 700  tracking -0.03em  lh 1.1
-    body     14px                    weight 400  tracking  0       lh 1.55
-    label    11px / uppercase        weight 700  tracking  0.07em  lh 1
-
-  Everything maps to one of these four.
-  Metric numbers are the one exception: monospace, intentionally large.
-*/
-
-.ws-root {
-  --bg:    #08080a;
-  --s1:    #0f0f12;
-  --s2:    #191920;
-  --ink:   #e6e6ea;
-  --sub:   #60616a;
-  --dim:   #383840;
-  --amber: #c4963d;
-  --green: #4db86a;
-
-  --t-display:  clamp(24px, 3vw, 38px);
-  --t-title:    18px;
-  --t-body:     14px;
-  --t-label:    11px;
-
-  --w-heavy:    800;
-  --w-bold:     700;
-  --w-normal:   400;
-
-  --ls-display: -0.06em;
-  --ls-title:   -0.03em;
-  --ls-label:    0.07em;
-
+.ss {
   min-height: 100vh;
   display: grid;
-  grid-template-rows: 40px 1fr;
-  background: var(--bg);
-  color: var(--ink);
-  font-size: var(--t-body);
-  font-family: -apple-system, "Inter", sans-serif;
-  line-height: 1.55;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 18px;
+  background: var(--ui-background);
+  color: var(--ui-foreground);
+  padding: 24px;
   font-variant-numeric: tabular-nums;
   box-sizing: border-box;
 }
-.ws-root * { box-sizing: border-box; }
 
-/* ── bar ── */
-.ws-bar {
+.ss * { box-sizing: border-box; }
+
+.ss-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 450px);
+  gap: 24px;
+  align-items: end;
+}
+
+.ss-title {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.ss-title__dot {
+  width: 13px;
+  height: 13px;
+  margin-bottom: 12px;
+  border-radius: 50%;
+  background: var(--ui-muted-foreground);
+}
+
+.ss-title h1 {
+  margin: 0;
+  color: var(--ui-foreground);
+  font-size: clamp(42px, 5.5vw, 76px);
+  font-weight: 700;
+  letter-spacing: -0.058em;
+  line-height: 0.9;
+}
+
+.ss-top > p {
+  margin: 0 0 8px;
+  color: var(--ui-muted-foreground);
+  font-size: 16px;
+  line-height: 1.36;
+}
+
+.ss-grid {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+}
+
+.ss-events, .ss-rail {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+}
+
+.ss-scroll {
+  min-height: 0;
+}
+
+.ss-col-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  min-height: 42px;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 0 18px;
-  border-bottom: 1px solid var(--s2);
-  color: var(--sub);
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--ui-border);
+  background: color-mix(in oklch, var(--ui-background) 90%, transparent);
+  backdrop-filter: blur(16px);
 }
-.ws-bar__dot   { width:6px;height:6px;border-radius:50%;background:var(--amber);flex-shrink:0; }
-.ws-bar__name  { font-size:var(--t-label);font-weight:var(--w-bold);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--ink); }
-.ws-bar__sep   { width:1px;align-self:stretch;background:var(--s2); }
-.ws-bar__stat  { font-size:var(--t-label);color:var(--sub); }
-.ws-bar__stat b { color:var(--ink);font-weight:var(--w-bold); }
-.ws-bar__spacer { flex:1; }
-.ws-bar__live  { display:flex;align-items:center;gap:6px;font-size:var(--t-label);font-weight:var(--w-bold);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--dim); }
-.ws-bar__pulse { width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse 2.5s ease-in-out infinite; }
-@keyframes pulse { 0%,100%{opacity:1}50%{opacity:.3} }
 
-/* ── layout ── */
-.ws-body { display:grid;grid-template-columns:minmax(0,1fr) 280px;min-height:0;overflow:hidden; }
-.ws-stream { overflow-y:auto;padding:0 28px 40px;border-right:1px solid var(--s2);scrollbar-width:thin;scrollbar-color:var(--s2) transparent; }
+.ss-col-head h2 {
+  margin: 0;
+  color: var(--ui-foreground);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
 
-/* ── feed shared ── */
-.ws-hd  { display:flex;align-items:center;gap:8px;margin-bottom:6px; }
-.ws-src { font-size:var(--t-label);font-weight:var(--w-bold);color:var(--sub); }
-.ws-src--alert { color:var(--amber); }
-.ws-src--new   { color:rgba(90,175,110,.85); }
-.ws-time { font-size:var(--t-label);color:var(--dim); }
-.ws-body { margin:0;color:var(--sub); }
+.ss-col-head span,
+.ss-col-head p {
+  margin: 0;
+  color: var(--ui-muted-foreground);
+  font-size: 13px;
+  font-weight: 500;
+}
 
-/* ── alert ── */
-.ws-alert { padding:26px 0 22px; }
-.ws-alert__h { margin:0 0 8px;font-size:var(--t-display);font-weight:var(--w-heavy);letter-spacing:var(--ls-display);line-height:0.95;color:var(--ink); }
+.ss-col-head svg {
+  color: var(--ui-muted-foreground);
+}
 
-/* rec — same body size, amber mark, text link CTA */
-.ws-rec { margin:10px 0 0;color:var(--sub); }
-.ws-rec__mark { color:var(--amber);opacity:.65;font-size:9px;margin-right:6px; }
-.ws-rec__link { background:transparent;border:0;color:var(--sub);cursor:pointer;font:inherit;font-size:var(--t-label);font-weight:var(--w-bold);padding:0;margin-left:8px;text-decoration:underline;text-underline-offset:2px;transition:color 100ms; }
-.ws-rec__link:hover { color:var(--ink); }
+.ss-event {
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr);
+  gap: 16px;
+  border-bottom: 1px solid var(--ui-border);
+  padding: 15px 0;
+}
 
-/* ── bot ── */
-.ws-bot { padding:2px 0 20px; }
-.ws-bot__text { margin:0;color:rgba(168,178,218,.45); }
-.ws-bot__mark { color:rgba(106,170,240,.35);font-size:9px;margin-right:7px; }
-.ws-bot__time { font-size:var(--t-label);color:var(--dim);margin-left:9px; }
+.ss-event > time {
+  color: var(--ui-muted-foreground);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
 
-/* ── event ── */
-.ws-event { padding:18px 0;border-top:1px solid var(--s2); }
-.ws-event[data-resolved] { opacity:.38; }
-.ws-event__h { margin:0 0 4px;font-size:var(--t-title);font-weight:var(--w-bold);letter-spacing:var(--ls-title);line-height:1.1;color:var(--ink); }
-.ws-event__body { margin:0;color:var(--sub); }
+.ss-event__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 5px;
+}
 
-.ws-div { display:flex;align-items:center;gap:12px;padding:18px 0 4px;font-size:var(--t-label);font-weight:var(--w-bold);color:var(--dim); }
-.ws-div::after { content:'';flex:1;height:1px;background:var(--s2); }
+.ss-event__meta span {
+  color: var(--ui-muted-foreground);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
 
-/* ── request card ── */
-.ws-req { padding:20px 0 22px;border-top:1px solid var(--s2); }
-.ws-req__part  { margin:0 0 2px;font-size:var(--t-title);font-weight:var(--w-bold);letter-spacing:var(--ls-title);line-height:1.1;color:var(--ink); }
-.ws-req__meta  { margin:0 0 12px;color:var(--sub); }
+.ss-event__action {
+  height: 30px;
+  gap: 5px;
+  border-radius: 999px;
+  font-size: 13px;
+  padding: 0 10px;
+}
 
-/* params as a compact definition list — label left, value right */
-.ws-req__params { margin:0 0 10px;display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--s2);border:1px solid var(--s2);border-radius:6px;overflow:hidden; }
-.ws-req__row    { display:flex;flex-direction:column;gap:2px;padding:7px 10px;background:var(--bg); }
-.ws-req__row dt { font-size:var(--t-label);font-weight:var(--w-bold);color:var(--dim);letter-spacing:var(--ls-label);text-transform:uppercase; }
-.ws-req__row dd { margin:0;color:var(--ink); }
+.ss-event h2 {
+  max-width: 760px;
+  margin: 0 0 6px;
+  color: var(--ui-foreground);
+  font-size: clamp(20px, 1.75vw, 28px);
+  font-weight: 600;
+  letter-spacing: -0.038em;
+  line-height: 1.06;
+}
 
-.ws-req__files { margin:0;color:var(--dim); }
-.ws-req__ai    { color:var(--dim); }
+.ss-event p {
+  max-width: 760px;
+  margin: 0;
+  color: var(--ui-muted-foreground);
+  font-size: 15px;
+  line-height: 1.42;
+}
 
-/* ── indicators ── */
-.ws-ind { overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;scrollbar-width:thin;scrollbar-color:var(--s2) transparent; }
-.ws-ind__row { display:grid;grid-template-columns:1fr 1fr;gap:8px; }
+.ss-event[data-tone="attention"] h2 { color: var(--ui-chart-4); }
+.ss-event[data-tone="positive"] h2  { color: var(--ui-chart-2); }
 
-.ws-icard { background:var(--s1);border:1px solid var(--s2);border-radius:10px;padding:14px; }
-.ws-icard--chart { padding:12px 12px 8px; }
-.ws-icard--donut { padding:12px; }
+.ss-object {
+  max-width: 860px;
+  margin-top: 10px;
+}
 
-/* metric number is the one intentional exception to the scale:
-   large monospace data display, not a heading */
-.ws-icard__val   { font-size:30px;font-weight:var(--w-heavy);letter-spacing:-0.06em;line-height:1;font-family:"SF Mono","JetBrains Mono",monospace;color:var(--ink); }
-.ws-icard__label { font-size:var(--t-label);color:var(--sub);margin-top:4px; }
-.ws-icard__sub   { font-size:var(--t-label);color:var(--dim);margin-top:2px; }
-.ws-icard__title { font-size:var(--t-label);font-weight:var(--w-bold);color:var(--sub);margin-bottom:8px;letter-spacing:var(--ls-label);text-transform:uppercase; }
+.ss-object__inner {
+  display: grid;
+  grid-template-columns: 22px minmax(190px, 0.72fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+}
 
-.ws-achart { display:block; }
+.ss-object__icon { color: var(--ui-muted-foreground); }
 
-.ws-donut { display:flex;flex-direction:column;align-items:center;gap:8px; }
-.ws-donut__legend { width:100%;display:flex;flex-direction:column;gap:4px; }
-.ws-donut__item   { display:flex;align-items:center;gap:5px; }
-.ws-donut__dot    { width:6px;height:6px;border-radius:50%;flex-shrink:0; }
-.ws-donut__lbl    { font-size:var(--t-label);color:var(--sub);flex:1; }
-.ws-donut__val    { font-size:var(--t-label);font-weight:var(--w-bold);color:var(--ink);font-family:"SF Mono","JetBrains Mono",monospace; }
+.ss-object__inner strong {
+  overflow: hidden;
+  color: var(--ui-foreground);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-@media (max-width: 820px) {
-  .ws-body { grid-template-columns:1fr; }
-  .ws-ind  { display:none; }
+.ss-object__inner dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.ss-object__inner dt {
+  color: var(--ui-muted-foreground);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.ss-object__inner dd {
+  overflow: hidden;
+  margin: 1px 0 0;
+  color: var(--ui-foreground);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ss-rail {
+  border-left: 1px solid var(--ui-border);
+  padding-left: 24px;
+}
+
+.ss-signal-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ss-signal { }
+
+.ss-signal:first-child {
+  grid-column: span 2;
+}
+
+.ss-signal__inner {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-content: space-between;
+  gap: 12px;
+  min-height: 152px;
+  padding: 14px;
+}
+
+.ss-signal:first-child .ss-signal__inner {
+  grid-template-columns: minmax(0, 0.7fr) minmax(180px, 1fr);
+  align-items: end;
+  min-height: 168px;
+}
+
+.ss-signal__inner span {
+  color: var(--ui-muted-foreground);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.ss-signal__inner strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--ui-foreground);
+  font-size: 32px;
+  font-weight: 650;
+  letter-spacing: -0.055em;
+  line-height: 0.9;
+}
+
+.ss-signal__inner p {
+  margin: 8px 0 0;
+  color: var(--ui-muted-foreground);
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.ss-signal[data-tone="attention"] .ss-signal__inner strong { color: var(--ui-chart-4); }
+.ss-signal[data-tone="positive"]  .ss-signal__inner strong { color: var(--ui-chart-2); }
+
+.sparkline { width: 100%; height: 58px; overflow: visible; }
+.ss-signal:first-child .sparkline { height: 78px; }
+
+.sparkline__area { fill: color-mix(in oklch, var(--ui-muted-foreground) 12%, transparent); }
+.sparkline__line { fill: none; stroke: var(--ui-muted-foreground); stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
+
+.sparkline[data-tone="attention"] .sparkline__area { fill: color-mix(in oklch, var(--ui-chart-4) 14%, transparent); }
+.sparkline[data-tone="attention"] .sparkline__line { stroke: var(--ui-chart-4); }
+.sparkline[data-tone="positive"]  .sparkline__area { fill: color-mix(in oklch, var(--ui-chart-2) 14%, transparent); }
+.sparkline[data-tone="positive"]  .sparkline__line { stroke: var(--ui-chart-2); }
+
+.ss-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 8px;
+}
+
+.ss-section-head h3 {
+  margin: 0;
+  color: var(--ui-foreground);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.ss-section-head span {
+  color: var(--ui-muted-foreground);
+  font-size: 13px;
+}
+
+.ss-load-body { padding: 0 14px 14px; display: grid; gap: 12px; }
+
+.ss-load-bar {
+  display: flex;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--ui-muted);
+}
+
+.ss-load-bar i { display: block; min-width: 2px; }
+.ss-load-bar [data-kind="busy"]      { background: var(--ui-muted-foreground); }
+.ss-load-bar [data-kind="available"] { background: var(--ui-chart-2); }
+.ss-load-bar [data-kind="idle"]      { background: var(--ui-border); }
+.ss-load-bar [data-kind="service"]   { background: var(--ui-chart-4); }
+
+.ss-load-legend {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 14px;
+}
+
+.ss-load-legend div { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ss-load-legend span   { color: var(--ui-muted-foreground); font-size: 13px; }
+.ss-load-legend strong { color: var(--ui-foreground); font-size: 14px; font-weight: 600; }
+
+.ss-risk { padding-top: 12px; }
+
+.ss-risk h3 {
+  margin: 0 0 10px;
+  color: var(--ui-foreground);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.ss-risk-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 10px;
+  border-top: 1px solid var(--ui-border);
+  padding: 13px 0;
+  align-items: center;
+}
+
+.ss-risk-row strong { color: var(--ui-foreground); font-size: 16px; font-weight: 600; letter-spacing: -0.025em; }
+.ss-risk-row span   { grid-column: 1; color: var(--ui-muted-foreground); font-size: 13px; line-height: 1.25; }
+
+.ss-badge { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+.ss-badge--blocked, .ss-badge--review { border-color: var(--ui-chart-4); color: var(--ui-chart-4); }
+.ss-badge--ready                      { border-color: var(--ui-chart-2); color: var(--ui-chart-2); }
+
+@media (max-width: 1040px) {
+  .ss { padding: 16px; }
+  .ss-top, .ss-grid { grid-template-columns: 1fr; }
+  .ss-title h1 { font-size: clamp(42px, 10vw, 68px); }
+  .ss-rail { grid-row: 1; border-left: 0; padding-left: 0; }
+  .ss-signal-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ss-signal__inner { min-height: 145px; }
+  .ss-risk { display: none; }
+}
+
+@media (max-width: 640px) {
+  .ss { gap: 16px; padding: 12px; }
+  .ss-top > p, .ss-event p { font-size: 15px; }
+  .ss-event { grid-template-columns: 46px minmax(0, 1fr); gap: 12px; padding: 15px 0; }
+  .ss-event h2 { font-size: 22px; }
+  .ss-object__inner { grid-template-columns: 22px minmax(0, 1fr); }
+  .ss-object__inner dl { grid-column: 1 / -1; grid-template-columns: 1fr; }
+  .ss-signal__inner { min-height: 138px; grid-template-columns: 1fr; }
+  .ss-signal:first-child .ss-signal__inner { grid-column: auto; grid-template-columns: 1fr; }
+  .ss-signal-list { grid-template-columns: 1fr; }
 }
 `;
-
-// ─── Story ──────────────────────────────────────────────────────────────────
 
 const meta = {
   title: "Prototypes/StateStream",
@@ -542,5 +689,7 @@ const meta = {
 } satisfies Meta<typeof StateStream>;
 
 export default meta;
+
 type Story = StoryObj<typeof meta>;
+
 export const Concept: Story = {};

@@ -70,7 +70,13 @@ export function Document({ children, seo, lang = "en", importMap, initialData }:
           />
         ) : null}
 
-        <SsrShellLayout loginEnabled={loginEnabled}>{children}</SsrShellLayout>
+        <SsrShellLayout
+          loginEnabled={loginEnabled}
+          logoLight="/landing/header-logo-black.svg"
+          logoDark="/landing/header-logo-white.svg"
+          chatPlaceholder="Ask Convo anything..."
+          brandName="Converged AI"
+        >{children}</SsrShellLayout>
 
         {/* Warmup: preloads SPA modules in background */}
         <div data-island="warmup" data-island-load="eager" style={{ display: "none" }} />

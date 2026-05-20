@@ -9,6 +9,7 @@ import {
   $collapsed,
   $constrained,
   $device,
+  $layoutMode,
   $panelResizing,
   $panelConfig,
   $parallel,
@@ -20,6 +21,7 @@ import {
   setPanelResizing,
   toggleParallel,
 } from "./panelController";
+import { LandingTopBar } from "../landing-topbar/LandingTopBar";
 import { startRightRailUriSync } from "./uri-sync";
 import { ChatPanel } from "./RightRailPanels";
 import { $centerView } from "../../slots/present";
@@ -49,7 +51,33 @@ function CenterContent({ fallback }: { fallback?: ReactNode }) {
   return <Outlet />;
 }
 
-export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = {}) {
+export interface BaseLayoutProps {
+  centerFallback?: ReactNode;
+  topBar?: ReactNode;
+}
+
+export function BaseLayout({ centerFallback, topBar }: BaseLayoutProps = {}) {
+  const layoutMode = useUnit($layoutMode);
+
+  if (layoutMode === "landing") {
+    return <LandingLayout centerFallback={centerFallback} topBar={topBar} />;
+  }
+
+  return <AppLayout centerFallback={centerFallback} />;
+}
+
+function LandingLayout({ centerFallback, topBar }: { centerFallback?: ReactNode; topBar?: ReactNode }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "var(--ui-background)" }}>
+      {topBar ?? <LandingTopBar />}
+      <main style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+        <CenterContent fallback={centerFallback} />
+      </main>
+    </div>
+  );
+}
+
+function AppLayout({ centerFallback }: { centerFallback?: ReactNode }) {
   const [footerValue, setFooterValue] = useState("");
   const [footerFocused, setFooterFocused] = useState(false);
   const {

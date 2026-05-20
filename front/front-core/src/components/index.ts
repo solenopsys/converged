@@ -20,3 +20,8 @@ export * from './right-rail/panelController';
 export * from './right-rail/panelTypes';
 export * from './chat';
 export * from './landing-section-rail';
+export * from './component-inspector';
+export * from './landing-topbar/LandingTopBar';
+export * from './landing-topbar/LandingTopBarIntegration';
+export * from './converged-rail-panel/ConvergedRailPanel';
+export * from './converged-rail-panel/ConvergedRailPanelIntegration';

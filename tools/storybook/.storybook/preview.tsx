@@ -1,4 +1,11 @@
 import type { Preview } from "@storybook/react-vite";
+import React from "react";
+import { ComponentInspector } from "front-core";
+import * as FrontCoreExports from "front-core";
+
+const knownComponents = new Set<Function>(
+  Object.values(FrontCoreExports).filter((v): v is Function => typeof v === "function")
+);
 import "@unocss/reset/tailwind.css";
 import "virtual:uno.css";
 import "../../../front/ssr/src/app/globals.css";
@@ -34,7 +41,12 @@ const preview: Preview = {
         document.documentElement.classList.toggle("dark", effective === "dark");
       }
 
-      return Story();
+      return (
+        <>
+          <Story />
+          <ComponentInspector known={knownComponents} />
+        </>
+      );
     },
   ],
   parameters: {

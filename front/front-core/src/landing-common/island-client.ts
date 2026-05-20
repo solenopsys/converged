@@ -30,9 +30,9 @@ import {
 const SSR_MENU_STYLE_ID = "ssr-menu-shell-style";
 const FRONT_CORE_STYLE_ID = "front-core-runtime-style";
 const SSR_SHELL_ID = "ssr-shell";
+const SSR_CONTROL_PANEL_ROOT_ID = "ssr-control-panel-root";
 const SSR_RIGHT_RAIL_ID = "ssr-right-rail";
 const SSR_RAIL_RESIZER_ID = "ssr-rail-resizer";
-const SSR_SLOT_PROVIDER_ROOT_ID = "ssr-slot-provider-root";
 const SSR_CHAT_DOCK_ID = "ssr-chat-dock";
 const SSR_CHAT_INPUT_ID = "ssr-chat-input";
 const SSR_CHAT_ATTACH_ID = "ssr-chat-attach";
@@ -48,6 +48,11 @@ const RIGHT_RAIL_QUERY_KEYS = [
 	"sidebarPanel",
 	"sidebarAction",
 ] as const;
+type ControlPanelMode = "public" | "app";
+type ControlPanelRuntimeHandle = {
+	setMode: (mode: ControlPanelMode) => void;
+	unmount: () => void;
+};
 type QuickChatPrompt =
 	| string
 	| {
@@ -137,14 +142,9 @@ let centerRenderRoot: {
 	render: (node: any) => void;
 	unmount: () => void;
 } | null = null;
-let rightRailInitPromise: Promise<void> | null = null;
-let rightRailWatchStop: (() => void) | null = null;
-let rightRailHost: HTMLElement | null = null;
-let rightRailPortalRoot: {
-	render: (node: any) => void;
-	unmount: () => void;
-} | null = null;
-let rightRailChatBootstrapped = false;
+let controlPanelInitPromise: Promise<void> | null = null;
+let controlPanelHost: HTMLElement | null = null;
+let controlPanelRuntime: ControlPanelRuntimeHandle | null = null;
 let controlsBound = false;
 let railTabsBound = false;
 let railResizerBound = false;
@@ -197,7 +197,8 @@ function getCurrentSsrRailWidth(): number {
 	}
 
 	const shell = document.getElementById(SSR_SHELL_ID);
-	const raw = window.getComputedStyle(shell ?? document.documentElement)
+	const raw = window
+		.getComputedStyle(shell ?? document.documentElement)
 		.getPropertyValue("--ssr-rail-width")
 		.trim();
 	const parsed = Number.parseFloat(raw);
@@ -210,14 +211,12 @@ function applySsrRailWidth(width: number, persist = false): number {
 	const nextWidth = clampSsrRailWidth(width);
 	const value = `${nextWidth}px`;
 	document.documentElement.style.setProperty("--ssr-rail-width", value);
-	document.getElementById(SSR_SHELL_ID)?.style.setProperty(
-		"--ssr-rail-width",
-		value,
-	);
-	document.getElementById("app-shell")?.style.setProperty(
-		"--ssr-rail-width",
-		value,
-	);
+	document
+		.getElementById(SSR_SHELL_ID)
+		?.style.setProperty("--ssr-rail-width", value);
+	document
+		.getElementById("app-shell")
+		?.style.setProperty("--ssr-rail-width", value);
 
 	if (persist) {
 		try {
@@ -301,6 +300,137 @@ function applyTheme(next: "light" | "dark"): void {
 	document.documentElement.style.colorScheme = next;
 }
 
+function applyControlPanelMode(mode: ControlPanelMode): void {
+	const value = mode;
+	document
+		.getElementById(SSR_SHELL_ID)
+		?.setAttribute("data-control-panel-mode", value);
+	document
+		.getElementById("app-shell")
+		?.setAttribute("data-control-panel-mode", value);
+	document
+		.getElementById(SSR_CONTROL_PANEL_ROOT_ID)
+		?.setAttribute("data-mode", value);
+}
+
+function getAppliedControlPanelMode(): ControlPanelMode {
+	const current = document.getElementById(SSR_CONTROL_PANEL_ROOT_ID)?.dataset
+		.mode;
+	return current === "app" ? "app" : "public";
+}
+
+function resolveInitialControlPanelMode(): ControlPanelMode {
+	if (getAppliedControlPanelMode() === "app") return "app";
+	if (hasRightRailDeepLink()) return "app";
+	if (isSsrPublicRoute(window.location.pathname)) return "public";
+	return "app";
+}
+
+function resolveAuthChangedControlPanelMode(): ControlPanelMode {
+	const current = getAppliedControlPanelMode();
+	if (isSsrPublicRoute(window.location.pathname)) return current;
+	return "app";
+}
+
+function setControlPanelMode(mode: ControlPanelMode): void {
+	applyControlPanelMode(mode);
+	controlPanelRuntime?.setMode(mode);
+	if (mode === "app") {
+		installDynamicMenuIfReady();
+	}
+}
+
+function installDynamicMenuIfReady(): void {
+	const menuPanel = document.getElementById("ssr-left-panel");
+	if (!menuPanel || menuPanel.dataset.ssrMenuShell === "1") return;
+	menuPanel.dataset.ssrMenuShell = "1";
+	installDynamicMenu(menuPanel);
+}
+
+function readControlPanelHostOptions(host: HTMLElement) {
+	const locale = extractLocaleFromPath(window.location.pathname) ?? "en";
+	return {
+		logoLight: host.dataset.logoLight || "/header-logo-black.svg",
+		logoDark: host.dataset.logoDark || "/header-logo-white.svg",
+		phone: host.dataset.phone || undefined,
+		statusText: host.dataset.statusText || undefined,
+		chatPlaceholder:
+			host.dataset.chatPlaceholder || "Describe your CNC request...",
+		loginEnabled: host.dataset.loginEnabled !== "0",
+		currentLanguage: locale,
+	};
+}
+
+async function ensureControlPanelRuntime(): Promise<void> {
+	const host = document.getElementById(SSR_CONTROL_PANEL_ROOT_ID);
+	if (!host) return;
+
+	const previousHost = controlPanelHost;
+	if (controlPanelInitPromise && previousHost === host) {
+		return controlPanelInitPromise;
+	}
+
+	controlPanelHost = host;
+	controlPanelInitPromise = (async () => {
+		if (controlPanelRuntime && previousHost !== host) {
+			controlPanelRuntime.unmount();
+			controlPanelRuntime = null;
+		}
+
+		const [{ mountControlPanelRuntime }] = await Promise.all([
+			import("./control-panel-runtime"),
+		]);
+		const hostOptions = readControlPanelHostOptions(host);
+		const initialMode = resolveInitialControlPanelMode();
+		applyControlPanelMode(initialMode);
+		controlPanelRuntime = mountControlPanelRuntime(host, {
+			initialMode,
+			logoLight: hostOptions.logoLight,
+			logoDark: hostOptions.logoDark,
+			phone: hostOptions.phone,
+			statusText: hostOptions.statusText,
+			chatPlaceholder: hostOptions.chatPlaceholder,
+			loginEnabled: hostOptions.loginEnabled,
+			languages: AVAILABLE_LANGS.map((lang) => ({
+				code: lang.code,
+				label: lang.code.toUpperCase(),
+			})),
+			currentLanguage: hostOptions.currentLanguage,
+			isDark: isDarkTheme(),
+			isAuthenticated,
+			onModeChange: applyControlPanelMode,
+			onOpenChat: (message) => {
+				void openAiChat(message, { contextName: "request" });
+			},
+			onAttach: () => {
+				void openAiChat(undefined, { contextName: "request" }).then(() =>
+					chatAttachRequested(),
+				);
+			},
+			onLogin: () => {
+				void openLoginPanel();
+			},
+			onLogout: () => {
+				window.localStorage.removeItem("authToken");
+				window.dispatchEvent(new Event("auth-token-changed"));
+			},
+			onThemeToggle: () => {
+				const next = isDarkTheme() ? "light" : "dark";
+				applyTheme(next);
+				return next === "dark";
+			},
+			onLanguage: (code) => {
+				void applyLocaleChange(code);
+			},
+		});
+		if (initialMode === "app") {
+			installDynamicMenuIfReady();
+		}
+	})();
+
+	return controlPanelInitPromise;
+}
+
 async function ensureAuthLoaded(): Promise<void> {
 	const moduleName = "mf-auth";
 	if (loadedModules.has(moduleName)) return;
@@ -324,10 +454,9 @@ async function ensureTemporarySessionForChat(): Promise<void> {
 }
 
 export async function openLoginPanel(): Promise<void> {
-	await ensureRightRailRuntime();
+	setControlPanelMode("app");
+	await ensureControlPanelRuntime();
 	await ensureAuthLoaded();
-	setRightRailOpen(true);
-	setRightRailMode("tab");
 	rightRailActionSelected("auth.show-login");
 	runActionEvent({ actionId: "auth.show-login", params: {} });
 }
@@ -644,65 +773,8 @@ async function ensureAssistantsLoaded(): Promise<void> {
 }
 
 async function ensureRightRailRuntime(): Promise<void> {
-	const rail = document.getElementById(SSR_RIGHT_RAIL_ID);
-	if (!rail) return;
-
-	const host = document.getElementById(SSR_SLOT_PROVIDER_ROOT_ID);
-	if (!host) return;
-
-	if (rightRailInitPromise && rightRailHost === host && rightRailPortalRoot) {
-		return rightRailInitPromise;
-	}
-
-	rightRailInitPromise = (async () => {
-		if (rightRailPortalRoot && rightRailHost !== host) {
-			try {
-				rightRailPortalRoot.unmount();
-			} catch {
-				// ignore unmount errors
-			}
-			rightRailPortalRoot = null;
-		}
-
-		const [{ createElement }, reactDom, { SlotProvider }, sidebarStore] =
-			await Promise.all([
-				import("react"),
-				import("react-dom/client"),
-				import("../slots/SlotProvider"),
-				import("sidebar-controller"),
-			]);
-
-		const nextRoot = reactDom.createRoot(host);
-		rightRailHost = host;
-		rightRailPortalRoot = nextRoot;
-		rightRailPortalRoot.render(createElement(SlotProvider));
-
-		syncRightRailMode(
-			(sidebarStore.$activeTab.getState?.() as string) ?? "menu",
-		);
-		if (!rightRailWatchStop) {
-			const watchResult = sidebarStore.$activeTab.watch((tabId: string) => {
-				syncRightRailMode(tabId);
-			});
-			rightRailWatchStop =
-				typeof watchResult === "function"
-					? watchResult
-					: () => (watchResult as { unsubscribe?: () => void }).unsubscribe?.();
-		}
-
-		await ensureAssistantsLoaded();
-
-		if (!rightRailChatBootstrapped && isAuthenticated()) {
-			rightRailChatBootstrapped = true;
-			const chatSlot = document.getElementById("slot-panel-chat");
-			if (chatSlot) {
-				chatSlot.innerHTML = "";
-			}
-			runActionEvent({ actionId: "chats.show", params: {} });
-		}
-	})();
-
-	return rightRailInitPromise;
+	setControlPanelMode("app");
+	return ensureControlPanelRuntime();
 }
 
 const bridge = createBridgeController({
@@ -1897,9 +1969,8 @@ async function openAiChat(
 	message?: string,
 	options?: { contextName?: string },
 ): Promise<void> {
-	setRightRailOpen(true);
-	setRightRailMode("chat");
-	await ensureRightRailRuntime();
+	setControlPanelMode("app");
+	await ensureControlPanelRuntime();
 	await ensureAssistantsLoaded();
 	await ensureTemporarySessionForChat();
 	chatInitRequested({ contextName: options?.contextName });
@@ -2302,24 +2373,21 @@ function installLangControl(): void {
 export function mountSsrMenuShell(): void {
 	if (typeof document === "undefined") return;
 
-	const menuPanel = document.getElementById("ssr-left-panel");
-	if (!menuPanel) return;
-	menuPanel.dataset.ssrMenuShell = "1";
-
 	ensureStyles();
 	ensureFrontCoreStyles();
+	void ensureControlPanelRuntime().then(() => {
+		installDynamicMenuIfReady();
+	});
 
-	installPanelControls();
-	installSsrRailResizer();
-	installRightRailTabs();
-	installDynamicMenu(menuPanel);
-	installChatDock();
 	installLandingEventGateway();
 	installLinkInterceptor();
-	installLangControl();
-	// Keep first paint stable: bootstrap right rail runtime lazily.
-	// Only eager-init when URL explicitly deep-links into right rail state.
+
+	window.addEventListener("auth-token-changed", () => {
+		setControlPanelMode(resolveAuthChangedControlPanelMode());
+	});
+
+	// Keep first paint stable: bootstrap panel runtime lazily for deep links.
 	if (hasRightRailDeepLink()) {
-		void ensureRightRailRuntime();
+		void ensureControlPanelRuntime().then(() => setControlPanelMode("app"));
 	}
 }

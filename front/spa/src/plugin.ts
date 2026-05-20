@@ -628,6 +628,9 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
     })
     .get("/front-core.js", async ({ request, set }) => {
       try {
+        if (!isProd) {
+          frontCoreBundle = null;
+        }
         const bundle = await ensureFrontCore();
         if (isProd) {
           const cached = await loadAndCache(
