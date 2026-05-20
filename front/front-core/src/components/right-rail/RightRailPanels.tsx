@@ -659,7 +659,9 @@ export function ChatPanel({
   description,
   quickCommands,
   showComposer = true,
-}: ChatConfig & PanelClick & { showComposer?: boolean }) {
+  collapsed,
+  onToggleCollapse,
+}: ChatConfig & PanelClick & { showComposer?: boolean } & CollapseControl) {
   const fileItems = useUnit($fileListItems);
   const activeTab = useUnit($activeTab);
   const slotContents = useUnit($slotContents);
@@ -700,6 +702,12 @@ export function ChatPanel({
   return (
     <div className="panel chat-panel" onClick={onClick}>
       <div className="panel-content chat-panel-content">
+        <PanelHeader
+          icons={[]}
+          collapsed={collapsed}
+          onToggleCollapse={onToggleCollapse}
+        />
+        <Separator className="panel-separator panel-separator-tight" />
         {showTabPanel ? (
           <div className="panel-tab-content">
             <div id="slot-panel-tab" className="panel-tab-slot" />

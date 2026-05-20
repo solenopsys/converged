@@ -268,7 +268,7 @@ const buildFileAnalysisParameters = (result: any): Array<Record<string, any>> =>
 const ensureRequestsRuntime = async () => {
 	if (registry.get(OPEN_REQUEST_ACTION)) return;
 	if (!requestsRuntimePromise) {
-		requestsRuntimePromise = import(REQUESTS_RUNTIME)
+		requestsRuntimePromise = import(/* @vite-ignore */ REQUESTS_RUNTIME)
 			.then((runtime) => {
 				if (!registry.get(OPEN_REQUEST_ACTION)) {
 					runtime.default?.plug?.(bus);

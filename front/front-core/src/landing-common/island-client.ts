@@ -306,7 +306,7 @@ async function ensureAuthLoaded(): Promise<void> {
 	if (loadedModules.has(moduleName)) return;
 	initMicrofrontendEnv();
 	try {
-		const runtime = await import(moduleName);
+		const runtime = await import(/* @vite-ignore */ moduleName);
 		if (!loadedModules.has(moduleName) && runtime?.default?.plug) {
 			runtime.default.plug(bus);
 			loadedModules.add(moduleName);
@@ -615,7 +615,7 @@ async function ensureAssistantsLoaded(): Promise<void> {
 	initMicrofrontendEnv();
 
 	try {
-		const runtime = await import(moduleName);
+		const runtime = await import(/* @vite-ignore */ moduleName);
 		const groupId = getMfGroup(moduleName);
 
 		if (!loadedModules.has(moduleName) && runtime?.default?.plug) {
@@ -1477,7 +1477,7 @@ async function ensureGroupLoaded(groupId: string): Promise<void> {
 
 		for (const name of toLoad) {
 			try {
-				const runtime = await import(name);
+				const runtime = await import(/* @vite-ignore */ name);
 
 				if (!loadedModules.has(name) && runtime?.default?.plug) {
 					runtime.default.plug(bus);

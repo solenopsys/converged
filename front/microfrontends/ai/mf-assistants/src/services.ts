@@ -36,7 +36,7 @@ services.setFilesService(filesClient);
 
 // Настройка worker с правильным baseUrl
 const workerUrl = new URL(
-	"../../../libraries/store-workers/dist/store.worker.js",
+	"../../../../libraries/store-workers/dist/store.worker.js",
 	import.meta.url,
 );
 const worker = new Worker(workerUrl, { type: "module" });

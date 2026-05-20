@@ -3,9 +3,15 @@ import { dirname } from "node:path";
 import type { StorybookConfig } from "@storybook/react-vite";
 
 const config: StorybookConfig = {
-  stories: ["../src/**/*.mdx", "../src/**/*.stories.@(js|jsx|mjs|ts|tsx)"],
+  stories: ["../src/**/*.stories.@(js|jsx|mjs|ts|tsx)"],
   addons: [getAbsolutePath("@storybook/addon-links"), getAbsolutePath("@storybook/addon-docs")],
-  staticDirs: ["../../../../../../saas/private/landing/public", "../public"],
+  staticDirs: [
+    "../../../../../../saas/private/landing/public",
+    { from: "../../../../../images", to: "/clarity-images" },
+    { from: "../../../front/landing/public", to: "/landing" },
+    { from: "../../../front/front-core/locales", to: "/locales" },
+    "../public",
+  ],
   framework: {
     name: getAbsolutePath("@storybook/react-vite"),
     options: {},

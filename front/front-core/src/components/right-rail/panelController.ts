@@ -27,7 +27,7 @@ export const $layoutId = createStore<LayoutId>("d1")
 export const $zLayoutId = createStore<LayoutId>("d1")
   .on(setZLayout, (_, next) => next)
   .on(setLayoutInstant, (_, next) => next);
-export const $activePanel = createStore<ActivePanel>("tabs").on(
+export const $activePanel = createStore<ActivePanel>("chat").on(
   setActivePanel,
   (_, next) => next,
 );

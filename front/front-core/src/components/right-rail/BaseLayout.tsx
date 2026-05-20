@@ -21,7 +21,7 @@ import {
   toggleParallel,
 } from "./panelController";
 import { startRightRailUriSync } from "./uri-sync";
-import { ChatPanel, TabsPanel } from "./RightRailPanels";
+import { ChatPanel } from "./RightRailPanels";
 import { $centerView } from "../../slots/present";
 import { SlotProvider } from "../../slots/SlotProvider";
 import { chatAttachRequested, chatSendRequested } from "../../chat/events";
@@ -96,15 +96,16 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
 
   const desktopStackWidth = useMemo(() => {
     if (collapsed) return COLLAPSED_WIDTH_PX;
-    if (parallel) return normalizedPanelWidth * 2 - PARALLEL_OVERLAP_PX;
     return normalizedPanelWidth;
-  }, [collapsed, parallel, normalizedPanelWidth]);
+  }, [collapsed, normalizedPanelWidth]);
 
   const superPanelExpanded = !collapsed && (activePanel === "chat" || footerFocused);
 
   const layoutStyle = useMemo(() => {
     const vars: CSSProperties = {
       "--panel-width": `${normalizedPanelWidth}px`,
+      "--super-menu-width": "0px",
+      "--super-panel-width": `${normalizedPanelWidth}px`,
     } as CSSProperties;
 
     if (device === "desktop") {
@@ -187,7 +188,7 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
     const next = !collapsed;
     onCollapsed(next);
     if (next) {
-      onFront(device === "desktop" ? "tabs" : "chat");
+      onFront("chat");
     }
   };
 
@@ -1143,21 +1144,11 @@ export function BaseLayout({ centerFallback }: { centerFallback?: ReactNode } = 
           <div className="app-stage">
             <aside className="app-rail">
               <div className="panel-stack">
-                <TabsPanel
-                  {...panelConfig.tabs}
-                  quickCommands={panelConfig.chat.quickCommands}
-                  collapsed={collapsed}
-                  onToggleCollapse={constrained ? undefined : handleToggleCollapse}
-                  parallel={parallel}
-                  onToggleParallel={constrained ? undefined : onParallel}
-                  constrained={constrained}
-                  onToggleConstrain={handleToggleConstrain}
-                  onClick={() => handlePanelClick("tabs")}
-                />
                 <ChatPanel
                   {...panelConfig.chat}
-                  quickCommands={undefined}
                   showComposer={false}
+                  collapsed={collapsed}
+                  onToggleCollapse={constrained ? undefined : handleToggleCollapse}
                   onClick={() => handlePanelClick("chat")}
                 />
                 {device === "desktop" && !collapsed ? (

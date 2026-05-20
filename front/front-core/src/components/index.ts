@@ -19,3 +19,4 @@ export * from './right-rail/RightRailPanels';
 export * from './right-rail/panelController';
 export * from './right-rail/panelTypes';
 export * from './chat';
+export * from './landing-section-rail';
