@@ -8,12 +8,18 @@ export interface LandingTopBarAction {
   prompt: string;
 }
 
+export interface LandingTopBarMenuLink {
+  label: string;
+  href: string;
+}
+
 export interface LandingTopBarProps {
   logoLight?: string;
   logoDark?: string;
   phone?: string;
   statusText?: string;
   actions?: LandingTopBarAction[];
+  menuLinks?: LandingTopBarMenuLink[];
   languages?: Array<{ code: string; label: string }>;
   currentLanguage?: string;
   onLogin?: () => void;
@@ -33,6 +39,7 @@ export function LandingTopBar({
   phone,
   statusText,
   actions = [],
+  menuLinks = [],
   languages,
   currentLanguage,
   onLogin,
@@ -62,10 +69,17 @@ export function LandingTopBar({
     if (!isControlled) setLocalValue("");
   };
 
+  const hasMenu = menuLinks.length > 0;
+  const headerClass = [
+    "ltb",
+    compact && "ltb--compact",
+    hasMenu && "ltb--has-menu",
+  ].filter(Boolean).join(" ");
+
   return (
     <>
       <style>{landingTopBarCss}</style>
-      <header className={compact ? "ltb ltb--compact" : "ltb"} aria-label="Top bar">
+      <header className={headerClass} aria-label="Top bar">
         <div className="ltb-brand">
           {logoLight && (
             <img className="ltb-logo ltb-logo--light" src={logoLight} alt="" aria-hidden="true" />
@@ -124,6 +138,16 @@ export function LandingTopBar({
             </Button>
           </form>
         </div>}
+
+        {compact && menuLinks.length > 0 && (
+          <nav className="ltb-menu" aria-label="Main menu">
+            {menuLinks.map((link) => (
+              <a key={link.label} className="ltb-menu-link" href={link.href}>
+                {link.label}
+              </a>
+            ))}
+          </nav>
+        )}
 
         <div className="ltb-controls">
           {onThemeToggle && (
@@ -279,7 +303,11 @@ export const landingTopBarCss = `
   background: var(--ui-chart-2);
 }
 
-.ltb-chat { min-width: 0; }
+.ltb-chat {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+}
 
 .ltb-form {
   min-height: 42px;
@@ -359,7 +387,40 @@ export const landingTopBarCss = `
 }
 
 .ltb--compact .ltb-controls {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
   padding-top: 0;
+}
+
+/* When menu links are present (compact mode), make outer columns symmetric
+   so the menu is exactly centered in the viewport — not in the leftover space
+   between brand and controls (which are different widths). */
+.ltb--compact.ltb--has-menu {
+  grid-template-columns: 1fr auto 1fr;
+}
+
+.ltb-menu {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  min-width: 0;
+}
+
+.ltb-menu-link {
+  color: var(--ui-muted-foreground);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: color 150ms ease;
+}
+
+.ltb-menu-link:hover {
+  color: var(--ui-foreground);
 }
 
 .ltb-actions {
@@ -389,8 +450,12 @@ export const landingTopBarCss = `
 }
 
 .ltb-controls {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 14px;
   padding-top: 4px;
 }
@@ -508,5 +573,17 @@ export const landingTopBarCss = `
   }
 
   .ltb-actions::-webkit-scrollbar { display: none; }
+
+  .ltb--compact {
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: auto;
+  }
+
+  .ltb--compact .ltb-controls {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .ltb-menu { display: none; }
 }
 `;
