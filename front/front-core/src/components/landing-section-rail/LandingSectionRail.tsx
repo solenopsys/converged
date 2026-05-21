@@ -76,10 +76,14 @@ export function LandingSectionRail<TItem extends LandingSectionRailBaseItem>({
   const isExpandedRef = useRef(isExpanded);
   const edgeScrollFrameRef = useRef(0);
   const edgeScrollVelocityRef = useRef(0);
+  const centerScrollFrameRef = useRef(0);
+  const centerScrollTargetIdRef = useRef<string | null>(null);
+  const centerScrollUntilRef = useRef(0);
   const itemsSignature = items.map((item) => item.id).join("\u001f");
   const activeIndex = Math.max(0, items.findIndex((item) => item.id === activeId));
   const canGoPrev = activeIndex > 0;
   const canGoNext = activeIndex >= 0 && activeIndex < items.length - 1;
+  const hasControls = items.length > 1 || Boolean(meta) || expandable;
 
   useEffect(() => {
     activeIdRef.current = activeId;
@@ -87,7 +91,10 @@ export function LandingSectionRail<TItem extends LandingSectionRailBaseItem>({
 
   useEffect(() => {
     isExpandedRef.current = isExpanded;
-    if (isExpanded) stopEdgeScroll();
+    if (isExpanded) {
+      stopCenterScroll();
+      stopEdgeScroll();
+    }
   }, [isExpanded]);
 
   useEffect(() => {
@@ -139,18 +146,14 @@ export function LandingSectionRail<TItem extends LandingSectionRailBaseItem>({
     };
   }, [activateOnScroll, itemsSignature, scrollActivationDelay]);
 
-  useEffect(() => () => stopEdgeScroll(), []);
+  useEffect(() => () => {
+    stopCenterScroll();
+    stopEdgeScroll();
+  }, []);
 
   const activateCard = (id: string) => {
     setActiveId(id);
-    if (typeof window !== "undefined") {
-      suppressScrollActivationUntilRef.current = window.performance.now() + 520;
-    }
-    cardRefs.current.get(id)?.scrollIntoView({
-      behavior: "smooth",
-      block: "nearest",
-      inline: "center",
-    });
+    startCenterScroll(id);
   };
 
   const activateCardByIndex = (index: number) => {
@@ -165,6 +168,75 @@ export function LandingSectionRail<TItem extends LandingSectionRailBaseItem>({
       window.cancelAnimationFrame(edgeScrollFrameRef.current);
     }
     edgeScrollFrameRef.current = 0;
+  };
+
+  const getCenteredScrollLeft = (id: string) => {
+    const scroller = scrollerRef.current;
+    const card = cardRefs.current.get(id);
+    if (!scroller || !card) return null;
+
+    const maxScrollLeft = scroller.scrollWidth - scroller.clientWidth;
+    if (maxScrollLeft <= 0) return 0;
+
+    const scrollerRect = scroller.getBoundingClientRect();
+    const cardRect = card.getBoundingClientRect();
+    const target =
+      scroller.scrollLeft +
+      cardRect.left -
+      scrollerRect.left -
+      (scroller.clientWidth - cardRect.width) / 2;
+
+    return Math.max(0, Math.min(maxScrollLeft, target));
+  };
+
+  const stopCenterScroll = () => {
+    centerScrollTargetIdRef.current = null;
+    if (centerScrollFrameRef.current && typeof window !== "undefined") {
+      window.cancelAnimationFrame(centerScrollFrameRef.current);
+    }
+    centerScrollFrameRef.current = 0;
+  };
+
+  const runCenterScroll = () => {
+    const scroller = scrollerRef.current;
+    const targetId = centerScrollTargetIdRef.current;
+    if (!scroller || !targetId || isExpandedRef.current || typeof window === "undefined") {
+      stopCenterScroll();
+      return;
+    }
+
+    const target = getCenteredScrollLeft(targetId);
+    if (target === null) {
+      stopCenterScroll();
+      return;
+    }
+
+    const distance = target - scroller.scrollLeft;
+    if (Math.abs(distance) < 0.6) {
+      scroller.scrollLeft = target;
+    } else {
+      scroller.scrollLeft += distance * 0.26;
+    }
+
+    const settled = Math.abs(target - scroller.scrollLeft) < 0.8;
+    if (window.performance.now() >= centerScrollUntilRef.current && settled) {
+      scroller.scrollLeft = target;
+      stopCenterScroll();
+      return;
+    }
+
+    centerScrollFrameRef.current = window.requestAnimationFrame(runCenterScroll);
+  };
+
+  const startCenterScroll = (id: string) => {
+    if (typeof window === "undefined") return;
+    stopEdgeScroll();
+    centerScrollTargetIdRef.current = id;
+    centerScrollUntilRef.current = window.performance.now() + 360;
+    suppressScrollActivationUntilRef.current = window.performance.now() + 620;
+    if (!centerScrollFrameRef.current) {
+      centerScrollFrameRef.current = window.requestAnimationFrame(runCenterScroll);
+    }
   };
 
   const runEdgeScroll = () => {
@@ -189,6 +261,7 @@ export function LandingSectionRail<TItem extends LandingSectionRailBaseItem>({
   };
 
   const startEdgeScroll = (velocity: number) => {
+    stopCenterScroll();
     edgeScrollVelocityRef.current = velocity;
     if (!edgeScrollFrameRef.current && typeof window !== "undefined") {
       edgeScrollFrameRef.current = window.requestAnimationFrame(runEdgeScroll);
@@ -229,6 +302,9 @@ export function LandingSectionRail<TItem extends LandingSectionRailBaseItem>({
     const scroller = scrollerRef.current;
     if (!scroller) return;
 
+    stopCenterScroll();
+    stopEdgeScroll();
+
     const maxScrollLeft = scroller.scrollWidth - scroller.clientWidth;
     if (maxScrollLeft <= 0) return;
 
@@ -260,19 +336,6 @@ export function LandingSectionRail<TItem extends LandingSectionRailBaseItem>({
         <div className="landing-section-rail__title-group">
           {eyebrow ? <div className="landing-section-rail__eyebrow">{eyebrow}</div> : null}
           <h2 className="landing-section-rail__title">{title}</h2>
-        </div>
-        <div className="landing-section-rail__side">
-          {meta ? <div className="landing-section-rail__meta">{meta}</div> : null}
-          {expandable ? (
-            <button
-              aria-expanded={isExpanded}
-              className="landing-section-rail__expand"
-              onClick={() => setExpandedState(!isExpanded)}
-              type="button"
-            >
-              {isExpanded ? collapseLabel : viewAllLabel}
-            </button>
-          ) : null}
         </div>
       </header>
 
@@ -316,24 +379,44 @@ export function LandingSectionRail<TItem extends LandingSectionRailBaseItem>({
         })}
       </div>
 
-      {items.length > 1 ? (
-        <nav
-          aria-label={`${railLabel ?? "Section"} carousel controls`}
-          className="landing-section-rail__mobile-nav"
-          data-expanded={isExpanded ? "true" : "false"}
-        >
-          <button aria-label="Previous card" disabled={!canGoPrev} onClick={() => activateCardByIndex(activeIndex - 1)} type="button">
-            <span aria-hidden="true">←</span>
-          </button>
-          <span aria-label={`${activeIndex + 1} of ${items.length}`} aria-live="polite" className="landing-section-rail__mobile-progress">
-            {items.map((item, index) => (
-              <i aria-hidden="true" data-active={index === activeIndex ? "true" : "false"} key={item.id} />
-            ))}
-          </span>
-          <button aria-label="Next card" disabled={!canGoNext} onClick={() => activateCardByIndex(activeIndex + 1)} type="button">
-            <span aria-hidden="true">→</span>
-          </button>
-        </nav>
+      {hasControls ? (
+        <div className="landing-section-rail__controls" data-expanded={isExpanded ? "true" : "false"}>
+          {items.length > 1 ? (
+            <nav
+              aria-label={`${railLabel ?? "Section"} carousel controls`}
+              className="landing-section-rail__mobile-nav"
+              data-expanded={isExpanded ? "true" : "false"}
+            >
+              <button aria-label="Previous card" disabled={!canGoPrev} onClick={() => activateCardByIndex(activeIndex - 1)} type="button">
+                <span aria-hidden="true">←</span>
+              </button>
+              <span aria-label={`${activeIndex + 1} of ${items.length}`} aria-live="polite" className="landing-section-rail__mobile-progress">
+                {items.map((item, index) => (
+                  <i aria-hidden="true" data-active={index === activeIndex ? "true" : "false"} key={item.id} />
+                ))}
+              </span>
+              <button aria-label="Next card" disabled={!canGoNext} onClick={() => activateCardByIndex(activeIndex + 1)} type="button">
+                <span aria-hidden="true">→</span>
+              </button>
+            </nav>
+          ) : null}
+
+          {meta || expandable ? (
+            <div className="landing-section-rail__side">
+              {meta ? <div className="landing-section-rail__meta">{meta}</div> : null}
+              {expandable ? (
+                <button
+                  aria-expanded={isExpanded}
+                  className="landing-section-rail__expand"
+                  onClick={() => setExpandedState(!isExpanded)}
+                  type="button"
+                >
+                  {isExpanded ? collapseLabel : viewAllLabel}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       ) : null}
     </section>
   );

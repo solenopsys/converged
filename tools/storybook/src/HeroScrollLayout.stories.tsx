@@ -223,7 +223,11 @@ const css = `
   background: color-mix(in oklch, var(--ui-background) 82%, transparent);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  transition: height 320ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    background 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    height 320ms cubic-bezier(0.16, 1, 0.3, 1);
   overflow: visible;
 }
 
@@ -232,7 +236,9 @@ const css = `
    (gap) + 32 (chips) + 16 (bottom gap) = 164 */
 .hsl-topbar--docked {
   height: 164px;
-  box-shadow: 0 14px 34px rgba(0,0,0,0.24);
+  border-bottom-color: color-mix(in oklch, var(--ui-foreground) 12%, transparent);
+  background: color-mix(in oklch, var(--ui-background) 74%, transparent);
+  box-shadow: 0 18px 42px rgba(0,0,0,0.18);
 }
 
 .hsl-topbar .ltb--compact {
@@ -241,6 +247,8 @@ const css = `
   background: transparent;
   border-bottom: 0;
   box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 /* ── Hero ── */
@@ -316,14 +324,22 @@ const css = `
    (their natural width ~775px) and don't visually slip into the form's
    block. min-height matches the docked stack: 48 + 16 + 32 = 96. */
 .hsl-hero-input-slot {
+  --hsl-input-lift: clamp(210px, 27vh, 300px);
   position: relative;
   z-index: 1300;
   width: var(--hsl-input-width);
-  margin: -200px auto 120px;
+  margin: calc(-1 * var(--hsl-input-lift)) auto calc(var(--hsl-input-lift) - 80px);
   min-height: 96px;
 }
 
 .hsl-hero-input {
+  --hsl-input-ink: #f8fafc;
+  --hsl-input-muted: rgba(248,250,252,0.68);
+  --hsl-input-border: rgba(248,250,252,0.24);
+  --hsl-input-surface: rgba(248,250,252,0.13);
+  --hsl-input-surface-hover: rgba(248,250,252,0.2);
+  --hsl-input-action-bg: #f8fafc;
+  --hsl-input-action-ink: #07101a;
   width: 100%;
   opacity: 1;
   transition:
@@ -338,7 +354,14 @@ const css = `
   right: max(20px, calc((100vw - 880px) / 2));
   z-index: 1300;
   width: auto;
-  filter: drop-shadow(0 16px 34px rgba(0,0,0,0.34));
+  --hsl-input-ink: var(--ui-foreground);
+  --hsl-input-muted: color-mix(in oklch, var(--ui-foreground) 58%, transparent);
+  --hsl-input-border: color-mix(in oklch, var(--ui-foreground) 18%, transparent);
+  --hsl-input-surface: color-mix(in oklch, var(--ui-foreground) 6%, transparent);
+  --hsl-input-surface-hover: color-mix(in oklch, var(--ui-foreground) 11%, transparent);
+  --hsl-input-action-bg: var(--ui-foreground);
+  --hsl-input-action-ink: var(--ui-background);
+  filter: none;
 }
 
 /* ── Hero form ── */
@@ -355,9 +378,9 @@ const css = `
   max-width: 720px;
   margin: 0 auto;
   width: 100%;
-  border: 1px solid color-mix(in oklch, var(--ui-foreground) 20%, transparent);
+  border: 1px solid var(--hsl-input-border);
   border-radius: 12px;
-  background: color-mix(in oklch, var(--ui-foreground) 8%, transparent);
+  background: var(--hsl-input-surface);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   padding: 6px;
@@ -368,7 +391,7 @@ const css = `
   resize: none;
   border: 0;
   background: transparent;
-  color: var(--ui-foreground);
+  color: var(--hsl-input-ink);
   font-size: 15px;
   line-height: 1.4;
   outline: none;
@@ -376,7 +399,7 @@ const css = `
   font-family: inherit;
 }
 
-.hsl-textarea::placeholder { color: color-mix(in oklch, var(--ui-foreground) 54%, transparent); }
+.hsl-textarea::placeholder { color: var(--hsl-input-muted); }
 
 .hsl-attach,
 .hsl-send {
@@ -393,17 +416,17 @@ const css = `
 
 .hsl-attach {
   background: transparent;
-  color: color-mix(in oklch, var(--ui-foreground) 60%, transparent);
+  color: var(--hsl-input-muted);
 }
 
 .hsl-send {
-  background: var(--ui-foreground);
-  color: var(--ui-background);
+  background: var(--hsl-input-action-bg);
+  color: var(--hsl-input-action-ink);
 }
 
 .hsl-attach:hover {
-  background: color-mix(in oklch, var(--ui-foreground) 10%, transparent);
-  color: var(--ui-foreground);
+  background: var(--hsl-input-surface-hover);
+  color: var(--hsl-input-ink);
 }
 
 .hsl-chips {
@@ -420,11 +443,11 @@ const css = `
   gap: 8px;
   height: 32px;
   padding: 0 14px;
-  border: 1px solid color-mix(in oklch, var(--ui-foreground) 18%, transparent);
+  border: 1px solid var(--hsl-input-border);
   border-radius: 999px;
-  background: color-mix(in oklch, var(--ui-foreground) 4%, transparent);
+  background: var(--hsl-input-surface);
   backdrop-filter: blur(8px);
-  color: color-mix(in oklch, var(--ui-foreground) 86%, transparent);
+  color: var(--hsl-input-ink);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -432,15 +455,15 @@ const css = `
 }
 
 .hsl-chip:hover {
-  background: color-mix(in oklch, var(--ui-foreground) 12%, transparent);
-  border-color: color-mix(in oklch, var(--ui-foreground) 36%, transparent);
+  background: var(--hsl-input-surface-hover);
+  border-color: color-mix(in oklch, var(--hsl-input-ink) 34%, transparent);
 }
 
 @media (max-width: 960px) {
   .hsl-root { --hsl-input-width: calc(100vw - 28px); }
   .hsl-topbar--docked { height: 164px; }
   .hsl-hero-input-slot {
-    margin: -190px auto 100px;
+    --hsl-input-lift: clamp(200px, 26vh, 250px);
   }
   .hsl-hero-input--docked {
     top: 52px;

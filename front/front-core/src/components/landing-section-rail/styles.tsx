@@ -11,9 +11,13 @@ export const landingSectionRailCss = `
   --landing-rail-radius: 12px;
   --landing-rail-card-width: 248px;
   --landing-rail-card-active-width: min(520px, calc(100vw - 34px));
+  --landing-rail-card-height: 452px;
+  --landing-rail-expanded-card-min-height: 360px;
+  --landing-rail-expanded-card-featured-min-height: 430px;
   color: var(--landing-rail-ink);
   background: var(--landing-rail-page);
   padding: 56px 16px 30px;
+  overflow-anchor: none;
 }
 
 .landing-section-rail[data-variant="compact"] {
@@ -27,10 +31,6 @@ export const landingSectionRailCss = `
 }
 
 .landing-section-rail__header {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
-  gap: 24px;
   margin: 0 0 36px;
 }
 
@@ -74,19 +74,28 @@ export const landingSectionRailCss = `
 }
 
 .landing-section-rail__meta {
-  padding-bottom: 10px;
   text-align: right;
   white-space: nowrap;
 }
 
+.landing-section-rail__controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 14px;
+}
+
 .landing-section-rail__side {
-  display: grid;
-  justify-items: end;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   gap: 12px;
+  min-width: 0;
 }
 
 .landing-section-rail__expand {
-  height: 36px;
+  height: 44px;
   border: 1px solid var(--landing-rail-line);
   border-radius: 999px;
   background: color-mix(in oklch, var(--landing-rail-card) 88%, transparent);
@@ -96,7 +105,7 @@ export const landingSectionRailCss = `
   font-size: 14px;
   font-weight: 700;
   letter-spacing: -0.01em;
-  padding: 0 16px;
+  padding: 0 18px;
 }
 
 .landing-section-rail__expand:hover {
@@ -110,6 +119,7 @@ export const landingSectionRailCss = `
 
 .landing-section-rail__viewport {
   display: flex;
+  align-items: stretch;
   gap: 14px;
   overflow-x: auto;
   overscroll-behavior-x: contain;
@@ -132,8 +142,10 @@ export const landingSectionRailCss = `
 .landing-section-rail__card {
   flex: 0 0 var(--landing-rail-card-width);
   min-width: 0;
-  min-height: 452px;
+  height: var(--landing-rail-card-height);
+  min-height: 0;
   outline: none;
+  overflow-anchor: none;
   scroll-snap-align: start;
   transition: flex-basis 180ms ease, opacity 160ms ease, transform 160ms ease;
 }
@@ -144,14 +156,15 @@ export const landingSectionRailCss = `
 
 .landing-section-rail__viewport[data-expanded="true"] .landing-section-rail__card {
   grid-column: span 3;
-  min-height: 360px;
+  height: auto;
+  min-height: var(--landing-rail-expanded-card-min-height);
   scroll-snap-align: none;
 }
 
 .landing-section-rail__viewport[data-expanded="true"] .landing-section-rail__card:first-child,
 .landing-section-rail__viewport[data-expanded="true"] .landing-section-rail__card:nth-child(6n) {
   grid-column: span 6;
-  min-height: 430px;
+  min-height: var(--landing-rail-expanded-card-featured-min-height);
 }
 
 .landing-section-rail__viewport[data-expanded="true"] .landing-section-rail__card:nth-child(5n) {
@@ -173,7 +186,7 @@ export const landingSectionRailCss = `
 
 .landing-section-rail-card-frame {
   height: 100%;
-  min-height: inherit;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -199,23 +212,30 @@ export const landingSectionRailCss = `
   .landing-section-rail {
     --landing-rail-card-width: min(88vw, 380px);
     --landing-rail-card-active-width: min(88vw, 380px);
+    --landing-rail-card-height: 420px;
     padding-top: 42px;
   }
 
   .landing-section-rail__header {
-    grid-template-columns: 1fr;
-    gap: 16px;
     margin-bottom: 24px;
   }
 
   .landing-section-rail__meta {
-    padding-bottom: 0;
     text-align: left;
     white-space: normal;
   }
 
+  .landing-section-rail__controls {
+    display: grid;
+    gap: 14px;
+    justify-content: stretch;
+    margin-top: 14px;
+  }
+
   .landing-section-rail__side {
-    justify-items: start;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
   }
 
   .landing-section-rail__viewport {
@@ -238,12 +258,14 @@ export const landingSectionRailCss = `
   }
 
   .landing-section-rail__card {
-    min-height: 420px;
+    height: var(--landing-rail-card-height);
+    min-height: 0;
   }
 
   .landing-section-rail__viewport[data-expanded="true"] .landing-section-rail__card {
     grid-column: auto;
-    min-height: 420px;
+    height: auto;
+    min-height: var(--landing-rail-card-height);
     scroll-snap-align: none;
   }
 
@@ -252,7 +274,7 @@ export const landingSectionRailCss = `
     grid-template-columns: 44px minmax(0, 1fr) 44px;
     align-items: center;
     gap: 14px;
-    margin-top: 14px;
+    margin-top: 0;
     padding-inline: 2px;
   }
 
