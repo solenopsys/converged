@@ -43,6 +43,7 @@ const SSR_RAIL_WIDTH_STORAGE_KEY = "ssr_rail_width";
 const SSR_RAIL_MIN_WIDTH = 280;
 const SSR_RAIL_MAX_WIDTH = 680;
 const SSR_RAIL_DEFAULT_WIDTH = 380;
+let heroRequestCleanup: (() => void) | null = null;
 const RIGHT_RAIL_QUERY_KEYS = [
 	"sidebarTab",
 	"sidebarPanel",
@@ -1864,6 +1865,7 @@ async function navigateByFragment(
 		}
 
 		currentRoot.replaceWith(nextRoot);
+		installHeroRequestController();
 		if (nextTitle.length > 0) {
 			document.title = nextTitle;
 		}
@@ -2072,6 +2074,87 @@ function installLandingEventGateway(): void {
 			readLandingEventPayload(source),
 		);
 	});
+}
+
+function installHeroRequestController(): void {
+	heroRequestCleanup?.();
+	heroRequestCleanup = null;
+
+	const root = document.querySelector<HTMLElement>(".hsl-root");
+	const slot = root?.querySelector<HTMLElement>(".hsl-hero-input-slot");
+	const input = root?.querySelector<HTMLElement>(".hsl-hero-input");
+	const form = root?.querySelector<HTMLFormElement>(".hsl-form");
+	const textarea = root?.querySelector<HTMLTextAreaElement>(".hsl-textarea");
+	const html = document.documentElement;
+
+	if (!root || !slot || !input) {
+		delete html.dataset.heroInputDocked;
+		return;
+	}
+
+	let frame = 0;
+	let docked = input.classList.contains("hsl-hero-input--docked");
+
+	const setDocked = (nextDocked: boolean) => {
+		if (docked === nextDocked) return;
+		docked = nextDocked;
+		input.classList.toggle("hsl-hero-input--docked", nextDocked);
+		html.dataset.heroInputDocked = nextDocked ? "1" : "0";
+	};
+
+	const measure = () => {
+		frame = 0;
+		const top = slot.getBoundingClientRect().top;
+		setDocked(top <= (docked ? 62 : 52));
+	};
+
+	const scheduleMeasure = () => {
+		if (frame) return;
+		frame = window.requestAnimationFrame(measure);
+	};
+
+	const setPrompt = (prompt: string) => {
+		if (!textarea) return;
+		textarea.value = prompt;
+		textarea.dispatchEvent(new Event("input", { bubbles: true }));
+		textarea.focus();
+		try {
+			textarea.setSelectionRange(prompt.length, prompt.length);
+		} catch {
+			// Some browsers can reject selection updates during focus changes.
+		}
+	};
+
+	const onDocumentClick = (event: MouseEvent) => {
+		const eventEl = resolveEventElement(event.target);
+		const chip = eventEl?.closest<HTMLButtonElement>(".hsl-chip[data-hero-prompt]");
+		if (!chip || !root.contains(chip)) return;
+
+		event.preventDefault();
+		setPrompt(chip.dataset.heroPrompt ?? `${chip.textContent?.trim() ?? ""}: `);
+	};
+
+	const onTextareaKeyDown = (event: KeyboardEvent) => {
+		if (event.key !== "Enter" || event.shiftKey || event.isComposing) return;
+		event.preventDefault();
+		form?.requestSubmit();
+	};
+
+	measure();
+	window.addEventListener("scroll", scheduleMeasure, { passive: true });
+	window.addEventListener("resize", scheduleMeasure);
+	document.addEventListener("click", onDocumentClick);
+	textarea?.addEventListener("keydown", onTextareaKeyDown);
+
+	heroRequestCleanup = () => {
+		window.removeEventListener("scroll", scheduleMeasure);
+		window.removeEventListener("resize", scheduleMeasure);
+		document.removeEventListener("click", onDocumentClick);
+		textarea?.removeEventListener("keydown", onTextareaKeyDown);
+		if (frame) window.cancelAnimationFrame(frame);
+		input.classList.remove("hsl-hero-input--docked");
+		delete html.dataset.heroInputDocked;
+	};
 }
 
 function normalizeQuickChatPrompt(prompt: QuickChatPrompt): {
@@ -2380,6 +2463,7 @@ export function mountSsrMenuShell(): void {
 	});
 
 	installLandingEventGateway();
+	installHeroRequestController();
 	installLinkInterceptor();
 
 	window.addEventListener("auth-token-changed", () => {

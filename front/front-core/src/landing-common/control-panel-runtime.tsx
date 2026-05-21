@@ -26,6 +26,7 @@ import {
 import {
 	LandingTopBar,
 	type LandingTopBarAction,
+	type LandingTopBarMenuLink,
 } from "../components/landing-topbar/LandingTopBar";
 import { Button } from "../components/ui";
 import { SlotProvider } from "../slots/SlotProvider";
@@ -57,6 +58,13 @@ export interface ControlPanelRuntimeHandle {
 	setMode: (mode: ControlPanelMode) => void;
 	unmount: () => void;
 }
+
+const topBarMenuLinks: LandingTopBarMenuLink[] = [
+	{ label: "Catalog", href: "#" },
+	{ label: "Pricing", href: "#" },
+	{ label: "Docs", href: "#" },
+	{ label: "Contacts", href: "#" },
+];
 
 const topBarActions: LandingTopBarAction[] = [
 	{
@@ -289,6 +297,7 @@ function ControlPanelApp({
 					phone={options.phone}
 					statusText={options.statusText}
 					actions={topBarActions}
+					menuLinks={topBarMenuLinks}
 					languages={options.languages}
 					currentLanguage={lang}
 					isDark={isDark}
@@ -302,6 +311,7 @@ function ControlPanelApp({
 						openChat(text);
 					}}
 					onAttach={attachFile}
+					compact
 				/>
 			) : (
 				<ConvergedRailPanel

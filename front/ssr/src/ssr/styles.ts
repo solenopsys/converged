@@ -19,9 +19,9 @@ async function readFileSafe(filePath: string): Promise<string> {
 
 function stripUnoDirectives(css: string): string {
   return css
-    .replace(/@unocss\\s+preflights;?/g, "")
-    .replace(/@unocss\\s+default;?/g, "")
-    .replace(/@import\\s+["']@unocss\\/reset\\/tailwind\\.css["'];?/g, "");
+    .replace(/@unocss\s+preflights;?/g, "")
+    .replace(/@unocss\s+default;?/g, "")
+    .replace(/@import\s+["']@unocss\/reset\/tailwind\.css["'];?/g, "");
 }
 
 async function collectSources(dir: string, sources: string[]): Promise<void> {

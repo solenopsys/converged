@@ -1,6 +1,6 @@
 import { Elysia } from "elysia";
 import { staticPlugin } from "@elysiajs/static";
-import { resolve } from "path";
+import { extname, resolve } from "path";
 import { existsSync } from "fs";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { externalPackages, microfrontends } from "front-core/runtime-config";
@@ -302,6 +302,24 @@ function extractPageTitle(html: string): string | null {
 
 function encodeHeaderBase64(value: string): string {
   return Buffer.from(value, "utf8").toString("base64");
+}
+
+function getPublicAssetContentType(filePath: string): string {
+  switch (extname(filePath).toLowerCase()) {
+    case ".avif":
+      return "image/avif";
+    case ".jpg":
+    case ".jpeg":
+      return "image/jpeg";
+    case ".png":
+      return "image/png";
+    case ".svg":
+      return "image/svg+xml; charset=utf-8";
+    case ".webp":
+      return "image/webp";
+    default:
+      return "application/octet-stream";
+  }
 }
 
 export default function createLandingPlugin(config: LandingPluginConfig) {
@@ -776,6 +794,26 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
         headers: {
           "Content-Type": "application/javascript; charset=utf-8",
           "Cache-Control": "no-store",
+        },
+      });
+    })
+    .get("/cnc/:file", ({ params, set }) => {
+      const fileName = String(params.file ?? "");
+      if (!/^[a-z0-9._-]+$/i.test(fileName)) {
+        set.status = 404;
+        return "Not Found";
+      }
+
+      const filePath = resolve(publicDir, "cnc", fileName);
+      if (!existsSync(filePath)) {
+        set.status = 404;
+        return "Not Found";
+      }
+
+      return new Response(Bun.file(filePath), {
+        headers: {
+          "Content-Type": getPublicAssetContentType(filePath),
+          "Cache-Control": "public, max-age=86400",
         },
       });
     })

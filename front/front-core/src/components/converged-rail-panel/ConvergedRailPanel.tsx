@@ -240,7 +240,6 @@ const css = `
   max-height: 280px;
   overflow-y: auto;
   overflow-x: hidden;
-  border-bottom: 1px solid color-mix(in oklch, var(--ui-border) 74%, transparent);
 }
 
 .crp-menu-slot {
@@ -313,8 +312,32 @@ const css = `
   font-weight: 600;
 }
 
-.crp-chat { grid-row: 3; min-height: 0; display: flex; flex-direction: column; padding-top: 10px; overflow: hidden; }
-.crp-chat > * { flex: 1; min-height: 0; }
+.crp-chat {
+  grid-row: 3;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding-top: 0;
+  overflow: hidden;
+  border-top: 1px solid color-mix(in oklch, var(--ui-border) 74%, transparent);
+}
+
+.crp-chat > * { flex: 1 1 auto; min-height: 0; }
+
+.crp-chat .threaded-chat-root {
+  max-width: none;
+  margin-inline: 0;
+}
+
+.crp-chat .threaded-chat-scroll {
+  min-height: 0;
+  padding: 12px 10px;
+}
+
+.crp-chat .threaded-chat-messages {
+  margin-top: 0;
+  justify-content: flex-start;
+}
 
 .crp-composer {
   grid-row: 4;

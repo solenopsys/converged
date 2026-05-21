@@ -43,7 +43,7 @@ export const preSsrShellCss = `
 body { margin: 0; }
 :root {
   --ssr-pad: 0px;
-  --ssr-topbar-height: 120px;
+  --ssr-topbar-height: 52px;
   --ssr-rail-width: 380px;
   --ssr-control-panel-width: 380px;
   --ssr-dock-height: 72px;

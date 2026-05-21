@@ -103,13 +103,14 @@ export function ThreadedChat<TMessage extends ThreadMessageBase>({
   );
 
   return (
-    <div className={cn("flex h-full w-full max-w-2xl mx-auto flex-col", className)}>
+    <div className={cn("threaded-chat-root flex h-full w-full max-w-2xl mx-auto flex-col", className)}>
       <Card className="flex flex-col h-full rounded-none border-none shadow-none">
         <CardContent className="flex-1 p-0 overflow-hidden">
           <ScrollArea ref={scrollAreaRef} className="h-full w-full">
-            <div className={styles.chatScroll}>
+            <div className={cn("threaded-chat-scroll", styles.chatScroll)}>
               <div
                 className={cn(
+                  "threaded-chat-messages",
                   styles.chatMessages,
                   showIntro ? styles.chatMessagesIntro : undefined,
                 )}

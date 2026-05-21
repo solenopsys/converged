@@ -122,6 +122,7 @@ export const landingSectionRailCss = `
   align-items: stretch;
   gap: 14px;
   overflow-x: auto;
+  overflow-y: hidden;
   overscroll-behavior-x: contain;
   padding: 0 0 14px;
   scroll-padding-inline: 16px;

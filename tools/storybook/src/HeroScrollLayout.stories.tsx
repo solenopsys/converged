@@ -65,7 +65,8 @@ function HeroInput({
         <textarea
           className="hsl-textarea"
           rows={1}
-          placeholder="ask anything..."
+          wrap="off"
+          placeholder="Example: 25 brackets, STEP, ±0.05 mm, anodized, Austin by Jun 15."
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => {
@@ -167,12 +168,12 @@ function HeroScrollLayoutStory() {
         <div className="hsl-hero-overlay" aria-hidden="true" />
         <div className="hsl-hero-content">
           <h1 className="hsl-hero-title">
-            <span>ask anything.</span>
-            <span>attach everything.</span>
+            <span>Precision CNC quotes</span>
+            <span>from files and specs.</span>
           </h1>
           <p className="hsl-hero-copy">
-            One chat surface, every model, your files in context.
-            Drop a PDF, paste a screenshot, or just start typing.
+            Upload STEP, STL, DXF or PDF. The assistant extracts material,
+            tolerances, finish and deadline into a review-ready request.
           </p>
 
         </div>
@@ -395,8 +396,10 @@ const css = `
   font-size: 15px;
   line-height: 1.4;
   outline: none;
+  overflow: hidden;
   padding: 6px 10px;
   font-family: inherit;
+  white-space: nowrap;
 }
 
 .hsl-textarea::placeholder { color: var(--hsl-input-muted); }
