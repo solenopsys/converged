@@ -131,7 +131,7 @@ export function ConvergedRailPanel({
 									className="crp-quick-action"
 									onClick={() => onQuickAction?.(action.prompt)}
 									type="button"
-									variant="outline"
+									variant="ghost"
 								>
 									{action.icon}
 									{action.label}
@@ -222,6 +222,13 @@ const css = `
   object-position: left center;
 }
 
+.crp-logo[src$=".png"] {
+  width: 156px;
+  height: 34px;
+  object-fit: cover;
+  object-position: center;
+}
+
 .crp-logo--dark { display: none; }
 .dark .crp-logo--light, html.dark .crp-logo--light { display: none; }
 .dark .crp-logo--dark, html.dark .crp-logo--dark { display: block; }
@@ -306,10 +313,25 @@ const css = `
   width: 100%;
   min-height: 34px;
   justify-content: flex-start;
+  border: 1px solid color-mix(in oklch, var(--ui-border) 46%, transparent);
   border-radius: var(--crp-radius);
+  background: color-mix(in oklch, var(--ui-muted) 34%, transparent);
+  box-shadow: none;
+  color: color-mix(in oklch, var(--ui-foreground) 88%, transparent);
   padding: 7px 11px;
   font-size: 13px;
   font-weight: 600;
+}
+
+.crp-quick-action:hover {
+  border-color: color-mix(in oklch, var(--ui-foreground) 16%, transparent);
+  background: color-mix(in oklch, var(--ui-muted) 68%, transparent);
+  color: var(--ui-foreground);
+}
+
+.crp-quick-action:focus-visible {
+  border-color: color-mix(in oklch, var(--ui-foreground) 24%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--ui-foreground) 10%, transparent);
 }
 
 .crp-chat {
@@ -323,6 +345,9 @@ const css = `
 }
 
 .crp-chat > * { flex: 1 1 auto; min-height: 0; }
+
+.crp #slot-panel-chat { min-height: 0; }
+.crp #slot-panel-tab { display: none !important; min-height: 0; }
 
 .crp-chat .threaded-chat-root {
   max-width: none;

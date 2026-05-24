@@ -69,7 +69,9 @@ export function BaseLayout({ centerFallback, topBar }: BaseLayoutProps = {}) {
 function LandingLayout({ centerFallback, topBar }: { centerFallback?: ReactNode; topBar?: ReactNode }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "var(--ui-background)" }}>
-      {topBar ?? <LandingTopBar />}
+      <div style={{ position: "sticky", top: 0, zIndex: 1000, flexShrink: 0 }}>
+        {topBar ?? <LandingTopBar compact />}
+      </div>
       <main style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
         <CenterContent fallback={centerFallback} />
       </main>

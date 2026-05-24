@@ -2,9 +2,10 @@ import {
   LandingSectionRailBlock,
   type LandingSectionRailBlockData,
 } from "front-core";
-import ceoImage from "../../../../../images/ceo.png";
-import cnc1Image from "../../../../../images/cnc1.png";
-import cnc2Image from "../../../../../images/cnc2.png";
+
+const ceoImage = "/landing/cnc/ceo.png";
+const cnc1Image = "/landing/cnc/cnc1.png";
+const cnc2Image = "/landing/cnc/cnc2.png";
 
 export const capabilitiesRail: LandingSectionRailBlockData = {
   kind: "capabilities",

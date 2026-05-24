@@ -18,6 +18,14 @@ import {
 import { LocaleController } from "../controllers/locale-controller";
 import { getI18nInstance } from "../i18n";
 import { $centerView } from "../slots/present";
+import {
+	$controlPanelMode,
+	controlPanelClosed,
+	controlPanelModeChanged,
+	controlPanelOpened,
+	readControlPanelMode,
+	type ControlPanelMode,
+} from "./control-panel-model";
 import { GROUPS } from "./groups";
 import {
 	AVAILABLE_LANGS,
@@ -44,12 +52,12 @@ const SSR_RAIL_MIN_WIDTH = 280;
 const SSR_RAIL_MAX_WIDTH = 680;
 const SSR_RAIL_DEFAULT_WIDTH = 380;
 let heroRequestCleanup: (() => void) | null = null;
+let controlPanelModeUnwatch: (() => void) | null = null;
 const RIGHT_RAIL_QUERY_KEYS = [
 	"sidebarTab",
 	"sidebarPanel",
 	"sidebarAction",
 ] as const;
-type ControlPanelMode = "public" | "app";
 type ControlPanelRuntimeHandle = {
 	setMode: (mode: ControlPanelMode) => void;
 	unmount: () => void;
@@ -312,12 +320,13 @@ function applyControlPanelMode(mode: ControlPanelMode): void {
 	document
 		.getElementById(SSR_CONTROL_PANEL_ROOT_ID)
 		?.setAttribute("data-mode", value);
+	if (value === "app") {
+		resetHeroInputDock();
+	}
 }
 
 function getAppliedControlPanelMode(): ControlPanelMode {
-	const current = document.getElementById(SSR_CONTROL_PANEL_ROOT_ID)?.dataset
-		.mode;
-	return current === "app" ? "app" : "public";
+	return readControlPanelMode();
 }
 
 function resolveInitialControlPanelMode(): ControlPanelMode {
@@ -334,11 +343,18 @@ function resolveAuthChangedControlPanelMode(): ControlPanelMode {
 }
 
 function setControlPanelMode(mode: ControlPanelMode): void {
-	applyControlPanelMode(mode);
-	controlPanelRuntime?.setMode(mode);
+	if (mode === "app") {
+		controlPanelOpened();
+	} else {
+		controlPanelClosed();
+	}
 	if (mode === "app") {
 		installDynamicMenuIfReady();
 	}
+}
+
+export function switchToAppMode(): void {
+	controlPanelOpened();
 }
 
 function installDynamicMenuIfReady(): void {
@@ -348,11 +364,55 @@ function installDynamicMenuIfReady(): void {
 	installDynamicMenu(menuPanel);
 }
 
+function resetHeroInputDock(): void {
+	document
+		.querySelector<HTMLElement>(".hsl-hero-input")
+		?.classList.remove("hsl-hero-input--docked");
+	delete document.documentElement.dataset.heroInputDocked;
+
+	const panel = document.getElementById(SSR_CONTROL_PANEL_ROOT_ID);
+	if (!panel) return;
+	for (const property of [
+		"height",
+		"background",
+		"backdrop-filter",
+		"-webkit-backdrop-filter",
+		"border-bottom",
+		"box-shadow",
+		"transition",
+	]) {
+		panel.style.removeProperty(property);
+	}
+}
+
+function ensureControlPanelModeBinding(): void {
+	if (controlPanelModeUnwatch) return;
+	controlPanelModeUnwatch = $controlPanelMode.watch((mode) => {
+		applyControlPanelMode(mode);
+		if (mode === "app") {
+			installDynamicMenuIfReady();
+		}
+	});
+}
+
+function normalizeGalleryStaticUrl(value: string, fallback: string): string {
+	const resolved = value || fallback;
+	return resolved.startsWith("/galery/static/")
+		? `/services${resolved}`
+		: resolved;
+}
+
 function readControlPanelHostOptions(host: HTMLElement) {
 	const locale = extractLocaleFromPath(window.location.pathname) ?? "en";
 	return {
-		logoLight: host.dataset.logoLight || "/header-logo-black.svg",
-		logoDark: host.dataset.logoDark || "/header-logo-white.svg",
+		logoLight: normalizeGalleryStaticUrl(
+			host.dataset.logoLight || "",
+			"/header-logo-black.svg",
+		),
+		logoDark: normalizeGalleryStaticUrl(
+			host.dataset.logoDark || "",
+			"/header-logo-white.svg",
+		),
 		phone: host.dataset.phone || undefined,
 		statusText: host.dataset.statusText || undefined,
 		chatPlaceholder:
@@ -363,6 +423,7 @@ function readControlPanelHostOptions(host: HTMLElement) {
 }
 
 async function ensureControlPanelRuntime(): Promise<void> {
+	ensureControlPanelModeBinding();
 	const host = document.getElementById(SSR_CONTROL_PANEL_ROOT_ID);
 	if (!host) return;
 
@@ -383,9 +444,8 @@ async function ensureControlPanelRuntime(): Promise<void> {
 		]);
 		const hostOptions = readControlPanelHostOptions(host);
 		const initialMode = resolveInitialControlPanelMode();
-		applyControlPanelMode(initialMode);
+		controlPanelModeChanged(initialMode);
 		controlPanelRuntime = mountControlPanelRuntime(host, {
-			initialMode,
 			logoLight: hostOptions.logoLight,
 			logoDark: hostOptions.logoDark,
 			phone: hostOptions.phone,
@@ -399,7 +459,7 @@ async function ensureControlPanelRuntime(): Promise<void> {
 			currentLanguage: hostOptions.currentLanguage,
 			isDark: isDarkTheme(),
 			isAuthenticated,
-			onModeChange: applyControlPanelMode,
+			onAppModeRendered: installDynamicMenuIfReady,
 			onOpenChat: (message) => {
 				void openAiChat(message, { contextName: "request" });
 			},
@@ -424,7 +484,7 @@ async function ensureControlPanelRuntime(): Promise<void> {
 				void applyLocaleChange(code);
 			},
 		});
-		if (initialMode === "app") {
+		if (readControlPanelMode() === "app") {
 			installDynamicMenuIfReady();
 		}
 	})();
@@ -2104,6 +2164,10 @@ function installHeroRequestController(): void {
 
 	const measure = () => {
 		frame = 0;
+		if (getAppliedControlPanelMode() !== "public") {
+			setDocked(false);
+			return;
+		}
 		const top = slot.getBoundingClientRect().top;
 		setDocked(top <= (docked ? 62 : 52));
 	};
@@ -2143,12 +2207,14 @@ function installHeroRequestController(): void {
 	measure();
 	window.addEventListener("scroll", scheduleMeasure, { passive: true });
 	window.addEventListener("resize", scheduleMeasure);
+	const modeUnwatch = $controlPanelMode.watch(scheduleMeasure);
 	document.addEventListener("click", onDocumentClick);
 	textarea?.addEventListener("keydown", onTextareaKeyDown);
 
 	heroRequestCleanup = () => {
 		window.removeEventListener("scroll", scheduleMeasure);
 		window.removeEventListener("resize", scheduleMeasure);
+		modeUnwatch();
 		document.removeEventListener("click", onDocumentClick);
 		textarea?.removeEventListener("keydown", onTextareaKeyDown);
 		if (frame) window.cancelAnimationFrame(frame);
@@ -2456,6 +2522,7 @@ function installLangControl(): void {
 export function mountSsrMenuShell(): void {
 	if (typeof document === "undefined") return;
 
+	ensureControlPanelModeBinding();
 	ensureStyles();
 	ensureFrontCoreStyles();
 	void ensureControlPanelRuntime().then(() => {

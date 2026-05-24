@@ -28,6 +28,34 @@ const quickActions = [
   { id: "deadline", label: "Estimate deadline", prompt: "Estimate the deadline for the current order.", icon: <CalendarClock size={16} /> },
 ];
 
+// Та же структура chatSlot что в control-panel-runtime.tsx + глобальный CSS из ssr-shell.tsx
+const chatSlot = (
+  <>
+    <style>{`
+      /* CSS из control-panel-runtime.tsx */
+      .cp-slots { min-height: 0; height: 100%; display: flex; flex-direction: column; }
+      .cp-tab-slot, .cp-chat-slot { min-height: 0; min-width: 0; }
+      .cp-tab-slot:empty { display: none; }
+      .cp-chat-slot { flex: 1 1 auto; display: flex; flex-direction: column; }
+      .cp-chat-slot > * { flex: 1 1 auto; min-height: 0; }
+      /* CSS из ssr-shell.tsx — применяется глобально в реальном приложении */
+      #slot-panel-chat, #slot-panel-tab { min-height: 100%; min-width: 0; }
+      .ssr-right-rail-empty { display: flex; flex-direction: column; gap: 14px; padding: 20px 18px; }
+      .ssr-right-rail-empty h3 { margin: 0; font-size: 30px; line-height: 1.08; }
+      .ssr-right-rail-empty p { margin: 0; opacity: 0.72; }
+    `}</style>
+    <div className="cp-slots">
+      <div id="slot-panel-tab" className="cp-tab-slot"><span /></div>{/* non-empty like in production when mf-requests mounts */}
+      <div id="slot-panel-chat" className="cp-chat-slot">
+        <div className="ssr-right-rail-empty">
+          <h3>AI Assistant</h3>
+          <p>Loading…</p>
+        </div>
+      </div>
+    </div>
+  </>
+);
+
 function RailControls() {
   const [langOpen, setLangOpen] = useState(false);
   return (
@@ -75,8 +103,14 @@ function PanelStory() {
   const [composerValue, setComposerValue] = useState("");
 
   return (
-    <div style={{ display: "grid", placeItems: "center", minHeight: "100vh", background: "var(--ui-background)", padding: 24 }}>
-      <div style={{ width: "min(calc(100vw - 48px), 360px)", height: 820, border: "1px solid color-mix(in oklch, var(--ui-border) 74%, transparent)", overflow: "hidden" }}>
+    <div style={{ display: "flex", height: "100vh", background: "var(--ui-background)" }}>
+      <div style={{
+        width: 360,
+        flexShrink: 0,
+        height: "100%",
+        borderRight: "1px solid color-mix(in oklch, var(--ui-border) 74%, transparent)",
+        overflow: "hidden",
+      }}>
         <ConvergedRailPanel
           logoLight="/landing/header-logo-black.svg"
           logoDark="/landing/header-logo-white.svg"
@@ -86,6 +120,7 @@ function PanelStory() {
           onScreenClose={(id) => setOpenScreens((s) => s.filter((sc) => sc.id !== id))}
           quickActions={quickActions}
           onQuickAction={setComposerValue}
+          chatSlot={chatSlot}
           composerValue={composerValue}
           onComposerChange={setComposerValue}
           onComposerSubmit={() => setComposerValue("")}
@@ -93,12 +128,15 @@ function PanelStory() {
           controls={<RailControls />}
         />
       </div>
+      <div style={{ flex: 1, padding: 24, color: "var(--ui-muted-foreground)", fontSize: 14 }}>
+        Main content area
+      </div>
     </div>
   );
 }
 
 const meta = {
-  title: "Prototypes/ConvergedRightRailPanel",
+  title: "App/ControlPanel",
   component: PanelStory,
   parameters: { layout: "fullscreen" },
 } satisfies Meta<typeof PanelStory>;

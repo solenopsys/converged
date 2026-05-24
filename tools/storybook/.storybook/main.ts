@@ -8,6 +8,7 @@ const config: StorybookConfig = {
   staticDirs: [
     "../../../../../../saas/private/landing/public",
     { from: "../../../../../images", to: "/clarity-images" },
+    { from: "../../../../../data/converged/galery-ms/static/data", to: "/services/galery/static" },
     { from: "../../../front/landing/public", to: "/landing" },
     { from: "../../../front/front-core/locales", to: "/locales" },
     "../public",

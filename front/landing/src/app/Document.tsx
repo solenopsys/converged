@@ -19,9 +19,11 @@ interface DocumentProps {
   lang?: string;
   importMap?: Record<string, string>;
   initialData?: Record<string, unknown>;
+  logoLight?: string;
+  logoDark?: string;
 }
 
-export function Document({ children, seo, lang = "en", importMap, initialData }: DocumentProps) {
+export function Document({ children, seo, lang = "en", importMap, initialData, logoLight, logoDark }: DocumentProps) {
   const title = seo?.title ?? "Landing";
   const description = seo?.description ?? "";
   const keywords = seo?.keywords?.filter(Boolean).join(", ") ?? "";
@@ -72,8 +74,8 @@ export function Document({ children, seo, lang = "en", importMap, initialData }:
 
         <SsrShellLayout
           loginEnabled={loginEnabled}
-          logoLight="/landing/header-logo-black.svg"
-          logoDark="/landing/header-logo-white.svg"
+          logoLight={logoLight ?? "/services/galery/static/logo.png"}
+          logoDark={logoDark ?? "/services/galery/static/logo.png"}
           chatPlaceholder="Ask Convo anything..."
           brandName="Converged AI"
         >{children}</SsrShellLayout>

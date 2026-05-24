@@ -44,7 +44,7 @@ function WithTheme({ args }: { args: React.ComponentProps<typeof LandingTopBar> 
 }
 
 const meta = {
-  title: "Prototypes/LandingTopBar",
+  title: "Landing/TopBar",
   component: LandingTopBar,
   parameters: { layout: "fullscreen" },
   render: (args) => <WithTheme args={args} />,

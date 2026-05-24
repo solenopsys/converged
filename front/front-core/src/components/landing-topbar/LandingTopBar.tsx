@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Globe2, LogIn, Moon, Paperclip, Send, Sun } from "lucide-react";
+import { Globe2, LogIn, Moon, PanelLeftOpen, Paperclip, Send, Sun } from "lucide-react";
 import { Button, Textarea } from "../ui";
 
 export interface LandingTopBarAction {
@@ -23,6 +23,7 @@ export interface LandingTopBarProps {
   languages?: Array<{ code: string; label: string }>;
   currentLanguage?: string;
   onLogin?: () => void;
+  onPanelOpen?: () => void;
   onThemeToggle?: () => void;
   isDark?: boolean;
   onLanguage?: (code: string) => void;
@@ -43,6 +44,7 @@ export function LandingTopBar({
   languages,
   currentLanguage,
   onLogin,
+  onPanelOpen,
   onThemeToggle,
   isDark,
   onLanguage,
@@ -86,6 +88,18 @@ export function LandingTopBar({
           )}
           {logoDark && (
             <img className="ltb-logo ltb-logo--dark" src={logoDark} alt="" aria-hidden="true" />
+          )}
+          {onPanelOpen && (
+            <Button
+              className="ltb-panel-open"
+              size="icon"
+              type="button"
+              variant="ghost"
+              aria-label="Open control panel"
+              onClick={onPanelOpen}
+            >
+              <PanelLeftOpen size={15} />
+            </Button>
           )}
           {phone && (
             <a className="ltb-phone" href={`tel:${phone.replace(/\s/g, "")}`}>
@@ -260,9 +274,31 @@ export const landingTopBarCss = `
   object-position: left center;
 }
 
+.ltb-logo[src$=".png"] {
+  width: 132px;
+  height: 34px;
+  object-fit: cover;
+  object-position: center;
+}
+
 .ltb-logo--dark { display: none; }
 .dark .ltb-logo--light, html.dark .ltb-logo--light { display: none; }
 .dark .ltb-logo--dark,  html.dark .ltb-logo--dark  { display: block; }
+
+.ltb-panel-open {
+  width: 34px;
+  height: 34px;
+  border: 1px solid color-mix(in oklch, var(--ui-border) 72%, transparent);
+  border-radius: 10px;
+  background: color-mix(in oklch, var(--ui-card) 74%, transparent);
+  color: var(--ui-muted-foreground);
+  flex-shrink: 0;
+}
+
+.ltb-panel-open:hover {
+  background: var(--ui-accent);
+  color: var(--ui-foreground);
+}
 
 .ltb-phone {
   display: inline-flex;
@@ -379,6 +415,11 @@ export const landingTopBarCss = `
 .ltb--compact .ltb-logo {
   width: 72px;
   height: 26px;
+}
+
+.ltb--compact .ltb-logo[src$=".png"] {
+  width: 132px;
+  height: 34px;
 }
 
 .ltb--compact .ltb-phone,
@@ -552,6 +593,7 @@ export const landingTopBarCss = `
   }
 
   .ltb-logo { grid-row: 1 / span 2; width: 84px; height: 30px; }
+  .ltb-logo[src$=".png"] { width: 112px; height: 30px; }
   .ltb-phone { margin-top: 0; font-size: 12px; }
   .ltb-status { margin-top: 0; font-size: 9px; }
   .ltb-chat { grid-column: 1 / -1; grid-row: 2; }

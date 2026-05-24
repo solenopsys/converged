@@ -64,11 +64,24 @@ export function LandingSectionRailBlock({
     return <CapabilityRailCard {...state} />;
   };
 
+  const islandProps = JSON.stringify({
+    itemIds: items.map((i) => i.id),
+    loop: data.loop ?? true,
+    expandable: data.expandable ?? true,
+    collapseLabel: data.collapseLabel ?? "Collapse",
+    viewAllLabel: data.viewAllLabel ?? "View all",
+  });
+
   return (
-    <>
+    <div
+      className={className}
+      data-island="section-rail"
+      data-island-load="visible"
+      data-island-props={islandProps}
+    >
       <LandingSectionRailBlockStyles />
       <LandingSectionRail
-        className={cn("landing-section-rail-block", `landing-section-rail-block--${kind}`, className)}
+        className={cn("landing-section-rail-block", `landing-section-rail-block--${kind}`)}
         collapseLabel={data.collapseLabel}
         defaultExpanded={data.defaultExpanded}
         eyebrow={renderInlineContent(data.eyebrow)}
@@ -83,7 +96,7 @@ export function LandingSectionRailBlock({
         variant={data.variant ?? (kind === "machines" ? "immersive" : "default")}
         viewAllLabel={data.viewAllLabel}
       />
-    </>
+    </div>
   );
 }
 

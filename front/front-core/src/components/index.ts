@@ -18,6 +18,8 @@ export * from './right-rail/BaseLayout';
 export * from './right-rail/RightRailPanels';
 export * from './right-rail/panelController';
 export * from './right-rail/panelTypes';
+export * from './state-stream/StateStreamView';
+export * from './state-stream/stateStreamStore';
 export * from './chat';
 export * from './landing-section-rail';
 export * from './component-inspector';

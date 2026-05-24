@@ -1,9 +1,17 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { AlertTriangle, ArrowUpRight, FileText, Gauge, PackageCheck } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { AlertTriangle, ArrowUpRight, FileText, Gauge, PackageCheck, CornerDownLeft } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { Badge, Button, Card, CardContent, CardHeader, ScrollArea } from "front-core";
+import { Badge, Button, Card, CardContent, CardHeader, InputShell, ScrollArea } from "front-core";
 
 type Tone = "neutral" | "attention" | "positive";
+
+type CommandEntry = {
+  id: string;
+  time: string;
+  query: string;
+  response: string | null;
+};
 
 type StreamObject = {
   fields: Array<[string, string]>;
@@ -185,6 +193,105 @@ function LoadChart() {
   );
 }
 
+const INITIAL_COMMANDS: CommandEntry[] = [
+  {
+    id: "c0",
+    time: "09:38",
+    query: "машин активных сколько",
+    response: "14 / 47 машин в работе · VMX42 и DMU 50 — приоритет до 14:00",
+  },
+  {
+    id: "c1",
+    time: "09:44",
+    query: "что блокирует поток заявок",
+    response: "3 решения ждут менеджера: Иванов (спецификация), DMU 50 (маршрут), Quote #1842 (тонкая стенка)",
+  },
+];
+
+function mockResponse(query: string): string {
+  const q = query.toLowerCase();
+  if (q.includes("маш") || q.includes("станк")) return "14 / 47 машин активны · NLX 2500 занят до 21:00";
+  if (q.includes("заявк") || q.includes("заказ")) return "18 заявок · 5 ждут проверки · 2 можно выдать без менеджера";
+  if (q.includes("лог") || q.includes("ошиб")) return "Последние 50 записей: 2 warning, 0 error, 0 critical";
+  if (q.includes("маршрут") || q.includes("vmx") || q.includes("dmu")) return "VMX42 открывается в 11:00 — слот зарезервировать?";
+  if (q.includes("материал") || q.includes("aisi") || q.includes("замен")) return "Замена AISI 304 одобрена клиентом. Дедлайн в пятницу — в норме.";
+  if (q.includes("очередь") || q.includes("приоритет")) return "Медиана очереди 2.6 д · 2 вала можно перенести на утро без риска";
+  return "Команда принята. Анализирую контекст...";
+}
+
+function CommandPanel() {
+  const [commands, setCommands] = useState<CommandEntry[]>(INITIAL_COMMANDS);
+  const [draft, setDraft] = useState("");
+  const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = listRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [commands]);
+
+  const handleSubmit = (text: string) => {
+    if (!text.trim()) return;
+    const now = new Date();
+    const time = now.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+    const id = `c${Date.now()}`;
+    setCommands((prev) => [...prev, { id, time, query: text.trim(), response: null }]);
+    setDraft("");
+
+    setTimeout(() => {
+      setCommands((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, response: mockResponse(text) } : c)),
+      );
+    }, 600);
+  };
+
+  return (
+    <aside className="ss-commands" aria-label="Command channel">
+      <div className="ss-col-head">
+        <div>
+          <h2>Commands</h2>
+          <p>natural language</p>
+        </div>
+        <CornerDownLeft aria-hidden="true" size={18} />
+      </div>
+
+      <div className="ss-scroll ss-cmd-list" ref={listRef}>
+        {commands.map((cmd) => (
+          <div className="ss-cmd-entry" key={cmd.id}>
+            <div className="ss-cmd-meta">
+              <time>{cmd.time}</time>
+            </div>
+            <p className="ss-cmd-query">{cmd.query}</p>
+            {cmd.response !== null ? (
+              <p className="ss-cmd-response">{cmd.response}</p>
+            ) : (
+              <p className="ss-cmd-response ss-cmd-response--thinking">думаю...</p>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="ss-cmd-input-wrap">
+        <InputShell
+          value={draft}
+          onChange={setDraft}
+          onSubmit={handleSubmit}
+          placeholder="Спросить или дать команду…"
+          className="ss-cmd-input"
+        />
+        <button
+          type="button"
+          className="ss-cmd-send"
+          onClick={() => handleSubmit(draft)}
+          aria-label="Отправить команду"
+          disabled={!draft.trim()}
+        >
+          <CornerDownLeft size={15} />
+        </button>
+      </div>
+    </aside>
+  );
+}
+
 function StateStream() {
   return (
     <main className="ss">
@@ -241,6 +348,8 @@ function StateStream() {
             </section>
           </ScrollArea>
         </aside>
+
+        <CommandPanel />
       </div>
     </main>
   );
@@ -306,7 +415,8 @@ function SignalCard({ signal }: { signal: Signal }) {
 
 const css = `
 .ss {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   gap: 18px;
@@ -359,15 +469,113 @@ const css = `
 .ss-grid {
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr) 300px;
   gap: 24px;
 }
 
-.ss-events, .ss-rail {
+.ss-events, .ss-rail, .ss-commands {
   min-height: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   gap: 12px;
+}
+
+.ss-commands {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  border-left: 1px solid var(--ui-border);
+  padding-left: 20px;
+}
+
+.ss-cmd-list {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-right: 4px;
+}
+
+.ss-cmd-entry {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+}
+
+.ss-cmd-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ss-cmd-meta time {
+  color: var(--ui-muted-foreground);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.ss-cmd-query {
+  margin: 0;
+  color: var(--ui-foreground);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.ss-cmd-response {
+  margin: 0;
+  color: var(--ui-muted-foreground);
+  font-size: 13px;
+  line-height: 1.42;
+  padding-left: 10px;
+  border-left: 2px solid var(--ui-border);
+}
+
+.ss-cmd-response--thinking {
+  opacity: 0.5;
+  font-style: italic;
+}
+
+.ss-cmd-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--ui-border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: color-mix(in oklch, var(--ui-muted) 60%, transparent);
+  transition: border-color 0.15s;
+}
+
+.ss-cmd-input-wrap:focus-within {
+  border-color: var(--ui-muted-foreground);
+}
+
+.ss-cmd-input {
+  flex: 1;
+  min-height: 22px;
+  max-height: 96px;
+  overflow: hidden;
+}
+
+.ss-cmd-send {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: var(--ui-muted-foreground);
+  color: var(--ui-background);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+
+.ss-cmd-send:disabled {
+  opacity: 0.3;
+  cursor: default;
 }
 
 .ss-scroll {
@@ -659,6 +867,11 @@ const css = `
 .ss-badge--blocked, .ss-badge--review { border-color: var(--ui-chart-4); color: var(--ui-chart-4); }
 .ss-badge--ready                      { border-color: var(--ui-chart-2); color: var(--ui-chart-2); }
 
+@media (max-width: 1280px) {
+  .ss-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .ss-commands { grid-column: 1 / -1; grid-template-rows: auto 180px auto; border-left: 0; padding-left: 0; border-top: 1px solid var(--ui-border); padding-top: 16px; }
+}
+
 @media (max-width: 1040px) {
   .ss { padding: 16px; }
   .ss-top, .ss-grid { grid-template-columns: 1fr; }
@@ -667,6 +880,7 @@ const css = `
   .ss-signal-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ss-signal__inner { min-height: 145px; }
   .ss-risk { display: none; }
+  .ss-commands { grid-column: auto; }
 }
 
 @media (max-width: 640px) {
@@ -683,7 +897,7 @@ const css = `
 `;
 
 const meta = {
-  title: "Prototypes/StateStream",
+  title: "App/StateStream",
   component: StateStream,
   parameters: { layout: "fullscreen" },
 } satisfies Meta<typeof StateStream>;

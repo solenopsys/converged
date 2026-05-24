@@ -3,7 +3,18 @@ import {
 	ensureSsrCenterRuntime,
 	mountSsrMenuShell,
 	registry,
+	setCenterView,
+	switchToAppMode,
+	StateStreamView,
+	authToken,
 } from "front-core";
+import { registerIsland } from "front-core";
+
+// ── Landing block islands ─────────────────────────────────────────────────────
+// Each island is a lazy ES module that attaches interactivity to SSR-rendered
+// DOM without hydration or React.
+
+registerIsland("section-rail", () => import("./islands/section-rail"));
 import { createRuntimeGatesServiceClient } from "g-rt-gates";
 
 // App-level bus handlers — registered before any UI mounts
@@ -194,8 +205,17 @@ async function openRequestFromLocation(): Promise<void> {
 	});
 }
 
+async function initStateStream(): Promise<void> {
+	if (!authToken.isAuthenticated()) return;
+	switchToAppMode();
+	setCenterView({ view: StateStreamView as any });
+	await ensureSsrCenterRuntime();
+}
+
 mountSsrMenuShell();
 installSsrRailResizerFallback();
+void initStateStream();
+window.addEventListener("auth-token-changed", () => { void initStateStream(); });
 void openRequestFromLocation();
 window.addEventListener("popstate", () => {
 	void openRequestFromLocation();

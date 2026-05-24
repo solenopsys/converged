@@ -3,10 +3,8 @@ import {
 	BadgeCheck,
 	CalendarClock,
 	ClipboardCheck,
-	Columns2,
 	Globe2,
 	LogIn,
-	MessageSquare,
 	Moon,
 	PackageCheck,
 	PanelLeftClose,
@@ -30,11 +28,15 @@ import {
 } from "../components/landing-topbar/LandingTopBar";
 import { Button } from "../components/ui";
 import { SlotProvider } from "../slots/SlotProvider";
-
-export type ControlPanelMode = "public" | "app";
+import {
+	$controlPanelMode,
+	controlPanelClosed,
+	controlPanelModeChanged,
+	controlPanelOpened,
+	type ControlPanelMode,
+} from "./control-panel-model";
 
 export interface ControlPanelRuntimeOptions {
-	initialMode: ControlPanelMode;
 	logoLight?: string;
 	logoDark?: string;
 	phone?: string;
@@ -45,7 +47,7 @@ export interface ControlPanelRuntimeOptions {
 	currentLanguage: string;
 	isDark: boolean;
 	isAuthenticated: () => boolean;
-	onModeChange: (mode: ControlPanelMode) => void;
+	onAppModeRendered?: () => void;
 	onOpenChat: (message?: string) => void;
 	onAttach: () => void;
 	onLogin: () => void;
@@ -245,26 +247,6 @@ function ControlPanelApp({
 					<PanelLeftClose size={17} />
 				</Button>
 			) : null}
-			<Button
-				className="ssr-right-rail-tab-btn"
-				size="icon"
-				variant="ghost"
-				type="button"
-				aria-label="Chat"
-				aria-pressed="true"
-			>
-				<MessageSquare size={17} />
-			</Button>
-			<Button
-				className="ssr-right-rail-tab-btn"
-				size="icon"
-				variant="ghost"
-				type="button"
-				aria-label="Panels"
-				aria-pressed="false"
-			>
-				<Columns2 size={17} />
-			</Button>
 		</div>
 	);
 
@@ -304,6 +286,7 @@ function ControlPanelApp({
 					onThemeToggle={toggleTheme}
 					onLanguage={changeLanguage}
 					onLogin={options.loginEnabled ? options.onLogin : undefined}
+					onPanelOpen={() => setMode("app")}
 					value={topbarValue}
 					onValueChange={setTopbarValue}
 					onSubmit={(text) => {
@@ -348,34 +331,50 @@ export function mountControlPanelRuntime(
 	options: ControlPanelRuntimeOptions,
 ): ControlPanelRuntimeHandle {
 	let root: Root | null = createRoot(host);
-	let currentMode = options.initialMode;
 
 	const setMode = (mode: ControlPanelMode) => {
-		currentMode = mode;
+		if (mode === "app") {
+			controlPanelOpened();
+		} else {
+			controlPanelClosed();
+		}
+	};
+
+	const renderMode = (mode: ControlPanelMode) => {
 		host.dataset.mode = mode;
-		options.onModeChange(mode);
 		if (!root) return;
 		flushSync(() => {
 			root?.render(
 				<ControlPanelApp
-					mode={currentMode}
+					mode={mode}
 					setMode={setMode}
 					options={options}
 				/>,
 			);
 		});
+		if (mode === "app") {
+			options.onAppModeRendered?.();
+		}
 	};
 
-	setMode(currentMode);
+	const unwatch = $controlPanelMode.watch(renderMode);
 
 	return {
 		setMode,
 		unmount: () => {
+			unwatch();
 			root?.unmount();
 			root = null;
 		},
 	};
 }
+
+export {
+	controlPanelClosed,
+	controlPanelModeChanged,
+	controlPanelOpened,
+	type ControlPanelMode,
+};
 
 const css = `
 .cp-runtime {

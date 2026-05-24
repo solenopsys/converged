@@ -5,6 +5,7 @@ import {
   MachinesRail,
   TeamRail,
 } from "./landingSectionRailDemo";
+import { withIslands } from "./ssr/withIslands";
 
 function LandingSectionRailShowcase() {
   return (
@@ -18,7 +19,7 @@ function LandingSectionRailShowcase() {
 }
 
 const meta = {
-  title: "Prototypes/LandingSectionRail",
+  title: "Landing/SectionRail/All",
   component: LandingSectionRailShowcase,
   parameters: {
     layout: "fullscreen",
@@ -26,7 +27,19 @@ const meta = {
 } satisfies Meta<typeof LandingSectionRailShowcase>;
 
 export default meta;
-
 type Story = StoryObj<typeof meta>;
 
-export const Showcase: Story = {};
+/** React — полностью интерактивен через useState/useEffect (как раньше) */
+export const React: Story = {};
+
+/** SSR Static — чистый HTML который отдаёт сервер, без каких-либо JS-обработчиков */
+export const SSRStatic: Story = {
+  decorators: [withIslands],
+  parameters: { ssr: "static" },
+};
+
+/** SSR Interactive — тот же статический HTML + island-скрипты поверх него */
+export const SSRInteractive: Story = {
+  decorators: [withIslands],
+  parameters: { ssr: "interactive" },
+};

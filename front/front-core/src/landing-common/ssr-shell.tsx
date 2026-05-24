@@ -123,6 +123,14 @@ body { margin: 0; }
 .ssr-panel-brand-logo-dark {
   height: 22px;
   width: auto;
+  object-fit: contain;
+  object-position: center;
+}
+.ssr-panel-brand-logo-light[src$=".png"],
+.ssr-panel-brand-logo-dark[src$=".png"] {
+  width: 112px;
+  height: 28px;
+  object-fit: cover;
 }
 .ssr-panel-brand-logo-dark { display: none; }
 .dark .ssr-panel-brand-logo-light { display: none; }
@@ -362,6 +370,14 @@ body { margin: 0; }
 .ssr-panel-brand-logo-dark {
   height: 20px;
   width: auto;
+  object-fit: contain;
+  object-position: center;
+}
+.ssr-panel-brand-logo-light[src$=".png"],
+.ssr-panel-brand-logo-dark[src$=".png"] {
+  width: 156px;
+  height: 34px;
+  object-fit: cover;
 }
 .ssr-panel-brand-logo-dark {
   display: none;

@@ -64,6 +64,7 @@ const createOpenRequestAction: CreateAction<OpenRequestParams> = (bus) => ({
 		const requestId = params.requestId ?? params.recordId ?? params.model?.id;
 		if (!requestId) return;
 
+		if (params.model?.id) requestModelReceived(params.model);
 		syncRequestUrl(requestId, params);
 		bus.present({
 			widget: createRequestDetailWidget(bus),

@@ -17,9 +17,17 @@ const ROOT_PRESET = "root";
 const USER_PRESET = "user";
 const TEMPORARY_USER_PERMISSIONS = [
   "usage/recordUsage(w)",
+  "assistant/createSession(w)",
+  "assistant/sendMessage(w)",
   "assistant/registerChat(w)",
   "assistant/recordChatMessage(w)",
   "assistant/recordChatFile(w)",
+  "assistant/deleteChat(w)",
+  "assistant/saveContext(w)",
+  "assistant/listOfChats(r)",
+  "assistant/getChat(r)",
+  "assistant/getContext(r)",
+  "assistant/listContexts(r)",
   "threads/saveMessage(w)",
   "threads/readThread(r)",
   "chat/createSession(w)",

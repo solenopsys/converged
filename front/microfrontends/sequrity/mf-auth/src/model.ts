@@ -13,6 +13,8 @@ const TEMP_USER_ID_KEY = "tempUserId";
 const TEMP_SESSION_ID_KEY = "tempSessionId";
 const TEMP_SESSION_COOKIE = "temp_sid";
 const REQUIRED_TEMPORARY_PERMISSIONS = [
+  "assistant/createsession(w)",
+  "assistant/sendmessage(w)",
   "assistant/registerchat(w)",
   "assistant/recordchatmessage(w)",
   "assistant/recordchatfile(w)",
@@ -154,7 +156,19 @@ export const temporarySessionRequested = createEvent<void>("temporarySessionRequ
 export const logoutFx = createEffect("logoutFx", {
   async handler() {
     window.localStorage.removeItem("authToken");
-    window.dispatchEvent(new Event("auth-token-changed"));
+    window.sessionStorage.removeItem(TEMP_USER_ID_KEY);
+    window.sessionStorage.removeItem(TEMP_SESSION_ID_KEY);
+    // Reset so ensureTemporarySessionFx creates a fresh anonymous session
+    temporarySessionPromise = null;
+    try {
+      // Create anonymous session BEFORE notifying the app, so consumers
+      // always have a valid token when auth-token-changed fires.
+      // ensureTemporarySessionFx dispatches auth-token-changed on success.
+      await ensureTemporarySessionFx();
+    } catch {
+      // If anonymous session creation fails, still notify the app.
+      window.dispatchEvent(new Event("auth-token-changed"));
+    }
   },
 });
 

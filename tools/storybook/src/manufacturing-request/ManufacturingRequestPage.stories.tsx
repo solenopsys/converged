@@ -141,7 +141,7 @@ const parts: PartAnalysis[] = [
 ];
 
 const meta = {
-  title: "Prototypes/ManufacturingRequestPage",
+  title: "App/ManufacturingRequest",
   component: ManufacturingRequestPage,
   parameters: {
     layout: "fullscreen",

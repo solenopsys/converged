@@ -174,7 +174,7 @@ function IntegratedControlPanel() {
 // ── Meta ──────────────────────────────────────────────────────────────────────
 
 const meta = {
-  title: "Integration/IntegratedControlPanel",
+  title: "App/IntegratedControlPanel",
   component: IntegratedControlPanel,
   parameters: { layout: "fullscreen" },
 } satisfies Meta<typeof IntegratedControlPanel>;

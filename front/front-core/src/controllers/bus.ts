@@ -5,6 +5,7 @@ import { createEvent } from "effector";
 import { Action } from "../plugin/types_actions";
 import { type ActionRegistry } from "../controllers/types";
 import { presentEvent ,runActionEvent,registerActionEvent} from "./effector-integration";
+import { registry } from "./registry";
 
 export class EventBusImpl implements EventBus,ActionRegistry {
     domain: any;
@@ -17,6 +18,7 @@ export class EventBusImpl implements EventBus,ActionRegistry {
 
 
     register<P>(action:Action<any>):string {
+         registry.register(action);
          registerActionEvent(action);
          return action.id;
     }

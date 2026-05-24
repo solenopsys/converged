@@ -222,16 +222,26 @@ export class RuntimeServiceImpl {
   }
 
   private isTemporaryHostUnavailable(error: unknown): boolean {
+    const code = String((error as any)?.code ?? (error as any)?.cause?.code ?? "").toLowerCase();
     const message = (error instanceof Error ? error.message : String(error ?? "")).toLowerCase();
     if (message.includes("storage error: storenotfound") || message === "storenotfound") {
       return true;
     }
 
     return (
+      code === "econnreset" ||
+      code === "econnrefused" ||
+      code === "enotfound" ||
+      code === "eai_again" ||
+      code === "etimedout" ||
       message.includes("unable to connect") ||
       message.includes("connectionrefused") ||
       message.includes("connection refused") ||
       message.includes("econnrefused") ||
+      message.includes("econnreset") ||
+      message.includes("connection reset") ||
+      message.includes("socket connection was closed") ||
+      message.includes("socket hang up") ||
       /(^|[^a-z])enotfound([^a-z]|$)/.test(message) ||
       message.includes("eai_again") ||
       message.includes("etimedout") ||

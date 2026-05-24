@@ -46,7 +46,7 @@ function MockedAuthFetch({ children }: { children: ReactNode }) {
 }
 
 const meta = {
-  title: "Auth/LoginForm",
+  title: "App/Auth/LoginForm",
   component: LoginForm,
   parameters: {
     layout: "fullscreen",

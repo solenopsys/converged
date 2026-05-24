@@ -6,7 +6,7 @@
  * After mount: full BaseLayout from front-core with chat + menu panel.
  */
 
-import { addMenuRequested, authToken, bus } from "front-core";
+import { addMenuRequested, authToken, bus, setCenterView, StateStreamView } from "front-core";
 import { createRoot } from "react-dom/client";
 import { App } from "../app/App";
 import { DEFAULT_LOCALE, extractLocaleFromPath } from "../app/i18n";
@@ -402,7 +402,14 @@ function presentGuestLanding() {
 	run();
 }
 
+function presentStateStream() {
+	if (!hasAuthToken()) return;
+	setCenterView({ view: StateStreamView as any });
+}
+
 async function loadInitialMicrofrontends() {
+	// Show StateStream immediately for authenticated users — don't wait for MF loading.
+	presentStateStream();
 	await loadMicrofrontends(systemMicrofrontends);
 	if (hasAuthToken()) {
 		const allowed = await resolveAllowedProtectedMicrofrontends();
@@ -436,6 +443,7 @@ export function mount(container: HTMLElement, _props: Record<string, unknown>) {
 		if (hasAuthToken()) {
 			const allowed = await resolveAllowedProtectedMicrofrontends();
 			await loadMicrofrontends(allowed);
+			presentStateStream();
 		} else {
 			allowedProtectedMicrofrontends = null;
 		}
