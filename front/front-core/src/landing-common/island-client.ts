@@ -402,6 +402,160 @@ function normalizeGalleryStaticUrl(value: string, fallback: string): string {
 		: resolved;
 }
 
+type ControlPanelMenuLink = {
+	label: string;
+	href: string;
+};
+
+function readTrimmedString(value: unknown): string {
+	return typeof value === "string" ? value.trim() : "";
+}
+
+function readLandingBlockNavLabel(block: unknown): string {
+	if (!block || typeof block !== "object") return "";
+	const record = block as Record<string, unknown>;
+	const props =
+		record.props && typeof record.props === "object"
+			? (record.props as Record<string, unknown>)
+			: {};
+	const explicit = readTrimmedString(props.navLabel);
+	if (explicit) return explicit;
+
+	const data =
+		record.data && typeof record.data === "object"
+			? (record.data as Record<string, unknown>)
+			: {};
+	for (const source of Object.values(data)) {
+		if (!source || typeof source !== "object") continue;
+		const sourceRecord = source as Record<string, unknown>;
+		const navLabel = readTrimmedString(sourceRecord.navLabel);
+		if (navLabel) return navLabel;
+		const title = readTrimmedString(sourceRecord.title);
+		if (title) return title;
+		const railLabel = readTrimmedString(sourceRecord.railLabel);
+		if (railLabel) return railLabel;
+		const headline = readTrimmedString(sourceRecord.headline);
+		if (headline) return headline;
+	}
+
+	return "";
+}
+
+function createLandingBlockLabelMap(blocks: unknown): Map<string, string> {
+	const map = new Map<string, string>();
+	if (!Array.isArray(blocks)) return map;
+
+	blocks.forEach((block) => {
+		if (!block || typeof block !== "object") return;
+		const id = readTrimmedString((block as Record<string, unknown>).id);
+		const label = readLandingBlockNavLabel(block);
+		if (id && label) {
+			map.set(id, label);
+		}
+	});
+
+	return map;
+}
+
+function normalizeControlPanelMenuLinks(
+	value: unknown,
+	blockLabels = new Map<string, string>(),
+): ControlPanelMenuLink[] {
+	if (!Array.isArray(value)) return [];
+	return value.flatMap((item): ControlPanelMenuLink[] => {
+		if (!item || typeof item !== "object") return [];
+		const record = item as Record<string, unknown>;
+		const explicitLabel = readTrimmedString(record.label);
+		const explicitHref =
+			typeof record.href === "string" ? record.href.trim() : "";
+		const targetId =
+			typeof record.blockId === "string" && record.blockId.trim()
+				? record.blockId.trim()
+				: typeof record.sectionId === "string" && record.sectionId.trim()
+					? record.sectionId.trim()
+					: typeof record.targetId === "string" && record.targetId.trim()
+						? record.targetId.trim()
+						: "";
+		const href =
+			explicitHref || (targetId ? `#${targetId.replace(/^#/, "")}` : "");
+		const label =
+			explicitLabel || (targetId ? blockLabels.get(targetId) ?? "" : "");
+		return label && href ? [{ label, href }] : [];
+	});
+}
+
+function parseControlPanelMenuLinks(value: string | undefined): ControlPanelMenuLink[] {
+	if (!value) return [];
+
+	try {
+		const parsed = JSON.parse(value) as unknown;
+		return normalizeControlPanelMenuLinks(parsed);
+	} catch {
+		return [];
+	}
+}
+
+function readControlPanelMenuLinksFromInitialData(): ControlPanelMenuLink[] {
+	const landing = readInitialData().landing;
+	if (!landing || typeof landing !== "object") return [];
+
+	for (const payload of Object.values(landing as Record<string, unknown>)) {
+		if (!payload || typeof payload !== "object") continue;
+		const navigation = (payload as { navigation?: unknown }).navigation;
+		if (!navigation || typeof navigation !== "object") continue;
+		const blockLabels = createLandingBlockLabelMap(
+			(payload as { blocks?: unknown }).blocks,
+		);
+		const links = normalizeControlPanelMenuLinks(
+			(navigation as { menuLinks?: unknown }).menuLinks,
+			blockLabels,
+		);
+		if (links.length > 0) return links;
+	}
+
+	return [];
+}
+
+function resolveLandingConfigPathFromInitialData(): string | null {
+	const landingEnv = readInitialData().mfEnv?.["mf-landing"];
+	if (!landingEnv || typeof landingEnv !== "object") return null;
+	const configPath = (landingEnv as { landingConfId?: unknown }).landingConfId;
+	return typeof configPath === "string" && configPath.trim()
+		? configPath.trim()
+		: null;
+}
+
+async function loadControlPanelMenuLinks(
+	current: ControlPanelMenuLink[],
+): Promise<ControlPanelMenuLink[]> {
+	if (current.length > 0) return current;
+
+	const initialLinks = readControlPanelMenuLinksFromInitialData();
+	if (initialLinks.length > 0) return initialLinks;
+
+	const configPath = resolveLandingConfigPathFromInitialData();
+	if (!configPath) return current;
+
+	try {
+		const landingPayload = Object.values(readInitialData().landing ?? {})[0];
+		const blockLabels = createLandingBlockLabelMap(
+			landingPayload && typeof landingPayload === "object"
+				? (landingPayload as { blocks?: unknown }).blocks
+				: undefined,
+		);
+		const data = (await structClient.readJson(configPath)) as {
+			navigation?: { menuLinks?: unknown };
+		};
+		const links = normalizeControlPanelMenuLinks(
+			data?.navigation?.menuLinks,
+			blockLabels,
+		);
+		return links.length > 0 ? links : current;
+	} catch {
+		return current;
+	}
+}
+
 function readControlPanelHostOptions(host: HTMLElement) {
 	const locale = extractLocaleFromPath(window.location.pathname) ?? "en";
 	return {
@@ -417,6 +571,7 @@ function readControlPanelHostOptions(host: HTMLElement) {
 		statusText: host.dataset.statusText || undefined,
 		chatPlaceholder:
 			host.dataset.chatPlaceholder || "Describe your CNC request...",
+		menuLinks: parseControlPanelMenuLinks(host.dataset.menuLinks),
 		loginEnabled: host.dataset.loginEnabled !== "0",
 		currentLanguage: locale,
 	};
@@ -443,6 +598,7 @@ async function ensureControlPanelRuntime(): Promise<void> {
 			import("./control-panel-runtime"),
 		]);
 		const hostOptions = readControlPanelHostOptions(host);
+		const menuLinks = await loadControlPanelMenuLinks(hostOptions.menuLinks);
 		const initialMode = resolveInitialControlPanelMode();
 		controlPanelModeChanged(initialMode);
 		controlPanelRuntime = mountControlPanelRuntime(host, {
@@ -451,6 +607,7 @@ async function ensureControlPanelRuntime(): Promise<void> {
 			phone: hostOptions.phone,
 			statusText: hostOptions.statusText,
 			chatPlaceholder: hostOptions.chatPlaceholder,
+			menuLinks,
 			loginEnabled: hostOptions.loginEnabled,
 			languages: AVAILABLE_LANGS.map((lang) => ({
 				code: lang.code,
@@ -1239,6 +1396,7 @@ type InitialDataShape = {
 	microfrontends?: string[];
 	mfEnv?: Record<string, unknown>;
 	guestMenu?: RuntimeMenuItem[];
+	landing?: Record<string, unknown>;
 };
 
 const MENU_ICON_SVG: Record<string, string> = {
@@ -1406,6 +1564,93 @@ function readInitialData(): InitialDataShape {
 	} catch {
 		return {};
 	}
+}
+
+type LandingBlockAnchor = {
+	id: string;
+	type: string;
+};
+
+function readLandingBlockAnchors(): LandingBlockAnchor[] {
+	const landing = readInitialData().landing;
+	if (!landing || typeof landing !== "object") return [];
+
+	for (const payload of Object.values(landing)) {
+		if (!payload || typeof payload !== "object") continue;
+		const blocks = (payload as { blocks?: unknown }).blocks;
+		if (!Array.isArray(blocks)) continue;
+
+		return blocks.flatMap((block): LandingBlockAnchor[] => {
+			if (!block || typeof block !== "object") return [];
+			const record = block as Record<string, unknown>;
+			const id = typeof record.id === "string" ? record.id.trim() : "";
+			const type = typeof record.type === "string" ? record.type.trim() : "";
+			return id && type ? [{ id, type }] : [];
+		});
+	}
+
+	return [];
+}
+
+function findLandingBlockContainer(): HTMLElement | null {
+	return document.querySelector<HTMLElement>(
+		"#root main .flex.w-full.flex-col.items-center",
+	);
+}
+
+function createLandingAnchor(id: string): HTMLElement {
+	const anchor = document.createElement("span");
+	anchor.id = id;
+	anchor.style.display = "block";
+	anchor.style.position = "relative";
+	anchor.style.top = "-176px";
+	anchor.style.height = "0";
+	anchor.style.visibility = "hidden";
+	anchor.style.pointerEvents = "none";
+	return anchor;
+}
+
+function applyLandingBlockAnchors(): boolean {
+	const anchors = readLandingBlockAnchors();
+	const container = findLandingBlockContainer();
+	if (anchors.length === 0 || !container) return false;
+
+	const children = Array.from(container.children).filter(
+		(child): child is HTMLElement => child instanceof HTMLElement,
+	);
+
+	anchors.forEach((anchor, index) => {
+		if (document.getElementById(anchor.id)) return;
+
+		const target = children[index];
+		if (!target) return;
+
+		if (!target.id) {
+			target.id = anchor.id;
+			target.style.scrollMarginTop = "176px";
+			return;
+		}
+
+		target.before(createLandingAnchor(anchor.id));
+	});
+
+	return anchors.every((anchor) => Boolean(document.getElementById(anchor.id)));
+}
+
+function installLandingBlockAnchors(): void {
+	if (applyLandingBlockAnchors()) return;
+
+	const root = document.getElementById("root");
+	if (!root) return;
+
+	const observer = new MutationObserver(() => {
+		if (applyLandingBlockAnchors()) observer.disconnect();
+	});
+	observer.observe(root, { childList: true, subtree: true });
+
+	window.setTimeout(() => {
+		applyLandingBlockAnchors();
+	}, 1000);
 }
 
 function initMicrofrontendEnv(): void {
@@ -2530,6 +2775,7 @@ export function mountSsrMenuShell(): void {
 	});
 
 	installLandingEventGateway();
+	installLandingBlockAnchors();
 	installHeroRequestController();
 	installLinkInterceptor();
 

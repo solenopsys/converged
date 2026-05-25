@@ -239,6 +239,17 @@ const css = `
   gap: 4px;
 }
 
+.crp .ssr-panel-control {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+
+.crp .ssr-panel-control svg {
+  width: 17px;
+  height: 17px;
+}
+
 .crp-menu {
   grid-row: 2;
   display: flex;

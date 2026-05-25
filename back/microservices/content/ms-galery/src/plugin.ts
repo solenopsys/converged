@@ -122,7 +122,11 @@ export default (options: PluginOptions = {}) =>
       }
 
       const stores = await ensureStores();
-      const data = await stores.static.get(filePath);
+      const workspace = request.headers.get("workspace") ?? request.headers.get("x-workspace") ?? undefined;
+      const doGet = () => stores.static.get(filePath);
+      const data = await (workspace && typeof options.runWithContext === "function"
+        ? (options.runWithContext as any)({ workspace, scope: workspace }, doGet)
+        : doGet());
       if (!data) { set.status = 404; return "Not found"; }
       set.headers["Accept-Ranges"] = "bytes";
 
@@ -152,13 +156,22 @@ export default (options: PluginOptions = {}) =>
       if (!filePath) { set.status = 400; return "Bad request"; }
       const stores = await ensureStores();
       const body = await request.arrayBuffer();
-      await stores.static.put(filePath, new Uint8Array(body));
+      const workspace = request.headers.get("workspace") ?? request.headers.get("x-workspace") ?? undefined;
+      const doPut = () => stores.static.put(filePath, new Uint8Array(body));
+      await (workspace && typeof options.runWithContext === "function"
+        ? (options.runWithContext as any)({ workspace, scope: workspace }, doPut)
+        : doPut());
       set.status = 204;
     });
 
-    app.get("/galery/file/:id", async ({ params, query, set }: any) => {
+    app.get("/galery/file/:id", async ({ params, query, request, set }: any) => {
       const stores = await ensureStores();
-      const image = await stores.images.get(params.id);
+      const workspace = request.headers.get("workspace") ?? request.headers.get("x-workspace") ?? undefined;
+      const withCtx = <T>(fn: () => T) =>
+        workspace && typeof options.runWithContext === "function"
+          ? (options.runWithContext as any)({ workspace, scope: workspace }, fn)
+          : fn();
+      const image = await withCtx(() => stores.images.get(params.id));
       if (!image) {
         set.status = 404;
         return "Not found";
@@ -167,7 +180,7 @@ export default (options: PluginOptions = {}) =>
       const isThumb =
         query?.thumb === "1" || query?.thumb === "true" || query?.thumb === "yes";
       const filePath = isThumb ? image.thumbPath : image.filePath;
-      const data = await stores.files.get(filePath);
+      const data = await withCtx(() => stores.files.get(filePath));
       if (!data) {
         set.status = 404;
         return "Not found";

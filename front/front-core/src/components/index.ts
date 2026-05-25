@@ -27,3 +27,5 @@ export * from './landing-topbar/LandingTopBar';
 export * from './landing-topbar/LandingTopBarIntegration';
 export * from './converged-rail-panel/ConvergedRailPanel';
 export * from './converged-rail-panel/ConvergedRailPanelIntegration';
+export * from './converged-rail-panel/ConvergedRailControls';
+export * from './converged-rail-panel/converged-rail-model';

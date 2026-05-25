@@ -42,6 +42,7 @@ export interface ControlPanelRuntimeOptions {
 	phone?: string;
 	statusText?: string;
 	chatPlaceholder?: string;
+	menuLinks?: LandingTopBarMenuLink[];
 	loginEnabled: boolean;
 	languages: Array<{ code: string; label: string }>;
 	currentLanguage: string;
@@ -61,41 +62,34 @@ export interface ControlPanelRuntimeHandle {
 	unmount: () => void;
 }
 
-const topBarMenuLinks: LandingTopBarMenuLink[] = [
-	{ label: "Catalog", href: "#" },
-	{ label: "Pricing", href: "#" },
-	{ label: "Docs", href: "#" },
-	{ label: "Contacts", href: "#" },
-];
-
 const topBarActions: LandingTopBarAction[] = [
 	{
-		icon: <BadgeCheck size={14} />,
+		icon: <BadgeCheck size={16} />,
 		label: "Check drawing",
 		prompt: "Check this drawing: ",
 	},
 	{
-		icon: <Upload size={14} />,
+		icon: <Upload size={16} />,
 		label: "Upload file",
 		prompt: "I want to upload a file for review.",
 	},
 	{
-		icon: <CalendarClock size={14} />,
+		icon: <CalendarClock size={16} />,
 		label: "Estimate deadline",
 		prompt: "Estimate deadline: ",
 	},
 	{
-		icon: <ClipboardCheck size={14} />,
+		icon: <ClipboardCheck size={16} />,
 		label: "Request quote",
 		prompt: "Prepare a quote: ",
 	},
 	{
-		icon: <PackageCheck size={14} />,
+		icon: <PackageCheck size={16} />,
 		label: "Choose material",
 		prompt: "Help me choose material: ",
 	},
 	{
-		icon: <Ruler size={14} />,
+		icon: <Ruler size={16} />,
 		label: "Check tolerances",
 		prompt: "Check tolerances: ",
 	},
@@ -213,7 +207,7 @@ function ControlPanelApp({
 					variant="ghost"
 					type="button"
 				>
-					<Globe2 size={16} />
+					<Globe2 size={17} />
 					<span className="ssr-lang-current">{lang.toUpperCase()}</span>
 				</Button>
 				<div
@@ -279,7 +273,7 @@ function ControlPanelApp({
 					phone={options.phone}
 					statusText={options.statusText}
 					actions={topBarActions}
-					menuLinks={topBarMenuLinks}
+					menuLinks={options.menuLinks ?? []}
 					languages={options.languages}
 					currentLanguage={lang}
 					isDark={isDark}

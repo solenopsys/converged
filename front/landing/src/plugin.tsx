@@ -24,9 +24,27 @@ type LandingBlockConfig = {
 	sources?: Record<string, string>;
 	props?: Record<string, unknown>;
 };
+type LandingMenuLinkConfig = {
+	blockId?: string;
+	href?: string;
+	label?: string;
+	sectionId?: string;
+	targetId?: string;
+};
+type LandingMenuLink = {
+	href: string;
+	label: string;
+};
+type LandingNavigationConfig = {
+	menuLinks?: LandingMenuLinkConfig[];
+};
+type ResolvedLandingNavigation = {
+	menuLinks?: LandingMenuLink[];
+};
 type LandingConfig = {
 	id?: string;
 	title?: string;
+	navigation?: LandingNavigationConfig;
 	blocks?: LandingBlockConfig[];
 };
 type ResolvedBlock = {
@@ -37,6 +55,7 @@ type ResolvedBlock = {
 };
 type LandingPrefetchPayload = {
 	configPath: string;
+	navigation?: ResolvedLandingNavigation;
 	blocks: ResolvedBlock[];
 };
 
@@ -58,6 +77,79 @@ const DEFAULT_DOCS: DocsInitItem[] = [
 	{ name: "cnc", id: `${DEFAULT_LOCALE}/${DOCS_INDEX_SUFFIX}` },
 ];
 const DEFAULT_LANDING_CONF_ID = `${DEFAULT_LOCALE}/${LANDING_CONF_SUFFIX}`;
+
+function resolveLandingMenuLinks(
+	value: unknown,
+	blocks: ResolvedBlock[],
+): LandingMenuLink[] {
+	if (!Array.isArray(value)) return [];
+	const blockById = new Map(blocks.map((block) => [block.id, block]));
+
+	return value.flatMap((item): LandingMenuLink[] => {
+		if (!item || typeof item !== "object") return [];
+		const record = item as Record<string, unknown>;
+		const explicitHref =
+			typeof record.href === "string" ? record.href.trim() : "";
+		const targetId =
+			typeof record.blockId === "string" && record.blockId.trim()
+				? record.blockId.trim()
+				: typeof record.sectionId === "string" && record.sectionId.trim()
+					? record.sectionId.trim()
+					: typeof record.targetId === "string" && record.targetId.trim()
+						? record.targetId.trim()
+						: "";
+		const href =
+			explicitHref ||
+			(targetId && blockById.has(targetId)
+				? `#${targetId.replace(/^#/, "")}`
+				: "");
+		const label =
+			typeof record.label === "string" && record.label.trim()
+				? record.label.trim()
+				: targetId
+					? resolveBlockNavLabel(blockById.get(targetId))
+					: "";
+
+		return label && href ? [{ label, href }] : [];
+	});
+}
+
+function readString(value: unknown): string {
+	return typeof value === "string" ? value.trim() : "";
+}
+
+function readNestedString(value: unknown, key: string): string {
+	if (!value || typeof value !== "object") return "";
+	return readString((value as Record<string, unknown>)[key]);
+}
+
+function resolveBlockNavLabel(block: ResolvedBlock | undefined): string {
+	if (!block) return "";
+
+	const explicit = readString(block.props.navLabel);
+	if (explicit) return explicit;
+
+	for (const source of Object.values(block.data)) {
+		const navLabel = readNestedString(source, "navLabel");
+		if (navLabel) return navLabel;
+		const title = readNestedString(source, "title");
+		if (title) return title;
+		const railLabel = readNestedString(source, "railLabel");
+		if (railLabel) return railLabel;
+		const headline = readNestedString(source, "headline");
+		if (headline) return headline;
+	}
+
+	return "";
+}
+
+function resolveLandingNavigation(
+	navigation: LandingNavigationConfig | undefined,
+	blocks: ResolvedBlock[],
+): ResolvedLandingNavigation | undefined {
+	const menuLinks = resolveLandingMenuLinks(navigation?.menuLinks, blocks);
+	return menuLinks.length > 0 ? { menuLinks } : undefined;
+}
 
 declare global {
 	var __LANDING_SSR_DATA__: Record<string, LandingPrefetchPayload> | undefined;
@@ -276,7 +368,11 @@ async function prefetchLandingPayload(
 		};
 	});
 
-	return { configPath, blocks: resolvedBlocks };
+	return {
+		configPath,
+		navigation: resolveLandingNavigation(config.navigation, resolvedBlocks),
+		blocks: resolvedBlocks,
+	};
 }
 
 async function prefetchDocsPayload(

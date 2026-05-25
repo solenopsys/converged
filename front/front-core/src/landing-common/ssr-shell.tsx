@@ -128,8 +128,8 @@ body { margin: 0; }
 }
 .ssr-panel-brand-logo-light[src$=".png"],
 .ssr-panel-brand-logo-dark[src$=".png"] {
-  width: 112px;
-  height: 28px;
+  width: 156px;
+  height: 34px;
   object-fit: cover;
 }
 .ssr-panel-brand-logo-dark { display: none; }
@@ -404,20 +404,20 @@ body { margin: 0; }
   gap: 8px;
 }
 .ssr-panel-control {
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 1px solid color-mix(in oklch, var(--ui-border) 74%, transparent);
-  border-radius: 8px;
+  border-radius: 10px;
   background: transparent;
   color: color-mix(in oklch, currentColor 82%, transparent);
   cursor: pointer;
 }
 .ssr-panel-control svg {
-  width: 16px;
-  height: 16px;
+  width: 17px;
+  height: 17px;
   display: block;
 }
 .ssr-panel-control:hover {
@@ -596,6 +596,11 @@ body { margin: 0; }
 }
 `;
 
+type SsrShellMenuLink = {
+	label: string;
+	href: string;
+};
+
 export function SsrShellLayout({
 	children,
 	loginEnabled = true,
@@ -605,6 +610,7 @@ export function SsrShellLayout({
 	brandName = "",
 	phone,
 	statusText,
+	menuLinks = [],
 }: {
 	children: ReactNode;
 	loginEnabled?: boolean;
@@ -614,7 +620,10 @@ export function SsrShellLayout({
 	brandName?: string;
 	phone?: string;
 	statusText?: string;
+	menuLinks?: SsrShellMenuLink[];
 }) {
+	const menuLinksJson = menuLinks.length > 0 ? JSON.stringify(menuLinks) : "";
+
 	return (
 		<div id="app-shell" data-rail-open="0">
 			<div
@@ -631,6 +640,7 @@ export function SsrShellLayout({
 					data-chat-placeholder={chatPlaceholder}
 					data-phone={phone ?? ""}
 					data-status-text={statusText ?? ""}
+					data-menu-links={menuLinksJson}
 					data-login-enabled={loginEnabled ? "1" : "0"}
 				/>
 				<div id="ssr-main">

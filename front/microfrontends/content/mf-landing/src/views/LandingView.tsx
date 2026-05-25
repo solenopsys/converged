@@ -190,9 +190,16 @@ export default function LandingView({ configPath }: { configPath: string }) {
       blocks.map((block, index) => {
         const key = block.id || `block-${index}`;
         const node = renderBlock(block, index, fallbackLocale);
-        if (isFullWidthBlock(block.type)) return node;
+        const anchorStyle = { scrollMarginTop: "176px" };
+        if (isFullWidthBlock(block.type)) {
+          return (
+            <div key={`anchor-${key}`} id={key} className="w-full" style={anchorStyle}>
+              {node}
+            </div>
+          );
+        }
         return (
-          <div key={`wrap-${key}`} className="w-full max-w-6xl px-4">
+          <div key={`wrap-${key}`} id={key} className="w-full max-w-6xl px-4" style={anchorStyle}>
             {node}
           </div>
         );

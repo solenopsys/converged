@@ -29,6 +29,7 @@ export type LandingSectionRailBlockItem = {
   role?: string;
   status?: "busy" | "free" | string;
   title: string;
+  imagePosition?: string;
 };
 
 export type LandingSectionRailBlockData = {
@@ -175,6 +176,7 @@ function TeamRailCard({ active, item }: LandingSectionRailRenderState<LandingSec
             src={item.image}
             alt={item.imageAlt ?? ""}
             aria-hidden={item.imageAlt ? undefined : true}
+            style={item.imagePosition ? { objectPosition: item.imagePosition } : undefined}
           />
         ) : (
           <span>{initials}</span>
@@ -527,10 +529,12 @@ export const landingSectionRailBlockCss = `
 
 .landing-section-rail-block-card--team .landing-section-rail-block-portrait,
 .landing-section-rail__card[data-active="true"] .landing-section-rail-block-card--team .landing-section-rail-block-portrait {
-  height: 196px;
-  margin-bottom: 22px;
-  border-radius: 8px;
-  background: color-mix(in oklch, var(--ui-muted) 72%, var(--ui-card));
+  height: 286px;
+  flex: 0 0 286px;
+  margin: -30px -30px 24px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .landing-section-rail-block-portrait img {
@@ -539,7 +543,7 @@ export const landingSectionRailBlockCss = `
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 34%;
+  object-position: center 30%;
 }
 
 .landing-section-rail-block-portrait span {
@@ -636,7 +640,9 @@ export const landingSectionRailBlockCss = `
 
   .landing-section-rail-block-card--team .landing-section-rail-block-portrait,
   .landing-section-rail__card[data-active="true"] .landing-section-rail-block-card--team .landing-section-rail-block-portrait {
-    height: 180px;
+    height: 260px;
+    flex-basis: 260px;
+    margin: -24px -24px 22px;
   }
 }
 `;

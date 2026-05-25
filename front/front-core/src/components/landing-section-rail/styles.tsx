@@ -18,6 +18,7 @@ export const landingSectionRailCss = `
   background: var(--landing-rail-page);
   padding: 56px 16px 30px;
   overflow-anchor: none;
+  overflow-x: hidden;
 }
 
 .landing-section-rail[data-variant="compact"] {
@@ -129,6 +130,13 @@ export const landingSectionRailCss = `
   scroll-snap-type: x mandatory;
   scrollbar-color: color-mix(in oklch, var(--landing-rail-ink) 26%, transparent) transparent;
   scrollbar-width: thin;
+}
+
+.landing-section-rail__viewport:not([data-expanded="true"]) {
+  margin-inline: -16px;
+  padding-inline: 16px;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 130px, #000 calc(100% - 130px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 130px, #000 calc(100% - 130px), transparent);
 }
 
 .landing-section-rail__viewport[data-expanded="true"] {
@@ -247,6 +255,11 @@ export const landingSectionRailCss = `
 
   .landing-section-rail__viewport::-webkit-scrollbar {
     display: none;
+  }
+
+  .landing-section-rail__viewport:not([data-expanded="true"]) {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 56px, #000 calc(100% - 56px), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 56px, #000 calc(100% - 56px), transparent);
   }
 
   .landing-section-rail__viewport[data-expanded="true"] {

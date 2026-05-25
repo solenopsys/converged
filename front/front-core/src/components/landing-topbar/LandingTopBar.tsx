@@ -2,6 +2,9 @@ import { useState, type ReactNode } from "react";
 import { Globe2, LogIn, Moon, PanelLeftOpen, Paperclip, Send, Sun } from "lucide-react";
 import { Button, Textarea } from "../ui";
 
+const CONTROL_ICON_SIZE = 17;
+const COMPOSER_ICON_SIZE = 15;
+
 export interface LandingTopBarAction {
   icon: ReactNode;
   label: string;
@@ -98,7 +101,7 @@ export function LandingTopBar({
               aria-label="Open control panel"
               onClick={onPanelOpen}
             >
-              <PanelLeftOpen size={15} />
+              <PanelLeftOpen size={CONTROL_ICON_SIZE} />
             </Button>
           )}
           {phone && (
@@ -145,10 +148,10 @@ export function LandingTopBar({
               aria-label="Attach file"
               onClick={() => onAttach?.()}
             >
-              <Paperclip size={15} />
+              <Paperclip size={COMPOSER_ICON_SIZE} />
             </Button>
             <Button className="ltb-send" size="icon" type="submit" aria-label="Send">
-              <Send size={15} />
+              <Send size={COMPOSER_ICON_SIZE} />
             </Button>
           </form>
         </div>}
@@ -173,7 +176,7 @@ export function LandingTopBar({
               aria-label="Toggle theme"
               onClick={onThemeToggle}
             >
-              {isDark ? <Sun size={15} /> : <Moon size={15} />}
+              {isDark ? <Sun size={CONTROL_ICON_SIZE} /> : <Moon size={CONTROL_ICON_SIZE} />}
             </Button>
           )}
           {languages && languages.length > 0 && (
@@ -187,7 +190,7 @@ export function LandingTopBar({
                 type="button"
                 variant="ghost"
               >
-                <Globe2 size={15} />
+                <Globe2 size={CONTROL_ICON_SIZE} />
                 <span className="ltb-lang-label">
                   {languages.find((l) => l.code === currentLanguage)?.label ?? currentLanguage?.toUpperCase()}
                 </span>
@@ -211,7 +214,7 @@ export function LandingTopBar({
           )}
           {onLogin && (
             <Button className="ltb-login" type="button" onClick={onLogin}>
-              <LogIn size={14} />
+              <LogIn size={CONTROL_ICON_SIZE} />
               log in
             </Button>
           )}
@@ -275,7 +278,7 @@ export const landingTopBarCss = `
 }
 
 .ltb-logo[src$=".png"] {
-  width: 132px;
+  width: 156px;
   height: 34px;
   object-fit: cover;
   object-position: center;
@@ -413,12 +416,12 @@ export const landingTopBarCss = `
 }
 
 .ltb--compact .ltb-logo {
-  width: 72px;
-  height: 26px;
+  width: 96px;
+  height: 34px;
 }
 
 .ltb--compact .ltb-logo[src$=".png"] {
-  width: 132px;
+  width: 156px;
   height: 34px;
 }
 
@@ -502,8 +505,8 @@ export const landingTopBarCss = `
 }
 
 .ltb-icon-btn {
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 34px;
   border: 0;
   background: transparent;
   color: var(--ui-muted-foreground);
@@ -513,7 +516,7 @@ export const landingTopBarCss = `
 
 .ltb-lang-btn {
   width: auto;
-  min-width: 46px;
+  min-width: 58px;
   gap: 5px;
   padding: 0 8px;
 }
@@ -592,8 +595,8 @@ export const landingTopBarCss = `
     align-items: center;
   }
 
-  .ltb-logo { grid-row: 1 / span 2; width: 84px; height: 30px; }
-  .ltb-logo[src$=".png"] { width: 112px; height: 30px; }
+  .ltb-logo { grid-row: 1 / span 2; width: 96px; height: 34px; }
+  .ltb-logo[src$=".png"] { width: 156px; height: 34px; }
   .ltb-phone { margin-top: 0; font-size: 12px; }
   .ltb-status { margin-top: 0; font-size: 9px; }
   .ltb-chat { grid-column: 1 / -1; grid-row: 2; }
