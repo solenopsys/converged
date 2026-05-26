@@ -65,18 +65,9 @@ export const $slotContents = createStore<Record<SlotId, ReactNode>>({})
 export const mount = (content: ReactNode, slotId: SlotId): void => {
   console.log(`[slots] mount to ${slotId}`);
   const normalizedSlotId = normalizeSlotId(slotId);
-  const mountPointId = resolveMountPointId(normalizedSlotId);
-  const existingContent = hasContentForMountPoint(
-    $slotContents.getState(),
-    mountPointId,
-  );
-
-  if (!existingContent && typeof document !== "undefined") {
-    const mountPoint = document.getElementById(mountPointId);
-    if (mountPoint) {
-      mountPoint.replaceChildren();
-    }
-  }
+  // Do NOT manually clear DOM children of the mount point here — that conflicts
+  // with React's reconciliation (causes "removeChild: not a child of this node"
+  // errors when SlotProvider or another React tree owns those nodes).
   slotContentSet({ slotId: normalizedSlotId, content });
 };
 

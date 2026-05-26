@@ -2,6 +2,7 @@ import { ReactNode, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useUnit } from "effector-react";
 import { $slotContents, layoutReady } from "./slots";
+import { $activeTabId } from "../landing-common/control-panel-model";
 
 /**
  * Маппинг slotId -> DOM element id
@@ -51,6 +52,9 @@ function SlotPortal({ slotId, content }: { slotId: string; content: ReactNode })
  */
 export function SlotProvider({ children }: { children?: ReactNode }) {
   const slotContents = useUnit($slotContents);
+  // Subscribe to active-tab changes so portals re-resolve their mount points
+  // when the tab body's #slot-panel-tab div is recreated by React.
+  useUnit($activeTabId);
   const ownerIdRef = useRef(`slot-provider-${Math.random().toString(36).slice(2)}`);
   const [isOwner, setIsOwner] = useState(false);
 

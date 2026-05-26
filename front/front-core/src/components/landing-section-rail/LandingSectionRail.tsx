@@ -77,6 +77,28 @@ export function LandingSectionRail<TItem extends LandingSectionRailBaseItem>({
   viewAllLabel = "View all",
   variant = "default",
 }: LandingSectionRailProps<TItem>) {
+  if (typeof window === "undefined") {
+    return (
+      <LandingSectionRailStatic
+        className={className}
+        collapseLabel={collapseLabel}
+        defaultExpanded={defaultExpanded}
+        eyebrow={eyebrow}
+        expandable={expandable}
+        expanded={expanded}
+        initialActiveId={initialActiveId}
+        items={items}
+        loop={loop}
+        meta={meta}
+        railLabel={railLabel}
+        renderItem={renderItem}
+        title={title}
+        viewAllLabel={viewAllLabel}
+        variant={variant}
+      />
+    );
+  }
+
   const fallbackActiveId = initialActiveId ?? items[0]?.id ?? "";
   const [activeId, setActiveId] = useState(fallbackActiveId);
   const [uncontrolledExpanded, setUncontrolledExpanded] = useState(defaultExpanded);
@@ -582,6 +604,136 @@ export function LandingSectionRail<TItem extends LandingSectionRailBaseItem>({
                   aria-expanded={isExpanded}
                   className="landing-section-rail__expand"
                   onClick={() => setExpandedState(!isExpanded)}
+                  type="button"
+                >
+                  {isExpanded ? collapseLabel : viewAllLabel}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function LandingSectionRailStatic<TItem extends LandingSectionRailBaseItem>({
+  className,
+  collapseLabel = "Collapse",
+  defaultExpanded = false,
+  eyebrow,
+  expandable = false,
+  expanded,
+  initialActiveId,
+  items,
+  loop = false,
+  meta,
+  railLabel,
+  renderItem,
+  title,
+  viewAllLabel = "View all",
+  variant = "default",
+}: LandingSectionRailProps<TItem>) {
+  const fallbackActiveId = initialActiveId ?? items[0]?.id ?? "";
+  const isExpanded = expanded ?? defaultExpanded;
+  const activeIndex = Math.max(0, items.findIndex((item) => item.id === fallbackActiveId));
+  const canLoop = loop && items.length > 1;
+  const isLooping = canLoop && !isExpanded;
+  const canGoPrev = canLoop || activeIndex > 0;
+  const canGoNext = canLoop || (activeIndex >= 0 && activeIndex < items.length - 1);
+  const hasControls = items.length > 1 || Boolean(meta) || expandable;
+  const renderedItems = isLooping
+    ? LOOP_COPIES.flatMap((copyIndex) =>
+        items.map((item, index) => ({
+          copyIndex,
+          index,
+          instanceKey: getLoopInstanceKey(copyIndex, item.id),
+          item,
+        })),
+      )
+    : items.map((item, index) => ({
+        copyIndex: LOOP_MIDDLE_COPY,
+        index,
+        instanceKey: item.id,
+        item,
+      }));
+
+  return (
+    <section
+      className={cn("landing-section-rail", className)}
+      data-expanded={isExpanded ? "true" : "false"}
+      data-variant={variant}
+    >
+      <header className="landing-section-rail__header">
+        <div className="landing-section-rail__title-group">
+          {eyebrow ? <div className="landing-section-rail__eyebrow">{eyebrow}</div> : null}
+          <h2 className="landing-section-rail__title">{title}</h2>
+        </div>
+      </header>
+
+      <div
+        className="landing-section-rail__viewport"
+        data-expanded={isExpanded ? "true" : "false"}
+        role="list"
+        aria-label={railLabel}
+      >
+        {renderedItems.map(({ copyIndex, index, instanceKey, item }) => {
+          const active = !isExpanded && item.id === fallbackActiveId;
+          return (
+            <article
+              aria-current={active ? "true" : undefined}
+              aria-hidden={isLooping && copyIndex !== LOOP_MIDDLE_COPY ? true : undefined}
+              className="landing-section-rail__card"
+              data-active={active ? "true" : "false"}
+              data-landing-rail-card-id={item.id}
+              data-landing-rail-copy={copyIndex}
+              data-landing-rail-index={index}
+              data-landing-rail-item-id={item.id}
+              key={instanceKey}
+              role="listitem"
+              tabIndex={isLooping && copyIndex !== LOOP_MIDDLE_COPY ? -1 : 0}
+            >
+              {renderItem({
+                active,
+                activate: () => undefined,
+                expanded: isExpanded,
+                index,
+                item,
+              })}
+            </article>
+          );
+        })}
+      </div>
+
+      {hasControls ? (
+        <div className="landing-section-rail__controls" data-expanded={isExpanded ? "true" : "false"}>
+          {items.length > 1 ? (
+            <nav
+              aria-label={`${railLabel ?? "Section"} carousel controls`}
+              className="landing-section-rail__mobile-nav"
+              data-expanded={isExpanded ? "true" : "false"}
+            >
+              <button aria-label="Previous card" disabled={!canGoPrev} type="button">
+                <span aria-hidden="true">←</span>
+              </button>
+              <span aria-label={`${activeIndex + 1} of ${items.length}`} aria-live="polite" className="landing-section-rail__mobile-progress">
+                {items.map((item, index) => (
+                  <i aria-hidden="true" data-active={index === activeIndex ? "true" : "false"} key={item.id} />
+                ))}
+              </span>
+              <button aria-label="Next card" disabled={!canGoNext} type="button">
+                <span aria-hidden="true">→</span>
+              </button>
+            </nav>
+          ) : null}
+
+          {meta || expandable ? (
+            <div className="landing-section-rail__side">
+              {meta ? <div className="landing-section-rail__meta">{meta}</div> : null}
+              {expandable ? (
+                <button
+                  aria-expanded={isExpanded}
+                  className="landing-section-rail__expand"
                   type="button"
                 >
                   {isExpanded ? collapseLabel : viewAllLabel}

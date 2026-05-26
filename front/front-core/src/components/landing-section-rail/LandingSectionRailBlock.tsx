@@ -15,7 +15,7 @@ export type LandingSectionRailInlinePart = {
 
 export type LandingSectionRailInlineContent = string | LandingSectionRailInlinePart[];
 
-export type LandingSectionRailBlockKind = "capabilities" | "machines" | "team";
+export type LandingSectionRailBlockKind = "capabilities" | "machines" | "team" | "works";
 
 export type LandingSectionRailBlockItem = {
   availability?: string;
@@ -62,6 +62,7 @@ export function LandingSectionRailBlock({
   const renderItem = (state: LandingSectionRailRenderState<LandingSectionRailBlockItem>) => {
     if (kind === "machines") return <MachineRailCard {...state} />;
     if (kind === "team") return <TeamRailCard {...state} />;
+    if (kind === "works") return <WorkRailCard {...state} />;
     return <CapabilityRailCard {...state} />;
   };
 
@@ -115,14 +116,12 @@ function renderInlineContent(value: LandingSectionRailInlineContent | undefined)
 
 function CapabilityRailCard({
   active,
-  expanded,
   item,
 }: LandingSectionRailRenderState<LandingSectionRailBlockItem>) {
   return (
     <LandingSectionRailCardFrame
       active={active}
       className="landing-section-rail-block-card landing-section-rail-block-card--capability"
-      data-tone={active && !expanded ? "dark" : "light"}
     >
       <h3>{item.title}</h3>
       {item.copy ? <p>{item.copy}</p> : null}
@@ -154,6 +153,28 @@ function MachineRailCard({ active, item }: LandingSectionRailRenderState<Landing
           {item.availability}
         </div>
       ) : null}
+    </LandingSectionRailCardFrame>
+  );
+}
+
+function WorkRailCard({ active, item }: LandingSectionRailRenderState<LandingSectionRailBlockItem>) {
+  return (
+    <LandingSectionRailCardFrame
+      active={active}
+      className="landing-section-rail-block-card landing-section-rail-block-card--work"
+    >
+      <div className="landing-section-rail-block-work-photo" data-active={active ? "true" : "false"}>
+        {item.image ? (
+          <img
+            src={item.image}
+            alt={item.imageAlt ?? ""}
+            aria-hidden={item.imageAlt ? undefined : true}
+          />
+        ) : null}
+      </div>
+      <h3>{item.title}</h3>
+      {item.meta ? <p>{item.meta}</p> : null}
+      <RailFacts bullets={item.bullets} />
     </LandingSectionRailCardFrame>
   );
 }
@@ -212,19 +233,26 @@ export const landingSectionRailBlockCss = `
   --topbar-border: var(--ui-border);
   --topbar-login: var(--ui-foreground);
   --landing-rail-card-width: 280px;
-  --landing-rail-card-active-width: min(560px, calc(100vw - 42px));
   --landing-rail-card-height: 500px;
   padding: 78px max(18px, calc((100vw - 1500px) / 2 + 18px)) 58px;
 }
 
 .landing-section-rail-block--machines {
   --landing-rail-card-width: 320px;
-  --landing-rail-card-active-width: min(660px, calc(100vw - 42px));
   --landing-rail-card-height: 594px;
 }
 
 .landing-section-rail-block--team {
   --landing-rail-card-height: 540px;
+}
+
+.landing-section-rail-block--works {
+  --landing-rail-card-width: 330px;
+  --landing-rail-card-height: 520px;
+}
+
+.landing-section-rail-block--capabilities {
+  --landing-rail-card-height: 560px;
 }
 
 .landing-section-rail-block + .landing-section-rail-block {
@@ -233,11 +261,8 @@ export const landingSectionRailBlockCss = `
 
 .landing-section-rail-block .landing-section-rail__header {
   margin-bottom: 46px;
-  margin-left: var(--landing-rail-active-inset, 0px);
-  max-width: var(--landing-rail-active-width, var(--landing-rail-card-active-width));
   position: relative;
   z-index: 1;
-  transition: margin-left 180ms ease, max-width 180ms ease;
 }
 
 .landing-section-rail-block .landing-section-rail__title-group,
@@ -377,19 +402,40 @@ export const landingSectionRailBlockCss = `
 }
 
 .landing-section-rail-block-card h3 {
-  margin: 24px 0 18px;
+  margin: 0 0 18px;
   color: currentColor;
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 800;
-  letter-spacing: 0;
-  line-height: 1.12;
+  letter-spacing: -0.035em;
+  line-height: 1.04;
+  text-wrap: balance;
 }
 
 .landing-section-rail__card[data-active="true"] .landing-section-rail-block-card h3 {
-  font-size: 40px;
-  line-height: 1.06;
+  font-size: clamp(34px, 3vw, 48px);
+  line-height: 0.98;
 }
 
+.landing-section-rail-block-card--capability {
+  grid-template-rows: auto auto 1fr;
+}
+
+.landing-section-rail-block-card--capability h3 {
+  max-width: 12ch;
+}
+
+.landing-section-rail__card[data-active="true"] .landing-section-rail-block-card--capability h3 {
+  max-width: 11ch;
+}
+
+.landing-section-rail-block--works .landing-section-rail__card[data-active="true"] .landing-section-rail-card-frame,
+.landing-section-rail-block--works .landing-section-rail-card-frame[data-active="true"] {
+  border-color: color-mix(in oklch, var(--landing-rail-ink) 18%, transparent);
+  background: color-mix(in oklch, var(--landing-rail-card) 92%, black);
+  color: var(--landing-rail-ink);
+}
+
+.landing-section-rail-block--team .landing-section-rail__card[data-active="true"] .landing-section-rail-block-card,
 .landing-section-rail-block--team .landing-section-rail-block-card[data-active="true"] {
   border-color: color-mix(in oklch, var(--ui-border) 72%, var(--landing-rail-ink));
 }
@@ -420,40 +466,57 @@ export const landingSectionRailBlockCss = `
 
 .landing-section-rail-block-card p {
   margin: 0;
-  color: color-mix(in oklch, currentColor 64%, transparent);
-  font-size: 16px;
-  line-height: 1.62;
-}
-
-.landing-section-rail-block-card[data-tone="dark"] {
-  background: var(--ui-foreground);
-  color: var(--ui-background);
+  max-width: 34ch;
+  color: color-mix(in oklch, currentColor 62%, transparent);
+  font-size: 15px;
+  font-weight: 520;
+  line-height: 1.48;
 }
 
 .landing-section-rail-block-facts {
   display: grid;
-  gap: 13px;
+  gap: 10px;
   margin: auto 0 0;
   padding: 28px 0 0;
   list-style: none;
 }
 
 .landing-section-rail-block-facts li {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr);
+  align-items: start;
+  column-gap: 10px;
   color: color-mix(in oklch, currentColor 78%, transparent);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 650;
-  line-height: 1.45;
+  line-height: 1.28;
+  text-wrap: pretty;
 }
 
 .landing-section-rail-block-facts li::before {
   content: "";
-  display: inline-block;
+  display: block;
   width: 6px;
   height: 6px;
-  margin: 0 9px 2px 0;
+  margin-top: 0.56em;
   border-radius: 999px;
   background: currentColor;
   opacity: 0.45;
+}
+
+.landing-section-rail-block-card--capability .landing-section-rail-block-facts {
+  gap: 9px;
+  padding-top: 24px;
+}
+
+.landing-section-rail-block-card--capability .landing-section-rail-block-facts li {
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.landing-section-rail__card[data-active="true"] .landing-section-rail-block-card--capability .landing-section-rail-block-facts li {
+  font-size: 15px;
+  line-height: 1.32;
 }
 
 .landing-section-rail-block-machine-photo {
@@ -467,6 +530,7 @@ export const landingSectionRailBlockCss = `
   background: transparent;
 }
 
+.landing-section-rail__card[data-active="true"] .landing-section-rail-block-machine-photo,
 .landing-section-rail-block-machine-photo[data-active="true"] {
   height: 250px;
 }
@@ -484,6 +548,79 @@ export const landingSectionRailBlockCss = `
 
 .landing-section-rail__card[data-active="true"] .landing-section-rail-block-machine-photo img {
   transform: scale(1.03);
+}
+
+.landing-section-rail-block-card--work {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.landing-section-rail-block-work-photo {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  height: auto;
+  margin: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: inherit;
+  background: color-mix(in oklch, currentColor 5%, transparent);
+}
+
+.landing-section-rail-block-work-photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.48), rgba(0, 0, 0, 0.78)),
+    radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.08), transparent 42%);
+}
+
+.landing-section-rail__card[data-active="true"] .landing-section-rail-block-work-photo::after,
+.landing-section-rail-block-work-photo[data-active="true"]::after {
+  background:
+    linear-gradient(180deg, rgba(8, 8, 10, 0.16), rgba(8, 8, 10, 0.40)),
+    radial-gradient(circle at 50% 12%, rgba(255, 255, 255, 0.08), transparent 44%);
+}
+
+.landing-section-rail-block-work-photo img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  filter: saturate(0.98) contrast(1.06);
+  transition: transform 180ms ease, filter 180ms ease;
+}
+
+.landing-section-rail__card[data-active="true"] .landing-section-rail-block-work-photo img,
+.landing-section-rail-block-work-photo[data-active="true"] img {
+  transform: scale(1.035);
+  filter: saturate(1.04) contrast(1.08);
+}
+
+.landing-section-rail-block-card--work h3,
+.landing-section-rail-block-card--work p,
+.landing-section-rail-block-card--work .landing-section-rail-block-facts {
+  position: relative;
+  z-index: 1;
+}
+
+.landing-section-rail-block-card--work h3 {
+  max-width: 10ch;
+  text-shadow: 0 14px 34px rgba(0, 0, 0, 0.24);
+}
+
+.landing-section-rail-block-card--work .landing-section-rail-block-facts {
+  gap: 10px;
+  padding-top: 24px;
+}
+
+.landing-section-rail-block-card--work .landing-section-rail-block-facts li {
+  font-size: 14px;
 }
 
 .landing-section-rail-block-status {

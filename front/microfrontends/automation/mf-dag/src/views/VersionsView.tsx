@@ -3,7 +3,7 @@
 // VersionsContainer.tsx (Умный компонент с Effector)
 import React, { useEffect } from 'react';
 import { createStore, createEvent, createEffect, sample } from 'effector';
-import { useStore } from 'effector-react';
+import { useUnit } from 'effector-react';
 import { Versions} from '../components/Versions';
 
 interface Version {
@@ -48,9 +48,9 @@ sample({
 
 // Smart component
 const VersionsView: React.FC<CompProps> = ({ versionLoader }) => {
-  const versions = useStore($versions);
-  const loading = useStore($loading);
-  const codeName = useStore($codeName);
+  const versions = useUnit($versions);
+  const loading = useUnit($loading);
+  const codeName = useUnit($codeName);
 
   useEffect(() => {
     const currentCodeName = "bla";

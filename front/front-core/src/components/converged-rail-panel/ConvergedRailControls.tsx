@@ -1,42 +1,58 @@
-import { Globe2, LogIn, Moon, PanelLeftClose, Sun } from "lucide-react";
+import { Globe2, LogIn, LogOut, Moon, PanelLeftClose, Sun } from "lucide-react";
 import { useState } from "react";
-import { useUnit } from "effector-react";
 import { Button } from "../ui";
-import { $lang, $theme, langChanged, themeToggled } from "./converged-rail-model";
-
-export interface LangOption {
-	code: string;
-	label: string;
-}
+import type { LangOption, Theme } from "../../landing-common/control-panel-model";
 
 export interface ConvergedRailControlsProps {
+	theme: Theme;
+	onThemeToggle: () => void;
 	languages?: LangOption[];
+	currentLanguage?: string;
+	onLanguageChange?: (code: string) => void;
+	loginEnabled?: boolean;
+	isAuthenticated?: boolean;
+	onLogin?: () => void;
+	onLogout?: () => void;
 	onCollapse?: () => void;
 }
 
 export function ConvergedRailControls({
+	theme,
+	onThemeToggle,
 	languages = [],
+	currentLanguage,
+	onLanguageChange,
+	loginEnabled = false,
+	isAuthenticated = false,
+	onLogin,
+	onLogout,
 	onCollapse,
 }: ConvergedRailControlsProps) {
-	const theme = useUnit($theme);
-	const lang = useUnit($lang);
-	const toggle = useUnit(themeToggled);
-	const setLang = useUnit(langChanged);
 	const [langOpen, setLangOpen] = useState(false);
+	const lang = currentLanguage ?? languages[0]?.code ?? "";
 
 	return (
 		<div className="crc">
 			<style>{css}</style>
-			<Button className="ssr-panel-control" size="icon" variant="ghost" type="button" aria-label="Login">
-				<LogIn size={17} />
-			</Button>
+			{loginEnabled && (
+				<Button
+					className="ssr-panel-control"
+					size="icon"
+					variant="ghost"
+					type="button"
+					aria-label={isAuthenticated ? "Log out" : "Log in"}
+					onClick={isAuthenticated ? onLogout : onLogin}
+				>
+					{isAuthenticated ? <LogOut size={17} /> : <LogIn size={17} />}
+				</Button>
+			)}
 			<Button
 				className="ssr-panel-control"
 				size="icon"
 				variant="ghost"
 				type="button"
 				aria-label={theme === "dark" ? "Switch to light" : "Switch to dark"}
-				onClick={() => toggle()}
+				onClick={onThemeToggle}
 			>
 				{theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
 			</Button>
@@ -62,7 +78,7 @@ export function ConvergedRailControls({
 								type="button"
 								role="menuitemradio"
 								aria-checked={item.code === lang ? "true" : "false"}
-								onClick={() => { setLang(item.code); setLangOpen(false); }}
+								onClick={() => { onLanguageChange?.(item.code); setLangOpen(false); }}
 							>
 								{item.label}
 							</button>

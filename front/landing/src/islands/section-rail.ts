@@ -28,8 +28,9 @@ export function mount(container: HTMLElement, rawProps: Record<string, unknown>)
     container.querySelectorAll("[data-landing-rail-copy]").length > itemIds.length;
 
   const section = container.querySelector<HTMLElement>(".landing-section-rail") ?? container;
-  const scroller = container.querySelector<HTMLElement>(".landing-section-rail__viewport");
-  if (!scroller) return;
+  const scrollerElement = container.querySelector<HTMLElement>(".landing-section-rail__viewport");
+  if (!scrollerElement) return;
+  const scroller = scrollerElement;
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -55,6 +56,13 @@ export function mount(container: HTMLElement, rawProps: Record<string, unknown>)
     for (const card of allCards()) {
       const active = card.dataset.landingRailItemId === id;
       card.dataset.active = active ? "true" : "false";
+      card
+        .querySelectorAll<HTMLElement>(
+          ".landing-section-rail-card-frame, .landing-section-rail-block-machine-photo",
+        )
+        .forEach((node) => {
+          node.dataset.active = active ? "true" : "false";
+        });
       if (active) card.setAttribute("aria-current", "true");
       else card.removeAttribute("aria-current");
     }

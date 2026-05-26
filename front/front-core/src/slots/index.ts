@@ -1,6 +1,7 @@
 export * from "./slots";
 export * from "./Slot";
-export * from "./SlotProvider"; 
+export * from "./SlotProvider";
+export * from "./SlotInline";
 export * from "./present";
 export * from "./dashboard_slots";
 

@@ -86,6 +86,10 @@ export const heroBannerCss = `
   --hero-banner-overlay-top: rgba(2, 6, 12, 0.42);
   --hero-banner-overlay-bottom: rgba(2, 6, 12, 0.74);
   --hero-banner-vignette: rgba(2, 6, 12, 0.72);
+  --hero-banner-side-shade: rgba(2, 6, 12, 0.6);
+  --hero-banner-depth-top: rgba(2, 6, 12, 0.12);
+  --hero-banner-depth-bottom: rgba(2, 6, 12, 0.34);
+  --hero-banner-image-filter: saturate(0.86) contrast(1.04) brightness(0.78);
   position: relative;
   min-height: 560px;
   height: clamp(560px, 72vh, 760px);
@@ -103,11 +107,27 @@ export const heroBannerCss = `
 .hero-banner[data-theme="light"] {
   --hero-banner-page: #f7f7f6;
   --hero-banner-ink: #ffffff;
-  --hero-banner-muted: rgba(255, 255, 255, 0.78);
-  --hero-banner-secondary: rgba(255, 255, 255, 0.62);
-  --hero-banner-overlay-top: rgba(8, 14, 22, 0.34);
-  --hero-banner-overlay-bottom: rgba(8, 14, 22, 0.64);
-  --hero-banner-vignette: rgba(8, 14, 22, 0.54);
+  --hero-banner-muted: rgba(255, 255, 255, 0.82);
+  --hero-banner-secondary: rgba(255, 255, 255, 0.72);
+  --hero-banner-overlay-top: rgba(8, 14, 22, 0.22);
+  --hero-banner-overlay-bottom: rgba(8, 14, 22, 0.5);
+  --hero-banner-vignette: rgba(8, 14, 22, 0.4);
+  --hero-banner-side-shade: rgba(8, 14, 22, 0.28);
+  --hero-banner-depth-top: rgba(8, 14, 22, 0.04);
+  --hero-banner-depth-bottom: rgba(8, 14, 22, 0.18);
+  --hero-banner-image-filter: saturate(0.96) contrast(1.02) brightness(0.96);
+}
+
+html:not(.dark) .hero-banner[data-theme="dark"] {
+  --hero-banner-muted: rgba(255, 255, 255, 0.82);
+  --hero-banner-secondary: rgba(255, 255, 255, 0.72);
+  --hero-banner-overlay-top: rgba(8, 14, 22, 0.24);
+  --hero-banner-overlay-bottom: rgba(8, 14, 22, 0.54);
+  --hero-banner-vignette: rgba(8, 14, 22, 0.42);
+  --hero-banner-side-shade: rgba(8, 14, 22, 0.3);
+  --hero-banner-depth-top: rgba(8, 14, 22, 0.05);
+  --hero-banner-depth-bottom: rgba(8, 14, 22, 0.2);
+  --hero-banner-image-filter: saturate(0.94) contrast(1.02) brightness(0.94);
 }
 
 .hero-banner__image {
@@ -117,7 +137,7 @@ export const heroBannerCss = `
   height: 100%;
   object-fit: cover;
   object-position: center 48%;
-  filter: saturate(0.86) contrast(1.04) brightness(0.78);
+  filter: var(--hero-banner-image-filter);
 }
 
 .hero-banner__overlay {
@@ -126,8 +146,8 @@ export const heroBannerCss = `
   background:
     radial-gradient(ellipse at center, transparent 18%, var(--hero-banner-vignette) 100%),
     linear-gradient(180deg, var(--hero-banner-overlay-top), var(--hero-banner-overlay-bottom)),
-    linear-gradient(90deg, rgba(2, 6, 12, 0.6), transparent 24%, transparent 76%, rgba(2, 6, 12, 0.6)),
-    linear-gradient(180deg, rgba(2, 6, 12, 0.12), rgba(2, 6, 12, 0.34));
+    linear-gradient(90deg, var(--hero-banner-side-shade), transparent 24%, transparent 76%, var(--hero-banner-side-shade)),
+    linear-gradient(180deg, var(--hero-banner-depth-top), var(--hero-banner-depth-bottom));
   pointer-events: none;
 }
 

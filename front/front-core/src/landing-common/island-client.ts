@@ -1,4 +1,7 @@
+import { createElement } from "react";
+import { KeyRound } from "lucide-react";
 import { structClient } from "g-struct";
+import { SlotInline } from "../slots/SlotInline";
 import { createBridgeController } from "../bridge";
 import {
 	chatAttachRequested,
@@ -24,6 +27,7 @@ import {
 	controlPanelModeChanged,
 	controlPanelOpened,
 	readControlPanelMode,
+	tabActivated,
 	type ControlPanelMode,
 } from "./control-panel-model";
 import { GROUPS } from "./groups";
@@ -597,6 +601,7 @@ async function ensureControlPanelRuntime(): Promise<void> {
 		const [{ mountControlPanelRuntime }] = await Promise.all([
 			import("./control-panel-runtime"),
 		]);
+		bindLoginTabActivation();
 		const hostOptions = readControlPanelHostOptions(host);
 		const menuLinks = await loadControlPanelMenuLinks(hostOptions.menuLinks);
 		const initialMode = resolveInitialControlPanelMode();
@@ -640,6 +645,16 @@ async function ensureControlPanelRuntime(): Promise<void> {
 			onLanguage: (code) => {
 				void applyLocaleChange(code);
 			},
+			tabs: hostOptions.loginEnabled
+				? [{ id: "auth", icon: createElement(KeyRound, { size: 17 }), label: "Sign in" }]
+				: [],
+			tabContents: {
+				// mf-auth presents LoginView into slot "sidebar:tab:auth" which gets
+				// normalized to "sidebar:tab" in $slotContents. SlotInline reads the
+				// store directly and renders the content inline — no portal, no DOM
+				// mount-point lookup, no SlotProvider ownership races.
+				auth: createElement(SlotInline, { slotId: "sidebar:tab" }),
+			},
 		});
 		if (readControlPanelMode() === "app") {
 			installDynamicMenuIfReady();
@@ -677,6 +692,27 @@ export async function openLoginPanel(): Promise<void> {
 	await ensureAuthLoaded();
 	rightRailActionSelected("auth.show-login");
 	runActionEvent({ actionId: "auth.show-login", params: {} });
+}
+
+// When the auth tab becomes active (either from header button or tab strip click),
+// ensure the auth microfrontend is loaded and present its UI into slot "sidebar:tab:auth"
+// which mounts into the DOM div #slot-panel-tab that we render as the tab's content.
+let loginTabBound = false;
+function bindLoginTabActivation(): void {
+	if (loginTabBound) return;
+	loginTabBound = true;
+	tabActivated.watch((id) => {
+		if (id !== "auth") return;
+		void (async () => {
+			await ensureAuthLoaded();
+			// Wait two microtasks so React has rendered the slot-panel-tab div
+			// before the SlotProvider tries to mount auth content into it.
+			await Promise.resolve();
+			await Promise.resolve();
+			rightRailActionSelected("auth.show-login");
+			runActionEvent({ actionId: "auth.show-login", params: {} });
+		})();
+	});
 }
 
 function installPanelControls(): void {

@@ -3,7 +3,7 @@ import { createNodeMap } from "../components/nodeUtils";
 import dagClient from "../service";
 import { sample } from "effector";
 
-import { useStore } from "effector-react";
+import { useUnit } from "effector-react";
 import { useEffect } from "react";
 import { NodeMap } from "front-core";
 import DagViewer from "../components/DagViewer";
@@ -58,9 +58,9 @@ const DagContainer: React.FC<DagContainerProps> = ({
     id,
     onNodeEvent
 }) => {
-    const nodeMap = useStore($nodeMap);
-    const loading = useStore($loading);
-    const nodeDescriptions = useStore($nodeDescriptions);
+    const nodeMap = useUnit($nodeMap);
+    const loading = useUnit($loading);
+    const nodeDescriptions = useUnit($nodeDescriptions);
 
     useEffect(() => {
         loadWorkflow(id);

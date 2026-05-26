@@ -6,3 +6,4 @@ import Panel from "./Panel";
 
 export default new BasePlugin(ID, ACTIONS);
 export { Panel };
+export { ManufacturingRequestPage, RequestDetailView } from "./views/RequestDetailView";

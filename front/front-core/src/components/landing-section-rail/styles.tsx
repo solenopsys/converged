@@ -10,7 +10,8 @@ export const landingSectionRailCss = `
   --landing-rail-accent: var(--landing-rail-ink);
   --landing-rail-radius: 12px;
   --landing-rail-card-width: 248px;
-  --landing-rail-card-active-width: min(520px, calc(100vw - 34px));
+  --landing-rail-card-active-ratio: 1.5;
+  --landing-rail-card-active-width: min(calc(var(--landing-rail-card-width) * var(--landing-rail-card-active-ratio)), calc(100vw - 34px));
   --landing-rail-card-height: 452px;
   --landing-rail-expanded-card-min-height: 360px;
   --landing-rail-expanded-card-featured-min-height: 430px;
@@ -23,12 +24,10 @@ export const landingSectionRailCss = `
 
 .landing-section-rail[data-variant="compact"] {
   --landing-rail-card-width: 220px;
-  --landing-rail-card-active-width: min(420px, calc(100vw - 34px));
 }
 
 .landing-section-rail[data-variant="immersive"] {
   --landing-rail-card-width: 280px;
-  --landing-rail-card-active-width: min(620px, calc(100vw - 34px));
 }
 
 .landing-section-rail__header {
@@ -207,8 +206,11 @@ export const landingSectionRailCss = `
   transition: background 180ms ease, border-color 180ms ease, color 180ms ease;
 }
 
+.landing-section-rail__card[data-active="true"] .landing-section-rail-card-frame,
 .landing-section-rail-card-frame[data-active="true"] {
-  border-color: var(--landing-rail-card-active);
+  border-color: color-mix(in oklch, var(--ui-foreground) 68%, var(--landing-rail-line));
+  background: var(--ui-foreground);
+  color: var(--ui-background);
 }
 
 @media (hover: hover) and (pointer: fine) and (min-width: 761px) {

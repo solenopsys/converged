@@ -16,7 +16,6 @@ import { openLoginPanel } from "front-core/landing-common/island-client";
 import {
   AISection,
   ComparisonTable,
-  Faq,
   Feature,
   Hero,
   HeroMain,
@@ -46,6 +45,47 @@ type ResolvedBlock = {
   props: Record<string, unknown>;
   data: Record<string, unknown>;
 };
+
+type ContactMapBlockData = {
+  address?: string;
+  email?: string;
+  hours?: string[];
+  mapEmbedUrl?: string;
+  mapQuery?: string;
+  phone?: string;
+  title?: string;
+  subtitle?: string;
+};
+
+type CertificateItem = {
+  description?: string;
+  id?: string;
+  issuer?: string;
+  standard?: string;
+  title?: string;
+  validUntil?: string;
+  image?: string;
+};
+
+type CertificatesBlockData = {
+  title?: string;
+  subtitle?: string;
+  items?: CertificateItem[];
+};
+
+type ShopProofMetric = {
+  label?: string;
+  value?: string;
+};
+
+type ShopProofBlockData = {
+  eyebrow?: string;
+  title?: string;
+  copy?: string;
+  points?: string[];
+  metrics?: ShopProofMetric[];
+};
+
 type LandingPrefetchPayload = {
   configPath: string;
   blocks: ResolvedBlock[];
@@ -230,7 +270,13 @@ export default function LandingView({ configPath }: { configPath: string }) {
 }
 
 function isFullWidthBlock(type: string): boolean {
-  return type === "cnc-hero-request" || type === "section-rail";
+  return [
+    "cnc-hero-request",
+    "section-rail",
+    "shop-proof",
+    "certificates",
+    "contacts-map",
+  ].includes(type);
 }
 
 function renderBlock(block: ResolvedBlock, index: number, fallbackLocale: SupportedLocale) {
@@ -324,9 +370,14 @@ function renderBlock(block: ResolvedBlock, index: number, fallbackLocale: Suppor
         />
       );
     }
-    case "faq": {
-      const faq = block.data.faq as any;
-      return <Faq key={key} faqs={faq?.faqs ?? []} title={faq?.title ?? "FAQ"} />;
+    case "shop-proof": {
+      return <ShopProofBlock key={key} data={block.data.proof as ShopProofBlockData} />;
+    }
+    case "certificates": {
+      return <CertificatesBlock key={key} data={block.data.certificates as CertificatesBlockData} />;
+    }
+    case "contacts-map": {
+      return <ContactsMapBlock key={key} data={block.data.contacts as ContactMapBlockData} />;
     }
     default: {
       return (
@@ -341,3 +392,522 @@ function renderBlock(block: ResolvedBlock, index: number, fallbackLocale: Suppor
 function toStringOr(value: unknown, fallback: string): string {
   return typeof value === "string" && value.length > 0 ? value : fallback;
 }
+
+function ShopProofBlock({ data }: { data?: ShopProofBlockData }) {
+  if (!data) return null;
+  const metrics = Array.isArray(data.metrics) ? data.metrics : [];
+
+  return (
+    <section className="cnc-info-block cnc-shop-proof">
+      <style>{landingInfoBlocksCss}</style>
+      <div className="cnc-shop-proof__shell">
+        <div className="cnc-shop-proof__copy">
+          <h2>{data.title ?? "Shop proof"}</h2>
+          {data.copy ? <p>{data.copy}</p> : null}
+        </div>
+        {metrics.length > 0 ? (
+          <div className="cnc-shop-proof__metrics">
+            {metrics.map((metric, index) => (
+              <div className="cnc-shop-proof__metric" key={`${metric.label}-${index}`}>
+                <strong>{metric.value}</strong>
+                <p>{metric.label}</p>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function CertificatesBlock({ data }: { data?: CertificatesBlockData }) {
+  const items = Array.isArray(data?.items) ? data.items : [];
+  if (items.length === 0) return null;
+
+  return (
+    <section className="cnc-info-block cnc-certificates">
+      <style>{landingInfoBlocksCss}</style>
+      <div className="cnc-info-block__head">
+        <h2>{data?.title ?? "Certificates"}</h2>
+        {data?.subtitle ? <p>{data.subtitle}</p> : null}
+      </div>
+      <div className="cnc-certificates__grid">
+        {items.map((item, index) => (
+          <article className="cnc-certificate-card" key={item.id ?? `${item.title}-${index}`}>
+            <h3>{item.title}</h3>
+            <div className="cnc-certificate-card__sheet" aria-label={item.title}>
+              {item.image ? (
+                <img src={item.image} alt={item.title ?? ""} />
+              ) : (
+                <div className="cnc-certificate-card__mock">
+                  <span>{item.standard ?? "CERTIFICATE"}</span>
+                  <strong>{item.issuer ?? "Quality system"}</strong>
+                  <i />
+                  <i />
+                  <i />
+                  <b>{item.validUntil ?? "active"}</b>
+                </div>
+              )}
+            </div>
+            {item.description ? <p>{item.description}</p> : null}
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ContactsMapBlock({ data }: { data?: ContactMapBlockData }) {
+  if (!data) return null;
+  const mapQuery = data.mapQuery || data.address || "Austin TX CNC machine shop";
+  const mapSrc =
+    data.mapEmbedUrl ||
+    `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed`;
+  const phoneHref = data.phone ? `tel:${data.phone.replace(/[^\d+]/g, "")}` : undefined;
+
+  return (
+    <section className="cnc-info-block cnc-contacts-map">
+      <style>{landingInfoBlocksCss}</style>
+      <div className="cnc-info-block__head">
+        <h2>{data.title ?? "Contacts"}</h2>
+        {data.subtitle ? <p>{data.subtitle}</p> : null}
+      </div>
+      <div className="cnc-contacts-map__layout">
+        <aside className="cnc-contacts-map__details" aria-label="Shop contacts">
+          {data.address ? (
+            <div className="cnc-contacts-map__summary">
+              <span>Shop location</span>
+              <strong>{data.address}</strong>
+            </div>
+          ) : null}
+          <div className="cnc-contacts-map__actions">
+            {data.phone && phoneHref ? (
+              <a href={phoneHref} className="cnc-contacts-map__action" data-variant="primary">
+                <span>Call shop</span>
+                <strong>{data.phone}</strong>
+              </a>
+            ) : null}
+            {data.email ? (
+              <a href={`mailto:${data.email}`} className="cnc-contacts-map__action">
+                <span>Send drawing</span>
+                <strong>{data.email}</strong>
+              </a>
+            ) : null}
+          </div>
+          {Array.isArray(data.hours) && data.hours.length > 0 ? (
+            <div className="cnc-contacts-map__hours">
+              <span>Hours</span>
+              <div>
+                {data.hours.map((line) => <p key={line}>{line}</p>)}
+              </div>
+            </div>
+          ) : null}
+        </aside>
+        <div className="cnc-contacts-map__frame">
+          <iframe
+            title={data.title ?? "Contacts map"}
+            src={mapSrc}
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const landingInfoBlocksCss = `
+.cnc-info-block {
+  --cnc-block-bg: var(--ui-background);
+  --cnc-block-card: color-mix(in oklch, var(--ui-card) 92%, transparent);
+  --cnc-block-line: color-mix(in oklch, var(--ui-foreground) 14%, transparent);
+  --cnc-block-muted: color-mix(in oklch, var(--ui-foreground) 58%, transparent);
+  width: 100%;
+  padding: 88px max(18px, calc((100vw - 1500px) / 2 + 18px));
+  color: var(--ui-foreground);
+}
+
+.cnc-info-block__head {
+  display: grid;
+  gap: 18px;
+  margin-bottom: 34px;
+}
+
+.cnc-info-block__head h2 {
+  margin: 0;
+  max-width: 920px;
+  color: var(--ui-foreground);
+  font-size: clamp(42px, 6vw, 82px);
+  font-weight: 850;
+  letter-spacing: -0.07em;
+  line-height: 0.92;
+}
+
+.cnc-info-block__head p {
+  margin: 0;
+  max-width: 680px;
+  color: var(--cnc-block-muted);
+  font-size: 18px;
+  line-height: 1.5;
+}
+
+.cnc-contacts-map .cnc-info-block__head h2 {
+  max-width: 1120px;
+  font-size: clamp(42px, 5vw, 72px);
+}
+
+.cnc-contacts-map .cnc-info-block__head p {
+  max-width: 820px;
+}
+
+.cnc-shop-proof {
+  padding-top: 36px;
+  padding-bottom: 42px;
+}
+
+.cnc-shop-proof__shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1.06fr) minmax(420px, 0.94fr);
+  gap: 18px;
+  align-items: stretch;
+  padding: 22px;
+  border: 1px solid var(--cnc-block-line);
+  border-radius: 28px;
+  background:
+    linear-gradient(135deg, color-mix(in oklch, var(--ui-foreground) 8%, transparent), transparent 36%),
+    color-mix(in oklch, var(--ui-card) 90%, var(--ui-background));
+}
+
+.cnc-shop-proof__copy {
+  display: grid;
+  align-content: center;
+  gap: 18px;
+  min-height: 310px;
+  padding: 28px;
+}
+
+.cnc-shop-proof__copy span {
+  width: fit-content;
+  padding: 8px 11px;
+  border: 1px solid var(--cnc-block-line);
+  border-radius: 999px;
+  color: var(--cnc-block-muted);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.cnc-shop-proof__copy h2,
+.cnc-shop-proof__copy p {
+  margin: 0;
+}
+
+.cnc-shop-proof__copy h2 {
+  max-width: 780px;
+  color: var(--ui-foreground);
+  font-size: clamp(44px, 5.6vw, 78px);
+  font-weight: 880;
+  letter-spacing: -0.075em;
+  line-height: 0.9;
+}
+
+.cnc-shop-proof__copy p {
+  max-width: 650px;
+  color: var(--cnc-block-muted);
+  font-size: 18px;
+  line-height: 1.48;
+}
+
+.cnc-shop-proof__metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.cnc-shop-proof__metric {
+  min-height: 150px;
+  display: grid;
+  align-content: space-between;
+  gap: 18px;
+  padding: 20px;
+  border: 1px solid var(--cnc-block-line);
+  border-radius: 22px;
+  background: color-mix(in oklch, var(--ui-card) 78%, transparent);
+}
+
+.cnc-shop-proof__metric strong {
+  color: var(--ui-foreground);
+  font-size: clamp(36px, 4vw, 58px);
+  font-weight: 880;
+  letter-spacing: -0.07em;
+  line-height: 0.9;
+}
+
+.cnc-shop-proof__metric p {
+  margin: 0;
+  color: var(--cnc-block-muted);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.34;
+}
+
+.cnc-shop-proof__points {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cnc-shop-proof__points li {
+  padding: 10px 13px;
+  border: 1px solid var(--cnc-block-line);
+  border-radius: 999px;
+  color: var(--ui-foreground);
+  background: color-mix(in oklch, var(--ui-card) 76%, transparent);
+  font-size: 13px;
+  font-weight: 720;
+}
+
+.cnc-certificates__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.cnc-certificate-card {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--cnc-block-line);
+  border-radius: 18px;
+  background: var(--cnc-block-card);
+}
+
+.cnc-certificate-card h3 {
+  margin: 0;
+  grid-column: 1 / -1;
+  color: var(--ui-foreground);
+  font-size: 18px;
+  font-weight: 780;
+  letter-spacing: -0.035em;
+  line-height: 1.12;
+}
+
+.cnc-certificate-card__sheet {
+  width: 64px;
+  aspect-ratio: 0.707 / 1;
+  overflow: hidden;
+  border: 1px solid color-mix(in oklch, var(--ui-foreground) 18%, transparent);
+  border-radius: 6px;
+  background: #f7f3ea;
+  box-shadow: 0 8px 18px rgba(0,0,0,0.14);
+}
+
+.cnc-certificate-card__sheet img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cnc-certificate-card__mock {
+  height: 100%;
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  padding: 12% 11%;
+  color: #171717;
+  background:
+    linear-gradient(90deg, transparent 0 7%, rgba(0,0,0,0.08) 7% 7.4%, transparent 7.4%),
+    #f7f3ea;
+}
+
+.cnc-certificate-card__mock span {
+  color: #6b6b5f;
+  font-size: 5px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.cnc-certificate-card__mock strong {
+  max-width: 9ch;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: -0.07em;
+  line-height: 0.92;
+}
+
+.cnc-certificate-card__mock i {
+  display: block;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.1);
+}
+
+.cnc-certificate-card__mock i:nth-of-type(2) { width: 72%; }
+.cnc-certificate-card__mock i:nth-of-type(3) { width: 52%; }
+
+.cnc-certificate-card__mock b {
+  width: 23px;
+  height: 23px;
+  display: grid;
+  place-items: center;
+  margin-top: auto;
+  border: 1px solid rgba(0,0,0,0.26);
+  border-radius: 999px;
+  color: rgba(0,0,0,0.62);
+  font-size: 4px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.cnc-certificate-card p {
+  margin: 0;
+  align-self: start;
+  color: var(--cnc-block-muted);
+  font-size: 13px;
+  line-height: 1.42;
+}
+
+.cnc-contacts-map__layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.74fr) minmax(0, 1.26fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.cnc-contacts-map__details {
+  min-height: 460px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 22px;
+  border: 1px solid var(--cnc-block-line);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 10% 0%, color-mix(in oklch, var(--ui-foreground) 8%, transparent), transparent 34%),
+    color-mix(in oklch, var(--ui-card) 94%, var(--ui-background));
+}
+
+.cnc-contacts-map__summary {
+  display: grid;
+  gap: 10px;
+  padding: 18px 18px 4px;
+}
+
+.cnc-contacts-map__details span {
+  color: var(--cnc-block-muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.cnc-contacts-map__summary strong {
+  margin: 0;
+  color: var(--ui-foreground);
+  font-size: clamp(30px, 3vw, 42px);
+  font-weight: 830;
+  letter-spacing: -0.055em;
+  line-height: 0.98;
+}
+
+.cnc-contacts-map__actions {
+  display: grid;
+  gap: 10px;
+}
+
+.cnc-contacts-map__action {
+  display: grid;
+  gap: 5px;
+  padding: 16px 18px;
+  border: 1px solid var(--cnc-block-line);
+  border-radius: 18px;
+  color: var(--ui-foreground);
+  text-decoration: none;
+  background: color-mix(in oklch, var(--ui-card) 86%, transparent);
+  transition: border-color 160ms ease, background 160ms ease, color 160ms ease;
+}
+
+.cnc-contacts-map__action[data-variant="primary"] {
+  border-color: var(--ui-foreground);
+  color: var(--ui-background);
+  background: var(--ui-foreground);
+}
+
+.cnc-contacts-map__action:hover {
+  border-color: color-mix(in oklch, var(--ui-foreground) 44%, transparent);
+}
+
+.cnc-contacts-map__action span {
+  color: currentColor;
+  opacity: 0.62;
+}
+
+.cnc-contacts-map__action strong {
+  color: currentColor;
+  font-size: 18px;
+  font-weight: 760;
+  line-height: 1.16;
+}
+
+.cnc-contacts-map__hours {
+  display: grid;
+  gap: 12px;
+  margin-top: auto;
+  padding: 18px;
+}
+
+.cnc-contacts-map__hours div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cnc-contacts-map__hours p {
+  margin: 0;
+  padding: 8px 11px;
+  border: 1px solid var(--cnc-block-line);
+  border-radius: 999px;
+  color: var(--ui-foreground);
+  background: color-mix(in oklch, var(--ui-card) 80%, transparent);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.cnc-contacts-map__frame {
+  min-height: 460px;
+  overflow: hidden;
+  border: 1px solid var(--cnc-block-line);
+  border-radius: 24px;
+  background: var(--cnc-block-card);
+}
+
+.cnc-contacts-map__frame iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 460px;
+  border: 0;
+  filter: grayscale(0.86) contrast(1.04);
+}
+
+@media (max-width: 900px) {
+  .cnc-info-block { padding: 58px 18px; }
+  .cnc-certificates__grid,
+  .cnc-shop-proof__shell,
+  .cnc-contacts-map__layout {
+    grid-template-columns: 1fr;
+  }
+  .cnc-shop-proof__metrics {
+    grid-template-columns: 1fr;
+  }
+}
+`;

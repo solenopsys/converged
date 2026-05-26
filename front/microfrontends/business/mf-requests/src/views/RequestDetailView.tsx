@@ -4,7 +4,7 @@ import { createFilesServiceClient, type FileMetadata } from "g-files";
 import type { RequestFieldState, RequestModel } from "g-requests";
 import { createStoreServiceClient } from "g-store";
 import { ModelViewer } from "model3d";
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { RequestQr } from "../components/RequestQr";
 import {
 	$requestError,
@@ -54,6 +54,517 @@ const analysisFieldKeys = new Set([
 	"file_analysis_errors",
 ]);
 
+const requestDetailCss = `
+.request-detail {
+	min-height: 100%;
+	background: #030405;
+	color: #f7f7f5;
+	overflow: auto;
+}
+
+.request-detail__wrap {
+	width: 100%;
+	padding: 16px;
+}
+
+.request-bento {
+	display: grid;
+	grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr) minmax(300px, 0.85fr);
+	grid-auto-flow: dense;
+	gap: 14px;
+	align-items: stretch;
+}
+
+.request-card {
+	min-width: 0;
+	min-height: 0;
+	padding: 18px;
+	border-radius: 18px;
+	background:
+		linear-gradient(135deg, rgba(255, 255, 255, 0.042), rgba(255, 255, 255, 0.012)),
+		#070808;
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.06),
+		0 18px 50px rgba(0, 0, 0, 0.28);
+}
+
+.request-hero {
+	grid-column: span 2;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	min-height: 310px;
+	padding: 26px;
+	background:
+		radial-gradient(circle at 78% 12%, rgba(255, 255, 255, 0.09), transparent 34%),
+		linear-gradient(135deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.014) 52%),
+		#060707;
+}
+
+.request-hero__main {
+	min-width: 0;
+}
+
+.request-pills {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 18px;
+}
+
+.request-pill {
+	display: inline-flex;
+	align-items: center;
+	min-height: 26px;
+	padding: 0 12px;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.045);
+	color: #aeb4bd;
+	font-size: 12px;
+	font-weight: 650;
+}
+
+.request-pill--status {
+	background: rgba(255, 255, 255, 0.095);
+	color: #f1f1ee;
+}
+
+.request-title {
+	margin: 0;
+	max-width: 980px;
+	color: #fff;
+	font-size: 54px;
+	font-weight: 760;
+	letter-spacing: 0;
+	line-height: 0.96;
+}
+
+.request-summary {
+	margin: 14px 0 0;
+	max-width: 860px;
+	color: #a9b0bb;
+	font-size: 16px;
+	line-height: 1.45;
+}
+
+.request-progress {
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	min-height: 310px;
+}
+
+.request-progress__main strong {
+	display: block;
+	color: #fff;
+	font-size: 72px;
+	font-weight: 790;
+	letter-spacing: 0;
+	line-height: 0.9;
+}
+
+.request-progress__main span {
+	display: block;
+	margin-top: 12px;
+	color: #8d97a8;
+	font-size: 14px;
+	font-weight: 620;
+	line-height: 1.35;
+}
+
+.request-progress__bar {
+	height: 8px;
+	margin-top: 22px;
+	overflow: hidden;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.09);
+}
+
+.request-progress__bar i {
+	display: block;
+	height: 100%;
+	border-radius: inherit;
+	background: #f2f2ef;
+}
+
+.request-progress__meta {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 10px;
+	margin-top: 18px;
+	border-top: 1px solid rgba(255, 255, 255, 0.08);
+	padding-top: 16px;
+}
+
+.request-progress__meta strong {
+	display: block;
+	color: #fff;
+	font-size: 20px;
+	font-weight: 760;
+	line-height: 1;
+}
+
+.request-progress__meta span {
+	display: block;
+	margin-top: 7px;
+	color: #7f8da0;
+	font-size: 11px;
+	font-weight: 600;
+	line-height: 1.25;
+}
+
+.request-share-card {
+	display: grid;
+	grid-template-columns: 132px minmax(0, 1fr);
+	gap: 16px;
+	align-items: center;
+}
+
+.request-share__link {
+	width: 100%;
+	color: #8995a7;
+	font-size: 12px;
+	line-height: 1.5;
+	overflow-wrap: anywhere;
+}
+
+.request-share__link strong {
+	display: block;
+	margin-bottom: 5px;
+	color: #e8ebe8;
+	font-size: 13px;
+}
+
+.request-card--wide {
+	grid-column: span 2;
+}
+
+.request-card--full {
+	grid-column: 1 / -1;
+}
+
+.request-card--missing {
+	background:
+		linear-gradient(135deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.018)),
+		#080909;
+}
+
+.request-card__head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 14px;
+	margin-bottom: 14px;
+}
+
+.request-card__head h2 {
+	margin: 0;
+	color: #f3f4f2;
+	font-size: 17px;
+	font-weight: 720;
+	line-height: 1.15;
+}
+
+.request-count {
+	display: inline-flex;
+	align-items: center;
+	min-height: 24px;
+	padding: 0 10px;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.055);
+	color: #8f9aad;
+	font-size: 12px;
+	font-weight: 650;
+}
+
+.request-field-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	column-gap: 28px;
+}
+
+.request-field {
+	display: grid;
+	grid-template-columns: minmax(0, 0.72fr) minmax(0, 1fr);
+	gap: 14px;
+	align-items: start;
+	min-height: 48px;
+	padding: 12px 0;
+	border-top: 1px solid rgba(255, 255, 255, 0.075);
+}
+
+.request-field[data-state="missing"] {
+	color: #d8d8d4;
+}
+
+.request-field__label {
+	min-width: 0;
+	color: #e4e6e3;
+	font-size: 14px;
+	font-weight: 690;
+	line-height: 1.25;
+}
+
+.request-field__description {
+	margin-top: 4px;
+	color: #778395;
+	font-size: 12px;
+	font-weight: 500;
+	line-height: 1.35;
+}
+
+.request-field__value {
+	min-width: 0;
+	color: #cdd2d8;
+	font-size: 14px;
+	line-height: 1.35;
+	overflow-wrap: anywhere;
+}
+
+.request-field[data-state="missing"] .request-field__value {
+	color: #aeb4bd;
+}
+
+.request-estimates {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr));
+	gap: 12px;
+}
+
+.request-estimate {
+	display: grid;
+	grid-template-columns: 210px minmax(0, 1fr);
+	min-height: 220px;
+	overflow: hidden;
+	border-radius: 12px;
+	background: rgba(0, 0, 0, 0.24);
+	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+}
+
+.request-estimate__media {
+	min-height: 220px;
+	background: radial-gradient(circle at center, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.32) 68%);
+	overflow: hidden;
+}
+
+.request-estimate__media > * {
+	width: 100%;
+	height: 100%;
+}
+
+.request-estimate__empty {
+	display: grid;
+	place-items: center;
+	height: 100%;
+	padding: 18px;
+	color: #687386;
+	font-size: 13px;
+	text-align: center;
+}
+
+.request-estimate__body {
+	min-width: 0;
+	padding: 14px 16px 16px;
+}
+
+.request-estimate__top {
+	display: flex;
+	align-items: start;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 12px;
+}
+
+.request-estimate__title {
+	min-width: 0;
+	color: #f3f4f2;
+	font-size: 15px;
+	font-weight: 720;
+	overflow-wrap: anywhere;
+}
+
+.request-estimate__type {
+	flex: 0 0 auto;
+	color: #8a95a6;
+	font-size: 12px;
+	font-weight: 650;
+}
+
+.request-metric-list {
+	display: grid;
+	gap: 8px;
+}
+
+.request-metric-row {
+	display: grid;
+	grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr);
+	gap: 14px;
+	padding-bottom: 8px;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+	font-size: 13px;
+	line-height: 1.25;
+}
+
+.request-metric-row span:first-child {
+	color: #8090a4;
+}
+
+.request-metric-row span:last-child {
+	color: #d8dce0;
+	text-align: right;
+	overflow-wrap: anywhere;
+}
+
+.request-note {
+	margin-top: 12px;
+	padding: 10px 12px;
+	border-radius: 9px;
+	background: rgba(255, 255, 255, 0.06);
+	color: #b7bec8;
+	font-size: 12px;
+	line-height: 1.4;
+}
+
+.request-status-list {
+	display: grid;
+	gap: 0;
+	font-size: 13px;
+}
+
+.request-status-row {
+	display: grid;
+	grid-template-columns: 92px minmax(0, 1fr);
+	gap: 14px;
+	padding-top: 10px;
+	border-top: 1px solid rgba(255, 255, 255, 0.075);
+}
+
+.request-status-row span:first-child {
+	color: #8793a6;
+}
+
+.request-status-row span:last-child {
+	color: #e5e7e4;
+	text-align: right;
+	overflow-wrap: anywhere;
+}
+
+.request-files {
+	display: grid;
+	gap: 8px;
+}
+
+.request-file {
+	display: grid;
+	gap: 8px;
+	padding: 10px 0;
+	border-top: 1px solid rgba(255, 255, 255, 0.075);
+}
+
+.request-file__name {
+	color: #f1f2ef;
+	font-size: 13px;
+	font-weight: 660;
+	overflow-wrap: anywhere;
+}
+
+.request-file__preview {
+	height: 150px;
+	overflow: hidden;
+	border-radius: 10px;
+	background: rgba(0, 0, 0, 0.22);
+}
+
+.request-empty-text {
+	margin: 10px 0 0;
+	color: #8b96a8;
+	font-size: 14px;
+	line-height: 1.45;
+}
+
+.request-missing {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: 8px;
+}
+
+.request-missing span {
+	padding: 10px 12px;
+	border-radius: 10px;
+	background: rgba(255, 255, 255, 0.075);
+	color: #d7dad8;
+	font-size: 12px;
+	font-weight: 650;
+}
+
+@media (max-width: 1180px) {
+	.request-bento {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.request-hero,
+	.request-card--wide,
+	.request-card--full {
+		grid-column: 1 / -1;
+	}
+
+	.request-progress {
+		min-height: 230px;
+	}
+}
+
+@media (max-width: 780px) {
+	.request-detail__wrap {
+		padding: 12px;
+	}
+
+	.request-hero,
+	.request-bento {
+		grid-template-columns: 1fr;
+	}
+
+	.request-hero,
+	.request-card--wide,
+	.request-card--full {
+		grid-column: auto;
+	}
+
+	.request-share-card {
+		grid-template-columns: 1fr;
+	}
+
+	.request-progress__meta,
+	.request-field-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.request-title {
+		font-size: 34px;
+	}
+
+	.request-estimate {
+		grid-template-columns: 1fr;
+	}
+
+	.request-estimate__media {
+		height: 190px;
+		min-height: 190px;
+	}
+
+	.request-field,
+	.request-status-row,
+	.request-metric-row {
+		grid-template-columns: 1fr;
+		gap: 6px;
+	}
+
+	.request-status-row span:last-child,
+	.request-metric-row span:last-child {
+		text-align: left;
+	}
+}
+`;
+
 function publicRequestUrl(requestId: string): string {
 	if (typeof window === "undefined") return `/request/${requestId}`;
 	return `${window.location.origin}/request/${requestId}`;
@@ -82,6 +593,14 @@ function formatValue(field: RequestFieldState): string {
 	return field.unit ? `${text} ${field.unit}` : text;
 }
 
+function hasFieldValue(field: RequestFieldState): boolean {
+	const value = field.value;
+	if (value === undefined || value === null) return false;
+	if (typeof value === "string") return value.trim().length > 0;
+	if (Array.isArray(value)) return value.length > 0;
+	return true;
+}
+
 function groupFields(
 	model: RequestModel,
 ): Array<[string, RequestFieldState[]]> {
@@ -90,6 +609,7 @@ function groupFields(
 		if (analysisFieldKeys.has(key)) continue;
 		const field = model.fields[key];
 		if (!field) continue;
+		if (!hasFieldValue(field) && field.status === "missing") continue;
 		const group = field.group || "request";
 		const list = groups.get(group) ?? [];
 		list.push(field);
@@ -102,39 +622,14 @@ function FieldCard({ field }: { field: RequestFieldState }) {
 	const isMissing = field.status === "missing" && field.required;
 	const isReview = field.status === "needs_review";
 	return (
-		<div
-			className={[
-				"rounded-xl border p-4 transition-colors",
-				isMissing
-					? "border-amber-400/45 bg-amber-400/8"
-					: isReview
-						? "border-sky-300/35 bg-sky-300/8"
-						: "border-white/10 bg-white/[0.045]",
-			].join(" ")}
-		>
-			<div className="mb-2 flex items-start justify-between gap-3">
-				<div className="min-w-0">
-					<div className="text-sm font-medium text-white">{field.label}</div>
-					{field.description ? (
-						<div className="mt-1 text-xs leading-relaxed text-slate-400">
-							{field.description}
-						</div>
-					) : null}
-				</div>
-				{field.required ? (
-					<span className="shrink-0 rounded-full border border-white/10 px-2 py-0.5 text-[11px] text-slate-300">
-						обяз.
-					</span>
+		<div className="request-field" data-state={isMissing ? "missing" : isReview ? "review" : "filled"}>
+			<div className="request-field__label">
+				{field.label}
+				{field.description ? (
+					<div className="request-field__description">{field.description}</div>
 				) : null}
 			</div>
-			<div
-				className={[
-					"break-words text-sm leading-relaxed",
-					isMissing ? "text-amber-100" : "text-slate-100",
-				].join(" ")}
-			>
-				{formatValue(field)}
-			</div>
+			<div className="request-field__value">{formatValue(field)}</div>
 		</div>
 	);
 }
@@ -144,6 +639,21 @@ type AnalysisEstimate = {
 	type?: string;
 	data?: Record<string, any>;
 };
+
+type ModelPreviewRenderer = (payload: {
+	alt: string;
+	fileId: string;
+}) => ReactNode;
+
+function DefaultModelPreview({ alt, fileId }: { alt: string; fileId: string }) {
+	return (
+		<ModelViewer
+			fileId={fileId}
+			alt={alt}
+			style={{ height: "100%" }}
+		/>
+	);
+}
 
 function asNumber(value: unknown): number | undefined {
 	const number = typeof value === "number" ? value : Number(value);
@@ -278,25 +788,28 @@ function AnalysisSection({
 	errors,
 	files,
 	fileMetadata,
+	renderModelPreview,
 }: {
 	estimates: AnalysisEstimate[];
 	errors: Array<Record<string, any>>;
 	files: Array<[string, string]>;
 	fileMetadata: Record<string, FileMetadata>;
+	renderModelPreview?: ModelPreviewRenderer;
 }) {
 	if (estimates.length === 0 && errors.length === 0) return null;
 	const fileLabels = new Map(files.map(([label, id]) => [id, label]));
+	const renderPreview =
+		renderModelPreview ??
+		(({ alt, fileId }) => <DefaultModelPreview alt={alt} fileId={fileId} />);
 
 	return (
-		<section className="rounded-3xl border border-emerald-300/20 bg-[#08110f] p-4 shadow-xl shadow-black/20 sm:p-5">
-			<div className="mb-4 flex items-center justify-between gap-3">
-				<h2 className="text-lg font-semibold text-white">Аналитика</h2>
-				<span className="rounded-full border border-emerald-200/20 px-2.5 py-1 text-xs text-emerald-100">
-					{estimates.length} расчетов
-				</span>
+		<section className="request-card request-card--analysis request-card--wide">
+			<div className="request-card__head">
+				<h2>Аналитика</h2>
+				<span className="request-count">{estimates.length} расчетов</span>
 			</div>
 			{estimates.length > 0 ? (
-				<div className="flex flex-col gap-4">
+				<div className="request-estimates">
 					{estimates.map((estimate, index) => {
 						const rows = estimateRows(estimate);
 						const sourceLabel = estimate.sourceFileId
@@ -316,51 +829,42 @@ function AnalysisSection({
 						return (
 							<div
 								key={`${estimate.sourceFileId ?? "estimate"}:${index}`}
-								className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.045]"
+								className="request-estimate"
 							>
-								<div className="border-b border-white/10 p-4">
-									<div className="text-sm font-medium text-white">{title}</div>
-									<div className="mt-1 text-xs text-slate-400">
-										{estimate.type === "printing"
-											? "3D печать"
-											: estimate.type === "milling"
-												? "ЧПУ"
-												: estimate.type ?? "Расчет"}
-									</div>
-								</div>
-								<div className="grid gap-0 min-[560px]:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] min-[900px]:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
-									<div className="border-b border-white/10 bg-black/20 min-[560px]:border-b-0 min-[560px]:border-r">
-										{preview ? (
-											<ModelViewer
-												fileId={preview[1]}
-												alt={preview[0]}
-												style={{ height: 280 }}
-											/>
-										) : (
-											<div className="flex h-64 items-center justify-center px-5 text-center text-sm text-slate-500">
-												Preview модели не найден
-											</div>
-										)}
-									</div>
-									<div className="p-4">
-										<div className="space-y-2 text-sm">
-											{rows.map(([label, value]) => (
-												<div
-													key={label}
-													className="flex justify-between gap-3 border-b border-white/10 pb-2 last:border-b-0 last:pb-0"
-												>
-													<span className="text-slate-400">{label}</span>
-													<span className="text-right text-slate-100">{value}</span>
-												</div>
-											))}
+								<div className="request-estimate__media">
+									{preview ? (
+										renderPreview({ alt: preview[0], fileId: preview[1] })
+									) : (
+										<div className="request-estimate__empty">
+											Preview модели не найден
 										</div>
-										{estimate.data?.assumptions ? (
-											<div className="mt-3 rounded-lg border border-amber-200/20 bg-amber-300/8 p-2 text-xs leading-relaxed text-amber-100">
-												Грубая оценка по геометрии STL. Для точного времени нужен
-												Cura definition.
-											</div>
-										) : null}
+									)}
+								</div>
+								<div className="request-estimate__body">
+									<div className="request-estimate__top">
+										<div className="request-estimate__title">{title}</div>
+										<div className="request-estimate__type">
+											{estimate.type === "printing"
+												? "3D печать"
+												: estimate.type === "milling"
+													? "ЧПУ"
+													: estimate.type ?? "Расчет"}
+										</div>
 									</div>
+									<div className="request-metric-list">
+										{rows.map(([label, value]) => (
+											<div key={label} className="request-metric-row">
+												<span>{label}</span>
+												<span>{value}</span>
+											</div>
+										))}
+									</div>
+									{estimate.data?.assumptions ? (
+										<div className="request-note">
+											Грубая оценка по геометрии STL. Для точного времени нужен
+											Cura definition.
+										</div>
+									) : null}
 								</div>
 							</div>
 						);
@@ -368,7 +872,7 @@ function AnalysisSection({
 				</div>
 			) : null}
 			{errors.length > 0 ? (
-				<div className="mt-3 rounded-xl border border-amber-300/25 bg-amber-300/8 p-3 text-sm text-amber-100">
+				<div className="request-note">
 					Не все этапы анализа выполнились: {errors.length}
 				</div>
 			) : null}
@@ -450,13 +954,215 @@ function useCollectionFiles(collectionIds: string[]): Record<string, FileMetadat
 	return filesById;
 }
 
-function RequestPageBody({ model }: { model: RequestModel }) {
+function RequestHero({
+	model,
+}: {
+	model: RequestModel;
+}) {
+	return (
+		<header className="request-card request-hero">
+			<div className="request-hero__main">
+				<div className="request-pills">
+					<span className="request-pill request-pill--status">
+						{statusLabels[model.status] ?? model.status}
+					</span>
+					<span className="request-pill">Версия {model.revision}</span>
+					<span className="request-pill">
+						{processLabels[model.processType] ?? model.processType}
+					</span>
+				</div>
+				<h1 className="request-title">
+					{model.title || "Производственная заявка"}
+				</h1>
+				{model.summary ? <p className="request-summary">{model.summary}</p> : null}
+			</div>
+		</header>
+	);
+}
+
+function RequestProgressCard({
+	fileCount,
+	model,
+}: {
+	fileCount: number;
+	model: RequestModel;
+}) {
+	return (
+		<section className="request-card request-progress">
+			<div className="request-progress__main">
+				<strong>{model.completion.percent}%</strong>
+				<span>заполнено по обязательным полям</span>
+				<div className="request-progress__bar">
+					<i style={{ width: `${model.completion.percent}%` }} />
+				</div>
+			</div>
+			<div className="request-progress__meta">
+				<div>
+					<strong>
+						{model.completion.filledRequired}/{model.completion.required}
+					</strong>
+					<span>обязательные</span>
+				</div>
+				<div>
+					<strong>
+						{model.completion.filledTotal}/{model.completion.total}
+					</strong>
+					<span>всего полей</span>
+				</div>
+				<div>
+					<strong>{fileCount}</strong>
+					<span>файлы</span>
+				</div>
+			</div>
+		</section>
+	);
+}
+
+function RequestShareCard({ url }: { url: string }) {
+	return (
+		<section className="request-card request-share-card">
+			<RequestQr url={url} />
+			<div className="request-share__link">
+				<strong>Публичная ссылка</strong>
+				{url}
+			</div>
+		</section>
+	);
+}
+
+function RequestFieldsSection({
+	fields,
+	group,
+}: {
+	fields: RequestFieldState[];
+	group: string;
+}) {
+	if (fields.length === 0) return null;
+
+	return (
+		<section className="request-card request-card--fields">
+			<div className="request-card__head">
+				<h2>{groupLabels[group] ?? group}</h2>
+				<span className="request-count">{fields.length}</span>
+			</div>
+			<div className="request-field-grid">
+				{fields.map((field) => (
+					<FieldCard key={field.key} field={field} />
+				))}
+			</div>
+		</section>
+	);
+}
+
+function RequestStatusSection({ model }: { model: RequestModel }) {
+	return (
+		<section className="request-card request-card--status">
+			<div className="request-card__head">
+				<h2>Состояние</h2>
+			</div>
+			<div className="request-status-list">
+				<div className="request-status-row">
+					<span>ID</span>
+					<span>{model.id}</span>
+				</div>
+				<div className="request-status-row">
+					<span>Создана</span>
+					<span>{formatDate(model.createdAt)}</span>
+				</div>
+				<div className="request-status-row">
+					<span>Обновлена</span>
+					<span>{formatDate(model.updatedAt)}</span>
+				</div>
+				<div className="request-status-row">
+					<span>Источник</span>
+					<span>{model.source ?? "—"}</span>
+				</div>
+			</div>
+		</section>
+	);
+}
+
+function RequestFilesSection({
+	analysisCount,
+	fileMetadata,
+	files,
+	renderModelPreview,
+}: {
+	analysisCount: number;
+	fileMetadata: Record<string, FileMetadata>;
+	files: Array<[string, string]>;
+	renderModelPreview?: ModelPreviewRenderer;
+}) {
+	const renderPreview =
+		renderModelPreview ??
+		(({ alt, fileId }) => <DefaultModelPreview alt={alt} fileId={fileId} />);
+
+	return (
+		<section className="request-card request-card--files">
+			<div className="request-card__head">
+				<h2>Файлы</h2>
+				<span className="request-count">{files.length}</span>
+			</div>
+			{files.length > 0 ? (
+				<div className="request-files">
+					{files.map(([label, fileId]) => {
+						const isModel = isModelFile(label, fileMetadata[fileId]?.fileType);
+						const showFilePreview = isModel && analysisCount === 0;
+						return (
+							<div key={`${label}:${fileId}`} className="request-file">
+								{showFilePreview ? (
+									<div className="request-file__preview">
+										{renderPreview({ alt: label, fileId })}
+									</div>
+								) : null}
+								<div className="request-file__name">{label}</div>
+							</div>
+						);
+					})}
+				</div>
+			) : (
+				<p className="request-empty-text">Файлы пока не прикреплены.</p>
+			)}
+		</section>
+	);
+}
+
+function RequestMissingSection({ model }: { model: RequestModel }) {
+	if (model.missingRequired.length === 0) return null;
+
+	return (
+		<section className="request-card request-card--missing">
+			<div className="request-card__head">
+				<h2>Нужно уточнить</h2>
+				<span className="request-count">{model.missingRequired.length}</span>
+			</div>
+			<div className="request-missing">
+				{model.missingRequired.map((key) => (
+					<span key={key}>{model.fields[key]?.label ?? key}</span>
+				))}
+			</div>
+		</section>
+	);
+}
+
+export function ManufacturingRequestPage({
+	fileMetadata: providedFileMetadata,
+	model,
+	renderModelPreview,
+}: {
+	fileMetadata?: Record<string, FileMetadata>;
+	model: RequestModel;
+	renderModelPreview?: ModelPreviewRenderer;
+}) {
 	const url = publicRequestUrl(model.id);
 	const grouped = useMemo(() => groupFields(model), [model]);
 	const analysisEstimates = useMemo(() => getAnalysisEstimates(model), [model]);
 	const analysisErrors = useMemo(() => getAnalysisErrors(model), [model]);
 	const baseFiles = Object.entries(model.files);
-	const baseFileMetadata = useFileMetadata(baseFiles.map(([, id]) => id));
+	const loadedFileMetadata = useFileMetadata(
+		providedFileMetadata ? [] : baseFiles.map(([, id]) => id),
+	);
+	const baseFileMetadata = providedFileMetadata ?? loadedFileMetadata;
 	const collectionIds = useMemo(
 		() =>
 			Array.from(
@@ -496,192 +1202,35 @@ function RequestPageBody({ model }: { model: RequestModel }) {
 	);
 
 	return (
-		<div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-[#050608] text-white">
-			<div className="min-h-0 flex-1 overflow-auto">
-				<div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-					<header className="overflow-hidden rounded-3xl border border-white/10 bg-[linear-gradient(135deg,rgba(15,23,42,0.98),rgba(17,24,39,0.9)_48%,rgba(6,78,59,0.7))] shadow-2xl shadow-black/35">
-					<div className="grid gap-6 p-5 sm:p-7 lg:grid-cols-[minmax(0,1fr)_18rem]">
-						<div className="flex min-w-0 flex-col gap-5">
-							<div className="flex flex-wrap items-center gap-2">
-								<span className="rounded-full border border-emerald-300/25 bg-emerald-300/10 px-3 py-1 text-xs font-medium text-emerald-100">
-									{statusLabels[model.status] ?? model.status}
-								</span>
-								<span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
-									Версия {model.revision}
-								</span>
-								<span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
-									{processLabels[model.processType] ?? model.processType}
-								</span>
-							</div>
-							<div>
-								<h1 className="max-w-4xl text-3xl font-semibold leading-[1.05] tracking-normal text-white sm:text-5xl">
-									{model.title || "Производственная заявка"}
-								</h1>
-								<p className="mt-4 max-w-3xl text-sm leading-6 text-slate-300 sm:text-base">
-									{model.summary || ""}
-								</p>
-							</div>
-							<div className="grid gap-3 sm:grid-cols-3">
-								<div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-									<div className="text-2xl font-semibold">
-										{model.completion.percent}%
-									</div>
-									<div className="mt-1 text-xs text-slate-400">
-										заполнено по обязательным полям
-									</div>
-									<div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
-										<div
-											className="h-full rounded-full bg-emerald-300"
-											style={{ width: `${model.completion.percent}%` }}
-										/>
-									</div>
-								</div>
-								<div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-									<div className="text-2xl font-semibold">
-										{model.completion.filledRequired}/
-										{model.completion.required}
-									</div>
-									<div className="mt-1 text-xs text-slate-400">
-										обязательные параметры
-									</div>
-								</div>
-								<div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-									<div className="text-2xl font-semibold">{files.length}</div>
-									<div className="mt-1 text-xs text-slate-400">
-										прикрепленные файлы
-									</div>
-								</div>
-							</div>
-						</div>
-						<aside className="flex flex-col items-start gap-3 lg:items-end">
-							<RequestQr url={url} />
-							<div className="w-full rounded-2xl border border-white/10 bg-black/20 p-3 text-xs leading-relaxed text-slate-300 lg:w-64">
-								<div className="font-medium text-white">Публичная ссылка</div>
-								<div className="mt-2 break-all text-slate-400">{url}</div>
-							</div>
-						</aside>
-					</div>
-				</header>
-
-				<div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-					<main className="flex min-w-0 flex-col gap-5">
-						<AnalysisSection
-							estimates={analysisEstimates}
-							errors={analysisErrors}
-							files={files}
-							fileMetadata={fileMetadata}
+		<div className="request-detail">
+			<style>{requestDetailCss}</style>
+			<div className="request-detail__wrap">
+				<div className="request-bento">
+					<RequestHero model={model} />
+					<RequestProgressCard fileCount={files.length} model={model} />
+					<RequestMissingSection model={model} />
+					<RequestShareCard url={url} />
+					<AnalysisSection
+						estimates={analysisEstimates}
+						errors={analysisErrors}
+						files={files}
+						fileMetadata={fileMetadata}
+						renderModelPreview={renderModelPreview}
+					/>
+					{grouped.map(([group, fields]) => (
+						<RequestFieldsSection
+							key={group}
+							fields={fields}
+							group={group}
 						/>
-						{grouped.map(([group, fields]) => (
-							<section
-								key={group}
-								className="rounded-3xl border border-white/10 bg-[#0b0d11] p-4 shadow-xl shadow-black/20 sm:p-5"
-							>
-								<div className="mb-4 flex items-center justify-between gap-3">
-									<h2 className="text-lg font-semibold text-white">
-										{groupLabels[group] ?? group}
-									</h2>
-									<span className="rounded-full border border-white/10 px-2.5 py-1 text-xs text-slate-400">
-										{
-											fields.filter((field) => field.status !== "missing")
-												.length
-										}
-										/{fields.length}
-									</span>
-								</div>
-								<div className="grid gap-3 md:grid-cols-2">
-									{fields.map((field) => (
-										<FieldCard key={field.key} field={field} />
-									))}
-								</div>
-							</section>
-						))}
-					</main>
-
-					<aside className="flex flex-col gap-5">
-						<section className="rounded-3xl border border-white/10 bg-[#0b0d11] p-5 shadow-xl shadow-black/20">
-							<h2 className="text-lg font-semibold text-white">Состояние</h2>
-							<div className="mt-4 space-y-3 text-sm">
-								<div className="flex justify-between gap-3 border-b border-white/10 pb-3">
-									<span className="text-slate-400">ID</span>
-									<span className="max-w-44 truncate text-right text-slate-100">
-										{model.id}
-									</span>
-								</div>
-								<div className="flex justify-between gap-3 border-b border-white/10 pb-3">
-									<span className="text-slate-400">Создана</span>
-									<span className="text-right text-slate-100">
-										{formatDate(model.createdAt)}
-									</span>
-								</div>
-								<div className="flex justify-between gap-3 border-b border-white/10 pb-3">
-									<span className="text-slate-400">Обновлена</span>
-									<span className="text-right text-slate-100">
-										{formatDate(model.updatedAt)}
-									</span>
-								</div>
-								<div className="flex justify-between gap-3">
-									<span className="text-slate-400">Источник</span>
-									<span className="text-right text-slate-100">
-										{model.source ?? "—"}
-									</span>
-								</div>
-							</div>
-						</section>
-
-						<section className="rounded-3xl border border-white/10 bg-[#0b0d11] p-5 shadow-xl shadow-black/20">
-							<h2 className="text-lg font-semibold text-white">Файлы</h2>
-							{files.length > 0 ? (
-								<div className="mt-4 space-y-3">
-									{sortedFiles.map(([label, fileId]) => {
-										const isModel = isModelFile(label, fileMetadata[fileId]?.fileType);
-										const showFilePreview = isModel && analysisEstimates.length === 0;
-										return (
-											<div
-												key={`${label}:${fileId}`}
-												className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.045]"
-											>
-												{showFilePreview ? (
-													<ModelViewer
-														fileId={fileId}
-														alt={label}
-														style={{ height: 280 }}
-													/>
-												) : null}
-												<div className="p-3">
-													<div className="text-sm font-medium text-white">
-														{label}
-													</div>
-												</div>
-											</div>
-										);
-									})}
-								</div>
-							) : (
-								<p className="mt-3 text-sm leading-6 text-slate-400">
-									Файлы пока не прикреплены.
-								</p>
-							)}
-						</section>
-
-						{model.missingRequired.length > 0 ? (
-							<section className="rounded-3xl border border-amber-300/30 bg-amber-300/8 p-5">
-								<h2 className="text-lg font-semibold text-amber-100">
-									Нужно уточнить
-								</h2>
-								<div className="mt-3 flex flex-wrap gap-2">
-									{model.missingRequired.map((key) => (
-										<span
-											key={key}
-											className="rounded-full border border-amber-200/30 px-2.5 py-1 text-xs text-amber-100"
-										>
-											{model.fields[key]?.label ?? key}
-										</span>
-									))}
-								</div>
-							</section>
-						) : null}
-					</aside>
-				</div>
+					))}
+					<RequestFilesSection
+						analysisCount={analysisEstimates.length}
+						fileMetadata={fileMetadata}
+						files={sortedFiles}
+						renderModelPreview={renderModelPreview}
+					/>
+					<RequestStatusSection model={model} />
 				</div>
 			</div>
 		</div>
@@ -746,5 +1295,5 @@ export function RequestDetailView({
 		);
 	}
 
-	return <RequestPageBody model={activeModel} />;
+	return <ManufacturingRequestPage model={activeModel} />;
 }

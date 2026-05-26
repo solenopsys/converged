@@ -1,144 +1,238 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import {
-  ManufacturingRequestPage,
-  type ManufacturingRequest,
-  type PartAnalysis,
-} from "./ManufacturingRequestPage";
+import { useEffect, useState } from "react";
+import type { FileMetadata } from "g-files";
+import type { RequestFieldState, RequestModel } from "g-requests";
+import { ManufacturingRequestPage } from "../../../../front/microfrontends/business/mf-requests/src/views/RequestDetailView";
 
-const makePreview = (title: string, hue: number) => {
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='960' height='600' viewBox='0 0 960 600'>
-  <defs>
-    <linearGradient id='bg' x1='0' y1='0' x2='1' y2='1'>
-      <stop offset='0%' stop-color='hsl(${hue},90%,95%)'/>
-      <stop offset='100%' stop-color='hsl(${(hue + 35) % 360},70%,82%)'/>
-    </linearGradient>
-    <linearGradient id='shape' x1='0' y1='0' x2='1' y2='1'>
-      <stop offset='0%' stop-color='hsl(${hue},78%,45%)'/>
-      <stop offset='100%' stop-color='hsl(${(hue + 45) % 360},80%,34%)'/>
-    </linearGradient>
-  </defs>
-  <rect width='960' height='600' fill='url(#bg)'/>
-  <g transform='translate(480,290)'>
-    <polygon points='0,-160 200,-50 0,60 -200,-50' fill='url(#shape)' opacity='0.95'/>
-    <polygon points='-200,-50 0,60 0,240 -200,130' fill='hsl(${(hue + 15) % 360},70%,28%)' opacity='0.86'/>
-    <polygon points='200,-50 0,60 0,240 200,130' fill='hsl(${(hue + 55) % 360},75%,24%)' opacity='0.82'/>
-    <ellipse cx='0' cy='252' rx='220' ry='36' fill='rgba(0,0,0,0.22)'/>
-  </g>
-  <text x='60' y='84' font-family='ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace' font-size='36' fill='rgba(15,23,42,0.75)'>${title}</text>
-</svg>`;
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      "model-viewer": React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
+        alt?: string;
+        "auto-rotate"?: boolean | "";
+        "camera-controls"?: boolean | "";
+        src?: string;
+        style?: React.CSSProperties;
+      };
+    }
+  }
+}
 
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+const now = "2026-05-26T01:49:00.000Z";
+
+function field(
+  key: string,
+  label: string,
+  value: unknown,
+  options: Partial<RequestFieldState> = {},
+): RequestFieldState {
+  const missing = value === undefined || value === null || value === "";
+  return {
+    key,
+    label,
+    type: options.type ?? "text",
+    group: options.group ?? "basic",
+    required: options.required,
+    status: options.status ?? (missing ? "missing" : "filled"),
+    unit: options.unit,
+    value,
+  };
+}
+
+const files = {
+  "t1_ssict_m.stl": "file-stl-1",
+  "locking-nut-1-rv1.glb": "file-glb-1",
+  "locking-nut-2-rv1.glb": "file-glb-2",
+  "request-notes.pdf": "file-pdf-1",
 };
 
-const request: ManufacturingRequest = {
-  id: "9e4f2db0-2d71-4f35-b9dc-b52c2a2c972f",
-  createdAtISO: "2026-02-07T16:05:00.000Z",
-  companyName: "NordFab Robotics",
-  contactName: "Alex Storm",
-  status: "ready",
-  deadlineISO: "2026-02-14",
-  publicUrl:
-    "https://portal.clarity.example/requests/9e4f2db0-2d71-4f35-b9dc-b52c2a2c972f",
-  pwaInstallUrl:
-    "https://portal.clarity.example/requests/9e4f2db0-2d71-4f35-b9dc-b52c2a2c972f?install=1",
-  notes:
-    "Заявка сформирована после диалога с LLM: материалы подтверждены, допуски и количество зафиксированы.",
+const fileMetadata: Record<string, FileMetadata> = {
+  "file-stl-1": {
+    id: "file-stl-1",
+    name: "t1_ssict_m.stl",
+    fileType: "model/stl",
+    size: 812000,
+    createdAt: now,
+    updatedAt: now,
+  } as FileMetadata,
+  "file-glb-1": {
+    id: "file-glb-1",
+    name: "locking-nut-1-rv1.glb",
+    fileType: "model/gltf-binary",
+    size: 520000,
+    createdAt: now,
+    updatedAt: now,
+  } as FileMetadata,
+  "file-glb-2": {
+    id: "file-glb-2",
+    name: "locking-nut-2-rv1.glb",
+    fileType: "model/gltf-binary",
+    size: 498000,
+    createdAt: now,
+    updatedAt: now,
+  } as FileMetadata,
+  "file-pdf-1": {
+    id: "file-pdf-1",
+    name: "request-notes.pdf",
+    fileType: "application/pdf",
+    size: 184000,
+    createdAt: now,
+    updatedAt: now,
+  } as FileMetadata,
 };
 
-const parts: PartAnalysis[] = [
-  {
-    id: "prt-001",
-    name: "Housing Top",
-    process: "printing",
-    quantity: 4,
-    thumbnailUrl: makePreview("Housing Top", 205),
-    boundingBoxMm: [118, 84, 42],
-    volumeMm3: 22450,
-    surfaceAreaMm2: 18960,
-    massGrams: 27.4,
-    files: [
-      { name: "housing-top.stl", sizeKb: 812, kind: "stl" },
-      { name: "housing-top.glb", sizeKb: 520, kind: "glb" },
+const fields: Record<string, RequestFieldState> = {
+  part: field("part", "Модель / назначение", "фигурки покемонов", {
+    group: "basic",
+    required: true,
+  }),
+  quantity: field("quantity", "Количество", 10, {
+    group: "basic",
+    required: true,
+    type: "number",
+  }),
+  material: field("material", "Пластик / материал", "", {
+    group: "basic",
+    required: true,
+    type: "material",
+  }),
+  printTechnology: field("printTechnology", "Технология печати", "", {
+    group: "basic",
+    required: true,
+  }),
+  color: field("color", "Цвет", "", { group: "basic" }),
+  dimensions: field("dimensions", "Габариты / размеры", "", {
+    group: "geometry",
+    required: true,
+    type: "dimension",
+  }),
+  layerHeight: field("layerHeight", "Высота слоя", "", {
+    group: "quality",
+    type: "number",
+    unit: "мм",
+  }),
+  infill: field("infill", "Заполнение", "", {
+    group: "quality",
+    type: "number",
+    unit: "%",
+  }),
+  finish: field("finish", "Поверхность / постобработка", "", {
+    group: "quality",
+  }),
+  deadline: field("deadline", "Срок", "", {
+    group: "logistics",
+    type: "date",
+  }),
+  city: field("city", "Город доставки", "", {
+    group: "logistics",
+  }),
+  contact: field("contact", "Контакт", "", {
+    group: "contact",
+    required: true,
+  }),
+  file_analysis_estimates: field(
+    "file_analysis_estimates",
+    "Аналитика файлов",
+    [
+      {
+        sourceFileId: "file-stl-1",
+        type: "printing",
+        data: {
+          sourceName: "locking-nut-1-rv1.glb",
+          timeSeconds: 372,
+          weightGrams: 2.6,
+          filamentLengthMeters: 0.87,
+          materialVolumeMm3: 2086,
+          dimensionsMm: { x: 49.3, y: 45.2, z: 28 },
+          estimator: "stl-geometry-rough",
+          assumptions: true,
+        },
+      },
+      {
+        sourceFileId: "file-glb-2",
+        type: "printing",
+        data: {
+          sourceName: "locking-nut-2-rv1.glb",
+          timeSeconds: 390,
+          weightGrams: 2.8,
+          filamentLengthMeters: 0.94,
+          materialVolumeMm3: 2241,
+          dimensionsMm: { x: 52, y: 46.7, z: 30.5 },
+          estimator: "stl-geometry-rough",
+          assumptions: true,
+        },
+      },
     ],
-    print: {
-      filamentType: "PETG Black",
-      layerHeightMm: 0.2,
-      infillPercent: 30,
-      estimatedTimeMin: 128,
-      materialGrams: 31.2,
-      supportVolumeMm3: 4600,
-    },
+    { group: "analysis", type: "json" },
+  ),
+};
+
+const baseModel: RequestModel = {
+  id: "01KSG82AH07J5ZCJ5ZMA1V62MT",
+  source: "assistant:request",
+  status: "draft",
+  processType: "3d_printing",
+  title: "Производственная заявка",
+  summary: "Мне нужно распечатать 10 покемонов",
+  fields,
+  fieldOrder: [
+    "part",
+    "quantity",
+    "material",
+    "printTechnology",
+    "color",
+    "dimensions",
+    "layerHeight",
+    "infill",
+    "finish",
+    "deadline",
+    "city",
+    "contact",
+    "file_analysis_estimates",
+  ],
+  files,
+  missingRequired: ["material", "printTechnology", "dimensions", "contact"],
+  remainingRequired: ["material", "printTechnology", "dimensions", "contact"],
+  remainingDelta: [],
+  completion: {
+    required: 6,
+    filledRequired: 2,
+    total: 12,
+    filledTotal: 3,
+    percent: 33,
   },
-  {
-    id: "prt-002",
-    name: "Air Duct",
-    process: "printing",
-    quantity: 2,
-    thumbnailUrl: makePreview("Air Duct", 162),
-    boundingBoxMm: [140, 56, 48],
-    volumeMm3: 16420,
-    surfaceAreaMm2: 20110,
-    massGrams: 18.6,
-    files: [
-      { name: "air-duct.stl", sizeKb: 674, kind: "stl" },
-      { name: "air-duct.glb", sizeKb: 431, kind: "glb" },
-    ],
-    print: {
-      filamentType: "ASA Gray",
-      layerHeightMm: 0.16,
-      infillPercent: 25,
-      estimatedTimeMin: 92,
-      materialGrams: 21.9,
-      supportVolumeMm3: 2100,
-    },
-  },
-  {
-    id: "cnc-001",
-    name: "Aluminum Fixture Plate",
-    process: "cnc",
-    quantity: 3,
-    thumbnailUrl: makePreview("Fixture Plate", 24),
-    boundingBoxMm: [160, 120, 18],
-    volumeMm3: 345600,
-    surfaceAreaMm2: 63400,
-    massGrams: 912,
-    files: [
-      { name: "fixture-plate.step", sizeKb: 3520, kind: "step" },
-      { name: "fixture-plate.glb", sizeKb: 1480, kind: "glb" },
-    ],
-    cnc: {
-      stockMaterial: "Aluminum 6061",
-      stockSizeMm: [170, 130, 20],
-      setups: 1,
-      toolChanges: 4,
-      machiningTimeMin: 58,
-      toleranceMm: 0.05,
-    },
-  },
-  {
-    id: "cnc-002",
-    name: "Steel Bracket",
-    process: "cnc",
-    quantity: 6,
-    thumbnailUrl: makePreview("Steel Bracket", 4),
-    boundingBoxMm: [82, 60, 10],
-    volumeMm3: 49200,
-    surfaceAreaMm2: 11840,
-    massGrams: 386,
-    files: [
-      { name: "steel-bracket.step", sizeKb: 2140, kind: "step" },
-      { name: "steel-bracket.glb", sizeKb: 930, kind: "glb" },
-    ],
-    cnc: {
-      stockMaterial: "Steel S355",
-      stockSizeMm: [90, 70, 12],
-      setups: 2,
-      toolChanges: 6,
-      machiningTimeMin: 41,
-      toleranceMm: 0.03,
-    },
-  },
-];
+  createdAt: "2026-05-26T01:48:00.000Z",
+  updatedAt: now,
+  revision: 2,
+};
+
+function StoryModelPreview({ alt }: { alt: string }) {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    import("@google/model-viewer")
+      .then(() => setReady(true))
+      .catch(() => setReady(true));
+  }, []);
+
+  if (!ready) {
+    return <div className="request-estimate__empty">Загрузка viewer...</div>;
+  }
+
+  return (
+    <model-viewer
+      alt={alt}
+      auto-rotate=""
+      camera-controls=""
+      src="/test.glb"
+      style={{ display: "block", height: "100%", width: "100%" }}
+    />
+  );
+}
+
+const renderModelPreview = ({ alt }: { alt: string; fileId: string }) => (
+  <StoryModelPreview alt={alt} />
+);
 
 const meta = {
   title: "App/ManufacturingRequest",
@@ -148,19 +242,7 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div className="manufacturing-request-story-scroll" style={{ height: "100vh", overflowY: "auto", overflowX: "hidden" }}>
-        <style>{`
-          @media print {
-            html, body {
-              height: auto !important;
-              overflow: visible !important;
-            }
-            .manufacturing-request-story-scroll {
-              height: auto !important;
-              overflow: visible !important;
-            }
-          }
-        `}</style>
+      <div style={{ height: "100vh", overflow: "auto", background: "#030405" }}>
         <Story />
       </div>
     ),
@@ -172,24 +254,31 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const MixedProcesses: Story = {
+export const DraftWithGaps: Story = {
   args: {
-    request,
-    parts,
+    fileMetadata,
+    model: baseModel,
+    renderModelPreview,
   },
 };
 
-export const CncOnly: Story = {
+export const ProcessedFiles: Story = {
   args: {
-    request: {
-      ...request,
-      id: "c8f9f348-c0d8-43e9-a0f3-1d2ab7f83a81",
-      publicUrl: "https://portal.clarity.example/requests/c8f9f348-c0d8-43e9-a0f3-1d2ab7f83a81",
-      pwaInstallUrl:
-        "https://portal.clarity.example/requests/c8f9f348-c0d8-43e9-a0f3-1d2ab7f83a81?install=1",
-      status: "sent",
-      notes: "Сценарий для подрядчика ЧПУ: только металлообработка без аддитивных деталей.",
+    fileMetadata,
+    model: {
+      ...baseModel,
+      status: "file_analysis_done",
+      revision: 4,
+      completion: {
+        required: 6,
+        filledRequired: 4,
+        total: 12,
+        filledTotal: 8,
+        percent: 67,
+      },
+      missingRequired: ["printTechnology", "contact"],
+      remainingRequired: ["printTechnology", "contact"],
     },
-    parts: parts.filter((item) => item.process === "cnc"),
+    renderModelPreview,
   },
 };

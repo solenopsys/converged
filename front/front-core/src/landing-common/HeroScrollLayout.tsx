@@ -46,6 +46,7 @@ export const heroScrollLayoutCss = `
 .hero-scroll-layout {
   --hsl-topbar-height: 52px;
   --hsl-topbar-docked-height: 164px;
+  --hsl-topbar-surface: color-mix(in oklch, var(--ui-card) 88%, transparent);
   background: var(--ui-background);
   color: var(--ui-foreground);
   min-height: 100vh;
@@ -59,8 +60,8 @@ export const heroScrollLayoutCss = `
   z-index: 1000;
   height: var(--hsl-topbar-height);
   border-bottom: 1px solid color-mix(in oklch, var(--ui-border) 80%, transparent);
-  background: var(--ui-background);
-  background: color-mix(in oklch, var(--ui-background) 92%, transparent);
+  background: var(--ui-card);
+  background: var(--hsl-topbar-surface);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   overflow: visible;
@@ -74,8 +75,8 @@ export const heroScrollLayoutCss = `
 html[data-hero-input-docked="1"] .hero-scroll-layout__topbar {
   height: var(--hsl-topbar-docked-height);
   border-bottom-color: color-mix(in oklch, var(--ui-foreground) 12%, transparent);
-  background: var(--ui-background);
-  background: color-mix(in oklch, var(--ui-background) 96%, transparent);
+  background: var(--ui-card);
+  background: var(--hsl-topbar-surface);
   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.18);
 }
 

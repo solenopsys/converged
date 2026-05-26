@@ -1,20 +1,9 @@
 import { Paperclip, Send, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button, Textarea } from "../ui";
+import { CHAT_TAB_ID, type PanelAction, type PanelTab, type RailScreen } from "../../landing-common/control-panel-model";
 
-export interface RailScreen {
-	id: string;
-	label: string;
-	detail?: string;
-	icon: ReactNode;
-}
-
-export interface RailQuickAction {
-	id: string;
-	label: string;
-	prompt: string;
-	icon: ReactNode;
-}
+export type { PanelAction, PanelTab, RailScreen };
 
 export interface ConvergedRailPanelProps {
 	logoLight?: string;
@@ -24,7 +13,7 @@ export interface ConvergedRailPanelProps {
 	onScreenChange?: (id: string) => void;
 	onScreenClose?: (id: string) => void;
 	menuSlot?: ReactNode;
-	quickActions?: RailQuickAction[];
+	quickActions?: PanelAction[];
 	onQuickAction?: (prompt: string) => void;
 	chatSlot?: ReactNode;
 	composerValue?: string;
@@ -33,6 +22,12 @@ export interface ConvergedRailPanelProps {
 	onComposerAttach?: () => void;
 	composerPlaceholder?: string;
 	controls?: ReactNode;
+	/** Full tab list including the implicit chat tab. Strip shows only when length > 1. */
+	tabs?: PanelTab[];
+	activeTabId?: string;
+	onTabChange?: (id: string) => void;
+	/** Content for the currently active non-chat tab. */
+	tabContent?: ReactNode;
 }
 
 export function ConvergedRailPanel({
@@ -52,11 +47,18 @@ export function ConvergedRailPanel({
 	onComposerAttach,
 	composerPlaceholder = "Ask anything...",
 	controls,
+	tabs = [],
+	activeTabId = CHAT_TAB_ID,
+	onTabChange,
+	tabContent,
 }: ConvergedRailPanelProps) {
+	const showTabStrip = tabs.length > 1;
+	const isChatActive = activeTabId === CHAT_TAB_ID;
+	const hasTabContent = !isChatActive && tabContent != null;
 	return (
 		<>
 			<style>{css}</style>
-			<section className="crp" aria-label="Converged panel">
+			<section className="crp" aria-label="Converged panel" data-tab-active={hasTabContent ? "1" : "0"}>
 				<header className="ssr-panel-head crp-head">
 					<div className="crp-brand">
 						{logoLight && (
@@ -79,7 +81,34 @@ export function ConvergedRailPanel({
 					{controls && <div className="crp-controls">{controls}</div>}
 				</header>
 
-				<div className="crp-menu">
+				{showTabStrip && (
+					<nav className="crp-tabs" aria-label="Panel tabs">
+						{tabs.map((tab) => {
+							const isActive = tab.id === activeTabId;
+							return (
+								<Button
+									key={tab.id}
+									className="crp-tab"
+									type="button"
+									variant="ghost"
+									size="icon"
+									aria-label={tab.label}
+									aria-pressed={isActive}
+									title={tab.label}
+									onClick={() => onTabChange?.(tab.id)}
+								>
+									{tab.icon}
+								</Button>
+							);
+						})}
+					</nav>
+				)}
+
+				{hasTabContent ? (
+					<div className="crp-tab-content">{tabContent}</div>
+				) : (
+					<>
+						<div className="crp-menu">
 					{menuSlot}
 
 					{screens.length > 0 && (
@@ -185,6 +214,8 @@ export function ConvergedRailPanel({
 						</Button>
 					</form>
 				</footer>
+					</>
+				)}
 			</section>
 		</>
 	);
@@ -195,16 +226,57 @@ const css = `
   --crp-radius: 10px;
   width: 100%;
   height: 100%;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: 54px auto minmax(0, 1fr) 64px;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   background: var(--ui-card);
   color: var(--ui-foreground);
 }
 
+.crp-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 14px;
+  border-bottom: 1px solid color-mix(in oklch, var(--ui-border) 74%, transparent);
+  flex-shrink: 0;
+}
+
+.crp .crp-tab {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in oklch, currentColor 18%, transparent);
+  border-radius: 10px;
+  background: transparent;
+  color: color-mix(in oklch, currentColor 78%, transparent);
+  cursor: pointer;
+}
+
+.crp .crp-tab:hover {
+  background: color-mix(in oklch, var(--ui-muted) 70%, transparent);
+  color: var(--ui-foreground);
+}
+
+.crp .crp-tab[aria-pressed="true"] {
+  background: color-mix(in oklch, var(--ui-muted) 92%, transparent);
+  border-color: color-mix(in oklch, currentColor 36%, transparent);
+  color: var(--ui-foreground);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, currentColor 10%, transparent);
+}
+
+.crp-tab-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px;
+}
+
 .crp-head {
-  grid-row: 1;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -251,7 +323,7 @@ const css = `
 }
 
 .crp-menu {
-  grid-row: 2;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -346,7 +418,7 @@ const css = `
 }
 
 .crp-chat {
-  grid-row: 3;
+  flex: 1 1 auto;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -376,7 +448,7 @@ const css = `
 }
 
 .crp-composer {
-  grid-row: 4;
+  flex-shrink: 0;
   padding: 10px 12px;
   border-top: 1px solid color-mix(in oklch, var(--ui-border) 74%, transparent);
   background: color-mix(in oklch, var(--ui-card) 92%, transparent);

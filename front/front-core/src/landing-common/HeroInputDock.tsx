@@ -35,6 +35,24 @@ export function HeroInputDock({
   mode = "effector",
   submitLabel = "Send",
 }: HeroInputDockProps) {
+  if (typeof window === "undefined") {
+    return (
+      <>
+        <style>{heroDockCss}</style>
+        <HeroInputDockStatic
+          attachLabel={attachLabel}
+          chips={chips}
+          contextName={contextName}
+          inputLabel={inputLabel}
+          landingEventMode={mode === "landing-event"}
+          messageInputName={messageInputName}
+          placeholder={placeholder}
+          submitLabel={submitLabel}
+        />
+      </>
+    );
+  }
+
   const [value, setValue] = useState("");
   const { slotRef, docked } = useHeroDock();
   const landingEventMode = mode === "landing-event";
@@ -131,6 +149,84 @@ export function HeroInputDock({
   );
 }
 
+function HeroInputDockStatic({
+  attachLabel,
+  chips,
+  contextName,
+  inputLabel,
+  landingEventMode,
+  messageInputName,
+  placeholder,
+  submitLabel,
+}: {
+  attachLabel: string;
+  chips: HeroChip[];
+  contextName: string;
+  inputLabel: string;
+  landingEventMode: boolean;
+  messageInputName: string;
+  placeholder: string;
+  submitLabel: string;
+}) {
+  return (
+    <div className="hsl-hero-input-slot">
+      <div className="hsl-hero-input">
+        <div className="hsl-input-wrap">
+          <form
+            className="hsl-form"
+            autoComplete="off"
+            data-landing-event={landingEventMode ? "chat.open" : undefined}
+            data-landing-context-name={landingEventMode ? contextName : undefined}
+            data-landing-message-input={landingEventMode ? `[name="${messageInputName}"]` : undefined}
+          >
+            <textarea
+              className="hsl-textarea"
+              name={messageInputName}
+              aria-label={inputLabel}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              data-lpignore="true"
+              data-form-type="other"
+              rows={1}
+              wrap="off"
+              placeholder={placeholder}
+            />
+            <button
+              className="hsl-attach"
+              type="button"
+              aria-label={attachLabel}
+              data-landing-event={landingEventMode ? "chat.attach" : undefined}
+              data-landing-context-name={landingEventMode ? contextName : undefined}
+            >
+              <span aria-hidden="true">↥</span>
+            </button>
+            <button className="hsl-send" type="submit" aria-label={submitLabel}>
+              <span aria-hidden="true">➤</span>
+            </button>
+          </form>
+
+          {chips.length > 0 && (
+            <div className="hsl-chips">
+              {chips.map((chip) => (
+                <button
+                  key={chip.label}
+                  className="hsl-chip"
+                  type="button"
+                  data-hero-prompt={landingEventMode ? chip.prompt : undefined}
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export const heroDockCss = `
 .hsl-hero-input-slot {
   --hsl-input-width: min(880px, calc(100vw - 40px));
@@ -180,8 +276,8 @@ export const heroDockCss = `
   height: var(--hsl-topbar-docked-height, 164px);
   z-index: 999;
   pointer-events: none;
-  background: var(--ui-background);
-  background: color-mix(in oklch, var(--ui-background) 96%, transparent);
+  background: var(--ui-card);
+  background: color-mix(in oklch, var(--ui-card) 88%, transparent);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid color-mix(in oklch, var(--ui-foreground) 12%, transparent);
@@ -199,8 +295,8 @@ html[data-hero-input-docked="1"] .ltb--compact {
 
 html[data-hero-input-docked="1"] #ssr-control-panel-root {
   height: var(--hsl-topbar-docked-height, 164px) !important;
-  background: var(--ui-background) !important;
-  background: color-mix(in oklch, var(--ui-background) 96%, transparent) !important;
+  background: var(--ui-card) !important;
+  background: color-mix(in oklch, var(--ui-card) 88%, transparent) !important;
   backdrop-filter: blur(20px) !important;
   -webkit-backdrop-filter: blur(20px) !important;
   border-bottom: 1px solid color-mix(in oklch, var(--ui-foreground) 12%, transparent) !important;

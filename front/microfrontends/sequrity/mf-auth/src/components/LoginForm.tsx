@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useStore } from "effector-react";
+import { useUnit } from "effector-react";
 import { cn, Button, Input, Label, useMicrofrontendTranslation } from "front-core";
 import { toast } from "sonner";
 import { SocialsPanel } from "./Socials";
@@ -9,8 +9,8 @@ const AUTH_MF_ID = "auth-mf";
 
 export function LoginForm({ className, ...props }: React.ComponentProps<"div">) {
   const { t } = useMicrofrontendTranslation(AUTH_MF_ID);
-  const status = useStore($magicLinkStatus);
-  const error  = useStore($magicLinkError);
+  const status = useUnit($magicLinkStatus);
+  const error  = useUnit($magicLinkError);
 
   const [email, setEmail] = useState("");
 
