@@ -12,8 +12,12 @@ import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { useUnit } from "effector-react";
 import { ControlPanel } from "../components/control-panel/ControlPanel";
+import { rightRailActionSelected } from "../components/right-rail/uri-sync";
+import { SidebarProvider } from "../components/ui/sidebar";
+import { runActionEvent } from "../controllers";
 import { SlotProvider } from "../slots/SlotProvider";
 import { $slotContents } from "../slots/slots";
+import { MenuView } from "../views/MenuView";
 import type { ReactNode } from "react";
 import {
 	$controlPanelMode,
@@ -29,6 +33,7 @@ import {
 	loginEnabledSet,
 	loginRequested,
 	logoutRequested,
+	MENU_TAB_ID,
 	menuLinksSet,
 	panelActionsSet,
 	screensSet,
@@ -113,11 +118,16 @@ function ChatSlot() {
 	);
 }
 
-function menuSlot() {
+function MenuTab() {
 	return (
-		<nav id="ssr-left-panel" className="crp-menu-slot" aria-label="Menu">
-			<div className="ssr-panel-groups" data-ssr-menu-groups />
-		</nav>
+		<SidebarProvider className="min-h-0 w-full flex-1 bg-transparent" defaultOpen>
+			<MenuView
+				onClick={(actionId) => {
+					rightRailActionSelected(actionId);
+					runActionEvent({ actionId, params: {} });
+				}}
+			/>
+		</SidebarProvider>
 	);
 }
 
@@ -166,9 +176,11 @@ export function mountControlPanelRuntime(
 					<style>{runtimeCss}</style>
 					<ControlPanel
 						chatSlot={<ChatSlot />}
-						menuSlot={menuSlot()}
 						composerPlaceholder={options.chatPlaceholder}
-						tabContents={options.tabContents}
+						tabContents={{
+							[MENU_TAB_ID]: <MenuTab />,
+							...options.tabContents,
+						}}
 					/>
 					{/* SlotProvider must be rendered unconditionally so portals into
 					    #slot-panel-tab keep working across tab switches. */}
@@ -205,11 +217,6 @@ const runtimeCss = `
 .cp-runtime { width: 100%; height: 100%; }
 .cp-runtime[data-mode="public"] { height: auto; }
 .cp-runtime[data-mode="app"] { height: 100vh; }
-
-#ssr-left-panel {
-  max-height: 220px;
-  border-bottom: 1px solid color-mix(in oklch, var(--ui-border) 74%, transparent);
-}
 `;
 
 const slotsCss = `

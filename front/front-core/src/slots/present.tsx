@@ -1,6 +1,7 @@
 import { Widget } from "@/plugin/types_actions";
-import { tabActivated } from "sidebar-controller";
+import { tabActivated, tabRegistered, tabContentRegistered } from "../landing-common/control-panel-model";
 import { mountWhenReady } from ".";
+import { SlotInline } from "./SlotInline";
 import { dashboardSlots } from "./dashboard_slots";
 import { createStore, createEvent } from "effector";
 import type { ComponentType } from "react";
@@ -65,8 +66,10 @@ export const present = async (widget: Widget<any>, slot: string | string[], moun
     }
 
     if (point.startsWith("sidebar:tab:")) {
-        tabActivated(point.replace("sidebar:tab:", ""));
-        setActivePanel("chat");
+        const tabId = point.replace("sidebar:tab:", "");
+        tabRegistered({ id: tabId, icon: null, label: tabId.charAt(0).toUpperCase() + tabId.slice(1) });
+        tabContentRegistered({ id: tabId, content: <SlotInline slotId={point} /> });
+        tabActivated(tabId);
         setCollapsed(false);
     } else if (point === "sidebar:right") {
         setActivePanel("chat");

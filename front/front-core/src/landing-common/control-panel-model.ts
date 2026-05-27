@@ -149,10 +149,25 @@ export const CHAT_TAB_ID = "chat";
 export const MENU_TAB_ID = "menu";
 
 export const tabsSet = createEvent<PanelTab[]>();
+export const tabRegistered = createEvent<PanelTab>();
 export const tabActivated = createEvent<string>();
 
-export const $tabs = createStore<PanelTab[]>([]).on(tabsSet, (_, v) => v);
+export const $tabs = createStore<PanelTab[]>([])
+	.on(tabsSet, (_, v) => v)
+	.on(tabRegistered, (tabs, tab) => {
+		const idx = tabs.findIndex((t) => t.id === tab.id);
+		if (idx >= 0) return tabs.map((t, i) => (i === idx ? tab : t));
+		return [...tabs, tab];
+	});
+
 export const $activeTabId = createStore<string>(CHAT_TAB_ID).on(tabActivated, (_, id) => id);
+
+// Dynamic tab content registered by MFs
+export const tabContentRegistered = createEvent<{ id: string; content: ReactNode }>();
+export const $tabContents = createStore<Record<string, ReactNode>>({}).on(
+	tabContentRegistered,
+	(state, { id, content }) => ({ ...state, [id]: content }),
+);
 
 // ── Composer (shared between top-bar input and rail composer) ─────────────────
 

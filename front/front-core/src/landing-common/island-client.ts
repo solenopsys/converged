@@ -26,6 +26,7 @@ import {
 	controlPanelClosed,
 	controlPanelModeChanged,
 	controlPanelOpened,
+	MENU_TAB_ID,
 	readControlPanelMode,
 	tabActivated,
 	type ControlPanelMode,
@@ -57,6 +58,7 @@ const SSR_RAIL_MAX_WIDTH = 680;
 const SSR_RAIL_DEFAULT_WIDTH = 380;
 let heroRequestCleanup: (() => void) | null = null;
 let controlPanelModeUnwatch: (() => void) | null = null;
+let menuTabBound = false;
 const RIGHT_RAIL_QUERY_KEYS = [
 	"sidebarTab",
 	"sidebarPanel",
@@ -368,6 +370,32 @@ function installDynamicMenuIfReady(): void {
 	installDynamicMenu(menuPanel);
 }
 
+async function ensureMenuStoreReady(): Promise<void> {
+	if (!isAuthenticated()) {
+		const initial = readInitialData();
+		const guestItems: RuntimeMenuItem[] = Array.isArray(initial.guestMenu)
+			? initial.guestMenu
+			: [];
+		if (guestItems.length > 0) {
+			addMenuRequested({ microfrontendId: "guest", menu: guestItems });
+		}
+		return;
+	}
+
+	const names = await discoverMicrofrontends();
+	const groupIds = Array.from(new Set(names.map((name) => getMfGroup(name))));
+	await Promise.all(groupIds.map((groupId) => ensureGroupLoaded(groupId)));
+}
+
+function bindMenuTabActivation(): void {
+	if (menuTabBound) return;
+	menuTabBound = true;
+	tabActivated.watch((id) => {
+		if (id !== MENU_TAB_ID) return;
+		void ensureMenuStoreReady();
+	});
+}
+
 function resetHeroInputDock(): void {
 	document
 		.querySelector<HTMLElement>(".hsl-hero-input")
@@ -606,6 +634,7 @@ async function ensureControlPanelRuntime(): Promise<void> {
 		const menuLinks = await loadControlPanelMenuLinks(hostOptions.menuLinks);
 		const initialMode = resolveInitialControlPanelMode();
 		controlPanelModeChanged(initialMode);
+		bindMenuTabActivation();
 		controlPanelRuntime = mountControlPanelRuntime(host, {
 			logoLight: hostOptions.logoLight,
 			logoDark: hostOptions.logoDark,
@@ -649,12 +678,8 @@ async function ensureControlPanelRuntime(): Promise<void> {
 				? [{ id: "auth", icon: createElement(KeyRound, { size: 17 }), label: "Sign in" }]
 				: [],
 			tabContents: {
-				// mf-auth presents LoginView into slot "sidebar:tab:auth" which gets
-				// normalized to "sidebar:tab" in $slotContents. SlotInline reads the
-				// store directly and renders the content inline — no portal, no DOM
-				// mount-point lookup, no SlotProvider ownership races.
-				auth: createElement(SlotInline, { slotId: "sidebar:tab" }),
-			},
+					auth: createElement(SlotInline, { slotId: "sidebar:tab:auth" }),
+				},
 		});
 		if (readControlPanelMode() === "app") {
 			installDynamicMenuIfReady();

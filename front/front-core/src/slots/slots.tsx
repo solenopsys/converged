@@ -22,9 +22,6 @@ function resolveMountPointId(slotId: SlotId): string {
 }
 
 function normalizeSlotId(slotId: SlotId): SlotId {
-  if (slotId.startsWith("sidebar:tab:")) {
-    return "sidebar:tab";
-  }
   return slotId;
 }
 

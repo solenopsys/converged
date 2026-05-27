@@ -1,7 +1,7 @@
 import { Paperclip, Send, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button, Textarea } from "../ui";
-import { CHAT_TAB_ID, MENU_TAB_ID, type PanelAction, type PanelTab, type RailScreen } from "../../landing-common/control-panel-model";
+import { CHAT_TAB_ID, type PanelAction, type PanelTab, type RailScreen } from "../../landing-common/control-panel-model";
 
 export type { PanelAction, PanelTab, RailScreen };
 
@@ -12,7 +12,6 @@ export interface ConvergedRailPanelProps {
 	activeScreenId?: string;
 	onScreenChange?: (id: string) => void;
 	onScreenClose?: (id: string) => void;
-	menuSlot?: ReactNode;
 	quickActions?: PanelAction[];
 	onQuickAction?: (prompt: string) => void;
 	chatSlot?: ReactNode;
@@ -37,7 +36,6 @@ export function ConvergedRailPanel({
 	activeScreenId,
 	onScreenChange,
 	onScreenClose,
-	menuSlot,
 	quickActions = [],
 	onQuickAction,
 	chatSlot,
@@ -54,8 +52,7 @@ export function ConvergedRailPanel({
 }: ConvergedRailPanelProps) {
 	const showTabStrip = tabs.length > 1;
 	const isChatActive = activeTabId === CHAT_TAB_ID;
-	const isMenuActive = activeTabId === MENU_TAB_ID;
-	const hasTabContent = (!isChatActive && tabContent != null) || isMenuActive;
+	const hasTabContent = !isChatActive && tabContent != null;
 	return (
 		<>
 			<style>{css}</style>
@@ -105,15 +102,7 @@ export function ConvergedRailPanel({
 					</nav>
 				)}
 
-				{isMenuActive ? (
-					<div className="crp-tab-content crp-tab-content--menu">
-						{menuSlot ?? (
-							<div className="crp-tab-empty">
-								Menu is not available.
-							</div>
-						)}
-					</div>
-				) : hasTabContent ? (
+				{hasTabContent ? (
 					<div className="crp-tab-content">{tabContent}</div>
 				) : (
 					<>

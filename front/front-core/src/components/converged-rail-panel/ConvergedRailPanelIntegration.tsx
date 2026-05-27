@@ -9,6 +9,7 @@ import {
 	$panelActions,
 	$screens,
 	$tabs,
+	$tabContents,
 	CHAT_TAB_ID,
 	MENU_TAB_ID,
 	chatOpenRequested,
@@ -41,7 +42,7 @@ export function ConvergedRailPanelIntegration({
 	tabContents,
 	chatTab,
 }: ConvergedRailPanelIntegrationProps) {
-	const [branding, screens, activeScreenId, actions, composer, userTabs, activeTabId] = useUnit([
+	const [branding, screens, activeScreenId, actions, composer, userTabs, activeTabId, dynamicTabContents] = useUnit([
 		$branding,
 		$screens,
 		$activeScreenId,
@@ -49,32 +50,38 @@ export function ConvergedRailPanelIntegration({
 		$composerValue,
 		$tabs,
 		$activeTabId,
+		$tabContents,
 	]);
 
 	const tabs = useMemo<PanelTab[]>(
 		() => {
 			const reserved = new Set([CHAT_TAB_ID, MENU_TAB_ID]);
+			const hasMenuTab = Boolean(menuSlot || tabContents?.[MENU_TAB_ID]);
 			return [
 				{
 					id: CHAT_TAB_ID,
 					icon: chatTab?.icon ?? <MessageSquare size={17} />,
 					label: chatTab?.label ?? "Chat",
 				},
-				{
-					id: MENU_TAB_ID,
-					icon: <ListTree size={17} />,
-					label: "Menu",
-				},
+				...(hasMenuTab
+					? [{
+						id: MENU_TAB_ID,
+						icon: <ListTree size={17} />,
+						label: "Menu",
+					}]
+					: []),
 				...userTabs.filter((tab) => !reserved.has(tab.id)),
 			];
 		},
-		[userTabs, chatTab?.icon, chatTab?.label],
+		[userTabs, chatTab?.icon, chatTab?.label, menuSlot, tabContents],
 	);
 
 	const tabContent =
-		activeTabId !== CHAT_TAB_ID && activeTabId !== MENU_TAB_ID && tabContents
-			? tabContents[activeTabId]
-			: undefined;
+		activeTabId === CHAT_TAB_ID
+			? undefined
+			: activeTabId === MENU_TAB_ID
+				? tabContents?.[MENU_TAB_ID] ?? menuSlot
+				: tabContents?.[activeTabId] ?? dynamicTabContents[activeTabId];
 
 	return (
 		<ConvergedRailPanel
@@ -84,7 +91,6 @@ export function ConvergedRailPanelIntegration({
 			activeScreenId={activeScreenId}
 			onScreenChange={screenActivated}
 			onScreenClose={screenClosed}
-			menuSlot={menuSlot}
 			quickActions={actions}
 			onQuickAction={panelActionTriggered}
 			chatSlot={chatSlot}
