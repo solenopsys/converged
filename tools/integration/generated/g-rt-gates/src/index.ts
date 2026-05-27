@@ -16,7 +16,6 @@ export type MagicLinkResult = {
 export const metadata = {
   "interfaceName": "RuntimeGatesService",
   "serviceName": "gates",
-  "packageName": "g-rt-gates",
   "filePath": "runtime/automation/gates.ts",
   "methods": [
     {

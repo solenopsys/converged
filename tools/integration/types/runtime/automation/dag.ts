@@ -1,8 +1,3 @@
-/**
- * @nrpc-service dag
- * @nrpc-package g-rt-dag
- */
-
 export type ExecutionStatus = "running" | "done" | "failed";
 export type TaskState = "queued" | "processing" | "done" | "failed";
 

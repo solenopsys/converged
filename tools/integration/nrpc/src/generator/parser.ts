@@ -76,27 +76,20 @@ class InterfaceParser {
     }
 
     const interfaceName = serviceInterface.id.name;
-    const serviceName = this.extractDirective(content, "service") ?? this.extractServiceName(interfaceName);
-    const packageName = this.extractDirective(content, "package");
+    const serviceName = this.extractServiceName(interfaceName);
     const methods = this.extractMethods(serviceInterface.body.body, content);
 
     return {
       interfaceName,
       serviceName,
-      ...(packageName ? { packageName } : {}),
       filePath,
       methods,
       types,
     };
   }
 
-  private extractDirective(content: string, name: "service" | "package"): string | undefined {
-    const match = content.match(new RegExp(`@nrpc-${name}\\s+([a-zA-Z0-9_-]+)`));
-    return match?.[1];
-  }
-
   private extractServiceName(interfaceName: string): string {
-    return interfaceName.replace("Service", "").toLowerCase();
+    return interfaceName.replace(/^Runtime/, "").replace(/Service$/, "").toLowerCase();
   }
 
   private extractTypeParameters(node: any, sourceContent: string): string | undefined {

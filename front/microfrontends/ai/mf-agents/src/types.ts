@@ -7,7 +7,7 @@ import {
   type PaginatedResult,
   type ToolDefinition,
   type TokenUsage,
-} from "g-rt-agents";
+} from "g-rt-agent";
 
 export {
   AgentStreamEventType,

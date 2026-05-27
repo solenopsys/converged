@@ -2,7 +2,6 @@
 import { readdirSync } from "fs";
 import { resolve, join, relative } from "path";
 import { spawnSync } from "bun";
-import { InterfaceParser } from "./generator/parser";
 
 const typesDir = process.argv[2];
 const generatedDir = process.argv[3];
@@ -51,11 +50,17 @@ if (files.length === 0) {
 
 console.log(`Found ${files.length} type file(s):\n`);
 
-const parser = new InterfaceParser();
+function derivePackageName(relPath: string): string {
+  const parts = relPath.replace(/\.ts$/, "").split("/");
+  const fileName = parts[parts.length - 1];
+  const prefixMap: Record<string, string> = { runtime: "rt" };
+  const prefix = prefixMap[parts[0]];
+  return prefix ? `g-${prefix}-${fileName}` : `g-${fileName}`;
+}
+
 const plans = files.map((file) => {
-  const metadata = parser.parseInterface(file);
-  const packageName = metadata.packageName || `g-${metadata.serviceName}`;
   const name = relative(TYPES_DIR, file).replaceAll("\\", "/").replace(/\.ts$/, "");
+  const packageName = derivePackageName(relative(TYPES_DIR, file).replaceAll("\\", "/"));
   return { file, name, packageName };
 });
 
@@ -72,7 +77,7 @@ if (collisions.length > 0) {
   for (const [packageName, names] of collisions) {
     console.error(`  ${packageName}: ${names.join(", ")}`);
   }
-  console.error("Add @nrpc-package to colliding interfaces or rename the service.");
+  console.error("Rename the colliding type files or move them to different directories.");
   process.exit(1);
 }
 

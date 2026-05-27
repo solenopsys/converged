@@ -1,5 +1,5 @@
-export type { AccessLevel } from "./decorator/access.decorator";
-export { Access, resolveMethodAccess } from "./decorator/access.decorator";
+export type { AccessLevel, LLMOptions } from "./decorator/access.decorator";
+export { Access, resolveMethodAccess, Service, resolveServiceName, LLM, resolveMethodLLM } from "./decorator/access.decorator";
 
 export type {
 	AccessMode,

@@ -16,6 +16,7 @@ import { ToolRegistry } from "./tools/registry";
 import type { Tool } from "./tools/base";
 import { createAgentServiceClient } from "g-agent";
 import { AgentLogger } from "./telemetry";
+import { Service } from "nrpc";
 
 type AgentRuntimeConfig = {
   defaults?: {
@@ -52,6 +53,7 @@ class PersistentSessionStore {
   }
 }
 
+@Service("agent")
 export class AgentRuntimeService {
   private store = new PersistentSessionStore();
   private providerRegistry: ProviderRegistry;

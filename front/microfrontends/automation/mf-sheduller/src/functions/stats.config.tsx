@@ -5,12 +5,14 @@ const SHOW_STATS = "sheduller.stats.show";
 
 const createStatsWidget: CreateWidget<typeof StatsView> = (bus) => ({
   view: StatsView,
-  placement: () => "center",
+  placement: () => ["float", "dashboard"],
   config: { bus },
 });
 
 const createShowStatsAction: CreateAction<any> = (bus) => ({
   id: SHOW_STATS,
+  brief: "Open cron jobs statistics (runs, success/failure rates, timing)",
+  category: "analytics",
   description: "Show sheduller statistics",
   invoke: () => {
     bus.present({ widget: createStatsWidget(bus) });

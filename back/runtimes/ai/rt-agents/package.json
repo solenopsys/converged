@@ -21,7 +21,7 @@
     "g-requests": "workspace:*",
     "g-store": "workspace:*",
     "g-telemetry": "workspace:*",
-    "g-rt-agents": "workspace:*",
+    "g-rt-agent": "workspace:*",
     "nrpc": "workspace:*",
     "openai": "latest"
   }

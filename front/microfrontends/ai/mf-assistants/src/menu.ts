@@ -1,4 +1,4 @@
-import { SHOW_CHATS_LIST, SHOW_CONTEXTS_LIST, SHOW_COMMANDS_LIST } from './functions';
+import { SHOW_CHATS_LIST, SHOW_CONTEXTS_LIST } from './functions';
 
 export const MENU = {
     "title": "menu.chats",
@@ -18,11 +18,6 @@ export const MENU = {
             "title": "menu.contexts",
             "key": "contexts",
             "action": SHOW_CONTEXTS_LIST
-        },
-        {
-            "title": "menu.commands",
-            "key": "commands",
-            "action": SHOW_COMMANDS_LIST
         },
     ]
 };

@@ -42,7 +42,6 @@ export type ResumeExecutionsResult = {
 export const metadata = {
   "interfaceName": "RuntimeDagService",
   "serviceName": "dag",
-  "packageName": "g-rt-dag",
   "filePath": "runtime/automation/dag.ts",
   "methods": [
     {

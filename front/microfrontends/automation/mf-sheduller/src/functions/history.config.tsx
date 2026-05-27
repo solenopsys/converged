@@ -13,6 +13,8 @@ const createHistoryWidget: CreateWidget<typeof HistoryView> = (bus) => ({
 
 const createShowHistoryAction: CreateAction<any> = (bus) => ({
   id: SHOW_HISTORY,
+  brief: "Open cron jobs execution history log",
+  category: "automation",
   description: "Show history",
   invoke: () => {
     bus.present({ widget: createHistoryWidget(bus) });

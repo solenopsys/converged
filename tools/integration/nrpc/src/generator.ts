@@ -17,6 +17,14 @@ if (!typesFile || !genParentDir) {
   process.exit(1);
 }
 
+function derivePackageName(relPath: string): string {
+  const parts = relPath.replace(/\.ts$/, "").split("/");
+  const fileName = parts[parts.length - 1];
+  const prefixMap: Record<string, string> = { runtime: "rt" };
+  const prefix = prefixMap[parts[0]];
+  return prefix ? `g-${prefix}-${fileName}` : `g-${fileName}`;
+}
+
 function generateTypeDefinitions(types: TypeMetadata[]): string {
   return types
     .map((type) => {
@@ -91,7 +99,8 @@ try {
     filePath: relative(typesRootPath, typesPath).replaceAll("\\", "/"),
   };
 
-  const packageName = metadata.packageName || `g-${metadata.serviceName}`;
+  const relPath = relative(typesRootPath, typesPath).replaceAll("\\", "/");
+  const packageName = derivePackageName(relPath);
   const packageDir = resolve(cwd, genParentDir, packageName);
   const srcDir = join(packageDir, "src");
 

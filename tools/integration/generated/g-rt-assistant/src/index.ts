@@ -130,7 +130,6 @@ export type RequestModelSnapshot = {
 export const metadata = {
   "interfaceName": "RuntimeAssistantService",
   "serviceName": "assistant",
-  "packageName": "g-rt-assistant",
   "filePath": "runtime/ai/assistant.ts",
   "methods": [
     {

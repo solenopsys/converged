@@ -6,7 +6,6 @@ import { createHttpClient } from "nrpc";
 export const metadata = {
   "interfaceName": "RuntimeCronService",
   "serviceName": "cron",
-  "packageName": "g-rt-cron",
   "filePath": "runtime/automation/cron.ts",
   "methods": [
     {

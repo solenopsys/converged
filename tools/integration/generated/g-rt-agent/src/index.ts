@@ -53,8 +53,7 @@ export type TokenUsage = {
 
 export const metadata = {
   "interfaceName": "RuntimeAgentService",
-  "serviceName": "agents",
-  "packageName": "g-rt-agents",
+  "serviceName": "agent",
   "filePath": "runtime/ai/agent.ts",
   "methods": [
     {
@@ -225,4 +224,4 @@ export function createRuntimeAgentServiceClient(
 }
 
 // Ready-to-use client
-export const agentsClient = createRuntimeAgentServiceClient();
+export const agentClient = createRuntimeAgentServiceClient();

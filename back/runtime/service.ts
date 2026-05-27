@@ -4,7 +4,7 @@ import { createDagServiceClient, type ResumeExecutionsResult } from "g-dag";
 import { createShedullerServiceClient } from "g-sheduller";
 import { CronEngine } from "./engines/cron";
 import { sendMagicLink } from "./gates/send-magic-link";
-import { Access } from "nrpc";
+import { Access, Service } from "nrpc";
 import { initProvidersPool } from "./workflows/providers";
 import { RuntimeScriptResolver, type WorkflowCtor } from "./script-resolver";
 import { requireServicesBaseUrl, servicesHealthUrl } from "./env";
@@ -607,18 +607,21 @@ export class RuntimeServiceImpl {
   }
 }
 
+@Service("dag")
 export class DagRuntimeService extends RuntimeServiceImpl {
   constructor(config?: RuntimeServiceConfig) {
     super({ ...config, features: ["dag"] });
   }
 }
 
+@Service("cron")
 export class CronRuntimeService extends RuntimeServiceImpl {
   constructor(config?: RuntimeServiceConfig) {
     super({ ...config, features: ["cron"] });
   }
 }
 
+@Service("gates")
 export class GatesRuntimeService extends RuntimeServiceImpl {
   constructor(config?: RuntimeServiceConfig) {
     super({ ...config, features: ["gates"] });

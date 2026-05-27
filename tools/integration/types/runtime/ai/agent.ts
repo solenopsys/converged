@@ -1,8 +1,3 @@
-/**
- * @nrpc-service agents
- * @nrpc-package g-rt-agents
- */
-
 export enum AgentStreamEventType {
   TEXT_DELTA = "text_delta",
   TOOL_CALL_START = "tool_call_start",

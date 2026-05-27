@@ -1,5 +1,5 @@
 import { useMemo, type ReactNode } from "react";
-import { MessageSquare } from "lucide-react";
+import { ListTree, MessageSquare } from "lucide-react";
 import { useUnit } from "effector-react";
 import {
 	$activeScreenId,
@@ -10,6 +10,7 @@ import {
 	$screens,
 	$tabs,
 	CHAT_TAB_ID,
+	MENU_TAB_ID,
 	chatOpenRequested,
 	composerAttachRequested,
 	composerCleared,
@@ -51,18 +52,29 @@ export function ConvergedRailPanelIntegration({
 	]);
 
 	const tabs = useMemo<PanelTab[]>(
-		() => [
-			{
-				id: CHAT_TAB_ID,
-				icon: chatTab?.icon ?? <MessageSquare size={17} />,
-				label: chatTab?.label ?? "Chat",
-			},
-			...userTabs,
-		],
+		() => {
+			const reserved = new Set([CHAT_TAB_ID, MENU_TAB_ID]);
+			return [
+				{
+					id: CHAT_TAB_ID,
+					icon: chatTab?.icon ?? <MessageSquare size={17} />,
+					label: chatTab?.label ?? "Chat",
+				},
+				{
+					id: MENU_TAB_ID,
+					icon: <ListTree size={17} />,
+					label: "Menu",
+				},
+				...userTabs.filter((tab) => !reserved.has(tab.id)),
+			];
+		},
 		[userTabs, chatTab?.icon, chatTab?.label],
 	);
 
-	const tabContent = activeTabId !== CHAT_TAB_ID && tabContents ? tabContents[activeTabId] : undefined;
+	const tabContent =
+		activeTabId !== CHAT_TAB_ID && activeTabId !== MENU_TAB_ID && tabContents
+			? tabContents[activeTabId]
+			: undefined;
 
 	return (
 		<ConvergedRailPanel

@@ -32,7 +32,6 @@ export interface TypeMetadata {
 
 export interface ServiceMetadata {
   serviceName: string;
-  packageName?: string;
   interfaceName: string;
   filePath: string;
   methods: MethodMetadata[];

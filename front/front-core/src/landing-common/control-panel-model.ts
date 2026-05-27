@@ -145,6 +145,8 @@ export interface PanelTab {
 
 /** Built-in tab id for the default chat view. */
 export const CHAT_TAB_ID = "chat";
+/** Built-in tab id for the fallback app menu. */
+export const MENU_TAB_ID = "menu";
 
 export const tabsSet = createEvent<PanelTab[]>();
 export const tabActivated = createEvent<string>();

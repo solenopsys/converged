@@ -1,6 +1,6 @@
 import { Elysia } from "elysia";
 import { createHttpBackend } from "nrpc";
-import { metadata as agentMetadata } from "g-rt-agents";
+import { metadata as agentMetadata } from "g-rt-agent";
 import { AgentRuntimeService } from "./agent/service";
 import { requestTools } from "./tools/requests";
 import { extractorTools } from "./tools/extractors";

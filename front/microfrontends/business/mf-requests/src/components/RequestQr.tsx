@@ -7,7 +7,7 @@ export function RequestQr({ url }: { url: string }) {
 	useEffect(() => {
 		let active = true;
 		void QRCode.toDataURL(url, {
-			width: 176,
+			width: 128,
 			margin: 1,
 			errorCorrectionLevel: "M",
 			color: { dark: "#101827", light: "#ffffff" },
@@ -24,11 +24,11 @@ export function RequestQr({ url }: { url: string }) {
 	}, [url]);
 
 	return (
-		<div className="rounded-xl border border-white/10 bg-white p-2 shadow-xl shadow-black/25">
+		<div className="rounded-lg border border-white/10 bg-white p-1.5">
 			{dataUrl ? (
-				<img src={dataUrl} alt="Request QR" className="h-32 w-32" />
+				<img src={dataUrl} alt="Request QR" className="h-24 w-24" />
 			) : (
-				<div className="flex h-32 w-32 items-center justify-center bg-slate-100 text-xs text-slate-500">
+				<div className="flex h-24 w-24 items-center justify-center bg-slate-100 text-xs text-slate-500">
 					QR
 				</div>
 			)}

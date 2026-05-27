@@ -1,7 +1,7 @@
 import { Paperclip, Send, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button, Textarea } from "../ui";
-import { CHAT_TAB_ID, type PanelAction, type PanelTab, type RailScreen } from "../../landing-common/control-panel-model";
+import { CHAT_TAB_ID, MENU_TAB_ID, type PanelAction, type PanelTab, type RailScreen } from "../../landing-common/control-panel-model";
 
 export type { PanelAction, PanelTab, RailScreen };
 
@@ -54,7 +54,8 @@ export function ConvergedRailPanel({
 }: ConvergedRailPanelProps) {
 	const showTabStrip = tabs.length > 1;
 	const isChatActive = activeTabId === CHAT_TAB_ID;
-	const hasTabContent = !isChatActive && tabContent != null;
+	const isMenuActive = activeTabId === MENU_TAB_ID;
+	const hasTabContent = (!isChatActive && tabContent != null) || isMenuActive;
 	return (
 		<>
 			<style>{css}</style>
@@ -104,13 +105,19 @@ export function ConvergedRailPanel({
 					</nav>
 				)}
 
-				{hasTabContent ? (
+				{isMenuActive ? (
+					<div className="crp-tab-content crp-tab-content--menu">
+						{menuSlot ?? (
+							<div className="crp-tab-empty">
+								Menu is not available.
+							</div>
+						)}
+					</div>
+				) : hasTabContent ? (
 					<div className="crp-tab-content">{tabContent}</div>
 				) : (
 					<>
 						<div className="crp-menu">
-					{menuSlot}
-
 					{screens.length > 0 && (
 						<section className="crp-screens" aria-label="Open screens">
 							<h2 className="crp-section-title">Open screens</h2>

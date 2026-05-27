@@ -1,5 +1,5 @@
 import { useUnit } from "effector-react";
-import { services } from "files-state";
+import { downloadRequested, services } from "files-state";
 import { createFilesServiceClient, type FileMetadata } from "g-files";
 import type { RequestFieldState, RequestModel } from "g-requests";
 import { createStoreServiceClient } from "g-store";
@@ -57,48 +57,44 @@ const analysisFieldKeys = new Set([
 const requestDetailCss = `
 .request-detail {
 	min-height: 100%;
-	background: #030405;
+	background: #050607;
 	color: #f7f7f5;
 	overflow: auto;
 }
 
 .request-detail__wrap {
 	width: 100%;
-	padding: 16px;
+	padding: 12px;
 }
 
 .request-bento {
 	display: grid;
-	grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr) minmax(300px, 0.85fr);
+	grid-template-columns: repeat(12, minmax(0, 1fr));
 	grid-auto-flow: dense;
-	gap: 14px;
+	gap: 10px;
 	align-items: stretch;
 }
 
 .request-card {
+	grid-column: span 4;
+	box-sizing: border-box;
 	min-width: 0;
 	min-height: 0;
-	padding: 18px;
-	border-radius: 18px;
-	background:
-		linear-gradient(135deg, rgba(255, 255, 255, 0.042), rgba(255, 255, 255, 0.012)),
-		#070808;
-	box-shadow:
-		inset 0 1px 0 rgba(255, 255, 255, 0.06),
-		0 18px 50px rgba(0, 0, 0, 0.28);
+	height: 100%;
+	padding: 14px;
+	border-radius: 12px;
+	background: #0b0c0d;
+	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.075);
 }
 
 .request-hero {
-	grid-column: span 2;
+	grid-column: span 8;
 	display: flex;
 	flex-direction: column;
-	justify-content: space-between;
-	min-height: 310px;
-	padding: 26px;
-	background:
-		radial-gradient(circle at 78% 12%, rgba(255, 255, 255, 0.09), transparent 34%),
-		linear-gradient(135deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.014) 52%),
-		#060707;
+	justify-content: center;
+	min-height: 154px;
+	padding: 18px 20px;
+	background: #0b0c0d;
 }
 
 .request-hero__main {
@@ -108,19 +104,19 @@ const requestDetailCss = `
 .request-pills {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 8px;
-	margin-bottom: 18px;
+	gap: 6px;
+	margin-bottom: 12px;
 }
 
 .request-pill {
 	display: inline-flex;
 	align-items: center;
-	min-height: 26px;
-	padding: 0 12px;
+	min-height: 22px;
+	padding: 0 9px;
 	border-radius: 999px;
-	background: rgba(255, 255, 255, 0.045);
+	background: rgba(255, 255, 255, 0.055);
 	color: #aeb4bd;
-	font-size: 12px;
+	font-size: 11px;
 	font-weight: 650;
 }
 
@@ -133,48 +129,48 @@ const requestDetailCss = `
 	margin: 0;
 	max-width: 980px;
 	color: #fff;
-	font-size: 54px;
+	font-size: clamp(30px, 3.2vw, 44px);
 	font-weight: 760;
 	letter-spacing: 0;
-	line-height: 0.96;
+	line-height: 1.02;
 }
 
 .request-summary {
-	margin: 14px 0 0;
+	margin: 9px 0 0;
 	max-width: 860px;
 	color: #a9b0bb;
-	font-size: 16px;
-	line-height: 1.45;
+	font-size: 14px;
+	line-height: 1.35;
 }
 
 .request-progress {
-	display: flex;
-	flex-direction: column;
-	justify-content: space-between;
-	min-height: 310px;
+	grid-column: span 4;
+	display: grid;
+	gap: 14px;
+	min-height: 154px;
 }
 
 .request-progress__main strong {
 	display: block;
 	color: #fff;
-	font-size: 72px;
+	font-size: 44px;
 	font-weight: 790;
 	letter-spacing: 0;
-	line-height: 0.9;
+	line-height: 0.95;
 }
 
 .request-progress__main span {
 	display: block;
-	margin-top: 12px;
+	margin-top: 7px;
 	color: #8d97a8;
-	font-size: 14px;
+	font-size: 12px;
 	font-weight: 620;
 	line-height: 1.35;
 }
 
 .request-progress__bar {
-	height: 8px;
-	margin-top: 22px;
+	height: 4px;
+	margin-top: 12px;
 	overflow: hidden;
 	border-radius: 999px;
 	background: rgba(255, 255, 255, 0.09);
@@ -190,23 +186,23 @@ const requestDetailCss = `
 .request-progress__meta {
 	display: grid;
 	grid-template-columns: repeat(3, minmax(0, 1fr));
-	gap: 10px;
-	margin-top: 18px;
+	gap: 0;
+	margin-top: 0;
 	border-top: 1px solid rgba(255, 255, 255, 0.08);
-	padding-top: 16px;
+	padding-top: 12px;
 }
 
 .request-progress__meta strong {
 	display: block;
 	color: #fff;
-	font-size: 20px;
+	font-size: 17px;
 	font-weight: 760;
 	line-height: 1;
 }
 
 .request-progress__meta span {
 	display: block;
-	margin-top: 7px;
+	margin-top: 5px;
 	color: #7f8da0;
 	font-size: 11px;
 	font-weight: 600;
@@ -214,9 +210,10 @@ const requestDetailCss = `
 }
 
 .request-share-card {
+	grid-column: span 4;
 	display: grid;
-	grid-template-columns: 132px minmax(0, 1fr);
-	gap: 16px;
+	grid-template-columns: 112px minmax(0, 1fr);
+	gap: 12px;
 	align-items: center;
 }
 
@@ -236,7 +233,7 @@ const requestDetailCss = `
 }
 
 .request-card--wide {
-	grid-column: span 2;
+	grid-column: span 8;
 }
 
 .request-card--full {
@@ -244,23 +241,22 @@ const requestDetailCss = `
 }
 
 .request-card--missing {
-	background:
-		linear-gradient(135deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.018)),
-		#080909;
+	grid-column: span 4;
+	background: #0d0e0f;
 }
 
 .request-card__head {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: 14px;
-	margin-bottom: 14px;
+	gap: 10px;
+	margin-bottom: 12px;
 }
 
 .request-card__head h2 {
 	margin: 0;
 	color: #f3f4f2;
-	font-size: 17px;
+	font-size: 15px;
 	font-weight: 720;
 	line-height: 1.15;
 }
@@ -268,28 +264,31 @@ const requestDetailCss = `
 .request-count {
 	display: inline-flex;
 	align-items: center;
-	min-height: 24px;
-	padding: 0 10px;
+	min-height: 22px;
+	padding: 0 8px;
 	border-radius: 999px;
 	background: rgba(255, 255, 255, 0.055);
 	color: #8f9aad;
-	font-size: 12px;
+	font-size: 11px;
 	font-weight: 650;
+}
+
+.request-card--fields {
+	grid-column: span 4;
 }
 
 .request-field-grid {
 	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	column-gap: 28px;
+	grid-template-columns: 1fr;
 }
 
 .request-field {
 	display: grid;
-	grid-template-columns: minmax(0, 0.72fr) minmax(0, 1fr);
-	gap: 14px;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 10px;
 	align-items: start;
-	min-height: 48px;
-	padding: 12px 0;
+	min-height: 38px;
+	padding: 9px 0;
 	border-top: 1px solid rgba(255, 255, 255, 0.075);
 }
 
@@ -300,7 +299,7 @@ const requestDetailCss = `
 .request-field__label {
 	min-width: 0;
 	color: #e4e6e3;
-	font-size: 14px;
+	font-size: 12px;
 	font-weight: 690;
 	line-height: 1.25;
 }
@@ -316,33 +315,62 @@ const requestDetailCss = `
 .request-field__value {
 	min-width: 0;
 	color: #cdd2d8;
-	font-size: 14px;
+	font-size: 12px;
 	line-height: 1.35;
 	overflow-wrap: anywhere;
+	text-align: right;
 }
 
 .request-field[data-state="missing"] .request-field__value {
 	color: #aeb4bd;
 }
 
+.request-analysis-section {
+	align-self: start;
+	grid-column: 1 / -1;
+	display: grid;
+	gap: 14px;
+	min-width: 0;
+}
+
+.request-analysis-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 14px;
+	padding: 2px 2px 0;
+}
+
+.request-analysis-head h2 {
+	margin: 0;
+	color: #f4f4f1;
+	font-size: 22px;
+	font-weight: 760;
+	line-height: 1.1;
+}
+
 .request-estimates {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr));
-	gap: 12px;
+	grid-template-columns: repeat(auto-fill, minmax(340px, 380px));
+	grid-auto-flow: dense;
+	gap: 14px;
+	align-items: start;
+	justify-content: start;
 }
 
 .request-estimate {
-	display: grid;
-	grid-template-columns: 210px minmax(0, 1fr);
-	min-height: 220px;
+	grid-column: auto;
+	align-self: start;
+	display: flex;
+	flex-direction: column;
+	padding: 0;
+	min-height: 258px;
 	overflow: hidden;
-	border-radius: 12px;
-	background: rgba(0, 0, 0, 0.24);
-	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
 }
 
 .request-estimate__media {
-	min-height: 220px;
+	height: 188px;
+	min-height: 188px;
 	background: radial-gradient(circle at center, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.32) 68%);
 	overflow: hidden;
 }
@@ -363,43 +391,152 @@ const requestDetailCss = `
 }
 
 .request-estimate__body {
+	display: block;
+	flex: 1;
 	min-width: 0;
-	padding: 14px 16px 16px;
+	padding: 0;
 }
 
-.request-estimate__top {
+.request-estimate__details {
+	margin: 0;
+}
+
+.request-estimate__summary {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto auto auto 24px;
+	gap: 10px;
+	align-items: center;
+	min-height: 70px;
+	padding: 12px 14px 12px 16px;
+	cursor: pointer;
+	list-style: none;
+}
+
+.request-estimate__summary--static {
+	cursor: default;
+	grid-template-columns: minmax(0, 1fr) auto auto auto;
+}
+
+.request-estimate__summary::-webkit-details-marker {
+	display: none;
+}
+
+.request-estimate__identity {
 	display: flex;
-	align-items: start;
-	justify-content: space-between;
-	gap: 12px;
-	margin-bottom: 12px;
+	align-items: center;
+	gap: 9px;
+	min-width: 0;
 }
 
 .request-estimate__title {
 	min-width: 0;
 	color: #f3f4f2;
-	font-size: 15px;
-	font-weight: 720;
-	overflow-wrap: anywhere;
+	font-size: 16px;
+	font-weight: 760;
+	line-height: 1.1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .request-estimate__type {
 	flex: 0 0 auto;
-	color: #8a95a6;
+	min-height: 22px;
+	padding: 4px 8px 0;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.07);
+	color: #9aa4b2;
+	font-size: 11px;
+	font-weight: 650;
+}
+
+.request-estimate__primary {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	white-space: nowrap;
+}
+
+.request-estimate__primary span {
+	color: #8793a5;
 	font-size: 12px;
 	font-weight: 650;
+	line-height: 1.2;
+}
+
+.request-estimate__primary strong {
+	color: #f4f4f1;
+	font-size: 24px;
+	font-weight: 790;
+	letter-spacing: -0.02em;
+	line-height: 1;
+	text-align: right;
+	white-space: nowrap;
+}
+
+.request-estimate__secondary {
+	color: #858f9f;
+	font-size: 12px;
+	font-weight: 690;
+	line-height: 1;
+	white-space: nowrap;
+}
+
+.request-estimate__download {
+	min-height: 28px;
+	padding: 0 10px;
+	border: 0;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.09);
+	color: #f4f4f1;
+	cursor: pointer;
+	font-size: 11px;
+	font-weight: 740;
+	line-height: 1;
+	white-space: nowrap;
+}
+
+.request-estimate__download:hover {
+	background: rgba(255, 255, 255, 0.14);
+}
+
+.request-estimate__more {
+	display: grid;
+	place-items: center;
+	width: 24px;
+	height: 24px;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.07);
+	color: #f1f1ee;
+	font-size: 15px;
+	font-weight: 720;
+}
+
+.request-estimate__more::before {
+	content: "+";
+}
+
+.request-estimate__details[open] .request-estimate__summary {
+	border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.request-estimate__details[open] .request-estimate__more::before {
+	content: "−";
 }
 
 .request-metric-list {
 	display: grid;
-	gap: 8px;
+	gap: 0;
+	margin: 0;
+	padding: 6px 16px 12px;
 }
 
 .request-metric-row {
-	display: grid;
-	grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr);
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
 	gap: 14px;
-	padding-bottom: 8px;
+	padding: 8px 0;
 	border-bottom: 1px solid rgba(255, 255, 255, 0.07);
 	font-size: 13px;
 	line-height: 1.25;
@@ -416,7 +553,7 @@ const requestDetailCss = `
 }
 
 .request-note {
-	margin-top: 12px;
+	margin: 0 16px 16px;
 	padding: 10px 12px;
 	border-radius: 9px;
 	background: rgba(255, 255, 255, 0.06);
@@ -425,17 +562,28 @@ const requestDetailCss = `
 	line-height: 1.4;
 }
 
+.request-analysis-error {
+	padding: 14px 16px;
+	color: #d5d8dc;
+	font-size: 13px;
+	line-height: 1.4;
+}
+
 .request-status-list {
 	display: grid;
 	gap: 0;
-	font-size: 13px;
+	font-size: 12px;
+}
+
+.request-card--status {
+	grid-column: span 3;
 }
 
 .request-status-row {
 	display: grid;
 	grid-template-columns: 92px minmax(0, 1fr);
-	gap: 14px;
-	padding-top: 10px;
+	gap: 10px;
+	padding-top: 9px;
 	border-top: 1px solid rgba(255, 255, 255, 0.075);
 }
 
@@ -451,14 +599,98 @@ const requestDetailCss = `
 
 .request-files {
 	display: grid;
+	gap: 0;
+}
+
+.request-card--files {
+	grid-column: span 5;
+}
+
+.request-file-stats {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
 	gap: 8px;
+}
+
+.request-file-stat {
+	min-width: 0;
+	padding: 9px 10px;
+	border-radius: 8px;
+	background: rgba(255, 255, 255, 0.045);
+}
+
+.request-file-stat strong {
+	display: block;
+	color: #f4f4f1;
+	font-size: 18px;
+	font-weight: 760;
+	line-height: 1;
+}
+
+.request-file-stat span {
+	display: block;
+	margin-top: 5px;
+	color: #838d9f;
+	font-size: 11px;
+	font-weight: 650;
+	line-height: 1.2;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.request-files-details {
+	margin-top: 12px;
+}
+
+.request-files-details > summary {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	min-height: 34px;
+	cursor: pointer;
+	list-style: none;
+	color: #d9dcd9;
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.request-files-details > summary::-webkit-details-marker {
+	display: none;
+}
+
+.request-files-details > summary::after {
+	content: "+";
+	display: grid;
+	place-items: center;
+	width: 22px;
+	height: 22px;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.07);
+	color: #f1f1ee;
+}
+
+.request-files-details[open] > summary::after {
+	content: "−";
+}
+
+.request-files-list {
+	max-height: 390px;
+	overflow: auto;
+	border-top: 1px solid rgba(255, 255, 255, 0.075);
 }
 
 .request-file {
 	display: grid;
-	gap: 8px;
-	padding: 10px 0;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 7px;
+	align-items: center;
+	padding: 9px 0;
 	border-top: 1px solid rgba(255, 255, 255, 0.075);
+}
+
+.request-file:first-child {
+	border-top: 0;
 }
 
 .request-file__name {
@@ -468,10 +700,34 @@ const requestDetailCss = `
 	overflow-wrap: anywhere;
 }
 
+.request-file__meta {
+	margin-top: 3px;
+	color: #778395;
+	font-size: 11px;
+	font-weight: 620;
+}
+
+.request-file__download {
+	min-height: 28px;
+	padding: 0 10px;
+	border: 0;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.085);
+	color: #f4f4f1;
+	cursor: pointer;
+	font-size: 11px;
+	font-weight: 720;
+}
+
+.request-file__download:hover {
+	background: rgba(255, 255, 255, 0.14);
+}
+
 .request-file__preview {
-	height: 150px;
+	grid-column: 1 / -1;
+	height: 128px;
 	overflow: hidden;
-	border-radius: 10px;
+	border-radius: 8px;
 	background: rgba(0, 0, 0, 0.22);
 }
 
@@ -484,14 +740,14 @@ const requestDetailCss = `
 
 .request-missing {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-	gap: 8px;
+	grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+	gap: 6px;
 }
 
 .request-missing span {
-	padding: 10px 12px;
-	border-radius: 10px;
-	background: rgba(255, 255, 255, 0.075);
+	padding: 8px 9px;
+	border-radius: 7px;
+	background: rgba(255, 255, 255, 0.065);
 	color: #d7dad8;
 	font-size: 12px;
 	font-weight: 650;
@@ -499,17 +755,28 @@ const requestDetailCss = `
 
 @media (max-width: 1180px) {
 	.request-bento {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
+		grid-template-columns: repeat(6, minmax(0, 1fr));
+	}
+
+	.request-card,
+	.request-progress,
+	.request-card--missing,
+	.request-share-card,
+	.request-card--fields,
+	.request-card--files,
+	.request-card--status {
+		grid-column: span 3;
 	}
 
 	.request-hero,
 	.request-card--wide,
-	.request-card--full {
+	.request-card--full,
+	.request-analysis-section {
 		grid-column: 1 / -1;
 	}
 
 	.request-progress {
-		min-height: 230px;
+		min-height: auto;
 	}
 }
 
@@ -523,10 +790,18 @@ const requestDetailCss = `
 		grid-template-columns: 1fr;
 	}
 
+	.request-card,
+	.request-progress,
+	.request-card--missing,
+	.request-share-card,
+	.request-card--fields,
+	.request-card--files,
+	.request-card--status,
 	.request-hero,
 	.request-card--wide,
-	.request-card--full {
-		grid-column: auto;
+	.request-card--full,
+	.request-analysis-section {
+		grid-column: 1 / -1;
 	}
 
 	.request-share-card {
@@ -542,8 +817,8 @@ const requestDetailCss = `
 		font-size: 34px;
 	}
 
-	.request-estimate {
-		grid-template-columns: 1fr;
+	.request-estimates {
+		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
 	}
 
 	.request-estimate__media {
@@ -552,10 +827,15 @@ const requestDetailCss = `
 	}
 
 	.request-field,
-	.request-status-row,
-	.request-metric-row {
+	.request-status-row {
 		grid-template-columns: 1fr;
 		gap: 6px;
+	}
+
+	.request-metric-row {
+		align-items: flex-start;
+		flex-direction: column;
+		gap: 4px;
 	}
 
 	.request-status-row span:last-child,
@@ -701,7 +981,7 @@ function estimateRows(estimate: AnalysisEstimate): Array<[string, string]> {
 	const rows: Array<[string, string | null]> = [];
 	if (estimate.type === "printing" || estimate.type === "gcode") {
 		rows.push(["Время печати", formatDuration(data.timeSeconds)]);
-		rows.push(["Пластик", formatNumber(data.weightGrams, 1)?.concat(" г") ?? null]);
+		rows.push(["Вес", formatNumber(data.weightGrams, 1)?.concat(" г") ?? null]);
 		rows.push([
 			"Филамент",
 			formatNumber(data.filamentLengthMeters, 2)?.concat(" м") ?? null,
@@ -739,11 +1019,53 @@ function estimateRows(estimate: AnalysisEstimate): Array<[string, string]> {
 	return rows.filter((row): row is [string, string] => Boolean(row[1]));
 }
 
-function fileBaseName(name: string): string {
+function estimateTypeLabel(estimate: AnalysisEstimate): string {
+	if (estimate.type === "printing") return "3D печать";
+	if (estimate.type === "gcode") return "G-code";
+	if (estimate.type === "milling") return "ЧПУ";
+	return estimate.type ?? "Расчет";
+}
+
+function estimatePrimaryMetric(estimate: AnalysisEstimate): [string, string] {
+	const data = estimate.data ?? {};
+	const weight = formatNumber(data.weightGrams, 1);
+	if (weight) return ["Вес", `${weight} г`];
+
+	const printTime = formatDuration(data.timeSeconds);
+	if (printTime) return ["Время печати", printTime];
+
+	const millTime = formatDuration(data.totalTimeSec);
+	if (millTime) return ["Время обработки", millTime];
+
+	const materialVolume = formatNumber(data.materialVolumeMm3, 0);
+	if (materialVolume) return ["Объем", `${materialVolume} мм³`];
+
+	return ["Статус", "рассчитано"];
+}
+
+function estimateSecondaryMetric(estimate: AnalysisEstimate): string | null {
+	const data = estimate.data ?? {};
+	const printTime = formatDuration(data.timeSeconds);
+	if (printTime && formatNumber(data.weightGrams, 1)) return `Время: ${printTime}`;
+
+	const filament = formatNumber(data.filamentLengthMeters, 2);
+	if (filament) return `Филамент: ${filament} м`;
+
+	const cutLength = formatNumber(data.cutLengthMm, 0);
+	if (cutLength) return `Рез: ${cutLength} мм`;
+
+	return null;
+}
+
+function fileLeafName(name: string): string {
 	return name
 		.replace(/\\/g, "/")
 		.split("/")
-		.pop()!
+		.pop()!;
+}
+
+function fileBaseName(name: string): string {
+	return fileLeafName(name)
 		.replace(/\.[^.]+$/, "")
 		.toLowerCase();
 }
@@ -783,6 +1105,57 @@ function findEstimatePreview(
 	return undefined;
 }
 
+function findEstimateDownloadTarget(
+	estimate: AnalysisEstimate,
+	sourceLabel: string | undefined,
+	files: Array<[string, string]>,
+	fileMetadata: Record<string, FileMetadata>,
+): [string, string] | undefined {
+	const sourceName =
+		typeof estimate.data?.sourceName === "string"
+			? estimate.data.sourceName
+			: sourceLabel;
+	const sourceLeaf = sourceName ? fileLeafName(sourceName).toLowerCase() : undefined;
+
+	if (sourceLeaf) {
+		const exactSource = files.find(([label, fileId]) => {
+			const metadataName = fileMetadata[fileId]?.name;
+			return [label, metadataName].some(
+				(name) => name && fileLeafName(name).toLowerCase() === sourceLeaf,
+			);
+		});
+		if (exactSource) {
+			const [label, fileId] = exactSource;
+			return [fileMetadata[fileId]?.name ?? label, fileId];
+		}
+	}
+
+	if (estimate.sourceFileId) {
+		const label =
+			files.find(([, fileId]) => fileId === estimate.sourceFileId)?.[0] ??
+			sourceLabel ??
+			sourceName ??
+			"source-file";
+		return [fileMetadata[estimate.sourceFileId]?.name ?? label, estimate.sourceFileId];
+	}
+
+	if (sourceName) {
+		const sourceBase = fileBaseName(sourceName);
+		const sameBase = files.find(([label, fileId]) => {
+			const metadataName = fileMetadata[fileId]?.name;
+			return [label, metadataName].some(
+				(name) => name && fileBaseName(name) === sourceBase,
+			);
+		});
+		if (sameBase) {
+			const [label, fileId] = sameBase;
+			return [fileMetadata[fileId]?.name ?? label, fileId];
+		}
+	}
+
+	return undefined;
+}
+
 function AnalysisSection({
 	estimates,
 	errors,
@@ -803,8 +1176,8 @@ function AnalysisSection({
 		(({ alt, fileId }) => <DefaultModelPreview alt={alt} fileId={fileId} />);
 
 	return (
-		<section className="request-card request-card--analysis request-card--wide">
-			<div className="request-card__head">
+		<section className="request-analysis-section">
+			<div className="request-analysis-head">
 				<h2>Аналитика</h2>
 				<span className="request-count">{estimates.length} расчетов</span>
 			</div>
@@ -812,10 +1185,19 @@ function AnalysisSection({
 				<div className="request-estimates">
 					{estimates.map((estimate, index) => {
 						const rows = estimateRows(estimate);
+						const primary = estimatePrimaryMetric(estimate);
+						const secondary = estimateSecondaryMetric(estimate);
+						const detailRows = rows.filter(([label]) => label !== primary[0]);
 						const sourceLabel = estimate.sourceFileId
 							? fileLabels.get(estimate.sourceFileId)
 							: undefined;
 						const preview = findEstimatePreview(
+							estimate,
+							sourceLabel,
+							files,
+							fileMetadata,
+						);
+						const downloadTarget = findEstimateDownloadTarget(
 							estimate,
 							sourceLabel,
 							files,
@@ -829,7 +1211,7 @@ function AnalysisSection({
 						return (
 							<div
 								key={`${estimate.sourceFileId ?? "estimate"}:${index}`}
-								className="request-estimate"
+								className="request-card request-estimate"
 							>
 								<div className="request-estimate__media">
 									{preview ? (
@@ -841,30 +1223,88 @@ function AnalysisSection({
 									)}
 								</div>
 								<div className="request-estimate__body">
-									<div className="request-estimate__top">
-										<div className="request-estimate__title">{title}</div>
-										<div className="request-estimate__type">
-											{estimate.type === "printing"
-												? "3D печать"
-												: estimate.type === "milling"
-													? "ЧПУ"
-													: estimate.type ?? "Расчет"}
+									{detailRows.length > 0 || estimate.data?.assumptions ? (
+										<details className="request-estimate__details">
+											<summary className="request-estimate__summary">
+												<span className="request-estimate__identity">
+													<span className="request-estimate__title">{title}</span>
+													<span className="request-estimate__type">
+														{estimateTypeLabel(estimate)}
+													</span>
+												</span>
+												<span className="request-estimate__primary">
+													<span>{primary[0]}</span>
+													<strong>{primary[1]}</strong>
+												</span>
+												<span className="request-estimate__secondary">
+													{secondary ?? ""}
+												</span>
+												{downloadTarget ? (
+													<button
+														type="button"
+														className="request-estimate__download"
+														onClick={(event) => {
+															event.preventDefault();
+															event.stopPropagation();
+															downloadRequested({
+																fileId: downloadTarget[1],
+																fileName: downloadTarget[0],
+															});
+														}}
+													>
+														Скачать
+													</button>
+												) : null}
+												<span className="request-estimate__more" aria-hidden="true" />
+											</summary>
+											{detailRows.length > 0 ? (
+												<div className="request-metric-list">
+													{detailRows.map(([label, value]) => (
+														<div key={label} className="request-metric-row">
+															<span>{label}</span>
+															<span>{value}</span>
+														</div>
+													))}
+												</div>
+											) : null}
+											{estimate.data?.assumptions ? (
+												<div className="request-note">
+													Грубая оценка по геометрии STL. Для точного времени нужен
+													Cura definition.
+												</div>
+											) : null}
+										</details>
+									) : (
+										<div className="request-estimate__summary request-estimate__summary--static">
+											<span className="request-estimate__identity">
+												<span className="request-estimate__title">{title}</span>
+												<span className="request-estimate__type">
+													{estimateTypeLabel(estimate)}
+												</span>
+											</span>
+											<span className="request-estimate__primary">
+												<span>{primary[0]}</span>
+												<strong>{primary[1]}</strong>
+											</span>
+											<span className="request-estimate__secondary">
+												{secondary ?? ""}
+											</span>
+											{downloadTarget ? (
+												<button
+													type="button"
+													className="request-estimate__download"
+													onClick={() => {
+														downloadRequested({
+															fileId: downloadTarget[1],
+															fileName: downloadTarget[0],
+														});
+													}}
+												>
+													Скачать
+												</button>
+											) : null}
 										</div>
-									</div>
-									<div className="request-metric-list">
-										{rows.map(([label, value]) => (
-											<div key={label} className="request-metric-row">
-												<span>{label}</span>
-												<span>{value}</span>
-											</div>
-										))}
-									</div>
-									{estimate.data?.assumptions ? (
-										<div className="request-note">
-											Грубая оценка по геометрии STL. Для точного времени нужен
-											Cura definition.
-										</div>
-									) : null}
+									)}
 								</div>
 							</div>
 						);
@@ -872,7 +1312,7 @@ function AnalysisSection({
 				</div>
 			) : null}
 			{errors.length > 0 ? (
-				<div className="request-note">
+				<div className="request-card request-analysis-error">
 					Не все этапы анализа выполнились: {errors.length}
 				</div>
 			) : null}
@@ -890,6 +1330,36 @@ function isGlbMime(mime?: string): boolean {
 
 function isModelFile(label: string, mime?: string): boolean {
 	return isGlbMime(mime) || /\.(glb2?|gltf)$/i.test(label);
+}
+
+function fileExtension(label: string): string {
+	const name = label.trim();
+	const dot = name.lastIndexOf(".");
+	if (dot <= 0 || dot === name.length - 1) return "без расширения";
+	return name.slice(dot + 1).toUpperCase();
+}
+
+function formatFileSize(bytes?: number): string | null {
+	if (!Number.isFinite(bytes) || bytes === undefined) return null;
+	if (bytes < 1024) return `${bytes} B`;
+	if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+	return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function fileStats(
+	files: Array<[string, string]>,
+	fileMetadata: Record<string, FileMetadata>,
+): Array<[string, number]> {
+	const counts = new Map<string, number>();
+	for (const [label, fileId] of files) {
+		const name = fileMetadata[fileId]?.name ?? label;
+		const key = fileExtension(name);
+		counts.set(key, (counts.get(key) ?? 0) + 1);
+	}
+	return Array.from(counts.entries()).sort((left, right) => {
+		if (right[1] !== left[1]) return right[1] - left[1];
+		return left[0].localeCompare(right[0]);
+	});
 }
 
 function uniqueFileLabel(files: Record<string, string>, name: string, fileId: string) {
@@ -1096,6 +1566,7 @@ function RequestFilesSection({
 	const renderPreview =
 		renderModelPreview ??
 		(({ alt, fileId }) => <DefaultModelPreview alt={alt} fileId={fileId} />);
+	const stats = fileStats(files, fileMetadata);
 
 	return (
 		<section className="request-card request-card--files">
@@ -1104,22 +1575,56 @@ function RequestFilesSection({
 				<span className="request-count">{files.length}</span>
 			</div>
 			{files.length > 0 ? (
-				<div className="request-files">
-					{files.map(([label, fileId]) => {
-						const isModel = isModelFile(label, fileMetadata[fileId]?.fileType);
-						const showFilePreview = isModel && analysisCount === 0;
-						return (
-							<div key={`${label}:${fileId}`} className="request-file">
-								{showFilePreview ? (
-									<div className="request-file__preview">
-										{renderPreview({ alt: label, fileId })}
-									</div>
-								) : null}
-								<div className="request-file__name">{label}</div>
+				<>
+					<div className="request-file-stats">
+						{stats.slice(0, 5).map(([label, count]) => (
+							<div key={label} className="request-file-stat">
+								<strong>{count}</strong>
+								<span>{label}</span>
 							</div>
-						);
-					})}
-				</div>
+						))}
+					</div>
+					<details className="request-files-details">
+						<summary>Показать список и скачать</summary>
+						<div className="request-files-list">
+							<div className="request-files">
+								{files.map(([label, fileId]) => {
+									const metadata = fileMetadata[fileId];
+									const fileName = metadata?.name ?? label;
+									const fileType = metadata?.fileType;
+									const size = formatFileSize(metadata?.fileSize);
+									const isModel = isModelFile(label, fileType);
+									const showFilePreview = isModel && analysisCount === 0;
+									return (
+										<div key={`${label}:${fileId}`} className="request-file">
+											{showFilePreview ? (
+												<div className="request-file__preview">
+													{renderPreview({ alt: label, fileId })}
+												</div>
+											) : null}
+											<div>
+												<div className="request-file__name">{fileName}</div>
+												<div className="request-file__meta">
+													{[fileType, size].filter(Boolean).join(" · ") ||
+														fileExtension(fileName)}
+												</div>
+											</div>
+											<button
+												type="button"
+												className="request-file__download"
+												onClick={() => {
+													downloadRequested({ fileId, fileName });
+												}}
+											>
+												Скачать
+											</button>
+										</div>
+									);
+								})}
+							</div>
+						</div>
+					</details>
+				</>
 			) : (
 				<p className="request-empty-text">Файлы пока не прикреплены.</p>
 			)}

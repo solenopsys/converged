@@ -22,8 +22,10 @@ type Entity = { id: string };
 
 type Action<I> = {
     id: string;
+    brief?: string;      // one-line for LLM compact context; falls back to description
+    category?: string;   // grouping label: "sales" | "analytics" | "geo" | etc.
     description: string;
-    invoke: (p: I) => Promise<void>|void  ;
+    invoke: (p: I) => Promise<void>|void;
 };
 
 type CreateAction<I> = (bus: EventBus) => Action<I>;

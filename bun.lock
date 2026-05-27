@@ -92,6 +92,16 @@
         "rt-assistant": "workspace:*",
       },
     },
+    "back/microservices/ai/ms-functions": {
+      "name": "ms-functions",
+      "version": "1.0.0",
+      "dependencies": {
+        "back-core": "workspace:*",
+        "g-functions": "workspace:*",
+        "nrpc": "workspace:*",
+        "openai": "latest",
+      },
+    },
     "back/microservices/analytics/ms-logs": {
       "name": "ms-logs",
       "version": "1.0.0",
@@ -893,6 +903,16 @@
         "uuid": "^13.0.0",
       },
     },
+    "front/microfrontends/ai/mf-functions": {
+      "name": "mf-functions",
+      "dependencies": {
+        "effector": "23.4.4",
+        "effector-react": "23.3.0",
+        "front-core": "workspace:*",
+        "g-functions": "workspace:*",
+        "lucide-react": "^1.8.0",
+      },
+    },
     "front/microfrontends/analytics/mf-dasboards": {
       "name": "mf-dasboards",
       "dependencies": {
@@ -1313,6 +1333,13 @@
     },
     "tools/integration/generated/g-finance": {
       "name": "g-finance",
+      "version": "0.0.0",
+      "dependencies": {
+        "nrpc": "workspace:*",
+      },
+    },
+    "tools/integration/generated/g-functions": {
+      "name": "g-functions",
       "version": "0.0.0",
       "dependencies": {
         "nrpc": "workspace:*",
@@ -2832,6 +2859,8 @@
 
     "g-finance": ["g-finance@workspace:tools/integration/generated/g-finance"],
 
+    "g-functions": ["g-functions@workspace:tools/integration/generated/g-functions"],
+
     "g-galery": ["g-galery@workspace:tools/integration/generated/g-galery"],
 
     "g-identity": ["g-identity@workspace:tools/integration/generated/g-identity"],
@@ -3162,6 +3191,8 @@
 
     "mf-dumps": ["mf-dumps@workspace:front/microfrontends/data/mf-dumps"],
 
+    "mf-functions": ["mf-functions@workspace:front/microfrontends/ai/mf-functions"],
+
     "mf-galery": ["mf-galery@workspace:front/microfrontends/content/mf-galery"],
 
     "mf-landing": ["mf-landing@workspace:front/microfrontends/content/mf-landing"],
@@ -3301,6 +3332,8 @@
     "ms-files": ["ms-files@workspace:back/microservices/data/ms-files"],
 
     "ms-finance": ["ms-finance@workspace:back/microservices/business/ms-finance"],
+
+    "ms-functions": ["ms-functions@workspace:back/microservices/ai/ms-functions"],
 
     "ms-galery": ["ms-galery@workspace:back/microservices/content/ms-galery"],
 
@@ -3911,6 +3944,8 @@
     "magic-regexp/estree-walker": ["estree-walker@3.0.3", "", { "dependencies": { "@types/estree": "^1.0.0" } }, "sha512-7RUKfXgSMMkzt6ZuXmqapOurLGPPfgj6l9uRZ7lRGolvk0y2yocc35LdcxKC5PQZdn2DMqioAQ2NoWcrTKmm6g=="],
 
     "mf-landing/front-landings": ["front-landings@file:../../../saas/public/front/front-landings", { "dependencies": { "embla-carousel-autoplay": "^8.6.0", "embla-carousel-react": "^8.6.0", "framer-motion": "^12.23.26", "front-core": "workspace:*", "lucide-react": "^0.562.0", "react-icons": "^5.5.0" }, "devDependencies": { "@types/react": "^19.2.2", "@types/react-dom": "^19.2.2", "typescript": "6.0.3" }, "peerDependencies": { "react": ">=18", "react-dom": ">=18" } }],
+
+    "ms-functions/openai": ["openai@6.39.0", "", { "peerDependencies": { "ws": "^8.18.0", "zod": "^3.25 || ^4.0" }, "optionalPeers": ["ws", "zod"], "bin": { "openai": "bin/cli" } }, "sha512-O61LIsimY3acVabwvomwFhwrnN36yvHY2quIfy9keEcFytGgWeV35yLHQ6NVMLSBxRpHmcg2yuhCnlu2HT4pLQ=="],
 
     "openid-client/jose": ["jose@6.1.3", "", {}, "sha512-0TpaTfihd4QMNwrz/ob2Bp7X04yuxJkjRGi4aKmOqwhov54i6u79oCv7T+C7lo70MKH6BesI3vscD1yb/yzKXQ=="],
 

@@ -1,8 +1,3 @@
-/**
- * @nrpc-service assistant
- * @nrpc-package g-rt-assistant
- */
-
 export enum StreamEventType {
     TEXT_DELTA = "text_delta",
     TOOL_CALL = "tool_call",

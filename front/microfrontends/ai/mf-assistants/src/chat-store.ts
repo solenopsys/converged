@@ -1,7 +1,8 @@
 import type { ExecutableTool } from "assistant-state";
-import { addMessage, createChatStore } from "assistant-state";
+import { addMessage, createChatStore, createUIActionTools } from "assistant-state";
 import { $files, openFilePicker, uploadCompleted } from "files-state";
 import {
+	actionContextManager,
 	bus,
 	chatAttachRequested,
 	chatInitRequested,
@@ -25,34 +26,6 @@ import {
 	threadsClient,
 } from "./services";
 
-// AI-доступные команды (только меню и навигация)
-const AI_COMMANDS: Record<string, string> = {
-	// Requests
-	"requests.show": "Открыть панель заявок",
-	// Threads
-	"threads.show": "Открыть диалоги/треды",
-	// Layouts
-	"dashboard.mount": "Открыть дашборд",
-	// Logs
-	"logs.show": "Показать горячие логи",
-	"logs.show.cold": "Показать холодные логи",
-	// Telemetry
-	"telemetry.show": "Показать горячую телеметрию",
-	"telemetry.show.cold": "Показать холодную телеметрию",
-	// Dumps
-	"dumps.list.show": "Показать список дампов",
-	"dumps.storages.show": "Показать статистику хранилищ",
-	// DAG
-	show_workflows_list: "Показать список воркфлоу",
-	show_workflows_statistic: "Показать статистику воркфлоу",
-	show_nodes_list: "Показать список нод",
-	show_providers_list: "Показать список провайдеров",
-	show_code_source_list: "Показать список источников кода",
-	// AI Chats
-	"chats.show_list": "Показать список чатов",
-	"chats.show_contexts_list": "Показать список контекстов",
-	"chats.show_commands_list": "Показать список команд",
-};
 
 const chatStore = createChatStore(chatClient, threadsClient, assistantClient);
 const chatThreadId = uuidv4();
@@ -953,100 +926,51 @@ const startFileAnalysisTool: ExecutableTool = {
 	},
 };
 
-// Tool для получения списка доступных команд (только AI-доступные)
-const getCommandsTool: ExecutableTool = {
-	name: "getCommands",
-	description: "Get available UI navigation commands",
-	parameters: {
-		type: "object",
-		properties: {},
-		required: [],
-	},
-	execute: async () => {
-		return Object.entries(AI_COMMANDS).map(([id, desc]) => ({ id, desc }));
-	},
+// Returns all mf-* names available to import in the current browser session.
+// Source: the import map injected into the page, already filtered per-user by modules-filter.
+const getAvailableMFNames = (): string[] => {
+	if (typeof document === "undefined") return [];
+	try {
+		const el = document.querySelector<HTMLScriptElement>('script[type="importmap"]');
+		if (!el?.textContent) return [];
+		const parsed = JSON.parse(el.textContent) as { imports?: Record<string, string> };
+		return Object.keys(parsed.imports ?? {}).filter((key) => key.startsWith("mf-"));
+	} catch {
+		return [];
+	}
 };
 
-// Tool для выполнения команды (только из AI_COMMANDS whitelist)
-const execCommandTool: ExecutableTool = {
-	name: "execCommand",
-	description: "Execute UI navigation command by id",
-	parameters: {
-		type: "object",
-		properties: {
-			id: {
-				type: "string",
-				description: "Command id from getCommands",
-			},
-		},
-		required: ["id"],
-	},
-	execute: async (args: { id: string } | string) => {
-		let commandId: string | undefined;
-		if (typeof args === "string") {
-			try {
-				const parsed = JSON.parse(args);
-				commandId = parsed.id;
-			} catch {
-				commandId = args;
-			}
-		} else {
-			commandId = args?.id;
-		}
-
-		// Проверяем что команда указана
-		if (!commandId) {
-			addMessage({
-				id: `cmd_err_${Date.now()}`,
-				type: "assistant",
-				content: `⚠️ Не указан id команды`,
-				timestamp: Date.now(),
-			});
-			return { ok: false, error: "Command id not provided" };
-		}
-
-		// Проверяем что команда в whitelist
-		if (!AI_COMMANDS[commandId]) {
-			addMessage({
-				id: `cmd_err_${Date.now()}`,
-				type: "assistant",
-				content: `⚠️ Команда \`${commandId}\` недоступна`,
-				timestamp: Date.now(),
-			});
-			return { ok: false, error: "Command not allowed" };
-		}
-
-		const cmd = registry.get(commandId);
-		if (!cmd) {
-			addMessage({
-				id: `cmd_err_${Date.now()}`,
-				type: "assistant",
-				content: `⚠️ Команда \`${commandId}\` не зарегистрирована`,
-				timestamp: Date.now(),
-			});
-			return { ok: false, error: "Command not registered" };
-		}
-
+// Preload ALL available MFs in the background so every action appears in $registeredCommands
+// and registry immediately — the LLM can discover them via listUIActions without lazy-loading.
+void (async () => {
+	for (const mfName of getAvailableMFNames()) {
 		try {
-			registry.run(commandId, {});
-			addMessage({
-				id: `cmd_${Date.now()}`,
-				type: "assistant",
-				content: `✅ ${AI_COMMANDS[commandId]}`,
-				timestamp: Date.now(),
-			});
-			return { ok: true };
-		} catch (e) {
-			addMessage({
-				id: `cmd_err_${Date.now()}`,
-				type: "assistant",
-				content: `❌ Ошибка: ${AI_COMMANDS[commandId]}`,
-				timestamp: Date.now(),
-			});
-			return { ok: false, error: e instanceof Error ? e.message : "Error" };
+			const mod = await import(/* @vite-ignore */ mfName);
+			mod.default?.plug?.(bus);
+		} catch {
+			// Ignore — MF may not be loadable in current context
 		}
-	},
+	}
+})();
+
+// Lazy-loads an MF bundle by action ID prefix so its actions get registered.
+// E.g. "sheduller.stats.show" → import("mf-sheduller")
+const loadMFForAction = async (actionId: string): Promise<void> => {
+	const prefix = actionId.split(".")[0];
+	if (!prefix || registry.get(actionId)) return;
+	try {
+		const mod = await import(/* @vite-ignore */ `mf-${prefix}`);
+		mod.default?.plug?.(bus);
+	} catch {
+		// MF not found or failed to load — invokeUIAction will return not-found error
+	}
 };
+
+// UI action tools — full action registry, two-phase discovery + invoke
+const uiActionTools = createUIActionTools(registry, actionContextManager, loadMFForAction);
+for (const tool of uiActionTools) {
+	chatStore.registerFunction(tool.name, tool);
+}
 
 chatStore.registerFunction("weather", weatherTool);
 chatStore.registerFunction("getUploadedChatFiles", getUploadedChatFilesTool);
@@ -1058,13 +982,12 @@ chatStore.registerFunction(
 chatStore.registerFunction("patchCncRequest", patchCncRequestTool);
 chatStore.registerFunction("getCncRequest", getCncRequestTool);
 chatStore.registerFunction("startFileAnalysis", startFileAnalysisTool);
-chatStore.registerFunction("getCommands", getCommandsTool);
-chatStore.registerFunction("execCommand", execCommandTool);
 
 chatSendRequested.watch((message) => {
 	void (async () => {
-		ensureInitialized(); // Инициализируем чат только при первой отправке сообщения
-		const created = await ensureInitialRequestDraft(message);
+		ensureInitialized();
+		// Auto-creating a request draft from the first message is removed.
+		// Under the LLM-first paradigm the model decides when to call createCncRequest.
 		chatStore.send(message);
 	})();
 });

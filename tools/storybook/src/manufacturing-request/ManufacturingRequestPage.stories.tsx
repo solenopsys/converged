@@ -234,6 +234,35 @@ const renderModelPreview = ({ alt }: { alt: string; fileId: string }) => (
   <StoryModelPreview alt={alt} />
 );
 
+const docsViewportCss = `
+.sbdocs-content:has(.manufacturing-request-story-viewport) {
+  max-width: none !important;
+  width: 100% !important;
+}
+
+.sbdocs-preview:has(.manufacturing-request-story-viewport),
+.docs-story:has(.manufacturing-request-story-viewport),
+.sb-story:has(.manufacturing-request-story-viewport) {
+  margin: 0 !important;
+  padding: 0 !important;
+  max-width: none !important;
+  background: #030405 !important;
+}
+
+.manufacturing-request-story-viewport {
+  width: 100vw;
+  max-width: none;
+  min-height: 100vh;
+  margin-left: calc(50% - 50vw);
+  overflow: auto;
+  background: #030405;
+}
+
+.sb-show-main .manufacturing-request-story-viewport {
+  margin-left: 0;
+}
+`;
+
 const meta = {
   title: "App/ManufacturingRequest",
   component: ManufacturingRequestPage,
@@ -242,9 +271,12 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div style={{ height: "100vh", overflow: "auto", background: "#030405" }}>
-        <Story />
-      </div>
+      <>
+        <style>{docsViewportCss}</style>
+        <div className="manufacturing-request-story-viewport">
+          <Story />
+        </div>
+      </>
     ),
   ],
   tags: ["autodocs"],

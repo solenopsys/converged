@@ -1,7 +1,7 @@
 // nrpc-runtime/elysia-backend.ts
 import type { Elysia } from "elysia";
 import { jwtVerify } from "jose";
-import { resolveMethodAccess } from "../decorator/access.decorator";
+import { resolveMethodAccess, resolveServiceName } from "../decorator/access.decorator";
 import type { ServiceMetadata } from "../types";
 import {
 	AccessMatcher,
@@ -122,14 +122,23 @@ export function createHttpBackend(config: ElysiaBackendConfig) {
 			}
 			const pathPrefix = config.pathPrefix || "";
 
+			// @Service decorator on impl class overrides metadata.serviceName for routing
+			const effectiveServiceName = (() => {
+				if (config.serviceImpl) {
+					const proto = typeof config.serviceImpl === "function"
+						? config.serviceImpl.prototype
+						: Object.getPrototypeOf(config.serviceImpl);
+					return resolveServiceName(proto) ?? config.metadata.serviceName;
+				}
+				return config.metadata.serviceName;
+			})();
+
 			// Регистрируем методы как POST эндпоинты
 			if (logRoutes) {
-				console.log(
-					`[nrpc] Registering service: ${config.metadata.serviceName}`,
-				);
+				console.log(`[nrpc] Registering service: ${effectiveServiceName}`);
 			}
 			for (const method of config.metadata.methods) {
-				const path = `${pathPrefix}/${config.metadata.serviceName}/${method.name}`;
+				const path = `${pathPrefix}/${effectiveServiceName}/${method.name}`;
 				if (logRoutes) {
 					console.log(`[nrpc]   POST ${path}`);
 				}

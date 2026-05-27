@@ -47,6 +47,93 @@ function isFilled(value: RequestFieldValue): boolean {
 	return true;
 }
 
+function asFiniteNumber(value: unknown): number | undefined {
+	const number = typeof value === "number" ? value : Number(value);
+	return Number.isFinite(number) ? number : undefined;
+}
+
+function formatMillimeters(value: number): string {
+	return value.toLocaleString("ru-RU", {
+		maximumFractionDigits: 1,
+	});
+}
+
+function formatDimensionsMm(dimensions: {
+	x: number;
+	y: number;
+	z: number;
+}): string {
+	return `${formatMillimeters(dimensions.x)} × ${formatMillimeters(dimensions.y)} × ${formatMillimeters(dimensions.z)} мм`;
+}
+
+function dimensionsFromEstimate(estimate: unknown):
+	| {
+			x: number;
+			y: number;
+			z: number;
+	  }
+	| undefined {
+	if (!isObject(estimate)) return undefined;
+	const data = isObject(estimate.data) ? estimate.data : estimate;
+	const dimensionsMm = data.dimensionsMm;
+
+	if (isObject(dimensionsMm)) {
+		const x = asFiniteNumber(dimensionsMm.x);
+		const y = asFiniteNumber(dimensionsMm.y);
+		const z = asFiniteNumber(dimensionsMm.z);
+		if (x !== undefined && y !== undefined && z !== undefined) {
+			return { x, y, z };
+		}
+	}
+
+	const maxX = asFiniteNumber(data.maxX);
+	const minX = asFiniteNumber(data.minX);
+	const maxY = asFiniteNumber(data.maxY);
+	const minY = asFiniteNumber(data.minY);
+	const maxZ = asFiniteNumber(data.maxZ);
+	const minZ = asFiniteNumber(data.minZ);
+
+	if (
+		maxX !== undefined &&
+		minX !== undefined &&
+		maxY !== undefined &&
+		minY !== undefined &&
+		maxZ !== undefined &&
+		minZ !== undefined
+	) {
+		return {
+			x: Math.abs(maxX - minX),
+			y: Math.abs(maxY - minY),
+			z: Math.abs(maxZ - minZ),
+		};
+	}
+
+	return undefined;
+}
+
+function inferDimensionsFromAnalysis(value: RequestFieldValue): string | undefined {
+	if (!Array.isArray(value)) return undefined;
+	const dimensions = value
+		.map((estimate) => dimensionsFromEstimate(estimate))
+		.filter(
+			(item): item is { x: number; y: number; z: number } =>
+				Boolean(item) && item.x > 0 && item.y > 0 && item.z > 0,
+		);
+
+	if (dimensions.length === 0) return undefined;
+	if (dimensions.length === 1) return formatDimensionsMm(dimensions[0]);
+
+	const max = dimensions.reduce(
+		(acc, item) => ({
+			x: Math.max(acc.x, item.x),
+			y: Math.max(acc.y, item.y),
+			z: Math.max(acc.z, item.z),
+		}),
+		{ x: 0, y: 0, z: 0 },
+	);
+	return `${dimensions.length} моделей из анализа файлов; максимум ${formatDimensionsMm(max)}`;
+}
+
 function humanizeKey(key: string): string {
 	return key
 		.replace(/^custom[_-]/, "")
@@ -317,6 +404,12 @@ export function buildRequestModel(input: BuildRequestModelInput): RequestModel {
 		const definition = definitionFromParameter(parameter);
 		addDefinition(definition);
 		if (definition) rawFields[definition.key] = parameter.value;
+	}
+	if (!isFilled(rawFields.dimensions)) {
+		const analyzedDimensions = inferDimensionsFromAnalysis(
+			rawFields.file_analysis_estimates,
+		);
+		if (analyzedDimensions) rawFields.dimensions = analyzedDimensions;
 	}
 
 	const fields: Record<string, RequestFieldState> = {};

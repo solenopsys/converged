@@ -6,12 +6,15 @@ import { blocksToMessages } from "./providers/base";
 
 export class Conversation {
   private readonly id = randomUUID();
-  private history: ChatMessage[] = [];
+  private history: ChatMessage[];
 
   constructor(
     private readonly provider: ChatLLMProvider,
     private readonly model: string,
-  ) {}
+    systemPrompt?: string,
+  ) {
+    this.history = systemPrompt ? [{ role: "system", content: systemPrompt }] : [];
+  }
 
   getId(): string {
     return this.id;

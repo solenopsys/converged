@@ -330,6 +330,52 @@ describe("RequestsService in-memory", () => {
 		expect(model.remainingDelta.map((field) => field.key)).toEqual(["dimensions"]);
 	});
 
+	it("uses file analysis dimensions to satisfy 3D printing size requirement", async () => {
+		const model = await requests.createRequestModel({
+			source: "assistant:request",
+			status: "file_analysis_done",
+			processType: "3d_printing",
+			fields: {
+				part_description: "Покемон",
+				material: "PETG",
+				quantity: 10,
+			},
+			parameters: [
+				{
+					key: "file_analysis_estimates",
+					label: "Расчеты по файлам",
+					type: "json",
+					group: "analysis",
+					value: [
+						{
+							sourceFileId: "file-1",
+							type: "printing",
+							data: {
+								sourceName: "part-a.stl",
+								dimensionsMm: { x: 49.3, y: 45.2, z: 28 },
+							},
+						},
+						{
+							sourceFileId: "file-2",
+							type: "printing",
+							data: {
+								sourceName: "part-b.stl",
+								dimensionsMm: { x: 50, y: 50, z: 28 },
+							},
+						},
+					],
+				},
+			],
+		});
+
+		expect(model.fields.dimensions.value).toBe(
+			"2 моделей из анализа файлов; максимум 50 × 50 × 28 мм",
+		);
+		expect(model.remainingRequired).not.toContain("dimensions");
+		expect(model.remainingDelta.map((field) => field.key)).toEqual([]);
+		expect(model.completion.filledRequired).toBe(model.completion.required);
+	});
+
 	it("replaces a previously collected material field", async () => {
 		const model = await requests.createRequestModel({
 			source: "assistant:request",

@@ -17,6 +17,7 @@ import { SimpleConversationFactory } from "./impls/factory";
 import type { AiConversation } from "./types";
 import { createAssistantServiceClient, type AssistantServiceClient } from "g-assistant";
 import { createRequestsServiceClient } from "g-requests";
+import { Service } from "nrpc";
 
 type AiConfig = {
   key?: string;
@@ -30,6 +31,22 @@ type ContextConfig = {
 const CHAT_PROVIDER_ENV = "CHAT_PROVIDER";
 const CHAT_MODEL_ENV = "CHAT_MODEL";
 
+const SYSTEM_PROMPT = `You are a UI assistant embedded in a business portal.
+
+## Navigation
+When the user asks to open, show, navigate to, or display any view, screen, stats, or list:
+1. Call \`listUIActions\` (with a relevant query) to discover available actions.
+2. Call \`invokeUIAction\` with the found action id.
+If \`listUIActions\` returns empty or no relevant results, infer the action id from the naming convention \`<module>.<view>.show\` (e.g. \`sheduller.stats.show\`, \`sales.leads.show\`, \`geo.list.show\`) and call \`invokeUIAction\` directly — it will auto-load the module if needed.
+Never explain what you could show — just navigate immediately.
+
+## Response style
+- Answer in 1–3 sentences maximum.
+- Use the same language the user writes in.
+- After invoking a UI action, confirm in one short sentence (e.g. "Открываю статистику.").
+- Do not list steps, do not explain tool calls, do not provide instructions unless explicitly asked.
+- If navigation truly fails, say so in one sentence.`;
+
 function resolveServiceType(value?: string): ServiceType | undefined {
   const normalized = value?.trim().toLowerCase();
   if (!normalized) return undefined;
@@ -41,6 +58,7 @@ function resolveServiceType(value?: string): ServiceType | undefined {
   );
 }
 
+@Service("assistant")
 export class AssistantRuntimeService {
   private factory: SimpleConversationFactory;
   private conversations = new Map<string, AiConversation>();
@@ -79,7 +97,7 @@ export class AssistantRuntimeService {
       throw new Error(`Model not found for service type: ${serviceType}`);
     }
 
-    const conversation = this.factory.create(serviceType, model);
+    const conversation = this.factory.create(serviceType, model, SYSTEM_PROMPT);
     const sessionId = conversation.getId();
     this.conversations.set(sessionId, conversation);
     if (contextName?.trim()) {

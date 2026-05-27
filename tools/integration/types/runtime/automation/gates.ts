@@ -1,8 +1,3 @@
-/**
- * @nrpc-service gates
- * @nrpc-package g-rt-gates
- */
-
 export type MagicLinkParams = {
   email: string;
   returnTo?: string;
