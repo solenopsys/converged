@@ -230,6 +230,13 @@
         "nrpc": "workspace:*",
       },
     },
+    "back/microservices/communications/ms-audio-gate": {
+      "name": "ms-audio-gate",
+      "dependencies": {
+        "back-core": "workspace:*",
+        "elysia": "latest",
+      },
+    },
     "back/microservices/communications/ms-calls": {
       "name": "ms-calls",
       "version": "1.0.0",
@@ -648,7 +655,7 @@
         "g-millingextractor": "workspace:*",
         "g-printextractor": "workspace:*",
         "g-requests": "workspace:*",
-        "g-rt-agents": "workspace:*",
+        "g-rt-agent": "workspace:*",
         "g-store": "workspace:*",
         "g-telemetry": "workspace:*",
         "nrpc": "workspace:*",
@@ -876,7 +883,7 @@
         "effector": "23.4.4",
         "effector-react": "23.3.0",
         "front-core": "workspace:*",
-        "g-rt-agents": "workspace:*",
+        "g-rt-agent": "workspace:*",
         "lucide-react": "^1.8.0",
         "react-markdown": "^10.1.0",
       },
@@ -1004,10 +1011,11 @@
     "front/microfrontends/communications/mf-calls": {
       "name": "mf-calls",
       "dependencies": {
-        "dagre": "^0.8.5",
+        "effector": "23.4.4",
+        "effector-react": "23.3.0",
         "front-core": "workspace:*",
         "g-calls": "workspace:*",
-        "pixi.js": "^8.11.0",
+        "lucide-react": "^1.8.0",
       },
     },
     "front/microfrontends/communications/mf-charts": {
@@ -1268,6 +1276,13 @@
         "nrpc": "workspace:*",
       },
     },
+    "tools/integration/generated/g-chats": {
+      "name": "g-chats",
+      "version": "0.0.0",
+      "dependencies": {
+        "nrpc": "workspace:*",
+      },
+    },
     "tools/integration/generated/g-classifier": {
       "name": "g-classifier",
       "version": "0.0.0",
@@ -1471,8 +1486,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "tools/integration/generated/g-rt-agents": {
-      "name": "g-rt-agents",
+    "tools/integration/generated/g-rt-agent": {
+      "name": "g-rt-agent",
       "version": "0.0.0",
       "dependencies": {
         "nrpc": "workspace:*",
@@ -1680,6 +1695,7 @@
         "marked": "^18.0.0",
         "md-tools": "workspace:*",
         "mf-assistants": "workspace:*",
+        "mf-calls": "workspace:*",
         "mf-requests": "workspace:*",
         "model3d": "workspace:*",
         "qrcode": "^1.5.4",
@@ -2839,6 +2855,8 @@
 
     "g-charts": ["g-charts@workspace:tools/integration/generated/g-charts"],
 
+    "g-chats": ["g-chats@workspace:tools/integration/generated/g-chats"],
+
     "g-classifier": ["g-classifier@workspace:tools/integration/generated/g-classifier"],
 
     "g-community": ["g-community@workspace:tools/integration/generated/g-community"],
@@ -2897,7 +2915,7 @@
 
     "g-reviews": ["g-reviews@workspace:tools/integration/generated/g-reviews"],
 
-    "g-rt-agents": ["g-rt-agents@workspace:tools/integration/generated/g-rt-agents"],
+    "g-rt-agent": ["g-rt-agent@workspace:tools/integration/generated/g-rt-agent"],
 
     "g-rt-assistant": ["g-rt-assistant@workspace:tools/integration/generated/g-rt-assistant"],
 
@@ -3296,6 +3314,8 @@
     "ms-agent": ["ms-agent@workspace:back/microservices/ai/ms-agent"],
 
     "ms-assistant": ["ms-assistant@workspace:back/microservices/ai/ms-assistant"],
+
+    "ms-audio-gate": ["ms-audio-gate@workspace:back/microservices/communications/ms-audio-gate"],
 
     "ms-auth": ["ms-auth@workspace:back/microservices/sequrity/ms-auth"],
 
@@ -3964,6 +3984,10 @@
     "redent/strip-indent": ["strip-indent@3.0.0", "", { "dependencies": { "min-indent": "^1.0.0" } }, "sha512-laJTa3Jb+VQpaC6DseHhF7dXVqHTfJPCRDaEbid/drOhgitgYku/letMUqOXFoWV0zIIUbjpdH2t+tYj4bQMRQ=="],
 
     "rolldown/@oxc-project/types": ["@oxc-project/types@0.124.0", "", {}, "sha512-VBFWMTBvHxS11Z5Lvlr3IWgrwhMTXV+Md+EQF0Xf60+wAdsGFTBx7X7K/hP4pi8N7dcm1RvcHwDxZ16Qx8keUg=="],
+
+    "rt-agents/@anthropic-ai/sdk": ["@anthropic-ai/sdk@0.99.0", "", { "dependencies": { "json-schema-to-ts": "^3.1.1", "standardwebhooks": "^1.0.0" }, "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" }, "optionalPeers": ["zod"], "bin": { "anthropic-ai-sdk": "bin/cli" } }, "sha512-vdicFA9YjtvgpG8rxp39hqW4oxpkdRGPTq0QEts5TZhr2GkLozDduK/GiXrLQ7PzrKYBtIkQFdRW+QBjzlsABg=="],
+
+    "rt-agents/openai": ["openai@6.39.0", "", { "peerDependencies": { "ws": "^8.18.0", "zod": "^3.25 || ^4.0" }, "optionalPeers": ["ws", "zod"], "bin": { "openai": "bin/cli" } }, "sha512-O61LIsimY3acVabwvomwFhwrnN36yvHY2quIfy9keEcFytGgWeV35yLHQ6NVMLSBxRpHmcg2yuhCnlu2HT4pLQ=="],
 
     "stream-fsm/through": ["through@2.1.0", "", {}, "sha512-uvPczOKXZtx4V1j1upuVsJAaUs2sOwCT6CVDT/xsse/AvenhMxgmK1LxILJUm2WoSZYi8RhOb10P9zvwjZOipQ=="],
 

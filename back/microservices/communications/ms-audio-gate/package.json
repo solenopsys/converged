@@ -1,0 +1,10 @@
+{
+  "name": "ms-audio-gate",
+  "private": true,
+  "type": "module",
+  "module": "src/plugin.ts",
+  "dependencies": {
+    "back-core": "workspace:*",
+    "elysia": "latest"
+  }
+}

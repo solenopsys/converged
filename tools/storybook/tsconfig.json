@@ -14,7 +14,15 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "typeRoots": ["./node_modules/@types", "../../node_modules/@types"],
+    "paths": {
+      "react":               ["./node_modules/@types/react"],
+      "react/jsx-runtime":   ["./node_modules/@types/react/jsx-runtime"],
+      "react-dom":           ["./node_modules/@types/react-dom"],
+      "mf-calls":            ["../../front/microfrontends/communications/mf-calls/src/index.ts"],
+      "mf-calls/*":          ["../../front/microfrontends/communications/mf-calls/src/*"]
+    }
   },
   "include": ["src", ".storybook"]
 }

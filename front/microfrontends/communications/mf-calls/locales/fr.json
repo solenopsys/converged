@@ -1,7 +1,57 @@
 {
   "menu": {
-    "chats": "Discussions",
+    "calls": "Calls",
+    "all_calls": "All Calls",
+    "new_call": "New Call",
     "audio": "Audio",
-    "text": "Textuelles"
+    "text": "Text"
+  },
+  "calls": {
+    "title": "Calls",
+    "new_call": "New Call",
+    "refresh": "Refresh",
+    "back": "Back",
+    "no_sessions": "No call sessions yet",
+    "start_first": "Start your first call",
+    "loading": "Loading sessions…",
+    "session": "Session",
+    "click_to_view": "Click to view recordings and transcript"
+  },
+  "active_call": {
+    "title": "New Call",
+    "status_idle": "Ready",
+    "status_connecting": "Connecting…",
+    "status_connected": "Connected",
+    "status_error": "Error",
+    "status_ended": "Ended",
+    "phone_label": "Phone",
+    "mic_label": "Mic",
+    "start": "Start Call",
+    "hangup": "Hang Up",
+    "live_transcript": "Live Transcript",
+    "waiting_transcript": "Waiting for transcript…",
+    "you": "You",
+    "ai": "AI",
+    "context_title": "AI Context",
+    "context_hint": "Instructions for the AI when calling this number.",
+    "context_placeholder": "e.g. You are a helpful sales assistant...",
+    "save_context": "Save",
+    "saved": "Saved",
+    "clear_context": "Clear",
+    "how_it_works": "How it works",
+    "step1": "1. Enter phone number and press Start Call.",
+    "step2": "2. Allow microphone access in the browser.",
+    "step3": "3. Speak — the AI responds in real-time via WebRTC.",
+    "step4": "4. The session is saved after you hang up."
+  },
+  "call_detail": {
+    "title": "Call Details",
+    "recordings": "Recordings",
+    "transcript": "Transcript",
+    "no_recordings": "No recordings available for this session.",
+    "no_transcript": "No transcript available.",
+    "loading": "Loading…",
+    "lines": "lines",
+    "refresh": "Refresh"
   }
 }
