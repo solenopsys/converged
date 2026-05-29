@@ -346,17 +346,27 @@ body { margin: 0; }
 .ssr-right-rail-empty {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 20px 18px;
+  gap: 12px;
+  margin: 18px 14px 0;
+  padding: 16px;
+  border: 1px solid color-mix(in oklch, var(--ui-border) 56%, transparent);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 18% 0%, color-mix(in oklch, var(--ui-foreground) 10%, transparent), transparent 34%),
+    color-mix(in oklch, var(--ui-muted) 30%, transparent);
 }
 .ssr-right-rail-empty h3 {
   margin: 0;
-  font-size: 30px;
-  line-height: 1.08;
+  font-size: 22px;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
 }
 .ssr-right-rail-empty p {
   margin: 0;
-  opacity: 0.72;
+  max-width: 34rem;
+  color: color-mix(in oklch, var(--ui-foreground) 68%, transparent);
+  font-size: 13px;
+  line-height: 1.5;
 }
 .ssr-panel-brand {
   display: flex;

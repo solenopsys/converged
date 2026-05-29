@@ -2,6 +2,7 @@ import { buildWorkspaceHeaders } from "front-core/workspace-domain";
 import type { SeoConfig } from "front-ssr/plugin";
 import createLandingPlugin from "front-ssr/plugin";
 import { createMarkdownServiceClient } from "g-markdown";
+import { existsSync, readFileSync } from "fs";
 import { resolve } from "path";
 import { renderToReadableStream } from "react-dom/server";
 import { AppSSR } from "./app/App";
@@ -14,6 +15,7 @@ import {
 	SUPPORTED_LOCALES,
 	type SupportedLocale,
 } from "./app/i18n";
+import type { LocaleRoutingConfig } from "./app/locale-routing";
 import { appSitemapRoutes } from "./app/routes";
 import { loadSeoConfig } from "./ssr/seo";
 
@@ -70,6 +72,18 @@ type RuntimeMfEnv = {
 	"mf-docs": { docs: DocsInitItem[] };
 	"mf-landing": { landingConfId: string; title?: string };
 };
+type ProjectConfig = {
+	localization?: {
+		mode?: string;
+		locale?: string;
+		language?: string;
+	};
+	i18n?: {
+		mode?: string;
+		locale?: string;
+		language?: string;
+	};
+};
 
 const LANDING_CONF_SUFFIX = "product/landing/cnc-landing.json";
 const DOCS_INDEX_SUFFIX = "product/docs/index.json";
@@ -77,6 +91,29 @@ const DEFAULT_DOCS: DocsInitItem[] = [
 	{ name: "cnc", id: `${DEFAULT_LOCALE}/${DOCS_INDEX_SUFFIX}` },
 ];
 const DEFAULT_LANDING_CONF_ID = `${DEFAULT_LOCALE}/${LANDING_CONF_SUFFIX}`;
+
+function readProjectConfig(): ProjectConfig {
+	const configPath =
+		process.env.CONFIG_PATH ||
+		(process.env.PROJECT_DIR ? resolve(process.env.PROJECT_DIR, "config.json") : "");
+	if (!configPath || !existsSync(configPath)) return {};
+	try {
+		return JSON.parse(readFileSync(configPath, "utf8")) as ProjectConfig;
+	} catch (error) {
+		console.warn("[landing] failed to read project config", error);
+		return {};
+	}
+}
+
+function resolveLocaleRouting(config: ProjectConfig): LocaleRoutingConfig {
+	const raw = config.localization ?? config.i18n ?? {};
+	const localeRaw = raw.locale ?? raw.language;
+	const locale = isSupportedLocale(localeRaw) ? localeRaw : DEFAULT_LOCALE;
+	return {
+		mode: raw.mode === "single" ? "single" : "multi",
+		locale,
+	};
+}
 
 function resolveLandingMenuLinks(
 	value: unknown,
@@ -235,6 +272,13 @@ function normalizeBaseUrl(value: string): string {
 function stripLocalePrefix(path: string): string {
 	const locale = extractLocaleFromPath(path);
 	if (!locale) return path;
+	const rest = path.slice(locale.length + 1);
+	return rest.length > 0 ? rest : "/";
+}
+
+function stripAnyLocalePrefix(path: string): string | null {
+	const locale = extractLocaleFromPath(path);
+	if (!locale) return null;
 	const rest = path.slice(locale.length + 1);
 	return rest.length > 0 ? rest : "/";
 }
@@ -409,10 +453,16 @@ export default function landingPlugin(
 	config: { publicDir?: string; production?: boolean } = {},
 ) {
 	const landingRoot = resolve(import.meta.dir, "..");
+	const localeRouting = resolveLocaleRouting(readProjectConfig());
 	const mfEnv = buildRuntimeMfEnv();
 	const localePrefixes = SUPPORTED_LOCALES.map((locale) => `/${locale}`);
 
 	function resolveRedirectPath(pathname: string): string | null {
+		if (localeRouting.mode === "single") {
+			const stripped = stripAnyLocalePrefix(pathname);
+			return stripped && stripped !== pathname ? stripped : null;
+		}
+
 		if (pathname === "/") {
 			return buildLocalePath(DEFAULT_LOCALE, "/");
 		}
@@ -450,7 +500,10 @@ export default function landingPlugin(
 	return createLandingPlugin({
 		...config,
 		landingRoot,
-		sitemapRoutes: appSitemapRoutes,
+		sitemapRoutes:
+			localeRouting.mode === "single"
+				? [{ path: "/", changefreq: "weekly", priority: 1 }]
+				: appSitemapRoutes,
 		resolveRedirectPath,
 		buildStyles: async () => {
 			const mod = await import("./ssr/styles");
@@ -468,7 +521,10 @@ export default function landingPlugin(
 			baseUrl: string,
 			workspace?: string,
 		) => {
-			const locale = extractLocaleFromPath(url) ?? DEFAULT_LOCALE;
+			const locale =
+				localeRouting.mode === "single"
+					? localeRouting.locale
+					: extractLocaleFromPath(url) ?? DEFAULT_LOCALE;
 			const localizedDocs = localizeDocsConfig(mfEnv["mf-docs"].docs, locale);
 			const landingConfId = withLocalePrefix(
 				mfEnv["mf-landing"].landingConfId,
@@ -532,9 +588,10 @@ export default function landingPlugin(
 							landing: landingData,
 							docs: docsData,
 							workspace,
+							localization: localeRouting,
 						}}
 					>
-						<AppSSR url={url} />
+						<AppSSR url={url} localeRouting={localeRouting} />
 					</Document>,
 				);
 				await stream.allReady;

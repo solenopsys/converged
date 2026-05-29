@@ -1,7 +1,8 @@
 import { readFileSync } from "fs";
+import { required } from "back-core";
 
-const K8S_API = process.env.K8S_API_URL ?? "https://kubernetes.default.svc";
-const NAMESPACE = process.env.K8S_NAMESPACE ?? "converged-portal";
+const K8S_API = required("K8S_API_URL");
+const NAMESPACE = required("K8S_NAMESPACE");
 const TENANT_API_GROUP = "storage.converged.io";
 const TENANT_API_VERSION = "v1alpha1";
 const TENANT_PLURAL = "tenants";

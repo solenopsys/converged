@@ -1,0 +1,7 @@
+{
+  "empty": {
+    "title": "Asistente de IA",
+    "description": "Pregunte sobre servicios, archivos, pedidos, certificados, contactos o el siguiente paso. Este panel es la capa de control del portal basada en chat.",
+    "actionsLabel": "Acciones del asistente"
+  }
+}

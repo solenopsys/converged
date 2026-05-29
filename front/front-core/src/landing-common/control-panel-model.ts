@@ -156,7 +156,17 @@ export const $tabs = createStore<PanelTab[]>([])
 	.on(tabsSet, (_, v) => v)
 	.on(tabRegistered, (tabs, tab) => {
 		const idx = tabs.findIndex((t) => t.id === tab.id);
-		if (idx >= 0) return tabs.map((t, i) => (i === idx ? tab : t));
+		if (idx >= 0) {
+			return tabs.map((t, i) =>
+				i === idx
+					? {
+							...t,
+							...tab,
+							icon: tab.icon ?? t.icon,
+						}
+					: t,
+			);
+		}
 		return [...tabs, tab];
 	});
 

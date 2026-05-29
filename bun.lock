@@ -138,6 +138,15 @@
         "nrpc": "workspace:*",
       },
     },
+    "back/microservices/automation/ms-kubernetes": {
+      "name": "ms-kubernetes",
+      "version": "1.0.0",
+      "dependencies": {
+        "back-core": "workspace:*",
+        "g-kubernetes": "workspace:*",
+        "nrpc": "workspace:*",
+      },
+    },
     "back/microservices/automation/ms-sheduller": {
       "name": "ms-sheduller",
       "version": "1.0.0",
@@ -1376,6 +1385,13 @@
     },
     "tools/integration/generated/g-instagram": {
       "name": "g-instagram",
+      "version": "0.0.0",
+      "dependencies": {
+        "nrpc": "workspace:*",
+      },
+    },
+    "tools/integration/generated/g-kubernetes": {
+      "name": "g-kubernetes",
       "version": "0.0.0",
       "dependencies": {
         "nrpc": "workspace:*",
@@ -2885,6 +2901,8 @@
 
     "g-instagram": ["g-instagram@workspace:tools/integration/generated/g-instagram"],
 
+    "g-kubernetes": ["g-kubernetes@workspace:tools/integration/generated/g-kubernetes"],
+
     "g-logs": ["g-logs@workspace:tools/integration/generated/g-logs"],
 
     "g-markdown": ["g-markdown@workspace:tools/integration/generated/g-markdown"],
@@ -3360,6 +3378,8 @@
     "ms-identity": ["ms-identity@workspace:back/microservices/sequrity/ms-identity"],
 
     "ms-instagram": ["ms-instagram@workspace:back/microservices/social/ms-instagram"],
+
+    "ms-kubernetes": ["ms-kubernetes@workspace:back/microservices/automation/ms-kubernetes"],
 
     "ms-logs": ["ms-logs@workspace:back/microservices/analytics/ms-logs"],
 

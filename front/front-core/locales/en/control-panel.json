@@ -1,0 +1,7 @@
+{
+  "empty": {
+    "title": "AI Assistant",
+    "description": "Ask about services, files, orders, certificates, contacts, or what to do next. This panel is the chat-first control layer for the portal.",
+    "actionsLabel": "Assistant actions"
+  }
+}

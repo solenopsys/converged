@@ -3,7 +3,8 @@ import { useParams, Link } from "react-router-dom";
 import { MdView } from "../components/MdView";
 import { Button } from "front-core";
 import { createMarkdownServiceClient } from "g-markdown";
-import { DEFAULT_LOCALE, buildLocalePath, isSupportedLocale } from "../i18n";
+import { isSupportedLocale } from "../i18n";
+import { buildAppPath, resolveActiveLocale } from "../locale-routing";
 
 const markdownClient = createMarkdownServiceClient({
   baseUrl: "/services",
@@ -26,7 +27,7 @@ function resolveDocPath(locale: string, slug: string) {
 
 export function DocsPage() {
   const { slug, locale } = useParams<{ slug: string; locale: string }>();
-  const activeLocale = isSupportedLocale(locale) ? locale : DEFAULT_LOCALE;
+  const activeLocale = resolveActiveLocale(isSupportedLocale(locale) ? locale : null);
   const initialRaw = typeof slug === "string" ? globalThis.__DOCS_SSR_DATA__?.[slug] : undefined;
   const initialData = initialRaw && typeof initialRaw.markdownPath === "string"
     && initialRaw.markdownPath.startsWith(`${activeLocale}/`)
@@ -89,10 +90,10 @@ export function DocsPage() {
     <div className="min-h-screen px-6 py-20">
       <div className="max-w-3xl mx-auto mb-6 flex gap-3">
         <Button asChild variant={slug === "page1" ? "default" : "outline"}>
-          <Link to={buildLocalePath(activeLocale, "/docs/page1")}>Page 1</Link>
+          <Link to={buildAppPath("/docs/page1", activeLocale)}>Page 1</Link>
         </Button>
         <Button asChild variant={slug === "page2" ? "default" : "outline"}>
-          <Link to={buildLocalePath(activeLocale, "/docs/page2")}>Page 2</Link>
+          <Link to={buildAppPath("/docs/page2", activeLocale)}>Page 2</Link>
         </Button>
       </div>
       <MdView ast={ast} error={error} loading={loading} />

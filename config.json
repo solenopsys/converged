@@ -4,6 +4,10 @@
     "baseImage": "docker.io/oven/bun:1.3-alpine",
     "registry": "public.ecr.aws/i5x9u8b2",
     "landing": "front/landing",
+    "localization": {
+        "mode": "single",
+        "locale": "en"
+    },
     "runtimeDeps": {
         "packages": {
             "sharp": "latest"

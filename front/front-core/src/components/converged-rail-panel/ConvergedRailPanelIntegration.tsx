@@ -6,7 +6,7 @@ import {
 	$activeTabId,
 	$branding,
 	$composerValue,
-	$panelActions,
+	$menuLinks,
 	$screens,
 	$tabs,
 	$tabContents,
@@ -16,7 +16,6 @@ import {
 	composerAttachRequested,
 	composerCleared,
 	composerValueChanged,
-	panelActionTriggered,
 	screenActivated,
 	screenClosed,
 	tabActivated,
@@ -42,11 +41,11 @@ export function ConvergedRailPanelIntegration({
 	tabContents,
 	chatTab,
 }: ConvergedRailPanelIntegrationProps) {
-	const [branding, screens, activeScreenId, actions, composer, userTabs, activeTabId, dynamicTabContents] = useUnit([
+	const [branding, screens, activeScreenId, shortcuts, composer, userTabs, activeTabId, dynamicTabContents] = useUnit([
 		$branding,
 		$screens,
 		$activeScreenId,
-		$panelActions,
+		$menuLinks,
 		$composerValue,
 		$tabs,
 		$activeTabId,
@@ -57,6 +56,8 @@ export function ConvergedRailPanelIntegration({
 		() => {
 			const reserved = new Set([CHAT_TAB_ID, MENU_TAB_ID]);
 			const hasMenuTab = Boolean(menuSlot || tabContents?.[MENU_TAB_ID]);
+			const isMountedTab = (tab: PanelTab) =>
+				Boolean(tabContents?.[tab.id] ?? dynamicTabContents[tab.id]);
 			return [
 				{
 					id: CHAT_TAB_ID,
@@ -70,10 +71,10 @@ export function ConvergedRailPanelIntegration({
 						label: "Menu",
 					}]
 					: []),
-				...userTabs.filter((tab) => !reserved.has(tab.id)),
+				...userTabs.filter((tab) => !reserved.has(tab.id) && isMountedTab(tab)),
 			];
 		},
-		[userTabs, chatTab?.icon, chatTab?.label, menuSlot, tabContents],
+		[userTabs, chatTab?.icon, chatTab?.label, menuSlot, tabContents, dynamicTabContents],
 	);
 
 	const tabContent =
@@ -91,8 +92,17 @@ export function ConvergedRailPanelIntegration({
 			activeScreenId={activeScreenId}
 			onScreenChange={screenActivated}
 			onScreenClose={screenClosed}
-			quickActions={actions}
-			onQuickAction={panelActionTriggered}
+			shortcuts={shortcuts}
+			onShortcutClick={(href) => {
+				const navigationEvent = new CustomEvent("front-core:navigate-fragment", {
+					cancelable: true,
+					detail: { href },
+				});
+				window.dispatchEvent(navigationEvent);
+				if (!navigationEvent.defaultPrevented) {
+					window.location.href = href;
+				}
+			}}
 			chatSlot={chatSlot}
 			composerValue={composer}
 			onComposerChange={composerValueChanged}

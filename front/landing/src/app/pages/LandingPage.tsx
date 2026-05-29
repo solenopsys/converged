@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { useParams } from "react-router-dom";
 import LandingView from "../../../../microfrontends/content/mf-landing/src/views/LandingView";
-import { DEFAULT_LOCALE, extractLocaleFromPath, isSupportedLocale, type SupportedLocale } from "../i18n";
+import { isSupportedLocale, type SupportedLocale } from "../i18n";
+import { resolveActiveLocale } from "../locale-routing";
 
 const LANDING_CONF_SUFFIX = "product/landing/cnc-landing.json";
 
@@ -39,9 +40,7 @@ function resolveLandingConfigPath(locale: SupportedLocale): string {
 
 export function LandingPage() {
   const { locale } = useParams<{ locale?: string }>();
-  const activeLocale = isSupportedLocale(locale)
-    ? locale
-    : (typeof window !== "undefined" ? extractLocaleFromPath(window.location.pathname) : null) ?? DEFAULT_LOCALE;
+  const activeLocale = resolveActiveLocale(isSupportedLocale(locale) ? locale : null);
   const landingConfigPath = useMemo(() => resolveLandingConfigPath(activeLocale), [activeLocale]);
   return <LandingView configPath={landingConfigPath} />;
 }

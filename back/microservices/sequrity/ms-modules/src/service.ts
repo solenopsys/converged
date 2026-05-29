@@ -8,16 +8,13 @@ import type {
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createHttpClient, Access } from "nrpc";
+import { required } from "back-core";
 import { StoresController } from "./stores";
 
 const LOCALES = ["en", "ru", "de", "fr", "it", "pt"];
 
-const REMOTE_BASE =
-  process.env.MODULES_REMOTE_BASE ||
-  "https://converged-modules.s3.us-east-2.amazonaws.com/front";
-
-const LOCAL_BASE =
-  process.env.MODULES_LOCAL_BASE || "http://localhost:3005/modules";
+const REMOTE_BASE = required("MODULES_REMOTE_BASE");
+const LOCAL_BASE = required("MODULES_LOCAL_BASE");
 
 type RuntimeConfig = {
   spa?: {

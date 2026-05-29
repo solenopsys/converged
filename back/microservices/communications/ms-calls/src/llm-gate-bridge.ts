@@ -10,10 +10,11 @@
  * Runs on a configurable interval (default 60 s).
  *
  * Env:
- *   LLM_GATE_URL                  (default: http://127.0.0.1:8090)
+ *   LLM_GATE_URL                  (required)
  *   LLM_GATE_SYNC_INTERVAL_MS     (default: 60000)
  */
 
+import { required } from "back-core";
 import type {
   CallsService,
   CallRecordingInput,
@@ -37,7 +38,7 @@ export class LlmGateBridge {
   private timer: ReturnType<typeof setInterval> | null = null;
 
   constructor(private readonly service: CallsService) {
-    this.gateUrl = (process.env.LLM_GATE_URL ?? "http://127.0.0.1:8090").replace(/\/$/, "");
+    this.gateUrl = required("LLM_GATE_URL").replace(/\/$/, "");
     this.intervalMs = Number(process.env.LLM_GATE_SYNC_INTERVAL_MS ?? 60_000);
   }
 

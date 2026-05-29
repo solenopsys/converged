@@ -1,0 +1,7 @@
+{
+  "empty": {
+    "title": "Assistant IA",
+    "description": "Posez une question sur les services, les fichiers, les commandes, les certificats, les contacts ou la prochaine étape. Ce panneau est la couche de contrôle du portail orientée chat.",
+    "actionsLabel": "Actions de l’assistant"
+  }
+}

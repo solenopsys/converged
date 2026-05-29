@@ -12,8 +12,8 @@ export interface ConvergedRailPanelProps {
 	activeScreenId?: string;
 	onScreenChange?: (id: string) => void;
 	onScreenClose?: (id: string) => void;
-	quickActions?: PanelAction[];
-	onQuickAction?: (prompt: string) => void;
+	shortcuts?: Array<{ label: string; href: string }>;
+	onShortcutClick?: (href: string) => void;
 	chatSlot?: ReactNode;
 	composerValue?: string;
 	onComposerChange?: (value: string) => void;
@@ -36,8 +36,8 @@ export function ConvergedRailPanel({
 	activeScreenId,
 	onScreenChange,
 	onScreenClose,
-	quickActions = [],
-	onQuickAction,
+	shortcuts = [],
+	onShortcutClick,
 	chatSlot,
 	composerValue = "",
 	onComposerChange,
@@ -53,6 +53,7 @@ export function ConvergedRailPanel({
 	const showTabStrip = tabs.length > 1;
 	const isChatActive = activeTabId === CHAT_TAB_ID;
 	const hasTabContent = !isChatActive && tabContent != null;
+	const showScreens = shortcuts.length === 0 && screens.length > 0;
 	return (
 		<>
 			<style>{css}</style>
@@ -107,9 +108,26 @@ export function ConvergedRailPanel({
 				) : (
 					<>
 						<div className="crp-menu">
-					{screens.length > 0 && (
-						<section className="crp-screens" aria-label="Open screens">
-							<h2 className="crp-section-title">Open screens</h2>
+					{shortcuts.length > 0 && (
+						<section className="crp-shortcuts" aria-label="Landing shortcuts">
+							<div className="crp-shortcut-list">
+								{shortcuts.map((shortcut) => (
+									<Button
+										key={`${shortcut.label}:${shortcut.href}`}
+										className="crp-shortcut"
+										onClick={() => onShortcutClick?.(shortcut.href)}
+										type="button"
+										variant="ghost"
+									>
+										{shortcut.label}
+									</Button>
+								))}
+							</div>
+						</section>
+					)}
+
+					{showScreens && (
+						<section className="crp-screens" aria-label="Screens">
 							<div className="crp-screen-list">
 								{screens.map((screen) => (
 									<div
@@ -148,22 +166,6 @@ export function ConvergedRailPanel({
 						</section>
 					)}
 
-					{quickActions.length > 0 && (
-						<div className="crp-quick-actions">
-							{quickActions.map((action) => (
-								<Button
-									key={action.id}
-									className="crp-quick-action"
-									onClick={() => onQuickAction?.(action.prompt)}
-									type="button"
-									variant="ghost"
-								>
-									{action.icon}
-									{action.label}
-								</Button>
-							))}
-						</div>
-					)}
 				</div>
 
 				<div className="crp-chat">{chatSlot}</div>
@@ -323,7 +325,7 @@ const css = `
   display: flex;
   flex-direction: column;
   min-height: 0;
-  max-height: 280px;
+  max-height: min(460px, 50vh);
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -337,17 +339,7 @@ const css = `
   display: none;
 }
 
-.crp-screens { padding: 18px 12px 10px; }
-
-.crp-section-title {
-  margin: 0 0 12px;
-  padding: 0 8px;
-  color: color-mix(in oklch, var(--ui-foreground) 58%, transparent);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
+.crp-screens { padding: 16px 12px 10px; }
 
 .crp-screen-list { display: flex; flex-direction: column; gap: 3px; }
 .crp-screen { position: relative; }
@@ -366,6 +358,26 @@ const css = `
 
 .crp-screen[data-active="1"] .crp-screen-btn {
   background: color-mix(in oklch, var(--ui-muted) 82%, transparent);
+}
+
+.crp-shortcuts { padding: 16px 12px 10px; }
+.crp-shortcut-list { display: flex; flex-direction: column; gap: 3px; }
+.crp-shortcut {
+  min-width: 0;
+  width: 100%;
+  height: 32px;
+  justify-content: flex-start;
+  border: 0;
+  border-radius: var(--crp-radius);
+  background: transparent;
+  color: var(--ui-foreground);
+  padding: 0 8px;
+  font-size: 14px;
+  font-weight: 650;
+}
+.crp-shortcut:hover {
+  background: color-mix(in oklch, var(--ui-muted) 82%, transparent);
+  color: var(--ui-foreground);
 }
 
 .crp-screen-icon { width: 17px; height: 17px; display: grid; flex: 0 0 auto; place-items: center; }
@@ -387,8 +399,12 @@ const css = `
 .crp-screen-close:hover { background: color-mix(in oklch, var(--ui-muted) 68%, transparent); color: var(--ui-foreground); }
 
 .crp-quick-actions { display: flex; flex-direction: column; gap: 6px; padding: 0 12px 12px; }
+.crp-quick-actions--assistant { padding: 4px 0 0; }
 
 .crp-quick-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   width: 100%;
   min-height: 34px;
   justify-content: flex-start;
@@ -400,6 +416,7 @@ const css = `
   padding: 7px 11px;
   font-size: 13px;
   font-weight: 600;
+  cursor: pointer;
 }
 
 .crp-quick-action:hover {

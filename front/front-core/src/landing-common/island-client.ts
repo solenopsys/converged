@@ -1,4 +1,4 @@
-import { createElement } from "react";
+import { createElement, type ReactNode } from "react";
 import { KeyRound } from "lucide-react";
 import { structClient } from "g-struct";
 import { SlotInline } from "../slots/SlotInline";
@@ -29,6 +29,7 @@ import {
 	MENU_TAB_ID,
 	readControlPanelMode,
 	tabActivated,
+	tabContentRegistered,
 	type ControlPanelMode,
 } from "./control-panel-model";
 import { GROUPS } from "./groups";
@@ -39,6 +40,11 @@ import {
 	isSupportedLocale,
 	type SupportedLocale,
 } from "./i18n";
+import {
+	readInitialLocaleRouting,
+	resolveRuntimeLocale,
+	stripRuntimeLocalePrefix,
+} from "./locale-routing";
 
 const SSR_MENU_STYLE_ID = "ssr-menu-shell-style";
 const FRONT_CORE_STYLE_ID = "front-core-runtime-style";
@@ -335,9 +341,38 @@ function getAppliedControlPanelMode(): ControlPanelMode {
 	return readControlPanelMode();
 }
 
+function readGuestMenuItems(): RuntimeMenuItem[] {
+	const initial = readInitialData();
+	return Array.isArray(initial.guestMenu) ? initial.guestMenu : [];
+}
+
+function readGuestMenuLinks(): ControlPanelMenuLink[] {
+	return readGuestMenuItems().flatMap((item): ControlPanelMenuLink[] => {
+		const label = typeof item.title === "string" ? item.title.trim() : "";
+		const href =
+			typeof item.href === "string" && item.href.trim()
+				? item.href.trim()
+				: typeof (item as { url?: unknown }).url === "string" &&
+						(item as { url: string }).url.trim()
+					? (item as { url: string }).url.trim()
+					: "";
+		return label && href ? [{ label, href }] : [];
+	});
+}
+
+function hasInitialPublicContent(): boolean {
+	const initial = readInitialData();
+	return Boolean(
+		readGuestMenuItems().length > 0 ||
+			initial.landing ||
+			(initial as { docsContent?: unknown }).docsContent,
+	);
+}
+
 function resolveInitialControlPanelMode(): ControlPanelMode {
 	if (getAppliedControlPanelMode() === "app") return "app";
 	if (hasRightRailDeepLink()) return "app";
+	if (!isAuthenticated() && hasInitialPublicContent()) return "public";
 	if (isSsrPublicRoute(window.location.pathname)) return "public";
 	return "app";
 }
@@ -372,13 +407,6 @@ function installDynamicMenuIfReady(): void {
 
 async function ensureMenuStoreReady(): Promise<void> {
 	if (!isAuthenticated()) {
-		const initial = readInitialData();
-		const guestItems: RuntimeMenuItem[] = Array.isArray(initial.guestMenu)
-			? initial.guestMenu
-			: [];
-		if (guestItems.length > 0) {
-			addMenuRequested({ microfrontendId: "guest", menu: guestItems });
-		}
 		return;
 	}
 
@@ -565,6 +593,9 @@ async function loadControlPanelMenuLinks(
 	const initialLinks = readControlPanelMenuLinksFromInitialData();
 	if (initialLinks.length > 0) return initialLinks;
 
+	const guestMenuLinks = readGuestMenuLinks();
+	if (guestMenuLinks.length > 0) return guestMenuLinks;
+
 	const configPath = resolveLandingConfigPathFromInitialData();
 	if (!configPath) return current;
 
@@ -589,7 +620,7 @@ async function loadControlPanelMenuLinks(
 }
 
 function readControlPanelHostOptions(host: HTMLElement) {
-	const locale = extractLocaleFromPath(window.location.pathname) ?? "en";
+	const locale = resolveRuntimeLocale(window.location.pathname);
 	return {
 		logoLight: normalizeGalleryStaticUrl(
 			host.dataset.logoLight || "",
@@ -632,6 +663,7 @@ async function ensureControlPanelRuntime(): Promise<void> {
 		bindLoginTabActivation();
 		const hostOptions = readControlPanelHostOptions(host);
 		const menuLinks = await loadControlPanelMenuLinks(hostOptions.menuLinks);
+		const localeRouting = readInitialLocaleRouting();
 		const initialMode = resolveInitialControlPanelMode();
 		controlPanelModeChanged(initialMode);
 		bindMenuTabActivation();
@@ -643,10 +675,13 @@ async function ensureControlPanelRuntime(): Promise<void> {
 			chatPlaceholder: hostOptions.chatPlaceholder,
 			menuLinks,
 			loginEnabled: hostOptions.loginEnabled,
-			languages: AVAILABLE_LANGS.map((lang) => ({
-				code: lang.code,
-				label: lang.code.toUpperCase(),
-			})),
+			languages:
+				localeRouting.mode === "single"
+					? []
+					: AVAILABLE_LANGS.map((lang) => ({
+							code: lang.code,
+							label: lang.code.toUpperCase(),
+						})),
 			currentLanguage: hostOptions.currentLanguage,
 			isDark: isDarkTheme(),
 			isAuthenticated,
@@ -677,9 +712,6 @@ async function ensureControlPanelRuntime(): Promise<void> {
 			tabs: hostOptions.loginEnabled
 				? [{ id: "auth", icon: createElement(KeyRound, { size: 17 }), label: "Sign in" }]
 				: [],
-			tabContents: {
-					auth: createElement(SlotInline, { slotId: "sidebar:tab:auth" }),
-				},
 		});
 		if (readControlPanelMode() === "app") {
 			installDynamicMenuIfReady();
@@ -711,32 +743,48 @@ async function ensureTemporarySessionForChat(): Promise<void> {
 	await action.invoke(undefined);
 }
 
+function ensureAuthTabMounted(): void {
+	tabContentRegistered({
+		id: "auth",
+		content: createElement(SlotInline, { slotId: "sidebar:tab:auth" }),
+	});
+}
+
+let authLoginPresentationPromise: Promise<void> | null = null;
+async function presentAuthLogin(): Promise<void> {
+	if (authLoginPresentationPromise) {
+		return authLoginPresentationPromise;
+	}
+	authLoginPresentationPromise = (async () => {
+		ensureAuthTabMounted();
+		await ensureAuthLoaded();
+		await Promise.resolve();
+		await Promise.resolve();
+		rightRailActionSelected("auth.show-login");
+		runActionEvent({ actionId: "auth.show-login", params: {} });
+	})().finally(() => {
+		authLoginPresentationPromise = null;
+	});
+	return authLoginPresentationPromise;
+}
+
 export async function openLoginPanel(): Promise<void> {
 	setControlPanelMode("app");
 	await ensureControlPanelRuntime();
-	await ensureAuthLoaded();
-	rightRailActionSelected("auth.show-login");
-	runActionEvent({ actionId: "auth.show-login", params: {} });
+	ensureAuthTabMounted();
+	tabActivated("auth");
+	await presentAuthLogin();
 }
 
-// When the auth tab becomes active (either from header button or tab strip click),
-// ensure the auth microfrontend is loaded and present its UI into slot "sidebar:tab:auth"
-// which mounts into the DOM div #slot-panel-tab that we render as the tab's content.
+// The auth tab is hidden until login is requested. At that point we register an
+// inline tab host, then let mf-auth present into "sidebar:tab:auth".
 let loginTabBound = false;
 function bindLoginTabActivation(): void {
 	if (loginTabBound) return;
 	loginTabBound = true;
 	tabActivated.watch((id) => {
 		if (id !== "auth") return;
-		void (async () => {
-			await ensureAuthLoaded();
-			// Wait two microtasks so React has rendered the slot-panel-tab div
-			// before the SlotProvider tries to mount auth content into it.
-			await Promise.resolve();
-			await Promise.resolve();
-			rightRailActionSelected("auth.show-login");
-			runActionEvent({ actionId: "auth.show-login", params: {} });
-		})();
+		void presentAuthLogin();
 	});
 }
 
@@ -1446,7 +1494,7 @@ type RuntimeMenuItem = {
 	key?: string;
 	title?: string;
 	iconName?: string;
-	icon?: unknown;
+	icon?: ReactNode;
 	action?: unknown;
 	href?: string;
 	__microfrontendId?: string;
@@ -2060,14 +2108,6 @@ function installDynamicMenu(menuPanel: HTMLElement): void {
 		bridge.setMenu(normalized as unknown[]);
 
 		if (!isAuthenticated()) {
-			// Guests: render Docs + Catalog links from SSR-embedded initial data
-			const initial = readInitialData();
-			const guestItems: RuntimeMenuItem[] = Array.isArray(initial.guestMenu)
-				? initial.guestMenu
-				: [];
-			for (const item of guestItems) {
-				groupsHost.appendChild(buildTreeNode(item, 0, 0));
-			}
 			return;
 		}
 
@@ -2289,6 +2329,13 @@ function installLinkInterceptor(): void {
 	if (document.documentElement.dataset.ssrNavBridge === "1") return;
 	document.documentElement.dataset.ssrNavBridge = "1";
 	linkInterceptorDocumentPath = `${window.location.pathname}${window.location.search}`;
+
+	window.addEventListener("front-core:navigate-fragment", (event) => {
+		const href = (event as CustomEvent<{ href?: unknown }>).detail?.href;
+		if (typeof href !== "string" || href.length === 0) return;
+		event.preventDefault();
+		navigateInternalHref(href);
+	});
 
 	document.addEventListener("click", (event) => {
 		const eventEl = resolveEventElement(event.target);
@@ -2642,7 +2689,7 @@ function installChatDock(): void {
 
 		renderPrompts(QUICK_CHAT_PROMPTS);
 
-		const locale = extractLocaleFromPath(window.location.pathname) ?? "en";
+		const locale = resolveRuntimeLocale(window.location.pathname);
 		try {
 			structClient
 				.readJson(`${locale}/magic/chat-prompts.json`)
@@ -2688,13 +2735,14 @@ function hasRightRailDeepLink(): boolean {
 }
 
 function stripLocalePrefix(pathname: string): string {
-	const locale = extractLocaleFromPath(pathname);
-	if (!locale) return pathname || "/";
-	const rest = pathname.slice(locale.length + 1);
-	return rest.length > 0 ? rest : "/";
+	return stripRuntimeLocalePrefix(pathname);
 }
 
 function isSsrPublicRoute(pathname: string): boolean {
+	const localeRouting = readInitialLocaleRouting();
+	if (localeRouting.mode === "single") {
+		return pathname === "/" || pathname === "/cnc" || pathname.startsWith("/docs/");
+	}
 	const locale = extractLocaleFromPath(pathname);
 	if (!locale) return false;
 
@@ -2750,6 +2798,7 @@ function syncLangMenuSelection(): void {
 }
 
 async function applyLocaleChange(nextLocaleRaw: string): Promise<void> {
+	if (readInitialLocaleRouting().mode === "single") return;
 	if (!isSupportedLocale(nextLocaleRaw)) return;
 
 	const nextLocale = nextLocaleRaw;
@@ -2771,6 +2820,7 @@ async function applyLocaleChange(nextLocaleRaw: string): Promise<void> {
 }
 
 function installLangControl(): void {
+	if (readInitialLocaleRouting().mode === "single") return;
 	const root = document.querySelector<HTMLElement>("[data-ssr-lang-root]");
 	const control = getControl("lang");
 	const menu = document.querySelector<HTMLElement>("[data-ssr-lang-menu]");

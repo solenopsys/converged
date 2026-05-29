@@ -38,6 +38,13 @@ const scrollToHashTarget = (hash: string) => {
 const navigateToMenuHref = (href: string) => {
 	if (typeof window === "undefined") return;
 
+	const navigationEvent = new CustomEvent("front-core:navigate-fragment", {
+		cancelable: true,
+		detail: { href },
+	});
+	window.dispatchEvent(navigationEvent);
+	if (navigationEvent.defaultPrevented) return;
+
 	const url = new URL(href, window.location.href);
 	const sameDocument =
 		url.origin === window.location.origin &&

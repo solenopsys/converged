@@ -10,12 +10,15 @@ import { addMenuRequested, authToken, bus, setCenterView, StateStreamView } from
 import { createRoot } from "react-dom/client";
 import { App } from "../app/App";
 import { DEFAULT_LOCALE, extractLocaleFromPath } from "../app/i18n";
+import { readLocaleRouting } from "../app/locale-routing";
 import { GROUPS, type GroupDef } from "../groups";
 
 // ---- MF env ----
 
 function resolveRuntimeLocale(): string {
 	if (typeof window === "undefined") return DEFAULT_LOCALE;
+	const routing = readLocaleRouting();
+	if (routing.mode === "single") return routing.locale;
 	return extractLocaleFromPath(window.location.pathname) ?? DEFAULT_LOCALE;
 }
 
@@ -260,6 +263,10 @@ async function resolveAllowedProtectedMicrofrontends(): Promise<string[]> {
 
 function isConsoleRoute() {
 	const pathname = window.location.pathname;
+	const routing = readLocaleRouting();
+	if (routing.mode === "single") {
+		return pathname === "/console" || pathname.startsWith("/console/");
+	}
 	const locale = extractLocaleFromPath(pathname);
 	const path = locale ? pathname.slice(locale.length + 1) || "/" : pathname;
 	return path === "/console" || path.startsWith("/console/");
@@ -267,6 +274,8 @@ function isConsoleRoute() {
 
 function isRequestRoute() {
 	const pathname = window.location.pathname;
+	const routing = readLocaleRouting();
+	if (routing.mode === "single") return pathname.startsWith("/request/");
 	const locale = extractLocaleFromPath(pathname);
 	const path = locale ? pathname.slice(locale.length + 1) || "/" : pathname;
 	return path.startsWith("/request/");
@@ -274,6 +283,10 @@ function isRequestRoute() {
 
 function isServerRenderedPublicRoute() {
 	const pathname = window.location.pathname;
+	const routing = readLocaleRouting();
+	if (routing.mode === "single") {
+		return pathname === "/" || pathname.startsWith("/docs/");
+	}
 	const locale = extractLocaleFromPath(pathname);
 	if (!locale) return false;
 

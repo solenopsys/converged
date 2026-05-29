@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { notFoundError } from "back-core";
+import { BaseService, badRequestError, notFoundError } from "back-core";
 import type {
 	PaginationParams,
 	ScriptFile,
@@ -11,14 +11,10 @@ import type {
 } from "g-scripts";
 import { StoresController } from "./stores";
 
-const MS_ID = "scripts-ms";
-
 function ensurePath(path: string): string {
 	const normalized = path.trim().replace(/^\/+/, "");
 	if (!normalized) {
-		const error: any = new Error("path is empty");
-		error.statusCode = 400;
-		throw error;
+		throw badRequestError("path is empty");
 	}
 	return normalized;
 }
@@ -31,29 +27,13 @@ function decode(data: Uint8Array): string {
 	return new TextDecoder().decode(data);
 }
 
-export class ScriptsServiceImpl implements ScriptsService {
-	stores!: StoresController;
-	private initPromise?: Promise<void>;
-
+export class ScriptsServiceImpl extends BaseService<StoresController> implements ScriptsService {
 	constructor() {
-		this.init();
+		super("scripts-ms");
 	}
 
-	async init() {
-		if (this.initPromise) {
-			return this.initPromise;
-		}
-
-		this.initPromise = (async () => {
-			this.stores = new StoresController(MS_ID);
-			await this.stores.init();
-		})();
-
-		return this.initPromise;
-	}
-
-	private async ensureInit(): Promise<void> {
-		await this.init();
+	protected createStores(msId: string): StoresController {
+		return new StoresController(msId);
 	}
 
 	private async calculateHash(filePath: string): Promise<string | undefined> {
@@ -66,7 +46,7 @@ export class ScriptsServiceImpl implements ScriptsService {
 	}
 
 	async saveScript(file: ScriptFile): Promise<string> {
-		await this.ensureInit();
+		await this.ready();
 		const path = ensurePath(file.path);
 		const data = new TextEncoder().encode(file.content);
 		await this.stores.fileStore.put(path, data);
@@ -74,7 +54,7 @@ export class ScriptsServiceImpl implements ScriptsService {
 	}
 
 	async readScript(filePath: string): Promise<ScriptFile> {
-		await this.ensureInit();
+		await this.ready();
 		const path = ensurePath(filePath);
 		const data = await this.stores.fileStore.get(path);
 		if (!data) {
@@ -87,13 +67,13 @@ export class ScriptsServiceImpl implements ScriptsService {
 	}
 
 	async deleteScript(filePath: string): Promise<void> {
-		await this.ensureInit();
+		await this.ready();
 		const path = ensurePath(filePath);
 		await this.stores.fileStore.delete(path);
 	}
 
 	async listScripts(params: PaginationParams): Promise<ScriptListResult> {
-		await this.ensureInit();
+		await this.ready();
 		const keys = (await this.stores.fileStore.listKeys()).sort();
 		const start = params.offset;
 		const end = params.offset + params.limit;
@@ -111,14 +91,14 @@ export class ScriptsServiceImpl implements ScriptsService {
 	}
 
 	async getHash(filePath: string): Promise<ScriptHashResult> {
-		await this.ensureInit();
+		await this.ready();
 		return {
 			hash: await this.calculateHash(filePath),
 		};
 	}
 
 	async getHashMap(): Promise<ScriptHashMap> {
-		await this.ensureInit();
+		await this.ready();
 		const keys = (await this.stores.fileStore.listKeys()).sort();
 		const result: ScriptHashMap = {};
 

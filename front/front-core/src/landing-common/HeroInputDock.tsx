@@ -8,6 +8,7 @@ import { useHeroDock } from "./useHeroDock";
 
 export interface HeroChip {
   icon?: ReactNode;
+  iconName?: string;
   label: string;
   prompt: string;
 }
@@ -133,7 +134,8 @@ export function HeroInputDock({
                     key={chip.label}
                     className="hsl-chip"
                     type="button"
-                    data-hero-prompt={landingEventMode ? chip.prompt : undefined}
+                    data-hero-icon={chip.iconName}
+                    data-hero-prompt={chip.prompt}
                     onClick={() => setValue(chip.prompt)}
                   >
                     {chip.icon}
@@ -214,7 +216,8 @@ function HeroInputDockStatic({
                   key={chip.label}
                   className="hsl-chip"
                   type="button"
-                  data-hero-prompt={landingEventMode ? chip.prompt : undefined}
+                  data-hero-icon={chip.iconName}
+                  data-hero-prompt={chip.prompt}
                 >
                   {chip.label}
                 </button>

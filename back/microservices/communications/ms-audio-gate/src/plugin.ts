@@ -5,10 +5,10 @@
  *   /audio-gate/*        → HTTP proxy → llm-audio-gate
  *   /audio-gate/ws       → WebSocket relay → llm-audio-gate /ws
  *
- * Env:
- *   LLM_GATE_URL  (default: http://127.0.0.1:8090)
+ * Env: LLM_GATE_URL (required)
  */
 import { t } from "elysia";
+import { required } from "back-core";
 
 // Headers that must never be forwarded upstream
 const SKIP_HEADERS = new Set([
@@ -30,7 +30,7 @@ function filterHeaders(headers: Headers): Record<string, string> {
 }
 
 const plugin = (_config: any) => (app: any) => {
-  const gateUrl = (process.env.LLM_GATE_URL ?? "http://127.0.0.1:8090").replace(/\/$/, "");
+  const gateUrl = required("LLM_GATE_URL").replace(/\/$/, "");
 
   // ── HTTP REST proxy ──────────────────────────────────────────────────
   app.all("/audio-gate/*", async ({ request, params }: any) => {

@@ -1,5 +1,6 @@
 import { createEvent, createStore, sample } from "effector";
 import { chatSendRequested } from "../../chat/events";
+import { addMenuRequested } from "../../controllers/menu-store";
 import type { PanelConfig } from "./panelTypes";
 
 export type LayoutMode = "landing" | "app";
@@ -8,6 +9,15 @@ export const $layoutMode = createStore<LayoutMode>("landing").on(setLayoutMode, 
 
 sample({
   clock: chatSendRequested,
+  fn: (): LayoutMode => "app",
+  target: setLayoutMode,
+});
+
+// Auto-activate app layout when menu items are published — portals just supply data via addMenuRequested.
+sample({
+  clock: addMenuRequested,
+  source: $layoutMode,
+  filter: (mode, { menu }) => mode === "landing" && Array.isArray(menu) && menu.length > 0,
   fn: (): LayoutMode => "app",
   target: setLayoutMode,
 });

@@ -1,12 +1,10 @@
 import { Elysia } from "elysia";
 import { createHttpBackend } from "nrpc";
 import { metadata } from "g-auth";
+import { required } from "back-core";
 import { AuthServiceImpl } from "./service";
 
-const frontendUrl =
-  process.env.MAGIC_HOST ??
-  process.env.FRONTEND_URL ??
-  "http://localhost:3000";
+const frontendUrl = process.env.MAGIC_HOST ?? required("FRONTEND_URL");
 
 export default (options: any) => (app: Elysia) => {
   const impl = new AuthServiceImpl();

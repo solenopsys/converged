@@ -1,4 +1,6 @@
 export * from "./utils";
+export * from "./base-service";
+export * from "./env";
 export * from "./request-context";
 export * from "./workspace-domain";
 export * from "./engines";

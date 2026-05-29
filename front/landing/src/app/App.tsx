@@ -20,6 +20,10 @@ import { LandingPage } from "./pages/LandingPage";
 import { DocsPage } from "./pages/DocsPage";
 import { RequestPage } from "./pages/RequestPage";
 import { DEFAULT_LOCALE, buildLocalePath, isSupportedLocale } from "./i18n";
+import {
+  readLocaleRouting,
+  type LocaleRoutingConfig,
+} from "./locale-routing";
 
 // SSR: simple wrapper, Client: full BaseLayout
 function RootLayout() {
@@ -51,7 +55,29 @@ function RootLayout() {
   return <ClientLayout centerFallback={stableOutletNode} />;
 }
 
-function renderAppRoutes() {
+function stripLeadingLocale(pathname: string): string {
+  const segments = pathname.split("/");
+  const locale = segments[1];
+  if (!isSupportedLocale(locale)) return pathname || "/";
+  const rest = `/${segments.slice(2).join("/")}`;
+  return rest === "/" ? "/" : rest.replace(/\/+$/, "") || "/";
+}
+
+function renderAppRoutes(localeRouting: LocaleRoutingConfig = readLocaleRouting()) {
+  if (localeRouting.mode === "single") {
+    return (
+      <Route path="/" element={<RootLayout />}>
+        <Route index element={<LandingPage />} />
+        <Route path="request/:requestId" element={<RequestPage />} />
+        <Route path="docs/:slug" element={<DocsPage />} />
+        <Route path="console" element={null} />
+        <Route path="console/*" element={null} />
+        <Route path=":locale/*" element={<SingleLocaleRedirect />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    );
+  }
+
   return (
     <Route path="/" element={<RootLayout />}>
       <Route path="/" element={<Navigate to={buildLocalePath(DEFAULT_LOCALE, "/")} replace />} />
@@ -67,6 +93,21 @@ function renderAppRoutes() {
       </Route>
       <Route path="*" element={<Navigate to={buildLocalePath(DEFAULT_LOCALE, "/")} replace />} />
     </Route>
+  );
+}
+
+function SingleLocaleRedirect() {
+  const { locale } = useParams<{ locale?: string }>();
+  const location = useLocation();
+  if (!isSupportedLocale(locale)) {
+    return <Navigate to="/" replace />;
+  }
+  const strippedPath = stripLeadingLocale(location.pathname);
+  return (
+    <Navigate
+      to={{ pathname: strippedPath, search: location.search, hash: location.hash }}
+      replace
+    />
   );
 }
 
@@ -88,11 +129,17 @@ function LocaleWrapper() {
 }
 
 // SSR App component
-export function AppSSR({ url }: { url: string }) {
+export function AppSSR({
+  url,
+  localeRouting = readLocaleRouting(),
+}: {
+  url: string;
+  localeRouting?: LocaleRoutingConfig;
+}) {
   return (
     <StaticRouter location={url}>
       <Routes>
-        {renderAppRoutes()}
+        {renderAppRoutes(localeRouting)}
       </Routes>
     </StaticRouter>
   );
@@ -103,7 +150,7 @@ export function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {renderAppRoutes()}
+        {renderAppRoutes(readLocaleRouting())}
       </Routes>
     </BrowserRouter>
   );

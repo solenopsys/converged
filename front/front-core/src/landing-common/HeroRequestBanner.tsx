@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import {
   BadgeCheck,
   CalendarClock,
@@ -10,6 +11,7 @@ import {
 } from "lucide-react";
 import { HeroBanner, type HeroBannerData } from "./HeroBanner";
 import { HeroInputDock, type HeroChip, type HeroInputDockMode } from "./HeroInputDock";
+import { publishLandingQuickActions } from "./landing-quick-actions";
 
 export interface HeroRequestBannerData extends HeroBannerData {
   request?: {
@@ -31,12 +33,12 @@ export interface HeroRequestBannerProps {
 }
 
 const DEFAULT_HERO_ACTIONS: HeroChip[] = [
-  { icon: <BadgeCheck size={14} />, label: "Check drawing", prompt: "Check this drawing: " },
-  { icon: <Upload size={14} />, label: "Upload file", prompt: "I want to upload a file for review." },
-  { icon: <CalendarClock size={14} />, label: "Estimate deadline", prompt: "Estimate deadline: " },
-  { icon: <ClipboardCheck size={14} />, label: "Request quote", prompt: "Prepare a quote: " },
-  { icon: <PackageCheck size={14} />, label: "Choose material", prompt: "Help me choose material: " },
-  { icon: <Ruler size={14} />, label: "Check tolerances", prompt: "Check tolerances: " },
+  { icon: <BadgeCheck size={14} />, iconName: "BadgeCheck", label: "Check drawing", prompt: "Check this drawing: " },
+  { icon: <Upload size={14} />, iconName: "Upload", label: "Upload file", prompt: "I want to upload a file for review." },
+  { icon: <CalendarClock size={14} />, iconName: "CalendarClock", label: "Estimate deadline", prompt: "Estimate deadline: " },
+  { icon: <ClipboardCheck size={14} />, iconName: "ClipboardCheck", label: "Request quote", prompt: "Prepare a quote: " },
+  { icon: <PackageCheck size={14} />, iconName: "PackageCheck", label: "Choose material", prompt: "Help me choose material: " },
+  { icon: <Ruler size={14} />, iconName: "Ruler", label: "Check tolerances", prompt: "Check tolerances: " },
 ];
 
 export function HeroRequestBanner({
@@ -64,6 +66,18 @@ export function HeroRequestBanner({
     "Describe the part, material, quantity, tolerances, deadline and attach files in chat.";
   const resolvedChips = chips ?? resolveHeroChips(request.chips);
 
+  useEffect(() => {
+    publishLandingQuickActions(
+      resolvedChips.map((chip, index) => ({
+        id: toActionId(chip.label, index),
+        icon: chip.iconName,
+        label: chip.label,
+        prompt: chip.prompt,
+        contextName: request.contextName || "request",
+      })),
+    );
+  }, [resolvedChips, request.contextName]);
+
   return (
     <section id={id} className="hsl-root">
       <style>{heroRequestBannerCss}</style>
@@ -89,6 +103,14 @@ export function HeroRequestBanner({
   );
 }
 
+function toActionId(label: string, index: number): string {
+  const slug = label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return slug || `hero-action-${index + 1}`;
+}
+
 function resolveHeroChips(labels?: string[]): HeroChip[] {
   if (!Array.isArray(labels) || labels.length === 0) {
     return DEFAULT_HERO_ACTIONS;
@@ -98,6 +120,7 @@ function resolveHeroChips(labels?: string[]): HeroChip[] {
     const fallback = DEFAULT_HERO_ACTIONS[index % DEFAULT_HERO_ACTIONS.length];
     return {
       icon: fallback.icon,
+      iconName: fallback.iconName,
       label,
       prompt: `${label}: `,
     };

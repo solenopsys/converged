@@ -1,4 +1,5 @@
 export * from './i18n';
+export * from './locale-routing';
 export * from './groups';
 export * from './island-loader';
 export * from './island-client';

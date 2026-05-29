@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { BaseService } from "back-core";
 import type {
 	ClassifierService,
 	ClassifierMapping,
@@ -11,29 +12,19 @@ import type {
 } from "./types";
 import { StoresController } from "./store";
 
-const MS_ID = "classifier-ms";
-
-class ClassifierServiceImpl implements ClassifierService {
-	stores!: StoresController;
-	private readonly initPromise: Promise<void>;
-
+class ClassifierServiceImpl extends BaseService<StoresController> implements ClassifierService {
 	constructor() {
-		this.initPromise = this.init();
+		super("classifier-ms");
 	}
 
-	private async init() {
-		this.stores = new StoresController(MS_ID);
-		await this.stores.init();
-	}
-
-	private async ensureInit(): Promise<void> {
-		await this.initPromise;
+	protected createStores(msId: string): StoresController {
+		return new StoresController(msId);
 	}
 
 	async addNode(
 		node: Omit<ClassifierNode, "id"> & { id?: string },
 	): Promise<string> {
-		await this.ensureInit();
+		await this.ready();
 		const id = node.id || randomUUID();
 		await this.stores.sqlStoreService.addNode({
 			id,
@@ -45,7 +36,7 @@ class ClassifierServiceImpl implements ClassifierService {
 	}
 
 	async getNode(id: string): Promise<ClassifierNode | null> {
-		await this.ensureInit();
+		await this.ready();
 		const entity = await this.stores.sqlStoreService.getNode(id);
 		if (!entity) return null;
 		return {
@@ -57,7 +48,7 @@ class ClassifierServiceImpl implements ClassifierService {
 	}
 
 	async getChildren(parentId: string): Promise<ClassifierNode[]> {
-		await this.ensureInit();
+		await this.ready();
 		const entities = await this.stores.sqlStoreService.getChildren(parentId);
 		return entities.map((e) => ({
 			id: e.id,
@@ -68,7 +59,7 @@ class ClassifierServiceImpl implements ClassifierService {
 	}
 
 	async listRoots(): Promise<ClassifierNode[]> {
-		await this.ensureInit();
+		await this.ready();
 		const entities = await this.stores.sqlStoreService.listRoots();
 		return entities.map((e) => ({
 			id: e.id,
@@ -81,7 +72,7 @@ class ClassifierServiceImpl implements ClassifierService {
 	async listNodes(
 		params: PaginationParams,
 	): Promise<PaginatedResult<ClassifierNode>> {
-		await this.ensureInit();
+		await this.ready();
 		const result = await this.stores.sqlStoreService.listNodes(params);
 		return {
 			items: result.items.map((e) => ({
@@ -97,7 +88,7 @@ class ClassifierServiceImpl implements ClassifierService {
 	async listTreeChildren(
 		parentId?: string | null,
 	): Promise<ClassifierTreeNode[]> {
-		await this.ensureInit();
+		await this.ready();
 		const entities =
 			await this.stores.sqlStoreService.listTreeChildren(parentId);
 		return entities.map((e) => ({
@@ -110,7 +101,7 @@ class ClassifierServiceImpl implements ClassifierService {
 	}
 
 	async setMapping(mapping: ClassifierMappingInput): Promise<string> {
-		await this.ensureInit();
+		await this.ready();
 		const id = mapping.id || randomUUID();
 		return this.stores.sqlStoreService.setMapping({
 			id,
@@ -125,26 +116,26 @@ class ClassifierServiceImpl implements ClassifierService {
 		groupId: string,
 		key: string,
 	): Promise<ClassifierMapping | null> {
-		await this.ensureInit();
+		await this.ready();
 		const entity = await this.stores.sqlStoreService.getMapping(groupId, key);
 		if (!entity) return null;
 		return this.toMapping(entity);
 	}
 
 	async resolveMapping(groupId: string, key: string): Promise<string | null> {
-		await this.ensureInit();
+		await this.ready();
 		const entity = await this.stores.sqlStoreService.getMapping(groupId, key);
 		return entity?.value ?? null;
 	}
 
 	async listMappings(groupId: string): Promise<ClassifierMapping[]> {
-		await this.ensureInit();
+		await this.ready();
 		const entities = await this.stores.sqlStoreService.listMappings(groupId);
 		return entities.map((entity) => this.toMapping(entity));
 	}
 
 	async listMappingGroups(): Promise<ClassifierMappingGroup[]> {
-		await this.ensureInit();
+		await this.ready();
 		const entities = await this.stores.sqlStoreService.listMappingGroups();
 		return entities.map((entity) => ({
 			groupId: entity.groupId,
@@ -153,7 +144,7 @@ class ClassifierServiceImpl implements ClassifierService {
 	}
 
 	async deleteMapping(groupId: string, key: string): Promise<boolean> {
-		await this.ensureInit();
+		await this.ready();
 		return this.stores.sqlStoreService.deleteMapping(groupId, key);
 	}
 

@@ -57,6 +57,20 @@ export function notFoundError(
 	return serviceError(404, message, "NOT_FOUND", details);
 }
 
+export function badRequestError(
+	message: string,
+	details?: Record<string, unknown>,
+): ServiceError {
+	return serviceError(400, message, "BAD_REQUEST", details);
+}
+
+export function conflictError(
+	message: string,
+	details?: Record<string, unknown>,
+): ServiceError {
+	return serviceError(409, message, "CONFLICT", details);
+}
+
 export function generateUUID(): Uint8Array {
 	// Простая генерация UUID v4 в виде 16 байт
 	const uuid = new Uint8Array(16);

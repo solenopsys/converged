@@ -11,10 +11,22 @@ declare global {
   }
 }
 
-import { extractLocaleFromPath, DEFAULT_LOCALE } from './landing-common/i18n';
+import { extractLocaleFromPath, DEFAULT_LOCALE, isSupportedLocale } from './landing-common/i18n';
 
 function resolveInitialLanguage(): string {
   if (typeof window === 'undefined') return DEFAULT_LOCALE;
+  const initialDataScript = document.getElementById('__INITIAL_DATA__');
+  if (initialDataScript?.textContent) {
+    try {
+      const parsed = JSON.parse(initialDataScript.textContent) as {
+        localization?: { mode?: unknown; locale?: unknown };
+      };
+      const locale = parsed?.localization?.locale;
+      if (parsed?.localization?.mode === 'single' && isSupportedLocale(locale as string | undefined)) {
+        return locale as string;
+      }
+    } catch {}
+  }
   return extractLocaleFromPath(window.location.pathname) ?? DEFAULT_LOCALE;
 }
 
@@ -44,7 +56,8 @@ const namespaces = [
   'table_titles',
   'table_data',
   'chart',
-  'chart_data'
+  'chart_data',
+  'control-panel'
 ];
 
 const namespaceFileMap: Record<string, string> = {
