@@ -15,6 +15,7 @@ import { registerIsland } from "front-core";
 // DOM without hydration or React.
 
 registerIsland("section-rail", () => import("./islands/section-rail"));
+registerIsland("warmup", () => import("./islands/warmup"));
 import { createRuntimeGatesServiceClient } from "g-rt-gates";
 
 // App-level bus handlers — registered before any UI mounts

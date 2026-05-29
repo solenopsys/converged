@@ -1,5 +1,6 @@
 import { createHttpBackend } from "nrpc";
 import { isAbsolute, relative, resolve } from "node:path";
+import { resolveWorkspaceFromRequest } from "back-core";
 import { metadata } from "g-galery";
 import serviceImpl from "./index";
 import { StoresController } from "./stores";
@@ -50,6 +51,9 @@ const resolveInside = (root: string, path: string): string | null => {
   if (relPath.startsWith("..") || isAbsolute(relPath)) return null;
   return fullPath;
 };
+
+const resolveRequestWorkspace = (request: Request): string | undefined =>
+  resolveWorkspaceFromRequest(request);
 
 export default (options: PluginOptions = {}) =>
   (app: any) => {
@@ -122,7 +126,7 @@ export default (options: PluginOptions = {}) =>
       }
 
       const stores = await ensureStores();
-      const workspace = request.headers.get("workspace") ?? request.headers.get("x-workspace") ?? undefined;
+      const workspace = resolveRequestWorkspace(request);
       const doGet = () => stores.static.get(filePath);
       const data = await (workspace && typeof options.runWithContext === "function"
         ? (options.runWithContext as any)({ workspace, scope: workspace }, doGet)
@@ -156,7 +160,7 @@ export default (options: PluginOptions = {}) =>
       if (!filePath) { set.status = 400; return "Bad request"; }
       const stores = await ensureStores();
       const body = await request.arrayBuffer();
-      const workspace = request.headers.get("workspace") ?? request.headers.get("x-workspace") ?? undefined;
+      const workspace = resolveRequestWorkspace(request);
       const doPut = () => stores.static.put(filePath, new Uint8Array(body));
       await (workspace && typeof options.runWithContext === "function"
         ? (options.runWithContext as any)({ workspace, scope: workspace }, doPut)
@@ -166,7 +170,7 @@ export default (options: PluginOptions = {}) =>
 
     app.get("/galery/file/:id", async ({ params, query, request, set }: any) => {
       const stores = await ensureStores();
-      const workspace = request.headers.get("workspace") ?? request.headers.get("x-workspace") ?? undefined;
+      const workspace = resolveRequestWorkspace(request);
       const withCtx = <T>(fn: () => T) =>
         workspace && typeof options.runWithContext === "function"
           ? (options.runWithContext as any)({ workspace, scope: workspace }, fn)

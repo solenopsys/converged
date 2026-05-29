@@ -345,10 +345,9 @@ async function structCall<T>(
 
 async function prefetchLandingPayload(
 	configPath: string,
-	baseUrl: string,
+	servicesBaseUrl: string,
 	workspace?: string,
 ): Promise<LandingPrefetchPayload> {
-	const servicesBaseUrl = `${normalizeBaseUrl(baseUrl)}/services`;
 	const config = await structCall<LandingConfig>(
 		servicesBaseUrl,
 		"readJson",
@@ -421,11 +420,10 @@ async function prefetchLandingPayload(
 
 async function prefetchDocsPayload(
 	slug: string,
-	baseUrl: string,
+	servicesBaseUrl: string,
 	locale: SupportedLocale,
 	workspace?: string,
 ): Promise<DocsPrefetchPayload> {
-	const servicesBaseUrl = `${normalizeBaseUrl(baseUrl)}/services`;
 	const markdownClient = createMarkdownServiceClient({
 		baseUrl: servicesBaseUrl,
 		workspace,
@@ -519,6 +517,7 @@ export default function landingPlugin(
 			importMap: Record<string, string>,
 			seo: SeoConfig,
 			baseUrl: string,
+			servicesBaseUrl: string,
 			workspace?: string,
 		) => {
 			const locale =
@@ -545,7 +544,7 @@ export default function landingPlugin(
 				try {
 					const preloaded = await prefetchLandingPayload(
 						landingConfId,
-						baseUrl,
+						servicesBaseUrl,
 						workspace,
 					);
 					landingData = { [landingConfId]: preloaded };
@@ -561,7 +560,7 @@ export default function landingPlugin(
 					try {
 						const preloaded = await prefetchDocsPayload(
 							slug,
-							baseUrl,
+							servicesBaseUrl,
 							locale,
 							workspace,
 						);

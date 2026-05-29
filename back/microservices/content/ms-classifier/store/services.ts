@@ -32,10 +32,14 @@ export interface MappingGroupEntity {
 }
 
 export class SqlStoreService {
-	private db: SqlStore["db"];
+	private readonly store: SqlStore;
 
 	constructor(store: SqlStore) {
-		this.db = store.db;
+		this.store = store;
+	}
+
+	private get db(): SqlStore["db"] {
+		return this.store.db;
 	}
 
 	async addNode(node: NodeEntity): Promise<void> {

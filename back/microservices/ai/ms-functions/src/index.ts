@@ -1,145 +1,218 @@
-import type { FunctionsService, FunctionDef, FunctionInput, FunctionSearchResult, FunctionType } from "g-functions";
+import type {
+	FunctionsService,
+	FunctionDef,
+	FunctionInput,
+	FunctionSearchResult,
+	FunctionType,
+} from "g-functions";
 import { Access, Service } from "nrpc";
+import { getCurrentStorageScope, isCloudStorageScopeRequired } from "back-core";
 import { StoresController } from "./stores";
 import {
-  generateEmbedding,
-  buildEmbeddingInput,
-  cosineSimilarity,
+	generateEmbedding,
+	buildEmbeddingInput,
+	cosineSimilarity,
 } from "./embedding";
 
 const MS_ID = "ms-functions";
 
 @Service("functions")
 class FunctionsServiceImpl implements FunctionsService {
-  private stores: StoresController;
-  private initPromise?: Promise<void>;
-  // In-memory vector index: id → { contentHash, vector }
-  private vectorIndex = new Map<string, { contentHash: string; vector: number[] }>();
+	private stores: StoresController;
+	private initPromise?: Promise<void>;
+	// In-memory vector index per storage scope: id -> { contentHash, vector }
+	private vectorIndexes = new Map<
+		string,
+		Map<string, { contentHash: string; vector: number[] }>
+	>();
 
-  constructor() {
-    this.init();
-  }
+	constructor() {
+		this.init();
+	}
 
-  async init() {
-    if (this.initPromise) return this.initPromise;
-    this.initPromise = (async () => {
-      this.stores = new StoresController(MS_ID);
-      await this.stores.init();
-      await this.rebuildVectorIndex();
-    })();
-    return this.initPromise;
-  }
+	async init() {
+		if (this.initPromise) return this.initPromise;
+		this.initPromise = (async () => {
+			this.stores = new StoresController(MS_ID);
+			await this.stores.init();
+		})();
+		return this.initPromise;
+	}
 
-  private async ensureInit() {
-    await this.init();
-  }
+	private async ensureInit() {
+		await this.init();
+		await this.stores.ensureCurrentScopeReady();
+		if (isCloudStorageScopeRequired() && !getCurrentStorageScope()) return;
+		if (!this.vectorIndexes.has(this.currentIndexKey())) {
+			await this.rebuildVectorIndex();
+		}
+	}
 
-  private async rebuildVectorIndex() {
-    const functions = await this.stores.functions.list();
-    this.vectorIndex.clear();
-    for (const fn of functions) {
-      const record = await this.stores.embeddings.get(fn.contentHash);
-      if (record) {
-        this.vectorIndex.set(fn.id, { contentHash: fn.contentHash, vector: record.vector });
-      }
-    }
-  }
+	private currentIndexKey() {
+		return getCurrentStorageScope() ?? "__global__";
+	}
 
-  private async ensureEmbedding(contentHash: string, brief: string, description: string): Promise<number[]> {
-    const cached = await this.stores.embeddings.get(contentHash);
-    if (cached) return cached.vector;
+	private getVectorIndex() {
+		const key = this.currentIndexKey();
+		let index = this.vectorIndexes.get(key);
+		if (!index) {
+			index = new Map<string, { contentHash: string; vector: number[] }>();
+			this.vectorIndexes.set(key, index);
+		}
+		return index;
+	}
 
-    const vector = await generateEmbedding(buildEmbeddingInput(brief, description));
-    await this.stores.embeddings.save(contentHash, vector);
-    return vector;
-  }
+	private async rebuildVectorIndex() {
+		const functions = await this.stores.functions.list();
+		const vectorIndex = this.getVectorIndex();
+		vectorIndex.clear();
+		for (const fn of functions) {
+			const record = await this.stores.embeddings.get(fn.contentHash);
+			if (record) {
+				vectorIndex.set(fn.id, {
+					contentHash: fn.contentHash,
+					vector: record.vector,
+				});
+			}
+		}
+	}
 
-  @Access("internal")
-  async registerFunctions(functions: FunctionInput[]): Promise<void> {
-    await this.ensureInit();
-    for (const input of functions) {
-      const { def, changed } = await this.stores.functions.upsert(input);
-      if (changed || !this.vectorIndex.has(def.id)) {
-        try {
-          const vector = await this.ensureEmbedding(def.contentHash, def.brief, def.description);
-          this.vectorIndex.set(def.id, { contentHash: def.contentHash, vector });
-        } catch (err) {
-          console.warn(`[ms-functions] Failed to generate embedding for ${def.id}:`, err);
-        }
-      }
-    }
-  }
+	private async ensureEmbedding(
+		contentHash: string,
+		brief: string,
+		description: string,
+	): Promise<number[]> {
+		const cached = await this.stores.embeddings.get(contentHash);
+		if (cached) return cached.vector;
 
-  async listFunctions(type?: FunctionType, category?: string): Promise<FunctionDef[]> {
-    await this.ensureInit();
-    return this.stores.functions.list(type, category);
-  }
+		const vector = await generateEmbedding(
+			buildEmbeddingInput(brief, description),
+		);
+		await this.stores.embeddings.save(contentHash, vector);
+		return vector;
+	}
 
-  async getFunction(id: string): Promise<FunctionDef | null> {
-    await this.ensureInit();
-    return (await this.stores.functions.get(id)) ?? null;
-  }
+	@Access("internal")
+	async registerFunctions(functions: FunctionInput[]): Promise<void> {
+		await this.ensureInit();
+		const vectorIndex = this.getVectorIndex();
+		for (const input of functions) {
+			const { def, changed } = await this.stores.functions.upsert(input);
+			if (changed || !vectorIndex.has(def.id)) {
+				try {
+					const vector = await this.ensureEmbedding(
+						def.contentHash,
+						def.brief,
+						def.description,
+					);
+					vectorIndex.set(def.id, { contentHash: def.contentHash, vector });
+				} catch (err) {
+					console.warn(
+						`[ms-functions] Failed to generate embedding for ${def.id}:`,
+						err,
+					);
+				}
+			}
+		}
+	}
 
-  async searchFunctions(query: string, limit = 10): Promise<FunctionSearchResult[]> {
-    await this.ensureInit();
+	async listFunctions(
+		type?: FunctionType,
+		category?: string,
+	): Promise<FunctionDef[]> {
+		await this.ensureInit();
+		return this.stores.functions.list(type, category);
+	}
 
-    if (this.vectorIndex.size === 0) {
-      return this.textSearch(query, limit);
-    }
+	async getFunction(id: string): Promise<FunctionDef | null> {
+		await this.ensureInit();
+		return (await this.stores.functions.get(id)) ?? null;
+	}
 
-    let queryVector: number[];
-    try {
-      queryVector = await generateEmbedding(query);
-    } catch {
-      return this.textSearch(query, limit);
-    }
+	async searchFunctions(
+		query: string,
+		limit = 10,
+	): Promise<FunctionSearchResult[]> {
+		await this.ensureInit();
+		const vectorIndex = this.getVectorIndex();
 
-    const scored: Array<{ id: string; score: number }> = [];
-    for (const [id, entry] of this.vectorIndex) {
-      scored.push({ id, score: cosineSimilarity(queryVector, entry.vector) });
-    }
-    scored.sort((a, b) => b.score - a.score);
+		if (vectorIndex.size === 0) {
+			return this.textSearch(query, limit);
+		}
 
-    const topIds = scored.slice(0, limit);
-    const results: FunctionSearchResult[] = [];
-    for (const { id, score } of topIds) {
-      const fn = await this.stores.functions.get(id);
-      if (fn) {
-        results.push({ id: fn.id, brief: fn.brief, description: fn.description, category: fn.category, type: fn.type, score });
-      }
-    }
-    return results;
-  }
+		let queryVector: number[];
+		try {
+			queryVector = await generateEmbedding(query);
+		} catch {
+			return this.textSearch(query, limit);
+		}
 
-  // BM25-style text fallback when no embeddings are available
-  private async textSearch(query: string, limit: number): Promise<FunctionSearchResult[]> {
-    const all = await this.stores.functions.list();
-    const q = query.toLowerCase();
-    const scored = all
-      .map((fn) => {
-        const text = `${fn.id} ${fn.brief} ${fn.description} ${fn.category ?? ""}`.toLowerCase();
-        const score = q.split(" ").filter(Boolean).reduce((acc, word) => acc + (text.includes(word) ? 1 : 0), 0) / (q.split(" ").length || 1);
-        return { fn, score };
-      })
-      .filter(({ score }) => score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, limit);
+		const scored: Array<{ id: string; score: number }> = [];
+		for (const [id, entry] of vectorIndex) {
+			scored.push({ id, score: cosineSimilarity(queryVector, entry.vector) });
+		}
+		scored.sort((a, b) => b.score - a.score);
 
-    return scored.map(({ fn, score }) => ({
-      id: fn.id, brief: fn.brief, description: fn.description,
-      category: fn.category, type: fn.type, score,
-    }));
-  }
+		const topIds = scored.slice(0, limit);
+		const results: FunctionSearchResult[] = [];
+		for (const { id, score } of topIds) {
+			const fn = await this.stores.functions.get(id);
+			if (fn) {
+				results.push({
+					id: fn.id,
+					brief: fn.brief,
+					description: fn.description,
+					category: fn.category,
+					type: fn.type,
+					score,
+				});
+			}
+		}
+		return results;
+	}
 
-  @Access("internal")
-  async deleteFunction(id: string): Promise<void> {
-    await this.ensureInit();
-    const fn = await this.stores.functions.get(id);
-    if (fn) {
-      this.vectorIndex.delete(id);
-      await this.stores.functions.delete(id);
-    }
-  }
+	// BM25-style text fallback when no embeddings are available
+	private async textSearch(
+		query: string,
+		limit: number,
+	): Promise<FunctionSearchResult[]> {
+		const all = await this.stores.functions.list();
+		const q = query.toLowerCase();
+		const scored = all
+			.map((fn) => {
+				const text =
+					`${fn.id} ${fn.brief} ${fn.description} ${fn.category ?? ""}`.toLowerCase();
+				const score =
+					q
+						.split(" ")
+						.filter(Boolean)
+						.reduce((acc, word) => acc + (text.includes(word) ? 1 : 0), 0) /
+					(q.split(" ").length || 1);
+				return { fn, score };
+			})
+			.filter(({ score }) => score > 0)
+			.sort((a, b) => b.score - a.score)
+			.slice(0, limit);
+
+		return scored.map(({ fn, score }) => ({
+			id: fn.id,
+			brief: fn.brief,
+			description: fn.description,
+			category: fn.category,
+			type: fn.type,
+			score,
+		}));
+	}
+
+	@Access("internal")
+	async deleteFunction(id: string): Promise<void> {
+		await this.ensureInit();
+		const fn = await this.stores.functions.get(id);
+		if (fn) {
+			this.getVectorIndex().delete(id);
+			await this.stores.functions.delete(id);
+		}
+	}
 }
 
 export default FunctionsServiceImpl;

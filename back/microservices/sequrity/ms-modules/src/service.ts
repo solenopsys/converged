@@ -13,8 +13,8 @@ import { StoresController } from "./stores";
 
 const LOCALES = ["en", "ru", "de", "fr", "it", "pt"];
 
-const REMOTE_BASE = required("MODULES_REMOTE_BASE");
-const LOCAL_BASE = required("MODULES_LOCAL_BASE");
+const REMOTE_BASE = process.env.MODULES_REMOTE_BASE || "/mf";
+const LOCAL_BASE = process.env.MODULES_LOCAL_BASE || "/mf";
 
 type RuntimeConfig = {
   spa?: {

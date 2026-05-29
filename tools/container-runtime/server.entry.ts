@@ -153,17 +153,17 @@ const runtimeConfig = readRuntimeConfig(
 	process.env.CONFIG_PATH || resolve(appRoot, "config.json"),
 );
 const runtimeMicrofrontends = resolveRuntimeMicrofrontends(runtimeConfig);
-const runtimeCacheConfig = runtimeMap.cache?.url
+if (runtimeMap.cache && !process.env.VALKEY_URL) {
+	throw new Error("VALKEY_URL environment variable is required but not set");
+}
+
+const runtimeCacheConfig = runtimeMap.cache
 	? {
-			url: runtimeMap.cache.url,
+			url: process.env.VALKEY_URL!,
 			keyPrefix: runtimeMap.cache.keyPrefix,
 			defaultTtlSeconds: runtimeMap.cache.ssrTtlSeconds,
 		}
 	: null;
-
-if (runtimeCacheConfig?.url) {
-	process.env.VALKEY_URL ||= runtimeCacheConfig.url;
-}
 
 const runtimeCache: CacheAdapter | undefined = runtimeCacheConfig
 	? createValkeyCache(runtimeCacheConfig)

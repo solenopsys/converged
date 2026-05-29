@@ -1,5 +1,6 @@
 export interface ServiceStores {
 	init(): Promise<void>;
+	ensureCurrentScopeReady?(): Promise<void>;
 }
 
 export abstract class BaseService<TStores extends ServiceStores> {
@@ -22,5 +23,6 @@ export abstract class BaseService<TStores extends ServiceStores> {
 
 	protected async ready(): Promise<void> {
 		await this.initPromise;
+		await this.stores.ensureCurrentScopeReady?.();
 	}
 }

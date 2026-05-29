@@ -281,7 +281,8 @@ export const useNamespacePreload = (namespaces: string | string[]) => {
   return loaded;
 };
 
-import { LocaleController } from "../controllers/locale-controller";
+import { useUnit } from 'effector-react';
+import { LocaleController, $activeLocale } from "../controllers/locale-controller";
 
 // Module-level cache: language → mfId → translations
 const translationsCache = new Map<string, any>();
@@ -289,8 +290,7 @@ const translationsCache = new Map<string, any>();
 const getCacheKey = (microfrontendId: string, language: string) => `${microfrontendId}::${language}`;
 
 export const useMicrofrontendTranslation = (microfrontendId: string) => {
-  const { i18n } = useGlobalTranslation();
-  const currentLanguage = i18n.language || "en";
+  const currentLanguage = useUnit($activeLocale);
   const cacheKey = getCacheKey(microfrontendId, currentLanguage);
 
   const [translations, setTranslations] = useState<any>(() => translationsCache.get(cacheKey) ?? {});

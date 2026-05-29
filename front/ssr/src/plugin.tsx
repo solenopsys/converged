@@ -34,7 +34,8 @@ export interface LandingPluginConfig {
     url: string,
     importMap: Record<string, string>,
     seo: SeoConfig,
-    baseUrl: string,
+    publicBaseUrl: string,
+    servicesBaseUrl: string,
     workspace?: string,
   ) => string | Promise<string>;
   /** Sitemap route entries */
@@ -612,6 +613,9 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
           ogImage,
         },
         baseUrl,
+        process.env.SERVICES_BASE
+          ? normalizeBaseUrl(process.env.SERVICES_BASE)
+          : `${normalizeBaseUrl(baseUrl)}/services`,
         workspace,
       ),
     );

@@ -65,9 +65,9 @@
     "yaml": "^2.9.0"
   },
   "scripts": {
-    "dev": "bun i && NODE_ENV=development bun run --cwd ../club-portal/tools/configurator src/cli.ts dev --project=converged-portal --env-file=../../confs/converged-portal.env",
+    "dev": "bun i && NODE_ENV=development bun run --cwd ../club-portal/tools/configurator src/cli.ts dev --project=converged-portal --env-file=../../confs/converged-portal-local.env",
     "gen:mono": "bun run --cwd ../club-portal/tools/configurator src/cli.ts build --project=converged-portal --preset=mono --output=../../../converged-portal/deployment",
-    "gen:containers": "bun run --cwd ../club-portal/tools/configurator src/cli.ts containers --project=converged-portal --preset=mono --output=../../../converged-portal/deployment",
+    "gen:containers": "bun run --cwd ../club-portal/tools/configurator src/cli.ts containers --project=converged-portal --preset=cloud --output=../../../converged-portal/deployment",
     "build:container:ui": "podman build --layers --ignorefile ./deployment/containers/converged-portal.containerignore -f ./deployment/containers/converged-portal.ui.Containerfile -t localhost/converged-portal-ui:latest ../../..",
     "build:container:ms": "podman build --layers --ignorefile ./deployment/containers/converged-portal.containerignore -f ./deployment/containers/converged-portal.ms.Containerfile -t localhost/converged-portal-ms:latest ../../..",
     "build:container:rt": "podman build --layers --ignorefile ./deployment/containers/converged-portal.containerignore -f ./deployment/containers/converged-portal.rt.Containerfile -t localhost/converged-portal-rt:latest ../../..",

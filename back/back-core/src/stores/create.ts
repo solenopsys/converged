@@ -23,6 +23,8 @@ export type StorageConnectionTarget = string | StorageConnectionConfig;
 
 const DEFAULT_STORAGE_TCP_PORT = 9000;
 const DEFAULT_STORAGE_SCOPE = "__default__";
+const STORAGE_SCOPE_REQUIRED_MESSAGE =
+	"Storage scope is required in cloud storage mode. Pass Host/x-forwarded-host or workspace/scope headers so the service can resolve the tenant storage.";
 
 let tenantStorageServicesRaw: string | undefined;
 let tenantStorageServicesCache: Record<string, TenantStorageEndpoint> = {};
@@ -55,11 +57,14 @@ function readTenantStorageEndpoint(
 ): TenantStorageEndpoint | undefined {
 	const services = readTenantStorageServices();
 	const tenant =
-		scope ||
-		process.env.STORAGE_SCOPE ||
-		process.env.STORAGE_TENANT ||
-		"default";
-	return services[tenant] ?? services.default;
+		scope || process.env.STORAGE_SCOPE || process.env.STORAGE_TENANT;
+	if (tenant) {
+		return (
+			services[tenant] ??
+			(isCloudStorageScopeRequired() ? undefined : services.default)
+		);
+	}
+	return isCloudStorageScopeRequired() ? undefined : services.default;
 }
 
 function normalizeTcpPort(port: number | string | undefined): number {
@@ -131,7 +136,26 @@ function discoverStorageHosts(): string[] {
 	return hosts;
 }
 
+export function isCloudStorageScopeRequired(): boolean {
+	const transport =
+		process.env.STORAGE_TRANSPORT || process.env.STORAGE_CONNECTION_KIND;
+	if (transport !== "tcp") return false;
+	if (process.env.STORAGE_TCP_HOST || process.env.STORAGE_HOST) return false;
+	if (process.env.STORAGE_SCOPE || process.env.STORAGE_TENANT) return false;
+	return Boolean(
+		process.env.STORAGE_SERVICE_PREFIX || process.env.STORAGE_TENANT_SERVICES,
+	);
+}
+
+function assertStorageScope(scope?: string): void {
+	if (!scope && isCloudStorageScopeRequired()) {
+		throw new Error(STORAGE_SCOPE_REQUIRED_MESSAGE);
+	}
+}
+
 function readStorageConnectionConfig(): StorageConnectionTarget {
+	assertStorageScope();
+
 	const tenantEndpoint = readTenantStorageEndpoint();
 	if (tenantEndpoint) {
 		return storageEndpointToTarget(tenantEndpoint);
@@ -159,6 +183,8 @@ function readStorageConnectionConfig(): StorageConnectionTarget {
 function readStorageConnectionConfigForScope(
 	scope?: string,
 ): StorageConnectionTarget {
+	assertStorageScope(scope);
+
 	const tenantEndpoint = readTenantStorageEndpoint(scope);
 	if (tenantEndpoint) {
 		return storageEndpointToTarget(tenantEndpoint);
@@ -192,13 +218,17 @@ interface StoragePoolLease {
 
 export class StorageConnectionPool {
 	private readonly entries = new Map<string, StoragePoolEntry>();
-	private readonly defaultConfig: StorageConnectionTarget;
+	private readonly defaultConfig?: StorageConnectionTarget;
 
 	constructor(
-		defaultConfig: StorageConnectionTarget = readStorageConnectionConfig(),
+		defaultConfig?: StorageConnectionTarget,
 		private readonly options?: StorageConnectionOptions,
 	) {
 		this.defaultConfig = defaultConfig;
+	}
+
+	private resolveDefaultConfig(): StorageConnectionTarget {
+		return this.defaultConfig ?? readStorageConnectionConfig();
 	}
 
 	addHost(host: string, port?: number): StorageConnection {
@@ -216,13 +246,13 @@ export class StorageConnectionPool {
 	}
 
 	getConnection(host?: string): StorageConnection {
-		const config = host ? parseStorageHost(host) : this.defaultConfig;
+		const config = host ? parseStorageHost(host) : this.resolveDefaultConfig();
 		const key = storageConnectionKey(config);
 		return this.entries.get(key)?.conn ?? this.addConnection(config);
 	}
 
 	getConnectionEntry(host?: string): StoragePoolLease {
-		const config = host ? parseStorageHost(host) : this.defaultConfig;
+		const config = host ? parseStorageHost(host) : this.resolveDefaultConfig();
 		const key = storageConnectionKey(config);
 		return {
 			key,
@@ -233,7 +263,7 @@ export class StorageConnectionPool {
 	getConnectionForScope(scope?: string): StoragePoolLease {
 		const config = scope
 			? readStorageConnectionConfigForScope(scope)
-			: this.defaultConfig;
+			: this.resolveDefaultConfig();
 		const key = storageConnectionKey(config);
 		return {
 			key,
@@ -242,7 +272,7 @@ export class StorageConnectionPool {
 	}
 
 	acquire(host?: string): StoragePoolLease {
-		const config = host ? parseStorageHost(host) : this.defaultConfig;
+		const config = host ? parseStorageHost(host) : this.resolveDefaultConfig();
 		const key = storageConnectionKey(config);
 		let entry = this.entries.get(key);
 		if (!entry) {
@@ -544,13 +574,16 @@ function createRequestScopedStorageConnection(
 export abstract class StoreControllerAbstract {
 	protected stores: { [key: string]: Store } = {};
 	protected conn: StorageConnection;
+	private readonly storeTypes: Record<string, TransportStoreTypeKey> = {};
 	private readonly initializedScopes = new Set<string>();
 	private readonly scopeInitPromises = new Map<string, Promise<void>>();
+	private readonly fixedStorageHost?: string;
 
 	constructor(
 		protected msName: string,
 		storageHost?: string,
 	) {
+		this.fixedStorageHost = storageHost;
 		try {
 			this.conn = createRequestScopedStorageConnection(storageHost);
 		} catch (error) {
@@ -586,11 +619,28 @@ export abstract class StoreControllerAbstract {
 		return initPromise;
 	}
 
+	private shouldDeferStorageInit(): boolean {
+		return (
+			!this.fixedStorageHost &&
+			!getCurrentStorageScope() &&
+			isCloudStorageScopeRequired()
+		);
+	}
+
 	async startAll() {
+		if (this.shouldDeferStorageInit()) {
+			logStoreDebug("open:defer", { msName: this.msName });
+			return;
+		}
+
 		for (const [name, store] of Object.entries(this.stores)) {
 			const startedAt = Date.now();
 			logStoreDebug("open:start", { msName: this.msName, store: name });
 			try {
+				const storeType = this.storeTypes[name];
+				if (storeType) {
+					this.conn.create(this.msName, name, storeType);
+				}
 				await store.open();
 				logStoreDebug("open:done", {
 					msName: this.msName,
@@ -633,6 +683,11 @@ export abstract class StoreControllerAbstract {
 	}
 
 	async migrateAll() {
+		if (this.shouldDeferStorageInit()) {
+			logStoreDebug("migrate:defer", { msName: this.msName });
+			return;
+		}
+
 		for (const [name, store] of Object.entries(this.stores)) {
 			const startedAt = Date.now();
 			logStoreDebug("migrate:start", { msName: this.msName, store: name });
@@ -661,10 +716,16 @@ export abstract class StoreControllerAbstract {
 		migrations: (new (store: Store) => Migration)[],
 	): Promise<Store> {
 		const declaredTransportType = toTransportStoreType(type);
-		// create is idempotent on the server side: opens existing or creates new
-		this.conn.create(this.msName, name, declaredTransportType);
-		const manifest = this.conn.getManifest(this.msName, name);
-		const actualType = fromTransportStoreType(manifest.storeType, type);
+		this.storeTypes[name] = declaredTransportType;
+		const scope = getCurrentStorageScope();
+		let actualType = type;
+
+		if (this.fixedStorageHost || scope) {
+			// create is idempotent on the server side: opens existing or creates new
+			this.conn.create(this.msName, name, declaredTransportType);
+			const manifest = this.conn.getManifest(this.msName, name);
+			actualType = fromTransportStoreType(manifest.storeType, type);
+		}
 
 		this.stores[name] = createStore(
 			this.conn,
