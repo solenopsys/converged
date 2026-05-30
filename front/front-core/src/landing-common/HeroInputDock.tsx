@@ -3,7 +3,6 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { Paperclip, SendHorizontal } from "lucide-react";
-import { chatAttachRequested, chatSendRequested } from "../chat/events";
 import { useHeroDock } from "./useHeroDock";
 
 export interface HeroChip {
@@ -13,8 +12,6 @@ export interface HeroChip {
   prompt: string;
 }
 
-export type HeroInputDockMode = "effector" | "landing-event";
-
 export interface HeroInputDockProps {
   placeholder?: string;
   chips?: HeroChip[];
@@ -22,10 +19,17 @@ export interface HeroInputDockProps {
   contextName?: string;
   inputLabel?: string;
   messageInputName?: string;
-  mode?: HeroInputDockMode;
   submitLabel?: string;
 }
 
+// The hero input never talks to the chat runtime directly. It only renders a
+// form annotated with `data-landing-event` attributes; the document-level
+// gateway in island-client (`installLandingEventGateway`) intercepts the submit
+// (and the attach click), prevents the native navigation and opens the chat.
+// This is a single behaviour that works both for the SSR-only markup (guest
+// landings that are never hydrated) and for the hydrated React tree, so portals
+// don't have to wire a "mode" — and can't accidentally fall back to a native
+// form submit that reloads the page.
 export function HeroInputDock({
   placeholder = "Ask anything...",
   attachLabel = "Attach file",
@@ -33,7 +37,6 @@ export function HeroInputDock({
   contextName = "request",
   inputLabel = "Request details",
   messageInputName = "hero_request_text",
-  mode = "effector",
   submitLabel = "Send",
 }: HeroInputDockProps) {
   if (typeof window === "undefined") {
@@ -45,7 +48,6 @@ export function HeroInputDock({
           chips={chips}
           contextName={contextName}
           inputLabel={inputLabel}
-          landingEventMode={mode === "landing-event"}
           messageInputName={messageInputName}
           placeholder={placeholder}
           submitLabel={submitLabel}
@@ -56,20 +58,6 @@ export function HeroInputDock({
 
   const [value, setValue] = useState("");
   const { slotRef, docked } = useHeroDock();
-  const landingEventMode = mode === "landing-event";
-
-  const handleSubmit = () => {
-    if (landingEventMode) return;
-    const text = value.trim();
-    if (!text) return;
-    chatSendRequested(text);
-    setValue("");
-  };
-
-  const handleAttach = () => {
-    if (landingEventMode) return;
-    chatAttachRequested();
-  };
 
   return (
     <>
@@ -85,10 +73,12 @@ export function HeroInputDock({
             <form
               className="hsl-form"
               autoComplete="off"
-              onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}
-              data-landing-event={landingEventMode ? "chat.open" : undefined}
-              data-landing-context-name={landingEventMode ? contextName : undefined}
-              data-landing-message-input={landingEventMode ? `[name="${messageInputName}"]` : undefined}
+              // The gateway prevents navigation; we also prevent it here so that
+              // a missing gateway (e.g. Storybook) can never reload the page.
+              onSubmit={(e) => e.preventDefault()}
+              data-landing-event="chat.open"
+              data-landing-context-name={contextName}
+              data-landing-message-input={`[name="${messageInputName}"]`}
             >
               <textarea
                 className="hsl-textarea"
@@ -108,7 +98,7 @@ export function HeroInputDock({
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
-                    handleSubmit();
+                    e.currentTarget.form?.requestSubmit();
                   }
                 }}
               />
@@ -116,9 +106,8 @@ export function HeroInputDock({
                 className="hsl-attach"
                 type="button"
                 aria-label={attachLabel}
-                onClick={handleAttach}
-                data-landing-event={landingEventMode ? "chat.attach" : undefined}
-                data-landing-context-name={landingEventMode ? contextName : undefined}
+                data-landing-event="chat.attach"
+                data-landing-context-name={contextName}
               >
                 <Paperclip size={15} />
               </button>
@@ -156,7 +145,6 @@ function HeroInputDockStatic({
   chips,
   contextName,
   inputLabel,
-  landingEventMode,
   messageInputName,
   placeholder,
   submitLabel,
@@ -165,7 +153,6 @@ function HeroInputDockStatic({
   chips: HeroChip[];
   contextName: string;
   inputLabel: string;
-  landingEventMode: boolean;
   messageInputName: string;
   placeholder: string;
   submitLabel: string;
@@ -177,9 +164,9 @@ function HeroInputDockStatic({
           <form
             className="hsl-form"
             autoComplete="off"
-            data-landing-event={landingEventMode ? "chat.open" : undefined}
-            data-landing-context-name={landingEventMode ? contextName : undefined}
-            data-landing-message-input={landingEventMode ? `[name="${messageInputName}"]` : undefined}
+            data-landing-event="chat.open"
+            data-landing-context-name={contextName}
+            data-landing-message-input={`[name="${messageInputName}"]`}
           >
             <textarea
               className="hsl-textarea"
@@ -199,8 +186,8 @@ function HeroInputDockStatic({
               className="hsl-attach"
               type="button"
               aria-label={attachLabel}
-              data-landing-event={landingEventMode ? "chat.attach" : undefined}
-              data-landing-context-name={landingEventMode ? contextName : undefined}
+              data-landing-event="chat.attach"
+              data-landing-context-name={contextName}
             >
               <span aria-hidden="true">↥</span>
             </button>

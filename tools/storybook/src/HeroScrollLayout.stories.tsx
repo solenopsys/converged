@@ -82,7 +82,6 @@ function HeroScrollLayoutStory() {
         ariaLabel: "Hero",
         chips: actions,
         data: heroData,
-        inputMode: "landing-event",
       }}
     >
       <main className="rail-demo-page">

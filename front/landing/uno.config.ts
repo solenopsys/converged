@@ -21,6 +21,7 @@ export default defineConfig({
   transformers: [transformerDirectives(), transformerVariantGroup()],
   presets: [
     presetWind4({
+      dark: "class",
       colorSpace: "oklch",
     }),
     presetAttributify({

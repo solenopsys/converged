@@ -294,7 +294,6 @@ function renderBlock(block: ResolvedBlock, index: number, fallbackLocale: Suppor
         <HeroRequestBanner
           key={key}
           data={block.data.intake as HeroRequestBannerData}
-          inputMode="landing-event"
           messageInputName="cnc_request_text"
         />
       );

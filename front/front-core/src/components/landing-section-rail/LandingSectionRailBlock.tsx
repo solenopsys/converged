@@ -432,7 +432,9 @@ export const landingSectionRailBlockCss = `
 .landing-section-rail-block--works .landing-section-rail-card-frame[data-active="true"] {
   border-color: color-mix(in oklch, var(--landing-rail-ink) 18%, transparent);
   background: color-mix(in oklch, var(--landing-rail-card) 92%, black);
-  color: var(--landing-rail-ink);
+  /* Keep the same light ink as the inactive work cards — the active card is
+     still a dark photo, not the theme surface. */
+  color: #f8fafc;
 }
 
 .landing-section-rail-block--team .landing-section-rail__card[data-active="true"] .landing-section-rail-block-card,
@@ -554,6 +556,10 @@ export const landingSectionRailBlockCss = `
   position: relative;
   overflow: hidden;
   isolation: isolate;
+  /* Work cards always sit on a full-bleed dark photo with a dark scrim, so the
+     text must stay light regardless of the light/dark theme (same approach as
+     the hero banner). */
+  color: #f8fafc;
 }
 
 .landing-section-rail-block-work-photo {

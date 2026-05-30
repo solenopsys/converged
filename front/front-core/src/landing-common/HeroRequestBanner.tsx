@@ -10,7 +10,7 @@ import {
   Upload,
 } from "lucide-react";
 import { HeroBanner, type HeroBannerData } from "./HeroBanner";
-import { HeroInputDock, type HeroChip, type HeroInputDockMode } from "./HeroInputDock";
+import { HeroInputDock, type HeroChip } from "./HeroInputDock";
 import { publishLandingQuickActions } from "./landing-quick-actions";
 
 export interface HeroRequestBannerData extends HeroBannerData {
@@ -28,7 +28,6 @@ export interface HeroRequestBannerProps {
   chips?: HeroChip[];
   data?: HeroRequestBannerData;
   id?: string;
-  inputMode?: HeroInputDockMode;
   messageInputName?: string;
 }
 
@@ -46,7 +45,6 @@ export function HeroRequestBanner({
   chips,
   data,
   id = "request",
-  inputMode = "effector",
   messageInputName = "hero_request_text",
 }: HeroRequestBannerProps) {
   const request = data?.request ?? {};
@@ -95,7 +93,6 @@ export function HeroRequestBanner({
         chips={resolvedChips}
         contextName={request.contextName || "request"}
         messageInputName={messageInputName}
-        mode={inputMode}
         placeholder={placeholder}
         submitLabel={request.submitLabel}
       />
