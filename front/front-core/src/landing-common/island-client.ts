@@ -356,7 +356,11 @@ function readGuestMenuLinks(): ControlPanelMenuLink[] {
 						(item as { url: string }).url.trim()
 					? (item as { url: string }).url.trim()
 					: "";
-		return label && href ? [{ label, href }] : [];
+		const labelKey =
+			typeof item.labelKey === "string" && item.labelKey.trim()
+				? item.labelKey.trim()
+				: undefined;
+		return label && href ? [{ label, href, ...(labelKey ? { labelKey } : {}) }] : [];
 	});
 }
 
@@ -465,6 +469,7 @@ function normalizeGalleryStaticUrl(value: string, fallback: string): string {
 type ControlPanelMenuLink = {
 	label: string;
 	href: string;
+	labelKey?: string;
 };
 
 function readTrimmedString(value: unknown): string {
@@ -540,7 +545,8 @@ function normalizeControlPanelMenuLinks(
 			explicitHref || (targetId ? `#${targetId.replace(/^#/, "")}` : "");
 		const label =
 			explicitLabel || (targetId ? blockLabels.get(targetId) ?? "" : "");
-		return label && href ? [{ label, href }] : [];
+		const labelKey = readTrimmedString(record.labelKey) || undefined;
+		return label && href ? [{ label, href, ...(labelKey ? { labelKey } : {}) }] : [];
 	});
 }
 
@@ -1493,6 +1499,7 @@ function scrollToHashTarget(hash: string): void {
 type RuntimeMenuItem = {
 	key?: string;
 	title?: string;
+	labelKey?: string;
 	iconName?: string;
 	icon?: ReactNode;
 	action?: unknown;
@@ -2805,14 +2812,20 @@ async function applyLocaleChange(nextLocaleRaw: string): Promise<void> {
 	const localeController = LocaleController.getInstance();
 	const targetUrl = buildLocaleTargetUrl(nextLocale);
 
+	// Single source of truth: sync both translation layers ($activeLocale for
+	// the microfrontend translations and i18next for the shell/control panel)
+	// regardless of the route type, so they can never drift apart.
+	await localeController.setLocale(nextLocale);
+
 	if (isSsrPublicRoute(window.location.pathname)) {
+		// The public landing is SSR-only (not hydrated for guests), so re-fetch
+		// the localized center fragment. The control panel is a separate React
+		// root and re-localizes itself reactively via i18next.
 		await navigateByFragment(targetUrl, "replace");
-		localeController.hydrateFromPath(targetUrl.pathname);
 		syncLangMenuSelection();
 		return;
 	}
 
-	await localeController.switchSpaLocale(nextLocale);
 	const nextHref = `${targetUrl.pathname}${targetUrl.search}${targetUrl.hash}`;
 	window.history.replaceState(window.history.state, "", nextHref);
 	window.dispatchEvent(new PopStateEvent("popstate"));

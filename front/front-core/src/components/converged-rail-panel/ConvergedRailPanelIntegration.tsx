@@ -21,6 +21,7 @@ import {
 	tabActivated,
 	type PanelTab,
 } from "../../landing-common/control-panel-model";
+import { useGlobalTranslation } from "../../hooks/global_i18n";
 import { ConvergedRailPanel } from "./ConvergedRailPanel";
 import { ConvergedRailControlsIntegration } from "./ConvergedRailControlsIntegration";
 
@@ -51,6 +52,14 @@ export function ConvergedRailPanelIntegration({
 		$activeTabId,
 		$tabContents,
 	]);
+
+	// Localize menu labels via the shared "nav" namespace. Re-renders on
+	// languageChanged (the hook subscribes), so labels follow the locale switch.
+	const { t } = useGlobalTranslation("nav");
+	const localizedShortcuts = shortcuts.map((link) => ({
+		href: link.href,
+		label: link.labelKey ? t(link.labelKey, link.label) : link.label,
+	}));
 
 	const tabs = useMemo<PanelTab[]>(
 		() => {
@@ -92,7 +101,7 @@ export function ConvergedRailPanelIntegration({
 			activeScreenId={activeScreenId}
 			onScreenChange={screenActivated}
 			onScreenClose={screenClosed}
-			shortcuts={shortcuts}
+			shortcuts={localizedShortcuts}
 			onShortcutClick={(href) => {
 				const navigationEvent = new CustomEvent("front-core:navigate-fragment", {
 					cancelable: true,

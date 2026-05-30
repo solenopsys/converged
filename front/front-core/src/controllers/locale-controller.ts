@@ -75,16 +75,24 @@ export class LocaleController {
     return $activeLocale.getState();
   }
 
-  hydrateFromPath(pathname: string): SupportedLocale {
-    localePathHydrated(pathname);
-    return $activeLocale.getState();
-  }
-
-  async switchSpaLocale(nextLocale: string): Promise<SupportedLocale | null> {
+  /**
+   * Single mutation point for the active locale. Updates the shared
+   * `$activeLocale` store (System B — microfrontend translations subscribe to
+   * it via `useUnit`, each MF still fetches its own bundle) and keeps the
+   * global i18next instance (System A — shell/control-panel namespaces) in
+   * sync. Everything that changes the locale must go through here so the two
+   * translation layers can never drift apart.
+   *
+   * `$activeLocale` is updated synchronously (so the next render is correct);
+   * the i18next language change is awaited for callers that need it.
+   */
+  async setLocale(nextLocale: string): Promise<SupportedLocale | null> {
     const locale = normalizeLocale(nextLocale);
     if (!locale) return null;
 
-    localeSetRequested(locale);
+    if ($activeLocale.getState() !== locale) {
+      localeSetRequested(locale);
+    }
 
     try {
       const i18n = await initI18n();
@@ -92,10 +100,23 @@ export class LocaleController {
         await i18n.changeLanguage(locale);
       }
     } catch (error) {
-      console.error('[locale] failed to switch language', error);
+      console.error('[locale] failed to sync i18next', error);
     }
 
     return locale;
+  }
+
+  hydrateFromPath(pathname: string): SupportedLocale {
+    const locale = extractLocaleFromPath(pathname) ?? DEFAULT_LOCALE;
+    // `setLocale` fires `localeSetRequested` synchronously before its first
+    // await, so the store is up to date by the time we read it back.
+    void this.setLocale(locale);
+    return $activeLocale.getState();
+  }
+
+  /** @deprecated Back-compat alias — use {@link setLocale}. */
+  async switchSpaLocale(nextLocale: string): Promise<SupportedLocale | null> {
+    return this.setLocale(nextLocale);
   }
 
   setLocales(microfrontendId: string, locales: any): void {

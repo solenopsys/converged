@@ -53,6 +53,7 @@ const namespaces = [
   'cards',
   'menu',
   "menu-groups",
+  'nav',
   'table_titles',
   'table_data',
   'chart',

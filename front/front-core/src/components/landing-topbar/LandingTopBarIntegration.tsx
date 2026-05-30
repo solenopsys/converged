@@ -17,6 +17,7 @@ import {
 	loginRequested,
 	themeToggled,
 } from "../../landing-common/control-panel-model";
+import { useGlobalTranslation } from "../../hooks/global_i18n";
 import { LandingTopBar } from "./LandingTopBar";
 
 export interface LandingTopBarIntegrationProps {
@@ -35,6 +36,14 @@ export function LandingTopBarIntegration({ compact }: LandingTopBarIntegrationPr
 		$loginEnabled,
 	]);
 
+	// Localize menu labels via the shared "nav" namespace; re-renders on
+	// languageChanged so the top-bar nav follows the locale switch.
+	const { t } = useGlobalTranslation("nav");
+	const localizedMenuLinks = menuLinks.map((link) => ({
+		href: link.href,
+		label: link.labelKey ? t(link.labelKey, link.label) : link.label,
+	}));
+
 	return (
 		<LandingTopBar
 			logoLight={branding.logoLight}
@@ -42,7 +51,7 @@ export function LandingTopBarIntegration({ compact }: LandingTopBarIntegrationPr
 			phone={branding.phone}
 			statusText={branding.statusText}
 			actions={actions}
-			menuLinks={menuLinks}
+			menuLinks={localizedMenuLinks}
 			languages={languages}
 			currentLanguage={lang}
 			onLanguage={langChanged}

@@ -109,6 +109,12 @@ export const $panelActions = createStore<PanelAction[]>([]).on(panelActionsSet, 
 export interface MenuLink {
 	label: string;
 	href: string;
+	/**
+	 * Optional i18n key (in the global "nav" namespace) used to localize the
+	 * label at render time. `label` stays as the fallback for missing keys and
+	 * for the SSR first paint. Hrefs already carry the locale prefix.
+	 */
+	labelKey?: string;
 }
 
 export const menuLinksSet = createEvent<MenuLink[]>();
