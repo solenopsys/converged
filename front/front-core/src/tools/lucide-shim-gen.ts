@@ -11,6 +11,7 @@ import { join, extname, resolve } from "path";
 const defaultScanDirs = [
   resolve(import.meta.dir, "../../../.."),
   resolve(import.meta.dir, "../../../../../../../saas/public/front/front-landings"),
+  ...(process.env.CHILD_PROJECT_DIR ? [resolve(process.env.CHILD_PROJECT_DIR)] : []),
 ];
 
 const scanDirs = process.argv.slice(2).length > 0

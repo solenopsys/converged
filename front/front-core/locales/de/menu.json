@@ -106,13 +106,7 @@
             ]
         }
     ],
-    "navSecondary": [
-        {
-            "title": "Einstellungen",
-            "url": "#",
-            "iconName": "IconSettings"
-        }
-    ],
+    "navSecondary": [],
     "documents": [
         {
             "name": "Datenbibliothek",

@@ -106,13 +106,7 @@
             ]
         }
     ],
-    "navSecondary": [
-        {
-            "title": "Configuraciones",
-            "url": "#",
-            "iconName": "IconSettings"
-        }
-    ],
+    "navSecondary": [],
     "documents": [
         {
             "name": "Biblioteca de Datos",
