@@ -1,21 +1,22 @@
 {
-  "name": "ms-assistant",
-  "version": "1.0.0",
-  "private": true,
-  "installConfig": {
-    "hoistingLimits": "workspaces"
-  },
-  "type": "module",
-  "exports": {
-    "./plugin": "./src/plugin.ts"
-  },
-  "dependencies": {
-    "back-core": "workspace:*",
-    "rt-assistant": "workspace:*",
-    "nrpc": "workspace:*",
-    "g-assistant": "workspace:*",
-    "@anthropic-ai/sdk": "latest",
-    "@google/genai": "latest",
-    "openai": "latest"
-  }
+	"name": "ms-assistant",
+	"version": "1.0.0",
+	"private": true,
+	"installConfig": {
+		"hoistingLimits": "workspaces"
+	},
+	"type": "module",
+	"exports": {
+		"./plugin": "./src/plugin.ts"
+	},
+	"dependencies": {
+		"back-core": "workspace:*",
+		"g-events": "workspace:*",
+		"rt-assistant": "workspace:*",
+		"nrpc": "workspace:*",
+		"g-assistant": "workspace:*",
+		"@anthropic-ai/sdk": "latest",
+		"@google/genai": "latest",
+		"openai": "latest"
+	}
 }

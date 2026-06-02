@@ -1,306 +1,346 @@
 "use client";
 
-import { useEffect } from "react";
 import { useUnit } from "effector-react";
-import { ArrowUpRight, Gauge } from "lucide-react";
-import { Button, ScrollArea } from "../ui";
-import { Slot, dashboardSlots, layoutReady } from "../../slots";
+import { type BusinessEvent, createEventsServiceClient } from "g-events";
+import { Gauge } from "lucide-react";
+import { type MouseEvent, useEffect } from "react";
+import { bus, registry, runActionEvent } from "../../controllers";
+import { dashboardSlots, layoutReady, Slot } from "../../slots";
 import { DashboardWidget } from "../dashboard/DashboardWidget";
-import { $streamEvents, type StreamEvent } from "./stateStreamStore";
+import {
+	Card,
+	CardAction,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+	ScrollArea,
+} from "../ui";
+import {
+	$streamEvents,
+	type StreamEvent,
+	streamEventsLoaded,
+} from "./stateStreamStore";
 
+const eventsClient = createEventsServiceClient({ baseUrl: "/services" });
+const EVENTS_LIMIT = 50;
+const EVENTS_REFRESH_MS = 2500;
+const actionRuntimeModules: Record<string, string> = {
+	chats: "mf-assistants",
+	requests: "mf-requests",
+};
+const loadedActionRuntimeModules = new Set<string>();
+
+function getRuntimeBus() {
+	if (typeof window === "undefined") return bus;
+	return (window as { __BUS__?: typeof bus }).__BUS__ ?? bus;
+}
+
+function resolveRuntimeModuleSpecifier(moduleName: string): string {
+	if (typeof document === "undefined") return moduleName;
+
+	const script = document.querySelector<HTMLScriptElement>(
+		'script[type="importmap"]',
+	);
+	if (!script?.textContent) return `/mf/${moduleName}.js`;
+
+	try {
+		const parsed = JSON.parse(script.textContent) as {
+			imports?: Record<string, string>;
+		};
+		return parsed.imports?.[moduleName] ?? `/mf/${moduleName}.js`;
+	} catch {
+		return `/mf/${moduleName}.js`;
+	}
+}
+
+async function ensureActionRegistered(actionId: string): Promise<void> {
+	if (registry.get(actionId)) return;
+
+	const prefix = actionId.split(".")[0];
+	const moduleName = actionRuntimeModules[prefix];
+	if (!moduleName || loadedActionRuntimeModules.has(moduleName)) return;
+
+	try {
+		const mod = await import(
+			/* @vite-ignore */ resolveRuntimeModuleSpecifier(moduleName)
+		);
+		const plugin = mod.default ?? mod;
+		if (plugin && typeof plugin.plug === "function") {
+			plugin.plug(getRuntimeBus());
+			loadedActionRuntimeModules.add(moduleName);
+		}
+	} catch (error) {
+		console.error("[StateStream] Failed to load action module", {
+			actionId,
+			moduleName,
+			error,
+		});
+	}
+}
+
+function formatEventTime(value: string): string {
+	const date = new Date(value);
+	if (Number.isNaN(date.getTime())) return value;
+	return new Intl.DateTimeFormat(undefined, {
+		hour: "2-digit",
+		minute: "2-digit",
+	}).format(date);
+}
+
+function toStreamEvent(event: BusinessEvent): StreamEvent {
+	if (event.type === "chat.created") {
+		return {
+			id: event.id,
+			time: formatEventTime(event.createdAt),
+			source: event.service,
+			title: "New chat",
+			body: "Thread",
+			entityId: event.entityId,
+			entityLabel: event.entityId,
+			tone: "neutral",
+			actionId: "chats.view",
+			actionParams: { recordId: event.entityId },
+		};
+	}
+
+	if (event.type === "request.created") {
+		return {
+			id: event.id,
+			time: formatEventTime(event.createdAt),
+			source: event.service,
+			title: "New request",
+			body: "Request",
+			entityId: event.entityId,
+			entityLabel: event.entityId,
+			tone: "attention",
+			actionId: "requests.open",
+			actionParams: { requestId: event.entityId },
+		};
+	}
+
+	if (event.type === "file.created") {
+		return {
+			id: event.id,
+			time: formatEventTime(event.createdAt),
+			source: event.service,
+			title: "New file",
+			body: "File",
+			entityId: event.entityId,
+			entityLabel: event.entityId,
+			tone: "positive",
+		};
+	}
+
+	return {
+		id: event.id,
+		time: formatEventTime(event.createdAt),
+		source: event.service,
+		title: event.type,
+		body: event.entityId,
+		entityId: event.entityId,
+		entityLabel: event.entityId,
+		tone: "neutral",
+	};
+}
 
 // ── Stream event row ──────────────────────────────────────────────────────────
 
 function StreamEventRow({ item }: { item: StreamEvent }) {
-  return (
-    <article className="ss-event" data-tone={item.tone ?? "neutral"}>
-      <time>{item.time}</time>
-      <div className="ss-event__main">
-        <div className="ss-event__meta">
-          <span>{item.source}</span>
-          {item.action ? (
-            <Button className="ss-event__action" size="sm" type="button" variant="ghost">
-              {item.action}
-              <ArrowUpRight aria-hidden="true" size={14} />
-            </Button>
-          ) : null}
-        </div>
-        <h2>{item.title}</h2>
-        <p>{item.body}</p>
-      </div>
-    </article>
-  );
+	const openLinkedEntity = async (event: MouseEvent<HTMLButtonElement>) => {
+		event.preventDefault();
+		event.stopPropagation();
+		if (!item.actionId) return;
+
+		await ensureActionRegistered(item.actionId);
+		if (!registry.get(item.actionId)) {
+			console.error("[StateStream] Action not registered", {
+				eventId: item.id,
+				actionId: item.actionId,
+				params: item.actionParams ?? {},
+			});
+			return;
+		}
+
+		console.log("[StateStream] Running linked action", {
+			eventId: item.id,
+			actionId: item.actionId,
+			params: item.actionParams ?? {},
+		});
+		runActionEvent({
+			actionId: item.actionId,
+			params: item.actionParams ?? {},
+		});
+	};
+
+	return (
+		<article className="min-w-0 rounded-md bg-muted/20 px-3 py-2.5 text-sm transition-colors hover:bg-muted/30">
+			<div className="mb-2 flex items-center justify-between gap-3">
+				<span className="truncate text-xs text-muted-foreground">
+					{item.source}
+				</span>
+				<time className="shrink-0 text-xs tabular-nums text-muted-foreground">
+					{item.time}
+				</time>
+			</div>
+			<h3 className="truncate font-medium leading-5">{item.title}</h3>
+			<p className="mt-1 truncate text-xs leading-5 text-muted-foreground">
+				{item.body}
+				{item.entityId && item.actionId ? (
+					<>
+						{" "}
+						<button
+							className="font-mono text-[11px] text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+							onClick={openLinkedEntity}
+							type="button"
+						>
+							{item.entityLabel ?? item.entityId}
+						</button>
+					</>
+				) : item.entityId ? (
+					<> {item.entityLabel ?? item.entityId}</>
+				) : null}
+			</p>
+		</article>
+	);
 }
 
 // ── Empty state ───────────────────────────────────────────────────────────────
 
 function EmptyEvents() {
-  return (
-    <div style={{ padding: "32px 0", textAlign: "center", color: "var(--ui-muted-foreground)", fontSize: "14px" }}>
-      <p style={{ margin: 0 }}>No events yet</p>
-      <p style={{ margin: "6px 0 0", fontSize: "13px", opacity: 0.7 }}>Events will appear here as they happen</p>
-    </div>
-  );
+	return (
+		<div className="flex h-40 flex-col items-center justify-center px-4 text-center text-sm text-muted-foreground">
+			<p className="font-medium text-foreground">No events yet</p>
+			<p className="mt-1 max-w-sm">Events will appear here as they happen</p>
+		</div>
+	);
 }
 
 function EmptySignals() {
-  return (
-    <div style={{ padding: "24px 14px", color: "var(--ui-muted-foreground)", fontSize: "13px", textAlign: "center" }}>
-      No indicators yet. Run any dashboard widget to pin it here.
-    </div>
-  );
+	return (
+		<div className="flex h-40 items-center justify-center px-4 text-center text-sm text-muted-foreground">
+			No indicators yet. Run any dashboard widget to pin it here.
+		</div>
+	);
 }
 
 // ── Main view ─────────────────────────────────────────────────────────────────
 
 export function StateStreamView() {
-  const events = useUnit($streamEvents);
-  const slots = dashboardSlots.list;
+	const events = useUnit($streamEvents);
+	const slots = dashboardSlots.list;
 
-  useEffect(() => {
-    layoutReady("dashboard");
-    dashboardSlots.restoreWidgets();
-    return () => { dashboardSlots.saveWidgets(); };
-  }, []);
+	useEffect(() => {
+		layoutReady("dashboard");
+		dashboardSlots.restoreWidgets();
+		return () => {
+			dashboardSlots.saveWidgets();
+		};
+	}, []);
 
-  return (
-    <main className="ss">
-      <style>{css}</style>
+	useEffect(() => {
+		let cancelled = false;
+		const loadEvents = async () => {
+			try {
+				const rows = await eventsClient.listEvents(0, EVENTS_LIMIT);
+				if (!cancelled) {
+					streamEventsLoaded(rows.map(toStreamEvent));
+				}
+			} catch (error) {
+				console.warn("[StateStream] Failed to load events", error);
+			}
+		};
 
-      <header className="ss-top">
-        <div className="ss-title">
-          <span className="ss-title__dot" aria-hidden="true" />
-          <h1>State stream</h1>
-        </div>
-        <p>Live flows: what happened, and what the system state looks like now.</p>
-      </header>
+		void loadEvents();
+		const interval = window.setInterval(() => {
+			void loadEvents();
+		}, EVENTS_REFRESH_MS);
 
-      <div className="ss-grid">
-        <section className="ss-events" aria-label="Events">
-          <div className="ss-col-head">
-            <h2>Events</h2>
-            <span>latest first</span>
-          </div>
-          <ScrollArea className="ss-scroll">
-            {events.length === 0 ? (
-              <EmptyEvents />
-            ) : (
-              events.map((item) => <StreamEventRow item={item} key={item.id} />)
-            )}
-          </ScrollArea>
-        </section>
+		return () => {
+			cancelled = true;
+			window.clearInterval(interval);
+		};
+	}, []);
 
-        <aside className="ss-rail" aria-label="Current indicators">
-          <div className="ss-col-head">
-            <div>
-              <h2>Indicators</h2>
-              <p>current state</p>
-            </div>
-            <Gauge aria-hidden="true" size={21} />
-          </div>
+	return (
+		<main className="flex h-full min-h-0 flex-col gap-3 bg-background p-4 text-foreground">
+			<header className="flex shrink-0 items-start justify-between gap-4">
+				<div className="space-y-1">
+					<h1 className="text-xl font-semibold tracking-tight">State stream</h1>
+					<p className="text-sm text-muted-foreground">
+						Live business events and current dashboard indicators.
+					</p>
+				</div>
+				<span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+					{events.length} events
+				</span>
+			</header>
 
-          <ScrollArea className="ss-scroll">
-            {slots.length === 0 ? (
-              <EmptySignals />
-            ) : (
-              <div className="ss-signal-list">
-                {slots.map((slotId, index) => (
-                  <DashboardWidget key={slotId} className={index === 0 ? "ss-signal--featured" : ""}>
-                    <Slot id={`dashboard:${slotId}`} />
-                  </DashboardWidget>
-                ))}
-              </div>
-            )}
-          </ScrollArea>
-        </aside>
-      </div>
-    </main>
-  );
+			<div
+				className="grid min-h-0 flex-1 gap-3"
+				style={{
+					gridTemplateColumns: "minmax(0, 1fr) minmax(320px, 360px)",
+				}}
+			>
+				<Card
+					className="min-h-0 rounded-none border-0 bg-transparent py-0 shadow-none"
+					aria-label="Events"
+				>
+					<CardHeader className="border-b px-3 py-3">
+						<CardTitle className="text-base">Events</CardTitle>
+						<CardDescription>Latest first</CardDescription>
+					</CardHeader>
+					<CardContent className="p-0">
+						<ScrollArea className="h-full">
+							{events.length === 0 ? (
+								<EmptyEvents />
+							) : (
+								<div className="grid gap-2 p-3">
+									{events.map((item) => (
+										<StreamEventRow item={item} key={item.id} />
+									))}
+								</div>
+							)}
+						</ScrollArea>
+					</CardContent>
+				</Card>
+
+				<Card
+					className="min-h-0 rounded-none border-0 bg-transparent py-0 shadow-none"
+					aria-label="Current indicators"
+				>
+					<CardHeader className="border-b px-3 py-3">
+						<CardTitle className="text-base">Indicators</CardTitle>
+						<CardDescription>Current state</CardDescription>
+						<CardAction>
+							<Gauge
+								aria-hidden="true"
+								className="text-muted-foreground"
+								size={18}
+							/>
+						</CardAction>
+					</CardHeader>
+
+					<CardContent className="p-0">
+						<ScrollArea className="h-full">
+							{slots.length === 0 ? (
+								<EmptySignals />
+							) : (
+								<div className="grid gap-3 p-4">
+									{slots.map((slotId, index) => (
+										<DashboardWidget
+											key={slotId}
+											className={index === 0 ? "min-h-40" : ""}
+										>
+											<Slot id={`dashboard:${slotId}`} />
+										</DashboardWidget>
+									))}
+								</div>
+							)}
+						</ScrollArea>
+					</CardContent>
+				</Card>
+			</div>
+		</main>
+	);
 }
-
-const css = `
-.ss {
-  height: 100%;
-  overflow: hidden;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: 18px;
-  background: var(--ui-background);
-  color: var(--ui-foreground);
-  padding: 24px;
-  font-variant-numeric: tabular-nums;
-  box-sizing: border-box;
-}
-
-.ss * { box-sizing: border-box; }
-
-.ss-top {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 450px);
-  gap: 24px;
-  align-items: end;
-}
-
-.ss-title {
-  display: flex;
-  align-items: flex-end;
-  gap: 16px;
-}
-
-.ss-title__dot {
-  width: 13px;
-  height: 13px;
-  margin-bottom: 12px;
-  border-radius: 50%;
-  background: var(--ui-chart-2);
-  animation: ss-pulse 2s ease-in-out infinite;
-}
-
-@keyframes ss-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-
-.ss-title h1 {
-  margin: 0;
-  color: var(--ui-foreground);
-  font-size: clamp(42px, 5.5vw, 76px);
-  font-weight: 700;
-  letter-spacing: -0.058em;
-  line-height: 0.9;
-}
-
-.ss-top > p {
-  margin: 0 0 8px;
-  color: var(--ui-muted-foreground);
-  font-size: 16px;
-  line-height: 1.36;
-}
-
-.ss-grid {
-  min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 24px;
-}
-
-.ss-events, .ss-rail {
-  min-height: 0;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: 12px;
-}
-
-.ss-scroll { min-height: 0; }
-
-.ss-col-head {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  min-height: 42px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  border-bottom: 1px solid var(--ui-border);
-  background: color-mix(in oklch, var(--ui-background) 90%, transparent);
-  backdrop-filter: blur(16px);
-}
-
-.ss-col-head h2 {
-  margin: 0;
-  color: var(--ui-foreground);
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-}
-
-.ss-col-head span, .ss-col-head p {
-  margin: 0;
-  color: var(--ui-muted-foreground);
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.ss-col-head svg { color: var(--ui-muted-foreground); }
-
-.ss-event {
-  display: grid;
-  grid-template-columns: 50px minmax(0, 1fr);
-  gap: 16px;
-  border-bottom: 1px solid var(--ui-border);
-  padding: 15px 0;
-}
-
-.ss-event > time {
-  color: var(--ui-muted-foreground);
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: -0.02em;
-}
-
-.ss-event__meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 5px;
-}
-
-.ss-event__meta span {
-  color: var(--ui-muted-foreground);
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.ss-event__action {
-  height: 30px;
-  gap: 5px;
-  border-radius: 999px;
-  font-size: 13px;
-  padding: 0 10px;
-}
-
-.ss-event h2 {
-  max-width: 760px;
-  margin: 0 0 6px;
-  color: var(--ui-foreground);
-  font-size: clamp(18px, 1.6vw, 24px);
-  font-weight: 600;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-}
-
-.ss-event p {
-  max-width: 760px;
-  margin: 0;
-  color: var(--ui-muted-foreground);
-  font-size: 14px;
-  line-height: 1.42;
-}
-
-.ss-event[data-tone="attention"] h2 { color: var(--ui-chart-4); }
-.ss-event[data-tone="positive"] h2  { color: var(--ui-chart-2); }
-
-.ss-rail {
-  border-left: 1px solid var(--ui-border);
-  padding-left: 24px;
-}
-
-.ss-signal-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  padding-bottom: 12px;
-}
-
-.ss-signal--featured { grid-column: span 2; }
-
-@media (max-width: 1040px) {
-  .ss { padding: 16px; }
-  .ss-top, .ss-grid { grid-template-columns: 1fr; }
-  .ss-title h1 { font-size: clamp(42px, 10vw, 68px); }
-  .ss-rail { border-left: 0; padding-left: 0; }
-  .ss-signal-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-`;

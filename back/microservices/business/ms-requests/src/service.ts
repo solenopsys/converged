@@ -1,3 +1,4 @@
+import { createEventsServiceClient } from "g-events";
 import { StoresController } from "./stores";
 import type {
 	PaginatedResult,
@@ -5,19 +6,37 @@ import type {
 	RequestId,
 	RequestInput,
 	RequestListParams,
+	RequestMetrics,
 	RequestModel,
 	RequestModelInput,
 	RequestModelPatch,
 	RequestPatch,
 	RequestProcessingEntry,
 	RequestProcessType,
-	RequestMetrics,
 	RequestRequirementProfile,
 	RequestStatus,
 	RequestsService,
 } from "./types";
 
 const MS_ID = "requests-ms";
+
+async function publishBusinessEvent(
+	type: string,
+	entityId: string,
+): Promise<void> {
+	const baseUrl = process.env.SERVICES_BASE;
+	if (!baseUrl) return;
+
+	try {
+		await createEventsServiceClient({ baseUrl }).publish({
+			type,
+			service: "requests",
+			entityId,
+		});
+	} catch (error) {
+		console.warn("[ms-requests] Failed to publish business event", error);
+	}
+}
 
 export class RequestsServiceImpl implements RequestsService {
 	stores: StoresController;
@@ -40,8 +59,11 @@ export class RequestsServiceImpl implements RequestsService {
 		return this.initPromise;
 	}
 
-	createRequest(input: RequestInput): Promise<RequestId> {
-		return this.stores.requests.createRequest(input);
+	async createRequest(input: RequestInput): Promise<RequestId> {
+		await this.init();
+		const id = await this.stores.requests.createRequest(input);
+		void publishBusinessEvent("request.created", id);
+		return id;
 	}
 
 	getRequest(id: RequestId): Promise<Request | undefined> {
@@ -62,8 +84,11 @@ export class RequestsServiceImpl implements RequestsService {
 		return this.stores.requests.listRequestRequirementProfiles();
 	}
 
-	createRequestModel(input: RequestModelInput): Promise<RequestModel> {
-		return this.stores.requests.createRequestModel(input);
+	async createRequestModel(input: RequestModelInput): Promise<RequestModel> {
+		await this.init();
+		const model = await this.stores.requests.createRequestModel(input);
+		void publishBusinessEvent("request.created", model.id);
+		return model;
 	}
 
 	applyRequestUpdate(

@@ -87,6 +87,7 @@
         "@google/genai": "latest",
         "back-core": "workspace:*",
         "g-assistant": "workspace:*",
+        "g-events": "workspace:*",
         "nrpc": "workspace:*",
         "openai": "latest",
         "rt-assistant": "workspace:*",
@@ -182,6 +183,15 @@
         "nrpc": "workspace:*",
       },
     },
+    "back/microservices/business/ms-events": {
+      "name": "ms-events",
+      "version": "1.0.0",
+      "dependencies": {
+        "back-core": "workspace:*",
+        "g-events": "workspace:*",
+        "nrpc": "workspace:*",
+      },
+    },
     "back/microservices/business/ms-finance": {
       "name": "ms-finance",
       "dependencies": {
@@ -218,6 +228,7 @@
       "name": "ms-requests",
       "dependencies": {
         "back-core": "workspace:*",
+        "g-events": "workspace:*",
         "g-requests": "workspace:*",
         "nrpc": "workspace:*",
       },
@@ -390,6 +401,7 @@
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
+        "g-events": "workspace:*",
         "g-files": "workspace:*",
         "nrpc": "workspace:*",
       },
@@ -757,6 +769,7 @@
         "embla-carousel-react": "^8.6.0",
         "files-state": "workspace:*",
         "framer-motion": "^12.29.2",
+        "g-events": "workspace:*",
         "g-struct": "workspace:*",
         "g-usage": "workspace:*",
         "i18next": "^26.0.4",
@@ -1341,6 +1354,13 @@
         "nrpc": "workspace:*",
       },
     },
+    "tools/integration/generated/g-events": {
+      "name": "g-events",
+      "version": "0.0.0",
+      "dependencies": {
+        "nrpc": "workspace:*",
+      },
+    },
     "tools/integration/generated/g-facebook": {
       "name": "g-facebook",
       "version": "0.0.0",
@@ -1735,7 +1755,7 @@
 
     "@antfu/install-pkg": ["@antfu/install-pkg@1.1.0", "", { "dependencies": { "package-manager-detector": "^1.3.0", "tinyexec": "^1.0.1" } }, "sha512-MGQsmw10ZyI+EJo45CdSER4zEb+p31LpDAFp2Z3gkSd1yqVZGi0Ebx++YTEMonJy4oChEMLsxZ64j8FH6sSqtQ=="],
 
-    "@anthropic-ai/sdk": ["@anthropic-ai/sdk@0.97.1", "", { "dependencies": { "json-schema-to-ts": "^3.1.1", "standardwebhooks": "^1.0.0" }, "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" }, "optionalPeers": ["zod"], "bin": { "anthropic-ai-sdk": "bin/cli" } }, "sha512-wOf7AUeJPitcVpvKO4UMu63mWH5SaVipkGd7OOQJt/G6VYGlV8D2Gp9dLxOrttDJh/9gqPqdaBwDGcBevumeAg=="],
+    "@anthropic-ai/sdk": ["@anthropic-ai/sdk@0.100.1", "", { "dependencies": { "json-schema-to-ts": "^3.1.1", "standardwebhooks": "^1.0.0" }, "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" }, "optionalPeers": ["zod"], "bin": { "anthropic-ai-sdk": "bin/cli" } }, "sha512-RANcEe7LpiLczkKGOwoXOTuFdPhuubS0i4xaAKOMpcqc55YO0mukgxppV7eygx3DXNjxWT6RYOLPyOy0aIAmwg=="],
 
     "@aws-crypto/crc32": ["@aws-crypto/crc32@5.2.0", "", { "dependencies": { "@aws-crypto/util": "^5.2.0", "@aws-sdk/types": "^3.222.0", "tslib": "^2.6.2" } }, "sha512-nLbCWqQNgUiwwtFsen1AdzAtvuLRsQS8rYgMuxCrdKf9kOssamGLuPwyTY9wyYblNr9+1XM8v6zoDTPPSIeANg=="],
 
@@ -1941,7 +1961,7 @@
 
     "@floating-ui/utils": ["@floating-ui/utils@0.2.10", "", {}, "sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ=="],
 
-    "@google/genai": ["@google/genai@2.5.0", "", { "dependencies": { "google-auth-library": "^10.3.0", "p-retry": "^4.6.2", "protobufjs": "^7.5.4", "ws": "^8.18.0" }, "peerDependencies": { "@modelcontextprotocol/sdk": "^1.25.2" }, "optionalPeers": ["@modelcontextprotocol/sdk"] }, "sha512-qDi3LLh9I3llJK0f9uV8kZ8EdT9oHPxGJJ9yOJ/i5YXYrVwRCs8jHo9x4e99uOeKYDvD3TZwT70p/H/LS3BixQ=="],
+    "@google/genai": ["@google/genai@2.7.0", "", { "dependencies": { "google-auth-library": "^10.3.0", "p-retry": "^4.6.2", "protobufjs": "^7.5.4", "ws": "^8.18.0" }, "peerDependencies": { "@modelcontextprotocol/sdk": "^1.25.2" }, "optionalPeers": ["@modelcontextprotocol/sdk"] }, "sha512-tv0DRtcndt2oEhBYy+5mA0TaXH98+L1Gt0AP9unBfH7DP20KhB7+O3QqAN1Lz+laMARGTHS7BFQSNpLbl4gm1g=="],
 
     "@google/model-viewer": ["@google/model-viewer@4.2.0", "", { "dependencies": { "@monogrid/gainmap-js": "^3.1.0", "lit": "^3.2.1" }, "peerDependencies": { "three": "^0.182.0" } }, "sha512-RjpAI5cLs9CdvPcMRsOs8Bea/lNmGTTyaPyl16o9Fv6Qn8VSpgBMmXFr/11yb0hTrsojp2dOACEcY77R8hVUVA=="],
 
@@ -2887,6 +2907,8 @@
 
     "g-equipment": ["g-equipment@workspace:tools/integration/generated/g-equipment"],
 
+    "g-events": ["g-events@workspace:tools/integration/generated/g-events"],
+
     "g-facebook": ["g-facebook@workspace:tools/integration/generated/g-facebook"],
 
     "g-files": ["g-files@workspace:tools/integration/generated/g-files"],
@@ -3363,6 +3385,8 @@
 
     "ms-equipment": ["ms-equipment@workspace:back/microservices/business/ms-equipment"],
 
+    "ms-events": ["ms-events@workspace:back/microservices/business/ms-events"],
+
     "ms-facebook": ["ms-facebook@workspace:back/microservices/social/ms-facebook"],
 
     "ms-fedex": ["ms-fedex@workspace:back/microservices/delivery/ms-fedex"],
@@ -3485,7 +3509,7 @@
 
     "open": ["open@10.2.0", "", { "dependencies": { "default-browser": "^5.2.1", "define-lazy-prop": "^3.0.0", "is-inside-container": "^1.0.0", "wsl-utils": "^0.1.0" } }, "sha512-YgBpdJHPyQ2UE5x+hlSXcnejzAvD0b22U2OuAP+8OnlJT+PjWPxtgmGqKKc+RgTM63U9gN0YzrYc71R2WT/hTA=="],
 
-    "openai": ["openai@6.38.0", "", { "peerDependencies": { "ws": "^8.18.0", "zod": "^3.25 || ^4.0" }, "optionalPeers": ["ws", "zod"], "bin": { "openai": "bin/cli" } }, "sha512-AoMplt2UalrpgUDMh3L09QWjNRlgJPipclQvA6sYAaeF6nHNBMgmikAZGmcYLn8on4d9sQY9Q8bOLfrBS7Lc8g=="],
+    "openai": ["openai@6.41.0", "", { "peerDependencies": { "ws": "^8.18.0", "zod": "^3.25 || ^4.0" }, "optionalPeers": ["ws", "zod"] }, "sha512-IGWPopZq6Rjoynjfb3NSLf/z2MTw7UiOsm9TAjPGAjUESH7Uq41Trg4QWehBEn58p74i+m7uoRPV2vXcpPXhyA=="],
 
     "openapi-types": ["openapi-types@12.1.3", "", {}, "sha512-N4YtSYJqghVu4iek2ZUvcN/0aqH1kRDuNqzcycDxhOUpg7GdvLa2F3DgS6yBNhInhv2r/6I0Flkn7CqL8+nIcw=="],
 

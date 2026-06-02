@@ -75,6 +75,7 @@
       "business": [
         "billing",
         "equipment",
+        "events",
         "orders",
         "partners",
         "requests",
