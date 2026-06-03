@@ -59,6 +59,7 @@ import {
 	readPublishedLandingQuickActions,
 	type LandingQuickAction,
 } from "./landing-quick-actions";
+import { WebCallWidget } from "./WebCallWidget";
 
 export interface ControlPanelRuntimeOptions {
 	logoLight?: string;
@@ -307,6 +308,8 @@ export function mountControlPanelRuntime(
 					{/* SlotProvider must be rendered unconditionally so portals into
 					    #slot-panel-tab keep working across tab switches. */}
 					<SlotProvider />
+					{/* Floating "call from website" status pill (public + app modes). */}
+					<WebCallWidget />
 				</div>,
 			);
 		});

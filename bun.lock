@@ -18,10 +18,13 @@
         "croner": "^10.0.1",
         "elysia": "^1.4.28",
         "fflate": "^0.8.3",
+        "g-agent": "workspace:*",
         "g-files": "workspace:*",
         "g-millingextractor": "workspace:*",
         "g-modelconvertor": "workspace:*",
         "g-printextractor": "workspace:*",
+        "g-sales": "workspace:*",
+        "g-smtp": "workspace:*",
         "g-store": "workspace:*",
         "globals": "^17.6.0",
         "i18next": "^26.2.0",
@@ -101,6 +104,15 @@
         "g-functions": "workspace:*",
         "nrpc": "workspace:*",
         "openai": "latest",
+      },
+    },
+    "back/microservices/analytics/ms-dashboard": {
+      "name": "ms-dashboard",
+      "version": "1.0.0",
+      "dependencies": {
+        "back-core": "workspace:*",
+        "g-dashboard": "workspace:*",
+        "nrpc": "workspace:*",
       },
     },
     "back/microservices/analytics/ms-logs": {
@@ -239,6 +251,15 @@
       "dependencies": {
         "back-core": "workspace:*",
         "g-reviews": "workspace:*",
+        "nrpc": "workspace:*",
+      },
+    },
+    "back/microservices/business/ms-sales": {
+      "name": "ms-sales",
+      "version": "1.0.0",
+      "dependencies": {
+        "back-core": "workspace:*",
+        "g-sales": "workspace:*",
         "nrpc": "workspace:*",
       },
     },
@@ -641,6 +662,7 @@
         "back-core": "workspace:*",
         "croner": "^10.0.1",
         "fflate": "^0.8.2",
+        "g-agent": "workspace:*",
         "g-auth": "workspace:*",
         "g-dag": "workspace:*",
         "g-delivery": "workspace:*",
@@ -654,6 +676,7 @@
         "g-rt-cron": "workspace:*",
         "g-rt-dag": "workspace:*",
         "g-rt-gates": "workspace:*",
+        "g-sales": "workspace:*",
         "g-scripts": "workspace:*",
         "g-ses": "workspace:*",
         "g-sheduller": "workspace:*",
@@ -769,6 +792,7 @@
         "embla-carousel-react": "^8.6.0",
         "files-state": "workspace:*",
         "framer-motion": "^12.29.2",
+        "g-dashboard": "workspace:*",
         "g-events": "workspace:*",
         "g-struct": "workspace:*",
         "g-usage": "workspace:*",
@@ -1326,6 +1350,13 @@
         "nrpc": "workspace:*",
       },
     },
+    "tools/integration/generated/g-dashboard": {
+      "name": "g-dashboard",
+      "version": "0.0.0",
+      "dependencies": {
+        "nrpc": "workspace:*",
+      },
+    },
     "tools/integration/generated/g-delivery": {
       "name": "g-delivery",
       "version": "0.0.0",
@@ -1552,6 +1583,13 @@
     },
     "tools/integration/generated/g-rt-gates": {
       "name": "g-rt-gates",
+      "version": "0.0.0",
+      "dependencies": {
+        "nrpc": "workspace:*",
+      },
+    },
+    "tools/integration/generated/g-sales": {
+      "name": "g-sales",
       "version": "0.0.0",
       "dependencies": {
         "nrpc": "workspace:*",
@@ -2899,6 +2937,8 @@
 
     "g-dag": ["g-dag@workspace:tools/integration/generated/g-dag"],
 
+    "g-dashboard": ["g-dashboard@workspace:tools/integration/generated/g-dashboard"],
+
     "g-delivery": ["g-delivery@workspace:tools/integration/generated/g-delivery"],
 
     "g-discord": ["g-discord@workspace:tools/integration/generated/g-discord"],
@@ -2964,6 +3004,8 @@
     "g-rt-dag": ["g-rt-dag@workspace:tools/integration/generated/g-rt-dag"],
 
     "g-rt-gates": ["g-rt-gates@workspace:tools/integration/generated/g-rt-gates"],
+
+    "g-sales": ["g-sales@workspace:tools/integration/generated/g-sales"],
 
     "g-scripts": ["g-scripts@workspace:tools/integration/generated/g-scripts"],
 
@@ -3373,6 +3415,8 @@
 
     "ms-dag": ["ms-dag@workspace:back/microservices/automation/ms-dag"],
 
+    "ms-dashboard": ["ms-dashboard@workspace:back/microservices/analytics/ms-dashboard"],
+
     "ms-delivery": ["ms-delivery@workspace:back/microservices/delivery/ms-delivery"],
 
     "ms-dhl": ["ms-dhl@workspace:back/microservices/delivery/ms-dhl"],
@@ -3432,6 +3476,8 @@
     "ms-requests": ["ms-requests@workspace:back/microservices/business/ms-requests"],
 
     "ms-reviews": ["ms-reviews@workspace:back/microservices/business/ms-reviews"],
+
+    "ms-sales": ["ms-sales@workspace:back/microservices/business/ms-sales"],
 
     "ms-scripts": ["ms-scripts@workspace:back/microservices/content/ms-scripts"],
 

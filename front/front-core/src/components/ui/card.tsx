@@ -2,13 +2,16 @@ import { Pin } from "lucide-react";
 import * as React from "react";
 
 import { cn } from "../../lib/utils";
-import { dashboardSlots } from "../../slots";
+import { dashboardSlots, subscribeDashboardIndicators } from "../../slots";
 import { useDashboardPinScope } from "../dashboard/DashboardPinScope";
 import { DashboardWidget } from "../dashboard/DashboardWidget";
 
 export type DashboardPinMeta = {
 	id?: string;
 	title?: string;
+	source?: string;
+	componentKey?: string;
+	position?: number;
 	enabled?: boolean;
 	buttonClassName?: string;
 	pinnedClassName?: string;
@@ -54,14 +57,22 @@ function useResolvedDashboardPin(
 
 	const explicitId = dashboardPin?.id?.trim();
 	if (explicitId) {
-		return { ...dashboardPin, id: explicitId };
+		return {
+			...dashboardPin,
+			id: explicitId,
+			source: dashboardPin.source ?? scope.scopeId,
+			componentKey: dashboardPin.componentKey ?? explicitId,
+		};
 	}
 
 	if (pinnable === false || !scope.enabled) return null;
 
+	const id = `${scope.scopeId}.${normalizePinPart(reactId)}`;
 	return {
 		...dashboardPin,
-		id: `${scope.scopeId}.${normalizePinPart(reactId)}`,
+		id,
+		source: dashboardPin?.source ?? scope.scopeId,
+		componentKey: dashboardPin?.componentKey ?? id,
 	};
 }
 
@@ -80,10 +91,6 @@ function DashboardPinnableCard({
 		dashboardSlots.isPinned(pinId),
 	);
 
-	React.useEffect(() => {
-		setPinned(dashboardSlots.isPinned(pinId));
-	}, [pinId]);
-
 	const pinnedContent = (
 		<DashboardWidget className={cn("min-h-40", dashboardPin?.pinnedClassName)}>
 			<BaseCard className={className} {...props}>
@@ -91,11 +98,47 @@ function DashboardPinnableCard({
 			</BaseCard>
 		</DashboardWidget>
 	);
+	const pinnedContentRef = React.useRef(pinnedContent);
+	pinnedContentRef.current = pinnedContent;
+
+	React.useEffect(() => {
+		let disposed = false;
+		dashboardSlots.register(pinId, pinnedContentRef.current, {
+			title: dashboardPin.title,
+			source: dashboardPin.source,
+			componentKey: dashboardPin.componentKey,
+			position: dashboardPin.position,
+		});
+		setPinned(dashboardSlots.isPinned(pinId));
+		void dashboardSlots.loadIndicators().then(() => {
+			if (!disposed) {
+				setPinned(dashboardSlots.isPinned(pinId));
+			}
+		});
+		const unsubscribe = subscribeDashboardIndicators(() => {
+			setPinned(dashboardSlots.isPinned(pinId));
+		});
+		return () => {
+			disposed = true;
+			unsubscribe();
+		};
+	}, [
+		pinId,
+		dashboardPin.title,
+		dashboardPin.source,
+		dashboardPin.componentKey,
+		dashboardPin.position,
+	]);
 
 	const pinToIndicators = (event: React.MouseEvent<HTMLButtonElement>) => {
 		event.preventDefault();
 		event.stopPropagation();
-		dashboardSlots.pin(pinId, pinnedContent);
+		dashboardSlots.pin(pinId, pinnedContentRef.current, {
+			title: dashboardPin.title,
+			source: dashboardPin.source,
+			componentKey: dashboardPin.componentKey,
+			position: dashboardPin.position,
+		});
 		setPinned(true);
 	};
 

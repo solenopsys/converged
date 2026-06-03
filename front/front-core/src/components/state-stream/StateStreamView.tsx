@@ -235,13 +235,19 @@ export function StateStreamView() {
 	const [indicators, setIndicators] = useState(getDashboardIndicatorsSnapshot);
 
 	useEffect(() => {
+		let cancelled = false;
 		layoutReady("dashboard");
-		setIndicators(getDashboardIndicatorsSnapshot());
-		dashboardSlots.restoreWidgets();
+		void dashboardSlots.loadIndicators().then((items) => {
+			if (!cancelled) {
+				setIndicators(items);
+			}
+		});
 		const unsubscribe = subscribeDashboardIndicators(() => {
 			setIndicators(getDashboardIndicatorsSnapshot());
 		});
+		dashboardSlots.restoreWidgets();
 		return () => {
+			cancelled = true;
 			unsubscribe();
 			dashboardSlots.saveWidgets();
 		};

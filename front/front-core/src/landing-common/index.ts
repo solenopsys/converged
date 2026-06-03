@@ -5,6 +5,8 @@ export * from './island-loader';
 export * from './island-client';
 export * from './ssr-shell';
 export * from './control-panel-model';
+export * from './web-call';
+export * from './WebCallWidget';
 export * from './seo';
 export * from './sitemap';
 export * from './useHeroDock';

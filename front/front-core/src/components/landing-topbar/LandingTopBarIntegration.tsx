@@ -18,6 +18,7 @@ import {
 	themeToggled,
 } from "../../landing-common/control-panel-model";
 import { useGlobalTranslation } from "../../hooks/global_i18n";
+import { webCallRequested } from "../../landing-common/web-call";
 import { LandingTopBar } from "./LandingTopBar";
 
 export interface LandingTopBarIntegrationProps {
@@ -58,6 +59,7 @@ export function LandingTopBarIntegration({ compact }: LandingTopBarIntegrationPr
 			isDark={theme === "dark"}
 			onThemeToggle={() => themeToggled()}
 			onLogin={loginEnabled ? () => loginRequested() : undefined}
+			onCall={() => webCallRequested(branding.phone)}
 			onPanelOpen={() => controlPanelOpened()}
 			value={composer}
 			onValueChange={composerValueChanged}

@@ -126,6 +126,7 @@ export function Document({ children, seo, lang = "en", importMap, initialData, l
   const importMapJson = importMap ? JSON.stringify({ imports: importMap }) : null;
   const initialDataJson = initialData ? JSON.stringify(initialData) : null;
   const loginEnabled = String(process.env.LOGIN_ENABLED ?? "").toLowerCase() === "true";
+  const phone = process.env.LANDING_PHONE?.trim() || "+1 (512) 894-0142";
   const topBarMenuLinks = readTopBarMenuLinks(initialData);
 
   return (
@@ -172,6 +173,7 @@ export function Document({ children, seo, lang = "en", importMap, initialData, l
           logoDark={logoDark ?? "/services/galery/static/logo.png"}
           chatPlaceholder="Ask Convo anything..."
           brandName="Converged AI"
+          phone={phone}
           menuLinks={topBarMenuLinks}
         >{children}</SsrShellLayout>
 

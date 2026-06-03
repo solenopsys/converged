@@ -69,7 +69,7 @@
     },
     "microservices": {
       "ai": ["agent", "assistant", "functions"],
-      "analytics": ["logs", "telemetry", "usage"],
+      "analytics": ["dashboard", "logs", "telemetry", "usage"],
       "automation": ["dag", "sheduller", "webhooks"],
       "convertors": ["modelconvertor"],
       "business": [
@@ -80,6 +80,7 @@
         "partners",
         "requests",
         "reviews",
+        "sales",
         "staff"
       ],
       "communications": [
@@ -211,7 +212,11 @@
         },
         {
           "name": "observability",
-          "microservices": ["analytics/logs", "analytics/telemetry"],
+          "microservices": [
+            "analytics/dashboard",
+            "analytics/logs",
+            "analytics/telemetry"
+          ],
           "resources": {
             "requests": {
               "cpu": "100m",

@@ -1,138 +1,183 @@
 import { createEvent, createStore } from "effector";
-import type { ReactNode } from "react";
+import {
+	createDashboardServiceClient,
+	type DashboardIndicatorPin,
+	type DashboardIndicatorPinInput,
+} from "g-dashboard";
+import { createElement, type ReactNode } from "react";
 import { $readyLayouts, $slotContents, mount, mountWhenReady } from "./slots";
 
 const DASHBOARD_PIN_EVENT = "front-core:dashboard-pin";
 const DASHBOARD_INDICATORS_CHANGED_EVENT =
 	"front-core:dashboard-indicators-changed";
-const DASHBOARD_INDICATORS_STORE_KEY = "__front_core_dashboard_indicators__";
+const DASHBOARD_RUNTIME_KEY = "__front_core_dashboard_runtime__";
+
+const dashboardClient = createDashboardServiceClient({ baseUrl: "/services" });
 
 export type DashboardIndicator = {
 	widgetId: string;
 	slotId: string;
 	component: ReactNode;
+	pin: DashboardIndicatorPin;
 };
 
-type DashboardIndicatorsStore = {
-	items: DashboardIndicator[];
-	listeners: Set<(items: DashboardIndicator[]) => void>;
+export type DashboardPinRegistration = Omit<
+	DashboardIndicatorPinInput,
+	"widgetId"
+>;
+
+type RegisteredWidget = {
+	component: ReactNode;
+	meta?: DashboardPinRegistration;
 };
 
 type DashboardPinEventDetail = {
 	originId: string;
 	widgetId: string;
 	component: ReactNode;
+	meta?: DashboardPinRegistration;
 };
 
-type RuntimeWindow = Window & {
-	[DASHBOARD_INDICATORS_STORE_KEY]?: DashboardIndicatorsStore;
+type DashboardRuntimeState = {
+	indicatorPins: DashboardIndicatorPin[];
+	indicatorItems: DashboardIndicator[];
+	registeredWidgets: Map<string, RegisteredWidget>;
+	listeners: Set<() => void>;
+	loadPromise: Promise<DashboardIndicator[]> | null;
 };
 
-function getGlobalIndicatorsStore(): DashboardIndicatorsStore | null {
-	if (typeof window === "undefined") return null;
+type DashboardRuntimeGlobal = typeof globalThis & {
+	[DASHBOARD_RUNTIME_KEY]?: DashboardRuntimeState;
+};
 
-	const runtimeWindow = window as RuntimeWindow;
-	runtimeWindow[DASHBOARD_INDICATORS_STORE_KEY] ??= {
-		items: [],
+function getRuntime(): DashboardRuntimeState {
+	const runtimeGlobal = globalThis as DashboardRuntimeGlobal;
+	runtimeGlobal[DASHBOARD_RUNTIME_KEY] ??= {
+		indicatorPins: [],
+		indicatorItems: [],
+		registeredWidgets: new Map(),
 		listeners: new Set(),
+		loadPromise: null,
 	};
-	return runtimeWindow[DASHBOARD_INDICATORS_STORE_KEY];
-}
-
-function readGlobalIndicators(): DashboardIndicator[] {
-	return getGlobalIndicatorsStore()?.items ?? [];
-}
-
-function emitGlobalIndicatorsChanged(store: DashboardIndicatorsStore) {
-	if (typeof window === "undefined") return;
-
-	window.dispatchEvent(
-		new CustomEvent<DashboardIndicator[]>(DASHBOARD_INDICATORS_CHANGED_EVENT, {
-			detail: store.items,
-		}),
-	);
-}
-
-function notifyGlobalIndicators(store: DashboardIndicatorsStore) {
-	for (const listener of store.listeners) {
-		listener(store.items);
-	}
-	emitGlobalIndicatorsChanged(store);
-}
-
-function upsertGlobalIndicator(indicator: DashboardIndicator) {
-	const store = getGlobalIndicatorsStore();
-	if (!store) {
-		dashboardIndicatorMounted(indicator);
-		return;
-	}
-
-	const next = store.items.filter(
-		(item) => item.widgetId !== indicator.widgetId,
-	);
-	store.items = [...next, indicator];
-	notifyGlobalIndicators(store);
-}
-
-function clearGlobalIndicators() {
-	const store = getGlobalIndicatorsStore();
-	if (!store) {
-		dashboardIndicatorsSynced([]);
-		return;
-	}
-
-	store.items = [];
-	notifyGlobalIndicators(store);
+	return runtimeGlobal[DASHBOARD_RUNTIME_KEY];
 }
 
 export const dashboardIndicatorMounted = createEvent<DashboardIndicator>();
 export const dashboardIndicatorsSynced = createEvent<DashboardIndicator[]>();
 
-export const $dashboardIndicators = createStore<DashboardIndicator[]>(
-	readGlobalIndicators(),
-)
+export const $dashboardIndicators = createStore<DashboardIndicator[]>([])
 	.on(dashboardIndicatorMounted, (items, indicator) => {
 		const next = items.filter((item) => item.widgetId !== indicator.widgetId);
 		return [...next, indicator];
 	})
 	.on(dashboardIndicatorsSynced, (_, items) => items);
 
-export function syncDashboardIndicators() {
-	dashboardIndicatorsSynced(readGlobalIndicators());
-}
-
-export function getDashboardIndicatorsSnapshot(): DashboardIndicator[] {
-	return [...readGlobalIndicators()];
-}
-
-export function subscribeDashboardIndicators(listener: () => void): () => void {
-	if (typeof window === "undefined") return () => {};
-
-	const handleChange = () => listener();
-	window.addEventListener(DASHBOARD_INDICATORS_CHANGED_EVENT, handleChange);
-	return () => {
-		window.removeEventListener(
-			DASHBOARD_INDICATORS_CHANGED_EVENT,
-			handleChange,
-		);
+function createOptimisticPin(
+	widgetId: string,
+	meta?: DashboardPinRegistration,
+): DashboardIndicatorPin {
+	const now = new Date().toISOString();
+	return {
+		id: widgetId,
+		widgetId,
+		title: meta?.title,
+		source: meta?.source,
+		componentKey: meta?.componentKey,
+		position: meta?.position ?? getRuntime().indicatorPins.length,
+		createdAt: now,
+		updatedAt: now,
 	};
 }
 
-function installIndicatorsStoreSync() {
-	const store = getGlobalIndicatorsStore();
-	if (!store) return;
-
-	store.listeners.add(dashboardIndicatorsSynced);
-	dashboardIndicatorsSynced(store.items);
+function upsertPinSnapshot(pin: DashboardIndicatorPin) {
+	const { indicatorPins } = getRuntime();
+	const next = indicatorPins.filter((item) => item.widgetId !== pin.widgetId);
+	setPinSnapshot([...next, pin]);
 }
 
-installIndicatorsStoreSync();
+function setPinSnapshot(pins: DashboardIndicatorPin[]) {
+	getRuntime().indicatorPins = [...pins].sort(
+		(a, b) => a.position - b.position || b.updatedAt.localeCompare(a.updatedAt),
+	);
+}
+
+function emitIndicatorsChanged() {
+	const { indicatorItems, listeners } = getRuntime();
+	dashboardIndicatorsSynced(indicatorItems);
+
+	for (const listener of listeners) {
+		listener();
+	}
+
+	if (typeof window === "undefined") return;
+
+	window.dispatchEvent(
+		new CustomEvent<DashboardIndicator[]>(DASHBOARD_INDICATORS_CHANGED_EVENT, {
+			detail: indicatorItems,
+		}),
+	);
+}
+
+function createUnresolvedIndicator(pin: DashboardIndicatorPin): ReactNode {
+	return createElement(
+		"div",
+		{
+			className:
+				"min-h-24 rounded-md bg-muted/20 px-3 py-2.5 text-sm text-muted-foreground",
+		},
+		createElement(
+			"div",
+			{ className: "font-medium text-foreground" },
+			pin.title ?? pin.widgetId,
+		),
+		createElement(
+			"div",
+			{ className: "mt-1 text-xs leading-5" },
+			`Pinned ${pin.widgetId}. Open ${pin.source ?? "source dashboard"} to render the live widget.`,
+		),
+	);
+}
+
+function materializeIndicators(
+	resolveSlot: (widgetId: string) => string,
+): DashboardIndicator[] {
+	const { indicatorPins, registeredWidgets } = getRuntime();
+	return indicatorPins
+		.map((pin) => {
+			const registered = registeredWidgets.get(pin.widgetId);
+
+			const slotId = `dashboard:${resolveSlot(pin.widgetId)}`;
+			return {
+				widgetId: pin.widgetId,
+				slotId,
+				component: registered?.component ?? createUnresolvedIndicator(pin),
+				pin,
+			};
+		})
+		.filter((item): item is DashboardIndicator => Boolean(item));
+}
+
+export function syncDashboardIndicators() {
+	void dashboardSlots.loadIndicators();
+}
+
+export function getDashboardIndicatorsSnapshot(): DashboardIndicator[] {
+	return [...getRuntime().indicatorItems];
+}
+
+export function subscribeDashboardIndicators(listener: () => void): () => void {
+	getRuntime().listeners.add(listener);
+
+	return () => {
+		getRuntime().listeners.delete(listener);
+	};
+}
 
 class DashboardSlots {
 	public list: string[] = [];
 	private counter = 0;
 	private savedWidgets: Map<string, ReactNode> = new Map();
-	private widgetSlots: Map<string, string> = new Map(); // widgetId -> slotId
+	private widgetSlots: Map<string, string> = new Map();
 	private pendingMounts: Map<string, () => void> = new Map();
 	private instanceId = `dashboard-slots-${Math.random().toString(36).slice(2)}`;
 
@@ -141,7 +186,6 @@ class DashboardSlots {
 	}
 
 	next(prefix: string, widgetId?: string): string {
-		// Если widgetId указан и уже есть слот для него - возвращаем существующий
 		if (widgetId && this.widgetSlots.has(widgetId)) {
 			const existingSlot = this.widgetSlots.get(widgetId);
 			if (existingSlot) {
@@ -149,12 +193,10 @@ class DashboardSlots {
 			}
 		}
 
-		// Создаем новый слот
 		const slotId = `${prefix}-${this.counter}`;
 		this.counter++;
 		this.list.push(slotId);
 
-		// Сохраняем связь widgetId -> slotId
 		if (widgetId) {
 			this.widgetSlots.set(widgetId, slotId);
 		}
@@ -163,23 +205,115 @@ class DashboardSlots {
 	}
 
 	isPinned(widgetId: string): boolean {
-		return (
-			this.widgetSlots.has(widgetId) ||
-			readGlobalIndicators().some((item) => item.widgetId === widgetId)
+		return getRuntime().indicatorPins.some(
+			(item) => item.widgetId === widgetId,
 		);
 	}
 
-	pin(widgetId: string, component: ReactNode): string {
-		const slotId = this.pinLocal(widgetId, component);
-		this.broadcastPin(widgetId, component);
+	register(
+		widgetId: string,
+		component: ReactNode,
+		meta?: DashboardPinRegistration,
+	) {
+		const normalized = widgetId.trim();
+		if (!normalized) return;
+
+		getRuntime().registeredWidgets.set(normalized, { component, meta });
+		if (this.isPinned(normalized)) {
+			this.syncMaterializedIndicators();
+		}
+	}
+
+	pin(
+		widgetId: string,
+		component: ReactNode,
+		meta?: DashboardPinRegistration,
+	): string {
+		const normalized = widgetId.trim();
+		if (!normalized) {
+			throw new Error("widgetId is required");
+		}
+
+		this.register(normalized, component, meta);
+		const optimisticPin = createOptimisticPin(normalized, meta);
+		upsertPinSnapshot(optimisticPin);
+		const slotId = this.pinLocal(normalized, component);
+		this.syncMaterializedIndicators();
+		this.broadcastPin(normalized, component, meta);
+		void this.persistPin(normalized, meta);
 		return slotId;
+	}
+
+	async loadIndicators(): Promise<DashboardIndicator[]> {
+		const runtime = getRuntime();
+		if (runtime.loadPromise) {
+			return runtime.loadPromise;
+		}
+
+		runtime.loadPromise = (async () => {
+			try {
+				const loadedPins = await dashboardClient.listIndicators();
+				const loadedIds = new Set(loadedPins.map((pin) => pin.widgetId));
+				const optimisticPins = getRuntime().indicatorPins.filter(
+					(pin) => !loadedIds.has(pin.widgetId),
+				);
+				setPinSnapshot([...loadedPins, ...optimisticPins]);
+			} catch (error) {
+				console.warn("[dashboard-slots] Failed to load indicator pins", error);
+			}
+
+			this.syncMaterializedIndicators();
+			return getDashboardIndicatorsSnapshot();
+		})().finally(() => {
+			getRuntime().loadPromise = null;
+		});
+
+		return runtime.loadPromise;
+	}
+
+	async unpin(widgetId: string): Promise<void> {
+		const normalized = widgetId.trim();
+		if (!normalized) return;
+
+		setPinSnapshot(
+			getRuntime().indicatorPins.filter((item) => item.widgetId !== normalized),
+		);
+		this.syncMaterializedIndicators();
+
+		try {
+			await dashboardClient.unpinIndicator(normalized);
+			await this.loadIndicators();
+		} catch (error) {
+			console.warn("[dashboard-slots] Failed to unpin indicator", {
+				widgetId: normalized,
+				error,
+			});
+		}
+	}
+
+	private async persistPin(
+		widgetId: string,
+		meta?: DashboardPinRegistration,
+	): Promise<void> {
+		try {
+			const saved = await dashboardClient.pinIndicator({
+				widgetId,
+				...meta,
+			});
+			upsertPinSnapshot(saved);
+			this.syncMaterializedIndicators();
+		} catch (error) {
+			console.warn("[dashboard-slots] Failed to save indicator pin", {
+				widgetId,
+				error,
+			});
+		}
 	}
 
 	private pinLocal(widgetId: string, component: ReactNode): string {
 		const slotId = this.next("pinned", widgetId);
 		const fullSlotId = `dashboard:${slotId}`;
 		this.savedWidgets.set(fullSlotId, component);
-		upsertGlobalIndicator({ widgetId, slotId: fullSlotId, component });
 
 		if ($readyLayouts.getState().has("dashboard")) {
 			mount(component, fullSlotId);
@@ -194,6 +328,20 @@ class DashboardSlots {
 		return slotId;
 	}
 
+	private syncMaterializedIndicators() {
+		const runtime = getRuntime();
+		runtime.indicatorItems = materializeIndicators((widgetId) =>
+			this.next("pinned", widgetId),
+		);
+
+		for (const indicator of runtime.indicatorItems) {
+			this.savedWidgets.set(indicator.slotId, indicator.component);
+			dashboardIndicatorMounted(indicator);
+		}
+
+		emitIndicatorsChanged();
+	}
+
 	private installGlobalBridge() {
 		if (typeof window === "undefined") return;
 
@@ -202,11 +350,18 @@ class DashboardSlots {
 			if (!detail || detail.originId === this.instanceId) return;
 			if (!detail.widgetId || !detail.component) return;
 
+			this.register(detail.widgetId, detail.component, detail.meta);
+			upsertPinSnapshot(createOptimisticPin(detail.widgetId, detail.meta));
 			this.pinLocal(detail.widgetId, detail.component);
+			this.syncMaterializedIndicators();
 		});
 	}
 
-	private broadcastPin(widgetId: string, component: ReactNode) {
+	private broadcastPin(
+		widgetId: string,
+		component: ReactNode,
+		meta?: DashboardPinRegistration,
+	) {
 		if (typeof window === "undefined") return;
 
 		window.dispatchEvent(
@@ -215,12 +370,12 @@ class DashboardSlots {
 					originId: this.instanceId,
 					widgetId,
 					component,
+					meta,
 				},
 			}),
 		);
 	}
 
-	// Сохраняем виджеты перед уходом с dashboard
 	saveWidgets() {
 		const contents = $slotContents.getState();
 		this.savedWidgets.clear();
@@ -232,14 +387,12 @@ class DashboardSlots {
 		});
 	}
 
-	// Восстанавливаем виджеты при возврате
 	restoreWidgets() {
 		this.savedWidgets.forEach((component, slotId) => {
 			mountWhenReady(component, slotId, { layoutName: "dashboard" });
 		});
 	}
 
-	// Очищаем всё (опционально)
 	clear() {
 		for (const cancel of this.pendingMounts.values()) {
 			cancel();
@@ -248,8 +401,13 @@ class DashboardSlots {
 		this.savedWidgets.clear();
 		this.widgetSlots.clear();
 		this.pendingMounts.clear();
-		clearGlobalIndicators();
+		setPinSnapshot([]);
+		getRuntime().indicatorItems = [];
+		emitIndicatorsChanged();
 		this.counter = 0;
+		void dashboardClient.clearIndicators().catch((error) => {
+			console.warn("[dashboard-slots] Failed to clear indicator pins", error);
+		});
 	}
 }
 

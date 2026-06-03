@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Globe2, LogIn, Moon, PanelLeftOpen, Paperclip, Send, Sun } from "lucide-react";
+import { Globe2, LogIn, Moon, PanelLeftOpen, Paperclip, PhoneCall, Send, Sun } from "lucide-react";
 import { Button, Textarea } from "../ui";
 
 const CONTROL_ICON_SIZE = 17;
@@ -26,6 +26,7 @@ export interface LandingTopBarProps {
   languages?: Array<{ code: string; label: string }>;
   currentLanguage?: string;
   onLogin?: () => void;
+  onCall?: () => void;
   onPanelOpen?: () => void;
   onThemeToggle?: () => void;
   isDark?: boolean;
@@ -47,6 +48,7 @@ export function LandingTopBar({
   languages,
   currentLanguage,
   onLogin,
+  onCall,
   onPanelOpen,
   onThemeToggle,
   isDark,
@@ -104,11 +106,26 @@ export function LandingTopBar({
               <PanelLeftOpen size={CONTROL_ICON_SIZE} />
             </Button>
           )}
-          {phone && (
-            <a className="ltb-phone" href={`tel:${phone.replace(/\s/g, "")}`}>
-              <span className="ltb-phone-dot" aria-hidden="true" />
-              {phone}
-            </a>
+          {(phone || onCall) && (
+            <div className="ltb-phone-row">
+              {phone && (
+                <a className="ltb-phone" href={`tel:${phone.replace(/\s/g, "")}`}>
+                  <span className="ltb-phone-dot" aria-hidden="true" />
+                  {phone}
+                </a>
+              )}
+              {onCall && (
+                <button
+                  className="ltb-call"
+                  type="button"
+                  aria-label="Call from website"
+                  title="Call from website"
+                  onClick={onCall}
+                >
+                  <PhoneCall size={14} />
+                </button>
+              )}
+            </div>
           )}
           {statusText && (
             <div className="ltb-status">
@@ -303,17 +320,42 @@ export const landingTopBarCss = `
   color: var(--ui-foreground);
 }
 
+.ltb-phone-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
 .ltb-phone {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 12px;
   color: var(--ui-foreground);
   font-size: 13px;
   font-weight: 700;
   line-height: 1;
   text-decoration: none;
 }
+
+.ltb-call {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ui-chart-2);
+  color: var(--ui-background);
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  transition: filter 150ms ease, transform 150ms ease;
+}
+
+.ltb-call:hover { filter: brightness(1.08); transform: scale(1.05); }
+.ltb-call:active { transform: scale(0.96); }
 
 .ltb-phone-dot {
   width: 6px;
@@ -425,7 +467,10 @@ export const landingTopBarCss = `
   height: 34px;
 }
 
-.ltb--compact .ltb-phone,
+.ltb--compact .ltb-phone-row {
+  margin-top: 0;
+}
+
 .ltb--compact .ltb-status {
   display: none;
 }
@@ -597,7 +642,8 @@ export const landingTopBarCss = `
 
   .ltb-logo { grid-row: 1 / span 2; width: 96px; height: 34px; }
   .ltb-logo[src$=".png"] { width: 156px; height: 34px; }
-  .ltb-phone { margin-top: 0; font-size: 12px; }
+  .ltb-phone-row { margin-top: 0; }
+  .ltb-phone { font-size: 12px; }
   .ltb-status { margin-top: 0; font-size: 9px; }
   .ltb-chat { grid-column: 1 / -1; grid-row: 2; }
   .ltb-controls { grid-column: 2; grid-row: 1; gap: 8px; justify-self: end; padding-top: 0; }
