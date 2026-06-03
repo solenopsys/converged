@@ -2,6 +2,7 @@ export const ID = "logs-mf";
 export { MENU } from "./menu";
 import ACTIONS from "./functions";
 import { BasePlugin, LocaleController } from "front-core";
+import "./dashboard-widgets";
 
 LocaleController.getInstance().setLocales(ID, {
   en: new URL("../locales/en.json", import.meta.url).toString(),

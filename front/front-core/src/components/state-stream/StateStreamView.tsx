@@ -294,7 +294,7 @@ export function StateStreamView() {
 			<div
 				className="grid min-h-0 flex-1 gap-3"
 				style={{
-					gridTemplateColumns: "minmax(0, 1fr) minmax(320px, 360px)",
+					gridTemplateColumns: "minmax(300px, 360px) minmax(0, 1fr)",
 				}}
 			>
 				<Card
@@ -341,9 +341,16 @@ export function StateStreamView() {
 							{indicators.length === 0 ? (
 								<EmptySignals />
 							) : (
-								<div className="grid gap-3 p-4">
+								<div className="grid auto-rows-[minmax(10rem,1fr)] grid-cols-2 gap-3 p-4 [grid-auto-flow:dense] sm:grid-cols-3 xl:grid-cols-4">
 									{indicators.map((indicator) => (
-										<div key={indicator.widgetId} className="min-h-40">
+										<div
+											key={indicator.widgetId}
+											className={`min-h-0 ${
+												indicator.size === "lg"
+													? "col-span-2 row-span-2"
+													: ""
+											}`}
+										>
 											{indicator.component}
 										</div>
 									))}

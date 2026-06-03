@@ -4,4 +4,5 @@ export * from "./SlotProvider";
 export * from "./SlotInline";
 export * from "./present";
 export * from "./dashboard_slots";
+export * from "./dashboard_widget_registry";
 

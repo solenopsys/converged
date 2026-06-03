@@ -5,7 +5,81 @@ import {
 	type DashboardIndicatorPinInput,
 } from "g-dashboard";
 import { createElement, type ReactNode } from "react";
+import {
+	type DashboardWidgetSize,
+	getDashboardWidgetSize,
+	hasDashboardWidget,
+	resolveDashboardWidget,
+	subscribeDashboardWidgetRegistry,
+} from "./dashboard_widget_registry";
 import { $readyLayouts, $slotContents, mount, mountWhenReady } from "./slots";
+
+// Maps a pin's componentKey prefix to the microfrontend module that owns its
+// live widget factory. Used to lazily load that module on the State Stream
+// page so persisted pins can re-materialize without first opening the source
+// dashboard.
+const DASHBOARD_WIDGET_MODULES: Record<string, string> = {
+	dag: "mf-dag",
+	logs: "mf-logs",
+};
+
+const loadedWidgetModules = new Set<string>();
+const inflightWidgetModules = new Map<string, Promise<void>>();
+
+function resolveRuntimeModuleSpecifier(moduleName: string): string {
+	if (typeof document === "undefined") return moduleName;
+
+	const script = document.querySelector<HTMLScriptElement>(
+		'script[type="importmap"]',
+	);
+	if (!script?.textContent) return `/mf/${moduleName}.js`;
+
+	try {
+		const parsed = JSON.parse(script.textContent) as {
+			imports?: Record<string, string>;
+		};
+		return parsed.imports?.[moduleName] ?? `/mf/${moduleName}.js`;
+	} catch {
+		return `/mf/${moduleName}.js`;
+	}
+}
+
+function widgetModuleFor(componentKey: string): string | undefined {
+	const prefix = componentKey.split(".")[0];
+	return DASHBOARD_WIDGET_MODULES[prefix];
+}
+
+// Loads the microfrontend that registers the widget factory for `componentKey`.
+// Registration notifies the widget registry, which re-materializes indicators.
+async function ensureWidgetModuleLoaded(componentKey: string): Promise<void> {
+	if (hasDashboardWidget(componentKey)) return;
+
+	const moduleName = widgetModuleFor(componentKey);
+	if (!moduleName || loadedWidgetModules.has(moduleName)) return;
+
+	const inflight = inflightWidgetModules.get(moduleName);
+	if (inflight) return inflight;
+
+	const loadPromise = (async () => {
+		try {
+			await import(
+				/* @vite-ignore */ resolveRuntimeModuleSpecifier(moduleName)
+			);
+			loadedWidgetModules.add(moduleName);
+		} catch (error) {
+			console.error("[dashboard-slots] Failed to load widget module", {
+				componentKey,
+				moduleName,
+				error,
+			});
+		} finally {
+			inflightWidgetModules.delete(moduleName);
+		}
+	})();
+
+	inflightWidgetModules.set(moduleName, loadPromise);
+	return loadPromise;
+}
 
 const DASHBOARD_PIN_EVENT = "front-core:dashboard-pin";
 const DASHBOARD_INDICATORS_CHANGED_EVENT =
@@ -18,6 +92,7 @@ export type DashboardIndicator = {
 	widgetId: string;
 	slotId: string;
 	component: ReactNode;
+	size: DashboardWidgetSize;
 	pin: DashboardIndicatorPin;
 };
 
@@ -95,9 +170,16 @@ function upsertPinSnapshot(pin: DashboardIndicatorPin) {
 	setPinSnapshot([...next, pin]);
 }
 
+function pinUpdatedAtMs(pin: DashboardIndicatorPin): number {
+	// nrpc revives ISO date strings into Date objects on the wire, while
+	// optimistic pins carry plain ISO strings — normalize both before sorting.
+	const time = new Date(pin.updatedAt).getTime();
+	return Number.isNaN(time) ? 0 : time;
+}
+
 function setPinSnapshot(pins: DashboardIndicatorPin[]) {
 	getRuntime().indicatorPins = [...pins].sort(
-		(a, b) => a.position - b.position || b.updatedAt.localeCompare(a.updatedAt),
+		(a, b) => a.position - b.position || pinUpdatedAtMs(b) - pinUpdatedAtMs(a),
 	);
 }
 
@@ -118,12 +200,15 @@ function emitIndicatorsChanged() {
 	);
 }
 
-function createUnresolvedIndicator(pin: DashboardIndicatorPin): ReactNode {
+function createPendingIndicator(
+	pin: DashboardIndicatorPin,
+	loading: boolean,
+): ReactNode {
 	return createElement(
 		"div",
 		{
 			className:
-				"min-h-24 rounded-md bg-muted/20 px-3 py-2.5 text-sm text-muted-foreground",
+				"flex min-h-24 flex-col justify-center rounded-md bg-muted/20 px-3 py-2.5 text-sm text-muted-foreground",
 		},
 		createElement(
 			"div",
@@ -133,7 +218,9 @@ function createUnresolvedIndicator(pin: DashboardIndicatorPin): ReactNode {
 		createElement(
 			"div",
 			{ className: "mt-1 text-xs leading-5" },
-			`Pinned ${pin.widgetId}. Open ${pin.source ?? "source dashboard"} to render the live widget.`,
+			loading
+				? "Loading live widget…"
+				: "Live widget unavailable — open its dashboard to render it.",
 		),
 	);
 }
@@ -142,19 +229,27 @@ function materializeIndicators(
 	resolveSlot: (widgetId: string) => string,
 ): DashboardIndicator[] {
 	const { indicatorPins, registeredWidgets } = getRuntime();
-	return indicatorPins
-		.map((pin) => {
-			const registered = registeredWidgets.get(pin.widgetId);
+	return indicatorPins.map((pin) => {
+		const componentKey = pin.componentKey ?? pin.widgetId;
+		// Prefer the standalone live factory (survives reloads); fall back to the
+		// component registered by a currently-mounted source view; otherwise show
+		// a transient placeholder while the owning microfrontend loads.
+		const liveComponent =
+			resolveDashboardWidget(componentKey) ??
+			registeredWidgets.get(pin.widgetId)?.component ??
+			null;
 
-			const slotId = `dashboard:${resolveSlot(pin.widgetId)}`;
-			return {
-				widgetId: pin.widgetId,
-				slotId,
-				component: registered?.component ?? createUnresolvedIndicator(pin),
-				pin,
-			};
-		})
-		.filter((item): item is DashboardIndicator => Boolean(item));
+		const slotId = `dashboard:${resolveSlot(pin.widgetId)}`;
+		return {
+			widgetId: pin.widgetId,
+			slotId,
+			component:
+				liveComponent ??
+				createPendingIndicator(pin, Boolean(widgetModuleFor(componentKey))),
+			size: getDashboardWidgetSize(componentKey),
+			pin,
+		};
+	});
 }
 
 export function syncDashboardIndicators() {
@@ -183,6 +278,11 @@ class DashboardSlots {
 
 	constructor() {
 		this.installGlobalBridge();
+		// Re-materialize whenever a microfrontend registers its widget factories,
+		// upgrading pending placeholders to live widgets after a lazy load.
+		subscribeDashboardWidgetRegistry(() => {
+			this.syncMaterializedIndicators();
+		});
 	}
 
 	next(prefix: string, widgetId?: string): string {
@@ -340,6 +440,17 @@ class DashboardSlots {
 		}
 
 		emitIndicatorsChanged();
+
+		// Kick off lazy loading of microfrontends owning any still-unresolved pin.
+		for (const pin of runtime.indicatorPins) {
+			const componentKey = pin.componentKey ?? pin.widgetId;
+			if (
+				!hasDashboardWidget(componentKey) &&
+				!runtime.registeredWidgets.has(pin.widgetId)
+			) {
+				void ensureWidgetModuleLoaded(componentKey);
+			}
+		}
 	}
 
 	private installGlobalBridge() {

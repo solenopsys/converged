@@ -14,12 +14,39 @@
  */
 import { createEvent, createStore } from "effector";
 
-export type WebCallStatus = "idle" | "connecting" | "connected" | "error" | "ended";
+export type WebCallStatus =
+	| "idle"
+	| "connecting"
+	| "connected"
+	| "error"
+	| "ended";
 
 export interface WebCallState {
 	status: WebCallStatus;
 	error: string | null;
 }
+
+type SignalingMessage = {
+	type?: unknown;
+	data?: unknown;
+	sdp?: unknown;
+	message?: unknown;
+};
+
+type AudioOutboundSnapshot = {
+	id: string;
+	bytesSent?: number;
+	packetsSent?: number;
+	retransmittedPacketsSent?: number;
+	totalPacketSendDelay?: number;
+};
+
+type AudioSourceSnapshot = {
+	id: string;
+	audioLevel?: number;
+	totalAudioEnergy?: number;
+	totalSamplesDuration?: number;
+};
 
 /** Fired by the top-bar call icon. Optional `user` keys the gate's AI context. */
 export const webCallRequested = createEvent<string | undefined>();
@@ -27,37 +54,108 @@ export const webCallHangupRequested = createEvent();
 
 const webCallStateChanged = createEvent<WebCallState>();
 
-export const $webCall = createStore<WebCallState>({ status: "idle", error: null }).on(
-	webCallStateChanged,
-	(_, next) => next,
-);
+export const $webCall = createStore<WebCallState>({
+	status: "idle",
+	error: null,
+}).on(webCallStateChanged, (_, next) => next);
 
 const AUDIO_GATE_BASE = "/audio-gate";
+const LOG_PREFIX = "[web-call]";
 
 function wsCallUrl(user?: string): string {
 	const proto =
-		typeof window !== "undefined" && window.location.protocol === "https:" ? "wss:" : "ws:";
-	const host = typeof window !== "undefined" ? window.location.host : "localhost";
+		typeof window !== "undefined" && window.location.protocol === "https:"
+			? "wss:"
+			: "ws:";
+	const host =
+		typeof window !== "undefined" ? window.location.host : "localhost";
 	const qs = user ? `?user=${encodeURIComponent(user)}` : "";
 	return `${proto}//${host}${AUDIO_GATE_BASE}/ws${qs}`;
+}
+
+function log(message: string, details?: unknown): void {
+	if (details === undefined) console.info(LOG_PREFIX, message);
+	else console.info(LOG_PREFIX, message, details);
+}
+
+function warn(message: string, details?: unknown): void {
+	if (details === undefined) console.warn(LOG_PREFIX, message);
+	else console.warn(LOG_PREFIX, message, details);
+}
+
+function logError(message: string, details?: unknown): void {
+	if (details === undefined) console.error(LOG_PREFIX, message);
+	else console.error(LOG_PREFIX, message, details);
+}
+
+function errorMessage(err: unknown): string {
+	return err instanceof Error ? err.message : String(err);
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+	return value && typeof value === "object"
+		? (value as Record<string, unknown>)
+		: null;
 }
 
 let pc: RTCPeerConnection | null = null;
 let ws: WebSocket | null = null;
 let stream: MediaStream | null = null;
+let eventsChannel: RTCDataChannel | null = null;
 let resetTimer: ReturnType<typeof setTimeout> | null = null;
+let answerTimer: ReturnType<typeof setTimeout> | null = null;
+let statsTimer: ReturnType<typeof setInterval> | null = null;
 
 function setState(status: WebCallStatus, error: string | null = null): void {
+	log("state", { status, error });
 	webCallStateChanged({ status, error });
 }
 
+function clearAnswerTimer(): void {
+	if (!answerTimer) return;
+	clearTimeout(answerTimer);
+	answerTimer = null;
+}
+
+function clearStatsTimer(): void {
+	if (!statsTimer) return;
+	clearInterval(statsTimer);
+	statsTimer = null;
+}
+
 function cleanup(): void {
-	try { ws?.close(); } catch { /* noop */ }
-	try { pc?.close(); } catch { /* noop */ }
-	stream?.getTracks().forEach((t) => t.stop());
+	log("cleanup");
+	clearAnswerTimer();
+	clearStatsTimer();
+	try {
+		eventsChannel?.close();
+	} catch {
+		/* noop */
+	}
+	try {
+		ws?.close();
+	} catch {
+		/* noop */
+	}
+	try {
+		pc?.close();
+	} catch {
+		/* noop */
+	}
+	for (const track of stream?.getTracks() ?? []) {
+		track.stop();
+	}
 	ws = null;
 	pc = null;
 	stream = null;
+	eventsChannel = null;
+}
+
+function failCall(error: string, details?: unknown): void {
+	logError("call failed", details === undefined ? error : { error, details });
+	setState("error", error);
+	cleanup();
+	scheduleIdleReset();
 }
 
 /** Auto-hide the widget a few seconds after a call ends or fails. */
@@ -69,92 +167,388 @@ function scheduleIdleReset(): void {
 	}, 4000);
 }
 
+async function waitForWsOpen(
+	socket: WebSocket,
+	timeoutMs: number,
+): Promise<void> {
+	if (socket.readyState === WebSocket.OPEN) return;
+
+	await new Promise<void>((resolve, reject) => {
+		const timeout = setTimeout(() => {
+			cleanupListeners();
+			reject(new Error("Audio gate timeout"));
+		}, timeoutMs);
+
+		const cleanupListeners = () => {
+			clearTimeout(timeout);
+			socket.removeEventListener("open", handleOpen);
+			socket.removeEventListener("error", handleError);
+		};
+
+		const handleOpen = () => {
+			cleanupListeners();
+			resolve();
+		};
+
+		const handleError = () => {
+			cleanupListeners();
+			reject(new Error("Audio gate unreachable"));
+		};
+
+		socket.addEventListener("open", handleOpen);
+		socket.addEventListener("error", handleError);
+	});
+}
+
+async function waitForIceGatheringComplete(
+	conn: RTCPeerConnection,
+	timeoutMs = 2_000,
+): Promise<void> {
+	if (conn.iceGatheringState === "complete") return;
+
+	log("waiting for ICE gathering", { timeoutMs });
+	await new Promise<void>((resolve) => {
+		const timeout = setTimeout(() => {
+			warn("ICE gathering timeout, sending current local SDP", {
+				iceGatheringState: conn.iceGatheringState,
+			});
+			cleanupListeners();
+			resolve();
+		}, timeoutMs);
+
+		const cleanupListeners = () => {
+			clearTimeout(timeout);
+			conn.removeEventListener("icegatheringstatechange", handleChange);
+		};
+
+		const handleChange = () => {
+			if (conn.iceGatheringState !== "complete") return;
+			log("ICE gathering complete");
+			cleanupListeners();
+			resolve();
+		};
+
+		conn.addEventListener("icegatheringstatechange", handleChange);
+	});
+}
+
+function numberField(
+	record: Record<string, unknown>,
+	field: string,
+): number | undefined {
+	return typeof record[field] === "number" ? record[field] : undefined;
+}
+
+function summarizeAudioStats(report: RTCStatsReport): {
+	outbound: AudioOutboundSnapshot[];
+	sources: AudioSourceSnapshot[];
+} {
+	const outbound: AudioOutboundSnapshot[] = [];
+	const sources: AudioSourceSnapshot[] = [];
+
+	report.forEach((stat) => {
+		const record = asRecord(stat);
+		if (!record) return;
+		const type = typeof record.type === "string" ? record.type : "";
+		const kind =
+			typeof record.kind === "string"
+				? record.kind
+				: typeof record.mediaType === "string"
+					? record.mediaType
+					: "";
+		const id = typeof record.id === "string" ? record.id : "";
+
+		if (type === "outbound-rtp" && kind === "audio") {
+			outbound.push({
+				id,
+				bytesSent: numberField(record, "bytesSent"),
+				packetsSent: numberField(record, "packetsSent"),
+				retransmittedPacketsSent: numberField(
+					record,
+					"retransmittedPacketsSent",
+				),
+				totalPacketSendDelay: numberField(record, "totalPacketSendDelay"),
+			});
+		}
+
+		if (type === "media-source" && kind === "audio") {
+			sources.push({
+				id,
+				audioLevel: numberField(record, "audioLevel"),
+				totalAudioEnergy: numberField(record, "totalAudioEnergy"),
+				totalSamplesDuration: numberField(record, "totalSamplesDuration"),
+			});
+		}
+	});
+
+	return { outbound, sources };
+}
+
+function startOutboundStatsLogging(conn: RTCPeerConnection): void {
+	clearStatsTimer();
+	statsTimer = setInterval(() => {
+		void conn
+			.getStats()
+			.then((report) => {
+				const snapshot = summarizeAudioStats(report);
+				if (snapshot.outbound.length > 0 || snapshot.sources.length > 0) {
+					log("audio outbound stats", snapshot);
+				}
+			})
+			.catch((err) => {
+				warn("audio stats failed", errorMessage(err));
+			});
+	}, 2_000);
+}
+
+function setupRealtimeEventsChannel(conn: RTCPeerConnection): void {
+	const channel = conn.createDataChannel("oai-events");
+	eventsChannel = channel;
+
+	channel.onopen = () => {
+		log("realtime data channel open");
+	};
+
+	channel.onclose = () => {
+		log("realtime data channel closed");
+	};
+
+	channel.onerror = (event) => {
+		logError("realtime data channel error", event);
+	};
+
+	channel.onmessage = (event) => {
+		if (typeof event.data !== "string") {
+			log("realtime event binary", { bytes: event.data?.byteLength });
+			return;
+		}
+		const parsed = asRealtimeEvent(event.data);
+		if (!parsed) {
+			warn("realtime event non-json", { bytes: event.data.length });
+			return;
+		}
+		log("realtime event", parsed);
+	};
+}
+
+function asRealtimeEvent(raw: string): Record<string, unknown> | null {
+	try {
+		const value = JSON.parse(raw) as unknown;
+		const record = asRecord(value);
+		if (!record) return null;
+		const compact: Record<string, unknown> = {
+			type: record.type,
+		};
+		for (const key of [
+			"event_id",
+			"item_id",
+			"response_id",
+			"audio_start_ms",
+			"audio_end_ms",
+			"transcript",
+			"delta",
+			"error",
+		]) {
+			if (record[key] !== undefined) compact[key] = record[key];
+		}
+		return compact;
+	} catch {
+		return null;
+	}
+}
+
 export async function startWebCall(user?: string): Promise<void> {
-	if (pc) return; // a call is already in progress
+	if (pc) {
+		warn("start ignored, call is already in progress");
+		return;
+	}
 	if (resetTimer) {
 		clearTimeout(resetTimer);
 		resetTimer = null;
 	}
 
 	try {
+		log("start requested", { user });
 		setState("connecting");
 
-		stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+		log("requesting microphone");
+		stream = await navigator.mediaDevices.getUserMedia({
+			audio: {
+				autoGainControl: true,
+				channelCount: { ideal: 1 },
+				echoCancellation: true,
+				noiseSuppression: true,
+				sampleRate: { ideal: 48_000 },
+			},
+			video: false,
+		});
+		log("microphone stream acquired", {
+			audioTracks: stream.getAudioTracks().length,
+			settings: stream.getAudioTracks().map((track) => track.getSettings()),
+		});
 
 		const conn = new RTCPeerConnection({
 			iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
 		});
 		pc = conn;
-		stream.getTracks().forEach((t) => conn.addTrack(t, stream!));
+		const localStream = stream;
+		for (const track of localStream.getTracks()) {
+			conn.addTrack(track, localStream);
+		}
+		log("peer connection created");
+		setupRealtimeEventsChannel(conn);
+		startOutboundStatsLogging(conn);
 
 		// Play the AI's audio track.
 		conn.ontrack = (e) => {
+			log("remote track received", {
+				kind: e.track.kind,
+				streams: e.streams.length,
+			});
 			const audioEl = new Audio();
 			audioEl.srcObject = e.streams[0];
 			audioEl.autoplay = true;
 		};
 
+		conn.onconnectionstatechange = () => {
+			log("peer connection state", { state: conn.connectionState });
+			if (conn.connectionState === "connected") setState("connected");
+			if (conn.connectionState === "failed") failCall("Peer connection failed");
+		};
+
 		conn.oniceconnectionstatechange = () => {
+			log("ICE connection state", { state: conn.iceConnectionState });
 			switch (conn.iceConnectionState) {
 				case "connected":
 				case "completed":
 					setState("connected");
 					break;
 				case "failed":
-					setState("error", "ICE connection failed");
+					failCall("ICE connection failed");
 					break;
 			}
 		};
 
-		const offer = await conn.createOffer();
-		await conn.setLocalDescription(offer);
+		conn.onicegatheringstatechange = () => {
+			log("ICE gathering state", { state: conn.iceGatheringState });
+		};
 
-		const socket = new WebSocket(wsCallUrl(user));
-		ws = socket;
+		conn.onsignalingstatechange = () => {
+			log("signaling state", { state: conn.signalingState });
+		};
 
-		await new Promise<void>((resolve, reject) => {
-			const timeout = setTimeout(() => reject(new Error("Audio gate timeout")), 10_000);
-			socket.onopen = () => { clearTimeout(timeout); resolve(); };
-			socket.onerror = () => {
-				clearTimeout(timeout);
-				reject(new Error("Audio gate unreachable"));
-			};
-		});
-
-		socket.send(JSON.stringify({ type: "offer", sdp: conn.localDescription!.sdp }));
-
-		socket.onmessage = async (event) => {
-			let msg: any;
-			try {
-				msg = JSON.parse(event.data as string);
-			} catch {
+		conn.onicecandidate = (event) => {
+			if (!event.candidate) {
+				log("local ICE candidate gathering ended");
 				return;
 			}
+			log("local ICE candidate", {
+				type: event.candidate.type,
+				protocol: event.candidate.protocol,
+				address: event.candidate.address,
+				port: event.candidate.port,
+			});
+		};
+
+		const offer = await conn.createOffer();
+		log("SDP offer created", { sdpLength: offer.sdp.length });
+		await conn.setLocalDescription(offer);
+		await waitForIceGatheringComplete(conn);
+
+		const url = wsCallUrl(user);
+		log("opening websocket", { url });
+		const socket = new WebSocket(url);
+		ws = socket;
+
+		socket.onmessage = async (event) => {
+			log("websocket message", {
+				bytes: typeof event.data === "string" ? event.data.length : undefined,
+			});
+			let msg: SignalingMessage;
+			try {
+				msg = JSON.parse(event.data as string) as SignalingMessage;
+			} catch (err) {
+				warn("ignored non-json websocket message", errorMessage(err));
+				return;
+			}
+			log("signaling message", { type: msg.type });
 			if (msg.type === "answer") {
-				const sdp: string = msg.data?.sdp ?? msg.sdp;
+				const data = asRecord(msg.data);
+				const sdp =
+					typeof data?.sdp === "string"
+						? data.sdp
+						: typeof msg.sdp === "string"
+							? msg.sdp
+							: "";
+				if (!sdp) {
+					failCall("Audio gate answer did not contain SDP", msg);
+					return;
+				}
+				clearAnswerTimer();
+				log("SDP answer received", { sdpLength: sdp.length });
 				await conn.setRemoteDescription({ type: "answer", sdp });
+				log("remote description set");
 			} else if (msg.type === "error") {
-				setState("error", msg.data?.message ?? msg.message ?? "Signaling error");
+				const data = asRecord(msg.data);
+				const message =
+					(typeof data?.message === "string" && data.message) ||
+					(typeof msg.message === "string" && msg.message) ||
+					"Signaling error";
+				failCall(message, msg);
 			}
 		};
 
-		socket.onclose = () => {
+		socket.onerror = (event) => {
+			logError("websocket error", event);
+		};
+
+		socket.onclose = (event) => {
+			log("websocket closed", {
+				code: event.code,
+				reason: event.reason,
+				wasClean: event.wasClean,
+			});
 			if ($webCall.getState().status !== "error") setState("ended");
 			cleanup();
 			scheduleIdleReset();
 		};
+
+		await waitForWsOpen(socket, 10_000);
+		log("websocket open, sending offer");
+
+		const sdp = conn.localDescription?.sdp;
+		if (!sdp) {
+			throw new Error("Local SDP offer is empty");
+		}
+		socket.send(
+			JSON.stringify({
+				type: "offer",
+				data: { type: "offer", sdp },
+			}),
+		);
+		log("SDP offer sent", { sdpLength: sdp.length });
+
+		answerTimer = setTimeout(() => {
+			failCall("Audio gate answer timeout");
+		}, 15_000);
 	} catch (err) {
-		setState("error", err instanceof Error ? err.message : String(err));
+		logError("start failed", err);
+		setState("error", errorMessage(err));
 		cleanup();
 		scheduleIdleReset();
 	}
 }
 
 export function hangupWebCall(): void {
+	log("hangup requested");
 	cleanup();
 	setState("ended");
 	scheduleIdleReset();
 }
 
-webCallRequested.watch((user) => { void startWebCall(user); });
-webCallHangupRequested.watch(() => { hangupWebCall(); });
+webCallRequested.watch((user) => {
+	void startWebCall(user);
+});
+webCallHangupRequested.watch(() => {
+	hangupWebCall();
+});

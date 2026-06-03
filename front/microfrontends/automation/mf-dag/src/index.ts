@@ -12,6 +12,7 @@ export const SIDEBAR_TABS = [
 
 import { ACTIONS } from "./functions";
 import { BasePlugin, LocaleController } from "front-core";
+import "./functions/dashboard-widgets";
 
 LocaleController.getInstance().setLocales(ID, {
   en: new URL("../locales/en.json", import.meta.url).toString(),
