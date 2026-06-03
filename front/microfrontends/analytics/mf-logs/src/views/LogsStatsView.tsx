@@ -1,67 +1,84 @@
-import React, { useEffect } from "react";
 import { useUnit } from "effector-react";
 import {
-  HeaderPanelLayout,
-  ScrollArea,
-  StatisticCard,
-  useMicrofrontendTranslation,
+	HeaderPanelLayout,
+	ScrollArea,
+	StatisticCard,
+	useMicrofrontendTranslation,
 } from "front-core";
-import { Database, AlertTriangle, AlertCircle, RefreshCw } from "lucide-react";
-import { $logsStats, logsStatsViewMounted, refreshLogsStatsClicked } from "../domain-stats";
+import { AlertCircle, AlertTriangle, Database, RefreshCw } from "lucide-react";
+import { useEffect } from "react";
+import {
+	$logsStats,
+	logsStatsViewMounted,
+	refreshLogsStatsClicked,
+} from "../domain-stats";
 
 const LOGS_MF_ID = "logs-mf";
 
-export const LogsStatsView = ({ bus }: { bus: any }) => {
-  const stats = useUnit($logsStats);
-  const { t } = useMicrofrontendTranslation(LOGS_MF_ID);
+export const LogsStatsView = ({ bus: _bus }: { bus?: unknown }) => {
+	const stats = useUnit($logsStats);
+	const { t } = useMicrofrontendTranslation(LOGS_MF_ID);
 
-  useEffect(() => {
-    logsStatsViewMounted();
-  }, []);
+	useEffect(() => {
+		logsStatsViewMounted();
+	}, []);
 
-  const headerConfig = {
-    title: t("logs.stats.title"),
-    actions: [
-      {
-        id: "refresh",
-        label: t("logs.stats.refresh"),
-        icon: RefreshCw,
-        event: refreshLogsStatsClicked,
-        variant: "outline" as const,
-      },
-    ],
-  };
+	const headerConfig = {
+		title: t("logs.stats.title"),
+		actions: [
+			{
+				id: "refresh",
+				label: t("logs.stats.refresh"),
+				icon: RefreshCw,
+				event: refreshLogsStatsClicked,
+				variant: "outline" as const,
+			},
+		],
+	};
 
-  return (
-    <HeaderPanelLayout config={headerConfig}>
-        <ScrollArea className="h-full">
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <StatisticCard
-              title={t("logs.stats.totalHot")}
-              value={stats.totalHot}
-              icon={Database}
-              description={t("logs.stats.totalHotDescription")}
-            />
-            <StatisticCard
-              title={t("logs.stats.totalCold")}
-              value={stats.totalCold}
-              icon={Database}
-              description={t("logs.stats.totalColdDescription")}
-            />
-            <StatisticCard
-              title={t("logs.stats.errors")}
-              value={stats.errors}
-              icon={AlertCircle}
-              description={t("logs.stats.errorsDescription")}
-            />
-            <StatisticCard
-              title={t("logs.stats.warnings")}
-              value={stats.warnings}
-              icon={AlertTriangle}
-              description={t("logs.stats.warningsDescription")}
-            />
-          </div>
-        </ScrollArea>
-    </HeaderPanelLayout>
-  );
+	return (
+		<HeaderPanelLayout config={headerConfig}>
+			<ScrollArea className="h-full">
+				<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+					<StatisticCard
+						title={t("logs.stats.totalHot")}
+						value={stats.totalHot}
+						icon={Database}
+						description={t("logs.stats.totalHotDescription")}
+						dashboardPin={{
+							id: "logs.hot-storage",
+							title: t("logs.stats.totalHot"),
+						}}
+					/>
+					<StatisticCard
+						title={t("logs.stats.totalCold")}
+						value={stats.totalCold}
+						icon={Database}
+						description={t("logs.stats.totalColdDescription")}
+						dashboardPin={{
+							id: "logs.cold-storage",
+							title: t("logs.stats.totalCold"),
+						}}
+					/>
+					<StatisticCard
+						title={t("logs.stats.errors")}
+						value={stats.errors}
+						icon={AlertCircle}
+						description={t("logs.stats.errorsDescription")}
+						dashboardPin={{ id: "logs.errors", title: t("logs.stats.errors") }}
+					/>
+					<StatisticCard
+						title={t("logs.stats.warnings")}
+						value={stats.warnings}
+						icon={AlertTriangle}
+						description={t("logs.stats.warningsDescription")}
+						dashboardPin={{
+							id: "logs.warnings",
+							title: t("logs.stats.warnings"),
+						}}
+					/>
+				</div>
+			</ScrollArea>
+		</HeaderPanelLayout>
+	);
 };

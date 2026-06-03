@@ -1,8 +1,8 @@
 import { buildWorkspaceHeaders } from "front-core/workspace-domain";
 import type { SeoConfig } from "front-ssr/plugin";
 import createLandingPlugin from "front-ssr/plugin";
-import { createMarkdownServiceClient } from "g-markdown";
 import { existsSync, readFileSync } from "fs";
+import { createMarkdownServiceClient } from "g-markdown";
 import { resolve } from "path";
 import { renderToReadableStream } from "react-dom/server";
 import { AppSSR } from "./app/App";
@@ -95,7 +95,9 @@ const DEFAULT_LANDING_CONF_ID = `${DEFAULT_LOCALE}/${LANDING_CONF_SUFFIX}`;
 function readProjectConfig(): ProjectConfig {
 	const configPath =
 		process.env.CONFIG_PATH ||
-		(process.env.PROJECT_DIR ? resolve(process.env.PROJECT_DIR, "config.json") : "");
+		(process.env.PROJECT_DIR
+			? resolve(process.env.PROJECT_DIR, "config.json")
+			: "");
 	if (!configPath || !existsSync(configPath)) return {};
 	try {
 		return JSON.parse(readFileSync(configPath, "utf8")) as ProjectConfig;
@@ -285,7 +287,7 @@ function stripAnyLocalePrefix(path: string): string | null {
 
 function extractRequestId(path: string): string | null {
 	const routePath = stripLocalePrefix(path);
-	const match = routePath.match(/^\/request\/([^/?#]+)/);
+	const match = routePath.match(/^\/(?:console\/)?request\/([^/?#]+)/);
 	return match?.[1] ? decodeURIComponent(match[1]) : null;
 }
 
@@ -523,7 +525,7 @@ export default function landingPlugin(
 			const locale =
 				localeRouting.mode === "single"
 					? localeRouting.locale
-					: extractLocaleFromPath(url) ?? DEFAULT_LOCALE;
+					: (extractLocaleFromPath(url) ?? DEFAULT_LOCALE);
 			const localizedDocs = localizeDocsConfig(mfEnv["mf-docs"].docs, locale);
 			const landingConfId = withLocalePrefix(
 				mfEnv["mf-landing"].landingConfId,

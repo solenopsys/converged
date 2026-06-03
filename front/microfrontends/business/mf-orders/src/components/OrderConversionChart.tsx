@@ -1,4 +1,3 @@
-import { useEffect, useMemo, useState } from "react";
 import ReactECharts from "echarts-for-react";
 import {
 	Card,
@@ -7,6 +6,7 @@ import {
 	CardDescription,
 	CardHeader,
 	CardTitle,
+	type DashboardPinMeta,
 	Select,
 	SelectContent,
 	SelectItem,
@@ -16,6 +16,7 @@ import {
 	ToggleGroupItem,
 	useIsMobile,
 } from "front-core";
+import { useEffect, useMemo, useState } from "react";
 
 type ConversionPoint = {
 	date: string;
@@ -24,7 +25,13 @@ type ConversionPoint = {
 	conversion: number;
 };
 
-export function OrderConversionChart({ data = [] }: { data: ConversionPoint[] }) {
+export function OrderConversionChart({
+	data = [],
+	dashboardPin,
+}: {
+	data: ConversionPoint[];
+	dashboardPin?: DashboardPinMeta;
+}) {
 	const isMobile = useIsMobile();
 	const [timeRange, setTimeRange] = useState("90d");
 
@@ -35,8 +42,11 @@ export function OrderConversionChart({ data = [] }: { data: ConversionPoint[] })
 			.filter((date) => !Number.isNaN(date.getTime()));
 		if (validDates.length === 0) return [];
 
-		const referenceDate = new Date(Math.max(...validDates.map((date) => date.getTime())));
-		const daysToSubtract = timeRange === "30d" ? 30 : timeRange === "7d" ? 7 : 90;
+		const referenceDate = new Date(
+			Math.max(...validDates.map((date) => date.getTime())),
+		);
+		const daysToSubtract =
+			timeRange === "30d" ? 30 : timeRange === "7d" ? 7 : 90;
 		const startDate = new Date(referenceDate);
 		startDate.setDate(startDate.getDate() - daysToSubtract);
 		return data.filter((item) => new Date(item.date) >= startDate);
@@ -120,10 +130,12 @@ export function OrderConversionChart({ data = [] }: { data: ConversionPoint[] })
 	}, [isMobile]);
 
 	return (
-		<Card className="@container/card">
+		<Card className="@container/card" dashboardPin={dashboardPin}>
 			<CardHeader>
 				<CardTitle>Request to Order Conversion</CardTitle>
-				<CardDescription>Requests and accepted production orders</CardDescription>
+				<CardDescription>
+					Requests and accepted production orders
+				</CardDescription>
 				<CardAction>
 					<ToggleGroup
 						type="single"
@@ -155,7 +167,10 @@ export function OrderConversionChart({ data = [] }: { data: ConversionPoint[] })
 			<CardContent className="px-2 pt-2">
 				<div className="h-[250px] w-full">
 					{filteredData.length > 0 ? (
-						<ReactECharts option={option} style={{ height: "100%", width: "100%" }} />
+						<ReactECharts
+							option={option}
+							style={{ height: "100%", width: "100%" }}
+						/>
 					) : (
 						<div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
 							No order data yet

@@ -1,7 +1,7 @@
-import React, { useEffect } from "react";
 import { useUnit } from "effector-react";
-import { HeaderPanelLayout } from "front-core";
+import { HeaderPanelLayout, StatisticCard } from "front-core";
 import { RefreshCw } from "lucide-react";
+import { useEffect } from "react";
 import {
 	$classifierDashboard,
 	$classifierDashboardLoading,
@@ -34,14 +34,19 @@ export const ClassifierDashboardView = () => {
 	return (
 		<HeaderPanelLayout config={headerConfig}>
 			<div className="grid gap-4 md:grid-cols-2">
-				<div className="rounded-md border p-4">
-					<div className="text-sm text-muted-foreground">Nodes</div>
-					<div className="text-3xl font-semibold">{stats.nodes}</div>
-				</div>
-				<div className="rounded-md border p-4">
-					<div className="text-sm text-muted-foreground">Mappings</div>
-					<div className="text-3xl font-semibold">{stats.mappings}</div>
-				</div>
+				<StatisticCard
+					dashboardPin={{ id: "classifier.nodes", title: "Classifier nodes" }}
+					title="Nodes"
+					value={stats.nodes}
+				/>
+				<StatisticCard
+					dashboardPin={{
+						id: "classifier.mappings",
+						title: "Classifier mappings",
+					}}
+					title="Mappings"
+					value={stats.mappings}
+				/>
 			</div>
 		</HeaderPanelLayout>
 	);

@@ -684,6 +684,9 @@ export default function spaPlugin(config: SpaPluginConfig = {}) {
       }
 
       try {
+        if (!isProd) {
+          mfBundles.delete(name);
+        }
         const bundle = await ensureMicrofrontend(name);
         if (isProd) {
           const cached = await loadAndCache(

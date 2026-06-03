@@ -1,12 +1,13 @@
-import React, { useEffect, useMemo } from "react";
 import { useUnit } from "effector-react";
 import {
 	Button,
+	cn,
 	HeaderPanelLayout,
 	InfiniteScrollDataTable,
 	StatisticCard,
-	cn,
 } from "front-core";
+import type { Order, OrderDailyPoint, OrderStatusGroup } from "g-orders";
+import type { RequestDailyPoint } from "g-requests";
 import {
 	ClipboardList,
 	Gauge,
@@ -15,8 +16,9 @@ import {
 	RefreshCw,
 	Send,
 } from "lucide-react";
-import type { OrderDailyPoint, OrderStatusGroup } from "g-orders";
-import type { RequestDailyPoint } from "g-requests";
+import { useEffect, useMemo } from "react";
+import { OrderConversionChart } from "../components/OrderConversionChart";
+import { ordersColumns } from "../config";
 import {
 	$dashboardState,
 	$ordersStore,
@@ -26,8 +28,6 @@ import {
 	ordersViewMounted,
 	refreshOrdersClicked,
 } from "../domain-orders";
-import { ordersColumns } from "../config";
-import { OrderConversionChart } from "../components/OrderConversionChart";
 
 const STATUS_TABS: Array<{ group: OrderStatusGroup; label: string }> = [
 	{ group: "all", label: "Order Statuses" },
@@ -41,9 +41,15 @@ function buildConversionData(
 	requests: RequestDailyPoint[] = [],
 	orders: OrderDailyPoint[] = [],
 ) {
-	const requestByDate = new Map(requests.map((point) => [point.date, point.requests]));
-	const orderByDate = new Map(orders.map((point) => [point.date, point.orders]));
-	const dates = [...new Set([...requestByDate.keys(), ...orderByDate.keys()])].sort();
+	const requestByDate = new Map(
+		requests.map((point) => [point.date, point.requests]),
+	);
+	const orderByDate = new Map(
+		orders.map((point) => [point.date, point.orders]),
+	);
+	const dates = [
+		...new Set([...requestByDate.keys(), ...orderByDate.keys()]),
+	].sort();
 	return dates.map((date) => {
 		const requestCount = requestByDate.get(date) ?? 0;
 		const orderCount = orderByDate.get(date) ?? 0;
@@ -52,7 +58,9 @@ function buildConversionData(
 			requests: requestCount,
 			orders: orderCount,
 			conversion:
-				requestCount > 0 ? Math.round((orderCount / requestCount) * 10000) / 100 : 0,
+				requestCount > 0
+					? Math.round((orderCount / requestCount) * 10000) / 100
+					: 0,
 		};
 	});
 }
@@ -65,7 +73,7 @@ function formatHours(value: number | undefined) {
 	return `${Math.round(value ?? 0)} h`;
 }
 
-export const OrdersDashboardView = ({ bus: _bus }: { bus: any }) => {
+export const OrdersDashboardView = ({ bus: _bus }: { bus: unknown }) => {
 	const tableState = useUnit($ordersStore.$state);
 	const dashboardState = useUnit($dashboardState);
 	const activeGroup = useUnit($statusGroup);
@@ -101,7 +109,7 @@ export const OrdersDashboardView = ({ bus: _bus }: { bus: any }) => {
 		[dashboardState.orders?.daily, dashboardState.requests?.daily],
 	);
 
-	const handleRowClick = (row: any) => {
+	const handleRowClick = (row: Order) => {
 		if (row?.id) openOrderDetail({ recordId: row.id });
 	};
 
@@ -114,6 +122,10 @@ export const OrdersDashboardView = ({ bus: _bus }: { bus: any }) => {
 						value={dashboardState.requests?.total ?? 0}
 						icon={ClipboardList}
 						description="Incoming requests, not orders"
+						dashboardPin={{
+							id: "orders.requests-count",
+							title: "Orders / Requests",
+						}}
 						trend={{
 							value: "+15.3%",
 							label: "request flow",
@@ -125,6 +137,7 @@ export const OrdersDashboardView = ({ bus: _bus }: { bus: any }) => {
 						value={stats?.ordersTotal ?? 0}
 						icon={PackageCheck}
 						description="Accepted production work"
+						dashboardPin={{ id: "orders.orders-count", title: "Orders" }}
 						trend={{
 							value: `${stats?.queuedTotal ?? 0}`,
 							label: "queued",
@@ -136,6 +149,7 @@ export const OrdersDashboardView = ({ bus: _bus }: { bus: any }) => {
 						value={stats?.printingTotal ?? 0}
 						icon={Printer}
 						description={`Estimated time: ${formatHours(stats?.estimatedPrintingHours)}`}
+						dashboardPin={{ id: "orders.printing-count", title: "Printing" }}
 						trend={{
 							value: `${stats?.inProgressTotal ?? 0}`,
 							label: "in progress",
@@ -147,8 +161,12 @@ export const OrdersDashboardView = ({ bus: _bus }: { bus: any }) => {
 						value={formatPercent(stats?.utilizationPercent)}
 						icon={Gauge}
 						description={`Available: ${stats?.availablePrinters ?? 0} of ${stats?.printerCapacity ?? 0} printers`}
+						dashboardPin={{ id: "orders.utilization", title: "Utilization" }}
 						trend={{
-							value: stats?.utilizationPercent && stats.utilizationPercent > 80 ? "high" : "normal",
+							value:
+								stats?.utilizationPercent && stats.utilizationPercent > 80
+									? "high"
+									: "normal",
 							direction:
 								stats?.utilizationPercent && stats.utilizationPercent > 80
 									? "up"
@@ -158,7 +176,14 @@ export const OrdersDashboardView = ({ bus: _bus }: { bus: any }) => {
 				</div>
 
 				<div className="shrink-0">
-					<OrderConversionChart data={chartData} />
+					<OrderConversionChart
+						dashboardPin={{
+							id: "orders.request-to-order-conversion",
+							title: "Request to Order Conversion",
+							pinnedClassName: "min-h-[320px]",
+						}}
+						data={chartData}
+					/>
 				</div>
 
 				<div className="flex min-h-0 flex-1 flex-col gap-2">
@@ -167,8 +192,8 @@ export const OrdersDashboardView = ({ bus: _bus }: { bus: any }) => {
 							{STATUS_TABS.map((tab) => {
 								const count =
 									tab.group === "all"
-										? stats?.ordersTotal ?? tableState.totalCount ?? 0
-										: statusCountByGroup.get(tab.group) ?? 0;
+										? (stats?.ordersTotal ?? tableState.totalCount ?? 0)
+										: (statusCountByGroup.get(tab.group) ?? 0);
 								const active = activeGroup === tab.group;
 								return (
 									<Button
@@ -180,7 +205,9 @@ export const OrdersDashboardView = ({ bus: _bus }: { bus: any }) => {
 										onClick={() => orderStatusGroupChanged(tab.group)}
 									>
 										{tab.label}
-										<span className="text-xs text-muted-foreground">{count}</span>
+										<span className="text-xs text-muted-foreground">
+											{count}
+										</span>
 									</Button>
 								);
 							})}

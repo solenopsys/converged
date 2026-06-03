@@ -8,6 +8,7 @@ declare global {
         src?: string;
         alt?: string;
         "auto-rotate"?: boolean | "";
+        "auto-rotate-delay"?: string;
         "camera-controls"?: boolean | "";
         "shadow-intensity"?: string;
         style?: React.CSSProperties;
@@ -27,6 +28,7 @@ export function ModelViewer({ fileId, alt = "3D model", style, className }: Prop
   const [url, setUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [mvReady, setMvReady] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const prevUrl = useRef<string | null>(null);
   const mvRef = useRef<HTMLElement | null>(null);
 
@@ -106,11 +108,15 @@ export function ModelViewer({ fileId, alt = "3D model", style, className }: Prop
       ref={mvRef as any}
       src={url}
       alt={alt}
-      auto-rotate=""
+      // Без авто-вращения каждая плашка рисует кадр только когда что-то меняется
+      // (on-demand). Постоянный render-loop включаем лишь на время наведения.
+      {...(hovered ? { "auto-rotate": "", "auto-rotate-delay": "0" } : {})}
       camera-controls=""
       shadow-intensity="1"
       className={className}
       style={{ width: "100%", height: "100%", display: "block", ...style }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     />
   );
 }

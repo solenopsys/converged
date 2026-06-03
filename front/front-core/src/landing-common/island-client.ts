@@ -1,7 +1,6 @@
-import { createElement, type ReactNode } from "react";
-import { KeyRound } from "lucide-react";
 import { structClient } from "g-struct";
-import { SlotInline } from "../slots/SlotInline";
+import { KeyRound } from "lucide-react";
+import { createElement, type ReactNode } from "react";
 import { createBridgeController } from "../bridge";
 import {
 	chatAttachRequested,
@@ -21,8 +20,10 @@ import {
 import { LocaleController } from "../controllers/locale-controller";
 import { getI18nInstance } from "../i18n";
 import { $centerView } from "../slots/present";
+import { SlotInline } from "../slots/SlotInline";
 import {
 	$controlPanelMode,
+	type ControlPanelMode,
 	controlPanelClosed,
 	controlPanelModeChanged,
 	controlPanelOpened,
@@ -30,7 +31,6 @@ import {
 	readControlPanelMode,
 	tabActivated,
 	tabContentRegistered,
-	type ControlPanelMode,
 } from "./control-panel-model";
 import { GROUPS } from "./groups";
 import {
@@ -360,7 +360,9 @@ function readGuestMenuLinks(): ControlPanelMenuLink[] {
 			typeof item.labelKey === "string" && item.labelKey.trim()
 				? item.labelKey.trim()
 				: undefined;
-		return label && href ? [{ label, href, ...(labelKey ? { labelKey } : {}) }] : [];
+		return label && href
+			? [{ label, href, ...(labelKey ? { labelKey } : {}) }]
+			: [];
 	});
 }
 
@@ -398,7 +400,38 @@ function setControlPanelMode(mode: ControlPanelMode): void {
 	}
 }
 
+function extractRequestIdForConsolePath(pathname: string): string | null {
+	const segments = pathname.split("/").filter(Boolean);
+	if (segments[0] === "request" && segments[1]) {
+		return decodeURIComponent(segments[1]);
+	}
+	if (segments[0] === "console" && segments[1] === "request" && segments[2]) {
+		return decodeURIComponent(segments[2]);
+	}
+	if (segments[1] === "request" && segments[2]) {
+		return decodeURIComponent(segments[2]);
+	}
+	if (segments[1] === "console" && segments[2] === "request" && segments[3]) {
+		return decodeURIComponent(segments[3]);
+	}
+	return null;
+}
+
 export function switchToAppMode(): void {
+	if (typeof window !== "undefined" && isAuthenticated()) {
+		const url = new URL(window.location.href);
+		if (url.pathname !== "/console" && !url.pathname.startsWith("/console/")) {
+			const requestId = extractRequestIdForConsolePath(url.pathname);
+			url.pathname = requestId
+				? `/console/request/${encodeURIComponent(requestId)}`
+				: "/console";
+			window.history.replaceState(
+				window.history.state,
+				"",
+				`${url.pathname}${url.search}${url.hash}`,
+			);
+		}
+	}
 	controlPanelOpened();
 }
 
@@ -544,13 +577,17 @@ function normalizeControlPanelMenuLinks(
 		const href =
 			explicitHref || (targetId ? `#${targetId.replace(/^#/, "")}` : "");
 		const label =
-			explicitLabel || (targetId ? blockLabels.get(targetId) ?? "" : "");
+			explicitLabel || (targetId ? (blockLabels.get(targetId) ?? "") : "");
 		const labelKey = readTrimmedString(record.labelKey) || undefined;
-		return label && href ? [{ label, href, ...(labelKey ? { labelKey } : {}) }] : [];
+		return label && href
+			? [{ label, href, ...(labelKey ? { labelKey } : {}) }]
+			: [];
 	});
 }
 
-function parseControlPanelMenuLinks(value: string | undefined): ControlPanelMenuLink[] {
+function parseControlPanelMenuLinks(
+	value: string | undefined,
+): ControlPanelMenuLink[] {
 	if (!value) return [];
 
 	try {
@@ -716,7 +753,13 @@ async function ensureControlPanelRuntime(): Promise<void> {
 				void applyLocaleChange(code);
 			},
 			tabs: hostOptions.loginEnabled
-				? [{ id: "auth", icon: createElement(KeyRound, { size: 17 }), label: "Sign in" }]
+				? [
+						{
+							id: "auth",
+							icon: createElement(KeyRound, { size: 17 }),
+							label: "Sign in",
+						},
+					]
 				: [],
 		});
 		if (readControlPanelMode() === "app") {
@@ -1906,7 +1949,8 @@ const MF_GROUPS: Record<string, string> = {
 	"mf-usage": "analytics",
 	"mf-dasboards": "analytics",
 	"mf-dag": "workflows",
-	"mf-requests": "workflows",
+	"mf-requests": "sales",
+	"mf-orders": "sales",
 	"mf-sheduller": "workflows",
 	"mf-webhooks": "workflows",
 	"mf-docs": "content",
@@ -2551,7 +2595,9 @@ function installHeroRequestController(): void {
 
 	const onDocumentClick = (event: MouseEvent) => {
 		const eventEl = resolveEventElement(event.target);
-		const chip = eventEl?.closest<HTMLButtonElement>(".hsl-chip[data-hero-prompt]");
+		const chip = eventEl?.closest<HTMLButtonElement>(
+			".hsl-chip[data-hero-prompt]",
+		);
 		if (!chip || !root.contains(chip)) return;
 
 		event.preventDefault();
@@ -2748,7 +2794,9 @@ function stripLocalePrefix(pathname: string): string {
 function isSsrPublicRoute(pathname: string): boolean {
 	const localeRouting = readInitialLocaleRouting();
 	if (localeRouting.mode === "single") {
-		return pathname === "/" || pathname === "/cnc" || pathname.startsWith("/docs/");
+		return (
+			pathname === "/" || pathname === "/cnc" || pathname.startsWith("/docs/")
+		);
 	}
 	const locale = extractLocaleFromPath(pathname);
 	if (!locale) return false;

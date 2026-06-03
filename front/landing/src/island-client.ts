@@ -1,14 +1,14 @@
 import {
+	authToken,
 	bus,
 	ensureSsrCenterRuntime,
 	mountSsrMenuShell,
+	registerIsland,
 	registry,
+	StateStreamView,
 	setCenterView,
 	switchToAppMode,
-	StateStreamView,
-	authToken,
 } from "front-core";
-import { registerIsland } from "front-core";
 
 // ── Landing block islands ─────────────────────────────────────────────────────
 // Each island is a lazy ES module that attaches interactivity to SSR-rendered
@@ -16,6 +16,7 @@ import { registerIsland } from "front-core";
 
 registerIsland("section-rail", () => import("./islands/section-rail"));
 registerIsland("warmup", () => import("./islands/warmup"));
+
 import { createRuntimeGatesServiceClient } from "g-rt-gates";
 
 // App-level bus handlers — registered before any UI mounts
@@ -50,7 +51,8 @@ function getCurrentSsrRailWidth(): number {
 	}
 
 	const shell = document.getElementById("ssr-shell");
-	const raw = window.getComputedStyle(shell ?? document.documentElement)
+	const raw = window
+		.getComputedStyle(shell ?? document.documentElement)
 		.getPropertyValue("--ssr-rail-width")
 		.trim();
 	const parsed = Number.parseFloat(raw);
@@ -63,14 +65,12 @@ function applySsrRailWidth(width: number, persist = false): number {
 	const nextWidth = clampSsrRailWidth(width);
 	const value = `${nextWidth}px`;
 	document.documentElement.style.setProperty("--ssr-rail-width", value);
-	document.getElementById("ssr-shell")?.style.setProperty(
-		"--ssr-rail-width",
-		value,
-	);
-	document.getElementById("app-shell")?.style.setProperty(
-		"--ssr-rail-width",
-		value,
-	);
+	document
+		.getElementById("ssr-shell")
+		?.style.setProperty("--ssr-rail-width", value);
+	document
+		.getElementById("app-shell")
+		?.style.setProperty("--ssr-rail-width", value);
 
 	if (persist) {
 		try {
@@ -177,6 +177,30 @@ function extractRequestId(pathname: string): string | null {
 	return null;
 }
 
+function isConsolePath(pathname: string): boolean {
+	return pathname === "/console" || pathname.startsWith("/console/");
+}
+
+function ensureConsoleRoute(): void {
+	if (
+		typeof window === "undefined" ||
+		isConsolePath(window.location.pathname)
+	) {
+		return;
+	}
+
+	const url = new URL(window.location.href);
+	const requestId = extractRequestId(url.pathname);
+	url.pathname = requestId
+		? `/console/request/${encodeURIComponent(requestId)}`
+		: "/console";
+	window.history.replaceState(
+		window.history.state,
+		"",
+		`${url.pathname}${url.search}${url.hash}`,
+	);
+}
+
 async function ensureRequestsRuntime(): Promise<void> {
 	if (registry.get(OPEN_REQUEST_ACTION)) return;
 	if (!requestsRuntimePromise) {
@@ -208,6 +232,7 @@ async function openRequestFromLocation(): Promise<void> {
 
 async function initStateStream(): Promise<void> {
 	if (!authToken.isAuthenticated()) return;
+	ensureConsoleRoute();
 	switchToAppMode();
 	setCenterView({ view: StateStreamView as any });
 	await ensureSsrCenterRuntime();
@@ -216,7 +241,9 @@ async function initStateStream(): Promise<void> {
 mountSsrMenuShell();
 installSsrRailResizerFallback();
 void initStateStream();
-window.addEventListener("auth-token-changed", () => { void initStateStream(); });
+window.addEventListener("auth-token-changed", () => {
+	void initStateStream();
+});
 void openRequestFromLocation();
 window.addEventListener("popstate", () => {
 	void openRequestFromLocation();

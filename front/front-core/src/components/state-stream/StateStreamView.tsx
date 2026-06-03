@@ -3,10 +3,14 @@
 import { useUnit } from "effector-react";
 import { type BusinessEvent, createEventsServiceClient } from "g-events";
 import { Gauge } from "lucide-react";
-import { type MouseEvent, useEffect } from "react";
+import { type MouseEvent, useEffect, useState } from "react";
 import { bus, registry, runActionEvent } from "../../controllers";
-import { dashboardSlots, layoutReady, Slot } from "../../slots";
-import { DashboardWidget } from "../dashboard/DashboardWidget";
+import {
+	dashboardSlots,
+	getDashboardIndicatorsSnapshot,
+	layoutReady,
+	subscribeDashboardIndicators,
+} from "../../slots";
 import {
 	Card,
 	CardAction,
@@ -228,12 +232,17 @@ function EmptySignals() {
 
 export function StateStreamView() {
 	const events = useUnit($streamEvents);
-	const slots = dashboardSlots.list;
+	const [indicators, setIndicators] = useState(getDashboardIndicatorsSnapshot);
 
 	useEffect(() => {
 		layoutReady("dashboard");
+		setIndicators(getDashboardIndicatorsSnapshot());
 		dashboardSlots.restoreWidgets();
+		const unsubscribe = subscribeDashboardIndicators(() => {
+			setIndicators(getDashboardIndicatorsSnapshot());
+		});
 		return () => {
+			unsubscribe();
 			dashboardSlots.saveWidgets();
 		};
 	}, []);
@@ -323,17 +332,14 @@ export function StateStreamView() {
 
 					<CardContent className="p-0">
 						<ScrollArea className="h-full">
-							{slots.length === 0 ? (
+							{indicators.length === 0 ? (
 								<EmptySignals />
 							) : (
 								<div className="grid gap-3 p-4">
-									{slots.map((slotId, index) => (
-										<DashboardWidget
-											key={slotId}
-											className={index === 0 ? "min-h-40" : ""}
-										>
-											<Slot id={`dashboard:${slotId}`} />
-										</DashboardWidget>
+									{indicators.map((indicator) => (
+										<div key={indicator.widgetId} className="min-h-40">
+											{indicator.component}
+										</div>
 									))}
 								</div>
 							)}

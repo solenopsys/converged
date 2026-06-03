@@ -6,7 +6,13 @@
  * After mount: full BaseLayout from front-core with chat + menu panel.
  */
 
-import { addMenuRequested, authToken, bus, setCenterView, StateStreamView } from "front-core";
+import {
+	addMenuRequested,
+	authToken,
+	bus,
+	StateStreamView,
+	setCenterView,
+} from "front-core";
 import { createRoot } from "react-dom/client";
 import { App } from "../app/App";
 import { DEFAULT_LOCALE, extractLocaleFromPath } from "../app/i18n";
@@ -272,6 +278,33 @@ function isConsoleRoute() {
 	return path === "/console" || path.startsWith("/console/");
 }
 
+function extractRequestIdFromPath(pathname: string): string | null {
+	const routing = readLocaleRouting();
+	const path =
+		routing.mode === "single"
+			? pathname
+			: (() => {
+					const locale = extractLocaleFromPath(pathname);
+					return locale ? pathname.slice(locale.length + 1) || "/" : pathname;
+				})();
+	const match = path.match(/^\/request\/([^/?#]+)/);
+	return match?.[1] ? decodeURIComponent(match[1]) : null;
+}
+
+function ensureConsoleRoute() {
+	if (typeof window === "undefined" || isConsoleRoute()) return;
+	const url = new URL(window.location.href);
+	const requestId = extractRequestIdFromPath(url.pathname);
+	url.pathname = requestId
+		? `/console/request/${encodeURIComponent(requestId)}`
+		: "/console";
+	window.history.replaceState(
+		window.history.state,
+		"",
+		`${url.pathname}${url.search}${url.hash}`,
+	);
+}
+
 function isRequestRoute() {
 	const pathname = window.location.pathname;
 	const routing = readLocaleRouting();
@@ -417,6 +450,7 @@ function presentGuestLanding() {
 
 function presentStateStream() {
 	if (!hasAuthToken()) return;
+	ensureConsoleRoute();
 	setCenterView({ view: StateStreamView as any });
 }
 
@@ -438,7 +472,7 @@ async function loadInitialMicrofrontends() {
 // ---- Island mount ----
 
 export function mount(container: HTMLElement, _props: Record<string, unknown>) {
-	if (isServerRenderedPublicRoute()) {
+	if (isServerRenderedPublicRoute() && !hasAuthToken()) {
 		return;
 	}
 

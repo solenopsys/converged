@@ -6,9 +6,7 @@ import {
 	SHOW_REQUESTS,
 	UPDATE_REQUEST_MODEL,
 } from "./commands";
-import {
-	requestModelReceived,
-} from "./domain-requests";
+import { requestModelReceived } from "./domain-requests";
 import Panel from "./Panel";
 
 type OpenRequestParams = {
@@ -43,7 +41,7 @@ function syncRequestUrl(requestId: string, params?: OpenRequestParams) {
 	if (typeof window === "undefined") return;
 	if (params?.syncUrl === false) return;
 
-	const nextPath = `/request/${encodeURIComponent(requestId)}`;
+	const nextPath = `/console/request/${encodeURIComponent(requestId)}`;
 	const nextUrl = `${nextPath}${window.location.search}${window.location.hash}`;
 	const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
 	if (currentUrl === nextUrl) {
