@@ -2,6 +2,7 @@ import { BasePlugin } from "front-core";
 import ACTIONS from "./functions";
 import { MENU } from "./menu";
 import Panel from "./Panel";
+import "./dashboard-widgets";
 
 export const ID = "orders-mf";
 export const GROUP = {

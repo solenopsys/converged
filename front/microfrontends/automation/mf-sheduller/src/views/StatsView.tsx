@@ -34,7 +34,7 @@ export const StatsView = () => {
 	return (
 		<HeaderPanelLayout config={headerConfig}>
 			<ScrollArea className="h-full">
-				<DashboardLayout>
+				<DashboardLayout pinScopeId="sheduller.stats">
 					<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
 						<StatisticCard
 							title="Crons"

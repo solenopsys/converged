@@ -24,18 +24,23 @@ function normalizeScopeId(value: string): string {
 	return normalized || "dashboard";
 }
 
+function getFallbackScopeId(): string {
+	if (typeof window === "undefined") return "dashboard";
+	return normalizeScopeId(window.location.pathname || "dashboard");
+}
+
 export function DashboardPinScope({
 	children,
 	enabled = true,
 	scopeId,
 }: DashboardPinScopeProps) {
-	const reactId = React.useId().replace(/:/g, "");
+	const normalizedScopeId = normalizeScopeId(scopeId ?? getFallbackScopeId());
 	const value = React.useMemo(
 		() => ({
 			enabled,
-			scopeId: normalizeScopeId(scopeId ?? `dashboard-${reactId}`),
+			scopeId: normalizedScopeId,
 		}),
-		[enabled, reactId, scopeId],
+		[enabled, normalizedScopeId],
 	);
 
 	return (

@@ -38,22 +38,15 @@ function BaseCard({ className, ...props }: React.ComponentProps<"div">) {
 type ResolvedDashboardPin = Required<Pick<DashboardPinMeta, "id">> &
 	Omit<DashboardPinMeta, "id">;
 
-function normalizePinPart(value: string): string {
-	return value
-		.trim()
-		.replace(/[^a-zA-Z0-9_.:-]+/g, "-")
-		.replace(/^-+|-+$/g, "");
-}
-
 function useResolvedDashboardPin(
 	dashboardPin: DashboardPinMeta | false | undefined,
 	pinnable: boolean | undefined,
 ): ResolvedDashboardPin | null {
 	const scope = useDashboardPinScope();
-	const reactId = React.useId().replace(/:/g, "");
 
 	if (dashboardPin === false) return null;
 	if (dashboardPin?.enabled === false) return null;
+	if (pinnable === false) return null;
 
 	const explicitId = dashboardPin?.id?.trim();
 	if (explicitId) {
@@ -65,15 +58,19 @@ function useResolvedDashboardPin(
 		};
 	}
 
-	if (pinnable === false || !scope.enabled) return null;
+	const explicitComponentKey = dashboardPin?.componentKey?.trim();
+	if (explicitComponentKey) {
+		return {
+			...dashboardPin,
+			id: explicitComponentKey,
+			source: dashboardPin.source ?? scope.scopeId,
+			componentKey: explicitComponentKey,
+		};
+	}
 
-	const id = `${scope.scopeId}.${normalizePinPart(reactId)}`;
-	return {
-		...dashboardPin,
-		id,
-		source: dashboardPin?.source ?? scope.scopeId,
-		componentKey: dashboardPin?.componentKey ?? id,
-	};
+	if (!scope.enabled) return null;
+
+	return null;
 }
 
 export type DashboardPinnableCardProps = React.ComponentProps<"div"> & {

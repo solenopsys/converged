@@ -19,8 +19,21 @@ import { $readyLayouts, $slotContents, mount, mountWhenReady } from "./slots";
 // page so persisted pins can re-materialize without first opening the source
 // dashboard.
 const DASHBOARD_WIDGET_MODULES: Record<string, string> = {
+	classifier: "mf-classifier",
+	companies: "mf-companies",
 	dag: "mf-dag",
+	dumps: "mf-dumps",
+	geo: "mf-geo",
 	logs: "mf-logs",
+	mailing: "mf-mailing",
+	marker: "mf-marker",
+	orders: "mf-orders",
+	parameters: "mf-parameters",
+	places: "mf-places",
+	sales: "mf-sales",
+	sheduller: "mf-sheduller",
+	telemetry: "mf-telemetry",
+	usage: "mf-usage",
 };
 
 const loadedWidgetModules = new Set<string>();
@@ -180,6 +193,17 @@ function pinUpdatedAtMs(pin: DashboardIndicatorPin): number {
 function setPinSnapshot(pins: DashboardIndicatorPin[]) {
 	getRuntime().indicatorPins = [...pins].sort(
 		(a, b) => a.position - b.position || pinUpdatedAtMs(b) - pinUpdatedAtMs(a),
+	);
+}
+
+function isLegacyGeneratedPin(pin: DashboardIndicatorPin): boolean {
+	const widgetId = pin.widgetId.trim();
+	const componentKey = pin.componentKey?.trim() ?? widgetId;
+	return (
+		/^dashboard-_r_[\w-]*(?:\.|_r_)/.test(widgetId) ||
+		/^dashboard-_r_[\w-]*(?:\.|_r_)/.test(componentKey) ||
+		/\.(?:widget|card)-\d+$/.test(widgetId) ||
+		/\.(?:widget|card)-\d+$/.test(componentKey)
 	);
 }
 
@@ -352,10 +376,22 @@ class DashboardSlots {
 
 		runtime.loadPromise = (async () => {
 			try {
-				const loadedPins = await dashboardClient.listIndicators();
+				const remotePins = await dashboardClient.listIndicators();
+				const legacyPins = remotePins.filter(isLegacyGeneratedPin);
+				const loadedPins = remotePins.filter(
+					(pin) => !isLegacyGeneratedPin(pin),
+				);
+				for (const pin of legacyPins) {
+					void dashboardClient.unpinIndicator(pin.widgetId).catch((error) => {
+						console.warn("[dashboard-slots] Failed to remove legacy pin", {
+							widgetId: pin.widgetId,
+							error,
+						});
+					});
+				}
 				const loadedIds = new Set(loadedPins.map((pin) => pin.widgetId));
 				const optimisticPins = getRuntime().indicatorPins.filter(
-					(pin) => !loadedIds.has(pin.widgetId),
+					(pin) => !loadedIds.has(pin.widgetId) && !isLegacyGeneratedPin(pin),
 				);
 				setPinSnapshot([...loadedPins, ...optimisticPins]);
 			} catch (error) {

@@ -116,7 +116,7 @@ export const StatsView = ({ bus: _bus }: { bus?: unknown }) => {
 	return (
 		<HeaderPanelLayout config={headerConfig}>
 			<ScrollArea className="h-full">
-				<DashboardLayout>
+				<DashboardLayout pinScopeId="dag.stats">
 					<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
 						{statItems.map(({ key, label, icon: Icon, value }) => (
 							<div key={key}>

@@ -19,6 +19,10 @@ export type DashboardWidgetDefinition = {
 	size?: DashboardWidgetSize;
 };
 
+export type DashboardWidgetResolver = (
+	componentKey: string,
+) => DashboardWidgetDefinition | DashboardWidgetFactory | null | undefined;
+
 // A registration is either a bare factory (default "sm") or a full definition.
 export type DashboardWidgetEntry =
 	| DashboardWidgetFactory
@@ -28,6 +32,7 @@ const REGISTRY_KEY = "__front_core_dashboard_widget_registry__";
 
 type DashboardWidgetRegistryState = {
 	factories: Map<string, DashboardWidgetDefinition>;
+	resolvers: Map<string, DashboardWidgetResolver>;
 	listeners: Set<() => void>;
 };
 
@@ -39,6 +44,7 @@ function getRegistry(): DashboardWidgetRegistryState {
 	const runtimeGlobal = globalThis as DashboardWidgetRegistryGlobal;
 	runtimeGlobal[REGISTRY_KEY] ??= {
 		factories: new Map(),
+		resolvers: new Map(),
 		listeners: new Set(),
 	};
 	return runtimeGlobal[REGISTRY_KEY];
@@ -80,19 +86,48 @@ export function registerDashboardWidgets(
 	if (changed) notify();
 }
 
+export function registerDashboardWidgetResolver(
+	prefix: string,
+	resolver: DashboardWidgetResolver,
+): void {
+	const normalized = prefix.trim();
+	if (!normalized) return;
+	getRegistry().resolvers.set(normalized, resolver);
+	notify();
+}
+
+function resolveDashboardWidgetDefinition(
+	componentKey: string,
+): DashboardWidgetDefinition | null {
+	const key = componentKey.trim();
+	const exact = getRegistry().factories.get(key);
+	if (exact) return exact;
+
+	const resolvers = [...getRegistry().resolvers.entries()].sort(
+		([left], [right]) => right.length - left.length,
+	);
+	for (const [prefix, resolver] of resolvers) {
+		if (!key.startsWith(prefix)) continue;
+		const resolved = resolver(key);
+		if (resolved) return normalizeEntry(resolved);
+	}
+
+	return null;
+}
+
 export function hasDashboardWidget(componentKey: string): boolean {
-	return getRegistry().factories.has(componentKey.trim());
+	return Boolean(resolveDashboardWidgetDefinition(componentKey));
 }
 
 export function resolveDashboardWidget(componentKey: string): ReactNode | null {
-	const definition = getRegistry().factories.get(componentKey.trim());
+	const definition = resolveDashboardWidgetDefinition(componentKey);
 	return definition ? definition.render() : null;
 }
 
 export function getDashboardWidgetSize(
 	componentKey: string,
 ): DashboardWidgetSize {
-	return getRegistry().factories.get(componentKey.trim())?.size ?? "sm";
+	return resolveDashboardWidgetDefinition(componentKey)?.size ?? "sm";
 }
 
 export function subscribeDashboardWidgetRegistry(
