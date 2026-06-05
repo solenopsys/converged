@@ -9,10 +9,25 @@ import type {
   CallRecordingInput,
   CallRecordingResult,
   CallDialogueInput,
+  CallFragmentInput,
+  CallFragmentInfo,
+  CallDeleteResult,
 } from "../../types";
 import type { CallEntity } from "./entities";
 
 const RECORDING_PREFIX = "recordings";
+const FRAGMENT_PREFIX = "fragments";
+
+type CallFragmentEntity = {
+  id: string;
+  callId: string;
+  audioId: string;
+  source: "user" | "assistant";
+  timestampNs: number;
+  durationMs?: number | null;
+  sizeBytes: number;
+  kvsKey: string;
+};
 
 export class CallsStoreService {
   private readonly repo: CallRepository;
@@ -20,6 +35,7 @@ export class CallsStoreService {
   constructor(
     private store: SqlStore,
     private recordings: KVStore,
+    private fragments: KVStore,
   ) {
     this.repo = new CallRepository(store, "calls", {
       primaryKey: "id",
@@ -32,6 +48,7 @@ export class CallsStoreService {
     const id = generateULID();
     const startedAt = input.startedAt ?? Date.now();
     const recordId = this.buildRecordId(input.data);
+    const audioId = input.audioId ?? id;
 
     this.recordings.put(this.buildRecordingKey(recordId), input.data);
 
@@ -41,11 +58,46 @@ export class CallsStoreService {
       phone: input.phone,
       threadId: null,
       recordId,
+      audioId,
       dialogue: "[]",
     };
 
     await this.repo.create(entity as any);
-    return { callId: id, recordId };
+    return { callId: id, recordId, audioId };
+  }
+
+  async saveFragment(input: CallFragmentInput): Promise<CallFragmentInfo> {
+    const existing = await this.repo.findById({ id: input.callId });
+    if (!existing) {
+      throw new Error(`Call not found: ${input.callId}`);
+    }
+
+    const id = generateULID();
+    const audioId = input.audioId ?? existing.audioId ?? input.callId;
+    const key = this.buildFragmentKey(
+      input.callId,
+      audioId,
+      input.source,
+      input.timestampNs,
+      id,
+    );
+    const kvsKey = key.join(":");
+
+    this.fragments.put(key, input.data);
+
+    const row: CallFragmentEntity = {
+      id,
+      callId: input.callId,
+      audioId,
+      source: input.source,
+      timestampNs: input.timestampNs,
+      durationMs: input.durationMs ?? null,
+      sizeBytes: input.data.byteLength,
+      kvsKey,
+    };
+
+    await this.store.db.insertInto("call_fragments").values(row as any).execute();
+    return this.toFragmentInfo(row);
   }
 
   async saveDialogue(input: CallDialogueInput): Promise<void> {
@@ -129,6 +181,35 @@ export class CallsStoreService {
     return undefined;
   }
 
+  async deleteCall(id: CallId): Promise<CallDeleteResult> {
+    const existing = await this.repo.findById({ id });
+    if (!existing) {
+      return { deleted: false, fragmentsDeleted: 0 };
+    }
+
+    const fragmentRows = (await this.store.db
+      .selectFrom("call_fragments")
+      .selectAll()
+      .where("callId", "=", id)
+      .execute()) as CallFragmentEntity[];
+
+    let fragmentsDeleted = 0;
+    for (const row of fragmentRows) {
+      this.fragments.delete(row.kvsKey.split(":"));
+      fragmentsDeleted += 1;
+    }
+
+    await this.store.db
+      .deleteFrom("call_fragments")
+      .where("callId", "=", id)
+      .execute();
+
+    this.recordings.delete(this.buildRecordingKey(existing.recordId));
+    const deleted = await this.repo.delete({ id });
+
+    return { deleted, fragmentsDeleted };
+  }
+
   private toCall(entity: CallEntity): Call {
     const threadId = entity.threadId ?? undefined;
     return {
@@ -137,6 +218,20 @@ export class CallsStoreService {
       phone: entity.phone,
       threadId,
       recordId: entity.recordId,
+      audioId: entity.audioId ?? undefined,
+    };
+  }
+
+  private toFragmentInfo(entity: CallFragmentEntity): CallFragmentInfo {
+    return {
+      id: entity.id,
+      callId: entity.callId,
+      audioId: entity.audioId,
+      source: entity.source,
+      timestampNs: entity.timestampNs,
+      durationMs: entity.durationMs ?? undefined,
+      sizeBytes: entity.sizeBytes,
+      kvsKey: entity.kvsKey,
     };
   }
 
@@ -147,5 +242,22 @@ export class CallsStoreService {
   private buildRecordId(data: Uint8Array): CallRecordId {
     const hashNum = Bun.hash(data);
     return hashNum.toString(16).padStart(16, "0");
+  }
+
+  private buildFragmentKey(
+    callId: CallId,
+    audioId: string,
+    source: "user" | "assistant",
+    timestampNs: number,
+    fragmentId: string,
+  ): string[] {
+    return [
+      FRAGMENT_PREFIX,
+      callId,
+      audioId,
+      source,
+      timestampNs.toString().padStart(20, "0"),
+      fragmentId,
+    ];
   }
 }

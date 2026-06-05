@@ -286,6 +286,23 @@
       }
     }
   },
+  "tools": {
+    "llmAudioGate": {
+      "enabled": true,
+      "image": "public.ecr.aws/i5x9u8b2/llm-audio-gate:latest",
+      "port": 8090,
+      "resources": {
+        "requests": {
+          "cpu": "50m",
+          "memory": "64Mi"
+        },
+        "limits": {
+          "cpu": "500m",
+          "memory": "256Mi"
+        }
+      }
+    }
+  },
   "ingress": {
     "className": "traefik",
     "hosts": ["*.4ir.club"],

@@ -16,6 +16,11 @@ const plugin = (config: any) => {
     });
 
     config.registerStartupTask("llm-gate-bridge", async () => {
+      if (process.env.LLM_GATE_BRIDGE_ENABLED !== "true") {
+        console.info("[ms-calls] llm-gate-bridge disabled; llm-audio-gate writes to service stores directly");
+        return;
+      }
+
       try {
         // Give the service stores time to initialise
         await (serviceInstance as any).initPromise;

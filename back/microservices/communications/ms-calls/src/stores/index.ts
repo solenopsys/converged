@@ -3,7 +3,7 @@ import { CallsStoreService } from "./calls/service";
 import callsMigrations from "./calls/migrations";
 
 export class StoresController extends StoreControllerAbstract {
-  public calls: CallsStoreService;
+  public calls!: CallsStoreService;
 
   constructor(protected msName: string) {
     super(msName);
@@ -13,10 +13,15 @@ export class StoresController extends StoreControllerAbstract {
     const callsStore = await this.addStore(
       "calls",
       StoreType.SQL,
-      callsMigrations,
+      callsMigrations as any,
     );
     const recordingsStore = await this.addStore(
       "recordings",
+      StoreType.KVS,
+      [],
+    );
+    const fragmentsStore = await this.addStore(
+      "fragments",
       StoreType.KVS,
       [],
     );
@@ -24,6 +29,7 @@ export class StoresController extends StoreControllerAbstract {
     this.calls = new CallsStoreService(
       callsStore as SqlStore,
       recordingsStore as KVStore,
+      fragmentsStore as KVStore,
     );
 
     await this.startAll();

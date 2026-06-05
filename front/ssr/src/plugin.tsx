@@ -3,6 +3,7 @@ import { staticPlugin } from "@elysiajs/static";
 import { extname, resolve } from "path";
 import { existsSync } from "fs";
 import { AsyncLocalStorage } from "node:async_hooks";
+import { createHash } from "node:crypto";
 import { externalPackages, microfrontends } from "front-core/runtime-config";
 import { createWorkspaceResolverPlugin } from "front-core/workspace-resolver";
 import {
@@ -365,6 +366,7 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
 
   let styles: string;
   let stylesBrotli: Uint8Array;
+  let stylesVersion = "";
   let spaStyles: string | null = null;
   let spaStylesBrotli: Uint8Array | null = null;
   let clientBundle: Blob;
@@ -511,6 +513,18 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
     return `${snippet}${html}`;
   }
 
+  function computeAssetVersion(content: string): string {
+    return createHash("sha256").update(content).digest("hex").slice(0, 16);
+  }
+
+  function injectStylesheetVersion(html: string): string {
+    if (!stylesVersion) return html;
+    return html.replace(
+      /href=(["'])\/styles\.css(?:\?[^"']*)?\1/g,
+      `href="/styles.css?v=${stylesVersion}"`,
+    );
+  }
+
   async function ensureAssets(): Promise<void> {
     if (!assetsPromise) {
       assetsPromise = (async () => {
@@ -524,10 +538,12 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
             throw new Error(`Missing prebuilt styles: ${prebuiltStylesPath}`);
           }
           styles = await prebuiltStyles.text();
+          stylesVersion = computeAssetVersion(styles);
           stylesBrotli = Bun.gzipSync(Buffer.from(styles), { level: 6 });
           log("styles:prebuilt", { bytes: styles.length });
         } else {
           styles = await config.buildStyles();
+          stylesVersion = computeAssetVersion(styles);
           log("styles:built", { ms: Date.now() - start });
         }
 
@@ -620,7 +636,7 @@ export default function createLandingPlugin(config: LandingPluginConfig) {
       ),
     );
     return injectWorkspaceBootstrap(
-      injectPwaRegistration(injectManifestLink(rendered)),
+      injectPwaRegistration(injectManifestLink(injectStylesheetVersion(rendered))),
       workspace,
     );
   }

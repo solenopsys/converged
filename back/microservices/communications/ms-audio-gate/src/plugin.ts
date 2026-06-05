@@ -9,6 +9,7 @@
  */
 import { required } from "back-core";
 import { t } from "elysia";
+import { StoresController } from "./stores";
 
 // Headers that must never be forwarded upstream
 const SKIP_HEADERS = new Set([
@@ -107,7 +108,26 @@ function deleteRelayState(ws: RelaySocket): void {
 }
 
 const plugin = (_config: unknown) => (app: AudioGateApp) => {
+	const config = _config as {
+		registerStartupTask?: (name: string, task: () => Promise<void>) => void;
+		registerShutdownTask?: (name: string, task: () => Promise<void>) => void;
+	};
 	const gateUrl = required("LLM_GATE_URL").replace(/\/$/, "");
+	let stores: StoresController | undefined;
+
+	if (typeof config?.registerStartupTask === "function") {
+		config.registerStartupTask("audio-gate-stores", async () => {
+			stores = new StoresController("audio-gate-ms");
+			await stores.init();
+		});
+
+		if (typeof config.registerShutdownTask === "function") {
+			config.registerShutdownTask("audio-gate-stores", async () => {
+				await stores?.destroy();
+				stores = undefined;
+			});
+		}
+	}
 
 	// Elysia's global landing fallback wins over dynamic /audio-gate/* routes,
 	// so intercept REST calls before route matching. /audio-gate/ws is handled

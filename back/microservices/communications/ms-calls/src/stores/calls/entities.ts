@@ -10,6 +10,7 @@ export interface CallEntity {
   phone: string;
   threadId?: string | null;
   recordId: string;
+  audioId?: string | null;
   dialogue: string;
 }
 

@@ -6,9 +6,11 @@
     "microservices": {
       "ai": [
         "agent",
-        "assistant"
+        "assistant",
+        "functions"
       ],
       "analytics": [
+        "dashboard",
         "logs",
         "telemetry",
         "usage"
@@ -24,13 +26,16 @@
       "business": [
         "billing",
         "equipment",
+        "events",
         "orders",
         "partners",
         "requests",
         "reviews",
+        "sales",
         "staff"
       ],
       "communications": [
+        "audio-gate",
         "calls",
         "charts",
         "community",
@@ -94,6 +99,7 @@
       "auth": true,
       "agents": true,
       "assistants": true,
+      "functions": true,
       "community": true,
       "charts": true,
       "calls": true,

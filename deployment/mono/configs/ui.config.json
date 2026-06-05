@@ -8,6 +8,7 @@
       "auth",
       "agents",
       "assistants",
+      "functions",
       "community",
       "charts",
       "calls",
@@ -31,6 +32,10 @@
       "webhooks"
     ]
   },
+  "localization": {
+    "mode": "single",
+    "locale": "en"
+  },
   "back": {
     "core": "back/back-core",
     "microservices": {}
@@ -40,6 +45,7 @@
       "auth": true,
       "agents": true,
       "assistants": true,
+      "functions": true,
       "community": true,
       "charts": true,
       "calls": true,

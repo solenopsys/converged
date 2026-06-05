@@ -5,6 +5,10 @@ export type CallId = string;
 
 export type CallRecordId = string;
 
+export type CallAudioId = string;
+
+export type CallFragmentId = string;
+
 export type CallDialogueItem = {
   text: string;
   timestamp: number;
@@ -17,17 +21,20 @@ export type Call = {
   phone: string;
   threadId?: string;
   recordId: CallRecordId;
+  audioId?: CallAudioId;
 };
 
 export type CallRecordingInput = {
   startedAt?: number;
   phone: string;
+  audioId?: CallAudioId;
   data: Uint8Array;
 };
 
 export type CallRecordingResult = {
   callId: CallId;
   recordId: CallRecordId;
+  audioId: CallAudioId;
 };
 
 export type CallDialogueInput = {
@@ -49,6 +56,33 @@ export type PaginatedResult<T> = {
   totalCount?: number;
 };
 
+export type CallFragmentSource = "user" | "assistant";
+
+export type CallFragmentInput = {
+  callId: CallId;
+  audioId?: CallAudioId;
+  source: CallFragmentSource;
+  timestampNs: number;
+  durationMs?: number;
+  data: Uint8Array;
+};
+
+export type CallFragmentInfo = {
+  id: CallFragmentId;
+  callId: CallId;
+  audioId: CallAudioId;
+  source: CallFragmentSource;
+  timestampNs: number;
+  durationMs?: number;
+  sizeBytes: number;
+  kvsKey: string;
+};
+
+export type CallDeleteResult = {
+  deleted: boolean;
+  fragmentsDeleted: number;
+};
+
 export const metadata = {
   "interfaceName": "CallsService",
   "serviceName": "calls",
@@ -65,6 +99,21 @@ export const metadata = {
         }
       ],
       "returnType": "CallRecordingResult",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "saveFragment",
+      "parameters": [
+        {
+          "name": "input",
+          "type": "CallFragmentInput",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "CallFragmentInfo",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -128,6 +177,21 @@ export const metadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
+    },
+    {
+      "name": "deleteCall",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "CallId",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "CallDeleteResult",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -142,6 +206,16 @@ export const metadata = {
       "definition": "string"
     },
     {
+      "name": "CallAudioId",
+      "kind": "type",
+      "definition": "string"
+    },
+    {
+      "name": "CallFragmentId",
+      "kind": "type",
+      "definition": "string"
+    },
+    {
       "name": "CallDialogueItem",
       "kind": "type",
       "definition": "{\n  text: string;\n  timestamp: number;\n  who: string;\n}"
@@ -149,17 +223,17 @@ export const metadata = {
     {
       "name": "Call",
       "kind": "type",
-      "definition": "{\n  id: CallId;\n  startedAt: number;\n  phone: string;\n  threadId?: string;\n  recordId: CallRecordId;\n}"
+      "definition": "{\n  id: CallId;\n  startedAt: number;\n  phone: string;\n  threadId?: string;\n  recordId: CallRecordId;\n  audioId?: CallAudioId;\n}"
     },
     {
       "name": "CallRecordingInput",
       "kind": "type",
-      "definition": "{\n  startedAt?: number;\n  phone: string;\n  data: Uint8Array;\n}"
+      "definition": "{\n  startedAt?: number;\n  phone: string;\n  audioId?: CallAudioId;\n  data: Uint8Array;\n}"
     },
     {
       "name": "CallRecordingResult",
       "kind": "type",
-      "definition": "{\n  callId: CallId;\n  recordId: CallRecordId;\n}"
+      "definition": "{\n  callId: CallId;\n  recordId: CallRecordId;\n  audioId: CallAudioId;\n}"
     },
     {
       "name": "CallDialogueInput",
@@ -176,6 +250,26 @@ export const metadata = {
       "kind": "type",
       "typeParameters": "<T>",
       "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
+    },
+    {
+      "name": "CallFragmentSource",
+      "kind": "type",
+      "definition": "\"user\" | \"assistant\""
+    },
+    {
+      "name": "CallFragmentInput",
+      "kind": "type",
+      "definition": "{\n  callId: CallId;\n  audioId?: CallAudioId;\n  source: CallFragmentSource;\n  timestampNs: number;\n  durationMs?: number;\n  data: Uint8Array;\n}"
+    },
+    {
+      "name": "CallFragmentInfo",
+      "kind": "type",
+      "definition": "{\n  id: CallFragmentId;\n  callId: CallId;\n  audioId: CallAudioId;\n  source: CallFragmentSource;\n  timestampNs: number;\n  durationMs?: number;\n  sizeBytes: number;\n  kvsKey: string;\n}"
+    },
+    {
+      "name": "CallDeleteResult",
+      "kind": "type",
+      "definition": "{\n  deleted: boolean;\n  fragmentsDeleted: number;\n}"
     }
   ]
 };
@@ -183,19 +277,23 @@ export const metadata = {
 // Server interface (to be implemented in microservice)
 export interface CallsService {
   saveRecording(input: CallRecordingInput): Promise<CallRecordingResult>;
+  saveFragment(input: CallFragmentInput): Promise<CallFragmentInfo>;
   saveDialogue(input: CallDialogueInput): Promise<void>;
   getCall(id: CallId): Promise<Call | any>;
   listCalls(params: CallsListParams): Promise<PaginatedResult<Call>>;
   getRecording(recordId: CallRecordId): Promise<Uint8Array | any>;
+  deleteCall(id: CallId): Promise<CallDeleteResult>;
 }
 
 // Client interface
 export interface CallsServiceClient {
   saveRecording(input: CallRecordingInput): Promise<CallRecordingResult>;
+  saveFragment(input: CallFragmentInput): Promise<CallFragmentInfo>;
   saveDialogue(input: CallDialogueInput): Promise<void>;
   getCall(id: CallId): Promise<Call | any>;
   listCalls(params: CallsListParams): Promise<PaginatedResult<Call>>;
   getRecording(recordId: CallRecordId): Promise<Uint8Array | any>;
+  deleteCall(id: CallId): Promise<CallDeleteResult>;
 }
 
 // Factory function

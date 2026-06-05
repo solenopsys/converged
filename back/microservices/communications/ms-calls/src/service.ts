@@ -8,13 +8,16 @@ import type {
   CallRecordingInput,
   CallRecordingResult,
   CallDialogueInput,
+  CallFragmentInput,
+  CallFragmentInfo,
+  CallDeleteResult,
 } from "./types";
 import { StoresController } from "./stores";
 
 const MS_ID = "calls-ms";
 
 export class CallsServiceImpl implements CallsService {
-  private stores: StoresController;
+  private stores!: StoresController;
   private initPromise?: Promise<void>;
 
   constructor() {
@@ -43,6 +46,11 @@ export class CallsServiceImpl implements CallsService {
     return this.stores.calls.saveRecording(input);
   }
 
+  async saveFragment(input: CallFragmentInput): Promise<CallFragmentInfo> {
+    await this.ready();
+    return this.stores.calls.saveFragment(input);
+  }
+
   async saveDialogue(input: CallDialogueInput): Promise<void> {
     await this.ready();
     return this.stores.calls.saveDialogue(input);
@@ -61,6 +69,11 @@ export class CallsServiceImpl implements CallsService {
   async getRecording(recordId: CallRecordId): Promise<Uint8Array | undefined> {
     await this.ready();
     return this.stores.calls.getRecording(recordId);
+  }
+
+  async deleteCall(id: CallId): Promise<CallDeleteResult> {
+    await this.ready();
+    return this.stores.calls.deleteCall(id);
   }
 }
 

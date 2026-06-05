@@ -178,9 +178,11 @@ async function runDev() {
 
   const dataRoot = resolve(PROJECTS_DIR, "..", "data");
   const projectDataDir = resolve(dataRoot, defaultDataDirName(config.name));
+  const dataDir = process.env.DATA_DIR || loadedEnv.DATA_DIR || (existsSync(projectDataDir) ? projectDataDir : dataRoot);
   const runtimeEnv = {
     ...loadedEnv,
-    DATA_DIR: process.env.DATA_DIR || loadedEnv.DATA_DIR || (existsSync(projectDataDir) ? projectDataDir : dataRoot),
+    DATA_DIR: dataDir,
+    STORAGE_SOCKET_PATH: process.env.STORAGE_SOCKET_PATH || loadedEnv.STORAGE_SOCKET_PATH || resolve(dataDir, "storage.sock"),
   };
 
   console.log(`

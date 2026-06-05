@@ -1,6 +1,6 @@
 ingress:
   hosts:
-    - app.example.com
+    - "*.4ir.club"
 
 images:
   ui:
