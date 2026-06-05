@@ -346,9 +346,7 @@ export function StateStreamView() {
 										<div
 											key={indicator.widgetId}
 											className={`min-h-0 ${
-												indicator.size === "lg"
-													? "col-span-2 row-span-2"
-													: ""
+												indicator.size === "lg" ? "col-span-2 row-span-2" : ""
 											}`}
 										>
 											{indicator.component}

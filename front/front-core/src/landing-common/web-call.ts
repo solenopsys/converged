@@ -13,6 +13,7 @@
  * the session, so there is nothing extra to persist here.
  */
 import { createEvent, createStore } from "effector";
+import { createMicCapture, type MicCapture } from "./mic-capture";
 
 export type WebCallStatus =
 	| "idle"
@@ -24,6 +25,8 @@ export type WebCallStatus =
 export interface WebCallState {
 	status: WebCallStatus;
 	error: string | null;
+	/** Soft, non-fatal hint (e.g. microphone clipping). The call still runs. */
+	warning: string | null;
 }
 
 type SignalingMessage = {
@@ -53,11 +56,15 @@ export const webCallRequested = createEvent<string | undefined>();
 export const webCallHangupRequested = createEvent();
 
 const webCallStateChanged = createEvent<WebCallState>();
+const webCallWarningChanged = createEvent<string | null>();
 
 export const $webCall = createStore<WebCallState>({
 	status: "idle",
 	error: null,
-}).on(webCallStateChanged, (_, next) => next);
+	warning: null,
+})
+	.on(webCallStateChanged, (_, next) => next)
+	.on(webCallWarningChanged, (state, warning) => ({ ...state, warning }));
 
 const AUDIO_GATE_BASE = "/audio-gate";
 const LOG_PREFIX = "[web-call]";
@@ -100,15 +107,19 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 
 let pc: RTCPeerConnection | null = null;
 let ws: WebSocket | null = null;
-let stream: MediaStream | null = null;
-let eventsChannel: RTCDataChannel | null = null;
+let micCapture: MicCapture | null = null;
 let resetTimer: ReturnType<typeof setTimeout> | null = null;
 let answerTimer: ReturnType<typeof setTimeout> | null = null;
 let statsTimer: ReturnType<typeof setInterval> | null = null;
 
 function setState(status: WebCallStatus, error: string | null = null): void {
 	log("state", { status, error });
-	webCallStateChanged({ status, error });
+	webCallStateChanged({ status, error, warning: $webCall.getState().warning });
+}
+
+function setWarning(warning: string | null): void {
+	if (warning) warn("mic warning", warning);
+	webCallWarningChanged(warning);
 }
 
 function clearAnswerTimer(): void {
@@ -128,11 +139,6 @@ function cleanup(): void {
 	clearAnswerTimer();
 	clearStatsTimer();
 	try {
-		eventsChannel?.close();
-	} catch {
-		/* noop */
-	}
-	try {
 		ws?.close();
 	} catch {
 		/* noop */
@@ -142,13 +148,11 @@ function cleanup(): void {
 	} catch {
 		/* noop */
 	}
-	for (const track of stream?.getTracks() ?? []) {
-		track.stop();
-	}
+	micCapture?.stop();
+	setWarning(null);
 	ws = null;
 	pc = null;
-	stream = null;
-	eventsChannel = null;
+	micCapture = null;
 }
 
 function failCall(error: string, details?: unknown): void {
@@ -301,60 +305,24 @@ function startOutboundStatsLogging(conn: RTCPeerConnection): void {
 	}, 2_000);
 }
 
-function setupRealtimeEventsChannel(conn: RTCPeerConnection): void {
-	const channel = conn.createDataChannel("oai-events");
-	eventsChannel = channel;
+function toIceCandidateInit(data: unknown): RTCIceCandidateInit | null {
+	const record = asRecord(data);
+	if (!record) return null;
 
-	channel.onopen = () => {
-		log("realtime data channel open");
-	};
+	const candidate =
+		typeof record.candidate === "string" ? record.candidate : "";
+	if (!candidate) return null;
 
-	channel.onclose = () => {
-		log("realtime data channel closed");
-	};
-
-	channel.onerror = (event) => {
-		logError("realtime data channel error", event);
-	};
-
-	channel.onmessage = (event) => {
-		if (typeof event.data !== "string") {
-			log("realtime event binary", { bytes: event.data?.byteLength });
-			return;
-		}
-		const parsed = asRealtimeEvent(event.data);
-		if (!parsed) {
-			warn("realtime event non-json", { bytes: event.data.length });
-			return;
-		}
-		log("realtime event", parsed);
-	};
-}
-
-function asRealtimeEvent(raw: string): Record<string, unknown> | null {
-	try {
-		const value = JSON.parse(raw) as unknown;
-		const record = asRecord(value);
-		if (!record) return null;
-		const compact: Record<string, unknown> = {
-			type: record.type,
-		};
-		for (const key of [
-			"event_id",
-			"item_id",
-			"response_id",
-			"audio_start_ms",
-			"audio_end_ms",
-			"transcript",
-			"delta",
-			"error",
-		]) {
-			if (record[key] !== undefined) compact[key] = record[key];
-		}
-		return compact;
-	} catch {
-		return null;
+	const init: RTCIceCandidateInit = { candidate };
+	if (typeof record.sdpMid === "string") init.sdpMid = record.sdpMid;
+	if (typeof record.sdpMLineIndex === "number") {
+		init.sdpMLineIndex = record.sdpMLineIndex;
 	}
+	if (typeof record.usernameFragment === "string") {
+		init.usernameFragment = record.usernameFragment;
+	}
+
+	return init;
 }
 
 export async function startWebCall(user?: string): Promise<void> {
@@ -372,31 +340,58 @@ export async function startWebCall(user?: string): Promise<void> {
 		setState("connecting");
 
 		log("requesting microphone");
-		stream = await navigator.mediaDevices.getUserMedia({
-			audio: {
-				autoGainControl: true,
-				channelCount: { ideal: 1 },
-				echoCancellation: true,
-				noiseSuppression: true,
-				sampleRate: { ideal: 48_000 },
+		setWarning(null);
+		const capture = await createMicCapture({
+			onClipChange: (clipping) => {
+				setWarning(
+					clipping
+						? "Микрофон перегружен — уменьшите его громкость в настройках системы"
+						: null,
+				);
 			},
-			video: false,
 		});
+		micCapture = capture;
 		log("microphone stream acquired", {
-			audioTracks: stream.getAudioTracks().length,
-			settings: stream.getAudioTracks().map((track) => track.getSettings()),
+			audioTracks: capture.stream.getAudioTracks().length,
+			settings: capture.rawStream
+				.getAudioTracks()
+				.map((track) => track.getSettings()),
 		});
 
 		const conn = new RTCPeerConnection({
 			iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
 		});
 		pc = conn;
-		const localStream = stream;
+		const pendingRemoteCandidates: RTCIceCandidateInit[] = [];
+		const addRemoteIceCandidate = async (
+			candidate: RTCIceCandidateInit,
+		): Promise<void> => {
+			if (!conn.remoteDescription) {
+				pendingRemoteCandidates.push(candidate);
+				log("remote ICE candidate queued", {
+					sdpMid: candidate.sdpMid,
+					sdpMLineIndex: candidate.sdpMLineIndex,
+				});
+				return;
+			}
+
+			await conn.addIceCandidate(candidate);
+			log("remote ICE candidate added", {
+				sdpMid: candidate.sdpMid,
+				sdpMLineIndex: candidate.sdpMLineIndex,
+			});
+		};
+		const flushRemoteIceCandidates = async (): Promise<void> => {
+			const queued = pendingRemoteCandidates.splice(0);
+			for (const candidate of queued) {
+				await addRemoteIceCandidate(candidate);
+			}
+		};
+		const localStream = capture.stream;
 		for (const track of localStream.getTracks()) {
 			conn.addTrack(track, localStream);
 		}
 		log("peer connection created");
-		setupRealtimeEventsChannel(conn);
 		startOutboundStatsLogging(conn);
 
 		// Play the AI's audio track.
@@ -488,6 +483,21 @@ export async function startWebCall(user?: string): Promise<void> {
 				log("SDP answer received", { sdpLength: sdp.length });
 				await conn.setRemoteDescription({ type: "answer", sdp });
 				log("remote description set");
+				await flushRemoteIceCandidates();
+			} else if (msg.type === "ice-candidate") {
+				const candidate = toIceCandidateInit(msg.data);
+				if (!candidate) {
+					warn("ignored invalid remote ICE candidate", msg.data);
+					return;
+				}
+				try {
+					await addRemoteIceCandidate(candidate);
+				} catch (err) {
+					logError("failed to add remote ICE candidate", {
+						error: errorMessage(err),
+						candidate,
+					});
+				}
 			} else if (msg.type === "error") {
 				const data = asRecord(msg.data);
 				const message =

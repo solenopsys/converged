@@ -50,7 +50,9 @@ function notify() {
 	}
 }
 
-function normalizeEntry(entry: DashboardWidgetEntry): DashboardWidgetDefinition {
+function normalizeEntry(
+	entry: DashboardWidgetEntry,
+): DashboardWidgetDefinition {
 	return typeof entry === "function" ? { render: entry } : entry;
 }
 

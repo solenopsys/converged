@@ -21,10 +21,18 @@ export function WebCallWidget() {
 	const active = state.status === "connecting" || state.status === "connected";
 
 	return (
-		<div className="wcw" data-status={state.status} role="status" aria-live="polite">
+		<div
+			className="wcw"
+			data-status={state.status}
+			data-warn={!state.error && state.warning ? "1" : undefined}
+			role="status"
+			aria-live="polite"
+		>
 			<style>{webCallWidgetCss}</style>
 			<span className="wcw-dot" aria-hidden="true" />
-			<span className="wcw-label">{state.error ?? STATUS_LABEL[state.status]}</span>
+			<span className="wcw-label">
+				{state.error ?? state.warning ?? STATUS_LABEL[state.status]}
+			</span>
 			{active && (
 				<button
 					className="wcw-hangup"
@@ -74,7 +82,9 @@ const webCallWidgetCss = `
 .wcw[data-status="error"]      .wcw-dot { background: #ef4444; }
 .wcw[data-status="ended"]      .wcw-dot { background: var(--ui-muted-foreground); }
 
-.wcw-label { white-space: nowrap; }
+.wcw-label { white-space: nowrap; max-width: 280px; }
+.wcw[data-warn="1"] .wcw-label { white-space: normal; }
+.wcw[data-warn="1"] .wcw-dot { background: #f59e0b; }
 
 .wcw-hangup {
 	display: inline-flex;
