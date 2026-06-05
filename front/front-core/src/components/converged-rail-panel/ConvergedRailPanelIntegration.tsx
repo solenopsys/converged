@@ -22,6 +22,7 @@ import {
 	type PanelTab,
 } from "../../landing-common/control-panel-model";
 import { useGlobalTranslation } from "../../hooks/global_i18n";
+import { webCallRequested } from "../../landing-common/web-call";
 import { ConvergedRailPanel } from "./ConvergedRailPanel";
 import { ConvergedRailControlsIntegration } from "./ConvergedRailControlsIntegration";
 
@@ -97,6 +98,8 @@ export function ConvergedRailPanelIntegration({
 		<ConvergedRailPanel
 			logoLight={branding.logoLight}
 			logoDark={branding.logoDark}
+			phone={branding.phone}
+			onCall={(phone) => webCallRequested(phone)}
 			screens={screens}
 			activeScreenId={activeScreenId}
 			onScreenChange={screenActivated}

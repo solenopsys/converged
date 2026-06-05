@@ -1,4 +1,5 @@
 "use client";
+import "./HeroRequestBanner.css";
 
 import { useEffect } from "react";
 import {
@@ -78,7 +79,6 @@ export function HeroRequestBanner({
 
   return (
     <section id={id} className="hsl-root">
-      <style>{heroRequestBannerCss}</style>
 
       <HeroBanner
         ariaLabel={ariaLabel}
@@ -124,15 +124,3 @@ function resolveHeroChips(labels?: string[]): HeroChip[] {
   });
 }
 
-export const heroRequestBannerCss = `
-.hsl-root {
-  --hsl-input-width: min(880px, calc(100vw - 40px));
-  --hsl-topbar-height: 52px;
-  --hsl-topbar-docked-height: 164px;
-  width: 100%;
-}
-
-@media (max-width: 960px) {
-  .hsl-root { --hsl-input-width: calc(100vw - 28px); }
-}
-`;

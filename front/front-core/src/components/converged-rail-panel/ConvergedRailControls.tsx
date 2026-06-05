@@ -1,7 +1,8 @@
 import { Globe2, LogIn, LogOut, Moon, PanelLeftClose, Sun } from "lucide-react";
 import { useState } from "react";
-import { Button } from "../ui";
 import type { LangOption, Theme } from "../../landing-common/control-panel-model";
+import { Button } from "../ui";
+import "./ConvergedRailControls.css";
 
 export interface ConvergedRailControlsProps {
 	theme: Theme;
@@ -33,7 +34,6 @@ export function ConvergedRailControls({
 
 	return (
 		<div className="crc">
-			<style>{css}</style>
 			{loginEnabled && (
 				<Button
 					className="ssr-panel-control"
@@ -78,7 +78,10 @@ export function ConvergedRailControls({
 								type="button"
 								role="menuitemradio"
 								aria-checked={item.code === lang ? "true" : "false"}
-								onClick={() => { onLanguageChange?.(item.code); setLangOpen(false); }}
+								onClick={() => {
+									onLanguageChange?.(item.code);
+									setLangOpen(false);
+								}}
 							>
 								{item.label}
 							</button>
@@ -101,89 +104,3 @@ export function ConvergedRailControls({
 		</div>
 	);
 }
-
-const css = `
-.crc {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.crc .ssr-panel-control {
-  width: 34px;
-  height: 34px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid color-mix(in oklch, currentColor 22%, transparent);
-  border-radius: 10px;
-  background: transparent;
-  color: color-mix(in oklch, currentColor 82%, transparent);
-  cursor: pointer;
-}
-
-.crc .ssr-panel-control:hover {
-  background: color-mix(in oklch, var(--ui-muted) 88%, transparent);
-}
-
-.crc .ssr-panel-control svg {
-  width: 17px;
-  height: 17px;
-  display: block;
-}
-
-.crc .ssr-lang-trigger {
-  width: auto;
-  min-width: 30px;
-  padding: 0 8px;
-  gap: 6px;
-}
-
-.crc .ssr-lang-current {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  line-height: 1;
-}
-
-.crc-lang {
-  position: relative;
-}
-
-.crc-lang-popover {
-  display: none;
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 30;
-  min-width: 96px;
-  padding: 6px;
-  gap: 4px;
-  border: 1px solid color-mix(in oklch, var(--ui-border) 88%, transparent);
-  border-radius: 10px;
-  background: var(--ui-card);
-  box-shadow: 0 12px 30px rgba(2, 6, 23, 0.25);
-}
-
-.crc-lang[data-open="1"] .crc-lang-popover {
-  display: grid;
-}
-
-.crc-lang-option {
-  width: 100%;
-  min-height: 30px;
-  border: 0;
-  border-radius: 7px;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.crc-lang-option:hover,
-.crc-lang-option[aria-checked="true"] {
-  background: var(--ui-accent);
-}
-`;

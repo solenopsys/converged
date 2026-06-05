@@ -19,6 +19,7 @@ export * from "./nav-documents";
 export * from "./nav-main";
 export * from "./nav-secondary";
 export * from "./nav-user";
+export * from "./phone-contact/PhoneContact";
 export * from "./right-rail/BaseLayout";
 export * from "./right-rail/panelController";
 export * from "./right-rail/panelTypes";

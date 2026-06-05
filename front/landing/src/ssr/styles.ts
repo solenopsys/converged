@@ -57,7 +57,15 @@ const spaSourceRoots = Array.from(
   ),
 );
 
-const allowedExtensions = new Set([".ts", ".tsx", ".js", ".jsx"]);
+const sourceExtensions = new Set([".ts", ".tsx", ".js", ".jsx"]);
+const styleExtensions = new Set([".css"]);
+const ignoredDirectories = new Set([
+  ".next",
+  "build",
+  "dist",
+  "node_modules",
+  "storybook-static",
+]);
 
 async function readFileSafe(filePath: string): Promise<string> {
   try {
@@ -67,7 +75,12 @@ async function readFileSafe(filePath: string): Promise<string> {
   }
 }
 
-async function collectSources(dir: string, sources: string[]): Promise<void> {
+async function collectFiles(
+  dir: string,
+  extensions: Set<string>,
+  target: string[],
+  options: { skipFile?: (filePath: string) => boolean } = {},
+): Promise<void> {
   let entries;
   try {
     entries = await fs.readdir(dir, { withFileTypes: true });
@@ -77,20 +90,31 @@ async function collectSources(dir: string, sources: string[]): Promise<void> {
 
   for (const entry of entries) {
     if (entry.name.startsWith(".")) continue;
-    if (entry.name === "node_modules") continue;
+    if (ignoredDirectories.has(entry.name)) continue;
 
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      await collectSources(fullPath, sources);
+      await collectFiles(fullPath, extensions, target, options);
       continue;
     }
 
     if (!entry.isFile()) continue;
-    if (!allowedExtensions.has(path.extname(entry.name))) continue;
+    if (!extensions.has(path.extname(entry.name))) continue;
+    if (options.skipFile?.(fullPath)) continue;
 
-    const contents = await readFileSafe(fullPath);
-    if (contents) sources.push(contents);
+    const fileContents = await readFileSafe(fullPath);
+    if (fileContents) target.push(fileContents);
   }
+}
+
+async function collectSources(dir: string, sources: string[]): Promise<void> {
+  await collectFiles(dir, sourceExtensions, sources);
+}
+
+async function collectCss(dir: string, styles: string[]): Promise<void> {
+  await collectFiles(dir, styleExtensions, styles, {
+    skipFile: (filePath) => path.basename(filePath) === "globals.css",
+  });
 }
 
 function stripUnoDirectives(css: string): string {
@@ -124,11 +148,14 @@ async function loadResetCss(): Promise<string> {
  */
 export async function buildStyles(): Promise<string> {
   const sources: string[] = [];
+  const componentCss: string[] = [];
   for (const dir of ssrSourceRoots) {
     await collectSources(dir, sources);
+    await collectCss(dir, componentCss);
   }
   for (const dir of spaSourceRoots) {
     await collectSources(dir, sources);
+    await collectCss(dir, componentCss);
   }
 
   const uno = await createGenerator(unoConfig);
@@ -141,7 +168,7 @@ export async function buildStyles(): Promise<string> {
     path.join(landingRoot, "src", "app", "globals.css")
   );
 
-  return [resetCss, unoCss, stripUnoDirectives(globalsCss)]
+  return [resetCss, unoCss, stripUnoDirectives(globalsCss), ...componentCss]
     .filter(Boolean)
     .join("\n");
 }

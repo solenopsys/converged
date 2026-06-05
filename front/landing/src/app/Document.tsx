@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import {
   SsrShellLayout,
-  preSsrShellCss,
   themeBootstrapScript,
 } from "front-core/landing-common/ssr-shell";
 
@@ -126,7 +125,7 @@ export function Document({ children, seo, lang = "en", importMap, initialData, l
   const importMapJson = importMap ? JSON.stringify({ imports: importMap }) : null;
   const initialDataJson = initialData ? JSON.stringify(initialData) : null;
   const loginEnabled = String(process.env.LOGIN_ENABLED ?? "").toLowerCase() === "true";
-  const phone = process.env.LANDING_PHONE?.trim() || "+1 (512) 894-0142";
+  const phone = process.env.LANDING_PHONE?.trim() || "";
   const topBarMenuLinks = readTopBarMenuLinks(initialData);
 
   return (
@@ -150,7 +149,6 @@ export function Document({ children, seo, lang = "en", importMap, initialData, l
         {description ? <meta name="twitter:description" content={description} /> : null}
         {ogImage ? <meta name="twitter:image" content={ogImage} /> : null}
         <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
-        <style dangerouslySetInnerHTML={{ __html: preSsrShellCss }} />
         {importMapJson ? (
           <script type="importmap" dangerouslySetInnerHTML={{ __html: importMapJson }} />
         ) : null}

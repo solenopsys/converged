@@ -60,6 +60,7 @@ import {
 	type LandingQuickAction,
 } from "./landing-quick-actions";
 import { WebCallWidget } from "./WebCallWidget";
+import "./control-panel-runtime.css";
 
 export interface ControlPanelRuntimeOptions {
 	logoLight?: string;
@@ -188,7 +189,6 @@ function ChatSlot() {
 	const chat = contents["sidebar:right"];
 	return (
 		<div className="cp-slots cp-chat-slot">
-			<style>{slotsCss}</style>
 			{chat ?? (
 				<div className="ssr-right-rail-empty">
 					<h3>{t("empty.title", "AI Assistant")}</h3>
@@ -299,7 +299,6 @@ export function mountControlPanelRuntime(
 		flushSync(() => {
 			root?.render(
 				<div className={options.isDark ? "cp-runtime dark" : "cp-runtime"} data-mode={mode}>
-					<style>{runtimeCss}</style>
 					<ControlPanel
 						chatSlot={<ChatSlot />}
 						composerPlaceholder={options.chatPlaceholder}
@@ -346,16 +345,3 @@ export {
 	type ControlPanelMode,
 };
 
-const runtimeCss = `
-.cp-runtime { width: 100%; height: 100%; }
-.cp-runtime[data-mode="public"] { height: auto; }
-.cp-runtime[data-mode="app"] { height: 100vh; }
-`;
-
-const slotsCss = `
-.cp-slots { min-height: 0; height: 100%; display: flex; flex-direction: column; }
-.cp-tab-slot, .cp-chat-slot { min-height: 0; min-width: 0; }
-.cp-tab-slot:empty { display: none; }
-.cp-chat-slot { flex: 1 1 auto; display: flex; flex-direction: column; }
-.cp-chat-slot > * { flex: 1 1 auto; min-height: 0; }
-`;
