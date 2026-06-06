@@ -431,16 +431,40 @@ spec:
               value: 0.0.0.0
             - name: LLM_GATE_HTTP_PORT
               value: "8090"
-            - name: LLM_GATE_TRANSPORT_SOCKET
-              value: /app/socket/storage.sock
+            - name: LLM_GATE_TRANSPORT_MODE
+              value: tcp
+            - name: LLM_GATE_TRANSPORT_HOST
+              value: 127.0.0.1
+            - name: LLM_GATE_TRANSPORT_PORT
+              value: "9000"
+            - name: LLM_GATE_STORAGE_KEY
+              value: default
+            - name: LLM_GATE_CONTEXT_STORAGE_KEY
+              value: default
+            - name: LLM_GATE_CONTEXT_STORAGE_HOST
+              value: 127.0.0.1
+            - name: LLM_GATE_CONTEXT_STORAGE_PORT
+              value: "9000"
             - name: LLM_GATE_TRANSPORT_NAMESPACE
               value: audio-gate-ms
             - name: LLM_GATE_TRANSPORT_STORE
               value: llm-gate-configs
+            - name: LLM_GATE_CALLS_STORAGE_KEY
+              value: default
+            - name: LLM_GATE_CALLS_STORAGE_HOST
+              value: 127.0.0.1
+            - name: LLM_GATE_CALLS_STORAGE_PORT
+              value: "9000"
             - name: LLM_GATE_CALLS_NAMESPACE
               value: calls-ms
             - name: LLM_GATE_CALL_FRAGMENTS_STORE
               value: fragments
+            - name: LLM_GATE_THREADS_STORAGE_KEY
+              value: default
+            - name: LLM_GATE_THREADS_STORAGE_HOST
+              value: 127.0.0.1
+            - name: LLM_GATE_THREADS_STORAGE_PORT
+              value: "9000"
             - name: LLM_GATE_THREADS_NAMESPACE
               value: threads-ms
             - name: LLM_GATE_THREADS_STORE

@@ -179,10 +179,19 @@ async function runDev() {
   const dataRoot = resolve(PROJECTS_DIR, "..", "data");
   const projectDataDir = resolve(dataRoot, defaultDataDirName(config.name));
   const dataDir = process.env.DATA_DIR || loadedEnv.DATA_DIR || (existsSync(projectDataDir) ? projectDataDir : dataRoot);
+  const storagePort = Number(
+    process.env.STORAGE_PORT
+      || loadedEnv.STORAGE_PORT
+      || config.storage.devPort
+      || config.storage.port
+      || 9000,
+  );
   const runtimeEnv = {
     ...loadedEnv,
     DATA_DIR: dataDir,
-    STORAGE_SOCKET_PATH: process.env.STORAGE_SOCKET_PATH || loadedEnv.STORAGE_SOCKET_PATH || resolve(dataDir, "storage.sock"),
+    STORAGE_TRANSPORT: process.env.STORAGE_TRANSPORT || loadedEnv.STORAGE_TRANSPORT || "tcp",
+    STORAGE_HOST: process.env.STORAGE_HOST || loadedEnv.STORAGE_HOST || "127.0.0.1",
+    STORAGE_PORT: String(storagePort),
   };
 
   console.log(`

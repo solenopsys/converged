@@ -263,6 +263,7 @@
     "defaultSize": "5Gi",
     "mountBase": "/app/data",
     "port": 9000,
+    "devPort": 9000,
     "tenants": [],
     "resources": {
       "requests": {

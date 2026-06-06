@@ -1,7 +1,7 @@
 {
   "project": "converged-portal",
   "preset": "mono",
-  "generatedAt": "2026-06-05T08:15:19.998Z",
+  "generatedAt": "2026-06-06T07:08:04.062Z",
   "containers": [
     {
       "name": "services",
@@ -79,6 +79,7 @@
     "defaultSize": "5Gi",
     "mountBase": "/app/data",
     "port": 9000,
+    "devPort": 9000,
     "tenants": [],
     "resources": {
       "requests": {

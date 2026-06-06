@@ -1,6 +1,7 @@
 import {
+	NativeStorageConnectionPool,
 	StorageConnection,
-	type StorageConnectionConfig,
+	type StorageConnectionTargetConfig as StorageConnectionConfig,
 	type StorageConnectionOptions,
 	type StoreTypeKey as TransportStoreTypeKey,
 } from "bun-transport";
@@ -218,6 +219,7 @@ interface StoragePoolLease {
 
 export class StorageConnectionPool {
 	private readonly entries = new Map<string, StoragePoolEntry>();
+	private readonly nativePool = new NativeStorageConnectionPool();
 	private readonly defaultConfig?: StorageConnectionTarget;
 
 	constructor(
@@ -240,7 +242,14 @@ export class StorageConnectionPool {
 		const existing = this.entries.get(key);
 		if (existing) return existing.conn;
 
-		const conn = new StorageConnection(config, this.options);
+		this.nativePool.add(
+			key,
+			typeof config === "string" ? { kind: "unix", socketPath: config } : config,
+		);
+		const conn = new StorageConnection(
+			{ kind: "pool", pool: this.nativePool, key, label: key },
+			this.options,
+		);
 		this.entries.set(key, { key, config, conn, refs: 0 });
 		return conn;
 	}
@@ -276,10 +285,10 @@ export class StorageConnectionPool {
 		const key = storageConnectionKey(config);
 		let entry = this.entries.get(key);
 		if (!entry) {
-			const conn = new StorageConnection(config, this.options);
-			entry = { key, config, conn, refs: 0 };
-			this.entries.set(key, entry);
+			this.addConnection(config);
+			entry = this.entries.get(key);
 		}
+		if (!entry) throw new Error(`storage pool entry was not created: ${key}`);
 		entry.refs += 1;
 		return { key, conn: entry.conn };
 	}
@@ -299,6 +308,7 @@ export class StorageConnectionPool {
 		const entry = this.entries.get(key);
 		if (!entry) return false;
 		entry.conn.close();
+		this.nativePool.remove(key);
 		this.entries.delete(key);
 		return true;
 	}
@@ -307,6 +317,7 @@ export class StorageConnectionPool {
 		for (const entry of this.entries.values()) {
 			entry.conn.close();
 		}
+		this.nativePool.closeAll();
 		this.entries.clear();
 	}
 

@@ -75,6 +75,7 @@
     "build:container:ms": "podman build --layers --ignorefile ./deployment/containers/converged-portal.containerignore -f ./deployment/containers/converged-portal.ms.Containerfile -t localhost/converged-portal-ms:latest ../../..",
     "build:container:rt": "podman build --layers --ignorefile ./deployment/containers/converged-portal.containerignore -f ./deployment/containers/converged-portal.rt.Containerfile -t localhost/converged-portal-rt:latest ../../..",
     "build:container:storage": "podman build --layers --ignorefile ./deployment/containers/converged-portal.containerignore -f ./deployment/containers/converged-portal.storage.Containerfile -t localhost/converged-storage:latest ../../..",
+    "build:all": "bun gen:containers && bun build:container:ui  &&  bun build:container:ms  &&  bun build:container:rt",
     "cli": "bun run --env-file=../../confs/cli-dev.env tools/cli/src/cli.ts --commands=tools/commands",
     "clip": "bun run --env-file=../../cli-prod.env tools/cli/src/cli.ts --commands=tools/commands",
     "secrets": "bun run --cwd ../club-portal/tools/configurator src/cli.ts secrets --project=converged-portal --output=/home/alexstorm/distrib/4ir/gestalt/clarity/confs",
