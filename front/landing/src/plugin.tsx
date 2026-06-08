@@ -345,6 +345,35 @@ async function structCall<T>(
 	return response.json() as Promise<T>;
 }
 
+// Primary public phone number, owned by ms-audio-gate (AudioGateService).
+// Falls back to LANDING_PHONE env, then empty (header hides the control).
+async function fetchPrimaryPhone(
+	servicesBaseUrl: string,
+	workspace?: string,
+): Promise<string> {
+	try {
+		const response = await fetch(
+			`${servicesBaseUrl}/audiogate/getPrimaryPhoneNumber`,
+			{
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					...buildWorkspaceHeaders(workspace),
+				},
+				body: "{}",
+			},
+		);
+		if (response.ok) {
+			const number = (await response.json()) as { phone?: string } | null;
+			const phone = number?.phone?.trim();
+			if (phone) return phone;
+		}
+	} catch (error) {
+		console.error("[landing] primary phone fetch failed", error);
+	}
+	return process.env.LANDING_PHONE?.trim() || "";
+}
+
 async function prefetchLandingPayload(
 	configPath: string,
 	servicesBaseUrl: string,
@@ -573,6 +602,8 @@ export default function landingPlugin(
 				}
 			}
 
+			const phone = await fetchPrimaryPhone(servicesBaseUrl, workspace);
+
 			const previousSsrData = globalThis.__LANDING_SSR_DATA__;
 			const previousDocsSsrData = globalThis.__DOCS_SSR_DATA__;
 			globalThis.__LANDING_SSR_DATA__ = landingData;
@@ -584,6 +615,7 @@ export default function landingPlugin(
 						lang={locale}
 						seo={seo}
 						importMap={importMap}
+						phone={phone}
 						initialData={{
 							mfEnv: localizedMfEnv,
 							landing: landingData,

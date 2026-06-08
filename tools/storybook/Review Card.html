@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Components" name="Review Card" subtitle="адаптивная секция отзывов: featured + лента → вертикальный список на узком" viewport="1280x900" -->
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Convo · Reviews</title>
+<link rel="stylesheet" href="colors_and_type.css">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    background: var(--neutral-100);
+    color: var(--foreground);
+    -webkit-font-smoothing: antialiased;
+    padding: var(--space-10);
+  }
+
+  /* The whole section is a container — it reacts to ITS OWN width,
+     so it behaves the same embedded in a narrow column or full-bleed. */
+  .reviews {
+    container-type: inline-size;
+    max-width: 1120px;
+    margin: 0 auto;
+  }
+  .reviews__head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
+  }
+  .reviews__title {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-semibold);
+    letter-spacing: -0.01em;
+    margin: 0;
+    display: flex; align-items: center; gap: var(--space-3);
+  }
+  .reviews__agg {
+    display: inline-flex; align-items: center; gap: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--muted-foreground);
+  }
+  .reviews__agg b { color: var(--foreground); font-weight: var(--weight-semibold); }
+
+  /* =====================================================================
+     SHARED PRIMITIVES
+     ===================================================================== */
+  .stars { display: inline-flex; gap: 2px; }
+  .stars svg { width: 15px; height: 15px; display: block; }
+  .star-on  { fill: var(--color-warning); }
+  .star-off { fill: var(--neutral-200); }
+
+  .avatar {
+    flex-shrink: 0;
+    display: grid; place-items: center;
+    border-radius: var(--radius-full);
+    font-weight: var(--weight-semibold);
+    color: #fff;
+    letter-spacing: -0.01em;
+    user-select: none;
+  }
+  .verified {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--color-success);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .verified svg { width: 12px; height: 12px; }
+
+  /* =====================================================================
+     FEATURED — top strong review
+     ===================================================================== */
+  .feature {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    padding: var(--space-8) var(--space-10);
+    margin-bottom: var(--space-5);
+    position: relative;
+  }
+  .feature__mark {
+    font-family: var(--font-display);
+    font-size: 72px; line-height: 0.7;
+    color: var(--neutral-200);
+    height: 30px; margin-bottom: var(--space-3);
+    user-select: none;
+  }
+  .feature__quote {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    line-height: var(--leading-snug);
+    font-weight: var(--weight-medium);
+    letter-spacing: -0.01em;
+    color: var(--neutral-900);
+    margin: 0 0 var(--space-8);
+    text-wrap: pretty;
+    max-width: 40ch;
+  }
+  .feature__foot { display: flex; align-items: center; gap: var(--space-4); }
+  .feature__foot .avatar { width: 48px; height: 48px; font-size: 17px; }
+  .feature__id .n { font-size: var(--text-sm); font-weight: var(--weight-semibold); display: flex; align-items: center; gap: var(--space-2); }
+  .feature__id .c { font-size: var(--text-xs); color: var(--muted-foreground); margin-top: 2px; }
+  .feature__rating { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-1_5); }
+  .feature__rating .lbl { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted-foreground); }
+
+  /* =====================================================================
+     LANE — horizontal row of standard cards (desktop)
+     ===================================================================== */
+  .lane {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: var(--space-5);
+  }
+  .rev {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    display: flex; flex-direction: column; gap: var(--space-4);
+  }
+  .rev__top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+  .rev__rating { display: flex; align-items: center; gap: var(--space-2); }
+  .rev__score { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--muted-foreground); padding-top: 1px; }
+  .rev__quote {
+    font-size: var(--text-base);
+    line-height: var(--leading-relaxed);
+    color: var(--neutral-800);
+    margin: 0; text-wrap: pretty;
+  }
+  .rev__foot {
+    display: flex; align-items: center; gap: var(--space-3);
+    margin-top: auto; padding-top: var(--space-4);
+    border-top: 1px solid var(--border);
+  }
+  .rev__foot .avatar { width: 40px; height: 40px; font-size: 15px; }
+  .rev__id { min-width: 0; }
+  .rev__name { font-size: var(--text-sm); font-weight: var(--weight-semibold); line-height: 1.25; }
+  .rev__co { font-size: var(--text-xs); color: var(--muted-foreground); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Hide the compact-only meta (date) by default; shown when stacked */
+  .rev__date { display: none; }
+
+  /* =====================================================================
+     NARROW (≤720px container): vertical compact list
+       - featured loses chrome, becomes bold text block
+       - lane becomes single-column dense rows
+     ===================================================================== */
+  @container (max-width: 720px) {
+    .feature {
+      padding: var(--space-5) var(--space-6);
+      border-radius: var(--radius-lg);
+    }
+    .feature__mark { display: none; }
+    .feature__quote {
+      font-size: var(--text-lg);
+      font-weight: var(--weight-semibold);
+      margin-bottom: var(--space-5);
+      max-width: none;
+    }
+    .feature__foot .avatar { width: 40px; height: 40px; font-size: 15px; }
+
+    .lane {
+      grid-auto-flow: row;
+      grid-auto-columns: auto;
+      gap: var(--space-3);
+    }
+    .rev {
+      flex-direction: row;
+      align-items: flex-start;
+      gap: var(--space-4);
+      padding: var(--space-4) var(--space-5);
+      border-radius: var(--radius-md);
+    }
+    /* reflow: avatar | (name+quote) | rating, like the compact list */
+    .rev__top { order: 3; flex-direction: column; align-items: flex-end; gap: var(--space-2); flex-shrink: 0; }
+    .rev__top .rev__score { display: none; }
+    .rev__foot {
+      order: 1; margin: 0; padding: 0; border: none;
+      flex-shrink: 0;
+    }
+    .rev__foot .avatar { width: 36px; height: 36px; font-size: 13px; }
+    .rev__foot .rev__id { display: none; }       /* name moves next to quote */
+    .rev__body { order: 2; min-width: 0; flex: 1; display: flex; flex-direction: column; }
+    .rev__body .rev__name-inline {
+      display: flex; align-items: baseline; gap: var(--space-2);
+      margin-bottom: var(--space-1_5);
+    }
+    .rev__quote { font-size: var(--text-sm); line-height: var(--leading-normal); color: var(--neutral-700); }
+    .rev__date { display: block; font-family: var(--font-mono); font-size: 10px; color: var(--muted-foreground); white-space: nowrap; }
+  }
+
+  /* name shown inline only in narrow mode */
+  .rev__name-inline { display: none; }
+  @container (max-width: 720px) {
+    .rev__name-inline { display: flex; }
+  }
+  .rev__name-inline .nm { font-size: var(--text-sm); font-weight: var(--weight-semibold); }
+  .rev__name-inline .co { font-size: var(--text-xs); color: var(--muted-foreground); }
+  .rev__name-inline .sep { color: var(--neutral-300); }
+
+  /* Demo helper: width toggle */
+  .demo-bar {
+    max-width: 1120px; margin: 0 auto var(--space-6);
+    display: flex; gap: var(--space-2); align-items: center;
+    font-family: var(--font-mono); font-size: var(--text-xs); color: var(--muted-foreground);
+  }
+  .demo-bar button {
+    font-family: var(--font-mono); font-size: var(--text-xs);
+    border: 1px solid var(--border); background: var(--card);
+    color: var(--foreground); border-radius: var(--radius-sm);
+    padding: 6px 12px; cursor: pointer;
+  }
+  .demo-bar button:hover { background: var(--secondary); }
+  .demo-bar button[data-on="true"] { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+</style>
+</head>
+<body>
+
+  <div class="demo-bar">
+    <span>ширина секции:</span>
+    <button data-w="1120" data-on="true">десктоп</button>
+    <button data-w="380">мобильный</button>
+    <span id="w-readout">1120px</span>
+  </div>
+
+  <div class="reviews" id="reviews">
+    <div class="reviews__head">
+      <h2 class="reviews__title">Отзывы</h2>
+      <span class="reviews__agg"><span class="stars" data-stars="5"></span> <b>4.9</b> · 128 отзывов</span>
+    </div>
+
+    <!-- FEATURED -->
+    <article class="feature">
+      <div class="feature__mark">“</div>
+      <p class="feature__quote">Перестали держать отдельного человека на приёме заявок. Инструмент принимает чертёж, считает и ставит в очередь — мы только подтверждаем. За квартал поток заявок вырос в полтора раза.</p>
+      <div class="feature__foot">
+        <div class="avatar" style="background:oklch(0.55 0.16 250)">СМ</div>
+        <div class="feature__id">
+          <div class="n">Сергей Морозов <span class="verified"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>проверен</span></div>
+          <div class="c">владелец цеха · ЦЕХ-47</div>
+        </div>
+        <div class="feature__rating">
+          <span class="lbl">оценка</span>
+          <span class="stars" data-stars="5"></span>
+        </div>
+      </div>
+    </article>
+
+    <!-- LANE -->
+    <div class="lane">
+
+      <article class="rev">
+        <div class="rev__top">
+          <span class="rev__rating"><span class="stars" data-stars="5"></span><span class="rev__score">5.0</span></span>
+          <span class="verified"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>проверен</span>
+        </div>
+        <div class="rev__body">
+          <div class="rev__name-inline"><span class="nm">Андрей Кузнецов</span><span class="sep">·</span><span class="co">«ТехноПрибор»</span></div>
+          <p class="rev__quote">Закинул STEP вечером — утром цена и срок. Раньше уходило два дня переписки. Деталь точно в допуске.</p>
+          <span class="rev__date">2 нед. назад</span>
+        </div>
+        <div class="rev__foot">
+          <div class="avatar" style="background:oklch(0.55 0.16 250)">АК</div>
+          <div class="rev__id">
+            <div class="rev__name">Андрей Кузнецов</div>
+            <div class="rev__co">гл. конструктор · «ТехноПрибор»</div>
+          </div>
+        </div>
+      </article>
+
+      <article class="rev">
+        <div class="rev__top">
+          <span class="rev__rating"><span class="stars" data-stars="5"></span><span class="rev__score">5.0</span></span>
+          <span class="verified"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>проверен</span>
+        </div>
+        <div class="rev__body">
+          <div class="rev__name-inline"><span class="nm">Марина Орлова</span><span class="sep">·</span><span class="co">«Авиадеталь»</span></div>
+          <p class="rev__quote">Серия 400 шт фрезерованных корпусов за неделю, брака ноль. Чат отвечает по делу, без «менеджер свяжется».</p>
+          <span class="rev__date">1 мес. назад</span>
+        </div>
+        <div class="rev__foot">
+          <div class="avatar" style="background:oklch(0.58 0.15 150)">МО</div>
+          <div class="rev__id">
+            <div class="rev__name">Марина Орлова</div>
+            <div class="rev__co">снабжение · «Авиадеталь»</div>
+          </div>
+        </div>
+      </article>
+
+      <article class="rev">
+        <div class="rev__top">
+          <span class="rev__rating"><span class="stars" data-stars="4"></span><span class="rev__score">4.0</span></span>
+          <span class="verified"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>проверен</span>
+        </div>
+        <div class="rev__body">
+          <div class="rev__name-inline"><span class="nm">Дмитрий Лапин</span><span class="sep">·</span><span class="co">«ЭнергоМаш»</span></div>
+          <p class="rev__quote">5-осевая обработка лопаток — как надо с первого раза. Звезду снял только за загрузку: пришлось переслать чертёж в другом формате.</p>
+          <span class="rev__date">1 мес. назад</span>
+        </div>
+        <div class="rev__foot">
+          <div class="avatar" style="background:oklch(0.5 0.14 300)">ДЛ</div>
+          <div class="rev__id">
+            <div class="rev__name">Дмитрий Лапин</div>
+            <div class="rev__co">технолог · «ЭнергоМаш»</div>
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </div>
+
+<script>
+  const starPath = "M12 2.5l2.9 6.0 6.6.9-4.8 4.6 1.2 6.5L12 18.9 6.1 21.5l1.2-6.5L2.5 9.4l6.6-.9z";
+  document.querySelectorAll('.stars').forEach(el => {
+    const n = parseInt(el.dataset.stars, 10) || 0;
+    let html = '';
+    for (let i = 1; i <= 5; i++) {
+      html += `<svg viewBox="0 0 24 24"><path class="${i <= n ? 'star-on' : 'star-off'}" d="${starPath}"/></svg>`;
+    }
+    el.innerHTML = html;
+  });
+
+  // Demo width toggle
+  const reviews = document.getElementById('reviews');
+  const readout = document.getElementById('w-readout');
+  document.querySelectorAll('.demo-bar button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.demo-bar button').forEach(b => b.dataset.on = 'false');
+      btn.dataset.on = 'true';
+      const w = btn.dataset.w;
+      reviews.style.maxWidth = w + 'px';
+      readout.textContent = w + 'px';
+    });
+  });
+</script>
+</body>
+</html>

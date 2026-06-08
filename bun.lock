@@ -276,6 +276,8 @@
       "dependencies": {
         "back-core": "workspace:*",
         "elysia": "latest",
+        "g-audio-gate": "workspace:*",
+        "nrpc": "workspace:*",
       },
     },
     "back/microservices/communications/ms-calls": {
@@ -1282,6 +1284,13 @@
     },
     "tools/integration/generated/g-assistant": {
       "name": "g-assistant",
+      "version": "0.0.0",
+      "dependencies": {
+        "nrpc": "workspace:*",
+      },
+    },
+    "tools/integration/generated/g-audio-gate": {
+      "name": "g-audio-gate",
       "version": "0.0.0",
       "dependencies": {
         "nrpc": "workspace:*",
@@ -2918,6 +2927,8 @@
     "g-agent": ["g-agent@workspace:tools/integration/generated/g-agent"],
 
     "g-assistant": ["g-assistant@workspace:tools/integration/generated/g-assistant"],
+
+    "g-audio-gate": ["g-audio-gate@workspace:tools/integration/generated/g-audio-gate"],
 
     "g-auth": ["g-auth@workspace:tools/integration/generated/g-auth"],
 

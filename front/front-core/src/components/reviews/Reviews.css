@@ -1,0 +1,431 @@
+/* ============================================================================
+   Reviews block
+   Featured review + horizontal lane (shared carousel) → vertical compact list
+   when the section is narrow. The section is a container, so it reacts to its
+   own width and behaves the same full-bleed or embedded in a narrow column.
+   Palette is shared with the section rail (same --topbar-* fallbacks).
+   ============================================================================ */
+
+.reviews-block {
+	/* Bind to the live theme tokens (light or dark) — same as the section-rail
+	   block does — so the block follows the page theme instead of being a fixed
+	   white slab. */
+	--rev-page: var(--ui-background, #f7f7f6);
+	--rev-card: var(--ui-card, #fbfbfa);
+	--rev-ink: var(--ui-foreground, #1d1d1f);
+	--rev-ink-2: color-mix(in oklch, var(--rev-ink) 82%, transparent);
+	--rev-muted: var(--ui-muted-foreground, #6f7076);
+	--rev-line: var(--ui-border, #dadad7);
+	--rev-warning: #f5a524;
+	--rev-success: oklch(0.72 0.15 155);
+	--rev-radius: 12px;
+	--rev-radius-lg: 16px;
+	--rev-radius-xl: 20px;
+	--rev-mono:
+		"IBM Plex Mono", ui-monospace, "SFMono-Regular", "Menlo", monospace;
+
+	container-type: inline-size;
+	box-sizing: border-box;
+	width: 100%;
+	max-width: 1120px;
+	margin: 0 auto;
+	padding: 56px 16px 30px;
+	color: var(--rev-ink);
+	background: var(--rev-page);
+}
+
+.reviews-block *,
+.reviews-block *::before,
+.reviews-block *::after {
+	box-sizing: border-box;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+
+.reviews-block__head {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 16px;
+	margin-bottom: 24px;
+}
+
+.reviews-block__title {
+	margin: 0;
+	font-size: clamp(22px, 3cqi, 30px);
+	font-weight: 650;
+	letter-spacing: -0.015em;
+}
+
+.reviews-block__agg {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 14px;
+	color: var(--rev-muted);
+	white-space: nowrap;
+}
+
+.reviews-block__agg b {
+	color: var(--rev-ink);
+	font-weight: 650;
+}
+
+/* ── Shared primitives ───────────────────────────────────────────────────── */
+
+.reviews-stars {
+	display: inline-flex;
+	gap: 2px;
+	flex-shrink: 0;
+}
+
+.reviews-stars svg {
+	width: 15px;
+	height: 15px;
+	display: block;
+}
+
+.reviews-star--on {
+	fill: var(--rev-warning);
+}
+
+.reviews-star--off {
+	fill: color-mix(in oklch, var(--rev-ink) 14%, transparent);
+}
+
+.reviews-verified {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	font-family: var(--rev-mono);
+	font-size: 10.5px;
+	letter-spacing: 0.02em;
+	color: var(--rev-success);
+	white-space: nowrap;
+}
+
+.reviews-verified svg {
+	width: 12px;
+	height: 12px;
+}
+
+.reviews-avatar {
+	flex-shrink: 0;
+	display: grid;
+	place-items: center;
+	width: 40px;
+	height: 40px;
+	border-radius: 999px;
+	font-size: 15px;
+	font-weight: 650;
+	letter-spacing: -0.01em;
+	color: #fff;
+	background: var(--rev-muted);
+	user-select: none;
+}
+
+/* ── Featured review ─────────────────────────────────────────────────────── */
+
+.review-feature {
+	position: relative;
+	margin-bottom: 20px;
+	padding: 34px 40px;
+	border: 1px solid var(--rev-line);
+	border-radius: var(--rev-radius-xl);
+	background: var(--rev-card);
+}
+
+.review-feature__mark {
+	height: 30px;
+	margin-bottom: 12px;
+	font-size: 72px;
+	line-height: 0.7;
+	color: color-mix(in oklch, var(--rev-ink) 14%, transparent);
+	user-select: none;
+}
+
+.review-feature__quote {
+	margin: 0 0 32px;
+	max-width: 46ch;
+	font-size: clamp(19px, 2.4cqi, 24px);
+	line-height: 1.4;
+	font-weight: 500;
+	letter-spacing: -0.01em;
+	color: var(--rev-ink);
+	text-wrap: pretty;
+}
+
+.review-feature__foot {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+}
+
+.review-feature__avatar {
+	width: 48px;
+	height: 48px;
+	font-size: 17px;
+}
+
+.review-feature__name {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 14px;
+	font-weight: 650;
+}
+
+.review-feature__co {
+	margin-top: 2px;
+	font-size: 12px;
+	color: var(--rev-muted);
+}
+
+.review-feature__rating {
+	margin-left: auto;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 6px;
+}
+
+.review-feature__rating-label {
+	font-family: var(--rev-mono);
+	font-size: 10px;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: var(--rev-muted);
+}
+
+/* ── Lane card ───────────────────────────────────────────────────────────── */
+
+.review-card {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	padding: 22px;
+	border: 1px solid var(--rev-line);
+	border-radius: var(--rev-radius-lg);
+	background: var(--rev-card);
+}
+
+.review-card__top {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.review-card__rating {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.review-card__score {
+	font-family: var(--rev-mono);
+	font-size: 12px;
+	color: var(--rev-muted);
+	padding-top: 1px;
+}
+
+.review-card__quote {
+	margin: 0;
+	font-size: 15px;
+	line-height: 1.6;
+	color: var(--rev-ink-2);
+	text-wrap: pretty;
+}
+
+.review-card__foot {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-top: auto;
+	padding-top: 16px;
+	border-top: 1px solid var(--rev-line);
+}
+
+.review-card__id {
+	min-width: 0;
+}
+
+.review-card__name {
+	font-size: 14px;
+	font-weight: 650;
+	line-height: 1.25;
+}
+
+.review-card__co {
+	margin-top: 2px;
+	font-size: 12px;
+	color: var(--rev-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* Compact-only bits — hidden in the wide card form. */
+.review-card__name-inline,
+.review-card__date {
+	display: none;
+}
+
+/* ── Carousel overrides ──────────────────────────────────────────────────── */
+/* Reuse the shared rail, but strip its own page chrome (we own the header and
+   background) and make the cards equal-width review tiles instead of the
+   focus-enlarge rail cards. */
+
+.review-lane.landing-section-rail {
+	--landing-rail-card-width: 340px;
+	--landing-rail-card-active-ratio: 1; /* equal cards, no focus enlarge */
+	--landing-rail-card-height: auto;
+	padding: 0;
+	background: transparent;
+}
+
+.review-lane .landing-section-rail__header {
+	display: none;
+}
+
+.review-lane .landing-section-rail__card[data-active="true"] {
+	flex-basis: var(--landing-rail-card-width);
+}
+
+/* ============================================================================
+   Narrow section (≤720px container): vertical compact list
+   ============================================================================ */
+
+@container (max-width: 720px) {
+	.reviews-block {
+		padding: 28px 14px;
+	}
+
+	.review-feature {
+		padding: 20px 24px;
+		border-radius: var(--rev-radius-lg);
+	}
+
+	.review-feature__mark {
+		display: none;
+	}
+
+	.review-feature__quote {
+		margin-bottom: 20px;
+		font-size: 18px;
+		font-weight: 650;
+		max-width: none;
+	}
+
+	.review-feature__avatar {
+		width: 40px;
+		height: 40px;
+		font-size: 15px;
+	}
+
+	/* Lane folds from a horizontal scroller into a stacked list. */
+	.review-lane .landing-section-rail__viewport {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		margin-inline: 0;
+		padding: 0;
+		overflow: visible;
+		-webkit-mask-image: none;
+		mask-image: none;
+	}
+
+	.review-lane .landing-section-rail__card,
+	.review-lane .landing-section-rail__card[data-active="true"] {
+		flex: 0 0 auto;
+		width: 100%;
+	}
+
+	.review-lane .landing-section-rail__controls {
+		display: none;
+	}
+
+	/* Card reflows: avatar | (name + quote) | rating. */
+	.review-card {
+		flex-direction: row;
+		align-items: flex-start;
+		gap: 16px;
+		padding: 16px 18px;
+		border-radius: var(--rev-radius);
+	}
+
+	.review-card__top {
+		order: 3;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 8px;
+		flex-shrink: 0;
+	}
+
+	.review-card__top .review-card__score {
+		display: none;
+	}
+
+	.review-card__foot {
+		order: 1;
+		margin: 0;
+		padding: 0;
+		border: none;
+		flex-shrink: 0;
+	}
+
+	.review-card__foot .reviews-avatar {
+		width: 36px;
+		height: 36px;
+		font-size: 13px;
+	}
+
+	.review-card__foot .review-card__id {
+		display: none;
+	}
+
+	.review-card__body {
+		order: 2;
+		min-width: 0;
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.review-card__name-inline {
+		display: flex;
+		align-items: baseline;
+		gap: 6px;
+		margin-bottom: 6px;
+	}
+
+	.review-card__name-inline-nm {
+		font-size: 14px;
+		font-weight: 650;
+	}
+
+	.review-card__name-inline-co {
+		font-size: 12px;
+		color: var(--rev-muted);
+	}
+
+	.review-card__name-inline-sep {
+		color: color-mix(in oklch, var(--rev-ink) 30%, transparent);
+	}
+
+	.review-card__quote {
+		font-size: 14px;
+		line-height: 1.5;
+		color: color-mix(in oklch, var(--rev-ink) 70%, transparent);
+	}
+
+	.review-card__date {
+		display: block;
+		margin-top: 6px;
+		font-family: var(--rev-mono);
+		font-size: 10px;
+		color: var(--rev-muted);
+		white-space: nowrap;
+	}
+}

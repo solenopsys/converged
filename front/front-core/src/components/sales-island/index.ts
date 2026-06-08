@@ -1,3 +1,4 @@
+export { bindAutoExpandOnScrollEnd } from "./auto-expand";
 export { SalesIslandIcon } from "./icons";
 export { createSalesIslandModel, type SalesIslandModel } from "./model";
 export { SalesIsland } from "./SalesIsland";

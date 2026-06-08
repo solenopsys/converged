@@ -11,6 +11,8 @@ import {
   type HeroRequestBannerData,
   LandingSectionRailBlock,
   type LandingSectionRailBlockData,
+  ReviewsBlock,
+  type ReviewsData,
   SalesIslandBlock,
   type SalesIslandData,
 } from "front-core";
@@ -278,6 +280,7 @@ function isFullWidthBlock(type: string): boolean {
     "section-rail",
     "sales-island",
     "shop-proof",
+    "reviews",
     "certificates",
     "contacts-map",
   ].includes(type);
@@ -307,6 +310,9 @@ function renderBlock(block: ResolvedBlock, index: number, fallbackLocale: Suppor
     }
     case "sales-island": {
       return <SalesIslandBlock key={key} data={block.data.island as SalesIslandData} />;
+    }
+    case "reviews": {
+      return <ReviewsBlock key={key} data={block.data.reviews as ReviewsData} />;
     }
     case "ai-section": {
       const ui = block.data.ui as any;

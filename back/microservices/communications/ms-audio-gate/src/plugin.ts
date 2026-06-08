@@ -1,15 +1,18 @@
 /**
- * ms-audio-gate — root-mounted proxy plugin
+ * ms-audio-gate — root-mounted plugin
  *
  * Routes:
- *   /audio-gate/*        → HTTP proxy → llm-audio-gate
- *   /audio-gate/ws       → WebSocket relay → llm-audio-gate /ws
+ *   /services/audiogate/*  → nrpc AudioGateService (phone numbers + llm-gate configs)
+ *   /audio-gate/*          → HTTP proxy → llm-audio-gate
+ *   /audio-gate/ws         → WebSocket relay → llm-audio-gate /ws
  *
- * Env: LLM_GATE_URL (required)
+ * Env: LLM_GATE_URL (optional — relay is disabled when unset; the config
+ * service and its stores still come up so dev/seed works without the gate).
  */
-import { required } from "back-core";
 import { t } from "elysia";
-import { StoresController } from "./stores";
+import { createHttpBackend } from "nrpc";
+import { metadata } from "g-audio-gate";
+import { AudioGateServiceImpl } from "./service";
 
 // Headers that must never be forwarded upstream
 const SKIP_HEADERS = new Set([
@@ -107,26 +110,27 @@ function deleteRelayState(ws: RelaySocket): void {
 	relayBySocket.delete(ws);
 }
 
-const plugin = (_config: unknown) => (app: AudioGateApp) => {
-	const config = _config as {
-		registerStartupTask?: (name: string, task: () => Promise<void>) => void;
-		registerShutdownTask?: (name: string, task: () => Promise<void>) => void;
-	};
-	const gateUrl = required("LLM_GATE_URL").replace(/\/$/, "");
-	let stores: StoresController | undefined;
+// Shared instance: backs both the nrpc backend and (via its stores) anything
+// else in this process. Stores are created in the constructor's init().
+const serviceInstance = new AudioGateServiceImpl();
+const nrpcBackend = createHttpBackend({
+	metadata,
+	serviceImpl: serviceInstance,
+	// Mounted at app root, so prefix the routes to land under /services.
+	pathPrefix: "/services",
+});
 
-	if (typeof config?.registerStartupTask === "function") {
-		config.registerStartupTask("audio-gate-stores", async () => {
-			stores = new StoresController("audio-gate-ms");
-			await stores.init();
-		});
+const plugin = (config: any) => (app: AudioGateApp) => {
+	// nrpc AudioGateService → /services/audiogate/* (registers its own
+	// startup/shutdown tasks and brings up the phone-numbers store).
+	nrpcBackend(config)(app as any);
 
-		if (typeof config.registerShutdownTask === "function") {
-			config.registerShutdownTask("audio-gate-stores", async () => {
-				await stores?.destroy();
-				stores = undefined;
-			});
-		}
+	const gateUrl = process.env.LLM_GATE_URL?.replace(/\/$/, "") ?? "";
+	if (!gateUrl) {
+		console.warn(
+			"[audio-gate-proxy] LLM_GATE_URL not set; HTTP/WS relay disabled (config service still active)",
+		);
+		return app;
 	}
 
 	// Elysia's global landing fallback wins over dynamic /audio-gate/* routes,

@@ -24,6 +24,7 @@ export * from "./right-rail/BaseLayout";
 export * from "./right-rail/panelController";
 export * from "./right-rail/panelTypes";
 export * from "./right-rail/RightRailPanels";
+export * from "./reviews";
 export * from "./sales-island";
 export * from "./shell";
 export * from "./site-header";

@@ -20,6 +20,8 @@ interface DocumentProps {
   initialData?: Record<string, unknown>;
   logoLight?: string;
   logoDark?: string;
+  // Primary public phone, resolved from ms-audio-gate (AudioGateService) at SSR.
+  phone?: string;
 }
 
 type TopBarMenuLink = {
@@ -115,7 +117,7 @@ function readTopBarMenuLinks(initialData: Record<string, unknown> | undefined): 
   return [];
 }
 
-export function Document({ children, seo, lang = "en", importMap, initialData, logoLight, logoDark }: DocumentProps) {
+export function Document({ children, seo, lang = "en", importMap, initialData, logoLight, logoDark, phone: phoneProp }: DocumentProps) {
   const title = seo?.title ?? "Landing";
   const description = seo?.description ?? "";
   const keywords = seo?.keywords?.filter(Boolean).join(", ") ?? "";
@@ -125,7 +127,7 @@ export function Document({ children, seo, lang = "en", importMap, initialData, l
   const importMapJson = importMap ? JSON.stringify({ imports: importMap }) : null;
   const initialDataJson = initialData ? JSON.stringify(initialData) : null;
   const loginEnabled = String(process.env.LOGIN_ENABLED ?? "").toLowerCase() === "true";
-  const phone = process.env.LANDING_PHONE?.trim() || "";
+  const phone = phoneProp?.trim() || process.env.LANDING_PHONE?.trim() || "";
   const topBarMenuLinks = readTopBarMenuLinks(initialData);
 
   return (

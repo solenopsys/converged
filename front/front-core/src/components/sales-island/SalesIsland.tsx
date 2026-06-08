@@ -11,8 +11,9 @@
  */
 
 import { useUnit } from "effector-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "../../lib/utils";
+import { bindAutoExpandOnScrollEnd } from "./auto-expand";
 import { createSalesIslandModel } from "./model";
 import { SalesIslandBar } from "./SalesIslandBar";
 import { SalesIslandMobile } from "./SalesIslandMobile";
@@ -29,11 +30,18 @@ export function SalesIsland({
 }) {
 	const [model] = useState(() => createSalesIslandModel(data.defaultExpanded));
 	const open = useUnit(model.$open);
+	const rootRef = useRef<HTMLDivElement>(null);
 
 	const placement = data.placement ?? "fixed";
 
+	useEffect(() => {
+		if (!rootRef.current) return;
+		return bindAutoExpandOnScrollEnd(rootRef.current, () => model.opened());
+	}, [model]);
+
 	return (
 		<div
+			ref={rootRef}
 			className={cn("sales-island", className)}
 			data-sales-island
 			data-open={open ? "true" : "false"}

@@ -1,33 +1,22 @@
 import { JsonStore, StoreControllerAbstract, StoreType } from "back-core";
-import { AudioGateConfigStoreService } from "./configs/service";
+import { PhoneNumberStoreService } from "./phone-numbers/service";
 
 export class StoresController extends StoreControllerAbstract {
-	public ipTelephonyConfigs!: AudioGateConfigStoreService;
-	public llmAudioGateConfigs!: AudioGateConfigStoreService;
+	public phoneNumbers!: PhoneNumberStoreService;
 
 	constructor(protected msName: string) {
 		super(msName);
 	}
 
 	async init() {
-		const ipTelephonyStore = await this.addStore(
-			"ip-telephony-configs",
-			StoreType.JSON,
-			[],
-		);
-		const llmAudioGateStore = await this.addStore(
-			"llm-gate-configs",
+		const phoneNumbersStore = await this.addStore(
+			"phone-numbers",
 			StoreType.JSON,
 			[],
 		);
 
-		this.ipTelephonyConfigs = new AudioGateConfigStoreService(
-			ipTelephonyStore as JsonStore,
-			"ip-telephony",
-		);
-		this.llmAudioGateConfigs = new AudioGateConfigStoreService(
-			llmAudioGateStore as JsonStore,
-			"llm-audio-gate",
+		this.phoneNumbers = new PhoneNumberStoreService(
+			phoneNumbersStore as JsonStore,
 		);
 
 		await this.startAll();

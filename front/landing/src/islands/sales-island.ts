@@ -8,7 +8,7 @@
  * both the React and the SSR-hydrated paths.
  */
 
-import { createSalesIslandModel } from "front-core";
+import { bindAutoExpandOnScrollEnd, createSalesIslandModel } from "front-core";
 
 type Props = {
 	defaultExpanded?: boolean;
@@ -44,6 +44,9 @@ export function mount(
 	root.addEventListener("keydown", (event) => {
 		if (event.key === "Escape" && model.$open.getState()) model.closed();
 	});
+
+	// Unfold the dock once the reader reaches the bottom of the landing.
+	bindAutoExpandOnScrollEnd(root, () => model.opened());
 }
 
 function bindAll(

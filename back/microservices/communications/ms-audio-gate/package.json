@@ -5,6 +5,8 @@
   "module": "src/plugin.ts",
   "dependencies": {
     "back-core": "workspace:*",
-    "elysia": "latest"
+    "elysia": "latest",
+    "nrpc": "workspace:*",
+    "g-audio-gate": "workspace:*"
   }
 }
