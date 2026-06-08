@@ -1,6 +1,9 @@
 import { Access } from "nrpc";
 import type {
 	AudioGateService,
+	LlmGateConfig,
+	LlmGateConfigId,
+	LlmGateConfigInput,
 	PaginatedResult,
 	PhoneNumber,
 	PhoneNumberId,
@@ -89,6 +92,30 @@ export class AudioGateServiceImpl implements AudioGateService {
 	async getPrimaryPhoneNumber(): Promise<PhoneNumber | undefined> {
 		await this.ready();
 		return this.stores.phoneNumbers.getPrimary();
+	}
+
+	// ── LLM gate configs ─────────────────────────────────────────────────
+
+	async saveLlmGateConfig(input: LlmGateConfigInput): Promise<LlmGateConfigId> {
+		await this.ready();
+		return this.stores.llmGateConfigs.save(input);
+	}
+
+	async getLlmGateConfig(
+		id: LlmGateConfigId,
+	): Promise<LlmGateConfig | undefined> {
+		await this.ready();
+		return this.stores.llmGateConfigs.get(id);
+	}
+
+	async listLlmGateConfigs(): Promise<LlmGateConfig[]> {
+		await this.ready();
+		return this.stores.llmGateConfigs.list();
+	}
+
+	async deleteLlmGateConfig(id: LlmGateConfigId): Promise<boolean> {
+		await this.ready();
+		return this.stores.llmGateConfigs.delete(id);
 	}
 }
 

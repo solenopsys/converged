@@ -53,6 +53,21 @@ export type PaginatedResult<T> = {
   totalCount?: number;
 };
 
+// LLM audio gate runtime config — the llm-audio-gate container reads/writes this
+// store (LLM_GATE_TRANSPORT_STORE=llm-gate-configs in namespace audio-gate-ms).
+// The store MUST be created here (gate only reads/writes, never creates it).
+export type LlmGateConfigId = string;
+
+export type LlmGateConfig = {
+  id: LlmGateConfigId;
+  config: Record<string, any>;
+};
+
+export type LlmGateConfigInput = {
+  id: LlmGateConfigId;
+  config: Record<string, any>;
+};
+
 export interface AudioGateService {
   // Phone numbers (ip-telephony + external) — one store, discriminated by kind.
   savePhoneNumber(input: PhoneNumberInput): Promise<PhoneNumberId>;
@@ -62,4 +77,10 @@ export interface AudioGateService {
   listPhoneNumbers(params: PhoneNumberListParams): Promise<PaginatedResult<PhoneNumber>>;
   // Primary public number: first enabled primary, else first enabled.
   getPrimaryPhoneNumber(): Promise<PhoneNumber | undefined>;
+
+  // LLM gate runtime configs (store owned here, read by the gate container).
+  saveLlmGateConfig(input: LlmGateConfigInput): Promise<LlmGateConfigId>;
+  getLlmGateConfig(id: LlmGateConfigId): Promise<LlmGateConfig | undefined>;
+  listLlmGateConfigs(): Promise<LlmGateConfig[]>;
+  deleteLlmGateConfig(id: LlmGateConfigId): Promise<boolean>;
 }

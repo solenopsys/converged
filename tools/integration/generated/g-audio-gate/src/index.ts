@@ -54,6 +54,18 @@ export type PaginatedResult<T> = {
   totalCount?: number;
 };
 
+export type LlmGateConfigId = string;
+
+export type LlmGateConfig = {
+  id: LlmGateConfigId;
+  config: Record<string, any>;
+};
+
+export type LlmGateConfigInput = {
+  id: LlmGateConfigId;
+  config: Record<string, any>;
+};
+
 export const metadata = {
   "interfaceName": "AudioGateService",
   "serviceName": "audiogate",
@@ -147,6 +159,59 @@ export const metadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
+    },
+    {
+      "name": "saveLlmGateConfig",
+      "parameters": [
+        {
+          "name": "input",
+          "type": "LlmGateConfigInput",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "LlmGateConfigId",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "getLlmGateConfig",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "LlmGateConfigId",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "LlmGateConfig | any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "listLlmGateConfigs",
+      "parameters": [],
+      "returnType": "LlmGateConfig",
+      "isAsync": true,
+      "returnTypeIsArray": true,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "deleteLlmGateConfig",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "LlmGateConfigId",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "boolean",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -195,6 +260,21 @@ export const metadata = {
       "kind": "type",
       "typeParameters": "<T>",
       "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
+    },
+    {
+      "name": "LlmGateConfigId",
+      "kind": "type",
+      "definition": "string"
+    },
+    {
+      "name": "LlmGateConfig",
+      "kind": "type",
+      "definition": "{\n  id: LlmGateConfigId;\n  config: Record<string, any>;\n}"
+    },
+    {
+      "name": "LlmGateConfigInput",
+      "kind": "type",
+      "definition": "{\n  id: LlmGateConfigId;\n  config: Record<string, any>;\n}"
     }
   ]
 };
@@ -207,6 +287,10 @@ export interface AudioGateService {
   deletePhoneNumber(id: PhoneNumberId): Promise<boolean>;
   listPhoneNumbers(params: PhoneNumberListParams): Promise<PaginatedResult<PhoneNumber>>;
   getPrimaryPhoneNumber(): Promise<PhoneNumber | any>;
+  saveLlmGateConfig(input: LlmGateConfigInput): Promise<LlmGateConfigId>;
+  getLlmGateConfig(id: LlmGateConfigId): Promise<LlmGateConfig | any>;
+  listLlmGateConfigs(): Promise<LlmGateConfig[]>;
+  deleteLlmGateConfig(id: LlmGateConfigId): Promise<boolean>;
 }
 
 // Client interface
@@ -217,6 +301,10 @@ export interface AudioGateServiceClient {
   deletePhoneNumber(id: PhoneNumberId): Promise<boolean>;
   listPhoneNumbers(params: PhoneNumberListParams): Promise<PaginatedResult<PhoneNumber>>;
   getPrimaryPhoneNumber(): Promise<PhoneNumber | any>;
+  saveLlmGateConfig(input: LlmGateConfigInput): Promise<LlmGateConfigId>;
+  getLlmGateConfig(id: LlmGateConfigId): Promise<LlmGateConfig | any>;
+  listLlmGateConfigs(): Promise<LlmGateConfig[]>;
+  deleteLlmGateConfig(id: LlmGateConfigId): Promise<boolean>;
 }
 
 // Factory function
