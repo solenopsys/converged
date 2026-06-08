@@ -11,6 +11,8 @@ import {
   type HeroRequestBannerData,
   LandingSectionRailBlock,
   type LandingSectionRailBlockData,
+  SalesIslandBlock,
+  type SalesIslandData,
 } from "front-core";
 import { openLoginPanel } from "front-core/landing-common/island-client";
 import {
@@ -274,6 +276,7 @@ function isFullWidthBlock(type: string): boolean {
   return [
     "cnc-hero-request",
     "section-rail",
+    "sales-island",
     "shop-proof",
     "certificates",
     "contacts-map",
@@ -301,6 +304,9 @@ function renderBlock(block: ResolvedBlock, index: number, fallbackLocale: Suppor
     }
     case "section-rail": {
       return <LandingSectionRailBlock key={key} data={block.data.rail as LandingSectionRailBlockData} />;
+    }
+    case "sales-island": {
+      return <SalesIslandBlock key={key} data={block.data.island as SalesIslandData} />;
     }
     case "ai-section": {
       const ui = block.data.ui as any;

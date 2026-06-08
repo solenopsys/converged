@@ -15,6 +15,7 @@ import {
 // DOM without hydration or React.
 
 registerIsland("section-rail", () => import("./islands/section-rail"));
+registerIsland("sales-island", () => import("./islands/sales-island"));
 registerIsland("warmup", () => import("./islands/warmup"));
 
 import { createRuntimeGatesServiceClient } from "g-rt-gates";

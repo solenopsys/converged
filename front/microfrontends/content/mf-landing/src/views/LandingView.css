@@ -387,6 +387,11 @@
   .cnc-contacts-map__layout {
     grid-template-columns: 1fr;
   }
+  /* shop-proof first stage: copy stacks on top, the four metric cards drop below
+     in the same two-up (2×2) layout instead of collapsing to one column. */
+}
+
+@media (max-width: 560px) {
   .cnc-shop-proof__metrics {
     grid-template-columns: 1fr;
   }

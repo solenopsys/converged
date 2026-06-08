@@ -7,7 +7,8 @@
 	align-items: start;
 	gap: 24px;
 	row-gap: 12px;
-	border-bottom: 1px solid color-mix(in oklch, var(--ui-border) 60%, transparent);
+	border-bottom: 1px solid
+		color-mix(in oklch, var(--ui-border) 60%, transparent);
 	background: color-mix(in oklch, var(--ui-card) 88%, transparent);
 	backdrop-filter: blur(20px);
 	-webkit-backdrop-filter: blur(20px);
@@ -343,18 +344,25 @@ html.dark .ltb-logo--dark {
 	.ltb-brand {
 		grid-column: 1;
 		grid-row: 1;
-		display: grid;
-		grid-template-columns: auto minmax(0, 1fr);
-		grid-template-rows: auto auto;
-		column-gap: 12px;
-		row-gap: 2px;
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
 		align-items: center;
+		column-gap: 10px;
+		row-gap: 2px;
 	}
 
 	.ltb-logo {
-		grid-row: 1 / span 2;
+		grid-row: auto;
 		width: 96px;
 		height: 34px;
+	}
+
+	/* Control-panel toggle sits inline next to the logo (hamburger position)
+	   instead of floating in the middle of the old brand grid. Phone + status
+	   then wrap onto the next line. */
+	.ltb-panel-open {
+		flex-shrink: 0;
 	}
 
 	.ltb-logo[src$=".png"] {

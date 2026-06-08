@@ -1,10 +1,214 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: converged-portal
+    component: valkey
+  name: converged-portal-valkey
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: converged-portal
+      component: valkey
+  template:
+    metadata:
+      labels:
+        app: converged-portal
+        component: valkey
+    spec:
+      containers:
+        - command:
+            - valkey-server
+            - --save
+            - ""
+            - --appendonly
+            - "no"
+          env:
+            - name: PORT
+              value: "6379"
+          image: "{{ .Values.images.valkey.name }}:{{ .Values.images.valkey.tag }}"
+          imagePullPolicy: "{{ .Values.images.valkey.pullPolicy }}"
+          livenessProbe:
+            failureThreshold: 3
+            periodSeconds: 10
+            tcpSocket:
+              port: 6379
+            timeoutSeconds: 2
+          name: valkey
+          ports:
+            - containerPort: 6379
+          readinessProbe:
+            failureThreshold: 6
+            periodSeconds: 5
+            tcpSocket:
+              port: 6379
+            timeoutSeconds: 2
+          resources:
+            limits:
+              cpu: 500m
+              memory: 256Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: false
+          startupProbe:
+            failureThreshold: 60
+            periodSeconds: 2
+            tcpSocket:
+              port: 6379
+            timeoutSeconds: 2
+      securityContext:
+        runAsNonRoot: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: converged-portal
+    component: valkey
+  name: converged-portal-valkey
+spec:
+  ports:
+    - port: 6379
+      targetPort: 6379
+  selector:
+    app: converged-portal
+    component: valkey
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: converged-portal-storage-headless
+spec:
+  clusterIP: None
+  ports:
+    - port: 9000
+      targetPort: 9000
+  selector:
+    app: converged-portal
+    component: storage
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: converged-portal
+    component: storage
+  name: converged-portal-storage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: converged-portal
+      component: storage
+  serviceName: converged-portal-storage-headless
+  template:
+    metadata:
+      labels:
+        app: converged-portal
+        component: storage
+    spec:
+      containers:
+        - command:
+            - /app/storage
+            - start
+            - --data-dir
+            - /app/data
+            - --tcp
+            - 0.0.0.0:9000
+          image: "{{ .Values.images.storage.name }}:{{ .Values.images.storage.tag }}"
+          imagePullPolicy: "{{ .Values.images.storage.pullPolicy }}"
+          livenessProbe:
+            exec:
+              command:
+                - /app/storage
+                - health
+                - --tcp
+                - 127.0.0.1:9000
+                - --timeout-ms
+                - "1000"
+            failureThreshold: 3
+            periodSeconds: 10
+            timeoutSeconds: 2
+          name: storage
+          ports:
+            - containerPort: 9000
+          readinessProbe:
+            exec:
+              command:
+                - /app/storage
+                - health
+                - --tcp
+                - 127.0.0.1:9000
+                - --timeout-ms
+                - "1000"
+            failureThreshold: 3
+            periodSeconds: 5
+            timeoutSeconds: 2
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 2Gi
+            requests:
+              cpu: 50m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: false
+          startupProbe:
+            exec:
+              command:
+                - /app/storage
+                - health
+                - --tcp
+                - 127.0.0.1:9000
+                - --timeout-ms
+                - "1000"
+            failureThreshold: 60
+            periodSeconds: 2
+            timeoutSeconds: 2
+          volumeMounts:
+            - mountPath: /app/data
+              name: converged-portal-mono-data
+      securityContext:
+        runAsNonRoot: false
+      volumes:
+        - name: converged-portal-mono-data
+          persistentVolumeClaim:
+            claimName: converged-portal-mono-data-converged-portal-mono-0
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: converged-portal
+    component: storage
+  name: converged-portal-storage
+spec:
+  ports:
+    - port: 9000
+      targetPort: 9000
+  selector:
+    app: converged-portal
+    component: storage
+  type: ClusterIP
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   labels:
     app: converged-portal
-    component: mono
-  name: converged-portal-mono-ui-config
+    component: ui
+  name: converged-portal-ui-config
 data:
   config.json: |-
     {
@@ -46,13 +250,220 @@ data:
       }
     }
 ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: converged-portal
+    component: ui
+  name: converged-portal-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: converged-portal
+      component: ui
+  template:
+    metadata:
+      labels:
+        app: converged-portal
+        component: ui
+    spec:
+      containers:
+        - env:
+            - name: NODE_ENV
+              value: production
+            - name: PORT
+              value: "3000"
+            - name: DATA_DIR
+              value: /app/data
+            - name: CONFIG_PATH
+              value: /app/config/config.json
+            - name: SERVICES_BASE
+              value: http://converged-portal-services:80/services
+            - name: VALKEY_URL
+              value: redis://converged-portal-valkey:6379/0
+          envFrom:
+            - secretRef:
+                name: converged-portal-secrets
+            - configMapRef:
+                name: converged-portal-domains
+                optional: true
+          image: "{{ .Values.images.ui.name }}:{{ .Values.images.ui.tag }}"
+          imagePullPolicy: "{{ .Values.images.ui.pullPolicy }}"
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health
+              port: 3000
+            periodSeconds: 10
+            timeoutSeconds: 2
+          name: ui
+          ports:
+            - containerPort: 3000
+          readinessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /health
+              port: 3000
+            periodSeconds: 5
+            timeoutSeconds: 2
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+            requests:
+              cpu: 50m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: false
+          startupProbe:
+            failureThreshold: 120
+            httpGet:
+              path: /health
+              port: 3000
+            periodSeconds: 2
+            timeoutSeconds: 2
+          volumeMounts:
+            - mountPath: /app/data
+              name: ui-data
+            - mountPath: /app/config
+              name: ui-config
+              readOnly: true
+      securityContext:
+        runAsNonRoot: false
+      volumes:
+        - emptyDir: {}
+          name: ui-data
+        - configMap:
+            name: converged-portal-ui-config
+          name: ui-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: converged-portal
+    component: ui
+  name: converged-portal-ui
+spec:
+  ports:
+    - port: 80
+      targetPort: 3000
+  selector:
+    app: converged-portal
+    component: ui
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: converged-portal
+    component: runtime
+  name: converged-portal-runtime
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: converged-portal
+      component: runtime
+  template:
+    metadata:
+      labels:
+        app: converged-portal
+        component: runtime
+    spec:
+      containers:
+        - env:
+            - name: NODE_ENV
+              value: production
+            - name: PORT
+              value: "3002"
+            - name: DATA_DIR
+              value: /app/data
+            - name: CONFIG_PATH
+              value: /app/config/config.json
+            - name: SERVICES_BASE
+              value: http://converged-portal-services:80/services
+            - name: RUNTIME_BASE
+              value: http://converged-portal-runtime:80/runtime
+            - name: RT_DAG_BASE
+              value: http://converged-portal-runtime:80/runtime
+            - name: VALKEY_URL
+              value: redis://converged-portal-valkey:6379/0
+            - name: RT_RUNTIMES
+              value: automation/dag,automation/cron,automation/gates,ai/agents,ai/assistant
+          envFrom:
+            - secretRef:
+                name: converged-portal-secrets
+          image: "{{ .Values.images.rt.name }}:{{ .Values.images.rt.tag }}"
+          imagePullPolicy: "{{ .Values.images.rt.pullPolicy }}"
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health
+              port: 3002
+            periodSeconds: 10
+            timeoutSeconds: 2
+          name: runtime
+          ports:
+            - containerPort: 3002
+          readinessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /health
+              port: 3002
+            periodSeconds: 5
+            timeoutSeconds: 2
+          resources:
+            limits:
+              cpu: 2000m
+              memory: 2Gi
+            requests:
+              cpu: 50m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: false
+          startupProbe:
+            failureThreshold: 120
+            httpGet:
+              path: /health
+              port: 3002
+            periodSeconds: 2
+            timeoutSeconds: 2
+      securityContext:
+        runAsNonRoot: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: converged-portal
+    component: runtime
+  name: converged-portal-runtime
+spec:
+  ports:
+    - port: 80
+      targetPort: 3002
+  selector:
+    app: converged-portal
+    component: runtime
+  type: ClusterIP
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   labels:
     app: converged-portal
-    component: mono
-  name: converged-portal-mono-services-config
+    component: services
+  name: converged-portal-services-config
 data:
   config.json: |-
     {
@@ -211,101 +622,26 @@ data:
       }
     }
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: converged-portal-mono-headless
-spec:
-  clusterIP: None
-  ports:
-    - port: 3001
-      targetPort: 3001
-  selector:
-    app: converged-portal
-    component: mono
-  type: ClusterIP
----
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   labels:
     app: converged-portal
-    component: mono
-  name: converged-portal-mono
+    component: services
+  name: converged-portal-services
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: converged-portal
-      component: mono
-  serviceName: converged-portal-mono-headless
+      component: services
   template:
     metadata:
       labels:
         app: converged-portal
-        component: mono
+        component: services
     spec:
       containers:
-        - env:
-            - name: NODE_ENV
-              value: production
-            - name: PORT
-              value: "3000"
-            - name: DATA_DIR
-              value: /app/data
-            - name: CONFIG_PATH
-              value: /app/config/config.json
-            - name: SERVICES_BASE
-              value: http://127.0.0.1:3001/services
-            - name: VALKEY_URL
-              value: redis://127.0.0.1:6379/0
-          envFrom:
-            - secretRef:
-                name: converged-portal-secrets
-          image: "{{ .Values.images.ui.name }}:{{ .Values.images.ui.tag }}"
-          imagePullPolicy: "{{ .Values.images.ui.pullPolicy }}"
-          livenessProbe:
-            failureThreshold: 3
-            httpGet:
-              path: /health
-              port: 3000
-            periodSeconds: 10
-            timeoutSeconds: 2
-          name: ui
-          ports:
-            - containerPort: 3000
-          readinessProbe:
-            failureThreshold: 6
-            httpGet:
-              path: /health
-              port: 3000
-            periodSeconds: 5
-            timeoutSeconds: 2
-          resources:
-            limits:
-              cpu: 1000m
-              memory: 1Gi
-            requests:
-              cpu: 50m
-              memory: 128Mi
-          securityContext:
-            allowPrivilegeEscalation: false
-            privileged: false
-            readOnlyRootFilesystem: false
-            runAsNonRoot: false
-          startupProbe:
-            failureThreshold: 120
-            httpGet:
-              path: /health
-              port: 3000
-            periodSeconds: 2
-            timeoutSeconds: 2
-          volumeMounts:
-            - mountPath: /app/data
-              name: converged-portal-mono-data
-            - mountPath: /app/config
-              name: ui-config
-              readOnly: true
         - env:
             - name: NODE_ENV
               value: production
@@ -316,16 +652,23 @@ spec:
             - name: CONFIG_PATH
               value: /app/config/config.json
             - name: SERVICES_BASE
-              value: http://127.0.0.1:3001/services
-            - name: STORAGE_SOCKET_PATH
-              value: /app/socket/storage.sock
+              value: http://converged-portal-services:80/services
+            - name: STORAGE_TRANSPORT
+              value: tcp
+            - name: STORAGE_HOST
+              value: converged-portal-storage
+            - name: STORAGE_PORT
+              value: "9000"
             - name: VALKEY_URL
-              value: redis://127.0.0.1:6379/0
+              value: redis://converged-portal-valkey:6379/0
             - name: LLM_GATE_URL
-              value: http://127.0.0.1:8090
+              value: http://converged-portal-audio-gate
           envFrom:
             - secretRef:
                 name: converged-portal-secrets
+            - configMapRef:
+                name: converged-portal-domains
+                optional: true
           image: "{{ .Values.images.ms.name }}:{{ .Values.images.ms.tag }}"
           imagePullPolicy: "{{ .Values.images.ms.pullPolicy }}"
           livenessProbe:
@@ -366,66 +709,55 @@ spec:
             timeoutSeconds: 2
           volumeMounts:
             - mountPath: /app/data
-              name: converged-portal-mono-data
+              name: services-data
             - mountPath: /app/config
               name: services-config
               readOnly: true
-            - mountPath: /app/socket
-              name: storage-socket
-        - env:
-            - name: NODE_ENV
-              value: production
-            - name: PORT
-              value: "3002"
-            - name: SERVICES_BASE
-              value: http://127.0.0.1:3001/services
-            - name: RUNTIME_BASE
-              value: http://127.0.0.1:3002/runtime
-            - name: RT_DAG_BASE
-              value: http://127.0.0.1:3002/runtime
-            - name: VALKEY_URL
-              value: redis://127.0.0.1:6379/0
-          envFrom:
-            - secretRef:
-                name: converged-portal-secrets
-          image: "{{ .Values.images.rt.name }}:{{ .Values.images.rt.tag }}"
-          imagePullPolicy: "{{ .Values.images.rt.pullPolicy }}"
-          livenessProbe:
-            failureThreshold: 3
-            httpGet:
-              path: /health
-              port: 3002
-            periodSeconds: 10
-            timeoutSeconds: 2
-          name: rt
-          ports:
-            - containerPort: 3002
-          readinessProbe:
-            failureThreshold: 6
-            httpGet:
-              path: /health
-              port: 3002
-            periodSeconds: 5
-            timeoutSeconds: 2
-          resources:
-            limits:
-              cpu: 2000m
-              memory: 2Gi
-            requests:
-              cpu: 50m
-              memory: 256Mi
-          securityContext:
-            allowPrivilegeEscalation: false
-            privileged: false
-            readOnlyRootFilesystem: false
-            runAsNonRoot: false
-          startupProbe:
-            failureThreshold: 120
-            httpGet:
-              path: /health
-              port: 3002
-            periodSeconds: 2
-            timeoutSeconds: 2
+      securityContext:
+        runAsNonRoot: false
+      volumes:
+        - emptyDir: {}
+          name: services-data
+        - configMap:
+            name: converged-portal-services-config
+          name: services-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: converged-portal
+    component: services
+  name: converged-portal-services
+spec:
+  ports:
+    - port: 80
+      targetPort: 3001
+  selector:
+    app: converged-portal
+    component: services
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: converged-portal
+    component: audio-gate
+  name: converged-portal-audio-gate
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: converged-portal
+      component: audio-gate
+  template:
+    metadata:
+      labels:
+        app: converged-portal
+        component: audio-gate
+    spec:
+      containers:
         - env:
             - name: LLM_GATE_HTTP_HOST
               value: 0.0.0.0
@@ -434,7 +766,7 @@ spec:
             - name: LLM_GATE_TRANSPORT_MODE
               value: tcp
             - name: LLM_GATE_TRANSPORT_HOST
-              value: 127.0.0.1
+              value: converged-portal-storage
             - name: LLM_GATE_TRANSPORT_PORT
               value: "9000"
             - name: LLM_GATE_STORAGE_KEY
@@ -442,7 +774,7 @@ spec:
             - name: LLM_GATE_CONTEXT_STORAGE_KEY
               value: default
             - name: LLM_GATE_CONTEXT_STORAGE_HOST
-              value: 127.0.0.1
+              value: converged-portal-storage
             - name: LLM_GATE_CONTEXT_STORAGE_PORT
               value: "9000"
             - name: LLM_GATE_TRANSPORT_NAMESPACE
@@ -452,7 +784,7 @@ spec:
             - name: LLM_GATE_CALLS_STORAGE_KEY
               value: default
             - name: LLM_GATE_CALLS_STORAGE_HOST
-              value: 127.0.0.1
+              value: converged-portal-storage
             - name: LLM_GATE_CALLS_STORAGE_PORT
               value: "9000"
             - name: LLM_GATE_CALLS_NAMESPACE
@@ -462,7 +794,7 @@ spec:
             - name: LLM_GATE_THREADS_STORAGE_KEY
               value: default
             - name: LLM_GATE_THREADS_STORAGE_HOST
-              value: 127.0.0.1
+              value: converged-portal-storage
             - name: LLM_GATE_THREADS_STORAGE_PORT
               value: "9000"
             - name: LLM_GATE_THREADS_NAMESPACE
@@ -510,186 +842,23 @@ spec:
               port: 8090
             periodSeconds: 2
             timeoutSeconds: 2
-          volumeMounts:
-            - mountPath: /app/socket
-              name: storage-socket
-        - command:
-            - valkey-server
-            - --save
-            - ""
-            - --appendonly
-            - "no"
-          env:
-            - name: PORT
-              value: "6379"
-          image: "{{ .Values.images.valkey.name }}:{{ .Values.images.valkey.tag }}"
-          imagePullPolicy: "{{ .Values.images.valkey.pullPolicy }}"
-          livenessProbe:
-            failureThreshold: 3
-            periodSeconds: 10
-            tcpSocket:
-              port: 6379
-            timeoutSeconds: 2
-          name: valkey
-          ports:
-            - containerPort: 6379
-          readinessProbe:
-            failureThreshold: 6
-            periodSeconds: 5
-            tcpSocket:
-              port: 6379
-            timeoutSeconds: 2
-          resources:
-            limits:
-              cpu: 500m
-              memory: 256Mi
-            requests:
-              cpu: 50m
-              memory: 64Mi
-          securityContext:
-            allowPrivilegeEscalation: false
-            privileged: false
-            readOnlyRootFilesystem: false
-            runAsNonRoot: false
-          startupProbe:
-            failureThreshold: 60
-            periodSeconds: 2
-            tcpSocket:
-              port: 6379
-            timeoutSeconds: 2
-      initContainers:
-        - command:
-            - /app/storage
-            - start
-            - --data-dir
-            - /app/data
-            - --socket
-            - /app/socket/storage.sock
-          image: "{{ .Values.images.storage.name }}:{{ .Values.images.storage.tag }}"
-          imagePullPolicy: "{{ .Values.images.storage.pullPolicy }}"
-          livenessProbe:
-            exec:
-              command:
-                - /app/storage
-                - health
-                - --socket
-                - /app/socket/storage.sock
-                - --timeout-ms
-                - "1000"
-            failureThreshold: 3
-            periodSeconds: 10
-            timeoutSeconds: 2
-          name: storage
-          readinessProbe:
-            exec:
-              command:
-                - /app/storage
-                - health
-                - --socket
-                - /app/socket/storage.sock
-                - --timeout-ms
-                - "1000"
-            failureThreshold: 3
-            periodSeconds: 5
-            timeoutSeconds: 2
-          resources:
-            limits:
-              cpu: 1000m
-              memory: 2Gi
-            requests:
-              cpu: 50m
-              memory: 128Mi
-          restartPolicy: Always
-          securityContext:
-            allowPrivilegeEscalation: false
-            privileged: false
-            readOnlyRootFilesystem: false
-            runAsNonRoot: false
-          startupProbe:
-            exec:
-              command:
-                - /app/storage
-                - health
-                - --socket
-                - /app/socket/storage.sock
-                - --timeout-ms
-                - "1000"
-            failureThreshold: 60
-            periodSeconds: 2
-            timeoutSeconds: 2
-          volumeMounts:
-            - mountPath: /app/data
-              name: converged-portal-mono-data
-            - mountPath: /app/socket
-              name: storage-socket
       securityContext:
         runAsNonRoot: false
-      volumes:
-        - configMap:
-            name: converged-portal-mono-ui-config
-          name: ui-config
-        - configMap:
-            name: converged-portal-mono-services-config
-          name: services-config
-        - emptyDir: {}
-          name: storage-socket
-  volumeClaimTemplates:
-    - metadata:
-        name: converged-portal-mono-data
-      spec:
-        accessModes:
-          - ReadWriteOnce
-        resources:
-          requests:
-            storage: 100Gi
-        storageClassName: local-path
 ---
 apiVersion: v1
 kind: Service
 metadata:
   labels:
     app: converged-portal
-    component: ui
-  name: converged-portal-ui
+    component: audio-gate
+  name: converged-portal-audio-gate
 spec:
   ports:
     - port: 80
-      targetPort: 3000
+      targetPort: 8090
   selector:
     app: converged-portal
-    component: mono
-  type: ClusterIP
----
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    app: converged-portal
-    component: services
-  name: converged-portal-services
-spec:
-  ports:
-    - port: 80
-      targetPort: 3001
-  selector:
-    app: converged-portal
-    component: mono
-  type: ClusterIP
----
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    app: converged-portal
-    component: runtime
-  name: converged-portal-runtime
-spec:
-  ports:
-    - port: 80
-      targetPort: 3002
-  selector:
-    app: converged-portal
-    component: mono
+    component: audio-gate
   type: ClusterIP
 ---
 apiVersion: traefik.io/v1alpha1
@@ -1160,11 +1329,3 @@ spec:
         - configMap:
             name: converged-portal-template
           name: tmpl
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: converged-portal-domains
-  namespace: converged-portal
-data:
-  WORKSPACE_DOMAIN_MAP: "{}"

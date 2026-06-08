@@ -13,4 +13,6 @@ type IslandLoader = () => Promise<IslandModule>;
 export const islandRegistry: Record<string, IslandLoader> = {
   "section-rail": () =>
     import("../../../../front/landing/src/islands/section-rail") as Promise<IslandModule>,
+  "sales-island": () =>
+    import("../../../../front/landing/src/islands/sales-island") as Promise<IslandModule>,
 };

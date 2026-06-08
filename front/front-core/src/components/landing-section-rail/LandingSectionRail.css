@@ -125,7 +125,7 @@
   overscroll-behavior-x: contain;
   padding: 0 0 14px;
   scroll-padding-inline: 16px;
-  scroll-snap-type: x mandatory;
+  scroll-snap-type: x proximity;
   scrollbar-color: color-mix(in oklch, var(--landing-rail-ink) 26%, transparent) transparent;
   scrollbar-width: thin;
 }
@@ -133,8 +133,10 @@
 .landing-section-rail__viewport:not([data-expanded="true"]) {
   margin-inline: -16px;
   padding-inline: 16px;
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 130px, #000 calc(100% - 130px), transparent);
-  mask-image: linear-gradient(to right, transparent, #000 130px, #000 calc(100% - 130px), transparent);
+  /* Left edge stays crisp (the active card rests there); only the trailing edge
+     fades so upcoming cards ease in. */
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 130px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 130px), transparent);
 }
 
 .landing-section-rail__viewport[data-expanded="true"] {
