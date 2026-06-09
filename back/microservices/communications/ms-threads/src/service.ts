@@ -1,6 +1,15 @@
 export { StoreType, createStore, newULID } from "back-core";
 import { StoresController } from "./stores";
-import type { ULID, Message, ThreadsService } from "g-threads";
+import type {
+  ULID,
+  Message,
+  ThreadsService,
+  ThreadKind,
+  ThreadInfo,
+  ThreadListParams,
+  ThreadStats,
+  PaginatedResult,
+} from "g-threads";
 
 const MS_ID = "threads-ms";
 
@@ -25,8 +34,16 @@ export default class ThreadsServiceImpl implements ThreadsService {
     return this.initPromise;
   }
 
+  private async ready(): Promise<void> {
+    await this.init();
+  }
+
   async saveMessage(message: Message): Promise<string> {
-    return this.stores.threads.saveMessage(message);
+    await this.ready();
+    const id = this.stores.threads.saveMessage(message);
+    // Keep the lightweight stats index in sync for service-routed writes.
+    await this.stores.index.touch(message.threadId);
+    return id;
   }
 
   async readMessage(threadId: ULID, messageId: ULID): Promise<Message> {
@@ -49,5 +66,22 @@ export default class ThreadsServiceImpl implements ThreadsService {
 
   async readThread(threadId: ULID): Promise<Message[]> {
     return this.stores.threads.readThread(threadId) as Message[];
+  }
+
+  async registerThread(threadId: ULID, kind: ThreadKind): Promise<void> {
+    await this.ready();
+    await this.stores.index.register(threadId, kind);
+  }
+
+  async listThreads(
+    params: ThreadListParams,
+  ): Promise<PaginatedResult<ThreadInfo>> {
+    await this.ready();
+    return this.stores.index.list(params ?? {});
+  }
+
+  async getThreadStats(): Promise<ThreadStats> {
+    await this.ready();
+    return this.stores.index.stats();
   }
 }

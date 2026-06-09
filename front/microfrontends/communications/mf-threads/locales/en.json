@@ -4,6 +4,21 @@
      "chats": "Chats",
      "audio": "Audio",
      "text": "Text"
+  },
+  "stats": {
+    "title": "Threads",
+    "refresh": "Refresh",
+    "total": "Threads",
+    "totalDescription": "Total threads",
+    "messages": "Messages",
+    "messagesDescription": "Total messages across threads",
+    "chat": "Text chats",
+    "chatDescription": "Assistant text chats",
+    "audio": "Audio calls",
+    "audioDescription": "Audio call transcripts",
+    "forum": "Forum",
+    "forumDescription": "Forum threads",
+    "comment": "Comments",
+    "commentDescription": "Comment threads"
   }
-
 }

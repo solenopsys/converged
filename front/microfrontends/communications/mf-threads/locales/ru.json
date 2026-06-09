@@ -4,6 +4,21 @@
      "chats": "Чаты",
      "audio": "Аудио",
      "text": "Текстовые"
+  },
+  "stats": {
+    "title": "Треды",
+    "refresh": "Обновить",
+    "total": "Треды",
+    "totalDescription": "Всего тредов",
+    "messages": "Сообщения",
+    "messagesDescription": "Всего сообщений во всех тредах",
+    "chat": "Текстовые чаты",
+    "chatDescription": "Текстовые чаты ассистента",
+    "audio": "Аудиозвонки",
+    "audioDescription": "Расшифровки аудиозвонков",
+    "forum": "Форум",
+    "forumDescription": "Треды форума",
+    "comment": "Комментарии",
+    "commentDescription": "Треды комментариев"
   }
-
 }

@@ -10,11 +10,6 @@ export const MENU = {
             "action": SHOW_CHATS_LIST
         },
         {
-            "title": "menu.audio",
-            "key": "audio",
-            "action": SHOW_CHATS_LIST
-        },
-        {
             "title": "menu.contexts",
             "key": "contexts",
             "action": SHOW_CONTEXTS_LIST
