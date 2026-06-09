@@ -187,21 +187,31 @@ for (const [key, mappedPath] of Object.entries(runtimeMap.services || {})) {
 	const pluginPath = mappedPath.startsWith("/")
 		? mappedPath
 		: resolve(appRoot, mappedPath);
+	// NOTE: all microservices share one process here, so a single bad plugin must
+	// NOT crash the whole pod — log and skip it instead (the others keep serving).
 	if (!existsSync(pluginPath)) {
 		console.error("[runtime] mapped plugin file does not exist:", pluginPath);
 		continue;
 	}
+	let plugin: (cfg: any) => any;
 	try {
-		const plugin = await importPlugin(pluginPath);
-		const mount =
-			pluginPath.includes("/plugins/runtimes/") ||
-			pluginPath.includes("/back/runtimes/")
-				? "root"
-				: "services";
-		pluginEntries.push({ key, path: pluginPath, plugin, mount });
+		plugin = await importPlugin(pluginPath);
 	} catch (error) {
 		console.error("[runtime] plugin import failed:", pluginPath, error);
+		continue;
 	}
+	// The plugin's own `mount` export is the single source of truth (e.g.
+	// ms-audio-gate declares `mount = "root"` because it prefixes "/services"
+	// itself and also serves root-level routes). The path check is only a
+	// fallback for plugins that don't declare it (runtime plugins).
+	const declaredMount = (plugin as { mount?: "root" | "services" }).mount;
+	const mount =
+		declaredMount ??
+		(pluginPath.includes("/plugins/runtimes/") ||
+		pluginPath.includes("/back/runtimes/")
+			? "root"
+			: "services");
+	pluginEntries.push({ key, path: pluginPath, plugin, mount });
 }
 
 const servicePaths: Record<string, string> = {};

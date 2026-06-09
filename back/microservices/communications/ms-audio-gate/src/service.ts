@@ -28,14 +28,19 @@ export class AudioGateServiceImpl implements AudioGateService {
 		this.initPromise = (async () => {
 			this.stores = new StoresController(MS_ID);
 			await this.stores.init();
-			await this.seedPlaceholder();
+			// NB: do NOT touch the store here. In cloud mode the store is tenant-
+			// scoped and the scope is only resolvable from request headers — at
+			// startup there is no request, so any read throws "Storage scope is
+			// required". Seeding happens lazily per-tenant inside request handlers.
 		})();
 		return this.initPromise;
 	}
 
 	// Placeholder so the public landing shows a number out of the box; real
-	// numbers are managed through AudioGateService. Only seeds an empty store.
-	private async seedPlaceholder(): Promise<void> {
+	// numbers are managed through AudioGateService. Must run inside a request
+	// scope (cloud storage is per-tenant). The empty-store check is itself the
+	// per-scope guard: once a tenant is seeded, list() is non-empty and we skip.
+	private async ensureSeeded(): Promise<void> {
 		try {
 			const existing = await this.stores.phoneNumbers.list({ limit: 1 });
 			if ((existing.totalCount ?? existing.items.length) > 0) return;
@@ -84,6 +89,7 @@ export class AudioGateServiceImpl implements AudioGateService {
 		params: PhoneNumberListParams,
 	): Promise<PaginatedResult<PhoneNumber>> {
 		await this.ready();
+		await this.ensureSeeded();
 		return this.stores.phoneNumbers.list(params ?? {});
 	}
 
@@ -91,6 +97,7 @@ export class AudioGateServiceImpl implements AudioGateService {
 	@Access("public")
 	async getPrimaryPhoneNumber(): Promise<PhoneNumber | undefined> {
 		await this.ready();
+		await this.ensureSeeded();
 		return this.stores.phoneNumbers.getPrimary();
 	}
 

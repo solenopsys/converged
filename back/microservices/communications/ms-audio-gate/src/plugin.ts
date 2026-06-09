@@ -36,11 +36,26 @@ type RelaySocket = {
 	id?: string | number;
 	data?: {
 		query?: { user?: string };
+		headers?: Record<string, string | undefined>;
 		audioGateRelay?: RelayState;
 	};
 	send: (message: PendingWsMessage) => void;
 	close: () => void;
 };
+
+// The landing domain a call came from. The gate maps it (same WORKSPACE_DOMAIN_MAP
+// as the services pod) to the tenant storage, so we must forward the original
+// Host — the gate sees only this server-to-server relay connection otherwise.
+function relayDomain(
+	headers: Record<string, string | undefined> | Headers | undefined,
+): string {
+	if (!headers) return "";
+	const get = (name: string): string | undefined =>
+		headers instanceof Headers
+			? (headers.get(name) ?? undefined)
+			: headers[name];
+	return get("x-forwarded-host") ?? get("host") ?? "";
+}
 type AudioGateApp = {
 	onRequest: (
 		handler: (context: { request: Request }) => Promise<Response | undefined>,
@@ -146,7 +161,11 @@ const plugin = (config: any) => (app: AudioGateApp) => {
 		}
 
 		const rest = reqUrl.pathname.slice("/audio-gate/".length);
-		const target = `${gateUrl}/${rest}${reqUrl.search}`;
+		const params = new URLSearchParams(reqUrl.search);
+		const domain = relayDomain(request.headers);
+		if (domain && !params.has("domain")) params.set("domain", domain);
+		const qs = params.toString();
+		const target = `${gateUrl}/${rest}${qs ? `?${qs}` : ""}`;
 
 		const hasBody = !["GET", "HEAD"].includes(request.method.toUpperCase());
 
@@ -180,8 +199,13 @@ const plugin = (config: any) => (app: AudioGateApp) => {
 
 		open(ws: RelaySocket) {
 			const user: string = ws.data?.query?.user ?? "";
+			const domain = relayDomain(ws.data?.headers);
 			const wsBase = gateUrl.replace(/^http/, "ws");
-			const upstreamUrl = `${wsBase}/ws${user ? `?user=${encodeURIComponent(user)}` : ""}`;
+			const params = new URLSearchParams();
+			if (user) params.set("user", user);
+			if (domain) params.set("domain", domain);
+			const q = params.toString();
+			const upstreamUrl = `${wsBase}/ws${q ? `?${q}` : ""}`;
 			const relayId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
 			const upstream = new WebSocket(upstreamUrl);
