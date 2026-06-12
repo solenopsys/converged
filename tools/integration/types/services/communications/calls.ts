@@ -2,6 +2,7 @@ export type CallId = string;
 export type CallRecordId = string;
 export type CallAudioId = string;
 export type CallFragmentId = string;
+export type CallContextName = string;
 
 export type CallDialogueItem = {
   text: string;
@@ -77,6 +78,27 @@ export type CallDeleteResult = {
   fragmentsDeleted: number;
 };
 
+export type CallContext = {
+  id: CallContextName;
+  name: CallContextName;
+  updatedAt: number;
+  data: unknown;
+  legacyKey?: string;
+};
+
+export type CallContextSummary = {
+  id: CallContextName;
+  name: CallContextName;
+  updatedAt: number;
+  size?: number;
+  legacyKey?: string;
+};
+
+export type CallContextListParams = {
+  offset: number;
+  limit: number;
+};
+
 export interface CallsService {
   saveRecording(input: CallRecordingInput): Promise<CallRecordingResult>;
   saveFragment(input: CallFragmentInput): Promise<CallFragmentInfo>;
@@ -84,5 +106,17 @@ export interface CallsService {
   getCall(id: CallId): Promise<Call | undefined>;
   listCalls(params: CallsListParams): Promise<PaginatedResult<Call>>;
   getRecording(recordId: CallRecordId): Promise<Uint8Array | undefined>;
+  /**
+   * Build a playable WebM/Opus recording on demand from stored Opus frames.
+   * Strict Uint8Array return (no union) so nrpc resolves the binary handler by
+   * name; empty audio comes back as a zero-length array.
+   */
+  getCallAudio(callId: CallId, source: CallFragmentSource): Promise<Uint8Array>;
+  /** Cheap check whether any Opus audio was captured for a call. */
+  hasCallAudio(callId: CallId): Promise<boolean>;
   deleteCall(id: CallId): Promise<CallDeleteResult>;
+  saveContext(name: CallContextName, context: unknown): Promise<CallContextSummary>;
+  getContext(name: CallContextName): Promise<CallContext | null>;
+  listContexts(params: CallContextListParams): Promise<PaginatedResult<CallContextSummary>>;
+  deleteContext(name: CallContextName): Promise<boolean>;
 }

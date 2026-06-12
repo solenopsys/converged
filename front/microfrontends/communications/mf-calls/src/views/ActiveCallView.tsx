@@ -9,6 +9,7 @@ import {
   Separator,
 } from "front-core";
 import { PhoneCall, PhoneOff, ArrowLeft, Mic, MicOff } from "lucide-react";
+import { callsClient } from "g-calls";
 import { useWebRTCCall, type CallStatus } from "../hooks/useWebRTCCall";
 import { audioGateClient, type GateTranscriptItem } from "../services/audio-gate-client";
 
@@ -33,23 +34,31 @@ function statusLabel(s: CallStatus): { text: string; color: string } {
 
 export const ActiveCallView: React.FC<ActiveCallViewProps> = ({ onBack }) => {
   const [phone, setPhone] = useState("+79001234567");
+  const [contextName, setContextName] = useState("club");
   const [contextText, setContextText] = useState("");
   const [contextSaved, setContextSaved] = useState(false);
   const [transcript, setTranscript] = useState<GateTranscriptItem[]>([]);
   const transcriptRef = useRef<HTMLDivElement>(null);
+  const contextKey = contextName.trim() || phone;
 
-  const { status, error, volume, sessionId, startCall, hangup } = useWebRTCCall(phone);
+  const { status, error, volume, sessionId, startCall, hangup } = useWebRTCCall(phone, contextKey);
 
   const isActive = status === "connecting" || status === "connected";
   const { text: statusText, color: statusColor } = statusLabel(status);
 
-  // Load context when phone changes
+  // Load context when its name changes
   useEffect(() => {
-    if (!phone) return;
-    audioGateClient.getContext(phone).then((ctx) => {
-      setContextText(ctx ?? "");
+    if (!contextKey) return;
+    callsClient.getContext(contextKey).then((ctx) => {
+      if (!ctx) {
+        setContextText("");
+        return;
+      }
+      setContextText(
+        typeof ctx.data === "string" ? ctx.data : JSON.stringify(ctx.data, null, 2),
+      );
     });
-  }, [phone]);
+  }, [contextKey]);
 
   // Poll transcript while connected
   useEffect(() => {
@@ -73,7 +82,7 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({ onBack }) => {
   }, [transcript]);
 
   const handleSaveContext = async () => {
-    await audioGateClient.setContext(phone, contextText);
+    await callsClient.saveContext(contextKey, contextText);
     setContextSaved(true);
     setTimeout(() => setContextSaved(false), 2000);
   };
@@ -123,6 +132,17 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({ onBack }) => {
                     onChange={(e) => setPhone(e.target.value)}
                     disabled={isActive}
                     placeholder="+79001234567"
+                    className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-ring"
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="text-sm text-muted-foreground w-20 shrink-0">Context</label>
+                  <input
+                    type="text"
+                    value={contextName}
+                    onChange={(e) => setContextName(e.target.value)}
+                    disabled={isActive}
+                    placeholder="club"
                     className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-ring"
                   />
                 </div>
@@ -249,7 +269,7 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({ onBack }) => {
                     size="sm"
                     variant="ghost"
                     onClick={async () => {
-                      await audioGateClient.deleteContext(phone);
+                      await callsClient.deleteContext(contextKey);
                       setContextText("");
                     }}
                   >

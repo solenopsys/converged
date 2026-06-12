@@ -780,7 +780,7 @@ spec:
             - name: LLM_GATE_CONTEXT_STORAGE_PORT
               value: "9000"
             - name: LLM_GATE_TRANSPORT_NAMESPACE
-              value: audio-gate-ms
+              value: calls-ms
             - name: LLM_GATE_TRANSPORT_STORE
               value: llm-gate-configs
             - name: LLM_GATE_CALLS_STORAGE_KEY

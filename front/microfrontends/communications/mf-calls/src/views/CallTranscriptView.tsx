@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Badge } from "front-core";
 import { MessageSquare, MicOff, RefreshCw, Bot } from "lucide-react";
 import { threadsClient } from "g-threads";
 import { WaveformPlayer } from "../components/WaveformPlayer";
-import { audioGateClient, type GateTranscriptItem } from "../services/audio-gate-client";
+import { fetchCallAudioObjectUrl } from "../services/call-audio";
+import { type GateTranscriptItem } from "../services/audio-gate-client";
 
 type CallTranscriptViewProps = {
   sessionId: string;
@@ -20,22 +21,29 @@ function sessionLabel(sessionId: string): string {
 export const CallTranscriptView: React.FC<CallTranscriptViewProps> = ({ sessionId }) => {
   const [transcript, setTranscript] = useState<GateTranscriptItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hasUserAudio, setHasUserAudio] = useState(false);
-  const [hasAssistantAudio, setHasAssistantAudio] = useState(false);
+  const [userAudioUrl, setUserAudioUrl] = useState<string | null>(null);
+  const [assistantAudioUrl, setAssistantAudioUrl] = useState<string | null>(null);
 
-  const userAudioUrl = audioGateClient.recordingUrl(sessionId, "user");
-  const assistantAudioUrl = audioGateClient.recordingUrl(sessionId, "assistant");
+  // Track live object URLs so we can revoke them on reload/unmount.
+  const objectUrls = useRef<string[]>([]);
+  const revokeUrls = () => {
+    for (const u of objectUrls.current) URL.revokeObjectURL(u);
+    objectUrls.current = [];
+  };
 
   const loadData = async () => {
     setLoading(true);
+    revokeUrls();
+    setUserAudioUrl(null);
+    setAssistantAudioUrl(null);
     try {
       // Transcript is read straight from ms-threads (the call id is its
-      // threadId, and the gate stores each phrase as a thread message), not
-      // from the audio-gate REST API.
-      const [rows, userResp, assistantResp] = await Promise.all([
+      // threadId, and the gate stores each phrase as a thread message).
+      // Recordings are built on demand by ms-calls from the stored Opus frames.
+      const [rows, userUrl, assistantUrl] = await Promise.all([
         threadsClient.readThread(sessionId).catch(() => []),
-        fetch(userAudioUrl, { method: "HEAD" }).catch(() => null),
-        fetch(assistantAudioUrl, { method: "HEAD" }).catch(() => null),
+        fetchCallAudioObjectUrl(sessionId, "user"),
+        fetchCallAudioObjectUrl(sessionId, "assistant"),
       ]);
       const items: GateTranscriptItem[] = rows
         .map((m: any) => ({
@@ -46,8 +54,10 @@ export const CallTranscriptView: React.FC<CallTranscriptViewProps> = ({ sessionI
         .filter((it) => it.text.length > 0)
         .sort((a, b) => a.time - b.time);
       setTranscript(items);
-      setHasUserAudio(userResp?.ok === true);
-      setHasAssistantAudio(assistantResp?.ok === true);
+      if (userUrl) objectUrls.current.push(userUrl);
+      if (assistantUrl) objectUrls.current.push(assistantUrl);
+      setUserAudioUrl(userUrl);
+      setAssistantAudioUrl(assistantUrl);
     } finally {
       setLoading(false);
     }
@@ -55,8 +65,11 @@ export const CallTranscriptView: React.FC<CallTranscriptViewProps> = ({ sessionI
 
   useEffect(() => {
     loadData();
+    return () => revokeUrls();
   }, [sessionId]);
 
+  const hasUserAudio = userAudioUrl !== null;
+  const hasAssistantAudio = assistantAudioUrl !== null;
   const hasAudio = hasUserAudio || hasAssistantAudio;
 
   return (
@@ -82,8 +95,8 @@ export const CallTranscriptView: React.FC<CallTranscriptViewProps> = ({ sessionI
       {/* Recordings */}
       {hasAudio && (
         <div className="flex flex-col gap-4 p-4 border-b border-border shrink-0">
-          {hasUserAudio && <WaveformPlayer src={userAudioUrl} label="You" color="#3b82f6" />}
-          {hasAssistantAudio && (
+          {userAudioUrl && <WaveformPlayer src={userAudioUrl} label="You" color="#3b82f6" />}
+          {assistantAudioUrl && (
             <WaveformPlayer src={assistantAudioUrl} label="AI" color="#22c55e" />
           )}
         </div>

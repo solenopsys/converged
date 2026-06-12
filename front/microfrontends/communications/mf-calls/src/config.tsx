@@ -5,6 +5,13 @@ import { Loader2, Mic, FileText } from "lucide-react";
 import { $sessionMeta, sessionMetaRequested } from "./domain-calls";
 
 export type CallRow = { id: string };
+export type CallContextRow = {
+  id: string;
+  name: string;
+  updatedAt: string;
+  size: number | string;
+  legacyKey?: string;
+};
 
 /** Subscribes a row to its lazily-loaded metadata, firing the load on mount. */
 function useSessionMeta(id: string) {
@@ -77,4 +84,12 @@ export const callsColumns = [
     width: 200,
     render: (_v: unknown, row: CallRow) => <CreatedCell id={row.id} />,
   },
+];
+
+export const callContextsColumns = [
+  { id: "name", title: "Name", type: COLUMN_TYPES.TEXT, width: 260, primary: true },
+  { id: "id", title: "ID", type: COLUMN_TYPES.TEXT, width: 220 },
+  { id: "updatedAt", title: "Updated", type: COLUMN_TYPES.TEXT, width: 180 },
+  { id: "size", title: "Size", type: COLUMN_TYPES.TEXT, width: 100 },
+  { id: "legacyKey", title: "Runtime Key", type: COLUMN_TYPES.TEXT, width: 260 },
 ];

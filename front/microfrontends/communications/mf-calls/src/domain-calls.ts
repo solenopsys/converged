@@ -57,17 +57,18 @@ function decodeUlidTime(id: string): number | null {
 export const loadSessionMetaFx = domain.createEffect({
   name: "LOAD_SESSION_META",
   handler: async (id: string): Promise<SessionMeta> => {
-    const userUrl = audioGateClient.recordingUrl(id, "user");
-    const [items, userResp] = await Promise.all([
+    // Audio presence comes from ms-calls (which owns the stored Opus frames),
+    // not the gate. hasCallAudio is a cheap key-count — no muxing/download.
+    const [items, hasAudio] = await Promise.all([
       audioGateClient.getTranscript(id).catch(() => []),
-      fetch(userUrl, { method: "HEAD" }).catch(() => null),
+      callsClient.hasCallAudio(id).catch(() => false),
     ]);
     const createdAt = items[0]?.time ? items[0].time * 1000 : decodeUlidTime(id);
     return {
       id,
       lines: items.length,
       hasTranscript: items.length > 0,
-      hasAudio: userResp?.ok === true,
+      hasAudio,
       createdAt,
     };
   },

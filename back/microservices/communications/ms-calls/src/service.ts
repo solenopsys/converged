@@ -10,7 +10,12 @@ import type {
   CallDialogueInput,
   CallFragmentInput,
   CallFragmentInfo,
+  CallFragmentSource,
   CallDeleteResult,
+  CallContext,
+  CallContextListParams,
+  CallContextName,
+  CallContextSummary,
 } from "./types";
 import { StoresController } from "./stores";
 
@@ -71,9 +76,47 @@ export class CallsServiceImpl implements CallsService {
     return this.stores.calls.getRecording(recordId);
   }
 
+  async getCallAudio(
+    callId: CallId,
+    source: CallFragmentSource,
+  ): Promise<Uint8Array> {
+    await this.ready();
+    return this.stores.calls.getCallAudio(callId, source);
+  }
+
+  async hasCallAudio(callId: CallId): Promise<boolean> {
+    await this.ready();
+    return this.stores.calls.hasCallAudio(callId);
+  }
+
   async deleteCall(id: CallId): Promise<CallDeleteResult> {
     await this.ready();
     return this.stores.calls.deleteCall(id);
+  }
+
+  async saveContext(
+    name: CallContextName,
+    context: unknown,
+  ): Promise<CallContextSummary> {
+    await this.ready();
+    return this.stores.contexts.saveContext(name, context);
+  }
+
+  async getContext(name: CallContextName): Promise<CallContext | null> {
+    await this.ready();
+    return this.stores.contexts.getContext(name);
+  }
+
+  async listContexts(
+    params: CallContextListParams,
+  ): Promise<PaginatedResult<CallContextSummary>> {
+    await this.ready();
+    return this.stores.contexts.listContexts(params);
+  }
+
+  async deleteContext(name: CallContextName): Promise<boolean> {
+    await this.ready();
+    return this.stores.contexts.deleteContext(name);
   }
 }
 

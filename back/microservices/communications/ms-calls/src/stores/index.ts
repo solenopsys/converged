@@ -1,9 +1,17 @@
-import { StoreControllerAbstract, StoreType, SqlStore, KVStore } from "back-core";
+import {
+  StoreControllerAbstract,
+  StoreType,
+  SqlStore,
+  KVStore,
+  FileStore,
+} from "back-core";
 import { CallsStoreService } from "./calls/service";
+import { ContextStoreService } from "./contexts/service";
 import callsMigrations from "./calls/migrations";
 
 export class StoresController extends StoreControllerAbstract {
   public calls!: CallsStoreService;
+  public contexts!: ContextStoreService;
 
   constructor(protected msName: string) {
     super(msName);
@@ -25,12 +33,18 @@ export class StoresController extends StoreControllerAbstract {
       StoreType.KVS,
       [],
     );
+    const contextsStore = await this.addStore(
+      "llm-gate-configs",
+      StoreType.FILES,
+      [],
+    );
 
     this.calls = new CallsStoreService(
       callsStore as SqlStore,
       recordingsStore as KVStore,
       fragmentsStore as KVStore,
     );
+    this.contexts = new ContextStoreService(contextsStore as FileStore);
 
     await this.startAll();
     await this.migrateAll();

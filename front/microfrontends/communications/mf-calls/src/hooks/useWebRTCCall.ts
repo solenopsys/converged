@@ -16,7 +16,7 @@ export type UseWebRTCCallReturn = {
   hangup: () => void;
 };
 
-export function useWebRTCCall(phone?: string): UseWebRTCCallReturn {
+export function useWebRTCCall(phone?: string, contextName?: string): UseWebRTCCallReturn {
   const [status, setStatus] = useState<CallStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [volume, setVolume] = useState(0);
@@ -130,7 +130,12 @@ export function useWebRTCCall(phone?: string): UseWebRTCCallReturn {
       });
 
       // Send SDP offer
-      ws.send(JSON.stringify({ type: "offer", sdp: pc.localDescription!.sdp }));
+      ws.send(JSON.stringify({
+        type: "offer",
+        sdp: pc.localDescription!.sdp,
+        phone,
+        contextName,
+      }));
 
       ws.onmessage = async (event) => {
         let msg: any;
@@ -172,7 +177,7 @@ export function useWebRTCCall(phone?: string): UseWebRTCCallReturn {
       updateStatus("error");
       cleanup();
     }
-  }, [phone, cleanup, updateStatus]);
+  }, [phone, contextName, cleanup, updateStatus]);
 
   const hangup = useCallback(() => {
     cleanup();

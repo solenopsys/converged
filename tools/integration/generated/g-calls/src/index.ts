@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type CallId = string;
 
@@ -8,6 +8,8 @@ export type CallRecordId = string;
 export type CallAudioId = string;
 
 export type CallFragmentId = string;
+
+export type CallContextName = string;
 
 export type CallDialogueItem = {
   text: string;
@@ -83,7 +85,28 @@ export type CallDeleteResult = {
   fragmentsDeleted: number;
 };
 
-export const metadata = {
+export type CallContext = {
+  id: CallContextName;
+  name: CallContextName;
+  updatedAt: number;
+  data: unknown;
+  legacyKey?: string;
+};
+
+export type CallContextSummary = {
+  id: CallContextName;
+  name: CallContextName;
+  updatedAt: number;
+  size?: number;
+  legacyKey?: string;
+};
+
+export type CallContextListParams = {
+  offset: number;
+  limit: number;
+};
+
+export const metadata: ServiceMetadata = {
   "interfaceName": "CallsService",
   "serviceName": "calls",
   "filePath": "services/communications/calls.ts",
@@ -179,6 +202,42 @@ export const metadata = {
       "isAsyncIterable": false
     },
     {
+      "name": "getCallAudio",
+      "parameters": [
+        {
+          "name": "callId",
+          "type": "CallId",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "source",
+          "type": "CallFragmentSource",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "Uint8Array",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "hasCallAudio",
+      "parameters": [
+        {
+          "name": "callId",
+          "type": "CallId",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "boolean",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
       "name": "deleteCall",
       "parameters": [
         {
@@ -189,6 +248,72 @@ export const metadata = {
         }
       ],
       "returnType": "CallDeleteResult",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "saveContext",
+      "parameters": [
+        {
+          "name": "name",
+          "type": "CallContextName",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "context",
+          "type": "unknown",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "CallContextSummary",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "getContext",
+      "parameters": [
+        {
+          "name": "name",
+          "type": "CallContextName",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "CallContext | any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "listContexts",
+      "parameters": [
+        {
+          "name": "params",
+          "type": "CallContextListParams",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "PaginatedResult<CallContextSummary>",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "deleteContext",
+      "parameters": [
+        {
+          "name": "name",
+          "type": "CallContextName",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "boolean",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -212,6 +337,11 @@ export const metadata = {
     },
     {
       "name": "CallFragmentId",
+      "kind": "type",
+      "definition": "string"
+    },
+    {
+      "name": "CallContextName",
       "kind": "type",
       "definition": "string"
     },
@@ -270,6 +400,21 @@ export const metadata = {
       "name": "CallDeleteResult",
       "kind": "type",
       "definition": "{\n  deleted: boolean;\n  fragmentsDeleted: number;\n}"
+    },
+    {
+      "name": "CallContext",
+      "kind": "type",
+      "definition": "{\n  id: CallContextName;\n  name: CallContextName;\n  updatedAt: number;\n  data: unknown;\n  legacyKey?: string;\n}"
+    },
+    {
+      "name": "CallContextSummary",
+      "kind": "type",
+      "definition": "{\n  id: CallContextName;\n  name: CallContextName;\n  updatedAt: number;\n  size?: number;\n  legacyKey?: string;\n}"
+    },
+    {
+      "name": "CallContextListParams",
+      "kind": "type",
+      "definition": "{\n  offset: number;\n  limit: number;\n}"
     }
   ]
 };
@@ -282,7 +427,13 @@ export interface CallsService {
   getCall(id: CallId): Promise<Call | any>;
   listCalls(params: CallsListParams): Promise<PaginatedResult<Call>>;
   getRecording(recordId: CallRecordId): Promise<Uint8Array | any>;
+  getCallAudio(callId: CallId, source: CallFragmentSource): Promise<Uint8Array>;
+  hasCallAudio(callId: CallId): Promise<boolean>;
   deleteCall(id: CallId): Promise<CallDeleteResult>;
+  saveContext(name: CallContextName, context: unknown): Promise<CallContextSummary>;
+  getContext(name: CallContextName): Promise<CallContext | any>;
+  listContexts(params: CallContextListParams): Promise<PaginatedResult<CallContextSummary>>;
+  deleteContext(name: CallContextName): Promise<boolean>;
 }
 
 // Client interface
@@ -293,7 +444,13 @@ export interface CallsServiceClient {
   getCall(id: CallId): Promise<Call | any>;
   listCalls(params: CallsListParams): Promise<PaginatedResult<Call>>;
   getRecording(recordId: CallRecordId): Promise<Uint8Array | any>;
+  getCallAudio(callId: CallId, source: CallFragmentSource): Promise<Uint8Array>;
+  hasCallAudio(callId: CallId): Promise<boolean>;
   deleteCall(id: CallId): Promise<CallDeleteResult>;
+  saveContext(name: CallContextName, context: unknown): Promise<CallContextSummary>;
+  getContext(name: CallContextName): Promise<CallContext | any>;
+  listContexts(params: CallContextListParams): Promise<PaginatedResult<CallContextSummary>>;
+  deleteContext(name: CallContextName): Promise<boolean>;
 }
 
 // Factory function

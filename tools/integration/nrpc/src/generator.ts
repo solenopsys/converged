@@ -125,11 +125,11 @@ try {
     .join("\n");
 
 const indexCode = `// Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 ${typeDefinitions}
 
-export const metadata = ${JSON.stringify(metadataWithRelativePath, null, 2)};
+export const metadata: ServiceMetadata = ${JSON.stringify(metadataWithRelativePath, null, 2)};
 
 // Server interface (to be implemented in microservice)
 export interface ${metadata.interfaceName} {

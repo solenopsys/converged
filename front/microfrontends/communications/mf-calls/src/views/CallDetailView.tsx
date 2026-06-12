@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Button, Badge } from "front-core";
 import { ArrowLeft, RefreshCw, MessageSquare, MicOff } from "lucide-react";
 import { WaveformPlayer } from "../components/WaveformPlayer";
+import { fetchCallAudioObjectUrl } from "../services/call-audio";
 import { audioGateClient, type GateTranscriptItem } from "../services/audio-gate-client";
 
 type CallDetailViewProps = {
@@ -37,29 +38,44 @@ function buildSummary(items: GateTranscriptItem[]): string {
 export const CallDetailView: React.FC<CallDetailViewProps> = ({ sessionId, onBack }) => {
   const [transcript, setTranscript] = useState<GateTranscriptItem[]>([]);
   const [loading, setLoading]       = useState(true);
-  const [hasUserAudio, setHasUserAudio]           = useState(false);
-  const [hasAssistantAudio, setHasAssistantAudio] = useState(false);
+  const [userAudioUrl, setUserAudioUrl]           = useState<string | null>(null);
+  const [assistantAudioUrl, setAssistantAudioUrl] = useState<string | null>(null);
 
-  const userAudioUrl      = audioGateClient.recordingUrl(sessionId, "user");
-  const assistantAudioUrl = audioGateClient.recordingUrl(sessionId, "assistant");
+  const hasUserAudio      = userAudioUrl !== null;
+  const hasAssistantAudio = assistantAudioUrl !== null;
+
+  // Track live object URLs so we can revoke them on reload/unmount.
+  const objectUrls = useRef<string[]>([]);
+  const revokeUrls = () => {
+    for (const u of objectUrls.current) URL.revokeObjectURL(u);
+    objectUrls.current = [];
+  };
 
   const loadData = async () => {
     setLoading(true);
+    revokeUrls();
+    setUserAudioUrl(null);
+    setAssistantAudioUrl(null);
     try {
-      const [items, userResp, assistantResp] = await Promise.all([
+      const [items, userUrl, assistantUrl] = await Promise.all([
         audioGateClient.getTranscript(sessionId),
-        fetch(userAudioUrl,      { method: "HEAD" }),
-        fetch(assistantAudioUrl, { method: "HEAD" }),
+        fetchCallAudioObjectUrl(sessionId, "user"),
+        fetchCallAudioObjectUrl(sessionId, "assistant"),
       ]);
       setTranscript(items);
-      setHasUserAudio(userResp.ok);
-      setHasAssistantAudio(assistantResp.ok);
+      if (userUrl) objectUrls.current.push(userUrl);
+      if (assistantUrl) objectUrls.current.push(assistantUrl);
+      setUserAudioUrl(userUrl);
+      setAssistantAudioUrl(assistantUrl);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { loadData(); }, [sessionId]);
+  useEffect(() => {
+    loadData();
+    return () => revokeUrls();
+  }, [sessionId]);
 
   const summary = buildSummary(transcript);
 
@@ -112,14 +128,14 @@ export const CallDetailView: React.FC<CallDetailViewProps> = ({ sessionId, onBac
               </div>
             ) : (
               <div className="flex flex-col gap-6">
-                {hasUserAudio && (
+                {userAudioUrl && (
                   <WaveformPlayer
                     src={userAudioUrl}
                     label="You"
                     color="#3b82f6"
                   />
                 )}
-                {hasAssistantAudio && (
+                {assistantAudioUrl && (
                   <WaveformPlayer
                     src={assistantAudioUrl}
                     label="AI"

@@ -1,5 +1,6 @@
 import { SqlStore, KVStore, generateULID } from "back-core";
 import { CallRepository } from "./entities";
+import { writeWebMOpus } from "./webm";
 import type {
   Call,
   CallId,
@@ -17,6 +18,20 @@ import type { CallEntity } from "./entities";
 
 const RECORDING_PREFIX = "recordings";
 const FRAGMENT_PREFIX = "fragments";
+
+/**
+ * Key prefix llm-audio-gate uses when it writes raw Opus frames straight into
+ * this microservice's `fragments` KV store: `llm-audio:<callId>:<source>:<ts>`,
+ * where <callId> is the gate session id (== calls.id) and <ts> is a 20-digit
+ * zero-padded nanosecond timestamp. We read these back to build playable audio.
+ */
+const GATE_AUDIO_PREFIX = "llm-audio";
+
+/** Opus over WebRTC is always a 48 kHz / mono stream of 20 ms frames. */
+const OPUS_SAMPLE_RATE = 48000;
+const OPUS_CHANNELS = 1;
+
+export type CallAudioSource = "user" | "assistant";
 
 type CallFragmentEntity = {
   id: string;
@@ -181,6 +196,52 @@ export class CallsStoreService {
     return undefined;
   }
 
+  /**
+   * Build a playable WebM/Opus file on demand from the Opus frames the gate
+   * stored for this call + source. Frames are laid out sequentially at 20 ms
+   * each (see webm.ts). Returns undefined when no audio was captured.
+   */
+  getCallAudio(callId: CallId, source: CallAudioSource): Uint8Array {
+    const frames = this.readOpusFrames(callId, source);
+    return (
+      writeWebMOpus(frames, {
+        sampleRate: OPUS_SAMPLE_RATE,
+        channels: OPUS_CHANNELS,
+      }) ?? new Uint8Array(0)
+    );
+  }
+
+  /** Cheap presence check for the calls list "rec" badge — no muxing. */
+  hasCallAudio(callId: CallId): boolean {
+    return (
+      this.countAudioFrames(callId, "user") > 0 ||
+      this.countAudioFrames(callId, "assistant") > 0
+    );
+  }
+
+  private countAudioFrames(callId: CallId, source: CallAudioSource): number {
+    return this.fragments.listKeys([GATE_AUDIO_PREFIX, callId, source]).length;
+  }
+
+  /** Read the gate's Opus frames for a call/source, ordered chronologically. */
+  private readOpusFrames(callId: CallId, source: CallAudioSource): Uint8Array[] {
+    const keys = this.fragments.listKeys([GATE_AUDIO_PREFIX, callId, source]);
+    // Keys end in a 20-digit zero-padded timestamp, so lexical order is
+    // chronological — sort explicitly rather than trust the scan order.
+    keys.sort();
+
+    const frames: Uint8Array[] = [];
+    for (const key of keys) {
+      const value = this.fragments.getDirect(key);
+      if (Buffer.isBuffer(value)) {
+        if (value.length > 0) frames.push(new Uint8Array(value));
+      } else if (value instanceof Uint8Array) {
+        if (value.length > 0) frames.push(value);
+      }
+    }
+    return frames;
+  }
+
   async deleteCall(id: CallId): Promise<CallDeleteResult> {
     const existing = await this.repo.findById({ id });
     if (!existing) {
@@ -203,6 +264,14 @@ export class CallsStoreService {
       .deleteFrom("call_fragments")
       .where("callId", "=", id)
       .execute();
+
+    // Drop the gate's raw Opus frames (llm-audio:<id>:<source>:*) too, so the
+    // on-demand audio has nothing left to rebuild from.
+    for (const source of ["user", "assistant"] as const) {
+      for (const key of this.fragments.listKeys([GATE_AUDIO_PREFIX, id, source])) {
+        this.fragments.delete(key.split(":"));
+      }
+    }
 
     this.recordings.delete(this.buildRecordingKey(existing.recordId));
     const deleted = await this.repo.delete({ id });
