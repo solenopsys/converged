@@ -37,6 +37,8 @@ export { default as IconMessages } from '@tabler/icons-react/dist/esm/icons/Icon
 export { default as IconNotification } from '@tabler/icons-react/dist/esm/icons/IconNotification.mjs';
 export { default as IconPhone } from '@tabler/icons-react/dist/esm/icons/IconPhone.mjs';
 export { default as IconPhoto } from '@tabler/icons-react/dist/esm/icons/IconPhoto.mjs';
+export { default as IconRobot } from '@tabler/icons-react/dist/esm/icons/IconRobot.mjs';
+export { default as IconSchema } from '@tabler/icons-react/dist/esm/icons/IconSchema.mjs';
 export { default as IconServer } from '@tabler/icons-react/dist/esm/icons/IconServer.mjs';
 export { default as IconSettings } from '@tabler/icons-react/dist/esm/icons/IconSettings.mjs';
 export { default as IconShare3 } from '@tabler/icons-react/dist/esm/icons/IconShare3.mjs';

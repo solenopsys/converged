@@ -1,4 +1,9 @@
 export const ID = "calls-mf";
+export const GROUP = {
+  id: "ai",
+  title: "AI",
+  iconName: "IconBrain",
+};
 export { MENU } from "./menu";
 export { WaveformPlayer } from "./components/WaveformPlayer";
 export { CallDetailView } from "./views/CallDetailView";

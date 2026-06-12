@@ -1,4 +1,4 @@
-# ms-charts
+# ms-chats
 
 ## Purpose
 Generates and serves chart-oriented communication or reporting artifacts.

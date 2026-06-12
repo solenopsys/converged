@@ -289,8 +289,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "back/microservices/communications/ms-charts": {
-      "name": "ms-charts",
+    "back/microservices/communications/ms-chats": {
+      "name": "ms-chats",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -3420,7 +3420,7 @@
 
     "ms-ceo": ["ms-ceo@workspace:back/microservices/content/ms-ceo"],
 
-    "ms-charts": ["ms-charts@workspace:back/microservices/communications/ms-charts"],
+    "ms-chats": ["ms-chats@workspace:back/microservices/communications/ms-chats"],
 
     "ms-classifier": ["ms-classifier@workspace:back/microservices/content/ms-classifier"],
 

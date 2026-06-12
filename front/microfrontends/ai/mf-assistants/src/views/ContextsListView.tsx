@@ -1,6 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useUnit } from "effector-react";
-import { HeaderPanelLayout, InfiniteScrollDataTable, useMicrofrontendTranslation } from "front-core";
+import {
+  HeaderPanelLayout,
+  InfiniteScrollDataTable,
+  upsertSidebarTab,
+  useMicrofrontendTranslation,
+} from "front-core";
 import { RefreshCw } from "lucide-react";
 import {
   $contextsStore,
@@ -8,17 +13,23 @@ import {
   refreshContextsClicked,
 } from "../domain-contexts";
 import { createContextsColumns } from "../config";
-import { assistantClient } from "../services";
-import type { ChatContext } from "../types";
+import { ContextJsonView } from "./ContextJsonView";
 
-export const ContextsListView = ({ bus: _bus }) => {
+const CONTEXT_JSON_TAB_ID = "chat-context-json";
+
+const createContextJsonWidget = (bus: any, params: { chatId: string }) => ({
+  view: ContextJsonView,
+  placement: () => `sidebar:tab:${CONTEXT_JSON_TAB_ID}`,
+  config: {
+    ...params,
+    bus,
+  },
+  commands: {},
+});
+
+export const ContextsListView = ({ bus }) => {
   const contextsState = useUnit($contextsStore.$state);
   const { t } = useMicrofrontendTranslation("assistants-mf");
-  const [selectedContext, setSelectedContext] = useState<ChatContext | null>(
-    null,
-  );
-  const [contextLoading, setContextLoading] = useState(false);
-  const [contextError, setContextError] = useState<string | null>(null);
 
   useEffect(() => {
     contextsViewMounted();
@@ -45,56 +56,34 @@ export const ContextsListView = ({ bus: _bus }) => {
     size: item.size ?? "-",
   }));
 
-  const handleRowClick = async (row) => {
+  const handleRowClick = (row) => {
     const chatId = row.chatId || row.id;
     if (!chatId) return;
 
-    setContextLoading(true);
-    setContextError(null);
-
-    try {
-      const context = await assistantClient.getContext(chatId);
-      setSelectedContext(context);
-    } catch (error: any) {
-      setContextError(error?.message || t("contextsList.errors.loadFailed"));
-      setSelectedContext(null);
-    } finally {
-      setContextLoading(false);
-    }
+    upsertSidebarTab({
+      id: CONTEXT_JSON_TAB_ID,
+      title: t("contextsList.contextJson"),
+      iconName: "json",
+      order: 1000,
+    });
+    bus.present({
+      widget: createContextJsonWidget(bus, {
+        chatId,
+      }),
+    });
   };
 
   return (
     <HeaderPanelLayout config={headerConfig}>
-      <div className="flex flex-col h-full">
-        <InfiniteScrollDataTable
-          data={items}
-          hasMore={contextsState.hasMore}
-          loading={contextsState.loading}
-          columns={createContextsColumns(t)}
-          onLoadMore={$contextsStore.loadMore}
-          onRowClick={handleRowClick}
-          viewMode="table"
-        />
-        <div className="border-t bg-muted/30 p-4">
-          <div className="text-sm font-semibold">{t("contextsList.contextJson")}</div>
-          {contextLoading && (
-            <div className="mt-2 text-sm text-muted-foreground">{t("common.loading")}</div>
-          )}
-          {!contextLoading && contextError && (
-            <div className="mt-2 text-sm text-destructive">{contextError}</div>
-          )}
-          {!contextLoading && !contextError && selectedContext && (
-            <pre className="mt-2 max-h-56 overflow-auto rounded-md bg-background p-3 text-xs">
-              {JSON.stringify(selectedContext.data, null, 2)}
-            </pre>
-          )}
-          {!contextLoading && !contextError && !selectedContext && (
-            <div className="mt-2 text-sm text-muted-foreground">
-              {t("contextsList.selectRow")}
-            </div>
-          )}
-        </div>
-      </div>
+      <InfiniteScrollDataTable
+        data={items}
+        hasMore={contextsState.hasMore}
+        loading={contextsState.loading}
+        columns={createContextsColumns(t)}
+        onLoadMore={$contextsStore.loadMore}
+        onRowClick={handleRowClick}
+        viewMode="table"
+      />
     </HeaderPanelLayout>
   );
 };

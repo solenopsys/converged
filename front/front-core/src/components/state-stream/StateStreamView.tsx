@@ -108,6 +108,21 @@ function toStreamEvent(event: BusinessEvent): StreamEvent {
 		};
 	}
 
+	if (event.type === "call.created") {
+		return {
+			id: event.id,
+			time: formatEventTime(event.createdAt),
+			source: event.service,
+			title: "New call",
+			body: "Call",
+			entityId: event.entityId,
+			entityLabel: event.entityId,
+			tone: "attention",
+			actionId: "calls.view",
+			actionParams: { sessionId: event.entityId },
+		};
+	}
+
 	if (event.type === "request.created") {
 		return {
 			id: event.id,
