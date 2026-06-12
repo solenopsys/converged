@@ -1,4 +1,5 @@
 import { createDomain, sample } from "effector";
+import { callsClient } from "g-calls";
 import { audioGateClient, type GateTranscriptItem } from "./services/audio-gate-client";
 
 const domain = createDomain("calls");
@@ -6,6 +7,7 @@ const domain = createDomain("calls");
 // ── Events ─────────────────────────────────────────────────────────────────
 export const sessionsListMounted = domain.createEvent("SESSIONS_LIST_MOUNTED");
 export const refreshSessionsClicked = domain.createEvent("REFRESH_SESSIONS_CLICKED");
+export const sessionMetaRequested = domain.createEvent<string>("SESSION_META_REQUESTED");
 export const openCallDetail = domain.createEvent<{ sessionId: string }>("OPEN_CALL_DETAIL");
 export const closeCallDetail = domain.createEvent("CLOSE_CALL_DETAIL");
 export const startNewCallClicked = domain.createEvent("START_NEW_CALL_CLICKED");
@@ -14,7 +16,12 @@ export const returnToListClicked = domain.createEvent("RETURN_TO_LIST");
 // ── Effects ────────────────────────────────────────────────────────────────
 export const loadSessionsFx = domain.createEffect({
   name: "LOAD_SESSIONS",
-  handler: (): Promise<string[]> => audioGateClient.listSessions(),
+  // Calls list comes from the ms-calls microservice (the source of truth for
+  // call sessions), not the audio-gate. The gate only writes call rows there.
+  handler: async (): Promise<string[]> => {
+    const res = await callsClient.listCalls({ offset: 0, limit: 200 });
+    return res.items.map((c) => c.id);
+  },
 });
 
 export const loadTranscriptFx = domain.createEffect({
@@ -25,11 +32,53 @@ export const loadTranscriptFx = domain.createEffect({
   }),
 });
 
+/** Per-session metadata (line count, availability, created time) shown in the list table. */
+export type SessionMeta = {
+  id: string;
+  lines: number;
+  hasTranscript: boolean;
+  hasAudio: boolean;
+  createdAt: number | null;
+};
+
+/** Decode the millisecond timestamp from the leading 10 chars of a ULID. */
+function decodeUlidTime(id: string): number | null {
+  const ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+  if (id.length < 10) return null;
+  let ms = 0;
+  for (let i = 0; i < 10; i++) {
+    const idx = ALPHABET.indexOf(id[i].toUpperCase());
+    if (idx === -1) return null;
+    ms = ms * 32 + idx;
+  }
+  return ms;
+}
+
+export const loadSessionMetaFx = domain.createEffect({
+  name: "LOAD_SESSION_META",
+  handler: async (id: string): Promise<SessionMeta> => {
+    const userUrl = audioGateClient.recordingUrl(id, "user");
+    const [items, userResp] = await Promise.all([
+      audioGateClient.getTranscript(id).catch(() => []),
+      fetch(userUrl, { method: "HEAD" }).catch(() => null),
+    ]);
+    const createdAt = items[0]?.time ? items[0].time * 1000 : decodeUlidTime(id);
+    return {
+      id,
+      lines: items.length,
+      hasTranscript: items.length > 0,
+      hasAudio: userResp?.ok === true,
+      createdAt,
+    };
+  },
+});
+
 // ── Stores ─────────────────────────────────────────────────────────────────
 /** All session IDs, newest first */
 export const $sessions = domain
   .createStore<string[]>([])
-  .on(loadSessionsFx.doneData, (_, ids) => [...ids].reverse());
+  // ms-calls already returns newest-first; keep its order.
+  .on(loadSessionsFx.doneData, (_, ids) => ids);
 
 export const $sessionsLoading = domain
   .createStore(false)
@@ -42,6 +91,13 @@ export const $selectedSessionId = domain
   .on(openCallDetail, (_, { sessionId }) => sessionId)
   .on(closeCallDetail, () => null)
   .on(returnToListClicked, () => null);
+
+/** Per-session metadata cache keyed by sessionId, populated lazily as rows mount */
+export const $sessionMeta = domain
+  .createStore<Record<string, SessionMeta>>({})
+  .on(loadSessionMetaFx.doneData, (state, meta) => ({ ...state, [meta.id]: meta }))
+  // Drop cached meta on refresh so rows re-check availability
+  .reset(refreshSessionsClicked);
 
 /** Cached transcripts keyed by sessionId */
 export const $transcripts = domain
@@ -68,5 +124,13 @@ sample({
 });
 // Reload list when returning from active call
 sample({ clock: returnToListClicked, target: loadSessionsFx });
+// Lazily load row metadata, skipping sessions already cached or in-flight
+sample({
+  source: $sessionMeta,
+  clock: sessionMetaRequested,
+  filter: (meta, id) => !(id in meta),
+  fn: (_, id) => id,
+  target: loadSessionMetaFx,
+});
 
 export default domain;

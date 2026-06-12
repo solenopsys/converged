@@ -1,7 +1,7 @@
-import { CreateAction, CreateWidget } from "front-core";
+import { CreateAction, CreateWidget, upsertSidebarTab } from "front-core";
 import { CallsListView } from "./views/CallsListView";
 import { ActiveCallView } from "./views/ActiveCallView";
-import { CallDetailView } from "./views/CallDetailView";
+import { CallTranscriptView } from "./views/CallTranscriptView";
 import { startNewCallClicked, openCallDetail, returnToListClicked } from "./domain-calls";
 
 // ── Action IDs ───────────────────────────────────────────────────────────────
@@ -10,6 +10,11 @@ export const NEW_CALL = "calls.new";
 export const VIEW_CALL = "calls.view";
 export const RETURN_TO_CALLS = "calls.return";
 
+// Sidebar tab the transcript view mounts into. Without a registered tab the
+// "sidebar:right" slot has no mount point and the widget silently fails to
+// render (SlotPortal: "Mount point not found"). Mirrors the chats' history tab.
+const CALL_TRANSCRIPT_TAB_ID = "call-transcript";
+
 // ── Widget factories ─────────────────────────────────────────────────────────
 const createCallsListWidget: CreateWidget<typeof CallsListView> = (bus) => ({
   view: CallsListView,
@@ -17,23 +22,20 @@ const createCallsListWidget: CreateWidget<typeof CallsListView> = (bus) => ({
   config: { bus },
 });
 
-export const createActiveCallWidget = (bus: any) => ({
+const createActiveCallWidget = (bus: any) => ({
   view: ActiveCallView,
   placement: () => "center" as const,
   config: {
     bus,
-    onBack: () => returnToListClicked(),
+    onBack: () => bus.run(SHOW_CALLS),
   },
 });
 
-export const createCallDetailWidget = (bus: any, sessionId: string) => ({
-  view: CallDetailView,
-  placement: () => "center" as const,
-  config: {
-    bus,
-    sessionId,
-    onBack: () => returnToListClicked(),
-  },
+const createCallTranscriptWidget = (_bus: any, sessionId: string) => ({
+  view: CallTranscriptView,
+  placement: () => `sidebar:tab:${CALL_TRANSCRIPT_TAB_ID}`,
+  config: { sessionId },
+  commands: {},
 });
 
 // ── Action creators ──────────────────────────────────────────────────────────
@@ -41,6 +43,8 @@ const createShowCallsAction: CreateAction<any> = (bus) => ({
   id: SHOW_CALLS,
   description: "Show calls list",
   invoke: () => {
+    // Reset any lingering active-call / detail state so the list is shown
+    returnToListClicked();
     bus.present({ widget: createCallsListWidget(bus) });
   },
 });
@@ -50,16 +54,25 @@ const createNewCallAction: CreateAction<any> = (bus) => ({
   description: "Start a new AI call",
   invoke: () => {
     startNewCallClicked();
-    bus.present({ widget: createCallsListWidget(bus) });
+    bus.present({ widget: createActiveCallWidget(bus) });
   },
 });
 
 const createViewCallAction: CreateAction<any> = (bus) => ({
   id: VIEW_CALL,
-  description: "View call details and recording",
+  description: "View call transcript and recording in the side panel",
   invoke: ({ sessionId }: { sessionId: string }) => {
+    if (!sessionId) return;
+    // Register the sidebar tab first so the slot has a mount point, then
+    // present the transcript widget into it (same flow as the chats history).
+    upsertSidebarTab({
+      id: CALL_TRANSCRIPT_TAB_ID,
+      title: "Transcript",
+      iconName: "phone",
+      order: 999,
+    });
     openCallDetail({ sessionId });
-    bus.present({ widget: createCallsListWidget(bus) });
+    bus.present({ widget: createCallTranscriptWidget(bus, sessionId) });
   },
 });
 

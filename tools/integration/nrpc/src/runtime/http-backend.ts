@@ -226,7 +226,17 @@ export function createHttpBackend(config: ElysiaBackendConfig) {
 								method.name,
 								error,
 							);
-							throw error;
+							const statusCode = (error as any).statusCode || 500;
+							const message = (error as any).message || "Internal Server Error";
+							const code = (error as any).code || "UNEXPECTED_ERROR";
+							const details = (error as any).details;
+							return new Response(
+								JSON.stringify({ error: message, code, details }),
+								{
+									status: statusCode,
+									headers: { "Content-Type": "application/json" },
+								},
+							);
 						}
 					};
 

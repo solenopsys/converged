@@ -245,6 +245,8 @@ function runtimeSpecifierToPath(
 		if (subpath === "dag-api") return [resolve(projectDir, root, "dag-api.ts")];
 		if (subpath === "dag-types")
 			return [resolve(projectDir, root, "dag-types.ts")];
+		if (subpath === "base-node")
+			return [resolve(projectDir, root, "base-node.ts")];
 		if (subpath === "providers") {
 			return [
 				resolve(projectDir, root, "providers/index.js"),

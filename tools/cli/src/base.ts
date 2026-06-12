@@ -33,9 +33,14 @@ export abstract class BaseCommandProcessor {
 
     try {
       await entry.handler(this.client, this.paramSplitter, param);
-    } catch (error) {
-      console.error(`Error processing command '${command}':`, error);
-      throw error;
+    } catch (error: any) {
+      if (error?.statusCode === 401) {
+        console.error("Error: Unauthorized — set SERVICE_TOKEN in your env file");
+      } else {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(`Error: ${message}`);
+      }
+      process.exit(1);
     }
   }
 }

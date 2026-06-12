@@ -663,6 +663,8 @@ spec:
               value: redis://converged-portal-valkey:6379/0
             - name: LLM_GATE_URL
               value: http://converged-portal-audio-gate
+            - name: LLM_GATE_BRIDGE_ENABLED
+              value: "true"
           envFrom:
             - secretRef:
                 name: converged-portal-secrets
@@ -801,6 +803,8 @@ spec:
               value: threads-ms
             - name: LLM_GATE_THREADS_STORE
               value: threads
+            - name: LLM_GATE_THREADS_SERVICE_URL
+              value: http://converged-portal-services:80/services
           envFrom:
             - secretRef:
                 name: converged-portal-secrets
