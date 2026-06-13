@@ -1,5 +1,131 @@
 {
   "menu": {
     "requests": "Anfragen"
+  },
+  "list": {
+    "title": "Anfragen",
+    "refresh": "Aktualisieren",
+    "columns": {
+      "id": "ID",
+      "status": "Status",
+      "type": "Typ",
+      "description": "Beschreibung",
+      "completion": "Ausgefüllt",
+      "createdAt": "Erstellt"
+    },
+    "status": {
+      "new": "Neu",
+      "draft": "Entwurf",
+      "needs_clarification": "Klärung",
+      "ready": "Bereit",
+      "in_production": "In Bearbeitung",
+      "done": "Erledigt"
+    }
+  },
+  "groups": {
+    "basic": "Allgemein",
+    "geometry": "Geometrie",
+    "quality": "Qualität",
+    "logistics": "Termine & Lieferung",
+    "contact": "Kontakt",
+    "analysis": "Analytik",
+    "request": "Zusätzliche Anforderungen"
+  },
+  "status": {
+    "draft": "Entwurf",
+    "new": "Neu",
+    "needs_clarification": "Klärung erforderlich",
+    "needs_files": "Dateien erforderlich",
+    "file_analysis_pending": "Dateien werden verarbeitet",
+    "file_analysis_done": "Dateien verarbeitet"
+  },
+  "process": {
+    "cnc_machining": "CNC-Bearbeitung",
+    "laser_cutting": "Laserschneiden",
+    "plastic_cutting": "Kunststoffschneiden",
+    "3d_printing": "3D-Druck",
+    "generic": "Fertigung"
+  },
+  "detail": {
+    "defaultTitle": "Fertigungsanfrage",
+    "revision": "Version {revision}",
+    "notFilled": "Nicht ausgefüllt",
+    "noExtension": "ohne Erweiterung"
+  },
+  "progress": {
+    "byRequiredFields": "der Pflichtfelder ausgefüllt",
+    "required": "Pflichtfelder",
+    "total": "Felder insgesamt",
+    "files": "Dateien"
+  },
+  "share": {
+    "publicLink": "Öffentlicher Link"
+  },
+  "analysis": {
+    "title": "Analytik",
+    "count": "{count} Berechnungen",
+    "previewNotFound": "Modellvorschau nicht gefunden",
+    "download": "Herunterladen",
+    "estimateFallback": "Berechnung {index}",
+    "assumptionsNote": "Grobe Schätzung aus der STL-Geometrie. Für genaue Zeiten ist eine Cura-Definition erforderlich.",
+    "errorsNotice": "Einige Analyseschritte wurden nicht abgeschlossen: {count}",
+    "rows": {
+      "printTime": "Druckzeit",
+      "weight": "Gewicht",
+      "filament": "Filament",
+      "materialVolume": "Materialvolumen",
+      "machiningTime": "Bearbeitungszeit",
+      "passes": "Durchgänge",
+      "cut": "Schnitt",
+      "rapid": "Eilgang",
+      "dimensions": "Abmessungen",
+      "source": "Quelle"
+    },
+    "type": {
+      "printing": "3D-Druck",
+      "gcode": "G-Code",
+      "milling": "CNC",
+      "fallback": "Berechnung"
+    },
+    "metric": {
+      "weight": "Gewicht",
+      "printTime": "Druckzeit",
+      "machiningTime": "Bearbeitungszeit",
+      "volume": "Volumen",
+      "status": "Status",
+      "calculated": "berechnet",
+      "timePrefix": "Zeit: {value}",
+      "filamentPrefix": "Filament: {value} m",
+      "cutPrefix": "Schnitt: {value} mm"
+    },
+    "units": {
+      "grams": "g",
+      "meters": "m",
+      "mm3": "mm³",
+      "mm": "mm",
+      "minutes": "Min.",
+      "hours": "Std."
+    }
+  },
+  "files": {
+    "title": "Dateien",
+    "showList": "Liste anzeigen und herunterladen",
+    "download": "Herunterladen",
+    "empty": "Noch keine Dateien angehängt."
+  },
+  "stateSection": {
+    "title": "Status",
+    "id": "ID",
+    "createdAt": "Erstellt",
+    "updatedAt": "Aktualisiert",
+    "source": "Quelle"
+  },
+  "missing": {
+    "title": "Klärung erforderlich"
+  },
+  "errors": {
+    "title": "Anfrage konnte nicht geöffnet werden",
+    "loading": "Anfrage wird geladen...",
+    "notSelected": "Keine Anfrage ausgewählt"
   }
 }

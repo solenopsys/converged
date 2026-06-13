@@ -1,5 +1,131 @@
 {
   "menu": {
     "requests": "Pedidos"
+  },
+  "list": {
+    "title": "Pedidos",
+    "refresh": "Atualizar",
+    "columns": {
+      "id": "ID",
+      "status": "Status",
+      "type": "Tipo",
+      "description": "Descrição",
+      "completion": "Preenchido",
+      "createdAt": "Criado"
+    },
+    "status": {
+      "new": "Novo",
+      "draft": "Rascunho",
+      "needs_clarification": "Esclarecimento",
+      "ready": "Pronto",
+      "in_production": "Em produção",
+      "done": "Concluído"
+    }
+  },
+  "groups": {
+    "basic": "Geral",
+    "geometry": "Geometria",
+    "quality": "Qualidade",
+    "logistics": "Prazos e entrega",
+    "contact": "Contato",
+    "analysis": "Análise",
+    "request": "Requisitos adicionais"
+  },
+  "status": {
+    "draft": "Rascunho",
+    "new": "Novo",
+    "needs_clarification": "Precisa de esclarecimento",
+    "needs_files": "Precisa de arquivos",
+    "file_analysis_pending": "Processando arquivos",
+    "file_analysis_done": "Arquivos processados"
+  },
+  "process": {
+    "cnc_machining": "Usinagem CNC",
+    "laser_cutting": "Corte a laser",
+    "plastic_cutting": "Corte de plástico",
+    "3d_printing": "Impressão 3D",
+    "generic": "Fabricação"
+  },
+  "detail": {
+    "defaultTitle": "Pedido de fabricação",
+    "revision": "Versão {revision}",
+    "notFilled": "Não preenchido",
+    "noExtension": "sem extensão"
+  },
+  "progress": {
+    "byRequiredFields": "preenchido nos campos obrigatórios",
+    "required": "obrigatórios",
+    "total": "campos no total",
+    "files": "arquivos"
+  },
+  "share": {
+    "publicLink": "Link público"
+  },
+  "analysis": {
+    "title": "Análise",
+    "count": "{count} cálculos",
+    "previewNotFound": "Pré-visualização do modelo não encontrada",
+    "download": "Baixar",
+    "estimateFallback": "Cálculo {index}",
+    "assumptionsNote": "Estimativa aproximada a partir da geometria STL. É necessária uma definição Cura para um tempo preciso.",
+    "errorsNotice": "Algumas etapas da análise não foram concluídas: {count}",
+    "rows": {
+      "printTime": "Tempo de impressão",
+      "weight": "Peso",
+      "filament": "Filamento",
+      "materialVolume": "Volume de material",
+      "machiningTime": "Tempo de usinagem",
+      "passes": "Passagens",
+      "cut": "Corte",
+      "rapid": "Avanço rápido",
+      "dimensions": "Dimensões",
+      "source": "Origem"
+    },
+    "type": {
+      "printing": "Impressão 3D",
+      "gcode": "G-code",
+      "milling": "CNC",
+      "fallback": "Cálculo"
+    },
+    "metric": {
+      "weight": "Peso",
+      "printTime": "Tempo de impressão",
+      "machiningTime": "Tempo de usinagem",
+      "volume": "Volume",
+      "status": "Status",
+      "calculated": "calculado",
+      "timePrefix": "Tempo: {value}",
+      "filamentPrefix": "Filamento: {value} m",
+      "cutPrefix": "Corte: {value} mm"
+    },
+    "units": {
+      "grams": "g",
+      "meters": "m",
+      "mm3": "mm³",
+      "mm": "mm",
+      "minutes": "min",
+      "hours": "h"
+    }
+  },
+  "files": {
+    "title": "Arquivos",
+    "showList": "Mostrar lista e baixar",
+    "download": "Baixar",
+    "empty": "Nenhum arquivo anexado ainda."
+  },
+  "stateSection": {
+    "title": "Estado",
+    "id": "ID",
+    "createdAt": "Criado",
+    "updatedAt": "Atualizado",
+    "source": "Origem"
+  },
+  "missing": {
+    "title": "Precisa de esclarecimento"
+  },
+  "errors": {
+    "title": "Não foi possível abrir o pedido",
+    "loading": "Carregando pedido...",
+    "notSelected": "Nenhum pedido selecionado"
   }
 }

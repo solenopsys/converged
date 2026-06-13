@@ -27,6 +27,17 @@ body {
 	padding-top: 0;
 	padding-left: var(--ssr-control-panel-width);
 }
+/* The sales island is pinned with `position: fixed`, so the shell's own
+   `padding-left` in app mode does not move it. Offset its left edge by the
+   control-panel width so it stays aligned with the pushed content and clears
+   the panel instead of sliding underneath it. Transition mirrors the shell. */
+#ssr-shell .sales-island[data-placement="fixed"] {
+	transition: left 220ms ease;
+}
+#ssr-shell[data-control-panel-mode="app"]
+	.sales-island[data-placement="fixed"] {
+	left: var(--ssr-control-panel-width);
+}
 #ssr-shell[data-rail-wide="1"] {
 	--ssr-rail-width: 460px;
 }
@@ -571,6 +582,11 @@ body {
      fixed-width side panel — content is not pushed, the panel overlays it. */
 	#ssr-shell[data-control-panel-mode="app"] {
 		padding-left: 0;
+	}
+	/* Content is not pushed here, so the pinned sales island spans full width. */
+	#ssr-shell[data-control-panel-mode="app"]
+		.sales-island[data-placement="fixed"] {
+		left: 0;
 	}
 	#ssr-shell[data-control-panel-mode="app"] #ssr-control-panel-root {
 		width: 100%;

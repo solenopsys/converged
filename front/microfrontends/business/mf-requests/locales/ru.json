@@ -1,6 +1,131 @@
 {
   "menu": {
     "requests": "Запросы"
+  },
+  "list": {
+    "title": "Заявки",
+    "refresh": "Обновить",
+    "columns": {
+      "id": "ID",
+      "status": "Статус",
+      "type": "Тип",
+      "description": "Описание",
+      "completion": "Заполнено",
+      "createdAt": "Создана"
+    },
+    "status": {
+      "new": "Новая",
+      "draft": "Черновик",
+      "needs_clarification": "Уточнение",
+      "ready": "Готова",
+      "in_production": "В работе",
+      "done": "Выполнена"
+    }
+  },
+  "groups": {
+    "basic": "Основное",
+    "geometry": "Геометрия",
+    "quality": "Качество",
+    "logistics": "Сроки и доставка",
+    "contact": "Контакт",
+    "analysis": "Аналитика",
+    "request": "Дополнительные требования"
+  },
+  "status": {
+    "draft": "Черновик",
+    "new": "Новая",
+    "needs_clarification": "Нужно уточнение",
+    "needs_files": "Нужны файлы",
+    "file_analysis_pending": "Файлы обрабатываются",
+    "file_analysis_done": "Файлы обработаны"
+  },
+  "process": {
+    "cnc_machining": "ЧПУ обработка",
+    "laser_cutting": "Лазерная резка",
+    "plastic_cutting": "Резка пластика",
+    "3d_printing": "3D печать",
+    "generic": "Производство"
+  },
+  "detail": {
+    "defaultTitle": "Производственная заявка",
+    "revision": "Версия {revision}",
+    "notFilled": "Не заполнено",
+    "noExtension": "без расширения"
+  },
+  "progress": {
+    "byRequiredFields": "заполнено по обязательным полям",
+    "required": "обязательные",
+    "total": "всего полей",
+    "files": "файлы"
+  },
+  "share": {
+    "publicLink": "Публичная ссылка"
+  },
+  "analysis": {
+    "title": "Аналитика",
+    "count": "{count} расчетов",
+    "previewNotFound": "Preview модели не найден",
+    "download": "Скачать",
+    "estimateFallback": "Расчет {index}",
+    "assumptionsNote": "Грубая оценка по геометрии STL. Для точного времени нужен Cura definition.",
+    "errorsNotice": "Не все этапы анализа выполнились: {count}",
+    "rows": {
+      "printTime": "Время печати",
+      "weight": "Вес",
+      "filament": "Филамент",
+      "materialVolume": "Объем материала",
+      "machiningTime": "Время обработки",
+      "passes": "Проходы",
+      "cut": "Рез",
+      "rapid": "Быстрый ход",
+      "dimensions": "Габариты",
+      "source": "Источник"
+    },
+    "type": {
+      "printing": "3D печать",
+      "gcode": "G-code",
+      "milling": "ЧПУ",
+      "fallback": "Расчет"
+    },
+    "metric": {
+      "weight": "Вес",
+      "printTime": "Время печати",
+      "machiningTime": "Время обработки",
+      "volume": "Объем",
+      "status": "Статус",
+      "calculated": "рассчитано",
+      "timePrefix": "Время: {value}",
+      "filamentPrefix": "Филамент: {value} м",
+      "cutPrefix": "Рез: {value} мм"
+    },
+    "units": {
+      "grams": "г",
+      "meters": "м",
+      "mm3": "мм³",
+      "mm": "мм",
+      "minutes": "мин",
+      "hours": "ч"
+    }
+  },
+  "files": {
+    "title": "Файлы",
+    "showList": "Показать список и скачать",
+    "download": "Скачать",
+    "empty": "Файлы пока не прикреплены."
+  },
+  "stateSection": {
+    "title": "Состояние",
+    "id": "ID",
+    "createdAt": "Создана",
+    "updatedAt": "Обновлена",
+    "source": "Источник"
+  },
+  "missing": {
+    "title": "Нужно уточнить"
+  },
+  "errors": {
+    "title": "Заявка не открылась",
+    "loading": "Загрузка заявки...",
+    "notSelected": "Заявка не выбрана"
   }
-
 }

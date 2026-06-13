@@ -1,6 +1,131 @@
 {
   "menu": {
     "requests": "Requests"
+  },
+  "list": {
+    "title": "Requests",
+    "refresh": "Refresh",
+    "columns": {
+      "id": "ID",
+      "status": "Status",
+      "type": "Type",
+      "description": "Description",
+      "completion": "Filled",
+      "createdAt": "Created"
+    },
+    "status": {
+      "new": "New",
+      "draft": "Draft",
+      "needs_clarification": "Clarification",
+      "ready": "Ready",
+      "in_production": "In production",
+      "done": "Done"
+    }
+  },
+  "groups": {
+    "basic": "General",
+    "geometry": "Geometry",
+    "quality": "Quality",
+    "logistics": "Timeline & delivery",
+    "contact": "Contact",
+    "analysis": "Analytics",
+    "request": "Additional requirements"
+  },
+  "status": {
+    "draft": "Draft",
+    "new": "New",
+    "needs_clarification": "Needs clarification",
+    "needs_files": "Needs files",
+    "file_analysis_pending": "Processing files",
+    "file_analysis_done": "Files processed"
+  },
+  "process": {
+    "cnc_machining": "CNC machining",
+    "laser_cutting": "Laser cutting",
+    "plastic_cutting": "Plastic cutting",
+    "3d_printing": "3D printing",
+    "generic": "Manufacturing"
+  },
+  "detail": {
+    "defaultTitle": "Manufacturing request",
+    "revision": "Version {revision}",
+    "notFilled": "Not filled",
+    "noExtension": "no extension"
+  },
+  "progress": {
+    "byRequiredFields": "filled across required fields",
+    "required": "required",
+    "total": "fields total",
+    "files": "files"
+  },
+  "share": {
+    "publicLink": "Public link"
+  },
+  "analysis": {
+    "title": "Analytics",
+    "count": "{count} estimates",
+    "previewNotFound": "Model preview not found",
+    "download": "Download",
+    "estimateFallback": "Estimate {index}",
+    "assumptionsNote": "Rough estimate from STL geometry. A Cura definition is required for accurate timing.",
+    "errorsNotice": "Some analysis steps did not complete: {count}",
+    "rows": {
+      "printTime": "Print time",
+      "weight": "Weight",
+      "filament": "Filament",
+      "materialVolume": "Material volume",
+      "machiningTime": "Machining time",
+      "passes": "Passes",
+      "cut": "Cut",
+      "rapid": "Rapid travel",
+      "dimensions": "Dimensions",
+      "source": "Source"
+    },
+    "type": {
+      "printing": "3D printing",
+      "gcode": "G-code",
+      "milling": "CNC",
+      "fallback": "Estimate"
+    },
+    "metric": {
+      "weight": "Weight",
+      "printTime": "Print time",
+      "machiningTime": "Machining time",
+      "volume": "Volume",
+      "status": "Status",
+      "calculated": "calculated",
+      "timePrefix": "Time: {value}",
+      "filamentPrefix": "Filament: {value} m",
+      "cutPrefix": "Cut: {value} mm"
+    },
+    "units": {
+      "grams": "g",
+      "meters": "m",
+      "mm3": "mm³",
+      "mm": "mm",
+      "minutes": "min",
+      "hours": "h"
+    }
+  },
+  "files": {
+    "title": "Files",
+    "showList": "Show list and download",
+    "download": "Download",
+    "empty": "No files attached yet."
+  },
+  "stateSection": {
+    "title": "State",
+    "id": "ID",
+    "createdAt": "Created",
+    "updatedAt": "Updated",
+    "source": "Source"
+  },
+  "missing": {
+    "title": "Needs clarification"
+  },
+  "errors": {
+    "title": "Request failed to open",
+    "loading": "Loading request...",
+    "notSelected": "No request selected"
   }
-
 }

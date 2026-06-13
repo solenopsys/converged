@@ -3,6 +3,7 @@ import { downloadRequested, services } from "files-state";
 import { createFilesServiceClient, type FileMetadata } from "g-files";
 import type { RequestFieldState, RequestModel } from "g-requests";
 import { createStoreServiceClient } from "g-store";
+import { $activeLocale, useMicrofrontendTranslation } from "front-core";
 import { ModelViewer } from "model3d";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { RequestQr } from "../components/RequestQr";
@@ -23,32 +24,24 @@ if (typeof window !== "undefined" && !services.getFilesService()) {
 	services.setStoreService(createStoreServiceClient({ baseUrl: "/services" }));
 }
 
-const groupLabels: Record<string, string> = {
-	basic: "Основное",
-	geometry: "Геометрия",
-	quality: "Качество",
-	logistics: "Сроки и доставка",
-	contact: "Контакт",
-	analysis: "Аналитика",
-	request: "Дополнительные требования",
-};
+type Translate = (key: string) => string;
+type I18n = { t: Translate; locale: string };
 
-const statusLabels: Record<string, string> = {
-	draft: "Черновик",
-	new: "Новая",
-	needs_clarification: "Нужно уточнение",
-	needs_files: "Нужны файлы",
-	file_analysis_pending: "Файлы обрабатываются",
-	file_analysis_done: "Файлы обработаны",
-};
+/** Replace `{name}` placeholders in a translated template. */
+function interpolate(
+	template: string,
+	vars: Record<string, string | number>,
+): string {
+	return template.replace(/\{(\w+)\}/g, (_, key) =>
+		key in vars ? String(vars[key]) : `{${key}}`,
+	);
+}
 
-const processLabels: Record<string, string> = {
-	cnc_machining: "ЧПУ обработка",
-	laser_cutting: "Лазерная резка",
-	plastic_cutting: "Резка пластика",
-	"3d_printing": "3D печать",
-	generic: "Производство",
-};
+/** Translate with an explicit fallback for dynamic keys that may be absent. */
+function tr(t: Translate, key: string, fallback: string): string {
+	const value = t(key);
+	return value === key ? fallback : value;
+}
 
 const analysisFieldKeys = new Set([
 	"file_analysis_estimates",
@@ -60,11 +53,11 @@ function publicRequestUrl(requestId: string): string {
 	return `${window.location.origin}/request/${requestId}`;
 }
 
-function formatDate(value?: string): string {
+function formatDate(value: string | undefined, locale: string): string {
 	if (!value) return "—";
 	const date = new Date(value);
 	if (Number.isNaN(date.getTime())) return value;
-	return date.toLocaleString("ru-RU", {
+	return date.toLocaleString(locale, {
 		day: "2-digit",
 		month: "2-digit",
 		year: "numeric",
@@ -73,10 +66,10 @@ function formatDate(value?: string): string {
 	});
 }
 
-function formatValue(field: RequestFieldState): string {
+function formatValue(field: RequestFieldState, i18n: I18n): string {
 	const value = field.value;
 	if (value === undefined || value === null || value === "")
-		return "Не заполнено";
+		return i18n.t("detail.notFilled");
 	if (Array.isArray(value)) return value.join(", ");
 	if (typeof value === "object") return JSON.stringify(value);
 	const text = String(value);
@@ -108,7 +101,7 @@ function groupFields(
 	return Array.from(groups.entries());
 }
 
-function FieldCard({ field }: { field: RequestFieldState }) {
+function FieldCard({ field, i18n }: { field: RequestFieldState; i18n: I18n }) {
 	const isMissing = field.status === "missing" && field.required;
 	const isReview = field.status === "needs_review";
 	return (
@@ -119,7 +112,7 @@ function FieldCard({ field }: { field: RequestFieldState }) {
 					<div className="request-field__description">{field.description}</div>
 				) : null}
 			</div>
-			<div className="request-field__value">{formatValue(field)}</div>
+			<div className="request-field__value">{formatValue(field, i18n)}</div>
 		</div>
 	);
 }
@@ -150,22 +143,28 @@ function asNumber(value: unknown): number | undefined {
 	return Number.isFinite(number) ? number : undefined;
 }
 
-function formatNumber(value: unknown, digits = 1): string | null {
+function formatNumber(value: unknown, digits: number, locale: string): string | null {
 	const number = asNumber(value);
 	if (number === undefined) return null;
-	return number.toLocaleString("ru-RU", {
+	return number.toLocaleString(locale, {
 		maximumFractionDigits: digits,
 	});
 }
 
-function formatDuration(seconds: unknown): string | null {
+function withUnit(value: string | null, unit: string): string | null {
+	return value === null ? null : `${value} ${unit}`;
+}
+
+function formatDuration(seconds: unknown, i18n: I18n): string | null {
 	const value = asNumber(seconds);
 	if (value === undefined) return null;
+	const min = i18n.t("analysis.units.minutes");
+	const hr = i18n.t("analysis.units.hours");
 	const minutes = Math.round(value / 60);
-	if (minutes < 60) return `${minutes} мин`;
+	if (minutes < 60) return `${minutes} ${min}`;
 	const hours = Math.floor(minutes / 60);
 	const rest = minutes % 60;
-	return rest > 0 ? `${hours} ч ${rest} мин` : `${hours} ч`;
+	return rest > 0 ? `${hours} ${hr} ${rest} ${min}` : `${hours} ${hr}`;
 }
 
 function getAnalysisEstimates(model: RequestModel): AnalysisEstimate[] {
@@ -186,32 +185,43 @@ function getAnalysisErrors(model: RequestModel): Array<Record<string, any>> {
 	);
 }
 
-function estimateRows(estimate: AnalysisEstimate): Array<[string, string]> {
+function estimateRows(estimate: AnalysisEstimate, i18n: I18n): Array<[string, string]> {
+	const { t, locale } = i18n;
 	const data = estimate.data ?? {};
+	const mm = t("analysis.units.mm");
 	const rows: Array<[string, string | null]> = [];
 	if (estimate.type === "printing" || estimate.type === "gcode") {
-		rows.push(["Время печати", formatDuration(data.timeSeconds)]);
-		rows.push(["Вес", formatNumber(data.weightGrams, 1)?.concat(" г") ?? null]);
+		rows.push([t("analysis.rows.printTime"), formatDuration(data.timeSeconds, i18n)]);
 		rows.push([
-			"Филамент",
-			formatNumber(data.filamentLengthMeters, 2)?.concat(" м") ?? null,
+			t("analysis.rows.weight"),
+			withUnit(formatNumber(data.weightGrams, 1, locale), t("analysis.units.grams")),
 		]);
 		rows.push([
-			"Объем материала",
-			formatNumber(data.materialVolumeMm3, 0)?.concat(" мм³") ?? null,
+			t("analysis.rows.filament"),
+			withUnit(formatNumber(data.filamentLengthMeters, 2, locale), t("analysis.units.meters")),
+		]);
+		rows.push([
+			t("analysis.rows.materialVolume"),
+			withUnit(formatNumber(data.materialVolumeMm3, 0, locale), t("analysis.units.mm3")),
 		]);
 	}
 	if (estimate.type === "milling") {
-		rows.push(["Время обработки", formatDuration(data.totalTimeSec)]);
-		rows.push(["Проходы", formatNumber(data.passes, 0)]);
-		rows.push(["Рез", formatNumber(data.cutLengthMm, 0)?.concat(" мм") ?? null]);
-		rows.push(["Быстрый ход", formatNumber(data.rapidLengthMm, 0)?.concat(" мм") ?? null]);
+		rows.push([t("analysis.rows.machiningTime"), formatDuration(data.totalTimeSec, i18n)]);
+		rows.push([t("analysis.rows.passes"), formatNumber(data.passes, 0, locale)]);
+		rows.push([
+			t("analysis.rows.cut"),
+			withUnit(formatNumber(data.cutLengthMm, 0, locale), mm),
+		]);
+		rows.push([
+			t("analysis.rows.rapid"),
+			withUnit(formatNumber(data.rapidLengthMm, 0, locale), mm),
+		]);
 	}
 	if (data.dimensionsMm && typeof data.dimensionsMm === "object") {
-		const x = formatNumber(data.dimensionsMm.x, 1);
-		const y = formatNumber(data.dimensionsMm.y, 1);
-		const z = formatNumber(data.dimensionsMm.z, 1);
-		if (x && y && z) rows.push(["Габариты", `${x} × ${y} × ${z} мм`]);
+		const x = formatNumber(data.dimensionsMm.x, 1, locale);
+		const y = formatNumber(data.dimensionsMm.y, 1, locale);
+		const z = formatNumber(data.dimensionsMm.z, 1, locale);
+		if (x && y && z) rows.push([t("analysis.rows.dimensions"), `${x} × ${y} × ${z} ${mm}`]);
 	} else if (
 		asNumber(data.maxX) !== undefined &&
 		asNumber(data.minX) !== undefined &&
@@ -221,48 +231,51 @@ function estimateRows(estimate: AnalysisEstimate): Array<[string, string]> {
 		asNumber(data.minZ) !== undefined
 	) {
 		rows.push([
-			"Габариты",
-			`${formatNumber(asNumber(data.maxX)! - asNumber(data.minX)!, 1)} × ${formatNumber(asNumber(data.maxY)! - asNumber(data.minY)!, 1)} × ${formatNumber(asNumber(data.maxZ)! - asNumber(data.minZ)!, 1)} мм`,
+			t("analysis.rows.dimensions"),
+			`${formatNumber(asNumber(data.maxX)! - asNumber(data.minX)!, 1, locale)} × ${formatNumber(asNumber(data.maxY)! - asNumber(data.minY)!, 1, locale)} × ${formatNumber(asNumber(data.maxZ)! - asNumber(data.minZ)!, 1, locale)} ${mm}`,
 		]);
 	}
-	rows.push(["Источник", typeof data.estimator === "string" ? data.estimator : null]);
+	rows.push([t("analysis.rows.source"), typeof data.estimator === "string" ? data.estimator : null]);
 	return rows.filter((row): row is [string, string] => Boolean(row[1]));
 }
 
-function estimateTypeLabel(estimate: AnalysisEstimate): string {
-	if (estimate.type === "printing") return "3D печать";
-	if (estimate.type === "gcode") return "G-code";
-	if (estimate.type === "milling") return "ЧПУ";
-	return estimate.type ?? "Расчет";
+function estimateTypeLabel(estimate: AnalysisEstimate, t: Translate): string {
+	if (estimate.type === "printing") return t("analysis.type.printing");
+	if (estimate.type === "gcode") return t("analysis.type.gcode");
+	if (estimate.type === "milling") return t("analysis.type.milling");
+	return estimate.type ?? t("analysis.type.fallback");
 }
 
-function estimatePrimaryMetric(estimate: AnalysisEstimate): [string, string] {
+function estimatePrimaryMetric(estimate: AnalysisEstimate, i18n: I18n): [string, string] {
+	const { t, locale } = i18n;
 	const data = estimate.data ?? {};
-	const weight = formatNumber(data.weightGrams, 1);
-	if (weight) return ["Вес", `${weight} г`];
+	const weight = formatNumber(data.weightGrams, 1, locale);
+	if (weight) return [t("analysis.metric.weight"), `${weight} ${t("analysis.units.grams")}`];
 
-	const printTime = formatDuration(data.timeSeconds);
-	if (printTime) return ["Время печати", printTime];
+	const printTime = formatDuration(data.timeSeconds, i18n);
+	if (printTime) return [t("analysis.metric.printTime"), printTime];
 
-	const millTime = formatDuration(data.totalTimeSec);
-	if (millTime) return ["Время обработки", millTime];
+	const millTime = formatDuration(data.totalTimeSec, i18n);
+	if (millTime) return [t("analysis.metric.machiningTime"), millTime];
 
-	const materialVolume = formatNumber(data.materialVolumeMm3, 0);
-	if (materialVolume) return ["Объем", `${materialVolume} мм³`];
+	const materialVolume = formatNumber(data.materialVolumeMm3, 0, locale);
+	if (materialVolume) return [t("analysis.metric.volume"), `${materialVolume} ${t("analysis.units.mm3")}`];
 
-	return ["Статус", "рассчитано"];
+	return [t("analysis.metric.status"), t("analysis.metric.calculated")];
 }
 
-function estimateSecondaryMetric(estimate: AnalysisEstimate): string | null {
+function estimateSecondaryMetric(estimate: AnalysisEstimate, i18n: I18n): string | null {
+	const { t, locale } = i18n;
 	const data = estimate.data ?? {};
-	const printTime = formatDuration(data.timeSeconds);
-	if (printTime && formatNumber(data.weightGrams, 1)) return `Время: ${printTime}`;
+	const printTime = formatDuration(data.timeSeconds, i18n);
+	if (printTime && formatNumber(data.weightGrams, 1, locale))
+		return interpolate(t("analysis.metric.timePrefix"), { value: printTime });
 
-	const filament = formatNumber(data.filamentLengthMeters, 2);
-	if (filament) return `Филамент: ${filament} м`;
+	const filament = formatNumber(data.filamentLengthMeters, 2, locale);
+	if (filament) return interpolate(t("analysis.metric.filamentPrefix"), { value: filament });
 
-	const cutLength = formatNumber(data.cutLengthMm, 0);
-	if (cutLength) return `Рез: ${cutLength} мм`;
+	const cutLength = formatNumber(data.cutLengthMm, 0, locale);
+	if (cutLength) return interpolate(t("analysis.metric.cutPrefix"), { value: cutLength });
 
 	return null;
 }
@@ -371,15 +384,18 @@ function AnalysisSection({
 	errors,
 	files,
 	fileMetadata,
+	i18n,
 	renderModelPreview,
 }: {
 	estimates: AnalysisEstimate[];
 	errors: Array<Record<string, any>>;
 	files: Array<[string, string]>;
 	fileMetadata: Record<string, FileMetadata>;
+	i18n: I18n;
 	renderModelPreview?: ModelPreviewRenderer;
 }) {
 	if (estimates.length === 0 && errors.length === 0) return null;
+	const { t } = i18n;
 	const fileLabels = new Map(files.map(([label, id]) => [id, label]));
 	const renderPreview =
 		renderModelPreview ??
@@ -388,15 +404,17 @@ function AnalysisSection({
 	return (
 		<section className="request-analysis-section">
 			<div className="request-analysis-head">
-				<h2>Аналитика</h2>
-				<span className="request-count">{estimates.length} расчетов</span>
+				<h2>{t("analysis.title")}</h2>
+				<span className="request-count">
+					{interpolate(t("analysis.count"), { count: estimates.length })}
+				</span>
 			</div>
 			{estimates.length > 0 ? (
 				<div className="request-estimates">
 					{estimates.map((estimate, index) => {
-						const rows = estimateRows(estimate);
-						const primary = estimatePrimaryMetric(estimate);
-						const secondary = estimateSecondaryMetric(estimate);
+						const rows = estimateRows(estimate, i18n);
+						const primary = estimatePrimaryMetric(estimate, i18n);
+						const secondary = estimateSecondaryMetric(estimate, i18n);
 						const detailRows = rows.filter(([label]) => label !== primary[0]);
 						const sourceLabel = estimate.sourceFileId
 							? fileLabels.get(estimate.sourceFileId)
@@ -417,7 +435,7 @@ function AnalysisSection({
 							sourceLabel ||
 							(typeof estimate.data?.sourceName === "string"
 								? estimate.data.sourceName
-								: `Расчет ${index + 1}`);
+								: interpolate(t("analysis.estimateFallback"), { index: index + 1 }));
 						return (
 							<div
 								key={`${estimate.sourceFileId ?? "estimate"}:${index}`}
@@ -428,7 +446,7 @@ function AnalysisSection({
 										renderPreview({ alt: preview[0], fileId: preview[1] })
 									) : (
 										<div className="request-estimate__empty">
-											Preview модели не найден
+											{t("analysis.previewNotFound")}
 										</div>
 									)}
 								</div>
@@ -439,7 +457,7 @@ function AnalysisSection({
 												<span className="request-estimate__identity">
 													<span className="request-estimate__title">{title}</span>
 													<span className="request-estimate__type">
-														{estimateTypeLabel(estimate)}
+														{estimateTypeLabel(estimate, t)}
 													</span>
 												</span>
 												<span className="request-estimate__primary">
@@ -462,7 +480,7 @@ function AnalysisSection({
 															});
 														}}
 													>
-														Скачать
+														{t("analysis.download")}
 													</button>
 												) : null}
 												<span className="request-estimate__more" aria-hidden="true" />
@@ -479,8 +497,7 @@ function AnalysisSection({
 											) : null}
 											{estimate.data?.assumptions ? (
 												<div className="request-note">
-													Грубая оценка по геометрии STL. Для точного времени нужен
-													Cura definition.
+													{t("analysis.assumptionsNote")}
 												</div>
 											) : null}
 										</details>
@@ -489,7 +506,7 @@ function AnalysisSection({
 											<span className="request-estimate__identity">
 												<span className="request-estimate__title">{title}</span>
 												<span className="request-estimate__type">
-													{estimateTypeLabel(estimate)}
+													{estimateTypeLabel(estimate, t)}
 												</span>
 											</span>
 											<span className="request-estimate__primary">
@@ -510,7 +527,7 @@ function AnalysisSection({
 														});
 													}}
 												>
-													Скачать
+													{t("analysis.download")}
 												</button>
 											) : null}
 										</div>
@@ -523,7 +540,7 @@ function AnalysisSection({
 			) : null}
 			{errors.length > 0 ? (
 				<div className="request-card request-analysis-error">
-					Не все этапы анализа выполнились: {errors.length}
+					{interpolate(t("analysis.errorsNotice"), { count: errors.length })}
 				</div>
 			) : null}
 		</section>
@@ -542,10 +559,10 @@ function isModelFile(label: string, mime?: string): boolean {
 	return isGlbMime(mime) || /\.(glb2?|gltf)$/i.test(label);
 }
 
-function fileExtension(label: string): string {
+function fileExtension(label: string, i18n: I18n): string {
 	const name = label.trim();
 	const dot = name.lastIndexOf(".");
-	if (dot <= 0 || dot === name.length - 1) return "без расширения";
+	if (dot <= 0 || dot === name.length - 1) return i18n.t("detail.noExtension");
 	return name.slice(dot + 1).toUpperCase();
 }
 
@@ -559,11 +576,12 @@ function formatFileSize(bytes?: number): string | null {
 function fileStats(
 	files: Array<[string, string]>,
 	fileMetadata: Record<string, FileMetadata>,
+	i18n: I18n,
 ): Array<[string, number]> {
 	const counts = new Map<string, number>();
 	for (const [label, fileId] of files) {
 		const name = fileMetadata[fileId]?.name ?? label;
-		const key = fileExtension(name);
+		const key = fileExtension(name, i18n);
 		counts.set(key, (counts.get(key) ?? 0) + 1);
 	}
 	return Array.from(counts.entries()).sort((left, right) => {
@@ -636,23 +654,28 @@ function useCollectionFiles(collectionIds: string[]): Record<string, FileMetadat
 
 function RequestHero({
 	model,
+	i18n,
 }: {
 	model: RequestModel;
+	i18n: I18n;
 }) {
+	const { t } = i18n;
 	return (
 		<header className="request-card request-hero">
 			<div className="request-hero__main">
 				<div className="request-pills">
 					<span className="request-pill request-pill--status">
-						{statusLabels[model.status] ?? model.status}
+						{tr(t, `status.${model.status}`, model.status)}
 					</span>
-					<span className="request-pill">Версия {model.revision}</span>
 					<span className="request-pill">
-						{processLabels[model.processType] ?? model.processType}
+						{interpolate(t("detail.revision"), { revision: model.revision })}
+					</span>
+					<span className="request-pill">
+						{tr(t, `process.${model.processType}`, model.processType)}
 					</span>
 				</div>
 				<h1 className="request-title">
-					{model.title || "Производственная заявка"}
+					{model.title || t("detail.defaultTitle")}
 				</h1>
 				{model.summary ? <p className="request-summary">{model.summary}</p> : null}
 			</div>
@@ -663,15 +686,18 @@ function RequestHero({
 function RequestProgressCard({
 	fileCount,
 	model,
+	i18n,
 }: {
 	fileCount: number;
 	model: RequestModel;
+	i18n: I18n;
 }) {
+	const { t } = i18n;
 	return (
 		<section className="request-card request-progress">
 			<div className="request-progress__main">
 				<strong>{model.completion.percent}%</strong>
-				<span>заполнено по обязательным полям</span>
+				<span>{t("progress.byRequiredFields")}</span>
 				<div className="request-progress__bar">
 					<i style={{ width: `${model.completion.percent}%` }} />
 				</div>
@@ -681,29 +707,29 @@ function RequestProgressCard({
 					<strong>
 						{model.completion.filledRequired}/{model.completion.required}
 					</strong>
-					<span>обязательные</span>
+					<span>{t("progress.required")}</span>
 				</div>
 				<div>
 					<strong>
 						{model.completion.filledTotal}/{model.completion.total}
 					</strong>
-					<span>всего полей</span>
+					<span>{t("progress.total")}</span>
 				</div>
 				<div>
 					<strong>{fileCount}</strong>
-					<span>файлы</span>
+					<span>{t("progress.files")}</span>
 				</div>
 			</div>
 		</section>
 	);
 }
 
-function RequestShareCard({ url }: { url: string }) {
+function RequestShareCard({ url, i18n }: { url: string; i18n: I18n }) {
 	return (
 		<section className="request-card request-share-card">
 			<RequestQr url={url} />
 			<div className="request-share__link">
-				<strong>Публичная ссылка</strong>
+				<strong>{i18n.t("share.publicLink")}</strong>
 				{url}
 			</div>
 		</section>
@@ -713,48 +739,51 @@ function RequestShareCard({ url }: { url: string }) {
 function RequestFieldsSection({
 	fields,
 	group,
+	i18n,
 }: {
 	fields: RequestFieldState[];
 	group: string;
+	i18n: I18n;
 }) {
 	if (fields.length === 0) return null;
 
 	return (
 		<section className="request-card request-card--fields">
 			<div className="request-card__head">
-				<h2>{groupLabels[group] ?? group}</h2>
+				<h2>{tr(i18n.t, `groups.${group}`, group)}</h2>
 				<span className="request-count">{fields.length}</span>
 			</div>
 			<div className="request-field-grid">
 				{fields.map((field) => (
-					<FieldCard key={field.key} field={field} />
+					<FieldCard key={field.key} field={field} i18n={i18n} />
 				))}
 			</div>
 		</section>
 	);
 }
 
-function RequestStatusSection({ model }: { model: RequestModel }) {
+function RequestStatusSection({ model, i18n }: { model: RequestModel; i18n: I18n }) {
+	const { t, locale } = i18n;
 	return (
 		<section className="request-card request-card--status">
 			<div className="request-card__head">
-				<h2>Состояние</h2>
+				<h2>{t("stateSection.title")}</h2>
 			</div>
 			<div className="request-status-list">
 				<div className="request-status-row">
-					<span>ID</span>
+					<span>{t("stateSection.id")}</span>
 					<span>{model.id}</span>
 				</div>
 				<div className="request-status-row">
-					<span>Создана</span>
-					<span>{formatDate(model.createdAt)}</span>
+					<span>{t("stateSection.createdAt")}</span>
+					<span>{formatDate(model.createdAt, locale)}</span>
 				</div>
 				<div className="request-status-row">
-					<span>Обновлена</span>
-					<span>{formatDate(model.updatedAt)}</span>
+					<span>{t("stateSection.updatedAt")}</span>
+					<span>{formatDate(model.updatedAt, locale)}</span>
 				</div>
 				<div className="request-status-row">
-					<span>Источник</span>
+					<span>{t("stateSection.source")}</span>
 					<span>{model.source ?? "—"}</span>
 				</div>
 			</div>
@@ -766,22 +795,25 @@ function RequestFilesSection({
 	analysisCount,
 	fileMetadata,
 	files,
+	i18n,
 	renderModelPreview,
 }: {
 	analysisCount: number;
 	fileMetadata: Record<string, FileMetadata>;
 	files: Array<[string, string]>;
+	i18n: I18n;
 	renderModelPreview?: ModelPreviewRenderer;
 }) {
+	const { t } = i18n;
 	const renderPreview =
 		renderModelPreview ??
 		(({ alt, fileId }) => <DefaultModelPreview alt={alt} fileId={fileId} />);
-	const stats = fileStats(files, fileMetadata);
+	const stats = fileStats(files, fileMetadata, i18n);
 
 	return (
 		<section className="request-card request-card--files">
 			<div className="request-card__head">
-				<h2>Файлы</h2>
+				<h2>{t("files.title")}</h2>
 				<span className="request-count">{files.length}</span>
 			</div>
 			{files.length > 0 ? (
@@ -795,7 +827,7 @@ function RequestFilesSection({
 						))}
 					</div>
 					<details className="request-files-details">
-						<summary>Показать список и скачать</summary>
+						<summary>{t("files.showList")}</summary>
 						<div className="request-files-list">
 							<div className="request-files">
 								{files.map(([label, fileId]) => {
@@ -816,7 +848,7 @@ function RequestFilesSection({
 												<div className="request-file__name">{fileName}</div>
 												<div className="request-file__meta">
 													{[fileType, size].filter(Boolean).join(" · ") ||
-														fileExtension(fileName)}
+														fileExtension(fileName, i18n)}
 												</div>
 											</div>
 											<button
@@ -826,7 +858,7 @@ function RequestFilesSection({
 													downloadRequested({ fileId, fileName });
 												}}
 											>
-												Скачать
+												{t("files.download")}
 											</button>
 										</div>
 									);
@@ -836,19 +868,19 @@ function RequestFilesSection({
 					</details>
 				</>
 			) : (
-				<p className="request-empty-text">Файлы пока не прикреплены.</p>
+				<p className="request-empty-text">{t("files.empty")}</p>
 			)}
 		</section>
 	);
 }
 
-function RequestMissingSection({ model }: { model: RequestModel }) {
+function RequestMissingSection({ model, i18n }: { model: RequestModel; i18n: I18n }) {
 	if (model.missingRequired.length === 0) return null;
 
 	return (
 		<section className="request-card request-card--missing">
 			<div className="request-card__head">
-				<h2>Нужно уточнить</h2>
+				<h2>{i18n.t("missing.title")}</h2>
 				<span className="request-count">{model.missingRequired.length}</span>
 			</div>
 			<div className="request-missing">
@@ -869,6 +901,9 @@ export function ManufacturingRequestPage({
 	model: RequestModel;
 	renderModelPreview?: ModelPreviewRenderer;
 }) {
+	const { t } = useMicrofrontendTranslation("requests-mf");
+	const locale = useUnit($activeLocale);
+	const i18n = useMemo<I18n>(() => ({ t, locale }), [t, locale]);
 	const url = publicRequestUrl(model.id);
 	const grouped = useMemo(() => groupFields(model), [model]);
 	const analysisEstimates = useMemo(() => getAnalysisEstimates(model), [model]);
@@ -920,15 +955,16 @@ export function ManufacturingRequestPage({
 		<div className="request-detail">
 			<div className="request-detail__wrap">
 				<div className="request-bento">
-					<RequestHero model={model} />
-					<RequestProgressCard fileCount={files.length} model={model} />
-					<RequestMissingSection model={model} />
-					<RequestShareCard url={url} />
+					<RequestHero model={model} i18n={i18n} />
+					<RequestProgressCard fileCount={files.length} model={model} i18n={i18n} />
+					<RequestMissingSection model={model} i18n={i18n} />
+					<RequestShareCard url={url} i18n={i18n} />
 					<AnalysisSection
 						estimates={analysisEstimates}
 						errors={analysisErrors}
 						files={files}
 						fileMetadata={fileMetadata}
+						i18n={i18n}
 						renderModelPreview={renderModelPreview}
 					/>
 					{grouped.map(([group, fields]) => (
@@ -936,15 +972,17 @@ export function ManufacturingRequestPage({
 							key={group}
 							fields={fields}
 							group={group}
+							i18n={i18n}
 						/>
 					))}
 					<RequestFilesSection
 						analysisCount={analysisEstimates.length}
 						fileMetadata={fileMetadata}
 						files={sortedFiles}
+						i18n={i18n}
 						renderModelPreview={renderModelPreview}
 					/>
-					<RequestStatusSection model={model} />
+					<RequestStatusSection model={model} i18n={i18n} />
 				</div>
 			</div>
 		</div>
@@ -958,6 +996,7 @@ export function RequestDetailView({
 	requestId?: string;
 	model?: RequestModel | null;
 }) {
+	const { t } = useMicrofrontendTranslation("requests-mf");
 	const state = useUnit({
 		storeModel: $requestModel,
 		loading: $requestLoading,
@@ -992,7 +1031,7 @@ export function RequestDetailView({
 		return (
 			<div className="flex h-full min-h-0 w-full items-center justify-center overflow-y-auto bg-[#050608] p-6 text-white">
 				<div className="max-w-lg rounded-3xl border border-red-300/30 bg-red-400/10 p-6">
-					<div className="text-lg font-semibold">Заявка не открылась</div>
+					<div className="text-lg font-semibold">{t("errors.title")}</div>
 					<div className="mt-2 text-sm text-red-100">{state.error}</div>
 				</div>
 			</div>
@@ -1003,7 +1042,7 @@ export function RequestDetailView({
 		return (
 			<div className="flex h-full min-h-0 w-full items-center justify-center overflow-y-auto bg-[#050608] p-6 text-white">
 				<div className="rounded-3xl border border-white/10 bg-white/[0.045] p-6 text-sm text-slate-300">
-					{state.loading ? "Загрузка заявки..." : "Заявка не выбрана"}
+					{state.loading ? t("errors.loading") : t("errors.notSelected")}
 				</div>
 			</div>
 		);

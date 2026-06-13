@@ -1,9 +1,13 @@
 import { useUnit } from "effector-react";
-import { HeaderPanelLayout, InfiniteScrollDataTable } from "front-core";
+import {
+	HeaderPanelLayout,
+	InfiniteScrollDataTable,
+	useMicrofrontendTranslation,
+} from "front-core";
 import { RefreshCw } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { OPEN_REQUEST } from "../commands";
-import { requestsColumns } from "../config";
+import { createRequestsColumns } from "../config";
 import {
 	$requestsStore,
 	openRequestDetail,
@@ -17,17 +21,20 @@ type RequestBus = {
 
 export const RequestsListView = ({ bus }: { bus?: RequestBus }) => {
 	const state = useUnit($requestsStore.$state);
+	const { t } = useMicrofrontendTranslation("requests-mf");
 
 	useEffect(() => {
 		requestsListMounted();
 	}, []);
 
+	const columns = useMemo(() => createRequestsColumns(t), [t]);
+
 	const headerConfig = {
-		title: "Заявки",
+		title: t("list.title"),
 		actions: [
 			{
 				id: "refresh",
-				label: "Обновить",
+				label: t("list.refresh"),
 				icon: RefreshCw,
 				event: refreshRequestsClicked,
 				variant: "outline" as const,
@@ -51,7 +58,7 @@ export const RequestsListView = ({ bus }: { bus?: RequestBus }) => {
 				data={state.items}
 				hasMore={state.hasMore}
 				loading={state.loading}
-				columns={requestsColumns}
+				columns={columns}
 				onRowClick={handleRowClick}
 				onLoadMore={$requestsStore.loadMore}
 				viewMode="table"

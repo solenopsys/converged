@@ -1,5 +1,131 @@
 {
   "menu": {
     "requests": "Richieste"
+  },
+  "list": {
+    "title": "Richieste",
+    "refresh": "Aggiorna",
+    "columns": {
+      "id": "ID",
+      "status": "Stato",
+      "type": "Tipo",
+      "description": "Descrizione",
+      "completion": "Compilato",
+      "createdAt": "Creata"
+    },
+    "status": {
+      "new": "Nuova",
+      "draft": "Bozza",
+      "needs_clarification": "Chiarimento",
+      "ready": "Pronta",
+      "in_production": "In produzione",
+      "done": "Completata"
+    }
+  },
+  "groups": {
+    "basic": "Generale",
+    "geometry": "Geometria",
+    "quality": "Qualità",
+    "logistics": "Tempi e consegna",
+    "contact": "Contatto",
+    "analysis": "Analisi",
+    "request": "Requisiti aggiuntivi"
+  },
+  "status": {
+    "draft": "Bozza",
+    "new": "Nuova",
+    "needs_clarification": "Richiede chiarimento",
+    "needs_files": "Richiede file",
+    "file_analysis_pending": "Elaborazione file",
+    "file_analysis_done": "File elaborati"
+  },
+  "process": {
+    "cnc_machining": "Lavorazione CNC",
+    "laser_cutting": "Taglio laser",
+    "plastic_cutting": "Taglio plastica",
+    "3d_printing": "Stampa 3D",
+    "generic": "Produzione"
+  },
+  "detail": {
+    "defaultTitle": "Richiesta di produzione",
+    "revision": "Versione {revision}",
+    "notFilled": "Non compilato",
+    "noExtension": "senza estensione"
+  },
+  "progress": {
+    "byRequiredFields": "compilato sui campi obbligatori",
+    "required": "obbligatori",
+    "total": "campi totali",
+    "files": "file"
+  },
+  "share": {
+    "publicLink": "Link pubblico"
+  },
+  "analysis": {
+    "title": "Analisi",
+    "count": "{count} calcoli",
+    "previewNotFound": "Anteprima del modello non trovata",
+    "download": "Scarica",
+    "estimateFallback": "Calcolo {index}",
+    "assumptionsNote": "Stima approssimativa dalla geometria STL. È necessaria una definizione Cura per un tempo preciso.",
+    "errorsNotice": "Alcuni passaggi dell'analisi non sono stati completati: {count}",
+    "rows": {
+      "printTime": "Tempo di stampa",
+      "weight": "Peso",
+      "filament": "Filamento",
+      "materialVolume": "Volume materiale",
+      "machiningTime": "Tempo di lavorazione",
+      "passes": "Passate",
+      "cut": "Taglio",
+      "rapid": "Avanzamento rapido",
+      "dimensions": "Dimensioni",
+      "source": "Origine"
+    },
+    "type": {
+      "printing": "Stampa 3D",
+      "gcode": "G-code",
+      "milling": "CNC",
+      "fallback": "Calcolo"
+    },
+    "metric": {
+      "weight": "Peso",
+      "printTime": "Tempo di stampa",
+      "machiningTime": "Tempo di lavorazione",
+      "volume": "Volume",
+      "status": "Stato",
+      "calculated": "calcolato",
+      "timePrefix": "Tempo: {value}",
+      "filamentPrefix": "Filamento: {value} m",
+      "cutPrefix": "Taglio: {value} mm"
+    },
+    "units": {
+      "grams": "g",
+      "meters": "m",
+      "mm3": "mm³",
+      "mm": "mm",
+      "minutes": "min",
+      "hours": "h"
+    }
+  },
+  "files": {
+    "title": "File",
+    "showList": "Mostra elenco e scarica",
+    "download": "Scarica",
+    "empty": "Nessun file allegato per ora."
+  },
+  "stateSection": {
+    "title": "Stato",
+    "id": "ID",
+    "createdAt": "Creata",
+    "updatedAt": "Aggiornata",
+    "source": "Origine"
+  },
+  "missing": {
+    "title": "Richiede chiarimento"
+  },
+  "errors": {
+    "title": "Impossibile aprire la richiesta",
+    "loading": "Caricamento della richiesta...",
+    "notSelected": "Nessuna richiesta selezionata"
   }
 }
