@@ -86,7 +86,7 @@
       "communications": [
         "audio-gate",
         "calls",
-        "charts",
+        "chats",
         "community",
         "notify",
         "threads"

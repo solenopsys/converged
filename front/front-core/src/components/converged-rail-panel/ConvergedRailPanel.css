@@ -345,10 +345,10 @@ html.dark .crp-logo--dark {
 	align-items: center;
 	gap: 8px;
 	min-height: 42px;
-	border: 1px solid var(--ui-border);
+	border: 0;
 	border-radius: 10px;
 	padding: 4px 14px;
-	background: var(--ui-muted);
+	background: transparent;
 }
 
 .crp-composer-action,

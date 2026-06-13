@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Badge } from "front-core";
 import { MessageSquare, MicOff, RefreshCw, Bot } from "lucide-react";
 import { threadsClient } from "g-threads";
-import { WaveformPlayer } from "../components/WaveformPlayer";
+import { StereoCallPlayer } from "../components/StereoCallPlayer";
 import { fetchCallAudioObjectUrl } from "../services/call-audio";
 import { type GateTranscriptItem } from "../services/audio-gate-client";
 
@@ -68,9 +68,7 @@ export const CallTranscriptView: React.FC<CallTranscriptViewProps> = ({ sessionI
     return () => revokeUrls();
   }, [sessionId]);
 
-  const hasUserAudio = userAudioUrl !== null;
-  const hasAssistantAudio = assistantAudioUrl !== null;
-  const hasAudio = hasUserAudio || hasAssistantAudio;
+  const hasAudio = userAudioUrl !== null || assistantAudioUrl !== null;
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -92,13 +90,10 @@ export const CallTranscriptView: React.FC<CallTranscriptViewProps> = ({ sessionI
         </button>
       </div>
 
-      {/* Recordings */}
+      {/* Recordings — single stereo player (You = left, AI = right) */}
       {hasAudio && (
-        <div className="flex flex-col gap-4 p-4 border-b border-border shrink-0">
-          {userAudioUrl && <WaveformPlayer src={userAudioUrl} label="You" color="#3b82f6" />}
-          {assistantAudioUrl && (
-            <WaveformPlayer src={assistantAudioUrl} label="AI" color="#22c55e" />
-          )}
+        <div className="p-4 border-b border-border shrink-0">
+          <StereoCallPlayer userSrc={userAudioUrl} aiSrc={assistantAudioUrl} />
         </div>
       )}
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Button, Badge } from "front-core";
 import { ArrowLeft, RefreshCw, MessageSquare, MicOff } from "lucide-react";
-import { WaveformPlayer } from "../components/WaveformPlayer";
+import { StereoCallPlayer } from "../components/StereoCallPlayer";
 import { fetchCallAudioObjectUrl } from "../services/call-audio";
 import { audioGateClient, type GateTranscriptItem } from "../services/audio-gate-client";
 
@@ -127,22 +127,7 @@ export const CallDetailView: React.FC<CallDetailViewProps> = ({ sessionId, onBac
                 <p className="text-sm">No recordings available for this session.</p>
               </div>
             ) : (
-              <div className="flex flex-col gap-6">
-                {userAudioUrl && (
-                  <WaveformPlayer
-                    src={userAudioUrl}
-                    label="You"
-                    color="#3b82f6"
-                  />
-                )}
-                {assistantAudioUrl && (
-                  <WaveformPlayer
-                    src={assistantAudioUrl}
-                    label="AI"
-                    color="#22c55e"
-                  />
-                )}
-              </div>
+              <StereoCallPlayer userSrc={userAudioUrl} aiSrc={assistantAudioUrl} />
             )}
 
             {/* ── Metadata strip ─────────────────────────────────────────── */}
