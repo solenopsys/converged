@@ -16,6 +16,8 @@ const MS_ID = "files-ms";
 async function publishBusinessEvent(
 	type: string,
 	entityId: string,
+	parentId?: string,
+	label?: string,
 ): Promise<void> {
 	const baseUrl = process.env.SERVICES_BASE;
 	if (!baseUrl) return;
@@ -25,6 +27,8 @@ async function publishBusinessEvent(
 			type,
 			service: "files",
 			entityId,
+			...(parentId ? { parentId } : {}),
+			...(label ? { label } : {}),
 		});
 	} catch (error) {
 		console.warn("[ms-files] Failed to publish business event", error);
@@ -43,9 +47,9 @@ export class FilesServiceImpl implements FilesService {
 		await this.stores.init();
 	}
 
-	async save(file: FileMetadata): Promise<UUID> {
+	async save(file: FileMetadata, processId?: string): Promise<UUID> {
 		const id = await this.stores.metadataService.save(file);
-		void publishBusinessEvent("file.created", id);
+		void publishBusinessEvent("file.created", id, processId, file.name);
 		return id;
 	}
 	saveChunk(chunk: FileChunk): Promise<HashString> {

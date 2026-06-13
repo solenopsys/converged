@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type ConvertFormat = "assjson" | "gltf" | "gltf2" | "glb" | "glb2";
 
@@ -18,7 +18,7 @@ export type ModelConvertResult = {
   files: ConvertedBinaryFile[];
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "ModelConvertorService",
   "serviceName": "modelconvertor",
   "filePath": "services/convertors/modelconvertor.ts",

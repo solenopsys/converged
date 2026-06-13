@@ -33,6 +33,10 @@ export type SaveStoredFileInput = {
 	owner?: string;
 	chunkSize?: number;
 	collectionId?: string;
+	/** Correlation id of the process saving this file. Forwarded to the
+	 * file.created business event as parentId so the dashboard groups all
+	 * files produced by one workflow run into a single card. */
+	processId?: string;
 };
 
 export function createStorageClients(
@@ -135,7 +139,7 @@ export async function saveFileToStorage(
 		...(input.collectionId ? { collectionId: input.collectionId } : {}),
 	};
 
-	await clients.files.save(metadata);
+	await clients.files.save(metadata, input.processId);
 
 	for (let index = 0; index < chunksCount; index++) {
 		const start = index * chunkSize;

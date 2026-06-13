@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type MillingEstimateInput = {
   modelStl: Uint8Array;
@@ -38,7 +38,7 @@ export type MillingEstimateResult = {
   gcode?: Uint8Array;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "MillingExtractorService",
   "serviceName": "millingextractor",
   "filePath": "services/extractors/millingextractor.ts",

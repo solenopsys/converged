@@ -37,6 +37,9 @@ export type FileAnalysisInput = {
 	fileIds: string[];
 	owner?: string;
 	options?: FileAnalysisOptions;
+	/** Correlation id for all files produced by this run. Defaults to a fresh
+	 * UUID; the workflow passes its run id so events group under the run. */
+	processId?: string;
 };
 
 type FileAnalysisFileResult = {
@@ -95,6 +98,7 @@ type ProcessOptions = Required<
 		"target" | "includeGcode" | "convertPreview" | "maxArchiveDepth"
 	> & {
 		owner: string;
+		processId: string;
 	};
 
 type ProcessState = {
@@ -338,6 +342,7 @@ async function convertPreview(
 				fileType: contentTypeForName(convertedName, "model/gltf-binary"),
 				owner: state.options.owner,
 				collectionId,
+				processId: state.options.processId,
 			},
 			state.clients,
 		);
@@ -385,6 +390,7 @@ async function extractMilling(
 				fileType: "text/x-gcode",
 				owner: state.options.owner,
 				collectionId,
+				processId: state.options.processId,
 			},
 			state.clients,
 		);
@@ -476,6 +482,7 @@ async function extractPrintSlice(
 				fileType: "text/x-gcode",
 				owner: state.options.owner,
 				collectionId,
+				processId: state.options.processId,
 			},
 			state.clients,
 		);
@@ -605,6 +612,7 @@ async function processArchive(
 				fileType: detection.mime,
 				owner: state.options.owner,
 				collectionId,
+				processId: state.options.processId,
 			},
 			state.clients,
 		);
@@ -758,6 +766,7 @@ export class FileAnalysisProcessFilesNode implements INode {
 			...DEFAULT_OPTIONS,
 			...(params.options ?? {}),
 			owner: params.owner ?? "workflow:file-analysis",
+			processId: params.processId ?? crypto.randomUUID(),
 		};
 
 		const state: ProcessState = {

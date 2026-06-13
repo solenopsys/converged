@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export enum LeadType {
 	CNC = "cnc",
@@ -97,7 +97,7 @@ export type PaginatedResult<T> = {
 	totalCount?: number;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "SalesService",
   "serviceName": "sales",
   "filePath": "services/business/sales.ts",

@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type Module = {
   name: string;
@@ -25,7 +25,7 @@ export type UserModuleConfig = {
   removals: string[];
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "ModulesService",
   "serviceName": "modules",
   "filePath": "services/sequrity/modules.ts",

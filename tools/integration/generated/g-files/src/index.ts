@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type HashString = string;
 
@@ -57,7 +57,7 @@ export type FileStatistic = {
     createdAt: ISODateString;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "FilesService",
   "serviceName": "files",
   "filePath": "services/data/files.ts",
@@ -69,6 +69,12 @@ export const metadata = {
           "name": "file",
           "type": "FileMetadata",
           "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "processId",
+          "type": "string",
+          "optional": true,
           "isArray": false
         }
       ],
@@ -299,7 +305,7 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface FilesService {
-  save(file: FileMetadata): Promise<UUID>;
+  save(file: FileMetadata, processId?: string): Promise<UUID>;
   saveChunk(chunk: FileChunk): Promise<HashString>;
   update(id: UUID, file: FileMetadata): Promise<void>;
   delete(id: UUID): Promise<void>;
@@ -315,7 +321,7 @@ export interface FilesService {
 
 // Client interface
 export interface FilesServiceClient {
-  save(file: FileMetadata): Promise<UUID>;
+  save(file: FileMetadata, processId?: string): Promise<UUID>;
   saveChunk(chunk: FileChunk): Promise<HashString>;
   update(id: UUID, file: FileMetadata): Promise<void>;
   delete(id: UUID): Promise<void>;

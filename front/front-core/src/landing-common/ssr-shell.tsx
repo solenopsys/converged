@@ -20,6 +20,10 @@ export const themeBootstrapScript = `
           localStorage.setItem("authToken",authToken);
           sessionStorage.removeItem("tempUserId");
           sessionStorage.removeItem("tempSessionId");
+          // Mark this load as a fresh sign-in so the client routes the user into
+          // /console once (consumed on read). A plain reload of a public page
+          // carries no token in the URL and so never sets this flag.
+          sessionStorage.setItem("freshLogin","1");
         }
       }
       if(authToken||hasOauthCallback){

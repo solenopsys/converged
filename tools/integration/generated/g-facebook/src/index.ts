@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type FacebookMediaType = "photo" | "video";
 
@@ -25,7 +25,7 @@ export type FacebookPostResult = {
   error?: string;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "FacebookService",
   "serviceName": "facebook",
   "filePath": "services/social/facebook.ts",

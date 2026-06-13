@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type SmtpCredentials = {
   host: string;
@@ -25,7 +25,7 @@ export type EmailResult = {
   error?: string;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "SmtpService",
   "serviceName": "smtp",
   "filePath": "services/providers/smtp.ts",

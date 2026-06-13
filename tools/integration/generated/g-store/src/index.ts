@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type HashString = string;
 
@@ -24,7 +24,7 @@ export type BlockMetadata = {
   owner: string;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "StoreService",
   "serviceName": "store",
   "filePath": "services/data/store.ts",

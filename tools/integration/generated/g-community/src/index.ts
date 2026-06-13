@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type SectionId = string;
 
@@ -84,7 +84,7 @@ export type SectionTreeNode = CommunitySection & {
   children: SectionTreeNode[];
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "CommunityService",
   "serviceName": "community",
   "filePath": "services/communications/community.ts",

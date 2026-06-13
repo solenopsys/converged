@@ -34,6 +34,7 @@ export type ChatState = {
     serviceType?: ServiceType;
     model?: string;
     contextName?: string;
+    language?: string;
     sessionId?: string;
     messages: ChatMessage[];
     isLoading: boolean;

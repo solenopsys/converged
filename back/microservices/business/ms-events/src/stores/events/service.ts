@@ -7,6 +7,8 @@ type EventEntity = {
 	type: string;
 	service: string;
 	entityId: string;
+	parentId: string | null;
+	label: string | null;
 };
 
 type EventsDatabase = {
@@ -28,6 +30,8 @@ export class EventsStoreService {
 			type: input.type,
 			service: input.service,
 			entityId: input.entityId,
+			parentId: input.parentId ?? null,
+			label: input.label ?? null,
 		};
 
 		await this.store.db.insertInto(TABLE_NAME).values(entity).execute();
@@ -67,6 +71,8 @@ export class EventsStoreService {
 			type: row.type,
 			service: row.service,
 			entityId: row.entityId,
+			...(row.parentId ? { parentId: row.parentId } : {}),
+			...(row.label ? { label: row.label } : {}),
 		};
 	}
 }

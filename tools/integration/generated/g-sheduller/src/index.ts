@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type CronStatus = "active" | "paused";
 
@@ -96,7 +96,7 @@ export type ShedullerDailyRun = {
   failed: number;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "ShedullerService",
   "serviceName": "sheduller",
   "filePath": "services/automation/sheduller.ts",

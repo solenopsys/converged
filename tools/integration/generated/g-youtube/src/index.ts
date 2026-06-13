@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type YouTubeVideoInput = {
   data?: Uint8Array;
@@ -25,7 +25,7 @@ export type YouTubeUploadResult = {
   error?: string;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "YouTubeService",
   "serviceName": "youtube",
   "filePath": "services/social/youtube.ts",

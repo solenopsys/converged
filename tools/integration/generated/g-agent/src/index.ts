@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export enum AgentStreamEventType {
   TEXT_DELTA = "text_delta",
@@ -61,7 +61,7 @@ export type AgentMessage = {
   name?: string;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "AgentService",
   "serviceName": "agent",
   "filePath": "services/ai/agent.ts",

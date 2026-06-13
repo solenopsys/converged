@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type WeChatMessageType = "text";
 
@@ -15,7 +15,7 @@ export type WeChatSendResult = {
   error?: string;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "WeChatService",
   "serviceName": "wechat",
   "filePath": "services/social/wechat.ts",

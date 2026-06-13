@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type ChartRoomId = string;
 
@@ -60,7 +60,7 @@ export type ChartRoomsListResult = {
   totalCount: number;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "ChartsService",
   "serviceName": "charts",
   "filePath": "services/communications/charts.ts",

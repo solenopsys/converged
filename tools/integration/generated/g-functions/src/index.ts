@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type FunctionType = "front" | "back";
 
@@ -41,7 +41,7 @@ export type PaginatedResult<T> = {
     totalCount?: number;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "FunctionsService",
   "serviceName": "functions",
   "filePath": "services/ai/functions.ts",

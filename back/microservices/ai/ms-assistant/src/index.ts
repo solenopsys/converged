@@ -232,12 +232,16 @@ class ChatsServiceImpl {
 	async saveContext(
 		chatId: string,
 		context: unknown,
+		language?: string,
 	): Promise<ChatContextSummary> {
-		return this.stores.contextService.saveContext(chatId, context);
+		return this.stores.contextService.saveContext(chatId, context, language);
 	}
 
-	async getContext(chatId: string): Promise<ChatContext | null> {
-		return this.stores.contextService.getContext(chatId);
+	async getContext(
+		chatId: string,
+		language?: string,
+	): Promise<ChatContext | null> {
+		return this.stores.contextService.getContext(chatId, language);
 	}
 
 	async listContexts(

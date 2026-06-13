@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type PushUrgency = "very-low" | "low" | "normal" | "high";
 
@@ -34,7 +34,7 @@ export type PushSendResult = {
   error?: string;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "PushService",
   "serviceName": "push",
   "filePath": "services/providers/push.ts",

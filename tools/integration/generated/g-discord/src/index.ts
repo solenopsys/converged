@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type DiscordWebhookMessageInput = {
   webhookUrl: string;
@@ -22,7 +22,7 @@ export type DiscordSendResult = {
   error?: string;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "DiscordService",
   "serviceName": "discord",
   "filePath": "services/social/discord.ts",

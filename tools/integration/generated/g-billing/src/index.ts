@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type BillingEntryId = string;
 
@@ -46,7 +46,7 @@ export type BillingTotalParams = {
   to?: ISODateString;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "BillingService",
   "serviceName": "billing",
   "filePath": "services/business/billing.ts",

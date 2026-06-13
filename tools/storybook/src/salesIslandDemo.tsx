@@ -29,7 +29,7 @@ export const salesIslandData: SalesIslandData = {
     { text: " · 14-day refund" },
   ],
   price: { amount: "$288", period: "/year", note: "14-day money-back guarantee" },
-  primaryCta: { label: "Pay $288 & start setup", icon: "arrow" },
+  primaryCta: { label: "Pay $288 & start setup", icon: "arrow", href: "https://4ir.lemonsqueezy.com/checkout/buy/0499ee6c-a59d-4f7b-86b5-59e42666c7b6" },
   toggle: { expand: "See how it works", collapse: "Collapse" },
   included: {
     title: "What's included",

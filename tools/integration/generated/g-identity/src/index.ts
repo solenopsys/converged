@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type ISODateString = string;
 
@@ -38,7 +38,7 @@ export type AuthMethod = {
   lastUsedAt: ISODateString;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "IdentityService",
   "serviceName": "identity",
   "filePath": "services/sequrity/identity.ts",

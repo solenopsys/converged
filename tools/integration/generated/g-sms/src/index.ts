@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type SmsMessageInput = {
   to: string;
@@ -20,7 +20,7 @@ export type SmsSendResult = {
   error?: string;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "SmsService",
   "serviceName": "sms",
   "filePath": "services/providers/sms.ts",

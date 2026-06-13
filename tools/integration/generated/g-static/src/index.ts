@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type StaticStatus = "todo" | "loaded" | "outdated";
 
@@ -52,7 +52,7 @@ export type SetStatusPatternResult = {
   updated: number;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "StaticService",
   "serviceName": "static",
   "filePath": "services/content/static.ts",

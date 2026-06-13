@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type TelegramChatId = string | number;
 
@@ -19,7 +19,7 @@ export type TelegramSendResult = {
   error?: string;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "TelegramService",
   "serviceName": "telegram",
   "filePath": "services/social/telegram.ts",

@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type ClassifierNode = {
 	id: string;
@@ -45,7 +45,7 @@ export type ClassifierMappingGroup = {
 	count: number;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "ClassifierService",
   "serviceName": "classifier",
   "filePath": "services/content/classifier.ts",

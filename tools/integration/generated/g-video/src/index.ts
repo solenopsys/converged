@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type CameraId = string;
 
@@ -77,7 +77,7 @@ export type VideoThumbSaveInput = {
   ext?: string;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "VideoService",
   "serviceName": "video",
   "filePath": "services/content/video.ts",

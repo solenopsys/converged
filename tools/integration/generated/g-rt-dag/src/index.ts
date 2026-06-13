@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type ExecutionStatus = "running" | "done" | "failed";
 
@@ -39,7 +39,7 @@ export type ResumeExecutionsResult = {
   ids: string[];
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "RuntimeDagService",
   "serviceName": "dag",
   "filePath": "runtime/automation/dag.ts",

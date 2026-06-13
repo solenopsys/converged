@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type NamedBinaryFile = {
   name: string;
@@ -36,7 +36,7 @@ export type SliceEstimateResult = {
   gcode: Uint8Array;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "PrintExtractorService",
   "serviceName": "printextractor",
   "filePath": "services/extractors/printextractor.ts",

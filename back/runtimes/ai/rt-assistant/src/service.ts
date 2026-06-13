@@ -90,7 +90,7 @@ export class AssistantRuntimeService {
     this.defaultModel = process.env[CHAT_MODEL_ENV]?.trim() || undefined;
   }
 
-  async createSession(serviceType?: ServiceType, model?: string, contextName?: string): Promise<string> {
+  async createSession(serviceType?: ServiceType, model?: string, contextName?: string, language?: string): Promise<string> {
     serviceType = this.defaultServiceType ?? serviceType ?? ServiceType.OPENAI;
     model = this.defaultModel ?? model ?? this.serviceModelMap.get(serviceType);
     if (!model) {
@@ -101,7 +101,7 @@ export class AssistantRuntimeService {
     const sessionId = conversation.getId();
     this.conversations.set(sessionId, conversation);
     if (contextName?.trim()) {
-      this.pendingContextMessages.set(sessionId, this.loadContextMessage(contextName));
+      this.pendingContextMessages.set(sessionId, this.loadContextMessage(contextName, language));
     }
     return sessionId;
   }
@@ -173,11 +173,11 @@ export class AssistantRuntimeService {
     return { id: chatId, name: `conversation${chatId}`, description: "runtime session" };
   }
 
-  async saveContext(chatId: string, _context: any): Promise<ChatContextSummary> {
+  async saveContext(chatId: string, _context: any, _language?: string): Promise<ChatContextSummary> {
     return { id: chatId, chatId, updatedAt: Date.now(), size: 0 };
   }
 
-  async getContext(_chatId: string): Promise<ChatContext | null> {
+  async getContext(_chatId: string, _language?: string): Promise<ChatContext | null> {
     return null;
   }
 
@@ -185,13 +185,13 @@ export class AssistantRuntimeService {
     return { items: [], totalCount: 0 };
   }
 
-  private async loadContextMessage(contextName?: string): Promise<ContentBlock | null> {
+  private async loadContextMessage(contextName?: string, language?: string): Promise<ContentBlock | null> {
     const name = contextName?.trim();
     if (!name) return null;
 
     let context: any = null;
     try {
-      context = await this.assistantClient.getContext(name);
+      context = await this.assistantClient.getContext(name, language);
     } catch {
       return null;
     }

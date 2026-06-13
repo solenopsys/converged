@@ -9,7 +9,10 @@ export class FileAnalysisWorkflow extends Workflow {
 
 	async execute(params: FileAnalysisInput): Promise<void> {
 		const result = await this.invoke("process-files", () =>
-			this.processFiles.execute(params),
+			this.processFiles.execute({
+				...params,
+				processId: params.processId ?? this.id,
+			}),
 		);
 		this.setVar("file-analysis:last-result", result);
 		await this.invoke("final-result", async () => result);

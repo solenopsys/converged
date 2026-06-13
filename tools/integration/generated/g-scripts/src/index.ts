@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type ScriptFile = {
 	path: string;
@@ -29,7 +29,7 @@ export type PaginationParams = {
 	limit: number;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "ScriptsService",
   "serviceName": "scripts",
   "filePath": "services/content/scripts.ts",

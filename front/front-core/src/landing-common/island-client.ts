@@ -8,6 +8,8 @@ import {
 	chatSendRequested,
 } from "../chat/events";
 import { rightRailActionSelected } from "../components/right-rail/uri-sync";
+import { ConsoleAuthSplash } from "../components/state-stream/ConsoleAuthSplash";
+import { StateStreamView } from "../components/state-stream/StateStreamView";
 import {
 	$allMenuItems,
 	addMenuRequested,
@@ -19,7 +21,7 @@ import {
 } from "../controllers";
 import { LocaleController } from "../controllers/locale-controller";
 import { getI18nInstance } from "../i18n";
-import { $centerView } from "../slots/present";
+import { $centerView, setCenterView } from "../slots/present";
 import { SlotInline } from "../slots/SlotInline";
 import {
 	$controlPanelMode,
@@ -435,6 +437,96 @@ export function switchToAppMode(): void {
 	controlPanelOpened();
 }
 
+function isConsoleRoutePath(pathname: string): boolean {
+	return pathname === "/console" || pathname.startsWith("/console/");
+}
+
+// Set by the pre-paint auth bootstrap (ssr-shell) when a real auth token arrives
+// in the callback URL — i.e. the user just signed in. Consumed once so a later
+// reload of a public page does not re-enter the console.
+function consumeFreshLogin(): boolean {
+	if (typeof window === "undefined") return false;
+	try {
+		if (window.sessionStorage.getItem("freshLogin") === "1") {
+			window.sessionStorage.removeItem("freshLogin");
+			return true;
+		}
+	} catch {
+		// ignore storage access errors
+	}
+	return false;
+}
+
+// Rewrite the URL to /console (preserving a deep-linked request id) regardless
+// of auth state, so the console is a real, shareable/reloadable route.
+function goToConsoleUrl(): void {
+	if (
+		typeof window === "undefined" ||
+		isConsoleRoutePath(window.location.pathname)
+	) {
+		return;
+	}
+	const url = new URL(window.location.href);
+	const requestId = extractRequestIdForConsolePath(url.pathname);
+	url.pathname = requestId
+		? `/console/request/${encodeURIComponent(requestId)}`
+		: "/console";
+	window.history.replaceState(
+		window.history.state,
+		"",
+		`${url.pathname}${url.search}${url.hash}`,
+	);
+}
+
+// Present the sign-in form in the side panel (auth tab) of the app shell.
+async function showAuthPanel(): Promise<void> {
+	await ensureControlPanelRuntime();
+	ensureAuthTabMounted();
+	tabActivated("auth");
+	await presentAuthLogin();
+}
+
+// Enter the /console route in app mode. When authenticated we render the live
+// state stream; otherwise we render a splash placeholder and open the sign-in
+// panel on the side — the console is still a real route, just gated.
+function enterConsole(): void {
+	goToConsoleUrl();
+	switchToAppMode();
+	if (isAuthenticated()) {
+		setCenterView({ view: StateStreamView });
+		void ensureSsrCenterRuntime();
+	} else {
+		setCenterView({ view: ConsoleAuthSplash });
+		void ensureSsrCenterRuntime();
+		void showAuthPanel();
+	}
+}
+
+// Shared landing boot for the console. We enter it when the user is already on a
+// /console route (authenticated → stream, otherwise → splash + sign-in) or right
+// after a sign-in. Authenticated users on a public page (e.g. "/") are left
+// untouched instead of being force-redirected. Safe to call once per landing
+// entrypoint; the auth listener is bound at most once.
+let consoleAutoEntryBound = false;
+export function initConsoleAutoEntry(): void {
+	if (typeof window === "undefined") return;
+	const onConsole = isConsoleRoutePath(window.location.pathname);
+	if (onConsole || (isAuthenticated() && consumeFreshLogin())) {
+		enterConsole();
+	}
+	if (!consoleAutoEntryBound) {
+		consoleAutoEntryBound = true;
+		window.addEventListener("auth-token-changed", () => {
+			// Sign-in (real, non-temporary session) → open the console. Logout while
+			// inside the console falls back to the splash + sign-in panel. Anonymous
+			// or temporary sessions on a public page leave the current view untouched.
+			if (isAuthenticated() || isConsoleRoutePath(window.location.pathname)) {
+				enterConsole();
+			}
+		});
+	}
+}
+
 function installDynamicMenuIfReady(): void {
 	const menuPanel = document.getElementById("ssr-left-panel");
 	if (!menuPanel || menuPanel.dataset.ssrMenuShell === "1") return;
@@ -818,11 +910,9 @@ async function presentAuthLogin(): Promise<void> {
 }
 
 export async function openLoginPanel(): Promise<void> {
-	setControlPanelMode("app");
-	await ensureControlPanelRuntime();
-	ensureAuthTabMounted();
-	tabActivated("auth");
-	await presentAuthLogin();
+	// Clicking "login" always routes to /console. If already authenticated this
+	// shows the console; otherwise it shows the splash + the side sign-in panel.
+	enterConsole();
 }
 
 // The auth tab is hidden until login is requested. At that point we register an

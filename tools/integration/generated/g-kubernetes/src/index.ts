@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type PodInfo = {
   name: string;
@@ -44,7 +44,7 @@ export type ResourceUsage = {
   memoryPercent?: number;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "KubernetesService",
   "serviceName": "kubernetes",
   "filePath": "services/automation/kubernetes.ts",

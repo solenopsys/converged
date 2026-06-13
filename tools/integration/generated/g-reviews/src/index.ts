@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type ReviewId = string;
 
@@ -29,7 +29,7 @@ export type PaginatedResult<T> = {
   totalCount?: number;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "ReviewsService",
   "serviceName": "reviews",
   "filePath": "services/business/reviews.ts",

@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type InstagramMediaType = "image" | "video";
 
@@ -27,7 +27,7 @@ export type InstagramPostResult = {
   error?: string;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "InstagramService",
   "serviceName": "instagram",
   "filePath": "services/social/instagram.ts",

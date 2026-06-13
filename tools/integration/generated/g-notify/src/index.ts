@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type NotifyTemplateId = string;
 
@@ -49,7 +49,7 @@ export type NotifyChannelInput = {
   config: Record<string, any>;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "NotifyService",
   "serviceName": "notify",
   "filePath": "services/communications/notify.ts",

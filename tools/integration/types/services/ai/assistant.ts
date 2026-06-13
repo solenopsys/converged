@@ -103,6 +103,7 @@ export type Chat = {
 export type ChatContextSummary = {
     id: string;
     chatId: string;
+    language?: string;
     updatedAt: number;
     size?: number;
 }
@@ -122,7 +123,7 @@ export interface AssistantService {
     deleteChat(chatId: string): Promise<void>;
     getChat(chatId: string): Promise<Chat>;
 
-    saveContext(chatId: string, context: any): Promise<ChatContextSummary>;
-    getContext(chatId: string): Promise<ChatContext | null>;
+    saveContext(chatId: string, context: any, language?: string): Promise<ChatContextSummary>;
+    getContext(chatId: string, language?: string): Promise<ChatContext | null>;
     listContexts(params: PaginationParams): Promise<PaginatedResult<ChatContextSummary>>;
 }

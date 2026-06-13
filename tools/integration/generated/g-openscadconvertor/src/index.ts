@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type OpenScadConvertInput = {
   sourceName: string;
@@ -12,7 +12,7 @@ export type OpenScadConvertResult = {
   contentType: string;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "OpenScadConvertorService",
   "serviceName": "openscadconvertor",
   "filePath": "services/convertors/openscadconvertor.ts",

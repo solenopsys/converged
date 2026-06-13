@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export enum StreamEventType {
     TEXT_DELTA = "text_delta",
@@ -101,6 +101,7 @@ export type Chat = {
 export type ChatContextSummary = {
     id: string;
     chatId: string;
+    language?: string;
     updatedAt: number;
     size?: number;
 };
@@ -127,7 +128,7 @@ export type RequestModelSnapshot = {
     revision: number;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "RuntimeAssistantService",
   "serviceName": "assistant",
   "filePath": "runtime/ai/assistant.ts",
@@ -149,6 +150,12 @@ export const metadata = {
         },
         {
           "name": "contextName",
+          "type": "string",
+          "optional": true,
+          "isArray": false
+        },
+        {
+          "name": "language",
           "type": "string",
           "optional": true,
           "isArray": false
@@ -260,6 +267,12 @@ export const metadata = {
           "type": "any",
           "optional": false,
           "isArray": false
+        },
+        {
+          "name": "language",
+          "type": "string",
+          "optional": true,
+          "isArray": false
         }
       ],
       "returnType": "ChatContextSummary",
@@ -274,6 +287,12 @@ export const metadata = {
           "name": "chatId",
           "type": "string",
           "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "language",
+          "type": "string",
+          "optional": true,
           "isArray": false
         }
       ],
@@ -373,7 +392,7 @@ export const metadata = {
     {
       "name": "ChatContextSummary",
       "kind": "type",
-      "definition": "{\n    id: string;\n    chatId: string;\n    updatedAt: number;\n    size?: number;\n}"
+      "definition": "{\n    id: string;\n    chatId: string;\n    language?: string;\n    updatedAt: number;\n    size?: number;\n}"
     },
     {
       "name": "ChatContext",
@@ -390,27 +409,27 @@ export const metadata = {
 
 // Server interface (to be implemented in microservice)
 export interface RuntimeAssistantService {
-  createSession(serviceType?: ServiceType, model?: string, contextName?: string): Promise<string>;
+  createSession(serviceType?: ServiceType, model?: string, contextName?: string, language?: string): Promise<string>;
   sendMessage(sessionId: string, messages: ContentBlock[], options?: ConversationOptions): AsyncIterable<StreamEvent>;
   subscribeToRequestModel(requestId: string): AsyncIterable<RequestModelSnapshot>;
   listOfChats(params: PaginationParams): Promise<PaginatedResult<Chat>>;
   deleteChat(chatId: string): Promise<void>;
   getChat(chatId: string): Promise<Chat>;
-  saveContext(chatId: string, context: any): Promise<ChatContextSummary>;
-  getContext(chatId: string): Promise<ChatContext | any>;
+  saveContext(chatId: string, context: any, language?: string): Promise<ChatContextSummary>;
+  getContext(chatId: string, language?: string): Promise<ChatContext | any>;
   listContexts(params: PaginationParams): Promise<PaginatedResult<ChatContextSummary>>;
 }
 
 // Client interface
 export interface RuntimeAssistantServiceClient {
-  createSession(serviceType?: ServiceType, model?: string, contextName?: string): Promise<string>;
+  createSession(serviceType?: ServiceType, model?: string, contextName?: string, language?: string): Promise<string>;
   sendMessage(sessionId: string, messages: ContentBlock[], options?: ConversationOptions): AsyncIterable<StreamEvent>;
   subscribeToRequestModel(requestId: string): AsyncIterable<RequestModelSnapshot>;
   listOfChats(params: PaginationParams): Promise<PaginatedResult<Chat>>;
   deleteChat(chatId: string): Promise<void>;
   getChat(chatId: string): Promise<Chat>;
-  saveContext(chatId: string, context: any): Promise<ChatContextSummary>;
-  getContext(chatId: string): Promise<ChatContext | any>;
+  saveContext(chatId: string, context: any, language?: string): Promise<ChatContextSummary>;
+  getContext(chatId: string, language?: string): Promise<ChatContext | any>;
   listContexts(params: PaginationParams): Promise<PaginatedResult<ChatContextSummary>>;
 }
 

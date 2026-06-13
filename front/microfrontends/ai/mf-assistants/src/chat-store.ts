@@ -7,7 +7,9 @@ import {
 	chatAttachRequested,
 	chatInitRequested,
 	chatSendRequested,
+	defaultLanguage,
 	ensureSsrCenterRuntime,
+	getI18nInstance,
 	registry,
 	setCenterView,
 } from "front-core";
@@ -69,13 +71,25 @@ const registerThread = () => {
 		});
 };
 
+// Текущий язык интерфейса — уходит в сессию как префикс ключа контекста
+// (контексты хранятся как `<lang>/<contextName>.json`, см. ms-assistant).
+const resolveLanguage = (): string => {
+	try {
+		return getI18nInstance()?.language || defaultLanguage;
+	} catch {
+		return defaultLanguage;
+	}
+};
+
 const ensureInitialized = (contextName?: string) => {
-	const currentContextName = chatStore.$chat.getState().contextName;
+	const state = chatStore.$chat.getState();
+	const language = resolveLanguage();
 	const shouldSwitchContext =
-		contextName !== undefined && currentContextName !== contextName;
-	if (!isInitialized || shouldSwitchContext) {
+		contextName !== undefined && state.contextName !== contextName;
+	const shouldSwitchLanguage = state.language !== language;
+	if (!isInitialized || shouldSwitchContext || shouldSwitchLanguage) {
 		registerThread();
-		chatStore.init(chatThreadId, undefined, undefined, contextName);
+		chatStore.init(chatThreadId, undefined, undefined, contextName, language);
 		isInitialized = true;
 	}
 };

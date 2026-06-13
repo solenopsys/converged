@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type OAuthProviderName = | "google"
   | "apple"
@@ -56,7 +56,7 @@ export type OAuthState = {
   expiresAt: number;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "OAuthService",
   "serviceName": "oauth",
   "filePath": "services/sequrity/oauth.ts",

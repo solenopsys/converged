@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type MdFile = {
   path: string;
@@ -16,7 +16,7 @@ export type PaginationParams = {
   limit: number;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "MarkdownService",
   "serviceName": "markdown",
   "filePath": "services/content/markdown.ts",

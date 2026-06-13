@@ -1,9 +1,9 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "RuntimeCronService",
   "serviceName": "cron",
   "filePath": "runtime/automation/cron.ts",

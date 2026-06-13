@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type SesCredentials = {
   accessKeyId: string;
@@ -21,7 +21,7 @@ export type EmailResult = {
   error?: string;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "SesService",
   "serviceName": "ses",
   "filePath": "services/providers/ses.ts",

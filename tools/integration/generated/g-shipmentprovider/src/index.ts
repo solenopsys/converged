@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type ISODateString = string;
 
@@ -108,7 +108,7 @@ export type CustomsLookupResult = {
   raw?: any;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "ShipmentProviderService",
   "serviceName": "shipmentprovider",
   "filePath": "services/providers/shipmentprovider.ts",

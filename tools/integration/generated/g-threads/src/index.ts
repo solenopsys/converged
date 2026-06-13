@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type ULID = string;
 
@@ -46,7 +46,7 @@ export type ThreadStats = {
   byKind: Record<ThreadKind, number>;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "ThreadsService",
   "serviceName": "threads",
   "filePath": "services/communications/threads.ts",

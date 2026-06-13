@@ -194,7 +194,8 @@ export const createChatStore = (
 			serviceType?: ChatState["serviceType"],
 			model?: string,
 			contextName?: string,
-		) => initChat({ threadId, serviceType, model, contextName }),
+			language?: string,
+		) => initChat({ threadId, serviceType, model, contextName, language }),
 
 		send: (content: string) => sendMessage(content),
 

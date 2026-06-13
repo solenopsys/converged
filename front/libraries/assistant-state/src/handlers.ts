@@ -49,6 +49,7 @@ const getSessionCreationKey = (state: types.ChatState): string => {
 		state.serviceType ?? "",
 		state.model ?? "",
 		state.contextName ?? "",
+		state.language ?? "",
 	].join("|");
 };
 
@@ -63,7 +64,7 @@ const createAndSyncSession = async (
 	}
 
 	const sessionPromise = aiService
-		.createSession(state.serviceType, state.model, state.contextName)
+		.createSession(state.serviceType, state.model, state.contextName, state.language)
 		.then((sessionId) => {
 			sessionIdUpdated(sessionId);
 			return sessionId;
@@ -152,17 +153,20 @@ export const initializeChat = (
 		serviceType,
 		model,
 		contextName,
+		language,
 	}: {
 		threadId: string;
 		serviceType?: types.ServiceType;
 		model?: string;
 		contextName?: string;
+		language?: string;
 	},
 ): types.ChatState => ({
 	threadId,
 	serviceType,
 	model,
 	contextName,
+	language,
 	sessionId: undefined,
 	messages: [],
 	isLoading: false,
@@ -246,12 +250,13 @@ export const handleError = (state: types.ChatState): types.ChatState => ({
 
 export const createSession =
 	(aiService: types.RuntimeAssistantService) =>
-	async ({ threadId, serviceType, model, contextName }: types.ChatState) => {
+	async ({ threadId, serviceType, model, contextName, language }: types.ChatState) => {
 		return await createAndSyncSession(aiService, {
 			threadId,
 			serviceType,
 			model,
 			contextName,
+			language,
 			sessionId: undefined,
 			messages: [],
 			isLoading: false,

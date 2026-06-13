@@ -7,6 +7,8 @@ export const initChat = chatDomain.createEvent<{
     threadId: ULID;
     serviceType?: ServiceType;
     model?: string;
+    contextName?: string;
+    language?: string;
 }>('INIT_CHAT');
 
 export const sendMessage = chatDomain.createEvent<string>('SEND_MESSAGE');

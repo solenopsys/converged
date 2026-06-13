@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type PhoneNumberId = string;
 
@@ -66,7 +66,7 @@ export type LlmGateConfigInput = {
   config: Record<string, any>;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "AudioGateService",
   "serviceName": "audiogate",
   "filePath": "services/communications/audio-gate.ts",

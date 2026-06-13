@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type DashboardPinId = string;
 
@@ -24,7 +24,7 @@ export type DashboardIndicatorPinInput = {
 	position?: number;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "DashboardService",
   "serviceName": "dashboard",
   "filePath": "services/analytics/dashboard.ts",

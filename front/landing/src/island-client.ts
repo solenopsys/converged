@@ -1,13 +1,10 @@
 import {
-	authToken,
 	bus,
 	ensureSsrCenterRuntime,
+	initConsoleAutoEntry,
 	mountSsrMenuShell,
 	registerIsland,
 	registry,
-	StateStreamView,
-	setCenterView,
-	switchToAppMode,
 } from "front-core";
 
 // ── Landing block islands ─────────────────────────────────────────────────────
@@ -178,30 +175,6 @@ function extractRequestId(pathname: string): string | null {
 	return null;
 }
 
-function isConsolePath(pathname: string): boolean {
-	return pathname === "/console" || pathname.startsWith("/console/");
-}
-
-function ensureConsoleRoute(): void {
-	if (
-		typeof window === "undefined" ||
-		isConsolePath(window.location.pathname)
-	) {
-		return;
-	}
-
-	const url = new URL(window.location.href);
-	const requestId = extractRequestId(url.pathname);
-	url.pathname = requestId
-		? `/console/request/${encodeURIComponent(requestId)}`
-		: "/console";
-	window.history.replaceState(
-		window.history.state,
-		"",
-		`${url.pathname}${url.search}${url.hash}`,
-	);
-}
-
 async function ensureRequestsRuntime(): Promise<void> {
 	if (registry.get(OPEN_REQUEST_ACTION)) return;
 	if (!requestsRuntimePromise) {
@@ -231,20 +204,9 @@ async function openRequestFromLocation(): Promise<void> {
 	});
 }
 
-async function initStateStream(): Promise<void> {
-	if (!authToken.isAuthenticated()) return;
-	ensureConsoleRoute();
-	switchToAppMode();
-	setCenterView({ view: StateStreamView as any });
-	await ensureSsrCenterRuntime();
-}
-
 mountSsrMenuShell();
 installSsrRailResizerFallback();
-void initStateStream();
-window.addEventListener("auth-token-changed", () => {
-	void initStateStream();
-});
+initConsoleAutoEntry();
 void openRequestFromLocation();
 window.addEventListener("popstate", () => {
 	void openRequestFromLocation();

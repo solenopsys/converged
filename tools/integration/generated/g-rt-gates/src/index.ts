@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type MagicLinkParams = {
   email: string;
@@ -13,7 +13,7 @@ export type MagicLinkResult = {
   success: boolean;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "RuntimeGatesService",
   "serviceName": "gates",
   "filePath": "runtime/automation/gates.ts",

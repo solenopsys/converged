@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type PaginatedResult<T> = {
   items: T[];
@@ -11,7 +11,7 @@ export type PaginationParams = {
   limit: number;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "CeoService",
   "serviceName": "ceo",
   "filePath": "services/content/ceo.ts",

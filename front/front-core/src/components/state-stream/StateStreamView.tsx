@@ -1,8 +1,11 @@
 "use client";
 
 import { useUnit } from "effector-react";
+import { downloadFile } from "files-state";
 import { type BusinessEvent, createEventsServiceClient } from "g-events";
-import { Gauge } from "lucide-react";
+import { createFilesServiceClient } from "g-files";
+import { createStoreServiceClient } from "g-store";
+import { ChevronRight, Download, FileText, Gauge } from "lucide-react";
 import { type MouseEvent, useEffect, useState } from "react";
 import { bus, registry, runActionEvent } from "../../controllers";
 import {
@@ -27,7 +30,38 @@ import {
 } from "./stateStreamStore";
 
 const eventsClient = createEventsServiceClient({ baseUrl: "/services" });
+const filesClient = createFilesServiceClient({ baseUrl: "/services" });
+const storeClient = createStoreServiceClient({ baseUrl: "/services" });
 const EVENTS_LIMIT = 50;
+
+// Pull a file's chunks from storage and hand it to the browser. downloadFile
+// uses the File System Access API when available (writes directly, returns an
+// empty blob); otherwise we trigger a classic anchor download from the blob.
+async function downloadEventFile(
+	fileId: string,
+	fileName: string,
+): Promise<void> {
+	try {
+		const { blob, fileName: savedName } = await downloadFile(
+			fileId,
+			filesClient,
+			storeClient,
+		);
+		if (blob.size === 0) return;
+
+		const url = URL.createObjectURL(blob);
+		const anchor = document.createElement("a");
+		anchor.href = url;
+		anchor.download = savedName || fileName;
+		document.body.appendChild(anchor);
+		anchor.click();
+		anchor.remove();
+		URL.revokeObjectURL(url);
+	} catch (error) {
+		if ((error as Error)?.message === "User cancelled download") return;
+		console.warn("[StateStream] Failed to download file", { fileId, error });
+	}
+}
 const EVENTS_REFRESH_MS = 2500;
 const actionRuntimeModules: Record<string, string> = {
 	chats: "mf-assistants",
@@ -93,6 +127,10 @@ function formatEventTime(value: string): string {
 }
 
 function toStreamEvent(event: BusinessEvent): StreamEvent {
+	return { ...toStreamEventBase(event), parentId: event.parentId };
+}
+
+function toStreamEventBase(event: BusinessEvent): StreamEvent {
 	if (event.type === "chat.created") {
 		return {
 			id: event.id,
@@ -144,10 +182,14 @@ function toStreamEvent(event: BusinessEvent): StreamEvent {
 			time: formatEventTime(event.createdAt),
 			source: event.service,
 			title: "New file",
-			body: "File",
+			body: event.label ?? "File",
 			entityId: event.entityId,
-			entityLabel: event.entityId,
+			entityLabel: event.label ?? event.entityId,
 			tone: "positive",
+			download: {
+				fileId: event.entityId,
+				fileName: event.label ?? event.entityId,
+			},
 		};
 	}
 
@@ -161,6 +203,129 @@ function toStreamEvent(event: BusinessEvent): StreamEvent {
 		entityLabel: event.entityId,
 		tone: "neutral",
 	};
+}
+
+// ── Grouping ──────────────────────────────────────────────────────────────────
+
+type StreamGroup = {
+	key: string;
+	parentId?: string;
+	items: StreamEvent[];
+};
+
+// Collapse events sharing a parentId into one group, preserving feed order
+// (groups surface at the position of their newest member). Parentless events
+// and single-item groups stay as standalone rows.
+function groupStreamEvents(events: StreamEvent[]): StreamGroup[] {
+	const groups: StreamGroup[] = [];
+	const byParent = new Map<string, StreamGroup>();
+
+	for (const event of events) {
+		if (!event.parentId) {
+			groups.push({ key: event.id, items: [event] });
+			continue;
+		}
+
+		const existing = byParent.get(event.parentId);
+		if (existing) {
+			existing.items.push(event);
+			continue;
+		}
+
+		const group: StreamGroup = {
+			key: `group:${event.parentId}`,
+			parentId: event.parentId,
+			items: [event],
+		};
+		byParent.set(event.parentId, group);
+		groups.push(group);
+	}
+
+	return groups;
+}
+
+// ── Grouped event row ─────────────────────────────────────────────────────────
+
+// "New file" × 25 → "25 files". Drops the "New " prefix and pluralises.
+function groupSummary(head: StreamEvent, count: number): string {
+	const noun = head.title.replace(/^New\s+/i, "").toLowerCase() || "events";
+	const plural = count === 1 || noun.endsWith("s") ? noun : `${noun}s`;
+	return `${count} ${plural}`;
+}
+
+function GroupedEventRow({ group }: { group: StreamGroup }) {
+	const [expanded, setExpanded] = useState(false);
+	const head = group.items[0];
+	const count = group.items.length;
+
+	return (
+		<article className="min-w-0 overflow-hidden rounded-md border border-border/40 bg-muted/10 text-sm">
+			<button
+				className="flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-muted/30"
+				onClick={() => setExpanded((value) => !value)}
+				type="button"
+			>
+				<ChevronRight
+					aria-hidden="true"
+					className={`shrink-0 text-muted-foreground transition-transform ${
+						expanded ? "rotate-90" : ""
+					}`}
+					size={14}
+				/>
+				<FileText
+					aria-hidden="true"
+					className="shrink-0 text-muted-foreground"
+					size={15}
+				/>
+				<span className="min-w-0 flex-1 truncate font-medium">
+					{groupSummary(head, count)}
+				</span>
+				<time className="shrink-0 text-xs tabular-nums text-muted-foreground">
+					{head.time}
+				</time>
+			</button>
+			{expanded ? (
+				<ul className="border-t border-border/40">
+					{group.items.map((item) => (
+						<li key={item.id}>
+							{item.download ? (
+								<button
+									className="group/dl flex w-full items-center gap-2 px-3 py-1.5 pl-9 text-left text-xs text-muted-foreground transition-colors hover:bg-muted/20 hover:text-foreground"
+									onClick={() =>
+										item.download &&
+										downloadEventFile(
+											item.download.fileId,
+											item.download.fileName,
+										)
+									}
+									title={`Download ${item.download.fileName}`}
+									type="button"
+								>
+									<span className="min-w-0 flex-1 truncate">
+										{item.entityLabel ?? item.entityId}
+									</span>
+									<Download
+										aria-hidden="true"
+										className="shrink-0 opacity-0 transition-opacity group-hover/dl:opacity-100"
+										size={13}
+									/>
+								</button>
+							) : (
+								<span
+									className="flex items-center gap-2 px-3 py-1.5 pl-9 text-xs text-muted-foreground"
+									title={item.entityId}
+								>
+									<span className="min-w-0 flex-1 truncate">
+										{item.entityLabel ?? item.entityId}
+									</span>
+								</span>
+							)}
+						</li>
+					))}
+				</ul>
+			) : null}
+		</article>
+	);
 }
 
 // ── Stream event row ──────────────────────────────────────────────────────────
@@ -204,21 +369,36 @@ function StreamEventRow({ item }: { item: StreamEvent }) {
 			</div>
 			<h3 className="truncate font-medium leading-5">{item.title}</h3>
 			<p className="mt-1 truncate text-xs leading-5 text-muted-foreground">
-				{item.body}
-				{item.entityId && item.actionId ? (
+				{item.download ? (
+					<button
+						className="inline-flex max-w-full items-center gap-1 truncate text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+						onClick={() =>
+							item.download &&
+							downloadEventFile(item.download.fileId, item.download.fileName)
+						}
+						title={`Download ${item.download.fileName}`}
+						type="button"
+					>
+						<span className="truncate">{item.body}</span>
+						<Download aria-hidden="true" className="shrink-0" size={12} />
+					</button>
+				) : (
 					<>
-						{" "}
-						<button
-							className="font-mono text-[11px] text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-							onClick={openLinkedEntity}
-							type="button"
-						>
-							{item.entityLabel ?? item.entityId}
-						</button>
+						{item.body}
+						{item.entityId && item.actionId ? (
+							<>
+								{" "}
+								<button
+									className="font-mono text-[11px] text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+									onClick={openLinkedEntity}
+									type="button"
+								>
+									{item.entityLabel ?? item.entityId}
+								</button>
+							</>
+						) : null}
 					</>
-				) : item.entityId ? (
-					<> {item.entityLabel ?? item.entityId}</>
-				) : null}
+				)}
 			</p>
 		</article>
 	);
@@ -326,9 +506,13 @@ export function StateStreamView() {
 								<EmptyEvents />
 							) : (
 								<div className="grid gap-2 p-3">
-									{events.map((item) => (
-										<StreamEventRow item={item} key={item.id} />
-									))}
+									{groupStreamEvents(events).map((group) =>
+										group.items.length > 1 ? (
+											<GroupedEventRow group={group} key={group.key} />
+										) : (
+											<StreamEventRow item={group.items[0]} key={group.key} />
+										),
+									)}
 								</div>
 							)}
 						</ScrollArea>

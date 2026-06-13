@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type Permission = string;
 
@@ -8,7 +8,7 @@ export type AccessPreset = {
   permissions: Permission[];
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "AccessService",
   "serviceName": "access",
   "filePath": "services/sequrity/access.ts",

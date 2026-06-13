@@ -14,6 +14,11 @@ export type StreamEvent = {
 	action?: string;
 	actionId?: string;
 	actionParams?: Record<string, unknown>;
+	/** Correlation id of the process that produced this event. Events sharing a
+	 * parentId are collapsed into a single card in the feed. */
+	parentId?: string;
+	/** When set, the entity is a downloadable file. */
+	download?: { fileId: string; fileName: string };
 };
 
 export type StreamSignal = {

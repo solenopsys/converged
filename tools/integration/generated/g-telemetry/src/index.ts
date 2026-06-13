@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type TelemetryEvent = {
   ts: number;
@@ -38,7 +38,7 @@ export type TelemetryStatistic = {
   byParam: Record<string, number>;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "TelemetryService",
   "serviceName": "telemetry",
   "filePath": "services/analytics/telemetry.ts",

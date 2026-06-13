@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type ExecutionStatus = "running" | "done" | "failed";
 
@@ -74,7 +74,7 @@ export type TaskTicket = {
   createdAt: number;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "DagService",
   "serviceName": "dag",
   "filePath": "services/automation/dag.ts",

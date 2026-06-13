@@ -1,5 +1,5 @@
 // Auto-generated package
-import { createHttpClient } from "nrpc";
+import { createHttpClient, type ServiceMetadata } from "nrpc";
 
 export type LogEvent = {
   ts: number;
@@ -41,7 +41,7 @@ export type LogsStatistic = {
   warnings: number;
 };
 
-export const metadata = {
+export const metadata: ServiceMetadata = {
   "interfaceName": "LogsService",
   "serviceName": "logs",
   "filePath": "services/analytics/logs.ts",
