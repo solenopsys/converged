@@ -1,6 +1,11 @@
 import { SqlStore, KVStore, generateULID } from "back-core";
 import { CallRepository } from "./entities";
 import { writeWebMOpus } from "./webm";
+import {
+  trimSilence,
+  silenceTrimConfigFromEnv,
+  type SilenceTrimConfig,
+} from "./silence";
 import type {
   Call,
   CallId,
@@ -48,6 +53,7 @@ type CallFragmentEntity = {
 
 export class CallsStoreService {
   private readonly repo: CallRepository;
+  private readonly silenceTrim: SilenceTrimConfig = silenceTrimConfigFromEnv();
 
   constructor(
     private store: SqlStore,
@@ -262,7 +268,13 @@ export class CallsStoreService {
    * each (see webm.ts). Returns undefined when no audio was captured.
    */
   getCallAudio(callId: CallId, source: CallAudioSource): Uint8Array {
-    const frames = this.readOpusFrames(callId, source);
+    // Drop the dead air the gate captured (leading/trailing silence + long
+    // mid-call pauses) before muxing, so playback and the waveform reflect the
+    // actual conversation instead of seconds of nothing. See silence.ts.
+    const frames = trimSilence(
+      this.readOpusFrames(callId, source),
+      this.silenceTrim,
+    );
     return (
       writeWebMOpus(frames, {
         sampleRate: OPUS_SAMPLE_RATE,

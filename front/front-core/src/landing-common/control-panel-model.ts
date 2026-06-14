@@ -85,6 +85,8 @@ export interface Branding {
 	logoDark?: string;
 	phone?: string;
 	statusText?: string;
+	/** Call-context alias for website calls (NOT a phone number). */
+	contextName?: string;
 }
 
 export const brandingSet = createEvent<Branding>();

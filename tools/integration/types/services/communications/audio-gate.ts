@@ -12,6 +12,10 @@ export type IpTelephonyGateway = {
   username?: string;
   realm?: string;
   registrar?: string;
+  // Call context (CallContextName) the llm-audio-gate must load for inbound
+  // calls on this number. The context carries the language. No contextId (or no
+  // such context) => the gate refuses the call rather than answering blind.
+  contextId?: string;
 };
 
 export type PhoneNumber = {

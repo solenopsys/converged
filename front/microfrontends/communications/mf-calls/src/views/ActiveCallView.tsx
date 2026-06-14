@@ -7,6 +7,7 @@ import {
   CardTitle,
   Badge,
   Separator,
+  defaultLanguage,
 } from "front-core";
 import { PhoneCall, PhoneOff, ArrowLeft, Mic, MicOff } from "lucide-react";
 import { callsClient } from "g-calls";
@@ -36,7 +37,9 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({ onBack }) => {
   const [phone, setPhone] = useState("+79001234567");
   const [contextName, setContextName] = useState("club");
   const [contextText, setContextText] = useState("");
+  const [contextLang, setContextLang] = useState(defaultLanguage);
   const [contextSaved, setContextSaved] = useState(false);
+  const [contextError, setContextError] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<GateTranscriptItem[]>([]);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const contextKey = contextName.trim() || phone;
@@ -54,9 +57,8 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({ onBack }) => {
         setContextText("");
         return;
       }
-      setContextText(
-        typeof ctx.data === "string" ? ctx.data : JSON.stringify(ctx.data, null, 2),
-      );
+      setContextText(ctx.instructions ?? "");
+      if (ctx.language) setContextLang(ctx.language);
     });
   }, [contextKey]);
 
@@ -82,7 +84,14 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({ onBack }) => {
   }, [transcript]);
 
   const handleSaveContext = async () => {
-    await callsClient.saveContext(contextKey, contextText);
+    const instructions = contextText.trim();
+    const language = contextLang.trim();
+    if (!instructions || !language) {
+      setContextError("Both instructions and language are required.");
+      return;
+    }
+    setContextError(null);
+    await callsClient.saveContext(contextKey, { instructions, language });
     setContextSaved(true);
     setTimeout(() => setContextSaved(false), 2000);
   };
@@ -252,7 +261,9 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({ onBack }) => {
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-xs text-muted-foreground">
-                  Instructions for the AI when calling this number.
+                  Instructions for the AI when calling this number. A context with
+                  no instructions or no language is rejected — the gate refuses
+                  the call rather than answering blind.
                 </p>
                 <textarea
                   value={contextText}
@@ -261,6 +272,20 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({ onBack }) => {
                   rows={6}
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-ring"
                 />
+                <div className="flex items-center gap-3">
+                  <label className="text-xs text-muted-foreground w-20 shrink-0">
+                    Language
+                  </label>
+                  <input
+                    value={contextLang}
+                    onChange={(e) => setContextLang(e.target.value)}
+                    placeholder={defaultLanguage}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                  />
+                </div>
+                {contextError && (
+                  <p className="text-xs text-red-400">{contextError}</p>
+                )}
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" onClick={handleSaveContext}>
                     {contextSaved ? "Saved ✓" : "Save"}

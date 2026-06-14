@@ -767,6 +767,9 @@ function readControlPanelHostOptions(host: HTMLElement) {
 		),
 		phone: host.dataset.phone || undefined,
 		statusText: host.dataset.statusText || undefined,
+		// Website-call context alias (NOT a phone). Configurable per landing via
+		// data-context-name; defaults to the landing's "request" context.
+		contextName: host.dataset.contextName || "request",
 		chatPlaceholder:
 			host.dataset.chatPlaceholder || "Describe your CNC request...",
 		menuLinks: parseControlPanelMenuLinks(host.dataset.menuLinks),
@@ -807,6 +810,7 @@ async function ensureControlPanelRuntime(): Promise<void> {
 			logoDark: hostOptions.logoDark,
 			phone: hostOptions.phone,
 			statusText: hostOptions.statusText,
+			contextName: hostOptions.contextName,
 			chatPlaceholder: hostOptions.chatPlaceholder,
 			menuLinks,
 			loginEnabled: hostOptions.loginEnabled,

@@ -315,7 +315,7 @@ export const StereoCallPlayer: React.FC<StereoCallPlayerProps> = ({
             width={560}
             height={64}
             onClick={handleCanvasClick}
-            className="flex-1 rounded cursor-pointer"
+            className="flex-1 min-w-0 w-full rounded cursor-pointer"
             style={{ height: 64 }}
           />
         )}

@@ -3,7 +3,7 @@ import {
   StoreType,
   SqlStore,
   KVStore,
-  FileStore,
+  JsonStore,
 } from "back-core";
 import { CallsStoreService } from "./calls/service";
 import { ContextStoreService } from "./contexts/service";
@@ -33,9 +33,12 @@ export class StoresController extends StoreControllerAbstract {
       StoreType.KVS,
       [],
     );
+    // JSON store: call contexts are typed {instructions, language} entities the
+    // gate reads by the llm-context/<name>.json key. (Was FILES holding a bare
+    // prompt string — switched to JSON so language can live in the context.)
     const contextsStore = await this.addStore(
       "llm-gate-configs",
-      StoreType.FILES,
+      StoreType.JSON,
       [],
     );
 
@@ -44,7 +47,7 @@ export class StoresController extends StoreControllerAbstract {
       recordingsStore as KVStore,
       fragmentsStore as KVStore,
     );
-    this.contexts = new ContextStoreService(contextsStore as FileStore);
+    this.contexts = new ContextStoreService(contextsStore as JsonStore);
 
     await this.startAll();
     await this.migrateAll();

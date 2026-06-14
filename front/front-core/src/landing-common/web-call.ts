@@ -51,7 +51,12 @@ type AudioSourceSnapshot = {
 	totalSamplesDuration?: number;
 };
 
-/** Fired by the top-bar call icon. Optional `user` keys the gate's AI context. */
+/**
+ * Fired by the top-bar / rail call icon. The payload is the single context KEY
+ * (alias) the gate loads for a website call — NOT a phone number. Web calls are
+ * not telephony: one context can back many SIP numbers, but the website call
+ * always selects its context by this one key.
+ */
 export const webCallRequested = createEvent<string | undefined>();
 export const webCallHangupRequested = createEvent();
 
@@ -325,7 +330,7 @@ function toIceCandidateInit(data: unknown): RTCIceCandidateInit | null {
 	return init;
 }
 
-export async function startWebCall(user?: string): Promise<void> {
+export async function startWebCall(contextName?: string): Promise<void> {
 	if (pc) {
 		warn("start ignored, call is already in progress");
 		return;
@@ -336,7 +341,7 @@ export async function startWebCall(user?: string): Promise<void> {
 	}
 
 	try {
-		log("start requested", { user });
+		log("start requested", { contextName });
 		setState("connecting");
 
 		log("requesting microphone");
@@ -450,7 +455,7 @@ export async function startWebCall(user?: string): Promise<void> {
 		await conn.setLocalDescription(offer);
 		await waitForIceGatheringComplete(conn);
 
-		const url = wsCallUrl(user);
+		const url = wsCallUrl(contextName);
 		log("opening websocket", { url });
 		const socket = new WebSocket(url);
 		ws = socket;
@@ -533,6 +538,10 @@ export async function startWebCall(user?: string): Promise<void> {
 		socket.send(
 			JSON.stringify({
 				type: "offer",
+				// contextName is the gate's context key for website calls (alias,
+				// not a phone). The gate refuses the call if it resolves to no
+				// valid context — so it must be sent, never left to a phone fallback.
+				contextName,
 				data: { type: "offer", sdp },
 			}),
 		);
@@ -556,8 +565,8 @@ export function hangupWebCall(): void {
 	scheduleIdleReset();
 }
 
-webCallRequested.watch((user) => {
-	void startWebCall(user);
+webCallRequested.watch((contextName) => {
+	void startWebCall(contextName);
 });
 webCallHangupRequested.watch(() => {
 	hangupWebCall();

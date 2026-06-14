@@ -59,7 +59,7 @@ export function LandingTopBarIntegration({ compact }: LandingTopBarIntegrationPr
 			isDark={theme === "dark"}
 			onThemeToggle={() => themeToggled()}
 			onLogin={loginEnabled ? () => loginRequested() : undefined}
-			onCall={() => webCallRequested(branding.phone)}
+			onCall={() => webCallRequested(branding.contextName)}
 			onPanelOpen={() => controlPanelOpened()}
 			value={composer}
 			onValueChange={composerValueChanged}

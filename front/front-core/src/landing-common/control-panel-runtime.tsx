@@ -67,6 +67,8 @@ export interface ControlPanelRuntimeOptions {
 	logoDark?: string;
 	phone?: string;
 	statusText?: string;
+	/** Call-context alias for website calls (NOT a phone number). */
+	contextName?: string;
 	chatPlaceholder?: string;
 	menuLinks?: MenuLink[];
 	loginEnabled: boolean;
@@ -242,6 +244,7 @@ export function mountControlPanelRuntime(
 		logoDark: options.logoDark,
 		phone: options.phone,
 		statusText: options.statusText,
+		contextName: options.contextName,
 	});
 	menuLinksSet(options.menuLinks ?? []);
 	panelActionsSet(options.actions ?? readInitialLandingPanelActions());

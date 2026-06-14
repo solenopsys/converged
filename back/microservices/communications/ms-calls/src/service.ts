@@ -15,6 +15,7 @@ import type {
   CallDeleteResult,
   UpdateCallInput,
   CallContext,
+  CallContextInput,
   CallContextListParams,
   CallContextName,
   CallContextSummary,
@@ -108,10 +109,10 @@ export class CallsServiceImpl implements CallsService {
 
   async saveContext(
     name: CallContextName,
-    context: unknown,
+    input: CallContextInput,
   ): Promise<CallContextSummary> {
     await this.ready();
-    return this.stores.contexts.saveContext(name, context);
+    return this.stores.contexts.saveContext(name, input);
   }
 
   async getContext(name: CallContextName): Promise<CallContext | null> {

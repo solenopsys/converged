@@ -99,7 +99,7 @@ export function ConvergedRailPanelIntegration({
 			logoLight={branding.logoLight}
 			logoDark={branding.logoDark}
 			phone={branding.phone}
-			onCall={(phone) => webCallRequested(phone)}
+			onCall={() => webCallRequested(branding.contextName)}
 			screens={screens}
 			activeScreenId={activeScreenId}
 			onScreenChange={screenActivated}

@@ -103,20 +103,29 @@ export type CallDeleteResult = {
   fragmentsDeleted: number;
 };
 
+export type CallContextLanguage = string;
+
 export type CallContext = {
   id: CallContextName;
   name: CallContextName;
   updatedAt: number;
-  data: unknown;
-  legacyKey?: string;
+  /** System prompt the gate feeds the LLM. Required — no context, no session. */
+  instructions: string;
+  /** Spoken language, configured per context. The gate reads it directly. */
+  language: CallContextLanguage;
+};
+
+export type CallContextInput = {
+  instructions: string;
+  language: CallContextLanguage;
 };
 
 export type CallContextSummary = {
   id: CallContextName;
   name: CallContextName;
   updatedAt: number;
+  language: CallContextLanguage;
   size?: number;
-  legacyKey?: string;
 };
 
 export type CallContextListParams = {
@@ -316,8 +325,8 @@ export const metadata: ServiceMetadata = {
           "isArray": false
         },
         {
-          "name": "context",
-          "type": "unknown",
+          "name": "input",
+          "type": "CallContextInput",
           "optional": false,
           "isArray": false
         }
@@ -461,14 +470,24 @@ export const metadata: ServiceMetadata = {
       "definition": "{\n  deleted: boolean;\n  fragmentsDeleted: number;\n}"
     },
     {
+      "name": "CallContextLanguage",
+      "kind": "type",
+      "definition": "string"
+    },
+    {
       "name": "CallContext",
       "kind": "type",
-      "definition": "{\n  id: CallContextName;\n  name: CallContextName;\n  updatedAt: number;\n  data: unknown;\n  legacyKey?: string;\n}"
+      "definition": "{\n  id: CallContextName;\n  name: CallContextName;\n  updatedAt: number;\n  /** System prompt the gate feeds the LLM. Required — no context, no session. */\n  instructions: string;\n  /** Spoken language, configured per context. The gate reads it directly. */\n  language: CallContextLanguage;\n}"
+    },
+    {
+      "name": "CallContextInput",
+      "kind": "type",
+      "definition": "{\n  instructions: string;\n  language: CallContextLanguage;\n}"
     },
     {
       "name": "CallContextSummary",
       "kind": "type",
-      "definition": "{\n  id: CallContextName;\n  name: CallContextName;\n  updatedAt: number;\n  size?: number;\n  legacyKey?: string;\n}"
+      "definition": "{\n  id: CallContextName;\n  name: CallContextName;\n  updatedAt: number;\n  language: CallContextLanguage;\n  size?: number;\n}"
     },
     {
       "name": "CallContextListParams",
@@ -491,7 +510,7 @@ export interface CallsService {
   getCallAudio(callId: CallId, source: CallFragmentSource): Promise<Uint8Array>;
   hasCallAudio(callId: CallId): Promise<boolean>;
   deleteCall(id: CallId): Promise<CallDeleteResult>;
-  saveContext(name: CallContextName, context: unknown): Promise<CallContextSummary>;
+  saveContext(name: CallContextName, input: CallContextInput): Promise<CallContextSummary>;
   getContext(name: CallContextName): Promise<CallContext | any>;
   listContexts(params: CallContextListParams): Promise<PaginatedResult<CallContextSummary>>;
   deleteContext(name: CallContextName): Promise<boolean>;
@@ -510,7 +529,7 @@ export interface CallsServiceClient {
   getCallAudio(callId: CallId, source: CallFragmentSource): Promise<Uint8Array>;
   hasCallAudio(callId: CallId): Promise<boolean>;
   deleteCall(id: CallId): Promise<CallDeleteResult>;
-  saveContext(name: CallContextName, context: unknown): Promise<CallContextSummary>;
+  saveContext(name: CallContextName, input: CallContextInput): Promise<CallContextSummary>;
   getContext(name: CallContextName): Promise<CallContext | any>;
   listContexts(params: CallContextListParams): Promise<PaginatedResult<CallContextSummary>>;
   deleteContext(name: CallContextName): Promise<boolean>;
