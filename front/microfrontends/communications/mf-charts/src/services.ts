@@ -1,4 +1,4 @@
-import { chartsClient } from "g-charts";
+import { chatsClient } from "g-chats";
 import { threadsClient } from "g-threads";
 
-export { chartsClient, threadsClient };
+export { chatsClient, threadsClient };

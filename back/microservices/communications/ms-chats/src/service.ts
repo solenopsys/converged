@@ -1,20 +1,24 @@
 import type {
-  ChartsService,
-  ChartRoom,
-  ChartRoomId,
-  ChartRoomRole,
-  ChartRoomsListParams,
-  ChartRoomsListResult,
-  ChartRoomUser,
-  ChartUserId,
-  CreateChartRoomInput,
-  UpdateChartRoomInput,
+  ChatsService,
+  ChatContext,
+  ChatContextSummary,
+  ChatRoom,
+  ChatRoomId,
+  ChatRoomRole,
+  ChatRoomsListParams,
+  ChatRoomsListResult,
+  ChatRoomUser,
+  ChatUserId,
+  CreateChatRoomInput,
+  PaginatedResult,
+  PaginationParams,
+  UpdateChatRoomInput,
 } from "./types";
 import { StoresController } from "./stores";
 
-const MS_ID = "charts-ms";
+const MS_ID = "chats-ms";
 
-export class ChartsServiceImpl implements ChartsService {
+export class ChatsServiceImpl implements ChatsService {
   private stores: StoresController;
   private initPromise?: Promise<void>;
 
@@ -39,50 +43,71 @@ export class ChartsServiceImpl implements ChartsService {
     await this.init();
   }
 
-  async createRoom(input: CreateChartRoomInput): Promise<ChartRoom> {
+  async createRoom(input: CreateChatRoomInput): Promise<ChatRoom> {
     await this.ready();
-    return this.stores.charts.createRoom(input);
+    return this.stores.chats.createRoom(input);
   }
 
-  async getRoom(roomId: ChartRoomId): Promise<ChartRoom | null> {
+  async getRoom(roomId: ChatRoomId): Promise<ChatRoom | null> {
     await this.ready();
-    return this.stores.charts.getRoom(roomId);
+    return this.stores.chats.getRoom(roomId);
   }
 
-  async updateRoom(roomId: ChartRoomId, patch: UpdateChartRoomInput): Promise<ChartRoom> {
+  async updateRoom(roomId: ChatRoomId, patch: UpdateChatRoomInput): Promise<ChatRoom> {
     await this.ready();
-    return this.stores.charts.updateRoom(roomId, patch);
+    return this.stores.chats.updateRoom(roomId, patch);
   }
 
-  async deleteRoom(roomId: ChartRoomId): Promise<boolean> {
+  async deleteRoom(roomId: ChatRoomId): Promise<boolean> {
     await this.ready();
-    return this.stores.charts.deleteRoom(roomId);
+    return this.stores.chats.deleteRoom(roomId);
   }
 
-  async listRooms(params: ChartRoomsListParams): Promise<ChartRoomsListResult> {
+  async listRooms(params: ChatRoomsListParams): Promise<ChatRoomsListResult> {
     await this.ready();
-    return this.stores.charts.listRooms(params);
+    return this.stores.chats.listRooms(params);
   }
 
-  async addRoomUser(roomId: ChartRoomId, userId: ChartUserId, role?: ChartRoomRole): Promise<void> {
+  async addRoomUser(roomId: ChatRoomId, userId: ChatUserId, role?: ChatRoomRole): Promise<void> {
     await this.ready();
-    return this.stores.charts.addRoomUser(roomId, userId, role);
+    return this.stores.chats.addRoomUser(roomId, userId, role);
   }
 
-  async removeRoomUser(roomId: ChartRoomId, userId: ChartUserId): Promise<void> {
+  async removeRoomUser(roomId: ChatRoomId, userId: ChatUserId): Promise<void> {
     await this.ready();
-    return this.stores.charts.removeRoomUser(roomId, userId);
+    return this.stores.chats.removeRoomUser(roomId, userId);
   }
 
-  async listRoomUsers(roomId: ChartRoomId): Promise<ChartRoomUser[]> {
+  async listRoomUsers(roomId: ChatRoomId): Promise<ChatRoomUser[]> {
     await this.ready();
-    return this.stores.charts.listRoomUsers(roomId);
+    return this.stores.chats.listRoomUsers(roomId);
   }
 
-  async listUserRooms(userId: ChartUserId, params: ChartRoomsListParams): Promise<ChartRoomsListResult> {
+  async listUserRooms(userId: ChatUserId, params: ChatRoomsListParams): Promise<ChatRoomsListResult> {
     await this.ready();
-    return this.stores.charts.listUserRooms(userId, params);
+    return this.stores.chats.listUserRooms(userId, params);
+  }
+
+  async saveContext(
+    chatId: string,
+    context: any,
+    language?: string,
+  ): Promise<ChatContextSummary> {
+    await this.ready();
+    return this.stores.contexts.saveContext(chatId, context, language);
+  }
+
+  async getContext(chatId: string, language?: string): Promise<ChatContext | null> {
+    await this.ready();
+    return this.stores.contexts.getContext(chatId, language);
+  }
+
+  async listContexts(
+    params: PaginationParams,
+  ): Promise<PaginatedResult<ChatContextSummary>> {
+    await this.ready();
+    return this.stores.contexts.listContexts(params);
   }
 }
 
-export default ChartsServiceImpl;
+export default ChatsServiceImpl;

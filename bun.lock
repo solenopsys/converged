@@ -294,7 +294,7 @@
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
-        "g-charts": "workspace:*",
+        "g-chats": "workspace:*",
         "nrpc": "workspace:*",
       },
     },
@@ -1073,7 +1073,7 @@
       "name": "mf-charts",
       "dependencies": {
         "front-core": "workspace:*",
-        "g-charts": "workspace:*",
+        "g-chats": "workspace:*",
         "g-threads": "workspace:*",
       },
     },
@@ -1328,8 +1328,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "tools/integration/generated/g-charts": {
-      "name": "g-charts",
+    "tools/integration/generated/g-chats": {
+      "name": "g-chats",
       "version": "0.0.0",
       "dependencies": {
         "nrpc": "workspace:*",
@@ -2935,7 +2935,7 @@
 
     "g-ceo": ["g-ceo@workspace:tools/integration/generated/g-ceo"],
 
-    "g-charts": ["g-charts@workspace:tools/integration/generated/g-charts"],
+    "g-chats": ["g-chats@workspace:tools/integration/generated/g-chats"],
 
     "g-classifier": ["g-classifier@workspace:tools/integration/generated/g-classifier"],
 

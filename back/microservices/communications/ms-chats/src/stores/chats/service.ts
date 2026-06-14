@@ -1,45 +1,45 @@
 import { SqlStore, generateULID } from "back-core";
 import type {
-  ChartRoom,
-  ChartRoomId,
-  ChartRoomRole,
-  ChartRoomsListParams,
-  ChartRoomsListResult,
-  ChartRoomUser,
-  ChartUserId,
-  CreateChartRoomInput,
-  UpdateChartRoomInput,
+  ChatRoom,
+  ChatRoomId,
+  ChatRoomRole,
+  ChatRoomsListParams,
+  ChatRoomsListResult,
+  ChatRoomUser,
+  ChatUserId,
+  CreateChatRoomInput,
+  UpdateChatRoomInput,
 } from "../../types";
 import {
-  ChartRoomRepository,
-  ChartRoomUserRepository,
-  type ChartRoomEntity,
-  type ChartRoomUserEntity,
+  ChatRoomRepository,
+  ChatRoomUserRepository,
+  type ChatRoomEntity,
+  type ChatRoomUserEntity,
 } from "./entities";
 
-export class ChartsStoreService {
-  private readonly roomRepo: ChartRoomRepository;
-  private readonly roomUserRepo: ChartRoomUserRepository;
+export class ChatsStoreService {
+  private readonly roomRepo: ChatRoomRepository;
+  private readonly roomUserRepo: ChatRoomUserRepository;
 
   constructor(private store: SqlStore) {
-    this.roomRepo = new ChartRoomRepository(store, "chart_rooms", {
+    this.roomRepo = new ChatRoomRepository(store, "chart_rooms", {
       primaryKey: "id",
       extractKey: (entry) => ({ id: entry.id }),
       buildWhereCondition: (key) => ({ id: key.id }),
     });
 
-    this.roomUserRepo = new ChartRoomUserRepository(store, "chart_room_users", {
+    this.roomUserRepo = new ChatRoomUserRepository(store, "chart_room_users", {
       primaryKey: "id",
       extractKey: (entry) => ({ id: entry.id }),
       buildWhereCondition: (key) => ({ id: key.id }),
     });
   }
 
-  async createRoom(input: CreateChartRoomInput): Promise<ChartRoom> {
+  async createRoom(input: CreateChatRoomInput): Promise<ChatRoom> {
     const roomId = generateULID();
     const now = new Date().toISOString();
 
-    const roomEntity: ChartRoomEntity = {
+    const roomEntity: ChatRoomEntity = {
       id: roomId,
       title: input.title ?? null,
       type: input.type,
@@ -58,7 +58,7 @@ export class ChartsStoreService {
     }
 
     for (const userId of userSet) {
-      const role: ChartRoomRole = input.createdBy && userId === input.createdBy ? "owner" : "member";
+      const role: ChatRoomRole = input.createdBy && userId === input.createdBy ? "owner" : "member";
       await this.createOrUpdateRoomUser(roomId, userId, role, now);
     }
 
@@ -70,7 +70,7 @@ export class ChartsStoreService {
     return created;
   }
 
-  async getRoom(roomId: ChartRoomId): Promise<ChartRoom | null> {
+  async getRoom(roomId: ChatRoomId): Promise<ChatRoom | null> {
     const room = await this.roomRepo.findById({ id: roomId });
     if (!room) return null;
 
@@ -78,13 +78,13 @@ export class ChartsStoreService {
     return this.toRoom(room, counts[room.id] ?? 0);
   }
 
-  async updateRoom(roomId: ChartRoomId, patch: UpdateChartRoomInput): Promise<ChartRoom> {
+  async updateRoom(roomId: ChatRoomId, patch: UpdateChatRoomInput): Promise<ChatRoom> {
     const existing = await this.roomRepo.findById({ id: roomId });
     if (!existing) {
       throw new Error(`Room not found: ${roomId}`);
     }
 
-    const update: Partial<ChartRoomEntity> = {
+    const update: Partial<ChatRoomEntity> = {
       updatedAt: new Date().toISOString(),
     };
 
@@ -108,12 +108,12 @@ export class ChartsStoreService {
     return updated;
   }
 
-  async deleteRoom(roomId: ChartRoomId): Promise<boolean> {
+  async deleteRoom(roomId: ChatRoomId): Promise<boolean> {
     await this.store.db.deleteFrom("chart_room_users").where("roomId", "=", roomId).execute();
     return this.roomRepo.delete({ id: roomId });
   }
 
-  async listRooms(params: ChartRoomsListParams): Promise<ChartRoomsListResult> {
+  async listRooms(params: ChatRoomsListParams): Promise<ChatRoomsListResult> {
     const limit = params.limit ?? 50;
     const offset = params.offset ?? 0;
 
@@ -178,7 +178,7 @@ export class ChartsStoreService {
     const countResult = await countQuery.executeTakeFirst();
     const totalCount = Number(countResult?.count ?? 0);
 
-    const entities = rows as ChartRoomEntity[];
+    const entities = rows as ChatRoomEntity[];
     const roomIds = entities.map((room) => room.id);
     const membersMap = await this.getMembersCountMap(roomIds);
 
@@ -188,7 +188,7 @@ export class ChartsStoreService {
     };
   }
 
-  async addRoomUser(roomId: ChartRoomId, userId: ChartUserId, role?: ChartRoomRole): Promise<void> {
+  async addRoomUser(roomId: ChatRoomId, userId: ChatUserId, role?: ChatRoomRole): Promise<void> {
     const room = await this.roomRepo.findById({ id: roomId });
     if (!room) {
       throw new Error(`Room not found: ${roomId}`);
@@ -200,7 +200,7 @@ export class ChartsStoreService {
     await this.roomRepo.update({ id: roomId }, { updatedAt: now });
   }
 
-  async removeRoomUser(roomId: ChartRoomId, userId: ChartUserId): Promise<void> {
+  async removeRoomUser(roomId: ChatRoomId, userId: ChatUserId): Promise<void> {
     await this.store.db
       .deleteFrom("chart_room_users")
       .where("roomId", "=", roomId)
@@ -210,7 +210,7 @@ export class ChartsStoreService {
     await this.roomRepo.update({ id: roomId }, { updatedAt: new Date().toISOString() });
   }
 
-  async listRoomUsers(roomId: ChartRoomId): Promise<ChartRoomUser[]> {
+  async listRoomUsers(roomId: ChatRoomId): Promise<ChatRoomUser[]> {
     const rows = await this.store.db
       .selectFrom("chart_room_users")
       .selectAll()
@@ -218,10 +218,10 @@ export class ChartsStoreService {
       .orderBy("joinedAt", "asc")
       .execute();
 
-    return (rows as ChartRoomUserEntity[]).map((row) => this.toRoomUser(row));
+    return (rows as ChatRoomUserEntity[]).map((row) => this.toRoomUser(row));
   }
 
-  async listUserRooms(userId: ChartUserId, params: ChartRoomsListParams): Promise<ChartRoomsListResult> {
+  async listUserRooms(userId: ChatUserId, params: ChatRoomsListParams): Promise<ChatRoomsListResult> {
     return this.listRooms({
       ...params,
       userId,
@@ -229,9 +229,9 @@ export class ChartsStoreService {
   }
 
   private async createOrUpdateRoomUser(
-    roomId: ChartRoomId,
-    userId: ChartUserId,
-    role: ChartRoomRole,
+    roomId: ChatRoomId,
+    userId: ChatUserId,
+    role: ChatRoomRole,
     now: string,
   ): Promise<void> {
     const existing = await this.store.db
@@ -242,11 +242,11 @@ export class ChartsStoreService {
       .executeTakeFirst();
 
     if (existing) {
-      await this.roomUserRepo.update({ id: (existing as ChartRoomUserEntity).id }, { role, updatedAt: now });
+      await this.roomUserRepo.update({ id: (existing as ChatRoomUserEntity).id }, { role, updatedAt: now });
       return;
     }
 
-    const entity: ChartRoomUserEntity = {
+    const entity: ChatRoomUserEntity = {
       id: generateULID(),
       roomId,
       userId,
@@ -258,7 +258,7 @@ export class ChartsStoreService {
     await this.roomUserRepo.create(entity as any);
   }
 
-  private normalizeRole(role?: ChartRoomRole): ChartRoomRole {
+  private normalizeRole(role?: ChatRoomRole): ChatRoomRole {
     if (role === "owner" || role === "admin" || role === "member") {
       return role;
     }
@@ -287,7 +287,7 @@ export class ChartsStoreService {
     return map;
   }
 
-  private toRoom(entity: ChartRoomEntity, membersCount: number): ChartRoom {
+  private toRoom(entity: ChatRoomEntity, membersCount: number): ChatRoom {
     return {
       id: entity.id,
       title: entity.title ?? undefined,
@@ -301,7 +301,7 @@ export class ChartsStoreService {
     };
   }
 
-  private toRoomUser(entity: ChartRoomUserEntity): ChartRoomUser {
+  private toRoomUser(entity: ChatRoomUserEntity): ChatRoomUser {
     return {
       id: entity.id,
       roomId: entity.roomId,

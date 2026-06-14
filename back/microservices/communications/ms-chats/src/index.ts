@@ -1,3 +1,3 @@
-import ChartsServiceImpl from "./service";
+import ChatsServiceImpl from "./service";
 
-export default ChartsServiceImpl;
+export default ChatsServiceImpl;

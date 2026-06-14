@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { HeaderPanel, ThreadedChat, cn } from "front-core";
-import type { ChartRoom } from "g-charts";
+import type { ChatRoom } from "g-chats";
 import { MessageType } from "../../../../../../tools/integration/types/services/communications/threads";
-import { chartsClient, threadsClient } from "../services";
+import { chatsClient, threadsClient } from "../services";
 import styles from "./ChatView.module.css";
 
 type RawThreadMessage = {
@@ -21,16 +21,16 @@ type ChatThreadMessage = {
   timestamp: number;
 };
 
-type ChartsEnv = {
+type ChatsEnv = {
   userId?: string;
   title?: string;
   placeholder?: string;
   roomId?: string;
 };
 
-function readChartsEnv(): Required<ChartsEnv> {
+function readChatsEnv(): Required<ChatsEnv> {
   const globalEnv = (globalThis as any).__MF_ENV__ as Record<string, unknown> | undefined;
-  const raw = (globalEnv?.["mf-charts"] ?? {}) as ChartsEnv;
+  const raw = (globalEnv?.["mf-charts"] ?? {}) as ChatsEnv;
 
   return {
     userId: raw.userId ?? "guest",
@@ -53,8 +53,8 @@ function mapThreadMessages(input: RawThreadMessage[]): ChatThreadMessage[] {
 }
 
 const ChatView: React.FC = () => {
-  const env = useMemo(() => readChartsEnv(), []);
-  const [rooms, setRooms] = useState<ChartRoom[]>([]);
+  const env = useMemo(() => readChatsEnv(), []);
+  const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [selectedRoomId, setSelectedRoomId] = useState<string>(env.roomId);
   const [messages, setMessages] = useState<ChatThreadMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -74,13 +74,13 @@ const ChatView: React.FC = () => {
       }
 
       try {
-        const response = await chartsClient.listRooms({
+        const response = await chatsClient.listRooms({
           offset: 0,
           limit: 100,
           userId: env.userId || undefined,
           archived: false,
         });
-        const items = Array.isArray(response?.items) ? (response.items as ChartRoom[]) : [];
+        const items = Array.isArray(response?.items) ? (response.items as ChatRoom[]) : [];
         setRooms(items);
 
         if (!selectedRoomId || !items.some((room) => room.id === selectedRoomId)) {

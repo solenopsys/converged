@@ -1,5 +1,5 @@
 import { createHttpBackend } from "nrpc";
-import { metadata } from "g-charts";
+import { metadata } from "g-chats";
 import serviceImpl from "./index";
 
 export default createHttpBackend({

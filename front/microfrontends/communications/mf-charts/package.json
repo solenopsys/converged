@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "front-core": "workspace:*",
-    "g-charts": "workspace:*",
+    "g-chats": "workspace:*",
     "g-threads": "workspace:*"
   }
 }
