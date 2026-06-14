@@ -12,6 +12,10 @@ export interface CallEntity {
   recordId: string;
   audioId?: string | null;
   dialogue: string;
+  title?: string | null;
+  description?: string | null;
+  processed: number;
+  flud: number;
 }
 
 export class CallRepository extends BaseRepositorySQL<CallKey, CallEntity> {}

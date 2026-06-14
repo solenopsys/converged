@@ -8,10 +8,13 @@ export interface ChatRoomKey extends KeySQL {
 export interface ChatRoomEntity {
   id: string;
   title?: string | null;
+  description?: string | null;
   type: ChatRoomType;
   threadId: string;
   createdBy?: string | null;
   archived: number;
+  processed: number;
+  flud: number;
   createdAt: string;
   updatedAt: string;
 }

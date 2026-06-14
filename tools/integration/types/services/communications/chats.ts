@@ -8,10 +8,19 @@ export type ChatRoomRole = "owner" | "admin" | "member";
 export type ChatRoom = {
   id: ChatRoomId;
   title?: string;
+  /** Auto-generated short summary of the conversation (filled by the
+   * dialogue-summary workflow). */
+  description?: string;
   type: ChatRoomType;
   threadId: ChatThreadId;
   createdBy?: ChatUserId;
   archived: boolean;
+  /** True once the dialogue-summary workflow has produced a title/description
+   * for this room; unprocessed rooms are picked up on the next run. */
+  processed?: boolean;
+  /** "Noise" — the conversation carried no useful payload (empty, pointless,
+   * or ended with nothing meaningful). Set by the dialogue-summary workflow. */
+  flud?: boolean;
   createdAt: string;
   updatedAt: string;
   membersCount?: number;
@@ -36,8 +45,11 @@ export type CreateChatRoomInput = {
 
 export type UpdateChatRoomInput = {
   title?: string;
+  description?: string;
   threadId?: ChatThreadId;
   archived?: boolean;
+  processed?: boolean;
+  flud?: boolean;
 };
 
 export type ChatRoomsListParams = {
@@ -47,6 +59,8 @@ export type ChatRoomsListParams = {
   query?: string;
   type?: ChatRoomType;
   archived?: boolean;
+  /** Filter by the dialogue-summary processed flag. Omit for all rooms. */
+  processed?: boolean;
 };
 
 export type ChatRoomsListResult = {

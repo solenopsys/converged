@@ -42,10 +42,13 @@ export class ChatsStoreService {
     const roomEntity: ChatRoomEntity = {
       id: roomId,
       title: input.title ?? null,
+      description: null,
       type: input.type,
       threadId: input.threadId,
       createdBy: input.createdBy ?? null,
       archived: 0,
+      processed: 0,
+      flud: 0,
       createdAt: now,
       updatedAt: now,
     };
@@ -91,11 +94,20 @@ export class ChatsStoreService {
     if (patch.title !== undefined) {
       update.title = patch.title ?? null;
     }
+    if (patch.description !== undefined) {
+      update.description = patch.description ?? null;
+    }
     if (patch.threadId !== undefined) {
       update.threadId = patch.threadId;
     }
     if (patch.archived !== undefined) {
       update.archived = patch.archived ? 1 : 0;
+    }
+    if (patch.processed !== undefined) {
+      update.processed = patch.processed ? 1 : 0;
+    }
+    if (patch.flud !== undefined) {
+      update.flud = patch.flud ? 1 : 0;
     }
 
     await this.roomRepo.update({ id: roomId }, update);
@@ -124,6 +136,9 @@ export class ChatsStoreService {
     }
     if (params.archived !== undefined) {
       query = query.where("archived", "=", params.archived ? 1 : 0);
+    }
+    if (params.processed !== undefined) {
+      query = query.where("processed", "=", params.processed ? 1 : 0);
     }
 
     const textQuery = params.query?.trim();
@@ -158,6 +173,9 @@ export class ChatsStoreService {
     }
     if (params.archived !== undefined) {
       countQuery = countQuery.where("archived", "=", params.archived ? 1 : 0);
+    }
+    if (params.processed !== undefined) {
+      countQuery = countQuery.where("processed", "=", params.processed ? 1 : 0);
     }
     if (textQuery) {
       countQuery = countQuery.where("title", "like", `%${textQuery}%`);
@@ -291,10 +309,13 @@ export class ChatsStoreService {
     return {
       id: entity.id,
       title: entity.title ?? undefined,
+      description: entity.description ?? undefined,
       type: entity.type,
       threadId: entity.threadId,
       createdBy: entity.createdBy ?? undefined,
       archived: entity.archived === 1,
+      processed: entity.processed === 1,
+      flud: entity.flud === 1,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       membersCount,

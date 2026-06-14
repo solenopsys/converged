@@ -8,10 +8,12 @@ import type {
   CallRecordingInput,
   CallRecordingResult,
   CallDialogueInput,
+  CallDialogueItem,
   CallFragmentInput,
   CallFragmentInfo,
   CallFragmentSource,
   CallDeleteResult,
+  UpdateCallInput,
   CallContext,
   CallContextListParams,
   CallContextName,
@@ -61,9 +63,19 @@ export class CallsServiceImpl implements CallsService {
     return this.stores.calls.saveDialogue(input);
   }
 
+  async getDialogue(id: CallId): Promise<CallDialogueItem[]> {
+    await this.ready();
+    return this.stores.calls.getDialogue(id);
+  }
+
   async getCall(id: CallId): Promise<Call | undefined> {
     await this.ready();
     return this.stores.calls.getCall(id);
+  }
+
+  async updateCall(id: CallId, patch: UpdateCallInput): Promise<Call> {
+    await this.ready();
+    return this.stores.calls.updateCall(id, patch);
   }
 
   async listCalls(params: CallsListParams): Promise<PaginatedResult<Call>> {

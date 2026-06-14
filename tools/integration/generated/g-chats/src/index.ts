@@ -14,10 +14,19 @@ export type ChatRoomRole = "owner" | "admin" | "member";
 export type ChatRoom = {
   id: ChatRoomId;
   title?: string;
+  /** Auto-generated short summary of the conversation (filled by the
+   * dialogue-summary workflow). */
+  description?: string;
   type: ChatRoomType;
   threadId: ChatThreadId;
   createdBy?: ChatUserId;
   archived: boolean;
+  /** True once the dialogue-summary workflow has produced a title/description
+   * for this room; unprocessed rooms are picked up on the next run. */
+  processed?: boolean;
+  /** "Noise" — the conversation carried no useful payload (empty, pointless,
+   * or ended with nothing meaningful). Set by the dialogue-summary workflow. */
+  flud?: boolean;
   createdAt: string;
   updatedAt: string;
   membersCount?: number;
@@ -42,8 +51,11 @@ export type CreateChatRoomInput = {
 
 export type UpdateChatRoomInput = {
   title?: string;
+  description?: string;
   threadId?: ChatThreadId;
   archived?: boolean;
+  processed?: boolean;
+  flud?: boolean;
 };
 
 export type ChatRoomsListParams = {
@@ -53,6 +65,8 @@ export type ChatRoomsListParams = {
   query?: string;
   type?: ChatRoomType;
   archived?: boolean;
+  /** Filter by the dialogue-summary processed flag. Omit for all rooms. */
+  processed?: boolean;
 };
 
 export type ChatRoomsListResult = {
@@ -345,7 +359,7 @@ export const metadata: ServiceMetadata = {
     {
       "name": "ChatRoom",
       "kind": "type",
-      "definition": "{\n  id: ChatRoomId;\n  title?: string;\n  type: ChatRoomType;\n  threadId: ChatThreadId;\n  createdBy?: ChatUserId;\n  archived: boolean;\n  createdAt: string;\n  updatedAt: string;\n  membersCount?: number;\n}"
+      "definition": "{\n  id: ChatRoomId;\n  title?: string;\n  /** Auto-generated short summary of the conversation (filled by the\n   * dialogue-summary workflow). */\n  description?: string;\n  type: ChatRoomType;\n  threadId: ChatThreadId;\n  createdBy?: ChatUserId;\n  archived: boolean;\n  /** True once the dialogue-summary workflow has produced a title/description\n   * for this room; unprocessed rooms are picked up on the next run. */\n  processed?: boolean;\n  /** \"Noise\" — the conversation carried no useful payload (empty, pointless,\n   * or ended with nothing meaningful). Set by the dialogue-summary workflow. */\n  flud?: boolean;\n  createdAt: string;\n  updatedAt: string;\n  membersCount?: number;\n}"
     },
     {
       "name": "ChatRoomUser",
@@ -360,12 +374,12 @@ export const metadata: ServiceMetadata = {
     {
       "name": "UpdateChatRoomInput",
       "kind": "type",
-      "definition": "{\n  title?: string;\n  threadId?: ChatThreadId;\n  archived?: boolean;\n}"
+      "definition": "{\n  title?: string;\n  description?: string;\n  threadId?: ChatThreadId;\n  archived?: boolean;\n  processed?: boolean;\n  flud?: boolean;\n}"
     },
     {
       "name": "ChatRoomsListParams",
       "kind": "type",
-      "definition": "{\n  offset: number;\n  limit: number;\n  userId?: ChatUserId;\n  query?: string;\n  type?: ChatRoomType;\n  archived?: boolean;\n}"
+      "definition": "{\n  offset: number;\n  limit: number;\n  userId?: ChatUserId;\n  query?: string;\n  type?: ChatRoomType;\n  archived?: boolean;\n  /** Filter by the dialogue-summary processed flag. Omit for all rooms. */\n  processed?: boolean;\n}"
     },
     {
       "name": "ChatRoomsListResult",

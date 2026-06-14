@@ -10,9 +10,11 @@ import type {
   CallRecordingInput,
   CallRecordingResult,
   CallDialogueInput,
+  CallDialogueItem,
   CallFragmentInput,
   CallFragmentInfo,
   CallDeleteResult,
+  UpdateCallInput,
 } from "../../types";
 import type { CallEntity } from "./entities";
 
@@ -75,6 +77,10 @@ export class CallsStoreService {
       recordId,
       audioId,
       dialogue: "[]",
+      title: null,
+      description: null,
+      processed: 0,
+      flud: 0,
     };
 
     await this.repo.create(entity as any);
@@ -129,6 +135,54 @@ export class CallsStoreService {
     await this.repo.update({ id: input.callId }, update);
   }
 
+  async getDialogue(id: CallId): Promise<CallDialogueItem[]> {
+    const existing = await this.repo.findById({ id });
+    if (!existing) {
+      return [];
+    }
+    return this.parseDialogue(existing.dialogue);
+  }
+
+  async updateCall(id: CallId, patch: UpdateCallInput): Promise<Call> {
+    const existing = await this.repo.findById({ id });
+    if (!existing) {
+      throw new Error(`Call not found: ${id}`);
+    }
+
+    const update: Partial<CallEntity> = {};
+    if (patch.title !== undefined) {
+      update.title = patch.title ?? null;
+    }
+    if (patch.description !== undefined) {
+      update.description = patch.description ?? null;
+    }
+    if (patch.processed !== undefined) {
+      update.processed = patch.processed ? 1 : 0;
+    }
+    if (patch.flud !== undefined) {
+      update.flud = patch.flud ? 1 : 0;
+    }
+
+    if (Object.keys(update).length > 0) {
+      await this.repo.update({ id }, update);
+    }
+
+    const updated = await this.repo.findById({ id });
+    if (!updated) {
+      throw new Error(`Failed to update call: ${id}`);
+    }
+    return this.toCall(updated);
+  }
+
+  private parseDialogue(raw: string): CallDialogueItem[] {
+    try {
+      const parsed = JSON.parse(raw ?? "[]");
+      return Array.isArray(parsed) ? (parsed as CallDialogueItem[]) : [];
+    } catch {
+      return [];
+    }
+  }
+
   async getCall(id: CallId): Promise<Call | undefined> {
     const entity = await this.repo.findById({ id });
     if (!entity) {
@@ -151,6 +205,9 @@ export class CallsStoreService {
     if (params.toTime !== undefined) {
       query = query.where("startedAt", "<=", params.toTime);
     }
+    if (params.processed !== undefined) {
+      query = query.where("processed", "=", params.processed ? 1 : 0);
+    }
 
     const items = await query
       .orderBy("startedAt", "desc")
@@ -169,6 +226,9 @@ export class CallsStoreService {
     }
     if (params.toTime !== undefined) {
       countQuery = countQuery.where("startedAt", "<=", params.toTime);
+    }
+    if (params.processed !== undefined) {
+      countQuery = countQuery.where("processed", "=", params.processed ? 1 : 0);
     }
     const countResult = await countQuery.executeTakeFirst();
     const totalCount = Number(countResult?.count ?? 0);
@@ -288,6 +348,10 @@ export class CallsStoreService {
       threadId,
       recordId: entity.recordId,
       audioId: entity.audioId ?? undefined,
+      title: entity.title ?? undefined,
+      description: entity.description ?? undefined,
+      processed: entity.processed === 1,
+      flud: entity.flud === 1,
     };
   }
 
