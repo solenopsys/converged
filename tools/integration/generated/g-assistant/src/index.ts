@@ -269,69 +269,6 @@ export const metadata: ServiceMetadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
-    },
-    {
-      "name": "saveContext",
-      "parameters": [
-        {
-          "name": "chatId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "context",
-          "type": "any",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "language",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        }
-      ],
-      "returnType": "ChatContextSummary",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "getContext",
-      "parameters": [
-        {
-          "name": "chatId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "language",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        }
-      ],
-      "returnType": "ChatContext | any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "listContexts",
-      "parameters": [
-        {
-          "name": "params",
-          "type": "PaginationParams",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "PaginatedResult<ChatContextSummary>",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -429,9 +366,6 @@ export interface AssistantService {
   recordChatFile(threadId: string, fileSize?: number): Promise<Chat>;
   deleteChat(chatId: string): Promise<void>;
   getChat(chatId: string): Promise<Chat>;
-  saveContext(chatId: string, context: any, language?: string): Promise<ChatContextSummary>;
-  getContext(chatId: string, language?: string): Promise<ChatContext | any>;
-  listContexts(params: PaginationParams): Promise<PaginatedResult<ChatContextSummary>>;
 }
 
 // Client interface
@@ -444,9 +378,6 @@ export interface AssistantServiceClient {
   recordChatFile(threadId: string, fileSize?: number): Promise<Chat>;
   deleteChat(chatId: string): Promise<void>;
   getChat(chatId: string): Promise<Chat>;
-  saveContext(chatId: string, context: any, language?: string): Promise<ChatContextSummary>;
-  getContext(chatId: string, language?: string): Promise<ChatContext | any>;
-  listContexts(params: PaginationParams): Promise<PaginatedResult<ChatContextSummary>>;
 }
 
 // Factory function

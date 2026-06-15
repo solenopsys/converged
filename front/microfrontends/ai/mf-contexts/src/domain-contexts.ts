@@ -1,20 +1,20 @@
 import { createDomain, sample } from "effector";
 import { createInfiniteTableStore } from "front-core";
-import { assistantClient } from "./services";
-import { PaginationParams } from "./types";
+import { contextsClient } from "./services";
 
-const domain = createDomain("assistants-contexts");
+const domain = createDomain("contexts");
 
 export const contextsViewMounted = domain.createEvent("CONTEXTS_VIEW_MOUNTED");
 export const refreshContextsClicked = domain.createEvent(
   "REFRESH_CONTEXTS_CLICKED",
 );
 
-const listContextsFx = domain.createEffect<PaginationParams, any>({
+const listContextsFx = domain.createEffect<
+  { offset?: number; limit?: number },
+  any
+>({
   name: "LIST_CONTEXTS",
-  handler: async (params: PaginationParams) => {
-    return await assistantClient.listContexts(params);
-  },
+  handler: async (params) => contextsClient.listContexts(params ?? {}),
 });
 
 export const $contextsStore = createInfiniteTableStore(domain, listContextsFx);

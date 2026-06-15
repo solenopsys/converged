@@ -122,8 +122,5 @@ export interface AssistantService {
     recordChatFile(threadId: string, fileSize?: number): Promise<Chat>;
     deleteChat(chatId: string): Promise<void>;
     getChat(chatId: string): Promise<Chat>;
-
-    saveContext(chatId: string, context: any, language?: string): Promise<ChatContextSummary>;
-    getContext(chatId: string, language?: string): Promise<ChatContext | null>;
-    listContexts(params: PaginationParams): Promise<PaginatedResult<ChatContextSummary>>;
+    // Contexts are owned by ms-contexts (ContextsService) now — not here.
 }

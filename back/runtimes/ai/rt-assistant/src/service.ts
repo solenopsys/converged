@@ -16,6 +16,7 @@ import {
 import { SimpleConversationFactory } from "./impls/factory";
 import type { AiConversation } from "./types";
 import { createAssistantServiceClient, type AssistantServiceClient } from "g-assistant";
+import { createContextsServiceClient, type ContextsServiceClient } from "g-contexts";
 import { createRequestsServiceClient } from "g-requests";
 import { Service } from "nrpc";
 
@@ -65,6 +66,7 @@ export class AssistantRuntimeService {
   private pendingContextMessages = new Map<string, Promise<ContentBlock | null>>();
   private serviceModelMap = new Map<ServiceType, string | undefined>();
   private assistantClient: AssistantServiceClient;
+  private contextsClient: ContextsServiceClient;
   private defaultServiceType?: ServiceType;
   private defaultModel?: string;
   private logFunction: LogFunction = async (_message, _type = MessageSource.ASSISTANT) => {};
@@ -84,6 +86,10 @@ export class AssistantRuntimeService {
     this.serviceModelMap.set(ServiceType.ANTHROPIC, config.claude?.model || process.env.CLAUDE_MODEL);
     this.serviceModelMap.set(ServiceType.GEMINI, config.gemini?.model || process.env.GEMINI_MODEL);
     this.assistantClient = createAssistantServiceClient({
+      baseUrl: config.assistant?.baseUrl || process.env.SERVICES_BASE,
+    });
+    // Contexts now live in ms-contexts (single owner), not ms-assistant.
+    this.contextsClient = createContextsServiceClient({
       baseUrl: config.assistant?.baseUrl || process.env.SERVICES_BASE,
     });
     this.defaultServiceType = resolveServiceType(process.env[CHAT_PROVIDER_ENV]);
@@ -191,7 +197,7 @@ export class AssistantRuntimeService {
 
     let context: any = null;
     try {
-      context = await this.assistantClient.getContext(name, language);
+      context = await this.contextsClient.getContext(name, language);
     } catch {
       return null;
     }

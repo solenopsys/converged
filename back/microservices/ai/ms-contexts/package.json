@@ -1,0 +1,11 @@
+{
+  "name": "ms-contexts",
+  "private": true,
+  "type": "module",
+  "module": "src/plugin.ts",
+  "dependencies": {
+    "back-core": "workspace:*",
+    "nrpc": "workspace:*",
+    "g-contexts": "workspace:*"
+  }
+}

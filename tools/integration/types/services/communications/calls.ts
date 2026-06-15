@@ -2,7 +2,6 @@ export type CallId = string;
 export type CallRecordId = string;
 export type CallAudioId = string;
 export type CallFragmentId = string;
-export type CallContextName = string;
 
 export type CallDialogueItem = {
   text: string;
@@ -96,37 +95,6 @@ export type CallDeleteResult = {
   fragmentsDeleted: number;
 };
 
-/** BCP-47 / ISO language code the gate uses for transcription + the session. */
-export type CallContextLanguage = string;
-
-export type CallContext = {
-  id: CallContextName;
-  name: CallContextName;
-  updatedAt: number;
-  /** System prompt the gate feeds the LLM. Required — no context, no session. */
-  instructions: string;
-  /** Spoken language, configured per context. The gate reads it directly. */
-  language: CallContextLanguage;
-};
-
-export type CallContextInput = {
-  instructions: string;
-  language: CallContextLanguage;
-};
-
-export type CallContextSummary = {
-  id: CallContextName;
-  name: CallContextName;
-  updatedAt: number;
-  language: CallContextLanguage;
-  size?: number;
-};
-
-export type CallContextListParams = {
-  offset: number;
-  limit: number;
-};
-
 export interface CallsService {
   saveRecording(input: CallRecordingInput): Promise<CallRecordingResult>;
   saveFragment(input: CallFragmentInput): Promise<CallFragmentInfo>;
@@ -147,8 +115,4 @@ export interface CallsService {
   /** Cheap check whether any Opus audio was captured for a call. */
   hasCallAudio(callId: CallId): Promise<boolean>;
   deleteCall(id: CallId): Promise<CallDeleteResult>;
-  saveContext(name: CallContextName, input: CallContextInput): Promise<CallContextSummary>;
-  getContext(name: CallContextName): Promise<CallContext | null>;
-  listContexts(params: CallContextListParams): Promise<PaginatedResult<CallContextSummary>>;
-  deleteContext(name: CallContextName): Promise<boolean>;
 }

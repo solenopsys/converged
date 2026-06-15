@@ -9,8 +9,6 @@ export type CallAudioId = string;
 
 export type CallFragmentId = string;
 
-export type CallContextName = string;
-
 export type CallDialogueItem = {
   text: string;
   timestamp: number;
@@ -101,36 +99,6 @@ export type CallFragmentInfo = {
 export type CallDeleteResult = {
   deleted: boolean;
   fragmentsDeleted: number;
-};
-
-export type CallContextLanguage = string;
-
-export type CallContext = {
-  id: CallContextName;
-  name: CallContextName;
-  updatedAt: number;
-  /** System prompt the gate feeds the LLM. Required — no context, no session. */
-  instructions: string;
-  /** Spoken language, configured per context. The gate reads it directly. */
-  language: CallContextLanguage;
-};
-
-export type CallContextInput = {
-  instructions: string;
-  language: CallContextLanguage;
-};
-
-export type CallContextSummary = {
-  id: CallContextName;
-  name: CallContextName;
-  updatedAt: number;
-  language: CallContextLanguage;
-  size?: number;
-};
-
-export type CallContextListParams = {
-  offset: number;
-  limit: number;
 };
 
 export const metadata: ServiceMetadata = {
@@ -314,72 +282,6 @@ export const metadata: ServiceMetadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
-    },
-    {
-      "name": "saveContext",
-      "parameters": [
-        {
-          "name": "name",
-          "type": "CallContextName",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "input",
-          "type": "CallContextInput",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "CallContextSummary",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "getContext",
-      "parameters": [
-        {
-          "name": "name",
-          "type": "CallContextName",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "CallContext | any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "listContexts",
-      "parameters": [
-        {
-          "name": "params",
-          "type": "CallContextListParams",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "PaginatedResult<CallContextSummary>",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "deleteContext",
-      "parameters": [
-        {
-          "name": "name",
-          "type": "CallContextName",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "boolean",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -400,11 +302,6 @@ export const metadata: ServiceMetadata = {
     },
     {
       "name": "CallFragmentId",
-      "kind": "type",
-      "definition": "string"
-    },
-    {
-      "name": "CallContextName",
       "kind": "type",
       "definition": "string"
     },
@@ -468,31 +365,6 @@ export const metadata: ServiceMetadata = {
       "name": "CallDeleteResult",
       "kind": "type",
       "definition": "{\n  deleted: boolean;\n  fragmentsDeleted: number;\n}"
-    },
-    {
-      "name": "CallContextLanguage",
-      "kind": "type",
-      "definition": "string"
-    },
-    {
-      "name": "CallContext",
-      "kind": "type",
-      "definition": "{\n  id: CallContextName;\n  name: CallContextName;\n  updatedAt: number;\n  /** System prompt the gate feeds the LLM. Required — no context, no session. */\n  instructions: string;\n  /** Spoken language, configured per context. The gate reads it directly. */\n  language: CallContextLanguage;\n}"
-    },
-    {
-      "name": "CallContextInput",
-      "kind": "type",
-      "definition": "{\n  instructions: string;\n  language: CallContextLanguage;\n}"
-    },
-    {
-      "name": "CallContextSummary",
-      "kind": "type",
-      "definition": "{\n  id: CallContextName;\n  name: CallContextName;\n  updatedAt: number;\n  language: CallContextLanguage;\n  size?: number;\n}"
-    },
-    {
-      "name": "CallContextListParams",
-      "kind": "type",
-      "definition": "{\n  offset: number;\n  limit: number;\n}"
     }
   ]
 };
@@ -510,10 +382,6 @@ export interface CallsService {
   getCallAudio(callId: CallId, source: CallFragmentSource): Promise<Uint8Array>;
   hasCallAudio(callId: CallId): Promise<boolean>;
   deleteCall(id: CallId): Promise<CallDeleteResult>;
-  saveContext(name: CallContextName, input: CallContextInput): Promise<CallContextSummary>;
-  getContext(name: CallContextName): Promise<CallContext | any>;
-  listContexts(params: CallContextListParams): Promise<PaginatedResult<CallContextSummary>>;
-  deleteContext(name: CallContextName): Promise<boolean>;
 }
 
 // Client interface
@@ -529,10 +397,6 @@ export interface CallsServiceClient {
   getCallAudio(callId: CallId, source: CallFragmentSource): Promise<Uint8Array>;
   hasCallAudio(callId: CallId): Promise<boolean>;
   deleteCall(id: CallId): Promise<CallDeleteResult>;
-  saveContext(name: CallContextName, input: CallContextInput): Promise<CallContextSummary>;
-  getContext(name: CallContextName): Promise<CallContext | any>;
-  listContexts(params: CallContextListParams): Promise<PaginatedResult<CallContextSummary>>;
-  deleteContext(name: CallContextName): Promise<boolean>;
 }
 
 // Factory function

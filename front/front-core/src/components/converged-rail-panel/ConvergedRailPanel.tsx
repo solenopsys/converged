@@ -1,5 +1,5 @@
 import { Paperclip, Send, X } from "lucide-react";
-import type { ReactNode } from "react";
+import type { PointerEvent, ReactNode } from "react";
 import {
 	CHAT_TAB_ID,
 	type PanelAction,
@@ -34,6 +34,8 @@ export interface ConvergedRailPanelProps {
 	activeTabId?: string;
 	onTabChange?: (id: string) => void;
 	tabContent?: ReactNode;
+	onResizePointerDown?: (event: PointerEvent<HTMLButtonElement>) => void;
+	resizing?: boolean;
 }
 
 export function ConvergedRailPanel({
@@ -58,6 +60,8 @@ export function ConvergedRailPanel({
 	activeTabId = CHAT_TAB_ID,
 	onTabChange,
 	tabContent,
+	onResizePointerDown,
+	resizing = false,
 }: ConvergedRailPanelProps) {
 	const showTabStrip = tabs.length > 1;
 	const isChatActive = activeTabId === CHAT_TAB_ID;
@@ -69,7 +73,16 @@ export function ConvergedRailPanel({
 			className="crp"
 			aria-label="Converged panel"
 			data-tab-active={hasTabContent ? "1" : "0"}
+			data-resizing={resizing ? "1" : "0"}
 		>
+			{onResizePointerDown && (
+				<button
+					type="button"
+					className="crp-resizer"
+					aria-label="Resize side panel"
+					onPointerDown={onResizePointerDown}
+				/>
+			)}
 			<header className="ssr-panel-head crp-head">
 				<div className="crp-brand">
 					{logoLight && (

@@ -4,8 +4,6 @@ import { StoresController } from "./stores";
 import {
 	type AiConversation,
 	type Chat,
-	type ChatContext,
-	type ChatContextSummary,
 	type ContentBlock,
 	type ConversationFactory,
 	type ConversationOptions,
@@ -227,27 +225,6 @@ class ChatsServiceImpl {
 
 	getChat(chatId: string): Promise<Chat> {
 		return Promise.resolve({ id: chatId, name: "Chat", description: "Chat" });
-	}
-
-	async saveContext(
-		chatId: string,
-		context: unknown,
-		language?: string,
-	): Promise<ChatContextSummary> {
-		return this.stores.contextService.saveContext(chatId, context, language);
-	}
-
-	async getContext(
-		chatId: string,
-		language?: string,
-	): Promise<ChatContext | null> {
-		return this.stores.contextService.getContext(chatId, language);
-	}
-
-	async listContexts(
-		params: PaginationParams,
-	): Promise<PaginatedResult<ChatContextSummary>> {
-		return this.stores.contextService.listContexts(params);
 	}
 }
 

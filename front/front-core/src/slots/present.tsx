@@ -2,10 +2,8 @@ import { createEvent, createStore } from "effector";
 import type { ComponentType } from "react";
 import type { Widget } from "@/plugin/types_actions";
 import {
-	setActivePanel,
-	setCollapsed,
-} from "../components/right-rail/panelController";
-import {
+	CHAT_TAB_ID,
+	controlPanelOpened,
 	tabActivated,
 	tabContentRegistered,
 	tabRegistered,
@@ -92,10 +90,10 @@ export const present = async (
 		});
 		tabContentRegistered({ id: tabId, content: <SlotInline slotId={point} /> });
 		tabActivated(tabId);
-		setCollapsed(false);
+		controlPanelOpened();
 	} else if (point === "sidebar:right") {
-		setActivePanel("chat");
-		setCollapsed(false);
+		tabActivated(CHAT_TAB_ID);
+		controlPanelOpened();
 	}
 
 	console.log("Present RUN", widget, slot, point);

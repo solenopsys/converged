@@ -14,11 +14,6 @@ import type {
   CallFragmentSource,
   CallDeleteResult,
   UpdateCallInput,
-  CallContext,
-  CallContextInput,
-  CallContextListParams,
-  CallContextName,
-  CallContextSummary,
 } from "./types";
 import { StoresController } from "./stores";
 
@@ -105,31 +100,6 @@ export class CallsServiceImpl implements CallsService {
   async deleteCall(id: CallId): Promise<CallDeleteResult> {
     await this.ready();
     return this.stores.calls.deleteCall(id);
-  }
-
-  async saveContext(
-    name: CallContextName,
-    input: CallContextInput,
-  ): Promise<CallContextSummary> {
-    await this.ready();
-    return this.stores.contexts.saveContext(name, input);
-  }
-
-  async getContext(name: CallContextName): Promise<CallContext | null> {
-    await this.ready();
-    return this.stores.contexts.getContext(name);
-  }
-
-  async listContexts(
-    params: CallContextListParams,
-  ): Promise<PaginatedResult<CallContextSummary>> {
-    await this.ready();
-    return this.stores.contexts.listContexts(params);
-  }
-
-  async deleteContext(name: CallContextName): Promise<boolean> {
-    await this.ready();
-    return this.stores.contexts.deleteContext(name);
   }
 }
 

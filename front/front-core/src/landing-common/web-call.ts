@@ -14,6 +14,19 @@
  */
 import { createEvent, createStore } from "effector";
 import { createMicCapture, type MicCapture } from "./mic-capture";
+import { defaultLanguage } from "../i18n";
+
+/** Live UI locale (follows the language switch), else the SSR/default locale.
+ *  Picks the context's `<lang>/<name>` variant the gate loads. */
+function currentLanguage(): string {
+	if (typeof window !== "undefined") {
+		const inst = (window as unknown as {
+			__GLOBAL_I18N_INSTANCE__?: { language?: string };
+		}).__GLOBAL_I18N_INSTANCE__;
+		if (inst?.language) return String(inst.language);
+	}
+	return defaultLanguage;
+}
 
 export type WebCallStatus =
 	| "idle"
@@ -539,9 +552,10 @@ export async function startWebCall(contextName?: string): Promise<void> {
 			JSON.stringify({
 				type: "offer",
 				// contextName is the gate's context key for website calls (alias,
-				// not a phone). The gate refuses the call if it resolves to no
-				// valid context — so it must be sent, never left to a phone fallback.
+				// not a phone). language picks the `<lang>/<contextName>` variant.
+				// The gate refuses the call if it resolves to no valid context.
 				contextName,
+				language: currentLanguage(),
 				data: { type: "offer", sdp },
 			}),
 		);

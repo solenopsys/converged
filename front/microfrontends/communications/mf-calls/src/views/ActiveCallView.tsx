@@ -7,10 +7,8 @@ import {
   CardTitle,
   Badge,
   Separator,
-  defaultLanguage,
 } from "front-core";
 import { PhoneCall, PhoneOff, ArrowLeft, Mic, MicOff } from "lucide-react";
-import { callsClient } from "g-calls";
 import { useWebRTCCall, type CallStatus } from "../hooks/useWebRTCCall";
 import { audioGateClient, type GateTranscriptItem } from "../services/audio-gate-client";
 
@@ -35,11 +33,9 @@ function statusLabel(s: CallStatus): { text: string; color: string } {
 
 export const ActiveCallView: React.FC<ActiveCallViewProps> = ({ onBack }) => {
   const [phone, setPhone] = useState("+79001234567");
+  // Context KEY (alias) to call with. Contexts themselves are authored in
+  // mf-contexts (ms-contexts) — this view only picks which one to dial.
   const [contextName, setContextName] = useState("club");
-  const [contextText, setContextText] = useState("");
-  const [contextLang, setContextLang] = useState(defaultLanguage);
-  const [contextSaved, setContextSaved] = useState(false);
-  const [contextError, setContextError] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<GateTranscriptItem[]>([]);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const contextKey = contextName.trim() || phone;
@@ -48,19 +44,6 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({ onBack }) => {
 
   const isActive = status === "connecting" || status === "connected";
   const { text: statusText, color: statusColor } = statusLabel(status);
-
-  // Load context when its name changes
-  useEffect(() => {
-    if (!contextKey) return;
-    callsClient.getContext(contextKey).then((ctx) => {
-      if (!ctx) {
-        setContextText("");
-        return;
-      }
-      setContextText(ctx.instructions ?? "");
-      if (ctx.language) setContextLang(ctx.language);
-    });
-  }, [contextKey]);
 
   // Poll transcript while connected
   useEffect(() => {
@@ -82,19 +65,6 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({ onBack }) => {
       transcriptRef.current.scrollTop = transcriptRef.current.scrollHeight;
     }
   }, [transcript]);
-
-  const handleSaveContext = async () => {
-    const instructions = contextText.trim();
-    const language = contextLang.trim();
-    if (!instructions || !language) {
-      setContextError("Both instructions and language are required.");
-      return;
-    }
-    setContextError(null);
-    await callsClient.saveContext(contextKey, { instructions, language });
-    setContextSaved(true);
-    setTimeout(() => setContextSaved(false), 2000);
-  };
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -251,59 +221,8 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({ onBack }) => {
             )}
           </div>
 
-          {/* ── Right: AI context ── */}
+          {/* ── Right: info ── */}
           <div className="space-y-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">
-                  AI Context
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-xs text-muted-foreground">
-                  Instructions for the AI when calling this number. A context with
-                  no instructions or no language is rejected — the gate refuses
-                  the call rather than answering blind.
-                </p>
-                <textarea
-                  value={contextText}
-                  onChange={(e) => setContextText(e.target.value)}
-                  placeholder="e.g. You are a helpful sales assistant..."
-                  rows={6}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-ring"
-                />
-                <div className="flex items-center gap-3">
-                  <label className="text-xs text-muted-foreground w-20 shrink-0">
-                    Language
-                  </label>
-                  <input
-                    value={contextLang}
-                    onChange={(e) => setContextLang(e.target.value)}
-                    placeholder={defaultLanguage}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                  />
-                </div>
-                {contextError && (
-                  <p className="text-xs text-red-400">{contextError}</p>
-                )}
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={handleSaveContext}>
-                    {contextSaved ? "Saved ✓" : "Save"}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={async () => {
-                      await callsClient.deleteContext(contextKey);
-                      setContextText("");
-                    }}
-                  >
-                    Clear
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">

@@ -37,6 +37,7 @@
       "auth",
       "agents",
       "assistants",
+      "contexts",
       "functions",
       "community",
       "charts",
@@ -68,7 +69,7 @@
       "ai": ["agents", "assistant"]
     },
     "microservices": {
-      "ai": ["agent", "assistant", "functions"],
+      "ai": ["agent", "assistant", "contexts", "functions"],
       "analytics": ["dashboard", "logs", "telemetry", "usage"],
       "automation": ["dag", "sheduller", "webhooks"],
       "convertors": ["modelconvertor"],

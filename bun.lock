@@ -96,6 +96,14 @@
         "rt-assistant": "workspace:*",
       },
     },
+    "back/microservices/ai/ms-contexts": {
+      "name": "ms-contexts",
+      "dependencies": {
+        "back-core": "workspace:*",
+        "g-contexts": "workspace:*",
+        "nrpc": "workspace:*",
+      },
+    },
     "back/microservices/ai/ms-functions": {
       "name": "ms-functions",
       "version": "1.0.0",
@@ -716,6 +724,7 @@
         "@google/genai": "latest",
         "elysia": "^1.4.28",
         "g-assistant": "workspace:*",
+        "g-contexts": "workspace:*",
         "g-requests": "workspace:*",
         "g-rt-assistant": "workspace:*",
         "nrpc": "workspace:*",
@@ -958,6 +967,16 @@
         "model3d": "workspace:*",
         "react-markdown": "^10.1.0",
         "uuid": "^13.0.0",
+      },
+    },
+    "front/microfrontends/ai/mf-contexts": {
+      "name": "mf-contexts",
+      "dependencies": {
+        "effector": "23.4.4",
+        "effector-react": "23.3.0",
+        "front-core": "workspace:*",
+        "g-contexts": "workspace:*",
+        "lucide-react": "^1.8.0",
       },
     },
     "front/microfrontends/ai/mf-functions": {
@@ -1344,6 +1363,13 @@
     },
     "tools/integration/generated/g-community": {
       "name": "g-community",
+      "version": "0.0.0",
+      "dependencies": {
+        "nrpc": "workspace:*",
+      },
+    },
+    "tools/integration/generated/g-contexts": {
+      "name": "g-contexts",
       "version": "0.0.0",
       "dependencies": {
         "nrpc": "workspace:*",
@@ -2941,6 +2967,8 @@
 
     "g-community": ["g-community@workspace:tools/integration/generated/g-community"],
 
+    "g-contexts": ["g-contexts@workspace:tools/integration/generated/g-contexts"],
+
     "g-dag": ["g-dag@workspace:tools/integration/generated/g-dag"],
 
     "g-dashboard": ["g-dashboard@workspace:tools/integration/generated/g-dashboard"],
@@ -3289,6 +3317,8 @@
 
     "mf-community": ["mf-community@workspace:front/microfrontends/communications/mf-community"],
 
+    "mf-contexts": ["mf-contexts@workspace:front/microfrontends/ai/mf-contexts"],
+
     "mf-dag": ["mf-dag@workspace:front/microfrontends/automation/mf-dag"],
 
     "mf-dasboards": ["mf-dasboards@workspace:front/microfrontends/analytics/mf-dasboards"],
@@ -3418,6 +3448,8 @@
     "ms-classifier": ["ms-classifier@workspace:back/microservices/content/ms-classifier"],
 
     "ms-community": ["ms-community@workspace:back/microservices/communications/ms-community"],
+
+    "ms-contexts": ["ms-contexts@workspace:back/microservices/ai/ms-contexts"],
 
     "ms-dag": ["ms-dag@workspace:back/microservices/automation/ms-dag"],
 
@@ -4086,6 +4118,8 @@
     "redent/strip-indent": ["strip-indent@3.0.0", "", { "dependencies": { "min-indent": "^1.0.0" } }, "sha512-laJTa3Jb+VQpaC6DseHhF7dXVqHTfJPCRDaEbid/drOhgitgYku/letMUqOXFoWV0zIIUbjpdH2t+tYj4bQMRQ=="],
 
     "rolldown/@oxc-project/types": ["@oxc-project/types@0.124.0", "", {}, "sha512-VBFWMTBvHxS11Z5Lvlr3IWgrwhMTXV+Md+EQF0Xf60+wAdsGFTBx7X7K/hP4pi8N7dcm1RvcHwDxZ16Qx8keUg=="],
+
+    "rt-assistant/@anthropic-ai/sdk": ["@anthropic-ai/sdk@0.104.1", "", { "dependencies": { "json-schema-to-ts": "^3.1.1", "standardwebhooks": "^1.0.0" }, "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" }, "optionalPeers": ["zod"], "bin": { "anthropic-ai-sdk": "bin/cli" } }, "sha512-gGACa/+IaiXzRRmF96aOhamoBgapKRBiFWbmmTFP8aMkpaEcuStF+Q61bjo4vPxBM7gqWJNZqsngslRdnLHv0Q=="],
 
     "stream-fsm/through": ["through@2.1.0", "", {}, "sha512-uvPczOKXZtx4V1j1upuVsJAaUs2sOwCT6CVDT/xsse/AvenhMxgmK1LxILJUm2WoSZYi8RhOb10P9zvwjZOipQ=="],
 

@@ -2,13 +2,12 @@ import { CreateAction, CreateWidget, upsertSidebarTab } from "front-core";
 import { CallsListView } from "./views/CallsListView";
 import { ActiveCallView } from "./views/ActiveCallView";
 import { CallTranscriptView } from "./views/CallTranscriptView";
-import { ContextsListView } from "./views/ContextsListView";
 import { startNewCallClicked, openCallDetail, returnToListClicked } from "./domain-calls";
 
 // ── Action IDs ───────────────────────────────────────────────────────────────
+// Context management lives in mf-contexts now (ms-contexts), not here.
 export const SHOW_CALLS = "calls.show";
 export const NEW_CALL = "calls.new";
-export const SHOW_CONTEXTS = "calls.contexts";
 export const VIEW_CALL = "calls.view";
 export const RETURN_TO_CALLS = "calls.return";
 
@@ -31,12 +30,6 @@ const createActiveCallWidget = (bus: any) => ({
     bus,
     onBack: () => bus.run(SHOW_CALLS),
   },
-});
-
-const createContextsListWidget: CreateWidget<typeof ContextsListView> = (bus) => ({
-  view: ContextsListView,
-  placement: () => "center",
-  config: { bus },
 });
 
 const createCallTranscriptWidget = (_bus: any, sessionId: string) => ({
@@ -63,14 +56,6 @@ const createNewCallAction: CreateAction<any> = (bus) => ({
   invoke: () => {
     startNewCallClicked();
     bus.present({ widget: createActiveCallWidget(bus) });
-  },
-});
-
-const createShowContextsAction: CreateAction<any> = (bus) => ({
-  id: SHOW_CONTEXTS,
-  description: "Show call contexts list",
-  invoke: () => {
-    bus.present({ widget: createContextsListWidget(bus) });
   },
 });
 
@@ -105,7 +90,6 @@ const createReturnToCallsAction: CreateAction<any> = (bus) => ({
 const ACTIONS = [
   createShowCallsAction,
   createNewCallAction,
-  createShowContextsAction,
   createViewCallAction,
   createReturnToCallsAction,
 ];
@@ -113,7 +97,6 @@ const ACTIONS = [
 export {
   createShowCallsAction,
   createNewCallAction,
-  createShowContextsAction,
   createViewCallAction,
   createReturnToCallsAction,
 };

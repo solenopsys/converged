@@ -6,13 +6,11 @@ import domain from "./domain";
 import { ChatView } from "./views/ChatView";
 import { ChatHistoryView } from "./views/ChatHistoryView";
 import { ChatsListView } from "./views/ChatsListView";
-import { ContextsListView } from "./views/ContextsListView";
 import { CommandsListView } from "./views/CommandsListView";
 import { ToolCallJsonView } from "./views/ToolCallJsonView";
 
 const GET_CHATS_LIST = "chats.get_list";
 const SHOW_CHATS_LIST = "chats.show_list";
-const SHOW_CONTEXTS_LIST = "chats.show_contexts_list";
 const SHOW_COMMANDS_LIST = "chats.show_commands_list";
 const SHOW_CHAT = "chats.show";
 const VIEW_CHAT = "chats.view";
@@ -35,14 +33,6 @@ sample({ clock: deleteChatEvent, target: deleteChatFx });
 
 const createChatsListWidget: CreateWidget<typeof ChatsListView> = (bus) => ({
     view: ChatsListView,
-    placement: () => "center",
-    config: {
-        bus
-    }
-});
-
-const createContextsListWidget: CreateWidget<typeof ContextsListView> = (bus) => ({
-    view: ContextsListView,
     placement: () => "center",
     config: {
         bus
@@ -113,14 +103,6 @@ const createShowChatsListAction: CreateAction<any> = (bus) => ({
     }
 });
 
-const createShowContextsListAction: CreateAction<any> = (bus) => ({
-    id: SHOW_CONTEXTS_LIST,
-    description: "Show contexts list",
-    invoke: () => {
-        bus.present({ widget: createContextsListWidget(bus) });
-    }
-});
-
 const createShowCommandsListAction: CreateAction<any> = (bus) => ({
     id: SHOW_COMMANDS_LIST,
     description: "Show available commands list",
@@ -187,7 +169,6 @@ const createDeleteChatAction: CreateAction<any> = () => ({
 const ACTIONS = [
     createShowChatAction,
     createShowChatsListAction,
-    createShowContextsListAction,
     createShowCommandsListAction,
     createViewChatAction,
     createViewToolCallJsonAction,
@@ -199,7 +180,6 @@ export {
     GET_CHATS_LIST,
     SHOW_CHAT,
     SHOW_CHATS_LIST,
-    SHOW_CONTEXTS_LIST,
     SHOW_COMMANDS_LIST,
     VIEW_CHAT,
     VIEW_TOOL_CALL_JSON,
@@ -207,7 +187,6 @@ export {
     DELETE_CHAT,
     createShowChatAction,
     createShowChatsListAction,
-    createShowContextsListAction,
     createShowCommandsListAction,
     createViewChatAction,
     createViewToolCallJsonAction,

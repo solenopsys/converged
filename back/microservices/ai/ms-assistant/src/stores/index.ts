@@ -1,10 +1,8 @@
-import { StoreControllerAbstract, StoreType, FileStore, SqlStore } from "back-core";
+import { StoreControllerAbstract, StoreType, SqlStore } from "back-core";
 import { MedatataStoreService } from "./metadata/service";
 import metadataMigrations from "./metadata/migrations";
-import { ContextStoreService } from "./contexts/service";
 
 export class StoresController extends StoreControllerAbstract {
-  public contextService: ContextStoreService;
   public metadataService: MedatataStoreService;
 
   constructor(protected msName: string) {
@@ -12,9 +10,7 @@ export class StoresController extends StoreControllerAbstract {
   }
 
   async init() {
-    const contextsStore = await this.addStore("contexts", StoreType.FILES, []);
-    this.contextService = new ContextStoreService(contextsStore as FileStore);
-
+    // Contexts moved to ms-contexts (single owner) — no context store here.
     const metadataStore = await this.addStore(
       "metadata",
       StoreType.SQL,
