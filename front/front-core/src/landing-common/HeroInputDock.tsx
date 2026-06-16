@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { Paperclip, SendHorizontal } from "lucide-react";
 import { useHeroDock } from "./useHeroDock";
+import { CHAT_CONTEXT } from "./context-names";
 
 export interface HeroChip {
   icon?: ReactNode;
@@ -35,7 +36,7 @@ export function HeroInputDock({
   placeholder = "Ask anything...",
   attachLabel = "Attach file",
   chips = [],
-  contextName = "request",
+  contextName = CHAT_CONTEXT,
   inputLabel = "Request details",
   messageInputName = "hero_request_text",
   submitLabel = "Send",

@@ -4,6 +4,7 @@ import { $files, openFilePicker, uploadCompleted } from "files-state";
 import {
 	actionContextManager,
 	bus,
+	CHAT_CONTEXT,
 	chatAttachRequested,
 	chatInitRequested,
 	chatSendRequested,
@@ -84,6 +85,12 @@ const resolveLanguage = (): string => {
 const ensureInitialized = (contextName?: string) => {
 	const state = chatStore.$chat.getState();
 	const language = resolveLanguage();
+	// `chatStore.init` is destructive: it wipes messages and the session id.
+	// Context and language are bound when the chat is first created; once a
+	// conversation is active, a follow-up message (or a view remount / input
+	// focus that re-fires init) must continue the same session, never reset it.
+	if (state.messages.length > 0) return;
+
 	const shouldSwitchContext =
 		contextName !== undefined && state.contextName !== contextName;
 	const shouldSwitchLanguage = state.language !== language;
@@ -382,8 +389,8 @@ const createOrUpdateRequestDraft = async (
 };
 
 const ensureInitialRequestDraft = async (message: string): Promise<boolean> => {
-	const isRequestContext = chatStore.$chat.getState().contextName === "request";
-	if (!isRequestContext || activeRequestId) {
+	const isChatContext = chatStore.$chat.getState().contextName === CHAT_CONTEXT;
+	if (!isChatContext || activeRequestId) {
 		return false;
 	}
 

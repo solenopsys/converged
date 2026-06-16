@@ -13,6 +13,7 @@ import {
 import { HeroBanner, type HeroBannerData } from "./HeroBanner";
 import { HeroInputDock, type HeroChip } from "./HeroInputDock";
 import { publishLandingQuickActions } from "./landing-quick-actions";
+import { CHAT_CONTEXT } from "./context-names";
 
 export interface HeroRequestBannerData extends HeroBannerData {
   request?: {
@@ -72,7 +73,7 @@ export function HeroRequestBanner({
         icon: chip.iconName,
         label: chip.label,
         prompt: chip.prompt,
-        contextName: request.contextName || "request",
+        contextName: request.contextName || CHAT_CONTEXT,
       })),
     );
   }, [resolvedChips, request.contextName]);
@@ -91,7 +92,7 @@ export function HeroRequestBanner({
       <HeroInputDock
         attachLabel={request.attachLabel}
         chips={resolvedChips}
-        contextName={request.contextName || "request"}
+        contextName={request.contextName || CHAT_CONTEXT}
         messageInputName={messageInputName}
         placeholder={placeholder}
         submitLabel={request.submitLabel}

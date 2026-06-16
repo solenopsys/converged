@@ -8,7 +8,6 @@ import { useUnit } from 'effector-react'
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { useSidebar } from "@/components/ui/sidebar"
-import { $activeTab } from "sidebar-controller"
 import { useGlobalTranslation } from "@/hooks/global_i18n"
 import { $allMenuItems } from '../controllers/menu-store'
 
@@ -65,14 +64,10 @@ export const MenuView = (params:{onClick: (actionId: string) => void}) => {
   const navSecondary = processItems(i18n.t("navSecondary", { ns: "menu", returnObjects: true }) || [])
 
   const handleSelect = (actionId: string) => {
-    const beforeTab = $activeTab.getState();
     params.onClick(actionId);
     if (isMobile) {
       requestAnimationFrame(() => {
-        const afterTab = $activeTab.getState();
-        if (afterTab === beforeTab || afterTab === "menu") {
-          setOpenMobile(false);
-        }
+        setOpenMobile(false);
       });
     }
   };

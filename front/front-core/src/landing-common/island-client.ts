@@ -8,6 +8,7 @@ import {
 	chatSendRequested,
 } from "../chat/events";
 import { rightRailActionSelected } from "../components/right-rail/uri-sync";
+import { CHAT_CONTEXT, VOICE_CONTEXT } from "./context-names";
 import { ConsoleAuthSplash } from "../components/state-stream/ConsoleAuthSplash";
 import { StateStreamView } from "../components/state-stream/StateStreamView";
 import {
@@ -90,27 +91,27 @@ const QUICK_CHAT_PROMPTS = [
 	{
 		label: "Start CNC request",
 		message: "I need CNC machining. Help me create a request.",
-		contextName: "request",
+		contextName: CHAT_CONTEXT,
 		icon: "FileText",
 	},
 	{
 		label: "What files to upload?",
 		message:
 			"What files and parameters should I prepare for a CNC machining quote?",
-		contextName: "request",
+		contextName: CHAT_CONTEXT,
 		icon: "ClipboardList",
 	},
 	{
 		label: "I have STEP files",
 		message:
 			"I have STEP files for parts. Start a machining request and tell me what else is needed.",
-		contextName: "request",
+		contextName: CHAT_CONTEXT,
 		icon: "Factory",
 	},
 	{
 		label: "Ask missing questions",
 		message: "Ask me the missing questions for a CNC machining request.",
-		contextName: "request",
+		contextName: CHAT_CONTEXT,
 		icon: "BadgeHelp",
 	},
 ] as const;
@@ -768,8 +769,8 @@ function readControlPanelHostOptions(host: HTMLElement) {
 		phone: host.dataset.phone || undefined,
 		statusText: host.dataset.statusText || undefined,
 		// Website-call context alias (NOT a phone). Configurable per landing via
-		// data-context-name; defaults to the landing's "request" context.
-		contextName: host.dataset.contextName || "request",
+		// data-context-name; drives the web-call (voice) context, defaults to VOICE_CONTEXT.
+		contextName: host.dataset.contextName || VOICE_CONTEXT,
 		chatPlaceholder:
 			host.dataset.chatPlaceholder || "Describe your CNC request...",
 		menuLinks: parseControlPanelMenuLinks(host.dataset.menuLinks),
@@ -826,10 +827,10 @@ async function ensureControlPanelRuntime(): Promise<void> {
 			isAuthenticated,
 			onAppModeRendered: installDynamicMenuIfReady,
 			onOpenChat: (message) => {
-				void openAiChat(message, { contextName: "request" });
+				void openAiChat(message, { contextName: CHAT_CONTEXT });
 			},
 			onAttach: () => {
-				void openAiChat(undefined, { contextName: "request" }).then(() =>
+				void openAiChat(undefined, { contextName: CHAT_CONTEXT }).then(() =>
 					chatAttachRequested(),
 				);
 			},
@@ -1223,17 +1224,7 @@ async function ensureAssistantsLoaded(): Promise<void> {
 		}
 
 		if (runtime?.MENU) {
-			if (!loadedGroupMenus[groupId]) loadedGroupMenus[groupId] = [];
-			const alreadyAdded = loadedGroupMenus[groupId].some(
-				(item) => item && item.key === runtime.MENU.key,
-			);
-			if (!alreadyAdded) {
-				loadedGroupMenus[groupId].push(
-					bindMenuToMicrofrontend(
-						runtime.MENU,
-						resolveMicrofrontendNamespace(moduleName, runtime),
-					),
-				);
+			if (addGroupMenuOnce(groupId, moduleName, runtime, runtime.MENU)) {
 				publishLoadedGroupsMenu();
 			}
 		}
@@ -1729,6 +1720,26 @@ function bindMenuToMicrofrontend(
 	};
 }
 
+// Adds a microfrontend's menu into a group exactly once. Both the eager
+// `ensureAssistantsLoaded` path and the generic `ensureGroupLoaded` loader can
+// touch the same module; dedup by the bound `__microfrontendId` so a module
+// (e.g. mf-assistants under "ai") never produces a duplicate menu entry.
+function addGroupMenuOnce(
+	groupId: string,
+	moduleName: string,
+	runtime: any,
+	menu: RuntimeMenuItem,
+): boolean {
+	if (!loadedGroupMenus[groupId]) loadedGroupMenus[groupId] = [];
+	const namespace = resolveMicrofrontendNamespace(moduleName, runtime);
+	const already = loadedGroupMenus[groupId].some(
+		(item) => item && (item as RuntimeMenuItem).__microfrontendId === namespace,
+	);
+	if (already) return false;
+	loadedGroupMenus[groupId].push(bindMenuToMicrofrontend(menu, namespace));
+	return true;
+}
+
 function resolveMicrofrontendNamespace(
 	moduleName: string,
 	runtime: any,
@@ -2131,12 +2142,7 @@ async function ensureGroupLoaded(groupId: string): Promise<void> {
 					}
 				}
 				if (menu) {
-					loadedGroupMenus[groupId].push(
-						bindMenuToMicrofrontend(
-							menu,
-							resolveMicrofrontendNamespace(name, runtime),
-						),
-					);
+					addGroupMenuOnce(groupId, name, runtime, menu);
 				}
 			} catch (error) {
 				console.error(`[ssr-menu] failed to load ${name}`, error);
@@ -2780,7 +2786,7 @@ function installChatDock(): void {
 			const text = input.value.trim();
 			if (!text) return;
 			input.value = "";
-			void openAiChat(text, { contextName: "request" });
+			void openAiChat(text, { contextName: CHAT_CONTEXT });
 		};
 
 		form.addEventListener("submit", (event) => {
@@ -2790,7 +2796,7 @@ function installChatDock(): void {
 
 		attach?.addEventListener("click", () => {
 			if (shell) shell.dataset.chatFocus = "1";
-			void openAiChat(undefined, { contextName: "request" }).then(() =>
+			void openAiChat(undefined, { contextName: CHAT_CONTEXT }).then(() =>
 				chatAttachRequested(),
 			);
 		});
@@ -2803,7 +2809,7 @@ function installChatDock(): void {
 		});
 		input.addEventListener("focus", () => {
 			if (shell) shell.dataset.chatFocus = "1";
-			void openAiChat(undefined, { contextName: "request" });
+			void openAiChat(undefined, { contextName: CHAT_CONTEXT });
 		});
 
 		dock.addEventListener("focusout", () => {
