@@ -35,7 +35,7 @@ type RelayState = {
 type RelaySocket = {
 	id?: string | number;
 	data?: {
-		query?: { user?: string };
+		query?: { user?: string; context_name?: string; language?: string };
 		headers?: Record<string, string | undefined>;
 		audioGateRelay?: RelayState;
 	};
@@ -195,15 +195,26 @@ const plugin = (config: any) => (app: AudioGateApp) => {
 
 	// ── WebSocket relay ──────────────────────────────────────────────────
 	app.ws("/audio-gate/ws", {
-		query: t.Object({ user: t.Optional(t.String()) }),
+		query: t.Object({
+			user: t.Optional(t.String()),
+			context_name: t.Optional(t.String()),
+			language: t.Optional(t.String()),
+		}),
 
 		open(ws: RelaySocket) {
 			const user: string = ws.data?.query?.user ?? "";
+			const contextName: string = ws.data?.query?.context_name ?? "";
+			const language: string = ws.data?.query?.language ?? "";
 			const domain = relayDomain(ws.data?.headers);
 			const wsBase = gateUrl.replace(/^http/, "ws");
 			const params = new URLSearchParams();
 			if (user) params.set("user", user);
 			if (domain) params.set("domain", domain);
+			// The gate selects the call context (e.g. "voice") by this name; without
+			// it the gate refuses the call. Browser WebSockets can't set headers, so
+			// it travels as a query param from the widget through to the gate.
+			if (contextName) params.set("context_name", contextName);
+			if (language) params.set("language", language);
 			const q = params.toString();
 			const upstreamUrl = `${wsBase}/ws${q ? `?${q}` : ""}`;
 			const relayId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
