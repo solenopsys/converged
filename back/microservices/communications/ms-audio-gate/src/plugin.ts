@@ -35,7 +35,7 @@ type RelayState = {
 type RelaySocket = {
 	id?: string | number;
 	data?: {
-		query?: { user?: string; context_name?: string; language?: string };
+		query?: { user?: string; context_name?: string; scope?: string };
 		headers?: Record<string, string | undefined>;
 		audioGateRelay?: RelayState;
 	};
@@ -43,19 +43,6 @@ type RelaySocket = {
 	close: () => void;
 };
 
-// The landing domain a call came from. The gate maps it (same WORKSPACE_DOMAIN_MAP
-// as the services pod) to the tenant storage, so we must forward the original
-// Host — the gate sees only this server-to-server relay connection otherwise.
-function relayDomain(
-	headers: Record<string, string | undefined> | Headers | undefined,
-): string {
-	if (!headers) return "";
-	const get = (name: string): string | undefined =>
-		headers instanceof Headers
-			? (headers.get(name) ?? undefined)
-			: headers[name];
-	return get("x-forwarded-host") ?? get("host") ?? "";
-}
 type AudioGateApp = {
 	onRequest: (
 		handler: (context: { request: Request }) => Promise<Response | undefined>,
@@ -162,8 +149,6 @@ const plugin = (config: any) => (app: AudioGateApp) => {
 
 		const rest = reqUrl.pathname.slice("/audio-gate/".length);
 		const params = new URLSearchParams(reqUrl.search);
-		const domain = relayDomain(request.headers);
-		if (domain && !params.has("domain")) params.set("domain", domain);
 		const qs = params.toString();
 		const target = `${gateUrl}/${rest}${qs ? `?${qs}` : ""}`;
 
@@ -198,23 +183,18 @@ const plugin = (config: any) => (app: AudioGateApp) => {
 		query: t.Object({
 			user: t.Optional(t.String()),
 			context_name: t.Optional(t.String()),
-			language: t.Optional(t.String()),
+			scope: t.Optional(t.String()),
 		}),
 
 		open(ws: RelaySocket) {
 			const user: string = ws.data?.query?.user ?? "";
 			const contextName: string = ws.data?.query?.context_name ?? "";
-			const language: string = ws.data?.query?.language ?? "";
-			const domain = relayDomain(ws.data?.headers);
+			const scope: string = ws.data?.query?.scope ?? "";
 			const wsBase = gateUrl.replace(/^http/, "ws");
 			const params = new URLSearchParams();
 			if (user) params.set("user", user);
-			if (domain) params.set("domain", domain);
-			// The gate selects the call context (e.g. "voice") by this name; without
-			// it the gate refuses the call. Browser WebSockets can't set headers, so
-			// it travels as a query param from the widget through to the gate.
 			if (contextName) params.set("context_name", contextName);
-			if (language) params.set("language", language);
+			if (scope) params.set("scope", scope);
 			const q = params.toString();
 			const upstreamUrl = `${wsBase}/ws${q ? `?${q}` : ""}`;
 			const relayId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;

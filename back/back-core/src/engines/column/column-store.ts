@@ -107,7 +107,8 @@ export class ColumnStore<DB = any> implements Store {
       this.kysely = null;
     }
     if (this.mode === "transport") {
-      this.conn!.close_store(this.ms!, this.storeName!);
+      // Transport stores are shared by all clients of the storage process.
+      // A service shutdown must not close the global store.
       return;
     }
     if (this.localSqlite) {

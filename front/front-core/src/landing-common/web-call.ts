@@ -14,19 +14,7 @@
  */
 import { createEvent, createStore } from "effector";
 import { createMicCapture, type MicCapture } from "./mic-capture";
-import { defaultLanguage } from "../i18n";
-
-/** Live UI locale (follows the language switch), else the SSR/default locale.
- *  Picks the context's `<lang>/<name>` variant the gate loads. */
-function currentLanguage(): string {
-	if (typeof window !== "undefined") {
-		const inst = (window as unknown as {
-			__GLOBAL_I18N_INSTANCE__?: { language?: string };
-		}).__GLOBAL_I18N_INSTANCE__;
-		if (inst?.language) return String(inst.language);
-	}
-	return defaultLanguage;
-}
+import { authToken } from "../controllers/auth-token";
 
 export type WebCallStatus =
 	| "idle"
@@ -87,15 +75,33 @@ export const $webCall = createStore<WebCallState>({
 const AUDIO_GATE_BASE = "/audio-gate";
 const LOG_PREFIX = "[web-call]";
 
-function wsCallUrl(user?: string): string {
+function currentScope(): string {
+	if (typeof window === "undefined") return "";
+	return window.location.hostname;
+}
+
+function currentUser(): string {
+	if (typeof window === "undefined") return "";
+	const subject = authToken.payload()?.sub;
+	if (subject) return subject;
+	return window.sessionStorage.getItem("tempUserId") ?? "";
+}
+
+function wsCallUrl(contextName?: string): string {
 	const proto =
 		typeof window !== "undefined" && window.location.protocol === "https:"
 			? "wss:"
 			: "ws:";
 	const host =
 		typeof window !== "undefined" ? window.location.host : "localhost";
-	const qs = user ? `?user=${encodeURIComponent(user)}` : "";
-	return `${proto}//${host}${AUDIO_GATE_BASE}/ws${qs}`;
+	const params = new URLSearchParams();
+	const user = currentUser();
+	const scope = currentScope();
+	if (contextName) params.set("context_name", contextName);
+	if (scope) params.set("scope", scope);
+	if (user) params.set("user", user);
+	const qs = params.toString();
+	return `${proto}//${host}${AUDIO_GATE_BASE}/ws${qs ? `?${qs}` : ""}`;
 }
 
 function log(message: string, details?: unknown): void {
@@ -551,11 +557,7 @@ export async function startWebCall(contextName?: string): Promise<void> {
 		socket.send(
 			JSON.stringify({
 				type: "offer",
-				// contextName is the gate's context key for website calls (alias,
-				// not a phone). language picks the `<lang>/<contextName>` variant.
-				// The gate refuses the call if it resolves to no valid context.
 				contextName,
-				language: currentLanguage(),
 				data: { type: "offer", sdp },
 			}),
 		);

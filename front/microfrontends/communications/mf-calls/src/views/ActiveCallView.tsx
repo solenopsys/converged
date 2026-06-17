@@ -36,11 +36,14 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({ onBack }) => {
   // Context KEY (alias) to call with. Contexts themselves are authored in
   // mf-contexts (ms-contexts) — this view only picks which one to dial.
   const [contextName, setContextName] = useState("club");
+  const [scope, setScope] = useState(() =>
+    typeof window === "undefined" ? "" : window.location.hostname,
+  );
   const [transcript, setTranscript] = useState<GateTranscriptItem[]>([]);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const contextKey = contextName.trim() || phone;
 
-  const { status, error, volume, sessionId, startCall, hangup } = useWebRTCCall(phone, contextKey);
+  const { status, error, volume, sessionId, startCall, hangup } = useWebRTCCall(phone, contextKey, scope.trim());
 
   const isActive = status === "connecting" || status === "connected";
   const { text: statusText, color: statusColor } = statusLabel(status);
@@ -122,6 +125,17 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({ onBack }) => {
                     onChange={(e) => setContextName(e.target.value)}
                     disabled={isActive}
                     placeholder="club"
+                    className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-ring"
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="text-sm text-muted-foreground w-20 shrink-0">Scope</label>
+                  <input
+                    type="text"
+                    value={scope}
+                    onChange={(e) => setScope(e.target.value)}
+                    disabled={isActive}
+                    placeholder="localhost"
                     className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-ring"
                   />
                 </div>

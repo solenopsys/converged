@@ -1,7 +1,7 @@
 {
   "project": "converged-portal",
   "preset": "mono",
-  "generatedAt": "2026-06-08T08:55:08.040Z",
+  "generatedAt": "2026-06-17T05:09:56.858Z",
   "containers": [
     {
       "name": "services",
@@ -11,6 +11,7 @@
       "microservices": [
         "ai/agent",
         "ai/assistant",
+        "ai/contexts",
         "ai/functions",
         "analytics/dashboard",
         "analytics/logs",
@@ -31,7 +32,7 @@
         "business/staff",
         "communications/audio-gate",
         "communications/calls",
-        "communications/charts",
+        "communications/chats",
         "communications/community",
         "communications/notify",
         "communications/threads",

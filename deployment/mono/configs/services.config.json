@@ -7,6 +7,7 @@
       "ai": [
         "agent",
         "assistant",
+        "contexts",
         "functions"
       ],
       "analytics": [
@@ -37,7 +38,7 @@
       "communications": [
         "audio-gate",
         "calls",
-        "charts",
+        "chats",
         "community",
         "notify",
         "threads"
@@ -99,6 +100,7 @@
       "auth": true,
       "agents": true,
       "assistants": true,
+      "contexts": true,
       "functions": true,
       "community": true,
       "charts": true,

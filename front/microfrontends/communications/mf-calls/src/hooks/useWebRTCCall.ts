@@ -16,7 +16,7 @@ export type UseWebRTCCallReturn = {
   hangup: () => void;
 };
 
-export function useWebRTCCall(phone?: string, contextName?: string): UseWebRTCCallReturn {
+export function useWebRTCCall(phone?: string, contextName?: string, scope?: string): UseWebRTCCallReturn {
   const [status, setStatus] = useState<CallStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [volume, setVolume] = useState(0);
@@ -113,7 +113,7 @@ export function useWebRTCCall(phone?: string, contextName?: string): UseWebRTCCa
       await pc.setLocalDescription(offer);
 
       // ── WebSocket signaling ──────────────────────────────────────
-      const wsUrl = audioGateClient.wsCallUrl(phone);
+      const wsUrl = audioGateClient.wsCallUrl(phone, contextName, scope);
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
@@ -177,7 +177,7 @@ export function useWebRTCCall(phone?: string, contextName?: string): UseWebRTCCa
       updateStatus("error");
       cleanup();
     }
-  }, [phone, contextName, cleanup, updateStatus]);
+  }, [phone, contextName, scope, cleanup, updateStatus]);
 
   const hangup = useCallback(() => {
     cleanup();

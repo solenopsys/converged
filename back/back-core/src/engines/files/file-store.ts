@@ -18,7 +18,8 @@ export class FileStore implements Store {
   }
 
   async close(): Promise<void> {
-    this.conn.close_store(this.ms, this.storeName);
+    // Transport stores are shared by all clients of the storage process.
+    // A service shutdown must not close the global store.
   }
 
   async migrate(): Promise<void> {

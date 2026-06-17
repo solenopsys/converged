@@ -1,6 +1,7 @@
 {
   "ai/agent": "converged-portal-services",
   "ai/assistant": "converged-portal-services",
+  "ai/contexts": "converged-portal-services",
   "ai/functions": "converged-portal-services",
   "analytics/dashboard": "converged-portal-services",
   "analytics/logs": "converged-portal-services",
@@ -21,7 +22,7 @@
   "business/staff": "converged-portal-services",
   "communications/audio-gate": "converged-portal-services",
   "communications/calls": "converged-portal-services",
-  "communications/charts": "converged-portal-services",
+  "communications/chats": "converged-portal-services",
   "communications/community": "converged-portal-services",
   "communications/notify": "converged-portal-services",
   "communications/threads": "converged-portal-services",

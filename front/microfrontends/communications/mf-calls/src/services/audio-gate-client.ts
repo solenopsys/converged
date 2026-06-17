@@ -27,8 +27,12 @@ function buildWsUrl(path: string, query?: Record<string, string>): string {
 
 export const audioGateClient = {
   /** WebSocket URL for WebRTC signaling. Routed through backend proxy. */
-  wsCallUrl(user?: string): string {
-    return buildWsUrl("/ws", user ? { user } : undefined);
+  wsCallUrl(user?: string, contextName?: string, scope?: string): string {
+    const query: Record<string, string> = {};
+    if (user) query.user = user;
+    if (contextName) query.context_name = contextName;
+    if (scope) query.scope = scope;
+    return buildWsUrl("/ws", Object.keys(query).length > 0 ? query : undefined);
   },
 
   /** Direct URL for streaming a recorded WebM audio file. */

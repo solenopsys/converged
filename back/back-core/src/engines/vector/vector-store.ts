@@ -52,7 +52,8 @@ export class VectorStore<DB = any> implements Store {
       await this.kysely.destroy();
       this.kysely = null;
     }
-    this.conn.close_store(this.ms, this.storeName);
+    // Transport stores are shared by all clients of the storage process.
+    // A service shutdown must not close the global store.
   }
 
   async migrate(): Promise<void> {
