@@ -47,6 +47,13 @@ export function useWebRTCCall(phone?: string, contextName?: string, scope?: stri
 
   const cleanup = useCallback(() => {
     stopVolumeMeter();
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      try {
+        wsRef.current.send(JSON.stringify({ type: "hangup" }));
+      } catch {
+        // Ignore signaling teardown errors during local cleanup.
+      }
+    }
     wsRef.current?.close();
     pcRef.current?.close();
     streamRef.current?.getTracks().forEach((t) => t.stop());
