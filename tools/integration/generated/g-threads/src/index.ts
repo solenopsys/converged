@@ -139,6 +139,21 @@ export const metadata: ServiceMetadata = {
       "isAsyncIterable": false
     },
     {
+      "name": "deleteThread",
+      "parameters": [
+        {
+          "name": "threadId",
+          "type": "ULID",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "number",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
       "name": "registerThread",
       "parameters": [
         {
@@ -235,6 +250,7 @@ export interface ThreadsService {
   readMessageVersions(threadId: ULID, messageId: ULID): Promise<Message[]>;
   readThreadAllVersions(threadId: ULID): Promise<Message[]>;
   readThread(threadId: ULID): Promise<Message[]>;
+  deleteThread(threadId: ULID): Promise<number>;
   registerThread(threadId: ULID, kind: ThreadKind): Promise<void>;
   listThreads(params: ThreadListParams): Promise<PaginatedResult<ThreadInfo>>;
   getThreadStats(): Promise<ThreadStats>;
@@ -247,6 +263,7 @@ export interface ThreadsServiceClient {
   readMessageVersions(threadId: ULID, messageId: ULID): Promise<Message[]>;
   readThreadAllVersions(threadId: ULID): Promise<Message[]>;
   readThread(threadId: ULID): Promise<Message[]>;
+  deleteThread(threadId: ULID): Promise<number>;
   registerThread(threadId: ULID, kind: ThreadKind): Promise<void>;
   listThreads(params: ThreadListParams): Promise<PaginatedResult<ThreadInfo>>;
   getThreadStats(): Promise<ThreadStats>;

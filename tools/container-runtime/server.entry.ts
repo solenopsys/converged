@@ -89,6 +89,12 @@ function requireEnvUrl(name: string, example: string): string {
 	return value.replace(/\/+$/, "");
 }
 
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+	const copy = new Uint8Array(bytes.byteLength);
+	copy.set(bytes);
+	return copy.buffer;
+}
+
 async function importPlugin(path: string) {
 	const mod = await import(pathToFileURL(path).href);
 	const plugin = mod.default ?? mod.plugin ?? mod;
@@ -325,7 +331,48 @@ const app = new Elysia()
 		status: "ok",
 		plugins: pluginEntries.length,
 		timestamp: Date.now(),
-	}));
+	}))
+	.get("/cache/blob/*", async ({ request, set }) => {
+		if (!runtimeCache) {
+			set.status = 404;
+			return { error: "Cache is not configured" };
+		}
+
+		const pathname = new URL(request.url).pathname;
+		const encodedKey = pathname.slice("/cache/blob/".length);
+		const cacheKey = decodeURIComponent(encodedKey);
+		if (!cacheKey || !cacheKey.startsWith(`${runtimeCache.keyPrefix}:`)) {
+			set.status = 400;
+			return { error: "Invalid cache key" };
+		}
+
+		const bytes = await runtimeCache.getBytes(cacheKey);
+		if (!bytes) {
+			set.status = 404;
+			return { error: "Cache entry not found" };
+		}
+
+		return new Response(toArrayBuffer(bytes), {
+			headers: {
+				"Content-Type": "application/octet-stream",
+				"Cache-Control": "no-store",
+			},
+		});
+	})
+	.post("/cache/blob", async ({ request, set }) => {
+		if (!runtimeCache) {
+			set.status = 404;
+			return { error: "Cache is not configured" };
+		}
+
+		const bytes = new Uint8Array(await request.arrayBuffer());
+		const cacheKey = runtimeCache.buildKey(
+			"client-upload",
+			crypto.randomUUID(),
+		);
+		await runtimeCache.setBytes(cacheKey, bytes);
+		return { cacheKey, sizeBytes: bytes.byteLength };
+	});
 
 for (const p of pluginEntries.filter((entry) => entry.mount === "root")) {
 	try {

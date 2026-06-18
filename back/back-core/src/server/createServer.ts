@@ -13,6 +13,12 @@ export interface CacheAdapter {
 	buildKey: (...segments: Array<string | number>) => string;
 	get: (key: string) => Promise<string | null>;
 	set: (key: string, value: string, ttlSeconds?: number) => Promise<void>;
+	getBytes: (key: string) => Promise<Uint8Array | null>;
+	setBytes: (
+		key: string,
+		value: Uint8Array,
+		ttlSeconds?: number,
+	) => Promise<void>;
 	del: (key: string) => Promise<void>;
 	getJson: <T>(key: string) => Promise<T | null>;
 	setJson: (key: string, value: unknown, ttlSeconds?: number) => Promise<void>;
@@ -91,6 +97,12 @@ function configureNrpcClientEnv(env: {
 	};
 }
 
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+	const copy = new Uint8Array(bytes.byteLength);
+	copy.set(bytes);
+	return copy.buffer;
+}
+
 export function loadConfigFromEnv(): ServerConfig {
 	const ai = loadAiProvidersFromEnv();
 	return {
@@ -134,7 +146,7 @@ export function createServer({
 		registerShutdownTask: (name, task) => {
 			shutdownTasks.push({ name, task });
 		},
-		runWithContext: (context, callback) =>
+		runWithContext: (context: any, callback: () => any) =>
 			runWithRequestScopeContext(
 				{
 					workspace: context?.workspace,
@@ -145,6 +157,14 @@ export function createServer({
 			),
 		...config.extraConfig,
 	};
+	if (pluginConfig.cache) {
+		shutdownTasks.push({
+			name: "cache:close",
+			task: async () => {
+				pluginConfig.cache?.close();
+			},
+		});
+	}
 
 	console.log(`Creating server: ${config.name}`);
 	console.log(`  Port: ${config.port}`);
@@ -171,7 +191,51 @@ export function createServer({
 			status: "ok",
 			name: config.name,
 			timestamp: Date.now(),
-		}));
+		}))
+		.get("/cache/blob/*", async ({ request, set }) => {
+			if (!pluginConfig.cache) {
+				set.status = 404;
+				return { error: "Cache is not configured" };
+			}
+
+			const pathname = new URL(request.url).pathname;
+			const encodedKey = pathname.slice("/cache/blob/".length);
+			const cacheKey = decodeURIComponent(encodedKey);
+			if (
+				!cacheKey ||
+				!cacheKey.startsWith(`${pluginConfig.cache.keyPrefix}:`)
+			) {
+				set.status = 400;
+				return { error: "Invalid cache key" };
+			}
+
+			const bytes = await pluginConfig.cache.getBytes(cacheKey);
+			if (!bytes) {
+				set.status = 404;
+				return { error: "Cache entry not found" };
+			}
+
+			return new Response(toArrayBuffer(bytes), {
+				headers: {
+					"Content-Type": "application/octet-stream",
+					"Cache-Control": "no-store",
+				},
+			});
+		})
+		.post("/cache/blob", async ({ request, set }) => {
+			if (!pluginConfig.cache) {
+				set.status = 404;
+				return { error: "Cache is not configured" };
+			}
+
+			const bytes = new Uint8Array(await request.arrayBuffer());
+			const cacheKey = pluginConfig.cache.buildKey(
+				"client-upload",
+				crypto.randomUUID(),
+			);
+			await pluginConfig.cache.setBytes(cacheKey, bytes);
+			return { cacheKey, sizeBytes: bytes.byteLength };
+		});
 
 	for (let i = 0; i < plugins.length; i++) {
 		const plugin = plugins[i];

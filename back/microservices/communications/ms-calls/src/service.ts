@@ -1,106 +1,125 @@
-import type {
-  CallsService,
-  Call,
-  CallId,
-  CallRecordId,
-  CallsListParams,
-  PaginatedResult,
-  CallRecordingInput,
-  CallRecordingResult,
-  CallDialogueInput,
-  CallDialogueItem,
-  CallFragmentInput,
-  CallFragmentInfo,
-  CallFragmentSource,
-  CallDeleteResult,
-  UpdateCallInput,
-} from "./types";
+import type { CacheAdapter } from "back-core";
 import { StoresController } from "./stores";
+import type {
+	CacheRef,
+	Call,
+	CallDeleteResult,
+	CallDialogueInput,
+	CallDialogueItem,
+	CallFragmentInfo,
+	CallFragmentInput,
+	CallFragmentSource,
+	CallId,
+	CallRecordId,
+	CallRecordingInput,
+	CallRecordingResult,
+	CallsListParams,
+	CallsService,
+	DumpAudioFragmentsInput,
+	DumpAudioFragmentsResult,
+	PaginatedResult,
+	RegisterCallInput,
+	UpdateCallInput,
+} from "./types";
 
 const MS_ID = "calls-ms";
 
 export class CallsServiceImpl implements CallsService {
-  private stores!: StoresController;
-  private initPromise?: Promise<void>;
+	private stores!: StoresController;
+	private initPromise?: Promise<void>;
+	private readonly cache?: CacheAdapter;
 
-  constructor() {
-    this.init();
-  }
+	constructor(config?: { cache?: CacheAdapter; valkey?: CacheAdapter }) {
+		this.cache = config?.cache ?? config?.valkey;
+		this.init();
+	}
 
-  private async init() {
-    if (this.initPromise) {
-      return this.initPromise;
-    }
+	private async init() {
+		if (this.initPromise) {
+			return this.initPromise;
+		}
 
-    this.initPromise = (async () => {
-      this.stores = new StoresController(MS_ID);
-      await this.stores.init();
-    })();
+		this.initPromise = (async () => {
+			this.stores = new StoresController(MS_ID, this.cache);
+			await this.stores.init();
+		})();
 
-    return this.initPromise;
-  }
+		return this.initPromise;
+	}
 
-  private async ready(): Promise<void> {
-    await this.init();
-  }
+	private async ready(): Promise<void> {
+		await this.init();
+	}
 
-  async saveRecording(input: CallRecordingInput): Promise<CallRecordingResult> {
-    await this.ready();
-    return this.stores.calls.saveRecording(input);
-  }
+	async registerCall(input: RegisterCallInput): Promise<Call> {
+		await this.ready();
+		return this.stores.calls.registerCall(input);
+	}
 
-  async saveFragment(input: CallFragmentInput): Promise<CallFragmentInfo> {
-    await this.ready();
-    return this.stores.calls.saveFragment(input);
-  }
+	async saveRecording(input: CallRecordingInput): Promise<CallRecordingResult> {
+		await this.ready();
+		return this.stores.calls.saveRecording(input);
+	}
 
-  async saveDialogue(input: CallDialogueInput): Promise<void> {
-    await this.ready();
-    return this.stores.calls.saveDialogue(input);
-  }
+	async saveFragment(input: CallFragmentInput): Promise<CallFragmentInfo> {
+		await this.ready();
+		return this.stores.calls.saveFragment(input);
+	}
 
-  async getDialogue(id: CallId): Promise<CallDialogueItem[]> {
-    await this.ready();
-    return this.stores.calls.getDialogue(id);
-  }
+	async dumpAudioFragments(
+		input: DumpAudioFragmentsInput,
+	): Promise<DumpAudioFragmentsResult> {
+		await this.ready();
+		return this.stores.calls.dumpAudioFragments(input);
+	}
 
-  async getCall(id: CallId): Promise<Call | undefined> {
-    await this.ready();
-    return this.stores.calls.getCall(id);
-  }
+	async saveDialogue(input: CallDialogueInput): Promise<void> {
+		await this.ready();
+		return this.stores.calls.saveDialogue(input);
+	}
 
-  async updateCall(id: CallId, patch: UpdateCallInput): Promise<Call> {
-    await this.ready();
-    return this.stores.calls.updateCall(id, patch);
-  }
+	async getDialogue(id: CallId): Promise<CallDialogueItem[]> {
+		await this.ready();
+		return this.stores.calls.getDialogue(id);
+	}
 
-  async listCalls(params: CallsListParams): Promise<PaginatedResult<Call>> {
-    await this.ready();
-    return this.stores.calls.listCalls(params);
-  }
+	async getCall(id: CallId): Promise<Call | undefined> {
+		await this.ready();
+		return this.stores.calls.getCall(id);
+	}
 
-  async getRecording(recordId: CallRecordId): Promise<Uint8Array | undefined> {
-    await this.ready();
-    return this.stores.calls.getRecording(recordId);
-  }
+	async updateCall(id: CallId, patch: UpdateCallInput): Promise<Call> {
+		await this.ready();
+		return this.stores.calls.updateCall(id, patch);
+	}
 
-  async getCallAudio(
-    callId: CallId,
-    source: CallFragmentSource,
-  ): Promise<Uint8Array> {
-    await this.ready();
-    return this.stores.calls.getCallAudio(callId, source);
-  }
+	async listCalls(params: CallsListParams): Promise<PaginatedResult<Call>> {
+		await this.ready();
+		return this.stores.calls.listCalls(params);
+	}
 
-  async hasCallAudio(callId: CallId): Promise<boolean> {
-    await this.ready();
-    return this.stores.calls.hasCallAudio(callId);
-  }
+	async getRecording(recordId: CallRecordId): Promise<CacheRef | undefined> {
+		await this.ready();
+		return this.stores.calls.getRecording(recordId);
+	}
 
-  async deleteCall(id: CallId): Promise<CallDeleteResult> {
-    await this.ready();
-    return this.stores.calls.deleteCall(id);
-  }
+	async getCallAudio(
+		callId: CallId,
+		source: CallFragmentSource,
+	): Promise<CacheRef> {
+		await this.ready();
+		return this.stores.calls.getCallAudio(callId, source);
+	}
+
+	async hasCallAudio(callId: CallId): Promise<boolean> {
+		await this.ready();
+		return this.stores.calls.hasCallAudio(callId);
+	}
+
+	async deleteCall(id: CallId): Promise<CallDeleteResult> {
+		await this.ready();
+		return this.stores.calls.deleteCall(id);
+	}
 }
 
 export default CallsServiceImpl;

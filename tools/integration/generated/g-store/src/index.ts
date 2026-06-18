@@ -5,23 +5,28 @@ export type HashString = string;
 
 export type CompressionType = "none" | "deflate" | "gzip" | "brotli";
 
+export type CacheRef = {
+	cacheKey: string;
+	sizeBytes?: number;
+};
+
 export type PaginationParams = {
-  key: string;
-  offset: number;
-  limit: number;
+	key: string;
+	offset: number;
+	limit: number;
 };
 
 export type PaginatedResult<T> = {
-  items: T[];
-  totalCount?: number;
+	items: T[];
+	totalCount?: number;
 };
 
 export type BlockMetadata = {
-  hash: HashString;
-  size: number;
-  originalSize: number;
-  compression: CompressionType;
-  owner: string;
+	hash: HashString;
+	size: number;
+	originalSize: number;
+	compression: CompressionType;
+	owner: string;
 };
 
 export const metadata: ServiceMetadata = {
@@ -33,8 +38,8 @@ export const metadata: ServiceMetadata = {
       "name": "save",
       "parameters": [
         {
-          "name": "data",
-          "type": "Uint8Array",
+          "name": "dataRef",
+          "type": "CacheRef",
           "optional": false,
           "isArray": false
         },
@@ -72,8 +77,8 @@ export const metadata: ServiceMetadata = {
           "isArray": false
         },
         {
-          "name": "data",
-          "type": "Uint8Array",
+          "name": "dataRef",
+          "type": "CacheRef",
           "optional": false,
           "isArray": false
         },
@@ -126,7 +131,7 @@ export const metadata: ServiceMetadata = {
           "isArray": false
         }
       ],
-      "returnType": "Uint8Array",
+      "returnType": "CacheRef",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -197,30 +202,35 @@ export const metadata: ServiceMetadata = {
       "definition": "\"none\" | \"deflate\" | \"gzip\" | \"brotli\""
     },
     {
+      "name": "CacheRef",
+      "kind": "type",
+      "definition": "{\n\tcacheKey: string;\n\tsizeBytes?: number;\n}"
+    },
+    {
       "name": "PaginationParams",
       "kind": "type",
-      "definition": "{\n  key: string;\n  offset: number;\n  limit: number;\n}"
+      "definition": "{\n\tkey: string;\n\toffset: number;\n\tlimit: number;\n}"
     },
     {
       "name": "PaginatedResult",
       "kind": "type",
       "typeParameters": "<T>",
-      "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
+      "definition": "{\n\titems: T[];\n\ttotalCount?: number;\n}"
     },
     {
       "name": "BlockMetadata",
       "kind": "type",
-      "definition": "{\n  hash: HashString;\n  size: number;\n  originalSize: number;\n  compression: CompressionType;\n  owner: string;\n}"
+      "definition": "{\n\thash: HashString;\n\tsize: number;\n\toriginalSize: number;\n\tcompression: CompressionType;\n\towner: string;\n}"
     }
   ]
 };
 
 // Server interface (to be implemented in microservice)
 export interface StoreService {
-  save(data: Uint8Array, originalSize?: number, compression?: CompressionType, owner?: string): Promise<HashString>;
-  saveWithHash(hash: HashString, data: Uint8Array, originalSize?: number, compression?: CompressionType, owner?: string): Promise<HashString>;
+  save(dataRef: CacheRef, originalSize?: number, compression?: CompressionType, owner?: string): Promise<HashString>;
+  saveWithHash(hash: HashString, dataRef: CacheRef, originalSize?: number, compression?: CompressionType, owner?: string): Promise<HashString>;
   delete(hash: HashString): Promise<void>;
-  get(hash: HashString): Promise<Uint8Array>;
+  get(hash: HashString): Promise<CacheRef>;
   getWithMeta(hash: HashString): Promise<any>;
   exists(hash: HashString): Promise<boolean>;
   list(params: PaginationParams): Promise<PaginatedResult<HashString>>;
@@ -229,10 +239,10 @@ export interface StoreService {
 
 // Client interface
 export interface StoreServiceClient {
-  save(data: Uint8Array, originalSize?: number, compression?: CompressionType, owner?: string): Promise<HashString>;
-  saveWithHash(hash: HashString, data: Uint8Array, originalSize?: number, compression?: CompressionType, owner?: string): Promise<HashString>;
+  save(dataRef: CacheRef, originalSize?: number, compression?: CompressionType, owner?: string): Promise<HashString>;
+  saveWithHash(hash: HashString, dataRef: CacheRef, originalSize?: number, compression?: CompressionType, owner?: string): Promise<HashString>;
   delete(hash: HashString): Promise<void>;
-  get(hash: HashString): Promise<Uint8Array>;
+  get(hash: HashString): Promise<CacheRef>;
   getWithMeta(hash: HashString): Promise<any>;
   exists(hash: HashString): Promise<boolean>;
   list(params: PaginationParams): Promise<PaginatedResult<HashString>>;
