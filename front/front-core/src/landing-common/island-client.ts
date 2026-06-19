@@ -585,10 +585,16 @@ function ensureControlPanelModeBinding(): void {
 	});
 }
 
+// Gallery static files are served through the runtime /images/* route, not
+// directly from ms-galery: a direct browser GET carries no workspace header, so
+// on multi-tenant prod the scoped store can't be resolved. /images/* is
+// cache-first and resolves the tenant server-side.
 function normalizeGalleryStaticUrl(value: string, fallback: string): string {
 	const resolved = value || fallback;
-	return resolved.startsWith("/galery/static/")
-		? `/services${resolved}`
+	const marker = "/galery/static/";
+	const idx = resolved.indexOf(marker);
+	return idx >= 0
+		? `/images/${resolved.slice(idx + marker.length)}`
 		: resolved;
 }
 

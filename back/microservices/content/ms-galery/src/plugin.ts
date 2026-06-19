@@ -1,8 +1,8 @@
 import { createHttpBackend } from "nrpc";
 import { isAbsolute, relative, resolve } from "node:path";
-import { resolveWorkspaceFromRequest } from "back-core";
+import { type CacheAdapter, resolveWorkspaceFromRequest } from "back-core";
 import { metadata } from "g-galery";
-import serviceImpl from "./index";
+import { GaleryServiceImpl } from "./service";
 import { StoresController } from "./stores";
 
 type PluginOptions = {
@@ -57,6 +57,10 @@ const resolveRequestWorkspace = (request: Request): string | undefined =>
 
 export default (options: PluginOptions = {}) =>
   (app: any) => {
+    const serviceImpl = new GaleryServiceImpl({
+      cache: options.cache as CacheAdapter | undefined,
+      valkey: options.valkey as CacheAdapter | undefined,
+    });
     const backend = createHttpBackend({ metadata, serviceImpl });
     backend(options)(app);
 

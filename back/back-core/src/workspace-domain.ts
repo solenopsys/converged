@@ -8,7 +8,6 @@ export type WorkspaceDomainMap = Record<string, string>;
 export interface ResolveWorkspaceOptions {
   map?: WorkspaceDomainMap;
   env?: Record<string, string | undefined>;
-  fallbackWorkspace?: string;
   headerName?: string;
 }
 
@@ -111,12 +110,8 @@ export function resolveWorkspaceFromDomain(
   const env =
     options.env ?? (typeof process !== "undefined" ? process.env : {});
   const map = options.map ?? resolveMapFromEnv(env);
-  const fallback =
-    normalizeWorkspace(options.fallbackWorkspace) ??
-    normalizeWorkspace(env.NRPC_WORKSPACE) ??
-    normalizeWorkspace(env.WORKSPACE);
 
-  if (!normalizedHost) return fallback;
+  if (!normalizedHost) return undefined;
 
   const exact = normalizeWorkspace(map[normalizedHost]);
   if (exact) return exact;
@@ -140,7 +135,7 @@ export function resolveWorkspaceFromDomain(
     }
   }
 
-  return fallback;
+  return undefined;
 }
 
 export function resolveWorkspaceFromHeaders(

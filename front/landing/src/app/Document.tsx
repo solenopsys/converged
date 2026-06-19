@@ -169,8 +169,8 @@ export function Document({ children, seo, lang = "en", importMap, initialData, l
 
         <SsrShellLayout
           loginEnabled={loginEnabled}
-          logoLight={logoLight ?? "/services/galery/static/logo.png"}
-          logoDark={logoDark ?? "/services/galery/static/logo.png"}
+          logoLight={logoLight ?? "/images/logo.png"}
+          logoDark={logoDark ?? "/images/logo.png"}
           chatPlaceholder="Ask Convo anything..."
           brandName="Converged AI"
           phone={phone}

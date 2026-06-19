@@ -1,3 +1,9 @@
+import {
+  type CacheAdapter,
+  galeryStaticCacheKey,
+  getCurrentRequestWorkspace,
+  imageMimeFromPath,
+} from "back-core";
 import type {
   GaleryService,
   Galery,
@@ -6,18 +12,24 @@ import type {
   GaleryImage,
   GaleryImageId,
   GaleryImageInput,
+  CachedImageRef,
   PaginationParams,
   PaginatedResult,
 } from "./types";
 import { StoresController } from "./stores";
 
 const MS_ID = "galery-ms";
+// Static images change rarely; cache them well past the short SSR TTL so the
+// /images/* fast path stays a cache hit between deploys.
+const STATIC_CACHE_TTL_SECONDS = 24 * 60 * 60;
 
 export class GaleryServiceImpl implements GaleryService {
   private stores: StoresController;
   private initPromise?: Promise<void>;
+  private readonly cache?: CacheAdapter;
 
-  constructor() {
+  constructor(config?: { cache?: CacheAdapter; valkey?: CacheAdapter }) {
+    this.cache = config?.cache ?? config?.valkey;
     this.init();
   }
 
@@ -98,6 +110,28 @@ export class GaleryServiceImpl implements GaleryService {
       image.thumbPath,
     );
     return this.stores.images.delete(id);
+  }
+
+  async ensureStaticCached(path: string): Promise<CachedImageRef | null> {
+    await this.ready();
+    if (!this.cache) {
+      throw new Error("galery: cache is not configured");
+    }
+
+    const data = await this.stores.static.get(path);
+    if (!data) {
+      return null;
+    }
+
+    const workspace = getCurrentRequestWorkspace();
+    const key = galeryStaticCacheKey(this.cache, workspace, path);
+    await this.cache.setBytes(key, data, STATIC_CACHE_TTL_SECONDS);
+
+    return {
+      key,
+      contentType: imageMimeFromPath(path),
+      size: data.byteLength,
+    };
   }
 }
 

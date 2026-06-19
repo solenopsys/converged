@@ -102,6 +102,40 @@ declare global {
   var __LANDING_SSR_DATA__: Record<string, LandingPrefetchPayload> | undefined;
 }
 
+// Gallery static files are served via the runtime /images/* route, not a
+// direct ms-galery GET (a browser <img> sends no workspace header, so the
+// scoped store can't be resolved on multi-tenant prod). Landing content stores
+// the old "/services/galery/static/<rest>" form, so rewrite it on the way in —
+// covers SSR prefetch and the client struct fetch, every block field.
+const GALERY_STATIC_RE = /\/(?:services\/)?galery\/static\//g;
+
+function rewriteGaleryStatic(value: string): string {
+  return value.replace(GALERY_STATIC_RE, "/images/");
+}
+
+function normalizeImageUrls<T>(value: T): T {
+  if (typeof value === "string") {
+    return (
+      value.includes("galery/static/") ? rewriteGaleryStatic(value) : value
+    ) as T;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeImageUrls(item)) as T;
+  }
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      out[k] = normalizeImageUrls(v);
+    }
+    return out as T;
+  }
+  return value;
+}
+
+function normalizeBlocksImages(blocks: ResolvedBlock[]): ResolvedBlock[] {
+  return normalizeImageUrls(blocks);
+}
+
 function readLandingPrefetchMap(): Record<string, LandingPrefetchPayload> {
   const direct = globalThis.__LANDING_SSR_DATA__;
   if (direct && typeof direct === "object") {
@@ -135,7 +169,9 @@ function readLandingPrefetchMap(): Record<string, LandingPrefetchPayload> {
 function getPrefetchedBlocks(configPath: string): ResolvedBlock[] | null {
   const map = readLandingPrefetchMap();
   const payload = map[configPath];
-  return Array.isArray(payload?.blocks) ? payload.blocks : null;
+  return Array.isArray(payload?.blocks)
+    ? normalizeBlocksImages(payload.blocks)
+    : null;
 }
 
 function resolveFallbackLocale(configPath: string): SupportedLocale {
@@ -214,7 +250,7 @@ export default function LandingView({ configPath }: { configPath: string }) {
           };
         });
 
-        setBlocks(resolved);
+        setBlocks(normalizeBlocksImages(resolved));
       } catch (e: any) {
         if (!active) return;
         setBlocks([]);

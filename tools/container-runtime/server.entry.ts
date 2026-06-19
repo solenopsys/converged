@@ -8,6 +8,7 @@ import { installBackendLogBridge } from "../../back/back-core/src/server/logBrid
 import { loadAiProvidersFromEnv } from "../../back/back-core/src/server/envConfig";
 import { runWithRequestScopeContext } from "../../back/back-core/src/request-context";
 import { createValkeyCache } from "./valkey";
+import { createRuntimeImagesPlugin } from "./images.plugin";
 
 type RuntimeMap = {
 	services: Record<string, string>;
@@ -159,13 +160,10 @@ const runtimeConfig = readRuntimeConfig(
 	process.env.CONFIG_PATH || resolve(appRoot, "config.json"),
 );
 const runtimeMicrofrontends = resolveRuntimeMicrofrontends(runtimeConfig);
-if (runtimeMap.cache && !process.env.VALKEY_URL) {
-	throw new Error("VALKEY_URL environment variable is required but not set");
-}
 
 const runtimeCacheConfig = runtimeMap.cache
 	? {
-			url: process.env.VALKEY_URL!,
+			url: runtimeMap.cache.url,
 			keyPrefix: runtimeMap.cache.keyPrefix,
 			defaultTtlSeconds: runtimeMap.cache.ssrTtlSeconds,
 		}
@@ -372,7 +370,14 @@ const app = new Elysia()
 		);
 		await runtimeCache.setBytes(cacheKey, bytes);
 		return { cacheKey, sizeBytes: bytes.byteLength };
-	});
+	})
+	.use(
+		createRuntimeImagesPlugin({
+			servicesBaseUrl,
+			serviceToken: process.env.SERVICE_TOKEN,
+			cacheControl: process.env.IMAGE_CACHE_CONTROL,
+		}),
+	);
 
 for (const p of pluginEntries.filter((entry) => entry.mount === "root")) {
 	try {

@@ -186,11 +186,22 @@ async function runDev() {
       || config.storage.port
       || 9000,
   );
+  const hasTenantStorageMapping = Boolean(
+    process.env.STORAGE_TENANT_SERVICES
+      || loadedEnv.STORAGE_TENANT_SERVICES
+      || process.env.STORAGE_SERVICE_PREFIX
+      || loadedEnv.STORAGE_SERVICE_PREFIX,
+  );
+  const explicitStorageHost = process.env.STORAGE_HOST || loadedEnv.STORAGE_HOST;
   const runtimeEnv = {
     ...loadedEnv,
     DATA_DIR: dataDir,
     STORAGE_TRANSPORT: process.env.STORAGE_TRANSPORT || loadedEnv.STORAGE_TRANSPORT || "tcp",
-    STORAGE_HOST: process.env.STORAGE_HOST || loadedEnv.STORAGE_HOST || "127.0.0.1",
+    ...(explicitStorageHost
+      ? { STORAGE_HOST: explicitStorageHost }
+      : hasTenantStorageMapping
+        ? {}
+        : { STORAGE_HOST: "127.0.0.1" }),
     STORAGE_PORT: String(storagePort),
   };
 

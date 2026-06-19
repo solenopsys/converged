@@ -3,6 +3,7 @@ import { resolve } from "path";
 import { pathToFileURL } from "url";
 import { createServer, loadConfigFromEnv } from "./server/createServer";
 import { createBunRedisCache } from "./server/bunRedisCache";
+import { resolveWorkspaceFromRequest } from "./workspace-domain";
 import type { PluginFactory } from "./server/createServer";
 
 process.on("uncaughtException", (err) => {
@@ -371,13 +372,11 @@ for (const services of Object.values(config.back.microservices)) {
 	}
 }
 
-const runtimeCache = process.env.VALKEY_URL
-	? createBunRedisCache({
-			url: process.env.VALKEY_URL,
-			keyPrefix: process.env.VALKEY_KEY_PREFIX || "cache",
-			defaultTtlSeconds: Number(process.env.VALKEY_TTL_SECONDS || 120),
-		})
-	: undefined;
+const runtimeCache = createBunRedisCache({
+	url: process.env.VALKEY_URL,
+	keyPrefix: process.env.VALKEY_KEY_PREFIX || "cache",
+	defaultTtlSeconds: Number(process.env.VALKEY_TTL_SECONDS || 120),
+});
 
 const server = createServer({
 	config: {
@@ -395,6 +394,66 @@ const server = createServer({
 	},
 	plugins,
 });
+
+// Browser-facing image route. Must be registered before the SPA/landing
+// catch-all, or /images/* would resolve to index.html.
+{
+	const servicesBaseUrl = process.env.SERVICES_BASE as string;
+	const imageCacheControl =
+		process.env.IMAGE_CACHE_CONTROL || "public, max-age=300";
+
+	server.app.get("/images/*", async ({ request, set }: any) => {
+		const pathname = new URL(request.url).pathname;
+		const rest = decodeURIComponent(pathname.slice("/images/".length));
+		if (!rest || rest.includes("..")) {
+			set.status = 400;
+			return "Bad request";
+		}
+
+		// Resolve the tenant from the request domain the same way every other
+		// nrpc call does (WORKSPACE_DOMAIN_MAP).
+		const workspace = resolveWorkspaceFromRequest(request);
+		if (!workspace) {
+			set.status = 421;
+			return `Unknown storage: cannot resolve workspace for host "${new URL(request.url).host}"`;
+		}
+
+		const headers: Record<string, string> = {
+			workspace,
+			scope: workspace,
+			...(process.env.SERVICE_TOKEN
+				? { authorization: `Bearer ${process.env.SERVICE_TOKEN}` }
+				: {}),
+		};
+		const encodedPath = rest
+			.split("/")
+			.map((segment) => encodeURIComponent(segment))
+			.join("/");
+		const upstream = await fetch(
+			`${servicesBaseUrl}/galery/static/${encodedPath}`,
+			{ headers },
+		).catch(() => null);
+		if (!upstream) {
+			set.status = 502;
+			return "Bad gateway";
+		}
+		if (!upstream.ok) {
+			set.status = upstream.status;
+			return await upstream.text();
+		}
+
+		const bytes = new Uint8Array(await upstream.arrayBuffer());
+		const copy = new Uint8Array(bytes.byteLength);
+		copy.set(bytes);
+		return new Response(copy.buffer, {
+			headers: {
+				"Content-Type":
+					upstream.headers.get("content-type") || "application/octet-stream",
+				"Cache-Control": imageCacheControl,
+			},
+		});
+	});
+}
 
 // SPA plugin — vendor libs, front-core, microfrontends
 const spaPath = resolve(PROJECT_DIR, "front/spa/src/plugin.ts");

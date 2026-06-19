@@ -7,6 +7,7 @@ import type {
   GaleryInput,
   GaleryImage,
   GaleryImageInput,
+  CachedImageRef,
   PaginationParams,
   PaginatedResult,
 } from "g-galery";
@@ -20,6 +21,7 @@ export type {
   GaleryInput,
   GaleryImage,
   GaleryImageInput,
+  CachedImageRef,
   PaginationParams,
   PaginatedResult,
 };

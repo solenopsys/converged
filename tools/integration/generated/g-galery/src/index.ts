@@ -40,6 +40,12 @@ export type GaleryImageInput = {
   description?: string;
 };
 
+export type CachedImageRef = {
+  key: string;
+  contentType: string;
+  size: number;
+};
+
 export type PaginationParams = {
   offset: number;
   limit: number;
@@ -180,6 +186,21 @@ export const metadata: ServiceMetadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
+    },
+    {
+      "name": "ensureStaticCached",
+      "parameters": [
+        {
+          "name": "path",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "CachedImageRef | any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -219,6 +240,11 @@ export const metadata: ServiceMetadata = {
       "definition": "{\n  galeryId: GaleryId;\n  data: Uint8Array;\n  mimeType?: string;\n  originalName?: string;\n  title?: string;\n  description?: string;\n}"
     },
     {
+      "name": "CachedImageRef",
+      "kind": "type",
+      "definition": "{\n  key: string;\n  contentType: string;\n  size: number;\n}"
+    },
+    {
       "name": "PaginationParams",
       "kind": "type",
       "definition": "{\n  offset: number;\n  limit: number;\n}"
@@ -242,6 +268,7 @@ export interface GaleryService {
   getImage(id: GaleryImageId): Promise<GaleryImage | any>;
   listImages(galeryId: GaleryId, params: PaginationParams): Promise<PaginatedResult<GaleryImage>>;
   deleteImage(id: GaleryImageId): Promise<boolean>;
+  ensureStaticCached(path: string): Promise<CachedImageRef | any>;
 }
 
 // Client interface
@@ -254,6 +281,7 @@ export interface GaleryServiceClient {
   getImage(id: GaleryImageId): Promise<GaleryImage | any>;
   listImages(galeryId: GaleryId, params: PaginationParams): Promise<PaginatedResult<GaleryImage>>;
   deleteImage(id: GaleryImageId): Promise<boolean>;
+  ensureStaticCached(path: string): Promise<CachedImageRef | any>;
 }
 
 // Factory function

@@ -35,6 +35,12 @@ export type GaleryImageInput = {
   description?: string;
 };
 
+export type CachedImageRef = {
+  key: string;
+  contentType: string;
+  size: number;
+};
+
 export type PaginationParams = {
   offset: number;
   limit: number;
@@ -58,4 +64,10 @@ export interface GaleryService {
     params: PaginationParams,
   ): Promise<PaginatedResult<GaleryImage>>;
   deleteImage(id: GaleryImageId): Promise<boolean>;
+
+  // Reads a static file from the (workspace-scoped) store, writes it into the
+  // shared cache and returns the cache reference. Called server-to-server by
+  // the runtime /images/* route, where the workspace header is always present —
+  // unlike a direct browser <img> GET, which carries no workspace field.
+  ensureStaticCached(path: string): Promise<CachedImageRef | null>;
 }
