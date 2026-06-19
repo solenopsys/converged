@@ -1,4 +1,5 @@
 import type { CacheAdapter } from "back-core";
+import { createThreadsServiceClient, MessageType } from "g-threads";
 import { StoresController } from "./stores";
 import type {
 	CacheRef,
@@ -6,6 +7,7 @@ import type {
 	CallDeleteResult,
 	CallDialogueInput,
 	CallDialogueItem,
+	CallTranscriptItem,
 	CallFragmentInfo,
 	CallFragmentInput,
 	CallFragmentSource,
@@ -81,6 +83,34 @@ export class CallsServiceImpl implements CallsService {
 	async getDialogue(id: CallId): Promise<CallDialogueItem[]> {
 		await this.ready();
 		return this.stores.calls.getDialogue(id);
+	}
+
+	async getTranscript(id: CallId): Promise<CallTranscriptItem[]> {
+		await this.ready();
+		// The transcript lives in ms-threads (threadId === callId). The gate
+		// writes each phrase there; we read it back so the admin UI has a single
+		// call-facing API and never touches the gate.
+		const baseUrl = process.env.SERVICES_BASE;
+		if (!baseUrl) return [];
+		try {
+			const messages = await createThreadsServiceClient({ baseUrl }).readThread(
+				id,
+			);
+			return messages
+				.filter((m) => m.type === MessageType.message)
+				.map((m) => ({
+					time: Number(m.timestamp ?? 0),
+					source: (m.user === "assistant" ? "assistant" : "user") as
+						| "user"
+						| "assistant",
+					text: (m.data ?? "").trim(),
+				}))
+				.filter((it) => it.text.length > 0)
+				.sort((a, b) => a.time - b.time);
+		} catch (error) {
+			console.warn("[ms-calls] getTranscript failed", id, error);
+			return [];
+		}
 	}
 
 	async getCall(id: CallId): Promise<Call | undefined> {

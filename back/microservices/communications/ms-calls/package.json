@@ -12,6 +12,7 @@
   "dependencies": {
     "back-core": "workspace:*",
     "nrpc": "workspace:*",
-    "g-calls": "workspace:*"
+    "g-calls": "workspace:*",
+    "g-threads": "workspace:*"
   }
 }

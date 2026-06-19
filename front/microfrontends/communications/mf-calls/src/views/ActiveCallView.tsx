@@ -10,7 +10,8 @@ import {
 } from "front-core";
 import { PhoneCall, PhoneOff, ArrowLeft, Mic, MicOff } from "lucide-react";
 import { useWebRTCCall, type CallStatus } from "../hooks/useWebRTCCall";
-import { audioGateClient, type GateTranscriptItem } from "../services/audio-gate-client";
+import { type GateTranscriptItem } from "../services/audio-gate-client";
+import { readCallTranscript } from "../services/call-transcript";
 
 type ActiveCallViewProps = {
   onBack?: () => void;
@@ -53,7 +54,7 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({ onBack }) => {
     if (status !== "connected" || !sessionId) return;
 
     const refresh = async () => {
-      const items = await audioGateClient.getTranscript(sessionId);
+      const items = await readCallTranscript(sessionId);
       setTranscript(items);
     };
 

@@ -3,7 +3,8 @@ import { Button, Badge } from "front-core";
 import { ArrowLeft, RefreshCw, MessageSquare, MicOff } from "lucide-react";
 import { StereoCallPlayer } from "../components/StereoCallPlayer";
 import { fetchCallAudioObjectUrl } from "../services/call-audio";
-import { audioGateClient, type GateTranscriptItem } from "../services/audio-gate-client";
+import { type GateTranscriptItem } from "../services/audio-gate-client";
+import { readCallTranscript } from "../services/call-transcript";
 
 type CallDetailViewProps = {
   sessionId: string;
@@ -58,7 +59,7 @@ export const CallDetailView: React.FC<CallDetailViewProps> = ({ sessionId, onBac
     setAssistantAudioUrl(null);
     try {
       const [items, userUrl, assistantUrl] = await Promise.all([
-        audioGateClient.getTranscript(sessionId),
+        readCallTranscript(sessionId),
         fetchCallAudioObjectUrl(sessionId, "user"),
         fetchCallAudioObjectUrl(sessionId, "assistant"),
       ]);

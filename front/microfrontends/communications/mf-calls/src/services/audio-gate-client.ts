@@ -10,7 +10,6 @@ export type GateTranscriptItem = {
 };
 
 type SessionsResp = { ok: boolean; sessions: string[] };
-type TranscriptResp = { ok: boolean; session: string; transcript: GateTranscriptItem[] };
 type ContextResp = { ok: boolean; key: string; context: string };
 
 const BASE = "/audio-gate";
@@ -47,18 +46,6 @@ export const audioGateClient = {
       if (!r.ok) return [];
       const d = (await r.json()) as SessionsResp;
       return d.sessions ?? [];
-    } catch {
-      return [];
-    }
-  },
-
-  /** Get transcript lines for a session. */
-  async getTranscript(sessionId: string): Promise<GateTranscriptItem[]> {
-    try {
-      const r = await fetch(`${BASE}/transcript/${encodeURIComponent(sessionId)}`);
-      if (!r.ok) return [];
-      const d = (await r.json()) as TranscriptResp;
-      return d.transcript ?? [];
     } catch {
       return [];
     }

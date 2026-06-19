@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Badge } from "front-core";
 import { MessageSquare, MicOff, RefreshCw, Bot } from "lucide-react";
-import { threadsClient } from "g-threads";
 import { StereoCallPlayer } from "../components/StereoCallPlayer";
 import { fetchCallAudioObjectUrl } from "../services/call-audio";
 import { type GateTranscriptItem } from "../services/audio-gate-client";
+import { readCallTranscript } from "../services/call-transcript";
 
 type CallTranscriptViewProps = {
   sessionId: string;
@@ -37,22 +37,14 @@ export const CallTranscriptView: React.FC<CallTranscriptViewProps> = ({ sessionI
     setUserAudioUrl(null);
     setAssistantAudioUrl(null);
     try {
-      // Transcript is read straight from ms-threads (the call id is its
-      // threadId, and the gate stores each phrase as a thread message).
-      // Recordings are built on demand by ms-calls from the stored Opus frames.
-      const [rows, userUrl, assistantUrl] = await Promise.all([
-        threadsClient.readThread(sessionId).catch(() => []),
+      // Transcript and recordings both come from the ms-calls microservice —
+      // never from the gate. ms-calls serves the transcript (read from
+      // ms-threads) and builds the WebM/Opus recording on demand.
+      const [items, userUrl, assistantUrl] = await Promise.all([
+        readCallTranscript(sessionId),
         fetchCallAudioObjectUrl(sessionId, "user"),
         fetchCallAudioObjectUrl(sessionId, "assistant"),
       ]);
-      const items: GateTranscriptItem[] = rows
-        .map((m: any) => ({
-          source: m.user === "assistant" ? "assistant" : "user",
-          text: m.data ?? "",
-          time: Number(m.timestamp ?? 0),
-        }))
-        .filter((it) => it.text.length > 0)
-        .sort((a, b) => a.time - b.time);
       setTranscript(items);
       if (userUrl) objectUrls.current.push(userUrl);
       if (assistantUrl) objectUrls.current.push(assistantUrl);

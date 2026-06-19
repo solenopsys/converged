@@ -4,46 +4,46 @@ import { createHttpClient, type ServiceMetadata } from "nrpc";
 export type ULID = string;
 
 export enum MessageType {
-  message = "message",
-  link = "link",
-  partition = "partition",
+	message = "message",
+	link = "link",
+	partition = "partition",
 }
 
 export type Message = {
-  threadId: ULID;
-  id?: ULID;
-  timestamp?: number;
-  beforeId?: ULID;
-  user: string;
-  type: MessageType;
-  data: string;
+	threadId: ULID;
+	id?: ULID;
+	timestamp?: number;
+	beforeId?: ULID;
+	user: string;
+	type: MessageType;
+	data: string;
 };
 
 export type ThreadKind = "chat" | "audio" | "forum" | "comment";
 
 export type ThreadInfo = {
-  threadId: ULID;
-  kind: ThreadKind;
-  messageCount: number;
-  createdAt: number;
-  updatedAt: number;
+	threadId: ULID;
+	kind: ThreadKind;
+	messageCount: number;
+	createdAt: number;
+	updatedAt: number;
 };
 
 export type ThreadListParams = {
-  offset?: number;
-  limit?: number;
-  kind?: ThreadKind;
+	offset?: number;
+	limit?: number;
+	kind?: ThreadKind;
 };
 
 export type PaginatedResult<T> = {
-  items: T[];
-  totalCount?: number;
+	items: T[];
+	totalCount?: number;
 };
 
 export type ThreadStats = {
-  total: number;
-  totalMessages: number;
-  byKind: Record<ThreadKind, number>;
+	total: number;
+	totalMessages: number;
+	byKind: Record<ThreadKind, number>;
 };
 
 export const metadata: ServiceMetadata = {
@@ -207,12 +207,12 @@ export const metadata: ServiceMetadata = {
     {
       "name": "MessageType",
       "kind": "raw",
-      "definition": "export enum MessageType {\n  message = \"message\",\n  link = \"link\",\n  partition = \"partition\",\n}"
+      "definition": "export enum MessageType {\n\tmessage = \"message\",\n\tlink = \"link\",\n\tpartition = \"partition\",\n}"
     },
     {
       "name": "Message",
       "kind": "type",
-      "definition": "{\n  threadId: ULID;\n  id?: ULID;\n  timestamp?: number;\n  beforeId?: ULID;\n  user: string;\n  type: MessageType;\n  data: string;\n}"
+      "definition": "{\n\tthreadId: ULID;\n\tid?: ULID;\n\ttimestamp?: number;\n\tbeforeId?: ULID;\n\tuser: string;\n\ttype: MessageType;\n\tdata: string;\n}"
     },
     {
       "name": "ThreadKind",
@@ -222,23 +222,23 @@ export const metadata: ServiceMetadata = {
     {
       "name": "ThreadInfo",
       "kind": "type",
-      "definition": "{\n  threadId: ULID;\n  kind: ThreadKind;\n  messageCount: number;\n  createdAt: number;\n  updatedAt: number;\n}"
+      "definition": "{\n\tthreadId: ULID;\n\tkind: ThreadKind;\n\tmessageCount: number;\n\tcreatedAt: number;\n\tupdatedAt: number;\n}"
     },
     {
       "name": "ThreadListParams",
       "kind": "type",
-      "definition": "{\n  offset?: number;\n  limit?: number;\n  kind?: ThreadKind;\n}"
+      "definition": "{\n\toffset?: number;\n\tlimit?: number;\n\tkind?: ThreadKind;\n}"
     },
     {
       "name": "PaginatedResult",
       "kind": "type",
       "typeParameters": "<T>",
-      "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
+      "definition": "{\n\titems: T[];\n\ttotalCount?: number;\n}"
     },
     {
       "name": "ThreadStats",
       "kind": "type",
-      "definition": "{\n  total: number;\n  totalMessages: number;\n  byKind: Record<ThreadKind, number>;\n}"
+      "definition": "{\n\ttotal: number;\n\ttotalMessages: number;\n\tbyKind: Record<ThreadKind, number>;\n}"
     }
   ]
 };

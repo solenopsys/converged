@@ -1,6 +1,7 @@
 import { createDomain, sample } from "effector";
 import { callsClient } from "g-calls";
-import { audioGateClient, type GateTranscriptItem } from "./services/audio-gate-client";
+import type { GateTranscriptItem } from "./services/audio-gate-client";
+import { readCallTranscript } from "./services/call-transcript";
 
 const domain = createDomain("calls");
 
@@ -28,7 +29,7 @@ export const loadTranscriptFx = domain.createEffect({
   name: "LOAD_TRANSCRIPT",
   handler: async (sessionId: string): Promise<{ sessionId: string; items: GateTranscriptItem[] }> => ({
     sessionId,
-    items: await audioGateClient.getTranscript(sessionId),
+    items: await readCallTranscript(sessionId),
   }),
 });
 
@@ -60,7 +61,7 @@ export const loadSessionMetaFx = domain.createEffect({
     // Audio presence comes from ms-calls (which owns the stored Opus frames),
     // not the gate. hasCallAudio is a cheap key-count — no muxing/download.
     const [items, hasAudio] = await Promise.all([
-      audioGateClient.getTranscript(id).catch(() => []),
+      readCallTranscript(id).catch(() => []),
       callsClient.hasCallAudio(id).catch(() => false),
     ]);
     const createdAt = items[0]?.time ? items[0].time * 1000 : decodeUlidTime(id);

@@ -14,6 +14,12 @@ export type CallDialogueItem = {
 	who: string;
 };
 
+export type CallTranscriptItem = {
+	time: number;
+	source: "user" | "assistant";
+	text: string;
+};
+
 export type Call = {
 	id: CallId;
 	startedAt: number;
@@ -142,6 +148,13 @@ export interface CallsService {
 	saveDialogue(input: CallDialogueInput): Promise<void>;
 	/** Stored transcript for a call, ordered chronologically. */
 	getDialogue(id: CallId): Promise<CallDialogueItem[]>;
+	/**
+	 * Call transcript for the admin UI, read from ms-threads (the call id is the
+	 * thread id; the audio-gate persists each recognised phrase there). This is
+	 * the single call-facing transcript API — the gate must never be queried for
+	 * it directly.
+	 */
+	getTranscript(id: CallId): Promise<CallTranscriptItem[]>;
 	getCall(id: CallId): Promise<Call | undefined>;
 	/** Patch title/description/processed (used by the dialogue-summary workflow). */
 	updateCall(id: CallId, patch: UpdateCallInput): Promise<Call>;

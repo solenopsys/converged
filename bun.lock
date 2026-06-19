@@ -294,6 +294,7 @@
       "dependencies": {
         "back-core": "workspace:*",
         "g-calls": "workspace:*",
+        "g-threads": "workspace:*",
         "nrpc": "workspace:*",
       },
     },
