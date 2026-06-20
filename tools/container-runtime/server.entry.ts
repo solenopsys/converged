@@ -6,7 +6,16 @@ import { pathToFileURL } from "node:url";
 import type { CacheAdapter } from "../../back/back-core/src/server/createServer";
 import { installBackendLogBridge } from "../../back/back-core/src/server/logBridge";
 import { loadAiProvidersFromEnv } from "../../back/back-core/src/server/envConfig";
-import { runWithRequestScopeContext } from "../../back/back-core/src/request-context";
+import {
+	enterRequestScopeContext,
+	resolveRequestScopeFromHeaders,
+	runWithRequestScopeContext,
+} from "../../back/back-core/src/request-context";
+import {
+	assertSettings,
+	CLOUD_STORAGE_CHECKLIST,
+	printSettings,
+} from "../../back/back-core/src/config/settings";
 import { createValkeyCache } from "./valkey";
 import { createRuntimeImagesPlugin } from "./images.plugin";
 
@@ -105,6 +114,11 @@ async function importPlugin(path: string) {
 	return plugin as (cfg: any) => any;
 }
 
+// Startup checklist: validate every required setting before doing anything.
+// If a single one is missing/invalid the container crashes here with the full
+// list — production infrastructure must be fully configured, no fallbacks.
+assertSettings(CLOUD_STORAGE_CHECKLIST);
+
 process.env.BIN_LIBS_PATH = binLibsPath;
 process.env.PROJECT_DIR = projectDir;
 const servicesBaseUrl = requireEnvUrl(
@@ -160,6 +174,17 @@ const runtimeConfig = readRuntimeConfig(
 	process.env.CONFIG_PATH || resolve(appRoot, "config.json"),
 );
 const runtimeMicrofrontends = resolveRuntimeMicrofrontends(runtimeConfig);
+
+// Print the full effective configuration at startup for every container role.
+// (The MS transport connection-pool prints its own state from the storage layer
+// — it must not be imported here or the native libtransport would be pulled into
+// the UI bundle.)
+const containerRole = process.env.RT_RUNTIMES
+	? "RT"
+	: runtimeMap.spa?.plugin || runtimeMap.landing?.plugin
+		? "UI"
+		: "MS";
+printSettings(`container=${containerRole}`);
 
 const runtimeCacheConfig = runtimeMap.cache
 	? {
@@ -311,6 +336,18 @@ const hasFront = (() => {
 
 const app = new Elysia()
 	.use(cors({ origin: true }))
+	.onRequest(({ request }) => {
+		// Bind the request's storage scope for the whole async execution so SSR
+		// and the shared asset cache resolve the same tenant the request targets
+		// (Host/x-forwarded-host → WORKSPACE_DOMAIN_MAP). No fallback: if the
+		// scope can't be resolved, downstream storage calls fail loudly.
+		const headers: Record<string, string> = {};
+		request.headers.forEach((value, key) => {
+			headers[key] = value;
+		});
+		const scope = resolveRequestScopeFromHeaders(headers);
+		enterRequestScopeContext({ scope, workspace: scope, headers });
+	})
 	.onAfterHandle(({ set }) => {
 		// Override Vary: * set by CORS plugin — it prevents browser caching
 		// of static assets loaded via <script type="module"> (Sec-Fetch-Mode: cors)

@@ -1,10 +1,10 @@
 import {
 	NativeStorageConnectionPool,
 	StorageConnection,
-	type StorageConnectionTargetConfig as StorageConnectionConfig,
 	type StorageConnectionOptions,
 	type StoreTypeKey as TransportStoreTypeKey,
 } from "bun-transport";
+import { settings } from "../config/settings";
 import { ColumnStore } from "../engines/column/column-store";
 import { FileStore } from "../engines/files/file-store";
 import { JsonStore } from "../engines/json/json-store";
@@ -13,197 +13,27 @@ import { SqlStore } from "../engines/sql/sql-store";
 import { VectorStore } from "../engines/vector/vector-store";
 import type { Migration } from "../migrations";
 import { getCurrentStorageScope } from "../request-context";
+import {
+	isCloudStorageScopeRequired,
+	parseStorageHost,
+	resolveStorageConnectionTargetForScope,
+	type StorageConnectionTarget,
+	storageConnectionKey,
+} from "./connection-target";
 import type { Store, StoreSizeInfo } from "./types";
 import { StoreType } from "./types";
 
-type TenantStorageEndpoint =
-	| string
-	| StorageConnectionConfig
-	| { host: string; port?: number };
-export type StorageConnectionTarget = string | StorageConnectionConfig;
+// Re-export the pure connection-target helpers so existing consumers that import
+// them from "back-core" / "./create" keep working. The implementations live in
+// ./connection-target so the UI runtime can pull them via the Valkey cache
+// WITHOUT statically loading the native transport library. See that file's note.
+export {
+	isCloudStorageScopeRequired,
+	resolveStorageConnectionTargetForScope,
+	type StorageConnectionTarget,
+};
 
-const DEFAULT_STORAGE_TCP_PORT = 9000;
 const DEFAULT_STORAGE_SCOPE = "__default__";
-const STORAGE_SCOPE_REQUIRED_MESSAGE =
-	"Storage scope is required in cloud storage mode. Pass Host/x-forwarded-host or workspace/scope headers so the service can resolve the tenant storage.";
-
-let tenantStorageServicesRaw: string | undefined;
-let tenantStorageServicesCache: Record<string, TenantStorageEndpoint> = {};
-
-function readTenantStorageServices(): Record<string, TenantStorageEndpoint> {
-	if (!process.env.STORAGE_TENANT_SERVICES) return {};
-	if (tenantStorageServicesRaw === process.env.STORAGE_TENANT_SERVICES) {
-		return tenantStorageServicesCache;
-	}
-
-	tenantStorageServicesRaw = process.env.STORAGE_TENANT_SERVICES;
-	try {
-		const parsed = JSON.parse(process.env.STORAGE_TENANT_SERVICES) as Record<
-			string,
-			TenantStorageEndpoint
-		>;
-		tenantStorageServicesCache =
-			parsed && typeof parsed === "object" && !Array.isArray(parsed)
-				? parsed
-				: {};
-		return tenantStorageServicesCache;
-	} catch {
-		tenantStorageServicesCache = {};
-		return tenantStorageServicesCache;
-	}
-}
-
-function readTenantStorageEndpoint(
-	scope?: string,
-): TenantStorageEndpoint | undefined {
-	const services = readTenantStorageServices();
-	const tenant =
-		scope || process.env.STORAGE_SCOPE || process.env.STORAGE_TENANT;
-	if (tenant) {
-		return (
-			services[tenant] ??
-			(isCloudStorageScopeRequired() ? undefined : services.default)
-		);
-	}
-	return isCloudStorageScopeRequired() ? undefined : services.default;
-}
-
-function normalizeTcpPort(port: number | string | undefined): number {
-	const parsed =
-		typeof port === "number" ? port : Number.parseInt(port || "", 10);
-	return Number.isFinite(parsed) && parsed > 0
-		? parsed
-		: DEFAULT_STORAGE_TCP_PORT;
-}
-
-function parseStorageHost(
-	host: string,
-	port?: number,
-): StorageConnectionConfig {
-	if (host.startsWith("unix:")) {
-		return { kind: "unix", socketPath: host.slice("unix:".length) };
-	}
-	const tcpHost = host.startsWith("tcp:") ? host.slice("tcp:".length) : host;
-
-	const colonIndex = tcpHost.lastIndexOf(":");
-	if (colonIndex > 0 && colonIndex < tcpHost.length - 1) {
-		const parsedPort = Number.parseInt(tcpHost.slice(colonIndex + 1), 10);
-		if (Number.isFinite(parsedPort) && parsedPort > 0) {
-			return {
-				kind: "tcp",
-				host: tcpHost.slice(0, colonIndex),
-				port: parsedPort,
-			};
-		}
-	}
-
-	return {
-		kind: "tcp",
-		host: tcpHost,
-		port: normalizeTcpPort(port),
-	};
-}
-
-function storageEndpointToTarget(
-	endpoint: TenantStorageEndpoint,
-): StorageConnectionTarget {
-	if (typeof endpoint === "string") return parseStorageHost(endpoint);
-	if ("kind" in endpoint) return endpoint;
-	return parseStorageHost(endpoint.host, endpoint.port);
-}
-
-function storageConnectionKey(config: StorageConnectionTarget): string {
-	const normalized =
-		typeof config === "string"
-			? { kind: "unix" as const, socketPath: config }
-			: config;
-	return normalized.kind === "unix"
-		? `unix:${normalized.socketPath}`
-		: `tcp:${normalized.host}:${normalized.port}`;
-}
-
-function discoverStorageHosts(): string[] {
-	const prefix = process.env.STORAGE_SERVICE_PREFIX;
-	if (!prefix) return [];
-	const envPrefix = prefix.toUpperCase().replace(/-/g, "_") + "_";
-	const envSuffix = "_SERVICE_HOST";
-	const hosts: string[] = [];
-	for (const key of Object.keys(process.env)) {
-		if (key.startsWith(envPrefix) && key.endsWith(envSuffix)) {
-			const mid = key.slice(envPrefix.length, -envSuffix.length);
-			hosts.push(`${prefix}-${mid.toLowerCase().replace(/_/g, "-")}`);
-		}
-	}
-	return hosts;
-}
-
-export function isCloudStorageScopeRequired(): boolean {
-	const transport =
-		process.env.STORAGE_TRANSPORT || process.env.STORAGE_CONNECTION_KIND;
-	if (transport !== "tcp") return false;
-	if (process.env.STORAGE_TCP_HOST || process.env.STORAGE_HOST) return false;
-	if (process.env.STORAGE_SCOPE || process.env.STORAGE_TENANT) return false;
-	return Boolean(
-		process.env.STORAGE_SERVICE_PREFIX || process.env.STORAGE_TENANT_SERVICES,
-	);
-}
-
-function assertStorageScope(scope?: string): void {
-	if (!scope && isCloudStorageScopeRequired()) {
-		throw new Error(STORAGE_SCOPE_REQUIRED_MESSAGE);
-	}
-}
-
-function readStorageConnectionConfig(): StorageConnectionTarget {
-	assertStorageScope();
-
-	const tenantEndpoint = readTenantStorageEndpoint();
-	if (tenantEndpoint) {
-		return storageEndpointToTarget(tenantEndpoint);
-	}
-
-	const transport =
-		process.env.STORAGE_TRANSPORT || process.env.STORAGE_CONNECTION_KIND;
-	if (transport === "tcp") {
-		const discovered = discoverStorageHosts();
-		return {
-			kind: "tcp",
-			host:
-				process.env.STORAGE_TCP_HOST ||
-				process.env.STORAGE_HOST ||
-				discovered[0] ||
-				"127.0.0.1",
-			port: normalizeTcpPort(
-				process.env.STORAGE_TCP_PORT || process.env.STORAGE_PORT,
-			),
-		};
-	}
-	return process.env.STORAGE_SOCKET_PATH || "/tmp/storage.sock";
-}
-
-function readStorageConnectionConfigForScope(
-	scope?: string,
-): StorageConnectionTarget {
-	assertStorageScope(scope);
-
-	const tenantEndpoint = readTenantStorageEndpoint(scope);
-	if (tenantEndpoint) {
-		return storageEndpointToTarget(tenantEndpoint);
-	}
-	const prefix = process.env.STORAGE_SERVICE_PREFIX;
-	const transport =
-		process.env.STORAGE_TRANSPORT || process.env.STORAGE_CONNECTION_KIND;
-	if (prefix && scope && transport === "tcp") {
-		return {
-			kind: "tcp",
-			host: `${prefix}-${scope}`,
-			port: normalizeTcpPort(
-				process.env.STORAGE_TCP_PORT || process.env.STORAGE_PORT,
-			),
-		};
-	}
-	return readStorageConnectionConfig();
-}
 
 interface StoragePoolEntry {
 	key: string;
@@ -230,7 +60,7 @@ export class StorageConnectionPool {
 	}
 
 	private resolveDefaultConfig(): StorageConnectionTarget {
-		return this.defaultConfig ?? readStorageConnectionConfig();
+		return this.defaultConfig ?? resolveStorageConnectionTargetForScope();
 	}
 
 	addHost(host: string, port?: number): StorageConnection {
@@ -251,7 +81,22 @@ export class StorageConnectionPool {
 			this.options,
 		);
 		this.entries.set(key, { key, config, conn, refs: 0 });
+		this.logPoolState("connection.added", key);
 		return conn;
+	}
+
+	// The transport connection pool is a key piece of MS runtime state, so its
+	// composition is logged as parameters whenever it changes.
+	private logPoolState(event: string, key: string): void {
+		const entries = this.list();
+		const params = entries
+			.map((entry) => `${entry.key}(refs=${entry.refs})`)
+			.join(" ");
+		console.log(
+			`[storage-pool] ${event} key=${key} connections=${entries.length}${
+				params ? ` | ${params}` : ""
+			}`,
+		);
 	}
 
 	getConnection(host?: string): StorageConnection {
@@ -271,7 +116,7 @@ export class StorageConnectionPool {
 
 	getConnectionForScope(scope?: string): StoragePoolLease {
 		const config = scope
-			? readStorageConnectionConfigForScope(scope)
+			? resolveStorageConnectionTargetForScope(scope)
 			: this.resolveDefaultConfig();
 		const key = storageConnectionKey(config);
 		return {
@@ -310,6 +155,7 @@ export class StorageConnectionPool {
 		entry.conn.close();
 		this.nativePool.remove(key);
 		this.entries.delete(key);
+		this.logPoolState("connection.removed", key);
 		return true;
 	}
 
@@ -341,6 +187,36 @@ export class StorageConnectionPool {
 
 export const storageConnectionPool = new StorageConnectionPool();
 
+// Print the current transport connection pool state as parameters. Called at
+// container startup (the pool is lazy, so it is usually empty until the first
+// scoped request — subsequent changes are logged by the pool itself).
+export function printStoragePool(
+	label: string,
+	log: (message: string) => void = console.log,
+): void {
+	const entries = storageConnectionPool.list();
+	log(
+		`[storage-pool] ${label}: transport=${settings.storage.transport()} ` +
+			`hostSource=${settings.storage.servicePrefix() ? `prefix:${settings.storage.servicePrefix()}` : `host:${settings.storage.host() ?? "-"}`} ` +
+			`storagePort=${settings.storage.port()} valkeyPort=${settings.cache.valkeyPort()} ` +
+			`valkeyDb=${settings.cache.valkeyDatabase()} connections=${entries.length}`,
+	);
+	for (const entry of entries) {
+		log(`[storage-pool]   ${entry.key} refs=${entry.refs}`);
+	}
+}
+
+// This module is only loaded in containers that actually talk to storage (MS/RT
+// service plugins), never in the UI bundle. Printing the initial pool state here
+// gives every storage-bearing container a startup line without the UI runtime
+// having to import (and thus bundle) the native transport.
+try {
+	printStoragePool("startup");
+} catch {
+	// Storage settings not configured (tests/tooling importing this module). The
+	// real MS/RT container validates settings at startup before loading plugins.
+}
+
 export function addStorageConnection(
 	host: string,
 	port?: number,
@@ -356,14 +232,6 @@ export function getStorageConnectionForScope(
 	scope?: string,
 ): StorageConnection {
 	return storageConnectionPool.getConnectionForScope(scope).conn;
-}
-
-export function resolveStorageConnectionTargetForScope(
-	scope?: string,
-): StorageConnectionTarget {
-	return scope
-		? readStorageConnectionConfigForScope(scope)
-		: readStorageConnectionConfig();
 }
 
 export function disconnectStorageConnection(host: string): boolean {

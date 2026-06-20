@@ -1,19 +1,16 @@
 import type { CacheAdapter } from "./createServer";
+import { settings } from "../config/settings";
 import { getCurrentStorageScope } from "../request-context";
 import {
 	resolveStorageConnectionTargetForScope,
 	type StorageConnectionTarget,
-} from "../stores/create";
+} from "../stores/connection-target";
 
 export interface RuntimeCacheConfig {
 	url?: string;
 	keyPrefix?: string;
 	defaultTtlSeconds?: number;
-	port?: number;
-	database?: number;
 }
-
-const DEFAULT_VALKEY_PORT = 6379;
 
 function normalizeSegment(segment: string | number): string {
 	return encodeURIComponent(String(segment));
@@ -27,48 +24,13 @@ function toBytes(value: unknown): Uint8Array | null {
 	return new Uint8Array(value as ArrayBufferLike);
 }
 
-function normalizePositiveInt(value: unknown, fallback: number): number {
-	const parsed =
-		typeof value === "number" ? value : Number.parseInt(String(value ?? ""), 10);
-	return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
-}
-
-function normalizeNonNegativeInt(value: unknown, fallback: number): number {
-	const parsed =
-		typeof value === "number" ? value : Number.parseInt(String(value ?? ""), 10);
-	return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : fallback;
-}
-
-function cachePort(config: RuntimeCacheConfig): number {
-	return normalizePositiveInt(
-		process.env.STORAGE_VALKEY_PORT ?? process.env.VALKEY_PORT ?? config.port,
-		DEFAULT_VALKEY_PORT,
-	);
-}
-
-function cacheDatabase(config: RuntimeCacheConfig): number {
-	return normalizeNonNegativeInt(
-		process.env.STORAGE_VALKEY_DATABASE ??
-			process.env.STORAGE_VALKEY_DB ??
-			process.env.VALKEY_DATABASE ??
-			config.database,
-		0,
-	);
-}
-
 function storageTargetHost(target: StorageConnectionTarget): string {
-	if (typeof target === "string") {
-		const host = process.env.STORAGE_VALKEY_HOST?.trim();
-		if (host) return host;
+	// Valkey is co-located with the storage node for the current scope: same
+	// host as the resolved tcp storage target. No fallback host — if the target
+	// is not tcp, the storage env is misconfigured and we fail loudly.
+	if (typeof target === "string" || target.kind !== "tcp") {
 		throw new Error(
-			"Scoped Valkey cache over unix storage requires STORAGE_VALKEY_HOST",
-		);
-	}
-	if (target.kind === "unix") {
-		const host = process.env.STORAGE_VALKEY_HOST?.trim();
-		if (host) return host;
-		throw new Error(
-			"Scoped Valkey cache over unix storage requires STORAGE_VALKEY_HOST",
+			`Valkey cache requires a tcp storage target, got: ${JSON.stringify(target)}`,
 		);
 	}
 	return target.host;
@@ -78,7 +40,8 @@ function storageCacheUrl(config: RuntimeCacheConfig): string {
 	if (config.url?.trim()) return config.url.trim();
 	const scope = getCurrentStorageScope();
 	const target = resolveStorageConnectionTargetForScope(scope);
-	return `redis://${storageTargetHost(target)}:${cachePort(config)}/${cacheDatabase(config)}`;
+	const host = storageTargetHost(target);
+	return `redis://${host}:${settings.cache.valkeyPort()}/${settings.cache.valkeyDatabase()}`;
 }
 
 function createRedisClient(url: string): Bun.RedisClient {
@@ -91,13 +54,18 @@ function createRedisClient(url: string): Bun.RedisClient {
 
 export function createBunRedisCache(config: RuntimeCacheConfig): CacheAdapter {
 	const clients = new Map<string, Bun.RedisClient>();
-	const keyPrefix = config.keyPrefix?.trim() || "cache";
-	const defaultTtlSeconds =
-		Number.isFinite(config.defaultTtlSeconds) &&
-		(config.defaultTtlSeconds ?? 0) > 0
-			? Math.floor(config.defaultTtlSeconds!)
-			: 120;
-	const label = config.url?.trim() || "storage-scope";
+	const keyPrefix = config.keyPrefix?.trim();
+	if (!keyPrefix) {
+		throw new Error("Cache keyPrefix is required (runtime-map [cache].keyPrefix)");
+	}
+	const ttl = config.defaultTtlSeconds;
+	if (typeof ttl !== "number" || !Number.isFinite(ttl) || ttl <= 0) {
+		throw new Error(
+			"Cache defaultTtlSeconds is required and must be a positive integer (runtime-map [cache].ssrTtlSeconds)",
+		);
+	}
+	const defaultTtlSeconds = Math.floor(ttl);
+	const label = config.url?.trim() ?? "storage-scope";
 
 	const client = (): Bun.RedisClient => {
 		const url = storageCacheUrl(config);

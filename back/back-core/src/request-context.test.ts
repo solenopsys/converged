@@ -136,40 +136,42 @@ describe("request scope context", () => {
 	});
 
 	test("resolves storage endpoint from tenant services by scope", () => {
-		const previous = process.env.STORAGE_TENANT_SERVICES;
-		process.env.STORAGE_TENANT_SERVICES = JSON.stringify({
-			default: { host: "storage-default", port: 9000 },
-			"tenant-a": { host: "storage-a", port: 9001 },
-			"tenant-b": "tcp:storage-b:9002",
-		});
-
-		try {
-			expect(resolveStorageConnectionTargetForScope("tenant-a")).toEqual({
-				kind: "tcp",
-				host: "storage-a",
-				port: 9001,
-			});
-			expect(resolveStorageConnectionTargetForScope("tenant-b")).toEqual({
-				kind: "tcp",
-				host: "storage-b",
-				port: 9002,
-			});
-		} finally {
-			if (previous === undefined) {
-				delete process.env.STORAGE_TENANT_SERVICES;
-			} else {
-				process.env.STORAGE_TENANT_SERVICES = previous;
-			}
-		}
+		withEnv(
+			{
+				STORAGE_TRANSPORT: "tcp",
+				STORAGE_PORT: "9000",
+				STORAGE_SERVICE_PREFIX: undefined,
+				STORAGE_HOST: undefined,
+				STORAGE_SCOPE: undefined,
+				STORAGE_TENANT: undefined,
+				STORAGE_TENANT_SERVICES: JSON.stringify({
+					default: { host: "storage-default", port: 9000 },
+					"tenant-a": { host: "storage-a", port: 9001 },
+					"tenant-b": "tcp:storage-b:9002",
+				}),
+			},
+			() => {
+				expect(resolveStorageConnectionTargetForScope("tenant-a")).toEqual({
+					kind: "tcp",
+					host: "storage-a",
+					port: 9001,
+				});
+				expect(resolveStorageConnectionTargetForScope("tenant-b")).toEqual({
+					kind: "tcp",
+					host: "storage-b",
+					port: 9002,
+				});
+			},
+		);
 	});
 
 	test("registers stores without connecting to default storage outside request scope", async () => {
 		await withEnv(
 			{
 				STORAGE_TRANSPORT: "tcp",
+				STORAGE_PORT: "9000",
 				STORAGE_SERVICE_PREFIX: "converged-storage",
 				NRPC_WORKSPACE: "default",
-				STORAGE_TCP_HOST: undefined,
 				STORAGE_HOST: undefined,
 				STORAGE_SCOPE: undefined,
 				STORAGE_TENANT: undefined,
@@ -186,9 +188,9 @@ describe("request scope context", () => {
 		await withEnv(
 			{
 				STORAGE_TRANSPORT: "tcp",
+				STORAGE_PORT: "9000",
 				STORAGE_SERVICE_PREFIX: "converged-storage",
 				NRPC_WORKSPACE: "default",
-				STORAGE_TCP_HOST: undefined,
 				STORAGE_HOST: undefined,
 				STORAGE_SCOPE: undefined,
 				STORAGE_TENANT: undefined,
@@ -199,10 +201,10 @@ describe("request scope context", () => {
 				await stores.init();
 				await expect(stores.startAll()).resolves.toBeUndefined();
 				await expect(stores.getStoreSize("items")).rejects.toThrow(
-					/Storage scope is required in cloud storage mode/,
+					/Storage scope is required/,
 				);
 				expect(() => resolveStorageConnectionTargetForScope()).toThrow(
-					/Storage scope is required in cloud storage mode/,
+					/Storage scope is required/,
 				);
 			},
 		);
@@ -212,8 +214,8 @@ describe("request scope context", () => {
 		withEnv(
 			{
 				STORAGE_TRANSPORT: "tcp",
+				STORAGE_PORT: "9000",
 				STORAGE_SERVICE_PREFIX: "converged-storage",
-				STORAGE_TCP_HOST: undefined,
 				STORAGE_HOST: undefined,
 				STORAGE_SCOPE: undefined,
 				STORAGE_TENANT: undefined,
@@ -233,18 +235,18 @@ describe("request scope context", () => {
 		withEnv(
 			{
 				STORAGE_TRANSPORT: "tcp",
+				STORAGE_PORT: "9000",
 				STORAGE_SERVICE_PREFIX: "converged-storage",
 				STORAGE_TENANT_SERVICES: JSON.stringify({
 					default: { host: "storage-default", port: 9000 },
 				}),
-				STORAGE_TCP_HOST: undefined,
 				STORAGE_HOST: undefined,
 				STORAGE_SCOPE: undefined,
 				STORAGE_TENANT: undefined,
 			},
 			() => {
 				expect(() => resolveStorageConnectionTargetForScope()).toThrow(
-					/Storage scope is required in cloud storage mode/,
+					/Storage scope is required/,
 				);
 				expect(resolveStorageConnectionTargetForScope("democnc")).toEqual({
 					kind: "tcp",
@@ -255,13 +257,13 @@ describe("request scope context", () => {
 		);
 	});
 
-	test("still allows fixed storage host without request scope", async () => {
+	test("allows fixed storage host without request scope", async () => {
 		await withEnv(
 			{
 				STORAGE_TRANSPORT: "tcp",
-				STORAGE_SERVICE_PREFIX: "converged-storage",
-				STORAGE_TCP_HOST: "fixed-storage",
-				STORAGE_HOST: undefined,
+				STORAGE_PORT: "9000",
+				STORAGE_SERVICE_PREFIX: undefined,
+				STORAGE_HOST: "fixed-storage",
 				STORAGE_SCOPE: undefined,
 				STORAGE_TENANT: undefined,
 				STORAGE_TENANT_SERVICES: undefined,

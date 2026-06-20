@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
+import { settings } from "./config/settings";
 import { resolveWorkspaceFromHeaders } from "./workspace-domain";
 
 export const REQUEST_SCOPE_HEADER = "scope";
@@ -50,11 +51,10 @@ function resolveWorkspaceScopeFromHeaders(
 		readHeader(headers, "x-forwarded-host") ?? readHeader(headers, "host");
 	if (!host) return undefined;
 
+	// Domain→workspace map comes from the settings controller only. When it is
+	// not configured the map is empty and the host resolves to no workspace.
 	return resolveWorkspaceFromHeaders(headers, {
-		env: {
-			WORKSPACE_DOMAIN_MAP: process.env.WORKSPACE_DOMAIN_MAP,
-			NRPC_WORKSPACE_DOMAIN_MAP: process.env.NRPC_WORKSPACE_DOMAIN_MAP,
-		},
+		map: settings.scope.workspaceDomainMapOptional() ?? {},
 	});
 }
 
@@ -98,4 +98,11 @@ export function runWithRequestScopeContext<T>(
 	callback: () => T,
 ): T {
 	return storage.run(context, callback);
+}
+
+// Set the request scope for the remainder of the current async execution
+// (e.g. from an HTTP onRequest hook), without wrapping a callback. Used by the
+// UI runtime so SSR and shared-cache calls run under the request's scope.
+export function enterRequestScopeContext(context: RequestScopeContext): void {
+	storage.enterWith(context);
 }
