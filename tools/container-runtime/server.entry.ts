@@ -261,9 +261,10 @@ const pluginConfig = {
 		shutdownTasks.push({ name, task });
 	},
 	runWithContext: (context: any, callback: () => any) =>
+		// Boundary: nrpc passes the scope as `workspace` on the wire — map it to
+		// our single `scope` here.
 		runWithRequestScopeContext(
 			{
-				workspace: context?.workspace,
 				scope: context?.scope ?? context?.workspace,
 				headers: context?.headers,
 			},
@@ -346,7 +347,7 @@ const app = new Elysia()
 			headers[key] = value;
 		});
 		const scope = resolveRequestScopeFromHeaders(headers);
-		enterRequestScopeContext({ scope, workspace: scope, headers });
+		enterRequestScopeContext({ scope, headers });
 	})
 	.onAfterHandle(({ set }) => {
 		// Override Vary: * set by CORS plugin — it prevents browser caching

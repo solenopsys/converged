@@ -195,11 +195,12 @@ export function printStoragePool(
 	log: (message: string) => void = console.log,
 ): void {
 	const entries = storageConnectionPool.list();
+	const scopes = Object.keys(
+		settings.storage.tenantServices<Record<string, unknown>>(),
+	);
 	log(
-		`[storage-pool] ${label}: transport=${settings.storage.transport()} ` +
-			`hostSource=${settings.storage.servicePrefix() ? `prefix:${settings.storage.servicePrefix()}` : `host:${settings.storage.host() ?? "-"}`} ` +
-			`storagePort=${settings.storage.port()} valkeyPort=${settings.cache.valkeyPort()} ` +
-			`valkeyDb=${settings.cache.valkeyDatabase()} connections=${entries.length}`,
+		`[storage-pool] ${label}: valkeyPort=${settings.cache.valkeyPort()} ` +
+			`scopes=[${scopes.join(",")}] connections=${entries.length}`,
 	);
 	for (const entry of entries) {
 		log(`[storage-pool]   ${entry.key} refs=${entry.refs}`);

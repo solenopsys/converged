@@ -135,47 +135,14 @@ describe("request scope context", () => {
 		});
 	});
 
-	test("resolves storage endpoint from tenant services by scope", () => {
-		withEnv(
-			{
-				STORAGE_TRANSPORT: "tcp",
-				STORAGE_PORT: "9000",
-				STORAGE_SERVICE_PREFIX: undefined,
-				STORAGE_HOST: undefined,
-				STORAGE_SCOPE: undefined,
-				STORAGE_TENANT: undefined,
-				STORAGE_TENANT_SERVICES: JSON.stringify({
-					default: { host: "storage-default", port: 9000 },
-					"tenant-a": { host: "storage-a", port: 9001 },
-					"tenant-b": "tcp:storage-b:9002",
-				}),
-			},
-			() => {
-				expect(resolveStorageConnectionTargetForScope("tenant-a")).toEqual({
-					kind: "tcp",
-					host: "storage-a",
-					port: 9001,
-				});
-				expect(resolveStorageConnectionTargetForScope("tenant-b")).toEqual({
-					kind: "tcp",
-					host: "storage-b",
-					port: 9002,
-				});
-			},
-		);
-	});
-
 	test("registers stores without connecting to default storage outside request scope", async () => {
 		await withEnv(
 			{
-				STORAGE_TRANSPORT: "tcp",
-				STORAGE_PORT: "9000",
-				STORAGE_SERVICE_PREFIX: "converged-storage",
+				STORAGE_TENANT_SERVICES: JSON.stringify({
+					democnc: { host: "converged-storage-democnc", port: 9000 },
+				}),
 				NRPC_WORKSPACE: "default",
-				STORAGE_HOST: undefined,
 				STORAGE_SCOPE: undefined,
-				STORAGE_TENANT: undefined,
-				STORAGE_TENANT_SERVICES: undefined,
 			},
 			async () => {
 				const stores = new TestStoresController("test-ms");
@@ -184,17 +151,14 @@ describe("request scope context", () => {
 		);
 	});
 
-	test("fails storage operations without scope in cloud storage mode", async () => {
+	test("fails storage operations without scope", async () => {
 		await withEnv(
 			{
-				STORAGE_TRANSPORT: "tcp",
-				STORAGE_PORT: "9000",
-				STORAGE_SERVICE_PREFIX: "converged-storage",
+				STORAGE_TENANT_SERVICES: JSON.stringify({
+					democnc: { host: "converged-storage-democnc", port: 9000 },
+				}),
 				NRPC_WORKSPACE: "default",
-				STORAGE_HOST: undefined,
 				STORAGE_SCOPE: undefined,
-				STORAGE_TENANT: undefined,
-				STORAGE_TENANT_SERVICES: undefined,
 			},
 			async () => {
 				const stores = new TestStoresController("test-ms");
@@ -210,44 +174,15 @@ describe("request scope context", () => {
 		);
 	});
 
-	test("resolves cloud storage target only from explicit scope", () => {
+	test("resolves storage host from the tenant-services mapping by scope", () => {
 		withEnv(
 			{
-				STORAGE_TRANSPORT: "tcp",
-				STORAGE_PORT: "9000",
-				STORAGE_SERVICE_PREFIX: "converged-storage",
-				STORAGE_HOST: undefined,
-				STORAGE_SCOPE: undefined,
-				STORAGE_TENANT: undefined,
-				STORAGE_TENANT_SERVICES: undefined,
-			},
-			() => {
-				expect(resolveStorageConnectionTargetForScope("democnc")).toEqual({
-					kind: "tcp",
-					host: "converged-storage-democnc",
-					port: 9000,
-				});
-			},
-		);
-	});
-
-	test("does not use tenant default endpoint in cloud storage mode", () => {
-		withEnv(
-			{
-				STORAGE_TRANSPORT: "tcp",
-				STORAGE_PORT: "9000",
-				STORAGE_SERVICE_PREFIX: "converged-storage",
 				STORAGE_TENANT_SERVICES: JSON.stringify({
-					default: { host: "storage-default", port: 9000 },
+					democnc: { host: "converged-storage-democnc", port: 9000 },
 				}),
-				STORAGE_HOST: undefined,
 				STORAGE_SCOPE: undefined,
-				STORAGE_TENANT: undefined,
 			},
 			() => {
-				expect(() => resolveStorageConnectionTargetForScope()).toThrow(
-					/Storage scope is required/,
-				);
 				expect(resolveStorageConnectionTargetForScope("democnc")).toEqual({
 					kind: "tcp",
 					host: "converged-storage-democnc",
@@ -257,23 +192,18 @@ describe("request scope context", () => {
 		);
 	});
 
-	test("allows fixed storage host without request scope", async () => {
-		await withEnv(
+	test("fails when the scope has no entry in the mapping", () => {
+		withEnv(
 			{
-				STORAGE_TRANSPORT: "tcp",
-				STORAGE_PORT: "9000",
-				STORAGE_SERVICE_PREFIX: undefined,
-				STORAGE_HOST: "fixed-storage",
+				STORAGE_TENANT_SERVICES: JSON.stringify({
+					democnc: { host: "converged-storage-democnc", port: 9000 },
+				}),
 				STORAGE_SCOPE: undefined,
-				STORAGE_TENANT: undefined,
-				STORAGE_TENANT_SERVICES: undefined,
 			},
-			async () => {
-				expect(resolveStorageConnectionTargetForScope()).toEqual({
-					kind: "tcp",
-					host: "fixed-storage",
-					port: 9000,
-				});
+			() => {
+				expect(() => resolveStorageConnectionTargetForScope("unknown")).toThrow(
+					/No storage endpoint for scope "unknown"/,
+				);
 			},
 		);
 	});

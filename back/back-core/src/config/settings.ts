@@ -33,25 +33,6 @@ function requireInt(name: string): number {
 	return parsed;
 }
 
-function optionalInt(name: string): number | undefined {
-	const value = raw(name);
-	if (value === undefined) return undefined;
-	const parsed = Number.parseInt(value, 10);
-	if (!Number.isFinite(parsed)) {
-		throw new SettingsError(`Env ${name} must be an integer, got "${value}"`);
-	}
-	return parsed;
-}
-
-function requireEnum<T extends string>(name: string, allowed: readonly T[]): T {
-	const value = requireRaw(name);
-	if (!(allowed as readonly string[]).includes(value)) {
-		throw new SettingsError(
-			`Env ${name} must be one of [${allowed.join(", ")}], got "${value}"`,
-		);
-	}
-	return value as T;
-}
 
 function requireJsonRecord(name: string): Record<string, string> {
 	const value = requireRaw(name);
@@ -82,6 +63,20 @@ function optionalJsonRecord<T>(name: string): T | undefined {
 	return parsed as T;
 }
 
+function requireJsonObject<T>(name: string): T {
+	const value = requireRaw(name);
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(value);
+	} catch {
+		throw new SettingsError(`Env ${name} must be valid JSON`);
+	}
+	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+		throw new SettingsError(`Env ${name} must be a JSON object`);
+	}
+	return parsed as T;
+}
+
 export const settings = {
 	core: {
 		accessJwtSecret: () => requireRaw("ACCESS_JWT_SECRET"),
@@ -92,20 +87,15 @@ export const settings = {
 		dataDir: () => requireRaw("DATA_DIR"),
 	},
 	storage: {
-		transport: () => requireEnum("STORAGE_TRANSPORT", ["tcp", "unix"] as const),
-		port: () => requireInt("STORAGE_PORT"),
-		// Exactly one host source is configured per deployment:
-		//  - cloud:  STORAGE_SERVICE_PREFIX → host = `${prefix}-${scope}`
-		//  - single: STORAGE_HOST           → fixed host
-		servicePrefix: () => raw("STORAGE_SERVICE_PREFIX"),
-		host: () => raw("STORAGE_HOST"),
-		socketPath: () => raw("STORAGE_SOCKET_PATH"),
+		// scope → storage endpoint ({host, port}). The host is named here directly;
+		// the scope comes from the WORKSPACE_DOMAIN_MAP mapping (Host → scope).
+		tenantServices: <T>() => requireJsonObject<T>("STORAGE_TENANT_SERVICES"),
+		// Optional single scope pin (non-HTTP contexts); normally scope is per-request.
 		explicitScope: () => raw("STORAGE_SCOPE"),
-		tenantServices: <T>() => optionalJsonRecord<T>("STORAGE_TENANT_SERVICES"),
 	},
 	cache: {
+		// Valkey is co-located with the storage host; only its port is configured.
 		valkeyPort: () => requireInt("STORAGE_VALKEY_PORT"),
-		valkeyDatabase: () => requireInt("STORAGE_VALKEY_DATABASE"),
 	},
 	scope: {
 		workspaceDomainMap: () => requireJsonRecord("WORKSPACE_DOMAIN_MAP"),
@@ -139,17 +129,10 @@ export const SETTINGS_REGISTRY: SettingDescriptor[] = [
 	{ name: "ACCESS_JWT_SECRET", secret: true },
 	{ name: "SERVICE_TOKEN", secret: true },
 	// storage
-	{ name: "STORAGE_TRANSPORT" },
-	{ name: "STORAGE_PORT" },
-	{ name: "STORAGE_SERVICE_PREFIX" },
-	{ name: "STORAGE_HOST" },
-	{ name: "STORAGE_SOCKET_PATH" },
-	{ name: "STORAGE_SCOPE" },
-	{ name: "STORAGE_TENANT" },
 	{ name: "STORAGE_TENANT_SERVICES" },
+	{ name: "STORAGE_SCOPE" },
 	// cache (valkey)
 	{ name: "STORAGE_VALKEY_PORT" },
-	{ name: "STORAGE_VALKEY_DATABASE" },
 	// scope routing
 	{ name: "WORKSPACE_DOMAIN_MAP" },
 	// ai providers
@@ -213,21 +196,7 @@ export function assertSettings(checklist: Array<() => unknown>): void {
 export const CLOUD_STORAGE_CHECKLIST: Array<() => unknown> = [
 	settings.core.accessJwtSecret,
 	settings.core.servicesBase,
-	settings.storage.transport,
-	settings.storage.port,
 	settings.cache.valkeyPort,
-	settings.cache.valkeyDatabase,
 	settings.scope.workspaceDomainMap,
-	// Exactly one storage host source must be configured.
-	() => {
-		const prefix = settings.storage.servicePrefix();
-		const host = settings.storage.host();
-		if (!prefix && !host) {
-			throw new SettingsError(
-				"One of STORAGE_SERVICE_PREFIX or STORAGE_HOST must be set",
-			);
-		}
-	},
+	settings.storage.tenantServices,
 ];
-
-export { optionalInt };

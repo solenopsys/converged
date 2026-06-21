@@ -41,7 +41,7 @@ function storageCacheUrl(config: RuntimeCacheConfig): string {
 	const scope = getCurrentStorageScope();
 	const target = resolveStorageConnectionTargetForScope(scope);
 	const host = storageTargetHost(target);
-	return `redis://${host}:${settings.cache.valkeyPort()}/${settings.cache.valkeyDatabase()}`;
+	return `redis://${host}:${settings.cache.valkeyPort()}`;
 }
 
 function createRedisClient(url: string): Bun.RedisClient {

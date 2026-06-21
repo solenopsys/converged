@@ -1,7 +1,7 @@
 import {
   type CacheAdapter,
   galeryStaticCacheKey,
-  getCurrentRequestWorkspace,
+  getCurrentStorageScope,
   imageMimeFromPath,
 } from "back-core";
 import type {
@@ -123,8 +123,8 @@ export class GaleryServiceImpl implements GaleryService {
       return null;
     }
 
-    const workspace = getCurrentRequestWorkspace();
-    const key = galeryStaticCacheKey(this.cache, workspace, path);
+    const scope = getCurrentStorageScope();
+    const key = galeryStaticCacheKey(this.cache, scope, path);
     await this.cache.setBytes(key, data, STATIC_CACHE_TTL_SECONDS);
 
     return {

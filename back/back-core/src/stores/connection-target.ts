@@ -6,9 +6,9 @@
 // host. Pulling a runtime symbol from "bun-transport" here would force the
 // native libtransport-*.so to be dlopen()'d in the UI container.
 //
-// All env access goes through the settings controller — no fallbacks. A missing
-// or ambiguous storage configuration throws (the container should have already
-// failed its startup checklist).
+// The storage host comes from ONE place: the STORAGE_TENANT_SERVICES mapping,
+// keyed by scope (scope itself comes from the request Host → WORKSPACE_DOMAIN_MAP).
+// No prefix, no fixed-host variable — the mapping names the host directly.
 import type { StorageConnectionTargetConfig as StorageConnectionConfig } from "bun-transport";
 import { SettingsError, settings } from "../config/settings";
 
@@ -39,18 +39,20 @@ export function parseStorageHost(
 		}
 	}
 
-	// Port not encoded in the host string → take the canonical STORAGE_PORT.
-	// This is the required env value, not a literal fallback.
-	return { kind: "tcp", host: tcpHost, port: port ?? settings.storage.port() };
+	if (port === undefined) {
+		throw new SettingsError(
+			`Storage endpoint "${host}" has no port; specify it in STORAGE_TENANT_SERVICES`,
+		);
+	}
+	return { kind: "tcp", host: tcpHost, port };
 }
 
 function storageEndpointToTarget(
 	endpoint: TenantStorageEndpoint,
-	port: number,
 ): StorageConnectionTarget {
-	if (typeof endpoint === "string") return parseStorageHost(endpoint, port);
+	if (typeof endpoint === "string") return parseStorageHost(endpoint);
 	if ("kind" in endpoint) return endpoint;
-	return parseStorageHost(endpoint.host, endpoint.port ?? port);
+	return parseStorageHost(endpoint.host, endpoint.port);
 }
 
 export function storageConnectionKey(config: StorageConnectionTarget): string {
@@ -63,53 +65,30 @@ export function storageConnectionKey(config: StorageConnectionTarget): string {
 		: `tcp:${normalized.host}:${normalized.port}`;
 }
 
-// True when the deployment resolves storage per-tenant (cloud): tcp transport
-// with a service prefix and no fixed host / explicit scope. In that mode a scope
-// must be supplied for every storage operation.
+// Storage is resolved per-tenant from the mapping, so every operation needs a
+// scope (unless a single explicit scope is pinned via STORAGE_SCOPE).
 export function isCloudStorageScopeRequired(): boolean {
-	if (settings.storage.transport() !== "tcp") return false;
-	if (settings.storage.host()) return false;
-	if (settings.storage.explicitScope()) return false;
-	return Boolean(settings.storage.servicePrefix());
+	return !settings.storage.explicitScope();
 }
 
 export function resolveStorageConnectionTargetForScope(
 	scope?: string,
 ): StorageConnectionTarget {
-	if (settings.storage.transport() === "unix") {
-		const socketPath = settings.storage.socketPath();
-		if (!socketPath) {
-			throw new SettingsError(
-				"STORAGE_TRANSPORT=unix requires STORAGE_SOCKET_PATH",
-			);
-		}
-		return socketPath;
-	}
-
-	const port = settings.storage.port();
-	const effectiveScope = scope ?? settings.storage.explicitScope();
-
 	const tenantServices =
 		settings.storage.tenantServices<Record<string, TenantStorageEndpoint>>();
-	if (tenantServices && effectiveScope) {
-		const endpoint = tenantServices[effectiveScope];
-		if (endpoint) return storageEndpointToTarget(endpoint, port);
+
+	const effectiveScope = scope ?? settings.storage.explicitScope();
+	if (!effectiveScope) {
+		throw new SettingsError(
+			"Storage scope is required: pass workspace/scope headers (Host/x-forwarded-host → WORKSPACE_DOMAIN_MAP)",
+		);
 	}
 
-	const host = settings.storage.host();
-	if (host) return { kind: "tcp", host, port };
-
-	const prefix = settings.storage.servicePrefix();
-	if (prefix) {
-		if (!effectiveScope) {
-			throw new SettingsError(
-				"Storage scope is required: pass workspace/scope headers (Host/x-forwarded-host → WORKSPACE_DOMAIN_MAP)",
-			);
-		}
-		return { kind: "tcp", host: `${prefix}-${effectiveScope}`, port };
+	const endpoint = tenantServices[effectiveScope];
+	if (!endpoint) {
+		throw new SettingsError(
+			`No storage endpoint for scope "${effectiveScope}" in STORAGE_TENANT_SERVICES`,
+		);
 	}
-
-	throw new SettingsError(
-		"No storage host source configured: set STORAGE_HOST or STORAGE_SERVICE_PREFIX",
-	);
+	return storageEndpointToTarget(endpoint);
 }

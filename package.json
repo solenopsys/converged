@@ -33,7 +33,7 @@
     "@tabler/icons": "^3.44.0",
     "@tabler/icons-react": "^3.44.0",
     "@textea/json-viewer": "^4.0.1",
-    "@types/node": "^25.9.3",
+    "@types/node": "^25.9.4",
     "@typescript-eslint/typescript-estree": "^8.61.1",
     "@unocss/preset-icons": "^66.7.2",
     "@unocss/reset": "^66.7.2",

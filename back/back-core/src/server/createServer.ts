@@ -147,9 +147,10 @@ export function createServer({
 			shutdownTasks.push({ name, task });
 		},
 		runWithContext: (context: any, callback: () => any) =>
+			// Boundary: nrpc passes the scope as `workspace` on the wire — map it
+			// to our single `scope` here.
 			runWithRequestScopeContext(
 				{
-					workspace: context?.workspace,
 					scope: context?.scope ?? context?.workspace,
 					headers: context?.headers,
 				},

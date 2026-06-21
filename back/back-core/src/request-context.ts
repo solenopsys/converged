@@ -8,8 +8,9 @@ export const STORAGE_SCOPE_HEADER = "storage-scope";
 export const STORAGE_SCOPE_HEADER_ALT = "x-storage-scope";
 const REQUEST_SCOPE_STORAGE_GLOBAL_KEY = "__CONVERGED_REQUEST_SCOPE_STORAGE__";
 
+// There is ONE concept — the storage scope. "workspace" is only the nrpc wire
+// term for the same value; it is mapped to `scope` at the request boundary.
 export interface RequestScopeContext {
-	workspace?: string;
 	scope?: string;
 	headers?: Record<string, string | undefined>;
 }
@@ -72,25 +73,11 @@ export function resolveRequestScopeFromHeaders(
 	);
 }
 
-export function getCurrentRequestContext(): RequestScopeContext | undefined {
-	return storage.getStore();
-}
-
-export function getCurrentRequestScope(): string | undefined {
-	return storage.getStore()?.scope;
-}
-
-export function getCurrentRequestWorkspace(): string | undefined {
-	return storage.getStore()?.workspace;
-}
-
+// The single accessor for the current scope. Resolves from the bound context,
+// falling back to the request headers (scope/workspace header → domain map).
 export function getCurrentStorageScope(): string | undefined {
 	const context = storage.getStore();
-	return (
-		context?.scope ??
-		context?.workspace ??
-		resolveRequestScopeFromHeaders(context?.headers)
-	);
+	return context?.scope ?? resolveRequestScopeFromHeaders(context?.headers);
 }
 
 export function runWithRequestScopeContext<T>(
