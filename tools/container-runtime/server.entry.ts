@@ -8,6 +8,7 @@ import { installBackendLogBridge } from "../../back/back-core/src/server/logBrid
 import { loadAiProvidersFromEnv } from "../../back/back-core/src/server/envConfig";
 import {
 	enterRequestScopeContext,
+	getCurrentStorageScope,
 	resolveRequestScopeFromHeaders,
 	runWithRequestScopeContext,
 } from "../../back/back-core/src/request-context";
@@ -164,6 +165,19 @@ process.env.SERVICE_TOKEN = await generateServiceToken(
 	serviceToken: process.env.SERVICE_TOKEN,
 	headers: (globalThis as any).__NRPC_CLIENT_ENV__?.headers,
 };
+
+// Propagate the storage scope onto every nrpc call to the services. Without this
+// the scope set on the incoming request (UI/MS, per-request header mechanism) or
+// pinned for a per-tenant runtime (STORAGE_SCOPE) never reaches service-to-service
+// calls, so the callee falls back to no scope and storage resolution fails.
+//   - In an HTTP request: getCurrentStorageScope() returns the request's scope.
+//   - In a runtime cron/workflow (no request): it falls back to STORAGE_SCOPE,
+//     the single scope this per-tenant RT is bound to.
+const pinnedStorageScope = process.env.STORAGE_SCOPE?.trim() || undefined;
+const resolveNrpcScope = (): string | undefined =>
+	getCurrentStorageScope() ?? pinnedStorageScope;
+(globalThis as any).__NRPC_SCOPE_RESOLVER__ = resolveNrpcScope;
+(globalThis as any).__NRPC_WORKSPACE_RESOLVER__ = resolveNrpcScope;
 
 if (!existsSync(runtimeMapPath)) {
 	throw new Error(`Runtime map not found: ${runtimeMapPath}`);
