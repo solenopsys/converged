@@ -118,146 +118,34 @@
       ]
     }
   },
-  "presets": {
+  "sections": {
     "mono": {
-      "description": "One pod with ui + rt + ms + storage + cache",
-      "containers": [
-        {
-          "name": "services",
-          "microservices": "*",
-          "resources": {
-            "requests": {
-              "cpu": "100m",
-              "memory": "128Mi"
-            },
-            "limits": {
-              "cpu": "1000m",
-              "memory": "1Gi"
-            }
-          }
+      "type": "mono",
+      "description": "Single node, one client (ui + ms + rt + store + gate)",
+      "resources": {
+        "ms": {
+          "requests": { "cpu": "100m", "memory": "128Mi" },
+          "limits": { "cpu": "1000m", "memory": "1Gi" }
         }
+      }
+    },
+    "multi": {
+      "type": "multi",
+      "description": "One client across nodes; store sharded by scope",
+      "shards": [
+        { "name": "files", "scopes": ["files", "dumps"], "size": "200Gi" },
+        { "name": "main", "scopes": ["*"] }
       ]
     },
     "cloud": {
-      "description": "UI, runtime, services, cache and tenant storage in separate pods",
-      "containers": [
-        {
-          "name": "services",
-          "microservices": "*",
-          "resources": {
-            "requests": {
-              "cpu": "50m",
-              "memory": "128Mi"
-            },
-            "limits": {
-              "cpu": "1000m",
-              "memory": "1Gi"
-            }
-          }
+      "type": "cloud",
+      "description": "Multi-tenant SaaS; store and runtime provisioned per tenant by the operator",
+      "resources": {
+        "ms": {
+          "requests": { "cpu": "50m", "memory": "128Mi" },
+          "limits": { "cpu": "1000m", "memory": "1Gi" }
         }
-      ]
-    },
-    "multi": {
-      "description": "UI pod + runtime groups + domain-split services/storage pods",
-      "containers": [
-        {
-          "name": "ui-user-core",
-          "microservices": ["sequrity/*", "content/*"],
-          "resources": {
-            "requests": {
-              "cpu": "200m",
-              "memory": "256Mi"
-            },
-            "limits": {
-              "cpu": "1000m",
-              "memory": "1Gi"
-            }
-          }
-        },
-        {
-          "name": "ai-chat",
-          "microservices": ["ai/*", "communications/*"],
-          "resources": {
-            "requests": {
-              "cpu": "200m",
-              "memory": "256Mi"
-            },
-            "limits": {
-              "cpu": "1000m",
-              "memory": "1Gi"
-            }
-          }
-        },
-        {
-          "name": "dag-business",
-          "microservices": [
-            "automation/*",
-            "business/*",
-            "data/*",
-            "delivery/*",
-            "extractors/*",
-            "providers/*",
-            "social/*",
-            "convertors/*"
-          ],
-          "resources": {
-            "requests": {
-              "cpu": "300m",
-              "memory": "384Mi"
-            },
-            "limits": {
-              "cpu": "1500m",
-              "memory": "2Gi"
-            }
-          }
-        },
-        {
-          "name": "observability",
-          "microservices": [
-            "analytics/dashboard",
-            "analytics/logs",
-            "analytics/telemetry"
-          ],
-          "resources": {
-            "requests": {
-              "cpu": "100m",
-              "memory": "128Mi"
-            },
-            "limits": {
-              "cpu": "500m",
-              "memory": "256Mi"
-            }
-          }
-        },
-        {
-          "name": "automation",
-          "runtimes": ["automation/*"],
-          "resources": {
-            "requests": {
-              "cpu": "100m",
-              "memory": "128Mi"
-            },
-            "limits": {
-              "cpu": "1000m",
-              "memory": "1Gi"
-            }
-          }
-        },
-        {
-          "name": "ai",
-          "runtimes": ["ai/*"],
-          "resources": {
-            "requests": {
-              "cpu": "200m",
-              "memory": "256Mi"
-            },
-            "limits": {
-              "cpu": "2000m",
-              "memory": "2Gi"
-            }
-          }
-        }
-      ]
+      }
     }
   },
   "storage": {
@@ -265,7 +153,6 @@
     "mountBase": "/app/data",
     "port": 9000,
     "devPort": 9000,
-    "tenants": [],
     "resources": {
       "requests": {
         "cpu": "50m",
