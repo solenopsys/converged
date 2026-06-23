@@ -43,6 +43,27 @@ async function decodeMono(ctx: AudioContext, src: string | null): Promise<Float3
   return decoded.getChannelData(0);
 }
 
+/**
+ * Index just past the last audible sample. Each track is silence-trimmed on the
+ * backend, but a track with no "loud" frames at all (e.g. a near-silent AI side)
+ * is kept untrimmed there — which would inflate the player to the full raw
+ * length. Threshold is relative to the track's own peak (with an absolute floor)
+ * so a genuinely quiet track collapses to 0 while a real utterance is preserved.
+ */
+function lastSignalIndex(data: Float32Array | null): number {
+  if (!data || data.length === 0) return 0;
+  let peak = 0;
+  for (let i = 0; i < data.length; i++) {
+    const abs = Math.abs(data[i]);
+    if (abs > peak) peak = abs;
+  }
+  const threshold = Math.max(0.01, peak * 0.05);
+  for (let i = data.length - 1; i >= 0; i--) {
+    if (Math.abs(data[i]) > threshold) return i + 1;
+  }
+  return 0;
+}
+
 /** Downsample to `targetLen` bars, each = max abs amplitude in its window. */
 function buildPeaks(data: Float32Array | null, targetLen: number): Float32Array | null {
   if (!data || data.length === 0) return null;
@@ -104,6 +125,8 @@ function drawWaveform(
   canvas: HTMLCanvasElement,
   userPeaks: Float32Array | null,
   aiPeaks: Float32Array | null,
+  userFrac: number,
+  aiFrac: number,
   progress: number,
   userColor: string,
   aiColor: string,
@@ -121,18 +144,35 @@ function drawWaveform(
   ctx.fillStyle = "#ffffff10";
   ctx.fillRect(0, mid - 0.5, width, 1);
 
+  // Each track lives on the shared player timeline (total = max of both track
+  // durations); a track shorter than the total is silence-padded at the end by
+  // encodeStereoWav. So its peaks must occupy only [0, frac] of the width — not
+  // the whole canvas — or the waveform would not line up with the audio (and the
+  // playhead would appear to move at the "wrong" speed relative to the bars).
+  const sample = (peaks: Float32Array, f: number, frac: number): number => {
+    if (frac <= 0 || f >= frac) return -1; // past this track's content → empty tail
+    return peaks[Math.min(peaks.length - 1, Math.floor((f / frac) * peaks.length))];
+  };
+
   for (let i = 0; i < count; i++) {
-    const played = i / count <= progress;
+    const f = i / count;
+    const played = f <= progress;
     const x = i * step;
     if (userPeaks) {
-      const u = userPeaks[Math.floor((i / count) * userPeaks.length)] * (mid - 2);
-      ctx.fillStyle = played ? userColor : userColor + "44";
-      ctx.fillRect(x, mid - u, barW, u || 1);
+      const v = sample(userPeaks, f, userFrac);
+      if (v >= 0) {
+        const u = v * (mid - 2);
+        ctx.fillStyle = played ? userColor : userColor + "44";
+        ctx.fillRect(x, mid - u, barW, u || 1);
+      }
     }
     if (aiPeaks) {
-      const a = aiPeaks[Math.floor((i / count) * aiPeaks.length)] * (mid - 2);
-      ctx.fillStyle = played ? aiColor : aiColor + "44";
-      ctx.fillRect(x, mid, barW, a || 1);
+      const v = sample(aiPeaks, f, aiFrac);
+      if (v >= 0) {
+        const a = v * (mid - 2);
+        ctx.fillStyle = played ? aiColor : aiColor + "44";
+        ctx.fillRect(x, mid, barW, a || 1);
+      }
     }
   }
 }
@@ -147,6 +187,9 @@ export const StereoCallPlayer: React.FC<StereoCallPlayerProps> = ({
   const audioRef = useRef<HTMLAudioElement>(null);
   const userPeaksRef = useRef<Float32Array | null>(null);
   const aiPeaksRef = useRef<Float32Array | null>(null);
+  // Fraction of the shared (max) timeline each track actually spans.
+  const userFracRef = useRef<number>(1);
+  const aiFracRef = useRef<number>(1);
   const rafRef = useRef<number>(0);
   const wavUrlRef = useRef<string | null>(null);
 
@@ -161,7 +204,16 @@ export const StereoCallPlayer: React.FC<StereoCallPlayerProps> = ({
     (prog: number) => {
       const canvas = canvasRef.current;
       if (!canvas) return;
-      drawWaveform(canvas, userPeaksRef.current, aiPeaksRef.current, prog, userColor, aiColor);
+      drawWaveform(
+        canvas,
+        userPeaksRef.current,
+        aiPeaksRef.current,
+        userFracRef.current,
+        aiFracRef.current,
+        prog,
+        userColor,
+        aiColor,
+      );
     },
     [userColor, aiColor],
   );
@@ -182,13 +234,36 @@ export const StereoCallPlayer: React.FC<StereoCallPlayerProps> = ({
         if (cancelled) return;
         if (!user && !ai) throw new Error("no audio");
 
-        // If a track is missing, center the other one across both channels.
-        const left = user ?? ai!;
-        const right = ai ?? user!;
         const sampleRate = ac.sampleRate;
 
-        userPeaksRef.current = buildPeaks(user, PEAK_BARS);
-        aiPeaksRef.current = buildPeaks(ai, PEAK_BARS);
+        // Cap the timeline at the actual content end across both speakers, so a
+        // long near-silent track (kept untrimmed by the backend) doesn't inflate
+        // the player past the audible conversation. Keep a short tail of room.
+        const rawMax = Math.max(user?.length ?? 0, ai?.length ?? 0);
+        const contentEnd = Math.max(lastSignalIndex(user), lastSignalIndex(ai));
+        const tail = Math.round(0.25 * sampleRate);
+        // contentEnd === 0 means both tracks are silent — keep them as-is rather
+        // than producing an empty player.
+        const end =
+          contentEnd > 0 ? Math.min(rawMax, contentEnd + tail) : rawMax;
+
+        const userC = user ? user.subarray(0, Math.min(user.length, end)) : null;
+        const aiC = ai ? ai.subarray(0, Math.min(ai.length, end)) : null;
+
+        // If a track is missing, center the other one across both channels.
+        const left = userC ?? aiC!;
+        const right = aiC ?? userC!;
+
+        userPeaksRef.current = buildPeaks(userC, PEAK_BARS);
+        aiPeaksRef.current = buildPeaks(aiC, PEAK_BARS);
+
+        // Each track is built and silence-trimmed independently, so they have
+        // different lengths. The player timeline is the longer of the two; store
+        // how much of it each track covers so the waveform draws on the shared
+        // timeline (the shorter track is silence-padded at the end of the WAV).
+        const totalFrames = Math.max(left.length, right.length);
+        userFracRef.current = totalFrames ? (userC?.length ?? 0) / totalFrames : 1;
+        aiFracRef.current = totalFrames ? (aiC?.length ?? 0) / totalFrames : 1;
 
         const wav = encodeStereoWav(left, right, sampleRate);
         const url = URL.createObjectURL(wav);
@@ -196,7 +271,7 @@ export const StereoCallPlayer: React.FC<StereoCallPlayerProps> = ({
         wavUrlRef.current = url;
         if (audioRef.current) audioRef.current.src = url;
 
-        setDuration(Math.max(left.length, right.length) / sampleRate);
+        setDuration(totalFrames / sampleRate);
         setProgress(0);
         setCurrentTime(0);
         setLoadState("ready");

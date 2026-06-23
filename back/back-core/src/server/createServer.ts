@@ -3,7 +3,11 @@ import { cors } from "@elysiajs/cors";
 import { resolve } from "path";
 import { installBackendLogBridge } from "./logBridge";
 import { loadAiProvidersFromEnv } from "./envConfig";
-import { runWithRequestScopeContext } from "../request-context";
+import {
+	enterRequestScopeContext,
+	resolveRequestScopeFromHeaders,
+	runWithRequestScopeContext,
+} from "../request-context";
 export type { AiConfig } from "./envConfig";
 
 export interface CacheAdapter {
@@ -174,6 +178,20 @@ export function createServer({
 
 	const app = new Elysia()
 		.use(cors({ origin: true }))
+		.onRequest(({ request }) => {
+			// Bind the request's storage scope for the whole async execution so
+			// direct routes (/cache/blob, /images, SSR) resolve the same tenant the
+			// request targets (scope/workspace header → Host → WORKSPACE_DOMAIN_MAP).
+			// nrpc service calls bind their own scope via runWithContext; this covers
+			// everything else. No fallback: an unresolvable scope fails loudly
+			// downstream when storage/cache is touched.
+			const headers: Record<string, string> = {};
+			request.headers.forEach((value, key) => {
+				headers[key] = value;
+			});
+			const scope = resolveRequestScopeFromHeaders(headers);
+			enterRequestScopeContext({ scope, headers });
+		})
 		.onAfterHandle(({ set }) => {
 			// Override Vary: * set by CORS plugin — it prevents browser caching
 			// of static assets loaded via <script type="module"> (Sec-Fetch-Mode: cors)

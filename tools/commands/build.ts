@@ -95,7 +95,7 @@ export interface BuildSpec {
 export async function buildContainer(spec: BuildSpec): Promise<void> {
   await run(
     "podman",
-    ["build", "--layers", "--ignorefile", spec.ignorefile, "-f", spec.containerfile, "-t", spec.tag, spec.context],
+    ["build", "--no-cache", "--ignorefile", spec.ignorefile, "-f", spec.containerfile, "-t", spec.tag, spec.context],
     spec.cwd,
   );
 }
