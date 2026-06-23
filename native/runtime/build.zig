@@ -92,6 +92,42 @@ fn addRuntimeExecutable(
     });
 }
 
+/// `zig build mock` — the RT VM as a C-ABI shared library for bun:ffi tests.
+/// Self-contained (own qjs build + install) so it never races the exe build.
+fn addMockStep(b: *Build, target: Build.ResolvedTarget, optimize: OptimizeMode) void {
+    const mock = b.addLibrary(.{
+        .name = "rt-mock",
+        .linkage = .dynamic,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/testlib.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+
+    const target_str = build_utils.getTargetString(target);
+    const install_dir = b.fmt("../../runtime/.zig-cache/qjs-wrapper/{s}", .{target_str});
+    const lib_dir = b.fmt(".zig-cache/qjs-wrapper/{s}/lib", .{target_str});
+    const qjs_build = addQjsWrapperBuild(b, target, optimize, install_dir);
+
+    mock.step.dependOn(&qjs_build.step);
+    mock.root_module.addLibraryPath(.{ .cwd_relative = lib_dir });
+    mock.root_module.addRPathSpecial("$ORIGIN"); // libqjs.so sits next to the .so
+    mock.root_module.linkSystemLibrary("qjs", .{});
+    mock.root_module.link_libc = true;
+
+    const mock_step = b.step("mock", "Build librt-mock.so (+libqjs.so) for bun tests");
+    mock_step.dependOn(&b.addInstallArtifact(mock, .{}).step);
+
+    const qjs_install = b.addInstallFileWithDir(
+        .{ .cwd_relative = b.fmt("{s}/libqjs.so", .{lib_dir}) },
+        .lib,
+        "libqjs.so",
+    );
+    qjs_install.step.dependOn(&qjs_build.step);
+    mock_step.dependOn(&qjs_install.step);
+}
+
 pub fn build(b: *Build) void {
     const target = b.standardTargetOptions(.{
         .default_target = .{
@@ -126,4 +162,6 @@ pub fn build(b: *Build) void {
     if (b.args) |args| run_cmd.addArgs(args);
     const run_step = b.step("run", "Run the runtime HTTP server");
     run_step.dependOn(&run_cmd.step);
+
+    addMockStep(b, target, optimize);
 }
