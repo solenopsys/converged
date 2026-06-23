@@ -1,0 +1,13 @@
+FROM alpine:3.23.4 AS runtime
+WORKDIR /app
+
+RUN mkdir -p /app/lib
+COPY ./zig-out/bin/runtime-x86_64-musl /app/runtime
+COPY ./zig-out/lib/libqjs-x86_64-musl.so /app/lib/libqjs.so
+RUN chmod +x /app/runtime && chown -R 1000:1000 /app
+RUN adduser -D -u 1000 default || true
+USER 1000
+
+EXPOSE 9000
+
+CMD ["/app/runtime", "0.0.0.0:9000"]

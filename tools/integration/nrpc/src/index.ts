@@ -27,6 +27,7 @@ export { createHttpBackend } from "./runtime/http-backend";
 export type { NrpcClientEnv } from "./runtime/client-env";
 export { configureNrpcClientEnv } from "./runtime/client-env";
 export { createHttpClient } from "./runtime/http-client";
+export { createRtClient } from "./runtime/rt-client";
 export { generateServiceToken } from "./runtime/service-token";
 export type { ServiceMetadata } from "./types";
 export type { WorkspaceContext } from "./runtime/workspace-context-registry";

@@ -85,6 +85,14 @@ function renderClientReturnType(method: MethodMetadata): string {
   return `Promise<${baseType}>`;
 }
 
+// RT client is synchronous: the RT VM runs each workflow in a single QuickJS
+// evaluation, so there is no event loop to await. (Streaming is unsupported.)
+function renderRtReturnType(method: MethodMetadata): string {
+  const returnTypeArray = method.returnTypeIsArray ? "[]" : "";
+  if (method.returnType === "void") return "void";
+  return `${method.returnType}${returnTypeArray}`;
+}
+
 try {
   const cwd = process.cwd();
   const typesPath = resolve(cwd, typesFile);
@@ -124,6 +132,14 @@ try {
     })
     .join("\n");
 
+  const rtClientMethods = metadata.methods
+    .map((method) => {
+      const params = renderParams(method);
+      const returnType = renderRtReturnType(method);
+      return `  ${method.name}(${params}): ${returnType};`;
+    })
+    .join("\n");
+
 const indexCode = `// Auto-generated package
 import { createHttpClient, type ServiceMetadata } from "nrpc";
 
@@ -152,12 +168,36 @@ export function create${metadata.interfaceName}Client(
 export const ${metadata.serviceName}Client = create${metadata.interfaceName}Client();
 `;
 
+  // RT entrypoint: self-contained (own copy of metadata + types) so a workflow
+  // bundle for the RT VM never pulls in the HTTP transport. Imported as
+  // `<package>/rt`; bun tree-shakes unused methods at compile time.
+  const rtCode = `// Auto-generated RT entrypoint (QuickJS / Zig host transport)
+import { createRtClient, type ServiceMetadata } from "nrpc";
+
+${typeDefinitions}
+
+const metadata: ServiceMetadata = ${JSON.stringify(metadataWithRelativePath, null, 2)};
+
+// RT client interface — synchronous (one QuickJS evaluation per workflow run).
+export interface ${metadata.interfaceName}RtClient {
+${rtClientMethods}
+}
+
+export function create${metadata.interfaceName}RtClient(): ${metadata.interfaceName}RtClient {
+  return createRtClient<${metadata.interfaceName}RtClient>(metadata);
+}
+`;
+
   const packageJson = {
     name: packageName,
     version: "0.0.0",
     type: "module",
     private: true,
     module: "src/index.ts",
+    exports: {
+      ".": "./src/index.ts",
+      "./rt": "./src/rt.ts",
+    },
     files: ["src", "package.json"],
     dependencies: {
       nrpc: "workspace:*",
@@ -169,6 +209,7 @@ export const ${metadata.serviceName}Client = create${metadata.interfaceName}Clie
     JSON.stringify(packageJson, null, 2),
   );
   writeFileSync(join(srcDir, "index.ts"), indexCode);
+  writeFileSync(join(srcDir, "rt.ts"), rtCode);
 
   console.log(`✅ Generated package: ${packageDir}`);
 } catch (error) {
