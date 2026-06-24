@@ -18,7 +18,8 @@
     "react-router-dom": "latest",
     "elysia": "latest",
     "@elysiajs/static": "latest",
-    "front-core": "workspace:*"
+    "front-core": "workspace:*",
+    "g-telemetry": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "latest",

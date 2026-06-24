@@ -1,8 +1,9 @@
-import { buildWorkspaceHeaders } from "front-core/workspace-domain";
 import type { SeoConfig } from "front-ssr/plugin";
 import createLandingPlugin from "front-ssr/plugin";
 import { existsSync, readFileSync } from "fs";
+import { createAudioGateServiceClient } from "g-audio-gate";
 import { createMarkdownServiceClient } from "g-markdown";
+import { createStructServiceClient } from "g-struct";
 import { resolve } from "path";
 import { renderToReadableStream } from "react-dom/server";
 import { AppSSR } from "./app/App";
@@ -321,30 +322,6 @@ function resolveDocPath(slug: string, locale: SupportedLocale): string {
 	return `${locale}/${normalizedSlug}.md`;
 }
 
-async function structCall<T>(
-	servicesBaseUrl: string,
-	method: string,
-	payload: Record<string, unknown>,
-	workspace?: string,
-): Promise<T> {
-	const response = await fetch(`${servicesBaseUrl}/struct/${method}`, {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-			...buildWorkspaceHeaders(workspace),
-		},
-		body: JSON.stringify(payload),
-	});
-
-	if (!response.ok) {
-		throw new Error(
-			`struct/${method} failed: ${response.status} ${response.statusText}`,
-		);
-	}
-
-	return response.json() as Promise<T>;
-}
-
 // Primary public phone number, owned by ms-audio-gate (AudioGateService).
 // Falls back to LANDING_PHONE env, then empty (header hides the control).
 async function fetchPrimaryPhone(
@@ -352,22 +329,15 @@ async function fetchPrimaryPhone(
 	workspace?: string,
 ): Promise<string> {
 	try {
-		const response = await fetch(
-			`${servicesBaseUrl}/audiogate/getPrimaryPhoneNumber`,
-			{
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					...buildWorkspaceHeaders(workspace),
-				},
-				body: "{}",
-			},
-		);
-		if (response.ok) {
-			const number = (await response.json()) as { phone?: string } | null;
-			const phone = number?.phone?.trim();
-			if (phone) return phone;
-		}
+		const audiogateClient = createAudioGateServiceClient({
+			baseUrl: servicesBaseUrl,
+			workspace,
+		});
+		const number = (await audiogateClient.getPrimaryPhoneNumber()) as {
+			phone?: string;
+		} | null;
+		const phone = number?.phone?.trim();
+		if (phone) return phone;
 	} catch (error) {
 		console.error("[landing] primary phone fetch failed", error);
 	}
@@ -379,14 +349,11 @@ async function prefetchLandingPayload(
 	servicesBaseUrl: string,
 	workspace?: string,
 ): Promise<LandingPrefetchPayload> {
-	const config = await structCall<LandingConfig>(
-		servicesBaseUrl,
-		"readJson",
-		{
-			path: configPath,
-		},
+	const structClient = createStructServiceClient({
+		baseUrl: servicesBaseUrl,
 		workspace,
-	);
+	});
+	const config = (await structClient.readJson(configPath)) as LandingConfig;
 
 	const locale = configPath.split("/")[0] ?? "";
 
@@ -409,16 +376,7 @@ async function prefetchLandingPayload(
 	const sourcePaths = rawSourcePaths.map(localizeSourcePath);
 
 	const sourceValues =
-		sourcePaths.length > 0
-			? await structCall<any[]>(
-					servicesBaseUrl,
-					"readJsonBatch",
-					{
-						paths: sourcePaths,
-					},
-					workspace,
-				)
-			: [];
+		sourcePaths.length > 0 ? await structClient.readJsonBatch(sourcePaths) : [];
 
 	const sourceMap = new Map<string, unknown>();
 	sourcePaths.forEach((path, index) => {

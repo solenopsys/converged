@@ -74,6 +74,7 @@
     "build:ui": "bun run --cwd ../club-portal cli release ship converged-portal ui",
     "build:ms": "bun run --cwd ../club-portal cli release ship converged-portal ms",
     "build:rt": "bun run --cwd ../club-portal cli release ship converged-portal rt",
+    "build:all": "bun build:ui -p && bun build:ms -p && bun build:rt -p",
     "build:storage": "bun run --cwd ../club-portal cli release ship converged-portal storage",
     "cli": "bun run --env-file=../../confs/cli-dev.env tools/cli/src/cli.ts --commands=tools/commands",
     "clip": "bun run --env-file=../../cli-prod.env tools/cli/src/cli.ts --commands=tools/commands",

@@ -7,10 +7,10 @@ import { createHash } from "node:crypto";
 import { externalPackages, microfrontends } from "front-core/runtime-config";
 import { createWorkspaceResolverPlugin } from "front-core/workspace-resolver";
 import {
-  buildWorkspaceHeaders,
   createWorkspaceBootstrapScript,
   resolveWorkspaceFromRequest,
 } from "front-core/workspace-domain";
+import { createTelemetryServiceClient } from "g-telemetry";
 import type { SitemapEntry } from "./ssr/sitemap";
 import { buildSitemapXml } from "./ssr/sitemap";
 
@@ -154,17 +154,13 @@ function createTelemetryReporter(baseUrl: string) {
         try {
           await Promise.all(
             batch.map(({ event, workspace }) =>
-              fetch(`${baseUrl}/telemetry/write`, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  ...buildWorkspaceHeaders(workspace),
-                  ...(process.env.SERVICE_TOKEN
-                    ? { authorization: `Bearer ${process.env.SERVICE_TOKEN}` }
-                    : {}),
-                },
-                body: JSON.stringify({ event }),
-              }),
+              createTelemetryServiceClient({
+                baseUrl,
+                workspace,
+                headers: process.env.SERVICE_TOKEN
+                  ? { authorization: `Bearer ${process.env.SERVICE_TOKEN}` }
+                  : undefined,
+              }).write(event),
             ),
           );
         } catch {
