@@ -1,0 +1,88 @@
+// Auto-generated RT entrypoint (QuickJS / Zig host transport)
+import { createRtClient, type ServiceMetadata } from "nrpc";
+
+export type MillingEstimateInput = {
+  modelStl: Uint8Array;
+  modelName?: string;
+  toolDiameter?: number;
+  toolLength?: number;
+  stepover?: number;
+  sampling?: number;
+  minSampling?: number;
+  feed?: number;
+  rapid?: number;
+  safeZ?: number;
+  includeGcode?: boolean;
+};
+
+export type MillingEstimate = {
+  triangles: number;
+  minX: number;
+  minY: number;
+  minZ: number;
+  maxX: number;
+  maxY: number;
+  maxZ: number;
+  safeZ: number;
+  passes: number;
+  points: number;
+  cutLengthMm: number;
+  rapidLengthMm: number;
+  cutTimeSec: number;
+  rapidTimeSec: number;
+  totalTimeSec: number;
+};
+
+export type MillingEstimateResult = {
+  estimate: MillingEstimate;
+  gcode?: Uint8Array;
+};
+
+const metadata: ServiceMetadata = {
+  "interfaceName": "MillingExtractorService",
+  "serviceName": "millingextractor",
+  "filePath": "services/extractors/millingextractor.ts",
+  "methods": [
+    {
+      "name": "extract",
+      "parameters": [
+        {
+          "name": "input",
+          "type": "MillingEstimateInput",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "MillingEstimateResult",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    }
+  ],
+  "types": [
+    {
+      "name": "MillingEstimateInput",
+      "kind": "type",
+      "definition": "{\n  modelStl: Uint8Array;\n  modelName?: string;\n  toolDiameter?: number;\n  toolLength?: number;\n  stepover?: number;\n  sampling?: number;\n  minSampling?: number;\n  feed?: number;\n  rapid?: number;\n  safeZ?: number;\n  includeGcode?: boolean;\n}"
+    },
+    {
+      "name": "MillingEstimate",
+      "kind": "type",
+      "definition": "{\n  triangles: number;\n  minX: number;\n  minY: number;\n  minZ: number;\n  maxX: number;\n  maxY: number;\n  maxZ: number;\n  safeZ: number;\n  passes: number;\n  points: number;\n  cutLengthMm: number;\n  rapidLengthMm: number;\n  cutTimeSec: number;\n  rapidTimeSec: number;\n  totalTimeSec: number;\n}"
+    },
+    {
+      "name": "MillingEstimateResult",
+      "kind": "type",
+      "definition": "{\n  estimate: MillingEstimate;\n  gcode?: Uint8Array;\n}"
+    }
+  ]
+};
+
+// RT client interface — synchronous (one QuickJS evaluation per workflow run).
+export interface MillingExtractorServiceRtClient {
+  extract(input: MillingEstimateInput): MillingEstimateResult;
+}
+
+export function createMillingExtractorServiceRtClient(): MillingExtractorServiceRtClient {
+  return createRtClient<MillingExtractorServiceRtClient>(metadata);
+}

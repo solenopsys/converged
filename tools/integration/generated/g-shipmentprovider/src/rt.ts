@@ -1,0 +1,339 @@
+// Auto-generated RT entrypoint (QuickJS / Zig host transport)
+import { createRtClient, type ServiceMetadata } from "nrpc";
+
+export type ISODateString = string;
+
+export type ProviderId = string;
+
+export type ShipmentStatus = "ready" | "in_transit" | "delivered" | "problem";
+
+export type Address = {
+  name?: string;
+  phone?: string;
+  line1: string;
+  city?: string;
+  region?: string;
+  postalCode?: string;
+  country: string;
+};
+
+export type Parcel = {
+  weightKg: number;
+  lengthCm?: number;
+  widthCm?: number;
+  heightCm?: number;
+};
+
+export type CustomsItem = {
+  name: string;
+  qty: number;
+  price?: number;
+  currency?: string;
+  hsCode?: string;
+  originCountry?: string;
+};
+
+export type Shipment = {
+  from: Address;
+  to: Address;
+  parcels: Parcel[];
+  description?: string;
+  value?: number;
+  currency?: string;
+  items?: CustomsItem[];
+};
+
+export type QuoteRequest = {
+  shipment: Shipment;
+};
+
+export type QuoteResult = {
+  price: number;
+  currency: string;
+  etaDays?: number;
+  serviceCode?: string;
+  raw?: any;
+};
+
+export type CreateShipmentRequest = {
+  shipment: Shipment;
+  serviceCode?: string;
+};
+
+export type CreateShipmentResult = {
+  tracking: string;
+  providerRef?: string;
+  raw?: any;
+};
+
+export type LabelRequest = {
+  tracking: string;
+};
+
+export type LabelResult = {
+  pdfBase64: string;
+  raw?: any;
+};
+
+export type TrackingRequest = {
+  tracking: string;
+};
+
+export type TrackingResult = {
+  status: ShipmentStatus;
+  lastUpdate?: ISODateString;
+  raw?: any;
+};
+
+export type WebhookRequest = {
+  payload: any;
+};
+
+export type AddressValidationRequest = {
+  address: Address;
+};
+
+export type AddressValidationResult = {
+  valid: boolean;
+  normalized?: Address;
+  raw?: any;
+};
+
+export type CustomsLookupRequest = {
+  items: CustomsItem[];
+};
+
+export type CustomsLookupResult = {
+  items: CustomsItem[];
+  raw?: any;
+};
+
+const metadata: ServiceMetadata = {
+  "interfaceName": "ShipmentProviderService",
+  "serviceName": "shipmentprovider",
+  "filePath": "services/providers/shipmentprovider.ts",
+  "methods": [
+    {
+      "name": "quote",
+      "parameters": [
+        {
+          "name": "input",
+          "type": "QuoteRequest",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "QuoteResult",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "createShipment",
+      "parameters": [
+        {
+          "name": "input",
+          "type": "CreateShipmentRequest",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "CreateShipmentResult",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "label",
+      "parameters": [
+        {
+          "name": "input",
+          "type": "LabelRequest",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "LabelResult",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "tracking",
+      "parameters": [
+        {
+          "name": "input",
+          "type": "TrackingRequest",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "TrackingResult",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "webhook",
+      "parameters": [
+        {
+          "name": "input",
+          "type": "WebhookRequest",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "void",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "validateAddress",
+      "parameters": [
+        {
+          "name": "input",
+          "type": "AddressValidationRequest",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "AddressValidationResult",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "customsLookup",
+      "parameters": [
+        {
+          "name": "input",
+          "type": "CustomsLookupRequest",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "CustomsLookupResult",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    }
+  ],
+  "types": [
+    {
+      "name": "ISODateString",
+      "kind": "type",
+      "definition": "string"
+    },
+    {
+      "name": "ProviderId",
+      "kind": "type",
+      "definition": "string"
+    },
+    {
+      "name": "ShipmentStatus",
+      "kind": "type",
+      "definition": "\"ready\" | \"in_transit\" | \"delivered\" | \"problem\""
+    },
+    {
+      "name": "Address",
+      "kind": "type",
+      "definition": "{\n  name?: string;\n  phone?: string;\n  line1: string;\n  city?: string;\n  region?: string;\n  postalCode?: string;\n  country: string;\n}"
+    },
+    {
+      "name": "Parcel",
+      "kind": "type",
+      "definition": "{\n  weightKg: number;\n  lengthCm?: number;\n  widthCm?: number;\n  heightCm?: number;\n}"
+    },
+    {
+      "name": "CustomsItem",
+      "kind": "type",
+      "definition": "{\n  name: string;\n  qty: number;\n  price?: number;\n  currency?: string;\n  hsCode?: string;\n  originCountry?: string;\n}"
+    },
+    {
+      "name": "Shipment",
+      "kind": "type",
+      "definition": "{\n  from: Address;\n  to: Address;\n  parcels: Parcel[];\n  description?: string;\n  value?: number;\n  currency?: string;\n  items?: CustomsItem[];\n}"
+    },
+    {
+      "name": "QuoteRequest",
+      "kind": "type",
+      "definition": "{\n  shipment: Shipment;\n}"
+    },
+    {
+      "name": "QuoteResult",
+      "kind": "type",
+      "definition": "{\n  price: number;\n  currency: string;\n  etaDays?: number;\n  serviceCode?: string;\n  raw?: any;\n}"
+    },
+    {
+      "name": "CreateShipmentRequest",
+      "kind": "type",
+      "definition": "{\n  shipment: Shipment;\n  serviceCode?: string;\n}"
+    },
+    {
+      "name": "CreateShipmentResult",
+      "kind": "type",
+      "definition": "{\n  tracking: string;\n  providerRef?: string;\n  raw?: any;\n}"
+    },
+    {
+      "name": "LabelRequest",
+      "kind": "type",
+      "definition": "{\n  tracking: string;\n}"
+    },
+    {
+      "name": "LabelResult",
+      "kind": "type",
+      "definition": "{\n  pdfBase64: string;\n  raw?: any;\n}"
+    },
+    {
+      "name": "TrackingRequest",
+      "kind": "type",
+      "definition": "{\n  tracking: string;\n}"
+    },
+    {
+      "name": "TrackingResult",
+      "kind": "type",
+      "definition": "{\n  status: ShipmentStatus;\n  lastUpdate?: ISODateString;\n  raw?: any;\n}"
+    },
+    {
+      "name": "WebhookRequest",
+      "kind": "type",
+      "definition": "{\n  payload: any;\n}"
+    },
+    {
+      "name": "AddressValidationRequest",
+      "kind": "type",
+      "definition": "{\n  address: Address;\n}"
+    },
+    {
+      "name": "AddressValidationResult",
+      "kind": "type",
+      "definition": "{\n  valid: boolean;\n  normalized?: Address;\n  raw?: any;\n}"
+    },
+    {
+      "name": "CustomsLookupRequest",
+      "kind": "type",
+      "definition": "{\n  items: CustomsItem[];\n}"
+    },
+    {
+      "name": "CustomsLookupResult",
+      "kind": "type",
+      "definition": "{\n  items: CustomsItem[];\n  raw?: any;\n}"
+    }
+  ]
+};
+
+// RT client interface — synchronous (one QuickJS evaluation per workflow run).
+export interface ShipmentProviderServiceRtClient {
+  quote(input: QuoteRequest): QuoteResult;
+  createShipment(input: CreateShipmentRequest): CreateShipmentResult;
+  label(input: LabelRequest): LabelResult;
+  tracking(input: TrackingRequest): TrackingResult;
+  webhook(input: WebhookRequest): void;
+  validateAddress(input: AddressValidationRequest): AddressValidationResult;
+  customsLookup(input: CustomsLookupRequest): CustomsLookupResult;
+}
+
+export function createShipmentProviderServiceRtClient(): ShipmentProviderServiceRtClient {
+  return createRtClient<ShipmentProviderServiceRtClient>(metadata);
+}

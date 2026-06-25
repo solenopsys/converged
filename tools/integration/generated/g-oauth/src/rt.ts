@@ -1,0 +1,367 @@
+// Auto-generated RT entrypoint (QuickJS / Zig host transport)
+import { createRtClient, type ServiceMetadata } from "nrpc";
+
+export type OAuthProviderName = | "google"
+  | "apple"
+  | "microsoft"
+  | "meta"
+  | "github";
+
+export type OAuthProviderTemplate = {
+  provider: OAuthProviderName;
+  displayName: string;
+  authorizeUrl: string;
+  tokenUrl: string;
+  userinfoUrl: string;
+  scopes: string[];
+};
+
+export type OAuthProvider = {
+  provider: OAuthProviderName;
+  clientId: string;
+  clientSecret: string;
+  authorizeUrl: string;
+  tokenUrl: string;
+  userinfoUrl: string;
+  scopes: string[];
+  enabled: boolean;
+  createdAt: number;
+};
+
+export type OAuthProviderInput = {
+  provider: OAuthProviderName;
+  clientId: string;
+  clientSecret: string;
+  authorizeUrl: string;
+  tokenUrl: string;
+  userinfoUrl: string;
+  scopes: string[];
+  enabled?: boolean;
+};
+
+export type OAuthProviderUpdate = {
+  clientId?: string;
+  clientSecret?: string;
+  authorizeUrl?: string;
+  tokenUrl?: string;
+  userinfoUrl?: string;
+  scopes?: string[];
+  enabled?: boolean;
+};
+
+export type OAuthState = {
+  state: string;
+  returnTo: string;
+  provider: OAuthProviderName;
+  expiresAt: number;
+};
+
+const metadata: ServiceMetadata = {
+  "interfaceName": "OAuthService",
+  "serviceName": "oauth",
+  "filePath": "services/sequrity/oauth.ts",
+  "methods": [
+    {
+      "name": "listProviderTemplates",
+      "parameters": [],
+      "returnType": "OAuthProviderTemplate",
+      "isAsync": true,
+      "returnTypeIsArray": true,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "getProviderTemplate",
+      "parameters": [
+        {
+          "name": "provider",
+          "type": "OAuthProviderName",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "OAuthProviderTemplate | any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "createProvider",
+      "parameters": [
+        {
+          "name": "provider",
+          "type": "OAuthProviderInput",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "void",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "getProvider",
+      "parameters": [
+        {
+          "name": "provider",
+          "type": "OAuthProviderName",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "OAuthProvider | any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "updateProvider",
+      "parameters": [
+        {
+          "name": "providerName",
+          "type": "OAuthProviderName",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "updates",
+          "type": "OAuthProviderUpdate",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "void",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "deleteProvider",
+      "parameters": [
+        {
+          "name": "providerName",
+          "type": "OAuthProviderName",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "void",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "listProviders",
+      "parameters": [],
+      "returnType": "OAuthProvider",
+      "isAsync": true,
+      "returnTypeIsArray": true,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "listEnabledProviders",
+      "parameters": [],
+      "returnType": "OAuthProvider",
+      "isAsync": true,
+      "returnTypeIsArray": true,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "enableProvider",
+      "parameters": [
+        {
+          "name": "providerName",
+          "type": "OAuthProviderName",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "void",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "disableProvider",
+      "parameters": [
+        {
+          "name": "providerName",
+          "type": "OAuthProviderName",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "void",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "isProviderEnabled",
+      "parameters": [
+        {
+          "name": "providerName",
+          "type": "OAuthProviderName",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "boolean",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "createState",
+      "parameters": [
+        {
+          "name": "state",
+          "type": "OAuthState",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "void",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "getState",
+      "parameters": [
+        {
+          "name": "stateToken",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "OAuthState | any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "deleteState",
+      "parameters": [
+        {
+          "name": "stateToken",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "void",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "consumeState",
+      "parameters": [
+        {
+          "name": "stateToken",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "OAuthState | any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "cleanupExpiredStates",
+      "parameters": [],
+      "returnType": "number",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "generateState",
+      "parameters": [
+        {
+          "name": "provider",
+          "type": "OAuthProviderName",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "returnTo",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "ttlSeconds",
+          "type": "number",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "string",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    }
+  ],
+  "types": [
+    {
+      "name": "OAuthProviderName",
+      "kind": "type",
+      "definition": "| \"google\"\n  | \"apple\"\n  | \"microsoft\"\n  | \"meta\"\n  | \"github\""
+    },
+    {
+      "name": "OAuthProviderTemplate",
+      "kind": "type",
+      "definition": "{\n  provider: OAuthProviderName;\n  displayName: string;\n  authorizeUrl: string;\n  tokenUrl: string;\n  userinfoUrl: string;\n  scopes: string[];\n}"
+    },
+    {
+      "name": "OAuthProvider",
+      "kind": "type",
+      "definition": "{\n  provider: OAuthProviderName;\n  clientId: string;\n  clientSecret: string;\n  authorizeUrl: string;\n  tokenUrl: string;\n  userinfoUrl: string;\n  scopes: string[];\n  enabled: boolean;\n  createdAt: number;\n}"
+    },
+    {
+      "name": "OAuthProviderInput",
+      "kind": "type",
+      "definition": "{\n  provider: OAuthProviderName;\n  clientId: string;\n  clientSecret: string;\n  authorizeUrl: string;\n  tokenUrl: string;\n  userinfoUrl: string;\n  scopes: string[];\n  enabled?: boolean;\n}"
+    },
+    {
+      "name": "OAuthProviderUpdate",
+      "kind": "type",
+      "definition": "{\n  clientId?: string;\n  clientSecret?: string;\n  authorizeUrl?: string;\n  tokenUrl?: string;\n  userinfoUrl?: string;\n  scopes?: string[];\n  enabled?: boolean;\n}"
+    },
+    {
+      "name": "OAuthState",
+      "kind": "type",
+      "definition": "{\n  state: string;\n  returnTo: string;\n  provider: OAuthProviderName;\n  expiresAt: number;\n}"
+    }
+  ]
+};
+
+// RT client interface — synchronous (one QuickJS evaluation per workflow run).
+export interface OAuthServiceRtClient {
+  listProviderTemplates(): OAuthProviderTemplate[];
+  getProviderTemplate(provider: OAuthProviderName): OAuthProviderTemplate | any;
+  createProvider(provider: OAuthProviderInput): void;
+  getProvider(provider: OAuthProviderName): OAuthProvider | any;
+  updateProvider(providerName: OAuthProviderName, updates: OAuthProviderUpdate): void;
+  deleteProvider(providerName: OAuthProviderName): void;
+  listProviders(): OAuthProvider[];
+  listEnabledProviders(): OAuthProvider[];
+  enableProvider(providerName: OAuthProviderName): void;
+  disableProvider(providerName: OAuthProviderName): void;
+  isProviderEnabled(providerName: OAuthProviderName): boolean;
+  createState(state: OAuthState): void;
+  getState(stateToken: string): OAuthState | any;
+  deleteState(stateToken: string): void;
+  consumeState(stateToken: string): OAuthState | any;
+  cleanupExpiredStates(): number;
+  generateState(provider: OAuthProviderName, returnTo: string, ttlSeconds?: number): string;
+}
+
+export function createOAuthServiceRtClient(): OAuthServiceRtClient {
+  return createRtClient<OAuthServiceRtClient>(metadata);
+}

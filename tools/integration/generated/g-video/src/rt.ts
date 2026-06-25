@@ -1,0 +1,413 @@
+// Auto-generated RT entrypoint (QuickJS / Zig host transport)
+import { createRtClient, type ServiceMetadata } from "nrpc";
+
+export type CameraId = string;
+
+export type VideoStreamId = string;
+
+export type VideoSegmentId = string;
+
+export type ISODateString = string;
+
+export type Camera = {
+  id: CameraId;
+  name: string;
+  createdAt: ISODateString;
+};
+
+export type CameraInput = {
+  name: string;
+};
+
+export type VideoStream = {
+  id: VideoStreamId;
+  cameraId: CameraId;
+  name: string;
+  resolution: string;
+  fps: number;
+  createdAt: ISODateString;
+};
+
+export type VideoStreamInput = {
+  cameraId: CameraId;
+  name: string;
+  resolution: string;
+  fps: number;
+};
+
+export type VideoSegment = {
+  id: VideoSegmentId;
+  streamId: VideoStreamId;
+  startTime: number;
+  endTime: number;
+  hash: string;
+  thumbPath?: string;
+  createdAt: ISODateString;
+};
+
+export type VideoSegmentInput = {
+  streamId: VideoStreamId;
+  startTime: number;
+  endTime: number;
+  hash: string;
+  thumbPath?: string;
+};
+
+export type VideoSegmentListParams = {
+  streamId: VideoStreamId;
+  offset: number;
+  limit: number;
+  fromTime?: number;
+  toTime?: number;
+};
+
+export type PaginationParams = {
+  offset: number;
+  limit: number;
+};
+
+export type PaginatedResult<T> = {
+  items: T[];
+  totalCount?: number;
+};
+
+export type VideoThumbSaveInput = {
+  streamId: VideoStreamId;
+  data: Uint8Array;
+  ext?: string;
+};
+
+const metadata: ServiceMetadata = {
+  "interfaceName": "VideoService",
+  "serviceName": "video",
+  "filePath": "services/content/video.ts",
+  "methods": [
+    {
+      "name": "createCamera",
+      "parameters": [
+        {
+          "name": "input",
+          "type": "CameraInput",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "CameraId",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "getCamera",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "CameraId",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "Camera | any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "listCameras",
+      "parameters": [
+        {
+          "name": "params",
+          "type": "PaginationParams",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "PaginatedResult<Camera>",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "deleteCamera",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "CameraId",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "boolean",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "createStream",
+      "parameters": [
+        {
+          "name": "input",
+          "type": "VideoStreamInput",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "VideoStreamId",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "getStream",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "VideoStreamId",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "VideoStream | any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "listStreams",
+      "parameters": [
+        {
+          "name": "cameraId",
+          "type": "CameraId",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "params",
+          "type": "PaginationParams",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "PaginatedResult<VideoStream>",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "deleteStream",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "VideoStreamId",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "boolean",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "saveSegment",
+      "parameters": [
+        {
+          "name": "input",
+          "type": "VideoSegmentInput",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "VideoSegmentId",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "getSegment",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "VideoSegmentId",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "VideoSegment | any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "listSegments",
+      "parameters": [
+        {
+          "name": "params",
+          "type": "VideoSegmentListParams",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "PaginatedResult<VideoSegment>",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "deleteSegment",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "VideoSegmentId",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "boolean",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "saveThumb",
+      "parameters": [
+        {
+          "name": "input",
+          "type": "VideoThumbSaveInput",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "string",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "getThumb",
+      "parameters": [
+        {
+          "name": "path",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "Uint8Array | any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "deleteThumb",
+      "parameters": [
+        {
+          "name": "path",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "boolean",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    }
+  ],
+  "types": [
+    {
+      "name": "CameraId",
+      "kind": "type",
+      "definition": "string"
+    },
+    {
+      "name": "VideoStreamId",
+      "kind": "type",
+      "definition": "string"
+    },
+    {
+      "name": "VideoSegmentId",
+      "kind": "type",
+      "definition": "string"
+    },
+    {
+      "name": "ISODateString",
+      "kind": "type",
+      "definition": "string"
+    },
+    {
+      "name": "Camera",
+      "kind": "type",
+      "definition": "{\n  id: CameraId;\n  name: string;\n  createdAt: ISODateString;\n}"
+    },
+    {
+      "name": "CameraInput",
+      "kind": "type",
+      "definition": "{\n  name: string;\n}"
+    },
+    {
+      "name": "VideoStream",
+      "kind": "type",
+      "definition": "{\n  id: VideoStreamId;\n  cameraId: CameraId;\n  name: string;\n  resolution: string;\n  fps: number;\n  createdAt: ISODateString;\n}"
+    },
+    {
+      "name": "VideoStreamInput",
+      "kind": "type",
+      "definition": "{\n  cameraId: CameraId;\n  name: string;\n  resolution: string;\n  fps: number;\n}"
+    },
+    {
+      "name": "VideoSegment",
+      "kind": "type",
+      "definition": "{\n  id: VideoSegmentId;\n  streamId: VideoStreamId;\n  startTime: number;\n  endTime: number;\n  hash: string;\n  thumbPath?: string;\n  createdAt: ISODateString;\n}"
+    },
+    {
+      "name": "VideoSegmentInput",
+      "kind": "type",
+      "definition": "{\n  streamId: VideoStreamId;\n  startTime: number;\n  endTime: number;\n  hash: string;\n  thumbPath?: string;\n}"
+    },
+    {
+      "name": "VideoSegmentListParams",
+      "kind": "type",
+      "definition": "{\n  streamId: VideoStreamId;\n  offset: number;\n  limit: number;\n  fromTime?: number;\n  toTime?: number;\n}"
+    },
+    {
+      "name": "PaginationParams",
+      "kind": "type",
+      "definition": "{\n  offset: number;\n  limit: number;\n}"
+    },
+    {
+      "name": "PaginatedResult",
+      "kind": "type",
+      "typeParameters": "<T>",
+      "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
+    },
+    {
+      "name": "VideoThumbSaveInput",
+      "kind": "type",
+      "definition": "{\n  streamId: VideoStreamId;\n  data: Uint8Array;\n  ext?: string;\n}"
+    }
+  ]
+};
+
+// RT client interface — synchronous (one QuickJS evaluation per workflow run).
+export interface VideoServiceRtClient {
+  createCamera(input: CameraInput): CameraId;
+  getCamera(id: CameraId): Camera | any;
+  listCameras(params: PaginationParams): PaginatedResult<Camera>;
+  deleteCamera(id: CameraId): boolean;
+  createStream(input: VideoStreamInput): VideoStreamId;
+  getStream(id: VideoStreamId): VideoStream | any;
+  listStreams(cameraId: CameraId, params: PaginationParams): PaginatedResult<VideoStream>;
+  deleteStream(id: VideoStreamId): boolean;
+  saveSegment(input: VideoSegmentInput): VideoSegmentId;
+  getSegment(id: VideoSegmentId): VideoSegment | any;
+  listSegments(params: VideoSegmentListParams): PaginatedResult<VideoSegment>;
+  deleteSegment(id: VideoSegmentId): boolean;
+  saveThumb(input: VideoThumbSaveInput): string;
+  getThumb(path: string): Uint8Array | any;
+  deleteThumb(path: string): boolean;
+}
+
+export function createVideoServiceRtClient(): VideoServiceRtClient {
+  return createRtClient<VideoServiceRtClient>(metadata);
+}

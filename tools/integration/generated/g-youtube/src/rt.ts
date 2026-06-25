@@ -1,0 +1,86 @@
+// Auto-generated RT entrypoint (QuickJS / Zig host transport)
+import { createRtClient, type ServiceMetadata } from "nrpc";
+
+export type YouTubeVideoInput = {
+  data?: Uint8Array;
+  url?: string;
+  mimeType?: string;
+};
+
+export type YouTubeShortsInput = {
+  title: string;
+  description?: string;
+  tags?: string[];
+  privacyStatus?: "public" | "unlisted" | "private";
+  video: YouTubeVideoInput;
+};
+
+export type YouTubeCredentials = {
+  accessToken: string;
+};
+
+export type YouTubeUploadResult = {
+  success: boolean;
+  postId?: string;
+  error?: string;
+};
+
+const metadata: ServiceMetadata = {
+  "interfaceName": "YouTubeService",
+  "serviceName": "youtube",
+  "filePath": "services/social/youtube.ts",
+  "methods": [
+    {
+      "name": "uploadShort",
+      "parameters": [
+        {
+          "name": "input",
+          "type": "YouTubeShortsInput",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "credentials",
+          "type": "YouTubeCredentials",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "YouTubeUploadResult",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    }
+  ],
+  "types": [
+    {
+      "name": "YouTubeVideoInput",
+      "kind": "type",
+      "definition": "{\n  data?: Uint8Array;\n  url?: string;\n  mimeType?: string;\n}"
+    },
+    {
+      "name": "YouTubeShortsInput",
+      "kind": "type",
+      "definition": "{\n  title: string;\n  description?: string;\n  tags?: string[];\n  privacyStatus?: \"public\" | \"unlisted\" | \"private\";\n  video: YouTubeVideoInput;\n}"
+    },
+    {
+      "name": "YouTubeCredentials",
+      "kind": "type",
+      "definition": "{\n  accessToken: string;\n}"
+    },
+    {
+      "name": "YouTubeUploadResult",
+      "kind": "type",
+      "definition": "{\n  success: boolean;\n  postId?: string;\n  error?: string;\n}"
+    }
+  ]
+};
+
+// RT client interface — synchronous (one QuickJS evaluation per workflow run).
+export interface YouTubeServiceRtClient {
+  uploadShort(input: YouTubeShortsInput, credentials: YouTubeCredentials): YouTubeUploadResult;
+}
+
+export function createYouTubeServiceRtClient(): YouTubeServiceRtClient {
+  return createRtClient<YouTubeServiceRtClient>(metadata);
+}

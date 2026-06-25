@@ -1,0 +1,186 @@
+// Auto-generated RT entrypoint (QuickJS / Zig host transport)
+import { createRtClient, type ServiceMetadata } from "nrpc";
+
+export type PartnerId = string;
+
+export type ISODateString = string;
+
+export type PartnerKind = "client" | "supplier" | "both";
+
+export type Partner = {
+  id: PartnerId;
+  kind: PartnerKind;
+  name: string;
+  contact?: string;
+  tags?: string[];
+  note?: string;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+};
+
+export type PartnerInput = {
+  kind: PartnerKind;
+  name: string;
+  contact?: string;
+  tags?: string[];
+  note?: string;
+};
+
+export type PartnerUpdate = Partial<PartnerInput>;
+
+export type PartnerListParams = {
+  offset: number;
+  limit: number;
+  kind?: PartnerKind;
+  query?: string;
+};
+
+export type PaginatedResult<T> = {
+  items: T[];
+  totalCount?: number;
+};
+
+const metadata: ServiceMetadata = {
+  "interfaceName": "PartnersService",
+  "serviceName": "partners",
+  "filePath": "services/business/partners.ts",
+  "methods": [
+    {
+      "name": "createPartner",
+      "parameters": [
+        {
+          "name": "input",
+          "type": "PartnerInput",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "PartnerId",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "getPartner",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "PartnerId",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "Partner | any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "updatePartner",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "PartnerId",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "patch",
+          "type": "PartnerUpdate",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "void",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "deletePartner",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "PartnerId",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "boolean",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "listPartners",
+      "parameters": [
+        {
+          "name": "params",
+          "type": "PartnerListParams",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "PaginatedResult<Partner>",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    }
+  ],
+  "types": [
+    {
+      "name": "PartnerId",
+      "kind": "type",
+      "definition": "string"
+    },
+    {
+      "name": "ISODateString",
+      "kind": "type",
+      "definition": "string"
+    },
+    {
+      "name": "PartnerKind",
+      "kind": "type",
+      "definition": "\"client\" | \"supplier\" | \"both\""
+    },
+    {
+      "name": "Partner",
+      "kind": "type",
+      "definition": "{\n  id: PartnerId;\n  kind: PartnerKind;\n  name: string;\n  contact?: string;\n  tags?: string[];\n  note?: string;\n  createdAt: ISODateString;\n  updatedAt: ISODateString;\n}"
+    },
+    {
+      "name": "PartnerInput",
+      "kind": "type",
+      "definition": "{\n  kind: PartnerKind;\n  name: string;\n  contact?: string;\n  tags?: string[];\n  note?: string;\n}"
+    },
+    {
+      "name": "PartnerUpdate",
+      "kind": "type",
+      "definition": "Partial<PartnerInput>"
+    },
+    {
+      "name": "PartnerListParams",
+      "kind": "type",
+      "definition": "{\n  offset: number;\n  limit: number;\n  kind?: PartnerKind;\n  query?: string;\n}"
+    },
+    {
+      "name": "PaginatedResult",
+      "kind": "type",
+      "typeParameters": "<T>",
+      "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
+    }
+  ]
+};
+
+// RT client interface — synchronous (one QuickJS evaluation per workflow run).
+export interface PartnersServiceRtClient {
+  createPartner(input: PartnerInput): PartnerId;
+  getPartner(id: PartnerId): Partner | any;
+  updatePartner(id: PartnerId, patch: PartnerUpdate): void;
+  deletePartner(id: PartnerId): boolean;
+  listPartners(params: PartnerListParams): PaginatedResult<Partner>;
+}
+
+export function createPartnersServiceRtClient(): PartnersServiceRtClient {
+  return createRtClient<PartnersServiceRtClient>(metadata);
+}
