@@ -180,6 +180,12 @@
       "enabled": true,
       "image": "public.ecr.aws/i5x9u8b2/llm-audio-gate:latest",
       "port": 8090,
+      "hostNetwork": true,
+      "stunUrl": "stun:stun.l.google.com:19302",
+      "icePortRange": {
+        "begin": 10000,
+        "end": 10100
+      },
       "ingress": {
         "paths": ["/audio-gate"],
         "routeTo": "services"

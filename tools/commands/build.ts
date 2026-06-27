@@ -89,13 +89,17 @@ export interface BuildSpec {
   ignorefile: string;
   context: string;
   cwd?: string;
+  noCache?: boolean;
 }
 
 /** Build a single OCI image from a Containerfile via podman. */
 export async function buildContainer(spec: BuildSpec): Promise<void> {
+  const args = ["build"];
+  if (spec.noCache) args.push("--no-cache");
+  args.push("--ignorefile", spec.ignorefile, "-f", spec.containerfile, "-t", spec.tag, spec.context);
   await run(
     "podman",
-    ["build", "--no-cache", "--ignorefile", spec.ignorefile, "-f", spec.containerfile, "-t", spec.tag, spec.context],
+    args,
     spec.cwd,
   );
 }

@@ -13,6 +13,7 @@ import { t } from "elysia";
 import { createHttpBackend } from "nrpc";
 import { metadata } from "g-audio-gate";
 import { AudioGateServiceImpl } from "./service";
+import { resolveAudioGateScope } from "./scope";
 
 // Headers that must never be forwarded upstream
 const SKIP_HEADERS = new Set([
@@ -189,7 +190,11 @@ const plugin = (config: any) => (app: AudioGateApp) => {
 		open(ws: RelaySocket) {
 			const user: string = ws.data?.query?.user ?? "";
 			const contextName: string = ws.data?.query?.context_name ?? "";
-			const scope: string = ws.data?.query?.scope ?? "";
+			const scope =
+				resolveAudioGateScope(
+					ws.data?.query?.scope,
+					ws.data?.headers,
+				) ?? "";
 			const wsBase = gateUrl.replace(/^http/, "ws");
 			const params = new URLSearchParams();
 			if (user) params.set("user", user);
