@@ -57,5 +57,19 @@
     "load": "Estoy cargando datos...",
     "delete": "Estoy eliminando un registro...",
     "notify": "Estoy enviando una notificacion..."
+  },
+  "toolCall": {
+    "title": "Llamada de función",
+    "actions": {
+      "createCncRequest": "Creando solicitud",
+      "patchCncRequest": "Actualizando solicitud",
+      "getCncRequest": "Cargando solicitud",
+      "getCncRequestRequirements": "Comprobando requisitos",
+      "getUploadedChatFiles": "Comprobando archivos",
+      "startFileAnalysis": "Analizando archivos",
+      "listUIActions": "Buscando acciones",
+      "invokeUIAction": "Abriendo vista",
+      "weather": "Comprobando el tiempo"
+    }
   }
 }

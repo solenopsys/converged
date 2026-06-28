@@ -14,6 +14,13 @@ type RunExecutionOptions = {
   skipOpen?: boolean;
 };
 
+// Verbose per-node start/done logging for DAG processors. On in dev (the dev
+// runner sets NODE_ENV=development) or when DAG_NODE_LOG=1. Node FAILURES are
+// always logged regardless, since a swallowed stack is what hides real bugs.
+const DAG_NODE_LOG =
+  process.env.DAG_NODE_LOG === "1" ||
+  (process.env.NODE_ENV ?? "").toLowerCase() !== "production";
+
 export type RuntimeFeature = "dag" | "cron" | "gates";
 
 export type RuntimeServiceConfig = Record<string, any> & {
@@ -392,6 +399,9 @@ export class RuntimeServiceImpl {
 
           const startedAt = Date.now();
           await setTaskProcessing(taskTicket.id, startedAt);
+          if (DAG_NODE_LOG) {
+            console.log(`[dag] ${nodeName} ▶ start (exec ${executionId})`);
+          }
           emit({
             type: "task_update",
             executionId,
@@ -412,6 +422,22 @@ export class RuntimeServiceImpl {
             const result = await fn();
             const persistedResult = result === undefined ? null : result;
             const completedAt = Date.now();
+            // Surface per-stage failures that the node captured internally
+            // (e.g. file-analysis collects them in result.errors instead of
+            // throwing) — otherwise they are invisible in the server log.
+            const stageErrors = Array.isArray((result as any)?.errors)
+              ? (result as any).errors
+              : null;
+            if (stageErrors?.length) {
+              console.warn(
+                `[dag] ${nodeName} ⚠ ${stageErrors.length} step(s) reported errors (exec ${executionId}):`,
+                stageErrors,
+              );
+            } else if (DAG_NODE_LOG) {
+              console.log(
+                `[dag] ${nodeName} ✓ done in ${completedAt - startedAt}ms`,
+              );
+            }
             await setTaskDone(taskTicket.id, workflowId, nodeName, completedAt, persistedResult);
             emit({
               type: "task_update",
@@ -433,6 +459,13 @@ export class RuntimeServiceImpl {
           } catch (error: any) {
             const errorMessage = error instanceof Error ? error.message : String(error);
             const completedAt = Date.now();
+            // Always log node failures with the full error (stack) — the
+            // task_update event only carries the message, so without this the
+            // real cause never reaches the server log.
+            console.error(
+              `[dag] ${nodeName} ✗ failed in ${completedAt - startedAt}ms (exec ${executionId})`,
+              error,
+            );
             await setTaskFailed(taskTicket.id, completedAt, errorMessage);
             emit({
               type: "task_update",

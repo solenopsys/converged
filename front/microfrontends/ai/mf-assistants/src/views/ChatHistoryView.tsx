@@ -125,11 +125,13 @@ function toChatMessage(message: ThreadMessage, index: number): ChatMessage | nul
       id: message.id ?? `history-tool-${index}-${message.timestamp ?? Date.now()}`,
       beforeId: message.beforeId,
       type: user,
-      content: "Вызов функции",
+      // The tool result message carries no function name; the localized
+      // "function call" label is rendered by ToolCallMessage via i18n.
+      content: "",
       timestamp: message.timestamp ?? 0,
       toolCallData: {
         toolCallId: toolCall.toolCallId,
-        title: "Вызов функции",
+        title: "",
         summary: buildToolCallSummary(toolCall.parsed),
         details: toolCall.parsed ?? toolCall.raw,
       },

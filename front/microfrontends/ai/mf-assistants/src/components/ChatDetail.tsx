@@ -1,5 +1,5 @@
-import React, { useCallback } from 'react';
-import { Bot, Braces, FileDown } from 'lucide-react';
+import React, { useCallback, useState } from 'react';
+import { Bot, Braces, ChevronRight, FileDown } from 'lucide-react';
 import {
   ThreadedChat,
   cn,
@@ -53,10 +53,20 @@ const ToolCallMessage: React.FC<{
   message: ChatMessage;
   onOpenJson: (toolCall: NonNullable<ChatMessage['toolCallData']>) => void;
 }> = ({ message, onOpenJson }) => {
+  const { t } = useMicrofrontendTranslation('assistants-mf');
+  const [expanded, setExpanded] = useState(false);
   const toolCall = message.toolCallData;
   if (!toolCall) return <MessageBubble message={message} />;
 
+  // User-facing localized action label mapped from the raw function name
+  // (e.g. createCncRequest → "Creating request"). Unknown tools fall back to the
+  // generic label so a raw internal name is never shown to the visitor.
+  const actionKey = `toolCall.actions.${toolCall.title}`;
+  const mappedAction = toolCall.title ? t(actionKey) : '';
+  const label =
+    mappedAction && mappedAction !== actionKey ? mappedAction : t('toolCall.title');
   const toolCallId = toolCall.toolCallId ? toolCall.toolCallId.slice(0, 12) : undefined;
+  const hasDetails = Boolean(toolCall.summary || toolCallId || toolCall.details);
 
   return (
     <div className={cn(styles.messageRow, styles.messageRowAssistant)}>
@@ -65,23 +75,44 @@ const ToolCallMessage: React.FC<{
           <Bot size={14} />
         </div>
         <div className={styles.toolCallCard}>
-          <div className={styles.toolCallTitleRow}>
-            <span className={styles.toolCallTitle}>{toolCall.title}</span>
-            {toolCallId ? <span className={styles.toolCallMeta}>#{toolCallId}</span> : null}
-          </div>
-          {toolCall.summary ? (
-            <div className={styles.toolCallSummary}>{toolCall.summary}</div>
-          ) : (
-            <div className={styles.toolCallSummary}>Вызов функции выполнен.</div>
-          )}
           <button
             type="button"
-            className={styles.toolCallLink}
-            onClick={() => onOpenJson(toolCall)}
+            className={styles.toolCallToggle}
+            onClick={() => hasDetails && setExpanded((v) => !v)}
+            aria-expanded={expanded}
+            disabled={!hasDetails}
           >
-            <Braces size={14} />
-            <span>JSON</span>
+            {hasDetails ? (
+              <ChevronRight
+                size={14}
+                className={cn(
+                  styles.toolCallChevron,
+                  expanded && styles.toolCallChevronOpen,
+                )}
+              />
+            ) : null}
+            <span className={styles.toolCallTitle}>{label}</span>
           </button>
+          {expanded ? (
+            <div className={styles.toolCallDetails}>
+              {toolCall.summary ? (
+                <div className={styles.toolCallSummary}>{toolCall.summary}</div>
+              ) : null}
+              {toolCallId ? (
+                <span className={styles.toolCallMeta}>
+                  {toolCall.title ? `${toolCall.title} ` : ''}#{toolCallId}
+                </span>
+              ) : null}
+              <button
+                type="button"
+                className={styles.toolCallLink}
+                onClick={() => onOpenJson(toolCall)}
+              >
+                <Braces size={14} />
+                <span>JSON</span>
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

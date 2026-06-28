@@ -96,7 +96,10 @@ async function putCacheBlob(
 		body: toArrayBuffer(data),
 	});
 	if (!response.ok) {
-		throw new Error(`Cache blob upload failed: ${response.status}`);
+		const details = await response.text().catch(() => "");
+		throw new Error(
+			`Cache blob upload failed: ${response.status}${details ? ` ${details.slice(0, 300)}` : ""}`,
+		);
 	}
 	const ref = (await response.json()) as CacheRef;
 	if (!ref?.cacheKey) {
@@ -118,7 +121,10 @@ async function getCacheBlob(
 		{ headers: cacheBlobHeaders() },
 	);
 	if (!response.ok) {
-		throw new Error(`Cache blob download failed: ${response.status}`);
+		const details = await response.text().catch(() => "");
+		throw new Error(
+			`Cache blob download failed: ${response.status}${details ? ` ${details.slice(0, 300)}` : ""}`,
+		);
 	}
 	return new Uint8Array(await response.arrayBuffer());
 }

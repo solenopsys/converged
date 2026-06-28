@@ -373,6 +373,40 @@
   justify-content: space-between;
 }
 
+.toolCallToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.toolCallToggle:disabled {
+  cursor: default;
+}
+
+.toolCallChevron {
+  flex-shrink: 0;
+  color: var(--chat-muted-fg);
+  transition: transform 0.15s ease;
+}
+
+.toolCallChevronOpen {
+  transform: rotate(90deg);
+}
+
+.toolCallDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 .toolCallTitle {
   min-width: 0;
   font-size: 0.875rem;

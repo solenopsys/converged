@@ -57,5 +57,19 @@
     "load": "Je charge les donnees...",
     "delete": "Je supprime un enregistrement...",
     "notify": "J'envoie une notification..."
+  },
+  "toolCall": {
+    "title": "Appel de fonction",
+    "actions": {
+      "createCncRequest": "Création de la demande",
+      "patchCncRequest": "Mise à jour de la demande",
+      "getCncRequest": "Chargement de la demande",
+      "getCncRequestRequirements": "Vérification des exigences",
+      "getUploadedChatFiles": "Vérification des fichiers",
+      "startFileAnalysis": "Analyse des fichiers",
+      "listUIActions": "Recherche d'actions",
+      "invokeUIAction": "Ouverture de la vue",
+      "weather": "Vérification de la météo"
+    }
   }
 }

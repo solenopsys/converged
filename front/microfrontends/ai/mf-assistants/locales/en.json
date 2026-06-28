@@ -57,5 +57,19 @@
     "load": "Loading data...",
     "delete": "Deleting a record...",
     "notify": "Sending a notification..."
+  },
+  "toolCall": {
+    "title": "Function call",
+    "actions": {
+      "createCncRequest": "Creating request",
+      "patchCncRequest": "Updating request",
+      "getCncRequest": "Loading request",
+      "getCncRequestRequirements": "Checking requirements",
+      "getUploadedChatFiles": "Checking files",
+      "startFileAnalysis": "Analyzing files",
+      "listUIActions": "Finding actions",
+      "invokeUIAction": "Opening view",
+      "weather": "Checking weather"
+    }
   }
 }

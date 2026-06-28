@@ -149,6 +149,14 @@ function asErrorMessage(error: unknown): string {
 	return error instanceof Error ? error.message : String(error);
 }
 
+function pushAnalysisError(
+	state: ProcessState,
+	error: FileAnalysisError,
+): void {
+	state.result.errors.push(error);
+	console.error("[file-analysis] stage failed", error);
+}
+
 function positiveNumber(value: number | undefined, fallback: number): number {
 	return typeof value === "number" && Number.isFinite(value) && value > 0
 		? value
@@ -581,7 +589,7 @@ async function processArchive(
 	state: ProcessState,
 ): Promise<void> {
 	if (depth >= state.options.maxArchiveDepth) {
-		state.result.errors.push({
+		pushAnalysisError(state, {
 			fileId: sourceFileId,
 			name: sourceName,
 			stage: "archive",
@@ -667,7 +675,16 @@ async function processStoredBytes(
 	collectionId?: string,
 ): Promise<void> {
 	if (detection.type === "zip") {
-		await processArchive(fileId, name, bytes, depth, state);
+		try {
+			await processArchive(fileId, name, bytes, depth, state);
+		} catch (error) {
+			pushAnalysisError(state, {
+				fileId,
+				name,
+				stage: "archive",
+				message: asErrorMessage(error),
+			});
+		}
 		return;
 	}
 
@@ -678,7 +695,7 @@ async function processStoredBytes(
 		try {
 			await convertPreview(fileId, name, bytes, state, collectionId);
 		} catch (error) {
-			state.result.errors.push({
+			pushAnalysisError(state, {
 				fileId,
 				name,
 				stage: "convert-preview",
@@ -691,7 +708,7 @@ async function processStoredBytes(
 		try {
 			await extractMilling(fileId, name, bytes, state, collectionId);
 		} catch (error) {
-			state.result.errors.push({
+			pushAnalysisError(state, {
 				fileId,
 				name,
 				stage: "milling-extract",
@@ -709,7 +726,7 @@ async function processStoredBytes(
 				await extractPrintSlice(fileId, name, bytes, state, collectionId);
 				return;
 			} catch (error) {
-				state.result.errors.push({
+				pushAnalysisError(state, {
 					fileId,
 					name,
 					stage: "print-slice",
@@ -721,7 +738,7 @@ async function processStoredBytes(
 		try {
 			estimatePrintGeometry(fileId, name, bytes, state);
 		} catch (error) {
-			state.result.errors.push({
+			pushAnalysisError(state, {
 				fileId,
 				name,
 				stage: "print-geometry",
@@ -737,7 +754,7 @@ async function processStoredBytes(
 		try {
 			await extractGcodeEstimate(fileId, bytes, state);
 		} catch (error) {
-			state.result.errors.push({
+			pushAnalysisError(state, {
 				fileId,
 				name,
 				stage: "gcode-extract",
@@ -811,7 +828,7 @@ export class FileAnalysisProcessFilesNode implements INode {
 					state,
 				);
 			} catch (error) {
-				state.result.errors.push({
+				pushAnalysisError(state, {
 					fileId,
 					stage: "load",
 					message: asErrorMessage(error),

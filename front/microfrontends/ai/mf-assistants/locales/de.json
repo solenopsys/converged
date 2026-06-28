@@ -57,5 +57,19 @@
     "load": "Ich lade Daten...",
     "delete": "Ich loesche einen Eintrag...",
     "notify": "Ich sende eine Benachrichtigung..."
+  },
+  "toolCall": {
+    "title": "Funktionsaufruf",
+    "actions": {
+      "createCncRequest": "Anfrage wird erstellt",
+      "patchCncRequest": "Anfrage wird aktualisiert",
+      "getCncRequest": "Anfrage wird geladen",
+      "getCncRequestRequirements": "Anforderungen werden geprüft",
+      "getUploadedChatFiles": "Dateien werden geprüft",
+      "startFileAnalysis": "Dateien werden analysiert",
+      "listUIActions": "Aktionen werden gesucht",
+      "invokeUIAction": "Ansicht wird geöffnet",
+      "weather": "Wetter wird geprüft"
+    }
   }
 }

@@ -14,6 +14,7 @@ import {
 } from "./events";
 import * as handlers from "./handlers";
 import type {
+	ChatMessage,
 	ChatMetadataService,
 	ChatState,
 	ExecutableTool,
@@ -23,6 +24,39 @@ import type {
 	ULID,
 } from "./types";
 import { StreamEventType } from "./types";
+
+// Build a visible "function call" card for the live chat. The thread already
+// keeps the tool *result* (sendToolResult), which ChatHistoryView reconstructs
+// into a card; this mirrors it inline as the call streams in so the running chat
+// shows what the assistant is doing instead of a silent gap. Only data lives
+// here (the function name + an args preview) — the human-readable label is
+// localized by the rendering component via its microfrontend locales.
+const buildToolCallCardMessage = (toolCall: ToolCall): ChatMessage => {
+	const args = toolCall.args;
+	const summary =
+		args && typeof args === "object"
+			? Object.entries(args as Record<string, unknown>)
+					.filter(([, v]) => v !== undefined && v !== null && v !== "")
+					.slice(0, 4)
+					.map(([k, v]) => {
+						const raw = typeof v === "string" ? v : JSON.stringify(v);
+						return `${k}: ${raw.length > 40 ? `${raw.slice(0, 40)}…` : raw}`;
+					})
+					.join(", ") || undefined
+			: undefined;
+	return {
+		id: `toolcall-${toolCall.id}`,
+		type: "assistant",
+		content: toolCall.name,
+		timestamp: Date.now(),
+		toolCallData: {
+			toolCallId: toolCall.id,
+			title: toolCall.name,
+			summary,
+			details: toolCall.args,
+		},
+	};
+};
 
 const initialState: ChatState = {
 	threadId: "" as ULID,
@@ -55,6 +89,7 @@ export const createChatStore = (
 		.on(sessionIdUpdated, (state, sessionId) => ({ ...state, sessionId }))
 		.on(toolCallReceived, (state, toolCall) => ({
 			...state,
+			messages: [...state.messages, buildToolCallCardMessage(toolCall)],
 			pendingToolCalls: [...state.pendingToolCalls, toolCall],
 			lastToolCallName: toolCall.name,
 		}))

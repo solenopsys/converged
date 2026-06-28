@@ -57,5 +57,19 @@
     "load": "Я загружаю данные...",
     "delete": "Я удаляю запись...",
     "notify": "Я отправляю уведомление..."
+  },
+  "toolCall": {
+    "title": "Вызов функции",
+    "actions": {
+      "createCncRequest": "Создание заявки",
+      "patchCncRequest": "Обновление заявки",
+      "getCncRequest": "Загрузка заявки",
+      "getCncRequestRequirements": "Уточнение требований",
+      "getUploadedChatFiles": "Проверка файлов",
+      "startFileAnalysis": "Анализ файлов",
+      "listUIActions": "Поиск действий",
+      "invokeUIAction": "Открываю раздел",
+      "weather": "Проверка погоды"
+    }
   }
 }

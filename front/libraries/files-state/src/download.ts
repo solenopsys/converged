@@ -39,6 +39,35 @@ const normalizeBlockData = (value: unknown): Uint8Array => {
   throw new Error("StoreService.get returned invalid data");
 };
 
+/**
+ * Resolve a stored block to its raw (still-compressed) bytes.
+ *
+ * Binary payloads no longer travel inside the store RPC: `store.get(hash)` now
+ * returns a CacheRef `{ cacheKey }` and the bytes live in the Valkey blob cache,
+ * served same-origin at `/cache/blob/<cacheKey>`. The browser resolves the
+ * tenant from its own Host, so a plain relative fetch is enough. Older/wrapped
+ * services that already return bytes still work via normalizeBlockData.
+ */
+const resolveBlockBytes = async (
+  storeService: StoreService,
+  hash: string,
+): Promise<Uint8Array> => {
+  const raw = await storeService.get(hash);
+  if (
+    raw &&
+    typeof raw === "object" &&
+    typeof (raw as { cacheKey?: unknown }).cacheKey === "string"
+  ) {
+    const cacheKey = (raw as { cacheKey: string }).cacheKey;
+    const response = await fetch(`/cache/blob/${encodeURIComponent(cacheKey)}`);
+    if (!response.ok) {
+      throw new Error(`Cache blob download failed: ${response.status}`);
+    }
+    return new Uint8Array(await response.arrayBuffer());
+  }
+  return normalizeBlockData(raw);
+};
+
 export async function downloadFile(
   fileId: string,
   filesService: FilesService,
@@ -68,8 +97,7 @@ export async function downloadFile(
 
       // Загружаем и записываем чанки по одному
       for (const chunk of chunks) {
-        const rawData = await storeService.get(chunk.hash);
-        const compressedData = normalizeBlockData(rawData);
+        const compressedData = await resolveBlockBytes(storeService, chunk.hash);
         const decompressedData = inflateSync(compressedData);
 
         await writable.write(decompressedData);
@@ -93,8 +121,7 @@ export async function downloadFile(
   const decompressedChunks: Uint8Array[] = [];
 
   for (const chunk of chunks) {
-    const rawData = await storeService.get(chunk.hash);
-    const compressedData = normalizeBlockData(rawData);
+    const compressedData = await resolveBlockBytes(storeService, chunk.hash);
     const decompressedData = inflateSync(compressedData);
     decompressedChunks.push(decompressedData);
   }
