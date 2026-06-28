@@ -1245,6 +1245,7 @@
         "@elysiajs/static": "latest",
         "elysia": "latest",
         "front-core": "workspace:*",
+        "g-telemetry": "workspace:*",
         "react": "19.2.5",
         "react-dom": "19.2.5",
         "react-router-dom": "latest",

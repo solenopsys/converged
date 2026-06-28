@@ -268,15 +268,26 @@ class SalesServiceImpl
 	async listLeads(params: LeadListParams): Promise<PaginatedResult<Lead>> {
 		await this.ready();
 		const tags = params.tags?.map((tag) => tag.trim()).filter(Boolean) ?? [];
-		const result = tags.length
-			? await this.stores.salesStoreSevice.listLeadsByTags(tags, params)
-			: {
-					items: await this.stores.salesStoreSevice.leadRepo.findAll({
-						limit: params.limit,
-						offset: params.offset,
-					}),
-					totalCount: await this.stores.salesStoreSevice.leadRepo.count(),
-				};
+		const useCursor = typeof params.after === "string";
+		if (useCursor && tags.length) {
+			throw new Error(
+				"listLeads: 'after' cursor is not supported together with 'tags'",
+			);
+		}
+		const result = useCursor
+			? await this.stores.salesStoreSevice.listLeadsAfter(
+					params.after as string,
+					params.limit,
+				)
+			: tags.length
+				? await this.stores.salesStoreSevice.listLeadsByTags(tags, params)
+				: {
+						items: await this.stores.salesStoreSevice.leadRepo.findAll({
+							limit: params.limit,
+							offset: params.offset,
+						}),
+						totalCount: await this.stores.salesStoreSevice.leadRepo.count(),
+					};
 
 		const items = result.items.map((entity) => ({
 			id: entity.id,

@@ -113,9 +113,9 @@ const DEFAULT_OPTIONS: Required<
 		"target" | "includeGcode" | "convertPreview" | "maxArchiveDepth"
 	>
 > = {
-	target: "cnc",
+	target: "generic",
 	includeGcode: false,
-	convertPreview: true,
+	convertPreview: false,
 	maxArchiveDepth: 2,
 };
 

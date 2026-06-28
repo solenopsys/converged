@@ -87,6 +87,9 @@ export type PaginationParams = {
 
 export type LeadListParams = PaginationParams & {
 	tags?: string[];
+	// Keyset cursor: when set, returns leads with id > after, ordered by id ASC
+	// (ignores offset). Not supported together with tags.
+	after?: string;
 };
 
 export type PaginatedResult<T> = {

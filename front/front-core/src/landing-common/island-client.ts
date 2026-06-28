@@ -593,9 +593,7 @@ function normalizeGalleryStaticUrl(value: string, fallback: string): string {
 	const resolved = value || fallback;
 	const marker = "/galery/static/";
 	const idx = resolved.indexOf(marker);
-	return idx >= 0
-		? `/images/${resolved.slice(idx + marker.length)}`
-		: resolved;
+	return idx >= 0 ? `/images/${resolved.slice(idx + marker.length)}` : resolved;
 }
 
 type ControlPanelMenuLink = {
@@ -1193,7 +1191,10 @@ function installRightRailTabs(): void {
 				.then(() => ensureAssistantsLoaded())
 				.then(() => ensureTemporarySessionForChat())
 				.then(() => {
-					runActionEvent({ actionId: "chats.show", params: {} });
+					runActionEvent({
+						actionId: "chats.show",
+						params: { contextName: CHAT_CONTEXT },
+					});
 				});
 		});
 		tab?.addEventListener("click", () => {
@@ -2547,14 +2548,15 @@ async function openAiChat(
 	message?: string,
 	options?: { contextName?: string },
 ): Promise<void> {
+	const contextName = options?.contextName?.trim() || CHAT_CONTEXT;
 	setControlPanelMode("app");
 	await ensureControlPanelRuntime();
 	await ensureAssistantsLoaded();
 	await ensureTemporarySessionForChat();
-	chatInitRequested({ contextName: options?.contextName });
+	chatInitRequested({ contextName });
 	runActionEvent({
 		actionId: "chats.show",
-		params: { contextName: options?.contextName },
+		params: { contextName },
 	});
 	const text = message?.trim();
 	if (text) {
@@ -2571,12 +2573,12 @@ type LandingEventHandler = (payload: LandingEventPayload) => void;
 
 const LANDING_EVENT_HANDLERS: Record<string, LandingEventHandler> = {
 	"chat.open": ({ message, contextName }) => {
-		void openAiChat(message, { contextName });
+		void openAiChat(message, { contextName: contextName || CHAT_CONTEXT });
 	},
 	"chat.attach": ({ contextName }) => {
-		void openAiChat(undefined, { contextName }).then(() =>
-			chatAttachRequested(),
-		);
+		void openAiChat(undefined, {
+			contextName: contextName || CHAT_CONTEXT,
+		}).then(() => chatAttachRequested());
 	},
 };
 
@@ -2606,7 +2608,9 @@ function readLandingEventPayload(source: HTMLElement): LandingEventPayload {
 	return {
 		message,
 		contextName:
-			source.dataset.landingContextName || form?.dataset.landingContextName,
+			source.dataset.landingContextName ||
+			form?.dataset.landingContextName ||
+			CHAT_CONTEXT,
 		payload: parseLandingPayload(
 			source.dataset.landingPayload || form?.dataset.landingPayload,
 		),

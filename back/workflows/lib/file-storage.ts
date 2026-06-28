@@ -8,6 +8,7 @@ import {
 	type FilesServiceClient,
 } from "g-files";
 import {
+	type CacheRef,
 	type CompressionType,
 	createStoreServiceClient,
 	type StoreServiceClient,
@@ -18,6 +19,10 @@ const DEFAULT_CHUNK_SIZE = 512 * 1024;
 export type StorageClients = {
 	files: FilesServiceClient;
 	store: StoreServiceClient;
+	/** Root URL of the gateway's `/cache/blob` endpoint. Binary chunk bodies are
+	 * transferred through the Valkey cache (the nrpc RPC only carries CacheRefs),
+	 * so reads/writes go through this endpoint, not the store RPC payload. */
+	cacheBlobBaseUrl: string;
 };
 
 export type StoredFile = {
@@ -39,13 +44,144 @@ export type SaveStoredFileInput = {
 	processId?: string;
 };
 
+/** Storage scope for service-to-service calls. The browser resolves scope from
+ * the request Host, but a backend `fetch` to `/cache/blob` carries no tenant
+ * Host — so we must send the scope header explicitly, the same way the nrpc
+ * client does (it reads the same global resolver set by server.entry). Without
+ * it the gateway can't resolve the tenant and `/cache/blob` fails with 500. */
+function cacheBlobHeaders(
+	extra?: Record<string, string>,
+): Record<string, string> {
+	const scope =
+		typeof globalThis !== "undefined"
+			? (globalThis as any).__NRPC_SCOPE_RESOLVER__?.()
+			: undefined;
+	return {
+		...(extra ?? {}),
+		...(scope ? { scope: String(scope) } : {}),
+	};
+}
+
+/** `<root>/services` → `<root>/cache/blob` (mirrors the front store client). */
+function resolveCacheBlobBaseUrl(baseUrl: string): string {
+	const normalized = baseUrl.replace(/\/+$/, "");
+	const root = normalized.endsWith("/services")
+		? normalized.slice(0, -"/services".length)
+		: normalized;
+	return `${root}/cache/blob`;
+}
+
 export function createStorageClients(
 	baseUrl = process.env.SERVICES_BASE,
 ): StorageClients {
+	if (!baseUrl) {
+		throw new Error("SERVICES_BASE is required for file storage clients");
+	}
 	return {
 		files: createFilesServiceClient({ baseUrl }),
 		store: createStoreServiceClient({ baseUrl }),
+		cacheBlobBaseUrl: resolveCacheBlobBaseUrl(baseUrl),
 	};
+}
+
+/** Upload bytes to the Valkey blob cache, returning the CacheRef to hand to the
+ * store RPC (`save`/`saveWithHash`). */
+async function putCacheBlob(
+	cacheBlobBaseUrl: string,
+	data: Uint8Array,
+): Promise<CacheRef> {
+	const response = await fetch(cacheBlobBaseUrl, {
+		method: "POST",
+		headers: cacheBlobHeaders({ "Content-Type": "application/octet-stream" }),
+		body: toArrayBuffer(data),
+	});
+	if (!response.ok) {
+		throw new Error(`Cache blob upload failed: ${response.status}`);
+	}
+	const ref = (await response.json()) as CacheRef;
+	if (!ref?.cacheKey) {
+		throw new Error("Cache blob upload returned no cacheKey");
+	}
+	return ref;
+}
+
+/** Fetch the bytes behind a CacheRef returned by the store RPC. */
+async function getCacheBlob(
+	cacheBlobBaseUrl: string,
+	ref: CacheRef,
+): Promise<Uint8Array> {
+	if (!ref?.cacheKey) {
+		throw new Error("Cache reference is missing cacheKey");
+	}
+	const response = await fetch(
+		`${cacheBlobBaseUrl}/${encodeURIComponent(ref.cacheKey)}`,
+		{ headers: cacheBlobHeaders() },
+	);
+	if (!response.ok) {
+		throw new Error(`Cache blob download failed: ${response.status}`);
+	}
+	return new Uint8Array(await response.arrayBuffer());
+}
+
+function unwrapResult<T>(value: T | { result: T }): T {
+	if (
+		value &&
+		typeof value === "object" &&
+		"result" in value &&
+		(value as any).result !== undefined
+	) {
+		return (value as any).result;
+	}
+	return value as T;
+}
+
+function normalizeCacheRef(value: unknown): CacheRef | undefined {
+	const ref = unwrapResult(value as any);
+	if (
+		ref &&
+		typeof ref === "object" &&
+		typeof (ref as any).cacheKey === "string"
+	) {
+		return {
+			cacheKey: (ref as any).cacheKey,
+			sizeBytes:
+				typeof (ref as any).sizeBytes === "number"
+					? (ref as any).sizeBytes
+					: undefined,
+		};
+	}
+	return undefined;
+}
+
+async function readStoredChunkBytes(
+	clients: StorageClients,
+	hash: string,
+): Promise<{ data: Uint8Array; compression?: CompressionType | string }> {
+	const stored = unwrapResult(await clients.store.getWithMeta(hash));
+	if (!stored || typeof stored !== "object") {
+		throw new Error(`Store returned invalid metadata for chunk ${hash}`);
+	}
+
+	const legacyData = (stored as any).data;
+	if (legacyData instanceof Uint8Array) {
+		return { data: legacyData, compression: (stored as any).compression };
+	}
+
+	const dataRef = normalizeCacheRef((stored as any).dataRef);
+	if (dataRef) {
+		return {
+			data: await getCacheBlob(clients.cacheBlobBaseUrl, dataRef),
+			compression: (stored as any).compression,
+		};
+	}
+
+	throw new Error(`Store metadata for chunk ${hash} has no dataRef/data`);
+}
+
+function toArrayBuffer(data: Uint8Array): ArrayBuffer {
+	const copy = new Uint8Array(data.byteLength);
+	copy.set(data);
+	return copy.buffer;
 }
 
 function concatBytes(chunks: Uint8Array[]): Uint8Array {
@@ -103,7 +239,7 @@ export async function readFileFromStorage(
 	const parts: Uint8Array[] = [];
 
 	for (const chunk of ordered) {
-		const stored = await clients.store.getWithMeta(chunk.hash);
+		const stored = await readStoredChunkBytes(clients, chunk.hash);
 		parts.push(decompressChunk(stored.data, stored.compression));
 	}
 
@@ -146,8 +282,9 @@ export async function saveFileToStorage(
 		const end = Math.min(start + chunkSize, input.bytes.length);
 		const plain = input.bytes.slice(start, end);
 		const compressed = deflateSync(plain);
+		const dataRef = await putCacheBlob(clients.cacheBlobBaseUrl, compressed);
 		const hash = await clients.store.save(
-			compressed,
+			dataRef,
 			plain.length,
 			"deflate",
 			owner,

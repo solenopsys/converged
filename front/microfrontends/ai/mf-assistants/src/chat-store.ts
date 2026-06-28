@@ -1,5 +1,9 @@
 import type { ExecutableTool } from "assistant-state";
-import { addMessage, createChatStore, createUIActionTools } from "assistant-state";
+import {
+	addMessage,
+	createChatStore,
+	createUIActionTools,
+} from "assistant-state";
 import { $files, openFilePicker, uploadCompleted } from "files-state";
 import {
 	actionContextManager,
@@ -28,7 +32,6 @@ import {
 	requestsClient,
 	threadsClient,
 } from "./services";
-
 
 const chatStore = createChatStore(chatClient, threadsClient, assistantClient);
 const chatThreadId = uuidv4();
@@ -216,7 +219,9 @@ const requestArgsSummary = (args: RequestDraftArgs) => ({
 	forceNew: args.forceNew,
 });
 
-const buildFileAnalysisParameters = (result: any): Array<Record<string, any>> => {
+const buildFileAnalysisParameters = (
+	result: any,
+): Array<Record<string, any>> => {
 	const parameters: Array<Record<string, any>> = [];
 	const estimates = Array.isArray(result?.estimates)
 		? result.estimates.filter(
@@ -257,7 +262,6 @@ const buildFileAnalysisParameters = (result: any): Array<Record<string, any>> =>
 
 	return parameters;
 };
-
 
 const ensureRequestsRuntime = async () => {
 	if (registry.get(OPEN_REQUEST_ACTION)) return;
@@ -838,8 +842,8 @@ const startFileAnalysisTool: ExecutableTool = {
 		for await (const event of dagClient.startExecution("file-analysis", {
 			fileIds,
 			options: {
-				target: target || "cnc",
-				convertPreview: args.convertPreview ?? true,
+				target: target || "generic",
+				convertPreview: args.convertPreview ?? false,
 				includeGcode: args.includeGcode ?? false,
 				definitionFileId: args.definitionFileId,
 				density: args.density,
@@ -952,10 +956,16 @@ const startFileAnalysisTool: ExecutableTool = {
 const getAvailableMFNames = (): string[] => {
 	if (typeof document === "undefined") return [];
 	try {
-		const el = document.querySelector<HTMLScriptElement>('script[type="importmap"]');
+		const el = document.querySelector<HTMLScriptElement>(
+			'script[type="importmap"]',
+		);
 		if (!el?.textContent) return [];
-		const parsed = JSON.parse(el.textContent) as { imports?: Record<string, string> };
-		return Object.keys(parsed.imports ?? {}).filter((key) => key.startsWith("mf-"));
+		const parsed = JSON.parse(el.textContent) as {
+			imports?: Record<string, string>;
+		};
+		return Object.keys(parsed.imports ?? {}).filter((key) =>
+			key.startsWith("mf-"),
+		);
 	} catch {
 		return [];
 	}
@@ -988,7 +998,11 @@ const loadMFForAction = async (actionId: string): Promise<void> => {
 };
 
 // UI action tools — full action registry, two-phase discovery + invoke
-const uiActionTools = createUIActionTools(registry, actionContextManager, loadMFForAction);
+const uiActionTools = createUIActionTools(
+	registry,
+	actionContextManager,
+	loadMFForAction,
+);
 for (const tool of uiActionTools) {
 	chatStore.registerFunction(tool.name, tool);
 }
@@ -1006,7 +1020,7 @@ chatStore.registerFunction("startFileAnalysis", startFileAnalysisTool);
 
 chatSendRequested.watch((message) => {
 	void (async () => {
-		ensureInitialized();
+		ensureInitialized(CHAT_CONTEXT);
 		// Auto-creating a request draft from the first message is removed.
 		// Under the LLM-first paradigm the model decides when to call createCncRequest.
 		chatStore.send(message);
@@ -1014,13 +1028,15 @@ chatSendRequested.watch((message) => {
 });
 
 chatAttachRequested.watch(() => {
-	ensureInitialized();
+	ensureInitialized(CHAT_CONTEXT);
 	openFilePicker();
 });
 
 uploadCompleted.watch((fileId) => {
 	const fileState = $files.getState().get(fileId);
 	if (!fileState) return;
+
+	ensureInitialized(CHAT_CONTEXT);
 
 	const chatMessage = {
 		id: `file_${fileId}`,

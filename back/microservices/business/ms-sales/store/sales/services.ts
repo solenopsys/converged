@@ -249,6 +249,25 @@ export class SalesStoreService {
 			.execute();
 	}
 
+	async listLeadsAfter(
+		after: string,
+		limit: number,
+	): Promise<{ items: LeadEntity[]; totalCount: number }> {
+		const base = this.store.db
+			.selectFrom("leads")
+			.selectAll()
+			.orderBy("id", "asc")
+			.limit(limit);
+		const query = after.length > 0 ? base.where("id", ">", after) : base;
+
+		const [items, totalCount] = await Promise.all([
+			query.execute() as Promise<LeadEntity[]>,
+			this.leadRepo.count(),
+		]);
+
+		return { items, totalCount };
+	}
+
 	async listLeadsByTags(
 		tagNames: string[],
 		params: { offset?: number; limit?: number },
