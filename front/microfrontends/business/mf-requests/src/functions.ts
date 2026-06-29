@@ -1,4 +1,4 @@
-import type { CreateAction, CreateWidget } from "front-core";
+import { authToken, type CreateAction, type CreateWidget } from "front-core";
 import type { RequestModel } from "g-requests";
 import {
 	OPEN_REQUEST,
@@ -41,7 +41,11 @@ function syncRequestUrl(requestId: string, params?: OpenRequestParams) {
 	if (typeof window === "undefined") return;
 	if (params?.syncUrl === false) return;
 
-	const nextPath = `/console/request/${encodeURIComponent(requestId)}`;
+	// `/console/*` is the authenticated admin surface. An anonymous/temporary
+	// visitor filling a request on the landing must stay on the public route —
+	// `/request/<id>` is SSR-routable and parsed by extractRequestIdForConsolePath.
+	const base = authToken.isAuthenticated() ? "/console/request" : "/request";
+	const nextPath = `${base}/${encodeURIComponent(requestId)}`;
 	const nextUrl = `${nextPath}${window.location.search}${window.location.hash}`;
 	const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
 	if (currentUrl === nextUrl) {

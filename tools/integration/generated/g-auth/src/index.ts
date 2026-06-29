@@ -53,6 +53,13 @@ export type TemporaryUserResult = {
   temporary: true;
 };
 
+export type DemoSessionResult = {
+  token: string;
+  userId: string;
+  email: string;
+  demo: true;
+};
+
 export type CleanupResult = {
   authCodes: number;
   magicLinks: number;
@@ -132,6 +139,14 @@ export const metadata: ServiceMetadata = {
         }
       ],
       "returnType": "TemporaryUserResult",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "createDemoSession",
+      "parameters": [],
+      "returnType": "DemoSessionResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -282,6 +297,11 @@ export const metadata: ServiceMetadata = {
       "definition": "{\n  token: string;\n  userId: string;\n  email: string;\n  temporary: true;\n}"
     },
     {
+      "name": "DemoSessionResult",
+      "kind": "type",
+      "definition": "{\n  token: string;\n  userId: string;\n  email: string;\n  demo: true;\n}"
+    },
+    {
       "name": "CleanupResult",
       "kind": "type",
       "definition": "{\n  authCodes: number;\n  magicLinks: number;\n  refreshTokens: number;\n}"
@@ -295,6 +315,7 @@ export interface AuthService {
   verifyLink(token: string): Promise<VerifyLinkResult>;
   login(email: string, password: string): Promise<LoginResult>;
   createTemporaryUser(sessionId?: string): Promise<TemporaryUserResult>;
+  createDemoSession(): Promise<DemoSessionResult>;
   logout(userId: string, clientId?: string): Promise<void>;
   createOAuthClient(client: OAuthClientInput): Promise<OAuthClient>;
   getOAuthClient(clientId: string): Promise<OAuthClient | any>;
@@ -310,6 +331,7 @@ export interface AuthServiceClient {
   verifyLink(token: string): Promise<VerifyLinkResult>;
   login(email: string, password: string): Promise<LoginResult>;
   createTemporaryUser(sessionId?: string): Promise<TemporaryUserResult>;
+  createDemoSession(): Promise<DemoSessionResult>;
   logout(userId: string, clientId?: string): Promise<void>;
   createOAuthClient(client: OAuthClientInput): Promise<OAuthClient>;
   getOAuthClient(clientId: string): Promise<OAuthClient | any>;

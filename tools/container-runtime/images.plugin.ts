@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { resolveWorkspaceFromRequest } from "../../back/back-core/src/workspace-domain";
+import { resolveRequestScopeFromRequest } from "../../back/back-core/src/request-context";
 
 type ImagesPluginOptions = {
 	servicesBaseUrl: string;
@@ -26,10 +26,12 @@ export function createRuntimeImagesPlugin(options: ImagesPluginOptions) {
 				return "Bad request";
 			}
 
-			const workspace = resolveWorkspaceFromRequest(request);
+			// The scope is injected as a request header at the edge (Traefik scope
+			// middleware) or pinned via STORAGE_SCOPE; no Host → scope mapping here.
+			const workspace = resolveRequestScopeFromRequest(request);
 			if (!workspace) {
 				set.status = 421;
-				return `Unknown storage: cannot resolve workspace for host "${new URL(request.url).host}"`;
+				return `Unknown storage: missing storage scope header for host "${new URL(request.url).host}"`;
 			}
 
 			const headers: Record<string, string> = {

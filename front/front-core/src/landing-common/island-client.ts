@@ -2,11 +2,7 @@ import { structClient } from "g-struct";
 import { KeyRound } from "lucide-react";
 import { createElement, type ReactNode } from "react";
 import { createBridgeController } from "../bridge";
-import {
-	chatAttachRequested,
-	chatInitRequested,
-	chatSendRequested,
-} from "../chat/events";
+import { chatInitRequested, chatSendRequested } from "../chat/events";
 import { rightRailActionSelected } from "../components/right-rail/uri-sync";
 import { CHAT_CONTEXT, VOICE_CONTEXT } from "./context-names";
 import { ConsoleAuthSplash } from "../components/state-stream/ConsoleAuthSplash";
@@ -27,6 +23,7 @@ import { SlotInline } from "../slots/SlotInline";
 import {
 	$controlPanelMode,
 	type ControlPanelMode,
+	chatOpenRequested,
 	controlPanelClosed,
 	controlPanelModeChanged,
 	controlPanelOpened,
@@ -60,6 +57,8 @@ const SSR_CHAT_INPUT_ID = "ssr-chat-input";
 const SSR_CHAT_ATTACH_ID = "ssr-chat-attach";
 const SSR_CHAT_FORM_ID = "ssr-chat-form";
 const SSR_CHAT_QUICK_ID = "ssr-chat-quick";
+const CHAT_FILES_SELECTED_EVENT = "front-core:chat-files-selected";
+const PENDING_CHAT_FILES_KEY = "__front_core_pending_chat_files__";
 const ENSURE_TEMPORARY_SESSION_ACTION = "auth.ensure-temporary-session";
 const SSR_RAIL_WIDTH_STORAGE_KEY = "ssr_rail_width";
 const SSR_RAIL_MIN_WIDTH = 280;
@@ -76,6 +75,9 @@ const RIGHT_RAIL_QUERY_KEYS = [
 type ControlPanelRuntimeHandle = {
 	setMode: (mode: ControlPanelMode) => void;
 	unmount: () => void;
+};
+type PendingChatFilesWindow = Window & {
+	[PENDING_CHAT_FILES_KEY]?: File[];
 };
 type QuickChatPrompt =
 	| string
@@ -834,9 +836,7 @@ async function ensureControlPanelRuntime(): Promise<void> {
 				void openAiChat(message, { contextName: CHAT_CONTEXT });
 			},
 			onAttach: () => {
-				void openAiChat(undefined, { contextName: CHAT_CONTEXT }).then(() =>
-					chatAttachRequested(),
-				);
+				requestChatAttach(CHAT_CONTEXT);
 			},
 			onLogin: () => {
 				void openLoginPanel();
@@ -2564,6 +2564,45 @@ async function openAiChat(
 	}
 }
 
+function enqueueChatFiles(files: File[]): void {
+	if (files.length === 0) return;
+	const win = window as PendingChatFilesWindow;
+	win[PENDING_CHAT_FILES_KEY] = [
+		...(win[PENDING_CHAT_FILES_KEY] ?? []),
+		...files,
+	];
+	window.dispatchEvent(
+		new CustomEvent(CHAT_FILES_SELECTED_EVENT, { detail: { files } }),
+	);
+}
+
+function openChatFilePicker(): void {
+	const input = document.createElement("input");
+	input.type = "file";
+	input.multiple = true;
+	input.style.position = "fixed";
+	input.style.left = "-10000px";
+	input.style.top = "0";
+	input.style.opacity = "0";
+
+	input.addEventListener(
+		"change",
+		() => {
+			enqueueChatFiles(Array.from(input.files ?? []));
+			input.remove();
+		},
+		{ once: true },
+	);
+
+	document.body.append(input);
+	input.click();
+}
+
+function requestChatAttach(contextName?: string): void {
+	openChatFilePicker();
+	void openAiChat(undefined, { contextName: contextName || CHAT_CONTEXT });
+}
+
 type LandingEventPayload = {
 	message?: string;
 	contextName?: string;
@@ -2576,9 +2615,7 @@ const LANDING_EVENT_HANDLERS: Record<string, LandingEventHandler> = {
 		void openAiChat(message, { contextName: contextName || CHAT_CONTEXT });
 	},
 	"chat.attach": ({ contextName }) => {
-		void openAiChat(undefined, {
-			contextName: contextName || CHAT_CONTEXT,
-		}).then(() => chatAttachRequested());
+		requestChatAttach(contextName || CHAT_CONTEXT);
 	},
 };
 
@@ -2697,18 +2734,6 @@ function installHeroRequestController(): void {
 		frame = window.requestAnimationFrame(measure);
 	};
 
-	const setPrompt = (prompt: string) => {
-		if (!textarea) return;
-		textarea.value = prompt;
-		textarea.dispatchEvent(new Event("input", { bubbles: true }));
-		textarea.focus();
-		try {
-			textarea.setSelectionRange(prompt.length, prompt.length);
-		} catch {
-			// Some browsers can reject selection updates during focus changes.
-		}
-	};
-
 	const onDocumentClick = (event: MouseEvent) => {
 		const eventEl = resolveEventElement(event.target);
 		const chip = eventEl?.closest<HTMLButtonElement>(
@@ -2716,8 +2741,12 @@ function installHeroRequestController(): void {
 		);
 		if (!chip || !root.contains(chip)) return;
 
+		// Send the chip phrase straight into the chat (effector does the rest:
+		// open the panel, deliver the message, start the dialogue). No prefix
+		// pre-fill of the textarea.
 		event.preventDefault();
-		setPrompt(chip.dataset.heroPrompt ?? `${chip.textContent?.trim() ?? ""}: `);
+		const prompt = (chip.dataset.heroPrompt ?? chip.textContent ?? "").trim();
+		if (prompt) chatOpenRequested(prompt);
 	};
 
 	const onTextareaKeyDown = (event: KeyboardEvent) => {
@@ -2806,9 +2835,7 @@ function installChatDock(): void {
 
 		attach?.addEventListener("click", () => {
 			if (shell) shell.dataset.chatFocus = "1";
-			void openAiChat(undefined, { contextName: CHAT_CONTEXT }).then(() =>
-				chatAttachRequested(),
-			);
+			requestChatAttach(CHAT_CONTEXT);
 		});
 
 		input.addEventListener("keydown", (event) => {
@@ -3061,6 +3088,7 @@ export function mountSsrMenuShell(): void {
 	void ensureControlPanelRuntime().then(() => {
 		installDynamicMenuIfReady();
 	});
+	void ensureAssistantsLoaded();
 
 	installLandingEventGateway();
 	installLandingBlockAnchors();

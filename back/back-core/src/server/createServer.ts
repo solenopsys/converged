@@ -5,9 +5,11 @@ import { installBackendLogBridge } from "./logBridge";
 import { loadAiProvidersFromEnv } from "./envConfig";
 import {
 	enterRequestScopeContext,
+	getCurrentStorageScope,
 	resolveRequestScopeFromHeaders,
 	runWithRequestScopeContext,
 } from "../request-context";
+import { resolveWorkspaceFromHeaders } from "../workspace-domain";
 export type { AiConfig } from "./envConfig";
 
 export interface CacheAdapter {
@@ -101,6 +103,18 @@ function configureNrpcClientEnv(env: {
 	};
 }
 
+function configureNrpcScopeResolvers(): void {
+	const pinnedStorageScope = process.env.STORAGE_SCOPE?.trim() || undefined;
+	const resolveScope = (): string | undefined =>
+		getCurrentStorageScope() ?? pinnedStorageScope;
+	const nrpcGlobal = globalThis as typeof globalThis & {
+		__NRPC_SCOPE_RESOLVER__?: () => string | undefined;
+		__NRPC_WORKSPACE_RESOLVER__?: () => string | undefined;
+	};
+	nrpcGlobal.__NRPC_SCOPE_RESOLVER__ = resolveScope;
+	nrpcGlobal.__NRPC_WORKSPACE_RESOLVER__ = resolveScope;
+}
+
 function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
 	const copy = new Uint8Array(bytes.byteLength);
 	copy.set(bytes);
@@ -129,6 +143,7 @@ export function createServer({
 		baseUrl: `http://127.0.0.1:${config.port}/services`,
 		serviceToken: process.env.SERVICE_TOKEN,
 	});
+	configureNrpcScopeResolvers();
 
 	const logBridge = installBackendLogBridge({
 		serviceBaseUrl: `http://127.0.0.1:${config.port}/services`,
@@ -150,16 +165,21 @@ export function createServer({
 		registerShutdownTask: (name, task) => {
 			shutdownTasks.push({ name, task });
 		},
-		runWithContext: (context: any, callback: () => any) =>
+		runWithContext: (context: any, callback: () => any) => {
 			// Boundary: nrpc passes the scope as `workspace` on the wire — map it
-			// to our single `scope` here.
-			runWithRequestScopeContext(
+			// to our single `scope` here. Browser dev calls may arrive without
+			// nrpc scope headers; in that case reuse the scope already resolved by
+			// the HTTP onRequest hook from WORKSPACE_DOMAIN_MAP.
+			const scope =
+				context?.scope ?? context?.workspace ?? getCurrentStorageScope();
+			return runWithRequestScopeContext(
 				{
-					scope: context?.scope ?? context?.workspace,
+					scope,
 					headers: context?.headers,
 				},
 				callback,
-			),
+			);
+		},
 		...config.extraConfig,
 	};
 	if (pluginConfig.cache) {
@@ -181,15 +201,24 @@ export function createServer({
 		.onRequest(({ request }) => {
 			// Bind the request's storage scope for the whole async execution so
 			// direct routes (/cache/blob, /images, SSR) resolve the same tenant the
-			// request targets (scope/workspace header → Host → WORKSPACE_DOMAIN_MAP).
-			// nrpc service calls bind their own scope via runWithContext; this covers
-			// everything else. No fallback: an unresolvable scope fails loudly
-			// downstream when storage/cache is touched.
+			// request targets. In production the scope arrives as an edge-injected
+			// header (the per-tenant Traefik scope middleware). In dev there is no
+			// edge, so we fall back to resolving Host → scope from a local
+			// WORKSPACE_DOMAIN_MAP env — the ONE place that mapping still lives, and
+			// a no-op in production where the env is unset. nrpc service calls bind
+			// their own scope via runWithContext; this covers everything else.
 			const headers: Record<string, string> = {};
 			request.headers.forEach((value, key) => {
 				headers[key] = value;
 			});
-			const scope = resolveRequestScopeFromHeaders(headers);
+			const scope =
+				resolveRequestScopeFromHeaders(headers) ??
+				resolveWorkspaceFromHeaders(headers);
+			if (process.env.LOG_SCOPE === "true") {
+				console.debug(
+					`[scope] ${request.method} ${new URL(request.url).pathname} → ${scope ?? "(none)"}`,
+				);
+			}
 			enterRequestScopeContext({ scope, headers });
 		})
 		.onAfterHandle(({ set }) => {

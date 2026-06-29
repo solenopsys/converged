@@ -179,6 +179,25 @@ class HttpClientImpl {
 		);
 	}
 
+	// A 401 means the token the browser sent was rejected (invalid signature /
+	// expired / issued for another site). Drop it and let the app fall back to an
+	// unauthenticated state — effector listens to "auth-token-changed". We only
+	// touch the browser-stored token: service tokens and caller-supplied
+	// authorization headers are left alone.
+	private handleUnauthorized(requestHeaders: Record<string, string>): void {
+		if (typeof window === "undefined") return;
+		if (getNrpcClientServiceToken()) return;
+
+		const stored = window.localStorage.getItem("authToken");
+		if (!stored) return;
+
+		const sent = requestHeaders.authorization ?? requestHeaders.Authorization;
+		if (sent !== `Bearer ${stored}`) return;
+
+		window.localStorage.removeItem("authToken");
+		window.dispatchEvent(new Event("auth-token-changed"));
+	}
+
 	private async callRegular(methodName: string, params: any[]): Promise<any> {
 		const method = this.metadata.methods.find((m) => m.name === methodName);
 		const path = `/${this.metadata.serviceName}/${methodName}`;
@@ -207,6 +226,10 @@ class HttpClientImpl {
 			clearTimeout(timeoutId);
 
 			if (!response.ok) {
+				if (response.status === 401) {
+					this.handleUnauthorized(requestHeaders);
+				}
+
 				let errorMessage = `HTTP ${url} ${response.status}: ${response.statusText}`;
 				let errorCode: string | undefined;
 				let errorDetails: Record<string, unknown> | undefined;

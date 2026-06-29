@@ -4,7 +4,12 @@ import {
 	createChatStore,
 	createUIActionTools,
 } from "assistant-state";
-import { $files, openFilePicker, uploadCompleted } from "files-state";
+import {
+	$files,
+	filesPickerOpened,
+	openFilePicker,
+	uploadCompleted,
+} from "files-state";
 import {
 	actionContextManager,
 	bus,
@@ -47,6 +52,12 @@ let pendingAnalysisParameters: Array<Record<string, any>> = [];
 const OPEN_REQUEST_ACTION = "requests.open";
 const REQUESTS_RUNTIME = "mf-requests";
 let requestsRuntimePromise: Promise<void> | null = null;
+const CHAT_FILES_SELECTED_EVENT = "front-core:chat-files-selected";
+const PENDING_CHAT_FILES_KEY = "__front_core_pending_chat_files__";
+
+type PendingChatFilesWindow = Window & {
+	[PENDING_CHAT_FILES_KEY]?: File[];
+};
 
 type RequestDraftArgs = {
 	status?: string;
@@ -103,6 +114,33 @@ const ensureInitialized = (contextName?: string) => {
 		isInitialized = true;
 	}
 };
+
+const consumeChatFiles = (files: File[]) => {
+	if (files.length === 0) return;
+	ensureInitialized(CHAT_CONTEXT);
+	filesPickerOpened(files);
+};
+
+const drainPendingChatFiles = () => {
+	if (typeof window === "undefined") return;
+	const win = window as PendingChatFilesWindow;
+	const pending = win[PENDING_CHAT_FILES_KEY];
+	if (!pending || pending.length === 0) return;
+	consumeChatFiles(pending.splice(0));
+};
+
+const hasUserActivation = () => {
+	if (typeof navigator === "undefined") return false;
+	const activation = (
+		navigator as Navigator & { userActivation?: { isActive?: boolean } }
+	).userActivation;
+	return activation?.isActive === true;
+};
+
+if (typeof window !== "undefined") {
+	window.addEventListener(CHAT_FILES_SELECTED_EVENT, drainPendingChatFiles);
+	queueMicrotask(drainPendingChatFiles);
+}
 
 // Подписываемся на событие инициализации из front-core
 chatInitRequested.watch((payload) => {
@@ -1029,6 +1067,8 @@ chatSendRequested.watch((message) => {
 
 chatAttachRequested.watch(() => {
 	ensureInitialized(CHAT_CONTEXT);
+	drainPendingChatFiles();
+	if (!hasUserActivation()) return;
 	openFilePicker();
 });
 

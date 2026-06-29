@@ -208,10 +208,11 @@ export const $composerValue = createStore<string>("")
 	.on(composerValueChanged, (_, v) => v)
 	.reset(composerCleared);
 
-// Triggering a panel action loads its prompt into the composer
+// Triggering a panel action sends its prompt straight into the chat, pulling
+// the user into an interactive dialogue (it does NOT pre-fill the composer).
 sample({
 	clock: panelActionTriggered,
-	target: composerValueChanged,
+	target: chatOpenRequested,
 });
 
 // ── Collapse / mode switch helpers ────────────────────────────────────────────

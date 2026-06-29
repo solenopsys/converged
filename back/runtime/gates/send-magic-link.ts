@@ -4,9 +4,22 @@ import { sendNotification } from "./send-notification";
 import { requireServicesBaseUrl } from "../env";
 
 const host = requireServicesBaseUrl();
-const magicHost = process.env.MAGIC_HOST ?? required("FRONTEND_URL");
 
 const auth = createAuthServiceClient({ baseUrl: host });
+
+// The link must point back to the exact site the user is on. The browser sends
+// returnTo as an absolute URL, so its origin is the source of truth; the static
+// env is only a fallback for non-browser callers.
+function resolveMagicHost(returnTo?: string): string {
+  if (returnTo && /^https?:\/\//i.test(returnTo)) {
+    try {
+      return new URL(returnTo).origin;
+    } catch {
+      // fall through to the configured host
+    }
+  }
+  return process.env.MAGIC_HOST ?? required("FRONTEND_URL");
+}
 
 const SUPPORTED_LOCALES = new Set(["en", "ru", "de", "es", "fr", "it", "pt"]);
 
@@ -58,7 +71,7 @@ export async function sendMagicLink({
     detectLocaleFromReturnTo(returnTo) ??
     normalizeLocale(process.env.DEFAULT_LOCALE);
   const link = joinHostAndPath(
-    magicHost,
+    resolveMagicHost(returnTo),
     `/services/auth/verify/${encodeURIComponent(token)}`,
   );
   await sendNotification({

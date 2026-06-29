@@ -3,7 +3,7 @@ import { resolve } from "path";
 import { pathToFileURL } from "url";
 import { createServer, loadConfigFromEnv } from "./server/createServer";
 import { createBunRedisCache } from "./server/bunRedisCache";
-import { resolveWorkspaceFromRequest } from "./workspace-domain";
+import { getCurrentStorageScope } from "./request-context";
 import type { PluginFactory } from "./server/createServer";
 
 process.on("uncaughtException", (err) => {
@@ -410,12 +410,12 @@ const server = createServer({
 			return "Bad request";
 		}
 
-		// Resolve the tenant from the request domain the same way every other
-		// nrpc call does (WORKSPACE_DOMAIN_MAP).
-		const workspace = resolveWorkspaceFromRequest(request);
+		// Scope was bound by the server onRequest hook (edge-injected header in
+		// prod; local WORKSPACE_DOMAIN_MAP fallback in dev). Reuse it here.
+		const workspace = getCurrentStorageScope();
 		if (!workspace) {
 			set.status = 421;
-			return `Unknown storage: cannot resolve workspace for host "${new URL(request.url).host}"`;
+			return `Unknown storage: cannot resolve scope for host "${new URL(request.url).host}"`;
 		}
 
 		const headers: Record<string, string> = {

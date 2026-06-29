@@ -128,6 +128,26 @@ function defaultDataDirName(configName: string): string {
   return configName.replace(/-portal$/, "") || configName;
 }
 
+function inferLocalStorageScope(env: Record<string, string | undefined>): string | undefined {
+  const explicit = env.STORAGE_SCOPE?.trim();
+  if (explicit) return explicit;
+
+  const rawMap = env.WORKSPACE_DOMAIN_MAP || env.NRPC_WORKSPACE_DOMAIN_MAP;
+  if (!rawMap) return undefined;
+
+  try {
+    const map = JSON.parse(rawMap) as Record<string, unknown>;
+    for (const host of ["localhost", "127.0.0.1"]) {
+      const scope = map[host];
+      if (typeof scope === "string" && scope.trim()) return scope.trim();
+    }
+  } catch {
+    return undefined;
+  }
+
+  return undefined;
+}
+
 async function loadMergedConfig(projectName: string) {
   const projectDir = resolve(PROJECTS_DIR, projectName);
   const config = await loadConfig(projectDir);
@@ -193,9 +213,11 @@ async function runDev() {
       || loadedEnv.STORAGE_SERVICE_PREFIX,
   );
   const explicitStorageHost = process.env.STORAGE_HOST || loadedEnv.STORAGE_HOST;
+  const localStorageScope = inferLocalStorageScope(loadedEnv);
   const runtimeEnv = {
     ...loadedEnv,
     DATA_DIR: dataDir,
+    ...(localStorageScope ? { STORAGE_SCOPE: localStorageScope } : {}),
     STORAGE_TRANSPORT: process.env.STORAGE_TRANSPORT || loadedEnv.STORAGE_TRANSPORT || "tcp",
     ...(explicitStorageHost
       ? { STORAGE_HOST: explicitStorageHost }

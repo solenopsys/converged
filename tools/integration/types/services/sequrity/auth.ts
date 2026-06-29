@@ -50,6 +50,13 @@ export type TemporaryUserResult = {
   temporary: true;
 }
 
+export type DemoSessionResult = {
+  token: string;
+  userId: string;
+  email: string;
+  demo: true;
+}
+
 export type CleanupResult = {
   authCodes: number;
   magicLinks: number;
@@ -65,6 +72,8 @@ export interface AuthService {
   login(email: string, password: string): Promise<LoginResult>;
   /** @public */
   createTemporaryUser(sessionId?: string): Promise<TemporaryUserResult>;
+  /** @public */
+  createDemoSession(): Promise<DemoSessionResult>;
   logout(userId: string, clientId?: string): Promise<void>;
 
   createOAuthClient(client: OAuthClientInput): Promise<OAuthClient>;

@@ -73,25 +73,13 @@ describe("request scope context", () => {
 		);
 	});
 
-	test("resolves storage scope from request host domain map", () => {
-		const previous = process.env.WORKSPACE_DOMAIN_MAP;
-		process.env.WORKSPACE_DOMAIN_MAP = JSON.stringify({
-			"democnc.4ir.club": "democnc",
-		});
-
-		try {
-			expect(
-				resolveRequestScopeFromHeaders({
-					"x-forwarded-host": "democnc.4ir.club",
-				}),
-			).toBe("democnc");
-		} finally {
-			if (previous === undefined) {
-				delete process.env.WORKSPACE_DOMAIN_MAP;
-			} else {
-				process.env.WORKSPACE_DOMAIN_MAP = previous;
-			}
-		}
+	test("reads the edge-injected storage scope header (no host mapping)", () => {
+		expect(
+			resolveRequestScopeFromHeaders({
+				"x-storage-scope": "democnc",
+				"x-forwarded-host": "democnc.4ir.club",
+			}),
+		).toBe("democnc");
 	});
 
 	test("keeps request scoped value in async local storage", async () => {
@@ -101,27 +89,22 @@ describe("request scope context", () => {
 		});
 	});
 
-	test("uses request headers as storage scope fallback", async () => {
-		const previous = process.env.WORKSPACE_DOMAIN_MAP;
-		process.env.WORKSPACE_DOMAIN_MAP = JSON.stringify({
-			"democnc.4ir.club": "democnc",
-		});
+	test("uses request scope header as storage scope fallback", async () => {
+		await runWithRequestScopeContext(
+			{ headers: { "x-storage-scope": "democnc" } },
+			async () => {
+				await Promise.resolve();
+				expect(getCurrentStorageScope()).toBe("democnc");
+			},
+		);
+	});
 
-		try {
-			await runWithRequestScopeContext(
-				{ headers: { host: "democnc.4ir.club" } },
-				async () => {
-					await Promise.resolve();
-					expect(getCurrentStorageScope()).toBe("democnc");
-				},
-			);
-		} finally {
-			if (previous === undefined) {
-				delete process.env.WORKSPACE_DOMAIN_MAP;
-			} else {
-				process.env.WORKSPACE_DOMAIN_MAP = previous;
-			}
-		}
+	test("does not read legacy domain-map settings when only host is present", () => {
+		expect(
+			resolveRequestScopeFromHeaders({
+				host: "localhost:3001",
+			}),
+		).toBeUndefined();
 	});
 
 	test("shares request scope across duplicated module instances", async () => {

@@ -7,8 +7,10 @@
 // native libtransport-*.so to be dlopen()'d in the UI container.
 //
 // The storage host comes from ONE place: the STORAGE_TENANT_SERVICES mapping,
-// keyed by scope (scope itself comes from the request Host → WORKSPACE_DOMAIN_MAP).
-// No prefix, no fixed-host variable — the mapping names the host directly.
+// keyed by scope. The scope itself is resolved at the edge (the per-tenant
+// Traefik scope middleware injects it as a request header) or pinned via
+// STORAGE_SCOPE — not mapped from the Host here. No prefix, no fixed-host
+// variable — the mapping names the host directly.
 import type { StorageConnectionTargetConfig as StorageConnectionConfig } from "bun-transport";
 import { SettingsError, settings } from "../config/settings";
 
@@ -80,7 +82,7 @@ export function resolveStorageConnectionTargetForScope(
 	const effectiveScope = scope ?? settings.storage.explicitScope();
 	if (!effectiveScope) {
 		throw new SettingsError(
-			"Storage scope is required: pass workspace/scope headers (Host/x-forwarded-host → WORKSPACE_DOMAIN_MAP)",
+			"Storage scope is required: pass the storage-scope/workspace header (injected by the edge scope middleware) or pin STORAGE_SCOPE",
 		);
 	}
 

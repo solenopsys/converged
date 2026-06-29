@@ -33,36 +33,6 @@ function requireInt(name: string): number {
 	return parsed;
 }
 
-
-function requireJsonRecord(name: string): Record<string, string> {
-	const value = requireRaw(name);
-	let parsed: unknown;
-	try {
-		parsed = JSON.parse(value);
-	} catch {
-		throw new SettingsError(`Env ${name} must be valid JSON`);
-	}
-	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-		throw new SettingsError(`Env ${name} must be a JSON object`);
-	}
-	return parsed as Record<string, string>;
-}
-
-function optionalJsonRecord<T>(name: string): T | undefined {
-	const value = raw(name);
-	if (value === undefined) return undefined;
-	let parsed: unknown;
-	try {
-		parsed = JSON.parse(value);
-	} catch {
-		throw new SettingsError(`Env ${name} must be valid JSON`);
-	}
-	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-		throw new SettingsError(`Env ${name} must be a JSON object`);
-	}
-	return parsed as T;
-}
-
 function requireJsonObject<T>(name: string): T {
 	const value = requireRaw(name);
 	let parsed: unknown;
@@ -88,7 +58,8 @@ export const settings = {
 	},
 	storage: {
 		// scope → storage endpoint ({host, port}). The host is named here directly;
-		// the scope comes from the WORKSPACE_DOMAIN_MAP mapping (Host → scope).
+		// the scope arrives as an edge-injected request header (or the STORAGE_SCOPE
+		// pin) — it is no longer mapped from the Host inside the app.
 		tenantServices: <T>() => requireJsonObject<T>("STORAGE_TENANT_SERVICES"),
 		// Optional single scope pin (non-HTTP contexts); normally scope is per-request.
 		explicitScope: () => raw("STORAGE_SCOPE"),
@@ -97,10 +68,11 @@ export const settings = {
 		// Valkey is co-located with the storage host; only its port is configured.
 		valkeyPort: () => requireInt("STORAGE_VALKEY_PORT"),
 	},
-	scope: {
-		workspaceDomainMap: () => requireJsonRecord("WORKSPACE_DOMAIN_MAP"),
-		workspaceDomainMapOptional: () =>
-			optionalJsonRecord<Record<string, string>>("WORKSPACE_DOMAIN_MAP"),
+	demo: {
+		// Per-tenant opt-in for the "Admin login" demo auto-session. Absent or any
+		// value other than "true" means disabled — fail-closed, so the same image
+		// on a real customer tenant never mints a demo token. No default.
+		landingDemoMode: () => raw("LANDING_DEMO_MODE") === "true",
 	},
 };
 
@@ -133,8 +105,8 @@ export const SETTINGS_REGISTRY: SettingDescriptor[] = [
 	{ name: "STORAGE_SCOPE" },
 	// cache (valkey)
 	{ name: "STORAGE_VALKEY_PORT" },
-	// scope routing
-	{ name: "WORKSPACE_DOMAIN_MAP" },
+	// demo
+	{ name: "LANDING_DEMO_MODE" },
 	// ai providers
 	{ name: "OPENAI_API_KEY", secret: true },
 	{ name: "OPENAI_MODEL" },
@@ -197,6 +169,5 @@ export const CLOUD_STORAGE_CHECKLIST: Array<() => unknown> = [
 	settings.core.accessJwtSecret,
 	settings.core.servicesBase,
 	settings.cache.valkeyPort,
-	settings.scope.workspaceDomainMap,
 	settings.storage.tenantServices,
 ];

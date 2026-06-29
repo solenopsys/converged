@@ -7,6 +7,7 @@ import type {
   VerifyLinkResult,
   LoginResult,
   TemporaryUserResult,
+  DemoSessionResult,
   CleanupResult,
 } from "./types";
 import { createHttpClient, Access } from "nrpc";
@@ -15,6 +16,7 @@ import { StoresController } from "./stores";
 const MAGIC_LINK_TTL_MS = 365 * 24 * 60 * 60 * 1000;
 const ROOT_PRESET = "root";
 const USER_PRESET = "user";
+const DEMO_PRESET = "demo";
 const TEMPORARY_USER_PERMISSIONS = [
   "usage/recordUsage(w)",
   "assistant/createSession(w)",
@@ -175,7 +177,7 @@ export class AuthServiceImpl implements AuthService {
   }
 
   private logJwtPermissions(
-    flow: "magic_link" | "password_login" | "temporary_session",
+    flow: "magic_link" | "password_login" | "temporary_session" | "demo_session",
     token: string,
     context: { userId: string; email?: string; presetType?: string },
   ): void {
@@ -385,6 +387,61 @@ export class AuthServiceImpl implements AuthService {
       userId: resolvedUser.id,
       email: resolvedUser.email,
       temporary: true,
+    };
+  }
+
+  // Demo "Admin login" auto-session. Fail-closed: only mints a token when the
+  // tenant explicitly opts in via LANDING_DEMO_MODE=true. On a real customer
+  // tenant the flag is absent, so this throws and no session is ever created —
+  // the same image is safe everywhere. The session is bound to the tenant's
+  // STORAGE_SCOPE (one stable demo user per scope) and carries only the limited
+  // read-mostly `demo` preset, never root.
+  @Access("public")
+  async createDemoSession(): Promise<DemoSessionResult> {
+    await this.ready();
+    if (process.env.LANDING_DEMO_MODE !== "true") {
+      this.log("createDemoSession:rejected", { reason: "demo_mode_disabled" });
+      throw new Error("Demo login is not enabled for this tenant");
+    }
+
+    const scope = process.env.STORAGE_SCOPE?.trim() || "demo";
+    const identity = this.identityClient();
+    const provider = "demo";
+    const providerUserId = scope;
+
+    const existing = await identity.getAuthMethodByProvider(provider, providerUserId);
+    const user = existing ? await identity.getUser(existing.userId) : null;
+
+    const resolvedUser = user ?? await identity.createUser({
+      id: `demo:${scope}`,
+      email: `demo+${scope}@demo.local`,
+      name: "Demo",
+      emailVerified: false,
+    });
+
+    if (!existing) {
+      await identity.linkAuthMethod(
+        resolvedUser.id,
+        provider,
+        providerUserId,
+        resolvedUser.email,
+      );
+    }
+
+    const access = this.accessClient();
+    await access.linkPresetToUser(resolvedUser.id, DEMO_PRESET);
+    const token = await access.emitJWT(resolvedUser.id);
+    this.logJwtPermissions("demo_session", token, {
+      userId: resolvedUser.id,
+      email: resolvedUser.email,
+      presetType: DEMO_PRESET,
+    });
+    this.log("createDemoSession:issued", { userId: resolvedUser.id, scope });
+    return {
+      token,
+      userId: resolvedUser.id,
+      email: resolvedUser.email,
+      demo: true,
     };
   }
 

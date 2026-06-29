@@ -34,12 +34,12 @@ export interface HeroRequestBannerProps {
 }
 
 const DEFAULT_HERO_ACTIONS: HeroChip[] = [
-  { icon: <BadgeCheck size={14} />, iconName: "BadgeCheck", label: "Check drawing", prompt: "Check this drawing: " },
+  { icon: <BadgeCheck size={14} />, iconName: "BadgeCheck", label: "Check drawing", prompt: "I want to check a drawing." },
   { icon: <Upload size={14} />, iconName: "Upload", label: "Upload file", prompt: "I want to upload a file for review." },
-  { icon: <CalendarClock size={14} />, iconName: "CalendarClock", label: "Estimate deadline", prompt: "Estimate deadline: " },
-  { icon: <ClipboardCheck size={14} />, iconName: "ClipboardCheck", label: "Request quote", prompt: "Prepare a quote: " },
-  { icon: <PackageCheck size={14} />, iconName: "PackageCheck", label: "Choose material", prompt: "Help me choose material: " },
-  { icon: <Ruler size={14} />, iconName: "Ruler", label: "Check tolerances", prompt: "Check tolerances: " },
+  { icon: <CalendarClock size={14} />, iconName: "CalendarClock", label: "Estimate deadline", prompt: "Help me estimate a deadline." },
+  { icon: <ClipboardCheck size={14} />, iconName: "ClipboardCheck", label: "Request quote", prompt: "I'd like to request a quote." },
+  { icon: <PackageCheck size={14} />, iconName: "PackageCheck", label: "Choose material", prompt: "Help me choose a material." },
+  { icon: <Ruler size={14} />, iconName: "Ruler", label: "Check tolerances", prompt: "Help me check tolerances." },
 ];
 
 export function HeroRequestBanner({
@@ -120,7 +120,9 @@ function resolveHeroChips(labels?: string[]): HeroChip[] {
       icon: fallback.icon,
       iconName: fallback.iconName,
       label,
-      prompt: `${label}: `,
+      // The chip sends this phrase straight into the chat (no prefix-fill),
+      // so the prompt is just the label — a natural opening message.
+      prompt: label,
     };
   });
 }

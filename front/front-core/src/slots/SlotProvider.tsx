@@ -43,16 +43,19 @@ function SlotPortal({
 	content: ReactNode;
 }) {
 	const mountPointId = resolveMountPointId(slotId);
-	const element = document.getElementById(mountPointId);
+	const [element, setElement] = useState<HTMLElement | null>(null);
 
-	if (!element) {
-		console.warn(
-			`[SlotPortal] Mount point not found: #${mountPointId} for slot ${slotId}`,
-		);
-		return null;
-	}
+	useLayoutEffect(() => {
+		const mountPoint = document.getElementById(mountPointId);
+		if (!mountPoint) {
+			console.warn(
+				`[SlotPortal] Mount point not found: #${mountPointId} for slot ${slotId}`,
+			);
+		}
+		setElement(mountPoint);
+	}, [mountPointId, slotId]);
 
-	return createPortal(content, element);
+	return element ? createPortal(content, element) : null;
 }
 
 /**
@@ -62,7 +65,13 @@ function SlotPortal({
  * Layout рендерится на SSR с фиксированными id блоками.
  * SlotProvider монтирует SPA контент в эти блоки через portals.
  */
-export function SlotProvider({ children }: { children?: ReactNode }) {
+export function SlotProvider({
+	children,
+	excludeSlots = [],
+}: {
+	children?: ReactNode;
+	excludeSlots?: string[];
+}) {
 	const slotContents = useUnit($slotContents);
 	// Subscribe to active-tab changes so portals re-resolve their mount points
 	// when the tab body's #slot-panel-tab div is recreated by React.
@@ -103,6 +112,7 @@ export function SlotProvider({ children }: { children?: ReactNode }) {
 			{isOwner
 				? Object.entries(slotContents)
 						.filter(([slotId]) => shouldRenderPortal(slotId))
+						.filter(([slotId]) => !excludeSlots.includes(slotId))
 						.map(([slotId, content]) => (
 							<SlotPortal key={slotId} slotId={slotId} content={content} />
 						))

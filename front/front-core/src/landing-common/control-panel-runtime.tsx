@@ -102,7 +102,12 @@ export interface ControlPanelRuntimeHandle {
 const defaultScreens: RailScreen[] = [
 	{ id: "feed", label: "Feed", icon: <Activity size={18} /> },
 	{ id: "orders", label: "Orders", icon: <PackageCheck size={18} /> },
-	{ id: "request", label: "Request", detail: "intake", icon: <Wrench size={18} /> },
+	{
+		id: "request",
+		label: "Request",
+		detail: "intake",
+		icon: <Wrench size={18} />,
+	},
 ];
 
 const actionIconByName: Record<string, LucideIcon> = {
@@ -143,12 +148,14 @@ function normalizeLandingPanelActions(value: unknown): PanelAction[] {
 			(iconName && actionIconByName[iconName]) ||
 			actionIconByLabel.find(([pattern]) => pattern.test(label))?.[1] ||
 			FileText;
-		return [{
-			id: action.id || toActionId(label, index),
-			icon: <Icon size={16} />,
-			label,
-			prompt,
-		}];
+		return [
+			{
+				id: action.id || toActionId(label, index),
+				icon: <Icon size={16} />,
+				label,
+				prompt,
+			},
+		];
 	});
 }
 
@@ -159,7 +166,8 @@ function readHeroChipPanelActionsFromDom(): PanelAction[] {
 	);
 	return normalizeLandingPanelActions(
 		chips.map((chip, index) => ({
-			id: chip.dataset.heroActionId || toActionId(chip.textContent ?? "", index),
+			id:
+				chip.dataset.heroActionId || toActionId(chip.textContent ?? "", index),
 			icon: chip.dataset.heroIcon,
 			label: chip.textContent ?? "",
 			prompt: chip.dataset.heroPrompt ?? "",
@@ -168,7 +176,9 @@ function readHeroChipPanelActionsFromDom(): PanelAction[] {
 }
 
 function readInitialLandingPanelActions(): PanelAction[] {
-	const published = normalizeLandingPanelActions(readPublishedLandingQuickActions());
+	const published = normalizeLandingPanelActions(
+		readPublishedLandingQuickActions(),
+	);
 	return published.length > 0 ? published : readHeroChipPanelActionsFromDom();
 }
 
@@ -183,20 +193,28 @@ function toActionId(label: string, index: number): string {
 function ChatSlot() {
 	const [contents, actions] = useUnit([$slotContents, $panelActions]);
 	const { t } = useGlobalTranslation("control-panel");
-	// mf-assistants presents into "sidebar:right". We render the slot inline here
-	// instead of using the DOM-id + portal mechanism — that would either lose
-	// content (when SlotProvider isn't the owner) or duplicate it (causing React
-	// removeChild errors when the same element is rendered both via portal and
-	// inline).
 	const chat = contents["sidebar:right"];
 	return (
 		<div className="cp-slots cp-chat-slot">
-			{chat ?? (
+			<div
+				id="slot-panel-chat"
+				className="cp-chat-mount"
+				data-sidebar-slot="sidebar:right"
+			/>
+			{chat ? null : (
 				<div className="ssr-right-rail-empty">
 					<h3>{t("empty.title", "AI Assistant")}</h3>
-					<p>{t("empty.description", "Ask about services, files, orders, certificates, contacts, or what to do next. This panel is the chat-first control layer for the portal.")}</p>
+					<p>
+						{t(
+							"empty.description",
+							"Ask about services, files, orders, certificates, contacts, or what to do next. This panel is the chat-first control layer for the portal.",
+						)}
+					</p>
 					{actions.length > 0 && (
-						<div className="crp-quick-actions crp-quick-actions--assistant" aria-label={t("empty.actionsLabel", "Assistant actions")}>
+						<div
+							className="crp-quick-actions crp-quick-actions--assistant"
+							aria-label={t("empty.actionsLabel", "Assistant actions")}
+						>
 							{actions.map((action) => (
 								<button
 									key={action.id}
@@ -218,7 +236,10 @@ function ChatSlot() {
 
 function MenuTab() {
 	return (
-		<SidebarProvider className="min-h-0 w-full flex-1 bg-transparent" defaultOpen>
+		<SidebarProvider
+			className="min-h-0 w-full flex-1 bg-transparent"
+			defaultOpen
+		>
 			<MenuView
 				onClick={(actionId) => {
 					rightRailActionSelected(actionId);
@@ -257,20 +278,35 @@ export function mountControlPanelRuntime(
 	// to the chat MF, which would create an infinite loop. The composer fires the
 	// dedicated chatOpenRequested / composerAttachRequested events instead.
 	const subs = [
-		langChanged.watch((code) => { void options.onLanguage(code); }),
-		loginRequested.watch(() => { void options.onLogin(); }),
-		logoutRequested.watch(() => { void options.onLogout(); }),
-		chatOpenRequested.watch((message) => { void options.onOpenChat(message); }),
-		composerAttachRequested.watch(() => { void options.onAttach(); }),
+		langChanged.watch((code) => {
+			void options.onLanguage(code);
+		}),
+		loginRequested.watch(() => {
+			void options.onLogin();
+		}),
+		logoutRequested.watch(() => {
+			void options.onLogout();
+		}),
+		chatOpenRequested.watch((message) => {
+			void options.onOpenChat(message);
+		}),
+		composerAttachRequested.watch(() => {
+			void options.onAttach();
+		}),
 	];
 	const handleLandingQuickActions = (event: Event) => {
 		if (options.actions) return;
 		const actions = normalizeLandingPanelActions(
 			(event as CustomEvent<{ actions?: unknown }>).detail?.actions,
 		);
-		panelActionsSet(actions.length > 0 ? actions : readHeroChipPanelActionsFromDom());
+		panelActionsSet(
+			actions.length > 0 ? actions : readHeroChipPanelActionsFromDom(),
+		);
 	};
-	window.addEventListener(LANDING_QUICK_ACTIONS_EVENT, handleLandingQuickActions);
+	window.addEventListener(
+		LANDING_QUICK_ACTIONS_EVENT,
+		handleLandingQuickActions,
+	);
 	const syncHeroChipActions = () => {
 		if (options.actions) return;
 		const actions = readHeroChipPanelActionsFromDom();
@@ -301,14 +337,18 @@ export function mountControlPanelRuntime(
 			: options.tabContents;
 		flushSync(() => {
 			root?.render(
-				<div className={options.isDark ? "cp-runtime dark" : "cp-runtime"} data-mode={mode}>
+				<div
+					className={options.isDark ? "cp-runtime dark" : "cp-runtime"}
+					data-mode={mode}
+				>
 					<ControlPanel
 						chatSlot={<ChatSlot />}
 						composerPlaceholder={options.chatPlaceholder}
 						tabContents={tabContents}
 					/>
 					{/* SlotProvider must be rendered unconditionally so portals into
-					    #slot-panel-tab keep working across tab switches. */}
+					    #slot-panel-chat and #slot-panel-tab keep working across tab
+					    switches. */}
 					<SlotProvider />
 					{/* Floating "call from website" status pill (public + app modes). */}
 					<WebCallWidget />
@@ -332,7 +372,10 @@ export function mountControlPanelRuntime(
 		unmount: () => {
 			unwatch();
 			window.removeEventListener("auth-token-changed", syncAuthState);
-			window.removeEventListener(LANDING_QUICK_ACTIONS_EVENT, handleLandingQuickActions);
+			window.removeEventListener(
+				LANDING_QUICK_ACTIONS_EVENT,
+				handleLandingQuickActions,
+			);
 			heroChipObserver?.disconnect();
 			subs.forEach((u) => u());
 			root?.unmount();
@@ -347,4 +390,3 @@ export {
 	controlPanelOpened,
 	type ControlPanelMode,
 };
-

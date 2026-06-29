@@ -10,7 +10,9 @@
   },
   "runtimeDeps": {
     "packages": {
-      "sharp": "latest"
+      "sharp": "latest",
+      "fflate": "^0.8.3",
+      "assimpjs": "^0.0.10"
     },
     "apk": ["vips"]
   },

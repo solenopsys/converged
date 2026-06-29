@@ -212,6 +212,31 @@ function toEnvModuleUrl(
 	return toModuleUrl("text/javascript", source);
 }
 
+// A bare npm specifier is a plain package import (e.g. "fflate", "@scope/pkg")
+// — not relative, not an RT/script alias. Workflow node-scripts are loaded as a
+// blob: module, which has no package context, so a bare `import "fflate"` can't
+// be resolved by Bun against node_modules. We rewrite it to the package's
+// absolute URL in the runtime container (deps shipped via config.runtimeDeps).
+function resolveNpmModuleUrl(specifier: string): string | undefined {
+	if (
+		specifier.startsWith("./") ||
+		specifier.startsWith("../") ||
+		specifier.startsWith("/") ||
+		specifier.startsWith("rt/") ||
+		specifier.startsWith("@rt/") ||
+		specifier.startsWith("nodes/") ||
+		specifier.startsWith("workflows/") ||
+		specifier.startsWith("scripts/")
+	) {
+		return undefined;
+	}
+	try {
+		return import.meta.resolve(specifier);
+	} catch {
+		return undefined;
+	}
+}
+
 function resolveRuntimePackageSpecifier(specifier: string): string | undefined {
 	if (specifier.startsWith("@rt/")) {
 		return resolveRuntimePackageSpecifier(
@@ -460,7 +485,8 @@ export class RuntimeScriptResolver {
 			specifier.startsWith("workflows/") ||
 			specifier.startsWith("scripts/") ||
 			specifier.startsWith("./") ||
-			specifier.startsWith("../")
+			specifier.startsWith("../") ||
+			resolveNpmModuleUrl(specifier) !== undefined
 		);
 	}
 
@@ -484,6 +510,11 @@ export class RuntimeScriptResolver {
 				`Unknown RT script alias "${specifier}" imported by ${importerPath}`,
 			);
 		}
+
+		// Bare npm package (e.g. fflate) shipped in the runtime container —
+		// rewrite to its absolute on-disk URL so the blob: module can import it.
+		const npmUrl = resolveNpmModuleUrl(specifier);
+		if (npmUrl) return npmUrl;
 
 		const scriptPath = this.resolveScriptImportPath(specifier, importerPath);
 		let remoteHash: string | undefined;

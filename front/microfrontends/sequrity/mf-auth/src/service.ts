@@ -6,9 +6,12 @@ export const authClient = createAuthServiceClient({ baseUrl: "/services" });
 export const gatesClient = createRuntimeGatesServiceClient({ baseUrl: "/runtime" });
 
 export async function sendMagicLink(email: string, returnTo?: string): Promise<void> {
+  // Absolute URL on purpose: the magic link and the post-verify redirect must
+  // stay on the domain the user is actually on. Each site is independent, so the
+  // origin travels with returnTo instead of relying on a static backend config.
   const fallbackReturnTo =
     typeof window !== "undefined"
-      ? `${window.location.pathname}${window.location.search}${window.location.hash}`
+      ? `${window.location.origin}${window.location.pathname}${window.location.search}${window.location.hash}`
       : undefined;
   const locale = LocaleController.getInstance().getActiveLocale();
 

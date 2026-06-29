@@ -18,7 +18,7 @@ import type { AiConversation } from "./types";
 import { createAssistantServiceClient, type AssistantServiceClient } from "g-assistant";
 import { createContextsServiceClient, type ContextsServiceClient } from "g-contexts";
 import { createRequestsServiceClient } from "g-requests";
-import { Service } from "nrpc";
+import { Access, Service } from "nrpc";
 
 type AiConfig = {
   key?: string;
@@ -145,6 +145,11 @@ export class AssistantRuntimeService {
     yield* conversation.send([contextMessage, ...messages], options);
   }
 
+  // Public: a request is a customer-facing record (also exposed via the public
+  // QR link /request/<id>). Anonymous/temporary landing visitors must be able to
+  // watch the model of the request they just created. The id is an unguessable
+  // ULID, so this is a capability URL — no permission gate.
+  @Access("public")
   async *subscribeToRequestModel(requestId: string): AsyncIterable<RequestModelSnapshot> {
     const POLL_INTERVAL = 1000;
     let lastUpdatedAt: string | undefined;

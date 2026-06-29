@@ -150,6 +150,13 @@ const plugin = (config: any) => (app: AudioGateApp) => {
 
 		const rest = reqUrl.pathname.slice("/audio-gate/".length);
 		const params = new URLSearchParams(reqUrl.search);
+		const headers = filterHeaders(request.headers);
+		const scope = resolveAudioGateScope(params.get("scope") ?? undefined, headers);
+		if (scope) {
+			params.set("scope", scope);
+		} else {
+			params.delete("scope");
+		}
 		const qs = params.toString();
 		const target = `${gateUrl}/${rest}${qs ? `?${qs}` : ""}`;
 
@@ -159,7 +166,7 @@ const plugin = (config: any) => (app: AudioGateApp) => {
 		try {
 			upstream = await fetch(target, {
 				method: request.method,
-				headers: filterHeaders(request.headers),
+				headers,
 				body: hasBody ? request.body : undefined,
 			});
 		} catch (err) {

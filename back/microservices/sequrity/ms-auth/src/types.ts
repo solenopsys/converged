@@ -7,6 +7,7 @@ export type {
   VerifyLinkResult,
   LoginResult,
   TemporaryUserResult,
+  DemoSessionResult,
   CleanupResult,
   ISODateString,
 } from "g-auth";

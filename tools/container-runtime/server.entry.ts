@@ -19,6 +19,7 @@ import {
 } from "../../back/back-core/src/config/settings";
 import { createValkeyCache } from "./valkey";
 import { createRuntimeImagesPlugin } from "./images.plugin";
+import { createAuthServiceClient } from "g-auth";
 
 type RuntimeMap = {
 	services: Record<string, string>;
@@ -341,6 +342,13 @@ const frontVendorDir = resolve(frontDir, "vendor");
 const mfDir = resolve(appRoot, "dist/mf");
 const landingPublicDir = resolve(appRoot, "front", "landing", "public");
 const frontLocalesDir = resolve(appRoot, "front", "front-core", "locales");
+const storeWorkersDir = resolve(
+	appRoot,
+	"front",
+	"libraries",
+	"store-workers",
+	"dist",
+);
 const hasFront = (() => {
 	try {
 		return statSync(join(frontDir, "index.html")).isFile();
@@ -354,7 +362,7 @@ const app = new Elysia()
 	.onRequest(({ request }) => {
 		// Bind the request's storage scope for the whole async execution so SSR
 		// and the shared asset cache resolve the same tenant the request targets
-		// (Host/x-forwarded-host → WORKSPACE_DOMAIN_MAP). No fallback: if the
+		// (edge-injected scope header / STORAGE_SCOPE pin, never mapped from the Host). No fallback: if the
 		// scope can't be resolved, downstream storage calls fail loudly.
 		const headers: Record<string, string> = {};
 		request.headers.forEach((value, key) => {
@@ -470,6 +478,14 @@ app
 	)
 	.get("/locales/*", async ({ params }) =>
 		serveFile(resolve(frontLocalesDir, params["*"] || "")),
+	)
+	// Web Worker for chunked store uploads (mf-assistants/services.ts loads it via
+	// `new URL("../../../../libraries/store-workers/dist/store.worker.js", import.meta.url)`,
+	// which resolves to /libraries/store-workers/dist/* off the /mf bundle URL).
+	// Served as a plain static asset, exactly like /vendor and /locales — same
+	// route the SPA plugin already exposes, so the landing-served container has it too.
+	.get("/libraries/store-workers/dist/*", async ({ params, request }) =>
+		serveFile(resolve(storeWorkersDir, params["*"] || ""), request),
 	);
 
 if (hasFront) {
@@ -480,6 +496,27 @@ if (hasFront) {
 			return result ?? new Response("Not Found", { status: 404 });
 		});
 }
+
+// Demo "Admin login" entry point. Fail-closed: only when this tenant opts in via
+// LANDING_DEMO_MODE=true do we mint a short, sandboxed demo session (limited
+// `demo` preset, bound to the tenant STORAGE_SCOPE) and hand it to the front via
+// the token query param the SSR bootstrap consumes. On any other tenant the same
+// code just forwards to the normal sign-in splash — no token, no hole.
+app.get("/demo-login", async () => {
+	const redirect = (location: string) =>
+		new Response(null, { status: 302, headers: { location } });
+	if (process.env.LANDING_DEMO_MODE !== "true") {
+		return redirect("/console");
+	}
+	try {
+		const auth = createAuthServiceClient({ baseUrl: servicesBaseUrl });
+		const { token } = await auth.createDemoSession();
+		return redirect(`/console?token=${encodeURIComponent(token)}`);
+	} catch (error) {
+		console.error("[demo-login] failed to mint demo session", error);
+		return redirect("/console");
+	}
+});
 
 // SPA plugin — vendor libs, front-core, microfrontends
 const spaPluginPath =

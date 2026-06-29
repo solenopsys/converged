@@ -125,7 +125,11 @@ export function HeroInputDock({
                     type="button"
                     data-hero-icon={chip.iconName}
                     data-hero-prompt={chip.prompt}
-                    onClick={() => setValue(chip.prompt)}
+                    // Clicking a chip sends its phrase straight into the chat,
+                    // pulling the user into an interactive dialogue. The actual
+                    // send is wired once in the hero controller (island-client),
+                    // which fires the effector chatOpenRequested event — so the
+                    // chip stays plain markup and never pre-fills the textarea.
                   >
                     {chip.icon}
                     {chip.label}

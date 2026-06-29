@@ -1,6 +1,4 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import { settings } from "./config/settings";
-import { resolveWorkspaceFromHeaders } from "./workspace-domain";
 
 export const REQUEST_SCOPE_HEADER = "scope";
 export const REQUEST_SCOPE_HEADER_ALT = "x-scope";
@@ -40,25 +38,6 @@ function readHeader(
 	return undefined;
 }
 
-function resolveWorkspaceScopeFromHeaders(
-	headers: Record<string, string | undefined> | undefined,
-): string | undefined {
-	const explicit =
-		normalizeScope(readHeader(headers, "workspace")) ??
-		normalizeScope(readHeader(headers, "x-workspace"));
-	if (explicit) return explicit;
-
-	const host =
-		readHeader(headers, "x-forwarded-host") ?? readHeader(headers, "host");
-	if (!host) return undefined;
-
-	// Domain→workspace map comes from the settings controller only. When it is
-	// not configured the map is empty and the host resolves to no workspace.
-	return resolveWorkspaceFromHeaders(headers, {
-		map: settings.scope.workspaceDomainMapOptional() ?? {},
-	});
-}
-
 export function resolveRequestScopeFromHeaders(
 	headers: Record<string, string | undefined> | undefined,
 	fallbackScope?: string,
@@ -68,9 +47,23 @@ export function resolveRequestScopeFromHeaders(
 		normalizeScope(readHeader(headers, STORAGE_SCOPE_HEADER_ALT)) ??
 		normalizeScope(readHeader(headers, REQUEST_SCOPE_HEADER)) ??
 		normalizeScope(readHeader(headers, REQUEST_SCOPE_HEADER_ALT)) ??
-		normalizeScope(resolveWorkspaceScopeFromHeaders(headers)) ??
+		normalizeScope(readHeader(headers, "workspace")) ??
+		normalizeScope(readHeader(headers, "x-workspace")) ??
 		normalizeScope(fallbackScope)
 	);
+}
+
+// Convenience reader for a whole Request — used by direct (non-nrpc) routes such
+// as the gallery image proxy that receive the edge-injected scope header.
+export function resolveRequestScopeFromRequest(
+	request: Request,
+	fallbackScope?: string,
+): string | undefined {
+	const headers: Record<string, string> = {};
+	request.headers.forEach((value, key) => {
+		headers[key] = value;
+	});
+	return resolveRequestScopeFromHeaders(headers, fallbackScope);
 }
 
 // The single accessor for the current scope. Resolves from the bound context,
@@ -79,6 +72,8 @@ export function getCurrentStorageScope(): string | undefined {
 	const context = storage.getStore();
 	return context?.scope ?? resolveRequestScopeFromHeaders(context?.headers);
 }
+
+export const getCurrentRequestScope = getCurrentStorageScope;
 
 export function runWithRequestScopeContext<T>(
 	context: RequestScopeContext,

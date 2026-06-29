@@ -1,6 +1,6 @@
 import { createHttpBackend } from "nrpc";
 import { isAbsolute, relative, resolve } from "node:path";
-import { type CacheAdapter, resolveWorkspaceFromRequest } from "back-core";
+import { type CacheAdapter, resolveRequestScopeFromRequest } from "back-core";
 import { metadata } from "g-galery";
 import { GaleryServiceImpl } from "./service";
 import { StoresController } from "./stores";
@@ -52,8 +52,10 @@ const resolveInside = (root: string, path: string): string | null => {
   return fullPath;
 };
 
+// The storage scope arrives as an edge-injected request header (or is forwarded
+// by the calling service). No Host → scope mapping here anymore.
 const resolveRequestWorkspace = (request: Request): string | undefined =>
-  resolveWorkspaceFromRequest(request);
+  resolveRequestScopeFromRequest(request);
 
 export default (options: PluginOptions = {}) =>
   (app: any) => {
