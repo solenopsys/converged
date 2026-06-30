@@ -1,6 +1,7 @@
 import { mkdirSync, rmSync, statSync, writeFileSync, existsSync, readFileSync } from "fs";
 import { resolve } from "path";
 import { brotliCompressSync, constants as zlibConstants } from "zlib";
+import { microfrontends } from "./runtime-config";
 
 function brotliCompress(data: Buffer, quality: number): Buffer {
   return brotliCompressSync(data, { params: { [zlibConstants.BROTLI_PARAM_QUALITY]: quality } });
@@ -273,7 +274,14 @@ const appBuild = await Bun.build({
   minify: true,
   sourcemap: "linked",
   target: "browser",
-  external: sharedExternals,
+  // front-core must NOT bundle microfrontends. They are loaded lazily at
+  // runtime via the import map (e.g. import("mf-assistants")). If left
+  // non-external, Bun resolves the workspace symlink and INLINES a full copy
+  // of the MF (incl. its chat-store / effector stores) into front-core.js —
+  // producing a second store instance: the upload runs in one copy while the
+  // rendered ChatView reads the other, so file bubbles/progress never appear
+  // in prod (dev builds keep them external, hence works). Keep MFs external.
+  external: [...sharedExternals, ...microfrontends],
   jsx: { runtime: "automatic" },
   tsconfig: resolve(import.meta.dir, "..", "..", "tsconfig.json"),
 });

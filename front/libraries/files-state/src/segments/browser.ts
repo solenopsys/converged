@@ -1,4 +1,4 @@
-import { sample, combine } from 'effector';
+import { sample } from 'effector';
 import { type UUID, type  HashString } from "../../../../../types/files";
 import { fileTransferDomain } from '../domain';
 import { $files, $chunks, $fileMetadataCache } from './files';
@@ -441,16 +441,21 @@ sample({
 });
 
 // Logic - Upload Completed
+// Use the direct $files.uploadedChunks counter (incremented once per
+// chunkUploaded) instead of recounting a combine({files,chunks}) derived store:
+// the combined store lags behind by one step under parallel uploads, so the
+// recount undershoots totalChunks and the event never fires (upload hangs at
+// 100%). `>=` (not `===`) tolerates retry overcount, and the `completed`
+// guard prevents re-firing.
 sample({
   clock: chunkUploaded,
   source: $files,
   filter: (files, { fileId }) => {
     const file = files.get(fileId);
-    if (!file?.totalChunks) return false;
-
-    return file.uploadedChunks === file.totalChunks;
+    if (!file?.totalChunks || file.status === 'completed') return false;
+    return file.uploadedChunks >= file.totalChunks;
   },
-  fn: (state, { fileId }) => fileId,
+  fn: (_, { fileId }) => fileId,
   target: uploadCompleted
 });
 

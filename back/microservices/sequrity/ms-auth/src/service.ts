@@ -41,6 +41,7 @@ const TEMPORARY_USER_PERMISSIONS = [
   "files/update(w)",
   "files/get(r)",
   "files/getChunks(r)",
+  "files/listByCollection(r)",
   "requests/createRequest(w)",
   "requests/patchRequest(w)",
   "requests/getRequest(r)",

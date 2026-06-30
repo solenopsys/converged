@@ -29,6 +29,7 @@ const REQUIRED_TEMPORARY_PERMISSIONS = [
   "files/update(w)",
   "files/get(r)",
   "files/getchunks(r)",
+  "files/listbycollection(r)",
   "requests/createrequest(w)",
   "requests/patchrequest(w)",
   "requests/getrequest(r)",
