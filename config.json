@@ -12,9 +12,10 @@
     "packages": {
       "sharp": "latest",
       "fflate": "^0.8.3",
-      "assimpjs": "^0.0.10"
+      "assimpjs": "^0.0.10",
+      "@opencamlib/opencamlib": "^2023.1.11"
     },
-    "apk": ["vips"]
+    "apk": ["vips", "libgomp"]
   },
   "cache": {
     "image": "docker.io/valkey/valkey:8.1-alpine",
