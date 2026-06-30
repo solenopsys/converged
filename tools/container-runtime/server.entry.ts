@@ -169,11 +169,11 @@ process.env.SERVICE_TOKEN = await generateServiceToken(
 
 // Propagate the storage scope onto every nrpc call to the services. Without this
 // the scope set on the incoming request (UI/MS, per-request header mechanism) or
-// pinned for a per-tenant runtime (STORAGE_SCOPE) never reaches service-to-service
-// calls, so the callee falls back to no scope and storage resolution fails.
+// explicitly pinned for a per-tenant runtime by the operator (STORAGE_SCOPE)
+// never reaches service-to-service calls, so the callee has no scope.
 //   - In an HTTP request: getCurrentStorageScope() returns the request's scope.
-//   - In a runtime cron/workflow (no request): it falls back to STORAGE_SCOPE,
-//     the single scope this per-tenant RT is bound to.
+//   - In a runtime cron/workflow (no request): it uses configured STORAGE_SCOPE,
+//     the single tenant scope this RT instance is bound to.
 const pinnedStorageScope = process.env.STORAGE_SCOPE?.trim() || undefined;
 const resolveNrpcScope = (): string | undefined =>
 	getCurrentStorageScope() ?? pinnedStorageScope;
@@ -215,6 +215,7 @@ const runtimeCache: CacheAdapter | undefined = runtimeCacheConfig
 const logBridge = installBackendLogBridge({
 	serviceBaseUrl: servicesBaseUrl,
 	source: "back.runtime",
+	storageScope: pinnedStorageScope,
 });
 
 const pluginEntries: Array<{

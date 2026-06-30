@@ -45,6 +45,7 @@ export type Touch = {
 	id: number;
 	contactId: string;
 	description: string;
+	companyName?: string;
 	createdAt: Date;
 };
 
@@ -78,6 +79,7 @@ export type Statistic = {
 	byType?: Record<string, number>;
 	byLang?: Record<string, number>;
 	contactsByType?: Record<string, number>;
+	touchesByCompanyName?: Record<string, number>;
 };
 
 export type PaginationParams = {
@@ -120,4 +122,5 @@ export interface SalesService {
 	findOutreachCandidate(lang: string): Promise<OutreachCandidate | null>;
 	findRandomLeadByLang(lang: string): Promise<Lead | null>;
 	leadHasTouches(leadId: string): Promise<boolean>;
+	leadHasCompanyTouch(leadId: string, companyName: string): Promise<boolean>;
 }

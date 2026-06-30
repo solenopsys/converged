@@ -1,11 +1,14 @@
+import { getCurrentStorageScope } from "../request-context";
+
 type BackendLogBridgeOptions = {
-  serviceBaseUrl: string;
-  source?: string;
-  flushDebounceMs?: number;
-  retryDelayMs?: number;
-  maxBatchSize?: number;
-  maxQueueSize?: number;
-  dedupeWindowMs?: number;
+	serviceBaseUrl: string;
+	source?: string;
+	storageScope?: string;
+	flushDebounceMs?: number;
+	retryDelayMs?: number;
+	maxBatchSize?: number;
+	maxQueueSize?: number;
+	dedupeWindowMs?: number;
 };
 
 const DEFAULT_SOURCE = "back.runtime";
@@ -27,170 +30,195 @@ const CODE_DROPPED_EVENTS = 2099;
 const MAX_MESSAGE_LENGTH = 6000;
 
 type LogEventInput = {
-  ts?: number;
-  source: string;
-  level: number;
-  code: number;
-  message: string;
+	ts?: number;
+	source: string;
+	level: number;
+	code: number;
+	message: string;
+	scope?: string;
 };
 
 function trimMessage(message: string): string {
-  if (message.length <= MAX_MESSAGE_LENGTH) return message;
-  return `${message.slice(0, MAX_MESSAGE_LENGTH)}…`;
+	if (message.length <= MAX_MESSAGE_LENGTH) return message;
+	return `${message.slice(0, MAX_MESSAGE_LENGTH)}…`;
 }
 
 function stringify(value: unknown): string {
-  if (value instanceof Error) {
-    return value.stack || `${value.name}: ${value.message}`;
-  }
-  if (typeof value === "string") {
-    return value;
-  }
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return String(value);
-  }
+	if (value instanceof Error) {
+		return value.stack || `${value.name}: ${value.message}`;
+	}
+	if (typeof value === "string") {
+		return value;
+	}
+	try {
+		return JSON.stringify(value);
+	} catch {
+		return String(value);
+	}
+}
+
+function normalizeScope(value: string | undefined): string | undefined {
+	const normalized = value?.trim();
+	return normalized || undefined;
 }
 
 export function installBackendLogBridge(options: BackendLogBridgeOptions) {
-  const source = options.source ?? DEFAULT_SOURCE;
-  const flushDebounceMs = options.flushDebounceMs ?? DEFAULT_DEBOUNCE_MS;
-  const retryDelayMs = options.retryDelayMs ?? DEFAULT_RETRY_MS;
-  const maxBatchSize = options.maxBatchSize ?? DEFAULT_BATCH_SIZE;
-  const maxQueueSize = options.maxQueueSize ?? DEFAULT_QUEUE_SIZE;
-  const dedupeWindowMs = options.dedupeWindowMs ?? DEFAULT_DEDUPE_MS;
+	const source = options.source ?? DEFAULT_SOURCE;
+	const configuredStorageScope = normalizeScope(options.storageScope);
+	const flushDebounceMs = options.flushDebounceMs ?? DEFAULT_DEBOUNCE_MS;
+	const retryDelayMs = options.retryDelayMs ?? DEFAULT_RETRY_MS;
+	const maxBatchSize = options.maxBatchSize ?? DEFAULT_BATCH_SIZE;
+	const maxQueueSize = options.maxQueueSize ?? DEFAULT_QUEUE_SIZE;
+	const dedupeWindowMs = options.dedupeWindowMs ?? DEFAULT_DEDUPE_MS;
 
-  let queue: LogEventInput[] = [];
-  let droppedCount = 0;
-  let flushTimer: ReturnType<typeof setTimeout> | null = null;
-  let flushInProgress = false;
-  let internalSend = false;
-  const dedupeMap = new Map<string, number>();
+	let queue: LogEventInput[] = [];
+	let droppedCount = 0;
+	let flushTimer: ReturnType<typeof setTimeout> | null = null;
+	let flushInProgress = false;
+	let internalSend = false;
+	const dedupeMap = new Map<string, number>();
 
-  const originalConsoleError = console.error.bind(console);
+	const originalConsoleError = console.error.bind(console);
 
-  const postEvent = async (event: LogEventInput) => {
-    const token = process.env.SERVICE_TOKEN;
-    await fetch(`${options.serviceBaseUrl}/logs/write`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify({ event }),
-    });
-  };
+	const postEvent = async (event: LogEventInput) => {
+		const token = process.env.SERVICE_TOKEN;
+		const scope = normalizeScope(event.scope);
+		if (!scope) return;
 
-  const scheduleFlush = (delay = flushDebounceMs) => {
-    if (flushTimer) clearTimeout(flushTimer);
-    flushTimer = setTimeout(() => {
-      void flushNow();
-    }, delay);
-  };
+		await fetch(`${options.serviceBaseUrl}/logs/write`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				scope,
+				...(token ? { authorization: `Bearer ${token}` } : {}),
+			},
+			body: JSON.stringify({
+				event: {
+					ts: event.ts,
+					source: event.source,
+					level: event.level,
+					code: event.code,
+					message: event.message,
+				},
+			}),
+		});
+	};
 
-  const enqueue = (event: Omit<LogEventInput, "source"> & { source?: string }) => {
-    const normalized: LogEventInput = {
-      ts: event.ts ?? Date.now(),
-      source: event.source ?? source,
-      level: event.level,
-      code: event.code,
-      message: trimMessage(event.message || ""),
-    };
-    if (!normalized.message) return;
+	const scheduleFlush = (delay = flushDebounceMs) => {
+		if (flushTimer) clearTimeout(flushTimer);
+		flushTimer = setTimeout(() => {
+			void flushNow();
+		}, delay);
+	};
 
-    const dedupeKey = `${normalized.level}:${normalized.code}:${normalized.message}`;
-    const now = Date.now();
-    const lastSeenAt = dedupeMap.get(dedupeKey);
-    if (lastSeenAt && now - lastSeenAt < dedupeWindowMs) {
-      return;
-    }
-    dedupeMap.set(dedupeKey, now);
+	const enqueue = (
+		event: Omit<LogEventInput, "source"> & { source?: string },
+	) => {
+		const normalized: LogEventInput = {
+			ts: event.ts ?? Date.now(),
+			source: event.source ?? source,
+			level: event.level,
+			code: event.code,
+			message: trimMessage(event.message || ""),
+			scope:
+				normalizeScope(event.scope) ??
+				normalizeScope(getCurrentStorageScope()) ??
+				configuredStorageScope,
+		};
+		if (!normalized.message) return;
 
-    if (queue.length >= maxQueueSize) {
-      droppedCount += 1;
-      return;
-    }
+		const dedupeKey = `${normalized.level}:${normalized.code}:${normalized.message}`;
+		const now = Date.now();
+		const lastSeenAt = dedupeMap.get(dedupeKey);
+		if (lastSeenAt && now - lastSeenAt < dedupeWindowMs) {
+			return;
+		}
+		dedupeMap.set(dedupeKey, now);
 
-    queue.push(normalized);
-    scheduleFlush();
-  };
+		if (queue.length >= maxQueueSize) {
+			droppedCount += 1;
+			return;
+		}
 
-  const flushNow = async () => {
-    if (flushInProgress || queue.length === 0) return;
-    flushInProgress = true;
+		queue.push(normalized);
+		scheduleFlush();
+	};
 
-    try {
-      if (droppedCount > 0) {
-        queue.push({
-          ts: Date.now(),
-          source,
-          level: LEVEL_WARNING,
-          code: CODE_DROPPED_EVENTS,
-          message: `Dropped ${droppedCount} backend log events due to queue overflow`,
-        });
-        droppedCount = 0;
-      }
+	const flushNow = async () => {
+		if (flushInProgress || queue.length === 0) return;
+		flushInProgress = true;
 
-      while (queue.length > 0) {
-        const batch = queue.splice(0, maxBatchSize);
-        internalSend = true;
-        try {
-          await Promise.all(batch.map((event) => postEvent(event)));
-        } catch {
-          queue = [...batch, ...queue];
-          scheduleFlush(retryDelayMs);
-          break;
-        } finally {
-          internalSend = false;
-        }
-      }
-    } finally {
-      flushInProgress = false;
-    }
-  };
+		try {
+			if (droppedCount > 0) {
+				queue.push({
+					ts: Date.now(),
+					source,
+					level: LEVEL_WARNING,
+					code: CODE_DROPPED_EVENTS,
+					message: `Dropped ${droppedCount} backend log events due to queue overflow`,
+				});
+				droppedCount = 0;
+			}
 
-  console.error = (...args: unknown[]) => {
-    originalConsoleError(...args);
-    if (internalSend) return;
+			while (queue.length > 0) {
+				const batch = queue.splice(0, maxBatchSize);
+				internalSend = true;
+				try {
+					await Promise.all(batch.map((event) => postEvent(event)));
+				} catch {
+					queue = [...batch, ...queue];
+					scheduleFlush(retryDelayMs);
+					break;
+				} finally {
+					internalSend = false;
+				}
+			}
+		} finally {
+			flushInProgress = false;
+		}
+	};
 
-    enqueue({
-      level: LEVEL_ERROR,
-      code: CODE_CONSOLE_ERROR,
-      message: args.map((arg) => stringify(arg)).join(" | "),
-    });
-  };
+	console.error = (...args: unknown[]) => {
+		originalConsoleError(...args);
+		if (internalSend) return;
 
-  process.on("unhandledRejection", (reason) => {
-    enqueue({
-      level: LEVEL_ERROR,
-      code: CODE_PROCESS_UNHANDLED_REJECTION,
-      message: stringify(reason),
-    });
-  });
+		enqueue({
+			level: LEVEL_ERROR,
+			code: CODE_CONSOLE_ERROR,
+			message: args.map((arg) => stringify(arg)).join(" | "),
+		});
+	};
 
-  process.on("uncaughtException", (error) => {
-    enqueue({
-      level: LEVEL_ERROR,
-      code: CODE_PROCESS_UNCAUGHT_EXCEPTION,
-      message: stringify(error),
-    });
-    void flushNow().finally(() => process.exit(1));
-  });
+	process.on("unhandledRejection", (reason) => {
+		enqueue({
+			level: LEVEL_ERROR,
+			code: CODE_PROCESS_UNHANDLED_REJECTION,
+			message: stringify(reason),
+		});
+	});
 
-  process.once("beforeExit", () => {
-    void flushNow();
-  });
+	process.on("uncaughtException", (error) => {
+		enqueue({
+			level: LEVEL_ERROR,
+			code: CODE_PROCESS_UNCAUGHT_EXCEPTION,
+			message: stringify(error),
+		});
+		void flushNow().finally(() => process.exit(1));
+	});
 
-  return {
-    enqueue,
-    flushNow,
-    code: {
-      httpHandlerError: CODE_HTTP_HANDLER_ERROR,
-    },
-    level: {
-      warning: LEVEL_WARNING,
-      error: LEVEL_ERROR,
-    },
-  };
+	process.once("beforeExit", () => {
+		void flushNow();
+	});
+
+	return {
+		enqueue,
+		flushNow,
+		code: {
+			httpHandlerError: CODE_HTTP_HANDLER_ERROR,
+		},
+		level: {
+			warning: LEVEL_WARNING,
+			error: LEVEL_ERROR,
+		},
+	};
 }

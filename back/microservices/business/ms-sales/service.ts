@@ -229,6 +229,7 @@ class SalesServiceImpl
 				contactId: touch.contactId,
 				createdAt: Math.floor(createdAt.getTime() / 1000),
 				description: touch.description,
+				companyName: touch.companyName ?? "",
 			};
 			const result =
 				await this.stores.salesStoreSevice.touchRepo.create(touchEntity);
@@ -243,12 +244,20 @@ class SalesServiceImpl
 
 	async getStatistic(): Promise<Statistic> {
 		await this.ready();
-		const [leads, touches, byType, byLang, contactsByType] = await Promise.all([
+		const [
+			leads,
+			touches,
+			byType,
+			byLang,
+			contactsByType,
+			touchesByCompanyName,
+		] = await Promise.all([
 			this.stores.salesStoreSevice.leadRepo.count(),
 			this.stores.salesStoreSevice.touchRepo.count(),
 			this.stores.salesStoreSevice.getLeadTypeStats(),
 			this.stores.salesStoreSevice.getLeadLangStats(),
 			this.stores.salesStoreSevice.getContactTypeStats(),
+			this.stores.salesStoreSevice.getTouchCompanyNameStats(),
 		]);
 
 		return {
@@ -257,6 +266,7 @@ class SalesServiceImpl
 			byType,
 			byLang,
 			contactsByType,
+			touchesByCompanyName,
 		};
 	}
 
@@ -367,6 +377,7 @@ class SalesServiceImpl
 			id: parseInt(entity.id, 10),
 			contactId: entity.contactId,
 			description: entity.description,
+			companyName: entity.companyName ?? "",
 			createdAt: new Date(entity.createdAt * 1000),
 		}));
 
@@ -497,6 +508,23 @@ class SalesServiceImpl
 		}
 
 		return this.stores.salesStoreSevice.leadHasTouches(normalizedLeadId);
+	}
+
+	async leadHasCompanyTouch(
+		leadId: string,
+		companyName: string,
+	): Promise<boolean> {
+		await this.ready();
+		const normalizedLeadId = leadId?.trim();
+		const normalizedCompanyName = companyName?.trim();
+		if (!normalizedLeadId || !normalizedCompanyName) {
+			throw badRequestError("leadId and companyName are required");
+		}
+
+		return this.stores.salesStoreSevice.leadHasCompanyTouch(
+			normalizedLeadId,
+			normalizedCompanyName,
+		);
 	}
 }
 

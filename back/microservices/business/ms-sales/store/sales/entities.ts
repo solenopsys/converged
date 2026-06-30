@@ -40,6 +40,7 @@ export interface TouchEntity {
 	contactId: string;
 	createdAt: number;
 	description: string;
+	companyName: string | null;
 }
 
 export interface LeadEventEntity {

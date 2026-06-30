@@ -48,6 +48,7 @@ export type Touch = {
 	id: number;
 	contactId: string;
 	description: string;
+	companyName?: string;
 	createdAt: Date;
 };
 
@@ -81,6 +82,7 @@ export type Statistic = {
 	byType?: Record<string, number>;
 	byLang?: Record<string, number>;
 	contactsByType?: Record<string, number>;
+	touchesByCompanyName?: Record<string, number>;
 };
 
 export type PaginationParams = {
@@ -431,6 +433,27 @@ const metadata: ServiceMetadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
+    },
+    {
+      "name": "leadHasCompanyTouch",
+      "parameters": [
+        {
+          "name": "leadId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "companyName",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "boolean",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -467,7 +490,7 @@ const metadata: ServiceMetadata = {
     {
       "name": "Touch",
       "kind": "type",
-      "definition": "{\n\tid: number;\n\tcontactId: string;\n\tdescription: string;\n\tcreatedAt: Date;\n}"
+      "definition": "{\n\tid: number;\n\tcontactId: string;\n\tdescription: string;\n\tcompanyName?: string;\n\tcreatedAt: Date;\n}"
     },
     {
       "name": "LeadEventType",
@@ -487,7 +510,7 @@ const metadata: ServiceMetadata = {
     {
       "name": "Statistic",
       "kind": "type",
-      "definition": "{\n\tleads: number;\n\ttouches: number;\n\tbyType?: Record<string, number>;\n\tbyLang?: Record<string, number>;\n\tcontactsByType?: Record<string, number>;\n}"
+      "definition": "{\n\tleads: number;\n\ttouches: number;\n\tbyType?: Record<string, number>;\n\tbyLang?: Record<string, number>;\n\tcontactsByType?: Record<string, number>;\n\ttouchesByCompanyName?: Record<string, number>;\n}"
     },
     {
       "name": "PaginationParams",
@@ -532,6 +555,7 @@ export interface SalesServiceRtClient {
   findOutreachCandidate(lang: string): OutreachCandidate | any;
   findRandomLeadByLang(lang: string): Lead | any;
   leadHasTouches(leadId: string): boolean;
+  leadHasCompanyTouch(leadId: string, companyName: string): boolean;
 }
 
 export function createSalesServiceRtClient(): SalesServiceRtClient {

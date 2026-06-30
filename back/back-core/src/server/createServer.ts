@@ -144,10 +144,12 @@ export function createServer({
 		serviceToken: process.env.SERVICE_TOKEN,
 	});
 	configureNrpcScopeResolvers();
+	const configuredStorageScope = process.env.STORAGE_SCOPE?.trim() || undefined;
 
 	const logBridge = installBackendLogBridge({
 		serviceBaseUrl: `http://127.0.0.1:${config.port}/services`,
 		source: "back.core",
+		storageScope: configuredStorageScope,
 	});
 	const startupTasks: Array<{ name: string; task: () => Promise<void> }> = [];
 	const shutdownTasks: Array<{ name: string; task: () => Promise<void> }> = [];

@@ -2,6 +2,7 @@ import AddContactDescription from "./addContactDescription";
 import AddContactRole from "./addContactRole";
 import AddContactValue from "./addContactValue";
 import AddLeadFields from "./addLeadFields";
+import AddTouchCompanyName from "./addTouchCompanyName";
 import CreateContacts from "./createContacts";
 import CreateLeadEvents from "./createLeadEvents";
 import CreateLead from "./createLeads";
@@ -21,4 +22,5 @@ export default [
 	CreateOffers,
 	FillTouchIds,
 	CreateLeadEvents,
+	AddTouchCompanyName,
 ];

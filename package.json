@@ -89,6 +89,6 @@
     "gen": "bun run --cwd tools/integration/nrpc src/gen-all.ts ../types ../generated",
     "store-check": "BOOTSTRAP_ENV_DIR=../../confs bun run --env-file=../../confs/converged-portal.env tools/store-check.ts",
     "test:transport": "bun tools/transport-integration.ts",
-    "cps": "rm -rf /home/alexstorm/distrib/4ir/gestalt/clarity/data/converged/scripts-ms/scripts/data/* && cp -r /home/alexstorm/distrib/4ir/gestalt/clarity/projects/converged-portal/back/workflows/. /home/alexstorm/distrib/4ir/gestalt/clarity/data/converged/scripts-ms/scripts/data/"
+    "cp": "rm -rf /home/alexstorm/distrib/4ir/gestalt/clarity/data/converged/scripts-ms/scripts/data/* && cp -r /home/alexstorm/distrib/4ir/gestalt/clarity/projects/converged-portal/back/workflows/. /home/alexstorm/distrib/4ir/gestalt/clarity/data/converged/scripts-ms/scripts/data/"
   }
 }

@@ -179,6 +179,20 @@ export class SalesStoreService {
 		return groupCountRows(rows);
 	}
 
+	async getTouchCompanyNameStats(): Promise<Record<string, number>> {
+		const rows = await this.store.db
+			.selectFrom("touches")
+			.select(({ fn }) => [
+				sql<string>`coalesce(nullif(companyName, ''), 'unknown')`.as("key"),
+				fn.count<number>("id").as("count"),
+			])
+			.groupBy(sql`coalesce(nullif(companyName, ''), 'unknown')`)
+			.orderBy("count", "desc")
+			.execute();
+
+		return groupCountRows(rows);
+	}
+
 	async assignLeadTag(leadId: string, tagName: string): Promise<void> {
 		await this.store.db
 			.insertInto("lead_tags")
@@ -402,6 +416,21 @@ export class SalesStoreService {
 			.innerJoin("touches as t", "t.contactId", "c.id")
 			.select(({ fn }) => [fn.count<number>("t.id").as("count")])
 			.where("c.leadId", "=", leadId)
+			.executeTakeFirst();
+
+		return readCount(row) > 0;
+	}
+
+	async leadHasCompanyTouch(
+		leadId: string,
+		companyName: string,
+	): Promise<boolean> {
+		const row = await this.store.db
+			.selectFrom("contacts as c")
+			.innerJoin("touches as t", "t.contactId", "c.id")
+			.select(({ fn }) => [fn.count<number>("t.id").as("count")])
+			.where("c.leadId", "=", leadId)
+			.where("t.companyName", "=", companyName)
 			.executeTakeFirst();
 
 		return readCount(row) > 0;

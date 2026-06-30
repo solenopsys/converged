@@ -405,7 +405,10 @@ export class AuthServiceImpl implements AuthService {
       throw new Error("Demo login is not enabled for this tenant");
     }
 
-    const scope = process.env.STORAGE_SCOPE?.trim() || "demo";
+    const scope = process.env.STORAGE_SCOPE?.trim();
+    if (!scope) {
+      throw new Error("STORAGE_SCOPE is required for demo login");
+    }
     const identity = this.identityClient();
     const provider = "demo";
     const providerUserId = scope;
