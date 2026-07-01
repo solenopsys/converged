@@ -73,7 +73,7 @@
     },
     "microservices": {
       "ai": ["agent", "assistant", "contexts", "functions"],
-      "analytics": ["dashboard", "logs", "telemetry", "usage"],
+      "analytics": ["counters", "dashboard", "logs", "telemetry", "usage"],
       "automation": ["dag", "sheduller", "webhooks"],
       "convertors": ["modelconvertor"],
       "business": [

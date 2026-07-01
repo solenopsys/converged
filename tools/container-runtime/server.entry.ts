@@ -363,13 +363,14 @@ const app = new Elysia()
 	.onRequest(({ request }) => {
 		// Bind the request's storage scope for the whole async execution so SSR
 		// and the shared asset cache resolve the same tenant the request targets
-		// (edge-injected scope header / STORAGE_SCOPE pin, never mapped from the Host). No fallback: if the
-		// scope can't be resolved, downstream storage calls fail loudly.
+		// the edge-injected scope header (cloud) or the STORAGE_SCOPE pin
+		// (mono/multi serve one tenant), never mapped from the Host. If neither
+		// resolves, downstream storage calls fail loudly.
 		const headers: Record<string, string> = {};
 		request.headers.forEach((value, key) => {
 			headers[key] = value;
 		});
-		const scope = resolveRequestScopeFromHeaders(headers);
+		const scope = resolveRequestScopeFromHeaders(headers, pinnedStorageScope);
 		enterRequestScopeContext({ scope, headers });
 	})
 	.onAfterHandle(({ set }) => {
@@ -437,6 +438,7 @@ const app = new Elysia()
 			servicesBaseUrl,
 			serviceToken: process.env.SERVICE_TOKEN,
 			cacheControl: process.env.IMAGE_CACHE_CONTROL,
+			fallbackScope: pinnedStorageScope,
 		}),
 	);
 

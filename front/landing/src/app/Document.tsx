@@ -3,6 +3,8 @@ import {
   SsrShellLayout,
   themeBootstrapScript,
 } from "front-core/landing-common/ssr-shell";
+import { AnalyticsScript } from "front-core/landing-common/analytics";
+import type { Counter } from "g-counters";
 
 export interface SeoMeta {
   title?: string;
@@ -22,6 +24,8 @@ interface DocumentProps {
   logoDark?: string;
   // Primary public phone, resolved from ms-audio-gate (AudioGateService) at SSR.
   phone?: string;
+  // Analytics counters, resolved from ms-counters (CountersService) by scope at SSR.
+  counters?: Counter[];
 }
 
 type TopBarMenuLink = {
@@ -117,7 +121,7 @@ function readTopBarMenuLinks(initialData: Record<string, unknown> | undefined): 
   return [];
 }
 
-export function Document({ children, seo, lang = "en", importMap, initialData, logoLight, logoDark, phone: phoneProp }: DocumentProps) {
+export function Document({ children, seo, lang = "en", importMap, initialData, logoLight, logoDark, phone: phoneProp, counters }: DocumentProps) {
   const title = seo?.title ?? "Landing";
   const description = seo?.description ?? "";
   const keywords = seo?.keywords?.filter(Boolean).join(", ") ?? "";
@@ -151,6 +155,7 @@ export function Document({ children, seo, lang = "en", importMap, initialData, l
         {description ? <meta name="twitter:description" content={description} /> : null}
         {ogImage ? <meta name="twitter:image" content={ogImage} /> : null}
         <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
+        <AnalyticsScript counters={counters} />
         {importMapJson ? (
           <script type="importmap" dangerouslySetInnerHTML={{ __html: importMapJson }} />
         ) : null}

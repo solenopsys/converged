@@ -2,6 +2,7 @@ import type { SeoConfig } from "front-ssr/plugin";
 import createLandingPlugin from "front-ssr/plugin";
 import { existsSync, readFileSync } from "fs";
 import { createAudioGateServiceClient } from "g-audio-gate";
+import { resolveCounters } from "front-core/landing-common/analytics-resolver";
 import { createMarkdownServiceClient } from "g-markdown";
 import { createStructServiceClient } from "g-struct";
 import { resolve } from "path";
@@ -561,6 +562,7 @@ export default function landingPlugin(
 			}
 
 			const phone = await fetchPrimaryPhone(servicesBaseUrl, workspace);
+			const counters = await resolveCounters(servicesBaseUrl, workspace);
 
 			const previousSsrData = globalThis.__LANDING_SSR_DATA__;
 			const previousDocsSsrData = globalThis.__DOCS_SSR_DATA__;
@@ -574,6 +576,7 @@ export default function landingPlugin(
 						seo={seo}
 						importMap={importMap}
 						phone={phone}
+						counters={counters}
 						initialData={{
 							mfEnv: localizedMfEnv,
 							landing: landingData,

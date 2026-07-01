@@ -5,6 +5,10 @@ type ImagesPluginOptions = {
 	servicesBaseUrl: string;
 	serviceToken?: string;
 	cacheControl?: string;
+	// The pinned storage scope (STORAGE_SCOPE) for mono/multi deployments, where no
+	// edge scope middleware exists. Used as the fallback when the request carries no
+	// scope header (cloud injects one; mono/multi pin it on the pod).
+	fallbackScope?: string;
 };
 
 function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
@@ -27,8 +31,12 @@ export function createRuntimeImagesPlugin(options: ImagesPluginOptions) {
 			}
 
 			// The scope is injected as a request header at the edge (Traefik scope
-			// middleware) or pinned via STORAGE_SCOPE; no Host → scope mapping here.
-			const workspace = resolveRequestScopeFromRequest(request);
+			// middleware, cloud) or pinned via STORAGE_SCOPE (mono/multi); no Host →
+			// scope mapping here.
+			const workspace = resolveRequestScopeFromRequest(
+				request,
+				options.fallbackScope,
+			);
 			if (!workspace) {
 				set.status = 421;
 				return `Unknown storage: missing storage scope header for host "${new URL(request.url).host}"`;
