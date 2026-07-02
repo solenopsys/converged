@@ -3,7 +3,10 @@ import { cors } from "@elysiajs/cors";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import type { CacheAdapter } from "../../back/back-core/src/server/createServer";
+import {
+	CACHE_BLOB_TTL_SECONDS,
+	type CacheAdapter,
+} from "../../back/back-core/src/server/createServer";
 import { installBackendLogBridge } from "../../back/back-core/src/server/logBridge";
 import { loadAiProvidersFromEnv } from "../../back/back-core/src/server/envConfig";
 import {
@@ -430,7 +433,7 @@ const app = new Elysia()
 			"client-upload",
 			crypto.randomUUID(),
 		);
-		await runtimeCache.setBytes(cacheKey, bytes);
+		await runtimeCache.setBytes(cacheKey, bytes, CACHE_BLOB_TTL_SECONDS);
 		return { cacheKey, sizeBytes: bytes.byteLength };
 	})
 	.use(
@@ -551,6 +554,8 @@ if (runtimeMap.landing?.plugin) {
 			production: true,
 			publicDir: resolve(projectDir, "front", "landing", "public"),
 			microfrontends: runtimeMicrofrontends,
+			// Storage Valkey adapter — the /maps SVG plugin get/puts rendered maps here.
+			cache: runtimeCache,
 		}),
 	);
 }

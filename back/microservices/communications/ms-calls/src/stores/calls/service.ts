@@ -1,5 +1,10 @@
 import type { CacheAdapter } from "back-core";
-import { generateULID, type KVStore, type SqlStore } from "back-core";
+import {
+	CACHE_BLOB_TTL_SECONDS,
+	generateULID,
+	type KVStore,
+	type SqlStore,
+} from "back-core";
 import type {
 	CacheRef,
 	Call,
@@ -444,7 +449,7 @@ export class CallsStoreService {
 		const cacheKey = extra
 			? cache.buildKey("ms-calls", kind, id, extra, crypto.randomUUID())
 			: cache.buildKey("ms-calls", kind, id, crypto.randomUUID());
-		await cache.setBytes(cacheKey, data);
+		await cache.setBytes(cacheKey, data, CACHE_BLOB_TTL_SECONDS);
 		return { cacheKey, sizeBytes: data.byteLength };
 	}
 

@@ -145,8 +145,8 @@
       "description": "Multi-tenant SaaS; store and runtime provisioned per tenant by the operator",
       "resources": {
         "ms": {
-          "requests": { "cpu": "50m", "memory": "128Mi" },
-          "limits": { "cpu": "1000m", "memory": "1Gi" }
+          "requests": { "cpu": "50m", "memory": "256Mi" },
+          "limits": { "cpu": "1800m", "memory": "2Gi" }
         }
       }
     }

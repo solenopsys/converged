@@ -9,7 +9,7 @@ import {
 import { Access } from "nrpc";
 import { StoresController } from "./stores";
 import * as path from "path";
-import type { CacheAdapter } from "back-core";
+import { CACHE_BLOB_TTL_SECONDS, type CacheAdapter } from "back-core";
 
 const MS_ID = "store-ms";
 
@@ -80,7 +80,7 @@ export class StoreServiceImpl implements StoreService {
 			hash,
 			crypto.randomUUID(),
 		);
-		await cache.setBytes(cacheKey, data);
+		await cache.setBytes(cacheKey, data, CACHE_BLOB_TTL_SECONDS);
 		return { cacheKey, sizeBytes: data.byteLength };
 	}
 

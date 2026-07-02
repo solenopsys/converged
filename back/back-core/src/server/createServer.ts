@@ -12,6 +12,8 @@ import {
 import { resolveWorkspaceFromHeaders } from "../workspace-domain";
 export type { AiConfig } from "./envConfig";
 
+export const CACHE_BLOB_TTL_SECONDS = 30 * 60;
+
 export interface CacheAdapter {
 	url: string;
 	keyPrefix: string;
@@ -283,7 +285,11 @@ export function createServer({
 				"client-upload",
 				crypto.randomUUID(),
 			);
-			await pluginConfig.cache.setBytes(cacheKey, bytes);
+			await pluginConfig.cache.setBytes(
+				cacheKey,
+				bytes,
+				CACHE_BLOB_TTL_SECONDS,
+			);
 			return { cacheKey, sizeBytes: bytes.byteLength };
 		});
 

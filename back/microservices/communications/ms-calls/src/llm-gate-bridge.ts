@@ -14,7 +14,7 @@
  *   LLM_GATE_SYNC_INTERVAL_MS     (default: 60000)
  */
 
-import { required } from "back-core";
+import { CACHE_BLOB_TTL_SECONDS, required } from "back-core";
 import type { CacheAdapter } from "back-core";
 import type {
 	CallsService,
@@ -192,7 +192,7 @@ export class LlmGateBridge {
 			kind,
 			crypto.randomUUID(),
 		);
-		await this.cache.setBytes(cacheKey, data);
+		await this.cache.setBytes(cacheKey, data, CACHE_BLOB_TTL_SECONDS);
 		return { cacheKey, sizeBytes: data.byteLength };
 	}
 }

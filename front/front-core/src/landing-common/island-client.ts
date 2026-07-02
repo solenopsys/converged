@@ -4,7 +4,6 @@ import { createElement, type ReactNode } from "react";
 import { createBridgeController } from "../bridge";
 import { chatInitRequested, chatSendRequested } from "../chat/events";
 import { rightRailActionSelected } from "../components/right-rail/uri-sync";
-import { CHAT_CONTEXT, VOICE_CONTEXT } from "./context-names";
 import { ConsoleAuthSplash } from "../components/state-stream/ConsoleAuthSplash";
 import { StateStreamView } from "../components/state-stream/StateStreamView";
 import {
@@ -20,6 +19,7 @@ import { LocaleController } from "../controllers/locale-controller";
 import { getI18nInstance } from "../i18n";
 import { $centerView, setCenterView } from "../slots/present";
 import { SlotInline } from "../slots/SlotInline";
+import { CHAT_CONTEXT, VOICE_CONTEXT } from "./context-names";
 import {
 	$controlPanelMode,
 	type ControlPanelMode,
@@ -45,6 +45,7 @@ import {
 	resolveRuntimeLocale,
 	stripRuntimeLocalePrefix,
 } from "./locale-routing";
+import { webCallRequested } from "./web-call";
 
 const SSR_MENU_STYLE_ID = "ssr-menu-shell-style";
 const FRONT_CORE_STYLE_ID = "front-core-runtime-style";
@@ -2617,6 +2618,9 @@ const LANDING_EVENT_HANDLERS: Record<string, LandingEventHandler> = {
 	"chat.attach": ({ contextName }) => {
 		requestChatAttach(contextName || CHAT_CONTEXT);
 	},
+	"voice.call": ({ contextName }) => {
+		webCallRequested(contextName || VOICE_CONTEXT);
+	},
 };
 
 function parseLandingPayload(raw: string | undefined): unknown {
@@ -2740,6 +2744,7 @@ function installHeroRequestController(): void {
 			".hsl-chip[data-hero-prompt]",
 		);
 		if (!chip || !root.contains(chip)) return;
+		if (chip.dataset.landingEvent) return;
 
 		// Send the chip phrase straight into the chat (effector does the rest:
 		// open the panel, deliver the message, start the dialogue). No prefix
