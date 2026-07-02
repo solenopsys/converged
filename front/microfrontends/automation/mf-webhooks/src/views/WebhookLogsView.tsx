@@ -1,42 +1,28 @@
-import React, { useEffect } from "react";
-import { useUnit } from "effector-react";
-import { HeaderPanelLayout, InfiniteScrollDataTable } from "front-core";
-import { RefreshCw } from "lucide-react";
-import { $logsStore, logsViewMounted, refreshLogsClicked } from "../domain-logs";
+import { EntityListView } from "front-core";
+import React, { useMemo } from "react";
+import { $logsStore } from "../domain-logs";
 import { logColumns } from "../functions/columns";
 
-export const WebhookLogsView = ({ endpointId }) => {
-  const logsState = useUnit($logsStore.$state);
+export const WebhookLogsView = ({ endpointId }: { endpointId?: string }) => {
+	const baseFilters = useMemo(() => ({ endpointId }), [endpointId]);
 
-  useEffect(() => {
-    logsViewMounted({ endpointId });
-  }, [endpointId]);
-
-  const headerConfig = {
-    title: "Webhook Logs",
-    actions: [
-      {
-        id: "refresh",
-        label: "Refresh",
-        icon: RefreshCw,
-        event: refreshLogsClicked,
-        variant: "outline" as const,
-      },
-    ],
-  };
-
-  return (
-    <HeaderPanelLayout config={headerConfig}>
-        <InfiniteScrollDataTable
-          data={logsState.items}
-          hasMore={logsState.hasMore}
-          loading={logsState.loading}
-          columns={logColumns}
-          onLoadMore={$logsStore.loadMore}
-          viewMode="table"
-        />
-    </HeaderPanelLayout>
-  );
+	return (
+		<EntityListView
+			tableId="webhook-logs"
+			title="Webhook Logs"
+			store={$logsStore}
+			columns={logColumns}
+			baseFilters={baseFilters}
+			filters={[
+				{
+					id: "provider",
+					type: "search",
+					label: "Provider",
+					placeholder: "Filter by provider…",
+				},
+			]}
+		/>
+	);
 };
 
 export default WebhookLogsView;
