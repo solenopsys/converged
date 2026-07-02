@@ -16,6 +16,7 @@ export * from "./landing-common/island-client";
 export * from "./landing-common/island-loader";
 export * from "./landing-common/mic-capture";
 export * from "./landing-common/useHeroDock";
+export * from "./lib/dashboard-chart";
 export * from "./lib/utils";
 export * from "./plugin";
 export * from "./plugin/types_actions";

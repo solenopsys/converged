@@ -41,6 +41,27 @@ export interface TouchEntity {
 	createdAt: number;
 	description: string;
 	companyName: string | null;
+	outreachId: string | null;
+}
+
+export interface OutreachEntity {
+	id: string;
+	name: string;
+	status: string;
+	lang: string;
+	description: string;
+	createdAt: number;
+	updatedAt: number;
+}
+
+export interface OutreachTargetEntity {
+	id: string;
+	outreachId: string;
+	status: string;
+	position: number;
+	payload: string;
+	createdAt: number;
+	updatedAt: number;
 }
 
 export interface LeadEventEntity {
@@ -67,6 +88,14 @@ export class ContactRepository extends BaseRepositorySQL<
 export class TouchRepository extends BaseRepositorySQL<
 	StringKey,
 	TouchEntity
+> {}
+export class OutreachRepository extends BaseRepositorySQL<
+	StringKey,
+	OutreachEntity
+> {}
+export class OutreachTargetRepository extends BaseRepositorySQL<
+	StringKey,
+	OutreachTargetEntity
 > {}
 export class LeadEventRepository extends BaseRepositorySQL<
 	StringKey,

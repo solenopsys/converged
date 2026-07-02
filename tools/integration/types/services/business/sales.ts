@@ -46,7 +46,76 @@ export type Touch = {
 	contactId: string;
 	description: string;
 	companyName?: string;
+	outreachId?: string;
 	createdAt: Date;
+};
+
+export type OutreachStatus =
+	| "draft"
+	| "planning"
+	| "ready"
+	| "running"
+	| "paused"
+	| "done";
+
+export type Outreach = {
+	id: string;
+	name: string;
+	status: OutreachStatus | string;
+	lang: string;
+	description: string;
+	createdAt: Date;
+	updatedAt: Date;
+};
+
+export type OutreachTargetStatus =
+	| "planned"
+	| "claimed"
+	| "sent"
+	| "completed"
+	| "failed"
+	| "skipped";
+
+export type OutreachTarget = {
+	id: string;
+	outreachId: string;
+	status: OutreachTargetStatus | string;
+	position: number;
+	payload: Record<string, unknown>;
+	createdAt: Date;
+	updatedAt: Date;
+};
+
+export type OutreachTargetInput = {
+	id?: string;
+	outreachId: string;
+	status?: OutreachTargetStatus | string;
+	position?: number;
+	payload: Record<string, unknown>;
+};
+
+export type OutreachTargetListParams = PaginationParams & {
+	outreachId?: string;
+	status?: OutreachTargetStatus | string;
+};
+
+export type OutreachTargetStatusUpdate = {
+	id: string;
+	status: OutreachTargetStatus | string;
+};
+
+export type OutreachProgressStat = {
+	outreachId: string;
+	name: string;
+	total: number;
+	planned: number;
+	claimed: number;
+	sent: number;
+	completedStatus: number;
+	failed: number;
+	skipped: number;
+	completed: number;
+	completionPercent: number;
 };
 
 export enum LeadEventType {
@@ -80,6 +149,7 @@ export type Statistic = {
 	byLang?: Record<string, number>;
 	contactsByType?: Record<string, number>;
 	touchesByCompanyName?: Record<string, number>;
+	outreachProgress?: OutreachProgressStat[];
 };
 
 export type PaginationParams = {
@@ -101,6 +171,7 @@ export type PaginatedResult<T> = {
 
 export interface SalesService {
 	addLead(lead: Lead): Promise<string>;
+	getLead(leadId: string): Promise<Lead | null>;
 	updateLeadCatalogId(leadId: string, catalogId: string): Promise<boolean>;
 	assignLeadTag(leadId: string, tagName: string): Promise<void>;
 	removeLeadTag(leadId: string, tagName: string): Promise<boolean>;
@@ -109,7 +180,18 @@ export interface SalesService {
 	saveOffer(offer: Offer): Promise<string>;
 	listOffers(params: PaginationParams): Promise<PaginatedResult<Offer>>;
 	addContact(contact: Contact): Promise<string>;
+	getContact(contactId: string): Promise<Contact | null>;
 	addTouch(touch: Touch): Promise<number>;
+	saveOutreach(outreach: Outreach): Promise<string>;
+	listOutreaches(params: PaginationParams): Promise<PaginatedResult<Outreach>>;
+	addOutreachTargets(targets: OutreachTargetInput[]): Promise<number>;
+	listOutreachTargets(
+		params: OutreachTargetListParams,
+	): Promise<PaginatedResult<OutreachTarget>>;
+	claimNextOutreachTarget(outreachId: string): Promise<OutreachTarget | null>;
+	updateOutreachTargetStatus(
+		update: OutreachTargetStatusUpdate,
+	): Promise<OutreachTarget | null>;
 	getStatistic(): Promise<Statistic>;
 	getDailyStatistic(): Promise<{ [key: string]: Statistic }>;
 	listLeads(params: LeadListParams): Promise<PaginatedResult<Lead>>;
@@ -123,4 +205,5 @@ export interface SalesService {
 	findRandomLeadByLang(lang: string): Promise<Lead | null>;
 	leadHasTouches(leadId: string): Promise<boolean>;
 	leadHasCompanyTouch(leadId: string, companyName: string): Promise<boolean>;
+	leadHasOutreachTouch(leadId: string, outreachId: string): Promise<boolean>;
 }

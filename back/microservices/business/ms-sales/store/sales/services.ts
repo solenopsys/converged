@@ -6,6 +6,10 @@ import {
 	type LeadEventEntity,
 	LeadEventRepository,
 	LeadRepository,
+	type OutreachEntity,
+	OutreachRepository,
+	type OutreachTargetEntity,
+	OutreachTargetRepository,
 	type LeadTagEntity,
 	type OfferEntity,
 	OfferRepository,
@@ -15,6 +19,17 @@ import {
 type CountRow = { count?: number | string | bigint | null };
 type KeyCountRow = CountRow & { key?: string | null };
 type DailyStatsRow = CountRow & { date?: string | null };
+type OutreachProgressRow = {
+	outreachId?: string | null;
+	name?: string | null;
+	total?: number | string | bigint | null;
+	planned?: number | string | bigint | null;
+	claimed?: number | string | bigint | null;
+	sent?: number | string | bigint | null;
+	completedStatus?: number | string | bigint | null;
+	failed?: number | string | bigint | null;
+	skipped?: number | string | bigint | null;
+};
 type CodeOwnerRow = {
 	contactId?: string | null;
 	leadId?: string | null;
@@ -38,6 +53,8 @@ export class SalesStoreService {
 	public readonly offerRepo: OfferRepository;
 	public readonly contactRepo: ContactRepository;
 	public readonly leadEventRepo: LeadEventRepository;
+	public readonly outreachRepo: OutreachRepository;
+	public readonly outreachTargetRepo: OutreachTargetRepository;
 
 	constructor(store: SqlStore) {
 		this.store = store;
@@ -52,6 +69,22 @@ export class SalesStoreService {
 			extractKey: (event) => ({ id: event.id }),
 			buildWhereCondition: (key) => ({ id: key.id }),
 		});
+
+		this.outreachRepo = new OutreachRepository(store, "outreaches", {
+			primaryKey: "id",
+			extractKey: (outreach) => ({ id: outreach.id }),
+			buildWhereCondition: (key) => ({ id: key.id }),
+		});
+
+		this.outreachTargetRepo = new OutreachTargetRepository(
+			store,
+			"outreach_targets",
+			{
+				primaryKey: "id",
+				extractKey: (target) => ({ id: target.id }),
+				buildWhereCondition: (key) => ({ id: key.id }),
+			},
+		);
 
 		this.leadRepo = new LeadRepository(store, "leads", {
 			primaryKey: "id",
@@ -193,6 +226,77 @@ export class SalesStoreService {
 		return groupCountRows(rows);
 	}
 
+	async getOutreachProgressStats(): Promise<
+		Array<{
+			outreachId: string;
+			name: string;
+			total: number;
+			planned: number;
+			claimed: number;
+			sent: number;
+			completedStatus: number;
+			failed: number;
+			skipped: number;
+			completed: number;
+			completionPercent: number;
+		}>
+	> {
+		const companyNameExpression = sql<string>`coalesce(nullif(json_extract(target.payload, '$.outreach.companyName'), ''), target.outreachId)`;
+		const rows = (await this.store.db
+			.selectFrom("outreach_targets as target")
+			.select([
+				sql<string>`min(target.outreachId)`.as("outreachId"),
+				companyNameExpression.as("name"),
+				sql<number>`count(target.id)`.as("total"),
+				sql<number>`sum(case when target.status = 'planned' then 1 else 0 end)`.as(
+					"planned",
+				),
+				sql<number>`sum(case when target.status = 'claimed' then 1 else 0 end)`.as(
+					"claimed",
+				),
+				sql<number>`sum(case when target.status = 'sent' then 1 else 0 end)`.as(
+					"sent",
+				),
+				sql<number>`sum(case when target.status = 'completed' then 1 else 0 end)`.as(
+					"completedStatus",
+				),
+				sql<number>`sum(case when target.status = 'failed' then 1 else 0 end)`.as(
+					"failed",
+				),
+				sql<number>`sum(case when target.status = 'skipped' then 1 else 0 end)`.as(
+					"skipped",
+				),
+			])
+			.groupBy(companyNameExpression)
+			.orderBy("total", "desc")
+			.execute()) as OutreachProgressRow[];
+
+		return rows.map((row) => {
+			const total = Number(row.total ?? 0);
+			const planned = Number(row.planned ?? 0);
+			const claimed = Number(row.claimed ?? 0);
+			const sent = Number(row.sent ?? 0);
+			const completedStatus = Number(row.completedStatus ?? 0);
+			const failed = Number(row.failed ?? 0);
+			const skipped = Number(row.skipped ?? 0);
+			const completed = sent + completedStatus + failed + skipped;
+			return {
+				outreachId: row.outreachId ?? "",
+				name: row.name ?? row.outreachId ?? "unknown",
+				total,
+				planned,
+				claimed,
+				sent,
+				completedStatus,
+				failed,
+				skipped,
+				completed,
+				completionPercent:
+					total > 0 ? Math.round((completed / total) * 1000) / 10 : 0,
+			};
+		});
+	}
+
 	async assignLeadTag(leadId: string, tagName: string): Promise<void> {
 		await this.store.db
 			.insertInto("lead_tags")
@@ -261,6 +365,149 @@ export class SalesStoreService {
 				}),
 			)
 			.execute();
+	}
+
+	async saveOutreach(outreach: OutreachEntity): Promise<void> {
+		await this.store.db
+			.insertInto("outreaches")
+			.values(outreach)
+			.onConflict((oc) =>
+				oc.column("id").doUpdateSet({
+					name: outreach.name,
+					status: outreach.status,
+					lang: outreach.lang,
+					description: outreach.description,
+					updatedAt: outreach.updatedAt,
+				}),
+			)
+			.execute();
+	}
+
+	async listOutreaches(params: {
+		offset?: number;
+		limit?: number;
+	}): Promise<{ items: OutreachEntity[]; totalCount: number }> {
+		const limit = params.limit ?? 50;
+		const offset = params.offset ?? 0;
+		const [items, countRows] = await Promise.all([
+			this.store.db
+				.selectFrom("outreaches")
+				.selectAll()
+				.orderBy("createdAt", "desc")
+				.limit(limit)
+				.offset(offset)
+				.execute() as Promise<OutreachEntity[]>,
+			this.store.db
+				.selectFrom("outreaches")
+				.select(({ fn }) => [fn.count<number>("id").as("count")])
+				.execute(),
+		]);
+
+		return {
+			items,
+			totalCount: readCount(countRows[0]),
+		};
+	}
+
+	async addOutreachTargets(targets: OutreachTargetEntity[]): Promise<number> {
+		if (targets.length === 0) return 0;
+
+		const result = await this.store.db
+			.insertInto("outreach_targets")
+			.values(targets)
+			.onConflict((oc) =>
+				oc.column("id").doUpdateSet((eb) => ({
+					status: sql`
+						case
+							when outreach_targets.status = 'planned' then excluded.status
+							else outreach_targets.status
+						end
+					`,
+					position: eb.ref("excluded.position"),
+					payload: eb.ref("excluded.payload"),
+					updatedAt: eb.ref("excluded.updatedAt"),
+				})),
+			)
+			.executeTakeFirst();
+
+		return Number(result.numInsertedOrUpdatedRows ?? targets.length);
+	}
+
+	async listOutreachTargets(params: {
+		offset?: number;
+		limit?: number;
+		outreachId?: string;
+		status?: string;
+	}): Promise<{ items: OutreachTargetEntity[]; totalCount: number }> {
+		const limit = params.limit ?? 50;
+		const offset = params.offset ?? 0;
+		let itemsQuery = this.store.db
+			.selectFrom("outreach_targets")
+			.selectAll()
+			.orderBy("position", "asc")
+			.orderBy("createdAt", "asc")
+			.limit(limit)
+			.offset(offset);
+		let countQuery = this.store.db
+			.selectFrom("outreach_targets")
+			.select(({ fn }) => [fn.count<number>("id").as("count")]);
+
+		if (params.outreachId) {
+			itemsQuery = itemsQuery.where("outreachId", "=", params.outreachId);
+			countQuery = countQuery.where("outreachId", "=", params.outreachId);
+		}
+		if (params.status) {
+			itemsQuery = itemsQuery.where("status", "=", params.status);
+			countQuery = countQuery.where("status", "=", params.status);
+		}
+
+		const [items, countRows] = await Promise.all([
+			itemsQuery.execute() as Promise<OutreachTargetEntity[]>,
+			countQuery.execute(),
+		]);
+
+		return {
+			items,
+			totalCount: readCount(countRows[0]),
+		};
+	}
+
+	async claimNextOutreachTarget(
+		outreachId: string,
+	): Promise<OutreachTargetEntity | null> {
+		const now = Math.floor(Date.now() / 1000);
+		const result = await sql<OutreachTargetEntity>`
+			update outreach_targets
+			set
+				status = 'claimed',
+				updatedAt = ${now}
+			where id = (
+				select id
+				from outreach_targets
+				where outreachId = ${outreachId}
+					and status = 'planned'
+				order by position asc, createdAt asc
+				limit 1
+			)
+			returning *
+		`.execute(this.store.db);
+
+		return (result.rows?.[0] as OutreachTargetEntity | undefined) ?? null;
+	}
+
+	async updateOutreachTargetStatus(data: {
+		id: string;
+		status: string;
+	}): Promise<OutreachTargetEntity | null> {
+		const now = Math.floor(Date.now() / 1000);
+		const patch: Partial<OutreachTargetEntity> = {
+			status: data.status,
+			updatedAt: now,
+		};
+
+		return (
+			(await this.outreachTargetRepo.update({ id: data.id }, patch)) ?? null
+		);
 	}
 
 	async listLeadsAfter(
@@ -431,6 +678,21 @@ export class SalesStoreService {
 			.select(({ fn }) => [fn.count<number>("t.id").as("count")])
 			.where("c.leadId", "=", leadId)
 			.where("t.companyName", "=", companyName)
+			.executeTakeFirst();
+
+		return readCount(row) > 0;
+	}
+
+	async leadHasOutreachTouch(
+		leadId: string,
+		outreachId: string,
+	): Promise<boolean> {
+		const row = await this.store.db
+			.selectFrom("contacts as c")
+			.innerJoin("touches as t", "t.contactId", "c.id")
+			.select(({ fn }) => [fn.count<number>("t.id").as("count")])
+			.where("c.leadId", "=", leadId)
+			.where("t.outreachId", "=", outreachId)
 			.executeTakeFirst();
 
 		return readCount(row) > 0;

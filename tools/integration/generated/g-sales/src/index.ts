@@ -49,7 +49,74 @@ export type Touch = {
 	contactId: string;
 	description: string;
 	companyName?: string;
+	outreachId?: string;
 	createdAt: Date;
+};
+
+export type OutreachStatus = | "draft"
+	| "planning"
+	| "ready"
+	| "running"
+	| "paused"
+	| "done";
+
+export type Outreach = {
+	id: string;
+	name: string;
+	status: OutreachStatus | string;
+	lang: string;
+	description: string;
+	createdAt: Date;
+	updatedAt: Date;
+};
+
+export type OutreachTargetStatus = | "planned"
+	| "claimed"
+	| "sent"
+	| "completed"
+	| "failed"
+	| "skipped";
+
+export type OutreachTarget = {
+	id: string;
+	outreachId: string;
+	status: OutreachTargetStatus | string;
+	position: number;
+	payload: Record<string, unknown>;
+	createdAt: Date;
+	updatedAt: Date;
+};
+
+export type OutreachTargetInput = {
+	id?: string;
+	outreachId: string;
+	status?: OutreachTargetStatus | string;
+	position?: number;
+	payload: Record<string, unknown>;
+};
+
+export type OutreachTargetListParams = PaginationParams & {
+	outreachId?: string;
+	status?: OutreachTargetStatus | string;
+};
+
+export type OutreachTargetStatusUpdate = {
+	id: string;
+	status: OutreachTargetStatus | string;
+};
+
+export type OutreachProgressStat = {
+	outreachId: string;
+	name: string;
+	total: number;
+	planned: number;
+	claimed: number;
+	sent: number;
+	completedStatus: number;
+	failed: number;
+	skipped: number;
+	completed: number;
+	completionPercent: number;
 };
 
 export enum LeadEventType {
@@ -83,6 +150,7 @@ export type Statistic = {
 	byLang?: Record<string, number>;
 	contactsByType?: Record<string, number>;
 	touchesByCompanyName?: Record<string, number>;
+	outreachProgress?: OutreachProgressStat[];
 };
 
 export type PaginationParams = {
@@ -118,6 +186,21 @@ export const metadata: ServiceMetadata = {
         }
       ],
       "returnType": "string",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "getLead",
+      "parameters": [
+        {
+          "name": "leadId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "Lead | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -261,6 +344,21 @@ export const metadata: ServiceMetadata = {
       "isAsyncIterable": false
     },
     {
+      "name": "getContact",
+      "parameters": [
+        {
+          "name": "contactId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "Contact | any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
       "name": "addTouch",
       "parameters": [
         {
@@ -271,6 +369,96 @@ export const metadata: ServiceMetadata = {
         }
       ],
       "returnType": "number",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "saveOutreach",
+      "parameters": [
+        {
+          "name": "outreach",
+          "type": "Outreach",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "string",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "listOutreaches",
+      "parameters": [
+        {
+          "name": "params",
+          "type": "PaginationParams",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "PaginatedResult<Outreach>",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "addOutreachTargets",
+      "parameters": [
+        {
+          "name": "targets",
+          "type": "OutreachTargetInput",
+          "optional": false,
+          "isArray": true
+        }
+      ],
+      "returnType": "number",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "listOutreachTargets",
+      "parameters": [
+        {
+          "name": "params",
+          "type": "OutreachTargetListParams",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "PaginatedResult<OutreachTarget>",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "claimNextOutreachTarget",
+      "parameters": [
+        {
+          "name": "outreachId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "OutreachTarget | any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "updateOutreachTargetStatus",
+      "parameters": [
+        {
+          "name": "update",
+          "type": "OutreachTargetStatusUpdate",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "OutreachTarget | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -454,6 +642,27 @@ export const metadata: ServiceMetadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
+    },
+    {
+      "name": "leadHasOutreachTouch",
+      "parameters": [
+        {
+          "name": "leadId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "outreachId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "boolean",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -490,7 +699,47 @@ export const metadata: ServiceMetadata = {
     {
       "name": "Touch",
       "kind": "type",
-      "definition": "{\n\tid: number;\n\tcontactId: string;\n\tdescription: string;\n\tcompanyName?: string;\n\tcreatedAt: Date;\n}"
+      "definition": "{\n\tid: number;\n\tcontactId: string;\n\tdescription: string;\n\tcompanyName?: string;\n\toutreachId?: string;\n\tcreatedAt: Date;\n}"
+    },
+    {
+      "name": "OutreachStatus",
+      "kind": "type",
+      "definition": "| \"draft\"\n\t| \"planning\"\n\t| \"ready\"\n\t| \"running\"\n\t| \"paused\"\n\t| \"done\""
+    },
+    {
+      "name": "Outreach",
+      "kind": "type",
+      "definition": "{\n\tid: string;\n\tname: string;\n\tstatus: OutreachStatus | string;\n\tlang: string;\n\tdescription: string;\n\tcreatedAt: Date;\n\tupdatedAt: Date;\n}"
+    },
+    {
+      "name": "OutreachTargetStatus",
+      "kind": "type",
+      "definition": "| \"planned\"\n\t| \"claimed\"\n\t| \"sent\"\n\t| \"completed\"\n\t| \"failed\"\n\t| \"skipped\""
+    },
+    {
+      "name": "OutreachTarget",
+      "kind": "type",
+      "definition": "{\n\tid: string;\n\toutreachId: string;\n\tstatus: OutreachTargetStatus | string;\n\tposition: number;\n\tpayload: Record<string, unknown>;\n\tcreatedAt: Date;\n\tupdatedAt: Date;\n}"
+    },
+    {
+      "name": "OutreachTargetInput",
+      "kind": "type",
+      "definition": "{\n\tid?: string;\n\toutreachId: string;\n\tstatus?: OutreachTargetStatus | string;\n\tposition?: number;\n\tpayload: Record<string, unknown>;\n}"
+    },
+    {
+      "name": "OutreachTargetListParams",
+      "kind": "type",
+      "definition": "PaginationParams & {\n\toutreachId?: string;\n\tstatus?: OutreachTargetStatus | string;\n}"
+    },
+    {
+      "name": "OutreachTargetStatusUpdate",
+      "kind": "type",
+      "definition": "{\n\tid: string;\n\tstatus: OutreachTargetStatus | string;\n}"
+    },
+    {
+      "name": "OutreachProgressStat",
+      "kind": "type",
+      "definition": "{\n\toutreachId: string;\n\tname: string;\n\ttotal: number;\n\tplanned: number;\n\tclaimed: number;\n\tsent: number;\n\tcompletedStatus: number;\n\tfailed: number;\n\tskipped: number;\n\tcompleted: number;\n\tcompletionPercent: number;\n}"
     },
     {
       "name": "LeadEventType",
@@ -510,7 +759,7 @@ export const metadata: ServiceMetadata = {
     {
       "name": "Statistic",
       "kind": "type",
-      "definition": "{\n\tleads: number;\n\ttouches: number;\n\tbyType?: Record<string, number>;\n\tbyLang?: Record<string, number>;\n\tcontactsByType?: Record<string, number>;\n\ttouchesByCompanyName?: Record<string, number>;\n}"
+      "definition": "{\n\tleads: number;\n\ttouches: number;\n\tbyType?: Record<string, number>;\n\tbyLang?: Record<string, number>;\n\tcontactsByType?: Record<string, number>;\n\ttouchesByCompanyName?: Record<string, number>;\n\toutreachProgress?: OutreachProgressStat[];\n}"
     },
     {
       "name": "PaginationParams",
@@ -534,6 +783,7 @@ export const metadata: ServiceMetadata = {
 // Server interface (to be implemented in microservice)
 export interface SalesService {
   addLead(lead: Lead): Promise<string>;
+  getLead(leadId: string): Promise<Lead | any>;
   updateLeadCatalogId(leadId: string, catalogId: string): Promise<boolean>;
   assignLeadTag(leadId: string, tagName: string): Promise<void>;
   removeLeadTag(leadId: string, tagName: string): Promise<boolean>;
@@ -542,7 +792,14 @@ export interface SalesService {
   saveOffer(offer: Offer): Promise<string>;
   listOffers(params: PaginationParams): Promise<PaginatedResult<Offer>>;
   addContact(contact: Contact): Promise<string>;
+  getContact(contactId: string): Promise<Contact | any>;
   addTouch(touch: Touch): Promise<number>;
+  saveOutreach(outreach: Outreach): Promise<string>;
+  listOutreaches(params: PaginationParams): Promise<PaginatedResult<Outreach>>;
+  addOutreachTargets(targets: OutreachTargetInput[]): Promise<number>;
+  listOutreachTargets(params: OutreachTargetListParams): Promise<PaginatedResult<OutreachTarget>>;
+  claimNextOutreachTarget(outreachId: string): Promise<OutreachTarget | any>;
+  updateOutreachTargetStatus(update: OutreachTargetStatusUpdate): Promise<OutreachTarget | any>;
   getStatistic(): Promise<Statistic>;
   getDailyStatistic(): Promise<any>;
   listLeads(params: LeadListParams): Promise<PaginatedResult<Lead>>;
@@ -556,11 +813,13 @@ export interface SalesService {
   findRandomLeadByLang(lang: string): Promise<Lead | any>;
   leadHasTouches(leadId: string): Promise<boolean>;
   leadHasCompanyTouch(leadId: string, companyName: string): Promise<boolean>;
+  leadHasOutreachTouch(leadId: string, outreachId: string): Promise<boolean>;
 }
 
 // Client interface
 export interface SalesServiceClient {
   addLead(lead: Lead): Promise<string>;
+  getLead(leadId: string): Promise<Lead | any>;
   updateLeadCatalogId(leadId: string, catalogId: string): Promise<boolean>;
   assignLeadTag(leadId: string, tagName: string): Promise<void>;
   removeLeadTag(leadId: string, tagName: string): Promise<boolean>;
@@ -569,7 +828,14 @@ export interface SalesServiceClient {
   saveOffer(offer: Offer): Promise<string>;
   listOffers(params: PaginationParams): Promise<PaginatedResult<Offer>>;
   addContact(contact: Contact): Promise<string>;
+  getContact(contactId: string): Promise<Contact | any>;
   addTouch(touch: Touch): Promise<number>;
+  saveOutreach(outreach: Outreach): Promise<string>;
+  listOutreaches(params: PaginationParams): Promise<PaginatedResult<Outreach>>;
+  addOutreachTargets(targets: OutreachTargetInput[]): Promise<number>;
+  listOutreachTargets(params: OutreachTargetListParams): Promise<PaginatedResult<OutreachTarget>>;
+  claimNextOutreachTarget(outreachId: string): Promise<OutreachTarget | any>;
+  updateOutreachTargetStatus(update: OutreachTargetStatusUpdate): Promise<OutreachTarget | any>;
   getStatistic(): Promise<Statistic>;
   getDailyStatistic(): Promise<any>;
   listLeads(params: LeadListParams): Promise<PaginatedResult<Lead>>;
@@ -583,6 +849,7 @@ export interface SalesServiceClient {
   findRandomLeadByLang(lang: string): Promise<Lead | any>;
   leadHasTouches(leadId: string): Promise<boolean>;
   leadHasCompanyTouch(leadId: string, companyName: string): Promise<boolean>;
+  leadHasOutreachTouch(leadId: string, outreachId: string): Promise<boolean>;
 }
 
 // Factory function

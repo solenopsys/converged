@@ -2,27 +2,27 @@
 import { createRtClient, type ServiceMetadata } from "nrpc";
 
 export type CounterType = | "google-analytics" // GA4, gtag.js  (trackingId = "G-XXXXXXXX")
-  | "google-tag-manager" // GTM         (trackingId = "GTM-XXXXXXX")
-  | "yandex-metrika" // Yandex.Metrika  (trackingId = numeric id)
-  | "facebook-pixel" // Meta Pixel      (trackingId = numeric id)
-  | "custom";
+	| "google-tag-manager" // GTM         (trackingId = "GTM-XXXXXXX")
+	| "yandex-metrika" // Yandex.Metrika  (trackingId = numeric id)
+	| "facebook-pixel" // Meta Pixel      (trackingId = numeric id)
+	| "custom";
 
 export type Counter = {
-  id: string; // stable key, e.g. "google-analytics"
-  type: CounterType;
-  trackingId?: string; // measurement / container / pixel id
-  enabled: boolean;
-  headSnippet?: string; // used when type === "custom": raw <script> for <head>
-  createdAt?: string;
-  updatedAt?: string;
+	id: string; // stable key, e.g. "google-analytics"
+	type: CounterType;
+	trackingId?: string; // measurement / container / pixel id
+	enabled: boolean;
+	headSnippet?: string; // used when type === "custom": raw <script> for <head>
+	createdAt?: string;
+	updatedAt?: string;
 };
 
 export type CounterInput = {
-  id: string;
-  type: CounterType;
-  trackingId?: string;
-  enabled?: boolean; // defaults to true on create
-  headSnippet?: string;
+	id: string;
+	type: CounterType;
+	trackingId?: string;
+	enabled?: boolean; // defaults to true on create
+	headSnippet?: string;
 };
 
 const metadata: ServiceMetadata = {
@@ -96,17 +96,17 @@ const metadata: ServiceMetadata = {
     {
       "name": "CounterType",
       "kind": "type",
-      "definition": "| \"google-analytics\" // GA4, gtag.js  (trackingId = \"G-XXXXXXXX\")\n  | \"google-tag-manager\" // GTM         (trackingId = \"GTM-XXXXXXX\")\n  | \"yandex-metrika\" // Yandex.Metrika  (trackingId = numeric id)\n  | \"facebook-pixel\" // Meta Pixel      (trackingId = numeric id)\n  | \"custom\""
+      "definition": "| \"google-analytics\" // GA4, gtag.js  (trackingId = \"G-XXXXXXXX\")\n\t| \"google-tag-manager\" // GTM         (trackingId = \"GTM-XXXXXXX\")\n\t| \"yandex-metrika\" // Yandex.Metrika  (trackingId = numeric id)\n\t| \"facebook-pixel\" // Meta Pixel      (trackingId = numeric id)\n\t| \"custom\""
     },
     {
       "name": "Counter",
       "kind": "type",
-      "definition": "{\n  id: string; // stable key, e.g. \"google-analytics\"\n  type: CounterType;\n  trackingId?: string; // measurement / container / pixel id\n  enabled: boolean;\n  headSnippet?: string; // used when type === \"custom\": raw <script> for <head>\n  createdAt?: string;\n  updatedAt?: string;\n}"
+      "definition": "{\n\tid: string; // stable key, e.g. \"google-analytics\"\n\ttype: CounterType;\n\ttrackingId?: string; // measurement / container / pixel id\n\tenabled: boolean;\n\theadSnippet?: string; // used when type === \"custom\": raw <script> for <head>\n\tcreatedAt?: string;\n\tupdatedAt?: string;\n}"
     },
     {
       "name": "CounterInput",
       "kind": "type",
-      "definition": "{\n  id: string;\n  type: CounterType;\n  trackingId?: string;\n  enabled?: boolean; // defaults to true on create\n  headSnippet?: string;\n}"
+      "definition": "{\n\tid: string;\n\ttype: CounterType;\n\ttrackingId?: string;\n\tenabled?: boolean; // defaults to true on create\n\theadSnippet?: string;\n}"
     }
   ]
 };

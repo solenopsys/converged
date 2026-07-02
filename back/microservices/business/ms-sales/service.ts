@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { BaseService, badRequestError, conflictError } from "back-core";
 import { StoresController } from "./store";
 import type {
@@ -7,7 +8,12 @@ import type {
 	LeadListParams,
 	LeadTag,
 	Offer,
+	Outreach,
 	OutreachCandidate,
+	OutreachTarget,
+	OutreachTargetInput,
+	OutreachTargetListParams,
+	OutreachTargetStatusUpdate,
 	PaginatedResult,
 	PaginationParams,
 	SalesService,
@@ -34,11 +40,33 @@ function normalizeDate(value: unknown): Date {
 	return new Date();
 }
 
+function normalizePayload(value: unknown): Record<string, unknown> {
+	if (!value || typeof value !== "object" || Array.isArray(value)) {
+		throw badRequestError("target payload is required");
+	}
+	return value as Record<string, unknown>;
+}
+
+function parsePayload(value: string): Record<string, unknown> {
+	try {
+		const parsed = JSON.parse(value);
+		return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+			? (parsed as Record<string, unknown>)
+			: {};
+	} catch {
+		return {};
+	}
+}
+
 function createTouchId(): string {
 	const suffix = Math.floor(Math.random() * 1000)
 		.toString()
 		.padStart(3, "0");
 	return `${Date.now()}${suffix}`;
+}
+
+function toSeconds(value: unknown): number {
+	return Math.floor(normalizeDate(value).getTime() / 1000);
 }
 
 function isPrimaryKeyConflict(error: unknown): boolean {
@@ -82,6 +110,28 @@ class SalesServiceImpl
 			}
 			throw err;
 		}
+	}
+
+	async getLead(leadId: string): Promise<Lead | null> {
+		await this.ready();
+		const normalizedLeadId = leadId?.trim();
+		if (!normalizedLeadId) {
+			throw badRequestError("leadId is required");
+		}
+
+		const entity = await this.stores.salesStoreSevice.leadRepo.findById({
+			id: normalizedLeadId,
+		});
+		if (!entity) return null;
+
+		return {
+			id: entity.id,
+			description: entity.description,
+			lang: entity.lang,
+			type: entity.type,
+			catalogId: entity.catalogId,
+			createdAt: new Date(entity.createdAt * 1000),
+		};
 	}
 
 	async updateLeadCatalogId(
@@ -216,6 +266,29 @@ class SalesServiceImpl
 		}
 	}
 
+	async getContact(contactId: string): Promise<Contact | null> {
+		await this.ready();
+		const normalizedContactId = contactId?.trim();
+		if (!normalizedContactId) {
+			throw badRequestError("contactId is required");
+		}
+
+		const entity = await this.stores.salesStoreSevice.contactRepo.findById({
+			id: normalizedContactId,
+		});
+		if (!entity) return null;
+
+		return {
+			id: entity.id,
+			leadId: entity.leadId,
+			type: entity.contactType as Contact["type"],
+			value: entity.value,
+			role: entity.role,
+			description: entity.description,
+			createdAt: new Date(entity.createdAt * 1000),
+		};
+	}
+
 	async addTouch(touch: Touch): Promise<number> {
 		await this.ready();
 		if (!touch.contactId || !touch.description) {
@@ -230,6 +303,7 @@ class SalesServiceImpl
 				createdAt: Math.floor(createdAt.getTime() / 1000),
 				description: touch.description,
 				companyName: touch.companyName ?? "",
+				outreachId: touch.outreachId ?? null,
 			};
 			const result =
 				await this.stores.salesStoreSevice.touchRepo.create(touchEntity);
@@ -242,6 +316,126 @@ class SalesServiceImpl
 		}
 	}
 
+	async saveOutreach(outreach: Outreach): Promise<string> {
+		await this.ready();
+		const id = outreach.id?.trim();
+		const name = outreach.name?.trim();
+		if (!id || !name) {
+			throw badRequestError("Outreach id and name are required");
+		}
+
+		const now = Math.floor(Date.now() / 1000);
+		await this.stores.salesStoreSevice.saveOutreach({
+			id,
+			name,
+			status: outreach.status?.trim() || "draft",
+			lang: outreach.lang?.trim().toLowerCase() ?? "",
+			description: outreach.description ?? "",
+			createdAt: toSeconds(outreach.createdAt ?? now),
+			updatedAt: now,
+		});
+
+		return id;
+	}
+
+	async listOutreaches(
+		params: PaginationParams,
+	): Promise<PaginatedResult<Outreach>> {
+		await this.ready();
+		const result = await this.stores.salesStoreSevice.listOutreaches(params);
+		return {
+			items: result.items.map((entity) => ({
+				id: entity.id,
+				name: entity.name,
+				status: entity.status,
+				lang: entity.lang,
+				description: entity.description,
+				createdAt: new Date(entity.createdAt * 1000),
+				updatedAt: new Date(entity.updatedAt * 1000),
+			})),
+			totalCount: result.totalCount,
+		};
+	}
+
+	async addOutreachTargets(targets: OutreachTargetInput[]): Promise<number> {
+		await this.ready();
+		if (!Array.isArray(targets) || targets.length === 0) return 0;
+
+		const now = Math.floor(Date.now() / 1000);
+		const entities = targets.map((target, index) => {
+			const outreachId = target.outreachId?.trim();
+			if (!outreachId) {
+				throw badRequestError("outreachId is required");
+			}
+			const payload = normalizePayload(target.payload);
+
+			return {
+				id: target.id?.trim() || randomUUID(),
+				outreachId,
+				status: target.status?.trim() || "planned",
+				position: Number.isFinite(target.position)
+					? Number(target.position)
+					: index,
+				payload: JSON.stringify(payload),
+				createdAt: now,
+				updatedAt: now,
+			};
+		});
+
+		return this.stores.salesStoreSevice.addOutreachTargets(entities);
+	}
+
+	async listOutreachTargets(
+		params: OutreachTargetListParams,
+	): Promise<PaginatedResult<OutreachTarget>> {
+		await this.ready();
+		const result = await this.stores.salesStoreSevice.listOutreachTargets({
+			...params,
+			outreachId: params.outreachId?.trim(),
+			status: params.status?.trim(),
+		});
+
+		return {
+			items: result.items.map((entity) => this.toOutreachTarget(entity)),
+			totalCount: result.totalCount,
+		};
+	}
+
+	async claimNextOutreachTarget(
+		outreachId: string,
+	): Promise<OutreachTarget | null> {
+		await this.ready();
+		const normalizedOutreachId = outreachId?.trim();
+		if (!normalizedOutreachId) {
+			throw badRequestError("outreachId is required");
+		}
+
+		const target =
+			await this.stores.salesStoreSevice.claimNextOutreachTarget(
+				normalizedOutreachId,
+			);
+		return target ? this.toOutreachTarget(target) : null;
+	}
+
+	async updateOutreachTargetStatus(
+		update: OutreachTargetStatusUpdate,
+	): Promise<OutreachTarget | null> {
+		await this.ready();
+		const id = update.id?.trim();
+		const status = update.status?.trim();
+		if (!id || !status) {
+			throw badRequestError("target id and status are required");
+		}
+
+		const target =
+			await this.stores.salesStoreSevice.updateOutreachTargetStatus({
+				id,
+				status,
+			});
+
+		return target ? this.toOutreachTarget(target) : null;
+	}
+
 	async getStatistic(): Promise<Statistic> {
 		await this.ready();
 		const [
@@ -251,6 +445,7 @@ class SalesServiceImpl
 			byLang,
 			contactsByType,
 			touchesByCompanyName,
+			outreachProgress,
 		] = await Promise.all([
 			this.stores.salesStoreSevice.leadRepo.count(),
 			this.stores.salesStoreSevice.touchRepo.count(),
@@ -258,6 +453,7 @@ class SalesServiceImpl
 			this.stores.salesStoreSevice.getLeadLangStats(),
 			this.stores.salesStoreSevice.getContactTypeStats(),
 			this.stores.salesStoreSevice.getTouchCompanyNameStats(),
+			this.stores.salesStoreSevice.getOutreachProgressStats(),
 		]);
 
 		return {
@@ -267,6 +463,7 @@ class SalesServiceImpl
 			byLang,
 			contactsByType,
 			touchesByCompanyName,
+			outreachProgress,
 		};
 	}
 
@@ -378,6 +575,7 @@ class SalesServiceImpl
 			contactId: entity.contactId,
 			description: entity.description,
 			companyName: entity.companyName ?? "",
+			outreachId: entity.outreachId ?? "",
 			createdAt: new Date(entity.createdAt * 1000),
 		}));
 
@@ -525,6 +723,43 @@ class SalesServiceImpl
 			normalizedLeadId,
 			normalizedCompanyName,
 		);
+	}
+
+	async leadHasOutreachTouch(
+		leadId: string,
+		outreachId: string,
+	): Promise<boolean> {
+		await this.ready();
+		const normalizedLeadId = leadId?.trim();
+		const normalizedOutreachId = outreachId?.trim();
+		if (!normalizedLeadId || !normalizedOutreachId) {
+			throw badRequestError("leadId and outreachId are required");
+		}
+
+		return this.stores.salesStoreSevice.leadHasOutreachTouch(
+			normalizedLeadId,
+			normalizedOutreachId,
+		);
+	}
+
+	private toOutreachTarget(entity: {
+		id: string;
+		outreachId: string;
+		status: string;
+		position: number;
+		payload: string;
+		createdAt: number;
+		updatedAt: number;
+	}): OutreachTarget {
+		return {
+			id: entity.id,
+			outreachId: entity.outreachId,
+			status: entity.status,
+			position: entity.position,
+			payload: parsePayload(entity.payload),
+			createdAt: new Date(entity.createdAt * 1000),
+			updatedAt: new Date(entity.updatedAt * 1000),
+		};
 	}
 }
 
