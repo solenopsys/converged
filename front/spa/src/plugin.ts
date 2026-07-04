@@ -1,798 +1,1052 @@
 import { Elysia } from "elysia";
-import { existsSync, mkdirSync, readdirSync, statSync } from "fs";
-import { brotliCompressSync } from "zlib";
-import { resolve } from "path";
 import { externalPackages, microfrontends } from "front-core/runtime-config";
 import { createWorkspaceResolverPlugin } from "front-core/workspace-resolver";
+import { existsSync, mkdirSync, readdirSync, statSync } from "fs";
+import { resolve } from "path";
+import { pathToFileURL } from "url";
+import { brotliCompressSync } from "zlib";
 
 interface SharedCacheAdapter {
-  buildKey: (...segments: Array<string | number>) => string;
-  getJson: <T>(key: string) => Promise<T | null>;
-  setJson: (key: string, value: unknown, ttlSeconds?: number) => Promise<void>;
+	buildKey: (...segments: Array<string | number>) => string;
+	getJson: <T>(key: string) => Promise<T | null>;
+	setJson: (key: string, value: unknown, ttlSeconds?: number) => Promise<void>;
 }
 
 export interface SpaPluginConfig {
-  production?: boolean;
-  compress?: boolean;
-  cache?: SharedCacheAdapter;
-  microfrontends?: string[];
+	production?: boolean;
+	compress?: boolean;
+	cache?: SharedCacheAdapter;
+	microfrontends?: string[];
 }
 
 // fileName → npm specifier
 const vendorEntries: Record<string, string> = {
-  "react.js": "react",
-  "react-dom.js": "react-dom",
-  "react-dom-client.js": "react-dom/client",
-  "react-jsx-runtime.js": "react/jsx-runtime",
-  "react-jsx-dev-runtime.js": "react/jsx-dev-runtime",
-  "react-router-dom.js": "react-router-dom",
-  "effector.js": "effector",
-  "effector-react.js": "effector-react",
-  "echarts.js": "echarts",
-  "echarts-for-react.js": "echarts-for-react",
-  "lucide-react.js": "lucide-react",
-  "dagre.js": "dagre",
-  "pixi.js": "pixi.js",
-  "sonner.js": "sonner",
-  "framer-motion.js": "framer-motion",
-  "dnd-kit-core.js": "@dnd-kit/core",
-  "dnd-kit-sortable.js": "@dnd-kit/sortable",
-  "tanstack-virtual.js": "@tanstack/react-virtual",
-  "tanstack-table.js": "@tanstack/react-table",
-  "embla-carousel-react.js": "embla-carousel-react",
-  "embla-carousel-autoplay.js": "embla-carousel-autoplay",
-  "vaul.js": "vaul",
-  "cmdk.js": "cmdk",
-  "json-viewer.js": "@textea/json-viewer",
+	"react.js": "react",
+	"react-dom.js": "react-dom",
+	"react-dom-client.js": "react-dom/client",
+	"react-jsx-runtime.js": "react/jsx-runtime",
+	"react-jsx-dev-runtime.js": "react/jsx-dev-runtime",
+	"react-router-dom.js": "react-router-dom",
+	"effector.js": "effector",
+	"effector-react.js": "effector-react",
+	"echarts.js": "echarts",
+	"echarts-for-react.js": "echarts-for-react",
+	"lucide-react.js": "lucide-react",
+	"dagre.js": "dagre",
+	"pixi.js": "pixi.js",
+	"sonner.js": "sonner",
+	"framer-motion.js": "framer-motion",
+	"dnd-kit-core.js": "@dnd-kit/core",
+	"dnd-kit-sortable.js": "@dnd-kit/sortable",
+	"tanstack-virtual.js": "@tanstack/react-virtual",
+	"tanstack-table.js": "@tanstack/react-table",
+	"embla-carousel-react.js": "embla-carousel-react",
+	"embla-carousel-autoplay.js": "embla-carousel-autoplay",
+	"vaul.js": "vaul",
+	"cmdk.js": "cmdk",
+	"json-viewer.js": "@textea/json-viewer",
 };
 
 const sharedExternals = Object.values(vendorEntries);
 
 function buildVendorWrapper(specifier: string, source: string): string {
-  // react: CJS-ish shape in Bun build; keep explicit named exports
-  // so browser import map consumers can import stable symbols.
-  if (specifier === "react") {
-    return [
-      `import * as mod from "${source}";`,
-      "const m = (mod as any).default ?? mod;",
-      "export const Activity = m.Activity;",
-      "export const Children = m.Children;",
-      "export const Component = m.Component;",
-      "export const Fragment = m.Fragment;",
-      "export const Profiler = m.Profiler;",
-      "export const PureComponent = m.PureComponent;",
-      "export const StrictMode = m.StrictMode;",
-      "export const Suspense = m.Suspense;",
-      "export const __CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE = m.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;",
-      "export const __COMPILER_RUNTIME = m.__COMPILER_RUNTIME;",
-      "export const act = m.act;",
-      "export const cache = m.cache;",
-      "export const cacheSignal = m.cacheSignal;",
-      "export const captureOwnerStack = m.captureOwnerStack;",
-      "export const cloneElement = m.cloneElement;",
-      "export const createContext = m.createContext;",
-      "export const createElement = m.createElement;",
-      "export const createRef = m.createRef;",
-      "export const forwardRef = m.forwardRef;",
-      "export const isValidElement = m.isValidElement;",
-      "export const lazy = m.lazy;",
-      "export const memo = m.memo;",
-      "export const startTransition = m.startTransition;",
-      "export const unstable_useCacheRefresh = m.unstable_useCacheRefresh;",
-      "export const use = m.use;",
-      "export const useActionState = m.useActionState;",
-      "export const useCallback = m.useCallback;",
-      "export const useContext = m.useContext;",
-      "export const useDebugValue = m.useDebugValue;",
-      "export const useDeferredValue = m.useDeferredValue;",
-      "export const useEffect = m.useEffect;",
-      "export const useEffectEvent = m.useEffectEvent;",
-      "export const useId = m.useId;",
-      "export const useImperativeHandle = m.useImperativeHandle;",
-      "export const useInsertionEffect = m.useInsertionEffect;",
-      "export const useLayoutEffect = m.useLayoutEffect;",
-      "export const useMemo = m.useMemo;",
-      "export const useOptimistic = m.useOptimistic;",
-      "export const useReducer = m.useReducer;",
-      "export const useRef = m.useRef;",
-      "export const useState = m.useState;",
-      "export const useSyncExternalStore = m.useSyncExternalStore;",
-      "export const useTransition = m.useTransition;",
-      "export const version = m.version;",
-      "export default m;",
-    ].join("\n");
-  }
+	// react: CJS-ish shape in Bun build; keep explicit named exports
+	// so browser import map consumers can import stable symbols.
+	if (specifier === "react") {
+		return [
+			`import * as mod from "${source}";`,
+			"const m = (mod as any).default ?? mod;",
+			"export const Activity = m.Activity;",
+			"export const Children = m.Children;",
+			"export const Component = m.Component;",
+			"export const Fragment = m.Fragment;",
+			"export const Profiler = m.Profiler;",
+			"export const PureComponent = m.PureComponent;",
+			"export const StrictMode = m.StrictMode;",
+			"export const Suspense = m.Suspense;",
+			"export const __CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE = m.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;",
+			"export const __COMPILER_RUNTIME = m.__COMPILER_RUNTIME;",
+			"export const act = m.act;",
+			"export const cache = m.cache;",
+			"export const cacheSignal = m.cacheSignal;",
+			"export const captureOwnerStack = m.captureOwnerStack;",
+			"export const cloneElement = m.cloneElement;",
+			"export const createContext = m.createContext;",
+			"export const createElement = m.createElement;",
+			"export const createRef = m.createRef;",
+			"export const forwardRef = m.forwardRef;",
+			"export const isValidElement = m.isValidElement;",
+			"export const lazy = m.lazy;",
+			"export const memo = m.memo;",
+			"export const startTransition = m.startTransition;",
+			"export const unstable_useCacheRefresh = m.unstable_useCacheRefresh;",
+			"export const use = m.use;",
+			"export const useActionState = m.useActionState;",
+			"export const useCallback = m.useCallback;",
+			"export const useContext = m.useContext;",
+			"export const useDebugValue = m.useDebugValue;",
+			"export const useDeferredValue = m.useDeferredValue;",
+			"export const useEffect = m.useEffect;",
+			"export const useEffectEvent = m.useEffectEvent;",
+			"export const useId = m.useId;",
+			"export const useImperativeHandle = m.useImperativeHandle;",
+			"export const useInsertionEffect = m.useInsertionEffect;",
+			"export const useLayoutEffect = m.useLayoutEffect;",
+			"export const useMemo = m.useMemo;",
+			"export const useOptimistic = m.useOptimistic;",
+			"export const useReducer = m.useReducer;",
+			"export const useRef = m.useRef;",
+			"export const useState = m.useState;",
+			"export const useSyncExternalStore = m.useSyncExternalStore;",
+			"export const useTransition = m.useTransition;",
+			"export const version = m.version;",
+			"export default m;",
+		].join("\n");
+	}
 
-  // react-dom: CJS — explicit named exports
-  if (specifier === "react-dom") {
-    return [
-      `import * as mod from "${source}";`,
-      "const m = (mod as any).default ?? mod;",
-      "export const createPortal = m.createPortal;",
-      "export const flushSync = m.flushSync;",
-      "export const preconnect = m.preconnect;",
-      "export const prefetchDNS = m.prefetchDNS;",
-      "export const preinit = m.preinit;",
-      "export const preinitModule = m.preinitModule;",
-      "export const preload = m.preload;",
-      "export const preloadModule = m.preloadModule;",
-      "export const requestFormReset = m.requestFormReset;",
-      "export const unstable_batchedUpdates = m.unstable_batchedUpdates;",
-      "export const useFormState = m.useFormState;",
-      "export const useFormStatus = m.useFormStatus;",
-      "export const version = m.version;",
-      "export const __DOM_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE = m.__DOM_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;",
-      "export default m;",
-    ].join("\n");
-  }
-  // react-dom/client: CJS subpath
-  if (specifier === "react-dom/client") {
-    return [
-      `import * as mod from "${source}";`,
-      "const m = (mod as any).default ?? mod;",
-      "export const createRoot = m.createRoot;",
-      "export const hydrateRoot = m.hydrateRoot;",
-      "export const version = m.version;",
-      "export default m;",
-    ].join("\n");
-  }
-  // jsx runtimes: CJS
-  if (specifier === "react/jsx-runtime" || specifier === "react/jsx-dev-runtime") {
-    return [
-      `import * as mod from "${source}";`,
-      "export const jsx = mod.jsx;",
-      "export const jsxs = mod.jsxs;",
-      "export const jsxDEV = (mod as any).jsxDEV;",
-      "export const Fragment = mod.Fragment;",
-      "export default mod;",
-    ].join("\n");
-  }
-  // generic: works for both ESM and CJS (Bun.build resolves CJS named exports via __reExport)
-  return [
-    `import * as mod from "${source}";`,
-    `export * from "${source}";`,
-    "export default (mod as any).default ?? mod;",
-  ].join("\n");
+	// react-dom: CJS — explicit named exports
+	if (specifier === "react-dom") {
+		return [
+			`import * as mod from "${source}";`,
+			"const m = (mod as any).default ?? mod;",
+			"export const createPortal = m.createPortal;",
+			"export const flushSync = m.flushSync;",
+			"export const preconnect = m.preconnect;",
+			"export const prefetchDNS = m.prefetchDNS;",
+			"export const preinit = m.preinit;",
+			"export const preinitModule = m.preinitModule;",
+			"export const preload = m.preload;",
+			"export const preloadModule = m.preloadModule;",
+			"export const requestFormReset = m.requestFormReset;",
+			"export const unstable_batchedUpdates = m.unstable_batchedUpdates;",
+			"export const useFormState = m.useFormState;",
+			"export const useFormStatus = m.useFormStatus;",
+			"export const version = m.version;",
+			"export const __DOM_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE = m.__DOM_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;",
+			"export default m;",
+		].join("\n");
+	}
+	// react-dom/client: CJS subpath
+	if (specifier === "react-dom/client") {
+		return [
+			`import * as mod from "${source}";`,
+			"const m = (mod as any).default ?? mod;",
+			"export const createRoot = m.createRoot;",
+			"export const hydrateRoot = m.hydrateRoot;",
+			"export const version = m.version;",
+			"export default m;",
+		].join("\n");
+	}
+	// jsx runtimes: CJS
+	if (
+		specifier === "react/jsx-runtime" ||
+		specifier === "react/jsx-dev-runtime"
+	) {
+		return [
+			`import * as mod from "${source}";`,
+			"export const jsx = mod.jsx;",
+			"export const jsxs = mod.jsxs;",
+			"export const jsxDEV = (mod as any).jsxDEV;",
+			"export const Fragment = mod.Fragment;",
+			"export default mod;",
+		].join("\n");
+	}
+	// generic: works for both ESM and CJS (Bun.build resolves CJS named exports via __reExport)
+	return [
+		`import * as mod from "${source}";`,
+		`export * from "${source}";`,
+		"export default (mod as any).default ?? mod;",
+	].join("\n");
 }
 
-function deepMerge(target: Record<string, any>, source: Record<string, any>): Record<string, any> {
-  for (const [key, value] of Object.entries(source)) {
-    if (
-      value &&
-      typeof value === "object" &&
-      !Array.isArray(value) &&
-      target[key] &&
-      typeof target[key] === "object" &&
-      !Array.isArray(target[key])
-    ) {
-      deepMerge(target[key], value);
-      continue;
-    }
-    target[key] = value;
-  }
-  return target;
+function deepMerge(
+	target: Record<string, any>,
+	source: Record<string, any>,
+): Record<string, any> {
+	for (const [key, value] of Object.entries(source)) {
+		if (
+			value &&
+			typeof value === "object" &&
+			!Array.isArray(value) &&
+			target[key] &&
+			typeof target[key] === "object" &&
+			!Array.isArray(target[key])
+		) {
+			deepMerge(target[key], value);
+			continue;
+		}
+		target[key] = value;
+	}
+	return target;
 }
 
 export default function spaPlugin(config: SpaPluginConfig = {}) {
-  const projectRoot = process.env.PROJECT_DIR ?? resolve(import.meta.dir, "..", "..", "..");
-  const parentProjectRoot =
-    process.env.CHILD_PROJECT_DIR && process.env.CHILD_PROJECT_DIR.length > 0
-      ? process.env.CHILD_PROJECT_DIR
-      : undefined;
-  const isProd = config.production ?? process.env.NODE_ENV === "production";
-  const useDevCompress = !isProd && (config.compress ?? process.env.SPA_DEV_COMPRESS === "1");
-  const frontRoot = resolve(projectRoot, "front");
-  const brandingProjectRoot = parentProjectRoot ?? projectRoot;
-  const brandingPublicDir = resolve(brandingProjectRoot, "front", "landing", "public");
-  const logoBlackPath = resolve(brandingPublicDir, "logo-black.svg");
-  const logoWhitePath = resolve(brandingPublicDir, "logo-white.svg");
-  const headerLogoBlackPath = resolve(brandingPublicDir, "header-logo-black.svg");
-  const headerLogoWhitePath = resolve(brandingPublicDir, "header-logo-white.svg");
-  const faviconSvgPath = resolve(brandingPublicDir, "favicon.svg");
-  const localesDir = resolve(frontRoot, "front-core/locales");
-  const storeWorkersDir = resolve(frontRoot, "libraries/store-workers/dist");
+	const projectRoot =
+		process.env.PROJECT_DIR ?? resolve(import.meta.dir, "..", "..", "..");
+	const parentProjectRoot =
+		process.env.CHILD_PROJECT_DIR && process.env.CHILD_PROJECT_DIR.length > 0
+			? process.env.CHILD_PROJECT_DIR
+			: undefined;
+	const isProd = config.production ?? process.env.NODE_ENV === "production";
+	const useDevCompress =
+		!isProd && (config.compress ?? process.env.SPA_DEV_COMPRESS === "1");
+	const frontRoot = resolve(projectRoot, "front");
+	const brandingProjectRoot = parentProjectRoot ?? projectRoot;
+	const brandingPublicDir = resolve(
+		brandingProjectRoot,
+		"front",
+		"landing",
+		"public",
+	);
+	const logoBlackPath = resolve(brandingPublicDir, "logo-black.svg");
+	const logoWhitePath = resolve(brandingPublicDir, "logo-white.svg");
+	const headerLogoBlackPath = resolve(
+		brandingPublicDir,
+		"header-logo-black.svg",
+	);
+	const headerLogoWhitePath = resolve(
+		brandingPublicDir,
+		"header-logo-white.svg",
+	);
+	const faviconSvgPath = resolve(brandingPublicDir, "favicon.svg");
+	const localesDir = resolve(frontRoot, "front-core/locales");
+	const storeWorkersDir = resolve(frontRoot, "libraries/store-workers/dist");
 
-  // Prebuilt paths (prod)
-  const prebuiltFrontCorePath = resolve(projectRoot, "dist", "front", "index.js");
-  const prebuiltFrontCoreMapPath = resolve(projectRoot, "dist", "front", "index.js.map");
-  const prebuiltFrontVendorDir = resolve(projectRoot, "dist", "front", "vendor");
-  const prebuiltMfDir = resolve(projectRoot, "dist", "mf");
+	// Prebuilt paths (prod)
+	const prebuiltFrontCorePath = resolve(
+		projectRoot,
+		"dist",
+		"front",
+		"index.js",
+	);
+	const prebuiltFrontCoreMapPath = resolve(
+		projectRoot,
+		"dist",
+		"front",
+		"index.js.map",
+	);
+	const prebuiltFrontVendorDir = resolve(
+		projectRoot,
+		"dist",
+		"front",
+		"vendor",
+	);
+	const prebuiltMfDir = resolve(projectRoot, "dist", "mf");
 
-  const staticCacheHeader = "public, max-age=86400";
-  const jsCacheHeader = isProd
-    ? "public, max-age=31536000, immutable"
-    : "public, max-age=3600";
-  const mfCacheHeader = isProd ? "no-store" : jsCacheHeader;
-  const sharedCache = isProd ? config.cache : undefined;
-  const assetCacheTtlSeconds = 3600;
-  const activeMicrofrontends = config.microfrontends?.length
-    ? config.microfrontends.map((name) => name.startsWith("mf-") ? name : `mf-${name}`)
-    : microfrontends;
+	const staticCacheHeader = "public, max-age=86400";
+	const jsCacheHeader = isProd
+		? "public, max-age=31536000, immutable"
+		: "public, max-age=3600";
+	const mfCacheHeader = isProd ? "no-store" : jsCacheHeader;
+	const sharedCache = isProd ? config.cache : undefined;
+	const assetCacheTtlSeconds = 3600;
+	const activeMicrofrontends = config.microfrontends?.length
+		? config.microfrontends.map((name) =>
+				name.startsWith("mf-") ? name : `mf-${name}`,
+			)
+		: microfrontends;
 
-  // Dev caches
-  const vendorBundles = new Map<string, Blob>();
-  let frontCoreBundle: Blob | null = null;
-  const mfBundles = new Map<string, Blob>();
-  const devBr = new Map<string, Uint8Array>();
+	// Dev caches
+	const vendorBundles = new Map<string, Blob>();
+	let frontCoreBundle: Blob | null = null;
+	const mfBundles = new Map<string, Blob>();
+	const devBr = new Map<string, Uint8Array>();
 
-  async function compressBr(key: string, blob: Blob): Promise<Uint8Array> {
-    if (devBr.has(key)) return devBr.get(key)!;
-    const raw = new Uint8Array(await blob.arrayBuffer());
-    const compressed = brotliCompressSync(raw);
-    devBr.set(key, compressed);
-    log(`compress ${key} ${(raw.length / 1024).toFixed(0)}kb → ${(compressed.length / 1024).toFixed(0)}kb`);
-    return compressed;
-  }
+	async function compressBr(key: string, blob: Blob): Promise<Uint8Array> {
+		if (devBr.has(key)) return devBr.get(key)!;
+		const raw = new Uint8Array(await blob.arrayBuffer());
+		const compressed = brotliCompressSync(raw);
+		devBr.set(key, compressed);
+		log(
+			`compress ${key} ${(raw.length / 1024).toFixed(0)}kb → ${(compressed.length / 1024).toFixed(0)}kb`,
+		);
+		return compressed;
+	}
 
-  function serveDev(
-    blob: Blob,
-    brData: Uint8Array,
-    request: Request,
-    contentType: string,
-    cacheHeader = jsCacheHeader,
-  ): Response {
-    const acceptEncoding = request.headers.get("accept-encoding") || "";
-    if (brData.length > 0 && (acceptEncoding.includes("br") || !acceptEncoding)) {
-      return new Response(brData, {
-        headers: { "Content-Type": contentType, "Content-Encoding": "br", "Cache-Control": cacheHeader },
-      });
-    }
-    return new Response(blob, {
-      headers: { "Content-Type": contentType, "Cache-Control": cacheHeader },
-    });
-  }
+	function serveDev(
+		blob: Blob,
+		brData: Uint8Array,
+		request: Request,
+		contentType: string,
+		cacheHeader = jsCacheHeader,
+	): Response {
+		const acceptEncoding = request.headers.get("accept-encoding") || "";
+		if (
+			brData.length > 0 &&
+			(acceptEncoding.includes("br") || !acceptEncoding)
+		) {
+			return new Response(brData, {
+				headers: {
+					"Content-Type": contentType,
+					"Content-Encoding": "br",
+					"Cache-Control": cacheHeader,
+				},
+			});
+		}
+		return new Response(blob, {
+			headers: { "Content-Type": contentType, "Cache-Control": cacheHeader },
+		});
+	}
 
-  async function injectCssIntoModule(module: Blob, css: Blob | undefined, id: string): Promise<Blob> {
-    if (!css || css.size === 0) return module;
-    const jsText = await module.text();
-    const cssText = await css.text();
-    const styleId = `mf-style-${id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
-    const injector = [
-      "",
-      `const __mfCss = ${JSON.stringify(cssText)};`,
-      `const __mfStyleId = ${JSON.stringify(styleId)};`,
-      "if (typeof document !== \"undefined\" && !document.getElementById(__mfStyleId)) {",
-      "  const style = document.createElement(\"style\");",
-      "  style.id = __mfStyleId;",
-      "  style.textContent = __mfCss;",
-      "  document.head.appendChild(style);",
-      "}",
-      "",
-    ].join("\n");
-    return new Blob([injector, jsText], {
-      type: "application/javascript; charset=utf-8",
-    });
-  }
+	async function injectCssIntoModule(
+		module: Blob,
+		css: Blob | undefined,
+		id: string,
+	): Promise<Blob> {
+		if (!css || css.size === 0) return module;
+		const jsText = await module.text();
+		const cssText = await css.text();
+		const styleId = `mf-style-${id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+		const injector = [
+			"",
+			`const __mfCss = ${JSON.stringify(cssText)};`,
+			`const __mfStyleId = ${JSON.stringify(styleId)};`,
+			'if (typeof document !== "undefined" && !document.getElementById(__mfStyleId)) {',
+			'  const style = document.createElement("style");',
+			"  style.id = __mfStyleId;",
+			"  style.textContent = __mfCss;",
+			"  document.head.appendChild(style);",
+			"}",
+			"",
+		].join("\n");
+		return new Blob([injector, jsText], {
+			type: "application/javascript; charset=utf-8",
+		});
+	}
 
-  type CacheEntry = { raw: Uint8Array; br?: Uint8Array; contentType: string };
+	type CacheEntry = { raw: Uint8Array; br?: Uint8Array; contentType: string };
 
-  type SerializedCacheEntry = {
-    raw: string;
-    br?: string;
-    contentType: string;
-  };
+	type SerializedCacheEntry = {
+		raw: string;
+		br?: string;
+		contentType: string;
+	};
 
-  function encodeCacheEntry(entry: CacheEntry): SerializedCacheEntry {
-    return {
-      raw: Buffer.from(entry.raw).toString("base64"),
-      br: entry.br ? Buffer.from(entry.br).toString("base64") : undefined,
-      contentType: entry.contentType,
-    };
-  }
+	function encodeCacheEntry(entry: CacheEntry): SerializedCacheEntry {
+		return {
+			raw: Buffer.from(entry.raw).toString("base64"),
+			br: entry.br ? Buffer.from(entry.br).toString("base64") : undefined,
+			contentType: entry.contentType,
+		};
+	}
 
-  function decodeCacheEntry(entry: SerializedCacheEntry): CacheEntry {
-    return {
-      raw: new Uint8Array(Buffer.from(entry.raw, "base64")),
-      br: entry.br ? new Uint8Array(Buffer.from(entry.br, "base64")) : undefined,
-      contentType: entry.contentType,
-    };
-  }
+	function decodeCacheEntry(entry: SerializedCacheEntry): CacheEntry {
+		return {
+			raw: new Uint8Array(Buffer.from(entry.raw, "base64")),
+			br: entry.br
+				? new Uint8Array(Buffer.from(entry.br, "base64"))
+				: undefined,
+			contentType: entry.contentType,
+		};
+	}
 
-  function buildAssetCacheKey(key: string, filePath: string): string {
-    const stat = statSync(filePath);
-    return sharedCache!.buildKey(
-      "ui-asset",
-      key,
-      stat.size,
-      Math.floor(stat.mtimeMs),
-    );
-  }
+	function buildAssetCacheKey(key: string, filePath: string): string {
+		const stat = statSync(filePath);
+		return sharedCache!.buildKey(
+			"ui-asset",
+			key,
+			stat.size,
+			Math.floor(stat.mtimeMs),
+		);
+	}
 
-  async function loadAndCache(key: string, filePath: string, contentType: string): Promise<CacheEntry> {
-    if (sharedCache) {
-      try {
-        const cacheKey = buildAssetCacheKey(key, filePath);
-        const cached = await sharedCache.getJson<SerializedCacheEntry>(cacheKey);
-        if (cached) return decodeCacheEntry(cached);
-      } catch (error) {
-        console.warn(`[spa] shared cache read failed for ${key}:`, error);
-      }
-    }
+	async function loadAndCache(
+		key: string,
+		filePath: string,
+		contentType: string,
+	): Promise<CacheEntry> {
+		if (sharedCache) {
+			try {
+				const cacheKey = buildAssetCacheKey(key, filePath);
+				const cached =
+					await sharedCache.getJson<SerializedCacheEntry>(cacheKey);
+				if (cached) return decodeCacheEntry(cached);
+			} catch (error) {
+				console.warn(`[spa] shared cache read failed for ${key}:`, error);
+			}
+		}
 
-    const raw = new Uint8Array(await Bun.file(filePath).arrayBuffer());
-    const brPath = filePath + ".br";
-    const br = existsSync(brPath) ? new Uint8Array(await Bun.file(brPath).arrayBuffer()) : undefined;
-    const entry: CacheEntry = { raw, br, contentType };
+		const raw = new Uint8Array(await Bun.file(filePath).arrayBuffer());
+		const brPath = filePath + ".br";
+		const br = existsSync(brPath)
+			? new Uint8Array(await Bun.file(brPath).arrayBuffer())
+			: undefined;
+		const entry: CacheEntry = { raw, br, contentType };
 
-    if (sharedCache) {
-      try {
-        const cacheKey = buildAssetCacheKey(key, filePath);
-        await sharedCache.setJson(cacheKey, encodeCacheEntry(entry), assetCacheTtlSeconds);
-      } catch (error) {
-        console.warn(`[spa] shared cache write failed for ${key}:`, error);
-      }
-    }
+		if (sharedCache) {
+			try {
+				const cacheKey = buildAssetCacheKey(key, filePath);
+				await sharedCache.setJson(
+					cacheKey,
+					encodeCacheEntry(entry),
+					assetCacheTtlSeconds,
+				);
+			} catch (error) {
+				console.warn(`[spa] shared cache write failed for ${key}:`, error);
+			}
+		}
 
-    return entry;
-  }
+		return entry;
+	}
 
-  const mfDirs = [resolve(frontRoot, "microfrontends")];
-  if (parentProjectRoot) {
-    mfDirs.push(resolve(parentProjectRoot, "front/microfrontends"));
-  }
+	const mfDirs = [resolve(frontRoot, "microfrontends")];
+	if (parentProjectRoot) {
+		mfDirs.push(resolve(parentProjectRoot, "front/microfrontends"));
+	}
 
-  function resolveMicrofrontendRootInDir(dir: string, name: string): string | null {
-    const direct = resolve(dir, name);
-    if (existsSync(direct)) return direct;
-    if (!existsSync(dir)) return null;
+	function resolveMicrofrontendRootInDir(
+		dir: string,
+		name: string,
+	): string | null {
+		const direct = resolve(dir, name);
+		if (existsSync(direct)) return direct;
+		if (!existsSync(dir)) return null;
 
-    for (const group of readdirSync(dir, { withFileTypes: true })) {
-      if (!group.isDirectory()) continue;
-      const grouped = resolve(dir, group.name, name);
-      if (existsSync(grouped)) return grouped;
-    }
+		for (const group of readdirSync(dir, { withFileTypes: true })) {
+			if (!group.isDirectory()) continue;
+			const grouped = resolve(dir, group.name, name);
+			if (existsSync(grouped)) return grouped;
+		}
 
-    return null;
-  }
+		return null;
+	}
 
-  const log = (message: string, extra?: Record<string, unknown>) => {
-    if (extra) {
-      console.log(`[spa] ${message}`, extra);
-    } else {
-      console.log(`[spa] ${message}`);
-    }
-  };
+	const log = (message: string, extra?: Record<string, unknown>) => {
+		if (extra) {
+			console.log(`[spa] ${message}`, extra);
+		} else {
+			console.log(`[spa] ${message}`);
+		}
+	};
 
-  const buildResolverPlugin = () =>
-    createWorkspaceResolverPlugin(projectRoot, parentProjectRoot);
+	// --- Menu manifest ---
+	// The console left menu is assembled here on the server: each active
+	// microfrontend's menu module is imported at request time and its MENU
+	// export is serialized. The client renders the menu from this manifest
+	// without downloading MF bundles; bundles load lazily on first action.
+	// Module sets stay dynamic — whatever is in activeMicrofrontends is used.
+	let menuManifestPayload: string | null = null;
+	const MENU_IMPORT_TIMEOUT_MS = 15_000;
 
-  function supportsEncoding(request: Request, encoding: string): boolean {
-    const accept = request.headers.get("accept-encoding") || "";
-    return accept.includes(encoding);
-  }
+	async function extractMicrofrontendMenu(
+		name: string,
+	): Promise<unknown | null> {
+		for (const dir of mfDirs) {
+			const mfRoot = resolveMicrofrontendRootInDir(dir, name);
+			if (!mfRoot) continue;
+			const candidates = [
+				resolve(mfRoot, "src", "menu.ts"),
+				resolve(mfRoot, "src", "menu.tsx"),
+				resolve(mfRoot, "src", "index.ts"),
+				resolve(mfRoot, "src", "index.tsx"),
+			];
+			for (const candidate of candidates) {
+				if (!existsSync(candidate)) continue;
+				try {
+					const version = isProd ? "prod" : String(statSync(candidate).mtimeMs);
+					// A module wedged in top-level code must not stall the whole
+					// manifest — its menu just falls back to the client bundle path.
+					const mod = await Promise.race([
+						import(
+							/* @vite-ignore */ `${pathToFileURL(candidate).href}?menu-manifest=${version}`
+						),
+						new Promise((_, reject) =>
+							setTimeout(
+								() => reject(new Error("menu import timed out")),
+								MENU_IMPORT_TIMEOUT_MS,
+							),
+						),
+					]);
+					const menu = (mod as { MENU?: unknown }).MENU;
+					if (menu && typeof menu === "object") {
+						// JSON round-trip drops functions and other non-serializable values.
+						return JSON.parse(JSON.stringify(menu));
+					}
+				} catch (err: any) {
+					log(
+						`menu-manifest: ${name} via ${candidate} failed: ${err?.message}`,
+					);
+				}
+			}
+		}
+		return null;
+	}
 
-  // --- Vendor ---
+	async function buildMenuManifest(): Promise<string> {
+		if (isProd && menuManifestPayload) return menuManifestPayload;
+		const menus: Array<{ mf: string; menu: unknown }> = [];
+		for (const name of activeMicrofrontends) {
+			const menu = await extractMicrofrontendMenu(name);
+			if (menu) menus.push({ mf: name, menu });
+		}
+		const payload = JSON.stringify({ menus });
+		if (isProd) menuManifestPayload = payload;
+		return payload;
+	}
 
-  const vendorTmpDir =
-    process.env.SPA_VENDOR_TMP_DIR ?? resolve(import.meta.dir, "..", ".vendor-src");
-  let vendorTmpDirReady = false;
+	if (isProd) {
+		void buildMenuManifest()
+			.then((payload) => {
+				const count = (JSON.parse(payload).menus as unknown[]).length;
+				log(
+					`menu-manifest warmed: ${count}/${activeMicrofrontends.length} menus`,
+				);
+			})
+			.catch((err: any) => log(`menu-manifest warmup failed: ${err?.message}`));
+	}
 
-  function ensureVendorTmpDir(): void {
-    if (isProd || vendorTmpDirReady) return;
-    mkdirSync(vendorTmpDir, { recursive: true });
-    vendorTmpDirReady = true;
-  }
+	const buildResolverPlugin = () =>
+		createWorkspaceResolverPlugin(projectRoot, parentProjectRoot);
 
-  async function buildVendorModule(fileName: string): Promise<Blob> {
-    if (isProd) {
-      throw new Error("Dynamic vendor build is disabled in production");
-    }
-    if (vendorBundles.has(fileName)) return vendorBundles.get(fileName)!;
-    const specifier = vendorEntries[fileName];
-    if (!specifier) throw new Error(`Unknown vendor module: ${fileName}`);
+	function supportsEncoding(request: Request, encoding: string): boolean {
+		const accept = request.headers.get("accept-encoding") || "";
+		return accept.includes(encoding);
+	}
 
-    ensureVendorTmpDir();
-    const wrapper = buildVendorWrapper(specifier, specifier);
-    const wrapperPath = resolve(vendorTmpDir, `${fileName.replace(/[^a-zA-Z0-9]/g, "_")}.ts`);
-    await Bun.write(wrapperPath, wrapper);
+	// --- Vendor ---
 
-    // For subpath specifiers (e.g. react-dom/client), parent package must
-    // also be non-external; otherwise Bun may leave unresolved/broken links.
-    const parentPkg = specifier.includes("/")
-      ? specifier.split("/").slice(0, specifier.startsWith("@") ? 2 : 1).join("/")
-      : null;
-    const externals = sharedExternals.filter(
-      (s) => s !== specifier && s !== parentPkg,
-    );
+	const vendorTmpDir =
+		process.env.SPA_VENDOR_TMP_DIR ??
+		resolve(import.meta.dir, "..", ".vendor-src");
+	let vendorTmpDirReady = false;
 
-    log(`startBuild vendor:${specifier}`);
-    const result = await Bun.build({
-      entrypoints: [wrapperPath],
-      target: "browser",
-      format: "esm",
-      minify: useDevCompress,
-      bundle: true,
-      external: externals,
-      plugins: [buildResolverPlugin()],
-    });
+	function ensureVendorTmpDir(): void {
+		if (isProd || vendorTmpDirReady) return;
+		mkdirSync(vendorTmpDir, { recursive: true });
+		vendorTmpDirReady = true;
+	}
 
-    if (!result.success || result.outputs.length === 0) {
-      const errors = result.logs.map((l) => l.message).join("\n");
-      throw new Error(`Vendor build failed for ${specifier}:\n${errors}`);
-    }
+	async function buildVendorModule(fileName: string): Promise<Blob> {
+		if (isProd) {
+			throw new Error("Dynamic vendor build is disabled in production");
+		}
+		if (vendorBundles.has(fileName)) return vendorBundles.get(fileName)!;
+		const specifier = vendorEntries[fileName];
+		if (!specifier) throw new Error(`Unknown vendor module: ${fileName}`);
 
-    const blob = result.outputs[0];
-    vendorBundles.set(fileName, blob);
-    log(`endBuild vendor:${specifier} ${(blob.size / 1024).toFixed(0)}kb`);
+		ensureVendorTmpDir();
+		const wrapper = buildVendorWrapper(specifier, specifier);
+		const wrapperPath = resolve(
+			vendorTmpDir,
+			`${fileName.replace(/[^a-zA-Z0-9]/g, "_")}.ts`,
+		);
+		await Bun.write(wrapperPath, wrapper);
 
-    return blob;
-  }
+		// For subpath specifiers (e.g. react-dom/client), parent package must
+		// also be non-external; otherwise Bun may leave unresolved/broken links.
+		const parentPkg = specifier.includes("/")
+			? specifier
+					.split("/")
+					.slice(0, specifier.startsWith("@") ? 2 : 1)
+					.join("/")
+			: null;
+		const externals = sharedExternals.filter(
+			(s) => s !== specifier && s !== parentPkg,
+		);
 
-  // --- Front-core ---
+		log(`startBuild vendor:${specifier}`);
+		const result = await Bun.build({
+			entrypoints: [wrapperPath],
+			target: "browser",
+			format: "esm",
+			minify: useDevCompress,
+			bundle: true,
+			external: externals,
+			plugins: [buildResolverPlugin()],
+		});
 
-  async function ensureFrontCore(): Promise<Blob> {
-    if (frontCoreBundle) return frontCoreBundle;
+		if (!result.success || result.outputs.length === 0) {
+			const errors = result.logs.map((l) => l.message).join("\n");
+			throw new Error(`Vendor build failed for ${specifier}:\n${errors}`);
+		}
 
-    if (isProd) {
-      if (!(await Bun.file(prebuiltFrontCorePath).exists())) {
-        throw new Error(`Missing prebuilt front-core: ${prebuiltFrontCorePath}`);
-      }
-      await loadAndCache("front-core", prebuiltFrontCorePath, "application/javascript; charset=utf-8");
-      frontCoreBundle = Bun.file(prebuiltFrontCorePath);
-      log("front-core:prebuilt");
-      return frontCoreBundle;
-    }
+		const blob = result.outputs[0];
+		vendorBundles.set(fileName, blob);
+		log(`endBuild vendor:${specifier} ${(blob.size / 1024).toFixed(0)}kb`);
 
-    const entry = resolve(frontRoot, "front-core/src/index.ts");
-    log("startBuild front-core");
-    const result = await Bun.build({
-      entrypoints: [entry],
-      format: "esm",
-      minify: useDevCompress,
-      external: externalPackages,
-      plugins: [buildResolverPlugin()],
-    });
+		return blob;
+	}
 
-    if (!result.success || result.outputs.length === 0) {
-      const errors = result.logs.map((l) => l.message).join("\n");
-      throw new Error(`front-core build failed:\n${errors}`);
-    }
+	// --- Front-core ---
 
-    frontCoreBundle = result.outputs[0];
-    log(`endBuild front-core ${(frontCoreBundle.size / 1024).toFixed(0)}kb`);
-    return frontCoreBundle;
-  }
+	async function ensureFrontCore(): Promise<Blob> {
+		if (frontCoreBundle) return frontCoreBundle;
 
-  // --- Microfrontends ---
+		if (isProd) {
+			if (!(await Bun.file(prebuiltFrontCorePath).exists())) {
+				throw new Error(
+					`Missing prebuilt front-core: ${prebuiltFrontCorePath}`,
+				);
+			}
+			await loadAndCache(
+				"front-core",
+				prebuiltFrontCorePath,
+				"application/javascript; charset=utf-8",
+			);
+			frontCoreBundle = Bun.file(prebuiltFrontCorePath);
+			log("front-core:prebuilt");
+			return frontCoreBundle;
+		}
 
-  async function ensureMicrofrontend(name: string): Promise<Blob> {
-    if (mfBundles.has(name)) return mfBundles.get(name)!;
+		const entry = resolve(frontRoot, "front-core/src/index.ts");
+		log("startBuild front-core");
+		const result = await Bun.build({
+			entrypoints: [entry],
+			format: "esm",
+			minify: useDevCompress,
+			external: externalPackages,
+			plugins: [buildResolverPlugin()],
+		});
 
-    if (isProd) {
-      const prebuiltPath = resolve(prebuiltMfDir, `${name}.js`);
-      if (!(await Bun.file(prebuiltPath).exists())) {
-        throw new Error(`Missing prebuilt microfrontend: ${prebuiltPath}`);
-      }
-      const cssPath = resolve(prebuiltMfDir, `${name}.css`);
-      const bundle = await injectCssIntoModule(
-        Bun.file(prebuiltPath),
-        existsSync(cssPath) ? Bun.file(cssPath) : undefined,
-        name,
-      );
-      mfBundles.set(name, bundle);
-      return mfBundles.get(name)!;
-    }
+		if (!result.success || result.outputs.length === 0) {
+			const errors = result.logs.map((l) => l.message).join("\n");
+			throw new Error(`front-core build failed:\n${errors}`);
+		}
 
-    let entry: string | null = null;
-    for (const dir of mfDirs) {
-      const mfRoot = resolveMicrofrontendRootInDir(dir, name);
-      if (!mfRoot) continue;
-      const tsEntry = resolve(mfRoot, "src/index.ts");
-      const tsxEntry = resolve(mfRoot, "src/index.tsx");
-      if (existsSync(tsEntry)) { entry = tsEntry; break; }
-      if (existsSync(tsxEntry)) { entry = tsxEntry; break; }
-    }
-    if (!entry) {
-      throw new Error(`Microfrontend ${name} not found in any mfDir`);
-    }
+		frontCoreBundle = result.outputs[0];
+		log(`endBuild front-core ${(frontCoreBundle.size / 1024).toFixed(0)}kb`);
+		return frontCoreBundle;
+	}
 
-    log(`startBuild mf:${name}`);
-    const result = await Bun.build({
-      entrypoints: [entry],
-      format: "esm",
-      minify: useDevCompress,
-      external: externalPackages,
-      plugins: [buildResolverPlugin()],
-    });
+	// --- Microfrontends ---
 
-    if (!result.success || result.outputs.length === 0) {
-      const errors = result.logs.map((l) => l.message).join("\n");
-      throw new Error(`${name} build failed:\n${errors}`);
-    }
+	async function ensureMicrofrontend(name: string): Promise<Blob> {
+		if (mfBundles.has(name)) return mfBundles.get(name)!;
 
-    const jsOutput = result.outputs.find((output) =>
-      output.type.includes("javascript") || output.path.endsWith(".js"),
-    );
-    if (!jsOutput) {
-      throw new Error(`${name} build failed: JavaScript output not found`);
-    }
-    const cssOutput = result.outputs.find((output) =>
-      output.type.includes("css") || output.path.endsWith(".css"),
-    );
-    const blob = await injectCssIntoModule(jsOutput, cssOutput, name);
-    mfBundles.set(name, blob);
-    log(`endBuild mf:${name} ${(blob.size / 1024).toFixed(0)}kb`);
-    return blob;
-  }
+		if (isProd) {
+			const prebuiltPath = resolve(prebuiltMfDir, `${name}.js`);
+			if (!(await Bun.file(prebuiltPath).exists())) {
+				throw new Error(`Missing prebuilt microfrontend: ${prebuiltPath}`);
+			}
+			const cssPath = resolve(prebuiltMfDir, `${name}.css`);
+			const bundle = await injectCssIntoModule(
+				Bun.file(prebuiltPath),
+				existsSync(cssPath) ? Bun.file(cssPath) : undefined,
+				name,
+			);
+			mfBundles.set(name, bundle);
+			return mfBundles.get(name)!;
+		}
 
-  // --- MF name resolution ---
+		let entry: string | null = null;
+		for (const dir of mfDirs) {
+			const mfRoot = resolveMicrofrontendRootInDir(dir, name);
+			if (!mfRoot) continue;
+			const tsEntry = resolve(mfRoot, "src/index.ts");
+			const tsxEntry = resolve(mfRoot, "src/index.tsx");
+			if (existsSync(tsEntry)) {
+				entry = tsEntry;
+				break;
+			}
+			if (existsSync(tsxEntry)) {
+				entry = tsxEntry;
+				break;
+			}
+		}
+		if (!entry) {
+			throw new Error(`Microfrontend ${name} not found in any mfDir`);
+		}
 
-  function resolveMfName(
-    params: Record<string, string> | undefined,
-    request: Request,
-  ): string | null {
-    const raw = params?.name ?? (params as any)?.["name.js"];
-    if (raw && raw.length > 0) return raw;
-    const pathname = new URL(request.url).pathname;
-    const match = pathname.match(/^\/mf\/(.+?)(?:\.js)?$/);
-    return match?.[1] ?? null;
-  }
+		log(`startBuild mf:${name}`);
+		const result = await Bun.build({
+			entrypoints: [entry],
+			format: "esm",
+			minify: useDevCompress,
+			external: externalPackages,
+			plugins: [buildResolverPlugin()],
+		});
 
-  // --- Elysia plugin ---
+		if (!result.success || result.outputs.length === 0) {
+			const errors = result.logs.map((l) => l.message).join("\n");
+			throw new Error(`${name} build failed:\n${errors}`);
+		}
 
-  const app = new Elysia({ name: "spa" })
-    .get("/logo-black.svg", ({ set }) => {
-      if (!existsSync(logoBlackPath)) {
-        set.status = 404;
-        return "Not Found";
-      }
-      return new Response(Bun.file(logoBlackPath), {
-        headers: { "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": staticCacheHeader },
-      });
-    })
-    .get("/logo-white.svg", ({ set }) => {
-      if (!existsSync(logoWhitePath)) {
-        set.status = 404;
-        return "Not Found";
-      }
-      return new Response(Bun.file(logoWhitePath), {
-        headers: { "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": staticCacheHeader },
-      });
-    })
-    .get("/header-logo-black.svg", ({ set }) => {
-      if (!existsSync(headerLogoBlackPath)) {
-        set.status = 404;
-        return "Not Found";
-      }
-      return new Response(Bun.file(headerLogoBlackPath), {
-        headers: { "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": staticCacheHeader },
-      });
-    })
-    .get("/header-logo-white.svg", ({ set }) => {
-      if (!existsSync(headerLogoWhitePath)) {
-        set.status = 404;
-        return "Not Found";
-      }
-      return new Response(Bun.file(headerLogoWhitePath), {
-        headers: { "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": staticCacheHeader },
-      });
-    })
-    .get("/favicon.svg", ({ set }) => {
-      if (!existsSync(faviconSvgPath)) {
-        set.status = 404;
-        return "Not Found";
-      }
-      return new Response(Bun.file(faviconSvgPath), {
-        headers: { "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": "public, max-age=86400" },
-      });
-    })
-    .get("/favicon.ico", ({ set }) => {
-      if (!existsSync(faviconSvgPath)) {
-        set.status = 404;
-        return "Not Found";
-      }
-      set.redirect = "/favicon.svg";
-      set.status = 302;
-      return "";
-    })
-    .get("/vendor/*", async ({ request, set }) => {
-      const fileName = new URL(request.url).pathname.replace("/vendor/", "");
-      const contentType = fileName.endsWith(".map")
-        ? "application/json; charset=utf-8"
-        : "application/javascript; charset=utf-8";
+		const jsOutput = result.outputs.find(
+			(output) =>
+				output.type.includes("javascript") || output.path.endsWith(".js"),
+		);
+		if (!jsOutput) {
+			throw new Error(`${name} build failed: JavaScript output not found`);
+		}
+		const cssOutput = result.outputs.find(
+			(output) => output.type.includes("css") || output.path.endsWith(".css"),
+		);
+		const blob = await injectCssIntoModule(jsOutput, cssOutput, name);
+		mfBundles.set(name, blob);
+		log(`endBuild mf:${name} ${(blob.size / 1024).toFixed(0)}kb`);
+		return blob;
+	}
 
-      if (isProd) {
-        const filePath = resolve(prebuiltFrontVendorDir, fileName);
-        if (!filePath.startsWith(prebuiltFrontVendorDir) || !existsSync(filePath)) {
-          set.status = 404;
-          return "Not Found";
-        }
-        const cached = await loadAndCache(`vendor:${fileName}`, filePath, contentType);
-        if (supportsEncoding(request, "br") && cached.br) {
-          return new Response(cached.br, {
-            headers: { "Content-Type": contentType, "Content-Encoding": "br", "Cache-Control": jsCacheHeader },
-          });
-        }
-        return new Response(cached.raw, {
-          headers: { "Content-Type": contentType, "Cache-Control": jsCacheHeader },
-        });
-      }
+	// --- MF name resolution ---
 
-        if (!vendorEntries[fileName]) {
-          set.status = 404;
-          return "Not Found";
-      }
+	function resolveMfName(
+		params: Record<string, string> | undefined,
+		request: Request,
+	): string | null {
+		const raw = params?.name ?? (params as any)?.["name.js"];
+		if (raw && raw.length > 0) return raw;
+		const pathname = new URL(request.url).pathname;
+		const match = pathname.match(/^\/mf\/(.+?)(?:\.js)?$/);
+		return match?.[1] ?? null;
+	}
 
-      try {
-        const blob = await buildVendorModule(fileName);
-        if (useDevCompress) {
-          const br = await compressBr(`vendor:${fileName}`, blob);
-          return serveDev(blob, br, request, contentType);
-        }
-        return new Response(blob, { headers: { "Content-Type": contentType, "Cache-Control": jsCacheHeader } });
-      } catch (err: any) {
-        console.error(`[spa] vendor build error for ${fileName}:`, err);
-        set.status = 500;
-        return { error: err?.message ?? "Vendor build failed" };
-      }
-    })
-    .get("/front-core.js", async ({ request, set }) => {
-      try {
-        if (!isProd) {
-          frontCoreBundle = null;
-        }
-        const bundle = await ensureFrontCore();
-        if (isProd) {
-          const cached = await loadAndCache(
-            "front-core",
-            prebuiltFrontCorePath,
-            "application/javascript; charset=utf-8",
-          );
-          if (supportsEncoding(request, "br") && cached.br) {
-            return new Response(cached.br, {
-              headers: { "Content-Type": "application/javascript; charset=utf-8", "Content-Encoding": "br", "Cache-Control": jsCacheHeader },
-            });
-          }
-          return new Response(cached.raw, {
-            headers: { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": jsCacheHeader },
-          });
-        }
-        if (useDevCompress) {
-          const br = await compressBr("front-core", bundle);
-          return serveDev(bundle, br, request, "application/javascript; charset=utf-8");
-        }
-        return new Response(bundle, { headers: { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": jsCacheHeader } });
-      } catch (err: any) {
-        set.status = 500;
-        return { error: err?.message ?? "front-core build failed" };
-      }
-    })
-    .get("/index.js.map", ({ set }) => {
-      if (!existsSync(prebuiltFrontCoreMapPath)) {
-        set.status = 404;
-        return "Not Found";
-      }
-      return new Response(Bun.file(prebuiltFrontCoreMapPath), {
-        headers: {
-          "Content-Type": "application/json; charset=utf-8",
-          "Cache-Control": jsCacheHeader,
-        },
-      });
-    })
-    .get("/mf/:name.js", async ({ params, request, set }) => {
-      const rawName = resolveMfName(params, request);
-      if (!rawName) {
-        set.status = 400;
-        return { error: "Missing microfrontend name" };
-      }
-      const cleaned = rawName.endsWith(".js") ? rawName.slice(0, -3) : rawName;
-      const name = cleaned.startsWith("mf-") ? cleaned : `mf-${cleaned}`;
+	// --- Elysia plugin ---
 
-      if (activeMicrofrontends.length > 0 && !activeMicrofrontends.includes(name)) {
-        set.status = 404;
-        return { error: "Unknown microfrontend" };
-      }
+	const app = new Elysia({ name: "spa" })
+		.get("/logo-black.svg", ({ set }) => {
+			if (!existsSync(logoBlackPath)) {
+				set.status = 404;
+				return "Not Found";
+			}
+			return new Response(Bun.file(logoBlackPath), {
+				headers: {
+					"Content-Type": "image/svg+xml; charset=utf-8",
+					"Cache-Control": staticCacheHeader,
+				},
+			});
+		})
+		.get("/logo-white.svg", ({ set }) => {
+			if (!existsSync(logoWhitePath)) {
+				set.status = 404;
+				return "Not Found";
+			}
+			return new Response(Bun.file(logoWhitePath), {
+				headers: {
+					"Content-Type": "image/svg+xml; charset=utf-8",
+					"Cache-Control": staticCacheHeader,
+				},
+			});
+		})
+		.get("/header-logo-black.svg", ({ set }) => {
+			if (!existsSync(headerLogoBlackPath)) {
+				set.status = 404;
+				return "Not Found";
+			}
+			return new Response(Bun.file(headerLogoBlackPath), {
+				headers: {
+					"Content-Type": "image/svg+xml; charset=utf-8",
+					"Cache-Control": staticCacheHeader,
+				},
+			});
+		})
+		.get("/header-logo-white.svg", ({ set }) => {
+			if (!existsSync(headerLogoWhitePath)) {
+				set.status = 404;
+				return "Not Found";
+			}
+			return new Response(Bun.file(headerLogoWhitePath), {
+				headers: {
+					"Content-Type": "image/svg+xml; charset=utf-8",
+					"Cache-Control": staticCacheHeader,
+				},
+			});
+		})
+		.get("/favicon.svg", ({ set }) => {
+			if (!existsSync(faviconSvgPath)) {
+				set.status = 404;
+				return "Not Found";
+			}
+			return new Response(Bun.file(faviconSvgPath), {
+				headers: {
+					"Content-Type": "image/svg+xml; charset=utf-8",
+					"Cache-Control": "public, max-age=86400",
+				},
+			});
+		})
+		.get("/favicon.ico", ({ set }) => {
+			if (!existsSync(faviconSvgPath)) {
+				set.status = 404;
+				return "Not Found";
+			}
+			set.redirect = "/favicon.svg";
+			set.status = 302;
+			return "";
+		})
+		.get("/vendor/*", async ({ request, set }) => {
+			const fileName = new URL(request.url).pathname.replace("/vendor/", "");
+			const contentType = fileName.endsWith(".map")
+				? "application/json; charset=utf-8"
+				: "application/javascript; charset=utf-8";
 
-      try {
-        if (!isProd) {
-          mfBundles.delete(name);
-        }
-        const bundle = await ensureMicrofrontend(name);
-        if (isProd) {
-          const cached = await loadAndCache(
-            `mf:${name}`,
-            resolve(prebuiltMfDir, `${name}.js`),
-            "application/javascript; charset=utf-8",
-          );
-          if (supportsEncoding(request, "br") && cached.br) {
-            return new Response(cached.br, {
-              headers: { "Content-Type": "application/javascript; charset=utf-8", "Content-Encoding": "br", "Cache-Control": mfCacheHeader },
-            });
-          }
-          return new Response(cached.raw, {
-            headers: { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": mfCacheHeader },
-          });
-        }
-        if (useDevCompress) {
-          const br = await compressBr(`mf:${name}`, bundle);
-          return serveDev(bundle, br, request, "application/javascript; charset=utf-8", mfCacheHeader);
-        }
-        return new Response(bundle, { headers: { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": mfCacheHeader } });
-      } catch (err: any) {
-        console.error(`[spa] ${name} build failed:`, err);
-        set.status = 500;
-        return { error: err?.message ?? "Microfrontend build failed" };
-      }
-    })
-    .get("/locales/:lng/menu-groups.json", async ({ params }) => {
-      const lng = params.lng;
-      const merged: Record<string, any> = {};
-      for (const mf of activeMicrofrontends) {
-        for (const dir of mfDirs) {
-          const mfRoot = resolveMicrofrontendRootInDir(dir, mf);
-          if (!mfRoot) continue;
-          const localePath = resolve(mfRoot, "locales", `${lng}.json`);
-          if (existsSync(localePath)) {
-            try {
-              const content = await Bun.file(localePath).json();
-              if (content && typeof content === "object" && !Array.isArray(content)) {
-                merged[mf] = deepMerge(
-                  typeof merged[mf] === "object" && merged[mf] && !Array.isArray(merged[mf])
-                    ? merged[mf]
-                    : {},
-                  content as Record<string, any>,
-                );
-                deepMerge(merged, content as Record<string, any>);
-              }
-            } catch { /* ignore */ }
-            break;
-          }
-        }
-      }
-      return new Response(JSON.stringify(merged), {
-        headers: { "Content-Type": "application/json; charset=utf-8" },
-      });
-    })
-    .get("/locales/:lng/:file", async ({ params }) => {
-      const { lng, file } = params;
-      const coreLocalePath = resolve(localesDir, lng, file);
-      if (coreLocalePath.startsWith(localesDir) && existsSync(coreLocalePath)) {
-        return new Response(Bun.file(coreLocalePath), {
-          headers: { "Content-Type": "application/json; charset=utf-8" },
-        });
-      }
+			if (isProd) {
+				const filePath = resolve(prebuiltFrontVendorDir, fileName);
+				if (
+					!filePath.startsWith(prebuiltFrontVendorDir) ||
+					!existsSync(filePath)
+				) {
+					set.status = 404;
+					return "Not Found";
+				}
+				const cached = await loadAndCache(
+					`vendor:${fileName}`,
+					filePath,
+					contentType,
+				);
+				if (supportsEncoding(request, "br") && cached.br) {
+					return new Response(cached.br, {
+						headers: {
+							"Content-Type": contentType,
+							"Content-Encoding": "br",
+							"Cache-Control": jsCacheHeader,
+						},
+					});
+				}
+				return new Response(cached.raw, {
+					headers: {
+						"Content-Type": contentType,
+						"Cache-Control": jsCacheHeader,
+					},
+				});
+			}
 
-      if (file.endsWith(".json")) {
-        const namespace = file.slice(0, -5);
-        if (namespace.startsWith("mf-")) {
-          for (const dir of mfDirs) {
-            const mfRoot = resolveMicrofrontendRootInDir(dir, namespace);
-            if (!mfRoot) continue;
-            const localePath = resolve(mfRoot, "locales", `${lng}.json`);
-            if (!localePath.startsWith(mfRoot)) continue;
-            if (!existsSync(localePath)) continue;
-            return new Response(Bun.file(localePath), {
-              headers: { "Content-Type": "application/json; charset=utf-8" },
-            });
-          }
-        }
-      }
+			if (!vendorEntries[fileName]) {
+				set.status = 404;
+				return "Not Found";
+			}
 
-      return new Response("{}", {
-        headers: { "Content-Type": "application/json; charset=utf-8" },
-      });
-    })
-    .get("/locales/*", ({ request }) => {
-      const pathname = new URL(request.url).pathname.replace("/locales/", "");
-      const filePath = resolve(localesDir, pathname);
-      if (filePath.startsWith(localesDir) && existsSync(filePath)) {
-        return new Response(Bun.file(filePath));
-      }
-      return new Response("{}", {
-        headers: { "Content-Type": "application/json; charset=utf-8" },
-      });
-    })
-    .get("/libraries/store-workers/dist/*", ({ request, set }) => {
-      const pathname = new URL(request.url).pathname.replace("/libraries/store-workers/dist/", "");
-      const filePath = resolve(storeWorkersDir, pathname);
-      if (!filePath.startsWith(storeWorkersDir) || !existsSync(filePath)) {
-        set.status = 404;
-        return "Not Found";
-      }
-      return new Response(Bun.file(filePath), {
-        headers: { "Content-Type": "application/javascript; charset=utf-8" },
-      });
-    });
+			try {
+				const blob = await buildVendorModule(fileName);
+				if (useDevCompress) {
+					const br = await compressBr(`vendor:${fileName}`, blob);
+					return serveDev(blob, br, request, contentType);
+				}
+				return new Response(blob, {
+					headers: {
+						"Content-Type": contentType,
+						"Cache-Control": jsCacheHeader,
+					},
+				});
+			} catch (err: any) {
+				console.error(`[spa] vendor build error for ${fileName}:`, err);
+				set.status = 500;
+				return { error: err?.message ?? "Vendor build failed" };
+			}
+		})
+		.get("/front-core.js", async ({ request, set }) => {
+			try {
+				if (!isProd) {
+					frontCoreBundle = null;
+				}
+				const bundle = await ensureFrontCore();
+				if (isProd) {
+					const cached = await loadAndCache(
+						"front-core",
+						prebuiltFrontCorePath,
+						"application/javascript; charset=utf-8",
+					);
+					if (supportsEncoding(request, "br") && cached.br) {
+						return new Response(cached.br, {
+							headers: {
+								"Content-Type": "application/javascript; charset=utf-8",
+								"Content-Encoding": "br",
+								"Cache-Control": jsCacheHeader,
+							},
+						});
+					}
+					return new Response(cached.raw, {
+						headers: {
+							"Content-Type": "application/javascript; charset=utf-8",
+							"Cache-Control": jsCacheHeader,
+						},
+					});
+				}
+				if (useDevCompress) {
+					const br = await compressBr("front-core", bundle);
+					return serveDev(
+						bundle,
+						br,
+						request,
+						"application/javascript; charset=utf-8",
+					);
+				}
+				return new Response(bundle, {
+					headers: {
+						"Content-Type": "application/javascript; charset=utf-8",
+						"Cache-Control": jsCacheHeader,
+					},
+				});
+			} catch (err: any) {
+				set.status = 500;
+				return { error: err?.message ?? "front-core build failed" };
+			}
+		})
+		.get("/index.js.map", ({ set }) => {
+			if (!existsSync(prebuiltFrontCoreMapPath)) {
+				set.status = 404;
+				return "Not Found";
+			}
+			return new Response(Bun.file(prebuiltFrontCoreMapPath), {
+				headers: {
+					"Content-Type": "application/json; charset=utf-8",
+					"Cache-Control": jsCacheHeader,
+				},
+			});
+		})
+		.get("/mf/:name.js", async ({ params, request, set }) => {
+			const rawName = resolveMfName(params, request);
+			if (!rawName) {
+				set.status = 400;
+				return { error: "Missing microfrontend name" };
+			}
+			const cleaned = rawName.endsWith(".js") ? rawName.slice(0, -3) : rawName;
+			const name = cleaned.startsWith("mf-") ? cleaned : `mf-${cleaned}`;
 
-  return app;
+			if (
+				activeMicrofrontends.length > 0 &&
+				!activeMicrofrontends.includes(name)
+			) {
+				set.status = 404;
+				return { error: "Unknown microfrontend" };
+			}
+
+			try {
+				if (!isProd) {
+					mfBundles.delete(name);
+				}
+				const bundle = await ensureMicrofrontend(name);
+				if (isProd) {
+					const cached = await loadAndCache(
+						`mf:${name}`,
+						resolve(prebuiltMfDir, `${name}.js`),
+						"application/javascript; charset=utf-8",
+					);
+					if (supportsEncoding(request, "br") && cached.br) {
+						return new Response(cached.br, {
+							headers: {
+								"Content-Type": "application/javascript; charset=utf-8",
+								"Content-Encoding": "br",
+								"Cache-Control": mfCacheHeader,
+							},
+						});
+					}
+					return new Response(cached.raw, {
+						headers: {
+							"Content-Type": "application/javascript; charset=utf-8",
+							"Cache-Control": mfCacheHeader,
+						},
+					});
+				}
+				if (useDevCompress) {
+					const br = await compressBr(`mf:${name}`, bundle);
+					return serveDev(
+						bundle,
+						br,
+						request,
+						"application/javascript; charset=utf-8",
+						mfCacheHeader,
+					);
+				}
+				return new Response(bundle, {
+					headers: {
+						"Content-Type": "application/javascript; charset=utf-8",
+						"Cache-Control": mfCacheHeader,
+					},
+				});
+			} catch (err: any) {
+				console.error(`[spa] ${name} build failed:`, err);
+				set.status = 500;
+				return { error: err?.message ?? "Microfrontend build failed" };
+			}
+		})
+		.get("/locales/:lng/menu-groups.json", async ({ params }) => {
+			const lng = params.lng;
+			const merged: Record<string, any> = {};
+			for (const mf of activeMicrofrontends) {
+				for (const dir of mfDirs) {
+					const mfRoot = resolveMicrofrontendRootInDir(dir, mf);
+					if (!mfRoot) continue;
+					const localePath = resolve(mfRoot, "locales", `${lng}.json`);
+					if (existsSync(localePath)) {
+						try {
+							const content = await Bun.file(localePath).json();
+							if (
+								content &&
+								typeof content === "object" &&
+								!Array.isArray(content)
+							) {
+								merged[mf] = deepMerge(
+									typeof merged[mf] === "object" &&
+										merged[mf] &&
+										!Array.isArray(merged[mf])
+										? merged[mf]
+										: {},
+									content as Record<string, any>,
+								);
+								deepMerge(merged, content as Record<string, any>);
+							}
+						} catch {
+							/* ignore */
+						}
+						break;
+					}
+				}
+			}
+			return new Response(JSON.stringify(merged), {
+				headers: { "Content-Type": "application/json; charset=utf-8" },
+			});
+		})
+		.get("/mf-menus", async () => {
+			const payload = await buildMenuManifest();
+			return new Response(payload, {
+				headers: {
+					"Content-Type": "application/json; charset=utf-8",
+					"Cache-Control": isProd ? "public, max-age=300" : "no-store",
+				},
+			});
+		})
+		.get("/locales/:lng/:file", async ({ params }) => {
+			const { lng, file } = params;
+			const coreLocalePath = resolve(localesDir, lng, file);
+			if (coreLocalePath.startsWith(localesDir) && existsSync(coreLocalePath)) {
+				return new Response(Bun.file(coreLocalePath), {
+					headers: { "Content-Type": "application/json; charset=utf-8" },
+				});
+			}
+
+			if (file.endsWith(".json")) {
+				const namespace = file.slice(0, -5);
+				if (namespace.startsWith("mf-")) {
+					for (const dir of mfDirs) {
+						const mfRoot = resolveMicrofrontendRootInDir(dir, namespace);
+						if (!mfRoot) continue;
+						const localePath = resolve(mfRoot, "locales", `${lng}.json`);
+						if (!localePath.startsWith(mfRoot)) continue;
+						if (!existsSync(localePath)) continue;
+						return new Response(Bun.file(localePath), {
+							headers: { "Content-Type": "application/json; charset=utf-8" },
+						});
+					}
+				}
+			}
+
+			return new Response("{}", {
+				headers: { "Content-Type": "application/json; charset=utf-8" },
+			});
+		})
+		.get("/locales/*", ({ request }) => {
+			const pathname = new URL(request.url).pathname.replace("/locales/", "");
+			const filePath = resolve(localesDir, pathname);
+			if (filePath.startsWith(localesDir) && existsSync(filePath)) {
+				return new Response(Bun.file(filePath));
+			}
+			return new Response("{}", {
+				headers: { "Content-Type": "application/json; charset=utf-8" },
+			});
+		})
+		.get("/libraries/store-workers/dist/*", ({ request, set }) => {
+			const pathname = new URL(request.url).pathname.replace(
+				"/libraries/store-workers/dist/",
+				"",
+			);
+			const filePath = resolve(storeWorkersDir, pathname);
+			if (!filePath.startsWith(storeWorkersDir) || !existsSync(filePath)) {
+				set.status = 404;
+				return "Not Found";
+			}
+			return new Response(Bun.file(filePath), {
+				headers: { "Content-Type": "application/javascript; charset=utf-8" },
+			});
+		});
+
+	return app;
 }

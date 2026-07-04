@@ -9,7 +9,17 @@ export type Lead = {
 	lang: string;
 	type: LeadType | string;
 	catalogId: string;
+	disabled?: boolean;
 	createdAt: Date;
+};
+
+export type LeadUpdate = {
+	id: string;
+	description?: string;
+	lang?: string;
+	type?: LeadType | string;
+	catalogId?: string;
+	disabled?: boolean;
 };
 
 export type LeadTag = {
@@ -172,6 +182,7 @@ export type PaginatedResult<T> = {
 export interface SalesService {
 	addLead(lead: Lead): Promise<string>;
 	getLead(leadId: string): Promise<Lead | null>;
+	updateLead(lead: LeadUpdate): Promise<boolean>;
 	updateLeadCatalogId(leadId: string, catalogId: string): Promise<boolean>;
 	assignLeadTag(leadId: string, tagName: string): Promise<void>;
 	removeLeadTag(leadId: string, tagName: string): Promise<boolean>;

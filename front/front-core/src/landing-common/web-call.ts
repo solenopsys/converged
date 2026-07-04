@@ -28,6 +28,13 @@ export interface WebCallState {
 	error: string | null;
 	/** Soft, non-fatal hint (e.g. microphone clipping). The call still runs. */
 	warning: string | null;
+	/**
+	 * Gate session id of the current/last call, discovered via the gate's
+	 * /user/<user> listing once the call connects. Consumers (e.g. the landing
+	 * demo-call page) use it to load the transcript and recordings after the
+	 * call ends. Null until discovered.
+	 */
+	sessionId: string | null;
 }
 
 type SignalingMessage = {
@@ -63,14 +70,20 @@ export const webCallHangupRequested = createEvent();
 
 const webCallStateChanged = createEvent<WebCallState>();
 const webCallWarningChanged = createEvent<string | null>();
+const webCallSessionDiscovered = createEvent<string>();
 
 export const $webCall = createStore<WebCallState>({
 	status: "idle",
 	error: null,
 	warning: null,
+	sessionId: null,
 })
 	.on(webCallStateChanged, (_, next) => next)
-	.on(webCallWarningChanged, (state, warning) => ({ ...state, warning }));
+	.on(webCallWarningChanged, (state, warning) => ({ ...state, warning }))
+	.on(webCallSessionDiscovered, (state, sessionId) => ({
+		...state,
+		sessionId,
+	}));
 
 const AUDIO_GATE_BASE = "/audio-gate";
 const LOG_PREFIX = "[web-call]";
@@ -87,6 +100,20 @@ function currentUser(): string {
 	return window.sessionStorage.getItem("tempUserId") ?? "";
 }
 
+/**
+ * Identity the gate binds the session to. Anonymous visitors get a generated
+ * per-tab id persisted under the same `tempUserId` key mf-auth uses, so the
+ * session stays discoverable via the gate's /user/<user> listing (an empty
+ * user would collapse every visitor into the shared "anonymous" bucket).
+ */
+function ensureWebCallUser(): string {
+	const existing = currentUser();
+	if (existing) return existing;
+	const generated = `web-${crypto.randomUUID()}`;
+	window.sessionStorage.setItem("tempUserId", generated);
+	return generated;
+}
+
 function wsCallUrl(contextName?: string): string {
 	const proto =
 		typeof window !== "undefined" && window.location.protocol === "https:"
@@ -95,7 +122,7 @@ function wsCallUrl(contextName?: string): string {
 	const host =
 		typeof window !== "undefined" ? window.location.host : "localhost";
 	const params = new URLSearchParams();
-	const user = currentUser();
+	const user = ensureWebCallUser();
 	const scope = currentScope();
 	if (contextName) params.set("context_name", contextName);
 	if (scope) params.set("scope", scope);
@@ -138,7 +165,43 @@ let statsTimer: ReturnType<typeof setInterval> | null = null;
 
 function setState(status: WebCallStatus, error: string | null = null): void {
 	log("state", { status, error });
-	webCallStateChanged({ status, error, warning: $webCall.getState().warning });
+	const { warning, sessionId } = $webCall.getState();
+	webCallStateChanged({ status, error, warning, sessionId });
+}
+
+let sessionDiscoveryStarted = false;
+
+/**
+ * Resolve the gate session id of the just-connected call: the gate does not
+ * echo it over signaling, but lists sessions per user. Newest entry wins. A
+ * few retries cover the gate registering the session slightly after media
+ * connects.
+ */
+async function discoverSession(user: string): Promise<void> {
+	if (sessionDiscoveryStarted) return;
+	sessionDiscoveryStarted = true;
+
+	for (let attempt = 0; attempt < 5; attempt++) {
+		try {
+			const resp = await fetch(
+				`${AUDIO_GATE_BASE}/user/${encodeURIComponent(user)}`,
+			);
+			if (resp.ok) {
+				const data = (await resp.json()) as { sessions?: string[] };
+				const sessions = data.sessions ?? [];
+				if (sessions.length > 0) {
+					const sessionId = sessions[sessions.length - 1];
+					log("session discovered", { sessionId });
+					webCallSessionDiscovered(sessionId);
+					return;
+				}
+			}
+		} catch (err) {
+			warn("session discovery failed", errorMessage(err));
+		}
+		await new Promise((resolve) => setTimeout(resolve, 1_000));
+	}
+	warn("session discovery gave up", { user });
 }
 
 function setWarning(warning: string | null): void {
@@ -359,9 +422,24 @@ export async function startWebCall(contextName?: string): Promise<void> {
 		resetTimer = null;
 	}
 
+	// Reset per-call session discovery so a new call re-resolves its own id
+	// rather than reusing the previous call's session.
+	sessionDiscoveryStarted = false;
+	webCallStateChanged({
+		status: "connecting",
+		error: null,
+		warning: null,
+		sessionId: null,
+	});
+
+	const callUser = ensureWebCallUser();
+	const markConnected = () => {
+		if ($webCall.getState().status !== "connected") setState("connected");
+		void discoverSession(callUser);
+	};
+
 	try {
 		log("start requested", { contextName });
-		setState("connecting");
 
 		log("requesting microphone");
 		setWarning(null);
@@ -431,7 +509,7 @@ export async function startWebCall(contextName?: string): Promise<void> {
 
 		conn.onconnectionstatechange = () => {
 			log("peer connection state", { state: conn.connectionState });
-			if (conn.connectionState === "connected") setState("connected");
+			if (conn.connectionState === "connected") markConnected();
 			if (conn.connectionState === "failed") failCall("Peer connection failed");
 		};
 
@@ -440,7 +518,7 @@ export async function startWebCall(contextName?: string): Promise<void> {
 			switch (conn.iceConnectionState) {
 				case "connected":
 				case "completed":
-					setState("connected");
+					markConnected();
 					break;
 				case "failed":
 					failCall("ICE connection failed");

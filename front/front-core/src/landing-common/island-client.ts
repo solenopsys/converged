@@ -161,6 +161,11 @@ let stopMenuWatch: (() => void) | null = null;
 const groupLoadPromises = new Map<string, Promise<void>>();
 const loadedModules = new Set<string>();
 const loadedGroupMenus: Record<string, any[]> = {};
+
+// Server-extracted menu manifest (GET /mf-menus): mf name → MENU config.
+// User-independent, so it survives auth changes and menu state resets.
+let menuManifest: Map<string, RuntimeMenuItem> | null = null;
+let menuManifestPromise: Promise<Map<string, RuntimeMenuItem>> | null = null;
 let preferredOpenGroupId: string | null = null;
 let centerRendererInitPromise: Promise<void> | null = null;
 let centerRenderWatchStop: (() => void) | null = null;
@@ -499,6 +504,8 @@ function enterConsole(): void {
 	if (isAuthenticated()) {
 		setCenterView({ view: StateStreamView });
 		void ensureSsrCenterRuntime();
+		// Warm the left menu right away instead of waiting for the menu tab.
+		void ensureMenuStoreReady();
 	} else {
 		setCenterView({ view: ConsoleAuthSplash });
 		void ensureSsrCenterRuntime();
@@ -543,7 +550,12 @@ async function ensureMenuStoreReady(): Promise<void> {
 		return;
 	}
 
-	const names = await discoverMicrofrontends();
+	// Two small parallel requests: allowed modules + server menu manifest.
+	// Groups covered by the manifest publish instantly without MF bundles.
+	const [names] = await Promise.all([
+		discoverMicrofrontends(),
+		fetchMenuManifest(),
+	]);
 	const groupIds = Array.from(new Set(names.map((name) => getMfGroup(name))));
 	await Promise.all(groupIds.map((groupId) => ensureGroupLoaded(groupId)));
 }
@@ -1249,6 +1261,9 @@ async function ensureRightRailRuntime(): Promise<void> {
 const bridge = createBridgeController({
 	onMenuAction: async (actionId) => {
 		await Promise.all([ensureCenterRenderer(), ensureRightRailRuntime()]);
+		// Menu items may come from the server manifest with their module not yet
+		// loaded — import it now so the action is registered before dispatch.
+		await ensureModuleForAction(actionId);
 		rightRailActionSelected(actionId);
 		runActionEvent({ actionId, params: {} });
 	},
@@ -2119,12 +2134,77 @@ function publishLoadedGroupsMenu(): void {
 	}
 }
 
+async function fetchMenuManifest(): Promise<Map<string, RuntimeMenuItem>> {
+	if (menuManifestPromise) return menuManifestPromise;
+	menuManifestPromise = (async () => {
+		const manifest = new Map<string, RuntimeMenuItem>();
+		try {
+			const response = await fetch("/mf-menus", {
+				credentials: "same-origin",
+			});
+			if (response.ok) {
+				const data = (await response.json()) as {
+					menus?: Array<{ mf?: unknown; menu?: unknown }>;
+				};
+				for (const entry of data?.menus ?? []) {
+					if (typeof entry?.mf !== "string" || entry.mf.length === 0) continue;
+					if (!entry.menu || typeof entry.menu !== "object") continue;
+					manifest.set(
+						normalizeMfName(entry.mf),
+						entry.menu as RuntimeMenuItem,
+					);
+				}
+			}
+		} catch {
+			// No manifest — every module falls back to the bundle-import path.
+		}
+		menuManifest = manifest;
+		return manifest;
+	})();
+	return menuManifestPromise;
+}
+
+function menuContainsAction(item: RuntimeMenuItem, actionId: string): boolean {
+	if (resolveActionId(item.action) === actionId) return true;
+	return (
+		Array.isArray(item.items) &&
+		item.items.some((child) => menuContainsAction(child, actionId))
+	);
+}
+
+// Manifest menus render without their module loaded; the module (actions,
+// views) is imported on the first click of one of its menu items.
+async function ensureModuleForAction(actionId: string): Promise<void> {
+	if (!menuManifest) return;
+	for (const [name, menu] of menuManifest) {
+		if (!menuContainsAction(menu, actionId)) continue;
+		if (loadedModules.has(name)) return;
+		initMicrofrontendEnv();
+		try {
+			const runtime = await import(/* @vite-ignore */ name);
+			if (!loadedModules.has(name) && runtime?.default?.plug) {
+				runtime.default.plug(bus);
+				loadedModules.add(name);
+			}
+		} catch (error) {
+			console.error(
+				`[ssr-menu] failed to lazy-load ${name} for action ${actionId}`,
+				error,
+			);
+		}
+		return;
+	}
+}
+
 async function ensureGroupLoaded(groupId: string): Promise<void> {
 	const existing = groupLoadPromises.get(groupId);
 	if (existing) return existing;
 
 	const promise = (async () => {
-		const names = await discoverMicrofrontends();
+		const [names, manifest] = await Promise.all([
+			discoverMicrofrontends(),
+			fetchMenuManifest(),
+		]);
 		if (names.length === 0) return;
 		initMicrofrontendEnv();
 
@@ -2133,6 +2213,14 @@ async function ensureGroupLoaded(groupId: string): Promise<void> {
 		if (!loadedGroupMenus[groupId]) loadedGroupMenus[groupId] = [];
 
 		for (const name of toLoad) {
+			// Fast path: the server manifest already has this module's menu, so
+			// the bundle stays unloaded until one of its actions is clicked.
+			const manifestMenu = manifest.get(name);
+			if (manifestMenu) {
+				addGroupMenuOnce(groupId, name, null, manifestMenu);
+				continue;
+			}
+
 			try {
 				const runtime = await import(/* @vite-ignore */ name);
 

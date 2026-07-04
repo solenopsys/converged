@@ -11,6 +11,7 @@ export interface LeadEntity {
 	lang: string;
 	type: string;
 	catalogId: string;
+	disabled: boolean;
 }
 
 export interface LeadTagEntity {

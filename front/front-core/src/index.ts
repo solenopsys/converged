@@ -16,6 +16,12 @@ export * from "./landing-common/island-client";
 export * from "./landing-common/island-loader";
 export * from "./landing-common/mic-capture";
 export * from "./landing-common/useHeroDock";
+// web-call must be exported from the root so external landing bundles fire the
+// SAME effector event/store the app's front-core.js singleton watches. Importing
+// it via the "front-core/landing-common" subpath inlines a duplicate instance,
+// so the click never reaches startWebCall (that was the "call does nothing" bug).
+export * from "./landing-common/web-call";
+export * from "./landing-common/WebCallWidget";
 export * from "./lib/dashboard-chart";
 export * from "./lib/utils";
 export * from "./plugin";

@@ -17,6 +17,9 @@ export default class extends SqlMigration {
 			.addColumn("lang", "text", (col) => col.defaultTo(""))
 			.addColumn("type", "text", (col) => col.defaultTo(""))
 			.addColumn("catalogId", "text", (col) => col.defaultTo(""))
+			.addColumn("disabled", "boolean", (col) =>
+				col.notNull().defaultTo(false),
+			)
 			.execute();
 	}
 

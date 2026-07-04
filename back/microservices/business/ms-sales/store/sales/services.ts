@@ -610,9 +610,11 @@ export class SalesStoreService {
 				"l.lang as leadLang",
 				"l.type as leadType",
 				"l.catalogId as leadCatalogId",
+				"l.disabled as leadDisabled",
 			])
 			.where("c.contactType", "=", "EMAIL")
 			.where("l.lang", "=", normalizedLang)
+			.where(sql<boolean>`coalesce(l.disabled, false) = false`)
 			.where("c.value", "like", "%@%")
 			.where("t.id", "is", null)
 			.orderBy("c.createdAt", "asc")
@@ -638,6 +640,7 @@ export class SalesStoreService {
 				lang: row.leadLang,
 				type: row.leadType,
 				catalogId: row.leadCatalogId,
+				disabled: Boolean(row.leadDisabled),
 			} satisfies LeadEntity,
 		};
 	}
@@ -650,6 +653,7 @@ export class SalesStoreService {
 			.selectFrom("leads")
 			.selectAll()
 			.where("lang", "=", normalizedLang)
+			.where(sql<boolean>`coalesce(disabled, false) = false`)
 			.orderBy(sql`RANDOM()`)
 			.limit(1)
 			.executeTakeFirst();

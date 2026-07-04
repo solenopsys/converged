@@ -1,6 +1,7 @@
 import AddContactDescription from "./addContactDescription";
 import AddContactRole from "./addContactRole";
 import AddContactValue from "./addContactValue";
+import AddLeadDisabled from "./addLeadDisabled";
 import AddTouchOutreachId from "./addTouchOutreachId";
 import AddLeadFields from "./addLeadFields";
 import AddTouchCompanyName from "./addTouchCompanyName";
@@ -20,6 +21,7 @@ export default [
 	AddContactValue,
 	AddContactRole,
 	AddLeadFields,
+	AddLeadDisabled,
 	AddContactDescription,
 	CreateLeadTags,
 	CreateOffers,

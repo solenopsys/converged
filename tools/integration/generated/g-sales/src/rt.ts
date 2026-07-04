@@ -12,7 +12,17 @@ export type Lead = {
 	lang: string;
 	type: LeadType | string;
 	catalogId: string;
+	disabled?: boolean;
 	createdAt: Date;
+};
+
+export type LeadUpdate = {
+	id: string;
+	description?: string;
+	lang?: string;
+	type?: LeadType | string;
+	catalogId?: string;
+	disabled?: boolean;
 };
 
 export type LeadTag = {
@@ -201,6 +211,21 @@ const metadata: ServiceMetadata = {
         }
       ],
       "returnType": "Lead | any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "updateLead",
+      "parameters": [
+        {
+          "name": "lead",
+          "type": "LeadUpdate",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "boolean",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -674,7 +699,12 @@ const metadata: ServiceMetadata = {
     {
       "name": "Lead",
       "kind": "type",
-      "definition": "{\n\tid: string;\n\tdescription: string;\n\tlang: string;\n\ttype: LeadType | string;\n\tcatalogId: string;\n\tcreatedAt: Date;\n}"
+      "definition": "{\n\tid: string;\n\tdescription: string;\n\tlang: string;\n\ttype: LeadType | string;\n\tcatalogId: string;\n\tdisabled?: boolean;\n\tcreatedAt: Date;\n}"
+    },
+    {
+      "name": "LeadUpdate",
+      "kind": "type",
+      "definition": "{\n\tid: string;\n\tdescription?: string;\n\tlang?: string;\n\ttype?: LeadType | string;\n\tcatalogId?: string;\n\tdisabled?: boolean;\n}"
     },
     {
       "name": "LeadTag",
@@ -784,6 +814,7 @@ const metadata: ServiceMetadata = {
 export interface SalesServiceRtClient {
   addLead(lead: Lead): string;
   getLead(leadId: string): Lead | any;
+  updateLead(lead: LeadUpdate): boolean;
   updateLeadCatalogId(leadId: string, catalogId: string): boolean;
   assignLeadTag(leadId: string, tagName: string): void;
   removeLeadTag(leadId: string, tagName: string): boolean;

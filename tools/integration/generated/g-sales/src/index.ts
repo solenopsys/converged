@@ -12,7 +12,17 @@ export type Lead = {
 	lang: string;
 	type: LeadType | string;
 	catalogId: string;
+	disabled?: boolean;
 	createdAt: Date;
+};
+
+export type LeadUpdate = {
+	id: string;
+	description?: string;
+	lang?: string;
+	type?: LeadType | string;
+	catalogId?: string;
+	disabled?: boolean;
 };
 
 export type LeadTag = {
@@ -201,6 +211,21 @@ export const metadata: ServiceMetadata = {
         }
       ],
       "returnType": "Lead | any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "updateLead",
+      "parameters": [
+        {
+          "name": "lead",
+          "type": "LeadUpdate",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "boolean",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -674,7 +699,12 @@ export const metadata: ServiceMetadata = {
     {
       "name": "Lead",
       "kind": "type",
-      "definition": "{\n\tid: string;\n\tdescription: string;\n\tlang: string;\n\ttype: LeadType | string;\n\tcatalogId: string;\n\tcreatedAt: Date;\n}"
+      "definition": "{\n\tid: string;\n\tdescription: string;\n\tlang: string;\n\ttype: LeadType | string;\n\tcatalogId: string;\n\tdisabled?: boolean;\n\tcreatedAt: Date;\n}"
+    },
+    {
+      "name": "LeadUpdate",
+      "kind": "type",
+      "definition": "{\n\tid: string;\n\tdescription?: string;\n\tlang?: string;\n\ttype?: LeadType | string;\n\tcatalogId?: string;\n\tdisabled?: boolean;\n}"
     },
     {
       "name": "LeadTag",
@@ -784,6 +814,7 @@ export const metadata: ServiceMetadata = {
 export interface SalesService {
   addLead(lead: Lead): Promise<string>;
   getLead(leadId: string): Promise<Lead | any>;
+  updateLead(lead: LeadUpdate): Promise<boolean>;
   updateLeadCatalogId(leadId: string, catalogId: string): Promise<boolean>;
   assignLeadTag(leadId: string, tagName: string): Promise<void>;
   removeLeadTag(leadId: string, tagName: string): Promise<boolean>;
@@ -820,6 +851,7 @@ export interface SalesService {
 export interface SalesServiceClient {
   addLead(lead: Lead): Promise<string>;
   getLead(leadId: string): Promise<Lead | any>;
+  updateLead(lead: LeadUpdate): Promise<boolean>;
   updateLeadCatalogId(leadId: string, catalogId: string): Promise<boolean>;
   assignLeadTag(leadId: string, tagName: string): Promise<void>;
   removeLeadTag(leadId: string, tagName: string): Promise<boolean>;

@@ -7,6 +7,7 @@ import type {
 	LeadEvent,
 	LeadListParams,
 	LeadTag,
+	LeadUpdate,
 	Offer,
 	Outreach,
 	OutreachCandidate,
@@ -74,6 +75,22 @@ function isPrimaryKeyConflict(error: unknown): boolean {
 	return err?.code === "SQLITE_CONSTRAINT_PRIMARYKEY" || err?.errno === 1555;
 }
 
+function readBoolean(value: unknown): boolean {
+	return value === true || value === 1 || value === "1";
+}
+
+function mapLead(entity: any): Lead {
+	return {
+		id: entity.id,
+		description: entity.description,
+		lang: entity.lang,
+		type: entity.type,
+		catalogId: entity.catalogId,
+		disabled: readBoolean(entity.disabled),
+		createdAt: new Date(entity.createdAt * 1000),
+	};
+}
+
 class SalesServiceImpl
 	extends BaseService<StoresController>
 	implements SalesService
@@ -101,6 +118,7 @@ class SalesServiceImpl
 				lang: lead.lang ?? "",
 				type: lead.type ?? "",
 				catalogId: lead.catalogId ?? "",
+				disabled: Boolean(lead.disabled),
 			};
 			await this.stores.salesStoreSevice.leadRepo.create(leadEntity);
 			return lead.id;
@@ -124,14 +142,30 @@ class SalesServiceImpl
 		});
 		if (!entity) return null;
 
-		return {
-			id: entity.id,
-			description: entity.description,
-			lang: entity.lang,
-			type: entity.type,
-			catalogId: entity.catalogId,
-			createdAt: new Date(entity.createdAt * 1000),
-		};
+		return mapLead(entity);
+	}
+
+	async updateLead(lead: LeadUpdate): Promise<boolean> {
+		await this.ready();
+		const normalizedLeadId = lead.id?.trim();
+		if (!normalizedLeadId) {
+			throw badRequestError("lead id is required");
+		}
+
+		const patch: Record<string, unknown> = {};
+		if (lead.description !== undefined) patch.description = lead.description;
+		if (lead.lang !== undefined) patch.lang = lead.lang;
+		if (lead.type !== undefined) patch.type = lead.type;
+		if (lead.catalogId !== undefined) patch.catalogId = lead.catalogId;
+		if (lead.disabled !== undefined) patch.disabled = Boolean(lead.disabled);
+
+		if (Object.keys(patch).length === 0) return false;
+
+		const updated = await this.stores.salesStoreSevice.leadRepo.update(
+			{ id: normalizedLeadId },
+			patch,
+		);
+		return Boolean(updated);
 	}
 
 	async updateLeadCatalogId(
@@ -496,14 +530,7 @@ class SalesServiceImpl
 						totalCount: await this.stores.salesStoreSevice.leadRepo.count(),
 					};
 
-		const items = result.items.map((entity) => ({
-			id: entity.id,
-			description: entity.description,
-			lang: entity.lang,
-			type: entity.type,
-			catalogId: entity.catalogId,
-			createdAt: new Date(entity.createdAt * 1000),
-		}));
+		const items = result.items.map(mapLead);
 
 		return {
 			items,
@@ -666,14 +693,7 @@ class SalesServiceImpl
 				description: candidate.contact.description,
 				createdAt: new Date(candidate.contact.createdAt * 1000),
 			},
-			lead: {
-				id: candidate.lead.id,
-				description: candidate.lead.description,
-				lang: candidate.lead.lang,
-				type: candidate.lead.type,
-				catalogId: candidate.lead.catalogId,
-				createdAt: new Date(candidate.lead.createdAt * 1000),
-			},
+			lead: mapLead(candidate.lead),
 		};
 	}
 
@@ -688,14 +708,7 @@ class SalesServiceImpl
 			await this.stores.salesStoreSevice.findRandomLeadByLang(normalizedLang);
 		if (!lead) return null;
 
-		return {
-			id: lead.id,
-			description: lead.description,
-			lang: lead.lang,
-			type: lead.type,
-			catalogId: lead.catalogId,
-			createdAt: new Date(lead.createdAt * 1000),
-		};
+		return mapLead(lead);
 	}
 
 	async leadHasTouches(leadId: string): Promise<boolean> {

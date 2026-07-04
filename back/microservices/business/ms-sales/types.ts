@@ -4,6 +4,7 @@ export type {
 	LeadEvent,
 	LeadListParams,
 	LeadTag,
+	LeadUpdate,
 	Offer,
 	Outreach,
 	OutreachCandidate,
