@@ -14,6 +14,7 @@ export interface MenuItemData {
 export interface NavMainShellProps {
   items: MenuItemData[];
   openSections?: Set<string> | string[];
+  currentPath?: string;
   onItemClick?: (item: MenuItemData) => void;
   onSectionToggle?: (key: string, open: boolean) => void;
   className?: string;
@@ -23,75 +24,121 @@ const getItemKey = (item: MenuItemData, index: number): string =>
   item.key || item.title || `item-${index}`;
 
 const ROW_H = "h-7";
-const INDENT = "pl-4";
 
 function TreeRow({
   icon,
   title,
+  href,
   hasChildren,
   isOpen,
+  isActive,
   depth,
   onToggle,
   onClick,
 }: {
   icon?: ReactNode;
   title: string;
+  href?: string;
   hasChildren: boolean;
   isOpen: boolean;
+  isActive: boolean;
   depth: number;
   onToggle?: () => void;
   onClick?: () => void;
 }) {
-  return (
-    <div
-      className={cn("flex w-full items-center gap-1 rounded-md text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground cursor-pointer", ROW_H)}
-      style={{ paddingLeft: depth * 16 }}
-      onClick={() => {
-        if (hasChildren) {
-          onToggle?.();
-        }
-        onClick?.();
-      }}
-    >
-      {/* chevron — фиксированная ширина, всегда занимает место */}
+  const content = (
+    <>
       <span className="inline-flex w-4 shrink-0 items-center justify-center">
         {hasChildren && (
           <ChevronRight
-            className={cn("size-3 text-sidebar-foreground/50 transition-transform", isOpen && "rotate-90")}
+            className={cn(
+              "size-3 text-sidebar-foreground/45 transition-transform",
+              isOpen && "rotate-90",
+            )}
           />
         )}
       </span>
-      {/* иконка — фиксированная ширина, всегда занимает место */}
       <span className="inline-flex w-4 shrink-0 items-center justify-center [&>svg]:size-4">
         {icon}
       </span>
       <span className="truncate">{title}</span>
-    </div>
+    </>
+  );
+
+  const className = cn(
+    "nav-tree-row",
+    "group flex w-full items-center gap-1 rounded-md text-sm text-sidebar-foreground/72 transition-colors hover:bg-sidebar-accent/45 hover:text-sidebar-accent-foreground",
+    ROW_H,
+    depth === 0 && "nav-tree-row-root font-medium text-sidebar-foreground/90",
+    depth > 0 && "nav-tree-row-leaf font-normal",
+    isActive && "nav-tree-row-active bg-sidebar-accent/70 text-sidebar-accent-foreground font-medium",
+  );
+
+  const handleClick = () => {
+    if (hasChildren) {
+      onToggle?.();
+    }
+    onClick?.();
+  };
+
+  if (href && !hasChildren) {
+    return (
+      <a
+        href={href}
+        className={className}
+        style={{ paddingLeft: depth * 16 }}
+        aria-current={isActive ? "page" : undefined}
+        onClick={() => onClick?.()}
+      >
+        {content}
+      </a>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className={cn(className, "cursor-pointer")}
+      style={{ paddingLeft: depth * 16 }}
+      onClick={handleClick}
+    >
+      {content}
+    </button>
   );
 }
 
 export function NavMainShell({
   items,
   openSections = [],
+  currentPath,
   onItemClick,
   onSectionToggle,
   className,
 }: NavMainShellProps) {
   const openSet = openSections instanceof Set ? openSections : new Set(openSections);
 
+  const isCurrent = (href?: string) => {
+    if (!href || !currentPath) return false;
+    const normalize = (value: string) => value.replace(/#.*$/, "").replace(/\/?$/, "/");
+    return normalize(href) === normalize(currentPath);
+  };
+
   function renderItems(nodes: MenuItemData[], depth: number) {
     return nodes.map((item, index) => {
       const key = getItemKey(item, index);
       const hasChildren = Boolean(item.items?.length);
       const isOpen = openSet.has(key);
+      const isActive = isCurrent(item.href);
 
       return (
         <li key={key}>
           <TreeRow
             icon={item.icon}
             title={item.title}
+            href={item.href}
             hasChildren={hasChildren}
             isOpen={isOpen}
+            isActive={isActive}
             depth={depth}
             onToggle={() => onSectionToggle?.(key, !isOpen)}
             onClick={() => onItemClick?.(item)}

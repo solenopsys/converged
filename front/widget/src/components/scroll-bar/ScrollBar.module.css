@@ -1,0 +1,62 @@
+.scrollBar {
+  position: relative;
+  width: 100%;
+  height: 32px;
+  display: flex;
+  align-items: center;
+}
+
+.track {
+  position: relative;
+  flex: 1;
+  height: 8px;
+  background-color: var(--cvg-gray-3);
+  border-radius: var(--cvg-radius-full);
+  pointer-events: none;
+}
+
+.handle {
+  position: absolute;
+  top: 50%;
+  background-color: var(--cvg-gray-8);
+  border-radius: var(--cvg-radius-full); 
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.rangeInput {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.scrollBarVertical {
+  width: 28px;
+  height: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.scrollBarVertical .track {
+  width: 8px;
+  height: 100%;
+  margin: 0;
+}
+
+.scrollBarVertical .handle {
+  width: 8px;
+  height: 36px;
+  left: 50%;
+}
+
+.scrollBarVertical .rangeInput {
+  writing-mode: bt-lr;
+  -webkit-appearance: slider-vertical;
+  appearance: slider-vertical;
+  transform: rotate(180deg);
+  cursor: ns-resize;
+}

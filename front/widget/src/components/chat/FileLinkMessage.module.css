@@ -1,0 +1,58 @@
+.fileLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cvg-space-sm);
+  padding: var(--cvg-space-sm-plus) var(--cvg-space-md);
+  border-radius: var(--cvg-radius-md);
+  border: 1px solid var(--cvg-surface-panel-border);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--cvg-gray-1);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  max-width: var(--cvg-bubble-max-width);
+  transition:
+    background var(--cvg-transition-fast),
+    border-color var(--cvg-transition-fast),
+    transform var(--cvg-transition-fast);
+}
+
+.fileLink:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--cvg-surface-panel-border-strong);
+}
+
+.fileLink:active {
+  transform: scale(var(--cvg-scale-active-shrink));
+}
+
+.fileLink:focus-visible {
+  outline: 2px solid var(--cvg-gray-3);
+  outline-offset: 2px;
+}
+
+.fileIcon {
+  flex-shrink: 0;
+  color: var(--cvg-gray-3);
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cvg-space-xxs);
+  min-width: 0;
+}
+
+.fileName {
+  font-size: var(--cvg-font-size-sm);
+  font-weight: var(--cvg-font-weight-semibold);
+  color: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileSize {
+  font-size: var(--cvg-font-size-xs);
+  color: var(--cvg-gray-5);
+}

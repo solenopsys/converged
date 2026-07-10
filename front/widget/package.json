@@ -1,0 +1,38 @@
+{
+  "name": "assistant-widget",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    "./plugin": "./src/plugin.ts"
+  },
+  "dependencies": {
+    "@elysiajs/static": "^1.4.0",
+    "capsize": "^2.0.0",
+    "effector": "^23.4.4",
+    "elysia": "^1.4.9",
+    "assistant-state": "workspace:*",
+    "files-state": "workspace:*",
+    "glob": "^13.0.0",
+    "lucide-preact": "^1.8.0",
+    "marked": "^18.0.0",
+    "nrpc": "workspace:*",
+    "preact": "^10.27.2",
+    "react-markdown": "^10.1.0",
+    "uuid": "^13.0.0"
+  },
+  "scripts": {
+    "gen-threads": "bun run ../builders/src/build-frontend-base.ts ../types/threads.ts ./src/gen/threads",
+    "gen-chats": "bun run ../builders/src/build-frontend-base.ts ../types/chats.ts ./src/gen/chats",
+    "gen-files": "bun run ../builders/src/build-frontend-base.ts ../types/files.ts ./src/gen/files",
+    "gen-store": "bun run ../builders/src/build-frontend-base.ts ../../public/types/store.ts ./src/gen/store",
+    "gen": "bun run gen-threads && bun run gen-chats && bun run gen-files && bun run gen-store",
+    "bld": "bun run build.ts  ",
+    "bld:design": "bun run build.ts --design ",
+    "bld:all": "bun run build.ts --all",
+    "dev": "bun run server.ts"
+  },
+  "devDependencies": {
+    "sass": "^1.93.2",
+    "lightningcss": "^1.30.2"
+  }
+}

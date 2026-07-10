@@ -509,10 +509,11 @@ class SalesServiceImpl
 	async listLeads(params: LeadListParams): Promise<PaginatedResult<Lead>> {
 		await this.ready();
 		const tags = params.tags?.map((tag) => tag.trim()).filter(Boolean) ?? [];
+		const contact = params.contact?.trim() ?? "";
 		const useCursor = typeof params.after === "string";
-		if (useCursor && tags.length) {
+		if (useCursor && (tags.length || contact)) {
 			throw new Error(
-				"listLeads: 'after' cursor is not supported together with 'tags'",
+				"listLeads: 'after' cursor is not supported together with filters (tags/contact)",
 			);
 		}
 		const result = useCursor
@@ -520,8 +521,11 @@ class SalesServiceImpl
 					params.after as string,
 					params.limit,
 				)
-			: tags.length
-				? await this.stores.salesStoreSevice.listLeadsByTags(tags, params)
+			: tags.length || contact
+				? await this.stores.salesStoreSevice.listLeadsFiltered(
+						{ tags, contact },
+						params,
+					)
 				: {
 						items: await this.stores.salesStoreSevice.leadRepo.findAll({
 							limit: params.limit,

@@ -170,8 +170,11 @@ export type PaginationParams = {
 
 export type LeadListParams = PaginationParams & {
 	tags?: string[];
+	// Case-insensitive substring match over the lead's contact values
+	// (email, domain, phone…). Combinable with tags.
+	contact?: string;
 	// Keyset cursor: when set, returns leads with id > after, ordered by id ASC
-	// (ignores offset). Not supported together with tags.
+	// (ignores offset). Not supported together with filters (tags/contact).
 	after?: string;
 };
 
@@ -799,7 +802,7 @@ const metadata: ServiceMetadata = {
     {
       "name": "LeadListParams",
       "kind": "type",
-      "definition": "PaginationParams & {\n\ttags?: string[];\n\t// Keyset cursor: when set, returns leads with id > after, ordered by id ASC\n\t// (ignores offset). Not supported together with tags.\n\tafter?: string;\n}"
+      "definition": "PaginationParams & {\n\ttags?: string[];\n\t// Case-insensitive substring match over the lead's contact values\n\t// (email, domain, phone…). Combinable with tags.\n\tcontact?: string;\n\t// Keyset cursor: when set, returns leads with id > after, ordered by id ASC\n\t// (ignores offset). Not supported together with filters (tags/contact).\n\tafter?: string;\n}"
     },
     {
       "name": "PaginatedResult",

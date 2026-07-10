@@ -16,6 +16,7 @@
     "front/microfrontends/**/*",
     "front/spa",
     "front/ssr",
+    "front/widget",
     "tools/*",
     "tools/integration/*",
     "tools/integration/generated/*",

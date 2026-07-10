@@ -1,5 +1,7 @@
 import type { SeoConfig } from "front-ssr/plugin";
 import createLandingPlugin from "front-ssr/plugin";
+import { aiChatWidgetPlugin } from "assistant-widget/plugin";
+import { Elysia } from "elysia";
 import { existsSync, readFileSync } from "fs";
 import { createAudioGateServiceClient } from "g-audio-gate";
 import { resolveCounters } from "front-core/landing-common/analytics-resolver";
@@ -485,7 +487,7 @@ export default function landingPlugin(
 		return buildLocalePath(DEFAULT_LOCALE, pathname);
 	}
 
-	return createLandingPlugin({
+	const ssrPlugin = createLandingPlugin({
 		...config,
 		landingRoot,
 		sitemapRoutes:
@@ -604,4 +606,8 @@ export default function landingPlugin(
 			}
 		},
 	});
+
+	return new Elysia({ name: "converged-landing" })
+		.use(aiChatWidgetPlugin({ production: config.production }))
+		.use(ssrPlugin);
 }

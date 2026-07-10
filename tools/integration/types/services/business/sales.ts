@@ -169,8 +169,11 @@ export type PaginationParams = {
 
 export type LeadListParams = PaginationParams & {
 	tags?: string[];
+	// Case-insensitive substring match over the lead's contact values
+	// (email, domain, phone…). Combinable with tags.
+	contact?: string;
 	// Keyset cursor: when set, returns leads with id > after, ordered by id ASC
-	// (ignores offset). Not supported together with tags.
+	// (ignores offset). Not supported together with filters (tags/contact).
 	after?: string;
 };
 

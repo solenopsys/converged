@@ -16,6 +16,18 @@ export type IpTelephonyGateway = {
   // calls on this number. The context carries the language. No contextId (or no
   // such context) => the gate refuses the call rather than answering blind.
   contextId?: string;
+  // Human transfer: inbound calls on this number are bridged to another human
+  // over the provider SIP trunk instead of the LLM. Takes precedence over
+  // contextId. The gate records both legs and transcribes each channel
+  // separately (OpenAI transcription sessions, Opus kept end to end).
+  transfer?: IpTelephonyTransfer;
+};
+
+export type IpTelephonyTransfer = {
+  // Leg B target, e.g. sip:+15551234567@sip.telnyx.com
+  sipUri: string;
+  // Optional transcription language hint (ISO 639-1); omitted => auto-detect.
+  language?: string;
 };
 
 export type PhoneNumber = {

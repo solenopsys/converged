@@ -1,0 +1,235 @@
+.markdown {
+  color: inherit;
+
+  /* Размерная шкала */
+  --cvg-markdown-size-0: var(--cvg-space-xxs);
+  --cvg-markdown-size-1: var(--cvg-space-xs);
+  --cvg-markdown-size-2: var(--cvg-space-xs-plus);
+  --cvg-markdown-size-3: var(--cvg-space-sm);
+  --cvg-markdown-size-4: var(--cvg-space-sm-plus);
+  --cvg-markdown-size-5: var(--cvg-space-md);
+
+  /* Потоковая типографика */
+  --cvg-markdown-flow-space: var(--cvg-markdown-block-spacing, var(--cvg-markdown-size-3));
+  --cvg-markdown-inline-gap: clamp(var(--cvg-markdown-size-0), calc(var(--cvg-markdown-flow-space) / 2), var(--cvg-markdown-size-2));
+  --cvg-markdown-heading-space: max(var(--cvg-markdown-flow-space), var(--cvg-markdown-size-4));
+  --cvg-markdown-list-gap: max(
+    var(--cvg-markdown-list-spacing, var(--cvg-markdown-size-3)),
+    calc(var(--cvg-markdown-flow-space) + var(--cvg-markdown-size-1))
+  );
+
+  /* Отступ для списков (контролирует отступ всего блока) */
+  --cvg-markdown-list-indent: clamp(var(--cvg-markdown-size-3), 1.2rem, var(--cvg-markdown-size-4));
+
+  /* Шрифты и линия */
+  --cvg-markdown-heading-weight: var(--cvg-font-weight-semibold);
+  --cvg-markdown-body-size: var(--cvg-markdown-body-font-size, var(--cvg-font-size-sm));
+  --cvg-markdown-body-line: var(--cvg-markdown-body-line-height, var(--cvg-line-height-base));
+
+  /* Код */
+  --cvg-markdown-code-radius: var(--cvg-radius-sm);
+  --cvg-markdown-code-pad-y: var(--cvg-markdown-size-0);
+  --cvg-markdown-code-pad-x: var(--cvg-markdown-size-2);
+
+  /* Цитаты */
+  --cvg-markdown-quote-border: 3px solid var(--cvg-color-border);
+  --cvg-markdown-quote-offset: var(--cvg-markdown-size-5);
+
+  /* Цвета */
+  --cvg-markdown-muted-color: var(--cvg-color-muted);
+}
+
+/* Сброс верх/низ для крайних элементов — устраняет «залипание» нуля */
+.markdown > *:first-child { margin-top: 0 !important; }
+.markdown > *:last-child  { margin-bottom: 0 !important; }
+
+/* Параграфы */
+.markdown p {
+  margin: 0 0 var(--cvg-markdown-flow-space) 0;
+  font-size: var(--cvg-markdown-body-size);
+  line-height: var(--cvg-markdown-body-line);
+}
+
+.markdown p:last-child {
+  margin-bottom: 0;
+}
+
+/* Заголовки */
+.markdown h1,
+.markdown h2,
+.markdown h3 {
+  font-weight: var(--cvg-markdown-heading-weight);
+  line-height: 1.3;
+}
+
+.markdown h1 {
+  margin-top: calc(var(--cvg-markdown-heading-space) * 1.4);
+  margin-bottom: var(--cvg-markdown-size-3);
+  font-size: var(--cvg-markdown-h1-font-size, var(--cvg-font-size-lg));
+}
+
+.markdown h2 {
+  margin-top: calc(var(--cvg-markdown-heading-space) * 1.2);
+  margin-bottom: var(--cvg-markdown-size-2);
+  font-size: var(--cvg-markdown-h2-font-size, 18px);
+}
+
+.markdown h3 {
+  margin-top: var(--cvg-markdown-heading-space);
+  margin-bottom: var(--cvg-markdown-size-2); 
+  font-size: var(--cvg-markdown-h3-font-size, 16px);
+}
+
+/* Акценты */
+.markdown b { font-weight: var(--cvg-font-weight-semibold); }
+.markdown i { font-style: italic; }
+
+/* Инлайн-код */
+.markdown code {
+  background: var(--cvg-color-code-bg);
+  padding: var(--cvg-markdown-code-pad-y) var(--cvg-markdown-code-pad-x);
+  border-radius: var(--cvg-markdown-code-radius);
+  font-family: var(--cvg-font-family-mono);
+  line-height: 1.2; 
+}
+
+/* Блоки кода */
+.markdown pre {
+  background: var(--cvg-color-pre-bg);
+  margin: var(--cvg-markdown-flow-space) 0; 
+  padding: var(--cvg-markdown-size-4);
+  border-radius: var(--cvg-markdown-code-radius);
+  overflow-x: auto;
+}
+
+.markdown pre code {
+  background: none;
+  padding: 0;
+}
+
+/* Ссылки */
+.markdown a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+/* ИСПРАВЛЕННЫЙ БЛОК СПИСКОВ 
+  Убран display: flex и используется position: relative
+*/
+
+.markdown ul,
+.markdown ol {
+  margin: var(--cvg-markdown-flow-space) 0 var(--cvg-markdown-flow-space) 0;
+  padding-left: var(--cvg-markdown-list-indent); /* Внешний отступ списка */
+  list-style: none;
+}
+
+.markdown ol {
+  counter-reset: markdown-ol-counter;
+}
+
+.markdown ul > li,
+.markdown ol > li {
+  margin: 0;
+  font-size: var(--cvg-markdown-body-size);
+  line-height: var(--cvg-markdown-body-line);
+  
+  /* ИЗМЕНЕНО: */
+  position: relative; /* Контейнер для маркера */
+  /* Внутренний отступ для текста, чтобы он не "наехал" на маркер */
+  padding-left: calc(var(--cvg-markdown-inline-gap) * 1.5); 
+  
+  /* Убран display: flex, gap и align-items */
+}
+
+.markdown ul > li::before,
+.markdown ol > li::before {
+  /* ИЗМЕНЕНО: Метод позиционирования маркера */
+  position: absolute;
+  left: 0;
+  top: 0; /* Выравнивание по верху, хорошо работает с line-height */
+  
+  display: inline-block;
+  min-width: 1.2em; /* Минимальная ширина для выравнивания цифр */
+  text-align: right;
+  color: var(--cvg-markdown-muted-color);
+
+  /* Убраны flex: none и margin-right */
+}
+
+/* Маркеры */
+.markdown ul > li::before {
+  content: '•';
+  font-size: 0.9em;
+  text-align: center;
+  /* Легкая ручная коррекция для "•" чтобы он был по центру строки */
+  top: 0.1em; 
+}
+
+.markdown ol > li {
+  counter-increment: markdown-ol-counter;
+}
+
+.markdown ol > li::before {
+  content: counter(markdown-ol-counter) '.';
+  font-variant-numeric: tabular-nums;
+}
+
+/* КОНЕЦ ИСПРАВЛЕННОГО БЛОКА 
+*/
+
+
+/* Тонкие правки внутренних отступов в пунктах */
+.markdown ul > li > *:first-child,
+.markdown ol > li > *:first-child { margin-top: 0; }
+
+.markdown ul > li > *:last-child,
+.markdown ol > li > *:last-child { margin-bottom: 0; }
+
+/* Вертикальные интервалы между пунктами */
+.markdown li + li {
+  margin-top: var(--cvg-markdown-list-gap);
+}
+
+/* Параграфы внутри пунктов — небольшой нижний отступ */
+.markdown li p {
+  margin-bottom: var(--cvg-markdown-inline-gap);
+}
+
+.markdown li p:last-child {
+  margin-bottom: 0;
+}
+
+/* Вложенные списки — чтобы не схлопывались отступы и был воздух */
+.markdown ul ul,
+.markdown ul ol,
+.markdown ol ul,
+.markdown ol ol {
+  margin-top: var(--cvg-markdown-inline-gap);
+  margin-bottom: var(--cvg-markdown-inline-gap);
+  /* Отступ для вложенных списков (он теперь считается от padding-left родителя) */
+  margin-left: 0; 
+  padding-left: calc(var(--cvg-markdown-list-indent) * 0.8);
+}
+
+/* Цитаты */
+.markdown blockquote {
+  margin: var(--cvg-markdown-flow-space) 0;
+  padding-left: var(--cvg-markdown-quote-offset);
+  border-left: var(--cvg-markdown-quote-border);
+  color: var(--cvg-markdown-muted-color);
+}
+
+/* Разделители */
+.markdown hr {
+  margin: calc(var(--cvg-markdown-flow-space) + var(--cvg-markdown-size-3)) 0;
+  border: 0;
+  border-top: 1px solid var(--cvg-color-border);
+  opacity: var(--cvg-opacity-muted);
+}
+
+/* Служебные скобочные вставки */
+.markdownBracketed {
+  font-style: italic;
+  opacity: var(--cvg-opacity-soft);
+}

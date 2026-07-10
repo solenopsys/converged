@@ -1,0 +1,188 @@
+:root {
+    /* Base scale */
+    --cvg-space-base: 4px;
+    --cvg-radius-base: calc(var(--cvg-space-base) * 1.5);
+
+    /* Colors */
+    --cvg-color-primary: #5a5a5a;
+    --cvg-color-primary-dark: #2f2f2f;
+    --cvg-color-accent: #7a7a7a;
+    --cvg-color-text: #f0f0f0;
+    --cvg-color-bg: #0a0a0a;
+    --cvg-color-surface: #141414;
+    --cvg-color-surface-muted: #1b1b1b;
+    --cvg-color-muted: #9a9a9a;
+    --cvg-color-border: #202020;
+    --cvg-color-code-bg: rgba(255, 255, 255, 0.08);
+    --cvg-color-pre-bg: rgba(255, 255, 255, 0.05);
+    --cvg-color-loading-dot: #8c8c8c;
+    --cvg-color-on-dark: #ffffff;
+    --cvg-gray-1: hsl(0 0% 95%);
+    --cvg-gray-2: hsl(0 0% 90%);
+    --cvg-gray-3: hsl(0 0% 83%);
+    --cvg-gray-4: hsl(0 0% 76%);
+    --cvg-gray-5: hsl(0 0% 65%);
+    --cvg-gray-6: hsl(0 0% 56%);
+    --cvg-gray-7: hsl(0 0% 46%);
+    --cvg-gray-8: hsl(0 0% 34%);
+    --cvg-gray-9: hsl(0 0% 23%);
+    --cvg-gray-10: hsl(0 0% 16%);
+    --cvg-gray-11: hsl(0 0% 12%);
+    --cvg-gray-12: hsl(0 0% 9%);
+
+
+    --cvg-gradient-primary: linear-gradient(135deg, #4c4c4c 0%, #1e1e1e 100%);
+    --cvg-gradient-user: linear-gradient(135deg, #6a6a6a 0%, #2a2a2a 100%);
+
+    --cvg-surface-panel: #1a1a1a;
+    --cvg-surface-panel-hover: #232323;
+    --cvg-surface-panel-border: rgba(255, 255, 255, 0.12);
+    --cvg-surface-panel-border-strong: rgba(255, 255, 255, 0.2);
+    --cvg-surface-panel-indicator: rgba(255, 255, 255, 0.18);
+    --cvg-surface-panel-indicator-shadow: rgba(0, 0, 0, 0.6);
+
+    /* Spacing */
+    --cvg-space-xxs: calc(var(--cvg-space-base) * 0.25);
+    --cvg-space-xs: calc(var(--cvg-space-base) * 0.5);
+    --cvg-space-xs-plus: calc(var(--cvg-space-base) * 0.75);
+    --cvg-space-sm: var(--cvg-space-base);
+    --cvg-space-sm-plus: calc(var(--cvg-space-base) * 1.5);
+    --cvg-space-md: calc(var(--cvg-space-base) * 2);
+    --cvg-space-lg: calc(var(--cvg-space-base) * 3);
+
+    /* Radii */
+    --cvg-radius-sm: var(--cvg-space-base);
+    --cvg-radius-md: var(--cvg-radius-base);
+    --cvg-radius-lg: calc(var(--cvg-space-base) * 3);
+    --cvg-radius-full: 9999px;
+
+    /* Shadows */
+    --cvg-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.35);
+    --cvg-shadow-md: 0 6px 18px rgba(0, 0, 0, 0.4);
+    --cvg-shadow-lg: 0 12px 44px rgba(0, 0, 0, 0.48);
+
+    /* Typography */
+    --cvg-font-size-xs: 11px;
+    --cvg-font-size-sm: 14px;
+    --cvg-font-size-md: 16px;
+    --cvg-font-size-lg: 24px;
+    --cvg-font-weight-semibold: 600;
+    --cvg-line-height-base: 1.5;
+    --cvg-font-family-mono: 'Courier New', monospace;
+
+    /* Layout */
+    --cvg-widget-offset: 20px;
+    --cvg-widget-z-index: 9999;
+    --cvg-widget-width: 380px;
+    --cvg-widget-height: 600px;
+    --cvg-bubble-max-width: 70%;
+    --cvg-transcript-empty-width: 300px;
+    --cvg-input-min-height: 44px;
+    --cvg-input-max-height: 120px;
+    --cvg-icon-button-size: calc(var(--cvg-space-base) * 4);
+    --cvg-send-button-size: 44px;
+    --cvg-loading-bubble-padding-y: 12px;
+    --cvg-loading-bubble-padding-x: 16px;
+    --cvg-loading-gap: 6px;
+    --cvg-loading-dot-size: 8px;
+
+    /* Borders */
+    --cvg-border-width-sm: 1px;
+
+    /* Motion */
+    --cvg-transition-fast: 0.2s;
+    --cvg-animation-bubble-duration: 0.3s;
+    --cvg-animation-dot-duration: 1.4s;
+    --cvg-animation-dot-delay-1: -0.32s;
+    --cvg-animation-dot-delay-2: -0.16s;
+    --cvg-animation-dot-delay-3: 0s;
+    --cvg-transform-translate-bubble: 10px;
+    --cvg-scale-icon-hover: 1.04;
+    --cvg-scale-hover-increase: 1.05;
+    --cvg-scale-active-shrink: 0.95;
+
+    /* Opacity */
+    --cvg-opacity-muted: 0.7;
+    --cvg-opacity-soft: 0.8;
+    --cvg-opacity-disabled: 0.6;
+}
+
+/* Shadow DOM duplication */
+:host {
+    --cvg-space-base: 8px;
+    --cvg-radius-base: calc(var(--cvg-space-base) * 1.5);
+
+    --cvg-color-primary: #5a5a5a;
+    --cvg-color-primary-dark: #2f2f2f;
+    --cvg-color-accent: #7a7a7a;
+    --cvg-color-text: #f0f0f0;
+    --cvg-color-bg: #0a0a0a;
+    --cvg-color-surface: #141414;
+    --cvg-color-surface-muted: #1b1b1b;
+    --cvg-color-muted: #9a9a9a;
+    --cvg-color-border: #202020;
+    --cvg-color-code-bg: rgba(255, 255, 255, 0.08);
+    --cvg-color-pre-bg: rgba(255, 255, 255, 0.05);
+    --cvg-color-loading-dot: #8c8c8c;
+    --cvg-color-on-dark: #ffffff;
+
+    --cvg-gradient-primary: linear-gradient(135deg, #4c4c4c 0%, #1e1e1e 100%);
+    --cvg-gradient-user: linear-gradient(135deg, #6a6a6a 0%, #2a2a2a 100%);
+
+    --cvg-space-xxs: calc(var(--cvg-space-base) * 0.25);
+    --cvg-space-xs: calc(var(--cvg-space-base) * 0.5);
+    --cvg-space-xs-plus: calc(var(--cvg-space-base) * 0.75);
+    --cvg-space-sm: var(--cvg-space-base);
+    --cvg-space-sm-plus: calc(var(--cvg-space-base) * 1.5);
+    --cvg-space-md: calc(var(--cvg-space-base) * 2);
+    --cvg-space-lg: calc(var(--cvg-space-base) * 3);
+
+    --cvg-radius-sm: var(--cvg-space-base);
+    --cvg-radius-md: var(--cvg-radius-base);
+    --cvg-radius-lg: calc(var(--cvg-space-base) * 3);
+    --cvg-radius-full: 9999px;
+
+    --cvg-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.35);
+    --cvg-shadow-md: 0 6px 18px rgba(0, 0, 0, 0.4);
+    --cvg-shadow-lg: 0 12px 44px rgba(0, 0, 0, 0.48);
+
+    --cvg-font-size-xs: 11px;
+    --cvg-font-size-sm: 14px;
+    --cvg-font-size-md: 16px;
+    --cvg-font-size-lg: 24px;
+    --cvg-font-weight-semibold: 600;
+    --cvg-line-height-base: 1.5;
+    --cvg-font-family-mono: 'Courier New', monospace;
+
+    --cvg-widget-offset: 20px;
+    --cvg-widget-z-index: 9999;
+    --cvg-widget-width: 380px;
+    --cvg-widget-height: 600px;
+    --cvg-bubble-max-width: 70%;
+    --cvg-transcript-empty-width: 300px;
+    --cvg-input-min-height: 44px;
+    --cvg-input-max-height: 120px;
+    --cvg-icon-button-size: calc(var(--cvg-space-base) * 4);
+    --cvg-send-button-size: 44px;
+    --cvg-loading-bubble-padding-y: 12px;
+    --cvg-loading-bubble-padding-x: 16px;
+    --cvg-loading-gap: 6px;
+    --cvg-loading-dot-size: 8px;
+
+    --cvg-border-width-sm: 1px;
+
+    --cvg-transition-fast: 0.2s;
+    --cvg-animation-bubble-duration: 0.3s;
+    --cvg-animation-dot-duration: 1.4s;
+    --cvg-animation-dot-delay-1: -0.32s;
+    --cvg-animation-dot-delay-2: -0.16s;
+    --cvg-animation-dot-delay-3: 0s;
+    --cvg-transform-translate-bubble: 10px;
+    --cvg-scale-icon-hover: 1.04;
+    --cvg-scale-hover-increase: 1.05;
+    --cvg-scale-active-shrink: 0.95;
+
+    --cvg-opacity-muted: 0.7;
+    --cvg-opacity-soft: 0.8;
+    --cvg-opacity-disabled: 0.6;
+}

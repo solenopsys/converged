@@ -16,6 +16,7 @@ export * from "./input";
 export * from "./input-pro";
 export * from "./label";
 export * from "./navigation-menu";
+export * from "./pell-editor";
 export * from "./progress";
 export * from "./scroll-area";
 export * from "./select";

@@ -1,0 +1,78 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 320px;
+}
+
+.button {
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: filter 0.2s ease;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  filter: grayscale(50%);
+}
+
+.callButton {
+  background-color: #28a745;
+  color: #fff;
+}
+
+.callButton:not(:disabled):hover {
+  filter: brightness(0.95);
+}
+
+.hangupButton {
+  background-color: #dc3545;
+  color: #fff;
+}
+
+.hangupButton:not(:disabled):hover {
+  filter: brightness(0.95);
+}
+
+.status {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background-color: #e9ecef;
+  font-weight: 600;
+  color: #343a40;
+}
+
+.statusConnecting {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.statusConnected {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.statusError {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.debug {
+  font-family: monospace;
+  font-size: 12px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  padding: 8px;
+  max-height: 160px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.audio {
+  display: none;
+}

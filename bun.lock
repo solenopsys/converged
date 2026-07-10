@@ -828,6 +828,7 @@
         "mf-agents": "workspace:*",
         "mf-assistants": "workspace:*",
         "next-themes": "^0.4.6",
+        "pell": "1.0.6",
         "pixi.js": "^8.15.0",
         "react-i18next": "17.0.2",
         "react-router-dom": "^7.13.0",
@@ -3688,6 +3689,8 @@
     "pathe": ["pathe@2.0.3", "", {}, "sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w=="],
 
     "pathval": ["pathval@2.0.1", "", {}, "sha512-//nshmD55c46FuFw26xV/xFAaB5HF9Xdap7HJBBnrKdAd6/GxDBaNA1870O79+9ueg61cZLSVc+OaFlfmObYVQ=="],
+
+    "pell": ["pell@1.0.6", "", {}, "sha512-wuackvgjFCHmVABy7ACSmY2u53w+TlYFrVL2hN6V3rGL/iWWwVXMw2uphpZSXNnqFQTI8nMpD3UNNX8+R4BAYw=="],
 
     "perfect-debounce": ["perfect-debounce@2.1.0", "", {}, "sha512-LjgdTytVFXeUgtHZr9WYViYSM/g8MkcTPYDlPa3cDqMirHjKiSZPYd6DoL7pK8AJQr+uWkQvCjHNdiMqsrJs+g=="],
 

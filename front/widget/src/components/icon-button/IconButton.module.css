@@ -1,0 +1,44 @@
+.iconButton {
+  width: var(--cvg-icon-button-size);
+  height: var(--cvg-icon-button-size);
+  border-radius: calc(var(--cvg-radius-sm) * 0.75); 
+  background: var(--cvg-gray-8);
+  color: var(--cvg-gray-2);
+  cursor: pointer; 
+  display: flex;
+  align-items: center;
+  border:none;
+  justify-content: center;
+}
+
+.iconButton:hover {
+  transform: scale(var(--cvg-scale-icon-hover));
+  background: var(--cvg-gray-9);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.iconButton:active {
+  transform: scale(var(--cvg-scale-active-shrink));
+  background: var(--cvg-gray-10);
+}
+
+.iconButton:focus-visible {
+  outline: 2px solid var(--cvg-color-accent);
+  outline-offset: 2px;
+}
+
+.iconButton:disabled,
+.iconButton[disabled] {
+  opacity: var(--cvg-opacity-disabled);
+  cursor: not-allowed;
+  transform: none;
+  background: var(--cvg-gray-8);
+  color: var(--cvg-gray-4);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+}
+
+.iconButton:disabled:hover,
+.iconButton[disabled]:hover {
+  transform: none;
+}

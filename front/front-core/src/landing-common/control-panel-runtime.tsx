@@ -24,7 +24,7 @@ import { useGlobalTranslation } from "../hooks/global_i18n";
 import { SlotProvider } from "../slots/SlotProvider";
 import { $slotContents } from "../slots/slots";
 import { MenuView } from "../views/MenuView";
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import {
 	$controlPanelMode,
 	$panelActions,
@@ -234,6 +234,39 @@ function ChatSlot() {
 	);
 }
 
+const SSR_STATIC_MENU_ID = "ssr-static-menu";
+
+function hasSsrStaticMenu(): boolean {
+	return (
+		typeof document !== "undefined" &&
+		Boolean(document.getElementById(SSR_STATIC_MENU_ID))
+	);
+}
+
+/**
+ * Guest menu tab: adopts the server-rendered static menu DOM node
+ * (details/summary tree, no hydration) instead of re-rendering it. The node
+ * lives outside React; on tab switch it is stashed back into the shell hidden,
+ * so its native open/closed state survives.
+ */
+function StaticMenuTab() {
+	const hostRef = useRef<HTMLDivElement | null>(null);
+	useEffect(() => {
+		const host = hostRef.current;
+		const node = document.getElementById(SSR_STATIC_MENU_ID);
+		if (!host || !node) return;
+		node.hidden = false;
+		host.appendChild(node);
+		return () => {
+			node.hidden = true;
+			(document.getElementById("ssr-shell") ?? document.body).appendChild(
+				node,
+			);
+		};
+	}, []);
+	return <div className="crp-static-menu" ref={hostRef} />;
+}
+
 function MenuTab() {
 	return (
 		<SidebarProvider
@@ -334,7 +367,12 @@ export function mountControlPanelRuntime(
 					[MENU_TAB_ID]: <MenuTab />,
 					...options.tabContents,
 				}
-			: options.tabContents;
+			: hasSsrStaticMenu()
+				? {
+						[MENU_TAB_ID]: <StaticMenuTab />,
+						...options.tabContents,
+					}
+				: options.tabContents;
 		flushSync(() => {
 			root?.render(
 				<div

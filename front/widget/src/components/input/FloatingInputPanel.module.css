@@ -1,0 +1,64 @@
+.fabButton {
+  width: calc(var(--cvg-space-base) * 7);
+  height: calc(var(--cvg-space-base) * 7);
+  border-radius: var(--cvg-radius-md);
+  background: var(--cvg-surface-panel);
+  color: var(--cvg-gray-2);
+  border: 1px solid var(--cvg-surface-panel-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 20px 36px color-mix(in srgb, var(--cvg-gray-12) 50%, transparent);
+  cursor: pointer;
+  transition: transform var(--cvg-transition-fast), box-shadow var(--cvg-transition-fast), background var(--cvg-transition-fast);
+  pointer-events: auto;
+}
+
+.fabButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 24px 40px color-mix(in srgb, var(--cvg-gray-12) 60%, transparent);
+  background: var(--cvg-surface-panel-hover);
+}
+
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  pointer-events: auto;
+  box-sizing: border-box;
+}
+
+.compact {
+  border-radius: calc(var(--cvg-radius-lg) - var(--cvg-space-sm));
+  padding: 8px 0;
+}
+
+.expanded {
+  padding: calc(var(--cvg-space-base) * 2) 0;
+  border-radius: calc(var(--cvg-radius-lg) - var(--cvg-space-xxs));
+}
+
+.inputRow {
+  display: flex;
+  align-items: stretch;
+  gap: var(--cvg-space-sm);
+}
+
+.scrollIndicator {
+  width: 100%;
+  height: 2px;
+  border-radius: 999px;
+  margin-bottom: var(--cvg-space-base);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--cvg-gray-3) 60%, transparent), transparent);
+}
+
+.filesSection {
+  margin-top: var(--cvg-space-base);
+  padding: var(--cvg-space-base) var(--cvg-space-base) 0;
+  border-top: 1px solid color-mix(in srgb, var(--cvg-gray-3) 60%, transparent);
+}
+
+.hiddenFileInput {
+  display: none;
+}

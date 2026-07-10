@@ -1,0 +1,22 @@
+.progressBar {
+  width: 100%;
+  display: inline-flex;
+}
+
+.track {
+  position: relative;
+  flex: 1;
+  height: 8px;
+  background-color: var(--cvg-gray-3);
+  border-radius: var(--cvg-radius-full);
+  overflow: hidden;
+}
+
+.fill {
+  position: absolute;
+  inset: 0;
+  width: 0%;
+  border-radius: inherit;
+  background-color: var(--cvg-color-primary);
+  transition: width var(--cvg-transition-fast) ease;
+}

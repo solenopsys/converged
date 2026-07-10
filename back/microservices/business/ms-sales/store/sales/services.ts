@@ -529,23 +529,19 @@ export class SalesStoreService {
 		return { items, totalCount };
 	}
 
-	async listLeadsByTags(
-		tagNames: string[],
+	async listLeadsFiltered(
+		filters: { tags?: string[]; contact?: string },
 		params: { offset?: number; limit?: number },
 	): Promise<{ items: LeadEntity[]; totalCount: number }> {
-		const tags = this.normalizeTagNames(tagNames);
+		const tags = this.normalizeTagNames(filters.tags ?? []);
+		const contact = filters.contact?.trim().toLowerCase() ?? "";
 		const limit = params.limit ?? 50;
 		const offset = params.offset ?? 0;
 
-		if (tags.length === 0) {
-			const [items, totalCount] = await Promise.all([
-				this.leadRepo.findAll({ limit, offset }),
-				this.leadRepo.count(),
-			]);
-			return { items, totalCount };
-		}
+		const conditions: Array<ReturnType<typeof sql<boolean>>> = [];
 
-		const tagFilter = sql<boolean>`
+		if (tags.length > 0) {
+			conditions.push(sql<boolean>`
       leads.id in (
         select leadId
         from lead_tags
@@ -553,22 +549,45 @@ export class SalesStoreService {
         group by leadId
         having count(distinct tagName) = ${tags.length}
       )
-    `;
+    `);
+		}
+
+		if (contact) {
+			conditions.push(sql<boolean>`
+      leads.id in (
+        select leadId
+        from contacts
+        where lower(value) like ${`%${contact}%`}
+      )
+    `);
+		}
+
+		if (conditions.length === 0) {
+			const [items, totalCount] = await Promise.all([
+				this.leadRepo.findAll({ limit, offset }),
+				this.leadRepo.count(),
+			]);
+			return { items, totalCount };
+		}
+
+		let itemsQuery = this.store.db
+			.selectFrom("leads")
+			.selectAll()
+			.orderBy("createdAt", "desc")
+			.limit(limit)
+			.offset(offset);
+		let countQuery = this.store.db
+			.selectFrom("leads")
+			.select(({ fn }) => [fn.count<number>("id").as("count")]);
+
+		for (const condition of conditions) {
+			itemsQuery = itemsQuery.where(condition);
+			countQuery = countQuery.where(condition);
+		}
 
 		const [items, countRows] = await Promise.all([
-			this.store.db
-				.selectFrom("leads")
-				.selectAll()
-				.where(tagFilter)
-				.orderBy("createdAt", "desc")
-				.limit(limit)
-				.offset(offset)
-				.execute() as Promise<LeadEntity[]>,
-			this.store.db
-				.selectFrom("leads")
-				.select(({ fn }) => [fn.count<number>("id").as("count")])
-				.where(tagFilter)
-				.execute(),
+			itemsQuery.execute() as Promise<LeadEntity[]>,
+			countQuery.execute(),
 		]);
 
 		return {

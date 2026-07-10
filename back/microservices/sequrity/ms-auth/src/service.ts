@@ -32,6 +32,11 @@ const TEMPORARY_USER_PERMISSIONS = [
   "assistant/listContexts(r)",
   "threads/saveMessage(w)",
   "threads/readThread(r)",
+  // Guest can review its own website call — pointwise reads keyed by the
+  // unguessable gate sessionId (NO listCalls, so no enumerating others' calls).
+  "calls/getTranscript(r)",
+  "calls/getCallAudio(r)",
+  "calls/hasCallAudio(r)",
   "chat/createSession(w)",
   "chat/sendMessage(w)",
   "store/save(w)",

@@ -1,0 +1,109 @@
+.fileView {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--cvg-space-base) * 1.25);
+    padding: var(--cvg-space-base) 0;
+}
+
+.topRow {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: calc(var(--cvg-space-base) * 1.5);
+}
+
+.metaBlock {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--cvg-space-base) * 0.75);
+    min-width: 0;
+    flex: 1;
+}
+.metaBlockInteractive {
+    cursor: pointer;
+}
+.metaBlockInteractive:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+    border-radius: 8px;
+}
+
+.title {
+    font-weight: 600;
+    font-size: 14px;
+    color: #1f2937;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: calc(var(--cvg-space-base) * 1.25);
+}
+
+.progressBar {
+    margin: 0;
+}
+
+.infoRow {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--cvg-space-base) * 1.5);
+    font-size: 12px;
+    color: #6b7280;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.infoText {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.infoError {
+    color: #dc2626;
+}
+
+.statusLabel {
+    font-weight: 500;
+}
+
+.statusUploading {
+    color: #2563eb;
+}
+
+.statusPaused {
+    color: #f59e0b;
+}
+
+.statusError {
+    color: #dc2626;
+}
+
+.statusUploaded {
+    color: #059669;
+}
+
+.downloadLink {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(var(--cvg-space-base) * 0.5);
+    font-size: 12px;
+    font-weight: 500;
+    color: #2563eb;
+    text-decoration: none;
+    width: fit-content;
+}
+
+.downloadLink:hover {
+    text-decoration: underline;
+}
+
+.downloadLink:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+    border-radius: 6px;
+}
