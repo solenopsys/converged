@@ -8,6 +8,7 @@ const env = @import("env.zig");
 const mscall = @import("mscall.zig");
 const vm = @import("vm.zig");
 const StateStore = @import("state.zig").StateStore;
+const LlmHub = @import("llm/hub.zig").Hub;
 
 pub const Engine = struct {
     gpa: std.mem.Allocator,
@@ -15,6 +16,8 @@ pub const Engine = struct {
     store: *StateStore,
     /// Service gateway base URL (nrpc: `<base>/<service>/<method>`).
     services_base: []const u8,
+    /// LLM provider hub (providers appear per available API key).
+    llm: LlmHub,
     run_mutex: std.Io.Mutex = .init,
 
     pub fn init(gpa: std.mem.Allocator, io: std.Io, store: *StateStore) !Engine {
@@ -23,6 +26,7 @@ pub const Engine = struct {
             .io = io,
             .store = store,
             .services_base = try env.require("SERVICES_BASE"),
+            .llm = try LlmHub.init(gpa, io),
         };
     }
 
@@ -33,7 +37,7 @@ pub const Engine = struct {
     };
 
     fn transport(self: *Engine) vm.Transport {
-        return .{ .ctx = self, .call = tCall, .get = tGet, .set = tSet, .log = tLog, .on_node = tOnNode };
+        return .{ .ctx = self, .call = tCall, .get = tGet, .set = tSet, .log = tLog, .on_node = tOnNode, .llm = tLlm };
     }
 
     /// Fetch `script_path` from the scripts microservice and run it as a
@@ -97,6 +101,12 @@ pub const Engine = struct {
     fn tLog(ctx: *anyopaque, msg: []const u8) void {
         _ = ctx;
         std.debug.print("[wf] {s}\n", .{msg});
+    }
+
+    fn tLlm(ctx: *anyopaque, a: std.mem.Allocator, request_json: []const u8) anyerror!vm.LlmReply {
+        const self: *Engine = @ptrCast(@alignCast(ctx));
+        const reply = try self.llm.complete(a, request_json);
+        return .{ .ok = reply.ok, .body = reply.body };
     }
 
     fn tOnNode(ctx: *anyopaque, a: std.mem.Allocator, exec_id: []const u8, node: []const u8, ok: bool, err_text: []const u8) void {

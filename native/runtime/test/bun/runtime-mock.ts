@@ -14,6 +14,7 @@ function libPath(): string {
 const lib = dlopen(libPath(), {
 	rt_set_call_handler: { args: [FFIType.ptr], returns: FFIType.void },
 	rt_set_cache_handlers: { args: [FFIType.ptr, FFIType.ptr], returns: FFIType.void },
+	rt_set_llm_handler: { args: [FFIType.ptr], returns: FFIType.void },
 	rt_run: { args: [FFIType.cstring, FFIType.cstring, FFIType.ptr], returns: FFIType.ptr },
 	rt_free: { args: [FFIType.ptr, FFIType.u64], returns: FFIType.void },
 	rt_reset: { args: [], returns: FFIType.void },
@@ -33,9 +34,16 @@ export type WorkflowOutcome =
 	| { ok: true; result: any; cache: Cache }
 	| { ok: false; error: string; cache: Cache };
 
+/** Answers one `rt.llm(request)` with a uniform completion, e.g.
+ *  { provider, model, text, toolCalls: [], finishReason: "stop",
+ *    usage: { input: 0, output: 0 } }. Throw to simulate a provider failure. */
+export type LlmHandler = (request: any) => unknown;
+
 export interface RunOptions {
 	/** Pre-seed the cache (e.g. input file blobs). Defaults to an empty cache. */
 	cache?: Cache;
+	/** Answers rt.llm calls; without it rt.llm fails (like a hub with no keys). */
+	llm?: LlmHandler;
 }
 
 /** Run a compiled workflow source with `params`, routing its calls to `handler`
@@ -47,6 +55,7 @@ export function runWorkflow(source: string, params: unknown, handler: CallHandle
 	let handlerError: unknown = null;
 	let callReply: Uint8Array | null = null; // hold replies alive across the FFI return
 	let getReply: Uint8Array | null = null;
+	let llmReply: Uint8Array | null = null;
 
 	const callCb = new JSCallback(
 		(servicePtr: number, methodPtr: number, bodyPtr: number): number => {
@@ -82,9 +91,27 @@ export function runWorkflow(source: string, params: unknown, handler: CallHandle
 		{ args: [FFIType.ptr, FFIType.ptr], returns: FFIType.void },
 	);
 
+	const llmCb = opts.llm
+		? new JSCallback(
+				(requestPtr: number): number => {
+					try {
+						const request = JSON.parse(new CString(requestPtr).toString());
+						const result = opts.llm!(request);
+						llmReply = Buffer.from(`${JSON.stringify(result ?? null)}\0`);
+						return Number(ptr(llmReply));
+					} catch (error) {
+						handlerError = error;
+						return 0; // null -> the engine sees a failed rt.llm
+					}
+				},
+				{ args: [FFIType.ptr], returns: FFIType.ptr },
+			)
+		: null;
+
 	try {
 		s.rt_set_call_handler(callCb.ptr);
 		s.rt_set_cache_handlers(getCb.ptr, setCb.ptr);
+		s.rt_set_llm_handler(llmCb ? llmCb.ptr : null);
 
 		const lenBuf = new BigUint64Array(1);
 		const outPtr = s.rt_run(
@@ -104,9 +131,11 @@ export function runWorkflow(source: string, params: unknown, handler: CallHandle
 	} finally {
 		s.rt_set_call_handler(null);
 		s.rt_set_cache_handlers(null, null);
+		s.rt_set_llm_handler(null);
 		callCb.close();
 		getCb.close();
 		setCb.close();
+		llmCb?.close();
 	}
 }
 

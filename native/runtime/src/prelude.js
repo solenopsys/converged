@@ -72,6 +72,18 @@
       host({ op: "log", message: String(message) });
     },
 
+    // ---- llm (uniform chat completion via the Zig provider hub) -------------
+    // rt.llm({ provider, model, maxTokens, messages, tools?, temperature? })
+    //   -> { provider, model, text, toolCalls: [{id,name,args}], finishReason,
+    //        usage: {input, output} }
+    // Everything is explicit — no default provider, model or token budget.
+    // Wrap calls in rt.node(...) so a completed round is never re-paid.
+    llm: function (params) {
+      var res = host({ op: "llm", json: JSON.stringify(params || {}) });
+      if (!res.ok) throw new Error(res.error || "rt.llm failed");
+      return res.value;
+    },
+
     // ---- the DAG node ------------------------------------------------------
     // Strict: returns the value, or throws on a recorded failure (fails the run).
     node: function (name, fn) {

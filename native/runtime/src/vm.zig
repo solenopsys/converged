@@ -20,9 +20,17 @@ pub const Reply = struct {
     body: []const u8,
 };
 
-/// Everything the VM needs from the outside world. The four primitives mirror
-/// the `rt` prelude surface; `on_node` is an optional per-node observability
-/// hook (production logs to the dag microservice; tests ignore it).
+/// Result of an `rt.llm` call: `body` is the uniform response JSON when ok,
+/// or a human-readable error line otherwise (surfaced to the script as-is).
+pub const LlmReply = struct {
+    ok: bool,
+    body: []const u8,
+};
+
+/// Everything the VM needs from the outside world. The primitives mirror the
+/// `rt` prelude surface; `on_node` is an optional per-node observability hook
+/// (production logs to the dag microservice; tests ignore it); `llm` is the
+/// provider hub (optional — a transport without it rejects `rt.llm` loudly).
 pub const Transport = struct {
     ctx: *anyopaque,
     call: *const fn (ctx: *anyopaque, a: std.mem.Allocator, service: []const u8, method: []const u8, body: []const u8) anyerror!Reply,
@@ -30,6 +38,7 @@ pub const Transport = struct {
     set: *const fn (ctx: *anyopaque, a: std.mem.Allocator, key: []const u8, value: []const u8) anyerror!void,
     log: *const fn (ctx: *anyopaque, msg: []const u8) void,
     on_node: ?*const fn (ctx: *anyopaque, a: std.mem.Allocator, exec_id: []const u8, node: []const u8, ok: bool, err: []const u8) void = null,
+    llm: ?*const fn (ctx: *anyopaque, a: std.mem.Allocator, request_json: []const u8) anyerror!LlmReply = null,
 };
 
 pub const RunResult = struct {
@@ -157,6 +166,14 @@ fn dispatch(ctx: *ExecContext, request: []const u8) ![]u8 {
         const msg = getStr(obj, "message") orelse "";
         t.log(t.ctx, msg);
         return cdupe("{\"ok\":true}");
+    } else if (std.mem.eql(u8, op, "llm")) {
+        const json = getStr(obj, "json") orelse return cdupe("{\"ok\":false,\"error\":\"llm: missing json\"}");
+        const lfn = t.llm orelse return cdupe("{\"ok\":false,\"error\":\"rt.llm: no llm transport wired\"}");
+        const reply = lfn(t.ctx, a, json) catch |e|
+            return cReply(try errReplyFmt(a, "llm transport: {s}", .{@errorName(e)}));
+        if (reply.ok)
+            return cReply(try std.fmt.allocPrint(a, "{{\"ok\":true,\"value\":{s}}}", .{reply.body}));
+        return cReply(try errReplyFmt(a, "{s}", .{reply.body}));
     }
 
     return cReply(try errReplyFmt(a, "unknown op '{s}'", .{op}));

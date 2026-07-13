@@ -40,6 +40,55 @@ The whole branching/DAG/finite-state-machine layer is the JS the workflow author
 - `rt.get(key)` / `rt.set(key, value)` → Valkey (values are opaque to Zig)
 - `rt.log(message)`
 - `rt.node(name, fn)` → a named, memoised step (skipped on resume if already done)
+- `rt.llm({...})` → one chat completion via the Zig provider hub (see below)
+
+## LLM provider hub (`rt.llm`)
+
+`src/llm/` holds the provider layer: a uniform chat-completion contract
+(`provider.zig`), three wire implementations — `openai.zig` (chat/completions),
+`claude.zig` (messages), `gemini.zig` (generateContent) — and `hub.zig`, which
+owns one long-lived HTTP client so TLS/keep-alive connections to the vendors
+stay warm across calls. The uniform shapes mirror the TS ChatLLMProvider layer
+(`rt-assistant/impls/providers/base.ts`), so workflows, tests and the old TS
+runtimes all speak one dialect.
+
+Everything is explicit — the VM never invents a provider, model or token
+budget; the flow script decides, Zig transports:
+
+```js
+var res = rt.node("llm-round-0", function () {
+  return rt.llm({
+    provider: "openai" | "claude" | "gemini",   // required
+    model: "gpt-5-mini",                        // required
+    maxTokens: 2048,                            // required
+    messages: [                                  // required
+      { role: "system", content: "..." },
+      { role: "user", content: "..." },
+      // { role: "assistant", content, toolCalls: [{id,name,args}] }
+      // { role: "tool", toolCallId, name, content }
+    ],
+    tools: [{ name, description, parameters }],  // optional
+    temperature: 0.7,                            // optional
+  });
+});
+// -> { provider, model, text, toolCalls: [{id,name,args}], finishReason,
+//      usage: {input, output} }
+```
+
+Wrap every call in `rt.node(...)` — a completed LLM round is memoised in
+Valkey and never re-paid on resume. `examples/workflows/wf-chat-turn.js` is
+the reference agent loop (LLM → tools via `rt.call` → LLM), and
+`test/bun/llm.test.ts` drives it against a mocked hub.
+
+Providers register only when their key is present; calling an unregistered one
+fails loudly with the env var to set:
+
+| var | meaning |
+|---|---|
+| `OPENAI_API_KEY` | enables provider `openai` |
+| `ANTHROPIC_API_KEY` (or `CLAUDE_API_KEY`) | enables provider `claude` |
+| `GEMINI_API_KEY` | enables provider `gemini` |
+| `RT_OPENAI_BASE_URL` / `RT_ANTHROPIC_BASE_URL` / `RT_GEMINI_BASE_URL` | optional endpoint overrides (proxies) |
 
 ## Configuration (env only — missing required values fail loudly, no defaults)
 
@@ -51,6 +100,7 @@ The whole branching/DAG/finite-state-machine layer is the JS the workflow author
 | `VALKEY_HOST` / `VALKEY_PORT` | required when backend = `valkey` |
 | `RT_SCHEDULER` | `on` to run the periodic launcher loop |
 | `RT_SERVICE_TOKEN` / `RT_SCOPE` | optional nrpc auth / tenant headers |
+| `*_API_KEY` | LLM providers (see the hub section above) |
 
 ## HTTP surface
 

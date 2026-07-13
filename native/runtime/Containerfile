@@ -1,6 +1,10 @@
 FROM alpine:3.23.4 AS runtime
 WORKDIR /app
 
+# TLS roots for the LLM provider hub (api.openai.com / api.anthropic.com /
+# generativelanguage.googleapis.com).
+RUN apk add --no-cache ca-certificates
+
 RUN mkdir -p /app/lib
 COPY ./zig-out/bin/runtime-x86_64-musl /app/runtime
 COPY ./zig-out/lib/libqjs-x86_64-musl.so /app/lib/libqjs.so

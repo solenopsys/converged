@@ -27,9 +27,14 @@ pub const CallHandler = *const fn (
 pub const StateGetFn = *const fn (key: [*:0]const u8) callconv(.c) ?[*:0]const u8;
 pub const StateSetFn = *const fn (key: [*:0]const u8, value: [*:0]const u8) callconv(.c) void;
 
+/// JS handler for `rt.llm`: receives the NUL-terminated uniform request JSON
+/// and returns the NUL-terminated uniform response JSON (or null on failure).
+pub const LlmHandler = *const fn (request: [*:0]const u8) callconv(.c) ?[*:0]const u8;
+
 var g_handler: ?CallHandler = null;
 var g_get: ?StateGetFn = null;
 var g_set: ?StateSetFn = null;
+var g_llm: ?LlmHandler = null;
 var g_state: std.StringHashMapUnmanaged([]u8) = .{};
 var g_seq: u64 = 0;
 
@@ -46,6 +51,10 @@ export fn rt_set_cache_handlers(get: ?StateGetFn, set: ?StateSetFn) void {
     g_set = set;
 }
 
+export fn rt_set_llm_handler(handler: ?LlmHandler) void {
+    g_llm = handler;
+}
+
 /// Clear the state store between tests.
 export fn rt_reset() void {
     var it = g_state.iterator();
@@ -59,7 +68,7 @@ export fn rt_reset() void {
 /// Run a compiled workflow `source` with `params` (JSON). Returns a malloc'd
 /// JSON envelope `{ ok, result | error }`; release it with `rt_free`.
 export fn rt_run(source: [*:0]const u8, params: [*:0]const u8, out_len: *usize) ?[*]u8 {
-    const transport = vm.Transport{ .ctx = undefined, .call = mockCall, .get = mockGet, .set = mockSet, .log = mockLog };
+    const transport = vm.Transport{ .ctx = undefined, .call = mockCall, .get = mockGet, .set = mockSet, .log = mockLog, .llm = mockLlm };
 
     g_seq += 1;
     const exec_id = std.fmt.allocPrint(c_allocator, "test-{d}", .{g_seq}) catch return null;
@@ -132,4 +141,14 @@ fn mockSet(ctx: *anyopaque, a: std.mem.Allocator, key: []const u8, value: []cons
 fn mockLog(ctx: *anyopaque, msg: []const u8) void {
     _ = ctx;
     std.debug.print("[wf] {s}\n", .{msg});
+}
+
+fn mockLlm(ctx: *anyopaque, a: std.mem.Allocator, request_json: []const u8) anyerror!vm.LlmReply {
+    _ = ctx;
+    const handler = g_llm orelse
+        return .{ .ok = false, .body = try a.dupe(u8, "rt.llm: no mock llm handler registered") };
+    const req = try a.dupeZ(u8, request_json);
+    const ret = handler(req.ptr) orelse
+        return .{ .ok = false, .body = try a.dupe(u8, "mock llm handler threw") };
+    return .{ .ok = true, .body = try a.dupe(u8, std.mem.span(ret)) };
 }
