@@ -1,0 +1,5 @@
+add_library(rapidjson INTERFACE)
+target_include_directories(rapidjson INTERFACE "${CMAKE_CURRENT_LIST_DIR}/../vendor/rapidjson/include")
+add_library(rapidjson::rapidjson ALIAS rapidjson)
+set(rapidjson_FOUND TRUE)
+set(rapidjson_VERSION 1.1.0)

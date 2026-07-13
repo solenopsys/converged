@@ -37,7 +37,7 @@ const RECORDING_PREFIX = "recordings";
 const FRAGMENT_PREFIX = "fragments";
 
 /**
- * Key prefix llm-audio-gate uses when it writes raw Opus frames straight into
+ * Key prefix centimanus uses when it writes raw Opus frames straight into
  * this microservice's `fragments` KV store: `llm-audio:<callId>:<source>:<ts>`,
  * where <callId> is the gate session id (== calls.id) and <ts> is a 20-digit
  * zero-padded nanosecond timestamp. We read these back to build playable audio.

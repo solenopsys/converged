@@ -1,7 +1,7 @@
 /**
  * Landing "call from website" controller.
  *
- * Imperative WebRTC ↔ llm-audio-gate signaling for the public landing top-bar,
+ * Imperative WebRTC ↔ centimanus signaling for the public landing top-bar,
  * using the same `/audio-gate/ws` contract as mf-calls' `useWebRTCCall`. Lives
  * in front-core (not mf-calls) so the landing — which depends on front-core but
  * not on mf-calls — can start a voice call straight from the header without a

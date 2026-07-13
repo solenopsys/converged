@@ -2,7 +2,7 @@
  * Pure-TS EBML/WebM muxer for Opus audio.
  *
  * Packs a list of raw Opus frames (each one a 20 ms packet, as captured from
- * the WebRTC RTP stream by llm-audio-gate) into a valid WebM/Opus file that
+ * the WebRTC RTP stream by centimanus) into a valid WebM/Opus file that
  * browsers play natively and Web Audio `decodeAudioData` can decode.
  *
  * Timecodes are laid out SEQUENTIALLY at 20 ms per frame — exactly like the

@@ -1,0 +1,37 @@
+cmake_minimum_required(VERSION 3.20)
+project(curaengine_wrapper LANGUAGES C CXX)
+
+if(POLICY CMP0167)
+    cmake_policy(SET CMP0167 NEW)
+endif()
+
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(ENABLE_ARCUS OFF CACHE BOOL "" FORCE)
+set(ENABLE_OPENMP OFF CACHE BOOL "" FORCE)
+set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+set(EXTENSIVE_WARNINGS OFF CACHE BOOL "" FORCE)
+add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-Wno-error=date-time>)
+file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/generated/polyclipping")
+configure_file(vendor/clipper/cpp/clipper.hpp
+               "${CMAKE_BINARY_DIR}/generated/polyclipping/clipper.hpp" COPYONLY)
+
+find_package(Boost 1.78.0 REQUIRED)
+if(NOT TARGET boost::boost)
+    add_library(boost::boost ALIAS Boost::headers)
+endif()
+
+add_subdirectory(vendor/curaengine)
+target_compile_options(_CuraEngine PRIVATE -ffunction-sections -fdata-sections)
+target_link_options(CuraEngine PRIVATE -Wl,--gc-sections -Wl,--strip-all)
+
+add_library(curaengine_wrapper SHARED src/curaengine_wrapper.c)
+target_compile_definitions(curaengine_wrapper PRIVATE CURAENGINE_WRAPPER_BUILD)
+target_include_directories(curaengine_wrapper PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_compile_options(curaengine_wrapper PRIVATE -fvisibility=hidden -ffunction-sections -fdata-sections)
+target_link_options(curaengine_wrapper PRIVATE -Wl,--gc-sections -Wl,--strip-all)
+set_target_properties(curaengine_wrapper PROPERTIES OUTPUT_NAME curaengine)

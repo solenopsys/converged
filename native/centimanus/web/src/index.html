@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>centimanus test</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f0f0f; color: #e0e0e0; min-height: 100vh; display: flex; flex-direction: column; }
+
+    header { padding: 16px 24px; background: #1a1a1a; border-bottom: 1px solid #2a2a2a; display: flex; align-items: center; gap: 12px; }
+    header h1 { font-size: 18px; font-weight: 600; color: #fff; }
+    #status-dot { width: 10px; height: 10px; border-radius: 50%; background: #555; flex-shrink: 0; }
+    #status-dot.connected { background: #22c55e; }
+    #status-dot.connecting { background: #f59e0b; animation: pulse 1s infinite; }
+    #status-dot.error { background: #ef4444; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+
+    main { flex: 1; display: grid; grid-template-columns: 1fr 340px; gap: 0; }
+
+    section { padding: 20px 24px; }
+    section + section { border-left: 1px solid #2a2a2a; }
+
+    h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #888; margin-bottom: 16px; }
+
+    .call-panel { display: flex; flex-direction: column; gap: 16px; }
+    .row { display: flex; gap: 10px; align-items: center; }
+    label { font-size: 13px; color: #aaa; width: 80px; flex-shrink: 0; }
+    input[type=text] { flex: 1; background: #1e1e1e; border: 1px solid #333; color: #e0e0e0; padding: 8px 10px; border-radius: 6px; font-size: 13px; }
+    input[type=text]:focus { outline: none; border-color: #555; }
+
+    .btn { padding: 9px 18px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: opacity .15s; }
+    .btn:disabled { opacity: .4; cursor: default; }
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-primary:hover:not(:disabled) { opacity: .85; }
+    .btn-danger { background: #dc2626; color: #fff; }
+    .btn-danger:hover:not(:disabled) { opacity: .85; }
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
+    .btn-ghost { background: #2a2a2a; color: #ccc; }
+    .btn-ghost:hover:not(:disabled) { background: #333; }
+
+    #call-controls { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .vol-meter { height: 6px; background: #1e1e1e; border-radius: 3px; overflow: hidden; flex: 1; }
+    .vol-bar { height: 100%; background: #22c55e; width: 0%; transition: width .1s; }
+
+    /* Transcript */
+    #transcript { flex: 1; display: flex; flex-direction: column; }
+    #messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; max-height: 400px; padding-right: 4px; }
+    .msg { padding: 10px 14px; border-radius: 8px; font-size: 13px; line-height: 1.5; max-width: 85%; }
+    .msg.user { background: #1e3a5f; align-self: flex-end; color: #93c5fd; }
+    .msg.assistant { background: #1e2a1e; align-self: flex-start; color: #86efac; }
+    .msg .speaker { font-size: 11px; opacity: .6; margin-bottom: 4px; }
+
+    /* Sessions */
+    .side-panel { display: flex; flex-direction: column; gap: 20px; }
+    #sessions-list { display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto; }
+    .session-item { display: flex; gap: 8px; align-items: center; padding: 6px 8px; background: #1a1a1a; border-radius: 6px; font-size: 12px; color: #aaa; }
+    .session-id { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: monospace; }
+    .session-btns { display: flex; gap: 4px; flex-shrink: 0; }
+
+    /* Context */
+    #context-form { display: flex; flex-direction: column; gap: 8px; }
+    textarea { width: 100%; background: #1e1e1e; border: 1px solid #333; color: #e0e0e0; padding: 8px 10px; border-radius: 6px; font-size: 13px; resize: vertical; min-height: 70px; }
+    textarea:focus { outline: none; border-color: #555; }
+
+    /* Recordings */
+    #recordings { display: flex; flex-direction: column; gap: 8px; }
+    .recording-item { display: flex; gap: 8px; align-items: center; font-size: 12px; color: #aaa; }
+    .recording-item audio { flex: 1; height: 28px; }
+
+    .tag { font-size: 11px; padding: 2px 6px; border-radius: 4px; }
+    .tag-user { background: #1e3a5f; color: #93c5fd; }
+    .tag-ai { background: #1e2a1e; color: #86efac; }
+
+    #log { font-size: 11px; color: #555; font-family: monospace; height: 60px; overflow-y: auto; padding: 4px 0; }
+    .log-line { padding: 1px 0; }
+    .log-error { color: #f87171; }
+    .log-info { color: #60a5fa; }
+  </style>
+</head>
+<body>
+<header>
+  <div id="status-dot"></div>
+  <h1>centimanus</h1>
+  <span id="status-text" style="font-size:13px;color:#666">не подключено</span>
+</header>
+
+<main>
+  <!-- Left: call + transcript -->
+  <section>
+    <div class="call-panel">
+      <h2>Звонок</h2>
+      <div class="row">
+        <label>Телефон</label>
+        <input id="phone" type="text" placeholder="+79001234567" value="+79001234567" />
+      </div>
+      <div class="row">
+        <label>Модель</label>
+        <input id="model" type="text" placeholder="gpt-realtime-2" value="" />
+      </div>
+      <div class="row">
+        <label>Голос</label>
+        <input id="voice" type="text" placeholder="marin" value="" />
+      </div>
+      <div class="row">
+        <label>Микрофон</label>
+        <div class="vol-meter"><div class="vol-bar" id="vol-bar"></div></div>
+      </div>
+      <div id="call-controls">
+        <button class="btn btn-primary" id="btn-call" onclick="startCall()">▶ Начать</button>
+        <button class="btn btn-danger" id="btn-hangup" onclick="hangup()" disabled>■ Завершить</button>
+      </div>
+
+      <h2 style="margin-top:8px">Транскрипт</h2>
+      <div id="transcript">
+        <div id="messages"></div>
+      </div>
+
+      <div id="log"></div>
+    </div>
+  </section>
+
+  <!-- Right: sessions + context + recordings -->
+  <section>
+    <div class="side-panel">
+
+      <div>
+        <h2>Сессии <button class="btn btn-ghost btn-sm" onclick="loadSessions()" style="margin-left:8px">обновить</button></h2>
+        <div id="sessions-list"><span style="color:#555;font-size:12px">нет данных</span></div>
+      </div>
+
+      <div>
+        <h2>Контекст</h2>
+        <div id="context-form">
+          <textarea id="ctx-text" placeholder="Инструкции для AI по этому номеру..."></textarea>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost btn-sm" onclick="loadCtx()">загрузить</button>
+            <button class="btn btn-primary btn-sm" onclick="saveCtx()">сохранить</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteCtx()">удалить</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h2>Записи</h2>
+        <div id="recordings"><span style="color:#555;font-size:12px">выберите сессию</span></div>
+      </div>
+
+      <div>
+        <h2>Транскрипт сессии</h2>
+        <div id="session-transcript" style="font-size:12px;color:#aaa;max-height:200px;overflow-y:auto"></div>
+      </div>
+
+    </div>
+  </section>
+</main>
+
+<script>
+// State
+let pc = null, ws = null, stream = null, analyser = null, animId = null;
+let currentSessionId = null;
+
+// Logging
+function log(msg, cls = '') {
+  const el = document.getElementById('log');
+  const line = document.createElement('div');
+  line.className = 'log-line ' + cls;
+  line.textContent = new Date().toTimeString().slice(0,8) + ' ' + msg;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+function info(m) { log(m, 'log-info'); }
+function err(m) { log(m, 'log-error'); }
+
+// Status
+function setStatus(s, cls) {
+  document.getElementById('status-dot').className = cls;
+  document.getElementById('status-text').textContent = s;
+}
+
+// Start WebRTC call via /ws
+async function startCall() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    startVolumeMeter(stream);
+
+    pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+    stream.getTracks().forEach(t => pc.addTrack(t, stream));
+
+    // Play incoming audio
+    pc.ontrack = e => {
+      const audio = new Audio();
+      audio.srcObject = e.streams[0];
+      audio.autoplay = true;
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      info('ICE: ' + pc.iceConnectionState);
+      if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+        setStatus('подключено', 'connected');
+      }
+    };
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    // Connect WebSocket
+    const phone = document.getElementById('phone').value.trim();
+    const wsUrl = `ws://${location.host}/ws?user=${encodeURIComponent(phone)}`;
+    ws = new WebSocket(wsUrl);
+    setStatus('подключение...', 'connecting');
+
+    ws.onopen = () => {
+      info('WS открыт, отправляем offer');
+      const payload = { type: 'offer', sdp: pc.localDescription.sdp };
+      ws.send(JSON.stringify(payload));
+    };
+
+    ws.onmessage = async e => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'answer') {
+        const sdp = msg.data?.sdp ?? msg.sdp;
+        await pc.setRemoteDescription({ type: 'answer', sdp });
+        info('SDP answer получен');
+        currentSessionId = null; // will be set when session is recorded
+        document.getElementById('btn-hangup').disabled = false;
+        document.getElementById('btn-call').disabled = true;
+        setTimeout(loadSessions, 2000);
+      } else if (msg.type === 'error') {
+        err('WS error: ' + (msg.data?.message ?? msg.message ?? JSON.stringify(msg)));
+        setStatus('ошибка', 'error');
+      }
+    };
+
+    ws.onerror = () => { err('WS ошибка'); setStatus('ошибка', 'error'); };
+    ws.onclose = () => { info('WS закрыт'); setStatus('не подключено', ''); };
+
+  } catch (e) {
+    err('startCall: ' + e.message);
+    setStatus('ошибка', 'error');
+  }
+}
+
+async function hangup() {
+  ws?.close();
+  pc?.close();
+  stream?.getTracks().forEach(t => t.stop());
+  cancelAnimationFrame(animId);
+  pc = ws = stream = null;
+  document.getElementById('btn-hangup').disabled = true;
+  document.getElementById('btn-call').disabled = false;
+  document.getElementById('vol-bar').style.width = '0%';
+  setStatus('не подключено', '');
+  info('Звонок завершён');
+  setTimeout(loadSessions, 500);
+}
+
+// Volume meter
+function startVolumeMeter(stream) {
+  const ctx = new AudioContext();
+  analyser = ctx.createAnalyser();
+  analyser.fftSize = 256;
+  ctx.createMediaStreamSource(stream).connect(analyser);
+  const buf = new Uint8Array(analyser.frequencyBinCount);
+  const bar = document.getElementById('vol-bar');
+  function tick() {
+    analyser.getByteFrequencyData(buf);
+    const avg = buf.reduce((a, b) => a + b, 0) / buf.length;
+    bar.style.width = Math.min(100, avg * 2) + '%';
+    animId = requestAnimationFrame(tick);
+  }
+  tick();
+}
+
+// Sessions
+async function loadSessions() {
+  try {
+    const r = await fetch('/sessions');
+    if (r.status === 503) return;
+    const data = await r.json();
+    const list = document.getElementById('sessions-list');
+    if (!data.sessions?.length) {
+      list.innerHTML = '<span style="color:#555;font-size:12px">нет сессий</span>';
+      return;
+    }
+    list.innerHTML = '';
+    for (const id of data.sessions.slice(-10).reverse()) {
+      const div = document.createElement('div');
+      div.className = 'session-item';
+      div.innerHTML = `
+        <span class="session-id" title="${id}">${id}</span>
+        <div class="session-btns">
+          <button class="btn btn-ghost btn-sm" onclick="loadRecordings('${id}')">▶</button>
+          <button class="btn btn-ghost btn-sm" onclick="loadTranscript('${id}')">T</button>
+        </div>`;
+      list.appendChild(div);
+    }
+  } catch(e) { err('sessions: ' + e.message); }
+}
+
+// Recordings
+async function loadRecordings(sessionId) {
+  currentSessionId = sessionId;
+  const div = document.getElementById('recordings');
+  div.innerHTML = '';
+  for (const source of ['user', 'assistant']) {
+    const url = `/record/${sessionId}/${source}`;
+    const r = await fetch(url);
+    if (r.status === 404) continue;
+    if (!r.ok) continue;
+    const blob = await r.blob();
+    const objUrl = URL.createObjectURL(blob);
+    const item = document.createElement('div');
+    item.className = 'recording-item';
+    item.innerHTML = `
+      <span class="tag ${source === 'user' ? 'tag-user' : 'tag-ai'}">${source}</span>
+      <audio src="${objUrl}" controls preload="metadata"></audio>`;
+    div.appendChild(item);
+  }
+  if (!div.children.length) {
+    div.innerHTML = '<span style="color:#555;font-size:12px">нет записей</span>';
+  }
+  loadTranscript(sessionId);
+}
+
+// Transcript from session
+async function loadTranscript(sessionId) {
+  try {
+    const r = await fetch(`/transcript/${sessionId}`);
+    if (!r.ok) return;
+    const data = await r.json();
+    const el = document.getElementById('session-transcript');
+    el.innerHTML = '';
+    const msgs = document.getElementById('messages');
+    msgs.innerHTML = '';
+    for (const p of (data.transcript ?? [])) {
+      // Side panel transcript
+      const line = document.createElement('div');
+      line.style.cssText = 'padding:4px 0;border-bottom:1px solid #222;';
+      line.innerHTML = `<span style="color:${p.source==='user'?'#93c5fd':'#86efac'};font-size:11px">${p.source}</span> <span>${escHtml(p.text)}</span>`;
+      el.appendChild(line);
+      // Main chat transcript
+      addMessage(p.source === 'user' ? 'user' : 'assistant', p.text);
+    }
+  } catch(e) { err('transcript: ' + e.message); }
+}
+
+function addMessage(role, text) {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  div.innerHTML = `<div class="speaker">${role === 'user' ? 'Вы' : 'AI'}</div>${escHtml(text)}`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Context
+function getPhone() { return document.getElementById('phone').value.trim(); }
+
+async function loadCtx() {
+  const phone = getPhone();
+  if (!phone) return;
+  const r = await fetch(`/context/${encodeURIComponent(phone)}`);
+  if (r.status === 404) { document.getElementById('ctx-text').value = ''; return; }
+  const data = await r.json();
+  document.getElementById('ctx-text').value = data.context ?? '';
+}
+
+async function saveCtx() {
+  const phone = getPhone();
+  const ctx = document.getElementById('ctx-text').value;
+  if (!phone) return;
+  const r = await fetch(`/context/${encodeURIComponent(phone)}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ context: ctx }),
+  });
+  if (r.ok) info('Контекст сохранён'); else err('Ошибка сохранения');
+}
+
+async function deleteCtx() {
+  const phone = getPhone();
+  if (!phone) return;
+  await fetch(`/context/${encodeURIComponent(phone)}`, { method: 'DELETE' });
+  document.getElementById('ctx-text').value = '';
+  info('Контекст удалён');
+}
+
+// Init
+loadSessions();
+setInterval(loadSessions, 30000);
+</script>
+</body>
+</html>

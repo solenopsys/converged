@@ -1,7 +1,7 @@
 /**
- * llm-gate-bridge — background sync from llm-audio-gate → ms-calls
+ * llm-gate-bridge — background sync from centimanus → ms-calls
  *
- * After call sessions end in llm-audio-gate this bridge:
+ * After call sessions end in centimanus this bridge:
  *   1. Lists all gate sessions
  *   2. Fetches the user WebM recording (presence = session complete)
  *   3. Saves it via CallsService.saveRecording()
@@ -76,7 +76,7 @@ export class LlmGateBridge {
 			const d = (await r.json()) as GateSessionsResp;
 			sessions = d.sessions ?? [];
 		} catch (err) {
-			// Gate may be down — normal when running without llm-audio-gate
+			// Gate may be down — normal when running without centimanus
 			console.debug(
 				"[llm-gate-bridge] gate unreachable:",
 				(err as Error).message,

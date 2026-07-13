@@ -1,5 +1,5 @@
 /**
- * HTTP client for llm-audio-gate REST API.
+ * HTTP client for the centimanus REST API.
  * All calls go through the backend proxy at /audio-gate/*
  */
 

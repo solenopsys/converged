@@ -2,7 +2,7 @@ export type PhoneNumberId = string;
 export type ISODateString = string;
 
 // Discriminator for entities living in the single phone-numbers store:
-//   ip-telephony — number wired to the SIP / LLM audio gateway (has gateway config)
+//   ip-telephony — number wired to the SIP / centimanus gateway (has gateway config)
 //   external     — uncontrolled number kept here for reference only (no gateway link)
 export type PhoneNumberKind = "ip-telephony" | "external";
 
@@ -12,7 +12,7 @@ export type IpTelephonyGateway = {
   username?: string;
   realm?: string;
   registrar?: string;
-  // Call context (CallContextName) the llm-audio-gate must load for inbound
+  // Call context (CallContextName) centimanus must load for inbound
   // calls on this number. The context carries the language. No contextId (or no
   // such context) => the gate refuses the call rather than answering blind.
   contextId?: string;
@@ -69,7 +69,7 @@ export type PaginatedResult<T> = {
   totalCount?: number;
 };
 
-// LLM audio gate runtime config — the llm-audio-gate container reads/writes this
+// Centimanus runtime config — the centimanus container reads/writes this
 // store (LLM_GATE_TRANSPORT_STORE=llm-gate-configs in namespace audio-gate-ms).
 // The store MUST be created here (gate only reads/writes, never creates it).
 export type LlmGateConfigId = string;

@@ -132,7 +132,7 @@ export function useWebRTCCall(phone?: string, contextName?: string, scope?: stri
         };
         ws.onerror = () => {
           clearTimeout(timeout);
-          reject(new Error("WebSocket connection failed — make sure llm-audio-gate is running"));
+          reject(new Error("WebSocket connection failed — make sure centimanus is running"));
         };
       });
 

@@ -252,7 +252,7 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({ onBack }) => {
                 <Separator className="my-2" />
                 <p className="opacity-60">
                   Powered by OpenAI Realtime API via{" "}
-                  <code className="text-xs bg-muted px-1 rounded">llm-audio-gate</code>.
+                  <code className="text-xs bg-muted px-1 rounded">centimanus</code>.
                 </p>
               </CardContent>
             </Card>
