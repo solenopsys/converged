@@ -1,3 +1,4 @@
+import { useUnit } from "effector-react";
 import {
 	Activity,
 	BadgeCheck,
@@ -6,16 +7,16 @@ import {
 	ClipboardList,
 	Factory,
 	FileText,
+	type LucideIcon,
 	PackageCheck,
 	Ruler,
 	Search,
 	Upload,
 	Wrench,
-	type LucideIcon,
 } from "lucide-react";
+import { type ReactNode, useEffect, useRef } from "react";
 import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
-import { useUnit } from "effector-react";
 import { ControlPanel } from "../components/control-panel/ControlPanel";
 import { rightRailActionSelected } from "../components/right-rail/uri-sync";
 import { SidebarProvider } from "../components/ui/sidebar";
@@ -24,42 +25,40 @@ import { useGlobalTranslation } from "../hooks/global_i18n";
 import { SlotProvider } from "../slots/SlotProvider";
 import { $slotContents } from "../slots/slots";
 import { MenuView } from "../views/MenuView";
-import { useEffect, useRef, type ReactNode } from "react";
 import {
 	$controlPanelMode,
 	$panelActions,
 	authStateChanged,
 	brandingSet,
+	type ControlPanelMode,
 	chatOpenRequested,
 	composerAttachRequested,
 	controlPanelClosed,
 	controlPanelModeChanged,
 	controlPanelOpened,
+	type LangOption,
 	langChanged,
 	languagesSet,
 	loginEnabledSet,
 	loginRequested,
 	logoutRequested,
 	MENU_TAB_ID,
+	type MenuLink,
 	menuLinksSet,
+	type PanelAction,
+	type PanelTab,
 	panelActionsSet,
 	panelActionTriggered,
+	type RailScreen,
 	screensSet,
 	tabsSet,
 	themeSet,
-	type ControlPanelMode,
-	type LangOption,
-	type MenuLink,
-	type PanelAction,
-	type PanelTab,
-	type RailScreen,
 } from "./control-panel-model";
 import {
 	LANDING_QUICK_ACTIONS_EVENT,
-	readPublishedLandingQuickActions,
 	type LandingQuickAction,
+	readPublishedLandingQuickActions,
 } from "./landing-quick-actions";
-import { WebCallWidget } from "./WebCallWidget";
 import "./control-panel-runtime.css";
 
 export interface ControlPanelRuntimeOptions {
@@ -259,9 +258,7 @@ function StaticMenuTab() {
 		host.appendChild(node);
 		return () => {
 			node.hidden = true;
-			(document.getElementById("ssr-shell") ?? document.body).appendChild(
-				node,
-			);
+			(document.getElementById("ssr-shell") ?? document.body).appendChild(node);
 		};
 	}, []);
 	return <div className="crp-static-menu" ref={hostRef} />;
@@ -388,8 +385,6 @@ export function mountControlPanelRuntime(
 					    #slot-panel-chat and #slot-panel-tab keep working across tab
 					    switches. */}
 					<SlotProvider />
-					{/* Floating "call from website" status pill (public + app modes). */}
-					<WebCallWidget />
 				</div>,
 			);
 		});
@@ -423,8 +418,8 @@ export function mountControlPanelRuntime(
 }
 
 export {
+	type ControlPanelMode,
 	controlPanelClosed,
 	controlPanelModeChanged,
 	controlPanelOpened,
-	type ControlPanelMode,
 };

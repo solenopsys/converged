@@ -2,8 +2,8 @@
 const std = @import("std");
 
 pub const HEADER_SIZE: usize = 12;
-pub const OPUS_PT: u8 = 111;      // preferred Opus payload type (matches baresip default)
-pub const OPUS_PT_ALT: u8 = 96;   // alternate Opus PT accepted from remote
+pub const OPUS_PT: u8 = 111; // preferred Opus payload type (matches baresip default)
+pub const OPUS_PT_ALT: u8 = 96; // alternate Opus PT accepted from remote
 pub const SAMPLES_PER_FRAME: u32 = 960; // 20ms at 48kHz
 
 pub const Header = struct {

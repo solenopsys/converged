@@ -32,6 +32,7 @@ const session_mod = @import("gate/session.zig");
 const adapter_mod = @import("signaling/adapter.zig");
 const signaling_types = @import("signaling/types.zig");
 const http_server_mod = @import("server/http_server.zig");
+const signal_provider_mod = @import("signal_provider.zig");
 
 pub fn main(init: std.process.Init) !void {
     const allocator = init.gpa;
@@ -66,7 +67,7 @@ pub fn main(init: std.process.Init) !void {
             allocator.destroy(fujin);
             return err;
         };
-        const fujin_thread = std.Thread.spawn(.{}, fujinLoop, .{fujin}) catch |err| {
+        const fujin_thread = std.Thread.spawn(.{}, fujinLoop, .{ fujin, allocator, &gateway }) catch |err| {
             fujin.deinit();
             allocator.destroy(fujin);
             return err;
@@ -115,8 +116,9 @@ pub fn main(init: std.process.Init) !void {
     return error.UnknownCommand;
 }
 
-fn fujinLoop(client: *fujin_client.Client) void {
-    client.listen("resonus");
+fn fujinLoop(client: *fujin_client.Client, allocator: std.mem.Allocator, gateway: *gateway_mod.Gateway) void {
+    var provider = signal_provider_mod.Provider{ .gateway = gateway };
+    client.serve(allocator, "resonus", provider.fujin());
 }
 
 fn runNativeSmoke(gateway: *gateway_mod.Gateway) !void {

@@ -25,7 +25,7 @@
 		"front-ssr": "workspace:*",
 		"mf-requests": "workspace:*",
 		"md-tools": "workspace:*",
-		"g-audio-gate": "workspace:*",
+		"g-resonus": "workspace:*",
 		"g-markdown": "workspace:*",
 		"g-rt-gates": "workspace:*",
 		"g-struct": "workspace:*"

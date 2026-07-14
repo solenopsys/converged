@@ -141,7 +141,7 @@ try {
     .join("\n");
 
 const indexCode = `// Auto-generated package
-import { createHttpClient, type ServiceMetadata } from "nrpc";
+import { createHttpClient, type ClientConfig, type ServiceMetadata } from "nrpc";
 
 ${typeDefinitions}
 
@@ -159,7 +159,7 @@ ${clientMethods}
 
 // Factory function
 export function create${metadata.interfaceName}Client(
-  config?: { baseUrl?: string },
+  config?: ClientConfig,
 ): ${metadata.interfaceName}Client {
   return createHttpClient<${metadata.interfaceName}Client>(metadata, config);
 }

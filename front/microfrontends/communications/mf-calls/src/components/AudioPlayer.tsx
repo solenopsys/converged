@@ -2,7 +2,7 @@ import React from "react";
 import { Badge } from "front-core";
 
 type AudioPlayerProps = {
-  /** Direct URL to the audio file (e.g. /audio-gate/record/{id}/user) */
+	/** Object URL created from audio returned by ms-calls. */
   src: string;
   label?: string;
   variant?: "user" | "assistant";

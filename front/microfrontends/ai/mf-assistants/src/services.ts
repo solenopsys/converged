@@ -2,14 +2,12 @@ import { services, setStoreWorker } from "files-state";
 import { createAssistantServiceClient } from "g-assistant";
 import { createFilesServiceClient } from "g-files";
 import { createRequestsServiceClient } from "g-requests";
-import { createRuntimeAssistantServiceClient } from "g-rt-assistant";
 import { createRuntimeDagServiceClient } from "g-rt-dag";
 import { createStoreServiceClient } from "g-store";
 import { threadsClient } from "g-threads";
+import { signalAssistantClient } from "./signal-assistant";
 
-const chatClient = createRuntimeAssistantServiceClient({
-	baseUrl: "/runtime",
-});
+const chatClient = signalAssistantClient;
 
 const dagClient = createRuntimeDagServiceClient({
 	baseUrl: "/runtime",

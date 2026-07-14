@@ -15,7 +15,6 @@
 		"front-core": "workspace:*",
 		"g-assistant": "workspace:*",
 		"g-requests": "workspace:*",
-		"g-rt-assistant": "workspace:*",
 		"g-rt-dag": "workspace:*",
 		"g-files": "workspace:*",
 		"g-store": "workspace:*",

@@ -1,0 +1,12 @@
+{
+	"name": "ms-resonus",
+	"private": true,
+	"type": "module",
+	"module": "src/plugin.ts",
+	"dependencies": {
+		"back-core": "workspace:*",
+		"elysia": "latest",
+		"nrpc": "workspace:*",
+		"g-resonus": "workspace:*"
+	}
+}

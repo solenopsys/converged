@@ -1,7 +1,8 @@
 const std = @import("std");
 
 const redis_mod = @import("../native/redis_client.zig");
-const http_util = @import("../util/http.zig");
+const nrpc_gateway = @import("../nrpc/gateway.zig");
+const resonus_client = @import("../generated/resonus_client.zig");
 const json_util = @import("../util/json.zig");
 const clock = @import("../util/clock.zig");
 
@@ -75,6 +76,22 @@ pub const PhoneRoute = struct {
     }
 };
 
+pub const LlmRuntimeConfig = struct {
+    provider: []u8,
+    endpoint: []u8,
+    model: []u8,
+    voice: ?[]u8 = null,
+    transcription_model: ?[]u8 = null,
+
+    pub fn deinit(self: *LlmRuntimeConfig, allocator: std.mem.Allocator) void {
+        allocator.free(self.provider);
+        allocator.free(self.endpoint);
+        allocator.free(self.model);
+        if (self.voice) |value| allocator.free(value);
+        if (self.transcription_model) |value| allocator.free(value);
+        self.* = undefined;
+    }
+};
 
 pub const StoreConfig = struct {
     services_url: []const u8,
@@ -113,18 +130,15 @@ const SessionState = struct {
 
 pub const Store = struct {
     allocator: std.mem.Allocator,
-    services_url: []u8,
-    service_token: ?[]u8,
+    services: nrpc_gateway.Provider,
     redis: redis_mod.Client,
     sessions: std.StringHashMap(SessionState),
     mutex: Mutex,
     transcript_mutex: Mutex,
 
     pub fn init(allocator: std.mem.Allocator, cfg: StoreConfig) !Store {
-        const services_url = try trimTrailingSlashOwned(allocator, cfg.services_url);
-        errdefer allocator.free(services_url);
-        const service_token = if (cfg.service_token) |token| try allocator.dupe(u8, token) else null;
-        errdefer if (service_token) |token| allocator.free(token);
+        var services = try nrpc_gateway.httpProvider(allocator, cfg.services_url, cfg.service_token);
+        errdefer services.deinit();
         var redis = try redis_mod.Client.init(allocator, .{
             .url = cfg.valkey_url,
             .key_prefix = cfg.valkey_key_prefix,
@@ -134,8 +148,7 @@ pub const Store = struct {
 
         return .{
             .allocator = allocator,
-            .services_url = services_url,
-            .service_token = service_token,
+            .services = services,
             .redis = redis,
             .sessions = std.StringHashMap(SessionState).init(allocator),
             .mutex = .{},
@@ -151,8 +164,7 @@ pub const Store = struct {
         }
         self.sessions.deinit();
         self.redis.deinit();
-        self.allocator.free(self.services_url);
-        if (self.service_token) |token| self.allocator.free(token);
+        self.services.deinit();
         self.* = undefined;
     }
 
@@ -264,10 +276,21 @@ pub const Store = struct {
     /// (LLM answers) or a human transfer target (call is bridged over the
     /// provider SIP trunk). `gateway.transfer` wins over `gateway.contextId`.
     pub fn resolvePhoneRoute(self: *Store, allocator: std.mem.Allocator, domain: []const u8, dialed: []const u8) !?PhoneRoute {
-        var resp = try self.post("audiogate", "listPhoneNumbers", "{\"params\":{\"kind\":\"ip-telephony\",\"enabledOnly\":true,\"limit\":10000}}", domain);
+        var resp = try resonus_client.listPhoneNumbers(
+            &self.services,
+            domain,
+            "{\"params\":{\"kind\":\"ip-telephony\",\"enabledOnly\":true,\"limit\":10000}}",
+        );
         defer resp.deinit(self.allocator);
         try ensureOk(resp.status);
         return parsePhoneRoute(allocator, resp.body, dialed);
+    }
+
+    pub fn getActiveLlmConfig(self: *Store, allocator: std.mem.Allocator, scope: []const u8) !?LlmRuntimeConfig {
+        var response = try resonus_client.listLlmGateConfigs(&self.services, scope, "{}");
+        defer response.deinit(self.allocator);
+        try ensureOk(response.status);
+        return parseActiveLlmConfig(allocator, response.body);
     }
 
     pub fn listContextKeys(self: *Store, allocator: std.mem.Allocator, domain: []const u8) ![][]u8 {
@@ -518,24 +541,13 @@ pub const Store = struct {
         }
     }
 
-    fn post(self: *Store, service: []const u8, method: []const u8, body: []const u8, scope: []const u8) !http_util.Response {
-        const url = try std.fmt.allocPrint(self.allocator, "{s}/{s}/{s}", .{ self.services_url, service, method });
-        defer self.allocator.free(url);
-
-        var header_storage: [2]http_util.SimpleHeader = undefined;
-        var header_count: usize = 0;
-        if (scope.len > 0) {
-            header_storage[header_count] = .{ .name = "scope", .value = scope };
-            header_count += 1;
-            header_storage[header_count] = .{ .name = "workspace", .value = scope };
-            header_count += 1;
-        }
-        var auth_buf: [1024]u8 = undefined;
-        const auth = if (self.service_token) |token|
-            if (std.mem.startsWith(u8, token, "Bearer ")) token else std.fmt.bufPrint(&auth_buf, "Bearer {s}", .{token}) catch token
-        else
-            null;
-        return http_util.post(self.allocator, url, body, "application/json", auth, header_storage[0..header_count]);
+    fn post(self: *Store, service: []const u8, method: []const u8, body: []const u8, scope: []const u8) !nrpc_gateway.Response {
+        return self.services.call(.{
+            .service = service,
+            .method = method,
+            .scope = scope,
+            .body = body,
+        });
     }
 
     fn scopeForSession(self: *Store, session_id: []const u8) ![]u8 {
@@ -585,21 +597,54 @@ pub const Store = struct {
         }
         return ids.toOwnedSlice(self.allocator);
     }
-
 };
-
-fn trimTrailingSlashOwned(allocator: std.mem.Allocator, value: []const u8) ![]u8 {
-    const clean = std.mem.trim(u8, value, " \t\r\n");
-    var end = clean.len;
-    while (end > 0 and clean[end - 1] == '/') end -= 1;
-    const trimmed = clean[0..end];
-    if (trimmed.len == 0) return error.MissingServicesUrl;
-    return allocator.dupe(u8, trimmed);
-}
 
 fn ensureOk(status: u16) !void {
     if (status >= 200 and status < 300) return;
     return error.ServiceApiError;
+}
+
+fn parseActiveLlmConfig(allocator: std.mem.Allocator, body: []const u8) !?LlmRuntimeConfig {
+    var parsed = try std.json.parseFromSlice(std.json.Value, allocator, body, .{});
+    defer parsed.deinit();
+    if (parsed.value != .array) return null;
+
+    var selected: ?std.json.ObjectMap = null;
+    var selected_priority: i64 = std.math.minInt(i64);
+    for (parsed.value.array.items) |item| {
+        if (item != .object) continue;
+        const config_value = item.object.get("config") orelse continue;
+        if (config_value != .object) continue;
+        const config = config_value.object;
+        if (config.get("enabled")) |enabled| {
+            if (enabled == .bool and !enabled.bool) continue;
+        }
+        const priority = if (config.get("priority")) |value|
+            if (value == .integer) value.integer else 0
+        else
+            0;
+        if (selected == null or priority > selected_priority) {
+            selected = config;
+            selected_priority = priority;
+        }
+    }
+
+    const config = selected orelse return null;
+    const provider = jsonString(config, "provider") orelse return null;
+    const endpoint = jsonString(config, "endpoint") orelse return null;
+    const model = jsonString(config, "model") orelse return null;
+    return .{
+        .provider = try allocator.dupe(u8, provider),
+        .endpoint = try allocator.dupe(u8, endpoint),
+        .model = try allocator.dupe(u8, model),
+        .voice = if (jsonString(config, "voice")) |value| try allocator.dupe(u8, value) else null,
+        .transcription_model = if (jsonString(config, "transcriptionModel")) |value| try allocator.dupe(u8, value) else null,
+    };
+}
+
+fn jsonString(object: std.json.ObjectMap, key: []const u8) ?[]const u8 {
+    const value = object.get(key) orelse return null;
+    return if (value == .string and value.string.len > 0) value.string else null;
 }
 
 fn appendInt(out: *std.ArrayList(u8), allocator: std.mem.Allocator, value: anytype) !void {

@@ -12,6 +12,11 @@ case "$TARGET" in
     *) echo "resonus requires a Linux GNU target: x86_64-linux-gnu or aarch64-linux-gnu" >&2; exit 2 ;;
 esac
 
+bun run "$CONVERGED_ROOT/tools/integration/nrpc/src/zig-generator.ts" \
+    "$CONVERGED_ROOT/tools/integration/types/services/communications/resonus.ts" \
+    "$CONVERGED_ROOT/native/resonus/src/generated/resonus_client.zig" \
+    "../nrpc/gateway.zig"
+
 zig build "-Dtarget=$TARGET" "-Doptimize=$OPTIMIZE"
 (cd "$CONVERGED_ROOT/native/wrapers/qjs" && zig build "-Dtarget=$TARGET" "-Doptimize=$OPTIMIZE")
 (cd "$CONVERGED_ROOT/native/wrapers/zimq" && zig build "-Dtarget=$TARGET" "-Doptimize=$OPTIMIZE")

@@ -171,17 +171,25 @@ fn buildClusters(out: *std.ArrayList(u8), allocator: std.mem.Allocator, frames: 
 
 fn buildOpusHead(sample_rate: u32, channels: u8) [19]u8 {
     var h: [19]u8 = undefined;
-    h[0] = 'O'; h[1] = 'p'; h[2] = 'u'; h[3] = 's';
-    h[4] = 'H'; h[5] = 'e'; h[6] = 'a'; h[7] = 'd';
-    h[8] = 1;        // version
+    h[0] = 'O';
+    h[1] = 'p';
+    h[2] = 'u';
+    h[3] = 's';
+    h[4] = 'H';
+    h[5] = 'e';
+    h[6] = 'a';
+    h[7] = 'd';
+    h[8] = 1; // version
     h[9] = channels; // channel count
-    h[10] = 0; h[11] = 0; // pre-skip LE u16
+    h[10] = 0;
+    h[11] = 0; // pre-skip LE u16
     h[12] = @truncate(sample_rate);
     h[13] = @truncate(sample_rate >> 8);
     h[14] = @truncate(sample_rate >> 16);
     h[15] = @truncate(sample_rate >> 24);
-    h[16] = 0; h[17] = 0; // output gain LE i16
-    h[18] = 0;             // channel mapping family
+    h[16] = 0;
+    h[17] = 0; // output gain LE i16
+    h[18] = 0; // channel mapping family
     return h;
 }
 

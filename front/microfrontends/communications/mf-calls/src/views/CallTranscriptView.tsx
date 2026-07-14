@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { CallTranscriptPanel } from "front-core";
 import { fetchCallAudioObjectUrl } from "../services/call-audio";
-import { type GateTranscriptItem } from "../services/audio-gate-client";
+import type { GateTranscriptItem } from "../services/call-transcript";
 import { readCallTranscript } from "../services/call-transcript";
 
 type CallTranscriptViewProps = {

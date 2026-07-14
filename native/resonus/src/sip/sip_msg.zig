@@ -110,7 +110,8 @@ pub fn extractPhone(from: []const u8) []const u8 {
 /// Opus-only SDP used for both the inbound 200 OK and the outbound INVITE.
 pub fn buildSdp(allocator: std.mem.Allocator, public_ip: []const u8, rtp_port: u16) ![]u8 {
     const ts = @as(u64, @intCast(@max(nowSec(), 0)));
-    return std.fmt.allocPrint(allocator,
+    return std.fmt.allocPrint(
+        allocator,
         "v=0\r\n" ++
             "o=- {d} {d} IN IP4 {s}\r\n" ++
             "s=-\r\n" ++

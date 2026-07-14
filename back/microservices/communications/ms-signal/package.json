@@ -1,0 +1,13 @@
+{
+	"name": "ms-signal",
+	"private": true,
+	"type": "module",
+	"module": "src/plugin.ts",
+	"exports": {
+		"./plugin": "./src/plugin.ts"
+	},
+	"dependencies": {
+		"back-core": "workspace:*",
+		"elysia": "latest"
+	}
+}

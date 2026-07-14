@@ -10,7 +10,7 @@ import {
 } from "front-core";
 import { PhoneCall, PhoneOff, ArrowLeft, Mic, MicOff } from "lucide-react";
 import { useWebRTCCall, type CallStatus } from "../hooks/useWebRTCCall";
-import { type GateTranscriptItem } from "../services/audio-gate-client";
+import type { GateTranscriptItem } from "../services/call-transcript";
 import { readCallTranscript } from "../services/call-transcript";
 
 type ActiveCallViewProps = {

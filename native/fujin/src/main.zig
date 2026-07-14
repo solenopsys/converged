@@ -7,39 +7,44 @@ const FluentBit = @import("fluentbit.zig").Receiver;
 const WebSocket = @import("websocket.zig").Server;
 
 const ZmqPeers = struct {
+    const Peer = struct {
+        service: []u8,
+        identity: []u8,
+    };
+
     allocator: std.mem.Allocator,
-    identities: std.ArrayList([]u8) = .empty,
+    peers: std.ArrayList(Peer) = .empty,
 
     fn deinit(self: *ZmqPeers) void {
-        for (self.identities.items) |identity| self.allocator.free(identity);
-        self.identities.deinit(self.allocator);
+        for (self.peers.items) |peer| {
+            self.allocator.free(peer.service);
+            self.allocator.free(peer.identity);
+        }
+        self.peers.deinit(self.allocator);
         self.* = undefined;
     }
 
-    fn remember(self: *ZmqPeers, identity: []const u8) !void {
-        for (self.identities.items) |known| {
-            if (std.mem.eql(u8, known, identity)) return;
+    fn register(self: *ZmqPeers, service: []const u8, identity: []const u8) !void {
+        for (self.peers.items) |*peer| {
+            if (std.mem.eql(u8, peer.service, service)) {
+                const replacement = try self.allocator.dupe(u8, identity);
+                self.allocator.free(peer.identity);
+                peer.identity = replacement;
+                return;
+            }
         }
-        const copy = try self.allocator.dupe(u8, identity);
-        errdefer self.allocator.free(copy);
-        try self.identities.append(self.allocator, copy);
+        try self.peers.append(self.allocator, .{
+            .service = try self.allocator.dupe(u8, service),
+            .identity = try self.allocator.dupe(u8, identity),
+        });
+        std.log.info("service registered service={s} identity={s}", .{ service, identity });
     }
 
-    fn broadcast(self: *ZmqPeers, zimq: *Zimq, source: []const u8, payload: []const u8) void {
-        var index: usize = 0;
-        while (index < self.identities.items.len) {
-            const identity = self.identities.items[index];
-            if (std.mem.eql(u8, identity, source)) {
-                index += 1;
-                continue;
-            }
-            zimq.reply(identity, payload) catch {
-                self.allocator.free(identity);
-                _ = self.identities.orderedRemove(index);
-                continue;
-            };
-            index += 1;
+    fn identityFor(self: *const ZmqPeers, service: []const u8) ?[]const u8 {
+        for (self.peers.items) |peer| {
+            if (std.mem.eql(u8, peer.service, service)) return peer.identity;
         }
+        return null;
     }
 };
 
@@ -76,45 +81,69 @@ pub fn main(init: std.process.Init) !void {
 fn zimqLoop(zimq: *Zimq, hub: *Hub, peers: *ZmqPeers, max_control_bytes: usize) void {
     const allocator = hub.allocator;
     const frame_limit = @max(max_control_bytes, 1024);
-    const identity = allocator.alloc(u8, frame_limit) catch return;
-    defer allocator.free(identity);
-    const payload = allocator.alloc(u8, frame_limit) catch return;
-    defer allocator.free(payload);
+    const identity_buffer = allocator.alloc(u8, frame_limit) catch return;
+    defer allocator.free(identity_buffer);
+    const payload_buffer = allocator.alloc(u8, frame_limit) catch return;
+    defer allocator.free(payload_buffer);
 
     while (true) {
-        const route = zimq.recv(identity) catch |err| {
+        drainBrowserCommands(zimq, hub, peers);
+
+        const route = (zimq.recv(identity_buffer) catch |err| {
             std.log.err("zimq identity receive failed: {s}", .{@errorName(err)});
             return;
-        };
-        if (route.truncated) continue;
-        const identity_copy = allocator.dupe(u8, route.bytes) catch continue;
-        defer allocator.free(identity_copy);
-        peers.remember(identity_copy) catch |err| {
-            std.log.warn("zimq client identity rejected: {s}", .{@errorName(err)});
+        }) orelse continue;
+        const has_payload = zimq.hasMore() catch false;
+        if (route.truncated or !has_payload) {
+            std.log.warn("zimq route rejected bytes={d} truncated={} more={}", .{ route.wire_len, route.truncated, has_payload });
             continue;
-        };
-        if (!(zimq.hasMore() catch false)) continue;
+        }
 
-        const body = zimq.recv(payload) catch |err| {
+        const body = (zimq.recv(payload_buffer) catch |err| {
             std.log.warn("zimq payload rejected: {s}", .{@errorName(err)});
             continue;
-        };
+        }) orelse continue;
         while (zimq.hasMore() catch false) {
-            _ = zimq.recv(payload) catch break;
+            _ = zimq.recv(payload_buffer) catch break;
         }
         if (body.truncated or body.wire_len > max_control_bytes) {
             hub.announceBulk(body.wire_len);
-            zimq.reply(identity_copy, "{\"ok\":true,\"route\":\"bulk\"}") catch {};
             continue;
         }
-        var result = hub.onZmqControl(body.bytes) catch |err| {
-            const reply = std.fmt.allocPrint(allocator, "{{\"ok\":false,\"error\":\"{s}\"}}", .{@errorName(err)}) catch continue;
-            defer allocator.free(reply);
-            zimq.reply(identity_copy, reply) catch |send_err| std.log.warn("zimq reply failed: {s}", .{@errorName(send_err)});
+
+        if (readyService(allocator, body.bytes)) |service| {
+            defer allocator.free(service);
+            peers.register(service, route.bytes) catch |err|
+                std.log.warn("service registration rejected: {s}", .{@errorName(err)});
+            continue;
+        }
+
+        hub.onZmqControl(body.bytes) catch |err|
+            std.log.warn("zimq control rejected identity={s}: {s}", .{ route.bytes, @errorName(err) });
+    }
+}
+
+fn drainBrowserCommands(zimq: *Zimq, hub: *Hub, peers: *const ZmqPeers) void {
+    while (hub.takePending()) |pending_value| {
+        var pending = pending_value;
+        defer pending.deinit();
+        const identity = peers.identityFor(pending.target) orelse {
+            hub.serviceUnavailable(&pending);
             continue;
         };
-        defer result.deinit();
-        if (result.signal) |signal| peers.broadcast(zimq, identity_copy, signal);
-        zimq.reply(identity_copy, result.reply) catch |err| std.log.warn("zimq reply failed: {s}", .{@errorName(err)});
+        zimq.reply(identity, pending.payload) catch |err| {
+            std.log.warn("command send failed target={s}: {s}", .{ pending.target, @errorName(err) });
+            hub.serviceUnavailable(&pending);
+        };
     }
+}
+
+fn readyService(allocator: std.mem.Allocator, payload: []const u8) ?[]u8 {
+    var parsed = std.json.parseFromSlice(std.json.Value, allocator, payload, .{}) catch return null;
+    defer parsed.deinit();
+    if (parsed.value != .object) return null;
+    const event_type = parsed.value.object.get("type") orelse return null;
+    if (event_type != .string or !std.mem.eql(u8, event_type.string, "service_ready")) return null;
+    const service = parsed.value.object.get("service") orelse return null;
+    return if (service == .string) allocator.dupe(u8, service.string) catch null else null;
 }

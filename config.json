@@ -69,10 +69,10 @@
     "core": "back/back-core",
     "runtimes": {
       "automation": ["dag", "cron", "gates"],
-      "ai": ["agents", "assistant"]
+      "ai": ["agents"]
     },
     "microservices": {
-      "ai": ["agent", "assistant", "contexts", "functions"],
+      "ai": ["agent", "contexts", "functions"],
       "analytics": ["counters", "dashboard", "logs", "telemetry", "usage"],
       "automation": ["dag", "sheduller", "webhooks"],
       "convertors": ["modelconvertor"],
@@ -88,7 +88,8 @@
         "staff"
       ],
       "communications": [
-        "audio-gate",
+        "resonus",
+        "signal",
         "calls",
         "chats",
         "community",
@@ -188,10 +189,6 @@
       "icePortRange": {
         "begin": 10000,
         "end": 10100
-      },
-      "ingress": {
-        "paths": ["/audio-gate"],
-        "routeTo": "services"
       },
       "resources": {
         "requests": {

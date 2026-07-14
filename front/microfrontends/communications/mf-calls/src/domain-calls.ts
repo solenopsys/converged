@@ -1,7 +1,9 @@
 import { createDomain, sample } from "effector";
 import { callsClient } from "g-calls";
-import type { GateTranscriptItem } from "./services/audio-gate-client";
-import { readCallTranscript } from "./services/call-transcript";
+import {
+  type GateTranscriptItem,
+  readCallTranscript,
+} from "./services/call-transcript";
 
 const domain = createDomain("calls");
 
@@ -17,8 +19,7 @@ export const returnToListClicked = domain.createEvent("RETURN_TO_LIST");
 // ── Effects ────────────────────────────────────────────────────────────────
 export const loadSessionsFx = domain.createEffect({
   name: "LOAD_SESSIONS",
-  // Calls list comes from the ms-calls microservice (the source of truth for
-  // call sessions), not the audio-gate. The gate only writes call rows there.
+  // ms-calls is the scoped source of truth for persisted call sessions.
   handler: async (): Promise<string[]> => {
     const res = await callsClient.listCalls({ offset: 0, limit: 200 });
     return res.items.map((c) => c.id);

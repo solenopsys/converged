@@ -25,6 +25,7 @@ pub fn call(
     service: []const u8,
     method: []const u8,
     body_json: []const u8,
+    scope: []const u8,
 ) !CallResult {
     const url = try std.fmt.allocPrint(alloc, "{s}/{s}/{s}", .{ base_url, service, method });
     defer alloc.free(url);
@@ -47,7 +48,7 @@ pub fn call(
         headers_buf[n] = .{ .name = "authorization", .value = auth_value.? };
         n += 1;
     }
-    if (env.opt("RT_SCOPE")) |scope| {
+    if (scope.len > 0) {
         headers_buf[n] = .{ .name = "scope", .value = scope };
         n += 1;
     }

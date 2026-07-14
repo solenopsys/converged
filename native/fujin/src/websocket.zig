@@ -43,7 +43,8 @@ fn handleConnection(hub: *Hub, stream: std.Io.net.Stream) !void {
     var http = std.http.Server.init(&reader.interface, &writer.interface);
 
     var request = try http.receiveHead();
-    if (request.head.method != .GET or !std.mem.eql(u8, request.head.target, "/ws")) {
+    const path = request.head.target[0 .. std.mem.indexOfScalar(u8, request.head.target, '?') orelse request.head.target.len];
+    if (request.head.method != .GET or !std.mem.eql(u8, path, "/ws")) {
         try request.respond("not found\n", .{ .status = .not_found });
         return;
     }
@@ -61,9 +62,16 @@ fn handleConnection(hub: *Hub, stream: std.Io.net.Stream) !void {
 
     var ws = try request.respondWebSocket(.{ .key = key });
     try ws.flush();
-    const client = try hub.addClient(stream);
+    const scope = requestScope(&request);
+    const client = try hub.addClient(stream, scope);
     defer hub.removeClient(client);
-    try hub.send(client, "{\"type\":\"ready\",\"transport\":\"fujin\"}", .text);
+    var ready_buffer: [192]u8 = undefined;
+    const ready = try std.fmt.bufPrint(
+        &ready_buffer,
+        "{{\"type\":\"ready\",\"transport\":\"fujin\",\"connectionId\":{d},\"scoped\":{}}}",
+        .{ client.id, scope.len > 0 },
+    );
+    try hub.send(client, ready, .text);
 
     while (true) {
         const message = ws.readSmallMessage() catch |err| switch (err) {
@@ -77,4 +85,30 @@ fn handleConnection(hub: *Hub, stream: std.Io.net.Stream) !void {
             else => {},
         }
     }
+}
+
+fn requestScope(request: *std.http.Server.Request) []const u8 {
+    const names = [_][]const u8{
+        "x-storage-scope",
+        "storage-scope",
+        "scope",
+        "x-scope",
+        "workspace",
+        "x-workspace",
+    };
+    for (names) |name| {
+        if (requestHeader(request, name)) |value| {
+            const normalized = std.mem.trim(u8, value, " \t\r\n");
+            if (normalized.len > 0) return normalized;
+        }
+    }
+    return "";
+}
+
+fn requestHeader(request: *std.http.Server.Request, name: []const u8) ?[]const u8 {
+    var iterator = request.iterateHeaders();
+    while (iterator.next()) |header| {
+        if (std.ascii.eqlIgnoreCase(header.name, name)) return header.value;
+    }
+    return null;
 }

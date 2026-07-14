@@ -73,13 +73,13 @@ pub const Scheduler = struct {
             std.debug.print("centimanus: scheduled {s} failed: {s}\n", .{ e.script, @errorName(err) });
             return;
         };
-            std.debug.print("centimanus: scheduled {s} -> {s}\n", .{ e.script, if (res.ok) "ok" else "failed" });
+        std.debug.print("centimanus: scheduled {s} -> {s}\n", .{ e.script, if (res.ok) "ok" else "failed" });
     }
 
     /// Pull and parse the formalized schedule. Parsing an MS response (numbers +
     /// the script path) is dumb I/O — no scheduling logic lives here.
     fn fetchSchedule(self: *Scheduler, a: std.mem.Allocator) ![]Entry {
-        const res = try mscall.call(self.engine.io, a, self.engine.services_base, "sheduller", "schedule", "{}");
+        const res = try mscall.call(self.engine.io, a, self.engine.services_base, "sheduller", "schedule", "{}", "");
         if (res.status < 200 or res.status >= 300) return error.ScheduleUnavailable;
 
         const parsed = try std.json.parseFromSliceLeaky(std.json.Value, a, res.body, .{});

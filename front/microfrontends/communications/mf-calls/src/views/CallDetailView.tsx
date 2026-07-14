@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Button, Badge, StereoCallPlayer } from "front-core";
 import { ArrowLeft, RefreshCw, MessageSquare, MicOff } from "lucide-react";
 import { fetchCallAudioObjectUrl } from "../services/call-audio";
-import { type GateTranscriptItem } from "../services/audio-gate-client";
+import type { GateTranscriptItem } from "../services/call-transcript";
 import { readCallTranscript } from "../services/call-transcript";
 
 type CallDetailViewProps = {

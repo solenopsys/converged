@@ -13,6 +13,7 @@ import {
 	bus,
 	clearAllMenus,
 	registry,
+	requestMicrofrontendAction,
 	runActionEvent,
 } from "../controllers";
 import { LocaleController } from "../controllers/locale-controller";
@@ -45,7 +46,6 @@ import {
 	resolveRuntimeLocale,
 	stripRuntimeLocalePrefix,
 } from "./locale-routing";
-import { webCallRequested } from "./web-call";
 
 const SSR_MENU_STYLE_ID = "ssr-menu-shell-style";
 const FRONT_CORE_STYLE_ID = "front-core-runtime-style";
@@ -2707,7 +2707,9 @@ const LANDING_EVENT_HANDLERS: Record<string, LandingEventHandler> = {
 		requestChatAttach(contextName || CHAT_CONTEXT);
 	},
 	"voice.call": ({ contextName }) => {
-		webCallRequested(contextName || VOICE_CONTEXT);
+		void requestMicrofrontendAction("calls.web.start", {
+			contextName: contextName || VOICE_CONTEXT,
+		});
 	},
 };
 

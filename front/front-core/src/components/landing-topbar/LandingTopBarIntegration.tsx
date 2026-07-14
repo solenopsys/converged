@@ -1,4 +1,6 @@
 import { useUnit } from "effector-react";
+import { requestMicrofrontendAction } from "../../controllers";
+import { useGlobalTranslation } from "../../hooks/global_i18n";
 import {
 	$branding,
 	$composerValue,
@@ -17,16 +19,25 @@ import {
 	loginRequested,
 	themeToggled,
 } from "../../landing-common/control-panel-model";
-import { useGlobalTranslation } from "../../hooks/global_i18n";
-import { webCallRequested } from "../../landing-common/web-call";
 import { LandingTopBar } from "./LandingTopBar";
 
 export interface LandingTopBarIntegrationProps {
 	compact?: boolean;
 }
 
-export function LandingTopBarIntegration({ compact }: LandingTopBarIntegrationProps = {}) {
-	const [branding, menuLinks, languages, lang, theme, actions, composer, loginEnabled] = useUnit([
+export function LandingTopBarIntegration({
+	compact,
+}: LandingTopBarIntegrationProps = {}) {
+	const [
+		branding,
+		menuLinks,
+		languages,
+		lang,
+		theme,
+		actions,
+		composer,
+		loginEnabled,
+	] = useUnit([
 		$branding,
 		$menuLinks,
 		$languages,
@@ -59,7 +70,11 @@ export function LandingTopBarIntegration({ compact }: LandingTopBarIntegrationPr
 			isDark={theme === "dark"}
 			onThemeToggle={() => themeToggled()}
 			onLogin={loginEnabled ? () => loginRequested() : undefined}
-			onCall={() => webCallRequested(branding.contextName)}
+			onCall={() => {
+				void requestMicrofrontendAction("calls.web.start", {
+					contextName: branding.contextName,
+				});
+			}}
 			onPanelOpen={() => controlPanelOpened()}
 			value={composer}
 			onValueChange={composerValueChanged}

@@ -22,6 +22,7 @@ const env = @import("env.zig");
 const Engine = @import("engine.zig").Engine;
 const StateStore = @import("state.zig").StateStore;
 const Scheduler = @import("cron.zig").Scheduler;
+const signal_provider = @import("signal_provider.zig");
 
 const Request = struct {
     method: []const u8,
@@ -148,7 +149,7 @@ pub fn main(init: std.process.Init) !void {
         gpa.destroy(fujin);
         return err;
     };
-    const fujin_thread = std.Thread.spawn(.{}, fujinLoop, .{fujin}) catch |err| {
+    const fujin_thread = std.Thread.spawn(.{}, fujinLoop, .{ fujin, gpa, &engine }) catch |err| {
         fujin.deinit();
         gpa.destroy(fujin);
         return err;
@@ -187,6 +188,7 @@ pub fn main(init: std.process.Init) !void {
     }
 }
 
-fn fujinLoop(client: *fujin_client.Client) void {
-    client.listen("centimanus");
+fn fujinLoop(client: *fujin_client.Client, allocator: std.mem.Allocator, engine: *Engine) void {
+    var provider = signal_provider.Provider{ .engine = engine };
+    client.serve(allocator, "centimanus", provider.fujin());
 }

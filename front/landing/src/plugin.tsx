@@ -1,11 +1,11 @@
-import type { SeoConfig } from "front-ssr/plugin";
-import createLandingPlugin from "front-ssr/plugin";
 import { aiChatWidgetPlugin } from "assistant-widget/plugin";
 import { Elysia } from "elysia";
-import { existsSync, readFileSync } from "fs";
-import { createAudioGateServiceClient } from "g-audio-gate";
 import { resolveCounters } from "front-core/landing-common/analytics-resolver";
+import type { SeoConfig } from "front-ssr/plugin";
+import createLandingPlugin from "front-ssr/plugin";
+import { existsSync, readFileSync } from "fs";
 import { createMarkdownServiceClient } from "g-markdown";
+import { createResonusServiceClient } from "g-resonus";
 import { createStructServiceClient } from "g-struct";
 import { resolve } from "path";
 import { renderToReadableStream } from "react-dom/server";
@@ -325,18 +325,18 @@ function resolveDocPath(slug: string, locale: SupportedLocale): string {
 	return `${locale}/${normalizedSlug}.md`;
 }
 
-// Primary public phone number, owned by ms-audio-gate (AudioGateService).
+// Primary public phone number, owned by ms-resonus (ResonusService).
 // Falls back to LANDING_PHONE env, then empty (header hides the control).
 async function fetchPrimaryPhone(
 	servicesBaseUrl: string,
 	workspace?: string,
 ): Promise<string> {
 	try {
-		const audiogateClient = createAudioGateServiceClient({
+		const resonusClient = createResonusServiceClient({
 			baseUrl: servicesBaseUrl,
 			workspace,
 		});
-		const number = (await audiogateClient.getPrimaryPhoneNumber()) as {
+		const number = (await resonusClient.getPrimaryPhoneNumber()) as {
 			phone?: string;
 		} | null;
 		const phone = number?.phone?.trim();

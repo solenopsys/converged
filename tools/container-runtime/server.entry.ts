@@ -248,9 +248,8 @@ for (const [key, mappedPath] of Object.entries(runtimeMap.services || {})) {
 		console.error("[runtime] plugin import failed:", pluginPath, error);
 		continue;
 	}
-	// The plugin's own `mount` export is the single source of truth (e.g.
-	// ms-audio-gate declares `mount = "root"` because it prefixes "/services"
-	// itself and also serves root-level routes). The path check is only a
+	// The plugin's own `mount` export is the single source of truth. The path
+	// check is only a
 	// fallback for plugins that don't declare it (runtime plugins).
 	const declaredMount = (plugin as { mount?: "root" | "services" }).mount;
 	const mount =

@@ -13,6 +13,7 @@ import {
 	restoreState,
 	sidebarWidthChanged,
 } from "sidebar-controller";
+import { requestMicrofrontendAction } from "../../controllers";
 import { useGlobalTranslation } from "../../hooks/global_i18n";
 import {
 	$activeScreenId,
@@ -34,7 +35,6 @@ import {
 	screenClosed,
 	tabActivated,
 } from "../../landing-common/control-panel-model";
-import { webCallRequested } from "../../landing-common/web-call";
 import { ConvergedRailControlsIntegration } from "./ConvergedRailControlsIntegration";
 import { ConvergedRailPanel } from "./ConvergedRailPanel";
 
@@ -228,7 +228,11 @@ export function ConvergedRailPanelIntegration({
 			logoLight={branding.logoLight}
 			logoDark={branding.logoDark}
 			phone={branding.phone}
-			onCall={() => webCallRequested(branding.contextName)}
+			onCall={() => {
+				void requestMicrofrontendAction("calls.web.start", {
+					contextName: branding.contextName,
+				});
+			}}
 			screens={screens}
 			activeScreenId={activeScreenId}
 			onScreenChange={screenActivated}

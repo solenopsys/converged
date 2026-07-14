@@ -18,6 +18,7 @@ pub const Engine = struct {
     services_base: []const u8,
     /// LLM provider hub (providers appear per available API key).
     llm: LlmHub,
+    current_scope: []const u8 = "",
     run_mutex: std.Io.Mutex = .init,
 
     pub fn init(gpa: std.mem.Allocator, io: std.Io, store: *StateStore) !Engine {
@@ -48,12 +49,24 @@ pub const Engine = struct {
         script_path: []const u8,
         params_json: []const u8,
     ) !RunResult {
+        return self.runWorkflowScoped(alloc, "", script_path, params_json);
+    }
+
+    pub fn runWorkflowScoped(
+        self: *Engine,
+        alloc: std.mem.Allocator,
+        scope: []const u8,
+        script_path: []const u8,
+        params_json: []const u8,
+    ) !RunResult {
+        self.run_mutex.lockUncancelable(self.io);
+        defer self.run_mutex.unlock(self.io);
+        self.current_scope = scope;
+        defer self.current_scope = "";
+
         const t = self.transport();
         const source = try fetchSource(alloc, t, script_path);
         const exec_id = try newExecId(alloc, self.io);
-
-        self.run_mutex.lockUncancelable(self.io);
-        defer self.run_mutex.unlock(self.io);
 
         self.dagOpen(alloc, exec_id, script_path, params_json);
         const result = try vm.run(alloc, self.gpa, t, exec_id, source, params_json);
@@ -84,18 +97,20 @@ pub const Engine = struct {
 
     fn tCall(ctx: *anyopaque, a: std.mem.Allocator, service: []const u8, method: []const u8, body: []const u8) anyerror!vm.Reply {
         const self: *Engine = @ptrCast(@alignCast(ctx));
-        const res = try mscall.call(self.io, a, self.services_base, service, method, body);
+        const res = try mscall.call(self.io, a, self.services_base, service, method, body, self.current_scope);
         return .{ .ok = res.status >= 200 and res.status < 300, .status = res.status, .body = res.body };
     }
 
     fn tGet(ctx: *anyopaque, a: std.mem.Allocator, key: []const u8) anyerror!?[]const u8 {
         const self: *Engine = @ptrCast(@alignCast(ctx));
-        return self.store.get(self.io, a, key);
+        const scoped_key = try stateKey(a, self.current_scope, key);
+        return self.store.get(self.io, a, scoped_key);
     }
 
     fn tSet(ctx: *anyopaque, a: std.mem.Allocator, key: []const u8, value: []const u8) anyerror!void {
         const self: *Engine = @ptrCast(@alignCast(ctx));
-        return self.store.set(self.io, a, key, value);
+        const scoped_key = try stateKey(a, self.current_scope, key);
+        return self.store.set(self.io, a, scoped_key, value);
     }
 
     fn tLog(ctx: *anyopaque, msg: []const u8) void {
@@ -120,12 +135,12 @@ pub const Engine = struct {
         const body = std.fmt.allocPrint(a, "{{\"id\":{s},\"workflowName\":{s},\"params\":{s}}}", .{
             vm.jsonStr(a, exec_id) catch return, vm.jsonStr(a, workflow) catch return, params_json,
         }) catch return;
-        _ = mscall.call(self.io, a, self.services_base, "dag", "openExecution", body) catch return;
+        _ = mscall.call(self.io, a, self.services_base, "dag", "openExecution", body, self.current_scope) catch return;
     }
 
     fn dagSetStatus(self: *Engine, a: std.mem.Allocator, exec_id: []const u8, status: []const u8) void {
         const body = std.fmt.allocPrint(a, "{{\"id\":{s},\"status\":\"{s}\"}}", .{ vm.jsonStr(a, exec_id) catch return, status }) catch return;
-        _ = mscall.call(self.io, a, self.services_base, "dag", "setExecutionStatus", body) catch return;
+        _ = mscall.call(self.io, a, self.services_base, "dag", "setExecutionStatus", body, self.current_scope) catch return;
     }
 
     /// Record one executed node as a numbered task: createTask -> setTaskDone /
@@ -134,7 +149,7 @@ pub const Engine = struct {
         const ct_body = std.fmt.allocPrint(a, "{{\"executionId\":{s},\"nodeId\":{s}}}", .{
             vm.jsonStr(a, exec_id) catch return, vm.jsonStr(a, node) catch return,
         }) catch return;
-        const res = mscall.call(self.io, a, self.services_base, "dag", "createTask", ct_body) catch return;
+        const res = mscall.call(self.io, a, self.services_base, "dag", "createTask", ct_body, self.current_scope) catch return;
         if (res.status < 200 or res.status >= 300) return;
 
         const parsed = std.json.parseFromSliceLeaky(std.json.Value, a, res.body, .{}) catch return;
@@ -151,15 +166,20 @@ pub const Engine = struct {
             const body = std.fmt.allocPrint(a, "{{\"taskId\":{d},\"executionId\":{s},\"nodeId\":{s},\"completedAt\":{d},\"result\":null}}", .{
                 task_id, vm.jsonStr(a, exec_id) catch return, vm.jsonStr(a, node) catch return, now,
             }) catch return;
-            _ = mscall.call(self.io, a, self.services_base, "dag", "setTaskDone", body) catch return;
+            _ = mscall.call(self.io, a, self.services_base, "dag", "setTaskDone", body, self.current_scope) catch return;
         } else {
             const body = std.fmt.allocPrint(a, "{{\"taskId\":{d},\"completedAt\":{d},\"errorMessage\":{s}}}", .{
                 task_id, now, vm.jsonStr(a, err_text) catch return,
             }) catch return;
-            _ = mscall.call(self.io, a, self.services_base, "dag", "setTaskFailed", body) catch return;
+            _ = mscall.call(self.io, a, self.services_base, "dag", "setTaskFailed", body, self.current_scope) catch return;
         }
     }
 };
+
+fn stateKey(allocator: std.mem.Allocator, scope: []const u8, key: []const u8) ![]const u8 {
+    if (scope.len == 0) return allocator.dupe(u8, key);
+    return std.fmt.allocPrint(allocator, "scope:{s}:{s}", .{ scope, key });
+}
 
 var g_exec_seq: std.atomic.Value(u64) = .init(0);
 

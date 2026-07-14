@@ -22,7 +22,7 @@ interface DocumentProps {
   initialData?: Record<string, unknown>;
   logoLight?: string;
   logoDark?: string;
-  // Primary public phone, resolved from ms-audio-gate (AudioGateService) at SSR.
+  // Primary public phone, resolved from ms-resonus (ResonusService) at SSR.
   phone?: string;
   // Analytics counters, resolved from ms-counters (CountersService) by scope at SSR.
   counters?: Counter[];

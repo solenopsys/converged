@@ -9,10 +9,14 @@ const SetSocketOption = *const fn (?*anyopaque, c_int, ?*const anyopaque, usize)
 const Receive = *const fn (?*anyopaque, ?*anyopaque, usize, c_int) callconv(.c) c_int;
 const Send = *const fn (?*anyopaque, ?*const anyopaque, usize, c_int) callconv(.c) c_int;
 const GetSocketOption = *const fn (?*anyopaque, c_int, ?*anyopaque, *usize) callconv(.c) c_int;
+const Errno = *const fn () callconv(.c) c_int;
 
 const ZMQ_DEALER = 5;
 const ZMQ_IDENTITY = 5;
 const ZMQ_RCVMORE = 13;
+const ZMQ_RCVTIMEO = 27;
+const EAGAIN = 11;
+const READY_INTERVAL_TICKS = 5;
 
 pub const Config = struct {
     allocator: std.mem.Allocator,
@@ -82,6 +86,7 @@ pub const Client = struct {
     send_fn: Send,
     receive: Receive,
     more: GetSocketOption,
+    errno_fn: Errno,
 
     pub fn init(config: *const Config) !Client {
         var lib = try std.DynLib.open(config.lib_path);
@@ -96,6 +101,7 @@ pub const Client = struct {
         const send_fn = lib.lookup(Send, "zmq_send") orelse return error.ZmqSendSymbolMissing;
         const receive = lib.lookup(Receive, "zmq_recv") orelse return error.ZmqReceiveSymbolMissing;
         const more = lib.lookup(GetSocketOption, "zmq_getsockopt") orelse return error.ZmqSocketOptionSymbolMissing;
+        const errno_fn = lib.lookup(Errno, "zmq_errno") orelse return error.ZmqErrnoSymbolMissing;
 
         const context = context_new() orelse return error.ZmqContextCreateFailed;
         errdefer _ = context_term(context);
@@ -104,6 +110,9 @@ pub const Client = struct {
 
         if (set_option(socket, ZMQ_IDENTITY, config.identity.ptr, config.identity.len) != 0)
             return error.ZmqIdentitySetFailed;
+        var receive_timeout_ms: c_int = 1000;
+        if (set_option(socket, ZMQ_RCVTIMEO, &receive_timeout_ms, @sizeOf(c_int)) != 0)
+            return error.ZmqSocketOptionFailed;
         if (connect(socket, config.endpoint.ptr) != 0) return error.ZmqConnectFailed;
 
         return .{
@@ -115,6 +124,7 @@ pub const Client = struct {
             .send_fn = send_fn,
             .receive = receive,
             .more = more,
+            .errno_fn = errno_fn,
         };
     }
 
@@ -138,9 +148,12 @@ pub const Client = struct {
         if (self.send_fn(self.socket, payload.ptr, payload.len, 0) < 0) return error.ZmqSendFailed;
     }
 
-    pub fn recv(self: *Client, buffer: []u8) !Frame {
+    pub fn recv(self: *Client, buffer: []u8) !?Frame {
         const count = self.receive(self.socket, buffer.ptr, buffer.len, 0);
-        if (count < 0) return error.ZmqReceiveFailed;
+        if (count < 0) {
+            if (self.errno_fn() == EAGAIN) return null;
+            return error.ZmqReceiveFailed;
+        }
         const wire_len: usize = @intCast(count);
         const len = @min(wire_len, buffer.len);
         return .{ .bytes = buffer[0..len], .wire_len = wire_len, .truncated = wire_len > buffer.len };
@@ -156,7 +169,7 @@ pub const Client = struct {
 
     pub fn discardMore(self: *Client, buffer: []u8) void {
         while (self.hasMore() catch false) {
-            _ = self.recv(buffer) catch return;
+            _ = (self.recv(buffer) catch return) orelse return;
         }
     }
 
@@ -170,13 +183,77 @@ pub const Client = struct {
         try self.send(payload);
     }
 
+    pub const Command = struct {
+        connection_id: u64,
+        scope: []const u8,
+        message: std.json.Value,
+    };
+
+    pub const Provider = struct {
+        context: *anyopaque,
+        handle_fn: *const fn (*anyopaque, std.mem.Allocator, Command) anyerror![]u8,
+
+        pub fn handle(self: Provider, allocator: std.mem.Allocator, command: Command) ![]u8 {
+            return self.handle_fn(self.context, allocator, command);
+        }
+    };
+
+    /// Own the DEALER socket on this thread and dispatch addressed commands to
+    /// an injected provider. The provider returns one browser-facing JSON event;
+    /// this transport adds only the trusted connection route used by Fujin.
+    pub fn serve(self: *Client, allocator: std.mem.Allocator, service: []const u8, provider: Provider) void {
+        var buffer: [64 * 1024]u8 = undefined;
+        var idle_ticks: u8 = READY_INTERVAL_TICKS;
+        while (true) {
+            if (idle_ticks >= READY_INTERVAL_TICKS) {
+                self.sendReady(service) catch |err| {
+                    std.log.warn("{s} fujin registration failed: {s}", .{ service, @errorName(err) });
+                };
+                idle_ticks = 0;
+            }
+            const frame = (self.recv(&buffer) catch |err| {
+                std.log.err("{s} fujin receive failed: {s}", .{ service, @errorName(err) });
+                return;
+            }) orelse {
+                idle_ticks +|= 1;
+                continue;
+            };
+            if (frame.truncated) {
+                std.log.warn("{s} fujin command truncated bytes={d}", .{ service, frame.wire_len });
+                self.discardMore(&buffer);
+                continue;
+            }
+            self.discardMore(&buffer);
+
+            var arena = std.heap.ArenaAllocator.init(allocator);
+            defer arena.deinit();
+            const a = arena.allocator();
+            const command = decodeCommand(a, frame.bytes) catch |err| {
+                std.log.warn("{s} invalid fujin command: {s}", .{ service, @errorName(err) });
+                continue;
+            };
+
+            const message = provider.handle(a, command) catch |err|
+                errorMessage(a, command.message, @errorName(err)) catch continue;
+            const response = std.fmt.allocPrint(
+                a,
+                "{{\"type\":\"fujin_response\",\"connectionId\":{d},\"message\":{s}}}",
+                .{ command.connection_id, message },
+            ) catch continue;
+            self.send(response) catch |err| {
+                std.log.warn("{s} fujin response failed: {s}", .{ service, @errorName(err) });
+                return;
+            };
+        }
+    }
+
     pub fn listen(self: *Client, service: []const u8) void {
         var buffer: [64 * 1024]u8 = undefined;
         while (true) {
-            const frame = self.recv(&buffer) catch |err| {
+            const frame = (self.recv(&buffer) catch |err| {
                 std.log.err("{s} fujin receive failed: {s}", .{ service, @errorName(err) });
                 return;
-            };
+            }) orelse continue;
             if (frame.truncated) {
                 std.log.warn("{s} fujin command truncated bytes={d}", .{ service, frame.wire_len });
                 self.discardMore(&buffer);
@@ -187,3 +264,44 @@ pub const Client = struct {
         }
     }
 };
+
+fn decodeCommand(allocator: std.mem.Allocator, payload: []const u8) !Client.Command {
+    const root = try std.json.parseFromSliceLeaky(std.json.Value, allocator, payload, .{});
+    if (root != .object) return error.CommandEnvelopeInvalid;
+    const event_type = stringField(root.object, "type") orelse return error.CommandEnvelopeInvalid;
+    if (!std.mem.eql(u8, event_type, "fujin_command")) return error.CommandEnvelopeInvalid;
+    const connection_id = integerField(root.object, "connectionId") orelse return error.ConnectionIdMissing;
+    if (connection_id < 0) return error.ConnectionIdInvalid;
+    return .{
+        .connection_id = @intCast(connection_id),
+        .scope = stringField(root.object, "scope") orelse "",
+        .message = root.object.get("message") orelse return error.CommandMessageMissing,
+    };
+}
+
+fn errorMessage(allocator: std.mem.Allocator, message: std.json.Value, detail: []const u8) ![]u8 {
+    const request_id = if (message == .object) stringField(message.object, "requestId") orelse "" else "";
+    const request_json = try std.json.Stringify.valueAlloc(allocator, std.json.Value{ .string = request_id }, .{});
+    const detail_json = try std.json.Stringify.valueAlloc(allocator, std.json.Value{ .string = detail }, .{});
+    return std.fmt.allocPrint(
+        allocator,
+        "{{\"type\":\"error\",\"requestId\":{s},\"error\":{{\"code\":\"provider_error\",\"message\":{s}}}}}",
+        .{ request_json, detail_json },
+    );
+}
+
+fn stringField(object: std.json.ObjectMap, key: []const u8) ?[]const u8 {
+    const value = object.get(key) orelse return null;
+    return switch (value) {
+        .string => |text| text,
+        else => null,
+    };
+}
+
+fn integerField(object: std.json.ObjectMap, key: []const u8) ?i64 {
+    const value = object.get(key) orelse return null;
+    return switch (value) {
+        .integer => |number| number,
+        else => null,
+    };
+}

@@ -8,10 +8,14 @@ const Bind = *const fn (?*anyopaque, [*:0]const u8) callconv(.c) c_int;
 const Receive = *const fn (?*anyopaque, ?*anyopaque, usize, c_int) callconv(.c) c_int;
 const Send = *const fn (?*anyopaque, ?*const anyopaque, usize, c_int) callconv(.c) c_int;
 const More = *const fn (?*anyopaque, c_int, ?*anyopaque, *usize) callconv(.c) c_int;
+const SetSocketOption = *const fn (?*anyopaque, c_int, ?*const anyopaque, usize) callconv(.c) c_int;
+const Errno = *const fn () callconv(.c) c_int;
 
 const ZMQ_ROUTER = 6;
 const ZMQ_SNDMORE = 2;
 const ZMQ_RCVMORE = 13;
+const ZMQ_RCVTIMEO = 27;
+const EAGAIN = 11;
 
 pub const Server = struct {
     lib: std.DynLib,
@@ -23,6 +27,7 @@ pub const Server = struct {
     receive: Receive,
     send: Send,
     more: More,
+    errno_fn: Errno,
 
     pub fn init(path: []const u8, endpoint: [:0]const u8) !Server {
         var lib = try std.DynLib.open(path);
@@ -33,6 +38,10 @@ pub const Server = struct {
         const context = context_new() orelse return error.ZimqContextCreateFailed;
         errdefer _ = context_term(context);
         const socket = socket_new(context, ZMQ_ROUTER) orelse return error.ZimqSocketCreateFailed;
+        const set_option = lib.lookup(SetSocketOption, "zmq_setsockopt") orelse return error.ZimqSocketOptionSymbolMissing;
+        var receive_timeout_ms: c_int = 25;
+        if (set_option(socket, ZMQ_RCVTIMEO, &receive_timeout_ms, @sizeOf(c_int)) != 0)
+            return error.ZimqSocketOptionFailed;
         const server = Server{
             .lib = lib,
             .context = context,
@@ -43,6 +52,7 @@ pub const Server = struct {
             .receive = lib.lookup(Receive, "zmq_recv") orelse return error.ZimqReceiveSymbolMissing,
             .send = lib.lookup(Send, "zmq_send") orelse return error.ZimqSendSymbolMissing,
             .more = lib.lookup(More, "zmq_getsockopt") orelse return error.ZimqSocketOptionSymbolMissing,
+            .errno_fn = lib.lookup(Errno, "zmq_errno") orelse return error.ZimqErrnoSymbolMissing,
         };
         if (server.bind_fn(socket, endpoint.ptr) != 0) return error.ZimqBindFailed;
         return server;
@@ -61,9 +71,12 @@ pub const Server = struct {
         truncated: bool,
     };
 
-    pub fn recv(self: *Server, buffer: []u8) !Frame {
+    pub fn recv(self: *Server, buffer: []u8) !?Frame {
         const count = self.receive(self.socket, buffer.ptr, buffer.len, 0);
-        if (count < 0) return error.ZimqReceiveFailed;
+        if (count < 0) {
+            if (self.errno_fn() == EAGAIN) return null;
+            return error.ZimqReceiveFailed;
+        }
         const wire_len: usize = @intCast(count);
         const len = @min(wire_len, buffer.len);
         return .{ .bytes = buffer[0..len], .wire_len = wire_len, .truncated = wire_len > buffer.len };

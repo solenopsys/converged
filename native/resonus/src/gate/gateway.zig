@@ -573,6 +573,22 @@ pub const Gateway = struct {
         };
         defer context.deinit(self.allocator);
 
+        var tenant_llm_config = if (self.store) |store|
+            store.getActiveLlmConfig(self.allocator, domain) catch |err| blk: {
+                std.log.warn("tenant LLM config lookup failed (scope={s}): {s}", .{ domain, @errorName(err) });
+                break :blk null;
+            }
+        else
+            null;
+        defer if (tenant_llm_config) |*config| config.deinit(self.allocator);
+        if (tenant_llm_config) |config| {
+            if (!std.mem.eql(u8, config.provider, "openai") and
+                !std.mem.eql(u8, config.provider, "openai-compatible"))
+            {
+                return error.PolicyProviderUnavailable;
+            }
+        }
+
         var openai_cfg = bridge_mod.Config{
             .api_key = api_key,
             .calls_url = self.cfg.openai_realtime_calls_url,
@@ -591,6 +607,12 @@ pub const Gateway = struct {
             .ice_port_range_begin = self.cfg.ice_port_range_begin,
             .ice_port_range_end = self.cfg.ice_port_range_end,
         };
+        if (tenant_llm_config) |config| {
+            openai_cfg.calls_url = config.endpoint;
+            openai_cfg.model = config.model;
+            if (config.voice) |value| openai_cfg.voice = value;
+            if (config.transcription_model) |value| openai_cfg.transcription_model = value;
+        }
         if (policy_plan) |plan| {
             if (plan.model) |value| openai_cfg.model = value;
             if (plan.voice) |value| openai_cfg.voice = value;

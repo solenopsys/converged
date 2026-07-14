@@ -289,15 +289,6 @@
         "nrpc": "workspace:*",
       },
     },
-    "back/microservices/communications/ms-audio-gate": {
-      "name": "ms-audio-gate",
-      "dependencies": {
-        "back-core": "workspace:*",
-        "elysia": "latest",
-        "g-audio-gate": "workspace:*",
-        "nrpc": "workspace:*",
-      },
-    },
     "back/microservices/communications/ms-calls": {
       "name": "ms-calls",
       "version": "1.0.0",
@@ -334,6 +325,22 @@
         "g-notify": "workspace:*",
         "g-smtp": "workspace:*",
         "nrpc": "workspace:*",
+      },
+    },
+    "back/microservices/communications/ms-resonus": {
+      "name": "ms-resonus",
+      "dependencies": {
+        "back-core": "workspace:*",
+        "elysia": "latest",
+        "g-resonus": "workspace:*",
+        "nrpc": "workspace:*",
+      },
+    },
+    "back/microservices/communications/ms-signal": {
+      "name": "ms-signal",
+      "dependencies": {
+        "back-core": "workspace:*",
+        "elysia": "latest",
       },
     },
     "back/microservices/communications/ms-threads": {
@@ -862,8 +869,8 @@
         "elysia": "latest",
         "front-core": "workspace:*",
         "front-ssr": "workspace:*",
-        "g-audio-gate": "workspace:*",
         "g-markdown": "workspace:*",
+        "g-resonus": "workspace:*",
         "g-rt-gates": "workspace:*",
         "g-struct": "workspace:*",
         "md-tools": "workspace:*",
@@ -974,7 +981,6 @@
         "g-assistant": "workspace:*",
         "g-files": "workspace:*",
         "g-requests": "workspace:*",
-        "g-rt-assistant": "workspace:*",
         "g-rt-dag": "workspace:*",
         "g-store": "workspace:*",
         "g-threads": "workspace:*",
@@ -1380,13 +1386,6 @@
         "nrpc": "workspace:*",
       },
     },
-    "tools/integration/generated/g-audio-gate": {
-      "name": "g-audio-gate",
-      "version": "0.0.0",
-      "dependencies": {
-        "nrpc": "workspace:*",
-      },
-    },
     "tools/integration/generated/g-auth": {
       "name": "g-auth",
       "version": "0.0.0",
@@ -1648,6 +1647,13 @@
     },
     "tools/integration/generated/g-requests": {
       "name": "g-requests",
+      "version": "0.0.0",
+      "dependencies": {
+        "nrpc": "workspace:*",
+      },
+    },
+    "tools/integration/generated/g-resonus": {
+      "name": "g-resonus",
       "version": "0.0.0",
       "dependencies": {
         "nrpc": "workspace:*",
@@ -3054,8 +3060,6 @@
 
     "g-assistant": ["g-assistant@workspace:tools/integration/generated/g-assistant"],
 
-    "g-audio-gate": ["g-audio-gate@workspace:tools/integration/generated/g-audio-gate"],
-
     "g-auth": ["g-auth@workspace:tools/integration/generated/g-auth"],
 
     "g-billing": ["g-billing@workspace:tools/integration/generated/g-billing"],
@@ -3131,6 +3135,8 @@
     "g-push": ["g-push@workspace:tools/integration/generated/g-push"],
 
     "g-requests": ["g-requests@workspace:tools/integration/generated/g-requests"],
+
+    "g-resonus": ["g-resonus@workspace:tools/integration/generated/g-resonus"],
 
     "g-reviews": ["g-reviews@workspace:tools/integration/generated/g-reviews"],
 
@@ -3546,8 +3552,6 @@
 
     "ms-assistant": ["ms-assistant@workspace:back/microservices/ai/ms-assistant"],
 
-    "ms-audio-gate": ["ms-audio-gate@workspace:back/microservices/communications/ms-audio-gate"],
-
     "ms-auth": ["ms-auth@workspace:back/microservices/sequrity/ms-auth"],
 
     "ms-billing": ["ms-billing@workspace:back/microservices/business/ms-billing"],
@@ -3628,6 +3632,8 @@
 
     "ms-requests": ["ms-requests@workspace:back/microservices/business/ms-requests"],
 
+    "ms-resonus": ["ms-resonus@workspace:back/microservices/communications/ms-resonus"],
+
     "ms-reviews": ["ms-reviews@workspace:back/microservices/business/ms-reviews"],
 
     "ms-sales": ["ms-sales@workspace:back/microservices/business/ms-sales"],
@@ -3641,6 +3647,8 @@
     "ms-sfexpress": ["ms-sfexpress@workspace:back/microservices/delivery/ms-sfexpress"],
 
     "ms-sheduller": ["ms-sheduller@workspace:back/microservices/automation/ms-sheduller"],
+
+    "ms-signal": ["ms-signal@workspace:back/microservices/communications/ms-signal"],
 
     "ms-sms": ["ms-sms@workspace:back/microservices/providers/ms-sms"],
 
