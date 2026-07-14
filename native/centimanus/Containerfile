@@ -1,46 +1,22 @@
-FROM debian:bookworm-slim AS runtime
+FROM alpine:3.23.4 AS centimanus
 WORKDIR /app
 
-# TLS roots for outbound HTTPS to OpenAI / Gemini signaling APIs
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+# TLS roots for the LLM provider hub (api.openai.com / api.anthropic.com /
+# generativelanguage.googleapis.com).
+RUN apk add --no-cache ca-certificates
 
-COPY ./zig-out/bin/centimanus /app/centimanus
-COPY ./.container-libs/libdatachannel.so /app/libdatachannel.so
-COPY ./.container-libs/libdatachannel_wrapper.so /app/libdatachannel_wrapper.so
-COPY ./.container-libs/libmbedtls.so /app/libmbedtls.so
-COPY ./.container-libs/libmbedcrypto.so /app/libmbedcrypto.so
-COPY ./.container-libs/libmbedcrypto.so.18 /app/libmbedcrypto.so.18
-COPY ./.container-libs/libmbedx509.so /app/libmbedx509.so
-COPY ./.container-libs/libmbedx509.so.9 /app/libmbedx509.so.9
-COPY ./.container-libs/libtfpsacrypto.so.2 /app/libtfpsacrypto.so.2
-COPY ./.container-libs/libbaresip.so /app/libbaresip.so
-COPY ./.container-libs/libbaresip_wrapper.so /app/libbaresip_wrapper.so
-COPY ./.container-libs/libtransport.so /app/libtransport.so
-COPY ./.container-libs/libqjs.so /app/libqjs.so
-COPY ./scripts /app/scripts
-RUN chmod +x /app/centimanus && chmod 644 /app/lib*.so && mkdir -p /app/socket && chown -R 1000:1000 /app
-RUN useradd -u 1000 -M -r -s /usr/sbin/nologin default || true
+RUN mkdir -p /app/lib
+COPY ./.container-bin/centimanus /app/centimanus
+COPY ./.container-bin/libqjs.so /app/lib/libqjs.so
+COPY ./.container-libs/libzimq.so /app/lib/libzimq.so
+RUN chmod +x /app/centimanus && chown -R 1000:1000 /app
+RUN adduser -D -u 1000 default || true
 USER 1000
 
-ENV LLM_GATE_HTTP_HOST=0.0.0.0 \
-    LLM_GATE_HTTP_PORT=8090 \
-    LD_LIBRARY_PATH=/app \
-    LLM_GATE_LIBDATACHANNEL_LIB=/app/libdatachannel.so \
-    LLM_GATE_LIBDATACHANNEL_WRAPPER_LIB=/app/libdatachannel_wrapper.so \
-    LLM_GATE_BARESIP_LIB=/app/libbaresip.so \
-    LLM_GATE_BARESIP_WRAPPER_LIB=/app/libbaresip_wrapper.so \
-    LLM_GATE_MBEDTLS_LIB=/app/libmbedtls.so \
-    LLM_GATE_QJS_LIB=/app/libqjs.so \
-    LLM_GATE_POLICY_SCRIPT=/app/scripts/default.js \
-    LLM_GATE_SERVICES_URL=http://127.0.0.1:3000/services \
-    LLM_GATE_VALKEY_URL=redis://127.0.0.1:6379/0 \
-    LLM_GATE_VALKEY_KEY_PREFIX=cache \
-    LLM_GATE_SIP_ENABLED=true \
-    LLM_GATE_SIP_PORT=5060
+ENV CENTIMANUS_FUJIN_ZMQ_ENDPOINT=tcp://127.0.0.1:5557 \
+    CENTIMANUS_FUJIN_ZIMQ_LIB=/app/lib/libzimq.so \
+    LD_LIBRARY_PATH=/app/lib
 
-EXPOSE 8090
-EXPOSE 5060/udp
+EXPOSE 9000
 
-CMD ["/app/centimanus", "serve"]
+CMD ["/app/centimanus", "0.0.0.0:9000"]

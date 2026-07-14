@@ -19,7 +19,7 @@ const plugin = (config: any) => {
 		config.registerStartupTask("llm-gate-bridge", async () => {
 			if (process.env.LLM_GATE_BRIDGE_ENABLED !== "true") {
 				console.info(
-					"[ms-calls] llm-gate-bridge disabled; centimanus writes to service stores directly",
+					"[ms-calls] llm-gate-bridge disabled; resonus writes to service stores directly",
 				);
 				return;
 			}

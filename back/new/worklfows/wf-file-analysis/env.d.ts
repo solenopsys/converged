@@ -1,7 +1,7 @@
 import type { FileAnalysisInput, FileAnalysisResult } from "./types";
 
 declare global {
-	/** Host bridge the RT VM installs (native/runtime/src/prelude.js). */
+	/** Host bridge the RT VM installs (native/centimanus/src/prelude.js). */
 	const rt: {
 		node<T>(name: string, fn: () => T): T;
 		get(key: string): unknown;

@@ -31,6 +31,12 @@ relative to this directory; optional positional arguments override them:
 ./zig-out/bin/ptah [qjs-lib] [curaengine-lib] [opencamlib-lib]
 ```
 
+At startup ptah announces itself to Fujin through a ZMQ `DEALER` client. Its
+endpoint and wrapper path are configured with `PTAH_FUJIN_ZMQ_ENDPOINT` and
+`PTAH_FUJIN_ZIMQ_LIB`, with `FUJIN_ZMQ_ENDPOINT` and `FUJIN_ZIMQ_LIB` as shared
+fallbacks. Set `PTAH_FUJIN_LISTEN=on` to keep the process alive as a Fujin
+client after `Hub.tick()`; the default remains one-shot.
+
 Task schemas are owned by the built-in plugin modules. Cura tasks use
 `stlPath`, `definitionPath`, `gcodePath`, optional `settings`, `searchFiles`,
 `enginePath`, and `threads`. OpenCAMLib tasks use `stlPath`, optional

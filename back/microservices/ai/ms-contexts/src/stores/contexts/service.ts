@@ -12,7 +12,7 @@ import type {
 /**
  * Context store. One JSON entity per `<language>/<name>` so a context name can
  * carry localized variants; consumers read by (name, language). The value is
- * the full JSON Context — read directly by centimanus too (same
+ * the full JSON Context — read directly by resonus too (same
  * `<language>/<name>.json` key), so the shape is stable.
  */
 

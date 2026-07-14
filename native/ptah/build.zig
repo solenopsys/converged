@@ -18,6 +18,11 @@ fn addQjsBuild(b: *std.Build, optimize: std.builtin.OptimizeMode) *std.Build.Ste
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    const fujin_client = b.addModule("fujin-client", .{
+        .root_source_file = b.path("../fujin_client.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
 
     const exe = b.addExecutable(.{
         .name = "ptah",
@@ -27,6 +32,7 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
         }),
     });
+    exe.root_module.addImport("fujin-client", fujin_client);
     exe.root_module.link_libc = true;
     exe.root_module.strip = optimize != .Debug;
     b.installArtifact(exe);
@@ -49,6 +55,7 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
         }),
     });
+    tests.root_module.addImport("fujin-client", fujin_client);
     tests.root_module.link_libc = true;
     tests.root_module.strip = optimize != .Debug;
     const run_tests = b.addRunArtifact(tests);

@@ -1,6 +1,6 @@
 // ms-contexts — the single, utilitarian owner of LLM contexts (the prompt +
 // language an assistant / voice gate / agent runs with). Other services
-// (ms-assistant, ms-agent, centimanus, landing) only READ contexts from
+// (ms-assistant, ms-agent, resonus, landing) only READ contexts from
 // here; they do not store their own.
 //
 // Storage key is `<language>/<name>` — one file per language, SAME name across

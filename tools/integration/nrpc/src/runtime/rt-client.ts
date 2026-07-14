@@ -2,7 +2,7 @@
 //
 // Same generated metadata as the HTTP client, but instead of `fetch` each method
 // crosses into Zig through `globalThis.rt.call(service, method, params)` — the
-// host bridge the RT VM installs (see native/runtime/src/prelude.js). Calls are
+// host bridge the RT VM installs (see native/centimanus/src/prelude.js). Calls are
 // **synchronous**: the VM runs each workflow in a single QuickJS evaluation, so
 // there is no event loop to await. Business logic stays in the microservice; the
 // workflow only sequences these calls.

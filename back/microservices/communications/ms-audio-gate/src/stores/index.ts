@@ -16,7 +16,7 @@ export class StoresController extends StoreControllerAbstract {
 			StoreType.JSON,
 			[],
 		);
-		// Created here so the centimanus container can read/write it
+		// Created here so the resonus container can read/write it
 		// (LLM_GATE_TRANSPORT_STORE=llm-gate-configs). The gate never creates it.
 		const llmGateStore = await this.addStore(
 			"llm-gate-configs",

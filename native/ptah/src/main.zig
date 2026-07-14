@@ -1,4 +1,5 @@
 const std = @import("std");
+const fujin_client = @import("fujin-client");
 const Hub = @import("hub.zig").Hub;
 const Policy = @import("qjs_policy.zig").Policy;
 const CuraEnginePlugin = @import("plugins/curaengine.zig").CuraEnginePlugin;
@@ -26,9 +27,19 @@ pub fn main(init: std.process.Init) !void {
     var hub = try Hub.init(allocator, policy, &.{ cura.plugin(), opencamlib.plugin() }, 30_000);
     defer hub.deinit();
 
+    var fujin_config = try fujin_client.Config.init(allocator, init.environ_map, "PTAH", "ptah");
+    defer fujin_config.deinit();
+    var fujin = try fujin_client.Client.init(&fujin_config);
+    defer fujin.deinit();
+    try fujin.sendReady("ptah");
+
     std.debug.print(
         "ptah ready: plugins=curaengine,opencamlib idle-unload=30000ms qjs={s}\n",
         .{qjs_path},
     );
     try hub.tick();
+
+    if (std.mem.eql(u8, init.environ_map.get("PTAH_FUJIN_LISTEN") orelse "off", "on")) {
+        fujin.listen("ptah");
+    }
 }

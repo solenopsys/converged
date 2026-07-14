@@ -3,8 +3,8 @@
  *
  * Routes:
  *   /services/audiogate/*  → nrpc AudioGateService (phone numbers + llm-gate configs)
- *   /audio-gate/*          → HTTP proxy → centimanus
- *   /audio-gate/ws         → WebSocket relay → centimanus /ws
+ *   /audio-gate/*          → HTTP proxy → resonus
+ *   /audio-gate/ws         → WebSocket relay → resonus /ws
  *
  * Env: LLM_GATE_URL (optional — relay is disabled when unset; the config
  * service and its stores still come up so dev/seed works without the gate).

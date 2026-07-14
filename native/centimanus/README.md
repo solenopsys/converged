@@ -1,253 +1,156 @@
-# centimanus (Zig)
+# centimanus — the RT virtual machine
 
-## Runtime routing contract
+A thin, fast, reliable Zig VM that **only runs flow**. It replaces the TS DAG/cron
+engine (`back/runtime/engines`) with a sharper split of responsibilities:
 
-`centimanus` must route every call through explicit runtime inputs. The
-gate must not invent a context, tenant, user, or `scope`. If the required
-inputs are missing, the call must be refused. The `scope` is forwarded to
-microservice APIs as the tenant routing header.
+| concern | old (TS in RT) | new |
+|---|---|---|
+| node business logic | node classes inside RT | **microservices** (see `MAPPING.md`) |
+| branching / DAG flow | `Workflow` subclasses | **flow-only JS** run in QuickJS |
+| durable state (vars, task memoisation, status) | ms-dag | **Valkey** (storage-integrated) |
+| cron-expression parsing / scheduling | croner in RT | **scheduler microservice**; RT only runs the timer |
+| workflow source | bundled TS | fetched from the **scripts microservice** |
 
-### WebRTC contour
+The Zig side is deliberately dumb: it embeds QuickJS, runs a script, and gives that
+script exactly four host primitives. Everything heavy (LLM calls, DB, cron math,
+config) is on the other side of a network boundary. Zig never parses config and
+never holds business logic — it executes.
 
-WebRTC call setup uses one WebSocket handshake request:
+## Model
 
-```text
-GET /ws?context_name=<context_name>&scope=<scope>&user=<user>
+```
+            POST /run {script, params}            ┌─────────────────┐
+ caller ───────────────────────────────────────► │   RT VM (Zig)   │
+            (or the scheduler MS, on a period)    │  embeds QuickJS │
+                                                  └───────┬─────────┘
+   workflow JS (flow only) runs in QuickJS  ◄─────────────┘
+        │  rt.call(service, method, params)  ──►  microservice (nrpc HTTP)
+        │  rt.get(key) / rt.set(key, value)  ──►  Valkey
+        │  rt.log(msg)
+        └─ rt.node(name, fn): memoised DAG step (cached in Valkey, resume-safe)
 ```
 
-| Parameter | Exact source | Used for |
-| --- | --- | --- |
-| `context_name` | WebSocket query parameter `context_name` | Selects the call context |
-| `scope` | WebSocket query parameter `scope` | Microservice tenant routing header |
-| `user` | WebSocket query parameter `user` | Session label and call index data |
+The whole branching/DAG/finite-state-machine layer is the JS the workflow author
+(or the nrpc-driven translator) writes. The prelude that defines `rt` lives in
+`src/prelude.js`; the VM evaluates `prelude + <workflow source> + JSON.stringify(__run())`.
 
-### SIP contour
+## Host primitives (the entire `rt` surface)
 
-SIP call setup starts from the dialed number:
+- `rt.call(service, method, params)` → nrpc POST `SERVICES_BASE/<service>/<method>`
+- `rt.get(key)` / `rt.set(key, value)` → Valkey (values are opaque to Zig)
+- `rt.log(message)`
+- `rt.node(name, fn)` → a named, memoised step (skipped on resume if already done)
+- `rt.llm({...})` → one chat completion via the Zig provider hub (see below)
 
-```text
-SIP To -> audio-gate-ms/phone-numbers -> { gateway.contextId, scope }
-```
+## LLM provider hub (`rt.llm`)
 
-| Parameter | Exact source | Used for |
-| --- | --- | --- |
-| `context_name` | Phone-number record field `gateway.contextId` | Selects the call context |
-| `scope` | Phone-number record field `scope` | Microservice tenant routing header |
-| `user` | SIP `From` | Session label and call index data |
+`src/llm/` holds the provider layer: a uniform chat-completion contract
+(`provider.zig`), three wire implementations — `openai.zig` (chat/completions),
+`claude.zig` (messages), `gemini.zig` (generateContent) — and `hub.zig`, which
+owns one long-lived HTTP client so TLS/keep-alive connections to the vendors
+stay warm across calls. The uniform shapes mirror the TS ChatLLMProvider layer
+(`rt-assistant/impls/providers/base.ts`), so workflows, tests and the old TS
+runtimes all speak one dialect.
 
-### 1. Context name
-
-The context name is the logical call context key, for example `voice`.
-
-For WebRTC calls it is supplied by the WebSocket query parameter
-`context_name`.
-
-The gate loads the context through the `contexts` service API. A missing,
-incomplete, or mismatched context means the call is refused.
-
-### 2. Persistence routing
-
-There is no direct service-store transport in the gate.
-
-- Audio fragments: `centimanus -> Valkey` using Redis commands. The gate
-  keeps the generated cache keys in the live session.
-- Service state: `centimanus -> microservice API` with the request `scope`
-  forwarded as `scope` and `workspace` headers.
-- Audio dump: on session close, the gate sends `calls.dumpAudioFragments` with
-  the array of Valkey/cache keys and fragment metadata. `ms-calls` reads the
-  cache entries through its `CacheAdapter`, writes the KVS fragment packet, and
-  returns `{ received, stored, missing }`.
-
-### 3. User
-
-`user` is the caller/session label. It is not a context name and not a storage
-selector.
-
-For WebRTC calls it is supplied by the WebSocket query parameter `user`.
-
-For SIP calls it is supplied by SIP `From`.
-
-The gate may persist `user` into session and call indexes, but it must not use
-`user` to choose the context or tenant. Context selection uses context name;
-tenant routing uses `scope`.
-
-### SIP scenario
-
-SIP has an additional mapping step because the call does not naturally carry the
-web landing context name.
-
-Current SIP inputs:
-
-- dialed number: SIP `To`
-- caller identity: SIP `From`
-
-SIP context selection:
-
-```text
-dialed number -> phone-numbers store -> gateway.contextId -> contexts-ms/contexts
-```
-
-The phone-number records live in `audio-gate-ms/phone-numbers`. Number matching
-is digits-only, so a SIP URI like `+17025550142` can match a stored display
-number like `+1 (702) 555-0142`.
-
-The phone-number mapping must include `scope` alongside `gateway.contextId`.
-That makes the SIP route explicit for service API calls:
-
-```text
-dialed number -> phone-number record -> { contextId, scope }
-scope -> service API tenant headers
-contextId -> call context
-```
-
-Without `scope` in the phone-number mapping, SIP cannot safely select tenant
-state.
-
-Pure-Zig gate for LLM audio signaling and context operations.
-
-## Scriptable call policy
-
-Call routing and AI session selection are controlled by a small JavaScript
-policy executed in the embedded QuickJS-ng wrapper. Zig remains responsible for
-SIP/WebRTC/RTP, media, persistence and validation; JavaScript only returns a
-typed call plan.
+Everything is explicit — the VM never invents a provider, model or token
+budget; the flow script decides, Zig transports:
 
 ```js
-function onIncomingCall(call, gateway) {
-  if (call.caller.startsWith("+84")) {
-    return gateway.ai({
-      contextId: "club-voice",
-      model: "gpt-realtime-2.1",
-      voice: "marin",
-      transcriptionModel: "gpt-realtime-whisper",
-      ...gateway.transferToHuman("sip:sales@sip.example.com"),
-    });
-  }
-  return gateway.fromRoute(call);
-}
+var res = rt.node("llm-round-0", function () {
+  return rt.llm({
+    provider: "openai" | "claude" | "gemini",   // required
+    model: "gpt-5-mini",                        // required
+    maxTokens: 2048,                            // required
+    messages: [                                  // required
+      { role: "system", content: "..." },
+      { role: "user", content: "..." },
+      // { role: "assistant", content, toolCalls: [{id,name,args}] }
+      // { role: "tool", toolCallId, name, content }
+    ],
+    tools: [{ name, description, parameters }],  // optional
+    temperature: 0.7,                            // optional
+  });
+});
+// -> { provider, model, text, toolCalls: [{id,name,args}], finishReason,
+//      usage: {input, output} }
 ```
 
-Available constructors:
+Wrap every call in `rt.node(...)` — a completed LLM round is memoised in
+Valkey and never re-paid on resume. `examples/workflows/wf-chat-turn.js` is
+the reference agent loop (LLM → tools via `rt.call` → LLM), and
+`test/bun/llm.test.ts` drives it against a mocked hub.
 
-- `gateway.ai(options)` selects an interactive AI session. `contextId` is
-  required; `provider`, `model`, `voice`, `transcriptionModel`, VAD fields and
-  `humanTransferUri` are optional. The current media executor supports
-  `provider: "openai"`; another provider is added behind the same plan contract.
-- `gateway.human(sipUri, options)` directly bridges the caller to a human and
-  can select `language` and `transcriptionModel` for per-leg transcription.
-- `gateway.reject(status)` refuses the call before allocating media resources.
-- `gateway.fromRoute(call)` preserves the route returned by the phone-number
-  service.
-- `gateway.transferToHuman(sipUri)` enables the `transfer_to_human` AI tool.
-  The model can invoke it during a SIP call; the gateway replaces the AI media
-  endpoint with the human bridge on the SIP owner thread.
+Providers register only when their key is present; calling an unregistered one
+fails loudly with the env var to set:
 
-Validate a policy without placing a call:
+| var | meaning |
+|---|---|
+| `OPENAI_API_KEY` | enables provider `openai` |
+| `ANTHROPIC_API_KEY` (or `CLAUDE_API_KEY`) | enables provider `claude` |
+| `GEMINI_API_KEY` | enables provider `gemini` |
+| `RT_OPENAI_BASE_URL` / `RT_ANTHROPIC_BASE_URL` / `RT_GEMINI_BASE_URL` | optional endpoint overrides (proxies) |
+
+## Configuration (env only — missing required values fail loudly, no defaults)
+
+| var | meaning |
+|---|---|
+| `RT_BIND` | `host:port` to listen on (or pass as `argv[1]`) |
+| `SERVICES_BASE` | microservice gateway base URL |
+| `RT_STATE_BACKEND` | `memory` (local/test) or `valkey` |
+| `VALKEY_HOST` / `VALKEY_PORT` | required when backend = `valkey` |
+| `RT_SCHEDULER` | `on` to run the periodic launcher loop |
+| `RT_SERVICE_TOKEN` / `RT_SCOPE` | optional nrpc auth / tenant headers |
+| `CENTIMANUS_FUJIN_ZMQ_ENDPOINT` | Fujin DEALER endpoint; falls back to `FUJIN_ZMQ_ENDPOINT` and then `tcp://127.0.0.1:5557` |
+| `CENTIMANUS_FUJIN_ZIMQ_LIB` | target-specific `libzimq` path; falls back to `FUJIN_ZIMQ_LIB` |
+| `CENTIMANUS_FUJIN_ZMQ_IDENTITY` | optional ZMQ identity (default `centimanus`) |
+| `*_API_KEY` | LLM providers (see the hub section above) |
+
+## HTTP surface
+
+```
+GET  /healthz                 -> "ok"
+POST /run   {"script","params"}  -> {"executionId","ok","result"|"error"}
+```
+
+## Cron
+
+There is **no cron logic in Zig**. The scheduler microservice formalizes every
+cron expression into a period and returns `sheduller.schedule()` →
+`{ items: [ { script, params, periodMs } ] }` (see `examples/schedule.json`). With
+`RT_SCHEDULER=on` the RT polls that list and launches each script when its period
+elapses — a dumb timer, nothing more.
+
+## Build & run
 
 ```bash
-LLM_GATE_POLICY_SCRIPT=scripts/club-example.js \
-  zig build run -- policy-check +84901234567 18005550000 voice
+zig build                                   # native musl -> zig-out/{bin,lib}
+# local glibc host:
+RT_STATE_BACKEND=memory SERVICES_BASE=http://127.0.0.1:9888 \
+  zig build -Dtarget=x86_64-linux-gnu run -- 127.0.0.1:9777
 ```
 
-/dial sip:78632020220@192.168.100.196:5060
-
-
-## Scope
-
-- OpenAI Realtime API v2 signaling adapter (`/v1/realtime/calls` unified multipart SDP flow).
-- OpenAI WebSocket signaling compatibility endpoint: `GET /ws` with `offer/answer/ice-candidate` message model.
-- Gemini signaling adapter (separate flow and payload model).
-- Native dependency probing for:
-  - `libbaresip.so`
-  - `libbaresip_wrapper.so`
-  - `libdatachannel.so`
-  - `libdatachannel_wrapper.so`
-  - `libmbedtls.so`
-- Persistence split:
-  - raw Opus audio fragments are written to Valkey through the Redis protocol;
-  - contexts, phone mappings, call rows, thread messages, and fragment-dump
-    commands go through microservice HTTP/nRPC APIs.
-
-## Build
+End-to-end smoke test (mock gateway + `examples/workflows/wf-demo.js`):
 
 ```bash
-zig build
+curl -s -X POST http://127.0.0.1:9777/run \
+  -d '{"script":"workflows/wf-demo.js","params":{"name":"world","n":21}}'
+# {"executionId":"exec-...","ok":true,"result":{"doubled":42,"memoised_equal":true,
+#  "got":{"saved":true},"ping":{"echoedPath":"/demo/ping","echoedBody":{"x":21}}}}
 ```
 
-## Run
+## Translating workflows
 
-```bash
-zig build run
-```
-
-By default it starts HTTP API on `0.0.0.0:8090`.
-
-### OpenAI WS compatibility
-
-`/ws` accepts the same client-side signaling message model as the old gate:
-
-- incoming: `{"type":"offer","data":{"type":"offer","sdp":"..."}}`
-- incoming context override: `{"type":"offer","sdp":"...","phone":"+7900...","contextName":"club"}`
-- outgoing: `{"type":"answer","data":{"type":"answer","sdp":"..."}}`
-- incoming `ice-candidate` messages are accepted and ignored (direct OpenAI SDP exchange path).
+`examples/workflows/wf-markering.js` shows the pattern: the old node classes
+collapse into single `rt.call(...)` steps (node logic having moved into the owning
+microservice per `MAPPING.md`), and only the flow — sequence, branches, error
+handling — remains. These files belong to the scripts microservice; nrpc codegen
+can emit them as a thin projection of the generated `g-*` metadata.
 
 ## Container
 
-Build a static musl binary, then package it into a minimal image:
-
 ```bash
-zig build -Doptimize=ReleaseSafe -Dtarget=x86_64-linux-musl
-podman build -f Containerfile -t centimanus .
-podman run -d -p 8090:8090 -e OPENAI_API_KEY=sk-... centimanus
+./build-container.sh
 ```
 
-Local converged-portal run command is kept in `./run-converged-local.sh`.
-
-The image serves the HTTP signaling API (OpenAI/Gemini + `/ws`) on port `8090`.
-Native SIP/WebRTC `.so` libs are not bundled, so the dependency probe reports
-them as unavailable and SIP stays disabled (`LLM_GATE_SIP_ENABLED` unset). The
-container is stateless; context, audio fragments, and transcript events are
-routed through Valkey and service APIs. The gate never writes service stores
-directly.
-
-## CLI modes
-
-```bash
-# Probe native libraries
-zig build run -- probe-libs
-
-# Native wrapper smoke test
-zig build run -- native-smoke
-
-# OpenAI signaling from SDP offer file
-zig build run -- signal-openai ./offer.sdp --context-name=club
-
-# Gemini signaling descriptor
-zig build run -- signal-gemini
-
-# Context operations through the contexts service API
-zig build run -- context-set user123 "custom context"
-zig build run -- context-get user123
-```
-
-## Main env vars
-
-- `OPENAI_API_KEY`
-- `OPENAI_REALTIME_MODEL` (default `gpt-realtime-2.1`)
-- `OPENAI_REALTIME_VOICE` (default `marin`; old `OPENAI_VOICE` is also accepted)
-- `OPENAI_REALTIME_TRANSCRIPTION_MODEL` (default `gpt-4o-transcribe`)
-- `OPENAI_REALTIME_NOISE_REDUCTION` (default `far_field`)
-- `OPENAI_REALTIME_CALLS_URL` (default `https://api.openai.com/v1/realtime/calls`)
-- `LLM_GATE_QJS_LIB` (default `<converged-root>/native/wrapers/qjs/zig-out/lib/libqjs.so`)
-- `LLM_GATE_POLICY_SCRIPT` (default `scripts/default.js`)
-- `LLM_GATE_POLICY_REQUIRED` (default `true`; fail startup instead of bypassing a broken policy)
-- `OPENAI_SAFETY_IDENTIFIER` (optional override; otherwise `phone` is hashed when present)
-- `GEMINI_API_KEY`
-- `LLM_GATE_HTTP_HOST` (default `0.0.0.0`)
-- `LLM_GATE_HTTP_PORT` (default `8090`)
-- `LLM_GATE_CONVERGED_ROOT` (default `/home/alexstorm/distrib/4ir/gestalt/clarity/projects/converged-portal`)
-- `LLM_GATE_SERVICES_URL` (default `http://127.0.0.1:3000/services`; old `LLM_GATE_THREADS_SERVICE_URL` is accepted as fallback)
-- `LLM_GATE_SERVICES_TOKEN` (optional bearer token; old `LLM_GATE_THREADS_SERVICE_TOKEN` is accepted as fallback)
-- `LLM_GATE_VALKEY_URL` (default `redis://127.0.0.1:6379/0`; `VALKEY_URL`, `REDIS_URL`, and `RUNTIME_CACHE_URL` are accepted as fallbacks)
-- `LLM_GATE_VALKEY_KEY_PREFIX` (default `cache`)
-- `LLM_GATE_VALKEY_TTL_SECONDS` (default `120`)
+Set `TARGET` to select another supported Alpine/musl image target, for example
+`TARGET=aarch64-linux-musl ./build-container.sh`.

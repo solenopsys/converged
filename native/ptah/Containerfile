@@ -1,0 +1,17 @@
+FROM debian:bookworm-slim AS runtime
+WORKDIR /app
+
+COPY ./zig-out/bin/ptah /app/ptah
+COPY ./.container-libs/libqjs.so /app/lib/libqjs.so
+COPY ./.container-libs/libcuraengine.so /app/lib/libcuraengine.so
+COPY ./.container-libs/libopencamlib.so /app/lib/libopencamlib.so
+COPY ./.container-libs/libzimq.so /app/lib/libzimq.so
+RUN chmod +x /app/ptah && chmod 644 /app/lib/*.so \
+    && useradd -u 1000 -M -r -s /usr/sbin/nologin default
+USER 1000
+
+ENV PTAH_FUJIN_ZMQ_ENDPOINT=tcp://converged-fujin:5557 \
+    PTAH_FUJIN_ZIMQ_LIB=/app/lib/libzimq.so \
+    PTAH_FUJIN_LISTEN=on
+
+CMD ["/app/ptah", "/app/lib/libqjs.so", "/app/lib/libcuraengine.so", "/app/lib/libopencamlib.so"]

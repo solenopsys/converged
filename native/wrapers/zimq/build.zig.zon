@@ -1,0 +1,28 @@
+.{
+    .name = .zimq,
+    .version = "0.0.0",
+    .minimum_zig_version = "0.14.0",
+    .fingerprint = 0x95913b0ba0620d9f,
+
+    .dependencies = .{
+        .libzmq = .{
+            .url = "https://github.com/zeromq/libzmq/archive/34f7fa22022bed9e0e390ed3580a1c83ac4a2834.tar.gz",
+            .hash = "N-V-__8AAHUzRQAL7Ikh0_T9Nw0RdIaq1ntd_qhYGJA9AvC6",
+        },
+        .libsodium = .{
+            .url = "git+https://github.com/jedisct1/libsodium#77e1ce5d6dee871c49ef211222ba18ef0c486bda",
+            .hash = "N-V-__8AAGV3jgBL34nv4uUihxaCgroWLfj966-SVjBHn9RE",
+            .lazy = true,
+        },
+    },
+
+    .paths = .{
+        "src",
+        "LICENSE",
+        "README.md",
+        "build_utils.zig",
+        "build.zig",
+        "build.zig.zon",
+        "current.json",
+    },
+}
