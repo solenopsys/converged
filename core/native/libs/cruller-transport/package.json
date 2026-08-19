@@ -4,7 +4,8 @@
   "module": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./messaging": "./src/messaging.ts"
+    "./messaging": "./src/messaging.ts",
+    "./storage-errors": "./src/storage-errors.ts"
   },
   "type": "module",
   "private": true,

@@ -4,6 +4,7 @@ pub const control = @import("control.zig");
 pub const auth = @import("auth/root.zig");
 pub const service = @import("service.zig");
 pub const runtime = @import("runtime.zig");
+pub const storage_errors = @import("storage/errors.zig");
 
 pub const Envelope = envelope.Envelope;
 pub const Address = envelope.Address;
@@ -25,6 +26,7 @@ pub const RuntimeReplyTarget = runtime.ReplyTarget;
 pub const RuntimeOutgoing = runtime.Outgoing;
 pub const RuntimeCompletion = runtime.Completion;
 pub const RuntimeHandler = runtime.Handler;
+pub const StorageErrorCode = storage_errors.Code;
 pub const AuthClaims = auth.Claims;
 pub const AuthContext = auth.Context;
 pub const AccessMode = auth.AccessMode;
@@ -38,4 +40,5 @@ test {
     _ = auth;
     _ = service;
     _ = runtime;
+    _ = storage_errors;
 }

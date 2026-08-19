@@ -7,6 +7,16 @@ import {
   PayloadCodec,
   type IncomingMessage,
 } from "./messaging";
+import {
+  parseStorageErrorText,
+  type StorageErrorCode,
+} from "./storage-errors";
+
+export {
+  StorageErrorCodes,
+  parseStorageErrorText,
+  type StorageErrorCode,
+} from "./storage-errors";
 
 // behemoth always registers with fujin under this identity/service pair
 // (see navite/apps/behemoth/src/server.zig) — not configurable per-instance.
@@ -227,20 +237,53 @@ export type StorageConnectionConfig = StorageConnectionTargetConfig | PoolSocket
 export class StorageTransportError extends Error {
   readonly code: StorageTransportErrorCode;
   readonly socketPath?: string;
+  /** Set on REMOTE_ERROR: what storage itself refused to do. */
+  readonly storageCode?: StorageErrorCode;
+  /** Error text as storage sent it, without the code prefix. */
+  readonly storageDetail?: string;
 
   constructor(
     code: StorageTransportErrorCode,
     message: string,
-    options?: { socketPath?: string; cause?: unknown },
+    options?: {
+      socketPath?: string;
+      cause?: unknown;
+      storageCode?: StorageErrorCode;
+      storageDetail?: string;
+    },
   ) {
     super(message);
     this.name = "StorageTransportError";
     this.code = code;
     this.socketPath = options?.socketPath;
+    this.storageCode = options?.storageCode;
+    this.storageDetail = options?.storageDetail;
     if (options && "cause" in options) {
       (this as Error & { cause?: unknown }).cause = options.cause;
     }
   }
+
+  /** True when the store could not be reached because its volume is missing. */
+  get isDataDirError(): boolean {
+    return (
+      this.storageCode === "DATA_DIR_NOT_CONFIGURED" ||
+      this.storageCode === "DATA_DIR_NOT_MOUNTED" ||
+      this.storageCode === "STORAGE_CONFIG_INVALID"
+    );
+  }
+}
+
+/** Builds the REMOTE_ERROR carrying whatever storage reported. */
+function remoteStorageError(
+  text: string,
+  socketPath: string,
+): StorageTransportError {
+  const parsed = parseStorageErrorText(text || "unknown error");
+  return new StorageTransportError(
+    "REMOTE_ERROR",
+    `storage error: ${parsed.message} (socket: ${socketPath})`,
+    { socketPath, storageCode: parsed.code, storageDetail: parsed.detail },
+  );
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -785,10 +828,9 @@ export class StorageConnection {
 
       if (msg.envelope.kind === MessageKind.error) {
         const errText = decodeErrorPayload(msg.payload);
-        throw new StorageTransportError(
-          "REMOTE_ERROR",
-          `storage error: ${errText || msg.envelope.errorCode || "unknown error"} (socket: ${this.socketPath})`,
-          { socketPath: this.socketPath },
+        throw remoteStorageError(
+          errText || msg.envelope.errorCode || "unknown error",
+          this.socketPath,
         );
       }
 
@@ -987,11 +1029,7 @@ class Response {
     if (!(s.transport_resp_ok(handle) as number)) {
       const err = readCStr(s.transport_resp_error(handle));
       this.free();
-      throw new StorageTransportError(
-        "REMOTE_ERROR",
-        `storage error: ${err || "unknown error"} (socket: ${socketPath})`,
-        { socketPath },
-      );
+      throw remoteStorageError(err, socketPath);
     }
   }
 
