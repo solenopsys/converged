@@ -1,0 +1,18 @@
+{
+  "name": "bun-transport",
+  "version": "0.1.0",
+  "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./messaging": "./src/messaging.ts"
+  },
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "sync:libs": "mkdir -p bin-libs && cp -uf ../transport/zig-out/lib/libtransport-*.so ../transport/zig-out/lib/libmessage-*.so ./bin-libs/ && arch=$(uname -m); case $arch in x86_64) arch=x86_64;; aarch64|arm64) arch=aarch64;; esac; libc=${LIBC_VARIANT:-gnu}; if [ -f ./bin-libs/libzimq-${arch}-${libc}.so ]; then cp -f ./bin-libs/libzimq-${arch}-${libc}.so ./bin-libs/libzimq.so; else cp -f ../transport/zig-out/lib/libzimq.so ./bin-libs/libzimq.so; fi",
+    "rebuild-and-sync:libs": "cd ../transport && zig build -Dall=true -Doptimize=ReleaseFast && cd - >/dev/null && bun run sync:libs"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}
