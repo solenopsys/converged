@@ -55,3 +55,6 @@
 [submodule "core/native/wrappers/protocols/fluentbit/vendor/fluent-bit"]
 	path = core/native/wrappers/protocols/fluentbit/vendor/fluent-bit
 	url = https://github.com/fluent/fluent-bit.git
+[submodule "core/native/libs/transport/vendor/capnproto"]
+	path = core/native/libs/transport/vendor/capnproto
+	url = https://github.com/capnproto/capnproto
