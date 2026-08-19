@@ -1,0 +1,13 @@
+{
+	"name": "wf-file-unpack",
+	"version": "0.0.0",
+	"type": "module",
+	"private": true,
+	"module": "index.ts",
+	"dependencies": {
+		"dag-core": "workspace:*",
+		"dag-file-steps": "workspace:*",
+		"g-files": "workspace:*",
+		"g-store": "workspace:*"
+	}
+}

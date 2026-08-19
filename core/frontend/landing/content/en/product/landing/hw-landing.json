@@ -1,0 +1,43 @@
+{
+  "id": "hw-landing",
+  "title": "hw — операционная система мастерской",
+  "navigation": {
+    "menuLinks": [
+      { "blockId": "capabilities", "label": "Возможности" },
+      { "blockId": "assistant", "label": "AI-ассистент" }
+    ]
+  },
+  "blocks": [
+    {
+      "id": "product",
+      "type": "hero",
+      "sources": {
+        "hero": "product/landing/hw/hero.json"
+      },
+      "props": {
+        "navLabel": "Продукт"
+      }
+    },
+    {
+      "id": "assistant",
+      "type": "assistant-stage",
+      "sources": {
+        "stage": "product/landing/hw/assistant-stage.json"
+      },
+      "props": {
+        "navLabel": "AI-ассистент"
+      }
+    },
+    {
+      "id": "capabilities",
+      "type": "product-cases",
+      "sources": {
+        "cases": "product/landing/hw/product-cases.json",
+        "diagrams": "product/landing/hw/diagrams.json"
+      },
+      "props": {
+        "navLabel": "Возможности"
+      }
+    }
+  ]
+}

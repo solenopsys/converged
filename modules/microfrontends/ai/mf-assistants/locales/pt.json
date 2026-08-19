@@ -1,0 +1,75 @@
+{
+  "menu": {
+    "chats": "Chats",
+    "audio": "Áudio",
+    "text": "Textuais",
+    "contexts": "Contextos",
+    "commands": "Comandos"
+  },
+  "chatsList": {
+    "title": "Lista de chats",
+    "actions": {
+      "newChat": "Novo chat",
+      "refresh": "Atualizar"
+    },
+    "columns": {
+      "name": "Nome",
+      "messages": "Mensagens",
+      "createdAt": "Criado",
+      "updatedAt": "Atualizado"
+    }
+  },
+  "contextsList": {
+    "title": "Contextos",
+    "columns": {
+      "chatId": "ID do chat",
+      "updatedAt": "Atualizado",
+      "size": "Tamanho"
+    },
+    "contextJson": "JSON do contexto",
+    "selectRow": "Selecione uma linha para ver o contexto.",
+    "errors": {
+      "loadFailed": "Falha ao carregar o contexto"
+    }
+  },
+  "commandsList": {
+    "title": "Comandos",
+    "searchPlaceholder": "Pesquisar comandos...",
+    "available": "{count} comandos disponiveis",
+    "execute": "Executar comando",
+    "empty": "Nenhum comando encontrado",
+    "functionInterface": "Interface de funcao AI",
+    "functionHint": "Use esta funcao no chat AI para executar comandos de UI"
+  },
+  "common": {
+    "refresh": "Atualizar",
+    "loading": "Carregando..."
+  },
+  "toolAction": {
+    "thinking": "Estou pensando no seu pedido...",
+    "request": "Estou trabalhando no pedido...",
+    "file": "Estou processando arquivos...",
+    "search": "Estou buscando informacoes...",
+    "analyze": "Estou analisando os dados...",
+    "convert": "Estou convertendo arquivos...",
+    "update": "Estou atualizando os dados...",
+    "create": "Estou criando um registro...",
+    "load": "Estou carregando dados...",
+    "delete": "Estou excluindo um registro...",
+    "notify": "Estou enviando uma notificacao..."
+  },
+  "toolCall": {
+    "title": "Chamada de função",
+    "actions": {
+      "createCncRequest": "Criando solicitação",
+      "patchCncRequest": "Atualizando solicitação",
+      "getCncRequest": "Carregando solicitação",
+      "getCncRequestRequirements": "Verificando requisitos",
+      "getUploadedChatFiles": "Verificando arquivos",
+      "startFileAnalysis": "Analisando arquivos",
+      "listUIActions": "Buscando ações",
+      "invokeUIAction": "Abrindo visualização",
+      "weather": "Verificando o tempo"
+    }
+  }
+}

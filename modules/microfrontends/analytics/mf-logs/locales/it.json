@@ -1,0 +1,18 @@
+{
+  "menu.logs": "Log",
+  "menu.logs.hot": "Caldi",
+  "menu.logs.cold": "Freddi",
+  "logs.view.hotTitle": "Log (caldi)",
+  "logs.view.coldTitle": "Log (freddi)",
+  "logs.view.refresh": "Aggiorna",
+  "logs.stats.title": "Statistiche dei log",
+  "logs.stats.refresh": "Aggiorna",
+  "logs.stats.totalHot": "Log caldi",
+  "logs.stats.totalHotDescription": "Numero totale di record nell'archivio caldo",
+  "logs.stats.totalCold": "Log freddi",
+  "logs.stats.totalColdDescription": "Numero totale di record nell'archivio freddo",
+  "logs.stats.errors": "Errori",
+  "logs.stats.errorsDescription": "Record di livello ERROR",
+  "logs.stats.warnings": "Avvisi",
+  "logs.stats.warningsDescription": "Record di livello WARN"
+}

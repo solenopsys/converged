@@ -1,0 +1,136 @@
+.vector-image {
+  position: relative;
+}
+
+.vector-image-frame {
+  position: relative;
+}
+
+.vector-image-frame img,
+.vector-image-frame svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.vector-image-svg {
+  width: 100%;
+  height: auto;
+}
+
+/* Плавное проявление всего рисунка. Чисто выглядит на любом масштабе, в отличие
+   от поточечного vivus-дро, который на мелкой штриховке превращается в кашу. */
+.vector-image-anim-fade {
+  opacity: 0;
+  animation: vector-image-fade-in 0.9s ease-out forwards;
+}
+
+@keyframes vector-image-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+html.dark .vector-image-frame img {
+  filter: none;
+  mix-blend-mode: normal;
+}
+
+.vector-image-label {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  gap: 4px;
+  min-width: 132px;
+  padding: 11px 12px;
+  border: 1px solid #0c1b0c;
+  border-radius: 3px;
+  background: rgba(242, 245, 233, 0.92);
+  color: #0a180a;
+  font: 700 11px/1.25 "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  letter-spacing: 0;
+  text-align: left;
+}
+
+.vector-image-label strong {
+  color: #0a1b0c;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.vector-image-label small {
+  color: #5a6957;
+  font: inherit;
+}
+
+html.dark .vector-image-label {
+  border-color: #0c1b0c;
+  background: rgba(242, 245, 233, 0.92);
+  color: #0a180a;
+}
+
+html.dark .vector-image-label strong { color: #0a1b0c; }
+html.dark .vector-image-label small { color: #5a6957; }
+
+/* Масштабирование inline-SVG так же, как у fallback-<img> в hero-секциях. */
+.landing-workshop-visual .vector-image-frame svg,
+.landing-workshop-visual .vector-image-frame img {
+  width: 116%;
+  max-height: min(68dvh, 700px);
+  margin-left: -7%;
+}
+
+.club-hero .club-hero-visual .vector-image-frame svg,
+.club-hero .club-hero-visual .vector-image-frame img {
+  width: 100%;
+  max-height: min(62dvh, 620px);
+}
+
+.vector-image-block {
+  border-top: 1px solid #d8d8ce;
+  border-bottom: 1px solid #d8d8ce;
+  background: #fbfbf8;
+  padding: 72px max(34px, calc((100% - 1380px) / 2)) 64px;
+}
+
+.vector-image-block-head {
+  display: grid;
+  gap: 14px;
+  max-width: 720px;
+  margin: 0 auto 40px;
+  text-align: center;
+}
+
+.vector-image-block-kicker {
+  color: #75806e;
+  font: 700 11px "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.vector-image-block h2 {
+  margin: 0;
+  color: #16240f;
+  font-size: clamp(28px, 4vw, 44px);
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+}
+
+.vector-image-block-description {
+  margin: 0;
+  color: #59644f;
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.vector-image-block .vector-image {
+  max-width: min(880px, 100%);
+  margin: 0 auto;
+}
+
+html.dark .vector-image-block {
+  background: radial-gradient(ellipse 85% 75% at 50% 45%, #909090 0%, #7a7a7a 50%, #5f5f5f 100%);
+  border-color: #565656;
+}
+html.dark .vector-image-block h2 { color: #16240f; }
+html.dark .vector-image-block-description { color: #59644f; }
+html.dark .vector-image-block-kicker { color: #75806e; }

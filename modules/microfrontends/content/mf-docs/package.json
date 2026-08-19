@@ -1,0 +1,19 @@
+{
+  "name": "mf-docs",
+  "private": true,
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./ssr": "./src/ssr.ts",
+    "./views/DocsView": "./src/views/DocsView.tsx"
+  },
+  "dependencies": {
+    "effector-preact": "workspace:*",
+    "front-core": "workspace:*",
+    "g-markdown": "workspace:*",
+    "g-struct": "workspace:*",
+    "md-tools": "workspace:*",
+    "preact": "^10.29.3"
+  }
+}

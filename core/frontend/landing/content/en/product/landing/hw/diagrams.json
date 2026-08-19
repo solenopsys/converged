@@ -1,0 +1,2308 @@
+{
+  "channels-gateway-v2": {
+    "id": "channels-gateway-v2",
+    "title": "Все каналы клиентов в одном месте: Mail, Call, Chatbots, Site 24/7",
+    "width": 106,
+    "height": 62,
+    "machine": {
+      "rowHeight": 30,
+      "steps": [
+        {
+          "event": "send",
+          "duration": 2000,
+          "stagger": 0.45,
+          "connections": [
+            "email-gateway",
+            "voice-gateway",
+            "messenger-gateway",
+            "website-gateway"
+          ]
+        },
+        {
+          "event": "process",
+          "duration": 520,
+          "node": "gateway"
+        },
+        {
+          "event": "send",
+          "duration": 700,
+          "connections": [
+            "gateway-ai"
+          ]
+        },
+        {
+          "event": "send",
+          "duration": 700,
+          "reverse": true,
+          "connections": [
+            "gateway-ai"
+          ]
+        },
+        {
+          "event": "send",
+          "duration": 1100,
+          "stagger": 0.3,
+          "connections": [
+            "gateway-manager",
+            "gateway-operator"
+          ]
+        },
+        {
+          "event": "send",
+          "duration": 800,
+          "connections": [
+            "gateway-db"
+          ]
+        },
+        {
+          "event": "send",
+          "duration": 2000,
+          "stagger": 0.45,
+          "reverse": true,
+          "connections": [
+            "email-gateway",
+            "voice-gateway",
+            "messenger-gateway",
+            "website-gateway"
+          ]
+        }
+      ]
+    },
+    "symbols": [
+      {
+        "id": "email",
+        "kind": "channel",
+        "title": "Email",
+        "icon": "streamline:mail-send-envelope",
+        "rect": {
+          "x": 3,
+          "y": 4,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "voice",
+        "kind": "channel",
+        "title": "Voice",
+        "icon": "streamline:call-center-support-service",
+        "rect": {
+          "x": 3,
+          "y": 18,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "messenger",
+        "kind": "channel",
+        "title": "Messengers",
+        "icon": "streamline:chat-bubble-oval",
+        "rect": {
+          "x": 3,
+          "y": 32,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "website",
+        "kind": "channel",
+        "title": "Website",
+        "icon": "streamline:browser-website-1",
+        "rect": {
+          "x": 3,
+          "y": 46,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "ai",
+        "kind": "storage",
+        "title": "AI",
+        "icon": "streamline:ai-chip-spark",
+        "subtitle": "auto replies",
+        "rect": {
+          "x": 44,
+          "y": 6,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "gateway",
+        "kind": "processor",
+        "title": "Gateway",
+        "subtitle": "all channels",
+        "rect": {
+          "x": 44,
+          "y": 24,
+          "w": 18,
+          "h": 12
+        },
+        "tone": "accent"
+      },
+      {
+        "id": "manager",
+        "kind": "recipient",
+        "title": "Manager",
+        "subtitle": "sales",
+        "rect": {
+          "x": 84,
+          "y": 22,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "operator",
+        "kind": "recipient",
+        "title": "Operator",
+        "subtitle": "support",
+        "rect": {
+          "x": 84,
+          "y": 40,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "db",
+        "kind": "storage",
+        "title": "History",
+        "icon": "streamline:database",
+        "subtitle": "conversations",
+        "rect": {
+          "x": 44,
+          "y": 46,
+          "w": 18,
+          "h": 10
+        }
+      }
+    ],
+    "connections": [
+      {
+        "id": "email-gateway",
+        "from": "email",
+        "to": "gateway",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "toOffset": -4.5,
+        "via": [
+          {
+            "x": 38,
+            "y": 9
+          }
+        ],
+        "bidirectional": true,
+        "message": {
+          "title": "MAIL",
+          "reply": "SENT"
+        }
+      },
+      {
+        "id": "voice-gateway",
+        "from": "voice",
+        "to": "gateway",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "toOffset": -1.5,
+        "bidirectional": true,
+        "message": {
+          "title": "CALL",
+          "reply": "SENT"
+        }
+      },
+      {
+        "id": "messenger-gateway",
+        "from": "messenger",
+        "to": "gateway",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "toOffset": 1.5,
+        "bidirectional": true,
+        "message": {
+          "title": "CHAT",
+          "reply": "SENT"
+        }
+      },
+      {
+        "id": "website-gateway",
+        "from": "website",
+        "to": "gateway",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "toOffset": 4.5,
+        "via": [
+          {
+            "x": 38,
+            "y": 51
+          }
+        ],
+        "bidirectional": true,
+        "message": {
+          "title": "SITE",
+          "reply": "SENT"
+        }
+      },
+      {
+        "id": "gateway-ai",
+        "from": "gateway",
+        "to": "ai",
+        "fromAnchor": "top",
+        "toAnchor": "bottom",
+        "bidirectional": true,
+        "message": {
+          "title": "AI",
+          "reply": "DRAFT"
+        }
+      },
+      {
+        "id": "gateway-manager",
+        "from": "gateway",
+        "to": "manager",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "fromOffset": -3,
+        "bidirectional": true,
+        "message": {
+          "title": "LEAD",
+          "reply": "REPLY"
+        }
+      },
+      {
+        "id": "gateway-operator",
+        "from": "gateway",
+        "to": "operator",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "fromOffset": 3,
+        "bidirectional": true,
+        "message": {
+          "title": "TASK",
+          "reply": "SOLVED"
+        }
+      },
+      {
+        "id": "gateway-db",
+        "from": "gateway",
+        "to": "db",
+        "fromAnchor": "bottom",
+        "toAnchor": "top",
+        "message": {
+          "title": "SAVE"
+        }
+      }
+    ]
+  },
+  "mail-flow-v2": {
+    "id": "mail-flow-v2",
+    "title": "Массовая обработка писем с раскладыванием по лидам и заказам",
+    "width": 106,
+    "height": 62,
+    "machine": {
+      "rowHeight": 30,
+      "steps": [
+        {
+          "event": "select",
+          "duration": 450,
+          "stream": "inbox"
+        },
+        {
+          "event": "send",
+          "duration": 1260,
+          "connections": [
+            "inbox-processor"
+          ]
+        },
+        {
+          "event": "send",
+          "duration": 700,
+          "connections": [
+            "processor-ai"
+          ]
+        },
+        {
+          "event": "send",
+          "duration": 700,
+          "reverse": true,
+          "connections": [
+            "processor-ai"
+          ]
+        },
+        {
+          "event": "process",
+          "duration": 520,
+          "node": "processor"
+        },
+        {
+          "event": "send",
+          "duration": 1600,
+          "stagger": 0.2,
+          "connections": [
+            "processor-models",
+            "processor-specs",
+            "processor-orders",
+            "processor-phone"
+          ]
+        }
+      ]
+    },
+    "symbols": [
+      {
+        "id": "inbox",
+        "kind": "stream",
+        "title": "Inbox",
+        "icon": "streamline:inbox-tray-1",
+        "subtitle": "email stream",
+        "rect": {
+          "x": 3,
+          "y": 13,
+          "w": 18,
+          "h": 34
+        },
+        "rows": [
+          "Lead request",
+          "Quote files",
+          "Model order",
+          "Delivery question",
+          "New print job",
+          "Support message",
+          "Invoice update",
+          "Callback request"
+        ]
+      },
+      {
+        "id": "ai",
+        "kind": "storage",
+        "title": "AI",
+        "icon": "streamline:ai-chip-spark",
+        "subtitle": "mail parser",
+        "rect": {
+          "x": 44,
+          "y": 5,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "processor",
+        "kind": "processor",
+        "title": "Processor",
+        "subtitle": "mail sorter",
+        "rect": {
+          "x": 44,
+          "y": 24,
+          "w": 18,
+          "h": 12
+        },
+        "tone": "accent"
+      },
+      {
+        "id": "models",
+        "kind": "storage",
+        "title": "Models",
+        "icon": "streamline:file-code-1",
+        "subtitle": "cad files",
+        "rect": {
+          "x": 16,
+          "y": 47,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "specs",
+        "kind": "storage",
+        "title": "Specs",
+        "icon": "streamline:clipboard-check",
+        "subtitle": "part data",
+        "rect": {
+          "x": 44,
+          "y": 47,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "orders",
+        "kind": "storage",
+        "title": "Orders",
+        "icon": "streamline:shopping-cart-check",
+        "subtitle": "leads + deals",
+        "rect": {
+          "x": 72,
+          "y": 47,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "phone",
+        "kind": "smartphone",
+        "title": "Mobile",
+        "subtitle": "order screen",
+        "rect": {
+          "x": 85,
+          "y": 14,
+          "w": 18,
+          "h": 32
+        },
+        "rows": [
+          "Order #14900KS",
+          "Material: PLA",
+          "Price: 45 000 rub.",
+          "Status: in stock"
+        ]
+      }
+    ],
+    "connections": [
+      {
+        "id": "inbox-processor",
+        "from": "inbox",
+        "to": "processor",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "fromOffset": -2,
+        "toOffset": -2,
+        "tone": "accent",
+        "message": {
+          "title": "MAIL"
+        }
+      },
+      {
+        "id": "processor-ai",
+        "from": "processor",
+        "to": "ai",
+        "fromAnchor": "top",
+        "toAnchor": "bottom",
+        "bidirectional": true,
+        "message": {
+          "title": "AI",
+          "reply": "DATA"
+        }
+      },
+      {
+        "id": "processor-models",
+        "from": "processor",
+        "to": "models",
+        "fromAnchor": "bottom",
+        "toAnchor": "top",
+        "fromOffset": -6,
+        "message": {
+          "title": "CAD"
+        }
+      },
+      {
+        "id": "processor-specs",
+        "from": "processor",
+        "to": "specs",
+        "fromAnchor": "bottom",
+        "toAnchor": "top",
+        "fromOffset": 0,
+        "message": {
+          "title": "SPEC"
+        }
+      },
+      {
+        "id": "processor-orders",
+        "from": "processor",
+        "to": "orders",
+        "fromAnchor": "bottom",
+        "toAnchor": "top",
+        "fromOffset": 6,
+        "message": {
+          "title": "ORDER"
+        }
+      },
+      {
+        "id": "processor-phone",
+        "from": "processor",
+        "to": "phone",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "tone": "accent",
+        "message": {
+          "title": "APP"
+        }
+      }
+    ]
+  },
+  "equipment-fleet-v2": {
+    "id": "equipment-fleet-v2",
+    "title": "Управление всем парком оборудования из одного места, мониторинг состояния и загруженности",
+    "width": 106,
+    "height": 62,
+    "machine": {
+      "rowHeight": 30,
+      "steps": [
+        {
+          "event": "send",
+          "duration": 1100,
+          "connections": [
+            "phone-controller"
+          ]
+        },
+        {
+          "event": "process",
+          "duration": 520,
+          "node": "controller"
+        },
+        {
+          "event": "send",
+          "duration": 1600,
+          "stagger": 0.25,
+          "connections": [
+            "controller-printer-a",
+            "controller-printer-b",
+            "controller-cnc-01",
+            "controller-printer-c",
+            "controller-cnc-02",
+            "controller-printer-d"
+          ]
+        },
+        {
+          "event": "send",
+          "duration": 1600,
+          "stagger": 0.25,
+          "reverse": true,
+          "connections": [
+            "controller-printer-a",
+            "controller-printer-b",
+            "controller-cnc-01",
+            "controller-printer-c",
+            "controller-cnc-02",
+            "controller-printer-d"
+          ]
+        },
+        {
+          "event": "process",
+          "duration": 420,
+          "node": "controller"
+        },
+        {
+          "event": "send",
+          "duration": 1000,
+          "reverse": true,
+          "connections": [
+            "phone-controller"
+          ]
+        }
+      ]
+    },
+    "symbols": [
+      {
+        "id": "phone",
+        "kind": "smartphone",
+        "title": "Mobile",
+        "subtitle": "fleet control",
+        "rect": {
+          "x": 3,
+          "y": 14,
+          "w": 18,
+          "h": 32
+        },
+        "rows": [
+          "Park online",
+          "6 machines",
+          "Load: 73%",
+          "Remote control"
+        ]
+      },
+      {
+        "id": "controller",
+        "kind": "processor",
+        "title": "Convered - Smart Worshop",
+        "subtitle": "control center",
+        "rect": {
+          "x": 44,
+          "y": 24,
+          "w": 18,
+          "h": 12
+        },
+        "tone": "accent"
+      },
+      {
+        "id": "printer-a",
+        "kind": "recipient",
+        "title": "Printer A",
+        "icon": "streamline:layers-1",
+        "subtitle": "printing",
+        "rect": {
+          "x": 84,
+          "y": 2,
+          "w": 18,
+          "h": 8
+        }
+      },
+      {
+        "id": "printer-b",
+        "kind": "recipient",
+        "title": "Printer B",
+        "icon": "streamline:layers-1",
+        "subtitle": "idle",
+        "rect": {
+          "x": 84,
+          "y": 12,
+          "w": 18,
+          "h": 8
+        }
+      },
+      {
+        "id": "cnc-01",
+        "kind": "recipient",
+        "title": "CNC-01",
+        "icon": "streamline:industry-innovation-and-infrastructure",
+        "subtitle": "milling",
+        "rect": {
+          "x": 84,
+          "y": 22,
+          "w": 18,
+          "h": 8
+        }
+      },
+      {
+        "id": "printer-c",
+        "kind": "recipient",
+        "title": "Printer C",
+        "icon": "streamline:layers-1",
+        "subtitle": "queued",
+        "rect": {
+          "x": 84,
+          "y": 32,
+          "w": 18,
+          "h": 8
+        }
+      },
+      {
+        "id": "cnc-02",
+        "kind": "recipient",
+        "title": "CNC-02",
+        "icon": "streamline:industry-innovation-and-infrastructure",
+        "subtitle": "load 82%",
+        "rect": {
+          "x": 84,
+          "y": 42,
+          "w": 18,
+          "h": 8
+        }
+      },
+      {
+        "id": "printer-d",
+        "kind": "recipient",
+        "title": "Printer D",
+        "icon": "streamline:layers-1",
+        "subtitle": "warning",
+        "rect": {
+          "x": 84,
+          "y": 52,
+          "w": 18,
+          "h": 8
+        }
+      }
+    ],
+    "connections": [
+      {
+        "id": "phone-controller",
+        "from": "phone",
+        "to": "controller",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "tone": "accent",
+        "bidirectional": true,
+        "message": {
+          "title": "CMD",
+          "reply": "LOAD"
+        }
+      },
+      {
+        "id": "controller-printer-a",
+        "from": "controller",
+        "to": "printer-a",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "fromOffset": -5,
+        "via": [
+          {
+            "x": 66,
+            "y": 6
+          }
+        ],
+        "bidirectional": true,
+        "message": {
+          "title": "START",
+          "reply": "OK"
+        }
+      },
+      {
+        "id": "controller-printer-b",
+        "from": "controller",
+        "to": "printer-b",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "fromOffset": -3,
+        "via": [
+          {
+            "x": 71,
+            "y": 16
+          }
+        ],
+        "bidirectional": true,
+        "message": {
+          "title": "SYNC",
+          "reply": "IDLE"
+        }
+      },
+      {
+        "id": "controller-cnc-01",
+        "from": "controller",
+        "to": "cnc-01",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "fromOffset": -1,
+        "via": [
+          {
+            "x": 76,
+            "y": 26
+          }
+        ],
+        "bidirectional": true,
+        "message": {
+          "title": "JOB",
+          "reply": "85%"
+        }
+      },
+      {
+        "id": "controller-printer-c",
+        "from": "controller",
+        "to": "printer-c",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "fromOffset": 1,
+        "via": [
+          {
+            "x": 76,
+            "y": 36
+          }
+        ],
+        "bidirectional": true,
+        "message": {
+          "title": "QUEUE",
+          "reply": "READY"
+        }
+      },
+      {
+        "id": "controller-cnc-02",
+        "from": "controller",
+        "to": "cnc-02",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "fromOffset": 3,
+        "via": [
+          {
+            "x": 71,
+            "y": 46
+          }
+        ],
+        "bidirectional": true,
+        "message": {
+          "title": "RUN",
+          "reply": "WARN"
+        }
+      },
+      {
+        "id": "controller-printer-d",
+        "from": "controller",
+        "to": "printer-d",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "fromOffset": 5,
+        "via": [
+          {
+            "x": 66,
+            "y": 56
+          }
+        ],
+        "bidirectional": true,
+        "message": {
+          "title": "ALERT",
+          "reply": "OK"
+        }
+      }
+    ]
+  },
+  "equipment-logs-v2": {
+    "id": "equipment-logs-v2",
+    "title": "Обработка логов со всего оборудования в реальном времени и анализ с помощью AI",
+    "width": 106,
+    "height": 62,
+    "machine": {
+      "rowHeight": 30,
+      "steps": [
+        {
+          "event": "send",
+          "duration": 900,
+          "connections": [
+            "phone-analyzer"
+          ]
+        },
+        {
+          "event": "send",
+          "duration": 1500,
+          "stagger": 0.35,
+          "connections": [
+            "printer-a-logs",
+            "cnc-01-logs",
+            "printer-b-logs"
+          ]
+        },
+        {
+          "event": "select",
+          "duration": 450,
+          "stream": "logs"
+        },
+        {
+          "event": "send",
+          "duration": 700,
+          "connections": [
+            "logs-analyzer"
+          ]
+        },
+        {
+          "event": "process",
+          "duration": 520,
+          "node": "analyzer"
+        },
+        {
+          "event": "send",
+          "duration": 800,
+          "connections": [
+            "analyzer-db"
+          ]
+        },
+        {
+          "event": "send",
+          "duration": 900,
+          "reverse": true,
+          "connections": [
+            "phone-analyzer"
+          ]
+        }
+      ]
+    },
+    "symbols": [
+      {
+        "id": "phone",
+        "kind": "smartphone",
+        "title": "Mobile",
+        "subtitle": "live logs",
+        "rect": {
+          "x": 3,
+          "y": 14,
+          "w": 18,
+          "h": 32
+        },
+        "rows": [
+          "Live logs",
+          "AI alerts: on",
+          "Load: 73%",
+          "Remote view"
+        ]
+      },
+      {
+        "id": "logs",
+        "kind": "stream",
+        "title": "Logs",
+        "icon": "streamline:programming-browser-code-1-code-browser-line-shell-programming-command-terminal",
+        "subtitle": "realtime feed",
+        "rect": {
+          "x": 44,
+          "y": 4,
+          "w": 18,
+          "h": 18
+        },
+        "rows": [
+          "Layer shift warn",
+          "Spindle load 82%",
+          "Job complete",
+          "Temp drift +3C",
+          "Axis calibrated",
+          "Queue updated"
+        ]
+      },
+      {
+        "id": "analyzer",
+        "kind": "processor",
+        "title": "Convered - Smart Worshop",
+        "subtitle": "log analyzer",
+        "rect": {
+          "x": 44,
+          "y": 24,
+          "w": 18,
+          "h": 12
+        },
+        "tone": "accent"
+      },
+      {
+        "id": "printer-a",
+        "kind": "recipient",
+        "title": "Printer A",
+        "icon": "streamline:layers-1",
+        "subtitle": "warning",
+        "rect": {
+          "x": 84,
+          "y": 6,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "cnc-01",
+        "kind": "recipient",
+        "title": "CNC-01",
+        "icon": "streamline:industry-innovation-and-infrastructure",
+        "subtitle": "load 82%",
+        "rect": {
+          "x": 84,
+          "y": 25,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "printer-b",
+        "kind": "recipient",
+        "title": "Printer B",
+        "icon": "streamline:layers-1",
+        "subtitle": "done",
+        "rect": {
+          "x": 84,
+          "y": 44,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "db",
+        "kind": "storage",
+        "title": "Log lake",
+        "icon": "streamline:database",
+        "subtitle": "history",
+        "rect": {
+          "x": 44,
+          "y": 46,
+          "w": 18,
+          "h": 10
+        }
+      }
+    ],
+    "connections": [
+      {
+        "id": "printer-a-logs",
+        "from": "printer-a",
+        "to": "logs",
+        "fromAnchor": "left",
+        "toAnchor": "right",
+        "toOffset": -5,
+        "message": {
+          "title": "LOG"
+        }
+      },
+      {
+        "id": "cnc-01-logs",
+        "from": "cnc-01",
+        "to": "logs",
+        "fromAnchor": "left",
+        "toAnchor": "right",
+        "toOffset": 0,
+        "via": [
+          {
+            "x": 76,
+            "y": 13
+          }
+        ],
+        "message": {
+          "title": "ERR"
+        }
+      },
+      {
+        "id": "printer-b-logs",
+        "from": "printer-b",
+        "to": "logs",
+        "fromAnchor": "left",
+        "toAnchor": "right",
+        "toOffset": 5,
+        "via": [
+          {
+            "x": 70,
+            "y": 18
+          }
+        ],
+        "message": {
+          "title": "DONE"
+        }
+      },
+      {
+        "id": "logs-analyzer",
+        "from": "logs",
+        "to": "analyzer",
+        "fromAnchor": "bottom",
+        "toAnchor": "top",
+        "message": {
+          "title": "AI"
+        }
+      },
+      {
+        "id": "phone-analyzer",
+        "from": "phone",
+        "to": "analyzer",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "tone": "accent",
+        "bidirectional": true,
+        "message": {
+          "title": "VIEW",
+          "reply": "ALERT"
+        }
+      },
+      {
+        "id": "analyzer-db",
+        "from": "analyzer",
+        "to": "db",
+        "fromAnchor": "bottom",
+        "toAnchor": "top",
+        "message": {
+          "title": "SAVE"
+        }
+      }
+    ]
+  },
+  "support-knowledge-v2": {
+    "id": "support-knowledge-v2",
+    "title": "Автоматическая поддержка клиентов и база знаний о компании",
+    "width": 106,
+    "height": 62,
+    "machine": {
+      "rowHeight": 30,
+      "steps": [
+        {
+          "event": "send",
+          "duration": 2000,
+          "stagger": 0.45,
+          "connections": [
+            "email-gateway",
+            "voice-gateway",
+            "messenger-gateway",
+            "website-gateway"
+          ]
+        },
+        {
+          "event": "process",
+          "duration": 520,
+          "node": "gateway"
+        },
+        {
+          "event": "send",
+          "duration": 1300,
+          "stagger": 0.3,
+          "connections": [
+            "gateway-context",
+            "gateway-orders",
+            "gateway-rag"
+          ]
+        },
+        {
+          "event": "send",
+          "duration": 1300,
+          "stagger": 0.3,
+          "reverse": true,
+          "connections": [
+            "gateway-context",
+            "gateway-orders",
+            "gateway-rag"
+          ]
+        },
+        {
+          "event": "process",
+          "duration": 420,
+          "node": "gateway"
+        },
+        {
+          "event": "send",
+          "duration": 800,
+          "connections": [
+            "gateway-memory"
+          ]
+        },
+        {
+          "event": "send",
+          "duration": 2000,
+          "stagger": 0.45,
+          "reverse": true,
+          "connections": [
+            "email-gateway",
+            "voice-gateway",
+            "messenger-gateway",
+            "website-gateway"
+          ]
+        }
+      ]
+    },
+    "symbols": [
+      {
+        "id": "email",
+        "kind": "channel",
+        "title": "Email",
+        "icon": "streamline:mail-send-envelope",
+        "rect": {
+          "x": 3,
+          "y": 4,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "voice",
+        "kind": "channel",
+        "title": "Voice",
+        "icon": "streamline:call-center-support-service",
+        "rect": {
+          "x": 3,
+          "y": 18,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "messenger",
+        "kind": "channel",
+        "title": "Messengers",
+        "icon": "streamline:chat-bubble-oval",
+        "rect": {
+          "x": 3,
+          "y": 32,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "website",
+        "kind": "channel",
+        "title": "Website",
+        "icon": "streamline:browser-website-1",
+        "rect": {
+          "x": 3,
+          "y": 46,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "gateway",
+        "kind": "processor",
+        "title": "Support",
+        "subtitle": "auto answers",
+        "rect": {
+          "x": 44,
+          "y": 24,
+          "w": 18,
+          "h": 12
+        },
+        "tone": "accent"
+      },
+      {
+        "id": "context",
+        "kind": "storage",
+        "title": "Knowledge",
+        "icon": "streamline:book-reading",
+        "subtitle": "company faq",
+        "rect": {
+          "x": 84,
+          "y": 6,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "orders",
+        "kind": "storage",
+        "title": "Orders",
+        "icon": "streamline:shopping-cart-check",
+        "subtitle": "status + delivery",
+        "rect": {
+          "x": 84,
+          "y": 25,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "rag",
+        "kind": "storage",
+        "title": "RAG",
+        "icon": "streamline:definition-search-book",
+        "subtitle": "messages",
+        "rect": {
+          "x": 84,
+          "y": 44,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "memory",
+        "kind": "storage",
+        "title": "Memory",
+        "icon": "streamline:database",
+        "subtitle": "support answers",
+        "rect": {
+          "x": 44,
+          "y": 46,
+          "w": 18,
+          "h": 10
+        }
+      }
+    ],
+    "connections": [
+      {
+        "id": "email-gateway",
+        "from": "email",
+        "to": "gateway",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "toOffset": -4.5,
+        "via": [
+          {
+            "x": 38,
+            "y": 9
+          }
+        ],
+        "bidirectional": true,
+        "message": {
+          "title": "MAIL",
+          "reply": "ANSWER"
+        }
+      },
+      {
+        "id": "voice-gateway",
+        "from": "voice",
+        "to": "gateway",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "toOffset": -1.5,
+        "bidirectional": true,
+        "message": {
+          "title": "CALL",
+          "reply": "ANSWER"
+        }
+      },
+      {
+        "id": "messenger-gateway",
+        "from": "messenger",
+        "to": "gateway",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "toOffset": 1.5,
+        "bidirectional": true,
+        "message": {
+          "title": "CHAT",
+          "reply": "ANSWER"
+        }
+      },
+      {
+        "id": "website-gateway",
+        "from": "website",
+        "to": "gateway",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "toOffset": 4.5,
+        "via": [
+          {
+            "x": 38,
+            "y": 51
+          }
+        ],
+        "bidirectional": true,
+        "message": {
+          "title": "SITE",
+          "reply": "ANSWER"
+        }
+      },
+      {
+        "id": "gateway-context",
+        "from": "gateway",
+        "to": "context",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "fromOffset": -3,
+        "bidirectional": true,
+        "message": {
+          "title": "CTX",
+          "reply": "ANSWER"
+        }
+      },
+      {
+        "id": "gateway-orders",
+        "from": "gateway",
+        "to": "orders",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "fromOffset": 0,
+        "bidirectional": true,
+        "message": {
+          "title": "ORDER",
+          "reply": "STATUS"
+        }
+      },
+      {
+        "id": "gateway-rag",
+        "from": "gateway",
+        "to": "rag",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "fromOffset": 3,
+        "bidirectional": true,
+        "message": {
+          "title": "HISTORY",
+          "reply": "RAG"
+        }
+      },
+      {
+        "id": "gateway-memory",
+        "from": "gateway",
+        "to": "memory",
+        "fromAnchor": "bottom",
+        "toAnchor": "top",
+        "message": {
+          "title": "SAVE"
+        }
+      }
+    ]
+  },
+  "intent-filtering-v2": {
+    "id": "intent-filtering-v2",
+    "title": "Анализ смысла обращений, фильтрация, приоритизация и группировка по меткам",
+    "width": 106,
+    "height": 62,
+    "machine": {
+      "rowHeight": 30,
+      "steps": [
+        {
+          "event": "select",
+          "duration": 450,
+          "stream": "appeals"
+        },
+        {
+          "event": "send",
+          "duration": 900,
+          "connections": [
+            "appeals-filter"
+          ]
+        },
+        {
+          "event": "process",
+          "duration": 520,
+          "node": "filter"
+        },
+        {
+          "event": "send",
+          "duration": 1100,
+          "connections": [
+            "filter-spam",
+            "filter-unit"
+          ]
+        },
+        {
+          "event": "process",
+          "duration": 520,
+          "node": "unit"
+        },
+        {
+          "event": "send",
+          "duration": 1500,
+          "stagger": 0.2,
+          "connections": [
+            "unit-important",
+            "unit-orders",
+            "unit-leads",
+            "unit-phone"
+          ]
+        }
+      ]
+    },
+    "symbols": [
+      {
+        "id": "appeals",
+        "kind": "stream",
+        "title": "Appeals",
+        "icon": "streamline:inbox-tray-2",
+        "subtitle": "all channels",
+        "rect": {
+          "x": 3,
+          "y": 13,
+          "w": 18,
+          "h": 34
+        },
+        "rows": [
+          "Urgent delivery",
+          "New lead",
+          "Spam promo",
+          "Order update",
+          "Price question",
+          "Repeat issue"
+        ]
+      },
+      {
+        "id": "filter",
+        "kind": "processor",
+        "title": "Filter",
+        "icon": "streamline:filter-2",
+        "subtitle": "ai labels",
+        "rect": {
+          "x": 28,
+          "y": 24,
+          "w": 18,
+          "h": 12
+        }
+      },
+      {
+        "id": "spam",
+        "kind": "storage",
+        "title": "Spam",
+        "icon": "streamline:bug-virus-folder",
+        "subtitle": "filtered out",
+        "rect": {
+          "x": 28,
+          "y": 46,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "unit",
+        "kind": "processor",
+        "title": "Convered - Smart Worshop",
+        "subtitle": "grouping",
+        "rect": {
+          "x": 54,
+          "y": 24,
+          "w": 18,
+          "h": 12
+        },
+        "tone": "accent"
+      },
+      {
+        "id": "important",
+        "kind": "storage",
+        "title": "Important",
+        "icon": "streamline:add-bell-notification",
+        "subtitle": "priority",
+        "rect": {
+          "x": 84,
+          "y": 6,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "orders",
+        "kind": "storage",
+        "title": "Orders",
+        "icon": "streamline:folder-check",
+        "subtitle": "in work",
+        "rect": {
+          "x": 84,
+          "y": 25,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "leads",
+        "kind": "storage",
+        "title": "Leads",
+        "icon": "streamline:folder-check",
+        "subtitle": "follow up",
+        "rect": {
+          "x": 84,
+          "y": 44,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "phone",
+        "kind": "smartphone",
+        "title": "Mobile",
+        "subtitle": "categories",
+        "rect": {
+          "x": 54,
+          "y": 40,
+          "w": 18,
+          "h": 20
+        },
+        "rows": [
+          "Important: 12",
+          "Orders: 8",
+          "Leads: 5"
+        ]
+      }
+    ],
+    "connections": [
+      {
+        "id": "appeals-filter",
+        "from": "appeals",
+        "to": "filter",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "fromOffset": -2,
+        "toOffset": -2,
+        "tone": "accent",
+        "message": {
+          "title": "REQ"
+        }
+      },
+      {
+        "id": "filter-spam",
+        "from": "filter",
+        "to": "spam",
+        "fromAnchor": "bottom",
+        "toAnchor": "top",
+        "message": {
+          "title": "SPAM"
+        }
+      },
+      {
+        "id": "filter-unit",
+        "from": "filter",
+        "to": "unit",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "tone": "accent",
+        "message": {
+          "title": "SENSE"
+        }
+      },
+      {
+        "id": "unit-important",
+        "from": "unit",
+        "to": "important",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "fromOffset": -3,
+        "message": {
+          "title": "HIGH"
+        }
+      },
+      {
+        "id": "unit-orders",
+        "from": "unit",
+        "to": "orders",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "fromOffset": 0,
+        "message": {
+          "title": "ORDER"
+        }
+      },
+      {
+        "id": "unit-leads",
+        "from": "unit",
+        "to": "leads",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "fromOffset": 3,
+        "message": {
+          "title": "LEAD"
+        }
+      },
+      {
+        "id": "unit-phone",
+        "from": "unit",
+        "to": "phone",
+        "fromAnchor": "bottom",
+        "toAnchor": "top",
+        "message": {
+          "title": "APP"
+        }
+      }
+    ]
+  },
+  "api-integrations-v2": {
+    "id": "api-integrations-v2",
+    "title": "Интеграция с API служб доставки, соцсетями и мессенджерами",
+    "width": 106,
+    "height": 62,
+    "machine": {
+      "rowHeight": 30,
+      "steps": [
+        {
+          "event": "send",
+          "duration": 1000,
+          "connections": [
+            "phone-controller"
+          ]
+        },
+        {
+          "event": "process",
+          "duration": 520,
+          "node": "controller"
+        },
+        {
+          "event": "send",
+          "duration": 1400,
+          "stagger": 0.3,
+          "connections": [
+            "controller-delivery",
+            "controller-social",
+            "controller-suppliers"
+          ]
+        },
+        {
+          "event": "send",
+          "duration": 1400,
+          "stagger": 0.3,
+          "reverse": true,
+          "connections": [
+            "controller-delivery",
+            "controller-social",
+            "controller-suppliers"
+          ]
+        },
+        {
+          "event": "send",
+          "duration": 700,
+          "connections": [
+            "controller-db"
+          ]
+        },
+        {
+          "event": "send",
+          "duration": 700,
+          "reverse": true,
+          "connections": [
+            "controller-db"
+          ]
+        },
+        {
+          "event": "send",
+          "duration": 900,
+          "reverse": true,
+          "connections": [
+            "phone-controller"
+          ]
+        }
+      ]
+    },
+    "symbols": [
+      {
+        "id": "phone",
+        "kind": "smartphone",
+        "title": "Mobile",
+        "subtitle": "external actions",
+        "rect": {
+          "x": 3,
+          "y": 14,
+          "w": 18,
+          "h": 32
+        },
+        "rows": [
+          "Delivery: track",
+          "Social: reply",
+          "Supplier: price",
+          "Queue: 3 actions"
+        ]
+      },
+      {
+        "id": "controller",
+        "kind": "processor",
+        "title": "Convered - Smart Worshop",
+        "subtitle": "integrations",
+        "rect": {
+          "x": 44,
+          "y": 24,
+          "w": 18,
+          "h": 12
+        },
+        "tone": "accent"
+      },
+      {
+        "id": "delivery",
+        "kind": "storage",
+        "title": "Delivery",
+        "icon": "streamline:shipping-truck",
+        "subtitle": "tracking + tariff",
+        "rect": {
+          "x": 84,
+          "y": 6,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "social",
+        "kind": "storage",
+        "title": "Social",
+        "icon": "streamline:chat-bubble-oval",
+        "subtitle": "messages + posts",
+        "rect": {
+          "x": 84,
+          "y": 25,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "suppliers",
+        "kind": "storage",
+        "title": "Suppliers",
+        "icon": "streamline:archive-box",
+        "subtitle": "stock + prices",
+        "rect": {
+          "x": 84,
+          "y": 44,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "db",
+        "kind": "storage",
+        "title": "Orders",
+        "icon": "streamline:shopping-cart-check",
+        "subtitle": "synced data",
+        "rect": {
+          "x": 44,
+          "y": 46,
+          "w": 18,
+          "h": 10
+        }
+      }
+    ],
+    "connections": [
+      {
+        "id": "phone-controller",
+        "from": "phone",
+        "to": "controller",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "tone": "accent",
+        "bidirectional": true,
+        "message": {
+          "title": "ACTION",
+          "reply": "DONE"
+        }
+      },
+      {
+        "id": "controller-delivery",
+        "from": "controller",
+        "to": "delivery",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "fromOffset": -3,
+        "bidirectional": true,
+        "message": {
+          "title": "SHIP",
+          "reply": "STATUS"
+        }
+      },
+      {
+        "id": "controller-social",
+        "from": "controller",
+        "to": "social",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "fromOffset": 0,
+        "bidirectional": true,
+        "message": {
+          "title": "DM",
+          "reply": "REPLY"
+        }
+      },
+      {
+        "id": "controller-suppliers",
+        "from": "controller",
+        "to": "suppliers",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "fromOffset": 3,
+        "bidirectional": true,
+        "message": {
+          "title": "PRICE",
+          "reply": "OFFER"
+        }
+      },
+      {
+        "id": "controller-db",
+        "from": "controller",
+        "to": "db",
+        "fromAnchor": "bottom",
+        "toAnchor": "top",
+        "bidirectional": true,
+        "message": {
+          "title": "SAVE",
+          "reply": "DATA"
+        }
+      }
+    ]
+  },
+  "file-processing-v2": {
+    "id": "file-processing-v2",
+    "title": "Обработка файлов: распаковка, индексация, анализ времени печати или ЧПУ-обработки",
+    "width": 106,
+    "height": 62,
+    "machine": {
+      "rowHeight": 30,
+      "steps": [
+        {
+          "event": "select",
+          "duration": 450,
+          "stream": "files"
+        },
+        {
+          "event": "send",
+          "duration": 900,
+          "connections": [
+            "files-storage"
+          ]
+        },
+        {
+          "event": "send",
+          "duration": 700,
+          "connections": [
+            "storage-unpack"
+          ]
+        },
+        {
+          "event": "process",
+          "duration": 520,
+          "node": "unpack"
+        },
+        {
+          "event": "send",
+          "duration": 800,
+          "connections": [
+            "unpack-analytics"
+          ]
+        },
+        {
+          "event": "process",
+          "duration": 520,
+          "node": "analytics"
+        },
+        {
+          "event": "send",
+          "duration": 1100,
+          "connections": [
+            "analytics-storage",
+            "analytics-phone"
+          ]
+        }
+      ]
+    },
+    "symbols": [
+      {
+        "id": "files",
+        "kind": "stream",
+        "title": "Files",
+        "icon": "streamline:download-file",
+        "subtitle": "incoming",
+        "rect": {
+          "x": 3,
+          "y": 13,
+          "w": 18,
+          "h": 34
+        },
+        "rows": [
+          "order_14900.zip",
+          "bracket_v7.step",
+          "panel_cut.dxf",
+          "mount_part.stl",
+          "spec_sheet.pdf",
+          "fixture.iges"
+        ]
+      },
+      {
+        "id": "storage",
+        "kind": "storage",
+        "title": "Storage",
+        "icon": "streamline:database",
+        "subtitle": "all files",
+        "rect": {
+          "x": 30,
+          "y": 6,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "unpack",
+        "kind": "processor",
+        "title": "Unpack",
+        "subtitle": "index unit",
+        "rect": {
+          "x": 30,
+          "y": 24,
+          "w": 18,
+          "h": 12
+        }
+      },
+      {
+        "id": "analytics",
+        "kind": "processor",
+        "title": "Analytics",
+        "subtitle": "time estimate ai",
+        "rect": {
+          "x": 56,
+          "y": 24,
+          "w": 18,
+          "h": 12
+        },
+        "tone": "accent"
+      },
+      {
+        "id": "phone",
+        "kind": "smartphone",
+        "title": "Mobile",
+        "subtitle": "file details",
+        "rect": {
+          "x": 85,
+          "y": 14,
+          "w": 18,
+          "h": 32
+        },
+        "rows": [
+          "Bracket v7",
+          "PLA, layer 0.2",
+          "Print: 3h 40m",
+          "CNC: 1h 15m"
+        ]
+      }
+    ],
+    "connections": [
+      {
+        "id": "files-storage",
+        "from": "files",
+        "to": "storage",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "fromOffset": -2,
+        "tone": "accent",
+        "message": {
+          "title": "ZIP"
+        }
+      },
+      {
+        "id": "storage-unpack",
+        "from": "storage",
+        "to": "unpack",
+        "fromAnchor": "bottom",
+        "toAnchor": "top",
+        "message": {
+          "title": "FILE"
+        }
+      },
+      {
+        "id": "unpack-analytics",
+        "from": "unpack",
+        "to": "analytics",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "message": {
+          "title": "MESH"
+        }
+      },
+      {
+        "id": "analytics-storage",
+        "from": "analytics",
+        "to": "storage",
+        "fromAnchor": "top",
+        "toAnchor": "right",
+        "via": [
+          {
+            "x": 65,
+            "y": 11
+          }
+        ],
+        "message": {
+          "title": "INDEX"
+        }
+      },
+      {
+        "id": "analytics-phone",
+        "from": "analytics",
+        "to": "phone",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "tone": "accent",
+        "message": {
+          "title": "TIME"
+        }
+      }
+    ]
+  },
+  "rag-search-v2": {
+    "id": "rag-search-v2",
+    "title": "Мгновенный RAG-поиск по всем данным для сотрудников",
+    "width": 106,
+    "height": 62,
+    "machine": {
+      "rowHeight": 30,
+      "steps": [
+        {
+          "event": "send",
+          "duration": 1000,
+          "connections": [
+            "phone-controller"
+          ]
+        },
+        {
+          "event": "process",
+          "duration": 520,
+          "node": "controller"
+        },
+        {
+          "event": "send",
+          "duration": 700,
+          "connections": [
+            "controller-llm"
+          ]
+        },
+        {
+          "event": "send",
+          "duration": 700,
+          "reverse": true,
+          "connections": [
+            "controller-llm"
+          ]
+        },
+        {
+          "event": "send",
+          "duration": 1500,
+          "stagger": 0.25,
+          "connections": [
+            "controller-rag",
+            "controller-column",
+            "controller-graph",
+            "controller-files"
+          ]
+        },
+        {
+          "event": "send",
+          "duration": 1500,
+          "stagger": 0.25,
+          "reverse": true,
+          "connections": [
+            "controller-rag",
+            "controller-column",
+            "controller-graph",
+            "controller-files"
+          ]
+        },
+        {
+          "event": "process",
+          "duration": 520,
+          "node": "controller"
+        },
+        {
+          "event": "send",
+          "duration": 1000,
+          "reverse": true,
+          "connections": [
+            "phone-controller"
+          ]
+        }
+      ]
+    },
+    "symbols": [
+      {
+        "id": "phone",
+        "kind": "smartphone",
+        "title": "Mobile",
+        "subtitle": "team search",
+        "rect": {
+          "x": 3,
+          "y": 14,
+          "w": 18,
+          "h": 32
+        },
+        "rows": [
+          "Где заказ 14900?",
+          "Статус: в печати",
+          "Файлы: 3 модели",
+          "Переписка: 12"
+        ]
+      },
+      {
+        "id": "llm",
+        "kind": "storage",
+        "title": "LLM",
+        "icon": "streamline:ai-cloud-spark",
+        "subtitle": "provider",
+        "rect": {
+          "x": 44,
+          "y": 4,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "controller",
+        "kind": "processor",
+        "title": "Convered - Smart Worshop",
+        "subtitle": "rag search",
+        "rect": {
+          "x": 44,
+          "y": 24,
+          "w": 18,
+          "h": 12
+        },
+        "tone": "accent"
+      },
+      {
+        "id": "rag",
+        "kind": "storage",
+        "title": "RAG",
+        "icon": "streamline:definition-search-book",
+        "subtitle": "answers",
+        "rect": {
+          "x": 84,
+          "y": 3,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "column",
+        "kind": "storage",
+        "title": "Column",
+        "icon": "streamline:database",
+        "subtitle": "tables",
+        "rect": {
+          "x": 84,
+          "y": 18,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "graph",
+        "kind": "storage",
+        "title": "Graph",
+        "icon": "streamline:ai-network-spark",
+        "subtitle": "relations",
+        "rect": {
+          "x": 84,
+          "y": 33,
+          "w": 18,
+          "h": 10
+        }
+      },
+      {
+        "id": "files",
+        "kind": "storage",
+        "title": "Files",
+        "icon": "streamline:file-code-1",
+        "subtitle": "models",
+        "rect": {
+          "x": 84,
+          "y": 48,
+          "w": 18,
+          "h": 10
+        }
+      }
+    ],
+    "connections": [
+      {
+        "id": "phone-controller",
+        "from": "phone",
+        "to": "controller",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "tone": "accent",
+        "bidirectional": true,
+        "message": {
+          "title": "ASK",
+          "reply": "ANSWER"
+        }
+      },
+      {
+        "id": "controller-llm",
+        "from": "controller",
+        "to": "llm",
+        "fromAnchor": "top",
+        "toAnchor": "bottom",
+        "bidirectional": true,
+        "message": {
+          "title": "PROMPT",
+          "reply": "PLAN"
+        }
+      },
+      {
+        "id": "controller-rag",
+        "from": "controller",
+        "to": "rag",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "fromOffset": -4.5,
+        "via": [
+          {
+            "x": 66,
+            "y": 8
+          }
+        ],
+        "bidirectional": true,
+        "message": {
+          "title": "RAG",
+          "reply": "CTX"
+        }
+      },
+      {
+        "id": "controller-column",
+        "from": "controller",
+        "to": "column",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "fromOffset": -1.5,
+        "bidirectional": true,
+        "message": {
+          "title": "SQL",
+          "reply": "ROWS"
+        }
+      },
+      {
+        "id": "controller-graph",
+        "from": "controller",
+        "to": "graph",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "fromOffset": 1.5,
+        "bidirectional": true,
+        "message": {
+          "title": "GRAPH",
+          "reply": "LINKS"
+        }
+      },
+      {
+        "id": "controller-files",
+        "from": "controller",
+        "to": "files",
+        "fromAnchor": "right",
+        "toAnchor": "left",
+        "fromOffset": 4.5,
+        "via": [
+          {
+            "x": 66,
+            "y": 53
+          }
+        ],
+        "bidirectional": true,
+        "message": {
+          "title": "FILE",
+          "reply": "DOCS"
+        }
+      }
+    ]
+  }
+}

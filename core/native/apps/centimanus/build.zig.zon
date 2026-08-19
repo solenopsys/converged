@@ -1,0 +1,16 @@
+.{
+    .name = .centimanus,
+    .version = "0.1.0",
+    .fingerprint = 0x62663485387223b,
+    .minimum_zig_version = "0.16.0",
+    .dependencies = .{
+        .transport = .{ .path = "../../libs/transport" },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "../../libs/transport",
+        "../../wrappers",
+    },
+}

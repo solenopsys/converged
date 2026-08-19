@@ -1,0 +1,15 @@
+{
+	"name": "dag-file-steps",
+	"version": "0.0.0",
+	"type": "module",
+	"private": true,
+	"module": "index.ts",
+	"exports": {
+		".": "./index.ts"
+	},
+	"dependencies": {
+		"dag-core": "workspace:*",
+		"g-files": "workspace:*",
+		"g-store": "workspace:*"
+	}
+}

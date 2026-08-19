@@ -1,0 +1,75 @@
+{
+  "menu": {
+    "chats": "Chats",
+    "audio": "Audio",
+    "text": "Text",
+    "contexts": "Kontexte",
+    "commands": "Befehle"
+  },
+  "chatsList": {
+    "title": "Chatliste",
+    "actions": {
+      "newChat": "Neuer Chat",
+      "refresh": "Aktualisieren"
+    },
+    "columns": {
+      "name": "Name",
+      "messages": "Nachrichten",
+      "createdAt": "Erstellt",
+      "updatedAt": "Aktualisiert"
+    }
+  },
+  "contextsList": {
+    "title": "Kontexte",
+    "columns": {
+      "chatId": "Chat-ID",
+      "updatedAt": "Aktualisiert",
+      "size": "Groesse"
+    },
+    "contextJson": "Kontext JSON",
+    "selectRow": "Waehlen Sie eine Zeile aus, um den Kontext anzuzeigen.",
+    "errors": {
+      "loadFailed": "Kontext konnte nicht geladen werden"
+    }
+  },
+  "commandsList": {
+    "title": "Befehle",
+    "searchPlaceholder": "Befehle suchen...",
+    "available": "{count} Befehle verfuegbar",
+    "execute": "Befehl ausfuehren",
+    "empty": "Keine Befehle gefunden",
+    "functionInterface": "AI-Funktionsschnittstelle",
+    "functionHint": "Verwenden Sie diese Funktion im AI-Chat, um UI-Befehle auszufuehren"
+  },
+  "common": {
+    "refresh": "Aktualisieren",
+    "loading": "Laedt..."
+  },
+  "toolAction": {
+    "thinking": "Ich denke nach...",
+    "request": "Ich bearbeite die Anfrage...",
+    "file": "Ich verarbeite Dateien...",
+    "search": "Ich suche nach Informationen...",
+    "analyze": "Ich analysiere Daten...",
+    "convert": "Ich konvertiere Dateien...",
+    "update": "Ich aktualisiere Daten...",
+    "create": "Ich erstelle einen Eintrag...",
+    "load": "Ich lade Daten...",
+    "delete": "Ich loesche einen Eintrag...",
+    "notify": "Ich sende eine Benachrichtigung..."
+  },
+  "toolCall": {
+    "title": "Funktionsaufruf",
+    "actions": {
+      "createCncRequest": "Anfrage wird erstellt",
+      "patchCncRequest": "Anfrage wird aktualisiert",
+      "getCncRequest": "Anfrage wird geladen",
+      "getCncRequestRequirements": "Anforderungen werden geprüft",
+      "getUploadedChatFiles": "Dateien werden geprüft",
+      "startFileAnalysis": "Dateien werden analysiert",
+      "listUIActions": "Aktionen werden gesucht",
+      "invokeUIAction": "Ansicht wird geöffnet",
+      "weather": "Wetter wird geprüft"
+    }
+  }
+}

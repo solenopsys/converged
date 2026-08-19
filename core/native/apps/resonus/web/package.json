@@ -1,0 +1,12 @@
+{
+  "name": "resonus-web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "bun run --hot src/server.ts",
+    "build": "bun build src/main.ts --outdir dist --minify",
+    "preview": "bun run dist/server.js"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

@@ -1,0 +1,195 @@
+
+
+/*
+ * Примитивы дизайн-системы. Единственное место во всём фронтенде, где
+ * допустимы литералы цвета и размера: слой семантики (mf-tokens.css) состоит
+ * из производных, компоненты читают только семантику. Тема переключается
+ * здесь и больше нигде — ветки `html.dark` по месту не заводить.
+ */
+:root,
+:host {
+  color-scheme: light;
+  font-family: var(--hw-font-sans);
+  font-synthesis: none;
+
+  /* Foundation */
+  --hw-unit: 4px;
+  --hw-space-1: var(--hw-unit);
+  --hw-space-2: calc(var(--hw-unit) * 2);
+  --hw-space-3: calc(var(--hw-unit) * 3);
+  --hw-space-4: calc(var(--hw-unit) * 4);
+  --hw-space-5: calc(var(--hw-unit) * 5);
+  --hw-space-6: calc(var(--hw-unit) * 6);
+  --hw-space-8: calc(var(--hw-unit) * 8);
+  --hw-space-10: calc(var(--hw-unit) * 10);
+  --hw-border-width: calc(var(--hw-unit) / 4);
+
+  /* Typography */
+  --hw-font-sans:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  --hw-font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --hw-text-xs: calc(var(--hw-unit) * 3);
+  --hw-text-sm: calc(var(--hw-unit) * 3.5);
+  --hw-text-md: calc(var(--hw-unit) * 4);
+  --hw-text-lg: calc(var(--hw-unit) * 5);
+  --hw-text-xl: calc(var(--hw-unit) * 6);
+  --hw-text-2xl: calc(var(--hw-unit) * 8);
+  --hw-text-3xl: calc(var(--hw-unit) * 11);
+  /* Заголовок первого экрана лендинга: единственный размер, который тянется. */
+  --hw-text-display: clamp(52px, 5vw, 76px);
+  --hw-leading-tight: 1.1;
+  --hw-leading-snug: 1.25;
+  --hw-leading-normal: 1.5;
+  --hw-leading-relaxed: 1.7;
+  --hw-weight-regular: 400;
+  --hw-weight-medium: 500;
+  --hw-weight-semibold: 600;
+  --hw-weight-bold: 700;
+  --hw-weight-display: 820;
+
+  /* Radius */
+  --hw-radius-xs: var(--hw-unit);
+  --hw-radius-sm: calc(var(--hw-unit) * 1.5);
+  --hw-radius-md: calc(var(--hw-unit) * 2.5);
+  --hw-radius-lg: calc(var(--hw-unit) * 3.5);
+  --hw-radius-xl: calc(var(--hw-unit) * 4.5);
+  --hw-radius-full: 9999px;
+
+  /* Color */
+  --hw-canvas: #f7f7f5;
+  --hw-ink: #171816;
+  --hw-ink-muted: #888a85;
+  --hw-field: #4d4d4d;
+  --hw-field-border: #2d2d2d;
+  --hw-field-ink: #fff;
+  --hw-field-placeholder: #dedede;
+  --hw-panel: #a6a6a4;
+  --hw-panel-border: #d0d0cd;
+  --hw-accent: #bf4545;
+  --hw-accent-hover: #a83737;
+  --hw-focus: #b8ed57;
+
+  /*
+   * Статусы. Основное значение обязано читаться как текст на канве (≥ 4.5:1),
+   * `-ink` — как текст на самом статусе: бейдж рисуется и заливкой
+   * (`bg-success text-success-foreground`), и краской (`text-success`).
+   */
+  --hw-success: #1f6b2e;
+  --hw-success-ink: #f4f8f2;
+  --hw-warning: #8a5a0b;
+  --hw-warning-ink: #fff8ee;
+  --hw-danger: #bf4545;
+  --hw-danger-ink: #fff;
+  --hw-info: #1d5fa8;
+  --hw-info-ink: #f2f7fd;
+
+  /*
+   * Категориальная палитра чартов: порядок слотов и есть механизм различимости
+   * при дальтонизме, поэтому назначается по порядку и никогда не зацикливается —
+   * девятый ряд сворачивается в «прочее». Проверено валидатором на обеих
+   * поверхностях (худшая соседняя пара: CVD ΔE 9.1 light / 8.4 dark при пороге
+   * 8; нормальное зрение 19.6 / 19.3 при пороге 15).
+   *
+   * Все чарты — SVG, поэтому `fill="var(--ui-chart-1)"` резолвится браузером и
+   * тема переключается без участия JS.
+   */
+  --hw-chart-1: #2a78d6;
+  --hw-chart-2: #eb6834;
+  --hw-chart-3: #1baf7a;
+  --hw-chart-4: #eda100;
+  --hw-chart-5: #e87ba4;
+  --hw-chart-6: #008300;
+  --hw-chart-7: #4a3aa7;
+  --hw-chart-8: #e34948;
+
+  /* Elevation */
+  --hw-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --hw-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --hw-shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.14);
+
+  /* Layout: every panel corner is derived from the bottom action circle. */
+  --hw-hero-width: calc(var(--hw-unit) * 155);
+  --hw-panel-width: calc(var(--hw-unit) * 100);
+  --hw-panel-inset: 0;
+  --hw-panel-padding: var(--hw-space-2);
+  /* Composer geometry is scaled from the action circle at 70%. */
+  --hw-composer-inset: calc(var(--hw-unit) * 1.4);
+  --hw-composer-gap: calc(var(--hw-unit) * 0.7);
+  --hw-composer-cell: calc(var(--hw-unit) * 7.7);
+  --hw-panel-action: calc(var(--hw-unit) * 9.8);
+  --hw-panel-action-radius: calc(var(--hw-panel-action) / 2);
+  --hw-composer-radius: calc(
+    var(--hw-border-width) + var(--hw-composer-inset) + var(--hw-panel-action-radius)
+  );
+  --hw-panel-corner-radius: 0;
+  --hw-collapsed-offset: 0;
+  --hw-panel-stage-offset: calc(
+    var(--hw-panel-width) + var(--hw-panel-inset) + var(--hw-panel-inset)
+  );
+
+
+  /* Прежние имена размеров — алиасы шкалы, чтобы панель и чат не переписывать. */
+  --hw-font-size-sm: var(--hw-text-sm);
+  --hw-font-size-md: var(--hw-text-md);
+  --hw-font-size-lg: var(--hw-text-lg);
+  --hw-font-size-wordmark: calc(var(--hw-unit) * 16);
+  --hw-hero-gap: calc(var(--hw-unit) * 4.5);
+  --hw-input-height: calc(var(--hw-unit) * 8.4);
+  --hw-input-max-height: calc(var(--hw-unit) * 21);
+  --hw-message-gap: calc(var(--hw-unit) * 2.5);
+  --hw-message-radius: calc(var(--hw-unit) * 4.5);
+  --hw-message-padding-y: calc(var(--hw-unit) * 2.5);
+  --hw-message-padding-x: calc(var(--hw-unit) * 3.25);
+  --hw-motion-fast: 160ms;
+  --hw-motion-panel: 240ms;
+}
+
+:root.dark {
+  color-scheme: dark;
+  --hw-canvas: #090a09;
+  --hw-ink: #f1f3ec;
+  --hw-ink-muted: #a5aaa1;
+  --hw-field: #30312f;
+  --hw-field-border: #4a4d47;
+  --hw-field-ink: #f6f7f1;
+  --hw-field-placeholder: #b8bcb4;
+  --hw-panel: #20221f;
+  --hw-panel-border: #363a34;
+  --hw-accent: #d35454;
+  --hw-accent-hover: #e46767;
+  --hw-focus: #b8ed57;
+
+  --hw-success: #86d98a;
+  --hw-success-ink: #0b1a0c;
+  --hw-warning: #e2ab5c;
+  --hw-warning-ink: #1e1405;
+  --hw-danger: #d35454;
+  --hw-danger-ink: #1a0a0a;
+  --hw-info: #7db4ee;
+  --hw-info-ink: #06121f;
+
+  /* Те же восемь тонов, переступленные под тёмную поверхность, — не другая
+   * палитра и не автоматическая инверсия светлой. */
+  --hw-chart-1: #3987e5;
+  --hw-chart-2: #d95926;
+  --hw-chart-3: #199e70;
+  --hw-chart-4: #c98500;
+  --hw-chart-5: #d55181;
+  --hw-chart-6: #008300;
+  --hw-chart-7: #9085e9;
+  --hw-chart-8: #e66767;
+
+  --hw-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.24);
+  --hw-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.32);
+  --hw-shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.38);
+}
+
+@media (max-width: 680px) {
+  :root,
+  :host {
+    --hw-composer-cell: calc(var(--hw-unit) * 7);
+    --hw-panel-action: calc(var(--hw-unit) * 9.1);
+    --hw-panel-action-radius: calc(var(--hw-panel-action) / 2);
+  }
+}

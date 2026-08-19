@@ -1,0 +1,12 @@
+{
+  "name": "mf-dasboards",
+  "private": true,
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "front-core": "workspace:*"
+  }
+}

@@ -1,0 +1,15 @@
+
+
+
+:host {
+  position: fixed;
+  z-index: 2147483000;
+  color: var(--hw-ink);
+}
+
+.embed-launcher {
+  position: fixed;
+  right: var(--hw-collapsed-offset);
+  bottom: var(--hw-collapsed-offset);
+  filter: drop-shadow(0 var(--hw-message-gap) var(--hw-space-4) rgba(20, 20, 18, 0.16));
+}

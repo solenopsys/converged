@@ -1,0 +1,15 @@
+export type {
+  TransactionId,
+  ISODateString,
+  TransactionType,
+  Transaction,
+  TransactionInput,
+  TransactionPatch,
+  TransactionListParams,
+  PeriodParams,
+  PeriodSummary,
+  CashflowDay,
+  ReceivableItem,
+  FinanceService,
+  PaginatedResult,
+} from "g-finance";

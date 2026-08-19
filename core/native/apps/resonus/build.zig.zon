@@ -1,0 +1,18 @@
+.{
+    .name = .resonus,
+    .version = "0.1.0",
+    .fingerprint = 0xba98b6c0d9474a1c,
+    .minimum_zig_version = "0.16.0",
+    .dependencies = .{
+        .transport = .{ .path = "../../libs/transport" },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "README.md",
+        "src",
+        "scripts",
+        "../../libs/transport",
+        "../../wrappers/protocols/zimq",
+    },
+}

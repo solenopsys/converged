@@ -1,0 +1,21 @@
+FROM debian:bookworm-slim AS runtime
+WORKDIR /app
+
+COPY ./zig-out/x86_64-gnu/bin/fujin /app/fujin
+COPY ./zig-out/x86_64-gnu/lib/libqjs.so /app/libqjs.so
+COPY ./zig-out/x86_64-gnu/lib/libzimq.so /app/libzimq.so
+RUN chmod +x /app/fujin && chmod 644 /app/lib*.so \
+    && useradd -u 1000 -M -r -s /usr/sbin/nologin default
+USER 1000
+
+ENV FUJIN_ZMQ_BIND=tcp://0.0.0.0:5557 \
+    FUJIN_WS_HOST=0.0.0.0 \
+    FUJIN_WS_PORT=8087 \
+    FUJIN_FLUENTBIT=off \
+    FUJIN_QJS_LIB=/app/libqjs.so \
+    FUJIN_ZIMQ_LIB=/app/libzimq.so \
+    LD_LIBRARY_PATH=/app
+
+EXPOSE 5557 8087
+
+CMD ["/app/fujin"]

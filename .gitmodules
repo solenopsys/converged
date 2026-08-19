@@ -1,0 +1,57 @@
+[submodule "core/native/wrappers/dbs/lmdbx"]
+	path = core/native/wrappers/dbs/lmdbx
+	url = https://github.com/solenopsys/zig-lmdbx.git
+[submodule "core/native/wrappers/dbs/ryugraph"]
+	path = core/native/wrappers/dbs/ryugraph
+	url = https://github.com/solenopsys/zig-ryugraph.git
+[submodule "core/native/wrappers/dbs/valkey"]
+	path = core/native/wrappers/dbs/valkey
+	url = https://github.com/solenopsys/zig-valkey.git
+[submodule "core/native/wrappers/rt/cruller"]
+	path = core/native/wrappers/rt/cruller
+	url = https://github.com/solenopsys/cruller
+[submodule "core/native/wrappers/rt/qjs"]
+	path = core/native/wrappers/rt/qjs
+	url = https://github.com/solenopsys/zig-quickjs.git
+[submodule "core/native/wrappers/protocols/md4c"]
+	path = core/native/wrappers/protocols/md4c
+	url = https://github.com/solenopsys/zig-md4c.git
+[submodule "core/native/wrappers/dbs/column"]
+	path = core/native/wrappers/dbs/column
+	url = https://github.com/solenopsys/zig-stanchion.git
+[submodule "core/native/wrappers/protocols/mbedtls"]
+	path = core/native/wrappers/protocols/mbedtls
+	url = https://github.com/solenopsys/zig-mbedtls.git
+[submodule "core/native/wrappers/protocols/baresip"]
+	path = core/native/wrappers/protocols/baresip
+	url = https://github.com/solenopsys/zig-baresip.git
+[submodule "core/native/wrappers/protocols/libdatachannel"]
+	path = core/native/wrappers/protocols/libdatachannel
+	url = https://github.com/solenopsys/zig-libdatachannel.git
+[submodule "core/native/wrappers/dbs/sqlite-vec/vendor/sqlite-vec"]
+	path = core/native/wrappers/dbs/sqlite-vec/vendor/sqlite-vec
+	url = https://github.com/asg017/sqlite-vec.git
+[submodule "core/native/apps/behemoth"]
+	path = core/native/apps/behemoth
+	url = https://github.com/solenopsys/behemoth.git
+[submodule "core/native/wrappers/adapters/bambu-local/vendor/paho.mqtt.c"]
+	path = core/native/wrappers/adapters/bambu-local/vendor/paho.mqtt.c
+	url = https://github.com/eclipse-paho/paho.mqtt.c.git
+[submodule "core/native/wrappers/slicers/curaengine/vendor/clipper"]
+	path = core/native/wrappers/slicers/curaengine/vendor/clipper
+	url = https://github.com/skyrpex/clipper.git
+[submodule "core/native/wrappers/slicers/curaengine/vendor/curaengine"]
+	path = core/native/wrappers/slicers/curaengine/vendor/curaengine
+	url = https://github.com/MosaicSlicer/CuraEngine.git
+[submodule "core/native/wrappers/slicers/curaengine/vendor/rapidjson"]
+	path = core/native/wrappers/slicers/curaengine/vendor/rapidjson
+	url = https://github.com/Tencent/rapidjson.git
+[submodule "core/native/wrappers/slicers/curaengine/vendor/stb"]
+	path = core/native/wrappers/slicers/curaengine/vendor/stb
+	url = https://github.com/nothings/stb.git
+[submodule "core/native/wrappers/slicers/opencamlib/vendor/opencamlib"]
+	path = core/native/wrappers/slicers/opencamlib/vendor/opencamlib
+	url = https://github.com/aewallin/opencamlib.git
+[submodule "core/native/wrappers/protocols/fluentbit/vendor/fluent-bit"]
+	path = core/native/wrappers/protocols/fluentbit/vendor/fluent-bit
+	url = https://github.com/fluent/fluent-bit.git

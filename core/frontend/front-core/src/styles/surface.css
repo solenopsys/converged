@@ -1,0 +1,25 @@
+
+
+.surface {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100dvh;
+  background: var(--hw-canvas);
+}
+
+.surface-content {
+  container-type: inline-size;
+  min-height: 0;
+  overflow: auto;
+}
+
+
+@media (display-mode: standalone), (display-mode: fullscreen) {
+  .surface .top-bar {
+    padding-top: calc(var(--hw-space-3) + env(safe-area-inset-top));
+  }
+
+  .surface-content {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

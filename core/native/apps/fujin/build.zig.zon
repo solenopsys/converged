@@ -1,0 +1,10 @@
+.{
+    .name = .fujin,
+    .version = "0.1.0",
+    .fingerprint = 0xd7c4f7197a32b785,
+    .minimum_zig_version = "0.16.0",
+    .dependencies = .{
+        .transport = .{ .path = "../../libs/transport" },
+    },
+    .paths = .{ "build.zig", "build.zig.zon", "README.md", "src", "../../libs/transport", "../../wrappers/protocols/zimq" },
+}

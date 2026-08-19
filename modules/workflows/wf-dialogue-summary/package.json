@@ -1,0 +1,13 @@
+{
+  "name": "wf-dialogue-summary",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "module": "index.ts",
+  "dependencies": {
+    "dag-core": "workspace:*",
+    "g-calls": "workspace:*",
+    "g-chats": "workspace:*",
+    "g-threads": "workspace:*"
+  }
+}

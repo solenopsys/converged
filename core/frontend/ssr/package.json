@@ -1,0 +1,29 @@
+{
+	"name": "front-ssr",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./plugin": "./src/plugin.tsx",
+		"./product-cases-markdown": "./src/landing/product-cases-markdown.ts",
+		"./nrpc": "./src/nrpc.ts",
+		"./mount-config": "./src/mount-config.ts",
+		"./seo": "./src/seo.ts",
+		"./sitemap": "./src/sitemap.ts"
+	},
+	"dependencies": {
+		"back-core": "workspace:*",
+		"front-core": "workspace:*",
+		"front-spa": "workspace:*",
+		"g-counters": "workspace:*",
+		"g-markdown": "workspace:*",
+		"g-struct": "workspace:*",
+		"nrpc": "workspace:*",
+		"preact": "^10.29.7",
+		"preact-render-to-string": "^6.7.0"
+	},
+	"devDependencies": {
+		"@types/bun": "^1.3.14",
+		"typescript": "6.0.3"
+	}
+}

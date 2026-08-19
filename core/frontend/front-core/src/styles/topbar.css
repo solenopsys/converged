@@ -1,0 +1,318 @@
+/*
+ * Единая верхняя панель: лендинг показывает в ней навигацию, рабочий режим —
+ * вкладки поверхностей. Цвета берутся из токенов оболочки, поэтому тёмная тема
+ * приезжает сама, без парного набора правил под html.dark.
+ */
+:root,
+:host {
+  --top-bar-height: 68px;
+}
+
+.top-bar {
+  position: relative;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) auto minmax(140px, 1fr);
+  align-items: center;
+  gap: var(--hw-space-6);
+  min-height: var(--top-bar-height);
+  padding: var(--hw-space-3) max(34px, calc((100% - 1380px) / 2));
+  border-bottom: 1px solid var(--hw-panel-border);
+  background: color-mix(in srgb, var(--hw-canvas) 92%, var(--hw-ink) 8%);
+  color: var(--hw-ink);
+}
+
+.top-bar a,
+.top-bar button,
+.top-bar select {
+  color: inherit;
+  font: 700 12px "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+.top-bar-brand {
+	justify-self: start;
+	border: 0;
+	background: transparent;
+	padding: 0;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.top-bar-brand-logo {
+	display: block;
+	width: 102px;
+	height: auto;
+	max-height: 36px;
+	object-fit: contain;
+}
+
+html.dark .top-bar-brand-logo {
+	content: url("/header-logo-white.svg");
+}
+
+.top-bar-brand span {
+	color: var(--hw-ink-muted);
+}
+
+.top-bar-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--hw-space-6);
+}
+
+.top-bar-nav a {
+  padding: var(--hw-space-1) 0;
+  border-bottom: 1px solid transparent;
+  text-decoration: none;
+}
+
+.top-bar-nav a:hover,
+.top-bar-nav a:focus-visible,
+.top-bar-nav a[aria-current="page"] {
+  border-bottom-color: currentColor;
+  color: var(--hw-ink);
+}
+
+.top-bar-tabs {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--hw-space-1);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.top-bar-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.top-bar-tab {
+  display: flex;
+  align-items: center;
+  gap: var(--hw-space-1);
+  max-width: 260px;
+  padding-right: var(--hw-space-1);
+  border: 1px solid var(--hw-panel-border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--hw-ink-muted);
+}
+
+.top-bar-tab[data-active="true"] {
+  border-color: var(--hw-ink);
+  background: var(--hw-canvas);
+  color: var(--hw-ink);
+}
+
+.top-bar-tab-select {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--hw-space-1);
+  min-height: calc(var(--hw-unit) * 7);
+  padding: 0 var(--hw-space-2);
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.top-bar-tab-select span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.top-bar-tab-pin {
+  flex-shrink: 0;
+  color: var(--hw-accent);
+}
+
+.top-bar-tab-close,
+.shell-menu-trigger {
+  display: inline-grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: calc(var(--hw-unit) * 5);
+  height: calc(var(--hw-unit) * 5);
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--hw-ink-muted);
+  cursor: pointer;
+}
+
+.top-bar-tab-close:hover,
+.top-bar-tab-close:focus-visible,
+.shell-menu-trigger:hover,
+.shell-menu-trigger:focus-visible {
+  background: color-mix(in srgb, var(--hw-panel) 45%, transparent);
+  color: var(--hw-ink);
+  outline: none;
+}
+
+.top-bar-tab-combobox {
+  display: none;
+  min-height: calc(var(--hw-unit) * 8);
+  border: 1px solid var(--hw-panel-border);
+  border-radius: 4px;
+  background: transparent;
+  padding: 0 var(--hw-space-2);
+}
+
+.top-bar-controls {
+  display: flex;
+  align-items: center;
+  justify-self: end;
+  gap: var(--hw-space-2);
+}
+
+.top-bar-control {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--hw-panel-border);
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.top-bar-control:hover,
+.top-bar-control:focus-visible,
+.top-bar .shell-menu-trigger:hover,
+.top-bar .shell-menu-trigger:focus-visible {
+  border-color: var(--hw-focus);
+  background: color-mix(in srgb, var(--hw-panel) 45%, transparent);
+  outline: none;
+}
+
+.top-bar-theme-icon-sun,
+html.dark .top-bar-theme-icon-moon {
+  display: none;
+}
+
+html.dark .top-bar-theme-icon-sun {
+  display: block;
+}
+
+.top-bar-controls .shell-menu-trigger {
+  gap: var(--hw-space-1);
+  width: auto;
+  height: 36px;
+  padding: 0 var(--hw-space-2);
+  border: 1px solid var(--hw-panel-border);
+  border-radius: 4px;
+}
+
+.top-bar-locale {
+  letter-spacing: 0.04em;
+}
+
+/* Меню действий: одно на вкладки и на настройки. */
+.shell-menu {
+  position: relative;
+  display: inline-flex;
+}
+
+.shell-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shell-menu-list {
+  position: absolute;
+  top: calc(100% + var(--hw-space-1));
+  z-index: 60;
+  display: grid;
+  min-width: 200px;
+  padding: var(--hw-space-1);
+  border: 1px solid var(--hw-panel-border);
+  border-radius: 6px;
+  background: var(--hw-canvas);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--hw-ink) 18%, transparent);
+}
+
+.shell-menu-list[data-align="end"] {
+  right: 0;
+}
+
+.shell-menu-list[data-align="start"] {
+  left: 0;
+}
+
+.shell-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--hw-space-2);
+  min-height: calc(var(--hw-unit) * 8);
+  padding: 0 var(--hw-space-2);
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--hw-ink);
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.shell-menu-item:hover,
+.shell-menu-item:focus-visible {
+  background: color-mix(in srgb, var(--hw-panel) 45%, transparent);
+  outline: none;
+}
+
+.shell-menu-item[data-danger="true"] {
+  color: var(--hw-danger);
+}
+
+.shell-menu-icon {
+  flex-shrink: 0;
+  color: var(--hw-ink-muted);
+}
+
+.shell-menu-check {
+  margin-left: auto;
+  color: var(--hw-accent);
+}
+
+@media (max-width: 900px) {
+  :root,
+  :host {
+    --top-bar-height: 112px;
+  }
+
+  .top-bar {
+    grid-template-columns: 1fr auto;
+    gap: var(--hw-space-3) var(--hw-space-5);
+    padding: var(--hw-space-3) var(--hw-space-5);
+  }
+
+  .top-bar-nav {
+    grid-row: 2;
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    gap: var(--hw-space-3) var(--hw-space-5);
+  }
+
+  .top-bar-tabs {
+    grid-row: 2;
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 680px) {
+  .top-bar-tabs {
+    display: none;
+  }
+
+  .top-bar-tab-combobox {
+    display: block;
+    grid-row: 2;
+    grid-column: 1 / -1;
+  }
+}

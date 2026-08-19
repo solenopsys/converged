@@ -1,0 +1,14 @@
+{
+  "name": "sidebar-controller",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./store": "./src/store.ts"
+  },
+  "peerDependencies": {
+    "effector": "^23"
+  }
+}

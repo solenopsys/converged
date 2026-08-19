@@ -1,0 +1,34 @@
+{
+  "name": "nrpc",
+  "module": "src/index.ts",
+  "browser": "./src/browser.ts",
+  "exports": {
+    ".": {
+      "browser": "./src/browser.ts",
+      "default": "./src/index.ts"
+    },
+    "./browser": "./src/browser.ts",
+    "./cluster": "./src/cluster.ts",
+    "./client": "./src/client.ts",
+    "./rt": "./src/rt.ts"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "private": true,
+  "scripts": {
+    "gen": "bun run src/gen-all.ts ../types ../generated"
+  },
+  "dependencies": {
+    "@types/msgpack-lite": "^0.1.12",
+    "@typescript-eslint/typescript-estree": "^8.59.0",
+    "bun-transport": "file:../../navite/libs/cruller-transport",
+    "jose": "^6.1.1",
+    "msgpack-lite": "^0.1.26",
+    "msgpackr": "^1.11.5",
+    "typescript": "6.0.3"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "back-core": "file:../../back/back-core"
+  }
+}

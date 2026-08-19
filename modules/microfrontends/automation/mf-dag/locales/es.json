@@ -1,0 +1,34 @@
+{
+  "menu": {
+    "dag": "Procesos",
+    "workflows": "Flujos",
+    "nodes": "Nodos",
+    "providers": "Proveedores",
+    "executions": "Ejecuciones",
+    "tasks": "Tareas"
+  },
+  "cards": {
+    "workflows": {
+      "title": "Flujos",
+      "badge": {
+        "iconName": "IconTrendingUp",
+        "text": "+15.3%",
+        "className": ""
+      },
+      "footerTitle": "Crecimiento del número de flujos",
+      "footerIconName": "IconTrendingUp",
+      "footerDescription": "Nuevos flujos en la última semana"
+    },
+    "processes": {
+      "title": "Procesos",
+      "badge": {
+        "iconName": "IconPackage",
+        "text": "8 nuevos",
+        "className": "bg-green-50 dark:bg-green-950"
+      },
+      "footerTitle": "Procesos activos",
+      "footerIconName": "IconPackage",
+      "footerDescription": "Procesos en curso"
+    }
+  }
+}

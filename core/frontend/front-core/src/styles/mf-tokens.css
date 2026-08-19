@@ -1,0 +1,61 @@
+/*
+ * Микрофронтенды рисуют wind-утилитами (bg-background, text-muted-foreground,
+ * border, ...), которые в uno.mf.config.ts завязаны на --ui-*. Собственной
+ * палитры у них нет: --ui-* выводятся из токенов оболочки --hw-*, поэтому
+ * переключение темы (:root.dark в tokens.css) доезжает до MF само.
+ *
+ * Объявление живёт на :root/:host, а не на .surface, чтобы порталы (меню,
+ * поповеры, тултипы), которые рендерятся вне поверхности, наследовали те же
+ * значения.
+ */
+:root,
+:host {
+  --radius: var(--hw-radius-md);
+
+  --ui-background: var(--hw-canvas);
+  --ui-foreground: var(--hw-ink);
+  --ui-card: var(--hw-canvas);
+  --ui-card-foreground: var(--hw-ink);
+  --ui-popover: color-mix(in oklab, var(--hw-canvas) 94%, var(--hw-ink));
+  --ui-popover-foreground: var(--hw-ink);
+  --ui-primary: var(--hw-ink);
+  --ui-primary-foreground: var(--hw-canvas);
+  --ui-secondary: color-mix(in oklab, var(--hw-canvas) 92%, var(--hw-ink));
+  --ui-secondary-foreground: var(--hw-ink);
+  --ui-muted: color-mix(in oklab, var(--hw-canvas) 94%, var(--hw-ink));
+  --ui-muted-foreground: var(--hw-ink-muted);
+  --ui-accent: color-mix(in oklab, var(--hw-canvas) 90%, var(--hw-ink));
+  --ui-accent-foreground: var(--hw-ink);
+  --ui-destructive: var(--hw-danger);
+  --ui-destructive-foreground: var(--hw-danger-ink);
+  --ui-success: var(--hw-success);
+  --ui-success-foreground: var(--hw-success-ink);
+  --ui-warning: var(--hw-warning);
+  --ui-warning-foreground: var(--hw-warning-ink);
+  --ui-info: var(--hw-info);
+  --ui-info-foreground: var(--hw-info-ink);
+  --ui-border: var(--hw-panel-border);
+  --ui-input: var(--hw-panel-border);
+  --ui-ring: var(--hw-focus);
+  --ui-sidebar: color-mix(in oklab, var(--hw-canvas) 96%, var(--hw-ink));
+  --ui-sidebar-foreground: var(--hw-ink);
+  --ui-sidebar-primary: var(--hw-ink);
+  --ui-sidebar-primary-foreground: var(--hw-canvas);
+  --ui-sidebar-accent: color-mix(in oklab, var(--hw-canvas) 90%, var(--hw-ink));
+  --ui-sidebar-accent-foreground: var(--hw-ink);
+  --ui-sidebar-border: var(--hw-panel-border);
+  --ui-sidebar-ring: var(--hw-focus);
+
+  --ui-chart-1: var(--hw-chart-1);
+  --ui-chart-2: var(--hw-chart-2);
+  --ui-chart-3: var(--hw-chart-3);
+  --ui-chart-4: var(--hw-chart-4);
+  --ui-chart-5: var(--hw-chart-5);
+  --ui-chart-6: var(--hw-chart-6);
+  --ui-chart-7: var(--hw-chart-7);
+  --ui-chart-8: var(--hw-chart-8);
+}
+
+.surface {
+  color: var(--ui-foreground);
+}

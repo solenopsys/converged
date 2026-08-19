@@ -1,0 +1,417 @@
+import React, { useState, useEffect } from "preact/compat";
+import { useUnit } from "effector-preact";
+import type { Store } from "effector";
+import { Input } from "../components/ui/input";
+import { Textarea } from "../components/ui/textarea";
+import { Label } from "../components/ui/label";
+import { Button } from "../components/ui/button";
+import { Checkbox } from "../components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { type FieldConfig, validateFormData } from "../table/fields";
+
+const FIELD_TYPES = {
+	TEXT: "text",
+	NUMBER: "number",
+	EMAIL: "email",
+	PASSWORD: "password",
+	DATE: "date",
+	DATETIME: "datetime",
+	BOOLEAN: "boolean",
+	SELECT: "select",
+	TEXTAREA: "textarea",
+	TAGS: "tags",
+	CUSTOM: "custom",
+} as const;
+
+interface BasicFormViewProps {
+	fields: FieldConfig[];
+	/**
+	 * Запись, переданная напрямую. Вкладка рабочей области открывается на
+	 * конкретную строку таблицы, поэтому её содержимое не может зависеть от
+	 * общего на весь микрофронтенд стора «текущей записи».
+	 */
+	entity?: any;
+	entityStore?: Store<any>;
+	title?: string;
+	subtitle?: string;
+	relatedSections?: RelatedSectionConfig[];
+	onSave?: (data: any) => void | Promise<void>;
+	onCancel?: () => void;
+	saveButtonText?: string;
+	cancelButtonText?: string;
+	loading?: boolean;
+}
+
+export interface RelatedSectionConfig {
+	id: string;
+	title: string;
+	columns: any[];
+	parentKey?: string;
+	tableId?: string;
+	emptyMessage?: string;
+	load: (params: { parent: any; parentId: any }) => Promise<{ items?: any[]; totalCount?: number } | any[]>;
+	onRowClick?: (row: any, parent: any) => void;
+	renderItem?: (params: { item: any; parent: any; index: number; onClick: () => void }) => React.ReactNode;
+}
+
+const formatRelatedValue = (value: any) => {
+	if (value == null || value === "") return "-";
+	if (value instanceof Date) return value.toLocaleString();
+	if (Array.isArray(value)) return value.join(", ");
+	if (typeof value === "object") return JSON.stringify(value);
+	return String(value);
+};
+
+const RelatedSection = ({ section, entity }: { section: RelatedSectionConfig; entity: any }) => {
+	const parentKey = section.parentKey ?? "id";
+	const parentId = entity?.[parentKey];
+	const [items, setItems] = useState<any[]>([]);
+	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+
+	const loadItems = async () => {
+		if (parentId == null || loading) return;
+
+		setLoading(true);
+		setError(null);
+		try {
+			const result = await section.load({ parent: entity, parentId });
+			const nextItems = Array.isArray(result) ? result : (result?.items ?? []);
+			setItems(nextItems);
+		} catch (err: any) {
+			setError(err?.message ?? "Failed to load related records");
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	useEffect(() => {
+		setItems([]);
+		setError(null);
+
+		if (parentId != null) {
+			void loadItems();
+		}
+	}, [section.id, parentId]);
+
+	if (parentId == null) return null;
+
+	return (
+		<section className="flex min-h-[180px] flex-1 flex-col border-t">
+			<div className="flex items-center justify-between px-6 py-3">
+				<h3 className="text-sm font-semibold">{section.title}</h3>
+				<span className="text-xs text-muted-foreground">{items.length}</span>
+			</div>
+			{error ? (
+				<div className="px-6 pb-4 text-sm text-destructive">{error}</div>
+			) : loading ? (
+				<div className="px-6 pb-4 text-sm text-muted-foreground">Loading...</div>
+			) : items.length === 0 ? (
+				<div className="px-6 pb-4 text-sm text-muted-foreground">{section.emptyMessage ?? "No related records"}</div>
+			) : (
+				<div className="flex flex-col gap-2 px-3 pb-4">
+					{items.map((item, index) => {
+						const key = item?.id ?? `${section.id}-${index}`;
+						const onClick = () => section.onRowClick?.(item, entity);
+
+						if (section.renderItem) {
+							return <React.Fragment key={key}>{section.renderItem({ item, parent: entity, index, onClick })}</React.Fragment>;
+						}
+
+						const titleColumn = section.columns[0];
+						const detailColumns = section.columns.slice(1).filter((column) => column.id !== "createdAt");
+						const titleValue = titleColumn ? item?.[titleColumn.id] : key;
+
+						return (
+							<button
+								key={key}
+								type="button"
+								className="w-full rounded-md border bg-background px-4 py-3 text-left hover:bg-accent"
+								onClick={onClick}
+							>
+								<div className="mb-2 truncate text-sm font-semibold">{formatRelatedValue(titleValue)}</div>
+								<div className="grid grid-cols-[120px_1fr] gap-x-3 gap-y-1 text-sm">
+									{detailColumns.map((column) => {
+										const rendered = column.render?.(item?.[column.id], item);
+										return (
+											<React.Fragment key={column.id}>
+												<span className="text-muted-foreground">{column.title}</span>
+												<span className="min-w-0 break-words">{rendered ?? formatRelatedValue(item?.[column.id])}</span>
+											</React.Fragment>
+										);
+									})}
+								</div>
+							</button>
+						);
+					})}
+				</div>
+			)}
+		</section>
+	);
+};
+
+export const BasicFormView: React.FC<BasicFormViewProps> = ({
+	fields,
+	entity: entityProp,
+	entityStore,
+	title = "Form",
+	subtitle,
+	relatedSections = [],
+	onSave,
+	onCancel,
+	saveButtonText = "Save",
+	cancelButtonText = "Cancel",
+	loading = false,
+}) => {
+	const storedEntity = entityStore ? useUnit(entityStore) : null;
+	const entity = entityProp ?? storedEntity;
+
+	// Initialize form data from entity or default values
+	const [formData, setFormData] = useState<Record<string, any>>(() => {
+		const initial: Record<string, any> = {};
+		fields.forEach((field) => {
+			let val: any;
+			if (entity && entity[field.id] !== undefined) {
+				val = entity[field.id];
+			} else if (field.defaultValue !== undefined) {
+				val = field.defaultValue;
+			} else {
+				val = "";
+			}
+			if (field.type === FIELD_TYPES.TEXTAREA && val !== null && typeof val === "object") {
+				val = JSON.stringify(val, null, 2);
+			}
+			initial[field.id] = val;
+		});
+		return initial;
+	});
+
+	const [errors, setErrors] = useState<Record<string, string>>({});
+	const [touched, setTouched] = useState<Record<string, boolean>>({});
+	const [isSubmitting, setIsSubmitting] = useState(false);
+
+	useEffect(() => {
+		if (entity) {
+			const updated: Record<string, any> = {};
+			fields.forEach((field) => {
+				let val = entity[field.id] ?? field.defaultValue ?? "";
+				if (field.type === FIELD_TYPES.TEXTAREA && val !== null && typeof val === "object") {
+					val = JSON.stringify(val, null, 2);
+				}
+				updated[field.id] = val;
+			});
+			setFormData(updated);
+		}
+	}, [entity, fields]);
+
+	const handleChange = (fieldId: string, value: any) => {
+		setFormData((prev) => ({ ...prev, [fieldId]: value }));
+		setTouched((prev) => ({ ...prev, [fieldId]: true }));
+		const field = fields.find((f) => f.id === fieldId);
+		field?.onChange?.(value);
+
+		if (errors[fieldId]) {
+			setErrors((prev) => {
+				const newErrors = { ...prev };
+				delete newErrors[fieldId];
+				return newErrors;
+			});
+		}
+	};
+
+	const handleSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+
+		const allTouched: Record<string, boolean> = {};
+		fields.forEach((field) => {
+			if (field.formVisible !== false && !field.readonly) {
+				allTouched[field.id] = true;
+			}
+		});
+		setTouched(allTouched);
+
+		const validationErrors = validateFormData(fields, formData);
+		if (validationErrors) {
+			setErrors(validationErrors);
+			return;
+		}
+
+		setIsSubmitting(true);
+		try {
+			await onSave?.(formData);
+		} catch (error) {
+			console.error("Form submission error:", error);
+		} finally {
+			setIsSubmitting(false);
+		}
+	};
+
+	const renderField = (field: FieldConfig) => {
+		const value = formData[field.id] ?? "";
+		const error = touched[field.id] ? errors[field.id] : undefined;
+		const isInvalid = !!error;
+
+		if (field.formVisible === false) return null;
+
+		if (field.readonly) {
+			return (
+				<div key={field.id} className="space-y-2">
+					<Label className="text-sm font-medium">{field.title}</Label>
+					<div className="text-sm text-muted-foreground">
+						{field.type === FIELD_TYPES.DATE || field.type === FIELD_TYPES.DATETIME
+							? value
+								? new Date(value).toLocaleString()
+								: "-"
+							: value || "-"}
+					</div>
+				</div>
+			);
+		}
+
+		const commonProps = {
+			id: field.id,
+			"aria-invalid": isInvalid,
+			disabled: isSubmitting || loading,
+		};
+
+		switch (field.type) {
+			case FIELD_TYPES.TEXT:
+			case FIELD_TYPES.EMAIL:
+			case FIELD_TYPES.PASSWORD:
+			case FIELD_TYPES.NUMBER:
+				return (
+					<div key={field.id} className="space-y-2">
+						<Label htmlFor={field.id}>
+							{field.title}
+							{field.required && <span className="text-destructive ml-1">*</span>}
+						</Label>
+						<Input
+							{...commonProps}
+							type={field.type === FIELD_TYPES.NUMBER ? "number" : field.type}
+							value={value}
+							onChange={(e) =>
+								handleChange(field.id, field.type === FIELD_TYPES.NUMBER ? Number(e.target.value) : e.target.value)
+							}
+							placeholder={field.placeholder}
+						/>
+						{field.helpText && !error && <p className="text-xs text-muted-foreground">{field.helpText}</p>}
+						{error && <p className="text-xs text-destructive">{error}</p>}
+					</div>
+				);
+
+			case FIELD_TYPES.TEXTAREA:
+				return (
+					<div key={field.id} className="space-y-2">
+						<Label htmlFor={field.id}>
+							{field.title}
+							{field.required && <span className="text-destructive ml-1">*</span>}
+						</Label>
+						<Textarea
+							{...commonProps}
+							value={value}
+							onChange={(e) => handleChange(field.id, e.target.value)}
+							placeholder={field.placeholder}
+							rows={field.rows || 3}
+						/>
+						{field.helpText && !error && <p className="text-xs text-muted-foreground">{field.helpText}</p>}
+						{error && <p className="text-xs text-destructive">{error}</p>}
+					</div>
+				);
+
+			case FIELD_TYPES.SELECT:
+				return (
+					<div key={field.id} className="space-y-2">
+						<Label htmlFor={field.id}>
+							{field.title}
+							{field.required && <span className="text-destructive ml-1">*</span>}
+						</Label>
+						<Select value={String(value)} onValueChange={(val) => handleChange(field.id, val)} disabled={commonProps.disabled}>
+							<SelectTrigger aria-invalid={isInvalid}>
+								<SelectValue placeholder={field.placeholder || `Select ${field.title}`} />
+							</SelectTrigger>
+							<SelectContent>
+								{field.options?.map((option) => (
+									<SelectItem key={option.value} value={String(option.value)}>
+										{option.label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+						{field.helpText && !error && <p className="text-xs text-muted-foreground">{field.helpText}</p>}
+						{error && <p className="text-xs text-destructive">{error}</p>}
+					</div>
+				);
+
+			case FIELD_TYPES.DATE:
+			case FIELD_TYPES.DATETIME:
+				return (
+					<div key={field.id} className="space-y-2">
+						<Label htmlFor={field.id}>
+							{field.title}
+							{field.required && <span className="text-destructive ml-1">*</span>}
+						</Label>
+						<Input
+							{...commonProps}
+							type={field.type === FIELD_TYPES.DATETIME ? "datetime-local" : "date"}
+							value={value}
+							onChange={(e) => handleChange(field.id, e.target.value)}
+						/>
+						{field.helpText && !error && <p className="text-xs text-muted-foreground">{field.helpText}</p>}
+						{error && <p className="text-xs text-destructive">{error}</p>}
+					</div>
+				);
+
+			case FIELD_TYPES.BOOLEAN:
+				return (
+					<div key={field.id} className="flex items-center space-x-2">
+						<Checkbox {...commonProps} checked={!!value} onCheckedChange={(checked) => handleChange(field.id, checked)} />
+						<Label htmlFor={field.id} className="cursor-pointer">
+							{field.title}
+							{field.required && <span className="text-destructive ml-1">*</span>}
+						</Label>
+						{error && <p className="text-xs text-destructive ml-2">{error}</p>}
+					</div>
+				);
+
+			default:
+				return (
+					<div key={field.id} className="text-sm text-muted-foreground">
+						Unsupported field type: {field.type}
+					</div>
+				);
+		}
+	};
+
+	return (
+		<div className="flex flex-col h-full">
+			<div className="px-6 py-4 border-b">
+				<h2 className="text-lg font-semibold">{title}</h2>
+				{subtitle && <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>}
+			</div>
+
+			<form onSubmit={handleSubmit} className="flex flex-1 min-h-0 flex-col overflow-auto">
+				<div className="shrink-0 px-6 py-4 space-y-4">{fields.map(renderField)}</div>
+				{relatedSections.length > 0 && entity && (
+					<div className="flex min-h-0 flex-1 flex-col pb-4">
+						{relatedSections.map((section) => (
+							<RelatedSection key={section.id} section={section} entity={entity} />
+						))}
+					</div>
+				)}
+			</form>
+
+			<div className="border-t px-6 py-4">
+				<div className="flex justify-end gap-3">
+					{onCancel && (
+						<Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting || loading}>
+							{cancelButtonText}
+						</Button>
+					)}
+					<Button type="submit" onClick={handleSubmit} disabled={isSubmitting || loading}>
+						{isSubmitting ? "Saving..." : saveButtonText}
+					</Button>
+				</div>
+			</div>
+		</div>
+	);
+};

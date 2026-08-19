@@ -1,0 +1,53 @@
+{
+	"name": "front-spa",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./plugin": "./src/plugin.ts",
+		"./delivery": "./src/delivery.ts",
+		"./build": "./src/build/index.ts"
+	},
+	"scripts": {
+		"build": "NODE_ENV=production bun src/build/index.ts",
+		"analyze": "NODE_ENV=production bun src/build/index.ts && cat dist/build-report.json",
+		"check": "bun run check.ts",
+		"check:microfrontends": "bun src/build/microfrontend-contract.ts"
+	},
+	"dependencies": {
+		"@zag-js/anatomy": "^1.42.0",
+		"@zag-js/core": "^1.42.0",
+		"@zag-js/dom-query": "^1.42.0",
+		"@zag-js/focus-visible": "^1.42.0",
+		"@zag-js/popper": "^1.42.0",
+		"@zag-js/preact": "^1.42.0",
+		"@zag-js/store": "^1.42.0",
+		"@zag-js/tooltip": "^1.42.0",
+		"@zag-js/types": "^1.42.0",
+		"@zag-js/utils": "^1.42.0",
+		"assistant-state": "workspace:*",
+		"back-core": "workspace:*",
+		"d3-array": "^3.2.4",
+		"d3-geo": "^3.1.1",
+		"d3-scale": "^4.0.2",
+		"d3-shape": "^3.2.0",
+		"effector": "23.4.4",
+		"effector-preact": "workspace:*",
+		"files-state": "workspace:*",
+		"front-core": "workspace:*",
+		"g-assistant": "workspace:*",
+		"g-files": "workspace:*",
+		"g-rt-dag": "workspace:*",
+		"g-store": "workspace:*",
+		"g-threads": "workspace:*",
+		"nrpc": "workspace:*",
+		"preact": "^10.29.7",
+		"sidebar-controller": "workspace:*",
+		"signal-channel": "workspace:*"
+	},
+	"devDependencies": {
+		"@types/bun": "^1.3.14",
+		"typescript": "6.0.3",
+		"unocss": "^66.7.5"
+	}
+}

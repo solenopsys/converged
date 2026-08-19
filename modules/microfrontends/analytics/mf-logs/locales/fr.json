@@ -1,0 +1,18 @@
+{
+  "menu.logs": "Journaux",
+  "menu.logs.hot": "Chauds",
+  "menu.logs.cold": "Froids",
+  "logs.view.hotTitle": "Journaux (chauds)",
+  "logs.view.coldTitle": "Journaux (froids)",
+  "logs.view.refresh": "Actualiser",
+  "logs.stats.title": "Statistiques des journaux",
+  "logs.stats.refresh": "Actualiser",
+  "logs.stats.totalHot": "Journaux chauds",
+  "logs.stats.totalHotDescription": "Nombre total d'enregistrements dans le stockage chaud",
+  "logs.stats.totalCold": "Journaux froids",
+  "logs.stats.totalColdDescription": "Nombre total d'enregistrements dans le stockage froid",
+  "logs.stats.errors": "Erreurs",
+  "logs.stats.errorsDescription": "Enregistrements de niveau ERROR",
+  "logs.stats.warnings": "Avertissements",
+  "logs.stats.warningsDescription": "Enregistrements de niveau WARN"
+}

@@ -1,0 +1,7 @@
+{
+  "_comment": "Shape the scheduler microservice (sheduller.schedule) returns to the RT. The MS does all cron-expression parsing / timezone / pause logic and hands the RT only formalized periods. The RT just runs the timer and launches.",
+  "items": [
+    { "script": "workflows/wf-markering.js", "params": {}, "periodMs": 300000 },
+    { "script": "workflows/wf-leads.js", "params": { "lang": "ru" }, "periodMs": 600000 }
+  ]
+}

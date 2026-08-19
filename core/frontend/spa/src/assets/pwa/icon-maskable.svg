@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Maskable: рисунок укладывается во внутренние 60%, остальное система срежет. -->
+  <rect width="512" height="512" fill="#171816"/>
+  <text x="256" y="306" fill="#ffffff" font-family="Inter, Helvetica, Arial, sans-serif"
+        font-size="150" font-weight="700" letter-spacing="-5" text-anchor="middle">hw</text>
+  <circle cx="346" cy="306" r="18" fill="#b8ed57"/>
+</svg>

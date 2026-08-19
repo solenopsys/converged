@@ -1,0 +1,18 @@
+{
+  "menu.logs": "Protokolle",
+  "menu.logs.hot": "Heiß",
+  "menu.logs.cold": "Kalt",
+  "logs.view.hotTitle": "Protokolle (heiß)",
+  "logs.view.coldTitle": "Protokolle (kalt)",
+  "logs.view.refresh": "Aktualisieren",
+  "logs.stats.title": "Protokollstatistik",
+  "logs.stats.refresh": "Aktualisieren",
+  "logs.stats.totalHot": "Heißprotokolle",
+  "logs.stats.totalHotDescription": "Gesamtanzahl der Einträge im heißen Speicher",
+  "logs.stats.totalCold": "Kaltprotokolle",
+  "logs.stats.totalColdDescription": "Gesamtanzahl der Einträge im kalten Speicher",
+  "logs.stats.errors": "Fehler",
+  "logs.stats.errorsDescription": "Einträge der Stufe ERROR",
+  "logs.stats.warnings": "Warnungen",
+  "logs.stats.warningsDescription": "Einträge der Stufe WARN"
+}

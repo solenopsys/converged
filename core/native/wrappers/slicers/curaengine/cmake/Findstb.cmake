@@ -1,0 +1,5 @@
+add_library(stb INTERFACE)
+target_include_directories(stb INTERFACE "${CMAKE_CURRENT_LIST_DIR}/../vendor/stb")
+add_library(stb::stb ALIAS stb)
+set(stb_FOUND TRUE)
+set(stb_VERSION 20200203)

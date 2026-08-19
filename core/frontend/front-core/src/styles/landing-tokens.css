@@ -1,0 +1,58 @@
+/*
+ * Палитра лендинга. Единственное объявление: слой блоков проекта эти переменные
+ * не переопределяет — иначе источников правды два, а выигрывает тот, кого
+ * сборка положила ниже.
+ */
+:root {
+  --landing-canvas: #f7f7f4;
+  --landing-canvas-muted: #edf0e8;
+  --landing-surface: #f9faf7;
+  --landing-surface-warm: #f3efe1;
+  --landing-ink: #182019;
+  --landing-ink-strong: #0a1b0c;
+  --landing-ink-muted: #657064;
+  --landing-ink-subtle: #84917e;
+  --landing-line: #cbd0c5;
+  --landing-line-soft: #dfe3da;
+  --landing-action: #1b2d1a;
+  --landing-action-ink: #fff;
+  --landing-accent: #b8ed57;
+  --landing-accent-ink: #10240f;
+  --landing-on-dark: #f7f7f4;
+  --landing-on-dark-muted: #d7dfd3;
+  --landing-dark: #111713;
+  --landing-dark-raised: #172018;
+  --landing-dark-line: #42503f;
+  --landing-success: #31582d;
+  --landing-success-surface: #e6f2dd;
+  --landing-warning: #b36e22;
+  --landing-document-line: #c4beae;
+  --landing-shadow: rgba(0, 0, 0, 0.12);
+}
+
+:root.dark {
+  --landing-canvas: #0b0c0b;
+  --landing-canvas-muted: #111210;
+  --landing-surface: #181a17;
+  --landing-surface-warm: #20241e;
+  --landing-ink: #f1f3ec;
+  --landing-ink-strong: #f4f6f1;
+  --landing-ink-muted: #b5bbb1;
+  --landing-ink-subtle: #98a28f;
+  --landing-line: #2d302b;
+  --landing-line-soft: #3a4038;
+  --landing-action: #b8ed57;
+  --landing-action-ink: #10240f;
+  --landing-accent: #b8ed57;
+  --landing-accent-ink: #10240f;
+  --landing-on-dark: #f1f3ec;
+  --landing-on-dark-muted: #d2edb5;
+  --landing-dark: #090a09;
+  --landing-dark-raised: #111210;
+  --landing-dark-line: #3a4038;
+  --landing-success: #b8ed57;
+  --landing-success-surface: #263022;
+  --landing-warning: #e7b66f;
+  --landing-document-line: #596154;
+  --landing-shadow: rgba(0, 0, 0, 0.38);
+}

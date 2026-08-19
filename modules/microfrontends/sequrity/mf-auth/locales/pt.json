@@ -1,0 +1,38 @@
+{
+  "welcome": {
+    "heading": "Bem-vindo",
+    "description": "Entre na sua conta Acme Inc"
+  },
+  "form": {
+    "email": "E-mail",
+    "password": "Senha",
+    "forgotPassword": "Esqueceu a senha?"
+  },
+  "button": {
+    "login": "Entrar",
+    "sendAuthLink": "Enviar link de acesso",
+    "sendingLink": "Enviando link...",
+    "loggingIn": "Fazendo login...",
+    "continueWith": "Ou continue com",
+    "loginWithApple": "Entrar com Apple",
+    "loginWithGoogle": "Entrar com Google",
+    "loginWithMeta": "Entrar com Meta",
+    "loginWithMicrosoft": "Entrar com Microsoft",
+    "loginWithGithub": "Entrar com GitHub"
+  },
+  "signup": {
+    "text": "Não tem uma conta?",
+    "link": "Cadastre-se"
+  },
+  "legal": {
+    "agreement": "Ao clicar em «continuar», você concorda com nossos {{termsLink}} e {{privacyLink}}.",
+    "termsOfService": "Termos de uso",
+    "privacyPolicy": "Política de privacidade"
+  },
+  "notification": {
+    "linkSent": "Link de acesso enviado",
+    "checkEmail": "Verifique seu e-mail para continuar",
+    "loginFailed": "Falha no login",
+    "tryAgain": "Por favor, tente novamente"
+  }
+}

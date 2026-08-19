@@ -1,0 +1,33 @@
+import type {
+  CommunityService,
+  CommunitySection,
+  CommunitySectionInput,
+  CommunityTopic,
+  CommunityTopicInput,
+  ListParams,
+  PaginatedResult,
+  SectionId,
+  SectionListParams,
+  SectionTreeNode,
+  ThreadId,
+  TopicId,
+  TopicListParams,
+  UserId,
+} from "g-community";
+
+export type {
+  CommunityService,
+  CommunitySection,
+  CommunitySectionInput,
+  CommunityTopic,
+  CommunityTopicInput,
+  ListParams,
+  PaginatedResult,
+  SectionId,
+  SectionListParams,
+  SectionTreeNode,
+  ThreadId,
+  TopicId,
+  TopicListParams,
+  UserId,
+};

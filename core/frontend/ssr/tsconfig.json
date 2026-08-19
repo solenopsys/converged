@@ -1,0 +1,25 @@
+{
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"jsx": "react-jsx",
+		"jsxImportSource": "preact",
+		"strict": true,
+		"noEmit": true,
+		"skipLibCheck": true,
+		"types": ["bun"],
+		"paths": {
+			"back-core/server-app": ["../../back/back-core/src/server/server-app.ts"],
+			"back-core/workspace-domain": ["../../back/back-core/src/workspace-domain.ts"],
+			"front-core/landing": ["../front-core/src/landing/index.ts"],
+			"front-spa/delivery": ["../spa/src/delivery.ts"],
+			"g-counters": ["../../tools/generated/g-counters/src/index.ts"],
+			"g-markdown": ["../../tools/generated/g-markdown/src/index.ts"],
+			"g-struct": ["../../tools/generated/g-struct/src/index.ts"],
+			"nrpc/cluster": ["../../tools/nrpc/src/cluster.ts"]
+		}
+	},
+	"include": ["src/**/*.ts", "src/**/*.tsx"]
+}

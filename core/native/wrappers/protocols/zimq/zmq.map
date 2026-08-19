@@ -1,0 +1,21 @@
+/* Only the libzmq C ABI (plus the C++ allocation operators libtransport.so
+ * imports) may leave this .so. Everything else — notably the statically
+ * linked libc++ instantiations — stays local.
+ *
+ * Why: resonus links libzimq.so at startup, so its symbols land in the global
+ * lookup scope before libdatachannel.so is dlopen'ed. Both libraries carry
+ * their own libc++ copy, and 33 of those symbols collide (basic_ostringstream,
+ * basic_string, vector). libdatachannel then constructs a stream with one
+ * libc++ and destroys it with another — "double free or corruption" inside
+ * ~basic_streambuf on the first setRemoteDescription of every web call.
+ */
+{
+  global:
+    zmq_*;
+    _Znw*;
+    _Zna*;
+    _Zdl*;
+    _Zda*;
+  local:
+    *;
+};

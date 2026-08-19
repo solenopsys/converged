@@ -1,0 +1,9 @@
+{
+  global:
+    fluentbit_engine_destroy;
+    fluentbit_engine_start;
+    fluentbit_engine_stop;
+    fluentbit_wrapper_last_error;
+  local:
+    *;
+};

@@ -1,0 +1,41 @@
+{
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"jsx": "react-jsx",
+		"jsxImportSource": "preact",
+		"strict": true,
+		"noEmit": true,
+		"skipLibCheck": true,
+		"types": ["bun"],
+		"paths": {
+			"assistant-state": ["../libraries/assistant/assistant-state/src/index.ts"],
+			"sidebar-controller/store": ["../libraries/assistant/sidebar-controller/src/store.ts"],
+			"files-state": ["../libraries/files/files-state/src/index.ts"],
+			"effector-preact": ["../libraries/effector/effector-preact/src/index.ts"],
+			"signal-channel": ["../libraries/effector/signal-channel/src/index.ts"],
+			"front-core": ["../front-core/src/index.ts"],
+			"front-core/core": ["../front-core/src/core/index.ts"],
+			"front-core/table": ["../front-core/src/table/index.ts"],
+			"front-core/shell": ["../front-core/src/shell/index.ts"],
+			"front-core/shell/panel": ["../front-core/src/shell/panel.ts"],
+			"front-core/styles/*": ["../front-core/src/styles/*"],
+			"front-core/chat": ["../front-core/src/chat/index.ts"],
+			"front-core/chat/config-page": ["../front-core/src/chat/config/from-page.ts"],
+			"front-core/chat/config-embed": ["../front-core/src/chat/config/from-embed.ts"],
+			"front-core/chat/styles-inline": ["../front-core/src/chat/styles/inline.ts"],
+			"front-core/landing": ["../front-core/src/landing/index.ts"],
+			"front-core/ui": ["../front-core/src/ui/index.ts"],
+			"back-core/server-app": ["../../back/back-core/src/server/server-app.ts"],
+			"nrpc": ["../../tools/nrpc/src/browser.ts"],
+			"g-assistant": ["../../tools/generated/g-assistant/src/browser.ts"],
+			"g-files": ["../../tools/generated/g-files/src/browser.ts"],
+			"g-rt-dag": ["../../tools/generated/g-rt-dag/src/browser.ts"],
+			"g-store": ["../../tools/generated/g-store/src/browser.ts"],
+			"g-threads": ["../../tools/generated/g-threads/src/browser.ts"]
+		}
+	},
+	"include": ["*.ts", "src/**/*.ts", "src/**/*.tsx"]
+}

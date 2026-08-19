@@ -1,0 +1,44 @@
+{
+  "wordmark": {
+    "label": "4IR",
+    "suffix": " / PRODUCT",
+    "href": "#product"
+  },
+  "kicker": "04IR / OPERATING PLATFORM",
+  "headline": "One operating system for your workshop.",
+  "description": "Единое рабочее пространство для заказов, оборудования и коммуникации с клиентами. Данные производства становятся планом действий для всей команды.",
+  "explore": {
+    "href": "#capabilities",
+    "label": "Explore the platform"
+  },
+  "image": {
+    "src": "/images/workshop.png",
+    "alt": "Цифровая мастерская с ЧПУ и 3D-печатью",
+    "caption": "Цифровая модель мастерской",
+    "labels": [
+      {
+        "groups": [
+          ["JOB ID: WP-45891", "STATUS: ACTIVE"],
+          ["LOCATION: UNIT 3A", "WORKSHOP: ONLINE"]
+        ],
+        "top": "calc(20% - 100px)",
+        "left": "-2%",
+        "width": "202px"
+      },
+      {
+        "strong": "progress: 64%",
+        "groups": [
+          [
+            "CNC Est. Completion: 1h 15m",
+            "3D Print Layer: 201/450",
+            "Material: Aluminum 6061"
+          ]
+        ],
+        "top": "calc(18% - 100px)",
+        "right": "-1%",
+        "width": "218px"
+      }
+    ]
+  },
+  "index": "01"
+}

@@ -1,0 +1,154 @@
+import { sample } from 'effector';
+import type { UUID } from '../../../../../types/files';
+import {
+  UploadWorkerCommandType,
+  UploadWorkerEventType,
+  type UploadWorkerOutgoingMessage,
+} from '../../../store-workers/src/types';
+
+export {
+  compressionStarted,
+  chunkPrepared,
+  compressionCompleted,
+  compressionFailed,
+  decompressionStarted,
+  decompressionStateInitialized,
+  decompressionFailed,
+  decompressionChunkRequested,
+  decompressionDataReceived,
+  decompressionChunkProcessed,
+  decompressionCompleted,
+  chunkConsumed,
+  $decompressionState,
+} from './streaming-core';
+
+import {
+  compressionStarted,
+  chunkPrepared,
+  compressionCompleted,
+  compressionFailed,
+} from './streaming-core';
+
+// STORE-WORKERS INTEGRATION
+
+export type StoreWorkerConfig = {
+  baseUrl: string;
+  fujinWsUrl: string;
+  headers?: Record<string, string>;
+  owner?: string;
+};
+
+let storeWorker: Worker | null = null;
+let storeConfig: StoreWorkerConfig | null = null;
+
+function resolveStoreConfig(): Partial<StoreWorkerConfig> {
+  const config = { ...(storeConfig || {}) };
+  if (typeof window === 'undefined') return config;
+
+  const token = window.localStorage.getItem('authToken');
+  if (!token) return config;
+
+  return {
+    ...config,
+    headers: {
+      ...(config.headers || {}),
+      authorization: `Bearer ${token}`,
+    },
+  };
+}
+
+export function setStoreWorker(worker: Worker, config: StoreWorkerConfig) {
+  if (storeWorker) {
+    console.warn('[Streaming] Replacing existing worker');
+    storeWorker.terminate();
+  }
+  storeWorker = worker;
+  storeConfig = config || null;
+  setupWorkerHandlers(worker);
+}
+
+function getStoreWorker(): Worker {
+  if (!storeWorker) {
+    throw new Error('[files-state] store worker is not configured: call setStoreWorker first');
+  }
+  return storeWorker;
+}
+
+// UPLOAD WORKER MESSAGE HANDLERS
+
+import { blockSaved } from './store';
+
+function setupWorkerHandlers(worker: Worker) {
+  worker.onmessage = (event: MessageEvent<UploadWorkerOutgoingMessage>) => {
+    const message = event.data;
+
+    switch (message.type) {
+      case UploadWorkerEventType.ChunkReady:
+        if (message.chunkSize === 0) {
+          console.warn('[Streaming] Skipping empty chunk:', message.chunkNumber);
+          break;
+        }
+
+        blockSaved({
+          fileId: message.fileId,
+          chunkNumber: message.chunkNumber,
+          hash: message.hash,
+          chunkSize: message.chunkSize,
+        });
+        break;
+
+      case UploadWorkerEventType.FileUploaded:
+        compressionCompleted({
+          fileId: message.fileId,
+          totalChunks: message.totalChunks,
+        });
+        break;
+
+      case UploadWorkerEventType.Error:
+        console.error('[Streaming] Upload error:', message);
+        compressionFailed({
+          fileId: message.fileId,
+          error: message.error,
+        });
+        break;
+
+      case UploadWorkerEventType.Progress:
+
+        break;
+    }
+  };
+
+  worker.onerror = (error) => {
+    console.error('[Streaming] Worker error:', error);
+  };
+}
+
+// UPLOAD LOGIC
+
+sample({
+  clock: compressionStarted,
+  fn: ({ fileId, file }) => {
+    const message: any = {
+      type: UploadWorkerCommandType.UploadStart,
+      fileId,
+      file,
+    };
+
+    const resolvedStoreConfig = resolveStoreConfig();
+    if (Object.keys(resolvedStoreConfig).length > 0) {
+      message.store = resolvedStoreConfig;
+    }
+
+    const worker = getStoreWorker();
+    worker.postMessage(message);
+  },
+});
+
+// CLEANUP
+
+export function terminateWorkers() {
+  if (storeWorker) {
+    storeWorker.terminate();
+    storeWorker = null;
+  }
+}
