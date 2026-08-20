@@ -1,7 +1,5 @@
 # Converged
 
-![Converged](./front/landing/public/logo-black.svg)
-
 ![status](https://img.shields.io/badge/status-active%20development-orange) ![build](https://img.shields.io/badge/build-manual%20checks-blue) ![version](https://img.shields.io/badge/version-1.0.0-purple) ![license](https://img.shields.io/badge/license-AGPL--3.0-brightgreen)
 
 A CNC shop or 3D print bureau has two kinds of work: making things, and everything around making things.
@@ -14,13 +12,11 @@ In practice: a client submits a request through the website or the mobile app �
 
 On the equipment side, Converged reads telemetry from the machines — 3D printers (Bambu Lab, Marlin, Klipper), CNC machines, robotic arms — and uses it to manage work distribution: which job goes to which machine, what's idle, what's overloaded, what's at risk of missing a deadline. The machines themselves are operated by your team as always; Converged handles the scheduling and visibility layer on top. Think of OctoPrint or OctoFarm, but one level up: instead of a window into individual printers, you get a live picture of the whole floor tied into the order and client workflow.
 
-Workflows are built on a DAG automation engine — order routing, escalations, queue balancing, multi-step chains. A dedicated Runtime layer (RT) handles all workflow execution and cron scheduling as a stateless service, keeping microservices as pure data stores. AI sits on top as the interaction layer: operators and clients communicate in natural language, the system figures out what to do. Multiple LLM providers run simultaneously (OpenAI, Anthropic, DeepSeek, Mistral, Gemini), each for its own tasks, within a unified permissions and audit model.
+Workflows are built on a DAG runtime — order routing, escalations, queue balancing, multi-step chains — executed by `centimanus` as replayable step-driven graphs, which keeps microservices as pure data stores. AI sits on top as the interaction layer: operators and clients communicate in natural language, the system figures out what to do. Multiple LLM providers run simultaneously (OpenAI, Anthropic, DeepSeek, Mistral, Gemini), each for its own tasks, within a unified permissions and audit model.
 
 The platform is modular and open-source. The same building blocks configure into any profile: 3D printing service bureau, CNC job shop, R&D lab, distributed network of workshops.
 
 Development track: [github.com/solenopsys/converged](https://github.com/solenopsys/converged)
-
-![Converged Portal — Dashboard](./app-screen.jpg)
 
 ---
 
@@ -28,265 +24,436 @@ Development track: [github.com/solenopsys/converged](https://github.com/solenops
 
 ### System overview
 
-The architecture has a strict separation of concerns. Microservices are intentionally dumb — each one is a typed API wrapper around a single database. They own their data and nothing else. They do not call each other and contain no multi-step logic.
+There is no service mesh and no HTTP call graph between components. Every part
+of the platform is a peer on one message bus: each process opens a single
+connection to **fujin** and registers exactly one target name. Browsers attach
+to the same bus over WebSocket. A peer never learns another peer's address —
+it addresses a target, and fujin routes to whichever connection currently owns
+that target.
 
-All business processes, workflow orchestration, and data integration live in the Runtime layer (RT). RT is stateless: it holds no persistent state of its own. It reads from and writes to microservices via their APIs. If an order needs to be routed, three services queried and merged, or a sequence of steps executed — that logic lives in RT, compiled in at build time as typed TypeScript workflow classes.
+```text
+                                 browser / mobile client
+                                            │
+                                            │ WebSocket
+                                            ▼
+   ┌────────────┐                 ┌──────────────────────┐                 ┌──────────────┐
+   │     ui     │◄───────────────►│                      │◄───────────────►│  centimanus  │
+   │  SSR/SPA   │                 │                      │                 │ DAG runtime  │
+   │   static   │                 │        fujin         │                 └──────────────┘
+   └────────────┘                 │                      │
+   ┌────────────┐                 │    message broker    │                 ┌──────────────┐
+   │     ms     │◄───────────────►│                      │◄───────────────►│   resonus    │
+   │   domain   │                 │  target → connection │                 │  media + AI  │
+   │  services  │                 │                      │                 │   gateway    │
+   └────────────┘                 │                      │                 └──────────────┘
+   ┌────────────┐                 │                      │                 ┌──────────────┐
+   │  behemoth  │◄───────────────►│                      │◄───────────────►│  processors  │
+   │  storage   │                 │                      │                 │ curaengine,  │
+   │   engine   │                 │                      │                 │  opencamlib  │
+   └────────────┘                 └──────────────────────┘                 └──────────────┘
 
-This keeps microservices stable and independently deployable, while RT becomes the single explicit place where cross-domain logic lives.
-
+   ──────────────────────────────── control plane ────────────────────────────────
+   ┌─────────────────────────────────────────────────────────────────────┐
+   │  ptah — Kubernetes operator                                         │
+   │  Platform / Solution / Tenant  →  Deployments, Services, PV/PVC,    │
+   │  ConfigMaps, Gateway, HTTPRoute                                     │
+   └─────────────────────────────────────────────────────────────────────┘
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        Operator / Client                    │
-└───────────────────────────┬─────────────────────────────────┘
-                            │ Browser / API
-           ┌────────────────┴─────────────────┐
-           ▼                                  ▼
-┌─────────────────────┐          ┌────────────────────────┐
-│   UI                │          │   Runtime (RT)          │
-│                     │          │                        │
-│  SPA + Landing      │          │  workflows,            │
-│  microfrontends     │          │  cron engine,          │
-│  import map         │          │  data integration,     │
-│  static assets      │          │  business processes    │
-│                     │          │  (stateless)           │
-└──────────┬──────────┘          └───────────┬────────────┘
-           │                                 │
-           │           HTTP                  │
-           └──────────────┬──────────────────┘
-                          ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   Microservices (MS)                        │
-│   thin DB wrappers — typed APIs — no cross-service logic    │
-│                                                             │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────────┐  │
-│  │ security │ │ business │ │   social │ │  ai / agents  │  │
-│  │ content  │ │   data   │ │ delivery │ │  analytics    │  │
-│  └──────────┘ └──────────┘ └──────────┘ └───────────────┘  │
-└───────────────────────────┬─────────────────────────────────┘
-                            │ FFI / Zig adapters
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    Hardware / Equipment                     │
-│  Bambu Lab (MQTT)  ┊  Marlin/serial  ┊  Klipper/Moonraker  │
-│  UVtools (resin)   ┊  CNC machines   ┊  Robotic arms       │
-└─────────────────────────────────────────────────────────────┘
-```
+
+`ptah` is not on the bus. It is the control plane: it decides which of these
+containers exist, how many, and with what volumes — see [Deployment](#deployment).
+
+### Components
+
+| Component | Language | Role |
+|---|---|---|
+| **fujin** | Zig | Message broker. One `target → connection` map; WebSocket ingress for clients, ZMQ for cluster peers. Nothing else routes. |
+| **ui** | TS on Cruller | Everything that renders and serves HTTP: SSR, SPA shell, import map, microfrontend bundles, static assets, landing. |
+| **ms** | TS on Cruller | Domain microservices. Thin typed wrappers over their own stores — no cross-service calls, no multi-step logic. |
+| **behemoth** | Zig | Multi-model storage engine (SQL, KV, column, vector, graph, files). One isolated root per microservice. |
+| **resonus** | Zig | Media and AI gateway in one process: WebRTC/SIP calls, and LLM provider adapters behind one policy. |
+| **centimanus** | Zig + QuickJS | DAG runtime. Executes workflows as replayable step graphs, persists node outcomes, resumes from the first unfinished node. |
+| **processors** | Zig | Separate compute containers — slicers (`curaengine`), CAM (`opencamlib`), converters. Scaled independently of everything else. |
+| **ptah** | Zig + QuickJS | Kubernetes operator. Reconciles `Platform`, `Solution` and `Tenant` into cluster objects. |
+
+### Routing contract
+
+Each connection registers exactly one target, e.g. `ui`, `services`,
+`behemoth`, `resonus`, `centimanus`. A message address has two independent
+fields:
+
+- `to.target` selects the receiving **connection** — fujin's only decision;
+- `to.service` selects a **handler inside** that process — fujin never looks at it.
+
+A target is routable if and only if a live connection owns it. A reconnect
+under the same target replaces the old identity atomically, and a dead
+identity cannot leave a target behind. Full contract:
+[`core/native/apps/fujin/README.md`](core/native/apps/fujin/README.md).
 
 ### Monorepo layout
 
+```text
+converged/
+├── core/
+│   ├── backend/              # back-core: server runtime, plugin loading, stores, request scope
+│   ├── dag/                  # dag-core + workflow bundler for centimanus
+│   ├── frontend/
+│   │   ├── front-core/       # shared Preact core: components, state, routing
+│   │   ├── spa/              # SPA plugin: import map, /mf/*, /vendor/*
+│   │   ├── ssr/              # server-side rendering
+│   │   ├── landing/          # landing site
+│   │   └── libraries/        # shared UI libs: assistant, effector, files, i18n, md-tools, sequrity
+│   ├── native/
+│   │   ├── apps/             # fujin, behemoth, centimanus, resonus, ptah
+│   │   ├── processors/       # curaengine, opencamlib
+│   │   ├── wrappers/         # Zig wrappers: dbs, protocols, adapters, slicers, rt/{cruller,qjs}
+│   │   ├── libs/             # cruller-transport, cruller-md4c
+│   │   └── types/            # rt-side contracts
+│   └── tools/
+│       ├── cli/              # operator CLI
+│       ├── dev/              # dev runner: resolves the solution, starts native peers
+│       └── nrpc/             # contract codegen + messaging runtime
+├── modules/
+│   ├── types/                # NRPC contracts, grouped by domain
+│   ├── generated/            # generated g-<service> packages
+│   ├── microservices/        # <domain>/ms-<name>
+│   ├── microfrontends/       # <domain>/mf-<name>
+│   ├── workflows/            # wf-<name>, compiled for centimanus
+│   ├── commands/             # CLI commands
+│   └── solutions/            # solution definitions + mapping registry
+└── front/landing/            # landing content blocks
 ```
-converged-portal/
-├── back/                  # Backend
-│   ├── back-core/         # Elysia runtime + dynamic plugin loading
-│   ├── microservices/     # Stateful data/API plugins: back/microservices/<category>/ms-<name>
-│   ├── runtimes/          # Stateless RT plugins: back/runtimes/<category>/rt-<name>
-│   └── runtime/           # Runtime core: engines, gates, workflow resolver, shared services
-│       ├── engines/dag/   # Workflow base class, NodeProcessor
-│       ├── engines/cron/  # Cron scheduling engine
-│       └── workflows/     # Workflow definitions (package: converged-workflows)
-├── front/                 # Frontend
-│   ├── front-core/        # React core, components, state (Effector)
-│   ├── spa/               # SPA plugin (Elysia)
-│   ├── landing/           # SSR landing page
-│   └── microfrontends/    # 20 independent UI modules
-├── tools/
-│   ├── integration/       # NRPC contracts and client codegen
-│   └── cli/               # CLI utilities
-├── deployment/            # Generated Containerfiles, Helm/k3s artifacts, runtime configs
-└── native/                # Native Zig adapters (LMDB, printers, IoT)
+
+A downstream product (for example `club`) is a sibling directory with the same
+`modules/` shape. It declares `extends` in its solution file and adds its own
+microservices, microfrontends and workflows on top of this base.
+
+### NRPC: contract layer
+
+NRPC binds TypeScript contracts to implementations and generates typed clients.
+
+Contracts are interfaces under `modules/types/<domain>/*.ts`. Codegen produces
+`g-<service>` packages holding metadata, types, and client factories for three
+call sites: browser, another process on the bus, and a workflow inside
+centimanus (`g-<service>/rt`).
+
+Transport is the message bus, not HTTP. A service registers with
+`createMessagingBackend` from `nrpc/cluster` and receives calls addressed to
+its target; payloads are msgpack. Access control travels in the envelope: the
+`scope` / `workspace` context is set at the edge and a peer never derives it
+from the payload.
+
+```bash
+bun run gen   # modules/types → modules/generated, plus rt clients from core/native/types
 ```
 
-### Backend: Plugin Runtime
+### Data storage: Behemoth
 
-The backend is built on [Elysia](https://elysiajs.com/) and runs on [Bun](https://bun.sh/) — the fastest and most lightweight JS runtime available today. Bun is written in Zig, runs 2–3× faster than Node.js, and consumes significantly less memory, making it ideal for edge deployment — the platform runs comfortably on single-board computers for $100. In development mode, `back-core` reads `config.json`, dynamically imports plugins for all active microservices, and mounts them into a single HTTP application.
+Storage is [**Behemoth**](https://github.com/solenopsys/behemoth) — a native
+multi-model engine written in Zig. SQL, key-value, column, vector, graph and
+file stores live behind one API.
 
-In production, each application image reads `runtime-map.toml` with the plugin list for that image. The MS image loads `microservices`; the RT image loads `runtimes`. A mono deployment runs one RT container with all configured runtimes, while a multi deployment can split the same RT image into several stateless runtime containers by config.
+The isolation unit is the microservice, and it is physical rather than
+conventional: **each microservice gets its own volume**. Behemoth refuses to
+create a store under a root that is not mounted, so a missing directory is a
+mount error and never a silently created shared directory.
 
-Each microservice is an Elysia plugin with a factory function `createHttpBackend({ metadata, serviceImpl })`. Configuration is passed via `PluginConfig`: data path, AI keys, addresses of neighboring services.
+The mount table is a JSON file — a ConfigMap in the cluster, written by the dev
+runner locally:
 
-### NRPC: Contract Layer
+```json
+{ "microservices": { "orders-ms": "/app/data/converged-storage-orders", "files-ms": "/app/data/converged-storage-files" } }
+```
 
-NRPC (Network RPC) is a thin layer over HTTP that binds contracts to implementations and generates typed clients.
+One behemoth process mounts every one of those volumes and serves all of them
+over the bus. Splitting storage further is a deployment decision, not a code
+change — see the profiles below.
 
-Contracts are TypeScript interfaces in `tools/integration/types/*.ts`. The code generator produces `g-<service>` packages with metadata, types, and client factories.
+### Frontend: micro-frontends
 
-**HTTP convention:**
-- `POST /services/<serviceName>/<methodName>` — regular call
-- `POST /services/<serviceName>/<methodName>/stream` — streaming (`AsyncIterable`)
-- JWT HS256 for access control (modes: `optional` / `required` / `off`)
-
-### Data Storage: Behemoth
-
-Storage is handled by [**Behemoth**](https://github.com/solenopsys/behemoth) — a native multi-model storage engine written in Zig, purpose-built for microservice architectures.
-
-Each microservice owns an isolated store boundary — no shared databases, no cross-service index coupling. Behemoth runs as a separate process alongside the application and communicates over Unix domain sockets (local) or TCP (cloud/multi-tenant). It supports SQL, key-value, column, vector, file, and graph store types in a unified API, with data stored under `$DATA_DIR/<msName>/<storeName>/` — zero overlap between services by design.
-
-In cloud deployments each tenant gets a dedicated Behemoth pod managed by the converged-operator, providing full data isolation at the infrastructure level.
-
-### Frontend: Micro-frontends
-
-`front-core` is the shared React core with components, state management, and routing. Each microfrontend is a separate ESM bundle loaded at runtime via import map. This allows updating UI modules without recompiling the entire frontend.
+`front-core` is the shared Preact core: components, Effector state, routing.
+Each microfrontend is a separate ESM bundle loaded at runtime through an import
+map, so a UI module ships without rebuilding the frontend.
 
 The SPA plugin serves:
-- `/front-core.js` — core bundle
-- `/vendor/*` — shared dependencies (React, libraries)
-- `/mf/:name.js` — individual microfrontend bundle
+
+- `/vendor/*` — shared dependencies (Preact, Effector, front-core, nrpc)
+- `/mf/<name>.js` — one microfrontend bundle
 - `/locales/*` — i18n resources
 
-### LLM Agents
+Which microfrontends are mounted comes from the active solution, not from a
+build flag.
 
-Models connect through adapters (GPT, Claude, DeepSeek, Mistral, Gemini). An agent receives context from telemetry and platform data, controls UI components, calls microservices, and triggers DAG processes.
+### Workflow runtime: Centimanus
 
-All actions are logged and executed within the same access model (ABAC) as human users — each model has its own permission profile.
+A workflow is ordinary synchronous JavaScript; its graph is implicit in the
+values earlier nodes return. Centimanus executes one node, persists its
+outcome, and replays completed nodes on resume — so a restart continues from
+the first unfinished step instead of the beginning.
 
-### Runtime Layer (RT)
-
-The platform separates storage from execution. Each microservice owns its domain data and exposes a CRUD API — nothing more. All multi-step orchestration and integration logic lives in the Runtime layer.
-
-**Microservices** are thin wrappers around a database. They handle storage, validation, and expose typed APIs to the UI and RT. `ms-dag` stores execution history and variables. `ms-sheduller` stores cron configurations.
-
-**Runtime (RT)** is the stateless execution layer. It can be one container or several containers, all built from the same `rt` image. Individual runtime plugins live under `back/runtimes/<category>/rt-<name>`; container grouping is selected in `config.json` with `back.runtimes` and preset `runtimes` selectors.
-
-```
-UI → ms-dag        list executions, status, stats, vars (CRUD)
-UI → ms-sheduller  create/update/delete crons (CRUD)
-UI → RT            start workflow execution
-RT → ms-dag        write execution records and node state
-RT → ms-sheduller  read cron schedule on startup / refresh
+```js
+rt.workflow = function (params) {
+  var lead = rt.node("find-lead", function () {
+    return rt.call("sales", "findLead", { lang: params.lang });
+  });
+  // branches and loops are plain JS over earlier node results
+};
 ```
 
-When a cron config changes in `ms-sheduller`, the UI notifies RT to reload its in-memory schedule.
+Rules that keep replay sound: every side effect lives inside `rt.node` /
+`rt.attempt`; node names are unique (in a loop they include the iteration id);
+error boundaries are `rt.attempt`, never `try/catch` — a catch around a node
+swallows the engine's yield sentinel. Large payloads move by reference through
+the cache, not inside messages. Details:
+[`core/dag/README.md`](core/dag/README.md).
 
-`back/runtime` is the runtime core package. It owns shared engines, gates, the workflow resolver, and common service classes. Concrete stateless plugins are thin entrypoints under `back/runtimes`: `automation/rt-dag`, `automation/rt-cron`, `automation/rt-gates`, `ai/rt-agents`, and `ai/rt-chat`.
+### Media and AI: Resonus
 
-**Workflow definitions** are TypeScript classes compiled into the RT image at build time. The automation core keeps workflows in `back/runtime/workflows/`; `rt-dag` exposes DAG execution, `rt-cron` owns in-memory cron refresh/scheduling, and `rt-gates` exposes integration gates such as magic-link delivery.
+Resonus is one process covering two jobs that share the same session state:
+real-time media (WebRTC, SIP) and LLM access.
 
-The two runtime engines:
-- `engines/dag` — `Workflow` base class and `NodeProcessor` for step tracking
-- `engines/cron` — `CronEngine` for managing in-memory cron jobs via `croner`
+Model adapters (OpenAI, Anthropic, DeepSeek, Mistral, Gemini) sit behind a
+single policy script, so provider choice is configuration rather than call-site
+code. An agent receives context from telemetry and platform data, calls
+microservices, and triggers workflows — all under the same ABAC model as a
+human user, with the same audit trail.
+
+The trusted context comes from the envelope: resonus refuses a request without
+an explicit `scope` and never infers a tenant from the payload.
 
 ---
 
 ## Deployment
 
-The platform runs equally well on single-board computers (Orange Pi, 2 GB RAM) and in the cloud. The foundation is k3s — a lightweight Kubernetes distribution optimized for edge devices.
+The platform runs on a single-board computer (Orange Pi, 2 GB RAM) and in the
+cloud from the same images. The target is Kubernetes; k3s is the reference
+distribution for edge.
 
-Three deployment profiles are available — same codebase, different container topology:
+### One operator, no generated manifests
 
+Deployment is a single Helm chart, and it installs almost nothing: the CRDs,
+RBAC, the **ptah** operator, and one `Platform` object built from values.
+Everything else — Deployments, Services, PersistentVolumes and Claims,
+ConfigMaps, the Gateway and its routes — is created by ptah at runtime.
+
+```text
+   helm install
+        │
+        ▼
+   ┌──────────────────────────────────────────┐
+   │ CRDs + RBAC + ptah + Platform (values)   │
+   └────────────────────┬─────────────────────┘
+                        │
+                        ▼
+   ┌──────────────────────────────────────────┐        ┌───────────────────┐
+   │                  ptah                    │ ◄──────┤ solution registry │
+   │  Platform → Solution → Tenant            │  fetch │  (remote, cached) │
+   │  server-side apply + prune               │        └───────────────────┘
+   └────────────────────┬─────────────────────┘
+                        │
+                        ▼
+   Deployments · Services · PV / PVC · ConfigMaps · Gateway · HTTPRoute
 ```
-  mono                              multi
-  ─────                             ─────
 
-┌──────────┐            ┌──────────────┐  ┌─────────────┐
-│  [UI]    │            │   [UI]       │  │   [RT]      │
-├──────────┤            │  spa+landing │  │  workflows  │
-│  [RT]    │            └──────┬───────┘  └──────┬──────┘
-├──────────┤                   │                 │
-│  [MS]    │       ┌───────────┴─────────────────┘
-│ all svc  │       ▼           ▼            ▼
-├──────────┤  ┌─────────┐ ┌─────────┐ ┌─────────┐
-│ [storage]│  │security │ │business │ │  data   │
-└──────────┘  │  +ai    │ │+content │ │ +social │
-              ├─────────┤ ├─────────┤ ├─────────┤
-              │[storage]│ │[storage]│ │[storage]│
-              └────┬────┘ └────┬────┘ └────┬────┘
-                   │PV         │PV          │PV
+Three cluster-scoped resources:
 
-  dev / proto             standard prod
+| Resource | Role |
+|---|---|
+| `Platform` | The base: profile, namespace, images, cache, storage template, native apps, gateway and TLS. Boots on its own. |
+| `Solution` | An overlay contributing microservices, microfrontends, workflows and env. Owns no cluster objects — the platform folds it in. |
+| `Tenant` | One site on a cloud platform: its own storage shard, its own hostnames, its own scope. |
+
+Changing the active solution set is not a redeploy. Ptah publishes the merged
+module map as a ConfigMap and stamps its digest onto the pod templates; the
+digest change is what rolls the workloads.
+
+Ptah applies server-side and prunes by owner label, so a rename cannot leave
+orphans behind. Data-bearing objects are the exception: a PersistentVolume or
+Claim that drops out of the desired set is kept unless it explicitly carries
+`ptah.io/reclaim: delete`.
+
+Business rules live in a JavaScript policy evaluated in QuickJS, as a pure
+`observed → desired` function with no cluster access, so the same rules can be
+rendered offline before anything is deployed:
+
+```bash
+ptah render examples/platform-cloud.json
 ```
 
-Deployment profiles are defined in `config.json`:
+### Profiles
 
-| Profile | Description | Use case |
-|---------|-------------|----------|
-| `mono` | UI + one RT + one MS + storage + cache | Development, prototyping |
-| `multi` | UI + one or more RT groups + domain-split MS groups + storage/cache | Standard production |
-| `cloud` | UI + one RT + one MS + cache + tenant storage in separate pods over TCP | SaaS cloud deployments |
+The profile selects one decision — how storage is divided. Everything else is
+identical, including the images.
 
-Generated artifacts are checked in under `deployment/<preset>/`: Containerfiles, Helm chart, k3s HelmChart CRD, and runtime configs.
+```text
+      mono                        multi                          cloud
+      ────                        ─────                          ─────
 
-Secrets (API keys, JWT) are not created automatically — integrate with vault, SealedSecret, or env injection.
+  ┌───────────┐            ┌───────────┐                  ┌───────────┐
+  │ ui · ms   │            │ ui · ms   │                  │ ui · ms   │
+  │ fujin     │            │ fujin     │                  │ fujin     │
+  │ centimanus│            │ centimanus│                  │ centimanus│
+  │ resonus   │            │ resonus   │                  │ resonus   │
+  └─────┬─────┘            └─────┬─────┘                  └─────┬─────┘
+        │                        │                              │
+  ┌─────┴─────┐        ┌─────────┴─────────┐         ┌──────────┴──────────┐
+  │ behemoth  │        │behemoth │behemoth │         │behemoth │  behemoth │
+  │           │        │ shard A │ shard B │         │ tenant1 │  tenant2  │
+  └─────┬─────┘        └────┬────┘────┬────┘         └────┬────┘─────┬─────┘
+        │                   │         │                   │          │
+   PV per ms           PV per ms  PV per ms          PV per ms   PV per ms
+```
+
+| Profile | Storage topology | Use case |
+|---|---|---|
+| `mono` | One behemoth pod, one PV per microservice. | Edge, development, single shop. |
+| `multi` | Behemoth sharded by scope; each shard keeps one PV per microservice. | Larger single-operator production. |
+| `cloud` | One behemoth pod per tenant, isolated shard, per-tenant hostnames and scope. | SaaS. |
+
+> `mono` and `cloud` are implemented in the policy today; `multi` is the
+> in-progress port of the sharded topology.
+
+In every profile the volume granularity is the same: **one PersistentVolume and
+one pre-bound Claim per microservice**. The platform supplies a PV source
+template and ptah expands `{{volume}}`, `{{platform}}`, `{{tenant}}` and
+`{{microservice}}` into it, refusing any template that resolves two
+microservices to the same source.
+
+```json
+{
+  "storageClassName": "local-path",
+  "mountBase": "/app/data",
+  "volumeSource": { "hostPath": { "path": "/var/lib/ptah/{{volume}}", "type": "DirectoryOrCreate" } }
+}
+```
+
+### Routing
+
+Routing is Gateway API. One `Gateway` per platform holds the listeners and the
+certificate; each tenant attaches its own `HTTPRoute`, so adding a site never
+touches the load balancer. Path precedence is defined by the spec — there are
+no hand-tuned priorities.
+
+Scope is a deployment fact, not an application one: the tenant's route sets the
+`x-storage-scope` and `workspace` headers with a `set` filter, which overwrites
+whatever the client sent. A tenant cannot claim another tenant's scope.
+
+Secrets (API keys, JWT) are not created automatically — integrate a vault,
+SealedSecrets, or env injection.
 
 ---
 
 ## Microservices
 
-49 services organized by domain:
+48 services, grouped by domain. Each owns its data and exposes a typed API;
+none of them call each other.
 
 | Domain | Services |
-|--------|---------|
-| **AI** | agent, assistant |
-| **Analytics** | logs, telemetry, usage |
-| **Business** | billing, dag, equipment, partners, requests, reviews, scheduler, staff, webhooks |
-| **Content** | gallery, markdown, struct, video |
-| **Data** | dumps, files, store |
-| **Delivery** | delivery, dhl, ems, fedex, sfexpress, ups |
-| **Extractors** | millingextractor, printextractor |
-| **Providers** | push, ses, sms, smtp |
-| **Security** | access, auth, oauth |
-| **Social** | calls, charts, community, discord, facebook, instagram, notify, telegram, threads, tiktok, wechat, youtube |
+|---|---|
+| **ai** | agent, assistant, contexts, functions |
+| **analytics** | counters, dashboard, logs, telemetry, usage |
+| **automation** | dag, kubernetes, sheduller, webhooks |
+| **business** | billing, equipment, events, finance, orders, requests, reviews, sales, staff |
+| **communications** | calls, chats, community, notify, resonus, threads |
+| **content** | classifier, galery, markdown, scripts, static, struct |
+| **convertors** | modelconvertor |
+| **data** | dumps, files, store |
+| **providers** | push, ses, sms, smtp |
+| **sequrity** | access, auth, environment, identity, oauth, secrets |
+
+28 microfrontends live under `modules/microfrontends/<domain>/mf-<name>` with
+the same domain split.
 
 ---
 
-## Hardware Adapters
+## Hardware adapters
 
-All adapters are native Zig shared libraries (`.so` + C header) with a unified FFI lifecycle: `create → connect → commands → get_state_json → disconnect → destroy`. Each adapter exposes machine telemetry as JSON and integrates into the platform's microservice layer without any HTTP overhead.
+Adapters are native Zig shared libraries (`.so` + C header) under
+`core/native/wrappers/adapters`, with a unified FFI lifecycle:
+`create → connect → commands → get_state_json → disconnect → destroy`. Each one
+exposes machine telemetry as JSON and plugs into the microservice layer with no
+HTTP in the path.
 
 ### Bambu Local
 
-**Equipment type:** FDM 3D printers (Bambu Lab X1, P1, A1 series)
+**Equipment:** FDM 3D printers (Bambu Lab X1, P1, A1 series)
 
-Bambu Lab printers run a closed firmware with a proprietary MQTT protocol. This adapter connects directly over the local network (`ssl://<printer-ip>:8883`) without routing through Bambu Cloud — essential for air-gapped workshops where cloud dependency is not acceptable. Implements the same handshake as the Home Assistant integration.
+Bambu Lab printers run closed firmware with a proprietary MQTT protocol. This
+adapter connects directly over the local network (`ssl://<printer-ip>:8883`)
+without routing through Bambu Cloud — essential for air-gapped workshops.
+Implements the same handshake as the Home Assistant integration.
 
-**Capabilities:** pause / resume / stop print, send raw G-code, send raw JSON commands, subscribe to telemetry and error events, snapshot full printer state as JSON. Events cover connection status, print telemetry, system info, and error codes.
+**Capabilities:** pause / resume / stop print, raw G-code, raw JSON commands,
+telemetry and error event subscription, full state snapshot as JSON.
 
-Built with vendored `paho.mqtt.c` and OpenSSL headers — no system-level `-devel` packages needed.
+Built with vendored `paho.mqtt.c` and OpenSSL headers — no system `-devel`
+packages needed.
 
 ### Marlin / OctoPrint
 
-**Equipment type:** FDM 3D printers and basic CNC machines running Marlin firmware
+**Equipment:** FDM printers and basic CNC machines running Marlin firmware
 
-Marlin is the most widely deployed open-source firmware for desktop FDM printers (Ender, Prusa, Voron builds, etc.) and some entry-level CNC routers. This adapter connects over serial port (`/dev/ttyUSB*`) and implements the OctoPrint command interface as a lightweight FFI library — without the HTTP layer, plugin system, or auth overhead.
+Connects over serial (`/dev/ttyUSB*`) and implements the OctoPrint command
+interface as a lightweight FFI library — without the HTTP layer, plugin system,
+or auth overhead.
 
-**Capabilities:** jog / home / feedrate control, extruder and bed temperature targeting, G-code file loading and line-by-line printing, SD card management, emergency stop, raw G-code queue. Handles `ok`/`wait`/`Resend` serial protocol, checksum and line numbers, and periodic polling (`M105`, `M114`). State snapshot includes temperatures, positions, print progress, queue depth, and firmware info.
+**Capabilities:** jog / home / feedrate, extruder and bed temperature targets,
+G-code file loading and line-by-line printing, SD card management, emergency
+stop, raw G-code queue. Handles the `ok`/`wait`/`Resend` protocol, checksums
+and line numbers, and periodic polling (`M105`, `M114`).
 
 ### Klipper / Moonraker
 
-**Equipment type:** FDM 3D printers and CNC machines running Klipper firmware *(planned)*
+**Equipment:** FDM printers and CNC machines running Klipper firmware *(planned)*
 
-Klipper is a modern open-source firmware that offloads motion planning to a host computer (Raspberry Pi / Orange Pi), delivering better print quality and configuration flexibility compared to Marlin. It is the de facto standard for high-performance printer builds (Voron, RatRig, etc.) and is increasingly used on CNC machines. Klipper exposes a REST + WebSocket API through Moonraker.
-
-The planned adapter will connect to the Moonraker API to provide the same unified interface as other adapters: print job control, real-time telemetry, macro execution, and state snapshots.
+Klipper offloads motion planning to a host computer and exposes REST +
+WebSocket through Moonraker. The planned adapter will provide the same unified
+interface as the others: job control, real-time telemetry, macro execution,
+state snapshots.
 
 ### UVtools Direct
 
-**Equipment type:** Resin 3D printers (SLA, MSLA, DLP)
+**Equipment:** resin 3D printers (SLA, MSLA, DLP)
 
-Resin printers use layer-based photopolymer formats (`.ctb`, `.pwmo`, `.lys`, etc.) that require specialized tooling for slicing, repair, and conversion. UVtools is the standard open-source toolkit for working with these formats. This adapter wraps the UVtools CLI (`UVtoolsCmd`) as a child process and exposes it via FFI — behavior stays fully aligned with upstream UVtools without reimplementing its internals.
+Wraps the UVtools CLI (`UVtoolsCmd`) as a child process behind FFI, so
+behaviour stays aligned with upstream rather than reimplementing its internals.
 
-**Capabilities:** convert between resin print formats, extract layers, compare files, set properties and thumbnails, inspect G-code and machine profiles, run arbitrary UVtools operations. Supports `argv`-style calls, raw command line, and typed command structs. stdout/stderr/exit code are accessible through API buffers. Timeout and max output size are configurable.
+**Capabilities:** convert between resin print formats, extract layers, compare
+files, set properties and thumbnails, inspect G-code and machine profiles, run
+arbitrary UVtools operations. `argv`-style calls, raw command line, and typed
+command structs; stdout/stderr/exit code available through API buffers.
 
 ---
 
-## Getting Started
+## Getting started
 
 ```bash
-# Requirements: Bun, podman (for container builds)
+# Requirements: Bun, Zig (for native apps), podman (for container builds)
 
 bun install
-bun run dev
+bun run dev       # microservices + native peers, no UI
+bun run dev:ui    # UI only, against a running dev cluster
+bun run dev:all   # everything in one process tree
 ```
 
-Server starts at `localhost:3000`. In `split` mode — three processes: back `:3000`, front `:3001`, landing `:3002`.
+The dev runner reads `../confs/converged-local.env`, resolves the active
+solution, creates one data root per microservice under `DATA_DIR`, writes the
+behemoth mount table, and starts the native peers listed in
+`CONVERGED_DEV_APPS` in dependency order — fujin first, since its peers dial
+its socket.
 
-Environment variables are picked up from `.env` in the project directory and parent directories.
+Default ports: microservices `:3001`, UI `:3002`, fujin WebSocket `:8087`,
+fujin ZMQ `:5557`.
 
-**Contract codegen:**
+The topology is identical to production; only the addresses differ. A native
+peer must be built before it can be started:
+
 ```bash
-bun run --cwd tools/integration/nrpc gen
+cd core/native/apps/fujin && zig build
 ```
 
 **Code quality:**
+
 ```bash
 bun run format   # Biome formatter
 bun run lint     # Biome linter
@@ -295,35 +462,73 @@ bun run check    # Biome full check
 
 ---
 
-## Extending the Platform
+## Extending the platform
 
 **Add a microservice:**
-1. Define contract in `tools/integration/types/<name>.ts`
-2. Run codegen → `g-<name>` package is generated
-3. Implement in `back/microservices/<category>/ms-<name>/`
-4. Register in `config.json`
+
+1. Define the contract in `modules/types/<domain>/<name>.ts`
+2. `bun run gen` → the `g-<name>` package is generated
+3. Implement it in `modules/microservices/<domain>/ms-<name>/`
+4. Add the name to a solution in `modules/solutions/solutions/`
 
 **Add a microfrontend:**
-1. Create package `front/microfrontends/<category>/mf-<name>/` with `src/index.ts(x)`
-2. Register in `config.json` → `spa.microfrontends`
 
-Architecture invariants (violations block PRs): no cross-service imports, database-per-service, no shared state, HTTP-only inter-service communication.
+1. Create `modules/microfrontends/<domain>/mf-<name>/` with `src/index.ts(x)`
+2. Add the name to the same solution
+
+**Add a workflow:**
+
+1. Create `modules/workflows/wf-<name>/` as flow-only JS
+2. Register it in `modules/solutions/mapping.json`
+3. Reference it from a solution's `workflows`
+
+Architecture invariants (violations block PRs): no cross-service imports,
+one store boundary per service, no shared state, no direct service-to-service
+calls — cross-domain logic belongs in a workflow.
 
 ---
 
 ## Solutions
 
-The platform ships not as a set of modules, but as ready-made **solutions** — scenarios built around specific questions that a shop owner needs to answer. Each solution covers several tasks and is managed through AI chat: instead of learning the interface, the operator just types what needs to be done.
+A solution is the unit the platform ships in — both technically and
+commercially. Technically it is a declarative set of modules:
 
-17 solutions grouped into 4 areas:
+```json
+{
+  "microservices": ["files", "store", "requests"],
+  "microfrontends": ["requests"],
+  "processors": ["curaengine", "opencam"],
+  "workflows": ["file-analysis", "file-unpack"],
+  "dependencies": ["security"]
+}
+```
 
-**Orders & Clients** — from first contact to repeat sale: service showcase, unified feed across all channels, order execution tracking, returning customer management.
+`modules/solutions/<name>.json` selects which solutions are active and which
+containers the deployment needs; `modules/solutions/solutions/*.json` defines
+each one; `mapping.json` is the registry that resolves a workflow name to its
+source. Dependencies are resolved transitively, and a downstream product layers
+its own solutions on top through `extends`.
 
-**Production & Inventory** — operational control without heavy MES: equipment load and task queues, material stock and reserves, quality control, failure log, shipments.
+The same definitions drive both ends: the dev runner turns them into a local
+process set, and ptah turns them into `Solution` objects that a `Platform`
+folds into its module map.
 
-**Money & Profit** — financial clarity without accounting overhead: margin by order and client, payment calendar and receivables, costing and pricing, growth and ROI scenarios.
+Commercially the platform is sold as ready-made solutions — scenarios built
+around specific questions a shop owner needs to answer, each managed through AI
+chat instead of a learned interface:
 
-**Team & Accountability** — staying manageable during growth: ownership zones, shift organization, knowledge base and standards, onboarding new staff.
+**Orders & clients** — from first contact to repeat sale: service showcase,
+unified feed across channels, execution tracking, returning customers.
+
+**Production & inventory** — operational control without a heavy MES: equipment
+load and task queues, stock and reserves, quality control, failure log,
+shipments.
+
+**Money & profit** — margin by order and client, payment calendar and
+receivables, costing and pricing, growth and ROI scenarios.
+
+**Team & accountability** — ownership zones, shift organisation, knowledge base
+and standards, onboarding.
 
 Learn more: [4ir.club](https://4ir.club)
 
@@ -331,19 +536,24 @@ Learn more: [4ir.club](https://4ir.club)
 
 ## License
 
-AGPL-3.0. The platform is fully open for self-hosted deployment. If you modify the code and provide access to it over a network, you must disclose your changes.
+AGPL-3.0. The platform is fully open for self-hosted deployment. If you modify
+the code and provide access to it over a network, you must disclose your
+changes.
 
 ---
 
 ## Stack
 
 | Layer | Technologies |
-|-------|-------------|
-| Runtime | Bun, Elysia |
-| Frontend | React 19, React Router 7, Effector |
-| UI | Radix UI, UnoCSS, Framer Motion |
-| Storage | [Behemoth](https://github.com/solenopsys/behemoth) (SQL, KV, Column, Vector, Graph, Files) |
-| Native | Zig |
-| Orchestration | Kubernetes, k3s, Helm |
+|---|---|
+| Dev runtime | Bun |
+| Production runtime | Cruller (Zig fork of Bun 1.3.14, runtime only) |
+| Native | Zig, QuickJS |
+| Messaging | fujin (ZMQ + WebSocket), msgpack, NRPC |
+| Frontend | Preact, Effector, import-map micro-frontends |
+| UI | Radix UI, UnoCSS |
+| Storage | [Behemoth](https://github.com/solenopsys/behemoth) — SQL, KV, column, vector, graph, files |
+| Cache | Valkey |
+| Orchestration | Kubernetes, k3s, Helm, ptah operator, Gateway API |
 | AI | OpenAI, Anthropic Claude, DeepSeek, Mistral, Gemini |
 | Code quality | Biome |
