@@ -1,17 +1,21 @@
-//! OpenAI Realtime text adapter with session-affine WebSocket pools.
+//! Session-affine WebSocket pools, for any provider whose transport is stateful.
 //!
-//! Every configured model owns a pool of empty, authenticated WSS sessions.
-//! A session is leased by a chat `sessionId` on its first turn and remains
-//! attached to that conversation. The external protocol remains the provider
-//! neutral StreamSink contract used by the SSE adapters.
+//! Every configured model owns a pool of empty, authenticated sessions. A
+//! session is leased by a chat `sessionId` on its first turn and remains
+//! attached to that conversation. The external contract is the provider-neutral
+//! StreamSink used by the HTTP engine.
+//!
+//! Nothing here knows a vendor. The endpoint URL, the authorization header, the
+//! post-connect handshake and the event grammar all come from the descriptor;
+//! the turn payload comes from its `encodeTurn` hook. What is left in this file
+//! is connection lifecycle, leasing and refill — the parts that are about
+//! sockets and threads, and are the same whoever is on the other end.
 
 const std = @import("std");
+const decode = @import("decode.zig");
+const descriptor = @import("descriptor.zig");
 const provider = @import("provider.zig");
-const protocol = @import("openai_realtime/protocol.zig");
-
-test {
-    _ = protocol;
-}
+const registry_mod = @import("registry.zig");
 
 const c = @cImport({
     @cInclude("libdatachannel_wrapper.h");
@@ -58,23 +62,13 @@ fn monotonicMs() i64 {
 }
 
 pub const Config = struct {
-    api_key: []const u8,
-    base_url: []const u8 = "wss://api.openai.com/v1/realtime",
+    /// The descriptor this pool serves. Owned by the registry, which outlives
+    /// the pool.
+    entry: *registry_mod.Entry,
+    registry: *registry_mod.Registry,
+    secrets: *const registry_mod.Secrets,
     idle_per_model: usize = 3,
 };
-
-pub fn make(pool: *Pool) provider.Provider {
-    return .{ .name = "openai-realtime", .ctx = pool, .complete = unsupportedComplete, .stream = stream };
-}
-
-fn unsupportedComplete(_: *anyopaque, env: provider.CallEnv, _: provider.ChatRequest) anyerror!provider.Reply {
-    return provider.errReply(env.alloc, "openai-realtime requires the streaming transport", .{});
-}
-
-fn stream(ctx: *anyopaque, env: provider.CallEnv, req: provider.ChatRequest, sink: provider.StreamSink) anyerror!provider.Completion {
-    const pool: *Pool = @ptrCast(@alignCast(ctx));
-    return pool.stream(env.alloc, req.session_id orelse return error.RealtimeSessionIdMissing, req, sink);
-}
 
 pub const Pool = struct {
     allocator: std.mem.Allocator,
@@ -85,12 +79,12 @@ pub const Pool = struct {
     config: Config,
     models: std.ArrayList(*ModelPool) = .empty,
 
-    pub fn init(allocator: std.mem.Allocator, config: Config, fast_model: []const u8, heavy_model: ?[]const u8) !Pool {
+    pub fn init(allocator: std.mem.Allocator, config: Config, models: []const []const u8) !Pool {
         var self = Pool{ .allocator = allocator, .config = config };
         errdefer self.deinit();
-        try self.addModel(fast_model);
-        if (heavy_model) |model| {
-            if (!std.mem.eql(u8, model, fast_model)) try self.addModel(model);
+        for (models) |model| {
+            if (self.findModel(model) != null) continue;
+            try self.addModel(model);
         }
         for (self.models.items) |model| try self.fill(model);
         return self;
@@ -121,7 +115,7 @@ pub const Pool = struct {
     }
 
     pub fn stream(self: *Pool, allocator: std.mem.Allocator, session_id: []const u8, req: provider.ChatRequest, sink: provider.StreamSink) !provider.Completion {
-        const model = self.findModel(req.model) orelse return error.RealtimeModelNotConfigured;
+        const model = self.findModel(req.model) orelse return error.ModelNotConfigured;
         // One retry on a freshly reconnected session: the leased socket can
         // die between the lease() liveness check and the send (vendor-side
         // idle close, network blip). Without this the *current* turn still
@@ -130,9 +124,9 @@ pub const Pool = struct {
         var attempt: u8 = 0;
         while (true) : (attempt += 1) {
             const session = try self.lease(model, session_id);
-            const result = session.stream(allocator, session_id, req, sink);
+            const result = session.stream(allocator, self.config, session_id, req, sink);
             if (result) |completion| return completion else |err| {
-                if (err == error.RealtimeSessionClosed and attempt == 0) {
+                if (err == error.SessionClosed and attempt == 0) {
                     std.debug.print("resonus: chat={s} model={s}: session died mid-turn, reconnecting and retrying once\n", .{ session_id, model.name });
                     self.evict(model, session_id);
                     continue;
@@ -146,7 +140,7 @@ pub const Pool = struct {
     /// generation so a logical session, not an incidental chat request, owns
     /// the model binding.
     pub fn bind(self: *Pool, model_name: []const u8, session_id: []const u8) !void {
-        const model = self.findModel(model_name) orelse return error.RealtimeModelNotConfigured;
+        const model = self.findModel(model_name) orelse return error.ModelNotConfigured;
         _ = try self.lease(model, session_id);
     }
 
@@ -235,7 +229,7 @@ pub const Pool = struct {
                     model.refill_failed_generation = generation;
                     model.ready.broadcast();
                     model.mutex.unlock();
-                    return error.RealtimePoolRefillUnavailable;
+                    return error.PoolRefillUnavailable;
                 };
                 thread.detach();
             }
@@ -244,7 +238,7 @@ pub const Pool = struct {
             while (model.refilling and model.refill_generation == generation) model.ready.wait(&model.mutex);
             const failed = model.refill_failed_generation == generation;
             model.mutex.unlock();
-            if (failed) return error.RealtimePoolRefillFailed;
+            if (failed) return error.PoolRefillFailed;
         };
         std.debug.print("resonus: chat={s} model={s}: leased {s} session (socket={d})\n", .{
             session_id, model.name, "idle", session.socket_id,
@@ -364,28 +358,37 @@ const Session = struct {
 
         var handle: ?*c.ldc_wrapper_t = null;
         if (c.ldc_wrapper_create(&handle, null) != 0 or handle == null)
-            return error.RealtimeWrapperUnavailable;
+            return error.SessionWrapperUnavailable;
         self.handle = handle;
         errdefer c.ldc_wrapper_destroy(handle.?);
 
-        const url_text = try std.fmt.allocPrint(allocator, "{s}?model={s}", .{ config.base_url, model });
+        // Endpoint and credentials come from the descriptor. `${secret:...}` is
+        // resolved here, in Zig: the script writes the shape of the header, never
+        // its value.
+        const t = &config.entry.table.transport;
+        const url_text = try registry_mod.substitute(allocator, t.url, model, config.secrets);
         defer allocator.free(url_text);
         const url = try allocator.dupeZ(u8, url_text);
         defer allocator.free(url);
-        const auth_text = try std.fmt.allocPrint(allocator, "Bearer {s}", .{config.api_key});
-        defer allocator.free(auth_text);
-        const auth = try allocator.dupeZ(u8, auth_text);
-        defer allocator.free(auth);
+
+        if (t.header_names.len == 0) return error.SessionHeadersMissing;
+        const header_name = try allocator.dupeZ(u8, t.header_names[0]);
+        defer allocator.free(header_name);
+        const header_text = try registry_mod.substitute(allocator, t.header_values[0], model, config.secrets);
+        defer allocator.free(header_text);
+        const header_value = try allocator.dupeZ(u8, header_text);
+        defer allocator.free(header_value);
+
         var socket_id: i32 = -1;
-        if (c.ldc_create_websocket_with_header(handle.?, url.ptr, "Authorization", auth.ptr, &socket_id) != 0)
-            return error.RealtimeConnectFailed;
+        if (c.ldc_create_websocket_with_header(handle.?, url.ptr, header_name.ptr, header_value.ptr, &socket_id) != 0)
+            return error.SessionConnectFailed;
         self.socket_id = socket_id;
         errdefer _ = c.ldc_delete_id(handle.?, socket_id);
         if (c.ldc_set_open_callback(handle.?, socket_id, openedCallback, self) != 0 or
             c.ldc_set_closed_callback(handle.?, socket_id, closedCallback, self) != 0 or
             c.ldc_set_error_callback(handle.?, socket_id, errorCallback, self) != 0 or
             c.ldc_set_message_callback(handle.?, socket_id, messageCallback, self) != 0)
-            return error.RealtimeCallbackFailed;
+            return error.SessionCallbackFailed;
 
         self.waitOpen(10_000) catch |err| {
             std.debug.print("resonus: model={s} socket={d}: connect failed: {s} ({s})\n", .{
@@ -394,39 +397,13 @@ const Session = struct {
             return err;
         };
 
-        // WS OPEN is not the same as "Realtime session ready": the vendor
-        // session comes up in its default audio/server-VAD shape and only
-        // reconfigures on our explicit session.update. Handing the socket to
-        // the pool before that handshake finishes is what let turn 2 race a
-        // still-audio session and get a clean vendor-initiated close.
-        self.waitForEventType(allocator, "session.created", 10_000) catch |err| {
-            std.debug.print("resonus: model={s} socket={d}: never received session.created: {s}\n", .{ model, socket_id, @errorName(err) });
-            return err;
-        };
+        // A socket that is OPEN is not a session that is ready: the vendor may
+        // bring it up in a shape we did not ask for and only reconfigure on an
+        // explicit exchange. The descriptor spells that exchange out, and the
+        // session is not handed to the pool until every step has passed.
+        try self.runHandshake(allocator, config, model);
 
-        // BISECT: the migration to resonus added the `session.update` handshake
-        // below (centimanus never sent it and its first turn worked). The socket
-        // now dies ~308ms after OPEN, before `session.updated`. Flip this to
-        // `false` to keep the new handshake. With it `true` we go straight from
-        // `session.created` to READY like centimanus did — if the socket then
-        // survives and a turn completes, the killer is `session.update`, not the
-        // pool/lifecycle.
-        const bisect_skip_session_update = false;
-        if (!bisect_skip_session_update) {
-            const update_payload = try protocol.sessionUpdateText(allocator);
-            defer allocator.free(update_payload);
-            if (c.ldc_send_message(handle.?, socket_id, update_payload.ptr, update_payload.len) != 0)
-                return error.RealtimeSendFailed;
-
-            self.waitForEventType(allocator, "session.updated", 10_000) catch |err| {
-                std.debug.print("resonus: model={s} socket={d}: session.update rejected: {s}\n", .{ model, socket_id, @errorName(err) });
-                return err;
-            };
-        } else {
-            std.debug.print("resonus: model={s} socket={d}: BISECT skipping session.update handshake\n", .{ model, socket_id });
-        }
-
-        std.debug.print("resonus: model={s} socket={d}: session READY (text-only)\n", .{ model, socket_id });
+        std.debug.print("resonus: model={s} socket={d}: session READY\n", .{ model, socket_id });
         return self;
     }
 
@@ -449,10 +426,10 @@ const Session = struct {
             const closed = self.closed;
             self.mutex.unlock();
             if (opened) return;
-            if (closed) return error.RealtimeClosedBeforeReady;
+            if (closed) return error.SessionClosedBeforeReady;
             sleepMs(5);
         }
-        return error.RealtimeOpenTimedOut;
+        return error.SessionOpenTimedOut;
     }
 
     /// Drains setup-time events (before any turn is in flight) until one of
@@ -470,7 +447,7 @@ const Session = struct {
                 if (std.mem.eql(u8, event_type, expected)) return;
                 if (std.mem.eql(u8, event_type, "error")) {
                     std.debug.print("resonus: model={s} socket={d}: realtime error while waiting for {s}: {s}\n", .{ self.model, self.socket_id, expected, raw_event });
-                    return error.RealtimeResponseFailed;
+                    return error.SessionResponseFailed;
                 }
                 std.debug.print("resonus: model={s} socket={d}: setup recv (waiting for {s}) {s}\n", .{ self.model, self.socket_id, expected, raw_event });
                 continue;
@@ -478,34 +455,82 @@ const Session = struct {
             self.mutex.lock();
             const closed = self.closed;
             self.mutex.unlock();
-            if (closed) return error.RealtimeClosedBeforeReady;
+            if (closed) return error.SessionClosedBeforeReady;
             sleepMs(5);
         }
-        return error.RealtimeSessionSetupTimedOut;
+        return error.SessionSetupTimedOut;
     }
 
-    fn stream(self: *Session, allocator: std.mem.Allocator, session_id: []const u8, req: provider.ChatRequest, sink: provider.StreamSink) !provider.Completion {
+    /// Run the descriptor's post-connect handshake, in order.
+    ///
+    /// `await` drains events until one of that type arrives; `send` puts a hook
+    /// built payload on the wire. Anything else seen while waiting is logged and
+    /// dropped — only a turn in flight cares about the general event stream.
+    fn runHandshake(
+        self: *Session,
+        allocator: std.mem.Allocator,
+        config: Config,
+        model: []const u8,
+    ) !void {
+        _ = model;
+        for (config.entry.table.transport.handshake) |step| {
+            switch (step) {
+                .expect => |expect| try self.waitForEventType(allocator, expect.event_type, expect.timeout_ms),
+                .send => |send| {
+                    const payload = try config.registry.callHook(
+                        allocator,
+                        config.entry.name(),
+                        send.hook,
+                        "[]",
+                    );
+                    defer allocator.free(payload);
+                    // The hook's ABI is a JSON string in and out, so the payload
+                    // arrives quoted; the wire wants what it contains.
+                    const text = try unquote(allocator, payload);
+                    defer allocator.free(text);
+
+                    const handle = self.handle orelse return error.SessionClosed;
+                    if (c.ldc_send_message(handle, self.socket_id, text.ptr, text.len) != 0)
+                        return error.SessionSendFailed;
+                },
+            }
+        }
+    }
+
+    fn stream(
+        self: *Session,
+        allocator: std.mem.Allocator,
+        config: Config,
+        session_id: []const u8,
+        req: provider.ChatRequest,
+        sink: provider.StreamSink,
+    ) !provider.Completion {
         self.request_mutex.lock();
         defer self.request_mutex.unlock();
         self.turns += 1;
         const turn = self.turns;
         const started = monotonicMs();
-        std.debug.print("resonus: chat={s} model={s} turn={d} socket={d}: response.create ({d} messages)\n", .{
-            session_id, self.model, turn, self.socket_id, req.messages.len,
+
+        const request_json = try uniformRequestJson(allocator, req);
+        defer allocator.free(request_json);
+        const args = try std.fmt.allocPrint(allocator, "[{s}]", .{request_json});
+        defer allocator.free(args);
+        const encoded = try config.registry.callHook(allocator, config.entry.name(), "encodeTurn", args);
+        defer allocator.free(encoded);
+
+        const wire = std.json.parseFromSliceLeaky(std.json.Value, allocator, encoded, .{}) catch
+            return error.EncodeTurnInvalid;
+        const payload = provider.strField(wire, "body") orelse return error.EncodeTurnInvalid;
+
+        std.debug.print("resonus: chat={s} model={s} turn={d} socket={d}: sending {d} bytes\n", .{
+            session_id, self.model, turn, self.socket_id, payload.len,
         });
 
-        const payload = try protocol.responseCreate(allocator, req);
-        defer allocator.free(payload);
-        // TEMP diagnostic: dump the exact wire payload so we can see what's
-        // actually different about the request that kills the socket.
-        std.debug.print("resonus: chat={s} turn={d}: payload ({d} bytes) = {s}\n", .{ session_id, turn, payload.len, payload });
-        const handle = self.handle orelse return error.RealtimeSessionClosed;
-        if (c.ldc_send_message(handle, self.socket_id, payload.ptr, payload.len) != 0) {
-            std.debug.print("resonus: chat={s} turn={d}: ldc_send_message failed\n", .{ session_id, turn });
-            return error.RealtimeSendFailed;
-        }
+        const handle = self.handle orelse return error.SessionClosed;
+        if (c.ldc_send_message(handle, self.socket_id, payload.ptr, payload.len) != 0)
+            return error.SessionSendFailed;
 
-        const result = self.pump(allocator, sink);
+        const result = self.pump(allocator, config, sink);
         const elapsed = monotonicMs() - started;
         if (result) |completion| {
             std.debug.print("resonus: chat={s} turn={d}: done in {d}ms ({d} in / {d} out tokens, finish={s})\n", .{
@@ -520,80 +545,45 @@ const Session = struct {
         return result;
     }
 
-    /// Drains parsed realtime events for the in-flight turn until completion,
+    /// Drains events into the decode table until it reports the turn complete,
     /// a vendor error, the socket closing, or the response timing out.
-    fn pump(self: *Session, allocator: std.mem.Allocator, sink: provider.StreamSink) !provider.Completion {
-        var text: std.ArrayList(u8) = .empty;
-        var tool_calls: std.ArrayList(provider.ToolCall) = .empty;
-        errdefer {
-            for (tool_calls.items) |call| freeToolCall(allocator, call);
-            tool_calls.deinit(allocator);
-        }
+    fn pump(
+        self: *Session,
+        allocator: std.mem.Allocator,
+        config: Config,
+        sink: provider.StreamSink,
+    ) !provider.Completion {
+        var runner = HookBridge{ .config = config, .allocator = allocator };
+        var decoder = decode.Decoder.init(allocator, &config.entry.table, sink, runner.hookRunner());
+
         var waited: u64 = 0;
         while (waited < 120_000) : (waited += 2) {
             if (self.takeEvent()) |raw_event| {
                 defer self.allocator.free(raw_event);
-                var event = protocol.parseEvent(allocator, raw_event) catch continue;
-                defer event.deinit(allocator);
-                switch (event) {
-                    .text_delta => |delta| {
-                        try text.appendSlice(allocator, delta);
-                        try sink.emit(try provider.textDelta(allocator, delta));
+                const outcome = decoder.feed(raw_event) catch |err| {
+                    std.debug.print("resonus: model={s} socket={d}: undecodable event ({s}): {s}\n", .{
+                        self.model, self.socket_id, @errorName(err), raw_event,
+                    });
+                    continue;
+                };
+                switch (outcome) {
+                    .complete, .done => return decoder.finish(),
+                    .fatal => {
+                        std.debug.print("resonus: model={s} socket={d}: vendor error: {s}\n", .{
+                            self.model, self.socket_id, decoder.fatal_message orelse raw_event,
+                        });
+                        return error.SessionResponseFailed;
                     },
-                    .tool_arguments_delta => |delta| try sink.emit(try provider.toolCallDelta(
-                        allocator,
-                        delta.call_id,
-                        delta.name,
-                        delta.delta,
-                    )),
-                    .tool_call_done => |call| {
-                        if (!hasToolCall(tool_calls.items, call.id)) {
-                            try tool_calls.append(allocator, call);
-                            event = .ignored;
-                        }
-                    },
-                    .api_error => {
-                        std.debug.print("resonus: OpenAI Realtime application error: {s}\n", .{raw_event});
-                        return error.RealtimeResponseFailed;
-                    },
-                    .ignored => std.debug.print("resonus: model={s} socket={d}: recv {s}\n", .{ self.model, self.socket_id, raw_event }),
-                    .completed => |completed| {
-                        // Most responses arrive as deltas, but Realtime may put
-                        // a short text-only answer solely in response.done.
-                        if (text.items.len == 0 and completed.text.len > 0) {
-                            try text.appendSlice(allocator, completed.text);
-                            try sink.emit(try provider.textDelta(allocator, completed.text));
-                        }
-                        allocator.free(completed.text);
-                        for (completed.tool_calls) |call| {
-                            if (hasToolCall(tool_calls.items, call.id)) {
-                                freeToolCall(allocator, call);
-                                continue;
-                            }
-                            tool_calls.append(allocator, call) catch |err| {
-                                freeToolCall(allocator, call);
-                                return err;
-                            };
-                        }
-                        allocator.free(completed.tool_calls);
-                        event = .ignored; // Transfer completion-owned data to the caller.
-                        return .{
-                            .text = text.items,
-                            .tool_calls = tool_calls.items,
-                            .finish_reason = if (tool_calls.items.len > 0) "tool_calls" else "stop",
-                            .usage_input = completed.usage_input,
-                            .usage_output = completed.usage_output,
-                        };
-                    },
+                    .open => continue,
                 }
             }
             self.mutex.lock();
             const closed = self.closed;
             self.mutex.unlock();
-            if (closed) return error.RealtimeSessionClosed;
+            if (closed) return error.SessionClosed;
             sleepMs(2);
         }
-        return error.RealtimeResponseTimedOut;
+        return error.SessionResponseTimedOut;
     }
 
     fn takeEvent(self: *Session) ?[]u8 {
@@ -652,16 +642,51 @@ const Session = struct {
     }
 };
 
-fn hasToolCall(calls: []const provider.ToolCall, id: []const u8) bool {
-    if (id.len == 0) return false;
-    for (calls) |call| {
-        if (std.mem.eql(u8, call.id, id)) return true;
+/// Bridges the decode table's escape hatch to the registry's hook pool.
+const HookBridge = struct {
+    config: Config,
+    allocator: std.mem.Allocator,
+
+    fn hookRunner(self: *HookBridge) decode.HookRunner {
+        return .{ .context = self, .run = run };
     }
-    return false;
+
+    fn run(context: *anyopaque, hook: []const u8, event_json: []const u8) anyerror![]const u8 {
+        const self: *HookBridge = @ptrCast(@alignCast(context));
+        const args = try std.fmt.allocPrint(self.allocator, "[{s}]", .{event_json});
+        defer self.allocator.free(args);
+        return self.config.registry.callHook(self.allocator, self.config.entry.name(), hook, args);
+    }
+};
+
+/// A hook returns a JSON string; `send` steps want the string's contents.
+fn unquote(allocator: std.mem.Allocator, json: []const u8) ![]u8 {
+    const value = std.json.parseFromSliceLeaky(std.json.Value, allocator, json, .{}) catch
+        return allocator.dupe(u8, json);
+    return switch (value) {
+        .string => |s| allocator.dupe(u8, s),
+        else => allocator.dupe(u8, json),
+    };
 }
 
-fn freeToolCall(allocator: std.mem.Allocator, call: provider.ToolCall) void {
-    allocator.free(call.id);
-    allocator.free(call.name);
-    allocator.free(call.args_json);
+/// Re-encode the parsed chat request into the uniform dialect hooks expect.
+fn uniformRequestJson(a: std.mem.Allocator, req: provider.ChatRequest) ![]u8 {
+    var out: std.ArrayList(u8) = .empty;
+    defer out.deinit(a);
+
+    try out.appendSlice(a, "{\"model\":");
+    try provider.appendJsonStr(&out, a, req.model);
+    try out.appendSlice(a, try std.fmt.allocPrint(a, ",\"maxTokens\":{d}", .{req.max_tokens}));
+    try out.appendSlice(a, ",\"messages\":[");
+    for (req.messages, 0..) |m, i| {
+        if (i > 0) try out.appendSlice(a, ",");
+        try provider.appendValue(&out, a, m);
+    }
+    try out.appendSlice(a, "],\"tools\":[");
+    for (req.tools, 0..) |t, i| {
+        if (i > 0) try out.appendSlice(a, ",");
+        try provider.appendValue(&out, a, t);
+    }
+    try out.appendSlice(a, try std.fmt.allocPrint(a, "],\"requireTool\":{}}}", .{req.require_tool}));
+    return out.toOwnedSlice(a);
 }

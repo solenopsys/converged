@@ -781,7 +781,8 @@ const ChunkEmitter = struct {
 };
 
 fn buildStreamRequest(allocator: std.mem.Allocator, payload: std.json.ObjectMap, messages_json: []const u8) ![]u8 {
-    const provider = stringField(payload, "provider") orelse env.opt("AI_CHAT_PROVIDER") orelse "openai";
+    const provider = stringField(payload, "provider") orelse env.opt("AI_CHAT_PROVIDER") orelse
+        return error.ChatProviderNotConfigured;
     const session_id = stringField(payload, "sessionId") orelse return error.SessionIdMissing;
     // The gateway owns the default: callers may select a model explicitly,
     // but an omitted field must use the server's provider configuration.
@@ -806,16 +807,27 @@ fn buildStreamRequest(allocator: std.mem.Allocator, payload: std.json.ObjectMap,
     );
 }
 
+/// The deployment's model for a provider, from `RESONUS_MODEL_<PROVIDER>`.
+///
+/// Provider names are uppercased with `-` folded to `_`, so `openai-realtime`
+/// reads `RESONUS_MODEL_OPENAI_REALTIME`. `AI_MODEL` is the fallback for a
+/// deployment that runs one provider and does not care to name it twice.
+///
+/// This used to be a table of vendor defaults compiled into the gate. Which
+/// model a deployment runs is its configuration, not this program's knowledge.
 fn defaultModel(provider: []const u8) []const u8 {
-    if (std.mem.eql(u8, provider, "openai-realtime") or std.mem.eql(u8, provider, "realtime"))
-        return env.opt("OPENAI_REALTIME_FAST_MODEL") orelse "gpt-realtime-2.1";
-    if (std.mem.eql(u8, provider, "openai"))
-        return env.opt("OPENAI_MODEL") orelse "gpt-5.4-nano";
-    if (std.mem.eql(u8, provider, "claude"))
-        return env.opt("ANTHROPIC_MODEL") orelse env.opt("CLAUDE_MODEL") orelse "claude-haiku-4-5";
-    if (std.mem.eql(u8, provider, "gemini"))
-        return env.opt("GEMINI_MODEL") orelse "gemini-2.5-flash";
-    return env.opt("AI_MODEL") orelse "gpt-5.4-nano";
+    var buf: [96]u8 = undefined;
+    const prefix = "RESONUS_MODEL_";
+    if (prefix.len + provider.len >= buf.len) return env.opt("AI_MODEL") orelse "";
+
+    @memcpy(buf[0..prefix.len], prefix);
+    for (provider, 0..) |ch, i| {
+        buf[prefix.len + i] = if (ch == '-') '_' else std.ascii.toUpper(ch);
+    }
+    buf[prefix.len + provider.len] = 0;
+    const name: [:0]const u8 = @ptrCast(buf[0 .. prefix.len + provider.len]);
+
+    return env.opt(name) orelse env.opt("AI_MODEL") orelse "";
 }
 
 fn appendInputMessages(allocator: std.mem.Allocator, history: []const u8, payload: std.json.ObjectMap) ![]u8 {

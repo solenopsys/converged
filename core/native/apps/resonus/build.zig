@@ -124,6 +124,19 @@ pub fn build(b: *std.Build) void {
     unit_tests.root_module.link_libc = true;
     linkRealtimeWrapper(b, unit_tests, runtime_target, optimize);
 
+    // Provider tables, for the decode-table tests only. The running gate loads
+    // them from disk instead: a descriptor that can be updated without
+    // rebuilding Zig is the point of the whole arrangement. Embedding them here
+    // just means the tests exercise the exact bytes the builder emits, so the
+    // format cannot drift from its reader.
+    for ([_][]const u8{ "anthropic", "openai", "openai-realtime", "gemini" }) |name| {
+        const file = b.fmt("providers/dist/{s}.table.json", .{name});
+        unit_tests.root_module.addAnonymousImport(
+            b.fmt("table:{s}", .{name}),
+            .{ .root_source_file = b.path(file) },
+        );
+    }
+
     const run_unit_tests = b.addRunArtifact(unit_tests);
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_unit_tests.step);

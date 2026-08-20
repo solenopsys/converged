@@ -2,7 +2,7 @@
 // Establishes a peer connection, streams Opus audio bidirectionally.
 const std = @import("std");
 const dc_mod = @import("../native/datachannel_client.zig");
-const openai_sig = @import("../signaling/openai.zig");
+const negotiator_mod = @import("../signaling/negotiator.zig");
 const http_util = @import("../util/http.zig");
 const clock = @import("../util/clock.zig");
 const rtp = @import("../sip/rtp.zig");
@@ -23,6 +23,11 @@ pub const SessionKind = enum {
 };
 
 pub const Config = struct {
+    /// Media signaling goes through the descriptor registry, exactly like the
+    /// gate's. This bridge used to carry its own copy of the same vendor
+    /// protocol; now it only supplies the settings.
+    negotiator: ?*negotiator_mod.Negotiator = null,
+    provider_name: []const u8 = "openai-realtime",
     api_key: []const u8,
     calls_url: []const u8,
     session_kind: SessionKind = .realtime,
@@ -51,6 +56,8 @@ pub const Config = struct {
 /// Built once at startup; SIP/web assemble a full Config per call by pairing it
 /// with the resolved context, so a call without a context can never be built.
 pub const BaseConfig = struct {
+    negotiator: ?*negotiator_mod.Negotiator = null,
+    provider_name: []const u8 = "openai-realtime",
     api_key: []const u8,
     calls_url: []const u8,
     model: []const u8,
@@ -73,6 +80,8 @@ pub const BaseConfig = struct {
     /// comma-separated list when the caller may switch languages mid-call.
     pub fn withContext(self: BaseConfig, instructions: []const u8, languages: []const u8) Config {
         return .{
+            .negotiator = self.negotiator,
+            .provider_name = self.provider_name,
             .api_key = self.api_key,
             .calls_url = self.calls_url,
             .model = self.model,
@@ -165,7 +174,7 @@ pub const OpenAIBridge = struct {
         defer self.allocator.free(offer_sdp);
 
         std.log.warn("bridge: posting to OpenAI", .{});
-        const answer_sdp = try self.postToOpenAI(offer_sdp);
+        const answer_sdp = try self.negotiateSdp(offer_sdp);
         defer self.allocator.free(answer_sdp);
 
         std.log.warn("bridge: answer SDP:\n{s}", .{answer_sdp});
@@ -226,94 +235,50 @@ pub const OpenAIBridge = struct {
 
     // --- Private ---
 
-    fn postToOpenAI(self: *OpenAIBridge, offer_sdp: []const u8) ![]u8 {
-        const transcription: openai_sig.TranscriptionOptions = .{
-            .model = self.cfg.transcription_model,
-            .languages = self.cfg.transcription_languages,
-            .prompt = self.cfg.transcription_prompt,
-            .keywords = self.cfg.transcription_keywords,
-            .delay = self.cfg.transcription_delay,
+    /// Exchange the local offer for the provider's answer.
+    ///
+    /// Everything vendor-shaped about this — the endpoint, the multipart
+    /// framing, the session configuration — lives in the descriptor. The bridge
+    /// only says which session it wants and with what settings.
+    fn negotiateSdp(self: *OpenAIBridge, offer_sdp: []const u8) ![]u8 {
+        const negotiator = self.cfg.negotiator orelse return error.NegotiatorNotConfigured;
+
+        const settings = negotiator_mod.Settings{
+            .default_model = self.cfg.model,
+            .default_voice = self.cfg.voice,
+            .transcription_model = self.cfg.transcription_model,
+            .transcription_prompt = self.cfg.transcription_prompt,
+            .transcription_keywords = self.cfg.transcription_keywords,
+            .transcription_delay = self.cfg.transcription_delay,
+            .noise_reduction = self.cfg.noise_reduction,
+            .vad_threshold = self.cfg.vad_threshold,
+            .vad_silence_ms = self.cfg.vad_silence_ms,
+            .vad_prefix_ms = self.cfg.vad_prefix_ms,
+            .vad_interrupt = self.cfg.vad_interrupt,
         };
-        const session = switch (self.cfg.session_kind) {
-            .realtime => try openai_sig.buildSessionConfig(
-                self.allocator,
-                self.cfg.model,
-                self.cfg.voice,
-                transcription,
-                self.cfg.noise_reduction,
-                self.cfg.instructions,
-                self.cfg.vad_threshold,
-                self.cfg.vad_silence_ms,
-                self.cfg.vad_prefix_ms,
-                self.cfg.vad_interrupt,
-                self.cfg.tools_json,
-            ),
-            .transcription => try openai_sig.buildTranscriptionSessionConfig(
-                self.allocator,
-                transcription,
-                self.cfg.noise_reduction,
-                self.cfg.vad_threshold,
-                self.cfg.vad_silence_ms,
-                self.cfg.vad_prefix_ms,
-            ),
-        };
-        defer self.allocator.free(session);
 
-        var multipart = try openai_sig.buildRealtimeCallBody(self.allocator, offer_sdp, session);
-        defer multipart.deinit(self.allocator);
-
-        const auth = try std.fmt.allocPrint(self.allocator, "Bearer {s}", .{self.cfg.api_key});
-        defer self.allocator.free(auth);
-
-        var safety_storage: [1]http_util.SimpleHeader = undefined;
-        var extra_headers: []const http_util.SimpleHeader = &.{};
-        var safety_val: ?[]const u8 = null;
-        var safety_owned: ?[]u8 = null;
-        defer if (safety_owned) |v| self.allocator.free(v);
-
-        if (self.cfg.safety_identifier) |raw| {
-            const trimmed = std.mem.trim(u8, raw, " \t\r\n");
-            if (trimmed.len > 0) {
-                var digest: [std.crypto.hash.sha2.Sha256.digest_length]u8 = undefined;
-                std.crypto.hash.sha2.Sha256.hash(trimmed, &digest, .{});
-                const encoded = std.fmt.bytesToHex(digest, .lower);
-                safety_owned = try self.allocator.dupe(u8, &encoded);
-                safety_val = safety_owned.?;
-            }
-        }
-        if (safety_val) |v| {
-            safety_storage[0] = .{ .name = "OpenAI-Safety-Identifier", .value = v };
-            extra_headers = safety_storage[0..1];
-        }
-
-        var resp = try http_util.post(
+        const result = try negotiator.negotiate(
             self.allocator,
-            self.cfg.calls_url,
-            multipart.body,
-            multipart.content_type,
-            auth,
-            extra_headers,
+            self.cfg.provider_name,
+            switch (self.cfg.session_kind) {
+                .realtime => .realtime,
+                .transcription => .transcription,
+            },
+            settings,
+            .{
+                .offer_sdp = offer_sdp,
+                .model = self.cfg.model,
+                .voice = self.cfg.voice,
+                .instructions = self.cfg.instructions,
+                .language = self.cfg.transcription_languages,
+                .safety_identifier = self.cfg.safety_identifier,
+            },
+            self.cfg.tools_json,
         );
-        if (resp.status < 200 or resp.status >= 300) {
-            defer resp.deinit(self.allocator);
-            // The body carries the actual reason (unknown model, rejected
-            // transcription field). Without it a 400 is indistinguishable from
-            // a network fault, and the caller only sees a session that never
-            // opens — so log it together with what we asked for.
-            std.log.err(
-                "bridge: OpenAI SDP exchange failed, status={d} kind={s} model={s} transcription={s} languages=\"{s}\" body={s}",
-                .{
-                    resp.status,
-                    @tagName(self.cfg.session_kind),
-                    self.cfg.model,
-                    self.cfg.transcription_model,
-                    self.cfg.transcription_languages,
-                    resp.body[0..@min(600, resp.body.len)],
-                },
-            );
-            return error.OpenAISdpExchangeFailed;
-        }
-        return resp.body; // caller owns
+        return switch (result) {
+            .sdp_answer => |answer| answer,
+            .session_descriptor => |value| value,
+        };
     }
 
     fn waitForIce(self: *OpenAIBridge, timeout_ms: u64) !void {

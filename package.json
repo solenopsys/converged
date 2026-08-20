@@ -15,6 +15,7 @@
     "core/frontend/libraries/*/*",
     "core/native/libs/cruller-md4c",
     "core/native/libs/cruller-transport",
+    "core/native/apps/resonus/providers",
     "core/tools/cli",
     "core/tools/nrpc",
     "modules/commands",

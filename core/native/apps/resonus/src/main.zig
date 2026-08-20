@@ -29,7 +29,6 @@ fn logWithTimestamp(
 const config_mod = @import("config.zig");
 const gateway_mod = @import("gate/gateway.zig");
 const session_mod = @import("gate/session.zig");
-const adapter_mod = @import("signaling/adapter.zig");
 const signaling_types = @import("signaling/types.zig");
 const http_server_mod = @import("server/http_server.zig");
 const signal_provider_mod = @import("signal_provider.zig");
@@ -61,6 +60,9 @@ pub fn main(init: std.process.Init) !void {
     });
 
     var gateway = try gateway_mod.Gateway.init(allocator, &cfg, runtime);
+    // The negotiator holds pointers into the gateway, so bind them once the
+    // value is at its final address.
+    gateway.rebind();
     defer gateway.deinit();
 
     var args_iter = try std.process.Args.Iterator.initAllocator(init.minimal.args, allocator);
@@ -132,11 +134,11 @@ pub fn main(init: std.process.Init) !void {
     }
 
     if (std.mem.eql(u8, cmd, "signal-openai")) {
-        return runSignal(init.io, allocator, &gateway, .openai, args[2..]);
+        return runSignal(init.io, allocator, &gateway, "openai-realtime", args[2..]);
     }
 
     if (std.mem.eql(u8, cmd, "signal-gemini")) {
-        return runSignal(init.io, allocator, &gateway, .gemini, args[2..]);
+        return runSignal(init.io, allocator, &gateway, "gemini", args[2..]);
     }
 
     printUsage();
@@ -225,7 +227,7 @@ fn runSignal(
     io: std.Io,
     allocator: std.mem.Allocator,
     gateway: *gateway_mod.Gateway,
-    provider: adapter_mod.Provider,
+    provider: []const u8,
     args: []const []const u8,
 ) !void {
     var input = session_mod.SessionInput{};
@@ -267,7 +269,7 @@ fn runSignal(
         return error.InvalidArguments;
     }
 
-    if (provider == .openai and input.offer_sdp == null) {
+    if (input.offer_sdp == null) {
         printUsage();
         return error.InvalidArguments;
     }
@@ -346,12 +348,14 @@ fn printUsage() void {
 // Aggregate unit tests of transitively-used modules: `zig build test` only
 // discovers tests referenced from the root file.
 test {
-    _ = @import("signaling/openai.zig");
+    _ = @import("signaling/negotiator.zig");
     _ = @import("store/store.zig");
     _ = @import("sip/sip_msg.zig");
     _ = @import("sip/sip_client.zig");
     _ = @import("sip/rtp.zig");
     _ = @import("policy/types.zig");
     _ = @import("policy/realtime_event.zig");
-    _ = @import("llm/openai_realtime/protocol.zig");
+    _ = @import("llm/descriptor.zig");
+    _ = @import("llm/registry.zig");
+    _ = @import("llm/decode.zig");
 }

@@ -36,6 +36,8 @@ pub const Config = struct {
     openai_vad_interrupt: bool,
 
     qjs_lib_path: []u8,
+    /// Provider descriptors emitted by the `resonus-providers` build.
+    providers_dir: []u8,
     policy_script_path: []u8,
     policy_required: bool,
 
@@ -113,6 +115,7 @@ pub const Config = struct {
                 break :blk std.mem.eql(u8, v, "true") or std.mem.eql(u8, v, "1");
             },
             .qjs_lib_path = undefined,
+            .providers_dir = undefined,
             .policy_script_path = try envOwnedOrDefault(allocator, environ, "LLM_GATE_POLICY_SCRIPT", "scripts/default.js"),
             .policy_required = blk: {
                 const v = environ.get("LLM_GATE_POLICY_REQUIRED") orelse "true";
@@ -200,6 +203,13 @@ pub const Config = struct {
             environ,
             "LLM_GATE_QJS_LIB",
             "{s}/native/wrapers/qjs/zig-out/lib/libqjs.so",
+            .{cfg.converged_root},
+        );
+        cfg.providers_dir = try envOwnedOrDerived(
+            allocator,
+            environ,
+            "RESONUS_PROVIDERS_DIR",
+            "{s}/core/native/apps/resonus/providers/dist",
             .{cfg.converged_root},
         );
         return cfg;

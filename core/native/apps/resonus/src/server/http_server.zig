@@ -3,7 +3,6 @@ const std = @import("std");
 const config_mod = @import("../config.zig");
 const gateway_mod = @import("../gate/gateway.zig");
 const session_mod = @import("../gate/session.zig");
-const adapter_mod = @import("../signaling/adapter.zig");
 const signaling_types = @import("../signaling/types.zig");
 const json_util = @import("../util/json.zig");
 const store_mod = @import("../store/store.zig");
@@ -87,11 +86,11 @@ pub const HttpServer = struct {
         }
 
         if (method == .POST and std.mem.eql(u8, path, "/signal/openai")) {
-            return self.handleSignal(req, .openai);
+            return self.handleSignal(req, "openai-realtime");
         }
 
         if (method == .POST and std.mem.eql(u8, path, "/signal/gemini")) {
-            return self.handleSignal(req, .gemini);
+            return self.handleSignal(req, "gemini");
         }
 
         if (method == .GET and std.mem.eql(u8, path, "/ws")) {
@@ -178,7 +177,7 @@ pub const HttpServer = struct {
         return self.respondJson(req, .ok, payload);
     }
 
-    fn handleSignal(self: *HttpServer, req: *std.http.Server.Request, provider: adapter_mod.Provider) !void {
+    fn handleSignal(self: *HttpServer, req: *std.http.Server.Request, provider: []const u8) !void {
         const body = try self.readBody(req, 8 * 1024 * 1024);
         defer self.allocator.free(body);
 
@@ -201,7 +200,7 @@ pub const HttpServer = struct {
         defer out.deinit(self.allocator);
 
         try out.appendSlice(self.allocator, "{\"ok\":true,\"provider\":");
-        try json_util.appendQuoted(&out, self.allocator, @tagName(provider));
+        try json_util.appendQuoted(&out, self.allocator, provider);
         try out.appendSlice(self.allocator, ",\"contextUsed\":");
         try out.appendSlice(self.allocator, boolLiteral(outcome.context_used));
 

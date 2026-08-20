@@ -5,7 +5,8 @@ const config_mod = @import("../config.zig");
 const baresip_mod = @import("../native/baresip_client.zig");
 const datachannel_mod = @import("../native/datachannel_client.zig");
 const deps_probe_mod = @import("../native/deps_probe.zig");
-const adapter_mod = @import("../signaling/adapter.zig");
+const negotiator_mod = @import("../signaling/negotiator.zig");
+const registry_mod = @import("../llm/registry.zig");
 const types = @import("../signaling/types.zig");
 const session_mod = @import("session.zig");
 const store_mod = @import("../store/store.zig");
@@ -87,8 +88,13 @@ pub const Gateway = struct {
     datachannel_client: ?datachannel_mod.Client,
     datachannel_client_error: ?[]u8,
 
-    openai_adapter: ?adapter_mod.Adapter,
-    gemini_adapter: adapter_mod.Adapter,
+    /// Descriptors for media signaling. The gate keeps its own registry rather
+    /// than borrowing the chat hub's: it is constructed first, and the two are
+    /// independent subsystems. Sharing one is a tidy-up, not a correctness fix.
+    registry: registry_mod.Registry,
+    secrets: registry_mod.Secrets,
+    negotiator: negotiator_mod.Negotiator,
+    media_settings: negotiator_mod.Settings,
 
     store: ?*store_mod.Store,
     store_error: ?[]u8,
@@ -150,31 +156,27 @@ pub const Gateway = struct {
         errdefer if (datachannel_client) |*client| client.deinit();
         errdefer if (datachannel_client_error) |value| allocator.free(value);
 
-        const openai_adapter: ?adapter_mod.Adapter = if (cfg.openai_api_key) |api_key|
-            .{ .openai = .{
-                .api_key = api_key,
-                .default_model = cfg.openai_model,
-                .default_voice = cfg.openai_voice,
-                .default_transcription_model = cfg.openai_transcription_model,
-                .default_transcription_prompt = cfg.openai_transcription_prompt,
-                .default_transcription_keywords = cfg.openai_transcription_keywords,
-                .default_noise_reduction = cfg.openai_noise_reduction,
-                .realtime_calls_url = cfg.openai_realtime_calls_url,
-                .safety_identifier_override = cfg.openai_safety_identifier,
-                .vad_threshold = cfg.openai_vad_threshold,
-                .vad_silence_ms = cfg.openai_vad_silence_ms,
-                .vad_prefix_ms = cfg.openai_vad_prefix_ms,
-                .vad_interrupt = cfg.openai_vad_interrupt,
-            } }
-        else
-            null;
+        var registry = try registry_mod.Registry.init(allocator, .{
+            .dir = cfg.providers_dir,
+            .qjs_lib = cfg.qjs_lib_path,
+        });
+        errdefer registry.deinit();
 
-        const gemini_adapter: adapter_mod.Adapter = .{ .gemini = .{
-            .api_key = cfg.gemini_api_key,
-            .default_model = cfg.gemini_model,
-            .ws_url = cfg.gemini_ws_url,
-            .sdp_url = cfg.gemini_sdp_url,
-        } };
+        // Media settings are deployment configuration; which of them a vendor
+        // puts on the wire, and under what name, is the descriptor's business.
+        const settings = negotiator_mod.Settings{
+            .default_model = cfg.openai_model,
+            .default_voice = cfg.openai_voice,
+            .transcription_model = cfg.openai_transcription_model,
+            .transcription_prompt = cfg.openai_transcription_prompt,
+            .transcription_keywords = cfg.openai_transcription_keywords,
+            .noise_reduction = cfg.openai_noise_reduction,
+            .safety_identifier_override = cfg.openai_safety_identifier,
+            .vad_threshold = cfg.openai_vad_threshold,
+            .vad_silence_ms = cfg.openai_vad_silence_ms,
+            .vad_prefix_ms = cfg.openai_vad_prefix_ms,
+            .vad_interrupt = cfg.openai_vad_interrupt,
+        };
 
         // Init store (optional — service works without it). The gate is
         // stateless: audio fragments go to Valkey, domain data goes through
@@ -244,8 +246,10 @@ pub const Gateway = struct {
             .baresip_client_error = baresip_client_error,
             .datachannel_client = datachannel_client,
             .datachannel_client_error = datachannel_client_error,
-            .openai_adapter = openai_adapter,
-            .gemini_adapter = gemini_adapter,
+            .registry = registry,
+            .secrets = .{},
+            .negotiator = .{ .registry = undefined, .secrets = undefined },
+            .media_settings = settings,
             .store = store_val,
             .store_error = store_error,
             .recorder = recorder_val,
@@ -320,6 +324,9 @@ pub const Gateway = struct {
             .public_ip = self.cfg.sip_public_ip,
             .stun_url = if (self.cfg.stun_url.len > 0) self.cfg.stun_url else null,
             .bridge_base = .{
+                // This runs on `*Gateway`, well after `rebind`, so the
+                // negotiator is already at its final address.
+                .negotiator = &self.negotiator,
                 .api_key = api_key,
                 .calls_url = self.cfg.openai_realtime_calls_url,
                 .model = self.cfg.openai_model,
@@ -442,7 +449,15 @@ pub const Gateway = struct {
         };
     }
 
-    pub fn negotiate(self: *Gateway, provider: adapter_mod.Provider, input: session_mod.SessionInput) !SignalOutcome {
+    /// Bind the negotiator's back-references. `init` returns a value, so its
+    /// address changes when the caller stores it; the registry and secrets
+    /// pointers must be taken after that move.
+    pub fn rebind(self: *Gateway) void {
+        self.negotiator.registry = &self.registry;
+        self.negotiator.secrets = &self.secrets;
+    }
+
+    pub fn negotiate(self: *Gateway, provider_name: []const u8, input: session_mod.SessionInput) !SignalOutcome {
         const domain = input.domain orelse "";
         var stored_context: ?store_mod.Context = null;
         const context_key = input.context_name orelse input.phone;
@@ -462,16 +477,14 @@ pub const Gateway = struct {
         }
 
         const resolved = session_mod.resolve(input, stored_context);
-        const result = switch (provider) {
-            .openai => blk: {
-                var adapter = self.openai_adapter orelse return error.MissingOpenAIApiKey;
-                break :blk try adapter.negotiate(self.allocator, resolved.negotiation);
-            },
-            .gemini => blk: {
-                var adapter = self.gemini_adapter;
-                break :blk try adapter.negotiate(self.allocator, resolved.negotiation);
-            },
-        };
+        const result = try self.negotiator.negotiate(
+            self.allocator,
+            provider_name,
+            .realtime,
+            self.media_settings,
+            resolved.negotiation,
+            null,
+        );
 
         return .{
             .result = result,

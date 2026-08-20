@@ -1,0 +1,21 @@
+{
+	"name": "resonus-providers",
+	"version": "0.1.0",
+	"type": "module",
+	"private": true,
+	"sideEffects": false,
+	"module": "src/index.ts",
+	"exports": {
+		".": "./src/index.ts",
+		"./schema": "./src/schema.ts"
+	},
+	"scripts": {
+		"build": "bun run src/build.ts dist",
+		"check": "bun run src/build.ts --check",
+		"test": "bun test"
+	},
+	"devDependencies": {
+		"@types/bun": "^1.3.14",
+		"typescript": "6.0.3"
+	}
+}
