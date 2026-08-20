@@ -28,7 +28,7 @@ export type Widget<V = Record<string, unknown>> = {
 };
 
 export type PresentTab = {
-	/** Ключ вкладки: по нему повторное открытие обновляет её, а не плодит копии. */
+
 	key?: string;
 	title?: string;
 	pinned?: boolean;
@@ -37,7 +37,7 @@ export type PresentTab = {
 export type PresentRequest = {
 	widget: Widget<any>;
 	params?: Record<string, unknown>;
-	/** Куда лечь виджету: без этого вкладка одна на действие. */
+
 	tab?: PresentTab;
 };
 

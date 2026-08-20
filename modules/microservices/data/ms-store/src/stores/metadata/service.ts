@@ -25,7 +25,7 @@ export class ChunkMetadataService {
   ): Promise<void> {
     const existing = await this.repo.findById({ hash });
     if (existing) {
-      // Увеличиваем счетчик ссылок
+
       await this.repo.update({ hash }, { refCount: existing.refCount + 1 });
     } else {
       await this.repo.create({
@@ -50,10 +50,10 @@ export class ChunkMetadataService {
 
     if (existing.refCount <= 1) {
       await this.repo.delete({ hash });
-      return true; // можно удалить файл
+      return true;
     } else {
       await this.repo.update({ hash }, { refCount: existing.refCount - 1 });
-      return false; // файл еще используется
+      return false;
     }
   }
 

@@ -25,11 +25,7 @@ const FIELD_TYPES = {
 
 interface BasicFormViewProps {
 	fields: FieldConfig[];
-	/**
-	 * Запись, переданная напрямую. Вкладка рабочей области открывается на
-	 * конкретную строку таблицы, поэтому её содержимое не может зависеть от
-	 * общего на весь микрофронтенд стора «текущей записи».
-	 */
+
 	entity?: any;
 	entityStore?: Store<any>;
 	title?: string;

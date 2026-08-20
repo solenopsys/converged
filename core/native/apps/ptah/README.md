@@ -81,6 +81,35 @@ unless they explicitly declare `ptah.io/reclaim: delete`. A policy error or an
 incomplete dependency must return `prune: false`; this prevents a transient
 problem from being interpreted as a request to delete all owned resources.
 
+## Behemoth storage
+
+Ptah gives every active microservice one isolated static `PersistentVolume`
+and one pre-bound `PersistentVolumeClaim`. All stores owned by that
+microservice are directories inside the same volume; stores are not split into
+additional disks. A single Behemoth pod mounts all of those claims and reads
+its microservice-to-root map from `storage.json` in a generated ConfigMap.
+
+The Platform storage spec supplies a Kubernetes PV source template. Ptah
+recursively replaces `{{volume}}`, `{{platform}}`, `{{tenant}}`, and
+`{{microservice}}` in its string values. The template must resolve to a unique
+source for each microservice. A local-cluster MVP can use:
+
+```json
+{
+  "storageClassName": "local-path",
+  "mountBase": "/app/data",
+  "volumeSource": {
+    "hostPath": {
+      "path": "/var/lib/ptah/{{volume}}",
+      "type": "DirectoryOrCreate"
+    }
+  }
+}
+```
+
+For a multi-node cluster, use a suitable `local`, `nfs`, or `csi` source and
+set `storage.nodeAffinity` when the selected volume type requires it.
+
 ## Policy
 
 The policy source is in [`policy/src`](policy/src) and is bundled into the

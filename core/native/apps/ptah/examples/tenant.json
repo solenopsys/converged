@@ -1,6 +1,21 @@
 {
   "kind": "Tenant",
-  "solutions": [],
+  "solutions": [
+    {
+      "apiVersion": "ptah.io/v1alpha1",
+      "kind": "Solution",
+      "metadata": {
+        "name": "cnc-club"
+      },
+      "spec": {
+        "platform": "converged",
+        "microservices": [
+          "geo",
+          "companies"
+        ]
+      }
+    }
+  ],
   "tenants": [],
   "object": {
     "apiVersion": "ptah.io/v1alpha1",
@@ -41,7 +56,13 @@
         "size": "5Gi",
         "port": 9000,
         "mountBase": "/app/data",
-        "storageClassName": "local-path"
+        "storageClassName": "local-path",
+        "volumeSource": {
+          "hostPath": {
+            "path": "/var/lib/ptah/{{volume}}",
+            "type": "DirectoryOrCreate"
+          }
+        }
       },
       "apps": {
         "fujin": {

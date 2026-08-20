@@ -14,7 +14,7 @@ export class StoreFileService {
     }
 
     private getFilePath(hash: HashString): string {
-        // Используем первые 3 символа хеша как имя директории
+
         const prefix = hash.slice(0, 3);
         return path.join(this.basePath, prefix, hash);
     }
@@ -25,17 +25,17 @@ export class StoreFileService {
     }
 
     async save(data: Uint8Array): Promise<HashString> {
-        // Генерируем хеш из данных
+
         const hashNum = Bun.hash(data);
         const hash = hashNum.toString(16).padStart(16, '0');
 
         const dirPath = this.getDirPath(hash);
         const filePath = this.getFilePath(hash);
 
-        // Создаем директорию если не существует
+
         await fs.mkdir(dirPath, { recursive: true });
 
-        // Записываем данные в файл
+
         await fs.writeFile(filePath, data);
 
         return hash;
@@ -45,10 +45,10 @@ export class StoreFileService {
         const dirPath = this.getDirPath(hash);
         const filePath = this.getFilePath(hash);
 
-        // Создаем директорию если не существует
+
         await fs.mkdir(dirPath, { recursive: true });
 
-        // Записываем данные в файл
+
         await fs.writeFile(filePath, data);
 
         return hash;
@@ -86,7 +86,7 @@ export class StoreFileService {
         let totalCount = 0;
 
         try {
-            // Читаем все директории (префиксы)
+
             const prefixDirs = await fs.readdir(this.basePath);
 
             for (const prefix of prefixDirs) {
@@ -97,7 +97,7 @@ export class StoreFileService {
                     const files = await fs.readdir(prefixPath);
                     totalCount += files.length;
 
-                    // Добавляем файлы с учетом пагинации
+
                     for (const file of files) {
                         if (items.length >= params.offset && items.length < params.offset + params.limit) {
                             items.push(file);

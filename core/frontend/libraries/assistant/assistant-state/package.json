@@ -6,6 +6,7 @@
   "module": "src/index.ts",
 	"dependencies": {
 		"effector-logger": "workspace:*",
+		"g-threads": "workspace:*",
 		"orchestrator": "workspace:*"
   },
   "peerDependencies": {

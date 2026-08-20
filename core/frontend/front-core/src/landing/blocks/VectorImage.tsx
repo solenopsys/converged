@@ -387,7 +387,7 @@ export function VectorImage({
 				const parsed = new DOMParser().parseFromString(text, "image/svg+xml");
 				const svg = parsed.documentElement as unknown as SVGSVGElement;
 				if (svg.tagName.toLowerCase() !== "svg") {
-					// Растровый src (png/jpg) — не векторизуем: показываем <img> и лейблы сразу.
+
 					setFailed(true);
 					setDrawn(true);
 					return;

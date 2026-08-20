@@ -11,6 +11,7 @@
 import * as k8s from "./k8s/index.ts";
 import * as n from "./names.ts";
 import { mergeSolutions, selectSolutions } from "./solution.ts";
+import { storageResources } from "./storage.ts";
 import type {
 	KubeObject,
 	PlatformSpec,
@@ -55,50 +56,20 @@ export function reconcileTenant(input: ReconcileInput): ReconcileOutput {
 		"platform spec.apps.fujin.ports.zmq",
 	);
 
-	const storageLabels = n.labels(platform, `storage-${tenant}`, owner);
-	const storageSelector = n.selector(platform, `storage-${tenant}`);
-
-	const resources: KubeObject[] = [
-		k8s.statefulSet({
-			name: storageName,
-			namespace,
-			labels: storageLabels,
-			selector: storageSelector,
-			replicas: 1,
-			serviceName: storageName,
-			volumeClaims: [
-				{
-					name: "data",
-					spec: {
-						size,
-						storageClassName: platformSpec.storage.storageClassName,
-						accessModes: platformSpec.storage.accessModes,
-					},
-				},
-			],
-			containers: [
-				{
-					name: "storage",
-					image: platformSpec.storage.image,
-					args: [
-						"start",
-						"--data-dir",
-						platformSpec.storage.mountBase,
-						"--fujin",
-						`tcp://${n.app(platform, "fujin")}:${fujinZmq}`,
-						"--scope",
-						scope,
-					],
-					ports: [{ name: "storage", port: platformSpec.storage.port }],
-					resources: platformSpec.storage.resources,
-					volumeMounts: [{ name: "data", mountPath: platformSpec.storage.mountBase }],
-				},
-			],
-		}),
-		k8s.service(storageName, namespace, storageLabels, storageSelector, [
-			{ name: "storage", port: platformSpec.storage.port },
-		]),
-	];
+	const merged = mergeSolutions(
+		selectSolutions(input.solutions, platform, spec.solutions),
+	);
+	const resources = storageResources({
+		platform,
+		tenant,
+		owner,
+		namespace,
+		name: storageName,
+		microservices: merged.microservices,
+		storage: { ...platformSpec.storage, size },
+		fujinEndpoint: `tcp://${n.app(platform, "fujin")}:${fujinZmq}`,
+		scope,
+	});
 
 	// One route per tenant, carrying every hostname it answers on. The scope
 	// headers are set by a filter on each rule rather than by a separate
@@ -127,10 +98,6 @@ export function reconcileTenant(input: ReconcileInput): ReconcileOutput {
 				},
 			],
 		),
-	);
-
-	const merged = mergeSolutions(
-		selectSolutions(input.solutions, platform, spec.solutions),
 	);
 
 	return {

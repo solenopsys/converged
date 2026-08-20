@@ -9,12 +9,7 @@ import {
 	workspaceUnpinnedTabsCleared,
 } from "./workspace";
 
-/**
- * Верхняя панель — глупая: она получает готовый список вкладок с готовым
- * списком пунктов меню и умеет только сказать «нажали вот этот пункт вот у
- * этой вкладки». Что пункт делает, знает модель, поэтому новые действия
- * добавляются регистрацией, а не правкой панели.
- */
+
 export type WorkspaceTabActionIcon = ComponentType<{
 	size?: number;
 	class?: string;
@@ -52,10 +47,7 @@ const providerRegistered = createEvent<string>("WORKSPACE_TAB_ACTIONS_REGISTERED
 
 const providers = new Map<string, WorkspaceTabActionProvider>();
 
-/**
- * Микрофронтенд владеет своими вкладками (owner) и может добавить к ним свои
- * пункты — «Обновить», «Экспорт», что угодно, — не трогая оболочку.
- */
+
 export function registerWorkspaceTabActions(
 	owner: string,
 	provider: WorkspaceTabActionProvider,

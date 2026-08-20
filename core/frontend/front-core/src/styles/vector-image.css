@@ -13,7 +13,7 @@
   height: auto;
 }
 
-/* <img>-фолбэк скрыт, пока inline-SVG не подставится на его место (без мигания). */
+
 .vector-image-frame img {
   opacity: 0;
   transition: opacity 0.3s ease;
@@ -27,13 +27,12 @@
   height: auto;
 }
 
-/* Рисунок невидим, пока не началась прорисовка (рисуем когда секция в вьюпорте). */
+
 .vector-image-svg.vector-image-waiting {
   opacity: 0;
 }
 
-/* Плавное проявление всего рисунка. Чисто выглядит на любом масштабе, в отличие
-   от поточечного vivus-дро, который на мелкой штриховке превращается в кашу. */
+
 .vector-image-anim-fade {
   opacity: 0;
   animation: vector-image-fade-in 0.9s ease-out forwards;
@@ -108,7 +107,7 @@ html.dark .vector-image-label strong { color: #0d2c54; }
 html.dark .vector-image-label small { color: #3a5c8c; }
 html.dark .vector-image-label hr { background: rgba(13, 44, 84, 0.3); }
 
-/* Масштабирование inline-SVG так же, как у fallback-<img> в hero-секциях. */
+
 .landing-workshop-visual .vector-image-frame svg,
 .landing-workshop-visual .vector-image-frame img {
   width: 116%;

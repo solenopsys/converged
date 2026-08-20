@@ -10,6 +10,7 @@ import { buildExtras } from "./extras.ts";
 import * as k8s from "./k8s/index.ts";
 import * as n from "./names.ts";
 import { mergeSolutions, moduleData, selectSolutions } from "./solution.ts";
+import { storageResources } from "./storage.ts";
 import type {
 	KubeObject,
 	NativeApp,
@@ -106,56 +107,6 @@ function nativeApp(
 	}
 
 	return objects;
-}
-
-function monoStorage(
-	platform: string,
-	spec: PlatformSpec,
-	owner: string,
-): KubeObject[] {
-	const name = n.monoStorage(platform);
-	const labels = n.labels(platform, "storage", owner);
-	const selector = n.selector(platform, "storage");
-
-	return [
-		k8s.statefulSet({
-			name,
-			namespace: spec.namespace,
-			labels,
-			selector,
-			replicas: 1,
-			serviceName: name,
-			volumeClaims: [
-				{
-					name: "data",
-					spec: {
-						size: spec.storage.size,
-						storageClassName: spec.storage.storageClassName,
-						accessModes: spec.storage.accessModes,
-					},
-				},
-			],
-			containers: [
-				{
-					name: "storage",
-					image: spec.storage.image,
-					args: [
-						"start",
-						"--data-dir",
-						spec.storage.mountBase,
-						"--fujin",
-						fujinEndpoint(platform, spec),
-					],
-					ports: [{ name: "storage", port: spec.storage.port }],
-					resources: spec.storage.resources,
-					volumeMounts: [{ name: "data", mountPath: spec.storage.mountBase }],
-				},
-			],
-		}),
-		k8s.service(name, spec.namespace, labels, selector, [
-			{ name: "storage", port: spec.storage.port },
-		]),
-	];
 }
 
 export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
@@ -304,7 +255,17 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 	}
 
 	if (spec.profile === "mono") {
-		resources.push(...monoStorage(platform, spec, owner));
+		resources.push(
+			...storageResources({
+				platform,
+				owner,
+				namespace: spec.namespace,
+				name: n.monoStorage(platform),
+				microservices: merged.microservices,
+				storage: spec.storage,
+				fujinEndpoint: fujinEndpoint(platform, spec),
+			}),
+		);
 
 		// Only mono publishes a platform-wide route. In cloud the Tenant owns
 		// its own hostnames, so a catch-all here would shadow them.

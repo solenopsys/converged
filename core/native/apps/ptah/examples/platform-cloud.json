@@ -68,7 +68,13 @@
         "size": "5Gi",
         "port": 9000,
         "mountBase": "/app/data",
-        "storageClassName": "local-path"
+        "storageClassName": "local-path",
+        "volumeSource": {
+          "hostPath": {
+            "path": "/var/lib/ptah/{{volume}}",
+            "type": "DirectoryOrCreate"
+          }
+        }
       },
       "apps": {
         "fujin": {

@@ -48,10 +48,10 @@ export function DashboardPieChartCard({
 	const chartData = useMemo(() => {
 		const sorted = data.filter((item) => item.value > 0).sort((a, b) => b.value - a.value);
 
-		// Палитра назначается по порядку и не зацикливается: ряд, которому не
-		// хватило слота, сворачивается в «прочее», а не получает цвет первого —
-		// иначе два разных ряда на одном чарте выглядят одним. Отсюда и предел по
-		// умолчанию: видимых на один меньше, чем цветов, последний слот за «прочим».
+
+
+
+
 		const sliceLimit = Math.min(maxSlices ?? Number.POSITIVE_INFINITY, colors.length - 1);
 		const visible = sorted.slice(0, sliceLimit);
 		const rest = sorted.slice(sliceLimit);

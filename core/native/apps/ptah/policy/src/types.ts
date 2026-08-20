@@ -99,7 +99,16 @@ export interface PlatformSpec extends ExtraResources {
 		mountBase: string;
 		/** Required: the cluster default class differs per cluster. */
 		storageClassName: string;
+		/**
+		 * Static PV source template. Every active microservice gets a distinct
+		 * PV/PVC pair; `{{volume}}` is replaced with that pair's unique name.
+		 * Other available placeholders are `{{platform}}`, `{{tenant}}`, and
+		 * `{{microservice}}`.
+		 */
+		volumeSource: Record<string, unknown>;
 		accessModes?: string[];
+		reclaimPolicy?: "Retain" | "Delete" | "Recycle";
+		nodeAffinity?: Record<string, unknown>;
 		resources?: Resources;
 	};
 	apps: Record<string, NativeApp>;

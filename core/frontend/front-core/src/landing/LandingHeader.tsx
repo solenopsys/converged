@@ -4,10 +4,7 @@ import { ThemeToggle, TopBarSettings } from "../shell/TopBarControls";
 
 export type LandingHeaderLink = TopBarLink;
 
-/**
- * Шапка лендинга — та же верхняя панель, что и в рабочем режиме, только вместо
- * вкладок в ней навигация по секциям страницы.
- */
+
 export function LandingHeader({
 	brand,
 	brandHref,

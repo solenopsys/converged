@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 #
-# install.sh — сборка baresip с Opus на Arch Linux / EndeavourOS
+
 #
-#  • устанавливает зависимости через pacman
-#  • клонирует re, rem, baresip в ~/src
-#  • собирает через CMake и ставит в /usr
+
+
+
 #
 set -euo pipefail
 
@@ -21,7 +21,7 @@ sudo pacman -S --needed --noconfirm \
     pipewire libpipewire \
     libtool
 
-# подчистим старые сборки в /usr/local если были
+
 sudo rm -f /usr/local/lib*/lib{re,rem}.so* \
             /usr/local/lib*/baresip/modules/*.so 2>/dev/null || true
 

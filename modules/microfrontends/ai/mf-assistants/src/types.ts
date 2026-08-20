@@ -10,7 +10,7 @@ import {
 import {
 	ThreadsService,
 	MessageType,
-} from "../../../../../tools/types/services/communications/threads";
+} from "g-threads";
 
 export {
 	ServiceType,

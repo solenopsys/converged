@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "preact/compat";
 import { HeaderPanel, ThreadedChat, cn } from "front-core";
 import type { ChatRoom } from "g-chats";
-import { MessageType } from "../../../../../../tools/types/services/communications/threads";
+import { MessageType } from "g-threads";
 import { chatsClient, threadsClient } from "../services";
 import styles from "./ChatView.module.css";
 

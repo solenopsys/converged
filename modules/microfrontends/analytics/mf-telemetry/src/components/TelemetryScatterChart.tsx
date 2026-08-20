@@ -9,8 +9,8 @@ import {
 import { useMemo } from "preact/compat";
 import type { TelemetryEvent } from "../functions/types";
 
-// Точка окрашена порогом, а не принадлежностью к ряду: это статус, поэтому
-// цвета статусные, а не слоты категориальной палитры.
+
+
 const OK = "var(--ui-success)";
 const ELEVATED = "var(--ui-warning)";
 const HIGH = "var(--ui-destructive)";

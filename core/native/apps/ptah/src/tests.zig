@@ -101,7 +101,7 @@ test "policy round-trips a platform reconcile through QuickJS" {
         \\"spec":{"profile":"mono","namespace":"converged","domainBase":"4ir.club",
         \\"secretName":"converged-secrets","images":{"ui":"reg/ui:1","ms":"reg/ms:1"},
         \\"cache":{"image":"valkey:8.1-alpine","port":6379},
-        \\"storage":{"image":"reg/behemoth:1","size":"5Gi","port":9000,"mountBase":"/app/data","storageClassName":"local-path"},
+        \\"storage":{"image":"reg/behemoth:1","size":"5Gi","port":9000,"mountBase":"/app/data","storageClassName":"local-path","volumeSource":{"hostPath":{"path":"/var/lib/ptah/{{volume}}","type":"DirectoryOrCreate"}}},
         \\"apps":{"fujin":{"image":"reg/fujin:1","ports":{"ws":8087,"zmq":5557}}},
         \\"gateway":{"className":"traefik","hosts":["*.4ir.club"]}}}}
     ;

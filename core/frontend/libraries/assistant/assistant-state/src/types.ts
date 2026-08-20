@@ -1,5 +1,4 @@
-import type { ThreadsService } from "../../../../../tools/types/services/communications/threads";
-import { MessageType } from "../../../../../tools/types/services/communications/threads";
+import { MessageType, type ThreadsService } from "g-threads";
 
 
 export enum ServiceType {

@@ -42,7 +42,7 @@ export function LanguageMenu() {
 	);
 }
 
-/** Настройки, одинаковые для лендинга и рабочих поверхностей. */
+
 export function TopBarSettings() {
 	return (
 		<>

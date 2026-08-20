@@ -1,0 +1,154 @@
+/**
+ * Behemoth storage topology.
+ *
+ * One behemoth process serves many microservices, but their persistence is
+ * isolated: every microservice receives one PV/PVC and all of its stores live
+ * below that single mounted root. The ConfigMap is the exact mount table that
+ * behemoth validates at startup.
+ */
+
+import * as k8s from "./k8s/index.ts";
+import * as n from "./names.ts";
+import type { VolumeMount } from "./k8s/container.ts";
+import type { KubeObject, PlatformSpec } from "./types.ts";
+import { PolicyError, require } from "./types.ts";
+
+const CONFIG_VOLUME = "storage-config";
+const CONFIG_KEY = "storage.json";
+const CONFIG_PATH = `/etc/behemoth/${CONFIG_KEY}`;
+
+interface StorageResourcesSpec {
+	platform: string;
+	tenant?: string;
+	owner: string;
+	namespace: string;
+	name: string;
+	microservices: string[];
+	storage: PlatformSpec["storage"];
+	fujinEndpoint: string;
+	scope?: string;
+}
+
+function renderTemplate(value: unknown, variables: Record<string, string>): unknown {
+	if (typeof value === "string") {
+		return Object.entries(variables).reduce(
+			(rendered, [name, replacement]) => rendered.replaceAll(`{{${name}}}`, replacement),
+			value,
+		);
+	}
+	if (Array.isArray(value)) return value.map((item) => renderTemplate(item, variables));
+	if (value !== null && typeof value === "object") {
+		return Object.fromEntries(
+			Object.entries(value as Record<string, unknown>).map(([key, item]) => [
+				key,
+				renderTemplate(item, variables),
+			]),
+		);
+	}
+	return value;
+}
+
+export function storageResources(spec: StorageResourcesSpec): KubeObject[] {
+	const sourceTemplate = require(spec.storage.volumeSource, "spec.storage.volumeSource");
+	const microservices = [...new Set(spec.microservices)].sort();
+	const labels = n.labels(spec.platform, spec.tenant ? `storage-${spec.tenant}` : "storage", spec.owner);
+	const selector = n.selector(spec.platform, spec.tenant ? `storage-${spec.tenant}` : "storage");
+	const mountBase = spec.storage.mountBase.replace(/\/+$/g, "");
+	const mounts: Record<string, string> = {};
+	const podVolumes: Record<string, unknown>[] = [
+		k8s.configMapVolume(CONFIG_VOLUME, n.storageConfigMap(spec.name)),
+	];
+	const volumeMounts: VolumeMount[] = [
+		{ name: CONFIG_VOLUME, mountPath: CONFIG_PATH, subPath: CONFIG_KEY, readOnly: true },
+	];
+	const resources: KubeObject[] = [];
+	const renderedSources = new Set<string>();
+
+	for (const microservice of microservices) {
+		const volume = n.storageVolume(spec.name, microservice);
+		const mountPath = `${mountBase}/${volume}`;
+		const source = renderTemplate(sourceTemplate, {
+			volume,
+			platform: spec.platform,
+			tenant: spec.tenant ?? "",
+			microservice,
+		}) as Record<string, unknown>;
+		const sourceIdentity = JSON.stringify(source);
+		if (renderedSources.has(sourceIdentity)) {
+			throw new PolicyError(
+				"spec.storage.volumeSource must resolve to a distinct source for every microservice",
+			);
+		}
+		renderedSources.add(sourceIdentity);
+
+		mounts[microservice] = mountPath;
+		podVolumes.push(k8s.claimVolume(volume, volume));
+		volumeMounts.push({ name: volume, mountPath });
+
+		resources.push(
+			k8s.persistentVolume(
+				volume,
+				labels,
+				{
+					capacity: spec.storage.size,
+					storageClassName: spec.storage.storageClassName,
+					accessModes: spec.storage.accessModes,
+					reclaimPolicy: spec.storage.reclaimPolicy,
+					source,
+					nodeAffinity: spec.storage.nodeAffinity,
+				},
+				"retain",
+			),
+			k8s.persistentVolumeClaim(
+				volume,
+				spec.namespace,
+				labels,
+				{
+					size: spec.storage.size,
+					storageClassName: spec.storage.storageClassName,
+					accessModes: spec.storage.accessModes,
+					volumeName: volume,
+				},
+				"retain",
+			),
+		);
+	}
+
+	const config = JSON.stringify({ microservices: mounts }, null, 2);
+	resources.push(
+		k8s.configMap(n.storageConfigMap(spec.name), spec.namespace, labels, {
+			[CONFIG_KEY]: config,
+		}),
+		k8s.deployment({
+			name: spec.name,
+			namespace: spec.namespace,
+			labels,
+			selector,
+			replicas: 1,
+			annotations: { [n.ANNOTATION_STORAGE_CONFIG]: n.digest(config) },
+			volumes: podVolumes,
+			containers: [
+				{
+					name: "storage",
+					image: spec.storage.image,
+					args: [
+						"start",
+						"--config",
+						CONFIG_PATH,
+						"--fujin",
+						spec.fujinEndpoint,
+						...(spec.scope ? ["--scope", spec.scope] : []),
+					],
+					ports: [{ name: "storage", port: spec.storage.port }],
+					resources: spec.storage.resources,
+					volumeMounts,
+				},
+			],
+		}),
+		k8s.service(spec.name, spec.namespace, labels, selector, [
+			{ name: "storage", port: spec.storage.port },
+		]),
+	);
+
+	return resources;
+}

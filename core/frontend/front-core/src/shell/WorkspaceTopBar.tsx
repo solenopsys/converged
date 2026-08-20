@@ -5,12 +5,7 @@ import { TopBarSettings } from "./TopBarControls";
 import { $workspaceTabViews, workspaceTabActionInvoked } from "./tab-actions";
 import { workspaceReset, workspaceTabActivated, workspaceTabClosed } from "./workspace";
 
-/**
- * Умная обёртка над панелью: подписывается на модель вкладок и переводит
- * нажатия в события. Панель остаётся чистой функцией от данных, поэтому
- * следующий вид содержимого (форма, карточка записи, отчёт) добавляется
- * открытием вкладки, а не правкой шапки.
- */
+
 export function WorkspaceTopBar({
 	brand,
 	brandHref,
@@ -28,7 +23,7 @@ export function WorkspaceTopBar({
 		<TopBar
 			brand={brand}
 			brandHref={brandHref}
-			// Бренд возвращает на лендинг: закрыть рабочую область целиком.
+
 			onBrandClick={tabs.length > 0 ? () => workspaceReset() : undefined}
 			tabs={tabs}
 			links={links}

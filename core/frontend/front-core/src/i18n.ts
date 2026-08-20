@@ -9,11 +9,11 @@ import {
 	type SupportedLocale,
 } from "./landing/i18n";
 
-// Каждый микрофронтенд везёт свои строки сам: index.ts регистрирует URL своих
-// locales/*.json (собранных бандлером через `new URL(..., import.meta.url)`),
-// а useMicrofrontendTranslation их подгружает. Источник — сам модуль, не
-// внешний сервис: ms-struct для этого не годится, это хранилище лендингового
-// контента, а не строк интерфейса приложения.
+
+
+
+
+
 
 const supportedLocaleSet = new Set<string>(SUPPORTED_LOCALES as readonly string[]);
 

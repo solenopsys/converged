@@ -198,7 +198,7 @@ export function AppShell({
 	config: ChatConfig;
 	landing?: LandingPayload;
 	children?: ComponentChildren;
-	/** Бренд проекта для верхней панели: оболочка его не выдумывает. */
+
 	brand: ComponentChildren;
 }) {
 	const [chat, setChat] = useState<{ module: ChatModule; chat: Chat } | null>(

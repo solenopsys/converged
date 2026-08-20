@@ -24,7 +24,7 @@ export default defineConfig({
 				DEFAULT: "var(--ui-destructive)",
 				foreground: "var(--ui-destructive-foreground)",
 			},
-			// Статусы — зарезервированные цвета: ими не красят «ряд номер 4».
+
 			success: {
 				DEFAULT: "var(--ui-success)",
 				foreground: "var(--ui-success-foreground)",

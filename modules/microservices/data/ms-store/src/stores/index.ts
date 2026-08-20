@@ -16,11 +16,11 @@ export class StoresController extends StoreControllerAbstract {
 	}
 
 	async init() {
-		// Файловое хранилище для данных чанков
+
 		const fileStore = await this.addStore("chunks", StoreType.FILES, []);
 		this.fileStore = fileStore as FileStore;
 
-		// SQL хранилище для метаданных
+
 		const sqlStore = await this.addStore(
 			"metadata",
 			StoreType.SQL,

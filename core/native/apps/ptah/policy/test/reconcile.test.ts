@@ -36,10 +36,12 @@ describe("platform", () => {
 		expect(kinds).toEqual([
 			"Certificate/converged-tls",
 			"ConfigMap/converged-modules",
+			"ConfigMap/converged-storage-config",
 			"Deployment/converged-cache",
 			"Deployment/converged-centimanus",
 			"Deployment/converged-fujin",
 			"Deployment/converged-services",
+			"Deployment/converged-storage",
 			"Deployment/converged-ui",
 			"Gateway/converged",
 			"HTTPRoute/converged",
@@ -49,7 +51,6 @@ describe("platform", () => {
 			"Service/converged-services",
 			"Service/converged-storage",
 			"Service/converged-ui",
-			"StatefulSet/converged-storage",
 		]);
 		expect(status.observedGeneration).toBe(3);
 	});
@@ -59,6 +60,7 @@ describe("platform", () => {
 			input({ kind: "Platform", object: platform("cloud") }),
 		);
 		expect(find(resources, "StatefulSet", "converged-storage")).toBeUndefined();
+		expect(find(resources, "Deployment", "converged-storage")).toBeUndefined();
 		expect(find(resources, "HTTPRoute", "converged")).toBeUndefined();
 		// The Gateway is shared: tenants attach their own routes to it.
 		expect(find(resources, "Gateway", "converged")).toBeDefined();
@@ -157,9 +159,10 @@ describe("tenant", () => {
 			input({ kind: "Tenant", object: tenant("democnc"), platform: platform("cloud") }),
 		);
 		expect(resources.map((r) => `${r.kind}/${r.metadata.name}`).sort()).toEqual([
+			"ConfigMap/converged-storage-democnc-config",
+			"Deployment/converged-storage-democnc",
 			"HTTPRoute/converged-tenant-democnc",
 			"Service/converged-storage-democnc",
-			"StatefulSet/converged-storage-democnc",
 		]);
 		expect(status.ready).toBe(true);
 		expect(status.domains).toEqual(["democnc.4ir.club"]);
@@ -259,32 +262,115 @@ describe("ownership", () => {
 });
 
 describe("storage", () => {
-	test("claim templates carry an explicit storage class, never the cluster default", () => {
+	test("creates one PV/PVC and one mount per microservice", () => {
 		const { resources } = reconcile(
-			input({ kind: "Platform", object: platform("mono") }),
+			input({
+				kind: "Platform",
+				object: platform("mono"),
+				solutions: [solution("suite", { microservices: ["billing", "geo", "billing"] })],
+			}),
 		);
-		const sts = find(resources, "StatefulSet", "converged-storage");
-		const claims = (sts?.spec as { volumeClaimTemplates: KubeObject[] }).volumeClaimTemplates;
-		expect(claims[0].spec).toEqual({
+
+		const pvNames = resources
+			.filter((resource) => resource.kind === "PersistentVolume")
+			.map((resource) => resource.metadata.name)
+			.sort();
+		const pvcNames = resources
+			.filter((resource) => resource.kind === "PersistentVolumeClaim")
+			.map((resource) => resource.metadata.name)
+			.sort();
+		expect(pvNames).toEqual(["converged-storage-billing", "converged-storage-geo"]);
+		expect(pvcNames).toEqual(pvNames);
+
+		const config = dataOf(find(resources, "ConfigMap", "converged-storage-config"));
+		expect(JSON.parse(config["storage.json"])).toEqual({
+			microservices: {
+				billing: "/app/data/converged-storage-billing",
+				geo: "/app/data/converged-storage-geo",
+			},
+		});
+
+		const deployment = find(resources, "Deployment", "converged-storage");
+		const deploymentSpec = deployment?.spec as {
+			template: {
+				spec: {
+					volumes: { name: string; persistentVolumeClaim?: { claimName: string } }[];
+					containers: { args: string[]; volumeMounts: { name: string; mountPath: string }[] }[];
+				};
+			};
+		};
+		expect(deploymentSpec.template.spec.volumes.map((volume) => volume.name).sort()).toEqual([
+			"converged-storage-billing",
+			"converged-storage-geo",
+			"storage-config",
+		]);
+		expect(deploymentSpec.template.spec.containers[0].volumeMounts).toContainEqual({
+			name: "converged-storage-geo",
+			mountPath: "/app/data/converged-storage-geo",
+		});
+		expect(deploymentSpec.template.spec.containers[0].args).toContain("/etc/behemoth/storage.json");
+	});
+
+	test("pre-binds every claim to its PV and renders a unique volume source", () => {
+		const { resources } = reconcile(
+			input({
+				kind: "Platform",
+				object: platform("mono"),
+				solutions: [solution("suite", { microservices: ["billing", "geo"] })],
+			}),
+		);
+		const claim = find(resources, "PersistentVolumeClaim", "converged-storage-geo");
+		expect(claim?.spec).toEqual({
 			accessModes: ["ReadWriteOnce"],
 			storageClassName: "local-path",
 			resources: { requests: { storage: "5Gi" } },
+			volumeName: "converged-storage-geo",
+		});
+		expect(find(resources, "PersistentVolume", "converged-storage-geo")?.spec).toEqual({
+			capacity: { storage: "5Gi" },
+			accessModes: ["ReadWriteOnce"],
+			storageClassName: "local-path",
+			persistentVolumeReclaimPolicy: "Retain",
+			hostPath: {
+				path: "/var/lib/ptah/converged-storage-geo",
+				type: "DirectoryOrCreate",
+			},
 		});
 	});
 
-	test("a tenant's size overrides the platform default on its own shard", () => {
+	test("a tenant gets separate per-microservice disks with its size override", () => {
 		const { resources } = reconcile(
 			input({
 				kind: "Tenant",
 				object: tenant("democnc", { storageSize: "50Gi" }),
 				platform: platform("cloud"),
+				solutions: [solution("suite", { microservices: ["geo"] })],
 			}),
 		);
-		const sts = find(resources, "StatefulSet", "converged-storage-democnc");
-		const claims = (sts?.spec as { volumeClaimTemplates: KubeObject[] }).volumeClaimTemplates;
-		expect((claims[0].spec as { resources: unknown }).resources).toEqual({
+		const claim = find(
+			resources,
+			"PersistentVolumeClaim",
+			"converged-storage-democnc-geo",
+		);
+		expect((claim?.spec as { resources: unknown }).resources).toEqual({
 			requests: { storage: "50Gi" },
 		});
+		expect(find(resources, "PersistentVolume", "converged-storage-democnc-geo")).toBeDefined();
+	});
+
+	test("rejects a source template that maps microservices to the same disk", () => {
+		const object = platform("mono");
+		const storage = (object.spec as { storage: Record<string, unknown> }).storage;
+		storage.volumeSource = { hostPath: { path: "/var/lib/ptah/shared" } };
+		expect(() =>
+			reconcile(
+				input({
+					kind: "Platform",
+					object,
+					solutions: [solution("suite", { microservices: ["billing", "geo"] })],
+				}),
+			),
+		).toThrow(/distinct source/);
 	});
 });
 

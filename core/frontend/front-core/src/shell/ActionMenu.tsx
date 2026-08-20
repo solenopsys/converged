@@ -10,11 +10,7 @@ export type ActionMenuItem = {
 	checked?: boolean;
 };
 
-/**
- * Меню оболочки, а не микрофронтенда: shadcn-версия из components/ui одета в
- * wind-утилиты, которые приезжают только с ленивым mf.css, а шапка обязана
- * выглядеть одинаково с первого кадра.
- */
+
 export function ActionMenu({
 	items,
 	onSelect,

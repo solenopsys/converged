@@ -125,7 +125,7 @@ export class StoreServiceImpl implements StoreService {
 	}
 
 	async delete(hash: HashString): Promise<void> {
-		// Уменьшаем счетчик ссылок, удаляем файл только если больше нет ссылок
+
 		const shouldDelete = await this.stores.metadataService.decrementRef(hash);
 		if (shouldDelete) {
 			await this.stores.fileStore.delete(this.toKey(hash));

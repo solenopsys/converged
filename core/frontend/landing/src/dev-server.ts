@@ -56,7 +56,11 @@ export async function startLandingDevServer(options: LandingDevServerOptions) {
 			createRuntimeImagesPlugin({
 				cache: runtimeCache,
 				fallbackScope: storageScope,
-				fallbackDir: resolve(options.projectDir, "front", "landing", "public"),
+
+
+
+
+				fallbackDir: resolve(import.meta.dir, "..", "public"),
 			}),
 		)
 		.use(options.spa)

@@ -12,6 +12,8 @@ export const LABEL_COMPONENT = "app.kubernetes.io/component";
 export const LABEL_OWNER = "ptah.io/owner";
 /** Hash of the merged solution set; changing it rolls the workloads. */
 export const ANNOTATION_MODULES = "ptah.io/modules";
+/** Hash of the behemoth mount map; changing it rolls the storage pod. */
+export const ANNOTATION_STORAGE_CONFIG = "ptah.io/storage-config";
 /**
  * Opt-in permission for prune to delete a data-bearing object. Without it a
  * PersistentVolume or Claim is applied and updated but never removed, so a
@@ -53,6 +55,19 @@ export const tenantStorage = (platform: string, tenant: string) =>
 export const tenantRoute = (platform: string, tenant: string) =>
 	`${platform}-tenant-${tenant}`;
 export const monoStorage = (platform: string) => `${platform}-storage`;
+export const storageConfigMap = (storage: string) => `${storage}-config`;
+
+/**
+ * PV names also become pod volume names, so keep them within the stricter
+ * 63-character DNS-label limit and retain a digest when truncation is needed.
+ */
+export function storageVolume(storage: string, microservice: string): string {
+	const raw = `${storage}-${microservice}`.toLowerCase();
+	const slug = raw.replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+	const base = slug.length > 0 ? slug : `${storage}-volume`;
+	if (base === raw && base.length <= 63) return base;
+	return `${base.slice(0, 54).replace(/-+$/g, "")}-${digest(raw)}`;
+}
 export const gateway = (platform: string) => platform;
 export const route = (platform: string) => platform;
 

@@ -193,9 +193,13 @@ if (startUi) {
 		throw new Error(`[dev] landing not found: ${landingDir}`);
 	}
 	const proc = spawn({
-		// SPA assets rebuild themselves, but the SSR plugin is an imported module
-		// and needs a process restart when its route code changes.
-		cmd: withParentDeath(["bun", "--watch", "run", "src/dev.ts"]),
+		// No --watch here. Under it Bun keeps an open descriptor for every file the
+		// runtime loaded, and the delivery build runs in this same process: the
+		// bundler then reads d3 and zag through the watcher's descriptors and fails
+		// with "Unexpected reading file" on internmap and @floating-ui/dom.
+		// SPA assets rebuild themselves per request; changing SSR route code needs a
+		// manual restart, which is the cheaper half of that trade.
+		cmd: withParentDeath(["bun", "run", "src/dev.ts"]),
 		cwd: landingDir,
 		env: {
 			...runtimeEnv,

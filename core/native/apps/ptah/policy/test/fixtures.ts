@@ -18,6 +18,9 @@ export function platform(profile: "mono" | "cloud"): KubeObject {
 				port: 9000,
 				mountBase: "/app/data",
 				storageClassName: "local-path",
+				volumeSource: {
+					hostPath: { path: "/var/lib/ptah/{{volume}}", type: "DirectoryOrCreate" },
+				},
 			},
 			apps: {
 				fujin: { image: "reg/fujin:1", ports: { ws: 8087, zmq: 5557 } },

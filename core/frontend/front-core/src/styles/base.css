@@ -172,7 +172,7 @@ html.dark .assistant-stage-copy p,
 html.dark .landing-index,
 html.dark .capability > span { color: #6d6d6d; }
 
-/* Херо-чертёж в тёмной теме: синий фон как чертёж, белые линии, светлый текст. */
+
 html.dark .landing-hero {
   background-color: #12366b;
   background-image:

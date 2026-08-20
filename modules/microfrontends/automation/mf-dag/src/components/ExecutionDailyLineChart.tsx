@@ -27,8 +27,8 @@ export function ExecutionDailyLineChart({
 			dashboardPin={dashboardPin}
 			series={[
 				{ key: "total", label: "Total", color: "var(--ui-chart-1)", areaOpacity: 0.2 },
-				// Три остальных ряда — состояния, а не просто ряды: они носят
-				// статусные цвета и всегда идут с подписью в легенде.
+
+
 				{ key: "running", label: "Running", color: "var(--ui-warning)", area: false },
 				{ key: "done", label: "Done", color: "var(--ui-success)", area: false },
 				{ key: "failed", label: "Failed", color: "var(--ui-destructive)", area: false },

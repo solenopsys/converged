@@ -23,8 +23,8 @@ widgetPresented.watch(({ actionId, params, widget, tab }) => {
 	);
 
 	workspaceTabOpened({
-		// Действие, открывающее конкретную запись, задаёт свой ключ: иначе каждая
-		// следующая карточка затирала бы предыдущую вкладку.
+
+
 		key: tab?.key ?? fallbackKey,
 		owner: actionId ? ownerFor(actionId) : "workspace",
 		title: tab?.title ?? titleFor(actionId, View),

@@ -27,7 +27,7 @@ import {
 	type ProductCasesData,
 } from "front-core/landing";
 
-// Бренд проекта: его показывает и шапка лендинга, и панель вкладок в рабочем режиме.
+
 export const brand = "4IR";
 
 export const header: LandingHeaderRenderer = (context) => (
