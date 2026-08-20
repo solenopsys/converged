@@ -8,7 +8,7 @@ cd "$SCRIPT_DIR"
 IMAGE="${IMAGE:-localhost/converged-resonus:latest}"
 TARGET="${TARGET:-x86_64-linux-gnu}"
 OPTIMIZE="${OPTIMIZE:-ReleaseSafe}"
-CONVERGED_ROOT="${CONVERGED_ROOT:-../../../converged-portal}"
+CONVERGED_ROOT="${CONVERGED_ROOT:-$(cd ../../.. && pwd)}"
 
 case "$TARGET" in
     x86_64-linux-gnu|aarch64-linux-gnu) ;;

@@ -20,7 +20,10 @@ COPY ./zig-out/x86_64-gnu/lib/libbaresip_wrapper.so /app/libbaresip_wrapper.so
 COPY ./zig-out/x86_64-gnu/lib/libtransport.so /app/libtransport.so
 COPY ./zig-out/x86_64-gnu/lib/libqjs.so /app/libqjs.so
 COPY ./zig-out/x86_64-gnu/lib/libzimq.so /app/libzimq.so
+# The two JS payloads the gate evaluates at startup: the policy script and
+# the provider bundle (hooks.js + decode tables + manifest.json).
 COPY ./scripts /app/scripts
+COPY ./providers/dist /app/providers/dist
 RUN chmod +x /app/resonus && chmod 644 /app/lib*.so && mkdir -p /app/socket && chown -R 1000:1000 /app
 RUN useradd -u 1000 -M -r -s /usr/sbin/nologin default || true
 USER 1000
@@ -36,6 +39,7 @@ ENV LLM_GATE_HTTP_HOST=0.0.0.0 \
     LLM_GATE_MBEDTLS_LIB=/app/libmbedtls.so \
     LLM_GATE_QJS_LIB=/app/libqjs.so \
     LLM_GATE_POLICY_SCRIPT=/app/scripts/default.js \
+    RESONUS_PROVIDERS_DIR=/app/providers/dist \
     LLM_GATE_VALKEY_URL=redis://127.0.0.1:6379/0 \
     LLM_GATE_VALKEY_KEY_PREFIX=cache \
     LLM_GATE_SIP_ENABLED=true \
