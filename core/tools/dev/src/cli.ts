@@ -8,6 +8,7 @@ import {
 	startNativeApps,
 	withParentDeath,
 } from "./apps";
+import { resolveSolutionConfig } from "./solution";
 
 const PROJECT_DIR = PROJECT_ROOT;
 
@@ -16,7 +17,8 @@ type Args = { envFile?: string; uiOnly: boolean; noUi: boolean };
 function parseArgs(argv: string[]): Args {
 	const args: Args = { uiOnly: false, noUi: false };
 	for (const arg of argv) {
-		if (arg.startsWith("--env-file=")) args.envFile = arg.slice("--env-file=".length);
+		if (arg.startsWith("--env-file="))
+			args.envFile = arg.slice("--env-file=".length);
 		else if (arg === "--ui-only") args.uiOnly = true;
 		else if (arg === "--no-ui") args.noUi = true;
 		else throw new Error(`[dev] unknown argument: ${arg}`);
@@ -54,7 +56,8 @@ const args = parseArgs(process.argv.slice(2));
 if (!args.envFile) throw new Error("[dev] --env-file is required");
 
 const envPath = resolve(PROJECT_DIR, args.envFile);
-if (!existsSync(envPath)) throw new Error(`[dev] env file not found: ${envPath}`);
+if (!existsSync(envPath))
+	throw new Error(`[dev] env file not found: ${envPath}`);
 // The shell wins over the file: an inline override must not need a file edit.
 const fileEnv = parseDotEnv(readFileSync(envPath, "utf8"));
 const env: Record<string, string> = { ...fileEnv };
@@ -75,11 +78,13 @@ if (!Number.isFinite(landingPort)) {
 
 const dataDir = env.DATA_DIR || resolve(PROJECT_DIR, "data");
 
-const solutionPath =
-	env.SOLUTION_PATH || resolve(PROJECT_DIR, "solutions", "converged.json");
-const solution = JSON.parse(readFileSync(solutionPath, "utf8"));
-const microfrontends: string[] = solution.spec?.microfrontends ?? [];
-const microservices: string[] = solution.spec?.microservices ?? [];
+const solutionConfigPath =
+	env.SOLUTION_PATH ||
+	resolve(PROJECT_DIR, "modules", "solutions", "converged.json");
+const resolvedConfig = resolveSolutionConfig(solutionConfigPath);
+const solution = resolvedConfig.solution;
+const microfrontends = solution.spec.microfrontends;
+const microservices = solution.spec.microservices;
 
 /**
  * Storage mounts one root per microservice and refuses to create any of them:
@@ -95,13 +100,21 @@ function writeMountsConfig(): string {
 		mounts[`${name}-ms`] = root;
 	}
 	const path = resolve(dataDir, "mounts.json");
-	writeFileSync(path, `${JSON.stringify({ microservices: mounts }, null, 2)}\n`);
+	writeFileSync(
+		path,
+		`${JSON.stringify({ microservices: mounts }, null, 2)}\n`,
+	);
 	return path;
 }
 
 mkdirSync(dataDir, { recursive: true });
+const solutionPath = resolve(dataDir, "resolved-solution.json");
+writeFileSync(solutionPath, `${JSON.stringify(solution, null, 2)}\n`);
 const mountsConfig = writeMountsConfig();
-console.log(`[dev] storage mounts: ${mountsConfig} (${microservices.length} roots)`);
+console.log(
+	`[dev] storage mounts: ${mountsConfig} (${microservices.length} roots)`,
+);
+console.log(`[dev] resolved solution: ${solutionPath}`);
 
 const runtimeEnv: Record<string, string> = {
 	...env,
@@ -115,7 +128,7 @@ const runtimeEnv: Record<string, string> = {
 
 console.log(
 	`[dev] solution ${solution.metadata?.name}: ` +
-		`${solution.spec?.microservices?.length ?? 0} ms, ${microfrontends.length} mf`,
+		`${microservices.length} ms, ${microfrontends.length} mf, ${solution.spec.workflows.length} wf`,
 );
 
 const procs: Subprocess[] = [];
@@ -164,7 +177,9 @@ if (nativeApps.length > 0) {
 	console.log(`[dev] native apps: ${nativeApps.map((a) => a.name).join(", ")}`);
 	await startNativeApps(nativeApps, procs, (name, code) => {
 		if (cleaned) return;
-		console.error(`[dev] native app "${name}" exited with code ${code ?? "unknown"}`);
+		console.error(
+			`[dev] native app "${name}" exited with code ${code ?? "unknown"}`,
+		);
 		cleanup(1);
 	});
 }
@@ -188,7 +203,13 @@ if (startServices) {
 }
 
 if (startUi) {
-	const landingDir = resolve(PROJECT_DIR, "core/frontend/landing");
+	const childLandingDir = runtimeEnv.CHILD_PROJECT_DIR
+		? resolve(runtimeEnv.CHILD_PROJECT_DIR, "core/frontend/landing")
+		: null;
+	const landingDir =
+		childLandingDir && existsSync(childLandingDir)
+			? childLandingDir
+			: resolve(PROJECT_DIR, "core/frontend/landing");
 	if (!existsSync(landingDir)) {
 		throw new Error(`[dev] landing not found: ${landingDir}`);
 	}
@@ -220,9 +241,15 @@ if (procs.length === 0) {
 }
 
 const rows: Array<[string, string]> = [
-	...nativeApps.map((a) => [a.name, a.dir.replace(`${PROJECT_DIR}/`, "")] as [string, string]),
-	...(startServices ? [["ms", `http://localhost:${port}`] as [string, string]] : []),
-	...(startUi ? [["ui", `http://localhost:${landingPort}`] as [string, string]] : []),
+	...nativeApps.map(
+		(a) => [a.name, a.dir.replace(`${PROJECT_DIR}/`, "")] as [string, string],
+	),
+	...(startServices
+		? [["ms", `http://localhost:${port}`] as [string, string]]
+		: []),
+	...(startUi
+		? [["ui", `http://localhost:${landingPort}`] as [string, string]]
+		: []),
 ];
 const width = Math.max(...rows.map(([name]) => name.length));
 console.log("\nPorts:");

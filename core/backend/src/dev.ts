@@ -1,10 +1,10 @@
-import { existsSync, readFileSync } from "fs";
-import { resolve } from "path";
-import { pathToFileURL } from "url";
-import { createServer, loadConfigFromEnv } from "./server/createServer";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { createBunRedisCache } from "./server/bunRedisCache";
-import { createRuntimeImagesPlugin } from "./server/images.plugin";
 import type { PluginFactory } from "./server/createServer";
+import { createServer, loadConfigFromEnv } from "./server/createServer";
+import { createRuntimeImagesPlugin } from "./server/images.plugin";
 import type { ServiceBinding } from "./server/service-registry";
 
 process.on("uncaughtException", (err) => {
@@ -145,16 +145,30 @@ async function loadSolution(): Promise<Solution> {
  * glob keeps the name the only identity a module has.
  */
 function resolveServiceDir(name: string): string | null {
-	const [match] = new Bun.Glob(`*/ms-${name}`).scanSync({
-		cwd: resolve(PROJECT_DIR, "modules/microservices"),
-		onlyFiles: false,
-		absolute: true,
-	});
-	return match ?? null;
+	const projectDirs = [CHILD_PROJECT_DIR, PROJECT_DIR].filter(
+		(value): value is string => Boolean(value),
+	);
+	for (const projectDir of projectDirs) {
+		const modulesDir = resolve(projectDir, "modules/microservices");
+		const direct = resolve(modulesDir, `ms-${name}`);
+		if (existsSync(direct)) return direct;
+		const [match] = new Bun.Glob(`*/ms-${name}`).scanSync({
+			cwd: modulesDir,
+			onlyFiles: false,
+			absolute: true,
+		});
+		if (match) return match;
+	}
+	return null;
 }
 
 function resolveImplementationPath(svcDir: string): string | null {
-	for (const relativePath of ["src/index.ts", "index.ts", "src/service.ts", "service.ts"]) {
+	for (const relativePath of [
+		"src/index.ts",
+		"index.ts",
+		"src/service.ts",
+		"service.ts",
+	]) {
 		const candidate = resolve(svcDir, relativePath);
 		if (existsSync(candidate)) return candidate;
 	}
@@ -162,13 +176,17 @@ function resolveImplementationPath(svcDir: string): string | null {
 }
 
 function resolveMetadataPath(name: string): string | null {
-	const candidate = resolve(
-		PROJECT_DIR,
-		"modules/generated",
-		`g-${name}`,
-		"src/index.ts",
-	);
-	return existsSync(candidate) ? candidate : null;
+	for (const projectDir of [CHILD_PROJECT_DIR, PROJECT_DIR]) {
+		if (!projectDir) continue;
+		const candidate = resolve(
+			projectDir,
+			"modules/generated",
+			`g-${name}`,
+			"src/index.ts",
+		);
+		if (existsSync(candidate)) return candidate;
+	}
+	return null;
 }
 
 async function loadMicroservices(names: string[]) {
@@ -203,7 +221,11 @@ async function loadMicroservices(names: string[]) {
 			if (!metadataModule.metadata) {
 				throw new Error(`Missing generated metadata for ${name}`);
 			}
-			services.push({ name, implementation, metadata: metadataModule.metadata });
+			services.push({
+				name,
+				implementation,
+				metadata: metadataModule.metadata,
+			});
 		} catch (err) {
 			console.error(
 				`[back-core] Failed to load microservice ${name} at ${implementationPath}`,

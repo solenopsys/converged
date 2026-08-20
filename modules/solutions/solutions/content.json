@@ -1,0 +1,5 @@
+{
+	"microservices": ["markdown", "struct", "galery"],
+	"microfrontends": ["markdown", "struct", "galery", "landing", "docs"],
+	"dependencies": ["security"]
+}

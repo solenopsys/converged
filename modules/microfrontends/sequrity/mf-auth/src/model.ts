@@ -1,8 +1,8 @@
-import { createEffect, createEvent, createStore, sample } from "effector";
 import {
 	createAuthController,
 	type TokenStorage,
 } from "auth-controller";
+import { createEffect, createEvent, createStore, sample } from "effector";
 import { setSignalChannelAuth } from "signal-channel";
 import {
 	createGuestSession,
@@ -11,7 +11,7 @@ import {
 	restoreSession,
 	sendMagicLink,
 } from "./service";
-import { authReleaseHash, createBrowserTokenStorage } from "./token-storage";
+import { authStorageRelease, createBrowserTokenStorage } from "./token-storage";
 
 export type AuthStatus = "anonymous" | "authenticated";
 export type MagicLinkStatus = "idle" | "sending" | "sent" | "error";
@@ -56,9 +56,10 @@ function browserTokenStorage(): TokenStorage {
 	if (typeof window === "undefined") {
 		return { read: () => null, write: () => {}, clear: () => {} };
 	}
+	const scope = document.getElementById("app")?.dataset.scope ?? "";
 	return createBrowserTokenStorage(
 		window.localStorage,
-		authReleaseHash(import.meta.url),
+		authStorageRelease(import.meta.url, scope),
 	);
 }
 

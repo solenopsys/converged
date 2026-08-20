@@ -39,7 +39,9 @@ export function wrapperLib(wrapperPath: string): string {
 		JSON.parse(readFileSync(mapPath, "utf8")) as Record<string, string>
 	)[target];
 	if (!hash) {
-		throw new Error(`[dev] wrapper ${wrapperPath} has no artifact for ${target}`);
+		throw new Error(
+			`[dev] wrapper ${wrapperPath} has no artifact for ${target}`,
+		);
 	}
 	const lib = resolve(ARTIFACTS, `${hash}.so`);
 	if (!existsSync(lib)) {
@@ -124,6 +126,18 @@ export const NATIVE_APPS: NativeApp[] = [
 		libDirs: ["zig-out/x86_64-gnu/lib"],
 		env: () => ({
 			RESONUS_FUJIN_ZMQ_ENDPOINT: FUJIN_ZMQ,
+			LLM_GATE_CONVERGED_ROOT: PROJECT_ROOT,
+			LLM_GATE_QJS_LIB: wrapperLib("rt/qjs"),
+			LLM_GATE_POLICY_SCRIPT: resolve(
+				PROJECT_ROOT,
+				"core/native/apps/resonus/scripts/default.js",
+			),
+			// Dev always uses the provider bundle built in this checkout. An inherited
+			// deployment path can point at an old project layout and prevent startup.
+			RESONUS_PROVIDERS_DIR: resolve(
+				PROJECT_ROOT,
+				"core/native/apps/resonus/providers/dist",
+			),
 			LLM_GATE_HTTP_HOST: "127.0.0.1",
 			LLM_GATE_HTTP_PORT: "8090",
 			LLM_GATE_VALKEY_URL: "redis://127.0.0.1:6379/0",

@@ -20,6 +20,18 @@ export function authReleaseHash(moduleUrl: string): string {
 	return "development";
 }
 
+/**
+ * Local development projects commonly share an origin but not an access-key
+ * set. Include the mounted workspace so a token from another project is not
+ * offered to its Fujin instance.
+ */
+export function authStorageRelease(moduleUrl: string, scope: string): string {
+	const normalizedScope = scope.trim();
+	return normalizedScope
+		? `${authReleaseHash(moduleUrl)}:${normalizedScope}`
+		: authReleaseHash(moduleUrl);
+}
+
 export function createBrowserTokenStorage(
 	storage: KeyValueStorage,
 	release: string,

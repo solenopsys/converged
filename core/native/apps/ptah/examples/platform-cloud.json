@@ -91,6 +91,16 @@
           "ports": {
             "http": 9000
           }
+        },
+        "curaengine": {
+          "image": "public.ecr.aws/i5x9u8b2/curaengine:latest",
+          "fujinTarget": "curaengine",
+          "fujinEndpointEnv": "CURAENGINE_FUJIN_ZMQ_ENDPOINT"
+        },
+        "opencamlib": {
+          "image": "public.ecr.aws/i5x9u8b2/opencamlib:latest",
+          "fujinTarget": "opencamlib",
+          "fujinEndpointEnv": "OPENCAMLIB_FUJIN_ZMQ_ENDPOINT"
         }
       },
       "gateway": {

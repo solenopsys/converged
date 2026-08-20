@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	AUTH_TOKEN_KEY,
 	authReleaseHash,
+	authStorageRelease,
 	createBrowserTokenStorage,
 } from "./token-storage";
 
@@ -17,8 +18,19 @@ function memoryStorage(initial?: string) {
 
 describe("versioned browser token storage", () => {
 	test("uses the auth module build hash as its release", () => {
-		expect(authReleaseHash("https://app.test/mf/auth.js?v=release-42")).toBe("release-42");
+		expect(authReleaseHash("https://app.test/mf/auth.js?v=release-42")).toBe(
+			"release-42",
+		);
 		expect(authReleaseHash("http://localhost/mf/auth.js")).toBe("development");
+	});
+
+	test("separates development tokens by mounted workspace", () => {
+		expect(authStorageRelease("http://localhost/mf/auth.js", "club")).toBe(
+			"development:club",
+		);
+		expect(authStorageRelease("http://localhost/mf/auth.js", "  ")).toBe(
+			"development",
+		);
 	});
 
 	test("reads a token written by the current release", async () => {
@@ -26,14 +38,18 @@ describe("versioned browser token storage", () => {
 		const tokens = createBrowserTokenStorage(storage, "release-42");
 		await tokens.write({ accessToken: "header.payload.signature" });
 
-		expect(await tokens.read()).toEqual({ accessToken: "header.payload.signature" });
+		expect(await tokens.read()).toEqual({
+			accessToken: "header.payload.signature",
+		});
 	});
 
 	test("removes a token written by another release", async () => {
-		const storage = memoryStorage(JSON.stringify({
-			release: "release-41",
-			accessToken: "header.payload.signature",
-		}));
+		const storage = memoryStorage(
+			JSON.stringify({
+				release: "release-41",
+				accessToken: "header.payload.signature",
+			}),
+		);
 		const tokens = createBrowserTokenStorage(storage, "release-42");
 
 		expect(await tokens.read()).toBeNull();

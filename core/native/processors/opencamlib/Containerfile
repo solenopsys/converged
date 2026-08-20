@@ -1,0 +1,15 @@
+FROM alpine:3.21 AS runtime
+WORKDIR /app
+
+COPY ./zig-out/x86_64-linux-musl/bin/opencamlib /app/opencamlib
+COPY ./zig-out/x86_64-linux-musl/lib/libopencamlib.so /app/lib/libopencamlib.so
+COPY ./zig-out/x86_64-linux-musl/lib/libzimq.so /app/lib/libzimq.so
+RUN chmod +x /app/opencamlib && chmod 644 /app/lib/*.so \
+    && adduser -D -H -u 1000 default
+USER 1000
+
+ENV OPENCAMLIB_LIB=/app/lib/libopencamlib.so \
+    OPENCAMLIB_FUJIN_ZMQ_ENDPOINT=tcp://converged-fujin:5557 \
+    LD_LIBRARY_PATH=/app/lib
+
+CMD ["/app/opencamlib"]

@@ -1,0 +1,57 @@
+{
+  "apiVersion": "ptah.io/v1alpha1",
+  "kind": "Solution",
+  "metadata": {
+    "name": "converged"
+  },
+  "spec": {
+    "platform": "converged",
+    "microservices": [
+      "billing",
+      "classifier",
+      "community",
+      "dag",
+      "dashboard",
+      "dumps",
+      "environment",
+      "equipment",
+      "events",
+
+      "functions",
+      "modelconvertor",
+      "notify",
+      "orders",
+      "push",
+
+      "resonus",
+      "reviews",
+      "sales",
+      "scripts",
+      "secrets",
+      "ses",
+      "sheduller",
+      "sms",
+      "smtp",
+      "staff",
+      "static",
+
+      "webhooks"
+    ],
+    "microfrontends": [
+      "classifier",
+      "community",
+      "dag",
+      "dasboards",
+
+      "dumps",
+      "functions",
+      "orders",
+
+      "sheduller",
+      "static",
+
+      "webhooks"
+    ]
+
+  }
+}

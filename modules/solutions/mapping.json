@@ -1,0 +1,24 @@
+{
+	"workflows": [
+		{
+			"id": "dialogue-summary",
+			"name": "wf-dialogue-summary",
+			"script": "workflows/wf-dialogue-summary.js"
+		},
+		{
+			"id": "file-analysis",
+			"name": "wf-file-analysis",
+			"script": "workflows/wf-file-analysis.js"
+		},
+		{
+			"id": "file-analyze",
+			"name": "wf-file-analyze",
+			"script": "workflows/wf-file-analyze.js"
+		},
+		{
+			"id": "file-unpack",
+			"name": "wf-file-unpack",
+			"script": "workflows/wf-file-unpack.js"
+		}
+	]
+}

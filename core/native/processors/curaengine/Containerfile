@@ -1,0 +1,15 @@
+FROM alpine:3.21 AS runtime
+WORKDIR /app
+
+COPY ./zig-out/x86_64-linux-musl/bin/curaengine /app/curaengine
+COPY ./zig-out/x86_64-linux-musl/lib/libcuraengine.so /app/lib/libcuraengine.so
+COPY ./zig-out/x86_64-linux-musl/lib/libzimq.so /app/lib/libzimq.so
+RUN chmod +x /app/curaengine && chmod 644 /app/lib/*.so \
+    && adduser -D -H -u 1000 default
+USER 1000
+
+ENV CURAENGINE_LIB=/app/lib/libcuraengine.so \
+    CURAENGINE_FUJIN_ZMQ_ENDPOINT=tcp://converged-fujin:5557 \
+    LD_LIBRARY_PATH=/app/lib
+
+CMD ["/app/curaengine"]

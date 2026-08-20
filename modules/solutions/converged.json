@@ -1,0 +1,13 @@
+{
+	"metadata": { "name": "converged" },
+	"solutions": ["security", "content", "ai", "analitycs", "requests"],
+	"containers": [
+		"ui",
+		"ms",
+		"resonus",
+		"behemoth",
+		"ptah",
+		"fujin",
+		"centimanus"
+	]
+}
