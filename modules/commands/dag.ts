@@ -8,8 +8,8 @@ import {
 	type CommandEntry,
 	type Handler,
 	printJson,
-} from "../cli/src/base";
-import { createCliNrpcClientConfig } from "../cli/src/ws";
+} from "dag-cli/base";
+import { createCliNrpcClientConfig } from "dag-cli/ws";
 
 type DagCommandClient = {
 	dag: DagServiceClient;

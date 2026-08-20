@@ -1,10 +1,13 @@
 #!/usr/bin/env bun
 import { readdirSync } from "fs";
 import { resolve, join, relative } from "path";
-import { generatePackage } from "./generator";
+import { derivePackageName, generatePackage } from "./generator";
 
 const typesDir = process.argv[2];
 const generatedDir = process.argv[3];
+// Optional package prefix for this contract root (e.g. `rt` for the native
+// runtime contracts, which live outside the business `types/` tree).
+const packagePrefix = process.argv[4]?.replace(/^--prefix=/, "") || undefined;
 
 if (!typesDir || !generatedDir) {
   console.error("Usage: gen-all <types-dir> <gen-parent-dir>");
@@ -49,17 +52,9 @@ if (files.length === 0) {
 
 console.log(`Found ${files.length} type file(s):\n`);
 
-function derivePackageName(relPath: string): string {
-  const parts = relPath.replace(/\.ts$/, "").split("/");
-  const fileName = parts[parts.length - 1];
-  const prefixMap: Record<string, string> = { runtime: "rt" };
-  const prefix = prefixMap[parts[0]];
-  return prefix ? `g-${prefix}-${fileName}` : `g-${fileName}`;
-}
-
 const plans = files.map((file) => {
   const name = relative(TYPES_DIR, file).replaceAll("\\", "/").replace(/\.ts$/, "");
-  const packageName = derivePackageName(relative(TYPES_DIR, file).replaceAll("\\", "/"));
+  const packageName = derivePackageName(relative(TYPES_DIR, file).replaceAll("\\", "/"), packagePrefix);
   return { file, name, packageName };
 });
 
@@ -86,7 +81,7 @@ let errorCount = 0;
 for (const plan of plans) {
   console.log(`🔧 Generating from ${plan.name}...`);
   try {
-    generatePackage(plan.file, GENERATED_DIR, TYPES_DIR);
+    generatePackage(plan.file, GENERATED_DIR, TYPES_DIR, packagePrefix);
     successCount++;
   } catch (error) {
     errorCount++;

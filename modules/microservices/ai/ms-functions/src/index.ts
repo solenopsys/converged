@@ -14,7 +14,7 @@ import {
 	cosineSimilarity,
 } from "./embedding";
 
-const MS_ID = "ms-functions";
+const MS_ID = "functions-ms";
 
 @Service("functions")
 class FunctionsServiceImpl implements FunctionsService {

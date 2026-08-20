@@ -70,7 +70,13 @@ const processors: Record<string, Processor> = {};
 for (const dir of commandsDirs) {
   const absDir = resolve(dir);
   const files = readdirSync(absDir).filter(
-    (f) => f.endsWith(".ts") && f !== "package.json" && f !== "index.ts",
+    (f) =>
+      f.endsWith(".ts") &&
+      // Tests sit next to the commands they cover; loading one outside `bun
+      // test` throws before its section is even reachable.
+      !f.endsWith(".test.ts") &&
+      f !== "package.json" &&
+      f !== "index.ts",
   );
   // A command execution only needs its selected section. Loading every module
   // makes unrelated optional commands prevent or pollute normal CLI workflows.

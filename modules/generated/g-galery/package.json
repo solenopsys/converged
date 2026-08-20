@@ -1,0 +1,24 @@
+{
+  "name": "g-galery",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "module": "src/index.ts",
+  "browser": "./src/browser.ts",
+  "exports": {
+    ".": {
+      "browser": "./src/browser.ts",
+      "default": "./src/index.ts"
+    },
+    "./browser": "./src/browser.ts",
+    "./cluster": "./src/index.ts",
+    "./rt": "./src/rt.ts"
+  },
+  "files": [
+    "src",
+    "package.json"
+  ],
+  "dependencies": {
+    "nrpc": "workspace:*"
+  }
+}

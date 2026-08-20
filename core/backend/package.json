@@ -19,7 +19,7 @@
     "build": "bun build ./src/index.ts --target=bun --outdir=../dist/core --format=esm"
   },
 	"dependencies": {
-		"bun-transport": "file:../../navite/libs/cruller-transport",
+		"bun-transport": "workspace:*",
 		"g-galery": "workspace:*",
 		"kysely": "latest",
     "nrpc": "workspace:*"

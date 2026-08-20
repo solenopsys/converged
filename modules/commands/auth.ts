@@ -1,8 +1,8 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync, chmodSync } from "fs";
 import { dirname, join } from "path";
 import { homedir } from "os";
-import { BaseCommandProcessor, type Handler, type CommandEntry } from "../cli/src/base";
-import { createCliNrpcClientConfig } from "../cli/src/ws";
+import { BaseCommandProcessor, type Handler, type CommandEntry } from "dag-cli/base";
+import { createCliNrpcClientConfig } from "dag-cli/ws";
 import { createAuthServiceClient, type AuthServiceClient } from "g-auth/browser";
 import { createIdentityServiceClient, type IdentityServiceClient } from "g-identity/browser";
 import { AccessMatcher } from "nrpc";

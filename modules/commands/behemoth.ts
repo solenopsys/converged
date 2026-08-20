@@ -1,13 +1,13 @@
 import {
 	createStorageServiceClient,
 	type StorageServiceClient,
-} from "../generated/g-behemoth/src/browser";
+} from "g-behemoth/browser";
 import {
 	BaseCommandProcessor,
 	type CommandEntry,
 	type Handler,
-} from "../cli/src/base";
-import { createCliNrpcClientConfig } from "../cli/src/ws";
+} from "dag-cli/base";
+import { createCliNrpcClientConfig } from "dag-cli/ws";
 
 function formatBytes(bytes: number): string {
 	const units = ["b", "kb", "mb", "gb", "tb"];

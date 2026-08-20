@@ -16,17 +16,19 @@ process.on("unhandledRejection", (reason) => {
 	process.exit(1);
 });
 
-type BuildConfig = {
-	name?: string;
-	extends?: string;
-	back: {
-		core?: string;
-		runtimes?: Record<string, string[]>;
-		microservices: Record<string, string[]>;
-	};
-	spa?: {
-		core?: string;
+/**
+ * A Solution is the only description of what runs: a list of module names.
+ * Paths, categories and image layout are not part of it — the names are
+ * resolved against `modules/` by scanning, so moving a module between
+ * categories does not touch any manifest.
+ */
+type Solution = {
+	metadata?: { name?: string };
+	spec: {
+		microservices?: string[];
 		microfrontends?: string[];
+		workflows?: Array<{ name: string; script: string }>;
+		env?: Record<string, string>;
 	};
 };
 
@@ -125,100 +127,30 @@ function loadDotEnvFiles(projectDir: string, parentDir?: string) {
 	}
 }
 
-async function loadConfig(configPath: string): Promise<BuildConfig> {
-	const file = Bun.file(configPath);
+async function loadSolution(): Promise<Solution> {
+	const path =
+		process.env.SOLUTION_PATH ||
+		resolve(PROJECT_DIR, "solutions", "converged.json");
+	const file = Bun.file(path);
 	if (!(await file.exists())) {
-		throw new Error(`Config not found: ${configPath}`);
+		throw new Error(`Solution not found: ${path}`);
 	}
+	console.log(`[back-core] Solution: ${path}`);
 	return file.json();
 }
 
-async function loadMergedConfig(projectDir: string, parentDir?: string) {
-	const configPath =
-		process.env.CONFIG_PATH || resolve(projectDir, "config.json");
-	const config = await loadConfig(configPath);
-	if (!config.extends || !parentDir) {
-		return { config, parentDir: undefined };
-	}
-
-	const parentConfig = await loadConfig(resolve(parentDir, "config.json"));
-	const merged: BuildConfig = {
-		...config,
-		back: {
-			core: config.back.core || parentConfig.back.core,
-			runtimes: {
-				...(parentConfig.back.runtimes ?? {}),
-				...(config.back.runtimes ?? {}),
-			},
-			microservices: {
-				...parentConfig.back.microservices,
-				...config.back.microservices,
-			},
-		},
-		spa: {
-			core: config.spa?.core || parentConfig.spa?.core,
-			microfrontends: [
-				...(parentConfig.spa?.microfrontends ?? []),
-				...(config.spa?.microfrontends ?? []),
-			],
-		},
-	};
-
-	return { config: merged, parentDir };
-}
-
-function resolveServiceDir(
-	projectDir: string,
-	parentDir: string | undefined,
-	category: string,
-	name: string,
-) {
-	const categorized = resolve(
-		projectDir,
-		"back/microservices",
-		category,
-		`ms-${name}`,
-	);
-	if (existsSync(categorized)) return categorized;
-	const flat = resolve(projectDir, "back/microservices", `ms-${name}`);
-	if (existsSync(flat)) return flat;
-	if (parentDir) {
-		const parentCategorized = resolve(
-			parentDir,
-			"back/microservices",
-			category,
-			`ms-${name}`,
-		);
-		if (existsSync(parentCategorized)) return parentCategorized;
-		const parentFlat = resolve(parentDir, "back/microservices", `ms-${name}`);
-		if (existsSync(parentFlat)) return parentFlat;
-	}
-	return null;
-}
-
-function resolveRuntimeDir(
-	projectDir: string,
-	parentDir: string | undefined,
-	category: string,
-	name: string,
-) {
-	const categorized = resolve(
-		projectDir,
-		"back/runtimes",
-		category,
-		`rt-${name}`,
-	);
-	if (existsSync(categorized)) return categorized;
-	if (parentDir) {
-		const parentCategorized = resolve(
-			parentDir,
-			"back/runtimes",
-			category,
-			`rt-${name}`,
-		);
-		if (existsSync(parentCategorized)) return parentCategorized;
-	}
-	return null;
+/**
+ * `ms-orders` lives under some category directory, but which one is an
+ * organisational detail that the Solution deliberately does not carry. One
+ * glob keeps the name the only identity a module has.
+ */
+function resolveServiceDir(name: string): string | null {
+	const [match] = new Bun.Glob(`*/ms-${name}`).scanSync({
+		cwd: resolve(PROJECT_DIR, "modules/microservices"),
+		onlyFiles: false,
+		absolute: true,
+	});
+	return match ?? null;
 }
 
 function resolveImplementationPath(svcDir: string): string | null {
@@ -229,67 +161,54 @@ function resolveImplementationPath(svcDir: string): string | null {
 	return null;
 }
 
-function resolveMetadataPath(projectDir: string, parentDir: string | undefined, name: string): string | null {
-	for (const root of [projectDir, parentDir]) {
-		if (!root) continue;
-		const candidate = resolve(root, "tools/generated", `g-${name}`, "src/index.ts");
-		if (existsSync(candidate)) return candidate;
-	}
-	return null;
+function resolveMetadataPath(name: string): string | null {
+	const candidate = resolve(
+		PROJECT_DIR,
+		"modules/generated",
+		`g-${name}`,
+		"src/index.ts",
+	);
+	return existsSync(candidate) ? candidate : null;
 }
 
-function resolveRuntimePluginPath(runtimeDir: string): string {
-	const source = resolve(runtimeDir, "src/plugin.ts");
-	return existsSync(source) ? source : resolve(runtimeDir, "plugin.ts");
-}
-
-async function loadMicroservices(
-	projectDir: string,
-	parentDir: string | undefined,
-	config: BuildConfig,
-) {
+async function loadMicroservices(names: string[]) {
 	const services: ServiceBinding[] = [];
 	const missing: string[] = [];
 
-	for (const [category, serviceNames] of Object.entries(
-		config.back.microservices,
-	)) {
-		for (const name of serviceNames) {
-			const svcDir = resolveServiceDir(projectDir, parentDir, category, name);
-			if (!svcDir) {
-				missing.push(`${category}/${name}`);
-				continue;
+	for (const name of names) {
+		const svcDir = resolveServiceDir(name);
+		if (!svcDir) {
+			missing.push(name);
+			continue;
+		}
+		const implementationPath = resolveImplementationPath(svcDir);
+		if (!implementationPath) {
+			missing.push(name);
+			continue;
+		}
+		const metadataPath = resolveMetadataPath(name);
+		if (!metadataPath) {
+			missing.push(`${name} (generated metadata)`);
+			continue;
+		}
+		try {
+			const [implementationModule, metadataModule] = await Promise.all([
+				import(pathToFileURL(implementationPath).href),
+				import(pathToFileURL(metadataPath).href),
+			]);
+			const implementation = implementationModule.default;
+			if (!implementation) {
+				throw new Error(`Missing default ServiceImpl export for ${name}`);
 			}
-			const implementationPath = resolveImplementationPath(svcDir);
-			if (!implementationPath) {
-				missing.push(`${category}/${name}`);
-				continue;
+			if (!metadataModule.metadata) {
+				throw new Error(`Missing generated metadata for ${name}`);
 			}
-			const metadataPath = resolveMetadataPath(projectDir, parentDir, name);
-			if (!metadataPath) {
-				missing.push(`${category}/${name} (generated metadata)`);
-				continue;
-			}
-			try {
-				const [implementationModule, metadataModule] = await Promise.all([
-					import(pathToFileURL(implementationPath).href),
-					import(pathToFileURL(metadataPath).href),
-				]);
-				const implementation = implementationModule.default;
-				if (!implementation) {
-					throw new Error(`Missing default ServiceImpl export for ${category}/${name}`);
-				}
-				if (!metadataModule.metadata) {
-					throw new Error(`Missing generated metadata for ${category}/${name}`);
-				}
-				services.push({ name, implementation, metadata: metadataModule.metadata });
-				continue;
-			} catch (err) {
-				console.error(
-					`[back-core] Failed to load microservice ${category}/${name} at ${implementationPath}`,
-				);
-				throw err;
-			}
+			services.push({ name, implementation, metadata: metadataModule.metadata });
+		} catch (err) {
+			console.error(
+				`[back-core] Failed to load microservice ${name} at ${implementationPath}`,
+			);
+			throw err;
 		}
 	}
 
@@ -298,52 +217,6 @@ async function loadMicroservices(
 	}
 
 	return services;
-}
-
-async function loadRuntimePlugins(
-	projectDir: string,
-	parentDir: string | undefined,
-	config: BuildConfig,
-) {
-	const plugins: PluginFactory[] = [];
-	const missing: string[] = [];
-
-	for (const [category, runtimes] of Object.entries(
-		config.back.runtimes ?? {},
-	)) {
-		for (const name of runtimes) {
-			const rtDir = resolveRuntimeDir(projectDir, parentDir, category, name);
-			if (!rtDir) {
-				missing.push(`${category}/${name}`);
-				continue;
-			}
-			const pluginPath = resolveRuntimePluginPath(rtDir);
-			try {
-				const mod = await import(pathToFileURL(pluginPath).href);
-				const pluginFactory = mod.default ?? mod.plugin ?? mod;
-				if (typeof pluginFactory !== "function") {
-					throw new Error(
-						`Invalid runtime plugin factory for ${category}/${name}`,
-					);
-				}
-				const rootPlugin = ((pluginConfig: any) =>
-					pluginFactory(pluginConfig)) as PluginFactory;
-				rootPlugin.mount = "root";
-				plugins.push(rootPlugin);
-			} catch (err) {
-				console.error(
-					`[back-core] Failed to import runtime plugin ${category}/${name} at ${pluginPath}`,
-				);
-				throw err;
-			}
-		}
-	}
-
-	if (missing.length > 0) {
-		console.warn(`[back-core] Missing runtimes: ${missing.join(", ")}`);
-	}
-
-	return plugins;
 }
 
 loadDotEnvFiles(PROJECT_DIR, CHILD_PROJECT_DIR);
@@ -360,20 +233,15 @@ if (!process.env.SERVICES_BASE) {
 	process.env.SERVICES_BASE = `http://127.0.0.1:${port}/services`;
 }
 
-const { config, parentDir } = await loadMergedConfig(
-	PROJECT_DIR,
-	CHILD_PROJECT_DIR,
-);
+const solution = await loadSolution();
+const microservices = solution.spec.microservices ?? [];
 
-const services = await loadMicroservices(PROJECT_DIR, parentDir, config);
+const services = await loadMicroservices(microservices);
 const plugins: PluginFactory[] = [];
-plugins.push(...(await loadRuntimePlugins(PROJECT_DIR, parentDir, config)));
 
 const servicePaths: Record<string, string> = {};
-for (const services of Object.values(config.back.microservices)) {
-	for (const name of services) {
-		servicePaths[name] = resolve(dataDir, name);
-	}
+for (const name of microservices) {
+	servicePaths[name] = resolve(dataDir, name);
 }
 
 const runtimeCache = createBunRedisCache({
@@ -385,7 +253,7 @@ const runtimeCache = createBunRedisCache({
 const server = createServer({
 	config: {
 		...loadConfigFromEnv(),
-		name: config.name || "converged",
+		name: solution.metadata?.name || "converged",
 		port,
 		dataDir,
 		extraConfig: {
@@ -410,10 +278,5 @@ server.app.use(
 
 // Frontend hosts own their HTTP lifecycle. They can no longer be embedded here:
 // their plugin contract is not part of the back-core server contract.
-if (config.landing) {
-	console.info(
-		"[back-core] Frontend plugins are not mounted; run SPA and landing hosts separately.",
-	);
-}
 
 await server.start();

@@ -6,8 +6,8 @@ import {
 	type CommandEntry,
 	type Handler,
 	printJson,
-} from "../cli/src/base";
-import { createCliNrpcClientConfig } from "../cli/src/ws";
+} from "dag-cli/base";
+import { createCliNrpcClientConfig } from "dag-cli/ws";
 import {
 	createFilesServiceClient,
 	type FileChunk,
@@ -18,7 +18,7 @@ import {
 	UploadWorkerCommandType,
 	UploadWorkerEventType,
 	type UploadWorkerOutgoingMessage,
-} from "../../front/libraries/store-workers/src/types";
+} from "../../core/frontend/libraries/files/store-workers/src/types";
 
 type FilesCommandClient = {
 	files: FilesServiceClient;
@@ -111,7 +111,7 @@ function hashBytes(bytes: Uint8Array): string {
 function workerUrl(): URL {
 	const here = dirname(fileURLToPath(import.meta.url));
 	return pathToFileURL(
-		resolve(here, "../../front/libraries/store-workers/dist/store.worker.js"),
+		resolve(here, "../../core/frontend/libraries/files/store-workers/dist/store.worker.js"),
 	);
 }
 

@@ -17,9 +17,9 @@ import {
 	BaseCommandProcessor,
 	type CommandEntry,
 	type Handler,
-} from "../cli/src/base";
-import { formatElapsed } from "../cli/src/timing";
-import { cliWebSocketChannel } from "../cli/src/ws";
+} from "dag-cli/base";
+import { formatElapsed } from "dag-cli/timing";
+import { cliWebSocketChannel } from "dag-cli/ws";
 
 // Interactive chat with the AI through Fujin. The turn itself — steps, answer,
 // tool rounds and their budget — belongs to `orchestrator`, so this file is only

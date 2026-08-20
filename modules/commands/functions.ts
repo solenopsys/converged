@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { BaseCommandProcessor, type CommandEntry, type Handler, printJson } from "../cli/src/base";
-import { createCliNrpcClientConfig } from "../cli/src/ws";
+import { BaseCommandProcessor, type CommandEntry, type Handler, printJson } from "dag-cli/base";
+import { createCliNrpcClientConfig } from "dag-cli/ws";
 import { createFunctionsServiceClient, type FunctionsServiceClient, type FunctionInput } from "g-functions/browser";
 
 type Client = { functions: FunctionsServiceClient };

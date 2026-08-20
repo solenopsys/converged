@@ -1,21 +1,23 @@
 {
-	"name": "tools-commands",
-	"private": true,
-	"type": "module",
-	"module": "./logs.ts",
-	"dependencies": {
-		"nrpc": "workspace:*",
-		"g-logs": "workspace:*",
-		"g-telemetry": "workspace:*",
-		"g-dumps": "workspace:*",
-		"g-dag": "workspace:*",
-		"g-rt-dag": "workspace:*",
-		"g-rt-fujin": "workspace:*",
-		"g-behemoth": "workspace:*",
-		"g-sheduller": "workspace:*",
-		"g-auth": "workspace:*",
-		"g-identity": "workspace:*",
-		"g-functions": "workspace:*",
-		"orchestrator": "workspace:*"
-	}
+  "name": "tools-commands",
+  "private": true,
+  "type": "module",
+  "module": "./logs.ts",
+  "dependencies": {
+    "dag-cli": "workspace:*",
+    "g-auth": "workspace:*",
+    "g-behemoth": "workspace:*",
+    "g-dag": "workspace:*",
+    "g-dumps": "workspace:*",
+    "g-files": "workspace:*",
+    "g-functions": "workspace:*",
+    "g-identity": "workspace:*",
+    "g-logs": "workspace:*",
+    "g-rt-dag": "workspace:*",
+    "g-rt-fujin": "workspace:*",
+    "g-sheduller": "workspace:*",
+    "g-telemetry": "workspace:*",
+    "nrpc": "workspace:*",
+    "orchestrator": "workspace:*"
+  }
 }

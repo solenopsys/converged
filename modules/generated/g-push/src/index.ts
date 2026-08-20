@@ -1,0 +1,124 @@
+// Auto-generated native NRPC package
+import {
+  createCrullerTransportClient,
+  type CrullerTransportClientConfig,
+  type ServiceMetadata,
+} from "nrpc";
+
+export type PushUrgency = "very-low" | "low" | "normal" | "high";
+
+export type WebPushKeys = {
+  p256dh: string;
+  auth: string;
+};
+
+export type WebPushSubscription = {
+  endpoint: string;
+  keys: WebPushKeys;
+};
+
+export type PushCredentials = {
+  vapidPublicKey: string;
+  vapidPrivateKey: string;
+  subject: string;
+};
+
+export type PushMessageInput = {
+  subscription: WebPushSubscription;
+  payload?: string;
+  ttl?: number;
+  urgency?: PushUrgency;
+  topic?: string;
+};
+
+export type PushSendResult = {
+  success: boolean;
+  statusCode?: number;
+  body?: string;
+  error?: string;
+};
+
+export const metadata: ServiceMetadata = {
+  "interfaceName": "PushService",
+  "serviceName": "push",
+  "filePath": "providers/push.ts",
+  "methods": [
+    {
+      "name": "sendPush",
+      "parameters": [
+        {
+          "name": "input",
+          "type": "PushMessageInput",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "credentials",
+          "type": "PushCredentials",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "PushSendResult",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    }
+  ],
+  "types": [
+    {
+      "name": "PushUrgency",
+      "kind": "type",
+      "definition": "\"very-low\" | \"low\" | \"normal\" | \"high\""
+    },
+    {
+      "name": "WebPushKeys",
+      "kind": "type",
+      "definition": "{\n  p256dh: string;\n  auth: string;\n}"
+    },
+    {
+      "name": "WebPushSubscription",
+      "kind": "type",
+      "definition": "{\n  endpoint: string;\n  keys: WebPushKeys;\n}"
+    },
+    {
+      "name": "PushCredentials",
+      "kind": "type",
+      "definition": "{\n  vapidPublicKey: string;\n  vapidPrivateKey: string;\n  subject: string;\n}"
+    },
+    {
+      "name": "PushMessageInput",
+      "kind": "type",
+      "definition": "{\n  subscription: WebPushSubscription;\n  payload?: string;\n  ttl?: number;\n  urgency?: PushUrgency;\n  topic?: string;\n}"
+    },
+    {
+      "name": "PushSendResult",
+      "kind": "type",
+      "definition": "{\n  success: boolean;\n  statusCode?: number;\n  body?: string;\n  error?: string;\n}"
+    }
+  ]
+};
+
+// Server interface (to be implemented in microservice)
+export interface PushService {
+  sendPush(input: PushMessageInput, credentials: PushCredentials): Promise<PushSendResult>;
+}
+
+// Client interface
+export interface PushServiceClient {
+  sendPush(input: PushMessageInput, credentials: PushCredentials): Promise<PushSendResult>;
+}
+
+// Native factory: cruller-transport -> Fujin -> cluster peer.
+// Package exports select this entrypoint outside a browser build.
+export function createPushServiceClient(
+  config: CrullerTransportClientConfig,
+): PushServiceClient {
+  return createCrullerTransportClient<PushServiceClient>(metadata, config);
+}
+
+export function createPushServiceCrullerTransportClient(
+  config: CrullerTransportClientConfig,
+): PushServiceClient {
+  return createPushServiceClient(config);
+}

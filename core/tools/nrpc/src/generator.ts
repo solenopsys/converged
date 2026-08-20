@@ -4,12 +4,16 @@ import { resolve, join, relative } from "path";
 import { InterfaceParser } from "./generator/parser";
 import type { MethodMetadata, TypeMetadata } from "./types";
 
-function derivePackageName(relPath: string): string {
+// Package prefix separates contract roots that share a file name: the native
+// runtime declares `dag.ts` and so does the business domain, and both would
+// otherwise generate `g-dag` and silently overwrite each other. The legacy
+// `runtime/` directory keeps mapping to `rt` so existing roots are unaffected.
+export function derivePackageName(relPath: string, prefix?: string): string {
   const parts = relPath.replace(/\.ts$/, "").split("/");
   const fileName = parts[parts.length - 1];
   const prefixMap: Record<string, string> = { runtime: "rt" };
-  const prefix = prefixMap[parts[0]];
-  return prefix ? `g-${prefix}-${fileName}` : `g-${fileName}`;
+  const resolved = prefix ?? prefixMap[parts[0]];
+  return resolved ? `g-${resolved}-${fileName}` : `g-${fileName}`;
 }
 
 function generateTypeDefinitions(types: TypeMetadata[]): string {
@@ -88,6 +92,7 @@ export function generatePackage(
   typesFile: string,
   genParentDir: string,
   typesRoot?: string,
+  packagePrefix?: string,
 ): string {
   const cwd = process.cwd();
   const typesPath = resolve(cwd, typesFile);
@@ -103,7 +108,7 @@ export function generatePackage(
   };
 
   const relPath = relative(typesRootPath, typesPath).replaceAll("\\", "/");
-  const packageName = derivePackageName(relPath);
+  const packageName = derivePackageName(relPath, packagePrefix);
   const packageDir = resolve(cwd, genParentDir, packageName);
   const srcDir = join(packageDir, "src");
 

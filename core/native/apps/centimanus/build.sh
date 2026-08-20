@@ -18,6 +18,6 @@ esac
 ARTIFACT_DIR="zig-out/$ARTIFACT_TARGET"
 
 zig build "-Dtarget=$TARGET" "-Doptimize=$OPTIMIZE" --prefix "$ARTIFACT_DIR"
-(cd "$CONVERGED_ROOT/navite/wrappers/protocols/zimq" && zig build "-Dtarget=$TARGET" "-Doptimize=$OPTIMIZE" --prefix "zig-out/$ARTIFACT_TARGET")
+(cd "$CONVERGED_ROOT/native/wrappers/protocols/zimq" && zig build "-Dtarget=$TARGET" "-Doptimize=$OPTIMIZE" --prefix "zig-out/$ARTIFACT_TARGET")
 
-install -Dm644 "$CONVERGED_ROOT/navite/wrappers/protocols/zimq/zig-out/$ARTIFACT_TARGET/lib/libzimq.so" "$ARTIFACT_DIR/lib/libzimq.so"
+install -Dm644 "$CONVERGED_ROOT/native/wrappers/protocols/zimq/zig-out/$ARTIFACT_TARGET/lib/libzimq.so" "$ARTIFACT_DIR/lib/libzimq.so"

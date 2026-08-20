@@ -6,8 +6,8 @@ import {
 	type CommandEntry,
 	type Handler,
 	printJson,
-} from "../cli/src/base";
-import { cliWebSocketChannel } from "../cli/src/ws";
+} from "dag-cli/base";
+import { cliWebSocketChannel } from "dag-cli/ws";
 
 // Direct estimate against the ptah native hub, no workflow involved. ptah reads
 // files by local path (its native contract) and answers over the transport

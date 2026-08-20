@@ -5,7 +5,8 @@
   "private": true,
   "exports": {
     "./base": "./src/base.ts",
-    "./ws": "./src/ws.ts"
+    "./ws": "./src/ws.ts",
+    "./timing": "./src/timing.ts"
   },
   "scripts": {
     "cli": "bun run --env-file=../../../confs/cli-dev.env ./src/cli.ts --commands=../../tools/commands",

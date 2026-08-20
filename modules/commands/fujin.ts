@@ -1,14 +1,14 @@
 import {
 	createRuntimeFujinServiceClient,
 	type RuntimeFujinServiceClient,
-} from "../generated/g-rt-fujin/src/browser";
+} from "g-rt-fujin/browser";
 import {
 	BaseCommandProcessor,
 	type CommandEntry,
 	type Handler,
 	printJson,
-} from "../cli/src/base";
-import { createCliNrpcClientConfig } from "../cli/src/ws";
+} from "dag-cli/base";
+import { createCliNrpcClientConfig } from "dag-cli/ws";
 
 const stateHandler: Handler = async (client: RuntimeFujinServiceClient) => {
 	printJson(await client.state());

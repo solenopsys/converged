@@ -1,5 +1,5 @@
 import { basename } from "path";
-import { BaseCommandProcessor, type Handler, type CommandEntry } from "../cli/src/base";
+import { BaseCommandProcessor, type Handler, type CommandEntry } from "dag-cli/base";
 
 // ──────────────────────────────────────────────────────────────────────────
 // Generic, registry-agnostic build & release primitives.

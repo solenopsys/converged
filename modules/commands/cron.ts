@@ -1,5 +1,5 @@
-import { BaseCommandProcessor, type Handler, type CommandEntry } from "../cli/src/base";
-import { createCliNrpcClientConfig } from "../cli/src/ws";
+import { BaseCommandProcessor, type Handler, type CommandEntry } from "dag-cli/base";
+import { createCliNrpcClientConfig } from "dag-cli/ws";
 import {
   createShedullerServiceClient,
   type ShedullerServiceClient,

@@ -1,0 +1,302 @@
+// Auto-generated native NRPC package
+import {
+  createCrullerTransportClient,
+  type CrullerTransportClientConfig,
+  type ServiceMetadata,
+} from "nrpc";
+
+export type NotifyTemplateId = string;
+
+export type NotifySendId = string;
+
+export type ISODateString = string;
+
+export type NotifyTemplate = {
+  id: NotifyTemplateId;
+  content: Record<string, string>;
+};
+
+export type NotifyTemplateInput = {
+  id: NotifyTemplateId;
+  content: Record<string, string>;
+};
+
+export type NotifySend = {
+  id: NotifySendId;
+  templateId: NotifyTemplateId;
+  channel: string;
+  recipient: string;
+  params: Record<string, string | number | boolean | null>;
+  status: string;
+  createdAt: ISODateString;
+};
+
+export type NotifySendInput = {
+  templateId: NotifyTemplateId;
+  channel: string;
+  recipient: string;
+  params?: Record<string, string | number | boolean | null>;
+  status?: string;
+};
+
+export type NotifyChannelId = string;
+
+export type NotifyChannel = {
+  id: NotifyChannelId;
+  type: string;
+  config: Record<string, any>;
+};
+
+export type NotifyChannelInput = {
+  id: NotifyChannelId;
+  type: string;
+  config: Record<string, any>;
+};
+
+export const metadata: ServiceMetadata = {
+  "interfaceName": "NotifyService",
+  "serviceName": "notify",
+  "filePath": "communications/notify.ts",
+  "methods": [
+    {
+      "name": "saveTemplate",
+      "parameters": [
+        {
+          "name": "template",
+          "type": "NotifyTemplateInput",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "NotifyTemplateId",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "getTemplate",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "NotifyTemplateId",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "NotifyTemplate | any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "listTemplates",
+      "parameters": [],
+      "returnType": "NotifyTemplate",
+      "isAsync": true,
+      "returnTypeIsArray": true,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "deleteTemplate",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "NotifyTemplateId",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "boolean",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "saveChannel",
+      "parameters": [
+        {
+          "name": "channel",
+          "type": "NotifyChannelInput",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "NotifyChannelId",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "getChannel",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "NotifyChannelId",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "NotifyChannel | any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "listChannels",
+      "parameters": [],
+      "returnType": "NotifyChannel",
+      "isAsync": true,
+      "returnTypeIsArray": true,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "deleteChannel",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "NotifyChannelId",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "boolean",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "recordSend",
+      "parameters": [
+        {
+          "name": "input",
+          "type": "NotifySendInput",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "NotifySendId",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "getSend",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "NotifySendId",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "NotifySend | any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "listSends",
+      "parameters": [],
+      "returnType": "NotifySend",
+      "isAsync": true,
+      "returnTypeIsArray": true,
+      "isAsyncIterable": false
+    }
+  ],
+  "types": [
+    {
+      "name": "NotifyTemplateId",
+      "kind": "type",
+      "definition": "string"
+    },
+    {
+      "name": "NotifySendId",
+      "kind": "type",
+      "definition": "string"
+    },
+    {
+      "name": "ISODateString",
+      "kind": "type",
+      "definition": "string"
+    },
+    {
+      "name": "NotifyTemplate",
+      "kind": "type",
+      "definition": "{\n  id: NotifyTemplateId;\n  content: Record<string, string>;\n}"
+    },
+    {
+      "name": "NotifyTemplateInput",
+      "kind": "type",
+      "definition": "{\n  id: NotifyTemplateId;\n  content: Record<string, string>;\n}"
+    },
+    {
+      "name": "NotifySend",
+      "kind": "type",
+      "definition": "{\n  id: NotifySendId;\n  templateId: NotifyTemplateId;\n  channel: string;\n  recipient: string;\n  params: Record<string, string | number | boolean | null>;\n  status: string;\n  createdAt: ISODateString;\n}"
+    },
+    {
+      "name": "NotifySendInput",
+      "kind": "type",
+      "definition": "{\n  templateId: NotifyTemplateId;\n  channel: string;\n  recipient: string;\n  params?: Record<string, string | number | boolean | null>;\n  status?: string;\n}"
+    },
+    {
+      "name": "NotifyChannelId",
+      "kind": "type",
+      "definition": "string"
+    },
+    {
+      "name": "NotifyChannel",
+      "kind": "type",
+      "definition": "{\n  id: NotifyChannelId;\n  type: string;\n  config: Record<string, any>;\n}"
+    },
+    {
+      "name": "NotifyChannelInput",
+      "kind": "type",
+      "definition": "{\n  id: NotifyChannelId;\n  type: string;\n  config: Record<string, any>;\n}"
+    }
+  ]
+};
+
+// Server interface (to be implemented in microservice)
+export interface NotifyService {
+  saveTemplate(template: NotifyTemplateInput): Promise<NotifyTemplateId>;
+  getTemplate(id: NotifyTemplateId): Promise<NotifyTemplate | any>;
+  listTemplates(): Promise<NotifyTemplate[]>;
+  deleteTemplate(id: NotifyTemplateId): Promise<boolean>;
+  saveChannel(channel: NotifyChannelInput): Promise<NotifyChannelId>;
+  getChannel(id: NotifyChannelId): Promise<NotifyChannel | any>;
+  listChannels(): Promise<NotifyChannel[]>;
+  deleteChannel(id: NotifyChannelId): Promise<boolean>;
+  recordSend(input: NotifySendInput): Promise<NotifySendId>;
+  getSend(id: NotifySendId): Promise<NotifySend | any>;
+  listSends(): Promise<NotifySend[]>;
+}
+
+// Client interface
+export interface NotifyServiceClient {
+  saveTemplate(template: NotifyTemplateInput): Promise<NotifyTemplateId>;
+  getTemplate(id: NotifyTemplateId): Promise<NotifyTemplate | any>;
+  listTemplates(): Promise<NotifyTemplate[]>;
+  deleteTemplate(id: NotifyTemplateId): Promise<boolean>;
+  saveChannel(channel: NotifyChannelInput): Promise<NotifyChannelId>;
+  getChannel(id: NotifyChannelId): Promise<NotifyChannel | any>;
+  listChannels(): Promise<NotifyChannel[]>;
+  deleteChannel(id: NotifyChannelId): Promise<boolean>;
+  recordSend(input: NotifySendInput): Promise<NotifySendId>;
+  getSend(id: NotifySendId): Promise<NotifySend | any>;
+  listSends(): Promise<NotifySend[]>;
+}
+
+// Native factory: cruller-transport -> Fujin -> cluster peer.
+// Package exports select this entrypoint outside a browser build.
+export function createNotifyServiceClient(
+  config: CrullerTransportClientConfig,
+): NotifyServiceClient {
+  return createCrullerTransportClient<NotifyServiceClient>(metadata, config);
+}
+
+export function createNotifyServiceCrullerTransportClient(
+  config: CrullerTransportClientConfig,
+): NotifyServiceClient {
+  return createNotifyServiceClient(config);
+}

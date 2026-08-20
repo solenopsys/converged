@@ -21,7 +21,7 @@
   "dependencies": {
     "@types/msgpack-lite": "^0.1.12",
     "@typescript-eslint/typescript-estree": "^8.59.0",
-    "bun-transport": "file:../../navite/libs/cruller-transport",
+    "bun-transport": "workspace:*",
     "jose": "^6.1.1",
     "msgpack-lite": "^0.1.26",
     "msgpackr": "^1.11.5",
@@ -29,6 +29,6 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "back-core": "file:../../back/back-core"
+    "back-core": "workspace:*"
   }
 }
