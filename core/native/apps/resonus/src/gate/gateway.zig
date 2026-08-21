@@ -162,6 +162,12 @@ pub const Gateway = struct {
         });
         errdefer registry.deinit();
 
+        // The negotiator substitutes `${secret:…}` out of this set exactly as
+        // the LLM hub does. Left empty, every media call dies on SecretMissing
+        // while text chat — which has the hub's own set — keeps working.
+        var secrets = try registry_mod.collectSecrets(allocator, &registry);
+        errdefer registry_mod.freeSecrets(allocator, &secrets);
+
         // Media settings are deployment configuration; which of them a vendor
         // puts on the wire, and under what name, is the descriptor's business.
         const settings = negotiator_mod.Settings{
@@ -247,7 +253,7 @@ pub const Gateway = struct {
             .datachannel_client = datachannel_client,
             .datachannel_client_error = datachannel_client_error,
             .registry = registry,
-            .secrets = .{},
+            .secrets = secrets,
             .negotiator = .{ .registry = undefined, .secrets = undefined },
             .media_settings = settings,
             .store = store_val,
@@ -401,6 +407,8 @@ pub const Gateway = struct {
             self.allocator.destroy(p);
         }
         if (self.policy_error) |v| self.allocator.free(v);
+
+        registry_mod.freeSecrets(self.allocator, &self.secrets);
 
         if (self.datachannel_client) |*client| client.deinit();
         if (self.datachannel_client_error) |value| self.allocator.free(value);
@@ -631,6 +639,9 @@ pub const Gateway = struct {
         }
 
         var openai_cfg = bridge_mod.Config{
+            // Runs on `*Gateway` long after `rebind`, so the negotiator is at
+            // its final address — same as the SIP path in `startSip`.
+            .negotiator = &self.negotiator,
             .api_key = api_key,
             .calls_url = self.cfg.openai_realtime_calls_url,
             .model = self.cfg.openai_model,
@@ -780,6 +791,7 @@ pub const Gateway = struct {
         const api_key = self.cfg.openai_api_key orelse return error.MissingOpenAIApiKey;
 
         const openai_cfg = bridge_mod.Config{
+            .negotiator = &self.negotiator,
             .api_key = api_key,
             .calls_url = self.cfg.openai_realtime_calls_url,
             .session_kind = .transcription,

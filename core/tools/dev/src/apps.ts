@@ -69,6 +69,26 @@ export interface NativeApp {
 const FUJIN_ZMQ = "tcp://127.0.0.1:5557";
 
 /**
+ * A native library resonus dlopens by absolute path, as installed next to its
+ * binary by `core/native/apps/resonus/build.sh`.
+ *
+ * These are not content-addressed like the `wrapperLib` artifacts, so they need
+ * naming explicitly — and they must be, because resonus derives its own default
+ * from a project layout that no longer exists (`<root>/native/wrapers/...`,
+ * before the wrappers became submodules under `core/native/wrappers/<group>`).
+ * The container image names them the same way, in its ENV block; dev had no
+ * equivalent, so WebRTC failed at the first `call.offer` with
+ * DataChannelWrapperUnavailable while everything else worked.
+ */
+function resonusLib(name: string): string {
+	return resolve(
+		PROJECT_ROOT,
+		"core/native/apps/resonus/zig-out/x86_64-gnu/lib",
+		name,
+	);
+}
+
+/**
  * The native peers of the cluster. In production each is its own container;
  * dev runs the same set as local processes so the topology is identical and
  * only the addresses differ.
@@ -128,6 +148,13 @@ export const NATIVE_APPS: NativeApp[] = [
 			RESONUS_FUJIN_ZMQ_ENDPOINT: FUJIN_ZMQ,
 			LLM_GATE_CONVERGED_ROOT: PROJECT_ROOT,
 			LLM_GATE_QJS_LIB: wrapperLib("rt/qjs"),
+			LLM_GATE_LIBDATACHANNEL_LIB: resonusLib("libdatachannel.so"),
+			LLM_GATE_LIBDATACHANNEL_WRAPPER_LIB: resonusLib(
+				"libdatachannel_wrapper.so",
+			),
+			LLM_GATE_BARESIP_LIB: resonusLib("libbaresip.so"),
+			LLM_GATE_BARESIP_WRAPPER_LIB: resonusLib("libbaresip_wrapper.so"),
+			LLM_GATE_MBEDTLS_LIB: resonusLib("libmbedtls.so"),
 			LLM_GATE_POLICY_SCRIPT: resolve(
 				PROJECT_ROOT,
 				"core/native/apps/resonus/scripts/default.js",

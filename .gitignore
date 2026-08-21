@@ -18,3 +18,4 @@ storybook-static
 deployment
 .vendor-src
 bin-libs
+artifacts/

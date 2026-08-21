@@ -17,6 +17,15 @@
 //!                           OPENAI_API_KEY
 //!   RESONUS_ENDPOINT_FAST   `<provider>:<model>` for the `fast` endpoint
 //!   RESONUS_ENDPOINT_HEAVY  `<provider>:<model>` for the `heavy` endpoint
+//!
+//! `fast` and `heavy` predate `RESONUS_ENDPOINT_*` and are still described by
+//! the per-vendor variables every deployment was configured against, so they
+//! keep resolving from those when no explicit spec is given:
+//!
+//!   OPENAI_REALTIME_FAST_MODEL   model behind `fast`
+//!   OPENAI_REALTIME_HEAVY_MODEL  model behind `heavy`
+//!   OPENAI_MODEL                 model behind `openai`, and behind `fast` /
+//!                                `heavy` where realtime is not deployed
 
 const std = @import("std");
 const env = @import("../env.zig");
@@ -75,7 +84,7 @@ pub const Hub = struct {
         });
         errdefer hub.registry.deinit();
 
-        hub.secrets = try collectSecrets(gpa, &hub.registry);
+        hub.secrets = try registry_mod.collectSecrets(gpa, &hub.registry);
         hub.engine = .{ .registry = &hub.registry, .secrets = &hub.secrets };
         return hub;
     }
@@ -85,7 +94,7 @@ pub const Hub = struct {
         self.pools.deinit(self.gpa);
         self.client.deinit();
         self.registry.deinit();
-        freeSecrets(self.gpa, &self.secrets);
+        registry_mod.freeSecrets(self.gpa, &self.secrets);
     }
 
     /// Public command-layer endpoints. Their provider/model mapping is
@@ -98,12 +107,39 @@ pub const Hub = struct {
             std.ascii.upperString(upper[0..name.len], name),
         }) catch return error.EndpointUnknown;
 
-        const spec = env.opt(key) orelse return error.EndpointNotConfigured;
+        const spec = env.opt(key) orelse return self.vendorEndpoint(name);
         const split = std.mem.indexOfScalar(u8, spec, ':') orelse return error.EndpointNotConfigured;
         const provider_name = spec[0..split];
         const model = spec[split + 1 ..];
         if (self.registry.find(provider_name) == null) return error.EndpointUnavailable;
         return .{ .provider_name = provider_name, .model = model };
+    }
+
+    /// The mapping `fast`, `heavy` and `openai` had before endpoints became a
+    /// single `<provider>:<model>` string: the two tiers are realtime sessions,
+    /// falling back to plain OpenAI wherever realtime is not deployed.
+    fn vendorEndpoint(self: *Hub, name: []const u8) !Endpoint {
+        const tier_model = if (std.mem.eql(u8, name, "fast"))
+            "OPENAI_REALTIME_FAST_MODEL"
+        else if (std.mem.eql(u8, name, "heavy"))
+            "OPENAI_REALTIME_HEAVY_MODEL"
+        else if (std.mem.eql(u8, name, "openai"))
+            return self.openAiEndpoint()
+        else
+            return error.EndpointUnknown;
+
+        if (self.registry.find("openai-realtime") != null) {
+            if (env.opt(tier_model)) |model| {
+                return .{ .provider_name = "openai-realtime", .model = model };
+            }
+        }
+        return self.openAiEndpoint();
+    }
+
+    fn openAiEndpoint(self: *Hub) !Endpoint {
+        if (self.registry.find("openai") == null) return error.EndpointUnavailable;
+        const model = env.opt("OPENAI_MODEL") orelse return error.EndpointNotConfigured;
+        return .{ .provider_name = "openai", .model = model };
     }
 
     /// Acquire a provider-side session for a logical chat session.
@@ -249,62 +285,3 @@ pub const Hub = struct {
         return out.items;
     }
 };
-
-/// Read the secret each loaded descriptor asks for.
-///
-/// A descriptor names its secret (`${secret:openai}`); the hub maps that to
-/// `OPENAI_API_KEY` and reads it here. A provider whose secret is absent stays
-/// loaded but unusable, and says so on the turn that needs it — the descriptor
-/// set is a build artifact, while which keys a given deployment holds is not.
-fn collectSecrets(gpa: std.mem.Allocator, registry: *registry_mod.Registry) !registry_mod.Secrets {
-    var names: std.ArrayList([]const u8) = .empty;
-    var values: std.ArrayList([]const u8) = .empty;
-    errdefer {
-        for (names.items) |n| gpa.free(n);
-        names.deinit(gpa);
-        values.deinit(gpa);
-    }
-
-    for (registry.entries) |entry| {
-        for (entry.table.transport.header_values) |value| {
-            var rest = value;
-            while (std.mem.indexOf(u8, rest, "${secret:")) |start| {
-                const from = start + "${secret:".len;
-                const end = std.mem.indexOfScalarPos(u8, rest, from, '}') orelse break;
-                const key = rest[from..end];
-                rest = rest[end + 1 ..];
-
-                var seen = false;
-                for (names.items) |existing| {
-                    if (std.mem.eql(u8, existing, key)) seen = true;
-                }
-                if (seen) continue;
-
-                var buf: [64]u8 = undefined;
-                var upper: [32]u8 = undefined;
-                if (key.len >= upper.len) continue;
-                const var_name = std.fmt.bufPrintZ(&buf, "{s}_API_KEY", .{
-                    std.ascii.upperString(upper[0..key.len], key),
-                }) catch continue;
-
-                const secret = env.opt(var_name) orelse {
-                    std.log.warn("provider {s}: {s} is not set; this provider will fail on use", .{
-                        entry.table.name, var_name,
-                    });
-                    continue;
-                };
-                try names.append(gpa, try gpa.dupe(u8, key));
-                try values.append(gpa, secret);
-            }
-        }
-    }
-
-    return .{ .names = try names.toOwnedSlice(gpa), .values = try values.toOwnedSlice(gpa) };
-}
-
-fn freeSecrets(gpa: std.mem.Allocator, secrets: *registry_mod.Secrets) void {
-    for (secrets.names) |n| gpa.free(n);
-    gpa.free(secrets.names);
-    gpa.free(secrets.values);
-    secrets.* = .{};
-}

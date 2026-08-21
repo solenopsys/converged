@@ -814,11 +814,14 @@ fn buildStreamRequest(allocator: std.mem.Allocator, payload: std.json.ObjectMap,
 /// deployment that runs one provider and does not care to name it twice.
 ///
 /// This used to be a table of vendor defaults compiled into the gate. Which
-/// model a deployment runs is its configuration, not this program's knowledge.
+/// model a deployment runs is its configuration, not this program's knowledge —
+/// but the variables naming it are older than `RESONUS_MODEL_<PROVIDER>`, so
+/// `vendorModel` still reads the names the deployments actually carry.
 fn defaultModel(provider: []const u8) []const u8 {
     var buf: [96]u8 = undefined;
     const prefix = "RESONUS_MODEL_";
-    if (prefix.len + provider.len >= buf.len) return env.opt("AI_MODEL") orelse "";
+    if (prefix.len + provider.len >= buf.len)
+        return vendorModel(provider) orelse env.opt("AI_MODEL") orelse "";
 
     @memcpy(buf[0..prefix.len], prefix);
     for (provider, 0..) |ch, i| {
@@ -827,7 +830,22 @@ fn defaultModel(provider: []const u8) []const u8 {
     buf[prefix.len + provider.len] = 0;
     const name: [:0]const u8 = @ptrCast(buf[0 .. prefix.len + provider.len]);
 
-    return env.opt(name) orelse env.opt("AI_MODEL") orelse "";
+    return env.opt(name) orelse vendorModel(provider) orelse env.opt("AI_MODEL") orelse "";
+}
+
+/// Per-vendor model variables predating `RESONUS_MODEL_<PROVIDER>`. Both names
+/// a descriptor may go by are accepted: the registry calls Anthropic's provider
+/// `anthropic`, while the deployments that configured it wrote `claude`.
+fn vendorModel(provider: []const u8) ?[]const u8 {
+    if (std.mem.eql(u8, provider, "openai-realtime") or std.mem.eql(u8, provider, "realtime"))
+        return env.opt("OPENAI_REALTIME_FAST_MODEL") orelse env.opt("OPENAI_REALTIME_MODEL");
+    if (std.mem.eql(u8, provider, "openai"))
+        return env.opt("OPENAI_MODEL");
+    if (std.mem.eql(u8, provider, "anthropic") or std.mem.eql(u8, provider, "claude"))
+        return env.opt("ANTHROPIC_MODEL") orelse env.opt("CLAUDE_MODEL");
+    if (std.mem.eql(u8, provider, "gemini"))
+        return env.opt("GEMINI_MODEL");
+    return null;
 }
 
 fn appendInputMessages(allocator: std.mem.Allocator, history: []const u8, payload: std.json.ObjectMap) ![]u8 {

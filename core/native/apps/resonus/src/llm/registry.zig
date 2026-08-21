@@ -289,6 +289,68 @@ pub const Secrets = struct {
     }
 };
 
+/// Read the secret each loaded descriptor asks for.
+///
+/// A descriptor names its secret (`${secret:openai}`); this maps that to
+/// `OPENAI_API_KEY` and reads it here. A provider whose secret is absent stays
+/// loaded but unusable, and says so on the turn that needs it — the descriptor
+/// set is a build artifact, while which keys a given deployment holds is not.
+///
+/// Both subsystems that substitute against a descriptor resolve through this:
+/// the LLM hub for chat, and the media gateway's negotiator for calls.
+pub fn collectSecrets(gpa: std.mem.Allocator, registry: *Registry) !Secrets {
+    var names: std.ArrayList([]const u8) = .empty;
+    var values: std.ArrayList([]const u8) = .empty;
+    errdefer {
+        for (names.items) |n| gpa.free(n);
+        names.deinit(gpa);
+        values.deinit(gpa);
+    }
+
+    for (registry.entries) |entry| {
+        for (entry.table.transport.header_values) |value| {
+            var rest = value;
+            while (std.mem.indexOf(u8, rest, "${secret:")) |start| {
+                const from = start + "${secret:".len;
+                const end = std.mem.indexOfScalarPos(u8, rest, from, '}') orelse break;
+                const key = rest[from..end];
+                rest = rest[end + 1 ..];
+
+                var seen = false;
+                for (names.items) |existing| {
+                    if (std.mem.eql(u8, existing, key)) seen = true;
+                }
+                if (seen) continue;
+
+                var buf: [64]u8 = undefined;
+                var upper: [32]u8 = undefined;
+                if (key.len >= upper.len) continue;
+                const var_name = std.fmt.bufPrintZ(&buf, "{s}_API_KEY", .{
+                    std.ascii.upperString(upper[0..key.len], key),
+                }) catch continue;
+
+                const secret = env.opt(var_name) orelse {
+                    std.log.warn("provider {s}: {s} is not set; this provider will fail on use", .{
+                        entry.table.name, var_name,
+                    });
+                    continue;
+                };
+                try names.append(gpa, try gpa.dupe(u8, key));
+                try values.append(gpa, secret);
+            }
+        }
+    }
+
+    return .{ .names = try names.toOwnedSlice(gpa), .values = try values.toOwnedSlice(gpa) };
+}
+
+pub fn freeSecrets(gpa: std.mem.Allocator, secrets: *Secrets) void {
+    for (secrets.names) |n| gpa.free(n);
+    gpa.free(secrets.names);
+    gpa.free(secrets.values);
+    secrets.* = .{};
+}
+
 /// The sandbox's only way out.
 ///
 /// It carries no I/O — just work that would be wasteful or wrong to reimplement
