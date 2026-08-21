@@ -18,6 +18,8 @@ export const GATEWAY_API = "gateway.networking.k8s.io/v1";
 export interface Listener {
 	name: string;
 	hostname: string;
+	/** Controller entry point port; defaults to the standard HTTP(S) port. */
+	port?: number;
 	/** TLS certificate Secret; omitted for a plain HTTP listener. */
 	certificateRef?: string;
 }
@@ -38,7 +40,7 @@ export function gateway(
 			listeners: listeners.map((listener) => ({
 				name: listener.name,
 				hostname: listener.hostname,
-				port: listener.certificateRef ? 443 : 80,
+				port: listener.port ?? (listener.certificateRef ? 443 : 80),
 				protocol: listener.certificateRef ? "HTTPS" : "HTTP",
 				...(listener.certificateRef
 					? {

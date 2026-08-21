@@ -152,6 +152,9 @@ export function storageResources(spec: StorageResourcesSpec): KubeObject[] {
 				{
 					name: "storage",
 					image: spec.storage.image,
+					env: {
+						FUJIN_TARGET: spec.scope ? `behemoth-${spec.scope}` : "behemoth",
+					},
 					// The behemoth image names its binary in CMD and declares no
 					// ENTRYPOINT, so args alone replace the whole command and the
 					// runtime is left trying to exec "start".

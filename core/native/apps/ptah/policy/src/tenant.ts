@@ -122,24 +122,46 @@ export function reconcileTenant(input: ReconcileInput): ReconcileOutput {
  * ms and ui pods read. It is owned by the Platform, not by any single tenant,
  * so it lives here but is emitted from the platform reconcile pass.
  */
+export function domainIndexData(
+	platform: KubeObject,
+	tenants: KubeObject[],
+): Record<string, string> {
+	const name = platform.metadata.name;
+	const spec = platform.spec as PlatformSpec;
+	const fujinPort = require(
+		spec.apps.fujin?.ports?.zmq,
+		"platform spec.apps.fujin.ports.zmq",
+	);
+	const fujinHost = `${n.app(name, "fujin")}.${spec.namespace}.svc.cluster.local`;
+	const index: Record<
+		string,
+		{ host: string; port: number; target: string; cacheHost: string; cachePort: number }
+	> = {};
+	for (const tenant of tenants) {
+		const tenantSpec = (tenant.spec ?? {}) as TenantSpec;
+		if (tenantSpec.platform !== name) continue;
+		const scope = n.tenantScope(tenant.metadata.name);
+		index[scope] = {
+			host: fujinHost,
+			port: fujinPort,
+			target: `behemoth-${scope}`,
+			cacheHost: `${n.tenantStorage(name, tenant.metadata.name)}.${spec.namespace}.svc.cluster.local`,
+			cachePort: spec.storage.cachePort,
+		};
+	}
+	return { STORAGE_TENANT_SERVICES: JSON.stringify(index) };
+}
+
 export function domainIndex(
 	platform: KubeObject,
 	tenants: KubeObject[],
 ): KubeObject {
 	const name = platform.metadata.name;
 	const spec = platform.spec as PlatformSpec;
-	const index: Record<string, string> = {};
-	for (const tenant of tenants) {
-		const tenantSpec = (tenant.spec ?? {}) as TenantSpec;
-		if (tenantSpec.platform !== name) continue;
-		const scope = n.tenantScope(tenant.metadata.name);
-		index[scope] =
-			`${n.tenantStorage(name, tenant.metadata.name)}.${spec.namespace}.svc.cluster.local:${spec.storage.port}`;
-	}
 	return k8s.configMap(
 		n.domainsConfigMap(name),
 		spec.namespace,
 		n.labels(name, "domains", n.ownerLabel("Platform", name)),
-		{ STORAGE_TENANT_SERVICES: JSON.stringify(index) },
+		domainIndexData(platform, tenants),
 	);
 }

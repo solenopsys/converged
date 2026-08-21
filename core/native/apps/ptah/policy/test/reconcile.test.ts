@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { reconcile } from "../src/index.ts";
-import { ANNOTATION_MODULES } from "../src/names.ts";
+import { ANNOTATION_DOMAINS, ANNOTATION_MODULES } from "../src/names.ts";
 import type { KubeObject, ReconcileInput } from "../src/types.ts";
 import {
 	find,
@@ -315,6 +315,15 @@ describe("tenant", () => {
 		);
 		expect(status.ready).toBe(true);
 		expect(status.domains).toEqual(["democnc.4ir.club"]);
+		const storage = specOf<{
+			template: {
+				spec: { containers: { env: { name: string; value: string }[] }[] };
+			};
+		}>(resources, "Deployment", "converged-storage-democnc");
+		expect(storage.template.spec.containers[0].env).toContainEqual({
+			name: "FUJIN_TARGET",
+			value: "behemoth-democnc",
+		});
 	});
 
 	test("the scope header is forced on every rule, so a client cannot spoof it", () => {
@@ -420,9 +429,40 @@ describe("tenant", () => {
 		);
 		const cm = dataOf(find(resources, "ConfigMap", "converged-domains"));
 		expect(JSON.parse(cm.STORAGE_TENANT_SERVICES)).toEqual({
-			democnc: "converged-storage-democnc.converged.svc.cluster.local:9000",
-			other: "converged-storage-other.converged.svc.cluster.local:9000",
+			democnc: {
+				host: "converged-fujin.converged.svc.cluster.local",
+				port: 5557,
+				target: "behemoth-democnc",
+				cacheHost: "converged-storage-democnc.converged.svc.cluster.local",
+				cachePort: 6379,
+			},
+			other: {
+				host: "converged-fujin.converged.svc.cluster.local",
+				port: 5557,
+				target: "behemoth-other",
+				cacheHost: "converged-storage-other.converged.svc.cluster.local",
+				cachePort: 6379,
+			},
 		});
+	});
+
+	test("a domain-index change rolls UI and services so envFrom is refreshed", () => {
+		const annotationsFor = (tenants: KubeObject[], deployment: string) =>
+			annotationsOf(
+				find(
+					reconcile(
+						input({ kind: "Platform", object: platform("cloud"), tenants }),
+					).resources,
+					"Deployment",
+					deployment,
+				),
+			)[ANNOTATION_DOMAINS];
+		expect(annotationsFor([], "converged-ui")).not.toBe(
+			annotationsFor([tenant("democnc")], "converged-ui"),
+		);
+		expect(annotationsFor([tenant("democnc")], "converged-services")).toBe(
+			annotationsFor([tenant("democnc")], "converged-ui"),
+		);
 	});
 });
 

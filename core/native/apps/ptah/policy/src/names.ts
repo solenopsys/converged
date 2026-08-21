@@ -12,6 +12,8 @@ export const LABEL_COMPONENT = "app.kubernetes.io/component";
 export const LABEL_OWNER = "ptah.io/owner";
 /** Hash of the merged solution set; changing it rolls the workloads. */
 export const ANNOTATION_MODULES = "ptah.io/modules";
+/** Hash of the scope-to-storage index injected into UI and services. */
+export const ANNOTATION_DOMAINS = "ptah.io/domains";
 /** Hash of the behemoth mount map; changing it rolls the storage pod. */
 export const ANNOTATION_STORAGE_CONFIG = "ptah.io/storage-config";
 /**

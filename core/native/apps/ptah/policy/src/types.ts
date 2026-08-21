@@ -188,6 +188,8 @@ export interface PlatformSpec extends ExtraResources {
 	gateway: {
 		className: string;
 		hosts: string[];
+		/** HTTPS port exposed by the Gateway controller's entry point. */
+		httpsPort?: number;
 		tls?: {
 			secretName: string;
 			issuer?: string;

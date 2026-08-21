@@ -11,7 +11,8 @@ decision of what a platform, solution, or tenant should produce.
 
 ```text
 Kubernetes API
-      |
+      ^
+      | HTTPS via mbedTLS (src/tls.zig)
       v
 +-----------------------+
 | Ptah controller (Zig) |
@@ -37,6 +38,29 @@ desired Kubernetes resources
 The policy runs in a fresh QuickJS evaluation for each reconcile. It cannot
 call Kubernetes, access the network, read time, or mutate the cluster. The
 same policy can therefore be evaluated offline before deployment.
+
+### Why the apiserver connection is not `std.http`
+
+Zig's TLS client has no branch for the TLS 1.3 CertificateRequest message:
+`certificate_request` exists as an enum value in `std.crypto.tls` and is never
+handled in the client's handshake state machine. A Kubernetes apiserver sends
+one whenever client-certificate authentication is configured, which is the
+default, so every handshake ends in `error.TlsUnexpectedMessage` — before any
+certificate is examined, and regardless of how the CA or the hostname are
+configured.
+
+[`src/tls.zig`](src/tls.zig) therefore implements the transport over mbedTLS,
+built from the wrapper in `core/native/wrappers/protocols/mbedtls`. It is only
+what an apiserver conversation needs: one request per connection, an explicit
+CA bundle, `Content-Length` and chunked bodies. Two details of that build are
+worth knowing, because neither matches what its README says:
+
+- it is mbedTLS **4.x**, where randomness comes from PSA — there is no
+  `mbedtls_ssl_conf_rng`, and `psa_crypto_init()` must be called first;
+- a TLS 1.3 server sends session tickets after the handshake, and mbedTLS
+  reports each one from `mbedtls_ssl_read` as a non-fatal
+  `MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET`. Reading again is the only
+  correct response.
 
 ## Resources
 
@@ -122,6 +146,29 @@ the stamp has to move with it.
 The policy only propagates these values. It has no I/O, so it cannot fetch
 anything itself — the fetch belongs to whoever consumes the registry.
 
+### What the stateless pods are told
+
+A `Platform` is the only place these values exist, so the policy sets them
+explicitly rather than leaving them to an image or a Secret. Container `env`
+also wins over `envFrom`, which matters: the platform Secret is a dump of a
+`.env` file and carries values from whoever generated it.
+
+| Variable | Value |
+|---|---|
+| `FUJIN_ZMQ_ENDPOINT` | The bus. Every peer dials it; fujin itself binds it. |
+| `FUJIN_WS_URL` | `/ws` — relative, because under `cloud` the hostname belongs to the tenant. |
+| `FUJIN_TARGET` | `ui` or `services`: the name that connection registers under. |
+| `FUJIN_BROWSER_SCOPE` | Handed to the browser by SSR; the same scope fujin registers. |
+| `CACHE_URL` | Behemoth's in-process valkey. Absent under `cloud` — the shard is per tenant. |
+| `STORAGE_SCOPE` | Pinned for ui in every profile as a startup fallback, and for ms only under `mono`. Pinning ms elsewhere would answer for the wrong tenant whenever a header went missing. |
+| `DATA_DIR` | `/app/data`, stated to keep the Secret's value out. |
+| `MICROSERVICES` / `FRONTEND_MODULES` | Which modules boot, from the merged solutions. |
+
+The scope index arrives separately, as `envFrom` on the `<platform>-domains`
+ConfigMap: it changes as tenants come and go, and a pod should pick that up on
+a restart rather than on a policy edit. Every profile publishes it, `mono`
+included, so the ConfigMap a pod reads from always exists.
+
 ## Reconciliation
 
 For each custom resource, Ptah builds a `ReconcileInput` containing the target
@@ -151,6 +198,10 @@ incomplete dependency must return `prune: false`; this prevents a transient
 problem from being interpreted as a request to delete all owned resources.
 
 ## Behemoth storage
+
+Behemoth is started with an explicit `command`: its image names the binary in
+`CMD` and declares no `ENTRYPOINT`, so passing `args` alone would replace the
+whole command and leave the runtime trying to exec `start`.
 
 Behemoth also runs the platform's cache. Valkey is in-process, so ptah deploys
 no cache workload of its own — it only publishes the second port on the storage
@@ -230,16 +281,85 @@ ptah render examples/platform-multi.json
 `render` accepts a serialized `ReconcileInput` and prints the desired resource
 array. The files in [`examples`](examples) are ready-to-run inputs.
 
+## Deployment
+
+One Helm chart, in [`chart`](chart). It installs the CRDs, RBAC, the operator,
+and a single `Platform` built from values — nothing else. Every workload comes
+from ptah at runtime.
+
+```bash
+helm install converged chart -n converged --create-namespace \
+  --set platform.spec.profile=cloud
+```
+
+`Platform`, `Solution` and `Tenant` are cluster-scoped, so **one operator
+already sees every platform in the cluster**. A second install does not divide
+the work — both would reconcile everything, twice. Releases after the first set
+`operator.create=false` and contribute only their `Platform`.
+
+The chart refuses to render rather than install something that will misbehave
+quietly: an unknown profile, `multi` without shards or without exactly one
+catch-all, storage with no class or no volume source, a registry URL with no
+solution key, fujin missing either port.
+
 ## Configuration
 
 `PTAH_RESYNC_MS`, `PTAH_LEADER_ELECTION`, and `PTAH_IDENTITY` are required for
-controller commands. In a cluster, Ptah uses the mounted service account and
-its namespace. Outside a cluster, also set `PTAH_KUBE_SERVER`,
-`PTAH_NAMESPACE`, and optionally `PTAH_KUBE_TOKEN`.
+controller commands; none of them are defaulted, because an operator that
+guesses its identity or its resync period reconciles the wrong cluster on the
+wrong schedule.
+
+In a cluster ptah uses the mounted service account, and addresses the apiserver
+as `kubernetes.default.svc` rather than through `KUBERNETES_SERVICE_HOST`: the
+cluster IP appears on the serving certificate only as an IP SAN, and the TLS
+client matches the host string against DNS SANs.
+
+| Variable | Purpose |
+|---|---|
+| `PTAH_KUBE_SERVER` | Explicit apiserver URL. Wins over in-cluster detection, which is what makes a local run against a real cluster possible from inside a pod. |
+| `PTAH_KUBE_CA` | CA bundle for that URL. Without it the connection is unverified, which is right only for a plain-HTTP proxy. |
+| `PTAH_KUBE_TOKEN` | Bearer token when not using the mounted service account. |
+| `PTAH_NAMESPACE` | Namespace for the Lease; defaults to the service account's. |
+
+A full pass can be run against a live cluster from a workstation, which is the
+fastest way to iterate on the policy:
+
+```bash
+kubectl get secret -o jsonpath='{...}' ... > /tmp/ca.crt   # or copy from a pod
+PTAH_RESYNC_MS=30000 PTAH_LEADER_ELECTION=off PTAH_IDENTITY=dev \
+PTAH_NAMESPACE=converged PTAH_KUBE_SERVER=https://localhost:6443 \
+PTAH_KUBE_CA=/tmp/ca.crt PTAH_KUBE_TOKEN="$(kubectl create token converged-ptah -n converged)" \
+  ./zig-out/bin/ptah apply --dry-run
+```
+
+## Building
+
+`zig build` drives two wrapper builds before its own: QuickJS, which evaluates
+the policy, and mbedTLS, which talks to the apiserver. Both are installed
+beside the binary and found through its `$ORIGIN/lib` rpath.
+
+```bash
+zig build                                  # host
+TARGET=x86_64-linux-musl ./build.sh        # the target the image uses
+./build-container.sh                       # the above, then podman build
+```
 
 ## Verification
 
 ```bash
-zig build test
-(cd policy && bun test)
+zig build test          # controller, transport, and the QuickJS boundary
+(cd policy && bun test) # the rules themselves
+helm lint chart
+ptah render examples/platform-multi.json
 ```
+
+## Known gaps
+
+- `run` does not exit promptly on `SIGTERM`: it sleeps a whole resync period
+  before rechecking, so a rollout stalls until the grace period runs out.
+- In `run`, a failure to reach the apiserver is swallowed by
+  `lease.acquire(...) catch false` and becomes a silent "not the leader" loop.
+  That is why a controller that could not connect at all looked like a healthy
+  pod for months.
+- `multi` is implemented in the policy but has not been exercised against a
+  live cluster.

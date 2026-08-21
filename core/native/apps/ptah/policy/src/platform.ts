@@ -25,6 +25,7 @@ import {
 	selectSolutions,
 } from "./solution.ts";
 import { storageResources } from "./storage.ts";
+import { domainIndexData } from "./tenant.ts";
 import type {
 	KubeObject,
 	NativeApp,
@@ -199,6 +200,14 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 		JSON.stringify([merged.digest, registryData(spec.registry)]),
 	);
 	const modules = { [n.ANNOTATION_MODULES]: rollout };
+	const domains =
+		spec.profile === "cloud" ? domainIndexData(input.object, input.tenants) : undefined;
+	const statelessAnnotations = {
+		...modules,
+		...(domains
+			? { [n.ANNOTATION_DOMAINS]: n.digest(domains.STORAGE_TENANT_SERVICES) }
+			: {}),
+	};
 	const resources: KubeObject[] = [];
 
 	resources.push(
@@ -243,7 +252,7 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 			labels: uiLabels,
 			selector: uiSelector,
 			replicas: spec.replicas?.ui ?? 1,
-			annotations: modules,
+			annotations: statelessAnnotations,
 			volumes: cache.volumes,
 			containers: [
 				{
@@ -288,7 +297,7 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 			labels: msLabels,
 			selector: msSelector,
 			replicas: spec.replicas?.ms ?? 1,
-			annotations: modules,
+			annotations: statelessAnnotations,
 			volumes: cache.volumes,
 			containers: [
 				{
@@ -326,6 +335,7 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 			spec.gateway.hosts.map((host, index) => ({
 				name: n.listenerName(host, index),
 				hostname: host,
+				port: spec.gateway.httpsPort,
 				certificateRef: spec.gateway.tls?.secretName,
 			})),
 		),
