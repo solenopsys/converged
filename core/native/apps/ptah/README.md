@@ -45,7 +45,7 @@ Ptah defines three cluster-scoped custom resources in
 
 | Resource | Role |
 |---|---|
-| `Platform` | Base shared platform: routing, storage, cache, applications, and module map. |
+| `Platform` | Base shared platform: routing, storage, applications, and module map. |
 | `Solution` | Product overlay that contributes modules, workflows, environment, and optional extra resources to a platform. |
 | `Tenant` | Cloud-platform site with an isolated storage shard, scope-aware routes, and selected solutions. |
 
@@ -151,6 +151,12 @@ incomplete dependency must return `prune: false`; this prevents a transient
 problem from being interpreted as a request to delete all owned resources.
 
 ## Behemoth storage
+
+Behemoth also runs the platform's cache. Valkey is in-process, so ptah deploys
+no cache workload of its own — it only publishes the second port on the storage
+Service and points `CACHE_URL` at it. Under `cloud` there is no platform-wide
+value at all: the shard is per tenant, and the scope index resolves it per
+request.
 
 Ptah gives every active microservice one isolated static `PersistentVolume`
 and one pre-bound `PersistentVolumeClaim`. All stores owned by that

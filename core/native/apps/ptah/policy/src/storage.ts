@@ -152,15 +152,28 @@ export function storageResources(spec: StorageResourcesSpec): KubeObject[] {
 				{
 					name: "storage",
 					image: spec.storage.image,
+					// The behemoth image names its binary in CMD and declares no
+					// ENTRYPOINT, so args alone replace the whole command and the
+					// runtime is left trying to exec "start".
+					command: ["/app/storage"],
 					args: [
 						"start",
 						"--config",
 						CONFIG_PATH,
 						"--fujin",
 						spec.fujinEndpoint,
+						// Behemoth runs valkey in-process and binds it to
+						// loopback by default, which serves only itself. The
+						// cache is meant to be shared with ui and ms, so it has
+						// to listen on the pod's address.
+						"--valkey",
+						`0.0.0.0:${spec.storage.cachePort}`,
 						...(spec.scope ? ["--scope", spec.scope] : []),
 					],
-					ports: [{ name: "storage", port: spec.storage.port }],
+					ports: [
+						{ name: "storage", port: spec.storage.port },
+						{ name: "cache", port: spec.storage.cachePort },
+					],
 					resources: spec.resources ?? spec.storage.resources,
 					volumeMounts,
 				},
@@ -168,6 +181,7 @@ export function storageResources(spec: StorageResourcesSpec): KubeObject[] {
 		}),
 		k8s.service(spec.name, spec.namespace, labels, selector, [
 			{ name: "storage", port: spec.storage.port },
+			{ name: "cache", port: spec.storage.cachePort },
 		]),
 	);
 

@@ -146,11 +146,16 @@ export interface PlatformSpec extends ExtraResources {
 	domainBase: string;
 	secretName: string;
 	images: { ui: string; ms: string };
-	cache: { image: string; port: number; resources?: Resources };
 	storage: {
 		image: string;
 		size: string;
 		port: number;
+		/**
+		 * Valkey port. Behemoth runs the cache in-process, so there is no
+		 * separate cache workload to deploy — only a second port to publish on
+		 * the storage Service.
+		 */
+		cachePort: number;
 		mountBase: string;
 		/** Required: the cluster default class differs per cluster. */
 		storageClassName: string;

@@ -1,4 +1,4 @@
-{{- if .Values.rbac.create }}
+{{- if and .Values.operator.create .Values.rbac.create }}
 {{/*
 Ptah's permissions are its blast radius, so they are enumerated rather than
 granted with a wildcard. The list mirrors the GVK table in `src/kube.zig`: a

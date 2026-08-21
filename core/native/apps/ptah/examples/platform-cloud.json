@@ -59,10 +59,6 @@
         "ui": "public.ecr.aws/i5x9u8b2/converged-ui:latest",
         "ms": "public.ecr.aws/i5x9u8b2/converged-ms:latest"
       },
-      "cache": {
-        "image": "docker.io/valkey/valkey:8.1-alpine",
-        "port": 6379
-      },
       "storage": {
         "image": "public.ecr.aws/i5x9u8b2/behemoth:latest",
         "size": "5Gi",
@@ -74,7 +70,8 @@
             "path": "/var/lib/ptah/{{volume}}",
             "type": "DirectoryOrCreate"
           }
-        }
+        },
+        "cachePort": 6379
       },
       "apps": {
         "fujin": {

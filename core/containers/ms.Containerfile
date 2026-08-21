@@ -47,12 +47,21 @@ COPY --from=builder /build/converged/core/containers/entrypoint.sh /app/entrypoi
 ENV PROJECT_DIR=/app/src/converged
 ENV CHILD_PROJECT_DIR=/app/src/${PROJECT}
 
-# libmessage links libzimq by its unsuffixed soname, so the variant matching
-# this base is the one that name has to resolve to. The generator this file
-# replaces did the same copy; without it the musl transport loads and then
-# drags in a glibc dependency the image does not have.
-RUN cp "/app/src/converged/core/native/libs/cruller-transport/bin-libs/libzimq-$(uname -m)-musl.so" \
-       "/app/src/converged/core/native/libs/cruller-transport/bin-libs/libzimq.so"
+# One directory for every dlopen'd native library.
+#
+# BIN_LIBS_PATH is a single variable, but the libraries ship next to their own
+# packages — the transport under cruller-transport, the markdown parser under
+# cruller-md4c. Whichever directory it pointed at, the other package's dlopen
+# would fail. The generator this file replaces merged them for the same reason.
+#
+# Only the musl variants are copied, and libzimq is copied under its bare
+# soname because that is the name libmessage links against.
+RUN SRC=/app/src/converged/core/native/libs && ARCH=$(uname -m) && \
+    mkdir -p /app/bin-libs && \
+    cp "$SRC/cruller-transport/bin-libs/libmessage-$ARCH-musl.so"   /app/bin-libs/ && \
+    cp "$SRC/cruller-transport/bin-libs/libtransport-$ARCH-musl.so" /app/bin-libs/ && \
+    cp "$SRC/cruller-transport/bin-libs/libzimq-$ARCH-musl.so"      /app/bin-libs/libzimq.so && \
+    cp "$SRC/cruller-md4c/bin-libs/libmd4c-$ARCH-musl.so"           /app/bin-libs/
 
 RUN chmod +x /app/entrypoint.sh \
     && mkdir -p /app/data \
@@ -70,7 +79,7 @@ ENV VALKEY_TTL_SECONDS=120
 # The native transport is dlopen'd by variant. This base is Alpine, so the
 # default "gnu" would resolve to a library whose loader the image does not
 # have — and the failure only surfaces at the first message, not at boot.
-ENV BIN_LIBS_PATH=/app/src/converged/core/native/libs/cruller-transport/bin-libs
+ENV BIN_LIBS_PATH=/app/bin-libs
 ENV LIBC_VARIANT=musl
 
 EXPOSE 3001

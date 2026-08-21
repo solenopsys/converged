@@ -8,10 +8,16 @@ RUN apk add --no-cache ca-certificates
 
 RUN mkdir -p /app/lib
 COPY ./zig-out/x86_64-musl/bin/ptah /app/ptah
-# The policy is compiled into the binary; libqjs.so is what evaluates it. The
-# binary carries an $ORIGIN/lib rpath, so no LD_LIBRARY_PATH is needed.
+# The policy is compiled into the binary; libqjs.so is what evaluates it, and
+# mbedTLS is what talks to the apiserver — Zig's own TLS client cannot complete
+# a handshake with one (see src/tls.zig). The binary carries an $ORIGIN/lib
+# rpath, so no LD_LIBRARY_PATH is needed.
 COPY ./zig-out/x86_64-musl/lib/libqjs.so /app/lib/libqjs.so
-RUN chmod +x /app/ptah && chmod 644 /app/lib/libqjs.so && chown -R 1000:1000 /app
+COPY ./zig-out/x86_64-musl/lib/libmbedtls.so.23 /app/lib/libmbedtls.so.23
+COPY ./zig-out/x86_64-musl/lib/libmbedx509.so.9 /app/lib/libmbedx509.so.9
+COPY ./zig-out/x86_64-musl/lib/libmbedcrypto.so.18 /app/lib/libmbedcrypto.so.18
+COPY ./zig-out/x86_64-musl/lib/libtfpsacrypto.so.2 /app/lib/libtfpsacrypto.so.2
+RUN chmod +x /app/ptah && chmod 644 /app/lib/*.so.* && chown -R 1000:1000 /app
 RUN adduser -D -u 1000 default || true
 USER 1000
 

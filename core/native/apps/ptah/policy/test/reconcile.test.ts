@@ -47,9 +47,9 @@ describe("platform", () => {
 
 		expect(kinds).toEqual([
 			"Certificate/converged-tls",
+			"ConfigMap/converged-domains",
 			"ConfigMap/converged-modules",
 			"ConfigMap/converged-storage-config",
-			"Deployment/converged-cache",
 			"Deployment/converged-centimanus",
 			"Deployment/converged-fujin",
 			"Deployment/converged-services",
@@ -57,7 +57,6 @@ describe("platform", () => {
 			"Deployment/converged-ui",
 			"Gateway/converged",
 			"HTTPRoute/converged",
-			"Service/converged-cache",
 			"Service/converged-centimanus",
 			"Service/converged-fujin",
 			"Service/converged-services",
@@ -65,6 +64,113 @@ describe("platform", () => {
 			"Service/converged-ui",
 		]);
 		expect(status.observedGeneration).toBe(3);
+	});
+
+	test("mono publishes a scope index too, so every profile resolves the same way", () => {
+		const { resources } = reconcile(
+			input({ kind: "Platform", object: platform("mono") }),
+		);
+		const index = JSON.parse(
+			dataOf(find(resources, "ConfigMap", "converged-domains"))
+				.STORAGE_TENANT_SERVICES,
+		);
+		expect(index).toEqual({
+			converged: "converged-storage.converged.svc.cluster.local:9000",
+			"*": "converged-storage.converged.svc.cluster.local:9000",
+		});
+	});
+
+	test("stateless pods get the fujin route and their storage scope", () => {
+		const { resources } = reconcile(
+			input({ kind: "Platform", object: platform("mono") }),
+		);
+		const envOf = (name: string) =>
+			Object.fromEntries(
+				specOf<{
+					template: {
+						spec: { containers: { env: { name: string; value: string }[] }[] };
+					};
+				}>(resources, "Deployment", name).template.spec.containers[0].env.map(
+					(e) => [e.name, e.value],
+				),
+			);
+		// Relative: under cloud the hostname belongs to the tenant, so there is
+		// no absolute URL that would be right everywhere.
+		expect(envOf("converged-ui").FUJIN_WS_URL).toBe("/ws");
+		expect(envOf("converged-ui").FUJIN_TARGET).toBe("ui");
+		expect(envOf("converged-services").FUJIN_TARGET).toBe("services");
+		expect(envOf("converged-ui").STORAGE_SCOPE).toBe("converged");
+		expect(envOf("converged-services").STORAGE_SCOPE).toBe("converged");
+		// The Secret is a dump of a .env file and carries a developer's path;
+		// an explicit value is what keeps it out.
+		expect(envOf("converged-services").DATA_DIR).toBe("/app/data");
+
+		// Under cloud the scope is per request. SSR still needs a startup
+		// fallback, but ms must not be pinned or it would answer for the wrong
+		// tenant whenever a header went missing.
+		const cloud = reconcile(
+			input({ kind: "Platform", object: platform("cloud") }),
+		).resources;
+		const envIn = (name: string) =>
+			specOf<{
+				template: {
+					spec: { containers: { env: { name: string; value: string }[] }[] };
+				};
+			}>(cloud, "Deployment", name).template.spec.containers[0].env;
+		expect(envIn("converged-ui").some((e) => e.name === "STORAGE_SCOPE")).toBe(true);
+		expect(envIn("converged-services").some((e) => e.name === "STORAGE_SCOPE")).toBe(false);
+	});
+
+	test("the cache is behemoth's, not a workload of its own", () => {
+		const { resources } = reconcile(
+			input({ kind: "Platform", object: platform("mono") }),
+		);
+		// Behemoth runs valkey in-process. A separate cache Deployment would be
+		// a second, empty cache that nothing writes to.
+		expect(resources.some((r) => r.metadata.name.endsWith("-cache"))).toBe(false);
+
+		const storage = specOf<{
+			template: { spec: { containers: { args: string[]; command: string[] }[] } };
+		}>(resources, "Deployment", "converged-storage");
+		expect(storage.template.spec.containers[0].args).toContain("0.0.0.0:6379");
+		// Without an explicit command the args would replace the image's CMD
+		// and the runtime would try to exec "start".
+		expect(storage.template.spec.containers[0].command).toEqual(["/app/storage"]);
+
+		const svc = specOf<{ ports: { name: string; port: number }[] }>(
+			resources,
+			"Service",
+			"converged-storage",
+		);
+		expect(svc.ports.map((p) => p.name)).toEqual(["storage", "cache"]);
+
+		const envOf = (name: string) =>
+			Object.fromEntries(
+				(
+					specOf<{
+						template: {
+							spec: { containers: { env: { name: string; value: string }[] }[] };
+						};
+					}>(resources, "Deployment", name).template.spec.containers[0].env ?? []
+				).map((e) => [e.name, e.value]),
+			);
+		expect(envOf("converged-ui").CACHE_URL).toBe(
+			"redis://converged-storage:6379/0",
+		);
+	});
+
+	test("cloud leaves the cache to each tenant's own behemoth", () => {
+		const { resources } = reconcile(
+			input({ kind: "Platform", object: platform("cloud") }),
+		);
+		const env = specOf<{
+			template: {
+				spec: { containers: { env: { name: string; value: string }[] }[] };
+			};
+		}>(resources, "Deployment", "converged-ui").template.spec.containers[0].env;
+		// No platform-wide cache exists: the shard is per tenant, and the scope
+		// index is what resolves it per request.
+		expect(env.some((e) => e.name === "CACHE_URL")).toBe(false);
 	});
 
 	test("cloud has no shared storage and no catch-all route", () => {
@@ -114,7 +220,11 @@ describe("platform", () => {
 		expect(envOf("converged-centimanus").CENTIMANUS_FUJIN_ZMQ_ENDPOINT).toBe(
 			"tcp://converged-fujin:5557",
 		);
-		expect(envOf("converged-fujin")).toEqual({});
+		// Fujin gets no endpoint — it binds the socket — but it does need the
+		// browser scope, without which it exits at startup.
+		expect(envOf("converged-fujin")).toEqual({
+			FUJIN_BROWSER_SCOPE: "converged",
+		});
 	});
 });
 

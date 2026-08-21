@@ -47,10 +47,6 @@
         "ui": "reg/ui:1",
         "ms": "reg/ms:1"
       },
-      "cache": {
-        "image": "valkey:8.1-alpine",
-        "port": 6379
-      },
       "storage": {
         "image": "reg/behemoth:1",
         "size": "5Gi",
@@ -62,7 +58,8 @@
             "path": "/var/lib/ptah/{{volume}}",
             "type": "DirectoryOrCreate"
           }
-        }
+        },
+        "cachePort": 6379
       },
       "apps": {
         "fujin": {

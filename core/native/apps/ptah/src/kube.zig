@@ -9,6 +9,7 @@
 
 const std = @import("std");
 const Config = @import("config.zig").Config;
+const tls = @import("tls.zig");
 
 pub const field_manager = "ptah";
 
@@ -79,50 +80,32 @@ pub const Client = struct {
     gpa: std.mem.Allocator,
     io: std.Io,
     config: *const Config,
-    http: std.http.Client,
+    tls_ctx: tls.Context,
     auth_header: ?[]u8,
 
     pub fn init(gpa: std.mem.Allocator, io: std.Io, config: *const Config) !Client {
-        var http = std.http.Client{ .allocator = gpa, .io = io };
-        errdefer http.deinit();
+        var client: Client = .{
+            .gpa = gpa,
+            .io = io,
+            .config = config,
+            .tls_ctx = undefined,
+            .auth_header = null,
+        };
+        // The cluster CA is in no system trust store, so it is loaded from the
+        // service account rather than rescanned from the host. A plain-HTTP
+        // server — a local apiserver proxy — has none, and verification is off.
+        try client.tls_ctx.init(config.ca_path);
+        errdefer client.tls_ctx.deinit();
 
-        // Reaching the apiserver directly over TLS does not work today.
-        // Zig's std.crypto.tls.Client has no branch for the TLS 1.3
-        // CertificateRequest message — `certificate_request` exists in
-        // std.crypto.tls as an enum value and is never handled in the client's
-        // handshake state machine. A Kubernetes apiserver sends one whenever
-        // client-certificate authentication is configured, which is the
-        // default, so the handshake ends in error.TlsUnexpectedMessage before
-        // any certificate is even examined. Deployments therefore run an
-        // apiserver proxy alongside ptah and point PTAH_KUBE_SERVER at it.
-        //
-        // The bundle below is still loaded explicitly, because the cluster CA
-        // is in no system trust store, and it is what will be needed the day
-        // the handshake works.
-        //
-        // Setting `now` is what makes that stick. On its first TLS request the
-        // client rescans the system trust store and *swaps out* `ca_bundle`
-        // unless `now` is already set — which would silently discard the
-        // cluster CA loaded here and leave only the public roots, so every
-        // request to the apiserver fails verification with
-        // TlsInitializationFailed while the bundle looks correctly loaded.
-        if (config.ca_path) |ca| {
-            const now = std.Io.Timestamp.now(io, .real);
-            try http.ca_bundle.addCertsFromFilePathAbsolute(gpa, io, now, ca);
-            http.now = now;
+        if (config.token) |token| {
+            client.auth_header = try std.fmt.allocPrint(gpa, "authorization: Bearer {s}", .{token});
         }
-
-        const auth_header = if (config.token) |token|
-            try std.fmt.allocPrint(gpa, "Bearer {s}", .{token})
-        else
-            null;
-
-        return .{ .gpa = gpa, .io = io, .config = config, .http = http, .auth_header = auth_header };
+        return client;
     }
 
     pub fn deinit(self: *Client) void {
         if (self.auth_header) |h| self.gpa.free(h);
-        self.http.deinit();
+        self.tls_ctx.deinit();
         self.* = undefined;
     }
 
@@ -156,31 +139,28 @@ pub const Client = struct {
     fn send(
         self: *Client,
         gpa: std.mem.Allocator,
-        method: std.http.Method,
+        method: []const u8,
         url: []const u8,
         content_type: ?[]const u8,
         body: ?[]const u8,
     ) !Response {
-        var sink = std.Io.Writer.Allocating.init(gpa);
-        defer sink.deinit();
+        var headers: std.ArrayList([]const u8) = .empty;
+        defer headers.deinit(gpa);
+        try headers.append(gpa, "accept: application/json");
+        if (self.auth_header) |h| try headers.append(gpa, h);
 
-        var headers: std.http.Client.Request.Headers = .{};
-        if (self.auth_header) |h| headers.authorization = .{ .override = h };
-        if (content_type) |ct| headers.content_type = .{ .override = ct };
+        var content_type_buf: [128]u8 = undefined;
+        if (content_type) |ct| {
+            try headers.append(gpa, try std.fmt.bufPrint(&content_type_buf, "content-type: {s}", .{ct}));
+        }
 
-        const result = try self.http.fetch(.{
-            .location = .{ .url = url },
+        const response = try tls.fetch(gpa, &self.tls_ctx, .{
             .method = method,
-            .payload = body,
-            .headers = headers,
-            .extra_headers = &.{.{ .name = "accept", .value = "application/json" }},
-            .response_writer = &sink.writer,
+            .url = url,
+            .headers = headers.items,
+            .body = body,
         });
-
-        return .{
-            .status = @intFromEnum(result.status),
-            .body = try gpa.dupe(u8, sink.written()),
-        };
+        return .{ .status = response.status, .body = response.body };
     }
 
     pub fn get(
@@ -192,7 +172,7 @@ pub const Client = struct {
     ) !Response {
         const url = try self.path(gpa, resource, namespace, name);
         defer gpa.free(url);
-        return self.send(gpa, .GET, url, null, null);
+        return self.send(gpa, "GET", url, null, null);
     }
 
     /// List across all namespaces; `selector` is a label selector or "".
@@ -209,7 +189,7 @@ pub const Client = struct {
         else
             try std.fmt.allocPrint(gpa, "{s}?labelSelector={s}", .{ base, selector });
         defer gpa.free(url);
-        return self.send(gpa, .GET, url, null, null);
+        return self.send(gpa, "GET", url, null, null);
     }
 
     /// Server-side apply. `force` takes ownership of fields another manager
@@ -231,7 +211,7 @@ pub const Client = struct {
             .{ base, field_manager },
         );
         defer gpa.free(url);
-        return self.send(gpa, .PATCH, url, apply_content_type, body);
+        return self.send(gpa, "PATCH", url, apply_content_type, body);
     }
 
     /// Status lives on its own subresource, so it is a separate merge patch;
@@ -249,7 +229,7 @@ pub const Client = struct {
         defer gpa.free(base);
         const url = try std.fmt.allocPrint(gpa, "{s}/status?fieldManager={s}", .{ base, field_manager });
         defer gpa.free(url);
-        return self.send(gpa, .PATCH, url, merge_content_type, body);
+        return self.send(gpa, "PATCH", url, merge_content_type, body);
     }
 
     pub fn remove(
@@ -261,7 +241,7 @@ pub const Client = struct {
     ) !Response {
         const url = try self.path(gpa, resource, namespace, name);
         defer gpa.free(url);
-        return self.send(gpa, .DELETE, url, null, null);
+        return self.send(gpa, "DELETE", url, null, null);
     }
 
     pub fn create(
@@ -273,6 +253,6 @@ pub const Client = struct {
     ) !Response {
         const url = try self.path(gpa, resource, namespace, null);
         defer gpa.free(url);
-        return self.send(gpa, .POST, url, "application/json", body);
+        return self.send(gpa, "POST", url, "application/json", body);
     }
 };

@@ -48,7 +48,6 @@ export function selector(
 
 export const ui = (platform: string) => `${platform}-ui`;
 export const services = (platform: string) => `${platform}-services`;
-export const cache = (platform: string) => `${platform}-cache`;
 export const app = (platform: string, name: string) => `${platform}-${name}`;
 export const modulesConfigMap = (platform: string) => `${platform}-modules`;
 export const domainsConfigMap = (platform: string) => `${platform}-domains`;

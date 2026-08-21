@@ -4,6 +4,10 @@ const OptimizeMode = std.builtin.OptimizeMode;
 
 /// The QuickJS wrapper lives beside us under navite/wrappers.
 const qjs_wrapper_dir = "../../wrappers/rt/qjs";
+/// mbedTLS, for the apiserver connection. See the note at the top of tls.zig:
+/// Zig's own TLS client cannot complete a handshake with a Kubernetes
+/// apiserver, so the HTTPS transport is built on this instead.
+const mbedtls_wrapper_dir = "../../wrappers/protocols/mbedtls";
 
 fn qjsTargetTriple(b: *Build, target: Build.ResolvedTarget) []const u8 {
     const arch = switch (target.result.cpu.arch) {
@@ -95,6 +99,61 @@ fn linkQjs(
     return lib_dir;
 }
 
+/// Build mbedTLS for `target`, link it, and install its libraries next to the
+/// executable. The wrapper drives an upstream CMake build, so its headers land
+/// in the wrapper's own cache rather than under the install prefix — both
+/// paths are added here.
+fn linkMbedtls(
+    b: *Build,
+    compile: *Build.Step.Compile,
+    target: Build.ResolvedTarget,
+    optimize: OptimizeMode,
+) []const u8 {
+    const target_str = targetString(target);
+    const install_dir = b.fmt("../../../apps/ptah/.zig-cache/mbedtls/{s}", .{target_str});
+    const lib_dir = b.fmt(".zig-cache/mbedtls/{s}/lib", .{target_str});
+    const include_dir = b.fmt(
+        "{s}/.zig-cache/mbedtls/{s}/{s}/install/include",
+        .{ mbedtls_wrapper_dir, target_str, if (optimize == .Debug) "Debug" else "Release" },
+    );
+
+    const wrapper = b.addSystemCommand(&.{
+        b.graph.zig_exe,
+        "build",
+        b.fmt("-Dtarget={s}", .{qjsTargetTriple(b, target)}),
+        b.fmt("-Doptimize={s}", .{@tagName(optimize)}),
+        "--prefix",
+        install_dir,
+    });
+    wrapper.setCwd(b.path(mbedtls_wrapper_dir));
+    wrapper.setName("build mbedTLS wrapper");
+
+    compile.step.dependOn(&wrapper.step);
+    compile.root_module.addIncludePath(b.path(include_dir));
+    compile.root_module.addLibraryPath(.{ .cwd_relative = lib_dir });
+    compile.root_module.linkSystemLibrary("mbedtls", .{});
+    compile.root_module.linkSystemLibrary("mbedx509", .{});
+    compile.root_module.linkSystemLibrary("mbedcrypto", .{});
+    compile.root_module.link_libc = true;
+
+    // The sonames are what the loader actually asks for at run time.
+    for ([_][]const u8{
+        "libmbedtls.so.23",
+        "libmbedx509.so.9",
+        "libmbedcrypto.so.18",
+        "libtfpsacrypto.so.2",
+    }) |name| {
+        const install = b.addInstallFileWithDir(
+            .{ .cwd_relative = b.fmt("{s}/{s}", .{ lib_dir, name }) },
+            .lib,
+            name,
+        );
+        install.step.dependOn(&wrapper.step);
+        b.getInstallStep().dependOn(&install.step);
+    }
+    return lib_dir;
+}
+
 pub fn build(b: *Build) void {
     const requested = b.standardTargetOptions(.{});
     const host = b.graph.host.result;
@@ -122,6 +181,7 @@ pub fn build(b: *Build) void {
     });
     exe.root_module.addAnonymousImport("policy.js", .{ .root_source_file = policy_js });
     _ = linkQjs(b, exe, target, optimize);
+    _ = linkMbedtls(b, exe, target, optimize);
     b.installArtifact(exe);
 
     const run_cmd = b.addRunArtifact(exe);
@@ -139,10 +199,11 @@ pub fn build(b: *Build) void {
     });
     tests.root_module.addAnonymousImport("policy.js", .{ .root_source_file = policy_js });
     const test_lib_dir = linkQjs(b, tests, target, optimize);
+    const test_tls_lib_dir = linkMbedtls(b, tests, target, optimize);
     const run_tests = b.addRunArtifact(tests);
     run_tests.setEnvironmentVariable(
         "LD_LIBRARY_PATH",
-        b.pathFromRoot(test_lib_dir),
+        b.fmt("{s}:{s}", .{ b.pathFromRoot(test_lib_dir), b.pathFromRoot(test_tls_lib_dir) }),
     );
     const test_step = b.step("test", "Run ptah unit tests");
     test_step.dependOn(&run_tests.step);

@@ -4,14 +4,28 @@
     {
       "apiVersion": "ptah.io/v1alpha1",
       "kind": "Solution",
-      "metadata": { "name": "requests" },
+      "metadata": {
+        "name": "requests"
+      },
       "spec": {
         "platform": "converged",
-        "microservices": ["files", "store", "requests"],
-        "microfrontends": ["requests"],
-        "processors": ["curaengine", "opencamlib"],
+        "microservices": [
+          "files",
+          "store",
+          "requests"
+        ],
+        "microfrontends": [
+          "requests"
+        ],
+        "processors": [
+          "curaengine",
+          "opencamlib"
+        ],
         "workflows": [
-          { "name": "wf-file-analysis", "script": "workflows/wf-file-analysis.js" }
+          {
+            "name": "wf-file-analysis",
+            "script": "workflows/wf-file-analysis.js"
+          }
         ]
       }
     }
@@ -20,7 +34,10 @@
   "object": {
     "apiVersion": "ptah.io/v1alpha1",
     "kind": "Platform",
-    "metadata": { "name": "converged", "generation": 1 },
+    "metadata": {
+      "name": "converged",
+      "generation": 1
+    },
     "spec": {
       "profile": "multi",
       "namespace": "converged",
@@ -36,7 +53,6 @@
         "revision": "2026-08-21",
         "cacheSize": "4Gi"
       },
-      "cache": { "image": "docker.io/valkey/valkey:8.1-alpine", "port": 6379 },
       "storage": {
         "image": "public.ecr.aws/i5x9u8b2/behemoth:latest",
         "size": "20Gi",
@@ -44,23 +60,44 @@
         "mountBase": "/app/data",
         "storageClassName": "local-path",
         "volumeSource": {
-          "hostPath": { "path": "/var/lib/ptah/{{volume}}", "type": "DirectoryOrCreate" }
-        }
+          "hostPath": {
+            "path": "/var/lib/ptah/{{volume}}",
+            "type": "DirectoryOrCreate"
+          }
+        },
+        "cachePort": 6379
       },
       "shards": [
-        { "name": "alpha", "scopes": ["acme", "globex"], "size": "50Gi" },
-        { "name": "rest", "scopes": ["*"] }
+        {
+          "name": "alpha",
+          "scopes": [
+            "acme",
+            "globex"
+          ],
+          "size": "50Gi"
+        },
+        {
+          "name": "rest",
+          "scopes": [
+            "*"
+          ]
+        }
       ],
       "apps": {
         "fujin": {
           "image": "public.ecr.aws/i5x9u8b2/fujin:latest",
-          "ports": { "ws": 8087, "zmq": 5557 }
+          "ports": {
+            "ws": 8087,
+            "zmq": 5557
+          }
         },
         "centimanus": {
           "image": "public.ecr.aws/i5x9u8b2/centimanus:latest",
           "fujinTarget": "centimanus",
           "fujinEndpointEnv": "CENTIMANUS_FUJIN_ZMQ_ENDPOINT",
-          "ports": { "http": 9000 }
+          "ports": {
+            "http": 9000
+          }
         },
         "resonus": {
           "image": "public.ecr.aws/i5x9u8b2/resonus:latest",
@@ -82,12 +119,17 @@
       },
       "gateway": {
         "className": "traefik",
-        "hosts": ["*.4ir.club"],
+        "hosts": [
+          "*.4ir.club"
+        ],
         "tls": {
           "secretName": "4ir-club-tls",
           "issuer": "4ir-club-cluster-issuer",
           "issuerKind": "ClusterIssuer",
-          "dnsNames": ["4ir.club", "*.4ir.club"]
+          "dnsNames": [
+            "4ir.club",
+            "*.4ir.club"
+          ]
         }
       }
     }

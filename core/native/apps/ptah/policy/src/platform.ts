@@ -11,7 +11,12 @@
 import { buildExtras } from "./extras.ts";
 import * as k8s from "./k8s/index.ts";
 import * as n from "./names.ts";
-import { resolveShards, shardIndex, shardResources } from "./shards.ts";
+import {
+	CATCH_ALL,
+	resolveShards,
+	shardIndex,
+	shardResources,
+} from "./shards.ts";
 import {
 	DEFAULT_CACHE_DIR,
 	mergeSolutions,
@@ -40,18 +45,46 @@ function fujinEndpoint(platform: string, spec: PlatformSpec): string {
 	return `tcp://${n.app(platform, "fujin")}:${zmq}`;
 }
 
+/**
+ * The behemoth whose in-process valkey the stateless pods use, or null when
+ * there is no single one — the cloud profile has a shard per tenant, and the
+ * scope index is what resolves it per request.
+ */
+function cacheHostOf(platform: string, spec: PlatformSpec): string | null {
+	if (spec.profile === "mono") return n.monoStorage(platform);
+	if (spec.profile === "multi") {
+		const shards = resolveShards(platform, spec);
+		const catchAll = shards.find((shard) => shard.catchAll);
+		return catchAll ? catchAll.resourceName : null;
+	}
+	return null;
+}
+
 function baseEnv(
 	platform: string,
 	spec: PlatformSpec,
 	port: number,
 	extra: Record<string, string>,
 ): Record<string, string> {
+	const cacheHost = cacheHostOf(platform, spec);
 	return {
 		NODE_ENV: "production",
 		PORT: String(port),
 		PLATFORM: platform,
 		PLATFORM_PROFILE: spec.profile,
-		CACHE_URL: `redis://${n.cache(platform)}:${spec.cache.port}/0`,
+		// Relative on purpose. The browser reaches fujin through the same
+		// gateway that served the page, and under `cloud` that hostname is the
+		// tenant's — there is no one absolute URL to hand out.
+		FUJIN_WS_URL: "/ws",
+		STORAGE_VALKEY_PORT: String(spec.storage.cachePort),
+		// Set explicitly because the platform Secret is a dump of a `.env` file
+		// and carries a developer's DATA_DIR. Container env wins over envFrom,
+		// so stating it here is what keeps that path out of the cluster.
+		DATA_DIR: "/app/data",
+		// Behemoth runs valkey in-process; there is no separate cache to
+		// deploy or address. In cloud the shard is per tenant and resolved from
+		// the scope index at request time, so no platform-wide URL exists.
+		...(cacheHost ? { CACHE_URL: `redis://${cacheHost}:${spec.storage.cachePort}/0` } : {}),
 		FUJIN_ZMQ_ENDPOINT: fujinEndpoint(platform, spec),
 		...registryData(spec.registry),
 		...(spec.env ?? {}),
@@ -90,7 +123,13 @@ function nativeApp(
 		port,
 	}));
 
-	const env: Record<string, string> = { ...(app.env ?? {}) };
+	const env: Record<string, string> = {
+		// Fujin refuses to start without a browser scope, and the value is a
+		// property of the platform rather than of the image. Seeded before
+		// `app.env` so a platform can still override it.
+		...(name === "fujin" ? { FUJIN_BROWSER_SCOPE: platform } : {}),
+		...(app.env ?? {}),
+	};
 	// Fujin itself binds the socket; its peers are told where to dial.
 	if (name !== "fujin" && app.fujinEndpointEnv) {
 		env[app.fujinEndpointEnv] = fujinEndpoint(platform, spec);
@@ -171,31 +210,6 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 		),
 	);
 
-	// Valkey: shared cache, no persistence — it is a cache, losing it is a
-	// cold start and not a data loss.
-	const cacheLabels = n.labels(platform, "cache", owner);
-	const cacheSelector = n.selector(platform, "cache");
-	resources.push(
-		k8s.deployment({
-			name: n.cache(platform),
-			namespace: spec.namespace,
-			labels: cacheLabels,
-			selector: cacheSelector,
-			replicas: 1,
-			containers: [
-				{
-					name: "valkey",
-					image: spec.cache.image,
-					ports: [{ name: "redis", port: spec.cache.port }],
-					resources: spec.cache.resources,
-				},
-			],
-		}),
-		k8s.service(n.cache(platform), spec.namespace, cacheLabels, cacheSelector, [
-			{ name: "redis", port: spec.cache.port },
-		]),
-	);
-
 	for (const [name, app] of Object.entries(spec.apps)) {
 		resources.push(...nativeApp(platform, spec, owner, name, app, rollout));
 	}
@@ -237,9 +251,21 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 					image: spec.images.ui,
 					env: baseEnv(platform, spec, UI_PORT, {
 						...solutionEnv,
+						FUJIN_TARGET: "ui",
+						// A fallback, not a pin: the per-request scope arrives in the
+						// edge headers. SSR still needs one at startup for the assets
+						// it serves before any request has been seen.
+						STORAGE_SCOPE: platform,
+						// The scope the server-rendered shell hands the browser, and
+						// the same one fujin registers connections under.
+						FUJIN_BROWSER_SCOPE: platform,
 						FRONTEND_MODULES: JSON.stringify(merged.microfrontends),
 						SERVICES_BASE: `http://${n.services(platform)}:80/services`,
 					}),
+					// The scope index is a ConfigMap because it changes as tenants
+					// come and go, and a pod should pick that up on restart rather
+					// than on a policy edit.
+					envFromConfigMap: n.domainsConfigMap(platform),
 					envFromSecret: spec.secretName,
 					ports: [{ name: "http", port: UI_PORT }],
 					resources: spec.resources?.ui,
@@ -270,8 +296,14 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 					image: spec.images.ms,
 					env: baseEnv(platform, spec, MS_PORT, {
 						...solutionEnv,
+						FUJIN_TARGET: "services",
+						// Only mono has one scope for every request. Multi splits by
+						// scope and cloud takes it from the edge headers, so pinning
+						// one here would override what the request actually carries.
+						...(spec.profile === "mono" ? { STORAGE_SCOPE: platform } : {}),
 						MICROSERVICES: JSON.stringify(merged.microservices),
 					}),
+					envFromConfigMap: n.domainsConfigMap(platform),
 					envFromSecret: spec.secretName,
 					ports: [{ name: "http", port: MS_PORT }],
 					resources: spec.resources?.ms,
@@ -330,6 +362,17 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 				storage: spec.storage,
 				fujinEndpoint: fujinEndpoint(platform, spec),
 			}),
+			// One scope, one shard — but the index is published all the same, so
+			// ui and ms resolve their storage the same way in every profile and
+			// the ConfigMap they read from always exists.
+			shardIndex(platform, spec, owner, [
+				{
+					name: platform,
+					scopes: [platform, CATCH_ALL],
+					resourceName: n.monoStorage(platform),
+					catchAll: true,
+				},
+			]),
 		);
 	} else if (spec.profile === "multi") {
 		const shards = resolveShards(platform, spec);

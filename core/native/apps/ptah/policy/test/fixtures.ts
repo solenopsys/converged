@@ -14,11 +14,11 @@ export function platform(
 			domainBase: "4ir.club",
 			secretName: "converged-secrets",
 			images: { ui: "reg/ui:1", ms: "reg/ms:1" },
-			cache: { image: "valkey:8.1-alpine", port: 6379 },
 			storage: {
 				image: "reg/behemoth:1",
 				size: "5Gi",
 				port: 9000,
+				cachePort: 6379,
 				mountBase: "/app/data",
 				storageClassName: "local-path",
 				volumeSource: {

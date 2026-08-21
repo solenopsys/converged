@@ -11,10 +11,14 @@
 **/.turbo
 **/.next
 
-# Build caches and vendored native sources. The wrappers' vendor trees are
-# hundreds of megabytes and nothing in a ui or ms image reads them.
+# Vendored native sources: hundreds of megabytes of upstream trees that no ui
+# or ms code path reads.
 converged/core/native/wrappers/*/*/vendor
-converged/core/native/wrappers/artifacts
+
+# `wrappers/artifacts/libs` is deliberately NOT excluded. The per-package
+# bin-libs directories are symlinks into it, so dropping it leaves those links
+# dangling and the image build fails on a copy rather than at run time. It is
+# 11 MB of content-addressed shared objects.
 
 # Local state and secrets. `confs/` holds real credentials; the platform
 # supplies them from a Secret at runtime.
