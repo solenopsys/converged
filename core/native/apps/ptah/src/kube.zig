@@ -86,11 +86,30 @@ pub const Client = struct {
         var http = std.http.Client{ .allocator = gpa, .io = io };
         errdefer http.deinit();
 
-        // The apiserver is signed by the cluster CA, which is not in any
-        // system trust store, so the bundle is loaded explicitly rather than
-        // rescanned from the host.
+        // Reaching the apiserver directly over TLS does not work today.
+        // Zig's std.crypto.tls.Client has no branch for the TLS 1.3
+        // CertificateRequest message — `certificate_request` exists in
+        // std.crypto.tls as an enum value and is never handled in the client's
+        // handshake state machine. A Kubernetes apiserver sends one whenever
+        // client-certificate authentication is configured, which is the
+        // default, so the handshake ends in error.TlsUnexpectedMessage before
+        // any certificate is even examined. Deployments therefore run an
+        // apiserver proxy alongside ptah and point PTAH_KUBE_SERVER at it.
+        //
+        // The bundle below is still loaded explicitly, because the cluster CA
+        // is in no system trust store, and it is what will be needed the day
+        // the handshake works.
+        //
+        // Setting `now` is what makes that stick. On its first TLS request the
+        // client rescans the system trust store and *swaps out* `ca_bundle`
+        // unless `now` is already set — which would silently discard the
+        // cluster CA loaded here and leave only the public roots, so every
+        // request to the apiserver fails verification with
+        // TlsInitializationFailed while the bundle looks correctly loaded.
         if (config.ca_path) |ca| {
-            try http.ca_bundle.addCertsFromFilePathAbsolute(gpa, io, std.Io.Timestamp.now(io, .real), ca);
+            const now = std.Io.Timestamp.now(io, .real);
+            try http.ca_bundle.addCertsFromFilePathAbsolute(gpa, io, now, ca);
+            http.now = now;
         }
 
         const auth_header = if (config.token) |token|

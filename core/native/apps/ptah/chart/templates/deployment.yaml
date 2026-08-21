@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ptah.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ptah.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "ptah.selectorLabels" . | nindent 6 }}
+  {{- if gt (int .Values.replicaCount) 1 }}
+  {{- if not .Values.leaderElection }}
+  {{- fail "replicaCount above 1 requires leaderElection: true, or every replica reconciles the cluster at once" }}
+  {{- end }}
+  {{- end }}
+  strategy:
+    # Two reconcilers must not overlap. With the lease the second one would
+    # only wait, and without it they would fight; either way, stopping the old
+    # pod before starting the new one is the honest hand-off.
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        {{- include "ptah.selectorLabels" . | nindent 8 }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "ptah.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      # A reconcile pass runs to completion; killing it mid-apply is what
+      # leaves half a platform behind. Ptah stops between passes on SIGTERM.
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: ptah
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["run"]
+          env:
+            - name: PTAH_RESYNC_MS
+              value: {{ mul .Values.resyncSeconds 1000 | quote }}
+            - name: PTAH_LEADER_ELECTION
+              value: {{ ternary "on" "off" .Values.leaderElection | quote }}
+            # The lease holder id has to be unique per pod, and the pod name is
+            # the only identifier that already is.
+            - name: PTAH_IDENTITY
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          {{- if .Values.apiProxy.enabled }}
+            # Through the sidecar rather than straight to the apiserver. See
+            # the comment on the proxy container below.
+            - name: PTAH_KUBE_SERVER
+              value: "http://127.0.0.1:{{ .Values.apiProxy.port }}"
+            - name: PTAH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        {{- if .Values.apiProxy.enabled }}
+        # Ptah cannot speak TLS to the apiserver: Zig's TLS client has no
+        # handler for the TLS 1.3 CertificateRequest message, and a Kubernetes
+        # apiserver sends one whenever client-certificate authentication is
+        # enabled — which is the default. The handshake fails with
+        # TlsUnexpectedMessage before certificates are even considered, so no
+        # CA or hostname configuration can work around it.
+        #
+        # This sidecar terminates that TLS with a client that does support it
+        # and re-exposes the API on loopback. It listens on 127.0.0.1 only, so
+        # the unauthenticated endpoint never leaves the pod, and it
+        # authenticates with the same ServiceAccount — ptah gains no
+        # permissions it did not already have.
+        - name: apiserver-proxy
+          image: {{ .Values.apiProxy.image }}
+          imagePullPolicy: {{ .Values.apiProxy.pullPolicy }}
+          args:
+            - proxy
+            - --address=127.0.0.1
+            - --port={{ .Values.apiProxy.port }}
+            - --accept-hosts=^localhost$,^127\.0\.0\.1$
+          {{- with .Values.apiProxy.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

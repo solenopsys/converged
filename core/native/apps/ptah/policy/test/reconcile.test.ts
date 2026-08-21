@@ -2,9 +2,19 @@ import { describe, expect, test } from "bun:test";
 import { reconcile } from "../src/index.ts";
 import { ANNOTATION_MODULES } from "../src/names.ts";
 import type { KubeObject, ReconcileInput } from "../src/types.ts";
-import { find, platform, solution, tenant } from "./fixtures.ts";
+import {
+	find,
+	platform,
+	registry,
+	sharded,
+	solution,
+	specOf,
+	tenant,
+} from "./fixtures.ts";
 
-function input(over: Partial<ReconcileInput> & Pick<ReconcileInput, "kind" | "object">): ReconcileInput {
+function input(
+	over: Partial<ReconcileInput> & Pick<ReconcileInput, "kind" | "object">,
+): ReconcileInput {
 	return { solutions: [], tenants: [], ...over };
 }
 
@@ -22,7 +32,9 @@ function dataOf(object: KubeObject | undefined): Record<string, string> {
 }
 
 function annotationsOf(object: KubeObject | undefined): Record<string, string> {
-	const spec = object?.spec as { template?: { metadata?: { annotations?: Record<string, string> } } };
+	const spec = object?.spec as {
+		template?: { metadata?: { annotations?: Record<string, string> } };
+	};
 	return spec?.template?.metadata?.annotations ?? {};
 }
 
@@ -71,8 +83,12 @@ describe("platform", () => {
 		const { resources } = reconcile(
 			input({ kind: "Platform", object: platform("mono") }),
 		);
-		const svc = find(resources, "Service", "converged-fujin");
-		expect((svc?.spec as { ports: unknown[] }).ports).toEqual([
+		const svc = specOf<{ ports: unknown[] }>(
+			resources,
+			"Service",
+			"converged-fujin",
+		);
+		expect(svc.ports).toEqual([
 			{ name: "ws", port: 80, targetPort: 8087, protocol: "TCP" },
 			{ name: "zmq", port: 5557, targetPort: 5557, protocol: "TCP" },
 		]);
@@ -84,10 +100,15 @@ describe("platform", () => {
 		);
 		const envOf = (name: string) => {
 			const spec = find(resources, "Deployment", name)?.spec as {
-				template: { spec: { containers: { env?: { name: string; value: string }[] }[] } };
+				template: {
+					spec: { containers: { env?: { name: string; value: string }[] }[] };
+				};
 			};
 			return Object.fromEntries(
-				(spec.template.spec.containers[0].env ?? []).map((e) => [e.name, e.value]),
+				(spec.template.spec.containers[0].env ?? []).map((e) => [
+					e.name,
+					e.value,
+				]),
 			);
 		};
 		expect(envOf("converged-centimanus").CENTIMANUS_FUJIN_ZMQ_ENDPOINT).toBe(
@@ -101,7 +122,10 @@ describe("solutions", () => {
 	test("merge into the module map and stamp a rollout digest", () => {
 		const solutions = [
 			solution("cnc", { microservices: ["geo"], microfrontends: ["geo"] }),
-			solution("sales", { microservices: ["sales", "geo"], microfrontends: ["sales"] }),
+			solution("sales", {
+				microservices: ["sales", "geo"],
+				microfrontends: ["sales"],
+			}),
 		];
 		const { resources } = reconcile(
 			input({ kind: "Platform", object: platform("mono"), solutions }),
@@ -113,7 +137,9 @@ describe("solutions", () => {
 		expect(JSON.parse(data.MICROSERVICES)).toEqual(["geo", "sales"]);
 		expect(JSON.parse(data.FRONTEND_MODULES)).toEqual(["geo", "sales"]);
 
-		const stamp = annotationsOf(find(resources, "Deployment", "converged-ui"))[ANNOTATION_MODULES];
+		const stamp = annotationsOf(find(resources, "Deployment", "converged-ui"))[
+			ANNOTATION_MODULES
+		];
 		expect(stamp).toMatch(/^[0-9a-f]{8}$/);
 	});
 
@@ -122,12 +148,19 @@ describe("solutions", () => {
 			const { resources } = reconcile(
 				input({ kind: "Platform", object: platform("mono"), solutions }),
 			);
-			return annotationsOf(find(resources, "Deployment", "converged-services"))[ANNOTATION_MODULES];
+			return annotationsOf(find(resources, "Deployment", "converged-services"))[
+				ANNOTATION_MODULES
+			];
 		};
 
 		const base = digestFor([solution("cnc")]);
 		expect(digestFor([solution("cnc")])).toBe(base);
-		expect(digestFor([solution("cnc"), solution("extra", { microservices: ["billing"] })])).not.toBe(base);
+		expect(
+			digestFor([
+				solution("cnc"),
+				solution("extra", { microservices: ["billing"] }),
+			]),
+		).not.toBe(base);
 	});
 
 	test("a disabled solution contributes nothing", () => {
@@ -156,24 +189,37 @@ describe("solutions", () => {
 describe("tenant", () => {
 	test("emits a storage shard, scope middleware and host routes", () => {
 		const { resources, status } = reconcile(
-			input({ kind: "Tenant", object: tenant("democnc"), platform: platform("cloud") }),
+			input({
+				kind: "Tenant",
+				object: tenant("democnc"),
+				platform: platform("cloud"),
+			}),
 		);
-		expect(resources.map((r) => `${r.kind}/${r.metadata.name}`).sort()).toEqual([
-			"ConfigMap/converged-storage-democnc-config",
-			"Deployment/converged-storage-democnc",
-			"HTTPRoute/converged-tenant-democnc",
-			"Service/converged-storage-democnc",
-		]);
+		expect(resources.map((r) => `${r.kind}/${r.metadata.name}`).sort()).toEqual(
+			[
+				"ConfigMap/converged-storage-democnc-config",
+				"Deployment/converged-storage-democnc",
+				"HTTPRoute/converged-tenant-democnc",
+				"Service/converged-storage-democnc",
+			],
+		);
 		expect(status.ready).toBe(true);
 		expect(status.domains).toEqual(["democnc.4ir.club"]);
 	});
 
 	test("the scope header is forced on every rule, so a client cannot spoof it", () => {
 		const { resources } = reconcile(
-			input({ kind: "Tenant", object: tenant("democnc"), platform: platform("cloud") }),
+			input({
+				kind: "Tenant",
+				object: tenant("democnc"),
+				platform: platform("cloud"),
+			}),
 		);
-		const route = find(resources, "HTTPRoute", "converged-tenant-democnc");
-		const rules = (route?.spec as { rules: RouteRuleShape[] }).rules;
+		const { rules } = specOf<{ rules: RouteRuleShape[] }>(
+			resources,
+			"HTTPRoute",
+			"converged-tenant-democnc",
+		);
 		expect(rules).toHaveLength(2);
 		for (const rule of rules) {
 			// `set`, not `add`: an inbound x-storage-scope is overwritten.
@@ -187,11 +233,20 @@ describe("tenant", () => {
 
 	test("the tenant route attaches to the platform gateway", () => {
 		const { resources } = reconcile(
-			input({ kind: "Tenant", object: tenant("democnc"), platform: platform("cloud") }),
+			input({
+				kind: "Tenant",
+				object: tenant("democnc"),
+				platform: platform("cloud"),
+			}),
 		);
 		const route = find(resources, "HTTPRoute", "converged-tenant-democnc");
-		const spec = route?.spec as { parentRefs: { name: string; namespace: string }[]; hostnames: string[] };
-		expect(spec.parentRefs).toEqual([{ name: "converged", namespace: "converged" }]);
+		const spec = route?.spec as {
+			parentRefs: { name: string; namespace: string }[];
+			hostnames: string[];
+		};
+		expect(spec.parentRefs).toEqual([
+			{ name: "converged", namespace: "converged" },
+		]);
 		expect(spec.hostnames).toEqual(["democnc.4ir.club"]);
 	});
 
@@ -199,7 +254,9 @@ describe("tenant", () => {
 		const { status } = reconcile(
 			input({
 				kind: "Tenant",
-				object: tenant("democnc", { domains: ["Shop.example.com", "democnc.4ir.club"] }),
+				object: tenant("democnc", {
+					domains: ["Shop.example.com", "democnc.4ir.club"],
+				}),
 				platform: platform("cloud"),
 			}),
 		);
@@ -207,7 +264,9 @@ describe("tenant", () => {
 	});
 
 	test("a missing platform requeues instead of pruning the tenant's objects", () => {
-		const output = reconcile(input({ kind: "Tenant", object: tenant("democnc") }));
+		const output = reconcile(
+			input({ kind: "Tenant", object: tenant("democnc") }),
+		);
 		expect(output.resources).toEqual([]);
 		expect(output.status.ready).toBe(false);
 		expect(output.requeueAfter).toBeGreaterThan(0);
@@ -215,12 +274,21 @@ describe("tenant", () => {
 
 	test("a tenant on a mono platform is a configuration error", () => {
 		expect(() =>
-			reconcile(input({ kind: "Tenant", object: tenant("democnc"), platform: platform("mono") })),
+			reconcile(
+				input({
+					kind: "Tenant",
+					object: tenant("democnc"),
+					platform: platform("mono"),
+				}),
+			),
 		).toThrow(/require cloud/);
 	});
 
 	test("tenants narrow the platform's solutions to their own subscription", () => {
-		const solutions = [solution("cnc"), solution("sales", { microservices: ["sales"] })];
+		const solutions = [
+			solution("cnc"),
+			solution("sales", { microservices: ["sales"] }),
+		];
 		const { status } = reconcile(
 			input({
 				kind: "Tenant",
@@ -251,12 +319,23 @@ describe("tenant", () => {
 describe("ownership", () => {
 	test("every emitted object carries the prune selector", () => {
 		const all = [
-			...reconcile(input({ kind: "Platform", object: platform("mono") })).resources,
-			...reconcile(input({ kind: "Tenant", object: tenant("t1"), platform: platform("cloud") })).resources,
+			...reconcile(input({ kind: "Platform", object: platform("mono") }))
+				.resources,
+			...reconcile(
+				input({
+					kind: "Tenant",
+					object: tenant("t1"),
+					platform: platform("cloud"),
+				}),
+			).resources,
 		];
 		for (const resource of all) {
-			expect(resource.metadata.labels?.["app.kubernetes.io/managed-by"]).toBe("ptah");
-			expect(resource.metadata.labels?.["ptah.io/owner"]).toMatch(/^(platform|tenant)\./);
+			expect(resource.metadata.labels?.["app.kubernetes.io/managed-by"]).toBe(
+				"ptah",
+			);
+			expect(resource.metadata.labels?.["ptah.io/owner"]).toMatch(
+				/^(platform|tenant)\./,
+			);
 		}
 	});
 });
@@ -267,7 +346,9 @@ describe("storage", () => {
 			input({
 				kind: "Platform",
 				object: platform("mono"),
-				solutions: [solution("suite", { microservices: ["billing", "geo", "billing"] })],
+				solutions: [
+					solution("suite", { microservices: ["billing", "geo", "billing"] }),
+				],
 			}),
 		);
 
@@ -279,14 +360,21 @@ describe("storage", () => {
 			.filter((resource) => resource.kind === "PersistentVolumeClaim")
 			.map((resource) => resource.metadata.name)
 			.sort();
-		expect(pvNames).toEqual(["converged-storage-billing", "converged-storage-geo"]);
+		expect(pvNames).toEqual([
+			"converged-storage-billing",
+			"converged-storage-geo",
+		]);
 		expect(pvcNames).toEqual(pvNames);
 
-		const config = dataOf(find(resources, "ConfigMap", "converged-storage-config"));
+		// Keys are the store ids the services actually ask for, not the bare
+		// module names a Solution lists.
+		const config = dataOf(
+			find(resources, "ConfigMap", "converged-storage-config"),
+		);
 		expect(JSON.parse(config["storage.json"])).toEqual({
 			microservices: {
-				billing: "/app/data/converged-storage-billing",
-				geo: "/app/data/converged-storage-geo",
+				"billing-ms": "/app/data/converged-storage-billing",
+				"geo-ms": "/app/data/converged-storage-geo",
 			},
 		});
 
@@ -294,21 +382,33 @@ describe("storage", () => {
 		const deploymentSpec = deployment?.spec as {
 			template: {
 				spec: {
-					volumes: { name: string; persistentVolumeClaim?: { claimName: string } }[];
-					containers: { args: string[]; volumeMounts: { name: string; mountPath: string }[] }[];
+					volumes: {
+						name: string;
+						persistentVolumeClaim?: { claimName: string };
+					}[];
+					containers: {
+						args: string[];
+						volumeMounts: { name: string; mountPath: string }[];
+					}[];
 				};
 			};
 		};
-		expect(deploymentSpec.template.spec.volumes.map((volume) => volume.name).sort()).toEqual([
+		expect(
+			deploymentSpec.template.spec.volumes.map((volume) => volume.name).sort(),
+		).toEqual([
 			"converged-storage-billing",
 			"converged-storage-geo",
 			"storage-config",
 		]);
-		expect(deploymentSpec.template.spec.containers[0].volumeMounts).toContainEqual({
+		expect(
+			deploymentSpec.template.spec.containers[0].volumeMounts,
+		).toContainEqual({
 			name: "converged-storage-geo",
 			mountPath: "/app/data/converged-storage-geo",
 		});
-		expect(deploymentSpec.template.spec.containers[0].args).toContain("/etc/behemoth/storage.json");
+		expect(deploymentSpec.template.spec.containers[0].args).toContain(
+			"/etc/behemoth/storage.json",
+		);
 	});
 
 	test("pre-binds every claim to its PV and renders a unique volume source", () => {
@@ -319,14 +419,20 @@ describe("storage", () => {
 				solutions: [solution("suite", { microservices: ["billing", "geo"] })],
 			}),
 		);
-		const claim = find(resources, "PersistentVolumeClaim", "converged-storage-geo");
+		const claim = find(
+			resources,
+			"PersistentVolumeClaim",
+			"converged-storage-geo",
+		);
 		expect(claim?.spec).toEqual({
 			accessModes: ["ReadWriteOnce"],
 			storageClassName: "local-path",
 			resources: { requests: { storage: "5Gi" } },
 			volumeName: "converged-storage-geo",
 		});
-		expect(find(resources, "PersistentVolume", "converged-storage-geo")?.spec).toEqual({
+		expect(
+			find(resources, "PersistentVolume", "converged-storage-geo")?.spec,
+		).toEqual({
 			capacity: { storage: "5Gi" },
 			accessModes: ["ReadWriteOnce"],
 			storageClassName: "local-path",
@@ -347,20 +453,21 @@ describe("storage", () => {
 				solutions: [solution("suite", { microservices: ["geo"] })],
 			}),
 		);
-		const claim = find(
+		const claim = specOf<{ resources: unknown }>(
 			resources,
 			"PersistentVolumeClaim",
 			"converged-storage-democnc-geo",
 		);
-		expect((claim?.spec as { resources: unknown }).resources).toEqual({
-			requests: { storage: "50Gi" },
-		});
-		expect(find(resources, "PersistentVolume", "converged-storage-democnc-geo")).toBeDefined();
+		expect(claim.resources).toEqual({ requests: { storage: "50Gi" } });
+		expect(
+			find(resources, "PersistentVolume", "converged-storage-democnc-geo"),
+		).toBeDefined();
 	});
 
 	test("rejects a source template that maps microservices to the same disk", () => {
 		const object = platform("mono");
-		const storage = (object.spec as { storage: Record<string, unknown> }).storage;
+		const storage = (object.spec as { storage: Record<string, unknown> })
+			.storage;
 		storage.volumeSource = { hostPath: { path: "/var/lib/ptah/shared" } };
 		expect(() =>
 			reconcile(
@@ -371,6 +478,305 @@ describe("storage", () => {
 				}),
 			),
 		).toThrow(/distinct source/);
+	});
+});
+
+describe("multi", () => {
+	const suite = () => [
+		solution("suite", { microservices: ["billing", "geo"] }),
+	];
+
+	test("one behemoth per shard, each with its own disk per microservice", () => {
+		const { resources, status } = reconcile(
+			input({ kind: "Platform", object: sharded(), solutions: suite() }),
+		);
+
+		expect(
+			resources
+				.filter(
+					(r) =>
+						r.kind === "Deployment" && r.metadata.name.includes("-storage-"),
+				)
+				.map((r) => r.metadata.name)
+				.sort(),
+		).toEqual(["converged-storage-alpha", "converged-storage-rest"]);
+
+		expect(
+			resources
+				.filter((r) => r.kind === "PersistentVolume")
+				.map((r) => r.metadata.name)
+				.sort(),
+		).toEqual([
+			"converged-storage-alpha-billing",
+			"converged-storage-alpha-geo",
+			"converged-storage-rest-billing",
+			"converged-storage-rest-geo",
+		]);
+		expect(status.shards).toEqual(["alpha", "rest"]);
+	});
+
+	test("each shard's pods select only their own storage", () => {
+		const { resources } = reconcile(
+			input({ kind: "Platform", object: sharded(), solutions: suite() }),
+		);
+		const selectorOf = (name: string) =>
+			specOf<{ selector: { matchLabels: Record<string, string> } }>(
+				resources,
+				"Deployment",
+				name,
+			).selector.matchLabels["app.kubernetes.io/component"];
+		expect(selectorOf("converged-storage-alpha")).toBe("storage-alpha");
+		expect(selectorOf("converged-storage-rest")).toBe("storage-rest");
+	});
+
+	test("the scope index resolves every scope, including the catch-all", () => {
+		const { resources } = reconcile(
+			input({ kind: "Platform", object: sharded(), solutions: suite() }),
+		);
+		const index = JSON.parse(
+			dataOf(find(resources, "ConfigMap", "converged-domains"))
+				.STORAGE_TENANT_SERVICES,
+		);
+		expect(index).toEqual({
+			acme: "converged-storage-alpha.converged.svc.cluster.local:9000",
+			globex: "converged-storage-alpha.converged.svc.cluster.local:9000",
+			"*": "converged-storage-rest.converged.svc.cluster.local:9000",
+		});
+	});
+
+	test("multi publishes the platform-wide route, like mono", () => {
+		const { resources } = reconcile(
+			input({ kind: "Platform", object: sharded() }),
+		);
+		expect(find(resources, "HTTPRoute", "converged")).toBeDefined();
+	});
+
+	test("a per-shard size override applies to that shard's volumes only", () => {
+		const object = sharded([
+			{ name: "alpha", scopes: ["acme"], size: "50Gi" },
+			{ name: "rest", scopes: ["*"] },
+		]);
+		const { resources } = reconcile(
+			input({
+				kind: "Platform",
+				object,
+				solutions: [solution("s", { microservices: ["geo"] })],
+			}),
+		);
+		const capacity = (name: string) =>
+			specOf<{ capacity: { storage: string } }>(
+				resources,
+				"PersistentVolume",
+				name,
+			).capacity.storage;
+		expect(capacity("converged-storage-alpha-geo")).toBe("50Gi");
+		expect(capacity("converged-storage-rest-geo")).toBe("5Gi");
+	});
+
+	test("a scope claimed twice is rejected rather than resolved by map order", () => {
+		const object = sharded([
+			{ name: "alpha", scopes: ["acme"] },
+			{ name: "beta", scopes: ["acme"] },
+			{ name: "rest", scopes: ["*"] },
+		]);
+		expect(() => reconcile(input({ kind: "Platform", object }))).toThrow(
+			/scope acme is claimed by both/,
+		);
+	});
+
+	test("a shard set with no catch-all leaves unknown scopes nowhere to go", () => {
+		expect(() =>
+			reconcile(
+				input({
+					kind: "Platform",
+					object: sharded([{ name: "only", scopes: ["acme"] }]),
+				}),
+			),
+		).toThrow(/exactly one catch-all/);
+	});
+
+	test("two catch-alls are caught as the scope collision they are", () => {
+		expect(() =>
+			reconcile(
+				input({
+					kind: "Platform",
+					object: sharded([
+						{ name: "a", scopes: ["*"] },
+						{ name: "b", scopes: ["*"] },
+					]),
+				}),
+			),
+		).toThrow(/scope \* is claimed by both a and b/);
+	});
+
+	test("multi without shards is a configuration error, not an empty platform", () => {
+		expect(() =>
+			reconcile(input({ kind: "Platform", object: platform("multi") })),
+		).toThrow(/requires at least one entry in spec.shards/);
+	});
+});
+
+describe("processors", () => {
+	const withProcessors = (extra: Record<string, unknown> = {}) =>
+		platform("mono", {
+			processors: {
+				curaengine: {
+					image: "reg/curaengine:1",
+					fujinTarget: "curaengine",
+					fujinEndpointEnv: "CURAENGINE_FUJIN_ZMQ_ENDPOINT",
+				},
+				opencamlib: { image: "reg/opencamlib:1", fujinTarget: "opencamlib" },
+			},
+			...extra,
+		});
+
+	test("a declared processor stays undeployed until a solution selects it", () => {
+		const { resources } = reconcile(
+			input({ kind: "Platform", object: withProcessors() }),
+		);
+		expect(
+			find(resources, "Deployment", "converged-curaengine"),
+		).toBeUndefined();
+		expect(
+			find(resources, "Deployment", "converged-opencamlib"),
+		).toBeUndefined();
+	});
+
+	test("selecting one deploys it as a peer with the fujin endpoint", () => {
+		const { resources, status } = reconcile(
+			input({
+				kind: "Platform",
+				object: withProcessors(),
+				solutions: [solution("cam", { processors: ["curaengine"] })],
+			}),
+		);
+		expect(find(resources, "Deployment", "converged-curaengine")).toBeDefined();
+		expect(
+			find(resources, "Deployment", "converged-opencamlib"),
+		).toBeUndefined();
+
+		const env = specOf<{
+			template: {
+				spec: { containers: { env?: { name: string; value: string }[] }[] };
+			};
+		}>(resources, "Deployment", "converged-curaengine").template.spec
+			.containers[0].env;
+		expect(env).toContainEqual({
+			name: "CURAENGINE_FUJIN_ZMQ_ENDPOINT",
+			value: "tcp://converged-fujin:5557",
+		});
+		expect(status.processors).toEqual(["curaengine"]);
+	});
+
+	test("an unknown processor fails loudly instead of being skipped", () => {
+		expect(() =>
+			reconcile(
+				input({
+					kind: "Platform",
+					object: withProcessors(),
+					solutions: [solution("cam", { processors: ["slic3r"] })],
+				}),
+			),
+		).toThrow(/requires processor slic3r/);
+	});
+
+	test("the module map lists the active processors", () => {
+		const { resources } = reconcile(
+			input({
+				kind: "Platform",
+				object: withProcessors(),
+				solutions: [
+					solution("cam", { processors: ["opencamlib", "curaengine"] }),
+				],
+			}),
+		);
+		const data = dataOf(find(resources, "ConfigMap", "converged-modules"));
+		expect(JSON.parse(data.PROCESSORS)).toEqual(["curaengine", "opencamlib"]);
+	});
+});
+
+describe("module registry", () => {
+	test("without one, nothing about a remote registry is published", () => {
+		const { resources } = reconcile(
+			input({ kind: "Platform", object: platform("mono") }),
+		);
+		const data = dataOf(find(resources, "ConfigMap", "converged-modules"));
+		expect(data.MODULE_REGISTRY).toBeUndefined();
+
+		const spec = find(resources, "Deployment", "converged-ui")?.spec as {
+			template: { spec: { volumes?: unknown[] } };
+		};
+		expect(spec.template.spec.volumes).toBeUndefined();
+	});
+
+	test("the registry reaches the module map and the stateless pods", () => {
+		const { resources, status } = reconcile(
+			input({ kind: "Platform", object: platform("mono", { registry }) }),
+		);
+		const data = dataOf(find(resources, "ConfigMap", "converged-modules"));
+		expect(data.MODULE_REGISTRY).toBe(registry.url);
+		expect(data.MODULE_REGISTRY_SOLUTIONS).toBe(registry.solutions);
+		expect(data.MODULE_REGISTRY_REVISION).toBe(registry.revision);
+		expect(data.MODULE_CACHE_DIR).toBe("/var/cache/converged/modules");
+		expect(status.registry).toBe(registry.url);
+
+		for (const name of ["converged-ui", "converged-services"]) {
+			const spec = find(resources, "Deployment", name)?.spec as {
+				template: {
+					spec: {
+						volumes: { name: string; emptyDir: Record<string, unknown> }[];
+						containers: {
+							env: { name: string; value: string }[];
+							volumeMounts: { name: string; mountPath: string }[];
+						}[];
+					};
+				};
+			};
+			expect(spec.template.spec.volumes).toEqual([
+				{ name: "module-cache", emptyDir: {} },
+			]);
+			expect(spec.template.spec.containers[0].volumeMounts).toEqual([
+				{ name: "module-cache", mountPath: "/var/cache/converged/modules" },
+			]);
+			expect(spec.template.spec.containers[0].env).toContainEqual({
+				name: "MODULE_REGISTRY",
+				value: registry.url,
+			});
+		}
+	});
+
+	test("the cache is bounded when a size is given", () => {
+		const { resources } = reconcile(
+			input({
+				kind: "Platform",
+				object: platform("mono", {
+					registry: { ...registry, cacheSize: "2Gi" },
+				}),
+			}),
+		);
+		const spec = find(resources, "Deployment", "converged-ui")?.spec as {
+			template: { spec: { volumes: { emptyDir: { sizeLimit?: string } }[] } };
+		};
+		expect(spec.template.spec.volumes[0].emptyDir.sizeLimit).toBe("2Gi");
+	});
+
+	test("a new revision rolls the pods even though the module set is unchanged", () => {
+		const stampFor = (object: KubeObject) =>
+			annotationsOf(
+				find(
+					reconcile(input({ kind: "Platform", object })).resources,
+					"Deployment",
+					"converged-ui",
+				),
+			)[ANNOTATION_MODULES];
+
+		const before = stampFor(platform("mono", { registry }));
+		expect(stampFor(platform("mono", { registry }))).toBe(before);
+		expect(
+			stampFor(
+				platform("mono", { registry: { ...registry, revision: "next" } }),
+			),
+		).not.toBe(before);
 	});
 });
 
@@ -400,7 +806,9 @@ describe("declared extras", () => {
 		const resources = withExtras();
 		expect(find(resources, "ConfigMap", "app-settings")).toBeDefined();
 		expect(find(resources, "Secret", "app-token")).toBeDefined();
-		expect(find(resources, "PersistentVolumeClaim", "shared-cache")).toBeDefined();
+		expect(
+			find(resources, "PersistentVolumeClaim", "shared-cache"),
+		).toBeDefined();
 		expect(find(resources, "PersistentVolume", "archive-pv")).toBeDefined();
 	});
 
@@ -420,20 +828,28 @@ describe("declared extras", () => {
 	test("claims opt in to deletion explicitly", () => {
 		const object = platform("mono");
 		(object.spec as Record<string, unknown>).claims = {
-			scratch: { size: "1Gi", storageClassName: "local-path", reclaim: "delete" },
+			scratch: {
+				size: "1Gi",
+				storageClassName: "local-path",
+				reclaim: "delete",
+			},
 			keepme: { size: "1Gi", storageClassName: "local-path" },
 		};
 		const resources = reconcile(input({ kind: "Platform", object })).resources;
-		expect(find(resources, "PersistentVolumeClaim", "scratch")?.metadata.annotations)
-			.toEqual({ "ptah.io/reclaim": "delete" });
-		expect(find(resources, "PersistentVolumeClaim", "keepme")?.metadata.annotations)
-			.toEqual({ "ptah.io/reclaim": "retain" });
+		expect(
+			find(resources, "PersistentVolumeClaim", "scratch")?.metadata.annotations,
+		).toEqual({ "ptah.io/reclaim": "delete" });
+		expect(
+			find(resources, "PersistentVolumeClaim", "keepme")?.metadata.annotations,
+		).toEqual({ "ptah.io/reclaim": "retain" });
 	});
 
 	test("a solution's extras are owned by the platform that hosts it", () => {
 		const object = platform("mono");
 		const sol = solution("cnc");
-		(sol.spec as Record<string, unknown>).configMaps = { "cnc-settings": { A: "1" } };
+		(sol.spec as Record<string, unknown>).configMaps = {
+			"cnc-settings": { A: "1" },
+		};
 		const { resources } = reconcile(
 			input({ kind: "Platform", object, solutions: [sol] }),
 		);

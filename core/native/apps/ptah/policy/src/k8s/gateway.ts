@@ -44,7 +44,9 @@ export function gateway(
 					? {
 							tls: {
 								mode: "Terminate",
-								certificateRefs: [{ kind: "Secret", name: listener.certificateRef }],
+								certificateRefs: [
+									{ kind: "Secret", name: listener.certificateRef },
+								],
 							},
 						}
 					: {}),
@@ -91,10 +93,12 @@ export function httpRoute(
 								{
 									type: "RequestHeaderModifier",
 									requestHeaderModifier: {
-										set: Object.entries(rule.setHeaders).map(([header, value]) => ({
-											name: header,
-											value,
-										})),
+										set: Object.entries(rule.setHeaders).map(
+											([header, value]) => ({
+												name: header,
+												value,
+											}),
+										),
 									},
 								},
 							],

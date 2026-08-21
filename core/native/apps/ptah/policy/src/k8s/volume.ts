@@ -49,7 +49,12 @@ export function persistentVolumeClaim(
 	return {
 		apiVersion: "v1",
 		kind: "PersistentVolumeClaim",
-		metadata: { name, namespace, labels, annotations: { [ANNOTATION_RECLAIM]: reclaim } },
+		metadata: {
+			name,
+			namespace,
+			labels,
+			annotations: { [ANNOTATION_RECLAIM]: reclaim },
+		},
 		spec: claimSpec(spec),
 	};
 }
@@ -96,14 +101,35 @@ export function persistentVolume(
 }
 
 /** Pod volume backed by an existing claim. */
-export function claimVolume(name: string, claimName: string): Record<string, unknown> {
+export function claimVolume(
+	name: string,
+	claimName: string,
+): Record<string, unknown> {
 	return { name, persistentVolumeClaim: { claimName } };
 }
 
-export function configMapVolume(name: string, configMapName: string): Record<string, unknown> {
+/**
+ * Node-local scratch space, gone when the pod is. Right for anything that can
+ * be rebuilt from its source — a module cache re-fetched from the registry —
+ * and wrong for anything that cannot.
+ */
+export function emptyDirVolume(
+	name: string,
+	sizeLimit?: string,
+): Record<string, unknown> {
+	return { name, emptyDir: sizeLimit ? { sizeLimit } : {} };
+}
+
+export function configMapVolume(
+	name: string,
+	configMapName: string,
+): Record<string, unknown> {
 	return { name, configMap: { name: configMapName } };
 }
 
-export function secretVolume(name: string, secretName: string): Record<string, unknown> {
+export function secretVolume(
+	name: string,
+	secretName: string,
+): Record<string, unknown> {
 	return { name, secret: { secretName } };
 }

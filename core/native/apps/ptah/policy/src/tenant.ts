@@ -49,12 +49,14 @@ export function reconcileTenant(input: ReconcileInput): ReconcileOutput {
 	const namespace = platformSpec.namespace;
 	const scope = n.tenantScope(tenant);
 	const storageName = n.tenantStorage(platform, tenant);
-	const domains = n.tenantDomains(tenant, platformSpec.domainBase, spec.domains ?? []);
-	const size = spec.storageSize ?? platformSpec.storage.size;
-	const fujinZmq = require(
-		platformSpec.apps.fujin?.ports?.zmq,
-		"platform spec.apps.fujin.ports.zmq",
+	const domains = n.tenantDomains(
+		tenant,
+		platformSpec.domainBase,
+		spec.domains ?? [],
 	);
+	const size = spec.storageSize ?? platformSpec.storage.size;
+	const fujinZmq = require(platformSpec.apps.fujin?.ports
+		?.zmq, "platform spec.apps.fujin.ports.zmq");
 
 	const merged = mergeSolutions(
 		selectSolutions(input.solutions, platform, spec.solutions),

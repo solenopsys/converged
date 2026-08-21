@@ -1,0 +1,24 @@
+FROM alpine:3.23.4 AS runtime
+WORKDIR /app
+
+# The apiserver is TLS. In-cluster ptah verifies it with the service account's
+# CA bundle, but the busybox image has no root store at all and TLS setup fails
+# before that file is ever read.
+RUN apk add --no-cache ca-certificates
+
+RUN mkdir -p /app/lib
+COPY ./zig-out/x86_64-musl/bin/ptah /app/ptah
+# The policy is compiled into the binary; libqjs.so is what evaluates it. The
+# binary carries an $ORIGIN/lib rpath, so no LD_LIBRARY_PATH is needed.
+COPY ./zig-out/x86_64-musl/lib/libqjs.so /app/lib/libqjs.so
+RUN chmod +x /app/ptah && chmod 644 /app/lib/libqjs.so && chown -R 1000:1000 /app
+RUN adduser -D -u 1000 default || true
+USER 1000
+
+# PTAH_RESYNC_MS, PTAH_LEADER_ELECTION and PTAH_IDENTITY are deliberately not
+# defaulted here. Ptah refuses to start without them, which is the whole point:
+# an operator that guesses its identity or its resync period will happily
+# reconcile the wrong cluster on the wrong schedule. The chart supplies them.
+
+ENTRYPOINT ["/app/ptah"]
+CMD ["run"]

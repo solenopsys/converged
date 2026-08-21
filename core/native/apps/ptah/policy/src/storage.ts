@@ -7,10 +7,10 @@
  * behemoth validates at startup.
  */
 
+import type { VolumeMount } from "./k8s/container.ts";
 import * as k8s from "./k8s/index.ts";
 import * as n from "./names.ts";
-import type { VolumeMount } from "./k8s/container.ts";
-import type { KubeObject, PlatformSpec } from "./types.ts";
+import type { KubeObject, PlatformSpec, Resources } from "./types.ts";
 import { PolicyError, require } from "./types.ts";
 
 const CONFIG_VOLUME = "storage-config";
@@ -20,6 +20,8 @@ const CONFIG_PATH = `/etc/behemoth/${CONFIG_KEY}`;
 interface StorageResourcesSpec {
 	platform: string;
 	tenant?: string;
+	/** Shard name on a `multi` platform; absent for mono and cloud. */
+	shard?: string;
 	owner: string;
 	namespace: string;
 	name: string;
@@ -27,16 +29,23 @@ interface StorageResourcesSpec {
 	storage: PlatformSpec["storage"];
 	fujinEndpoint: string;
 	scope?: string;
+	nodeAffinity?: Record<string, unknown>;
+	resources?: Resources;
 }
 
-function renderTemplate(value: unknown, variables: Record<string, string>): unknown {
+function renderTemplate(
+	value: unknown,
+	variables: Record<string, string>,
+): unknown {
 	if (typeof value === "string") {
 		return Object.entries(variables).reduce(
-			(rendered, [name, replacement]) => rendered.replaceAll(`{{${name}}}`, replacement),
+			(rendered, [name, replacement]) =>
+				rendered.replaceAll(`{{${name}}}`, replacement),
 			value,
 		);
 	}
-	if (Array.isArray(value)) return value.map((item) => renderTemplate(item, variables));
+	if (Array.isArray(value))
+		return value.map((item) => renderTemplate(item, variables));
 	if (value !== null && typeof value === "object") {
 		return Object.fromEntries(
 			Object.entries(value as Record<string, unknown>).map(([key, item]) => [
@@ -49,17 +58,28 @@ function renderTemplate(value: unknown, variables: Record<string, string>): unkn
 }
 
 export function storageResources(spec: StorageResourcesSpec): KubeObject[] {
-	const sourceTemplate = require(spec.storage.volumeSource, "spec.storage.volumeSource");
+	const sourceTemplate = require(spec.storage
+		.volumeSource, "spec.storage.volumeSource");
 	const microservices = [...new Set(spec.microservices)].sort();
-	const labels = n.labels(spec.platform, spec.tenant ? `storage-${spec.tenant}` : "storage", spec.owner);
-	const selector = n.selector(spec.platform, spec.tenant ? `storage-${spec.tenant}` : "storage");
+	// The component label distinguishes one behemoth from another; it is part
+	// of the immutable Deployment selector, so it has to be derived from the
+	// shard or tenant rather than shared.
+	const suffix = spec.tenant ?? spec.shard;
+	const component = suffix ? `storage-${suffix}` : "storage";
+	const labels = n.labels(spec.platform, component, spec.owner);
+	const selector = n.selector(spec.platform, component);
 	const mountBase = spec.storage.mountBase.replace(/\/+$/g, "");
 	const mounts: Record<string, string> = {};
 	const podVolumes: Record<string, unknown>[] = [
 		k8s.configMapVolume(CONFIG_VOLUME, n.storageConfigMap(spec.name)),
 	];
 	const volumeMounts: VolumeMount[] = [
-		{ name: CONFIG_VOLUME, mountPath: CONFIG_PATH, subPath: CONFIG_KEY, readOnly: true },
+		{
+			name: CONFIG_VOLUME,
+			mountPath: CONFIG_PATH,
+			subPath: CONFIG_KEY,
+			readOnly: true,
+		},
 	];
 	const resources: KubeObject[] = [];
 	const renderedSources = new Set<string>();
@@ -71,6 +91,7 @@ export function storageResources(spec: StorageResourcesSpec): KubeObject[] {
 			volume,
 			platform: spec.platform,
 			tenant: spec.tenant ?? "",
+			shard: spec.shard ?? "",
 			microservice,
 		}) as Record<string, unknown>;
 		const sourceIdentity = JSON.stringify(source);
@@ -81,7 +102,7 @@ export function storageResources(spec: StorageResourcesSpec): KubeObject[] {
 		}
 		renderedSources.add(sourceIdentity);
 
-		mounts[microservice] = mountPath;
+		mounts[n.storeId(microservice)] = mountPath;
 		podVolumes.push(k8s.claimVolume(volume, volume));
 		volumeMounts.push({ name: volume, mountPath });
 
@@ -95,7 +116,7 @@ export function storageResources(spec: StorageResourcesSpec): KubeObject[] {
 					accessModes: spec.storage.accessModes,
 					reclaimPolicy: spec.storage.reclaimPolicy,
 					source,
-					nodeAffinity: spec.storage.nodeAffinity,
+					nodeAffinity: spec.nodeAffinity ?? spec.storage.nodeAffinity,
 				},
 				"retain",
 			),
@@ -140,7 +161,7 @@ export function storageResources(spec: StorageResourcesSpec): KubeObject[] {
 						...(spec.scope ? ["--scope", spec.scope] : []),
 					],
 					ports: [{ name: "storage", port: spec.storage.port }],
-					resources: spec.storage.resources,
+					resources: spec.resources ?? spec.storage.resources,
 					volumeMounts,
 				},
 			],

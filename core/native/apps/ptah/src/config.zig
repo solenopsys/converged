@@ -12,6 +12,11 @@ pub const sa_token = sa_dir ++ "/token";
 pub const sa_ca = sa_dir ++ "/ca.crt";
 pub const sa_namespace = sa_dir ++ "/namespace";
 
+/// In-cluster apiserver address. See the note in `load`: the cluster IP is
+/// only an IP SAN on the serving certificate, so the DNS name is what TLS
+/// verification can actually match.
+pub const api_dns_name = "kubernetes.default.svc";
+
 pub const Config = struct {
     /// Base URL of the apiserver, no trailing slash.
     server: []const u8,
@@ -76,10 +81,25 @@ pub fn load(gpa: std.mem.Allocator, io: std.Io, environ: *Environ) !Config {
         return error.InvalidSetting;
     }
 
-    if (env(environ, "KUBERNETES_SERVICE_HOST")) |host| {
+    // An explicit address wins over autodetection. In-cluster the kubelet
+    // always injects KUBERNETES_SERVICE_HOST, so without this check there is
+    // no way to point ptah at a local apiserver proxy from inside a pod — and
+    // that proxy is currently the only way it can reach the apiserver at all
+    // (see the TLS note in kube.zig).
+    if (env(environ, "PTAH_KUBE_SERVER") == null and
+        env(environ, "KUBERNETES_SERVICE_HOST") != null)
+    {
         const port = try required(environ, "KUBERNETES_SERVICE_PORT");
+        // By DNS name, not by KUBERNETES_SERVICE_HOST.
+        //
+        // That variable holds the service IP, and the apiserver's certificate
+        // carries the cluster IP only as an IP SAN. The TLS client matches the
+        // host string against DNS SANs, so dialing the IP fails verification
+        // with TlsInitializationFailed even though the CA is correct.
+        // `kubernetes.default.svc` is a DNS SAN on every conformant cluster
+        // and resolves to that same service IP.
         return .{
-            .server = try std.fmt.allocPrint(gpa, "https://{s}:{s}", .{ host, port }),
+            .server = try std.fmt.allocPrint(gpa, "https://{s}:{s}", .{ api_dns_name, port }),
             .token = try readTrimmed(gpa, io, sa_token),
             .ca_path = sa_ca,
             .namespace = try readTrimmed(gpa, io, sa_namespace),
@@ -91,11 +111,18 @@ pub fn load(gpa: std.mem.Allocator, io: std.Io, environ: *Environ) !Config {
 
     const server = try required(environ, "PTAH_KUBE_SERVER");
     const token = env(environ, "PTAH_KUBE_TOKEN");
+    // Out of cluster the CA is optional: a `kubectl proxy` URL is plain HTTP
+    // and needs none. Pointing PTAH_KUBE_CA at a cluster's CA bundle is what
+    // lets the same TLS path be exercised from a workstation instead of only
+    // from inside a pod.
     return .{
         .server = try gpa.dupe(u8, std.mem.trimEnd(u8, server, "/")),
         .token = if (token) |t| try gpa.dupe(u8, t) else null,
-        .ca_path = null,
-        .namespace = try gpa.dupe(u8, try required(environ, "PTAH_NAMESPACE")),
+        .ca_path = env(environ, "PTAH_KUBE_CA"),
+        .namespace = if (env(environ, "PTAH_NAMESPACE")) |ns|
+            try gpa.dupe(u8, ns)
+        else
+            try readTrimmed(gpa, io, sa_namespace),
         .identity = try gpa.dupe(u8, try required(environ, "PTAH_IDENTITY")),
         .resync_ms = resync_ms,
         .leader_election = leader_election,

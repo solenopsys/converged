@@ -22,7 +22,17 @@ export interface KubeObject {
 	[key: string]: unknown;
 }
 
-export type Profile = "mono" | "cloud";
+/**
+ * How storage is divided — the only thing a profile actually decides.
+ *
+ *   mono   one behemoth pod for the whole platform
+ *   multi  behemoth sharded by scope, one pod per shard
+ *   cloud  one behemoth pod per tenant, owned by the Tenant reconciler
+ *
+ * In every profile a microservice still gets its own volume; the profile only
+ * says how many pods those volumes are spread across.
+ */
+export type Profile = "mono" | "multi" | "cloud";
 
 export interface Resources {
 	requests?: { cpu?: string; memory?: string };
@@ -85,6 +95,51 @@ export interface VolumeDecl {
 	reclaim?: "retain" | "delete";
 }
 
+/**
+ * One behemoth shard of a `multi` platform.
+ *
+ * A shard owns a set of scopes, and the scope index tells every stateless pod
+ * which shard to talk to. Exactly one shard must claim `"*"`: without a
+ * catch-all an unknown scope has nowhere to go, and with two the choice would
+ * depend on map order.
+ */
+export interface ShardSpec {
+	name: string;
+	scopes: string[];
+	/** Overrides `spec.storage.size` for this shard's volumes. */
+	size?: string;
+	/** Pins the shard's pod; the volumes usually follow one node. */
+	nodeAffinity?: Record<string, unknown>;
+	resources?: Resources;
+}
+
+/**
+ * Where modules and their configuration are fetched from at runtime.
+ *
+ * Solutions name modules; they do not carry them. The bundles and the base
+ * solution configuration live in a remote registry (S3 or any HTTP object
+ * store) and are cached on first use, so activating a solution never means
+ * rebuilding or republishing an image.
+ *
+ * The policy only propagates these values — it cannot fetch anything itself.
+ */
+export interface RegistrySpec {
+	/** Base URL of the registry, e.g. `https://s3.eu-central-1.../converged`. */
+	url: string;
+	/** Key of the base solution configuration within the registry. */
+	solutions: string;
+	/** Immutable content revision; changing it forces a re-fetch and a rollout. */
+	revision?: string;
+	/** Cache directory inside each container. */
+	cacheDir?: string;
+	/**
+	 * Upper bound on the cache. The cache is an ephemeral emptyDir on purpose:
+	 * it is re-fetchable by definition, and a shared claim would need RWX and
+	 * turn a disposable directory into a piece of cluster state.
+	 */
+	cacheSize?: string;
+}
+
 export interface PlatformSpec extends ExtraResources {
 	profile: Profile;
 	namespace: string;
@@ -102,8 +157,8 @@ export interface PlatformSpec extends ExtraResources {
 		/**
 		 * Static PV source template. Every active microservice gets a distinct
 		 * PV/PVC pair; `{{volume}}` is replaced with that pair's unique name.
-		 * Other available placeholders are `{{platform}}`, `{{tenant}}`, and
-		 * `{{microservice}}`.
+		 * Other available placeholders are `{{platform}}`, `{{tenant}}`,
+		 * `{{shard}}`, and `{{microservice}}`.
 		 */
 		volumeSource: Record<string, unknown>;
 		accessModes?: string[];
@@ -111,7 +166,16 @@ export interface PlatformSpec extends ExtraResources {
 		nodeAffinity?: Record<string, unknown>;
 		resources?: Resources;
 	};
+	/** Behemoth shards. Required by `multi`, ignored by the other profiles. */
+	shards?: ShardSpec[];
+	registry?: RegistrySpec;
+	/** Always-on peers of the bus: fujin, centimanus, resonus. */
 	apps: Record<string, NativeApp>;
+	/**
+	 * Compute peers deployed only when a solution asks for them — slicers, CAM,
+	 * converters. Declaring one here costs nothing until it is selected.
+	 */
+	processors?: Record<string, NativeApp>;
 	/**
 	 * Routing via Gateway API. One Gateway per platform; tenants attach their
 	 * own HTTPRoutes to it, so adding a site never touches the load balancer.
@@ -144,6 +208,8 @@ export interface SolutionSpec extends ExtraResources {
 	enabled?: boolean;
 	microservices?: string[];
 	microfrontends?: string[];
+	/** Names from the platform's `spec.processors` this solution needs. */
+	processors?: string[];
 	workflows?: WorkflowRef[];
 	env?: Record<string, string>;
 }

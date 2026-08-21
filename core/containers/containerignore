@@ -1,0 +1,31 @@
+# Everything the image builds for itself, and everything it must never carry.
+#
+# node_modules is rebuilt by `bun install` in the builder stage: copying the
+# host's would import binaries built against the host libc.
+**/node_modules
+**/.git
+**/.zig-cache
+**/zig-cache
+**/zig-out
+**/dist
+**/.turbo
+**/.next
+
+# Build caches and vendored native sources. The wrappers' vendor trees are
+# hundreds of megabytes and nothing in a ui or ms image reads them.
+converged/core/native/wrappers/*/*/vendor
+converged/core/native/wrappers/artifacts
+
+# Local state and secrets. `confs/` holds real credentials; the platform
+# supplies them from a Secret at runtime.
+data
+confs
+**/*.env
+**/.env
+**/.env.*
+**/*.tgz
+**/*.log
+
+# Documentation and tooling that no runtime path touches.
+**/.github
+**/storybook-static

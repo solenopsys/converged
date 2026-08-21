@@ -48,7 +48,9 @@ if (outFile) await Bun.write(outFile, text);
 // persistent QuickJS context, not a smaller policy — so fail loudly at the
 // point where that trade-off actually needs making.
 if (text.length > 512 * 1024) {
-	console.error(`policy bundle exceeds 512 KiB (${text.length}); QuickJS eval budget is 100 ms`);
+	console.error(
+		`policy bundle exceeds 512 KiB (${text.length}); QuickJS eval budget is 100 ms`,
+	);
 	process.exit(1);
 }
 console.log(`policy.js: ${text.length} bytes`);

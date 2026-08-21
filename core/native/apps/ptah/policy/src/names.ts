@@ -39,7 +39,10 @@ export function labels(
 }
 
 /** Selector labels only — must stay stable, they are immutable on a Deployment. */
-export function selector(platform: string, component: string): Record<string, string> {
+export function selector(
+	platform: string,
+	component: string,
+): Record<string, string> {
 	return { [LABEL_NAME]: platform, [LABEL_COMPONENT]: component };
 }
 
@@ -55,7 +58,19 @@ export const tenantStorage = (platform: string, tenant: string) =>
 export const tenantRoute = (platform: string, tenant: string) =>
 	`${platform}-tenant-${tenant}`;
 export const monoStorage = (platform: string) => `${platform}-storage`;
+export const shardStorage = (platform: string, shard: string) =>
+	`${platform}-storage-${shard}`;
 export const storageConfigMap = (storage: string) => `${storage}-config`;
+
+/**
+ * The key behemoth looks a mount up by.
+ *
+ * A Solution names a module `orders`, but the running service asks its storage
+ * for `orders-ms` — that identifier is compiled into the service and behemoth
+ * matches it exactly, refusing any root it was not given. Emitting the bare
+ * name here would mount every disk correctly and still fail every store open.
+ */
+export const storeId = (microservice: string) => `${microservice}-ms`;
 
 /**
  * PV names also become pod volume names, so keep them within the stricter
@@ -76,7 +91,10 @@ export const route = (platform: string) => platform;
  * — `*.4ir.club` has characters a label cannot hold.
  */
 export function listenerName(host: string, index: number): string {
-	const slug = host.replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "").toLowerCase();
+	const slug = host
+		.replace(/[^a-z0-9]+/gi, "-")
+		.replace(/^-+|-+$/g, "")
+		.toLowerCase();
 	return slug.length > 0 ? `l${index}-${slug}`.slice(0, 63) : `l${index}`;
 }
 
@@ -89,7 +107,10 @@ export function tenantDomains(
 	extra: string[] = [],
 ): string[] {
 	const auto = `${tenantScope(tenant)}.${domainBase}`;
-	const all = [auto, ...extra.map((d) => d.trim().toLowerCase()).filter(Boolean)];
+	const all = [
+		auto,
+		...extra.map((d) => d.trim().toLowerCase()).filter(Boolean),
+	];
 	return [...new Set(all)];
 }
 

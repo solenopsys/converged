@@ -34,8 +34,12 @@ function podTemplate(spec: WorkloadSpec): Record<string, unknown> {
 			...(spec.hostNetwork
 				? { hostNetwork: true, dnsPolicy: "ClusterFirstWithHostNet" }
 				: {}),
-			...(spec.serviceAccount ? { serviceAccountName: spec.serviceAccount } : {}),
-			...(spec.initContainers ? { initContainers: spec.initContainers.map(container) } : {}),
+			...(spec.serviceAccount
+				? { serviceAccountName: spec.serviceAccount }
+				: {}),
+			...(spec.initContainers
+				? { initContainers: spec.initContainers.map(container) }
+				: {}),
 			containers: spec.containers.map(container),
 			...(spec.volumes ? { volumes: spec.volumes } : {}),
 		},
@@ -46,7 +50,11 @@ export function deployment(spec: WorkloadSpec): KubeObject {
 	return {
 		apiVersion: "apps/v1",
 		kind: "Deployment",
-		metadata: { name: spec.name, namespace: spec.namespace, labels: spec.labels },
+		metadata: {
+			name: spec.name,
+			namespace: spec.namespace,
+			labels: spec.labels,
+		},
 		spec: {
 			replicas: spec.replicas,
 			selector: { matchLabels: spec.selector },
@@ -69,7 +77,11 @@ export function statefulSet(spec: StatefulSetSpec): KubeObject {
 	return {
 		apiVersion: "apps/v1",
 		kind: "StatefulSet",
-		metadata: { name: spec.name, namespace: spec.namespace, labels: spec.labels },
+		metadata: {
+			name: spec.name,
+			namespace: spec.namespace,
+			labels: spec.labels,
+		},
 		spec: {
 			serviceName: spec.serviceName,
 			replicas: spec.replicas,

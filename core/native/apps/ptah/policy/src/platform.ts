@@ -1,15 +1,24 @@
 /**
  * Base core: everything that exists before any solution is layered on.
  *
- * `mono` runs one shared storage StatefulSet in-namespace. `cloud` provisions
- * no storage here at all — it belongs to the Tenant reconciler, one shard per
- * tenant — so the two profiles differ by exactly that one decision.
+ * The profiles differ by exactly one decision — how storage is divided.
+ * `mono` runs one behemoth in-namespace, `multi` runs one per shard, and
+ * `cloud` provisions none here at all because storage belongs to the Tenant
+ * reconciler, one shard per tenant. Everything else on this page is identical
+ * across the three.
  */
 
 import { buildExtras } from "./extras.ts";
 import * as k8s from "./k8s/index.ts";
 import * as n from "./names.ts";
-import { mergeSolutions, moduleData, selectSolutions } from "./solution.ts";
+import { resolveShards, shardIndex, shardResources } from "./shards.ts";
+import {
+	DEFAULT_CACHE_DIR,
+	mergeSolutions,
+	moduleData,
+	registryData,
+	selectSolutions,
+} from "./solution.ts";
 import { storageResources } from "./storage.ts";
 import type {
 	KubeObject,
@@ -17,11 +26,13 @@ import type {
 	PlatformSpec,
 	ReconcileInput,
 	ReconcileOutput,
+	RegistrySpec,
 } from "./types.ts";
-import { require } from "./types.ts";
+import { PolicyError, require } from "./types.ts";
 
 const UI_PORT = 3000;
 const MS_PORT = 3001;
+const CACHE_VOLUME = "module-cache";
 
 /** Fujin is the single router; every other native peer dials its ZMQ socket. */
 function fujinEndpoint(platform: string, spec: PlatformSpec): string {
@@ -42,8 +53,25 @@ function baseEnv(
 		PLATFORM_PROFILE: spec.profile,
 		CACHE_URL: `redis://${n.cache(platform)}:${spec.cache.port}/0`,
 		FUJIN_ZMQ_ENDPOINT: fujinEndpoint(platform, spec),
+		...registryData(spec.registry),
 		...(spec.env ?? {}),
 		...extra,
+	};
+}
+
+/**
+ * The module cache mount for a stateless pod.
+ *
+ * Only added when a registry is configured: without one every module already
+ * lives in the image, and an unused mount would just be a lie about where the
+ * code comes from.
+ */
+function cacheMounts(registry?: RegistrySpec) {
+	if (!registry) return { volumes: undefined, volumeMounts: undefined };
+	const mountPath = registry.cacheDir ?? DEFAULT_CACHE_DIR;
+	return {
+		volumes: [k8s.emptyDirVolume(CACHE_VOLUME, registry.cacheSize)],
+		volumeMounts: [{ name: CACHE_VOLUME, mountPath }],
 	};
 }
 
@@ -99,10 +127,18 @@ function nativeApp(
 		// on :80 while the ZMQ peer port keeps its own name.
 		const servicePorts =
 			name === "fujin"
-				? ports.map((p) => (p.name === "ws" ? { ...p, port: 80, targetPort: p.port } : p))
+				? ports.map((p) =>
+						p.name === "ws" ? { ...p, port: 80, targetPort: p.port } : p,
+					)
 				: ports;
 		objects.push(
-			k8s.service(resourceName, spec.namespace, labels, n.selector(platform, name), servicePorts),
+			k8s.service(
+				resourceName,
+				spec.namespace,
+				labels,
+				n.selector(platform, name),
+				servicePorts,
+			),
 		);
 	}
 
@@ -117,7 +153,13 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 	require(spec.profile, "spec.profile");
 
 	const merged = mergeSolutions(selectSolutions(input.solutions, platform));
-	const modules = { [n.ANNOTATION_MODULES]: merged.digest };
+	// The rollout stamp covers the registry as well as the module set: pointing
+	// the platform at a new revision changes nothing the pods can observe
+	// unless they restart, so the digest has to move with it.
+	const rollout = n.digest(
+		JSON.stringify([merged.digest, registryData(spec.registry)]),
+	);
+	const modules = { [n.ANNOTATION_MODULES]: rollout };
 	const resources: KubeObject[] = [];
 
 	resources.push(
@@ -125,7 +167,7 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 			n.modulesConfigMap(platform),
 			spec.namespace,
 			n.labels(platform, "modules", owner),
-			moduleData(merged),
+			moduleData(merged, spec.registry),
 		),
 	);
 
@@ -155,11 +197,29 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 	);
 
 	for (const [name, app] of Object.entries(spec.apps)) {
-		resources.push(...nativeApp(platform, spec, owner, name, app, merged.digest));
+		resources.push(...nativeApp(platform, spec, owner, name, app, rollout));
+	}
+
+	// Processors are peers like any other, but they exist only while a solution
+	// asks for them: a platform with no slicing solution should not be running
+	// a slicer. Naming one that the platform never declared is a typo worth
+	// failing on — the alternative is a workflow that waits forever for a peer
+	// that was quietly skipped.
+	for (const name of merged.processors) {
+		const processor = spec.processors?.[name];
+		if (!processor) {
+			throw new PolicyError(
+				`solution requires processor ${name}, absent from spec.processors`,
+			);
+		}
+		resources.push(
+			...nativeApp(platform, spec, owner, name, processor, rollout),
+		);
 	}
 
 	const solutionEnv = merged.env;
 
+	const cache = cacheMounts(spec.registry);
 	const uiLabels = n.labels(platform, "ui", owner);
 	const uiSelector = n.selector(platform, "ui");
 	resources.push(
@@ -170,6 +230,7 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 			selector: uiSelector,
 			replicas: spec.replicas?.ui ?? 1,
 			annotations: modules,
+			volumes: cache.volumes,
 			containers: [
 				{
 					name: "ui",
@@ -182,6 +243,7 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 					envFromSecret: spec.secretName,
 					ports: [{ name: "http", port: UI_PORT }],
 					resources: spec.resources?.ui,
+					volumeMounts: cache.volumeMounts,
 					probePort: UI_PORT,
 				},
 			],
@@ -201,6 +263,7 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 			selector: msSelector,
 			replicas: spec.replicas?.ms ?? 1,
 			annotations: modules,
+			volumes: cache.volumes,
 			containers: [
 				{
 					name: "services",
@@ -212,6 +275,7 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 					envFromSecret: spec.secretName,
 					ports: [{ name: "http", port: MS_PORT }],
 					resources: spec.resources?.ms,
+					volumeMounts: cache.volumeMounts,
 					probePort: MS_PORT,
 				},
 			],
@@ -254,6 +318,7 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 		);
 	}
 
+	let shardNames: string[] = [];
 	if (spec.profile === "mono") {
 		resources.push(
 			...storageResources({
@@ -266,9 +331,29 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 				fujinEndpoint: fujinEndpoint(platform, spec),
 			}),
 		);
+	} else if (spec.profile === "multi") {
+		const shards = resolveShards(platform, spec);
+		shardNames = shards.map((shard) => shard.name);
+		resources.push(
+			...shardResources(
+				platform,
+				spec,
+				owner,
+				shards,
+				merged.microservices,
+				fujinEndpoint(platform, spec),
+			),
+			// Same ConfigMap and key the cloud profile publishes: a stateless
+			// pod resolves a scope to a host without knowing which profile put
+			// it there.
+			shardIndex(platform, spec, owner, shards),
+		);
+	}
 
-		// Only mono publishes a platform-wide route. In cloud the Tenant owns
-		// its own hostnames, so a catch-all here would shadow them.
+	// mono and multi serve every scope from one set of hostnames, so the
+	// platform owns the route. In cloud the Tenant owns its own hostnames and a
+	// catch-all here would shadow them.
+	if (spec.profile !== "cloud") {
 		resources.push(
 			k8s.httpRoute(
 				n.route(platform),
@@ -305,9 +390,12 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 			profile: spec.profile,
 			namespace: spec.namespace,
 			solutions: merged.names,
-			modulesDigest: merged.digest,
+			modulesDigest: rollout,
 			microservices: merged.microservices.length,
 			microfrontends: merged.microfrontends.length,
+			processors: merged.processors,
+			shards: shardNames,
+			registry: spec.registry?.url ?? "",
 			observedGeneration: input.object.metadata.generation ?? 0,
 		},
 		requeueAfter: 0,

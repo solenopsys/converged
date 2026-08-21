@@ -11,12 +11,20 @@
  */
 
 import { digest } from "./names.ts";
-import type { KubeObject, SolutionSpec, WorkflowRef } from "./types.ts";
+import type {
+	KubeObject,
+	RegistrySpec,
+	SolutionSpec,
+	WorkflowRef,
+} from "./types.ts";
+import { require } from "./types.ts";
 
 export interface MergedSolutions {
 	names: string[];
 	microservices: string[];
 	microfrontends: string[];
+	/** Compute peers to deploy; unlike modules, these are their own pods. */
+	processors: string[];
 	workflows: WorkflowRef[];
 	env: Record<string, string>;
 	/** Stable digest of everything above; changes force a rollout. */
@@ -48,6 +56,7 @@ export function selectSolutions(
 export function mergeSolutions(selected: KubeObject[]): MergedSolutions {
 	const microservices = new Set<string>();
 	const microfrontends = new Set<string>();
+	const processors = new Set<string>();
 	const workflows: WorkflowRef[] = [];
 	const env: Record<string, string> = {};
 	const names: string[] = [];
@@ -57,6 +66,7 @@ export function mergeSolutions(selected: KubeObject[]): MergedSolutions {
 		names.push(solution.metadata.name);
 		for (const ms of spec.microservices ?? []) microservices.add(ms);
 		for (const mf of spec.microfrontends ?? []) microfrontends.add(mf);
+		for (const processor of spec.processors ?? []) processors.add(processor);
 		for (const wf of spec.workflows ?? []) workflows.push(wf);
 		// Later solutions win on env collisions; the sort above makes that
 		// deterministic rather than dependent on apiserver list order.
@@ -67,6 +77,7 @@ export function mergeSolutions(selected: KubeObject[]): MergedSolutions {
 		names,
 		microservices: [...microservices].sort(),
 		microfrontends: [...microfrontends].sort(),
+		processors: [...processors].sort(),
 		workflows: workflows.sort((a, b) => a.name.localeCompare(b.name)),
 		env,
 	};
@@ -74,12 +85,40 @@ export function mergeSolutions(selected: KubeObject[]): MergedSolutions {
 	return { ...merged, digest: digest(JSON.stringify(merged)) };
 }
 
-/** The ConfigMap payload consumed by the ui and ms cores at boot. */
-export function moduleData(merged: MergedSolutions): Record<string, string> {
+/**
+ * The ConfigMap payload consumed by the ui and ms cores at boot.
+ *
+ * `registry` is folded in here rather than left to each container's own env:
+ * the module list and the place those modules are fetched from have to change
+ * together, and one ConfigMap means one digest and therefore one rollout.
+ */
+export function moduleData(
+	merged: MergedSolutions,
+	registry?: RegistrySpec,
+): Record<string, string> {
 	return {
 		SOLUTIONS: merged.names.join(","),
 		MICROSERVICES: JSON.stringify(merged.microservices),
 		FRONTEND_MODULES: JSON.stringify(merged.microfrontends),
+		PROCESSORS: JSON.stringify(merged.processors),
 		WORKFLOWS: JSON.stringify(merged.workflows),
+		...registryData(registry),
 	};
 }
+
+/**
+ * Where a container fetches modules from, and where it keeps them once it has.
+ * Absent registry means everything ships inside the image, which is what a
+ * local build does.
+ */
+export function registryData(registry?: RegistrySpec): Record<string, string> {
+	if (!registry) return {};
+	return {
+		MODULE_REGISTRY: require(registry.url, "spec.registry.url"),
+		MODULE_REGISTRY_SOLUTIONS: require(registry.solutions, "spec.registry.solutions"),
+		MODULE_REGISTRY_REVISION: registry.revision ?? "",
+		MODULE_CACHE_DIR: registry.cacheDir ?? DEFAULT_CACHE_DIR,
+	};
+}
+
+export const DEFAULT_CACHE_DIR = "/var/cache/converged/modules";

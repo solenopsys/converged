@@ -9,9 +9,9 @@
 
 import { reconcilePlatform } from "./platform.ts";
 import { selectSolutions } from "./solution.ts";
-import { PolicyError } from "./types.ts";
-import type { ReconcileInput, ReconcileOutput, SolutionSpec } from "./types.ts";
 import { domainIndex, reconcileTenant } from "./tenant.ts";
+import type { ReconcileInput, ReconcileOutput, SolutionSpec } from "./types.ts";
+import { PolicyError } from "./types.ts";
 
 /**
  * A Solution owns no cluster objects of its own — it is an overlay that the

@@ -20,7 +20,8 @@ export function buildExtras(
 	component: string,
 ): KubeObject[] {
 	const resources: KubeObject[] = [];
-	const labels = (kind: string) => n.labels(platform, `${component}-${kind}`, owner);
+	const labels = (kind: string) =>
+		n.labels(platform, `${component}-${kind}`, owner);
 
 	for (const [name, data] of Object.entries(extras.configMaps ?? {})) {
 		resources.push(k8s.configMap(name, namespace, labels("config"), data));

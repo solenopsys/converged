@@ -1,0 +1,85 @@
+{{- if .Values.rbac.create }}
+{{/*
+Ptah's permissions are its blast radius, so they are enumerated rather than
+granted with a wildcard. The list mirrors the GVK table in `src/kube.zig`: a
+kind absent from both cannot be written by any policy, however the policy is
+edited.
+*/}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "ptah.fullname" . }}
+  labels:
+    {{- include "ptah.labels" . | nindent 4 }}
+rules:
+  # The custom resources ptah reads. It never creates or deletes them — they
+  # are the input, written by a human or by this chart.
+  - apiGroups: ["ptah.io"]
+    resources: ["platforms", "solutions", "tenants"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["ptah.io"]
+    resources: ["platforms/status", "solutions/status", "tenants/status"]
+    verbs: ["get", "patch", "update"]
+
+  # Everything ptah owns. `patch` covers server-side apply, which is how every
+  # object is written; `delete` is what prune needs.
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets", "services", "persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["persistentvolumes"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["gateway.networking.k8s.io"]
+    resources: ["gateways", "httproutes"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["cert-manager.io"]
+    resources: ["certificates"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "ptah.fullname" . }}
+  labels:
+    {{- include "ptah.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "ptah.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "ptah.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+---
+{{/* The leader-election lease is the one object ptah writes in its own namespace. */}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "ptah.fullname" . }}-lease
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ptah.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "ptah.fullname" . }}-lease
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ptah.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "ptah.fullname" . }}-lease
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "ptah.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}

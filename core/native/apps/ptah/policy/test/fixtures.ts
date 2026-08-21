@@ -1,6 +1,9 @@
-import type { KubeObject } from "../src/types.ts";
+import type { KubeObject, Profile, ShardSpec } from "../src/types.ts";
 
-export function platform(profile: "mono" | "cloud"): KubeObject {
+export function platform(
+	profile: Profile,
+	extra: Record<string, unknown> = {},
+): KubeObject {
 	return {
 		apiVersion: "ptah.io/v1alpha1",
 		kind: "Platform",
@@ -19,7 +22,10 @@ export function platform(profile: "mono" | "cloud"): KubeObject {
 				mountBase: "/app/data",
 				storageClassName: "local-path",
 				volumeSource: {
-					hostPath: { path: "/var/lib/ptah/{{volume}}", type: "DirectoryOrCreate" },
+					hostPath: {
+						path: "/var/lib/ptah/{{volume}}",
+						type: "DirectoryOrCreate",
+					},
 				},
 			},
 			apps: {
@@ -40,11 +46,31 @@ export function platform(profile: "mono" | "cloud"): KubeObject {
 					dnsNames: ["4ir.club", "*.4ir.club"],
 				},
 			},
+			...extra,
 		},
 	};
 }
 
-export function solution(name: string, extra: Record<string, unknown> = {}): KubeObject {
+/** A `multi` platform with a named shard alongside the catch-all. */
+export function sharded(shards?: ShardSpec[]): KubeObject {
+	return platform("multi", {
+		shards: shards ?? [
+			{ name: "alpha", scopes: ["acme", "globex"] },
+			{ name: "rest", scopes: ["*"] },
+		],
+	});
+}
+
+export const registry = {
+	url: "https://registry.example.com/converged",
+	solutions: "solutions/converged.json",
+	revision: "2026-08-21",
+};
+
+export function solution(
+	name: string,
+	extra: Record<string, unknown> = {},
+): KubeObject {
 	return {
 		apiVersion: "ptah.io/v1alpha1",
 		kind: "Solution",
@@ -53,13 +79,18 @@ export function solution(name: string, extra: Record<string, unknown> = {}): Kub
 			platform: "converged",
 			microservices: ["geo", "places"],
 			microfrontends: ["geo"],
-			workflows: [{ name: "wf-leads", script: "workflows/wf-leads.js", periodMs: 600000 }],
+			workflows: [
+				{ name: "wf-leads", script: "workflows/wf-leads.js", periodMs: 600000 },
+			],
 			...extra,
 		},
 	};
 }
 
-export function tenant(name: string, extra: Record<string, unknown> = {}): KubeObject {
+export function tenant(
+	name: string,
+	extra: Record<string, unknown> = {},
+): KubeObject {
 	return {
 		apiVersion: "ptah.io/v1alpha1",
 		kind: "Tenant",
@@ -70,4 +101,19 @@ export function tenant(name: string, extra: Record<string, unknown> = {}): KubeO
 
 export function find(resources: KubeObject[], kind: string, name: string) {
 	return resources.find((r) => r.kind === kind && r.metadata.name === name);
+}
+
+/**
+ * `find` plus the assertion that it hit. An object missing from the desired
+ * set is a test failure worth naming, not an optional value to thread through
+ * every assertion that follows.
+ */
+export function specOf<T>(
+	resources: KubeObject[],
+	kind: string,
+	name: string,
+): T {
+	const object = find(resources, kind, name);
+	if (!object) throw new Error(`no ${kind}/${name} in the desired set`);
+	return object.spec as T;
 }

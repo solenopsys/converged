@@ -46,15 +46,27 @@ function probes(spec: ContainerSpec): Record<string, unknown> {
 	if (spec.probePort === undefined) return {};
 	const httpGet = { path: spec.probePath ?? "/health", port: spec.probePort };
 	return {
-		readinessProbe: { httpGet, initialDelaySeconds: 3, periodSeconds: 5, failureThreshold: 6 },
-		livenessProbe: { httpGet, initialDelaySeconds: 20, periodSeconds: 20, failureThreshold: 6 },
+		readinessProbe: {
+			httpGet,
+			initialDelaySeconds: 3,
+			periodSeconds: 5,
+			failureThreshold: 6,
+		},
+		livenessProbe: {
+			httpGet,
+			initialDelaySeconds: 20,
+			periodSeconds: 20,
+			failureThreshold: 6,
+		},
 	};
 }
 
 export function container(spec: ContainerSpec): Record<string, unknown> {
 	const envFrom: Record<string, unknown>[] = [];
-	if (spec.envFromConfigMap) envFrom.push({ configMapRef: { name: spec.envFromConfigMap } });
-	if (spec.envFromSecret) envFrom.push({ secretRef: { name: spec.envFromSecret } });
+	if (spec.envFromConfigMap)
+		envFrom.push({ configMapRef: { name: spec.envFromConfigMap } });
+	if (spec.envFromSecret)
+		envFrom.push({ secretRef: { name: spec.envFromSecret } });
 
 	return {
 		name: spec.name,

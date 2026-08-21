@@ -1,0 +1,11 @@
+apiVersion: v2
+name: ptah
+description: |
+  The one static artefact of a Converged deployment: CRDs, RBAC, the ptah
+  operator, and a single Platform object. Every workload — ui, ms, behemoth,
+  fujin, centimanus, resonus, processors — is created by ptah at runtime from
+  that Platform and the solutions layered onto it, not by this chart.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords: [converged, operator, kubernetes]
