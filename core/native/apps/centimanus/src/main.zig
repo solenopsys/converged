@@ -12,7 +12,32 @@ const Scheduler = @import("cron.zig").Scheduler;
 const signal_provider = @import("signal_provider.zig");
 const centimanus_nrpc = @import("generated/centimanus_nrpc.zig");
 
+/// A container runs this binary as PID 1, and the kernel gives PID 1 no default
+/// signal disposition: with no handler installed SIGTERM is discarded outright,
+/// so `docker stop` and a pod eviction both sit out the whole grace period and
+/// end in SIGKILL. The loops below park in accept() and clock_nanosleep(), and
+/// both restart themselves after EINTR, so there is no cooperative unwind to
+/// hand a flag to — the handler leaves through exit_group, which is the only
+/// exit safe to call from signal context (std.c.exit would run atexit handlers
+/// and can deadlock on the stdio lock the interrupted thread is holding).
+fn onSignal(_: std.posix.SIG) callconv(.c) void {
+    const notice = "centimanus: signal received, shutting down\n";
+    _ = std.os.linux.write(2, notice, notice.len);
+    std.os.linux.exit_group(0);
+}
+
+fn installSignalHandlers() void {
+    const action = std.posix.Sigaction{
+        .handler = .{ .handler = onSignal },
+        .mask = std.posix.sigemptyset(),
+        .flags = 0,
+    };
+    std.posix.sigaction(std.posix.SIG.TERM, &action, null);
+    std.posix.sigaction(std.posix.SIG.INT, &action, null);
+}
+
 pub fn main(init: std.process.Init) !void {
+    installSignalHandlers();
     const io = init.io;
     const gpa = init.gpa;
     var auth_receiver = try transport.auth.receiver.Receiver.init(gpa, init.environ_map);

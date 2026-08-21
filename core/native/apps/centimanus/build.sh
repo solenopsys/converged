@@ -5,7 +5,7 @@ cd "$(dirname "$0")"
 
 TARGET="${TARGET:-x86_64-linux-musl}"
 OPTIMIZE="${OPTIMIZE:-ReleaseFast}"
-CONVERGED_ROOT="${CONVERGED_ROOT:-../../../}"
+CONVERGED_ROOT="${CONVERGED_ROOT:-$(cd ../../../.. && pwd)}"
 
 case "$TARGET" in
     x86_64-linux-musl) ARTIFACT_TARGET=x86_64-musl ;;
@@ -18,6 +18,6 @@ esac
 ARTIFACT_DIR="zig-out/$ARTIFACT_TARGET"
 
 zig build "-Dtarget=$TARGET" "-Doptimize=$OPTIMIZE" --prefix "$ARTIFACT_DIR"
-(cd "$CONVERGED_ROOT/native/wrappers/protocols/zimq" && zig build "-Dtarget=$TARGET" "-Doptimize=$OPTIMIZE" --prefix "zig-out/$ARTIFACT_TARGET")
+(cd "$CONVERGED_ROOT/core/native/wrappers/protocols/zimq" && zig build "-Dtarget=$TARGET" "-Doptimize=$OPTIMIZE" --prefix "zig-out/$ARTIFACT_TARGET")
 
-install -Dm644 "$CONVERGED_ROOT/native/wrappers/protocols/zimq/zig-out/$ARTIFACT_TARGET/lib/libzimq.so" "$ARTIFACT_DIR/lib/libzimq.so"
+install -Dm644 "$CONVERGED_ROOT/core/native/wrappers/protocols/zimq/zig-out/$ARTIFACT_TARGET/lib/libzimq.so" "$ARTIFACT_DIR/lib/libzimq.so"

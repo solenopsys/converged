@@ -140,6 +140,28 @@ async function loadSolution(): Promise<Solution> {
 }
 
 /**
+ * In a built image the modules are bundled chunks, not source, and the map
+ * written by `core/containers/bundle.ts` says where each one landed. The map
+ * covers the superset the image carries; the Solution still decides which of
+ * them boot, so nothing about module selection moves to build time.
+ *
+ * Without the map — every dev run — resolution falls back to scanning source,
+ * which is what makes an edit visible on restart.
+ */
+type RuntimeMap = {
+	services?: Record<string, { implementation?: string; metadata?: string }>;
+};
+
+const runtimeMap: RuntimeMap | null = (() => {
+	const path = process.env.RUNTIME_MAP_PATH?.trim();
+	if (!path) return null;
+	if (!existsSync(path)) {
+		throw new Error(`RUNTIME_MAP_PATH is set but missing: ${path}`);
+	}
+	return Bun.TOML.parse(readFileSync(path, "utf8")) as RuntimeMap;
+})();
+
+/**
  * `ms-orders` lives under some category directory, but which one is an
  * organisational detail that the Solution deliberately does not carry. One
  * glob keeps the name the only identity a module has.
@@ -194,17 +216,34 @@ async function loadMicroservices(names: string[]) {
 	const missing: string[] = [];
 
 	for (const name of names) {
-		const svcDir = resolveServiceDir(name);
-		if (!svcDir) {
-			missing.push(name);
-			continue;
+		const mapped = runtimeMap?.services?.[name];
+		let implementationPath: string | null;
+		let metadataPath: string | null;
+
+		if (runtimeMap) {
+			// A name absent from the map is a module this image was not built
+			// with. Scanning source as a fallback would find nothing here anyway
+			// and would turn a clear "not in this image" into "not found".
+			if (!mapped) {
+				missing.push(`${name} (not in runtime map)`);
+				continue;
+			}
+			implementationPath = mapped.implementation ?? null;
+			metadataPath = mapped.metadata ?? null;
+		} else {
+			const svcDir = resolveServiceDir(name);
+			if (!svcDir) {
+				missing.push(name);
+				continue;
+			}
+			implementationPath = resolveImplementationPath(svcDir);
+			metadataPath = resolveMetadataPath(name);
 		}
-		const implementationPath = resolveImplementationPath(svcDir);
+
 		if (!implementationPath) {
 			missing.push(name);
 			continue;
 		}
-		const metadataPath = resolveMetadataPath(name);
 		if (!metadataPath) {
 			missing.push(`${name} (generated metadata)`);
 			continue;

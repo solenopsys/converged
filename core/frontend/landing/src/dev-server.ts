@@ -13,6 +13,13 @@ export interface LandingDevServerOptions {
 	projectDir: string;
 	spa: ServerPlugin;
 	landing: ServerPlugin;
+	/**
+	 * Where the landing's own static assets live. A source run leaves this unset
+	 * and the directory is found next to this file; in a built image the server
+	 * is one bundled file and that relative path no longer means anything, so
+	 * the container passes the location explicitly.
+	 */
+	publicDir?: string;
 }
 
 export function requiredLandingEnv(name: string): string {
@@ -60,7 +67,7 @@ export async function startLandingDevServer(options: LandingDevServerOptions) {
 
 
 
-				fallbackDir: resolve(import.meta.dir, "..", "public"),
+				fallbackDir: options.publicDir ?? resolve(import.meta.dir, "..", "public"),
 			}),
 		)
 		.use(options.spa)

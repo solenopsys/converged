@@ -5,9 +5,7 @@ cd "$(dirname "$0")"
 
 TARGET="${TARGET:-x86_64-linux-gnu}"
 OPTIMIZE="${OPTIMIZE:-ReleaseFast}"
-CONVERGED_ROOT="${CONVERGED_ROOT:-$(cd ../../.. && pwd)}"
-# Service contracts live with the modules, one level above the core.
-PROJECT_ROOT="${PROJECT_ROOT:-$(cd "$CONVERGED_ROOT/.." && pwd)}"
+CONVERGED_ROOT="${CONVERGED_ROOT:-$(cd ../../../.. && pwd)}"
 
 case "$TARGET" in
     x86_64-linux-gnu) ARTIFACT_TARGET=x86_64-gnu ;;
@@ -15,9 +13,9 @@ case "$TARGET" in
     *) echo "resonus requires a Linux GNU target: x86_64-linux-gnu or aarch64-linux-gnu" >&2; exit 2 ;;
 esac
 
-bun run "$CONVERGED_ROOT/tools/nrpc/src/zig-generator.ts" \
-    "$PROJECT_ROOT/modules/types/communications/resonus.ts" \
-    "$CONVERGED_ROOT/native/apps/resonus/src/generated/resonus_client.zig" \
+bun run "$CONVERGED_ROOT/core/tools/nrpc/src/zig-generator.ts" \
+    "$CONVERGED_ROOT/modules/types/communications/resonus.ts" \
+    "$CONVERGED_ROOT/core/native/apps/resonus/src/generated/resonus_client.zig" \
     "transport"
 
 # providers/dist is a build output, not a checked-in artifact: hooks.js and the
@@ -29,22 +27,22 @@ ARTIFACT_DIR="zig-out/$ARTIFACT_TARGET"
 
 zig build "-Dtarget=$TARGET" "-Doptimize=$OPTIMIZE" --prefix "$ARTIFACT_DIR"
 for wrapper in \
-    "$CONVERGED_ROOT/native/wrappers/rt/qjs" \
-    "$CONVERGED_ROOT/native/wrappers/protocols/zimq" \
-    "$CONVERGED_ROOT/native/wrappers/protocols/libdatachannel" \
-    "$CONVERGED_ROOT/native/wrappers/protocols/mbedtls" \
-    "$CONVERGED_ROOT/native/wrappers/protocols/baresip" \
-    "$CONVERGED_ROOT/native/libs/transport"; do
+    "$CONVERGED_ROOT/core/native/wrappers/rt/qjs" \
+    "$CONVERGED_ROOT/core/native/wrappers/protocols/zimq" \
+    "$CONVERGED_ROOT/core/native/wrappers/protocols/libdatachannel" \
+    "$CONVERGED_ROOT/core/native/wrappers/protocols/mbedtls" \
+    "$CONVERGED_ROOT/core/native/wrappers/protocols/baresip" \
+    "$CONVERGED_ROOT/core/native/libs/transport"; do
     (cd "$wrapper" && zig build "-Dtarget=$TARGET" "-Doptimize=$OPTIMIZE" --prefix "zig-out/$ARTIFACT_TARGET")
 done
 
-install -Dm644 "$CONVERGED_ROOT/native/wrappers/rt/qjs/zig-out/$ARTIFACT_TARGET/lib/libqjs.so" "$ARTIFACT_DIR/lib/libqjs.so"
-install -Dm644 "$CONVERGED_ROOT/native/wrappers/protocols/zimq/zig-out/$ARTIFACT_TARGET/lib/libzimq.so" "$ARTIFACT_DIR/lib/libzimq.so"
-install -Dm644 "$CONVERGED_ROOT/native/wrappers/protocols/libdatachannel/zig-out/$ARTIFACT_TARGET/lib/libdatachannel.so" "$ARTIFACT_DIR/lib/libdatachannel.so"
-install -Dm644 "$CONVERGED_ROOT/native/wrappers/protocols/libdatachannel/zig-out/$ARTIFACT_TARGET/lib/libdatachannel_wrapper.so" "$ARTIFACT_DIR/lib/libdatachannel_wrapper.so"
+install -Dm644 "$CONVERGED_ROOT/core/native/wrappers/rt/qjs/zig-out/$ARTIFACT_TARGET/lib/libqjs.so" "$ARTIFACT_DIR/lib/libqjs.so"
+install -Dm644 "$CONVERGED_ROOT/core/native/wrappers/protocols/zimq/zig-out/$ARTIFACT_TARGET/lib/libzimq.so" "$ARTIFACT_DIR/lib/libzimq.so"
+install -Dm644 "$CONVERGED_ROOT/core/native/wrappers/protocols/libdatachannel/zig-out/$ARTIFACT_TARGET/lib/libdatachannel.so" "$ARTIFACT_DIR/lib/libdatachannel.so"
+install -Dm644 "$CONVERGED_ROOT/core/native/wrappers/protocols/libdatachannel/zig-out/$ARTIFACT_TARGET/lib/libdatachannel_wrapper.so" "$ARTIFACT_DIR/lib/libdatachannel_wrapper.so"
 for lib in libmbedtls.so libmbedcrypto.so libmbedcrypto.so.18 libmbedx509.so libmbedx509.so.9 libtfpsacrypto.so.2; do
-    install -Dm644 "$CONVERGED_ROOT/native/wrappers/protocols/mbedtls/zig-out/$ARTIFACT_TARGET/lib/$lib" "$ARTIFACT_DIR/lib/$lib"
+    install -Dm644 "$CONVERGED_ROOT/core/native/wrappers/protocols/mbedtls/zig-out/$ARTIFACT_TARGET/lib/$lib" "$ARTIFACT_DIR/lib/$lib"
 done
-install -Dm644 "$CONVERGED_ROOT/native/wrappers/protocols/baresip/zig-out/$ARTIFACT_TARGET/lib/libbaresip.so" "$ARTIFACT_DIR/lib/libbaresip.so"
-install -Dm644 "$CONVERGED_ROOT/native/wrappers/protocols/baresip/zig-out/$ARTIFACT_TARGET/lib/libbaresip_wrapper.so" "$ARTIFACT_DIR/lib/libbaresip_wrapper.so"
-install -Dm644 "$CONVERGED_ROOT/native/libs/transport/zig-out/$ARTIFACT_TARGET/lib/libtransport.so" "$ARTIFACT_DIR/lib/libtransport.so"
+install -Dm644 "$CONVERGED_ROOT/core/native/wrappers/protocols/baresip/zig-out/$ARTIFACT_TARGET/lib/libbaresip.so" "$ARTIFACT_DIR/lib/libbaresip.so"
+install -Dm644 "$CONVERGED_ROOT/core/native/wrappers/protocols/baresip/zig-out/$ARTIFACT_TARGET/lib/libbaresip_wrapper.so" "$ARTIFACT_DIR/lib/libbaresip_wrapper.so"
+install -Dm644 "$CONVERGED_ROOT/core/native/libs/transport/zig-out/$ARTIFACT_TARGET/lib/libtransport.so" "$ARTIFACT_DIR/lib/libtransport.so"

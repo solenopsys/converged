@@ -116,6 +116,7 @@ export interface BuildSpec {
   ignorefile: string;
   context: string;
   buildContexts?: Record<string, string>;
+  buildArgs?: Record<string, string>;
   cwd?: string;
   noCache?: boolean;
 }
@@ -126,6 +127,9 @@ export async function buildContainer(spec: BuildSpec): Promise<void> {
   if (spec.noCache) args.push("--no-cache");
   for (const [name, context] of Object.entries(spec.buildContexts ?? {})) {
     args.push("--build-context", `${name}=${context}`);
+  }
+  for (const [name, value] of Object.entries(spec.buildArgs ?? {})) {
+    args.push("--build-arg", `${name}=${value}`);
   }
   args.push("--ignorefile", spec.ignorefile, "-f", spec.containerfile, "-t", spec.tag, spec.context);
   await run(

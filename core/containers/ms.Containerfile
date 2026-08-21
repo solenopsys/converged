@@ -1,10 +1,14 @@
 # The microservice image.
 #
-# This file used to be generated. The generator existed to bake one exact
-# service list into `runtime-map.toml` at build time, which meant a new
-# solution needed a new image. Modules are selected at runtime now, so there is
-# nothing left to generate: the image carries every module in the tree and ptah
-# says which ones boot.
+# Two stages, and only the second one ships. The builder holds the checkout,
+# the workspace `node_modules` and the whole native tree; the runtime gets a
+# bundle — `server.js`, one chunk per module, the dlopen'd libraries and the
+# handful of dependencies that cannot be bundled. Nothing else crosses.
+#
+# The module set is not baked in. `bundle.ts` builds the **superset** found on
+# disk and writes `runtime-map.toml` over all of it; ptah's `MICROSERVICES`
+# still decides which of them boot. That is what lets one image serve every
+# solution without carrying a source tree to be scanned at boot.
 #
 # Build context is the repository root — the directory holding `converged/`
 # and any product extending it:
@@ -14,6 +18,9 @@
 #     --build-arg PROJECT=club -t localhost/club-ms:latest .
 
 ARG BUN_IMAGE=docker.io/oven/bun:1.3-alpine
+# Execute-only Bun fork: it runs a prebuilt entrypoint and carries no bundler,
+# no package manager and no CLI dispatch. Source at core/native/wrappers/rt/cruller.
+ARG RUNTIME_IMAGE=public.ecr.aws/i5x9u8b2/cruller
 
 FROM ${BUN_IMAGE} AS builder
 ARG PROJECT=converged
@@ -31,47 +38,82 @@ RUN if [ "${PROJECT}" != "converged" ]; then cd "/build/${PROJECT}" && bun insta
 RUN cd /build/converged && bun run gen
 RUN if [ "${PROJECT}" != "converged" ]; then cd "/build/${PROJECT}" && bun run gen; fi
 
-FROM ${BUN_IMAGE} AS runtime
-ARG PROJECT=converged
-WORKDIR /app
-
-# libstdc++ is what the native transport and storage wrappers link against.
-RUN apk add --no-cache libstdc++ ca-certificates
-
-COPY --from=builder /build /app/src
-COPY --from=builder /build/converged/core/containers/entrypoint.sh /app/entrypoint.sh
-
-# Module lookup searches the product first and falls back to converged. When
-# the product *is* converged the two paths coincide, which costs one repeated
-# directory scan and avoids a conditional that could disagree with itself.
-ENV PROJECT_DIR=/app/src/converged
-ENV CHILD_PROJECT_DIR=/app/src/${PROJECT}
+RUN bun /build/converged/core/containers/bundle.ts \
+      --role=ms \
+      --root=/build \
+      --project-dir=/build/converged \
+      --child-project-dir="/build/${PROJECT}" \
+      --out=/build/out
 
 # One directory for every dlopen'd native library.
 #
 # BIN_LIBS_PATH is a single variable, but the libraries ship next to their own
 # packages — the transport under cruller-transport, the markdown parser under
 # cruller-md4c. Whichever directory it pointed at, the other package's dlopen
-# would fail. The generator this file replaces merged them for the same reason.
+# would fail.
 #
-# Only the musl variants are copied, and libzimq is copied under its bare
-# soname because that is the name libmessage links against.
-RUN SRC=/app/src/converged/core/native/libs && ARCH=$(uname -m) && \
-    mkdir -p /app/bin-libs && \
-    cp "$SRC/cruller-transport/bin-libs/libmessage-$ARCH-musl.so"   /app/bin-libs/ && \
-    cp "$SRC/cruller-transport/bin-libs/libtransport-$ARCH-musl.so" /app/bin-libs/ && \
-    cp "$SRC/cruller-transport/bin-libs/libzimq-$ARCH-musl.so"      /app/bin-libs/libzimq.so && \
-    cp "$SRC/cruller-md4c/bin-libs/libmd4c-$ARCH-musl.so"           /app/bin-libs/
+# Only this arch's musl variants are copied: the packages carry every
+# arch/libc combination and the rest is 50+ MB the image would never load.
+# libzimq goes in under its bare soname because that is what libmessage links
+# against, and libmessage is checked for the symbols the transport calls —
+# a stale copy otherwise fails at the first message rather than at boot.
+RUN SRC=/build/converged/core/native/libs && ARCH=$(uname -m) && \
+    mkdir -p /build/out/plugins/bin-libs && \
+    grep -aq msg_declare_target "$SRC/cruller-transport/bin-libs/libmessage-$ARCH-musl.so" && \
+    grep -aq msg_declare_route  "$SRC/cruller-transport/bin-libs/libmessage-$ARCH-musl.so" && \
+    cp "$SRC/cruller-transport/bin-libs/libmessage-$ARCH-musl.so"   /build/out/plugins/bin-libs/ && \
+    cp "$SRC/cruller-transport/bin-libs/libtransport-$ARCH-musl.so" /build/out/plugins/bin-libs/ && \
+    cp "$SRC/cruller-transport/bin-libs/libzimq-$ARCH-musl.so"      /build/out/plugins/bin-libs/libzimq.so && \
+    cp "$SRC/cruller-md4c/bin-libs/libmd4c-$ARCH-musl.so"           /build/out/plugins/bin-libs/
 
-RUN chmod +x /app/entrypoint.sh \
-    && mkdir -p /app/data \
-    && adduser -D -u 1000 default 2>/dev/null || true
-RUN chown -R 1000:1000 /app
+# Dependencies that must stay outside the bundle. sharp loads prebuilt native
+# binaries and lightningcss is dlopen'd the same way, so bundling either
+# produces a module that cannot find its own artifacts at runtime.
+RUN cat > /build/out/app/package.json <<'JSON'
+{
+  "name": "runtime-ms",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "sharp": "latest"
+  }
+}
+JSON
+RUN cd /build/out/app && bun install --production
+
+# Cruller runs the bundle directly; smol trades a little throughput for a
+# markedly smaller resident set, which is what matters with many replicas.
+RUN cat > /build/out/app/bunfig.toml <<'TOML'
+[run]
+smol = true
+TOML
+
+FROM ${RUNTIME_IMAGE} AS runtime
+WORKDIR /app
+USER root
+
+# libstdc++ backs the native transport and storage wrappers; vips and libgomp
+# are what sharp's prebuilt binaries link against.
+RUN apk add --no-cache libstdc++ vips libgomp
+
+COPY --from=builder /build/out/app/server.js        ./server.js
+COPY --from=builder /build/out/app/runtime-map.toml ./runtime-map.toml
+COPY --from=builder /build/out/app/package.json     ./package.json
+COPY --from=builder /build/out/app/bunfig.toml      ./bunfig.toml
+COPY --from=builder /build/out/app/node_modules     ./node_modules
+COPY --from=builder /build/out/plugins/chunks       ./plugins/chunks
+COPY --from=builder /build/out/plugins/bin-libs     ./plugins/bin-libs
+COPY --from=builder /build/converged/core/containers/entrypoint.sh /app/entrypoint.sh
+
+RUN chmod +x /app/entrypoint.sh && mkdir -p /app/data && chown -R 1000:1000 /app
 USER 1000
 
 ENV NODE_ENV=production
 ENV PORT=3001
 ENV DATA_DIR=/app/data
+# Module resolution reads the map instead of scanning a source tree. This is
+# the one switch that distinguishes the image from a dev run.
+ENV RUNTIME_MAP_PATH=/app/runtime-map.toml
 # Cache defaults the image can legitimately own; the endpoint itself
 # (VALKEY_URL) and the scope are deployment facts and stay unset.
 ENV VALKEY_KEY_PREFIX=cache
@@ -79,7 +121,7 @@ ENV VALKEY_TTL_SECONDS=120
 # The native transport is dlopen'd by variant. This base is Alpine, so the
 # default "gnu" would resolve to a library whose loader the image does not
 # have — and the failure only surfaces at the first message, not at boot.
-ENV BIN_LIBS_PATH=/app/bin-libs
+ENV BIN_LIBS_PATH=/app/plugins/bin-libs
 ENV LIBC_VARIANT=musl
 
 EXPOSE 3001
@@ -87,4 +129,4 @@ EXPOSE 3001
 # Required from the platform: FUJIN_ZMQ_ENDPOINT, SERVICE_TOKEN, VALKEY_URL,
 # STORAGE_TENANT_SERVICES (or STORAGE_SCOPE), MICROSERVICES.
 ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["bun", "run", "/app/src/converged/core/backend/src/dev.ts"]
+CMD ["bun", "/app/server.js"]

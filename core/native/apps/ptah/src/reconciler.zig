@@ -369,8 +369,19 @@ pub const Reconciler = struct {
         if (output.status) |status| try self.writeStatus(arena, kind, name, status);
     }
 
-    fn sleep(self: *Reconciler, ms: u64) void {
-        std.Io.sleep(self.client.io, .fromMilliseconds(@intCast(ms)), .awake) catch {};
+    /// clock_nanosleep resumes itself after EINTR with the time it had left,
+    /// so a SIGTERM landing at the start of a resync would go unnoticed for a
+    /// whole period — longer than the grace a rolling update waits out before
+    /// it reaches for SIGKILL. Sleeping in slices re-reads the flag often
+    /// enough that the pod leaves within a slice of the signal.
+    fn sleep(self: *Reconciler, ms: u64, running: *const std.atomic.Value(bool)) void {
+        const slice_ms = 100;
+        var remaining = ms;
+        while (remaining > 0 and running.load(.acquire)) {
+            const step = @min(remaining, slice_ms);
+            std.Io.sleep(self.client.io, .fromMilliseconds(@intCast(step)), .awake) catch {};
+            remaining -= step;
+        }
     }
 
     /// Reconcile forever, holding the lease if elections are enabled.
@@ -386,7 +397,7 @@ pub const Reconciler = struct {
             if (!leader) {
                 // Poll at half the lease duration so a dead leader is picked
                 // up roughly one period after it stops renewing.
-                self.sleep(lease.duration_seconds * 500);
+                self.sleep(lease.duration_seconds * 500, running);
                 continue;
             }
 
@@ -400,7 +411,7 @@ pub const Reconciler = struct {
             );
             if (stats.requeue_ms != 0 and stats.requeue_ms < sleep_ms) sleep_ms = stats.requeue_ms;
 
-            self.sleep(sleep_ms);
+            self.sleep(sleep_ms, running);
         }
     }
 };

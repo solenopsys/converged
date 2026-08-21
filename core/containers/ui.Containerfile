@@ -1,10 +1,14 @@
-# The UI image: SSR, the SPA shell, microfrontend bundles and static assets.
+# The UI image: SSR host, the SPA shell, microfrontend bundles and static assets.
 #
-# Like the ms image this used to be generated, for the same reason: the old
-# build baked one exact microfrontend list into the delivery. Here the client
-# bundle is built for *every* microfrontend in the tree and the import map that
-# the browser receives is narrowed at runtime from `FRONTEND_MODULES`, so one
-# image serves every solution.
+# Two stages, and only the second one ships. The builder holds the checkout and
+# the workspace `node_modules`; the runtime gets the bundled landing host, the
+# client delivery and the static assets it serves. Nothing else crosses.
+#
+# The client bundle is built for **every** microfrontend in the tree and the
+# import map the browser receives is narrowed at runtime from `FRONTEND_MODULES`,
+# so one image serves every solution. The SSR host, by contrast, belongs to the
+# product: it statically imports its own blocks, so `--build-arg PROJECT` selects
+# whose landing is bundled and the delivery is compiled from the same blocks.
 #
 # Build context is the repository root:
 #
@@ -13,6 +17,9 @@
 #     --build-arg PROJECT=club -t localhost/club-ui:latest .
 
 ARG BUN_IMAGE=docker.io/oven/bun:1.3-alpine
+# Execute-only Bun fork: it runs a prebuilt entrypoint and carries no bundler,
+# no package manager and no CLI dispatch. Source at core/native/wrappers/rt/cruller.
+ARG RUNTIME_IMAGE=public.ecr.aws/i5x9u8b2/cruller
 
 FROM ${BUN_IMAGE} AS builder
 ARG PROJECT=converged
@@ -27,8 +34,7 @@ RUN cd /build/converged && bun run gen
 RUN if [ "${PROJECT}" != "converged" ]; then cd "/build/${PROJECT}" && bun run gen; fi
 
 # The store worker is a separate bundle the SPA build embeds by path, so it has
-# to exist before that build runs. The generator this file replaces did the
-# same step in the same order.
+# to exist before that build runs.
 RUN cd /build/converged/core/frontend/libraries/files/store-workers \
     && bun run src/tools/build.ts
 
@@ -48,63 +54,90 @@ RUN MICROFRONTENDS="$( \
     MICROFRONTENDS="${MICROFRONTENDS}" \
     NODE_ENV=production bun run build
 
-FROM ${BUN_IMAGE} AS runtime
-ARG PROJECT=converged
+RUN bun /build/converged/core/containers/bundle.ts \
+      --role=ui \
+      --root=/build \
+      --project-dir=/build/converged \
+      --child-project-dir="/build/${PROJECT}" \
+      --out=/build/out
+
+# The landing host's own assets, from whichever project owns the host. Kept in
+# step with bundle.ts, which resolves the same directory.
+RUN LANDING="/build/${PROJECT}/core/frontend/landing" && \
+    [ -d "$LANDING/src" ] || LANDING=/build/converged/core/frontend/landing && \
+    mkdir -p /build/out/public && \
+    cp -R "$LANDING/public/." /build/out/public/
+
+# Only this arch's musl variants: the packages carry every arch/libc
+# combination and the rest is 50+ MB the image would never load. libzimq goes
+# in under its bare soname because that is what libmessage links against.
+RUN SRC=/build/converged/core/native/libs && ARCH=$(uname -m) && \
+    mkdir -p /build/out/plugins/bin-libs && \
+    cp "$SRC/cruller-transport/bin-libs/libmessage-$ARCH-musl.so"   /build/out/plugins/bin-libs/ && \
+    cp "$SRC/cruller-transport/bin-libs/libtransport-$ARCH-musl.so" /build/out/plugins/bin-libs/ && \
+    cp "$SRC/cruller-transport/bin-libs/libzimq-$ARCH-musl.so"      /build/out/plugins/bin-libs/libzimq.so && \
+    cp "$SRC/cruller-md4c/bin-libs/libmd4c-$ARCH-musl.so"           /build/out/plugins/bin-libs/
+
+# Dependencies that must stay outside the bundle: both load prebuilt native
+# binaries, which a bundled copy cannot find.
+RUN cat > /build/out/app/package.json <<'JSON'
+{
+  "name": "runtime-ui",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "sharp": "latest",
+    "lightningcss": "^1.33.0"
+  }
+}
+JSON
+RUN cd /build/out/app && bun install --production
+
+RUN cat > /build/out/app/bunfig.toml <<'TOML'
+[run]
+smol = true
+TOML
+
+FROM ${RUNTIME_IMAGE} AS runtime
 WORKDIR /app
+USER root
 
-RUN apk add --no-cache libstdc++ ca-certificates
+# libstdc++ backs the native transport; vips and libgomp are what sharp's
+# prebuilt binaries link against.
+RUN apk add --no-cache libstdc++ vips libgomp
 
-COPY --from=builder /build /app/src
+COPY --from=builder /build/out/app/server.js    ./server.js
+COPY --from=builder /build/out/app/package.json ./package.json
+COPY --from=builder /build/out/app/bunfig.toml  ./bunfig.toml
+COPY --from=builder /build/out/app/node_modules ./node_modules
+COPY --from=builder /build/out/public           ./public
+COPY --from=builder /build/out/plugins/bin-libs ./plugins/bin-libs
+COPY --from=builder /build/converged/core/frontend/spa/dist ./dist/front
 COPY --from=builder /build/converged/core/containers/entrypoint.sh /app/entrypoint.sh
 
-ENV PROJECT_DIR=/app/src/converged
-ENV CHILD_PROJECT_DIR=/app/src/${PROJECT}
-
-# One directory for every dlopen'd native library.
-#
-# BIN_LIBS_PATH is a single variable, but the libraries ship next to their own
-# packages — the transport under cruller-transport, the markdown parser under
-# cruller-md4c. Whichever directory it pointed at, the other package's dlopen
-# would fail. The generator this file replaces merged them for the same reason.
-#
-# Only the musl variants are copied, and libzimq is copied under its bare
-# soname because that is the name libmessage links against.
-RUN SRC=/app/src/converged/core/native/libs && ARCH=$(uname -m) && \
-    mkdir -p /app/bin-libs && \
-    cp "$SRC/cruller-transport/bin-libs/libmessage-$ARCH-musl.so"   /app/bin-libs/ && \
-    cp "$SRC/cruller-transport/bin-libs/libtransport-$ARCH-musl.so" /app/bin-libs/ && \
-    cp "$SRC/cruller-transport/bin-libs/libzimq-$ARCH-musl.so"      /app/bin-libs/libzimq.so && \
-    cp "$SRC/cruller-md4c/bin-libs/libmd4c-$ARCH-musl.so"           /app/bin-libs/
-
-RUN chmod +x /app/entrypoint.sh \
-    && mkdir -p /app/data \
-    && adduser -D -u 1000 default 2>/dev/null || true
-RUN chown -R 1000:1000 /app
+RUN chmod +x /app/entrypoint.sh && mkdir -p /app/data && chown -R 1000:1000 /app
 USER 1000
 
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV DATA_DIR=/app/data
+# There is no source tree in this image; the bundled host still asks for the
+# project root, and everything it reads through it now lives under /app.
+ENV PROJECT_DIR=/app
+# Where the client delivery built in the builder stage landed. A property of
+# how this image was built, so it is set here rather than by the platform.
+ENV FRONT_DELIVERY_DIR=/app/dist/front
 ENV VALKEY_KEY_PREFIX=cache
 ENV VALKEY_TTL_SECONDS=120
 # The native transport is dlopen'd by variant. This base is Alpine, so the
 # default "gnu" would resolve to a library whose loader the image does not
 # have — and the failure only surfaces at the first message, not at boot.
-# Where the client delivery built in the builder stage landed. A property of
-# how this image was built, so it is set here rather than by the platform.
-ENV FRONT_DELIVERY_DIR=/app/src/converged/core/frontend/spa/dist
-ENV BIN_LIBS_PATH=/app/bin-libs
+ENV BIN_LIBS_PATH=/app/plugins/bin-libs
 ENV LIBC_VARIANT=musl
 
 EXPOSE 3000
 
 # Required from the platform: FUJIN_ZMQ_ENDPOINT, VALKEY_URL, STORAGE_SCOPE,
-# SERVICES_BASE, FRONTEND_MODULES.
+# SERVICES_BASE, FRONT_LOCALE, FRONTEND_MODULES.
 ENTRYPOINT ["/app/entrypoint.sh"]
-# Run from inside the landing package, not from /app.
-#
-# Bun picks up `jsx`/`jsxImportSource` from the tsconfig it finds for the
-# working directory, and this delivery is Preact. Started anywhere else the
-# JSX in the landing blocks compiles against React and the process dies on a
-# missing `react/jsx-runtime`. The dev runner spawns it with the same cwd.
-CMD ["sh", "-c", "cd /app/src/converged/core/frontend/landing && exec bun run src/dev.ts"]
+CMD ["bun", "/app/server.js"]

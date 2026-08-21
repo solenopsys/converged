@@ -8,8 +8,6 @@ RUN apk add --no-cache ca-certificates
 RUN mkdir -p /app/lib
 COPY ./zig-out/x86_64-musl/bin/centimanus /app/centimanus
 COPY ./zig-out/x86_64-musl/lib/libqjs.so /app/lib/libqjs.so
-COPY ./zig-out/x86_64-musl/lib/libdatachannel_wrapper.so /app/lib/libdatachannel_wrapper.so
-COPY ./zig-out/x86_64-musl/lib/libdatachannel.so /app/lib/libdatachannel.so
 COPY ./zig-out/x86_64-musl/lib/libzimq.so /app/lib/libzimq.so
 RUN chmod +x /app/centimanus && chown -R 1000:1000 /app
 RUN adduser -D -u 1000 default || true
