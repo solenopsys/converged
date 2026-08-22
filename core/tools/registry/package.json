@@ -1,0 +1,13 @@
+{
+	"name": "registry-builder",
+	"version": "0.0.0",
+	"type": "module",
+	"private": true,
+	"module": "src/build.ts",
+	"dependencies": {
+		"back-core": "workspace:*",
+		"front-spa": "workspace:*",
+		"lightningcss": "^1.33.0",
+		"unocss": "^66.8.0"
+	}
+}

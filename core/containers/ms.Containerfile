@@ -2,13 +2,14 @@
 #
 # Two stages, and only the second one ships. The builder holds the checkout,
 # the workspace `node_modules` and the whole native tree; the runtime gets a
-# bundle — `server.js`, one chunk per module, the dlopen'd libraries and the
-# handful of dependencies that cannot be bundled. Nothing else crosses.
+# bundle — `server.js`, the dlopen'd libraries and the handful of dependencies
+# that cannot be bundled. Nothing else crosses.
 #
-# The module set is not baked in. `bundle.ts` builds the **superset** found on
-# disk and writes `runtime-map.toml` over all of it; ptah's `MICROSERVICES`
-# still decides which of them boot. That is what lets one image serve every
-# solution without carrying a source tree to be scanned at boot.
+# There are no microservices in this image. A module is built by
+# `core/tools/registry`, published by digest, and fetched from ptah at boot;
+# `MICROSERVICES` says which ones and `MODULE_DIGESTS` says which bytes. So the
+# image stops changing when a module does, and one image serves every solution
+# without carrying a single module of any of them.
 #
 # Build context is the repository root — the directory holding `converged/`
 # and any product extending it:
@@ -96,24 +97,24 @@ USER root
 # are what sharp's prebuilt binaries link against.
 RUN apk add --no-cache libstdc++ vips libgomp
 
-COPY --from=builder /build/out/app/server.js        ./server.js
-COPY --from=builder /build/out/app/runtime-map.toml ./runtime-map.toml
-COPY --from=builder /build/out/app/package.json     ./package.json
-COPY --from=builder /build/out/app/bunfig.toml      ./bunfig.toml
-COPY --from=builder /build/out/app/node_modules     ./node_modules
-COPY --from=builder /build/out/plugins/chunks       ./plugins/chunks
-COPY --from=builder /build/out/plugins/bin-libs     ./plugins/bin-libs
+COPY --from=builder /build/out/app/server.js    ./server.js
+COPY --from=builder /build/out/app/package.json ./package.json
+COPY --from=builder /build/out/app/bunfig.toml  ./bunfig.toml
+COPY --from=builder /build/out/app/node_modules ./node_modules
+COPY --from=builder /build/out/plugins/bin-libs ./plugins/bin-libs
 COPY --from=builder /build/converged/core/containers/entrypoint.sh /app/entrypoint.sh
 
-RUN chmod +x /app/entrypoint.sh && mkdir -p /app/data && chown -R 1000:1000 /app
+RUN chmod +x /app/entrypoint.sh && mkdir -p /app/data /app/modules && chown -R 1000:1000 /app
 USER 1000
 
 ENV NODE_ENV=production
 ENV PORT=3001
 ENV DATA_DIR=/app/data
-# Module resolution reads the map instead of scanning a source tree. This is
-# the one switch that distinguishes the image from a dev run.
-ENV RUNTIME_MAP_PATH=/app/runtime-map.toml
+# Where fetched modules land. The endpoint they come from (MODULE_PROXY) and
+# the mapping that names them (MODULE_DIGESTS) are deployment facts and stay
+# unset; without them the server resolves modules from source, which is what a
+# dev run does and what this image has nothing to do.
+ENV MODULE_CACHE_DIR=/app/modules
 # Cache defaults the image can legitimately own; the endpoint itself
 # (VALKEY_URL) and the scope are deployment facts and stay unset.
 ENV VALKEY_KEY_PREFIX=cache
@@ -127,6 +128,7 @@ ENV LIBC_VARIANT=musl
 EXPOSE 3001
 
 # Required from the platform: FUJIN_ZMQ_ENDPOINT, SERVICE_TOKEN, VALKEY_URL,
-# STORAGE_TENANT_SERVICES (or STORAGE_SCOPE), MICROSERVICES.
+# STORAGE_TENANT_SERVICES (or STORAGE_SCOPE), MICROSERVICES, MODULE_PROXY,
+# MODULE_DIGESTS.
 ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["bun", "/app/server.js"]

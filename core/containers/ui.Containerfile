@@ -4,9 +4,11 @@
 # the workspace `node_modules`; the runtime gets the bundled landing host, the
 # client delivery and the static assets it serves. Nothing else crosses.
 #
-# The client bundle is built for **every** microfrontend in the tree and the
-# import map the browser receives is narrowed at runtime from `FRONTEND_MODULES`,
-# so one image serves every solution. The SSR host, by contrast, belongs to the
+# There are no microfrontends in this image. Each is built once by
+# `core/tools/registry` with its own CSS packed inside, published by digest, and
+# served from ptah — the import map the browser receives is composed at runtime
+# from `FRONTEND_MODULES`, so one image serves every solution and a module rolls
+# forward without rebuilding it. The SSR host, by contrast, belongs to the
 # product: it statically imports its own blocks, so `--build-arg PROJECT` selects
 # whose landing is bundled and the delivery is compiled from the same blocks.
 #
@@ -38,20 +40,15 @@ RUN if [ "${PROJECT}" != "converged" ]; then cd "/build/${PROJECT}" && bun run g
 RUN cd /build/converged/core/frontend/libraries/files/store-workers \
     && bun run src/tools/build.ts
 
-# The client delivery. `MICROFRONTENDS` selects what gets bundled, and the
-# image is built for the superset found on disk rather than for one solution —
-# that is what makes a single static image serve any of them. Nothing is
-# gained by omitting a bundle: an unlisted module is simply never imported.
-RUN MICROFRONTENDS="$( \
-      { ls -d "/build/${PROJECT}"/modules/microfrontends/*/mf-* \
-             /build/converged/modules/microfrontends/*/mf-* 2>/dev/null || true; } \
-      | sed 's|.*/mf-||' | sort -u | paste -sd, - \
-    )" && \
-    echo "delivery microfrontends: ${MICROFRONTENDS}" && \
-    cd /build/converged/core/frontend/spa && \
+# The client delivery: the shell, the vendor layer, the base style layer and
+# the installable layer. `MICROFRONTENDS=` — set and empty, which the build
+# reads as "none" — because the modules are registry objects now: the image
+# cannot know which of them a solution will ask for, and the ui server resolves
+# `/mf/<name>.js` through ptah at request time.
+RUN cd /build/converged/core/frontend/spa && \
     PROJECT_DIR=/build/converged \
     CHILD_PROJECT_DIR="/build/${PROJECT}" \
-    MICROFRONTENDS="${MICROFRONTENDS}" \
+    MICROFRONTENDS= \
     NODE_ENV=production bun run build
 
 RUN bun /build/converged/core/containers/bundle.ts \
@@ -115,12 +112,15 @@ COPY --from=builder /build/out/plugins/bin-libs ./plugins/bin-libs
 COPY --from=builder /build/converged/core/frontend/spa/dist ./dist/front
 COPY --from=builder /build/converged/core/containers/entrypoint.sh /app/entrypoint.sh
 
-RUN chmod +x /app/entrypoint.sh && mkdir -p /app/data && chown -R 1000:1000 /app
+RUN chmod +x /app/entrypoint.sh && mkdir -p /app/data /app/modules && chown -R 1000:1000 /app
 USER 1000
 
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV DATA_DIR=/app/data
+# Where fetched microfrontends land before being handed to a browser. The
+# registry endpoint and mapping are deployment facts and stay unset.
+ENV MODULE_CACHE_DIR=/app/modules
 # There is no source tree in this image; the bundled host still asks for the
 # project root, and everything it reads through it now lives under /app.
 ENV PROJECT_DIR=/app
@@ -138,6 +138,6 @@ ENV LIBC_VARIANT=musl
 EXPOSE 3000
 
 # Required from the platform: FUJIN_ZMQ_ENDPOINT, VALKEY_URL, STORAGE_SCOPE,
-# SERVICES_BASE, FRONT_LOCALE, FRONTEND_MODULES.
+# SERVICES_BASE, FRONT_LOCALE, FRONTEND_MODULES, MODULE_PROXY, MODULE_DIGESTS.
 ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["bun", "/app/server.js"]

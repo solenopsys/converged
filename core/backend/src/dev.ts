@@ -1,6 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { registerBaseModules } from "./base-modules";
+import { moduleRegistryFromEnv } from "./module-registry";
 import { createBunRedisCache } from "./server/bunRedisCache";
 import type { PluginFactory } from "./server/createServer";
 import { createServer, loadConfigFromEnv } from "./server/createServer";
@@ -140,26 +142,21 @@ async function loadSolution(): Promise<Solution> {
 }
 
 /**
- * In a built image the modules are bundled chunks, not source, and the map
- * written by `core/containers/bundle.ts` says where each one landed. The map
- * covers the superset the image carries; the Solution still decides which of
- * them boot, so nothing about module selection moves to build time.
+ * In a built image there are no modules on disk. The image is the server and
+ * nothing else; a microservice is fetched from ptah by digest at boot, which is
+ * what lets one image serve any solution without carrying every module in the
+ * tree — and what lets a module roll forward without rebuilding the image.
  *
- * Without the map — every dev run — resolution falls back to scanning source,
+ * Without a registry — every dev run — resolution falls back to scanning source,
  * which is what makes an edit visible on restart.
  */
-type RuntimeMap = {
-	services?: Record<string, { implementation?: string; metadata?: string }>;
-};
-
-const runtimeMap: RuntimeMap | null = (() => {
-	const path = process.env.RUNTIME_MAP_PATH?.trim();
-	if (!path) return null;
-	if (!existsSync(path)) {
-		throw new Error(`RUNTIME_MAP_PATH is set but missing: ${path}`);
-	}
-	return Bun.TOML.parse(readFileSync(path, "utf8")) as RuntimeMap;
-})();
+const registry = moduleRegistryFromEnv();
+if (registry) {
+	console.log(`[back-core] Module registry: ${registry.revision}`);
+	// Before the first module is imported: a registry bundle asks for `back-core`
+	// and `nrpc` by name, and this is what those names resolve to.
+	registerBaseModules();
+}
 
 /**
  * `ms-orders` lives under some category directory, but which one is an
@@ -211,70 +208,65 @@ function resolveMetadataPath(name: string): string | null {
 	return null;
 }
 
+/**
+ * A registry artifact is one file carrying both halves of a microservice — the
+ * implementation and its generated nrpc metadata — because a digest names one
+ * file. From source they are still two, so both shapes are read here rather
+ * than made uniform: source resolution is what a dev run depends on.
+ */
+async function importService(
+	name: string,
+): Promise<{ implementation: unknown; metadata: unknown }> {
+	if (registry) {
+		const module = await import(
+			pathToFileURL(await registry.load(`ms-${name}.js`)).href
+		);
+		return { implementation: module.implementation, metadata: module.metadata };
+	}
+
+	const svcDir = resolveServiceDir(name);
+	const implementationPath = svcDir && resolveImplementationPath(svcDir);
+	if (!implementationPath) throw new Error(`No source for ms-${name}`);
+	const metadataPath = resolveMetadataPath(name);
+	if (!metadataPath) throw new Error(`No generated g-${name}`);
+
+	const [implementationModule, metadataModule] = await Promise.all([
+		import(pathToFileURL(implementationPath).href),
+		import(pathToFileURL(metadataPath).href),
+	]);
+	return {
+		implementation: implementationModule.default,
+		metadata: metadataModule.metadata,
+	};
+}
+
 async function loadMicroservices(names: string[]) {
 	const services: ServiceBinding[] = [];
-	const missing: string[] = [];
+	const failed: string[] = [];
 
 	for (const name of names) {
-		const mapped = runtimeMap?.services?.[name];
-		let implementationPath: string | null;
-		let metadataPath: string | null;
-
-		if (runtimeMap) {
-			// A name absent from the map is a module this image was not built
-			// with. Scanning source as a fallback would find nothing here anyway
-			// and would turn a clear "not in this image" into "not found".
-			if (!mapped) {
-				missing.push(`${name} (not in runtime map)`);
-				continue;
-			}
-			implementationPath = mapped.implementation ?? null;
-			metadataPath = mapped.metadata ?? null;
-		} else {
-			const svcDir = resolveServiceDir(name);
-			if (!svcDir) {
-				missing.push(name);
-				continue;
-			}
-			implementationPath = resolveImplementationPath(svcDir);
-			metadataPath = resolveMetadataPath(name);
-		}
-
-		if (!implementationPath) {
-			missing.push(name);
-			continue;
-		}
-		if (!metadataPath) {
-			missing.push(`${name} (generated metadata)`);
-			continue;
-		}
 		try {
-			const [implementationModule, metadataModule] = await Promise.all([
-				import(pathToFileURL(implementationPath).href),
-				import(pathToFileURL(metadataPath).href),
-			]);
-			const implementation = implementationModule.default;
+			const { implementation, metadata } = await importService(name);
 			if (!implementation) {
 				throw new Error(`Missing default ServiceImpl export for ${name}`);
 			}
-			if (!metadataModule.metadata) {
+			if (!metadata) {
 				throw new Error(`Missing generated metadata for ${name}`);
 			}
 			services.push({
 				name,
 				implementation,
-				metadata: metadataModule.metadata,
-			});
-		} catch (err) {
-			console.error(
-				`[back-core] Failed to load microservice ${name} at ${implementationPath}`,
-			);
-			throw err;
+				metadata,
+			} as ServiceBinding);
+		} catch (error) {
+			failed.push(`${name}: ${error instanceof Error ? error.message : error}`);
 		}
 	}
 
-	if (missing.length > 0) {
-		console.warn(`[back-core] Missing microservices: ${missing.join(", ")}`);
+	if (failed.length > 0) {
+		console.warn(
+			`[back-core] Missing microservices:\n  - ${failed.join("\n  - ")}`,
+		);
 	}
 
 	return services;

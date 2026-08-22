@@ -8,6 +8,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./settings": "./src/config/settings.ts",
+    "./module-registry": "./src/module-registry.ts",
     "./workspace-domain": "./src/workspace-domain.ts",
     "./request-context": "./src/request-context.ts",
     "./server-app": "./src/server/server-app.ts",
