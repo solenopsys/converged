@@ -74,10 +74,16 @@ describe("platform", () => {
 			dataOf(find(resources, "ConfigMap", "converged-domains"))
 				.STORAGE_TENANT_SERVICES,
 		);
-		expect(index).toEqual({
-			converged: "converged-storage.converged.svc.cluster.local:9000",
-			"*": "converged-storage.converged.svc.cluster.local:9000",
-		});
+		// Fujin, not the storage Service: behemoth is a DEALER that dials out
+		// and listens on nothing but its cache port.
+		const endpoint = {
+			host: "converged-fujin.converged.svc.cluster.local",
+			port: 5557,
+			target: "behemoth",
+			cacheHost: "converged-storage.converged.svc.cluster.local",
+			cachePort: 6379,
+		};
+		expect(index).toEqual({ converged: endpoint, "*": endpoint });
 	});
 
 	test("stateless pods get the fujin route and their storage scope", () => {
@@ -687,10 +693,19 @@ describe("multi", () => {
 			dataOf(find(resources, "ConfigMap", "converged-domains"))
 				.STORAGE_TENANT_SERVICES,
 		);
+		// Every scope routes through fujin; only the cache host is per-shard,
+		// because valkey is the one port behemoth actually listens on.
+		const shardEndpoint = (shard: string) => ({
+			host: "converged-fujin.converged.svc.cluster.local",
+			port: 5557,
+			target: "behemoth",
+			cacheHost: `converged-storage-${shard}.converged.svc.cluster.local`,
+			cachePort: 6379,
+		});
 		expect(index).toEqual({
-			acme: "converged-storage-alpha.converged.svc.cluster.local:9000",
-			globex: "converged-storage-alpha.converged.svc.cluster.local:9000",
-			"*": "converged-storage-rest.converged.svc.cluster.local:9000",
+			acme: shardEndpoint("alpha"),
+			globex: shardEndpoint("alpha"),
+			"*": shardEndpoint("rest"),
 		});
 	});
 
@@ -851,7 +866,7 @@ describe("module registry", () => {
 			input({ kind: "Platform", object: platform("mono") }),
 		);
 		const data = dataOf(find(resources, "ConfigMap", "converged-modules"));
-		expect(data.MODULE_REGISTRY).toBeUndefined();
+		expect(data.MODULE_PROXY).toBeUndefined();
 
 		const spec = find(resources, "Deployment", "converged-ui")?.spec as {
 			template: { spec: { volumes?: unknown[] } };
@@ -864,50 +879,40 @@ describe("module registry", () => {
 			input({ kind: "Platform", object: platform("mono", { registry }) }),
 		);
 		const data = dataOf(find(resources, "ConfigMap", "converged-modules"));
-		expect(data.MODULE_REGISTRY).toBe(registry.url);
-		expect(data.MODULE_REGISTRY_SOLUTIONS).toBe(registry.solutions);
+		expect(data.MODULE_PROXY).toBe("http://ptah-proxy");
+		expect(JSON.parse(data.MODULE_DIGESTS)).toEqual(registry.modules);
 		expect(data.MODULE_REGISTRY_REVISION).toBe(registry.revision);
-		expect(data.MODULE_CACHE_DIR).toBe("/var/cache/converged/modules");
 		expect(status.registry).toBe(registry.url);
 
 		for (const name of ["converged-ui", "converged-services"]) {
 			const spec = find(resources, "Deployment", name)?.spec as {
 				template: {
 					spec: {
-						volumes: { name: string; emptyDir: Record<string, unknown> }[];
+						volumes?: unknown[];
 						containers: {
 							env: { name: string; value: string }[];
-							volumeMounts: { name: string; mountPath: string }[];
+							volumeMounts?: unknown[];
 						}[];
 					};
 				};
 			};
-			expect(spec.template.spec.volumes).toEqual([
-				{ name: "module-cache", emptyDir: {} },
-			]);
-			expect(spec.template.spec.containers[0].volumeMounts).toEqual([
-				{ name: "module-cache", mountPath: "/var/cache/converged/modules" },
-			]);
+			expect(spec.template.spec.volumes).toBeUndefined();
+			expect(spec.template.spec.containers[0].volumeMounts).toBeUndefined();
 			expect(spec.template.spec.containers[0].env).toContainEqual({
-				name: "MODULE_REGISTRY",
-				value: registry.url,
+				name: "MODULE_PROXY",
+				value: "http://ptah-proxy",
 			});
 		}
 	});
 
-	test("the cache is bounded when a size is given", () => {
+	test("the proxy cache is not mounted in consumers", () => {
 		const { resources } = reconcile(
-			input({
-				kind: "Platform",
-				object: platform("mono", {
-					registry: { ...registry, cacheSize: "2Gi" },
-				}),
-			}),
+			input({ kind: "Platform", object: platform("mono", { registry }) }),
 		);
 		const spec = find(resources, "Deployment", "converged-ui")?.spec as {
-			template: { spec: { volumes: { emptyDir: { sizeLimit?: string } }[] } };
+			template: { spec: { volumes?: unknown[] } };
 		};
-		expect(spec.template.spec.volumes[0].emptyDir.sizeLimit).toBe("2Gi");
+		expect(spec.template.spec.volumes).toBeUndefined();
 	});
 
 	test("a new revision rolls the pods even though the module set is unchanged", () => {

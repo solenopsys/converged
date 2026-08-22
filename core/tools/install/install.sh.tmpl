@@ -1,0 +1,283 @@
+#!/usr/bin/env bash
+# Converged installer.
+#
+#   curl -sfL https://converged.4ir.club | sudo sh -
+#
+# Self-contained on purpose: the ptah chart travels inside this file as a
+# base64 tarball, so the installer is one artefact to serve and one to audit.
+# Regenerate with `bun run core/tools/install/build.ts` — editing the payload
+# by hand is how the chart and the script drift apart.
+set -euo pipefail
+
+CHART_B64='@CHART_TGZ_B64@'
+CHART_SHA256='@CHART_TGZ_SHA256@'
+CHART_BUILT='@BUILT_AT@'
+
+KUBECONFIG_PATH="${KUBECONFIG_PATH:-/etc/rancher/k3s/k3s.yaml}"
+CERT_MANAGER_VERSION="${CERT_MANAGER_VERSION:-v1.17.2}"
+GATEWAY_API_VERSION="${GATEWAY_API_VERSION:-v1.2.1}"
+
+# Everything below can be answered at the prompt or preset in the environment,
+# which is what makes the same script usable from a terminal and from CI.
+WORKSPACE="${WORKSPACE:-}"
+PROFILE="${PROFILE:-}"
+DOMAIN_BASE="${DOMAIN_BASE:-}"
+
+PTAH_IMAGE_REPOSITORY="${PTAH_IMAGE_REPOSITORY:-public.ecr.aws/i5x9u8b2/ptah}"
+PTAH_IMAGE_TAG="${PTAH_IMAGE_TAG:-latest}"
+IMAGES_REGISTRY="${IMAGES_REGISTRY:-public.ecr.aws/i5x9u8b2}"
+IMAGES_TAG="${IMAGES_TAG:-latest}"
+STORAGE_CLASS="${STORAGE_CLASS:-local-path}"
+STORAGE_SIZE="${STORAGE_SIZE:-5Gi}"
+TRAEFIK_HTTPS_ENTRYPOINT_PORT="${TRAEFIK_HTTPS_ENTRYPOINT_PORT:-8443}"
+LOCAL_ISSUER_NAME="${LOCAL_ISSUER_NAME:-converged-local-selfsigned}"
+OPERATOR_CREATE="${OPERATOR_CREATE:-}"
+
+if [[ "${EUID}" -ne 0 ]]; then
+	printf 'Run this installer as root: curl -sfL <url> | sudo sh -\n' >&2
+	exit 1
+fi
+
+export KUBECONFIG="$KUBECONFIG_PATH"
+
+# Piped through `sh -`, stdin is the script itself, so a prompt has to talk to
+# the terminal directly. Opening /dev/tty is the test that matters: the device
+# node exists in containers and CI where it cannot be opened, so checking for
+# the file would pass and then read nothing. With no terminal the environment
+# is the only input, and an unanswered question fails rather than quietly
+# installing a differently-named platform than the one that was wanted.
+ask() {
+	local var="$1" question="$2" default="$3" answer=""
+	if [[ -n "${!var}" ]]; then
+		printf '%s: %s\n' "$question" "${!var}"
+		return
+	fi
+	if ! { exec 3<>/dev/tty; } 2>/dev/null; then
+		printf 'No terminal to ask "%s"; set %s in the environment.\n' "$question" "$var" >&2
+		exit 1
+	fi
+	printf '%s [%s]: ' "$question" "$default" >&3
+	read -r answer <&3 || answer=""
+	exec 3>&-
+	printf -v "$var" '%s' "${answer:-$default}"
+}
+
+# Asked at the end, but checked at the start: finding out there is no terminal
+# after several minutes of installing k3s is the one failure worth spending a
+# line to move forward.
+require_answers_possible() {
+	if [[ -n "$WORKSPACE" && -n "$PROFILE" && -n "$DOMAIN_BASE" ]]; then return; fi
+	if { exec 3<>/dev/tty; } 2>/dev/null; then
+		exec 3>&-
+		return
+	fi
+	printf 'No terminal to prompt on. Set WORKSPACE, PROFILE and DOMAIN_BASE in the environment.\n' >&2
+	exit 1
+}
+
+ask_workspace() {
+	ask WORKSPACE "Workspace (namespace and platform name)" "converged"
+	if [[ ! "$WORKSPACE" =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ ]]; then
+		printf 'Workspace %q is not a valid namespace name.\n' "$WORKSPACE" >&2
+		exit 1
+	fi
+
+	ask PROFILE "Deployment type (mono | multi | cloud)" "mono"
+	case "$PROFILE" in
+		mono|multi|cloud) ;;
+		*) printf 'Deployment type must be mono, multi or cloud (got %q).\n' "$PROFILE" >&2; exit 1 ;;
+	esac
+
+	ask DOMAIN_BASE "Domain base (hostnames are <name>.<domain>)" "4ir.local"
+}
+
+# The probe is expected to fail until it does not, so its own output is noise:
+# a screen of "Error from server (NotFound)" reads like a broken installer
+# rather than a healthy wait.
+wait_for() {
+	local description="$1"
+	shift
+	local attempts=0
+	printf 'Waiting for %s' "$description"
+	until "$@" >/dev/null 2>&1; do
+		attempts=$((attempts + 1))
+		if (( attempts >= 150 )); then
+			printf '\nTimed out waiting for %s\n' "$description" >&2
+			return 1
+		fi
+		printf '.'
+		sleep 2
+	done
+	printf ' ok\n'
+}
+
+# Is there already a cluster with everything a platform needs? Each check names
+# one thing install_* would otherwise create, so a half-built cluster — k3s up
+# but no cert-manager — is treated as absent and completed rather than assumed
+# ready and failed later.
+cluster_ready() {
+	command -v kubectl >/dev/null 2>&1 || return 1
+	systemctl is-active --quiet k3s || return 1
+	kubectl get --raw=/readyz >/dev/null 2>&1 || return 1
+	kubectl get gatewayclass/traefik >/dev/null 2>&1 || return 1
+	kubectl -n cert-manager get deployment/cert-manager >/dev/null 2>&1 || return 1
+	kubectl get clusterissuer/"$LOCAL_ISSUER_NAME" >/dev/null 2>&1 || return 1
+}
+
+install_k3s() {
+	if ! systemctl is-active --quiet k3s; then
+		curl -sfL https://get.k3s.io | sh -
+	fi
+	wait_for "k3s API" kubectl get --raw=/readyz
+	wait_for "a Ready node" sh -c 'kubectl get nodes --no-headers 2>/dev/null | awk '\''$2 == "Ready" { found=1 } END { exit !found }'\'''
+}
+
+install_helm() {
+	if ! command -v helm >/dev/null 2>&1; then
+		curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+	fi
+}
+
+install_gateway_api() {
+	# The gateway provider is configured before traefik's chart runs: the
+	# helm-controller reinstalls traefik when this changes, so setting it first
+	# is one install instead of two.
+	kubectl apply -f - <<'YAML'
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    providers:
+      kubernetesGateway:
+        enabled: true
+        nativeLBByDefault: true
+YAML
+
+	# Traefik ships the Gateway API CRDs in its own `traefik-crd` chart, so they
+	# arrive with it. Applying the upstream set first creates the same CRDs
+	# without Helm's ownership labels, and `helm install traefik-crd` then
+	# refuses to adopt them: traefik fails with "Required CRDs are missing" and
+	# there is never a Deployment to wait for. So wait for traefik first, then
+	# fill in only what it did not bring.
+	wait_for "the traefik Deployment" kubectl -n kube-system get deployment/traefik
+	kubectl -n kube-system rollout status deployment/traefik --timeout=5m
+
+	if ! kubectl get crd gatewayclasses.gateway.networking.k8s.io >/dev/null 2>&1; then
+		kubectl apply -f "https://github.com/kubernetes-sigs/gateway-api/releases/download/${GATEWAY_API_VERSION}/standard-install.yaml"
+	fi
+
+	wait_for "the traefik GatewayClass" kubectl get gatewayclass/traefik
+}
+
+install_cert_manager() {
+	kubectl apply -f "https://github.com/cert-manager/cert-manager/releases/download/${CERT_MANAGER_VERSION}/cert-manager.crds.yaml"
+	kubectl apply -f "https://github.com/cert-manager/cert-manager/releases/download/${CERT_MANAGER_VERSION}/cert-manager.yaml"
+	kubectl -n cert-manager rollout status deployment/cert-manager --timeout=5m
+	kubectl -n cert-manager rollout status deployment/cert-manager-webhook --timeout=5m
+	kubectl -n cert-manager rollout status deployment/cert-manager-cainjector --timeout=5m
+}
+
+install_local_issuer() {
+	kubectl apply -f - <<YAML
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: ${LOCAL_ISSUER_NAME}
+spec:
+  selfSigned: {}
+YAML
+}
+
+unpack_chart() {
+	CHART_DIR="$(mktemp -d)"
+	trap 'rm -rf "$CHART_DIR"' EXIT
+	printf '%s' "$CHART_B64" | base64 -d > "$CHART_DIR/chart.tgz"
+	# The digest is what makes a piped installer auditable: a payload that was
+	# rewritten in transit fails here rather than in the cluster.
+	local actual
+	actual="$(sha256sum "$CHART_DIR/chart.tgz" | cut -d' ' -f1)"
+	if [[ "$actual" != "$CHART_SHA256" ]]; then
+		printf 'Embedded chart digest mismatch: expected %s, got %s\n' "$CHART_SHA256" "$actual" >&2
+		exit 1
+	fi
+	mkdir -p "$CHART_DIR/chart"
+	tar -xzf "$CHART_DIR/chart.tgz" -C "$CHART_DIR/chart"
+}
+
+install_ptah() {
+	kubectl create namespace "$WORKSPACE" --dry-run=client -o yaml | kubectl apply -f -
+
+	# Ptah references this Secret and never writes it: real credentials do not
+	# travel through a custom resource, and they do not travel through an
+	# installer either.
+	if ! kubectl -n "$WORKSPACE" get secret "${WORKSPACE}-secrets" >/dev/null 2>&1; then
+		printf 'Note: Secret %s/%s-secrets does not exist yet. Create it before the platform can serve traffic.\n' \
+			"$WORKSPACE" "$WORKSPACE" >&2
+	fi
+
+	# The first release in a cluster brings the operator; later ones add a
+	# Platform and let that operator drive it. Both Platform and Solution are
+	# cluster-scoped, so a second operator would reconcile everything twice.
+	if [[ -z "$OPERATOR_CREATE" ]]; then
+		if kubectl get crd platforms.ptah.io >/dev/null 2>&1 \
+			&& [[ -n "$(kubectl get deployment -A -l app.kubernetes.io/name=ptah -o name 2>/dev/null)" ]]; then
+			OPERATOR_CREATE=false
+		else
+			OPERATOR_CREATE=true
+		fi
+	fi
+	printf 'Operator: %s\n' "$([[ "$OPERATOR_CREATE" == true ]] && echo "installing" || echo "already present, adding a Platform only")"
+
+	helm upgrade --install "${WORKSPACE}-ptah" "$CHART_DIR/chart" \
+		--namespace "$WORKSPACE" \
+		--create-namespace \
+		--wait \
+		--set operator.create="$OPERATOR_CREATE" \
+		--set-string workspace="$WORKSPACE" \
+		--set-string profile="$PROFILE" \
+		--set-string domainBase="$DOMAIN_BASE" \
+		--set-string image.repository="$PTAH_IMAGE_REPOSITORY" \
+		--set-string image.tag="$PTAH_IMAGE_TAG" \
+		--set-string images.registry="$IMAGES_REGISTRY" \
+		--set-string images.tag="$IMAGES_TAG" \
+		--set-string storage.storageClassName="$STORAGE_CLASS" \
+		--set-string storage.size="$STORAGE_SIZE" \
+		--set-string gateway.issuer="$LOCAL_ISSUER_NAME" \
+		--set gateway.httpsPort="$TRAEFIK_HTTPS_ENTRYPOINT_PORT"
+
+	if [[ "$OPERATOR_CREATE" == true ]]; then
+		kubectl -n "$WORKSPACE" rollout status deployment/"${WORKSPACE}-ptah" --timeout=5m
+	fi
+	wait_for "the Gateway to be programmed" sh -c \
+		"kubectl get gateway -n '$WORKSPACE' '$WORKSPACE' -o jsonpath='{.status.conditions[?(@.type==\"Programmed\")].status}' | grep -qx True"
+}
+
+printf 'Converged installer (chart %s, built %s)\n\n' "${CHART_SHA256:0:12}" "$CHART_BUILT"
+require_answers_possible
+
+# The cluster and its add-ons are the same whatever the answers turn out to be,
+# so they are built first and the questions are asked once there is something
+# to install into. On a host that already has them this is the whole difference
+# between installing a cluster and adding a workspace to one.
+install_helm
+if cluster_ready; then
+	printf 'Found k3s with traefik, the Gateway API and cert-manager. Adding a workspace to it.\n'
+else
+	install_k3s
+	install_gateway_api
+	install_cert_manager
+	install_local_issuer
+fi
+
+printf '\nCluster is ready. Now the platform:\n\n'
+ask_workspace
+printf '\n'
+
+unpack_chart
+install_ptah
+
+printf '\nConverged is installed in namespace %s (%s). Gateway: https://%s.%s/\n' \
+	"$WORKSPACE" "$PROFILE" "$WORKSPACE" "$DOMAIN_BASE"

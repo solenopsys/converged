@@ -12,8 +12,9 @@
 
 import * as k8s from "./k8s/index.ts";
 import * as n from "./names.ts";
-import { storageResources } from "./storage.ts";
+import { behemothTarget, storageResources } from "./storage.ts";
 import type { KubeObject, PlatformSpec, ShardSpec } from "./types.ts";
+import { require } from "./types.ts";
 import { PolicyError } from "./types.ts";
 
 export const CATCH_ALL = "*";
@@ -127,10 +128,29 @@ export function shardIndex(
 	owner: string,
 	shards: ResolvedShard[],
 ): KubeObject {
-	const index: Record<string, string> = {};
+	// The endpoint names fujin's ZMQ router and the behemoth peer behind it, not
+	// the storage Service. Behemoth is a fujin DEALER: it dials out and listens
+	// on nothing but its cache port, so a scope pointed straight at
+	// `<storage>:<storage.port>` resolves, connects to no one, and fails on the
+	// first send. Same shape as the cloud profile's tenant index.
+	const fujinPort = require(
+		spec.apps.fujin?.ports?.zmq,
+		"platform spec.apps.fujin.ports.zmq",
+	);
+	const fujinHost = `${n.app(platform, "fujin")}.${spec.namespace}.svc.cluster.local`;
+	const index: Record<
+		string,
+		{ host: string; port: number; target: string; cacheHost: string; cachePort: number }
+	> = {};
 	for (const shard of shards) {
-		const host = `${shard.resourceName}.${spec.namespace}.svc.cluster.local:${spec.storage.port}`;
-		for (const scope of shard.scopes) index[scope] = host;
+		const endpoint = {
+			host: fujinHost,
+			port: fujinPort,
+			target: behemothTarget(shard.scope),
+			cacheHost: `${shard.resourceName}.${spec.namespace}.svc.cluster.local`,
+			cachePort: spec.storage.cachePort,
+		};
+		for (const scope of shard.scopes) index[scope] = endpoint;
 	}
 	return k8s.configMap(
 		n.domainsConfigMap(platform),

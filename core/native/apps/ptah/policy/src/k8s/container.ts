@@ -29,12 +29,16 @@ export interface ContainerSpec {
 	env?: Record<string, string>;
 	/** Secrets and ConfigMaps projected wholesale into the environment. */
 	envFromSecret?: string;
+	/** Further Secrets projected wholesale, in order after `envFromSecret`. */
+	envFromSecrets?: string[];
 	envFromConfigMap?: string;
 	ports?: Port[];
 	resources?: Resources;
 	volumeMounts?: VolumeMount[];
 	probePort?: number;
 	probePath?: string;
+	/** Emitted verbatim, e.g. `{ runAsUser: 0 }` for a chown init container. */
+	securityContext?: Record<string, unknown>;
 }
 
 function envList(env: Record<string, string> | undefined) {
@@ -63,10 +67,21 @@ function probes(spec: ContainerSpec): Record<string, unknown> {
 
 export function container(spec: ContainerSpec): Record<string, unknown> {
 	const envFrom: Record<string, unknown>[] = [];
+	// The ConfigMap is ptah's own output, so a missing one is a bug worth
+	// stopping for. The Secret is not: it holds credentials created out of
+	// band, and a platform with none is a platform that has not been given any
+	// integrations yet — not a broken one. Without `optional` a missing Secret
+	// fails every container with CreateContainerConfigError, so a fresh install
+	// cannot come up at all until someone supplies credentials it has no use
+	// for yet. Pods pick the Secret up when it appears and they next restart.
 	if (spec.envFromConfigMap)
 		envFrom.push({ configMapRef: { name: spec.envFromConfigMap } });
 	if (spec.envFromSecret)
-		envFrom.push({ secretRef: { name: spec.envFromSecret } });
+		envFrom.push({ secretRef: { name: spec.envFromSecret, optional: true } });
+	// Ptah's own output, unlike the credentials Secret above: a missing one is
+	// a bug in the operator rather than an integration nobody configured yet,
+	// so it is required and a pod waits for it instead of starting half-signed.
+	for (const name of spec.envFromSecrets ?? []) envFrom.push({ secretRef: { name } });
 
 	return {
 		name: spec.name,
@@ -85,6 +100,9 @@ export function container(spec: ContainerSpec): Record<string, unknown> {
 		...(envFrom.length > 0 ? { envFrom } : {}),
 		...(spec.resources ? { resources: spec.resources } : {}),
 		...(spec.volumeMounts ? { volumeMounts: spec.volumeMounts } : {}),
+		...(spec.securityContext
+			? { securityContext: spec.securityContext }
+			: {}),
 		...probes(spec),
 	};
 }

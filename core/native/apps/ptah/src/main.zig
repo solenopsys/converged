@@ -12,6 +12,7 @@ const std = @import("std");
 const config_mod = @import("config.zig");
 const kube = @import("kube.zig");
 const lease = @import("lease.zig");
+const module_cache = @import("module_cache.zig");
 const policy = @import("policy.zig");
 const Reconciler = @import("reconciler.zig").Reconciler;
 
@@ -92,6 +93,14 @@ fn runController(
 
     var client = try kube.Client.init(gpa, io, &config);
     defer client.deinit();
+
+    // Keep the cache directory ready even before the first registry-backed
+    // Platform arrives. Fetching still happens only after a verified request.
+    std.Io.Dir.cwd().createDirPath(io, "/var/cache/ptah") catch |err| {
+        std.log.warn("module cache is unavailable: {s}", .{@errorName(err)});
+    };
+    const cache_thread = try std.Thread.spawn(.{}, module_cache.serve, .{ io, "/var/cache/ptah" });
+    cache_thread.detach();
 
     var reconciler = Reconciler{
         .gpa = gpa,

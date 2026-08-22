@@ -7,10 +7,12 @@ const config_mod = @import("config.zig");
 const kube = @import("kube.zig");
 const policy = @import("policy.zig");
 const tls = @import("tls.zig");
+const module_cache = @import("module_cache.zig");
 
 comptime {
     // The HTTPS transport carries its own unit tests; pull them in.
     _ = tls;
+    _ = module_cache;
 }
 
 const testing = std.testing;

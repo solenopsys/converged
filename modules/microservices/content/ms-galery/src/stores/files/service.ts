@@ -1,4 +1,8 @@
-import sharp from "sharp";
+// Loaded on first use, not at import. sharp dlopens a native addon, and the
+// production runtime (cruller) does not export every N-API symbol it needs —
+// a static import there takes down the whole services process at boot over a
+// thumbnail, instead of failing the one call that wants one.
+const loadSharp = async () => (await import("sharp")).default;
 import { generateULID } from "back-core";
 import { GaleryFilesRepository } from "./repository";
 import { GaleryFileKey } from "./keys";
@@ -31,6 +35,7 @@ export class GaleryFilesStoreService {
 
     await this.repo.save(imageKey, data);
 
+    const sharp = await loadSharp();
     const thumbBuffer = await sharp(data)
       .resize({ width: THUMB_WIDTH })
       .jpeg({ quality: 80 })

@@ -1,0 +1,97 @@
+{{- if .Values.operator.create }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ptah.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ptah.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "ptah.selectorLabels" . | nindent 6 }}
+  strategy:
+    # Two reconcilers must not overlap. With the lease the second one would
+    # only wait, and without it they would fight; either way, stopping the old
+    # pod before starting the new one is the honest hand-off.
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        {{- include "ptah.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "ptah.serviceAccountName" . }}
+      # A reconcile pass runs to completion; killing it mid-apply is what
+      # leaves half a platform behind. Ptah stops between passes on SIGTERM.
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: ptah
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          # Named in full rather than left to the image's ENTRYPOINT: a ptah
+          # image built without one turns `args` into the whole command, and
+          # the runtime fails trying to exec a file called "run".
+          command: ["/app/ptah"]
+          args: ["run"]
+          env:
+            # Namespace the Lease is taken in. In-cluster ptah reads this from
+            # the service-account file; it is set explicitly so the release
+            # namespace and the workspace cannot silently disagree.
+            - name: PTAH_NAMESPACE
+              value: {{ .Release.Namespace | quote }}
+            - name: PTAH_RESYNC_MS
+              value: {{ mul .Values.resyncSeconds 1000 | quote }}
+            - name: PTAH_LEADER_ELECTION
+              value: {{ ternary "on" "off" .Values.leaderElection | quote }}
+            # The lease holder id has to be unique per pod, and the pod name is
+            # the only identifier that already is.
+            - name: PTAH_IDENTITY
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          ports:
+            - name: modules
+              containerPort: 8080
+          volumeMounts:
+            - name: module-cache
+              mountPath: /var/cache/ptah
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: module-cache
+          persistentVolumeClaim:
+            claimName: {{ include "ptah.fullname" . }}-module-cache
+{{- end }}
+{{- if .Values.operator.create }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ptah-proxy
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ptah.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "ptah.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: modules
+      port: 80
+      targetPort: modules
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "ptah.fullname" . }}-module-cache
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ptah.labels" . | nindent 4 }}
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: {{ .Values.moduleCache.storageClassName | quote }}
+  resources:
+    requests:
+      storage: {{ .Values.moduleCache.size | quote }}
+{{- end }}

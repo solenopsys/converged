@@ -11,6 +11,7 @@ const kube = @import("kube.zig");
 const lease = @import("lease.zig");
 const policy = @import("policy.zig");
 const Config = @import("config.zig").Config;
+const access_keys = @import("access_keys.zig");
 
 const label_managed_by = "app.kubernetes.io/managed-by";
 const label_owner = "ptah.io/owner";
@@ -83,6 +84,14 @@ pub const Stats = struct {
         if (self.requeue_ms == 0 or ms < self.requeue_ms) self.requeue_ms = ms;
     }
 };
+
+/// Wall clock in seconds. std.time.timestamp is gone in Zig 0.16; lease.zig
+/// reaches for clock_gettime the same way.
+fn nowSeconds() i64 {
+    var ts: std.c.timespec = undefined;
+    _ = std.c.clock_gettime(.REALTIME, &ts);
+    return @as(i64, ts.sec);
+}
 
 pub const Reconciler = struct {
     gpa: std.mem.Allocator,
@@ -302,6 +311,90 @@ pub const Reconciler = struct {
         response.deinit(arena);
     }
 
+    /// The 32 bytes every one of a platform's keys comes from.
+    ///
+    /// Written on first sight and never rewritten. The key is derived rather
+    /// than stored so that only one thing has to be kept secret, and derivation
+    /// is deterministic so that the policy — re-evaluated on every pass — is
+    /// handed the same material every time instead of rotating the platform's
+    /// identity once every resync.
+    fn accessSeed(
+        self: *Reconciler,
+        arena: std.mem.Allocator,
+        platform: []const u8,
+        namespace: []const u8,
+    ) ![32]u8 {
+        const resource = kube.lookup("v1", "Secret") orelse return error.UnknownKind;
+        const secret_name = try std.fmt.allocPrint(arena, "{s}-access-seed", .{platform});
+
+        var existing = try self.client.get(arena, resource, namespace, secret_name);
+        defer existing.deinit(arena);
+        if (existing.ok()) {
+            const parsed = try std.json.parseFromSlice(std.json.Value, arena, existing.body, .{});
+            const data = parsed.value.object.get("data") orelse return error.SeedMalformed;
+            const encoded = data.object.get("seed") orelse return error.SeedMalformed;
+            if (encoded != .string) return error.SeedMalformed;
+            var raw: [64]u8 = undefined;
+            const decoder = std.base64.standard.Decoder;
+            const len = try decoder.calcSizeForSlice(encoded.string);
+            if (len != 32) return error.SeedMalformed;
+            try decoder.decode(raw[0..len], encoded.string);
+            var seed: [32]u8 = undefined;
+            @memcpy(&seed, raw[0..32]);
+            return seed;
+        }
+
+        // std.crypto.random is gone in Zig 0.16; entropy comes through Io.
+        var seed: [32]u8 = undefined;
+        std.Options.debug_io.random(&seed);
+        if (self.dry_run) return seed;
+
+        var encoded: [std.base64.standard.Encoder.calcSize(32)]u8 = undefined;
+        _ = std.base64.standard.Encoder.encode(&encoded, &seed);
+        const body = try std.fmt.allocPrint(
+            arena,
+            "{{\"apiVersion\":\"v1\",\"kind\":\"Secret\",\"metadata\":{{\"name\":\"{s}\",\"namespace\":\"{s}\"}},\"type\":\"Opaque\",\"data\":{{\"seed\":\"{s}\"}}}}",
+            .{ secret_name, namespace, encoded },
+        );
+        var created = try self.client.create(arena, resource, namespace, body);
+        defer created.deinit(arena);
+        // A second replica racing to the same conclusion is fine: whoever lost
+        // re-reads the winner's seed rather than overwriting it.
+        if (!created.ok() and created.status != 409) return error.SeedWriteFailed;
+        if (created.status == 409) return self.accessSeed(arena, platform, namespace);
+        return seed;
+    }
+
+    /// The platform's signing material, as the policy receives it.
+    fn accessMaterial(
+        self: *Reconciler,
+        arena: std.mem.Allocator,
+        platform: []const u8,
+        object: std.json.Value,
+    ) !?[]const u8 {
+        const spec = object.object.get("spec") orelse return null;
+        const namespace_value = spec.object.get("namespace") orelse return null;
+        if (namespace_value != .string) return null;
+
+        const seed = try self.accessSeed(arena, platform, namespace_value.string);
+        const subject = try std.fmt.allocPrint(arena, "{s}-runtime", .{platform});
+        var material = try access_keys.derive(arena, seed, subject, nowSeconds());
+        defer material.deinit(arena);
+
+        return try std.fmt.allocPrint(
+            arena,
+            "{{\"issuer\":\"{s}\",\"audience\":\"{s}\",\"kid\":\"{s}\",\"privateJwk\":{s},\"publicJwks\":{s},\"serviceToken\":\"{s}\"}}",
+            .{
+                access_keys.issuer,
+                access_keys.audience,
+                material.kid,
+                material.private_jwk,
+                material.public_jwks,
+                material.service_token,
+            },
+        );
+    }
+
     /// Reconcile every custom resource once.
     pub fn pass(self: *Reconciler) !Stats {
         var arena_state = std.heap.ArenaAllocator.init(self.gpa);
@@ -351,8 +444,21 @@ pub const Reconciler = struct {
 
         const input = try self.buildInput(arena, kind, object, solutions, tenants, platforms);
 
+        // Only a Platform owns a signing key; a Solution is an overlay and a
+        // Tenant borrows its platform's. Failing to reach the seed is not fatal
+        // here: the policy is told there is none and leaves the env unset,
+        // which is a clearer failure than a platform signed with a key that
+        // changed under it.
+        const access_json = if (std.mem.eql(u8, kind, "Platform"))
+            self.accessMaterial(arena, name, object) catch |err| blk: {
+                std.log.warn("{s}: access key unavailable: {s}", .{ name, @errorName(err) });
+                break :blk null;
+            }
+        else
+            null;
+
         var policy_error: ?[]const u8 = null;
-        var output = policy.run(self.gpa, input, &policy_error) catch |err| {
+        var output = policy.runWithAccess(self.gpa, input, access_json, &policy_error) catch |err| {
             defer if (policy_error) |message| self.gpa.free(message);
             const detail = policy_error orelse @errorName(err);
             std.log.err("policy {s}/{s}: {s}", .{ kind, name, detail });

@@ -126,18 +126,12 @@ export interface ShardSpec {
 export interface RegistrySpec {
 	/** Base URL of the registry, e.g. `https://s3.eu-central-1.../converged`. */
 	url: string;
+	/** Immutable registry paths mapped to lowercase SHA-256 digests. */
+	modules: Record<string, string>;
 	/** Key of the base solution configuration within the registry. */
 	solutions: string;
 	/** Immutable content revision; changing it forces a re-fetch and a rollout. */
 	revision?: string;
-	/** Cache directory inside each container. */
-	cacheDir?: string;
-	/**
-	 * Upper bound on the cache. The cache is an ephemeral emptyDir on purpose:
-	 * it is re-fetchable by definition, and a shared claim would need RWX and
-	 * turn a disposable directory into a piece of cluster state.
-	 */
-	cacheSize?: string;
 }
 
 export interface PlatformSpec extends ExtraResources {
@@ -170,6 +164,14 @@ export interface PlatformSpec extends ExtraResources {
 		reclaimPolicy?: "Retain" | "Delete" | "Recycle";
 		nodeAffinity?: Record<string, unknown>;
 		resources?: Resources;
+		/**
+		 * UID the behemoth image runs as. The volumes arrive owned by root —
+		 * `hostPath` dirs are created by the kubelet and `fsGroup` is not
+		 * applied to them — so an unprivileged behemoth cannot write a single
+		 * store and every op comes back `AccessDenied`. An init container
+		 * hands the mounts over to this UID before behemoth starts.
+		 */
+		runAsUser?: number;
 	};
 	/** Behemoth shards. Required by `multi`, ignored by the other profiles. */
 	shards?: ShardSpec[];

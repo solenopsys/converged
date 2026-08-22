@@ -1,0 +1,151 @@
+{{- if .Values.platform.create }}
+{{/*
+The whole deployment, as one object.
+
+Nothing below names a Deployment, a Service or a volume. Those are ptah's
+output; this is its input.
+
+The spec is written out here rather than assembled from values because it is
+the same in every install: a peer set, the ports those peers dial, the shape
+of a volume. Only what actually differs between workspaces is substituted, so
+there is one place to read to know what a platform is.
+
+The custom resources are cluster-scoped, so they are not created in the release
+namespace and Helm cannot garbage-collect them by namespace. `helm uninstall`
+does delete them, and ptah then prunes everything they own — except the
+volumes, which it keeps unless they carry `ptah.io/reclaim: delete`.
+*/}}
+apiVersion: ptah.io/v1alpha1
+kind: Platform
+metadata:
+  name: {{ include "ptah.workspace" . }}
+  labels:
+    {{- include "ptah.labels" . | nindent 4 }}
+spec:
+  profile: {{ include "ptah.profile" . }}
+  namespace: {{ include "ptah.workspace" . }}
+  domainBase: {{ .Values.domainBase }}
+
+  # Created out of band. Ptah references it and never writes it: real
+  # credentials should not travel through a custom resource.
+  secretName: {{ include "ptah.workspace" . }}-secrets
+
+  images:
+    ui: {{ .Values.images.registry }}/{{ include "ptah.workspace" . }}-ui:{{ .Values.images.tag }}
+    ms: {{ .Values.images.registry }}/{{ include "ptah.workspace" . }}-ms:{{ .Values.images.tag }}
+
+  replicas:
+    ui: 1
+    ms: 1
+
+  storage:
+    image: public.ecr.aws/i5x9u8b2/behemoth:latest
+    size: {{ .Values.storage.size }}
+    port: 9000
+    # Behemoth runs valkey in-process. There is no cache workload to deploy;
+    # this is only the second port its Service publishes.
+    cachePort: 6379
+    mountBase: /app/data
+    storageClassName: {{ .Values.storage.storageClassName }}
+    # Every microservice gets its own volume. `{{ "{{volume}}" }}` is that
+    # volume's unique name; ptah refuses the platform if the template does not
+    # resolve to a distinct source per microservice.
+    volumeSource:
+      hostPath:
+        path: {{ .Values.storage.hostPath }}/{{ "{{volume}}" }}
+        type: DirectoryOrCreate
+
+{{- if eq (include "ptah.profile" .) "multi" }}
+  shards:
+    {{- toYaml .Values.shards | nindent 4 }}
+{{- end }}
+
+{{- if .Values.registry.url }}
+  registry:
+    url: {{ .Values.registry.url }}
+    solutions: solutions/{{ include "ptah.workspace" . }}.json
+    revision: {{ .Values.registry.revision | quote }}
+    modules: {{ .Values.registry.modules | default dict | toJson }}
+{{- end }}
+
+  # Always-on peers of the message bus. fujin must declare both ports: `ws` is
+  # what the gateway targets, `zmq` is what every other peer dials.
+  apps:
+    fujin:
+      image: public.ecr.aws/i5x9u8b2/fujin:latest
+      ports:
+        ws: 8087
+        zmq: 5557
+    centimanus:
+      image: public.ecr.aws/i5x9u8b2/centimanus:latest
+      fujinTarget: centimanus
+      fujinEndpointEnv: CENTIMANUS_FUJIN_ZMQ_ENDPOINT
+      ports:
+        http: 9000
+    resonus:
+      image: public.ecr.aws/i5x9u8b2/resonus:latest
+      fujinTarget: resonus
+      fujinEndpointEnv: RESONUS_FUJIN_ZMQ_ENDPOINT
+
+  # Declared here, deployed only while a solution asks for them. Naming one a
+  # platform never uses costs nothing until it is selected.
+  processors:
+    curaengine:
+      image: public.ecr.aws/i5x9u8b2/curaengine:latest
+      fujinTarget: curaengine
+      fujinEndpointEnv: CURAENGINE_FUJIN_ZMQ_ENDPOINT
+    opencam:
+      image: public.ecr.aws/i5x9u8b2/opencamlib:latest
+      fujinTarget: opencam
+      fujinEndpointEnv: OPENCAMLIB_FUJIN_ZMQ_ENDPOINT
+
+  gateway:
+    className: {{ .Values.gateway.className }}
+    httpsPort: {{ .Values.gateway.httpsPort }}
+    hosts:
+      - "*.{{ .Values.domainBase }}"
+    tls:
+      secretName: {{ include "ptah.workspace" . }}-tls
+      issuer: {{ .Values.gateway.issuer }}
+      issuerKind: {{ .Values.gateway.issuerKind }}
+      dnsNames:
+        - {{ .Values.domainBase }}
+        - "*.{{ .Values.domainBase }}"
+{{- end }}
+
+{{- range $name, $spec := .Values.solutions }}
+---
+{{/*
+A solution pinned in the cluster rather than fetched from the registry. The
+platform reference is filled in here so the two cannot drift apart.
+*/}}
+apiVersion: ptah.io/v1alpha1
+kind: Solution
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "ptah.labels" $ | nindent 4 }}
+spec:
+  platform: {{ include "ptah.workspace" $ }}
+  {{- toYaml (omit $spec "platform") | nindent 2 }}
+{{- end }}
+
+{{- range $name, $spec := .Values.tenants }}
+---
+{{- if ne (include "ptah.profile" $) "cloud" }}
+{{- fail (printf "tenant %q needs a cloud platform; profile %q owns its storage on the platform instead" $name (include "ptah.profile" $)) }}
+{{- end }}
+apiVersion: ptah.io/v1alpha1
+kind: Tenant
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "ptah.labels" $ | nindent 4 }}
+  annotations:
+    # A tenant outlives the release that introduced it: its storage is its
+    # customer's data, not an install artefact.
+    helm.sh/resource-policy: keep
+spec:
+  platform: {{ include "ptah.workspace" $ }}
+  {{- toYaml (omit $spec "platform") | nindent 2 }}
+{{- end }}

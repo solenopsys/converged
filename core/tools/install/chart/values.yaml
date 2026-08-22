@@ -1,0 +1,136 @@
+# Parameters, not a deployment.
+#
+# What a platform is made of — which peers exist, which ports they dial, how
+# storage is shaped, how the gateway is wired — is the same in every install
+# and lives in `templates/platform.yaml`. Only the things that genuinely differ
+# between one workspace and the next are here. A copy of the full spec in this
+# file would just be a second source of truth waiting to drift from the first.
+
+# ---------------------------------------------------------------------------
+# The workspace
+# ---------------------------------------------------------------------------
+
+# Namespace and Platform name. Everything else that is named per workspace —
+# the secret, the TLS secret, the images, the solution key — is derived from
+# it, so a second workspace is this one line and a profile. Empty means the
+# release namespace, which is usually the same thing said twice.
+workspace: ""
+
+# mono  — one behemoth for the whole platform
+# multi — one behemoth per shard, split by scope
+# cloud — no platform storage; one behemoth per Tenant
+profile: cloud
+
+# Tenant and platform hostnames are derived from this: `<name>.<domainBase>`.
+# No default: a hostname belongs to whoever is installing, not to the chart.
+domainBase: ""
+
+# ---------------------------------------------------------------------------
+# The operator
+# ---------------------------------------------------------------------------
+
+# Platform, Solution and Tenant are cluster-scoped, so the first operator
+# already sees every platform in the cluster. Set false for every release
+# after the first: those add a Platform and nothing else.
+operator:
+  create: true
+
+image:
+  repository: public.ecr.aws/i5x9u8b2/ptah
+  tag: latest
+  pullPolicy: IfNotPresent
+
+# More than one replica is safe: only the lease holder reconciles. A second
+# replica buys a faster failover, not more throughput.
+replicaCount: 1
+leaderElection: true
+
+# Ptah resyncs on a timer rather than watching, and a pass with no changes is
+# nearly free, so this is a latency knob and not a load one.
+resyncSeconds: 30
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+moduleCache:
+  size: 4Gi
+  storageClassName: local-path
+
+serviceAccount:
+  create: true
+  name: ""
+
+# Ptah writes cluster-scoped PersistentVolumes and reads cluster-scoped custom
+# resources, so its role cannot be namespaced.
+rbac:
+  create: true
+
+# ---------------------------------------------------------------------------
+# The platform
+# ---------------------------------------------------------------------------
+
+# Set false to install the operator alone and manage Platform objects out of
+# band — useful when one operator serves several platforms.
+platform:
+  create: true
+
+# Where ui and ms images come from. The names are built as
+# `<registry>/<workspace>-ui:<tag>`, which is what the build publishes.
+images:
+  registry: public.ecr.aws/i5x9u8b2
+  tag: latest
+
+storage:
+  size: 5Gi
+  # No default: the cluster default class is a property of the cluster, so
+  # leaving it unset would make the same values mean different storage in
+  # different places.
+  storageClassName: local-path
+  # Where a volume's data lands on the node. Each microservice gets its own
+  # directory under this root.
+  hostPath: /var/lib/ptah
+
+gateway:
+  className: traefik
+  httpsPort: 443
+  # With an issuer ptah emits a cert-manager Certificate; without one the
+  # secret is expected to exist already.
+  issuer: ""
+  issuerKind: ClusterIssuer
+
+# Where modules and the base solution configuration are fetched from. Leave
+# empty to run entirely from what is baked into the images.
+registry:
+  url: ""
+  revision: ""
+  # Registry object path -> lowercase SHA-256. The source is `<url>/<path>`.
+  modules: {}
+
+# Required by the `multi` profile, ignored otherwise: which scopes land on
+# which behemoth. Exactly one shard must claim "*".
+shards: []
+# - name: alpha
+#   scopes: [acme, globex]
+#   size: 50Gi
+# - name: rest
+#   scopes: ["*"]
+
+# Escape hatch for a solution that has to be pinned in the cluster rather than
+# fetched from the registry. Normally empty.
+solutions: {}
+# pinned-solution:
+#   microservices: [geo, places]
+#   microfrontends: [geo]
+#   processors: [curaengine]
+
+# Tenants are created as sites are sold, not at install. Only meaningful for
+# the `cloud` profile.
+tenants: {}
+# acme:
+#   storageSize: 20Gi
+#   domains: [shop.example.com]

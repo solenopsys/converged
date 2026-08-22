@@ -65,6 +65,7 @@ export const registry = {
 	url: "https://registry.example.com/converged",
 	solutions: "solutions/converged.json",
 	revision: "2026-08-21",
+	modules: { "ms-agent.js": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad" },
 };
 
 export function solution(

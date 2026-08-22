@@ -18,12 +18,12 @@ import {
 	shardResources,
 } from "./shards.ts";
 import {
-	DEFAULT_CACHE_DIR,
 	mergeSolutions,
 	moduleData,
 	registryData,
 	selectSolutions,
 } from "./solution.ts";
+import { accessMaterial, accessSecretData, accessSecretName } from "./access.ts";
 import { storageResources } from "./storage.ts";
 import { domainIndexData } from "./tenant.ts";
 import type {
@@ -32,13 +32,11 @@ import type {
 	PlatformSpec,
 	ReconcileInput,
 	ReconcileOutput,
-	RegistrySpec,
 } from "./types.ts";
 import { PolicyError, require } from "./types.ts";
 
 const UI_PORT = 3000;
 const MS_PORT = 3001;
-const CACHE_VOLUME = "module-cache";
 
 /** Fujin is the single router; every other native peer dials its ZMQ socket. */
 function fujinEndpoint(platform: string, spec: PlatformSpec): string {
@@ -100,15 +98,6 @@ function baseEnv(
  * lives in the image, and an unused mount would just be a lie about where the
  * code comes from.
  */
-function cacheMounts(registry?: RegistrySpec) {
-	if (!registry) return { volumes: undefined, volumeMounts: undefined };
-	const mountPath = registry.cacheDir ?? DEFAULT_CACHE_DIR;
-	return {
-		volumes: [k8s.emptyDirVolume(CACHE_VOLUME, registry.cacheSize)],
-		volumeMounts: [{ name: CACHE_VOLUME, mountPath }],
-	};
-}
-
 function nativeApp(
 	platform: string,
 	spec: PlatformSpec,
@@ -116,6 +105,7 @@ function nativeApp(
 	name: string,
 	app: NativeApp,
 	modulesDigest: string,
+	accessSecrets: string[],
 ): KubeObject[] {
 	const resourceName = n.app(platform, name);
 	const labels = n.labels(platform, name, owner);
@@ -124,11 +114,29 @@ function nativeApp(
 		port,
 	}));
 
+	// Centimanus keeps workflow state and refuses to guess where. Valkey is
+	// what makes that state survive a restart, and behemoth already runs one —
+	// but only where there is a single cache to name. Under `cloud` the cache
+	// is per tenant and resolved per request, so there is no platform-wide host
+	// to hand over and in-process state is the honest answer.
+	const cacheHost = cacheHostOf(platform, spec);
+	const stateEnv =
+		name !== "centimanus"
+			? {}
+			: cacheHost
+				? {
+						RT_STATE_BACKEND: "valkey",
+						VALKEY_HOST: cacheHost,
+						VALKEY_PORT: String(spec.storage.cachePort),
+					}
+				: { RT_STATE_BACKEND: "memory" };
+
 	const env: Record<string, string> = {
 		// Fujin refuses to start without a browser scope, and the value is a
 		// property of the platform rather than of the image. Seeded before
 		// `app.env` so a platform can still override it.
 		...(name === "fujin" ? { FUJIN_BROWSER_SCOPE: platform } : {}),
+		...stateEnv,
 		...(app.env ?? {}),
 	};
 	// Fujin itself binds the socket; its peers are told where to dial.
@@ -155,6 +163,11 @@ function nativeApp(
 					image: app.image,
 					env,
 					envFromSecret: spec.secretName,
+					// Resonus will not start without SERVICE_TOKEN, and every peer
+					// that calls another one needs the same identity the platform
+					// signs with. It lives in the Secret ptah mints, not in the
+					// credentials Secret an operator supplies.
+					envFromSecrets: accessSecrets,
 					ports,
 					resources: app.resources,
 				},
@@ -210,6 +223,23 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 	};
 	const resources: KubeObject[] = [];
 
+	// The platform signs its own tokens. Emitting the Secret here rather than
+	// asking an operator for one is the difference between a platform that
+	// starts empty and a platform that cannot start until somebody generates an
+	// Ed25519 pair by hand.
+	const access = accessMaterial();
+	const accessSecrets = access ? [accessSecretName(platform)] : [];
+	if (access) {
+		resources.push(
+			k8s.secret(
+				accessSecretName(platform),
+				spec.namespace,
+				n.labels(platform, "access", owner),
+				accessSecretData(access),
+			),
+		);
+	}
+
 	resources.push(
 		k8s.configMap(
 			n.modulesConfigMap(platform),
@@ -220,7 +250,9 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 	);
 
 	for (const [name, app] of Object.entries(spec.apps)) {
-		resources.push(...nativeApp(platform, spec, owner, name, app, rollout));
+		resources.push(
+			...nativeApp(platform, spec, owner, name, app, rollout, accessSecrets),
+		);
 	}
 
 	// Processors are peers like any other, but they exist only while a solution
@@ -236,13 +268,12 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 			);
 		}
 		resources.push(
-			...nativeApp(platform, spec, owner, name, processor, rollout),
+			...nativeApp(platform, spec, owner, name, processor, rollout, accessSecrets),
 		);
 	}
 
 	const solutionEnv = merged.env;
 
-	const cache = cacheMounts(spec.registry);
 	const uiLabels = n.labels(platform, "ui", owner);
 	const uiSelector = n.selector(platform, "ui");
 	resources.push(
@@ -253,7 +284,6 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 			selector: uiSelector,
 			replicas: spec.replicas?.ui ?? 1,
 			annotations: statelessAnnotations,
-			volumes: cache.volumes,
 			containers: [
 				{
 					name: "ui",
@@ -268,6 +298,14 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 						// The scope the server-rendered shell hands the browser, and
 						// the same one fujin registers connections under.
 						FUJIN_BROWSER_SCOPE: platform,
+						// The shell refuses to render without these, and they are
+						// presentation defaults rather than anything an operator has
+						// to decide. Read from spec.env explicitly: `extra` is merged
+						// after it, so a plain default here would be one nobody could
+						// override.
+						FRONT_LOCALE: spec.env?.FRONT_LOCALE ?? "en",
+						FRONT_CHAT_CONTEXT: spec.env?.FRONT_CHAT_CONTEXT ?? "chat",
+						FRONT_CALL_CONTEXT: spec.env?.FRONT_CALL_CONTEXT ?? "voice",
 						FRONTEND_MODULES: JSON.stringify(merged.microfrontends),
 						SERVICES_BASE: `http://${n.services(platform)}:80/services`,
 					}),
@@ -276,9 +314,9 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 					// than on a policy edit.
 					envFromConfigMap: n.domainsConfigMap(platform),
 					envFromSecret: spec.secretName,
+					envFromSecrets: accessSecrets,
 					ports: [{ name: "http", port: UI_PORT }],
 					resources: spec.resources?.ui,
-					volumeMounts: cache.volumeMounts,
 					probePort: UI_PORT,
 				},
 			],
@@ -298,7 +336,6 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 			selector: msSelector,
 			replicas: spec.replicas?.ms ?? 1,
 			annotations: statelessAnnotations,
-			volumes: cache.volumes,
 			containers: [
 				{
 					name: "services",
@@ -306,6 +343,11 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 					env: baseEnv(platform, spec, MS_PORT, {
 						...solutionEnv,
 						FUJIN_TARGET: "services",
+						// The ms calls its own HTTP surface for service-to-service
+						// hops, and the startup checklist requires the value whether
+						// or not a given microservice makes one. Same address the ui
+						// is given — there is one services Service per platform.
+						SERVICES_BASE: `http://${n.services(platform)}:80/services`,
 						// Only mono has one scope for every request. Multi splits by
 						// scope and cloud takes it from the edge headers, so pinning
 						// one here would override what the request actually carries.
@@ -314,9 +356,9 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 					}),
 					envFromConfigMap: n.domainsConfigMap(platform),
 					envFromSecret: spec.secretName,
+					envFromSecrets: accessSecrets,
 					ports: [{ name: "http", port: MS_PORT }],
 					resources: spec.resources?.ms,
-					volumeMounts: cache.volumeMounts,
 					probePort: MS_PORT,
 				},
 			],

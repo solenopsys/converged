@@ -114,11 +114,8 @@ export function moduleData(
 export function registryData(registry?: RegistrySpec): Record<string, string> {
 	if (!registry) return {};
 	return {
-		MODULE_REGISTRY: require(registry.url, "spec.registry.url"),
-		MODULE_REGISTRY_SOLUTIONS: require(registry.solutions, "spec.registry.solutions"),
+		MODULE_PROXY: "http://ptah-proxy",
+		MODULE_DIGESTS: JSON.stringify(registry.modules ?? {}),
 		MODULE_REGISTRY_REVISION: registry.revision ?? "",
-		MODULE_CACHE_DIR: registry.cacheDir ?? DEFAULT_CACHE_DIR,
 	};
 }
-
-export const DEFAULT_CACHE_DIR = "/var/cache/converged/modules";

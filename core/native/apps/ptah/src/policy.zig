@@ -15,16 +15,25 @@ const bundle = @embedFile("policy.js");
 /// C callback with no context pointer, can find the input. Reconciles are
 /// serialised by the caller; the assertion in `hostBridge` guards that.
 var g_input: ?[]const u8 = null;
+var g_access: ?[]const u8 = null;
 
+/// `__host(what)` is the whole surface the policy has to the outside. It stays
+/// a lookup rather than a call with effects: the policy is re-evaluated every
+/// pass, so anything that generated a value here would generate a different one
+/// each time and the platform would never converge. Both answers are prepared
+/// before evaluation and are the same for the whole pass.
 fn hostBridge(
     arg: [*]const u8,
     arg_len: usize,
     out_ptr: *?[*]u8,
     out_len: *usize,
 ) callconv(.c) c_int {
-    _ = arg;
-    _ = arg_len;
-    const input = g_input orelse {
+    const what = arg[0..arg_len];
+    const answer = if (std.mem.eql(u8, what, "access-keys"))
+        g_access orelse "null"
+    else
+        g_input;
+    const input = answer orelse {
         out_ptr.* = null;
         out_len.* = 0;
         return -1;
@@ -69,6 +78,18 @@ pub fn run(
     input_json: []const u8,
     err_out: *?[]const u8,
 ) !Output {
+    return runWithAccess(gpa, input_json, null, err_out);
+}
+
+/// `access_json` carries the platform's signing material, already derived from
+/// the stored seed. It is handed to the policy rather than generated inside it
+/// so that the private key never travels through a custom resource.
+pub fn runWithAccess(
+    gpa: std.mem.Allocator,
+    input_json: []const u8,
+    access_json: ?[]const u8,
+    err_out: *?[]const u8,
+) !Output {
     err_out.* = null;
 
     // `__host` hands the input across instead of interpolating it into the
@@ -83,6 +104,8 @@ pub fn run(
 
     g_input = input_json;
     defer g_input = null;
+    g_access = access_json;
+    defer g_access = null;
     qjs.setHostFn(&hostBridge);
     defer qjs.setHostFn(null);
 

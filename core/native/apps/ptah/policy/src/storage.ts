@@ -16,6 +16,18 @@ import { PolicyError, require } from "./types.ts";
 const CONFIG_VOLUME = "storage-config";
 const CONFIG_KEY = "storage.json";
 const CONFIG_PATH = `/etc/behemoth/${CONFIG_KEY}`;
+/** The UID the published behemoth image runs as. */
+const DEFAULT_STORAGE_UID = 1000;
+
+/**
+ * The fujin peer name a behemoth registers under. Exported because the scope
+ * index has to address exactly this name: a copy that drifts sends every
+ * storage op to a peer that never registered, and the failure surfaces as a
+ * send error in the caller rather than as anything wrong here.
+ */
+export function behemothTarget(scope?: string): string {
+	return scope ? `behemoth-${scope}` : "behemoth";
+}
 
 interface StorageResourcesSpec {
 	platform: string;
@@ -135,6 +147,27 @@ export function storageResources(spec: StorageResourcesSpec): KubeObject[] {
 		);
 	}
 
+	// Every mount arrives owned by root: the kubelet creates a `hostPath`
+	// directory as root:root 0755, and `fsGroup` — which would fix this for a
+	// CSI volume — is never applied to hostPath. Behemoth runs unprivileged, so
+	// without this hand-over its first write to any store fails with EACCES and
+	// the caller sees `AccessDenied` from a storage that reported every mount
+	// as mounted. Runs as root and only touches the data mounts.
+	const storageUid = spec.storage.runAsUser ?? DEFAULT_STORAGE_UID;
+	const dataMounts = volumeMounts.filter((mount) => mount.name !== CONFIG_VOLUME);
+	const chownInit = {
+		name: "storage-own",
+		image: spec.storage.image,
+		command: ["/bin/sh", "-c"],
+		args: [
+			dataMounts
+				.map((mount) => `chown ${storageUid}:${storageUid} '${mount.mountPath}'`)
+				.join(" && ") || "true",
+		],
+		securityContext: { runAsUser: 0, runAsGroup: 0 },
+		volumeMounts: dataMounts,
+	};
+
 	const config = JSON.stringify({ microservices: mounts }, null, 2);
 	resources.push(
 		k8s.configMap(n.storageConfigMap(spec.name), spec.namespace, labels, {
@@ -148,12 +181,13 @@ export function storageResources(spec: StorageResourcesSpec): KubeObject[] {
 			replicas: 1,
 			annotations: { [n.ANNOTATION_STORAGE_CONFIG]: n.digest(config) },
 			volumes: podVolumes,
+			initContainers: [chownInit],
 			containers: [
 				{
 					name: "storage",
 					image: spec.storage.image,
 					env: {
-						FUJIN_TARGET: spec.scope ? `behemoth-${spec.scope}` : "behemoth",
+						FUJIN_TARGET: behemothTarget(spec.scope),
 					},
 					// The behemoth image names its binary in CMD and declares no
 					// ENTRYPOINT, so args alone replace the whole command and the

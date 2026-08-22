@@ -119,9 +119,73 @@ started.
 
 ### Module registry
 
-Solutions name modules; they do not carry them. `spec.registry` says where the
-bundles and the base solution configuration are fetched from and where they are
-cached:
+> Not implemented yet. The section describes the arrangement the code is being
+> moved to; what ships today is the `spec.registry` passthrough described at the
+> end. Nothing below is running in a cluster.
+
+Solutions name modules; they do not carry them. A module is fetched at boot from
+ptah, and ptah is a content-addressed proxy in front of a cache — it serves
+bytes by digest and knows nothing else about them.
+
+**On disk the cache is a flat directory of files named by digest.** No
+extensions, no subdirectories:
+
+```
+/var/cache/ptah/9f41ab…
+/var/cache/ptah/e2e2uo…
+```
+
+A module is a `.js` bundle and a solution is `.json`, but nothing on disk says
+so, and nothing needs to: the consumer already knows what it asked for. The name,
+the kind and the version live only in the mapping:
+
+```json
+{
+  "bla.json": "e2e2uo…",
+  "ms-agent.js": "9f41ab…"
+}
+```
+
+That split is the point. Names, kinds and versions are one thing to reason
+about, and the bytes are another; keeping them apart means the storage layer has
+no opinion to be wrong about.
+
+**Ptah does not own versions.** It never resolves a name and never decides which
+digest is current. A consumer asks for the digest and nothing else —
+`GET http://<platform>-ptah/9f41ab…` — and gets those bytes or a 404. On a miss ptah reads the fetch URL for that digest out of the
+mapping, downloads it, **recomputes the digest and compares** — a mismatch is
+neither cached nor served. Without that check content addressing would be
+decoration: a substituted file would travel under the right name. The mapping
+says where to look; the digest says what is true.
+
+**The cache is ptah's own PVC.** A plain technical volume, created with the
+operator's release and mounted only by ptah. It has nothing to do with
+behemoth's per-microservice volumes, and no other pod mounts it — a claim shared
+across pods would need RWX and would not survive a real cluster. Everyone else
+reaches the bytes over HTTP. Entries are immutable, because a digest names
+exactly one sequence of bytes, so nothing is ever invalidated or evicted for
+being stale.
+
+**Consumers are told the digest, not the name.** Ptah resolves the mapping when
+it builds a pod's environment and hands over both, but the load happens by
+digest. So a running pod records the exact bytes it booted:
+
+```
+MODULE_AGENT=9f41ab…
+```
+
+Which version is deployed stops being a question with a reconstructed answer —
+it is in `kubectl get pod -o yaml`. And because the digest sits in the pod spec,
+changing it in the mapping *is* the rollout: Kubernetes restarts the consumers
+because their spec changed, with no separate signal that a module moved.
+Rolling back is putting the old digest back.
+
+The policy still performs no I/O. It propagates the mapping and the digests; the
+fetching is ptah's, in Zig, next to the apiserver client.
+
+#### What ships today
+
+`spec.registry` is passed through to consumers and nothing more:
 
 ```json
 "registry": {
@@ -135,16 +199,10 @@ cached:
 Ptah publishes these as `MODULE_REGISTRY`, `MODULE_REGISTRY_SOLUTIONS`,
 `MODULE_REGISTRY_REVISION` and `MODULE_CACHE_DIR` — in the module ConfigMap and
 in the ui and ms environments — and mounts the cache directory as an
-`emptyDir`. The cache is ephemeral on purpose: it is re-fetchable by
-definition, and a shared claim would need RWX and turn a disposable directory
-into a piece of cluster state.
-
-`revision` participates in the rollout digest. Pointing a platform at new
-content changes nothing the running pods can observe unless they restart, so
-the stamp has to move with it.
-
-The policy only propagates these values. It has no I/O, so it cannot fetch
-anything itself — the fetch belongs to whoever consumes the registry.
+`emptyDir`, per consumer. `revision` participates in the rollout digest, so
+pointing a platform at new content restarts the pods that would otherwise never
+observe it. The fetch belongs to whoever consumes the registry; ptah serves
+nothing.
 
 ### What the stateless pods are told
 
@@ -363,3 +421,6 @@ ptah render examples/platform-multi.json
   pod for months.
 - `multi` is implemented in the policy but has not been exercised against a
   live cluster.
+- The module proxy described under **Module registry** is a design, not code.
+  Ptah serves no HTTP, owns no cache claim, and publishes no digest mapping; the
+  images still carry the whole module superset instead of loading it.
