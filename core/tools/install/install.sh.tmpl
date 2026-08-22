@@ -33,6 +33,13 @@ TRAEFIK_HTTPS_ENTRYPOINT_PORT="${TRAEFIK_HTTPS_ENTRYPOINT_PORT:-8443}"
 LOCAL_ISSUER_NAME="${LOCAL_ISSUER_NAME:-converged-local-selfsigned}"
 OPERATOR_CREATE="${OPERATOR_CREATE:-}"
 
+# Where `bun run build:modules -p` published. Set it and the platform runs the
+# modules in that registry; leave it empty and it runs what is baked into the
+# images. Nothing else has to be said: `<url>/registry.json` is written by the
+# same build that uploaded the modules, and already holds the digest of every
+# one of them.
+REGISTRY_URL="${REGISTRY_URL:-}"
+
 if [[ "${EUID}" -ne 0 ]]; then
 	printf 'Run this installer as root: curl -sfL <url> | sudo sh -\n' >&2
 	exit 1
@@ -207,8 +214,28 @@ unpack_chart() {
 	tar -xzf "$CHART_DIR/chart.tgz" -C "$CHART_DIR/chart"
 }
 
+# The module map, as chart values.
+#
+# Fetched rather than reconstructed: the build publishes `registry.json` in the
+# exact shape the chart consumes, so there is nothing here to parse and no way
+# for this script's idea of the mapping to drift from the registry's. Written
+# into the unpacked chart directory, which is a temp dir this script owns.
+fetch_registry_values() {
+	[[ -n "$REGISTRY_URL" ]] || return 0
+	local url="${REGISTRY_URL%/}/registry.json"
+	printf 'Registry: %s\n' "$url"
+	if ! curl -fsSL "$url" -o "$CHART_DIR/registry.json"; then
+		printf 'Could not fetch %s. Unset REGISTRY_URL to install without a registry.\n' "$url" >&2
+		exit 1
+	fi
+	REGISTRY_VALUES_FILE="$CHART_DIR/registry.json"
+}
+
 install_ptah() {
 	kubectl create namespace "$WORKSPACE" --dry-run=client -o yaml | kubectl apply -f -
+
+	REGISTRY_VALUES_FILE=""
+	fetch_registry_values
 
 	# Ptah references this Secret and never writes it: real credentials do not
 	# travel through a custom resource, and they do not travel through an
@@ -235,6 +262,7 @@ install_ptah() {
 		--namespace "$WORKSPACE" \
 		--create-namespace \
 		--wait \
+		${REGISTRY_VALUES_FILE:+--values "$REGISTRY_VALUES_FILE"} \
 		--set operator.create="$OPERATOR_CREATE" \
 		--set-string workspace="$WORKSPACE" \
 		--set-string profile="$PROFILE" \

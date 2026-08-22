@@ -24,6 +24,8 @@ export type Module = {
 	kind: Kind;
 	/** Bare name: `counters`, not `ms-counters`. */
 	name: string;
+	/** Which layer this module came from, as passed in `projectDirs`. */
+	projectDir: string;
 	/** Registry object name: `ms-counters.js`. */
 	artifact: string;
 	/** Absolute path to the module's entry source file. */
@@ -98,7 +100,13 @@ export function discover(projectDirs: string[], kind: Kind): Module[] {
 			}
 			const artifact = `${prefix}${name}.js`;
 			if (kind !== "microservices") {
-				modules.set(name, { kind, name, artifact, implementation });
+				modules.set(name, {
+					kind,
+					name,
+					artifact,
+					projectDir,
+					implementation,
+				});
 				continue;
 			}
 			// A microservice without generated metadata cannot be registered, and
@@ -108,7 +116,14 @@ export function discover(projectDirs: string[], kind: Kind): Module[] {
 				console.warn(`[registry] ms-${name}: no generated g-${name}, skipped`);
 				continue;
 			}
-			modules.set(name, { kind, name, artifact, implementation, metadata });
+			modules.set(name, {
+				kind,
+				name,
+				artifact,
+				projectDir,
+				implementation,
+				metadata,
+			});
 		}
 	}
 

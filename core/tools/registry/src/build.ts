@@ -309,18 +309,32 @@ async function buildAll(options: Options): Promise<Built[]> {
 	};
 
 	for (const kind of options.kinds) {
-		const modules = discover(projectDirs, kind);
+		const discovered = discover(projectDirs, kind);
+		// A product build ships the product's own modules and nothing else.
+		// Converged's are converged's to build and publish: rebuilding them from
+		// here would produce the same bytes a second time and, worse, a second
+		// `modules.json` claiming to be the whole naming layer.
+		const modules = options.childProjectDir
+			? discovered.filter(
+					(module) => module.projectDir === options.childProjectDir,
+				)
+			: discovered;
 		if (modules.length === 0) {
 			console.warn(
-				`[registry] no ${kind} found under ${projectDirs.join(", ")}`,
+				`[registry] no ${kind} found under ${
+					options.childProjectDir ?? projectDirs.join(", ")
+				}`,
 			);
 			continue;
 		}
-		// Microfrontends may import one another by `mf-<name>`; the names are only
-		// known once the whole kind is discovered, so externals are computed here.
+		// Microfrontends may import one another by `mf-<name>`, across layers as
+		// well as within one. The externals are therefore every discovered name,
+		// not just the ones being built: a converged microfrontend is resolved
+		// through the import map at runtime, so a product module that imports one
+		// must reference it, never bundle a second copy of it.
 		const externals =
 			kind === "microfrontends"
-				? frontendExternals(modules.map((module) => module.name))
+				? frontendExternals(discovered.map((module) => module.name))
 				: [];
 
 		console.log(`[registry] ${kind}: ${modules.length} module(s)`);
@@ -368,45 +382,209 @@ type RegistryTarget = {
 	description: string;
 };
 
+function env(...names: string[]): string | undefined {
+	for (const name of names) {
+		const value = process.env[name]?.trim();
+		if (value) return value;
+	}
+	return undefined;
+}
+
+type Credentials = {
+	accessKeyId: string;
+	secretAccessKey: string;
+	sessionToken?: string;
+};
+
 /**
- * Publishing needs its own bucket and its own credentials. It is not the
- * tenant storage the platform runs on: those objects are customer data with a
- * lifecycle, and these are immutable build output that every environment reads.
- * Sharing one bucket would put a deploy artifact behind a tenant's retention
- * policy.
+ * Whatever the aws cli would use, asked for in the one command that resolves
+ * the full chain — profiles, SSO, assumed roles, `~/.aws/credentials`, the
+ * instance role — rather than reimplemented here against a subset of it.
+ *
+ * This is deliberately the same source `release push` authenticates to ECR
+ * with (`aws ecr-public get-login-password`, modules/commands/build.ts). An
+ * account that can already push the images can push the modules; asking for
+ * the keys a second time, in an env file, only creates a second copy to keep
+ * current and a second way for the two to disagree.
+ */
+function awsCliCredentials(): Credentials | undefined {
+	const proc = Bun.spawnSync(
+		["aws", "configure", "export-credentials", "--format", "process"],
+		{ stdout: "pipe", stderr: "pipe" },
+	);
+	if (!proc.success) return undefined;
+	try {
+		const parsed = JSON.parse(proc.stdout.toString());
+		if (!parsed.AccessKeyId || !parsed.SecretAccessKey) return undefined;
+		return {
+			accessKeyId: parsed.AccessKeyId,
+			secretAccessKey: parsed.SecretAccessKey,
+			sessionToken: parsed.SessionToken || undefined,
+		};
+	} catch {
+		return undefined;
+	}
+}
+
+/** `aws configure get region`, for when neither the env nor a flag says. */
+function awsCliRegion(): string | undefined {
+	const proc = Bun.spawnSync(["aws", "configure", "get", "region"], {
+		stdout: "pipe",
+		stderr: "pipe",
+	});
+	if (!proc.success) return undefined;
+	return proc.stdout.toString().trim() || undefined;
+}
+
+/**
+ * Where `-p` uploads.
+ *
+ * Only two things here are the registry's own, and both carry the
+ * `REGISTRY_S3_` prefix for a reason. The bucket, because these objects are
+ * immutable build output that every environment reads by digest while the
+ * tenant buckets hold customer data under a retention policy, and sharing one
+ * would put a deploy artifact behind that policy. The region, because it is the
+ * bucket's and not the account's: `AWS_REGION` is read by `ecrLogin`, where it
+ * has to stay us-east-1 since that is the only region ecr-public exists in.
+ *
+ * Credentials are not among them. They come from the aws cli, exactly as the
+ * container push does, and the env is consulted first only so that CI can set
+ * `AWS_ACCESS_KEY_ID` without an aws config to point at.
  */
 function registryTarget(): RegistryTarget {
-	const required = (name: string): string => {
-		const value = process.env[name]?.trim();
-		if (!value) {
-			throw new Error(`[registry] -p needs ${name} — see confs/registry.env`);
-		}
-		return value;
-	};
+	const bucket = env("REGISTRY_S3_BUCKET", "S3_BUCKET", "AWS_BUCKET");
+	if (!bucket) {
+		throw new Error(
+			"[registry] -p needs REGISTRY_S3_BUCKET — set it in the CLI env file this ran with",
+		);
+	}
 
-	const bucket = required("REGISTRY_S3_BUCKET");
-	const endpoint = process.env.REGISTRY_S3_ENDPOINT?.trim() || undefined;
+	const fromEnv = {
+		accessKeyId: env(
+			"REGISTRY_S3_ACCESS_KEY_ID",
+			"S3_ACCESS_KEY_ID",
+			"AWS_ACCESS_KEY_ID",
+		),
+		secretAccessKey: env(
+			"REGISTRY_S3_SECRET_ACCESS_KEY",
+			"S3_SECRET_ACCESS_KEY",
+			"AWS_SECRET_ACCESS_KEY",
+		),
+		sessionToken: env("AWS_SESSION_TOKEN"),
+	};
+	const credentials: Credentials | undefined =
+		fromEnv.accessKeyId && fromEnv.secretAccessKey
+			? {
+					accessKeyId: fromEnv.accessKeyId,
+					secretAccessKey: fromEnv.secretAccessKey,
+					sessionToken: fromEnv.sessionToken,
+				}
+			: awsCliCredentials();
+	if (!credentials) {
+		throw new Error(
+			"[registry] -p found no aws credentials. `aws configure export-credentials` " +
+				"is what the container push authenticates with too, so if `release push` " +
+				"works this should — check AWS_PROFILE, or set AWS_ACCESS_KEY_ID and " +
+				"AWS_SECRET_ACCESS_KEY.",
+		);
+	}
+	const source = fromEnv.accessKeyId ? "env" : "aws cli";
+
+	const endpoint = env("REGISTRY_S3_ENDPOINT", "S3_ENDPOINT", "AWS_ENDPOINT");
 	return {
 		client: new Bun.S3Client({
 			bucket,
 			endpoint,
-			region: process.env.REGISTRY_S3_REGION?.trim() || undefined,
-			accessKeyId: required("REGISTRY_S3_ACCESS_KEY_ID"),
-			secretAccessKey: required("REGISTRY_S3_SECRET_ACCESS_KEY"),
+			region:
+				env("REGISTRY_S3_REGION", "S3_REGION", "AWS_REGION") ?? awsCliRegion(),
+			...credentials,
 		}),
-		description: `${endpoint ?? "s3"}/${bucket}`,
+		description: `${endpoint ?? "s3"}/${bucket} (credentials from ${source})`,
 	};
 }
 
-function objectKey(digest: string): string {
-	const prefix = process.env.REGISTRY_S3_PREFIX?.trim().replace(
-		/^\/+|\/+$/g,
-		"",
+function objectPrefix(): string {
+	return (
+		env("REGISTRY_S3_PREFIX", "S3_PREFIX")?.replace(/^\/+|\/+$/g, "") ?? ""
 	);
-	return prefix ? `${prefix}/${digest}` : digest;
 }
 
-async function publish(options: Options, built: Built[], mapping: Manifest) {
+function objectKey(name: string): string {
+	const prefix = objectPrefix();
+	return prefix ? `${prefix}/${name}` : name;
+}
+
+/**
+ * The base URL a cluster is pointed at — what `spec.registry.url` becomes, and
+ * what ptah appends a digest to.
+ *
+ * Derived rather than configured, because every part of it is already known:
+ * getting it wrong by hand means a Platform that resolves names to digests
+ * correctly and then fetches them from nowhere. `REGISTRY_URL` overrides the
+ * whole thing for the case the bucket sits behind a CDN or a custom domain,
+ * where nothing about the address can be inferred from the bucket at all.
+ */
+function registryUrl(): string | undefined {
+	const explicit = env("REGISTRY_URL");
+	if (explicit) return explicit.replace(/\/+$/, "");
+
+	const bucket = env("REGISTRY_S3_BUCKET", "S3_BUCKET", "AWS_BUCKET");
+	if (!bucket) return undefined;
+
+	const endpoint = env("REGISTRY_S3_ENDPOINT", "S3_ENDPOINT", "AWS_ENDPOINT");
+	// A custom endpoint — minio, or S3 addressed by region host — takes the
+	// bucket as the first path segment. AWS gets the virtual-hosted form, which
+	// is the only one still guaranteed for buckets created from now on.
+	const base = endpoint
+		? `${endpoint.replace(/\/+$/, "")}/${bucket}`
+		: `https://${bucket}.s3.${
+				env("REGISTRY_S3_REGION", "S3_REGION", "AWS_REGION") ??
+				awsCliRegion() ??
+				"us-east-1"
+			}.amazonaws.com`;
+
+	const prefix = objectPrefix();
+	return prefix ? `${base}/${prefix}` : base;
+}
+
+/**
+ * The mapping again, this time as Helm values for `core/tools/install/chart`.
+ *
+ * The chart already carries the whole of `spec.registry` — url, revision and
+ * the name→digest map are read straight through by `templates/platform.yaml`.
+ * What was missing is the only part a chart cannot know: which digests this
+ * build produced. So the build writes them in the shape the chart consumes,
+ * and installing a new set of modules is `helm upgrade -f registry.json`
+ * rather than a hand-copied map.
+ *
+ * JSON rather than YAML because it is a generated file that nobody edits, and
+ * because JSON is valid YAML — `helm -f` reads it either way. It is published
+ * alongside `modules.json` so an installer with nothing but the registry URL
+ * can fetch ready-made values instead of reassembling them from the manifest.
+ */
+type ChartValues = {
+	registry: {
+		url: string;
+		revision: string;
+		modules: Record<string, string>;
+	};
+};
+
+function chartValues(mapping: Manifest, url: string): ChartValues {
+	return {
+		registry: { url, revision: mapping.revision, modules: mapping.modules },
+	};
+}
+
+/** The name both the local file and the published object go by. */
+const VALUES_OBJECT = "registry.json";
+
+async function publish(
+	options: Options,
+	built: Built[],
+	mapping: Manifest,
+	values: ChartValues | undefined,
+) {
 	const { client, description } = registryTarget();
 	console.log(`[registry] publishing to ${description}`);
 
@@ -439,6 +617,15 @@ async function publish(options: Options, built: Built[], mapping: Manifest) {
 		.write(JSON.stringify(mapping, null, "\t"), {
 			type: "application/json",
 		});
+	// The chart values are the same mapping addressed to a different reader, so
+	// they follow it rather than lead it, for the same reason.
+	if (values) {
+		await client
+			.file(objectKey(VALUES_OBJECT))
+			.write(JSON.stringify(values, null, "\t"), {
+				type: "application/json",
+			});
+	}
 	console.log(
 		`[registry] published ${uploaded} new object(s), ${built.length - uploaded} already present`,
 	);
@@ -453,6 +640,23 @@ await Bun.write(
 	join(options.outDir, "modules.json"),
 	`${JSON.stringify(mapping, null, "\t")}\n`,
 );
+
+// Written whenever the address is knowable, `-p` or not: the values are how a
+// cluster is moved onto this build, and wanting to inspect them before
+// uploading anything is the normal case rather than an odd one.
+const url = registryUrl();
+const values = url ? chartValues(mapping, url) : undefined;
+if (values) {
+	await Bun.write(
+		join(options.outDir, VALUES_OBJECT),
+		`${JSON.stringify(values, null, "\t")}\n`,
+	);
+} else {
+	console.warn(
+		"[registry] no REGISTRY_URL or REGISTRY_S3_BUCKET, so the chart values " +
+			"cannot be addressed and were not written",
+	);
+}
 const shipped = built.reduce((sum, entry) => sum + entry.size, 0);
 const raw = built.reduce((sum, entry) => sum + entry.raw, 0);
 console.log(
@@ -460,4 +664,10 @@ console.log(
 		`[registry] ${(shipped / 1024 / 1024).toFixed(2)} MiB br, ${(raw / 1024 / 1024).toFixed(2)} MiB uncompressed`,
 );
 
-if (options.publish) await publish(options, built, mapping);
+if (values) {
+	console.log(
+		`[registry] chart values → ${join(options.outDir, VALUES_OBJECT)}\n` +
+			`[registry] apply with: helm upgrade --install … -f ${join(options.outDir, VALUES_OBJECT)}`,
+	);
+}
+if (options.publish) await publish(options, built, mapping, values);
