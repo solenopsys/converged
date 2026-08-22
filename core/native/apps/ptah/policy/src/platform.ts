@@ -64,6 +64,7 @@ function baseEnv(
 	spec: PlatformSpec,
 	port: number,
 	extra: Record<string, string>,
+	controllerNamespace?: string,
 ): Record<string, string> {
 	const cacheHost = cacheHostOf(platform, spec);
 	return {
@@ -85,7 +86,7 @@ function baseEnv(
 		// the scope index at request time, so no platform-wide URL exists.
 		...(cacheHost ? { CACHE_URL: `redis://${cacheHost}:${spec.storage.cachePort}/0` } : {}),
 		FUJIN_ZMQ_ENDPOINT: fujinEndpoint(platform, spec),
-		...registryData(spec.registry),
+		...registryData(spec.registry, controllerNamespace),
 		...(spec.env ?? {}),
 		...extra,
 	};
@@ -205,12 +206,19 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 	require(spec.namespace, "spec.namespace");
 	require(spec.profile, "spec.profile");
 
+	// Both workloads take the same platform-wide env; only the port and the
+	// per-workload additions differ.
+	const baseEnvFor = (port: number, extra: Record<string, string>) =>
+		baseEnv(platform, spec, port, extra, input.controllerNamespace);
 	const merged = mergeSolutions(selectSolutions(input.solutions, platform));
 	// The rollout stamp covers the registry as well as the module set: pointing
 	// the platform at a new revision changes nothing the pods can observe
 	// unless they restart, so the digest has to move with it.
 	const rollout = n.digest(
-		JSON.stringify([merged.digest, registryData(spec.registry)]),
+		JSON.stringify([
+			merged.digest,
+			registryData(spec.registry, input.controllerNamespace),
+		]),
 	);
 	const modules = { [n.ANNOTATION_MODULES]: rollout };
 	const domains =
@@ -245,7 +253,7 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 			n.modulesConfigMap(platform),
 			spec.namespace,
 			n.labels(platform, "modules", owner),
-			moduleData(merged, spec.registry),
+			moduleData(merged, spec.registry, input.controllerNamespace),
 		),
 	);
 
@@ -288,7 +296,7 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 				{
 					name: "ui",
 					image: spec.images.ui,
-					env: baseEnv(platform, spec, UI_PORT, {
+					env: baseEnvFor(UI_PORT, {
 						...solutionEnv,
 						FUJIN_TARGET: "ui",
 						// A fallback, not a pin: the per-request scope arrives in the
@@ -340,7 +348,7 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 				{
 					name: "services",
 					image: spec.images.ms,
-					env: baseEnv(platform, spec, MS_PORT, {
+					env: baseEnvFor(MS_PORT, {
 						...solutionEnv,
 						FUJIN_TARGET: "services",
 						// The ms calls its own HTTP surface for service-to-service

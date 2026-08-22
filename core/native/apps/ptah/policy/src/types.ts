@@ -250,6 +250,12 @@ export interface ReconcileInput {
 	platform?: KubeObject;
 	/** Tenants of the platform, for cloud-profile aggregation. */
 	tenants: KubeObject[];
+	/**
+	 * Namespace the controller itself runs in. The module proxy is a Service
+	 * there while the pods fetching from it live in the platform's namespace,
+	 * so the URL has to be qualified with this rather than left bare.
+	 */
+	controllerNamespace?: string;
 }
 
 export interface ReconcileOutput {

@@ -64,6 +64,22 @@ export const shardStorage = (platform: string, shard: string) =>
 export const storageConfigMap = (storage: string) => `${storage}-config`;
 
 /**
+ * The scope every volume of one storage is named under.
+ *
+ * PersistentVolumes are cluster-scoped, but a Tenant name is already globally
+ * unique, so the cloud form is a bare `<tenant>` rather than repeating the
+ * Platform and the storage Deployment on every volume. A shard name is only
+ * unique within its Platform, so that form stays qualified. Exported because
+ * anything reading the volumes back — sync, backup — has to derive the same
+ * name, and a second copy of this rule is what makes it look in the wrong PVC.
+ */
+export const volumeScope = (
+	platform: string,
+	owner: { tenant?: string | null; shard?: string | null } = {},
+): string =>
+	owner.tenant ?? (owner.shard ? `${platform}-${owner.shard}` : platform);
+
+/**
  * The key behemoth looks a mount up by.
  *
  * A Solution names a module `orders`, but the running service asks its storage

@@ -114,12 +114,10 @@ export function storageResources(spec: StorageResourcesSpec): KubeObject[] {
 	const labels = n.labels(spec.platform, component, spec.owner);
 	const selector = n.selector(spec.platform, component);
 	const mountBase = spec.storage.mountBase.replace(/\/+$/g, "");
-	// PersistentVolumes are cluster-scoped. A Tenant name is already globally
-	// unique, so the cloud form is simply `<tenant>-<microservice>` instead of
-	// repeating the Platform and storage Deployment names on every volume.
-	const volumeScope =
-		spec.tenant ??
-		(spec.shard ? `${spec.platform}-${spec.shard}` : spec.platform);
+	const volumeScope = n.volumeScope(spec.platform, {
+		tenant: spec.tenant,
+		shard: spec.shard,
+	});
 	const mounts: Record<string, string> = {};
 	const podVolumes: Record<string, unknown>[] = [
 		k8s.configMapVolume(CONFIG_VOLUME, n.storageConfigMap(spec.name)),

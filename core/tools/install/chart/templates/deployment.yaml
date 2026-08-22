@@ -90,7 +90,16 @@ metadata:
     {{- include "ptah.labels" . | nindent 4 }}
 spec:
   accessModes: [ReadWriteOnce]
-  storageClassName: {{ .Values.moduleCache.storageClassName | quote }}
+  {{/*
+  Omitted rather than defaulted when unset: an empty `storageClassName` is not
+  "no preference", it means "bind no provisioner", and the claim then waits for
+  a volume nobody will create. Leaving the field out is what hands the cluster's
+  default class the job, which is the only correct answer on a cluster whose
+  classes this chart has never heard of.
+  */}}
+  {{- with .Values.moduleCache.storageClassName }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
   resources:
     requests:
       storage: {{ .Values.moduleCache.size | quote }}

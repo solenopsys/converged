@@ -41,7 +41,7 @@
  */
 
 import { mkdirSync, rmSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { brotliCompressSync, constants as zlib } from "node:zlib";
 import { FUNCTION_INDEX } from "back-core/module-registry";
 import { createGenerator } from "unocss";
@@ -49,6 +49,7 @@ import { createImportMap } from "../../../frontend/spa/src/import-map";
 import unoMicrofrontendConfig from "../../../frontend/spa/uno.mf.config";
 import { createCssPlugin, withStylePrologue } from "./css";
 import { discover, type Kind, type Module } from "./discover";
+import { LAYERS_PREFIX, type LayerFile, mergeLayers } from "./layers";
 
 type Options = {
 	/** Converged checkout — the base layer. */
@@ -365,16 +366,37 @@ type Manifest = {
 	modules: Record<string, string>;
 };
 
-function manifest(built: Built[]): Manifest {
-	const modules = Object.fromEntries(
-		built
-			.map(({ artifact, digest }) => [artifact, digest] as const)
-			.sort(([a], [b]) => a.localeCompare(b)),
+function manifest(modules: Record<string, string>): Manifest {
+	const sorted = Object.fromEntries(
+		Object.entries(modules).sort(([a], [b]) => a.localeCompare(b)),
 	);
 	// The revision is the mapping's own digest rather than a timestamp: two
 	// builds of unchanged sources must not force a rollout.
-	const revision = sha256(new TextEncoder().encode(JSON.stringify(modules)));
-	return { revision, encoding: "br", modules };
+	const revision = sha256(new TextEncoder().encode(JSON.stringify(sorted)));
+	return { revision, encoding: "br", modules: sorted };
+}
+
+/** The layer a build publishes as: the product's name, or converged's. */
+function layerName(options: Options): string {
+	return basename(options.childProjectDir ?? options.projectDir);
+}
+
+/** What it stacks on. A product extends converged; converged extends nothing. */
+function layerExtends(options: Options): string[] {
+	return options.childProjectDir ? [basename(options.projectDir)] : [];
+}
+
+function layerFile(options: Options, built: Built[]): LayerFile {
+	return {
+		layer: layerName(options),
+		extends: layerExtends(options),
+		encoding: "br",
+		modules: Object.fromEntries(
+			built
+				.map(({ artifact, digest }) => [artifact, digest] as const)
+				.sort(([a], [b]) => a.localeCompare(b)),
+		),
+	};
 }
 
 type RegistryTarget = {
@@ -579,12 +601,35 @@ function chartValues(mapping: Manifest, url: string): ChartValues {
 /** The name both the local file and the published object go by. */
 const VALUES_OBJECT = "registry.json";
 
+/**
+ * Every layer file the registry holds, this build's own included.
+ *
+ * Read back rather than remembered: the other layers are published by other
+ * builds, possibly on other machines, and the whole point of composing here is
+ * that neither build has to know when the other one ran.
+ */
+async function publishedLayers(
+	client: Bun.S3Client,
+	own: LayerFile,
+): Promise<LayerFile[]> {
+	const prefix = objectKey(`${LAYERS_PREFIX}/`);
+	const listed = await client.list({ prefix });
+	const layers: LayerFile[] = [own];
+	for (const entry of listed.contents ?? []) {
+		const name = basename(entry.key, ".json");
+		if (!entry.key.endsWith(".json") || name === own.layer) continue;
+		const body = await client.file(entry.key).text();
+		layers.push(JSON.parse(body) as LayerFile);
+	}
+	return layers.sort((a, b) => a.layer.localeCompare(b.layer));
+}
+
 async function publish(
 	options: Options,
 	built: Built[],
-	mapping: Manifest,
-	values: ChartValues | undefined,
-) {
+	layer: LayerFile,
+	url: string | undefined,
+): Promise<Manifest> {
 	const { client, description } = registryTarget();
 	console.log(`[registry] publishing to ${description}`);
 
@@ -609,14 +654,32 @@ async function publish(
 		console.log(`[registry]   + ${artifact} ${digest.slice(0, 12)}…`);
 	}
 
-	// The mapping is the one mutable object in the registry: it is what moves a
-	// name from one digest to another. Written last, so it never points at bytes
-	// that are not there yet.
+	// This layer's own names. Written last among the objects it refers to, so it
+	// never points at bytes that are not there yet, and written at a key no
+	// other layer touches.
+	await client
+		.file(objectKey(`${LAYERS_PREFIX}/${layer.layer}.json`))
+		.write(JSON.stringify(layer, null, "\t"), {
+			type: "application/json",
+		});
+
+	// Then the merged mapping, recomposed from every layer now in the registry
+	// rather than from this build alone. Every publisher does this and they all
+	// arrive at the same result, which is what makes publishing order stop
+	// mattering.
+	const layers = await publishedLayers(client, layer);
+	const mapping = manifest(mergeLayers(layers));
+	console.log(
+		`[registry] mapping covers ${layers.length} layer(s): ${layers
+			.map((entry) => `${entry.layer}(${Object.keys(entry.modules).length})`)
+			.join(", ")}`,
+	);
 	await client
 		.file(objectKey("modules.json"))
 		.write(JSON.stringify(mapping, null, "\t"), {
 			type: "application/json",
 		});
+	const values = url ? chartValues(mapping, url) : undefined;
 	// The chart values are the same mapping addressed to a different reader, so
 	// they follow it rather than lead it, for the same reason.
 	if (values) {
@@ -629,13 +692,35 @@ async function publish(
 	console.log(
 		`[registry] published ${uploaded} new object(s), ${built.length - uploaded} already present`,
 	);
+	return mapping;
 }
 
 const options = parseArgs(Bun.argv.slice(2));
 const built = await buildAll(options);
 if (built.length === 0) throw new Error("[registry] nothing was built");
 
-const mapping = manifest(built);
+const layer = layerFile(options, built);
+const url = registryUrl();
+
+// Publishing composes the mapping from every layer in the registry and hands
+// back the result; without `-p` there is nothing to read the other layers from,
+// so the local files describe this layer alone and say so. That distinction is
+// the whole fix: a partial mapping written as if it were the complete one is
+// what let a product build erase the base layer's names.
+const mapping = options.publish
+	? await publish(options, built, layer, url)
+	: manifest(layer.modules);
+if (!options.publish && layer.extends.length > 0) {
+	console.warn(
+		`[registry] local build: this mapping covers layer ${layer.layer} only, ` +
+			`not ${layer.extends.join(", ")}. Publish with -p to compose the whole set.`,
+	);
+}
+
+await Bun.write(
+	join(options.outDir, `${LAYERS_PREFIX}/${layer.layer}.json`),
+	`${JSON.stringify(layer, null, "\t")}\n`,
+);
 await Bun.write(
 	join(options.outDir, "modules.json"),
 	`${JSON.stringify(mapping, null, "\t")}\n`,
@@ -644,7 +729,6 @@ await Bun.write(
 // Written whenever the address is knowable, `-p` or not: the values are how a
 // cluster is moved onto this build, and wanting to inspect them before
 // uploading anything is the normal case rather than an odd one.
-const url = registryUrl();
 const values = url ? chartValues(mapping, url) : undefined;
 if (values) {
 	await Bun.write(
@@ -670,4 +754,3 @@ if (values) {
 			`[registry] apply with: helm upgrade --install … -f ${join(options.outDir, VALUES_OBJECT)}`,
 	);
 }
-if (options.publish) await publish(options, built, mapping, values);

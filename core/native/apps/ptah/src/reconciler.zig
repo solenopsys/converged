@@ -133,12 +133,17 @@ pub const Reconciler = struct {
         tenants: []const std.json.Value,
         platforms: []const std.json.Value,
     ) ![]u8 {
-        _ = self;
         var out = std.Io.Writer.Allocating.init(arena);
         const w = &out.writer;
 
         const object_json = try stringify(arena, object);
-        try w.print("{{\"kind\":\"{s}\",\"object\":{s},\"solutions\":[", .{ kind, object_json });
+        // The controller's own namespace travels with the input: the module
+        // proxy is a Service there, while the pods that fetch from it run in
+        // the platform's namespace, so the policy cannot name it without this.
+        try w.print(
+            "{{\"kind\":\"{s}\",\"controllerNamespace\":\"{s}\",\"object\":{s},\"solutions\":[",
+            .{ kind, self.config.namespace, object_json },
+        );
         for (solutions, 0..) |solution, i| {
             if (i > 0) try w.writeAll(",");
             try w.writeAll(try stringify(arena, solution));

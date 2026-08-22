@@ -61,7 +61,10 @@ resources:
 
 moduleCache:
   size: 4Gi
-  storageClassName: local-path
+  # Empty means the cluster's default StorageClass. Naming one here instead
+  # would pin the operator to k3s' provisioner on every cluster it is installed
+  # into; the installer passes whatever class it was told to use.
+  storageClassName: ""
 
 serviceAccount:
   create: true
@@ -80,6 +83,10 @@ rbac:
 # band — useful when one operator serves several platforms.
 platform:
   create: true
+
+# Extra environment for the platform's workloads, read straight through to
+# `Platform.spec.env`. Empty by default: everything a platform needs is derived.
+env: {}
 
 # Where ui and ms images come from. The names are built as
 # `<registry>/<workspace>-ui:<tag>`, which is what the build publishes.

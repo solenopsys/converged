@@ -954,6 +954,29 @@ describe("module registry", () => {
 		}
 	});
 
+	test("the proxy is addressed across namespaces", () => {
+		const { resources } = reconcile(
+			input({
+				kind: "Platform",
+				object: platform("mono", { registry }),
+				controllerNamespace: "kube-system",
+			}),
+		);
+		// The controller serves modules from a Service in its own namespace
+		// while every consumer runs in the platform's, so the short name would
+		// resolve to nothing the moment the two stop being the same namespace.
+		const proxy = "http://ptah-proxy.kube-system.svc.cluster.local";
+		expect(dataOf(find(resources, "ConfigMap", "converged-modules")).MODULE_PROXY)
+			.toBe(proxy);
+		const spec = find(resources, "Deployment", "converged-services")?.spec as {
+			template: { spec: { containers: { env: { name: string; value: string }[] }[] } };
+		};
+		expect(spec.template.spec.containers[0].env).toContainEqual({
+			name: "MODULE_PROXY",
+			value: proxy,
+		});
+	});
+
 	test("the proxy cache is not mounted in consumers", () => {
 		const { resources } = reconcile(
 			input({ kind: "Platform", object: platform("mono", { registry }) }),

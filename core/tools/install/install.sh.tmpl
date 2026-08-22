@@ -36,7 +36,15 @@ STORAGE_CLASS="${STORAGE_CLASS:-local-path}"
 STORAGE_SIZE="${STORAGE_SIZE:-5Gi}"
 TRAEFIK_HTTPS_ENTRYPOINT_PORT="${TRAEFIK_HTTPS_ENTRYPOINT_PORT:-8443}"
 LOCAL_ISSUER_NAME="${LOCAL_ISSUER_NAME:-converged-local-selfsigned}"
-OPERATOR_CREATE="${OPERATOR_CREATE:-}"
+# The controller is cluster infrastructure, not part of a workspace, so it has
+# a namespace and a release name of its own and neither is derived from the
+# answers below.
+OPERATOR_NAMESPACE="${OPERATOR_NAMESPACE:-kube-system}"
+OPERATOR_RELEASE="${OPERATOR_RELEASE:-ptah}"
+# The operator caches fetched modules on a claim. Defaults to the same class the
+# platform's volumes use, which on a k3s install is the provisioner k3s ships;
+# empty falls through to the cluster's default class.
+MODULE_CACHE_STORAGE_CLASS="${MODULE_CACHE_STORAGE_CLASS:-$STORAGE_CLASS}"
 
 # Where `bun run build:modules -p` published. Set it and the platform runs the
 # modules in that registry; leave it empty and it runs what is baked into the
@@ -318,7 +326,37 @@ fetch_registry_values() {
 	REGISTRY_VALUES_FILE="$CHART_DIR/registry.json"
 }
 
-install_ptah() {
+# The operator, once per cluster, in kube-system.
+#
+# Platform, Solution and Tenant are cluster-scoped and ptah lists them without a
+# namespace filter, so one controller already drives every workspace — what it
+# must not be is a part of any one of them. Installed beside a platform it is
+# owned by that platform's Helm release, and `helm uninstall <workspace>-ptah`
+# then takes the controller down with it, leaving every other workspace
+# unreconciled. kube-system is where a thing that outlives its tenants belongs.
+install_operator() {
+	printf 'Operator: %s in %s\n' \
+		"$(helm -n "$OPERATOR_NAMESPACE" status "$OPERATOR_RELEASE" >/dev/null 2>&1 && echo upgrading || echo installing)" \
+		"$OPERATOR_NAMESPACE"
+
+	helm upgrade --install "$OPERATOR_RELEASE" "$CHART_DIR/chart" \
+		--namespace "$OPERATOR_NAMESPACE" \
+		--wait \
+		--set operator.create=true \
+		--set platform.create=false \
+		--set-string image.repository="$PTAH_IMAGE_REPOSITORY" \
+		--set-string image.tag="$PTAH_IMAGE_TAG" \
+		--set-string moduleCache.storageClassName="$MODULE_CACHE_STORAGE_CLASS"
+
+	kubectl -n "$OPERATOR_NAMESPACE" rollout status deployment/"$OPERATOR_RELEASE" --timeout=5m
+}
+
+# The workspace: a Platform and its Solutions, and never a controller. Passing
+# `operator.create=false` unconditionally is also the migration path — a cluster
+# whose controller still lives inside a workspace release loses it on this
+# upgrade, which is safe only because install_operator has already put one in
+# kube-system.
+install_platform() {
 	kubectl create namespace "$WORKSPACE" --dry-run=client -o yaml | kubectl apply -f -
 
 	REGISTRY_VALUES_FILE=""
@@ -332,34 +370,16 @@ install_ptah() {
 			"$WORKSPACE" "$WORKSPACE" >&2
 	fi
 
-	# The first release in a cluster brings the operator; later ones add a
-	# Platform and let that operator drive it. Both Platform and Solution are
-	# cluster-scoped, so a second operator would reconcile everything twice. A
-	# repeat of this release is different: its controller is part of the same
-	# Helm release and must stay enabled, otherwise Helm deletes it on upgrade.
-	if [[ -z "$OPERATOR_CREATE" ]]; then
-		if helm -n "$WORKSPACE" status "${WORKSPACE}-ptah" >/dev/null 2>&1; then
-			OPERATOR_CREATE=true
-		elif kubectl get crd platforms.ptah.io >/dev/null 2>&1 \
-			&& [[ -n "$(kubectl get deployment -A -l app.kubernetes.io/name=ptah -o name 2>/dev/null)" ]]; then
-			OPERATOR_CREATE=false
-		else
-			OPERATOR_CREATE=true
-		fi
-	fi
-	printf 'Operator: %s\n' "$([[ "$OPERATOR_CREATE" == true ]] && echo "installing" || echo "already present, adding a Platform only")"
-
 	helm upgrade --install "${WORKSPACE}-ptah" "$CHART_DIR/chart" \
 		--namespace "$WORKSPACE" \
 		--create-namespace \
 		--wait \
 		${REGISTRY_VALUES_FILE:+--values "$REGISTRY_VALUES_FILE"} \
-		--set operator.create="$OPERATOR_CREATE" \
+		--set operator.create=false \
+		--set platform.create=true \
 		--set-string workspace="$WORKSPACE" \
 		--set-string profile="$PROFILE" \
 		--set-string domainBase="$DOMAIN_BASE" \
-		--set-string image.repository="$PTAH_IMAGE_REPOSITORY" \
-		--set-string image.tag="$PTAH_IMAGE_TAG" \
 		--set-string images.registry="$IMAGES_REGISTRY" \
 		--set-string images.tag="$IMAGES_TAG" \
 		--set-string storage.mode=dynamic \
@@ -368,9 +388,6 @@ install_ptah() {
 		--set-string gateway.issuer="$LOCAL_ISSUER_NAME" \
 		--set gateway.httpsPort="$TRAEFIK_HTTPS_ENTRYPOINT_PORT"
 
-	if [[ "$OPERATOR_CREATE" == true ]]; then
-		kubectl -n "$WORKSPACE" rollout status deployment/"${WORKSPACE}-ptah" --timeout=5m
-	fi
 	wait_for "the Gateway to be programmed" sh -c \
 		"kubectl get gateway -n '$WORKSPACE' '$WORKSPACE' -o jsonpath='{.status.conditions[?(@.type==\"Programmed\")].status}' | grep -qx True"
 }
@@ -402,7 +419,17 @@ ask_workspace
 printf '\n'
 
 unpack_chart
-install_ptah
+install_operator
+install_platform
 
-printf '\nConverged is installed in namespace %s (%s). Gateway: https://%s.%s/\n' \
-	"$WORKSPACE" "$PROFILE" "$WORKSPACE" "$DOMAIN_BASE"
+printf '\nConverged is installed in namespace %s (%s).\n' "$WORKSPACE" "$PROFILE"
+# Which hostname to open follows the profile, so this cannot be one line: mono
+# and multi answer on the base domain, while cloud has no platform-wide name at
+# all — the Gateway listens on the whole zone and each Tenant brings the name it
+# serves, so there is nothing to visit until the first one is created.
+if [[ "$PROFILE" == "cloud" ]]; then
+	printf 'Gateway listens on *.%s; a site answers at <tenant>.%s once you create a Tenant.\n' \
+		"$DOMAIN_BASE" "$DOMAIN_BASE"
+else
+	printf 'Gateway: https://%s/\n' "$DOMAIN_BASE"
+fi

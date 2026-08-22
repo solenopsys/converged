@@ -92,6 +92,16 @@ spec:
     modules: {{ .Values.registry.modules | default dict | toJson }}
 {{- end }}
 
+{{- with .Values.env }}
+{{/*
+Extra environment for the platform's own workloads. The policy merges it over
+everything it derives, so this is also the one place to correct a value ptah
+computes wrongly for a particular cluster without waiting for a new operator.
+*/}}
+  env:
+    {{- toYaml . | nindent 4 }}
+{{- end }}
+
   # Always-on peers of the message bus. fujin must declare both ports: `ws` is
   # what the gateway targets, `zmq` is what every other peer dials.
   apps:
@@ -127,7 +137,21 @@ spec:
     className: {{ .Values.gateway.className }}
     httpsPort: {{ .Values.gateway.httpsPort }}
     hosts:
+      {{- if eq (include "ptah.profile" .) "cloud" }}
+      {{/*
+      Cloud sells a hostname per Tenant, so the listener has to accept names
+      that do not exist yet; each Tenant's own HTTPRoute is what narrows it.
+      */}}
       - "*.{{ .Values.domainBase }}"
+      {{- else }}
+      {{/*
+      mono and multi answer on one set of hostnames, and that set is the base
+      domain itself. A wildcard here would serve every name except the one the
+      install is actually reachable at: `*.example` matches exactly one label
+      and never the apex, so `https://example/` returns 404 from the router.
+      */}}
+      - {{ .Values.domainBase }}
+      {{- end }}
     tls:
       secretName: {{ include "ptah.workspace" . }}-tls
       issuer: {{ .Values.gateway.issuer }}
@@ -135,8 +159,14 @@ spec:
       dnsNames:
         - {{ .Values.domainBase }}
         - "*.{{ .Values.domainBase }}"
-{{- end }}
 
+{{/*
+Solutions and Tenants are inputs to the same Platform, and cluster-scoped like
+it. Rendering them outside this gate is what made an operator-only release —
+one installed into kube-system with `platform.create=false` — still emit a
+`Solution/<release-namespace>-<product>` that belongs to no platform, and then
+collide with the workspace release that legitimately owns that name.
+*/}}
 {{- range $name, $spec := .Values.solutions }}
 ---
 {{/*
@@ -146,7 +176,15 @@ platform reference is filled in here so the two cannot drift apart.
 apiVersion: ptah.io/v1alpha1
 kind: Solution
 metadata:
-  name: {{ $name }}
+  {{/*
+  Cluster-scoped, while `spec.platform` below scopes it to one platform — so
+  the name has to carry that scope too. The values key is a product name, not
+  a workspace, so without the prefix a second workspace in the same cluster
+  renders this very object: Helm refuses to adopt it ("cannot be imported into
+  the current release"), and were it not for that check the second install
+  would silently retarget the first platform's solution at itself.
+  */}}
+  name: {{ printf "%s-%s" (include "ptah.workspace" $) $name }}
   labels:
     {{- include "ptah.labels" $ | nindent 4 }}
 spec:
@@ -172,4 +210,5 @@ metadata:
 spec:
   platform: {{ include "ptah.workspace" $ }}
   {{- toYaml (omit $spec "platform") | nindent 2 }}
+{{- end }}
 {{- end }}

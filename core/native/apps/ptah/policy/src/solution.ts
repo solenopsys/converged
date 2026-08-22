@@ -95,6 +95,7 @@ export function mergeSolutions(selected: KubeObject[]): MergedSolutions {
 export function moduleData(
 	merged: MergedSolutions,
 	registry?: RegistrySpec,
+	controllerNamespace?: string,
 ): Record<string, string> {
 	return {
 		SOLUTIONS: merged.names.join(","),
@@ -102,8 +103,24 @@ export function moduleData(
 		FRONTEND_MODULES: JSON.stringify(merged.microfrontends),
 		PROCESSORS: JSON.stringify(merged.processors),
 		WORKFLOWS: JSON.stringify(merged.workflows),
-		...registryData(registry),
+		...registryData(registry, controllerNamespace),
 	};
+}
+
+/**
+ * Where a pod fetches modules from.
+ *
+ * The proxy is a Service in the controller's namespace; the pods that read it
+ * run in the platform's. A bare `ptah-proxy` resolves only in the caller's own
+ * namespace, so it worked exactly while the operator was installed beside the
+ * platform it served — qualifying it is what lets one controller in kube-system
+ * feed every workspace. The bare form remains the fallback for a runtime that
+ * does not report its namespace, which is the behaviour this replaces.
+ */
+function moduleProxyUrl(controllerNamespace?: string): string {
+	return controllerNamespace
+		? `http://ptah-proxy.${controllerNamespace}.svc.cluster.local`
+		: "http://ptah-proxy";
 }
 
 /**
@@ -111,10 +128,13 @@ export function moduleData(
  * Absent registry means everything ships inside the image, which is what a
  * local build does.
  */
-export function registryData(registry?: RegistrySpec): Record<string, string> {
+export function registryData(
+	registry?: RegistrySpec,
+	controllerNamespace?: string,
+): Record<string, string> {
 	if (!registry) return {};
 	return {
-		MODULE_PROXY: "http://ptah-proxy",
+		MODULE_PROXY: moduleProxyUrl(controllerNamespace),
 		MODULE_DIGESTS: JSON.stringify(registry.modules ?? {}),
 		MODULE_REGISTRY_REVISION: registry.revision ?? "",
 	};
