@@ -26,7 +26,7 @@ fn matchesDigest(bytes: []const u8, digest: []const u8) bool {
 
 fn pathFor(gpa: std.mem.Allocator, directory: []const u8, digest: []const u8) ![]u8 {
     if (!validDigest(digest)) return Error.InvalidDigest;
-    return std.fmt.allocPrint(gpa, "{s}/{s}", .{ std.mem.trimRight(u8, directory, "/"), digest });
+    return std.fmt.allocPrint(gpa, "{s}/{s}", .{ std.mem.trimEnd(u8, directory, "/"), digest });
 }
 
 /// Return a verified object, fetching it only when the immutable cache misses.

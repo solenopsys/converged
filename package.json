@@ -17,6 +17,7 @@
     "core/native/libs/cruller-transport",
     "core/native/apps/resonus/providers",
     "core/tools/cli",
+    "core/tools/docs",
     "core/tools/nrpc",
     "core/tools/registry",
     "modules/commands",

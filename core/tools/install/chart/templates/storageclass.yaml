@@ -1,0 +1,32 @@
+{{- if and .Values.platform.create (eq .Values.storage.mode "static") (not .Values.storage.static.storageClassName) }}
+{{/*
+A class of ptah's own, for the `static` storage mode.
+
+Its whole job is to be a name no provisioner answers to. The volumes ptah
+declares and the claims that ask for them both carry it, so the binder pairs
+them off and nothing else in the cluster is entitled to create a volume for
+one of these claims. Reusing a provisioner's class here — `local-path` on k3s
+being the easy mistake — would put two owners on the same claim, and the data
+would land in whichever of the two roots won.
+
+WaitForFirstConsumer because the volumes are node-local: binding a claim
+before its pod is scheduled would choose the node, rather than follow it.
+
+Cluster-scoped, so a second workspace needs a second name — which is what
+deriving it from the workspace gives.
+*/}}
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: {{ include "ptah.staticStorageClass" . }}
+  labels:
+    {{- include "ptah.labels" . | nindent 4 }}
+  annotations:
+    # The class outlives the release: the volumes bound under it are still
+    # bound after `helm uninstall`, and a class deleted from under them cannot
+    # be recreated with the same identity by a later install.
+    helm.sh/resource-policy: keep
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Retain
+{{- end }}

@@ -1,0 +1,30 @@
+{
+	"projects": ["../../..", "../../../../club"],
+	"out": {
+		"struct": "../../../../data/club/struct-ms/struct/data",
+		"markdown": "../../../../data/club/markdown-ms/markdown/data",
+		"readme": "../../../../build/docs/readme",
+		"html": "../../../../build/docs/html",
+		"pdf": "../../../../build/docs/pdf"
+	},
+	"sections": {
+		"product": {
+			"title": {
+				"en": "Product",
+				"ru": "Продукт"
+			}
+		},
+		"club": {
+			"title": {
+				"en": "Club",
+				"ru": "Клуб"
+			}
+		}
+	},
+	"translation": {
+		"config": "../../../../build/docs/translation-control.json",
+		"stateDir": "../../../../build/docs/translation",
+		"sourceLocale": "en",
+		"targetLocales": []
+	}
+}

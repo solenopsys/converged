@@ -1,0 +1,31 @@
+{
+	"name": "docs-builder",
+	"version": "0.1.0",
+	"type": "module",
+	"private": true,
+	"module": "src/cli.ts",
+	"exports": {
+		".": "./src/index.ts",
+		"./model": "./src/model.ts"
+	},
+	"scripts": {
+		"docs": "bun run src/cli.ts all",
+		"docs:site": "bun run src/cli.ts site",
+		"docs:readme": "bun run src/cli.ts readme",
+		"docs:html": "bun run src/cli.ts html",
+		"docs:pdf": "bun run src/cli.ts pdf",
+		"docs:translations": "bun run src/cli.ts translations",
+		"docs:list": "bun run src/cli.ts --list"
+	},
+	"dependencies": {
+		"cruller-md4c": "workspace:*",
+		"md-tools": "workspace:*",
+		"preact": "^10.29.7",
+		"preact-render-to-string": "^6.7.0",
+		"unocss": "^66.8.0"
+	},
+	"devDependencies": {
+		"@types/bun": "^1.3.14",
+		"typescript": "6.0.3"
+	}
+}

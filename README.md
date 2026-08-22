@@ -274,11 +274,9 @@ Claim that drops out of the desired set is kept unless it explicitly carries
 
 Business rules live in a JavaScript policy evaluated in QuickJS, as a pure
 `observed → desired` function with no cluster access, so the same rules can be
-rendered offline before anything is deployed:
-
-```bash
-ptah render examples/platform-cloud.json
-```
+rendered offline before anything is deployed — see
+[ptah's README](core/native/apps/ptah/README.md) for how to build a render
+input.
 
 ### Profiles
 
@@ -313,19 +311,23 @@ identical, including the images.
 > `mono` and `cloud` are implemented in the policy today; `multi` is the
 > in-progress port of the sharded topology.
 
-In every profile the volume granularity is the same: **one PersistentVolume and
-one pre-bound Claim per microservice**. The platform supplies a PV source
-template and ptah expands `{{volume}}`, `{{platform}}`, `{{tenant}}` and
-`{{microservice}}` into it, refusing any template that resolves two
-microservices to the same source.
+In every profile the volume granularity is the same: **one Claim per
+microservice**. By default the class named on the claim has a provisioner
+behind it, which creates the volume and destroys it with the claim.
 
 ```json
 {
   "storageClassName": "local-path",
-  "mountBase": "/app/data",
-  "volumeSource": { "hostPath": { "path": "/var/lib/ptah/{{volume}}", "type": "DirectoryOrCreate" } }
+  "mountBase": "/app/data"
 }
 ```
+
+A platform that owns its disks adds a PV source template instead: ptah then
+writes the volumes too, expanding `{{volume}}`, `{{platform}}`, `{{tenant}}`
+and `{{microservice}}` into the template and refusing any that resolves two
+microservices to the same source. That form needs a class with no provisioner
+of its own, and `nodeAffinity` for a node-local source — see
+[ptah's README](core/native/apps/ptah/README.md).
 
 ### Routing
 

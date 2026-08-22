@@ -287,26 +287,69 @@ disk correctly and still fail every store open:
 { "microservices": { "orders-ms": "/app/data/converged-storage-orders" } }
 ```
 
-The Platform storage spec supplies a Kubernetes PV source template. Ptah
-recursively replaces `{{volume}}`, `{{platform}}`, `{{tenant}}`, `{{shard}}`,
-and `{{microservice}}` in its string values. The template must resolve to a
-unique source for each microservice. A local-cluster MVP can use:
+A claim gets its volume one of two ways, and the Platform storage spec picks
+between them by whether it carries a `volumeSource`.
+
+**Provisioned.** No `volumeSource`: the claim names a class with a provisioner
+behind it, and that provisioner creates the volume, places the data wherever it
+is configured to, and deletes the volume with the claim. This is the default,
+and the only form that survives an uninstall and reinstall without hand-work —
+a volume ptah declared outlives its claim and then refuses to rebind to the
+identically named claim of the next install, because the stale `claimRef` on it
+names a UID that no longer exists.
 
 ```json
 {
   "storageClassName": "local-path",
+  "mountBase": "/app/data"
+}
+```
+
+**Declared.** With a `volumeSource`, ptah writes the PersistentVolume as well
+and pre-binds the claim to it by name. Ptah recursively replaces `{{volume}}`,
+`{{platform}}`, `{{tenant}}`, `{{shard}}`, and `{{microservice}}` in the
+template's string values, and refuses a template that resolves two
+microservices to the same source.
+
+Two rules come with it. The class must have **no provisioner of its own** —
+naming `local-path` here would leave that provisioner and ptah both answering
+the same claims, and the data would land in whichever root won — so use a class
+declared with `kubernetes.io/no-provisioner` and `WaitForFirstConsumer`. And a
+node-local source (`hostPath`, `local`) requires `nodeAffinity`: without it a
+rescheduled pod gets an empty directory on its new node, behemoth reports every
+store as mounted, and the data stays behind on the old one. Ptah rejects the
+platform rather than let that happen.
+
+```json
+{
+  "storageClassName": "converged-local",
   "mountBase": "/app/data",
   "volumeSource": {
     "hostPath": {
       "path": "/var/lib/ptah/{{volume}}",
       "type": "DirectoryOrCreate"
     }
+  },
+  "nodeAffinity": {
+    "required": {
+      "nodeSelectorTerms": [
+        {
+          "matchExpressions": [
+            {
+              "key": "kubernetes.io/hostname",
+              "operator": "In",
+              "values": ["node-1"]
+            }
+          ]
+        }
+      ]
+    }
   }
 }
 ```
 
-For a multi-node cluster, use a suitable `local`, `nfs`, or `csi` source and
-set `storage.nodeAffinity` when the selected volume type requires it.
+An `nfs` or `csi` source needs no affinity: those volumes are reachable from
+any node, which is the property `hostPath` lacks.
 
 ## Policy
 
@@ -332,12 +375,68 @@ ptah run
 ptah apply [--dry-run]
 
 # Evaluate the policy locally without Kubernetes.
-ptah render examples/platform-cloud.json
-ptah render examples/platform-multi.json
+ptah render input.json
 ```
 
 `render` accepts a serialized `ReconcileInput` and prints the desired resource
-array. The files in [`examples`](examples) are ready-to-run inputs.
+array. That input is not a manifest: with no cluster to read from, it has to
+inline everything the reconciler would otherwise observe — the object itself
+plus the Platform, Solutions and Tenants around it. It is a debugging dump,
+so there are no checked-in copies of one to go stale; build one from
+[`policy/test/fixtures.ts`](policy/test/fixtures.ts), which the policy tests
+keep honest:
+
+```bash
+cd policy && bun -e '
+  import { platform, solution } from "./test/fixtures.ts";
+  console.log(JSON.stringify({
+    kind: "Platform",
+    object: platform("cloud"),
+    solutions: [solution("converged")],
+    tenants: [],
+  }, null, 2));
+' > /tmp/input.json
+```
+
+## Operating
+
+Everything an operator does is a small custom resource. The chart writes the
+Platform and the base Solution; tenants are added as sites are sold.
+
+```bash
+# Add a tenant. `platform` is the only required field; storage and hostnames
+# fall back to the platform's own.
+kubectl apply -f - <<'EOF'
+apiVersion: ptah.io/v1alpha1
+kind: Tenant
+metadata:
+  name: democnc
+spec:
+  platform: converged
+  storageSize: 20Gi
+  domains: [democnc.4ir.local]
+EOF
+
+# What ptah made of them. Ready, scope, storage host and age are printer
+# columns on the CRD, so this is the whole status without -o yaml.
+kubectl get tenants
+kubectl get platforms
+
+# A tenant that needs something other than the platform's base solution names
+# its own. Solutions are cluster-scoped and shared between tenants.
+kubectl patch tenant democnc --type=merge -p '{"spec":{"solutions":["converged"]}}'
+
+# Remove a tenant. Ptah prunes what it owns; the volumes stay unless they
+# carry `ptah.io/reclaim: delete`, because they hold the customer's data.
+kubectl delete tenant democnc
+```
+
+Product composition is a Solution, and its source of truth is
+`modules/solutions/` — bundles in `solutions.json`, the product's selection in
+`converged.json`. `core/tools/dev/src/solution.ts` resolves those into the flat
+form the chart carries as `solutions.converged`, and
+`core/tools/install/solution.test.ts` fails if the two drift apart. Edit the
+bundles, not the chart values.
 
 ## Deployment
 
@@ -408,7 +507,7 @@ TARGET=x86_64-linux-musl ./build.sh        # the target the image uses
 zig build test          # controller, transport, and the QuickJS boundary
 (cd policy && bun test) # the rules themselves
 helm lint chart
-ptah render examples/platform-multi.json
+helm template t chart -n converged --set domainBase=example.com
 ```
 
 ## Known gaps

@@ -27,6 +27,11 @@ PTAH_IMAGE_REPOSITORY="${PTAH_IMAGE_REPOSITORY:-public.ecr.aws/i5x9u8b2/ptah}"
 PTAH_IMAGE_TAG="${PTAH_IMAGE_TAG:-latest}"
 IMAGES_REGISTRY="${IMAGES_REGISTRY:-public.ecr.aws/i5x9u8b2}"
 IMAGES_TAG="${IMAGES_TAG:-latest}"
+# The installer brings up k3s, which ships the local-path provisioner, so the
+# claims ptah writes have something to answer them and the volumes are the
+# provisioner's to create and to clean up. Point STORAGE_CLASS at another class
+# on a cluster with real storage; the static form, where ptah declares the
+# volumes itself, is a chart value and deliberately not a question here.
 STORAGE_CLASS="${STORAGE_CLASS:-local-path}"
 STORAGE_SIZE="${STORAGE_SIZE:-5Gi}"
 TRAEFIK_HTTPS_ENTRYPOINT_PORT="${TRAEFIK_HTTPS_ENTRYPOINT_PORT:-8443}"
@@ -131,12 +136,94 @@ cluster_ready() {
 	kubectl get clusterissuer/"$LOCAL_ISSUER_NAME" >/dev/null 2>&1 || return 1
 }
 
+# A missing k3s binary with its data directory still present is an incomplete
+# uninstall, not a stopped cluster. K3s keeps its CA, serving certificates and
+# bootstrap data together, so deleting only one certificate leaves the next
+# server unable to trust its own persisted state. Start a genuinely new
+# cluster by removing that orphaned state before the installer recreates k3s.
+reset_orphaned_k3s_state() {
+	if command -v k3s >/dev/null 2>&1 || [[ -x /usr/local/bin/k3s ]]; then
+		return
+	fi
+	if [[ -e /etc/rancher/k3s || -e /var/lib/rancher/k3s ]]; then
+		printf 'Removing orphaned k3s state and certificates from an incomplete uninstall.\n'
+		rm -rf -- /etc/rancher/k3s /var/lib/rancher/k3s
+	fi
+}
+
+# K3s generates a new CA for a new cluster, while `kubectl` without
+# KUBECONFIG reads ~/.kube/config. Rebuild that config from the authoritative
+# k3s file on every install. The merge retains unrelated contexts, but puts
+# the fresh k3s `default` context first so a plain `kubectl get pods` cannot
+# continue using a CA copied from a deleted cluster.
+#
+# Called from inside install_k3s rather than at the end of the run.
+# Everything after k3s comes up can fail, and `set -e` then abandons the
+# script — with the sync last, a cert-manager that never went Ready left
+# the caller with a brand new cluster and their old cluster's CA. That
+# does not read as an unfinished install: every later kubectl reports a
+# certificate signed by an unknown authority, as though the cluster
+# itself were broken.
+sync_user_kubeconfig() {
+	local install_user="${SUDO_USER:-root}" install_home user_uid user_gid
+	local config_dir config_file temp_config
+
+	install_home="$(getent passwd "$install_user" | cut -d: -f6)"
+	if [[ -z "$install_home" ]]; then
+		printf 'Could not find home directory for %s; kubectl config was not updated.\n' "$install_user" >&2
+		return
+	fi
+	user_uid="$(id -u "$install_user")"
+	user_gid="$(id -g "$install_user")"
+	config_dir="$install_home/.kube"
+	config_file="$config_dir/config"
+
+	install -d -m 700 -o "$user_uid" -g "$user_gid" "$config_dir"
+	temp_config="$(mktemp "$config_dir/.config.XXXXXX")"
+	if [[ -s "$config_file" ]] \
+		&& KUBECONFIG="$KUBECONFIG_PATH:$config_file" kubectl config view --raw --flatten > "$temp_config"; then
+		:
+	else
+		# A malformed old config must not block the install or retain its CA.
+		cp "$KUBECONFIG_PATH" "$temp_config"
+	fi
+	chmod 600 "$temp_config"
+	chown "$user_uid:$user_gid" "$temp_config"
+	mv -f "$temp_config" "$config_file"
+}
+
+# The sync is silent about whether it worked, and a wrong CA is indistinguishable
+# from a down cluster at the next prompt. One call through the file that was just
+# written turns that into a line naming the file to fix.
+verify_user_kubeconfig() {
+	local install_user="${SUDO_USER:-root}" install_home config_file
+	install_home="$(getent passwd "$install_user" | cut -d: -f6)" || return 0
+	[[ -n "$install_home" ]] || return 0
+	config_file="$install_home/.kube/config"
+	[[ -s "$config_file" ]] || return 0
+	if ! KUBECONFIG="$config_file" kubectl get --raw=/readyz >/dev/null 2>&1; then
+		printf 'Warning: %s cannot reach the cluster; kubectl will keep failing until it is replaced with %s.\n' \
+			"$config_file" "$KUBECONFIG_PATH" >&2
+	fi
+}
+
 install_k3s() {
 	if ! systemctl is-active --quiet k3s; then
+		reset_orphaned_k3s_state
 		curl -sfL https://get.k3s.io | sh -
+		# The new CA is on disk the moment the installer returns, and the two
+		# waits below are the first thing that can time out. Sync here so a
+		# cluster that never becomes ready still leaves a kubectl pointed at it
+		# rather than at the CA of the cluster it replaced.
+		sync_user_kubeconfig
 	fi
 	wait_for "k3s API" kubectl get --raw=/readyz
 	wait_for "a Ready node" sh -c 'kubectl get nodes --no-headers 2>/dev/null | awk '\''$2 == "Ready" { found=1 } END { exit !found }'\'''
+	# Again, for the path where k3s was already running: it may have been
+	# reinstalled out of band since this last ran, and the branch above would
+	# not have noticed. Now that the API answers, the result can be checked.
+	sync_user_kubeconfig
+	verify_user_kubeconfig
 }
 
 install_helm() {
@@ -247,9 +334,13 @@ install_ptah() {
 
 	# The first release in a cluster brings the operator; later ones add a
 	# Platform and let that operator drive it. Both Platform and Solution are
-	# cluster-scoped, so a second operator would reconcile everything twice.
+	# cluster-scoped, so a second operator would reconcile everything twice. A
+	# repeat of this release is different: its controller is part of the same
+	# Helm release and must stay enabled, otherwise Helm deletes it on upgrade.
 	if [[ -z "$OPERATOR_CREATE" ]]; then
-		if kubectl get crd platforms.ptah.io >/dev/null 2>&1 \
+		if helm -n "$WORKSPACE" status "${WORKSPACE}-ptah" >/dev/null 2>&1; then
+			OPERATOR_CREATE=true
+		elif kubectl get crd platforms.ptah.io >/dev/null 2>&1 \
 			&& [[ -n "$(kubectl get deployment -A -l app.kubernetes.io/name=ptah -o name 2>/dev/null)" ]]; then
 			OPERATOR_CREATE=false
 		else
@@ -271,6 +362,7 @@ install_ptah() {
 		--set-string image.tag="$PTAH_IMAGE_TAG" \
 		--set-string images.registry="$IMAGES_REGISTRY" \
 		--set-string images.tag="$IMAGES_TAG" \
+		--set-string storage.mode=dynamic \
 		--set-string storage.storageClassName="$STORAGE_CLASS" \
 		--set-string storage.size="$STORAGE_SIZE" \
 		--set-string gateway.issuer="$LOCAL_ISSUER_NAME" \
@@ -293,6 +385,11 @@ require_answers_possible
 install_helm
 if cluster_ready; then
 	printf 'Found k3s with traefik, the Gateway API and cert-manager. Adding a workspace to it.\n'
+	# This branch never calls install_k3s, so it is the one place the sync has
+	# to be spelled out: the cluster being complete says nothing about whether
+	# it is the same cluster the user's config was written for.
+	sync_user_kubeconfig
+	verify_user_kubeconfig
 else
 	install_k3s
 	install_gateway_api

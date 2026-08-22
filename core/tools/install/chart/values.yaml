@@ -38,7 +38,9 @@ operator:
 image:
   repository: public.ecr.aws/i5x9u8b2/ptah
   tag: latest
-  pullPolicy: IfNotPresent
+  # `latest` is deliberately mutable, so retaining a node-cached operator
+  # silently runs an older policy than the installer and source tree expect.
+  pullPolicy: Always
 
 # More than one replica is safe: only the lease holder reconciles. A second
 # replica buys a faster failover, not more throughput.
@@ -87,13 +89,56 @@ images:
 
 storage:
   size: 5Gi
-  # No default: the cluster default class is a property of the cluster, so
-  # leaving it unset would make the same values mean different storage in
-  # different places.
+
+  # How the claims ptah writes get filled.
+  #
+  # dynamic — a provisioner in the cluster creates the volume behind each
+  #           claim. The default, and the only form that survives an uninstall
+  #           and reinstall unattended: the volume belongs to the claim, so it
+  #           goes away with it instead of surviving as a Released volume that
+  #           refuses to rebind.
+  # static  — ptah declares the volumes as well, pinned to a directory on one
+  #           node. For a host whose disk layout is the reason it was chosen.
+  #           Read `storage.static` before selecting it.
+  mode: dynamic
+
+  # `dynamic` only: which provisioner serves the claims. `local-path` is what
+  # k3s ships and is why it is the default here; on a cluster with real storage
+  # this is the one line that changes.
+  #
+  # It also decides where the data lands, which is a property of that
+  # provisioner and not of this chart: local-path writes under the root in its
+  # own `local-path-config` ConfigMap, normally /var/lib/rancher/k3s/storage.
   storageClassName: local-path
-  # Where a volume's data lands on the node. Each microservice gets its own
-  # directory under this root.
-  hostPath: /var/lib/ptah
+
+  # `static` only, ignored in dynamic mode.
+  static:
+    # The class the declared volumes and their claims carry. Left empty the
+    # chart creates `<workspace>-local` for them: a class with no provisioner
+    # behind it, so nothing else in the cluster answers these claims. Naming a
+    # provisioner's class here instead — `local-path`, say — would leave that
+    # provisioner and ptah both owning the same claim.
+    #
+    # Set it to a class you already maintain and the chart creates nothing and
+    # uses that one.
+    storageClassName: ""
+
+    # Where a volume's data lands on the node. Each microservice gets its own
+    # directory under this root, created on first mount.
+    hostPath: /var/lib/ptah
+
+    # Required. Node-local data does not follow a rescheduled pod, and the
+    # failure is silent: the new node gets an empty directory and behemoth
+    # starts on it. ptah refuses a static platform without this.
+    #
+    # nodeAffinity:
+    #   required:
+    #     nodeSelectorTerms:
+    #       - matchExpressions:
+    #           - key: kubernetes.io/hostname
+    #             operator: In
+    #             values: [node-1]
+    nodeAffinity: {}
 
 gateway:
   className: traefik
@@ -120,13 +165,63 @@ shards: []
 # - name: rest
 #   scopes: ["*"]
 
-# Escape hatch for a solution that has to be pinned in the cluster rather than
-# fetched from the registry. Normally empty.
-solutions: {}
-# pinned-solution:
-#   microservices: [geo, places]
-#   microfrontends: [geo]
-#   processors: [curaengine]
+# Product composition belongs to the Platform, not to a Tenant. Every cloud
+# Tenant with no explicit solution selection receives this base solution. Keep
+# this in the chart so a workspace can bootstrap without a registry; when
+# `registry.url` is configured, ptah adds the matching proxy and digests to
+# the same module environment.
+#
+# This is the resolved form of modules/solutions/converged.json. Its source
+# fragments are used by local development; this chart value is the install-time
+# platform contract and deliberately has the same name as that product.
+solutions:
+  converged:
+    microservices:
+      - access
+      - auth
+      - identity
+      - oauth
+      - markdown
+      - struct
+      - galery
+      - agent
+      - assistant
+      - calls
+      - chats
+      - contexts
+      - threads
+      - logs
+      - telemetry
+      - counters
+      - usage
+      - files
+      - store
+      - requests
+    microfrontends:
+      - auth
+      - markdown
+      - struct
+      - galery
+      - landing
+      - docs
+      - agents
+      - assistants
+      - calls
+      - chats
+      - contexts
+      - threads
+      - logs
+      - telemetry
+      - usage
+      - requests
+    processors:
+      - curaengine
+      - opencam
+    workflows:
+      - name: wf-file-analysis
+        script: workflows/wf-file-analysis.js
+      - name: wf-file-unpack
+        script: workflows/wf-file-unpack.js
 
 # Tenants are created as sites are sold, not at install. Only meaningful for
 # the `cloud` profile.

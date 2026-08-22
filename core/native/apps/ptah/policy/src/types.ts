@@ -154,12 +154,19 @@ export interface PlatformSpec extends ExtraResources {
 		/** Required: the cluster default class differs per cluster. */
 		storageClassName: string;
 		/**
-		 * Static PV source template. Every active microservice gets a distinct
-		 * PV/PVC pair; `{{volume}}` is replaced with that pair's unique name.
-		 * Other available placeholders are `{{platform}}`, `{{tenant}}`,
-		 * `{{shard}}`, and `{{microservice}}`.
+		 * Static PV source template. Omit it and each microservice gets a claim
+		 * alone, for the provisioner behind `storageClassName` to fill; set it
+		 * and ptah declares the volumes too, which means `storageClassName` has
+		 * to name a class with no provisioner of its own — two owners for one
+		 * claim is a race, not a configuration.
+		 *
+		 * Every active microservice gets a distinct PV/PVC pair; `{{volume}}`
+		 * is replaced with that pair's unique name. Other available
+		 * placeholders are `{{platform}}`, `{{tenant}}`, `{{shard}}`, and
+		 * `{{microservice}}`. A node-local source additionally requires
+		 * `nodeAffinity`.
 		 */
-		volumeSource: Record<string, unknown>;
+		volumeSource?: Record<string, unknown>;
 		accessModes?: string[];
 		reclaimPolicy?: "Retain" | "Delete" | "Recycle";
 		nodeAffinity?: Record<string, unknown>;

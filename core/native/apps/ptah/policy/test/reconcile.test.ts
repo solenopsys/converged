@@ -4,11 +4,13 @@ import { ANNOTATION_DOMAINS, ANNOTATION_MODULES } from "../src/names.ts";
 import type { KubeObject, ReconcileInput } from "../src/types.ts";
 import {
 	find,
+	nodeAffinity,
 	platform,
 	registry,
 	sharded,
 	solution,
 	specOf,
+	staticStorage,
 	tenant,
 } from "./fixtures.ts";
 
@@ -497,7 +499,7 @@ describe("ownership", () => {
 });
 
 describe("storage", () => {
-	test("creates one PV/PVC and one mount per microservice", () => {
+	test("creates one claim and one mount per microservice", () => {
 		const { resources } = reconcile(
 			input({
 				kind: "Platform",
@@ -508,19 +510,14 @@ describe("storage", () => {
 			}),
 		);
 
-		const pvNames = resources
-			.filter((resource) => resource.kind === "PersistentVolume")
-			.map((resource) => resource.metadata.name)
-			.sort();
 		const pvcNames = resources
 			.filter((resource) => resource.kind === "PersistentVolumeClaim")
 			.map((resource) => resource.metadata.name)
 			.sort();
-		expect(pvNames).toEqual([
-			"converged-storage-billing",
-			"converged-storage-geo",
+		expect(pvcNames).toEqual([
+			"converged-billing",
+			"converged-geo",
 		]);
-		expect(pvcNames).toEqual(pvNames);
 
 		// Keys are the store ids the services actually ask for, not the bare
 		// module names a Solution lists.
@@ -529,8 +526,8 @@ describe("storage", () => {
 		);
 		expect(JSON.parse(config["storage.json"])).toEqual({
 			microservices: {
-				"billing-ms": "/app/data/converged-storage-billing",
-				"geo-ms": "/app/data/converged-storage-geo",
+				"billing-ms": "/app/data/converged-billing",
+				"geo-ms": "/app/data/converged-geo",
 			},
 		});
 
@@ -552,22 +549,22 @@ describe("storage", () => {
 		expect(
 			deploymentSpec.template.spec.volumes.map((volume) => volume.name).sort(),
 		).toEqual([
-			"converged-storage-billing",
-			"converged-storage-geo",
+			"converged-billing",
+			"converged-geo",
 			"storage-config",
 		]);
 		expect(
 			deploymentSpec.template.spec.containers[0].volumeMounts,
 		).toContainEqual({
-			name: "converged-storage-geo",
-			mountPath: "/app/data/converged-storage-geo",
+			name: "converged-geo",
+			mountPath: "/app/data/converged-geo",
 		});
 		expect(deploymentSpec.template.spec.containers[0].args).toContain(
 			"/etc/behemoth/storage.json",
 		);
 	});
 
-	test("pre-binds every claim to its PV and renders a unique volume source", () => {
+	test("a claim with no volumeSource asks a provisioner and names no volume", () => {
 		const { resources } = reconcile(
 			input({
 				kind: "Platform",
@@ -575,29 +572,83 @@ describe("storage", () => {
 				solutions: [solution("suite", { microservices: ["billing", "geo"] })],
 			}),
 		);
-		const claim = find(
-			resources,
-			"PersistentVolumeClaim",
-			"converged-storage-geo",
-		);
-		expect(claim?.spec).toEqual({
+		// No `volumeName`: there is nothing to pre-bind to yet, and asking for
+		// a volume by a name the provisioner has not used would leave the claim
+		// Pending forever.
+		expect(
+			specOf<Record<string, unknown>>(
+				resources,
+				"PersistentVolumeClaim",
+				"converged-geo",
+			),
+		).toEqual({
 			accessModes: ["ReadWriteOnce"],
 			storageClassName: "local-path",
 			resources: { requests: { storage: "5Gi" } },
-			volumeName: "converged-storage-geo",
+		});
+		// The volume is the provisioner's to create, so it is not ptah's to
+		// declare — and not ptah's to strand as a Released object on the next
+		// install either.
+		expect(
+			resources.filter((resource) => resource.kind === "PersistentVolume"),
+		).toEqual([]);
+	});
+
+	test("a volumeSource pre-binds every claim to a PV of its own", () => {
+		const object = platform("mono");
+		(object.spec as Record<string, unknown>).storage = staticStorage();
+		const { resources } = reconcile(
+			input({
+				kind: "Platform",
+				object,
+				solutions: [solution("suite", { microservices: ["billing", "geo"] })],
+			}),
+		);
+		expect(
+			specOf<Record<string, unknown>>(
+				resources,
+				"PersistentVolumeClaim",
+				"converged-geo",
+			),
+		).toEqual({
+			accessModes: ["ReadWriteOnce"],
+			storageClassName: "converged-local",
+			resources: { requests: { storage: "5Gi" } },
+			volumeName: "converged-geo",
 		});
 		expect(
-			find(resources, "PersistentVolume", "converged-storage-geo")?.spec,
+			specOf<Record<string, unknown>>(
+				resources,
+				"PersistentVolume",
+				"converged-geo",
+			),
 		).toEqual({
 			capacity: { storage: "5Gi" },
 			accessModes: ["ReadWriteOnce"],
-			storageClassName: "local-path",
+			storageClassName: "converged-local",
 			persistentVolumeReclaimPolicy: "Retain",
+			nodeAffinity,
 			hostPath: {
-				path: "/var/lib/ptah/converged-storage-geo",
+				path: "/var/lib/ptah/converged-geo",
 				type: "DirectoryOrCreate",
 			},
 		});
+	});
+
+	test("rejects a node-local volumeSource that is not pinned to a node", () => {
+		const object = platform("mono");
+		const storage = staticStorage();
+		delete storage.nodeAffinity;
+		(object.spec as Record<string, unknown>).storage = storage;
+		expect(() =>
+			reconcile(
+				input({
+					kind: "Platform",
+					object,
+					solutions: [solution("suite", { microservices: ["geo"] })],
+				}),
+			),
+		).toThrow(/node-local/);
 	});
 
 	test("a tenant gets separate per-microservice disks with its size override", () => {
@@ -612,19 +663,17 @@ describe("storage", () => {
 		const claim = specOf<{ resources: unknown }>(
 			resources,
 			"PersistentVolumeClaim",
-			"converged-storage-democnc-geo",
+			"democnc-geo",
 		);
 		expect(claim.resources).toEqual({ requests: { storage: "50Gi" } });
-		expect(
-			find(resources, "PersistentVolume", "converged-storage-democnc-geo"),
-		).toBeDefined();
 	});
 
 	test("rejects a source template that maps microservices to the same disk", () => {
 		const object = platform("mono");
-		const storage = (object.spec as { storage: Record<string, unknown> })
-			.storage;
-		storage.volumeSource = { hostPath: { path: "/var/lib/ptah/shared" } };
+		const storage = staticStorage({
+			volumeSource: { hostPath: { path: "/var/lib/ptah/shared" } },
+		});
+		(object.spec as Record<string, unknown>).storage = storage;
 		expect(() =>
 			reconcile(
 				input({
@@ -659,14 +708,14 @@ describe("multi", () => {
 
 		expect(
 			resources
-				.filter((r) => r.kind === "PersistentVolume")
+				.filter((r) => r.kind === "PersistentVolumeClaim")
 				.map((r) => r.metadata.name)
 				.sort(),
 		).toEqual([
-			"converged-storage-alpha-billing",
-			"converged-storage-alpha-geo",
-			"converged-storage-rest-billing",
-			"converged-storage-rest-geo",
+			"converged-alpha-billing",
+			"converged-alpha-geo",
+			"converged-rest-billing",
+			"converged-rest-geo",
 		]);
 		expect(status.shards).toEqual(["alpha", "rest"]);
 	});
@@ -729,13 +778,13 @@ describe("multi", () => {
 			}),
 		);
 		const capacity = (name: string) =>
-			specOf<{ capacity: { storage: string } }>(
+			specOf<{ resources: { requests: { storage: string } } }>(
 				resources,
-				"PersistentVolume",
+				"PersistentVolumeClaim",
 				name,
-			).capacity.storage;
-		expect(capacity("converged-storage-alpha-geo")).toBe("50Gi");
-		expect(capacity("converged-storage-rest-geo")).toBe("5Gi");
+			).resources.requests.storage;
+		expect(capacity("converged-alpha-geo")).toBe("50Gi");
+		expect(capacity("converged-rest-geo")).toBe("5Gi");
 	});
 
 	test("a scope claimed twice is rejected rather than resolved by map order", () => {

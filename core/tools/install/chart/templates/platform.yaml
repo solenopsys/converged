@@ -46,14 +46,38 @@ spec:
     # this is only the second port its Service publishes.
     cachePort: 6379
     mountBase: /app/data
+{{- if eq .Values.storage.mode "dynamic" }}
+    # A claim per microservice and nothing else: the provisioner behind this
+    # class creates the volume and owns its lifetime, so deleting the claim
+    # takes the volume with it and a reinstall starts clean.
     storageClassName: {{ .Values.storage.storageClassName }}
+{{- else if eq .Values.storage.mode "static" }}
+    # ptah declares the volumes itself, so the class must have no provisioner
+    # of its own to answer the same claims — see `ptah.staticStorageClass`.
+    storageClassName: {{ include "ptah.staticStorageClass" . }}
     # Every microservice gets its own volume. `{{ "{{volume}}" }}` is that
     # volume's unique name; ptah refuses the platform if the template does not
     # resolve to a distinct source per microservice.
+    #
+    # `hostPath` with `DirectoryOrCreate` rather than a `local` source: ptah
+    # names one directory per microservice and nothing pre-creates them on the
+    # node, which a `local` volume requires. The node pinning that `local`
+    # would have enforced is the nodeAffinity below, which ptah demands of any
+    # node-local source.
     volumeSource:
       hostPath:
-        path: {{ .Values.storage.hostPath }}/{{ "{{volume}}" }}
+        path: {{ .Values.storage.static.hostPath }}/{{ "{{volume}}" }}
         type: DirectoryOrCreate
+    # Omitted when empty rather than defaulted here: ptah is the one validator
+    # of a Platform spec, and it rejects a node-local source that carries no
+    # affinity. A `{}` written out would only turn that into a vaguer error.
+    {{- with .Values.storage.static.nodeAffinity }}
+    nodeAffinity:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+{{- else }}
+{{- fail (printf "storage.mode must be \"dynamic\" or \"static\", got %q" .Values.storage.mode) }}
+{{- end }}
 
 {{- if eq (include "ptah.profile" .) "multi" }}
   shards:

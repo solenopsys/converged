@@ -29,6 +29,15 @@ second setting to say the same thing twice.
 {{- default .Release.Namespace .Values.workspace -}}
 {{- end -}}
 
+{{/*
+The class the `static` storage mode binds its volumes and claims under. Empty
+in values means the chart owns one, named after the workspace; set means the
+cluster already has one and the chart only refers to it.
+*/}}
+{{- define "ptah.staticStorageClass" -}}
+{{- default (printf "%s-local" (include "ptah.workspace" .)) .Values.storage.static.storageClassName -}}
+{{- end -}}
+
 {{- define "ptah.profile" -}}
 {{- .Values.profile -}}
 {{- end -}}

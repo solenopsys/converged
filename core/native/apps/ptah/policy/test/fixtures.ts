@@ -20,13 +20,10 @@ export function platform(
 				port: 9000,
 				cachePort: 6379,
 				mountBase: "/app/data",
+				// The dynamic form, which is the chart default: a claim per
+				// microservice for the provisioner behind this class to fill.
+				// `staticStorage` is the other form.
 				storageClassName: "local-path",
-				volumeSource: {
-					hostPath: {
-						path: "/var/lib/ptah/{{volume}}",
-						type: "DirectoryOrCreate",
-					},
-				},
 			},
 			apps: {
 				fujin: { image: "reg/fujin:1", ports: { ws: 8087, zmq: 5557 } },
@@ -48,6 +45,49 @@ export function platform(
 			},
 			...extra,
 		},
+	};
+}
+
+/** Pins a node-local volume; any static storage has to carry one. */
+export const nodeAffinity = {
+	required: {
+		nodeSelectorTerms: [
+			{
+				matchExpressions: [
+					{
+						key: "kubernetes.io/hostname",
+						operator: "In",
+						values: ["node-1"],
+					},
+				],
+			},
+		],
+	},
+};
+
+/**
+ * The static storage form: ptah declares the volumes as well as the claims, so
+ * the class carries no provisioner of its own and the node affinity is what
+ * keeps the data and the pod on the same machine.
+ */
+export function staticStorage(
+	extra: Record<string, unknown> = {},
+): Record<string, unknown> {
+	return {
+		image: "reg/behemoth:1",
+		size: "5Gi",
+		port: 9000,
+		cachePort: 6379,
+		mountBase: "/app/data",
+		storageClassName: "converged-local",
+		volumeSource: {
+			hostPath: {
+				path: "/var/lib/ptah/{{volume}}",
+				type: "DirectoryOrCreate",
+			},
+		},
+		nodeAffinity,
+		...extra,
 	};
 }
 

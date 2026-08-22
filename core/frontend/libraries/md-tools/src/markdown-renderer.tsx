@@ -1,3 +1,4 @@
+/** @jsxImportSource preact */
 import React from "preact/compat";
 import type { JSX } from "preact/compat";
 import type { MarkdownASTNode } from "./types";

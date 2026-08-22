@@ -77,10 +77,10 @@ export const storeId = (microservice: string) => `${microservice}-ms`;
  * PV names also become pod volume names, so keep them within the stricter
  * 63-character DNS-label limit and retain a digest when truncation is needed.
  */
-export function storageVolume(storage: string, microservice: string): string {
-	const raw = `${storage}-${microservice}`.toLowerCase();
+export function storageVolume(scope: string, microservice: string): string {
+	const raw = `${scope}-${microservice}`.toLowerCase();
 	const slug = raw.replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
-	const base = slug.length > 0 ? slug : `${storage}-volume`;
+	const base = slug.length > 0 ? slug : `${scope}-volume`;
 	if (base === raw && base.length <= 63) return base;
 	return `${base.slice(0, 54).replace(/-+$/g, "")}-${digest(raw)}`;
 }
