@@ -65,6 +65,8 @@ describe("platform", () => {
 			"Service/converged-storage",
 			"Service/converged-ui",
 		]);
+		expect(status.ready).toBe(true);
+		expect(status.reason).toBe("");
 		expect(status.observedGeneration).toBe(3);
 	});
 

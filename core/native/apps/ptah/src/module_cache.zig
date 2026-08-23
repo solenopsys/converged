@@ -8,6 +8,106 @@ pub const max_module_bytes = 64 * 1024 * 1024;
 
 pub const Error = error{ InvalidDigest, DigestMismatch, UpstreamFailed };
 
+/// Registry locations are learned from Platform objects by the reconciler.
+/// The proxy thread reads this index while the reconcile thread replaces it,
+/// so URLs are copied out while holding the lock rather than borrowing the
+/// map's storage across a reconciliation.
+pub const Registry = struct {
+    gpa: std.mem.Allocator,
+    mutex: std.c.pthread_mutex_t = std.c.PTHREAD_MUTEX_INITIALIZER,
+    locations: std.StringHashMap([]u8),
+
+    pub fn init(gpa: std.mem.Allocator) Registry {
+        return .{ .gpa = gpa, .locations = std.StringHashMap([]u8).init(gpa) };
+    }
+
+    pub fn deinit(self: *Registry) void {
+        self.lock();
+        defer self.unlock();
+        self.deinitMap(&self.locations);
+    }
+
+    /// Replace the allowed upstream objects with the registry maps currently
+    /// declared by Platforms. The digest is the only public proxy path; a
+    /// module name never crosses the proxy boundary.
+    pub fn replace(self: *Registry, platforms: []const std.json.Value) !void {
+        var next = std.StringHashMap([]u8).init(self.gpa);
+        errdefer self.deinitMap(&next);
+
+        for (platforms) |platform| {
+            const spec = objectField(platform, "spec") orelse continue;
+            const registry = objectField(spec, "registry") orelse continue;
+            const base_url = stringField(registry, "url") orelse continue;
+            const modules = objectField(registry, "modules") orelse continue;
+            if (modules != .object) continue;
+
+            var entries = modules.object.iterator();
+            while (entries.next()) |entry| {
+                const digest = switch (entry.value_ptr.*) {
+                    .string => |value| value,
+                    else => continue,
+                };
+                if (!validDigest(digest) or next.contains(digest)) continue;
+
+                const owned_digest = try self.gpa.dupe(u8, digest);
+                errdefer self.gpa.free(owned_digest);
+                const fetch_url = try fetchUrl(self.gpa, base_url, digest);
+                errdefer self.gpa.free(fetch_url);
+                try next.put(owned_digest, fetch_url);
+            }
+        }
+
+        self.lock();
+        defer self.unlock();
+        self.deinitMap(&self.locations);
+        self.locations = next;
+    }
+
+    /// Return an owned upstream URL for a currently registered digest.
+    pub fn urlFor(self: *Registry, digest: []const u8) !?[]u8 {
+        self.lock();
+        defer self.unlock();
+        const url = self.locations.get(digest) orelse return null;
+        return try self.gpa.dupe(u8, url);
+    }
+
+    fn lock(self: *Registry) void {
+        _ = std.c.pthread_mutex_lock(&self.mutex);
+    }
+
+    fn unlock(self: *Registry) void {
+        _ = std.c.pthread_mutex_unlock(&self.mutex);
+    }
+
+    fn deinitMap(self: *Registry, map: *std.StringHashMap([]u8)) void {
+        var entries = map.iterator();
+        while (entries.next()) |entry| {
+            self.gpa.free(entry.key_ptr.*);
+            self.gpa.free(entry.value_ptr.*);
+        }
+        map.deinit();
+    }
+};
+
+fn objectField(value: std.json.Value, name: []const u8) ?std.json.Value {
+    return switch (value) {
+        .object => |object| object.get(name),
+        else => null,
+    };
+}
+
+fn stringField(value: std.json.Value, name: []const u8) ?[]const u8 {
+    const field = objectField(value, name) orelse return null;
+    return switch (field) {
+        .string => |string| string,
+        else => null,
+    };
+}
+
+fn fetchUrl(gpa: std.mem.Allocator, base_url: []const u8, digest: []const u8) ![]u8 {
+    return std.fmt.allocPrint(gpa, "{s}/{s}", .{ std.mem.trimEnd(u8, base_url, "/"), digest });
+}
+
 pub fn validDigest(digest: []const u8) bool {
     if (digest.len != 64) return false;
     for (digest) |c| if (!std.ascii.isHex(c)) return false;
@@ -44,7 +144,7 @@ pub fn get(
     const path = try pathFor(gpa, directory, digest);
     defer gpa.free(path);
 
-    const cached = std.Io.Dir.cwd().readFileAlloc(io, path, gpa, .limited(max_module_bytes)) catch null;
+    const cached = read(io, gpa, directory, digest);
     if (cached) |bytes| {
         if (matchesDigest(bytes, digest)) return bytes;
         gpa.free(bytes);
@@ -61,10 +161,33 @@ pub fn get(
     return gpa.dupe(u8, response.body);
 }
 
-/// Serve already verified entries by digest. The reconciler fills this cache
-/// from registry mappings; an unrecognised or absent digest is deliberately a
-/// 404 rather than a path lookup.
-pub fn serve(io: std.Io, directory: []const u8) void {
+/// Return a verified cached object without consulting an upstream registry.
+/// This lets a running pod finish requests against the revision it started
+/// with even after the Platform has advanced to a newer digest map.
+pub fn read(
+    io: std.Io,
+    gpa: std.mem.Allocator,
+    directory: []const u8,
+    digest: []const u8,
+) ?[]u8 {
+    const path = pathFor(gpa, directory, digest) catch return null;
+    defer gpa.free(path);
+    const bytes = std.Io.Dir.cwd().readFileAlloc(io, path, gpa, .limited(max_module_bytes)) catch return null;
+    if (matchesDigest(bytes, digest)) return bytes;
+    gpa.free(bytes);
+    std.Io.Dir.cwd().deleteFile(io, path) catch {};
+    return null;
+}
+
+/// Serve verified entries by digest. A cache miss is fetched on demand from
+/// the URL registered by the reconciler, then retained in the shared PVC.
+pub fn serve(
+    gpa: std.mem.Allocator,
+    io: std.Io,
+    tls_ctx: *tls.Context,
+    directory: []const u8,
+    registry: *Registry,
+) void {
     const address = std.Io.net.IpAddress.parse("0.0.0.0", 8080) catch return;
     var listener = std.Io.net.IpAddress.listen(&address, io, .{ .reuse_address = true }) catch return;
     defer listener.deinit(io);
@@ -78,20 +201,26 @@ pub fn serve(io: std.Io, directory: []const u8) void {
         var server = std.http.Server.init(&reader.interface, &writer.interface);
         var request = server.receiveHead() catch continue;
         const digest = if (request.head.target.len == 65 and request.head.target[0] == '/') request.head.target[1..] else "";
-        const body = if (request.head.method == .GET and validDigest(digest)) blk: {
-            const path = pathFor(std.heap.page_allocator, directory, digest) catch break :blk null;
-            defer std.heap.page_allocator.free(path);
-            const bytes = std.Io.Dir.cwd().readFileAlloc(io, path, std.heap.page_allocator, .limited(max_module_bytes)) catch break :blk null;
-            if (!matchesDigest(bytes, digest)) {
-                std.heap.page_allocator.free(bytes);
-                break :blk null;
-            }
-            break :blk bytes;
-        } else null;
-        if (body) |bytes| {
-            defer std.heap.page_allocator.free(bytes);
+        const result: union(enum) { body: []u8, not_found, upstream_failed } = blk: {
+            if (request.head.method != .GET or !validDigest(digest)) break :blk .not_found;
+            if (read(io, gpa, directory, digest)) |cached| break :blk .{ .body = cached };
+
+            const fetch_url = registry.urlFor(digest) catch break :blk .upstream_failed;
+            if (fetch_url == null) break :blk .not_found;
+            defer gpa.free(fetch_url.?);
+            const bytes = get(gpa, io, tls_ctx, directory, digest, fetch_url.?) catch |err| {
+                std.log.warn("module {s} fetch failed: {s}", .{ digest, @errorName(err) });
+                break :blk .upstream_failed;
+            };
+            break :blk .{ .body = bytes };
+        };
+        if (result == .body) {
+            const bytes = result.body;
+            defer gpa.free(bytes);
             request.respond(bytes, .{ .keep_alive = false, .extra_headers = &.{.{ .name = "content-type", .value = "application/javascript" }} }) catch {};
-        } else request.respond("", .{ .status = .not_found, .keep_alive = false }) catch {};
+        } else if (result == .not_found) {
+            request.respond("", .{ .status = .not_found, .keep_alive = false }) catch {};
+        } else request.respond("", .{ .status = .bad_gateway, .keep_alive = false }) catch {};
     }
 }
 
@@ -104,4 +233,22 @@ test "a digest accepts exactly lowercase or uppercase SHA-256 text" {
 test "digest is calculated from bytes, not the registry name" {
     try std.testing.expect(matchesDigest("abc", "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"));
     try std.testing.expect(!matchesDigest("abd", "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"));
+}
+
+test "registry maps declared module digests to their immutable URLs" {
+    const gpa = std.testing.allocator;
+    const digest = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
+    const json =
+        \\[{"spec":{"registry":{"url":"https://modules.example.test/","modules":{"ms-struct.js":"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"}}}}]
+    ;
+    var parsed = try std.json.parseFromSlice(std.json.Value, gpa, json, .{});
+    defer parsed.deinit();
+    var registry = Registry.init(gpa);
+    defer registry.deinit();
+    try registry.replace(parsed.value.array.items);
+
+    const url = (try registry.urlFor(digest)).?;
+    defer gpa.free(url);
+    try std.testing.expectEqualStrings("https://modules.example.test/ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", url);
+    try std.testing.expect((try registry.urlFor("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")) == null);
 }

@@ -496,6 +496,10 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 	return {
 		resources,
 		status: {
+			// A failed reconcile records ready=false. State the successful
+			// counterpart explicitly so a later pass clears that stale condition.
+			ready: true,
+			reason: "",
 			profile: spec.profile,
 			namespace: spec.namespace,
 			solutions: merged.names,

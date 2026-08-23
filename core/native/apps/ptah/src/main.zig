@@ -15,6 +15,7 @@ const lease = @import("lease.zig");
 const module_cache = @import("module_cache.zig");
 const policy = @import("policy.zig");
 const Reconciler = @import("reconciler.zig").Reconciler;
+const tls = @import("tls.zig");
 
 var g_running = std.atomic.Value(bool).init(true);
 
@@ -94,18 +95,27 @@ fn runController(
     var client = try kube.Client.init(gpa, io, &config);
     defer client.deinit();
 
+    // The Kubernetes API uses the service-account CA; registries use the
+    // image's public root bundle. They must remain separate TLS contexts.
+    var registry_tls: tls.Context = undefined;
+    try registry_tls.init("/etc/ssl/cert.pem");
+    defer registry_tls.deinit();
+    var registry = module_cache.Registry.init(gpa);
+    defer registry.deinit();
+
     // Keep the cache directory ready even before the first registry-backed
     // Platform arrives. Fetching still happens only after a verified request.
     std.Io.Dir.cwd().createDirPath(io, "/var/cache/ptah") catch |err| {
         std.log.warn("module cache is unavailable: {s}", .{@errorName(err)});
     };
-    const cache_thread = try std.Thread.spawn(.{}, module_cache.serve, .{ io, "/var/cache/ptah" });
+    const cache_thread = try std.Thread.spawn(.{}, module_cache.serve, .{ gpa, io, &registry_tls, "/var/cache/ptah", &registry });
     cache_thread.detach();
 
     var reconciler = Reconciler{
         .gpa = gpa,
         .client = &client,
         .config = &config,
+        .registry = &registry,
         .dry_run = dry_run,
     };
 

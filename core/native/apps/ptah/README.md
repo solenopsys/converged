@@ -119,10 +119,6 @@ started.
 
 ### Module registry
 
-> Not implemented yet. The section describes the arrangement the code is being
-> moved to; what ships today is the `spec.registry` passthrough described at the
-> end. Nothing below is running in a cluster.
-
 Solutions name modules; they do not carry them. A module is fetched at boot from
 ptah, and ptah is a content-addressed proxy in front of a cache — it serves
 bytes by digest and knows nothing else about them.
@@ -151,12 +147,13 @@ about, and the bytes are another; keeping them apart means the storage layer has
 no opinion to be wrong about.
 
 **Ptah does not own versions.** It never resolves a name and never decides which
-digest is current. A consumer asks for the digest and nothing else —
-`GET http://<platform>-ptah/9f41ab…` — and gets those bytes or a 404. On a miss ptah reads the fetch URL for that digest out of the
-mapping, downloads it, **recomputes the digest and compares** — a mismatch is
-neither cached nor served. Without that check content addressing would be
-decoration: a substituted file would travel under the right name. The mapping
-says where to look; the digest says what is true.
+digest is current. A consumer asks only for the digest —
+`GET http://ptah-proxy.<namespace>.svc.cluster.local/9f41ab…` — and gets those
+bytes or a 404. On a cache miss ptah looks up the digest in the `Platform`
+registry map, downloads it from that registry, **recomputes the digest and
+compares** it. A mismatch is neither cached nor served. Without that check
+content addressing would be decoration: a substituted file would travel under
+the right name. The mapping says where to look; the digest says what is true.
 
 **The cache is ptah's own PVC.** A plain technical volume, created with the
 operator's release and mounted only by ptah. It has nothing to do with
@@ -183,9 +180,9 @@ Rolling back is putting the old digest back.
 The policy still performs no I/O. It propagates the mapping and the digests; the
 fetching is ptah's, in Zig, next to the apiserver client.
 
-#### What ships today
-
-`spec.registry` is passed through to consumers and nothing more:
+`spec.registry` is only given to ptah. It publishes the proxy address and the
+digest mapping to consumers; neither the registry URL nor its credentials leave
+the controller:
 
 ```json
 "registry": {
@@ -196,13 +193,12 @@ fetching is ptah's, in Zig, next to the apiserver client.
 }
 ```
 
-Ptah publishes these as `MODULE_REGISTRY`, `MODULE_REGISTRY_SOLUTIONS`,
-`MODULE_REGISTRY_REVISION` and `MODULE_CACHE_DIR` — in the module ConfigMap and
-in the ui and ms environments — and mounts the cache directory as an
-`emptyDir`, per consumer. `revision` participates in the rollout digest, so
-pointing a platform at new content restarts the pods that would otherwise never
-observe it. The fetch belongs to whoever consumes the registry; ptah serves
-nothing.
+Ptah publishes `MODULE_PROXY`, `MODULE_DIGESTS` and
+`MODULE_REGISTRY_REVISION` in the module ConfigMap and in the ui and ms
+environments. `revision` participates in the rollout digest, so pointing a
+platform at new content restarts consumers that would otherwise never observe
+it. The first request for a digest fills ptah's shared PVC; later consumers are
+served from that cache.
 
 ### What the stateless pods are told
 
@@ -520,6 +516,3 @@ helm template t chart -n converged --set domainBase=example.com
   pod for months.
 - `multi` is implemented in the policy but has not been exercised against a
   live cluster.
-- The module proxy described under **Module registry** is a design, not code.
-  Ptah serves no HTTP, owns no cache claim, and publishes no digest mapping; the
-  images still carry the whole module superset instead of loading it.

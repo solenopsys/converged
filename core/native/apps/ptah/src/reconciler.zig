@@ -12,6 +12,7 @@ const lease = @import("lease.zig");
 const policy = @import("policy.zig");
 const Config = @import("config.zig").Config;
 const access_keys = @import("access_keys.zig");
+const module_cache = @import("module_cache.zig");
 
 const label_managed_by = "app.kubernetes.io/managed-by";
 const label_owner = "ptah.io/owner";
@@ -97,6 +98,7 @@ pub const Reconciler = struct {
     gpa: std.mem.Allocator,
     client: *kube.Client,
     config: *const Config,
+    registry: *module_cache.Registry,
     /// When set, nothing is written to the cluster; used by `ptah apply --dry`.
     dry_run: bool = false,
 
@@ -409,6 +411,11 @@ pub const Reconciler = struct {
         const platforms = try self.listCustom(arena, "Platform");
         const solutions = try self.listCustom(arena, "Solution");
         const tenants = try self.listCustom(arena, "Tenant");
+
+        // Publish the digest-to-upstream map before reconciling workloads.
+        // Consumers can now make their first request through ptah immediately
+        // after the ConfigMap and Deployment are applied.
+        try self.registry.replace(platforms);
 
         var stats = Stats{};
         for (kinds) |kind| {
