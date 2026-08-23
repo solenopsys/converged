@@ -977,6 +977,40 @@ describe("module registry", () => {
 		});
 	});
 
+	test("spec.env cannot point a pod at the registry itself", () => {
+		// The failure this prevents: pods handed the bucket URL fetch modules
+		// over the internet at boot, so a node that comes up before its egress
+		// does starts a platform with an arbitrary prefix of its microservices
+		// missing — and reports itself healthy.
+		expect(() =>
+			reconcile(
+				input({
+					kind: "Platform",
+					object: platform("mono", {
+						registry,
+						env: { MODULE_PROXY: registry.url },
+					}),
+					controllerNamespace: "kube-system",
+				}),
+			),
+		).toThrow(/spec\.env may not set MODULE_PROXY/);
+	});
+
+	test("a solution cannot point a pod at the registry itself", () => {
+		expect(() =>
+			reconcile(
+				input({
+					kind: "Platform",
+					object: platform("mono", { registry }),
+					solutions: [
+						solution("geo", { env: { MODULE_DIGESTS: "{}" } }),
+					],
+					controllerNamespace: "kube-system",
+				}),
+			),
+		).toThrow(/solution env may not set MODULE_DIGESTS/);
+	});
+
 	test("the proxy cache is not mounted in consumers", () => {
 		const { resources } = reconcile(
 			input({ kind: "Platform", object: platform("mono", { registry }) }),

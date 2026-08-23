@@ -18,6 +18,7 @@ import {
 	shardResources,
 } from "./shards.ts";
 import {
+	assertNoRegistryEnv,
 	mergeSolutions,
 	moduleData,
 	registryData,
@@ -67,6 +68,8 @@ function baseEnv(
 	controllerNamespace?: string,
 ): Record<string, string> {
 	const cacheHost = cacheHostOf(platform, spec);
+	assertNoRegistryEnv(spec.env, "spec.env");
+	assertNoRegistryEnv(extra, "solution env");
 	return {
 		NODE_ENV: "production",
 		PORT: String(port),
@@ -86,9 +89,12 @@ function baseEnv(
 		// the scope index at request time, so no platform-wide URL exists.
 		...(cacheHost ? { CACHE_URL: `redis://${cacheHost}:${spec.storage.cachePort}/0` } : {}),
 		FUJIN_ZMQ_ENDPOINT: fujinEndpoint(platform, spec),
-		...registryData(spec.registry, controllerNamespace),
 		...(spec.env ?? {}),
 		...extra,
+		// Last, and guarded above: the registry contract is ptah's, so no
+		// operator-supplied env can move a pod off the proxy even if the guard
+		// is one day relaxed.
+		...registryData(spec.registry, controllerNamespace),
 	};
 }
 
