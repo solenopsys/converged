@@ -1,0 +1,5 @@
+[
+  { "slug": "openness", "title": "An open platform", "order": 0 },
+  { "slug": "registry", "title": "The module registry", "order": 1 },
+  { "slug": "contribute", "title": "Adding a module", "order": 2 }
+]

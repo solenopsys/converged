@@ -1,0 +1,32 @@
+[
+  {
+    "slug": "directions",
+    "title": "Converged AI Solutions",
+    "order": 1,
+    "id": "directions"
+  },
+  {
+    "slug": "functions",
+    "title": "How a solution works",
+    "order": 2,
+    "id": "functions"
+  },
+  {
+    "slug": "principles",
+    "title": "How to enable solutions",
+    "order": 3,
+    "id": "principles"
+  },
+  {
+    "slug": "spending",
+    "title": "How payment works",
+    "order": 4,
+    "id": "spending"
+  },
+  {
+    "slug": "details",
+    "title": "Solution details",
+    "order": 5,
+    "id": "details"
+  }
+]

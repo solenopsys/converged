@@ -10,6 +10,7 @@
 import { join } from "node:path";
 import type { Writer } from "../fs";
 import type { Book, Config, Doc } from "../types";
+import { emitDocsPage } from "./docs-page";
 
 function entries(docs: Doc[], offset: number) {
 	return docs.map((doc, index) => ({
@@ -73,4 +74,7 @@ export async function emitSite(books: Book[], config: Config, writer: Writer) {
 		if (book.compound) await emitCompound(book, config, writer);
 		else await emitFlat(book, config, writer);
 	}
+	// The `/docs` page lists what was just written, so it is emitted from the
+	// same books rather than by rediscovering the output.
+	await emitDocsPage(books, config, writer);
 }

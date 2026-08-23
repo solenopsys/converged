@@ -1,0 +1,80 @@
+[
+  {
+    "slug": "chats",
+    "title": "Chats",
+    "order": 4,
+    "id": "chats",
+    "functions": [
+      "Integration with messaging apps: Telegram, WhatsApp, Viber, etc.",
+      "Processing incoming messages and requests in a single interface",
+      "Connecting AI agents for auto-replies and 24/7 support",
+      "Connection with internal business processes and orders",
+      "Logging conversations and communication analytics"
+    ]
+  },
+  {
+    "slug": "delivery-services",
+    "title": "Delivery services",
+    "order": 3,
+    "id": "delivery-services",
+    "functions": [
+      "Integration with external logistics services (API)",
+      "Automatic calculation of delivery cost and timeframes",
+      "Shipment tracking and customer notifications",
+      "Selecting the optimal delivery method based on order parameters",
+      "Integration with orders, warehouses, and document management"
+    ]
+  },
+  {
+    "slug": "email",
+    "title": "Email",
+    "order": 1,
+    "id": "email",
+    "functions": [
+      "Automatic email notifications for customers and employees",
+      "Support for email templates and message personalization",
+      "Integration with business processes, orders, and events",
+      "Delivery and engagement reports (opens, clicks)",
+      "Connecting your own SMTP servers or cloud email providers"
+    ]
+  },
+  {
+    "slug": "services",
+    "title": "Services",
+    "order": 5,
+    "id": "services",
+    "functions": [
+      "Integration with third-party online services (for example, Google Docs, Notion, Microsoft 365)",
+      "Collaborative work with documents, spreadsheets, and presentations",
+      "File and data exchange between employees and clients",
+      "Synchronization with cloud storage and email systems",
+      "Expanding business processes by connecting external platforms"
+    ]
+  },
+  {
+    "slug": "sms",
+    "title": "SMS notifications",
+    "order": 2,
+    "id": "sms",
+    "functions": [
+      "Automatic sending of SMS messages to customers and employees",
+      "Configuring triggers for notifications based on events (order, payment, error)",
+      "Support for templates and personalized messages",
+      "Integration with external SMS gateways (via API)",
+      "Delivery control and logging of sent messages"
+    ]
+  },
+  {
+    "slug": "api",
+    "title": "Own APIs",
+    "order": 7,
+    "id": "api",
+    "functions": [
+      "Receiving orders and requests from regular customers via API",
+      "Integration with external ERP/CRM/stores and marketplaces",
+      "Automatic task creation and business process initiation",
+      "Support for Webhook notifications and token-based authentication",
+      "Secure data exchange with access control"
+    ]
+  }
+]

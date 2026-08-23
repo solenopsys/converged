@@ -80,6 +80,21 @@ export type TranslationConfig = {
 	targetLocales: string[];
 };
 
+/** Where the generated ecosystem page goes, and how to link back to sources. */
+export type EcosystemConfig = {
+	/** Locale-relative directory in `struct-ms`, e.g. `landings/ecosystem`. */
+	landing: string;
+	/** Project directory name → repository URL, for module source links. */
+	repos: Record<string, string>;
+};
+
+/** Copy for the generated `/docs` page, per language. */
+export type DocsPageConfig = {
+	title?: Record<string, string>;
+	description?: Record<string, string>;
+	articles?: Record<string, string>;
+};
+
 export type SectionConfig = {
 	/** Per-language display title. */
 	title?: Record<string, string>;
@@ -94,6 +109,13 @@ export type Config = {
 	projects: string[];
 	out: OutputPaths;
 	sections: Record<string, SectionConfig>;
+	/**
+	 * Translation cache root, absolute; empty when there is none. Holds every
+	 * language but the source one, so an owner's `docs/` stays single-language.
+	 */
+	cache: string;
+	docsPage: DocsPageConfig;
+	ecosystem: EcosystemConfig;
 	translation: TranslationConfig;
 };
 

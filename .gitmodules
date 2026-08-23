@@ -58,3 +58,6 @@
 [submodule "core/native/libs/transport/vendor/capnproto"]
 	path = core/native/libs/transport/vendor/capnproto
 	url = https://github.com/capnproto/capnproto
+[submodule "docs-cache"]
+	path = docs-cache
+	url = https://github.com/solenopsys/converged_docs

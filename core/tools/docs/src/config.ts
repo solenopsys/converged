@@ -1,6 +1,12 @@
 import { existsSync } from "node:fs";
 import { dirname, isAbsolute, resolve } from "node:path";
-import type { Config, SectionConfig } from "./types";
+import type {
+	Config,
+	DocsPageConfig,
+	EcosystemConfig,
+	SectionConfig,
+	TranslationConfig,
+} from "./types";
 
 /** Tool directory: `<business>/converged/core/tools/docs`. */
 const TOOL_ROOT = resolve(import.meta.dir, "..");
@@ -11,6 +17,9 @@ type RawConfig = {
 	projects?: string[];
 	out?: Partial<Record<keyof Config["out"], string>>;
 	sections?: Record<string, SectionConfig>;
+	cache?: string;
+	docsPage?: DocsPageConfig;
+	ecosystem?: Partial<EcosystemConfig>;
 	translation?: Partial<Config["translation"]>;
 };
 
@@ -19,6 +28,18 @@ type RawConfig = {
  * siblings, and the running solution's data lives under `<business>/data/club`.
  * Everything here is overridable from `docs.config.json`.
  */
+const DEFAULT_TRANSLATION: TranslationConfig = {
+	config: "../../../../build/docs/translation-control.json",
+	stateDir: "../../../../build/docs/translation",
+	sourceLocale: "en",
+	targetLocales: [],
+};
+
+const DEFAULT_ECOSYSTEM: EcosystemConfig = {
+	landing: "landings/ecosystem",
+	repos: {},
+};
+
 const DEFAULTS: Required<RawConfig> = {
 	projects: ["../../..", "../../../../club"],
 	out: {
@@ -29,12 +50,10 @@ const DEFAULTS: Required<RawConfig> = {
 		pdf: "../../../../build/docs/pdf",
 	},
 	sections: {},
-	translation: {
-		config: "../../../../build/docs/translation-control.json",
-		stateDir: "../../../../build/docs/translation",
-		sourceLocale: "en",
-		targetLocales: [],
-	},
+	cache: "../../../docs-cache",
+	docsPage: {},
+	ecosystem: DEFAULT_ECOSYSTEM,
+	translation: DEFAULT_TRANSLATION,
 };
 
 function resolveFrom(root: string, path: string): string {
@@ -63,6 +82,9 @@ export async function loadConfig(configPath?: string): Promise<Config> {
 		.map((p) => resolveFrom(root, p))
 		.filter((p) => existsSync(p));
 
+	const configuredCache = resolveFrom(root, raw.cache ?? DEFAULTS.cache);
+	const cacheRoot = existsSync(configuredCache) ? configuredCache : "";
+
 	if (projects.length === 0) {
 		throw new Error(
 			`No project root exists, nothing to scan (config: ${path})`,
@@ -80,16 +102,24 @@ export async function loadConfig(configPath?: string): Promise<Config> {
 			pdf: resolveFrom(root, out.pdf),
 		},
 		sections: raw.sections ?? DEFAULTS.sections,
+		// A cache that is not checked out is normal — it is a submodule — so an
+		// absent one means "no translations", never an error.
+		cache: cacheRoot,
+		docsPage: raw.docsPage ?? DEFAULTS.docsPage,
+		ecosystem: {
+			landing: raw.ecosystem?.landing ?? DEFAULT_ECOSYSTEM.landing,
+			repos: raw.ecosystem?.repos ?? DEFAULT_ECOSYSTEM.repos,
+		},
 		translation: {
-			...DEFAULTS.translation,
+			...DEFAULT_TRANSLATION,
 			...(raw.translation ?? {}),
 			config: resolveFrom(
 				root,
-				raw.translation?.config ?? DEFAULTS.translation.config,
+				raw.translation?.config ?? DEFAULT_TRANSLATION.config,
 			),
 			stateDir: resolveFrom(
 				root,
-				raw.translation?.stateDir ?? DEFAULTS.translation.stateDir,
+				raw.translation?.stateDir ?? DEFAULT_TRANSLATION.stateDir,
 			),
 		},
 	};

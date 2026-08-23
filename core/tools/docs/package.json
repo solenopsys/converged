@@ -11,6 +11,7 @@
 	"scripts": {
 		"docs": "bun run src/cli.ts all",
 		"docs:site": "bun run src/cli.ts site",
+		"docs:ecosystem": "bun run src/cli.ts ecosystem",
 		"docs:readme": "bun run src/cli.ts readme",
 		"docs:html": "bun run src/cli.ts html",
 		"docs:pdf": "bun run src/cli.ts pdf",

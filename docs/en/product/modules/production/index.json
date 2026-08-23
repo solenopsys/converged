@@ -1,0 +1,114 @@
+[
+  {
+    "slug": "equipment-load",
+    "title": "Equipment monitoring and utilization",
+    "order": 1,
+    "id": "equipment-load",
+    "elements": [
+      "platform/equipment/equipment",
+      "platform/equipment/integration",
+      "platform/equipment/logs",
+      "platform/equipment/scheduling",
+      "platform/sales/orders",
+      "platform/tools/files",
+      "platform/tools/slicing",
+      "platform/tools/video",
+      "platform/tools/events",
+      "platform/control/maintenance"
+    ],
+    "functions": [
+      "Machine and 3D printer statuses (running/stopped/waiting)",
+      "Equipment task queue and linkage to orders",
+      "Day/week plan without a heavy MES",
+      "Downtime and bottlenecks: what is stopped and why",
+      "Quick answer via AI chat: “what is this printer/machine doing?”"
+    ]
+  },
+  {
+    "slug": "inventory",
+    "title": "Inventory management",
+    "order": 2,
+    "id": "inventory",
+    "elements": [
+      "platform/store/materials",
+      "platform/store/spare-parts",
+      "platform/management/supply",
+      "platform/sales/orders",
+      "platform/tools/events"
+    ],
+    "functions": [
+      "Stock levels of materials, tools, and spare parts",
+      "Minimum stock levels and “what’s urgent” reminders",
+      "Reserves for current orders",
+      "List of critical items for specific equipment",
+      "Draft replenishment requests (with owner approval)"
+    ]
+  },
+  {
+    "slug": "quality",
+    "title": "Product quality control",
+    "order": 3,
+    "id": "quality",
+    "elements": [
+      "platform/control/quality",
+      "platform/control/reports",
+      "platform/equipment/equipment",
+      "platform/sales/orders",
+      "platform/store/materials",
+      "platform/tools/files",
+      "platform/tools/video",
+      "platform/tools/events"
+    ],
+    "functions": [
+      "Checklists for key operations without bureaucracy",
+      "Recording defects/rework linked to the order and equipment",
+      "Statistics on causes and recurrence (including Pareto)",
+      "Linking quality to materials, settings, and people",
+      "Photos/videos for problematic cases"
+    ]
+  },
+  {
+    "slug": "incidents",
+    "title": "Recording and analyzing failures",
+    "order": 4,
+    "id": "incidents",
+    "elements": [
+      "platform/equipment/equipment",
+      "platform/equipment/integration",
+      "platform/equipment/logs",
+      "platform/control/maintenance",
+      "platform/control/reports",
+      "platform/store/spare-parts",
+      "platform/sales/orders",
+      "platform/tools/video",
+      "platform/tools/events"
+    ],
+    "functions": [
+      "Equipment event log: what happened and when",
+      "Classification of causes (no material, print error, breakdown, etc.)",
+      "Notifications about critical incidents and long downtimes",
+      "Detecting repeated errors and linking them to order deadlines",
+      "Integration with maintenance and spare parts inventory"
+    ]
+  },
+  {
+    "slug": "shipping",
+    "title": "Product delivery to customers",
+    "order": 5,
+    "id": "shipping",
+    "elements": [
+      "platform/sales/delivery",
+      "platform/integrations/delivery-services",
+      "platform/store/products",
+      "platform/tools/marking",
+      "platform/tools/events"
+    ],
+    "functions": [
+      "Shipment list: what to send today/this week",
+      "Delivery statuses (ready/in transit/delivered)",
+      "Customer notifications upon shipment",
+      "Tracking delivery services where it truly saves time",
+      "Quick overview of “where delays happen most often”"
+    ]
+  }
+]

@@ -1,0 +1,55 @@
+[
+  {
+    "slug": "equipment",
+    "title": "Equipment",
+    "order": 1,
+    "id": "equipment",
+    "functions": [
+      "Tracking and registration of equipment (3D printers, CNC machines, robots)",
+      "Online monitoring of equipment condition and utilization",
+      "Statistics on operating time, downtime, and errors",
+      "Lifecycle management: installation, maintenance, decommissioning",
+      "Integration with maintenance and quality modules"
+    ]
+  },
+  {
+    "slug": "integration",
+    "title": "Integration",
+    "order": 2,
+    "id": "integration",
+    "functions": [
+      "Equipment connection: drivers, firmware, interfaces",
+      "Integration with CNC machines, 3D printers, controllers, and sensors",
+      "Setting up data exchange with external ERP/CRM/MES systems",
+      "Firmware updates and remote device diagnostics",
+      "Centralized management of peripherals and gateways"
+    ]
+  },
+  {
+    "slug": "logs",
+    "title": "Logs",
+    "order": 4,
+    "id": "logs",
+    "functions": [
+      "Monitoring — analysis of equipment utilization and process efficiency",
+      "AI analytics — automatic detection of malfunctions and errors",
+      "Search interface — convenient search for failures and reports",
+      "Reports — periodic generation of failure reports",
+      "Notifications — timely alerts about critical events",
+      "Remote access — control from any device from anywhere in the world"
+    ]
+  },
+  {
+    "slug": "scheduling",
+    "title": "Planning",
+    "order": 4,
+    "id": "scheduling",
+    "functions": [
+      "Planning of the production process and equipment utilization",
+      "Automatic task distribution between machines and lines",
+      "Tracking deadlines, priorities, and available resources",
+      "Visualization of schedules and bottlenecks in the production chain",
+      "Integration with the Equipment and Orders modules"
+    ]
+  }
+]

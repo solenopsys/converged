@@ -1,11 +1,14 @@
 {
-	"projects": ["../../..", "../../../../club"],
+	"projects": [
+		"../../..",
+		"../../../../club"
+	],
 	"out": {
 		"struct": "../../../../data/club/struct-ms/struct/data",
 		"markdown": "../../../../data/club/markdown-ms/markdown/data",
-		"readme": "../../../../build/docs/readme",
-		"html": "../../../../build/docs/html",
-		"pdf": "../../../../build/docs/pdf"
+		"readme": "../../../docs-cache/readme",
+		"html": "../../../docs-cache/html",
+		"pdf": "../../../docs-cache/pdf"
 	},
 	"sections": {
 		"product": {
@@ -19,6 +22,34 @@
 				"en": "Club",
 				"ru": "Клуб"
 			}
+		},
+		"ecosystem": {
+			"title": {
+				"en": "Ecosystem",
+				"ru": "Экосистема"
+			}
+		}
+	},
+	"cache": "../../../docs-cache",
+	"docsPage": {
+		"title": {
+			"en": "Documentation",
+			"ru": "Документация"
+		},
+		"description": {
+			"en": "How Converged is built and how it is run, assembled from the sources on every build.",
+			"ru": "Как устроен и как работает Converged. Собирается из исходников при каждой сборке."
+		},
+		"articles": {
+			"en": "Articles",
+			"ru": "Статьи"
+		}
+	},
+	"ecosystem": {
+		"landing": "landings/ecosystem",
+		"repos": {
+			"converged": "https://github.com/solenopsys/converged",
+			"club": "https://github.com/solenopsys/club"
 		}
 	},
 	"translation": {

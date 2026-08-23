@@ -1,5 +1,5 @@
 /**
- * Stitches the docs tree into `club/tools/translation-control`.
+ * Stitches the docs tree into `core/tools/translation`.
  *
  * That tool compares `<root>/<locale>/<rest>` trees and takes one root per
  * project. A `docs` directory is exactly that shape — language first, section

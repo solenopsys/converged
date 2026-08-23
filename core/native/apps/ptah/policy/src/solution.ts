@@ -17,7 +17,7 @@ import type {
 	SolutionSpec,
 	WorkflowRef,
 } from "./types.ts";
-import { require } from "./types.ts";
+import { PolicyError, require } from "./types.ts";
 
 export interface MergedSolutions {
 	names: string[];
@@ -138,4 +138,44 @@ export function registryData(
 		MODULE_DIGESTS: JSON.stringify(registry.modules ?? {}),
 		MODULE_REGISTRY_REVISION: registry.revision ?? "",
 	};
+}
+
+/**
+ * The env `registryData` owns, and which nothing else may write.
+ *
+ * A Platform names its registry. It does not get to say where a pod fetches
+ * from: that address belongs to the proxy, and it is the only address a pod is
+ * allowed to know. `spec.registry.url` is the registry itself — ptah's to read,
+ * because ptah is what holds the cache and, when the registry is not public,
+ * the credentials for it. Handing that same URL to a workload turns every pod
+ * into a registry client: it fetches over the internet instead of over the
+ * cluster network, it caches nothing another pod can reuse, and it can only
+ * work at all while the bucket is anonymously readable.
+ */
+export const REGISTRY_ENV_KEYS = [
+	"MODULE_PROXY",
+	"MODULE_DIGESTS",
+	"MODULE_REGISTRY_REVISION",
+] as const;
+
+/**
+ * Refuse an env block that writes the registry contract.
+ *
+ * Loud rather than ignored: silently dropping the key leaves a Platform whose
+ * spec says one address and whose pods use another, which is the state this
+ * exists to make impossible. The reconciler turns the error into a status
+ * condition naming the field, so the fix is to delete it from the CR.
+ */
+export function assertNoRegistryEnv(
+	env: Record<string, string> | undefined,
+	field: string,
+): void {
+	if (!env) return;
+	const claimed = REGISTRY_ENV_KEYS.filter((key) => key in env);
+	if (claimed.length === 0) return;
+	throw new PolicyError(
+		`${field} may not set ${claimed.join(", ")}: ptah owns where a pod ` +
+			`fetches modules from, and the only address a pod may hold is ` +
+			`ptah-proxy. Point spec.registry.url at the registry instead.`,
+	);
 }

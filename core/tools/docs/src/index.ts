@@ -1,5 +1,7 @@
 export { loadConfig } from "./config";
-export { findDocsDirs, scan } from "./discover";
+export { findDocsRoots, scan } from "./discover";
+export { emitDocsPage } from "./emit/docs-page";
+export { emitEcosystem } from "./emit/ecosystem";
 export { emitHtml } from "./emit/html";
 export { emitPdf } from "./emit/pdf";
 export { emitReadme } from "./emit/readme";
@@ -7,4 +9,6 @@ export { emitSite } from "./emit/site";
 export { emitTranslations } from "./emit/translations";
 export { Manifest, Writer } from "./fs";
 export { build, markdownPath } from "./model";
+export type * from "./registry";
+export { readRegistry } from "./registry";
 export type * from "./types";

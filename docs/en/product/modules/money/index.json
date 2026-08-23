@@ -1,0 +1,86 @@
+[
+  {
+    "slug": "profit",
+    "title": "Profit by orders and customers",
+    "order": 1,
+    "id": "profit",
+    "elements": [
+      "platform/management/finance",
+      "platform/management/billing",
+      "platform/control/reports",
+      "platform/sales/orders",
+      "platform/store/materials",
+      "platform/equipment/scheduling",
+      "platform/tools/events"
+    ],
+    "functions": [
+      "Gross margin for each order (material + machine time + labor)",
+      "Comparison of profitability by customers, job types, and directions",
+      "Highlighting loss-making and super-profitable segments",
+      "Profitability trend over time without heavy accounting",
+      "Answers to the owner's questions via AI chat"
+    ]
+  },
+  {
+    "slug": "cashflow",
+    "title": "Payment calendar and accounts receivable",
+    "order": 2,
+    "id": "cashflow",
+    "elements": [
+      "platform/management/finance",
+      "platform/management/billing",
+      "platform/sales/clients",
+      "platform/integrations/email",
+      "platform/integrations/sms",
+      "platform/tools/events"
+    ],
+    "functions": [
+      "Cash inflow feed and key payments by day",
+      "Critical dates (payroll, rent, purchases) without surprises",
+      "Accounts receivable: who owes, how much, and for how long",
+      "Reminders and draft messages to debtors",
+      "Scenarios for “what happens to cash if…”"
+    ]
+  },
+  {
+    "slug": "costing",
+    "title": "Costing and pricing",
+    "order": 3,
+    "id": "costing",
+    "elements": [
+      "platform/management/billing",
+      "platform/management/finance",
+      "platform/store/materials",
+      "platform/equipment/scheduling",
+      "platform/tools/events"
+    ],
+    "functions": [
+      "Estimation of equipment hourly cost and staff labor cost",
+      "Calculation templates for standard jobs and materials",
+      "Discount/markup rules (urgency, volume, regular customer)",
+      "Tips on how discounts affect order margin",
+      "Quick recalculation when material prices change"
+    ]
+  },
+  {
+    "slug": "growth",
+    "title": "Investment and growth planning",
+    "order": 4,
+    "id": "growth",
+    "elements": [
+      "platform/management/finance",
+      "platform/control/reports",
+      "platform/management/departments",
+      "platform/equipment/equipment",
+      "platform/equipment/scheduling",
+      "platform/tools/events"
+    ],
+    "functions": [
+      "Assessment of payback for equipment/hiring/expansion",
+      "Growth scenarios (“if we add a printer”, “if we raise the price by X%”)",
+      "Checking the impact of decisions on workload and profit",
+      "Matching plans with the payment calendar (“can we handle it / can’t we handle it”)",
+      "Recording decisions and actual results"
+    ]
+  }
+]

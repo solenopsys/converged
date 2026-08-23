@@ -3,8 +3,9 @@
  *
  *   bun run src/cli.ts <target...> [options]
  *
- * Targets: site, readme, html, pdf, translations, all (default: site).
+ * Targets: site, ecosystem, readme, html, pdf, translations, all (default: site).
  *   site          struct-ms indexes + markdown-ms files, what the site reads
+ *   ecosystem     the module registry page, derived from the source tree
  *   readme        one README per section, the GitHub shape
  *   html          static pages with a side menu
  *   pdf           the same pages, printed
@@ -20,6 +21,7 @@
  */
 
 import { loadConfig } from "./config";
+import { emitEcosystem } from "./emit/ecosystem";
 import { emitHtml } from "./emit/html";
 import { emitPdf } from "./emit/pdf";
 import { emitReadme } from "./emit/readme";
@@ -27,9 +29,18 @@ import { emitSite } from "./emit/site";
 import { emitTranslations } from "./emit/translations";
 import { Manifest, Writer } from "./fs";
 import { build } from "./model";
+import type { Registry } from "./registry";
+import { readRegistry } from "./registry";
 import type { Book, Config, ScanSummary } from "./types";
 
-const TARGETS = ["site", "readme", "html", "pdf", "translations"] as const;
+const TARGETS = [
+	"site",
+	"ecosystem",
+	"readme",
+	"html",
+	"pdf",
+	"translations",
+] as const;
 type Target = (typeof TARGETS)[number];
 
 type Args = {
@@ -97,6 +108,7 @@ async function run(
 	config: Config,
 	args: Args,
 	manifest: Manifest,
+	registry: Registry,
 ) {
 	const writer = new Writer(args.dryRun);
 
@@ -104,6 +116,17 @@ async function run(
 		case "site":
 			await emitSite(books, config, writer);
 			break;
+		case "ecosystem": {
+			// The page follows the tree, not the docs, so it is built for every
+			// language that has authored copy rather than for the scanned books.
+			const langs = args.langs.length > 0 ? args.langs : summary.langs;
+			const built = await emitEcosystem(registry, config, writer, langs);
+			console.log(
+				`[docs] ecosystem: ${registry.modules.length} modules, ` +
+					`${registry.solutions.length} solutions -> [${built.join(" ")}]`,
+			);
+			break;
+		}
 		case "readme":
 			await emitReadme(books, config, writer);
 			break;
@@ -135,6 +158,8 @@ const { books, summary } = await build(config, {
 	langs: args.langs,
 });
 
+const registry = await readRegistry(config.projects);
+
 if (args.list) {
 	console.log(`[docs] scanned: ${config.projects.join(", ")}`);
 	for (const root of summary.roots) {
@@ -147,10 +172,13 @@ if (args.list) {
 			`  ${book.lang}/${book.section}  ${book.docs.length} docs  ${kind}  [${owners}]`,
 		);
 	}
+	console.log(
+		`  registry: ${registry.modules.length} modules, ${registry.solutions.length} solutions`,
+	);
 	process.exit(0);
 }
 
-if (books.length === 0) {
+if (books.length === 0 && !args.targets.includes("ecosystem")) {
 	console.log(
 		"[docs] nothing found: no docs/<lang>/<section>/index.json in the scanned projects",
 	);
@@ -165,6 +193,6 @@ const manifest = await Manifest.load(config.root, args.dryRun, [
 	config.translation.stateDir,
 ]);
 for (const target of args.targets) {
-	await run(target, books, summary, config, args, manifest);
+	await run(target, books, summary, config, args, manifest, registry);
 }
 await manifest.save();

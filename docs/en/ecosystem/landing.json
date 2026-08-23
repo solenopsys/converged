@@ -1,0 +1,134 @@
+{
+	"title": "The Converged ecosystem",
+	"nav": [
+		{
+			"blockId": "scale",
+			"label": "Scale"
+		},
+		{
+			"blockId": "openness",
+			"label": "Openness"
+		},
+		{
+			"blockId": "solutions",
+			"label": "Solutions"
+		},
+		{
+			"blockId": "modules",
+			"label": "Registry"
+		}
+	],
+	"hero": {
+		"heading": "Every module is open. The registry is yours to extend.",
+		"description": "Converged is not a box with sealed internals. Microservices, microfrontends and workflows all live in the repository: read them, fork them, rewrite one for your own machines, contribute it back. The list below is not maintained by hand — it is assembled from the source tree on every build, so a new module appears here exactly when it appears in the code.",
+		"buttonText": "Browse the registry"
+	},
+	"stats": {
+		"heading": "What is in the registry today",
+		"link": {
+			"text": "github.com/solenopsys/converged",
+			"url": "https://github.com/solenopsys/converged"
+		},
+		"labels": {
+			"microservice": "microservices — data domains and their APIs",
+			"microfrontend": "microfrontends — screens mounted at runtime",
+			"workflow": "workflows — processes on the DAG runtime",
+			"solution": "solutions — ready-made module sets"
+		}
+	},
+	"openness": {
+		"title": "How the openness works",
+		"items": [
+			{
+				"icon": "SearchCheck",
+				"title": "The source tree is the only source of truth",
+				"description": "This page is produced by walking the module tree. No list on it is hand-maintained, so the documentation cannot drift from the code: if it drifted, someone deleted a module."
+			},
+			{
+				"icon": "Workflow",
+				"title": "A module is a directory",
+				"description": "To add a microservice, create a folder that follows the naming convention and put a README beside it stating its purpose and its ownership boundary. The build picks it up with no edit to any registry."
+			},
+			{
+				"icon": "Route",
+				"title": "Boundaries are held by contracts, not by trust",
+				"description": "Modules never call each other directly. Everything travels as typed NRPC contracts over the bus, and each microservice owns its own storage volume — a foreign module physically cannot reach another's data."
+			},
+			{
+				"icon": "Users",
+				"title": "Anyone can add a module",
+				"description": "A machine adapter, a payment integration, an industry-specific workflow, one extra screen — all of it is added the same way the base modules are. What is useful to others goes into the shared registry; what is specific stays in the deployment."
+			},
+			{
+				"icon": "Bot",
+				"title": "Review, not a free-for-all",
+				"description": "Open does not mean unchecked. A module must declare its area of responsibility, respect the architectural boundaries, and never ask for wider access than it needs."
+			},
+			{
+				"icon": "Factory",
+				"title": "Assembled for your shop",
+				"description": "The same modules compose into different profiles: a 3D printing bureau, a CNC job shop, a lab, a network of sites. The solution decides the composition — not a build flag."
+			}
+		]
+	},
+	"solutions": {
+		"eyebrow": "01 / SOLUTIONS",
+		"title": "Modules ship in sets",
+		"description": "A solution bundles microservices, microfrontends and workflows that together cover a whole area of work. The composition and dependencies below are read from solutions.json in the sources.",
+		"note": "A dependency means the solution will not come up without it: enable AI and you get security with it."
+	},
+	"registry": {
+		"eyebrow": "02 / REGISTRY",
+		"title": "Every module, by domain",
+		"description": "The full list of what the repository holds. A domain is a folder in the source tree; a module's purpose is the first paragraph of its README.",
+		"note": "A module need not belong to any solution: it exists, and you can wire it in by hand or fold it into a solution of your own."
+	},
+	"kinds": {
+		"microservice": "microservice",
+		"microfrontend": "microfrontend",
+		"workflow": "workflow"
+	},
+	"domains": {
+		"ai": "AI and agents",
+		"analytics": "Analytics and telemetry",
+		"automation": "Automation and orchestration",
+		"business": "Business domain",
+		"club": "Club (product layer)",
+		"communications": "Communications",
+		"content": "Content and documents",
+		"convertors": "Model conversion",
+		"data": "Files and storage",
+		"providers": "Message delivery providers",
+		"sequrity": "Access and security",
+		"workflows": "Processes and workflows"
+	},
+	"solutionTitles": {
+		"ai": {
+			"title": "AI layer",
+			"summary": "Agents, assistants, threads and contexts: the conversational interface to the platform, and autonomous action under the same permissions a human has."
+		},
+		"content": {
+			"title": "Content",
+			"summary": "Structures, markdown, galleries, landings and documentation — everything public pages and internal handbooks are assembled from."
+		},
+		"security": {
+			"title": "Security",
+			"summary": "Identity, authentication, OAuth and the access model. The base almost everything else rests on."
+		},
+		"analitycs": {
+			"title": "Analytics",
+			"summary": "Logs, telemetry, counters and resource usage: platform observability and the metering behind billing."
+		},
+		"requests": {
+			"title": "Requests and files",
+			"summary": "Intake of requests, file storage, unpacking and model analysis, together with the slicing and CAM processors."
+		}
+	},
+	"labels": {
+		"depends": "requires",
+		"modules": {
+			"one": "{count} module",
+			"other": "{count} modules"
+		}
+	}
+}

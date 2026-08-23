@@ -49,7 +49,10 @@ export async function build(
 	config: Config,
 	filters: Filters = {},
 ): Promise<{ books: Book[]; summary: ScanSummary }> {
-	const { contributions, roots, langs } = await scan(config.projects);
+	const { contributions, roots, langs } = await scan(
+		config.projects,
+		config.cache,
+	);
 	const books: Book[] = [];
 
 	for (const [key, list] of contributions) {

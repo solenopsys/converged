@@ -1,0 +1,3 @@
+- Daily/weekly plan without a heavy MES
+- Link tasks to orders, people, and materials
+- Bottlenecks and downtime are visible

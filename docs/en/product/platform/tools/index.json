@@ -1,0 +1,80 @@
+[
+  {
+    "slug": "events",
+    "title": "Events",
+    "order": 1,
+    "id": "events",
+    "functions": [
+      "Creation and automation of notifications, email, and SMS campaigns",
+      "Triggers for events in the system (requests, orders, statuses)",
+      "Planning and launching marketing email campaigns",
+      "Notifications for staff about internal tasks and changes",
+      "Integration with customer, order, email, and chat modules"
+    ]
+  },
+  {
+    "slug": "files",
+    "title": "Files",
+    "order": 2,
+    "id": "files",
+    "functions": [
+      "Centralized storage of drawings, models, and documentation",
+      "Version control and change history",
+      "Access control and permissions for viewing/editing",
+      "Integration with orders, projects, and equipment",
+      "Quick access to files at the required stages of business processes"
+    ]
+  },
+  {
+    "slug": "import",
+    "title": "Data Import",
+    "order": 3,
+    "id": "import",
+    "functions": [
+      "Importing data from external sources (for example, CAPR, Excel, ERP systems)",
+      "Support for structured formats: CSV, JSON, XML",
+      "Field mapping setup and automatic validation",
+      "Integration with orders, customers, materials, and equipment modules",
+      "Version control and logging of all import operations"
+    ]
+  },
+  {
+    "slug": "marking",
+    "title": "Labeling",
+    "order": 6,
+    "id": "marking",
+    "functions": [
+      "Generation and printing of labels for products and shipments",
+      "Integration with thermal printers and industrial labelers",
+      "Template setup and automatic data filling",
+      "Integration with orders, products, and delivery",
+      "Support for barcodes, QR codes, and traceability systems"
+    ]
+  },
+  {
+    "slug": "slicing",
+    "title": "Slicing",
+    "order": 4,
+    "id": "slicing",
+    "functions": [
+      "Importing and preparing 3D models for production",
+      "Generation of control programs (G-code and equivalents)",
+      "Optimization of printing, milling, and processing parameters",
+      "Integration with equipment and production tasks",
+      "Support for templates and automated profiles for different machine types"
+    ]
+  },
+  {
+    "slug": "video",
+    "title": "Video",
+    "order": 5,
+    "id": "video",
+    "functions": [
+      "Real-time video surveillance of production areas",
+      "Recording technological processes and archiving video",
+      "Linking cameras to specific equipment and operations",
+      "Access to recordings by events, orders, or timestamps",
+      "Integration with quality, maintenance, and safety modules"
+    ]
+  }
+]

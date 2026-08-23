@@ -1,0 +1,67 @@
+[
+  {
+    "slug": "billing",
+    "title": "Calculations",
+    "order": 1,
+    "id": "billing",
+    "functions": [
+      "Automatic calculation of service and resource costs",
+      "Generation and sending of invoices to clients",
+      "Balance tracking and transaction history for each user",
+      "Integration with external payment systems and banks",
+      "Configuration of tariffs, limits, and recurring charges"
+    ]
+  },
+  {
+    "slug": "departments",
+    "title": "Departments",
+    "order": 5,
+    "id": "departments",
+    "functions": [
+      "Management of branches and remote departments",
+      "Assignment of local administrators and teams",
+      "Autonomous operation of branches within a single system",
+      "Centralized control and consolidated reporting",
+      "Scaling processes to new regions in just a few days"
+    ]
+  },
+  {
+    "slug": "finance",
+    "title": "Finance",
+    "order": 2,
+    "id": "finance",
+    "functions": [
+      "Tracking income, expenses, and internal transfers",
+      "Analysis of product, branch, and project profitability",
+      "Financial planning and budget execution control",
+      "Building reports by periods, areas, and categories",
+      "Integration with calculations, orders, and billing"
+    ]
+  },
+  {
+    "slug": "staff",
+    "title": "Personnel",
+    "order": 3,
+    "id": "staff",
+    "functions": [
+      "Tracking employee working time and schedules",
+      "Calculation of salaries, bonuses, and deductions",
+      "Management of vacations, sick leave, and absences",
+      "Configuration of roles, positions, and areas of responsibility",
+      "Integration with finance, tasks, and departments"
+    ]
+  },
+  {
+    "slug": "supply",
+    "title": "Supply",
+    "order": 4,
+    "id": "supply",
+    "functions": [
+      "Management of purchases and suppliers",
+      "Tracking warehouse inventory of materials and components",
+      "Automatic generation of replenishment requests",
+      "Control of delivery times and shipment statuses",
+      "Integration with production, finance, and planning"
+    ]
+  }
+]

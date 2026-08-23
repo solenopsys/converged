@@ -1,0 +1,67 @@
+[
+  {
+    "slug": "clients",
+    "title": "Clients",
+    "order": 3,
+    "id": "clients",
+    "functions": [
+      "A unified customer database with profiles and contact information",
+      "Storing interaction history, inquiries, and terms",
+      "Assigning personal discounts, priorities, and statuses",
+      "Integration with order, communication, and finance modules",
+      "Segmenting the customer base and analytics by groups"
+    ]
+  },
+  {
+    "slug": "delivery",
+    "title": "Delivery",
+    "order": 1,
+    "id": "delivery",
+    "functions": [
+      "Managing logistics and shipping of finished goods",
+      "Tracking delivery statuses and notifying customers",
+      "Integration with orders, customers, and warehouses",
+      "Assigning couriers, transport companies, and routes",
+      "Analytics on lead times, delays, and logistics costs"
+    ]
+  },
+  {
+    "slug": "history",
+    "title": "History",
+    "order": 2,
+    "id": "history",
+    "functions": [
+      "Chronology of customer interactions across all channels",
+      "Events: calls, messages, emails, visits, tasks, statuses",
+      "Integration with chats, email, orders, and CRM logic",
+      "Search and filtering by events, time, employees, customers",
+      "Action auditing and restoration of interaction context"
+    ]
+  },
+  {
+    "slug": "orders",
+    "title": "Orders",
+    "order": 4,
+    "id": "orders",
+    "functions": [
+      "Creating, editing, and tracking orders",
+      "Managing fulfillment and payment statuses",
+      "Tracking order sources and associated customers",
+      "Integration with delivery, billing, and history modules",
+      "Search, filtering, and analytics for orders"
+    ]
+  },
+  {
+    "slug": "request",
+    "title": "Requests",
+    "order": 5,
+    "id": "request",
+    "functions": [
+      "Receiving and processing incoming requests and leads",
+      "Creating commercial offers (CP)",
+      "Tracking negotiation stages and request statuses",
+      "Integration with order, customer, and history modules",
+      "Converting requests into full orders"
+    ]
+  }
+]

@@ -1,0 +1,53 @@
+[
+  {
+    "slug": "business-processes",
+    "title": "AI business processes",
+    "order": 2,
+    "id": "ai-business-processes",
+    "functions": [
+      "Visual design of task chains",
+      "Integration of CRM/ERP, email, messengers, AI models",
+      "Automatic generation of documents and reports by AI agents",
+      "Predictive triggers and event alerts",
+      "End-to-end analytics and real-time monitoring"
+    ]
+  },
+  {
+    "slug": "maintenance",
+    "title": "Maintenance",
+    "order": 3,
+    "id": "maintenance",
+    "functions": [
+      "Planning and automation of equipment maintenance",
+      "Predictive diagnostics based on AI",
+      "Tracking and control of spare parts and consumables",
+      "Management of repair requests and their execution"
+    ]
+  },
+  {
+    "slug": "quality",
+    "title": "Quality",
+    "order": 4,
+    "id": "quality",
+    "functions": [
+      "Digital quality control at all stages of production",
+      "Defect recording and automatic defect classification",
+      "Interactive checklists and visual standards",
+      "Analysis of defect causes using Pareto charts",
+      "AI recommendations for eliminating key issues"
+    ]
+  },
+  {
+    "slug": "reports",
+    "title": "Reports",
+    "order": 5,
+    "id": "reports",
+    "functions": [
+      "Automatic generation of production, financial, and operational reports",
+      "Data visualization: charts, tables, diagrams, including Pareto and trends",
+      "Customizable templates for the needs of different departments",
+      "Sending reports on a schedule or when events occur",
+      "Real-time dashboards for management"
+    ]
+  }
+]

@@ -1,0 +1,78 @@
+[
+  {
+    "slug": "roles",
+    "title": "Team roles and responsibilities",
+    "order": 1,
+    "id": "roles",
+    "elements": [
+      "platform/management/staff",
+      "platform/management/departments",
+      "platform/tools/files",
+      "platform/tools/events"
+    ],
+    "functions": [
+      "Who is responsible for what: deadlines, quality, customers, equipment",
+      "Assigning tasks and areas to specific people",
+      "Simple working rules instead of heavy procedures",
+      "Recording agreements in notes and cards",
+      "A basic view of workload: who is overloaded and who is idle"
+    ]
+  },
+  {
+    "slug": "shifts",
+    "title": "Scaling the team and shifts",
+    "order": 2,
+    "id": "shifts",
+    "elements": [
+      "platform/management/staff",
+      "platform/equipment/scheduling",
+      "platform/tools/events"
+    ],
+    "functions": [
+      "Planning shifts and assigning people to equipment",
+      "Workload overview by shift/section",
+      "Typical organization models for a small workshop",
+      "Basic shift metrics (downtime, task completion)",
+      "Fast onboarding of new people without reworking processes"
+    ]
+  },
+  {
+    "slug": "knowledge",
+    "title": "Knowledge transfer and standards",
+    "order": 3,
+    "id": "knowledge",
+    "elements": [
+      "platform/tools/files",
+      "platform/tools/video",
+      "platform/integrations/services",
+      "platform/control/quality",
+      "platform/tools/events"
+    ],
+    "functions": [
+      "A simple instruction base (text/photo/video) for operations",
+      "Linking instructions to equipment, materials, and work types",
+      "Standard versions without heavy approval processes",
+      "A single file repository (drawings, print profiles, templates)",
+      "Quick access to knowledge through an AI chat"
+    ]
+  },
+  {
+    "slug": "onboarding",
+    "title": "Hiring and training employees",
+    "order": 4,
+    "id": "onboarding",
+    "elements": [
+      "platform/management/staff",
+      "platform/tools/files",
+      "platform/integrations/services",
+      "platform/tools/events"
+    ],
+    "functions": [
+      "Short role descriptions (operator, technologist, manager)",
+      "Interview and selection checklists",
+      "Onboarding scenarios for the first week/month",
+      "Rough training plans by role without 'career matrices'",
+      "New hire access to up-to-date standards in one click"
+    ]
+  }
+]

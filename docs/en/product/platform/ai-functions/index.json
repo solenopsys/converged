@@ -1,0 +1,50 @@
+[
+  {
+    "slug": "ai-agents",
+    "title": "AI agents",
+    "order": 1,
+    "id": "ai-agents",
+    "functions": [
+      "Automation of routine operations and document workflow",
+      "Generation of commercial proposals, instructions, and reports",
+      "AI support in chats, email, and telephony",
+      "Classification and processing of incoming data (orders, requests, errors)",
+      "Forecasting, recommendations, and process optimization"
+    ]
+  },
+  {
+    "slug": "ai-chat",
+    "title": "AI chat for website",
+    "order": 1,
+    "id": "chat",
+    "functions": [
+      "Quick integration into the website and messengers",
+      "Handling common questions (FAQ)",
+      "Transferring chats to an operator when needed",
+      "Support for contexts (equipment lists, file uploads)"
+    ]
+  },
+  {
+    "slug": "ai-telephony",
+    "title": "AI telephony",
+    "order": 2,
+    "id": "calls",
+    "functions": [
+      "Automatic call recording",
+      "Saving audio files",
+      "Linking to customer records"
+    ]
+  },
+  {
+    "slug": "conversation",
+    "title": "Interaction analysis",
+    "order": 3,
+    "id": "conversation",
+    "functions": [
+      "Speech recognition and conflict detection",
+      "Customer sentiment analysis",
+      "Highlighting key topics and issues",
+      "Automatic service quality assessment"
+    ]
+  }
+]

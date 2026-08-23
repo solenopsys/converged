@@ -1,0 +1,107 @@
+[
+  {
+    "slug": "new-customers",
+    "title": "Attracting new clients",
+    "order": 1,
+    "id": "new-customers",
+    "elements": [
+      "platform/marketing/site",
+      "platform/marketing/seo",
+      "platform/marketing/publications",
+      "platform/marketing/tenders",
+      "platform/marketing/tender-monitoring",
+      "platform/marketing/tender-calculation",
+      "platform/ai-functions/ai-agents",
+      "platform/ai-functions/ai-chat",
+      "platform/integrations/chats",
+      "platform/integrations/email",
+      "platform/integrations/sms",
+      "platform/sales/request",
+      "platform/tools/files",
+      "platform/tools/events",
+      "platform/tools/import"
+    ],
+    "functions": [
+      "A showcase of services and examples of work (website/landing page)",
+      "A clear description of materials, timelines, and terms",
+      "Receiving inquiries and files (model/drawing) in one workflow",
+      "Draft replies and commercial proposals using AI",
+      "Basic SEO support and quick content updates"
+    ]
+  },
+  {
+    "slug": "inquiries",
+    "title": "Tracking requests and inquiries",
+    "order": 2,
+    "id": "inquiries",
+    "elements": [
+      "platform/control/business-processes",
+      "platform/integrations/chats",
+      "platform/integrations/email",
+      "platform/integrations/sms",
+      "platform/ai-functions/ai-chat",
+      "platform/ai-functions/ai-telephony",
+      "platform/ai-functions/conversation",
+      "platform/sales/request",
+      "platform/sales/history",
+      "platform/tools/files",
+      "platform/tools/events"
+    ],
+    "functions": [
+      "All inquiries in one feed (website, email, messengers, telephony)",
+      "A single conversation card: messages, files, notes",
+      "Processing statuses and assigning an owner",
+      "Reminders: who has not been replied to for a long time and what is “stuck”",
+      "Auto-replies to common questions and handing complex ones over to an operator"
+    ]
+  },
+  {
+    "slug": "order-status",
+    "title": "Monitoring order fulfillment",
+    "order": 3,
+    "id": "order-status",
+    "elements": [
+      "platform/control/business-processes",
+      "platform/sales/orders",
+      "platform/sales/history",
+      "platform/sales/delivery",
+      "platform/integrations/delivery-services",
+      "platform/integrations/email",
+      "platform/integrations/sms",
+      "platform/tools/events",
+      "platform/tools/files",
+      "platform/tools/marking",
+      "platform/store/products"
+    ],
+    "functions": [
+      "Order stages and quick statuses",
+      "Expected completion date and a “at risk” indicator",
+      "List of problematic orders by week/day",
+      "Notifications to the client and team when the status changes",
+      "A link/page showing the order status for the client"
+    ]
+  },
+  {
+    "slug": "repeat-customers",
+    "title": "Working with repeat customers",
+    "order": 4,
+    "id": "repeat-customers",
+    "elements": [
+      "platform/sales/clients",
+      "platform/sales/history",
+      "platform/integrations/email",
+      "platform/integrations/sms",
+      "platform/integrations/api",
+      "platform/marketing/publications",
+      "platform/marketing/site",
+      "platform/tools/events"
+    ],
+    "functions": [
+      "List of key clients (VIP/frequent orderers)",
+      "Order and agreement history without a heavy CRM",
+      "Reminders for “who hasn’t ordered in a long time”",
+      "Personalized offers and lightweight mailings",
+      "A simple overview of “who brings in more revenue/margin”"
+    ]
+  }
+]

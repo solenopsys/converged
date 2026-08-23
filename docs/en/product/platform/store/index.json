@@ -1,0 +1,41 @@
+[
+  {
+    "slug": "materials",
+    "title": "Materials",
+    "order": 1,
+    "id": "materials",
+    "functions": [
+      "Accounting for raw materials and consumables",
+      "Tracking stock levels, movements, and write-offs",
+      "Connection with production operations and supply",
+      "Setting minimum stock levels and automating requests",
+      "Integration with supply, planning, and order modules"
+    ]
+  },
+  {
+    "slug": "products",
+    "title": "Products",
+    "order": 3,
+    "id": "products",
+    "functions": [
+      "Accounting for finished goods in warehouses",
+      "Tracking the movement of items between departments and branches",
+      "Preparing delivery notes, acts, and reports",
+      "Integration with order, delivery, and supply modules",
+      "Control of stock levels, reservations, and shelf life"
+    ]
+  },
+  {
+    "slug": "spare-parts",
+    "title": "Spare parts",
+    "order": 2,
+    "id": "spare-parts",
+    "functions": [
+      "Accounting for spare parts and consumables for equipment",
+      "Monitoring stock levels and automating replenishment",
+      "Linking to equipment types and maintenance schedules",
+      "Integration with maintenance, supply, and warehouse modules",
+      "Notifications about critical stock levels and replacement dates"
+    ]
+  }
+]

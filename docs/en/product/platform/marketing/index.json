@@ -1,0 +1,74 @@
+[
+  {
+    "slug": "publications",
+    "title": "Publications",
+    "order": 1,
+    "id": "publications",
+    "functions": [
+      "Planning and publishing content on external platforms",
+      "Integration with social networks and content platforms",
+      "Automation of post scheduling and reposting",
+      "Analytics of reach, engagement, and content performance",
+      "Audience interaction and comment management"
+    ]
+  },
+  {
+    "slug": "seo",
+    "title": "SEO optimization",
+    "order": 2,
+    "id": "seo",
+    "functions": [
+      "Improving website visibility in search engines and AI agents",
+      "Increasing organic traffic",
+      "Adapting content for LLM agents (ChatGPT, Perplexity, etc.)",
+      "Expanding reach to the target audience"
+    ]
+  },
+  {
+    "slug": "site",
+    "title": "Website",
+    "order": 3,
+    "id": "site",
+    "functions": [
+      "Ready-made websites, landing pages, and product showcases",
+      "AI customization of design, text, and images",
+      "Integration with orders, chats, and online payments",
+      "SEO adaptation and automatic assortment updates",
+      "Specialization for digital manufacturing companies (CNC, 3D printing, etc.)"
+    ]
+  },
+  {
+    "slug": "tenders",
+    "title": "Tenders",
+    "order": 4,
+    "id": "tenders",
+    "functions": [
+      "Generation of a complete tender documentation package",
+      "Automation of preparation of legal and financial forms",
+      "Verification of compliance with customer requirements",
+      "Support for different formats and types of auctions"
+    ]
+  },
+  {
+    "slug": "tender-monitoring",
+    "title": "Tender monitoring",
+    "order": 5,
+    "id": "tender-monitoring",
+    "functions": [
+      "Automatic monitoring of new tenders",
+      "Filtering relevant tenders with AI",
+      "Automatic completion of participation applications"
+    ]
+  },
+  {
+    "slug": "tender-calculation",
+    "title": "Tender calculation",
+    "order": 6,
+    "id": "tender-calculation",
+    "functions": [
+      "Automatic calculation of cost price and margin",
+      "Preparation of competitive commercial proposals",
+      "Analysis of tender documentation requirements"
+    ]
+  }
+]

@@ -223,7 +223,48 @@ export type ScanResult = ScanSummary & {
 	contributions: Map<string, Contribution[]>;
 };
 
-export async function scan(projects: string[]): Promise<ScanResult> {
+/**
+ * Translations, read from the cache.
+ *
+ * The cache mirrors what an owner would have written had it kept the language
+ * itself, so a translated section is read exactly like an authored one. It is
+ * laid out flat while a section has a single contributor and grows an `<owner>`
+ * level when it has several — the same shape `emitSite` writes.
+ *
+ * Cache contributions never appear in `roots`: a root is somewhere a human
+ * authors, and nobody authors here.
+ */
+async function readCache(
+	cache: string,
+	defaultOwner: string,
+	contributions: Map<string, Contribution[]>,
+	langs: Set<string>,
+): Promise<void> {
+	for (const lang of subdirs(cache)) {
+		for (const section of subdirs(join(cache, lang))) {
+			const dir = join(cache, lang, section);
+			const owners = existsSync(join(dir, "index.json"))
+				? [{ owner: defaultOwner, path: dir }]
+				: subdirs(dir).map((owner) => ({ owner, path: join(dir, owner) }));
+
+			for (const { owner, path } of owners) {
+				const contribution = await readContribution(owner, path);
+				if (!contribution) continue;
+				langs.add(lang);
+				const key = `${section}/${lang}`;
+				contributions.set(key, [
+					...(contributions.get(key) ?? []),
+					contribution,
+				]);
+			}
+		}
+	}
+}
+
+export async function scan(
+	projects: string[],
+	cache = "",
+): Promise<ScanResult> {
 	const roots = findDocsRoots(projects);
 	const contributions = new Map<string, Contribution[]>();
 	const langs = new Set<string>();
@@ -244,6 +285,10 @@ export async function scan(projects: string[]): Promise<ScanResult> {
 				]);
 			}
 		}
+	}
+
+	if (cache) {
+		await readCache(cache, basename(dirname(cache)), contributions, langs);
 	}
 
 	return { contributions, roots, langs: [...langs].sort() };
