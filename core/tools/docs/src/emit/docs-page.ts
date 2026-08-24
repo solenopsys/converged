@@ -28,13 +28,13 @@ type DocsSection = {
 	compound: boolean;
 };
 
-/** Per-language copy, falling back to English and then to a literal. */
+/** Per-language copy, using English and then a literal when it is untranslated. */
 function pick(
 	values: Record<string, string> | undefined,
 	lang: string,
-	fallback: string,
+	englishText: string,
 ): string {
-	return values?.[lang] ?? values?.en ?? fallback;
+	return values?.[lang] ?? values?.en ?? englishText;
 }
 
 function json(value: unknown): string {
@@ -78,14 +78,30 @@ export async function emitDocsPage(
 		sections.push({
 			id: book.section,
 			title: book.title,
-			index: `${book.section}/index.json`,
+			index: `docs/${book.section}/index.json`,
 			count: book.docs.length,
 			compound: book.compound,
 		});
 		byLang.set(book.lang, sections);
 	}
 
-	for (const [lang, sections] of byLang) {
+	const englishSections = byLang.get("en") ?? [];
+	const languages = new Set([
+		...byLang.keys(),
+		...config.translation.targetLocales,
+	]);
+
+	for (const lang of [...languages].sort()) {
+		// English is the complete documentation source. Locale-specific sections
+		// replace their English counterparts only after that section is translated.
+		const sectionsById = new Map(
+			englishSections.map((section) => [section.id, section]),
+		);
+		for (const section of byLang.get(lang) ?? []) {
+			sectionsById.set(section.id, section);
+		}
+		const sections = [...sectionsById.values()];
+
 		// Config order, so the site's chapter order is the one the config
 		// declares rather than whatever the filesystem walk produced.
 		const configured = Object.keys(config.sections);

@@ -63,3 +63,25 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- default "default" .Values.serviceAccount.name -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Render a map of native peers into `Platform.spec.apps` / `.processors`.
+
+The policy wants a full image reference per peer; values name a repository so
+that `images.registry` and `images.tag` stay the single place a build is
+pointed at, exactly as they are for ui and ms. `image` still wins when given,
+which is what pins one peer to a reference the registry does not serve.
+Everything else is passed through: the chart has no opinion on the fields the
+policy reads, so a new one needs no change here.
+*/}}
+{{- define "ptah.nativePeers" -}}
+{{- $root := .root -}}
+{{- range $name, $peer := .peers }}
+{{ $name }}:
+  image: {{ $peer.image | default (printf "%s/%s:%s" $root.Values.images.registry ($peer.repository | default $name) ($peer.tag | default $root.Values.images.tag)) | quote }}
+{{- $rest := omit $peer "image" "repository" "tag" }}
+{{- if $rest }}
+{{ toYaml $rest | indent 2 }}
+{{- end }}
+{{- end }}
+{{- end -}}

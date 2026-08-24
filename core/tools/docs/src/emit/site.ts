@@ -7,17 +7,23 @@
  * intact; an id containing a slash loses it and the markdown is never found.
  */
 
-import { join } from "node:path";
+import { existsSync, readdirSync } from "node:fs";
+import { join, relative } from "node:path";
 import type { Writer } from "../fs";
-import type { Book, Config, Doc } from "../types";
+import type { Book, CompoundIndexEntry, Config, Doc, DocsRoot } from "../types";
 import { emitDocsPage } from "./docs-page";
 
-function entries(docs: Doc[], offset: number) {
+function entries(
+	docs: Doc[],
+	offset: number,
+	owner?: string,
+): CompoundIndexEntry[] {
 	return docs.map((doc, index) => ({
 		slug: doc.slug,
 		title: doc.title,
 		order: offset + index,
 		id: doc.slug,
+		...(owner ? { owner } : {}),
 	}));
 }
 
@@ -26,8 +32,8 @@ function json(value: unknown): string {
 }
 
 async function emitFlat(book: Book, config: Config, writer: Writer) {
-	const structDir = join(config.out.struct, book.lang, book.section);
-	const markdownDir = join(config.out.markdown, book.lang, book.section);
+	const structDir = join(config.out.struct, book.lang, "docs", book.section);
+	const markdownDir = join(config.out.markdown, book.lang, "docs", book.section);
 
 	await writer.write(
 		join(structDir, "index.json"),
@@ -39,37 +45,136 @@ async function emitFlat(book: Book, config: Config, writer: Writer) {
 }
 
 async function emitCompound(book: Book, config: Config, writer: Writer) {
-	const structDir = join(config.out.struct, book.lang, book.section);
-	const markdownDir = join(config.out.markdown, book.lang, book.section);
+	const structDir = join(config.out.struct, book.lang, "docs", book.section);
+	const markdownDir = join(config.out.markdown, book.lang, "docs", book.section);
+	const groups = new Map<string, typeof book.contributions>();
+	for (const contribution of book.contributions) {
+		groups.set(contribution.group, [
+			...(groups.get(contribution.group) ?? []),
+			contribution,
+		]);
+	}
+	const orderedGroups = [...groups.entries()]
+		.map(([group, contributions]) => ({
+			group,
+			id:
+				group
+					.toLowerCase()
+					.replace(/[^a-z0-9]+/g, "-")
+					.replace(/^-+|-+$/g, "") || "group",
+			contributions,
+		}))
+		.sort((left, right) => left.id.localeCompare(right.id));
 
-	const groups = book.contributions.map((contribution) => ({
-		group: contribution.group,
+	const groupsIndex = orderedGroups.map(({ group, id }) => ({
+		group,
 		// Locale-relative, because the consumer prefixes the locale itself.
-		index: `${book.section}/${contribution.module}/index.json`,
+		index: `docs/${book.section}/groups/${id}/index.json`,
 	}));
 	await writer.write(
 		join(structDir, "index.json"),
-		json({ compound: true, groups }),
+		json({ compound: true, groups: groupsIndex }),
 	);
 
 	let offset = 0;
-	for (const contribution of book.contributions) {
-		await writer.write(
-			join(structDir, contribution.module, "index.json"),
-			json(entries(contribution.docs, offset)),
-		);
-		offset += contribution.docs.length;
-
-		for (const doc of contribution.docs) {
-			await writer.copy(
-				join(markdownDir, contribution.module, `${doc.slug}.md`),
-				doc.source,
+	for (const { id, contributions } of orderedGroups) {
+		let groupOffset = offset;
+		const indexed = contributions.flatMap((contribution) => {
+			const contributionEntries = entries(
+				contribution.docs,
+				groupOffset,
+				contribution.module,
 			);
+			groupOffset += contribution.docs.length;
+			return contributionEntries;
+		});
+		await writer.write(
+			join(structDir, "groups", id, "index.json"),
+			json(indexed),
+		);
+		offset = groupOffset;
+
+		for (const contribution of contributions) {
+			for (const doc of contribution.docs) {
+				await writer.copy(
+					join(markdownDir, contribution.module, `${doc.slug}.md`),
+					doc.source,
+				);
+			}
 		}
 	}
 }
 
-export async function emitSite(books: Book[], config: Config, writer: Writer) {
+/**
+ * Publish nested documentation indexes and articles that a top-level book does
+ * not enumerate. They are still part of the same source tree: solution,
+ * module and platform pages link to them directly. Root section indexes stay
+ * under the merger below, where several owners can form a compound book.
+ */
+async function emitNestedDocs(
+	roots: DocsRoot[],
+	config: Config,
+	writer: Writer,
+) {
+	for (const root of roots) {
+		for (const lang of root.langs) {
+			await copyNestedDocs(root.path, lang, config, writer);
+		}
+	}
+
+	if (!config.cache) return;
+	for (const lang of readdirSync(config.cache, { withFileTypes: true })
+		.filter((entry) => entry.isDirectory() && /^[a-z]{2,3}$/.test(entry.name))
+		.map((entry) => entry.name)
+		.filter((lang) => lang !== config.translation.sourceLocale)) {
+		await copyNestedDocs(config.cache, lang, config, writer);
+	}
+}
+
+async function copyNestedDocs(
+	base: string,
+	lang: string,
+	config: Config,
+	writer: Writer,
+) {
+	const langRoot = join(base, lang);
+	if (!existsSync(langRoot)) return;
+
+	const visit = async (dir: string): Promise<void> => {
+		for (const entry of readdirSync(dir, { withFileTypes: true })) {
+			const path = join(dir, entry.name);
+			if (entry.isDirectory()) {
+				await visit(path);
+				continue;
+			}
+			if (!entry.isFile()) continue;
+
+			const source = relative(langRoot, path);
+			const isIndex = entry.name === "index.json";
+			const isArticle = entry.name.endsWith(".md");
+			// The top-level book is assembled below from every contributing owner.
+			// Copying its article here creates a second, flat Markdown path beside
+			// the owner-qualified path used by compound sections.
+			const isTopLevelBookFile = source.split("/").length === 2;
+			if ((!isIndex && !isArticle) || isTopLevelBookFile) continue;
+
+			const target = isIndex
+				? join(config.out.struct, lang, "docs", source)
+				: join(config.out.markdown, lang, "docs", source);
+			await writer.copy(target, path);
+		}
+	};
+
+	await visit(langRoot);
+}
+
+export async function emitSite(
+	books: Book[],
+	roots: DocsRoot[],
+	config: Config,
+	writer: Writer,
+) {
+	await emitNestedDocs(roots, config, writer);
 	for (const book of books) {
 		if (book.compound) await emitCompound(book, config, writer);
 		else await emitFlat(book, config, writer);

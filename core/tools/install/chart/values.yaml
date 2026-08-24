@@ -94,6 +94,57 @@ images:
   registry: public.ecr.aws/i5x9u8b2
   tag: latest
 
+# Always-on peers of the message bus, written to `Platform.spec.apps`.
+#
+# `repository` names the image inside `images.registry`; set `image` instead to
+# pin a full reference, or `tag` to override `images.tag` for one peer. Every
+# other key is handed to the policy untouched — `ports`, `portEnv`, `env`,
+# `hostNetwork`, `replicas`, `resources`. Helm merges maps, so overriding one
+# field of one peer leaves the rest of this block in place.
+#
+# fujin must declare both ports: `ws` is what the gateway targets, `zmq` is what
+# every other peer dials.
+apps:
+  fujin:
+    repository: fujin
+    ports:
+      ws: 8087
+      zmq: 5557
+  centimanus:
+    repository: centimanus
+    fujinTarget: centimanus
+    fujinEndpointEnv: CENTIMANUS_FUJIN_ZMQ_ENDPOINT
+    ports:
+      http: 9000
+  resonus:
+    repository: resonus
+    fujinTarget: resonus
+    fujinEndpointEnv: RESONUS_FUJIN_ZMQ_ENDPOINT
+    # Resonus terminates WebRTC. ICE needs a stable, publicly routable UDP
+    # range, and behind the pod overlay those sockets are NATed and unreachable
+    # from the browser — which is why this peer runs on the host's network
+    # rather than the pod's. The range below is what the node must allow in.
+    hostNetwork: true
+    ports:
+      http: 8090
+    portEnv:
+      http: LLM_GATE_HTTP_PORT
+    env:
+      LLM_GATE_ICE_PORT_RANGE_BEGIN: "10000"
+      LLM_GATE_ICE_PORT_RANGE_END: "10100"
+
+# Compute peers deployed only while a solution asks for them, written to
+# `Platform.spec.processors`. Same shape as `apps`.
+processors:
+  curaengine:
+    repository: curaengine
+    fujinTarget: curaengine
+    fujinEndpointEnv: CURAENGINE_FUJIN_ZMQ_ENDPOINT
+  opencam:
+    repository: opencamlib
+    fujinTarget: opencam
+    fujinEndpointEnv: OPENCAMLIB_FUJIN_ZMQ_ENDPOINT
+
 storage:
   size: 5Gi
 

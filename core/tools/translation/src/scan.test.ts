@@ -36,6 +36,12 @@ function write(rel: string, content: string): void {
 	writeFileSync(path, content, "utf8");
 }
 
+function writeCache(rel: string, content: string): void {
+	const path = join(root, "cache", rel);
+	mkdirSync(dirname(path), { recursive: true });
+	writeFileSync(path, content, "utf8");
+}
+
 function scan(): ProjectSnapshot {
 	const snapshot = scanProject(project, configPath, state, ledger);
 	state.projects[project.name] = snapshot;
@@ -200,5 +206,49 @@ describe("scanning", () => {
 
 	test("a missing source root is an error, not an empty result", () => {
 		expect(() => scan()).toThrow(/source root does not exist/);
+	});
+
+	test("reads translations and finds orphans in a separate cache root", () => {
+		write("en/a.md", "# A\n\nA source article lives beside the code.\n");
+		writeCache("ru/a.md", "# А\n\nПеревод лежит в отдельном кэше.\n");
+		writeCache("ru/gone.md", "# Ушло\n\nЭтот документ больше не существует.\n");
+
+		const snapshot = scanProject(
+			{ ...project, targetRoot: "./cache" },
+			configPath,
+			state,
+			ledger,
+		);
+
+		expect(snapshot.root).toBe(join(root, "root"));
+		expect(snapshot.targetRoot).toBe(join(root, "cache"));
+		expect(statusOf(snapshot, "a.md")).toBe("unrecorded");
+		expect(snapshot.orphans.ru).toEqual(["gone.md"]);
+	});
+
+	test("maps one module source into its owner directory in the cache", () => {
+		write(
+			"en/modules/ms-sales.md",
+			"# Sales\n\nOwns the production sales lifecycle.\n",
+		);
+		writeCache(
+			"ru/modules/ms-sales/ms-sales.md",
+			"# Продажи\n\nВладеет жизненным циклом продаж производства.\n",
+		);
+
+		const snapshot = scanProject(
+			{
+				...project,
+				targetRoot: "./cache",
+				targetPrefix: "modules/ms-sales",
+				targetStripPrefix: "modules",
+			},
+			configPath,
+			state,
+			ledger,
+		);
+
+		expect(statusOf(snapshot, "modules/ms-sales.md")).toBe("unrecorded");
+		expect(snapshot.orphans.ru).toEqual([]);
 	});
 });

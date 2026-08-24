@@ -52,6 +52,8 @@ export type ModuleEntry = {
 	purpose: string;
 	/** First paragraph under the `Boundary` heading, when the README has one. */
 	boundary: string;
+	/** Direct workspace-module dependencies declared by the package. */
+	dependencies: string[];
 };
 
 export type SolutionEntry = {
@@ -113,6 +115,23 @@ async function readPurpose(
 	};
 }
 
+async function readDependencies(dir: string): Promise<string[]> {
+	const path = join(dir, "package.json");
+	if (!existsSync(path)) return [];
+
+	const pkg = (await Bun.file(path).json()) as {
+		dependencies?: Record<string, string>;
+		devDependencies?: Record<string, string>;
+	};
+	return [
+		...Object.keys(pkg.dependencies ?? {}),
+		...Object.keys(pkg.devDependencies ?? {}),
+	]
+		.filter((name) => /^(ms|mf|wf)-/.test(name))
+		.filter((name, index, values) => values.indexOf(name) === index)
+		.sort();
+}
+
 async function readModules(
 	project: string,
 	projectName: string,
@@ -147,6 +166,7 @@ async function readModules(
 					path: relative(project, candidate.path),
 					purpose,
 					boundary,
+					dependencies: await readDependencies(candidate.path),
 				});
 			}
 		}
@@ -242,6 +262,12 @@ export async function readRegistry(projects: string[]): Promise<Registry> {
 			a.domain.localeCompare(b.domain) ||
 			a.name.localeCompare(b.name),
 	);
+	const knownModules = new Set(modules.map((module) => module.name));
+	for (const module of modules) {
+		module.dependencies = module.dependencies.filter((name) =>
+			knownModules.has(name),
+		);
+	}
 
 	return { modules, solutions };
 }

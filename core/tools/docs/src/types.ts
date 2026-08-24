@@ -27,6 +27,12 @@ export type ContributionMeta = {
 	group?: string;
 };
 
+/** One item in a generated compound index. */
+export type CompoundIndexEntry = IndexEntry & {
+	/** Owner directory that holds the article markdown. */
+	owner?: string;
+};
+
 /** One resolved document, with its markdown located on disk. */
 export type Doc = {
 	slug: string;

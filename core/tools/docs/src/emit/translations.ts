@@ -12,18 +12,22 @@
  *   bun run scan --config <business>/build/docs/translation-control.json
  */
 
-import { relative } from "node:path";
+import { join, relative } from "node:path";
 import type { Writer } from "../fs";
 import type { Config, ScanSummary } from "../types";
 
 type Project = {
 	name: string;
 	root: string;
+	targetRoot?: string;
+	targetPrefix?: string;
+	targetStripPrefix?: string;
 	sourceLocale: string;
 	targetLocales: string[];
 	include: string[];
 	stateFile: string;
 	reportFile: string;
+	ledgerFile: string;
 };
 
 function relativeTo(from: string, path: string): string {
@@ -54,9 +58,32 @@ export async function emitTranslations(
 			continue;
 		}
 
+		const moduleSource = root.path.includes("/modules/");
+		const cache = config.cache
+			? {
+					targetRoot: relativeTo(dir, config.cache),
+					...(moduleSource
+						? {
+								targetPrefix: `modules/${root.owner}`,
+								targetStripPrefix: "modules",
+							}
+						: {}),
+					ledgerFile: relativeTo(
+						dir,
+						join(config.cache, ".translation", `${root.owner}.ledger.json`),
+					),
+				}
+			: {
+					ledgerFile: relativeTo(
+						dir,
+						join(stateDir, `${root.owner}.ledger.json`),
+					),
+				};
+
 		projects.push({
 			name: root.owner,
 			root: relativeTo(dir, root.path),
+			...cache,
 			sourceLocale,
 			// Only languages someone actually asked for, minus the source itself.
 			targetLocales: (targetLocales.length ? targetLocales : summary.langs)

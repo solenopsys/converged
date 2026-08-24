@@ -95,7 +95,7 @@ Flags: `--config <path>`, `--section <name>`, `--lang <code>`, `--dry-run`,
 
 | Target | Where | What it is |
 | --- | --- | --- |
-| `site` | `data/club/struct-ms/struct/data`, `data/club/markdown-ms/markdown/data` | what the production site reads |
+| `site` | `data/club/struct-ms/struct/data`, `data/club/markdown-ms/markdown/data` | generated site data: merged section indexes plus every nested article and index |
 | `ecosystem` | `data/club/struct-ms/struct/data/<lang>/landings/ecosystem` | the ecosystem landing |
 | `readme` | `build/docs/readme` | one article per section, with a table of contents |
 | `html` | `build/docs/html` | preact SSR, side menu, inline styles |
@@ -194,9 +194,10 @@ Separate repository so machine-produced text does not churn the platform's
 history; in version control rather than in `build/` because a translation costs
 real work and must survive a clean checkout.
 
-*Still to build: the assembled index and coverage below, and cache mode in
-`core/tools/translation` so it compares owner sources against cache targets
-rather than two locales under one root.*
+`core/tools/translation` compares each authored root against the matching cache
+root. Its generated config uses `targetRoot` for `docs-cache`, while state and
+reports stay in `build/docs/translation` and the durable translation ledger is
+stored in `docs-cache/.translation/`.
 
 `core/tools/translation` carries the field a cache needs:
 **`translatedFromHash`**, the hash of the English text a translation was made

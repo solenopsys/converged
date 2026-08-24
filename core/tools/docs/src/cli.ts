@@ -21,6 +21,7 @@
  */
 
 import { loadConfig } from "./config";
+import { assertModuleDocs } from "./coverage";
 import { emitEcosystem } from "./emit/ecosystem";
 import { emitHtml } from "./emit/html";
 import { emitPdf } from "./emit/pdf";
@@ -114,7 +115,7 @@ async function run(
 
 	switch (target) {
 		case "site":
-			await emitSite(books, config, writer);
+			await emitSite(books, summary.roots, config, writer);
 			break;
 		case "ecosystem": {
 			// The page follows the tree, not the docs, so it is built for every
@@ -145,7 +146,11 @@ async function run(
 		}
 	}
 
-	const removed = manifest.prune(target, writer, args.prune);
+	// A filtered build knows only part of a target. Pruning the rest would turn
+	// `--section modules` into deletion of every other published section.
+	const prune =
+		args.prune && args.sections.length === 0 && args.langs.length === 0;
+	const removed = manifest.prune(target, writer, prune);
 	const suffix = removed.length ? `, ${removed.length} removed` : "";
 	console.log(`[docs] ${target}: ${writer.written.size} files${suffix}`);
 	for (const path of removed) console.log(`[docs]   - ${path}`);
@@ -153,12 +158,12 @@ async function run(
 
 const args = parseArgs(Bun.argv.slice(2));
 const config = await loadConfig(args.config);
+const registry = await readRegistry(config.projects);
+assertModuleDocs(registry, config.projects);
 const { books, summary } = await build(config, {
 	sections: args.sections,
 	langs: args.langs,
 });
-
-const registry = await readRegistry(config.projects);
 
 if (args.list) {
 	console.log(`[docs] scanned: ${config.projects.join(", ")}`);

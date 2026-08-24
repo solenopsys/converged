@@ -89,6 +89,16 @@ function resonusLib(name: string): string {
 }
 
 /**
+ * Same story as `resonusLib`, for behemoth. Storage dlopens libryugraph and
+ * reads its memory control script by absolute path, and it now refuses to start
+ * when the script is missing — so dev has to name both explicitly, exactly as
+ * the container image does in its ENV block.
+ */
+function behemothPath(...parts: string[]): string {
+	return resolve(PROJECT_ROOT, "core/native/apps/behemoth", ...parts);
+}
+
+/**
  * The native peers of the cluster. In production each is its own container;
  * dev runs the same set as local processes so the topology is identical and
  * only the addresses differ.
@@ -126,6 +136,15 @@ export const NATIVE_APPS: NativeApp[] = [
 		],
 		libDirs: ["zig-out/x86_64-gnu/lib"],
 		readyDelayMs: 300,
+		env: () => ({
+			BEHEMOTH_STORAGE_JS_SCRIPT: behemothPath(
+				"scripts/default-management.js",
+			),
+			BEHEMOTH_QJS_LIB: behemothPath("zig-out/x86_64-gnu/lib/libqjs.so"),
+			RYUGRAPH_LIBRARY_PATH: behemothPath(
+				"zig-out/x86_64-gnu/lib/libryugraph.so",
+			),
+		}),
 	},
 	{
 		name: "centimanus",

@@ -43,7 +43,17 @@ export type ValidationConfig = {
 
 export type ProjectConfig = {
 	name: string;
+	/** Root holding the source locale. */
 	root: string;
+	/**
+	 * Root holding translated locales. Omit it when sources and translations
+	 * share one tree; documentation keeps translations in docs-cache instead.
+	 */
+	targetRoot?: string;
+	/** Directory inside each target locale, before the translated source path. */
+	targetPrefix?: string;
+	/** Source-relative prefix removed before applying `targetPrefix`. */
+	targetStripPrefix?: string;
 	sourceLocale: string;
 	targetLocales: string[];
 	routes?: Array<{ path: string; config: string }>;
@@ -130,6 +140,7 @@ export type RouteSnapshot = {
 
 export type ProjectSnapshot = {
 	root: string;
+	targetRoot: string;
 	sourceLocale: string;
 	targetLocales: string[];
 	files: Record<string, FileSnapshot>;

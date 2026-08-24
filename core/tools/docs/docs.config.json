@@ -11,6 +11,12 @@
 		"pdf": "../../../docs-cache/pdf"
 	},
 	"sections": {
+		"system": {
+			"title": {
+				"en": "System",
+				"ru": "Система"
+			}
+		},
 		"product": {
 			"title": {
 				"en": "Product",
@@ -22,6 +28,13 @@
 				"en": "Club",
 				"ru": "Клуб"
 			}
+		},
+		"modules": {
+			"title": {
+				"en": "Modules",
+				"ru": "Модули"
+			},
+			"compound": true
 		},
 		"ecosystem": {
 			"title": {

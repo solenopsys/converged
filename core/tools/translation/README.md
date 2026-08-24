@@ -101,8 +101,9 @@ locale legitimately keeps verbatim.
 ```json
 {
   "projects": [{
-    "name": "club-struct-ms",
-    "root": "../../../data/club/struct-ms/struct/data",
+	"name": "club-struct-ms",
+	"root": "../../../data/club/struct-ms/struct/data",
+	"targetRoot": "../../../converged/docs-cache",
     "sourceLocale": "en",
     "targetLocales": ["de", "ru"],
     "include": ["landings"],
@@ -124,6 +125,11 @@ locale legitimately keeps verbatim.
 Paths are relative to the config. `routes` gets a second pass of its own: a
 landing config that drifted breaks a whole page rather than one string, and
 that deserves to be visible without reading the per-file list.
+
+`root` owns the source locale. `targetRoot` is optional and defaults to
+`root`; set it when translations live in a separate cache repository. Source
+paths remain the keys in state and ledger files, so moving translated files to
+a cache does not change their staleness history.
 
 The report is JSON because its consumer is usually not a person — a translation
 agent reads it to find its work, so it carries the affected paths and the

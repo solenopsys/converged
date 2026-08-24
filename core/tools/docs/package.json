@@ -16,6 +16,7 @@
 		"docs:html": "bun run src/cli.ts html",
 		"docs:pdf": "bun run src/cli.ts pdf",
 		"docs:translations": "bun run src/cli.ts translations",
+		"docs:modules": "bun run src/scaffold/modules.ts",
 		"docs:list": "bun run src/cli.ts --list"
 	},
 	"dependencies": {

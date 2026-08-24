@@ -79,6 +79,44 @@ export function projectRoot(config: ProjectConfig, configPath: string): string {
 	return resolve(dirname(configPath), config.root);
 }
 
+/** Translations may live in a separate repository from their source files. */
+export function projectTargetRoot(
+	config: ProjectConfig,
+	configPath: string,
+): string {
+	return resolve(dirname(configPath), config.targetRoot ?? config.root);
+}
+
+function targetRelative(config: ProjectConfig, sourceRelative: string): string {
+	const prefix = config.targetStripPrefix?.replace(/^\/+|\/+$/g, "");
+	if (!prefix) return sourceRelative;
+	return sourceRelative === prefix
+		? ""
+		: sourceRelative.startsWith(`${prefix}/`)
+			? sourceRelative.slice(prefix.length + 1)
+			: sourceRelative;
+}
+
+function targetDirectory(
+	config: ProjectConfig,
+	targetRoot: string,
+	locale: string,
+): string {
+	return join(targetRoot, locale, config.targetPrefix ?? "");
+}
+
+function targetPath(
+	config: ProjectConfig,
+	targetRoot: string,
+	locale: string,
+	sourceRelative: string,
+): string {
+	return join(
+		targetDirectory(config, targetRoot, locale),
+		targetRelative(config, sourceRelative),
+	);
+}
+
 export function scanProject(
 	config: ProjectConfig,
 	configPath: string,
@@ -86,6 +124,7 @@ export function scanProject(
 	ledger: TranslationLedger,
 ): ProjectSnapshot {
 	const root = projectRoot(config, configPath);
+	const targetRoot = projectTargetRoot(config, configPath);
 	const sourceRoot = join(root, config.sourceLocale);
 	if (!existsSync(sourceRoot)) {
 		throw new Error(
@@ -98,7 +137,9 @@ export function scanProject(
 		config.include,
 		config.exclude,
 	).sort((left, right) => left.rel.localeCompare(right.rel));
-	const sourceByRel = new Map(sourceFiles.map((file) => [file.rel, file]));
+	const sourceByRel = new Map(
+		sourceFiles.map((file) => [targetRelative(config, file.rel), file]),
+	);
 	const previous = state.projects[config.name];
 	const files: Record<string, FileSnapshot> = {};
 
@@ -111,10 +152,10 @@ export function scanProject(
 		const targets: Record<string, TargetSnapshot> = {};
 
 		for (const locale of config.targetLocales) {
-			const targetPath = join(root, locale, sourceFile.rel);
-			const targetExists = existsSync(targetPath);
+			const targetFile = targetPath(config, targetRoot, locale, sourceFile.rel);
+			const targetExists = existsSync(targetFile);
 			const target = targetExists
-				? readView({ ...sourceFile, abs: targetPath })
+				? readView({ ...sourceFile, abs: targetFile })
 				: undefined;
 			const targetHash = target?.hash ?? "";
 			const previousTarget = previousFile?.targets[locale];
@@ -160,8 +201,9 @@ export function scanProject(
 		sourceLocale: config.sourceLocale,
 		targetLocales: config.targetLocales,
 		files,
-		orphans: findOrphans(config, root, sourceByRel),
-		routes: scanRoutes(config, root),
+		orphans: findOrphans(config, targetRoot, sourceByRel),
+		routes: scanRoutes(config, root, targetRoot),
+		targetRoot,
 	};
 }
 
@@ -173,7 +215,7 @@ function findOrphans(
 	const orphans: Record<string, string[]> = {};
 	for (const locale of config.targetLocales) {
 		orphans[locale] = selectFiles(
-			walk(join(root, locale)),
+			walk(targetDirectory(config, root, locale)),
 			config.include,
 			config.exclude,
 		)
@@ -189,14 +231,18 @@ function findOrphans(
  * is broken for a whole route rather than for one string, and that deserves to
  * be visible without reading the per-file list.
  */
-function scanRoutes(config: ProjectConfig, root: string): RouteSnapshot[] {
+function scanRoutes(
+	config: ProjectConfig,
+	root: string,
+	targetRoot: string,
+): RouteSnapshot[] {
 	const routes: RouteSnapshot[] = [];
 
 	for (const route of config.routes ?? []) {
 		const source = readTree(join(root, config.sourceLocale, route.config));
 		for (const locale of config.targetLocales) {
-			const targetPath = join(root, locale, route.config);
-			const target = existsSync(targetPath) ? readTree(targetPath) : undefined;
+			const targetFile = targetPath(config, targetRoot, locale, route.config);
+			const target = existsSync(targetFile) ? readTree(targetFile) : undefined;
 			const diff =
 				source.value !== undefined && target?.value !== undefined
 					? compareJson(source.value, target.value, config.validation, locale)

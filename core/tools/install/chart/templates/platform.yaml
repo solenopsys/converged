@@ -20,7 +20,7 @@ kind: Platform
 metadata:
   name: {{ include "ptah.workspace" . }}
   labels:
-    {{- include "ptah.labels" . | nindent 4 }}
+    {{- include "ptah.labels" . | trim | nindent 4 }}
 spec:
   profile: {{ include "ptah.profile" . }}
   namespace: {{ include "ptah.workspace" . }}
@@ -81,7 +81,7 @@ spec:
 
 {{- if eq (include "ptah.profile" .) "multi" }}
   shards:
-    {{- toYaml .Values.shards | nindent 4 }}
+    {{- toYaml .Values.shards | trim | nindent 4 }}
 {{- end }}
 
 {{- if .Values.registry.url }}
@@ -99,39 +99,19 @@ everything it derives, so this is also the one place to correct a value ptah
 computes wrongly for a particular cluster without waiting for a new operator.
 */}}
   env:
-    {{- toYaml . | nindent 4 }}
+    {{- toYaml . | trim | nindent 4 }}
 {{- end }}
 
-  # Always-on peers of the message bus. fujin must declare both ports: `ws` is
-  # what the gateway targets, `zmq` is what every other peer dials.
+  # Always-on peers of the message bus, and the compute peers a solution may
+  # ask for. Both come from values so that a cluster can correct a peer — the
+  # UDP range resonus needs, a replica count — without a new chart.
   apps:
-    fujin:
-      image: public.ecr.aws/i5x9u8b2/fujin:latest
-      ports:
-        ws: 8087
-        zmq: 5557
-    centimanus:
-      image: public.ecr.aws/i5x9u8b2/centimanus:latest
-      fujinTarget: centimanus
-      fujinEndpointEnv: CENTIMANUS_FUJIN_ZMQ_ENDPOINT
-      ports:
-        http: 9000
-    resonus:
-      image: public.ecr.aws/i5x9u8b2/resonus:latest
-      fujinTarget: resonus
-      fujinEndpointEnv: RESONUS_FUJIN_ZMQ_ENDPOINT
+    {{- include "ptah.nativePeers" (dict "root" . "peers" .Values.apps) | trim | nindent 4 }}
 
   # Declared here, deployed only while a solution asks for them. Naming one a
   # platform never uses costs nothing until it is selected.
   processors:
-    curaengine:
-      image: public.ecr.aws/i5x9u8b2/curaengine:latest
-      fujinTarget: curaengine
-      fujinEndpointEnv: CURAENGINE_FUJIN_ZMQ_ENDPOINT
-    opencam:
-      image: public.ecr.aws/i5x9u8b2/opencamlib:latest
-      fujinTarget: opencam
-      fujinEndpointEnv: OPENCAMLIB_FUJIN_ZMQ_ENDPOINT
+    {{- include "ptah.nativePeers" (dict "root" . "peers" .Values.processors) | trim | nindent 4 }}
 
   gateway:
     className: {{ .Values.gateway.className }}
@@ -186,7 +166,7 @@ metadata:
   */}}
   name: {{ printf "%s-%s" (include "ptah.workspace" $) $name }}
   labels:
-    {{- include "ptah.labels" $ | nindent 4 }}
+    {{- include "ptah.labels" $ | trim | nindent 4 }}
 spec:
   platform: {{ include "ptah.workspace" $ }}
   {{- toYaml (omit $spec "platform") | nindent 2 }}
@@ -202,7 +182,7 @@ kind: Tenant
 metadata:
   name: {{ $name }}
   labels:
-    {{- include "ptah.labels" $ | nindent 4 }}
+    {{- include "ptah.labels" $ | trim | nindent 4 }}
   annotations:
     # A tenant outlives the release that introduced it: its storage is its
     # customer's data, not an install artefact.
