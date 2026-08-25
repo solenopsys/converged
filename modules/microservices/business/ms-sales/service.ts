@@ -4,6 +4,10 @@ import { StoresController } from "./store";
 import type {
 	Contact,
 	Lead,
+	NormalizeImportLeadsInput,
+	NormalizeImportLeadsResult,
+	ParseImportLeadsInput,
+	ParseImportLeadsResult,
 	LeadEvent,
 	LeadListParams,
 	LeadTag,
@@ -21,6 +25,10 @@ import type {
 	Statistic,
 	Touch,
 } from "./types";
+import {
+	normalizeImportLeads as normalizeImportRows,
+	parseImportText,
+} from "./src/import";
 
 function normalizeDate(value: unknown): Date {
 	if (value instanceof Date && !Number.isNaN(value.getTime())) {
@@ -674,6 +682,30 @@ class SalesServiceImpl
 	async getEventFunnel(): Promise<Record<string, number>> {
 		await this.ready();
 		return this.stores.salesStoreSevice.getEventFunnel();
+	}
+
+	/** Turns an uploaded lead list into raw rows. Regex scanning over a whole
+	 *  file is far too heavy for the workflow VM, so the parsers live here. */
+	async parseImportLeads(
+		input: ParseImportLeadsInput,
+	): Promise<ParseImportLeadsResult> {
+		await this.ready();
+		return parseImportText(input.text ?? "");
+	}
+
+	/** Raw rows -> the exact Lead/Contact rows to insert, with content-derived
+	 *  ids so a re-import updates instead of duplicating. Kept out of the
+	 *  workflow because the ids are sha256 and QuickJS has no node:crypto. */
+	async normalizeImportLeads(
+		input: NormalizeImportLeadsInput,
+	): Promise<NormalizeImportLeadsResult> {
+		await this.ready();
+		return normalizeImportRows({
+			leads: input.leads ?? [],
+			defaultLang: input.defaultLang,
+			defaultType: input.defaultType,
+			tags: input.tags,
+		});
 	}
 
 	async findOutreachCandidate(lang: string): Promise<OutreachCandidate | null> {

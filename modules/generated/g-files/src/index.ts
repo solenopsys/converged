@@ -106,6 +106,20 @@ export type PersistInput = {
     processId?: string;
 };
 
+export type ExtractTextInput = {
+    ref: CacheRef;
+    name: string;
+    /** Cap on the returned text; 0 or omitted means no cap. */
+    maxChars?: number;
+};
+
+export type ExtractTextResult = {
+    text: string;
+    /** Length before the maxChars cap was applied. */
+    chars: number;
+    truncated: boolean;
+};
+
 export const metadata: ServiceMetadata = {
   "interfaceName": "FilesService",
   "serviceName": "files",
@@ -355,6 +369,21 @@ export const metadata: ServiceMetadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
+    },
+    {
+      "name": "extractText",
+      "parameters": [
+        {
+          "name": "input",
+          "type": "ExtractTextInput",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "ExtractTextResult",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -448,6 +477,16 @@ export const metadata: ServiceMetadata = {
       "name": "PersistInput",
       "kind": "type",
       "definition": "{\n    ref: CacheRef;\n    name: string;\n    fileType: string;\n    owner: string;\n    collectionId?: UUID;\n    processId?: string;\n}"
+    },
+    {
+      "name": "ExtractTextInput",
+      "kind": "type",
+      "definition": "{\n    ref: CacheRef;\n    name: string;\n    /** Cap on the returned text; 0 or omitted means no cap. */\n    maxChars?: number;\n}"
+    },
+    {
+      "name": "ExtractTextResult",
+      "kind": "type",
+      "definition": "{\n    text: string;\n    /** Length before the maxChars cap was applied. */\n    chars: number;\n    truncated: boolean;\n}"
     }
   ]
 };
@@ -470,6 +509,7 @@ export interface FilesService {
   detectType(input: DetectTypeInput): Promise<FileTypeDetection>;
   unzip(input: UnzipInput): Promise<UnzipResult>;
   persist(input: PersistInput): Promise<FileMetadata>;
+  extractText(input: ExtractTextInput): Promise<ExtractTextResult>;
 }
 
 // Client interface
@@ -490,6 +530,7 @@ export interface FilesServiceClient {
   detectType(input: DetectTypeInput): Promise<FileTypeDetection>;
   unzip(input: UnzipInput): Promise<UnzipResult>;
   persist(input: PersistInput): Promise<FileMetadata>;
+  extractText(input: ExtractTextInput): Promise<ExtractTextResult>;
 }
 
 // Native factory: cruller-transport -> Fujin -> cluster peer.

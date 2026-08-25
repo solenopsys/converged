@@ -147,6 +147,61 @@ export type LeadEvent = {
 	createdAt: Date;
 };
 
+// ---- lead import (wf-sales-import) -----------------------------------------
+// One raw row as it came out of a spreadsheet, a JSON dump or an LLM answer:
+// every field optional, nothing normalized yet.
+
+export type ImportContact = {
+	type?: string;
+	value?: string;
+	role?: string;
+	description?: string;
+};
+
+export type ImportLead = {
+	id?: string;
+	company?: string;
+	name?: string;
+	description?: string;
+	lang?: string;
+	type?: string;
+	catalogId?: string;
+	contacts?: ImportContact[];
+	tags?: string[];
+};
+
+export type ParseImportLeadsInput = {
+	text: string;
+};
+
+/** Which parser produced the rows: JSON payload, delimited table (csv/tsv with
+ *  a header), loose per-line scraping, or nothing recognizable. */
+export type ImportSourceFormat = "json" | "delimited" | "lines" | "none";
+
+export type ParseImportLeadsResult = {
+	leads: ImportLead[];
+	format: ImportSourceFormat;
+};
+
+export type NormalizeImportLeadsInput = {
+	leads: ImportLead[];
+	defaultLang?: string;
+	defaultType?: string;
+	tags?: string[];
+};
+
+export type ImportItem = {
+	lead: Lead;
+	contacts: Contact[];
+	tags: string[];
+};
+
+export type NormalizeImportLeadsResult = {
+	items: ImportItem[];
+	/** rows dropped because they had no description and no company/name */
+	dropped: number;
+};
+
 export type OutreachCandidate = {
 	lead: Lead;
 	contact: Contact;
@@ -215,6 +270,12 @@ export interface SalesService {
 	recordEvent(event: LeadEvent): Promise<string>;
 	listEvents(params: PaginationParams): Promise<PaginatedResult<LeadEvent>>;
 	getEventFunnel(): Promise<Record<string, number>>;
+	parseImportLeads(
+		input: ParseImportLeadsInput,
+	): Promise<ParseImportLeadsResult>;
+	normalizeImportLeads(
+		input: NormalizeImportLeadsInput,
+	): Promise<NormalizeImportLeadsResult>;
 	findOutreachCandidate(lang: string): Promise<OutreachCandidate | null>;
 	findRandomLeadByLang(lang: string): Promise<Lead | null>;
 	leadHasTouches(leadId: string): Promise<boolean>;

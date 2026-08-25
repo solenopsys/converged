@@ -39,6 +39,17 @@ export type PaginatedResult<T> = {
 	totalCount?: number;
 };
 
+/** Bulk upsert: one round trip for a whole recomputed mapping group instead of
+ *  one call per key. */
+export type ClassifierMappingsInput = {
+	groupId: string;
+	mappings: {
+		key: string;
+		value?: string;
+		priority?: number;
+	}[];
+};
+
 export type ClassifierMappingGroup = {
 	groupId: string;
 	count: number;
@@ -53,6 +64,7 @@ export interface ClassifierService {
 	listTreeChildren(parentId?: string | null): Promise<ClassifierTreeNode[]>;
 
 	setMapping(mapping: ClassifierMappingInput): Promise<string>;
+	setMappings(input: ClassifierMappingsInput): Promise<number>;
 	getMapping(groupId: string, key: string): Promise<ClassifierMapping | null>;
 	resolveMapping(groupId: string, key: string): Promise<string | null>;
 	listMappings(groupId: string): Promise<ClassifierMapping[]>;

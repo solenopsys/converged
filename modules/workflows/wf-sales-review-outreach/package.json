@@ -1,0 +1,12 @@
+{
+	"name": "wf-sales-review-outreach",
+	"version": "0.0.0",
+	"type": "module",
+	"private": true,
+	"module": "index.ts",
+	"dependencies": {
+		"dag-core": "workspace:*",
+		"g-sales": "workspace:*",
+		"g-smtp": "workspace:*"
+	}
+}

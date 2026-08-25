@@ -1,0 +1,13 @@
+{
+	"name": "wf-sales-import",
+	"version": "0.0.0",
+	"type": "module",
+	"private": true,
+	"module": "index.ts",
+	"dependencies": {
+		"dag-core": "workspace:*",
+		"g-files": "workspace:*",
+		"g-sales": "workspace:*",
+		"g-store": "workspace:*"
+	}
+}

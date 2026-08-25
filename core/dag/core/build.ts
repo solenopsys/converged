@@ -8,7 +8,7 @@ import { join } from "node:path";
 // target:"browser" (no node builtins in QuickJS) would otherwise pick nrpc's
 // "browser" export, which has no rt-client — pin nrpc to its full entrypoint.
 const DEFAULT_REDIRECTS: Record<string, string> = {
-	nrpc: join(import.meta.dir, "../../nrpc/src/rt.ts"),
+	nrpc: join(import.meta.dir, "../../tools/nrpc/src/rt.ts"),
 };
 
 export async function buildWorkflow(

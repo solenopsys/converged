@@ -14,7 +14,44 @@ export type StorageMemoryEngine = {
 	stores: StorageMemoryStore[];
 };
 
+export type ProcessMemoryStats = {
+	rssBytes: number;
+	pssBytes: number;
+	pssAnonBytes: number;
+	pssFileBytes: number;
+	pssShmemBytes: number;
+	privateBytes: number;
+	sharedBytes: number;
+	swapBytes: number;
+	unattributedRssBytes: number;
+};
+
+export type CgroupMemoryStats = {
+	currentBytes: number;
+	workingSetBytes: number;
+	limitBytes: number | null;
+	anonBytes: number;
+	fileBytes: number;
+	kernelBytes: number;
+	kernelStackBytes: number;
+	pageTablesBytes: number;
+	percpuBytes: number;
+	socketBytes: number;
+	slabBytes: number;
+	slabReclaimableBytes: number;
+	slabUnreclaimableBytes: number;
+	inactiveFileBytes: number;
+	activeFileBytes: number;
+};
+
+export type RuntimeMemoryStats = {
+	engineAttributedBytes: number;
+	process?: ProcessMemoryStats;
+	cgroup?: CgroupMemoryStats;
+};
+
 export type StorageMemoryStats = {
+	memory: RuntimeMemoryStats;
 	valkey: {
 		memoryBytes: number;
 	};

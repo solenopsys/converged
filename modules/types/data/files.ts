@@ -99,6 +99,20 @@ export type PersistInput = {
     processId?: string;
 }
 
+export type ExtractTextInput = {
+    ref: CacheRef;
+    name: string;
+    /** Cap on the returned text; 0 or omitted means no cap. */
+    maxChars?: number;
+}
+
+export type ExtractTextResult = {
+    text: string;
+    /** Length before the maxChars cap was applied. */
+    chars: number;
+    truncated: boolean;
+}
+
 export interface FilesService {
   save(file:FileMetadata, processId?:string):Promise<UUID>
   saveChunk(chunk:FileChunk):Promise<HashString>
@@ -116,4 +130,5 @@ export interface FilesService {
   detectType(input:DetectTypeInput):Promise<FileTypeDetection>
   unzip(input:UnzipInput):Promise<UnzipResult>
   persist(input:PersistInput):Promise<FileMetadata>
+  extractText(input:ExtractTextInput):Promise<ExtractTextResult>
 }

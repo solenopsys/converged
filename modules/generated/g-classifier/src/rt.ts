@@ -40,6 +40,15 @@ export type PaginatedResult<T> = {
 	totalCount?: number;
 };
 
+export type ClassifierMappingsInput = {
+	groupId: string;
+	mappings: {
+		key: string;
+		value?: string;
+		priority?: number;
+	}[];
+};
+
 export type ClassifierMappingGroup = {
 	groupId: string;
 	count: number;
@@ -144,6 +153,21 @@ const metadata: ServiceMetadata = {
         }
       ],
       "returnType": "string",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "setMappings",
+      "parameters": [
+        {
+          "name": "input",
+          "type": "ClassifierMappingsInput",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "number",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -268,6 +292,11 @@ const metadata: ServiceMetadata = {
       "definition": "{\n\titems: T[];\n\ttotalCount?: number;\n}"
     },
     {
+      "name": "ClassifierMappingsInput",
+      "kind": "type",
+      "definition": "{\n\tgroupId: string;\n\tmappings: {\n\t\tkey: string;\n\t\tvalue?: string;\n\t\tpriority?: number;\n\t}[];\n}"
+    },
+    {
       "name": "ClassifierMappingGroup",
       "kind": "type",
       "definition": "{\n\tgroupId: string;\n\tcount: number;\n}"
@@ -284,6 +313,7 @@ export interface ClassifierServiceRtClient {
   listNodes(params: PaginationParams): PaginatedResult<ClassifierNode>;
   listTreeChildren(parentId?: string | any): ClassifierTreeNode[];
   setMapping(mapping: ClassifierMappingInput): string;
+  setMappings(input: ClassifierMappingsInput): number;
   getMapping(groupId: string, key: string): ClassifierMapping | any;
   resolveMapping(groupId: string, key: string): string | any;
   listMappings(groupId: string): ClassifierMapping[];

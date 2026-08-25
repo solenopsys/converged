@@ -2,6 +2,7 @@ export type {
 	ClassifierMapping,
 	ClassifierMappingGroup,
 	ClassifierMappingInput,
+	ClassifierMappingsInput,
 	ClassifierNode,
 	ClassifierService,
 	ClassifierTreeNode,

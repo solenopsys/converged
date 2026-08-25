@@ -152,6 +152,55 @@ export type LeadEvent = {
 	createdAt: Date;
 };
 
+export type ImportContact = {
+	type?: string;
+	value?: string;
+	role?: string;
+	description?: string;
+};
+
+export type ImportLead = {
+	id?: string;
+	company?: string;
+	name?: string;
+	description?: string;
+	lang?: string;
+	type?: string;
+	catalogId?: string;
+	contacts?: ImportContact[];
+	tags?: string[];
+};
+
+export type ParseImportLeadsInput = {
+	text: string;
+};
+
+export type ImportSourceFormat = "json" | "delimited" | "lines" | "none";
+
+export type ParseImportLeadsResult = {
+	leads: ImportLead[];
+	format: ImportSourceFormat;
+};
+
+export type NormalizeImportLeadsInput = {
+	leads: ImportLead[];
+	defaultLang?: string;
+	defaultType?: string;
+	tags?: string[];
+};
+
+export type ImportItem = {
+	lead: Lead;
+	contacts: Contact[];
+	tags: string[];
+};
+
+export type NormalizeImportLeadsResult = {
+	items: ImportItem[];
+	/** rows dropped because they had no description and no company/name */
+	dropped: number;
+};
+
 export type OutreachCandidate = {
 	lead: Lead;
 	contact: Contact;
@@ -610,6 +659,36 @@ export const metadata: ServiceMetadata = {
       "isAsyncIterable": false
     },
     {
+      "name": "parseImportLeads",
+      "parameters": [
+        {
+          "name": "input",
+          "type": "ParseImportLeadsInput",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "ParseImportLeadsResult",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "normalizeImportLeads",
+      "parameters": [
+        {
+          "name": "input",
+          "type": "NormalizeImportLeadsInput",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "NormalizeImportLeadsResult",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
       "name": "findOutreachCandidate",
       "parameters": [
         {
@@ -789,6 +868,46 @@ export const metadata: ServiceMetadata = {
       "definition": "{\n\tid: string;\n\tcode: string;\n\ttype: LeadEventType | string;\n\tcontactId?: string | null;\n\tleadId?: string | null;\n\turl?: string | null;\n\treferrer?: string | null;\n\tuserAgent?: string | null;\n\tcreatedAt: Date;\n}"
     },
     {
+      "name": "ImportContact",
+      "kind": "type",
+      "definition": "{\n\ttype?: string;\n\tvalue?: string;\n\trole?: string;\n\tdescription?: string;\n}"
+    },
+    {
+      "name": "ImportLead",
+      "kind": "type",
+      "definition": "{\n\tid?: string;\n\tcompany?: string;\n\tname?: string;\n\tdescription?: string;\n\tlang?: string;\n\ttype?: string;\n\tcatalogId?: string;\n\tcontacts?: ImportContact[];\n\ttags?: string[];\n}"
+    },
+    {
+      "name": "ParseImportLeadsInput",
+      "kind": "type",
+      "definition": "{\n\ttext: string;\n}"
+    },
+    {
+      "name": "ImportSourceFormat",
+      "kind": "type",
+      "definition": "\"json\" | \"delimited\" | \"lines\" | \"none\""
+    },
+    {
+      "name": "ParseImportLeadsResult",
+      "kind": "type",
+      "definition": "{\n\tleads: ImportLead[];\n\tformat: ImportSourceFormat;\n}"
+    },
+    {
+      "name": "NormalizeImportLeadsInput",
+      "kind": "type",
+      "definition": "{\n\tleads: ImportLead[];\n\tdefaultLang?: string;\n\tdefaultType?: string;\n\ttags?: string[];\n}"
+    },
+    {
+      "name": "ImportItem",
+      "kind": "type",
+      "definition": "{\n\tlead: Lead;\n\tcontacts: Contact[];\n\ttags: string[];\n}"
+    },
+    {
+      "name": "NormalizeImportLeadsResult",
+      "kind": "type",
+      "definition": "{\n\titems: ImportItem[];\n\t/** rows dropped because they had no description and no company/name */\n\tdropped: number;\n}"
+    },
+    {
       "name": "OutreachCandidate",
       "kind": "type",
       "definition": "{\n\tlead: Lead;\n\tcontact: Contact;\n}"
@@ -847,6 +966,8 @@ export interface SalesServiceClient {
   recordEvent(event: LeadEvent): Promise<string>;
   listEvents(params: PaginationParams): Promise<PaginatedResult<LeadEvent>>;
   getEventFunnel(): Promise<Record<string, number>>;
+  parseImportLeads(input: ParseImportLeadsInput): Promise<ParseImportLeadsResult>;
+  normalizeImportLeads(input: NormalizeImportLeadsInput): Promise<NormalizeImportLeadsResult>;
   findOutreachCandidate(lang: string): Promise<OutreachCandidate | any>;
   findRandomLeadByLang(lang: string): Promise<Lead | any>;
   leadHasTouches(leadId: string): Promise<boolean>;

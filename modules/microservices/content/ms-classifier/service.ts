@@ -5,6 +5,7 @@ import type {
 	ClassifierMapping,
 	ClassifierMappingGroup,
 	ClassifierMappingInput,
+	ClassifierMappingsInput,
 	ClassifierNode,
 	ClassifierTreeNode,
 	PaginatedResult,
@@ -110,6 +111,27 @@ class ClassifierServiceImpl extends BaseService<StoresController> implements Cla
 			value: mapping.value,
 			priority: mapping.priority,
 		});
+	}
+
+	/** Upserts a whole recomputed mapping group in one call. The company-services
+	 *  pass rebuilds hundreds of keys at once; one setMapping per key would be
+	 *  hundreds of round trips. */
+	async setMappings(input: ClassifierMappingsInput): Promise<number> {
+		await this.ready();
+		for (const mapping of input.mappings) {
+			const existing = await this.stores.sqlStoreService.getMapping(
+				input.groupId,
+				mapping.key,
+			);
+			await this.stores.sqlStoreService.setMapping({
+				id: existing?.id ?? randomUUID(),
+				groupId: input.groupId,
+				key: mapping.key,
+				value: mapping.value ?? "",
+				priority: mapping.priority,
+			});
+		}
+		return input.mappings.length;
 	}
 
 	async getMapping(

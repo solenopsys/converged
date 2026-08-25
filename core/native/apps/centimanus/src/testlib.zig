@@ -107,7 +107,12 @@ fn mockCall(ctx: *anyopaque, a: std.mem.Allocator, service: []const u8, method: 
 
     const ret = handler(s.ptr, m.ptr, b.ptr) orelse
         return .{ .ok = false, .status = 500, .body = try a.dupe(u8, "{\"error\":\"mock call handler threw\"}") };
-    return .{ .ok = true, .status = 200, .body = try a.dupe(u8, std.mem.span(ret)) };
+    const span = std.mem.span(ret);
+    // A leading 0x01 means the host handler threw: the rest is the JSON error
+    // body it wants the workflow to see (already escaped on the host side).
+    if (span.len > 0 and span[0] == 1)
+        return .{ .ok = false, .status = 500, .body = try a.dupe(u8, span[1..]) };
+    return .{ .ok = true, .status = 200, .body = try a.dupe(u8, span) };
 }
 
 fn mockGet(ctx: *anyopaque, a: std.mem.Allocator, key: []const u8) anyerror!?[]const u8 {
@@ -150,5 +155,9 @@ fn mockLlm(ctx: *anyopaque, a: std.mem.Allocator, request_json: []const u8) anye
     const req = try a.dupeZ(u8, request_json);
     const ret = handler(req.ptr) orelse
         return .{ .ok = false, .body = try a.dupe(u8, "mock llm handler threw") };
-    return .{ .ok = true, .body = try a.dupe(u8, std.mem.span(ret)) };
+    const span = std.mem.span(ret);
+    // 0x01 sentinel: the host handler threw and the rest is its message.
+    if (span.len > 0 and span[0] == 1)
+        return .{ .ok = false, .body = try a.dupe(u8, span[1..]) };
+    return .{ .ok = true, .body = try a.dupe(u8, span) };
 }

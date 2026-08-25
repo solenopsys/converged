@@ -1,11 +1,11 @@
 // wf-file-analyze on the real VM core (librt-mock.so) with mocked services.
-// Build the library first: cd navite/apps/centimanus && zig build mock
+// Build the library first: cd ../../../core/native/apps/centimanus && zig build mock
 
 import { beforeAll, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { runWorkflow } from "../../../../navite/apps/centimanus/test/bun/centimanus-mock";
-import { buildWorkflow } from "../../core/build";
-import { createFileUniverse } from "../lib/mock-services";
+import { runWorkflow } from "../../../core/native/apps/centimanus/test/bun/centimanus-mock";
+import { buildWorkflow } from "../../../core/dag/core/build";
+import { createFileUniverse } from "../../../core/dag/lib/mock-services";
 
 let source: string;
 beforeAll(async () => {

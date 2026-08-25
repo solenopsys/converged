@@ -3,6 +3,8 @@ import type { CacheAdapter } from "back-core";
 import { unzipSync } from "fflate";
 import type {
 	DetectTypeInput,
+	ExtractTextInput,
+	ExtractTextResult,
 	FileChunk,
 	FileCollection,
 	FileMetadata,
@@ -29,6 +31,7 @@ import {
 	writeCacheRef,
 } from "./blobs";
 import { StoresController } from "./stores";
+import { extractTextFromBytes } from "./text";
 
 const MS_ID = "files-ms";
 
@@ -160,6 +163,19 @@ export class FilesServiceImpl implements FilesService {
 		}
 
 		return { entries };
+	}
+
+	/** Plain text of a staged blob (xlsx/xlsm sheets, svg labels, otherwise the
+	 *  decoded bytes). The sales-import workflow reads lead lists this way
+	 *  instead of parsing spreadsheets in the VM. */
+	async extractText(input: ExtractTextInput): Promise<ExtractTextResult> {
+		const bytes = await readCacheRef(this.requiredCache(), input.ref);
+		const text = extractTextFromBytes(input.name, bytes);
+		const max = input.maxChars ?? 0;
+		if (max > 0 && text.length > max) {
+			return { text: text.slice(0, max), chars: text.length, truncated: true };
+		}
+		return { text, chars: text.length, truncated: false };
 	}
 
 	private async persistBytes(

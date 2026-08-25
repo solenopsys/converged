@@ -68,7 +68,12 @@ export function runWorkflow(source: string, params: unknown, handler: CallHandle
 				return Number(ptr(callReply));
 			} catch (error) {
 				handlerError = error;
-				return 0; // null -> the engine sees a failed call
+				// 0x01 sentinel: a failed call whose message reaches the workflow,
+				// the way a real microservice error would.
+				callReply = Buffer.from(
+					`\x01${JSON.stringify({ error: messageOf(error) })}\0`,
+				);
+				return Number(ptr(callReply));
 			}
 		},
 		{ args: [FFIType.ptr, FFIType.ptr, FFIType.ptr], returns: FFIType.ptr },
@@ -101,7 +106,9 @@ export function runWorkflow(source: string, params: unknown, handler: CallHandle
 						return Number(ptr(llmReply));
 					} catch (error) {
 						handlerError = error;
-						return 0; // null -> the engine sees a failed rt.llm
+						// 0x01 sentinel: a failed rt.llm carrying the hub's message.
+						llmReply = Buffer.from(`\x01${messageOf(error)}\0`);
+						return Number(ptr(llmReply));
 					}
 				},
 				{ args: [FFIType.ptr], returns: FFIType.ptr },
@@ -137,6 +144,10 @@ export function runWorkflow(source: string, params: unknown, handler: CallHandle
 		setCb.close();
 		llmCb?.close();
 	}
+}
+
+function messageOf(error: unknown): string {
+	return error instanceof Error ? error.message : String(error);
 }
 
 /** Convenience: run and assert success, returning the workflow result. */
