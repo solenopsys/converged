@@ -42,6 +42,7 @@ export {
 export { LandingView } from "./LandingView";
 export { LandingLayout } from "./LandingLayout";
 export { LandingHeader, type LandingHeaderLink } from "./LandingHeader";
+export { LocalePicker } from "./LocalePicker";
 export {
 	type BlockContext,
 	type LandingBlock,

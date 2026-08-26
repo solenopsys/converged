@@ -208,6 +208,79 @@ html.dark .top-bar-theme-icon-sun {
   letter-spacing: 0.04em;
 }
 
+.top-bar-language {
+  position: relative;
+}
+
+.top-bar-language-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.top-bar-language-trigger,
+.top-bar-language-option {
+  color: var(--hw-ink);
+  font: 700 12px "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+.top-bar-language-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 78px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--hw-panel-border);
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.top-bar-language-trigger:hover,
+.top-bar-language-trigger:focus-visible {
+  border-color: var(--hw-ink);
+  background: color-mix(in srgb, var(--hw-panel) 45%, transparent);
+  outline: none;
+}
+
+.top-bar-language-positioner {
+  z-index: 60;
+}
+
+.top-bar-language-content {
+  min-width: 164px;
+  padding: 4px;
+  border: 1px solid var(--hw-panel-border);
+  border-radius: 4px;
+  background: var(--hw-canvas);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--hw-ink) 16%, transparent);
+}
+
+.top-bar-language-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 34px;
+  padding: 0 8px;
+  cursor: pointer;
+  outline: none;
+}
+
+.top-bar-language-option[data-highlighted],
+.top-bar-language-option:hover {
+  background: color-mix(in srgb, var(--hw-panel) 45%, transparent);
+}
+
+.top-bar-language-check {
+  display: inline-flex;
+  color: var(--hw-ink);
+}
 
 .shell-menu {
   position: relative;

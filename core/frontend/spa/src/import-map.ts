@@ -20,6 +20,7 @@ const baseImports: Record<string, string> = {
 	"signal-channel": "/vendor/signal-channel.js",
 	nrpc: "/vendor/nrpc.js",
 	"@zag-js/preact": "/vendor/zag.js",
+	"@zag-js/select": "/vendor/zag.js",
 	"@zag-js/tooltip": "/vendor/zag.js",
 	d3: "/vendor/d3.js",
 };

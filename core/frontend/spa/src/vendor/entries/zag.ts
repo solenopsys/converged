@@ -14,6 +14,7 @@ import * as utils from "@zag-js/utils";
  */
 
 export { normalizeProps, useMachine } from "@zag-js/preact";
+export * from "@zag-js/select";
 export * from "@zag-js/tooltip";
 
 // Common Zag runtime stays in the base vendor layer, not inside one widget.
