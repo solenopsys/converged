@@ -22,6 +22,7 @@
 
 import { loadConfig } from "./config";
 import { assertModuleDocs } from "./coverage";
+import { emitContent } from "./emit/content";
 import { emitEcosystem } from "./emit/ecosystem";
 import { emitHtml } from "./emit/html";
 import { emitPdf } from "./emit/pdf";
@@ -115,6 +116,7 @@ async function run(
 
 	switch (target) {
 		case "site":
+			await emitContent(config, writer, args.langs);
 			await emitSite(books, summary.roots, config, writer);
 			break;
 		case "ecosystem": {

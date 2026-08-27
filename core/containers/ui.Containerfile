@@ -18,7 +18,7 @@
 #     --ignorefile converged/core/containers/containerignore \
 #     --build-arg PROJECT=club -t localhost/club-ui:latest .
 
-ARG BUN_IMAGE=docker.io/oven/bun:1.3-alpine
+ARG BUN_IMAGE=docker.io/oven/bun:1.4-alpine
 # Execute-only Bun fork: it runs a prebuilt entrypoint and carries no bundler,
 # no package manager and no CLI dispatch. Source at core/native/wrappers/rt/cruller.
 ARG RUNTIME_IMAGE=public.ecr.aws/i5x9u8b2/cruller

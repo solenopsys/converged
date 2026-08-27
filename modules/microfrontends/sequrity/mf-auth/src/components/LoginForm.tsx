@@ -1,7 +1,7 @@
 import { useState } from "preact/compat";
 import { useUnit } from "effector-preact";
 import { cn, Button, Input, Label, useMicrofrontendTranslation } from "front-core";
-import { SocialsPanel } from "./Socials";
+// import { SocialsPanel } from "./Socials";
 import { $magicLinkStatus, $magicLinkError, magicLinkSend } from "../model";
 
 const AUTH_MF_ID = "auth-mf";
@@ -62,9 +62,11 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
         </div>
       </form>
 
-      <div className="border-t px-6 py-4">
-        <SocialsPanel />
-      </div>
+	  {/*
+	  <div className="border-t px-6 py-4">
+		<SocialsPanel />
+	  </div>
+	  */}
     </div>
   );
 }

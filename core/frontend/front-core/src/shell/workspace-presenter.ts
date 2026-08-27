@@ -27,6 +27,7 @@ widgetPresented.watch(({ actionId, params, widget, tab }) => {
 
 		key: tab?.key ?? fallbackKey,
 		owner: actionId ? ownerFor(actionId) : "workspace",
+		...(actionId ? { mountActionId: actionId } : {}),
 		title: tab?.title ?? titleFor(actionId, View),
 		view: View,
 		props: { ...widget.config, ...params, ...commands },

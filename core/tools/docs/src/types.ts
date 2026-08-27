@@ -70,6 +70,7 @@ export type Book = {
 export type OutputPaths = {
 	struct: string;
 	markdown: string;
+	static: string;
 	readme: string;
 	html: string;
 	pdf: string;
@@ -113,6 +114,8 @@ export type Config = {
 	root: string;
 	/** Project roots scanned for modules, absolute. */
 	projects: string[];
+	/** Product-owned JSON, Markdown and static assets, authored in English. */
+	content: string;
 	out: OutputPaths;
 	sections: Record<string, SectionConfig>;
 	/**
@@ -120,6 +123,8 @@ export type Config = {
 	 * language but the source one, so an owner's `docs/` stays single-language.
 	 */
 	cache: string;
+	/** Product translation cache, kept in the closed product repository. */
+	contentCache: string;
 	docsPage: DocsPageConfig;
 	ecosystem: EcosystemConfig;
 	translation: TranslationConfig;

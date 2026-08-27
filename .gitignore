@@ -8,6 +8,8 @@ zig-pkg
 zig-out
 target
 build/
+!core/frontend/spa/src/build/
+!core/frontend/spa/src/build/**
 zig-out
 .bin/
 **/.bin/

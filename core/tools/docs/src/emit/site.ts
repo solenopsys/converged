@@ -33,7 +33,12 @@ function json(value: unknown): string {
 
 async function emitFlat(book: Book, config: Config, writer: Writer) {
 	const structDir = join(config.out.struct, book.lang, "docs", book.section);
-	const markdownDir = join(config.out.markdown, book.lang, "docs", book.section);
+	const markdownDir = join(
+		config.out.markdown,
+		book.lang,
+		"docs",
+		book.section,
+	);
 
 	await writer.write(
 		join(structDir, "index.json"),
@@ -46,7 +51,12 @@ async function emitFlat(book: Book, config: Config, writer: Writer) {
 
 async function emitCompound(book: Book, config: Config, writer: Writer) {
 	const structDir = join(config.out.struct, book.lang, "docs", book.section);
-	const markdownDir = join(config.out.markdown, book.lang, "docs", book.section);
+	const markdownDir = join(
+		config.out.markdown,
+		book.lang,
+		"docs",
+		book.section,
+	);
 	const groups = new Map<string, typeof book.contributions>();
 	for (const contribution of book.contributions) {
 		groups.set(contribution.group, [
@@ -144,6 +154,7 @@ async function copyNestedDocs(
 		for (const entry of readdirSync(dir, { withFileTypes: true })) {
 			const path = join(dir, entry.name);
 			if (entry.isDirectory()) {
+				if (dir === langRoot && entry.name === "content") continue;
 				await visit(path);
 				continue;
 			}

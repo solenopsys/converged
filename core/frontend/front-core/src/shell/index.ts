@@ -5,6 +5,11 @@ export {
 	type AppShellMountConfig,
 } from "./AppShellFrame";
 export { bootstrapAppShell } from "./bootstrap";
+export {
+	bootstrapWorkspaceUrl,
+	mountActionFromUrl,
+	urlForMountAction,
+} from "./workspace-url";
 export { loadMicrofrontend, loadMicrofrontendForAction } from "./mf";
 export {
 	$composerPlacement,

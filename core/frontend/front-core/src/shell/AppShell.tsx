@@ -50,6 +50,8 @@ const panelTabs: Array<{ id: RightPanelTab; label: string }> = [
 	{ id: "events", label: "Events" },
 ];
 
+const CONVERGED_LOGO_URL = "/assets/converged.svg";
+
 function FunctionList({
 	functions,
 	query,
@@ -403,9 +405,11 @@ export function AppShell({
 						}}
 					/>
 					<header class="panel-header">
-						<span class="panel-label">
-							hw<span>.</span>
-						</span>
+						<img
+							class="panel-label-logo"
+							src={CONVERGED_LOGO_URL}
+							alt="Converged"
+						/>
 						<div class="panel-user-actions">
 							<span
 								class="chat-user-status"

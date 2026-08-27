@@ -33,6 +33,7 @@ describe("workspace presenter", () => {
 		expect($activeWorkspaceTab.getState()).toMatchObject({
 			key: actionId,
 			owner: "presenter-test",
+			mountActionId: actionId,
 			title: "Open test workspace",
 			view: View,
 			props: { fromConfig: true, recordId: "42" },

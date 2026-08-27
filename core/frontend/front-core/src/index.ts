@@ -169,7 +169,17 @@ export {
 export { authToken } from "./auth-token";
 export type { AuthTokenPayload } from "./auth-token";
 export { upsertSidebarTab } from "./sidebar-tabs";
-export { $activeLocale, LocaleController, useMicrofrontendTranslation } from "./i18n";
+export {
+	$activeLocale,
+	LocaleController,
+	registerMicrofrontendLocales,
+	useMicrofrontendTranslation,
+} from "./i18n";
+export type {
+	MicrofrontendLocaleSource,
+	MicrofrontendLocales,
+	MicrofrontendMessages,
+} from "./i18n";
 export { JsonRenderer } from "./components/json-renderer";
 export { ThreadedChat, type ThreadedChatProps } from "./components/chat/ThreadedChat";
 export { ThreadView, type ThreadViewProps, type ThreadViewMessage } from "./components/chat/ThreadView";

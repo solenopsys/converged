@@ -45,6 +45,7 @@ import { basename, dirname, join, resolve } from "node:path";
 import { brotliCompressSync, constants as zlib } from "node:zlib";
 import { FUNCTION_INDEX } from "back-core/module-registry";
 import { createGenerator } from "unocss";
+import { localizedMicrofrontendEntry } from "../../../frontend/spa/src/build/microfrontend-locales";
 import { createImportMap } from "../../../frontend/spa/src/import-map";
 import unoMicrofrontendConfig from "../../../frontend/spa/uno.mf.config";
 import { createCssPlugin, withStylePrologue } from "./css";
@@ -188,11 +189,18 @@ async function bundle(
 		module.kind === "microservices"
 			? await writeServiceEntry(options, module)
 			: module.implementation;
+	const localizedEntry = browser
+		? await localizedMicrofrontendEntry(entry, module.name)
+		: null;
 
 	// Filled by the css plugin as it converts each stylesheet the module imports.
 	const styles: string[] = [];
+	const plugins = localizedEntry
+		? [localizedEntry.plugin, createCssPlugin(styles)]
+		: [];
+
 	const result = await Bun.build({
-		entrypoints: [entry],
+		entrypoints: [localizedEntry?.entrypoint ?? entry],
 		target: browser ? "browser" : "bun",
 		format: "esm",
 		minify: true,
@@ -201,7 +209,7 @@ async function bundle(
 		// second file, and a module is addressed by exactly one digest.
 		splitting: false,
 		external: browser ? externals : BASE_EXTERNALS,
-		plugins: browser ? [createCssPlugin(styles)] : [],
+		plugins,
 	});
 
 	if (!result.success) {
@@ -448,36 +456,21 @@ function awsCliCredentials(): Credentials | undefined {
 	}
 }
 
-/** `aws configure get region`, for when neither the env nor a flag says. */
-function awsCliRegion(): string | undefined {
-	const proc = Bun.spawnSync(["aws", "configure", "get", "region"], {
-		stdout: "pipe",
-		stderr: "pipe",
-	});
-	if (!proc.success) return undefined;
-	return proc.stdout.toString().trim() || undefined;
-}
-
 /**
  * Where `-p` uploads.
- *
- * Only two things here are the registry's own, and both carry the
- * `REGISTRY_S3_` prefix for a reason. The bucket, because these objects are
- * immutable build output that every environment reads by digest while the
- * tenant buckets hold customer data under a retention policy, and sharing one
- * would put a deploy artifact behind that policy. The region, because it is the
- * bucket's and not the account's: `AWS_REGION` is read by `ecrLogin`, where it
- * has to stay us-east-1 since that is the only region ecr-public exists in.
  *
  * Credentials are not among them. They come from the aws cli, exactly as the
  * container push does, and the env is consulted first only so that CI can set
  * `AWS_ACCESS_KEY_ID` without an aws config to point at.
  */
 function registryTarget(): RegistryTarget {
-	const bucket = env("REGISTRY_S3_BUCKET", "S3_BUCKET", "AWS_BUCKET");
-	if (!bucket) {
+	const bucket = env("REGISTRY_S3_BUCKET");
+	const region = env("REGISTRY_S3_REGION");
+	const endpoint = env("REGISTRY_S3_ENDPOINT");
+	if (!bucket || !region || !endpoint) {
 		throw new Error(
-			"[registry] -p needs REGISTRY_S3_BUCKET — set it in the CLI env file this ran with",
+			"[registry] -p needs REGISTRY_S3_BUCKET, REGISTRY_S3_REGION and " +
+				"REGISTRY_S3_ENDPOINT in the CLI env file",
 		);
 	}
 
@@ -512,23 +505,19 @@ function registryTarget(): RegistryTarget {
 	}
 	const source = fromEnv.accessKeyId ? "env" : "aws cli";
 
-	const endpoint = env("REGISTRY_S3_ENDPOINT", "S3_ENDPOINT", "AWS_ENDPOINT");
 	return {
 		client: new Bun.S3Client({
 			bucket,
 			endpoint,
-			region:
-				env("REGISTRY_S3_REGION", "S3_REGION", "AWS_REGION") ?? awsCliRegion(),
+			region,
 			...credentials,
 		}),
-		description: `${endpoint ?? "s3"}/${bucket} (credentials from ${source})`,
+		description: `${endpoint}/${bucket} (credentials from ${source})`,
 	};
 }
 
 function objectPrefix(): string {
-	return (
-		env("REGISTRY_S3_PREFIX", "S3_PREFIX")?.replace(/^\/+|\/+$/g, "") ?? ""
-	);
+	return env("REGISTRY_S3_PREFIX")?.replace(/^\/+|\/+$/g, "") ?? "";
 }
 
 function objectKey(name: string): string {
@@ -550,20 +539,11 @@ function registryUrl(): string | undefined {
 	const explicit = env("REGISTRY_URL");
 	if (explicit) return explicit.replace(/\/+$/, "");
 
-	const bucket = env("REGISTRY_S3_BUCKET", "S3_BUCKET", "AWS_BUCKET");
-	if (!bucket) return undefined;
+	const bucket = env("REGISTRY_S3_BUCKET");
+	const endpoint = env("REGISTRY_S3_ENDPOINT");
+	if (!bucket || !endpoint) return undefined;
 
-	const endpoint = env("REGISTRY_S3_ENDPOINT", "S3_ENDPOINT", "AWS_ENDPOINT");
-	// A custom endpoint — minio, or S3 addressed by region host — takes the
-	// bucket as the first path segment. AWS gets the virtual-hosted form, which
-	// is the only one still guaranteed for buckets created from now on.
-	const base = endpoint
-		? `${endpoint.replace(/\/+$/, "")}/${bucket}`
-		: `https://${bucket}.s3.${
-				env("REGISTRY_S3_REGION", "S3_REGION", "AWS_REGION") ??
-				awsCliRegion() ??
-				"us-east-1"
-			}.amazonaws.com`;
+	const base = `${endpoint.replace(/\/+$/, "")}/${bucket}`;
 
 	const prefix = objectPrefix();
 	return prefix ? `${base}/${prefix}` : base;
@@ -737,8 +717,8 @@ if (values) {
 	);
 } else {
 	console.warn(
-		"[registry] no REGISTRY_URL or REGISTRY_S3_BUCKET, so the chart values " +
-			"cannot be addressed and were not written",
+		"[registry] no REGISTRY_URL or REGISTRY_S3_ENDPOINT/REGISTRY_S3_BUCKET, " +
+			"so the chart values cannot be addressed and were not written",
 	);
 }
 const shipped = built.reduce((sum, entry) => sum + entry.size, 0);

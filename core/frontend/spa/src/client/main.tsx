@@ -5,7 +5,7 @@ import {
 } from "front-core/landing";
 import { AppShell, bootstrapAppShell } from "front-core/shell";
 import { render } from "preact";
-import { blocks, brand, header } from "./landing-blocks";
+import { blocks, BrandLogo, header } from "./landing-blocks";
 
 function readLandingPayload(): LandingPayload {
 	const element = document.getElementById("__INITIAL_DATA__");
@@ -46,7 +46,11 @@ if (route === "/audit" || route === "/audit/print") {
 		// SSR provides a landing placeholder only; the interactive shell has browser
 		// dependencies and must own the mounted tree instead of hydrating a different one.
 		render(
-			<AppShell config={config} landing={readLandingPayload()} brand={brand} />,
+			<AppShell
+				config={config}
+				landing={readLandingPayload()}
+				brand={<BrandLogo />}
+			/>,
 			root,
 		);
 	}).catch((error) => {

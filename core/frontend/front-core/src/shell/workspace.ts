@@ -6,6 +6,8 @@ import { $composerPlacement, panelOpened, surfacePresenceChanged } from "./panel
 export type WorkspaceTab = {
 	key: string;
 	owner: string;
+	/** Action which can recreate this tab after a page reload. */
+	mountActionId?: string;
 	title: string;
 	view: ComponentType<Record<string, unknown>>;
 	props: Record<string, unknown>;

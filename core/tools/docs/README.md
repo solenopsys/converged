@@ -1,9 +1,8 @@
 # docs-builder
 
-Assembles documentation that lives next to the code it describes, and emits it
-in five shapes: the production site, GitHub READMEs, static HTML, PDF, and the
-ecosystem page built from the module tree. Sources are also handed to
-`translation-control`.
+Assembles documentation and product-owned content, then emits the runtime
+stores, GitHub READMEs, static HTML, PDF, and the ecosystem page built from the
+module tree. Sources are also handed to `translation-control`.
 
 Generation runs **one way**: from sources into stores. Everything under `data/`
 and `build/` is an artefact — an edit there survives until the next build and
@@ -43,6 +42,19 @@ Language sits before section on purpose: in that layout a `docs` folder is a
 valid `translation-control` root, and that tool compares `<root>/<locale>/<…>`
 trees. In practice an owner keeps only `en`; every other language lives in the
 translation cache.
+
+Closed product content uses one consolidated source tree:
+
+```
+club/content/struct/en/<path>.json       authored struct content
+club/content/markdown/en/<path>.md       authored Markdown content
+club/content/static/<path>        authored gallery assets
+```
+
+The `site` target preserves those store boundaries and copies `static/`
+verbatim into `galery-ms`. Generated documentation and the
+ecosystem landing still come from their distributed sources, so they are not
+duplicated under `club/content`.
 
 `index.json` is the same format `struct-ms` serves:
 
@@ -95,7 +107,7 @@ Flags: `--config <path>`, `--section <name>`, `--lang <code>`, `--dry-run`,
 
 | Target | Where | What it is |
 | --- | --- | --- |
-| `site` | `data/club/struct-ms/struct/data`, `data/club/markdown-ms/markdown/data` | generated site data: merged section indexes plus every nested article and index |
+| `site` | `data/club/struct-ms/struct/data`, `data/club/markdown-ms/markdown/data`, `data/club/galery-ms/static` | product content plus generated documentation and static assets |
 | `ecosystem` | `data/club/struct-ms/struct/data/<lang>/landings/ecosystem` | the ecosystem landing |
 | `readme` | `build/docs/readme` | one article per section, with a table of contents |
 | `html` | `build/docs/html` | preact SSR, side menu, inline styles |
@@ -125,11 +137,10 @@ purpose is read from its `README.md` — the first paragraph under `## Purpose`
 (`## UI Purpose` for microfrontends) and the paragraph under the ownership
 boundary heading. Counters are computed, not written.
 
-Wording is the only hand-authored part, and it lives where the rest of the docs
-live: `<project>/docs/<lang>/ecosystem/landing.json`. One file per language
-holding block headings, kind labels, and domain and solution names. Several
-projects merge key by key, so a product layer can rename a domain without
-restating the file.
+Wording is the only hand-authored part. Public copy lives at
+`converged/docs/en/ecosystem/landing.json`; closed product copy lives at
+`club/content/struct/en/ecosystem/landing.json`. They merge key by key, so the product
+layer can rename a domain without restating the public file.
 
 A domain or solution nobody labelled appears under its own id. A new module is
 on the page immediately, even before anyone names its domain.
@@ -150,14 +161,14 @@ site.
 Every run writes `.docs-build.json`, a record of what it produced. On the next
 run anything that dropped out of that record is deleted, and directories the
 deletion emptied are removed up to the output root. This is why only our own
-output is cleaned: `struct-ms` holds hand-maintained content beside the
-generated one (`landing/`, `functions/`), and no rule over names separates
-them. `--no-prune` turns the cleanup off.
+output is cleaned. The manifest is the ownership boundary that prevents one
+target from pruning files emitted by another. `--no-prune` turns cleanup off.
 
 ## Translations
 
-`docs:translations` builds a config in which each discovered `docs` root is one
-`translation-control` project. Then:
+`docs:translations` builds a config in which each discovered `docs` root and
+the consolidated `club/content` tree are separate `translation-control`
+projects. Then:
 
 ```bash
 cd ../translation
@@ -170,14 +181,20 @@ Drift is tracked in the sources, not in the generated stores: an edit inside
 
 ### The translation cache
 
-`converged/docs-cache` is a submodule
-([converged_docs](https://github.com/solenopsys/converged_docs)) holding every
-language but the source one:
+There are two caches because the public platform and closed product have
+different ownership boundaries:
+
+- `converged/docs-cache` is the public documentation translation submodule.
+- `club/docs-cache` contains only closed product translations.
+
+Both hold every language but the English source. Their layouts are:
 
 ```
 <lang>/<section>/[<owner>/]<slug>.md    translated articles
 <lang>/<section>/[<owner>/]index.json   translated index
 <lang>/ecosystem/landing.json           translated landing copy
+struct/<lang>/<path>.json                closed struct translation
+markdown/<lang>/<path>.md                closed Markdown translation
 ```
 
 It is read exactly like an authored `docs` folder — a translated section
@@ -187,17 +204,12 @@ an `<owner>` level when it has several, which is the shape `emitSite` already
 writes. Cache contributions never appear in the discovered roots: a root is
 somewhere a human authors, and nobody authors here.
 
-Configured as `cache` in `docs.config.json`. A cache that is not checked out
-means "no translations", never an error — it is a submodule and may be absent.
-
-Separate repository so machine-produced text does not churn the platform's
-history; in version control rather than in `build/` because a translation costs
-real work and must survive a clean checkout.
+They are configured independently as `cache` and `contentCache` in
+`docs.config.json`. An absent cache means "no translations", never an error.
 
 `core/tools/translation` compares each authored root against the matching cache
-root. Its generated config uses `targetRoot` for `docs-cache`, while state and
 reports stay in `build/docs/translation` and the durable translation ledger is
-stored in `docs-cache/.translation/`.
+stored in that source project's own `docs-cache/.translation/`.
 
 `core/tools/translation` carries the field a cache needs:
 **`translatedFromHash`**, the hash of the English text a translation was made

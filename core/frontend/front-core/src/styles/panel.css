@@ -320,15 +320,10 @@ textarea {
 	gap: var(--hw-space-3);
 }
 
-.panel-label {
-	margin: 0;
-	font-size: var(--hw-font-size-lg);
-	font-weight: 650;
-	letter-spacing: 0;
-}
-
-.panel-label span {
-	color: var(--hw-accent);
+.panel-label-logo {
+	display: block;
+	width: 25px;
+	height: 22px;
 }
 
 .chat-user-status {

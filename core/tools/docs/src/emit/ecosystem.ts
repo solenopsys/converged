@@ -117,6 +117,15 @@ function copyPaths(config: Config, lang: string): string[] {
 	if (config.cache) {
 		paths.push(join(config.cache, lang, "ecosystem", "landing.json"));
 	}
+	if (config.contentCache)
+		paths.push(
+			join(config.contentCache, "struct", lang, "ecosystem", "landing.json"),
+		);
+	if (config.content) {
+		paths.push(
+			join(config.content, "struct", lang, "ecosystem", "landing.json"),
+		);
+	}
 	return paths;
 }
 
@@ -313,6 +322,8 @@ function authoredLangs(config: Config): string[] {
 	const roots = [
 		...config.projects.map((project) => join(project, "docs")),
 		...(config.cache ? [config.cache] : []),
+		...(config.contentCache ? [join(config.contentCache, "struct")] : []),
+		...(config.content ? [join(config.content, "struct")] : []),
 	];
 
 	for (const root of roots) {
@@ -320,6 +331,13 @@ function authoredLangs(config: Config): string[] {
 		for (const entry of readdirSync(root, { withFileTypes: true })) {
 			if (!entry.isDirectory()) continue;
 			if (existsSync(join(root, entry.name, "ecosystem", "landing.json"))) {
+				langs.add(entry.name);
+			}
+			if (
+				existsSync(
+					join(root, entry.name, "content", "ecosystem", "landing.json"),
+				)
+			) {
 				langs.add(entry.name);
 			}
 		}

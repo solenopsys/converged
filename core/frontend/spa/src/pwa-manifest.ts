@@ -24,7 +24,12 @@ export const manifest = {
 			type: "image/png",
 			purpose: "maskable",
 		},
-		{ src: "/favicon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
+		{
+			src: "/icons/converged.svg",
+			sizes: "any",
+			type: "image/svg+xml",
+			purpose: "any",
+		},
 	],
 } as const;
 

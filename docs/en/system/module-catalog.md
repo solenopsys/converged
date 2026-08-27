@@ -584,6 +584,20 @@ Expands one uploaded archive into a collection of stored files for subsequent an
 - Direct dependencies: none
 - Solutions: `requests`
 
+### [wf-sales-import](/en/docs/modules/wf-sales-import)
+
+wf-sales-import is a workflow in the platform domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: none
+- Solutions: none
+
+### [wf-sales-review-outreach](/en/docs/modules/wf-sales-review-outreach)
+
+wf-sales-review-outreach is a workflow in the platform domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: none
+- Solutions: none
+
 ## Solution dependencies
 
 - `ai`: `security`

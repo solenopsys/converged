@@ -242,6 +242,7 @@ async function readCache(
 ): Promise<void> {
 	for (const lang of subdirs(cache)) {
 		for (const section of subdirs(join(cache, lang))) {
+			if (section === "content") continue;
 			const dir = join(cache, lang, section);
 			const owners = existsSync(join(dir, "index.json"))
 				? [{ owner: defaultOwner, path: dir }]

@@ -15,9 +15,11 @@ export const DEFAULT_CONFIG_PATH = resolve(TOOL_ROOT, "docs.config.json");
 
 type RawConfig = {
 	projects?: string[];
+	content?: string;
 	out?: Partial<Record<keyof Config["out"], string>>;
 	sections?: Record<string, SectionConfig>;
 	cache?: string;
+	contentCache?: string;
 	docsPage?: DocsPageConfig;
 	ecosystem?: Partial<EcosystemConfig>;
 	translation?: Partial<Config["translation"]>;
@@ -45,12 +47,15 @@ const DEFAULTS: Required<RawConfig> = {
 	out: {
 		struct: "../../../../data/club/struct-ms/struct/data",
 		markdown: "../../../../data/club/markdown-ms/markdown/data",
+		static: "../../../../data/club/galery-ms/static",
 		readme: "../../../../build/docs/readme",
 		html: "../../../../build/docs/html",
 		pdf: "../../../../build/docs/pdf",
 	},
 	sections: {},
+	content: "../../../../club/content",
 	cache: "../../../docs-cache",
+	contentCache: "../../../../club/docs-cache",
 	docsPage: {},
 	ecosystem: DEFAULT_ECOSYSTEM,
 	translation: DEFAULT_TRANSLATION,
@@ -84,6 +89,13 @@ export async function loadConfig(configPath?: string): Promise<Config> {
 
 	const configuredCache = resolveFrom(root, raw.cache ?? DEFAULTS.cache);
 	const cacheRoot = existsSync(configuredCache) ? configuredCache : "";
+	const configuredContentCache = resolveFrom(
+		root,
+		raw.contentCache ?? DEFAULTS.contentCache,
+	);
+	const contentCacheRoot = existsSync(configuredContentCache)
+		? configuredContentCache
+		: "";
 
 	if (projects.length === 0) {
 		throw new Error(
@@ -94,9 +106,11 @@ export async function loadConfig(configPath?: string): Promise<Config> {
 	return {
 		root,
 		projects,
+		content: resolveFrom(root, raw.content ?? DEFAULTS.content),
 		out: {
 			struct: resolveFrom(root, out.struct),
 			markdown: resolveFrom(root, out.markdown),
+			static: resolveFrom(root, out.static),
 			readme: resolveFrom(root, out.readme),
 			html: resolveFrom(root, out.html),
 			pdf: resolveFrom(root, out.pdf),
@@ -105,6 +119,7 @@ export async function loadConfig(configPath?: string): Promise<Config> {
 		// A cache that is not checked out is normal — it is a submodule — so an
 		// absent one means "no translations", never an error.
 		cache: cacheRoot,
+		contentCache: contentCacheRoot,
 		docsPage: raw.docsPage ?? DEFAULTS.docsPage,
 		ecosystem: {
 			landing: raw.ecosystem?.landing ?? DEFAULT_ECOSYSTEM.landing,

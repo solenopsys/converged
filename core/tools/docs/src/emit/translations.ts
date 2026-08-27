@@ -12,6 +12,7 @@
  *   bun run scan --config <business>/build/docs/translation-control.json
  */
 
+import { existsSync, readdirSync } from "node:fs";
 import { join, relative } from "node:path";
 import type { Writer } from "../fs";
 import type { Config, ScanSummary } from "../types";
@@ -33,6 +34,13 @@ type Project = {
 function relativeTo(from: string, path: string): string {
 	const value = relative(from, path);
 	return value.startsWith(".") ? value : `./${value}`;
+}
+
+function cacheLocales(path: string): string[] {
+	if (!path || !existsSync(path)) return [];
+	return readdirSync(path, { withFileTypes: true })
+		.filter((entry) => entry.isDirectory() && /^[a-z]{2,3}$/.test(entry.name))
+		.map((entry) => entry.name);
 }
 
 export async function emitTranslations(
@@ -92,6 +100,38 @@ export async function emitTranslations(
 			include: [],
 			stateFile: relativeTo(dir, `${stateDir}/${root.owner}.state.json`),
 			reportFile: relativeTo(dir, `${stateDir}/${root.owner}.report.json`),
+		});
+	}
+
+	for (const store of ["struct", "markdown"]) {
+		const source = join(config.content, store);
+		const cache = join(config.contentCache, store);
+		if (!config.content || !existsSync(join(source, sourceLocale))) continue;
+		const name = `club-${store}`;
+		projects.push({
+			name,
+			root: relativeTo(dir, source),
+			...(config.contentCache
+				? {
+						targetRoot: relativeTo(dir, cache),
+						ledgerFile: relativeTo(
+							dir,
+							join(config.contentCache, ".translation", `${name}.ledger.json`),
+						),
+					}
+				: {
+						ledgerFile: relativeTo(dir, join(stateDir, `${name}.ledger.json`)),
+					}),
+			sourceLocale,
+			targetLocales: (targetLocales.length
+				? targetLocales
+				: cacheLocales(cache)
+			)
+				.filter((lang) => lang !== sourceLocale)
+				.sort(),
+			include: [],
+			stateFile: relativeTo(dir, `${stateDir}/${name}.state.json`),
+			reportFile: relativeTo(dir, `${stateDir}/${name}.report.json`),
 		});
 	}
 
