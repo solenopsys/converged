@@ -1,0 +1,10 @@
+{
+  "llm": {
+    "actions": {
+      "struct_list": {
+        "brief": "Show struct files list",
+        "description": "Show struct files list"
+      }
+    }
+  }
+}

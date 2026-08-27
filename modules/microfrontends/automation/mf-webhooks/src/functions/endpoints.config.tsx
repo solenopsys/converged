@@ -101,7 +101,13 @@ const createEndpointsListWidget: CreateWidget<typeof EndpointsListView> = (bus) 
 
 const createShowEndpointsListAction: CreateAction<any> = (bus) => ({
   id: SHOW_ENDPOINTS_LIST,
-  description: "Show webhook endpoints",
+  llm: {
+    microfrontend: "webhooks-mf",
+    brief: "llm.actions.webhooks_endpoints_show.brief",
+    description: "llm.actions.webhooks_endpoints_show.description",
+  },
+  exposure: "user",
+  priority: "normal",
   invoke: () => {
     bus.present({ widget: createEndpointsListWidget(bus) });
   },
@@ -109,7 +115,13 @@ const createShowEndpointsListAction: CreateAction<any> = (bus) => ({
 
 const createShowEndpointFormAction: CreateAction<any> = (bus) => ({
   id: SHOW_ENDPOINT_FORM,
-  description: "Show webhook endpoint form",
+  llm: {
+    microfrontend: "webhooks-mf",
+    brief: "llm.actions.webhooks_endpoint_form_show.brief",
+    description: "llm.actions.webhooks_endpoint_form_show.description",
+  },
+  exposure: "user",
+  priority: "normal",
   invoke: ({ endpoint }: { endpoint?: any }) => {
     openEndpointForm({ endpoint });
     bus.present({ widget: createEndpointFormWidget(bus) });

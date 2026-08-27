@@ -8,9 +8,13 @@ const createShowStaticCacheAction: CreateAction<undefined> = () => ({
   id: SHOW_STATIC_CACHE,
   brief: "Open the static SSR page cache",
   category: "static",
-  description:
-    "Show the SSR static cache: pages with status (todo/loaded/outdated), " +
-    "content type, size and load time. Supports flush and invalidation by pattern.",
+  llm: {
+    microfrontend: "static-mf",
+    brief: "llm.actions.static_cache_show.brief",
+    description: "llm.actions.static_cache_show.description",
+  },
+  exposure: "user",
+  priority: "normal",
   invoke: () => {
     staticOpened();
     return { ok: true, entity: "static-cache" };

@@ -3,6 +3,7 @@ import {
 	$actionCatalog,
 	actionCommand,
 	installEffectorTrafficLogger,
+	resolveActionMeta,
 } from "front-core/core";
 import type { ComponentChildren } from "preact";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
@@ -59,9 +60,10 @@ function FunctionList({
 }: {
 	functions: Array<{
 		id: string;
-		brief?: string;
+		brief: string;
 		category?: string;
 		description: string;
+		priority: "primary" | "normal" | "secondary";
 	}>;
 	query: string;
 	onRun: (actionId: string) => void;
@@ -78,13 +80,19 @@ function FunctionList({
 		return <p class="panel-empty-state">Loading system functions...</p>;
 	}
 
-	const matchedFunctions = functions.filter(
-		(fn) =>
+	const matchedFunctions = functions
+		.filter(
+			(fn) =>
 			!normalizedQuery ||
 			[fn.id, fn.category, fn.brief, fn.description].some((value) =>
 				value?.toLocaleLowerCase().includes(normalizedQuery),
 			),
-	);
+		)
+		.sort(
+			(left, right) =>
+				priorityWeight(right.priority) - priorityWeight(left.priority) ||
+				left.brief.localeCompare(right.brief),
+		);
 	const groups = matchedFunctions.reduce<Map<string, typeof matchedFunctions>>(
 		(grouped, fn) => {
 			const category = categoryOf(fn);
@@ -133,6 +141,10 @@ function FunctionList({
 				})}
 		</div>
 	);
+}
+
+function priorityWeight(priority: "primary" | "normal" | "secondary"): number {
+	return priority === "primary" ? 2 : priority === "secondary" ? 0 : 1;
 }
 
 const MIN_PANEL_WIDTH = 300;
@@ -249,7 +261,11 @@ export function AppShell({
 		const text = draft.trim();
 		if (!text) return;
 		const requestedAction = text.startsWith("/")
-			? actionCatalog.find((action) => `/${action.id}` === text)
+			? actionCatalog
+					.map(resolveActionMeta)
+					.find(
+						(action) => action.exposure === "user" && `/${action.id}` === text,
+					)
 			: undefined;
 		if (requestedAction) {
 			runFunction(requestedAction.id);
@@ -443,9 +459,11 @@ export function AppShell({
 								<div class="panel-messages" />
 							)
 						) : null}
-						{panelTab === "commands" ? (
+		{panelTab === "commands" ? (
 							<FunctionList
-								functions={actionCatalog}
+								functions={actionCatalog
+									.map(resolveActionMeta)
+									.filter((action) => action.exposure === "user")}
 								query={draft}
 								onRun={runFunction}
 							/>

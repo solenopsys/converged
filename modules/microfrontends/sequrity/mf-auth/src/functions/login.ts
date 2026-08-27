@@ -13,13 +13,25 @@ const createLoginWidget: CreateWidget<typeof LoginView> = (bus) => ({
 export const createShowLoginAction: CreateAction<any> = (bus) => ({
   id: SHOW_LOGIN,
   access: "public",
-  description: "Show login form",
+  llm: {
+    microfrontend: "auth-mf",
+    brief: "llm.actions.auth_show_login.brief",
+    description: "llm.actions.auth_show_login.description",
+  },
+  exposure: "user",
+  priority: "normal",
   invoke: () => bus.present({ widget: createLoginWidget(bus) }),
 });
 
 export const createAuthAction: CreateAction<any> = () => ({
   id: "auth.login",
   access: "public",
-  description: "Auth user",
+  llm: {
+    microfrontend: "auth-mf",
+    brief: "llm.actions.auth_login.brief",
+    description: "llm.actions.auth_login.description",
+  },
+  exposure: "llm",
+  priority: "normal",
   invoke: () => {},
 });

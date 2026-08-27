@@ -21,6 +21,7 @@ import { createContextPromptResolver } from "./context-prompt";
 import { initChatMessages } from "./i18n";
 import { createServices } from "./services";
 import { setActionBriefResolver } from "./ui/labels";
+import { resolveActionMeta } from "front-core/core";
 
 export type Chat = {
 	store: ChatStore;
@@ -112,11 +113,15 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 		const republish = () =>
 			conversation.catalog.functionsPublished({
 				source: "ui",
-				functions: (host.diagnostics?.all() ?? []).map((action) => ({
-					id: action.id,
-					brief: action.brief ?? action.description.slice(0, 80),
-					category: action.category,
-				})),
+				functions: (host.diagnostics?.all() ?? []).map((action) => {
+					const resolved = resolveActionMeta(action);
+					return {
+						id: resolved.id,
+						brief: resolved.brief,
+						category: resolved.category,
+						priority: resolved.priority,
+					};
+				}),
 			});
 		republish();
 		host.onChange?.(republish);

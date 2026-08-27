@@ -15,7 +15,13 @@ const dashboardWidgetActions: string[] = [];
 
 const createDashboardMountAction: CreateAction<any> = (bus) => ({
   id: SHOW_DASHBOARD,
-  description: "Mount dashboard",
+  llm: {
+    microfrontend: "dasboards-mf",
+    brief: "llm.actions.dashboard_mount.brief",
+    description: "llm.actions.dashboard_mount.description",
+  },
+  exposure: "llm",
+  priority: "normal",
   invoke: (params: {}) => {
     const widget = createDashboardLayoutWidget(bus);
     bus.present({ widget });
@@ -28,7 +34,13 @@ const createDashboardMountAction: CreateAction<any> = (bus) => ({
 
 const createRegisterDashboardWidgetAction: CreateAction<any> = () => ({
   id: REGISTER_DASHBOARD_WIDGET,
-  description: "Register widget for dashboard",
+  llm: {
+    microfrontend: "dasboards-mf",
+    brief: "llm.actions.dashboard_register_widget.brief",
+    description: "llm.actions.dashboard_register_widget.description",
+  },
+  exposure: "llm",
+  priority: "normal",
   invoke: (params: { actionId: string }) => {
     if (!dashboardWidgetActions.includes(params.actionId)) {
       dashboardWidgetActions.push(params.actionId);

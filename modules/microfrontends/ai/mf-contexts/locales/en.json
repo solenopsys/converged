@@ -1,0 +1,10 @@
+{
+  "llm": {
+    "actions": {
+      "contexts_show": {
+        "brief": "Show contexts list",
+        "description": "Show contexts list"
+      }
+    }
+  }
+}

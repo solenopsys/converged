@@ -11,7 +11,13 @@ const createChatWidget: CreateWidget<typeof ChatView> = (_bus) => ({
 
 const createShowChatAction: CreateAction<any> = (bus) => ({
   id: SHOW_CHATS,
-  description: "Show chats",
+  llm: {
+    microfrontend: "chats-mf",
+    brief: "llm.actions.chats_show.brief",
+    description: "llm.actions.chats_show.description",
+  },
+  exposure: "user",
+  priority: "primary",
   invoke: () => {
     bus.present({ widget: createChatWidget(bus) });
   },

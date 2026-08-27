@@ -24,6 +24,8 @@ export {
 } from "./action-command";
 export type { ActionBrief, CategorySummary } from "./action-context";
 export { ActionContextManager, actionContext } from "./action-context";
+export { actionPriorityWeight, resolveActionMeta } from "./action-meta";
+export type { ResolvedActionMeta } from "./action-meta";
 export { BasePlugin } from "./base-plugin";
 export type {
 	FunctionIndexEntry,
@@ -51,7 +53,10 @@ export {
 } from "./registry";
 export type {
 	Action,
+	ActionExposure,
+	ActionLlmFragment,
 	ActionMeta,
+	ActionPriority,
 	ActionRegistry,
 	CreateAction,
 	CreateWidget,

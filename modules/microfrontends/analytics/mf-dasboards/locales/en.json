@@ -1,5 +1,17 @@
 {
   "menu": {
     "dashboard": "Dashboard"
+  },
+  "llm": {
+    "actions": {
+      "dashboard_mount": {
+        "brief": "Mount dashboard",
+        "description": "Mount dashboard"
+      },
+      "dashboard_register_widget": {
+        "brief": "Register widget for dashboard",
+        "description": "Register widget for dashboard"
+      }
+    }
   }
 }

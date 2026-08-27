@@ -14,7 +14,13 @@ const createExecutionsWidget: CreateWidget<typeof ExecutionsView> = (bus) => ({
 
 const createShowExecutionsListAction: CreateAction<any> = (bus) => ({
   id: SHOW_EXECUTIONS_LIST,
-  description: "Show executions list",
+  llm: {
+    microfrontend: "dag-mf",
+    brief: "llm.actions.executions_show_list.brief",
+    description: "llm.actions.executions_show_list.description",
+  },
+  exposure: "user",
+  priority: "normal",
   invoke: () => {
     bus.present({ widget: createExecutionsWidget(bus) });
   },

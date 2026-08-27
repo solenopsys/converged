@@ -11,7 +11,13 @@ const createScriptsListWidget: CreateWidget<typeof ScriptsListView> = () => ({
 
 const createShowScriptsListAction: CreateAction<any> = (bus) => ({
 	id: SHOW_SCRIPTS_LIST,
-	description: "Show scripts list",
+	llm: {
+		microfrontend: "dag-mf",
+		brief: "llm.actions.dag_scripts_list.brief",
+		description: "llm.actions.dag_scripts_list.description",
+	},
+	exposure: "user",
+	priority: "normal",
 	invoke: () => {
 		bus.present({ widget: createScriptsListWidget(bus) });
 	},

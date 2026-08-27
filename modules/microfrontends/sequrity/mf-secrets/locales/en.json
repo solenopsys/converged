@@ -1,0 +1,10 @@
+{
+  "llm": {
+    "actions": {
+      "secrets_show": {
+        "brief": "Show secrets list",
+        "description": "Show secrets list"
+      }
+    }
+  }
+}

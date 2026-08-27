@@ -10,9 +10,13 @@ const createShowLogsHotAction: CreateAction = () => ({
 	capability: "logs/listHot(r)",
 	brief: "Open the live log stream",
 	category: "logs",
-	description:
-		"Open the live operational log table. Use when the user asks for recent events, " +
-		"current errors, warnings, or activity that is still in hot storage.",
+	llm: {
+		microfrontend: "logs-mf",
+		brief: "llm.actions.logs_hot_show.brief",
+		description: "llm.actions.logs_hot_show.description",
+	},
+	exposure: "user",
+	priority: "normal",
 	invoke: () => {
 		logsScreenActivated("hot");
 		return { ok: true, entity: "logs", mode: "hot" };
@@ -24,9 +28,13 @@ const createShowLogsColdAction: CreateAction = () => ({
 	capability: "logs/listCold(r)",
 	brief: "Open archived logs",
 	category: "logs",
-	description:
-		"Open the archived log table. Use for older operational events that are no " +
-		"longer in the live log stream.",
+	llm: {
+		microfrontend: "logs-mf",
+		brief: "llm.actions.logs_cold_show.brief",
+		description: "llm.actions.logs_cold_show.description",
+	},
+	exposure: "user",
+	priority: "normal",
 	invoke: () => {
 		logsScreenActivated("cold");
 		return { ok: true, entity: "logs", mode: "cold" };
@@ -38,9 +46,13 @@ const createShowLogsStatsAction: CreateAction = () => ({
 	capability: "logs/getStatistic(r)",
 	brief: "Open log volume statistics",
 	category: "logs",
-	description:
-		"Open aggregate log counts for hot storage, archived storage, errors, and " +
-		"warnings. Use for totals and trends, not for individual log entries.",
+	llm: {
+		microfrontend: "logs-mf",
+		brief: "llm.actions.logs_stats_show.brief",
+		description: "llm.actions.logs_stats_show.description",
+	},
+	exposure: "user",
+	priority: "normal",
 	invoke: () => {
 		logsScreenActivated("statistics");
 		return { ok: true, entity: "logs", mode: "statistics" };

@@ -1,5 +1,21 @@
 {
   "menu.telemetry": "Telemetry",
   "menu.hot": "Hot",
-  "menu.cold": "Cold"
+  "menu.cold": "Cold",
+  "llm": {
+    "actions": {
+      "telemetry_hot_show": {
+        "brief": "Show hot telemetry",
+        "description": "Show hot telemetry"
+      },
+      "telemetry_cold_show": {
+        "brief": "Show cold telemetry",
+        "description": "Show cold telemetry"
+      },
+      "telemetry_stats_show": {
+        "brief": "Show telemetry statistics",
+        "description": "Show telemetry statistics"
+      }
+    }
+  }
 }

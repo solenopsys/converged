@@ -34,7 +34,13 @@ const calls = (name: string, args: Record<string, unknown>, id: string): ChatEve
 	{ type: "response.completed", finishReason: "tool_calls" },
 ];
 
-const catalogWith = (functions: Array<{ id: string; brief: string }>) => {
+const catalogWith = (
+	functions: Array<{
+		id: string;
+		brief: string;
+		priority?: "primary" | "normal" | "secondary";
+	}>,
+) => {
 	const catalog = createConversationCatalog();
 	const invoked: Array<{ id: string; args: unknown }> = [];
 	catalog.sourceRegistered({
@@ -279,6 +285,18 @@ describe("catalog store", () => {
 
 		expect(catalog.catalog.search("logs").map((fn) => fn.id)).toEqual(["logs.show"]);
 		expect(catalog.catalog.listCategories().map((c) => c.id)).toEqual(["backend"]);
+	});
+
+	test("a primary function wins a search tie", () => {
+		const { catalog } = catalogWith([
+			{ id: "logs.archive", brief: "Open logs", priority: "secondary" },
+			{ id: "logs.live", brief: "Open logs", priority: "primary" },
+		]);
+
+		expect(catalog.catalog.search("logs").map((fn) => fn.id)).toEqual([
+			"logs.live",
+			"logs.archive",
+		]);
 	});
 
 	test("a turn snapshot keeps a chosen function alive while the catalog changes", () => {

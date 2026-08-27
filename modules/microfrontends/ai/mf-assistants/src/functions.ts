@@ -80,7 +80,13 @@ const createToolCallJsonWidget = (
 
 const createShowChatsListAction: CreateAction<any> = (bus) => ({
 	id: SHOW_CHATS_LIST,
-	description: "Show chats list",
+	llm: {
+		microfrontend: "assistants-mf",
+		brief: "llm.actions.chats_show_list.brief",
+		description: "llm.actions.chats_show_list.description",
+	},
+	exposure: "user",
+	priority: "normal",
 	invoke: () => {
 		bus.present({ widget: createChatsListWidget(bus) });
 	},
@@ -88,7 +94,13 @@ const createShowChatsListAction: CreateAction<any> = (bus) => ({
 
 const createShowCommandsListAction: CreateAction<any> = (bus) => ({
 	id: SHOW_COMMANDS_LIST,
-	description: "Show available commands list",
+	llm: {
+		microfrontend: "assistants-mf",
+		brief: "llm.actions.chats_show_commands_list.brief",
+		description: "llm.actions.chats_show_commands_list.description",
+	},
+	exposure: "user",
+	priority: "normal",
 	invoke: () => {
 		bus.present({ widget: createCommandsListWidget(bus) });
 	},
@@ -96,7 +108,13 @@ const createShowCommandsListAction: CreateAction<any> = (bus) => ({
 
 const createViewChatAction: CreateAction<any> = (bus) => ({
 	id: VIEW_CHAT,
-	description: "View chat details",
+	llm: {
+		microfrontend: "assistants-mf",
+		brief: "llm.actions.chats_view.brief",
+		description: "llm.actions.chats_view.description",
+	},
+	exposure: "llm",
+	priority: "normal",
 	invoke: ({ recordId, title }) => {
 		if (!recordId) return;
 		bus.present({
@@ -108,7 +126,13 @@ const createViewChatAction: CreateAction<any> = (bus) => ({
 
 const createViewToolCallJsonAction: CreateAction<any> = (bus) => ({
 	id: VIEW_TOOL_CALL_JSON,
-	description: "View tool call JSON",
+	llm: {
+		microfrontend: "assistants-mf",
+		brief: "llm.actions.chats_view_tool_call_json.brief",
+		description: "llm.actions.chats_view_tool_call_json.description",
+	},
+	exposure: "llm",
+	priority: "normal",
 	invoke: ({ threadId, title, toolCallId, summary, details }) => {
 		if (!threadId) return;
 		bus.present({
@@ -129,7 +153,13 @@ const createViewToolCallJsonAction: CreateAction<any> = (bus) => ({
 
 const createEditChatAction: CreateAction<any> = () => ({
 	id: EDIT_CHAT,
-	description: "Edit chat",
+	llm: {
+		microfrontend: "assistants-mf",
+		brief: "llm.actions.chats_edit.brief",
+		description: "llm.actions.chats_edit.description",
+	},
+	exposure: "llm",
+	priority: "normal",
 	invoke: ({ recordId }) => {
 		editChatEvent({ recordId });
 	},
@@ -137,7 +167,13 @@ const createEditChatAction: CreateAction<any> = () => ({
 
 const createDeleteChatAction: CreateAction<any> = () => ({
 	id: DELETE_CHAT,
-	description: "Delete chat",
+	llm: {
+		microfrontend: "assistants-mf",
+		brief: "llm.actions.chats_delete.brief",
+		description: "llm.actions.chats_delete.description",
+	},
+	exposure: "llm",
+	priority: "normal",
 	invoke: ({ recordId }) => {
 		deleteChatEvent({ recordId });
 	},

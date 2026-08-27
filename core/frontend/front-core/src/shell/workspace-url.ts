@@ -1,6 +1,7 @@
 import { actionCommand } from "front-core/core";
 import {
 	$activeWorkspaceTab,
+	$workspaceTabs,
 	workspaceTabActivated,
 } from "./workspace";
 
@@ -30,29 +31,23 @@ function currentMountAction(): string | null {
 	return mountActionFromUrl(window.location.href);
 }
 
-function replaceMountAction(mountActionId: string | null): void {
+function pushMountAction(mountActionId: string | null): void {
 	const next = urlForMountAction(window.location.href, mountActionId);
 	if (`${window.location.pathname}${window.location.search}${window.location.hash}` === next)
 		return;
-	window.history.replaceState(window.history.state, "", next);
+	window.history.pushState(window.history.state, "", next);
 }
 
 async function restoreFromLocation(): Promise<void> {
 	const actionId = currentMountAction();
 	if (!actionId) return;
 
-	const tab = $activeWorkspaceTab
-		.getState();
-	if (tab?.mountActionId === actionId) return;
-
-	const existing = $activeWorkspaceTab
-		.getState();
-	if (existing?.mountActionId !== actionId) {
-		const matched = $activeWorkspaceTab.getState();
-		if (matched?.mountActionId === actionId) {
-			workspaceTabActivated(matched.key);
-			return;
-		}
+	const matched = $workspaceTabs
+		.getState()
+		.find((tab) => tab.mountActionId === actionId);
+	if (matched) {
+		workspaceTabActivated(matched.key);
+		return;
 	}
 
 	restoring = true;
@@ -70,9 +65,9 @@ export function bootstrapWorkspaceUrl(): void {
 	if (installed || typeof window === "undefined") return;
 	installed = true;
 
-	$activeWorkspaceTab.watch((tab) => {
+	$activeWorkspaceTab.updates.watch((tab) => {
 		if (restoring) return;
-		replaceMountAction(tab?.mountActionId ?? null);
+		pushMountAction(tab?.mountActionId ?? null);
 	});
 	window.addEventListener("popstate", () => {
 		void restoreFromLocation();

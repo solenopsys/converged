@@ -12,6 +12,7 @@ export type FunctionBrief = {
 	id: string;
 	brief: string;
 	category?: string;
+	priority?: "primary" | "normal" | "secondary";
 };
 
 /**
@@ -65,6 +66,7 @@ export type OrchestratorCatalog = {
 				brief?: string;
 				description: string;
 				category?: string;
+				priority?: FunctionBrief["priority"];
 				/** Argument schema, when the host knows one: the args step asks for it directly. */
 				parameters?: ToolSpec["parameters"];
 		  }

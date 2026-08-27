@@ -4,9 +4,17 @@ import { registry } from "./registry";
 
 export type FunctionIndexEntry = {
 	id: string;
-	brief: string;
+	brief?: string;
 	category: string;
-	description: string;
+	description?: string;
+	llm?: {
+		microfrontend: string;
+		brief: string;
+		description: string;
+		messages?: Record<string, { brief: string; description: string }>;
+	};
+	exposure?: "llm" | "user";
+	priority?: "primary" | "normal" | "secondary";
 	access?: "public";
 	capability?: string;
 };

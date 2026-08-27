@@ -11,7 +11,13 @@ const createStructListWidget: CreateWidget<typeof StructListView> = (_bus) => ({
 
 const createShowStructListAction: CreateAction<any> = (bus) => ({
   id: SHOW_STRUCT_LIST,
-  description: "Show struct files list",
+  llm: {
+    microfrontend: "struct-mf",
+    brief: "llm.actions.struct_list.brief",
+    description: "llm.actions.struct_list.description",
+  },
+  exposure: "user",
+  priority: "normal",
   invoke: () => {
     bus.present({ widget: createStructListWidget(bus) });
   },

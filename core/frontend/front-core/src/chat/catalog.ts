@@ -4,6 +4,7 @@ import {
 	actionRegistered,
 	onActionAuthorizationChanged,
 	registry,
+	resolveActionMeta,
 } from "front-core/core";
 import { loadMicrofrontendForAction } from "../shell/mf";
 import type { ChatCatalog } from "./store";
@@ -15,7 +16,7 @@ import type { ChatCatalog } from "./store";
 
 function actionLabel(id: string): string | undefined {
 	const meta = registry.meta(id);
-	return meta?.brief ?? meta?.description.slice(0, 80);
+	return meta ? resolveActionMeta(meta).brief : undefined;
 }
 
 export function createMicrofrontendCatalog(): ChatCatalog {
@@ -24,7 +25,10 @@ export function createMicrofrontendCatalog(): ChatCatalog {
 			search: (query, limit) => actionContext.search(query, limit),
 			listCategories: () => actionContext.listCategories(),
 			// Answers for unloaded modules too: the delivery index declares them.
-		meta: (id) => registry.meta(id),
+			meta: (id) => {
+				const action = registry.meta(id);
+				return action ? resolveActionMeta(action) : undefined;
+			},
 			invoke: (actionId, params) =>
 				actionCommand({ actionId, params, source: "assistant" }),
 			load: loadMicrofrontendForAction,
@@ -44,11 +48,17 @@ export function createMicrofrontendCatalog(): ChatCatalog {
 		},
 		diagnostics: {
 			all: () => registry.getAll(),
-			meta: (id) => registry.meta(id),
+			meta: (id) => {
+				const action = registry.meta(id);
+				return action ? resolveActionMeta(action) : undefined;
+			},
 			loaded: (id) => Boolean(registry.get(id)),
-			listCategories: () => actionContext.listCategories(),
+			listCategories: () => actionContext.listUserCategories(),
 			listByCategory: (category) => actionContext.listByCategory(category),
-			search: (query) => actionContext.search(query),
+			listUserVisible: () => actionContext.listUserVisible(),
+			search: (query) => actionContext.searchUser(query),
+			invoke: (actionId, params) =>
+				actionCommand({ actionId, params, source: "user" }),
 		},
 	};
 }

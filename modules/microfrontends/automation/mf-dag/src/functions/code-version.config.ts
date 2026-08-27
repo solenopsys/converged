@@ -39,7 +39,13 @@ const createCodeVersionsWidget: CreateWidget<typeof VersionsView> = () => ({
 
 const createShowCodeVersionsAction: CreateAction<any> = (bus) => ({
     id: SHOW_VERSIONS,
-    description: "Show code versions",
+    llm: {
+      microfrontend: "dag-mf",
+      brief: "llm.actions.show_versions.brief",
+      description: "llm.actions.show_versions.description",
+    },
+    exposure: "user",
+    priority: "normal",
     invoke: () => {
         bus.present({ widget: createCodeVersionsWidget(bus) });
     }
@@ -47,7 +53,13 @@ const createShowCodeVersionsAction: CreateAction<any> = (bus) => ({
 
 const createGetCodeVersionsAction: CreateAction<any> = (bus) => ({
     id: GET_VERSIONS,
-    description: "Get code versions",
+    llm: {
+      microfrontend: "dag-mf",
+      brief: "llm.actions.get_versions.brief",
+      description: "llm.actions.get_versions.description",
+    },
+    exposure: "llm",
+    priority: "normal",
     invoke: (params) => getVersionsEvent({ ...params, bus })
 });
 

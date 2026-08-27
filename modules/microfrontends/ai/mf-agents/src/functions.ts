@@ -34,7 +34,13 @@ const createToolsListWidget: CreateWidget<typeof ToolsListView> = (bus) => ({
 
 const createShowSessionsListAction: CreateAction<any> = (bus) => ({
   id: SHOW_SESSIONS_LIST,
-  description: "Show agent sessions list",
+  llm: {
+    microfrontend: "agents-mf",
+    brief: "llm.actions.agents_show_sessions_list.brief",
+    description: "llm.actions.agents_show_sessions_list.description",
+  },
+  exposure: "user",
+  priority: "normal",
   invoke: () => {
     bus.present({ widget: createSessionsListWidget(bus) });
   },
@@ -42,7 +48,13 @@ const createShowSessionsListAction: CreateAction<any> = (bus) => ({
 
 const createShowToolsListAction: CreateAction<any> = (bus) => ({
   id: SHOW_TOOLS_LIST,
-  description: "Show agent tools list",
+  llm: {
+    microfrontend: "agents-mf",
+    brief: "llm.actions.agents_show_tools_list.brief",
+    description: "llm.actions.agents_show_tools_list.description",
+  },
+  exposure: "user",
+  priority: "normal",
   invoke: () => {
     bus.present({ widget: createToolsListWidget(bus) });
   },
@@ -50,7 +62,13 @@ const createShowToolsListAction: CreateAction<any> = (bus) => ({
 
 const createViewSessionAction: CreateAction<any> = (bus) => ({
   id: VIEW_SESSION,
-  description: "View session details",
+  llm: {
+    microfrontend: "agents-mf",
+    brief: "llm.actions.agents_view_session.brief",
+    description: "llm.actions.agents_view_session.description",
+  },
+  exposure: "llm",
+  priority: "normal",
   invoke: ({ recordId }) => {
     openSessionDetail({ recordId });
   },
@@ -58,7 +76,13 @@ const createViewSessionAction: CreateAction<any> = (bus) => ({
 
 const createDeleteSessionAction: CreateAction<any> = () => ({
   id: DELETE_SESSION,
-  description: "Delete session",
+  llm: {
+    microfrontend: "agents-mf",
+    brief: "llm.actions.agents_delete_session.brief",
+    description: "llm.actions.agents_delete_session.description",
+  },
+  exposure: "llm",
+  priority: "normal",
   invoke: ({ recordId }) => {
     deleteSessionEvent({ recordId });
   },

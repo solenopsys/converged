@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import {
 	LocaleController,
 	loadMicrofrontendTranslations,
+	resolveEmbeddedMicrofrontendMessage,
 	registerMicrofrontendLocales,
 	resetMicrofrontendI18nForTests,
 } from "./i18n";
@@ -67,5 +68,15 @@ describe("microfrontend translations", () => {
 		expect(await loadMicrofrontendTranslations("auth-mf", "en")).toEqual({
 			welcome: { heading: "Embedded" },
 		});
+	});
+
+	test("resolves nested embedded messages synchronously for action metadata", () => {
+		registerMicrofrontendLocales("orders-mf", {
+			en: { actions: { orders: { brief: "Open orders" } } },
+		});
+
+		expect(
+			resolveEmbeddedMicrofrontendMessage("orders-mf", "actions.orders.brief", "en"),
+		).toBe("Open orders");
 	});
 });

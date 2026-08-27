@@ -15,7 +15,13 @@ const createShowHistoryAction: CreateAction<any> = (bus) => ({
   id: SHOW_HISTORY,
   brief: "Open cron jobs execution history log",
   category: "automation",
-  description: "Show history",
+  llm: {
+    microfrontend: "sheduller-mf",
+    brief: "llm.actions.sheduller_history_show.brief",
+    description: "llm.actions.sheduller_history_show.description",
+  },
+  exposure: "user",
+  priority: "normal",
   invoke: () => {
     bus.present({ widget: createHistoryWidget(bus) });
   },

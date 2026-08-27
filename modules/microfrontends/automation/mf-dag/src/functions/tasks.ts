@@ -14,7 +14,13 @@ const createTasksWidget: CreateWidget<typeof TasksView> = (bus) => ({
 
 const createShowTasksListAction: CreateAction<any> = (bus) => ({
   id: SHOW_TASKS_LIST,
-  description: "Show tasks list",
+  llm: {
+    microfrontend: "dag-mf",
+    brief: "llm.actions.tasks_show_list.brief",
+    description: "llm.actions.tasks_show_list.description",
+  },
+  exposure: "user",
+  priority: "normal",
   invoke: () => {
     bus.present({ widget: createTasksWidget(bus) });
   },

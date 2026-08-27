@@ -58,7 +58,13 @@ const createVarsWidget: CreateWidget<typeof VarsView> = (bus) => ({
 
 const createShowVarsListAction: CreateAction<any> = (bus) => ({
   id: SHOW_VARS_LIST,
-  description: "Show vars list",
+  llm: {
+    microfrontend: "dag-mf",
+    brief: "llm.actions.vars_show_list.brief",
+    description: "llm.actions.vars_show_list.description",
+  },
+  exposure: "user",
+  priority: "normal",
   invoke: () => {
     bus.present({ widget: createVarsWidget(bus) });
   },
@@ -66,7 +72,13 @@ const createShowVarsListAction: CreateAction<any> = (bus) => ({
 
 const createShowVarFormAction: CreateAction<any> = (bus) => ({
   id: SHOW_VAR_FORM,
-  description: "Show variable form",
+  llm: {
+    microfrontend: "dag-mf",
+    brief: "llm.actions.var_form_show.brief",
+    description: "llm.actions.var_form_show.description",
+  },
+  exposure: "user",
+  priority: "primary",
   invoke: ({ variable }: { variable?: { key: string; value: any } }) => {
     openVarForm({ variable: variable ?? null });
     bus.present({ widget: createVarFormWidget(bus) });

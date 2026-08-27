@@ -1,0 +1,10 @@
+{
+  "llm": {
+    "actions": {
+      "galery_list": {
+        "brief": "Show galery items list",
+        "description": "Show galery items list"
+      }
+    }
+  }
+}

@@ -12,6 +12,7 @@ describe("workspace presenter", () => {
 		const actionId = "presenter-test.open";
 		registry.register({
 			id: actionId,
+			access: "public",
 			brief: "Open test workspace",
 			category: "presenter-test",
 			description: "Open the workspace used by the presenter integration test.",

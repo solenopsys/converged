@@ -6,7 +6,13 @@ const SHOW_DEFAULT_LANDING = "landing.show.default";
 const createShowDefaultLandingAction: CreateAction<unknown> = () => ({
   id: SHOW_DEFAULT_LANDING,
   access: "public",
-  description: "Show landing",
+  llm: {
+    microfrontend: "landing-mf",
+    brief: "llm.actions.landing_show_default.brief",
+    description: "llm.actions.landing_show_default.description",
+  },
+  exposure: "user",
+  priority: "normal",
   invoke: () => {
     presentLanding();
   },

@@ -19,7 +19,13 @@ const createUsageStatsWidget: CreateWidget<typeof UsageStatsView> = () => ({
 
 const createShowUsageListAction: CreateAction<any> = (bus) => ({
   id: SHOW_USAGE_LIST,
-  description: "Show usage events",
+  llm: {
+    microfrontend: "usage-mf",
+    brief: "llm.actions.usage_list_show.brief",
+    description: "llm.actions.usage_list_show.description",
+  },
+  exposure: "user",
+  priority: "normal",
   invoke: () => {
     bus.present({ widget: createUsageListWidget(bus) });
   },
@@ -27,7 +33,13 @@ const createShowUsageListAction: CreateAction<any> = (bus) => ({
 
 const createShowUsageStatsAction: CreateAction<any> = (bus) => ({
   id: SHOW_USAGE_STATS,
-  description: "Show usage statistics",
+  llm: {
+    microfrontend: "usage-mf",
+    brief: "llm.actions.usage_stats_show.brief",
+    description: "llm.actions.usage_stats_show.description",
+  },
+  exposure: "user",
+  priority: "normal",
   invoke: () => {
     bus.present({ widget: createUsageStatsWidget(bus) });
   },

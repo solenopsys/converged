@@ -1,0 +1,14 @@
+{
+  "llm": {
+    "actions": {
+      "markdown_list": {
+        "brief": "Show markdown files list",
+        "description": "Show markdown files list"
+      },
+      "markdown_edit": {
+        "brief": "Edit markdown file",
+        "description": "Edit markdown file"
+      }
+    }
+  }
+}

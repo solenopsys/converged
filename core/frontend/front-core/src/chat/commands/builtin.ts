@@ -6,15 +6,31 @@ import type { SlashSection } from "./types";
 
 
 export type CatalogView = {
-	all(): Array<{ id: string; brief?: string; description: string; category?: string }>;
+	all(): Array<{
+		id: string;
+		brief?: string;
+		description?: string;
+		category?: string;
+		exposure?: "llm" | "user";
+		priority?: "primary" | "normal" | "secondary";
+	}>;
 	meta(
 		id: string,
-	): { id: string; brief?: string; description: string; category?: string } | undefined;
+	): {
+		id: string;
+		brief?: string;
+		description?: string;
+		category?: string;
+		exposure?: "llm" | "user";
+		priority?: "primary" | "normal" | "secondary";
+	} | undefined;
 
 	loaded(id: string): boolean;
 	listCategories(): Array<{ id: string; count: number }>;
 	listByCategory(category: string): Array<{ id: string; brief: string }>;
+	listUserVisible(): Array<{ id: string; brief: string; category?: string }>;
 	search(query: string): Array<{ id: string; brief: string }>;
+	invoke(id: string, params: Record<string, unknown>): unknown | Promise<unknown>;
 };
 
 const code = (lines: string[]): string => ["```", ...lines, "```"].join("\n");
@@ -23,12 +39,13 @@ const functionsSection = (catalog: CatalogView): SlashSection => {
 	const describe = (id: string): string => {
 		const meta = catalog.meta(id);
 		if (!meta) return `Function \`${id}\` not found.`;
+		if (meta.exposure === "llm") return `Function \`${id}\` is not available for direct use.`;
 		return [
-			`**${meta.id}** — ${meta.brief ?? meta.description.slice(0, 80)}`,
+			`**${meta.id}** — ${meta.brief ?? meta.description?.slice(0, 80) ?? meta.id}`,
 			"",
-			meta.description,
+			meta.description ?? "No legacy fallback: description resolves from the microfrontend i18n fragment.",
 			"",
-			`category: \`${meta.category ?? "—"}\` · module ${
+			`category: \`${meta.category ?? "—"}\` · priority \`${meta.priority ?? "normal"}\` · module ${
 				catalog.loaded(id) ? "loaded" : "loads on call"
 			}`,
 		].join("\n");
@@ -46,10 +63,7 @@ const functionsSection = (catalog: CatalogView): SlashSection => {
 				handler: (param) => {
 					const all = param
 						? catalog.listByCategory(param.trim())
-						: catalog.all().map((action) => ({
-								id: action.id,
-								brief: action.brief ?? action.description.slice(0, 80),
-							}));
+						: catalog.listUserVisible();
 					if (all.length === 0) return "Nothing found.";
 					return [
 						`Functions: ${all.length} (● module loaded, ○ declared by the index)`,
@@ -70,6 +84,28 @@ const functionsSection = (catalog: CatalogView): SlashSection => {
 				description: "Full description of a single function",
 				handler: (param) =>
 					param ? describe(param.trim()) : "Usage: `/functions show <id>`",
+			},
+			run: {
+				description: "Run a user-visible function: <id> [JSON arguments]",
+				handler: async (param) => {
+					const [id, ...args] = (param ?? "").trim().split(/\s+/);
+					if (!id) return "Usage: `/functions run <id> [JSON arguments]`";
+					const meta = catalog.meta(id);
+					if (!meta || meta.exposure === "llm") return `Function \`${id}\` is not available for direct use.`;
+					let params: Record<string, unknown> = {};
+					const json = args.join(" ");
+					if (json) {
+						try {
+							const parsed: unknown = JSON.parse(json);
+							if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error();
+							params = parsed as Record<string, unknown>;
+						} catch {
+							return "Arguments must be a JSON object.";
+						}
+					}
+					await catalog.invoke(id, params);
+					return `Ran \`${id}\`.`;
+				},
 			},
 		},
 		fallback: () => {

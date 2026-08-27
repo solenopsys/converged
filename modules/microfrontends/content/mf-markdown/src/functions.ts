@@ -19,7 +19,13 @@ const createMdEditWidget: CreateWidget<typeof MdEditView> = (_bus) => ({
 
 const createShowMdListAction: CreateAction<any> = (bus) => ({
   id: SHOW_MD_LIST,
-  description: "Show markdown files list",
+  llm: {
+    microfrontend: "markdown-mf",
+    brief: "llm.actions.markdown_list.brief",
+    description: "llm.actions.markdown_list.description",
+  },
+  exposure: "user",
+  priority: "normal",
   invoke: () => {
     bus.present({ widget: createMdListWidget(bus) });
   },
@@ -27,7 +33,13 @@ const createShowMdListAction: CreateAction<any> = (bus) => ({
 
 const createShowMdEditAction: CreateAction<any> = (bus) => ({
   id: SHOW_MD_EDIT,
-  description: "Edit markdown file",
+  llm: {
+    microfrontend: "markdown-mf",
+    brief: "llm.actions.markdown_edit.brief",
+    description: "llm.actions.markdown_edit.description",
+  },
+  exposure: "llm",
+  priority: "normal",
   invoke: () => {
     bus.present({ widget: createMdEditWidget(bus) });
   },

@@ -1,0 +1,10 @@
+{
+  "llm": {
+    "actions": {
+      "landing_show_default": {
+        "brief": "Show landing",
+        "description": "Show landing"
+      }
+    }
+  }
+}

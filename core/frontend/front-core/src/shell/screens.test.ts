@@ -26,5 +26,8 @@ describe("screen registration", () => {
 		actionCommandActivated({ actionId: "screen-test.show", source: "user" });
 
 		expect($workspaceTabs.getState().map((tab) => tab.key)).toContain(screenId);
+		expect($workspaceTabs.getState()[0]?.mountActionId).toBe(
+			"screen-test.show",
+		);
 	});
 });

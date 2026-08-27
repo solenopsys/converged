@@ -12,7 +12,7 @@ export function registerScreens(screens: ScreenDecl<any>[]): void {
 		screen.when.watch((value) => apply(screen, value));
 		actionCommandActivated.watch(({ actionId }) => {
 			if (ownerFor(actionId) !== ownerFor(screen.id)) return;
-			apply(screen, screen.when.getState());
+			apply(screen, screen.when.getState(), actionId);
 		});
 	}
 }
@@ -21,7 +21,11 @@ function ownerFor(id: string): string {
 	return id.split(".", 1)[0] ?? id;
 }
 
-function apply(screen: ScreenDecl<any>, value: unknown): void {
+function apply(
+	screen: ScreenDecl<any>,
+	value: unknown,
+	mountActionId?: string,
+): void {
 	if (!matches(screen, value)) {
 		workspaceTabClosed(screen.id);
 		return;
@@ -30,6 +34,7 @@ function apply(screen: ScreenDecl<any>, value: unknown): void {
 	workspaceTabOpened({
 		key: screen.id,
 		owner: ownerFor(screen.id),
+		...(mountActionId ? { mountActionId } : {}),
 		view: screen.view,
 		props: screen.props?.(value) ?? {},
 		title:

@@ -1,0 +1,22 @@
+{
+  "llm": {
+    "actions": {
+      "classifier_dashboard_show": {
+        "brief": "Show classifier dashboard",
+        "description": "Show classifier dashboard"
+      },
+      "classifier_mappings_show": {
+        "brief": "Show classifier mappings",
+        "description": "Show classifier mappings"
+      },
+      "classifier_nodes_show": {
+        "brief": "Show classifier entities",
+        "description": "Show classifier entities"
+      },
+      "classifier_tree_show": {
+        "brief": "Show classifier tree",
+        "description": "Show classifier tree"
+      }
+    }
+  }
+}

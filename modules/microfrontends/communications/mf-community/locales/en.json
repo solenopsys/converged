@@ -1,0 +1,10 @@
+{
+  "llm": {
+    "actions": {
+      "community_show": {
+        "brief": "Show community",
+        "description": "Show community"
+      }
+    }
+  }
+}

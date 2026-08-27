@@ -154,6 +154,30 @@ export async function loadMicrofrontendTranslations(
 	return isMessages(data) ? data : {};
 }
 
+/**
+ * Resolves a value from an already embedded microfrontend catalog. Action
+ * metadata uses this outside Preact, so it cannot rely on the translation hook.
+ * Remote locale URLs deliberately do not trigger a request here: catalog reads
+ * must stay synchronous and side-effect free.
+ */
+export function resolveEmbeddedMicrofrontendMessage(
+	microfrontendId: string,
+	key: string,
+	language = $activeLocale.getState(),
+): unknown {
+	const source = localeSource(microfrontendId, language);
+	if (!isMessages(source)) return undefined;
+
+	let value: unknown = source;
+	for (const segment of key.split(".")) {
+		if (!value || typeof value !== "object" || !(segment in value)) {
+			return (source as Record<string, unknown>)[key];
+		}
+		value = (value as Record<string, unknown>)[segment];
+	}
+	return value;
+}
+
 export function resetMicrofrontendI18nForTests(): void {
 	LocaleController.getInstance().resetForTests();
 	translationsCache.clear();

@@ -11,7 +11,13 @@ const createCommunityWidget: CreateWidget<typeof CommunityView> = (_bus) => ({
 
 const createShowCommunityAction: CreateAction<any> = (bus) => ({
   id: SHOW_COMMUNITY,
-  description: "Show community",
+  llm: {
+    microfrontend: "community-mf",
+    brief: "llm.actions.community_show.brief",
+    description: "llm.actions.community_show.description",
+  },
+  exposure: "user",
+  priority: "primary",
   invoke: () => {
     bus.present({ widget: createCommunityWidget(bus) });
   },

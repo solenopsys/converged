@@ -13,7 +13,13 @@ const createShowStatsAction: CreateAction<any> = (bus) => ({
   id: SHOW_STATS,
   brief: "Open cron jobs statistics (runs, success/failure rates, timing)",
   category: "analytics",
-  description: "Show sheduller statistics",
+  llm: {
+    microfrontend: "sheduller-mf",
+    brief: "llm.actions.sheduller_stats_show.brief",
+    description: "llm.actions.sheduller_stats_show.description",
+  },
+  exposure: "user",
+  priority: "normal",
   invoke: () => {
     bus.present({ widget: createStatsWidget(bus) });
   },

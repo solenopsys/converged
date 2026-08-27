@@ -173,6 +173,7 @@ export {
 	$activeLocale,
 	LocaleController,
 	registerMicrofrontendLocales,
+	resolveEmbeddedMicrofrontendMessage,
 	useMicrofrontendTranslation,
 } from "./i18n";
 export type {

@@ -1,0 +1,14 @@
+{
+  "llm": {
+    "actions": {
+      "scripts_list": {
+        "brief": "Show scripts list",
+        "description": "Show scripts list"
+      },
+      "scripts_edit": {
+        "brief": "Edit script",
+        "description": "Edit script"
+      }
+    }
+  }
+}

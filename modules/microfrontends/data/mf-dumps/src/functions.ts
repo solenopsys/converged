@@ -19,7 +19,13 @@ const createStoragesWidget: CreateWidget<typeof StoragesView> = (bus) => ({
 
 const createShowDumpsAction: CreateAction<any> = (bus) => ({
   id: SHOW_DUMPS,
-  description: 'Show dump files',
+  llm: {
+    microfrontend: "dumps-mf",
+    brief: "llm.actions.dumps_list_show.brief",
+    description: "llm.actions.dumps_list_show.description",
+  },
+  exposure: "user",
+  priority: "normal",
   invoke: () => {
     bus.present({ widget: createDumpsWidget(bus) });
   },
@@ -27,7 +33,13 @@ const createShowDumpsAction: CreateAction<any> = (bus) => ({
 
 const createShowStoragesAction: CreateAction<any> = (bus) => ({
   id: SHOW_STORAGES,
-  description: 'Show storage stats',
+  llm: {
+    microfrontend: "dumps-mf",
+    brief: "llm.actions.dumps_storages_show.brief",
+    description: "llm.actions.dumps_storages_show.description",
+  },
+  exposure: "user",
+  priority: "normal",
   invoke: () => {
     bus.present({ widget: createStoragesWidget(bus) });
   },

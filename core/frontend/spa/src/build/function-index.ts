@@ -21,10 +21,18 @@ import { microfrontendDir, microfrontends, microfrontendsDir } from "./layout";
 export type IndexedFunction = {
 	id: string;
 	/** Однострочник для компактного контекста LLM. */
-	brief: string;
+	brief?: string;
 	category: string;
 	/** Полное описание — им отвечает `describeFunction`, в список оно не идёт. */
-	description: string;
+	description?: string;
+	llm?: {
+		microfrontend: string;
+		brief: string;
+		description: string;
+		messages?: Record<string, { brief: string; description: string }>;
+	};
+	exposure?: "llm" | "user";
+	priority?: "primary" | "normal" | "secondary";
 	access?: "public";
 	capability?: string;
 };
@@ -94,7 +102,10 @@ type ActionDeclaration = {
 	id: string;
 	brief?: string;
 	category?: string;
-	description: string;
+	description?: string;
+	llm?: IndexedFunction["llm"];
+	exposure?: IndexedFunction["exposure"];
+	priority?: IndexedFunction["priority"];
 	access?: "public";
 	capability?: string;
 };
@@ -152,6 +163,39 @@ async function declarationsEntry(dir: string): Promise<string | undefined> {
 		if (await Bun.file(candidate).exists()) return candidate;
 	}
 	return undefined;
+}
+
+function messageAt(messages: unknown, key: string): string | undefined {
+	let value = messages;
+	for (const segment of key.split(".")) {
+		if (!value || typeof value !== "object" || !(segment in value)) {
+			const flat = (messages as Record<string, unknown>)[key];
+			return typeof flat === "string" ? flat : undefined;
+		}
+		value = (value as Record<string, unknown>)[segment];
+	}
+	return typeof value === "string" ? value : undefined;
+}
+
+async function readLlmMessages(
+	dir: string,
+	llm: NonNullable<IndexedFunction["llm"]>,
+): Promise<IndexedFunction["llm"]> {
+	const localeDir = join(dir, "locales");
+	const localized: Record<string, { brief: string; description: string }> = {};
+	for await (const entry of new Bun.Glob("*.json").scan({ cwd: localeDir })) {
+		try {
+			const messages = await Bun.file(join(localeDir, entry)).json();
+			const brief = messageAt(messages, llm.brief);
+			const description = messageAt(messages, llm.description);
+			if (brief && description) {
+				localized[entry.replace(/\.json$/, "")] = { brief, description };
+			}
+		} catch {
+			// Normal i18n validation reports malformed locale files separately.
+		}
+	}
+	return Object.keys(localized).length > 0 ? { ...llm, messages: localized } : llm;
 }
 
 /**
@@ -243,14 +287,19 @@ export async function collectFunctionIndex(): Promise<FunctionIndex> {
 			{
 				module: `mf-${name}`,
 				brief,
-				functions: declarations.map((action) => ({
-					id: action.id,
-					brief: action.brief ?? action.description.slice(0, 80),
-					category: action.category ?? categoryOf(action.id),
-					description: action.description,
-					...(action.access ? { access: action.access } : {}),
-					...(action.capability ? { capability: action.capability } : {}),
-				})),
+				functions: await Promise.all(
+					declarations.map(async (action) => ({
+						id: action.id,
+						...(action.brief ? { brief: action.brief } : {}),
+						category: action.category ?? categoryOf(action.id),
+						...(action.description ? { description: action.description } : {}),
+						...(action.llm ? { llm: await readLlmMessages(dir, action.llm) } : {}),
+						...(action.exposure ? { exposure: action.exposure } : {}),
+						...(action.priority ? { priority: action.priority } : {}),
+						...(action.access ? { access: action.access } : {}),
+						...(action.capability ? { capability: action.capability } : {}),
+					})),
+				),
 			},
 		]);
 	}

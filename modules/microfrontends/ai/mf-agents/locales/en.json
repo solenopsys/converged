@@ -3,5 +3,25 @@
     "agents": "Agents",
     "sessions": "Sessions",
     "tools": "Tools"
+  },
+  "llm": {
+    "actions": {
+      "agents_show_sessions_list": {
+        "brief": "Show agent sessions list",
+        "description": "Show agent sessions list"
+      },
+      "agents_show_tools_list": {
+        "brief": "Show agent tools list",
+        "description": "Show agent tools list"
+      },
+      "agents_view_session": {
+        "brief": "View session details",
+        "description": "View session details"
+      },
+      "agents_delete_session": {
+        "brief": "Delete session",
+        "description": "Delete session"
+      }
+    }
   }
 }

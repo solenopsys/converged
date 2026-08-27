@@ -1,0 +1,10 @@
+{
+  "llm": {
+    "actions": {
+      "static_cache_show": {
+        "brief": "Open the static SSR page cache",
+        "description": "Show the SSR static cache: pages with status, content type, size and load time. Supports flush and invalidation by pattern."
+      }
+    }
+  }
+}

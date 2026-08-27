@@ -1,5 +1,13 @@
 {
   "menu": {
     "orders": "Orders"
+  },
+  "llm": {
+    "actions": {
+      "orders_show": {
+        "brief": "Show orders",
+        "description": "Show orders"
+      }
+    }
   }
 }

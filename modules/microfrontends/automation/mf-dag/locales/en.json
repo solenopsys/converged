@@ -30,5 +30,85 @@
       "footerIconName": "IconPackage",
       "footerDescription": "Processes in progress"
     }
+  },
+  "llm": {
+    "actions": {
+      "show_versions": {
+        "brief": "Show code versions",
+        "description": "Show code versions"
+      },
+      "get_versions": {
+        "brief": "Get code versions",
+        "description": "Get code versions"
+      },
+      "show_context": {
+        "brief": "Show context",
+        "description": "Show context"
+      },
+      "contexts_show_list": {
+        "brief": "Show contexts list",
+        "description": "Show contexts list"
+      },
+      "executions_show_list": {
+        "brief": "Show executions list",
+        "description": "Show executions list"
+      },
+      "show_lambda": {
+        "brief": "Show lambda",
+        "description": "Show lambda"
+      },
+      "nodes_show": {
+        "brief": "Show nodes list",
+        "description": "Show nodes list"
+      },
+      "node_form_show": {
+        "brief": "Show node form",
+        "description": "Show node form"
+      },
+      "providers_show": {
+        "brief": "Show providers list",
+        "description": "Show providers list"
+      },
+      "provider_form_show": {
+        "brief": "Show provider form",
+        "description": "Show provider form"
+      },
+      "dag_scripts_list": {
+        "brief": "Show scripts list",
+        "description": "Show scripts list"
+      },
+      "dag_stats_show": {
+        "brief": "Show DAG statistics",
+        "description": "Show DAG statistics"
+      },
+      "tasks_show_list": {
+        "brief": "Show tasks list",
+        "description": "Show tasks list"
+      },
+      "vars_show_list": {
+        "brief": "Show vars list",
+        "description": "Show vars list"
+      },
+      "var_form_show": {
+        "brief": "Show variable form",
+        "description": "Show variable form"
+      },
+      "workflows_show": {
+        "brief": "Show workflows list",
+        "description": "Show workflows list"
+      },
+      "workflow_form_show": {
+        "brief": "Show workflow form",
+        "description": "Show workflow form"
+      },
+      "workflow_show": {
+        "brief": "Show workflow detail",
+        "description": "Show workflow detail"
+      },
+      "workflows_statistic_show": {
+        "brief": "Show workflows statistic",
+        "description": "Show workflows statistic"
+      }
+    }
   }
 }

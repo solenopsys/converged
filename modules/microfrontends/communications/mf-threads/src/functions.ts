@@ -30,7 +30,13 @@ const createThreadsWidget = (_bus: any, params?: ShowThreadsParams) => ({
 
 const createShowThreadsAction: CreateAction<any> = (bus) => ({
   id: SHOW_THREADS,
-  description: "Show threads dashboard",
+  llm: {
+    microfrontend: "threads-mf",
+    brief: "llm.actions.threads_show.brief",
+    description: "llm.actions.threads_show.description",
+  },
+  exposure: "user",
+  priority: "primary",
   invoke: () => {
     bus.present({ widget: createThreadsStatsWidget(bus) });
   },
@@ -38,7 +44,13 @@ const createShowThreadsAction: CreateAction<any> = (bus) => ({
 
 const createViewThreadAction: CreateAction<any> = (bus) => ({
   id: VIEW_THREAD,
-  description: "View a single thread",
+  llm: {
+    microfrontend: "threads-mf",
+    brief: "llm.actions.threads_view.brief",
+    description: "llm.actions.threads_view.description",
+  },
+  exposure: "user",
+  priority: "normal",
   invoke: (params?: ShowThreadsParams) => {
     bus.present({ widget: createThreadsWidget(bus, params), params });
   },

@@ -13,6 +13,7 @@ export type CatalogMeta = {
 	brief?: string;
 	description: string;
 	category?: string;
+	priority?: FunctionBrief["priority"];
 	parameters?: ToolSpec["parameters"];
 };
 
@@ -77,10 +78,18 @@ const rank = (
 			).length,
 		}))
 		.filter(({ hits }) => hits > 0)
-		.sort((left, right) => right.hits - left.hits)
+		.sort(
+			(left, right) =>
+				right.hits - left.hits ||
+				priorityWeight(right.entry.priority) - priorityWeight(left.entry.priority) ||
+				left.entry.id.localeCompare(right.entry.id),
+		)
 		.slice(0, limit)
 		.map(({ entry }) => entry);
 };
+
+const priorityWeight = (priority: FunctionBrief["priority"]): number =>
+	priority === "primary" ? 2 : priority === "secondary" ? 0 : 1;
 
 export function createConversationCatalog(
 	domain: Domain = createDomain("conversation-catalog"),
@@ -123,6 +132,7 @@ export function createConversationCatalog(
 					key: fn.id,
 					brief: fn.brief,
 					category: fn.category ?? owner.group,
+					priority: fn.priority ?? "normal",
 					source,
 					group: owner.group,
 				});
@@ -155,7 +165,7 @@ export function createConversationCatalog(
 		return {
 			search: (query, limit = DEFAULT_LIMIT) =>
 				rank([...entries.values()].filter(reachable), query, limit).map(
-					({ id, brief, category }) => ({ id, brief, category }),
+					({ id, brief, category, priority }) => ({ id, brief, category, priority }),
 				),
 			listCategories: () => {
 				const counts = new Map<string, number>();
