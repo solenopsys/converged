@@ -1,6 +1,7 @@
 import {
 	actionCommand,
 	actionContext,
+	actionDeclared,
 	actionRegistered,
 	onActionAuthorizationChanged,
 	registry,
@@ -44,6 +45,7 @@ export function createMicrofrontendCatalog(): ChatCatalog {
 		// again, so the next turn can choose them.
 		onChange: (republish) => {
 			void actionRegistered.watch(() => republish());
+			void actionDeclared.watch(() => republish());
 			onActionAuthorizationChanged(republish);
 		},
 		diagnostics: {

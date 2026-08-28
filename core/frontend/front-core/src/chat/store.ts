@@ -118,6 +118,7 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 					return {
 						id: resolved.id,
 						brief: resolved.brief,
+						description: resolved.description,
 						category: resolved.category,
 						priority: resolved.priority,
 					};

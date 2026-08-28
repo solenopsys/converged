@@ -34,7 +34,10 @@ export type FunctionStepsOptions = {
 	factLimitBytes?: number;
 };
 
-const candidateLine = (fn: FunctionBrief): string => `${fn.id} — ${fn.brief}`;
+const candidateLine = (fn: FunctionBrief): string =>
+	fn.description && fn.description !== fn.brief
+		? `${fn.id} — ${fn.brief}: ${fn.description}`
+		: `${fn.id} — ${fn.brief}`;
 
 function needsArgumentModel(meta: ReturnType<OrchestratorCatalog["meta"]>): boolean {
 	// A missing schema is unknown, so preserve the model step for existing hosts.
@@ -43,12 +46,26 @@ function needsArgumentModel(meta: ReturnType<OrchestratorCatalog["meta"]>): bool
 	return !meta?.parameters || Object.keys(meta.parameters.properties).length > 0;
 }
 
+function schemaDefaults(
+	meta: ReturnType<OrchestratorCatalog["meta"]>,
+): Record<string, unknown> {
+	if (!meta?.parameters) return {};
+	return Object.fromEntries(
+		Object.entries(meta.parameters.properties).flatMap(([key, value]) => {
+			if (!value || typeof value !== "object" || !("default" in value)) return [];
+			return [[key, (value as { default: unknown }).default]];
+		}),
+	);
+}
+
 /** The step's own call if the model made it, otherwise its prose parsed as JSON. */
 function structured(
 	answer: StepAnswer | undefined,
 	toolName: string,
 ): Record<string, unknown> | undefined {
-	const call = answer?.toolCalls.find((candidate) => candidate.name === toolName);
+	const calls = answer?.toolCalls.filter((candidate) => candidate.name === toolName);
+	// Some providers emit an empty provisional tool call before the final one.
+	const call = calls?.find((candidate) => Object.keys(candidate.args).length > 0) ?? calls?.at(-1);
 	if (call) return call.args;
 	return answer?.text ? parseJsonObject(answer.text) : undefined;
 }
@@ -165,6 +182,7 @@ export function createFunctionSteps({
 
 	const args: Step<PlanContext> = {
 		name: "args",
+		allowEmptyAnswer: true,
 		// The tool is the target function itself when the host publishes a schema:
 		// then the model fills real parameters instead of describing them.
 		tools: ({ id }) => {
@@ -184,11 +202,25 @@ export function createFunctionSteps({
 		ask: ({ id, userText }) => {
 			const meta = id ? catalog.meta(id) : undefined;
 			if (!meta || !needsArgumentModel(meta)) return undefined;
-			return `Function: ${meta.id}\n${meta.description}\n\nUser: ${userText}`;
+			return [
+				`Function: ${meta.id}`,
+				meta.description,
+				"Call the call tool exactly once. Extract every value explicitly present in the user request into its matching field. Follow each field description: when it explicitly asks to generate a draft, generate it; otherwise do not invent omitted values.",
+				`Argument schema: ${JSON.stringify(meta.parameters)}`,
+				`User: ${userText}`,
+			].join("\n\n");
 		},
-		apply: (_context, answer) => ({
-			patch: { args: structured(answer, "call") ?? {} },
-		}),
+		apply: ({ id }, answer) => {
+			const meta = id ? catalog.meta(id) : undefined;
+			return {
+				patch: {
+					args: {
+						...schemaDefaults(meta),
+						...(structured(answer, "call") ?? {}),
+					},
+				},
+			};
+		},
 	};
 
 	// Local and terminal. A failed call is a fact, not a break: the answer step

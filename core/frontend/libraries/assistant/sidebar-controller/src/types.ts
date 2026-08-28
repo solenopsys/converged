@@ -2,7 +2,7 @@ export type SidebarSide = "left" | "right";
 
 export type SidebarState = "expanded" | "collapsed";
 
-export type RightPanelTab = "commands" | "chat" | "events";
+export type RightPanelTab = "commands" | "chat" | "events" | "trace";
 
 export type RightPanelEvent = {
 	id: string;

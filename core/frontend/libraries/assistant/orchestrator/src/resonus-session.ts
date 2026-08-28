@@ -51,13 +51,22 @@ function applyEvent(answer: StepAnswer, value: unknown): void {
 		return;
 	}
 	if (event.type === "tool_call.ready" && typeof event.name === "string") {
-		answer.toolCalls.push({
+		const call = {
 			name: event.name,
 			args:
 				event.arguments && typeof event.arguments === "object"
 					? (event.arguments as Record<string, unknown>)
 					: {},
-		});
+		};
+		if (
+			!answer.toolCalls.some(
+				(candidate) =>
+					candidate.name === call.name &&
+					JSON.stringify(candidate.args) === JSON.stringify(call.args),
+			)
+		) {
+			answer.toolCalls.push(call);
+		}
 	}
 }
 

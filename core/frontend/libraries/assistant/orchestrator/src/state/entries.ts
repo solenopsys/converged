@@ -52,6 +52,8 @@ export type StepEntry = Common & {
 	kind: "step";
 	step: string;
 	tier: Tier;
+	phase: "model" | "apply";
+	input?: string;
 	status: EntryStatus;
 	outcome?: string;
 	elapsedMs?: number;
@@ -64,6 +66,7 @@ export type CallEntry = Common & {
 	callId?: string;
 	args: Record<string, unknown>;
 	status: EntryStatus;
+	elapsedMs?: number;
 	result?: unknown;
 	error?: string;
 };

@@ -59,17 +59,27 @@ export function createMachine<Context>({
 
 		const level = tier?.(step.name) ?? step.tier ?? "fast";
 		const tools = step.tools?.(context) ?? [];
-		const trace: StepTrace = { step: step.name, tier: level, startedAt: Date.now() };
+		const trace: StepTrace = {
+			step: step.name,
+			tier: level,
+			phase: "model",
+			startedAt: Date.now(),
+			input: user,
+		};
 		onStep?.(trace);
 		try {
 			const answer = await ask({ step: step.name, system, user, tier: level, tools });
 			const outcome = answer.toolCalls.length
 				? answer.toolCalls.map((call) => `${call.name}(${JSON.stringify(call.args)})`).join(" ")
 				: answer.text;
-			onStep?.({ ...trace, finishedAt: Date.now(), outcome: outcome.slice(0, 120) });
+			onStep?.({ ...trace, finishedAt: Date.now(), outcome });
 			// Neither a call nor a word is not an answer: treating it as one makes
 			// the run degrade into "no function needed" and look like a decision.
-			if (answer.toolCalls.length === 0 && !answer.text.trim()) {
+			if (
+				!step.allowEmptyAnswer &&
+				answer.toolCalls.length === 0 &&
+				!answer.text.trim()
+			) {
 				throw new Error(
 					`[orchestrator] Step "${step.name}" came back empty from the ${level} model`,
 				);
@@ -93,7 +103,30 @@ export function createMachine<Context>({
 				const answer =
 					user === undefined ? undefined : await askStep(step, context, user);
 
-				const result = await step.apply(context, answer);
+				const trace: StepTrace = {
+					step: step.name,
+					tier: tier?.(step.name) ?? step.tier ?? "fast",
+					phase: "apply",
+					startedAt: Date.now(),
+				};
+				onStep?.(trace);
+				let result: Awaited<ReturnType<Step<Context>["apply"]>>;
+				try {
+					result = await step.apply(context, answer);
+					onStep?.({
+						...trace,
+						finishedAt: Date.now(),
+						outcome: JSON.stringify(result),
+					});
+				} catch (error) {
+					const message = error instanceof Error ? error.message : String(error);
+					onStep?.({
+						...trace,
+						finishedAt: Date.now(),
+						outcome: `error: ${message}`,
+					});
+					throw error;
+				}
 				if (result.done) return result.done;
 				if (result.patch) context = { ...context, ...result.patch };
 			}

@@ -11,6 +11,8 @@ export type Tier = "fast" | "heavy" | (string & {});
 export type FunctionBrief = {
 	id: string;
 	brief: string;
+	/** Full intent text used to rank and choose a function. */
+	description?: string;
 	category?: string;
 	priority?: "primary" | "normal" | "secondary";
 };
@@ -79,7 +81,11 @@ export type OrchestratorCatalog = {
 export type StepTrace = {
 	step: string;
 	tier: Tier;
+	/** Whether this covers the model request or the local step implementation. */
+	phase: "model" | "apply";
 	startedAt: number;
+	/** Exact input supplied to a one-shot model step. */
+	input?: string;
 	finishedAt?: number;
 	outcome?: string;
 };
@@ -99,6 +105,8 @@ export type Step<Context> = {
 	tier?: Tier;
 	when?(context: Readonly<Context>): boolean;
 	ask?(context: Readonly<Context>): string | undefined;
+	/** An empty model reply is a valid fallback for this optional step. */
+	allowEmptyAnswer?: boolean;
 	/** The shape the step wants back; empty means a plain text answer. */
 	tools?(context: Readonly<Context>): ToolSpec[];
 	apply(

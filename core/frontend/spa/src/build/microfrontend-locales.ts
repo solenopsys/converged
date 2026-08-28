@@ -95,6 +95,7 @@ export async function localizedMicrofrontendEntry(
 	const virtualEntrypoint = `mf-locales:${moduleName}`;
 	const namespace = `mf-locales-${moduleName}`;
 	const microfrontendId = `${moduleName}-mf`;
+	const microfrontendModule = `mf-${moduleName}`;
 	const plugin: Bun.BunPlugin = {
 		name: namespace,
 		setup(build) {
@@ -108,7 +109,7 @@ export async function localizedMicrofrontendEntry(
 					`import __microfrontendPlugin from ${JSON.stringify(entrypoint)};`,
 					`export * from ${JSON.stringify(entrypoint)};`,
 					`__registerMicrofrontendLocales(${JSON.stringify(microfrontendId)}, ${JSON.stringify(catalog)});`,
-					`__ingestMicrofrontendLlmCatalog(${JSON.stringify(microfrontendId)}, "", ${JSON.stringify(llmCatalog)});`,
+					`__ingestMicrofrontendLlmCatalog(${JSON.stringify(microfrontendModule)}, "", ${JSON.stringify(llmCatalog)});`,
 					"export default __microfrontendPlugin;",
 				].join("\n"),
 				loader: "js",

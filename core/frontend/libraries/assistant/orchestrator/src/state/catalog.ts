@@ -74,7 +74,9 @@ const rank = (
 		.map((entry) => ({
 			entry,
 			hits: words.filter((word) =>
-				`${entry.id} ${entry.brief}`.toLowerCase().includes(word),
+				`${entry.id} ${entry.brief} ${entry.description ?? ""}`
+					.toLowerCase()
+					.includes(word),
 			).length,
 		}))
 		.filter(({ hits }) => hits > 0)
@@ -131,6 +133,7 @@ export function createConversationCatalog(
 					id: qualify(owner, fn.id),
 					key: fn.id,
 					brief: fn.brief,
+					...(fn.description ? { description: fn.description } : {}),
 					category: fn.category ?? owner.group,
 					priority: fn.priority ?? "normal",
 					source,
@@ -165,7 +168,13 @@ export function createConversationCatalog(
 		return {
 			search: (query, limit = DEFAULT_LIMIT) =>
 				rank([...entries.values()].filter(reachable), query, limit).map(
-					({ id, brief, category, priority }) => ({ id, brief, category, priority }),
+					({ id, brief, description, category, priority }) => ({
+						id,
+						brief,
+						...(description ? { description } : {}),
+						category,
+						priority,
+					}),
 				),
 			listCategories: () => {
 				const counts = new Map<string, number>();

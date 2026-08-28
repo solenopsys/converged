@@ -96,6 +96,12 @@ describe("conversation entries", () => {
 		// The step log is a separate stream and stays out of what the user reads.
 		const steps = conversation.entries.log("model:fast");
 		expect(steps.some((entry) => entry.kind === "step" && entry.step === "route")).toBe(true);
+		expect(
+			steps
+				.filter((entry): entry is Extract<Entry, { kind: "step" }> => entry.kind === "step")
+				.filter((entry) => entry.step === "invoke")
+				.map((entry) => entry.phase),
+		).toEqual(["apply"]);
 		expect(conversation.entries.log(CONVERSATION).some((e) => e.kind === "step")).toBe(false);
 	});
 
@@ -171,6 +177,7 @@ describe("conversation turn", () => {
 		expect(card).toMatchObject({
 			name: "readFile",
 			status: "completed",
+			elapsedMs: expect.any(Number),
 			result: { text: "contents" },
 		});
 	});

@@ -71,6 +71,9 @@ export function sourceFiles(): string[] {
 			const localesDir = join(moduleDir, "locales");
 			return [
 				...sources(join(moduleDir, "src")),
+				// The LLM manifest is embedded into the MF wrapper, so changing its
+				// descriptions or schemas must invalidate a dev build too.
+				join(moduleDir, "llm.json"),
 				...(existsSync(localesDir)
 					? Array.from(
 							new Bun.Glob("*.json").scanSync({

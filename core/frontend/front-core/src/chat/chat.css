@@ -21,7 +21,8 @@
 .panel-message.user {
   align-self: flex-end;
   background: #252625;
-  color: var(--hw-field-ink);
+  /* User messages keep a dark surface in both themes. */
+  color: #f7f7f5;
   white-space: pre-wrap;
 }
 

@@ -99,7 +99,7 @@ describe("orchestrator", () => {
 		expect(steps).toEqual(["route", "args"]);
 	});
 
-	test("a known optional-only schema skips the args model call", async () => {
+	test("an optional form schema still extracts values from the request", async () => {
 		const optionalOnly: OrchestratorCatalog = {
 			...CATALOG,
 			meta: (id) => ({
@@ -115,17 +115,18 @@ describe("orchestrator", () => {
 			{
 				route: '{"intent":"function","area":"logs"}',
 				select: '{"id":"logs.cold.show"}',
+				args: '{"param":"draft value"}',
 			},
 			optionalOnly,
 		);
 
 		const plan = await orchestrator.plan("show cold logs");
-		expect(plan).toMatchObject({
-			kind: "function",
-			id: "logs.cold.show",
-			args: {},
-		});
-		expect(steps).toEqual(["route", "select"]);
+			expect(plan).toMatchObject({
+				kind: "function",
+				id: "logs.cold.show",
+				args: { param: "draft value" },
+			});
+			expect(steps).toEqual(["route", "select", "args"]);
 	});
 
 	test("an empty catalog does not invent a function", async () => {
@@ -334,12 +335,16 @@ describe("machine", () => {
 	});
 
 	test("step tracing is emitted on entry and completion", async () => {
-		const traces: Array<{ step: string; finished: boolean }> = [];
+		const traces: Array<{ step: string; phase: string; finished: boolean }> = [];
 		const orchestrator = createOrchestrator({
 			prompt: async () => "p",
 			catalog: CATALOG,
 			onStep: (trace) =>
-				void traces.push({ step: trace.step, finished: trace.finishedAt !== undefined }),
+				void traces.push({
+					step: trace.step,
+					phase: trace.phase,
+					finished: trace.finishedAt !== undefined,
+				}),
 			ask: async ({ tools }) => ({
 				text: "",
 				toolCalls: [{ name: tools[0]?.name ?? "route", args: { intent: "answer" } }],
@@ -348,8 +353,10 @@ describe("machine", () => {
 
 		await orchestrator.plan("hello");
 		expect(traces).toEqual([
-			{ step: "route", finished: false },
-			{ step: "route", finished: true },
+			{ step: "route", phase: "model", finished: false },
+			{ step: "route", phase: "model", finished: true },
+			{ step: "route", phase: "apply", finished: false },
+			{ step: "route", phase: "apply", finished: true },
 		]);
 	});
 
@@ -392,5 +399,29 @@ describe("empty step reply", () => {
 		expect(machine.run({ userText: "show logs", candidates: [] })).rejects.toThrow(
 			'Step "route" came back empty',
 		);
+	});
+
+	test("is accepted by a step with an explicit empty-answer fallback", async () => {
+		const machine = createMachine<PlanContext>({
+			steps: [
+				{
+					name: "optional-args",
+					allowEmptyAnswer: true,
+					ask: () => "optional values",
+					apply: (_context, answer) => ({
+						done: { kind: "function", id: "mailing.send.form", args: {}, fact: answer },
+					}),
+				},
+			],
+			prompt: async () => "p",
+			ask: async () => ({ text: "", toolCalls: [] }),
+		});
+
+		expect(await machine.run({ userText: "open form", candidates: [] })).toEqual({
+			kind: "function",
+			id: "mailing.send.form",
+			args: {},
+			fact: { text: "", toolCalls: [] },
+		});
 	});
 });

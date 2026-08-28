@@ -38,6 +38,7 @@ describe("microfrontend locale compiler", () => {
 		if (!output) throw new Error("Microfrontend build emitted no entry chunk");
 		const script = await output.text();
 		expect(script).toContain("registerMicrofrontendLocales");
+		expect(script).toContain('ingestMicrofrontendLlmCatalog("mf-auth"');
 		expect(script).toContain("Welcome to Converged");
 		expect(script).toContain("Добро пожаловать");
 	});

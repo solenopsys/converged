@@ -44,9 +44,9 @@ const moduleBriefs = new Map<string, string>();
 
 export function ingestFunctionIndex(index: FunctionIndexFile): void {
 	for (const entry of Object.values(index.modules)) {
-		ingestMicrofrontendLlmCatalog(entry.module, entry.brief, {
+		ingestCatalog(entry.module, entry.brief, {
 			actions: Object.fromEntries(entry.functions.map(({ id, ...meta }) => [id, meta])),
-		});
+		}, true);
 	}
 }
 
@@ -56,9 +56,22 @@ export function ingestMicrofrontendLlmCatalog(
 	brief: string,
 	catalog: MicrofrontendLlmCatalog,
 ): void {
+	ingestCatalog(module, brief, catalog, false);
+}
+
+function ingestCatalog(
+	module: string,
+	brief: string,
+	catalog: MicrofrontendLlmCatalog,
+	authoritative: boolean,
+): void {
 	moduleBriefs.set(module, brief);
 	for (const [id, meta] of Object.entries(catalog.actions)) {
-		owners.set(id, module);
+		// The shell index names the actual lazy bundle. A catalog embedded in that
+		// bundle only enriches existing actions: it must not replace that owner or
+		// advertise an action the module does not implement.
+		if (!authoritative && !registry.meta(id)) continue;
+		if (authoritative || !owners.has(id)) owners.set(id, module);
 		registry.declare({ id, ...meta });
 	}
 	for (const pattern of catalog.patterns ?? []) {

@@ -1,15 +1,17 @@
 import { registry } from "./registry";
 import { actionPriorityWeight, resolveActionMeta } from "./action-meta";
-import type { ActionExposure, ActionPriority } from "./types";
+import type { ActionExposure, ActionParameters, ActionPriority } from "./types";
 
 export interface ActionBrief {
 	id: string;
 	brief: string;
+	description: string;
 	category?: string;
 	access?: "public";
 	capability?: string;
 	exposure: ActionExposure;
 	priority: ActionPriority;
+	parameters?: ActionParameters;
 }
 
 export interface CategorySummary {
@@ -27,6 +29,7 @@ interface RegistryLike {
 		capability?: string;
 		exposure?: ActionExposure;
 		priority?: ActionPriority;
+		parameters?: ActionParameters;
 	}>;
 }
 
@@ -139,9 +142,11 @@ function toBrief(action: ReturnType<typeof resolveActionMeta>): ActionBrief {
 	return {
 		id: action.id,
 		brief: action.brief,
+		description: action.description,
 		category: action.category ?? categoryOf(action.id),
 		exposure: action.exposure,
 		priority: action.priority,
+		...(action.parameters ? { parameters: action.parameters } : {}),
 	};
 }
 

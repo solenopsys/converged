@@ -276,6 +276,18 @@ textarea {
 	animation: panel-in var(--hw-motion-panel) ease-out both;
 }
 
+/* The default field tokens are intentionally dark for the composer, but they
+ * made the diagnostic surface unreadable on a light application canvas. */
+:root:not(.dark) .chat-panel {
+	--hw-panel: #ffffff;
+	--hw-panel-border: #c7cbd1;
+	--hw-field: #f3f5f7;
+	--hw-field-border: #c7cbd1;
+	--hw-field-ink: #1d232b;
+	--hw-field-placeholder: #667085;
+	--hw-ink-muted: #5d6673;
+}
+
 .chat-panel-resizer {
 	position: absolute;
 	top: 0;
@@ -388,7 +400,7 @@ textarea {
 
 .panel-tabs {
 	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
+	grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
 	gap: var(--hw-space-1);
 	padding: var(--hw-space-1);
 	border: var(--hw-border-width) solid var(--hw-panel-border);
@@ -523,6 +535,89 @@ textarea {
 .panel-events time {
 	flex: 0 0 auto;
 	color: var(--hw-ink-muted);
+}
+
+.panel-trace {
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	overflow-y: auto;
+	font-family: var(--hw-font-family-mono, ui-monospace, monospace);
+	font-size: var(--hw-font-size-xs, 0.72rem);
+}
+
+.panel-trace-toolbar {
+	display: flex;
+	justify-content: flex-end;
+	padding-bottom: var(--hw-space-2);
+}
+
+.panel-trace-copy {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--hw-space-1);
+	min-height: calc(var(--hw-unit) * 5);
+	padding: 0 var(--hw-space-2);
+	border: var(--hw-border-width) solid var(--hw-panel-border);
+	border-radius: calc(var(--hw-unit) * 1);
+	background: transparent;
+	color: var(--hw-ink-muted);
+	font-size: var(--hw-font-size-xs, 0.72rem);
+	font-weight: 650;
+	cursor: pointer;
+}
+
+.panel-trace-copy:hover {
+	border-color: var(--hw-ink-muted);
+	color: var(--hw-ink);
+}
+
+.panel-trace-copy:focus-visible {
+	outline: calc(var(--hw-unit) * 0.5) solid var(--hw-focus);
+	outline-offset: calc(var(--hw-unit) * 0.5);
+}
+
+.panel-trace li {
+	padding: var(--hw-space-3) 0;
+	border-bottom: var(--hw-border-width) solid var(--hw-panel-border);
+}
+
+.panel-trace li[data-status="failed"] code {
+	color: var(--hw-danger, #b42318);
+}
+
+.panel-trace header {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto auto;
+	gap: var(--hw-space-2);
+	align-items: baseline;
+}
+
+.panel-trace header code {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--hw-ink);
+}
+
+.panel-trace header span,
+.panel-trace header time {
+	color: var(--hw-ink-muted);
+	white-space: nowrap;
+}
+
+.panel-trace pre {
+	margin: var(--hw-space-2) 0 0;
+	padding: var(--hw-space-2);
+	overflow-x: auto;
+	border-radius: calc(var(--hw-unit) * 1);
+	background: color-mix(in srgb, var(--hw-field) 78%, transparent);
+	color: var(--hw-ink);
+	font: inherit;
+	line-height: 1.4;
+	white-space: pre-wrap;
+	word-break: break-word;
 }
 
 .panel-messages {

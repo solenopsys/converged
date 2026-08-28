@@ -8,7 +8,7 @@ export async function bootstrapAppShell(
 	mount: (config: ChatConfig) => void,
 ): Promise<void> {
 	await loadMicrofrontend("mf-auth");
-	mount(configFromPage());
 	await loadFunctionIndex();
+	mount(configFromPage());
 	bootstrapWorkspaceUrl();
 }

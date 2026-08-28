@@ -90,6 +90,18 @@ describe("Resonus session adapter", () => {
 		).toEqual(["fast", "heavy"]);
 	});
 
+	test("deduplicates repeated ready events for the same tool call", async () => {
+		const fake = transport([
+			{ type: "tool_call.ready", name: "call", arguments: { to: "a@example.com" } },
+			{ type: "tool_call.ready", name: "call", arguments: { to: "a@example.com" } },
+		]);
+		const session = createResonusSession({ transport: fake.transport });
+
+		expect(await session.ask(input)).toMatchObject({
+			toolCalls: [{ name: "call", args: { to: "a@example.com" } }],
+		});
+	});
+
 	test("releases a context when generation fails", async () => {
 		const fake = transport([
 			{ type: "response.error", message: "vendor rejected request" },

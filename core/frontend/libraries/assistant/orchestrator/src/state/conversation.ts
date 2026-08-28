@@ -136,7 +136,7 @@ export function createConversation({
 			prompt,
 			tier,
 			onStep: (trace) => {
-				const key = `${trace.step}:${trace.startedAt}`;
+				const key = `${trace.phase}:${trace.step}:${trace.startedAt}`;
 				if (trace.finishedAt === undefined) {
 					const entryId = id();
 					open.set(key, entryId);
@@ -149,6 +149,8 @@ export function createConversation({
 						kind: "step",
 						step: trace.step,
 						tier: trace.tier,
+						phase: trace.phase,
+						input: trace.input,
 						status: "running",
 					});
 					return;
@@ -167,6 +169,7 @@ export function createConversation({
 			},
 		});
 
+		const startedAt = Date.now();
 		const plan = await machine.run({ userText: text, candidates: [] });
 		if (plan.kind === "function") {
 			const failure =
@@ -181,6 +184,7 @@ export function createConversation({
 				name: plan.id,
 				args: plan.args,
 				status: failure ? "failed" : "completed",
+				elapsedMs: Date.now() - startedAt,
 				result: failure ? undefined : plan.fact,
 				error: failure ? (plan.fact as { error?: string }).error : undefined,
 			});
@@ -189,6 +193,7 @@ export function createConversation({
 	};
 
 	const execute = async (call: StepToolCall & { id: string }): Promise<unknown> => {
+		const startedAt = Date.now();
 		const entryId = id();
 		append({
 			id: entryId,
@@ -204,16 +209,29 @@ export function createConversation({
 		const tool = $tools.getState().get(call.name);
 		if (!tool) {
 			const error = `Function "${call.name}" not found`;
-			entries.patched({ id: entryId, patch: { status: "failed", error } });
+			entries.patched({
+				id: entryId,
+				patch: { status: "failed", error, elapsedMs: Date.now() - startedAt },
+			});
 			return { ok: false, error };
 		}
 		try {
 			const result = await tool.execute(call.args);
-			entries.patched({ id: entryId, patch: { status: "completed", result } });
+			entries.patched({
+				id: entryId,
+				patch: { status: "completed", result, elapsedMs: Date.now() - startedAt },
+			});
 			return result;
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
-			entries.patched({ id: entryId, patch: { status: "failed", error: message } });
+			entries.patched({
+				id: entryId,
+				patch: {
+					status: "failed",
+					error: message,
+					elapsedMs: Date.now() - startedAt,
+				},
+			});
 			return { ok: false, error: message };
 		}
 	};

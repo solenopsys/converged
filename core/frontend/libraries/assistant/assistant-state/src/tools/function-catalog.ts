@@ -5,7 +5,13 @@ import type { ExecutableTool } from "../types";
 export interface FunctionBrief {
 	id: string;
 	brief: string;
+	description?: string;
 	category?: string;
+	parameters?: {
+		type: "object";
+		properties: Record<string, unknown>;
+		required?: string[];
+	};
 }
 
 export interface FunctionCategory {
@@ -17,7 +23,13 @@ export interface FunctionCatalogRegistry {
 	get(
 		id: string,
 	):
-		| { id: string; brief?: string; description: string; category?: string }
+		| {
+				id: string;
+				brief?: string;
+				description: string;
+				category?: string;
+				parameters?: FunctionBrief["parameters"];
+		  }
 		| undefined;
 }
 
@@ -109,6 +121,7 @@ export function createFunctionCatalogTools({
 					brief: fn.brief,
 					description: fn.description,
 					category: fn.category,
+					parameters: fn.parameters,
 				};
 			},
 		},

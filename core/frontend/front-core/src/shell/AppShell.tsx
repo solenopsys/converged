@@ -8,10 +8,11 @@ import {
 import type { ComponentChildren } from "preact";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import type { RightPanelTab } from "sidebar-controller";
+import type { Entry } from "orchestrator";
 import { authToken } from "../auth-token";
 import type { ChatConfig } from "../chat/config";
 import { mountLinkedChatStyles } from "../chat/styles/link";
-import { LogOut } from "../icons";
+import { Copy, LogOut } from "../icons";
 import { LandingView } from "../landing/LandingView";
 import type { LandingPayload } from "../landing/types";
 import { AttachButton, PanelToggle } from "../ui/buttons";
@@ -45,10 +46,17 @@ installEffectorTrafficLogger();
 type ChatModule = typeof import("../chat");
 type Chat = Awaited<ReturnType<ChatModule["initChat"]>>;
 
+declare const __EFFECTOR_DEBUG__: boolean;
+
+// SSR loads this source before Bun applies browser build defines.
+const devTraceEnabled =
+	typeof __EFFECTOR_DEBUG__ !== "undefined" && __EFFECTOR_DEBUG__;
+
 const panelTabs: Array<{ id: RightPanelTab; label: string }> = [
 	{ id: "commands", label: "Commands" },
 	{ id: "chat", label: "Chat" },
 	{ id: "events", label: "Events" },
+	...(devTraceEnabled ? [{ id: "trace" as const, label: "Trace" }] : []),
 ];
 
 const CONVERGED_LOGO_URL = "/assets/converged.svg";
@@ -145,6 +153,111 @@ function FunctionList({
 
 function priorityWeight(priority: "primary" | "normal" | "secondary"): number {
 	return priority === "primary" ? 2 : priority === "secondary" ? 0 : 1;
+}
+
+function json(value: unknown): string {
+	try {
+		return JSON.stringify(value, null, 2) ?? "undefined";
+	} catch {
+		return String(value);
+	}
+}
+
+function formatTime(at: number): string {
+	return new Intl.DateTimeFormat(undefined, {
+		hour: "2-digit",
+		minute: "2-digit",
+		second: "2-digit",
+		fractionalSecondDigits: 3,
+	}).format(at);
+}
+
+function OrchestratorTrace({ chat }: { chat: Chat }) {
+	const entries = useUnit(chat.store.conversation.entries.$entries);
+	const [copied, setCopied] = useState(false);
+	const trace = Array.from(entries.values())
+		.filter((entry): entry is Extract<Entry, { kind: "step" | "call" }> =>
+			entry.kind === "step" || entry.kind === "call",
+		)
+		.sort((left, right) => left.at - right.at);
+
+	if (trace.length === 0) {
+		return <p class="panel-empty-state">No orchestration activity yet.</p>;
+	}
+
+	const copyAll = async () => {
+		const text = json(
+			trace.map((entry) =>
+				entry.kind === "step"
+					? {
+						at: new Date(entry.at).toISOString(),
+						kind: entry.kind,
+						phase: entry.phase,
+						step: entry.step,
+						tier: entry.tier,
+						status: entry.status,
+						elapsedMs: entry.elapsedMs,
+						input: entry.input,
+						outcome: entry.outcome,
+					  }
+					: {
+						at: new Date(entry.at).toISOString(),
+						kind: entry.kind,
+						name: entry.name,
+						callId: entry.callId,
+						status: entry.status,
+						elapsedMs: entry.elapsedMs,
+						args: entry.args,
+						result: entry.result,
+						error: entry.error,
+					  },
+			),
+		);
+		try {
+			await navigator.clipboard.writeText(text);
+			setCopied(true);
+			window.setTimeout(() => setCopied(false), 1500);
+		} catch {
+			setCopied(false);
+		}
+	};
+
+	return (
+		<>
+			<div class="panel-trace-toolbar">
+				<button
+					type="button"
+					class="panel-trace-copy"
+					onClick={() => void copyAll()}
+					title="Copy all trace entries"
+					aria-label="Copy all trace entries"
+				>
+					<Copy aria-hidden="true" size={14} />
+					{copied ? "Copied" : "Copy all"}
+				</button>
+			</div>
+			<ol class="panel-trace">
+				{trace.map((entry) => (
+					<li key={entry.id} data-status={entry.status}>
+						<header>
+							<code>
+								{entry.kind === "step"
+									? `${entry.phase}:${entry.step} [${entry.tier}]`
+									: `call:${entry.name}`}
+							</code>
+							<span>{entry.elapsedMs === undefined ? "running" : `${entry.elapsedMs} ms`}</span>
+							<time>{formatTime(entry.at)}</time>
+						</header>
+						<pre>
+							{entry.kind === "step"
+								? json({ input: entry.input, outcome: entry.outcome })
+								: json({ args: entry.args, result: entry.result, error: entry.error })}
+						</pre>
+					</li>
+				))}
+			</ol>
+		</>
+	);
 }
 
 const MIN_PANEL_WIDTH = 300;
@@ -486,6 +599,9 @@ export function AppShell({
 							) : (
 								<p class="panel-empty-state">No events yet.</p>
 							)
+						) : null}
+						{panelTab === "trace" && devTraceEnabled ? (
+							chat ? <OrchestratorTrace chat={chat.chat} /> : <p class="panel-empty-state">Chat is not initialized.</p>
 						) : null}
 					</div>
 					<div class="panel-tabs" aria-label="Chat panel tabs" role="tablist">

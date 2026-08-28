@@ -14,7 +14,13 @@ export interface UIActionRegistryLike {
 	get(
 		id: string,
 	):
-		| { id: string; brief?: string; description: string; category?: string }
+		| {
+				id: string;
+				brief?: string;
+				description: string;
+				category?: string;
+				parameters?: FunctionBrief["parameters"];
+		  }
 		| undefined;
 	run(id: string, params: any): unknown;
 }

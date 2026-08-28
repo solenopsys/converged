@@ -6,7 +6,10 @@ import {
 	type HashString,
 } from "g-store";
 import type { CompressionType } from "../types";
-import { createFrontNrpcClientConfig } from "signal-channel";
+import {
+	createFrontNrpcClientConfig,
+	setSignalChannelAuth,
+} from "signal-channel";
 
 export interface CreateStoreServiceOptions {
 	baseUrl?: string;
@@ -50,6 +53,16 @@ function toArrayBuffer(data: Uint8Array): ArrayBuffer {
 	const copy = new Uint8Array(data.byteLength);
 	copy.set(data);
 	return copy.buffer;
+}
+
+function bearerToken(headers: Record<string, string>): string | null {
+	const authorization = Object.entries(headers).find(
+		([name]) => name.toLowerCase() === "authorization",
+	)?.[1];
+	if (!authorization) return null;
+
+	const match = /^Bearer\s+(.+)$/i.exec(authorization.trim());
+	return match?.[1]?.trim() || null;
 }
 
 function normalizeHash(result: unknown): HashString {
@@ -104,6 +117,20 @@ export function createStoreService(
 	}
 	(globalThis as { __FUJIN_WS_URL__?: string }).__FUJIN_WS_URL__ =
 		fujinWsUrl.trim();
+	// A Worker has its own JS realm, so it cannot reuse the page's authenticated
+	// signal channel. The page passes its current bearer token in `headers` for
+	// the cache upload; use that same token to authenticate this worker's Fujin
+	// socket before it sends the cache reference to ms-store.
+	const token = bearerToken(headers);
+	setSignalChannelAuth(
+		token
+			? {
+					getCurrentAccessToken: () => token,
+					getAccessToken: async () => token,
+					subscribe: () => () => undefined,
+				}
+			: null,
+	);
 
 	const client: StoreServiceClient = createStoreServiceClient(
 		createFrontNrpcClientConfig({ deadlineMs: requestTimeoutMs }),
