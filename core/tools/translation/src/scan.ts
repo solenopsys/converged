@@ -11,20 +11,18 @@ import { dirname, join, resolve } from "node:path";
 import { compareJson, compareMarkdown } from "./compare";
 import { hashFile, readText, selectFiles, walk } from "./fs";
 import { flattenTree, readTree, treeHash } from "./json-tree";
-import { type LedgerVerdict, readEntry, record, verdict } from "./ledger";
 import { type MarkdownBlock, outlineHash, parseMarkdown } from "./markdown";
-import { isRecordable, statusFor } from "./status";
+import { statusFor } from "./status";
+import type { TranslationStore } from "./store";
 import type {
 	ControlState,
 	FileEntry,
 	FileSnapshot,
 	JsonValue,
-	LedgerEntry,
 	ProjectConfig,
 	ProjectSnapshot,
 	RouteSnapshot,
 	TargetSnapshot,
-	TranslationLedger,
 	TreeDiff,
 } from "./types";
 
@@ -97,7 +95,7 @@ function targetRelative(config: ProjectConfig, sourceRelative: string): string {
 			: sourceRelative;
 }
 
-function targetDirectory(
+export function targetDirectory(
 	config: ProjectConfig,
 	targetRoot: string,
 	locale: string,
@@ -105,7 +103,7 @@ function targetDirectory(
 	return join(targetRoot, locale, config.targetPrefix ?? "");
 }
 
-function targetPath(
+export function targetFilePath(
 	config: ProjectConfig,
 	targetRoot: string,
 	locale: string,
@@ -121,11 +119,11 @@ export function scanProject(
 	config: ProjectConfig,
 	configPath: string,
 	state: ControlState,
-	ledger: TranslationLedger,
+	store: TranslationStore,
 ): ProjectSnapshot {
 	const root = projectRoot(config, configPath);
 	const targetRoot = projectTargetRoot(config, configPath);
-	const sourceRoot = join(root, config.sourceLocale);
+	const sourceRoot = resolve(root, config.sourcePath ?? config.sourceLocale);
 	if (!existsSync(sourceRoot)) {
 		throw new Error(
 			`[${config.name}] source root does not exist: ${sourceRoot}`,
@@ -152,16 +150,20 @@ export function scanProject(
 		const targets: Record<string, TargetSnapshot> = {};
 
 		for (const locale of config.targetLocales) {
-			const targetFile = targetPath(config, targetRoot, locale, sourceFile.rel);
+			const targetFile = targetFilePath(
+				config,
+				targetRoot,
+				locale,
+				sourceFile.rel,
+			);
 			const targetExists = existsSync(targetFile);
 			const target = targetExists
 				? readView({ ...sourceFile, abs: targetFile })
 				: undefined;
 			const targetHash = target?.hash ?? "";
 			const previousTarget = previousFile?.targets[locale];
-			const entry = readEntry(ledger, config.name, sourceFile.rel, locale);
-			const ledgerVerdict: LedgerVerdict = targetExists
-				? verdict(entry, source.hash, targetHash)
+			const indexVerdict = targetExists
+				? store.verdict(source.hash, locale, targetHash)
 				: "unrecorded";
 
 			const diff = target ? diffFor(source, target, config, locale) : undefined;
@@ -173,7 +175,7 @@ export function scanProject(
 					previousTarget?.hash && previousTarget.hash !== targetHash,
 				),
 				invalidJson: Boolean(target?.error),
-				ledger: ledgerVerdict,
+				index: indexVerdict,
 				diff,
 			});
 
@@ -181,7 +183,6 @@ export function scanProject(
 				exists: targetExists,
 				hash: targetHash,
 				structureHash: target?.structureHash,
-				translatedFromHash: entry?.translatedFromHash,
 				status,
 				reasons,
 				diff,
@@ -241,7 +242,12 @@ function scanRoutes(
 	for (const route of config.routes ?? []) {
 		const source = readTree(join(root, config.sourceLocale, route.config));
 		for (const locale of config.targetLocales) {
-			const targetFile = targetPath(config, targetRoot, locale, route.config);
+			const targetFile = targetFilePath(
+				config,
+				targetRoot,
+				locale,
+				route.config,
+			);
 			const target = existsSync(targetFile) ? readTree(targetFile) : undefined;
 			const diff =
 				source.value !== undefined && target?.value !== undefined
@@ -278,38 +284,6 @@ export function countIssues(project: ProjectSnapshot): number {
 		}
 	}
 	return count;
-}
-
-/**
- * Stamps the current source hash onto every target that exists and is not
- * broken, declaring it translated from what is there now.
- *
- * This is what `--record` runs after a translation pass. It is a separate verb
- * from scanning because it asserts something a scan cannot know: that the
- * translations on disk correspond to the sources on disk.
- */
-export function recordProject(
-	snapshot: ProjectSnapshot,
-	ledger: TranslationLedger,
-	projectName: string,
-	now: string,
-): number {
-	let recorded = 0;
-
-	for (const [rel, file] of Object.entries(snapshot.files)) {
-		for (const [locale, target] of Object.entries(file.targets)) {
-			if (!target.exists || !isRecordable(target.status)) continue;
-			const entry: LedgerEntry = {
-				translatedFromHash: file.sourceHash,
-				translationHash: target.hash,
-				translatedAt: now,
-			};
-			record(ledger, projectName, rel, locale, entry);
-			recorded += 1;
-		}
-	}
-
-	return recorded;
 }
 
 /** Re-exported so callers do not have to know which module owns the maths. */

@@ -9,15 +9,7 @@
 		"./model": "./src/model.ts"
 	},
 	"scripts": {
-		"docs": "bun run src/cli.ts all",
-		"docs:site": "bun run src/cli.ts site",
-		"docs:ecosystem": "bun run src/cli.ts ecosystem",
-		"docs:readme": "bun run src/cli.ts readme",
-		"docs:html": "bun run src/cli.ts html",
-		"docs:pdf": "bun run src/cli.ts pdf",
-		"docs:translations": "bun run src/cli.ts translations",
-		"docs:modules": "bun run src/scaffold/modules.ts",
-		"docs:list": "bun run src/cli.ts --list"
+		"build:doc": "bun run src/cli.ts site ecosystem translations"
 	},
 	"dependencies": {
 		"cruller-md4c": "workspace:*",

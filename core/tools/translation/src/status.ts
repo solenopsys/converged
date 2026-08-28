@@ -5,13 +5,11 @@
  * *and* structurally drifted — and the status names the one a reader has to
  * act on, while `reasons` keeps the rest.
  *
- * `stale` outranks `source-changed` deliberately. They look similar and are
- * not: `source-changed` is measured against the last scan and evaporates on
- * the next one, `stale` is measured against the translation itself and does
- * not.
+ * The content-addressed index is authoritative for translation freshness;
+ * scan state only adds diagnostics about changes since the previous run.
  */
 
-import type { LedgerVerdict } from "./ledger";
+import type { StoreVerdict } from "./store";
 import type { TargetStatus, TreeDiff } from "./types";
 
 export type Evidence = {
@@ -23,7 +21,7 @@ export type Evidence = {
 	/** Target hash differs from the previous scan's baseline. */
 	targetModified: boolean;
 	invalidJson: boolean;
-	ledger: LedgerVerdict;
+	index: StoreVerdict;
 	diff?: TreeDiff;
 };
 
@@ -46,10 +44,8 @@ export function statusFor(evidence: Evidence): {
 	if (!evidence.targetExists) reasons.push("missing target");
 	if (!evidence.tracked && evidence.targetExists)
 		reasons.push("untracked target");
-	if (evidence.ledger === "stale")
-		reasons.push("source changed since translation");
-	if (evidence.ledger === "unrecorded" && evidence.targetExists) {
-		reasons.push("not in ledger");
+	if (evidence.index === "unrecorded" && evidence.targetExists) {
+		reasons.push("not in translation index");
 	}
 	if (evidence.sourceChanged) reasons.push("source changed");
 	if (evidence.targetModified) reasons.push("target modified");
@@ -64,16 +60,10 @@ export function statusFor(evidence: Evidence): {
 	else if (hasStructureDrift(diff)) status = "structure-drift";
 	else if (diff?.unchangedStrings.length || diff?.localeMismatches.length) {
 		status = "untranslated-text";
-	} else if (evidence.ledger === "stale") status = "stale";
-	else if (evidence.ledger === "unrecorded") status = "unrecorded";
+	} else if (evidence.index === "unrecorded") status = "unrecorded";
 	else if (evidence.sourceChanged) status = "source-changed";
 	else if (evidence.targetModified) status = "target-modified";
 	else if (!evidence.tracked) status = "untracked";
 
 	return { status, reasons };
-}
-
-/** Statuses a `--record` run is allowed to stamp as translated. */
-export function isRecordable(status: TargetStatus): boolean {
-	return status !== "missing" && status !== "invalid-json";
 }

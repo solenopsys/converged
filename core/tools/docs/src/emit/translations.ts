@@ -15,20 +15,19 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join, relative } from "node:path";
 import type { Writer } from "../fs";
-import type { Config, ScanSummary } from "../types";
+import type { Book, Config, DocsRoot, ScanSummary } from "../types";
 
 type Project = {
 	name: string;
 	root: string;
+	sourcePath?: string;
 	targetRoot?: string;
 	targetPrefix?: string;
 	targetStripPrefix?: string;
 	sourceLocale: string;
 	targetLocales: string[];
 	include: string[];
-	stateFile: string;
-	reportFile: string;
-	ledgerFile: string;
+	translationIndex: string;
 };
 
 function relativeTo(from: string, path: string): string {
@@ -45,6 +44,7 @@ function cacheLocales(path: string): string[] {
 
 export async function emitTranslations(
 	summary: ScanSummary,
+	books: Book[],
 	config: Config,
 	writer: Writer,
 ) {
@@ -56,50 +56,48 @@ export async function emitTranslations(
 	} = config.translation;
 	const dir = target.replace(/\/[^/]+$/, "");
 	const projects: Project[] = [];
-	const skipped: string[] = [];
+	const sourceFiles = (root: DocsRoot): string[] =>
+		[
+			...new Set(
+				books
+					.filter((book) => book.lang === sourceLocale)
+					.flatMap((book) => book.docs)
+					.filter((doc) => doc.module === root.owner)
+					.map((doc) => relative(root.path, doc.source))
+					.filter((path) => path && !path.startsWith("..")),
+			),
+		].sort();
 
 	for (const root of summary.roots) {
-		// A root without the source language has nothing to compare against, and
-		// translation-control treats that as a fatal error rather than a skip.
-		if (!root.langs.includes(sourceLocale)) {
-			skipped.push(root.owner);
-			continue;
-		}
-
-		const moduleSource = root.path.includes("/modules/");
-		const cache = config.cache
+		const docsCache = config.docsCaches.get(root.project) ?? "";
+		const cache = docsCache
 			? {
-					targetRoot: relativeTo(dir, config.cache),
-					...(moduleSource
+					targetRoot: relativeTo(dir, docsCache),
+					...(root.path.includes("/modules/")
 						? {
 								targetPrefix: `modules/${root.owner}`,
 								targetStripPrefix: "modules",
 							}
 						: {}),
-					ledgerFile: relativeTo(
-						dir,
-						join(config.cache, ".translation", `${root.owner}.ledger.json`),
-					),
+					translationIndex: relativeTo(dir, join(docsCache, ".translation")),
 				}
 			: {
-					ledgerFile: relativeTo(
-						dir,
-						join(stateDir, `${root.owner}.ledger.json`),
-					),
+					translationIndex: relativeTo(dir, join(stateDir, ".translation")),
 				};
 
 		projects.push({
 			name: root.owner,
 			root: relativeTo(dir, root.path),
+			sourcePath: ".",
 			...cache,
 			sourceLocale,
 			// Only languages someone actually asked for, minus the source itself.
 			targetLocales: (targetLocales.length ? targetLocales : summary.langs)
 				.filter((lang) => lang !== sourceLocale)
 				.sort(),
-			include: [],
-			stateFile: relativeTo(dir, `${stateDir}/${root.owner}.state.json`),
-			reportFile: relativeTo(dir, `${stateDir}/${root.owner}.report.json`),
+			// Only documents resolved by the docs generator are localizable.
+			// The index itself remains a structural input for the site builder.
+			include: sourceFiles(root),
 		});
 	}
 
@@ -114,13 +112,13 @@ export async function emitTranslations(
 			...(config.contentCache
 				? {
 						targetRoot: relativeTo(dir, cache),
-						ledgerFile: relativeTo(
+						translationIndex: relativeTo(
 							dir,
-							join(config.contentCache, ".translation", `${name}.ledger.json`),
+							join(config.contentCache, ".translation"),
 						),
 					}
 				: {
-						ledgerFile: relativeTo(dir, join(stateDir, `${name}.ledger.json`)),
+						translationIndex: relativeTo(dir, join(stateDir, ".translation")),
 					}),
 			sourceLocale,
 			targetLocales: (targetLocales.length
@@ -130,15 +128,7 @@ export async function emitTranslations(
 				.filter((lang) => lang !== sourceLocale)
 				.sort(),
 			include: [],
-			stateFile: relativeTo(dir, `${stateDir}/${name}.state.json`),
-			reportFile: relativeTo(dir, `${stateDir}/${name}.report.json`),
 		});
-	}
-
-	if (skipped.length > 0) {
-		console.log(
-			`[docs] translations: no "${sourceLocale}" source in ${skipped.join(", ")}`,
-		);
 	}
 
 	await writer.write(target, `${JSON.stringify({ projects }, null, 2)}\n`);

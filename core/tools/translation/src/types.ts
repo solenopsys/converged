@@ -5,13 +5,11 @@
  *
  * - the **state** is a snapshot of the last scan. It answers "what changed
  *   since I last looked", and every scan overwrites it.
- * - the **ledger** records translation events. It answers "what changed since
- *   this was translated", and only `--record` writes it.
+ * - the content-addressed **translation index** links a source hash to the
+ *   independently stored translation hashes.
  *
- * Keeping them apart is the whole point. A status derived from the state
- * survives exactly one scan — the scan that reports it also updates the
- * baseline it was measured against. A status derived from the ledger survives
- * until somebody actually translates the file.
+ * State may be replaced after every scan. Translation links are independent
+ * atomic records and survive until their source hash is no longer current.
  */
 
 export type JsonValue =
@@ -43,11 +41,13 @@ export type ValidationConfig = {
 
 export type ProjectConfig = {
 	name: string;
-	/** Root holding the source locale. */
+	/** Root holding source content or locale directories. */
 	root: string;
+	/** Source directory below `root`; defaults to `sourceLocale`. */
+	sourcePath?: string;
 	/**
 	 * Root holding translated locales. Omit it when sources and translations
-	 * share one tree; documentation keeps translations in docs-cache instead.
+	 * share one tree; documentation keeps translations in content/docs-cache.
 	 */
 	targetRoot?: string;
 	/** Directory inside each target locale, before the translated source path. */
@@ -62,8 +62,8 @@ export type ProjectConfig = {
 	validation?: ValidationConfig;
 	stateFile?: string;
 	reportFile?: string;
-	/** Translation ledger; defaults to `./translation-ledger.json`. */
-	ledgerFile?: string;
+	/** Directory of content-addressed source-hash records. */
+	translationIndex?: string;
 };
 
 export type ControlConfig = {
@@ -102,7 +102,6 @@ export type TargetStatus =
 	| "ok"
 	| "untracked"
 	| "missing"
-	| "stale"
 	| "unrecorded"
 	| "source-changed"
 	| "target-modified"
@@ -114,8 +113,6 @@ export type TargetSnapshot = {
 	exists: boolean;
 	hash: string;
 	structureHash?: string;
-	/** Source hash this translation was made from, per the ledger. */
-	translatedFromHash?: string;
 	status: TargetStatus;
 	reasons: string[];
 	diff?: TreeDiff;
@@ -152,26 +149,6 @@ export type ControlState = {
 	version: 1;
 	updatedAt: string;
 	projects: Record<string, ProjectSnapshot>;
-};
-
-/** One recorded translation event. */
-export type LedgerEntry = {
-	/** Hash of the source text the translation was made from. */
-	translatedFromHash: string;
-	/** Hash of the translation as recorded, to detect later hand edits. */
-	translationHash: string;
-	translatedAt: string;
-};
-
-export type LedgerProject = {
-	/** `<rel path>` → `<locale>` → entry. */
-	files: Record<string, Record<string, LedgerEntry>>;
-};
-
-export type TranslationLedger = {
-	version: 1;
-	updatedAt: string;
-	projects: Record<string, LedgerProject>;
 };
 
 export type ReportFile = {

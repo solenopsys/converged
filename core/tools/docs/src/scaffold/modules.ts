@@ -256,7 +256,7 @@ export async function scaffoldModuleDocs(
 		const project = roots.get(module.project);
 		if (!project) throw new Error(`Project root not found: ${module.project}`);
 
-		const docs = join(project, module.path, "docs", "en", "modules");
+		const docs = join(project, module.path, "docs", "modules");
 		const index = join(docs, "index.json");
 		const article = join(docs, `${module.name}.md`);
 		const meta = join(docs, "meta.json");
@@ -293,7 +293,7 @@ export async function scaffoldModuleDocs(
 		else existing.push(module.name);
 	}
 
-	const systemDocs = join(platformRoot, "docs", "en", "system");
+	const systemDocs = join(platformRoot, "docs", "system");
 	const systemIndex = join(systemDocs, "index.json");
 	const systemCatalog = join(systemDocs, "module-catalog.md");
 	if (!dryRun) {

@@ -18,13 +18,17 @@
  *   --no-prune        keep output files this run did not produce
  *   --dry-run         report what would change, write nothing
  *   --list            print the discovered docs roots and books, then exit
+ *   -t, --translate   translate missing or stale locale files before rebuilding
  */
 
+import { resolve } from "node:path";
+import { syncCaches } from "./cache";
 import { loadConfig } from "./config";
-import { assertModuleDocs } from "./coverage";
+import { assertModuleDocs, missingModuleDocs } from "./coverage";
 import { emitContent } from "./emit/content";
 import { emitEcosystem } from "./emit/ecosystem";
 import { emitHtml } from "./emit/html";
+import { emitContentIndexes } from "./emit/index";
 import { emitPdf } from "./emit/pdf";
 import { emitReadme } from "./emit/readme";
 import { emitSite } from "./emit/site";
@@ -33,6 +37,7 @@ import { Manifest, Writer } from "./fs";
 import { build } from "./model";
 import type { Registry } from "./registry";
 import { readRegistry } from "./registry";
+import { scaffoldModuleDocs } from "./scaffold/modules";
 import type { Book, Config, ScanSummary } from "./types";
 
 const TARGETS = [
@@ -53,6 +58,7 @@ type Args = {
 	prune: boolean;
 	dryRun: boolean;
 	list: boolean;
+	translate: boolean;
 };
 
 function parseArgs(argv: string[]): Args {
@@ -63,6 +69,7 @@ function parseArgs(argv: string[]): Args {
 		prune: true,
 		dryRun: false,
 		list: false,
+		translate: false,
 	};
 
 	for (let i = 0; i < argv.length; i += 1) {
@@ -86,6 +93,10 @@ function parseArgs(argv: string[]): Args {
 			case "--list":
 				args.list = true;
 				break;
+			case "-t":
+			case "--translate":
+				args.translate = true;
+				break;
 			case "all":
 				args.targets.push(...TARGETS);
 				break;
@@ -100,6 +111,9 @@ function parseArgs(argv: string[]): Args {
 	}
 
 	if (args.targets.length === 0) args.targets.push("site");
+	if (args.translate && !args.targets.includes("translations")) {
+		args.targets.push("translations");
+	}
 	return { ...args, targets: [...new Set(args.targets)] };
 }
 
@@ -118,6 +132,7 @@ async function run(
 		case "site":
 			await emitContent(config, writer, args.langs);
 			await emitSite(books, summary.roots, config, writer);
+			await emitContentIndexes(summary.roots, config, writer);
 			break;
 		case "ecosystem": {
 			// The page follows the tree, not the docs, so it is built for every
@@ -140,7 +155,7 @@ async function run(
 			await emitPdf(books, config, writer);
 			break;
 		case "translations": {
-			const projects = await emitTranslations(summary, config, writer);
+			const projects = await emitTranslations(summary, books, config, writer);
 			console.log(
 				`[docs] translations: ${projects.length} projects -> ${config.translation.config}`,
 			);
@@ -161,16 +176,32 @@ async function run(
 const args = parseArgs(Bun.argv.slice(2));
 const config = await loadConfig(args.config);
 const registry = await readRegistry(config.projects);
+const missingDocs = missingModuleDocs(registry, config.projects);
+if (missingDocs.length > 0 && !args.dryRun) {
+	const scaffolded = await scaffoldModuleDocs(registry, config.projects);
+	console.log(`[docs] scaffold: ${scaffolded.created.length} modules created`);
+}
 assertModuleDocs(registry, config.projects);
-const { books, summary } = await build(config, {
+let { books, summary } = await build(config, {
 	sections: args.sections,
 	langs: args.langs,
 });
 
+if (!args.list) {
+	const synced = await syncCaches(summary.roots, config, args.dryRun);
+	console.log(`[docs] cache: ${synced} files synchronized`);
+	if (synced > 0 && !args.dryRun) {
+		({ books, summary } = await build(config, {
+			sections: args.sections,
+			langs: args.langs,
+		}));
+	}
+}
+
 if (args.list) {
 	console.log(`[docs] scanned: ${config.projects.join(", ")}`);
 	for (const root of summary.roots) {
-		console.log(`  ${root.owner}  [${root.langs.join(" ")}]  ${root.path}`);
+		console.log(`  ${root.owner}  [${root.sections.join(" ")}]  ${root.path}`);
 	}
 	for (const book of books) {
 		const kind = book.compound ? "compound" : "flat";
@@ -187,7 +218,7 @@ if (args.list) {
 
 if (books.length === 0 && !args.targets.includes("ecosystem")) {
 	console.log(
-		"[docs] nothing found: no docs/<lang>/<section>/index.json in the scanned projects",
+		"[docs] nothing found: no docs/<section>/index.json in the scanned projects",
 	);
 	console.log(`[docs] scanned: ${config.projects.join(", ")}`);
 	process.exit(0);
@@ -201,5 +232,38 @@ const manifest = await Manifest.load(config.root, args.dryRun, [
 ]);
 for (const target of args.targets) {
 	await run(target, books, summary, config, args, manifest, registry);
+}
+
+if (args.translate) {
+	const translationCli = resolve(
+		import.meta.dir,
+		"../../translation/src/cli.ts",
+	);
+	const child = Bun.spawn(
+		[
+			process.execPath,
+			translationCli,
+			"--translate",
+			"--config",
+			config.translation.config,
+		],
+		{
+			cwd: config.root,
+			env: process.env,
+			stdout: "inherit",
+			stderr: "inherit",
+		},
+	);
+	const exitCode = await child.exited;
+	if (exitCode !== 0)
+		throw new Error(`Translation failed with exit code ${exitCode}`);
+
+	({ books, summary } = await build(config, {
+		sections: args.sections,
+		langs: args.langs,
+	}));
+	for (const target of ["site", "ecosystem"] as const) {
+		await run(target, books, summary, config, args, manifest, registry);
+	}
 }
 await manifest.save();

@@ -42,8 +42,7 @@
 			}
 		}
 	},
-	"cache": "../../../docs-cache",
-	"contentCache": "../../../../club/docs-cache",
+	"docsCache": "content/docs-cache",
 	"docsPage": {
 		"title": {
 			"en": "Documentation",
@@ -66,8 +65,8 @@
 		}
 	},
 	"translation": {
-		"config": "../../../../build/docs/translation-control.json",
-		"stateDir": "../../../../build/docs/translation",
+		"config": "../../../content/docs-cache/.translation/control.json",
+		"stateDir": "../../../content/docs-cache/.translation",
 		"sourceLocale": "en",
 		"targetLocales": []
 	}

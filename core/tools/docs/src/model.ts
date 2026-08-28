@@ -51,7 +51,8 @@ export async function build(
 ): Promise<{ books: Book[]; summary: ScanSummary }> {
 	const { contributions, roots, langs } = await scan(
 		config.projects,
-		config.cache,
+		config.docsCaches,
+		config.translation.sourceLocale,
 	);
 	const books: Book[] = [];
 

@@ -2,7 +2,7 @@
  * The shape of documentation as it travels through this tool.
  *
  * Authoring happens next to the code: any directory that keeps a
- * `docs/<lang>/<section>/index.json` plus the markdown files it lists is a
+ * `docs/<section>/index.json` plus the markdown files it lists is a
  * source, wherever it sits in the tree. The index format is deliberately the
  * same array of `{slug, title, order, id}` that `struct-ms` serves, so an
  * owner's index can be read as-is by anyone who already knows the site's.
@@ -21,7 +21,7 @@ export type IndexEntry = {
 	id?: string;
 };
 
-/** Optional `docs/<lang>/<section>/meta.json` next to the index. */
+/** Optional `docs/<section>/meta.json` next to the index. */
 export type ContributionMeta = {
 	/** Heading this owner's docs get when a section has several contributors. */
 	group?: string;
@@ -122,8 +122,9 @@ export type Config = {
 	 * Translation cache root, absolute; empty when there is none. Holds every
 	 * language but the source one, so an owner's `docs/` stays single-language.
 	 */
-	cache: string;
-	/** Product translation cache, kept in the closed product repository. */
+	/** Project root to its content/docs-cache, when checked out. */
+	docsCaches: Map<string, string>;
+	/** Product content translations, stored in the club docs cache. */
 	contentCache: string;
 	docsPage: DocsPageConfig;
 	ecosystem: EcosystemConfig;
@@ -138,8 +139,8 @@ export type DocsRoot = {
 	path: string;
 	/** Project root it was found in. */
 	project: string;
-	/** Languages this root ships. */
-	langs: string[];
+	/** Sections authored by this root. Sources are always English. */
+	sections: string[];
 };
 
 /** What a scan found, beyond the books themselves. */

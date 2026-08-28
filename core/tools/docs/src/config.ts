@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { dirname, isAbsolute, resolve } from "node:path";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 import type {
 	Config,
 	DocsPageConfig,
@@ -18,8 +18,7 @@ type RawConfig = {
 	content?: string;
 	out?: Partial<Record<keyof Config["out"], string>>;
 	sections?: Record<string, SectionConfig>;
-	cache?: string;
-	contentCache?: string;
+	docsCache?: string;
 	docsPage?: DocsPageConfig;
 	ecosystem?: Partial<EcosystemConfig>;
 	translation?: Partial<Config["translation"]>;
@@ -31,8 +30,8 @@ type RawConfig = {
  * Everything here is overridable from `docs.config.json`.
  */
 const DEFAULT_TRANSLATION: TranslationConfig = {
-	config: "../../../../build/docs/translation-control.json",
-	stateDir: "../../../../build/docs/translation",
+	config: "../../../content/docs-cache/.translation/control.json",
+	stateDir: "../../../content/docs-cache/.translation",
 	sourceLocale: "en",
 	targetLocales: [],
 };
@@ -54,8 +53,7 @@ const DEFAULTS: Required<RawConfig> = {
 	},
 	sections: {},
 	content: "../../../../club/content",
-	cache: "../../../docs-cache",
-	contentCache: "../../../../club/docs-cache",
+	docsCache: "content/docs-cache",
 	docsPage: {},
 	ecosystem: DEFAULT_ECOSYSTEM,
 	translation: DEFAULT_TRANSLATION,
@@ -87,26 +85,24 @@ export async function loadConfig(configPath?: string): Promise<Config> {
 		.map((p) => resolveFrom(root, p))
 		.filter((p) => existsSync(p));
 
-	const configuredCache = resolveFrom(root, raw.cache ?? DEFAULTS.cache);
-	const cacheRoot = existsSync(configuredCache) ? configuredCache : "";
-	const configuredContentCache = resolveFrom(
-		root,
-		raw.contentCache ?? DEFAULTS.contentCache,
-	);
-	const contentCacheRoot = existsSync(configuredContentCache)
-		? configuredContentCache
-		: "";
-
 	if (projects.length === 0) {
 		throw new Error(
 			`No project root exists, nothing to scan (config: ${path})`,
 		);
 	}
+	const docsCache = raw.docsCache ?? DEFAULTS.docsCache;
+	const docsCaches = new Map(
+		projects
+			.map((project) => [project, resolveFrom(project, docsCache)] as const)
+			.filter(([, cache]) => existsSync(cache)),
+	);
+	const content = resolveFrom(root, raw.content ?? DEFAULTS.content);
+	const configuredContentCache = join(content, "docs-cache");
 
 	return {
 		root,
 		projects,
-		content: resolveFrom(root, raw.content ?? DEFAULTS.content),
+		content,
 		out: {
 			struct: resolveFrom(root, out.struct),
 			markdown: resolveFrom(root, out.markdown),
@@ -118,8 +114,10 @@ export async function loadConfig(configPath?: string): Promise<Config> {
 		sections: raw.sections ?? DEFAULTS.sections,
 		// A cache that is not checked out is normal — it is a submodule — so an
 		// absent one means "no translations", never an error.
-		cache: cacheRoot,
-		contentCache: contentCacheRoot,
+		docsCaches,
+		contentCache: existsSync(configuredContentCache)
+			? configuredContentCache
+			: "",
 		docsPage: raw.docsPage ?? DEFAULTS.docsPage,
 		ecosystem: {
 			landing: raw.ecosystem?.landing ?? DEFAULT_ECOSYSTEM.landing,

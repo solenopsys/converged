@@ -10,7 +10,6 @@
 	"scripts": {
 		"check": "bun run src/cli.ts --check",
 		"scan": "bun run src/cli.ts",
-		"record": "bun run src/cli.ts --record",
 		"test": "bun test"
 	},
 	"devDependencies": {

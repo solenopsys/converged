@@ -28,20 +28,19 @@ Three rules follow from that:
 ## Sources
 
 ```
-<owner>/docs/<lang>/<section>/<id>.md       the articles
-<owner>/docs/<lang>/<section>/index.json    optional: order and titles
-<owner>/docs/<lang>/<section>/meta.json     optional: chapter, group heading
+<owner>/docs/<section>/<id>.md       the articles
+<owner>/docs/<section>/index.json    optional: order and titles
+<owner>/docs/<section>/meta.json     optional: chapter, group heading
 ```
 
 The whole project tree from `docs.config.json` is scanned — module, library,
 tool, native app, repository root. `node_modules`, `dist`, `build` and the rest
-of the noise are skipped, and a `docs` folder without `<lang>/<section>` is not
+of the noise are skipped, and a `docs` folder without `<section>/index.json` is not
 ours: third-party checkouts are full of `docs` directories.
 
-Language sits before section on purpose: in that layout a `docs` folder is a
-valid `translation-control` root, and that tool compares `<root>/<locale>/<…>`
-trees. In practice an owner keeps only `en`; every other language lives in the
-translation cache.
+Authored documentation is always English, so source trees have no redundant
+language directory. Every locale, including the synchronized English baseline,
+lives in the project content cache.
 
 Closed product content uses one consolidated source tree:
 
@@ -90,18 +89,13 @@ id rather than disappearing.
 ## Running
 
 ```bash
-bun run docs:list          # what was found
-bun run docs:site          # struct-ms + markdown-ms
-bun run docs:ecosystem     # the ecosystem landing, from the module tree
-bun run docs:readme        # build/docs/readme/<lang>/<section>.md
-bun run docs:html          # build/docs/html/<lang>/<section>.html
-bun run docs:pdf           # build/docs/pdf/<lang>/<section>.pdf
-bun run docs:translations  # config for translation-control
-bun run docs               # everything
+bun run build:doc       # synchronize caches and build all runtime content
+bun run build:doc -t    # translate missing/stale files, validate, then rebuild
 ```
 
-Flags: `--config <path>`, `--section <name>`, `--lang <code>`, `--dry-run`,
-`--no-prune`.
+`-t` uses the OpenAI Responses API and requires both `OPENAI_API_KEY` and
+`DOCS_TRANSLATION_MODEL`. Internal targets and diagnostic flags remain available
+directly on `src/cli.ts`, but are not separate package commands.
 
 ## Outputs
 
@@ -138,7 +132,7 @@ purpose is read from its `README.md` — the first paragraph under `## Purpose`
 boundary heading. Counters are computed, not written.
 
 Wording is the only hand-authored part. Public copy lives at
-`converged/docs/en/ecosystem/landing.json`; closed product copy lives at
+`converged/docs/ecosystem/landing.json`; closed product copy lives at
 `club/content/struct/en/ecosystem/landing.json`. They merge key by key, so the product
 layer can rename a domain without restating the public file.
 
@@ -166,7 +160,7 @@ target from pruning files emitted by another. `--no-prune` turns cleanup off.
 
 ## Translations
 
-`docs:translations` builds a config in which each discovered `docs` root and
+`build:doc` builds a config in which each discovered `docs` root and
 the consolidated `club/content` tree are separate `translation-control`
 projects. Then:
 
@@ -176,25 +170,24 @@ bun run src/index.ts --check --config ../../../../build/docs/translation-control
 ```
 
 Drift is tracked in the sources, not in the generated stores: an edit inside
-`data/` would be overwritten by the next build anyway. Roots without the
-`sourceLocale` language are left out — there is nothing to compare them to.
+`data/` would be overwritten by the next build anyway.
 
 ### The translation cache
 
 There are two caches because the public platform and closed product have
 different ownership boundaries:
 
-- `converged/docs-cache` is the public documentation translation submodule.
-- `club/docs-cache` contains only closed product translations.
+- `converged/content/docs-cache` is the public documentation cache submodule.
+- `club/content/docs-cache` contains product documentation and content locales.
 
-Both hold every language but the English source. Their layouts are:
+Both hold a synchronized English baseline and every target locale. Their layouts are:
 
 ```
 <lang>/<section>/[<owner>/]<slug>.md    translated articles
 <lang>/<section>/[<owner>/]index.json   translated index
 <lang>/ecosystem/landing.json           translated landing copy
-struct/<lang>/<path>.json                closed struct translation
-markdown/<lang>/<path>.md                closed Markdown translation
+struct/<lang>/<path>.json               closed struct content
+markdown/<lang>/<path>.md               closed Markdown content
 ```
 
 It is read exactly like an authored `docs` folder — a translated section
@@ -204,28 +197,24 @@ an `<owner>` level when it has several, which is the shape `emitSite` already
 writes. Cache contributions never appear in the discovered roots: a root is
 somewhere a human authors, and nobody authors here.
 
-They are configured independently as `cache` and `contentCache` in
-`docs.config.json`. An absent cache means "no translations", never an error.
+Each project cache is discovered at `content/docs-cache`; the product cache is
+also the translation target for `content/struct` and `content/markdown`. An
+absent cache means "no translations", never an error.
 
-`core/tools/translation` compares each authored root against the matching cache
-reports stay in `build/docs/translation` and the durable translation ledger is
-stored in that source project's own `docs-cache/.translation/`.
-
-`core/tools/translation` carries the field a cache needs:
-**`translatedFromHash`**, the hash of the English text a translation was made
-from. Staleness is `sourceHash !== translatedFromHash`, written by `--record`
-when a translation is produced rather than by a scan, so it survives any number
-of scans. Markdown is compared by heading outline instead of falling through to
-a bare hash. See [`../translation/README.md`](../translation/README.md).
+`core/tools/translation` compares each authored root against the matching cache.
+Reports stay in `build/docs/translation`; durable freshness links live as
+individual `content/docs-cache/.translation/<sourceHash>.json` nodes.
+Each locale points to the hash of its existing target file. A changed source
+hash invalidates all locales, while a missing or hash-mismatched target
+invalidates only that locale. Deleting a bad file schedules it for translation.
+See [`../translation/README.md`](../translation/README.md).
 
 ### Root index and coverage
 
-*Not built yet.*
-
-`docs-cache/index.json` is the one place that answers what documentation
-exists: sections, their chapters, the owners in each chapter, and the articles
-each owner ships. It is generated by walking the tree and joining it with the
-module registry, so it needs no maintenance.
+`content/index.json` is the one place in each project that answers what
+documentation exists: every owning `docs` path, its sections and the articles
+each section ships. It is generated by walking the tree, so it needs no
+maintenance.
 
 It carries coverage with it — every registry entry either has an article or is
 explicitly exempt — and that is what makes the documentation *live* rather than

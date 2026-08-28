@@ -13,6 +13,8 @@ import type { Writer } from "../fs";
 import type { Book, CompoundIndexEntry, Config, Doc, DocsRoot } from "../types";
 import { emitDocsPage } from "./docs-page";
 
+const NON_LOCALES = new Set(["html", "pdf", "readme"]);
+
 function entries(
 	docs: Doc[],
 	offset: number,
@@ -127,27 +129,35 @@ async function emitNestedDocs(
 	writer: Writer,
 ) {
 	for (const root of roots) {
-		for (const lang of root.langs) {
-			await copyNestedDocs(root.path, lang, config, writer);
-		}
+		await copyNestedDocs(
+			root.path,
+			config.translation.sourceLocale,
+			config,
+			writer,
+		);
 	}
 
-	if (!config.cache) return;
-	for (const lang of readdirSync(config.cache, { withFileTypes: true })
-		.filter((entry) => entry.isDirectory() && /^[a-z]{2,3}$/.test(entry.name))
-		.map((entry) => entry.name)
-		.filter((lang) => lang !== config.translation.sourceLocale)) {
-		await copyNestedDocs(config.cache, lang, config, writer);
+	for (const cache of config.docsCaches.values()) {
+		for (const lang of readdirSync(cache, { withFileTypes: true })
+			.filter(
+				(entry) =>
+					entry.isDirectory() &&
+					/^[a-z]{2,3}$/.test(entry.name) &&
+					!NON_LOCALES.has(entry.name),
+			)
+			.map((entry) => entry.name)
+			.filter((lang) => lang !== config.translation.sourceLocale)) {
+			await copyNestedDocs(join(cache, lang), lang, config, writer);
+		}
 	}
 }
 
 async function copyNestedDocs(
-	base: string,
+	langRoot: string,
 	lang: string,
 	config: Config,
 	writer: Writer,
 ) {
-	const langRoot = join(base, lang);
 	if (!existsSync(langRoot)) return;
 
 	const visit = async (dir: string): Promise<void> => {

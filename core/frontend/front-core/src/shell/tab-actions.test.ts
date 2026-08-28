@@ -42,13 +42,13 @@ describe("workspace tab actions", () => {
 
 	test("pin action toggles the tab and its menu label", () => {
 		open("orders.list");
-		expect($workspaceTabViews.getState()[0].actions[0].label).toBe("Закрепить");
+		expect($workspaceTabViews.getState()[0].actions[0].label).toBe("Pin");
 
 		workspaceTabActionInvoked({ key: "orders.list", actionId: "pin" });
 
 		const [tab] = $workspaceTabViews.getState();
 		expect(tab.pinned).toBe(true);
-		expect(tab.actions[0].label).toBe("Открепить");
+		expect(tab.actions[0].label).toBe("Unpin");
 	});
 
 	test("close-transient keeps pinned tabs only", () => {

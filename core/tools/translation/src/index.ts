@@ -8,6 +8,7 @@ export {
 	selectFiles,
 	walk,
 	writeJsonAtomic,
+	writeTextAtomic,
 } from "./fs";
 export {
 	isShortTranslatableString,
@@ -26,21 +27,18 @@ export {
 	treeHash,
 } from "./json-tree";
 export {
-	emptyLedger,
-	type LedgerVerdict,
-	prune,
-	readEntry,
-	readLedger,
-	record,
-	verdict,
-} from "./ledger";
-export {
 	type MarkdownBlock,
 	outline,
 	outlineHash,
 	parseMarkdown,
 } from "./markdown";
+export { type ReindexSummary, rebuildIndex } from "./reindex";
 export { displayDiff, reportForProject } from "./report";
-export { countIssues, projectRoot, recordProject, scanProject } from "./scan";
-export { type Evidence, isRecordable, statusFor } from "./status";
+export { countIssues, projectRoot, scanProject } from "./scan";
+export { type Evidence, statusFor } from "./status";
+export {
+	type StoreVerdict,
+	type TranslationRecord,
+	TranslationStore,
+} from "./store";
 export type * from "./types";

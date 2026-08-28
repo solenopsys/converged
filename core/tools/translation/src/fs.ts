@@ -36,6 +36,13 @@ export function writeJsonAtomic(path: string, value: unknown): void {
 	renameSync(temporary, path);
 }
 
+export function writeTextAtomic(path: string, value: string): void {
+	mkdirSync(dirname(path), { recursive: true });
+	const temporary = `${path}.tmp`;
+	writeFileSync(temporary, value, "utf8");
+	renameSync(temporary, path);
+}
+
 export function fileKind(path: string): FileKind {
 	const extension = extname(path).toLowerCase();
 	if (extension === ".json") return "json";

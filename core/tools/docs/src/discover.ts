@@ -5,13 +5,12 @@
  * library, a tool, the project root. It is recognised by its contents, not its
  * location:
  *
- *   <owner>/docs/<lang>/<section>/index.json   entries, struct-ms format
- *   <owner>/docs/<lang>/<section>/<id>.md      one file per entry
- *   <owner>/docs/<lang>/<section>/meta.json    optional, group heading
+ *   <owner>/docs/<section>/index.json   entries, struct-ms format
+ *   <owner>/docs/<section>/<id>.md      one file per entry
+ *   <owner>/docs/<section>/meta.json    optional, group heading
  *
- * Language comes before section so that a `docs` directory is also a valid
- * translation-control root: that tool compares `<root>/<locale>/<rest>` trees,
- * and this is exactly that shape.
+ * Authored documentation is always English. Locales exist only in the
+ * project content cache.
  */
 
 import { existsSync, readdirSync, statSync } from "node:fs";
@@ -34,10 +33,13 @@ const SKIP = new Set([
 	"build",
 	"out",
 	"coverage",
+	"docs-cache",
 	"vendor",
 	"target",
 	"tmp",
 ]);
+
+const NON_LOCALES = new Set(["html", "pdf", "readme"]);
 
 function subdirs(path: string): string[] {
 	if (!existsSync(path)) return [];
@@ -53,10 +55,8 @@ function subdirs(path: string): string[] {
  * folders, and the index is what separates ours from theirs.
  */
 function holdsDocs(path: string): boolean {
-	for (const lang of subdirs(path)) {
-		for (const section of subdirs(join(path, lang))) {
-			if (existsSync(join(path, lang, section, "index.json"))) return true;
-		}
+	for (const section of subdirs(path)) {
+		if (existsSync(join(path, section, "index.json"))) return true;
 	}
 	return false;
 }
@@ -123,10 +123,8 @@ function nameRoots(paths: { path: string; project: string }[]): DocsRoot[] {
 			owner,
 			path: entry.path,
 			project: entry.project,
-			langs: subdirs(entry.path).filter((lang) =>
-				subdirs(join(entry.path, lang)).some((section) =>
-					existsSync(join(entry.path, lang, section, "index.json")),
-				),
+			sections: subdirs(entry.path).filter((section) =>
+				existsSync(join(entry.path, section, "index.json")),
 			),
 		});
 	}
@@ -178,7 +176,7 @@ async function readMeta(dir: string): Promise<ContributionMeta> {
 }
 
 /**
- * Reads one `docs/<lang>/<section>` directory. Returns null when it holds no
+ * Reads one `docs/<section>` directory. Returns null when it holds no
  * index — an empty or half-created directory is not an error.
  */
 async function readContribution(
@@ -239,8 +237,14 @@ async function readCache(
 	defaultOwner: string,
 	contributions: Map<string, Contribution[]>,
 	langs: Set<string>,
+	sourceLocale: string,
 ): Promise<void> {
-	for (const lang of subdirs(cache)) {
+	for (const lang of subdirs(cache).filter(
+		(lang) =>
+			/^[a-z]{2,3}$/.test(lang) &&
+			!NON_LOCALES.has(lang) &&
+			lang !== sourceLocale,
+	)) {
 		for (const section of subdirs(join(cache, lang))) {
 			if (section === "content") continue;
 			const dir = join(cache, lang, section);
@@ -264,32 +268,31 @@ async function readCache(
 
 export async function scan(
 	projects: string[],
-	cache = "",
+	caches: ReadonlyMap<string, string> = new Map(),
+	sourceLocale = "en",
 ): Promise<ScanResult> {
 	const roots = findDocsRoots(projects);
 	const contributions = new Map<string, Contribution[]>();
 	const langs = new Set<string>();
 
-	for (const { owner, path } of roots) {
-		for (const lang of subdirs(path)) {
-			for (const section of subdirs(join(path, lang))) {
-				const contribution = await readContribution(
-					owner,
-					join(path, lang, section),
-				);
-				if (!contribution) continue;
-				langs.add(lang);
-				const key = `${section}/${lang}`;
-				contributions.set(key, [
-					...(contributions.get(key) ?? []),
-					contribution,
-				]);
-			}
+	langs.add(sourceLocale);
+	for (const { owner, path, sections } of roots) {
+		for (const section of sections) {
+			const contribution = await readContribution(owner, join(path, section));
+			if (!contribution) continue;
+			const key = `${section}/${sourceLocale}`;
+			contributions.set(key, [...(contributions.get(key) ?? []), contribution]);
 		}
 	}
 
-	if (cache) {
-		await readCache(cache, basename(dirname(cache)), contributions, langs);
+	for (const [project, cache] of caches) {
+		await readCache(
+			cache,
+			basename(project),
+			contributions,
+			langs,
+			sourceLocale,
+		);
 	}
 
 	return { contributions, roots, langs: [...langs].sort() };

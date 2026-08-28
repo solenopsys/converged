@@ -1,0 +1,1414 @@
+{
+  "version": 1,
+  "sourceLocale": "en",
+  "docs": [
+    {
+      "owner": "converged",
+      "path": "docs",
+      "sections": [
+        {
+          "id": "ecosystem",
+          "index": "docs/ecosystem/index.json",
+          "articles": [
+            {
+              "slug": "openness",
+              "file": "docs/ecosystem/openness.md"
+            },
+            {
+              "slug": "registry",
+              "file": "docs/ecosystem/registry.md"
+            },
+            {
+              "slug": "contribute",
+              "file": "docs/ecosystem/contribute.md"
+            }
+          ]
+        },
+        {
+          "id": "product",
+          "index": "docs/product/index.json",
+          "articles": [
+            {
+              "slug": "converged",
+              "file": "docs/product/converged.md"
+            },
+            {
+              "slug": "overview",
+              "file": "docs/product/overview.md"
+            },
+            {
+              "slug": "solutions",
+              "file": "docs/product/solutions.md"
+            },
+            {
+              "slug": "devices",
+              "file": "docs/product/devices.md"
+            },
+            {
+              "slug": "dag",
+              "file": "docs/product/dag.md"
+            },
+            {
+              "slug": "llm",
+              "file": "docs/product/llm.md"
+            },
+            {
+              "slug": "architecture",
+              "file": "docs/product/architecture.md"
+            },
+            {
+              "slug": "deployment",
+              "file": "docs/product/deployment.md"
+            },
+            {
+              "slug": "tehnology",
+              "file": "docs/product/tehnology.md"
+            },
+            {
+              "slug": "perf",
+              "file": "docs/product/perf.md"
+            },
+            {
+              "slug": "security",
+              "file": "docs/product/security.md"
+            },
+            {
+              "slug": "licensing",
+              "file": "docs/product/licensing.md"
+            },
+            {
+              "slug": "oss",
+              "file": "docs/product/oss.md"
+            },
+            {
+              "slug": "roadmap",
+              "file": "docs/product/roadmap.md"
+            }
+          ]
+        },
+        {
+          "id": "system",
+          "index": "docs/system/index.json",
+          "articles": [
+            {
+              "slug": "module-catalog",
+              "file": "docs/system/module-catalog.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "mf-agents",
+      "path": "modules/microfrontends/ai/mf-agents/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microfrontends/ai/mf-agents/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "mf-agents",
+              "file": "modules/microfrontends/ai/mf-agents/docs/modules/mf-agents.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "mf-assistants",
+      "path": "modules/microfrontends/ai/mf-assistants/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microfrontends/ai/mf-assistants/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "mf-assistants",
+              "file": "modules/microfrontends/ai/mf-assistants/docs/modules/mf-assistants.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "mf-auth",
+      "path": "modules/microfrontends/sequrity/mf-auth/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microfrontends/sequrity/mf-auth/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "mf-auth",
+              "file": "modules/microfrontends/sequrity/mf-auth/docs/modules/mf-auth.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "mf-calls",
+      "path": "modules/microfrontends/communications/mf-calls/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microfrontends/communications/mf-calls/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "mf-calls",
+              "file": "modules/microfrontends/communications/mf-calls/docs/modules/mf-calls.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "mf-chats",
+      "path": "modules/microfrontends/communications/mf-chats/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microfrontends/communications/mf-chats/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "mf-chats",
+              "file": "modules/microfrontends/communications/mf-chats/docs/modules/mf-chats.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "mf-classifier",
+      "path": "modules/microfrontends/content/mf-classifier/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microfrontends/content/mf-classifier/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "mf-classifier",
+              "file": "modules/microfrontends/content/mf-classifier/docs/modules/mf-classifier.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "mf-community",
+      "path": "modules/microfrontends/communications/mf-community/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microfrontends/communications/mf-community/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "mf-community",
+              "file": "modules/microfrontends/communications/mf-community/docs/modules/mf-community.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "mf-contexts",
+      "path": "modules/microfrontends/ai/mf-contexts/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microfrontends/ai/mf-contexts/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "mf-contexts",
+              "file": "modules/microfrontends/ai/mf-contexts/docs/modules/mf-contexts.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "mf-dag",
+      "path": "modules/microfrontends/automation/mf-dag/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microfrontends/automation/mf-dag/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "mf-dag",
+              "file": "modules/microfrontends/automation/mf-dag/docs/modules/mf-dag.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "mf-dasboards",
+      "path": "modules/microfrontends/analytics/mf-dasboards/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microfrontends/analytics/mf-dasboards/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "mf-dasboards",
+              "file": "modules/microfrontends/analytics/mf-dasboards/docs/modules/mf-dasboards.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "mf-docs",
+      "path": "modules/microfrontends/content/mf-docs/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microfrontends/content/mf-docs/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "mf-docs",
+              "file": "modules/microfrontends/content/mf-docs/docs/modules/mf-docs.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "mf-dumps",
+      "path": "modules/microfrontends/data/mf-dumps/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microfrontends/data/mf-dumps/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "mf-dumps",
+              "file": "modules/microfrontends/data/mf-dumps/docs/modules/mf-dumps.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "mf-functions",
+      "path": "modules/microfrontends/ai/mf-functions/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microfrontends/ai/mf-functions/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "mf-functions",
+              "file": "modules/microfrontends/ai/mf-functions/docs/modules/mf-functions.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "mf-galery",
+      "path": "modules/microfrontends/content/mf-galery/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microfrontends/content/mf-galery/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "mf-galery",
+              "file": "modules/microfrontends/content/mf-galery/docs/modules/mf-galery.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "mf-landing",
+      "path": "modules/microfrontends/content/mf-landing/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microfrontends/content/mf-landing/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "mf-landing",
+              "file": "modules/microfrontends/content/mf-landing/docs/modules/mf-landing.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "mf-logs",
+      "path": "modules/microfrontends/analytics/mf-logs/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microfrontends/analytics/mf-logs/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "mf-logs",
+              "file": "modules/microfrontends/analytics/mf-logs/docs/modules/mf-logs.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "mf-markdown",
+      "path": "modules/microfrontends/content/mf-markdown/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microfrontends/content/mf-markdown/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "mf-markdown",
+              "file": "modules/microfrontends/content/mf-markdown/docs/modules/mf-markdown.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "mf-orders",
+      "path": "modules/microfrontends/business/mf-orders/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microfrontends/business/mf-orders/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "mf-orders",
+              "file": "modules/microfrontends/business/mf-orders/docs/modules/mf-orders.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "mf-requests",
+      "path": "modules/microfrontends/business/mf-requests/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microfrontends/business/mf-requests/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "mf-requests",
+              "file": "modules/microfrontends/business/mf-requests/docs/modules/mf-requests.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "mf-scripts",
+      "path": "modules/microfrontends/content/mf-scripts/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microfrontends/content/mf-scripts/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "mf-scripts",
+              "file": "modules/microfrontends/content/mf-scripts/docs/modules/mf-scripts.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "mf-secrets",
+      "path": "modules/microfrontends/sequrity/mf-secrets/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microfrontends/sequrity/mf-secrets/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "mf-secrets",
+              "file": "modules/microfrontends/sequrity/mf-secrets/docs/modules/mf-secrets.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "mf-sheduller",
+      "path": "modules/microfrontends/automation/mf-sheduller/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microfrontends/automation/mf-sheduller/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "mf-sheduller",
+              "file": "modules/microfrontends/automation/mf-sheduller/docs/modules/mf-sheduller.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "mf-static",
+      "path": "modules/microfrontends/content/mf-static/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microfrontends/content/mf-static/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "mf-static",
+              "file": "modules/microfrontends/content/mf-static/docs/modules/mf-static.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "mf-struct",
+      "path": "modules/microfrontends/content/mf-struct/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microfrontends/content/mf-struct/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "mf-struct",
+              "file": "modules/microfrontends/content/mf-struct/docs/modules/mf-struct.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "mf-telemetry",
+      "path": "modules/microfrontends/analytics/mf-telemetry/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microfrontends/analytics/mf-telemetry/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "mf-telemetry",
+              "file": "modules/microfrontends/analytics/mf-telemetry/docs/modules/mf-telemetry.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "mf-threads",
+      "path": "modules/microfrontends/communications/mf-threads/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microfrontends/communications/mf-threads/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "mf-threads",
+              "file": "modules/microfrontends/communications/mf-threads/docs/modules/mf-threads.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "mf-usage",
+      "path": "modules/microfrontends/analytics/mf-usage/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microfrontends/analytics/mf-usage/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "mf-usage",
+              "file": "modules/microfrontends/analytics/mf-usage/docs/modules/mf-usage.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "mf-webhooks",
+      "path": "modules/microfrontends/automation/mf-webhooks/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microfrontends/automation/mf-webhooks/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "mf-webhooks",
+              "file": "modules/microfrontends/automation/mf-webhooks/docs/modules/mf-webhooks.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-access",
+      "path": "modules/microservices/sequrity/ms-access/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/sequrity/ms-access/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-access",
+              "file": "modules/microservices/sequrity/ms-access/docs/modules/ms-access.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-agent",
+      "path": "modules/microservices/ai/ms-agent/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/ai/ms-agent/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-agent",
+              "file": "modules/microservices/ai/ms-agent/docs/modules/ms-agent.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-assistant",
+      "path": "modules/microservices/ai/ms-assistant/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/ai/ms-assistant/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-assistant",
+              "file": "modules/microservices/ai/ms-assistant/docs/modules/ms-assistant.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-auth",
+      "path": "modules/microservices/sequrity/ms-auth/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/sequrity/ms-auth/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-auth",
+              "file": "modules/microservices/sequrity/ms-auth/docs/modules/ms-auth.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-billing",
+      "path": "modules/microservices/business/ms-billing/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/business/ms-billing/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-billing",
+              "file": "modules/microservices/business/ms-billing/docs/modules/ms-billing.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-calls",
+      "path": "modules/microservices/communications/ms-calls/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/communications/ms-calls/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-calls",
+              "file": "modules/microservices/communications/ms-calls/docs/modules/ms-calls.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-chats",
+      "path": "modules/microservices/communications/ms-chats/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/communications/ms-chats/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-chats",
+              "file": "modules/microservices/communications/ms-chats/docs/modules/ms-chats.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-classifier",
+      "path": "modules/microservices/content/ms-classifier/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/content/ms-classifier/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-classifier",
+              "file": "modules/microservices/content/ms-classifier/docs/modules/ms-classifier.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-community",
+      "path": "modules/microservices/communications/ms-community/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/communications/ms-community/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-community",
+              "file": "modules/microservices/communications/ms-community/docs/modules/ms-community.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-contexts",
+      "path": "modules/microservices/ai/ms-contexts/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/ai/ms-contexts/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-contexts",
+              "file": "modules/microservices/ai/ms-contexts/docs/modules/ms-contexts.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-counters",
+      "path": "modules/microservices/analytics/ms-counters/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/analytics/ms-counters/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-counters",
+              "file": "modules/microservices/analytics/ms-counters/docs/modules/ms-counters.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-dag",
+      "path": "modules/microservices/automation/ms-dag/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/automation/ms-dag/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-dag",
+              "file": "modules/microservices/automation/ms-dag/docs/modules/ms-dag.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-dashboard",
+      "path": "modules/microservices/analytics/ms-dashboard/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/analytics/ms-dashboard/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-dashboard",
+              "file": "modules/microservices/analytics/ms-dashboard/docs/modules/ms-dashboard.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-dumps",
+      "path": "modules/microservices/data/ms-dumps/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/data/ms-dumps/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-dumps",
+              "file": "modules/microservices/data/ms-dumps/docs/modules/ms-dumps.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-environment",
+      "path": "modules/microservices/sequrity/ms-environment/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/sequrity/ms-environment/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-environment",
+              "file": "modules/microservices/sequrity/ms-environment/docs/modules/ms-environment.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-equipment",
+      "path": "modules/microservices/business/ms-equipment/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/business/ms-equipment/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-equipment",
+              "file": "modules/microservices/business/ms-equipment/docs/modules/ms-equipment.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-events",
+      "path": "modules/microservices/business/ms-events/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/business/ms-events/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-events",
+              "file": "modules/microservices/business/ms-events/docs/modules/ms-events.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-files",
+      "path": "modules/microservices/data/ms-files/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/data/ms-files/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-files",
+              "file": "modules/microservices/data/ms-files/docs/modules/ms-files.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-finance",
+      "path": "modules/microservices/business/ms-finance/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/business/ms-finance/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-finance",
+              "file": "modules/microservices/business/ms-finance/docs/modules/ms-finance.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-functions",
+      "path": "modules/microservices/ai/ms-functions/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/ai/ms-functions/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-functions",
+              "file": "modules/microservices/ai/ms-functions/docs/modules/ms-functions.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-galery",
+      "path": "modules/microservices/content/ms-galery/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/content/ms-galery/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-galery",
+              "file": "modules/microservices/content/ms-galery/docs/modules/ms-galery.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-identity",
+      "path": "modules/microservices/sequrity/ms-identity/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/sequrity/ms-identity/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-identity",
+              "file": "modules/microservices/sequrity/ms-identity/docs/modules/ms-identity.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-kubernetes",
+      "path": "modules/microservices/automation/ms-kubernetes/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/automation/ms-kubernetes/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-kubernetes",
+              "file": "modules/microservices/automation/ms-kubernetes/docs/modules/ms-kubernetes.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-logs",
+      "path": "modules/microservices/analytics/ms-logs/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/analytics/ms-logs/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-logs",
+              "file": "modules/microservices/analytics/ms-logs/docs/modules/ms-logs.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-markdown",
+      "path": "modules/microservices/content/ms-markdown/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/content/ms-markdown/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-markdown",
+              "file": "modules/microservices/content/ms-markdown/docs/modules/ms-markdown.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-modelconvertor",
+      "path": "modules/microservices/convertors/ms-modelconvertor/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/convertors/ms-modelconvertor/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-modelconvertor",
+              "file": "modules/microservices/convertors/ms-modelconvertor/docs/modules/ms-modelconvertor.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-notify",
+      "path": "modules/microservices/communications/ms-notify/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/communications/ms-notify/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-notify",
+              "file": "modules/microservices/communications/ms-notify/docs/modules/ms-notify.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-oauth",
+      "path": "modules/microservices/sequrity/ms-oauth/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/sequrity/ms-oauth/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-oauth",
+              "file": "modules/microservices/sequrity/ms-oauth/docs/modules/ms-oauth.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-orders",
+      "path": "modules/microservices/business/ms-orders/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/business/ms-orders/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-orders",
+              "file": "modules/microservices/business/ms-orders/docs/modules/ms-orders.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-push",
+      "path": "modules/microservices/providers/ms-push/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/providers/ms-push/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-push",
+              "file": "modules/microservices/providers/ms-push/docs/modules/ms-push.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-requests",
+      "path": "modules/microservices/business/ms-requests/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/business/ms-requests/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-requests",
+              "file": "modules/microservices/business/ms-requests/docs/modules/ms-requests.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-resonus",
+      "path": "modules/microservices/communications/ms-resonus/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/communications/ms-resonus/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-resonus",
+              "file": "modules/microservices/communications/ms-resonus/docs/modules/ms-resonus.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-reviews",
+      "path": "modules/microservices/business/ms-reviews/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/business/ms-reviews/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-reviews",
+              "file": "modules/microservices/business/ms-reviews/docs/modules/ms-reviews.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-sales",
+      "path": "modules/microservices/business/ms-sales/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/business/ms-sales/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-sales",
+              "file": "modules/microservices/business/ms-sales/docs/modules/ms-sales.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-scripts",
+      "path": "modules/microservices/content/ms-scripts/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/content/ms-scripts/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-scripts",
+              "file": "modules/microservices/content/ms-scripts/docs/modules/ms-scripts.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-secrets",
+      "path": "modules/microservices/sequrity/ms-secrets/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/sequrity/ms-secrets/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-secrets",
+              "file": "modules/microservices/sequrity/ms-secrets/docs/modules/ms-secrets.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-ses",
+      "path": "modules/microservices/providers/ms-ses/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/providers/ms-ses/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-ses",
+              "file": "modules/microservices/providers/ms-ses/docs/modules/ms-ses.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-sheduller",
+      "path": "modules/microservices/automation/ms-sheduller/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/automation/ms-sheduller/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-sheduller",
+              "file": "modules/microservices/automation/ms-sheduller/docs/modules/ms-sheduller.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-sms",
+      "path": "modules/microservices/providers/ms-sms/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/providers/ms-sms/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-sms",
+              "file": "modules/microservices/providers/ms-sms/docs/modules/ms-sms.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-smtp",
+      "path": "modules/microservices/providers/ms-smtp/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/providers/ms-smtp/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-smtp",
+              "file": "modules/microservices/providers/ms-smtp/docs/modules/ms-smtp.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-staff",
+      "path": "modules/microservices/business/ms-staff/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/business/ms-staff/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-staff",
+              "file": "modules/microservices/business/ms-staff/docs/modules/ms-staff.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-static",
+      "path": "modules/microservices/content/ms-static/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/content/ms-static/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-static",
+              "file": "modules/microservices/content/ms-static/docs/modules/ms-static.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-store",
+      "path": "modules/microservices/data/ms-store/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/data/ms-store/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-store",
+              "file": "modules/microservices/data/ms-store/docs/modules/ms-store.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-struct",
+      "path": "modules/microservices/content/ms-struct/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/content/ms-struct/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-struct",
+              "file": "modules/microservices/content/ms-struct/docs/modules/ms-struct.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-telemetry",
+      "path": "modules/microservices/analytics/ms-telemetry/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/analytics/ms-telemetry/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-telemetry",
+              "file": "modules/microservices/analytics/ms-telemetry/docs/modules/ms-telemetry.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-threads",
+      "path": "modules/microservices/communications/ms-threads/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/communications/ms-threads/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-threads",
+              "file": "modules/microservices/communications/ms-threads/docs/modules/ms-threads.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-usage",
+      "path": "modules/microservices/analytics/ms-usage/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/analytics/ms-usage/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-usage",
+              "file": "modules/microservices/analytics/ms-usage/docs/modules/ms-usage.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "ms-webhooks",
+      "path": "modules/microservices/automation/ms-webhooks/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/automation/ms-webhooks/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-webhooks",
+              "file": "modules/microservices/automation/ms-webhooks/docs/modules/ms-webhooks.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "wf-dialogue-summary",
+      "path": "modules/workflows/wf-dialogue-summary/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/workflows/wf-dialogue-summary/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "wf-dialogue-summary",
+              "file": "modules/workflows/wf-dialogue-summary/docs/modules/wf-dialogue-summary.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "wf-file-analysis",
+      "path": "modules/workflows/wf-file-analysis/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/workflows/wf-file-analysis/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "wf-file-analysis",
+              "file": "modules/workflows/wf-file-analysis/docs/modules/wf-file-analysis.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "wf-file-analyze",
+      "path": "modules/workflows/wf-file-analyze/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/workflows/wf-file-analyze/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "wf-file-analyze",
+              "file": "modules/workflows/wf-file-analyze/docs/modules/wf-file-analyze.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "wf-file-unpack",
+      "path": "modules/workflows/wf-file-unpack/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/workflows/wf-file-unpack/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "wf-file-unpack",
+              "file": "modules/workflows/wf-file-unpack/docs/modules/wf-file-unpack.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "wf-sales-import",
+      "path": "modules/workflows/wf-sales-import/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/workflows/wf-sales-import/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "wf-sales-import",
+              "file": "modules/workflows/wf-sales-import/docs/modules/wf-sales-import.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "wf-sales-review-outreach",
+      "path": "modules/workflows/wf-sales-review-outreach/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/workflows/wf-sales-review-outreach/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "wf-sales-review-outreach",
+              "file": "modules/workflows/wf-sales-review-outreach/docs/modules/wf-sales-review-outreach.md"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,27 +1,28 @@
 /**
  * End-to-end over real files in a temporary tree.
  *
- * The first test is the regression that motivated the ledger: it is the exact
+ * The first test pins the source-hash index behavior: it is the exact
  * sequence that used to end with a stale translation reported as `ok`.
  */
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { emptyLedger } from "./ledger";
-import { countIssues, recordProject, scanProject } from "./scan";
-import type {
-	ControlState,
-	ProjectConfig,
-	ProjectSnapshot,
-	TranslationLedger,
-} from "./types";
+import { countIssues, scanProject } from "./scan";
+import { TranslationStore } from "./store";
+import type { ControlState, ProjectConfig, ProjectSnapshot } from "./types";
 
 let root: string;
 let configPath: string;
 let state: ControlState;
-let ledger: TranslationLedger;
+let store: TranslationStore;
 
 const project: ProjectConfig = {
 	name: "docs",
@@ -43,9 +44,19 @@ function writeCache(rel: string, content: string): void {
 }
 
 function scan(): ProjectSnapshot {
-	const snapshot = scanProject(project, configPath, state, ledger);
+	const snapshot = scanProject(project, configPath, state, store);
 	state.projects[project.name] = snapshot;
 	return snapshot;
+}
+
+function indexTranslation(snapshot: ProjectSnapshot, rel: string): void {
+	const target = join(root, "root", "ru", rel);
+	store.save(
+		snapshot.files[rel]?.sourceHash as string,
+		"ru",
+		readFileSync(target, "utf8"),
+		target,
+	);
 }
 
 function statusOf(snapshot: ProjectSnapshot, rel: string, locale = "ru") {
@@ -57,23 +68,22 @@ beforeEach(() => {
 	configPath = join(root, "config.json");
 	writeFileSync(configPath, JSON.stringify({ projects: [project] }), "utf8");
 	state = { version: 1, updatedAt: "", projects: {} };
-	ledger = emptyLedger();
+	store = new TranslationStore(join(root, ".translation", "index"));
 });
 
 afterEach(() => {
 	rmSync(root, { recursive: true, force: true });
 });
 
-describe("staleness survives repeated scans", () => {
-	test("a source edited after translation stays flagged forever", () => {
+describe("source-hash invalidation survives repeated scans", () => {
+	test("a source edit invalidates its locale links forever", () => {
 		write("en/notify.md", "# Notify\n\nSends notifications over channels.\n");
 		write(
 			"ru/notify.md",
 			"# Уведомления\n\nОтправляет уведомления по каналам.\n",
 		);
 
-		// A translation pass happened: the ledger now knows what it was made from.
-		recordProject(scan(), ledger, project.name, "2026-01-01T00:00:00.000Z");
+		indexTranslation(scan(), "notify.md");
 		expect(statusOf(scan(), "notify.md")).toBe("ok");
 
 		write(
@@ -81,28 +91,27 @@ describe("staleness survives repeated scans", () => {
 			"# Notify\n\nSends notifications over channels, with delivery receipts.\n",
 		);
 
-		// This is where the old behaviour broke: the second scan cleared it.
-		expect(statusOf(scan(), "notify.md")).toBe("stale");
-		expect(statusOf(scan(), "notify.md")).toBe("stale");
-		expect(statusOf(scan(), "notify.md")).toBe("stale");
+		expect(statusOf(scan(), "notify.md")).toBe("unrecorded");
+		expect(statusOf(scan(), "notify.md")).toBe("unrecorded");
+		expect(statusOf(scan(), "notify.md")).toBe("unrecorded");
 	});
 
-	test("retranslating and recording clears it", () => {
+	test("retranslating and indexing clears it", () => {
 		write("en/notify.md", "# Notify\n\nSends notifications over channels.\n");
 		write(
 			"ru/notify.md",
 			"# Уведомления\n\nОтправляет уведомления по каналам.\n",
 		);
-		recordProject(scan(), ledger, project.name, "2026-01-01T00:00:00.000Z");
+		indexTranslation(scan(), "notify.md");
 
 		write("en/notify.md", "# Notify\n\nSends notifications, with receipts.\n");
-		expect(statusOf(scan(), "notify.md")).toBe("stale");
+		expect(statusOf(scan(), "notify.md")).toBe("unrecorded");
 
 		write(
 			"ru/notify.md",
 			"# Уведомления\n\nОтправляет уведомления, с квитанциями.\n",
 		);
-		recordProject(scan(), ledger, project.name, "2026-01-02T00:00:00.000Z");
+		indexTranslation(scan(), "notify.md");
 		expect(statusOf(scan(), "notify.md")).toBe("ok");
 	});
 
@@ -112,14 +121,14 @@ describe("staleness survives repeated scans", () => {
 			"ru/ui.json",
 			JSON.stringify({ note: "Выберите способ оповещения." }),
 		);
-		recordProject(scan(), ledger, project.name, "2026-01-01T00:00:00.000Z");
+		indexTranslation(scan(), "ui.json");
 
 		write(
 			"en/ui.json",
 			JSON.stringify({ note: "Choose how you get alerts, including SMS." }),
 		);
-		expect(statusOf(scan(), "ui.json")).toBe("stale");
-		expect(statusOf(scan(), "ui.json")).toBe("stale");
+		expect(statusOf(scan(), "ui.json")).toBe("unrecorded");
+		expect(statusOf(scan(), "ui.json")).toBe("unrecorded");
 	});
 });
 
@@ -191,17 +200,9 @@ describe("scanning", () => {
 			{ ...project, include: ["keep"] },
 			configPath,
 			state,
-			ledger,
+			store,
 		);
 		expect(Object.keys(snapshot.files)).toEqual(["keep/a.md"]);
-	});
-
-	test("recording skips targets that do not exist", () => {
-		write("en/a.md", "# A\n\nSome reasonably long English sentence here.\n");
-
-		expect(
-			recordProject(scan(), ledger, project.name, "2026-01-01T00:00:00.000Z"),
-		).toBe(0);
 	});
 
 	test("a missing source root is an error, not an empty result", () => {
@@ -217,13 +218,31 @@ describe("scanning", () => {
 			{ ...project, targetRoot: "./cache" },
 			configPath,
 			state,
-			ledger,
+			store,
 		);
 
 		expect(snapshot.root).toBe(join(root, "root"));
 		expect(snapshot.targetRoot).toBe(join(root, "cache"));
 		expect(statusOf(snapshot, "a.md")).toBe("unrecorded");
 		expect(snapshot.orphans.ru).toEqual(["gone.md"]);
+	});
+
+	test("reads an unlocalized source tree when sourcePath is dot", () => {
+		write("guide.md", "# Guide\n\nEnglish source article.\n");
+		writeCache("ru/guide.md", "# Руководство\n\nРусский перевод.\n");
+
+		const snapshot = scanProject(
+			{
+				...project,
+				sourcePath: ".",
+				targetRoot: "./cache",
+			},
+			configPath,
+			state,
+			store,
+		);
+
+		expect(statusOf(snapshot, "guide.md")).toBe("unrecorded");
 	});
 
 	test("maps one module source into its owner directory in the cache", () => {
@@ -245,7 +264,7 @@ describe("scanning", () => {
 			},
 			configPath,
 			state,
-			ledger,
+			store,
 		);
 
 		expect(statusOf(snapshot, "modules/ms-sales.md")).toBe("unrecorded");

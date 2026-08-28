@@ -3,7 +3,7 @@
  *
  * Structure comes from the source tree — which modules exist, which domain
  * they sit in, which solution claims them, how many there are. Wording comes
- * from `<project>/docs/<lang>/ecosystem/landing.json`, one file per language,
+ * from `<project>/docs/ecosystem/landing.json` and translated content caches,
  * next to the rest of that language's docs so `translation-control` already
  * covers it.
  *
@@ -46,7 +46,7 @@ type RegistryData = {
 	groups: RegistryGroup[];
 };
 
-/** `<project>/docs/<lang>/ecosystem/landing.json`. */
+/** `<project>/docs/ecosystem/landing.json`. */
 type LandingCopy = {
 	title?: string;
 	hero?: Record<string, unknown>;
@@ -111,12 +111,19 @@ function count(
  * keeps, so every other one is found in the cache.
  */
 function copyPaths(config: Config, lang: string): string[] {
-	const paths = config.projects.map((project) =>
-		join(project, "docs", lang, "ecosystem", "landing.json"),
-	);
-	if (config.cache) {
-		paths.push(join(config.cache, lang, "ecosystem", "landing.json"));
+	const paths: string[] = [];
+	if (lang === config.translation.sourceLocale) {
+		paths.push(
+			...config.projects.map((project) =>
+				join(project, "docs", "ecosystem", "landing.json"),
+			),
+		);
 	}
+	paths.push(
+		...[...config.docsCaches.values()].map((cache) =>
+			join(cache, lang, "ecosystem", "landing.json"),
+		),
+	);
 	if (config.contentCache)
 		paths.push(
 			join(config.contentCache, "struct", lang, "ecosystem", "landing.json"),
@@ -320,11 +327,18 @@ function page(copy: LandingCopy, dir: string) {
 function authoredLangs(config: Config): string[] {
 	const langs = new Set<string>();
 	const roots = [
-		...config.projects.map((project) => join(project, "docs")),
-		...(config.cache ? [config.cache] : []),
+		...config.docsCaches.values(),
 		...(config.contentCache ? [join(config.contentCache, "struct")] : []),
 		...(config.content ? [join(config.content, "struct")] : []),
 	];
+	const sourceLocale = config.translation.sourceLocale;
+	if (
+		config.projects.some((project) =>
+			existsSync(join(project, "docs", "ecosystem", "landing.json")),
+		)
+	) {
+		langs.add(sourceLocale);
+	}
 
 	for (const root of roots) {
 		if (!existsSync(root)) continue;

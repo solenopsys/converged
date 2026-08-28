@@ -2,11 +2,16 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { translate } from "i18n";
 import { resetCatalogForTests } from "../../../libraries/i18n/src/catalog";
 import { resetI18nForTests } from "../../../libraries/i18n/src/locale";
-import { initChatMessages } from "./i18n";
+import { bootstrapChatMessagesDefaults, initChatMessages } from "./i18n";
 
+// The i18n locale/catalog stores are process-wide singletons, and every other
+// module that reads the "chat" namespace (AppShell, Composer, tab-actions,
+// ...) configures them exactly once, at import time. Resetting here without
+// restoring leaves those modules broken for the rest of the test run.
 afterEach(() => {
 	resetCatalogForTests();
 	resetI18nForTests();
+	bootstrapChatMessagesDefaults();
 });
 
 describe("chat messages", () => {

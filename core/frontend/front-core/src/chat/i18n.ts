@@ -111,6 +111,19 @@ const DEFAULT_MESSAGES = {
 	},
 };
 
+// The shell renders components that read this namespace (AppShell, Composer,
+// table, ...) before the chat store — and its network-backed catalog — ever
+// initializes (that only happens lazily, e.g. on composer focus). Configure
+// the namespace with its English defaults eagerly, at import time, so those
+// early renders have something to read instead of throwing. Exported so tests
+// that reset the (process-wide) i18n singleton can restore this baseline
+// afterward for every other module that reads this namespace.
+export function bootstrapChatMessagesDefaults(): void {
+	configureI18n({ locales: LOCALES, defaultLocale: DEFAULT_LOCALE });
+	registerMessages(CHAT_MESSAGES_NAMESPACE, DEFAULT_LOCALE, DEFAULT_MESSAGES);
+}
+bootstrapChatMessagesDefaults();
+
 export type MessagesReader = (path: string) => Promise<unknown>;
 
 function isMissingMessageRecord(error: unknown): boolean {
@@ -122,8 +135,7 @@ function isMissingMessageRecord(error: unknown): boolean {
 }
 
 export function initChatMessages(read: MessagesReader, language: string): void {
-	configureI18n({ locales: LOCALES, defaultLocale: DEFAULT_LOCALE });
-	registerMessages(CHAT_MESSAGES_NAMESPACE, DEFAULT_LOCALE, DEFAULT_MESSAGES);
+	bootstrapChatMessagesDefaults();
 
 	setMessageSource(async (namespace, forLocale) => {
 		try {

@@ -17,9 +17,7 @@ export function missingModuleDocs(
 			const project = roots.get(module.project);
 			return (
 				!project ||
-				!existsSync(
-					join(project, module.path, "docs", "en", "modules", "index.json"),
-				)
+				!existsSync(join(project, module.path, "docs", "modules", "index.json"))
 			);
 		})
 		.map((module) => `${module.project}/${module.path}`)
@@ -32,6 +30,6 @@ export function assertModuleDocs(registry: Registry, projects: string[]): void {
 	throw new Error(
 		`Documentation coverage is incomplete (${missing.length} modules):\n` +
 			missing.map((path) => `  - ${path}`).join("\n") +
-			"\nRun: bun run docs:modules",
+			"\nRun: bun run build:doc",
 	);
 }
