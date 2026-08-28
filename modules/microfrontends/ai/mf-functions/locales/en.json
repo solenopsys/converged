@@ -1,1 +1,7 @@
-{}
+{
+  "screens": {
+    "list": {
+      "title": "Functions"
+    }
+  }
+}

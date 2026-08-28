@@ -10,9 +10,9 @@ import {
 } from "./layout";
 
 /**
- * Общий рантайм страницы: каждый спецификатор карты импорта ведёт ровно в один
- * файл этого слоя. Слой `mf` из критического пути исключён — он приезжает с
- * первым микрофронтендом.
+ * The page's shared runtime: every import map specifier leads to exactly one
+ * file in this layer. The `mf` layer is excluded from the critical path — it
+ * arrives with the first microfrontend.
  */
 
 const sharedPreactExternals = [
@@ -24,10 +24,10 @@ const sharedPreactExternals = [
 ];
 
 /**
- * `preact/hooks` внутри сборки compat ведёт в собственный прокси-модуль:
- * звезда `export * from "preact/hooks"` должна остаться внутренней, иначе
- * бандлер теряет её на границе external. Наружу хуки всё равно приезжают из
- * общего preact.js.
+ * `preact/hooks` inside the compat build leads to its own proxy module: the
+ * `export * from "preact/hooks"` star must stay internal, otherwise the
+ * bundler loses it at the external boundary. The hooks still arrive from the
+ * shared preact.js on the outside.
  */
 const preactHooksProxy: Bun.BunPlugin = {
 	name: "preact-hooks-proxy",
@@ -160,7 +160,7 @@ export type VendorBuild = {
 	outfile: string;
 	external: readonly string[];
 	plugins?: Bun.BunPlugin[];
-	/** `mf` — слой микрофронтендов: в старте страницы его нет. */
+	/** `mf` — the microfrontend layer: it's not in the page's startup. */
 	layer?: "app" | "mf";
 };
 
@@ -227,16 +227,18 @@ export const vendorBuilds: readonly VendorBuild[] = [
 		entrypoint: "front-core.ts",
 		outfile: "front-core.js",
 		layer: "mf",
-		// Машины табов и меню едут внутрь: карта импорта адресует пакеты по имени,
-		// а `/vendor/zag.js` — это склейка тултипа, из которой `@zag-js/tabs`
-		// отдельным пространством имён не достать. Копия ядра стоит дешевле, чем
-		// ещё один слой файлов, и лежит вне критического пути.
+		// The tabs and menu machines are bundled in: the import map addresses
+		// packages by name, and `/vendor/zag.js` is a tooltip bundle from which
+		// `@zag-js/tabs` can't be reached as its own namespace. A copy of the core
+		// costs less than another file layer, and it's outside the critical path.
 		external: [
 			...sharedPreactExternals,
 			"effector",
 			"effector-preact",
 			"front-core/core",
 			"front-core/table",
+			"nrpc",
+			"signal-channel",
 		],
 	},
 	{
@@ -253,6 +255,21 @@ export const vendorBuilds: readonly VendorBuild[] = [
 		],
 	},
 ];
+
+async function assertSingleTransportOwner(config: VendorBuild): Promise<void> {
+	if (config.name === "signal-channel") return;
+
+	const output = await Bun.file(join(vendorDir, config.outfile)).text();
+	if (
+		output.includes("__FUJIN_SIGNAL_CHANNEL__") ||
+		output.includes("new WebSocket")
+	) {
+		throw new Error(
+			`[vendor] ${config.outfile} embeds the Fujin transport. ` +
+				`Only signal-channel.js may own the page WebSocket.`,
+		);
+	}
+}
 
 export function vendorLayerFiles(layer: "app" | "mf"): string[] {
 	return vendorBuilds
@@ -283,6 +300,7 @@ export async function buildVendor(): Promise<string[]> {
 				`Build failed: vendor/${config.name}`,
 			);
 		}
+		await assertSingleTransportOwner(config);
 	}
 
 	return vendorBuilds.map(({ outfile }) => join(vendorDir, outfile));

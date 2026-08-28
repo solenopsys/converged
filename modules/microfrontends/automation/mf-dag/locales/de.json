@@ -30,5 +30,14 @@
       "footerIconName": "IconPackage",
       "footerDescription": "Prozesse in Arbeit"
     }
+  },
+  "versions": {
+    "loading": "Versionen werden geladen...",
+    "selectCode": "Code aus der Liste auswaehlen",
+    "empty": "Keine Versionen verfuegbar"
+  },
+  "dagViewer": {
+    "loading": "Laedt...",
+    "descriptionError": "Beschreibung konnte nicht geladen werden"
   }
 }

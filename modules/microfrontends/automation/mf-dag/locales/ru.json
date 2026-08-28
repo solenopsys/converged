@@ -30,5 +30,14 @@
       "footerIconName": "IconPackage",
       "footerDescription": "Процессов в работе"
     }
+  },
+  "versions": {
+    "loading": "Загрузка версий...",
+    "selectCode": "Выберите код из списка",
+    "empty": "Нет доступных версий"
+  },
+  "dagViewer": {
+    "loading": "Загрузка...",
+    "descriptionError": "Ошибка загрузки описания"
   }
 }

@@ -53,7 +53,7 @@ function asFiniteNumber(value: unknown): number | undefined {
 }
 
 function formatMillimeters(value: number): string {
-	return value.toLocaleString("ru-RU", {
+	return value.toLocaleString(undefined, {
 		maximumFractionDigits: 1,
 	});
 }
@@ -63,7 +63,7 @@ function formatDimensionsMm(dimensions: {
 	y: number;
 	z: number;
 }): string {
-	return `${formatMillimeters(dimensions.x)} × ${formatMillimeters(dimensions.y)} × ${formatMillimeters(dimensions.z)} мм`;
+	return `${formatMillimeters(dimensions.x)} × ${formatMillimeters(dimensions.y)} × ${formatMillimeters(dimensions.z)} mm`;
 }
 
 function dimensionsFromEstimate(estimate: unknown):
@@ -131,7 +131,7 @@ function inferDimensionsFromAnalysis(value: RequestFieldValue): string | undefin
 		}),
 		{ x: 0, y: 0, z: 0 },
 	);
-	return `${dimensions.length} моделей из анализа файлов; максимум ${formatDimensionsMm(max)}`;
+	return `${dimensions.length} models from file analysis; max ${formatDimensionsMm(max)}`;
 }
 
 function humanizeKey(key: string): string {
@@ -529,13 +529,13 @@ export function snapshotFields(model?: RequestModel): RequestFields {
 function defaultTitle(processType: RequestProcessType): string {
 	switch (processType) {
 		case "cnc_machining":
-			return "Заявка на ЧПУ обработку";
+			return "CNC machining request";
 		case "laser_cutting":
 		case "plastic_cutting":
-			return "Заявка на резку материала";
+			return "Material cutting request";
 		case "3d_printing":
-			return "Заявка на 3D печать";
+			return "3D printing request";
 		default:
-			return "Производственная заявка";
+			return "Manufacturing request";
 	}
 }

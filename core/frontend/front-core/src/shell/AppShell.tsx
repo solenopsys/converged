@@ -11,7 +11,9 @@ import type { RightPanelTab } from "sidebar-controller";
 import type { Entry } from "orchestrator";
 import { authToken } from "../auth-token";
 import type { ChatConfig } from "../chat/config";
+import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
 import { mountLinkedChatStyles } from "../chat/styles/link";
+import { translator } from "i18n";
 import { Copy, LogOut } from "../icons";
 import { LandingView } from "../landing/LandingView";
 import type { LandingPayload } from "../landing/types";
@@ -49,6 +51,8 @@ type Chat = Awaited<ReturnType<ChatModule["initChat"]>>;
 declare const __EFFECTOR_DEBUG__: boolean;
 
 // SSR loads this source before Bun applies browser build defines.
+const t = translator(CHAT_MESSAGES_NAMESPACE);
+
 const devTraceEnabled =
 	typeof __EFFECTOR_DEBUG__ !== "undefined" && __EFFECTOR_DEBUG__;
 
@@ -472,7 +476,7 @@ export function AppShell({
 				language: config.language,
 			}}
 			attach={({ onClick }) => (
-				<WithTooltip label="Прикрепить файл">
+				<WithTooltip label={t("panel.attachFile")}>
 					{(triggerProps) => (
 						<AttachButton onClick={onClick} triggerProps={triggerProps} />
 					)}
@@ -545,14 +549,14 @@ export function AppShell({
 								data-authenticated={isAuthenticated ? "true" : "false"}
 							>
 								<i aria-hidden="true" />
-								{isAuthenticated ? "Вход выполнен" : "Гость"}
+								{isAuthenticated ? t("shell.authenticatedStatus") : t("shell.guestStatus")}
 							</span>
 							{isAuthenticated ? (
 								<button
 									type="button"
 									class="panel-logout"
-									aria-label="Выйти"
-									title="Выйти"
+									aria-label={t("shell.logout")}
+									title={t("shell.logout")}
 									onClick={logout}
 								>
 									<LogOut aria-hidden="true" size={15} />

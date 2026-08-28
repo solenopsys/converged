@@ -1,4 +1,8 @@
 import { signalChannel } from "signal-channel";
+import { translator } from "i18n";
+import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
+
+const t = translator(CHAT_MESSAGES_NAMESPACE);
 
 export type WebsiteCallConfig = {
 	fujinWsUrl: string;
@@ -106,19 +110,20 @@ function messageOf(error: unknown) {
 /// call fails to start (a workspace without a call context is the common one),
 /// so they get plain wording instead of surfacing an identifier nobody outside
 /// the gate can read.
-const REFUSAL_TEXT: Record<string, string> = {
-	ContextRequired: "Звонок не настроен: для этого рабочего пространства нет контекста",
-	ContextUnavailable: "Звонок не настроен: сервис контекстов недоступен",
-	PolicyRejected: "Звонок отклонён политикой",
-	PolicyProviderUnavailable: "Голосовой провайдер недоступен",
-	PolicyActionUnsupportedForWebRtc: "Этот маршрут не поддерживает звонок из браузера",
-	MissingOpenAIApiKey: "Голосовой сервис не сконфигурирован",
-	DataChannelWrapperUnavailable: "Голосовой сервис недоступен",
+const REFUSAL_KEYS: Record<string, string> = {
+	ContextRequired: "call.contextRequired",
+	ContextUnavailable: "call.contextUnavailable",
+	PolicyRejected: "call.policyRejected",
+	PolicyProviderUnavailable: "call.policyProviderUnavailable",
+	PolicyActionUnsupportedForWebRtc: "call.policyActionUnsupported",
+	MissingOpenAIApiKey: "call.missingApiKey",
+	DataChannelWrapperUnavailable: "call.dataChannelUnavailable",
 };
 
 function callErrorText(error: unknown) {
 	const raw = messageOf(error);
-	return REFUSAL_TEXT[raw] ?? raw;
+	const key = REFUSAL_KEYS[raw];
+	return key ? t(key) : raw;
 }
 
 function ensureCallUser() {

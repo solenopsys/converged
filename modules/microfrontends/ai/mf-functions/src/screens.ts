@@ -1,4 +1,4 @@
-import { defineScreens } from "front-core";
+import { defineScreens, resolveEmbeddedMicrofrontendMessage } from "front-core";
 import { $screen } from "./domain";
 import { FunctionsListView } from "./views/FunctionsListView";
 
@@ -10,6 +10,9 @@ export const SCREENS = defineScreens([
     is: "list",
     view: FunctionsListView,
     surface: "center",
-    title: "Функции",
+    title: (_value: unknown) =>
+      (resolveEmbeddedMicrofrontendMessage("functions-mf", "screens.list.title") as
+        | string
+        | undefined) ?? "Functions",
   },
 ]);

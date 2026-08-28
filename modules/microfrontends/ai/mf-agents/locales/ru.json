@@ -3,5 +3,12 @@
     "agents": "Агенты",
     "sessions": "Сессии",
     "tools": "Инструменты"
+  },
+  "columns": {
+    "model": "Модель",
+    "messageCount": "Сообщения",
+    "updatedAt": "Обновлено",
+    "name": "Имя",
+    "description": "Описание"
   }
 }

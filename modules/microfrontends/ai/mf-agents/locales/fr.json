@@ -3,5 +3,12 @@
     "agents": "Agents",
     "sessions": "Sessions",
     "tools": "Outils"
+  },
+  "columns": {
+    "model": "Modèle",
+    "messageCount": "Messages",
+    "updatedAt": "Mis à jour",
+    "name": "Nom",
+    "description": "Description"
   }
 }

@@ -2,10 +2,10 @@ import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 /**
- * Раскладка поставки в одном месте: всё остальное в сборке адресуется отсюда.
- * Пакет живёт внутри `front/`, поэтому корни соседних пакетов считаются от
- * него, а не от PROJECT_DIR — сборка не должна зависеть от того, из какого
- * каталога её запустили.
+ * The delivery layout lives in one place: everything else in the build is
+ * addressed from here. The package lives inside `front/`, so neighboring
+ * packages' roots are computed relative to it, not to PROJECT_DIR — the build
+ * must not depend on which directory it was started from.
  */
 
 export const spaRoot = resolve(import.meta.dir, "..", "..");
@@ -66,23 +66,23 @@ function landingProjectDir(): string {
 	);
 }
 
-/** Карта блоков лендинга проекта: `type` из хранилища → компонент. */
+/** Map of the project's landing blocks: `type` from storage → component. */
 export function landingBlocksEntry(): string {
 	return join(landingProjectDir(), "src", "blocks", "index.tsx");
 }
 
 /**
- * Реэкспорт блоков проекта внутри поставки: его пишет сборка, а импортирует
- * точка входа. Лежит рядом с ней, потому что обычный относительный импорт —
- * единственный способ сохранить `tsconfig` проекта (см. build/bundles.ts).
+ * Re-export of the project's blocks inside the delivery: the build writes it,
+ * the entrypoint imports it. It lives next to the entrypoint because a plain
+ * relative import is the only way to keep the project's `tsconfig` (see build/bundles.ts).
  */
 export function landingBlocksShim(): string {
 	return join(spaRoot, "src", "client", "landing-blocks.ts");
 }
 
 /**
- * Стилевой слой блоков проекта. В отличие от карты блоков он необязателен:
- * проект, чьи блоки одеты стилями ядра, своего слоя не заводит.
+ * The project blocks' style layer. Unlike the block map, it's optional: a
+ * project whose blocks are styled by the core doesn't set up its own layer.
  */
 export function landingBlocksStyles(): string[] {
 	const blocksDir = join(landingProjectDir(), "src", "blocks");
@@ -104,8 +104,8 @@ export function landingBlocksStyles(): string[] {
 }
 
 /**
- * Изолированный стиль страницы может жить рядом с лендингом, но должен стать
- * обычным артефактом поставки, а не собираться из исходников на сервере.
+ * An isolated page style can live next to the landing, but it must become an
+ * ordinary delivery artifact, not something built from sources on the server.
  */
 export function landingAuditSourceDir(): string | undefined {
 	const source = join(landingProjectDir(), "src", "audit");
@@ -130,9 +130,9 @@ export function landingAuditShim(): string {
 }
 
 /**
- * Точки входа интерактивного аудита принадлежат проекту-хосту. Их нельзя
- * собирать при первом HTTP-запросе: в production они должны быть обычными
- * модулями поставки и пользоваться общей import map.
+ * The interactive audit's entrypoints belong to the host project. They can't
+ * be built on the first HTTP request: in production they must be ordinary
+ * delivery modules and use the shared import map.
  */
 export const dist = join(spaRoot, "dist");
 export const assetsDir = join(dist, "assets");
@@ -153,8 +153,8 @@ export const serviceWorkerEntry = join(
 export const vendorEntriesDir = join(spaRoot, "src", "vendor", "entries");
 export const pwaAssetsDir = join(spaRoot, "src", "assets", "pwa");
 
-// Файловый воркер — собственный ESM-бандл библиотеки store-workers (у него свой
-// global scope, importmap туда не действует). Здесь он только копируется.
+// The file worker is its own ESM bundle from the store-workers library (it has
+// its own global scope, the importmap doesn't reach there). Here it's only copied.
 export const storeWorkerBundle = join(
 	frontRoot,
 	"libraries",
@@ -179,18 +179,19 @@ export const clientBuildDefines = {
 };
 
 /**
- * Установка на телефон включается в проде; локально — по `PWA_DEV=1`.
- * В dev воркер выключен намеренно: он кэширует слои по идентификатору сборки,
- * а dev-сервер пересобирает их на каждый запрос.
+ * Install on the phone is enabled in prod; locally via `PWA_DEV=1`.
+ * In dev the worker is deliberately disabled: it caches layers by build id,
+ * and the dev server rebuilds them on every request.
  */
 export const pwaEnabled =
 	isProduction || process.env.PWA_DEV === "1" || process.env.PWA_DEV === "true";
 
 /**
- * Микрофронтенды, переведённые на контракт `front-core` (без `Widget.placement`,
- * с декларацией `SCREENS`). Список растёт волнами миграции — см.
- * refactoring/PLAN.md §5; полный перечень поставки лежит в `config.json`, и
- * пока он шире мигрированного, поставку задаёт этот список или `MICROFRONTENDS`.
+ * Microfrontends that have moved to the `front-core` contract (no
+ * `Widget.placement`, with a `SCREENS` declaration). The list grows in
+ * migration waves — see refactoring/PLAN.md §5; the delivery's full list
+ * lives in `config.json`, and while it's wider than what's migrated, this
+ * list or `MICROFRONTENDS` decides the delivery.
  */
 export const microfrontends =
 	// Set-but-empty is not the same as unset, and the difference is what an image
@@ -205,8 +206,8 @@ export const microfrontends =
 		.filter(Boolean);
 
 /**
- * Микрофронтенды разложены по предметным папкам, а в поставке адресуются
- * коротким именем: `functions` → `microfrontends/ai/mf-functions`.
+ * Microfrontends are laid out in topic folders, but addressed in the delivery
+ * by their short name: `functions` → `microfrontends/ai/mf-functions`.
  */
 export function microfrontendDir(name: string): string {
 	for (const root of microfrontendsRoots) {

@@ -43,7 +43,8 @@
   },
   "common": {
     "refresh": "Atualizar",
-    "loading": "Carregando..."
+    "loading": "Carregando...",
+    "error": "Erro"
   },
   "toolAction": {
     "thinking": "Estou pensando no seu pedido...",
@@ -70,6 +71,23 @@
       "listUIActions": "Buscando ações",
       "invokeUIAction": "Abrindo visualização",
       "weather": "Verificando o tempo"
+    }
+  },
+  "chatCard": {
+    "untitled": "Sem titulo"
+  },
+  "chatHistory": {
+    "fileUploadedPrefix": "Arquivo enviado: "
+  },
+  "composer": {
+    "placeholder": "Escreva uma mensagem..."
+  },
+  "files": {
+    "status": {
+      "uploading": "Enviando",
+      "paused": "Pausado",
+      "error": "Erro",
+      "uploaded": "Concluido"
     }
   }
 }

@@ -1,3 +1,5 @@
+import { translator } from "i18n";
+import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
 import { COLUMN_TYPES } from "./constants";
 import { CellRenderer } from "./CellRenderer";
 import type {
@@ -6,6 +8,8 @@ import type {
   RowCardProps,
 } from "./types";
 import { getRowValue } from "./row-utils";
+
+const t = translator(CHAT_MESSAGES_NAMESPACE);
 
 const DEFAULT_CARD_SECONDARY_LIMIT = 6;
 
@@ -22,9 +26,9 @@ function formatTitleValue(value: unknown, type: string) {
   }
   if (type === COLUMN_TYPES.DATE) {
     const date = parseDateValue(value);
-    if (!Number.isNaN(date.getTime())) return date.toLocaleString("ru-RU");
+    if (!Number.isNaN(date.getTime())) return date.toLocaleString();
   }
-  if (type === COLUMN_TYPES.BOOLEAN) return value ? "Да" : "Нет";
+  if (type === COLUMN_TYPES.BOOLEAN) return value ? t("table.yes") : t("table.no");
   if (Array.isArray(value)) return value.join(", ");
   if (typeof value === "object") return JSON.stringify(value);
   return String(value);

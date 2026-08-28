@@ -1,5 +1,6 @@
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
+import { translator } from "i18n";
 import { type DictationConfig, getDictationSnapshot, subscribeDictation } from "../call/dictation";
 import {
 	getWebsiteCallSnapshot,
@@ -7,7 +8,10 @@ import {
 	type WebsiteCallConfig,
 } from "../call/web-call";
 import { LiveAudioDiagram } from "../audio/LiveAudioDiagram";
+import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
 import { DictationButton, VoiceCallButton } from "./buttons";
+
+const t = translator(CHAT_MESSAGES_NAMESPACE);
 
 
 export function Composer({
@@ -70,20 +74,20 @@ export function Composer({
 
 	const callHint =
 		call.status === "error"
-			? `Звонок не начался: ${call.error ?? "неизвестная ошибка"}`
+			? t("call.failedToStart", { reason: call.error ?? t("call.unknownError") })
 			: call.status === "connecting"
-				? "Соединяю звонок…"
+				? t("call.connecting")
 				: null;
 
 	const dictationHint =
 		dictation.status === "starting"
-			? "Подключаю микрофон…"
+			? t("dictation.connecting")
 			: dictation.status === "listening"
-				? "Слушаю"
+				? t("dictation.listening")
 				: dictation.status === "finishing"
-					? "Распознаю…"
+					? t("dictation.finishing")
 					: dictation.status === "error"
-						? `Диктовка не удалась: ${dictation.error ?? "неизвестная ошибка"}`
+						? t("dictation.failed", { reason: dictation.error ?? t("dictation.unknownError") })
 						: null;
 
 	// The call owns the line while it is failing: its message is the one the
@@ -110,7 +114,7 @@ export function Composer({
 			) : null}
 			<VoiceCallButton config={callConfig} />
 			<label class="sr-only" for={id}>
-				Message
+				{t("composer.messageLabel")}
 			</label>
 			<textarea
 				ref={inputRef}
@@ -119,7 +123,7 @@ export function Composer({
 				rows={1}
 				maxLength={1000}
 				value={draft}
-				placeholder="Напиши сообщение"
+				placeholder={t("composer.placeholder")}
 				autoComplete="off"
 				class="composer-input"
 				onFocus={onFocus}

@@ -4,8 +4,11 @@ import { MarkdownRenderer, type MarkdownASTNode } from "md-tools";
 import { loadDocsSections, type DocsSectionMeta } from "../sections";
 import { getDocsSources } from "../env";
 import { DEFAULT_LOCALE } from "front-core/landing";
+import { useMicrofrontendTranslation } from "front-core";
 import { createFrontNrpcClientConfig } from "signal-channel";
 import type { DocsSSRData } from "../ssr";
+
+const MF_ID = "docs-mf";
 
 type RenderSection = DocsSectionMeta & {
   ast: MarkdownASTNode | null;
@@ -86,40 +89,41 @@ function isCurrentSection(item: RenderSection, locale: string, group?: string, s
 }
 
 function DocsIndex({ items, locale }: { items: RenderSection[]; locale: string }) {
+  const { t } = useMicrofrontendTranslation(MF_ID);
   const base = `/${locale}/product`;
   const pages = [
     {
-      title: "Обзор",
+      title: t("index.pages.overview.title") as string,
       href: `${base}/overview/`,
-      text: "Что такое Converged AI, какую работу он закрывает и почему продукт собран вокруг готовых решений.",
+      text: t("index.pages.overview.text") as string,
     },
     {
-      title: "Решения",
+      title: t("index.pages.solutions.title") as string,
       href: `${base}/solutions/`,
-      text: "Как устроены решения и какие контуры закрывают продвижение, клиентов, производство и команду.",
+      text: t("index.pages.solutions.text") as string,
     },
     {
-      title: "Платформа",
+      title: t("index.pages.platform.title") as string,
       href: `${base}/platform/`,
-      text: "Оборудование, процессы и ИИ-слой: как система связывает цех, данные и действия.",
+      text: t("index.pages.platform.text") as string,
     },
     {
-      title: "Техническое",
+      title: t("index.pages.technical.title") as string,
       href: `${base}/technical/`,
-      text: "Архитектура, технологии, производительность и безопасность платформы.",
+      text: t("index.pages.technical.text") as string,
     },
     {
-      title: "Проект",
+      title: t("index.pages.project.title") as string,
       href: `${base}/project/`,
-      text: "Развёртывание, оплата, лицензирование, сообщество и исходные коды.",
+      text: t("index.pages.project.text") as string,
     },
   ];
 
   return (
     <>
       <div className="docs-markdown max-w-4xl">
-        <h1>Продукт</h1>
-        <p>Карта документации по платформе, решениям и сценариям внедрения.</p>
+        <h1>{t("index.heading") as string}</h1>
+        <p>{t("index.intro") as string}</p>
       </div>
       <div className="mt-8 grid max-w-4xl gap-10">
         {pages.map((page) => (

@@ -1,7 +1,7 @@
 /**
- * Каталог функций, шина и UI-кит микрофронтендов. Тот самый общий инстанс:
- * оболочка регистрирует загрузчик и читает `SCREENS`, микрофронтенды кладут в
- * этот же каталог свои функции.
+ * The function catalog, the bus, and the microfrontend UI kit. This is the
+ * shared instance: the shell registers the loader and reads `SCREENS`,
+ * microfrontends put their functions into this same catalog.
  */
 export * from "front-core";
 // The import map resolves `front-core/shell` to this delivery facade too.
@@ -19,7 +19,7 @@ export {
 } from "front-core/table";
 
 /**
- * Реестр блоков лендинга: он обязан быть тем же самым, что использует
- * `LandingView` внутри оболочки, — блоки регистрирует проект, а рисует ядро.
+ * The landing block registry: it must be the exact same one `LandingView`
+ * uses inside the shell — the project registers the blocks, the core renders them.
  */
 export * from "front-core/landing";

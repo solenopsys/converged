@@ -1,4 +1,5 @@
 import { defineScreens } from "front-core/core";
+import { resolveEmbeddedMicrofrontendMessage } from "front-core";
 import { $screen } from "./domain-static";
 import { StaticCacheView } from "./views/StaticCacheView";
 
@@ -9,6 +10,9 @@ export const SCREENS = defineScreens([
     is: "cache",
     view: StaticCacheView,
     surface: "center",
-    title: "Статический кэш",
+    title: (_value: unknown) =>
+      (resolveEmbeddedMicrofrontendMessage("static-mf", "screens.cache.title") as
+        | string
+        | undefined) ?? "Static Cache",
   },
 ]);

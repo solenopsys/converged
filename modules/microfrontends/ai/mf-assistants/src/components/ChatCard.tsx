@@ -1,5 +1,7 @@
 import React from 'preact/compat';
-import { MessageSquare } from "front-core";
+import { MessageSquare, useMicrofrontendTranslation } from "front-core";
+
+const MF_ID = 'assistants-mf';
 
 export interface ChatCardProps {
   data: any;
@@ -8,9 +10,10 @@ export interface ChatCardProps {
 }
 
 export const ChatCard: React.FC<ChatCardProps> = ({ data }) => {
-  const name = data.name || 'Без названия';
+  const { t } = useMicrofrontendTranslation(MF_ID);
+  const name = data.name || (t('chatCard.untitled') as string);
   const description = data.description || '';
-  const date = data.createdAt ? new Date(data.createdAt).toLocaleDateString('ru-RU', {
+  const date = data.createdAt ? new Date(data.createdAt).toLocaleDateString(undefined, {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',

@@ -4,17 +4,17 @@ import { manifest, pwaIcons } from "../pwa-manifest";
 import { dist, iconsDir, pwaAssetsDir, serviceWorkerEntry } from "./layout";
 
 /**
- * Установочный слой. В критический путь не входит: регистрация воркера идёт на
- * `load`, а сам он кэширует уже скачанное.
+ * Install layer. Not on the critical path: worker registration happens on
+ * `load`, and the worker itself caches what's already downloaded.
  */
 
 /**
- * Воркер собирается классическим скриптом (`iife`), а не модулем: модульные
- * service worker'ы Safari поддерживает только с 16.4, а установка нужна на всех
- * телефонах, до которых дотягиваемся.
+ * The worker is built as a classic script (`iife`), not a module: Safari only
+ * supports module service workers from 16.4, and install needs to work on
+ * every phone we can reach.
  *
- * Список precache и идентификатор сборки подставляются здесь: воркер не должен
- * ничего знать про раскладку файлов, он получает готовые пути.
+ * The precache list and build id are substituted in here: the worker
+ * shouldn't know anything about file layout, it gets ready-made paths.
  */
 export async function buildServiceWorker(
 	buildId: string,

@@ -1,24 +1,25 @@
 /**
- * Полный `preact/compat` — отдельным файлом, а не внутри preact.js: он нужен
- * только слою микрофронтендов (их вьюхи написаны на React-совместимом API), и
- * в критическом пути ему делать нечего. Разница не косметическая: compat
- * приводит React-семантику пропсов (`onChange` на input, ref-объекты,
- * порталы), которой в ядре нет.
+ * The full `preact/compat` — as its own file, not inside preact.js: it's only
+ * needed by the microfrontend layer (their views are written against the
+ * React-compatible API), and it has no business on the critical path. The
+ * difference isn't cosmetic: compat brings React prop semantics (`onChange`
+ * on an input, ref objects, portals) that the core doesn't have.
  *
- * Путь физический по той же причине, что и в preact.ts: спецификатор
- * `preact/compat` карта импорта ведёт в этот же файл, и бандл импортировал бы
- * сам себя. Хуки внутрь не попадают — см. preact-hooks-proxy.ts.
+ * The path is physical for the same reason as in preact.ts: the import map
+ * routes the `preact/compat` specifier to this same file, and the bundle
+ * would import itself. Hooks don't end up inside it — see preact-hooks-proxy.ts.
  */
 
-// @ts-ignore Физический путь: спецификатор вёл бы обратно в этот же файл.
+// @ts-ignore Physical path: the specifier would lead back to this same file.
 export * from "../../../node_modules/preact/compat/dist/compat.mjs";
-// @ts-ignore См. импорт выше.
+// @ts-ignore See the import above.
 export { default } from "../../../node_modules/preact/compat/dist/compat.mjs";
 
 /**
- * Хуки compat отдаёт транзитом, а двойную звезду (`entry → compat → hooks`)
- * бандлер до итогового модуля не доводит — отсюда поимённый список. Источник
- * тот же общий preact.js: он же обслуживает и прокси внутри сборки.
+ * compat hands hooks through in transit, and the bundler doesn't carry a
+ * double star (`entry → compat → hooks`) through to the final module — hence
+ * the named list. The source is the same shared preact.js: it also serves the
+ * proxy inside the build.
  */
 export {
   useCallback,

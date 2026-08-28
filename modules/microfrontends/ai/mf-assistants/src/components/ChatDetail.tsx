@@ -224,6 +224,7 @@ const ChatDetail: React.FC = (props: {
   intro?: React.ReactNode;
   onOpenToolCallJson?: (toolCall: NonNullable<ChatMessage['toolCallData']>) => void;
 }) => {
+  const { t } = useMicrofrontendTranslation('assistants-mf');
   const showIntro =
     Boolean(props.intro) &&
     props.messages.length === 0 &&
@@ -241,7 +242,7 @@ const ChatDetail: React.FC = (props: {
       onFilesSelected={props.onFilesSelected}
       files={props.files && props.files.length > 0 ? <FileList items={props.files} /> : null}
       intro={showIntro ? props.intro : null}
-      placeholder="Напишите сообщение..."
+      placeholder={t("composer.placeholder") as string}
       renderMessage={(message) => {
         if (message.fileData) {
           return (

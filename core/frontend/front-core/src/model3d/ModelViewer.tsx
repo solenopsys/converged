@@ -1,5 +1,9 @@
 import React, { useEffect, useRef, useState } from "preact/compat";
 import { downloadFile, services } from "files-state";
+import { translator } from "i18n";
+import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
+
+const t = translator(CHAT_MESSAGES_NAMESPACE);
 
 declare global {
   namespace JSX {
@@ -97,7 +101,7 @@ export function ModelViewer({ fileId, alt = "3D model", style, className }: Prop
   if (!url || !mvReady) {
     return (
       <div className={className} style={{ ...style, display: "flex", alignItems: "center", justifyContent: "center", color: "#888", fontSize: 13 }}>
-        {!mvReady ? "Загрузка viewer..." : "Загрузка модели..."}
+        {!mvReady ? t("model3d.loadingViewer") : t("model3d.loadingModel")}
       </div>
     );
   }

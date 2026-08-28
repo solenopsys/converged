@@ -1,10 +1,10 @@
 
 
 export const manifest = {
-	name: "hw — операционная система мастерской",
+	name: "hw — the workshop operating system",
 	short_name: "hw",
 	description:
-		"Заказы, оборудование и переписка с клиентами в одном рабочем пространстве.",
+		"Orders, equipment, and customer correspondence in one workspace.",
 	id: "/",
 	start_url: "/",
 	scope: "/",
@@ -12,7 +12,7 @@ export const manifest = {
 	orientation: "any",
 	background_color: "#f7f7f5",
 	theme_color: "#f7f7f5",
-	lang: "ru",
+	lang: "en",
 	dir: "ltr",
 	categories: ["business", "productivity"],
 	icons: [

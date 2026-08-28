@@ -27,12 +27,13 @@ async function buildAuditStyles(auditRoot: string): Promise<string> {
 }
 
 /**
- * CSS разложен по тем же слоям, что и код: токены и геометрия панели общие с
- * встраиваемой формой (она инлайнит те же файлы), страница приложения линкует
- * их одним index.css, содержимое чата едет со своим чанком.
+ * CSS is laid out in the same layers as the code: tokens and panel geometry
+ * are shared with the embeddable form (it inlines the same files), the app
+ * page links them as one index.css, and the chat content travels with its own chunk.
  *
- * Утилиты генерируются по исходникам оболочки: разметку лендинга рисуют блоки
- * из `front-core/landing`, поэтому в источник для генератора идут и они.
+ * Utilities are generated from the shell's sources: the landing markup is
+ * drawn by blocks from `front-core/landing`, so they go into the generator's
+ * source too.
  */
 export async function buildStyles(): Promise<string[]> {
 	const glob = new Bun.Glob("**/*.{ts,tsx}");
@@ -44,8 +45,8 @@ export async function buildStyles(): Promise<string[]> {
 		...Array.from(
 			glob.scanSync({ cwd: join(frontCoreRoot, "src", "shell"), absolute: true }),
 		),
-		// Разметку страницы рисуют блоки проекта: без них генератор не увидит ни
-		// одной утилиты лендинга и вырежет их из слоя.
+		// The page markup is drawn by the project's blocks: without them the
+		// generator won't see a single landing utility and will cut them from the layer.
 		...Array.from(glob.scanSync({ cwd: dirname(landingBlocksEntry()), absolute: true })),
 	];
 	const shellSource = (
@@ -70,8 +71,8 @@ export async function buildStyles(): Promise<string[]> {
 			layer(stylesDir, "cnc-landing.css"),
 			layer(stylesDir, "surface.css"),
 			layer(stylesDir, "topbar.css"),
-			// Слой блоков проекта идёт последним: он одевает собственную разметку и
-			// имеет право переопределить общие правила лендинга.
+			// The project's blocks layer comes last: it styles its own markup and
+			// is allowed to override the shared landing rules.
 			Promise.all(projectStyles.map((path) => Bun.file(path).text())).then(
 				(styles) => styles.join("\n"),
 			),
@@ -90,15 +91,16 @@ export async function buildStyles(): Promise<string[]> {
 }
 
 /**
- * Утилитарный CSS микрофронтендов — свой слой и свой пресет: вьюхи MF написаны
- * на wind-утилитах, оболочка — на собственных токенах, и смешивать их незачем.
- * Файл приезжает при первом микрофронтенде, в критическом пути его нет.
+ * Microfrontend utility CSS — its own layer and its own preset: MF views are
+ * written in wind utilities, the shell in its own tokens, and there's no
+ * reason to mix them. The file arrives with the first microfrontend; it's not
+ * on the critical path.
  *
- * Сюда же вклеивается рукописный CSS самих модулей: `moduleStyles` — это то,
- * что бандлер вытащил из их `import "./View.css"`. Своими файлами он не
- * поставляется, потому что страница подключает ровно один `assets/mf.css`
- * (`front-core/src/shell/mf.ts`), и лежащий рядом с чанком `mf/<name>.css`
- * не подключал бы никто.
+ * The modules' own hand-written CSS is glued in here too: `moduleStyles` is
+ * what the bundler pulled out of their `import "./View.css"`. It isn't
+ * shipped as its own files, because the page includes exactly one
+ * `assets/mf.css` (`front-core/src/shell/mf.ts`), and an `mf/<name>.css`
+ * sitting next to the chunk would never get included by anyone.
  */
 export async function buildMicrofrontendStyles(moduleStyles: string[] = []): Promise<string> {
 	const glob = new Bun.Glob("**/*.{ts,tsx}");
@@ -129,8 +131,8 @@ export async function buildMicrofrontendStyles(moduleStyles: string[] = []): Pro
 	);
 
 	const target = join(assetsDir, "mf.css");
-	// Утилиты идут последними: они обязаны перебивать рукописные правила
-	// компонентов, а не наоборот.
+	// Utilities come last: they must override components' hand-written rules,
+	// not the other way around.
 	await Bun.write(
 		target,
 		[tokens, threadedChat, threadView, pellEditor, ...modules, css].join("\n"),

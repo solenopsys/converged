@@ -1,7 +1,9 @@
 import React, { useEffect } from "preact/compat";
 import { useUnit } from "effector-preact";
 
-import { InfiniteScrollDataTable } from "front-core";
+import { InfiniteScrollDataTable, useMicrofrontendTranslation } from "front-core";
+
+const MF_ID = "assistants-mf";
 
 type TableStore = {
   $state: any;
@@ -31,6 +33,7 @@ const ChatListView: React.FC<ChatListViewProps> = ({
   const { items, totalCount, loading, error, currentPage, pageSize, sortConfig } =
     useUnit(store.$state);
   const { loadData, setPage, setPageSize, setSort } = useUnit(store);
+  const { t } = useMicrofrontendTranslation(MF_ID);
 
   useEffect(() => {
     loadData({ page: 1, pageSize, ...filters });
@@ -43,7 +46,7 @@ const ChatListView: React.FC<ChatListViewProps> = ({
   }, [JSON.stringify(filters)]);
 
   if (error) {
-    return <div className="p-3 text-sm text-destructive">Ошибка: {error}</div>;
+    return <div className="p-3 text-sm text-destructive">{t("common.error") as string}: {error}</div>;
   }
 
   return (

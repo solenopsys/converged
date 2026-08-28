@@ -1,5 +1,8 @@
 import { useEffect, useState, useRef, useMemo } from "preact/compat";
+import { useMicrofrontendTranslation } from "front-core";
 import { DAGController } from "./Controller";
+
+const MF_ID = "dag-mf";
 
 interface DagViewerProps {
   nodeMap: Map<string, string | string[]>;
@@ -16,6 +19,8 @@ export default function DagViewer({
   completedNodes = new Set(),
   onclick
 }: DagViewerProps) {
+  const { t } = useMicrofrontendTranslation(MF_ID);
+  const descriptionError = t("dagViewer.descriptionError") as string;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [descriptions, setDescriptions] = useState<string[]>([]);
   const [nodes, setNodes] = useState<string[]>([]);
@@ -57,8 +62,8 @@ export default function DagViewer({
               try {
                 return await getNodeDescription(nodeName);
               } catch (error) {
-                console.warn(`Ошибка загрузки описания для ${nodeName}:`, error);
-                return "Ошибка загрузки описания";
+                console.warn(`Failed to load description for ${nodeName}:`, error);
+                return descriptionError;
               }
             })
           );
@@ -67,9 +72,9 @@ export default function DagViewer({
 
           setDescriptions(nodeDescriptions);
         } catch (error) {
-          console.error("Ошибка загрузки описаний:", error);
+          console.error("Failed to load descriptions:", error);
           if (!isCancelled) {
-            setDescriptions(nodeList.map(() => "Ошибка загрузки описания"));
+            setDescriptions(nodeList.map(() => descriptionError));
           }
         }
 
@@ -86,7 +91,7 @@ export default function DagViewer({
         setController(newController);
 
       } catch (error) {
-        console.error("Ошибка инициализации контроллера:", error);
+        console.error("Failed to initialize controller:", error);
       }
     };
 
@@ -95,7 +100,7 @@ export default function DagViewer({
     return () => {
       isCancelled = true;
     };
-  }, [stableNodeMap, stableCompletedNodes, getNodeType, getNodeDescription]);
+  }, [stableNodeMap, stableCompletedNodes, getNodeType, getNodeDescription, descriptionError]);
 
   return (
     <div className="flex w-full h-full min-h-0">
@@ -112,7 +117,7 @@ export default function DagViewer({
 
       <div className="ml-4 flex-1 min-w-0 overflow-y-auto">
         {nodes.map((nodeName, i) => {
-          const description = descriptions[i] || "Загрузка...";
+          const description = descriptions[i] || (t("dagViewer.loading") as string);
           const isCompleted = completedNodes.has(nodeName);
 
           return (

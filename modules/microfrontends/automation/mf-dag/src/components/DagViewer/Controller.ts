@@ -71,7 +71,7 @@ export class DAGController {
 
                     const debugInfo = document.getElementById('debugInfo');
                     if (debugInfo && !success) {
-                        debugInfo.textContent = `Ошибка: не удалось создать связь ${this.selectedNodes[0]} -> ${this.selectedNodes[1]}`;
+                        debugInfo.textContent = `Error: failed to create connection ${this.selectedNodes[0]} -> ${this.selectedNodes[1]}`;
                     }
 
                     this.selectedNodes = [];
@@ -109,9 +109,9 @@ export class DAGController {
             if (debugInfo && nodeName) {
                 try {
                     const nodeType = await this.getNodeType(nodeName);
-                    debugInfo.textContent = `Наведение на узел: ${nodeName} (тип: ${nodeType})`;
+                    debugInfo.textContent = `Hovering node: ${nodeName} (type: ${nodeType})`;
                 } catch (error) {
-                    debugInfo.textContent = `Наведение на узел: ${nodeName} (ошибка загрузки типа)`;
+                    debugInfo.textContent = `Hovering node: ${nodeName} (type load error)`;
                 }
             }
         }
@@ -182,7 +182,7 @@ export class DAGController {
                 const description = await this.getNodeDescription(nodeName);
                 descriptions.set(nodeName, description);
             } catch (error) {
-                descriptions.set(nodeName, 'Ошибка загрузки описания');
+                descriptions.set(nodeName, 'Failed to load description');
             }
         }
 
@@ -243,7 +243,7 @@ export class DAGController {
 
         const btn = document.getElementById('connectionBtn') as HTMLButtonElement;
         if (btn) {
-            btn.textContent = `Режим соединения: ${this.connectionMode ? 'ВКЛ' : 'ВЫКЛ'}`;
+            btn.textContent = `Connection mode: ${this.connectionMode ? 'ON' : 'OFF'}`;
             btn.className = this.connectionMode ? 'active' : '';
         }
 

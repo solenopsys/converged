@@ -26,7 +26,7 @@ export type ChatFilesOptions = {
 };
 
 const defaultAnalysisPrompt = (fileId: string, file: UploadedFileInfo) =>
-	`[FILE] id=${fileId} name="${file.fileName}" size=${file.fileSize} type="${file.fileType}" — запусти анализ файла`;
+	`[FILE] id=${fileId} name="${file.fileName}" size=${file.fileSize} type="${file.fileType}" — run file analysis`;
 
 export const bindChatFiles = (options: ChatFilesOptions): void => {
 	options.uploads.uploadCompleted.watch((fileId) => {

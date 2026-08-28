@@ -1,6 +1,6 @@
 
 import { createEvent, createStore } from "effector";
-import { authToken } from "front-core";
+import { authToken, resolveEmbeddedMicrofrontendMessage } from "front-core";
 import { signalChannel } from "signal-channel";
 import { createMicCapture, type MicCapture } from "./mic-capture";
 
@@ -289,7 +289,9 @@ export async function startWebCall(contextName?: string): Promise<void> {
 			onClipChange: (clipping) => {
 				setWarning(
 					clipping
-						? "Микрофон перегружен — уменьшите его громкость в настройках системы"
+						? ((resolveEmbeddedMicrofrontendMessage("calls-mf", "active_call.mic_overloaded") as
+								| string
+								| undefined) ?? "Microphone is overloaded — lower its volume in system settings")
 						: null,
 				);
 			},

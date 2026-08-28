@@ -2,7 +2,7 @@ import { relative } from "node:path";
 import { brotliCompressSync, gzipSync } from "node:zlib";
 import { dist } from "./layout";
 
-/** Пофайловые размеры поставки: их же читает проверка бюджетов (PLAN.md §7). */
+/** Per-file delivery sizes: the budget check reads the same ones (PLAN.md §7). */
 
 export type SizedFile = { file: string; raw: number; gzip: number; brotli: number };
 export type Measured = Awaited<ReturnType<typeof measure>>;
@@ -37,7 +37,7 @@ export function sizeRows({ files, total }: Measured) {
 	return files.length > 1 ? [...rows, row("total", total)] : rows;
 }
 
-/** Отчёт читают глазами: килобайты с одним знаком, байты в JSON-отчёте. */
+/** The report is read by eye: kilobytes with one decimal, bytes in the JSON report. */
 export function humanSize(bytes: number): string {
 	if (bytes < 1024) return `${bytes} B`;
 	const kilobytes = bytes / 1024;

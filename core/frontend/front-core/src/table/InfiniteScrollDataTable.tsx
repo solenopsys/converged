@@ -1,4 +1,6 @@
 import { useUnit } from "effector-preact";
+import { translator } from "i18n";
+import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
 import {
 	ArrowDown,
 	ArrowUp,
@@ -57,6 +59,8 @@ export type {
 	ViewMode,
 } from "./types";
 
+const t = translator(CHAT_MESSAGES_NAMESPACE);
+
 const LOAD_MORE_THRESHOLD = 200;
 // prefetch only fills the first viewport; scrolling drives everything after that
 const MAX_AUTO_FILL_ROUNDS = 5;
@@ -83,7 +87,7 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 	totalCount: totalCountInput = 0,
 	className = "",
 	tableClassName = "",
-	emptyMessage = "Данные не найдены",
+	emptyMessage = t("table.noData"),
 }: InfiniteScrollDataTableProps<TData>) {
 	const columns = useMemo(
 		() => normalizeColumns<TData>(columnsInput),
@@ -349,7 +353,7 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 									class="flex items-center justify-center p-4"
 								>
 									{loadingMore && (
-										<p class="text-sm text-muted-foreground">Загрузка...</p>
+										<p class="text-sm text-muted-foreground">{t("table.loading")}</p>
 									)}
 								</div>
 							) : null;
@@ -526,7 +530,7 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 									>
 										{loadingMore && (
 											<p class="text-sm text-muted-foreground">
-												Загрузка...
+												{t("table.loading")}
 											</p>
 										)}
 									</div>
@@ -612,7 +616,7 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 			{selectedRows.length > 0 && (
 				<div class="flex flex-shrink-0 items-center justify-between border-b bg-muted px-6 py-3">
 					<span class="text-sm font-medium">
-						Выбрано: {selectedRows.length} из {data.length}
+						{t("table.selected", { selected: selectedRows.length, total: data.length })}
 					</span>
 					<div class="flex items-center gap-3">
 						<button
@@ -620,7 +624,7 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 							onClick={clearSelection}
 							class="text-sm font-medium text-primary hover:text-primary/80"
 						>
-							Снять выделение
+							{t("table.clearSelection")}
 						</button>
 						{bulkActions.length > 0 && (
 							<ShadDropdown>
@@ -629,7 +633,7 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 										type="button"
 										class="flex items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground transition-colors hover:bg-primary/90"
 									>
-										Операции
+										{t("table.actions")}
 										<MenuIcon size={14} />
 									</button>
 								</DropdownMenuTrigger>
@@ -673,7 +677,7 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 							)}
 						>
 							{selectionMode ? <CheckSquare size={13} /> : <Square size={13} />}
-							Выбрать
+							{t("table.select")}
 						</button>
 					) : (
 						<span />
@@ -696,7 +700,7 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 
 			{loading && data.length === 0 ? (
 				<div class="flex h-24 w-full items-center justify-center">
-					<p class="text-muted-foreground">Загрузка...</p>
+					<p class="text-muted-foreground">{t("table.loading")}</p>
 				</div>
 			) : data.length === 0 ? (
 				<div class="flex h-24 w-full items-center justify-center">

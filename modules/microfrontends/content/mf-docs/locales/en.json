@@ -1,1 +1,28 @@
-{}
+{
+  "index": {
+    "heading": "Product",
+    "intro": "A map of documentation across the platform, solutions, and rollout scenarios.",
+    "pages": {
+      "overview": {
+        "title": "Overview",
+        "text": "What Converged AI is, what work it takes on, and why the product is built around ready-made solutions."
+      },
+      "solutions": {
+        "title": "Solutions",
+        "text": "How the solutions are structured and which areas they cover: promotion, customers, production, and the team."
+      },
+      "platform": {
+        "title": "Platform",
+        "text": "Hardware, processes, and the AI layer: how the system connects the shop floor, data, and actions."
+      },
+      "technical": {
+        "title": "Technical",
+        "text": "Architecture, technology, performance, and security of the platform."
+      },
+      "project": {
+        "title": "Project",
+        "text": "Deployment, payment, licensing, community, and source code."
+      }
+    }
+  }
+}

@@ -83,9 +83,9 @@ function json(value: unknown): string {
 }
 
 /**
- * "5 модулей" rather than "5 модулей" in one language and "1 модулей" in
- * another: the form is chosen by CLDR plural category, so a language declares
- * only the forms it actually has.
+ * "1 модуль" vs "5 модулей" rather than a naive "1 модулей" in a language
+ * with real plural forms: the form is chosen by CLDR plural category, so a
+ * language declares only the forms it actually has.
  */
 function count(
 	template: string | Record<string, string> | undefined,

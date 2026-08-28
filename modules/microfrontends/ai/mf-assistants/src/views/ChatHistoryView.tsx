@@ -1,9 +1,12 @@
 import React, { useEffect, useMemo, useState } from "preact/compat";
 import type { ChatMessage } from "assistant-state";
 import { MessageType, type Message as ThreadMessage } from "g-threads";
+import { useMicrofrontendTranslation } from "front-core";
 
 import { ChatDetail } from "../components/ChatDetail";
 import { threadsClient } from "../services";
+
+const MF_ID = "assistants-mf";
 
 type ChatHistoryViewProps = {
   threadId: string;
@@ -84,7 +87,7 @@ function buildToolCallSummary(parsed?: Record<string, unknown> | Array<unknown>)
   return [summary, title, status, modelId].filter(Boolean).join(" • ") || undefined;
 }
 
-function toChatMessage(message: ThreadMessage, index: number): ChatMessage | null {
+function toChatMessage(message: ThreadMessage, index: number, fileUploadedPrefix: string): ChatMessage | null {
   const user = message.user === "assistant" ? "assistant" : "user";
 
   if (message.type === MessageType.link || message.type === "link") {
@@ -97,7 +100,7 @@ function toChatMessage(message: ThreadMessage, index: number): ChatMessage | nul
         id: message.id ?? `history-file-${index}-${message.timestamp ?? Date.now()}`,
         beforeId: message.beforeId,
         type: user,
-        content: `Файл загружен: ${fileName}`,
+        content: `${fileUploadedPrefix}${fileName}`,
         timestamp: message.timestamp ?? 0,
         fileData: {
           fileId,
@@ -155,6 +158,8 @@ export const ChatHistoryView: React.FC<ChatHistoryViewProps> = ({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { t } = useMicrofrontendTranslation(MF_ID);
+  const fileUploadedPrefix = t("chatHistory.fileUploadedPrefix") as string;
 
   useEffect(() => {
     let cancelled = false;
@@ -168,7 +173,7 @@ export const ChatHistoryView: React.FC<ChatHistoryViewProps> = ({
         if (cancelled) return;
 
         const nextMessages = rows
-          .map(toChatMessage)
+          .map((message, index) => toChatMessage(message, index, fileUploadedPrefix))
           .filter((message): message is ChatMessage => message !== null)
           .sort((left, right) => left.timestamp - right.timestamp);
 
@@ -189,7 +194,7 @@ export const ChatHistoryView: React.FC<ChatHistoryViewProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [threadId]);
+  }, [threadId, fileUploadedPrefix]);
 
   const intro = useMemo(
     () => error ? <div className="p-3 text-sm text-destructive">{error}</div> : null,

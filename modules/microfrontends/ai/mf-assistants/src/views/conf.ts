@@ -6,8 +6,8 @@ export const mockChatStore: {
 } = {
   $chat: {
     messages: [
-      { id: '1', type: 'user', content: 'Привет! Как дела?', timestamp: Date.now() - 60000 },
-      { id: '2', type: 'assistant', content: 'Привет! Всё отлично, готов помочь с любыми вопросами.', timestamp: Date.now() - 30000 }
+      { id: '1', type: 'user', content: 'Hi! How are you?', timestamp: Date.now() - 60000 },
+      { id: '2', type: 'assistant', content: "Hi! I'm doing great, ready to help with any questions.", timestamp: Date.now() - 30000 }
     ],
     isLoading: false,
     currentResponse: ''

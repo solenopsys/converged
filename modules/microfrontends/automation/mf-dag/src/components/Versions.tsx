@@ -1,4 +1,7 @@
 import React from 'preact/compat';
+import { useMicrofrontendTranslation } from 'front-core';
+
+const MF_ID = 'dag-mf';
 
 interface Version {
   version: string;
@@ -15,10 +18,12 @@ export const Versions: React.FC<VersionsViewProps> = ({
   loading,
   codeName
 }) => {
+  const { t } = useMicrofrontendTranslation(MF_ID);
+
   if (loading) {
     return (
       <div className="p-4">
-        <div className="animate-pulse">Загрузка версий...</div>
+        <div className="animate-pulse">{t('versions.loading') as string}</div>
       </div>
     );
   }
@@ -26,7 +31,7 @@ export const Versions: React.FC<VersionsViewProps> = ({
   if (!codeName) {
     return (
       <div className="p-4 text-muted-foreground">
-        Выберите код из списка
+        {t('versions.selectCode') as string}
       </div>
     );
   }
@@ -39,7 +44,7 @@ export const Versions: React.FC<VersionsViewProps> = ({
 
       {versions.length === 0 ? (
         <div className="text-muted-foreground">
-          Нет доступных версий
+          {t('versions.empty') as string}
         </div>
       ) : (
         <div className="space-y-2">

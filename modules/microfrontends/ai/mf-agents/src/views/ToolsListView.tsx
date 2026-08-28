@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "preact/compat";
 import { createDomain } from "effector";
-import { HeaderPanelLayout, InfiniteScrollDataTable } from "front-core";
+import { HeaderPanelLayout, InfiniteScrollDataTable, useMicrofrontendTranslation } from "front-core";
 import { RefreshCw } from "front-core";
 import { agentClient } from "../services";
 import { toolsColumns } from "../config";
@@ -8,9 +8,11 @@ import type { ToolDefinition } from "../types";
 
 const domain = createDomain("agents-tools");
 const refreshToolsClicked = domain.createEvent("REFRESH_TOOLS_CLICKED");
+const MF_ID = "agents-mf";
 
 export const ToolsListView = ({ bus }) => {
   const [tools, setTools] = useState<ToolDefinition[]>([]);
+  const { t } = useMicrofrontendTranslation(MF_ID);
   const [loading, setLoading] = useState(false);
 
   const loadTools = async () => {
@@ -50,7 +52,7 @@ export const ToolsListView = ({ bus }) => {
         data={tools}
         hasMore={false}
         loading={loading}
-        columns={toolsColumns}
+        columns={toolsColumns(t)}
         viewMode="table"
       />
     </HeaderPanelLayout>

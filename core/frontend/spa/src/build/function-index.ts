@@ -3,27 +3,27 @@ import { join } from "node:path";
 import { microfrontendDir, microfrontends, microfrontendsDir } from "./layout";
 
 /**
- * Индекс функций поставки: имя модуля, его краткое описание и список функций с
- * краткими описаниями (docs/AI.md §4.2).
+ * The delivery's function index: module name, its brief description, and the
+ * list of functions with brief descriptions (docs/AI.md §4.2).
  *
- * Зачем он есть. Каталог функций наполняется через `plug(bus)` при загрузке
- * микрофронтенда, а модули грузятся лениво — на свежей странице каталог пуст, и
- * шагу выбора функции нечего показывать. Терять ленивую загрузку нельзя: она и
- * даёт лёгкий старт. Индекс — компенсация: метаданные приезжают сразу, код —
- * по требованию.
+ * Why it exists. The function catalog is filled via `plug(bus)` when a
+ * microfrontend loads, and modules load lazily — on a fresh page the catalog
+ * is empty, and the function-picking step has nothing to show. Lazy loading
+ * can't be given up: it's what gives a light startup. The index is the
+ * compensation: metadata arrives right away, code on demand.
  *
- * Второго источника правды не появляется: индекс собирается из тех же
- * деклараций (`src/functions.ts`), которые модуль регистрирует в рантайме. В dev
- * он пересобирается вместе с остальной поставкой, в контейнер уезжает готовым
- * файлом.
+ * There's no second source of truth: the index is built from the same
+ * declarations (`src/functions.ts`) that the module registers at runtime. In
+ * dev it's rebuilt together with the rest of the delivery, in the container
+ * it ships as a ready-made file.
  */
 
 export type IndexedFunction = {
 	id: string;
-	/** Однострочник для компактного контекста LLM. */
+	/** A one-liner for a compact LLM context. */
 	brief: string;
 	category: string;
-	/** Полное описание — им отвечает `describeFunction`, в список оно не идёт. */
+	/** The full description — `describeFunction` answers with it; it doesn't go into the list. */
 	description: string;
 	exposure: "llm" | "user";
 	priority: "primary" | "normal" | "secondary";
@@ -37,21 +37,21 @@ export type IndexedFunction = {
 };
 
 export type IndexedModule = {
-	/** Имя модуля в карте импорта: `mf-orders`. */
+	/** The module's name in the import map: `mf-orders`. */
 	module: string;
 	brief: string;
 	functions: IndexedFunction[];
 };
 
 export type FunctionIndex = {
-	/** Ключ — короткое имя поставки (`orders`), как в `/mf/orders.js`. */
+	/** The key is the delivery's short name (`orders`), as in `/mf/orders.js`. */
 	modules: Record<string, IndexedModule>;
 };
 
 /**
- * Фабрика действия получает шину, чтобы уметь звать соседей. На этапе сборки
- * шина не нужна — декларация обязана быть статической, — но подсунуть что-то
- * надо: заглушка громко падает, если фабрика попробует ею воспользоваться.
+ * The action factory receives the bus so it can call its neighbors. At build
+ * time the bus isn't needed — the declaration must be static — but something
+ * has to be passed in: the stub fails loudly if the factory tries to use it.
  */
 const declarationOnlyBus = new Proxy(
 	{},
@@ -66,15 +66,16 @@ const declarationOnlyBus = new Proxy(
 );
 
 /**
- * `functions.ts` тянет за собой домен модуля, тот — эффектор, транспорт, вьюхи.
- * Ничего из этого декларации не нужно, а в серверном рантайме половина и не
- * резолвится (браузерные пакеты, `.tsx`, workspace-соседи без установленных
- * зависимостей). Поэтому модуль собирается тем же бандлером, что и поставка, а
- * всё внешнее подменяется универсальной заглушкой.
+ * `functions.ts` pulls in the module's domain, which pulls in effector,
+ * transport, views. The declaration needs none of that, and half of it
+ * doesn't even resolve in the server runtime (browser packages, `.tsx`,
+ * workspace neighbors without installed dependencies). So the module is built
+ * with the same bundler as the delivery, and everything external is replaced
+ * with a universal stub.
  *
- * Заглушка отдаётся прототипом, а не объектом: интероп бандлера (`__toESM`)
- * копирует только собственные ключи, и любое неизвестное имя обязано доехать по
- * цепочке прототипов, иначе именованные импорты станут `undefined`.
+ * The stub is handed out as a prototype, not an object: the bundler's interop
+ * (`__toESM`) only copies own keys, and any unknown name must travel up the
+ * prototype chain, otherwise named imports would become `undefined`.
  */
 const stubExternals = {
 	name: "function-index-stub-externals",
@@ -104,10 +105,10 @@ type ActionDeclaration = {
 };
 
 /**
- * Модуль вправе требовать браузерный bootstrap на верхнем уровне (и падать без
- * него — так и задумано). Для чтения деклараций ставим заведомо нерабочие
- * адреса: любая попытка ими воспользоваться должна упасть заметно, а не увести
- * сборку в чужой контур.
+ * A module is allowed to require browser bootstrap at the top level (and fail
+ * without it — that's intentional). For reading declarations we set
+ * deliberately non-working addresses: any attempt to use them must fail
+ * visibly, not send the build off into someone else's context.
  */
 async function withBrowserBootstrap<T>(read: () => Promise<T>): Promise<T> {
 	const globals = globalThis as Record<string, unknown>;
@@ -129,7 +130,7 @@ async function withBrowserBootstrap<T>(read: () => Promise<T>): Promise<T> {
 	}
 }
 
-/** Первый сегмент id — он же категория по умолчанию, он же ключ ленивой загрузки. */
+/** The first segment of the id is both the default category and the lazy-load key. */
 function categoryOf(id: string): string {
 	return id.split(".", 1)[0] ?? "other";
 }
@@ -142,11 +143,12 @@ async function readModuleBrief(dir: string): Promise<string> {
 }
 
 /**
- * Декларации лежат либо файлом, либо каталогом — модуль на десяток доменов
- * (`mf-mailing`) разносит их по файлам и собирает в `functions/index.ts`. Это
- * одна и та же сущность, и `index.ts` модуля импортирует её одинаково
- * (`./functions`), поэтому индекс обязан читать обе формы: разница в раскладке
- * не должна решать, попадёт функция в каталог или нет.
+ * Declarations live either as a file or as a directory — a module with a
+ * dozen domains (`mf-mailing`) splits them across files and assembles them in
+ * `functions/index.ts`. It's the same entity either way, and the module's
+ * `index.ts` imports it the same way (`./functions`), so the index must read
+ * both forms: the difference in layout shouldn't decide whether a function
+ * makes it into the catalog.
  */
 async function declarationsEntry(dir: string): Promise<string | undefined> {
 	for (const candidate of [
@@ -175,11 +177,11 @@ async function readLlmCatalog(dir: string, name: string): Promise<LlmCatalog> {
 }
 
 /**
- * Набор фабрик экспортируется под двумя именами: `default` у модулей с файлом
- * деклараций и `ACTIONS` у модулей с каталогом (там `default` занят — из
- * `functions/index.ts` реэкспортируются ещё и колонки с полями). Регистрируют
- * их одинаково — `new BasePlugin(ID, ACTIONS)`, — значит и читаются они здесь
- * одинаково.
+ * The set of factories is exported under two names: `default` for modules
+ * with a declarations file, and `ACTIONS` for modules with a directory
+ * (there `default` is taken — `functions/index.ts` also re-exports columns
+ * and fields). They're registered the same way — `new BasePlugin(ID,
+ * ACTIONS)` — so they're read the same way here too.
  */
 type DeclarationExports = {
 	default?: Array<(bus: unknown) => ActionDeclaration>;
@@ -187,10 +189,10 @@ type DeclarationExports = {
 };
 
 /**
- * Индекс — метаданные, а не поставка: модуль, декларации которого не читаются,
- * попадает в индекс пустым и остаётся вызываемым как раньше (его функции
- * зарегистрируются при загрузке). Ронять из-за этого сборку приложения нельзя —
- * немигрированные MF импортируют вещи, которых в серверном рантайме нет.
+ * The index is metadata, not the delivery: a module whose declarations can't
+ * be read lands in the index empty and stays callable as before (its
+ * functions register on load). The app build must not fail over this —
+ * unmigrated MFs import things that don't exist in the server runtime.
  */
 async function readDeclarations(dir: string, name: string): Promise<ActionDeclaration[]> {
 	const source = await declarationsEntry(dir);
@@ -215,15 +217,15 @@ async function readDeclarations(dir: string, name: string): Promise<ActionDeclar
 			return [];
 		}
 
-		// Импорт из data-URL упирается в длину имени модуля, поэтому бандл едет
-		// через файл рядом с остальными артефактами сборки.
+		// A data-URL import runs into the module name's length limit, so the
+		// bundle travels through a file next to the rest of the build artifacts.
 		//
-		// Файл нельзя ни удалять, ни переписывать: `import()` заносит его в module
-		// graph, а `bun --watch` перезапускает процесс на любое изменение
-		// наблюдаемого файла. Удаление после импорта загоняло dev-сервер в
-		// бесконечный цикл «сборка → удаление → рестарт → сборка». Имя считается от
-		// содержимого: новый бандл — всегда новый путь и свежий импорт, неизменный —
-		// тот же путь и тот же кэш модуля.
+		// The file can be neither deleted nor rewritten: `import()` puts it into
+		// the module graph, and `bun --watch` restarts the process on any change
+		// to a watched file. Deleting it after import drove the dev server into
+		// an infinite "build → delete → restart → build" loop. The name is
+		// derived from the content: a new bundle always gets a new path and a
+		// fresh import, an unchanged one gets the same path and the same module cache.
 		const text = await bundle.outputs[0].text();
 		const compiled = join(tmpdir(), `fnidx-${Bun.hash(text).toString(36)}.mjs`);
 		if (!(await Bun.file(compiled).exists())) await Bun.write(compiled, text);
@@ -253,8 +255,8 @@ export async function collectFunctionIndex(): Promise<FunctionIndex> {
 	const entries: Array<[string, IndexedModule]> = [];
 	for (const name of microfrontends) {
 		const dir = microfrontendDir(name);
-		// Заглушка не должна ронять сборку: фабрика, потрогавшая шину, просто
-		// не попадёт в индекс — см. readDeclarations.
+		// The stub must not fail the build: a factory that touched the bus simply
+		// won't make it into the index — see readDeclarations.
 		const brief = await readModuleBrief(dir);
 		const declarations = await readDeclarations(dir, name);
 		const llm = await readLlmCatalog(dir, name);
@@ -276,7 +278,7 @@ export async function collectFunctionIndex(): Promise<FunctionIndex> {
 	return { modules: Object.fromEntries(entries) };
 }
 
-/** Кладётся рядом с бандлами модулей: тот же слой, та же ленивая природа. */
+/** Placed next to the modules' bundles: the same layer, the same lazy nature. */
 export async function writeFunctionIndex(): Promise<string> {
 	const index = await collectFunctionIndex();
 	const target = join(microfrontendsDir, "index.json");

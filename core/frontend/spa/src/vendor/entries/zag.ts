@@ -8,9 +8,9 @@ import * as types from "@zag-js/types";
 import * as utils from "@zag-js/utils";
 
 /**
- * Весь Zag одним файлом: адаптер, машина тултипа и общий рантайм. Порознь они
- * всё равно тянули один общий чанк, так что тремя файлами это было только по
- * числу запросов.
+ * All of Zag in one file: the adapter, the tooltip machine, and the shared
+ * runtime. Split apart they still pulled in one shared chunk, so three files
+ * only meant more requests.
  */
 
 export { normalizeProps, useMachine } from "@zag-js/preact";

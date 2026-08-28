@@ -1,15 +1,15 @@
 /**
- * Подмена спецификатора `preact/hooks` внутри сборки compat.
+ * Substitute for the `preact/hooks` specifier inside the compat build.
  *
- * Причина: в `preact/compat` лежит `export * from "preact/hooks"`, а звезду
- * через границу external бандлер разворачивает в ссылку на несуществующее
- * пространство имён — модуль падает на первой строке. Здесь звезда становится
- * внутренней.
+ * Reason: `preact/compat` contains `export * from "preact/hooks"`, and across
+ * an external boundary the bundler unwraps a star into a reference to a
+ * namespace that doesn't exist — the module fails on the first line. Here the
+ * star becomes internal.
  *
- * Реэкспорт именно через локальные привязки, а не `export ... from "preact"`:
- * из транзитных имён бандлер объект пространства имён тоже не собирает, и
- * ошибка возвращается. Сами функции приезжают из общего preact.js — инстанс
- * хуков остаётся один.
+ * The re-export goes through local bindings specifically, not `export ...
+ * from "preact"`: the bundler doesn't assemble a namespace object from
+ * transit names either, and the error comes back. The functions themselves
+ * arrive from the shared preact.js — there's still one hooks instance.
  */
 import {
   useCallback as callback,

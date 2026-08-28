@@ -43,7 +43,8 @@
     "step1": "1. Enter phone number and press Start Call.",
     "step2": "2. Allow microphone access in the browser.",
     "step3": "3. Speak — the AI responds in real-time via WebRTC.",
-    "step4": "4. The session is saved after you hang up."
+    "step4": "4. The session is saved after you hang up.",
+    "mic_overloaded": "El microfono esta sobrecargado — baje su volumen en la configuracion del sistema"
   },
   "call_detail": {
     "title": "Call Details",

@@ -36,13 +36,13 @@ import { buildMicrofrontendStyles, buildStyles } from "./styles";
 import { buildVendor, vendorLayerFiles } from "./vendor";
 
 /**
- * Сборка клиентской поставки: слои vendor, оболочка, микрофронтенды, виджет и
- * установочный слой. HTML здесь не собирается — первый экран рендерит SSR
- * (`front-ssr`), а поставка отдаёт ему только карту импорта и теги установки
- * (см. ../delivery.ts).
+ * Client delivery build: vendor layer, shell, microfrontends, widget, and
+ * install layer. No HTML is built here — the first screen is rendered by SSR
+ * (`front-ssr`), and the delivery only hands it the import map and install
+ * tags (see ../delivery.ts).
  */
 
-/** Всё, от чего зависит результат сборки: dev-сервер по этому списку решает, пересобирать ли. */
+/** Everything the build result depends on: the dev server uses this list to decide whether to rebuild. */
 export function sourceFiles(): string[] {
 	const glob = new Bun.Glob("**/*.{ts,tsx,css,json}");
 	const sources = (dir: string) =>
@@ -52,8 +52,8 @@ export function sourceFiles(): string[] {
 	return [
 		join(frontCoreRoot, "../../../assets/converged.svg"),
 		embedPage,
-		// Блоки лендинга проекта — часть старта: правка в них обязана пересобирать
-		// поставку так же, как правка в оболочке.
+		// The project's landing blocks are part of startup: editing them must
+		// rebuild the delivery just like editing the shell does.
 		...sources(dirname(landingBlocksEntry())),
 		...projectStyles,
 		...(auditSources ? sources(auditSources) : []),
@@ -109,7 +109,7 @@ async function copyStoreWorker(): Promise<string> {
 	return target;
 }
 
-/** Отпечаток содержимого сборки: одинаковый выход — одинаковый кэш. */
+/** Fingerprint of the build's content: same output — same cache. */
 async function appSignature(appFiles: string[], styleFiles: string[]) {
 	const contents = await Promise.all(
 		[...appFiles, ...styleFiles].map((path) => Bun.file(path).text()),
@@ -125,8 +125,8 @@ export async function buildApp() {
 		mkdir(microfrontendsDir, { recursive: true }),
 	]);
 
-	// Слой микрофронтендов собирается первым и отдельно: его CSS вклеивается в
-	// общий `mf.css`, поэтому стили не могут собираться параллельно с чанками.
+	// The microfrontend layer is built first and separately: its CSS is glued
+	// into the shared `mf.css`, so styles can't be built in parallel with chunks.
 	const microfrontendBundles = await bundleMicrofrontends();
 	const microfrontendFiles = microfrontendBundles.map(
 		(bundle) => bundle.script,
@@ -151,28 +151,29 @@ export async function buildApp() {
 	const iconFiles = await copyPwaIcons();
 	const functionIndexFile = await writeFunctionIndex();
 
-	// Пофайловые стили модулей уже внутри `mf.css`: рядом с чанками они остались
-	// бы файлами, которые никто не запрашивает.
+	// Per-file module styles are already inside `mf.css`: left next to the chunks
+	// they'd just be files nobody requests.
 	await Promise.all(
 		microfrontendModuleStyles.map((path) => rm(path, { force: true })),
 	);
 
-	// Критический путь целиком уезжает в precache: повторный запуск приложения
-	// (в том числе с домашнего экрана и без сети) не делает ни одного запроса.
-	// Картинки и карты исходников сюда не попадают — они тянутся по требованию и
-	// оседают в том же кэше уже как runtime.
+	// The whole critical path goes into precache: a repeat app launch
+	// (including from the home screen and offline) makes zero requests.
+	// Images and source maps don't go in here — they're fetched on demand and
+	// land in the same cache as runtime entries.
 	const precache = [
 		"/",
 		"/manifest.webmanifest",
-		// Индекс функций — метаданные, не код: он нужен каталогу с первой секунды,
-		// а сами модули по-прежнему тянутся по требованию (docs/AI.md §4.2).
+		// The function index is metadata, not code: the catalog needs it from the
+		// first second, while the modules themselves are still fetched on demand
+		// (docs/AI.md §4.2).
 		`/${relative(dist, functionIndexFile)}`,
 		...[...appFiles, ...styleFiles, logoFile, workerFile, ...vendorLayerFiles("app")]
 			.map((path) => `/${relative(dist, path)}`)
 			.filter((path) => path.endsWith(".js") || path.endsWith(".css")),
 	];
-	// Имя кэша меняется вместе с содержимым сборки, поэтому старый кэш новой
-	// сборке просто не виден, а `activate` его удаляет.
+	// The cache name changes together with the build's content, so the old cache
+	// is simply invisible to the new build, and `activate` deletes it.
 	const revisionFiles = [
 		...appFiles,
 		...styleFiles,
@@ -193,35 +194,35 @@ export async function buildApp() {
 	]);
 
 	await Promise.all([
-		// Страница-хост для встраиваемой формы: ни карты импорта, ни preload —
-		// виджет самодостаточен, копируем как есть.
+		// Host page for the embeddable form: no import map, no preload — the
+		// widget is self-contained, copy it as is.
 		Bun.write(join(dist, "embed.html"), Bun.file(embedPage)),
-		// Карту читает контейнерная сборка прода: там SSR и SPA — разные образы.
+		// The container build for prod reads the map: SSR and SPA are separate images there.
 		Bun.write(
 			join(dist, "import-map.json"),
 			`${JSON.stringify(deliveryImportMap, null, 2)}\n`,
 		),
 	]);
 
-	// Три независимые поставки: страница приложения грузит свои файлы, чужая
-	// страница — только виджет, слой микрофронтендов — вообще ничей до первого
-	// вызова функции. Складывать их в один итог нечего.
+	// Three independent deliveries: the app page loads its own files, a foreign
+	// page loads only the widget, and the microfrontend layer belongs to nobody
+	// until the first function call. There's nothing to add them up into.
 
-	// Старт — это код: то, что браузер обязан выполнить до первого экрана.
+	// Startup is code: what the browser must execute before the first screen.
 	const appOutputs = [...appFiles, ...styleFiles, ...vendorLayerFiles("app")];
 
-	/** Качается при первой загрузке файла, не при старте. */
+	/** Fetched on the file's first load, not at startup. */
 	const deferredOutputs = [workerFile, ...auditFiles];
 
-	// Установочный слой: воркер, манифест и иконки. В критический путь не входит
-	// (регистрация идёт на `load`), поэтому и в бюджет старта не складывается.
+	// Install layer: worker, manifest, and icons. Not on the critical path
+	// (registration happens on `load`), so it doesn't count toward the startup budget.
 	const pwaOutputs = [serviceWorkerFile, manifestFile, ...iconFiles];
 
-	// Общие библиотеки MF существуют отдельным кэшем. Они не являются частью
-	// какого-либо конкретного MF, поэтому и в отчёте измеряются отдельно.
+	// Shared MF libraries exist as a separate cache. They aren't part of any
+	// particular MF, so they're measured separately in the report too.
 	const dynamicVendorOutputs = vendorLayerFiles("mf");
-	// Общий UnoCSS-слой нужен всем MF, но не является микрофронтендом и не
-	// должен загрязнять их таблицу размеров.
+	// The shared UnoCSS layer is needed by every MF, but isn't a microfrontend
+	// itself and shouldn't clutter their size table.
 	const microfrontendOutputs = [...microfrontendFiles, functionIndexFile];
 	const dynamicStyleOutputs = [microfrontendStyles];
 
@@ -234,7 +235,7 @@ export async function buildApp() {
 			...microfrontendOutputs,
 			...widgetFiles,
 			...auditFiles,
-			// Картинки brotli не жмём: PNG уже сжат, .br рядом только занимал бы место.
+			// We don't brotli-compress images: PNG is already compressed, a .br next to it would just take up space.
 			...pwaOutputs.filter((path) => !path.endsWith(".png")),
 		].filter((path) => !path.endsWith(".map")),
 	);
@@ -266,22 +267,22 @@ export async function buildApp() {
 	);
 
 	if (process.env.SPA_BUILD_SILENT !== "1") {
-		console.log("\nСтарт приложения (JS + CSS)");
+		console.log("\nApp start (JS + CSS)");
 		console.table(sizeRows(app));
-		console.log("Отложенное (не в старте): файловый воркер");
+		console.log("Deferred (not in start): file worker");
 		console.table(sizeRows(deferred));
-		// У виджета CSS и файловый воркер зашиты в тот же JS, поэтому пофайловой
-		// раскладки у него нет и с цифрами приложения он не складывается.
-		console.log("Виджет (самодостаточный, CSS и воркер внутри JS)");
+		// The widget's CSS and file worker are baked into the same JS, so it has
+		// no per-file layout and doesn't add up with the app's numbers.
+		console.log("Widget (self-contained, CSS and worker inside JS)");
 		console.table(sizeRows(widget));
-		// Слой микрофронтендов не участвует в старте: он качается по действию
-		// пользователя или по вызову функции из чата.
-		console.log("Микрофронтенды (по требованию)");
+		// The microfrontend layer doesn't participate in startup: it's fetched on
+		// user action or a chat function call.
+		console.log("Microfrontends (on demand)");
 		console.table(sizeRows(microfrontendLayer));
 		console.log(
 			pwaEnabled
-				? `Установка (sw + манифест + иконки), сборка ${buildId}`
-				: "Установка выключена (PWA_DEV=1 включает локально) — воркер снимается",
+				? `Install (sw + manifest + icons), build ${buildId}`
+				: "Install disabled (PWA_DEV=1 enables it locally) — worker is stripped",
 		);
 		console.table(sizeRows(pwa));
 	}

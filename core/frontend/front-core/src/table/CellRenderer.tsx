@@ -1,12 +1,16 @@
 import { Check, MoreHorizontal, X } from "../icons";
 import { Badge, cn } from "front-core";
 import type { ComponentProps } from "preact";
+import { translator } from "i18n";
+import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
 import { COLUMN_TYPES } from "./constants";
 import type {
   ColumnConfig,
   RowActionHandler,
 } from "./types";
 import { TableActionsMenu } from "./TableActionsMenu";
+
+const t = translator(CHAT_MESSAGES_NAMESPACE);
 
 type CellRendererProps<TData extends object> = {
   value: unknown;
@@ -136,7 +140,7 @@ export function CellRenderer<TData extends object>({
               )}
             >
               <MoreHorizontal class="h-4 w-4" />
-              <span class="sr-only">Открыть меню</span>
+              <span class="sr-only">{t("table.openMenu")}</span>
             </button>
           }
           items={actions.map((action) => ({

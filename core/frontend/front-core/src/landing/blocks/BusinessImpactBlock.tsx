@@ -10,6 +10,17 @@ export type BusinessImpactData = {
 	description: string;
 	note: string;
 	metrics: BusinessImpactMetric[];
+	headers?: {
+		metric?: string;
+		potential?: string;
+		driver?: string;
+	};
+};
+
+const DEFAULT_HEADERS = {
+	metric: "Metric",
+	potential: "Potential",
+	driver: "Driver",
 };
 
 export function BusinessImpactBlock({
@@ -31,9 +42,9 @@ export function BusinessImpactBlock({
 					<table class="business-impact-table">
 						<thead>
 							<tr>
-								<th scope="col">Показатель</th>
-								<th scope="col">Потенциал</th>
-								<th scope="col">За счёт чего</th>
+								<th scope="col">{data.headers?.metric ?? DEFAULT_HEADERS.metric}</th>
+								<th scope="col">{data.headers?.potential ?? DEFAULT_HEADERS.potential}</th>
+								<th scope="col">{data.headers?.driver ?? DEFAULT_HEADERS.driver}</th>
 							</tr>
 						</thead>
 						<tbody>

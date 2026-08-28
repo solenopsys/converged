@@ -2,16 +2,16 @@ import { microfrontends } from "./layout";
 import { createImportMap, type ImportMap } from "../import-map";
 
 /**
- * Один слой — один файл. Карта импорта — основной механизм линковки: всё, что
- * в ней есть, становится `external` для каждого бандла, поэтому второго
- * инстанса preact, effector, каталога функций или WS-транспорта на странице
- * появиться не может.
+ * One layer — one file. The import map is the main linking mechanism:
+ * everything in it becomes `external` for every bundle, so a second instance
+ * of preact, effector, the function catalog, or the WS transport can never
+ * appear on the page.
  *
- * Микрофронтенды резолвятся по имени: `mf-functions` → `/mf/functions.js`.
- * Бандлеру про них знать не нужно, `import("mf-functions")` работает в рантайме.
+ * Microfrontends are resolved by name: `mf-functions` → `/mf/functions.js`.
+ * The bundler doesn't need to know about them; `import("mf-functions")` works at runtime.
  *
- * Карту читает и SSR: она уезжает в `<script type="importmap">` первой, до
- * любого `modulepreload`, — иначе браузер её игнорирует.
+ * SSR reads the map too: it goes into the `<script type="importmap">` first,
+ * before any `modulepreload` — otherwise the browser ignores it.
  */
 export const importMap = createImportMap(microfrontends);
 export type { ImportMap };
@@ -32,5 +32,5 @@ export function versionImportMap(buildId: string): ImportMap {
 	};
 }
 
-/** Спецификаторы карты — они же `external` любого бандла поставки. */
+/** The map's specifiers are also the `external` list for every delivery bundle. */
 export const importMapSpecifiers = Object.keys(importMap.imports);

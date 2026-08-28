@@ -1,7 +1,7 @@
 /**
- * Общее состояние: сам effector и связка с preact. Один файл на оба
- * спецификатора — модели микрофронтендов и сторы оболочки обязаны жить в одном
- * графе, иначе подписка контроллера поверхности не увидит событий MF.
+ * Shared state: effector itself and its preact binding. One file for both
+ * specifiers — microfrontend models and shell stores must live in the same
+ * graph, otherwise the surface controller's subscription won't see MF events.
  */
 export * from "effector";
 export { useUnit } from "effector-preact";

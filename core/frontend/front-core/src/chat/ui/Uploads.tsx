@@ -1,6 +1,10 @@
 import { $fileListItems, type FileListItem } from "files-state";
 import { useUnit } from "effector-preact";
+import { translator } from "i18n";
 import { Pause, Play, RotateCcw, X } from "../../icons";
+import { CHAT_MESSAGES_NAMESPACE } from "../i18n";
+
+const t = translator(CHAT_MESSAGES_NAMESPACE);
 
 
 export function Uploads() {
@@ -18,12 +22,18 @@ export function Uploads() {
 	);
 }
 
-const STATUS_LABELS: Record<FileListItem["status"], string> = {
-	uploading: "Загрузка",
-	paused: "Пауза",
-	error: "Ошибка",
-	uploaded: "Готово",
-};
+function statusLabel(status: FileListItem["status"]): string {
+	switch (status) {
+		case "uploading":
+			return t("uploads.statusUploading");
+		case "paused":
+			return t("uploads.statusPaused");
+		case "error":
+			return t("uploads.statusError");
+		case "uploaded":
+			return t("uploads.statusUploaded");
+	}
+}
 
 function Upload({ item }: { item: FileListItem }) {
 	return (
@@ -33,20 +43,20 @@ function Upload({ item }: { item: FileListItem }) {
 					{item.name ?? item.fileId}
 				</span>
 				<span class="upload-status">
-					{STATUS_LABELS[item.status]} · {item.progress}%
+					{statusLabel(item.status)} · {item.progress}%
 				</span>
 				<span class="upload-actions">
 					{item.status === "uploading" && item.onPause ? (
-						<UploadAction label="Пауза" icon={Pause} onClick={item.onPause} />
+						<UploadAction label={t("uploads.pause")} icon={Pause} onClick={item.onPause} />
 					) : null}
 					{item.status === "paused" && item.onResume ? (
-						<UploadAction label="Продолжить" icon={Play} onClick={item.onResume} />
+						<UploadAction label={t("uploads.resume")} icon={Play} onClick={item.onResume} />
 					) : null}
 					{item.status === "error" && item.onRetry ? (
-						<UploadAction label="Повторить" icon={RotateCcw} onClick={item.onRetry} />
+						<UploadAction label={t("uploads.retry")} icon={RotateCcw} onClick={item.onRetry} />
 					) : null}
 					{item.onCancel ? (
-						<UploadAction label="Отменить" icon={X} onClick={item.onCancel} />
+						<UploadAction label={t("uploads.cancel")} icon={X} onClick={item.onCancel} />
 					) : null}
 				</span>
 			</div>

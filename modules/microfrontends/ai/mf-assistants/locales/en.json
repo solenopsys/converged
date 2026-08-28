@@ -43,7 +43,8 @@
   },
   "common": {
     "refresh": "Refresh",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "error": "Error"
   },
   "toolAction": {
     "thinking": "Thinking about your request...",
@@ -70,6 +71,23 @@
       "listUIActions": "Finding actions",
       "invokeUIAction": "Opening view",
       "weather": "Checking weather"
+    }
+  },
+  "chatCard": {
+    "untitled": "Untitled"
+  },
+  "chatHistory": {
+    "fileUploadedPrefix": "File uploaded: "
+  },
+  "composer": {
+    "placeholder": "Write a message..."
+  },
+  "files": {
+    "status": {
+      "uploading": "Uploading",
+      "paused": "Paused",
+      "error": "Error",
+      "uploaded": "Done"
     }
   }
 }

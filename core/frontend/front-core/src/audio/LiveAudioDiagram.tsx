@@ -9,7 +9,11 @@ import {
 	subscribeWebsiteCallLevels,
 } from "../call/web-call";
 import { useEffect, useRef, useState } from "preact/hooks";
+import { translator } from "i18n";
+import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
 import { AudioDiagram, type AudioDiagramTrack } from "./AudioDiagram";
+
+const t = translator(CHAT_MESSAGES_NAMESPACE);
 
 const HISTORY_SIZE = 48;
 const FRAME_INTERVAL_MS = 50;
@@ -112,13 +116,13 @@ export function LiveAudioDiagram() {
 	return (
 		<div
 			class="composer-audio-diagram"
-			aria-label={mode === "call" ? "Уровни звука звонка" : "Уровень микрофона"}
+			aria-label={mode === "call" ? t("call.levelsCall") : t("call.levelsMic")}
 		>
 			<AudioDiagram
 				tracks={tracks}
 				height={mode === "call" ? 42 : 30}
 				ariaLabel={
-					mode === "call" ? "Диаграмма разговора" : "Диаграмма диктовки"
+					mode === "call" ? t("call.diagramCall") : t("call.diagramDictation")
 				}
 			/>
 		</div>

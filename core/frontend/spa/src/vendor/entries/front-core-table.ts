@@ -1,10 +1,10 @@
 /**
- * Таблица — свой файл, а не часть общего бандла ядра: её берут не все
- * микрофронтенды, а весит она больше остального. `front-core` остаётся
- * external — примитивы и `cn` приезжают из него, второй копии не появляется.
+ * The table is its own file, not part of the shared core bundle: not every
+ * microfrontend uses it, and it weighs more than the rest. `front-core` stays
+ * external — primitives and `cn` come from it, and no second copy appears.
  *
- * Путь относительный, а не по имени точки входа: `front-core` в списке external
- * матчится и на подпуть, поэтому `export * from "front-core/table"` бандлер
- * оставил бы внешним — файл собрался бы в реэкспорт самого себя.
+ * The path is relative, not by entrypoint name: `front-core` in the external
+ * list also matches a subpath, so the bundler would have left `export * from
+ * "front-core/table"` external — the file would have compiled into a re-export of itself.
  */
 export * from "../../../../front-core/src/table";

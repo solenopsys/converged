@@ -1,6 +1,10 @@
 import { combine, createEvent, createStore } from "effector";
 import type { ComponentType } from "preact";
+import { translator } from "i18n";
+import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
 import { Pin, Trash2, X } from "../icons";
+
+const t = translator(CHAT_MESSAGES_NAMESPACE);
 import {
 	$workspace,
 	type WorkspaceTab,
@@ -60,19 +64,19 @@ function baseActions(tab: WorkspaceTab): WorkspaceTabActionDecl[] {
 	return [
 		{
 			id: "pin",
-			label: tab.pinned ? "Открепить" : "Закрепить",
+			label: tab.pinned ? t("tab.unpin") : t("tab.pin"),
 			icon: Pin,
 			run: (target) => workspaceTabPinToggled(target.key),
 		},
 		{
 			id: "close",
-			label: "Закрыть",
+			label: t("tab.close"),
 			icon: X,
 			run: (target) => workspaceTabClosed(target.key),
 		},
 		{
 			id: "close-transient",
-			label: "Закрыть незакреплённые",
+			label: t("tab.closeUnpinned"),
 			icon: Trash2,
 			danger: true,
 			run: () => workspaceUnpinnedTabsCleared(),

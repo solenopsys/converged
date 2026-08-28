@@ -16,7 +16,7 @@ export const NODE_TYPE_MAP: Record<string, string> = {
 
 
 export const DEFAULT_NODE_TYPE = 'circle';
-export const DEFAULT_NODE_DESCRIPTION = 'Описание недоступно';
+export const DEFAULT_NODE_DESCRIPTION = 'Description unavailable';
 
 interface WorkflowConfig {
   nodes: Record<string, string>;

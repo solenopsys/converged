@@ -43,7 +43,8 @@
   },
   "common": {
     "refresh": "Обновить",
-    "loading": "Загрузка..."
+    "loading": "Загрузка...",
+    "error": "Ошибка"
   },
   "toolAction": {
     "thinking": "Я думаю над запросом...",
@@ -70,6 +71,23 @@
       "listUIActions": "Поиск действий",
       "invokeUIAction": "Открываю раздел",
       "weather": "Проверка погоды"
+    }
+  },
+  "chatCard": {
+    "untitled": "Без названия"
+  },
+  "chatHistory": {
+    "fileUploadedPrefix": "Файл загружен: "
+  },
+  "composer": {
+    "placeholder": "Напишите сообщение..."
+  },
+  "files": {
+    "status": {
+      "uploading": "Загрузка",
+      "paused": "Пауза",
+      "error": "Ошибка",
+      "uploaded": "Готово"
     }
   }
 }

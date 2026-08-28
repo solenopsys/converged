@@ -30,5 +30,14 @@
       "footerIconName": "IconPackage",
       "footerDescription": "Processos em andamento"
     }
+  },
+  "versions": {
+    "loading": "Carregando versoes...",
+    "selectCode": "Selecione um codigo da lista",
+    "empty": "Nenhuma versao disponivel"
+  },
+  "dagViewer": {
+    "loading": "Carregando...",
+    "descriptionError": "Falha ao carregar a descricao"
   }
 }

@@ -1,9 +1,13 @@
 import { useUnit } from "effector-preact";
+import { translator } from "i18n";
+import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
 import { Globe, Moon, Sun } from "../icons";
 import { $activeLocale, LocaleController } from "../i18n";
 import { AVAILABLE_LANGS } from "../landing/i18n";
 import { toggleTheme } from "../theme";
 import { ActionMenu } from "./ActionMenu";
+
+const t = translator(CHAT_MESSAGES_NAMESPACE);
 
 export function ThemeToggle() {
 	return (
@@ -25,7 +29,7 @@ export function LanguageMenu() {
 
 	return (
 		<ActionMenu
-			label="Язык интерфейса"
+			label={t("topbar.interfaceLanguage")}
 			trigger={
 				<>
 					<Globe size={14} aria-hidden="true" />

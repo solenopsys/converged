@@ -29,7 +29,7 @@ export function configFromEmbed(
 		callContextName: requireValue(read("callContext"), "data-call-context"),
 		language: requireValue(
 			read("lang") ?? document.documentElement.lang,
-			"data-lang или <html lang>",
+			"data-lang or <html lang>",
 		),
 		createWorker: createInlineStoreWorker,
 	};

@@ -1,6 +1,8 @@
 import { ArrowDown, Mic, PanelRightClose, PanelRightOpen, Phone, PhoneOff, Square, Upload } from "../icons";
 import type { JSX } from "preact";
 import { useEffect, useState } from "preact/hooks";
+import { translator } from "i18n";
+import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
 import {
 	type DictationConfig,
 	cancelDictation,
@@ -19,6 +21,8 @@ import {
 } from "../call/web-call";
 
 export { ArrowDown };
+
+const t = translator(CHAT_MESSAGES_NAMESPACE);
 
 
 export function DictationButton({
@@ -44,14 +48,14 @@ export function DictationButton({
 	useEffect(() => subscribeDictation(setDictation), []);
 
 	const label = recording
-		? "Остановить диктовку"
+		? t("dictation.buttonStop")
 		: connecting
-			? "Записываю, канал подключается — отменить"
+			? t("dictation.buttonCancel")
 			: busy
-				? "Распознаю"
+				? t("dictation.buttonBusy")
 				: dictation.status === "error"
-					? `Повторить диктовку: ${dictation.error ?? "ошибка"}`
-					: "Надиктовать сообщение";
+					? t("dictation.buttonRetry", { reason: dictation.error ?? t("dictation.unknownError") })
+					: t("dictation.buttonStart");
 	const Icon = capturing ? Square : Mic;
 
 	return (
@@ -89,12 +93,12 @@ export function VoiceCallButton({ config }: { config: WebsiteCallConfig }) {
 	const Icon = active ? PhoneOff : Phone;
 	const label =
 		call.status === "connecting"
-			? "Подключение звонка"
+			? t("call.buttonConnecting")
 			: active
-				? "Завершить звонок"
+				? t("call.buttonEnd")
 				: call.status === "error"
-					? "Повторить звонок"
-					: "Позвонить";
+					? t("call.buttonRetry")
+					: t("call.buttonStart");
 
 	useEffect(() => subscribeWebsiteCall(setCall), []);
 
@@ -123,7 +127,7 @@ export function PanelToggle({
 	open: boolean;
 	onClick: () => void;
 }) {
-	const label = open ? "Свернуть чат" : "Открыть чат";
+	const label = open ? t("panel.collapseChat") : t("panel.openChat");
 	const Icon = open ? PanelRightClose : PanelRightOpen;
 
 	return (
@@ -152,7 +156,7 @@ export function AttachButton({
 			{...triggerProps}
 			type="button"
 			class="composer-cell icon-button"
-			aria-label="Прикрепить файл"
+			aria-label={t("panel.attachFile")}
 			onClick={onClick}
 		>
 			<Upload aria-hidden="true" size={14} />

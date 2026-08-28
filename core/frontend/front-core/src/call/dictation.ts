@@ -1,6 +1,8 @@
 import { signalChannel } from "signal-channel";
+import { translator } from "i18n";
+import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
 
-
+const t = translator(CHAT_MESSAGES_NAMESPACE);
 
 export type DictationConfig = {
 	fujinWsUrl: string;
@@ -256,7 +258,7 @@ export function subscribeDictationLevel(listener: (level: number) => void) {
 export async function startDictation(config: DictationConfig) {
 	if (connection) return;
 	if (!navigator.mediaDevices?.getUserMedia) {
-		publish({ status: "error", error: "Микрофон недоступен в этом браузере" });
+		publish({ status: "error", error: t("dictation.micUnavailable") });
 		return;
 	}
 
@@ -301,7 +303,7 @@ export async function startDictation(config: DictationConfig) {
 			}
 			if (peer.connectionState === "failed") {
 				cleanup();
-				publish({ status: "error", error: "Не удалось установить аудиосоединение" });
+				publish({ status: "error", error: t("dictation.connectionFailed") });
 			}
 		};
 		peer.addEventListener("connectionstatechange", updateConnectionState);
@@ -332,7 +334,7 @@ export async function startDictation(config: DictationConfig) {
 			switch (chunk.type) {
 				case "dictation.answer": {
 					if (typeof chunk.sdp !== "string" || typeof chunk.sessionId !== "string") {
-						throw new Error("Resonus не вернул SDP диктовки");
+						throw new Error(t("dictation.noAnswerSdp"));
 					}
 					sessionId = chunk.sessionId;
 					await peer.setRemoteDescription({ type: "answer", sdp: chunk.sdp });

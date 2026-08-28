@@ -1,14 +1,9 @@
 import React from 'preact/compat';
-import { Pause, Play, RotateCcw, X } from "front-core";
+import { Pause, Play, RotateCcw, X, useMicrofrontendTranslation } from "front-core";
 import { Button, Progress, cn } from 'front-core';
 import type { FileListItem } from 'files-state';
 
-const statusLabel: Record<FileListItem['status'], string> = {
-  uploading: 'Загрузка',
-  paused: 'Пауза',
-  error: 'Ошибка',
-  uploaded: 'Готово',
-};
+const MF_ID = 'assistants-mf';
 
 const statusColor: Record<FileListItem['status'], string> = {
   uploading: 'text-blue-500',
@@ -18,6 +13,13 @@ const statusColor: Record<FileListItem['status'], string> = {
 };
 
 export function FileView({ item }: { item: FileListItem }) {
+  const { t } = useMicrofrontendTranslation(MF_ID);
+  const statusLabel: Record<FileListItem['status'], string> = {
+    uploading: t('files.status.uploading') as string,
+    paused: t('files.status.paused') as string,
+    error: t('files.status.error') as string,
+    uploaded: t('files.status.uploaded') as string,
+  };
   const totalChunksLabel = item.totalChunks > 0 ? item.totalChunks : '-';
 
   return (

@@ -1,6 +1,6 @@
 import React, { useEffect } from "preact/compat";
 import { useUnit } from "effector-preact";
-import { HeaderPanelLayout, InfiniteScrollDataTable } from "front-core";
+import { HeaderPanelLayout, InfiniteScrollDataTable, useMicrofrontendTranslation } from "front-core";
 import { Plus, RefreshCw } from "front-core";
 import {
   $sessionsStore,
@@ -11,8 +11,11 @@ import {
 } from "../domain-sessions";
 import { sessionsColumns } from "../config";
 
+const MF_ID = "agents-mf";
+
 export const SessionsListView = ({ bus }) => {
   const sessionsState = useUnit($sessionsStore.$state);
+  const { t } = useMicrofrontendTranslation(MF_ID);
 
   useEffect(() => {
     sessionsListMounted();
@@ -50,7 +53,7 @@ export const SessionsListView = ({ bus }) => {
         data={sessionsState.items}
         hasMore={sessionsState.hasMore}
         loading={sessionsState.loading}
-        columns={sessionsColumns}
+        columns={sessionsColumns(t)}
         onRowClick={handleRowClick}
         onLoadMore={$sessionsStore.loadMore}
         viewMode="table"

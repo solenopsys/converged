@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "preact/compat";
-import { HeaderPanel, ThreadedChat, cn } from "front-core";
+import { HeaderPanel, ThreadedChat, cn, resolveEmbeddedMicrofrontendMessage } from "front-core";
 import type { ChatRoom } from "g-chats";
 import { MessageType } from "g-threads";
 import { chatsClient, threadsClient } from "../services";
@@ -35,7 +35,11 @@ function readChatsEnv(): Required<ChatsEnv> {
   return {
     userId: raw.userId ?? "guest",
     title: raw.title ?? "Chats",
-    placeholder: raw.placeholder ?? "Напишите сообщение...",
+    placeholder:
+      raw.placeholder ??
+      ((resolveEmbeddedMicrofrontendMessage("chats-mf", "composer.placeholder") as
+        | string
+        | undefined) ?? "Write a message..."),
     roomId: raw.roomId ?? "",
   };
 }

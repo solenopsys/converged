@@ -46,14 +46,14 @@ export function renderLandingHeader(context: BlockContext): ComponentChildren {
 export function renderBlock(block: ResolvedBlock, context: BlockContext) {
 	const render = blocks[block.type];
 	if (!render) {
-		return renderConfigurationError(block, `Блок типа «${block.type}» не зарегистрирован.`);
+		return renderConfigurationError(block, `Block type "${block.type}" is not registered.`);
 	}
 
 	try {
 		return render(block, context);
 	} catch (error) {
 		console.error(`[landing] failed to create block "${block.type}" (${block.id})`, error);
-		return renderConfigurationError(block, "Не удалось создать блок из его данных.");
+		return renderConfigurationError(block, "Failed to build block from its data.");
 	}
 }
 
@@ -61,7 +61,7 @@ function renderConfigurationError(block: ResolvedBlock, message: string): Compon
 	console.error(`[landing] ${message} id=${block.id}`);
 	return (
 		<section class="landing-block-error" data-block-id={block.id} data-block-type={block.type} role="alert">
-			<strong>Ошибка конфигурации лендинга</strong>
+			<strong>Landing configuration error</strong>
 			<span>{message}</span>
 			<code>id: {block.id}</code>
 		</section>

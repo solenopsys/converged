@@ -1,8 +1,12 @@
 import type { RefObject } from "preact";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
+import { translator } from "i18n";
+import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
 import { ChevronDown, Pin, X } from "../icons";
 import { type ActionMenuItem, ActionMenuList } from "./ActionMenu";
 import { usePopover } from "./popover";
+
+const t = translator(CHAT_MESSAGES_NAMESPACE);
 
 export type TopBarTab = {
 	key: string;
@@ -93,7 +97,7 @@ function TabItem({
 	onContextMenu: (anchor: ContextAnchor) => void;
 	menuOpen: boolean;
 } & Omit<TabHandlers, "onAction">) {
-	const pinLabel = tab.pinned ? "Открепить вкладку" : "Закрепить вкладку";
+	const pinLabel = tab.pinned ? t("tab.unpinTab") : t("tab.pinTab");
 
 	return (
 		<div
@@ -138,8 +142,8 @@ function TabItem({
 				<button
 					type="button"
 					class="top-bar-tab-close"
-					aria-label={`Закрыть ${tab.title}`}
-					title="Закрыть вкладку"
+					aria-label={t("tab.closeNamed", { title: tab.title })}
+					title={t("tab.closeTab")}
 					onClick={() => onClose?.(tab.key)}
 				>
 					<X size={11} aria-hidden="true" />
@@ -166,8 +170,8 @@ function OverflowMenu({
 			<button
 				type="button"
 				class="shell-menu-trigger"
-				aria-label={`${label}: ещё ${tabs.length}`}
-				title={`Скрытые вкладки: ${tabs.length}`}
+				aria-label={t("tab.hiddenCount", { label, count: tabs.length })}
+				title={t("tab.hiddenTabs", { count: tabs.length })}
 				aria-haspopup="menu"
 				aria-expanded={open}
 				onClick={() => setOpen((value) => !value)}
@@ -199,8 +203,8 @@ function OverflowMenu({
 							<button
 								type="button"
 								class="top-bar-tab-close"
-								aria-label={`Закрыть ${tab.title}`}
-								title="Закрыть вкладку"
+								aria-label={t("tab.closeNamed", { title: tab.title })}
+								title={t("tab.closeTab")}
 								onClick={() => onClose?.(tab.key)}
 							>
 								<X size={11} aria-hidden="true" />

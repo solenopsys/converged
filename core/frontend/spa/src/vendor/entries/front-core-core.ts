@@ -1,6 +1,6 @@
 /**
- * Каталог функций, шина и точка вызова — то, что нужно оболочке и чату.
- * Тот самый общий инстанс: микрофронтенды кладут сюда свои функции, оболочка
- * отсюда же их вызывает и читает декларации экранов.
+ * The function catalog, the bus, and the call point — what the shell and chat
+ * need. This is the shared instance: microfrontends put their functions here,
+ * and the shell calls them from here and reads screen declarations.
  */
 export * from "front-core/core";

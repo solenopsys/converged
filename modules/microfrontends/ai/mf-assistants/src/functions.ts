@@ -1,4 +1,5 @@
 import type { CreateAction, CreateWidget } from "front-core";
+import { resolveEmbeddedMicrofrontendMessage } from "front-core";
 import { assistantClient as chatsService } from "./services";
 import { sample } from "effector";
 import domain from "./domain";
@@ -6,6 +7,10 @@ import { ChatHistoryView } from "./views/ChatHistoryView";
 import { ChatsListView } from "./views/ChatsListView";
 import { CommandsListView } from "./views/CommandsListView";
 import { ToolCallJsonView } from "./views/ToolCallJsonView";
+
+const defaultToolCallTitle = (): string =>
+	(resolveEmbeddedMicrofrontendMessage("assistants-mf", "toolCall.title") as string | undefined) ??
+	"Function call";
 
 const GET_CHATS_LIST = "chats.get_list";
 const SHOW_CHATS_LIST = "chats.show_list";
@@ -110,14 +115,14 @@ const createViewToolCallJsonAction: CreateAction<any> = (bus) => ({
 		bus.present({
 			widget: createToolCallJsonWidget(bus, {
 				threadId,
-				title: title ?? "Вызов функции",
+				title: title ?? defaultToolCallTitle(),
 				toolCallId,
 				summary,
 				details,
 			}),
 			tab: {
 				key: `${VIEW_TOOL_CALL_JSON}:${toolCallId ?? threadId}`,
-				title: title ?? "Вызов функции",
+				title: title ?? defaultToolCallTitle(),
 			},
 		});
 	},
