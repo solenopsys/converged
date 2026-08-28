@@ -3,68 +3,10 @@ import { type UUID, type HashString } from "../../../../../types/files";
 import { sample } from "effector";
 import { services } from "../services";
 
-const decodeBase64ToUint8Array = (value: string): Uint8Array => {
-  const base64Pattern =
-    /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
-
-  if (!base64Pattern.test(value)) {
-    throw new Error("StoreService.get returned non-base64 string");
-  }
-
-  if (typeof atob === "function") {
-    const binary = atob(value);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i += 1) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-    return bytes;
-  }
-
-  if (typeof Buffer !== "undefined") {
-    return new Uint8Array(Buffer.from(value, "base64"));
-  }
-
-  throw new Error("Base64 decoding is not available");
-};
-
-const normalizeBlockData = (value: unknown): Uint8Array => {
-  if (value instanceof Uint8Array) {
-    return value;
-  }
-
-  if (value instanceof ArrayBuffer) {
-    return new Uint8Array(value);
-  }
-
-  if (ArrayBuffer.isView(value)) {
-    return new Uint8Array(value.buffer);
-  }
-
-  if (typeof value === "string") {
-    return decodeBase64ToUint8Array(value);
-  }
-
-  if (Array.isArray(value)) {
-    return new Uint8Array(value);
-  }
-
-  if (value && typeof value === "object") {
-    const record = value as Record<string, unknown>;
-    if (record.__type === "Uint8Array") {
-      return normalizeBlockData(record.data);
-    }
-    if ("data" in record) {
-      return normalizeBlockData(record.data);
-    }
-  }
-
-  throw new Error("StoreService.get returned invalid data");
-};
-
 export const blockSaveRequested = fileTransferDomain.createEvent<{
   fileId: UUID;
   chunkNumber: number;
-  data: Uint8Array;
+  dataRef: { cacheKey: string; sizeBytes?: number };
   originalSize: number;
   compression: 'none' | 'deflate';
 }>('BLOCK_SAVE_REQUESTED');
@@ -101,13 +43,13 @@ export const blockLoadFailed = fileTransferDomain.createEvent<{
 }>('BLOCK_LOAD_FAILED');
 
 export const saveBlockFx = fileTransferDomain.createEffect<
-  { fileId: UUID; chunkNumber: number; data: Uint8Array; originalSize: number; compression: 'none' | 'deflate' },
-  HashString
+  { fileId: UUID; chunkNumber: number; dataRef: { cacheKey: string; sizeBytes?: number }; originalSize: number; compression: 'none' | 'deflate' },
+  { hash: HashString; chunkSize: number }
 >('SAVE_BLOCK_FX');
-saveBlockFx.use(async ({ fileId, chunkNumber, data, originalSize, compression }) => {
+saveBlockFx.use(async ({ chunkNumber, dataRef, originalSize, compression }) => {
   try {
-    const result = await services.storeService.save(data, originalSize, compression);
-    return result;
+    const hash = await services.storeService.save(dataRef, originalSize, compression);
+    return { hash, chunkSize: dataRef.sizeBytes ?? 0 };
   } catch (error) {
     console.error(`[saveBlockFx] Failed for chunk ${chunkNumber}:`, error);
     throw error;
@@ -119,8 +61,10 @@ export const loadBlockFx = fileTransferDomain.createEffect<
   Uint8Array
 >('LOAD_BLOCK_FX');
 loadBlockFx.use(async ({ hash }) => {
-  const payload = await services.storeService.get(hash);
-  return normalizeBlockData(payload);
+  const ref = await services.storeService.get(hash);
+  const response = await fetch(`/cache/blob/${encodeURIComponent(ref.cacheKey)}`);
+  if (!response.ok) throw new Error(`Cache blob download failed: ${response.status}`);
+  return new Uint8Array(await response.arrayBuffer());
 });
 
 export const $blockCache = fileTransferDomain.createStore<Map<HashString, Uint8Array>>(new Map(), { name: 'BLOCK_CACHE' });
@@ -128,7 +72,7 @@ export const $blockCache = fileTransferDomain.createStore<Map<HashString, Uint8A
 // Forward the full request into the effect so params are preserved per call
 sample({
   clock: blockSaveRequested,
-  fn: ({ fileId, chunkNumber, data, originalSize, compression }) => ({ fileId, chunkNumber, data, originalSize, compression }),
+  fn: ({ fileId, chunkNumber, dataRef, originalSize, compression }) => ({ fileId, chunkNumber, dataRef, originalSize, compression }),
   target: saveBlockFx
 });
 
@@ -138,7 +82,8 @@ sample({
   fn: ({ params, result }) => ({
     fileId: params.fileId,
     chunkNumber: params.chunkNumber,
-    hash: result
+    hash: result.hash,
+    chunkSize: result.chunkSize,
   }),
   target: blockSaved
 });

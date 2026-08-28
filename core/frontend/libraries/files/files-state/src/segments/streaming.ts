@@ -31,39 +31,14 @@ import {
 
 // STORE-WORKERS INTEGRATION
 
-export type StoreWorkerConfig = {
-  baseUrl: string;
-  fujinWsUrl: string;
-  headers?: Record<string, string>;
-  owner?: string;
-};
-
 let storeWorker: Worker | null = null;
-let storeConfig: StoreWorkerConfig | null = null;
 
-function resolveStoreConfig(): Partial<StoreWorkerConfig> {
-  const config = { ...(storeConfig || {}) };
-  if (typeof window === 'undefined') return config;
-
-  const token = window.localStorage.getItem('authToken');
-  if (!token) return config;
-
-  return {
-    ...config,
-    headers: {
-      ...(config.headers || {}),
-      authorization: `Bearer ${token}`,
-    },
-  };
-}
-
-export function setStoreWorker(worker: Worker, config: StoreWorkerConfig) {
+export function setStoreWorker(worker: Worker) {
   if (storeWorker) {
     console.warn('[Streaming] Replacing existing worker');
     storeWorker.terminate();
   }
   storeWorker = worker;
-  storeConfig = config || null;
   setupWorkerHandlers(worker);
 }
 
@@ -83,17 +58,13 @@ function setupWorkerHandlers(worker: Worker) {
     const message = event.data;
 
     switch (message.type) {
-      case UploadWorkerEventType.ChunkReady:
-        if (message.chunkSize === 0) {
-          console.warn('[Streaming] Skipping empty chunk:', message.chunkNumber);
-          break;
-        }
-
-        blockSaved({
+      case UploadWorkerEventType.ChunkPrepared:
+        chunkPrepared({
           fileId: message.fileId,
           chunkNumber: message.chunkNumber,
-          hash: message.hash,
-          chunkSize: message.chunkSize,
+          dataRef: message.dataRef,
+          originalSize: message.originalSize,
+          compression: message.compression,
         });
         break;
 
@@ -134,14 +105,17 @@ sample({
       file,
     };
 
-    const resolvedStoreConfig = resolveStoreConfig();
-    if (Object.keys(resolvedStoreConfig).length > 0) {
-      message.store = resolvedStoreConfig;
-    }
-
     const worker = getStoreWorker();
     worker.postMessage(message);
   },
+});
+
+blockSaved.watch(({ fileId, chunkNumber }) => {
+	storeWorker?.postMessage({
+		type: UploadWorkerCommandType.ChunkConsumed,
+		fileId,
+		chunkNumber,
+	});
 });
 
 // CLEANUP

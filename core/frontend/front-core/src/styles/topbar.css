@@ -71,12 +71,20 @@ html.dark .top-bar-brand-logo {
   color: var(--hw-ink);
 }
 
+.top-bar-tabstrip {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--hw-space-1);
+}
+
 .top-bar-tabs {
   display: flex;
   min-width: 0;
   align-items: center;
   gap: var(--hw-space-1);
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   scrollbar-width: none;
 }
 
@@ -85,10 +93,12 @@ html.dark .top-bar-brand-logo {
 }
 
 .top-bar-tab {
+  position: relative;
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
-  gap: var(--hw-space-1);
-  max-width: 260px;
+  min-width: 0;
+  max-width: 220px;
   padding-right: var(--hw-space-1);
   border: 1px solid var(--hw-panel-border);
   border-radius: 4px;
@@ -120,11 +130,18 @@ html.dark .top-bar-brand-logo {
   white-space: nowrap;
 }
 
-.top-bar-tab-pin {
+/*
+ * The slot keeps its width at rest so revealing the buttons never reflows the
+ * title; only their opacity changes.
+ */
+.top-bar-tab-actions {
+  display: inline-flex;
   flex-shrink: 0;
-  color: var(--hw-accent);
+  align-items: center;
+  gap: 1px;
 }
 
+.top-bar-tab-pin,
 .top-bar-tab-close,
 .shell-menu-trigger {
   display: inline-grid;
@@ -140,6 +157,41 @@ html.dark .top-bar-brand-logo {
   cursor: pointer;
 }
 
+.top-bar-tab-pin,
+.top-bar-tab-close {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.top-bar-tab:hover .top-bar-tab-pin,
+.top-bar-tab:hover .top-bar-tab-close,
+.top-bar-tab:focus-within .top-bar-tab-pin,
+.top-bar-tab:focus-within .top-bar-tab-close,
+.top-bar-tab[data-menu-open="true"] .top-bar-tab-pin,
+.top-bar-tab[data-menu-open="true"] .top-bar-tab-close,
+.top-bar-tab[data-active="true"] .top-bar-tab-close {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* A pinned tab has to read as pinned with nothing hovered. */
+.top-bar-tab[data-pinned="true"] .top-bar-tab-pin {
+  opacity: 1;
+  pointer-events: auto;
+  color: var(--hw-accent);
+}
+
+@media (hover: none) {
+  .top-bar-tab .top-bar-tab-pin,
+  .top-bar-tab .top-bar-tab-close {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+.top-bar-tab-pin:hover,
+.top-bar-tab-pin:focus-visible,
 .top-bar-tab-close:hover,
 .top-bar-tab-close:focus-visible,
 .shell-menu-trigger:hover,
@@ -149,13 +201,80 @@ html.dark .top-bar-brand-logo {
   outline: none;
 }
 
-.top-bar-tab-combobox {
-  display: none;
-  min-height: calc(var(--hw-unit) * 8);
+.top-bar-tab-overflow {
+  flex-shrink: 0;
+}
+
+.top-bar-tab-overflow .shell-menu-trigger {
+  gap: 2px;
+  width: auto;
+  min-width: calc(var(--hw-unit) * 7);
+  height: calc(var(--hw-unit) * 7);
+  padding: 0 var(--hw-space-1);
   border: 1px solid var(--hw-panel-border);
   border-radius: 4px;
-  background: transparent;
+}
+
+.top-bar-tab-overflow-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.top-bar-overflow-row {
+  display: flex;
+  align-items: center;
+  gap: var(--hw-space-1);
+  border-radius: 4px;
+}
+
+.top-bar-overflow-row:hover,
+.top-bar-overflow-row:focus-within {
+  background: color-mix(in srgb, var(--hw-panel) 45%, transparent);
+}
+
+.top-bar-overflow-row .top-bar-tab-close {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.top-bar-overflow-select {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: var(--hw-space-2);
+  min-height: calc(var(--hw-unit) * 8);
   padding: 0 var(--hw-space-2);
+  border: 0;
+  background: transparent;
+  color: var(--hw-ink);
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+}
+
+.top-bar-overflow-select span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.top-bar-overflow-select[data-active="true"] span {
+  text-decoration: underline;
+}
+
+/* Placeholder keeps every row's label on the same x, pinned or not. */
+.top-bar-overflow-pin {
+  visibility: hidden;
+}
+
+.top-bar-overflow-pin[data-pinned="true"] {
+  visibility: visible;
+  color: var(--hw-accent);
+}
+
+/* Wrapper for a detached (fixed-positioned) menu: dismissal target only. */
+.shell-menu-anchor {
+  display: contents;
 }
 
 .top-bar-controls {
@@ -368,19 +487,7 @@ html.dark .top-bar-theme-icon-sun {
     gap: var(--hw-space-3) var(--hw-space-5);
   }
 
-  .top-bar-tabs {
-    grid-row: 2;
-    grid-column: 1 / -1;
-  }
-}
-
-@media (max-width: 680px) {
-  .top-bar-tabs {
-    display: none;
-  }
-
-  .top-bar-tab-combobox {
-    display: block;
+  .top-bar-tabstrip {
     grid-row: 2;
     grid-column: 1 / -1;
   }

@@ -10,7 +10,6 @@ export * from './segments/ui';
 export * from './domain';
 
 // API
-export { createStoreService } from './api/store';
 export type { StoreService } from './store-service';
 
 export { downloadFile } from './download';

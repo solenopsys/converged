@@ -57,16 +57,10 @@ export function createServices(config: ChatConfig) {
 		createFilesServiceClient(createFrontNrpcClientConfig()),
 	);
 	services.setStoreService(
-		createStoreServiceClient(
-			createFrontNrpcClientConfig(),
-		) as unknown as Parameters<typeof services.setStoreService>[0],
+		createStoreServiceClient(createFrontNrpcClientConfig()),
 	);
 
-	setStoreWorker(config.createWorker(), {
-		baseUrl: config.cacheBaseUrl,
-		fujinWsUrl: config.fujinWsUrl,
-		headers: { "X-Storage-Scope": config.storageScope },
-	});
+	setStoreWorker(config.createWorker());
 
 	return {
 		assistantClient,

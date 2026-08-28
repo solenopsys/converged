@@ -1,6 +1,5 @@
 import type { ComponentChildren } from "preact";
-import { MoreHorizontal, Pin, X } from "../icons";
-import { ActionMenu, type ActionMenuItem } from "./ActionMenu";
+import { TabStrip, type TopBarTab } from "./TabStrip";
 
 export type TopBarLink = {
 	label: string;
@@ -8,13 +7,7 @@ export type TopBarLink = {
 	current?: boolean;
 };
 
-export type TopBarTab = {
-	key: string;
-	title: string;
-	pinned: boolean;
-	active: boolean;
-	actions: ActionMenuItem[];
-};
+export type { TopBarTab };
 
 
 export function TopBar({
@@ -25,6 +18,7 @@ export function TopBar({
 	links = [],
 	onTabSelect,
 	onTabClose,
+	onTabPinToggle,
 	onTabAction,
 	controls,
 	navigationLabel = "Main navigation",
@@ -37,13 +31,12 @@ export function TopBar({
 	links?: TopBarLink[];
 	onTabSelect?: (key: string) => void;
 	onTabClose?: (key: string) => void;
+	onTabPinToggle?: (key: string) => void;
 	onTabAction?: (key: string, actionId: string) => void;
 	controls?: ComponentChildren;
 	navigationLabel?: string;
 	tabsLabel?: string;
 }) {
-	const activeKey = tabs.find((tab) => tab.active)?.key ?? "";
-
 	return (
 		<header class="top-bar">
 			{onBrandClick ? (
@@ -57,60 +50,14 @@ export function TopBar({
 			)}
 
 			{tabs.length > 0 ? (
-				<>
-					<nav class="top-bar-tabs" aria-label={tabsLabel} role="tablist">
-						{tabs.map((tab) => (
-							<div
-								key={tab.key}
-								class="top-bar-tab"
-								data-active={tab.active ? "true" : undefined}
-								data-pinned={tab.pinned ? "true" : undefined}
-								role="presentation"
-							>
-								<button
-									type="button"
-									class="top-bar-tab-select"
-									role="tab"
-									aria-selected={tab.active}
-									onClick={() => onTabSelect?.(tab.key)}
-								>
-									{tab.pinned ? (
-										<Pin size={11} class="top-bar-tab-pin" aria-hidden="true" />
-									) : null}
-									<span>{tab.title}</span>
-								</button>
-								<ActionMenu
-									items={tab.actions}
-									label={`Действия вкладки ${tab.title}`}
-									onSelect={(actionId) => onTabAction?.(tab.key, actionId)}
-									trigger={<MoreHorizontal size={13} aria-hidden="true" />}
-								/>
-								<button
-									type="button"
-									class="top-bar-tab-close"
-									aria-label={`Закрыть ${tab.title}`}
-									title="Закрыть вкладку"
-									onClick={() => onTabClose?.(tab.key)}
-								>
-									<X size={11} aria-hidden="true" />
-								</button>
-							</div>
-						))}
-					</nav>
-					<select
-						class="top-bar-tab-combobox"
-						aria-label={tabsLabel}
-						value={activeKey}
-						onChange={(event) => onTabSelect?.(event.currentTarget.value)}
-					>
-						{tabs.map((tab) => (
-							<option key={tab.key} value={tab.key}>
-								{tab.pinned ? "📌 " : ""}
-								{tab.title}
-							</option>
-						))}
-					</select>
-				</>
+				<TabStrip
+					tabs={tabs}
+					label={tabsLabel}
+					onSelect={onTabSelect}
+					onClose={onTabClose}
+					onPinToggle={onTabPinToggle}
+					onAction={onTabAction}
+				/>
 			) : (
 				<nav class="top-bar-nav" aria-label={navigationLabel}>
 					{links.map((link) => (

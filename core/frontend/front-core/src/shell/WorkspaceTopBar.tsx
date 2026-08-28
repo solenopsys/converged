@@ -3,7 +3,12 @@ import type { ComponentChildren } from "preact";
 import { TopBar, type TopBarLink } from "./TopBar";
 import { TopBarSettings } from "./TopBarControls";
 import { $workspaceTabViews, workspaceTabActionInvoked } from "./tab-actions";
-import { workspaceReset, workspaceTabActivated, workspaceTabClosed } from "./workspace";
+import {
+	workspaceReset,
+	workspaceTabActivated,
+	workspaceTabClosed,
+	workspaceTabPinToggled,
+} from "./workspace";
 
 
 export function WorkspaceTopBar({
@@ -29,6 +34,7 @@ export function WorkspaceTopBar({
 			links={links}
 			onTabSelect={workspaceTabActivated}
 			onTabClose={workspaceTabClosed}
+			onTabPinToggle={workspaceTabPinToggled}
 			onTabAction={(key, actionId) => workspaceTabActionInvoked({ key, actionId })}
 			controls={
 				<>

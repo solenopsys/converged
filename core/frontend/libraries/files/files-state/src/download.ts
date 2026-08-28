@@ -3,57 +3,17 @@
 import { inflateSync } from 'fflate';
 import type { FilesService, StoreService } from './services';
 
-const normalizeBlockData = (value: unknown): Uint8Array => {
-  if (value instanceof Uint8Array) {
-    return value;
-  }
-
-  if (value instanceof ArrayBuffer) {
-    return new Uint8Array(value);
-  }
-
-  if (ArrayBuffer.isView(value)) {
-    return new Uint8Array(value.buffer);
-  }
-
-  if (typeof value === "string") {
-    const binaryString = atob(value);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-    return bytes;
-  }
-
-  if (typeof value === "object" && value !== null) {
-    const record = value as Record<string, unknown>;
-    if (record.__type === "Uint8Array" && "data" in record) {
-      return normalizeBlockData(record.data);
-    }
-  }
-
-  throw new Error("StoreService.get returned invalid data");
-};
-
 
 const resolveBlockBytes = async (
   storeService: StoreService,
   hash: string,
 ): Promise<Uint8Array> => {
-  const raw = await storeService.get(hash);
-  if (
-    raw &&
-    typeof raw === "object" &&
-    typeof (raw as { cacheKey?: unknown }).cacheKey === "string"
-  ) {
-    const cacheKey = (raw as { cacheKey: string }).cacheKey;
-    const response = await fetch(`/cache/blob/${encodeURIComponent(cacheKey)}`);
-    if (!response.ok) {
-      throw new Error(`Cache blob download failed: ${response.status}`);
-    }
-    return new Uint8Array(await response.arrayBuffer());
+  const ref = await storeService.get(hash);
+  const response = await fetch(`/cache/blob/${encodeURIComponent(ref.cacheKey)}`);
+  if (!response.ok) {
+    throw new Error(`Cache blob download failed: ${response.status}`);
   }
-  return normalizeBlockData(raw);
+  return new Uint8Array(await response.arrayBuffer());
 };
 
 export async function downloadFile(

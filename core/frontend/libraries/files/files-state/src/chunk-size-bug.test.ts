@@ -61,7 +61,7 @@ test('BUG: chunkSize становится 0 при сохранении мета
 
 test('EXPECTED: chunkSize должен браться из события воркера, а не из $chunks', async () => {
   console.log('\n📝 This test shows the EXPECTED behavior after fix');
-  console.log('   chunkSize should come from the CHUNK_READY event (compressed size),');
+  console.log('   chunkSize should come from the CHUNK_PREPARED event (compressed size),');
   console.log('   not from chunk.data.length (original size)');
 
 

@@ -1,10 +1,6 @@
-import { deflateSync, inflateSync } from 'fflate';
+import { deflateSync } from 'fflate';
 
 const runtimeFlags = globalThis as { __USE_MOCK_STORE__?: boolean; __DEBUG_CHUNK_SIZES__?: boolean };
-
-const useMockStore =
-  runtimeFlags.__USE_MOCK_STORE__ === true ||
-  (typeof process !== 'undefined' && process.env?.USE_MOCK_STORE === 'true');
 
 const debugChunkSizes =
   runtimeFlags.__DEBUG_CHUNK_SIZES__ === true ||
@@ -15,18 +11,8 @@ const debugLog = (...args: unknown[]) => {
   console.log('[StoreWorker]', ...args);
 };
 
-const { createStoreService } = useMockStore
-  ? await import('../api/store.service.mock')
-  : await import('../api/store.service');
-
 import {
-  type DownloadWorkerIncomingMessage,
-  type FileDownloadState,
-  DownloadWorkerCommandType,
-  DownloadWorkerEventType,
-  type DownloadWorkerOutgoingMessage,
   type FileUploadState,
-  type HashString,
   type UploadWorkerIncomingMessage,
   UploadWorkerCommandType,
   UploadWorkerEventType,
@@ -34,31 +20,21 @@ import {
 } from '../types';
 
 const MAX_CHUNK_SIZE = 512 * 1024; // 512KB
-const MIN_CHUNK_SIZE = 4 * 1024;   // 4KB
-
 const uploads = new Map<string, FileUploadState>();
-const downloads = new Map<string, FileDownloadState>();
 
-type StoreWorkerIncomingMessage = UploadWorkerIncomingMessage | DownloadWorkerIncomingMessage;
-
-self.onmessage = (event: MessageEvent<StoreWorkerIncomingMessage>) => {
+self.onmessage = (event: MessageEvent<UploadWorkerIncomingMessage>) => {
   const message = event.data;
 
   if (isUploadMessage(message)) {
     handleUploadMessage(message);
-  } else if (isDownloadMessage(message)) {
-    handleDownloadMessage(message);
   } else {
     console.warn('[StoreWorker] Unknown message', message);
   }
 };
 
-function isUploadMessage(message: StoreWorkerIncomingMessage): message is UploadWorkerIncomingMessage {
+function isUploadMessage(message: unknown): message is UploadWorkerIncomingMessage {
+  if (!message || typeof message !== 'object' || !('type' in message)) return false;
   return Object.values(UploadWorkerCommandType).includes(message.type as any);
-}
-
-function isDownloadMessage(message: StoreWorkerIncomingMessage): message is DownloadWorkerIncomingMessage {
-  return Object.values(DownloadWorkerCommandType).includes(message.type as any);
 }
 
 
@@ -77,6 +53,7 @@ function handleUploadMessage(message: UploadWorkerIncomingMessage) {
       resumeUpload(message.fileId);
       break;
     case UploadWorkerCommandType.ChunkConsumed:
+      acknowledgeChunk(message.fileId, message.chunkNumber);
       break;
     default:
       console.warn('[UploadWorker] Unknown message', message);
@@ -84,8 +61,6 @@ function handleUploadMessage(message: UploadWorkerIncomingMessage) {
 }
 
 const DEFAULT_MAX_BUFFERED_CHUNKS = 5;
-const DEFAULT_RETRY = { attempts: 3, delayMs: 1000 } as const;
-
 async function startUpload(message: Extract<UploadWorkerIncomingMessage, { type: UploadWorkerCommandType.UploadStart }>): Promise<void> {
   const { fileId, file } = message;
 
@@ -94,20 +69,17 @@ async function startUpload(message: Extract<UploadWorkerIncomingMessage, { type:
   }
 
   const reader = file.stream().getReader();
-  const store = createStoreService(message.store);
-
   const state: FileUploadState = {
     fileId,
     file,
     reader,
-    store,
     buffer: new Uint8Array(0),
     bytesProcessed: 0,
     totalBytes: file.size,
     nextChunkNumber: 0,
     pendingUploads: new Map(),
-    retry: message.retry ?? DEFAULT_RETRY,
     maxBufferedChunks: message.maxBufferedChunks ?? DEFAULT_MAX_BUFFERED_CHUNKS,
+    cacheBlobUrl: message.cacheBlobUrl ?? '/cache/blob',
     paused: false,
     cancelled: false,
     streamEnded: false,
@@ -193,40 +165,58 @@ function scheduleUpload(state: FileUploadState, chunkNumber: number, compressedD
     return;
   }
 
-  const previousUploads = Array.from(state.pendingUploads.values()).map(entry => entry.promise);
-
-  const uploadPromise = Promise.all(previousUploads)
-    .then(() => uploadChunk(state, chunkNumber, compressedData, originalSize, 1));
-
+  let resolve!: () => void;
+  const promise = new Promise<void>((onResolve) => {
+    resolve = onResolve;
+  });
   state.pendingUploads.set(chunkNumber, {
     chunkNumber,
-    promise: uploadPromise,
+    promise,
+    resolve,
   });
 
-  uploadPromise
-    .then(hash => sendChunkSaved(state, chunkNumber, compressedData.length, originalSize, hash))
-    .catch(error => emitUploadError(state, error, chunkNumber))
-    .finally(() => {
-      state.pendingUploads.delete(chunkNumber);
-      flushBuffer(state, state.streamEnded);
-    });
+  void stageChunk(state, chunkNumber, compressedData, originalSize);
 }
 
-async function uploadChunk(
+async function stageChunk(
   state: FileUploadState,
   chunkNumber: number,
   compressedData: Uint8Array,
   originalSize: number,
-  attempt: number,
-): Promise<HashString> {
+): Promise<void> {
   try {
-    return await state.store.save(compressedData, originalSize, 'deflate');
-  } catch (error) {
-    if (attempt >= state.retry.attempts) {
-      throw error;
+    const response = await fetch(state.cacheBlobUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/octet-stream' },
+      body: new Blob([compressedData as BlobPart]),
+    });
+    if (!response.ok) {
+      throw new Error(`Cache blob upload failed: HTTP ${response.status}`);
     }
-    await delay(state.retry.delayMs * attempt);
-    return uploadChunk(state, chunkNumber, compressedData, originalSize, attempt + 1);
+
+    const value = await response.json() as { cacheKey?: unknown; sizeBytes?: unknown };
+    if (typeof value.cacheKey !== 'string' || value.cacheKey.length === 0) {
+      throw new Error('Cache blob upload returned an invalid cache reference');
+    }
+
+    const message: UploadWorkerOutgoingMessage = {
+      type: UploadWorkerEventType.ChunkPrepared,
+      fileId: state.fileId,
+      chunkNumber,
+      dataRef: {
+        cacheKey: value.cacheKey,
+        sizeBytes: typeof value.sizeBytes === 'number' ? value.sizeBytes : compressedData.byteLength,
+      },
+      originalSize,
+      compression: 'deflate',
+    };
+    self.postMessage(message);
+  } catch (error) {
+    state.cancelled = true;
+    const task = state.pendingUploads.get(chunkNumber);
+    state.pendingUploads.delete(chunkNumber);
+    task?.resolve();
+    emitUploadError(state, error, chunkNumber);
   }
 }
 
@@ -241,30 +231,15 @@ async function waitForPending(state: FileUploadState): Promise<void> {
   }
 }
 
-function sendChunkSaved(state: FileUploadState, chunkNumber: number, chunkSize: number, originalSize: number, hash: HashString): void {
-  if (chunkSize === 0) {
-    const error = new Error(`[Worker] Attempted to save empty chunk: fileId=${state.fileId}, chunkNumber=${chunkNumber}`);
-    console.error(error);
-    emitUploadError(state, error, chunkNumber);
-    return;
-  }
+function acknowledgeChunk(fileId: string, chunkNumber: number): void {
+  const state = uploads.get(fileId);
+  const task = state?.pendingUploads.get(chunkNumber);
+  if (!state || !task) return;
 
-  debugLog('chunk saved', {
-    fileId: state.fileId,
-    chunkNumber,
-    chunkSize,
-    originalSize,
-    hash,
-  });
-  const message: UploadWorkerOutgoingMessage = {
-    type: UploadWorkerEventType.ChunkReady,
-    fileId: state.fileId,
-    chunkNumber,
-    chunkSize,
-    hash,
-  };
-
-  self.postMessage(message);
+  debugLog('staged chunk registered through core', { fileId, chunkNumber });
+  state.pendingUploads.delete(chunkNumber);
+  task.resolve();
+  flushBuffer(state, state.streamEnded);
 }
 
 function sendProgress(state: FileUploadState): void {
@@ -330,173 +305,4 @@ function concat(left: Uint8Array, right: Uint8Array): Uint8Array {
 
 function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-
-
-function handleDownloadMessage(message: DownloadWorkerIncomingMessage) {
-    switch (message.type) {
-        case DownloadWorkerCommandType.DownloadStart:
-            void startDownload(message);
-            break;
-        case DownloadWorkerCommandType.Abort:
-            abortDownload(message.fileId);
-            break;
-        default:
-            console.warn('[DownloadWorker] Unknown message', message);
-    }
-}
-
-async function startDownload(message: Extract<DownloadWorkerIncomingMessage, { type: DownloadWorkerCommandType.DownloadStart }>): Promise<void> {
-  const { fileId, chunks } = message;
-
-  if (downloads.has(fileId)) {
-    abortDownload(fileId);
-  }
-
-  debugLog('download start', { fileId, totalChunks: chunks.length });
-
-  const store = createStoreService(message.store);
-  const writer = createDestinationWriter(message.destination);
-
-  const state: FileDownloadState = {
-    fileId,
-    store,
-    writer,
-    aborted: false,
-  };
-
-  downloads.set(fileId, state);
-
-  const writeQueue = createWriteQueue(writer);
-
-  try {
-    for (let index = 0; index < chunks.length; index++) {
-      if (state.aborted) break;
-
-      const hash = chunks[index];
-      debugLog('download chunk fetch:start', { fileId, chunkNumber: index, hash });
-
-      const compressedData = await store.get(hash);
-      debugLog('download chunk fetch:done', { fileId, chunkNumber: index, compressedBytes: compressedData.byteLength });
-
-      const decompressedData = inflateSync(compressedData);
-      debugLog('download chunk decompressed', {
-        fileId,
-        chunkNumber: index,
-        compressedBytes: compressedData.byteLength,
-        decompressedBytes: decompressedData.byteLength
-      });
-
-      void writeQueue(decompressedData);
-      sendChunkProcessed(state, index);
-    }
-
-    if (!state.aborted) {
-      await writeQueue();
-      await writer.close();
-      debugLog('download complete', { fileId });
-      sendFileDownloaded(state);
-    }
-  } catch (error) {
-    debugLog('download error', { fileId, error });
-    emitDownloadError(state, error);
-  } finally {
-    downloads.delete(fileId);
-  }
-}
-
-function abortDownload(fileId: string): void {
-  const state = downloads.get(fileId);
-  if (!state) return;
-  state.aborted = true;
-  state.writer.abort().catch(() => undefined);
-  downloads.delete(fileId);
-}
-
-function sendChunkProcessed(state: FileDownloadState, chunkNumber: number): void {
-  debugLog('download chunk processed', { fileId: state.fileId, chunkNumber });
-  const message: DownloadWorkerOutgoingMessage = {
-    type: DownloadWorkerEventType.Chunk,
-    fileId: state.fileId,
-    chunkNumber,
-  };
-  self.postMessage(message);
-}
-
-function sendFileDownloaded(state: FileDownloadState): void {
-  debugLog('download file downloaded', { fileId: state.fileId });
-  const message: DownloadWorkerOutgoingMessage = {
-    type: DownloadWorkerEventType.FileDownloaded,
-    fileId: state.fileId,
-  };
-  self.postMessage(message);
-}
-
-function emitDownloadError(state: FileDownloadState, error: unknown): void {
-  debugLog('download emit error', { fileId: state.fileId, error });
-  const message: DownloadWorkerOutgoingMessage = {
-    type: DownloadWorkerEventType.Error,
-    fileId: state.fileId,
-    error: error instanceof Error ? error.message : String(error),
-  };
-  self.postMessage(message);
-}
-
-function createWriteQueue(writer: import('../types').DownloadWriter) {
-  let tail = Promise.resolve();
-  return (chunk?: Uint8Array) => {
-    if (!chunk) {
-      return tail;
-    }
-    tail = tail.then(() => writer.write(chunk));
-    return tail;
-  };
-}
-
-type DownloadDestination = WritableStream<Uint8Array> | MessagePort;
-
-function createDestinationWriter(destination: DownloadDestination): import('../types').DownloadWriter {
-  if (isWritableStream(destination)) {
-    return destination.getWriter();
-  }
-  return createPortWriter(destination);
-}
-
-function isWritableStream(destination: DownloadDestination): destination is WritableStream<Uint8Array> {
-  return typeof (destination as WritableStream<Uint8Array>).getWriter === 'function';
-}
-
-function createPortWriter(port: MessagePort): import('../types').DownloadWriter {
-  let closed = false;
-  return {
-    write(chunk) {
-      if (closed) {
-        return Promise.reject(new Error('Cannot write to a closed port destination'));
-      }
-      const copy = chunk.buffer.slice(chunk.byteOffset, chunk.byteOffset + chunk.byteLength);
-      debugLog('port writer write', { bytes: copy.byteLength });
-      port.postMessage(copy, [copy]);
-      return Promise.resolve();
-    },
-    close() {
-      if (closed) return Promise.resolve();
-      closed = true;
-      debugLog('port writer close');
-      port.postMessage({ type: 'close' });
-      port.close();
-      return Promise.resolve();
-    },
-    abort(reason) {
-      if (closed) return Promise.resolve();
-      closed = true;
-      debugLog('port writer abort', { reason });
-      port.postMessage({
-        type: 'abort',
-        error: reason instanceof Error ? reason.message : reason ? String(reason) : undefined,
-      });
-      port.close();
-      return Promise.resolve();
-    },
-  };
 }

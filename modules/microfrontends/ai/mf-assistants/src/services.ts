@@ -8,20 +8,10 @@ import { createStoreServiceClient } from "g-store";
 import { createThreadsServiceClient } from "g-threads";
 import {
 	createFrontNrpcClientConfig,
-	defaultSignalUrl,
 	signalChannel,
 } from "signal-channel";
 
-declare global {
-	var __FUJIN_BROWSER_SCOPE__: string | undefined;
-}
-
 const chatClient = createSignalAssistantClient(signalChannel);
-
-const browserScope = globalThis.__FUJIN_BROWSER_SCOPE__?.trim();
-if (!browserScope) {
-	throw new Error("Missing required FUJIN_BROWSER_SCOPE browser bootstrap");
-}
 
 const dagClient = createRuntimeDagServiceClient(
 	createFrontNrpcClientConfig({
@@ -47,11 +37,7 @@ const workerUrl = new URL(
 	import.meta.url,
 );
 const worker = new Worker(workerUrl, { type: "module" });
-setStoreWorker(worker, {
-	baseUrl: "/",
-	fujinWsUrl: defaultSignalUrl(),
-	headers: { "X-Storage-Scope": browserScope },
-});
+setStoreWorker(worker);
 
 export {
 	assistantClient,

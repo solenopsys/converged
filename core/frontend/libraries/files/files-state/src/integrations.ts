@@ -74,13 +74,13 @@ sample({
   target: fileMetadataUpdateRequested
 });
 
-$chunks.on(chunkPrepared, (state, { fileId, chunkNumber, data, originalSize, compression }) => {
+$chunks.on(chunkPrepared, (state, { fileId, chunkNumber, dataRef, originalSize, compression }) => {
   const key = `${fileId}-${chunkNumber}`;
   const newMap = new Map(state);
   newMap.set(key, {
     fileId,
     chunkNumber,
-    data,
+    dataRef,
     originalSize,
     compression,
     status: 'prepared',
@@ -125,7 +125,7 @@ sample({
     return {
       fileId,
       chunkNumber,
-      data: chunk.data,
+      dataRef: chunk.dataRef,
       originalSize: chunk.originalSize,
       compression: chunk.compression
     };

@@ -1,15 +1,15 @@
-import type { HashString } from "g-store";
 type UUID = string;
-import type {
-	CreateStoreServiceOptions,
-	StoreService,
-} from "./api/store.service";
 
 export const BLOCK_SIZE_BYTES = 512 * 1024;
 export const MIN_CHUNK_SIZE_BYTES = 4 * 1024;
 export const COMPRESSION_LEVEL = 3;
 
 export type CompressionType = "none" | "deflate" | "gzip" | "brotli";
+
+export type CacheRef = {
+	cacheKey: string;
+	sizeBytes?: number;
+};
 
 export type RetryConfig = {
 	attempts: number;
@@ -30,14 +30,13 @@ export type UploadWorkerIncomingMessage =
 			fileId: UUID;
 			file: File;
 			maxBufferedChunks?: number;
-			retry?: RetryConfig;
-			store?: CreateStoreServiceOptions;
+			cacheBlobUrl?: string;
 	  }
 	| {
 			type: UploadWorkerCommandType.ChunkConsumed;
 			fileId: UUID;
 			chunkNumber: number;
-	  }
+		  }
 	| {
 			type: UploadWorkerCommandType.Pause;
 			fileId: UUID;
@@ -52,7 +51,7 @@ export type UploadWorkerIncomingMessage =
 	  };
 
 export enum UploadWorkerEventType {
-	ChunkReady = "CHUNK_READY",
+	ChunkPrepared = "CHUNK_PREPARED",
 	Progress = "UPLOAD_PROGRESS",
 	Error = "UPLOAD_ERROR",
 	FileUploaded = "FILE_UPLOADED",
@@ -60,11 +59,12 @@ export enum UploadWorkerEventType {
 
 export type UploadWorkerOutgoingMessage =
 	| {
-			type: UploadWorkerEventType.ChunkReady;
+			type: UploadWorkerEventType.ChunkPrepared;
 			fileId: UUID;
 			chunkNumber: number;
-			hash: HashString;
-			chunkSize: number;
+			dataRef: CacheRef;
+			originalSize: number;
+			compression: "deflate";
 	  }
 	| {
 			type: UploadWorkerEventType.Progress;
@@ -85,80 +85,26 @@ export type UploadWorkerOutgoingMessage =
 			error: string;
 	  };
 
-export enum DownloadWorkerCommandType {
-	DownloadStart = "DOWNLOAD_START",
-	Abort = "DOWNLOAD_ABORT",
-}
-
-export type DownloadWorkerIncomingMessage =
-	| {
-			type: DownloadWorkerCommandType.DownloadStart;
-			fileId: UUID;
-			destination: WritableStream<Uint8Array> | MessagePort;
-			chunks: readonly HashString[];
-			store?: CreateStoreServiceOptions;
-	  }
-	| {
-			type: DownloadWorkerCommandType.Abort;
-			fileId: UUID;
-	  };
-
-export enum DownloadWorkerEventType {
-	Chunk = "DOWNLOAD_CHUNK",
-	FileDownloaded = "FILE_DOWNLOADED",
-	Error = "DOWNLOAD_ERROR",
-}
-
-export type DownloadWorkerOutgoingMessage =
-	| {
-			type: DownloadWorkerEventType.Chunk;
-			fileId: UUID;
-			chunkNumber: number;
-	  }
-	| {
-			type: DownloadWorkerEventType.FileDownloaded;
-			fileId: UUID;
-	  }
-	| {
-			type: DownloadWorkerEventType.Error;
-			fileId: UUID;
-			chunkNumber?: number;
-			error: string;
-	  };
-
 export type ChunkUploadTask = {
 	chunkNumber: number;
-	promise: Promise<HashString>;
+	promise: Promise<void>;
+	resolve(): void;
 };
 
 export type FileUploadState = {
 	fileId: UUID;
 	file: File;
 	reader: ReadableStreamDefaultReader<Uint8Array>;
-	store: StoreService;
 	buffer: Uint8Array;
 	bytesProcessed: number;
 	totalBytes: number;
 	nextChunkNumber: number;
 	pendingUploads: Map<number, ChunkUploadTask>;
-	retry: RetryConfig;
 	maxBufferedChunks: number;
+	cacheBlobUrl: string;
 	paused: boolean;
 	cancelled: boolean;
 	streamEnded: boolean;
 };
 
-export type { UUID, HashString };
-
-export type DownloadWriter = {
-	write(chunk: Uint8Array): Promise<void>;
-	close(): Promise<void>;
-	abort(reason?: unknown): Promise<void>;
-};
-
-export type FileDownloadState = {
-	fileId: UUID;
-	store: StoreService;
-	writer: DownloadWriter;
-	aborted: boolean;
-};
+export type { UUID };

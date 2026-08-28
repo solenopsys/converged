@@ -12,7 +12,7 @@ export const compressionStarted = fileTransferDomain.createEvent<{
 export const chunkPrepared = fileTransferDomain.createEvent<{
   fileId: UUID;
   chunkNumber: number;
-  data: Uint8Array;
+  dataRef: { cacheKey: string; sizeBytes?: number };
   originalSize: number;
   compression: 'none' | 'deflate';
 }>('CHUNK_PREPARED');

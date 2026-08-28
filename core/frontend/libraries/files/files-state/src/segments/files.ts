@@ -8,7 +8,7 @@ export type ChunkStatus = 'prepared' | 'uploading' | 'uploaded' | 'failed';
 export type ChunkState = {
   fileId: UUID;
   chunkNumber: number;
-  data: Uint8Array;
+  dataRef: { cacheKey: string; sizeBytes?: number };
   hash?: HashString;
   originalSize: number;
   compression: 'none' | 'deflate';

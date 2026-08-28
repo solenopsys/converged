@@ -1,4 +1,8 @@
-export { ActionMenu, type ActionMenuItem } from "./ActionMenu";
+export {
+	ActionMenu,
+	type ActionMenuItem,
+	ActionMenuList,
+} from "./ActionMenu";
 export { AppShell } from "./AppShell";
 export {
 	AppShellFrame,
@@ -37,6 +41,7 @@ export {
 	resetSurfaces,
 	type SurfaceEntry,
 } from "./surface";
+export { TabStrip } from "./TabStrip";
 export { TopBar, type TopBarLink, type TopBarTab } from "./TopBar";
 export { LanguageMenu, ThemeToggle, TopBarSettings } from "./TopBarControls";
 export {

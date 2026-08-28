@@ -1,6 +1,6 @@
-import type { ComponentChildren, ComponentType } from "preact";
-import { useEffect, useRef, useState } from "preact/hooks";
+import type { ComponentChildren, ComponentType, JSX } from "preact";
 import { Check } from "../icons";
+import { usePopover } from "./popover";
 
 export type ActionMenuItem = {
 	id: string;
@@ -9,6 +9,42 @@ export type ActionMenuItem = {
 	danger?: boolean;
 	checked?: boolean;
 };
+
+
+/**
+ * The list on its own, so callers that own their trigger (tab context menu,
+ * overflow menu) reuse the same chrome without re-implementing it.
+ */
+export function ActionMenuList({
+	items,
+	onSelect,
+	align = "end",
+	style,
+}: {
+	items: ActionMenuItem[];
+	onSelect: (id: string) => void;
+	align?: "start" | "end";
+	style?: JSX.CSSProperties;
+}) {
+	return (
+		<div class="shell-menu-list" role="menu" data-align={align} style={style}>
+			{items.map((item) => (
+				<button
+					key={item.id}
+					type="button"
+					role="menuitem"
+					class="shell-menu-item"
+					data-danger={item.danger ? "true" : undefined}
+					onClick={() => onSelect(item.id)}
+				>
+					{item.icon ? <item.icon size={13} class="shell-menu-icon" /> : null}
+					<span>{item.label}</span>
+					{item.checked ? <Check size={12} class="shell-menu-check" /> : null}
+				</button>
+			))}
+		</div>
+	);
+}
 
 
 export function ActionMenu({
@@ -24,31 +60,12 @@ export function ActionMenu({
 	label: string;
 	align?: "start" | "end";
 }) {
-	const [open, setOpen] = useState(false);
-	const rootRef = useRef<HTMLDivElement | null>(null);
-
-	useEffect(() => {
-		if (!open) return;
-
-		const onPointerDown = (event: PointerEvent) => {
-			if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
-		};
-		const onKeyDown = (event: KeyboardEvent) => {
-			if (event.key === "Escape") setOpen(false);
-		};
-
-		document.addEventListener("pointerdown", onPointerDown);
-		document.addEventListener("keydown", onKeyDown);
-		return () => {
-			document.removeEventListener("pointerdown", onPointerDown);
-			document.removeEventListener("keydown", onKeyDown);
-		};
-	}, [open]);
+	const { ref, open, setOpen } = usePopover<HTMLDivElement>();
 
 	if (items.length === 0) return null;
 
 	return (
-		<div class="shell-menu" ref={rootRef}>
+		<div class="shell-menu" ref={ref}>
 			<button
 				type="button"
 				class="shell-menu-trigger"
@@ -61,25 +78,14 @@ export function ActionMenu({
 				{trigger}
 			</button>
 			{open ? (
-				<div class="shell-menu-list" role="menu" data-align={align}>
-					{items.map((item) => (
-						<button
-							key={item.id}
-							type="button"
-							role="menuitem"
-							class="shell-menu-item"
-							data-danger={item.danger ? "true" : undefined}
-							onClick={() => {
-								setOpen(false);
-								onSelect(item.id);
-							}}
-						>
-							{item.icon ? <item.icon size={13} class="shell-menu-icon" /> : null}
-							<span>{item.label}</span>
-							{item.checked ? <Check size={12} class="shell-menu-check" /> : null}
-						</button>
-					))}
-				</div>
+				<ActionMenuList
+					items={items}
+					align={align}
+					onSelect={(id) => {
+						setOpen(false);
+						onSelect(id);
+					}}
+				/>
 			) : null}
 		</div>
 	);

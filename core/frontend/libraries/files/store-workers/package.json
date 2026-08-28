@@ -4,9 +4,6 @@
   "version": "0.0.1",
   "type": "module",
 	"dependencies": {
-		"fflate": "^0.8.2",
-		"front-core": "workspace:*",
-		"g-store": "workspace:*",
-		"signal-channel": "workspace:*"
+		"fflate": "^0.8.2"
 	}
 }
