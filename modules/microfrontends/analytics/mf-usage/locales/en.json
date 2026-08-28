@@ -1,17 +1,5 @@
 {
   "menu.usage": "Usage",
   "menu.usage.list": "Events",
-  "menu.usage.stats": "Statistics",
-  "llm": {
-    "actions": {
-      "usage_list_show": {
-        "brief": "Show usage events",
-        "description": "Show usage events"
-      },
-      "usage_stats_show": {
-        "brief": "Show usage statistics",
-        "description": "Show usage statistics"
-      }
-    }
-  }
+  "menu.usage.stats": "Statistics"
 }

@@ -1,0 +1,39 @@
+{
+  "actions": {
+    "calls.show": {
+      "brief": "Show calls list",
+      "description": "Show calls list",
+      "category": "calls",
+      "exposure": "user",
+      "priority": "primary"
+    },
+    "calls.new": {
+      "brief": "Start a new AI call",
+      "description": "Start a new AI call",
+      "category": "calls",
+      "exposure": "user",
+      "priority": "normal"
+    },
+    "calls.view": {
+      "brief": "View call transcript and recording in the side panel",
+      "description": "View call transcript and recording in the side panel",
+      "category": "calls",
+      "exposure": "user",
+      "priority": "normal"
+    },
+    "calls.return": {
+      "brief": "Return to calls list",
+      "description": "Return to calls list",
+      "category": "calls",
+      "exposure": "user",
+      "priority": "normal"
+    },
+    "calls.web.start": {
+      "brief": "Start a website WebRTC call",
+      "description": "Start a website WebRTC call",
+      "category": "calls",
+      "exposure": "user",
+      "priority": "normal"
+    }
+  }
+}

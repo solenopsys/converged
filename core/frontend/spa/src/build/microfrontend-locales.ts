@@ -3,16 +3,42 @@ import { basename, dirname, join } from "node:path";
 
 export type MicrofrontendMessages = Record<string, unknown>;
 export type MicrofrontendLocaleCatalog = Record<string, MicrofrontendMessages>;
+export type MicrofrontendLlmCatalog = {
+	actions: Record<string, unknown>;
+	patterns?: Array<{ prefix: string; meta: Record<string, unknown> }>;
+};
 
 type LocalizedEntry = {
 	entrypoint: string;
 	plugin: Bun.BunPlugin;
 	catalog: MicrofrontendLocaleCatalog;
+	llmCatalog: MicrofrontendLlmCatalog;
 };
 
 function moduleRoot(entrypoint: string): string {
 	const entryDir = dirname(entrypoint);
 	return basename(entryDir) === "src" ? dirname(entryDir) : entryDir;
+}
+
+export async function readMicrofrontendLlmCatalog(
+	entrypoint: string,
+): Promise<MicrofrontendLlmCatalog> {
+	const file = Bun.file(join(moduleRoot(entrypoint), "llm.json"));
+	if (!(await file.exists())) return { actions: {} };
+	let catalog: unknown;
+	try {
+		catalog = await file.json();
+	} catch (error) {
+		throw new Error(`[mf-llm] Invalid JSON in ${file.name}`, { cause: error });
+	}
+	if (!catalog || typeof catalog !== "object" || Array.isArray(catalog)) {
+		throw new Error(`[mf-llm] ${file.name} must contain a JSON object`);
+	}
+	const value = catalog as MicrofrontendLlmCatalog;
+	if (!value.actions || typeof value.actions !== "object" || Array.isArray(value.actions)) {
+		throw new Error(`[mf-llm] ${file.name} must contain an actions object`);
+	}
+	return value;
 }
 
 export async function readMicrofrontendLocales(
@@ -52,10 +78,16 @@ export async function localizedMicrofrontendEntry(
 	moduleName: string,
 ): Promise<LocalizedEntry> {
 	const catalog = await readMicrofrontendLocales(entrypoint);
-	if (Object.keys(catalog).length === 0) {
+	const llmCatalog = await readMicrofrontendLlmCatalog(entrypoint);
+	if (
+		Object.keys(catalog).length === 0 &&
+		Object.keys(llmCatalog.actions).length === 0 &&
+		(llmCatalog.patterns?.length ?? 0) === 0
+	) {
 		return {
 			entrypoint,
 			catalog,
+			llmCatalog,
 			plugin: { name: `mf-locales-${moduleName}`, setup() {} },
 		};
 	}
@@ -72,10 +104,11 @@ export async function localizedMicrofrontendEntry(
 			});
 			build.onLoad({ filter: /.*/, namespace }, () => ({
 				contents: [
-					'import { registerMicrofrontendLocales as __registerMicrofrontendLocales } from "front-core";',
+					'import { ingestMicrofrontendLlmCatalog as __ingestMicrofrontendLlmCatalog, registerMicrofrontendLocales as __registerMicrofrontendLocales } from "front-core";',
 					`import __microfrontendPlugin from ${JSON.stringify(entrypoint)};`,
 					`export * from ${JSON.stringify(entrypoint)};`,
 					`__registerMicrofrontendLocales(${JSON.stringify(microfrontendId)}, ${JSON.stringify(catalog)});`,
+					`__ingestMicrofrontendLlmCatalog(${JSON.stringify(microfrontendId)}, "", ${JSON.stringify(llmCatalog)});`,
 					"export default __microfrontendPlugin;",
 				].join("\n"),
 				loader: "js",
@@ -83,5 +116,5 @@ export async function localizedMicrofrontendEntry(
 		},
 	};
 
-	return { entrypoint: virtualEntrypoint, plugin, catalog };
+	return { entrypoint: virtualEntrypoint, plugin, catalog, llmCatalog };
 }

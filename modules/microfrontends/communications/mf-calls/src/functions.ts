@@ -49,13 +49,6 @@ const createCallTranscriptWidget = (_bus: any, sessionId: string) => ({
 // ── Action creators ──────────────────────────────────────────────────────────
 const createShowCallsAction: CreateAction<any> = (bus) => ({
 	id: SHOW_CALLS,
-	llm: {
-		microfrontend: "calls-mf",
-		brief: "llm.actions.calls_show.brief",
-		description: "llm.actions.calls_show.description",
-	},
-	exposure: "user",
-	priority: "primary",
 	invoke: () => {
 		// Reset any lingering active-call / detail state so the list is shown
 		returnToListClicked();
@@ -65,13 +58,6 @@ const createShowCallsAction: CreateAction<any> = (bus) => ({
 
 const createNewCallAction: CreateAction<any> = (bus) => ({
 	id: NEW_CALL,
-	llm: {
-		microfrontend: "calls-mf",
-		brief: "llm.actions.calls_new.brief",
-		description: "llm.actions.calls_new.description",
-	},
-	exposure: "user",
-	priority: "normal",
 	invoke: () => {
 		startNewCallClicked();
 		bus.present({ widget: createActiveCallWidget(bus) });
@@ -80,13 +66,6 @@ const createNewCallAction: CreateAction<any> = (bus) => ({
 
 const createViewCallAction: CreateAction<any> = (bus) => ({
 	id: VIEW_CALL,
-	llm: {
-		microfrontend: "calls-mf",
-		brief: "llm.actions.calls_view.brief",
-		description: "llm.actions.calls_view.description",
-	},
-	exposure: "user",
-	priority: "normal",
 	invoke: ({ sessionId }: { sessionId: string }) => {
 		if (!sessionId) return;
 		openCallDetail({ sessionId });
@@ -99,13 +78,6 @@ const createViewCallAction: CreateAction<any> = (bus) => ({
 
 const createReturnToCallsAction: CreateAction<any> = (bus) => ({
 	id: RETURN_TO_CALLS,
-	llm: {
-		microfrontend: "calls-mf",
-		brief: "llm.actions.calls_return.brief",
-		description: "llm.actions.calls_return.description",
-	},
-	exposure: "user",
-	priority: "normal",
 	invoke: () => {
 		returnToListClicked();
 		bus.present({ widget: createCallsListWidget(bus) });
@@ -116,13 +88,6 @@ const createStartWebCallAction: CreateAction<{
 	contextName?: string;
 }> = () => ({
 	id: START_WEB_CALL,
-	llm: {
-		microfrontend: "calls-mf",
-		brief: "llm.actions.calls_web_start.brief",
-		description: "llm.actions.calls_web_start.description",
-	},
-	exposure: "user",
-	priority: "normal",
 	invoke: ({ contextName } = {}) => {
 		mountWebCallWidget();
 		webCallRequested(contextName);

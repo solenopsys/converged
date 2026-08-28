@@ -1,0 +1,46 @@
+{
+  "actions": {
+    "chats.show_list": {
+      "brief": "Show chats list",
+      "description": "Show chats list",
+      "category": "chats",
+      "exposure": "user",
+      "priority": "normal"
+    },
+    "chats.show_commands_list": {
+      "brief": "Show available commands list",
+      "description": "Show available commands list",
+      "category": "chats",
+      "exposure": "user",
+      "priority": "normal"
+    },
+    "chats.view": {
+      "brief": "View chat details",
+      "description": "View chat details",
+      "category": "chats",
+      "exposure": "llm",
+      "priority": "normal"
+    },
+    "chats.view_tool_call_json": {
+      "brief": "View tool call JSON",
+      "description": "View tool call JSON",
+      "category": "chats",
+      "exposure": "llm",
+      "priority": "normal"
+    },
+    "chats.edit": {
+      "brief": "Edit chat",
+      "description": "Edit chat",
+      "category": "chats",
+      "exposure": "llm",
+      "priority": "normal"
+    },
+    "chats.delete": {
+      "brief": "Delete chat",
+      "description": "Delete chat",
+      "category": "chats",
+      "exposure": "llm",
+      "priority": "normal"
+    }
+  }
+}

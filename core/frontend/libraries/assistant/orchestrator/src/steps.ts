@@ -38,8 +38,9 @@ const candidateLine = (fn: FunctionBrief): string => `${fn.id} — ${fn.brief}`;
 
 function needsArgumentModel(meta: ReturnType<OrchestratorCatalog["meta"]>): boolean {
 	// A missing schema is unknown, so preserve the model step for existing hosts.
-	// A known schema with no required fields is fully valid as an empty object.
-	return !meta?.parameters || (meta.parameters.required?.length ?? 0) > 0;
+	// Optional fields still need the step: the model can extract values from the
+	// request and prefill a form without inventing values for omitted fields.
+	return !meta?.parameters || Object.keys(meta.parameters.properties).length > 0;
 }
 
 /** The step's own call if the model made it, otherwise its prose parsed as JSON. */

@@ -26,13 +26,6 @@ const createTelemetryStatsWidget: CreateWidget<typeof TelemetryStatsView> = (bus
 
 const createShowTelemetryHotAction: CreateAction<any> = (bus) => ({
   id: SHOW_TELEMETRY_HOT,
-  llm: {
-    microfrontend: "telemetry-mf",
-    brief: "llm.actions.telemetry_hot_show.brief",
-    description: "llm.actions.telemetry_hot_show.description",
-  },
-  exposure: "user",
-  priority: "normal",
   invoke: () => {
     bus.present({ widget: createTelemetryHotWidget(bus) });
   },
@@ -40,13 +33,6 @@ const createShowTelemetryHotAction: CreateAction<any> = (bus) => ({
 
 const createShowTelemetryColdAction: CreateAction<any> = (bus) => ({
   id: SHOW_TELEMETRY_COLD,
-  llm: {
-    microfrontend: "telemetry-mf",
-    brief: "llm.actions.telemetry_cold_show.brief",
-    description: "llm.actions.telemetry_cold_show.description",
-  },
-  exposure: "user",
-  priority: "normal",
   invoke: () => {
     bus.present({ widget: createTelemetryColdWidget(bus) });
   },
@@ -54,13 +40,6 @@ const createShowTelemetryColdAction: CreateAction<any> = (bus) => ({
 
 const createShowTelemetryStatsAction: CreateAction<any> = (bus) => ({
   id: SHOW_TELEMETRY_STATS,
-  llm: {
-    microfrontend: "telemetry-mf",
-    brief: "llm.actions.telemetry_stats_show.brief",
-    description: "llm.actions.telemetry_stats_show.description",
-  },
-  exposure: "user",
-  priority: "normal",
   invoke: () => {
     bus.present({ widget: createTelemetryStatsWidget(bus) });
   },

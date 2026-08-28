@@ -19,13 +19,6 @@ const createSocialsWidget: CreateWidget<typeof SocialView> = () => ({
 
 const createShowSocialLoginAction: CreateAction<any> = (bus) => ({
     id: SHOW_SOCIAL,
-    llm: {
-      microfrontend: "auth-mf",
-      brief: "llm.actions.show_social.brief",
-      description: "llm.actions.show_social.description",
-    },
-    exposure: "user",
-    priority: "normal",
     invoke: () => {
         bus.present({ widget: createSocialsWidget(bus) });
     }

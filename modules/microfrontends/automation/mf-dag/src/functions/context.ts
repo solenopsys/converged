@@ -13,13 +13,6 @@ const createContextWidget: CreateWidget<typeof ContextViewer> = (bus) => ({
 
 const createShowContextAction: CreateAction<any> = (bus) => ({
   id: SHOW_CONTEXT,
-  llm: {
-    microfrontend: "dag-mf",
-    brief: "llm.actions.show_context.brief",
-    description: "llm.actions.show_context.description",
-  },
-  exposure: "user",
-  priority: "normal",
   invoke: ({ contextId }: { contextId: string }) => {
     openContextDetail({ contextId });
     bus.present({ widget: createContextWidget(bus), params: { contextId } });

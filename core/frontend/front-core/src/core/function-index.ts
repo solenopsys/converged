@@ -4,19 +4,18 @@ import { registry } from "./registry";
 
 export type FunctionIndexEntry = {
 	id: string;
-	brief?: string;
+	brief: string;
 	category: string;
-	description?: string;
-	llm?: {
-		microfrontend: string;
-		brief: string;
-		description: string;
-		messages?: Record<string, { brief: string; description: string }>;
-	};
-	exposure?: "llm" | "user";
-	priority?: "primary" | "normal" | "secondary";
+	description: string;
+	exposure: "llm" | "user";
+	priority: "primary" | "normal" | "secondary";
 	access?: "public";
 	capability?: string;
+	parameters?: {
+		type: "object";
+		properties: Record<string, unknown>;
+		required?: string[];
+	};
 };
 
 export type FunctionIndexModule = {
@@ -29,6 +28,14 @@ export type FunctionIndexFile = {
 	modules: Record<string, FunctionIndexModule>;
 };
 
+export type MicrofrontendLlmCatalog = {
+	actions: Record<string, Omit<FunctionIndexEntry, "id">>;
+	patterns?: Array<{
+		prefix: string;
+		meta: Omit<FunctionIndexEntry, "id" | "access" | "capability">;
+	}>;
+};
+
 
 const owners = new Map<string, string>();
 
@@ -37,11 +44,25 @@ const moduleBriefs = new Map<string, string>();
 
 export function ingestFunctionIndex(index: FunctionIndexFile): void {
 	for (const entry of Object.values(index.modules)) {
-		moduleBriefs.set(entry.module, entry.brief);
-		for (const fn of entry.functions) {
-			owners.set(fn.id, entry.module);
-			registry.declare(fn);
-		}
+		ingestMicrofrontendLlmCatalog(entry.module, entry.brief, {
+			actions: Object.fromEntries(entry.functions.map(({ id, ...meta }) => [id, meta])),
+		});
+	}
+}
+
+/** Registers the LLM manifest embedded in an individual microfrontend bundle. */
+export function ingestMicrofrontendLlmCatalog(
+	module: string,
+	brief: string,
+	catalog: MicrofrontendLlmCatalog,
+): void {
+	moduleBriefs.set(module, brief);
+	for (const [id, meta] of Object.entries(catalog.actions)) {
+		owners.set(id, module);
+		registry.declare({ id, ...meta });
+	}
+	for (const pattern of catalog.patterns ?? []) {
+		registry.declarePattern(pattern.prefix, pattern.meta);
 	}
 }
 

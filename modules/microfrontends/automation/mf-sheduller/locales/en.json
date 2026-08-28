@@ -2,25 +2,5 @@
   "menu": {
     "sheduller": "Scheduler",
     "crons": "Crons"
-  },
-  "llm": {
-    "actions": {
-      "crons_show": {
-        "brief": "Show crons list",
-        "description": "Show crons list"
-      },
-      "cron_form_show": {
-        "brief": "Show cron form",
-        "description": "Show cron form"
-      },
-      "sheduller_history_show": {
-        "brief": "Show history",
-        "description": "Show history"
-      },
-      "sheduller_stats_show": {
-        "brief": "Show sheduller statistics",
-        "description": "Show sheduller statistics"
-      }
-    }
   }
 }

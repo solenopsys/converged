@@ -18,13 +18,6 @@ const createSecretsListWidget: CreateWidget<typeof SecretsListView> = (bus) => (
 
 const createShowSecretsAction: CreateAction<any> = (bus) => ({
   id: SHOW_SECRETS,
-  llm: {
-    microfrontend: "secrets-mf",
-    brief: "llm.actions.secrets_show.brief",
-    description: "llm.actions.secrets_show.description",
-  },
-  exposure: "user",
-  priority: "primary",
   invoke: () => {
     bus.present({ widget: createSecretsListWidget(bus) });
   },

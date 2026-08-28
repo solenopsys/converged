@@ -1,0 +1,18 @@
+{
+  "actions": {
+    "markdown.list": {
+      "brief": "Show markdown files list",
+      "description": "Show markdown files list",
+      "category": "markdown",
+      "exposure": "user",
+      "priority": "normal"
+    },
+    "markdown.edit": {
+      "brief": "Edit markdown file",
+      "description": "Edit markdown file",
+      "category": "markdown",
+      "exposure": "llm",
+      "priority": "normal"
+    }
+  }
+}

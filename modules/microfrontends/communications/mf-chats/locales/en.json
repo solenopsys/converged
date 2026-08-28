@@ -1,10 +1,1 @@
-{
-  "llm": {
-    "actions": {
-      "chats_show": {
-        "brief": "Show chats",
-        "description": "Show chats"
-      }
-    }
-  }
-}
+{}

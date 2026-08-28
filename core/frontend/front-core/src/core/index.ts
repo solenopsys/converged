@@ -31,9 +31,11 @@ export type {
 	FunctionIndexEntry,
 	FunctionIndexFile,
 	FunctionIndexModule,
+	MicrofrontendLlmCatalog,
 } from "./function-index";
 export {
 	ingestFunctionIndex,
+	ingestMicrofrontendLlmCatalog,
 	loadFunctionIndex,
 	moduleForAction,
 	modules,
@@ -54,8 +56,8 @@ export {
 export type {
 	Action,
 	ActionExposure,
-	ActionLlmFragment,
 	ActionMeta,
+	ActionParameters,
 	ActionPriority,
 	ActionRegistry,
 	CreateAction,

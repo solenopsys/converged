@@ -22,15 +22,18 @@ export {
 	createDomainLogger,
 	installEffectorTrafficLogger,
 	isEffectorDebugEnabled,
+	ingestMicrofrontendLlmCatalog,
 } from "front-core/core";
 export type {
 	ActionAuthorizationController,
 	ActionAuthorizationErrorCode,
 	ActionCommand,
+	MicrofrontendLlmCatalog,
 } from "front-core/core";
 export type {
 	Action,
 	ActionBrief,
+	ActionParameters,
 	ActionRegistry,
 	CategorySummary,
 	CreateAction,

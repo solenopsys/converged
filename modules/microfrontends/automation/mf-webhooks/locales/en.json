@@ -1,21 +1,5 @@
 {
   "menu.webhooks": "Webhooks",
   "menu.webhooks.endpoints": "Endpoints",
-  "menu.webhooks.logs": "Logs",
-  "llm": {
-    "actions": {
-      "webhooks_endpoints_show": {
-        "brief": "Show webhook endpoints",
-        "description": "Show webhook endpoints"
-      },
-      "webhooks_endpoint_form_show": {
-        "brief": "Show webhook endpoint form",
-        "description": "Show webhook endpoint form"
-      },
-      "webhooks_logs_show": {
-        "brief": "Show webhook logs",
-        "description": "Show webhook logs"
-      }
-    }
-  }
+  "menu.webhooks.logs": "Logs"
 }

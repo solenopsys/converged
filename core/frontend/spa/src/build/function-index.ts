@@ -21,20 +21,19 @@ import { microfrontendDir, microfrontends, microfrontendsDir } from "./layout";
 export type IndexedFunction = {
 	id: string;
 	/** Однострочник для компактного контекста LLM. */
-	brief?: string;
+	brief: string;
 	category: string;
 	/** Полное описание — им отвечает `describeFunction`, в список оно не идёт. */
-	description?: string;
-	llm?: {
-		microfrontend: string;
-		brief: string;
-		description: string;
-		messages?: Record<string, { brief: string; description: string }>;
-	};
-	exposure?: "llm" | "user";
-	priority?: "primary" | "normal" | "secondary";
+	description: string;
+	exposure: "llm" | "user";
+	priority: "primary" | "normal" | "secondary";
 	access?: "public";
 	capability?: string;
+	parameters?: {
+		type: "object";
+		properties: Record<string, unknown>;
+		required?: string[];
+	};
 };
 
 export type IndexedModule = {
@@ -100,12 +99,6 @@ const stubExternals = {
 
 type ActionDeclaration = {
 	id: string;
-	brief?: string;
-	category?: string;
-	description?: string;
-	llm?: IndexedFunction["llm"];
-	exposure?: IndexedFunction["exposure"];
-	priority?: IndexedFunction["priority"];
 	access?: "public";
 	capability?: string;
 };
@@ -165,37 +158,20 @@ async function declarationsEntry(dir: string): Promise<string | undefined> {
 	return undefined;
 }
 
-function messageAt(messages: unknown, key: string): string | undefined {
-	let value = messages;
-	for (const segment of key.split(".")) {
-		if (!value || typeof value !== "object" || !(segment in value)) {
-			const flat = (messages as Record<string, unknown>)[key];
-			return typeof flat === "string" ? flat : undefined;
-		}
-		value = (value as Record<string, unknown>)[segment];
-	}
-	return typeof value === "string" ? value : undefined;
-}
+type LlmCatalog = {
+	actions: Record<string, Omit<IndexedFunction, "id" | "access" | "capability">>;
+};
 
-async function readLlmMessages(
-	dir: string,
-	llm: NonNullable<IndexedFunction["llm"]>,
-): Promise<IndexedFunction["llm"]> {
-	const localeDir = join(dir, "locales");
-	const localized: Record<string, { brief: string; description: string }> = {};
-	for await (const entry of new Bun.Glob("*.json").scan({ cwd: localeDir })) {
-		try {
-			const messages = await Bun.file(join(localeDir, entry)).json();
-			const brief = messageAt(messages, llm.brief);
-			const description = messageAt(messages, llm.description);
-			if (brief && description) {
-				localized[entry.replace(/\.json$/, "")] = { brief, description };
-			}
-		} catch {
-			// Normal i18n validation reports malformed locale files separately.
-		}
+async function readLlmCatalog(dir: string, name: string): Promise<LlmCatalog> {
+	const file = Bun.file(join(dir, "llm.json"));
+	if (!(await file.exists())) {
+		throw new Error(`[function-index] mf-${name}: missing llm.json`);
 	}
-	return Object.keys(localized).length > 0 ? { ...llm, messages: localized } : llm;
+	const catalog = (await file.json()) as LlmCatalog;
+	if (!catalog.actions || typeof catalog.actions !== "object") {
+		throw new Error(`[function-index] mf-${name}: llm.json must contain an actions object`);
+	}
+	return catalog;
 }
 
 /**
@@ -281,25 +257,18 @@ export async function collectFunctionIndex(): Promise<FunctionIndex> {
 		// не попадёт в индекс — см. readDeclarations.
 		const brief = await readModuleBrief(dir);
 		const declarations = await readDeclarations(dir, name);
+		const llm = await readLlmCatalog(dir, name);
 
 		entries.push([
 			name,
 			{
 				module: `mf-${name}`,
 				brief,
-				functions: await Promise.all(
-					declarations.map(async (action) => ({
-						id: action.id,
-						...(action.brief ? { brief: action.brief } : {}),
-						category: action.category ?? categoryOf(action.id),
-						...(action.description ? { description: action.description } : {}),
-						...(action.llm ? { llm: await readLlmMessages(dir, action.llm) } : {}),
-						...(action.exposure ? { exposure: action.exposure } : {}),
-						...(action.priority ? { priority: action.priority } : {}),
-						...(action.access ? { access: action.access } : {}),
-						...(action.capability ? { capability: action.capability } : {}),
-					})),
-				),
+				functions: declarations.map((action) => {
+					const meta = llm.actions[action.id];
+					if (!meta) throw new Error(`[function-index] mf-${name}: missing llm metadata for ${action.id}`);
+					return { id: action.id, ...meta, ...(action.access ? { access: action.access } : {}), ...(action.capability ? { capability: action.capability } : {}) };
+				}),
 			},
 		]);
 	}

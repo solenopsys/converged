@@ -76,7 +76,6 @@ class AuthPlugin extends BasePlugin {
     bus.register({
       id: SEND_MAGIC_LINK,
       access: "public",
-      description: "Send magic link",
       invoke: (params: { email: string; returnTo?: string }) =>
         sendMagicLink(params.email, params.returnTo),
     });

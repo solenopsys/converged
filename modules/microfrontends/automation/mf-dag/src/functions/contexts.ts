@@ -14,13 +14,6 @@ const createContextsWidget: CreateWidget<typeof ContextsView> = (bus) => ({
 
 const createShowContextsListAction: CreateAction<any> = (bus) => ({
   id: SHOW_CONTEXTS_LIST,
-  llm: {
-    microfrontend: "dag-mf",
-    brief: "llm.actions.contexts_show_list.brief",
-    description: "llm.actions.contexts_show_list.description",
-  },
-  exposure: "user",
-  priority: "normal",
   invoke: () => {
     bus.present({ widget: createContextsWidget(bus) });
   },

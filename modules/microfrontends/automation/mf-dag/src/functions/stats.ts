@@ -14,13 +14,6 @@ const createStatsWidget: CreateWidget<typeof StatsView> = (bus) => ({
 
 const createShowStatsAction: CreateAction<any> = (bus) => ({
   id: SHOW_DAG_STATS,
-  llm: {
-    microfrontend: "dag-mf",
-    brief: "llm.actions.dag_stats_show.brief",
-    description: "llm.actions.dag_stats_show.description",
-  },
-  exposure: "user",
-  priority: "normal",
   invoke: () => {
     bus.present({ widget: createStatsWidget(bus) });
   },

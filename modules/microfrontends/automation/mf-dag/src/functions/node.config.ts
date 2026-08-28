@@ -31,13 +31,6 @@ const createNodesListWidget: CreateWidget<typeof NodesListView> = (bus) => ({
 
 const createShowNodesListAction: CreateAction<any> = (bus) => ({
     id: SHOW_NODES_LIST,
-    llm: {
-      microfrontend: "dag-mf",
-      brief: "llm.actions.nodes_show.brief",
-      description: "llm.actions.nodes_show.description",
-    },
-    exposure: "user",
-    priority: "primary",
     invoke: () => {
         bus.present({ widget: createNodesListWidget(bus) });
     }
@@ -45,13 +38,6 @@ const createShowNodesListAction: CreateAction<any> = (bus) => ({
 
 const createShowNodeFormAction: CreateAction<any> = (bus) => ({
     id: SHOW_NODE_FORM,
-    llm: {
-      microfrontend: "dag-mf",
-      brief: "llm.actions.node_form_show.brief",
-      description: "llm.actions.node_form_show.description",
-    },
-    exposure: "user",
-    priority: "primary",
     invoke: () => {
         bus.present({ widget: createNodeFormWidget(bus) });
     }

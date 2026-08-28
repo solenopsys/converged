@@ -1,10 +1,1 @@
-{
-  "llm": {
-    "actions": {
-      "docs_show_home": {
-        "brief": "Show docs",
-        "description": "Show docs"
-      }
-    }
-  }
-}
+{}

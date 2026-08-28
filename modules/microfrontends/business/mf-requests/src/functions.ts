@@ -31,13 +31,6 @@ const createRequestDetailWidget: CreateWidget<typeof Panel> = (bus) => ({
 
 const createShowRequestsAction: CreateAction<unknown> = (bus) => ({
 	id: SHOW_REQUESTS,
-	llm: {
-		microfrontend: "requests-mf",
-		brief: "llm.actions.requests_show.brief",
-		description: "llm.actions.requests_show.description",
-	},
-	exposure: "user",
-	priority: "primary",
 	invoke: () => {
 		bus.present({ widget: createRequestsWidget(bus) });
 	},
@@ -67,13 +60,6 @@ function syncRequestUrl(requestId: string, params?: OpenRequestParams) {
 
 const createOpenRequestAction: CreateAction<OpenRequestParams> = (bus) => ({
 	id: OPEN_REQUEST,
-	llm: {
-		microfrontend: "requests-mf",
-		brief: "llm.actions.requests_open.brief",
-		description: "llm.actions.requests_open.description",
-	},
-	exposure: "llm",
-	priority: "normal",
 	invoke: (params = {}) => {
 		const requestId = params.requestId ?? params.recordId ?? params.model?.id;
 		if (!requestId) return;
@@ -92,13 +78,6 @@ const createUpdateRequestModelAction: CreateAction<{
 	model?: RequestModel | null;
 }> = () => ({
 	id: UPDATE_REQUEST_MODEL,
-	llm: {
-		microfrontend: "requests-mf",
-		brief: "llm.actions.requests_model_update.brief",
-		description: "llm.actions.requests_model_update.description",
-	},
-	exposure: "llm",
-	priority: "normal",
 	invoke: ({ model } = {}) => {
 		if (model?.id) requestModelReceived(model);
 	},
@@ -106,13 +85,6 @@ const createUpdateRequestModelAction: CreateAction<{
 
 const createRefreshRequestAction: CreateAction<unknown> = () => ({
 	id: REFRESH_REQUEST,
-	llm: {
-		microfrontend: "requests-mf",
-		brief: "llm.actions.requests_refresh.brief",
-		description: "llm.actions.requests_refresh.description",
-	},
-	exposure: "llm",
-	priority: "normal",
 	invoke: () => {
 		// SSE subscription handles updates automatically
 	},

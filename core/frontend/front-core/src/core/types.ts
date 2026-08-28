@@ -6,20 +6,18 @@ import type { ComponentType } from "preact";
 
 export type Surface = "center" | "modal" | "full" | "chat.inline";
 
-/** Keys in one microfrontend's embedded locale catalog for an LLM description. */
-export type ActionLlmFragment = {
-	microfrontend: string;
-	brief: string;
-	description: string;
-	/** Localized values extracted into the delivery index for unloaded modules. */
-	messages?: Record<string, { brief: string; description: string }>;
-};
-
 /** Who may discover an action. `user` remains callable by the LLM as well. */
 export type ActionExposure = "llm" | "user";
 
 /** Ranking tier used consistently by catalog, slash discovery and the LLM. */
 export type ActionPriority = "primary" | "normal" | "secondary";
+
+/** JSON Schema subset used to collect action arguments from the assistant. */
+export type ActionParameters = {
+	type: "object";
+	properties: Record<string, unknown>;
+	required?: string[];
+};
 
 export type ActionMeta = {
 	id: string;
@@ -28,17 +26,15 @@ export type ActionMeta = {
 	/** NRPC capability required before this action may change UI state. */
 	capability?: string;
 
-	/** @deprecated Migrate to `llm`; retained as a fallback during migration. */
 	brief?: string;
 	category?: string;
-	/** @deprecated Migrate to `llm`; retained as a fallback during migration. */
 	description?: string;
-	/** Localized LLM text owned by the microfrontend's embedded i18n catalog. */
-	llm?: ActionLlmFragment;
 	/** LLM-only actions never appear in user slash discovery or direct invocation. */
 	exposure?: ActionExposure;
 	/** Primary actions win ties in discovery; secondary actions remain available. */
 	priority?: ActionPriority;
+	/** Argument schema exposed to the assistant before the action is invoked. */
+	parameters?: ActionParameters;
 };
 
 export type Widget<V = Record<string, unknown>> = {
@@ -75,6 +71,7 @@ export interface ActionRegistry {
 	register(action: Action<any>): string;
 
 	declare(meta: ActionMeta): void;
+	declarePattern(prefix: string, meta: Omit<ActionMeta, "id">): void;
 	run(actionId: string, params?: any): unknown;
 
 	present(request: PresentRequest): void;

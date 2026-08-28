@@ -23,13 +23,6 @@ const createScriptsEditWidget: CreateWidget<typeof ScriptsEditView> = (
 
 const createShowScriptsListAction: CreateAction<any> = (bus) => ({
 	id: SHOW_SCRIPTS_LIST,
-	llm: {
-		microfrontend: "scripts-mf",
-		brief: "llm.actions.scripts_list.brief",
-		description: "llm.actions.scripts_list.description",
-	},
-	exposure: "user",
-	priority: "normal",
 	invoke: () => {
 		bus.present({ widget: createScriptsListWidget(bus) });
 	},
@@ -37,13 +30,6 @@ const createShowScriptsListAction: CreateAction<any> = (bus) => ({
 
 const createShowScriptsEditAction: CreateAction<any> = (bus) => ({
 	id: SHOW_SCRIPTS_EDIT,
-	llm: {
-		microfrontend: "scripts-mf",
-		brief: "llm.actions.scripts_edit.brief",
-		description: "llm.actions.scripts_edit.description",
-	},
-	exposure: "llm",
-	priority: "normal",
 	invoke: () => {
 		bus.present({ widget: createScriptsEditWidget(bus) });
 	},

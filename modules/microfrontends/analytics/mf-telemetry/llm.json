@@ -1,0 +1,25 @@
+{
+  "actions": {
+    "telemetry.hot.show": {
+      "brief": "Show hot telemetry",
+      "description": "Show hot telemetry",
+      "category": "telemetry",
+      "exposure": "user",
+      "priority": "normal"
+    },
+    "telemetry.cold.show": {
+      "brief": "Show cold telemetry",
+      "description": "Show cold telemetry",
+      "category": "telemetry",
+      "exposure": "user",
+      "priority": "normal"
+    },
+    "telemetry.stats.show": {
+      "brief": "Show telemetry statistics",
+      "description": "Show telemetry statistics",
+      "category": "telemetry",
+      "exposure": "user",
+      "priority": "normal"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "actions": {
+    "dumps.list.show": {
+      "brief": "Show dump files",
+      "description": "Show dump files",
+      "category": "dumps",
+      "exposure": "user",
+      "priority": "normal"
+    },
+    "dumps.storages.show": {
+      "brief": "Show storage stats",
+      "description": "Show storage stats",
+      "category": "dumps",
+      "exposure": "user",
+      "priority": "normal"
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "actions": {
+    "orders.show": {
+      "brief": "Show orders",
+      "description": "Show orders",
+      "category": "orders",
+      "exposure": "user",
+      "priority": "primary"
+    }
+  }
+}

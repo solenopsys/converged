@@ -11,13 +11,6 @@ const createGaleryListWidget: CreateWidget<typeof GaleryListView> = (_bus) => ({
 
 const createShowGaleryListAction: CreateAction<any> = (bus) => ({
   id: SHOW_GALERY_LIST,
-  llm: {
-    microfrontend: "galery-mf",
-    brief: "llm.actions.galery_list.brief",
-    description: "llm.actions.galery_list.description",
-  },
-  exposure: "user",
-  priority: "normal",
   invoke: () => {
     bus.present({ widget: createGaleryListWidget(bus) });
   },

@@ -1,0 +1,11 @@
+{
+  "actions": {
+    "chats.show": {
+      "brief": "Show chats",
+      "description": "Show chats",
+      "category": "chats",
+      "exposure": "user",
+      "priority": "primary"
+    }
+  }
+}

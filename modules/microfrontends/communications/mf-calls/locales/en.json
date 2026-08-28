@@ -54,29 +54,5 @@
     "loading": "Loading…",
     "lines": "lines",
     "refresh": "Refresh"
-  },
-  "llm": {
-    "actions": {
-      "calls_show": {
-        "brief": "Show calls list",
-        "description": "Show calls list"
-      },
-      "calls_new": {
-        "brief": "Start a new AI call",
-        "description": "Start a new AI call"
-      },
-      "calls_view": {
-        "brief": "View call transcript and recording in the side panel",
-        "description": "View call transcript and recording in the side panel"
-      },
-      "calls_return": {
-        "brief": "Return to calls list",
-        "description": "Return to calls list"
-      },
-      "calls_web_start": {
-        "brief": "Start a website WebRTC call",
-        "description": "Start a website WebRTC call"
-      }
-    }
   }
 }

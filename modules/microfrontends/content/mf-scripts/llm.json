@@ -1,0 +1,18 @@
+{
+  "actions": {
+    "scripts.list": {
+      "brief": "Show scripts list",
+      "description": "Show scripts list",
+      "category": "scripts",
+      "exposure": "user",
+      "priority": "normal"
+    },
+    "scripts.edit": {
+      "brief": "Edit script",
+      "description": "Edit script",
+      "category": "scripts",
+      "exposure": "llm",
+      "priority": "normal"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "actions": {
+    "threads.show": {
+      "brief": "Show threads dashboard",
+      "description": "Show threads dashboard",
+      "category": "threads",
+      "exposure": "user",
+      "priority": "primary"
+    },
+    "threads.view": {
+      "brief": "View a single thread",
+      "description": "View a single thread",
+      "category": "threads",
+      "exposure": "user",
+      "priority": "normal"
+    }
+  }
+}

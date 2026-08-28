@@ -28,13 +28,6 @@ const createLambdaWidget: CreateWidget<typeof NodeConfigForm> = () => ({
 
 const createShowLambdaAction: CreateAction<any> = (bus) => ({
     id: SHOW_LAMBDA,
-    llm: {
-      microfrontend: "dag-mf",
-      brief: "llm.actions.show_lambda.brief",
-      description: "llm.actions.show_lambda.description",
-    },
-    exposure: "user",
-    priority: "normal",
     invoke: () => {
         bus.present({ widget: createLambdaWidget(bus) });
     }

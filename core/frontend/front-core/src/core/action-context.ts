@@ -25,7 +25,6 @@ interface RegistryLike {
 		category?: string;
 		access?: "public";
 		capability?: string;
-		llm?: { microfrontend: string; brief: string; description: string };
 		exposure?: ActionExposure;
 		priority?: ActionPriority;
 	}>;

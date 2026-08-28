@@ -31,13 +31,6 @@ const createProvidersListWidget: CreateWidget<typeof ProvidersListView> = (bus) 
 
 const createShowProvidersListAction: CreateAction<any> = (bus) => ({
     id: SHOW_PROVIDERS_LIST,
-    llm: {
-      microfrontend: "dag-mf",
-      brief: "llm.actions.providers_show.brief",
-      description: "llm.actions.providers_show.description",
-    },
-    exposure: "user",
-    priority: "primary",
     invoke: () => {
         bus.present({ widget: createProvidersListWidget(bus) });
     }
@@ -45,13 +38,6 @@ const createShowProvidersListAction: CreateAction<any> = (bus) => ({
 
 const createShowProviderFormAction: CreateAction<any> = (bus) => ({
     id: SHOW_PROVIDER_FORM,
-    llm: {
-      microfrontend: "dag-mf",
-      brief: "llm.actions.provider_form_show.brief",
-      description: "llm.actions.provider_form_show.description",
-    },
-    exposure: "user",
-    priority: "primary",
     invoke: () => {
         bus.present({ widget: createProviderFormWidget(bus) });
     }

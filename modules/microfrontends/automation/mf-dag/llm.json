@@ -1,0 +1,144 @@
+{
+  "actions": {
+    "value": {
+      "brief": "Show vars list",
+      "description": "Show vars list",
+      "category": "value",
+      "exposure": "user",
+      "priority": "normal"
+    },
+    "dag.scripts.list": {
+      "brief": "Show scripts list",
+      "description": "Show scripts list",
+      "category": "dag",
+      "exposure": "user",
+      "priority": "normal"
+    },
+    "workflows.show": {
+      "brief": "Show workflows list",
+      "description": "Show workflows list",
+      "category": "workflows",
+      "exposure": "user",
+      "priority": "primary"
+    },
+    "workflow_form.show": {
+      "brief": "Show workflow form",
+      "description": "Show workflow form",
+      "category": "workflow_form",
+      "exposure": "user",
+      "priority": "primary"
+    },
+    "workflow.show": {
+      "brief": "Show workflow detail",
+      "description": "Show workflow detail",
+      "category": "workflow",
+      "exposure": "user",
+      "priority": "primary"
+    },
+    "workflows.statistic.show": {
+      "brief": "Show workflows statistic",
+      "description": "Show workflows statistic",
+      "category": "workflows",
+      "exposure": "user",
+      "priority": "normal"
+    },
+    "show_context": {
+      "brief": "Show context",
+      "description": "Show context",
+      "category": "show_context",
+      "exposure": "user",
+      "priority": "normal"
+    },
+    "executions.show_list": {
+      "brief": "Show executions list",
+      "description": "Show executions list",
+      "category": "executions",
+      "exposure": "user",
+      "priority": "normal"
+    },
+    "var_form.show": {
+      "brief": "Show variable form",
+      "description": "Show variable form",
+      "category": "var_form",
+      "exposure": "user",
+      "priority": "primary"
+    },
+    "show_versions": {
+      "brief": "Show code versions",
+      "description": "Show code versions",
+      "category": "show_versions",
+      "exposure": "user",
+      "priority": "normal"
+    },
+    "get_versions": {
+      "brief": "Get code versions",
+      "description": "Get code versions",
+      "category": "get_versions",
+      "exposure": "llm",
+      "priority": "normal"
+    },
+    "tasks.show_list": {
+      "brief": "Show tasks list",
+      "description": "Show tasks list",
+      "category": "tasks",
+      "exposure": "user",
+      "priority": "normal"
+    },
+    "contexts.show_list": {
+      "brief": "Show contexts list",
+      "description": "Show contexts list",
+      "category": "contexts",
+      "exposure": "user",
+      "priority": "normal"
+    },
+    "dag.stats.show": {
+      "brief": "Show DAG statistics",
+      "description": "Show DAG statistics",
+      "category": "dag",
+      "exposure": "user",
+      "priority": "normal"
+    },
+    "providers.show": {
+      "brief": "Show providers list",
+      "description": "Show providers list",
+      "category": "providers",
+      "exposure": "user",
+      "priority": "primary"
+    },
+    "provider_form.show": {
+      "brief": "Show provider form",
+      "description": "Show provider form",
+      "category": "provider_form",
+      "exposure": "user",
+      "priority": "primary"
+    },
+    "show_lambda": {
+      "brief": "Show lambda",
+      "description": "Show lambda",
+      "category": "show_lambda",
+      "exposure": "user",
+      "priority": "normal"
+    },
+    "nodes.show": {
+      "brief": "Show nodes list",
+      "description": "Show nodes list",
+      "category": "nodes",
+      "exposure": "user",
+      "priority": "primary"
+    },
+    "node_form.show": {
+      "brief": "Show node form",
+      "description": "Show node form",
+      "category": "node_form",
+      "exposure": "user",
+      "priority": "primary"
+    },
+    "vars.show_list": {
+      "brief": "vars.show_list",
+      "description": "Execute vars.show_list.",
+      "category": "vars",
+      "exposure": "llm",
+      "priority": "normal"
+    }
+  }
+}

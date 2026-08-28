@@ -1,0 +1,11 @@
+{
+  "actions": {
+    "landing.show.default": {
+      "brief": "Show landing",
+      "description": "Show landing",
+      "category": "landing",
+      "exposure": "user",
+      "priority": "normal"
+    }
+  }
+}

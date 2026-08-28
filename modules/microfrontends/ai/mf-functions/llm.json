@@ -1,0 +1,11 @@
+{
+  "actions": {
+    "functions.show": {
+      "brief": "Open the catalog of callable functions",
+      "description": "Show every registered front and back function with semantic search. Accepts an optional query.",
+      "category": "functions",
+      "exposure": "user",
+      "priority": "primary"
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "actions": {
+    "requests.show": { "brief": "Show requests", "description": "Show requests", "category": "requests", "exposure": "user", "priority": "primary" },
+    "requests.open": { "brief": "Open request detail", "description": "Open request detail", "category": "requests", "exposure": "llm", "priority": "normal" },
+    "requests.model.update": { "brief": "Apply updated request model to the opened request view", "description": "Apply updated request model to the opened request view", "category": "requests", "exposure": "llm", "priority": "normal" },
+    "requests.refresh": { "brief": "Refresh opened request model", "description": "Refresh opened request model", "category": "requests", "exposure": "llm", "priority": "normal" }
+  }
+}

@@ -11,18 +11,37 @@ import type {
 class Registry implements ActionRegistry {
 	private readonly actions = new Map<string, Action<any>>();
 	private readonly declared = new Map<string, ActionMeta>();
+	private readonly patterns: Array<{ prefix: string; meta: Omit<ActionMeta, "id"> }> = [];
 	private activeActionId: string | undefined;
 
 	register(action: Action<any>): string {
-		this.actions.set(action.id, action);
-		actionRegistered(action);
-		return action.id;
+		const declared = this.declared.get(action.id) ?? this.pattern(action.id);
+		const registered = { ...declared, ...action } as Action<any>;
+		this.actions.set(registered.id, registered);
+		actionRegistered(registered);
+		return registered.id;
 	}
 
 	declare(meta: ActionMeta): void {
-		if (this.actions.has(meta.id)) return;
 		this.declared.set(meta.id, meta);
+		const action = this.actions.get(meta.id);
+		if (action) {
+			const registered = { ...meta, ...action } as Action<any>;
+			this.actions.set(meta.id, registered);
+			actionRegistered(registered);
+		}
 		actionDeclared(meta);
+	}
+
+	declarePattern(prefix: string, meta: Omit<ActionMeta, "id">): void {
+		this.patterns.push({ prefix, meta });
+	}
+
+	private pattern(actionId: string): ActionMeta | undefined {
+		const match = this.patterns
+			.filter((pattern) => actionId.startsWith(pattern.prefix))
+			.sort((left, right) => right.prefix.length - left.prefix.length)[0];
+		return match ? { id: actionId, ...match.meta } : undefined;
 	}
 
 	run(actionId: string, params?: any): unknown {

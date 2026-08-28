@@ -20,17 +20,5 @@
     "forumDescription": "Forum threads",
     "comment": "Comments",
     "commentDescription": "Comment threads"
-  },
-  "llm": {
-    "actions": {
-      "threads_show": {
-        "brief": "Show threads dashboard",
-        "description": "Show threads dashboard"
-      },
-      "threads_view": {
-        "brief": "View a single thread",
-        "description": "View a single thread"
-      }
-    }
   }
 }

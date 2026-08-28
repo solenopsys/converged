@@ -43,13 +43,6 @@ const createClassifierTreeWidget: CreateWidget<typeof ClassifierTreeView> = (
 
 const createShowClassifierDashboardAction: CreateAction<any> = (bus) => ({
 	id: SHOW_CLASSIFIER_DASHBOARD,
-	llm: {
-		microfrontend: "classifier-mf",
-		brief: "llm.actions.classifier_dashboard_show.brief",
-		description: "llm.actions.classifier_dashboard_show.description",
-	},
-	exposure: "user",
-	priority: "normal",
 	invoke: () => {
 		bus.present({ widget: createClassifierDashboardWidget(bus) });
 	},
@@ -57,13 +50,6 @@ const createShowClassifierDashboardAction: CreateAction<any> = (bus) => ({
 
 const createShowClassifierMappingsAction: CreateAction<any> = (bus) => ({
 	id: SHOW_CLASSIFIER_MAPPINGS,
-	llm: {
-		microfrontend: "classifier-mf",
-		brief: "llm.actions.classifier_mappings_show.brief",
-		description: "llm.actions.classifier_mappings_show.description",
-	},
-	exposure: "user",
-	priority: "normal",
 	invoke: () => {
 		bus.present({ widget: createClassifierMappingsWidget(bus) });
 	},
@@ -71,13 +57,6 @@ const createShowClassifierMappingsAction: CreateAction<any> = (bus) => ({
 
 const createShowClassifierNodesAction: CreateAction<any> = (bus) => ({
 	id: SHOW_CLASSIFIER_NODES,
-	llm: {
-		microfrontend: "classifier-mf",
-		brief: "llm.actions.classifier_nodes_show.brief",
-		description: "llm.actions.classifier_nodes_show.description",
-	},
-	exposure: "user",
-	priority: "normal",
 	invoke: () => {
 		bus.present({ widget: createClassifierNodesWidget(bus) });
 	},
@@ -85,13 +64,6 @@ const createShowClassifierNodesAction: CreateAction<any> = (bus) => ({
 
 const createShowClassifierTreeAction: CreateAction<any> = (bus) => ({
 	id: SHOW_CLASSIFIER_TREE,
-	llm: {
-		microfrontend: "classifier-mf",
-		brief: "llm.actions.classifier_tree_show.brief",
-		description: "llm.actions.classifier_tree_show.description",
-	},
-	exposure: "user",
-	priority: "normal",
 	invoke: () => {
 		bus.present({ widget: createClassifierTreeWidget(bus) });
 	},

@@ -129,15 +129,6 @@ const createCronsListWidget: CreateWidget<typeof CronsListView> = (bus) => ({
 
 const createShowCronsListAction: CreateAction<any> = (bus) => ({
   id: SHOW_CRONS_LIST,
-  brief: "Open cron jobs list (scheduler tasks)",
-  category: "automation",
-  llm: {
-    microfrontend: "sheduller-mf",
-    brief: "llm.actions.crons_show.brief",
-    description: "llm.actions.crons_show.description",
-  },
-  exposure: "user",
-  priority: "primary",
   invoke: () => {
     bus.present({ widget: createCronsListWidget(bus) });
   },
@@ -145,15 +136,6 @@ const createShowCronsListAction: CreateAction<any> = (bus) => ({
 
 const createShowCronFormAction: CreateAction<any> = (bus) => ({
   id: SHOW_CRON_FORM,
-  brief: "Open cron job create/edit form",
-  category: "automation",
-  llm: {
-    microfrontend: "sheduller-mf",
-    brief: "llm.actions.cron_form_show.brief",
-    description: "llm.actions.cron_form_show.description",
-  },
-  exposure: "user",
-  priority: "primary",
   invoke: ({ cron }: { cron?: any }) => {
     openCronForm({ cron });
     bus.present({ widget: createCronFormWidget(bus) });

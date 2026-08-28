@@ -95,13 +95,6 @@ const createWorkflowsListWidget: CreateWidget<typeof WorkflowsListView> = (bus) 
 
 const createShowWorkflowsListAction: CreateAction<any> = (bus) => ({
     id: SHOW_WORKFLOWS_LIST,
-    llm: {
-      microfrontend: "dag-mf",
-      brief: "llm.actions.workflows_show.brief",
-      description: "llm.actions.workflows_show.description",
-    },
-    exposure: "user",
-    priority: "primary",
     invoke: () => {
         bus.present({ widget: createWorkflowsListWidget(bus) });
     }
@@ -109,13 +102,6 @@ const createShowWorkflowsListAction: CreateAction<any> = (bus) => ({
 
 const createShowWorkflowFormAction: CreateAction<any> = (bus) => ({
     id: SHOW_WORKFLOW_FORM,
-    llm: {
-      microfrontend: "dag-mf",
-      brief: "llm.actions.workflow_form_show.brief",
-      description: "llm.actions.workflow_form_show.description",
-    },
-    exposure: "user",
-    priority: "primary",
     invoke: ({ workflow }: { workflow?: any }) => {
         openWorkflowForm({ workflow });
         bus.present({ widget: createWorkflowFormWidget(bus) });
@@ -124,13 +110,6 @@ const createShowWorkflowFormAction: CreateAction<any> = (bus) => ({
 
 const createShowWorkflowDetailAction: CreateAction<any> = (bus) => ({
     id: SHOW_WORKFLOW,
-    llm: {
-      microfrontend: "dag-mf",
-      brief: "llm.actions.workflow_show.brief",
-      description: "llm.actions.workflow_show.description",
-    },
-    exposure: "user",
-    priority: "primary",
     invoke: () => {
         bus.present({ widget: createWorkflowsDetailWidget(bus) });
     }
@@ -138,13 +117,6 @@ const createShowWorkflowDetailAction: CreateAction<any> = (bus) => ({
 
 const createShowWorkflowsStatisticAction: CreateAction<any> = (bus) => ({
     id: SHOW_WORKFLOWS_STATISTIC,
-    llm: {
-      microfrontend: "dag-mf",
-      brief: "llm.actions.workflows_statistic_show.brief",
-      description: "llm.actions.workflows_statistic_show.description",
-    },
-    exposure: "user",
-    priority: "normal",
     invoke: () => {
         getWorkflowsStatEvent();
         bus.present({ widget: createWorkflowsStatisticWidget(bus) });

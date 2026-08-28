@@ -16,13 +16,6 @@ const createDocsWidget: CreateWidget<typeof DocsView> = (
 
 const createShowDocsAction: CreateAction<any> = (bus) => ({
   id: SHOW_DOCS_HOME,
-  llm: {
-    microfrontend: "docs-mf",
-    brief: "llm.actions.docs_show_home.brief",
-    description: "llm.actions.docs_show_home.description",
-  },
-  exposure: "user",
-  priority: "normal",
   invoke: () => {
     const first = getDocsSources()[0];
     if (!first) return;

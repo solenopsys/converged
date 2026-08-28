@@ -36,29 +36,5 @@
     "checkEmail": "Check your email to continue",
     "loginFailed": "Login failed",
     "tryAgain": "Please try again"
-  },
-  "llm": {
-    "actions": {
-      "auth_show_login": {
-        "brief": "Show login form",
-        "description": "Show login form"
-      },
-      "auth_login": {
-        "brief": "Auth user",
-        "description": "Auth user"
-      },
-      "auth_logout": {
-        "brief": "Logout user",
-        "description": "Logout user"
-      },
-      "show_social": {
-        "brief": "Show social login",
-        "description": "Show social login"
-      },
-      "auth_ensure_temporary_session": {
-        "brief": "Ensure temporary auth session",
-        "description": "Ensure temporary auth session"
-      }
-    }
   }
 }

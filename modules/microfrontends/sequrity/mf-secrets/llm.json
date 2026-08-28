@@ -1,0 +1,11 @@
+{
+  "actions": {
+    "secrets.show": {
+      "brief": "Show secrets list",
+      "description": "Show secrets list",
+      "category": "secrets",
+      "exposure": "user",
+      "priority": "primary"
+    }
+  }
+}

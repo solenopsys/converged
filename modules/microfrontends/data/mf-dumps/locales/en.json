@@ -1,17 +1,5 @@
 {
   "menu.dumps": "Dumps",
   "menu.dumps.files": "Files",
-  "menu.dumps.storages": "Storages",
-  "llm": {
-    "actions": {
-      "dumps_list_show": {
-        "brief": "Show dump files",
-        "description": "Show dump files"
-      },
-      "dumps_storages_show": {
-        "brief": "Show storage stats",
-        "description": "Show storage stats"
-      }
-    }
-  }
+  "menu.dumps.storages": "Storages"
 }

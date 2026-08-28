@@ -24,7 +24,6 @@ class DocsPlugin extends BasePlugin {
 
         bus.register({
           id: docsSourceActionId(sourceKey),
-          description: `Open docs page ${source.name}`,
           invoke: () => {
             presentDocs(bus, source.id);
           },
@@ -35,7 +34,6 @@ class DocsPlugin extends BasePlugin {
           const id = anchorActionId(sourceKey, section.anchor);
           bus.register({
             id,
-            description: `Open docs section ${source.name}/${section.slug}`,
             invoke: () => {
               presentDocs(bus, source.id, section.anchor);
             },

@@ -71,33 +71,5 @@
       "invokeUIAction": "Opening view",
       "weather": "Checking weather"
     }
-  },
-  "llm": {
-    "actions": {
-      "chats_show_list": {
-        "brief": "Show chats list",
-        "description": "Show chats list"
-      },
-      "chats_show_commands_list": {
-        "brief": "Show available commands list",
-        "description": "Show available commands list"
-      },
-      "chats_view": {
-        "brief": "View chat details",
-        "description": "View chat details"
-      },
-      "chats_view_tool_call_json": {
-        "brief": "View tool call JSON",
-        "description": "View tool call JSON"
-      },
-      "chats_edit": {
-        "brief": "Edit chat",
-        "description": "Edit chat"
-      },
-      "chats_delete": {
-        "brief": "Delete chat",
-        "description": "Delete chat"
-      }
-    }
   }
 }
