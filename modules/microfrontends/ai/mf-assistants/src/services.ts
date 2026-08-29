@@ -1,19 +1,16 @@
 import { createSignalAssistantClient } from "assistant-state";
 import { services, setStoreWorker } from "files-state";
 import { createAssistantServiceClient } from "g-assistant";
+import { createCentimanusServiceClient } from "g-centimanus";
 import { createFilesServiceClient } from "g-files";
 import { createRequestsServiceClient } from "g-requests";
-import { createRuntimeDagServiceClient } from "g-rt-dag";
 import { createStoreServiceClient } from "g-store";
 import { createThreadsServiceClient } from "g-threads";
-import {
-	createFrontNrpcClientConfig,
-	signalChannel,
-} from "signal-channel";
+import { createFrontNrpcClientConfig, signalChannel } from "signal-channel";
 
 const chatClient = createSignalAssistantClient(signalChannel);
 
-const dagClient = createRuntimeDagServiceClient(
+const centimanusClient = createCentimanusServiceClient(
 	createFrontNrpcClientConfig({
 		target: "centimanus",
 		deadlineMs: 120_000,
@@ -41,8 +38,8 @@ setStoreWorker(worker);
 
 export {
 	assistantClient,
+	centimanusClient as dagClient,
 	chatClient,
-	dagClient,
 	filesClient,
 	requestsClient,
 	storeClient,

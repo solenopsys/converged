@@ -55,7 +55,7 @@
 		"yaml": "^2.9.0"
 	},
 	"scripts": {
-		"gen": "bun run core/tools/nrpc/src/gen-all.ts modules/types modules/generated && bun run core/tools/nrpc/src/gen-all.ts core/native/types modules/generated rt",
+		"gen": "bun run core/tools/nrpc/src/gen-all.ts modules/types modules/generated",
 		"dev": "bun i && NODE_ENV=development bun run core/tools/dev/src/cli.ts --env-file=../confs/dev/converged.env --no-ui",
 		"dev:ui": "NODE_ENV=development bun run core/tools/dev/src/cli.ts --env-file=../confs/dev/converged.env --ui-only",
 		"dev:all": "bun i && NODE_ENV=development bun run core/tools/dev/src/cli.ts --env-file=../confs/dev/converged.env",

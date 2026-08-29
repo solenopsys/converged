@@ -39,11 +39,15 @@ const candidateLine = (fn: FunctionBrief): string =>
 		? `${fn.id} — ${fn.brief}: ${fn.description}`
 		: `${fn.id} — ${fn.brief}`;
 
-function needsArgumentModel(meta: ReturnType<OrchestratorCatalog["meta"]>): boolean {
+function needsArgumentModel(
+	meta: ReturnType<OrchestratorCatalog["meta"]>,
+): boolean {
 	// A missing schema is unknown, so preserve the model step for existing hosts.
 	// Optional fields still need the step: the model can extract values from the
 	// request and prefill a form without inventing values for omitted fields.
-	return !meta?.parameters || Object.keys(meta.parameters.properties).length > 0;
+	return (
+		!meta?.parameters || Object.keys(meta.parameters.properties).length > 0
+	);
 }
 
 function schemaDefaults(
@@ -52,7 +56,8 @@ function schemaDefaults(
 	if (!meta?.parameters) return {};
 	return Object.fromEntries(
 		Object.entries(meta.parameters.properties).flatMap(([key, value]) => {
-			if (!value || typeof value !== "object" || !("default" in value)) return [];
+			if (!value || typeof value !== "object" || !("default" in value))
+				return [];
 			return [[key, (value as { default: unknown }).default]];
 		}),
 	);
@@ -63,9 +68,13 @@ function structured(
 	answer: StepAnswer | undefined,
 	toolName: string,
 ): Record<string, unknown> | undefined {
-	const calls = answer?.toolCalls.filter((candidate) => candidate.name === toolName);
+	const calls = answer?.toolCalls.filter(
+		(candidate) => candidate.name === toolName,
+	);
 	// Some providers emit an empty provisional tool call before the final one.
-	const call = calls?.find((candidate) => Object.keys(candidate.args).length > 0) ?? calls?.at(-1);
+	const call =
+		calls?.find((candidate) => Object.keys(candidate.args).length > 0) ??
+		calls?.at(-1);
 	if (call) return call.args;
 	return answer?.text ? parseJsonObject(answer.text) : undefined;
 }
@@ -121,8 +130,17 @@ export function createFunctionSteps({
 	const search: Step<PlanContext> = {
 		name: "search",
 		apply: ({ area, userText }) => {
+			// `area` comes from a fast model and is only a search hint. Searching it
+			// alone lets a hallucinated area (for example "catalog") turn an
+			// unrelated singleton into an automatic invocation. The user's message
+			// is the authoritative intent and always gets the first candidate slots.
 			const query = area ?? userText;
-			const candidates = catalog.search(query, candidateLimit);
+			const candidates = mergeCandidates(
+				catalog,
+				userText,
+				area,
+				candidateLimit,
+			);
 			if (candidates.length === 0) {
 				return { done: { kind: "function-missed", area: query, candidates } };
 			}
@@ -229,11 +247,15 @@ export function createFunctionSteps({
 		name: "invoke",
 		apply: async ({ id, args: params = {} }) => {
 			if (!id) {
-				throw new Error("[orchestrator] invoke step reached without a function id");
+				throw new Error(
+					"[orchestrator] invoke step reached without a function id",
+				);
 			}
 			try {
 				const fact = await catalog.invoke(id, params);
-				return { done: { kind: "function", id, args: params, fact: cap(fact) } };
+				return {
+					done: { kind: "function", id, args: params, fact: cap(fact) },
+				};
 			} catch (error) {
 				return {
 					done: {
@@ -260,4 +282,20 @@ export function createFunctionSteps({
 	}
 
 	return [route, search, select, args, invoke];
+}
+
+function mergeCandidates(
+	catalog: OrchestratorCatalog,
+	userText: string,
+	area: string | undefined,
+	limit: number,
+): FunctionBrief[] {
+	const merged = new Map<string, FunctionBrief>();
+	for (const query of [userText, area]) {
+		if (!query?.trim()) continue;
+		for (const candidate of catalog.search(query, limit)) {
+			if (!merged.has(candidate.id)) merged.set(candidate.id, candidate);
+		}
+	}
+	return [...merged.values()].slice(0, limit);
 }

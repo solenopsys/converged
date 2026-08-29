@@ -98,7 +98,12 @@ export function discover(projectDirs: string[], kind: Kind): Module[] {
 				console.warn(`[registry] ${prefix}${name}: no entry file, skipped`);
 				continue;
 			}
-			const artifact = `${prefix}${name}.js`;
+			// Workflow callers use a script path, unlike UI/MS module loaders that
+			// use a bare artifact name. Keep that path in the registry mapping too.
+			const artifact =
+				kind === "workflows"
+					? `workflows/${prefix}${name}.js`
+					: `${prefix}${name}.js`;
 			if (kind !== "microservices") {
 				modules.set(name, {
 					kind,

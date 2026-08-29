@@ -563,9 +563,9 @@ Summarizes unprocessed chat and call dialogues with an LLM, then stores titles, 
 - Direct dependencies: none
 - Solutions: none
 
-### [wf-file-analysis](/en/docs/modules/wf-file-analysis)
+### [wf-files-process](/en/docs/modules/wf-files-process)
 
-Processes uploaded files in batches: it expands archives, analyzes supported files, and returns conversion and production-estimate results.
+Processes uploaded files in batches: it expands archives, identifies model files, and creates a request when applicable.
 
 - Direct dependencies: none
 - Solutions: `requests`

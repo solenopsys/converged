@@ -13,6 +13,7 @@ test("resolves the configured solution set and workflow links", () => {
 		"auth",
 		"identity",
 		"oauth",
+		"ses",
 		"markdown",
 		"struct",
 		"galery",
@@ -26,8 +27,10 @@ test("resolves the configured solution set and workflow links", () => {
 		"telemetry",
 		"counters",
 		"usage",
+		"dag",
 		"files",
 		"store",
+		"compressors",
 		"requests",
 	]);
 	expect(resolved.solution.spec.microfrontends).toEqual([
@@ -48,9 +51,33 @@ test("resolves the configured solution set and workflow links", () => {
 		"usage",
 		"requests",
 	]);
-	expect(resolved.solution.spec.processors).toEqual(["curaengine", "opencam"]);
-	expect(resolved.solution.spec.workflows).toEqual([
-		{ name: "wf-file-analysis", script: "workflows/wf-file-analysis.js" },
-		{ name: "wf-file-unpack", script: "workflows/wf-file-unpack.js" },
+	expect(resolved.solution.spec.processors).toEqual([
+		"curaengine",
+		"opencamlib",
 	]);
+	expect(
+		resolved.solution.spec.workflows.map(({ id, name, script }) => ({
+			id,
+			name,
+			script,
+		})),
+	).toEqual([
+		{
+			id: "files-process",
+			name: "wf-files-process",
+			script: "workflows/wf-files-process.js",
+		},
+		{
+			id: "file-unpack",
+			name: "wf-file-unpack",
+			script: "workflows/wf-file-unpack.js",
+		},
+	]);
+	expect(resolved.solution.spec.workflows[0]?.parameters).toEqual({
+		type: "object",
+		properties: {
+			fileIds: { type: "array", items: { type: "string" } },
+		},
+		required: ["fileIds"],
+	});
 });

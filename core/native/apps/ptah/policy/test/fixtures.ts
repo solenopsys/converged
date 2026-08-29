@@ -105,7 +105,14 @@ export const registry = {
 	url: "https://registry.example.com/converged",
 	solutions: "solutions/converged.json",
 	revision: "2026-08-21",
-	modules: { "ms-agent.js": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad" },
+	modules: {
+		"ms-agent.js":
+			"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+	},
+	workflows: {
+		"workflows/wf-files-process.js":
+			"c7d99a8c1e48a1c9c0dc616c08e9391f204d260f6b7f29c7c1623b78f5de8a6b",
+	},
 };
 
 export function solution(

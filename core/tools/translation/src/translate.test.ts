@@ -142,6 +142,43 @@ test("skips invalid translated JSON without overwriting the target", async () =>
 	expect(readFileSync(target, "utf8")).toBe('{"title":"Previous"}\n');
 });
 
+test("skips translated JSON with missing source fields", async () => {
+	writeFileSync(
+		join(root, "docs", "config.json"),
+		'{"title":"English","labels":{"of":"of"}}\n',
+	);
+	mkdirSync(join(root, "cache", "ru"), { recursive: true });
+	const target = join(root, "cache", "ru", "config.json");
+	writeFileSync(target, '{"title":"Previous","labels":{"of":"of"}}\n');
+	globalThis.fetch = (async (_input, _init) =>
+		new Response(
+			JSON.stringify({
+				output_text: JSON.stringify({
+					items: [{ id: "docs:config.json:ru", translation: '{"title":"Перевод"}' }],
+				}),
+			}),
+		)) as typeof fetch;
+
+	const snapshot: ProjectSnapshot = {
+		root: join(root, "docs"),
+		targetRoot: join(root, "cache"),
+		sourceLocale: "en",
+		targetLocales: ["ru"],
+		files: {
+			"config.json": {
+				fileType: "json",
+				sourceHash: "a".repeat(64),
+				targets: { ru: { exists: true, hash: "target", status: "untranslated-text", reasons: [] } },
+			},
+		},
+		orphans: { ru: [] },
+		routes: [],
+	};
+
+	expect(await translateProject(project, snapshot, new TranslationStore(join(root, ".translation")))).toBe(0);
+	expect(readFileSync(target, "utf8")).toBe('{"title":"Previous","labels":{"of":"of"}}\n');
+});
+
 test("skips an existing target with the linked target hash", async () => {
 	const sourceHash = "a".repeat(64);
 	const target = join(root, "cache", "ru", "guide.md");

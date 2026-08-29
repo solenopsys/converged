@@ -1,7 +1,7 @@
 import {
-	createRuntimeFujinServiceClient,
-	type RuntimeFujinServiceClient,
-} from "g-rt-fujin/browser";
+	createFujinServiceClient,
+	type FujinServiceClient,
+} from "g-fujin/browser";
 import {
 	BaseCommandProcessor,
 	type CommandEntry,
@@ -10,7 +10,7 @@ import {
 } from "dag-cli/base";
 import { createCliNrpcClientConfig } from "dag-cli/ws";
 
-const stateHandler: Handler = async (client: RuntimeFujinServiceClient) => {
+const stateHandler: Handler = async (client: FujinServiceClient) => {
 	printJson(await client.state());
 };
 
@@ -26,7 +26,7 @@ function parseMessagesParam(param?: string): { limit?: number; needle?: string }
 	return { limit, needle: words.join(" ").toLowerCase() || undefined };
 }
 
-const messagesHandler: Handler = async (client: RuntimeFujinServiceClient, _splitter, param) => {
+const messagesHandler: Handler = async (client: FujinServiceClient, _splitter, param) => {
 	const { limit, needle } = parseMessagesParam(param);
 	const result = await client.messages(limit);
 	const messages = result.messages ?? [];
@@ -40,7 +40,7 @@ const messagesHandler: Handler = async (client: RuntimeFujinServiceClient, _spli
 	printJson({ ...result, count: filtered.length, messages: filtered });
 };
 
-const logsHandler: Handler = async (client: RuntimeFujinServiceClient, _splitter, param) => {
+const logsHandler: Handler = async (client: FujinServiceClient, _splitter, param) => {
 	const { limit, needle } = parseMessagesParam(param);
 	for await (const snapshot of client.logs(limit)) {
 		const messages = needle
@@ -61,5 +61,5 @@ class FujinProcessor extends BaseCommandProcessor {
 }
 
 export default () => new FujinProcessor(
-	createRuntimeFujinServiceClient(createCliNrpcClientConfig({ target: "fujin" })),
+	createFujinServiceClient(createCliNrpcClientConfig({ target: "fujin" })),
 );

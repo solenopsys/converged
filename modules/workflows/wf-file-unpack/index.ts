@@ -1,11 +1,10 @@
-// wf-file-unpack — flow only. Decompress ONE uploaded archive: stage it into
-// Valkey, register a collection, unzip the entries into new stored files.
-// No analysis happens here — feed the returned entry ids to wf-file-analyze
-// (or let wf-file-analysis cascade both). Shared steps: dag-file-steps.
+// wf-file-unpack — flow only. It resolves file metadata and CacheRefs, then
+// asks ms-compressors to unpack the archive. No raw bytes enter the workflow.
 
 import {
 	type FlowCtx,
-	stageFile,
+	isArchive,
+	loadFileForUnpack,
 	type StepError,
 	unpackArchive,
 } from "dag-file-steps";
@@ -15,6 +14,16 @@ type Input = {
 	owner?: string;
 	processId?: string;
 };
+
+function fileKind(name: string, fileType: string): string {
+	if (fileType === "application/zip" || name.toLowerCase().endsWith(".zip")) {
+		return "zip";
+	}
+	const subtype = fileType.split("/")[1];
+	if (subtype && subtype !== "octet-stream") return subtype.replace(/^x-/, "");
+	const extension = name.split(".").pop()?.toLowerCase();
+	return extension || "unknown";
+}
 
 rt.workflow = (input: Input) => {
 	if (!input?.fileId) throw new Error("file-unpack requires params.fileId");
@@ -36,16 +45,16 @@ rt.workflow = (input: Input) => {
 		errors: ctx.errors,
 	};
 
-	const staged = stageFile(ctx, input.fileId);
+	const staged = loadFileForUnpack(ctx, input.fileId);
 	if (!staged) return report;
-	report.name = staged.name;
-	report.type = staged.type;
+	report.name = staged.metadata.name;
+	report.type = fileKind(staged.metadata.name, staged.metadata.fileType);
 
-	if (staged.type !== "zip") {
+	if (!isArchive(staged.metadata)) {
 		ctx.errors.push({
 			stage: "archive",
 			fileId: input.fileId,
-			message: `not an archive: ${staged.type}`,
+			message: `not an archive: ${report.type}`,
 		});
 		return report;
 	}

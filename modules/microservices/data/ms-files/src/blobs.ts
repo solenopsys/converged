@@ -3,12 +3,10 @@
 // chunks and their metadata remain wholly owned by ms-files.
 
 import { createHash } from "node:crypto";
-import { join } from "node:path";
-import { extname } from "node:path";
+import { extname, join } from "node:path";
 import { brotliDecompressSync, gunzipSync } from "node:zlib";
-import type { CacheAdapter } from "back-core";
+import type { CacheAdapter, FileStore } from "back-core";
 import { CACHE_BLOB_TTL_SECONDS } from "back-core";
-import type { FileStore } from "back-core";
 import { deflateSync, inflateSync } from "fflate";
 import type { CacheRef } from "g-files";
 

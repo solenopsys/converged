@@ -67,8 +67,8 @@ const MODULE_PURPOSES: Record<string, string> = {
 		"Provides the service contract for static content and SSR cache metadata.",
 	"wf-dialogue-summary":
 		"Summarizes unprocessed chat and call dialogues with an LLM, then stores titles, descriptions, and noise classification.",
-	"wf-file-analysis":
-		"Processes uploaded files in batches: it expands archives, analyzes supported files, and returns conversion and production-estimate results.",
+	"wf-files-process":
+		"Processes uploaded files in batches: it expands archives, identifies model files, and creates a manufacturing request from them.",
 	"wf-file-analyze":
 		"Analyzes one stored non-archive file, producing model previews and CNC or 3D-print estimates when supported.",
 	"wf-file-unpack":

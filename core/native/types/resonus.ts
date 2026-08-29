@@ -1,6 +1,6 @@
 /** Gateway commands are opaque to the transport; their payload is validated by
  * the Resonus domain handler after the generated auth wrapper. */
-export interface RuntimeResonusService {
+export interface ResonusService {
   "call.offer"(payload: Record<string, unknown>): Promise<unknown>;
   "call.hangup"(payload: Record<string, unknown>): Promise<unknown>;
   "call.ice"(payload: Record<string, unknown>): Promise<unknown>;

@@ -6,8 +6,9 @@ import {
 import { services, setStoreWorker } from "files-state";
 import { createAssistantServiceClient } from "g-assistant";
 import { createContextsServiceClient } from "g-contexts";
+import { createDagServiceClient } from "g-dag";
 import { createFilesServiceClient } from "g-files";
-import { createRuntimeDagServiceClient } from "g-rt-dag";
+import { createCentimanusServiceClient } from "g-centimanus";
 import { createStoreServiceClient } from "g-store";
 import { createStructServiceClient } from "g-struct";
 import { createThreadsServiceClient } from "g-threads";
@@ -46,11 +47,14 @@ export function createServices(config: ChatConfig) {
 	const threadsClient = createThreadsServiceClient(
 		createFrontNrpcClientConfig(),
 	);
-	const dagClient = createRuntimeDagServiceClient(
+	const centimanusClient = createCentimanusServiceClient(
 		createFrontNrpcClientConfig({
 			target: "centimanus",
 			deadlineMs: 120_000,
 		}),
+	);
+	const dagCatalogClient = createDagServiceClient(
+		createFrontNrpcClientConfig(),
 	);
 
 	services.setFilesService(
@@ -67,7 +71,8 @@ export function createServices(config: ChatConfig) {
 		chatDriver,
 		resonusSession,
 		contextsClient,
-		dagClient,
+		dagClient: centimanusClient,
+		dagCatalogClient,
 		structClient,
 		threadsClient,
 	};

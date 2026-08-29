@@ -2,6 +2,40 @@ import { describe, expect, test } from "bun:test";
 import { createFunctionSteps } from "./steps";
 
 describe("function argument step", () => {
+	test("keeps user-intent candidates ahead of a wrong routing area", () => {
+		const workflow = {
+			id: "workflows.files-process",
+			brief: "Process uploaded files",
+		};
+		const company = { id: "catalog.companies.show", brief: "Show companies" };
+		const steps = createFunctionSteps({
+			catalog: {
+				search: (query) =>
+					query.includes("file processing") ? [workflow] : [company],
+				listCategories: () => [],
+				meta: () => undefined,
+				invoke: () => undefined,
+			},
+		});
+		const search = steps.find((step) => step.name === "search");
+
+		expect(
+			search?.apply(
+				{
+					userText: "[FILE] part.zip - run file processing",
+					area: "catalog",
+					candidates: [],
+				},
+				undefined,
+			),
+		).toEqual({
+			patch: {
+				area: "catalog",
+				candidates: [workflow, company],
+			},
+		});
+	});
+
 	test("extracts optional form values when a function declares properties", () => {
 		const steps = createFunctionSteps({
 			catalog: {

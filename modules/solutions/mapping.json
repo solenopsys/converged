@@ -6,19 +6,30 @@
 			"script": "workflows/wf-dialogue-summary.js"
 		},
 		{
-			"id": "file-analysis",
-			"name": "wf-file-analysis",
-			"script": "workflows/wf-file-analysis.js"
-		},
-		{
-			"id": "file-analyze",
-			"name": "wf-file-analyze",
-			"script": "workflows/wf-file-analyze.js"
+			"id": "files-process",
+			"name": "wf-files-process",
+			"script": "workflows/wf-files-process.js",
+			"brief": "Process uploaded files",
+			"description": "Unpack ZIP archives, identify model files, and create a manufacturing request from them.",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"fileIds": { "type": "array", "items": { "type": "string" } }
+				},
+				"required": ["fileIds"]
+			}
 		},
 		{
 			"id": "file-unpack",
 			"name": "wf-file-unpack",
-			"script": "workflows/wf-file-unpack.js"
+			"script": "workflows/wf-file-unpack.js",
+			"brief": "Unpack an uploaded archive",
+			"description": "Extract a ZIP archive and return IDs of its entries.",
+			"parameters": {
+				"type": "object",
+				"properties": { "fileId": { "type": "string" } },
+				"required": ["fileId"]
+			}
 		}
 	]
 }

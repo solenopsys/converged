@@ -21,9 +21,11 @@ export type LayerFile = {
 	layer: string;
 	/** Layers this one is stacked on, base first. */
 	extends: string[];
-	/** How every object in this layer is compressed. */
+	/** How module objects in this layer are compressed. */
 	encoding: "br";
 	modules: Record<string, string>;
+	/** Raw JavaScript sources executed by Centimanus. */
+	workflows?: Record<string, string>;
 };
 
 /**
@@ -37,7 +39,10 @@ export type LayerFile = {
  * legitimately hold a product whose base has not published yet — but its own
  * names still land, so the mapping degrades to what exists instead of failing.
  */
-export function mergeLayers(layers: LayerFile[]): Record<string, string> {
+export function mergeLayers(
+	layers: LayerFile[],
+	kind: "modules" | "workflows" = "modules",
+): Record<string, string> {
 	const byName = new Map(layers.map((layer) => [layer.layer, layer]));
 	const merged: Record<string, string> = {};
 	const done = new Set<string>();
@@ -46,11 +51,12 @@ export function mergeLayers(layers: LayerFile[]): Record<string, string> {
 		if (done.has(name)) return;
 		const layer = byName.get(name);
 		if (!layer) return;
-		if (seen.has(name)) throw new Error(`[registry] layer cycle through ${name}`);
+		if (seen.has(name))
+			throw new Error(`[registry] layer cycle through ${name}`);
 		seen.add(name);
 		for (const base of layer.extends) visit(base, seen);
 		done.add(name);
-		Object.assign(merged, layer.modules);
+		Object.assign(merged, layer[kind] ?? {});
 	};
 
 	for (const layer of layers) visit(layer.layer, new Set());

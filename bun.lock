@@ -91,7 +91,7 @@
         "g-files": "workspace:*",
         "g-identity": "workspace:*",
         "g-oauth": "workspace:*",
-        "g-rt-dag": "workspace:*",
+        "g-centimanus": "workspace:*",
         "g-ses": "workspace:*",
         "g-smtp": "workspace:*",
         "g-store": "workspace:*",
@@ -251,7 +251,7 @@
         "front-core": "workspace:*",
         "g-assistant": "workspace:*",
         "g-files": "workspace:*",
-        "g-rt-dag": "workspace:*",
+        "g-centimanus": "workspace:*",
         "g-store": "workspace:*",
         "g-threads": "workspace:*",
         "nrpc": "workspace:*",
@@ -385,8 +385,8 @@
         "g-functions": "workspace:*",
         "g-identity": "workspace:*",
         "g-logs": "workspace:*",
-        "g-rt-dag": "workspace:*",
-        "g-rt-fujin": "workspace:*",
+        "g-centimanus": "workspace:*",
+        "g-fujin": "workspace:*",
         "g-sheduller": "workspace:*",
         "g-telemetry": "workspace:*",
         "nrpc": "workspace:*",
@@ -645,50 +645,15 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/generated/g-rt-centimanus": {
-      "name": "g-rt-centimanus",
+    "modules/generated/g-centimanus": {
+      "name": "g-centimanus",
       "version": "0.0.0",
       "dependencies": {
         "nrpc": "workspace:*",
       },
     },
-    "modules/generated/g-rt-curaengine": {
-      "name": "g-rt-curaengine",
-      "version": "0.0.0",
-      "dependencies": {
-        "nrpc": "workspace:*",
-      },
-    },
-    "modules/generated/g-rt-dag": {
-      "name": "g-rt-dag",
-      "version": "0.0.0",
-      "dependencies": {
-        "nrpc": "workspace:*",
-      },
-    },
-    "modules/generated/g-rt-fujin": {
-      "name": "g-rt-fujin",
-      "version": "0.0.0",
-      "dependencies": {
-        "nrpc": "workspace:*",
-      },
-    },
-    "modules/generated/g-rt-opencamlib": {
-      "name": "g-rt-opencamlib",
-      "version": "0.0.0",
-      "dependencies": {
-        "nrpc": "workspace:*",
-      },
-    },
-    "modules/generated/g-rt-ptah": {
-      "name": "g-rt-ptah",
-      "version": "0.0.0",
-      "dependencies": {
-        "nrpc": "workspace:*",
-      },
-    },
-    "modules/generated/g-rt-resonus": {
-      "name": "g-rt-resonus",
+    "modules/generated/g-fujin": {
+      "name": "g-fujin",
       "version": "0.0.0",
       "dependencies": {
         "nrpc": "workspace:*",
@@ -834,7 +799,7 @@
         "g-assistant": "workspace:*",
         "g-files": "workspace:*",
         "g-requests": "workspace:*",
-        "g-rt-dag": "workspace:*",
+        "g-centimanus": "workspace:*",
         "g-store": "workspace:*",
         "g-threads": "workspace:*",
         "mf-requests": "workspace:*",
@@ -2288,19 +2253,9 @@
 
     "g-reviews": ["g-reviews@workspace:modules/generated/g-reviews"],
 
-    "g-rt-centimanus": ["g-rt-centimanus@workspace:modules/generated/g-rt-centimanus"],
+    "g-centimanus": ["g-centimanus@workspace:modules/generated/g-centimanus"],
 
-    "g-rt-curaengine": ["g-rt-curaengine@workspace:modules/generated/g-rt-curaengine"],
-
-    "g-rt-dag": ["g-rt-dag@workspace:modules/generated/g-rt-dag"],
-
-    "g-rt-fujin": ["g-rt-fujin@workspace:modules/generated/g-rt-fujin"],
-
-    "g-rt-opencamlib": ["g-rt-opencamlib@workspace:modules/generated/g-rt-opencamlib"],
-
-    "g-rt-ptah": ["g-rt-ptah@workspace:modules/generated/g-rt-ptah"],
-
-    "g-rt-resonus": ["g-rt-resonus@workspace:modules/generated/g-rt-resonus"],
+    "g-fujin": ["g-fujin@workspace:modules/generated/g-fujin"],
 
     "g-sales": ["g-sales@workspace:modules/generated/g-sales"],
 

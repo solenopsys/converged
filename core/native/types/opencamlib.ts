@@ -61,6 +61,6 @@ export type OpencamlibReply = {
   outputs: Record<string, CacheRef>;
 };
 
-export interface RuntimeOpencamlibService {
+export interface OpencamlibService {
   analyze(request: OpencamlibRequest): Promise<OpencamlibReply>;
 }

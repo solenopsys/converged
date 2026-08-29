@@ -16,7 +16,7 @@
 		"g-assistant": "workspace:*",
 		"g-files": "workspace:*",
 		"g-requests": "workspace:*",
-		"g-rt-dag": "workspace:*",
+		"g-centimanus": "workspace:*",
 		"g-store": "workspace:*",
 		"g-threads": "workspace:*",
 		"mf-requests": "workspace:*",

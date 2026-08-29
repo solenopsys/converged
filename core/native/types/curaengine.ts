@@ -55,6 +55,6 @@ export type CuraengineReply = {
   outputs: Record<string, CacheRef>;
 };
 
-export interface RuntimeCuraengineService {
+export interface CuraengineService {
   analyze(request: CuraengineRequest): Promise<CuraengineReply>;
 }

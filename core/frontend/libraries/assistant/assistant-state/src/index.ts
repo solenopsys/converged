@@ -31,12 +31,11 @@ export { createSignalAssistantClient } from "./signal-client";
 export * from "orchestrator";
 export { parseToolArgs } from "./tools/args";
 export type {
-	FileAnalysisHooks,
-	FileAnalysisTarget,
+	FilesProcessHooks,
 	WorkflowRunner,
 	WorkflowRunResult,
-} from "./tools/file-analysis";
-export { createFileAnalysisTool } from "./tools/file-analysis";
+} from "./tools/files-process";
+export { createFilesProcessTool } from "./tools/files-process";
 export type {
 	FunctionCatalogContext,
 	FunctionCatalogOptions,

@@ -500,7 +500,7 @@ commercially. Technically it is a declarative set of modules:
   "microservices": ["files", "store", "requests"],
   "microfrontends": ["requests"],
   "processors": ["curaengine", "opencam"],
-  "workflows": ["file-analysis", "file-unpack"],
+  "workflows": ["files-process", "file-unpack"],
   "dependencies": ["security"]
 }
 ```

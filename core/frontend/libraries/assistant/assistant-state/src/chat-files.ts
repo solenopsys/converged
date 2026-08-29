@@ -22,11 +22,7 @@ export type ChatFilesOptions = {
 	uploads: ChatUploadsSource;
 	registry?: ChatFileRegistry;
 	ensureReady?: () => void;
-	analysisPrompt?: (fileId: string, file: UploadedFileInfo) => string;
 };
-
-const defaultAnalysisPrompt = (fileId: string, file: UploadedFileInfo) =>
-	`[FILE] id=${fileId} name="${file.fileName}" size=${file.fileSize} type="${file.fileType}" — run file analysis`;
 
 export const bindChatFiles = (options: ChatFilesOptions): void => {
 	options.uploads.uploadCompleted.watch((fileId) => {
@@ -83,6 +79,4 @@ const persistFileLink = async (
 
 	await options.registry?.recordChatFile(threadId, file.fileSize);
 
-	const prompt = options.analysisPrompt ?? defaultAnalysisPrompt;
-	store.send(prompt(fileId, file));
 };

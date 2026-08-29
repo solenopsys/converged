@@ -8,6 +8,11 @@
  * across the three.
  */
 
+import {
+	accessMaterial,
+	accessSecretData,
+	accessSecretName,
+} from "./access.ts";
 import { buildExtras } from "./extras.ts";
 import * as k8s from "./k8s/index.ts";
 import * as n from "./names.ts";
@@ -24,7 +29,6 @@ import {
 	registryData,
 	selectSolutions,
 } from "./solution.ts";
-import { accessMaterial, accessSecretData, accessSecretName } from "./access.ts";
 import { storageResources } from "./storage.ts";
 import { domainIndexData } from "./tenant.ts";
 import type {
@@ -87,7 +91,9 @@ function baseEnv(
 		// Behemoth runs valkey in-process; there is no separate cache to
 		// deploy or address. In cloud the shard is per tenant and resolved from
 		// the scope index at request time, so no platform-wide URL exists.
-		...(cacheHost ? { CACHE_URL: `redis://${cacheHost}:${spec.storage.cachePort}/0` } : {}),
+		...(cacheHost
+			? { CACHE_URL: `redis://${cacheHost}:${spec.storage.cachePort}/0` }
+			: {}),
 		FUJIN_ZMQ_ENDPOINT: fujinEndpoint(platform, spec),
 		...(spec.env ?? {}),
 		...extra,
@@ -228,7 +234,9 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 	);
 	const modules = { [n.ANNOTATION_MODULES]: rollout };
 	const domains =
-		spec.profile === "cloud" ? domainIndexData(input.object, input.tenants) : undefined;
+		spec.profile === "cloud"
+			? domainIndexData(input.object, input.tenants)
+			: undefined;
 	const statelessAnnotations = {
 		...modules,
 		...(domains
@@ -282,7 +290,15 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 			);
 		}
 		resources.push(
-			...nativeApp(platform, spec, owner, name, processor, rollout, accessSecrets),
+			...nativeApp(
+				platform,
+				spec,
+				owner,
+				name,
+				processor,
+				rollout,
+				accessSecrets,
+			),
 		);
 	}
 

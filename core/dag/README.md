@@ -12,7 +12,7 @@ core/                    dag-core: общий обвес всех workflow
                          пока метод не попал в tools/types/services (+codegen g-*/rt)
   build.ts               buildWorkflow(): bun-бандл TS-workflow → одна IIFE-строка для VM
 workflows/
-  wf-file-analysis/      эталонный мигрированный workflow (см. его contract.md)
+  wf-files-process/      batch workflow обработки загруженных файлов
 ```
 
 ## Правила workflow (кратко)
@@ -25,7 +25,7 @@ workflows/
   записывается как ошибка. Если try/catch всё же неизбежен — обязательно
   `if (isRtYield(e)) throw e;` (dag-core/rt-yield.ts);
 - плоский стиль: один файл на workflow, никаких классов/`Run`-машинерии —
-  очередь это массив + while, отчёт это объект (эталон: wf-file-analysis);
+  очередь это массив + while, отчёт это объект (эталон: wf-files-process);
 - крупные данные ходят по ссылке (`CacheRef` в Valkey), не в payload;
 - MS не вызывают друг друга — workflow держит ref-ы и передаёт между сервисами;
 - никаких Promise/async, никаких дефолтов provider/model в `rt.llm`.
@@ -42,7 +42,7 @@ import в clients.ts.
 
 ```ts
 import { buildWorkflow } from "dag-core/build";
-const js = await buildWorkflow("tools/dag/workflows/wf-file-analysis/index.ts");
+const js = await buildWorkflow("modules/workflows/wf-files-process/index.ts");
 // строку сохраняем в ms-scripts (scripts.saveScript) — centimanus читает оттуда
 ```
 

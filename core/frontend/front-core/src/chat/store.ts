@@ -4,7 +4,6 @@ import {
 	createChatLifecycle,
 	createChatStore,
 	createConversation,
-	createFileAnalysisTool,
 	createFunctionCatalogTools,
 	createUploadedChatFilesTool,
 	type ExecutableTool,
@@ -13,6 +12,7 @@ import {
 	type StepName,
 } from "assistant-state";
 import { $files, filesPickerOpened, uploadCompleted } from "files-state";
+import { resolveActionMeta } from "front-core/core";
 import type { CatalogView } from "./commands/builtin";
 import { registerBuiltinSlashCommands } from "./commands/builtin";
 import { isSlashInput, runSlashCommand } from "./commands/registry";
@@ -21,7 +21,6 @@ import { createContextPromptResolver } from "./context-prompt";
 import { initChatMessages } from "./i18n";
 import { createServices } from "./services";
 import { setActionBriefResolver } from "./ui/labels";
-import { resolveActionMeta } from "front-core/core";
 
 export type Chat = {
 	store: ChatStore;
@@ -54,6 +53,7 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 		assistantClient,
 		chatDriver,
 		contextsClient,
+		dagCatalogClient,
 		dagClient,
 		resonusSession,
 		structClient,
@@ -99,6 +99,52 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 		model: "fast",
 	});
 
+	const workflows = new Map<
+		string,
+		{
+			script: string;
+			brief?: string;
+			description?: string;
+			parameters?: {
+				type: "object";
+				properties: Record<string, unknown>;
+				required?: string[];
+			};
+		}
+	>();
+	conversation.catalog.sourceRegistered({
+		id: "workflows",
+		group: "workflows",
+		meta: (id) => workflows.get(id),
+		invoke: (id, args) => {
+			const workflow = workflows.get(id);
+			if (!workflow) throw new Error(`Unknown workflow: ${id}`);
+			return dagClient.runWorkflow(workflow.script, args);
+		},
+	});
+	void dagCatalogClient
+		.listAvailableWorkflows()
+		.then(({ items }) => {
+			for (const workflow of items) {
+				if (!workflow.brief || !workflow.description || !workflow.parameters)
+					continue;
+				workflows.set(`workflows.${workflow.id}`, workflow);
+			}
+			conversation.catalog.functionsPublished({
+				source: "workflows",
+				functions: [...workflows].map(([id, workflow]) => ({
+					id,
+					brief: workflow.brief ?? workflow.script,
+					description: workflow.description ?? workflow.script,
+					category: "workflows",
+					parameters: workflow.parameters,
+				})),
+			});
+		})
+		.catch((error) =>
+			console.error("[chat] workflow catalog unavailable", error),
+		);
+
 	// The delivery's functions become a source in the catalog store, so a module
 	// that registers later is simply published again — nothing is rebuilt.
 	if (host?.catalog) {
@@ -121,6 +167,7 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 						description: resolved.description,
 						category: resolved.category,
 						priority: resolved.priority,
+						parameters: resolved.parameters,
 					};
 				}),
 			});
@@ -166,7 +213,6 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 
 	for (const tool of [
 		createUploadedChatFilesTool(uploadedFiles),
-		createFileAnalysisTool(dagClient),
 	] satisfies ExecutableTool[]) {
 		store.registerFunction(tool.name, tool);
 	}

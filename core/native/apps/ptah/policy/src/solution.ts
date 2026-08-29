@@ -17,7 +17,7 @@ import type {
 	SolutionSpec,
 	WorkflowRef,
 } from "./types.ts";
-import { PolicyError, require } from "./types.ts";
+import { PolicyError } from "./types.ts";
 
 export interface MergedSolutions {
 	names: string[];
@@ -136,6 +136,7 @@ export function registryData(
 	return {
 		MODULE_PROXY: moduleProxyUrl(controllerNamespace),
 		MODULE_DIGESTS: JSON.stringify(registry.modules ?? {}),
+		WORKFLOW_DIGESTS: JSON.stringify(registry.workflows ?? {}),
 		MODULE_REGISTRY_REVISION: registry.revision ?? "",
 	};
 }
@@ -155,6 +156,7 @@ export function registryData(
 export const REGISTRY_ENV_KEYS = [
 	"MODULE_PROXY",
 	"MODULE_DIGESTS",
+	"WORKFLOW_DIGESTS",
 	"MODULE_REGISTRY_REVISION",
 ] as const;
 

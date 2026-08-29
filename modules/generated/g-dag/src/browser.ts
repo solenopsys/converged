@@ -10,72 +10,90 @@ export type ExecutionStatus = "running" | "done" | "failed";
 export type TaskState = "queued" | "processing" | "done" | "failed";
 
 export type PaginationParams = {
-  offset: number;
-  limit: number;
+	offset: number;
+	limit: number;
 };
 
 export type PaginatedResult<T> = {
-  items: T[];
-  totalCount?: number;
+	items: T[];
+	totalCount?: number;
 };
 
 export type Execution = {
-  id: string;
-  workflowName: string;
-  status: ExecutionStatus;
-  startedAt: number;
-  updatedAt: number;
-  createdAt: number;
+	id: string;
+	workflowName: string;
+	status: ExecutionStatus;
+	startedAt: number;
+	updatedAt: number;
+	createdAt: number;
 };
 
 export type Task = {
-  id: number;
-  executionId: string;
-  nodeId: string;
-  state: TaskState;
-  startedAt: number | null;
-  completedAt: number | null;
-  errorMessage: string | null;
-  retryCount: number;
-  createdAt: number;
-  data?: any;
-  result?: any;
+	id: number;
+	executionId: string;
+	nodeId: string;
+	state: TaskState;
+	startedAt: number | null;
+	completedAt: number | null;
+	errorMessage: string | null;
+	retryCount: number;
+	createdAt: number;
+	data?: any;
+	result?: any;
 };
 
-export type ExecutionEventType = "started" | "task_update" | "completed" | "failed";
+export type ExecutionEventType = | "started"
+	| "task_update"
+	| "completed"
+	| "failed";
 
 export type ExecutionEvent = {
-  type: ExecutionEventType;
-  executionId: string;
-  task?: Task;
-  error?: string;
+	type: ExecutionEventType;
+	executionId: string;
+	task?: Task;
+	error?: string;
 };
 
 export type ExecutionResult = {
-  id: string;
+	id: string;
+};
+
+export type AvailableWorkflow = {
+	id: string;
+	name: string;
+	script: string;
+	brief?: string;
+	description?: string;
+	parameters?: {
+		type: "object";
+		properties: Record<string, unknown>;
+		required?: string[];
+	};
+	/** Internal Ptah-proxy URL for the runtime; UI clients must ignore it. */
+	sourceUrl?: string;
 };
 
 export type ResumeExecutionsResult = {
-  resumed: number;
-  skipped: number;
-  failed: number;
-  ids: string[];
+	resumed: number;
+	skipped: number;
+	failed: number;
+	ids: string[];
 };
 
 export type ResumableExecution = {
-  id: string;
-  workflowName: string;
-  params: Record<string, any>;
+	id: string;
+	workflowName: string;
+	params: Record<string, any>;
 };
 
 export type CachedNodeResult = {
-  hit: boolean;
-  result?: any;
+	hit: boolean;
+	result?: any;
 };
 
 export type TaskTicket = {
-  id: number;
-  createdAt: number;
+	id: number;
+	createdAt: number;
 };
 
 export const metadata: ServiceMetadata = {
@@ -83,6 +101,14 @@ export const metadata: ServiceMetadata = {
   "serviceName": "dag",
   "filePath": "automation/dag.ts",
   "methods": [
+    {
+      "name": "listAvailableWorkflows",
+      "parameters": [],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
     {
       "name": "openExecution",
       "parameters": [
@@ -393,64 +419,70 @@ export const metadata: ServiceMetadata = {
     {
       "name": "PaginationParams",
       "kind": "type",
-      "definition": "{\n  offset: number;\n  limit: number;\n}"
+      "definition": "{\n\toffset: number;\n\tlimit: number;\n}"
     },
     {
       "name": "PaginatedResult",
       "kind": "type",
       "typeParameters": "<T>",
-      "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
+      "definition": "{\n\titems: T[];\n\ttotalCount?: number;\n}"
     },
     {
       "name": "Execution",
       "kind": "type",
-      "definition": "{\n  id: string;\n  workflowName: string;\n  status: ExecutionStatus;\n  startedAt: number;\n  updatedAt: number;\n  createdAt: number;\n}"
+      "definition": "{\n\tid: string;\n\tworkflowName: string;\n\tstatus: ExecutionStatus;\n\tstartedAt: number;\n\tupdatedAt: number;\n\tcreatedAt: number;\n}"
     },
     {
       "name": "Task",
       "kind": "type",
-      "definition": "{\n  id: number;\n  executionId: string;\n  nodeId: string;\n  state: TaskState;\n  startedAt: number | null;\n  completedAt: number | null;\n  errorMessage: string | null;\n  retryCount: number;\n  createdAt: number;\n  data?: any;\n  result?: any;\n}"
+      "definition": "{\n\tid: number;\n\texecutionId: string;\n\tnodeId: string;\n\tstate: TaskState;\n\tstartedAt: number | null;\n\tcompletedAt: number | null;\n\terrorMessage: string | null;\n\tretryCount: number;\n\tcreatedAt: number;\n\tdata?: any;\n\tresult?: any;\n}"
     },
     {
       "name": "ExecutionEventType",
       "kind": "type",
-      "definition": "\"started\" | \"task_update\" | \"completed\" | \"failed\""
+      "definition": "| \"started\"\n\t| \"task_update\"\n\t| \"completed\"\n\t| \"failed\""
     },
     {
       "name": "ExecutionEvent",
       "kind": "type",
-      "definition": "{\n  type: ExecutionEventType;\n  executionId: string;\n  task?: Task;\n  error?: string;\n}"
+      "definition": "{\n\ttype: ExecutionEventType;\n\texecutionId: string;\n\ttask?: Task;\n\terror?: string;\n}"
     },
     {
       "name": "ExecutionResult",
       "kind": "type",
-      "definition": "{\n  id: string;\n}"
+      "definition": "{\n\tid: string;\n}"
+    },
+    {
+      "name": "AvailableWorkflow",
+      "kind": "type",
+      "definition": "{\n\tid: string;\n\tname: string;\n\tscript: string;\n\tbrief?: string;\n\tdescription?: string;\n\tparameters?: {\n\t\ttype: \"object\";\n\t\tproperties: Record<string, unknown>;\n\t\trequired?: string[];\n\t};\n\t/** Internal Ptah-proxy URL for the runtime; UI clients must ignore it. */\n\tsourceUrl?: string;\n}"
     },
     {
       "name": "ResumeExecutionsResult",
       "kind": "type",
-      "definition": "{\n  resumed: number;\n  skipped: number;\n  failed: number;\n  ids: string[];\n}"
+      "definition": "{\n\tresumed: number;\n\tskipped: number;\n\tfailed: number;\n\tids: string[];\n}"
     },
     {
       "name": "ResumableExecution",
       "kind": "type",
-      "definition": "{\n  id: string;\n  workflowName: string;\n  params: Record<string, any>;\n}"
+      "definition": "{\n\tid: string;\n\tworkflowName: string;\n\tparams: Record<string, any>;\n}"
     },
     {
       "name": "CachedNodeResult",
       "kind": "type",
-      "definition": "{\n  hit: boolean;\n  result?: any;\n}"
+      "definition": "{\n\thit: boolean;\n\tresult?: any;\n}"
     },
     {
       "name": "TaskTicket",
       "kind": "type",
-      "definition": "{\n  id: number;\n  createdAt: number;\n}"
+      "definition": "{\n\tid: number;\n\tcreatedAt: number;\n}"
     }
   ]
 };
 
 // Client interface
 export interface DagServiceClient {
+  listAvailableWorkflows(): Promise<any>;
   openExecution(id: string, workflowName: string, params: Record<string, any>): Promise<void>;
   setExecutionStatus(id: string, status: ExecutionStatus): Promise<void>;
   listResumableExecutions(limit?: number): Promise<any>;

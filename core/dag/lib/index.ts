@@ -1,22 +1,33 @@
 // dag-file-steps — the shared flow pieces of the file workflows:
 // wf-file-unpack (decompress an archive), wf-file-analyze (analyse one file),
-// wf-file-analysis (the cascade the chat triggers). Flow only and synchronous:
+// wf-files-process (the batch coordinator). Flow only and synchronous:
 // every side effect is exactly one service call inside one rt.attempt node,
 // heavy bytes always travel by CacheRef. Service methods: see the workflows'
 // contract.md.
 
 import { contractClient } from "dag-core";
+import type { CompressedChunk } from "g-compressors/rt";
 import type { FileCollection, FileMetadata, UUID } from "g-files/rt";
+import type { RequestInput, RequestId } from "g-requests/rt";
 import type { CacheRef } from "g-store/rt";
 
 export type { CacheRef };
 
-
 export const files = contractClient<{
+	get(id: UUID): FileMetadata;
+	getChunks(id: UUID): { hash: string; chunkNumber: number }[];
+	save(file: FileMetadata, processId?: string): UUID;
+	saveChunk(chunk: {
+		fileId: UUID;
+		hash: string;
+		chunkNumber: number;
+		chunkSize: number;
+		createdAt: string;
+	}): string;
 	materialize(fileId: UUID): { ref: CacheRef; metadata: FileMetadata };
-	detectType(input: { ref: CacheRef; name: string }): { type: string; mime: string };
-	unzip(input: { ref: CacheRef; collectionId: UUID; owner: string; processId?: string }): {
-		entries: { fileId: UUID; name: string }[];
+	detectType(input: { ref: CacheRef; name: string }): {
+		type: string;
+		mime: string;
 	};
 	persist(input: {
 		ref: CacheRef;
@@ -28,24 +39,66 @@ export const files = contractClient<{
 	}): FileMetadata;
 	saveCollection(collection: FileCollection): UUID;
 }>("files", {
+	get: ["id"],
+	getChunks: ["id"],
+	save: ["file", "processId"],
+	saveChunk: ["chunk"],
 	materialize: ["fileId"],
 	detectType: ["input"],
-	unzip: ["input"],
 	persist: ["input"],
 	saveCollection: ["collection"],
 });
 
+export const store = contractClient<{
+	getWithMeta(hash: string): {
+		dataRef: CacheRef;
+		compression: "none" | "deflate" | "gzip" | "brotli";
+		originalSize: number;
+	};
+	save(
+		dataRef: CacheRef,
+		originalSize?: number,
+		compression?: "none" | "deflate" | "gzip" | "brotli",
+		owner?: string,
+	): string;
+}>("store", {
+	getWithMeta: ["hash"],
+	save: ["dataRef", "originalSize", "compression", "owner"],
+});
+
+export const compressors = contractClient<{
+	unpack(input: { name: string; chunks: CompressedChunk[] }): {
+		entries: Array<{
+			name: string;
+			fileType: string;
+			hash: string;
+			fileSize: number;
+			chunks: Array<{
+				ref: CacheRef;
+				compression: "none" | "deflate" | "gzip" | "brotli";
+				originalSize: number;
+			}>;
+		}>;
+	};
+}>("compressors", { unpack: ["input"] });
+
+export const requests = contractClient<{
+	createRequest(input: RequestInput): RequestId;
+}>("requests", { createRequest: ["input"] });
+
 export const models = contractClient<{
-	convert(input: { sourceRef: CacheRef; sourceName: string; format?: string }): {
+	convert(input: {
+		sourceRef: CacheRef;
+		sourceName: string;
+		format?: string;
+	}): {
 		files: { name: string; ref: CacheRef }[];
 	};
 }>("modelconvertor", { convert: ["input"] });
 
 export type Estimate = Record<string, unknown>;
 
-
 export type OutputRef = { cacheKey: string; sizeBytes?: number };
-
 
 export const ptah = contractClient<{
 	analyze(
@@ -55,7 +108,6 @@ export const ptah = contractClient<{
 		outputs?: string[],
 	): { result: Estimate; outputs: Record<string, OutputRef> };
 }>("ptah", { analyze: ["plugin", "task", "inputs", "outputs"] });
-
 
 export const MODEL_TYPES = ["step", "stl", "obj", "ply", "3mf"];
 
@@ -77,7 +129,6 @@ export type AnalyzeOptions = typeof ANALYZE_DEFAULTS & {
 	feed?: number;
 	safeZ?: number;
 };
-
 
 function compact(o: Record<string, unknown>): Record<string, unknown> {
 	const out: Record<string, unknown> = {};
@@ -103,7 +154,6 @@ export type EstimateRecord = {
 	artifactFileIds?: string[];
 };
 
-
 export type FlowCtx = {
 	owner: string;
 	processId: string;
@@ -111,7 +161,6 @@ export type FlowCtx = {
 	converted: ConvertedRecord[];
 	estimates: EstimateRecord[];
 };
-
 
 export function step<T>(
 	ctx: FlowCtx,
@@ -135,7 +184,6 @@ export type StagedFile = {
 	mime: string;
 	collectionId?: string;
 };
-
 
 export function stageFile(
 	ctx: FlowCtx,
@@ -161,7 +209,6 @@ export function stageFile(
 		collectionId,
 	};
 }
-
 
 export function keep(
 	ctx: FlowCtx,
@@ -200,41 +247,169 @@ export type UnpackResult = {
 	entries: { fileId: string; name: string }[];
 };
 
+export type UnpackableFile = {
+	fileId: string;
+	metadata: FileMetadata;
+};
+
+export function isArchive(metadata: FileMetadata): boolean {
+	return (
+		metadata.fileType === "application/zip" ||
+		metadata.name.toLowerCase().endsWith(".zip")
+	);
+}
+
+/** Resolve file metadata. Bytes and chunk refs stay outside the workflow VM. */
+export function loadFileForUnpack(
+	ctx: FlowCtx,
+	fileId: string,
+): UnpackableFile | undefined {
+	const metadata = step(ctx, "load", `file:${fileId}`, fileId, () =>
+		files.get(fileId),
+	);
+	if (!metadata) return undefined;
+	return { fileId, metadata };
+}
+
+function loadArchiveChunks(
+	ctx: FlowCtx,
+	fileId: string,
+	metadata: FileMetadata,
+): CompressedChunk[] | undefined {
+	const fileChunks = step(ctx, "load", `chunks:${fileId}`, fileId, () =>
+		files.getChunks(fileId),
+	);
+	if (!fileChunks) return undefined;
+	if (!fileChunks.length && metadata.fileSize > 0) {
+		ctx.errors.push({ stage: "load", fileId, message: "file has no chunks" });
+		return undefined;
+	}
+
+	const chunks: CompressedChunk[] = [];
+	for (const chunk of [...fileChunks].sort(
+		(a, b) => a.chunkNumber - b.chunkNumber,
+	)) {
+		const stored = step(ctx, "load", `chunk:${chunk.hash}`, fileId, () =>
+			store.getWithMeta(chunk.hash),
+		);
+		if (!stored) return undefined;
+		chunks.push({
+			ref: stored.dataRef,
+			compression: stored.compression,
+			originalSize: stored.originalSize,
+		});
+	}
+	return chunks;
+}
 
 export function unpackArchive(
 	ctx: FlowCtx,
-	staged: StagedFile,
+	staged: UnpackableFile,
 ): UnpackResult | undefined {
-	const { fileId, name, ref } = staged;
-	const collectionId = step(ctx, "archive", `collection:${fileId}`, fileId, () =>
-		files.saveCollection({
-			id: `${__execId ?? "wf"}:${fileId}`,
-			name,
-			description: `Files extracted from archive: ${name}`,
-			owner: ctx.owner,
-			createdAt: new Date().toISOString(),
-		}),
+	const { fileId, metadata } = staged;
+	const name = metadata.name;
+	const chunks = loadArchiveChunks(ctx, fileId, metadata);
+	if (!chunks) return undefined;
+	const collectionId = step(
+		ctx,
+		"archive",
+		`collection:${fileId}`,
+		fileId,
+		() =>
+			files.saveCollection({
+				id: `${__execId ?? "wf"}:${fileId}`,
+				name,
+				description: `Files extracted from archive: ${name}`,
+				owner: ctx.owner,
+				createdAt: new Date().toISOString(),
+			}),
 	);
 	if (!collectionId) return undefined;
 	const unzipped = step(ctx, "archive", `unzip:${fileId}`, fileId, () =>
-		files.unzip({ ref, collectionId, owner: ctx.owner, processId: ctx.processId }),
+		compressors.unpack({ name, chunks }),
 	);
 	if (!unzipped) return undefined;
-	for (const e of unzipped.entries) {
+	const entries: UnpackResult["entries"] = [];
+	for (const [entryIndex, entry] of unzipped.entries.entries()) {
+		const entryId = `${ctx.processId}:${fileId}:${entryIndex}`;
+		const createdAt = new Date().toISOString();
+		const savedId = step(ctx, "archive", `file:${entryId}`, fileId, () =>
+			files.save(
+				{
+					id: entryId,
+					hash: entry.hash,
+					status: "uploaded",
+					name: entry.name,
+					fileSize: entry.fileSize,
+					fileType: entry.fileType,
+					compression: "deflate",
+					owner: ctx.owner,
+					createdAt,
+					chunksCount: entry.chunks.length,
+					collectionId,
+				},
+				ctx.processId,
+			),
+		);
+		if (!savedId) continue;
+
+		let persisted = true;
+		for (const [chunkIndex, chunk] of entry.chunks.entries()) {
+			const hash = step(
+				ctx,
+				"archive",
+				`store:${entryId}:${chunkIndex}`,
+				fileId,
+				() =>
+					store.save(
+						chunk.ref,
+						chunk.originalSize,
+						chunk.compression,
+						ctx.owner,
+					),
+			);
+			if (!hash) {
+				persisted = false;
+				break;
+			}
+			const savedChunk = step(
+				ctx,
+				"archive",
+				`chunk:${entryId}:${chunkIndex}`,
+				fileId,
+				() =>
+					files.saveChunk({
+						fileId: savedId,
+						hash,
+						chunkNumber: chunkIndex,
+						chunkSize: chunk.ref.sizeBytes ?? 0,
+						createdAt,
+					}),
+			);
+			if (!savedChunk) {
+				persisted = false;
+				break;
+			}
+		}
+		if (!persisted) continue;
 		ctx.converted.push({
 			sourceFileId: fileId,
-			fileId: e.fileId,
-			name: e.name,
-			fileType: "",
+			fileId: savedId,
+			name: entry.name,
+			fileType: entry.fileType,
 			kind: "archive_entry",
 			collectionId,
 		});
+		entries.push({ fileId: savedId, name: entry.name });
 	}
-	return { collectionId, entries: unzipped.entries };
+	return { collectionId, entries };
 }
 
-
-export function analyzeFile(ctx: FlowCtx, o: AnalyzeOptions, staged: StagedFile): void {
+export function analyzeFile(
+	ctx: FlowCtx,
+	o: AnalyzeOptions,
+	staged: StagedFile,
+): void {
 	const { fileId, name, ref } = staged;
 
 	if (staged.type === "gcode") {
@@ -246,12 +421,26 @@ export function analyzeFile(ctx: FlowCtx, o: AnalyzeOptions, staged: StagedFile)
 	if (!MODEL_TYPES.includes(staged.type)) return; // nothing to do
 
 	if (o.convertPreview) {
-		const converted = step(ctx, "convert-preview", `convert-preview:${fileId}`, fileId, () =>
-			models.convert({ sourceRef: ref, sourceName: name, format: "glb2" }),
+		const converted = step(
+			ctx,
+			"convert-preview",
+			`convert-preview:${fileId}`,
+			fileId,
+			() =>
+				models.convert({ sourceRef: ref, sourceName: name, format: "glb2" }),
 		);
-		converted?.files.forEach((out, i) =>
-			keep(ctx, "convert-preview", `preview:${fileId}:${i}`, staged, out.ref, out.name, "model/gltf-binary", "preview"),
-		);
+		for (const [i, out] of (converted?.files ?? []).entries()) {
+			keep(
+				ctx,
+				"convert-preview",
+				`preview:${fileId}:${i}`,
+				staged,
+				out.ref,
+				out.name,
+				"model/gltf-binary",
+				"preview",
+			);
+		}
 	}
 	if (staged.type !== "stl") return; // only STL yields an estimate
 
@@ -277,7 +466,16 @@ export function analyzeFile(ctx: FlowCtx, o: AnalyzeOptions, staged: StagedFile)
 		const gcodeRef = out.outputs?.gcodePath;
 		const gcode =
 			gcodeRef &&
-			keep(ctx, "milling-extract", `gcode:milling:${fileId}`, staged, gcodeRef, gcodeName, "text/x-gcode", "gcode");
+			keep(
+				ctx,
+				"milling-extract",
+				`gcode:milling:${fileId}`,
+				staged,
+				gcodeRef,
+				gcodeName,
+				"text/x-gcode",
+				"gcode",
+			);
 		ctx.estimates.push({
 			sourceFileId: fileId,
 			type: "milling",
@@ -290,8 +488,12 @@ export function analyzeFile(ctx: FlowCtx, o: AnalyzeOptions, staged: StagedFile)
 	// both ride by CacheRef. Without a definition there is no native estimator.
 	if (o.definitionFileId) {
 		const defId = o.definitionFileId;
-		const def = step(ctx, "print-slice", `materialize-def:${defId}`, fileId, () =>
-			files.materialize(defId).ref,
+		const def = step(
+			ctx,
+			"print-slice",
+			`materialize-def:${defId}`,
+			fileId,
+			() => files.materialize(defId).ref,
 		);
 		const sliced =
 			def &&
@@ -312,12 +514,25 @@ export function analyzeFile(ctx: FlowCtx, o: AnalyzeOptions, staged: StagedFile)
 			const gcodeRef = sliced.outputs?.gcodePath;
 			const gcode =
 				o.includeGcode && gcodeRef
-					? keep(ctx, "print-slice", `gcode:slice:${fileId}`, staged, gcodeRef, gcodeName, "text/x-gcode", "gcode")
+					? keep(
+							ctx,
+							"print-slice",
+							`gcode:slice:${fileId}`,
+							staged,
+							gcodeRef,
+							gcodeName,
+							"text/x-gcode",
+							"gcode",
+						)
 					: undefined;
 			ctx.estimates.push({
 				sourceFileId: fileId,
 				type: "printing",
-				data: { ...sliced.result, estimator: "ptah:curaengine", sourceName: name },
+				data: {
+					...sliced.result,
+					estimator: "ptah:curaengine",
+					sourceName: name,
+				},
 				artifactFileIds: gcode ? [gcode.id] : [],
 			});
 			return;

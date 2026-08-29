@@ -9,7 +9,9 @@
 	},
 	"dependencies": {
 		"dag-core": "workspace:*",
+		"g-compressors": "workspace:*",
 		"g-files": "workspace:*",
+		"g-requests": "workspace:*",
 		"g-store": "workspace:*"
 	}
 }

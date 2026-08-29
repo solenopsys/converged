@@ -46,6 +46,10 @@ const transport = @import("${transportImport}");
 
 pub const service = "${metadata.serviceName}";
 
+pub fn bind(runtime: *transport.Runtime, handler: transport.RuntimeHandler) !void {
+    return runtime.bind(service, handler);
+}
+
 /// Server-side NRPC descriptor. A native application calls verifyAndAuthorize
 /// before its handwritten handler; this generated code never knows the handler.
 pub const method_policies = [_]transport.auth.authorize.MethodPolicy{

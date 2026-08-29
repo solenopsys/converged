@@ -1,7 +1,7 @@
-//! centimanus — the RT virtual-machine service.
+//! centimanus — the workflow virtual-machine service.
 //!
 //! Workflows execute only through the shared Fujin transport route
-//! `centimanus:dag`. There is intentionally no HTTP listener or HTTP fallback.
+//! `centimanus`. There is intentionally no HTTP listener or HTTP fallback.
 
 const std = @import("std");
 const transport = @import("transport");
@@ -50,6 +50,10 @@ pub fn main(init: std.process.Init) !void {
         init.environ_map.get("FUJIN_ZMQ_ENDPOINT") orelse "tcp://127.0.0.1:5557";
     const endpoint = try gpa.dupeZ(u8, endpoint_value);
     const target = init.environ_map.get("FUJIN_TARGET") orelse "centimanus";
+    const service_token = init.environ_map.get("SERVICE_TOKEN") orelse {
+        std.debug.print("centimanus: missing required env SERVICE_TOKEN\n", .{});
+        return error.EnvironmentVariableNotFound;
+    };
 
     const runtime = try gpa.create(transport.Runtime);
     runtime.* = transport.Runtime.init(gpa, .{
@@ -68,7 +72,7 @@ pub fn main(init: std.process.Init) !void {
         gpa.free(endpoint);
         return err;
     };
-    var engine = try Engine.init(gpa, io, &store, runtime);
+    var engine = try Engine.init(gpa, io, &store, runtime, service_token);
     const fujin_thread = std.Thread.spawn(.{}, fujinLoop, .{ runtime, endpoint, gpa, &engine, &auth_receiver }) catch |err| {
         runtime.deinit();
         gpa.destroy(runtime);
@@ -101,7 +105,7 @@ fn fujinLoop(runtime: *transport.Runtime, endpoint: [:0]u8, allocator: std.mem.A
     defer runtime.deinit();
     var provider = signal_provider.Provider.init(allocator, engine, auth_receiver);
     defer provider.deinit();
-    runtime.bind("centimanus", provider.transportHandler()) catch |err| {
+    centimanus_nrpc.bind(runtime, provider.transportHandler()) catch |err| {
         std.log.err("centimanus transport handler registration failed: {s}", .{@errorName(err)});
         return;
     };

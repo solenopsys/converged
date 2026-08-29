@@ -8,4 +8,4 @@ const converged = join(import.meta.dir, "../../../../..");
 
 export { buildWorkflow } from "../../../../../tools/dag/core/build.ts";
 
-export const WF_FILE_ANALYSIS = join(converged, "tools/dag/workflows/wf-file-analysis/index.ts");
+export const WF_FILES_PROCESS = join(converged, "modules/workflows/wf-files-process/index.ts");

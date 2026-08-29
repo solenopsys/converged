@@ -3,7 +3,7 @@ const transport = @import("transport");
 const Engine = @import("engine.zig").Engine;
 const centimanus_nrpc = @import("generated/centimanus_nrpc.zig");
 
-/// Browser/CLI gateway for the `centimanus:dag` transport service: runs
+/// Browser/CLI gateway for the `centimanus` transport service: runs
 /// workflows in this process. Chat/LLM traffic is served by resonus now —
 /// centimanus only orchestrates workflow execution.
 pub const Provider = struct {
@@ -32,9 +32,6 @@ pub const Provider = struct {
         if (request.envelope.scope.len == 0) return error.ScopeRequired;
         if (request.envelope.request_id.len == 0) return error.RequestIdMissing;
 
-        if (!std.mem.eql(u8, request.envelope.to.target, "centimanus:dag")) return error.ServiceUnsupported;
-        if (!std.mem.eql(u8, request.envelope.to.service, "dag")) return error.ServiceUnsupported;
-        if (!std.mem.eql(u8, request.envelope.method, "runWorkflow")) return error.CommandUnsupported;
         const policy = centimanus_nrpc.policy(request.envelope.method) orelse return error.CommandUnsupported;
         const now = std.Io.Timestamp.now(std.Options.debug_io, .real).toSeconds();
         var verified = try self.auth.authorize(request.envelope.auth, request.envelope.user, request.envelope.scope, policy, now);
@@ -53,6 +50,7 @@ pub const Provider = struct {
         const result = try self.engine.runWorkflowScoped(
             allocator,
             request.envelope.scope,
+            request.envelope.user,
             script_path,
             params_json,
         );

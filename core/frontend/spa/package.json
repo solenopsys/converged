@@ -38,7 +38,7 @@
 		"front-core": "workspace:*",
 		"g-assistant": "workspace:*",
 		"g-files": "workspace:*",
-		"g-rt-dag": "workspace:*",
+		"g-centimanus": "workspace:*",
 		"g-store": "workspace:*",
 		"g-threads": "workspace:*",
 		"nrpc": "workspace:*",

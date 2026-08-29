@@ -64,8 +64,9 @@ pub fn main(init: std.process.Init) !void {
     defer registry.deinit();
     var messages = try Journal.init(allocator, config.journal_capacity);
     defer messages.deinit();
-    if (config.debug) std.log.info("debug mode enabled: logging every envelope routed through fujin", .{});
-    const worker = try std.Thread.spawn(.{}, transportLoop, .{ &router, &hub, &registry, &messages, &config.jwt, config.debug });
+    if (config.debug) std.log.info("debug mode enabled: compact external RPC activity", .{});
+    if (config.trace_packets) std.log.info("packet trace enabled: logging every routed envelope", .{});
+    const worker = try std.Thread.spawn(.{}, transportLoop, .{ &router, &hub, &registry, &messages, &config.jwt, config.debug, config.trace_packets });
     worker.detach();
 
     var websocket = WebSocket{
@@ -141,23 +142,19 @@ fn replyUnroutable(
     };
 }
 
-/// Debug-mode trace of a single envelope decision (routed, dropped, or
-/// rejected). Gated behind FUJIN_DEBUG=on — this is the "why is my request
-/// stuck" tool: every message fujin sees is logged with enough routing
-/// context (kind/to/from/method/requestId/payload size) to tell whether it
-/// arrived, where it was headed, and why it didn't reach its target.
+/// Compact RPC activity line. Full packet-level logging is gated behind
+/// FUJIN_TRACE=packets; FUJIN_DEBUG=on must remain readable during normal dev.
 fn logEnvelope(comptime verb: []const u8, env: anytype, payload_len: usize, detail: []const u8) void {
     std.log.info(
-        "[debug] {s} kind={s} to={s}/{s} from={s}/{s} method={s} requestId={s} payload={d}B{s}{s}",
+        "rpc {s} {s} {s}→{s}/{s}.{s} id={s} {d}B{s}{s}",
         .{
             verb,
             kindName(env.kind),
+            env.from.target,
             env.to.target,
             env.to.service,
-            env.from.target,
-            env.from.service,
             env.method,
-            env.request_id,
+            shortId(env.request_id),
             payload_len,
             if (detail.len > 0) " " else "",
             detail,
@@ -165,9 +162,25 @@ fn logEnvelope(comptime verb: []const u8, env: anytype, payload_len: usize, deta
     );
 }
 
-fn transportLoop(router: *transport.Router, hub: *Hub, registry: *Registry, messages: *Journal, jwt: *const @import("config.zig").JwtConfig, debug: bool) void {
+fn isBrowserTarget(target: []const u8) bool {
+    return std.mem.startsWith(u8, target, "ws:");
+}
+
+fn isWorkflowEnvelope(env: anytype) bool {
+    return std.mem.eql(u8, env.to.target, "centimanus") or
+        std.mem.eql(u8, env.from.target, "centimanus");
+}
+
+fn isCompactDebugEnvelope(env: anytype) bool {
+    if (env.kind == .stream_chunk) return false;
+    return isBrowserTarget(env.to.target) or
+        isBrowserTarget(env.from.target) or
+        isWorkflowEnvelope(env);
+}
+
+fn transportLoop(router: *transport.Router, hub: *Hub, registry: *Registry, messages: *Journal, jwt: *const @import("config.zig").JwtConfig, debug: bool, trace_packets: bool) void {
     while (true) {
-        drainBrowserCommands(router, hub, registry, messages, jwt, debug);
+        drainBrowserCommands(router, hub, registry, messages, jwt, debug, trace_packets);
 
         var incoming = (router.recv() catch |err| {
             std.log.warn("transport receive rejected: {s}", .{@errorName(err)});
@@ -190,7 +203,7 @@ fn transportLoop(router: *transport.Router, hub: *Hub, registry: *Registry, mess
 
         if (env.kind != .system) {
             messages.recordEnvelope("zmq", "received", env, incoming.payload().len);
-            if (debug) logEnvelope("recv", env, incoming.payload().len, "");
+            if (trace_packets) logEnvelope("recv", env, incoming.payload().len, "");
         }
 
         if (env.kind == .system) {
@@ -258,21 +271,16 @@ fn transportLoop(router: *transport.Router, hub: *Hub, registry: *Registry, mess
             continue;
         };
         messages.recordEnvelope("zmq", "routed", env, incoming.payload().len);
-        if (debug) logEnvelope("route", env, incoming.payload().len, "");
+        if (trace_packets or (debug and isCompactDebugEnvelope(env)))
+            logEnvelope("route", env, incoming.payload().len, "");
     }
 }
 
-fn drainBrowserCommands(router: *transport.Router, hub: *Hub, registry: *Registry, messages: *Journal, jwt: *const @import("config.zig").JwtConfig, debug: bool) void {
+fn drainBrowserCommands(router: *transport.Router, hub: *Hub, registry: *Registry, messages: *Journal, jwt: *const @import("config.zig").JwtConfig, debug: bool, trace_packets: bool) void {
     while (hub.takePending()) |pending_value| {
         var pending = pending_value;
         defer pending.deinit();
         messages.recordWebSocket("received", pending.client_id, pending.target, pending.service, pending.method, pending.request_id, pending.payload.len);
-        if (debug) {
-            std.log.info(
-                "[debug] ws-recv target={s}/{s} from=ws:{d} method={s} requestId={s} payload={d}B",
-                .{ pending.target, pending.service, pending.client_id, pending.method, pending.request_id, pending.payload.len },
-            );
-        }
         if (std.mem.eql(u8, pending.target, "fujin")) {
             handleAdminCommand(hub, registry, messages, jwt, &pending) catch |err| {
                 hub.sendAdminError(pending.client_id, pending.request_id, adminErrorCode(err), @errorName(err));
@@ -331,7 +339,7 @@ fn drainBrowserCommands(router: *transport.Router, hub: *Hub, registry: *Registr
             continue;
         };
         messages.recordWebSocket("routed", pending.client_id, pending.target, pending.service, pending.method, pending.request_id, pending.payload.len);
-        if (debug) logEnvelope("ws-route", env, pending.payload.len, "");
+        if (trace_packets or debug) logEnvelope("ws-route", env, pending.payload.len, "");
     }
 }
 

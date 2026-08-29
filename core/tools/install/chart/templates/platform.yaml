@@ -90,6 +90,7 @@ spec:
     solutions: solutions/{{ include "ptah.workspace" . }}.json
     revision: {{ .Values.registry.revision | quote }}
     modules: {{ .Values.registry.modules | default dict | toJson }}
+	workflows: {{ .Values.registry.workflows | default dict | toJson }}
 {{- end }}
 
 {{- with .Values.env }}

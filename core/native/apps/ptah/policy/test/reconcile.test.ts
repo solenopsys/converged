@@ -127,8 +127,12 @@ describe("platform", () => {
 					spec: { containers: { env: { name: string; value: string }[] }[] };
 				};
 			}>(cloud, "Deployment", name).template.spec.containers[0].env;
-		expect(envIn("converged-ui").some((e) => e.name === "STORAGE_SCOPE")).toBe(true);
-		expect(envIn("converged-services").some((e) => e.name === "STORAGE_SCOPE")).toBe(false);
+		expect(envIn("converged-ui").some((e) => e.name === "STORAGE_SCOPE")).toBe(
+			true,
+		);
+		expect(
+			envIn("converged-services").some((e) => e.name === "STORAGE_SCOPE"),
+		).toBe(false);
 	});
 
 	test("the cache is behemoth's, not a workload of its own", () => {
@@ -137,15 +141,21 @@ describe("platform", () => {
 		);
 		// Behemoth runs valkey in-process. A separate cache Deployment would be
 		// a second, empty cache that nothing writes to.
-		expect(resources.some((r) => r.metadata.name.endsWith("-cache"))).toBe(false);
+		expect(resources.some((r) => r.metadata.name.endsWith("-cache"))).toBe(
+			false,
+		);
 
 		const storage = specOf<{
-			template: { spec: { containers: { args: string[]; command: string[] }[] } };
+			template: {
+				spec: { containers: { args: string[]; command: string[] }[] };
+			};
 		}>(resources, "Deployment", "converged-storage");
 		expect(storage.template.spec.containers[0].args).toContain("0.0.0.0:6379");
 		// Without an explicit command the args would replace the image's CMD
 		// and the runtime would try to exec "start".
-		expect(storage.template.spec.containers[0].command).toEqual(["/app/storage"]);
+		expect(storage.template.spec.containers[0].command).toEqual([
+			"/app/storage",
+		]);
 
 		const svc = specOf<{ ports: { name: string; port: number }[] }>(
 			resources,
@@ -159,9 +169,12 @@ describe("platform", () => {
 				(
 					specOf<{
 						template: {
-							spec: { containers: { env: { name: string; value: string }[] }[] };
+							spec: {
+								containers: { env: { name: string; value: string }[] }[];
+							};
 						};
-					}>(resources, "Deployment", name).template.spec.containers[0].env ?? []
+					}>(resources, "Deployment", name).template.spec.containers[0].env ??
+					[]
 				).map((e) => [e.name, e.value]),
 			);
 		expect(envOf("converged-ui").CACHE_URL).toBe(
@@ -516,10 +529,7 @@ describe("storage", () => {
 			.filter((resource) => resource.kind === "PersistentVolumeClaim")
 			.map((resource) => resource.metadata.name)
 			.sort();
-		expect(pvcNames).toEqual([
-			"converged-billing",
-			"converged-geo",
-		]);
+		expect(pvcNames).toEqual(["converged-billing", "converged-geo"]);
 
 		// Keys are the store ids the services actually ask for, not the bare
 		// module names a Solution lists.
@@ -550,11 +560,7 @@ describe("storage", () => {
 		};
 		expect(
 			deploymentSpec.template.spec.volumes.map((volume) => volume.name).sort(),
-		).toEqual([
-			"converged-billing",
-			"converged-geo",
-			"storage-config",
-		]);
+		).toEqual(["converged-billing", "converged-geo", "storage-config"]);
 		expect(
 			deploymentSpec.template.spec.containers[0].volumeMounts,
 		).toContainEqual({
@@ -932,6 +938,7 @@ describe("module registry", () => {
 		const data = dataOf(find(resources, "ConfigMap", "converged-modules"));
 		expect(data.MODULE_PROXY).toBe("http://ptah-proxy");
 		expect(JSON.parse(data.MODULE_DIGESTS)).toEqual(registry.modules);
+		expect(JSON.parse(data.WORKFLOW_DIGESTS)).toEqual(registry.workflows);
 		expect(data.MODULE_REGISTRY_REVISION).toBe(registry.revision);
 		expect(status.registry).toBe(registry.url);
 
@@ -956,6 +963,29 @@ describe("module registry", () => {
 		}
 	});
 
+	test("the module map carries only workflows selected by the active solution", () => {
+		const { resources } = reconcile(
+			input({
+				kind: "Platform",
+				object: platform("mono", { registry }),
+				solutions: [
+					solution("files", {
+						workflows: [
+							{
+								name: "files process",
+								script: "workflows/wf-files-process.js",
+							},
+						],
+					}),
+				],
+			}),
+		);
+		const data = dataOf(find(resources, "ConfigMap", "converged-modules"));
+		expect(JSON.parse(data.WORKFLOWS)).toEqual([
+			{ name: "files process", script: "workflows/wf-files-process.js" },
+		]);
+	});
+
 	test("the proxy is addressed across namespaces", () => {
 		const { resources } = reconcile(
 			input({
@@ -968,10 +998,13 @@ describe("module registry", () => {
 		// while every consumer runs in the platform's, so the short name would
 		// resolve to nothing the moment the two stop being the same namespace.
 		const proxy = "http://ptah-proxy.kube-system.svc.cluster.local";
-		expect(dataOf(find(resources, "ConfigMap", "converged-modules")).MODULE_PROXY)
-			.toBe(proxy);
+		expect(
+			dataOf(find(resources, "ConfigMap", "converged-modules")).MODULE_PROXY,
+		).toBe(proxy);
 		const spec = find(resources, "Deployment", "converged-services")?.spec as {
-			template: { spec: { containers: { env: { name: string; value: string }[] }[] } };
+			template: {
+				spec: { containers: { env: { name: string; value: string }[] }[] };
+			};
 		};
 		expect(spec.template.spec.containers[0].env).toContainEqual({
 			name: "MODULE_PROXY",
@@ -1004,9 +1037,7 @@ describe("module registry", () => {
 				input({
 					kind: "Platform",
 					object: platform("mono", { registry }),
-					solutions: [
-						solution("geo", { env: { MODULE_DIGESTS: "{}" } }),
-					],
+					solutions: [solution("geo", { env: { MODULE_DIGESTS: "{}" } })],
 					controllerNamespace: "kube-system",
 				}),
 			),

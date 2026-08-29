@@ -12,7 +12,14 @@ type SolutionDefinition = {
 	workflows?: string[];
 };
 
-type MappingEntry = { name: string; script: string };
+type MappingEntry = {
+	id?: string;
+	name: string;
+	script: string;
+	brief?: string;
+	description?: string;
+	parameters?: Record<string, unknown>;
+};
 
 export type ResolvedSolution = {
 	apiVersion: string;
@@ -113,7 +120,8 @@ function mappingsFrom(
 			if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
 				throw new Error(`[dev] ${path}.${group} contains an invalid entry`);
 			}
-			const { id, name, script } = entry as JsonObject;
+			const { id, name, script, brief, description, parameters } =
+				entry as JsonObject;
 			if (typeof name !== "string" || typeof script !== "string") {
 				throw new Error(
 					`[dev] ${path}.${group} entries require name and script`,
@@ -123,7 +131,26 @@ function mappingsFrom(
 			if (groupMappings.has(key)) {
 				throw new Error(`[dev] ${path}.${group} duplicates "${key}"`);
 			}
-			groupMappings.set(key, { name, script });
+			if (
+				parameters !== undefined &&
+				(!parameters ||
+					typeof parameters !== "object" ||
+					Array.isArray(parameters))
+			) {
+				throw new Error(
+					`[dev] ${path}.${group} ${key}.parameters must be an object`,
+				);
+			}
+			groupMappings.set(key, {
+				...(typeof id === "string" ? { id } : {}),
+				name,
+				script,
+				...(typeof brief === "string" ? { brief } : {}),
+				...(typeof description === "string" ? { description } : {}),
+				...(parameters
+					? { parameters: parameters as Record<string, unknown> }
+					: {}),
+			});
 		}
 		mappings.set(group, groupMappings);
 	}

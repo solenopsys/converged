@@ -81,22 +81,6 @@ export type FileTypeDetection = {
     mime: string;
 };
 
-export type UnzipInput = {
-    ref: CacheRef;
-    collectionId: UUID;
-    owner: string;
-    processId?: string;
-};
-
-export type UnzipEntry = {
-    fileId: UUID;
-    name: string;
-};
-
-export type UnzipResult = {
-    entries: UnzipEntry[];
-};
-
 export type PersistInput = {
     ref: CacheRef;
     name: string;
@@ -341,21 +325,6 @@ export const metadata: ServiceMetadata = {
       "isAsyncIterable": false
     },
     {
-      "name": "unzip",
-      "parameters": [
-        {
-          "name": "input",
-          "type": "UnzipInput",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "UnzipResult",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
       "name": "persist",
       "parameters": [
         {
@@ -459,21 +428,6 @@ export const metadata: ServiceMetadata = {
       "definition": "{\n    type: string;\n    mime: string;\n}"
     },
     {
-      "name": "UnzipInput",
-      "kind": "type",
-      "definition": "{\n    ref: CacheRef;\n    collectionId: UUID;\n    owner: string;\n    processId?: string;\n}"
-    },
-    {
-      "name": "UnzipEntry",
-      "kind": "type",
-      "definition": "{\n    fileId: UUID;\n    name: string;\n}"
-    },
-    {
-      "name": "UnzipResult",
-      "kind": "type",
-      "definition": "{\n    entries: UnzipEntry[];\n}"
-    },
-    {
       "name": "PersistInput",
       "kind": "type",
       "definition": "{\n    ref: CacheRef;\n    name: string;\n    fileType: string;\n    owner: string;\n    collectionId?: UUID;\n    processId?: string;\n}"
@@ -507,7 +461,6 @@ export interface FilesServiceClient {
   listByCollection(collectionId: UUID): Promise<FileMetadata[]>;
   materialize(fileId: UUID): Promise<MaterializedFile>;
   detectType(input: DetectTypeInput): Promise<FileTypeDetection>;
-  unzip(input: UnzipInput): Promise<UnzipResult>;
   persist(input: PersistInput): Promise<FileMetadata>;
   extractText(input: ExtractTextInput): Promise<ExtractTextResult>;
 }

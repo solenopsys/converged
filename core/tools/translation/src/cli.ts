@@ -120,7 +120,7 @@ async function main(): Promise<void> {
 			);
 			console.log(
 				`[translations] index: sources ${summary.sources}, targets ${summary.targets}, ` +
-					`linked ${summary.linked}, english ${summary.english}, missing ${summary.missing}, ` +
+					`linked ${summary.linked}, english ${summary.english}, missing ${summary.missing}, invalid ${summary.invalid}, ` +
 					`nodes changed ${summary.changed}`,
 			);
 			for (const run of grouped) {

@@ -9,6 +9,7 @@ import {
 	withParentDeath,
 } from "./apps";
 import { resolveSolutionConfig } from "./solution";
+import { startWorkflowServer } from "./workflows";
 
 const PROJECT_DIR = PROJECT_ROOT;
 
@@ -124,7 +125,20 @@ const runtimeEnv: Record<string, string> = {
 	BEHEMOTH_STORAGE_CONFIG: resolve(dataDir, "mounts.json"),
 	FUJIN_ZMQ_ENDPOINT: env.FUJIN_ZMQ_ENDPOINT || "tcp://127.0.0.1:5557",
 	FUJIN_WS_URL: env.FUJIN_WS_URL || "ws://127.0.0.1:8087/ws",
+	WORKFLOWS: JSON.stringify(solution.spec.workflows),
 };
+
+const workflowServer = startServices
+	? startWorkflowServer(
+			PROJECT_ROOT,
+			runtimeEnv.CHILD_PROJECT_DIR,
+			solution.spec.workflows.map((workflow) => workflow.script),
+			Number(env.CENTIMANUS_WORKFLOW_PORT ?? "9181"),
+		)
+	: undefined;
+if (workflowServer) {
+	runtimeEnv.WORKFLOW_ENDPOINTS = JSON.stringify(workflowServer.endpoints);
+}
 
 console.log(
 	`[dev] solution ${solution.metadata?.name}: ` +
@@ -144,6 +158,7 @@ const cleanup = (code = 0) => {
 	if (cleaned) return;
 	cleaned = true;
 	console.log("\n[dev] shutting down...");
+	workflowServer?.stop();
 	killChildren();
 	process.exit(code);
 };
@@ -167,6 +182,8 @@ const nativeApps = startServices
 				.split(",")
 				.map((s) => s.trim())
 				.filter(Boolean),
+			solution.spec.processors,
+			solution.spec.workflows.length,
 			dataDir,
 			mountsConfig,
 			runtimeEnv,

@@ -1,6 +1,4 @@
-import { basename } from "node:path";
 import type { CacheAdapter } from "back-core";
-import { unzipSync } from "fflate";
 import type {
 	DetectTypeInput,
 	ExtractTextInput,
@@ -15,8 +13,6 @@ import type {
 	PaginatedResult,
 	PaginationParams,
 	PersistInput,
-	UnzipInput,
-	UnzipResult,
 	UUID,
 } from "g-files";
 import {
@@ -142,29 +138,6 @@ export class FilesServiceImpl implements FilesService {
 		return this.persistBytes(bytes, input);
 	}
 
-	/** Unzip a staged archive blob; persist each safe entry as a new file. */
-	async unzip(input: UnzipInput): Promise<UnzipResult> {
-		const cache = this.requiredCache();
-		const bytes = await readCacheRef(cache, input.ref);
-		const unzipped = unzipSync(bytes);
-		const entries: UnzipResult["entries"] = [];
-
-		for (const [path, data] of Object.entries(unzipped)) {
-			if (!isSafeArchiveEntry(path, data)) continue;
-			const name = basename(path);
-			const metadata = await this.persistBytes(data, {
-				name,
-				fileType: "",
-				owner: input.owner,
-				collectionId: input.collectionId,
-				processId: input.processId,
-			});
-			entries.push({ fileId: metadata.id, name });
-		}
-
-		return { entries };
-	}
-
 	/** Plain text of a staged blob (xlsx/xlsm sheets, svg labels, otherwise the
 	 *  decoded bytes). The sales-import workflow reads lead lists this way
 	 *  instead of parsing spreadsheets in the VM. */
@@ -182,9 +155,11 @@ export class FilesServiceImpl implements FilesService {
 		bytes: Uint8Array,
 		input: Omit<PersistInput, "ref">,
 	): Promise<FileMetadata> {
-		const cache = this.requiredCache();
 		const fileId = crypto.randomUUID();
-		const chunksCount = Math.max(1, Math.ceil(bytes.length / DEFAULT_CHUNK_SIZE));
+		const chunksCount = Math.max(
+			1,
+			Math.ceil(bytes.length / DEFAULT_CHUNK_SIZE),
+		);
 		const createdAt = new Date().toISOString();
 
 		const metadata: FileMetadata = {
@@ -221,14 +196,4 @@ export class FilesServiceImpl implements FilesService {
 
 		return metadata;
 	}
-}
-
-function isSafeArchiveEntry(path: string, data: Uint8Array): boolean {
-	if (path.endsWith("/")) return false; // directory entry
-	if (data.length === 0) return false;
-	const segments = path.split("/");
-	if (segments.some((s) => s === ".." || s === "")) return false;
-	if (segments[0] === "__MACOSX") return false;
-	if (basename(path).startsWith(".")) return false;
-	return true;
 }

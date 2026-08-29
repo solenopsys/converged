@@ -17,7 +17,7 @@ export type FujinMessages = {
 };
 
 /** Browser/CLI administration API owned by the Fujin native process. */
-export interface RuntimeFujinService {
+export interface FujinService {
   state(): Promise<FujinState>;
   messages(limit?: number): Promise<FujinMessages>;
   logs(limit?: number): AsyncIterable<FujinMessages>;

@@ -55,6 +55,10 @@ export function wrapperLib(wrapperPath: string): string {
 
 export interface NativeApp {
 	name: string;
+	/** Processors are selected by the resolved Solution, not DEV_APPS. */
+	kind?: "app" | "processor";
+	/** Source directory relative to the project root. Defaults to native/apps. */
+	dir?: string;
 	/** Start order; the router must own its socket before its peers dial it. */
 	order: number;
 	bin: string;
@@ -98,6 +102,10 @@ function behemothPath(...parts: string[]): string {
 	return resolve(PROJECT_ROOT, "core/native/apps/behemoth", ...parts);
 }
 
+function processorPath(name: string, ...parts: string[]): string {
+	return resolve(PROJECT_ROOT, "core/native/processors", name, ...parts);
+}
+
 /**
  * The native peers of the cluster. In production each is its own container;
  * dev runs the same set as local processes so the topology is identical and
@@ -137,9 +145,7 @@ export const NATIVE_APPS: NativeApp[] = [
 		libDirs: ["zig-out/x86_64-gnu/lib"],
 		readyDelayMs: 300,
 		env: () => ({
-			BEHEMOTH_STORAGE_JS_SCRIPT: behemothPath(
-				"scripts/default-management.js",
-			),
+			BEHEMOTH_STORAGE_JS_SCRIPT: behemothPath("scripts/default-management.js"),
 			BEHEMOTH_QJS_LIB: behemothPath("zig-out/x86_64-gnu/lib/libqjs.so"),
 			RYUGRAPH_LIBRARY_PATH: behemothPath(
 				"zig-out/x86_64-gnu/lib/libryugraph.so",
@@ -191,6 +197,36 @@ export const NATIVE_APPS: NativeApp[] = [
 			LLM_GATE_SIP_ENABLED: "false",
 		}),
 	},
+	{
+		name: "curaengine",
+		kind: "processor",
+		dir: "core/native/processors/curaengine",
+		order: 4,
+		bin: "zig-out/x86_64-linux-gnu/bin/curaengine",
+		libDirs: ["zig-out/x86_64-linux-gnu/lib"],
+		env: () => ({
+			CURAENGINE_LIB: processorPath(
+				"curaengine",
+				"zig-out/x86_64-linux-gnu/lib/libcuraengine.so",
+			),
+			CURAENGINE_FUJIN_ZMQ_ENDPOINT: FUJIN_ZMQ,
+		}),
+	},
+	{
+		name: "opencamlib",
+		kind: "processor",
+		dir: "core/native/processors/opencamlib",
+		order: 4,
+		bin: "zig-out/x86_64-linux-gnu/bin/opencamlib",
+		libDirs: ["zig-out/x86_64-linux-gnu/lib"],
+		env: () => ({
+			OPENCAMLIB_LIB: processorPath(
+				"opencamlib",
+				"zig-out/x86_64-linux-gnu/lib/libopencamlib.so",
+			),
+			OPENCAMLIB_FUJIN_ZMQ_ENDPOINT: FUJIN_ZMQ,
+		}),
+	},
 ];
 
 let pdeathsig: boolean | undefined;
@@ -221,52 +257,69 @@ export interface ResolvedApp {
 	readyDelayMs: number;
 }
 
+export function selectNativeApps(
+	selection: string[],
+	processors: string[],
+	workflowCount = 0,
+): NativeApp[] {
+	const wanted = selection.length > 0 ? new Set(selection) : null;
+	const selectedProcessors = new Set(processors);
+	return NATIVE_APPS.filter((app) =>
+		app.kind === "processor"
+			? selectedProcessors.has(app.name)
+			: app.name === "centimanus" && workflowCount > 0
+				? true
+				: !wanted || wanted.has(app.name),
+	).sort((a, b) => a.order - b.order);
+}
+
 export function resolveNativeApps(
 	selection: string[],
+	processors: string[],
+	workflowCount: number,
 	dataDir: string,
 	mountsConfig: string,
 	baseEnv: Record<string, string>,
 ): ResolvedApp[] {
-	const wanted = selection.length > 0 ? new Set(selection) : null;
+	return selectNativeApps(selection, processors, workflowCount).map((app) => {
+		const dir = resolve(
+			PROJECT_ROOT,
+			app.dir ?? `core/native/apps/${app.name}`,
+		);
+		const bin = resolve(dir, app.bin);
+		if (!existsSync(bin)) {
+			throw new Error(
+				`[dev] native app "${app.name}": binary not found: ${bin}\n` +
+					`  build it in ${dir}`,
+			);
+		}
 
-	return NATIVE_APPS.filter((app) => !wanted || wanted.has(app.name))
-		.sort((a, b) => a.order - b.order)
-		.map((app) => {
-			const dir = resolve(PROJECT_ROOT, "core/native/apps", app.name);
-			const bin = resolve(dir, app.bin);
-			if (!existsSync(bin)) {
-				throw new Error(
-					`[dev] native app "${app.name}": binary not found: ${bin}\n` +
-						`  build it in ${dir}`,
-				);
-			}
+		const expand = (value: string) =>
+			value
+				.replaceAll("${dir}", dir)
+				.replaceAll("${dataDir}", dataDir)
+				.replaceAll("${mountsConfig}", mountsConfig);
 
-			const expand = (value: string) =>
-				value
-					.replaceAll("${dir}", dir)
-					.replaceAll("${dataDir}", dataDir)
-					.replaceAll("${mountsConfig}", mountsConfig);
+		const libDirs = (app.libDirs ?? [])
+			.map((d) => resolve(dir, d))
+			.filter((d) => existsSync(d));
+		const ldPath = [...libDirs, baseEnv.LD_LIBRARY_PATH]
+			.filter(Boolean)
+			.join(":");
 
-			const libDirs = (app.libDirs ?? [])
-				.map((d) => resolve(dir, d))
-				.filter((d) => existsSync(d));
-			const ldPath = [...libDirs, baseEnv.LD_LIBRARY_PATH]
-				.filter(Boolean)
-				.join(":");
-
-			return {
-				name: app.name,
-				dir,
-				bin,
-				args: (app.args ?? []).map(expand),
-				readyDelayMs: app.readyDelayMs ?? 0,
-				env: {
-					...baseEnv,
-					...(app.env?.() ?? {}),
-					...(ldPath ? { LD_LIBRARY_PATH: ldPath } : {}),
-				},
-			};
-		});
+		return {
+			name: app.name,
+			dir,
+			bin,
+			args: (app.args ?? []).map(expand),
+			readyDelayMs: app.readyDelayMs ?? 0,
+			env: {
+				...baseEnv,
+				...(app.env?.() ?? {}),
+				...(ldPath ? { LD_LIBRARY_PATH: ldPath } : {}),
+			},
+		};
+	});
 }
 
 export function pipeOutput(proc: Subprocess, label: string): void {

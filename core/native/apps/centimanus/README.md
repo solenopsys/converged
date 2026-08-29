@@ -143,6 +143,28 @@ The runtime reports execution and task lifecycle events to the DAG service on a
 best-effort basis. These events support visibility into a run; they do not
 control execution and are not the source of node state.
 
+## Workflow delivery
+
+Centimanus does not own a workflow catalogue and never addresses the object
+registry. Ptah selects workflow descriptors from the active Solutions and puts
+that selection into the DAG service's `WORKFLOWS` environment.
+
+Before execution, Centimanus obtains the selected descriptor from the DAG
+service. The descriptor identifies the script and its Ptah-proxy location.
+Centimanus reads the raw JavaScript directly from that proxy, then evaluates
+it. Ptah-proxy is the only component that fetches registry objects and caches
+their bytes; the DAG service only publishes descriptors and execution state.
+
+```text
+Solution -> Ptah -> DAG service (active descriptors)
+                       |                 ^
+                       v                 |
+                  Centimanus -> Ptah-proxy
+```
+
+This keeps solution selection, registry delivery, execution and observability
+separate. A script outside the descriptor set is not executable.
+
 ## Design constraints
 
 - Workflows execute one node at a time.

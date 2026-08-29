@@ -19,19 +19,6 @@ import type {
 
 const MS_ID = "requests-ms";
 
-async function publishBusinessEvent(
-	type: string,
-	entityId: string,
-): Promise<void> {
-	void type;
-	void entityId;
-	throw new Error(
-		"[ms-requests] Direct service-to-service calls are forbidden. Publish this business event from a Centimanus workflow.",
-	);
-
-	// The old direct ms-requests -> ms-events HTTP call is intentionally disabled.
-}
-
 export class RequestsServiceImpl implements RequestsService {
 	stores: StoresController;
 	private initPromise?: Promise<void>;
@@ -55,9 +42,7 @@ export class RequestsServiceImpl implements RequestsService {
 
 	async createRequest(input: RequestInput): Promise<RequestId> {
 		await this.init();
-		const id = await this.stores.requests.createRequest(input);
-		void publishBusinessEvent("request.created", id);
-		return id;
+		return this.stores.requests.createRequest(input);
 	}
 
 	getRequest(id: RequestId): Promise<Request | undefined> {
@@ -80,9 +65,7 @@ export class RequestsServiceImpl implements RequestsService {
 
 	async createRequestModel(input: RequestModelInput): Promise<RequestModel> {
 		await this.init();
-		const model = await this.stores.requests.createRequestModel(input);
-		void publishBusinessEvent("request.created", model.id);
-		return model;
+		return this.stores.requests.createRequestModel(input);
 	}
 
 	applyRequestUpdate(

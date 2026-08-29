@@ -38,23 +38,8 @@ pub const Registry = struct {
             const spec = objectField(platform, "spec") orelse continue;
             const registry = objectField(spec, "registry") orelse continue;
             const base_url = stringField(registry, "url") orelse continue;
-            const modules = objectField(registry, "modules") orelse continue;
-            if (modules != .object) continue;
-
-            var entries = modules.object.iterator();
-            while (entries.next()) |entry| {
-                const digest = switch (entry.value_ptr.*) {
-                    .string => |value| value,
-                    else => continue,
-                };
-                if (!validDigest(digest) or next.contains(digest)) continue;
-
-                const owned_digest = try self.gpa.dupe(u8, digest);
-                errdefer self.gpa.free(owned_digest);
-                const fetch_url = try fetchUrl(self.gpa, base_url, digest);
-                errdefer self.gpa.free(fetch_url);
-                try next.put(owned_digest, fetch_url);
-            }
+            try addMap(self.gpa, &next, base_url, objectField(registry, "modules"));
+            try addMap(self.gpa, &next, base_url, objectField(registry, "workflows"));
         }
 
         self.lock();
@@ -88,6 +73,24 @@ pub const Registry = struct {
         map.deinit();
     }
 };
+
+fn addMap(gpa: std.mem.Allocator, next: *std.StringHashMap([]u8), base_url: []const u8, value: ?std.json.Value) !void {
+    const map = value orelse return;
+    if (map != .object) return;
+    var entries = map.object.iterator();
+    while (entries.next()) |entry| {
+        const digest = switch (entry.value_ptr.*) {
+            .string => |item| item,
+            else => continue,
+        };
+        if (!validDigest(digest) or next.contains(digest)) continue;
+        const owned_digest = try gpa.dupe(u8, digest);
+        errdefer gpa.free(owned_digest);
+        const fetch_url = try fetchUrl(gpa, base_url, digest);
+        errdefer gpa.free(fetch_url);
+        try next.put(owned_digest, fetch_url);
+    }
+}
 
 fn objectField(value: std.json.Value, name: []const u8) ?std.json.Value {
     return switch (value) {

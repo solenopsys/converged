@@ -128,6 +128,8 @@ export interface RegistrySpec {
 	url: string;
 	/** Immutable registry paths mapped to lowercase SHA-256 digests. */
 	modules: Record<string, string>;
+	/** Workflow script path -> digest. Workflow sources are raw JavaScript. */
+	workflows?: Record<string, string>;
 	/** Key of the base solution configuration within the registry. */
 	solutions: string;
 	/** Immutable content revision; changing it forces a re-fetch and a rollout. */
@@ -212,8 +214,12 @@ export interface PlatformSpec extends ExtraResources {
 }
 
 export interface WorkflowRef {
+	id?: string;
 	name: string;
 	script: string;
+	brief?: string;
+	description?: string;
+	parameters?: Record<string, unknown>;
 	periodMs?: number;
 	params?: Record<string, unknown>;
 }

@@ -76,8 +76,8 @@ this library ships a few pre-built tool sets a host can drop in:
 - a thin **UI-action** wrapper around the same catalog shape, for hosts whose
   "functions" are actually UI actions (with legacy tool names for
   backward compatibility);
-- a **file-analysis** tool that kicks off a CNC/3D-print analysis workflow
-  for uploaded files and returns its result;
+- a **files-process** tool that explicitly processes uploaded files: it unpacks
+  archives, identifies model files, and creates a request when applicable;
 - a small **uploaded-files** tool so the model can list what's already in the
   chat.
 

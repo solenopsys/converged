@@ -32,7 +32,7 @@
 			"nrpc": ["../../tools/nrpc/src/browser.ts"],
 			"g-assistant": ["../../tools/generated/g-assistant/src/browser.ts"],
 			"g-files": ["../../tools/generated/g-files/src/browser.ts"],
-			"g-rt-dag": ["../../tools/generated/g-rt-dag/src/browser.ts"],
+			"g-centimanus": ["../../../modules/generated/g-centimanus/src/browser.ts"],
 			"g-store": ["../../tools/generated/g-store/src/browser.ts"],
 			"g-threads": ["../../tools/generated/g-threads/src/browser.ts"]
 		}

@@ -2,9 +2,10 @@
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { compareJson } from "./compare";
 import { targetFilePath } from "./scan";
 import type { TranslationStore } from "./store";
-import type { ProjectConfig, ProjectSnapshot } from "./types";
+import type { JsonValue, ProjectConfig, ProjectSnapshot } from "./types";
 
 type Job = {
 	id: string;
@@ -200,13 +201,32 @@ export async function translateProject(
 			for (const job of batch) {
 				const content = translations.get(job.id) as string;
 				if (job.type === "json") {
+					let translatedJson: JsonValue;
 					try {
-						JSON.parse(content);
+						translatedJson = JSON.parse(content) as JsonValue;
 					} catch (error) {
 						const message =
 							error instanceof Error ? error.message : String(error);
 						console.log(
 							`    skipped ${job.file}: model returned invalid JSON (${message})`,
+						);
+						continue;
+					}
+					const sourceJson = JSON.parse(job.content) as JsonValue;
+					const diff = compareJson(
+						sourceJson,
+						translatedJson,
+						config.validation,
+						locale,
+					);
+					if (
+						diff.missing.length ||
+						diff.extra.length ||
+						diff.typeChanged.length
+					) {
+						console.log(
+							`    skipped ${job.file}: model changed JSON structure ` +
+								`(missing ${diff.missing.length}, extra ${diff.extra.length}, type ${diff.typeChanged.length})`,
 						);
 						continue;
 					}

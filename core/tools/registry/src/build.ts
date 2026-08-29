@@ -45,6 +45,7 @@ import { basename, dirname, join, resolve } from "node:path";
 import { brotliCompressSync, constants as zlib } from "node:zlib";
 import { FUNCTION_INDEX } from "back-core/module-registry";
 import { createGenerator } from "unocss";
+import { buildWorkflow } from "../../../dag/core/build";
 import { localizedMicrofrontendEntry } from "../../../frontend/spa/src/build/microfrontend-locales";
 import { createImportMap } from "../../../frontend/spa/src/import-map";
 import unoMicrofrontendConfig from "../../../frontend/spa/uno.mf.config";
@@ -185,6 +186,9 @@ async function bundle(
 	externals: string[],
 ): Promise<Uint8Array> {
 	const browser = module.kind === "microfrontends";
+	if (module.kind === "workflows") {
+		return new TextEncoder().encode(await buildWorkflow(module.implementation));
+	}
 	const entry =
 		module.kind === "microservices"
 			? await writeServiceEntry(options, module)
@@ -259,7 +263,13 @@ function compress(bytes: Uint8Array): Uint8Array {
 	);
 }
 
-type Built = { artifact: string; digest: string; size: number; raw: number };
+type Built = {
+	artifact: string;
+	digest: string;
+	size: number;
+	raw: number;
+	kind: Kind | "function-index";
+};
 
 /**
  * The function catalogue's metadata, as one more registry object.
@@ -301,8 +311,15 @@ async function buildAll(options: Options): Promise<Built[]> {
 	mkdirSync(objects, { recursive: true });
 
 	const built: Built[] = [];
-	const store = async (artifact: string, script: Uint8Array) => {
-		const bytes = compress(script);
+	const store = async (
+		artifact: string,
+		script: Uint8Array,
+		kind: Built["kind"],
+	) => {
+		// Centimanus executes workflow bytes itself. Keeping those sources raw
+		// avoids baking a Brotli decoder into the native runtime; ordinary
+		// browser/server modules remain compressed.
+		const bytes = kind === "workflows" ? script : compress(script);
 		const digest = sha256(bytes);
 		await Bun.write(join(objects, digest), bytes);
 		built.push({
@@ -310,10 +327,11 @@ async function buildAll(options: Options): Promise<Built[]> {
 			digest,
 			size: bytes.byteLength,
 			raw: script.byteLength,
+			kind,
 		});
 		console.log(
 			`[registry]   ${artifact.padEnd(28)} ${digest.slice(0, 12)}…  ` +
-				`${(bytes.byteLength / 1024).toFixed(1)} KiB br (${(script.byteLength / 1024).toFixed(1)} KiB)`,
+				`${(bytes.byteLength / 1024).toFixed(1)} KiB ${kind === "workflows" ? "raw" : "br"} (${(script.byteLength / 1024).toFixed(1)} KiB)`,
 		);
 	};
 
@@ -348,13 +366,21 @@ async function buildAll(options: Options): Promise<Built[]> {
 
 		console.log(`[registry] ${kind}: ${modules.length} module(s)`);
 		for (const module of modules) {
-			await store(module.artifact, await bundle(options, module, externals));
+			await store(
+				module.artifact,
+				await bundle(options, module, externals),
+				kind,
+			);
 		}
 		// Last, and only once every module it describes has been built: the index
 		// names modules, so publishing it ahead of them would advertise functions
 		// whose code is not in the registry yet.
 		if (kind === "microfrontends") {
-			await store(FUNCTION_INDEX, await buildFunctionIndex(options, modules));
+			await store(
+				FUNCTION_INDEX,
+				await buildFunctionIndex(options, modules),
+				"function-index",
+			);
 		}
 	}
 
@@ -372,16 +398,33 @@ type Manifest = {
 	/** How every object in this registry is compressed. */
 	encoding: "br";
 	modules: Record<string, string>;
+	/** Raw workflow source path -> digest. */
+	workflows: Record<string, string>;
 };
 
-function manifest(modules: Record<string, string>): Manifest {
+function manifest(
+	modules: Record<string, string>,
+	workflows: Record<string, string> = {},
+): Manifest {
 	const sorted = Object.fromEntries(
 		Object.entries(modules).sort(([a], [b]) => a.localeCompare(b)),
 	);
 	// The revision is the mapping's own digest rather than a timestamp: two
 	// builds of unchanged sources must not force a rollout.
-	const revision = sha256(new TextEncoder().encode(JSON.stringify(sorted)));
-	return { revision, encoding: "br", modules: sorted };
+	const sortedWorkflows = Object.fromEntries(
+		Object.entries(workflows).sort(([a], [b]) => a.localeCompare(b)),
+	);
+	const revision = sha256(
+		new TextEncoder().encode(
+			JSON.stringify({ modules: sorted, workflows: sortedWorkflows }),
+		),
+	);
+	return {
+		revision,
+		encoding: "br",
+		modules: sorted,
+		workflows: sortedWorkflows,
+	};
 }
 
 /** The layer a build publishes as: the product's name, or converged's. */
@@ -401,6 +444,13 @@ function layerFile(options: Options, built: Built[]): LayerFile {
 		encoding: "br",
 		modules: Object.fromEntries(
 			built
+				.filter(({ kind }) => kind !== "workflows")
+				.map(({ artifact, digest }) => [artifact, digest] as const)
+				.sort(([a], [b]) => a.localeCompare(b)),
+		),
+		workflows: Object.fromEntries(
+			built
+				.filter(({ kind }) => kind === "workflows")
 				.map(({ artifact, digest }) => [artifact, digest] as const)
 				.sort(([a], [b]) => a.localeCompare(b)),
 		),
@@ -569,12 +619,18 @@ type ChartValues = {
 		url: string;
 		revision: string;
 		modules: Record<string, string>;
+		workflows: Record<string, string>;
 	};
 };
 
 function chartValues(mapping: Manifest, url: string): ChartValues {
 	return {
-		registry: { url, revision: mapping.revision, modules: mapping.modules },
+		registry: {
+			url,
+			revision: mapping.revision,
+			modules: mapping.modules,
+			workflows: mapping.workflows,
+		},
 	};
 }
 
@@ -648,7 +704,10 @@ async function publish(
 	// arrive at the same result, which is what makes publishing order stop
 	// mattering.
 	const layers = await publishedLayers(client, layer);
-	const mapping = manifest(mergeLayers(layers));
+	const mapping = manifest(
+		mergeLayers(layers),
+		mergeLayers(layers, "workflows"),
+	);
 	console.log(
 		`[registry] mapping covers ${layers.length} layer(s): ${layers
 			.map((entry) => `${entry.layer}(${Object.keys(entry.modules).length})`)
@@ -689,7 +748,7 @@ const url = registryUrl();
 // what let a product build erase the base layer's names.
 const mapping = options.publish
 	? await publish(options, built, layer, url)
-	: manifest(layer.modules);
+	: manifest(layer.modules, layer.workflows);
 if (!options.publish && layer.extends.length > 0) {
 	console.warn(
 		`[registry] local build: this mapping covers layer ${layer.layer} only, ` +

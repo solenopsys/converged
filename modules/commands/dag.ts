@@ -1,8 +1,8 @@
 import { createDagServiceClient, type DagServiceClient } from "g-dag/browser";
 import {
-	createRuntimeDagServiceClient,
-	type RuntimeDagServiceClient,
-} from "g-rt-dag/browser";
+	createCentimanusServiceClient,
+	type CentimanusServiceClient,
+} from "g-centimanus/browser";
 import {
 	BaseCommandProcessor,
 	type CommandEntry,
@@ -13,7 +13,7 @@ import { createCliNrpcClientConfig } from "dag-cli/ws";
 
 type DagCommandClient = {
 	dag: DagServiceClient;
-	runtime: RuntimeDagServiceClient;
+	centimanus: CentimanusServiceClient;
 };
 
 type WorkflowRunConfig = {
@@ -44,7 +44,7 @@ const runHandler: Handler = async (
 		return;
 	}
 
-	const result = await client.runtime.runWorkflow(
+	const result = await client.centimanus.runWorkflow(
 		config.scriptPath,
 		config.params ?? {},
 	);
@@ -130,7 +130,7 @@ class DagProcessor extends BaseCommandProcessor {
 export default () => {
 	const client: DagCommandClient = {
 		dag: createDagServiceClient(createCliNrpcClientConfig()),
-		runtime: createRuntimeDagServiceClient(
+		centimanus: createCentimanusServiceClient(
 			createCliNrpcClientConfig({
 				target: "centimanus",
 				deadlineMs: 120_000,

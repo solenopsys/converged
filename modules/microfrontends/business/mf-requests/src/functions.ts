@@ -1,13 +1,21 @@
 import { authToken, type CreateAction, type CreateWidget } from "front-core";
-import type { RequestModel } from "g-requests";
+import type {
+	RequestFiles,
+	RequestModel,
+	RequestProcessType,
+} from "g-requests";
 import {
+	CREATE_REQUEST,
+	GET_REQUEST,
 	OPEN_REQUEST,
 	REFRESH_REQUEST,
 	SHOW_REQUESTS,
+	UPDATE_REQUEST,
 	UPDATE_REQUEST_MODEL,
 } from "./commands";
 import { requestModelReceived } from "./domain-requests";
 import Panel from "./Panel";
+import { requestsClient } from "./services";
 
 type OpenRequestParams = {
 	requestId?: string;
@@ -69,7 +77,10 @@ const createOpenRequestAction: CreateAction<OpenRequestParams> = (bus) => ({
 		bus.present({
 			widget: createRequestDetailWidget(bus),
 			params: { requestId, model: params.model ?? null },
-			tab: { key: `${OPEN_REQUEST}:${requestId}`, title: `Request ${requestId}` },
+			tab: {
+				key: `${OPEN_REQUEST}:${requestId}`,
+				title: `Request ${requestId}`,
+			},
 		});
 	},
 });
@@ -90,21 +101,143 @@ const createRefreshRequestAction: CreateAction<unknown> = () => ({
 	},
 });
 
+type RequestMutation = {
+	source?: string;
+	title?: string;
+	summary?: string;
+	processType?: RequestProcessType;
+	fields?: Record<string, unknown>;
+	files?: RequestFiles;
+};
+
+/** A request ID is an unguessable capability: this URL is the hand-off from a
+ * public Club intake to the customer, without requiring an account or email. */
+function publicRequestUrl(requestId: string): string {
+	if (typeof window === "undefined")
+		return `/request/${encodeURIComponent(requestId)}`;
+	return `${window.location.origin}/request/${encodeURIComponent(requestId)}`;
+}
+
+const requestProperties = {
+	source: {
+		type: "string",
+		description: "Short user-provided request description",
+	},
+	title: { type: "string", description: "Short request title" },
+	summary: {
+		type: "string",
+		description: "Structured summary of known requirements",
+	},
+	processType: {
+		type: "string",
+		enum: [
+			"cnc_machining",
+			"laser_cutting",
+			"plastic_cutting",
+			"3d_printing",
+			"generic",
+		],
+		description:
+			"Manufacturing process; use generic when the uploaded files are not enough to decide",
+	},
+	fields: {
+		type: "object",
+		description: "Known request fields only; do not invent values",
+	},
+	files: {
+		type: "object",
+		description:
+			'Uploaded files as display name to ms-files file ID, for example {"part.step": "uuid"}',
+	},
+};
+
+const createRequestAction: CreateAction<RequestMutation> = () => ({
+	id: CREATE_REQUEST,
+	access: "public",
+	category: "requests",
+	exposure: "llm",
+	priority: "primary",
+	brief: "Create a manufacturing request",
+	description:
+		"Create a request for uploaded files or a stated manufacturing need. Include every uploaded file ID in files and only explicitly known fields.",
+	parameters: { type: "object", properties: requestProperties },
+	invoke: async (input = {}) => {
+		const id = await requestsClient.createRequest({
+			...input,
+			fields: input.fields ?? {},
+		});
+		const model = await requestsClient.getRequestModel(id);
+		return {
+			...(model ?? { id }),
+			publicUrl: publicRequestUrl(id),
+		};
+	},
+});
+
+const createGetRequestAction: CreateAction<{ requestId: string }> = () => ({
+	id: GET_REQUEST,
+	category: "requests",
+	exposure: "llm",
+	brief: "Get a request",
+	description:
+		"Get the current request model, including files and missing requirements.",
+	parameters: {
+		type: "object",
+		properties: { requestId: { type: "string", description: "Request ID" } },
+		required: ["requestId"],
+	},
+	invoke: async ({ requestId }) =>
+		(await requestsClient.getRequestModel(requestId)) ?? {
+			id: requestId,
+			found: false,
+		},
+});
+
+const createUpdateRequestAction: CreateAction<
+	RequestMutation & { requestId: string }
+> = () => ({
+	id: UPDATE_REQUEST,
+	category: "requests",
+	exposure: "llm",
+	brief: "Update a request",
+	description:
+		"Apply extracted or explicitly supplied fields to an existing request.",
+	parameters: {
+		type: "object",
+		properties: {
+			requestId: { type: "string", description: "Request ID" },
+			...requestProperties,
+		},
+		required: ["requestId"],
+	},
+	invoke: async ({ requestId, ...patch }) =>
+		requestsClient.applyRequestUpdate(requestId, patch, "assistant"),
+});
+
 const ACTIONS = [
 	createShowRequestsAction,
 	createOpenRequestAction,
 	createUpdateRequestModelAction,
 	createRefreshRequestAction,
+	createRequestAction,
+	createGetRequestAction,
+	createUpdateRequestAction,
 ];
 
 export {
+	CREATE_REQUEST,
+	createGetRequestAction,
 	createOpenRequestAction,
 	createRefreshRequestAction,
+	createRequestAction,
 	createShowRequestsAction,
+	createUpdateRequestAction,
 	createUpdateRequestModelAction,
+	GET_REQUEST,
 	OPEN_REQUEST,
 	REFRESH_REQUEST,
 	SHOW_REQUESTS,
+	UPDATE_REQUEST,
 	UPDATE_REQUEST_MODEL,
 };
 export default ACTIONS;

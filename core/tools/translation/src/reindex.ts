@@ -9,6 +9,7 @@ export type ReindexSummary = {
 	linked: number;
 	english: number;
 	missing: number;
+	invalid: number;
 	changed: number;
 };
 
@@ -23,6 +24,7 @@ export function rebuildIndex(
 		linked: 0,
 		english: 0,
 		missing: 0,
+		invalid: 0,
 		changed: 0,
 	};
 
@@ -37,6 +39,15 @@ export function rebuildIndex(
 				}
 				if (target.hash === file.sourceHash) {
 					summary.english += 1;
+					continue;
+				}
+				if (
+					target.status === "invalid-json" ||
+					target.diff?.missing.length ||
+					target.diff?.extra.length ||
+					target.diff?.typeChanged.length
+				) {
+					summary.invalid += 1;
 					continue;
 				}
 				const record = records.get(file.sourceHash) ?? {

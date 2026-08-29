@@ -4,7 +4,7 @@
 import { join } from "node:path";
 import { buildWorkflow } from "./core/build.ts";
 
-const WORKFLOWS = ["wf-file-unpack", "wf-file-analyze", "wf-file-analysis"];
+const WORKFLOWS = ["wf-file-unpack", "wf-file-analyze", "wf-files-process"];
 
 const token = (await Bun.file(
 	join(import.meta.dir, "../../../confs/converged-local.env"),

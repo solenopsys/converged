@@ -44,6 +44,7 @@ pub const Config = struct {
     fluentbit_listen: []u8,
     fluentbit_port: u16,
     debug: bool,
+    trace_packets: bool,
     jwt: JwtConfig,
 
     pub fn init(allocator: std.mem.Allocator, environ: *const std.process.Environ.Map) !Config {
@@ -66,6 +67,7 @@ pub const Config = struct {
             .fluentbit_listen = try owned(allocator, environ, "FUJIN_FLUENTBIT_HOST", "127.0.0.1"),
             .fluentbit_port = try port(environ, "FUJIN_FLUENTBIT_PORT", 24224),
             .debug = std.mem.eql(u8, environ.get("FUJIN_DEBUG") orelse "off", "on"),
+            .trace_packets = std.mem.eql(u8, environ.get("FUJIN_TRACE") orelse "", "packets"),
             .jwt = jwt,
         };
     }

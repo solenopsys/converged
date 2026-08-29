@@ -7,6 +7,7 @@ const std = @import("std");
 const fujin_transport = @import("transport");
 const vm = @import("vm.zig");
 const StateStore = @import("state.zig").StateStore;
+const workflow_registry = @import("workflow_registry.zig");
 
 pub const Engine = struct {
     gpa: std.mem.Allocator,
@@ -17,15 +18,18 @@ pub const Engine = struct {
     /// socket; `call()` here always runs on a worker or the scheduler thread,
     /// never on the reactor thread.
     runtime: *fujin_transport.Runtime,
+    service_token: []const u8,
     current_scope: []const u8 = "",
+    current_user: []const u8 = "",
     run_mutex: std.Io.Mutex = .init,
 
-    pub fn init(gpa: std.mem.Allocator, io: std.Io, store: *StateStore, runtime: *fujin_transport.Runtime) !Engine {
+    pub fn init(gpa: std.mem.Allocator, io: std.Io, store: *StateStore, runtime: *fujin_transport.Runtime, service_token: []const u8) !Engine {
         return .{
             .gpa = gpa,
             .io = io,
             .store = store,
             .runtime = runtime,
+            .service_token = service_token,
         };
     }
 
@@ -39,21 +43,22 @@ pub const Engine = struct {
         return .{ .ctx = self, .call = tCall, .get = tGet, .set = tSet, .log = tLog, .on_node = tOnNode, .llm = tLlm };
     }
 
-    /// Fetch `script_path` from the scripts microservice and run it as a
-    /// step-driven DAG. `alloc` (a per-request arena) owns the returned result.
+    /// Resolve `script_path` through ms-dag, fetch it from Ptah's proxy, and
+    /// run it as a step-driven DAG. `alloc` (a per-request arena) owns the result.
     pub fn runWorkflow(
         self: *Engine,
         alloc: std.mem.Allocator,
         script_path: []const u8,
         params_json: []const u8,
     ) !RunResult {
-        return self.runWorkflowScoped(alloc, "", script_path, params_json);
+        return self.runWorkflowScoped(alloc, "", "", script_path, params_json);
     }
 
     pub fn runWorkflowScoped(
         self: *Engine,
         alloc: std.mem.Allocator,
         scope: []const u8,
+        user: []const u8,
         script_path: []const u8,
         params_json: []const u8,
     ) !RunResult {
@@ -61,9 +66,11 @@ pub const Engine = struct {
         defer self.run_mutex.unlock(self.io);
         self.current_scope = scope;
         defer self.current_scope = "";
+        self.current_user = user;
+        defer self.current_user = "";
 
         const t = self.transport();
-        const source = try fetchSource(alloc, t, script_path);
+        const source = try self.fetchSource(alloc, t, script_path);
         const exec_id = try newExecId(alloc, self.io);
 
         self.dagOpen(alloc, exec_id, script_path, params_json);
@@ -73,22 +80,35 @@ pub const Engine = struct {
         return .{ .exec_id = exec_id, .ok = result.ok, .output = result.output };
     }
 
-    fn fetchSource(alloc: std.mem.Allocator, t: vm.Transport, script_path: []const u8) ![]const u8 {
-        const path_json = try vm.jsonStr(alloc, script_path);
-        const body = try std.fmt.allocPrint(alloc, "{{\"path\":{s}}}", .{path_json});
-        const reply = try t.call(t.ctx, alloc, "scripts", "readScript", body);
+    fn fetchSource(self: *Engine, alloc: std.mem.Allocator, t: vm.Transport, script_path: []const u8) ![]const u8 {
+        _ = self;
+        const reply = try t.call(t.ctx, alloc, "dag", "listAvailableWorkflows", "{}");
         if (!reply.ok) return error.WorkflowNotFound;
-
-        const parsed = std.json.parseFromSliceLeaky(std.json.Value, alloc, reply.body, .{}) catch
-            return error.WorkflowSourceInvalid;
-        const content = switch (parsed) {
-            .object => |o| o.get("content") orelse return error.WorkflowSourceInvalid,
+        const parsed = std.json.parseFromSliceLeaky(std.json.Value, alloc, reply.body, .{}) catch return error.WorkflowSourceInvalid;
+        const items = switch (parsed) {
+            .object => |object| switch (object.get("items") orelse return error.WorkflowSourceInvalid) {
+                .array => |value| value,
+                else => return error.WorkflowSourceInvalid,
+            },
             else => return error.WorkflowSourceInvalid,
         };
-        return switch (content) {
-            .string => |s| s,
-            else => error.WorkflowSourceInvalid,
-        };
+        for (items.items) |item| {
+            const object = switch (item) {
+                .object => |value| value,
+                else => continue,
+            };
+            const script = switch (object.get("script") orelse continue) {
+                .string => |value| value,
+                else => continue,
+            };
+            if (!std.mem.eql(u8, script, script_path)) continue;
+            const source_url = switch (object.get("sourceUrl") orelse return error.WorkflowNotFound) {
+                .string => |value| value,
+                else => return error.WorkflowSourceInvalid,
+            };
+            return workflow_registry.get(alloc, source_url);
+        }
+        return error.WorkflowNotFound;
     }
 
     // ---- transport vtable: production backends -----------------------------
@@ -180,6 +200,10 @@ pub const Engine = struct {
             .service = service,
             .method = method,
             .scope = scope,
+            .user = self.current_user,
+            // The caller's JWT authorizes runWorkflow at the edge. Every downstream
+            // service call is made by this trusted runtime principal instead.
+            .auth = self.service_token,
             .body = body,
         });
     }

@@ -81,8 +81,9 @@ fn addCentimanusExecutable(
     target: Build.ResolvedTarget,
     optimize: OptimizeMode,
     name: []const u8,
+    nrpc_generation: *Build.Step,
 ) *Build.Step.Compile {
-    return b.addExecutable(.{
+    const exe = b.addExecutable(.{
         .name = name,
         .root_module = b.createModule(.{
             .root_source_file = b.path("src/main.zig"),
@@ -90,6 +91,22 @@ fn addCentimanusExecutable(
             .optimize = optimize,
         }),
     });
+    exe.step.dependOn(nrpc_generation);
+    return exe;
+}
+
+fn addNrpcGeneration(b: *Build) *Build.Step {
+    const command = b.addSystemCommand(&.{
+        "bun",
+        "run",
+        "../../../tools/nrpc/src/zig-generator.ts",
+        "../../../../modules/types/automation/centimanus.ts",
+        "src/generated/centimanus_nrpc.zig",
+        "transport",
+    });
+    command.setCwd(b.path("."));
+    command.setName("generate Centimanus NRPC descriptor");
+    return &command.step;
 }
 
 fn addTransportModule(
@@ -152,6 +169,7 @@ pub fn build(b: *Build) void {
         requested_target;
     const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Prioritize performance, safety, or binary size") orelse .ReleaseFast;
     const build_all = b.option(bool, "all", "Build for all supported targets") orelse false;
+    const nrpc_generation = addNrpcGeneration(b);
 
     if (build_all) {
         for (build_utils.supported_targets) |query| {
@@ -160,7 +178,7 @@ pub fn build(b: *Build) void {
             const exe_name = build_utils.getExeName(std.heap.page_allocator, "centimanus", target_str);
             const lib_name = build_utils.getLibName(std.heap.page_allocator, "qjs", target_str);
             const lib_install = b.fmt("lib{s}.so", .{lib_name});
-            const exe = addCentimanusExecutable(b, resolved, optimize, exe_name);
+            const exe = addCentimanusExecutable(b, resolved, optimize, exe_name, nrpc_generation);
             exe.root_module.addImport("transport", addTransportModule(b, resolved, optimize));
             linkQjsWrapper(b, exe, resolved, optimize, lib_install);
             b.installArtifact(exe);
@@ -168,7 +186,7 @@ pub fn build(b: *Build) void {
         return;
     }
 
-    const exe = addCentimanusExecutable(b, target, optimize, "centimanus");
+    const exe = addCentimanusExecutable(b, target, optimize, "centimanus", nrpc_generation);
     exe.root_module.addImport("transport", addTransportModule(b, target, optimize));
     linkQjsWrapper(b, exe, target, optimize, "libqjs.so");
     b.installArtifact(exe);

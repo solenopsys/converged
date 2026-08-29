@@ -5,7 +5,7 @@ export type PtahTaskRequest = {
   outputs?: string[];
 };
 
-export interface RuntimePtahService {
+export interface PtahService {
   "task.submit"(task: PtahTaskRequest): Promise<{ taskId: number }>;
   analyze(task: PtahTaskRequest): Promise<unknown>;
 }

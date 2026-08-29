@@ -59,4 +59,28 @@ describe("browser messaging client routing", () => {
 
 		expect(request()?.to).toEqual({ target: "centimanus", service: "auth" });
 	});
+
+	test("reports the application error carried in the response payload", async () => {
+		const client = createMessagingClient<{
+			createTemporaryUser(): Promise<Record<string, unknown>>;
+		}>(metadata, {
+			target: "centimanus",
+			deadlineMs: 1_000,
+			channel: {
+				request: async (message) => ({
+					kind: "error",
+					requestId: message.requestId,
+					errorCode: "application_error",
+					payload: { error: "ServiceUnsupported" },
+				}),
+				requestStream: () => {
+					throw new Error("stream is not used by this test");
+				},
+			},
+		});
+
+		await expect(client.createTemporaryUser()).rejects.toThrow(
+			"ServiceUnsupported",
+		);
+	});
 });

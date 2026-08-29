@@ -1,6 +1,6 @@
 {
-	"microservices": ["files", "store", "requests"],
+	"microservices": ["dag", "files", "store", "compressors", "requests"],
 	"microfrontends": ["requests"],
-	"processors": ["curaengine", "opencam"],
-	"workflows": ["file-analysis", "file-unpack"]
+	"processors": ["curaengine", "opencamlib"],
+	"workflows": ["files-process", "file-unpack"]
 }

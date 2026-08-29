@@ -19,6 +19,7 @@ export type MockFile = {
 export type FileUniverse = {
 	files: Map<string, MockFile>;
 	collections: Map<string, Record<string, unknown>>;
+	requests: Map<string, Record<string, unknown>>;
 	calls: string[];
 
 	addFile(name: string, data: string): string;
@@ -55,11 +56,18 @@ export function createFileUniverse(): FileUniverse {
 	const universe: FileUniverse = {
 		files: new Map(),
 		collections: new Map(),
+		requests: new Map(),
 		calls: [],
 
 		addFile(name, data) {
 			const id = nextId("file");
-			universe.files.set(id, { id, name, fileType: TYPE_BY_EXT[extension(name)]?.mime ?? "application/octet-stream", data });
+			universe.files.set(id, {
+				id,
+				name,
+				fileType:
+					TYPE_BY_EXT[extension(name)]?.mime ?? "application/octet-stream",
+				data,
+			});
 			return id;
 		},
 
@@ -83,7 +91,46 @@ export function createFileUniverse(): FileUniverse {
 			const failure = failures.get(`${service}.${method}`);
 			if (failure) throw new Error(failure);
 
-			if (service === "files") return filesHandler(universe, method, params, cache, nextId);
+			if (service === "files")
+				return filesHandler(universe, method, params, cache, nextId);
+			if (service === "store")
+				return storeHandler(universe, method, params, cache);
+			if (service === "requests" && method === "createRequest") {
+				const id = nextId("request");
+				universe.requests.set(id, params.input);
+				return id;
+			}
+			if (service === "compressors" && method === "unpack") {
+				const source = params.input.chunks
+					.map((chunk: { ref: { cacheKey: string } }) =>
+						readBlob(cache, chunk.ref.cacheKey),
+					)
+					.join("");
+				const archive = JSON.parse(source) as {
+					entries: { name: string; data: string }[];
+				};
+				return {
+					entries: archive.entries.map((entry, index) => {
+						const cacheKey = `blob:unpack:${universe.calls.length}:${index}`;
+						cache.set(cacheKey, entry.data);
+						return {
+							name: entry.name,
+							fileType:
+								TYPE_BY_EXT[extension(entry.name)]?.mime ??
+								"application/octet-stream",
+							hash: `hash:${entry.name}`,
+							fileSize: entry.data.length,
+							chunks: [
+								{
+									ref: { cacheKey, sizeBytes: entry.data.length },
+									compression: "none",
+									originalSize: entry.data.length,
+								},
+							],
+						};
+					}),
+				};
+			}
 			if (service === "modelconvertor" && method === "convert") {
 				const { sourceRef, sourceName } = params.input;
 				const blob = readBlob(cache, sourceRef.cacheKey);
@@ -105,14 +152,20 @@ export function createFileUniverse(): FileUniverse {
 
 				let result: Record<string, unknown>;
 				if (plugin === "opencamlib") {
-					result = { triangles: 1894, passes: 6, points: 348, totalTimeSec: 21.2 };
+					result = {
+						triangles: 1894,
+						passes: 6,
+						points: 348,
+						totalTimeSec: 21.2,
+					};
 				} else if (plugin === "curaengine") {
 					result = { gcodeBytes: 128, exitCode: 0 };
 				} else {
 					throw new Error(`unexpected ptah plugin: ${plugin}`);
 				}
 
-				const outRefs: Record<string, { cacheKey: string; sizeBytes: number }> = {};
+				const outRefs: Record<string, { cacheKey: string; sizeBytes: number }> =
+					{};
 				for (const field of outputs ?? []) {
 					const key = `blob:ptah:${plugin}:${field}:${universe.calls.length}`;
 					cache.set(key, "G1 X0 Y0");
@@ -140,6 +193,30 @@ function filesHandler(
 	cache: Cache,
 	nextId: (prefix: string) => string,
 ): unknown {
+	if (method === "get") {
+		const file = universe.files.get(params.id);
+		if (!file) throw new Error(`File metadata not found: ${params.id}`);
+		return metadataFor(file);
+	}
+	if (method === "getChunks") {
+		const file = universe.files.get(params.id);
+		if (!file) throw new Error(`File metadata not found: ${params.id}`);
+		return [{ hash: `hash-${file.id}`, chunkNumber: 0 }];
+	}
+	if (method === "save") {
+		const file = params.file;
+		universe.files.set(file.id, {
+			id: file.id,
+			name: file.name,
+			fileType: file.fileType,
+			data: "",
+			collectionId: file.collectionId,
+			owner: file.owner,
+			processId: params.processId,
+		});
+		return file.id;
+	}
+	if (method === "saveChunk") return params.chunk.hash;
 	if (method === "materialize") {
 		const file = universe.files.get(params.fileId);
 		if (!file) throw new Error(`File metadata not found: ${params.fileId}`);
@@ -147,18 +224,7 @@ function filesHandler(
 		cache.set(cacheKey, file.data);
 		return {
 			ref: { cacheKey, sizeBytes: file.data.length },
-			metadata: {
-				id: file.id,
-				name: file.name,
-				fileSize: file.data.length,
-				fileType: file.fileType,
-				status: "uploaded",
-				owner: file.owner ?? "test",
-				hash: `hash-${file.id}`,
-				compression: "none",
-				createdAt: "2026-01-01T00:00:00.000Z",
-				chunksCount: 1,
-			},
+			metadata: metadataFor(file),
 		};
 	}
 	if (method === "detectType") {
@@ -172,13 +238,17 @@ function filesHandler(
 	}
 	if (method === "unzip") {
 		const blob = readBlob(cache, params.input.ref.cacheKey);
-		const archive = JSON.parse(blob) as { entries: { name: string; data: string }[] };
+		const archive = JSON.parse(blob) as {
+			entries: { name: string; data: string }[];
+		};
 		const entries = archive.entries.map((entry) => {
 			const id = nextId("file");
 			universe.files.set(id, {
 				id,
 				name: entry.name,
-				fileType: TYPE_BY_EXT[extension(entry.name)]?.mime ?? "application/octet-stream",
+				fileType:
+					TYPE_BY_EXT[extension(entry.name)]?.mime ??
+					"application/octet-stream",
 				data: entry.data,
 				collectionId: params.input.collectionId,
 				owner: params.input.owner,
@@ -215,4 +285,44 @@ function filesHandler(
 		};
 	}
 	throw new Error(`unexpected files.${method}`);
+}
+
+function metadataFor(file: MockFile) {
+	return {
+		id: file.id,
+		name: file.name,
+		fileSize: file.data.length,
+		fileType: file.fileType,
+		status: "uploaded",
+		owner: file.owner ?? "test",
+		hash: `hash-${file.id}`,
+		compression: "none",
+		createdAt: "2026-01-01T00:00:00.000Z",
+		chunksCount: 1,
+		...(file.collectionId ? { collectionId: file.collectionId } : {}),
+	};
+}
+
+function storeHandler(
+	universe: FileUniverse,
+	method: string,
+	params: any,
+	cache: Cache,
+): unknown {
+	if (method === "getWithMeta") {
+		const file = universe.files.get(String(params.hash).replace(/^hash-/, ""));
+		if (!file) throw new Error(`Chunk not found: ${params.hash}`);
+		const cacheKey = `blob:${file.id}`;
+		cache.set(cacheKey, file.data);
+		return {
+			dataRef: { cacheKey, sizeBytes: file.data.length },
+			compression: "none",
+			originalSize: file.data.length,
+		};
+	}
+	if (method === "save") {
+		readBlob(cache, params.dataRef.cacheKey);
+		return `store-${universe.calls.length}`;
+	}
+	throw new Error(`unexpected store.${method}`);
 }
