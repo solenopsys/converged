@@ -8,7 +8,6 @@ export type WorkflowRunResult = {
 	error?: unknown;
 };
 
-
 export type WorkflowRunner = {
 	runWorkflow(
 		scriptPath: string,
@@ -26,9 +25,9 @@ type FilesProcessArgs = {
 
 export const createFilesProcessTool = (
 	workflow: WorkflowRunner,
-hooks: FilesProcessHooks = {},
+	hooks: FilesProcessHooks = {},
 ): ExecutableTool => ({
-	name: "startFilesProcess",
+	name: "workflows.files-process",
 	description:
 		"Process uploaded files: unpack ZIP archives, identify model files, and create a request when models are present",
 	parameters: {

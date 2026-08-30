@@ -143,6 +143,30 @@ describe("chat view", () => {
 });
 
 describe("chat persistence", () => {
+	test("adds pending file IDs only to the next explicit user message", async () => {
+		const { store, saved } = harness();
+
+		store.attach({
+			id: "file-1",
+			name: "part.stl",
+			size: 42,
+			type: "model/stl",
+		});
+		await Bun.sleep(0);
+		expect(saved).toEqual([]);
+
+		store.send("create a request");
+		await Bun.sleep(0);
+		expect(saved[0]).toEqual({
+			user: "user",
+			data: '[FILE] id=file-1 name="part.stl" size=42 type="model/stl"\n\ncreate a request',
+		});
+
+		store.send("show requests");
+		await Bun.sleep(0);
+		expect(saved[1]).toEqual({ user: "user", data: "show requests" });
+	});
+
 	test("the user's line is dumped at once, the answer only when settled", async () => {
 		const { conversation, saved } = harness([answered("done")]);
 

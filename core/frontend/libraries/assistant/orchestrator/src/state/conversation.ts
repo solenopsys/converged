@@ -63,11 +63,19 @@ export type Conversation = {
 	failed: EventCallable<string>;
 	send(text: string): Promise<void>;
 	registerTool(tool: ExecutableTool): void;
+	/** Execute a registered tool without asking the model, retaining the call trace. */
+	invokeTool(name: string, args: Record<string, unknown>): Promise<unknown>;
 	/** The plan alone, for hosts that want the decision without an answer. */
 	plan(text: string): Promise<OrchestratorPlan>;
 };
 
 const id = (): string => crypto.randomUUID();
+
+const errorOf = (value: unknown): string | undefined => {
+	if (typeof value !== "object" || value === null || !("ok" in value)) return undefined;
+	if (value.ok !== false) return undefined;
+	return typeof value.error === "string" ? value.error : "Function failed";
+};
 
 const factOf = (plan: OrchestratorPlan): string | undefined => {
 	if (plan.kind === "function") {
@@ -217,9 +225,12 @@ export function createConversation({
 		}
 		try {
 			const result = await tool.execute(call.args);
+			const error = errorOf(result);
 			entries.patched({
 				id: entryId,
-				patch: { status: "completed", result, elapsedMs: Date.now() - startedAt },
+				patch: error
+					? { status: "failed", result, error, elapsedMs: Date.now() - startedAt }
+					: { status: "completed", result, elapsedMs: Date.now() - startedAt },
 			});
 			return result;
 		} catch (error) {
@@ -392,6 +403,7 @@ export function createConversation({
 		failed,
 		send,
 		registerTool: (tool) => toolRegistered(tool),
+		invokeTool: (name, args) => execute({ id: id(), name, args }),
 		plan: runSteps,
 	};
 }

@@ -10,7 +10,6 @@ import { createDagServiceClient } from "g-dag";
 import { createFilesServiceClient } from "g-files";
 import { createCentimanusServiceClient } from "g-centimanus";
 import { createStoreServiceClient } from "g-store";
-import { createStructServiceClient } from "g-struct";
 import { createThreadsServiceClient } from "g-threads";
 import { createFrontNrpcClientConfig, signalChannel } from "signal-channel";
 import type { ChatConfig } from "./config";
@@ -43,7 +42,6 @@ export function createServices(config: ChatConfig) {
 	const contextsClient = createContextsServiceClient(
 		createFrontNrpcClientConfig(),
 	);
-	const structClient = createStructServiceClient(createFrontNrpcClientConfig());
 	const threadsClient = createThreadsServiceClient(
 		createFrontNrpcClientConfig(),
 	);
@@ -73,7 +71,6 @@ export function createServices(config: ChatConfig) {
 		contextsClient,
 		dagClient: centimanusClient,
 		dagCatalogClient,
-		structClient,
 		threadsClient,
 	};
 }

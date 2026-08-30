@@ -1,10 +1,8 @@
-import type { CacheAdapter } from "./createServer";
 import { settings } from "../config/settings";
 import { getCurrentStorageScope } from "../request-context";
-import {
-	resolveStorageCacheEndpointForScope,
-} from "../stores/connection-target";
-import { RedisClientPool, type RedisClient } from "./redisClientPool";
+import { resolveStorageCacheEndpointForScope } from "../stores/connection-target";
+import type { CacheAdapter } from "./createServer";
+import { type RedisClient, RedisClientPool } from "./redisClientPool";
 
 export interface RuntimeCacheConfig {
 	url?: string;
@@ -43,7 +41,9 @@ export function createBunRedisCache(config: RuntimeCacheConfig): CacheAdapter {
 	const clients = new RedisClientPool(createRedisClient);
 	const keyPrefix = config.keyPrefix?.trim();
 	if (!keyPrefix) {
-		throw new Error("Cache keyPrefix is required (runtime-map [cache].keyPrefix)");
+		throw new Error(
+			"Cache keyPrefix is required (runtime-map [cache].keyPrefix)",
+		);
 	}
 	const ttl = config.defaultTtlSeconds;
 	if (typeof ttl !== "number" || !Number.isFinite(ttl) || ttl <= 0) {
@@ -54,7 +54,9 @@ export function createBunRedisCache(config: RuntimeCacheConfig): CacheAdapter {
 	const defaultTtlSeconds = Math.floor(ttl);
 	const label = config.url?.trim() ?? "storage-scope";
 
-	const withClient = async <T>(operation: (redis: RedisClient) => Promise<T>): Promise<T> => {
+	const withClient = async <T>(
+		operation: (redis: RedisClient) => Promise<T>,
+	): Promise<T> => {
 		const url = storageCacheUrl(config);
 		return clients.execute(url, operation);
 	};
@@ -93,12 +95,7 @@ export function createBunRedisCache(config: RuntimeCacheConfig): CacheAdapter {
 		ttlSeconds = defaultTtlSeconds,
 	): Promise<void> => {
 		await withClient(async (redis) => {
-			await (
-				redis.set as unknown as (
-					key: string,
-					value: Uint8Array,
-				) => Promise<unknown>
-			)(key, value);
+			await redis.set(key, Buffer.from(value));
 			if (ttlSeconds > 0) await redis.expire(key, ttlSeconds);
 		});
 	};

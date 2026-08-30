@@ -4,6 +4,7 @@ import {
 	createChatLifecycle,
 	createChatStore,
 	createConversation,
+	createFilesProcessTool,
 	createFunctionCatalogTools,
 	createUploadedChatFilesTool,
 	type ExecutableTool,
@@ -56,11 +57,10 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 		dagCatalogClient,
 		dagClient,
 		resonusSession,
-		structClient,
 		threadsClient,
 	} = createServices(config);
 
-	initChatMessages((path) => structClient.readJson(path), config.language);
+	initChatMessages(undefined, config.language);
 
 	const resolveSystemPrompt = createContextPromptResolver(contextsClient, {
 		section: "answer",
@@ -200,6 +200,8 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 			getFile: (fileId) => $files.getState().get(fileId),
 		},
 		ensureReady,
+		processFiles: (fileIds) =>
+			store.invokeFunction("workflows.files-process", { fileIds }),
 	});
 
 	const uploadedFiles = () =>
@@ -213,6 +215,7 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 
 	for (const tool of [
 		createUploadedChatFilesTool(uploadedFiles),
+		createFilesProcessTool(dagClient),
 	] satisfies ExecutableTool[]) {
 		store.registerFunction(tool.name, tool);
 	}

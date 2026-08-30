@@ -691,6 +691,22 @@
       ]
     },
     {
+      "owner": "ms-compressors",
+      "path": "modules/microservices/data/ms-compressors/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/microservices/data/ms-compressors/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "ms-compressors",
+              "file": "modules/microservices/data/ms-compressors/docs/modules/ms-compressors.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "owner": "ms-contexts",
       "path": "modules/microservices/ai/ms-contexts/docs",
       "sections": [
@@ -1331,22 +1347,6 @@
       ]
     },
     {
-      "owner": "wf-file-analysis",
-      "path": "modules/workflows/wf-file-analysis/docs",
-      "sections": [
-        {
-          "id": "modules",
-          "index": "modules/workflows/wf-file-analysis/docs/modules/index.json",
-          "articles": [
-            {
-              "slug": "wf-file-analysis",
-              "file": "modules/workflows/wf-file-analysis/docs/modules/wf-file-analysis.md"
-            }
-          ]
-        }
-      ]
-    },
-    {
       "owner": "wf-file-analyze",
       "path": "modules/workflows/wf-file-analyze/docs",
       "sections": [
@@ -1373,6 +1373,22 @@
             {
               "slug": "wf-file-unpack",
               "file": "modules/workflows/wf-file-unpack/docs/modules/wf-file-unpack.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "wf-files-process",
+      "path": "modules/workflows/wf-files-process/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/workflows/wf-files-process/docs/modules/index.json",
+          "articles": [
+            {
+              "slug": "wf-files-process",
+              "file": "modules/workflows/wf-files-process/docs/modules/wf-files-process.md"
             }
           ]
         }

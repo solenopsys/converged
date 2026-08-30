@@ -8,7 +8,7 @@
 import { contractClient } from "dag-core";
 import type { CompressedChunk } from "g-compressors/rt";
 import type { FileCollection, FileMetadata, UUID } from "g-files/rt";
-import type { RequestInput, RequestId } from "g-requests/rt";
+import type { RequestId, RequestInput } from "g-requests/rt";
 import type { CacheRef } from "g-store/rt";
 
 export type { CacheRef };
@@ -333,7 +333,7 @@ export function unpackArchive(
 	for (const [entryIndex, entry] of unzipped.entries.entries()) {
 		const entryId = `${ctx.processId}:${fileId}:${entryIndex}`;
 		const createdAt = new Date().toISOString();
-		const savedId = step(ctx, "archive", `file:${entryId}`, fileId, () =>
+		const savedId = step(ctx, "archive", `save-file:${entryId}`, fileId, () =>
 			files.save(
 				{
 					id: entryId,

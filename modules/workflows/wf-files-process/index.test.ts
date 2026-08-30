@@ -26,7 +26,9 @@ describe("wf-files-process", () => {
 			expect.objectContaining({ fileId: zipId, archive: true }),
 		]);
 		expect(
-			outcome.result.extracted[0].entries.map((entry: any) => entry.name),
+			outcome.result.extracted[0].entries.map(
+				(entry: { name: string }) => entry.name,
+			),
 		).toEqual(["part.stl", "readme.txt"]);
 		expect(outcome.result.modelFileIds).toHaveLength(1);
 		expect(outcome.result.requestId).toBeDefined();
@@ -54,5 +56,21 @@ describe("wf-files-process", () => {
 		expect(outcome.result.modelFileIds).toEqual([fileId]);
 		expect(outcome.result.requestId).toBeDefined();
 		expect(u.calls).toEqual(["files.get", "requests.createRequest"]);
+	});
+
+	test("does not create a request when an archive has no model files", () => {
+		const u = createFileUniverse();
+		const zipId = u.addArchive("notes.zip", [
+			{ name: "readme.txt", data: "notes" },
+		]);
+
+		const outcome = runWorkflow(source, { fileIds: [zipId] }, u.handler);
+		expect(outcome.ok).toBe(true);
+		if (!outcome.ok) return;
+
+		expect(outcome.result.extracted).toHaveLength(1);
+		expect(outcome.result.modelFileIds).toEqual([]);
+		expect(outcome.result.requestId).toBeUndefined();
+		expect(u.calls).not.toContain("requests.createRequest");
 	});
 });

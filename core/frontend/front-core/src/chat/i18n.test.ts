@@ -15,6 +15,13 @@ afterEach(() => {
 });
 
 describe("chat messages", () => {
+	test("uses bundled messages without a remote source", () => {
+		initChatMessages(undefined, "en");
+
+		expect(translate("chat", "step.thinking")).toBe("Thinking...");
+		expect(translate("chat", "step.acting")).toBe("Working...");
+	});
+
 	test("uses bundled messages when the optional struct record is absent", async () => {
 		initChatMessages(
 			async () => {

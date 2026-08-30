@@ -152,6 +152,58 @@ describe("conversation entries", () => {
 });
 
 describe("conversation turn", () => {
+	test("a direct tool invocation is recorded in the conversation trace", async () => {
+		const { driver } = driverOf([]);
+		const conversation = createConversation({
+			driver,
+			prompt: async () => undefined,
+			ask: async () => ({ text: "", toolCalls: [] }),
+		});
+		conversation.registerTool({
+			name: "workflows.files-process",
+			description: "process files",
+			parameters: { type: "object", properties: {} },
+			execute: async ({ fileIds }) => ({ ok: true, fileIds }),
+		});
+
+		await conversation.invokeTool("workflows.files-process", { fileIds: ["file-1"] });
+
+		expect(conversation.entries.list()).toEqual([
+			expect.objectContaining({
+				kind: "call",
+				name: "workflows.files-process",
+				args: { fileIds: ["file-1"] },
+				status: "completed",
+				result: { ok: true, fileIds: ["file-1"] },
+			}),
+		]);
+	});
+
+	test("a direct failed tool invocation is marked failed in the trace", async () => {
+		const { driver } = driverOf([]);
+		const conversation = createConversation({
+			driver,
+			prompt: async () => undefined,
+			ask: async () => ({ text: "", toolCalls: [] }),
+		});
+		conversation.registerTool({
+			name: "workflows.files-process",
+			description: "process files",
+			parameters: { type: "object", properties: {} },
+			execute: async () => ({ ok: false, error: "compressors is unavailable" }),
+		});
+
+		await conversation.invokeTool("workflows.files-process", { fileIds: ["file-1"] });
+
+		expect(conversation.entries.list()).toEqual([
+			expect.objectContaining({
+				kind: "call",
+				status: "failed",
+				error: "compressors is unavailable",
+			}),
+		]);
+	});
+
 	test("a tool call is executed and its result goes back to the model", async () => {
 		const { driver } = driverOf([
 			calls("readFile", { path: "a.txt" }, "call-1"),

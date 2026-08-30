@@ -211,7 +211,7 @@ Owns Webhooks UI: webhook endpoint list/forms, event subscription settings, deli
 Executes DAG-based automation pipelines and dependency-aware jobs.
 
 - Direct dependencies: none
-- Solutions: none
+- Solutions: `requests`
 
 ### [ms-kubernetes](/en/docs/modules/ms-kubernetes)
 
@@ -494,6 +494,13 @@ Owns Data Dumps UI: export/dump creation forms, dump history tables, download ac
 - Direct dependencies: none
 - Solutions: none
 
+### [ms-compressors](/en/docs/modules/ms-compressors)
+
+ms-compressors is a microservice in the data domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: none
+- Solutions: `requests`
+
 ### [ms-dumps](/en/docs/modules/ms-dumps)
 
 Creates and manages data dumps/export snapshots.
@@ -563,13 +570,6 @@ Summarizes unprocessed chat and call dialogues with an LLM, then stores titles, 
 - Direct dependencies: none
 - Solutions: none
 
-### [wf-files-process](/en/docs/modules/wf-files-process)
-
-Processes uploaded files in batches: it expands archives, identifies model files, and creates a request when applicable.
-
-- Direct dependencies: none
-- Solutions: `requests`
-
 ### [wf-file-analyze](/en/docs/modules/wf-file-analyze)
 
 Analyzes one stored non-archive file, producing model previews and CNC or 3D-print estimates when supported.
@@ -580,6 +580,13 @@ Analyzes one stored non-archive file, producing model previews and CNC or 3D-pri
 ### [wf-file-unpack](/en/docs/modules/wf-file-unpack)
 
 Expands one uploaded archive into a collection of stored files for subsequent analysis.
+
+- Direct dependencies: none
+- Solutions: `requests`
+
+### [wf-files-process](/en/docs/modules/wf-files-process)
+
+Processes uploaded files in batches: it expands archives, identifies model files, and creates a manufacturing request from them.
 
 - Direct dependencies: none
 - Solutions: `requests`

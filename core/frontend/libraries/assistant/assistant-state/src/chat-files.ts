@@ -22,6 +22,7 @@ export type ChatFilesOptions = {
 	uploads: ChatUploadsSource;
 	registry?: ChatFileRegistry;
 	ensureReady?: () => void;
+	processFiles?: (fileIds: string[]) => Promise<unknown>;
 };
 
 export const bindChatFiles = (options: ChatFilesOptions): void => {
@@ -43,6 +44,9 @@ export const bindChatFiles = (options: ChatFilesOptions): void => {
 
 		void persistFileLink(options, fileId, file).catch((error) => {
 			console.warn("[assistant-state] Failed to save file message", error);
+		});
+		void options.processFiles?.([fileId]).catch((error) => {
+			console.error("[assistant-state] File processing failed", error);
 		});
 	});
 };
@@ -78,5 +82,4 @@ const persistFileLink = async (
 	});
 
 	await options.registry?.recordChatFile(threadId, file.fileSize);
-
 };

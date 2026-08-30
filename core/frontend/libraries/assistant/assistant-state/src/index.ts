@@ -1,3 +1,8 @@
+// The machine, the conversation state and the transports live in `orchestrator`
+// — no effector UI, no DOM — so the CLI runs the same engine as the tab. What
+// stays here is the screen's view of it, the dump into the thread, and the
+// host-shaped tools below.
+export * from "orchestrator";
 export type {
 	ChatFileRegistry,
 	ChatFilesOptions,
@@ -9,8 +14,6 @@ export type { ChatStore, ChatStoreOptions } from "./chat-store";
 export { createChatStore } from "./chat-store";
 export type { ChatView, ChatViewOptions } from "./chat-view";
 export { createChatView } from "./chat-view";
-export type { ChatPersistenceOptions } from "./persistence";
-export { bindChatPersistence } from "./persistence";
 export { chatDomain } from "./domain";
 export type {
 	ChatLifecycle,
@@ -18,17 +21,14 @@ export type {
 	ChatRegistry,
 } from "./lifecycle";
 export { createChatLifecycle } from "./lifecycle";
+export type { ChatPersistenceOptions } from "./persistence";
+export { bindChatPersistence } from "./persistence";
 export type {
 	AssistantEnvelope,
 	AssistantSignalChannel,
 	SignalAssistantOptions,
 } from "./signal-client";
 export { createSignalAssistantClient } from "./signal-client";
-// The machine, the conversation state and the transports live in `orchestrator`
-// — no effector UI, no DOM — so the CLI runs the same engine as the tab. What
-// stays here is the screen's view of it, the dump into the thread, and the
-// host-shaped tools below.
-export * from "orchestrator";
 export { parseToolArgs } from "./tools/args";
 export type {
 	FilesProcessHooks,

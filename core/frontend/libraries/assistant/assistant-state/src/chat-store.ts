@@ -25,6 +25,7 @@ export type ChatStore = {
 	threadId: string;
 	send(text: string): void;
 	registerFunction(name: string, tool: ExecutableTool): void;
+	invokeFunction(name: string, args: Record<string, unknown>): Promise<unknown>;
 	/**
 	 * A line produced by the host itself — a slash-command answer, a notice.
 	 * It goes into the same timeline so the screen has one source, but it never
@@ -42,6 +43,23 @@ export type ChatStore = {
 	readonly currentResponse: string;
 };
 
+type PendingAttachment = {
+	id: string;
+	name: string;
+	size?: number;
+	type?: string;
+};
+
+function fileContext(files: PendingAttachment[]): string {
+	return files
+		.map((file) => {
+			const size = file.size === undefined ? "" : ` size=${file.size}`;
+			const type = file.type ? ` type=${JSON.stringify(file.type)}` : "";
+			return `[FILE] id=${file.id} name=${JSON.stringify(file.name)}${size}${type}`;
+		})
+		.join("\n");
+}
+
 export const createChatStore = ({
 	conversation,
 	threadsService,
@@ -50,6 +68,7 @@ export const createChatStore = ({
 	label,
 }: ChatStoreOptions): ChatStore => {
 	const $chat = createChatView({ conversation, label });
+	const pendingAttachments: PendingAttachment[] = [];
 
 	bindChatPersistence({
 		conversation,
@@ -67,11 +86,17 @@ export const createChatStore = ({
 		send: (text) => {
 			const content = text.trim();
 			if (!content) return;
-			void conversation.send(content);
+			const attachments = pendingAttachments.splice(0);
+			const input = attachments.length
+				? `${fileContext(attachments)}\n\n${content}`
+				: content;
+			void conversation.send(input);
 		},
 
 		registerFunction: (name, tool) =>
 			conversation.registerTool({ ...tool, name }),
+
+		invokeFunction: (name, args) => conversation.invokeTool(name, args),
 
 		addLocalMessage: (content, type = "assistant") =>
 			conversation.entries.appended(
@@ -97,7 +122,8 @@ export const createChatStore = ({
 
 		// The file itself is written to the thread as a link by the uploads
 		// binding, so this entry is for the screen only.
-		attach: (file) =>
+		attach: (file) => {
+			pendingAttachments.push(file);
 			conversation.entries.appended({
 				id: `file-${file.id}`,
 				at: Date.now(),
@@ -111,7 +137,8 @@ export const createChatStore = ({
 					size: file.size,
 					type: file.type,
 				},
-			}),
+			});
+		},
 
 		get messages() {
 			return $chat.getState().messages;

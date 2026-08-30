@@ -8,96 +8,96 @@ export type UUID = string;
 export type ISODateString = string;
 
 export type PaginationParams = {
-    key: string;
-    offset: number;
-    limit: number;
+	key: string;
+	offset: number;
+	limit: number;
 };
 
 export type PaginatedResult<T> = {
-    items: T[];
-    totalCount?: number;
+	items: T[];
+	totalCount?: number;
 };
 
-export type FileStatus = 'uploading' | 'uploaded' | 'failed';
+export type FileStatus = "uploading" | "uploaded" | "failed";
 
 export type FileCollection = {
-    id: UUID;
-    name: string;
-    description?: string;
-    owner: string;
-    createdAt: ISODateString;
+	id: UUID;
+	name: string;
+	description?: string;
+	owner: string;
+	createdAt: ISODateString;
 };
 
 export type FileMetadata = {
-    id:UUID
-    hash: HashString;
-    status: FileStatus;
-    name: string;
-    fileSize: number;
-    fileType: string;
-    compression: string;
-    owner: string;
-    createdAt: ISODateString;
-    chunksCount: number;
-    collectionId?: UUID;
+	id: UUID;
+	hash: HashString;
+	status: FileStatus;
+	name: string;
+	fileSize: number;
+	fileType: string;
+	compression: string;
+	owner: string;
+	createdAt: ISODateString;
+	chunksCount: number;
+	collectionId?: UUID;
 };
 
 export type FileChunk = {
-    fileId:UUID
-    hash: HashString;
-    chunkNumber: number;
-    chunkSize: number;
-    createdAt: ISODateString; 
+	fileId: UUID;
+	hash: HashString;
+	chunkNumber: number;
+	chunkSize: number;
+	createdAt: ISODateString;
 };
 
 export type FileStatistic = {
-    totalFiles: number;
-    totalChunks: number;
-    totalSize: number;
-    createdAt: ISODateString;
+	totalFiles: number;
+	totalChunks: number;
+	totalSize: number;
+	createdAt: ISODateString;
 };
 
 export type CacheRef = {
-    cacheKey: string;
-    sizeBytes?: number;
+	cacheKey: string;
+	sizeBytes?: number;
 };
 
 export type MaterializedFile = {
-    ref: CacheRef;
-    metadata: FileMetadata;
+	ref: CacheRef;
+	metadata: FileMetadata;
 };
 
 export type DetectTypeInput = {
-    ref: CacheRef;
-    name: string;
+	ref: CacheRef;
+	name: string;
 };
 
 export type FileTypeDetection = {
-    type: string;
-    mime: string;
+	type: string;
+	mime: string;
 };
 
 export type PersistInput = {
-    ref: CacheRef;
-    name: string;
-    fileType: string;
-    owner: string;
-    collectionId?: UUID;
-    processId?: string;
+	ref: CacheRef;
+	name: string;
+	fileType: string;
+	owner: string;
+	collectionId?: UUID;
+	processId?: string;
 };
 
 export type ExtractTextInput = {
-    ref: CacheRef;
-    name: string;
-    /** Cap on the returned text; 0 or omitted means no cap. */
-    maxChars?: number;
+	ref: CacheRef;
+	name: string;
+	/** Cap on the returned text; 0 or omitted means no cap. */
+	maxChars?: number;
 };
 
 export type ExtractTextResult = {
-    text: string;
-    /** Length before the maxChars cap was applied. */
-    chars: number;
-    truncated: boolean;
+	text: string;
+	/** Length before the maxChars cap was applied. */
+	chars: number;
+	truncated: boolean;
 };
 
 const metadata: ServiceMetadata = {
@@ -370,73 +370,73 @@ const metadata: ServiceMetadata = {
     {
       "name": "PaginationParams",
       "kind": "type",
-      "definition": "{\n    key: string;\n    offset: number;\n    limit: number;\n}"
+      "definition": "{\n\tkey: string;\n\toffset: number;\n\tlimit: number;\n}"
     },
     {
       "name": "PaginatedResult",
       "kind": "type",
       "typeParameters": "<T>",
-      "definition": "{\n    items: T[];\n    totalCount?: number;\n}"
+      "definition": "{\n\titems: T[];\n\ttotalCount?: number;\n}"
     },
     {
       "name": "FileStatus",
       "kind": "type",
-      "definition": "'uploading' | 'uploaded' | 'failed'"
+      "definition": "\"uploading\" | \"uploaded\" | \"failed\""
     },
     {
       "name": "FileCollection",
       "kind": "type",
-      "definition": "{\n    id: UUID;\n    name: string;\n    description?: string;\n    owner: string;\n    createdAt: ISODateString;\n}"
+      "definition": "{\n\tid: UUID;\n\tname: string;\n\tdescription?: string;\n\towner: string;\n\tcreatedAt: ISODateString;\n}"
     },
     {
       "name": "FileMetadata",
       "kind": "type",
-      "definition": "{\n    id:UUID\n    hash: HashString;\n    status: FileStatus;\n    name: string;\n    fileSize: number;\n    fileType: string;\n    compression: string;\n    owner: string;\n    createdAt: ISODateString;\n    chunksCount: number;\n    collectionId?: UUID;\n}"
+      "definition": "{\n\tid: UUID;\n\thash: HashString;\n\tstatus: FileStatus;\n\tname: string;\n\tfileSize: number;\n\tfileType: string;\n\tcompression: string;\n\towner: string;\n\tcreatedAt: ISODateString;\n\tchunksCount: number;\n\tcollectionId?: UUID;\n}"
     },
     {
       "name": "FileChunk",
       "kind": "type",
-      "definition": "{\n    fileId:UUID\n    hash: HashString;\n    chunkNumber: number;\n    chunkSize: number;\n    createdAt: ISODateString; \n}"
+      "definition": "{\n\tfileId: UUID;\n\thash: HashString;\n\tchunkNumber: number;\n\tchunkSize: number;\n\tcreatedAt: ISODateString;\n}"
     },
     {
       "name": "FileStatistic",
       "kind": "type",
-      "definition": "{\n    totalFiles: number;\n    totalChunks: number;\n    totalSize: number;\n    createdAt: ISODateString;\n}"
+      "definition": "{\n\ttotalFiles: number;\n\ttotalChunks: number;\n\ttotalSize: number;\n\tcreatedAt: ISODateString;\n}"
     },
     {
       "name": "CacheRef",
       "kind": "type",
-      "definition": "{\n    cacheKey: string;\n    sizeBytes?: number;\n}"
+      "definition": "{\n\tcacheKey: string;\n\tsizeBytes?: number;\n}"
     },
     {
       "name": "MaterializedFile",
       "kind": "type",
-      "definition": "{\n    ref: CacheRef;\n    metadata: FileMetadata;\n}"
+      "definition": "{\n\tref: CacheRef;\n\tmetadata: FileMetadata;\n}"
     },
     {
       "name": "DetectTypeInput",
       "kind": "type",
-      "definition": "{\n    ref: CacheRef;\n    name: string;\n}"
+      "definition": "{\n\tref: CacheRef;\n\tname: string;\n}"
     },
     {
       "name": "FileTypeDetection",
       "kind": "type",
-      "definition": "{\n    type: string;\n    mime: string;\n}"
+      "definition": "{\n\ttype: string;\n\tmime: string;\n}"
     },
     {
       "name": "PersistInput",
       "kind": "type",
-      "definition": "{\n    ref: CacheRef;\n    name: string;\n    fileType: string;\n    owner: string;\n    collectionId?: UUID;\n    processId?: string;\n}"
+      "definition": "{\n\tref: CacheRef;\n\tname: string;\n\tfileType: string;\n\towner: string;\n\tcollectionId?: UUID;\n\tprocessId?: string;\n}"
     },
     {
       "name": "ExtractTextInput",
       "kind": "type",
-      "definition": "{\n    ref: CacheRef;\n    name: string;\n    /** Cap on the returned text; 0 or omitted means no cap. */\n    maxChars?: number;\n}"
+      "definition": "{\n\tref: CacheRef;\n\tname: string;\n\t/** Cap on the returned text; 0 or omitted means no cap. */\n\tmaxChars?: number;\n}"
     },
     {
       "name": "ExtractTextResult",
       "kind": "type",
-      "definition": "{\n    text: string;\n    /** Length before the maxChars cap was applied. */\n    chars: number;\n    truncated: boolean;\n}"
+      "definition": "{\n\ttext: string;\n\t/** Length before the maxChars cap was applied. */\n\tchars: number;\n\ttruncated: boolean;\n}"
     }
   ]
 };
