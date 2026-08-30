@@ -1,8 +1,5 @@
-import { BasePlugin } from "front-core/core";
-import ACTIONS from "./functions";
+import definition from "./objects";
 
 export const ID = "static-mf";
-export { MENU } from "./menu";
-export { SCREENS } from "./screens";
 
-export default new BasePlugin(ID, ACTIONS);
+export default definition;

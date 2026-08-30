@@ -1,13 +1,21 @@
 import { createEvent, createStore, sample } from "effector";
+import {
+	type DomainRef,
+	operationExecutionStarted,
+} from "front-core/object-runtime";
 import type { ComponentType } from "preact";
-import { actionCommandActivated } from "front-core/core";
-import { $composerPlacement, panelOpened, surfacePresenceChanged } from "./panel";
+import {
+	$composerPlacement,
+	panelOpened,
+	surfacePresenceChanged,
+} from "./panel";
 
 export type WorkspaceTab = {
 	key: string;
 	owner: string;
-	/** Action which can recreate this tab after a page reload. */
-	mountActionId?: string;
+	/** Serializable domain identity used to restore the tab after a reload. */
+	ref?: DomainRef;
+	viewId?: string;
 	title: string;
 	view: ComponentType<Record<string, unknown>>;
 	props: Record<string, unknown>;
@@ -38,7 +46,9 @@ export const workspaceTabPinToggled = createEvent<string>(
 export const workspaceUnpinnedTabsCleared = createEvent(
 	"WORKSPACE_UNPINNED_TABS_CLEARED",
 );
-export const activeWorkspaceTabClosed = createEvent("ACTIVE_WORKSPACE_TAB_CLOSED");
+export const activeWorkspaceTabClosed = createEvent(
+	"ACTIVE_WORKSPACE_TAB_CLOSED",
+);
 export const workspaceReset = createEvent("WORKSPACE_RESET");
 
 export const $workspace = createStore<WorkspaceState>(initialState, {
@@ -53,18 +63,24 @@ export const $workspace = createStore<WorkspaceState>(initialState, {
 		const tabs =
 			index === -1
 				? [...state.tabs, next]
-				: state.tabs.map((entry, position) => (position === index ? next : entry));
+				: state.tabs.map((entry, position) =>
+						position === index ? next : entry,
+					);
 		return { tabs, activeKey: next.key };
 	})
 	.on(workspaceTabActivated, (state, key) =>
-		state.tabs.some((tab) => tab.key === key) ? { ...state, activeKey: key } : state,
+		state.tabs.some((tab) => tab.key === key)
+			? { ...state, activeKey: key }
+			: state,
 	)
 	.on(workspaceTabClosed, (state, key) => {
 		const index = state.tabs.findIndex((tab) => tab.key === key);
 		if (index === -1) return state;
 		const tabs = state.tabs.filter((tab) => tab.key !== key);
 		const activeKey =
-			state.activeKey === key ? (tabs.at(Math.max(0, index - 1))?.key ?? null) : state.activeKey;
+			state.activeKey === key
+				? (tabs.at(Math.max(0, index - 1))?.key ?? null)
+				: state.activeKey;
 		return { tabs, activeKey };
 	})
 	.on(workspaceTabPinToggled, (state, key) => ({
@@ -91,7 +107,9 @@ export const $workspace = createStore<WorkspaceState>(initialState, {
 	.reset(workspaceReset);
 
 export const $workspaceTabs = $workspace.map((state) => state.tabs);
-export const $activeWorkspaceTabKey = $workspace.map((state) => state.activeKey);
+export const $activeWorkspaceTabKey = $workspace.map(
+	(state) => state.activeKey,
+);
 export const $activeWorkspaceTab = $workspace.map(
 	(state) => state.tabs.find((tab) => tab.key === state.activeKey) ?? null,
 );
@@ -109,6 +127,6 @@ sample({
 	target: panelOpened,
 });
 
-actionCommandActivated.watch(({ source }) => {
+operationExecutionStarted.watch(({ source }) => {
 	if (source === "assistant") workspaceUnpinnedTabsCleared();
 });

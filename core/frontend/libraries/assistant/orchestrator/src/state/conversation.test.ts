@@ -160,18 +160,18 @@ describe("conversation turn", () => {
 			ask: async () => ({ text: "", toolCalls: [] }),
 		});
 		conversation.registerTool({
-			name: "workflows.files-process",
+			name: "startFilesProcess",
 			description: "process files",
 			parameters: { type: "object", properties: {} },
 			execute: async ({ fileIds }) => ({ ok: true, fileIds }),
 		});
 
-		await conversation.invokeTool("workflows.files-process", { fileIds: ["file-1"] });
+		await conversation.invokeTool("startFilesProcess", { fileIds: ["file-1"] });
 
 		expect(conversation.entries.list()).toEqual([
 			expect.objectContaining({
 				kind: "call",
-				name: "workflows.files-process",
+				name: "startFilesProcess",
 				args: { fileIds: ["file-1"] },
 				status: "completed",
 				result: { ok: true, fileIds: ["file-1"] },
@@ -187,13 +187,13 @@ describe("conversation turn", () => {
 			ask: async () => ({ text: "", toolCalls: [] }),
 		});
 		conversation.registerTool({
-			name: "workflows.files-process",
+			name: "startFilesProcess",
 			description: "process files",
 			parameters: { type: "object", properties: {} },
 			execute: async () => ({ ok: false, error: "compressors is unavailable" }),
 		});
 
-		await conversation.invokeTool("workflows.files-process", { fileIds: ["file-1"] });
+		await conversation.invokeTool("startFilesProcess", { fileIds: ["file-1"] });
 
 		expect(conversation.entries.list()).toEqual([
 			expect.objectContaining({

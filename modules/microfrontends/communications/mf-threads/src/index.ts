@@ -1,7 +1,5 @@
 export const ID = "threads-mf";
-export { MENU } from "./menu";
-import { BasePlugin } from "front-core";
-import ACTIONS from "./functions";
+import definition from "./objects";
 import "./dashboard-widgets";
 
-export default new BasePlugin(ID, ACTIONS);
+export default definition;

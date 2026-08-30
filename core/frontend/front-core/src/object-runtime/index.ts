@@ -1,0 +1,81 @@
+export type { OperationAuthorizationController } from "./authorization";
+export {
+	authorizeOperation,
+	canExecuteOperation,
+	OperationAuthorizationError,
+	onOperationAuthorizationChanged,
+	setOperationAuthorizationController,
+} from "./authorization";
+export type { OperatorCatalogEntry } from "./catalog";
+export {
+	catalogEntries,
+	catalogEntry,
+	invokeCatalogEntry,
+	invokeOperator,
+	operatorCandidateEntries,
+	operatorCatalogEntries,
+	operatorCatalogEntry,
+	operatorTargets,
+	searchOperatorCatalog,
+} from "./catalog";
+export {
+	$objectRegistryRevision,
+	ingestObjectIndex,
+	loadObjectIndex,
+	microfrontendDeclared,
+	microfrontendRegistered,
+	ObjectRegistry,
+	objectRegistry,
+} from "./registry";
+export { ObjectResolver, objectResolver, resolve } from "./resolver";
+export {
+	executeOperation,
+	operationExecutionFailed,
+	operationExecutionStarted,
+	operationExecutionSucceeded,
+	presentReference,
+	referencePresented,
+	registerMicrofrontend,
+	setMicrofrontendLoader,
+} from "./runtime";
+export type {
+	CategoryDefinition,
+	CategoryId,
+	DomainRef,
+	ExecuteOperationRequest,
+	IdSelection,
+	MicrofrontendDefinition,
+	MicrofrontendManifest,
+	ObjectIndexFile,
+	ObjectIndexModule,
+	ObjectRef,
+	ObjectTypeDefinition,
+	ObjectTypeId,
+	OperationContext,
+	OperationDefinition,
+	OperationId,
+	OperationInput,
+	OperationParameters,
+	Operator,
+	PresentedReference,
+	PresentReferenceOptions,
+	QuerySelection,
+	RefKind,
+	ResolutionCandidate,
+	ResolveContext,
+	SetRef,
+	SetSelection,
+	TypeExpression,
+	ViewDefinition,
+	ViewId,
+	ViewRuntimeProps,
+} from "./types";
+export {
+	CORE_CATEGORIES,
+	defineMicrofrontend,
+	OPERATORS,
+	objectOf,
+	objectRef,
+	setOf,
+	setRef,
+} from "./types";

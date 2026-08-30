@@ -1,6 +1,4 @@
-export const ID = 'dumps-mf';
-export { MENU } from "./menu";
-import ACTIONS from './functions';
-import { BasePlugin } from 'front-core';
+export const ID = "dumps-mf";
+import definition from "./objects";
 
-export default new BasePlugin(ID, ACTIONS);
+export default definition;

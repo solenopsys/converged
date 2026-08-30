@@ -223,6 +223,12 @@ export const vendorBuilds: readonly VendorBuild[] = [
 		external: ["effector"],
 	},
 	{
+		name: "front-core-object-runtime",
+		entrypoint: "front-core-object-runtime.ts",
+		outfile: "front-core-object-runtime.js",
+		external: ["effector"],
+	},
+	{
 		name: "front-core",
 		entrypoint: "front-core.ts",
 		outfile: "front-core.js",
@@ -236,6 +242,7 @@ export const vendorBuilds: readonly VendorBuild[] = [
 			"effector",
 			"effector-preact",
 			"front-core/core",
+			"front-core/object-runtime",
 			"front-core/table",
 			"nrpc",
 			"signal-channel",

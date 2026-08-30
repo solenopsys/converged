@@ -13,8 +13,6 @@ import {
 	type StepName,
 } from "assistant-state";
 import { $files, filesPickerOpened, uploadCompleted } from "files-state";
-import { resolveActionMeta } from "front-core/core";
-import type { CatalogView } from "./commands/builtin";
 import { registerBuiltinSlashCommands } from "./commands/builtin";
 import { isSlashInput, runSlashCommand } from "./commands/registry";
 import type { ChatConfig } from "./config";
@@ -29,6 +27,30 @@ export type Chat = {
 	attachFiles: (files: File[]) => void;
 };
 
+export type CatalogEntryView = {
+	id: string;
+	brief?: string;
+	description?: string;
+	category?: string;
+	priority?: "primary" | "normal" | "secondary";
+	parameters?: {
+		type: "object";
+		properties: Record<string, unknown>;
+		required?: string[];
+	};
+};
+
+export type CatalogView = {
+	all(): CatalogEntryView[];
+	meta(id: string): CatalogEntryView | undefined;
+	loaded(id: string): boolean;
+	listCategories(): Array<{ id: string; count: number }>;
+	listByCategory(category: string): CatalogEntryView[];
+	listUserVisible(): CatalogEntryView[];
+	search(query: string): CatalogEntryView[];
+	invoke(id: string, params: Record<string, unknown>): unknown;
+};
+
 export type ChatCatalog = {
 	catalog: OrchestratorCatalog;
 
@@ -39,6 +61,10 @@ export type ChatCatalog = {
 
 	label?: (id: string) => string | undefined;
 
+	/**
+	 * The delivery's own view of its catalog. It is what gets published to the
+	 * orchestrator — the meta-tool contour above lists a slice, this is the list.
+	 */
 	diagnostics?: CatalogView;
 
 	/** Functions arrive while the chat runs; this is how it learns about them. */
@@ -145,8 +171,8 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 			console.error("[chat] workflow catalog unavailable", error),
 		);
 
-	// The delivery's functions become a source in the catalog store, so a module
-	// that registers later is simply published again — nothing is rebuilt.
+	// The orchestrator sees the stable operator vocabulary. Domain types and
+	// operations stay behind the object resolver instead of becoming tools.
 	if (host?.catalog) {
 		const { catalog } = host;
 		conversation.catalog.sourceRegistered({
@@ -159,15 +185,14 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 		const republish = () =>
 			conversation.catalog.functionsPublished({
 				source: "ui",
-				functions: (host.diagnostics?.all() ?? []).map((action) => {
-					const resolved = resolveActionMeta(action);
+				functions: (host.diagnostics?.all() ?? []).map((entry) => {
 					return {
-						id: resolved.id,
-						brief: resolved.brief,
-						description: resolved.description,
-						category: resolved.category,
-						priority: resolved.priority,
-						parameters: resolved.parameters,
+						id: entry.id,
+						brief: entry.brief ?? entry.id,
+						description: entry.description ?? entry.brief ?? entry.id,
+						category: entry.category,
+						priority: entry.priority,
+						parameters: "parameters" in entry ? entry.parameters : undefined,
 					};
 				}),
 			});
@@ -201,7 +226,7 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 		},
 		ensureReady,
 		processFiles: (fileIds) =>
-			store.invokeFunction("workflows.files-process", { fileIds }),
+			store.invokeFunction("startFilesProcess", { fileIds }),
 	});
 
 	const uploadedFiles = () =>
@@ -243,18 +268,7 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 
 	if (host?.label) setActionBriefResolver(host.label);
 
-	registerBuiltinSlashCommands({
-		readTools: () => [...store.$functions.getState().values()],
-		readContext: async () => ({
-			contextName: config.contextName,
-			language: config.language,
-			prompt: await resolveSystemPrompt({
-				contextName: config.contextName,
-				language: config.language,
-			}),
-		}),
-		catalog: host?.diagnostics,
-	});
+	registerBuiltinSlashCommands();
 
 	instance = {
 		store,

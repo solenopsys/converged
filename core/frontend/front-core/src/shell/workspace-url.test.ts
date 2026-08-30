@@ -1,15 +1,24 @@
 import { describe, expect, test } from "bun:test";
-import { mountActionFromUrl, urlForMountAction } from "./workspace-url";
+import { objectRef } from "front-core/object-runtime";
+import { referenceFromUrl, urlForReference } from "./workspace-url";
 
 describe("workspace URL", () => {
-	test("writes a mounted workspace tab to the console route", () => {
-		expect(urlForMountAction("https://example.test/about?language=ru", "orders.list"))
-			.toBe("/console?language=ru&mount=orders.list");
+	test("reads references only from the console route", () => {
+		const encoded = encodeURIComponent(
+			JSON.stringify(objectRef("orders.order", "42")),
+		);
+		expect(
+			referenceFromUrl(`https://example.test/console?ref=${encoded}`),
+		).not.toBeNull();
+		expect(referenceFromUrl(`https://example.test/?ref=${encoded}`)).toBeNull();
 	});
 
-	test("reads a mount only from the console route", () => {
-		expect(mountActionFromUrl("https://example.test/console?mount=orders.list"))
-			.toBe("orders.list");
-		expect(mountActionFromUrl("https://example.test/?mount=orders.list")).toBeNull();
+	test("round-trips an object reference", () => {
+		const ref = objectRef("requests.request", "42");
+		const url = urlForReference(
+			"https://example.test/console?language=ru",
+			ref,
+		);
+		expect(referenceFromUrl(`https://example.test${url}`)).toEqual(ref);
 	});
 });

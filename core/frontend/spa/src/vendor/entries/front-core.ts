@@ -1,12 +1,15 @@
 /**
- * The function catalog, the bus, and the microfrontend UI kit. This is the
- * shared instance: the shell registers the loader and reads `SCREENS`,
- * microfrontends put their functions into this same catalog.
+ * The object runtime and the microfrontend UI kit. This is the shared instance:
+ * the shell registers the loader and microfrontends register their definitions.
  */
 export * from "front-core";
 // The import map resolves `front-core/shell` to this delivery facade too.
 // Keep the microfrontend loader public for mandatory bootstrap modules.
-export { loadMicrofrontend, loadMicrofrontendForAction } from "../../../../front-core/src/shell/mf";
+export {
+	loadMicrofrontend,
+	loadMicrofrontendForOperation,
+	loadMicrofrontendForType,
+} from "../../../../front-core/src/shell/mf";
 export {
 	AppShellFrame,
 	bootstrapAppShell,

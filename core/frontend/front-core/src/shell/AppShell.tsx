@@ -1,20 +1,27 @@
 import { useUnit } from "effector-preact";
+import { installEffectorTrafficLogger } from "front-core/core";
 import {
-	$actionCatalog,
-	actionCommand,
-	installEffectorTrafficLogger,
-	resolveActionMeta,
-} from "front-core/core";
+	$objectRegistryRevision,
+	type DomainRef,
+	executeOperation,
+	invokeOperator,
+	type Operator,
+	objectRef,
+	objectResolver,
+	operatorCatalogEntries,
+	presentReference,
+	type ResolutionCandidate,
+} from "front-core/object-runtime";
+import { translator } from "i18n";
+import type { Entry } from "orchestrator";
 import type { ComponentChildren } from "preact";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import type { RightPanelTab } from "sidebar-controller";
-import type { Entry } from "orchestrator";
 import { authToken } from "../auth-token";
 import type { ChatConfig } from "../chat/config";
 import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
 import { mountLinkedChatStyles } from "../chat/styles/link";
-import { translator } from "i18n";
-import { Copy, LogOut } from "../icons";
+import { ChevronDown, Copy, LogOut } from "../icons";
 import { LandingView } from "../landing/LandingView";
 import type { LandingPayload } from "../landing/types";
 import { AttachButton, PanelToggle } from "../ui/buttons";
@@ -39,9 +46,11 @@ import {
 	panelToggled,
 	panelWidthChanged,
 } from "./panel";
+import { runCandidate } from "./run-candidate";
 import { Surface } from "./SurfaceView";
 import { $currentSurface } from "./surface";
-import "./workspace-presenter";
+import "./reference-presenter";
+import "./legacy-widget-presenter";
 
 installEffectorTrafficLogger();
 
@@ -65,98 +74,97 @@ const panelTabs: Array<{ id: RightPanelTab; label: string }> = [
 
 const CONVERGED_LOGO_URL = "/assets/converged.svg";
 
-function FunctionList({
-	functions,
+// Root navigation starts a new object flow. The remaining operators require
+// an object reference or a panel registry and must not duplicate this catalog.
+const ROOT_OPERATORS = [
+	"create",
+	"select",
+	"execute",
+] as const satisfies readonly Operator[];
+
+function matchesCandidate(
+	candidate: ResolutionCandidate,
+	query: string,
+): boolean {
+	const words = query.toLocaleLowerCase().split(/\s+/).filter(Boolean);
+	if (words.length === 0) return true;
+	const text = [candidate.label, candidate.description, candidate.targetType]
+		.join(" ")
+		.toLocaleLowerCase();
+	return words.every((word) => text.includes(word));
+}
+
+function OperatorList({
+	active,
 	query,
+	references,
+	onActivate,
 	onRun,
 }: {
-	functions: Array<{
-		id: string;
-		brief: string;
-		category?: string;
-		description: string;
-		priority: "primary" | "normal" | "secondary";
-	}>;
+	active: Operator | null;
 	query: string;
-	onRun: (actionId: string) => void;
+	references: DomainRef[];
+	onActivate: (operator: Operator) => void;
+	onRun: (operator: Operator, candidate: ResolutionCandidate) => void;
 }) {
-	const categoryOf = (fn: (typeof functions)[number]) =>
-		fn.category?.trim() || fn.id.split(".", 1)[0] || "other";
-	const normalizedQuery = query
-		.trimStart()
-		.replace(/^\/+/, "")
-		.toLocaleLowerCase()
-		.trim();
-
-	if (functions.length === 0) {
-		return <p class="panel-empty-state">Loading system functions...</p>;
-	}
-
-	const matchedFunctions = functions
-		.filter(
-			(fn) =>
-			!normalizedQuery ||
-			[fn.id, fn.category, fn.brief, fn.description].some((value) =>
-				value?.toLocaleLowerCase().includes(normalizedQuery),
-			),
-		)
-		.sort(
-			(left, right) =>
-				priorityWeight(right.priority) - priorityWeight(left.priority) ||
-				left.brief.localeCompare(right.brief),
-		);
-	const groups = matchedFunctions.reduce<Map<string, typeof matchedFunctions>>(
-		(grouped, fn) => {
-			const category = categoryOf(fn);
-			grouped.set(category, [...(grouped.get(category) ?? []), fn]);
-			return grouped;
-		},
-		new Map(),
-	);
-
-	if (groups.size === 0) {
-		return <p class="panel-empty-state">No matching system functions.</p>;
-	}
-
+	const [, typedOperator, typedTarget = ""] =
+		query.trimStart().match(/^\/(\w+)(?:\s+(.+))?$/) ?? [];
 	return (
 		<div class="panel-commands">
-			{Array.from(groups)
-				.sort(([leftCategory, leftActions], [rightCategory, rightActions]) => {
-					const count = rightActions.length - leftActions.length;
-					return count === 0
-						? leftCategory.localeCompare(rightCategory)
-						: count;
-				})
-				.map(([category, actions]) => {
+			{operatorCatalogEntries()
+				.filter((entry) => ROOT_OPERATORS.includes(entry.operator))
+				.map((entry) => {
+					const candidates =
+						active === entry.operator
+							? objectResolver
+									.resolve(entry.operator, { references })
+									.filter((candidate) =>
+										matchesCandidate(
+											candidate,
+											typedOperator === entry.operator ? typedTarget : "",
+										),
+									)
+							: [];
+					const expanded = active === entry.operator;
 					return (
-						<section class="panel-command-section" key={category}>
-							<div class="panel-command-heading">
-								<span>{category}</span>
-								<p>{actions.length}</p>
-							</div>
-							{actions.map((action) => (
-								<button
-									type="button"
-									class="panel-command-item"
-									key={action.id}
-									onClick={() => onRun(action.id)}
-									title={`${action.id}: ${action.brief || action.description}`}
+						<section class="panel-command-section" key={entry.id}>
+							<button
+								type="button"
+								class="panel-command-heading"
+								aria-expanded={expanded}
+								aria-controls={`operator-${entry.operator}`}
+								onClick={() => onActivate(entry.operator)}
+							>
+								<span>{entry.operator}</span>
+								<ChevronDown
+									aria-hidden="true"
+									size={14}
+									class={expanded ? "is-expanded" : undefined}
+								/>
+							</button>
+							{expanded ? (
+								<div
+									class="panel-command-candidates"
+									id={`operator-${entry.operator}`}
 								>
-									<span class="panel-command-title">
-										{action.brief || action.description}
-									</span>
-									<code>{action.id}</code>
-								</button>
-							))}
+									{candidates.map((candidate) => (
+										<button
+											type="button"
+											class="panel-command-item"
+											key={candidate.id}
+											onClick={() => onRun(entry.operator, candidate)}
+											title={candidate.description}
+										>
+											<span class="panel-command-title">{candidate.label}</span>
+										</button>
+									))}
+								</div>
+							) : null}
 						</section>
 					);
 				})}
 		</div>
 	);
-}
-
-function priorityWeight(priority: "primary" | "normal" | "secondary"): number {
-	return priority === "primary" ? 2 : priority === "secondary" ? 0 : 1;
 }
 
 function json(value: unknown): string {
@@ -180,8 +188,9 @@ function OrchestratorTrace({ chat }: { chat: Chat }) {
 	const entries = useUnit(chat.store.conversation.entries.$entries);
 	const [copied, setCopied] = useState(false);
 	const trace = Array.from(entries.values())
-		.filter((entry): entry is Extract<Entry, { kind: "step" | "call" }> =>
-			entry.kind === "step" || entry.kind === "call",
+		.filter(
+			(entry): entry is Extract<Entry, { kind: "step" | "call" }> =>
+				entry.kind === "step" || entry.kind === "call",
 		)
 		.sort((left, right) => left.at - right.at);
 
@@ -194,27 +203,27 @@ function OrchestratorTrace({ chat }: { chat: Chat }) {
 			trace.map((entry) =>
 				entry.kind === "step"
 					? {
-						at: new Date(entry.at).toISOString(),
-						kind: entry.kind,
-						phase: entry.phase,
-						step: entry.step,
-						tier: entry.tier,
-						status: entry.status,
-						elapsedMs: entry.elapsedMs,
-						input: entry.input,
-						outcome: entry.outcome,
-					  }
+							at: new Date(entry.at).toISOString(),
+							kind: entry.kind,
+							phase: entry.phase,
+							step: entry.step,
+							tier: entry.tier,
+							status: entry.status,
+							elapsedMs: entry.elapsedMs,
+							input: entry.input,
+							outcome: entry.outcome,
+						}
 					: {
-						at: new Date(entry.at).toISOString(),
-						kind: entry.kind,
-						name: entry.name,
-						callId: entry.callId,
-						status: entry.status,
-						elapsedMs: entry.elapsedMs,
-						args: entry.args,
-						result: entry.result,
-						error: entry.error,
-					  },
+							at: new Date(entry.at).toISOString(),
+							kind: entry.kind,
+							name: entry.name,
+							callId: entry.callId,
+							status: entry.status,
+							elapsedMs: entry.elapsedMs,
+							args: entry.args,
+							result: entry.result,
+							error: entry.error,
+						},
 			),
 		);
 		try {
@@ -249,13 +258,21 @@ function OrchestratorTrace({ chat }: { chat: Chat }) {
 									? `${entry.phase}:${entry.step} [${entry.tier}]`
 									: `call:${entry.name}`}
 							</code>
-							<span>{entry.elapsedMs === undefined ? "running" : `${entry.elapsedMs} ms`}</span>
+							<span>
+								{entry.elapsedMs === undefined
+									? "running"
+									: `${entry.elapsedMs} ms`}
+							</span>
 							<time>{formatTime(entry.at)}</time>
 						</header>
 						<pre>
 							{entry.kind === "step"
 								? json({ input: entry.input, outcome: entry.outcome })
-								: json({ args: entry.args, result: entry.result, error: entry.error })}
+								: json({
+										args: entry.args,
+										result: entry.result,
+										error: entry.error,
+									})}
 						</pre>
 					</li>
 				))}
@@ -344,10 +361,12 @@ export function AppShell({
 	const draft = useUnit($draft);
 	const panelTab = useUnit($panelTab);
 	const panelEvents = useUnit($panelEvents);
-	const actionCatalog = useUnit($actionCatalog);
+	useUnit($objectRegistryRevision);
 	const panelWidth = useUnit($panelWidth);
 	const isResizing = useUnit($panelResizing);
 	const isAuthenticated = useUserStatus();
+	const [activeOperator, setActiveOperator] = useState<Operator | null>(null);
+	const references = surface?.ref ? [surface.ref] : [];
 
 	useEffect(() => {
 		warmUpChat(config);
@@ -368,6 +387,12 @@ export function AppShell({
 		}
 	}, [shellPlacement]);
 
+	useEffect(() => {
+		const operator = draft.trimStart().match(/^\/(\w+)\b/)?.[1];
+		if (operator && ROOT_OPERATORS.includes(operator as Operator))
+			setActiveOperator(operator as Operator);
+	}, [draft]);
+
 	const ready = async () => {
 		const loaded = await loadChat(config);
 		setChat(loaded);
@@ -377,15 +402,21 @@ export function AppShell({
 	const send = () => {
 		const text = draft.trim();
 		if (!text) return;
-		const requestedAction = text.startsWith("/")
-			? actionCatalog
-					.map(resolveActionMeta)
-					.find(
-						(action) => action.exposure === "user" && `/${action.id}` === text,
-					)
-			: undefined;
-		if (requestedAction) {
-			runFunction(requestedAction.id);
+		const [, slashOperator, target] = text.match(/^\/(\w+)(?:\s+(.+))?$/) ?? [];
+		if (slashOperator && ROOT_OPERATORS.includes(slashOperator as Operator)) {
+			const operator = slashOperator as Operator;
+			const candidate = target
+				? objectResolver.resolve(operator, { references }).find((entry) => {
+						const value = target.toLocaleLowerCase();
+						return [entry.id, entry.targetType, entry.label]
+							.filter(Boolean)
+							.some((part) => part?.toLocaleLowerCase() === value);
+					})
+				: undefined;
+			panelOpened();
+			panelTabActivated("commands");
+			setActiveOperator(operator);
+			if (candidate) runOperator(operator, candidate);
 			return;
 		}
 		if (text.startsWith("/")) return;
@@ -407,22 +438,24 @@ export function AppShell({
 		void ready().then((instance) => instance.attachFiles(files));
 	};
 
-	const runFunction = (actionId: string) => {
+	const runOperator = (operator: Operator, candidate: ResolutionCandidate) => {
 		draftCleared();
-		panelEventRecorded(`Function started: ${actionId}`);
-		void actionCommand({ actionId, source: "user" }).then(
-			() => panelEventRecorded(`Function completed: ${actionId}`),
-			() => panelEventRecorded(`Function failed: ${actionId}`),
+		panelEventRecorded(`${operator}: ${candidate.label}`);
+		const invocation = runCandidate(operator, candidate, references);
+		void invocation.then(
+			() => panelEventRecorded(`${operator} completed`),
+			() => panelEventRecorded(`${operator} failed`),
 		);
 	};
 
 	const logout = () => {
 		panelEventRecorded("Logout requested");
-		void actionCommand({ actionId: "auth.logout", source: "user" }).catch(
-			() => {
-				panelEventRecorded("Logout failed");
-			},
-		);
+		void executeOperation({
+			operationId: "auth.session.logout",
+			source: "user",
+		}).catch(() => {
+			panelEventRecorded("Logout failed");
+		});
 	};
 
 	const updatePanelWidth = useCallback((width: number) => {
@@ -549,7 +582,9 @@ export function AppShell({
 								data-authenticated={isAuthenticated ? "true" : "false"}
 							>
 								<i aria-hidden="true" />
-								{isAuthenticated ? t("shell.authenticatedStatus") : t("shell.guestStatus")}
+								{isAuthenticated
+									? t("shell.authenticatedStatus")
+									: t("shell.guestStatus")}
 							</span>
 							{isAuthenticated ? (
 								<button
@@ -576,13 +611,17 @@ export function AppShell({
 								<div class="panel-messages" />
 							)
 						) : null}
-		{panelTab === "commands" ? (
-							<FunctionList
-								functions={actionCatalog
-									.map(resolveActionMeta)
-									.filter((action) => action.exposure === "user")}
+						{panelTab === "commands" ? (
+							<OperatorList
+								active={activeOperator}
 								query={draft}
-								onRun={runFunction}
+								references={references}
+								onActivate={(operator) =>
+									setActiveOperator((current) =>
+										current === operator ? null : operator,
+									)
+								}
+								onRun={runOperator}
 							/>
 						) : null}
 						{panelTab === "events" ? (
@@ -605,7 +644,11 @@ export function AppShell({
 							)
 						) : null}
 						{panelTab === "trace" && devTraceEnabled ? (
-							chat ? <OrchestratorTrace chat={chat.chat} /> : <p class="panel-empty-state">Chat is not initialized.</p>
+							chat ? (
+								<OrchestratorTrace chat={chat.chat} />
+							) : (
+								<p class="panel-empty-state">Chat is not initialized.</p>
+							)
 						) : null}
 					</div>
 					<div class="panel-tabs" aria-label="Chat panel tabs" role="tablist">

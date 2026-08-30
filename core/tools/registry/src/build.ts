@@ -43,7 +43,7 @@
 import { mkdirSync, rmSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { brotliCompressSync, constants as zlib } from "node:zlib";
-import { FUNCTION_INDEX } from "back-core/module-registry";
+import { OBJECT_INDEX } from "back-core/module-registry";
 import { createGenerator } from "unocss";
 import { buildWorkflow } from "../../../dag/core/build";
 import { localizedMicrofrontendEntry } from "../../../frontend/spa/src/build/microfrontend-locales";
@@ -268,27 +268,25 @@ type Built = {
 	digest: string;
 	size: number;
 	raw: number;
-	kind: Kind | "function-index";
+	kind: Kind | "object-index";
 };
 
 /**
- * The function catalogue's metadata, as one more registry object.
+ * The typed object index, as one more registry object.
  *
- * The catalogue is filled by `plug(bus)` when a microfrontend loads, and
- * modules load lazily — so on a fresh page it is empty and the step that picks
- * a function has nothing to show. The index is the compensation: metadata
- * arrives at once, code on demand.
+ * Modules load lazily, so type, view, and operation manifests travel as a
+ * static index while executable definitions arrive with module code.
  *
  * It used to be written into the delivery, which worked only while the delivery
  * knew every module. It does not any more, and an index built from the empty
  * set would leave the catalogue permanently blank. So it travels with the
  * modules it describes, and the ui narrows it to the solution when it serves it.
  */
-async function buildFunctionIndex(
+async function buildObjectIndex(
 	options: Options,
 	modules: Module[],
 ): Promise<Uint8Array> {
-	// `collectFunctionIndex` reads its module set from the same environment the
+	// `collectObjectIndex` reads its module set from the same environment the
 	// delivery build uses. Imported dynamically for that reason: the list has to
 	// be in place before the layout module computes it.
 	process.env.MICROFRONTENDS = modules.map((module) => module.name).join(",");
@@ -296,10 +294,10 @@ async function buildFunctionIndex(
 	if (options.childProjectDir) {
 		process.env.CHILD_PROJECT_DIR = options.childProjectDir;
 	}
-	const { collectFunctionIndex } = await import(
-		"../../../frontend/spa/src/build/function-index"
+	const { collectObjectIndex } = await import(
+		"../../../frontend/spa/src/build/object-index"
 	);
-	const index = await collectFunctionIndex();
+	const index = await collectObjectIndex();
 	return new TextEncoder().encode(JSON.stringify(index));
 }
 
@@ -377,9 +375,9 @@ async function buildAll(options: Options): Promise<Built[]> {
 		// whose code is not in the registry yet.
 		if (kind === "microfrontends") {
 			await store(
-				FUNCTION_INDEX,
-				await buildFunctionIndex(options, modules),
-				"function-index",
+				OBJECT_INDEX,
+				await buildObjectIndex(options, modules),
+				"object-index",
 			);
 		}
 	}

@@ -5,21 +5,16 @@ import {
 	useMicrofrontendTranslation,
 } from "front-core";
 import { RefreshCw } from "front-core";
+import { objectRef, presentReference } from "front-core/object-runtime";
 import { useEffect, useMemo } from "preact/compat";
-import { OPEN_REQUEST } from "../commands";
 import { createRequestsColumns } from "../config";
 import {
 	$requestsStore,
-	openRequestDetail,
 	refreshRequestsClicked,
 	requestsListMounted,
 } from "../domain-requests";
 
-type RequestBus = {
-	run?: (actionId: string, params?: unknown) => unknown;
-};
-
-export const RequestsListView = ({ bus }: { bus?: RequestBus }) => {
+export const RequestsListView = () => {
 	const state = useUnit($requestsStore.$state);
 	const { t } = useMicrofrontendTranslation("requests-mf");
 
@@ -48,8 +43,7 @@ export const RequestsListView = ({ bus }: { bus?: RequestBus }) => {
 				? (row as { id?: unknown }).id
 				: undefined;
 		if (typeof id !== "string" || id.length === 0) return;
-		openRequestDetail({ recordId: id });
-		bus?.run?.(OPEN_REQUEST, { requestId: id });
+		void presentReference(objectRef("requests.request", id));
 	};
 
 	return (

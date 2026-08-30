@@ -1,6 +1,4 @@
 export const ID = "scripts-mf";
-export { MENU } from "./menu";
-import { BasePlugin } from "front-core";
-import ACTIONS from "./functions";
+import definition from "./objects";
 
-export default new BasePlugin(ID, ACTIONS);
+export default definition;

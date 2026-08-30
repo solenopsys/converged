@@ -1,0 +1,346 @@
+import { objectRegistry } from "./registry";
+import { objectResolver } from "./resolver";
+import { executeOperation, presentReference } from "./runtime";
+import {
+	type DomainRef,
+	OPERATORS,
+	type Operator,
+	objectRef,
+	setRef,
+} from "./types";
+
+export type OperatorCatalogEntry = {
+	id: string;
+	operator: Operator;
+	brief: string;
+	description: string;
+	category: "operator";
+	priority: "primary" | "secondary";
+	exposure: "user";
+	/** Set on a resolved candidate: what this entry acts on. */
+	targetType?: string;
+	/** Set when the candidate is a domain operation rather than a type. */
+	operationId?: string;
+	parameters: {
+		type: "object";
+		properties: Record<string, unknown>;
+		required?: string[];
+	};
+};
+
+const labels: Record<Operator, string> = {
+	show: "Show objects",
+	select: "Select objects",
+	open: "Open object",
+	create: "Create object",
+	add: "Add to object",
+	save: "Save object",
+	execute: "Execute operation",
+};
+
+const verbs: Record<Operator, string> = {
+	show: "Show",
+	select: "Select",
+	open: "Open",
+	create: "Create",
+	add: "Add to",
+	save: "Save",
+	execute: "Execute",
+};
+
+type OperatorTarget = { id: string; label: string };
+
+/**
+ * What the operator can actually be pointed at right now. The model never sees
+ * the registry, so an operator with a free-form `targetType` is a coin flip:
+ * it guesses "companies", the resolver knows `companies.company`, and the call
+ * comes back as "nothing resolves". The resolver's own candidates are the
+ * answer, so they travel with the operator as an enum.
+ */
+export function operatorTargets(operator: Operator): OperatorTarget[] {
+	const targets = new Map<string, string>();
+	if (operator === "open") {
+		// `open` resolves against a concrete object, and there is none while the
+		// catalog is being read; any type with an object view can be opened.
+		for (const type of objectRegistry.allTypes()) {
+			if (objectResolver.resolveView(objectRef(type.id, "")))
+				targets.set(type.id, type.label);
+		}
+	} else {
+		for (const candidate of objectResolver.resolve(operator)) {
+			if (candidate.targetType && !targets.has(candidate.targetType))
+				targets.set(candidate.targetType, candidate.label);
+		}
+	}
+	return [...targets].map(([id, label]) => ({ id, label }));
+}
+
+const targetList = (targets: OperatorTarget[]): string =>
+	targets.map(({ id, label }) => `${label} (${id})`).join(", ");
+
+const operatorParameters = (targets: OperatorTarget[]) => ({
+	type: "object" as const,
+	properties: {
+		targetType: {
+			type: "string",
+			description:
+				targets.length > 0
+					? `Canonical object type this operator acts on. Available: ${targetList(targets)}`
+					: "Canonical object type selected by the resolver",
+			...(targets.length > 0
+				? { enum: targets.map((target) => target.id) }
+				: {}),
+		},
+		id: { type: "string", description: "Object identifier for open/show" },
+		ids: {
+			type: "array",
+			items: { type: "string" },
+			description: "Explicit selected object identifiers",
+		},
+		query: { type: "object", description: "Collection query or filters" },
+		categories: {
+			type: "array",
+			items: { type: "string" },
+			description: "Core semantic categories",
+		},
+		params: {
+			type: "object",
+			description: "Parameters of the resolved domain operation",
+		},
+	},
+});
+
+export function operatorCatalogEntries(): OperatorCatalogEntry[] {
+	return OPERATORS.map((operator) => ({
+		id: `core.${operator}`,
+		operator,
+		brief: labels[operator],
+		description: `${labels[operator]} through the typed object resolver`,
+		category: "operator",
+		priority: "primary",
+		exposure: "user",
+		parameters: operatorParameters(operatorTargets(operator)),
+	}));
+}
+
+export function operatorCatalogEntry(
+	id: string,
+): OperatorCatalogEntry | undefined {
+	return operatorCatalogEntries().find((entry) => entry.id === id);
+}
+
+const CANDIDATE = /^core\.([a-z]+):(.+)$/;
+
+// The candidate fixes the target, so the operator's `targetType` is no longer
+// the caller's to choose.
+const candidateParameters = (): OperatorCatalogEntry["parameters"] => {
+	const { targetType: _fixed, ...properties } = operatorParameters(
+		[],
+	).properties;
+	return { type: "object", properties };
+};
+
+/**
+ * The resolver's own output, published as catalog entries. Seven operators are
+ * the whole vocabulary, but nothing in "Show objects" answers to "companies":
+ * route and search rank words against what the catalog says about itself, so
+ * the object the operator would act on has to be part of an entry, not hidden
+ * one resolve() call away. These are derived on every read — they follow the
+ * registry, they are not a second registry.
+ */
+export function operatorCandidateEntries(): OperatorCatalogEntry[] {
+	// Two operations can share an operator and a target; the resolver already
+	// ranked them, and the runner picks the same winner, so the catalog lists
+	// the pair once.
+	const seen = new Set<string>();
+	return OPERATORS.flatMap((operator) =>
+		objectResolver.resolve(operator).flatMap((candidate) => {
+			const type = candidate.targetType
+				? objectRegistry.type(candidate.targetType)
+				: undefined;
+			const target = candidate.targetType ?? candidate.id;
+			const names = [type?.label, type?.pluralLabel, candidate.targetType]
+				.filter(Boolean)
+				.join(", ");
+			const id = `core.${operator}:${target}`;
+			if (seen.has(id)) return [];
+			seen.add(id);
+			return {
+				id,
+				operator,
+				targetType: candidate.targetType,
+				...(candidate.kind === "operation"
+					? { operationId: candidate.id }
+					: {}),
+				brief:
+					candidate.kind === "operation"
+						? candidate.label
+						: `${verbs[operator]} ${candidate.label}`,
+				description:
+					candidate.description ?? `${labels[operator]} of ${names || target}`,
+				category: "operator" as const,
+				priority: "primary" as const,
+				exposure: "user" as const,
+				parameters: candidate.operation?.parameters ?? candidateParameters(),
+			};
+		}),
+	);
+}
+
+/** Both levels in one list: the bare operators and everything they resolve to. */
+export function catalogEntries(): OperatorCatalogEntry[] {
+	return [
+		...operatorCatalogEntries().map((entry) => ({
+			...entry,
+			priority: "secondary" as const,
+		})),
+		...operatorCandidateEntries(),
+	];
+}
+
+export function catalogEntry(id: string): OperatorCatalogEntry | undefined {
+	return CANDIDATE.test(id)
+		? operatorCandidateEntries().find((entry) => entry.id === id)
+		: operatorCatalogEntry(id);
+}
+
+/**
+ * Invoke either level by id. A candidate id already carries the choice the
+ * resolver would otherwise have to make, so it is passed straight through as
+ * the target rather than re-derived from the arguments.
+ */
+export async function invokeCatalogEntry(
+	id: string,
+	params: Record<string, unknown> = {},
+	source: "assistant" | "user" = "user",
+): Promise<unknown> {
+	const entry = catalogEntry(id);
+	if (!entry) throw new Error(`[object-runtime] Unknown catalog entry: ${id}`);
+	const result = entry.operationId
+		? await executeOperation({
+				operationId: entry.operationId,
+				references: (params.references as DomainRef[] | undefined) ?? [],
+				params:
+					(params.params as Record<string, unknown> | undefined) ?? params,
+				source,
+			})
+		: await invokeOperator(
+				entry.operator,
+				{
+					...params,
+					...(entry.targetType ? { targetType: entry.targetType } : {}),
+				},
+				source,
+			);
+	// The caller is a transcript: what it does with the answer is serialise it.
+	// An operation is free to return a live object, so a value that cannot be
+	// serialised is replaced by the fact that the call happened.
+	return jsonSafe(result)
+		? result
+		: { ok: true, id, note: "Result is not serializable and was omitted" };
+}
+
+function jsonSafe(value: unknown): boolean {
+	try {
+		JSON.stringify(value);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+export function searchOperatorCatalog(
+	query: string,
+	limit = 12,
+): OperatorCatalogEntry[] {
+	const words = query.toLocaleLowerCase().split(/\s+/).filter(Boolean);
+	if (words.length === 0) return operatorCatalogEntries();
+
+	const text = (entry: OperatorCatalogEntry) =>
+		`${entry.id} ${entry.brief} ${entry.description}`.toLocaleLowerCase();
+	const ranked = catalogEntries()
+		.map((entry) => ({
+			entry,
+			hits: words.filter((word) => text(entry).includes(word)).length,
+		}))
+		.filter(({ hits }) => hits > 0)
+		.sort(
+			(left, right) =>
+				right.hits - left.hits || left.entry.id.localeCompare(right.entry.id),
+		)
+		.slice(0, limit)
+		.map(({ entry }) => entry);
+
+	// Labels are English and the user is not: a query in another language scores
+	// zero everywhere. The bare operators are seven entries and each one carries
+	// its targets as an enum, so handing them back keeps the resolver reachable
+	// instead of reporting that nothing exists.
+	return ranked.length > 0 ? ranked : operatorCatalogEntries();
+}
+
+type OperatorInvocation = {
+	targetType?: string;
+	id?: string;
+	ids?: string[];
+	query?: Record<string, unknown>;
+	categories?: string[];
+	params?: Record<string, unknown>;
+	references?: DomainRef[];
+};
+
+export async function invokeOperator(
+	operator: Operator,
+	input: OperatorInvocation = {},
+	source: "assistant" | "user" = "user",
+): Promise<unknown> {
+	const references = [...(input.references ?? [])];
+	if (input.targetType && input.id)
+		references.push(objectRef(input.targetType, input.id));
+	if (input.targetType && input.ids) {
+		references.push(setRef(input.targetType, { kind: "ids", ids: input.ids }));
+	}
+	const candidates = objectResolver.resolve(operator, {
+		references,
+		targetType: input.targetType,
+		categories: input.categories,
+	});
+	const candidate = candidates[0];
+	if (!candidate) {
+		// The caller is usually a model that guessed a type name. Saying what the
+		// operator does accept is what lets it correct itself on the next call.
+		const available = targetList(operatorTargets(operator));
+		throw new Error(
+			`[object-runtime] Nothing resolves for ${operator}${
+				input.targetType ? ` with targetType "${input.targetType}"` : ""
+			}${available ? `; available: ${available}` : ""}`,
+		);
+	}
+	if (candidate.kind === "operation") {
+		return executeOperation({
+			operationId: candidate.id,
+			references,
+			params: input.params ?? {},
+			source,
+		});
+	}
+	if (!candidate.targetType)
+		throw new Error(`[object-runtime] ${operator} resolved without a type`);
+	const selectedObject = references.find(
+		(ref) => ref.kind === "object" && ref.type === candidate.targetType,
+	);
+	if (operator === "open" && !selectedObject) {
+		throw new Error("[object-runtime] open requires an object id");
+	}
+	const ref =
+		selectedObject ??
+		(operator === "select" || !input.id
+			? setRef(
+					candidate.targetType,
+					input.ids
+						? { kind: "ids", ids: input.ids }
+						: { kind: "query", query: input.query ?? {} },
+				)
+			: objectRef(candidate.targetType, input.id));
+	await presentReference(ref);
+	return ref;
+}

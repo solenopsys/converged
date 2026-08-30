@@ -1,6 +1,4 @@
-import { BasePlugin } from "front-core";
-import ACTIONS from "./functions";
-import { MENU } from "./menu";
+import definition from "./objects";
 import Panel from "./Panel";
 import "./dashboard-widgets";
 
@@ -10,7 +8,5 @@ export const GROUP = {
 	title: "Sales",
 	iconName: "IconBriefcase",
 };
-export { MENU };
-
-export default new BasePlugin(ID, ACTIONS);
+export default definition;
 export { Panel };

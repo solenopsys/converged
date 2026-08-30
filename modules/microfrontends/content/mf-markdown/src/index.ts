@@ -1,6 +1,4 @@
 export const ID = "markdown-mf";
-export { MENU } from "./menu";
-import ACTIONS from "./functions";
-import { BasePlugin } from "front-core";
+import definition from "./objects";
 
-export default new BasePlugin(ID, ACTIONS);
+export default definition;

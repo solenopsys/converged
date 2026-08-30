@@ -1,6 +1,5 @@
-import { BasePlugin, LocaleController } from "front-core";
-import ACTIONS from "./functions";
-import { MENU } from "./menu";
+import { LocaleController } from "front-core";
+import definition from "./objects";
 import Panel from "./Panel";
 
 export const ID = "requests-mf";
@@ -20,9 +19,7 @@ LocaleController.getInstance().setLocales(ID, {
 	pt: new URL("../locales/pt.json", import.meta.url).toString(),
 });
 
-export { MENU };
-
-export default new BasePlugin(ID, ACTIONS);
+export default definition;
 export {
 	ManufacturingRequestPage,
 	RequestDetailView,

@@ -11,10 +11,14 @@ export {
 export { bootstrapAppShell } from "./bootstrap";
 export {
 	bootstrapWorkspaceUrl,
-	mountActionFromUrl,
-	urlForMountAction,
+	referenceFromUrl,
+	urlForReference,
 } from "./workspace-url";
-export { loadMicrofrontend, loadMicrofrontendForAction } from "./mf";
+export {
+	loadMicrofrontend,
+	loadMicrofrontendForOperation,
+	loadMicrofrontendForType,
+} from "./mf";
 export {
 	$composerPlacement,
 	$draft,
@@ -29,7 +33,6 @@ export {
 } from "./panel";
 export { type OpenRecordTabRequest, openRecordTab } from "./record-tabs";
 export { Surface } from "./SurfaceView";
-export { registerScreens } from "./screens";
 export {
 	$canGoBack,
 	$currentSurface,

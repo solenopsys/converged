@@ -1,66 +1,72 @@
 import {
-	actionCommand,
-	actionContext,
-	actionDeclared,
-	actionRegistered,
-	onActionAuthorizationChanged,
-	registry,
-	resolveActionMeta,
-} from "front-core/core";
-import { loadMicrofrontendForAction } from "../shell/mf";
+	catalogEntries,
+	catalogEntry,
+	invokeCatalogEntry,
+	microfrontendDeclared,
+	microfrontendRegistered,
+	type OperatorCatalogEntry,
+	onOperationAuthorizationChanged,
+	operatorCatalogEntries,
+	searchOperatorCatalog,
+} from "front-core/object-runtime";
 import type { ChatCatalog } from "./store";
 
-// The host half of the orchestrator: this delivery's functions, their registry,
-// lazy owner loading and the single invoke point. Kept in its own file because
-// it is the only part of the chat layer that pulls front-core/core and the
-// microfrontend loader — the embed widget never imports it.
+function label(id: string): string | undefined {
+	return catalogEntry(id)?.brief;
+}
 
-function actionLabel(id: string): string | undefined {
-	const meta = registry.meta(id);
-	return meta ? resolveActionMeta(meta).brief : undefined;
+function categories() {
+	return [{ id: "operator", count: catalogEntries().length }];
+}
+
+// The operator's parameters carry every target type the resolver knows, which
+// is the point of `describeFunction` and far too much for a listing: a bare
+// `listFunctions` would answer with the whole registry seven times over.
+function briefs(entries: OperatorCatalogEntry[]) {
+	return entries.map(({ id, brief, description }) => ({
+		id,
+		brief,
+		description,
+		category: "operator",
+	}));
 }
 
 export function createMicrofrontendCatalog(): ChatCatalog {
+	const entries = () => catalogEntries();
+
 	return {
 		catalog: {
-			search: (query, limit) => actionContext.search(query, limit),
-			listCategories: () => actionContext.listCategories(),
-			// Answers for unloaded modules too: the delivery index declares them.
-			meta: (id) => {
-				const action = registry.meta(id);
-				return action ? resolveActionMeta(action) : undefined;
-			},
-			invoke: (actionId, params) =>
-				actionCommand({ actionId, params, source: "assistant" }),
-			load: loadMicrofrontendForAction,
+			search: (query, limit) => searchOperatorCatalog(query, limit),
+			listCategories: categories,
+			meta: catalogEntry,
+			invoke: (id, params) => invokeCatalogEntry(id, params, "assistant"),
+			load: async () => {},
 		},
 		context: {
-			getHot: () => actionContext.getHot(),
-			listCategories: () => actionContext.listCategories(),
-			listByCategory: (category) => actionContext.listByCategory(category),
-			search: (query, limit) => actionContext.search(query, limit),
+			// Hot is the vocabulary itself; the resolved candidates are what search
+			// and the category listing are for.
+			getHot: () => briefs(operatorCatalogEntries()),
+			listCategories: categories,
+			listByCategory: (category) =>
+				briefs(category === "operator" ? entries() : []),
+			search: (query, limit) => briefs(searchOperatorCatalog(query, limit)),
 		},
-		label: actionLabel,
-		// A microfrontend that registers mid-conversation publishes its functions
-		// again, so the next turn can choose them.
+		label,
 		onChange: (republish) => {
-			void actionRegistered.watch(() => republish());
-			void actionDeclared.watch(() => republish());
-			onActionAuthorizationChanged(republish);
+			void microfrontendRegistered.watch(republish);
+			void microfrontendDeclared.watch(republish);
+			onOperationAuthorizationChanged(republish);
 		},
 		diagnostics: {
-			all: () => registry.getAll(),
-			meta: (id) => {
-				const action = registry.meta(id);
-				return action ? resolveActionMeta(action) : undefined;
-			},
-			loaded: (id) => Boolean(registry.get(id)),
-			listCategories: () => actionContext.listUserCategories(),
-			listByCategory: (category) => actionContext.listByCategory(category),
-			listUserVisible: () => actionContext.listUserVisible(),
-			search: (query) => actionContext.searchUser(query),
-			invoke: (actionId, params) =>
-				actionCommand({ actionId, params, source: "user" }),
+			all: entries,
+			meta: catalogEntry,
+			loaded: (id) => Boolean(catalogEntry(id)),
+			listCategories: categories,
+			listByCategory: (category) =>
+				briefs(category === "operator" ? entries() : []),
+			listUserVisible: () => briefs(entries()),
+			search: (query) => briefs(searchOperatorCatalog(query)),
+			invoke: (id, params) => invokeCatalogEntry(id, params, "user"),
 		},
 	};
 }

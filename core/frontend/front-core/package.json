@@ -7,6 +7,7 @@
 	"exports": {
 		".": "./src/index.ts",
 		"./core": "./src/core/index.ts",
+		"./object-runtime": "./src/object-runtime/index.ts",
 		"./table": "./src/table/index.ts",
 		"./model3d": "./src/model3d/index.ts",
 		"./shell": "./src/shell/index.ts",

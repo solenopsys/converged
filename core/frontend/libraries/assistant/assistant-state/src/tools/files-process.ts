@@ -27,7 +27,7 @@ export const createFilesProcessTool = (
 	workflow: WorkflowRunner,
 	hooks: FilesProcessHooks = {},
 ): ExecutableTool => ({
-	name: "workflows.files-process",
+	name: "startFilesProcess",
 	description:
 		"Process uploaded files: unpack ZIP archives, identify model files, and create a request when models are present",
 	parameters: {

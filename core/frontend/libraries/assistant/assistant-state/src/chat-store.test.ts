@@ -101,15 +101,15 @@ describe("chat view", () => {
 				{
 					type: "tool_call.ready",
 					callId: "call-1",
-					name: "logs.show",
+					name: "showLogs",
 					args: { limit: 20 },
 				},
 				{ type: "response.completed", finishReason: "tool_calls" },
 			],
 			answered("here"),
 		]);
-		store.registerFunction("logs.show", {
-			name: "logs.show",
+		store.registerFunction("showLogs", {
+			name: "showLogs",
 			description: "Show logs",
 			parameters: { type: "object", properties: {} },
 			execute: async () => ({ items: [] }),

@@ -7,6 +7,17 @@ describe("vendor transport boundary", () => {
 		expect(frontCore).toBeDefined();
 		expect(frontCore?.external).toContain("signal-channel");
 		expect(frontCore?.external).toContain("nrpc");
+		expect(frontCore?.external).toContain("front-core/object-runtime");
+	});
+
+	test("object runtime has its own shared vendor module", () => {
+		const runtime = vendorBuilds.find(
+			({ name }) => name === "front-core-object-runtime",
+		);
+		expect(runtime).toMatchObject({
+			outfile: "front-core-object-runtime.js",
+			external: ["effector"],
+		});
 	});
 
 	test("signal-channel is the only transport owner", () => {

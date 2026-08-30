@@ -1,9 +1,6 @@
 import { extname, join, normalize, resolve } from "node:path";
 import { brotliDecompressSync } from "node:zlib";
-import {
-	FUNCTION_INDEX,
-	moduleRegistryFromEnv,
-} from "back-core/module-registry";
+import { OBJECT_INDEX, moduleRegistryFromEnv } from "back-core/module-registry";
 import type { ServerApp, ServerPlugin } from "back-core/server-app";
 import { solutionModules } from "./delivery";
 
@@ -92,18 +89,18 @@ export default function spaPlugin(config: SpaPluginConfig = {}): ServerPlugin {
 	const registry = moduleRegistryFromEnv();
 
 	/**
-	 * The catalogue's metadata, narrowed to this solution. The registry object
+	 * The object index, narrowed to this solution. The registry object
 	 * describes every microfrontend that was published; offering the page one
-	 * whose name is not in `FRONTEND_MODULES` would put a function in the
-	 * catalogue that `/mf/<name>.js` then answers 404 for.
+	 * whose name is not in `FRONTEND_MODULES` would declare objects whose module
+	 * `/mf/<name>.js` then answers 404 for.
 	 */
-	const serveFunctionIndex = async ({ set }: { set: { status?: number } }) => {
-		if (!registry?.digest(FUNCTION_INDEX)) {
+	const serveObjectIndex = async ({ set }: { set: { status?: number } }) => {
+		if (!registry?.digest(OBJECT_INDEX)) {
 			set.status = 404;
 			return "Not Found";
 		}
 		const published = JSON.parse(
-			brotliDecompressSync(await registry.object(FUNCTION_INDEX)).toString(),
+			brotliDecompressSync(await registry.object(OBJECT_INDEX)).toString(),
 		) as { modules: Record<string, unknown> };
 		const wanted = new Set(solutionModules());
 		return new Response(
@@ -137,7 +134,7 @@ export default function spaPlugin(config: SpaPluginConfig = {}): ServerPlugin {
 		params: { name: string };
 		set: { status?: number };
 	}) => {
-		if (params.name === "index.json") return serveFunctionIndex({ set });
+		if (params.name === "index.json") return serveObjectIndex({ set });
 		const name = params.name.replace(/\.js$/, "");
 		if (!registry?.digest(`mf-${name}.js`)) {
 			set.status = 404;

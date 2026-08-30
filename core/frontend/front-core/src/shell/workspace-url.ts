@@ -1,4 +1,4 @@
-import { actionCommand } from "front-core/core";
+import { type DomainRef, presentReference } from "front-core/object-runtime";
 import {
 	$activeWorkspaceTab,
 	$workspaceTabs,
@@ -6,45 +6,50 @@ import {
 } from "./workspace";
 
 const CONSOLE_PATH = "/console";
-const MOUNT_PARAM = "mount";
+const REF_PARAM = "ref";
 
 let installed = false;
 let restoring = false;
 
-export function mountActionFromUrl(href: string): string | null {
+export function referenceFromUrl(href: string): DomainRef | null {
 	const url = new URL(href, "http://localhost");
-	return url.pathname === CONSOLE_PATH ? url.searchParams.get(MOUNT_PARAM) : null;
+	if (url.pathname !== CONSOLE_PATH) return null;
+	const encoded = url.searchParams.get(REF_PARAM);
+	if (!encoded) return null;
+	try {
+		const value = JSON.parse(encoded) as Partial<DomainRef>;
+		if (
+			(value.kind !== "object" && value.kind !== "set") ||
+			typeof value.type !== "string"
+		) {
+			return null;
+		}
+		if (value.kind === "object" && typeof value.id !== "string") return null;
+		if (value.kind === "set" && !value.selection) return null;
+		return value as DomainRef;
+	} catch {
+		return null;
+	}
 }
 
-export function urlForMountAction(
-	href: string,
-	mountActionId: string | null,
-): string {
+export function urlForReference(href: string, ref: DomainRef | null): string {
 	const url = new URL(href, "http://localhost");
 	url.pathname = CONSOLE_PATH;
-	if (mountActionId) url.searchParams.set(MOUNT_PARAM, mountActionId);
-	else url.searchParams.delete(MOUNT_PARAM);
+	if (ref) url.searchParams.set(REF_PARAM, JSON.stringify(ref));
+	else url.searchParams.delete(REF_PARAM);
 	return `${url.pathname}${url.search}${url.hash}`;
 }
 
-function currentMountAction(): string | null {
-	return mountActionFromUrl(window.location.href);
-}
-
-function pushMountAction(mountActionId: string | null): void {
-	const next = urlForMountAction(window.location.href, mountActionId);
-	if (`${window.location.pathname}${window.location.search}${window.location.hash}` === next)
-		return;
-	window.history.pushState(window.history.state, "", next);
+function sameReference(left: DomainRef, right: DomainRef): boolean {
+	return JSON.stringify(left) === JSON.stringify(right);
 }
 
 async function restoreFromLocation(): Promise<void> {
-	const actionId = currentMountAction();
-	if (!actionId) return;
-
+	const ref = referenceFromUrl(window.location.href);
+	if (!ref) return;
 	const matched = $workspaceTabs
 		.getState()
-		.find((tab) => tab.mountActionId === actionId);
+		.find((tab) => tab.ref && sameReference(tab.ref, ref));
 	if (matched) {
 		workspaceTabActivated(matched.key);
 		return;
@@ -52,22 +57,25 @@ async function restoreFromLocation(): Promise<void> {
 
 	restoring = true;
 	try {
-		await actionCommand({ actionId });
+		await presentReference(ref);
 	} catch (error) {
-		console.error(`[shell] Failed to restore mounted action "${actionId}"`, error);
+		console.error(`[shell] Failed to restore ${ref.kind}<${ref.type}>`, error);
 	} finally {
 		restoring = false;
 	}
 }
 
-/** Keeps the recreatable central workspace tab addressable at `/console?mount=`. */
+/** Keeps the active object or set addressable at `/console?ref=`. */
 export function bootstrapWorkspaceUrl(): void {
 	if (installed || typeof window === "undefined") return;
 	installed = true;
 
 	$activeWorkspaceTab.updates.watch((tab) => {
 		if (restoring) return;
-		pushMountAction(tab?.mountActionId ?? null);
+		const next = urlForReference(window.location.href, tab?.ref ?? null);
+		const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+		if (current !== next)
+			window.history.pushState(window.history.state, "", next);
 	});
 	window.addEventListener("popstate", () => {
 		void restoreFromLocation();

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { actionCommandActivated } from "front-core/core";
+import { operationExecutionStarted } from "front-core/object-runtime";
 import {
 	$activeWorkspaceTab,
 	$workspaceTabs,
@@ -29,8 +29,8 @@ describe("workspace", () => {
 		open("orders.list", true);
 		open("orders.detail.42");
 
-		actionCommandActivated({
-			actionId: "logs.hot.show",
+		operationExecutionStarted({
+			operationId: "logs.show",
 			source: "assistant",
 		});
 

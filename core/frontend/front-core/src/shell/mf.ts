@@ -1,15 +1,11 @@
-import {
-	createDomainLogger,
-	type ActionRegistry,
-	bus,
-	moduleForAction,
-	type ScreenDecl,
-	setActionLoader,
-} from "front-core/core";
 import { createDomain } from "effector";
-import { registerScreens } from "./screens";
-
-
+import { createDomainLogger } from "front-core/core";
+import {
+	type MicrofrontendDefinition,
+	objectRegistry,
+	registerMicrofrontend,
+	setMicrofrontendLoader,
+} from "front-core/object-runtime";
 
 const loads = new Map<string, Promise<void>>();
 let stylesMounted = false;
@@ -29,10 +25,8 @@ export const microfrontendLoadFailed = domain.createEvent<{
 }>("MICROFRONTEND_LOAD_FAILED");
 
 type MicrofrontendModule = {
-	default?: { plug?: (bus: ActionRegistry) => void };
-	SCREENS?: ScreenDecl<any>[];
+	default?: MicrofrontendDefinition;
 };
-
 
 function resolveSpecifier(moduleName: string): string {
 	const script = document.querySelector<HTMLScriptElement>(
@@ -44,7 +38,6 @@ function resolveSpecifier(moduleName: string): string {
 	};
 	return parsed.imports?.[moduleName] ?? `/mf/${moduleName}.js`;
 }
-
 
 function mountMicrofrontendStyles(): void {
 	if (stylesMounted) return;
@@ -63,18 +56,20 @@ export function loadMicrofrontend(moduleName: string): Promise<void> {
 		microfrontendLoadRequested({ moduleName, specifier });
 		load = import(specifier)
 			.then((module: MicrofrontendModule) => {
-				if (!module.default?.plug) {
+				if (!module.default?.id) {
 					throw new Error(
-						`[shell] ${moduleName} loaded from ${specifier} without a default plugin export`,
+						`[shell] ${moduleName} loaded from ${specifier} without a microfrontend definition`,
 					);
 				}
-				module.default.plug(bus);
-				if (module.SCREENS) registerScreens(module.SCREENS);
+				registerMicrofrontend(module.default);
 				microfrontendLoaded({ moduleName });
 			})
 			.catch((error) => {
 				microfrontendLoadFailed({ moduleName, error });
-				console.error(`[shell] Failed to load microfrontend "${moduleName}"`, error);
+				console.error(
+					`[shell] Failed to load microfrontend "${moduleName}"`,
+					error,
+				);
 				loads.delete(moduleName);
 				throw error;
 			});
@@ -83,11 +78,18 @@ export function loadMicrofrontend(moduleName: string): Promise<void> {
 	return load;
 }
 
-
-export function loadMicrofrontendForAction(actionId: string): Promise<void> {
-	const moduleName = moduleForAction(actionId);
-	if (!moduleName) throw new Error(`[shell] Invalid action id: ${actionId}`);
+export function loadMicrofrontendForType(typeId: string): Promise<void> {
+	const moduleName = objectRegistry.ownerForType(typeId);
+	if (!moduleName) throw new Error(`[shell] Unknown object type: ${typeId}`);
 	return loadMicrofrontend(moduleName);
 }
 
-setActionLoader(loadMicrofrontendForAction);
+export function loadMicrofrontendForOperation(
+	operationId: string,
+): Promise<void> {
+	const moduleName = objectRegistry.ownerForOperation(operationId);
+	if (!moduleName) throw new Error(`[shell] Unknown operation: ${operationId}`);
+	return loadMicrofrontend(moduleName);
+}
+
+setMicrofrontendLoader(loadMicrofrontend);

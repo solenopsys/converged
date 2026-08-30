@@ -11,6 +11,7 @@ const baseImports: Record<string, string> = {
 	"effector/inspect": "/vendor/effector-inspect.js",
 	"effector-preact": "/vendor/effector.js",
 	"front-core/core": "/vendor/front-core-core.js",
+	"front-core/object-runtime": "/vendor/front-core-object-runtime.js",
 	"front-core": "/vendor/front-core.js",
 	"front-core/chat/config-page": "/vendor/front-core.js",
 	"front-core/shell": "/vendor/front-core.js",

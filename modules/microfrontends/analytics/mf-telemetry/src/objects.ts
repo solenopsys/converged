@@ -1,0 +1,42 @@
+import { defineMicrofrontend, setOf } from "front-core/object-runtime";
+import { TelemetryStatsView } from "./views/TelemetryStatsView";
+import { TelemetryView } from "./views/TelemetryView";
+
+export default defineMicrofrontend({
+	id: "mf-telemetry",
+	types: [
+		{
+			id: "telemetry.entry",
+			label: "Telemetry entry",
+			pluralLabel: "Telemetry",
+			categories: ["core.entity", "core.selectable"],
+		},
+		{
+			id: "telemetry.statistic",
+			label: "Telemetry statistic",
+			pluralLabel: "Telemetry statistics",
+			categories: ["core.statistic"],
+		},
+	],
+	views: [
+		{
+			id: "telemetry.entry.hot",
+			accepts: setOf("telemetry.entry"),
+			component: TelemetryView,
+			props: () => ({ mode: "hot" }),
+		},
+		{
+			id: "telemetry.entry.cold",
+			accepts: setOf("telemetry.entry"),
+			component: TelemetryView,
+			props: () => ({ mode: "cold" }),
+			priority: -1,
+		},
+		{
+			id: "telemetry.statistic.dashboard",
+			accepts: setOf("telemetry.statistic"),
+			component: TelemetryStatsView,
+		},
+	],
+	operations: [],
+});

@@ -13,7 +13,7 @@ export function setActionBriefResolver(resolver: BriefResolver): void {
 }
 
 const TOOL_KEYS: Record<string, string> = {
-	"workflows.files-process": "tool.analyzeFiles",
+	startFilesProcess: "tool.analyzeFiles",
 	getUploadedChatFiles: "tool.checkUploads",
 	listFunctions: "tool.pickFunction",
 	describeFunction: "tool.clarifyFunction",

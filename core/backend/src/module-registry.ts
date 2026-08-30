@@ -49,7 +49,7 @@ export class ModuleRegistryError extends Error {}
  * in the builder so the side that writes it and the side that serves it agree
  * without either importing the other.
  */
-export const FUNCTION_INDEX = "mf-index.json";
+export const OBJECT_INDEX = "mf-index.json";
 
 function parseDigests(raw: string): Record<string, string> {
 	let parsed: unknown;

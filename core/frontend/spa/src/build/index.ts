@@ -7,7 +7,7 @@ import {
 	bundleMicrofrontends,
 	bundleWidget,
 } from "./bundles";
-import { writeFunctionIndex } from "./function-index";
+import { writeObjectIndex } from "./object-index";
 import { versionImportMap } from "./import-map";
 import {
 	assetsDir,
@@ -71,17 +71,14 @@ export function sourceFiles(): string[] {
 			const localesDir = join(moduleDir, "locales");
 			return [
 				...sources(join(moduleDir, "src")),
-				// The LLM manifest is embedded into the MF wrapper, so changing its
-				// descriptions or schemas must invalidate a dev build too.
-				join(moduleDir, "llm.json"),
 				...(existsSync(localesDir)
 					? Array.from(
 							new Bun.Glob("*.json").scanSync({
 								cwd: localesDir,
 								absolute: true,
 							}),
-							)
-						: []),
+						)
+					: []),
 			];
 		}),
 	];
@@ -149,7 +146,7 @@ export async function buildApp() {
 		microfrontendModuleStyles,
 	);
 	const iconFiles = await copyPwaIcons();
-	const functionIndexFile = await writeFunctionIndex();
+	const objectIndexFile = await writeObjectIndex();
 
 	// Per-file module styles are already inside `mf.css`: left next to the chunks
 	// they'd just be files nobody requests.
@@ -167,8 +164,14 @@ export async function buildApp() {
 		// The function index is metadata, not code: the catalog needs it from the
 		// first second, while the modules themselves are still fetched on demand
 		// (docs/AI.md §4.2).
-		`/${relative(dist, functionIndexFile)}`,
-		...[...appFiles, ...styleFiles, logoFile, workerFile, ...vendorLayerFiles("app")]
+		`/${relative(dist, objectIndexFile)}`,
+		...[
+			...appFiles,
+			...styleFiles,
+			logoFile,
+			workerFile,
+			...vendorLayerFiles("app"),
+		]
 			.map((path) => `/${relative(dist, path)}`)
 			.filter((path) => path.endsWith(".js") || path.endsWith(".css")),
 	];
@@ -182,7 +185,7 @@ export async function buildApp() {
 		...vendorLayerFiles("mf"),
 		...microfrontendFiles,
 		...widgetFiles,
-		functionIndexFile,
+		objectIndexFile,
 	];
 	const buildId = Bun.hash(
 		precache.join("|") + (await appSignature(revisionFiles, [])),
@@ -223,7 +226,7 @@ export async function buildApp() {
 	const dynamicVendorOutputs = vendorLayerFiles("mf");
 	// The shared UnoCSS layer is needed by every MF, but isn't a microfrontend
 	// itself and shouldn't clutter their size table.
-	const microfrontendOutputs = [...microfrontendFiles, functionIndexFile];
+	const microfrontendOutputs = [...microfrontendFiles, objectIndexFile];
 	const dynamicStyleOutputs = [microfrontendStyles];
 
 	await precompress(

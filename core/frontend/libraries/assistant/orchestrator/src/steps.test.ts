@@ -131,3 +131,70 @@ describe("function argument step", () => {
 		).toEqual({ patch: { args: { body: "Hello" } } });
 	});
 });
+
+describe("function invocation step", () => {
+	// The screen opened, the tab was there, and the chat still said the call had
+	// failed: `cap` measures the result with JSON.stringify, and a function that
+	// hands back a live object — a view, an effector unit, anything holding a
+	// back-reference — made that throw. The throw was caught as a failed call.
+	test("a result that cannot be serialized is still a successful call", async () => {
+		const live: Record<string, unknown> = { kind: "set" };
+		live.self = live;
+		const steps = createFunctionSteps({
+			catalog: {
+				search: () => [],
+				listCategories: () => [],
+				meta: () => undefined,
+				invoke: () => live,
+			},
+		});
+		const invoke = steps.find((step) => step.name === "invoke");
+
+		const result = await invoke?.apply(
+			{
+				userText: "открой список компаний",
+				candidates: [],
+				id: "core.show:companies.company",
+				args: {},
+			},
+			undefined,
+		);
+
+		expect(result).toEqual({
+			done: {
+				kind: "function",
+				id: "core.show:companies.company",
+				args: {},
+				fact: { ok: true, note: "Result is not serializable and was omitted" },
+			},
+		});
+	});
+
+	test("a failing function is still reported as a failure", async () => {
+		const steps = createFunctionSteps({
+			catalog: {
+				search: () => [],
+				listCategories: () => [],
+				meta: () => undefined,
+				invoke: () => {
+					throw new Error("service is down");
+				},
+			},
+		});
+		const invoke = steps.find((step) => step.name === "invoke");
+
+		expect(
+			await invoke?.apply(
+				{ userText: "open", candidates: [], id: "core.show:x", args: {} },
+				undefined,
+			),
+		).toEqual({
+			done: {
+				kind: "function",
+				id: "core.show:x",
+				args: {},
+				fact: { ok: false, error: "service is down" },
+			},
+		});
+	});
+});

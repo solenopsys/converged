@@ -385,6 +385,7 @@ textarea {
 
 .panel-logout:focus-visible,
 .panel-tabs button:focus-visible,
+.panel-command-heading:focus-visible,
 .panel-command-item:focus-visible {
 	outline: calc(var(--hw-unit) * 0.5) solid var(--hw-focus);
 	outline-offset: calc(var(--hw-unit) * 0.5);
@@ -443,7 +444,7 @@ textarea {
 	min-height: 0;
 	display: flex;
 	flex-direction: column;
-	gap: var(--hw-space-5);
+	gap: var(--hw-space-1);
 	overflow-y: auto;
 	padding-right: var(--hw-space-2);
 	scrollbar-width: thin;
@@ -452,14 +453,19 @@ textarea {
 .panel-command-section {
 	display: flex;
 	flex-direction: column;
-	gap: var(--hw-space-1);
 }
 
 .panel-command-heading {
+	width: 100%;
 	display: flex;
-	align-items: baseline;
+	align-items: center;
 	justify-content: space-between;
-	padding: 0 var(--hw-space-1) var(--hw-space-1);
+	padding: var(--hw-space-2);
+	border: var(--hw-border-width) solid transparent;
+	border-radius: calc(var(--hw-unit) * 1);
+	background: transparent;
+	text-align: left;
+	cursor: pointer;
 }
 
 .panel-command-heading span {
@@ -469,10 +475,26 @@ textarea {
 	font-weight: 700;
 }
 
-.panel-command-heading p {
-	margin: 0;
+.panel-command-heading svg {
 	color: var(--hw-ink-muted);
-	font-size: var(--hw-font-size-sm);
+	transition: transform 120ms ease;
+}
+
+.panel-command-heading svg.is-expanded {
+	transform: rotate(180deg);
+}
+
+.panel-command-heading:hover,
+.panel-command-heading[aria-expanded="true"] {
+	border-color: var(--hw-panel-border);
+	background: color-mix(in srgb, var(--hw-field) 72%, transparent);
+}
+
+.panel-command-candidates {
+	display: flex;
+	flex-direction: column;
+	gap: var(--hw-space-1);
+	padding: 0 0 var(--hw-space-2) var(--hw-space-4);
 }
 
 .panel-command-item {
@@ -492,8 +514,7 @@ textarea {
 	background: color-mix(in srgb, var(--hw-field) 72%, transparent);
 }
 
-.panel-command-title,
-.panel-command-item code {
+.panel-command-title {
 	display: block;
 	min-width: 0;
 	overflow: hidden;
@@ -506,13 +527,6 @@ textarea {
 	font-size: var(--hw-font-size-sm);
 	line-height: 1.35;
 	font-weight: 600;
-}
-
-.panel-command-item code {
-	margin-top: calc(var(--hw-unit) * 0.5);
-	color: var(--hw-ink-muted);
-	font-family: var(--hw-font-family-mono, ui-monospace, monospace);
-	font-size: var(--hw-font-size-xs, 0.72rem);
 }
 
 .panel-events {

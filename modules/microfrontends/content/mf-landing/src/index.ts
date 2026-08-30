@@ -1,6 +1,5 @@
 export const ID = "landing-mf";
 
-import { BasePlugin } from "front-core";
-import ACTIONS from "./functions";
+import definition from "./objects";
 
-export default new BasePlugin(ID, ACTIONS);
+export default definition;

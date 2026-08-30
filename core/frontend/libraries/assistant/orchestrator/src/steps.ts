@@ -273,7 +273,17 @@ export function createFunctionSteps({
 	};
 
 	function cap(fact: unknown): unknown {
-		const size = JSON.stringify(fact ?? null)?.length ?? 0;
+		let size: number;
+		try {
+			size = JSON.stringify(fact ?? null)?.length ?? 0;
+		} catch {
+			// A function may hand back something that is not JSON — a live object,
+			// a component, an effector unit, anything holding a cycle. The call
+			// still happened, so what goes into the transcript is that it did.
+			// Reporting this as a failed call makes the model apologise for work
+			// that succeeded.
+			return { ok: true, note: "Result is not serializable and was omitted" };
+		}
 		if (size <= factLimitBytes) return fact;
 		return {
 			ok: false,

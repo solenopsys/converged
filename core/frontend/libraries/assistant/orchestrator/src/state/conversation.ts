@@ -69,6 +69,8 @@ export type Conversation = {
 	plan(text: string): Promise<OrchestratorPlan>;
 };
 
+const TOOL_NAME = /^[a-zA-Z0-9_-]+$/;
+
 const id = (): string => crypto.randomUUID();
 
 const errorOf = (value: unknown): string | undefined => {
@@ -119,9 +121,21 @@ export function createConversation({
 	const toolRegistered = domain.createEvent<ExecutableTool>("TOOL_REGISTERED");
 	const failed = domain.createEvent<string>("TURN_FAILED");
 
+	// Providers reject a tool whose name is not `^[a-zA-Z0-9_-]+$` and fail the
+	// whole turn, not just that tool: a dotted catalog-style id registered here
+	// silently kills the chat. Catalog ids stay dotted, but they travel as an
+	// argument of `invokeFunction`, never as a tool name.
 	const $tools = domain
 		.createStore<Map<string, ExecutableTool>>(new Map(), { name: "TOOLS" })
-		.on(toolRegistered, (tools, tool) => new Map(tools).set(tool.name, tool));
+		.on(toolRegistered, (tools, tool) => {
+			if (!TOOL_NAME.test(tool.name)) {
+				console.error(
+					`[conversation] tool name ${JSON.stringify(tool.name)} is not accepted by the model providers (expected ${TOOL_NAME}); it is not registered`,
+				);
+				return tools;
+			}
+			return new Map(tools).set(tool.name, tool);
+		});
 
 	const answerStream = `model:${model ?? "answer"}`;
 	let systemSent = false;

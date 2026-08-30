@@ -89,11 +89,11 @@ export function landingBlocksStyles(): string[] {
 	const stylesDir = join(blocksDir, "styles");
 	const componentStyles = existsSync(stylesDir)
 		? Array.from(
-			new Bun.Glob("**/*.css").scanSync({
-				cwd: stylesDir,
-				absolute: true,
-			}),
-		).sort()
+				new Bun.Glob("**/*.css").scanSync({
+					cwd: stylesDir,
+					absolute: true,
+				}),
+			).sort()
 		: [];
 	const legacy = join(blocksDir, "blocks.css");
 	return componentStyles.length > 0
@@ -187,11 +187,8 @@ export const pwaEnabled =
 	isProduction || process.env.PWA_DEV === "1" || process.env.PWA_DEV === "true";
 
 /**
- * Microfrontends that have moved to the `front-core` contract (no
- * `Widget.placement`, with a `SCREENS` declaration). The list grows in
- * migration waves — see refactoring/PLAN.md §5; the delivery's full list
- * lives in `config.json`, and while it's wider than what's migrated, this
- * list or `MICROFRONTENDS` decides the delivery.
+ * Microfrontends included in the delivery. Every module exposes a typed object
+ * definition; this list only selects which definitions are bundled.
  */
 export const microfrontends =
 	// Set-but-empty is not the same as unset, and the difference is what an image
