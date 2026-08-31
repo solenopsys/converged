@@ -8,6 +8,18 @@ import { createSsrNrpcClientConfig } from "./nrpc";
 const TTL_MS = 10 * 60_000;
 const cache = new Map<string, { counters: Counter[]; exp: number }>();
 
+function hasMicroservice(name: string): boolean {
+	const raw = process.env.MICROSERVICES?.trim();
+	if (!raw) return false;
+
+	try {
+		const microservices = JSON.parse(raw);
+		return Array.isArray(microservices) && microservices.includes(name);
+	} catch {
+		throw new Error("MICROSERVICES must be a JSON array");
+	}
+}
+
 // Single GA id wired through the deployment env (club sets it in confs/*.env and
 // the ui secret). Merged with ms-counters so an env-only tenant still gets GA.
 function envCounter(): Counter[] {
@@ -29,6 +41,8 @@ export async function resolveCounters(workspace?: string): Promise<Counter[]> {
 	if (hit && hit.exp > Date.now()) return hit.counters;
 
 	const fallback = envCounter();
+	if (!hasMicroservice("counters")) return fallback;
+
 	let counters: Counter[];
 	try {
 		const client = createCountersServiceClient(

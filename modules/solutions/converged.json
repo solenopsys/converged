@@ -1,6 +1,6 @@
 {
 	"metadata": { "name": "converged" },
-	"solutions": ["security", "content", "ai", "requests"],
+	"solutions": ["security", "content", "ai","requests"],
 	"containers": [
 		"ui",
 		"ms",

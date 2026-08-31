@@ -3,6 +3,8 @@ export const ID = "auth-mf";
 import { LocaleController } from "front-core";
 import definition from "./objects";
 
+export { objects } from "./objects";
+
 LocaleController.getInstance().setLocales(ID, {
 	en: new URL("../locales/en.json", import.meta.url).toString(),
 	ru: new URL("../locales/ru.json", import.meta.url).toString(),

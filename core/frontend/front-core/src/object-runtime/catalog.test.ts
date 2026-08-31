@@ -10,18 +10,17 @@ import {
 	searchOperatorCatalog,
 } from "./catalog";
 import { objectRegistry } from "./registry";
-import { OPERATORS } from "./types";
+import { Category, OPERATORS } from "./types";
 
 beforeAll(() => {
 	objectRegistry.declare("mf-companies", {
 		id: "mf-companies",
-		categories: [],
 		types: [
 			{
 				id: "companies.company",
 				label: "Company",
 				pluralLabel: "Companies",
-				categories: ["core.business", "core.selectable"],
+				categories: [Category.Business, Category.Selectable],
 			},
 		],
 		views: [

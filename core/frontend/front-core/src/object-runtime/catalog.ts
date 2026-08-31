@@ -1,3 +1,4 @@
+import { authorizeObjectType } from "./authorization";
 import { objectRegistry } from "./registry";
 import { objectResolver } from "./resolver";
 import { executeOperation, presentReference } from "./runtime";
@@ -325,6 +326,12 @@ export async function invokeOperator(
 	}
 	if (!candidate.targetType)
 		throw new Error(`[object-runtime] ${operator} resolved without a type`);
+	const type = objectRegistry.type(candidate.targetType);
+	if (!type)
+		throw new Error(
+			`[object-runtime] Unknown object type: ${candidate.targetType}`,
+		);
+	await authorizeObjectType(type);
 	const selectedObject = references.find(
 		(ref) => ref.kind === "object" && ref.type === candidate.targetType,
 	);

@@ -1,0 +1,8 @@
+# ready | _
+modules:
+  wf-dialogue-summary: _
+  wf-file-analyze: _
+  wf-file-unpack: ready
+  wf-files-process: ready
+  wf-sales-import: _
+  wf-sales-review-outreach: _

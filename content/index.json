@@ -104,11 +104,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microfrontends/ai/mf-agents/docs/modules/index.json",
+          "index": "modules/microfrontends/ai/mf-agents/docs/index.json",
           "articles": [
             {
               "slug": "mf-agents",
-              "file": "modules/microfrontends/ai/mf-agents/docs/modules/mf-agents.md"
+              "file": "modules/microfrontends/ai/mf-agents/docs/mf-agents.md"
             }
           ]
         }
@@ -120,11 +120,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microfrontends/ai/mf-assistants/docs/modules/index.json",
+          "index": "modules/microfrontends/ai/mf-assistants/docs/index.json",
           "articles": [
             {
               "slug": "mf-assistants",
-              "file": "modules/microfrontends/ai/mf-assistants/docs/modules/mf-assistants.md"
+              "file": "modules/microfrontends/ai/mf-assistants/docs/mf-assistants.md"
             }
           ]
         }
@@ -136,11 +136,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microfrontends/sequrity/mf-auth/docs/modules/index.json",
+          "index": "modules/microfrontends/sequrity/mf-auth/docs/index.json",
           "articles": [
             {
               "slug": "mf-auth",
-              "file": "modules/microfrontends/sequrity/mf-auth/docs/modules/mf-auth.md"
+              "file": "modules/microfrontends/sequrity/mf-auth/docs/mf-auth.md"
             }
           ]
         }
@@ -152,11 +152,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microfrontends/communications/mf-calls/docs/modules/index.json",
+          "index": "modules/microfrontends/communications/mf-calls/docs/index.json",
           "articles": [
             {
               "slug": "mf-calls",
-              "file": "modules/microfrontends/communications/mf-calls/docs/modules/mf-calls.md"
+              "file": "modules/microfrontends/communications/mf-calls/docs/mf-calls.md"
             }
           ]
         }
@@ -168,11 +168,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microfrontends/communications/mf-chats/docs/modules/index.json",
+          "index": "modules/microfrontends/communications/mf-chats/docs/index.json",
           "articles": [
             {
               "slug": "mf-chats",
-              "file": "modules/microfrontends/communications/mf-chats/docs/modules/mf-chats.md"
+              "file": "modules/microfrontends/communications/mf-chats/docs/mf-chats.md"
             }
           ]
         }
@@ -184,11 +184,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microfrontends/content/mf-classifier/docs/modules/index.json",
+          "index": "modules/microfrontends/content/mf-classifier/docs/index.json",
           "articles": [
             {
               "slug": "mf-classifier",
-              "file": "modules/microfrontends/content/mf-classifier/docs/modules/mf-classifier.md"
+              "file": "modules/microfrontends/content/mf-classifier/docs/mf-classifier.md"
             }
           ]
         }
@@ -200,11 +200,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microfrontends/communications/mf-community/docs/modules/index.json",
+          "index": "modules/microfrontends/communications/mf-community/docs/index.json",
           "articles": [
             {
               "slug": "mf-community",
-              "file": "modules/microfrontends/communications/mf-community/docs/modules/mf-community.md"
+              "file": "modules/microfrontends/communications/mf-community/docs/mf-community.md"
             }
           ]
         }
@@ -216,11 +216,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microfrontends/ai/mf-contexts/docs/modules/index.json",
+          "index": "modules/microfrontends/ai/mf-contexts/docs/index.json",
           "articles": [
             {
               "slug": "mf-contexts",
-              "file": "modules/microfrontends/ai/mf-contexts/docs/modules/mf-contexts.md"
+              "file": "modules/microfrontends/ai/mf-contexts/docs/mf-contexts.md"
             }
           ]
         }
@@ -232,11 +232,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microfrontends/automation/mf-dag/docs/modules/index.json",
+          "index": "modules/microfrontends/automation/mf-dag/docs/index.json",
           "articles": [
             {
               "slug": "mf-dag",
-              "file": "modules/microfrontends/automation/mf-dag/docs/modules/mf-dag.md"
+              "file": "modules/microfrontends/automation/mf-dag/docs/mf-dag.md"
             }
           ]
         }
@@ -248,11 +248,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microfrontends/analytics/mf-dasboards/docs/modules/index.json",
+          "index": "modules/microfrontends/analytics/mf-dasboards/docs/index.json",
           "articles": [
             {
               "slug": "mf-dasboards",
-              "file": "modules/microfrontends/analytics/mf-dasboards/docs/modules/mf-dasboards.md"
+              "file": "modules/microfrontends/analytics/mf-dasboards/docs/mf-dasboards.md"
             }
           ]
         }
@@ -264,11 +264,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microfrontends/content/mf-docs/docs/modules/index.json",
+          "index": "modules/microfrontends/content/mf-docs/docs/index.json",
           "articles": [
             {
               "slug": "mf-docs",
-              "file": "modules/microfrontends/content/mf-docs/docs/modules/mf-docs.md"
+              "file": "modules/microfrontends/content/mf-docs/docs/mf-docs.md"
             }
           ]
         }
@@ -280,11 +280,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microfrontends/data/mf-dumps/docs/modules/index.json",
+          "index": "modules/microfrontends/data/mf-dumps/docs/index.json",
           "articles": [
             {
               "slug": "mf-dumps",
-              "file": "modules/microfrontends/data/mf-dumps/docs/modules/mf-dumps.md"
+              "file": "modules/microfrontends/data/mf-dumps/docs/mf-dumps.md"
             }
           ]
         }
@@ -296,11 +296,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microfrontends/ai/mf-functions/docs/modules/index.json",
+          "index": "modules/microfrontends/ai/mf-functions/docs/index.json",
           "articles": [
             {
               "slug": "mf-functions",
-              "file": "modules/microfrontends/ai/mf-functions/docs/modules/mf-functions.md"
+              "file": "modules/microfrontends/ai/mf-functions/docs/mf-functions.md"
             }
           ]
         }
@@ -312,11 +312,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microfrontends/content/mf-galery/docs/modules/index.json",
+          "index": "modules/microfrontends/content/mf-galery/docs/index.json",
           "articles": [
             {
               "slug": "mf-galery",
-              "file": "modules/microfrontends/content/mf-galery/docs/modules/mf-galery.md"
+              "file": "modules/microfrontends/content/mf-galery/docs/mf-galery.md"
             }
           ]
         }
@@ -328,11 +328,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microfrontends/content/mf-landing/docs/modules/index.json",
+          "index": "modules/microfrontends/content/mf-landing/docs/index.json",
           "articles": [
             {
               "slug": "mf-landing",
-              "file": "modules/microfrontends/content/mf-landing/docs/modules/mf-landing.md"
+              "file": "modules/microfrontends/content/mf-landing/docs/mf-landing.md"
             }
           ]
         }
@@ -344,11 +344,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microfrontends/analytics/mf-logs/docs/modules/index.json",
+          "index": "modules/microfrontends/analytics/mf-logs/docs/index.json",
           "articles": [
             {
               "slug": "mf-logs",
-              "file": "modules/microfrontends/analytics/mf-logs/docs/modules/mf-logs.md"
+              "file": "modules/microfrontends/analytics/mf-logs/docs/mf-logs.md"
             }
           ]
         }
@@ -360,11 +360,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microfrontends/content/mf-markdown/docs/modules/index.json",
+          "index": "modules/microfrontends/content/mf-markdown/docs/index.json",
           "articles": [
             {
               "slug": "mf-markdown",
-              "file": "modules/microfrontends/content/mf-markdown/docs/modules/mf-markdown.md"
+              "file": "modules/microfrontends/content/mf-markdown/docs/mf-markdown.md"
             }
           ]
         }
@@ -376,11 +376,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microfrontends/business/mf-orders/docs/modules/index.json",
+          "index": "modules/microfrontends/business/mf-orders/docs/index.json",
           "articles": [
             {
               "slug": "mf-orders",
-              "file": "modules/microfrontends/business/mf-orders/docs/modules/mf-orders.md"
+              "file": "modules/microfrontends/business/mf-orders/docs/mf-orders.md"
             }
           ]
         }
@@ -392,11 +392,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microfrontends/business/mf-requests/docs/modules/index.json",
+          "index": "modules/microfrontends/business/mf-requests/docs/index.json",
           "articles": [
             {
               "slug": "mf-requests",
-              "file": "modules/microfrontends/business/mf-requests/docs/modules/mf-requests.md"
+              "file": "modules/microfrontends/business/mf-requests/docs/mf-requests.md"
             }
           ]
         }
@@ -408,11 +408,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microfrontends/content/mf-scripts/docs/modules/index.json",
+          "index": "modules/microfrontends/content/mf-scripts/docs/index.json",
           "articles": [
             {
               "slug": "mf-scripts",
-              "file": "modules/microfrontends/content/mf-scripts/docs/modules/mf-scripts.md"
+              "file": "modules/microfrontends/content/mf-scripts/docs/mf-scripts.md"
             }
           ]
         }
@@ -424,11 +424,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microfrontends/sequrity/mf-secrets/docs/modules/index.json",
+          "index": "modules/microfrontends/sequrity/mf-secrets/docs/index.json",
           "articles": [
             {
               "slug": "mf-secrets",
-              "file": "modules/microfrontends/sequrity/mf-secrets/docs/modules/mf-secrets.md"
+              "file": "modules/microfrontends/sequrity/mf-secrets/docs/mf-secrets.md"
             }
           ]
         }
@@ -440,11 +440,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microfrontends/automation/mf-sheduller/docs/modules/index.json",
+          "index": "modules/microfrontends/automation/mf-sheduller/docs/index.json",
           "articles": [
             {
               "slug": "mf-sheduller",
-              "file": "modules/microfrontends/automation/mf-sheduller/docs/modules/mf-sheduller.md"
+              "file": "modules/microfrontends/automation/mf-sheduller/docs/mf-sheduller.md"
             }
           ]
         }
@@ -456,11 +456,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microfrontends/content/mf-static/docs/modules/index.json",
+          "index": "modules/microfrontends/content/mf-static/docs/index.json",
           "articles": [
             {
               "slug": "mf-static",
-              "file": "modules/microfrontends/content/mf-static/docs/modules/mf-static.md"
+              "file": "modules/microfrontends/content/mf-static/docs/mf-static.md"
             }
           ]
         }
@@ -472,11 +472,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microfrontends/content/mf-struct/docs/modules/index.json",
+          "index": "modules/microfrontends/content/mf-struct/docs/index.json",
           "articles": [
             {
               "slug": "mf-struct",
-              "file": "modules/microfrontends/content/mf-struct/docs/modules/mf-struct.md"
+              "file": "modules/microfrontends/content/mf-struct/docs/mf-struct.md"
             }
           ]
         }
@@ -488,11 +488,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microfrontends/analytics/mf-telemetry/docs/modules/index.json",
+          "index": "modules/microfrontends/analytics/mf-telemetry/docs/index.json",
           "articles": [
             {
               "slug": "mf-telemetry",
-              "file": "modules/microfrontends/analytics/mf-telemetry/docs/modules/mf-telemetry.md"
+              "file": "modules/microfrontends/analytics/mf-telemetry/docs/mf-telemetry.md"
             }
           ]
         }
@@ -504,11 +504,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microfrontends/communications/mf-threads/docs/modules/index.json",
+          "index": "modules/microfrontends/communications/mf-threads/docs/index.json",
           "articles": [
             {
               "slug": "mf-threads",
-              "file": "modules/microfrontends/communications/mf-threads/docs/modules/mf-threads.md"
+              "file": "modules/microfrontends/communications/mf-threads/docs/mf-threads.md"
             }
           ]
         }
@@ -520,11 +520,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microfrontends/analytics/mf-usage/docs/modules/index.json",
+          "index": "modules/microfrontends/analytics/mf-usage/docs/index.json",
           "articles": [
             {
               "slug": "mf-usage",
-              "file": "modules/microfrontends/analytics/mf-usage/docs/modules/mf-usage.md"
+              "file": "modules/microfrontends/analytics/mf-usage/docs/mf-usage.md"
             }
           ]
         }
@@ -536,11 +536,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microfrontends/automation/mf-webhooks/docs/modules/index.json",
+          "index": "modules/microfrontends/automation/mf-webhooks/docs/index.json",
           "articles": [
             {
               "slug": "mf-webhooks",
-              "file": "modules/microfrontends/automation/mf-webhooks/docs/modules/mf-webhooks.md"
+              "file": "modules/microfrontends/automation/mf-webhooks/docs/mf-webhooks.md"
             }
           ]
         }
@@ -552,11 +552,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/sequrity/ms-access/docs/modules/index.json",
+          "index": "modules/microservices/sequrity/ms-access/docs/index.json",
           "articles": [
             {
               "slug": "ms-access",
-              "file": "modules/microservices/sequrity/ms-access/docs/modules/ms-access.md"
+              "file": "modules/microservices/sequrity/ms-access/docs/ms-access.md"
             }
           ]
         }
@@ -568,11 +568,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/ai/ms-agent/docs/modules/index.json",
+          "index": "modules/microservices/ai/ms-agent/docs/index.json",
           "articles": [
             {
               "slug": "ms-agent",
-              "file": "modules/microservices/ai/ms-agent/docs/modules/ms-agent.md"
+              "file": "modules/microservices/ai/ms-agent/docs/ms-agent.md"
             }
           ]
         }
@@ -584,11 +584,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/ai/ms-assistant/docs/modules/index.json",
+          "index": "modules/microservices/ai/ms-assistant/docs/index.json",
           "articles": [
             {
               "slug": "ms-assistant",
-              "file": "modules/microservices/ai/ms-assistant/docs/modules/ms-assistant.md"
+              "file": "modules/microservices/ai/ms-assistant/docs/ms-assistant.md"
             }
           ]
         }
@@ -600,11 +600,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/sequrity/ms-auth/docs/modules/index.json",
+          "index": "modules/microservices/sequrity/ms-auth/docs/index.json",
           "articles": [
             {
               "slug": "ms-auth",
-              "file": "modules/microservices/sequrity/ms-auth/docs/modules/ms-auth.md"
+              "file": "modules/microservices/sequrity/ms-auth/docs/ms-auth.md"
             }
           ]
         }
@@ -616,11 +616,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/business/ms-billing/docs/modules/index.json",
+          "index": "modules/microservices/business/ms-billing/docs/index.json",
           "articles": [
             {
               "slug": "ms-billing",
-              "file": "modules/microservices/business/ms-billing/docs/modules/ms-billing.md"
+              "file": "modules/microservices/business/ms-billing/docs/ms-billing.md"
             }
           ]
         }
@@ -632,11 +632,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/communications/ms-calls/docs/modules/index.json",
+          "index": "modules/microservices/communications/ms-calls/docs/index.json",
           "articles": [
             {
               "slug": "ms-calls",
-              "file": "modules/microservices/communications/ms-calls/docs/modules/ms-calls.md"
+              "file": "modules/microservices/communications/ms-calls/docs/ms-calls.md"
             }
           ]
         }
@@ -648,11 +648,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/communications/ms-chats/docs/modules/index.json",
+          "index": "modules/microservices/communications/ms-chats/docs/index.json",
           "articles": [
             {
               "slug": "ms-chats",
-              "file": "modules/microservices/communications/ms-chats/docs/modules/ms-chats.md"
+              "file": "modules/microservices/communications/ms-chats/docs/ms-chats.md"
             }
           ]
         }
@@ -664,11 +664,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/content/ms-classifier/docs/modules/index.json",
+          "index": "modules/microservices/content/ms-classifier/docs/index.json",
           "articles": [
             {
               "slug": "ms-classifier",
-              "file": "modules/microservices/content/ms-classifier/docs/modules/ms-classifier.md"
+              "file": "modules/microservices/content/ms-classifier/docs/ms-classifier.md"
             }
           ]
         }
@@ -680,11 +680,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/communications/ms-community/docs/modules/index.json",
+          "index": "modules/microservices/communications/ms-community/docs/index.json",
           "articles": [
             {
               "slug": "ms-community",
-              "file": "modules/microservices/communications/ms-community/docs/modules/ms-community.md"
+              "file": "modules/microservices/communications/ms-community/docs/ms-community.md"
             }
           ]
         }
@@ -696,11 +696,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/data/ms-compressors/docs/modules/index.json",
+          "index": "modules/microservices/data/ms-compressors/docs/index.json",
           "articles": [
             {
               "slug": "ms-compressors",
-              "file": "modules/microservices/data/ms-compressors/docs/modules/ms-compressors.md"
+              "file": "modules/microservices/data/ms-compressors/docs/ms-compressors.md"
             }
           ]
         }
@@ -712,11 +712,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/ai/ms-contexts/docs/modules/index.json",
+          "index": "modules/microservices/ai/ms-contexts/docs/index.json",
           "articles": [
             {
               "slug": "ms-contexts",
-              "file": "modules/microservices/ai/ms-contexts/docs/modules/ms-contexts.md"
+              "file": "modules/microservices/ai/ms-contexts/docs/ms-contexts.md"
             }
           ]
         }
@@ -728,11 +728,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/analytics/ms-counters/docs/modules/index.json",
+          "index": "modules/microservices/analytics/ms-counters/docs/index.json",
           "articles": [
             {
               "slug": "ms-counters",
-              "file": "modules/microservices/analytics/ms-counters/docs/modules/ms-counters.md"
+              "file": "modules/microservices/analytics/ms-counters/docs/ms-counters.md"
             }
           ]
         }
@@ -744,11 +744,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/automation/ms-dag/docs/modules/index.json",
+          "index": "modules/microservices/automation/ms-dag/docs/index.json",
           "articles": [
             {
               "slug": "ms-dag",
-              "file": "modules/microservices/automation/ms-dag/docs/modules/ms-dag.md"
+              "file": "modules/microservices/automation/ms-dag/docs/ms-dag.md"
             }
           ]
         }
@@ -760,11 +760,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/analytics/ms-dashboard/docs/modules/index.json",
+          "index": "modules/microservices/analytics/ms-dashboard/docs/index.json",
           "articles": [
             {
               "slug": "ms-dashboard",
-              "file": "modules/microservices/analytics/ms-dashboard/docs/modules/ms-dashboard.md"
+              "file": "modules/microservices/analytics/ms-dashboard/docs/ms-dashboard.md"
             }
           ]
         }
@@ -776,11 +776,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/data/ms-dumps/docs/modules/index.json",
+          "index": "modules/microservices/data/ms-dumps/docs/index.json",
           "articles": [
             {
               "slug": "ms-dumps",
-              "file": "modules/microservices/data/ms-dumps/docs/modules/ms-dumps.md"
+              "file": "modules/microservices/data/ms-dumps/docs/ms-dumps.md"
             }
           ]
         }
@@ -792,11 +792,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/sequrity/ms-environment/docs/modules/index.json",
+          "index": "modules/microservices/sequrity/ms-environment/docs/index.json",
           "articles": [
             {
               "slug": "ms-environment",
-              "file": "modules/microservices/sequrity/ms-environment/docs/modules/ms-environment.md"
+              "file": "modules/microservices/sequrity/ms-environment/docs/ms-environment.md"
             }
           ]
         }
@@ -808,11 +808,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/business/ms-equipment/docs/modules/index.json",
+          "index": "modules/microservices/business/ms-equipment/docs/index.json",
           "articles": [
             {
               "slug": "ms-equipment",
-              "file": "modules/microservices/business/ms-equipment/docs/modules/ms-equipment.md"
+              "file": "modules/microservices/business/ms-equipment/docs/ms-equipment.md"
             }
           ]
         }
@@ -824,11 +824,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/business/ms-events/docs/modules/index.json",
+          "index": "modules/microservices/business/ms-events/docs/index.json",
           "articles": [
             {
               "slug": "ms-events",
-              "file": "modules/microservices/business/ms-events/docs/modules/ms-events.md"
+              "file": "modules/microservices/business/ms-events/docs/ms-events.md"
             }
           ]
         }
@@ -840,11 +840,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/data/ms-files/docs/modules/index.json",
+          "index": "modules/microservices/data/ms-files/docs/index.json",
           "articles": [
             {
               "slug": "ms-files",
-              "file": "modules/microservices/data/ms-files/docs/modules/ms-files.md"
+              "file": "modules/microservices/data/ms-files/docs/ms-files.md"
             }
           ]
         }
@@ -856,11 +856,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/business/ms-finance/docs/modules/index.json",
+          "index": "modules/microservices/business/ms-finance/docs/index.json",
           "articles": [
             {
               "slug": "ms-finance",
-              "file": "modules/microservices/business/ms-finance/docs/modules/ms-finance.md"
+              "file": "modules/microservices/business/ms-finance/docs/ms-finance.md"
             }
           ]
         }
@@ -872,11 +872,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/ai/ms-functions/docs/modules/index.json",
+          "index": "modules/microservices/ai/ms-functions/docs/index.json",
           "articles": [
             {
               "slug": "ms-functions",
-              "file": "modules/microservices/ai/ms-functions/docs/modules/ms-functions.md"
+              "file": "modules/microservices/ai/ms-functions/docs/ms-functions.md"
             }
           ]
         }
@@ -888,11 +888,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/content/ms-galery/docs/modules/index.json",
+          "index": "modules/microservices/content/ms-galery/docs/index.json",
           "articles": [
             {
               "slug": "ms-galery",
-              "file": "modules/microservices/content/ms-galery/docs/modules/ms-galery.md"
+              "file": "modules/microservices/content/ms-galery/docs/ms-galery.md"
             }
           ]
         }
@@ -904,11 +904,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/sequrity/ms-identity/docs/modules/index.json",
+          "index": "modules/microservices/sequrity/ms-identity/docs/index.json",
           "articles": [
             {
               "slug": "ms-identity",
-              "file": "modules/microservices/sequrity/ms-identity/docs/modules/ms-identity.md"
+              "file": "modules/microservices/sequrity/ms-identity/docs/ms-identity.md"
             }
           ]
         }
@@ -920,11 +920,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/automation/ms-kubernetes/docs/modules/index.json",
+          "index": "modules/microservices/automation/ms-kubernetes/docs/index.json",
           "articles": [
             {
               "slug": "ms-kubernetes",
-              "file": "modules/microservices/automation/ms-kubernetes/docs/modules/ms-kubernetes.md"
+              "file": "modules/microservices/automation/ms-kubernetes/docs/ms-kubernetes.md"
             }
           ]
         }
@@ -936,11 +936,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/analytics/ms-logs/docs/modules/index.json",
+          "index": "modules/microservices/analytics/ms-logs/docs/index.json",
           "articles": [
             {
               "slug": "ms-logs",
-              "file": "modules/microservices/analytics/ms-logs/docs/modules/ms-logs.md"
+              "file": "modules/microservices/analytics/ms-logs/docs/ms-logs.md"
             }
           ]
         }
@@ -952,11 +952,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/content/ms-markdown/docs/modules/index.json",
+          "index": "modules/microservices/content/ms-markdown/docs/index.json",
           "articles": [
             {
               "slug": "ms-markdown",
-              "file": "modules/microservices/content/ms-markdown/docs/modules/ms-markdown.md"
+              "file": "modules/microservices/content/ms-markdown/docs/ms-markdown.md"
             }
           ]
         }
@@ -968,11 +968,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/convertors/ms-modelconvertor/docs/modules/index.json",
+          "index": "modules/microservices/convertors/ms-modelconvertor/docs/index.json",
           "articles": [
             {
               "slug": "ms-modelconvertor",
-              "file": "modules/microservices/convertors/ms-modelconvertor/docs/modules/ms-modelconvertor.md"
+              "file": "modules/microservices/convertors/ms-modelconvertor/docs/ms-modelconvertor.md"
             }
           ]
         }
@@ -984,11 +984,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/communications/ms-notify/docs/modules/index.json",
+          "index": "modules/microservices/communications/ms-notify/docs/index.json",
           "articles": [
             {
               "slug": "ms-notify",
-              "file": "modules/microservices/communications/ms-notify/docs/modules/ms-notify.md"
+              "file": "modules/microservices/communications/ms-notify/docs/ms-notify.md"
             }
           ]
         }
@@ -1000,11 +1000,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/sequrity/ms-oauth/docs/modules/index.json",
+          "index": "modules/microservices/sequrity/ms-oauth/docs/index.json",
           "articles": [
             {
               "slug": "ms-oauth",
-              "file": "modules/microservices/sequrity/ms-oauth/docs/modules/ms-oauth.md"
+              "file": "modules/microservices/sequrity/ms-oauth/docs/ms-oauth.md"
             }
           ]
         }
@@ -1016,11 +1016,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/business/ms-orders/docs/modules/index.json",
+          "index": "modules/microservices/business/ms-orders/docs/index.json",
           "articles": [
             {
               "slug": "ms-orders",
-              "file": "modules/microservices/business/ms-orders/docs/modules/ms-orders.md"
+              "file": "modules/microservices/business/ms-orders/docs/ms-orders.md"
             }
           ]
         }
@@ -1032,11 +1032,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/providers/ms-push/docs/modules/index.json",
+          "index": "modules/microservices/providers/ms-push/docs/index.json",
           "articles": [
             {
               "slug": "ms-push",
-              "file": "modules/microservices/providers/ms-push/docs/modules/ms-push.md"
+              "file": "modules/microservices/providers/ms-push/docs/ms-push.md"
             }
           ]
         }
@@ -1048,11 +1048,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/business/ms-requests/docs/modules/index.json",
+          "index": "modules/microservices/business/ms-requests/docs/index.json",
           "articles": [
             {
               "slug": "ms-requests",
-              "file": "modules/microservices/business/ms-requests/docs/modules/ms-requests.md"
+              "file": "modules/microservices/business/ms-requests/docs/ms-requests.md"
             }
           ]
         }
@@ -1064,11 +1064,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/communications/ms-resonus/docs/modules/index.json",
+          "index": "modules/microservices/communications/ms-resonus/docs/index.json",
           "articles": [
             {
               "slug": "ms-resonus",
-              "file": "modules/microservices/communications/ms-resonus/docs/modules/ms-resonus.md"
+              "file": "modules/microservices/communications/ms-resonus/docs/ms-resonus.md"
             }
           ]
         }
@@ -1080,11 +1080,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/business/ms-reviews/docs/modules/index.json",
+          "index": "modules/microservices/business/ms-reviews/docs/index.json",
           "articles": [
             {
               "slug": "ms-reviews",
-              "file": "modules/microservices/business/ms-reviews/docs/modules/ms-reviews.md"
+              "file": "modules/microservices/business/ms-reviews/docs/ms-reviews.md"
             }
           ]
         }
@@ -1096,11 +1096,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/business/ms-sales/docs/modules/index.json",
+          "index": "modules/microservices/business/ms-sales/docs/index.json",
           "articles": [
             {
               "slug": "ms-sales",
-              "file": "modules/microservices/business/ms-sales/docs/modules/ms-sales.md"
+              "file": "modules/microservices/business/ms-sales/docs/ms-sales.md"
             }
           ]
         }
@@ -1112,11 +1112,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/content/ms-scripts/docs/modules/index.json",
+          "index": "modules/microservices/content/ms-scripts/docs/index.json",
           "articles": [
             {
               "slug": "ms-scripts",
-              "file": "modules/microservices/content/ms-scripts/docs/modules/ms-scripts.md"
+              "file": "modules/microservices/content/ms-scripts/docs/ms-scripts.md"
             }
           ]
         }
@@ -1128,11 +1128,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/sequrity/ms-secrets/docs/modules/index.json",
+          "index": "modules/microservices/sequrity/ms-secrets/docs/index.json",
           "articles": [
             {
               "slug": "ms-secrets",
-              "file": "modules/microservices/sequrity/ms-secrets/docs/modules/ms-secrets.md"
+              "file": "modules/microservices/sequrity/ms-secrets/docs/ms-secrets.md"
             }
           ]
         }
@@ -1144,11 +1144,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/providers/ms-ses/docs/modules/index.json",
+          "index": "modules/microservices/providers/ms-ses/docs/index.json",
           "articles": [
             {
               "slug": "ms-ses",
-              "file": "modules/microservices/providers/ms-ses/docs/modules/ms-ses.md"
+              "file": "modules/microservices/providers/ms-ses/docs/ms-ses.md"
             }
           ]
         }
@@ -1160,11 +1160,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/automation/ms-sheduller/docs/modules/index.json",
+          "index": "modules/microservices/automation/ms-sheduller/docs/index.json",
           "articles": [
             {
               "slug": "ms-sheduller",
-              "file": "modules/microservices/automation/ms-sheduller/docs/modules/ms-sheduller.md"
+              "file": "modules/microservices/automation/ms-sheduller/docs/ms-sheduller.md"
             }
           ]
         }
@@ -1176,11 +1176,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/providers/ms-sms/docs/modules/index.json",
+          "index": "modules/microservices/providers/ms-sms/docs/index.json",
           "articles": [
             {
               "slug": "ms-sms",
-              "file": "modules/microservices/providers/ms-sms/docs/modules/ms-sms.md"
+              "file": "modules/microservices/providers/ms-sms/docs/ms-sms.md"
             }
           ]
         }
@@ -1192,11 +1192,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/providers/ms-smtp/docs/modules/index.json",
+          "index": "modules/microservices/providers/ms-smtp/docs/index.json",
           "articles": [
             {
               "slug": "ms-smtp",
-              "file": "modules/microservices/providers/ms-smtp/docs/modules/ms-smtp.md"
+              "file": "modules/microservices/providers/ms-smtp/docs/ms-smtp.md"
             }
           ]
         }
@@ -1208,11 +1208,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/business/ms-staff/docs/modules/index.json",
+          "index": "modules/microservices/business/ms-staff/docs/index.json",
           "articles": [
             {
               "slug": "ms-staff",
-              "file": "modules/microservices/business/ms-staff/docs/modules/ms-staff.md"
+              "file": "modules/microservices/business/ms-staff/docs/ms-staff.md"
             }
           ]
         }
@@ -1224,11 +1224,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/content/ms-static/docs/modules/index.json",
+          "index": "modules/microservices/content/ms-static/docs/index.json",
           "articles": [
             {
               "slug": "ms-static",
-              "file": "modules/microservices/content/ms-static/docs/modules/ms-static.md"
+              "file": "modules/microservices/content/ms-static/docs/ms-static.md"
             }
           ]
         }
@@ -1240,11 +1240,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/data/ms-store/docs/modules/index.json",
+          "index": "modules/microservices/data/ms-store/docs/index.json",
           "articles": [
             {
               "slug": "ms-store",
-              "file": "modules/microservices/data/ms-store/docs/modules/ms-store.md"
+              "file": "modules/microservices/data/ms-store/docs/ms-store.md"
             }
           ]
         }
@@ -1256,11 +1256,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/content/ms-struct/docs/modules/index.json",
+          "index": "modules/microservices/content/ms-struct/docs/index.json",
           "articles": [
             {
               "slug": "ms-struct",
-              "file": "modules/microservices/content/ms-struct/docs/modules/ms-struct.md"
+              "file": "modules/microservices/content/ms-struct/docs/ms-struct.md"
             }
           ]
         }
@@ -1272,11 +1272,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/analytics/ms-telemetry/docs/modules/index.json",
+          "index": "modules/microservices/analytics/ms-telemetry/docs/index.json",
           "articles": [
             {
               "slug": "ms-telemetry",
-              "file": "modules/microservices/analytics/ms-telemetry/docs/modules/ms-telemetry.md"
+              "file": "modules/microservices/analytics/ms-telemetry/docs/ms-telemetry.md"
             }
           ]
         }
@@ -1288,11 +1288,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/communications/ms-threads/docs/modules/index.json",
+          "index": "modules/microservices/communications/ms-threads/docs/index.json",
           "articles": [
             {
               "slug": "ms-threads",
-              "file": "modules/microservices/communications/ms-threads/docs/modules/ms-threads.md"
+              "file": "modules/microservices/communications/ms-threads/docs/ms-threads.md"
             }
           ]
         }
@@ -1304,11 +1304,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/analytics/ms-usage/docs/modules/index.json",
+          "index": "modules/microservices/analytics/ms-usage/docs/index.json",
           "articles": [
             {
               "slug": "ms-usage",
-              "file": "modules/microservices/analytics/ms-usage/docs/modules/ms-usage.md"
+              "file": "modules/microservices/analytics/ms-usage/docs/ms-usage.md"
             }
           ]
         }
@@ -1320,11 +1320,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/microservices/automation/ms-webhooks/docs/modules/index.json",
+          "index": "modules/microservices/automation/ms-webhooks/docs/index.json",
           "articles": [
             {
               "slug": "ms-webhooks",
-              "file": "modules/microservices/automation/ms-webhooks/docs/modules/ms-webhooks.md"
+              "file": "modules/microservices/automation/ms-webhooks/docs/ms-webhooks.md"
             }
           ]
         }
@@ -1336,11 +1336,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/workflows/wf-dialogue-summary/docs/modules/index.json",
+          "index": "modules/workflows/wf-dialogue-summary/docs/index.json",
           "articles": [
             {
               "slug": "wf-dialogue-summary",
-              "file": "modules/workflows/wf-dialogue-summary/docs/modules/wf-dialogue-summary.md"
+              "file": "modules/workflows/wf-dialogue-summary/docs/wf-dialogue-summary.md"
             }
           ]
         }
@@ -1352,11 +1352,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/workflows/wf-file-analyze/docs/modules/index.json",
+          "index": "modules/workflows/wf-file-analyze/docs/index.json",
           "articles": [
             {
               "slug": "wf-file-analyze",
-              "file": "modules/workflows/wf-file-analyze/docs/modules/wf-file-analyze.md"
+              "file": "modules/workflows/wf-file-analyze/docs/wf-file-analyze.md"
             }
           ]
         }
@@ -1368,11 +1368,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/workflows/wf-file-unpack/docs/modules/index.json",
+          "index": "modules/workflows/wf-file-unpack/docs/index.json",
           "articles": [
             {
               "slug": "wf-file-unpack",
-              "file": "modules/workflows/wf-file-unpack/docs/modules/wf-file-unpack.md"
+              "file": "modules/workflows/wf-file-unpack/docs/wf-file-unpack.md"
             }
           ]
         }
@@ -1384,11 +1384,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/workflows/wf-files-process/docs/modules/index.json",
+          "index": "modules/workflows/wf-files-process/docs/index.json",
           "articles": [
             {
               "slug": "wf-files-process",
-              "file": "modules/workflows/wf-files-process/docs/modules/wf-files-process.md"
+              "file": "modules/workflows/wf-files-process/docs/wf-files-process.md"
             }
           ]
         }
@@ -1400,11 +1400,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/workflows/wf-sales-import/docs/modules/index.json",
+          "index": "modules/workflows/wf-sales-import/docs/index.json",
           "articles": [
             {
               "slug": "wf-sales-import",
-              "file": "modules/workflows/wf-sales-import/docs/modules/wf-sales-import.md"
+              "file": "modules/workflows/wf-sales-import/docs/wf-sales-import.md"
             }
           ]
         }
@@ -1416,11 +1416,11 @@
       "sections": [
         {
           "id": "modules",
-          "index": "modules/workflows/wf-sales-review-outreach/docs/modules/index.json",
+          "index": "modules/workflows/wf-sales-review-outreach/docs/index.json",
           "articles": [
             {
               "slug": "wf-sales-review-outreach",
-              "file": "modules/workflows/wf-sales-review-outreach/docs/modules/wf-sales-review-outreach.md"
+              "file": "modules/workflows/wf-sales-review-outreach/docs/wf-sales-review-outreach.md"
             }
           ]
         }

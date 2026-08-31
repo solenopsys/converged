@@ -1,7 +1,9 @@
-import { upsertSidebarTab } from "front-core";
+import { setActionAuthorizationController, upsertSidebarTab } from "front-core";
 import {
+	Category,
 	defineMicrofrontend,
 	executeOperation,
+	type ObjectDefinition,
 	objectOf,
 	objectRef,
 	presentReference,
@@ -11,25 +13,25 @@ import {
 	$isAuthenticated,
 	authController,
 	authenticationRequested,
-	ensureTemporarySessionFx,
 	logoutPressed,
 	temporarySessionRequested,
 } from "./model";
-import { sendMagicLink } from "./service";
 import LoginView from "./views/LoginView";
 
 const loginRef = () => objectRef("auth.session", "login", { title: "Login" });
 
+export const objects = [
+	{
+		id: "auth.session",
+		label: "Session",
+		pluralLabel: "Sessions",
+		categories: [Category.Security],
+	},
+] satisfies readonly ObjectDefinition[];
+
 export default defineMicrofrontend({
 	id: "mf-auth",
-	types: [
-		{
-			id: "auth.session",
-			label: "Session",
-			pluralLabel: "Sessions",
-			categories: ["core.security"],
-		},
-	],
+	types: objects,
 	views: [
 		{
 			id: "auth.session.login",
@@ -55,37 +57,16 @@ export default defineMicrofrontend({
 			label: "Logout",
 			invoke: () => logoutPressed(),
 		},
-		{
-			id: "auth.session.ensure-temporary",
-			operator: "execute",
-			target: "auth.session",
-			label: "Ensure temporary session",
-			access: "public",
-			invoke: () => ensureTemporarySessionFx(),
-		},
-		{
-			id: "auth.magic-link.send",
-			operator: "execute",
-			target: "auth.session",
-			label: "Send magic link",
-			access: "public",
-			parameters: {
-				type: "object",
-				properties: {
-					email: { type: "string", format: "email" },
-					returnTo: { type: "string" },
-				},
-				required: ["email"],
-			},
-			invoke: ({ params }) =>
-				sendMagicLink(
-					String(params.email),
-					params.returnTo as string | undefined,
-				),
-		},
 	],
 	setup: () => {
 		setOperationAuthorizationController({
+			snapshot: () => authController.snapshot(),
+			ensureSession: () => authController.ensureSession(),
+			can: (capability) => authController.can(capability),
+			subscribe: (listener) => authController.subscribe(listener),
+			authenticate: () => presentReference(loginRef()),
+		});
+		setActionAuthorizationController({
 			snapshot: () => authController.snapshot(),
 			ensureSession: () => authController.ensureSession(),
 			can: (capability) => authController.can(capability),
@@ -119,6 +100,7 @@ export default defineMicrofrontend({
 			stopRequest();
 			document?.removeEventListener("click", onDocumentClick);
 			setOperationAuthorizationController(null);
+			setActionAuthorizationController(null);
 		};
 	},
 });

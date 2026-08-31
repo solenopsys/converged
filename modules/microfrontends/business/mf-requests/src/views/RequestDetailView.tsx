@@ -905,7 +905,7 @@ export function ManufacturingRequestPage({
 	model: RequestModel;
 	renderModelPreview?: ModelPreviewRenderer;
 }) {
-	const { t } = useMicrofrontendTranslation("requests-mf");
+	const { t } = useMicrofrontendTranslation("mf-requests");
 	const locale = useUnit($activeLocale);
 	const i18n = useMemo<I18n>(() => ({ t, locale }), [t, locale]);
 	const url = publicRequestUrl(model.id);
@@ -1000,7 +1000,7 @@ export function RequestDetailView({
 	requestId?: string;
 	model?: RequestModel | null;
 }) {
-	const { t } = useMicrofrontendTranslation("requests-mf");
+	const { t } = useMicrofrontendTranslation("mf-requests");
 	const state = useUnit({
 		storeModel: $requestModel,
 		loading: $requestLoading,

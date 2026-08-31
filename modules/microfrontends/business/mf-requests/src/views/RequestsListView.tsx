@@ -16,7 +16,7 @@ import {
 
 export const RequestsListView = () => {
 	const state = useUnit($requestsStore.$state);
-	const { t } = useMicrofrontendTranslation("requests-mf");
+	const { t } = useMicrofrontendTranslation("mf-requests");
 
 	useEffect(() => {
 		requestsListMounted();

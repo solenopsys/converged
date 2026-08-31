@@ -1,4 +1,4 @@
 {
-	"microservices": ["access", "auth", "identity", "oauth","ses"],
+	"microservices": ["access", "auth", "identity", "ses"],
 	"microfrontends": ["auth"]
 }

@@ -1,4 +1,5 @@
 import {
+	authorizeOperation,
 	type DomainRef,
 	executeOperation,
 	invokeOperator,
@@ -28,11 +29,13 @@ export function runCandidate(
 	candidate: ResolutionCandidate,
 	references: DomainRef[] = [],
 ): Promise<unknown> {
-	const view = candidate.operation?.view;
-	if (view && candidate.targetType) {
-		return presentReference(objectRef(candidate.targetType, NEW), {
-			viewId: view,
-		});
+	const operation = candidate.operation;
+	if (operation?.view && candidate.targetType) {
+		return authorizeOperation(operation).then(() =>
+			presentReference(objectRef(candidate.targetType, NEW), {
+				viewId: operation.view,
+			}),
+		);
 	}
 	if (candidate.kind === "operation") {
 		return executeOperation({

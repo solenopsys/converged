@@ -19,6 +19,13 @@ const stubExternals = {
 			contents:
 				args.path === "front-core/object-runtime"
 					? `
+					export const Category = {
+						Entity: "core.entity", Content: "core.content", Business: "core.business",
+						Communication: "core.communication", Automation: "core.automation",
+						Security: "core.security", Statistic: "core.statistic", Financial: "core.financial",
+						Selectable: "core.selectable", Creatable: "core.creatable",
+						Editable: "core.editable", Executable: "core.executable",
+					};
 				export const defineMicrofrontend = (definition) => definition;
 				export const objectOf = (type) => ({ kind: "object", ...(type ? { type } : {}) });
 				export const setOf = (type) => ({ kind: "set", ...(type ? { type } : {}) });
@@ -45,7 +52,6 @@ function manifestOf(
 ): MicrofrontendManifest {
 	return {
 		id: definition.id,
-		categories: definition.categories ?? [],
 		types: definition.types,
 		views: definition.views.map(
 			({ component: _component, props: _props, ...view }) => view,

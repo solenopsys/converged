@@ -1,4 +1,6 @@
 export const ID = "assistants-mf";
+export { objects } from "./objects";
+
 import { LocaleController } from "front-core";
 import definition from "./objects";
 

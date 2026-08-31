@@ -1,5 +1,6 @@
-import { registry } from "./registry";
+import { canRunAction } from "./action-authorization";
 import { actionPriorityWeight, resolveActionMeta } from "./action-meta";
+import { registry } from "./registry";
 import type { ActionExposure, ActionParameters, ActionPriority } from "./types";
 
 export interface ActionBrief {
@@ -33,7 +34,6 @@ interface RegistryLike {
 	}>;
 }
 
-
 export class ActionContextManager {
 	private hot: string[] = [];
 	private readonly maxHot = 10;
@@ -41,14 +41,21 @@ export class ActionContextManager {
 	constructor(private readonly reg: RegistryLike) {}
 
 	recordInvoke(id: string): void {
-		this.hot = [id, ...this.hot.filter((known) => known !== id)].slice(0, this.maxHot);
+		this.hot = [id, ...this.hot.filter((known) => known !== id)].slice(
+			0,
+			this.maxHot,
+		);
 	}
 
 	getHot(): ActionBrief[] {
-		const known = new Map(this.reg.getAll().map((action) => [action.id, action]));
+		const known = new Map(
+			this.reg.getAll().map((action) => [action.id, action]),
+		);
 		return this.hot
 			.map((id) => known.get(id))
-			.filter((action): action is NonNullable<typeof action> => action !== undefined)
+			.filter(
+				(action): action is NonNullable<typeof action> => action !== undefined,
+			)
 			.map(resolveActionMeta)
 			.map(toBrief);
 	}
@@ -59,16 +66,21 @@ export class ActionContextManager {
 
 	listUserCategories(): CategorySummary[] {
 		return categoriesOf(
-			this.reg.getAll().map(resolveActionMeta).filter((action) => action.exposure === "user"),
+			this.reg
+				.getAll()
+				.map(resolveActionMeta)
+				.filter((action) => action.exposure === "user" && canRunAction(action)),
 		);
 	}
 
 	listByCategory(category: string): ActionBrief[] {
-		return this.reg.getAll()
+		return this.reg
+			.getAll()
 			.map(resolveActionMeta)
 			.filter(
 				(action) =>
 					action.exposure === "user" &&
+					canRunAction(action) &&
 					(action.category ?? categoryOf(action.id)) === category,
 			)
 			.sort(comparePriority)
@@ -79,7 +91,7 @@ export class ActionContextManager {
 		return this.reg
 			.getAll()
 			.map(resolveActionMeta)
-			.filter((action) => action.exposure === "user")
+			.filter((action) => action.exposure === "user" && canRunAction(action))
 			.sort(comparePriority)
 			.map(toBrief);
 	}
@@ -99,24 +111,36 @@ export class ActionContextManager {
 	): ActionBrief[] {
 		const words = query.toLowerCase().split(/\s+/).filter(Boolean);
 		if (words.length === 0) return [];
-		return this.reg.getAll()
+		return this.reg
+			.getAll()
 			.map(resolveActionMeta)
-			.filter((action) => !exposure || action.exposure === exposure)
+			.filter(
+				(action) =>
+					(!exposure || action.exposure === exposure) &&
+					(exposure !== "user" || canRunAction(action)),
+			)
 			.map((action) => {
-				const text = `${action.id} ${action.brief} ${action.description}`.toLowerCase();
-				return { action, score: words.filter((word) => text.includes(word)).length };
+				const text =
+					`${action.id} ${action.brief} ${action.description}`.toLowerCase();
+				return {
+					action,
+					score: words.filter((word) => text.includes(word)).length,
+				};
 			})
 			.filter(({ score }) => score > 0)
-			.sort((left, right) =>
-				right.score - left.score || comparePriority(left.action, right.action),
+			.sort(
+				(left, right) =>
+					right.score - left.score ||
+					comparePriority(left.action, right.action),
 			)
 			.slice(0, limit)
 			.map(({ action }) => toBrief(action));
 	}
-
 }
 
-function categoriesOf(actions: ReturnType<typeof resolveActionMeta>[]): CategorySummary[] {
+function categoriesOf(
+	actions: ReturnType<typeof resolveActionMeta>[],
+): CategorySummary[] {
 	const counts = new Map<string, number>();
 	for (const action of actions) {
 		const category = action.category ?? categoryOf(action.id);
@@ -124,7 +148,6 @@ function categoriesOf(actions: ReturnType<typeof resolveActionMeta>[]): Category
 	}
 	return Array.from(counts.entries()).map(([id, count]) => ({ id, count }));
 }
-
 
 function categoryOf(id: string): string {
 	return id.split(".", 1)[0] ?? "other";
@@ -134,8 +157,10 @@ function comparePriority(
 	left: { priority?: ActionPriority; id: string },
 	right: { priority?: ActionPriority; id: string },
 ): number {
-	return actionPriorityWeight(right.priority) - actionPriorityWeight(left.priority) ||
-		left.id.localeCompare(right.id);
+	return (
+		actionPriorityWeight(right.priority) -
+			actionPriorityWeight(left.priority) || left.id.localeCompare(right.id)
+	);
 }
 
 function toBrief(action: ReturnType<typeof resolveActionMeta>): ActionBrief {

@@ -2,7 +2,7 @@ import { LocaleController } from "front-core";
 import definition from "./objects";
 import Panel from "./Panel";
 
-export const ID = "requests-mf";
+export const ID = "mf-requests";
 export const GROUP = {
 	id: "sales",
 	title: "Sales",

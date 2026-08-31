@@ -1,14 +1,13 @@
 import { createDomain } from "effector";
 import { createDomainLogger } from "../../../libraries/effector/effector-logger/logger";
-import {
-	type CategoryDefinition,
-	CORE_CATEGORIES,
-	type MicrofrontendDefinition,
-	type MicrofrontendManifest,
-	type ObjectIndexFile,
-	type ObjectTypeDefinition,
-	type OperationDefinition,
-	type ViewDefinition,
+import type {
+	CategoryId,
+	MicrofrontendDefinition,
+	MicrofrontendManifest,
+	ObjectIndexFile,
+	ObjectTypeDefinition,
+	OperationDefinition,
+	ViewDefinition,
 } from "./types";
 
 type Owned<T> = T & { owner: string; loaded: boolean };
@@ -27,26 +26,12 @@ export const $objectRegistryRevision = domain
 	.on(microfrontendRegistered, (revision) => revision + 1);
 
 export class ObjectRegistry {
-	private readonly categories = new Map<string, Owned<CategoryDefinition>>();
 	private readonly types = new Map<string, Owned<ObjectTypeDefinition>>();
 	private readonly views = new Map<string, Owned<ViewDefinition>>();
 	private readonly operations = new Map<string, Owned<OperationDefinition>>();
 	private readonly cleanups = new Map<string, () => void>();
 
-	constructor() {
-		for (const category of CORE_CATEGORIES) {
-			this.categories.set(category.id, {
-				...category,
-				owner: "front-core",
-				loaded: true,
-			});
-		}
-	}
-
 	declare(owner: string, manifest: MicrofrontendManifest): void {
-		for (const category of manifest.categories ?? []) {
-			this.categories.set(category.id, { ...category, owner, loaded: false });
-		}
 		for (const type of manifest.types) {
 			this.types.set(type.id, { ...type, owner, loaded: false });
 		}
@@ -65,9 +50,6 @@ export class ObjectRegistry {
 
 	register(owner: string, definition: MicrofrontendDefinition): void {
 		this.cleanups.get(definition.id)?.();
-		for (const category of definition.categories ?? []) {
-			this.categories.set(category.id, { ...category, owner, loaded: true });
-		}
 		for (const type of definition.types) {
 			this.types.set(type.id, { ...type, owner, loaded: true });
 		}
@@ -124,21 +106,8 @@ export class ObjectRegistry {
 		return this.operations.get(id)?.owner;
 	}
 
-	hasCategory(typeId: string, categoryId: string): boolean {
-		const type = this.types.get(typeId);
-		if (!type) return false;
-		return type.categories.some((id) => this.categoryIs(id, categoryId));
-	}
-
-	private categoryIs(candidate: string, expected: string): boolean {
-		let current: string | undefined = candidate;
-		const visited = new Set<string>();
-		while (current && !visited.has(current)) {
-			if (current === expected) return true;
-			visited.add(current);
-			current = this.categories.get(current)?.parent;
-		}
-		return false;
+	hasCategory(typeId: string, categoryId: CategoryId): boolean {
+		return this.types.get(typeId)?.categories?.includes(categoryId) ?? false;
 	}
 }
 
@@ -156,10 +125,3 @@ export async function loadObjectIndex(url = "/mf/index.json"): Promise<void> {
 		);
 	ingestObjectIndex((await response.json()) as ObjectIndexFile);
 }
-	category(id: string): Owned<CategoryDefinition> | undefined {
-		return this.categories.get(id);
-	}
-
-	allCategories(): Owned<CategoryDefinition>[] {
-		return [...this.categories.values()];
-	}

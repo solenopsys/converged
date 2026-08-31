@@ -1,0 +1,28 @@
+# ready | _
+modules:
+  ai/mf-assistants: ready
+  ai/mf-contexts: ready
+  analytics/mf-dasboards: _
+  analytics/mf-logs: _
+  analytics/mf-telemetry: _
+  analytics/mf-usage: _
+  automation/mf-dag: _
+  automation/mf-sheduller: _
+  automation/mf-webhooks: _
+  business/mf-orders: _
+  business/mf-requests: ready
+  communications/mf-calls: ready
+  communications/mf-chats: _
+  communications/mf-community: _
+  communications/mf-threads: ready
+  content/mf-classifier: _
+  content/mf-docs: _
+  content/mf-galery: _
+  content/mf-landing: _
+  content/mf-markdown: _
+  content/mf-scripts: _
+  content/mf-static: _
+  content/mf-struct: _
+  data/mf-dumps: _
+  sequrity/mf-auth: ready
+  sequrity/mf-secrets: _

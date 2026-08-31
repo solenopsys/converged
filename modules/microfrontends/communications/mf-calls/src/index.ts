@@ -5,6 +5,7 @@ export const GROUP = {
 	iconName: "IconBrain",
 };
 export { WaveformPlayer } from "./components/WaveformPlayer";
+export { objects } from "./objects";
 export { CallDetailView } from "./views/CallDetailView";
 
 import { LocaleController } from "front-core";

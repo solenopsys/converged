@@ -14,7 +14,9 @@ function registerObjectOperator(operator: Operator): void {
 		name: operator,
 		description: `Resolve ${operator} from the current object context`,
 		fallback: async (param) => {
-			const candidates = objectResolver.resolve(operator);
+			const candidates = objectResolver.resolve(operator, {
+				discovery: "panel",
+			});
 			if (!param) {
 				return candidates.length > 0
 					? code(candidates.map((candidate) => candidate.label))

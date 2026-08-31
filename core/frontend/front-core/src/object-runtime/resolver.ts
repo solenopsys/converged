@@ -1,5 +1,7 @@
+import { canDiscover } from "./authorization";
 import { type ObjectRegistry, objectRegistry } from "./registry";
 import type {
+	CategoryId,
 	DomainRef,
 	OperationDefinition,
 	Operator,
@@ -61,6 +63,9 @@ export class ObjectResolver {
 		const requestedCategories = context.categories ?? [];
 		const operations = this.registry
 			.allOperations()
+			.filter(
+				(operation) => context.discovery !== "panel" || canDiscover(operation),
+			)
 			.filter((operation) => operation.operator === operator)
 			.filter(
 				(operation) =>
@@ -110,17 +115,18 @@ export class ObjectResolver {
 				operation,
 			}));
 
-	const categoryForOperator =
-		operator === "select"
-			? "core.selectable"
-			: operator === "create"
-				? "core.creatable"
-				: undefined;
-	const includeTypes =
-		operator === "show" || operator === "select" || operator === "open";
+		const categoryForOperator: CategoryId | undefined =
+			operator === "select"
+				? "core.selectable"
+				: operator === "create"
+					? "core.creatable"
+					: undefined;
+		const includeTypes =
+			operator === "show" || operator === "select" || operator === "open";
 		const types = includeTypes
 			? this.registry
 					.allTypes()
+					.filter((type) => context.discovery !== "panel" || canDiscover(type))
 					.filter(
 						(type) =>
 							operator !== "open" ||

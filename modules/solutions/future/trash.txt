@@ -1,0 +1,1 @@
+	"microfrontends": ["markdown", "struct", "galery", "landing", "docs"],

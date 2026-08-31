@@ -1,5 +1,7 @@
 import {
+	Category,
 	defineMicrofrontend,
+	type ObjectDefinition,
 	objectOf,
 	setOf,
 } from "front-core/object-runtime";
@@ -9,28 +11,34 @@ import { ChatsListView } from "./views/ChatsListView";
 import { CommandsListView } from "./views/CommandsListView";
 import { ToolCallJsonView } from "./views/ToolCallJsonView";
 
+export const objects = [
+	{
+		id: "assistants.chat",
+		label: "Assistant chat",
+		pluralLabel: "Assistant chats",
+		categories: [
+			Category.Communication,
+			Category.Selectable,
+			Category.Editable,
+		],
+	},
+	{
+		id: "assistants.tool-call",
+		label: "Tool call",
+		pluralLabel: "Tool calls",
+		categories: [Category.Entity, Category.Selectable],
+	},
+	{
+		id: "assistants.command",
+		label: "Assistant command",
+		pluralLabel: "Assistant commands",
+		categories: [Category.Entity, Category.Selectable, Category.Executable],
+	},
+] satisfies readonly ObjectDefinition[];
+
 export default defineMicrofrontend({
 	id: "mf-assistants",
-	types: [
-		{
-			id: "assistants.chat",
-			label: "Assistant chat",
-			pluralLabel: "Assistant chats",
-			categories: ["core.communication", "core.selectable", "core.editable"],
-		},
-		{
-			id: "assistants.tool-call",
-			label: "Tool call",
-			pluralLabel: "Tool calls",
-			categories: ["core.entity", "core.selectable"],
-		},
-		{
-			id: "assistants.command",
-			label: "Assistant command",
-			pluralLabel: "Assistant commands",
-			categories: ["core.entity", "core.selectable", "core.executable"],
-		},
-	],
+	types: objects,
 	views: [
 		{
 			id: "assistants.chat.history",

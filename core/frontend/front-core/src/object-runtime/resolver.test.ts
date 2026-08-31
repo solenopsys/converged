@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
+import { setOperationAuthorizationController } from "./authorization";
 import { ObjectRegistry } from "./registry";
 import { ObjectResolver } from "./resolver";
-import { objectOf, objectRef, setOf, setRef } from "./types";
+import { Category, objectOf, objectRef, setOf, setRef } from "./types";
 
 function fixture() {
 	const registry = new ObjectRegistry();
@@ -12,7 +13,7 @@ function fixture() {
 				id: "companies.company",
 				label: "Company",
 				pluralLabel: "Companies",
-				categories: ["core.business", "core.selectable"],
+				categories: [Category.Business, Category.Selectable],
 			},
 		],
 		views: [
@@ -35,7 +36,7 @@ function fixture() {
 			{
 				id: "sales.outreach",
 				label: "Outreach",
-				categories: ["core.business", "core.creatable"],
+				categories: [Category.Business, Category.Creatable],
 			},
 		],
 		views: [],
@@ -67,6 +68,40 @@ function fixture() {
 }
 
 describe("ObjectResolver", () => {
+	test("keeps internal candidates for the assistant but hides them from a guest panel", () => {
+		const { registry, resolver } = fixture();
+		registry.register("mf-public", {
+			id: "mf-public",
+			types: [
+				{
+					id: "public.notice",
+					label: "Public notice",
+					categories: [Category.Selectable],
+					access: "public",
+				},
+			],
+			views: [],
+			operations: [],
+		});
+		setOperationAuthorizationController({
+			snapshot: () => ({ session: "guest" }),
+			ensureSession: async () => undefined,
+			authenticate: async () => undefined,
+			can: () => false,
+		});
+
+		expect(
+			resolver.resolve("select").map((candidate) => candidate.targetType),
+		).toContain("companies.company");
+		expect(
+			resolver
+				.resolve("select", { discovery: "panel" })
+				.map((candidate) => candidate.targetType),
+		).toEqual(["public.notice"]);
+
+		setOperationAuthorizationController(null);
+	});
+
 	test("discovers selectable types for the select operator", () => {
 		const { resolver } = fixture();
 		expect(
@@ -120,5 +155,19 @@ describe("ObjectResolver", () => {
 				setRef("companies.company", { kind: "query", query: {} }),
 			)?.id,
 		).toBe("companies.companies");
+	});
+
+	test("treats omitted categories as an empty set", () => {
+		const { registry, resolver } = fixture();
+		registry.register("mf-contexts", {
+			id: "mf-contexts",
+			types: [{ id: "contexts.context", label: "Context" }],
+			views: [],
+			operations: [],
+		});
+
+		expect(resolver.resolve("select")).not.toContainEqual(
+			expect.objectContaining({ targetType: "contexts.context" }),
+		);
 	});
 });

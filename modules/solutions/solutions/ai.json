@@ -1,17 +1,13 @@
 {
 	"microservices": [
-		"agent",
 		"assistant",
 		"calls",
-		"chats",
 		"contexts",
 		"threads"
 	],
 	"microfrontends": [
-		"agents",
-		"assistants",
+	  "assistants",
 		"calls",
-		"chats",
 		"contexts",
 		"threads"
 	],

@@ -125,6 +125,7 @@ const runtimeEnv: Record<string, string> = {
 	BEHEMOTH_STORAGE_CONFIG: resolve(dataDir, "mounts.json"),
 	FUJIN_ZMQ_ENDPOINT: env.FUJIN_ZMQ_ENDPOINT || "tcp://127.0.0.1:5557",
 	FUJIN_WS_URL: env.FUJIN_WS_URL || "ws://127.0.0.1:8087/ws",
+	MICROSERVICES: JSON.stringify(microservices),
 	WORKFLOWS: JSON.stringify(solution.spec.workflows),
 };
 

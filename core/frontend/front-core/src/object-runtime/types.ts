@@ -11,41 +11,54 @@ export const OPERATORS = [
 ] as const;
 
 export type Operator = (typeof OPERATORS)[number];
-export type CategoryId = string;
 export type ObjectTypeId = string;
 export type ViewId = string;
 export type OperationId = string;
 
-export type CategoryDefinition = {
-	id: CategoryId;
-	label: string;
-	parent?: CategoryId;
-	description?: string;
-};
+/**
+ * Categories are a closed vocabulary, not records contributed by individual
+ * microfrontends. A type either declares a category explicitly or it does not.
+ */
+export const Category = {
+	Entity: "core.entity",
+	Content: "core.content",
+	Business: "core.business",
+	Communication: "core.communication",
+	Automation: "core.automation",
+	Security: "core.security",
+	Statistic: "core.statistic",
+	Financial: "core.financial",
+	Selectable: "core.selectable",
+	Creatable: "core.creatable",
+	Editable: "core.editable",
+	Executable: "core.executable",
+} as const;
 
-export const CORE_CATEGORIES = [
-	{ id: "core.entity", label: "Entity" },
-	{ id: "core.content", label: "Content", parent: "core.entity" },
-	{ id: "core.business", label: "Business", parent: "core.entity" },
-	{ id: "core.communication", label: "Communication", parent: "core.entity" },
-	{ id: "core.automation", label: "Automation", parent: "core.entity" },
-	{ id: "core.security", label: "Security", parent: "core.entity" },
-	{ id: "core.statistic", label: "Statistic", parent: "core.entity" },
-	{ id: "core.financial", label: "Financial", parent: "core.statistic" },
-	{ id: "core.selectable", label: "Selectable" },
-	{ id: "core.creatable", label: "Creatable" },
-	{ id: "core.editable", label: "Editable" },
-	{ id: "core.executable", label: "Executable" },
-] as const satisfies readonly CategoryDefinition[];
+export type CategoryId = (typeof Category)[keyof typeof Category];
 
-export type ObjectTypeDefinition = {
+/**
+ * Mirrors the browser-relevant part of NRPC @Access: public surfaces are the
+ * exception; every other surface belongs to an authenticated user.
+ */
+export type DiscoveryAccess = "public" | "user";
+
+export type ObjectDefinition = {
 	id: ObjectTypeId;
 	label: string;
 	pluralLabel?: string;
 	description?: string;
-	categories: CategoryId[];
+	categories?: readonly CategoryId[];
 	idField?: string;
+	/** Controls whether generic commands may advertise this type to a guest. */
+	access?: DiscoveryAccess;
+	/** Optional existing NRPC permission required to advertise this type. */
+	capability?: string;
+	// Object-specific capabilities are owned by the microfrontend. The runtime
+	// indexes identity and categories; it does not impose a generic UI schema.
+	[extension: string]: unknown;
 };
+
+export type ObjectTypeDefinition = ObjectDefinition;
 
 export type ObjectRef = {
 	kind: "object";
@@ -80,7 +93,7 @@ export type RefKind = DomainRef["kind"];
 export type TypeExpression = {
 	kind: RefKind;
 	type?: ObjectTypeId;
-	categories?: CategoryId[];
+	categories?: readonly CategoryId[];
 };
 
 export type ViewRuntimeProps = {
@@ -136,7 +149,7 @@ export type OperationDefinition = {
 	 */
 	view?: ViewId;
 	parameters?: OperationParameters;
-	access?: "public";
+	access?: DiscoveryAccess;
 	capability?: string;
 	priority?: number;
 	presentOutput?: boolean;
@@ -145,8 +158,7 @@ export type OperationDefinition = {
 
 export type MicrofrontendDefinition = {
 	id: string;
-	categories?: CategoryDefinition[];
-	types: ObjectTypeDefinition[];
+	types: readonly ObjectDefinition[];
 	views: ViewDefinition[];
 	operations: OperationDefinition[];
 	// biome-ignore lint/suspicious/noConfusingVoidType: setup may optionally return cleanup
@@ -170,7 +182,9 @@ export type ObjectIndexFile = {
 export type ResolveContext = {
 	references?: DomainRef[];
 	targetType?: ObjectTypeId;
-	categories?: CategoryId[];
+	categories?: readonly CategoryId[];
+	/** The command panel hides targets the current browser session cannot run. */
+	discovery?: "panel";
 };
 
 export type ResolutionCandidate = {

@@ -1,6 +1,8 @@
 export type { OperationAuthorizationController } from "./authorization";
 export {
+	authorizeObjectType,
 	authorizeOperation,
+	canDiscover,
 	canExecuteOperation,
 	OperationAuthorizationError,
 	onOperationAuthorizationChanged,
@@ -39,13 +41,14 @@ export {
 	setMicrofrontendLoader,
 } from "./runtime";
 export type {
-	CategoryDefinition,
 	CategoryId,
+	DiscoveryAccess,
 	DomainRef,
 	ExecuteOperationRequest,
 	IdSelection,
 	MicrofrontendDefinition,
 	MicrofrontendManifest,
+	ObjectDefinition,
 	ObjectIndexFile,
 	ObjectIndexModule,
 	ObjectRef,
@@ -71,7 +74,7 @@ export type {
 	ViewRuntimeProps,
 } from "./types";
 export {
-	CORE_CATEGORIES,
+	Category,
 	defineMicrofrontend,
 	OPERATORS,
 	objectOf,

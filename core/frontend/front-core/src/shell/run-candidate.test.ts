@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, test } from "bun:test";
 import {
+	Category,
 	objectRegistry,
 	referencePresented,
 	setMicrofrontendLoader,
@@ -15,8 +16,8 @@ beforeAll(() => {
 	objectRegistry.register("mf-mailing", {
 		id: "mf-mailing",
 		types: [
-			{ id: "mailing.mail", label: "Mail", categories: ["core.creatable"] },
-			{ id: "calls.call", label: "Call", categories: ["core.creatable"] },
+			{ id: "mailing.mail", label: "Mail", categories: [Category.Creatable] },
+			{ id: "calls.call", label: "Call", categories: [Category.Creatable] },
 		],
 		views: [
 			// The composer deliberately ranks below the reader: an existing mail

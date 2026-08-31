@@ -44,7 +44,7 @@ export function onOperationAuthorizationChanged(
 }
 
 export function canExecuteOperation(operation: {
-	access?: "public";
+	access?: "public" | "user";
 	capability?: string;
 }): boolean {
 	if (operation.access === "public") return true;
@@ -52,9 +52,17 @@ export function canExecuteOperation(operation: {
 	return !operation.capability || controller.can(operation.capability);
 }
 
+/** Whether a command-panel entry may be shown in the current browser session. */
+export function canDiscover(item: {
+	access?: "public" | "user";
+	capability?: string;
+}): boolean {
+	return canExecuteOperation(item);
+}
+
 export async function authorizeOperation(operation: {
 	id: string;
-	access?: "public";
+	access?: "public" | "user";
 	capability?: string;
 }): Promise<void> {
 	if (operation.access === "public") return;
@@ -79,4 +87,13 @@ export async function authorizeOperation(operation: {
 		"forbidden",
 		`Permission ${operation.capability} is required for ${operation.id}`,
 	);
+}
+
+/** Authorizes a generic object command before it presents the object's view. */
+export async function authorizeObjectType(type: {
+	id: string;
+	access?: "public" | "user";
+	capability?: string;
+}): Promise<void> {
+	return authorizeOperation(type);
 }

@@ -1,5 +1,7 @@
 import {
+	Category,
 	defineMicrofrontend,
+	type ObjectDefinition,
 	objectOf,
 	objectRef,
 	setOf,
@@ -11,21 +13,23 @@ import { CallsListView } from "./views/CallsListView";
 import { webCallRequested } from "./web-call/controller";
 import { mountWebCallWidget } from "./web-call/mount";
 
+export const objects = [
+	{
+		id: "calls.call",
+		label: "Call",
+		pluralLabel: "Calls",
+		categories: [
+			Category.Communication,
+			Category.Selectable,
+			Category.Creatable,
+			Category.Executable,
+		],
+	},
+] satisfies readonly ObjectDefinition[];
+
 export default defineMicrofrontend({
 	id: "mf-calls",
-	types: [
-		{
-			id: "calls.call",
-			label: "Call",
-			pluralLabel: "Calls",
-			categories: [
-				"core.communication",
-				"core.selectable",
-				"core.creatable",
-				"core.executable",
-			],
-		},
-	],
+	types: objects,
 	views: [
 		{
 			id: "calls.call.detail",

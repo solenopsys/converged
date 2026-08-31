@@ -4,19 +4,15 @@ import {
 	$objectRegistryRevision,
 	type DomainRef,
 	executeOperation,
-	invokeOperator,
 	type Operator,
-	objectRef,
 	objectResolver,
 	operatorCatalogEntries,
-	presentReference,
 	type ResolutionCandidate,
 } from "front-core/object-runtime";
 import { translator } from "i18n";
 import type { Entry } from "orchestrator";
 import type { ComponentChildren } from "preact";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
-import type { RightPanelTab } from "sidebar-controller";
 import { authToken } from "../auth-token";
 import type { ChatConfig } from "../chat/config";
 import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
@@ -48,6 +44,10 @@ import {
 } from "./panel";
 import { runCandidate } from "./run-candidate";
 import { Surface } from "./SurfaceView";
+import {
+	availableChatPanelTabs,
+	resolveChatPanelTab,
+} from "./chat-panel-tabs";
 import { $currentSurface } from "./surface";
 import "./reference-presenter";
 import "./legacy-widget-presenter";
@@ -64,13 +64,6 @@ const t = translator(CHAT_MESSAGES_NAMESPACE);
 
 const devTraceEnabled =
 	typeof __EFFECTOR_DEBUG__ !== "undefined" && __EFFECTOR_DEBUG__;
-
-const panelTabs: Array<{ id: RightPanelTab; label: string }> = [
-	{ id: "commands", label: "Commands" },
-	{ id: "chat", label: "Chat" },
-	{ id: "events", label: "Events" },
-	...(devTraceEnabled ? [{ id: "trace" as const, label: "Trace" }] : []),
-];
 
 const CONVERGED_LOGO_URL = "/assets/converged.svg";
 
@@ -114,16 +107,19 @@ function OperatorList({
 			{operatorCatalogEntries()
 				.filter((entry) => ROOT_OPERATORS.includes(entry.operator))
 				.map((entry) => {
+					const available = objectResolver.resolve(entry.operator, {
+						references,
+						discovery: "panel",
+					});
+					if (available.length === 0) return null;
 					const candidates =
 						active === entry.operator
-							? objectResolver
-									.resolve(entry.operator, { references })
-									.filter((candidate) =>
-										matchesCandidate(
-											candidate,
-											typedOperator === entry.operator ? typedTarget : "",
-										),
-									)
+							? available.filter((candidate) =>
+									matchesCandidate(
+										candidate,
+										typedOperator === entry.operator ? typedTarget : "",
+									),
+								)
 							: [];
 					const expanded = active === entry.operator;
 					return (
@@ -365,6 +361,11 @@ export function AppShell({
 	const panelWidth = useUnit($panelWidth);
 	const isResizing = useUnit($panelResizing);
 	const isAuthenticated = useUserStatus();
+	const availableTabs = availableChatPanelTabs({
+		isAuthenticated,
+		isDevelopment: devTraceEnabled,
+	});
+	const activePanelTab = resolveChatPanelTab(panelTab, availableTabs);
 	const [activeOperator, setActiveOperator] = useState<Operator | null>(null);
 	const references = surface?.ref ? [surface.ref] : [];
 
@@ -393,6 +394,10 @@ export function AppShell({
 			setActiveOperator(operator as Operator);
 	}, [draft]);
 
+	useEffect(() => {
+		if (activePanelTab !== panelTab) panelTabActivated(activePanelTab);
+	}, [activePanelTab, panelTab]);
+
 	const ready = async () => {
 		const loaded = await loadChat(config);
 		setChat(loaded);
@@ -406,12 +411,14 @@ export function AppShell({
 		if (slashOperator && ROOT_OPERATORS.includes(slashOperator as Operator)) {
 			const operator = slashOperator as Operator;
 			const candidate = target
-				? objectResolver.resolve(operator, { references }).find((entry) => {
-						const value = target.toLocaleLowerCase();
-						return [entry.id, entry.targetType, entry.label]
-							.filter(Boolean)
-							.some((part) => part?.toLocaleLowerCase() === value);
-					})
+				? objectResolver
+						.resolve(operator, { references, discovery: "panel" })
+						.find((entry) => {
+							const value = target.toLocaleLowerCase();
+							return [entry.id, entry.targetType, entry.label]
+								.filter(Boolean)
+								.some((part) => part?.toLocaleLowerCase() === value);
+						})
 				: undefined;
 			panelOpened();
 			panelTabActivated("commands");
@@ -604,14 +611,14 @@ export function AppShell({
 						id="chat-panel-content"
 						role="tabpanel"
 					>
-						{panelTab === "chat" ? (
+						{activePanelTab === "chat" ? (
 							chat ? (
 								<chat.module.Transcript />
 							) : (
 								<div class="panel-messages" />
 							)
 						) : null}
-						{panelTab === "commands" ? (
+						{activePanelTab === "commands" ? (
 							<OperatorList
 								active={activeOperator}
 								query={draft}
@@ -624,7 +631,7 @@ export function AppShell({
 								onRun={runOperator}
 							/>
 						) : null}
-						{panelTab === "events" ? (
+						{activePanelTab === "events" ? (
 							panelEvents.length > 0 ? (
 								<ol class="panel-events">
 									{panelEvents.map((event) => (
@@ -643,7 +650,7 @@ export function AppShell({
 								<p class="panel-empty-state">No events yet.</p>
 							)
 						) : null}
-						{panelTab === "trace" && devTraceEnabled ? (
+						{activePanelTab === "trace" && devTraceEnabled ? (
 							chat ? (
 								<OrchestratorTrace chat={chat.chat} />
 							) : (
@@ -651,20 +658,22 @@ export function AppShell({
 							)
 						) : null}
 					</div>
-					<div class="panel-tabs" aria-label="Chat panel tabs" role="tablist">
-						{panelTabs.map((tab) => (
-							<button
-								type="button"
-								role="tab"
-								aria-controls="chat-panel-content"
-								aria-selected={panelTab === tab.id}
-								class={panelTab === tab.id ? "is-active" : undefined}
-								onClick={() => panelTabActivated(tab.id)}
-							>
-								{tab.label}
-							</button>
-						))}
-					</div>
+					{availableTabs.length > 1 ? (
+						<div class="panel-tabs" aria-label="Chat panel tabs" role="tablist">
+							{availableTabs.map((tab) => (
+								<button
+									type="button"
+									role="tab"
+									aria-controls="chat-panel-content"
+									aria-selected={activePanelTab === tab.id}
+									class={activePanelTab === tab.id ? "is-active" : undefined}
+									onClick={() => panelTabActivated(tab.id)}
+								>
+									{tab.label}
+								</button>
+							))}
+						</div>
+					) : null}
 					{composer(true)}
 				</aside>
 			) : null}

@@ -6,6 +6,7 @@ export const GROUP = {
 	title: "AI",
 	iconName: "IconBrain",
 };
+export { objects } from "./objects";
 
 import definition from "./objects";
 

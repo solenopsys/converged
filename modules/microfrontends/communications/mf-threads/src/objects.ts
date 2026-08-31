@@ -1,27 +1,31 @@
 import {
+	Category,
 	defineMicrofrontend,
+	type ObjectDefinition,
 	objectOf,
 	setOf,
 } from "front-core/object-runtime";
 import { ThreadsStatsView } from "./views/ThreadsStatsView";
 import { ThreadsView } from "./views/ThreadsView";
 
+export const objects = [
+	{
+		id: "threads.thread",
+		label: "Thread",
+		pluralLabel: "Threads",
+		categories: [Category.Communication, Category.Selectable],
+	},
+	{
+		id: "threads.statistic",
+		label: "Thread statistic",
+		pluralLabel: "Thread statistics",
+		categories: [Category.Statistic, Category.Communication],
+	},
+] satisfies readonly ObjectDefinition[];
+
 export default defineMicrofrontend({
 	id: "mf-threads",
-	types: [
-		{
-			id: "threads.thread",
-			label: "Thread",
-			pluralLabel: "Threads",
-			categories: ["core.communication", "core.selectable"],
-		},
-		{
-			id: "threads.statistic",
-			label: "Thread statistic",
-			pluralLabel: "Thread statistics",
-			categories: ["core.statistic", "core.communication"],
-		},
-	],
+	types: objects,
 	views: [
 		{
 			id: "threads.thread.detail",
