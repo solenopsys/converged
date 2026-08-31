@@ -39,28 +39,69 @@ const candidateLine = (fn: FunctionBrief): string =>
 		? `${fn.id} — ${fn.brief}: ${fn.description}`
 		: `${fn.id} — ${fn.brief}`;
 
-function needsArgumentModel(
-	meta: ReturnType<OrchestratorCatalog["meta"]>,
-): boolean {
+function hostContextLine(context: PlanContext): string {
+	if (context.hostContext === undefined) return "";
+	try {
+		const encoded = JSON.stringify(context.hostContext);
+		return encoded && encoded.length <= 4096
+			? `\n\nCurrent application context: ${encoded}`
+			: "";
+	} catch {
+		return "";
+	}
+}
+
+function needsArgumentModel(parameters: ToolSpec["parameters"] | undefined): boolean {
 	// A missing schema is unknown, so preserve the model step for existing hosts.
 	// Optional fields still need the step: the model can extract values from the
 	// request and prefill a form without inventing values for omitted fields.
 	return (
-		!meta?.parameters || Object.keys(meta.parameters.properties).length > 0
+		!parameters || Object.keys(parameters.properties).length > 0
 	);
 }
 
 function schemaDefaults(
-	meta: ReturnType<OrchestratorCatalog["meta"]>,
+	parameters: ToolSpec["parameters"] | undefined,
 ): Record<string, unknown> {
-	if (!meta?.parameters) return {};
+	if (!parameters) return {};
 	return Object.fromEntries(
-		Object.entries(meta.parameters.properties).flatMap(([key, value]) => {
+		Object.entries(parameters.properties).flatMap(([key, value]) => {
 			if (!value || typeof value !== "object" || !("default" in value))
 				return [];
 			return [[key, (value as { default: unknown }).default]];
 		}),
 	);
+}
+
+function selectionArgumentsHint(
+	parameters: ToolSpec["parameters"] | undefined,
+): string | undefined {
+	const properties = parameters?.properties;
+	if (
+		!properties ||
+		!("scope" in properties) ||
+		!("mode" in properties) ||
+		!("filter" in properties)
+	) {
+		return undefined;
+	}
+	const filter = properties.filter as
+		| { properties?: Record<string, { properties?: Record<string, unknown> }> }
+		| undefined;
+	const [field, fieldSchema] = Object.entries(filter?.properties ?? {}).find(
+		([id]) => id !== "AND" && id !== "OR" && id !== "NOT",
+	) ?? ["field", undefined];
+	const operator = Object.keys(fieldSchema?.properties ?? {})[0] ?? "eq";
+	const example = {
+		scope: "new",
+		mode: "replace",
+		filter: { [field]: { [operator]: "<value from user>" } },
+	};
+	return [
+		"This is a selection. Create the filter from every constraint explicitly stated by the user; do not add constraints they did not state.",
+		`Example shape from this function schema: ${JSON.stringify(example)}.`,
+		"For an unfiltered new list use scope=new and mode=replace without filter. To add a condition to the active list use scope=current and mode=refine.",
+	].join(" ");
 }
 
 /** The step's own call if the model made it, otherwise its prose parsed as JSON. */
@@ -109,12 +150,12 @@ export function createFunctionSteps({
 	const route: Step<PlanContext> = {
 		name: "route",
 		tools: () => [routeTool],
-		ask: ({ userText }) => {
+		ask: (context) => {
 			const areas = catalog
 				.listCategories()
 				.map(({ id, count }) => `${id} (${count})`)
 				.join(", ");
-			return `Areas: ${areas || "none"}\n\nUser: ${userText}`;
+			return `Areas: ${areas || "none"}${hostContextLine(context)}\n\nUser: ${context.userText}`;
 		},
 		apply: (_context, answer) => {
 			const decision = structured(answer, routeTool.name);
@@ -145,15 +186,12 @@ export function createFunctionSteps({
 				return { done: { kind: "function-missed", area: query, candidates } };
 			}
 
-			const top = candidates[0];
-			if (top && catalog.load) void catalog.load(top.id).catch(() => {});
-
 			// One candidate is not worth a round-trip to pick it.
 			return {
 				patch: {
 					area: query,
 					candidates,
-					id: candidates.length === 1 ? top?.id : undefined,
+					id: candidates.length === 1 ? candidates[0]?.id : undefined,
 				},
 			};
 		},
@@ -179,9 +217,9 @@ export function createFunctionSteps({
 				},
 			},
 		],
-		ask: ({ userText, candidates }) =>
-			`Candidates:\n${candidates.map(candidateLine).join("\n")}\n\nUser: ${userText}`,
-		apply: ({ candidates, area, userText }, answer) => {
+		ask: (context) =>
+			`Candidates:\n${context.candidates.map(candidateLine).join("\n")}${hostContextLine(context)}\n\nUser: ${context.userText}`,
+		apply: async ({ candidates, area, userText }, answer) => {
 			const id = readString(structured(answer, "select"), "id");
 			// An id the model invented is not a function: better to miss than to
 			// call something the user did not ask for.
@@ -198,42 +236,70 @@ export function createFunctionSteps({
 		},
 	};
 
+	// Local and deliberate: a selection's filter vocabulary belongs to the
+	// service. Loading it after the function is chosen, rather than speculating
+	// during search, makes the route → function → descriptor → arguments
+	// protocol observable and prevents a stale fallback schema reaching the LLM.
+	const describe: Step<PlanContext> = {
+		name: "describe",
+		when: ({ id }) => Boolean(id),
+		apply: async ({ id }) => {
+			if (!id) return {};
+			const parameters = await catalog.load?.(id);
+			const meta = catalog.meta(id);
+			if (!meta) {
+				throw new Error(
+					`[orchestrator] Function "${id}" disappeared while loading its parameters`,
+				);
+			}
+			return parameters ? { patch: { parameters } } : {};
+		},
+	};
+
 	const args: Step<PlanContext> = {
 		name: "args",
 		allowEmptyAnswer: true,
 		// The tool is the target function itself when the host publishes a schema:
 		// then the model fills real parameters instead of describing them.
-		tools: ({ id }) => {
+		tools: ({ id, parameters }) => {
 			const meta = id ? catalog.meta(id) : undefined;
-			if (!meta || !needsArgumentModel(meta)) return [];
+			const schema = parameters ?? meta?.parameters;
+			if (!meta || !needsArgumentModel(schema)) return [];
 			return [
 				{
 					name: "call",
 					description: meta.brief ?? meta.description,
-					parameters: meta.parameters ?? {
+					parameters: schema ?? {
 						type: "object",
 						properties: {},
 					},
 				},
 			];
 		},
-		ask: ({ id, userText }) => {
+		ask: (context) => {
+			const { id, userText } = context;
 			const meta = id ? catalog.meta(id) : undefined;
-			if (!meta || !needsArgumentModel(meta)) return undefined;
+			const schema = context.parameters ?? meta?.parameters;
+			if (!meta || !needsArgumentModel(schema)) return undefined;
 			return [
 				`Function: ${meta.id}`,
 				meta.description,
+				selectionArgumentsHint(schema),
 				"Call the call tool exactly once. Extract every value explicitly present in the user request into its matching field. Follow each field description: when it explicitly asks to generate a draft, generate it; otherwise do not invent omitted values.",
-				`Argument schema: ${JSON.stringify(meta.parameters)}`,
+				`Argument schema: ${JSON.stringify(schema)}`,
+				hostContextLine(context),
 				`User: ${userText}`,
-			].join("\n\n");
+			]
+				.filter(Boolean)
+				.join("\n\n");
 		},
-		apply: ({ id }, answer) => {
+		apply: ({ id, parameters }, answer) => {
 			const meta = id ? catalog.meta(id) : undefined;
+			const schema = parameters ?? meta?.parameters;
 			return {
 				patch: {
 					args: {
-						...schemaDefaults(meta),
+						...schemaDefaults(schema),
 						...(structured(answer, "call") ?? {}),
 					},
 				},
@@ -291,7 +357,7 @@ export function createFunctionSteps({
 		};
 	}
 
-	return [route, search, select, args, invoke];
+	return [route, search, select, describe, args, invoke];
 }
 
 function mergeCandidates(

@@ -140,6 +140,26 @@ describe("chat view", () => {
 		conversation.entries.patched({ id: "u1", patch: { text: "after" } });
 		expect(store.messages[0]?.content).toBe("after");
 	});
+
+	test("projects the active planner stage without adding a reasoning message", () => {
+		const { store, conversation } = harness();
+		conversation.entries.appended({
+			id: "step-1",
+			at: Date.now(),
+			streams: ["conversation", "model:fast"],
+			kind: "step",
+			step: "describe",
+			tier: "fast",
+			phase: "apply",
+			status: "running",
+		});
+
+		expect(store.$chat.getState()).toMatchObject({ activeStep: "describe" });
+		expect(store.messages).toEqual([]);
+
+		conversation.entries.patched({ id: "step-1", patch: { status: "completed" } });
+		expect(store.$chat.getState().activeStep).toBeUndefined();
+	});
 });
 
 describe("chat persistence", () => {

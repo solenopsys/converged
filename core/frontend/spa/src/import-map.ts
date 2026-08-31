@@ -6,6 +6,13 @@ const baseImports: Record<string, string> = {
 	"preact/jsx-runtime": "/vendor/preact.js",
 	"preact/jsx-dev-runtime": "/vendor/preact.js",
 	"preact/compat": "/vendor/preact-compat.js",
+	// Some browser packages are compiled against React names while running on
+	// Preact. Keep those imports in the same compat instance as the shell.
+	react: "/vendor/preact-compat.js",
+	"react-dom": "/vendor/preact-compat.js",
+	"react-dom/client": "/vendor/preact-compat.js",
+	"react/jsx-runtime": "/vendor/preact.js",
+	"react/jsx-dev-runtime": "/vendor/preact.js",
 	effector: "/vendor/effector.js",
 	"effector/effector.mjs": "/vendor/effector.js",
 	"effector/inspect": "/vendor/effector-inspect.js",

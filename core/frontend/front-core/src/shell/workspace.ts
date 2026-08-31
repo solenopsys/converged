@@ -1,8 +1,5 @@
 import { createEvent, createStore, sample } from "effector";
-import {
-	type DomainRef,
-	operationExecutionStarted,
-} from "front-core/object-runtime";
+import type { DomainRef, PresentationSource } from "front-core/object-runtime";
 import type { ComponentType } from "preact";
 import {
 	$composerPlacement,
@@ -24,6 +21,8 @@ export type WorkspaceTab = {
 
 export type OpenWorkspaceTab = Omit<WorkspaceTab, "pinned"> & {
 	pinned?: boolean;
+	/** Assistant presentations replace transient workspace state. */
+	source?: PresentationSource;
 };
 
 type WorkspaceState = {
@@ -54,16 +53,20 @@ export const workspaceReset = createEvent("WORKSPACE_RESET");
 export const $workspace = createStore<WorkspaceState>(initialState, {
 	name: "WORKSPACE",
 })
-	.on(workspaceTabOpened, (state, tab) => {
-		const index = state.tabs.findIndex((entry) => entry.key === tab.key);
+	.on(workspaceTabOpened, (state, { source, ...tab }) => {
+		const retained =
+			source === "assistant"
+				? state.tabs.filter((entry) => entry.pinned)
+				: state.tabs;
+		const index = retained.findIndex((entry) => entry.key === tab.key);
 		const next: WorkspaceTab = {
 			...tab,
-			pinned: tab.pinned ?? state.tabs[index]?.pinned ?? false,
+			pinned: tab.pinned ?? retained[index]?.pinned ?? false,
 		};
 		const tabs =
 			index === -1
-				? [...state.tabs, next]
-				: state.tabs.map((entry, position) =>
+				? [...retained, next]
+				: retained.map((entry, position) =>
 						position === index ? next : entry,
 					);
 		return { tabs, activeKey: next.key };
@@ -125,8 +128,4 @@ sample({
 	source: $composerPlacement,
 	filter: (placement, hasTabs) => hasTabs && placement === "hero",
 	target: panelOpened,
-});
-
-operationExecutionStarted.watch(({ source }) => {
-	if (source === "assistant") workspaceUnpinnedTabsCleared();
 });

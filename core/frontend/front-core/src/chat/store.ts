@@ -53,6 +53,7 @@ export type CatalogView = {
 
 export type ChatCatalog = {
 	catalog: OrchestratorCatalog;
+	turnContext?: () => unknown;
 
 	// The meta-tool contour lists by category and by recency; the orchestrator
 	// ports do neither, so handing it `catalog` gives the model tools that throw
@@ -123,6 +124,7 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 				language: config.language,
 			}),
 		model: "fast",
+		turnContext: host?.turnContext,
 	});
 
 	const workflows = new Map<

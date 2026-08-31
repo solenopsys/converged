@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { operationExecutionStarted } from "front-core/object-runtime";
 import {
 	$activeWorkspaceTab,
 	$workspaceTabs,
@@ -11,7 +10,11 @@ import {
 
 const View = () => null;
 
-function open(key: string, pinned = false): void {
+function open(
+	key: string,
+	pinned = false,
+	source: "assistant" | "user" = "user",
+): void {
 	workspaceTabOpened({
 		key,
 		owner: key.split(".", 1)[0] ?? key,
@@ -19,25 +22,23 @@ function open(key: string, pinned = false): void {
 		view: View,
 		props: {},
 		...(pinned ? { pinned: true } : {}),
+		source,
 	});
 }
 
 describe("workspace", () => {
 	beforeEach(() => workspaceReset());
 
-	test("keeps pinned tabs and clears transient tabs before an assistant command", () => {
+	test("keeps pinned tabs and replaces transient tabs for an assistant presentation", () => {
 		open("orders.list", true);
 		open("orders.detail.42");
-
-		operationExecutionStarted({
-			operationId: "logs.show",
-			source: "assistant",
-		});
+		open("companies.list", false, "assistant");
 
 		expect($workspaceTabs.getState().map((tab) => tab.key)).toEqual([
 			"orders.list",
+			"companies.list",
 		]);
-		expect($activeWorkspaceTab.getState()?.key).toBe("orders.list");
+		expect($activeWorkspaceTab.getState()?.key).toBe("companies.list");
 	});
 
 	test("reopens an existing tab without losing its pin", () => {

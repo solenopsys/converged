@@ -26,6 +26,7 @@ import {
 import { CellRenderer } from "./CellRenderer";
 import { ColumnResizer } from "./ColumnResizer";
 import { DefaultRowCard } from "./DefaultRowCard";
+import { FilterHeader } from "./filter-header";
 import {
 	normalizeBoolean,
 	normalizeBulkActions,
@@ -88,6 +89,9 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 	className = "",
 	tableClassName = "",
 	emptyMessage = t("table.noData"),
+	filters = [],
+	filterValues = {},
+	onFilterValuesChange,
 }: InfiniteScrollDataTableProps<TData>) {
 	const columns = useMemo(
 		() => normalizeColumns<TData>(columnsInput),
@@ -123,6 +127,9 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 		() =>
 			columns.filter((column) => currentViewMode === "table" || column.primary),
 		[columns, currentViewMode],
+	);
+	const hasVisibleFilters = filters.some((filter) =>
+		visibleColumns.some((column) => column.id === filter.id),
 	);
 
 	const tableColumnsState = useUnit($tableColumnsState);
@@ -423,7 +430,20 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 				)}
 			>
 				<div ref={tableRef} class="w-full">
-					<div class="sticky top-0 z-10 flex h-10 border-b bg-background/90">
+					<FilterHeader
+						columns={visibleColumns}
+						widths={resolvedColumnWidths}
+						filters={filters}
+						values={filterValues}
+						onChange={(values) => onFilterValuesChange?.(values)}
+						selectionOffset={selectable && selectionMode ? 48 : 0}
+					/>
+					<div
+						class={cn(
+							"sticky z-10 flex h-10 border-b bg-background/90",
+							hasVisibleFilters ? "top-10" : "top-0",
+						)}
+					>
 						{selectable && selectionMode && (
 							<div
 								class="flex items-center pl-2 font-medium text-muted-foreground"

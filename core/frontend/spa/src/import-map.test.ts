@@ -6,3 +6,10 @@ test("maps the object runtime subpath for browser microfrontends", () => {
 		"/vendor/front-core-object-runtime.js",
 	);
 });
+
+test("maps React-compatible package names to the shared Preact runtime", () => {
+	const imports = createImportMap([]).imports;
+	expect(imports.react).toBe("/vendor/preact-compat.js");
+	expect(imports["react-dom"]).toBe("/vendor/preact-compat.js");
+	expect(imports["react-dom/client"]).toBe("/vendor/preact-compat.js");
+});

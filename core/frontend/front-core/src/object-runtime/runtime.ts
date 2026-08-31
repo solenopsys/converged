@@ -40,6 +40,10 @@ async function ensureLoaded(owner: string | undefined): Promise<void> {
 	if (owner && loader) await loader(owner);
 }
 
+export async function loadObjectType(type: string): Promise<void> {
+	await ensureLoaded(objectRegistry.ownerForType(type));
+}
+
 export function registerMicrofrontend(
 	definition: MicrofrontendDefinition,
 ): void {
@@ -102,13 +106,19 @@ export async function executeOperation(
 		const result = await operation.invoke({
 			references: request.references ?? [],
 			params: request.params ?? {},
-			present: presentReference,
+			present: (ref, options) =>
+				presentReference(ref, {
+					...options,
+					...(request.source ? { source: request.source } : {}),
+				}),
 		});
 		if (
 			(operation.presentOutput || operation.operator === "create") &&
 			isDomainRef(result)
 		)
-			await presentReference(result);
+			await presentReference(result, {
+				...(request.source ? { source: request.source } : {}),
+			});
 		operationExecutionSucceeded({ request, result });
 		return result;
 	} catch (error) {

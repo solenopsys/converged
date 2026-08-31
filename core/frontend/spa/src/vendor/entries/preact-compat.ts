@@ -11,9 +11,16 @@
  */
 
 // @ts-ignore Physical path: the specifier would lead back to this same file.
+import React from "../../../node_modules/preact/compat/dist/compat.mjs";
+
+// A few adapters (including @zag-js/preact's Portal build) reference React
+// as a global identifier. The import-map aliases point at this exact module.
+const scope = globalThis as typeof globalThis & { React?: typeof React };
+scope.React ??= React;
+
+// @ts-ignore Physical path: the specifier would lead back to this same file.
 export * from "../../../node_modules/preact/compat/dist/compat.mjs";
-// @ts-ignore See the import above.
-export { default } from "../../../node_modules/preact/compat/dist/compat.mjs";
+export { React as default };
 
 /**
  * compat hands hooks through in transit, and the bundler doesn't carry a

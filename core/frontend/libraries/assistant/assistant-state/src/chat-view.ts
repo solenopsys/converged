@@ -13,6 +13,8 @@ export type ChatView = {
 	currentResponse: string;
 	isLoading: boolean;
 	lastToolCallName?: string;
+	/** Current planner stage, shown as operational progress rather than reasoning. */
+	activeStep?: string;
 };
 
 export type ChatViewOptions = {
@@ -103,6 +105,9 @@ export function createChatView({
 			const running_ = visible.filter(
 				(entry) => entry.kind === "call" && entry.status === "running",
 			);
+			const activeStep = visible
+				.filter((entry) => entry.kind === "step" && entry.status === "running")
+				.at(-1);
 
 			return {
 				messages: visible
@@ -116,6 +121,7 @@ export function createChatView({
 					running_.at(-1)?.kind === "call"
 						? (running_.at(-1) as { name: string }).name
 						: undefined,
+				activeStep: activeStep?.kind === "step" ? activeStep.step : undefined,
 			};
 		},
 	);

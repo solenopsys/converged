@@ -13,7 +13,7 @@ import * as utils from "@zag-js/utils";
  * only meant more requests.
  */
 
-export { normalizeProps, useMachine } from "@zag-js/preact";
+export { normalizeProps, Portal, useMachine } from "@zag-js/preact";
 export * from "@zag-js/select";
 export * from "@zag-js/tooltip";
 

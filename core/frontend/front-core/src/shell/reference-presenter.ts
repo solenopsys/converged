@@ -6,7 +6,7 @@ import { workspaceTabOpened } from "./workspace";
 function selectionKey(ref: DomainRef): string {
 	if (ref.kind === "object") return ref.id;
 	if (ref.selection.kind === "ids") return ref.selection.ids.join(",");
-	return JSON.stringify(ref.selection.query);
+	return JSON.stringify(ref.selection.filter ?? {});
 }
 
 referencePresented.watch(({ ref, view, options }) => {
@@ -22,9 +22,10 @@ referencePresented.watch(({ ref, view, options }) => {
 			(ref.kind === "set" ? type?.pluralLabel : type?.label) ??
 			ref.type,
 		view: View,
-		props: { ref, bus, ...(view.props?.(ref) ?? {}) },
+		props: { reference: ref, bus, ...(view.props?.(ref) ?? {}) },
 		ref,
 		viewId: view.id,
 		...(options.pinned === undefined ? {} : { pinned: options.pinned }),
+		...(options.source === undefined ? {} : { source: options.source }),
 	});
 });

@@ -64,6 +64,39 @@ const planner = (replies: Record<string, Record<string, unknown>>) =>
 	};
 
 describe("conversation entries", () => {
+	test("captures compact host context once for planning steps", async () => {
+		const { catalog } = catalogWith([{ id: "companies.select", brief: "Select companies" }]);
+		const { driver } = driverOf([]);
+		const inputs: string[] = [];
+		const conversation = createConversation({
+			catalog,
+			driver,
+			prompt: async () => "prompt",
+			turnContext: () => ({
+				activeSelection: {
+					type: "companies.company",
+					selection: { kind: "query", filter: { status: { eq: "active" } } },
+				},
+			}),
+			ask: async ({ step, user, tools }) => {
+				inputs.push(user);
+				return {
+					text: "",
+					toolCalls: [
+						{
+							name: tools[0]?.name ?? step,
+							args: step === "route" ? { intent: "function", area: "companies" } : {},
+						},
+					],
+				};
+			},
+		});
+
+		await conversation.plan("only active companies");
+		expect(inputs.some((input) => input.includes("Current application context"))).toBe(true);
+		expect(inputs.some((input) => input.includes("companies.company"))).toBe(true);
+	});
+
 	test("the timeline stitches streams as references, storing text once", async () => {
 		const { catalog } = catalogWith([{ id: "logs.show", brief: "Show logs" }]);
 		const { driver } = driverOf([answered("here they are")]);
@@ -84,16 +117,17 @@ describe("conversation entries", () => {
 		const entries = conversation.entries.$entries.getState();
 		// The timeline holds ids, never copies of the text.
 		expect(timeline.every((id) => typeof id === "string")).toBe(true);
-		expect(timeline.map((id) => entries.get(id)?.kind)).toEqual([
-			"user",
-			"call",
-			"assistant",
-		]);
+		const timelineKinds = timeline.map((id) => entries.get(id)?.kind);
+		expect(timelineKinds[0]).toBe("user");
+		expect(timelineKinds.at(-2)).toBe("call");
+		expect(timelineKinds.at(-1)).toBe("assistant");
+		expect(timelineKinds).toContain("step");
 
 		const answer = conversation.entries.list().at(-1);
 		expect(answer).toMatchObject({ kind: "assistant", text: "here they are", streaming: false });
 
-		// The step log is a separate stream and stays out of what the user reads.
+		// Steps are available to the screen for a compact progress indicator, but
+		// their input and outcome remain only in the model log.
 		const steps = conversation.entries.log("model:fast");
 		expect(steps.some((entry) => entry.kind === "step" && entry.step === "route")).toBe(true);
 		expect(
@@ -102,7 +136,7 @@ describe("conversation entries", () => {
 				.filter((entry) => entry.step === "invoke")
 				.map((entry) => entry.phase),
 		).toEqual(["apply"]);
-		expect(conversation.entries.log(CONVERSATION).some((e) => e.kind === "step")).toBe(false);
+		expect(conversation.entries.log(CONVERSATION).some((e) => e.kind === "step")).toBe(true);
 	});
 
 	test("streamed text patches one entry instead of appending copies", async () => {

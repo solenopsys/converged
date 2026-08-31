@@ -25,7 +25,7 @@ export type CatalogSource = {
 	/** A host where the group cannot run keeps it out of the candidates. */
 	available?: () => boolean;
 	meta?(key: string): CatalogMeta | undefined;
-	load?(key: string): Promise<void>;
+	load?(key: string): Promise<ToolSpec["parameters"] | void>;
 	invoke(key: string, args: Record<string, unknown>): unknown | Promise<unknown>;
 };
 
@@ -205,7 +205,7 @@ export function createConversationCatalog(
 			},
 			load: async (id) => {
 				const found = owner(id);
-				await found?.source.load?.(found.entry.key);
+				return await found?.source.load?.(found.entry.key);
 			},
 		};
 	};

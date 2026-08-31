@@ -50,6 +50,8 @@ export type ConversationOptions = {
 	tier?: (step: string) => Tier | undefined;
 	/** Names the answer's log; the steps log under their own tier. */
 	model?: string;
+	/** Captures compact host state once so deciding steps share the same view. */
+	turnContext?: () => unknown;
 	domain?: Domain;
 };
 
@@ -113,6 +115,7 @@ export function createConversation({
 	budget,
 	tier,
 	model,
+	turnContext,
 	domain = createDomain("conversation"),
 }: ConversationOptions): Conversation {
 	const entries = createConversationEntries(domain);
@@ -165,9 +168,11 @@ export function createConversation({
 					append({
 						id: entryId,
 						at: trace.startedAt,
-						// Steps are the machine's own reasoning: they belong to the
-						// model's log, not to what the user reads.
-						streams: [`model:${trace.tier}`],
+						// The transcript only projects the current operational stage,
+						// never step input or outcome. Keeping this reference in the
+						// conversation stream gives the user progress during slow model
+						// calls without exposing chain-of-thought.
+						streams: [CONVERSATION, `model:${trace.tier}`],
 						kind: "step",
 						step: trace.step,
 						tier: trace.tier,
@@ -192,7 +197,12 @@ export function createConversation({
 		});
 
 		const startedAt = Date.now();
-		const plan = await machine.run({ userText: text, candidates: [] });
+		const hostContext = turnContext?.();
+		const plan = await machine.run({
+			userText: text,
+			candidates: [],
+			...(hostContext === undefined ? {} : { hostContext }),
+		});
 		if (plan.kind === "function") {
 			const failure =
 				typeof plan.fact === "object" &&

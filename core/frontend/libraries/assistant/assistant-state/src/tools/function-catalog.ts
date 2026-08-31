@@ -46,7 +46,7 @@ export type FunctionCatalogOptions = {
 
 	invoke: (id: string, args: Record<string, unknown>) => unknown | Promise<unknown>;
 
-	load?: (id: string) => Promise<void>;
+	load?: (id: string) => Promise<unknown>;
 };
 
 export function createFunctionCatalogTools({

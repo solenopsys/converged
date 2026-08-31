@@ -14,7 +14,16 @@ export const CHAT_MESSAGES_NAMESPACE = "chat";
 const LOCALES = ["en", "ru", "de", "fr", "es", "it", "pt"] as const;
 const DEFAULT_LOCALE = "en";
 const DEFAULT_MESSAGES = {
-	step: { thinking: "Thinking...", acting: "Working..." },
+	step: {
+		thinking: "Thinking...",
+		acting: "Working...",
+		route: "Understanding request...",
+		search: "Finding available action...",
+		select: "Choosing action...",
+		describe: "Loading available filters...",
+		args: "Preparing query...",
+		invoke: "Running action...",
+	},
 	tool: { checkUploads: "Checking uploads" },
 	shell: {
 		guestStatus: "Guest",

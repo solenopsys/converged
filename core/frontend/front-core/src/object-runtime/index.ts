@@ -32,6 +32,7 @@ export {
 export { ObjectResolver, objectResolver, resolve } from "./resolver";
 export {
 	executeOperation,
+	loadObjectType,
 	operationExecutionFailed,
 	operationExecutionStarted,
 	operationExecutionSucceeded,
@@ -60,6 +61,7 @@ export type {
 	OperationInput,
 	OperationParameters,
 	Operator,
+	PresentationSource,
 	PresentedReference,
 	PresentReferenceOptions,
 	QuerySelection,

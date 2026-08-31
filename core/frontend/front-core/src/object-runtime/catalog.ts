@@ -1,8 +1,15 @@
+import { selectionDefinition } from "../select/descriptor";
+import type { ActiveSelectionContext } from "../select/runtime";
+import { activeSelection } from "../select/runtime";
+import { selectCommandSchema } from "../select/schema";
+import { applySelectCommand } from "../select/selection";
+import type { SelectCommand } from "../select/types";
 import { authorizeObjectType } from "./authorization";
 import { objectRegistry } from "./registry";
 import { objectResolver } from "./resolver";
-import { executeOperation, presentReference } from "./runtime";
+import { executeOperation, loadObjectType, presentReference } from "./runtime";
 import {
+	type CategoryId,
 	type DomainRef,
 	OPERATORS,
 	type Operator,
@@ -99,6 +106,10 @@ const operatorParameters = (targets: OperatorTarget[]) => ({
 			description: "Explicit selected object identifiers",
 		},
 		query: { type: "object", description: "Collection query or filters" },
+		filter: {
+			type: "object",
+			description: "Serializable filter for a selected object set",
+		},
 		categories: {
 			type: "array",
 			items: { type: "string" },
@@ -134,7 +145,17 @@ const CANDIDATE = /^core\.([a-z]+):(.+)$/;
 
 // The candidate fixes the target, so the operator's `targetType` is no longer
 // the caller's to choose.
-const candidateParameters = (): OperatorCatalogEntry["parameters"] => {
+const candidateParameters = (
+	targetType?: string,
+	operator?: Operator,
+): OperatorCatalogEntry["parameters"] => {
+	const type = targetType ? objectRegistry.type(targetType) : undefined;
+	const definition = selectionDefinition(type);
+	if (operator === "select" && definition) {
+		return selectCommandSchema(
+			definition,
+		) as OperatorCatalogEntry["parameters"];
+	}
 	const { targetType: _fixed, ...properties } = operatorParameters(
 		[],
 	).properties;
@@ -178,11 +199,16 @@ export function operatorCandidateEntries(): OperatorCatalogEntry[] {
 						? candidate.label
 						: `${verbs[operator]} ${candidate.label}`,
 				description:
-					candidate.description ?? `${labels[operator]} of ${names || target}`,
+					candidate.description ??
+					(operator === "select"
+						? `Create or update a ${names || target} set. Use for lists, groups, searches, and every request with a condition or filter.`
+						: `${labels[operator]} of ${names || target}`),
 				category: "operator" as const,
 				priority: "primary" as const,
 				exposure: "user" as const,
-				parameters: candidate.operation?.parameters ?? candidateParameters(),
+				parameters:
+					candidate.operation?.parameters ??
+					candidateParameters(candidate.targetType, operator),
 			};
 		}),
 	);
@@ -214,9 +240,54 @@ export async function invokeCatalogEntry(
 	id: string,
 	params: Record<string, unknown> = {},
 	source: "assistant" | "user" = "user",
+	selectionAtTurn?: ActiveSelectionContext | null,
 ): Promise<unknown> {
 	const entry = catalogEntry(id);
 	if (!entry) throw new Error(`[object-runtime] Unknown catalog entry: ${id}`);
+	if (entry.operator === "select" && entry.targetType && !entry.operationId) {
+		const command = params as SelectCommand;
+		if (command.scope !== "new" && command.scope !== "current") {
+			throw new Error("[object-runtime] select requires scope new or current");
+		}
+		if (command.mode !== "replace" && command.mode !== "refine") {
+			throw new Error(
+				"[object-runtime] select requires mode replace or refine",
+			);
+		}
+		const current = selectionAtTurn ?? activeSelection();
+		const ref = applySelectCommand(entry.targetType, command, current?.ref);
+		await loadObjectType(entry.targetType);
+		const type = objectRegistry.type(entry.targetType);
+		const stats =
+			ref.selection.kind === "query" && type?.selection?.inspect
+				? await type.selection.inspect(ref.selection.filter)
+				: undefined;
+		await presentReference(ref, {
+			source,
+			...(command.scope === "current" && current?.tabKey
+				? { key: current.tabKey }
+				: {}),
+		});
+		// A selection is a transport contract, not a UI object. Return a fresh
+		// JSON value so the transcript always receives its filter and count even
+		// when presentation listeners carry live state elsewhere in the runtime.
+		return {
+			selection: {
+				kind: "set" as const,
+				type: ref.type,
+				selection:
+					ref.selection.kind === "ids"
+						? { kind: "ids" as const, ids: [...ref.selection.ids] }
+						: {
+								kind: "query" as const,
+								...(ref.selection.filter
+									? { filter: ref.selection.filter }
+									: {}),
+							},
+			},
+			...(stats ? { stats: { totalCount: Number(stats.totalCount) } } : {}),
+		};
+	}
 	const result = entry.operationId
 		? await executeOperation({
 				operationId: entry.operationId,
@@ -284,7 +355,8 @@ type OperatorInvocation = {
 	id?: string;
 	ids?: string[];
 	query?: Record<string, unknown>;
-	categories?: string[];
+	filter?: Record<string, unknown>;
+	categories?: CategoryId[];
 	params?: Record<string, unknown>;
 	references?: DomainRef[];
 };
@@ -345,9 +417,9 @@ export async function invokeOperator(
 					candidate.targetType,
 					input.ids
 						? { kind: "ids", ids: input.ids }
-						: { kind: "query", query: input.query ?? {} },
+						: { kind: "query", filter: input.filter ?? input.query },
 				)
 			: objectRef(candidate.targetType, input.id));
-	await presentReference(ref);
+	await presentReference(ref, { source });
 	return ref;
 }

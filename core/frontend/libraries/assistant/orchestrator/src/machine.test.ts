@@ -26,7 +26,11 @@ type Reply = string | ((user: string) => string);
 
 // The model answers with a call when it can; `text:` prefixes a prose reply, the
 // fallback path light models still take.
-function replyOf(step: string, reply: string, tools: { name: string }[]): StepAnswer {
+function replyOf(
+	step: string,
+	reply: string,
+	tools: { name: string }[],
+): StepAnswer {
 	if (reply.startsWith("text:")) return { text: reply.slice(5), toolCalls: [] };
 	const name = tools[0]?.name ?? step;
 	return { text: "", toolCalls: [{ name, args: JSON.parse(reply) }] };
@@ -41,7 +45,11 @@ function harness(replies: Partial<Record<string, Reply>>, catalog = CATALOG) {
 			steps.push(step);
 			const reply = replies[step];
 			if (reply === undefined) throw new Error(`unexpected step: ${step}`);
-			return replyOf(step, typeof reply === "function" ? reply(user) : reply, tools);
+			return replyOf(
+				step,
+				typeof reply === "function" ? reply(user) : reply,
+				tools,
+			);
 		},
 	});
 	return { orchestrator, steps };
@@ -55,7 +63,7 @@ describe("orchestrator", () => {
 		expect(steps).toEqual(["route"]);
 	});
 
-	test("a function request runs route, select, args, then invokes it", async () => {
+	test("a function request runs route, select, descriptor, args, then invokes it", async () => {
 		const requiredArguments: OrchestratorCatalog = {
 			...CATALOG,
 			meta: (id) => ({
@@ -68,11 +76,14 @@ describe("orchestrator", () => {
 				},
 			}),
 		};
-		const { orchestrator, steps } = harness({
-			route: '{"intent":"function","area":"logs"}',
-			select: 'text:```json\n{"id":"logs.cold.show"}\n```',
-			args: '{"limit":10}',
-		}, requiredArguments);
+		const { orchestrator, steps } = harness(
+			{
+				route: '{"intent":"function","area":"logs"}',
+				select: 'text:```json\n{"id":"logs.cold.show"}\n```',
+				args: '{"limit":10}',
+			},
+			requiredArguments,
+		);
 
 		expect(await orchestrator.plan("show cold logs")).toEqual({
 			kind: "function",
@@ -80,7 +91,8 @@ describe("orchestrator", () => {
 			args: { limit: 10 },
 			fact: { ok: true, id: "logs.cold.show", args: { limit: 10 } },
 		});
-		// Search and invoke are local, so exactly three vendor calls are made.
+		// Search, descriptor loading and invoke are local, so exactly three vendor
+		// calls are made.
 		expect(steps).toEqual(["route", "select", "args"]);
 	});
 
@@ -121,12 +133,12 @@ describe("orchestrator", () => {
 		);
 
 		const plan = await orchestrator.plan("show cold logs");
-			expect(plan).toMatchObject({
-				kind: "function",
-				id: "logs.cold.show",
-				args: { param: "draft value" },
-			});
-			expect(steps).toEqual(["route", "select", "args"]);
+		expect(plan).toMatchObject({
+			kind: "function",
+			id: "logs.cold.show",
+			args: { param: "draft value" },
+		});
+		expect(steps).toEqual(["route", "select", "args"]);
 	});
 
 	test("an empty catalog does not invent a function", async () => {
@@ -187,7 +199,7 @@ describe("orchestrator", () => {
 		expect(await orchestrator.plan("show logs")).toEqual({ kind: "answer" });
 	});
 
-	test("the top candidate is loaded speculatively while the model chooses", async () => {
+	test("loads the selected function before its arguments are built", async () => {
 		const loaded: string[] = [];
 		const { orchestrator } = harness(
 			{
@@ -199,7 +211,55 @@ describe("orchestrator", () => {
 		);
 
 		await orchestrator.plan("show logs");
-		expect(loaded).toEqual(["logs.hot.show"]);
+		expect(loaded).toEqual(["logs.cold.show"]);
+	});
+
+	test("builds argument schema after the server-owned descriptor is loaded", async () => {
+		let argsSchema = "";
+		const descriptorParameters = {
+			type: "object" as const,
+			properties: {
+				scope: { type: "string" },
+				mode: { type: "string" },
+				filter: {
+					type: "object",
+					properties: { status: { type: "object" } },
+				},
+			},
+		};
+		const selectionCatalog: OrchestratorCatalog = {
+			...CATALOG,
+			meta: (id) => ({
+				id,
+				description: "Select companies",
+				parameters: {
+					type: "object",
+					properties: {
+						scope: { type: "string" },
+						mode: { type: "string" },
+						filter: {
+							type: "object",
+							properties: {},
+						},
+					},
+				},
+			}),
+			load: async () => descriptorParameters,
+		};
+		const { orchestrator } = harness(
+			{
+				route: '{"intent":"function","area":"logs"}',
+				select: '{"id":"logs.cold.show"}',
+				args: (input) => {
+					argsSchema = input;
+					return '{"scope":"new","mode":"replace","filter":{"status":{"eq":"active"}}}';
+				},
+			},
+			selectionCatalog,
+		);
+
+		await orchestrator.plan("show active companies");
+		expect(argsSchema).toContain('"status"');
 	});
 
 	test("a large result does not enter the context and returns a reference requirement", async () => {
@@ -218,7 +278,9 @@ describe("orchestrator", () => {
 
 		const plan = await orchestrator.plan("show logs");
 		expect(plan).toMatchObject({ kind: "function", fact: { ok: false } });
-		expect((plan as { fact: { error: string } }).fact.error).toContain("reference");
+		expect((plan as { fact: { error: string } }).fact.error).toContain(
+			"reference",
+		);
 	});
 });
 
@@ -237,7 +299,10 @@ describe("machine", () => {
 						: step === "select"
 							? { id: "logs.hot.show" }
 							: {};
-				return { text: "", toolCalls: [{ name: tools[0]?.name ?? step, args }] };
+				return {
+					text: "",
+					toolCalls: [{ name: tools[0]?.name ?? step, args }],
+				};
 			},
 		});
 
@@ -269,7 +334,10 @@ describe("machine", () => {
 						: step === "select"
 							? { id: "logs.hot.show" }
 							: {};
-				return { text: "", toolCalls: [{ name: tools[0]?.name ?? step, args }] };
+				return {
+					text: "",
+					toolCalls: [{ name: tools[0]?.name ?? step, args }],
+				};
 			},
 		});
 
@@ -335,7 +403,8 @@ describe("machine", () => {
 	});
 
 	test("step tracing is emitted on entry and completion", async () => {
-		const traces: Array<{ step: string; phase: string; finished: boolean }> = [];
+		const traces: Array<{ step: string; phase: string; finished: boolean }> =
+			[];
 		const orchestrator = createOrchestrator({
 			prompt: async () => "p",
 			catalog: CATALOG,
@@ -347,7 +416,9 @@ describe("machine", () => {
 				}),
 			ask: async ({ tools }) => ({
 				text: "",
-				toolCalls: [{ name: tools[0]?.name ?? "route", args: { intent: "answer" } }],
+				toolCalls: [
+					{ name: tools[0]?.name ?? "route", args: { intent: "answer" } },
+				],
 			}),
 		});
 
@@ -361,8 +432,17 @@ describe("machine", () => {
 	});
 
 	test("built-in step names cover the table", () => {
-		const names = createFunctionSteps({ catalog: CATALOG }).map((step) => step.name);
-		const expected: StepName[] = ["route", "search", "select", "args", "invoke"];
+		const names = createFunctionSteps({ catalog: CATALOG }).map(
+			(step) => step.name,
+		);
+		const expected: StepName[] = [
+			"route",
+			"search",
+			"select",
+			"describe",
+			"args",
+			"invoke",
+		];
 		expect(names).toEqual(expected as string[]);
 	});
 });
@@ -396,9 +476,9 @@ describe("empty step reply", () => {
 			ask: async () => ({ text: "   ", toolCalls: [] }),
 		});
 
-		expect(machine.run({ userText: "show logs", candidates: [] })).rejects.toThrow(
-			'Step "route" came back empty',
-		);
+		expect(
+			machine.run({ userText: "show logs", candidates: [] }),
+		).rejects.toThrow('Step "route" came back empty');
 	});
 
 	test("is accepted by a step with an explicit empty-answer fallback", async () => {
@@ -409,7 +489,12 @@ describe("empty step reply", () => {
 					allowEmptyAnswer: true,
 					ask: () => "optional values",
 					apply: (_context, answer) => ({
-						done: { kind: "function", id: "mailing.send.form", args: {}, fact: answer },
+						done: {
+							kind: "function",
+							id: "mailing.send.form",
+							args: {},
+							fact: answer,
+						},
 					}),
 				},
 			],
@@ -417,7 +502,9 @@ describe("empty step reply", () => {
 			ask: async () => ({ text: "", toolCalls: [] }),
 		});
 
-		expect(await machine.run({ userText: "open form", candidates: [] })).toEqual({
+		expect(
+			await machine.run({ userText: "open form", candidates: [] }),
+		).toEqual({
 			kind: "function",
 			id: "mailing.send.form",
 			args: {},

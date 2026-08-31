@@ -48,6 +48,7 @@ import {
 	availableChatPanelTabs,
 	resolveChatPanelTab,
 } from "./chat-panel-tabs";
+import { setActiveSelectionResolver } from "../select/runtime";
 import { $currentSurface } from "./surface";
 import "./reference-presenter";
 import "./legacy-widget-presenter";
@@ -368,6 +369,16 @@ export function AppShell({
 	const activePanelTab = resolveChatPanelTab(panelTab, availableTabs);
 	const [activeOperator, setActiveOperator] = useState<Operator | null>(null);
 	const references = surface?.ref ? [surface.ref] : [];
+
+	useEffect(() => {
+		setActiveSelectionResolver(() => {
+			const active = $currentSurface.getState();
+			return active?.ref?.kind === "set"
+				? { ref: active.ref, tabKey: active.key }
+				: null;
+		});
+		return () => setActiveSelectionResolver(undefined);
+	}, []);
 
 	useEffect(() => {
 		warmUpChat(config);

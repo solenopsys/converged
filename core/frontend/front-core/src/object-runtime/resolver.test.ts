@@ -152,7 +152,7 @@ describe("ObjectResolver", () => {
 		);
 		expect(
 			resolver.resolveView(
-				setRef("companies.company", { kind: "query", query: {} }),
+				setRef("companies.company", { kind: "query" }),
 			)?.id,
 		).toBe("companies.companies");
 	});

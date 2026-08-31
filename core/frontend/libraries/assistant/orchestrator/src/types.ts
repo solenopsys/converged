@@ -74,8 +74,11 @@ export type OrchestratorCatalog = {
 		  }
 		| undefined;
 	invoke(id: string, args: Record<string, unknown>): unknown | Promise<unknown>;
-	/** Speculative load of the top candidate while the model builds arguments. */
-	load?(id: string): Promise<void>;
+	/**
+	 * Prepares one selected function for invocation. A host uses this to fetch
+	 * server-owned argument capabilities before the argument model runs.
+	 */
+	load?(id: string): Promise<ToolSpec["parameters"] | void>;
 };
 
 export type StepTrace = {
@@ -123,8 +126,12 @@ export type StepResult<Context> = {
 /** Context of the built-in function flow (steps.ts). */
 export type PlanContext = {
 	userText: string;
+	/** Compact host state captured once at the beginning of a turn. */
+	hostContext?: unknown;
 	area?: string;
 	candidates: FunctionBrief[];
 	id?: string;
+	/** Server-owned argument schema fetched after the function was selected. */
+	parameters?: ToolSpec["parameters"];
 	args?: Record<string, unknown>;
 };

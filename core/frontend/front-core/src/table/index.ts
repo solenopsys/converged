@@ -12,8 +12,13 @@ export {
 	validateFormData,
 } from "./fields";
 export type { FieldConfig } from "./fields";
-export { TableFilterBar } from "./TableFilterBar";
-export type { TableFilterConfig, TableFilterOption, TableFilterValues } from "./TableFilterBar";
+export { FilterHeader } from "./filter-header";
+export type {
+	FilterHeaderProps,
+	TableFilterConfig,
+	TableFilterOption,
+	TableFilterValues,
+} from "./filter-header";
 export {
 	$tableColumnsState,
 	resetColumnWidths,

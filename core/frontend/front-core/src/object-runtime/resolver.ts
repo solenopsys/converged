@@ -142,6 +142,15 @@ export class ObjectResolver {
 							!categoryForOperator ||
 							this.registry.hasCategory(type.id, categoryForOperator),
 					)
+					// A collection is a set, and selecting it is the only generic path
+					// that can preserve or create its predicate. Publishing both `show`
+					// and `select` makes an assistant choose between two near-identical
+					// labels, one of which silently drops filtering capability.
+					.filter(
+						(type) =>
+							operator !== "show" ||
+							!this.registry.hasCategory(type.id, "core.selectable"),
+					)
 					.filter((type) =>
 						requestedCategories.every((category) =>
 							this.registry.hasCategory(type.id, category),

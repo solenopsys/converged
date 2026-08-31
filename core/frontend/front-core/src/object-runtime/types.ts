@@ -53,6 +53,44 @@ export type ObjectDefinition = {
 	access?: DiscoveryAccess;
 	/** Optional existing NRPC permission required to advertise this type. */
 	capability?: string;
+	/** Serializable filter capability used by select, the LLM and collection views. */
+	selection?: {
+		filters: readonly {
+			id: string;
+			label: string;
+			description?: string;
+			valueType: "string" | "number" | "boolean" | "date";
+			operators: readonly string[];
+			options?: readonly {
+				id: string | number | boolean | null;
+				label: string;
+				aliases?: string[];
+			}[];
+			control?: "text" | "select" | "multi-select" | "boolean" | "date-range";
+		}[];
+		load?: (params: any) => Promise<unknown>;
+		inspect?: (filter?: any) => Promise<{
+			totalCount: number;
+			facets?: Record<string, Record<string, number>>;
+		}>;
+		describe?: () => Promise<{
+			fields: Array<{
+				id: string;
+				label: string;
+				description?: string;
+				valueType: "string" | "number" | "boolean" | "date" | "enum";
+				operators: string[];
+				control?: "text" | "select" | "multi-select" | "boolean" | "date-range";
+				values?: Array<{
+					id: string | number | boolean | null;
+					label: string;
+					aliases?: string[];
+				}>;
+			}>;
+			filterExample?: Record<string, unknown>;
+			revision?: string;
+		}>;
+	};
 	// Object-specific capabilities are owned by the microfrontend. The runtime
 	// indexes identity and categories; it does not impose a generic UI schema.
 	[extension: string]: unknown;
@@ -74,7 +112,8 @@ export type IdSelection = {
 
 export type QuerySelection = {
 	kind: "query";
-	query: Record<string, unknown>;
+	/** Canonical, serializable predicate describing members of this set. */
+	filter?: Record<string, unknown>;
 };
 
 export type SetSelection = IdSelection | QuerySelection;
@@ -97,7 +136,11 @@ export type TypeExpression = {
 };
 
 export type ViewRuntimeProps = {
-	ref: DomainRef;
+	/**
+	 * Domain identity supplied to a mounted view. `ref` is reserved by Preact
+	 * for element references and is therefore never delivered as a component prop.
+	 */
+	reference: DomainRef;
 };
 
 export type ViewDefinition = {
@@ -203,14 +246,18 @@ export type ExecuteOperationRequest = {
 	operationId: OperationId;
 	references?: DomainRef[];
 	params?: Record<string, unknown>;
-	source?: "assistant" | "user";
+	source?: PresentationSource;
 };
+
+/** Who initiated a presentation or operation in the workspace. */
+export type PresentationSource = "assistant" | "user";
 
 export type PresentReferenceOptions = {
 	viewId?: ViewId;
 	key?: string;
 	title?: string;
 	pinned?: boolean;
+	source?: PresentationSource;
 };
 
 export type PresentedReference = {

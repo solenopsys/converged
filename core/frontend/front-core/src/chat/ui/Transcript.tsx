@@ -1,13 +1,13 @@
 import { useUnit } from "effector-preact";
 import { useEffect, useRef } from "preact/hooks";
 import { chat } from "../store";
-import { toolActionLabel } from "./labels";
+import { plannerStepLabel, toolActionLabel } from "./labels";
 import { Message, StreamingMessage } from "./Message";
 import { Uploads } from "./Uploads";
 
 
 export function Transcript() {
-	const { messages, isLoading, currentResponse, lastToolCallName } = useUnit(
+	const { messages, isLoading, currentResponse, lastToolCallName, activeStep } = useUnit(
 		chat().store.$chat,
 	);
 	const listRef = useRef<HTMLDivElement>(null);
@@ -47,7 +47,9 @@ export function Transcript() {
 							<i />
 							<i />
 						</span>
-						{toolActionLabel(lastToolCallName)}
+						{activeStep
+							? plannerStepLabel(activeStep)
+							: toolActionLabel(lastToolCallName)}
 					</div>
 				) : null}
 			</div>

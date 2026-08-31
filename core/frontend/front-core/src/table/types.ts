@@ -1,5 +1,9 @@
 import type { ComponentChildren, ComponentType } from "preact";
 import type { ColumnType } from "./constants";
+import type {
+	TableFilterConfig,
+	TableFilterValues,
+} from "./filter-header";
 
 export type ViewMode = "table" | "cards";
 
@@ -104,4 +108,7 @@ export interface InfiniteScrollDataTableProps<TData extends object = TableRowBas
   className?: string;
   tableClassName?: string;
   emptyMessage?: string;
+  filters?: TableFilterConfig[];
+  filterValues?: TableFilterValues;
+  onFilterValuesChange?: (values: TableFilterValues) => void;
 }

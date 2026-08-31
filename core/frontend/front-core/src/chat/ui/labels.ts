@@ -48,6 +48,19 @@ export function toolActionLabel(toolName?: string): string {
 	return guess ? t(guess) : t("step.thinking");
 }
 
+const STEP_KEYS: Record<string, string> = {
+	route: "step.route",
+	search: "step.search",
+	select: "step.select",
+	describe: "step.describe",
+	args: "step.args",
+	invoke: "step.invoke",
+};
+
+export function plannerStepLabel(step?: string): string {
+	return step && STEP_KEYS[step] ? t(STEP_KEYS[step]) : t("step.thinking");
+}
+
 export function formatFileSize(bytes?: number): string {
 	if (!bytes) return "";
 	if (bytes < 1024) return `${bytes} B`;
