@@ -30,6 +30,13 @@ import {
 
 export const brand = "4IR";
 
+// The shared SPA uses this in the workspace surface after authentication.
+// Keep it alongside the landing header so every project exposes the same
+// landing-blocks contract.
+export function BrandLogo() {
+	return brand;
+}
+
 export const header: LandingHeaderRenderer = (context) => (
 	<LandingHeader brand={brand} brandHref="#product" links={context.menu ?? []} />
 );

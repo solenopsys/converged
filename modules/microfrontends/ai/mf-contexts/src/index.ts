@@ -1,4 +1,6 @@
-export const ID = "contexts-mf";
+import { ContextObject } from "./context";
+
+export const ID = ContextObject.microfrontend;
 export const GROUP = {
 	id: "ai",
 	title: "AI",

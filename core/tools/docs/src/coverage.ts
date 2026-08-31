@@ -17,7 +17,7 @@ export function missingModuleDocs(
 			const project = roots.get(module.project);
 			return (
 				!project ||
-				!existsSync(join(project, module.path, "docs", "modules", "index.json"))
+				!existsSync(join(project, module.path, "docs", "index.json"))
 			);
 		})
 		.map((module) => `${module.project}/${module.path}`)

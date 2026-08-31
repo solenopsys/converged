@@ -1,86 +1,78 @@
-import React, { useEffect } from "preact/compat";
 import { useUnit } from "effector-preact";
-import { HeaderPanelLayout, InfiniteScrollDataTable } from "front-core";
-import { RefreshCw, Plus } from "front-core";
 import {
-  $contextsStore,
-  contextsViewMounted,
-  refreshContextsClicked,
-} from "../domain-contexts";
+	HeaderPanelLayout,
+	InfiniteScrollDataTable,
+	Plus,
+	RefreshCw,
+} from "front-core";
+import { presentReference } from "front-core/object-runtime";
+import type { ContextSummary } from "g-contexts";
+import { useEffect } from "preact/hooks";
 import { contextsColumns } from "../config";
-import { ContextEditView } from "./ContextEditView";
+import { contextRef, newContextRef } from "../context";
+import {
+	$contextsStore,
+	contextsViewMounted,
+	refreshContextsClicked,
+} from "../domain-contexts";
 
-const CONTEXT_EDIT_TAB_ID = "context-edit";
+type ContextTableRow = Omit<ContextSummary, "updatedAt"> & {
+	updatedAt: string;
+};
 
-const createEditWidget = (
-  bus: any,
-  params: { name?: string; language?: string },
-) => ({
-  view: ContextEditView,
-  placement: () => `sidebar:tab:${CONTEXT_EDIT_TAB_ID}`,
-  config: { ...params, bus },
-  commands: {},
-});
+export const ContextsListView = () => {
+	const contextsState = useUnit($contextsStore.$state);
 
-function openEditor(bus: any, params: { name?: string; language?: string }) {
-  bus.present({
-    widget: createEditWidget(bus, params),
-    tab: {
-      key: params.name ? `contexts:${params.name}` : "contexts:new",
-      title: params.name ? `Context: ${params.name}` : "New context",
-    },
-  });
-}
+	useEffect(() => {
+		contextsViewMounted();
+	}, []);
 
-export const ContextsListView = ({ bus }: { bus: any }) => {
-  const contextsState = useUnit($contextsStore.$state);
+	const headerConfig = {
+		title: "Contexts",
+		actions: [
+			{
+				id: "new",
+				label: "New",
+				icon: Plus,
+				event: () => void presentReference(newContextRef()),
+				variant: "default" as const,
+			},
+			{
+				id: "refresh",
+				label: "Refresh",
+				icon: RefreshCw,
+				event: refreshContextsClicked,
+				variant: "outline" as const,
+			},
+		],
+	};
 
-  useEffect(() => {
-    contextsViewMounted();
-  }, []);
+	const items: ContextTableRow[] = (
+		(contextsState.items ?? []) as ContextSummary[]
+	).map((item) => ({
+		...item,
+		updatedAt: item.updatedAt ? new Date(item.updatedAt).toLocaleString() : "-",
+		size: item.size ?? "-",
+	}));
 
-  const headerConfig = {
-    title: "Contexts",
-    actions: [
-      {
-        id: "new",
-        label: "New",
-        icon: Plus,
-        event: () => openEditor(bus, {}),
-        variant: "default" as const,
-      },
-      {
-        id: "refresh",
-        label: "Refresh",
-        icon: RefreshCw,
-        event: refreshContextsClicked,
-        variant: "outline" as const,
-      },
-    ],
-  };
+	const handleRowClick = (row: ContextTableRow) => {
+		if (!row?.name) return;
+		void presentReference(
+			contextRef({ name: row.name, language: row.language }),
+		);
+	};
 
-  const items = (contextsState.items || []).map((item: any) => ({
-    ...item,
-    updatedAt: item.updatedAt ? new Date(item.updatedAt).toLocaleString() : "-",
-    size: item.size ?? "-",
-  }));
-
-  const handleRowClick = (row: any) => {
-    if (!row?.name) return;
-    openEditor(bus, { name: row.name, language: row.language });
-  };
-
-  return (
-    <HeaderPanelLayout config={headerConfig}>
-      <InfiniteScrollDataTable
-        data={items}
-        hasMore={contextsState.hasMore}
-        loading={contextsState.loading}
-        columns={contextsColumns}
-        onLoadMore={$contextsStore.loadMore}
-        onRowClick={handleRowClick}
-        viewMode="table"
-      />
-    </HeaderPanelLayout>
-  );
+	return (
+		<HeaderPanelLayout config={headerConfig}>
+			<InfiniteScrollDataTable
+				data={items}
+				hasMore={contextsState.hasMore}
+				loading={contextsState.loading}
+				columns={contextsColumns}
+				onLoadMore={$contextsStore.loadMore}
+				onRowClick={handleRowClick}
+				viewMode="table"
+			/>
+		</HeaderPanelLayout>
+	);
 };

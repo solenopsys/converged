@@ -462,7 +462,12 @@ function logDispatchError(serviceName: string, methodName: string, error: Error 
 	const code = error.code ?? "application_error";
 	const message = error.message || code;
 	const details = error.details === undefined ? "" : ` details=${JSON.stringify(error.details)}`;
-	console.error(`[nrpc:call] ${serviceName}.${methodName} status=${statusCode} code=${code} message="${message}"${details}`);
+	const line = `[nrpc:call] ${serviceName}.${methodName} status=${statusCode} code=${code} message="${message}"${details}`;
+	if (statusCode >= 400 && statusCode < 500) {
+		console.warn(line);
+		return;
+	}
+	console.error(line);
 	if ((isVerboseErrorsEnabled() || process.env.NODE_ENV !== "production") && error.stack) console.error(error.stack);
 }
 

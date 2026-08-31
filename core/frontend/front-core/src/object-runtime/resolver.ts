@@ -110,14 +110,14 @@ export class ObjectResolver {
 				operation,
 			}));
 
-		const categoryForOperator =
-			operator === "select"
-				? "core.selectable"
-				: operator === "create"
-					? "core.creatable"
-					: undefined;
-		const includeTypes =
-			operator === "show" || operator === "select" || operator === "open";
+	const categoryForOperator =
+		operator === "select"
+			? "core.selectable"
+			: operator === "create"
+				? "core.creatable"
+				: undefined;
+	const includeTypes =
+		operator === "show" || operator === "select" || operator === "open";
 		const types = includeTypes
 			? this.registry
 					.allTypes()

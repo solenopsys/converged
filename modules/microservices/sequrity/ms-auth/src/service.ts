@@ -9,6 +9,7 @@ import type {
   RefreshSessionResult,
 } from "./types";
 import { Access, getCurrentWorkspaceContext } from "nrpc";
+import { serviceError } from "back-core";
 import { createHash } from "node:crypto";
 import { StoresController } from "./stores";
 
@@ -115,7 +116,9 @@ export class AuthServiceImpl implements AuthService {
     const tokenHash = this.hashRefreshToken(refreshToken ?? "");
     const record = this.stores.tokens.getRefreshToken(tokenHash);
     if (!record || record.revoked || record.expiresAt <= Date.now()) {
-      throw new Error("Invalid or expired refresh token");
+      // A missing or spent refresh token is an expected unauthenticated state,
+      // not an application failure. The gateway clears the browser cookie.
+      throw serviceError(401, "Invalid or expired refresh token", "INVALID_REFRESH_TOKEN");
     }
     this.stores.tokens.revokeRefreshToken(tokenHash);
     return this.issueRefreshSession(record.userId, record.clientId);

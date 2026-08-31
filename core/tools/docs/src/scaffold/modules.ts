@@ -256,7 +256,7 @@ export async function scaffoldModuleDocs(
 		const project = roots.get(module.project);
 		if (!project) throw new Error(`Project root not found: ${module.project}`);
 
-		const docs = join(project, module.path, "docs", "modules");
+		const docs = join(project, module.path, "docs");
 		const index = join(docs, "index.json");
 		const article = join(docs, `${module.name}.md`);
 		const meta = join(docs, "meta.json");

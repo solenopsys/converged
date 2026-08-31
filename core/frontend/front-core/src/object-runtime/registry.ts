@@ -88,10 +88,6 @@ export class ObjectRegistry {
 		}
 	}
 
-	category(id: string): Owned<CategoryDefinition> | undefined {
-		return this.categories.get(id);
-	}
-
 	type(id: string): Owned<ObjectTypeDefinition> | undefined {
 		return this.types.get(id);
 	}
@@ -102,10 +98,6 @@ export class ObjectRegistry {
 
 	operation(id: string): Owned<OperationDefinition> | undefined {
 		return this.operations.get(id);
-	}
-
-	allCategories(): Owned<CategoryDefinition>[] {
-		return [...this.categories.values()];
 	}
 
 	allTypes(): Owned<ObjectTypeDefinition>[] {
@@ -164,3 +156,10 @@ export async function loadObjectIndex(url = "/mf/index.json"): Promise<void> {
 		);
 	ingestObjectIndex((await response.json()) as ObjectIndexFile);
 }
+	category(id: string): Owned<CategoryDefinition> | undefined {
+		return this.categories.get(id);
+	}
+
+	allCategories(): Owned<CategoryDefinition>[] {
+		return [...this.categories.values()];
+	}
