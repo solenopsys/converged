@@ -5,7 +5,7 @@ export type TableFilterOption = {
 
 export type TableFilterConfig = {
 	id: string;
-	type: "search" | "select" | "multi-select";
+	type: "search" | "select" | "multi-select" | "date-range";
 	label?: string;
 	placeholder?: string;
 	options?: readonly TableFilterOption[];

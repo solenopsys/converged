@@ -1,4 +1,4 @@
-import type { Event, Store } from "effector";
+import type { Store } from "effector";
 import { createEvent, createStore } from "effector";
 import { useUnit } from "effector-preact";
 import type * as React from "preact/compat";
@@ -62,7 +62,7 @@ export interface EntityListViewProps<
 	tabs?: Array<EntityListTab<TData>>;
 
 	$activeTab?: Store<string>;
-	tabChanged?: Event<string>;
+	tabChanged?: (tabId: string) => void;
 	onRowClick?: (rowData: TData) => void;
 	CardComponent?: React.ComponentType<RowCardProps<TData>> | null;
 	viewMode?: ViewMode;

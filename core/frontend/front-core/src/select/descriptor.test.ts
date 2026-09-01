@@ -44,4 +44,33 @@ describe("selection descriptor", () => {
 			},
 		]);
 	});
+
+	test("refreshes server capabilities when requested by the orchestrator", async () => {
+		let revision = 0;
+		const type: ObjectTypeDefinition = {
+			id: "test.live-machine",
+			label: "Machine",
+			selection: {
+				filters: [],
+				describe: async () => {
+					revision += 1;
+					return {
+						fields: [
+							{
+								id: `field-${revision}`,
+								label: "Dynamic field",
+								valueType: "string" as const,
+								operators: ["eq"],
+							},
+						],
+					};
+				},
+			},
+		};
+
+		await loadSelectionDescriptor(type);
+		expect(selectionDefinition(type)?.filters[0]?.id).toBe("field-1");
+		await loadSelectionDescriptor(type, true);
+		expect(selectionDefinition(type)?.filters[0]?.id).toBe("field-2");
+	});
 });

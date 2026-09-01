@@ -76,15 +76,18 @@ export function createMicrofrontendCatalog(): ChatCatalog {
 				}
 				if (entry.operator !== "select" || !type.selection?.describe)
 					return catalogEntry(id)?.parameters;
-				const definition = await loadSelectionDescriptor(type);
+				// The descriptor is a live microservice capability. In development it
+				// may change without a shell reload; production also benefits when a
+				// service exposes tenant-specific fields or presets.
+				const definition = await loadSelectionDescriptor(type, true);
 				if (!definition) {
 					throw new Error(
 						`[chat] Selection descriptor for "${entry.targetType}" is unavailable`,
 					);
 				}
-				if (definition.filters.length === 0) {
+				if (definition.filters.length === 0 && !definition.presets?.length) {
 					throw new Error(
-						`[chat] Selection descriptor for "${entry.targetType}" has no filter fields`,
+						`[chat] Selection descriptor for "${entry.targetType}" has no filter fields or presets`,
 					);
 				}
 				return selectCommandSchema(definition) as FunctionParameters;

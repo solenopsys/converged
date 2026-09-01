@@ -92,6 +92,27 @@ export function selectCommandSchema(
 				description: "replace replaces a filter; refine adds it with AND",
 			},
 			filter: selectionFilterSchema(definition),
+			...(definition.presets?.length
+				? {
+						presets: {
+							type: "array",
+							items: {
+								oneOf: definition.presets.map((preset) => ({
+									type: "object",
+									description: `${preset.id}: ${preset.description ?? preset.label}`,
+									properties: {
+										id: { type: "string", enum: [preset.id] },
+										...(preset.parameters
+											? { params: preset.parameters }
+											: {}),
+									},
+									required: ["id"],
+									additionalProperties: false,
+								})),
+							},
+						},
+					}
+				: {}),
 		},
 		required: ["scope", "mode"],
 		additionalProperties: false,

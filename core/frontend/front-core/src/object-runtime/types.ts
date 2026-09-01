@@ -1,4 +1,5 @@
 import type { ComponentType } from "preact";
+import type { SelectionDescriptor, SelectionPreset } from "back-core";
 
 export const OPERATORS = [
 	"show",
@@ -69,27 +70,11 @@ export type ObjectDefinition = {
 			control?: "text" | "select" | "multi-select" | "boolean" | "date-range";
 		}[];
 		load?: (params: any) => Promise<unknown>;
-		inspect?: (filter?: any) => Promise<{
+		inspect?: (filter?: any, presets?: SelectionPreset[]) => Promise<{
 			totalCount: number;
 			facets?: Record<string, Record<string, number>>;
 		}>;
-		describe?: () => Promise<{
-			fields: Array<{
-				id: string;
-				label: string;
-				description?: string;
-				valueType: "string" | "number" | "boolean" | "date" | "enum";
-				operators: string[];
-				control?: "text" | "select" | "multi-select" | "boolean" | "date-range";
-				values?: Array<{
-					id: string | number | boolean | null;
-					label: string;
-					aliases?: string[];
-				}>;
-			}>;
-			filterExample?: Record<string, unknown>;
-			revision?: string;
-		}>;
+		describe?: () => Promise<SelectionDescriptor>;
 	};
 	// Object-specific capabilities are owned by the microfrontend. The runtime
 	// indexes identity and categories; it does not impose a generic UI schema.
@@ -114,6 +99,8 @@ export type QuerySelection = {
 	kind: "query";
 	/** Canonical, serializable predicate describing members of this set. */
 	filter?: Record<string, unknown>;
+	/** Opaque server-owned predicates combined with filter through AND. */
+	presets?: SelectionPreset[];
 };
 
 export type SetSelection = IdSelection | QuerySelection;

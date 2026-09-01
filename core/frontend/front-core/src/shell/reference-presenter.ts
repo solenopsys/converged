@@ -6,7 +6,10 @@ import { workspaceTabOpened } from "./workspace";
 function selectionKey(ref: DomainRef): string {
 	if (ref.kind === "object") return ref.id;
 	if (ref.selection.kind === "ids") return ref.selection.ids.join(",");
-	return JSON.stringify(ref.selection.filter ?? {});
+	return JSON.stringify({
+		filter: ref.selection.filter ?? {},
+		presets: ref.selection.presets ?? [],
+	});
 }
 
 referencePresented.watch(({ ref, view, options }) => {

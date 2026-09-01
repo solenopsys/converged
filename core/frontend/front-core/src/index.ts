@@ -164,6 +164,10 @@ export {
 	getTableColumns,
 	InfiniteScrollDataTable,
 } from "front-core/table";
+export type {
+	TableFilterConfig,
+	TableFilterValues,
+} from "front-core/table";
 export * from "./icons";
 export { configFromPage } from "./chat/config/from-page";
 export { renderMarkdown } from "./chat/ui/markdown";

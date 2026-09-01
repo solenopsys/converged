@@ -36,4 +36,75 @@ describe("applySelectCommand", () => {
 			}),
 		);
 	});
+
+	test("keeps opaque presets while refining a query", () => {
+		const current = setRef("mailing.mail", {
+			kind: "query",
+			presets: [{ id: "incoming.responses" }],
+		});
+		expect(
+			applySelectCommand(
+				"mailing.mail",
+				{
+					scope: "current",
+					mode: "refine",
+					filter: { date: { gte: "2026-08-01" } },
+				},
+				current,
+			),
+		).toEqual(
+			setRef("mailing.mail", {
+				kind: "query",
+				filter: { date: { gte: "2026-08-01" } },
+				presets: [{ id: "incoming.responses" }],
+			}),
+		);
+	});
+
+	test("refines a query with a preset without adding an undefined filter", () => {
+		const current = setRef("mailing.mail", {
+			kind: "query",
+			filter: { sender: { contains: "@customer.example" } },
+		});
+		expect(
+			applySelectCommand(
+				"mailing.mail",
+				{
+					scope: "current",
+					mode: "refine",
+					presets: [{ id: "incoming.responses" }],
+				},
+				current,
+			),
+		).toEqual(
+			setRef("mailing.mail", {
+				kind: "query",
+				filter: { sender: { contains: "@customer.example" } },
+				presets: [{ id: "incoming.responses" }],
+			}),
+		);
+	});
+
+	test("replaces parameters when refining the same preset", () => {
+		const current = setRef("mailing.mail", {
+			kind: "query",
+			presets: [{ id: "incoming.campaign", params: { id: "old" } }],
+		});
+		expect(
+			applySelectCommand(
+				"mailing.mail",
+				{
+					scope: "current",
+					mode: "refine",
+					presets: [{ id: "incoming.campaign", params: { id: "new" } }],
+				},
+				current,
+			),
+		).toEqual(
+			setRef("mailing.mail", {
+				kind: "query",
+				presets: [{ id: "incoming.campaign", params: { id: "new" } }],
+			}),
+		);
+	});
 });

@@ -260,7 +260,10 @@ export async function invokeCatalogEntry(
 		const type = objectRegistry.type(entry.targetType);
 		const stats =
 			ref.selection.kind === "query" && type?.selection?.inspect
-				? await type.selection.inspect(ref.selection.filter)
+				? await type.selection.inspect(
+						ref.selection.filter,
+						ref.selection.presets,
+					)
 				: undefined;
 		await presentReference(ref, {
 			source,
@@ -282,6 +285,9 @@ export async function invokeCatalogEntry(
 								kind: "query" as const,
 								...(ref.selection.filter
 									? { filter: ref.selection.filter }
+									: {}),
+								...(ref.selection.presets?.length
+									? { presets: ref.selection.presets }
 									: {}),
 							},
 			},

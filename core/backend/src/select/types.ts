@@ -32,6 +32,54 @@ export type FilterSchema = Record<string, FilterFieldDefinition>;
 
 export type FilterInput = Record<string, unknown>;
 
+/**
+ * A named predicate owned and compiled by a microservice. Unlike FilterInput,
+ * its implementation is intentionally opaque to clients: it may be a SQL
+ * subquery, a search query or any other storage-native condition.
+ */
+export type SelectionPreset = {
+	id: string;
+	params?: Record<string, unknown>;
+};
+
+/** Runtime description of a selectable object's server-owned query language. */
+export type SelectionValueDescriptor = {
+	id: FilterScalar;
+	label: string;
+	aliases?: string[];
+};
+
+export type SelectionFieldDescriptor = {
+	id: string;
+	label: string;
+	description?: string;
+	valueType: FilterValueType | "enum";
+	operators: string[];
+	control?: "text" | "select" | "multi-select" | "boolean" | "date-range";
+	values?: SelectionValueDescriptor[];
+};
+
+/** An opaque, server-compiled predicate advertised to UI and LLM. */
+export type SelectionPresetDescriptor = {
+	id: string;
+	label: string;
+	description?: string;
+	control?: "tab" | "button" | "menu";
+	group?: string;
+	parameters?: Record<string, unknown>;
+	defaults?: Record<string, unknown>;
+};
+
+export type SelectionDescriptor = {
+	objectType: string;
+	title: string;
+	description?: string;
+	fields: SelectionFieldDescriptor[];
+	presets?: SelectionPresetDescriptor[];
+	filterExample?: FilterInput;
+	revision?: string;
+};
+
 export type FilterCondition = {
 	kind: "condition";
 	field: string;

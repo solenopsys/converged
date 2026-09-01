@@ -1,6 +1,10 @@
 import type { FilterOperator } from "back-core";
 import type { ObjectTypeDefinition } from "../object-runtime";
-import type { SelectionDefinition, SelectionFilterDefinition } from "./types";
+import type {
+	SelectionDefinition,
+	SelectionFilterDefinition,
+	SelectionPresetDefinition,
+} from "./types";
 
 type RuntimeDescriptor =
 	NonNullable<
@@ -34,15 +38,35 @@ function descriptorDefinition(
 				...(field.control ? { control: field.control } : {}),
 			}),
 		),
+		...(descriptor.presets?.length
+			? {
+					presets: descriptor.presets.map(
+						(preset): SelectionPresetDefinition => ({
+							id: preset.id,
+							label: preset.label,
+							...(preset.description
+								? { description: preset.description }
+								: {}),
+							...(preset.control ? { control: preset.control } : {}),
+							...(preset.group ? { group: preset.group } : {}),
+							...(preset.parameters
+								? { parameters: preset.parameters }
+								: {}),
+							...(preset.defaults ? { defaults: preset.defaults } : {}),
+						}),
+					),
+				}
+			: {}),
 	};
 }
 
 export async function loadSelectionDescriptor(
 	type: ObjectTypeDefinition,
+	refresh = false,
 ): Promise<SelectionDefinition | undefined> {
 	if (!type.selection) return undefined;
 	const cached = descriptors.get(type.id);
-	if (cached) return descriptorDefinition(cached);
+	if (cached && !refresh) return descriptorDefinition(cached);
 	if (!type.selection.describe) {
 		return { filters: type.selection.filters as SelectionFilterDefinition[] };
 	}

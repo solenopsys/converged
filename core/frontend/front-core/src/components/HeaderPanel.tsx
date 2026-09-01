@@ -40,7 +40,7 @@ export interface HeaderPanelConfig {
   title?: string;
   subtitle?: string;
   tabs?: HeaderTab[];
-  $activeTab?: Store<string>;  tabChanged?: EventCallable<string>;  actions?: HeaderAction[];
+  $activeTab?: Store<string>;  tabChanged?: (value: string) => void;  actions?: HeaderAction[];
   selectionActions?: SelectionAction[];
   className?: string;
 }

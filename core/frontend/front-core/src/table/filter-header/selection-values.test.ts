@@ -26,4 +26,12 @@ describe("valuesFromSelectionFilter", () => {
 			}),
 		).toEqual({});
 	});
+
+	test("maps a date range predicate to a date-range control", () => {
+		expect(
+			valuesFromSelectionFilter([{ id: "date", type: "date-range" }], {
+				filter: { date: { between: ["2026-08-01", "2026-08-31"] } },
+			}),
+		).toEqual({ date: ["2026-08-01", "2026-08-31"] });
+	});
 });

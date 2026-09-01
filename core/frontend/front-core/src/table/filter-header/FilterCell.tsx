@@ -1,6 +1,7 @@
 import { FilterMultiSelect } from "./FilterMultiSelect";
 import { FilterSelect } from "./FilterSelect";
 import { FilterTextInput } from "./FilterTextInput";
+import { FilterDateRange } from "./FilterDateRange";
 import type { TableFilterConfig } from "./types";
 
 type FilterCellProps = {
@@ -25,6 +26,15 @@ export function FilterCell({ filter, value, onValueChange }: FilterCellProps) {
 			<FilterMultiSelect
 				filter={filter}
 				value={value}
+				onValueChange={onValueChange}
+			/>
+		);
+	}
+	if (filter.type === "date-range") {
+		return (
+			<FilterDateRange
+				filter={filter}
+				value={Array.isArray(value) ? value.map(String) : []}
 				onValueChange={onValueChange}
 			/>
 		);

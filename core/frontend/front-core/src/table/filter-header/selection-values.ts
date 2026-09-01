@@ -26,6 +26,10 @@ export function valuesFromSelectionFilter(
 		}
 		if (Array.isArray(condition.in)) {
 			values[filter.id] = condition.in.map(String);
+			continue;
+		}
+		if (filter.type === "date-range" && Array.isArray(condition.between)) {
+			values[filter.id] = condition.between.map(String);
 		}
 	}
 	return values;
