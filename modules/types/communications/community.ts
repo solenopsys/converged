@@ -71,7 +71,13 @@ export type TopicListParams = ListParams & {
   sectionId?: SectionId;
   includeArchived?: boolean;
   query?: string;
+	filter?: FilterObject;
 };
+
+export type FilterObject = Record<string, unknown>;
+export type SelectionFieldDescriptor = { id: string; label: string; valueType: "string" | "number" | "boolean" | "date" | "enum"; operators: string[] };
+export type SelectionDescriptor = { objectType: string; title: string; fields: SelectionFieldDescriptor[]; filterExample?: FilterObject; revision?: string };
+export type SelectionStats = { totalCount: number };
 
 export type SectionTreeNode = CommunitySection & {
   children: SectionTreeNode[];
@@ -88,4 +94,6 @@ export interface CommunityService {
   readTopic(id: TopicId): Promise<CommunityTopic | null>;
   deleteTopic(id: TopicId): Promise<boolean>;
   listTopics(params: TopicListParams): Promise<PaginatedResult<CommunityTopic>>;
+	describeSelection(objectType: string): Promise<SelectionDescriptor>;
+	inspectTopics(filter?: FilterObject): Promise<SelectionStats>;
 }

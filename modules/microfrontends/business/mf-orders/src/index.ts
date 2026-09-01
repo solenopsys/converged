@@ -1,5 +1,4 @@
 import definition from "./objects";
-import Panel from "./Panel";
 import "./dashboard-widgets";
 
 export const ID = "orders-mf";
@@ -9,4 +8,4 @@ export const GROUP = {
 	iconName: "IconBriefcase",
 };
 export default definition;
-export { Panel };
+export { OrdersDashboardView } from "./views/OrdersDashboardView";

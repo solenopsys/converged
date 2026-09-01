@@ -1,15 +1,25 @@
-import { SqlStore, generateULID } from "back-core";
+import { applyKyselyFilter, SqlStore, generateULID, type KyselyFilterSchema } from "back-core";
 import type {
   ChatRoom,
   ChatRoomId,
   ChatRoomRole,
   ChatRoomsListParams,
   ChatRoomsListResult,
+	FilterObject,
   ChatRoomUser,
   ChatUserId,
   CreateChatRoomInput,
   UpdateChatRoomInput,
 } from "../../types";
+
+const chatFilterSchema: KyselyFilterSchema = {
+	id: { valueType: "string", operators: ["eq", "in"], column: "id" },
+	title: { valueType: "string", operators: ["eq", "in", "contains", "startsWith", "isNull"], column: "title" },
+	type: { valueType: "string", operators: ["eq", "in", "notEq", "notIn"], column: "type" },
+	archived: { valueType: "boolean", operators: ["eq", "notEq"], column: "archived" },
+	processed: { valueType: "boolean", operators: ["eq", "notEq"], column: "processed" },
+	updatedAt: { valueType: "date", operators: ["gt", "gte", "lt", "lte", "between"], column: "updatedAt" },
+};
 import {
   ChatRoomRepository,
   ChatRoomUserRepository,
@@ -157,6 +167,7 @@ export class ChatsStoreService {
         ),
       );
     }
+		query = applyKyselyFilter(query, params.filter, chatFilterSchema);
 
     const rows = await query
       .orderBy("updatedAt", "desc")
@@ -192,6 +203,7 @@ export class ChatsStoreService {
         ),
       );
     }
+		countQuery = applyKyselyFilter(countQuery, params.filter, chatFilterSchema);
 
     const countResult = await countQuery.executeTakeFirst();
     const totalCount = Number(countResult?.count ?? 0);
@@ -205,6 +217,12 @@ export class ChatsStoreService {
       totalCount,
     };
   }
+
+	async countRooms(filter?: FilterObject): Promise<number> {
+		const query = applyKyselyFilter(this.store.db.selectFrom("chart_rooms").select(({ fn }) => fn.countAll().as("count")), filter, chatFilterSchema);
+		const result = await query.executeTakeFirst();
+		return Number(result?.count ?? 0);
+	}
 
   async addRoomUser(roomId: ChatRoomId, userId: ChatUserId, role?: ChatRoomRole): Promise<void> {
     const room = await this.roomRepo.findById({ id: roomId });

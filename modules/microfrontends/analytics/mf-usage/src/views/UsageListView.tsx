@@ -1,41 +1,31 @@
-import React, { useEffect } from "preact/compat";
-import { useUnit } from "effector-preact";
-import { HeaderPanelLayout, InfiniteScrollDataTable } from "front-core";
-import { RefreshCw } from "front-core";
-import { $usageStore, usageViewMounted, refreshUsageClicked } from "../domain-usage";
+import { createDomain } from "effector";
+import { createInfiniteTableStore, EntityListView } from "front-core";
+import type { SetRef } from "front-core/object-runtime";
+import type { UsageListParams } from "g-usage";
+import { useMemo } from "preact/hooks";
+import usage from "../service";
 import { usageColumns } from "../functions/columns";
 
-export const UsageListView = () => {
-  const usageState = useUnit($usageStore.$state);
-
-  useEffect(() => {
-    usageViewMounted();
+export const UsageListView = ({ reference }: { reference?: SetRef }) => {
+  const store = useMemo(() => {
+    const domain = createDomain(`usage-${crypto.randomUUID()}`);
+    return createInfiniteTableStore(domain, (params) =>
+      usage.listUsage(params as UsageListParams),
+    );
   }, []);
-
-  const headerConfig = {
-    title: "Usage Events",
-    actions: [
-      {
-        id: "refresh",
-        label: "Refresh",
-        icon: RefreshCw,
-        event: refreshUsageClicked,
-        variant: "outline" as const,
-      },
-    ],
-  };
+  const filter =
+    reference?.kind === "set" && reference.selection.kind === "query"
+      ? reference.selection.filter
+      : undefined;
 
   return (
-    <HeaderPanelLayout config={headerConfig}>
-        <InfiniteScrollDataTable
-          data={usageState.items}
-          hasMore={usageState.hasMore}
-          loading={usageState.loading}
-          columns={usageColumns}
-          onLoadMore={$usageStore.loadMore}
-          viewMode="table"
-        />
-    </HeaderPanelLayout>
+    <EntityListView
+      tableId="usage"
+      title="Usage events"
+      store={store}
+      columns={usageColumns}
+      baseFilters={filter ? { filter } : undefined}
+    />
   );
 };
 

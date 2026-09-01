@@ -36,7 +36,27 @@ export type ListMetaParams = {
   status?: StaticStatus;
   contentType?: StaticContentType;
   search?: string;
+	filter?: FilterObject;
 };
+
+export type FilterObject = Record<string, unknown>;
+
+export type SelectionFieldDescriptor = {
+	id: string;
+	label: string;
+	valueType: "string" | "number" | "boolean" | "date" | "enum";
+	operators: string[];
+};
+
+export type SelectionDescriptor = {
+	objectType: string;
+	title: string;
+	fields: SelectionFieldDescriptor[];
+	filterExample?: FilterObject;
+	revision?: string;
+};
+
+export type SelectionStats = { totalCount: number };
 
 export type StaticMetaListResult = {
   items: StaticMeta[];
@@ -224,6 +244,36 @@ export const metadata: ServiceMetadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
+    },
+    {
+      "name": "describeSelection",
+      "parameters": [
+        {
+          "name": "objectType",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "SelectionDescriptor",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "inspectCacheEntries",
+      "parameters": [
+        {
+          "name": "filter",
+          "type": "FilterObject",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "SelectionStats",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -255,7 +305,27 @@ export const metadata: ServiceMetadata = {
     {
       "name": "ListMetaParams",
       "kind": "type",
-      "definition": "{\n  offset: number;\n  limit: number;\n  status?: StaticStatus;\n  contentType?: StaticContentType;\n  search?: string;\n}"
+      "definition": "{\n  offset: number;\n  limit: number;\n  status?: StaticStatus;\n  contentType?: StaticContentType;\n  search?: string;\n\tfilter?: FilterObject;\n}"
+    },
+    {
+      "name": "FilterObject",
+      "kind": "type",
+      "definition": "Record<string, unknown>"
+    },
+    {
+      "name": "SelectionFieldDescriptor",
+      "kind": "type",
+      "definition": "{\n\tid: string;\n\tlabel: string;\n\tvalueType: \"string\" | \"number\" | \"boolean\" | \"date\" | \"enum\";\n\toperators: string[];\n}"
+    },
+    {
+      "name": "SelectionDescriptor",
+      "kind": "type",
+      "definition": "{\n\tobjectType: string;\n\ttitle: string;\n\tfields: SelectionFieldDescriptor[];\n\tfilterExample?: FilterObject;\n\trevision?: string;\n}"
+    },
+    {
+      "name": "SelectionStats",
+      "kind": "type",
+      "definition": "{ totalCount: number }"
     },
     {
       "name": "StaticMetaListResult",
@@ -293,6 +363,8 @@ export interface StaticServiceClient {
   deleteMeta(id: string): Promise<void>;
   deleteEntry(id: string): Promise<void>;
   flush(): Promise<FlushResult>;
+  describeSelection(objectType: string): Promise<SelectionDescriptor>;
+  inspectCacheEntries(filter?: FilterObject): Promise<SelectionStats>;
 }
 
 // Browser factory: frontend builds select this entrypoint automatically.

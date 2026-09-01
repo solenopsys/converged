@@ -5,6 +5,8 @@ import type {
   LogQueryParams,
   LogsStatistic,
   PaginatedResult,
+  SelectionDescriptor,
+  SelectionStats,
 } from "./types";
 import { StoresController } from "./stores";
 
@@ -44,6 +46,30 @@ export class LogsServiceImpl implements LogsService {
   async listCold(params: LogQueryParams): Promise<PaginatedResult<LogEvent>> {
     await this.ensureReady();
     return this.stores.cold.list(params);
+  }
+
+  async describeSelection(objectType: string): Promise<SelectionDescriptor> {
+    if (objectType !== "logs.entry") {
+      throw new Error(`Unsupported log selection object: ${objectType}`);
+    }
+    return {
+      objectType,
+      title: "Logs",
+      fields: [
+        { id: "source", label: "Source", valueType: "string", operators: ["eq", "in", "contains"] },
+        { id: "level", label: "Level", valueType: "number", operators: ["eq", "in", "gte", "lte"] },
+        { id: "code", label: "Code", valueType: "number", operators: ["eq", "in"] },
+        { id: "ts", label: "Timestamp", valueType: "number", operators: ["gt", "gte", "lt", "lte", "between"] },
+        { id: "message", label: "Message", valueType: "string", operators: ["contains", "startsWith"] },
+      ],
+      filterExample: { level: { gte: 2 } },
+      revision: "logs-v1",
+    };
+  }
+
+  async inspectLogs(filter?: Record<string, unknown>): Promise<SelectionStats> {
+    await this.ensureReady();
+    return { totalCount: await this.stores.hot.count(filter) };
   }
 
   async getStatistic(): Promise<LogsStatistic> {

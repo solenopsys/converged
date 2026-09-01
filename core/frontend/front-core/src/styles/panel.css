@@ -9,6 +9,82 @@ textarea {
 	font: inherit;
 }
 
+.pinned-views {
+	min-height: 0;
+	overflow-y: auto;
+	padding: var(--hw-space-3) var(--hw-space-4);
+}
+
+.pinned-view-group + .pinned-view-group {
+	margin-top: var(--hw-space-5);
+}
+
+.pinned-view-group h2 {
+	margin: 0 0 var(--hw-space-2);
+	color: var(--hw-ink-muted);
+	font-size: var(--hw-font-size-xs);
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.pinned-view-group ol {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.pinned-view-group li {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	gap: var(--hw-space-2);
+	border-bottom: 1px solid var(--hw-panel-border);
+}
+
+.pinned-view-group li[data-active="true"] {
+	background: color-mix(in srgb, var(--hw-focus) 10%, transparent);
+}
+
+.pinned-view-open {
+	min-width: 0;
+	padding: var(--hw-space-3) 0;
+	border: 0;
+	background: transparent;
+	color: var(--hw-ink);
+	overflow: hidden;
+	text-align: left;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.pinned-view-actions {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+}
+
+.pinned-view-actions button {
+	display: grid;
+	place-items: center;
+	width: calc(var(--hw-unit) * 5);
+	height: calc(var(--hw-unit) * 5);
+	padding: 0;
+	border: 0;
+	border-radius: 3px;
+	background: transparent;
+	color: var(--hw-ink-muted);
+	cursor: pointer;
+}
+
+.pinned-view-actions button:hover,
+.pinned-view-actions button:focus-visible,
+.pinned-view-open:hover,
+.pinned-view-open:focus-visible {
+	outline: 0;
+	color: var(--hw-focus);
+}
+
 .sr-only {
 	position: absolute;
 	width: 1px;

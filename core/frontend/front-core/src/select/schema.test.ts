@@ -2,6 +2,17 @@ import { describe, expect, test } from "bun:test";
 import { selectCommandSchema, selectionFilterSchema } from "./schema";
 
 describe("selection filter schema", () => {
+	test("defaults an omitted selection to a new replacement set", () => {
+		const schema = selectCommandSchema({ filters: [] });
+		const properties = schema.properties as Record<
+			string,
+			{ default?: string }
+		>;
+
+		expect(properties.scope?.default).toBe("new");
+		expect(properties.mode?.default).toBe("replace");
+	});
+
 	test("publishes service value IDs together with readable labels", () => {
 		const schema = selectionFilterSchema({
 			filters: [

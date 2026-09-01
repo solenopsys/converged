@@ -195,7 +195,27 @@ export type RequestListParams = {
 	offset: number;
 	limit: number;
 	source?: string;
+	filter?: FilterObject;
 };
+
+export type FilterObject = Record<string, unknown>;
+
+export type SelectionFieldDescriptor = {
+	id: string;
+	label: string;
+	valueType: "string" | "number" | "boolean" | "date" | "enum";
+	operators: string[];
+};
+
+export type SelectionDescriptor = {
+	objectType: string;
+	title: string;
+	fields: SelectionFieldDescriptor[];
+	filterExample?: FilterObject;
+	revision?: string;
+};
+
+export type SelectionStats = { totalCount: number };
 
 export type RequestDailyPoint = {
 	date: string;
@@ -391,6 +411,36 @@ export const metadata: ServiceMetadata = {
       "isAsyncIterable": false
     },
     {
+      "name": "describeSelection",
+      "parameters": [
+        {
+          "name": "objectType",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "SelectionDescriptor",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "inspectRequests",
+      "parameters": [
+        {
+          "name": "filter",
+          "type": "FilterObject",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "SelectionStats",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
       "name": "updateStatus",
       "parameters": [
         {
@@ -566,7 +616,27 @@ export const metadata: ServiceMetadata = {
     {
       "name": "RequestListParams",
       "kind": "type",
-      "definition": "{\n\toffset: number;\n\tlimit: number;\n\tsource?: string;\n}"
+      "definition": "{\n\toffset: number;\n\tlimit: number;\n\tsource?: string;\n\tfilter?: FilterObject;\n}"
+    },
+    {
+      "name": "FilterObject",
+      "kind": "type",
+      "definition": "Record<string, unknown>"
+    },
+    {
+      "name": "SelectionFieldDescriptor",
+      "kind": "type",
+      "definition": "{\n\tid: string;\n\tlabel: string;\n\tvalueType: \"string\" | \"number\" | \"boolean\" | \"date\" | \"enum\";\n\toperators: string[];\n}"
+    },
+    {
+      "name": "SelectionDescriptor",
+      "kind": "type",
+      "definition": "{\n\tobjectType: string;\n\ttitle: string;\n\tfields: SelectionFieldDescriptor[];\n\tfilterExample?: FilterObject;\n\trevision?: string;\n}"
+    },
+    {
+      "name": "SelectionStats",
+      "kind": "type",
+      "definition": "{ totalCount: number }"
     },
     {
       "name": "RequestDailyPoint",
@@ -603,6 +673,8 @@ export interface RequestsServiceClient {
   applyRequestUpdate(id: RequestId, patch: RequestModelPatch, actor: string, comment?: string): Promise<RequestModel>;
   patchRequest(id: RequestId, patch: RequestPatch, actor: string, comment?: string): Promise<void>;
   listRequests(params: RequestListParams): Promise<PaginatedResult<Request>>;
+  describeSelection(objectType: string): Promise<SelectionDescriptor>;
+  inspectRequests(filter?: FilterObject): Promise<SelectionStats>;
   updateStatus(id: RequestId, status: RequestStatus, actor: string, comment?: string): Promise<void>;
   listProcessing(requestId: RequestId): Promise<RequestProcessingEntry[]>;
   getRequestMetrics(): Promise<RequestMetrics>;

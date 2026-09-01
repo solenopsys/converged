@@ -10,6 +10,9 @@ import type {
   SectionTreeNode,
   TopicId,
   TopicListParams,
+  FilterObject,
+  SelectionDescriptor,
+  SelectionStats,
 } from "./types";
 import { StoresController } from "./stores";
 
@@ -83,6 +86,29 @@ export class CommunityServiceImpl implements CommunityService {
   async listTopics(params: TopicListParams): Promise<PaginatedResult<CommunityTopic>> {
     await this.ready();
     return this.stores.community.listTopics(params);
+  }
+
+  async describeSelection(objectType: string): Promise<SelectionDescriptor> {
+    if (objectType !== "community.topic") {
+      throw new Error(`Unsupported community selection object: ${objectType}`);
+    }
+    return {
+      objectType,
+      title: "Forum topics",
+      fields: [
+        { id: "title", label: "Topic", valueType: "string", operators: ["eq", "in", "contains", "startsWith", "isNull"] },
+        { id: "sectionId", label: "Section", valueType: "string", operators: ["eq", "in", "notEq", "notIn"] },
+        { id: "createdBy", label: "Author", valueType: "string", operators: ["eq", "in", "notEq", "notIn"] },
+        { id: "isPinned", label: "Pinned", valueType: "boolean", operators: ["eq", "notEq"] },
+        { id: "lastActivityAt", label: "Last activity", valueType: "date", operators: ["gt", "gte", "lt", "lte", "between"] },
+      ],
+      revision: "community-v1",
+    };
+  }
+
+  async inspectTopics(filter?: FilterObject): Promise<SelectionStats> {
+    await this.ready();
+    return { totalCount: await this.stores.community.countTopics(filter) };
   }
 }
 

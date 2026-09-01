@@ -37,7 +37,27 @@ export type ThreadListParams = {
 	offset?: number;
 	limit?: number;
 	kind?: ThreadKind;
+	filter?: FilterObject;
 };
+
+export type FilterObject = Record<string, unknown>;
+
+export type SelectionFieldDescriptor = {
+	id: string;
+	label: string;
+	valueType: "string" | "number" | "boolean" | "date" | "enum";
+	operators: string[];
+};
+
+export type SelectionDescriptor = {
+	objectType: string;
+	title: string;
+	fields: SelectionFieldDescriptor[];
+	filterExample?: FilterObject;
+	revision?: string;
+};
+
+export type SelectionStats = { totalCount: number };
 
 export type PaginatedResult<T> = {
 	items: T[];
@@ -200,6 +220,36 @@ export const metadata: ServiceMetadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
+    },
+    {
+      "name": "describeSelection",
+      "parameters": [
+        {
+          "name": "objectType",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "SelectionDescriptor",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "inspectThreads",
+      "parameters": [
+        {
+          "name": "filter",
+          "type": "FilterObject",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "SelectionStats",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -231,7 +281,27 @@ export const metadata: ServiceMetadata = {
     {
       "name": "ThreadListParams",
       "kind": "type",
-      "definition": "{\n\toffset?: number;\n\tlimit?: number;\n\tkind?: ThreadKind;\n}"
+      "definition": "{\n\toffset?: number;\n\tlimit?: number;\n\tkind?: ThreadKind;\n\tfilter?: FilterObject;\n}"
+    },
+    {
+      "name": "FilterObject",
+      "kind": "type",
+      "definition": "Record<string, unknown>"
+    },
+    {
+      "name": "SelectionFieldDescriptor",
+      "kind": "type",
+      "definition": "{\n\tid: string;\n\tlabel: string;\n\tvalueType: \"string\" | \"number\" | \"boolean\" | \"date\" | \"enum\";\n\toperators: string[];\n}"
+    },
+    {
+      "name": "SelectionDescriptor",
+      "kind": "type",
+      "definition": "{\n\tobjectType: string;\n\ttitle: string;\n\tfields: SelectionFieldDescriptor[];\n\tfilterExample?: FilterObject;\n\trevision?: string;\n}"
+    },
+    {
+      "name": "SelectionStats",
+      "kind": "type",
+      "definition": "{ totalCount: number }"
     },
     {
       "name": "PaginatedResult",
@@ -258,6 +328,8 @@ export interface ThreadsService {
   registerThread(threadId: ULID, kind: ThreadKind): Promise<void>;
   listThreads(params: ThreadListParams): Promise<PaginatedResult<ThreadInfo>>;
   getThreadStats(): Promise<ThreadStats>;
+  describeSelection(objectType: string): Promise<SelectionDescriptor>;
+  inspectThreads(filter?: FilterObject): Promise<SelectionStats>;
 }
 
 // Client interface
@@ -271,6 +343,8 @@ export interface ThreadsServiceClient {
   registerThread(threadId: ULID, kind: ThreadKind): Promise<void>;
   listThreads(params: ThreadListParams): Promise<PaginatedResult<ThreadInfo>>;
   getThreadStats(): Promise<ThreadStats>;
+  describeSelection(objectType: string): Promise<SelectionDescriptor>;
+  inspectThreads(filter?: FilterObject): Promise<SelectionStats>;
 }
 
 // Native factory: cruller-transport -> Fujin -> cluster peer.

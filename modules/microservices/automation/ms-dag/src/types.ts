@@ -37,6 +37,7 @@ export interface DagProcessListParams {
   status?: DagProcessStatus;
   createdFrom?: number;
   createdTo?: number;
+	filter?: Record<string, unknown>;
 }
 
 export interface DagNodeListParams {
@@ -47,6 +48,7 @@ export interface DagNodeListParams {
   state?: DagNodeState;
   createdFrom?: number;
   createdTo?: number;
+	filter?: Record<string, unknown>;
 }
 
 export type DagProcessStatsParams = Pick<DagProcessListParams, "workflowId" | "status" | "createdFrom" | "createdTo">;

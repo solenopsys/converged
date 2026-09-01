@@ -5,6 +5,8 @@ import {
 	objectOf,
 	setOf,
 } from "front-core/object-runtime";
+import { threadsClient } from "./services";
+import { ThreadsListView } from "./views/ThreadsListView";
 import { ThreadsStatsView } from "./views/ThreadsStatsView";
 import { ThreadsView } from "./views/ThreadsView";
 
@@ -14,6 +16,12 @@ export const objects = [
 		label: "Thread",
 		pluralLabel: "Threads",
 		categories: [Category.Communication, Category.Selectable],
+		selection: {
+			filters: [],
+			describe: () => threadsClient.describeSelection("threads.thread"),
+			load: (params) => threadsClient.listThreads(params),
+			inspect: (filter) => threadsClient.inspectThreads(filter),
+		},
 	},
 	{
 		id: "threads.statistic",
@@ -33,18 +41,13 @@ export default defineMicrofrontend({
 			component: ThreadsView,
 			props: (ref) => ({
 				threadId: ref.kind === "object" ? ref.id : undefined,
+				variant: "thread" as const,
 			}),
 		},
 		{
 			id: "threads.thread.table",
 			accepts: setOf("threads.thread"),
-			component: ThreadsView,
-			props: (ref) => ({
-				threadIds:
-					ref.kind === "set" && ref.selection.kind === "ids"
-						? ref.selection.ids
-						: undefined,
-			}),
+			component: ThreadsListView,
 		},
 		{
 			id: "threads.statistic.dashboard",

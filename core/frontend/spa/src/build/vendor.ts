@@ -180,6 +180,13 @@ export const vendorBuilds: readonly VendorBuild[] = [
 		layer: "mf",
 	},
 	{
+		name: "preact-compat-client",
+		entrypoint: "preact-compat-client.ts",
+		outfile: "preact-compat-client.js",
+		external: ["preact", "preact/compat"],
+		layer: "mf",
+	},
+	{
 		name: "effector",
 		entrypoint: "effector.ts",
 		outfile: "effector.js",

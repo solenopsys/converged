@@ -15,6 +15,25 @@ export type UsageEvent = {
   createdAt?: string;
 };
 
+export type FilterObject = Record<string, unknown>;
+
+export type SelectionFieldDescriptor = {
+  id: string;
+  label: string;
+  valueType: "string" | "number" | "boolean" | "date" | "enum";
+  operators: string[];
+};
+
+export type SelectionDescriptor = {
+  objectType: string;
+  title: string;
+  fields: SelectionFieldDescriptor[];
+  filterExample?: FilterObject;
+  revision?: string;
+};
+
+export type SelectionStats = { totalCount: number };
+
 export type UsageListParams = {
   offset: number;
   limit: number;
@@ -22,6 +41,7 @@ export type UsageListParams = {
   user?: string;
   dateFrom?: string;
   dateTo?: string;
+  filter?: FilterObject;
 };
 
 export type UsageStatsParams = {
@@ -29,6 +49,7 @@ export type UsageStatsParams = {
   user?: string;
   dateFrom?: string;
   dateTo?: string;
+  filter?: FilterObject;
 };
 
 export type UsageTotalStats = {
@@ -81,6 +102,36 @@ const metadata: ServiceMetadata = {
         }
       ],
       "returnType": "PaginatedResult<UsageEvent>",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "describeSelection",
+      "parameters": [
+        {
+          "name": "objectType",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "SelectionDescriptor",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "inspectUsage",
+      "parameters": [
+        {
+          "name": "filter",
+          "type": "FilterObject",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "SelectionStats",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -143,14 +194,34 @@ const metadata: ServiceMetadata = {
       "definition": "{\n  id: string;\n  function: string;\n  user: string;\n  date: string;\n  createdAt?: string;\n}"
     },
     {
+      "name": "FilterObject",
+      "kind": "type",
+      "definition": "Record<string, unknown>"
+    },
+    {
+      "name": "SelectionFieldDescriptor",
+      "kind": "type",
+      "definition": "{\n  id: string;\n  label: string;\n  valueType: \"string\" | \"number\" | \"boolean\" | \"date\" | \"enum\";\n  operators: string[];\n}"
+    },
+    {
+      "name": "SelectionDescriptor",
+      "kind": "type",
+      "definition": "{\n  objectType: string;\n  title: string;\n  fields: SelectionFieldDescriptor[];\n  filterExample?: FilterObject;\n  revision?: string;\n}"
+    },
+    {
+      "name": "SelectionStats",
+      "kind": "type",
+      "definition": "{ totalCount: number }"
+    },
+    {
       "name": "UsageListParams",
       "kind": "type",
-      "definition": "{\n  offset: number;\n  limit: number;\n  function?: string;\n  user?: string;\n  dateFrom?: string;\n  dateTo?: string;\n}"
+      "definition": "{\n  offset: number;\n  limit: number;\n  function?: string;\n  user?: string;\n  dateFrom?: string;\n  dateTo?: string;\n  filter?: FilterObject;\n}"
     },
     {
       "name": "UsageStatsParams",
       "kind": "type",
-      "definition": "{\n  function?: string;\n  user?: string;\n  dateFrom?: string;\n  dateTo?: string;\n}"
+      "definition": "{\n  function?: string;\n  user?: string;\n  dateFrom?: string;\n  dateTo?: string;\n  filter?: FilterObject;\n}"
     },
     {
       "name": "UsageTotalStats",
@@ -180,6 +251,8 @@ const metadata: ServiceMetadata = {
 export interface UsageServiceRtClient {
   recordUsage(events: UsageEventInput[]): any;
   listUsage(params: UsageListParams): PaginatedResult<UsageEvent>;
+  describeSelection(objectType: string): SelectionDescriptor;
+  inspectUsage(filter?: FilterObject): SelectionStats;
   getUsageTotal(params?: UsageStatsParams): UsageTotalStats;
   getUsageDaily(params?: UsageStatsParams): UsageDailyStatsItem[];
   getUsageByFunction(params?: UsageStatsParams): UsageFunctionStatsItem[];

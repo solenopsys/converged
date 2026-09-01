@@ -1,5 +1,6 @@
 export type {
   UsageService,
+  FilterObject,
   UsageEvent,
   UsageEventInput,
   UsageListParams,
@@ -8,4 +9,7 @@ export type {
   UsageFunctionStatsItem,
   UsageTotalStats,
   PaginatedResult,
+  SelectionDescriptor,
+  SelectionFieldDescriptor,
+  SelectionStats,
 } from "g-usage";

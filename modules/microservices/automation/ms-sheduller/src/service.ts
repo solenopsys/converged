@@ -10,6 +10,9 @@ import type {
   PaginatedResult,
   ProviderDefinition,
   ShedullerStats,
+  FilterObject,
+  SelectionDescriptor,
+  SelectionStats,
 } from "./types";
 import { StoresController } from "./stores";
 import { getProviderDefinition, listProviderDefinitions } from "./providers";
@@ -107,6 +110,36 @@ export class ShedullerServiceImpl implements ShedullerService {
       history: history.totalCount ?? 0,
       dailyRuns,
     };
+  }
+
+  async describeSelection(objectType: string): Promise<SelectionDescriptor> {
+    if (objectType === "scheduler.cron") {
+      return { objectType, title: "Schedules", fields: [
+        { id: "name", label: "Name", valueType: "string", operators: ["eq", "in", "contains", "startsWith"] },
+        { id: "provider", label: "Provider", valueType: "enum", operators: ["eq", "in", "notEq", "notIn"] },
+        { id: "action", label: "Action", valueType: "enum", operators: ["eq", "in", "notEq", "notIn"] },
+        { id: "status", label: "Status", valueType: "enum", operators: ["eq", "in", "notEq", "notIn"] },
+      ], revision: "scheduler-v1" };
+    }
+    if (objectType === "scheduler.history") {
+      return { objectType, title: "Schedule history", fields: [
+        { id: "cronId", label: "Schedule", valueType: "string", operators: ["eq", "in", "notEq", "notIn"] },
+        { id: "provider", label: "Provider", valueType: "enum", operators: ["eq", "in", "notEq", "notIn"] },
+        { id: "success", label: "Success", valueType: "boolean", operators: ["eq", "notEq"] },
+        { id: "firedAt", label: "Fired at", valueType: "date", operators: ["gt", "gte", "lt", "lte", "between"] },
+      ], revision: "scheduler-v1" };
+    }
+    throw new Error(`Unsupported scheduler selection object: ${objectType}`);
+  }
+
+  async inspectCrons(filter?: FilterObject): Promise<SelectionStats> {
+    await this.init();
+    return { totalCount: await this.stores.crons.count(filter) };
+  }
+
+  async inspectHistory(filter?: FilterObject): Promise<SelectionStats> {
+    await this.init();
+    return { totalCount: await this.stores.history.count(filter) };
   }
 
   private assertInput(input: CronInput) {

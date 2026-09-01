@@ -13,6 +13,9 @@ import type {
   TopicId,
   TopicListParams,
   UserId,
+  FilterObject,
+  SelectionDescriptor,
+  SelectionStats,
 } from "g-community";
 
 export type {
@@ -30,4 +33,7 @@ export type {
   TopicId,
   TopicListParams,
   UserId,
+  FilterObject,
+  SelectionDescriptor,
+  SelectionStats,
 };

@@ -1,8 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-	availableChatPanelTabs,
-	resolveChatPanelTab,
-} from "./chat-panel-tabs";
+import { availableChatPanelTabs, resolveChatPanelTab } from "./chat-panel-tabs";
 
 describe("chat panel tabs", () => {
 	test("a guest sees only chat in production", () => {
@@ -12,7 +9,7 @@ describe("chat panel tabs", () => {
 		});
 
 		expect(tabs.map((tab) => tab.id)).toEqual(["chat"]);
-		expect(resolveChatPanelTab("commands", tabs)).toBe("chat");
+		expect(resolveChatPanelTab("views", tabs)).toBe("chat");
 	});
 
 	test("a guest retains the development log", () => {
@@ -30,10 +27,6 @@ describe("chat panel tabs", () => {
 			isDevelopment: false,
 		});
 
-		expect(tabs.map((tab) => tab.id)).toEqual([
-			"commands",
-			"chat",
-			"events",
-		]);
+		expect(tabs.map((tab) => tab.id)).toEqual(["views", "chat", "events"]);
 	});
 });

@@ -8,6 +8,9 @@ import type {
   WebhookLogListParams,
   PaginatedResult,
   ProviderDefinition,
+  FilterObject,
+  SelectionDescriptor,
+  SelectionStats,
 } from "./types";
 import { StoresController } from "./stores";
 import { getProviderDefinition, listProviderDefinitions } from "./providers";
@@ -40,6 +43,7 @@ export class WebhooksServiceImpl implements WebhooksService {
   }
 
   async createEndpoint(input: WebhookEndpointInput): Promise<{ id: string }> {
+    await this.init();
     this.assertInput(input);
     const endpoint = await this.stores.webhooks.createEndpoint(input);
     return { id: endpoint.id };
@@ -49,6 +53,7 @@ export class WebhooksServiceImpl implements WebhooksService {
     id: string,
     updates: WebhookEndpointUpdate,
   ): Promise<WebhookEndpoint | null> {
+    await this.init();
     if (!id) {
       const error: any = new Error("id is required");
       error.statusCode = 400;
@@ -62,7 +67,8 @@ export class WebhooksServiceImpl implements WebhooksService {
     return await this.stores.webhooks.updateEndpoint(id, updates);
   }
 
-  deleteEndpoint(id: string): Promise<boolean> {
+  async deleteEndpoint(id: string): Promise<boolean> {
+    await this.init();
     if (!id) {
       const error: any = new Error("id is required");
       error.statusCode = 400;
@@ -71,7 +77,8 @@ export class WebhooksServiceImpl implements WebhooksService {
     return this.stores.webhooks.deleteEndpoint(id);
   }
 
-  getEndpoint(id: string): Promise<WebhookEndpoint | null> {
+  async getEndpoint(id: string): Promise<WebhookEndpoint | null> {
+    await this.init();
     if (!id) {
       const error: any = new Error("id is required");
       error.statusCode = 400;
@@ -80,12 +87,43 @@ export class WebhooksServiceImpl implements WebhooksService {
     return this.stores.webhooks.getEndpoint(id);
   }
 
-  listEndpoints(params: WebhookEndpointListParams): Promise<PaginatedResult<WebhookEndpoint>> {
+  async listEndpoints(params: WebhookEndpointListParams): Promise<PaginatedResult<WebhookEndpoint>> {
+    await this.init();
     return this.stores.webhooks.listEndpoints(params);
   }
 
-  listLogs(params: WebhookLogListParams): Promise<PaginatedResult<WebhookLogEntry>> {
+  async listLogs(params: WebhookLogListParams): Promise<PaginatedResult<WebhookLogEntry>> {
+    await this.init();
     return this.stores.webhooks.listLogs(params);
+  }
+
+  async describeSelection(objectType: string): Promise<SelectionDescriptor> {
+    if (objectType === "webhooks.endpoint") {
+      return { objectType, title: "Webhook endpoints", fields: [
+        { id: "name", label: "Name", valueType: "string", operators: ["eq", "in", "contains", "startsWith"] },
+        { id: "provider", label: "Provider", valueType: "enum", operators: ["eq", "in", "notEq", "notIn"] },
+        { id: "enabled", label: "Enabled", valueType: "boolean", operators: ["eq", "notEq"] },
+      ], revision: "webhooks-v1" };
+    }
+    if (objectType === "webhooks.log") {
+      return { objectType, title: "Webhook logs", fields: [
+        { id: "endpointId", label: "Endpoint", valueType: "string", operators: ["eq", "in", "notEq", "notIn"] },
+        { id: "provider", label: "Provider", valueType: "enum", operators: ["eq", "in", "notEq", "notIn"] },
+        { id: "status", label: "Status", valueType: "number", operators: ["eq", "in", "gt", "gte", "lt", "lte", "between", "isNull"] },
+        { id: "createdAt", label: "Created", valueType: "date", operators: ["gt", "gte", "lt", "lte", "between"] },
+      ], revision: "webhooks-v1" };
+    }
+    throw new Error(`Unsupported webhooks selection object: ${objectType}`);
+  }
+
+  async inspectEndpoints(filter?: FilterObject): Promise<SelectionStats> {
+    await this.init();
+    return { totalCount: await this.stores.webhooks.countEndpoints(filter) };
+  }
+
+  async inspectLogs(filter?: FilterObject): Promise<SelectionStats> {
+    await this.init();
+    return { totalCount: await this.stores.webhooks.countLogs(filter) };
   }
 
   private assertInput(input: WebhookEndpointInput) {

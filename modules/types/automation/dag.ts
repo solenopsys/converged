@@ -4,7 +4,24 @@ export type TaskState = "queued" | "processing" | "done" | "failed";
 export type PaginationParams = {
 	offset: number;
 	limit: number;
+	filter?: FilterObject;
 };
+
+export type FilterObject = Record<string, unknown>;
+export type SelectionFieldDescriptor = {
+	id: string;
+	label: string;
+	valueType: "string" | "number" | "boolean" | "date" | "enum";
+	operators: string[];
+};
+export type SelectionDescriptor = {
+	objectType: string;
+	title: string;
+	fields: SelectionFieldDescriptor[];
+	filterExample?: FilterObject;
+	revision?: string;
+};
+export type SelectionStats = { totalCount: number };
 
 export type PaginatedResult<T> = {
 	items: T[];
@@ -67,6 +84,8 @@ export type AvailableWorkflow = {
 	sourceUrl?: string;
 };
 
+export type DagVariable = { key: string; value: unknown };
+
 export type ResumeExecutionsResult = {
 	resumed: number;
 	skipped: number;
@@ -92,6 +111,7 @@ export type TaskTicket = {
 
 export interface DagService {
 	listAvailableWorkflows(): Promise<{ items: AvailableWorkflow[] }>;
+	listWorkflows(params: PaginationParams): Promise<PaginatedResult<AvailableWorkflow>>;
 	openExecution(
 		id: string,
 		workflowName: string,
@@ -150,6 +170,9 @@ export interface DagService {
 	}>;
 
 	listVars(): Promise<{ items: { key: string; value: any }[] }>;
+	listVariables(params: PaginationParams): Promise<PaginatedResult<DagVariable>>;
 	setVar(key: string, value: any): Promise<void>;
 	deleteVar(key: string): Promise<void>;
+	describeSelection(objectType: string): Promise<SelectionDescriptor>;
+	inspectSelection(objectType: string, filter?: FilterObject): Promise<SelectionStats>;
 }

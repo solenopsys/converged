@@ -20,6 +20,15 @@ describe("vendor transport boundary", () => {
 		});
 	});
 
+	test("preact client compatibility has a mapped vendor facade", () => {
+		expect(
+			vendorBuilds.find(({ name }) => name === "preact-compat-client"),
+		).toMatchObject({
+			outfile: "preact-compat-client.js",
+			external: ["preact", "preact/compat"],
+		});
+	});
+
 	test("signal-channel is the only transport owner", () => {
 		const owners = vendorBuilds
 			.filter(({ name }) => name === "signal-channel")

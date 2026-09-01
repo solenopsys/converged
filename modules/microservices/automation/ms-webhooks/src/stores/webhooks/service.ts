@@ -1,4 +1,4 @@
-import { SqlStore, generateULID } from "back-core";
+import { applyKyselyFilter, SqlStore, generateULID, type KyselyFilterSchema } from "back-core";
 import type {
   WebhookEndpoint,
   WebhookEndpointInput,
@@ -8,6 +8,24 @@ import type {
   WebhookLogListParams,
   PaginatedResult,
 } from "../../types";
+
+const endpointFilterSchema: KyselyFilterSchema = {
+  id: { valueType: "string", operators: ["eq", "in"], column: "id" },
+  name: { valueType: "string", operators: ["eq", "in", "contains", "startsWith"], column: "name" },
+  provider: { valueType: "string", operators: ["eq", "in", "notEq", "notIn"], column: "provider" },
+  enabled: { valueType: "boolean", operators: ["eq", "notEq"], column: "enabled" },
+  createdAt: { valueType: "date", operators: ["gt", "gte", "lt", "lte", "between"], column: "createdAt" },
+};
+
+const logFilterSchema: KyselyFilterSchema = {
+  id: { valueType: "number", operators: ["eq", "in", "gt", "gte", "lt", "lte", "between"], column: "id" },
+  endpointId: { valueType: "string", operators: ["eq", "in", "notEq", "notIn"], column: "endpointId" },
+  provider: { valueType: "string", operators: ["eq", "in", "notEq", "notIn"], column: "provider" },
+  method: { valueType: "string", operators: ["eq", "in", "notEq", "notIn"], column: "method" },
+  path: { valueType: "string", operators: ["eq", "contains", "startsWith"], column: "path" },
+  status: { valueType: "number", operators: ["eq", "in", "gt", "gte", "lt", "lte", "between", "isNull"], column: "status" },
+  createdAt: { valueType: "date", operators: ["gt", "gte", "lt", "lte", "between"], column: "createdAt" },
+};
 
 export class WebhooksStoreService {
   constructor(private store: SqlStore) {}
@@ -112,6 +130,7 @@ export class WebhooksStoreService {
     if (params.enabled !== undefined) {
       query = query.where("enabled", "=", params.enabled ? 1 : 0);
     }
+    query = applyKyselyFilter(query, params.filter, endpointFilterSchema);
 
     const items = await query.execute();
 
@@ -125,6 +144,7 @@ export class WebhooksStoreService {
     if (params.enabled !== undefined) {
       countQuery = countQuery.where("enabled", "=", params.enabled ? 1 : 0);
     }
+    countQuery = applyKyselyFilter(countQuery, params.filter, endpointFilterSchema);
 
     const countResult = await countQuery.executeTakeFirst();
     const totalCount = Number(countResult?.count ?? 0);
@@ -184,6 +204,7 @@ export class WebhooksStoreService {
     if (params.provider) {
       query = query.where("provider", "=", params.provider);
     }
+    query = applyKyselyFilter(query, params.filter, logFilterSchema);
 
     const items = await query.execute();
 
@@ -197,6 +218,7 @@ export class WebhooksStoreService {
     if (params.provider) {
       countQuery = countQuery.where("provider", "=", params.provider);
     }
+    countQuery = applyKyselyFilter(countQuery, params.filter, logFilterSchema);
 
     const countResult = await countQuery.executeTakeFirst();
     const totalCount = Number(countResult?.count ?? 0);
@@ -205,6 +227,26 @@ export class WebhooksStoreService {
       items: items.map((row) => this.mapLogRow(row as any)),
       totalCount,
     };
+  }
+
+  async countEndpoints(filter?: Record<string, unknown>): Promise<number> {
+    const query = applyKyselyFilter(
+      this.store.db.selectFrom("webhook_endpoints").select(({ fn }) => fn.countAll().as("count")),
+      filter,
+      endpointFilterSchema,
+    );
+    const result = await query.executeTakeFirst();
+    return Number(result?.count ?? 0);
+  }
+
+  async countLogs(filter?: Record<string, unknown>): Promise<number> {
+    const query = applyKyselyFilter(
+      this.store.db.selectFrom("webhook_logs").select(({ fn }) => fn.countAll().as("count")),
+      filter,
+      logFilterSchema,
+    );
+    const result = await query.executeTakeFirst();
+    return Number(result?.count ?? 0);
   }
 
   private mapEndpointRow(row: any): WebhookEndpoint {

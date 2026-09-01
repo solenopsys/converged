@@ -8,7 +8,7 @@ const pwaEnabled =
 	process.env.PWA_DEV === "true";
 
 const fallbackImportMap = createImportMap(
-	(process.env.MICROFRONTENDS?.split(",") ?? ["functions", "static"])
+	(process.env.MICROFRONTENDS?.split(",") ?? ["assistants", "static"])
 		.map((name) => name.trim().replace(/^mf-/, ""))
 		.filter(Boolean),
 );

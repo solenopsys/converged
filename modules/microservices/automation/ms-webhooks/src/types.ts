@@ -9,4 +9,7 @@ export type {
   ProviderDefinition,
   ProviderParam,
   PaginatedResult,
+  FilterObject,
+  SelectionDescriptor,
+  SelectionStats,
 } from "g-webhooks";

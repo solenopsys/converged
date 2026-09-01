@@ -71,6 +71,25 @@ export type OrderPatch = {
 	notes?: string;
 };
 
+export type FilterObject = Record<string, unknown>;
+
+export type SelectionFieldDescriptor = {
+	id: string;
+	label: string;
+	valueType: "string" | "number" | "boolean" | "date" | "enum";
+	operators: string[];
+};
+
+export type SelectionDescriptor = {
+	objectType: string;
+	title: string;
+	fields: SelectionFieldDescriptor[];
+	filterExample?: FilterObject;
+	revision?: string;
+};
+
+export type SelectionStats = { totalCount: number };
+
 export type OrderListParams = {
 	offset: number;
 	limit: number;
@@ -78,6 +97,7 @@ export type OrderListParams = {
 	status?: OrderStatus;
 	statusGroup?: OrderStatusGroup;
 	productionMethod?: OrderProductionMethod;
+	filter?: FilterObject;
 };
 
 export type OrderStatusCount = {
@@ -97,8 +117,13 @@ export type OrderDashboardStats = {
 	ordersTotal: number;
 	queuedTotal: number;
 	inProgressTotal: number;
+	printingTotal: number;
 	completedTotal: number;
 	blockedTotal: number;
+	materialWeightGrams: number;
+	estimatedPrintingHours: number;
+	availablePrinters: number;
+	printerCapacity: number;
 	utilizationPercent: number;
 };
 
@@ -117,6 +142,8 @@ export interface OrdersService {
 	createOrder(input: OrderInput): Promise<OrderId>;
 	getOrder(id: OrderId): Promise<Order | undefined>;
 	listOrders(params: OrderListParams): Promise<PaginatedResult<Order>>;
+	describeSelection(objectType: string): Promise<SelectionDescriptor>;
+	inspectOrders(filter?: FilterObject): Promise<SelectionStats>;
 	patchOrder(id: OrderId, patch: OrderPatch): Promise<Order>;
 	updateStatus(id: OrderId, status: OrderStatus): Promise<void>;
 	getOrderDashboard(): Promise<OrderDashboard>;

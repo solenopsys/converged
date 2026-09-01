@@ -1,12 +1,15 @@
+import { createDomain } from "effector";
 import { useUnit } from "effector-preact";
 import {
 	Button,
 	cn,
+	createInfiniteTableStore,
 	HeaderPanelLayout,
 	InfiniteScrollDataTable,
 	StatisticCard,
 } from "front-core";
-import type { Order, OrderDailyPoint, OrderStatusGroup } from "g-orders";
+import type { OrderDailyPoint, OrderListParams, OrderStatusGroup } from "g-orders";
+import type { SetRef } from "front-core/object-runtime";
 import type { RequestDailyPoint } from "g-requests";
 import {
 	ClipboardList,
@@ -16,18 +19,14 @@ import {
 	RefreshCw,
 	Send,
 } from "front-core";
-import { useEffect, useMemo } from "preact/compat";
+import { useEffect, useMemo, useState } from "preact/compat";
 import { OrderConversionChart } from "../components/OrderConversionChart";
 import { ordersColumns } from "../config";
 import {
 	$dashboardState,
-	$ordersStore,
-	$statusGroup,
-	openOrderDetail,
-	orderStatusGroupChanged,
-	ordersViewMounted,
-	refreshOrdersClicked,
+	loadDashboardFx,
 } from "../domain-orders";
+import { ordersClient } from "../services";
 
 const STATUS_TABS: Array<{ group: OrderStatusGroup; label: string }> = [
 	{ group: "all", label: "Order Statuses" },
@@ -73,14 +72,31 @@ function formatHours(value: number | undefined) {
 	return `${Math.round(value ?? 0)} h`;
 }
 
-export const OrdersDashboardView = ({ bus: _bus }: { bus: unknown }) => {
-	const tableState = useUnit($ordersStore.$state);
+export const OrdersDashboardView = ({ reference }: { reference?: SetRef }) => {
+	const store = useMemo(() => {
+		const domain = createDomain(`orders-${crypto.randomUUID()}`);
+		return createInfiniteTableStore(domain, (params) =>
+			ordersClient.listOrders(params as OrderListParams),
+		);
+	}, []);
+	const tableState = useUnit(store.$state);
 	const dashboardState = useUnit($dashboardState);
-	const activeGroup = useUnit($statusGroup);
+	const [activeGroup, setActiveGroup] = useState<OrderStatusGroup>("all");
+	const filter =
+		reference?.kind === "set" && reference.selection.kind === "query"
+			? reference.selection.filter
+			: undefined;
 
 	useEffect(() => {
-		ordersViewMounted();
+		loadDashboardFx();
 	}, []);
+
+	useEffect(() => {
+		store.setFilters({
+			...(filter ? { filter } : {}),
+			...(activeGroup === "all" ? {} : { statusGroup: activeGroup }),
+		});
+	}, [activeGroup, filter, store]);
 
 	const headerConfig = {
 		title: "Orders",
@@ -89,7 +105,7 @@ export const OrdersDashboardView = ({ bus: _bus }: { bus: unknown }) => {
 				id: "refresh",
 				label: "Refresh",
 				icon: RefreshCw,
-				event: refreshOrdersClicked,
+				event: store.refresh,
 				variant: "outline" as const,
 			},
 		],
@@ -108,10 +124,6 @@ export const OrdersDashboardView = ({ bus: _bus }: { bus: unknown }) => {
 			),
 		[dashboardState.orders?.daily, dashboardState.requests?.daily],
 	);
-
-	const handleRowClick = (row: Order) => {
-		if (row?.id) openOrderDetail({ recordId: row.id });
-	};
 
 	return (
 		<HeaderPanelLayout config={headerConfig} contentClassName="p-4">
@@ -202,7 +214,7 @@ export const OrdersDashboardView = ({ bus: _bus }: { bus: unknown }) => {
 										variant={active ? "secondary" : "ghost"}
 										size="sm"
 										className={cn("h-8 gap-2", active && "shadow-sm")}
-										onClick={() => orderStatusGroupChanged(tab.group)}
+								onClick={() => setActiveGroup(tab.group)}
 									>
 										{tab.label}
 										<span className="text-xs text-muted-foreground">
@@ -227,8 +239,7 @@ export const OrdersDashboardView = ({ bus: _bus }: { bus: unknown }) => {
 							loading={tableState.loading}
 							loadingMore={tableState.loadingMore}
 							columns={ordersColumns}
-							onRowClick={handleRowClick}
-							onLoadMore={$ordersStore.loadMore}
+							onLoadMore={store.loadMore}
 							viewMode="table"
 							emptyMessage="No production orders yet"
 						/>

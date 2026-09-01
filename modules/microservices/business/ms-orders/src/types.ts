@@ -1,5 +1,6 @@
 export type {
 	EquipmentId,
+	FilterObject,
 	ISODateString,
 	Order,
 	OrderDailyPoint,
@@ -16,4 +17,7 @@ export type {
 	OrdersService,
 	PaginatedResult,
 	RequestId,
+	SelectionDescriptor,
+	SelectionFieldDescriptor,
+	SelectionStats,
 } from "g-orders";

@@ -1,55 +1,41 @@
-import { useUnit } from "effector-preact";
-import { InfiniteScrollDataTable } from "front-core/table";
-import { useEffect } from "preact/hooks";
-import {
-	$logsColdStore,
-	$logsHotStore,
-	logsScreenActivated,
-	logsViewMounted,
-	refreshLogsClicked,
-	type LogsMode,
-} from "../domain-logs";
+import { createDomain } from "effector";
+import { createInfiniteTableStore, EntityListView } from "front-core";
+import type { SetRef } from "front-core/object-runtime";
+import type { LogQueryParams } from "g-logs";
+import { useMemo } from "preact/hooks";
 import { logsColumns } from "../functions/columns";
+import logs from "../service";
 
-export function LogsView({ mode }: { mode: LogsMode }) {
-	const table = useUnit(mode === "hot" ? $logsHotStore.$state : $logsColdStore.$state);
-	const store = mode === "hot" ? $logsHotStore : $logsColdStore;
+export type LogsMode = "hot" | "cold";
 
-	useEffect(() => {
-		logsViewMounted(mode);
+export function LogsView({
+	mode,
+	reference,
+}: {
+	mode: LogsMode;
+	reference?: SetRef;
+}) {
+	const store = useMemo(() => {
+		const domain = createDomain(`logs-${mode}-${crypto.randomUUID()}`);
+		return createInfiniteTableStore(domain, (params) =>
+			mode === "hot"
+				? logs.listHot(params as LogQueryParams)
+				: logs.listCold(params as LogQueryParams),
+		);
 	}, [mode]);
+	const filter =
+		reference?.kind === "set" && reference.selection.kind === "query"
+			? reference.selection.filter
+			: undefined;
 
 	return (
-		<div class="logs-workspace">
-			<header class="logs-workspace-header">
-				<div>
-					<h1>{mode === "hot" ? "Hot logs" : "Cold logs"}</h1>
-					<p>{table.totalCount} entries</p>
-				</div>
-				<div class="logs-workspace-actions">
-					<button type="button" onClick={() => logsScreenActivated("hot")}>
-						Hot
-					</button>
-					<button type="button" onClick={() => logsScreenActivated("cold")}>
-						Cold
-					</button>
-					<button type="button" onClick={refreshLogsClicked}>
-						Refresh
-					</button>
-				</div>
-			</header>
-			{table.error ? <p class="logs-workspace-error">{table.error}</p> : null}
-			<InfiniteScrollDataTable
-				tableId={`logs-${mode}`}
-				columns={logsColumns}
-				data={table.items}
-				totalCount={table.totalCount}
-				hasMore={table.hasMore}
-				loading={table.loading}
-				loadingMore={table.loadingMore}
-				onLoadMore={() => store.loadMore()}
-				emptyMessage="No log entries"
-			/>
-		</div>
+		<EntityListView
+			tableId={`logs-${mode}`}
+			title={mode === "hot" ? "Hot logs" : "Cold logs"}
+			store={store}
+			columns={logsColumns}
+			baseFilters={filter ? { filter } : undefined}
+			emptyMessage="No log entries"
+		/>
 	);
 }

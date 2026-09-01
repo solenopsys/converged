@@ -1,5 +1,12 @@
-import { generateULID, sql, type SqlStore } from "back-core";
+import {
+	applyKyselyFilter,
+	generateULID,
+	sql,
+	type KyselyFilterSchema,
+	type SqlStore,
+} from "back-core";
 import type {
+	FilterObject,
 	PaginatedResult,
 	Request,
 	RequestCollections,
@@ -23,6 +30,12 @@ import type { RequestEntity, RequestProcessingEntity } from "./entities";
 import { RequestRepository } from "./entities";
 import type { RequestRequirementsProvider } from "../requirements/service";
 import { buildRequestModel, inferRequestProcessType, snapshotFields } from "./model";
+
+const requestFilterSchema: KyselyFilterSchema = {
+	source: { valueType: "string", operators: ["eq", "in", "contains", "isNull"], column: "source" },
+	status: { valueType: "string", operators: ["eq", "in", "notEq", "notIn"], column: "status" },
+	createdAt: { valueType: "date", operators: ["gte", "lte", "between"], column: "createdAt" },
+};
 
 export class RequestsStoreService {
 	private readonly repo: RequestRepository;
@@ -212,10 +225,7 @@ export class RequestsStoreService {
 		const limit = params.limit ?? 50;
 		const offset = params.offset ?? 0;
 
-		let query = this.store.db.selectFrom("requests").selectAll();
-		if (params.source) {
-			query = query.where("source", "=", params.source);
-		}
+		let query = this.applyFilters(this.store.db.selectFrom("requests").selectAll(), params);
 
 		const items = await query
 			.orderBy("createdAt", "desc")
@@ -226,9 +236,7 @@ export class RequestsStoreService {
 		let countQuery = this.store.db
 			.selectFrom("requests")
 			.select(({ fn }) => fn.countAll().as("count"));
-		if (params.source) {
-			countQuery = countQuery.where("source", "=", params.source);
-		}
+		countQuery = this.applyFilters(countQuery, params);
 		const countResult = await countQuery.executeTakeFirst();
 		const totalCount = Number(countResult?.count ?? 0);
 
@@ -238,6 +246,24 @@ export class RequestsStoreService {
 			),
 			totalCount,
 		};
+	}
+
+	async countRequests(filter?: FilterObject): Promise<number> {
+		const query = applyKyselyFilter(
+			this.store.db
+				.selectFrom("requests")
+				.select(({ fn }) => fn.countAll().as("count")),
+			filter,
+			requestFilterSchema,
+		);
+		const result = await query.executeTakeFirst();
+		return Number(result?.count ?? 0);
+	}
+
+	private applyFilters(query: any, params: RequestListParams) {
+		let next = query;
+		if (params.source) next = next.where("source", "=", params.source);
+		return applyKyselyFilter(next, params.filter, requestFilterSchema);
 	}
 
 	async updateStatus(

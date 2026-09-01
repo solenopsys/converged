@@ -26,6 +26,7 @@ export const objects = [
 		label: "Session",
 		pluralLabel: "Sessions",
 		categories: [Category.Security],
+		discover: () => authController.snapshot().session !== "account",
 	},
 ] satisfies readonly ObjectDefinition[];
 
@@ -46,6 +47,7 @@ export default defineMicrofrontend({
 			target: "auth.session",
 			label: "Login",
 			access: "public",
+			discover: () => authController.snapshot().session !== "account",
 			output: objectOf("auth.session"),
 			presentOutput: true,
 			invoke: loginRef,

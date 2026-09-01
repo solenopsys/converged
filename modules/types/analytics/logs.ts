@@ -14,6 +14,25 @@ export type LogEventInput = {
   message: string;
 };
 
+export type FilterObject = Record<string, unknown>;
+
+export type SelectionFieldDescriptor = {
+  id: string;
+  label: string;
+  valueType: "string" | "number" | "boolean" | "date" | "enum";
+  operators: string[];
+};
+
+export type SelectionDescriptor = {
+  objectType: string;
+  title: string;
+  fields: SelectionFieldDescriptor[];
+  filterExample?: FilterObject;
+  revision?: string;
+};
+
+export type SelectionStats = { totalCount: number };
+
 export type LogQueryParams = {
   offset: number;
   limit: number;
@@ -22,6 +41,7 @@ export type LogQueryParams = {
   code?: number;
   from_ts?: number;
   to_ts?: number;
+  filter?: FilterObject;
 };
 
 export type PaginatedResult<T> = {
@@ -42,6 +62,8 @@ export interface LogsService {
   write(event: LogEventInput): Promise<void>;
   listHot(params: LogQueryParams): Promise<PaginatedResult<LogEvent>>;
   listCold(params: LogQueryParams): Promise<PaginatedResult<LogEvent>>;
+  describeSelection(objectType: string): Promise<SelectionDescriptor>;
+  inspectLogs(filter?: FilterObject): Promise<SelectionStats>;
   getStatistic(): Promise<LogsStatistic>;
   archiveHotToCold(): Promise<number>;
 }

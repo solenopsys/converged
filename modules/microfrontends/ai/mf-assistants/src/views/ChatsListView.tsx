@@ -2,10 +2,11 @@ import React, { useEffect } from 'preact/compat';
 import { useUnit } from 'effector-preact';
 import { HeaderPanelLayout, InfiniteScrollDataTable, useMicrofrontendTranslation } from 'front-core';
 import { Plus, RefreshCw } from "front-core";
+import { objectRef, presentReference } from "front-core/object-runtime";
 import { $chatsStore, chatsListViewMounted, refreshChatsClicked, addChatClicked } from '../domain-chats';
 import { createChatsColumns } from '../config';
 
-export const ChatsListView = ({ bus }) => {
+export const ChatsListView = () => {
   const chatsState = useUnit($chatsStore.$state);
   const { t } = useMicrofrontendTranslation('assistants-mf');
 
@@ -36,7 +37,11 @@ export const ChatsListView = ({ bus }) => {
   const handleRowClick = (row) => {
     const recordId = row.threadId || row.id || row.chatId;
     if (!recordId) return;
-    bus.run('chats.view', { recordId });
+    const title = typeof row.name === "string" && row.name.trim() ? row.name : undefined;
+    void presentReference(
+      objectRef("assistants.chat", recordId, title ? { title } : {}),
+      { source: "user" },
+    );
   };
 
   return (

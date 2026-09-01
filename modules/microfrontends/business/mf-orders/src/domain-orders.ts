@@ -24,7 +24,7 @@ const listOrdersFx = domain.createEffect({
 	},
 });
 
-const loadDashboardFx = domain.createEffect({
+export const loadDashboardFx = domain.createEffect({
 	name: "LOAD_ORDERS_DASHBOARD",
 	handler: async (): Promise<{
 		orders: OrderDashboard;

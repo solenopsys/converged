@@ -1,4 +1,4 @@
-import { SqlStore, generateULID } from "back-core";
+import { applyKyselyFilter, SqlStore, generateULID, type KyselyFilterSchema } from "back-core";
 import type {
   CommunitySection,
   CommunitySectionInput,
@@ -10,6 +10,7 @@ import type {
   SectionTreeNode,
   TopicId,
   TopicListParams,
+  FilterObject,
 } from "../../types";
 import {
   CommunitySectionRepository,
@@ -17,6 +18,18 @@ import {
   type CommunitySectionEntity,
   type CommunityTopicEntity,
 } from "./entities";
+
+const topicFilterSchema: KyselyFilterSchema = {
+  id: { valueType: "string", operators: ["eq", "in"], column: "id" },
+  sectionId: { valueType: "string", operators: ["eq", "in", "notEq", "notIn"], column: "sectionId" },
+  title: { valueType: "string", operators: ["eq", "in", "contains", "startsWith", "isNull"], column: "title" },
+  createdBy: { valueType: "string", operators: ["eq", "in", "notEq", "notIn"], column: "createdBy" },
+  isPinned: { valueType: "boolean", operators: ["eq", "notEq"], column: "isPinned" },
+  isLocked: { valueType: "boolean", operators: ["eq", "notEq"], column: "isLocked" },
+  isArchived: { valueType: "boolean", operators: ["eq", "notEq"], column: "isArchived" },
+  lastActivityAt: { valueType: "date", operators: ["gt", "gte", "lt", "lte", "between"], column: "lastActivityAt" },
+  createdAt: { valueType: "date", operators: ["gt", "gte", "lt", "lte", "between"], column: "createdAt" },
+};
 
 export class CommunityStoreService {
   private readonly sectionRepo: CommunitySectionRepository;
@@ -287,6 +300,7 @@ export class CommunityStoreService {
     if (q) {
       query = query.where("title", "like", `%${q}%`);
     }
+    query = applyKyselyFilter(query, params.filter, topicFilterSchema);
 
     const rows = await query
       .orderBy("isPinned", "desc")
@@ -311,6 +325,7 @@ export class CommunityStoreService {
     if (q) {
       countQuery = countQuery.where("title", "like", `%${q}%`);
     }
+    countQuery = applyKyselyFilter(countQuery, params.filter, topicFilterSchema);
 
     const countResult = await countQuery.executeTakeFirst();
 
@@ -318,6 +333,16 @@ export class CommunityStoreService {
       items: (rows as CommunityTopicEntity[]).map((row) => this.toTopic(row)),
       totalCount: Number(countResult?.count ?? 0),
     };
+  }
+
+  async countTopics(filter?: FilterObject): Promise<number> {
+    let query = this.store.db
+      .selectFrom("community_topics")
+      .select(({ fn }) => fn.countAll().as("count"))
+      .where("isArchived", "=", 0);
+    query = applyKyselyFilter(query, filter, topicFilterSchema);
+    const result = await query.executeTakeFirst();
+    return Number(result?.count ?? 0);
   }
 
   private toSection(entity: CommunitySectionEntity): CommunitySection {

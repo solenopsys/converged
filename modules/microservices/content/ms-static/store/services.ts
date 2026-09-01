@@ -1,4 +1,4 @@
-import { KVStore, SqlStore } from "back-core";
+import { applyKyselyFilter, type KyselyFilterSchema, KVStore, SqlStore } from "back-core";
 import type {
 	ListMetaParams,
 	SetDataParams,
@@ -8,6 +8,15 @@ import type {
 	StaticMeta,
 	StaticStatus,
 } from "../types";
+
+const staticMetaFilterSchema: KyselyFilterSchema = {
+	id: { valueType: "string", operators: ["eq", "in", "contains", "startsWith"], column: "id" },
+	status: { valueType: "string", operators: ["eq", "in", "notEq", "notIn"], column: "status" },
+	contentType: { valueType: "string", operators: ["eq", "in", "notEq", "notIn"], column: "contentType" },
+	size: { valueType: "number", operators: ["eq", "notEq", "gt", "gte", "lt", "lte", "between"], column: "size" },
+	loadedAt: { valueType: "number", operators: ["gt", "gte", "lt", "lte", "between", "isNull"], column: "loadedAt" },
+	updatedAt: { valueType: "number", operators: ["gt", "gte", "lt", "lte", "between"], column: "updatedAt" },
+};
 
 type StaticMetaRow = StaticMeta;
 
@@ -114,6 +123,8 @@ export class MetaStoreService {
 			query = query.where("id", "like", pattern);
 			countQuery = countQuery.where("id", "like", pattern);
 		}
+		query = applyKyselyFilter(query, params.filter, staticMetaFilterSchema);
+		countQuery = applyKyselyFilter(countQuery, params.filter, staticMetaFilterSchema);
 
 		const [items, countRow] = await Promise.all([
 			query
@@ -128,6 +139,16 @@ export class MetaStoreService {
 			items: items as StaticMeta[],
 			totalCount: Number(countRow?.count ?? 0),
 		};
+	}
+
+	async countMeta(filter?: Record<string, unknown>): Promise<number> {
+		const query = applyKyselyFilter(
+			this.db.selectFrom("static_meta").select((eb: any) => eb.fn.countAll().as("count")),
+			filter,
+			staticMetaFilterSchema,
+		);
+		const result = await query.executeTakeFirst();
+		return Number(result?.count ?? 0);
 	}
 
 	async getOneByStatus(status: StaticStatus): Promise<StaticMeta | null> {

@@ -2,12 +2,15 @@ export { createStore, newULID, StoreType } from "back-core";
 
 import type {
 	Message,
+	FilterObject,
 	PaginatedResult,
 	ThreadInfo,
 	ThreadKind,
 	ThreadListParams,
 	ThreadStats,
 	ThreadsService,
+	SelectionDescriptor,
+	SelectionStats,
 	ULID,
 } from "g-threads";
 import { StoresController } from "./stores";
@@ -91,5 +94,27 @@ export default class ThreadsServiceImpl implements ThreadsService {
 	async getThreadStats(): Promise<ThreadStats> {
 		await this.ready();
 		return this.stores.index.stats();
+	}
+
+	async describeSelection(objectType: string): Promise<SelectionDescriptor> {
+		if (objectType !== "threads.thread") {
+			throw new Error(`Unsupported threads selection object: ${objectType}`);
+		}
+		return {
+			objectType,
+			title: "Threads",
+			fields: [
+				{ id: "threadId", label: "Thread", valueType: "string", operators: ["eq", "in", "contains", "startsWith"] },
+				{ id: "kind", label: "Kind", valueType: "enum", operators: ["eq", "in", "notEq", "notIn"] },
+				{ id: "messageCount", label: "Messages", valueType: "number", operators: ["eq", "notEq", "gt", "gte", "lt", "lte", "between"] },
+				{ id: "updatedAt", label: "Updated", valueType: "number", operators: ["gt", "gte", "lt", "lte", "between"] },
+			],
+			revision: "threads-v1",
+		};
+	}
+
+	async inspectThreads(filter?: FilterObject): Promise<SelectionStats> {
+		await this.ready();
+		return { totalCount: await this.stores.index.count(filter) };
 	}
 }

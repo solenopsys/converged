@@ -63,7 +63,7 @@ function formatDimensionsMm(dimensions: {
 	y: number;
 	z: number;
 }): string {
-	return `${formatMillimeters(dimensions.x)} × ${formatMillimeters(dimensions.y)} × ${formatMillimeters(dimensions.z)} mm`;
+	return `${formatMillimeters(dimensions.x)} × ${formatMillimeters(dimensions.y)} × ${formatMillimeters(dimensions.z)} мм`;
 }
 
 function dimensionsFromEstimate(estimate: unknown):
@@ -131,7 +131,7 @@ function inferDimensionsFromAnalysis(value: RequestFieldValue): string | undefin
 		}),
 		{ x: 0, y: 0, z: 0 },
 	);
-	return `${dimensions.length} models from file analysis; max ${formatDimensionsMm(max)}`;
+	return `${dimensions.length} моделей из анализа файлов; максимум ${formatDimensionsMm(max)}`;
 }
 
 function humanizeKey(key: string): string {

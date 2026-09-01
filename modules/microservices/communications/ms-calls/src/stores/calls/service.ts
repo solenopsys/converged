@@ -1,4 +1,4 @@
-import type { CacheAdapter } from "back-core";
+import { applyKyselyFilter, type CacheAdapter, type KyselyFilterSchema } from "back-core";
 import {
 	CACHE_BLOB_TTL_SECONDS,
 	generateULID,
@@ -18,6 +18,7 @@ import type {
 	CallRecordingInput,
 	CallRecordingResult,
 	CallsListParams,
+	FilterObject,
 	DumpAudioFragmentsInput,
 	DumpAudioFragmentsResult,
 	PaginatedResult,
@@ -32,6 +33,15 @@ import {
 	trimSilence,
 } from "./silence";
 import { writeWebMOpus } from "./webm";
+
+const callFilterSchema: KyselyFilterSchema = {
+	id: { valueType: "string", operators: ["eq", "in"], column: "id" },
+	phone: { valueType: "string", operators: ["eq", "in", "contains"], column: "phone" },
+	threadId: { valueType: "string", operators: ["eq", "in", "isNull"], column: "threadId" },
+	startedAt: { valueType: "number", operators: ["gt", "gte", "lt", "lte", "between"], column: "startedAt" },
+	processed: { valueType: "boolean", operators: ["eq", "notEq"], column: "processed" },
+	flud: { valueType: "boolean", operators: ["eq", "notEq"], column: "flud" },
+};
 
 const RECORDING_PREFIX = "recordings";
 const FRAGMENT_PREFIX = "fragments";
@@ -290,19 +300,7 @@ export class CallsStoreService {
 		const limit = params.limit ?? 50;
 		const offset = params.offset ?? 0;
 
-		let query = this.store.db.selectFrom("calls").selectAll();
-		if (params.phone) {
-			query = query.where("phone", "=", params.phone);
-		}
-		if (params.fromTime !== undefined) {
-			query = query.where("startedAt", ">=", params.fromTime);
-		}
-		if (params.toTime !== undefined) {
-			query = query.where("startedAt", "<=", params.toTime);
-		}
-		if (params.processed !== undefined) {
-			query = query.where("processed", "=", params.processed ? 1 : 0);
-		}
+		let query = this.applyFilters(this.store.db.selectFrom("calls").selectAll(), params);
 
 		const items = await query
 			.orderBy("startedAt", "desc")
@@ -313,18 +311,7 @@ export class CallsStoreService {
 		let countQuery = this.store.db
 			.selectFrom("calls")
 			.select(({ fn }) => fn.countAll().as("count"));
-		if (params.phone) {
-			countQuery = countQuery.where("phone", "=", params.phone);
-		}
-		if (params.fromTime !== undefined) {
-			countQuery = countQuery.where("startedAt", ">=", params.fromTime);
-		}
-		if (params.toTime !== undefined) {
-			countQuery = countQuery.where("startedAt", "<=", params.toTime);
-		}
-		if (params.processed !== undefined) {
-			countQuery = countQuery.where("processed", "=", params.processed ? 1 : 0);
-		}
+		countQuery = this.applyFilters(countQuery, params);
 		const countResult = await countQuery.executeTakeFirst();
 		const totalCount = Number(countResult?.count ?? 0);
 
@@ -332,6 +319,21 @@ export class CallsStoreService {
 			items: (items as CallEntity[]).map((item) => this.toCall(item)),
 			totalCount,
 		};
+	}
+
+	async countCalls(filter?: FilterObject): Promise<number> {
+		const query = applyKyselyFilter(this.store.db.selectFrom("calls").select(({ fn }) => fn.countAll().as("count")), filter, callFilterSchema);
+		const result = await query.executeTakeFirst();
+		return Number(result?.count ?? 0);
+	}
+
+	private applyFilters(query: any, params: CallsListParams) {
+		let next = query;
+		if (params.phone) next = next.where("phone", "=", params.phone);
+		if (params.fromTime !== undefined) next = next.where("startedAt", ">=", params.fromTime);
+		if (params.toTime !== undefined) next = next.where("startedAt", "<=", params.toTime);
+		if (params.processed !== undefined) next = next.where("processed", "=", params.processed ? 1 : 0);
+		return applyKyselyFilter(next, params.filter, callFilterSchema);
 	}
 
 	async getRecording(recordId: CallRecordId): Promise<CacheRef | undefined> {

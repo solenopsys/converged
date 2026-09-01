@@ -2,14 +2,8 @@ import { useUnit } from "effector-preact";
 import type { ComponentChildren } from "preact";
 import { TopBar, type TopBarLink } from "./TopBar";
 import { TopBarSettings } from "./TopBarControls";
-import { $workspaceTabViews, workspaceTabActionInvoked } from "./tab-actions";
-import {
-	workspaceReset,
-	workspaceTabActivated,
-	workspaceTabClosed,
-	workspaceTabPinToggled,
-} from "./workspace";
-
+import { $workspaceTabViews } from "./tab-actions";
+import { workspaceTabActivated, workspaceTabPinToggled } from "./workspace";
 
 export function WorkspaceTopBar({
 	brand,
@@ -22,20 +16,18 @@ export function WorkspaceTopBar({
 	links?: TopBarLink[];
 	controls?: ComponentChildren;
 }) {
-	const tabs = useUnit($workspaceTabViews);
+	const tabs = useUnit($workspaceTabViews)
+		.filter((tab) => !tab.pinned)
+		.map(({ actions: _actions, ...tab }) => ({ ...tab, actions: [] }));
 
 	return (
 		<TopBar
 			brand={brand}
 			brandHref={brandHref}
-
-			onBrandClick={tabs.length > 0 ? () => workspaceReset() : undefined}
 			tabs={tabs}
 			links={links}
 			onTabSelect={workspaceTabActivated}
-			onTabClose={workspaceTabClosed}
 			onTabPinToggle={workspaceTabPinToggled}
-			onTabAction={(key, actionId) => workspaceTabActionInvoked({ key, actionId })}
 			controls={
 				<>
 					{controls}

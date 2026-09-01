@@ -80,7 +80,13 @@ export type CallsListParams = {
 	toTime?: number;
 
 	processed?: boolean;
+	filter?: FilterObject;
 };
+
+export type FilterObject = Record<string, unknown>;
+export type SelectionFieldDescriptor = { id: string; label: string; valueType: "string" | "number" | "boolean" | "date" | "enum"; operators: string[] };
+export type SelectionDescriptor = { objectType: string; title: string; fields: SelectionFieldDescriptor[]; filterExample?: FilterObject; revision?: string };
+export type SelectionStats = { totalCount: number };
 
 export type PaginatedResult<T> = {
 	items: T[];
@@ -153,6 +159,8 @@ export interface CallsService {
 
 	updateCall(id: CallId, patch: UpdateCallInput): Promise<Call>;
 	listCalls(params: CallsListParams): Promise<PaginatedResult<Call>>;
+	describeSelection(objectType: string): Promise<SelectionDescriptor>;
+	inspectCalls(filter?: FilterObject): Promise<SelectionStats>;
 	getRecording(recordId: CallRecordId): Promise<CacheRef | undefined>;
 
 	getCallAudio(callId: CallId, source: CallFragmentSource): Promise<CacheRef>;

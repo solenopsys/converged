@@ -21,12 +21,24 @@ export default defineMicrofrontend({
 				"core.creatable",
 				"core.editable",
 			],
+			selection: {
+				filters: [],
+				describe: () => webhooksService.describeSelection("webhooks.endpoint"),
+				load: (params) => webhooksService.listEndpoints(params),
+				inspect: (filter) => webhooksService.inspectEndpoints(filter),
+			},
 		},
 		{
 			id: "webhooks.log",
 			label: "Webhook log",
 			pluralLabel: "Webhook logs",
 			categories: ["core.automation", "core.selectable"],
+			selection: {
+				filters: [],
+				describe: () => webhooksService.describeSelection("webhooks.log"),
+				load: (params) => webhooksService.listLogs(params),
+				inspect: (filter) => webhooksService.inspectLogs(filter),
+			},
 		},
 	],
 	views: [

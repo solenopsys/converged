@@ -8,6 +8,8 @@ import type {
   UsageFunctionStatsItem,
   UsageTotalStats,
   PaginatedResult,
+  SelectionDescriptor,
+  SelectionStats,
 } from "./types";
 import { StoresController } from "./stores";
 
@@ -55,6 +57,28 @@ export class UsageServiceImpl implements UsageService {
   async listUsage(params: UsageListParams): Promise<PaginatedResult<UsageEvent>> {
     await this.ensureReady();
     return this.stores.usage.listUsage(params);
+  }
+
+  async describeSelection(objectType: string): Promise<SelectionDescriptor> {
+    if (objectType !== "usage.record") {
+      throw new Error(`Unsupported usage selection object: ${objectType}`);
+    }
+    return {
+      objectType,
+      title: "Usage events",
+      fields: [
+        { id: "function", label: "Function", valueType: "string", operators: ["eq", "in", "contains"] },
+        { id: "user", label: "User", valueType: "string", operators: ["eq", "in", "contains"] },
+        { id: "date", label: "Date", valueType: "date", operators: ["eq", "gt", "gte", "lt", "lte", "between"] },
+      ],
+      filterExample: { function: { contains: "select" } },
+      revision: "usage-v1",
+    };
+  }
+
+  async inspectUsage(filter?: Record<string, unknown>): Promise<SelectionStats> {
+    await this.ensureReady();
+    return { totalCount: await this.stores.usage.countUsage(filter) };
   }
 
   async getUsageTotal(params?: UsageStatsParams): Promise<UsageTotalStats> {

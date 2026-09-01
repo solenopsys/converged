@@ -13,10 +13,14 @@ type ChatPanelTabDefinition = {
 };
 
 const chatPanelTabs: readonly ChatPanelTabDefinition[] = [
-	{ id: "commands", label: "Commands", requiresAuthentication: true },
+	{ id: "views", label: "Saved", requiresAuthentication: true },
 	{ id: "chat", label: "Chat" },
 	{ id: "events", label: "Events", requiresAuthentication: true },
-	{ id: "trace", label: "Log", available: ({ isDevelopment }) => isDevelopment },
+	{
+		id: "trace",
+		label: "Log",
+		available: ({ isDevelopment }) => isDevelopment,
+	},
 ];
 
 export function availableChatPanelTabs(

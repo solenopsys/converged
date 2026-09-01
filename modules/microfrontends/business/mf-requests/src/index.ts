@@ -1,6 +1,5 @@
 import { LocaleController } from "front-core";
 import definition from "./objects";
-import Panel from "./Panel";
 
 export const ID = "mf-requests";
 export const GROUP = {
@@ -24,4 +23,3 @@ export {
 	ManufacturingRequestPage,
 	RequestDetailView,
 } from "./views/RequestDetailView";
-export { Panel };

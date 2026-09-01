@@ -23,12 +23,24 @@ export default defineMicrofrontend({
 				"core.editable",
 				"core.executable",
 			],
+			selection: {
+				filters: [],
+				describe: () => shedullerService.describeSelection("scheduler.cron"),
+				load: (params) => shedullerService.listCrons(params),
+				inspect: (filter) => shedullerService.inspectCrons(filter),
+			},
 		},
 		{
 			id: "scheduler.history",
 			label: "Schedule history",
 			pluralLabel: "Schedule history",
 			categories: ["core.automation", "core.selectable"],
+			selection: {
+				filters: [],
+				describe: () => shedullerService.describeSelection("scheduler.history"),
+				load: (params) => shedullerService.listHistory(params),
+				inspect: (filter) => shedullerService.inspectHistory(filter),
+			},
 		},
 		{
 			id: "scheduler.statistic",

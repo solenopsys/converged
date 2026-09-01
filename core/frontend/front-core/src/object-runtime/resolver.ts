@@ -63,6 +63,7 @@ export class ObjectResolver {
 		const requestedCategories = context.categories ?? [];
 		const operations = this.registry
 			.allOperations()
+			.filter((operation) => operation.discover?.() ?? true)
 			.filter(
 				(operation) => context.discovery !== "panel" || canDiscover(operation),
 			)
@@ -126,6 +127,7 @@ export class ObjectResolver {
 		const types = includeTypes
 			? this.registry
 					.allTypes()
+					.filter((type) => type.discover?.() ?? true)
 					.filter((type) => context.discovery !== "panel" || canDiscover(type))
 					.filter(
 						(type) =>

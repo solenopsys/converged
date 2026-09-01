@@ -11,7 +11,11 @@ import { join, resolve } from "node:path";
 export const spaRoot = resolve(import.meta.dir, "..", "..");
 export const frontRoot = resolve(spaRoot, "..");
 export const frontCoreRoot = join(frontRoot, "front-core");
-export const microfrontendsRoot = join(frontRoot, "microfrontends");
+export const microfrontendsRoot = join(
+	resolve(spaRoot, "..", "..", ".."),
+	"modules",
+	"microfrontends",
+);
 const projectMicrofrontendsRoots = [
 	process.env.CHILD_PROJECT_DIR,
 	process.env.PROJECT_DIR,
@@ -196,7 +200,7 @@ export const microfrontends =
 	// fetched from the registry at runtime. Unset stays the dev default.
 	(
 		process.env.MICROFRONTENDS === undefined
-			? ["functions", "static"]
+			? ["assistants", "static"]
 			: process.env.MICROFRONTENDS.split(",")
 	)
 		.map((name) => name.trim().replace(/^mf-/, ""))
@@ -204,7 +208,7 @@ export const microfrontends =
 
 /**
  * Microfrontends are laid out in topic folders, but addressed in the delivery
- * by their short name: `functions` → `microfrontends/ai/mf-functions`.
+ * by their short name: `assistants` → `modules/microfrontends/ai/mf-assistants`.
  */
 export function microfrontendDir(name: string): string {
 	for (const root of microfrontendsRoots) {

@@ -152,6 +152,21 @@ describe("RequestsService in-memory", () => {
 		expect(list.items.every((item) => item.source === "landing")).toBe(true);
 	});
 
+	it("applies the standard filter to lists and selection counts", async () => {
+		await requests.createRequest({
+			source: "standard-filter-source",
+			fields: { name: "Filtered request" },
+			files: {},
+		});
+
+		const filter = { source: { eq: "standard-filter-source" } };
+		const list = await requests.listRequests({ offset: 0, limit: 10, filter });
+
+		expect(list.items).toHaveLength(1);
+		expect(list.items[0].source).toBe("standard-filter-source");
+		expect(await requests.countRequests(filter)).toBe(1);
+	});
+
 	it("reports request metrics without treating requests as orders", async () => {
 		await requests.createRequest({
 			source: "landing",

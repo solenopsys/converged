@@ -40,7 +40,13 @@ export type WebhookEndpointListParams = {
   limit: number;
   provider?: string;
   enabled?: boolean;
+  filter?: FilterObject;
 };
+
+export type FilterObject = Record<string, unknown>;
+export type SelectionFieldDescriptor = { id: string; label: string; valueType: "string" | "number" | "boolean" | "date" | "enum"; operators: string[] };
+export type SelectionDescriptor = { objectType: string; title: string; fields: SelectionFieldDescriptor[]; filterExample?: FilterObject; revision?: string };
+export type SelectionStats = { totalCount: number };
 
 export type WebhookLogEntry = {
   id: number;
@@ -61,6 +67,7 @@ export type WebhookLogListParams = {
   limit: number;
   endpointId?: string;
   provider?: string;
+  filter?: FilterObject;
 };
 
 export type PaginatedResult<T> = {
@@ -76,4 +83,7 @@ export interface WebhooksService {
   getEndpoint(id: string): Promise<WebhookEndpoint | null>;
   listEndpoints(params: WebhookEndpointListParams): Promise<PaginatedResult<WebhookEndpoint>>;
   listLogs(params: WebhookLogListParams): Promise<PaginatedResult<WebhookLogEntry>>;
+  describeSelection(objectType: string): Promise<SelectionDescriptor>;
+  inspectEndpoints(filter?: FilterObject): Promise<SelectionStats>;
+  inspectLogs(filter?: FilterObject): Promise<SelectionStats>;
 }

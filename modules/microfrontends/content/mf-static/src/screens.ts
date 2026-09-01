@@ -11,7 +11,7 @@ export const SCREENS = defineScreens([
     view: StaticCacheView,
     surface: "center",
     title: (_value: unknown) =>
-      (resolveEmbeddedMicrofrontendMessage("static-mf", "screens.cache.title") as
+      (resolveEmbeddedMicrofrontendMessage("mf-static", "screens.cache.title") as
         | string
         | undefined) ?? "Static Cache",
   },

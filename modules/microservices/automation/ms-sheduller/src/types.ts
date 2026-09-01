@@ -10,4 +10,7 @@ export type {
   PaginatedResult,
   ProviderDefinition,
   ShedullerStats,
+  FilterObject,
+  SelectionDescriptor,
+  SelectionStats,
 } from "g-sheduller";

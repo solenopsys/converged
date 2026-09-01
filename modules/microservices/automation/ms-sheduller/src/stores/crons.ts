@@ -1,5 +1,15 @@
-import { BaseKeyJson, BaseRepositoryJson, JsonStore, generateULID } from "back-core";
+import { BaseKeyJson, BaseRepositoryJson, createJsonFilterAdapter, JsonStore, generateULID } from "back-core";
 import type { CronEntry, CronInput, CronListParams, PaginatedResult, CronUpdate } from "../types";
+
+const cronFilters = createJsonFilterAdapter<CronEntry>({
+  id: { valueType: "string", operators: ["eq", "in"] },
+  name: { valueType: "string", operators: ["eq", "in", "contains", "startsWith"] },
+  expression: { valueType: "string", operators: ["eq", "contains", "startsWith"] },
+  provider: { valueType: "string", operators: ["eq", "in", "notEq", "notIn"] },
+  action: { valueType: "string", operators: ["eq", "in", "notEq", "notIn"] },
+  status: { valueType: "string", operators: ["eq", "in", "notEq", "notIn"] },
+  createdAt: { valueType: "date", operators: ["gt", "gte", "lt", "lte", "between"] },
+});
 
 class CronKey extends BaseKeyJson {
   readonly type = "cron";
@@ -65,7 +75,10 @@ export class CronsStoreService {
     const offset = params.offset ?? 0;
     const status = params.status;
 
-    const items = (await this.repo.listAll()).filter((entry) => !status || entry.status === status);
+    const predicate = cronFilters.predicate(params.filter);
+    const items = (await this.repo.listAll()).filter((entry) =>
+      (!status || entry.status === status) && predicate(entry),
+    );
 
     items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
@@ -74,5 +87,9 @@ export class CronsStoreService {
       items: paged,
       totalCount: items.length,
     };
+  }
+
+  async count(filter?: Record<string, unknown>): Promise<number> {
+    return (await this.repo.listAll()).filter(cronFilters.predicate(filter)).length;
   }
 }

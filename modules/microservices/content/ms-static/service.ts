@@ -10,7 +10,10 @@ import type {
   StaticMeta,
   StaticMetaListResult,
   StaticService,
-  StaticStatus,
+	StaticStatus,
+	FilterObject,
+	SelectionDescriptor,
+	SelectionStats,
 } from "./types";
 
 function ensureId(id: string): void {
@@ -92,7 +95,7 @@ class StaticServiceImpl extends BaseService<StoresController> implements StaticS
     await this.stores.meta.deleteMeta(id);
   }
 
-  async flush(): Promise<FlushResult> {
+	async flush(): Promise<FlushResult> {
     await this.ready();
     const ids = await this.stores.meta.listIds();
     let removed = 0;
@@ -104,8 +107,31 @@ class StaticServiceImpl extends BaseService<StoresController> implements StaticS
       }
     }
 
-    return { removed };
-  }
+		return { removed };
+	}
+
+	async describeSelection(objectType: string): Promise<SelectionDescriptor> {
+		if (objectType !== "static.cache-entry") {
+			throw new Error(`Unsupported static selection object: ${objectType}`);
+		}
+		return {
+			objectType,
+			title: "SSR cache entries",
+			fields: [
+				{ id: "id", label: "Page ID", valueType: "string", operators: ["eq", "in", "contains", "startsWith"] },
+				{ id: "status", label: "Status", valueType: "enum", operators: ["eq", "in", "notEq", "notIn"] },
+				{ id: "contentType", label: "Content type", valueType: "enum", operators: ["eq", "in", "notEq", "notIn"] },
+				{ id: "size", label: "Size", valueType: "number", operators: ["eq", "notEq", "gt", "gte", "lt", "lte", "between"] },
+				{ id: "updatedAt", label: "Updated", valueType: "date", operators: ["gt", "gte", "lt", "lte", "between"] },
+			],
+			revision: "static-v1",
+		};
+	}
+
+	async inspectCacheEntries(filter?: FilterObject): Promise<SelectionStats> {
+		await this.ready();
+		return { totalCount: await this.stores.meta.countMeta(filter) };
+	}
 }
 
 export default StaticServiceImpl;

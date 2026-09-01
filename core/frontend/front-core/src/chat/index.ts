@@ -14,6 +14,7 @@ export type {
 export type { ChatConfig } from "./config";
 export type { Chat, ChatCatalog } from "./store";
 export { Transcript } from "./ui/Transcript";
+export type { MagicPrompt } from "./ui/MagicPrompts";
 
 export async function initChat(
 	config: ChatConfig,

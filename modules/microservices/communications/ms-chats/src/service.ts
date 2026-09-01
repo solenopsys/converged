@@ -7,12 +7,15 @@ import type {
   ChatRoomRole,
   ChatRoomsListParams,
   ChatRoomsListResult,
+	FilterObject,
   ChatRoomUser,
   ChatUserId,
   CreateChatRoomInput,
   PaginatedResult,
   PaginationParams,
   UpdateChatRoomInput,
+	SelectionDescriptor,
+	SelectionStats,
 } from "./types";
 import { StoresController } from "./stores";
 
@@ -67,6 +70,15 @@ export class ChatsServiceImpl implements ChatsService {
     await this.ready();
     return this.stores.chats.listRooms(params);
   }
+
+	async describeSelection(objectType: string): Promise<SelectionDescriptor> {
+		if (objectType !== "chats.chat") throw new Error(`Unsupported chat selection object: ${objectType}`);
+		return { objectType, title: "Chats", fields: [{ id: "title", label: "Room", valueType: "string", operators: ["eq", "in", "contains", "startsWith", "isNull"] }, { id: "type", label: "Type", valueType: "enum", operators: ["eq", "in", "notEq", "notIn"] }, { id: "archived", label: "Archived", valueType: "boolean", operators: ["eq", "notEq"] }], revision: "chats-v1" };
+	}
+
+	async inspectChats(filter?: FilterObject): Promise<SelectionStats> {
+		await this.ready(); return { totalCount: await this.stores.chats.countRooms(filter) };
+	}
 
   async addRoomUser(roomId: ChatRoomId, userId: ChatUserId, role?: ChatRoomRole): Promise<void> {
     await this.ready();

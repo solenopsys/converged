@@ -1,9 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "preact/compat";
 import { HeaderPanel, ThreadView, Card, CardHeader, CardTitle, CardContent, Button } from "front-core";
-import { createFrontNrpcClientConfig } from "signal-channel";
-import { createThreadsServiceClient, type Message as ThreadMessage } from "g-threads";
-
-const threadsClient = createThreadsServiceClient(createFrontNrpcClientConfig());
+import type { Message as ThreadMessage } from "g-threads";
+import { threadsClient } from "../services";
 
 type ThreadMessageView = {
   id: string;

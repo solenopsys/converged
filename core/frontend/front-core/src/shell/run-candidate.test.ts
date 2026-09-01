@@ -95,4 +95,20 @@ describe("running a resolved candidate", () => {
 		await runCandidate("create", candidateFor("calls.call.create"));
 		expect(executed).toBe(before + 1);
 	});
+
+	// A reference is a composition the user already made — "create an outreach
+	// from these companies". Re-opening an empty screen would discard it.
+	test("a create given a reference runs instead of opening its screen", async () => {
+		const presented: string[] = [];
+		const stop = referencePresented.watch(({ view }) => presented.push(view.id));
+		const before = executed;
+
+		await runCandidate("create", candidateFor("mailing.mail.create"), [
+			{ kind: "set", type: "companies.company", selection: { kind: "ids", ids: ["1"] } },
+		]);
+
+		stop();
+		expect(presented).toEqual([]);
+		expect(executed).toBe(before + 1);
+	});
 });

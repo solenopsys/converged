@@ -48,7 +48,16 @@ export type CronListParams = {
   offset: number;
   limit: number;
   status?: CronStatus;
+  filter?: FilterObject;
 };
+
+export type FilterObject = Record<string, unknown>;
+
+export type SelectionFieldDescriptor = { id: string; label: string; valueType: "string" | "number" | "boolean" | "date" | "enum"; operators: string[] };
+
+export type SelectionDescriptor = { objectType: string; title: string; fields: SelectionFieldDescriptor[]; filterExample?: FilterObject; revision?: string };
+
+export type SelectionStats = { totalCount: number };
 
 export type PaginatedResult<T> = {
   items: T[];
@@ -79,6 +88,7 @@ export type CronHistoryListParams = {
   offset: number;
   limit: number;
   cronId?: string;
+  filter?: FilterObject;
 };
 
 export type ShedullerStats = {
@@ -227,6 +237,51 @@ const metadata: ServiceMetadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
+    },
+    {
+      "name": "describeSelection",
+      "parameters": [
+        {
+          "name": "objectType",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "SelectionDescriptor",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "inspectCrons",
+      "parameters": [
+        {
+          "name": "filter",
+          "type": "FilterObject",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "SelectionStats",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "inspectHistory",
+      "parameters": [
+        {
+          "name": "filter",
+          "type": "FilterObject",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "SelectionStats",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -263,7 +318,27 @@ const metadata: ServiceMetadata = {
     {
       "name": "CronListParams",
       "kind": "type",
-      "definition": "{\n  offset: number;\n  limit: number;\n  status?: CronStatus;\n}"
+      "definition": "{\n  offset: number;\n  limit: number;\n  status?: CronStatus;\n  filter?: FilterObject;\n}"
+    },
+    {
+      "name": "FilterObject",
+      "kind": "type",
+      "definition": "Record<string, unknown>"
+    },
+    {
+      "name": "SelectionFieldDescriptor",
+      "kind": "type",
+      "definition": "{ id: string; label: string; valueType: \"string\" | \"number\" | \"boolean\" | \"date\" | \"enum\"; operators: string[] }"
+    },
+    {
+      "name": "SelectionDescriptor",
+      "kind": "type",
+      "definition": "{ objectType: string; title: string; fields: SelectionFieldDescriptor[]; filterExample?: FilterObject; revision?: string }"
+    },
+    {
+      "name": "SelectionStats",
+      "kind": "type",
+      "definition": "{ totalCount: number }"
     },
     {
       "name": "PaginatedResult",
@@ -284,7 +359,7 @@ const metadata: ServiceMetadata = {
     {
       "name": "CronHistoryListParams",
       "kind": "type",
-      "definition": "{\n  offset: number;\n  limit: number;\n  cronId?: string;\n}"
+      "definition": "{\n  offset: number;\n  limit: number;\n  cronId?: string;\n  filter?: FilterObject;\n}"
     },
     {
       "name": "ShedullerStats",
@@ -310,6 +385,9 @@ export interface ShedullerServiceRtClient {
   listProviders(): ProviderDefinition[];
   listHistory(params: CronHistoryListParams): PaginatedResult<CronHistoryEntry>;
   getStats(): ShedullerStats;
+  describeSelection(objectType: string): SelectionDescriptor;
+  inspectCrons(filter?: FilterObject): SelectionStats;
+  inspectHistory(filter?: FilterObject): SelectionStats;
 }
 
 export function createShedullerServiceRtClient(): ShedullerServiceRtClient {

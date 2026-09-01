@@ -1,5 +1,11 @@
-import { generateULID, type SqlStore } from "back-core";
+import {
+	applyKyselyFilter,
+	generateULID,
+	type KyselyFilterSchema,
+	type SqlStore,
+} from "back-core";
 import type {
+	FilterObject,
 	Order,
 	OrderDailyPoint,
 	OrderDashboard,
@@ -7,6 +13,7 @@ import type {
 	OrderInput,
 	OrderListParams,
 	OrderPatch,
+	OrderProductionMethod,
 	OrderStatus,
 	OrderStatusCount,
 	OrderStatusGroup,
@@ -23,6 +30,14 @@ const STATUS_GROUPS: Record<OrderStatusGroup, OrderStatus[]> = {
 	in_progress: ["in_progress"],
 	completed: ["completed"],
 	blocked: ["paused", "blocked", "cancelled"],
+};
+
+const orderFilterSchema: KyselyFilterSchema = {
+	requestId: { valueType: "string", operators: ["eq", "in", "isNull"], column: "requestId" },
+	status: { valueType: "string", operators: ["eq", "in", "notEq", "notIn"], column: "status" },
+	productionMethod: { valueType: "string", operators: ["eq", "in"], column: "productionMethod" },
+	dueAt: { valueType: "date", operators: ["isNull", "isNotNull", "gte", "lte", "between"], column: "dueAt" },
+	createdAt: { valueType: "date", operators: ["gte", "lte", "between"], column: "createdAt" },
 };
 
 export class OrdersStoreService {
@@ -69,16 +84,7 @@ export class OrdersStoreService {
 		const offset = params.offset ?? 0;
 		const statuses = this.resolveStatusFilter(params);
 
-		let query = this.store.db.selectFrom("orders").selectAll();
-		if (params.requestId) {
-			query = query.where("requestId", "=", params.requestId);
-		}
-		if (params.productionMethod) {
-			query = query.where("productionMethod", "=", params.productionMethod);
-		}
-		if (statuses.length > 0) {
-			query = query.where("status", "in", statuses);
-		}
+		let query = this.applyFilters(this.store.db.selectFrom("orders").selectAll(), params, statuses);
 
 		const items = await query
 			.orderBy("updatedAt", "desc")
@@ -89,21 +95,33 @@ export class OrdersStoreService {
 		let countQuery = this.store.db
 			.selectFrom("orders")
 			.select(({ fn }) => fn.countAll().as("count"));
-		if (params.requestId) {
-			countQuery = countQuery.where("requestId", "=", params.requestId);
-		}
-		if (params.productionMethod) {
-			countQuery = countQuery.where("productionMethod", "=", params.productionMethod);
-		}
-		if (statuses.length > 0) {
-			countQuery = countQuery.where("status", "in", statuses);
-		}
+		countQuery = this.applyFilters(countQuery, params, statuses);
 		const countResult = await countQuery.executeTakeFirst();
 
 		return {
 			items: (items as OrderEntity[]).map((item) => this.toOrder(item)),
 			totalCount: Number(countResult?.count ?? 0),
 		};
+	}
+
+	async countOrders(filter?: FilterObject): Promise<number> {
+		const query = applyKyselyFilter(
+			this.store.db
+				.selectFrom("orders")
+				.select(({ fn }) => fn.countAll().as("count")),
+			filter,
+			orderFilterSchema,
+		);
+		const result = await query.executeTakeFirst();
+		return Number(result?.count ?? 0);
+	}
+
+	private applyFilters(query: any, params: OrderListParams, statuses: OrderStatus[]) {
+		let next = query;
+		if (params.requestId) next = next.where("requestId", "=", params.requestId);
+		if (params.productionMethod) next = next.where("productionMethod", "=", params.productionMethod);
+		if (statuses.length > 0) next = next.where("status", "in", statuses);
+		return applyKyselyFilter(next, params.filter, orderFilterSchema);
 	}
 
 	async patchOrder(id: OrderId, patch: OrderPatch): Promise<Order> {
@@ -157,6 +175,13 @@ export class OrdersStoreService {
 		const inProgressTotal = orders.filter((o) => STATUS_GROUPS.in_progress.includes(o.status)).length;
 		const completedTotal = orders.filter((o) => STATUS_GROUPS.completed.includes(o.status)).length;
 		const blockedTotal = orders.filter((o) => STATUS_GROUPS.blocked.includes(o.status)).length;
+		const printingTotal = inProgressTotal;
+		const materialWeightGrams = orders.reduce(
+			(total, order) => total + (order.weightGrams ?? 0) * order.quantity,
+			0,
+		);
+		const printerCapacity = 8;
+		const availablePrinters = printerCapacity;
 		const utilizationPercent = orders.length > 0
 			? Math.round((inProgressTotal / orders.length) * 100)
 			: 0;
@@ -166,8 +191,13 @@ export class OrdersStoreService {
 				ordersTotal: orders.length,
 				queuedTotal,
 				inProgressTotal,
+				printingTotal,
 				completedTotal,
 				blockedTotal,
+				materialWeightGrams,
+				estimatedPrintingHours: 0,
+				availablePrinters,
+				printerCapacity,
 				utilizationPercent,
 			},
 			daily: this.buildDailyPoints(orders),
@@ -273,4 +303,3 @@ function normalizeUndefinedNumber(
 	const numeric = Number(value);
 	return Number.isFinite(numeric) ? numeric : undefined;
 }
-

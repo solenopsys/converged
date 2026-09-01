@@ -1,5 +1,12 @@
-import { SqlStore, generateULID, sql } from "back-core";
+import {
+  applyKyselyFilter,
+  generateULID,
+  SqlStore,
+  sql,
+  type KyselyFilterSchema,
+} from "back-core";
 import type {
+  FilterObject,
   UsageEvent,
   UsageEventInput,
   UsageListParams,
@@ -9,6 +16,12 @@ import type {
   UsageTotalStats,
   PaginatedResult,
 } from "../../types";
+
+const usageFilterSchema: KyselyFilterSchema = {
+  function: { valueType: "string", operators: ["eq", "in", "contains"], column: "func" },
+  user: { valueType: "string", operators: ["eq", "in", "contains"], column: "user" },
+  date: { valueType: "date", operators: ["eq", "gt", "gte", "lt", "lte", "between"], column: "date" },
+};
 
 export class UsageStoreService {
   constructor(private store: SqlStore) {}
@@ -59,6 +72,17 @@ export class UsageStoreService {
       items: items.map((row) => this.mapRow(row as any)),
       totalCount,
     };
+  }
+
+  async countUsage(filter?: FilterObject): Promise<number> {
+    const query = this.applyFilters(
+      this.store.db
+        .selectFrom("usage_events")
+        .select(({ fn }) => fn.countAll().as("count")),
+      { filter },
+    );
+    const result = await query.executeTakeFirst();
+    return Number(result?.count ?? 0);
   }
 
   async getUsageTotal(params: UsageStatsParams = {}): Promise<UsageTotalStats> {
@@ -125,7 +149,7 @@ export class UsageStoreService {
     if (params.dateTo) {
       next = next.where("date", "<=", params.dateTo);
     }
-    return next;
+    return applyKyselyFilter(next, params.filter, usageFilterSchema);
   }
 
   private mapRow(row: any): UsageEvent {

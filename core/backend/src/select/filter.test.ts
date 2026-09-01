@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { combineFilters, parseFilter } from "./filter";
+import { createCustomFilterAdapter } from "./custom";
 import { createJsonFilterAdapter } from "./json";
 import type { FilterSchema } from "./types";
 
@@ -98,5 +99,18 @@ describe("select filters", () => {
 				}),
 			),
 		).toEqual([rows[0]]);
+	});
+
+	test("validates input before passing an AST to a custom adapter", () => {
+		const adapter = createCustomFilterAdapter(schema, (filter) => filter);
+		expect(adapter.compile({ status: { eq: "active" } })).toEqual({
+			kind: "condition",
+			field: "status",
+			operator: "eq",
+			value: "active",
+		});
+		expect(() => adapter.compile({ status: { eq: "removed" } })).toThrow(
+			/unsupported value/,
+		);
 	});
 });

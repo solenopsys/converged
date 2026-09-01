@@ -99,3 +99,13 @@ export type JsonFilterAdapter<T extends Record<string, unknown>> = {
 	parse(input?: FilterInput): FilterNode | undefined;
 	predicate(input?: FilterInput): (item: T) => boolean;
 };
+
+/**
+ * Adapter for a storage engine or remote API that owns its own query format.
+ * It still receives the validated, normalized filter AST rather than raw
+ * client JSON, so every implementation gets the same safety boundary.
+ */
+export type CustomFilterAdapter<T> = {
+	parse(input?: FilterInput): FilterNode | undefined;
+	compile(input?: FilterInput): T;
+};

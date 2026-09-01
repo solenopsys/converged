@@ -6,7 +6,7 @@ import {
 	objectRef,
 	setOf,
 } from "front-core/object-runtime";
-import { openCallDetail, startNewCallClicked } from "./domain-calls";
+import { callsClient, openCallDetail, startNewCallClicked } from "./domain-calls";
 import { ActiveCallView } from "./views/ActiveCallView";
 import { CallDetailView } from "./views/CallDetailView";
 import { CallsListView } from "./views/CallsListView";
@@ -24,6 +24,12 @@ export const objects = [
 			Category.Creatable,
 			Category.Executable,
 		],
+		selection: {
+			filters: [],
+			describe: () => callsClient.describeSelection("calls.call"),
+			load: (params) => callsClient.listCalls(params),
+			inspect: (filter) => callsClient.inspectCalls(filter),
+		},
 	},
 ] satisfies readonly ObjectDefinition[];
 

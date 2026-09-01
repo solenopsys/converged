@@ -94,21 +94,6 @@ export const $draft = createStore("")
 
 sample({
 	clock: draftChanged,
-	filter: (draft) => draft.trimStart().startsWith("/"),
-	fn: () => "commands" as const,
-	target: rightPanelTabActivated,
-});
-
-sample({
-	clock: draftChanged,
-	filter: (draft) => draft.trimStart().startsWith("/"),
-	fn: () => "right" as const,
-	target: sidebarExpanded,
-});
-
-sample({
-	clock: draftChanged,
-	filter: (draft) => !draft.trimStart().startsWith("/"),
 	fn: () => "chat" as const,
 	target: rightPanelTabActivated,
 });

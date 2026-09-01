@@ -78,7 +78,16 @@ export type TopicListParams = ListParams & {
   sectionId?: SectionId;
   includeArchived?: boolean;
   query?: string;
+	filter?: FilterObject;
 };
+
+export type FilterObject = Record<string, unknown>;
+
+export type SelectionFieldDescriptor = { id: string; label: string; valueType: "string" | "number" | "boolean" | "date" | "enum"; operators: string[] };
+
+export type SelectionDescriptor = { objectType: string; title: string; fields: SelectionFieldDescriptor[]; filterExample?: FilterObject; revision?: string };
+
+export type SelectionStats = { totalCount: number };
 
 export type SectionTreeNode = CommunitySection & {
   children: SectionTreeNode[];
@@ -229,6 +238,36 @@ const metadata: ServiceMetadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
+    },
+    {
+      "name": "describeSelection",
+      "parameters": [
+        {
+          "name": "objectType",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "SelectionDescriptor",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "inspectTopics",
+      "parameters": [
+        {
+          "name": "filter",
+          "type": "FilterObject",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "SelectionStats",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -296,7 +335,27 @@ const metadata: ServiceMetadata = {
     {
       "name": "TopicListParams",
       "kind": "type",
-      "definition": "ListParams & {\n  sectionId?: SectionId;\n  includeArchived?: boolean;\n  query?: string;\n}"
+      "definition": "ListParams & {\n  sectionId?: SectionId;\n  includeArchived?: boolean;\n  query?: string;\n\tfilter?: FilterObject;\n}"
+    },
+    {
+      "name": "FilterObject",
+      "kind": "type",
+      "definition": "Record<string, unknown>"
+    },
+    {
+      "name": "SelectionFieldDescriptor",
+      "kind": "type",
+      "definition": "{ id: string; label: string; valueType: \"string\" | \"number\" | \"boolean\" | \"date\" | \"enum\"; operators: string[] }"
+    },
+    {
+      "name": "SelectionDescriptor",
+      "kind": "type",
+      "definition": "{ objectType: string; title: string; fields: SelectionFieldDescriptor[]; filterExample?: FilterObject; revision?: string }"
+    },
+    {
+      "name": "SelectionStats",
+      "kind": "type",
+      "definition": "{ totalCount: number }"
     },
     {
       "name": "SectionTreeNode",
@@ -317,6 +376,8 @@ export interface CommunityServiceRtClient {
   readTopic(id: TopicId): CommunityTopic | any;
   deleteTopic(id: TopicId): boolean;
   listTopics(params: TopicListParams): PaginatedResult<CommunityTopic>;
+  describeSelection(objectType: string): SelectionDescriptor;
+  inspectTopics(filter?: FilterObject): SelectionStats;
 }
 
 export function createCommunityServiceRtClient(): CommunityServiceRtClient {

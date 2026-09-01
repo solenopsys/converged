@@ -45,7 +45,13 @@ export type CronListParams = {
   offset: number;
   limit: number;
   status?: CronStatus;
+  filter?: FilterObject;
 };
+
+export type FilterObject = Record<string, unknown>;
+export type SelectionFieldDescriptor = { id: string; label: string; valueType: "string" | "number" | "boolean" | "date" | "enum"; operators: string[] };
+export type SelectionDescriptor = { objectType: string; title: string; fields: SelectionFieldDescriptor[]; filterExample?: FilterObject; revision?: string };
+export type SelectionStats = { totalCount: number };
 
 export type PaginatedResult<T> = {
   items: T[];
@@ -76,6 +82,7 @@ export type CronHistoryListParams = {
   offset: number;
   limit: number;
   cronId?: string;
+  filter?: FilterObject;
 };
 
 export type ShedullerStats = {
@@ -105,4 +112,7 @@ export interface ShedullerService {
     params: CronHistoryListParams,
   ): Promise<PaginatedResult<CronHistoryEntry>>;
   getStats(): Promise<ShedullerStats>;
+  describeSelection(objectType: string): Promise<SelectionDescriptor>;
+  inspectCrons(filter?: FilterObject): Promise<SelectionStats>;
+  inspectHistory(filter?: FilterObject): Promise<SelectionStats>;
 }

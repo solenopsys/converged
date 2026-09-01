@@ -186,7 +186,27 @@ export type RequestListParams = {
 	offset: number;
 	limit: number;
 	source?: string;
+	filter?: FilterObject;
 };
+
+export type FilterObject = Record<string, unknown>;
+
+export type SelectionFieldDescriptor = {
+	id: string;
+	label: string;
+	valueType: "string" | "number" | "boolean" | "date" | "enum";
+	operators: string[];
+};
+
+export type SelectionDescriptor = {
+	objectType: string;
+	title: string;
+	fields: SelectionFieldDescriptor[];
+	filterExample?: FilterObject;
+	revision?: string;
+};
+
+export type SelectionStats = { totalCount: number };
 
 export type RequestDailyPoint = {
 	date: string;
@@ -234,6 +254,8 @@ export interface RequestsService {
 		comment?: string,
 	): Promise<void>;
 	listRequests(params: RequestListParams): Promise<PaginatedResult<Request>>;
+	describeSelection(objectType: string): Promise<SelectionDescriptor>;
+	inspectRequests(filter?: FilterObject): Promise<SelectionStats>;
 	updateStatus(
 		id: RequestId,
 		status: RequestStatus,

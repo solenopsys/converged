@@ -59,6 +59,12 @@ export default defineMicrofrontend({
 				"core.creatable",
 				"core.editable",
 			],
+			selection: {
+				filters: [],
+				describe: () => requestsClient.describeSelection("requests.request"),
+				load: (params) => requestsClient.listRequests(params),
+				inspect: (filter) => requestsClient.inspectRequests(filter),
+			},
 		},
 	],
 	views: [

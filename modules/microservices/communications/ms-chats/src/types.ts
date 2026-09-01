@@ -9,12 +9,15 @@ import type {
   ChatRoomUser,
   ChatRoomsListParams,
   ChatRoomsListResult,
+	FilterObject,
   ChatThreadId,
   ChatUserId,
   CreateChatRoomInput,
   PaginatedResult,
   PaginationParams,
   UpdateChatRoomInput,
+	SelectionDescriptor,
+	SelectionStats,
 } from "g-chats";
 
 export type {
@@ -28,10 +31,13 @@ export type {
   ChatRoomUser,
   ChatRoomsListParams,
   ChatRoomsListResult,
+	FilterObject,
   ChatThreadId,
   ChatUserId,
   CreateChatRoomInput,
   PaginatedResult,
   PaginationParams,
   UpdateChatRoomInput,
+	SelectionDescriptor,
+	SelectionStats,
 };

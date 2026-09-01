@@ -58,7 +58,13 @@ export type ChatRoomsListParams = {
   archived?: boolean;
 
   processed?: boolean;
+	filter?: FilterObject;
 };
+
+export type FilterObject = Record<string, unknown>;
+export type SelectionFieldDescriptor = { id: string; label: string; valueType: "string" | "number" | "boolean" | "date" | "enum"; operators: string[] };
+export type SelectionDescriptor = { objectType: string; title: string; fields: SelectionFieldDescriptor[]; filterExample?: FilterObject; revision?: string };
+export type SelectionStats = { totalCount: number };
 
 export type ChatRoomsListResult = {
   items: ChatRoom[];
@@ -93,6 +99,8 @@ export interface ChatsService {
   updateRoom(roomId: ChatRoomId, patch: UpdateChatRoomInput): Promise<ChatRoom>;
   deleteRoom(roomId: ChatRoomId): Promise<boolean>;
   listRooms(params: ChatRoomsListParams): Promise<ChatRoomsListResult>;
+	describeSelection(objectType: string): Promise<SelectionDescriptor>;
+	inspectChats(filter?: FilterObject): Promise<SelectionStats>;
 
   addRoomUser(roomId: ChatRoomId, userId: ChatUserId, role?: ChatRoomRole): Promise<void>;
   removeRoomUser(roomId: ChatRoomId, userId: ChatUserId): Promise<void>;

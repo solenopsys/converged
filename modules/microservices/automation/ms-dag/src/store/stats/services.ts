@@ -1,4 +1,4 @@
-import { SqlStore, sql } from "back-core";
+import { applyKyselyFilter, type KyselyFilterSchema, SqlStore, sql } from "back-core";
 import {
   ProcessRepository,
   NodeRepository,
@@ -24,6 +24,24 @@ import type {
 
 export type ProcessStatus = DagProcessStatus;
 export type NodeState = DagNodeState;
+
+const processFilterSchema: KyselyFilterSchema = {
+	id: { valueType: "string", operators: ["eq", "in", "contains", "startsWith"], column: "id" },
+	workflowName: { valueType: "string", operators: ["eq", "in", "notEq", "notIn"], column: "workflow_id" },
+	status: { valueType: "string", operators: ["eq", "in", "notEq", "notIn"], column: "status" },
+	startedAt: { valueType: "number", operators: ["gt", "gte", "lt", "lte", "between"], column: "started_at" },
+	updatedAt: { valueType: "number", operators: ["gt", "gte", "lt", "lte", "between"], column: "updated_at" },
+	createdAt: { valueType: "number", operators: ["gt", "gte", "lt", "lte", "between"], column: "created_at" },
+};
+
+const taskFilterSchema: KyselyFilterSchema = {
+	id: { valueType: "number", operators: ["eq", "in", "gt", "gte", "lt", "lte", "between"], column: "id" },
+	executionId: { valueType: "string", operators: ["eq", "in", "notEq", "notIn"], column: "process_id" },
+	nodeId: { valueType: "string", operators: ["eq", "in", "notEq", "notIn"], column: "node_id" },
+	state: { valueType: "string", operators: ["eq", "in", "notEq", "notIn"], column: "state" },
+	retryCount: { valueType: "number", operators: ["eq", "notEq", "gt", "gte", "lt", "lte", "between"], column: "retry_count" },
+	createdAt: { valueType: "number", operators: ["gt", "gte", "lt", "lte", "between"], column: "created_at" },
+};
 
 type ProcessInput = {
   id: string;
@@ -358,6 +376,7 @@ export class StatsStoreService {
     if (params.createdTo !== undefined) {
       next = next.where("created_at", "<=", params.createdTo);
     }
+		next = applyKyselyFilter(next, (params as DagProcessListParams).filter, processFilterSchema);
     return next;
   }
 
@@ -378,6 +397,7 @@ export class StatsStoreService {
     if (params.createdTo !== undefined) {
       next = next.where("created_at", "<=", params.createdTo);
     }
+		next = applyKyselyFilter(next, (params as DagNodeListParams).filter, taskFilterSchema);
     return next;
   }
 

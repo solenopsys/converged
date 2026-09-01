@@ -145,6 +145,43 @@ describe("ObjectResolver", () => {
 		).toEqual(["companies.company"]);
 	});
 
+	test("omits dynamically undiscoverable types and operations", () => {
+		const { registry, resolver } = fixture();
+		let visible = false;
+		registry.register("mf-session", {
+			id: "mf-session",
+			types: [
+				{
+					id: "auth.session",
+					label: "Session",
+					discover: () => visible,
+				},
+			],
+			views: [
+				{
+					id: "auth.session.login",
+					accepts: objectOf("auth.session"),
+					component: () => null,
+				},
+			],
+			operations: [
+				{
+					id: "auth.session.login",
+					operator: "open",
+					target: "auth.session",
+					label: "Login",
+					discover: () => visible,
+				},
+			],
+		});
+
+		expect(resolver.resolve("open")).toEqual([]);
+		visible = true;
+		expect(resolver.resolve("open").map(({ id }) => id)).toEqual([
+			"auth.session.login",
+		]);
+	});
+
 	test("resolves views by reference cardinality", () => {
 		const { resolver } = fixture();
 		expect(resolver.resolveView(objectRef("companies.company", "a"))?.id).toBe(

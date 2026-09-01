@@ -1,7 +1,25 @@
-import { ColumnStore, sql } from "back-core";
-import type { TelemetryEvent, TelemetryEventInput, TelemetryQueryParams, TelemetryStatistic, PaginatedResult } from "../../types";
+import {
+  applyKyselyFilter,
+  ColumnStore,
+  sql,
+  type KyselyFilterSchema,
+} from "back-core";
+import type {
+  FilterObject,
+  PaginatedResult,
+  TelemetryEvent,
+  TelemetryEventInput,
+  TelemetryQueryParams,
+  TelemetryStatistic,
+} from "../../types";
 
 const TABLE_NAME = "telemetry_events";
+const telemetryFilterSchema: KyselyFilterSchema = {
+  deviceId: { valueType: "string", operators: ["eq", "in", "contains"], column: "device_id" },
+  param: { valueType: "string", operators: ["eq", "in", "contains"], column: "param" },
+  value: { valueType: "number", operators: ["eq", "gt", "gte", "lt", "lte", "between"], column: "value" },
+  ts: { valueType: "number", operators: ["gt", "gte", "lt", "lte", "between"], column: "ts" },
+};
 
 export class TelemetryStoreService {
   constructor(private store: ColumnStore) {}
@@ -32,6 +50,15 @@ export class TelemetryStoreService {
     const countResult = await countQuery.executeTakeFirst();
 
     return { items: items as TelemetryEvent[], totalCount: Number(countResult?.count ?? 0) };
+  }
+
+  async count(filter?: FilterObject): Promise<number> {
+    const query = this.applyFilters(
+      this.store.db.selectFrom(TABLE_NAME).select(({ fn }) => fn.countAll().as("count")),
+      { offset: 0, limit: 1, filter },
+    );
+    const result = await query.executeTakeFirst();
+    return Number(result?.count ?? 0);
   }
 
   async getStatistic(): Promise<{ total: number; byDevice: Record<string, number>; byParam: Record<string, number> }> {
@@ -113,6 +140,6 @@ export class TelemetryStoreService {
     if (params.param) q = q.where("param", "=", params.param);
     if (params.from_ts !== undefined) q = q.where("ts", ">=", params.from_ts);
     if (params.to_ts !== undefined) q = q.where("ts", "<=", params.to_ts);
-    return q;
+    return applyKyselyFilter(q, params.filter, telemetryFilterSchema);
   }
 }

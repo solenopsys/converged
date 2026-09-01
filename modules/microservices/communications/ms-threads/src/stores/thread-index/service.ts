@@ -1,5 +1,6 @@
-import type { SqlStore } from "back-core";
+import { applyKyselyFilter, type KyselyFilterSchema, type SqlStore } from "back-core";
 import type {
+	FilterObject,
 	PaginatedResult,
 	ThreadInfo,
 	ThreadKind,
@@ -9,6 +10,14 @@ import type {
 import { ThreadIndexRepository } from "./entities";
 
 const ALL_KINDS: ThreadKind[] = ["chat", "audio", "forum", "comment"];
+
+const threadFilterSchema: KyselyFilterSchema = {
+	threadId: { valueType: "string", operators: ["eq", "in", "contains", "startsWith"], column: "threadId" },
+	kind: { valueType: "string", operators: ["eq", "in", "notEq", "notIn"], column: "kind" },
+	messageCount: { valueType: "number", operators: ["eq", "notEq", "gt", "gte", "lt", "lte", "between"], column: "messageCount" },
+	updatedAt: { valueType: "number", operators: ["gt", "gte", "lt", "lte", "between"], column: "updatedAt" },
+	createdAt: { valueType: "number", operators: ["gt", "gte", "lt", "lte", "between"], column: "createdAt" },
+};
 
 function toInfo(row: any): ThreadInfo {
 	return {
@@ -97,6 +106,8 @@ export class ThreadIndexStoreService {
 			query = query.where("kind", "=", params.kind);
 			countQuery = countQuery.where("kind", "=", params.kind);
 		}
+		query = applyKyselyFilter(query, params.filter, threadFilterSchema);
+		countQuery = applyKyselyFilter(countQuery, params.filter, threadFilterSchema);
 
 		const rows = await query
 			.orderBy("updatedAt", "desc")
@@ -109,6 +120,17 @@ export class ThreadIndexStoreService {
 			items: rows.map(toInfo),
 			totalCount: Number(counted?.count ?? 0),
 		};
+	}
+
+	async count(filter?: FilterObject): Promise<number> {
+		const db = this.store.db as any;
+		const query = applyKyselyFilter(
+			db.selectFrom("thread_index").select((eb: any) => eb.fn.countAll().as("count")),
+			filter,
+			threadFilterSchema,
+		);
+		const result = await query.executeTakeFirst();
+		return Number(result?.count ?? 0);
 	}
 
 	async stats(): Promise<ThreadStats> {

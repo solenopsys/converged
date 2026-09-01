@@ -1,6 +1,6 @@
+import { translator } from "i18n";
 import type { RefObject } from "preact";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
-import { translator } from "i18n";
 import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
 import { ChevronDown, Pin, X } from "../icons";
 import { type ActionMenuItem, ActionMenuList } from "./ActionMenu";
@@ -121,6 +121,7 @@ function TabItem({
 					onContextMenu({ key: tab.key, x: event.clientX, y: event.clientY });
 				}}
 				onAuxClick={(event) => {
+					if (!onClose) return;
 					if (event.button !== 1) return;
 					event.preventDefault();
 					onClose?.(tab.key);
@@ -128,27 +129,33 @@ function TabItem({
 			>
 				<span>{tab.title}</span>
 			</button>
-			<span class="top-bar-tab-actions">
-				<button
-					type="button"
-					class="top-bar-tab-pin"
-					aria-label={`${pinLabel}: ${tab.title}`}
-					title={pinLabel}
-					aria-pressed={tab.pinned}
-					onClick={() => onPinToggle?.(tab.key)}
-				>
-					<Pin size={11} aria-hidden="true" />
-				</button>
-				<button
-					type="button"
-					class="top-bar-tab-close"
-					aria-label={t("tab.closeNamed", { title: tab.title })}
-					title={t("tab.closeTab")}
-					onClick={() => onClose?.(tab.key)}
-				>
-					<X size={11} aria-hidden="true" />
-				</button>
-			</span>
+			{onPinToggle || onClose ? (
+				<span class="top-bar-tab-actions">
+					{onPinToggle ? (
+						<button
+							type="button"
+							class="top-bar-tab-pin"
+							aria-label={`${pinLabel}: ${tab.title}`}
+							title={pinLabel}
+							aria-pressed={tab.pinned}
+							onClick={() => onPinToggle(tab.key)}
+						>
+							<Pin size={11} aria-hidden="true" />
+						</button>
+					) : null}
+					{onClose ? (
+						<button
+							type="button"
+							class="top-bar-tab-close"
+							aria-label={t("tab.closeNamed", { title: tab.title })}
+							title={t("tab.closeTab")}
+							onClick={() => onClose(tab.key)}
+						>
+							<X size={11} aria-hidden="true" />
+						</button>
+					) : null}
+				</span>
+			) : null}
 		</div>
 	);
 }
@@ -200,15 +207,17 @@ function OverflowMenu({
 								/>
 								<span>{tab.title}</span>
 							</button>
-							<button
-								type="button"
-								class="top-bar-tab-close"
-								aria-label={t("tab.closeNamed", { title: tab.title })}
-								title={t("tab.closeTab")}
-								onClick={() => onClose?.(tab.key)}
-							>
-								<X size={11} aria-hidden="true" />
-							</button>
+							{onClose ? (
+								<button
+									type="button"
+									class="top-bar-tab-close"
+									aria-label={t("tab.closeNamed", { title: tab.title })}
+									title={t("tab.closeTab")}
+									onClick={() => onClose(tab.key)}
+								>
+									<X size={11} aria-hidden="true" />
+								</button>
+							) : null}
 						</div>
 					))}
 				</div>

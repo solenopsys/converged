@@ -17,6 +17,25 @@ export type TelemetryEventInput = {
   unit?: string;
 };
 
+export type FilterObject = Record<string, unknown>;
+
+export type SelectionFieldDescriptor = {
+  id: string;
+  label: string;
+  valueType: "string" | "number" | "boolean" | "date" | "enum";
+  operators: string[];
+};
+
+export type SelectionDescriptor = {
+  objectType: string;
+  title: string;
+  fields: SelectionFieldDescriptor[];
+  filterExample?: FilterObject;
+  revision?: string;
+};
+
+export type SelectionStats = { totalCount: number };
+
 export type TelemetryQueryParams = {
   offset: number;
   limit: number;
@@ -24,6 +43,7 @@ export type TelemetryQueryParams = {
   param?: string;
   from_ts?: number;
   to_ts?: number;
+  filter?: FilterObject;
 };
 
 export type PaginatedResult<T> = {
@@ -89,6 +109,36 @@ const metadata: ServiceMetadata = {
       "isAsyncIterable": false
     },
     {
+      "name": "describeSelection",
+      "parameters": [
+        {
+          "name": "objectType",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "SelectionDescriptor",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "inspectTelemetry",
+      "parameters": [
+        {
+          "name": "filter",
+          "type": "FilterObject",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "SelectionStats",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
       "name": "getStatistic",
       "parameters": [],
       "returnType": "TelemetryStatistic",
@@ -117,9 +167,29 @@ const metadata: ServiceMetadata = {
       "definition": "{\n  ts?: number;\n  device_id: string;\n  param: string;\n  value: number;\n  unit?: string;\n}"
     },
     {
+      "name": "FilterObject",
+      "kind": "type",
+      "definition": "Record<string, unknown>"
+    },
+    {
+      "name": "SelectionFieldDescriptor",
+      "kind": "type",
+      "definition": "{\n  id: string;\n  label: string;\n  valueType: \"string\" | \"number\" | \"boolean\" | \"date\" | \"enum\";\n  operators: string[];\n}"
+    },
+    {
+      "name": "SelectionDescriptor",
+      "kind": "type",
+      "definition": "{\n  objectType: string;\n  title: string;\n  fields: SelectionFieldDescriptor[];\n  filterExample?: FilterObject;\n  revision?: string;\n}"
+    },
+    {
+      "name": "SelectionStats",
+      "kind": "type",
+      "definition": "{ totalCount: number }"
+    },
+    {
       "name": "TelemetryQueryParams",
       "kind": "type",
-      "definition": "{\n  offset: number;\n  limit: number;\n  device_id?: string;\n  param?: string;\n  from_ts?: number;\n  to_ts?: number;\n}"
+      "definition": "{\n  offset: number;\n  limit: number;\n  device_id?: string;\n  param?: string;\n  from_ts?: number;\n  to_ts?: number;\n  filter?: FilterObject;\n}"
     },
     {
       "name": "PaginatedResult",
@@ -140,6 +210,8 @@ export interface TelemetryServiceRtClient {
   write(event: TelemetryEventInput): void;
   listHot(params: TelemetryQueryParams): PaginatedResult<TelemetryEvent>;
   listCold(params: TelemetryQueryParams): PaginatedResult<TelemetryEvent>;
+  describeSelection(objectType: string): SelectionDescriptor;
+  inspectTelemetry(filter?: FilterObject): SelectionStats;
   getStatistic(): TelemetryStatistic;
   archiveHotToCold(): number;
 }

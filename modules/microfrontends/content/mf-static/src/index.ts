@@ -1,5 +1,5 @@
 import definition from "./objects";
 
-export const ID = "static-mf";
+export const ID = "mf-static";
 
 export default definition;

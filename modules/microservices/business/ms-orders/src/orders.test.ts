@@ -72,4 +72,24 @@ describe("OrdersStoreService in-memory", () => {
 		expect(dashboard.stats.materialWeightGrams).toBe(161);
 		expect(dashboard.daily).toHaveLength(90);
 	});
+
+	it("applies the standard filter to lists and selection counts", async () => {
+		await orders.createOrder({
+			modelName: "Queued part",
+			productionMethod: "fdm",
+			status: "queued",
+		});
+		await orders.createOrder({
+			modelName: "Completed part",
+			productionMethod: "sla",
+			status: "completed",
+		});
+
+		const filter = { status: { eq: "queued" } };
+		const list = await orders.listOrders({ offset: 0, limit: 10, filter });
+
+		expect(list.items).toHaveLength(1);
+		expect(list.items[0].modelName).toBe("Queued part");
+		expect(await orders.countOrders(filter)).toBe(1);
+	});
 });

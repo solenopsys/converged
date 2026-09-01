@@ -15,6 +15,8 @@ import type {
 	RequestRequirementProfile,
 	RequestStatus,
 	RequestsService,
+	SelectionDescriptor,
+	SelectionStats,
 } from "./types";
 
 const MS_ID = "requests-ms";
@@ -88,6 +90,28 @@ export class RequestsServiceImpl implements RequestsService {
 
 	listRequests(params: RequestListParams): Promise<PaginatedResult<Request>> {
 		return this.stores.requests.listRequests(params);
+	}
+
+	async describeSelection(objectType: string): Promise<SelectionDescriptor> {
+		if (objectType !== "requests.request") {
+			throw new Error(`Unsupported request selection object: ${objectType}`);
+		}
+		return {
+			objectType,
+			title: "Manufacturing requests",
+			fields: [
+				{ id: "source", label: "Source", valueType: "string", operators: ["eq", "in", "contains", "isNull"] },
+				{ id: "status", label: "Status", valueType: "enum", operators: ["eq", "in", "notEq", "notIn"] },
+				{ id: "createdAt", label: "Created", valueType: "date", operators: ["gte", "lte", "between"] },
+			],
+			filterExample: { status: { eq: "new" } },
+			revision: "requests-v1",
+		};
+	}
+
+	async inspectRequests(filter?: Record<string, unknown>): Promise<SelectionStats> {
+		await this.init();
+		return { totalCount: await this.stores.requests.countRequests(filter) };
 	}
 
 	updateStatus(

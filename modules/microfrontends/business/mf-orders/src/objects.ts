@@ -1,5 +1,6 @@
 import { defineMicrofrontend, setOf } from "front-core/object-runtime";
-import Panel from "./Panel";
+import { ordersClient } from "./services";
+import { OrdersDashboardView } from "./views/OrdersDashboardView";
 
 export default defineMicrofrontend({
 	id: "mf-orders",
@@ -9,6 +10,12 @@ export default defineMicrofrontend({
 			label: "Order",
 			pluralLabel: "Orders",
 			categories: ["core.business", "core.selectable"],
+			selection: {
+				filters: [],
+				describe: () => ordersClient.describeSelection("orders.order"),
+				load: (params) => ordersClient.listOrders(params),
+				inspect: (filter) => ordersClient.inspectOrders(filter),
+			},
 		},
 		{
 			id: "orders.statistic",
@@ -21,12 +28,12 @@ export default defineMicrofrontend({
 		{
 			id: "orders.order.table",
 			accepts: setOf("orders.order"),
-			component: Panel,
+			component: OrdersDashboardView,
 		},
 		{
 			id: "orders.statistic.dashboard",
 			accepts: setOf("orders.statistic"),
-			component: Panel,
+			component: OrdersDashboardView,
 		},
 	],
 	operations: [],

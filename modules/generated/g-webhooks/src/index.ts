@@ -47,7 +47,16 @@ export type WebhookEndpointListParams = {
   limit: number;
   provider?: string;
   enabled?: boolean;
+  filter?: FilterObject;
 };
+
+export type FilterObject = Record<string, unknown>;
+
+export type SelectionFieldDescriptor = { id: string; label: string; valueType: "string" | "number" | "boolean" | "date" | "enum"; operators: string[] };
+
+export type SelectionDescriptor = { objectType: string; title: string; fields: SelectionFieldDescriptor[]; filterExample?: FilterObject; revision?: string };
+
+export type SelectionStats = { totalCount: number };
 
 export type WebhookLogEntry = {
   id: number;
@@ -68,6 +77,7 @@ export type WebhookLogListParams = {
   limit: number;
   endpointId?: string;
   provider?: string;
+  filter?: FilterObject;
 };
 
 export type PaginatedResult<T> = {
@@ -183,6 +193,51 @@ export const metadata: ServiceMetadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
+    },
+    {
+      "name": "describeSelection",
+      "parameters": [
+        {
+          "name": "objectType",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "SelectionDescriptor",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "inspectEndpoints",
+      "parameters": [
+        {
+          "name": "filter",
+          "type": "FilterObject",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "SelectionStats",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "inspectLogs",
+      "parameters": [
+        {
+          "name": "filter",
+          "type": "FilterObject",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "SelectionStats",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -214,7 +269,27 @@ export const metadata: ServiceMetadata = {
     {
       "name": "WebhookEndpointListParams",
       "kind": "type",
-      "definition": "{\n  offset: number;\n  limit: number;\n  provider?: string;\n  enabled?: boolean;\n}"
+      "definition": "{\n  offset: number;\n  limit: number;\n  provider?: string;\n  enabled?: boolean;\n  filter?: FilterObject;\n}"
+    },
+    {
+      "name": "FilterObject",
+      "kind": "type",
+      "definition": "Record<string, unknown>"
+    },
+    {
+      "name": "SelectionFieldDescriptor",
+      "kind": "type",
+      "definition": "{ id: string; label: string; valueType: \"string\" | \"number\" | \"boolean\" | \"date\" | \"enum\"; operators: string[] }"
+    },
+    {
+      "name": "SelectionDescriptor",
+      "kind": "type",
+      "definition": "{ objectType: string; title: string; fields: SelectionFieldDescriptor[]; filterExample?: FilterObject; revision?: string }"
+    },
+    {
+      "name": "SelectionStats",
+      "kind": "type",
+      "definition": "{ totalCount: number }"
     },
     {
       "name": "WebhookLogEntry",
@@ -224,7 +299,7 @@ export const metadata: ServiceMetadata = {
     {
       "name": "WebhookLogListParams",
       "kind": "type",
-      "definition": "{\n  offset: number;\n  limit: number;\n  endpointId?: string;\n  provider?: string;\n}"
+      "definition": "{\n  offset: number;\n  limit: number;\n  endpointId?: string;\n  provider?: string;\n  filter?: FilterObject;\n}"
     },
     {
       "name": "PaginatedResult",
@@ -244,6 +319,9 @@ export interface WebhooksService {
   getEndpoint(id: string): Promise<WebhookEndpoint | any>;
   listEndpoints(params: WebhookEndpointListParams): Promise<PaginatedResult<WebhookEndpoint>>;
   listLogs(params: WebhookLogListParams): Promise<PaginatedResult<WebhookLogEntry>>;
+  describeSelection(objectType: string): Promise<SelectionDescriptor>;
+  inspectEndpoints(filter?: FilterObject): Promise<SelectionStats>;
+  inspectLogs(filter?: FilterObject): Promise<SelectionStats>;
 }
 
 // Client interface
@@ -255,6 +333,9 @@ export interface WebhooksServiceClient {
   getEndpoint(id: string): Promise<WebhookEndpoint | any>;
   listEndpoints(params: WebhookEndpointListParams): Promise<PaginatedResult<WebhookEndpoint>>;
   listLogs(params: WebhookLogListParams): Promise<PaginatedResult<WebhookLogEntry>>;
+  describeSelection(objectType: string): Promise<SelectionDescriptor>;
+  inspectEndpoints(filter?: FilterObject): Promise<SelectionStats>;
+  inspectLogs(filter?: FilterObject): Promise<SelectionStats>;
 }
 
 // Native factory: cruller-transport -> Fujin -> cluster peer.

@@ -1,5 +1,15 @@
-import { SqlStore, generateULID, sql } from "back-core";
+import { applyKyselyFilter, SqlStore, generateULID, sql, type KyselyFilterSchema } from "back-core";
 import type { CronHistoryEntry, CronHistoryInput, CronHistoryListParams, PaginatedResult } from "../types";
+
+const historyFilterSchema: KyselyFilterSchema = {
+  id: { valueType: "string", operators: ["eq", "in"], column: "id" },
+  cronId: { valueType: "string", operators: ["eq", "in", "notEq", "notIn"], column: "cronId" },
+  cronName: { valueType: "string", operators: ["eq", "in", "contains", "startsWith"], column: "cronName" },
+  provider: { valueType: "string", operators: ["eq", "in", "notEq", "notIn"], column: "provider" },
+  action: { valueType: "string", operators: ["eq", "in", "notEq", "notIn"], column: "action" },
+  success: { valueType: "boolean", operators: ["eq", "notEq"], column: "success" },
+  firedAt: { valueType: "date", operators: ["gt", "gte", "lt", "lte", "between"], column: "firedAt" },
+};
 
 interface HistoryRow {
   id: string;
@@ -58,6 +68,7 @@ export class HistoryStoreService {
     if (params.cronId) {
       baseQuery = baseQuery.where("cronId" as any, "=", params.cronId);
     }
+    baseQuery = applyKyselyFilter(baseQuery, params.filter, historyFilterSchema);
 
     const countResult = await baseQuery
       .select((eb: any) => eb.fn.countAll().as("count"))
@@ -79,6 +90,16 @@ export class HistoryStoreService {
       items: (items as HistoryRow[]).map(toEntry),
       totalCount,
     };
+  }
+
+  async count(filter?: Record<string, unknown>): Promise<number> {
+    const query = applyKyselyFilter(
+      this.store.db.selectFrom("history" as any).select((eb: any) => eb.fn.countAll().as("count")),
+      filter,
+      historyFilterSchema,
+    );
+    const result = await query.executeTakeFirst();
+    return Number((result as any)?.count ?? 0);
   }
 
   async getDailyRuns(days = 30): Promise<Array<{ date: string; total: number; success: number; failed: number }>> {

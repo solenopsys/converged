@@ -1,41 +1,28 @@
-import { useUnit } from "effector-preact";
+import { createDomain } from "effector";
 import {
-	HeaderPanelLayout,
-	InfiniteScrollDataTable,
+	createInfiniteTableStore,
+	EntityListView,
 	useMicrofrontendTranslation,
 } from "front-core";
-import { RefreshCw } from "front-core";
-import { objectRef, presentReference } from "front-core/object-runtime";
-import { useEffect, useMemo } from "preact/compat";
+import { objectRef, presentReference, type SetRef } from "front-core/object-runtime";
+import type { RequestListParams } from "g-requests";
+import { useMemo } from "preact/compat";
 import { createRequestsColumns } from "../config";
-import {
-	$requestsStore,
-	refreshRequestsClicked,
-	requestsListMounted,
-} from "../domain-requests";
+import { requestsClient } from "../services";
 
-export const RequestsListView = () => {
-	const state = useUnit($requestsStore.$state);
+export const RequestsListView = ({ reference }: { reference?: SetRef }) => {
 	const { t } = useMicrofrontendTranslation("mf-requests");
-
-	useEffect(() => {
-		requestsListMounted();
-	}, []);
-
 	const columns = useMemo(() => createRequestsColumns(t), [t]);
-
-	const headerConfig = {
-		title: t("list.title"),
-		actions: [
-			{
-				id: "refresh",
-				label: t("list.refresh"),
-				icon: RefreshCw,
-				event: refreshRequestsClicked,
-				variant: "outline" as const,
-			},
-		],
-	};
+	const store = useMemo(() => {
+		const domain = createDomain(`requests-${crypto.randomUUID()}`);
+		return createInfiniteTableStore(domain, (params) =>
+			requestsClient.listRequests(params as RequestListParams),
+		);
+	}, []);
+	const filter =
+		reference?.kind === "set" && reference.selection.kind === "query"
+			? reference.selection.filter
+			: undefined;
 
 	const handleRowClick = (row: unknown) => {
 		const id =
@@ -47,16 +34,13 @@ export const RequestsListView = () => {
 	};
 
 	return (
-		<HeaderPanelLayout config={headerConfig}>
-			<InfiniteScrollDataTable
-				data={state.items}
-				hasMore={state.hasMore}
-				loading={state.loading}
-				columns={columns}
-				onRowClick={handleRowClick}
-				onLoadMore={$requestsStore.loadMore}
-				viewMode="table"
-			/>
-		</HeaderPanelLayout>
+		<EntityListView
+			tableId="requests"
+			title={t("list.title")}
+			store={store}
+			columns={columns}
+			baseFilters={filter ? { filter } : undefined}
+			onRowClick={handleRowClick}
+		/>
 	);
 };

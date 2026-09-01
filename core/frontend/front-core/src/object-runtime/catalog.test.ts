@@ -102,6 +102,42 @@ describe("operator catalog", () => {
 		});
 	});
 
+	test("select candidate without service filters still has a valid selection command", () => {
+		objectRegistry.register("mf-unfiltered-probe", {
+			id: "mf-unfiltered-probe",
+			types: [
+				{
+					id: "probe.unfiltered",
+					label: "Unfiltered probe",
+					categories: [Category.Selectable],
+				},
+			],
+			views: [
+				{
+					id: "probe.unfiltered.table",
+					accepts: { kind: "set", type: "probe.unfiltered" },
+					component: () => null,
+				},
+			],
+			operations: [],
+		});
+
+		const candidate = catalogEntry("core.select:probe.unfiltered");
+		expect(candidate?.parameters).toMatchObject({
+			required: ["scope", "mode"],
+			properties: {
+				scope: { default: "new" },
+				mode: { default: "replace" },
+			},
+		});
+	});
+
+	test("generic open cannot select an arbitrary operation without an object id", async () => {
+		await expect(invokeCatalogEntry("core.open", {})).rejects.toThrow(
+			"open requires targetType and object id",
+		);
+	});
+
 	// The regression this file exists for: route and search rank words against
 	// what the catalog says about itself, and "Show objects" says nothing about
 	// companies.
@@ -111,10 +147,39 @@ describe("operator catalog", () => {
 		).toContain("core.select:companies.company");
 	});
 
-	test("a query in another language still answers with the vocabulary", () => {
+	test("an incoming-mail hint finds the mail selection instead of generic open", () => {
+		objectRegistry.register("mf-mail-search-probe", {
+			id: "mf-mail-search-probe",
+			types: [
+				{
+					id: "mail-search.incoming",
+					label: "Mail",
+					pluralLabel: "Mail",
+					description: "Incoming email messages and inbox",
+					categories: [Category.Communication, Category.Selectable],
+				},
+			],
+			views: [
+				{
+					id: "mail-search.incoming.table",
+					accepts: { kind: "set", type: "mail-search.incoming" },
+					component: () => null,
+				},
+			],
+			operations: [],
+		});
+
 		expect(
-			searchOperatorCatalog("открой список компаний").map((entry) => entry.id),
-		).toEqual(OPERATORS.map((operator) => `core.${operator}`));
+			searchOperatorCatalog("incoming letters open")[0]?.id,
+		).toBe("core.select:mail-search.incoming");
+	});
+
+	test("a query in another language falls back to concrete selections, never generic open", () => {
+		const entries = searchOperatorCatalog("открой список компаний");
+		expect(entries.map((entry) => entry.id)).toContain(
+			"core.select:companies.company",
+		);
+		expect(entries.map((entry) => entry.id)).not.toContain("core.open");
 	});
 
 	// A domain operation may hand back a live object; the chat serialises what it
@@ -246,6 +311,104 @@ describe("operator catalog", () => {
 					},
 				},
 			},
+		});
+	});
+
+	// The assistant knows no more about how deep an object goes than a click
+	// does, so a create that names a composing screen opens it either way.
+	// Without this the assistant sends the operation's empty `parameters` and
+	// the service rejects a blank object.
+	describe("a create that composes its object", () => {
+		const Compose = () => null;
+		let composed = 0;
+
+		beforeAll(() => {
+			objectRegistry.register("mf-compose-probe", {
+				id: "mf-compose-probe",
+				types: [
+					{
+						id: "probe.campaign",
+						label: "Campaign",
+						categories: [Category.Creatable],
+					},
+				],
+				views: [
+					{
+						id: "probe.campaign.form",
+						accepts: { kind: "object", type: "probe.campaign" },
+						component: Compose,
+					},
+				],
+				operations: [
+					{
+						id: "probe.campaign.create",
+						operator: "create",
+						target: "probe.campaign",
+						label: "Create campaign",
+						access: "public",
+						view: "probe.campaign.form",
+						inputs: [
+							{
+								name: "companies",
+								accepts: { kind: "set", type: "companies.company" },
+								required: false,
+							},
+						],
+						invoke: () => {
+							composed += 1;
+							return { id: "made" };
+						},
+					},
+				],
+			});
+		});
+
+		test("opens the screen instead of creating a blank object", async () => {
+			const presented: string[] = [];
+			const stop = referencePresented.watch(({ ref, view }) =>
+				presented.push(`${view.id}:${ref.kind === "object" ? ref.id : ""}`),
+			);
+			const before = composed;
+
+			const result = await invokeCatalogEntry(
+				"core.create:probe.campaign",
+				{},
+				"assistant",
+			);
+
+			stop();
+			expect(presented).toEqual(["probe.campaign.form:new"]);
+			expect(composed).toBe(before);
+			expect(result).toMatchObject({
+				ok: true,
+				presented: { type: "probe.campaign", id: "new" },
+			});
+		});
+
+		test("runs the operation when a reference already composes it", async () => {
+			const presented: string[] = [];
+			const stop = referencePresented.watch(({ view }) =>
+				presented.push(view.id),
+			);
+			const before = composed;
+
+			await invokeCatalogEntry(
+				"core.create:probe.campaign",
+				{
+					references: [
+						{
+							kind: "set",
+							type: "companies.company",
+							selection: { kind: "ids", ids: ["1"] },
+						},
+					],
+				},
+				"assistant",
+			);
+
+			stop();
+			expect(presented).toEqual([]);
+			expect(composed).toBe(before + 1);
 		});
 	});
 });

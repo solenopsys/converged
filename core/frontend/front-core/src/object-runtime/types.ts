@@ -1,5 +1,5 @@
-import type { ComponentType } from "preact";
 import type { SelectionDescriptor, SelectionPreset } from "back-core";
+import type { ComponentType } from "preact";
 
 export const OPERATORS = [
 	"show",
@@ -52,6 +52,8 @@ export type ObjectDefinition = {
 	idField?: string;
 	/** Controls whether generic commands may advertise this type to a guest. */
 	access?: DiscoveryAccess;
+	/** Runtime predicate for catalog and command discovery. */
+	discover?: () => boolean;
 	/** Optional existing NRPC permission required to advertise this type. */
 	capability?: string;
 	/** Serializable filter capability used by select, the LLM and collection views. */
@@ -180,6 +182,8 @@ export type OperationDefinition = {
 	view?: ViewId;
 	parameters?: OperationParameters;
 	access?: DiscoveryAccess;
+	/** Runtime predicate for catalog and command discovery. */
+	discover?: () => boolean;
 	capability?: string;
 	priority?: number;
 	presentOutput?: boolean;
@@ -258,6 +262,9 @@ export function defineMicrofrontend(
 ): MicrofrontendDefinition {
 	return definition;
 }
+
+/** The id an object carries while the screen that builds it is still open. */
+export const NEW_OBJECT_ID = "new";
 
 export function objectRef(
 	type: ObjectTypeId,

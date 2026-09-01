@@ -3,6 +3,7 @@ import {
 	type DomainRef,
 	executeOperation,
 	invokeOperator,
+	NEW_OBJECT_ID,
 	type Operator,
 	objectRef,
 	presentReference,
@@ -10,7 +11,7 @@ import {
 } from "front-core/object-runtime";
 
 /** The id an object carries while the screen that builds it is still open. */
-export const NEW = "new";
+export const NEW = NEW_OBJECT_ID;
 
 /**
  * What a click on a resolved candidate does. It lives here, and not inside the
@@ -30,7 +31,9 @@ export function runCandidate(
 	references: DomainRef[] = [],
 ): Promise<unknown> {
 	const operation = candidate.operation;
-	if (operation?.view && candidate.targetType) {
+	// References are a composition the user already made, so an operation that
+	// received one is run, not re-composed from an empty screen.
+	if (operation?.view && candidate.targetType && references.length === 0) {
 		return authorizeOperation(operation).then(() =>
 			presentReference(objectRef(candidate.targetType, NEW), {
 				viewId: operation.view,

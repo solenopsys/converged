@@ -29,7 +29,24 @@ export type ListMetaParams = {
   status?: StaticStatus;
   contentType?: StaticContentType;
   search?: string;
+	filter?: FilterObject;
 }
+
+export type FilterObject = Record<string, unknown>;
+export type SelectionFieldDescriptor = {
+	id: string;
+	label: string;
+	valueType: "string" | "number" | "boolean" | "date" | "enum";
+	operators: string[];
+};
+export type SelectionDescriptor = {
+	objectType: string;
+	title: string;
+	fields: SelectionFieldDescriptor[];
+	filterExample?: FilterObject;
+	revision?: string;
+};
+export type SelectionStats = { totalCount: number };
 
 export type StaticMetaListResult = {
   items: StaticMeta[];
@@ -63,4 +80,7 @@ export interface StaticService {
 
   deleteEntry(id: string): Promise<void>;
   flush(): Promise<FlushResult>;
+
+	describeSelection(objectType: string): Promise<SelectionDescriptor>;
+	inspectCacheEntries(filter?: FilterObject): Promise<SelectionStats>;
 }

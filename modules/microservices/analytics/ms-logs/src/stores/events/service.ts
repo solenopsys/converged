@@ -1,7 +1,26 @@
-import { ColumnStore, sql } from "back-core";
-import type { LogEvent, LogEventInput, LogQueryParams, LogsStatistic, PaginatedResult } from "../../types";
+import {
+  applyKyselyFilter,
+  ColumnStore,
+  sql,
+  type KyselyFilterSchema,
+} from "back-core";
+import type {
+  FilterObject,
+  LogEvent,
+  LogEventInput,
+  LogQueryParams,
+  LogsStatistic,
+  PaginatedResult,
+} from "../../types";
 
 const TABLE_NAME = "log_events";
+const logFilterSchema: KyselyFilterSchema = {
+  source: { valueType: "string", operators: ["eq", "in", "contains"], column: "source" },
+  level: { valueType: "number", operators: ["eq", "in", "gte", "lte"], column: "level" },
+  code: { valueType: "number", operators: ["eq", "in"], column: "code" },
+  ts: { valueType: "number", operators: ["gt", "gte", "lt", "lte", "between"], column: "ts" },
+  message: { valueType: "string", operators: ["contains", "startsWith"], column: "message" },
+};
 
 export class LogsStoreService {
   constructor(private store: ColumnStore) {}
@@ -32,6 +51,15 @@ export class LogsStoreService {
     const countResult = await countQuery.executeTakeFirst();
 
     return { items: items as LogEvent[], totalCount: Number(countResult?.count ?? 0) };
+  }
+
+  async count(filter?: FilterObject): Promise<number> {
+    const query = this.applyFilters(
+      this.store.db.selectFrom(TABLE_NAME).select(({ fn }) => fn.countAll().as("count")),
+      { offset: 0, limit: 1, filter },
+    );
+    const result = await query.executeTakeFirst();
+    return Number(result?.count ?? 0);
   }
 
   async getStatistic(): Promise<LogsStatistic> {
@@ -103,6 +131,6 @@ export class LogsStoreService {
     if (params.code !== undefined) q = q.where("code", "=", params.code);
     if (params.from_ts !== undefined) q = q.where("ts", ">=", params.from_ts);
     if (params.to_ts !== undefined) q = q.where("ts", "<=", params.to_ts);
-    return q;
+    return applyKyselyFilter(q, params.filter, logFilterSchema);
   }
 }

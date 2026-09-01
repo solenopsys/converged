@@ -84,11 +84,13 @@ export function selectCommandSchema(
 			scope: {
 				type: "string",
 				enum: ["new", "current"],
+				default: "new",
 				description: "new opens a new set; current updates the active set",
 			},
 			mode: {
 				type: "string",
 				enum: ["replace", "refine"],
+				default: "replace",
 				description: "replace replaces a filter; refine adds it with AND",
 			},
 			filter: selectionFilterSchema(definition),

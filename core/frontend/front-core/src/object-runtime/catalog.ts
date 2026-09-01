@@ -11,6 +11,7 @@ import { executeOperation, loadObjectType, presentReference } from "./runtime";
 import {
 	type CategoryId,
 	type DomainRef,
+	NEW_OBJECT_ID,
 	OPERATORS,
 	type Operator,
 	objectRef,
@@ -71,6 +72,7 @@ export function operatorTargets(operator: Operator): OperatorTarget[] {
 		// `open` resolves against a concrete object, and there is none while the
 		// catalog is being read; any type with an object view can be opened.
 		for (const type of objectRegistry.allTypes()) {
+			if (type.discover?.() === false) continue;
 			if (objectResolver.resolveView(objectRef(type.id, "")))
 				targets.set(type.id, type.label);
 		}
@@ -86,7 +88,10 @@ export function operatorTargets(operator: Operator): OperatorTarget[] {
 const targetList = (targets: OperatorTarget[]): string =>
 	targets.map(({ id, label }) => `${label} (${id})`).join(", ");
 
-const operatorParameters = (targets: OperatorTarget[]) => ({
+const operatorParameters = (
+	targets: OperatorTarget[],
+	operator?: Operator,
+) => ({
 	type: "object" as const,
 	properties: {
 		targetType: {
@@ -120,6 +125,7 @@ const operatorParameters = (targets: OperatorTarget[]) => ({
 			description: "Parameters of the resolved domain operation",
 		},
 	},
+	...(operator === "open" ? { required: ["targetType", "id"] } : {}),
 });
 
 export function operatorCatalogEntries(): OperatorCatalogEntry[] {
@@ -131,7 +137,7 @@ export function operatorCatalogEntries(): OperatorCatalogEntry[] {
 		category: "operator",
 		priority: "primary",
 		exposure: "user",
-		parameters: operatorParameters(operatorTargets(operator)),
+		parameters: operatorParameters(operatorTargets(operator), operator),
 	}));
 }
 
@@ -142,6 +148,7 @@ export function operatorCatalogEntry(
 }
 
 const CANDIDATE = /^core\.([a-z]+):(.+)$/;
+const FALLBACK_SELECTION_LIMIT = 6;
 
 // The candidate fixes the target, so the operator's `targetType` is no longer
 // the caller's to choose.
@@ -151,15 +158,20 @@ const candidateParameters = (
 ): OperatorCatalogEntry["parameters"] => {
 	const type = targetType ? objectRegistry.type(targetType) : undefined;
 	const definition = selectionDefinition(type);
-	if (operator === "select" && definition) {
+	if (operator === "select") {
 		return selectCommandSchema(
-			definition,
+			definition ?? { filters: [] },
 		) as OperatorCatalogEntry["parameters"];
 	}
 	const { targetType: _fixed, ...properties } = operatorParameters(
 		[],
+		operator,
 	).properties;
-	return { type: "object", properties };
+	return {
+		type: "object",
+		properties,
+		...(operator === "open" ? { required: ["id"] } : {}),
+	};
 };
 
 /**
@@ -294,10 +306,39 @@ export async function invokeCatalogEntry(
 			...(stats ? { stats: { totalCount: Number(stats.totalCount) } } : {}),
 		};
 	}
+	const references = (params.references as DomainRef[] | undefined) ?? [];
+
+	// An operation that composes its object names the screen that builds it, and
+	// that rule belongs to the runtime, not to the surface that triggered it: a
+	// request from the assistant has no more idea how deep the object goes than
+	// a click in the panel does. Without this the assistant fills the operation's
+	// empty `parameters` with nothing and the service rejects the blank object.
+	// References are the exception — they are the composition, already made, so
+	// "create an outreach from these companies" still runs the operation.
+	const composing = entry.operationId
+		? objectRegistry.operation(entry.operationId)
+		: undefined;
+	if (composing?.view && entry.targetType && references.length === 0) {
+		await loadObjectType(entry.targetType);
+		await presentReference(objectRef(entry.targetType, NEW_OBJECT_ID), {
+			viewId: composing.view,
+			source,
+		});
+		return {
+			ok: true,
+			presented: {
+				type: entry.targetType,
+				id: NEW_OBJECT_ID,
+				viewId: composing.view,
+			},
+			note: "Opened the screen that composes this object; it is not created yet.",
+		};
+	}
+
 	const result = entry.operationId
 		? await executeOperation({
 				operationId: entry.operationId,
-				references: (params.references as DomainRef[] | undefined) ?? [],
+				references,
 				params:
 					(params.params as Record<string, unknown> | undefined) ?? params,
 				source,
@@ -332,11 +373,17 @@ export function searchOperatorCatalog(
 	limit = 12,
 ): OperatorCatalogEntry[] {
 	const words = query.toLocaleLowerCase().split(/\s+/).filter(Boolean);
-	if (words.length === 0) return operatorCatalogEntries();
+	// A bare `open` is only valid with a concrete object id. It therefore cannot
+	// fulfil a collection request and must not be offered to the LLM as a search
+	// result. Resolved `open` candidates remain available once the caller has an
+	// actual reference.
+	const searchable = () =>
+		catalogEntries().filter((entry) => entry.id !== "core.open");
+	if (words.length === 0) return searchable().slice(0, limit);
 
 	const text = (entry: OperatorCatalogEntry) =>
 		`${entry.id} ${entry.brief} ${entry.description}`.toLocaleLowerCase();
-	const ranked = catalogEntries()
+	const ranked = searchable()
 		.map((entry) => ({
 			entry,
 			hits: words.filter((word) => text(entry).includes(word)).length,
@@ -349,11 +396,22 @@ export function searchOperatorCatalog(
 		.slice(0, limit)
 		.map(({ entry }) => entry);
 
-	// Labels are English and the user is not: a query in another language scores
-	// zero everywhere. The bare operators are seven entries and each one carries
-	// its targets as an enum, so handing them back keeps the resolver reachable
-	// instead of reporting that nothing exists.
-	return ranked.length > 0 ? ranked : operatorCatalogEntries();
+	if (ranked.length > 0) return ranked;
+
+	// Labels are English and the user may not be. A selection is the safe common
+	// denominator for an unknown collection request: unlike generic `open`, it
+	// always creates a concrete set and carries a fixed target type. The routing
+	// model's English area hint normally supplies the precise match; this fallback
+	// keeps the collection vocabulary available when it does not.
+	const selections = operatorCandidateEntries().filter(
+		(entry) => entry.operator === "select",
+	);
+	// Keep room for the route hint in `mergeCandidates`: a Russian request falls
+	// back here, while its translated area can still append the specific type.
+	return (selections.length > 0 ? selections : searchable()).slice(
+		0,
+		Math.min(limit, FALLBACK_SELECTION_LIMIT),
+	);
 }
 
 type OperatorInvocation = {
@@ -372,6 +430,9 @@ export async function invokeOperator(
 	input: OperatorInvocation = {},
 	source: "assistant" | "user" = "user",
 ): Promise<unknown> {
+	if (operator === "open" && (!input.targetType || !input.id)) {
+		throw new Error("[object-runtime] open requires targetType and object id");
+	}
 	const references = [...(input.references ?? [])];
 	if (input.targetType && input.id)
 		references.push(objectRef(input.targetType, input.id));

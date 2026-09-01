@@ -9,5 +9,8 @@ export type {
   StaticMeta,
   StaticMetaListResult,
   StaticService,
-  StaticStatus,
+	StaticStatus,
+	FilterObject,
+	SelectionDescriptor,
+	SelectionStats,
 } from "g-static";

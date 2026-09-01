@@ -2,14 +2,19 @@ import { useUnit } from "effector-preact";
 import { useEffect, useRef } from "preact/hooks";
 import { chat } from "../store";
 import { plannerStepLabel, toolActionLabel } from "./labels";
+import { type MagicPrompt, MagicPrompts } from "./MagicPrompts";
 import { Message, StreamingMessage } from "./Message";
 import { Uploads } from "./Uploads";
 
-
-export function Transcript() {
-	const { messages, isLoading, currentResponse, lastToolCallName, activeStep } = useUnit(
-		chat().store.$chat,
-	);
+export function Transcript({
+	magicPrompts = [],
+	onMagicPrompt,
+}: {
+	magicPrompts?: readonly MagicPrompt[];
+	onMagicPrompt?: (message: string) => void;
+}) {
+	const { messages, isLoading, currentResponse, lastToolCallName, activeStep } =
+		useUnit(chat().store.$chat);
 	const listRef = useRef<HTMLDivElement>(null);
 	const stickToBottomRef = useRef(true);
 
@@ -19,8 +24,6 @@ export function Transcript() {
 			node.scrollTop = node.scrollHeight;
 		}
 	}, [messages, currentResponse, isLoading]);
-
-	const empty = messages.length === 0 && !isLoading && !currentResponse;
 
 	return (
 		<>
@@ -35,11 +38,15 @@ export function Transcript() {
 						node.scrollHeight - node.scrollTop - node.clientHeight < 24;
 				}}
 			>
-				{empty ? <p class="empty-message">ready when you are</p> : null}
+				{onMagicPrompt ? (
+					<MagicPrompts prompts={magicPrompts} onSubmit={onMagicPrompt} />
+				) : null}
 				{messages.map((message) => (
 					<Message key={message.id} message={message} />
 				))}
-				{currentResponse ? <StreamingMessage content={currentResponse} /> : null}
+				{currentResponse ? (
+					<StreamingMessage content={currentResponse} />
+				) : null}
 				{isLoading && !currentResponse ? (
 					<div class="panel-message assistant pending">
 						<span class="pending-dots" aria-hidden="true">

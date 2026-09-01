@@ -1,3 +1,4 @@
+import { createJsonFilterAdapter } from "back-core";
 import type {
 	AvailableWorkflow,
 	CachedNodeResult,
@@ -8,8 +9,22 @@ import type {
 	ResumableExecution,
 	Task,
 	TaskTicket,
+	DagVariable,
+	FilterObject,
+	SelectionDescriptor,
+	SelectionStats,
 } from "g-dag";
 import { StoresController } from "./store";
+
+const workflowFilters = createJsonFilterAdapter<AvailableWorkflow>({
+	id: { valueType: "string", operators: ["eq", "in", "contains", "startsWith"] },
+	name: { valueType: "string", operators: ["eq", "in", "contains", "startsWith"] },
+	script: { valueType: "string", operators: ["eq", "in", "contains", "startsWith"] },
+});
+
+const variableFilters = createJsonFilterAdapter<DagVariable>({
+	key: { valueType: "string", operators: ["eq", "in", "contains", "startsWith"] },
+});
 
 export default class DagServiceImpl implements DagService {
 	private stores: StoresController;
@@ -72,6 +87,17 @@ export default class DagServiceImpl implements DagService {
 				];
 			}),
 		};
+	}
+
+	async listWorkflows(
+		params: PaginationParams,
+	): Promise<PaginatedResult<AvailableWorkflow>> {
+		const workflows = (await this.listAvailableWorkflows()).items.filter(
+			workflowFilters.predicate(params.filter),
+		);
+		const offset = params.offset ?? 0;
+		const limit = params.limit ?? 50;
+		return { items: workflows.slice(offset, offset + limit), totalCount: workflows.length };
 	}
 
 	async openExecution(
@@ -345,6 +371,18 @@ export default class DagServiceImpl implements DagService {
 		return { items };
 	}
 
+	async listVariables(
+		params: PaginationParams,
+	): Promise<PaginatedResult<DagVariable>> {
+		await this.ensureStoresReady();
+		const items = this.stores.processingStoreService
+			.listVars()
+			.filter(variableFilters.predicate(params.filter));
+		const offset = params.offset ?? 0;
+		const limit = params.limit ?? 50;
+		return { items: items.slice(offset, offset + limit), totalCount: items.length };
+	}
+
 	async setVar(key: string, value: any): Promise<void> {
 		await this.ensureStoresReady();
 		this.stores.processingStoreService.set(key, value);
@@ -353,6 +391,49 @@ export default class DagServiceImpl implements DagService {
 	async deleteVar(key: string): Promise<void> {
 		await this.ensureStoresReady();
 		this.stores.processingStoreService.delete(key);
+	}
+
+	async describeSelection(objectType: string): Promise<SelectionDescriptor> {
+		const fields = {
+			"dag.workflow": [
+				{ id: "name", label: "Workflow", valueType: "string" as const, operators: ["eq", "in", "contains", "startsWith"] },
+				{ id: "script", label: "Script", valueType: "string" as const, operators: ["eq", "in", "contains", "startsWith"] },
+			],
+			"dag.execution": [
+				{ id: "workflowName", label: "Workflow", valueType: "string" as const, operators: ["eq", "in", "notEq", "notIn"] },
+				{ id: "status", label: "Status", valueType: "enum" as const, operators: ["eq", "in", "notEq", "notIn"] },
+				{ id: "updatedAt", label: "Updated", valueType: "number" as const, operators: ["gt", "gte", "lt", "lte", "between"] },
+			],
+			"dag.task": [
+				{ id: "executionId", label: "Execution", valueType: "string" as const, operators: ["eq", "in", "notEq", "notIn"] },
+				{ id: "nodeId", label: "Node", valueType: "string" as const, operators: ["eq", "in", "notEq", "notIn"] },
+				{ id: "state", label: "State", valueType: "enum" as const, operators: ["eq", "in", "notEq", "notIn"] },
+			],
+			"dag.variable": [
+				{ id: "key", label: "Key", valueType: "string" as const, operators: ["eq", "in", "contains", "startsWith"] },
+			],
+		}[objectType];
+		if (!fields) throw new Error(`Unsupported DAG selection object: ${objectType}`);
+		return { objectType, title: objectType.replace("dag.", "DAG "), fields, revision: "dag-v1" };
+	}
+
+	async inspectSelection(
+		objectType: string,
+		filter?: FilterObject,
+	): Promise<SelectionStats> {
+		if (objectType === "dag.workflow") {
+			return { totalCount: (await this.listWorkflows({ offset: 0, limit: 0, filter })).totalCount ?? 0 };
+		}
+		if (objectType === "dag.execution") {
+			return { totalCount: (await this.listExecutions({ offset: 0, limit: 0, filter })).totalCount ?? 0 };
+		}
+		if (objectType === "dag.task") {
+			return { totalCount: (await this.listTasks(null, { offset: 0, limit: 0, filter })).totalCount ?? 0 };
+		}
+		if (objectType === "dag.variable") {
+			return { totalCount: (await this.listVariables({ offset: 0, limit: 0, filter })).totalCount ?? 0 };
+		}
+		throw new Error(`Unsupported DAG selection object: ${objectType}`);
 	}
 }
 

@@ -2,27 +2,33 @@ import { useUnit } from "effector-preact";
 import { installEffectorTrafficLogger } from "front-core/core";
 import {
 	$objectRegistryRevision,
-	type DomainRef,
 	executeOperation,
-	type Operator,
 	objectResolver,
-	operatorCatalogEntries,
-	type ResolutionCandidate,
 } from "front-core/object-runtime";
 import { translator } from "i18n";
 import type { Entry } from "orchestrator";
 import type { ComponentChildren } from "preact";
-import { useCallback, useEffect, useRef, useState } from "preact/hooks";
+import {
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "preact/hooks";
 import { authToken } from "../auth-token";
 import type { ChatConfig } from "../chat/config";
 import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
 import { mountLinkedChatStyles } from "../chat/styles/link";
-import { ChevronDown, Copy, LogOut } from "../icons";
+import { type MagicPrompt, MagicPrompts } from "../chat/ui/MagicPrompts";
+import { Copy, LogOut } from "../icons";
 import { LandingView } from "../landing/LandingView";
 import type { LandingPayload } from "../landing/types";
+import { setActiveSelectionResolver } from "../select/runtime";
 import { AttachButton, PanelToggle } from "../ui/buttons";
 import { Composer } from "../ui/Composer";
 import { WithTooltip } from "../ui/tooltip";
+import { availableChatPanelTabs, resolveChatPanelTab } from "./chat-panel-tabs";
+import { PinnedViews } from "./PinnedViews";
 import {
 	$composerPlacement,
 	$draft,
@@ -42,13 +48,7 @@ import {
 	panelToggled,
 	panelWidthChanged,
 } from "./panel";
-import { runCandidate } from "./run-candidate";
 import { Surface } from "./SurfaceView";
-import {
-	availableChatPanelTabs,
-	resolveChatPanelTab,
-} from "./chat-panel-tabs";
-import { setActiveSelectionResolver } from "../select/runtime";
 import { $currentSurface } from "./surface";
 import "./reference-presenter";
 import "./legacy-widget-presenter";
@@ -68,100 +68,25 @@ const devTraceEnabled =
 
 const CONVERGED_LOGO_URL = "/assets/converged.svg";
 
-// Root navigation starts a new object flow. The remaining operators require
-// an object reference or a panel registry and must not duplicate this catalog.
-const ROOT_OPERATORS = [
-	"create",
-	"select",
-	"execute",
-] as const satisfies readonly Operator[];
-
-function matchesCandidate(
-	candidate: ResolutionCandidate,
-	query: string,
-): boolean {
-	const words = query.toLocaleLowerCase().split(/\s+/).filter(Boolean);
-	if (words.length === 0) return true;
-	const text = [candidate.label, candidate.description, candidate.targetType]
-		.join(" ")
-		.toLocaleLowerCase();
-	return words.every((word) => text.includes(word));
-}
-
-function OperatorList({
-	active,
-	query,
-	references,
-	onActivate,
-	onRun,
-}: {
-	active: Operator | null;
-	query: string;
-	references: DomainRef[];
-	onActivate: (operator: Operator) => void;
-	onRun: (operator: Operator, candidate: ResolutionCandidate) => void;
-}) {
-	const [, typedOperator, typedTarget = ""] =
-		query.trimStart().match(/^\/(\w+)(?:\s+(.+))?$/) ?? [];
-	return (
-		<div class="panel-commands">
-			{operatorCatalogEntries()
-				.filter((entry) => ROOT_OPERATORS.includes(entry.operator))
-				.map((entry) => {
-					const available = objectResolver.resolve(entry.operator, {
-						references,
-						discovery: "panel",
-					});
-					if (available.length === 0) return null;
-					const candidates =
-						active === entry.operator
-							? available.filter((candidate) =>
-									matchesCandidate(
-										candidate,
-										typedOperator === entry.operator ? typedTarget : "",
-									),
-								)
-							: [];
-					const expanded = active === entry.operator;
-					return (
-						<section class="panel-command-section" key={entry.id}>
-							<button
-								type="button"
-								class="panel-command-heading"
-								aria-expanded={expanded}
-								aria-controls={`operator-${entry.operator}`}
-								onClick={() => onActivate(entry.operator)}
-							>
-								<span>{entry.operator}</span>
-								<ChevronDown
-									aria-hidden="true"
-									size={14}
-									class={expanded ? "is-expanded" : undefined}
-								/>
-							</button>
-							{expanded ? (
-								<div
-									class="panel-command-candidates"
-									id={`operator-${entry.operator}`}
-								>
-									{candidates.map((candidate) => (
-										<button
-											type="button"
-											class="panel-command-item"
-											key={candidate.id}
-											onClick={() => onRun(entry.operator, candidate)}
-											title={candidate.description}
-										>
-											<span class="panel-command-title">{candidate.label}</span>
-										</button>
-									))}
-								</div>
-							) : null}
-						</section>
-					);
-				})}
-		</div>
-	);
+function defaultMagicPrompts(language: string): MagicPrompt[] {
+	const action = language.toLocaleLowerCase().startsWith("ru")
+		? "Покажи"
+		: "Show";
+	const seen = new Set<string>();
+	return objectResolver
+		.resolve("select", { discovery: "panel" })
+		.flatMap((candidate) => {
+			const targetType = candidate.targetType;
+			if (!targetType || seen.has(targetType)) return [];
+			seen.add(targetType);
+			return [candidate];
+		})
+		.slice(0, 6)
+		.map((candidate) => ({
+			id: `select:${candidate.id}`,
+			label: `${action} ${candidate.label}`,
+			message: `${action} ${candidate.label}`,
+		}));
 }
 
 function json(value: unknown): string {
@@ -358,7 +283,7 @@ export function AppShell({
 	const draft = useUnit($draft);
 	const panelTab = useUnit($panelTab);
 	const panelEvents = useUnit($panelEvents);
-	useUnit($objectRegistryRevision);
+	const objectRegistryRevision = useUnit($objectRegistryRevision);
 	const panelWidth = useUnit($panelWidth);
 	const isResizing = useUnit($panelResizing);
 	const isAuthenticated = useUserStatus();
@@ -367,8 +292,10 @@ export function AppShell({
 		isDevelopment: devTraceEnabled,
 	});
 	const activePanelTab = resolveChatPanelTab(panelTab, availableTabs);
-	const [activeOperator, setActiveOperator] = useState<Operator | null>(null);
-	const references = surface?.ref ? [surface.ref] : [];
+	const magicPrompts = useMemo(
+		() => defaultMagicPrompts(config.language),
+		[config.language, objectRegistryRevision],
+	);
 
 	useEffect(() => {
 		setActiveSelectionResolver(() => {
@@ -395,15 +322,10 @@ export function AppShell({
 
 	useEffect(() => {
 		if (shellPlacement === "panel") {
+			void mountLinkedChatStyles();
 			requestAnimationFrame(() => inputRef.current?.focus());
 		}
 	}, [shellPlacement]);
-
-	useEffect(() => {
-		const operator = draft.trimStart().match(/^\/(\w+)\b/)?.[1];
-		if (operator && ROOT_OPERATORS.includes(operator as Operator))
-			setActiveOperator(operator as Operator);
-	}, [draft]);
 
 	useEffect(() => {
 		if (activePanelTab !== panelTab) panelTabActivated(activePanelTab);
@@ -415,29 +337,9 @@ export function AppShell({
 		return loaded.chat;
 	};
 
-	const send = () => {
-		const text = draft.trim();
+	const send = (submitted?: string) => {
+		const text = (submitted ?? draft).trim();
 		if (!text) return;
-		const [, slashOperator, target] = text.match(/^\/(\w+)(?:\s+(.+))?$/) ?? [];
-		if (slashOperator && ROOT_OPERATORS.includes(slashOperator as Operator)) {
-			const operator = slashOperator as Operator;
-			const candidate = target
-				? objectResolver
-						.resolve(operator, { references, discovery: "panel" })
-						.find((entry) => {
-							const value = target.toLocaleLowerCase();
-							return [entry.id, entry.targetType, entry.label]
-								.filter(Boolean)
-								.some((part) => part?.toLocaleLowerCase() === value);
-						})
-				: undefined;
-			panelOpened();
-			panelTabActivated("commands");
-			setActiveOperator(operator);
-			if (candidate) runOperator(operator, candidate);
-			return;
-		}
-		if (text.startsWith("/")) return;
 
 		draftCleared();
 		panelOpened();
@@ -447,6 +349,11 @@ export function AppShell({
 		void ready().then((instance) => instance.sendMessage(text));
 	};
 
+	const submitMagicPrompt = (message: string) => {
+		draftChanged(message);
+		requestAnimationFrame(() => send(message));
+	};
+
 	const attach = (files: File[]) => {
 		if (files.length === 0) return;
 		panelOpened();
@@ -454,16 +361,6 @@ export function AppShell({
 			`Attached ${files.length} file${files.length === 1 ? "" : "s"}`,
 		);
 		void ready().then((instance) => instance.attachFiles(files));
-	};
-
-	const runOperator = (operator: Operator, candidate: ResolutionCandidate) => {
-		draftCleared();
-		panelEventRecorded(`${operator}: ${candidate.label}`);
-		const invocation = runCandidate(operator, candidate, references);
-		void invocation.then(
-			() => panelEventRecorded(`${operator} completed`),
-			() => panelEventRecorded(`${operator} failed`),
-		);
 	};
 
 	const logout = () => {
@@ -624,24 +521,20 @@ export function AppShell({
 					>
 						{activePanelTab === "chat" ? (
 							chat ? (
-								<chat.module.Transcript />
+								<chat.module.Transcript
+									magicPrompts={magicPrompts}
+									onMagicPrompt={submitMagicPrompt}
+								/>
 							) : (
-								<div class="panel-messages" />
+								<div class="panel-messages">
+									<MagicPrompts
+										prompts={magicPrompts}
+										onSubmit={submitMagicPrompt}
+									/>
+								</div>
 							)
 						) : null}
-						{activePanelTab === "commands" ? (
-							<OperatorList
-								active={activeOperator}
-								query={draft}
-								references={references}
-								onActivate={(operator) =>
-									setActiveOperator((current) =>
-										current === operator ? null : operator,
-									)
-								}
-								onRun={runOperator}
-							/>
-						) : null}
+						{activePanelTab === "views" ? <PinnedViews /> : null}
 						{activePanelTab === "events" ? (
 							panelEvents.length > 0 ? (
 								<ol class="panel-events">

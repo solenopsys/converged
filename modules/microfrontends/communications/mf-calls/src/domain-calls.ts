@@ -7,7 +7,7 @@ import {
 } from "./services/call-transcript";
 
 const domain = createDomain("calls");
-const callsClient = createCallsServiceClient(createFrontNrpcClientConfig());
+export const callsClient = createCallsServiceClient(createFrontNrpcClientConfig());
 
 // ── Events ─────────────────────────────────────────────────────────────────
 export const sessionsListMounted = domain.createEvent("SESSIONS_LIST_MOUNTED");

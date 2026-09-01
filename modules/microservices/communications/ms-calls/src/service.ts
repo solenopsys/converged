@@ -15,11 +15,14 @@ import type {
 	CallRecordingInput,
 	CallRecordingResult,
 	CallsListParams,
+	FilterObject,
 	CallsService,
 	DumpAudioFragmentsInput,
 	DumpAudioFragmentsResult,
 	PaginatedResult,
 	RegisterCallInput,
+	SelectionDescriptor,
+	SelectionStats,
 	UpdateCallInput,
 } from "./types";
 
@@ -108,6 +111,20 @@ export class CallsServiceImpl implements CallsService {
 	async listCalls(params: CallsListParams): Promise<PaginatedResult<Call>> {
 		await this.ready();
 		return this.stores.calls.listCalls(params);
+	}
+
+	async describeSelection(objectType: string): Promise<SelectionDescriptor> {
+		if (objectType !== "calls.call") throw new Error(`Unsupported calls selection object: ${objectType}`);
+		return { objectType, title: "Calls", fields: [
+			{ id: "phone", label: "Phone", valueType: "string", operators: ["eq", "in", "contains"] },
+			{ id: "startedAt", label: "Started", valueType: "number", operators: ["gt", "gte", "lt", "lte", "between"] },
+			{ id: "processed", label: "Processed", valueType: "boolean", operators: ["eq", "notEq"] },
+		], revision: "calls-v1" };
+	}
+
+	async inspectCalls(filter?: FilterObject): Promise<SelectionStats> {
+		await this.ready();
+		return { totalCount: await this.stores.calls.countCalls(filter) };
 	}
 
 	async getRecording(recordId: CallRecordId): Promise<CacheRef | undefined> {

@@ -35,7 +35,24 @@ export type ThreadListParams = {
 	offset?: number;
 	limit?: number;
 	kind?: ThreadKind;
+	filter?: FilterObject;
 };
+
+export type FilterObject = Record<string, unknown>;
+export type SelectionFieldDescriptor = {
+	id: string;
+	label: string;
+	valueType: "string" | "number" | "boolean" | "date" | "enum";
+	operators: string[];
+};
+export type SelectionDescriptor = {
+	objectType: string;
+	title: string;
+	fields: SelectionFieldDescriptor[];
+	filterExample?: FilterObject;
+	revision?: string;
+};
+export type SelectionStats = { totalCount: number };
 
 export type PaginatedResult<T> = {
 	items: T[];
@@ -60,4 +77,6 @@ export interface ThreadsService {
 	registerThread(threadId: ULID, kind: ThreadKind): Promise<void>;
 	listThreads(params: ThreadListParams): Promise<PaginatedResult<ThreadInfo>>;
 	getThreadStats(): Promise<ThreadStats>;
+	describeSelection(objectType: string): Promise<SelectionDescriptor>;
+	inspectThreads(filter?: FilterObject): Promise<SelectionStats>;
 }

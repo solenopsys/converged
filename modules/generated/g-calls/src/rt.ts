@@ -86,7 +86,16 @@ export type CallsListParams = {
 	toTime?: number;
 
 	processed?: boolean;
+	filter?: FilterObject;
 };
+
+export type FilterObject = Record<string, unknown>;
+
+export type SelectionFieldDescriptor = { id: string; label: string; valueType: "string" | "number" | "boolean" | "date" | "enum"; operators: string[] };
+
+export type SelectionDescriptor = { objectType: string; title: string; fields: SelectionFieldDescriptor[]; filterExample?: FilterObject; revision?: string };
+
+export type SelectionStats = { totalCount: number };
 
 export type PaginatedResult<T> = {
 	items: T[];
@@ -305,6 +314,36 @@ const metadata: ServiceMetadata = {
       "isAsyncIterable": false
     },
     {
+      "name": "describeSelection",
+      "parameters": [
+        {
+          "name": "objectType",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "SelectionDescriptor",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "inspectCalls",
+      "parameters": [
+        {
+          "name": "filter",
+          "type": "FilterObject",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "SelectionStats",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
       "name": "getRecording",
       "parameters": [
         {
@@ -440,7 +479,27 @@ const metadata: ServiceMetadata = {
     {
       "name": "CallsListParams",
       "kind": "type",
-      "definition": "{\n\toffset: number;\n\tlimit: number;\n\tphone?: string;\n\tfromTime?: number;\n\ttoTime?: number;\n\n\tprocessed?: boolean;\n}"
+      "definition": "{\n\toffset: number;\n\tlimit: number;\n\tphone?: string;\n\tfromTime?: number;\n\ttoTime?: number;\n\n\tprocessed?: boolean;\n\tfilter?: FilterObject;\n}"
+    },
+    {
+      "name": "FilterObject",
+      "kind": "type",
+      "definition": "Record<string, unknown>"
+    },
+    {
+      "name": "SelectionFieldDescriptor",
+      "kind": "type",
+      "definition": "{ id: string; label: string; valueType: \"string\" | \"number\" | \"boolean\" | \"date\" | \"enum\"; operators: string[] }"
+    },
+    {
+      "name": "SelectionDescriptor",
+      "kind": "type",
+      "definition": "{ objectType: string; title: string; fields: SelectionFieldDescriptor[]; filterExample?: FilterObject; revision?: string }"
+    },
+    {
+      "name": "SelectionStats",
+      "kind": "type",
+      "definition": "{ totalCount: number }"
     },
     {
       "name": "PaginatedResult",
@@ -498,6 +557,8 @@ export interface CallsServiceRtClient {
   getCall(id: CallId): Call | any;
   updateCall(id: CallId, patch: UpdateCallInput): Call;
   listCalls(params: CallsListParams): PaginatedResult<Call>;
+  describeSelection(objectType: string): SelectionDescriptor;
+  inspectCalls(filter?: FilterObject): SelectionStats;
   getRecording(recordId: CallRecordId): CacheRef | any;
   getCallAudio(callId: CallId, source: CallFragmentSource): CacheRef;
   hasCallAudio(callId: CallId): boolean;

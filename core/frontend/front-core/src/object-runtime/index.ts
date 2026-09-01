@@ -78,6 +78,7 @@ export type {
 export {
 	Category,
 	defineMicrofrontend,
+	NEW_OBJECT_ID,
 	OPERATORS,
 	objectOf,
 	objectRef,

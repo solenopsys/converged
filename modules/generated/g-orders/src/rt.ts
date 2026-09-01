@@ -74,6 +74,25 @@ export type OrderPatch = {
 	notes?: string;
 };
 
+export type FilterObject = Record<string, unknown>;
+
+export type SelectionFieldDescriptor = {
+	id: string;
+	label: string;
+	valueType: "string" | "number" | "boolean" | "date" | "enum";
+	operators: string[];
+};
+
+export type SelectionDescriptor = {
+	objectType: string;
+	title: string;
+	fields: SelectionFieldDescriptor[];
+	filterExample?: FilterObject;
+	revision?: string;
+};
+
+export type SelectionStats = { totalCount: number };
+
 export type OrderListParams = {
 	offset: number;
 	limit: number;
@@ -81,6 +100,7 @@ export type OrderListParams = {
 	status?: OrderStatus;
 	statusGroup?: OrderStatusGroup;
 	productionMethod?: OrderProductionMethod;
+	filter?: FilterObject;
 };
 
 export type OrderStatusCount = {
@@ -100,8 +120,13 @@ export type OrderDashboardStats = {
 	ordersTotal: number;
 	queuedTotal: number;
 	inProgressTotal: number;
+	printingTotal: number;
 	completedTotal: number;
 	blockedTotal: number;
+	materialWeightGrams: number;
+	estimatedPrintingHours: number;
+	availablePrinters: number;
+	printerCapacity: number;
 	utilizationPercent: number;
 };
 
@@ -162,6 +187,36 @@ const metadata: ServiceMetadata = {
         }
       ],
       "returnType": "PaginatedResult<Order>",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "describeSelection",
+      "parameters": [
+        {
+          "name": "objectType",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "SelectionDescriptor",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "inspectOrders",
+      "parameters": [
+        {
+          "name": "filter",
+          "type": "FilterObject",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "SelectionStats",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -269,9 +324,29 @@ const metadata: ServiceMetadata = {
       "definition": "{\n\trequestId?: RequestId;\n\tmodelName?: string;\n\tproductionMethod?: OrderProductionMethod;\n\tstatus?: OrderStatus;\n\tquantity?: number;\n\tweightGrams?: number;\n\tmaterial?: string;\n\tequipmentId?: EquipmentId;\n\tdueAt?: ISODateString;\n\tnotes?: string;\n}"
     },
     {
+      "name": "FilterObject",
+      "kind": "type",
+      "definition": "Record<string, unknown>"
+    },
+    {
+      "name": "SelectionFieldDescriptor",
+      "kind": "type",
+      "definition": "{\n\tid: string;\n\tlabel: string;\n\tvalueType: \"string\" | \"number\" | \"boolean\" | \"date\" | \"enum\";\n\toperators: string[];\n}"
+    },
+    {
+      "name": "SelectionDescriptor",
+      "kind": "type",
+      "definition": "{\n\tobjectType: string;\n\ttitle: string;\n\tfields: SelectionFieldDescriptor[];\n\tfilterExample?: FilterObject;\n\trevision?: string;\n}"
+    },
+    {
+      "name": "SelectionStats",
+      "kind": "type",
+      "definition": "{ totalCount: number }"
+    },
+    {
       "name": "OrderListParams",
       "kind": "type",
-      "definition": "{\n\toffset: number;\n\tlimit: number;\n\trequestId?: RequestId;\n\tstatus?: OrderStatus;\n\tstatusGroup?: OrderStatusGroup;\n\tproductionMethod?: OrderProductionMethod;\n}"
+      "definition": "{\n\toffset: number;\n\tlimit: number;\n\trequestId?: RequestId;\n\tstatus?: OrderStatus;\n\tstatusGroup?: OrderStatusGroup;\n\tproductionMethod?: OrderProductionMethod;\n\tfilter?: FilterObject;\n}"
     },
     {
       "name": "OrderStatusCount",
@@ -286,7 +361,7 @@ const metadata: ServiceMetadata = {
     {
       "name": "OrderDashboardStats",
       "kind": "type",
-      "definition": "{\n\tordersTotal: number;\n\tqueuedTotal: number;\n\tinProgressTotal: number;\n\tcompletedTotal: number;\n\tblockedTotal: number;\n\tutilizationPercent: number;\n}"
+      "definition": "{\n\tordersTotal: number;\n\tqueuedTotal: number;\n\tinProgressTotal: number;\n\tprintingTotal: number;\n\tcompletedTotal: number;\n\tblockedTotal: number;\n\tmaterialWeightGrams: number;\n\testimatedPrintingHours: number;\n\tavailablePrinters: number;\n\tprinterCapacity: number;\n\tutilizationPercent: number;\n}"
     },
     {
       "name": "OrderDashboard",
@@ -307,6 +382,8 @@ export interface OrdersServiceRtClient {
   createOrder(input: OrderInput): OrderId;
   getOrder(id: OrderId): Order | any;
   listOrders(params: OrderListParams): PaginatedResult<Order>;
+  describeSelection(objectType: string): SelectionDescriptor;
+  inspectOrders(filter?: FilterObject): SelectionStats;
   patchOrder(id: OrderId, patch: OrderPatch): Order;
   updateStatus(id: OrderId, status: OrderStatus): void;
   getOrderDashboard(): OrderDashboard;

@@ -1,5 +1,6 @@
 export type {
 	ISODateString,
+	FilterObject,
 	PaginatedResult,
 	Request,
 	RequestCollections,
@@ -28,4 +29,7 @@ export type {
 	RequestRequirementsCatalog,
 	RequestStatus,
 	RequestsService,
+	SelectionDescriptor,
+	SelectionFieldDescriptor,
+	SelectionStats,
 } from "g-requests";

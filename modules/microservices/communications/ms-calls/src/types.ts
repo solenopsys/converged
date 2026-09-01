@@ -15,11 +15,14 @@ import type {
 	CallRecordingInput,
 	CallRecordingResult,
 	CallsListParams,
+	FilterObject,
 	CallsService,
 	DumpAudioFragmentsInput,
 	DumpAudioFragmentsResult,
 	PaginatedResult,
 	RegisterCallInput,
+	SelectionDescriptor,
+	SelectionStats,
 	UpdateCallInput,
 } from "g-calls";
 
@@ -40,10 +43,13 @@ export type {
 	CallRecordingInput,
 	CallRecordingResult,
 	CallsListParams,
+	FilterObject,
 	CallsService,
 	DumpAudioFragmentsInput,
 	DumpAudioFragmentsResult,
 	PaginatedResult,
 	RegisterCallInput,
+	SelectionDescriptor,
+	SelectionStats,
 	UpdateCallInput,
 };

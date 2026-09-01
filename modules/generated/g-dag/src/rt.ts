@@ -8,7 +8,27 @@ export type TaskState = "queued" | "processing" | "done" | "failed";
 export type PaginationParams = {
 	offset: number;
 	limit: number;
+	filter?: FilterObject;
 };
+
+export type FilterObject = Record<string, unknown>;
+
+export type SelectionFieldDescriptor = {
+	id: string;
+	label: string;
+	valueType: "string" | "number" | "boolean" | "date" | "enum";
+	operators: string[];
+};
+
+export type SelectionDescriptor = {
+	objectType: string;
+	title: string;
+	fields: SelectionFieldDescriptor[];
+	filterExample?: FilterObject;
+	revision?: string;
+};
+
+export type SelectionStats = { totalCount: number };
 
 export type PaginatedResult<T> = {
 	items: T[];
@@ -69,6 +89,8 @@ export type AvailableWorkflow = {
 	sourceUrl?: string;
 };
 
+export type DagVariable = { key: string; value: unknown };
+
 export type ResumeExecutionsResult = {
 	resumed: number;
 	skipped: number;
@@ -101,6 +123,21 @@ const metadata: ServiceMetadata = {
       "name": "listAvailableWorkflows",
       "parameters": [],
       "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "listWorkflows",
+      "parameters": [
+        {
+          "name": "params",
+          "type": "PaginationParams",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "PaginatedResult<AvailableWorkflow>",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -365,6 +402,21 @@ const metadata: ServiceMetadata = {
       "isAsyncIterable": false
     },
     {
+      "name": "listVariables",
+      "parameters": [
+        {
+          "name": "params",
+          "type": "PaginationParams",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "PaginatedResult<DagVariable>",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
       "name": "setVar",
       "parameters": [
         {
@@ -399,6 +451,42 @@ const metadata: ServiceMetadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
+    },
+    {
+      "name": "describeSelection",
+      "parameters": [
+        {
+          "name": "objectType",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "SelectionDescriptor",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "inspectSelection",
+      "parameters": [
+        {
+          "name": "objectType",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "filter",
+          "type": "FilterObject",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "SelectionStats",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -415,7 +503,27 @@ const metadata: ServiceMetadata = {
     {
       "name": "PaginationParams",
       "kind": "type",
-      "definition": "{\n\toffset: number;\n\tlimit: number;\n}"
+      "definition": "{\n\toffset: number;\n\tlimit: number;\n\tfilter?: FilterObject;\n}"
+    },
+    {
+      "name": "FilterObject",
+      "kind": "type",
+      "definition": "Record<string, unknown>"
+    },
+    {
+      "name": "SelectionFieldDescriptor",
+      "kind": "type",
+      "definition": "{\n\tid: string;\n\tlabel: string;\n\tvalueType: \"string\" | \"number\" | \"boolean\" | \"date\" | \"enum\";\n\toperators: string[];\n}"
+    },
+    {
+      "name": "SelectionDescriptor",
+      "kind": "type",
+      "definition": "{\n\tobjectType: string;\n\ttitle: string;\n\tfields: SelectionFieldDescriptor[];\n\tfilterExample?: FilterObject;\n\trevision?: string;\n}"
+    },
+    {
+      "name": "SelectionStats",
+      "kind": "type",
+      "definition": "{ totalCount: number }"
     },
     {
       "name": "PaginatedResult",
@@ -454,6 +562,11 @@ const metadata: ServiceMetadata = {
       "definition": "{\n\tid: string;\n\tname: string;\n\tscript: string;\n\tbrief?: string;\n\tdescription?: string;\n\tparameters?: {\n\t\ttype: \"object\";\n\t\tproperties: Record<string, unknown>;\n\t\trequired?: string[];\n\t};\n\t/** Internal Ptah-proxy URL for the runtime; UI clients must ignore it. */\n\tsourceUrl?: string;\n}"
     },
     {
+      "name": "DagVariable",
+      "kind": "type",
+      "definition": "{ key: string; value: unknown }"
+    },
+    {
       "name": "ResumeExecutionsResult",
       "kind": "type",
       "definition": "{\n\tresumed: number;\n\tskipped: number;\n\tfailed: number;\n\tids: string[];\n}"
@@ -479,6 +592,7 @@ const metadata: ServiceMetadata = {
 // RT client interface — synchronous (one QuickJS evaluation per workflow run).
 export interface DagServiceRtClient {
   listAvailableWorkflows(): any;
+  listWorkflows(params: PaginationParams): PaginatedResult<AvailableWorkflow>;
   openExecution(id: string, workflowName: string, params: Record<string, any>): void;
   setExecutionStatus(id: string, status: ExecutionStatus): void;
   listResumableExecutions(limit?: number): any;
@@ -492,8 +606,11 @@ export interface DagServiceRtClient {
   listTasks(executionId: string | any, params: PaginationParams): PaginatedResult<Task>;
   stats(): any;
   listVars(): any;
+  listVariables(params: PaginationParams): PaginatedResult<DagVariable>;
   setVar(key: string, value: any): void;
   deleteVar(key: string): void;
+  describeSelection(objectType: string): SelectionDescriptor;
+  inspectSelection(objectType: string, filter?: FilterObject): SelectionStats;
 }
 
 export function createDagServiceRtClient(): DagServiceRtClient {

@@ -5,6 +5,8 @@ import type {
   TelemetryQueryParams,
   TelemetryStatistic,
   PaginatedResult,
+  SelectionDescriptor,
+  SelectionStats,
 } from "./types";
 import { StoresController } from "./stores";
 
@@ -51,6 +53,29 @@ export class TelemetryServiceImpl implements TelemetryService {
   async listCold(params: TelemetryQueryParams): Promise<PaginatedResult<TelemetryEvent>> {
     await this.ensureReady();
     return this.stores.cold.list(params);
+  }
+
+  async describeSelection(objectType: string): Promise<SelectionDescriptor> {
+    if (objectType !== "telemetry.entry") {
+      throw new Error(`Unsupported telemetry selection object: ${objectType}`);
+    }
+    return {
+      objectType,
+      title: "Telemetry",
+      fields: [
+        { id: "deviceId", label: "Device", valueType: "string", operators: ["eq", "in", "contains"] },
+        { id: "param", label: "Parameter", valueType: "string", operators: ["eq", "in", "contains"] },
+        { id: "value", label: "Value", valueType: "number", operators: ["eq", "gt", "gte", "lt", "lte", "between"] },
+        { id: "ts", label: "Timestamp", valueType: "number", operators: ["gt", "gte", "lt", "lte", "between"] },
+      ],
+      filterExample: { param: { eq: "temperature" } },
+      revision: "telemetry-v1",
+    };
+  }
+
+  async inspectTelemetry(filter?: Record<string, unknown>): Promise<SelectionStats> {
+    await this.ensureReady();
+    return { totalCount: await this.stores.hot.count(filter) };
   }
 
   async getStatistic(): Promise<TelemetryStatistic> {
