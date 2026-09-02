@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { createConversation, type ChatDriver, type ChatEvent } from "orchestrator";
+import {
+	type ChatDriver,
+	type ChatEvent,
+	createConversation,
+} from "orchestrator";
 import { createChatStore } from "./chat-store";
 import type { ChatMetadataService, ThreadsService } from "./types";
 
@@ -12,7 +16,9 @@ const driverOf = (turns: ChatEvent[][]): ChatDriver => {
 	return {
 		async *send() {
 			for (const event of turns[turn++] ??
-				([{ type: "response.completed", finishReason: "stop" }] as ChatEvent[])) {
+				([
+					{ type: "response.completed", finishReason: "stop" },
+				] as ChatEvent[])) {
 				yield event;
 			}
 		},
@@ -92,7 +98,9 @@ describe("chat view", () => {
 
 		conversation.entries.patched({ id: "a1", patch: { streaming: false } });
 		expect(store.currentResponse).toBe("");
-		expect(store.messages.map((message) => message.content)).toEqual(["partial"]);
+		expect(store.messages.map((message) => message.content)).toEqual([
+			"partial",
+		]);
 	});
 
 	test("a function call is projected as a card carrying its result", async () => {
@@ -157,7 +165,10 @@ describe("chat view", () => {
 		expect(store.$chat.getState()).toMatchObject({ activeStep: "describe" });
 		expect(store.messages).toEqual([]);
 
-		conversation.entries.patched({ id: "step-1", patch: { status: "completed" } });
+		conversation.entries.patched({
+			id: "step-1",
+			patch: { status: "completed" },
+		});
 		expect(store.$chat.getState().activeStep).toBeUndefined();
 	});
 });
@@ -185,6 +196,43 @@ describe("chat persistence", () => {
 		store.send("show requests");
 		await Bun.sleep(0);
 		expect(saved[1]).toEqual({ user: "user", data: "show requests" });
+	});
+
+	test("an archive's contents replace it in the file context, undrawn", async () => {
+		const { store, saved } = harness();
+
+		store.attach({
+			id: "zip-1",
+			name: "models.zip",
+			size: 7201924,
+			type: "application/zip",
+		});
+		// What unpacking the archive produced. The user attached one archive, so
+		// this is what the model must be able to put on a request — and the
+		// archive itself is no longer of any use to it.
+		store.noteFiles(
+			[
+				{ id: "stl-1", name: "part.stl", size: 42, type: "model/stl" },
+				{ id: "stl-2", name: "nut.stl", size: 43, type: "model/stl" },
+			],
+			["zip-1"],
+		);
+		await Bun.sleep(0);
+
+		// Only the archive was drawn: thirteen chips for one upload is noise.
+		expect(store.messages.map((message) => message.content)).toEqual([
+			"models.zip",
+		]);
+
+		store.send("create a request");
+		await Bun.sleep(0);
+		expect(saved[0]).toEqual({
+			user: "user",
+			data:
+				'[FILE] id=stl-1 name="part.stl" size=42 type="model/stl"\n' +
+				'[FILE] id=stl-2 name="nut.stl" size=43 type="model/stl"\n\n' +
+				"create a request",
+		});
 	});
 
 	test("the user's line is dumped at once, the answer only when settled", async () => {

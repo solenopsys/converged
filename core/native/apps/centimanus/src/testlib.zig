@@ -131,7 +131,7 @@ fn mockTransport() vm.Transport {
 }
 
 /// Resolve the delegated workflow's source through the test, then run it on the
-/// real VM. Called from the parent's step loop, so this is a fresh top-level
+/// real VM. Called while the parent is blocked in its host call, so this is a fresh top-level
 /// evaluation and never re-enters QuickJS.
 fn mockRunWorkflow(ctx: *anyopaque, a: std.mem.Allocator, script_path: []const u8, params_json: []const u8) anyerror!vm.Reply {
     _ = ctx;

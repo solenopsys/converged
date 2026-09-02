@@ -92,8 +92,8 @@ pub const Engine = struct {
         return .{ .exec_id = exec_id, .ok = result.ok, .output = result.output };
     }
 
-    /// `rt.sub` — run a delegated workflow inline. The VM calls this from its
-    /// step loop with no JS on the stack, so the child gets a clean evaluation,
+    /// `rt.sub` — run a delegated workflow inline. The child runs on its own
+    /// runtime while the parent is blocked in the host call that asked for it,
     /// and the VM caps the nesting depth before it ever calls us.
     /// Deliberately not an NRPC hop back into `centimanus`: the transport has a
     /// single handler thread, so a self-call would park the worker on its own

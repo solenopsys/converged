@@ -20,10 +20,8 @@ workflows/
 - только flow: ветвления, циклы, имена шагов; вся работа — `rt.call` в MS;
 - каждый side effect строго внутри `rt.node`/`rt.attempt`; имя узла уникально,
   в циклах включает id/номер итерации;
-- error-boundary — это `rt.attempt` (ошибка приходит значением `{ok,error}`),
-  НЕ try/catch: catch вокруг узла проглатывает YIELD-сентинел движка и шаг
-  записывается как ошибка. Если try/catch всё же неизбежен — обязательно
-  `if (isRtYield(e)) throw e;` (dag-core/rt-yield.ts);
+- error-boundary — это `rt.attempt`: ошибка приходит значением `{ok,error}`,
+  а не исключением, поэтому ветвление по ней читается как обычный код;
 - плоский стиль: один файл на workflow, никаких классов/`Run`-машинерии —
   очередь это массив + while, отчёт это объект (эталон: wf-files-process);
 - крупные данные ходят по ссылке (`CacheRef` в Valkey), не в payload;
@@ -43,8 +41,23 @@ import в clients.ts.
 ```ts
 import { buildWorkflow } from "dag-core/build";
 const js = await buildWorkflow("modules/workflows/wf-files-process/index.ts");
-// строку сохраняем в ms-scripts (scripts.saveScript) — centimanus читает оттуда
 ```
+
+Собранную строку centimanus забирает сам по HTTP: `listAvailableWorkflows`
+(ms-dag) отдаёт для `script` его `sourceUrl`, а `workflow_registry.zig` его
+скачивает. В dev адрес выдаёт `core/tools/dev/src/workflows.ts` — он пересобирает
+исходник на каждый запрос, так что правка workflow видна без рестарта; в кластере
+это прокси ptah по дайджесту из `registry.workflows`.
+
+Чтобы workflow вообще резолвился, он должен быть перечислен в трёх местах:
+`modules/solutions/mapping.json` (ссылка на скрипт), `workflows` нужного
+solution-фрагмента и `solutions.converged.workflows` в
+`core/tools/install/chart/values.yaml` (проверяется тестом
+`core/tools/install/solution.test.ts`). Это касается и тех, кого зовут только
+через `rt.sub`: делегирование идёт через тот же список, незарегистрированный
+ребёнок валит родителя с `WorkflowNotFound`. `brief`/`description`/`parameters`
+добавляем только тем, кого ассистенту можно вызывать самому — по ним чат
+публикует workflow в каталог функций.
 
 Тесты на реальном VM-ядре с mock-транспортом:
 `navite/apps/centimanus/test/bun` (`zig build mock && bun test test/bun`).

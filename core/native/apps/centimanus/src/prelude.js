@@ -1,20 +1,19 @@
-// rt prelude — the flow surface for a *step-driven* DAG.
+// rt prelude — the flow surface of a workflow.
 //
-// The engine does NOT run a workflow as one long process. It runs the script in
-// short steps: each evaluation replays the already-finished nodes (reading their
-// results from Valkey), executes exactly ONE not-yet-done node, persists it, and
-// YIELDS. The engine then re-enters; the context has changed, so the next node
-// runs. One node per evaluation — atomic, resumable, with a clean break between
-// nodes and no long-lived JS process waiting on anything.
+// The engine loads this file plus the workflow bundle ONCE per execution and
+// then calls `__run`. The workflow is an ordinary function: it runs top to
+// bottom, `rt.node` executes its body and returns the value, `rt.sub` returns
+// what the child workflow returned. Nothing is re-entered, nothing is replayed,
+// and no exception is used for control flow.
 //
-// The engine evaluates: <this prelude> + <workflow source> + ";__step();" after
-// injecting globalThis.__execId and globalThis.__params.
+// Everything here is synchronous. A host primitive blocks the script until the
+// service answers — that is the entire concurrency model, and it is why a
+// workflow reads like a script and not like a promise chain.
 //
-// A workflow delegates one step to another workflow with rt.sub/rt.subAttempt.
-// That is a YIELD carrying a request, never a nested call: the engine runs the
-// child from its step loop, when no JS is on the stack, and persists the child's
-// outcome under the parent's task key. On re-entry the parent replays and reads
-// it back, so delegation caches and resumes exactly like an ordinary node.
+// A node's outcome is written to the state store before it returns, and read
+// back if it is already there. That matters on one occasion only: a re-run of
+// the same execution id, after a crash, skips the services that already
+// answered instead of calling them twice.
 
 (function () {
   function host(payload) {
@@ -26,27 +25,25 @@
     }
   }
 
-  var execId = globalThis.__execId;
-
-  // Sentinel thrown to unwind out to the engine after one node runs. It is a
-  // bare object, never an Error, and the workflow never wraps node calls in
-  // try/catch (node failures come back as values via rt.attempt), so it always
-  // reaches __step uncaught.
-  var YIELD = { __rtYield: true };
-
-  // Set alongside YIELD when the step is a delegation the engine must fulfil.
-  var pendingSub = null;
-
-  function taskKey(name) {
-    return "rt:task:" + execId + ":" + name;
+  // The node cache lives on the host side: it owns the key shape, the cleanup
+  // of a finished run and the per-node bookkeeping ms-dag records.
+  function cachedOutcome(name) {
+    var res = host({ op: "nodeGet", node: String(name) });
+    if (!res.ok) throw new Error(res.error || "rt: node cache read failed");
+    return res.value; // { ok:true, value } | { ok:false, error } | null
   }
 
-  // Run a node's body once, persist the outcome, and yield. On replay (the
-  // outcome is already in Valkey) no work happens — we just hand the stored
-  // value/error straight back.
-  function runOrReplay(name, fn) {
-    var cached = rt.get(taskKey(name));
-    if (cached) return cached; // { ok:true, value } | { ok:false, error }
+  function keepOutcome(name, outcome) {
+    var res = host({ op: "nodeSet", node: String(name), json: JSON.stringify(outcome) });
+    if (!res.ok) throw new Error(res.error || "rt: node cache write failed");
+  }
+
+  // Run the node's body once and keep what it produced. A failure is recorded
+  // as data — the caller decides whether it ends the workflow (rt.node) or is
+  // handed back (rt.attempt).
+  function runNode(name, fn) {
+    var cached = cachedOutcome(name);
+    if (cached) return cached;
 
     var outcome;
     try {
@@ -55,22 +52,23 @@
     } catch (e) {
       outcome = { ok: false, error: String((e && e.message) || e) };
     }
-    rt.set(taskKey(name), outcome);
-    throw YIELD; // one node per step — the engine re-enters for the next
+    keepOutcome(name, outcome);
+    return outcome;
   }
 
-  // Delegate to another workflow. The engine writes { ok, value } | { ok, error }
-  // to this node's task key, then re-enters; the replay above returns it.
-  function runSubOrReplay(name, scriptPath, params) {
-    var cached = rt.get(taskKey(name));
+  // Delegate to another workflow. The host runs it on its own runtime and hands
+  // back its outcome in the same shape a node has, so a delegation caches and
+  // resumes exactly like one.
+  function runSub(name, scriptPath, params) {
+    var cached = cachedOutcome(name);
     if (cached) return cached;
     if (!scriptPath) throw new Error("rt.sub: scriptPath is required");
-    pendingSub = {
-      node: name,
+    return host({
+      op: "sub",
+      node: String(name),
       script: String(scriptPath),
       params: params === undefined ? {} : params,
-    };
-    throw YIELD;
+    });
   }
 
   var rt = {
@@ -110,35 +108,33 @@
     // ---- the DAG node ------------------------------------------------------
     // Strict: returns the value, or throws on a recorded failure (fails the run).
     node: function (name, fn) {
-      var outcome = runOrReplay(name, fn);
+      var outcome = runNode(name, fn);
       if (outcome.ok) return outcome.value;
       throw new Error(outcome.error);
     },
     // Lenient: never throws to the caller — returns { ok, value } | { ok, error },
-    // so a workflow can record the error and carry on. (Still one node per step.)
+    // so a workflow can record the error and carry on.
     attempt: function (name, fn) {
-      return runOrReplay(name, fn);
+      return runNode(name, fn);
     },
 
     // ---- delegation to another workflow ------------------------------------
     // Strict: returns the child's result, or throws on its failure.
     sub: function (name, scriptPath, params) {
-      var outcome = runSubOrReplay(name, scriptPath, params);
+      var outcome = runSub(name, scriptPath, params);
       if (outcome.ok) return outcome.value;
       throw new Error(outcome.error);
     },
     // Lenient: { ok, value } | { ok, error }, so a batch survives one bad child.
     subAttempt: function (name, scriptPath, params) {
-      return runSubOrReplay(name, scriptPath, params);
+      return runSub(name, scriptPath, params);
     },
   };
 
   globalThis.rt = rt;
 
-  // One engine step: replay to the current frontier, run one node (which yields),
-  // or — if every node is already done — finish and return the result.
-  globalThis.__step = function () {
-    pendingSub = null;
+  // The entry point the engine calls once. Its result is the run's result.
+  globalThis.__run = function () {
     var entry =
       (typeof rt.workflow === "function" && rt.workflow) ||
       (typeof workflow === "function" && workflow);
@@ -149,17 +145,6 @@
       var out = entry(globalThis.__params);
       return JSON.stringify({ status: "done", result: out === undefined ? null : out });
     } catch (e) {
-      if (e === YIELD) {
-        if (pendingSub) {
-          return JSON.stringify({
-            status: "sub",
-            node: pendingSub.node,
-            script: pendingSub.script,
-            params: pendingSub.params,
-          });
-        }
-        return JSON.stringify({ status: "yielded" });
-      }
       return JSON.stringify({ status: "failed", error: String((e && e.message) || e) });
     }
   };

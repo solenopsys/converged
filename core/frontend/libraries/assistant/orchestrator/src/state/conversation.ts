@@ -1,4 +1,9 @@
-import { createDomain, type Domain, type EventCallable, type Store } from "effector";
+import {
+	createDomain,
+	type Domain,
+	type EventCallable,
+	type Store,
+} from "effector";
 import { type ChatBlock, type ChatDriver, wantsTools } from "../chat-driver";
 import { createMachine } from "../machine";
 import { createFunctionSteps } from "../steps";
@@ -13,17 +18,17 @@ import type {
 	Tier,
 	ToolSpec,
 } from "../types";
-import { createConversationCatalog, type ConversationCatalog } from "./catalog";
+import { type ConversationCatalog, createConversationCatalog } from "./catalog";
 import {
 	CONVERSATION,
-	createConversationEntries,
 	type ConversationEntries,
+	createConversationEntries,
 	type Entry,
 } from "./entries";
 import {
+	type ConversationTurn,
 	createConversationTurn,
 	loopMessage,
-	type ConversationTurn,
 	type TurnBudget,
 } from "./turn";
 
@@ -67,6 +72,8 @@ export type Conversation = {
 	registerTool(tool: ExecutableTool): void;
 	/** Execute a registered tool without asking the model, retaining the call trace. */
 	invokeTool(name: string, args: Record<string, unknown>): Promise<unknown>;
+	/** Open a turn from a host event instead of a user message. */
+	follow(event: string): Promise<void>;
 	/** The plan alone, for hosts that want the decision without an answer. */
 	plan(text: string): Promise<OrchestratorPlan>;
 };
@@ -76,7 +83,8 @@ const TOOL_NAME = /^[a-zA-Z0-9_-]+$/;
 const id = (): string => crypto.randomUUID();
 
 const errorOf = (value: unknown): string | undefined => {
-	if (typeof value !== "object" || value === null || !("ok" in value)) return undefined;
+	if (typeof value !== "object" || value === null || !("ok" in value))
+		return undefined;
 	if (value.ok !== false) return undefined;
 	return typeof value.error === "string" ? value.error : "Function failed";
 };
@@ -89,7 +97,11 @@ const factOf = (plan: OrchestratorPlan): string | undefined => {
 			(plan.fact as { ok?: unknown }).ok === false;
 		return JSON.stringify(
 			failed
-				? { id: plan.id, args: plan.args, error: (plan.fact as { error?: string }).error }
+				? {
+						id: plan.id,
+						args: plan.args,
+						error: (plan.fact as { error?: string }).error,
+					}
 				: { id: plan.id, args: plan.args, result: plan.fact },
 		);
 	}
@@ -188,7 +200,9 @@ export function createConversation({
 				entries.patched({
 					id: entryId,
 					patch: {
-						status: trace.outcome?.startsWith("error:") ? "failed" : "completed",
+						status: trace.outcome?.startsWith("error:")
+							? "failed"
+							: "completed",
 						outcome: trace.outcome,
 						elapsedMs: trace.finishedAt - trace.startedAt,
 					},
@@ -224,7 +238,9 @@ export function createConversation({
 		return plan;
 	};
 
-	const execute = async (call: StepToolCall & { id: string }): Promise<unknown> => {
+	const execute = async (
+		call: StepToolCall & { id: string },
+	): Promise<unknown> => {
 		const startedAt = Date.now();
 		const entryId = id();
 		append({
@@ -253,7 +269,12 @@ export function createConversation({
 			entries.patched({
 				id: entryId,
 				patch: error
-					? { status: "failed", result, error, elapsedMs: Date.now() - startedAt }
+					? {
+							status: "failed",
+							result,
+							error,
+							elapsedMs: Date.now() - startedAt,
+						}
 					: { status: "completed", result, elapsedMs: Date.now() - startedAt },
 			});
 			return result;
@@ -330,28 +351,21 @@ export function createConversation({
 		return [];
 	};
 
-	const send = async (text: string): Promise<void> => {
+	/** The system prompt travels once per conversation, with the first turn. */
+	const systemBlocks = async (): Promise<ChatBlock[]> => {
+		const system = systemSent ? undefined : await systemPrompt?.();
+		if (!system) return [];
+		systemSent = true;
+		return [{ type: "system" as const, data: system }];
+	};
+
+	/** One turn: whatever opens it, then the model/tool loop until the model
+	 *  stops asking for tools. */
+	const converse = async (open: () => Promise<ChatBlock[]>): Promise<void> => {
 		turn.turnStarted();
-		append({
-			id: id(),
-			at: Date.now(),
-			streams: [CONVERSATION],
-			kind: "user",
-			text,
-		});
 
 		try {
-			const plan = await runSteps(text);
-			const fact = factOf(plan);
-
-			const system = systemSent ? undefined : await systemPrompt?.();
-			if (system) systemSent = true;
-
-			let blocks: ChatBlock[] = [
-				...(system ? [{ type: "system" as const, data: system }] : []),
-				{ type: "text" as const, data: text },
-				...(fact ? [{ type: "text" as const, data: `Function result:\n${fact}` }] : []),
-			];
+			let blocks = await open();
 
 			for (;;) {
 				const calls = await exchange(blocks);
@@ -397,7 +411,9 @@ export function createConversation({
 					type: "tool_result" as const,
 					tool_call_id: call.id,
 					data:
-						typeof result === "string" ? result : JSON.stringify(result, null, 2),
+						typeof result === "string"
+							? result
+							: JSON.stringify(result, null, 2),
 				}));
 			}
 		} catch (error) {
@@ -417,6 +433,41 @@ export function createConversation({
 		}
 	};
 
+	const send = (text: string): Promise<void> =>
+		converse(async () => {
+			append({
+				id: id(),
+				at: Date.now(),
+				streams: [CONVERSATION],
+				kind: "user",
+				text,
+			});
+
+			const plan = await runSteps(text);
+			const fact = factOf(plan);
+			return [
+				...(await systemBlocks()),
+				{ type: "text" as const, data: text },
+				...(fact
+					? [{ type: "text" as const, data: `Function result:\n${fact}` }]
+					: []),
+			];
+		});
+
+	/** A turn the host opens, with no user message behind it: something happened
+	 *  in the application — an upload finished processing, a job reported back —
+	 *  and what follows is the model's decision, not the user's.
+	 *
+	 *  Without this the event is a dead end. `invokeTool` runs a function and
+	 *  records it in the transcript, but only a turn reaches the model, and a
+	 *  turn only ever started from a typed message.
+	 */
+	const follow = (event: string): Promise<void> =>
+		converse(async () => [
+			...(await systemBlocks()),
+			{ type: "text" as const, data: event },
+		]);
+
 	return {
 		domain,
 		entries,
@@ -426,6 +477,7 @@ export function createConversation({
 		toolRegistered,
 		failed,
 		send,
+		follow,
 		registerTool: (tool) => toolRegistered(tool),
 		invokeTool: (name, args) => execute({ id: id(), name, args }),
 		plan: runSteps,

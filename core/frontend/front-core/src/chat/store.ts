@@ -72,6 +72,53 @@ export type ChatCatalog = {
 	onChange?: (republish: () => void) => void;
 };
 
+type IntakeFile = {
+	fileId: string;
+	fileName: string;
+	fileSize?: number;
+	fileType?: string;
+	status?: string;
+};
+
+type IntakeReport = {
+	contents: IntakeFile[];
+	/** Archives whose contents are now known, so they can leave the context. */
+	archiveIds: string[];
+};
+
+/** What wf-files-process reports, narrowed to what the chat needs. The workflow
+ *  is a service reply, not a typed import: read it defensively. */
+function readIntake(report: unknown): IntakeReport {
+	const empty: IntakeReport = { contents: [], archiveIds: [] };
+	if (typeof report !== "object" || report === null) return empty;
+	const result = (report as { result?: unknown }).result;
+	if (typeof result !== "object" || result === null) return empty;
+
+	const rows = (result as { contents?: unknown }).contents;
+	const files = (result as { files?: unknown }).files;
+	return {
+		contents: (Array.isArray(rows) ? rows : []).flatMap((row): IntakeFile[] => {
+			if (typeof row !== "object" || row === null) return [];
+			const { fileId, name, fileType, size } = row as Record<string, unknown>;
+			if (typeof fileId !== "string" || typeof name !== "string") return [];
+			return [
+				{
+					fileId,
+					fileName: name,
+					...(typeof size === "number" ? { fileSize: size } : {}),
+					...(typeof fileType === "string" ? { fileType } : {}),
+					status: "ready",
+				},
+			];
+		}),
+		archiveIds: (Array.isArray(files) ? files : []).flatMap((row): string[] => {
+			if (typeof row !== "object" || row === null) return [];
+			const { fileId, archive } = row as Record<string, unknown>;
+			return archive === true && typeof fileId === "string" ? [fileId] : [];
+		}),
+	};
+}
+
 let instance: Chat | null = null;
 
 export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
@@ -218,6 +265,10 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 	});
 	const ensureReady = () => lifecycle.ensureInitialized();
 
+	/** Files an upload turned into, by id. Filled once, read for the rest of the
+	 *  thread: a request is usually created several messages after the upload. */
+	const processedFiles = new Map<string, IntakeFile>();
+
 	bindChatFiles({
 		store,
 		threadsService: threadsClient,
@@ -227,18 +278,50 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 			getFile: (fileId) => $files.getState().get(fileId),
 		},
 		ensureReady,
-		processFiles: (fileIds) =>
-			store.invokeFunction("startFilesProcess", { fileIds }),
+		// Processing an upload is only half of it. What the upload finally
+		// amounts to are the files inside it — an archive of thirteen STLs is
+		// what a request is made of, and the archive itself is not. So the
+		// contents join the chat's file context, and the report goes to the
+		// assistant as a turn, because deciding what to do with them (create a
+		// request, ask the visitor, say nothing) is its call and it never gets
+		// to make it otherwise.
+		processFiles: async (fileIds) => {
+			const report = await store.invokeFunction("startFilesProcess", {
+				fileIds,
+			});
+			const intake = readIntake(report);
+			for (const file of intake.contents) processedFiles.set(file.fileId, file);
+			if (intake.contents.length) {
+				store.noteFiles(
+					intake.contents.map((file) => ({
+						id: file.fileId,
+						name: file.fileName,
+						size: file.fileSize,
+						type: file.fileType,
+					})),
+					intake.archiveIds,
+				);
+			}
+			await store.follow(
+				`Uploaded files were processed. Report:\n${JSON.stringify(report, null, 2)}`,
+			);
+		},
 	});
 
-	const uploadedFiles = () =>
-		Array.from($files.getState().entries()).map(([fileId, file]) => ({
+	// What the chat can put on a request: what the browser uploaded, plus what
+	// came out of it. An extracted STL never passes through the upload store —
+	// the workflow created it — so without the second half the assistant knows
+	// only about the archive it cannot use.
+	const uploadedFiles = () => [
+		...Array.from($files.getState().entries()).map(([fileId, file]) => ({
 			fileId,
 			fileName: file.fileName,
 			fileSize: file.fileSize,
 			fileType: file.fileType,
 			status: file.status,
-		}));
+		})),
+		...processedFiles.values(),
+	];
 
 	for (const tool of [
 		createUploadedChatFilesTool(uploadedFiles),

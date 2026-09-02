@@ -45,7 +45,7 @@ test("resolves the configured solution set and workflow links", () => {
 			script: "workflows/wf-files-process.js",
 			brief: "Process uploaded files",
 			description:
-				"Unpack ZIP archives, identify model files, and create a manufacturing request from them.",
+				"Expand ZIP archives and classify every uploaded file, reporting which of them are production models. Does not create a request.",
 			parameters: {
 				type: "object",
 				properties: {
@@ -65,6 +65,19 @@ test("resolves the configured solution set and workflow links", () => {
 				properties: { fileId: { type: "string" } },
 				required: ["fileId"],
 			},
+		},
+		// Reached only through rt.sub / ms-requests, never by the assistant:
+		// without brief, description and parameters the chat catalog skips
+		// them, while ms-dag still resolves their source for centimanus.
+		{
+			id: "file-analyze",
+			name: "wf-file-analyze",
+			script: "workflows/wf-file-analyze.js",
+		},
+		{
+			id: "request-analyze",
+			name: "wf-request-analyze",
+			script: "workflows/wf-request-analyze.js",
 		},
 	]);
 });

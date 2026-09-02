@@ -1,6 +1,10 @@
 import type { Store } from "effector";
-import { CONVERSATION, type Conversation, type ExecutableTool } from "orchestrator";
-import { createChatView, type ChatView } from "./chat-view";
+import {
+	CONVERSATION,
+	type Conversation,
+	type ExecutableTool,
+} from "orchestrator";
+import { type ChatView, createChatView } from "./chat-view";
 import { bindChatPersistence } from "./persistence";
 import type { ChatMessage, ChatMetadataService, ThreadsService } from "./types";
 
@@ -27,6 +31,12 @@ export type ChatStore = {
 	registerFunction(name: string, tool: ExecutableTool): void;
 	invokeFunction(name: string, args: Record<string, unknown>): Promise<unknown>;
 	/**
+	 * Hand the model something the application did on its own — an upload that
+	 * finished processing, a job that reported back — and let it decide what
+	 * follows. No user message is written: the event is not the user's line.
+	 */
+	follow(event: string): Promise<void>;
+	/**
 	 * A line produced by the host itself — a slash-command answer, a notice.
 	 * It goes into the same timeline so the screen has one source, but it never
 	 * reaches the model.
@@ -38,6 +48,18 @@ export type ChatStore = {
 		size?: number;
 		type?: string;
 	}): void;
+	/**
+	 * Files the application learned about by itself — the contents of an archive
+	 * once it was unpacked, say. They join the model's file context exactly like
+	 * an upload, but nothing is drawn on the screen: the user attached one
+	 * archive, not the thirteen files inside it. `replaces` drops the entries
+	 * these stand in for, so the archive does not travel next to its own
+	 * contents.
+	 */
+	noteFiles(
+		files: Array<{ id: string; name: string; size?: number; type?: string }>,
+		replaces?: string[],
+	): void;
 	readonly messages: ChatMessage[];
 	readonly isLoading: boolean;
 	readonly currentResponse: string;
@@ -98,6 +120,8 @@ export const createChatStore = ({
 
 		invokeFunction: (name, args) => conversation.invokeTool(name, args),
 
+		follow: (event) => conversation.follow(event),
+
 		addLocalMessage: (content, type = "assistant") =>
 			conversation.entries.appended(
 				type === "user"
@@ -138,6 +162,17 @@ export const createChatStore = ({
 					type: file.type,
 				},
 			});
+		},
+
+		noteFiles: (files, replaces = []) => {
+			for (const id of replaces) {
+				const index = pendingAttachments.findIndex((file) => file.id === id);
+				if (index >= 0) pendingAttachments.splice(index, 1);
+			}
+			for (const file of files) {
+				if (pendingAttachments.some((known) => known.id === file.id)) continue;
+				pendingAttachments.push(file);
+			}
 		},
 
 		get messages() {

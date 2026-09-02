@@ -6,7 +6,7 @@ import {
 } from "front-core/object-runtime";
 import type { RequestFiles, RequestProcessType } from "g-requests";
 import { requestModelReceived } from "./domain-requests";
-import { requestsClient } from "./services";
+import { requestsClient, workflowClient } from "./services";
 import { RequestDetailView } from "./views/RequestDetailView";
 import { RequestsListView } from "./views/RequestsListView";
 
@@ -42,9 +42,31 @@ const requestProperties = {
 	fields: { type: "object", description: "Known request fields only" },
 	files: {
 		type: "object",
-		description: "Uploaded file display name to file ID",
+		description:
+			'Every file the message lists, as display name to ms-files file ID, for example {"part.stl": "file-id"}. An archive that was unpacked is listed by its contents, and those are what belongs here.',
 	},
 };
+
+/** Build a preview and an estimate for every production model on the request.
+ * Deterministic follow-up to creation, never a step the assistant has to think
+ * about: it fails soft so a slicer outage cannot lose the request itself.
+ *
+ * It belongs to the operation, not to whoever calls it. Creation used to exist
+ * twice — an assistant action that ran this, and this operation that did not —
+ * so a request created through the catalog got no previews and no estimates. */
+async function analyzeRequestFiles(requestId: string): Promise<void> {
+	try {
+		const run = await workflowClient.runWorkflow(
+			"workflows/wf-request-analyze.js",
+			{ requestId },
+		);
+		if (!run.ok) {
+			console.error("[requests] analysis failed", requestId, run.error);
+		}
+	} catch (error) {
+		console.error("[requests] analysis unavailable", requestId, error);
+	}
+}
 
 export default defineMicrofrontend({
 	id: "mf-requests",
@@ -100,6 +122,7 @@ export default defineMicrofrontend({
 					...input,
 					fields: input.fields ?? {},
 				});
+				await analyzeRequestFiles(id);
 				const model = await requestsClient.getRequestModel(id);
 				if (model) requestModelReceived(model);
 				return objectRef("requests.request", id, {

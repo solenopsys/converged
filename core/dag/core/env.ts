@@ -2,8 +2,10 @@
 // workflow runs — see src/prelude.js there. Importing anything from dag-core
 // pulls these declarations into the program; workflow files just use `rt`,
 // `__execId` and `__params` as globals.
-// The contract is synchronous: one QuickJS evaluation per DAG step, no
-// Promises, no event loop. All side effects belong inside rt.node/rt.attempt.
+// The contract is synchronous: the workflow runs top to bottom in one call, a
+// host primitive blocks until the service answers, and there are no Promises
+// and no event loop. All side effects belong inside rt.node/rt.attempt, whose
+// outcome is kept so a re-run of the same execution does not repeat them.
 
 export type LlmToolCall = {
 	id: string;

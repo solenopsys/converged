@@ -2,16 +2,20 @@ import { describe, expect, test } from "bun:test";
 import type { ChatDriver, ChatEvent } from "../chat-driver";
 import type { StepAnswer } from "../types";
 import { createConversationCatalog } from "./catalog";
-import { CONVERSATION, type CallEntry, type Entry } from "./entries";
 import { createConversation, type ExecutableTool } from "./conversation";
+import { type CallEntry, CONVERSATION, type Entry } from "./entries";
 
-const driverOf = (turns: ChatEvent[][]): { driver: ChatDriver; sent: number } => {
+const driverOf = (
+	turns: ChatEvent[][],
+): { driver: ChatDriver; sent: number } => {
 	const state = { sent: 0 };
 	const driver: ChatDriver = {
 		async *send() {
 			const turn = state.sent++;
 			for (const event of turns[turn] ??
-				([{ type: "response.completed", finishReason: "stop" }] as ChatEvent[])) {
+				([
+					{ type: "response.completed", finishReason: "stop" },
+				] as ChatEvent[])) {
 				yield event;
 			}
 		},
@@ -29,7 +33,11 @@ const answered = (text: string): ChatEvent[] => [
 	{ type: "response.completed", finishReason: "stop" },
 ];
 
-const calls = (name: string, args: Record<string, unknown>, id: string): ChatEvent[] => [
+const calls = (
+	name: string,
+	args: Record<string, unknown>,
+	id: string,
+): ChatEvent[] => [
 	{ type: "tool_call.ready", callId: id, name, args },
 	{ type: "response.completed", finishReason: "tool_calls" },
 ];
@@ -56,8 +64,15 @@ const catalogWith = (
 };
 
 /** Steps answer with a tool call, the way a real model does. */
-const planner = (replies: Record<string, Record<string, unknown>>) =>
-	async ({ step, tools }: { step: string; tools: { name: string }[] }): Promise<StepAnswer> => {
+const planner =
+	(replies: Record<string, Record<string, unknown>>) =>
+	async ({
+		step,
+		tools,
+	}: {
+		step: string;
+		tools: { name: string }[];
+	}): Promise<StepAnswer> => {
 		const args = replies[step];
 		if (!args) throw new Error(`unexpected step ${step}`);
 		return { text: "", toolCalls: [{ name: tools[0]?.name ?? step, args }] };
@@ -65,7 +80,9 @@ const planner = (replies: Record<string, Record<string, unknown>>) =>
 
 describe("conversation entries", () => {
 	test("captures compact host context once for planning steps", async () => {
-		const { catalog } = catalogWith([{ id: "companies.select", brief: "Select companies" }]);
+		const { catalog } = catalogWith([
+			{ id: "companies.select", brief: "Select companies" },
+		]);
 		const { driver } = driverOf([]);
 		const inputs: string[] = [];
 		const conversation = createConversation({
@@ -85,7 +102,10 @@ describe("conversation entries", () => {
 					toolCalls: [
 						{
 							name: tools[0]?.name ?? step,
-							args: step === "route" ? { intent: "function", area: "companies" } : {},
+							args:
+								step === "route"
+									? { intent: "function", area: "companies" }
+									: {},
 						},
 					],
 				};
@@ -93,8 +113,12 @@ describe("conversation entries", () => {
 		});
 
 		await conversation.plan("only active companies");
-		expect(inputs.some((input) => input.includes("Current application context"))).toBe(true);
-		expect(inputs.some((input) => input.includes("companies.company"))).toBe(true);
+		expect(
+			inputs.some((input) => input.includes("Current application context")),
+		).toBe(true);
+		expect(inputs.some((input) => input.includes("companies.company"))).toBe(
+			true,
+		);
 	});
 
 	test("the timeline stitches streams as references, storing text once", async () => {
@@ -124,19 +148,30 @@ describe("conversation entries", () => {
 		expect(timelineKinds).toContain("step");
 
 		const answer = conversation.entries.list().at(-1);
-		expect(answer).toMatchObject({ kind: "assistant", text: "here they are", streaming: false });
+		expect(answer).toMatchObject({
+			kind: "assistant",
+			text: "here they are",
+			streaming: false,
+		});
 
 		// Steps are available to the screen for a compact progress indicator, but
 		// their input and outcome remain only in the model log.
 		const steps = conversation.entries.log("model:fast");
-		expect(steps.some((entry) => entry.kind === "step" && entry.step === "route")).toBe(true);
+		expect(
+			steps.some((entry) => entry.kind === "step" && entry.step === "route"),
+		).toBe(true);
 		expect(
 			steps
-				.filter((entry): entry is Extract<Entry, { kind: "step" }> => entry.kind === "step")
+				.filter(
+					(entry): entry is Extract<Entry, { kind: "step" }> =>
+						entry.kind === "step",
+				)
 				.filter((entry) => entry.step === "invoke")
 				.map((entry) => entry.phase),
 		).toEqual(["apply"]);
-		expect(conversation.entries.log(CONVERSATION).some((e) => e.kind === "step")).toBe(true);
+		expect(
+			conversation.entries.log(CONVERSATION).some((e) => e.kind === "step"),
+		).toBe(true);
 	});
 
 	test("streamed text patches one entry instead of appending copies", async () => {
@@ -155,7 +190,9 @@ describe("conversation entries", () => {
 
 		await conversation.send("hi");
 
-		const assistant = conversation.entries.list().filter((e) => e.kind === "assistant");
+		const assistant = conversation.entries
+			.list()
+			.filter((e) => e.kind === "assistant");
 		expect(assistant).toHaveLength(1);
 		expect(assistant[0]).toMatchObject({ text: "one two" });
 	});
@@ -238,6 +275,38 @@ describe("conversation turn", () => {
 		]);
 	});
 
+	test("a host event opens a turn the model can act on", async () => {
+		// The application processed an upload on its own. Nothing was typed, so
+		// there is no user message — but the model still has to decide what the
+		// report means, and here it decides to create a request.
+		const { driver } = driverOf([
+			calls("invokeFunction", { id: "requests.create" }, "call-1"),
+			answered("Created a request for the models."),
+		]);
+		const conversation = createConversation({
+			driver,
+			prompt: async () => undefined,
+			ask: async () => ({ text: "", toolCalls: [] }),
+		});
+		const invoked: unknown[] = [];
+		conversation.registerTool({
+			name: "invokeFunction",
+			description: "call a function by id",
+			parameters: { type: "object", properties: {} },
+			execute: async (args) => {
+				invoked.push(args);
+				return { ok: true };
+			},
+		});
+
+		await conversation.follow("Uploaded files were processed. Report:\n{}");
+
+		expect(invoked).toEqual([{ id: "requests.create" }]);
+		const kinds = conversation.entries.list().map((entry) => entry.kind);
+		expect(kinds).not.toContain("user");
+		expect(kinds).toContain("assistant");
+	});
+
 	test("a tool call is executed and its result goes back to the model", async () => {
 		const { driver } = driverOf([
 			calls("readFile", { path: "a.txt" }, "call-1"),
@@ -272,7 +341,8 @@ describe("conversation turn", () => {
 		let call = 0;
 		const driver: ChatDriver = {
 			async *send() {
-				for (const event of calls("spin", { mode: "hot" }, `call-${++call}`)) yield event;
+				for (const event of calls("spin", { mode: "hot" }, `call-${++call}`))
+					yield event;
 			},
 		};
 		const conversation = createConversation({
@@ -293,7 +363,8 @@ describe("conversation turn", () => {
 			.list()
 			.find(
 				(entry): entry is CallEntry =>
-					entry.kind === "call" && Boolean(entry.error?.startsWith("Turn stopped")),
+					entry.kind === "call" &&
+					Boolean(entry.error?.startsWith("Turn stopped")),
 			);
 		expect(stopped?.status).toBe("failed");
 		expect(conversation.turn.$running.getState()).toBe(false);
@@ -303,7 +374,8 @@ describe("conversation turn", () => {
 		let call = 0;
 		const driver: ChatDriver = {
 			async *send() {
-				for (const event of calls("page", { offset: call }, `call-${++call}`)) yield event;
+				for (const event of calls("page", { offset: call }, `call-${++call}`))
+					yield event;
 			},
 		};
 		const conversation = createConversation({
@@ -351,16 +423,22 @@ describe("catalog store", () => {
 		const { catalog } = catalogWith([{ id: "logs.show", brief: "Show logs" }]);
 		expect(catalog.catalog.search("logs")).toHaveLength(1);
 
-		catalog.sourceRegistered({ id: "ui", group: "ui", invoke: () => undefined });
+		catalog.sourceRegistered({
+			id: "ui",
+			group: "ui",
+			invoke: () => undefined,
+		});
 		catalog.functionsPublished({
 			source: "ui",
 			functions: [{ id: "panel.open", brief: "Open the logs panel" }],
 		});
 
-		expect(catalog.catalog.search("logs").map((fn) => fn.id).sort()).toEqual([
-			"logs.show",
-			"panel.open",
-		]);
+		expect(
+			catalog.catalog
+				.search("logs")
+				.map((fn) => fn.id)
+				.sort(),
+		).toEqual(["logs.show", "panel.open"]);
 	});
 
 	test("a group unavailable in this host never becomes a candidate", () => {
@@ -376,8 +454,12 @@ describe("catalog store", () => {
 			functions: [{ id: "panel.open", brief: "Open the logs panel" }],
 		});
 
-		expect(catalog.catalog.search("logs").map((fn) => fn.id)).toEqual(["logs.show"]);
-		expect(catalog.catalog.listCategories().map((c) => c.id)).toEqual(["backend"]);
+		expect(catalog.catalog.search("logs").map((fn) => fn.id)).toEqual([
+			"logs.show",
+		]);
+		expect(catalog.catalog.listCategories().map((c) => c.id)).toEqual([
+			"backend",
+		]);
 	});
 
 	test("a primary function wins a search tie", () => {

@@ -279,11 +279,49 @@ solutions:
     processors:
       - curaengine
       - opencamlib
+    # The resolved form of modules/solutions/mapping.json filtered by the
+    # `workflows` of modules/solutions/solutions/requests.json. Every script a
+    # workflow reaches through rt.sub must be listed too: centimanus resolves a
+    # delegation through this same list (ms-dag listAvailableWorkflows), so an
+    # unlisted child fails the parent with WorkflowNotFound.
+    # brief/description/parameters are what publishes a workflow to the chat
+    # catalog; the two internal ones are deliberately left without them, so the
+    # assistant cannot call what only a parent workflow or ms-requests starts.
     workflows:
-      - name: wf-files-process
+      - id: files-process
+        name: wf-files-process
         script: workflows/wf-files-process.js
-      - name: wf-file-unpack
+        brief: Process uploaded files
+        description: >-
+          Expand ZIP archives and classify every uploaded file, reporting which
+          of them are production models. Does not create a request.
+        parameters:
+          type: object
+          properties:
+            fileIds:
+              type: array
+              items:
+                type: string
+          required:
+            - fileIds
+      - id: file-unpack
+        name: wf-file-unpack
         script: workflows/wf-file-unpack.js
+        brief: Unpack an uploaded archive
+        description: Extract a ZIP archive and return IDs of its entries.
+        parameters:
+          type: object
+          properties:
+            fileId:
+              type: string
+          required:
+            - fileId
+      - id: file-analyze
+        name: wf-file-analyze
+        script: workflows/wf-file-analyze.js
+      - id: request-analyze
+        name: wf-request-analyze
+        script: workflows/wf-request-analyze.js
 
 # Tenants are created as sites are sold, not at install. Only meaningful for
 # the `cloud` profile.

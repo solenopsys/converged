@@ -1,9 +1,9 @@
 # Centimanus DAG Runtime
 
-Centimanus executes JavaScript workflows as a replayable, step-driven DAG.
-Workflow code defines the control flow; Centimanus persists completed node
-outcomes and resumes the workflow from the next unfinished node. Business logic
-and side effects belong to the services called by the workflow.
+Centimanus executes JavaScript workflows as a resumable DAG. Workflow code
+defines the control flow; Centimanus persists completed node outcomes so a
+re-run of the same execution skips what already succeeded. Business logic and
+side effects belong to the services called by the workflow.
 
 ## Overview
 
@@ -13,9 +13,9 @@ workflow source
       v
 +------------------------+
 | Centimanus             |
-| - evaluates workflow   |
-| - executes one node    |
-| - replays prior nodes  |
+| - loads the program    |
+| - calls the workflow   |
+| - keeps node outcomes  |
 +-----------+------------+
             |
             +------------------+-------------------+
@@ -52,23 +52,25 @@ rt.workflow = function (params) {
 
 Centimanus evaluates the workflow until it reaches one unfinished node. It runs
 that node, stores its outcome, then re-evaluates the workflow from the start.
-Previously completed nodes return their stored values. Evaluation continues
-until the workflow returns a final value or fails.
+The program is compiled once per execution and the workflow is then called
+like any other function. It runs top to bottom: a node executes its body,
+persists the outcome and returns the value, and the next line follows.
 
 ```text
-evaluation 1: find-lead EXECUTE -> persist
-evaluation 2: find-lead REPLAY  -> send-email EXECUTE -> persist
-evaluation 3: find-lead REPLAY  -> send-email REPLAY  -> done
+run: find-lead EXECUTE -> persist -> send-email EXECUTE -> persist -> done
 ```
 
-This makes each node the durable unit of work for a single execution.
+Node outcomes are what makes an execution resumable: re-running the same
+execution id returns the stored value instead of calling the service again, so
+a run interrupted halfway continues from where it stopped rather than paying
+for the calls it already made. That makes each node the durable unit of work.
 
 ### Node state is scratch, not storage
 
-Node outcomes live in the state store only so a replay does not re-issue the
-microservice calls the run already paid for. The durable record is ms-dag, which
-receives every node as it completes. When a run ends — finished, failed, or out
-of step budget — the engine deletes the `rt:task:<execId>:*` keys it wrote, so
+Node outcomes live in the state store only so a resumed execution does not
+re-issue the microservice calls the run already paid for. The durable record is
+ms-dag, which receives every node as it completes. When a run ends — finished,
+failed, or out of budget — the engine deletes the `rt:task:<execId>:*` keys it wrote, so
 completed work leaves nothing behind. Keys a workflow sets itself through
 `rt.set` are its own and are never touched.
 
@@ -77,7 +79,8 @@ completed work leaves nothing behind. Keys a workflow sets itself through
 ### Use a node for every side effect
 
 Wrap every external call, state mutation, LLM request, or other side effect in
-`rt.node` or `rt.attempt`. Code outside a node runs again on every evaluation.
+`rt.node` or `rt.attempt`. Only a node's outcome is kept, so only a node is
+skipped when an execution is resumed.
 
 ```js
 var charge = rt.node("charge-order", function () {
@@ -114,12 +117,11 @@ var unpacked = rt.subAttempt("unpack:" + id, "workflows/wf-file-unpack.js", {
 if (unpacked.ok) use(unpacked.value.entries);
 ```
 
-Delegation is a yield, not a nested call. The parent asks, the engine runs the
-child from its **step loop** — with no JS on the stack, so the child's
-evaluations never re-enter QuickJS — and stores the child's outcome under the
-parent's node key. On re-entry the parent replays and reads it back, so a
-delegation caches and resumes exactly like a node, and the child gets its own
-execution id and its own node history.
+Delegation is an ordinary call. The parent blocks inside its host call while
+the engine runs the child on its own QuickJS runtime, then stores the child's
+outcome under the parent's node key and returns it. A delegation therefore
+caches and resumes exactly like a node, and the child gets its own execution id
+and its own node history.
 
 The child runs inline on the same thread. It is deliberately not an NRPC hop
 back into `centimanus`: the transport has a single handler thread, so a self
@@ -208,9 +210,10 @@ separate. A script outside the descriptor set is not executable.
 
 ## Design constraints
 
-- Workflows execute one node at a time.
-- A node callback may run only once per execution, but code outside nodes is
-  replayed on every step.
+- A node callback runs at most once per execution id; a resumed execution
+  reads the stored outcome instead.
+- Time a node spends waiting on a service is not charged to the workflow's
+  execution budget, which bounds the flow code's own compute.
 - Node outcomes are retained by the configured state backend; cleanup and TTL
   are not currently managed by Centimanus.
 - Workflows should keep node callbacks small, deterministic where possible,

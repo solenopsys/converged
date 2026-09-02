@@ -1,5 +1,4 @@
 export { contractClient, type ContractSpec } from "./contract-client";
-export { isRtYield } from "./rt-yield";
 export type {
 	Attempt,
 	LlmMessage,
