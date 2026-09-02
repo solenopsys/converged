@@ -26,15 +26,24 @@ pub const CallHandler = *const fn (
 /// production. Returns the value (NUL-terminated) or null if absent.
 pub const StateGetFn = *const fn (key: [*:0]const u8) callconv(.c) ?[*:0]const u8;
 pub const StateSetFn = *const fn (key: [*:0]const u8, value: [*:0]const u8) callconv(.c) void;
+pub const StateDelFn = *const fn (key: [*:0]const u8) callconv(.c) void;
 
 /// JS handler for `rt.llm`: receives the NUL-terminated uniform request JSON
 /// and returns the NUL-terminated uniform response JSON (or null on failure).
 pub const LlmHandler = *const fn (request: [*:0]const u8) callconv(.c) ?[*:0]const u8;
 
+/// JS resolver for `rt.sub`: given a script path, returns that workflow's
+/// compiled source (NUL-terminated), or null when the test registered none.
+/// The child then runs on this same engine, so delegation is exercised for
+/// real rather than stubbed.
+pub const SubResolver = *const fn (script: [*:0]const u8) callconv(.c) ?[*:0]const u8;
+
 var g_handler: ?CallHandler = null;
 var g_get: ?StateGetFn = null;
 var g_set: ?StateSetFn = null;
+var g_del: ?StateDelFn = null;
 var g_llm: ?LlmHandler = null;
+var g_sub: ?SubResolver = null;
 var g_state: std.StringHashMapUnmanaged([]u8) = .{};
 var g_seq: u64 = 0;
 
@@ -51,8 +60,18 @@ export fn rt_set_cache_handlers(get: ?StateGetFn, set: ?StateSetFn) void {
     g_set = set;
 }
 
+/// Route the engine's end-of-run cache cleanup to the JS-owned cache.
+export fn rt_set_cache_del(del: ?StateDelFn) void {
+    g_del = del;
+}
+
 export fn rt_set_llm_handler(handler: ?LlmHandler) void {
     g_llm = handler;
+}
+
+/// Register the workflow source resolver used by rt.sub.
+export fn rt_set_sub_resolver(resolver: ?SubResolver) void {
+    g_sub = resolver;
 }
 
 /// Clear the state store between tests.
@@ -68,7 +87,7 @@ export fn rt_reset() void {
 /// Run a compiled workflow `source` with `params` (JSON). Returns a malloc'd
 /// JSON envelope `{ ok, result | error }`; release it with `rt_free`.
 export fn rt_run(source: [*:0]const u8, params: [*:0]const u8, out_len: *usize) ?[*]u8 {
-    const transport = vm.Transport{ .ctx = undefined, .call = mockCall, .get = mockGet, .set = mockSet, .log = mockLog, .llm = mockLlm };
+    const transport = mockTransport();
 
     g_seq += 1;
     const exec_id = std.fmt.allocPrint(c_allocator, "test-{d}", .{g_seq}) catch return null;
@@ -97,6 +116,36 @@ export fn rt_free(ptr: ?[*]u8, len: usize) void {
 }
 
 // ---- mock transport --------------------------------------------------------
+
+fn mockTransport() vm.Transport {
+    return .{
+        .ctx = undefined,
+        .call = mockCall,
+        .get = mockGet,
+        .set = mockSet,
+        .log = mockLog,
+        .llm = mockLlm,
+        .run_workflow = mockRunWorkflow,
+        .del = mockDel,
+    };
+}
+
+/// Resolve the delegated workflow's source through the test, then run it on the
+/// real VM. Called from the parent's step loop, so this is a fresh top-level
+/// evaluation and never re-enters QuickJS.
+fn mockRunWorkflow(ctx: *anyopaque, a: std.mem.Allocator, script_path: []const u8, params_json: []const u8) anyerror!vm.Reply {
+    _ = ctx;
+    const resolver = g_sub orelse
+        return .{ .ok = false, .status = 500, .body = try a.dupe(u8, "rt.sub: no workflow resolver registered") };
+    const sp = try a.dupeZ(u8, script_path);
+    const ret = resolver(sp.ptr) orelse
+        return .{ .ok = false, .status = 500, .body = try std.fmt.allocPrint(a, "rt.sub: unknown workflow {s}", .{script_path}) };
+
+    g_seq += 1;
+    const child_id = try std.fmt.allocPrint(a, "test-{d}", .{g_seq});
+    const result = try vm.run(a, c_allocator, mockTransport(), child_id, std.mem.span(ret), params_json);
+    return .{ .ok = result.ok, .status = if (result.ok) 200 else 500, .body = result.output };
+}
 
 fn mockCall(ctx: *anyopaque, a: std.mem.Allocator, service: []const u8, method: []const u8, body: []const u8) anyerror!vm.Reply {
     _ = ctx;
@@ -141,6 +190,19 @@ fn mockSet(ctx: *anyopaque, a: std.mem.Allocator, key: []const u8, value: []cons
         gop.key_ptr.* = try c_allocator.dupe(u8, key);
     }
     gop.value_ptr.* = try c_allocator.dupe(u8, value);
+}
+
+fn mockDel(ctx: *anyopaque, a: std.mem.Allocator, key: []const u8) anyerror!void {
+    _ = ctx;
+    if (g_del) |del| {
+        const k = try a.dupeZ(u8, key);
+        del(k.ptr);
+        return;
+    }
+    if (g_state.fetchRemove(key)) |kv| {
+        c_allocator.free(kv.key);
+        c_allocator.free(kv.value);
+    }
 }
 
 fn mockLog(ctx: *anyopaque, msg: []const u8) void {

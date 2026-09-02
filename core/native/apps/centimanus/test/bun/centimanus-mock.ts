@@ -15,6 +15,8 @@ const lib = dlopen(libPath(), {
 	rt_set_call_handler: { args: [FFIType.ptr], returns: FFIType.void },
 	rt_set_cache_handlers: { args: [FFIType.ptr, FFIType.ptr], returns: FFIType.void },
 	rt_set_llm_handler: { args: [FFIType.ptr], returns: FFIType.void },
+	rt_set_sub_resolver: { args: [FFIType.ptr], returns: FFIType.void },
+	rt_set_cache_del: { args: [FFIType.ptr], returns: FFIType.void },
 	rt_run: { args: [FFIType.cstring, FFIType.cstring, FFIType.ptr], returns: FFIType.ptr },
 	rt_free: { args: [FFIType.ptr, FFIType.u64], returns: FFIType.void },
 	rt_reset: { args: [], returns: FFIType.void },
@@ -44,6 +46,10 @@ export interface RunOptions {
 	cache?: Cache;
 	/** Answers rt.llm calls; without it rt.llm fails (like a hub with no keys). */
 	llm?: LlmHandler;
+	/** Compiled sources for the workflows `rt.sub` may delegate to, keyed by
+	 *  script path. A delegated child runs on this same engine, so a test
+	 *  exercises real nesting rather than a stub. */
+	workflows?: Record<string, string>;
 }
 
 /** Run a compiled workflow source with `params`, routing its calls to `handler`
@@ -56,6 +62,7 @@ export function runWorkflow(source: string, params: unknown, handler: CallHandle
 	let callReply: Uint8Array | null = null; // hold replies alive across the FFI return
 	let getReply: Uint8Array | null = null;
 	let llmReply: Uint8Array | null = null;
+	let subReply: Uint8Array | null = null;
 
 	const callCb = new JSCallback(
 		(servicePtr: number, methodPtr: number, bodyPtr: number): number => {
@@ -89,6 +96,13 @@ export function runWorkflow(source: string, params: unknown, handler: CallHandle
 		{ args: [FFIType.ptr], returns: FFIType.ptr },
 	);
 
+	const delCb = new JSCallback(
+		(keyPtr: number): void => {
+			cache.delete(new CString(keyPtr).toString());
+		},
+		{ args: [FFIType.ptr], returns: FFIType.void },
+	);
+
 	const setCb = new JSCallback(
 		(keyPtr: number, valuePtr: number): void => {
 			cache.set(new CString(keyPtr).toString(), new CString(valuePtr).toString());
@@ -115,10 +129,26 @@ export function runWorkflow(source: string, params: unknown, handler: CallHandle
 			)
 		: null;
 
+	const subWorkflows = opts.workflows;
+	const subCb = subWorkflows
+		? new JSCallback(
+				(scriptPtr: number): number => {
+					const script = new CString(scriptPtr).toString();
+					const child = subWorkflows[script];
+					if (child === undefined) return 0;
+					subReply = Buffer.from(`${child}\0`);
+					return Number(ptr(subReply));
+				},
+				{ args: [FFIType.ptr], returns: FFIType.ptr },
+			)
+		: null;
+
 	try {
 		s.rt_set_call_handler(callCb.ptr);
 		s.rt_set_cache_handlers(getCb.ptr, setCb.ptr);
+		s.rt_set_cache_del(delCb.ptr);
 		s.rt_set_llm_handler(llmCb ? llmCb.ptr : null);
+		s.rt_set_sub_resolver(subCb ? subCb.ptr : null);
 
 		const lenBuf = new BigUint64Array(1);
 		const outPtr = s.rt_run(
@@ -138,11 +168,15 @@ export function runWorkflow(source: string, params: unknown, handler: CallHandle
 	} finally {
 		s.rt_set_call_handler(null);
 		s.rt_set_cache_handlers(null, null);
+		s.rt_set_cache_del(null);
 		s.rt_set_llm_handler(null);
+		s.rt_set_sub_resolver(null);
 		callCb.close();
 		getCb.close();
 		setCb.close();
+		delCb.close();
 		llmCb?.close();
+		subCb?.close();
 	}
 }
 

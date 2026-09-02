@@ -44,6 +44,10 @@ spec:
               value: {{ mul .Values.resyncSeconds 1000 | quote }}
             - name: PTAH_LEADER_ELECTION
               value: {{ ternary "on" "off" .Values.leaderElection | quote }}
+            {{- with .Values.operator.registryIndexUrl }}
+            - name: REGISTRY_INDEX_URL
+              value: {{ . | quote }}
+            {{- end }}
             # The lease holder id has to be unique per pod, and the pod name is
             # the only identifier that already is.
             - name: PTAH_IDENTITY

@@ -9,12 +9,15 @@ analysis that follows is `wf-request-analyze`.
 The workflow uses NRPC in this order:
 
 1. `files.get(fileId)` reads metadata and classifies the file.
-2. For ZIP archives, `files.getChunks(fileId)` and `store.getWithMeta(hash)`
-   resolve ordered `CacheRef` descriptors and compression metadata.
-3. `compressors.unpack({ name, chunks })` reads the cache blobs directly and
-   returns extracted entries as Valkey `CacheRef` descriptors.
-4. The workflow persists output metadata and chunk hashes through `files` and
-   `store` NRPC calls, then classifies each entry with `files.get`.
+2. Each archive is delegated to `wf-file-unpack` with
+   `rt.subAttempt("unpack:<fileId>", "workflows/wf-file-unpack.js", ...)`.
+   Unpacking one archive is that workflow's whole job; this one only decides
+   which files need it. A child failure comes back as data, so one bad archive
+   does not cost the rest of the upload.
+3. `files.get` classifies every extracted entry.
+
+The delegated child does the `files.getChunks` / `store.getWithMeta` /
+`compressors.unpack` sequence and persists the entries — see its contract.
 
 `ms-compressors` owns byte assembly, decompression, ZIP parsing, output chunking
 and staging. It has no `files` or `store` client. `ms-files` and `ms-store` do

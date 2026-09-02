@@ -43,7 +43,6 @@ self.addEventListener("activate", (event) => {
 function isImmutable(pathname: string): boolean {
 	return (
 		pathname.startsWith("/vendor/") ||
-		pathname.startsWith("/mf/") ||
 		pathname.startsWith("/assets/")
 	);
 }

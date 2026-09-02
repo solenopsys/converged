@@ -473,6 +473,7 @@ client matches the host string against DNS SANs.
 | `PTAH_KUBE_CA` | CA bundle for that URL. Without it the connection is unverified, which is right only for a plain-HTTP proxy. |
 | `PTAH_KUBE_TOKEN` | Bearer token when not using the mounted service account. |
 | `PTAH_NAMESPACE` | Namespace for the Lease; defaults to the service account's. |
+| `REGISTRY_INDEX_URL` | Optional URL of the published `registry.json`. Ptah refreshes `url`, `revision`, `modules`, and `workflows` from it every reconcile; `spec.registry.solutions` remains on the Platform. |
 
 A full pass can be run against a live cluster from a workstation, which is the
 fastest way to iterate on the policy:

@@ -52,6 +52,10 @@ MODULE_CACHE_STORAGE_CLASS="${MODULE_CACHE_STORAGE_CLASS:-$STORAGE_CLASS}"
 # same build that uploaded the modules, and already holds the digest of every
 # one of them.
 REGISTRY_URL="${REGISTRY_URL:-}"
+REGISTRY_INDEX_URL="${REGISTRY_INDEX_URL:-}"
+if [[ -z "$REGISTRY_INDEX_URL" && -n "$REGISTRY_URL" ]]; then
+	REGISTRY_INDEX_URL="${REGISTRY_URL%/}/registry.json"
+fi
 
 if [[ "${EUID}" -ne 0 ]]; then
 	printf 'Run this installer as root: curl -sfL <url> | sudo sh -\n' >&2
@@ -346,6 +350,7 @@ install_operator() {
 		--set platform.create=false \
 		--set-string image.repository="$PTAH_IMAGE_REPOSITORY" \
 		--set-string image.tag="$PTAH_IMAGE_TAG" \
+		--set-string operator.registryIndexUrl="$REGISTRY_INDEX_URL" \
 		--set-string moduleCache.storageClassName="$MODULE_CACHE_STORAGE_CLASS"
 
 	kubectl -n "$OPERATOR_NAMESPACE" rollout status deployment/"$OPERATOR_RELEASE" --timeout=5m

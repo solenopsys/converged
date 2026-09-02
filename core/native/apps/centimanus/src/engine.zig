@@ -40,7 +40,7 @@ pub const Engine = struct {
     };
 
     fn transport(self: *Engine) vm.Transport {
-        return .{ .ctx = self, .call = tCall, .get = tGet, .set = tSet, .log = tLog, .on_node = tOnNode, .llm = tLlm };
+        return .{ .ctx = self, .call = tCall, .get = tGet, .set = tSet, .log = tLog, .on_node = tOnNode, .llm = tLlm, .run_workflow = tRunWorkflow, .del = tDel };
     }
 
     /// Resolve `script_path` through ms-dag, fetch it from Ptah's proxy, and
@@ -69,6 +69,18 @@ pub const Engine = struct {
         self.current_user = user;
         defer self.current_user = "";
 
+        return self.execute(alloc, script_path, params_json);
+    }
+
+    /// One workflow run under the scope already established by the caller. The
+    /// mutex and scope belong to `runWorkflowScoped`; a delegated child reuses
+    /// both, so it must go through here and never through the entry point.
+    fn execute(
+        self: *Engine,
+        alloc: std.mem.Allocator,
+        script_path: []const u8,
+        params_json: []const u8,
+    ) !RunResult {
         const t = self.transport();
         const source = try self.fetchSource(alloc, t, script_path);
         const exec_id = try newExecId(alloc, self.io);
@@ -78,6 +90,29 @@ pub const Engine = struct {
         self.dagSetStatus(alloc, exec_id, if (result.ok) "done" else "failed");
 
         return .{ .exec_id = exec_id, .ok = result.ok, .output = result.output };
+    }
+
+    /// `rt.sub` — run a delegated workflow inline. The VM calls this from its
+    /// step loop with no JS on the stack, so the child gets a clean evaluation,
+    /// and the VM caps the nesting depth before it ever calls us.
+    /// Deliberately not an NRPC hop back into `centimanus`: the transport has a
+    /// single handler thread, so a self-call would park the worker on its own
+    /// reply and deadlock, and `run_mutex` is already held by this run.
+    fn tRunWorkflow(
+        ctx: *anyopaque,
+        a: std.mem.Allocator,
+        script_path: []const u8,
+        params_json: []const u8,
+    ) anyerror!vm.Reply {
+        const self: *Engine = @ptrCast(@alignCast(ctx));
+        const result = self.execute(a, script_path, params_json) catch |err| {
+            return .{
+                .ok = false,
+                .status = 500,
+                .body = try std.fmt.allocPrint(a, "rt.sub {s}: {s}", .{ script_path, @errorName(err) }),
+            };
+        };
+        return .{ .ok = result.ok, .status = if (result.ok) 200 else 500, .body = result.output };
     }
 
     fn fetchSource(self: *Engine, alloc: std.mem.Allocator, t: vm.Transport, script_path: []const u8) ![]const u8 {
@@ -129,6 +164,12 @@ pub const Engine = struct {
         const self: *Engine = @ptrCast(@alignCast(ctx));
         const scoped_key = try stateKey(a, self.current_scope, key);
         return self.store.set(self.io, a, scoped_key, value);
+    }
+
+    fn tDel(ctx: *anyopaque, a: std.mem.Allocator, key: []const u8) anyerror!void {
+        const self: *Engine = @ptrCast(@alignCast(ctx));
+        const scoped_key = try stateKey(a, self.current_scope, key);
+        return self.store.del(self.io, a, scoped_key);
     }
 
     fn tLog(ctx: *anyopaque, msg: []const u8) void {

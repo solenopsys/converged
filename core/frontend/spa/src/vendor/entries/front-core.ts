@@ -21,6 +21,11 @@ export {
 	InfiniteScrollDataTable,
 } from "front-core/table";
 
+// The 3D preview: `mf-requests` renders it for every analysed model, so the
+// specifier has to resolve. `@google/model-viewer` is behind a dynamic import
+// inside it, so it stays out of this bundle and loads on first render.
+export { ModelViewer } from "../../../../front-core/src/model3d";
+
 /**
  * The landing block registry: it must be the exact same one `LandingView`
  * uses inside the shell — the project registers the blocks, the core renders them.

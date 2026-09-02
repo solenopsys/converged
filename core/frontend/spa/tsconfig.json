@@ -19,6 +19,7 @@
 			"front-core": ["../front-core/src/index.ts"],
 			"front-core/core": ["../front-core/src/core/index.ts"],
 			"front-core/table": ["../front-core/src/table/index.ts"],
+			"front-core/model3d": ["../front-core/src/model3d/index.ts"],
 			"front-core/shell": ["../front-core/src/shell/index.ts"],
 			"front-core/shell/panel": ["../front-core/src/shell/panel.ts"],
 			"front-core/styles/*": ["../front-core/src/styles/*"],

@@ -98,17 +98,6 @@ export type ResumeExecutionsResult = {
 	ids: string[];
 };
 
-export type ResumableExecution = {
-	id: string;
-	workflowName: string;
-	params: Record<string, any>;
-};
-
-export type CachedNodeResult = {
-	hit: boolean;
-	result?: any;
-};
-
 export type TaskTicket = {
 	id: number;
 	createdAt: number;
@@ -191,42 +180,6 @@ const metadata: ServiceMetadata = {
       "isAsyncIterable": false
     },
     {
-      "name": "listResumableExecutions",
-      "parameters": [
-        {
-          "name": "limit",
-          "type": "number",
-          "optional": true,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "getCachedNodeResult",
-      "parameters": [
-        {
-          "name": "executionId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "nodeId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "CachedNodeResult",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
       "name": "createTask",
       "parameters": [
         {
@@ -243,27 +196,6 @@ const metadata: ServiceMetadata = {
         }
       ],
       "returnType": "TaskTicket",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "setTaskProcessing",
-      "parameters": [
-        {
-          "name": "taskId",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "startedAt",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -572,16 +504,6 @@ const metadata: ServiceMetadata = {
       "definition": "{\n\tresumed: number;\n\tskipped: number;\n\tfailed: number;\n\tids: string[];\n}"
     },
     {
-      "name": "ResumableExecution",
-      "kind": "type",
-      "definition": "{\n\tid: string;\n\tworkflowName: string;\n\tparams: Record<string, any>;\n}"
-    },
-    {
-      "name": "CachedNodeResult",
-      "kind": "type",
-      "definition": "{\n\thit: boolean;\n\tresult?: any;\n}"
-    },
-    {
       "name": "TaskTicket",
       "kind": "type",
       "definition": "{\n\tid: number;\n\tcreatedAt: number;\n}"
@@ -595,10 +517,7 @@ export interface DagServiceRtClient {
   listWorkflows(params: PaginationParams): PaginatedResult<AvailableWorkflow>;
   openExecution(id: string, workflowName: string, params: Record<string, any>): void;
   setExecutionStatus(id: string, status: ExecutionStatus): void;
-  listResumableExecutions(limit?: number): any;
-  getCachedNodeResult(executionId: string, nodeId: string): CachedNodeResult;
   createTask(executionId: string, nodeId: string): TaskTicket;
-  setTaskProcessing(taskId: number, startedAt: number): void;
   setTaskDone(taskId: number, executionId: string, nodeId: string, completedAt: number, result: any): void;
   setTaskFailed(taskId: number, completedAt: number, errorMessage: string): void;
   statusExecution(id: string): any;

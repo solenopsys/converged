@@ -13,6 +13,7 @@ const policy = @import("policy.zig");
 const Config = @import("config.zig").Config;
 const access_keys = @import("access_keys.zig");
 const module_cache = @import("module_cache.zig");
+const tls = @import("tls.zig");
 
 const label_managed_by = "app.kubernetes.io/managed-by";
 const label_owner = "ptah.io/owner";
@@ -99,8 +100,40 @@ pub const Reconciler = struct {
     client: *kube.Client,
     config: *const Config,
     registry: *module_cache.Registry,
+    registry_tls: *tls.Context,
     /// When set, nothing is written to the cluster; used by `ptah apply --dry`.
     dry_run: bool = false,
+
+    /// Overlay the published mapping onto every Platform registry. `solutions`
+    /// remains platform-owned, while the immutable URL, revision and digest
+    /// maps always come from the registry publisher.
+    fn applyRegistryIndex(self: *Reconciler, arena: std.mem.Allocator, platforms: []const std.json.Value) !void {
+        const index_url = self.config.registry_index_url orelse return;
+        const document = try module_cache.fetchIndex(arena, self.registry_tls, index_url);
+        const registry = objectField(document, "registry") orelse document;
+        if (registry != .object) return error.RegistryIndexMalformed;
+        if (stringField(registry, "url") == null) return error.RegistryIndexMalformed;
+        const modules = objectField(registry, "modules") orelse return error.RegistryIndexMalformed;
+        if (modules != .object) return error.RegistryIndexMalformed;
+        if (objectField(registry, "workflows")) |workflows| {
+            if (workflows != .object) return error.RegistryIndexMalformed;
+        }
+
+        for (platforms) |platform| {
+            if (platform != .object) continue;
+            const spec = platform.object.getPtr("spec") orelse continue;
+            if (spec.* != .object) continue;
+            const target = spec.object.getPtr("registry") orelse continue;
+            if (target.* != .object) continue;
+
+            try target.object.put(arena, "url", objectField(registry, "url").?);
+            try target.object.put(arena, "modules", modules);
+            if (objectField(registry, "revision")) |revision| try target.object.put(arena, "revision", revision);
+            if (objectField(registry, "workflows")) |workflows| {
+                try target.object.put(arena, "workflows", workflows);
+            } else _ = target.object.orderedRemove("workflows");
+        }
+    }
 
     /// Fetch every object of a custom kind. Returns the parsed list; the
     /// caller owns it.
@@ -411,6 +444,8 @@ pub const Reconciler = struct {
         const platforms = try self.listCustom(arena, "Platform");
         const solutions = try self.listCustom(arena, "Solution");
         const tenants = try self.listCustom(arena, "Tenant");
+
+        try self.applyRegistryIndex(arena, platforms);
 
         // Publish the digest-to-upstream map before reconciling workloads.
         // Consumers can now make their first request through ptah immediately

@@ -63,6 +63,15 @@ evaluation 3: find-lead REPLAY  -> send-email REPLAY  -> done
 
 This makes each node the durable unit of work for a single execution.
 
+### Node state is scratch, not storage
+
+Node outcomes live in the state store only so a replay does not re-issue the
+microservice calls the run already paid for. The durable record is ms-dag, which
+receives every node as it completes. When a run ends — finished, failed, or out
+of step budget — the engine deletes the `rt:task:<execId>:*` keys it wrote, so
+completed work leaves nothing behind. Keys a workflow sets itself through
+`rt.set` are its own and are never touched.
+
 ## Writing workflows
 
 ### Use a node for every side effect
@@ -92,6 +101,38 @@ for (var i = 0; i < items.length; i += 1) {
   });
 }
 ```
+
+### Delegate a step to another workflow with `rt.sub`
+
+A workflow that composes work (a "smart" one) hands each unit to the workflow
+that owns that single operation (a "dumb" one), instead of reimplementing it:
+
+```js
+var unpacked = rt.subAttempt("unpack:" + id, "workflows/wf-file-unpack.js", {
+  fileId: id,
+});
+if (unpacked.ok) use(unpacked.value.entries);
+```
+
+Delegation is a yield, not a nested call. The parent asks, the engine runs the
+child from its **step loop** — with no JS on the stack, so the child's
+evaluations never re-enter QuickJS — and stores the child's outcome under the
+parent's node key. On re-entry the parent replays and reads it back, so a
+delegation caches and resumes exactly like a node, and the child gets its own
+execution id and its own node history.
+
+The child runs inline on the same thread. It is deliberately not an NRPC hop
+back into `centimanus`: the transport has a single handler thread, so a self
+call would park that worker on its own reply and deadlock, and `run_mutex` is
+already held by the run in flight. Nesting is capped (`max_sub_depth`).
+
+`rt.sub` throws when the child fails; `rt.subAttempt` returns
+`{ ok, value } | { ok, error }` so one bad item cannot lose the batch.
+
+A delegation is a node in every respect: same outcome shape, same key, same
+per-node log to ms-dag, and the same end-of-run cleanup. Nesting is capped at
+`vm.max_sub_depth` — the cap lives in the VM, not in a transport, so a
+self-delegating workflow always terminates whichever transport it runs on.
 
 ### Handle expected failures with `rt.attempt`
 

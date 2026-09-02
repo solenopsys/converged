@@ -1,12 +1,10 @@
 import { createJsonFilterAdapter } from "back-core";
 import type {
 	AvailableWorkflow,
-	CachedNodeResult,
 	DagService,
 	Execution,
 	PaginatedResult,
 	PaginationParams,
-	ResumableExecution,
 	Task,
 	TaskTicket,
 	DagVariable,
@@ -130,80 +128,6 @@ export default class DagServiceImpl implements DagService {
 		this.stores.processingStoreService.setStatus(id, status);
 	}
 
-	async listResumableExecutions(
-		limit = 200,
-	): Promise<{ items: ResumableExecution[] }> {
-		await this.ensureStoresReady();
-
-		const safeLimit =
-			Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 200;
-		const stats = this.stores.statsStoreService;
-		const kv = this.stores.processingStoreService;
-		const running = await stats.listProcesses({
-			offset: 0,
-			limit: safeLimit,
-			status: "running",
-		} as any);
-		const items: ResumableExecution[] = [];
-
-		for (const process of running.items) {
-			const executionId = process.id;
-			const workflowName = process.workflowId ?? "";
-
-			if (!workflowName) {
-				await stats.updateProcess(executionId, {
-					status: "failed",
-					updated_at: Date.now(),
-				} as any);
-				continue;
-			}
-
-			const context = kv.getExecutionContext(workflowName, executionId);
-			const params =
-				context && context.meta && typeof context.meta === "object"
-					? (context.meta as any).params
-					: undefined;
-
-			if (!params || typeof params !== "object") {
-				await stats.updateProcess(executionId, {
-					status: "failed",
-					updated_at: Date.now(),
-				} as any);
-				console.warn(
-					`[dag-ms] skip resume execution=${executionId} workflow=${workflowName}: missing params in execution context`,
-				);
-				continue;
-			}
-
-			items.push({
-				id: executionId,
-				workflowName,
-				params: params as Record<string, any>,
-			});
-		}
-
-		return { items };
-	}
-
-	async getCachedNodeResult(
-		executionId: string,
-		nodeId: string,
-	): Promise<CachedNodeResult> {
-		await this.ensureStoresReady();
-		const kv = this.stores.processingStoreService;
-		const cachedRecordId = kv.getStep(executionId, nodeId);
-		if (cachedRecordId === undefined) {
-			return { hit: false };
-		}
-
-		const cached = kv.getRecord(cachedRecordId);
-		if (cached === undefined) {
-			return { hit: false };
-		}
-
-		return { hit: true, result: cached.result };
-	}
-
 	async createTask(executionId: string, nodeId: string): Promise<TaskTicket> {
 		await this.ensureStoresReady();
 		const row = await this.stores.statsStoreService.createNode({
@@ -217,14 +141,6 @@ export default class DagServiceImpl implements DagService {
 			id: row.id,
 			createdAt: (row as any).created_at ?? Date.now(),
 		};
-	}
-
-	async setTaskProcessing(taskId: number, startedAt: number): Promise<void> {
-		await this.ensureStoresReady();
-		await this.stores.statsStoreService.updateNode(taskId, {
-			state: "processing",
-			started_at: startedAt,
-		} as any);
 	}
 
 	async setTaskDone(

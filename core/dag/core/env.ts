@@ -26,7 +26,6 @@ export type LlmTool = {
 	parameters?: Record<string, unknown>;
 };
 
-
 export type LlmRequest = {
 	provider: string;
 	model: string;
@@ -48,8 +47,11 @@ export type LlmResponse = {
 export type Attempt<T> = { ok: true; value: T } | { ok: false; error: string };
 
 export interface RtApi {
-
-	call(service: string, method: string, params?: Record<string, unknown>): unknown;
+	call(
+		service: string,
+		method: string,
+		params?: Record<string, unknown>,
+	): unknown;
 	get(key: string): unknown;
 	set(key: string, value: unknown): void;
 	log(message: string): void;
@@ -59,6 +61,14 @@ export interface RtApi {
 	node<T>(name: string, fn: () => T): T;
 
 	attempt<T>(name: string, fn: () => T): Attempt<T>;
+
+	/** Delegate one step to another workflow. The engine runs the child from its
+	 * step loop and stores the outcome under this node's key, so a delegation
+	 * caches and resumes exactly like a node. `sub` throws on a child failure,
+	 * `subAttempt` hands it back so a batch can survive one bad item. */
+	sub<T>(name: string, scriptPath: string, params?: unknown): T;
+
+	subAttempt<T>(name: string, scriptPath: string, params?: unknown): Attempt<T>;
 
 	workflow?: (params: any) => unknown;
 }

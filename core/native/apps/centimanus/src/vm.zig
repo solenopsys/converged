@@ -39,6 +39,12 @@ pub const Transport = struct {
     log: *const fn (ctx: *anyopaque, msg: []const u8) void,
     on_node: ?*const fn (ctx: *anyopaque, a: std.mem.Allocator, exec_id: []const u8, node: []const u8, ok: bool, err: []const u8) void = null,
     llm: ?*const fn (ctx: *anyopaque, a: std.mem.Allocator, request_json: []const u8) anyerror!LlmReply = null,
+    /// Runs another workflow to completion and returns its result as `body`.
+    /// Called from the step loop only, never from a host call, so the child's
+    /// evaluations never re-enter QuickJS while the parent is on the stack.
+    run_workflow: ?*const fn (ctx: *anyopaque, a: std.mem.Allocator, script_path: []const u8, params_json: []const u8) anyerror!Reply = null,
+    /// Drop a state key. Used to clear a finished run's node cache.
+    del: ?*const fn (ctx: *anyopaque, a: std.mem.Allocator, key: []const u8) anyerror!void = null,
 };
 
 pub const RunResult = struct {
@@ -50,6 +56,11 @@ pub const RunResult = struct {
 
 /// Cap on steps per execution — a guard against a non-terminating workflow.
 const max_steps: usize = 100_000;
+
+/// Cap on rt.sub nesting. It lives here, not in a transport: the recursion is
+/// the VM's own, so every transport (production, tests, anything later) is held
+/// to the same limit and a self-delegating workflow always terminates.
+pub const max_sub_depth: u8 = 8;
 
 /// Run a workflow to completion, one node per evaluation.
 pub fn run(
@@ -67,9 +78,27 @@ pub fn run(
         .{ id_json, params_json, prelude_js, source },
     );
 
-    var ctx = ExecContext{ .transport = transport, .alloc = undefined, .exec_id = exec_id };
+    // Outlives a single step: the node-key list must survive every evaluation.
+    var run_arena = std.heap.ArenaAllocator.init(scratch_gpa);
+    defer run_arena.deinit();
+
+    var ctx = ExecContext{
+        .transport = transport,
+        .alloc = undefined,
+        .exec_id = exec_id,
+        .run_alloc = run_arena.allocator(),
+        // A delegated child runs inside its parent's step, so the parent is
+        // still the installed context when we get here.
+        .depth = if (g_ctx) |parent| parent.depth + 1 else 0,
+    };
+    // Runs on every exit — done, failed, or step budget exhausted.
+    defer clearTaskCache(&ctx, scratch_gpa);
+    // Save/restore rather than clear: a delegated child runs its own `run` loop
+    // between two of the parent's steps, and the parent still needs its context
+    // afterwards.
+    const parent_ctx = g_ctx;
     g_ctx = &ctx;
-    defer g_ctx = null;
+    defer g_ctx = parent_ctx;
     qjs.setHostFn(&hostBridge);
 
     var step_arena = std.heap.ArenaAllocator.init(scratch_gpa);
@@ -99,6 +128,27 @@ pub fn run(
             }
             continue;
         }
+        if (std.mem.eql(u8, status, "sub")) {
+            const node = getStr(obj, "node") orelse
+                return .{ .ok = false, .output = try out_alloc.dupe(u8, "rt.sub: missing node") };
+            const script_path = getStr(obj, "script") orelse
+                return .{ .ok = false, .output = try out_alloc.dupe(u8, "rt.sub: missing script") };
+            const params_value = obj.get("params") orelse std.json.Value{ .null = {} };
+            const child_params = try std.json.Stringify.valueAlloc(sa, params_value, .{});
+
+            const outcome = if (ctx.depth >= max_sub_depth)
+                try failedSub(sa, try std.fmt.allocPrint(sa, "rt.sub: delegation deeper than {d}", .{max_sub_depth}))
+            else
+                try runSub(sa, transport, script_path, child_params);
+            // Same key shape as prelude.js taskKey(): the parent replays into it.
+            const key = try std.fmt.allocPrint(sa, "rt:task:{s}:{s}", .{ exec_id, node });
+            try transport.set(transport.ctx, sa, key, outcome.json);
+            try ctx.task_keys.append(ctx.run_alloc, try ctx.run_alloc.dupe(u8, key));
+            if (transport.on_node) |hook| {
+                hook(transport.ctx, sa, exec_id, node, outcome.ok, outcome.err);
+            }
+            continue;
+        }
         if (std.mem.eql(u8, status, "done")) {
             const result = obj.get("result") orelse std.json.Value{ .null = {} };
             const out = try std.json.Stringify.valueAlloc(sa, result, .{});
@@ -111,15 +161,77 @@ pub fn run(
     return .{ .ok = false, .output = try out_alloc.dupe(u8, "max steps exceeded") };
 }
 
+const SubOutcome = struct {
+    /// `{ ok: true, value } | { ok: false, error }` — what the parent replays.
+    json: []const u8,
+    ok: bool,
+    err: []const u8,
+};
+
+/// Run the delegated workflow and shape its result the way runOrReplay stores a
+/// node outcome. A child failure is data, not a crash: the parent decides via
+/// rt.sub (throws) or rt.subAttempt (returns the error).
+fn runSub(
+    a: std.mem.Allocator,
+    transport: Transport,
+    script_path: []const u8,
+    params_json: []const u8,
+) !SubOutcome {
+    const runner = transport.run_workflow orelse
+        return failedSub(a, "rt.sub: no sub-workflow transport wired");
+    const reply = runner(transport.ctx, a, script_path, params_json) catch |e|
+        return failedSub(a, try std.fmt.allocPrint(a, "sub transport: {s}", .{@errorName(e)}));
+    if (!reply.ok) return failedSub(a, reply.body);
+    const value = if (reply.body.len == 0) "null" else reply.body;
+    return .{
+        .json = try std.fmt.allocPrint(a, "{{\"ok\":true,\"value\":{s}}}", .{value}),
+        .ok = true,
+        .err = "",
+    };
+}
+
+fn failedSub(a: std.mem.Allocator, message: []const u8) !SubOutcome {
+    const ejson = try jsonStr(a, message);
+    return .{
+        .json = try std.fmt.allocPrint(a, "{{\"ok\":false,\"error\":{s}}}", .{ejson}),
+        .ok = false,
+        .err = message,
+    };
+}
+
 // ---- host bridge (qjs -> transport) ----------------------------------------
 
 const ExecContext = struct {
     transport: Transport,
     alloc: std.mem.Allocator,
     exec_id: []const u8,
+    /// Node keys this run wrote. The cache spares a replay the cost of calling
+    /// microservices again; ms-dag keeps the durable record, so when the run
+    /// ends these entries are dropped instead of living in Valkey forever.
+    task_keys: std.ArrayListUnmanaged([]const u8) = .empty,
+    run_alloc: std.mem.Allocator,
+    /// How many rt.sub hops deep this run is; 0 for a top-level workflow.
+    depth: u8 = 0,
 };
 
-/// Set for the duration of one `run` (callers serialise runs with a mutex).
+/// Node outcome keys are `rt:task:<execId>:<node>` (see prelude.js taskKey).
+fn isTaskKey(key: []const u8) bool {
+    return std.mem.startsWith(u8, key, "rt:task:");
+}
+
+/// Clear the finished run's node cache. Best effort: a key that will not go
+/// away must not turn a completed workflow into a failed one.
+fn clearTaskCache(ctx: *ExecContext, gpa: std.mem.Allocator) void {
+    const del = ctx.transport.del orelse return;
+    var arena = std.heap.ArenaAllocator.init(gpa);
+    defer arena.deinit();
+    for (ctx.task_keys.items) |key| {
+        del(ctx.transport.ctx, arena.allocator(), key) catch |err|
+            std.log.warn("rt: could not clear {s}: {s}", .{ key, @errorName(err) });
+    }
+}
+
+/// Set for the duration of one `run`, saved/restored around a delegated child.
 var g_ctx: ?*ExecContext = null;
 
 fn hostBridge(
@@ -161,6 +273,9 @@ fn dispatch(ctx: *ExecContext, request: []const u8) ![]u8 {
         const key = getStr(obj, "key") orelse return cdupe("{\"ok\":false,\"error\":\"set: missing key\"}");
         const json = getStr(obj, "json") orelse "null";
         try t.set(t.ctx, a, key, json);
+        // `a` is the step arena and is reset every evaluation, so keep our own copy.
+        if (isTaskKey(key))
+            try ctx.task_keys.append(ctx.run_alloc, try ctx.run_alloc.dupe(u8, key));
         return cdupe("{\"ok\":true}");
     } else if (std.mem.eql(u8, op, "log")) {
         const msg = getStr(obj, "message") orelse "";

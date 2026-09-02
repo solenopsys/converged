@@ -5,8 +5,15 @@ import { createFileUniverse } from "../../../core/dag/lib/mock-services";
 import { runWorkflow } from "../../../core/native/apps/centimanus/test/bun/centimanus-mock";
 
 let source: string;
+let workflows: Record<string, string>;
 beforeAll(async () => {
 	source = await buildWorkflow(join(import.meta.dir, "index.ts"));
+	// Delegation is real: the child runs on the same engine.
+	workflows = {
+		"workflows/wf-file-unpack.js": await buildWorkflow(
+			join(import.meta.dir, "../wf-file-unpack/index.ts"),
+		),
+	};
 });
 
 describe("wf-files-process", () => {
@@ -17,7 +24,7 @@ describe("wf-files-process", () => {
 			{ name: "readme.txt", data: "notes" },
 		]);
 
-		const outcome = runWorkflow(source, { fileIds: [zipId] }, u.handler);
+		const outcome = runWorkflow(source, { fileIds: [zipId] }, u.handler, { workflows });
 		expect(outcome.ok).toBe(true);
 		if (!outcome.ok) return;
 
@@ -49,7 +56,7 @@ describe("wf-files-process", () => {
 		const u = createFileUniverse();
 		const fileId = u.addFile("part.stl", "solid part");
 
-		const outcome = runWorkflow(source, { fileIds: [fileId] }, u.handler);
+		const outcome = runWorkflow(source, { fileIds: [fileId] }, u.handler, { workflows });
 		expect(outcome.ok).toBe(true);
 		if (!outcome.ok) return;
 
@@ -69,7 +76,7 @@ describe("wf-files-process", () => {
 			{ name: "readme.txt", data: "notes" },
 		]);
 
-		const outcome = runWorkflow(source, { fileIds: [zipId] }, u.handler);
+		const outcome = runWorkflow(source, { fileIds: [zipId] }, u.handler, { workflows });
 		expect(outcome.ok).toBe(true);
 		if (!outcome.ok) return;
 

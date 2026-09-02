@@ -11,6 +11,7 @@ pub const sa_dir = "/var/run/secrets/kubernetes.io/serviceaccount";
 pub const sa_token = sa_dir ++ "/token";
 pub const sa_ca = sa_dir ++ "/ca.crt";
 pub const sa_namespace = sa_dir ++ "/namespace";
+pub const ENV_REGISTRY_INDEX_URL = "REGISTRY_INDEX_URL";
 
 /// In-cluster apiserver address. See the note in `load`: the cluster IP is
 /// only an IP SAN on the serving certificate, so the DNS name is what TLS
@@ -28,6 +29,8 @@ pub const Config = struct {
     namespace: []const u8,
     /// Unique holder id for leader election; the pod name in a cluster.
     identity: []const u8,
+    /// Optional URL of the published registry.json mapping.
+    registry_index_url: ?[]const u8,
     resync_ms: u64,
     leader_election: bool,
 
@@ -36,6 +39,7 @@ pub const Config = struct {
         if (self.token) |t| gpa.free(t);
         gpa.free(self.namespace);
         gpa.free(self.identity);
+        if (self.registry_index_url) |url| gpa.free(url);
         self.* = undefined;
     }
 };
@@ -64,6 +68,11 @@ fn readTrimmed(gpa: std.mem.Allocator, io: std.Io, path: []const u8) ![]u8 {
 /// is the only configuration where the apiserver address is not a guess.
 /// Otherwise PTAH_KUBE_SERVER must be set — a `kubectl proxy` URL locally.
 pub fn load(gpa: std.mem.Allocator, io: std.Io, environ: *Environ) !Config {
+    const registry_index_url = if (env(environ, ENV_REGISTRY_INDEX_URL)) |url|
+        try gpa.dupe(u8, url)
+    else
+        null;
+    errdefer if (registry_index_url) |url| gpa.free(url);
     const resync_raw = try required(environ, "PTAH_RESYNC_MS");
     const resync_ms = std.fmt.parseInt(u64, resync_raw, 10) catch {
         std.log.err("PTAH_RESYNC_MS is not a number: {s}", .{resync_raw});
@@ -104,6 +113,7 @@ pub fn load(gpa: std.mem.Allocator, io: std.Io, environ: *Environ) !Config {
             .ca_path = sa_ca,
             .namespace = try readTrimmed(gpa, io, sa_namespace),
             .identity = try gpa.dupe(u8, try required(environ, "PTAH_IDENTITY")),
+            .registry_index_url = registry_index_url,
             .resync_ms = resync_ms,
             .leader_election = leader_election,
         };
@@ -124,6 +134,7 @@ pub fn load(gpa: std.mem.Allocator, io: std.Io, environ: *Environ) !Config {
         else
             try readTrimmed(gpa, io, sa_namespace),
         .identity = try gpa.dupe(u8, try required(environ, "PTAH_IDENTITY")),
+        .registry_index_url = registry_index_url,
         .resync_ms = resync_ms,
         .leader_election = leader_election,
     };

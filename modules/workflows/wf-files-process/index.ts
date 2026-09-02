@@ -1,7 +1,10 @@
-// wf-files-process — intake. It expands archives and classifies every incoming
-// file, so the caller learns what was uploaded. It does not create a request
-// and does not analyse anything: deciding that these files are a request is the
-// assistant's call, and the analysis then runs as wf-request-analyze.
+// wf-files-process — intake, and the smart half of the file pipeline. It looks
+// at every incoming file and decides what to do with it; the work itself is
+// delegated one file at a time to wf-file-unpack through rt.sub.
+//
+// It does not create a request and does not analyse anything: deciding that
+// these files are a request is the assistant's call, and the analysis that
+// follows is wf-request-analyze.
 
 import {
 	type FlowCtx,
@@ -9,13 +12,20 @@ import {
 	isModelMime,
 	loadFileMeta,
 	type StepError,
-	unpackArchive,
 } from "dag-file-steps";
+
+const UNPACK = "workflows/wf-file-unpack.js";
 
 type Input = {
 	fileIds: string[];
 	owner?: string;
 	processId?: string;
+};
+
+type UnpackReport = {
+	collectionId?: string;
+	entries: { fileId: string; name: string }[];
+	errors: StepError[];
 };
 
 type IntakeFile = {
@@ -49,7 +59,7 @@ rt.workflow = (input: Input) => {
 		}>,
 		extracted: [] as Array<{
 			sourceFileId: string;
-			collectionId: string;
+			collectionId?: string;
 			entries: { fileId: string; name: string }[];
 		}>,
 		// Everything the upload finally amounts to, archives already expanded.
@@ -101,15 +111,28 @@ rt.workflow = (input: Input) => {
 			continue;
 		}
 
-		const unpacked = unpackArchive(ctx, file);
-		if (!unpacked) continue;
-		report.extracted.push({
-			sourceFileId: fileId,
-			collectionId: unpacked.collectionId,
-			entries: unpacked.entries,
+		// Unpacking one archive is wf-file-unpack's whole job. One bad archive
+		// must not cost us the rest of the upload, so failures come back as data.
+		const unpacked = rt.subAttempt<UnpackReport>(`unpack:${fileId}`, UNPACK, {
+			fileId,
+			owner: ctx.owner,
+			processId: ctx.processId,
 		});
-		report.collections[fileId] = unpacked.collectionId;
-		for (const entry of unpacked.entries) {
+		if (!unpacked.ok) {
+			ctx.errors.push({
+				stage: "archive",
+				fileId,
+				message: unpacked.error,
+			});
+			continue;
+		}
+		for (const error of unpacked.value.errors ?? []) ctx.errors.push(error);
+		const entries = unpacked.value.entries ?? [];
+		const collectionId = unpacked.value.collectionId;
+		report.extracted.push({ sourceFileId: fileId, collectionId, entries });
+		if (collectionId) report.collections[fileId] = collectionId;
+
+		for (const entry of entries) {
 			const extracted = loadFileMeta(ctx, entry.fileId);
 			if (!extracted) continue;
 			record(
@@ -117,7 +140,7 @@ rt.workflow = (input: Input) => {
 				extracted.metadata.name,
 				extracted.metadata.fileType,
 				extracted.metadata.fileSize,
-				unpacked.collectionId,
+				collectionId,
 				fileId,
 			);
 		}

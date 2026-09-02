@@ -337,20 +337,16 @@ describe("DagServiceImpl storage API with mocked stores", () => {
 		}
 	});
 
-	test("should persist node result and expose it through statusExecution/getCachedNodeResult", async () => {
+	test("should persist node result and expose it through statusExecution", async () => {
 		const service = createService();
 		const executionId = "exec-1";
 
 		await service.openExecution(executionId, "wf.mock", { value: 42 });
 		const ticket = await service.createTask(executionId, "node.mock");
-		await service.setTaskProcessing(ticket.id, 1000);
 		await service.setTaskDone(ticket.id, executionId, "node.mock", 2000, {
 			value: 42,
 		});
 		await service.setExecutionStatus(executionId, "done");
-
-		const cached = await service.getCachedNodeResult(executionId, "node.mock");
-		expect(cached).toEqual({ hit: true, result: { value: 42 } });
 
 		const status = await service.statusExecution(executionId);
 		expect(status.execution.status).toBe("done");
@@ -358,18 +354,4 @@ describe("DagServiceImpl storage API with mocked stores", () => {
 		expect(status.tasks[0].result).toEqual({ value: 42 });
 	});
 
-	test("should list resumable executions only when params are present in execution context", async () => {
-		const service = createService();
-		await service.openExecution("exec-r1", "wf.resume", { x: 1 });
-		await service.openExecution("exec-r2", "wf.resume", {} as any);
-		await latestStores!.statsStoreService.updateProcess("exec-r2", {
-			workflowId: null,
-			status: "running",
-		});
-
-		const resumable = await service.listResumableExecutions(20);
-		expect(resumable.items).toEqual([
-			{ id: "exec-r1", workflowName: "wf.resume", params: { x: 1 } },
-		]);
-	});
 });

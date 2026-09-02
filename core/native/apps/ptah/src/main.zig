@@ -50,6 +50,7 @@ const usage =
     \\  PTAH_KUBE_SERVER          Apiserver URL when running outside a cluster
     \\  PTAH_KUBE_TOKEN           Bearer token for PTAH_KUBE_SERVER (optional)
     \\  PTAH_NAMESPACE            Namespace for the Lease when out of cluster
+    \\  REGISTRY_INDEX_URL        Optional published registry.json mapping
     \\
 ;
 
@@ -116,6 +117,7 @@ fn runController(
         .client = &client,
         .config = &config,
         .registry = &registry,
+        .registry_tls = &registry_tls,
         .dry_run = dry_run,
     };
 

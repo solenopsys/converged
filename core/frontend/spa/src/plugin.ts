@@ -144,9 +144,10 @@ export default function spaPlugin(config: SpaPluginConfig = {}): ServerPlugin {
 			headers: {
 				"content-type": contentTypes[".js"],
 				"content-encoding": "br",
-				// Addressed by digest upstream, so the bytes behind this URL change
-				// only when the mapping does — and then so does the import map.
-				"cache-control": cacheControl,
+				// The browser-facing URL is stable while Ptah changes its digest
+				// mapping. It must revalidate or a prior module remains loaded after
+				// a registry rollout.
+				"cache-control": "no-cache",
 			},
 		});
 	};

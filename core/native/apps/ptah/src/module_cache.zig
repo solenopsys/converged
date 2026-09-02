@@ -5,8 +5,25 @@ const std = @import("std");
 const tls = @import("tls.zig");
 
 pub const max_module_bytes = 64 * 1024 * 1024;
+pub const max_registry_index_bytes = 1024 * 1024;
 
 pub const Error = error{ InvalidDigest, DigestMismatch, UpstreamFailed };
+
+/// Fetch and parse the registry publisher's mapping. The caller owns the
+/// returned JSON through its allocator. Parsing stays outside the pure policy:
+/// policy receives the resolved Platform registry as ordinary input.
+pub fn fetchIndex(
+    gpa: std.mem.Allocator,
+    tls_ctx: *tls.Context,
+    url: []const u8,
+) !std.json.Value {
+    var response = try tls.fetch(gpa, tls_ctx, .{ .method = "GET", .url = url, .headers = &.{}, .body = null });
+    defer response.deinit(gpa);
+    if (response.status != 200) return Error.UpstreamFailed;
+    if (response.body.len > max_registry_index_bytes) return error.RegistryIndexTooLarge;
+
+    return std.json.parseFromSliceLeaky(std.json.Value, gpa, response.body, .{});
+}
 
 /// Registry locations are learned from Platform objects by the reconciler.
 /// The proxy thread reads this index while the reconcile thread replaces it,

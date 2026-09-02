@@ -1,25 +1,34 @@
-// wf-request-analyze — the analysis DAG for one request. It reads the request's
-// files, analyses every production model (GLB preview + CNC/print estimate, both
-// in ptah containers) and writes the result back onto the request.
+// wf-request-analyze — the smart half of the analysis. It reads the request's
+// files, decides which are production models, and delegates one file at a time
+// to wf-file-analyze through rt.sub; then it writes everything the children
+// produced back onto the request.
 //
-// The assistant only decides that a request exists; this workflow is the
-// business logic and runs without it. Analysing one file is wf-file-analyze's
-// atomic job — this workflow composes that same step once per model file.
+// The assistant only decides that a request exists. Everything here is business
+// logic and runs without it.
 
 import {
 	ANALYZE_DEFAULTS,
 	type AnalyzeOptions,
 	addRequestFile,
-	analyzeFile,
 	attachAnalysis,
+	type ConvertedRecord,
+	type EstimateRecord,
 	type FlowCtx,
 	isAnalyzableMime,
 	loadFileMeta,
 	requests,
 	type StepError,
-	stageFile,
 	step,
 } from "dag-file-steps";
+
+const ANALYZE = "workflows/wf-file-analyze.js";
+
+/** What wf-file-analyze reports back for one file. */
+type AnalyzeReport = {
+	converted: ConvertedRecord[];
+	estimates: EstimateRecord[];
+	errors: StepError[];
+};
 
 type Input = {
 	requestId: string;
@@ -71,11 +80,28 @@ rt.workflow = (input: Input) => {
 		models.push(fileId);
 	}
 
+	// Analysing one file is wf-file-analyze's whole job. A model that fails
+	// only costs its own estimate — the rest of the request still gets analysed.
 	for (const fileId of models) {
-		const staged = stageFile(ctx, fileId, collectionId);
-		if (!staged) continue;
+		const analyzed = rt.subAttempt<AnalyzeReport>(
+			`analyze:${fileId}`,
+			ANALYZE,
+			{
+				fileId,
+				collectionId,
+				owner: ctx.owner,
+				processId: ctx.processId,
+				options: o,
+			},
+		);
+		if (!analyzed.ok) {
+			ctx.errors.push({ stage: "analyze", fileId, message: analyzed.error });
+			continue;
+		}
 		report.analysed.push(fileId);
-		analyzeFile(ctx, o, staged);
+		for (const item of analyzed.value.converted ?? []) ctx.converted.push(item);
+		for (const item of analyzed.value.estimates ?? []) ctx.estimates.push(item);
+		for (const error of analyzed.value.errors ?? []) ctx.errors.push(error);
 	}
 
 	// Previews become request files so the detail view can render each model.

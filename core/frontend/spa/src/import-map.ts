@@ -25,6 +25,7 @@ const baseImports: Record<string, string> = {
 	"front-core/shell": "/vendor/front-core.js",
 	"front-core/landing": "/vendor/front-core.js",
 	"front-core/table": "/vendor/front-core-table.js",
+	"front-core/model3d": "/vendor/front-core.js",
 	audit: "/assets/audit.js",
 	"signal-channel": "/vendor/signal-channel.js",
 	nrpc: "/vendor/nrpc.js",

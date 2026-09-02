@@ -93,17 +93,6 @@ export type ResumeExecutionsResult = {
 	ids: string[];
 };
 
-export type ResumableExecution = {
-	id: string;
-	workflowName: string;
-	params: Record<string, any>;
-};
-
-export type CachedNodeResult = {
-	hit: boolean;
-	result?: any;
-};
-
 export type TaskTicket = {
 	id: number;
 	createdAt: number;
@@ -118,16 +107,7 @@ export interface DagService {
 		params: Record<string, any>,
 	): Promise<void>;
 	setExecutionStatus(id: string, status: ExecutionStatus): Promise<void>;
-	listResumableExecutions(
-		limit?: number,
-	): Promise<{ items: ResumableExecution[] }>;
-
-	getCachedNodeResult(
-		executionId: string,
-		nodeId: string,
-	): Promise<CachedNodeResult>;
 	createTask(executionId: string, nodeId: string): Promise<TaskTicket>;
-	setTaskProcessing(taskId: number, startedAt: number): Promise<void>;
 	setTaskDone(
 		taskId: number,
 		executionId: string,

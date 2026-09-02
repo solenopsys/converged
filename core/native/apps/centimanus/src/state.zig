@@ -74,6 +74,21 @@ pub const StateStore = struct {
         }
     }
 
+    /// Drop a key. The node cache exists only to spare a finished run the cost
+    /// of re-calling microservices; ms-dag holds the durable record, so once the
+    /// run is over its entries are dead weight.
+    pub fn del(self: *StateStore, io: std.Io, alloc: std.mem.Allocator, key: []const u8) !void {
+        switch (self.backend) {
+            .memory => {
+                if (self.map.fetchRemove(key)) |kv| {
+                    self.gpa.free(kv.key);
+                    self.gpa.free(kv.value);
+                }
+            },
+            .valkey => try self.valkeyDel(io, alloc, key),
+        }
+    }
+
     // ---- Valkey RESP (one connection per call; small values) ---------------
 
     fn valkeyConnect(self: *StateStore, io: std.Io) !net.Stream {
@@ -93,6 +108,22 @@ pub const StateStore = struct {
         var rbuf: [1 << 16]u8 = undefined;
         var sr = stream.reader(io, &rbuf);
         return readBulk(&sr.interface, alloc);
+    }
+
+    fn valkeyDel(self: *StateStore, io: std.Io, alloc: std.mem.Allocator, key: []const u8) !void {
+        _ = alloc;
+        var stream = try self.valkeyConnect(io);
+        defer stream.close(io);
+
+        var wbuf: [512]u8 = undefined;
+        var sw = stream.writer(io, &wbuf);
+        try writeCommand(&sw.interface, &.{ "DEL", key });
+        try sw.interface.flush();
+
+        var rbuf: [256]u8 = undefined;
+        var sr = stream.reader(io, &rbuf);
+        // `:<n>` — how many keys went away; nothing to do with the number.
+        _ = try sr.interface.takeDelimiterInclusive('\n');
     }
 
     fn valkeySet(self: *StateStore, io: std.Io, alloc: std.mem.Allocator, key: []const u8, value: []const u8) !void {

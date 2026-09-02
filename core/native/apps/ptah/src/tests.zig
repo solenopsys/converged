@@ -24,6 +24,7 @@ fn testConfig() config_mod.Config {
         .ca_path = null,
         .namespace = "ptah",
         .identity = "ptah-0",
+        .registry_index_url = null,
         .resync_ms = 30_000,
         .leader_election = false,
     };

@@ -8,8 +8,14 @@ import {
 import { runWorkflow } from "../../../core/native/apps/centimanus/test/bun/centimanus-mock";
 
 let source: string;
+let workflows: Record<string, string>;
 beforeAll(async () => {
 	source = await buildWorkflow(join(import.meta.dir, "index.ts"));
+	workflows = {
+		"workflows/wf-file-analyze.js": await buildWorkflow(
+			join(import.meta.dir, "../wf-file-analyze/index.ts"),
+		),
+	};
 });
 
 type StoredRequest = {
@@ -36,7 +42,7 @@ describe("wf-request-analyze", () => {
 		const stlId = u.addFile("bracket.stl", "solid bracket");
 		const requestId = seedRequest(u, { "bracket.stl": stlId });
 
-		const outcome = runWorkflow(source, { requestId }, u.handler);
+		const outcome = runWorkflow(source, { requestId }, u.handler, { workflows });
 		expect(outcome.ok).toBe(true);
 		if (!outcome.ok) return;
 
@@ -72,7 +78,7 @@ describe("wf-request-analyze", () => {
 			"notes.txt": noteId,
 		});
 
-		const outcome = runWorkflow(source, { requestId }, u.handler);
+		const outcome = runWorkflow(source, { requestId }, u.handler, { workflows });
 		expect(outcome.ok).toBe(true);
 		if (!outcome.ok) return;
 
@@ -89,7 +95,7 @@ describe("wf-request-analyze", () => {
 		const requestId = seedRequest(u, { "part.stl": stlId });
 		u.failOn("ptah", "analyze", "no cutting tool fits");
 
-		const outcome = runWorkflow(source, { requestId }, u.handler);
+		const outcome = runWorkflow(source, { requestId }, u.handler, { workflows });
 		expect(outcome.ok).toBe(true);
 		if (!outcome.ok) return;
 
@@ -114,11 +120,11 @@ describe("wf-request-analyze", () => {
 		const stlId = u.addFile("bracket.stl", "solid bracket");
 		const requestId = seedRequest(u, { "bracket.stl": stlId });
 
-		expect(runWorkflow(source, { requestId }, u.handler).ok).toBe(true);
+		expect(runWorkflow(source, { requestId }, u.handler, { workflows }).ok).toBe(true);
 		expect(Object.keys(stored(u, requestId).files)).toContain("bracket.glb");
 
 		// the GLB is model/gltf-binary, but it is preview output, not an input
-		const again = runWorkflow(source, { requestId }, u.handler);
+		const again = runWorkflow(source, { requestId }, u.handler, { workflows });
 		expect(again.ok).toBe(true);
 		if (!again.ok) return;
 		expect(again.result.analysed).toEqual([stlId]);
@@ -128,7 +134,7 @@ describe("wf-request-analyze", () => {
 	test("an unknown request fails cleanly without touching files", () => {
 		const u = createFileUniverse();
 
-		const outcome = runWorkflow(source, { requestId: "nope" }, u.handler);
+		const outcome = runWorkflow(source, { requestId: "nope" }, u.handler, { workflows });
 		expect(outcome.ok).toBe(true);
 		if (!outcome.ok) return;
 

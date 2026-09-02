@@ -34,6 +34,9 @@ domainBase: ""
 # after the first: those add a Platform and nothing else.
 operator:
   create: true
+  # Published registry.json. When set, Ptah refreshes digest maps from this
+  # index on every reconcile instead of relying on a copied Platform mapping.
+  registryIndexUrl: ""
 
 image:
   repository: public.ecr.aws/i5x9u8b2/ptah
@@ -213,7 +216,7 @@ registry:
   revision: ""
   # Registry object path -> lowercase SHA-256. The source is `<url>/<path>`.
   modules: {}
-	workflows: {}
+  workflows: {}
 
 # Required by the `multi` profile, ignored otherwise: which scopes land on
 # which behemoth. Exactly one shard must claim "*".
