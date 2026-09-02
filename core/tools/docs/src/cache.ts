@@ -1,7 +1,7 @@
 /** Keeps project content caches complete without overwriting translations. */
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { Writer } from "./fs";
 import type { Config, DocsRoot } from "./types";
 
@@ -79,7 +79,10 @@ async function syncFile(
 	}
 }
 
-function docsRelative(root: DocsRoot, source: string): string {
+function docsRelative(
+	root: DocsRoot,
+	source: string,
+): string {
 	const rel = relative(root.path, source);
 	if (!root.path.includes("/modules/")) return rel;
 	const prefix = "modules/";
@@ -90,6 +93,23 @@ function docsRelative(root: DocsRoot, source: string): string {
 			: join(prefix, root.owner, rel);
 }
 
+function cacheRelative(
+	root: DocsRoot,
+	source: string,
+	sharedSections: ReadonlySet<string>,
+): string {
+	const rel = docsRelative(root, source);
+	if (root.path.includes("/modules/")) return rel;
+	const [section, ...rest] = rel.split(/[\\/]/);
+	if (!section || rest.length === 0 || !sharedSections.has(section)) return rel;
+
+	// Keep the project-level contribution flat for backwards compatibility with
+	// existing translated caches. Additional owners are namespaced so their
+	// index.json and meta.json files cannot overwrite one another.
+	if (dirname(root.path) === root.project) return rel;
+	return join(section, root.owner, ...rest);
+}
+
 export async function syncCaches(
 	roots: DocsRoot[],
 	config: Config,
@@ -98,12 +118,21 @@ export async function syncCaches(
 	const writer = new Writer(dryRun);
 	const sourceLocale = config.translation.sourceLocale;
 	const targetLocales = locales(config);
+	const sectionOwners = new Map<string, number>();
+	for (const root of roots) {
+		for (const section of root.sections) {
+			sectionOwners.set(section, (sectionOwners.get(section) ?? 0) + 1);
+		}
+	}
+	const sharedSections = new Set(
+		[...sectionOwners].filter(([, count]) => count > 1).map(([section]) => section),
+	);
 
 	for (const root of roots) {
 		const cache = config.docsCaches.get(root.project);
 		if (!cache) continue;
 		for (const source of files(root.path)) {
-			const rel = docsRelative(root, source);
+			const rel = cacheRelative(root, source, sharedSections);
 			await syncFile(
 				source,
 				join(cache, sourceLocale, rel),

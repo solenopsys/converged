@@ -1,7 +1,12 @@
 [
   {
+    "slug": "architecture",
+    "title": "System architecture",
+    "order": 0
+  },
+  {
     "slug": "module-catalog",
     "title": "Module catalogue and dependencies",
-    "order": 0
+    "order": 1
   }
 ]

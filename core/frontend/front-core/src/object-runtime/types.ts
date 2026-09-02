@@ -72,7 +72,10 @@ export type ObjectDefinition = {
 			control?: "text" | "select" | "multi-select" | "boolean" | "date-range";
 		}[];
 		load?: (params: any) => Promise<unknown>;
-		inspect?: (filter?: any, presets?: SelectionPreset[]) => Promise<{
+		inspect?: (
+			filter?: any,
+			presets?: SelectionPreset[],
+		) => Promise<{
 			totalCount: number;
 			facets?: Record<string, Record<string, number>>;
 		}>;

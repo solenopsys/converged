@@ -248,9 +248,12 @@ async function readCache(
 		for (const section of subdirs(join(cache, lang))) {
 			if (section === "content") continue;
 			const dir = join(cache, lang, section);
-			const owners = existsSync(join(dir, "index.json"))
-				? [{ owner: defaultOwner, path: dir }]
-				: subdirs(dir).map((owner) => ({ owner, path: join(dir, owner) }));
+			const owners = [
+				...(existsSync(join(dir, "index.json"))
+					? [{ owner: defaultOwner, path: dir }]
+					: []),
+				...subdirs(dir).map((owner) => ({ owner, path: join(dir, owner) })),
+			];
 
 			for (const { owner, path } of owners) {
 				const contribution = await readContribution(owner, path);

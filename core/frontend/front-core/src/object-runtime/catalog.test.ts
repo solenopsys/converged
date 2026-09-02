@@ -169,9 +169,9 @@ describe("operator catalog", () => {
 			operations: [],
 		});
 
-		expect(
-			searchOperatorCatalog("incoming letters open")[0]?.id,
-		).toBe("core.select:mail-search.incoming");
+		expect(searchOperatorCatalog("incoming letters open")[0]?.id).toBe(
+			"core.select:mail-search.incoming",
+		);
 	});
 
 	test("a query in another language falls back to concrete selections, never generic open", () => {

@@ -9,6 +9,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { syncCaches } from "./cache";
+import { scan } from "./discover";
 import type { Config, DocsRoot } from "./types";
 
 let project: string;
@@ -55,6 +56,15 @@ function root(): DocsRoot {
 	};
 }
 
+function appRoot(owner: string): DocsRoot {
+	return {
+		owner,
+		path: join(project, "core", "apps", owner, "docs"),
+		project,
+		sections: ["guide"],
+	};
+}
+
 beforeEach(() => {
 	project = mkdtempSync(join(tmpdir(), "docs-cache-"));
 	cache = join(project, "content", "docs-cache");
@@ -84,4 +94,28 @@ test("fills missing locales, advances fallbacks and preserves translations", asy
 		"Русский перевод\n",
 	);
 	expect(await syncCaches([root()], config())).toBe(0);
+});
+
+test("namespaces additional owners in a shared section", async () => {
+	const app = appRoot("runtime");
+	write(join(app.path, "guide", "index.json"), "[]\n");
+	write(join(app.path, "guide", "runtime.md"), "Runtime guide\n");
+
+	expect(await syncCaches([root(), app], config())).toBe(12);
+	expect(readFileSync(join(cache, "en", "guide", "intro.md"), "utf8")).toBe(
+		"English v1\n",
+	);
+	expect(
+		readFileSync(
+			join(cache, "en", "guide", "runtime", "runtime.md"),
+			"utf8",
+		),
+	).toBe("Runtime guide\n");
+
+	const scanned = await scan([project], new Map([[project, cache]]));
+	const translated = scanned.contributions.get("guide/ru") ?? [];
+	expect(translated).toHaveLength(2);
+	expect(translated.some((contribution) => contribution.module === "runtime")).toBe(
+		true,
+	);
 });
