@@ -166,9 +166,13 @@ export function createFileUniverse(): FileUniverse {
 				};
 			}
 			if (service === "modelconvertor" && method === "convert") {
-				const { sourceRef, sourceName } = params.input;
-				const blob = readBlob(cache, sourceRef.cacheKey);
-				const outName = `${sourceName.replace(/\.[^.]+$/, "")}.glb`;
+				// The real service reads the stored file itself: metadata for the
+				// name, chunks for the bytes. Only the id crosses the boundary.
+				const { fileId, sourceName } = params.input;
+				const file = universe.files.get(fileId);
+				if (!file) throw new Error(`File metadata not found: ${fileId}`);
+				const blob = file.data;
+				const outName = `${String(sourceName ?? file.name).replace(/\.[^.]+$/, "")}.glb`;
 				const outKey = `blob:convert:${outName}`;
 				cache.set(outKey, `glb(${blob})`);
 				return { files: [{ name: outName, ref: { cacheKey: outKey } }] };

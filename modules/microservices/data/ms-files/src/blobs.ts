@@ -44,7 +44,7 @@ export async function writeCacheRef(
 
 // ---- chunk (ms-store) IO ----------------------------------------------------
 
-function decompressChunk(
+export function decompressChunk(
 	data: Uint8Array,
 	compression: string | undefined,
 ): Uint8Array {
@@ -62,7 +62,7 @@ function decompressChunk(
 	}
 }
 
-function chunkKey(hash: string): string {
+export function chunkKey(hash: string): string {
 	return join(hash.slice(0, 3), hash);
 }
 

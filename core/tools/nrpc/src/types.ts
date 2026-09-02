@@ -33,6 +33,14 @@ export interface TypeMetadata {
 export interface ServiceMetadata {
   serviceName: string;
   interfaceName: string;
+  /**
+   * The Fujin peer this service is reachable behind, declared in the service
+   * file as `@nrpcTarget <peer>`. Microservices live in the runtime the caller
+   * is already connected to and leave it unset; a native peer — centimanus,
+   * resonus — is somewhere else, and every caller having to remember that is
+   * how a call silently ends up at the wrong door.
+   */
+  target?: string;
   filePath: string;
   methods: MethodMetadata[];
   types: TypeMetadata[];

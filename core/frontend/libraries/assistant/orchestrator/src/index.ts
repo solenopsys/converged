@@ -15,6 +15,8 @@ export { createMachine } from "./machine";
 export type { Machine, MachineOptions } from "./machine";
 export { createFunctionSteps } from "./steps";
 export type { FunctionStepsOptions } from "./steps";
+export { createFilesStep } from "./steps-files";
+export type { FilesIntent, FilesStepOptions, TurnFile } from "./steps-files";
 export { createResonusSession } from "./resonus-session";
 export type {
 	ResonusCommandTransport,
@@ -70,8 +72,14 @@ export type OrchestratorOptions = {
 	catalog: OrchestratorCatalog;
 	onStep?: (trace: StepTrace) => void;
 	tier?: (step: string) => Tier | undefined;
-	/** Replaces the built-in flow entirely — the extension point of the kernel. */
-	steps?: ReadonlyArray<Step<PlanContext>>;
+	/**
+	 * Replaces the built-in flow — the extension point of the kernel. A factory
+	 * composes with it instead of replacing it, and is the only way to reach the
+	 * catalog the flow is built against.
+	 */
+	steps?:
+		| ReadonlyArray<Step<PlanContext>>
+		| ((catalog: OrchestratorCatalog) => ReadonlyArray<Step<PlanContext>>);
 };
 
 export type Orchestrator = {
@@ -85,10 +93,13 @@ export function createOrchestrator({
 	catalog,
 	onStep,
 	tier,
-	steps = createFunctionSteps({ catalog }),
+	steps,
 }: OrchestratorOptions): Orchestrator {
 	const machine = createMachine<PlanContext>({
-		steps,
+		steps:
+			typeof steps === "function"
+				? steps(catalog)
+				: (steps ?? createFunctionSteps({ catalog })),
 		ask,
 		prompt,
 		onStep,

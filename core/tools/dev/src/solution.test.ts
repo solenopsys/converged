@@ -24,6 +24,9 @@ test("resolves the configured solution set and workflow links", () => {
 		"files",
 		"store",
 		"compressors",
+		// wf-file-analyze converts every model to a GLB through it: without the
+		// service there is no preview to attach and no card to draw.
+		"modelconvertor",
 		"requests",
 	]);
 	expect(resolved.solution.spec.microfrontends).toEqual([

@@ -131,10 +131,7 @@ export default () => {
 	const client: DagCommandClient = {
 		dag: createDagServiceClient(createCliNrpcClientConfig()),
 		centimanus: createCentimanusServiceClient(
-			createCliNrpcClientConfig({
-				target: "centimanus",
-				deadlineMs: 120_000,
-			}),
+			createCliNrpcClientConfig({ deadlineMs: 120_000 }),
 		),
 	};
 	return new DagProcessor(client);

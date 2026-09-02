@@ -5,12 +5,15 @@ import {
 	createChatStore,
 	createConversation,
 	createFilesProcessTool,
+	createFilesStep,
 	createFunctionCatalogTools,
+	createFunctionSteps,
 	createUploadedChatFilesTool,
 	type ExecutableTool,
 	type FunctionCatalogContext,
 	type OrchestratorCatalog,
 	type StepName,
+	type TurnFile,
 } from "assistant-state";
 import { $files, filesPickerOpened, uploadCompleted } from "files-state";
 import { registerBuiltinSlashCommands } from "./commands/builtin";
@@ -78,6 +81,8 @@ type IntakeFile = {
 	fileSize?: number;
 	fileType?: string;
 	status?: string;
+	/** The workflow's verdict: this is a production model, not a drawing. */
+	model?: boolean;
 };
 
 type IntakeReport = {
@@ -99,7 +104,10 @@ function readIntake(report: unknown): IntakeReport {
 	return {
 		contents: (Array.isArray(rows) ? rows : []).flatMap((row): IntakeFile[] => {
 			if (typeof row !== "object" || row === null) return [];
-			const { fileId, name, fileType, size } = row as Record<string, unknown>;
+			const { fileId, name, fileType, size, model } = row as Record<
+				string,
+				unknown
+			>;
 			if (typeof fileId !== "string" || typeof name !== "string") return [];
 			return [
 				{
@@ -107,6 +115,7 @@ function readIntake(report: unknown): IntakeReport {
 					fileName: name,
 					...(typeof size === "number" ? { fileSize: size } : {}),
 					...(typeof fileType === "string" ? { fileType } : {}),
+					...(model === true ? { model: true } : {}),
 					status: "ready",
 				},
 			];
@@ -144,22 +153,55 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 	// `route`. Without sections the machine answers straight away and the chat
 	// falls back to the meta-tool contour below.
 	const stepResolvers = new Map(
-		(["route", "select", "args"] as const).map((step) => [
-			step,
+		(["route", "select", "args", "files"] as const).map((step) => [
+			step as string,
 			createContextPromptResolver(contextsClient, {
 				section: step,
 				requireSection: true,
 			}),
 		]),
 	);
+	// A step with no section of its own falls back to the conversation prompt.
+	// A deciding step must not: answering a landing visitor is not the same job,
+	// and a step given the wrong instructions decides confidently and wrongly.
 	const stepPrompt = (step: StepName) =>
-		(
-			stepResolvers.get(step as "route" | "select" | "args") ??
-			resolveSystemPrompt
-		)({
+		(stepResolvers.get(step) ?? resolveSystemPrompt)({
 			contextName: config.contextName,
 			language: config.language,
 		});
+
+	/** Files an upload turned into, by id. Filled once, read for the rest of the
+	 *  thread: a request is usually created several messages after the upload. */
+	const processedFiles = new Map<string, IntakeFile>();
+	/** Archives whose contents are known, so they stop standing for themselves. */
+	const unpackedArchives = new Set<string>();
+
+	// What the chat can put on a request: what the browser uploaded, plus what
+	// came out of it. An extracted STL never passes through the upload store —
+	// the workflow created it — so without the second half the assistant knows
+	// only about the archive it cannot use.
+	const uploadedFiles = () => [
+		...Array.from($files.getState().entries()).map(([fileId, file]) => ({
+			fileId,
+			fileName: file.fileName,
+			fileSize: file.fileSize,
+			fileType: file.fileType,
+			status: file.status,
+		})),
+		...processedFiles.values(),
+	];
+
+	/** The same list as the files module sees it: an unpacked archive is gone,
+	 *  its contents stand in its place, and a production model is marked. */
+	const turnFiles = (): TurnFile[] =>
+		uploadedFiles()
+			.filter((file) => !unpackedArchives.has(file.fileId))
+			.map((file) => ({
+				fileId: file.fileId,
+				name: file.fileName ?? file.fileId,
+				...(file.fileType ? { fileType: file.fileType } : {}),
+				...("model" in file && file.model ? { primary: true } : {}),
+			}));
 
 	const conversation = createConversation({
 		ask: resonusSession.ask,
@@ -172,6 +214,31 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 			}),
 		model: "fast",
 		turnContext: host?.turnContext,
+		// The built-in flow reads the user's words to find a function and to fill
+		// its arguments. Files are not words: after an archive is unpacked the
+		// turn holds identifiers nobody typed, and the only question worth a model
+		// is what they are for. The module asks that once; the identifiers are
+		// filled here, where they have been all along.
+		steps: (catalog) => [
+			createFilesStep({
+				files: turnFiles,
+				intents: {
+					request: {
+						// The operation mf-requests publishes through the object
+						// resolver; it starts the analysis once the request exists.
+						id: "core.create:requests.request",
+						brief: "these files are something to manufacture",
+						arguments: (files) => ({
+							files: Object.fromEntries(
+								files.map((file) => [file.name, file.fileId]),
+							),
+						}),
+						complete: true,
+					},
+				},
+			}),
+			...createFunctionSteps({ catalog }),
+		],
 	});
 
 	const workflows = new Map<
@@ -265,10 +332,6 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 	});
 	const ensureReady = () => lifecycle.ensureInitialized();
 
-	/** Files an upload turned into, by id. Filled once, read for the rest of the
-	 *  thread: a request is usually created several messages after the upload. */
-	const processedFiles = new Map<string, IntakeFile>();
-
 	bindChatFiles({
 		store,
 		threadsService: threadsClient,
@@ -291,6 +354,7 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 			});
 			const intake = readIntake(report);
 			for (const file of intake.contents) processedFiles.set(file.fileId, file);
+			for (const archive of intake.archiveIds) unpackedArchives.add(archive);
 			if (intake.contents.length) {
 				store.noteFiles(
 					intake.contents.map((file) => ({
@@ -307,21 +371,6 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 			);
 		},
 	});
-
-	// What the chat can put on a request: what the browser uploaded, plus what
-	// came out of it. An extracted STL never passes through the upload store —
-	// the workflow created it — so without the second half the assistant knows
-	// only about the archive it cannot use.
-	const uploadedFiles = () => [
-		...Array.from($files.getState().entries()).map(([fileId, file]) => ({
-			fileId,
-			fileName: file.fileName,
-			fileSize: file.fileSize,
-			fileType: file.fileType,
-			status: file.status,
-		})),
-		...processedFiles.values(),
-	];
 
 	for (const tool of [
 		createUploadedChatFilesTool(uploadedFiles),

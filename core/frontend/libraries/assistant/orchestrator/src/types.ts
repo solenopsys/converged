@@ -95,7 +95,12 @@ export type StepTrace = {
 
 export type OrchestratorPlan =
 	| { kind: "answer" }
-	| { kind: "function"; id: string; args: Record<string, unknown>; fact: unknown }
+	| {
+			kind: "function";
+			id: string;
+			args: Record<string, unknown>;
+			fact: unknown;
+	  }
 	| { kind: "function-missed"; area: string; candidates: FunctionBrief[] };
 
 /**
@@ -133,5 +138,14 @@ export type PlanContext = {
 	id?: string;
 	/** Server-owned argument schema fetched after the function was selected. */
 	parameters?: ToolSpec["parameters"];
+	/**
+	 * Argument values the host already knows — ids of the files this turn is
+	 * about, the record a screen is open on. They are merged under whatever the
+	 * argument model produces, so a step that has the data hands it over instead
+	 * of asking a model to copy it out of the prompt.
+	 */
+	known?: Record<string, unknown>;
+	/** `known` is the whole call: the argument step has nothing left to ask. */
+	argumentsFinal?: boolean;
 	args?: Record<string, unknown>;
 };

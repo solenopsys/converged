@@ -77,14 +77,21 @@ class InterfaceParser {
     const interfaceName = serviceInterface.id.name;
     const serviceName = this.extractServiceName(interfaceName);
     const methods = this.extractMethods(serviceInterface.body.body);
+    const target = this.extractTarget(content);
 
     return {
       interfaceName,
       serviceName,
+      ...(target ? { target } : {}),
       filePath,
       methods,
       types,
     };
+  }
+
+  /** `@nrpcTarget <peer>` anywhere in the service file. */
+  private extractTarget(content: string): string | undefined {
+    return /@nrpcTarget\s+([a-zA-Z0-9_-]+)/.exec(content)?.[1];
   }
 
   private extractServiceName(interfaceName: string): string {

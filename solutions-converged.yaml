@@ -1,0 +1,69 @@
+apiVersion: ptah.io/v1alpha1
+kind: Solution
+metadata:
+  name: converged-converged
+spec:
+  platform: converged
+  microservices:
+    - access
+    - auth
+    - identity
+    - ses
+    - markdown
+    - struct
+    - galery
+    - assistant
+    - calls
+    - contexts
+    - threads
+    - dag
+    - files
+    - store
+    - compressors
+    - modelconvertor
+    - requests
+  microfrontends:
+    - auth
+    - assistants
+    - calls
+    - contexts
+    - threads
+    - requests
+    - files
+  processors:
+    - curaengine
+    - opencamlib
+  workflows:
+    - id: files-process
+      name: wf-files-process
+      script: workflows/wf-files-process.js
+      brief: Process uploaded files
+      description: Expand ZIP archives and classify every uploaded file, reporting
+        which of them are production models. Does not create a request.
+      parameters:
+        type: object
+        properties:
+          fileIds:
+            type: array
+            items:
+              type: string
+        required:
+          - fileIds
+    - id: file-unpack
+      name: wf-file-unpack
+      script: workflows/wf-file-unpack.js
+      brief: Unpack an uploaded archive
+      description: Extract a ZIP archive and return IDs of its entries.
+      parameters:
+        type: object
+        properties:
+          fileId:
+            type: string
+        required:
+          - fileId
+    - id: file-analyze
+      name: wf-file-analyze
+      script: workflows/wf-file-analyze.js
+    - id: request-analyze
+      name: wf-request-analyze
+      script: workflows/wf-request-analyze.js

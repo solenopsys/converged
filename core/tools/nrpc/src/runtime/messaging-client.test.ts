@@ -60,6 +60,33 @@ describe("browser messaging client routing", () => {
 		expect(request()?.to).toEqual({ target: "centimanus", service: "auth" });
 	});
 
+	test("a service declaring its own peer overrides the connection target", async () => {
+		// centimanus is a native peer, not part of the microservice runtime the
+		// browser is connected to. The service says so in its metadata, so no
+		// caller has to remember it — and none can forget it.
+		let sent: { to?: { target: string; service: string } } | undefined;
+		const client = createMessagingClient<{
+			createTemporaryUser(): Promise<Record<string, unknown>>;
+		}>({ ...metadata, target: "centimanus" }, {
+			target: "services",
+			deadlineMs: 1_000,
+			channel: {
+				request: async (message) => {
+					sent = message;
+					return {
+						kind: "response",
+						requestId: message.requestId,
+						payload: {},
+					};
+				},
+			},
+		} as never);
+
+		await client.createTemporaryUser();
+
+		expect(sent?.to).toEqual({ target: "centimanus", service: "auth" });
+	});
+
 	test("reports the application error carried in the response payload", async () => {
 		const client = createMessagingClient<{
 			createTemporaryUser(): Promise<Record<string, unknown>>;

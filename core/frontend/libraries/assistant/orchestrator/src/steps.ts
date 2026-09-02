@@ -51,13 +51,13 @@ function hostContextLine(context: PlanContext): string {
 	}
 }
 
-function needsArgumentModel(parameters: ToolSpec["parameters"] | undefined): boolean {
+function needsArgumentModel(
+	parameters: ToolSpec["parameters"] | undefined,
+): boolean {
 	// A missing schema is unknown, so preserve the model step for existing hosts.
 	// Optional fields still need the step: the model can extract values from the
 	// request and prefill a form without inventing values for omitted fields.
-	return (
-		!parameters || Object.keys(parameters.properties).length > 0
-	);
+	return !parameters || Object.keys(parameters.properties).length > 0;
 }
 
 function schemaDefaults(
@@ -147,8 +147,12 @@ export function createFunctionSteps({
 		},
 	};
 
+	// Every step from here to `select` decides *what* to run. A step earlier in
+	// the table may already know — the files module does — and then routing is
+	// both a round-trip nobody needs and a chance to overwrite the answer.
 	const route: Step<PlanContext> = {
 		name: "route",
+		when: ({ id }) => !id,
 		tools: () => [routeTool],
 		ask: (context) => {
 			const areas = catalog
@@ -170,6 +174,7 @@ export function createFunctionSteps({
 	// zero requests. Candidates go straight into the next step's prompt.
 	const search: Step<PlanContext> = {
 		name: "search",
+		when: ({ id }) => !id,
 		apply: ({ area, userText }) => {
 			// `area` comes from a fast model and is only a search hint. Searching it
 			// alone lets a hallucinated area (for example "catalog") turn an
@@ -258,6 +263,7 @@ export function createFunctionSteps({
 
 	const args: Step<PlanContext> = {
 		name: "args",
+		when: ({ argumentsFinal }) => !argumentsFinal,
 		allowEmptyAnswer: true,
 		// The tool is the target function itself when the host publishes a schema:
 		// then the model fills real parameters instead of describing them.
@@ -293,15 +299,33 @@ export function createFunctionSteps({
 				.filter(Boolean)
 				.join("\n\n");
 		},
-		apply: ({ id, parameters }, answer) => {
+		apply: ({ id, parameters, known = {} }, answer) => {
 			const meta = id ? catalog.meta(id) : undefined;
 			const schema = parameters ?? meta?.parameters;
+			const filled = structured(answer, "call");
+			// Host-known values sit between the schema's defaults and the model's
+			// answer: more specific than a default, and still overridable by what
+			// the user actually said this turn.
+			const defaults = { ...schemaDefaults(schema), ...known };
+			// The step was asked for arguments and produced none, and the schema
+			// has no defaults to stand in: calling the function now sends nothing.
+			// That is how a request was created without the files that were the
+			// whole point of it, and reported as a success. A failure the user can
+			// see is the honest outcome; a schema that does carry defaults still
+			// goes through on them.
+			if (
+				meta &&
+				needsArgumentModel(schema) &&
+				filled === undefined &&
+				Object.keys(defaults).length === 0
+			) {
+				throw new Error(
+					`[orchestrator] Step "args" produced no arguments for ${meta.id}`,
+				);
+			}
 			return {
 				patch: {
-					args: {
-						...schemaDefaults(schema),
-						...(structured(answer, "call") ?? {}),
-					},
+					args: { ...defaults, ...(filled ?? {}) },
 				},
 			};
 		},
@@ -311,7 +335,10 @@ export function createFunctionSteps({
 	// explains it in words (§4.7).
 	const invoke: Step<PlanContext> = {
 		name: "invoke",
-		apply: async ({ id, args: params = {} }) => {
+		// `args` is what the argument step produced; `known` is what the host
+		// filled when that step had nothing left to ask and was skipped.
+		apply: async ({ id, args, known }) => {
+			const params = args ?? known ?? {};
 			if (!id) {
 				throw new Error(
 					"[orchestrator] invoke step reached without a function id",

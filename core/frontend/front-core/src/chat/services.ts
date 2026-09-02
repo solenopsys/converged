@@ -5,10 +5,10 @@ import {
 } from "assistant-state";
 import { services, setStoreWorker } from "files-state";
 import { createAssistantServiceClient } from "g-assistant";
+import { createCentimanusServiceClient } from "g-centimanus";
 import { createContextsServiceClient } from "g-contexts";
 import { createDagServiceClient } from "g-dag";
 import { createFilesServiceClient } from "g-files";
-import { createCentimanusServiceClient } from "g-centimanus";
 import { createStoreServiceClient } from "g-store";
 import { createThreadsServiceClient } from "g-threads";
 import { createFrontNrpcClientConfig, signalChannel } from "signal-channel";
@@ -45,11 +45,10 @@ export function createServices(config: ChatConfig) {
 	const threadsClient = createThreadsServiceClient(
 		createFrontNrpcClientConfig(),
 	);
+	// The peer is the generated client's own — only the deadline is ours: a
+	// workflow run is not an ordinary call.
 	const centimanusClient = createCentimanusServiceClient(
-		createFrontNrpcClientConfig({
-			target: "centimanus",
-			deadlineMs: 120_000,
-		}),
+		createFrontNrpcClientConfig({ deadlineMs: 120_000 }),
 	);
 	const dagCatalogClient = createDagServiceClient(
 		createFrontNrpcClientConfig(),

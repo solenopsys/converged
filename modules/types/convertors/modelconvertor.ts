@@ -7,8 +7,14 @@ export type CacheRef = {
 };
 
 export type ModelConvertInput = {
-  sourceRef: CacheRef;
-  sourceName: string;
+  /**
+   * The stored file to convert. The service reads its fragments itself — that
+   * is what ms-files and ms-store are for — so a caller that has an id never
+   * has to move bytes or assemble chunks to get a preview.
+   */
+  fileId: string;
+  /** Overrides the stored name; the extension decides the source parser. */
+  sourceName?: string;
   format?: ConvertFormat;
 };
 

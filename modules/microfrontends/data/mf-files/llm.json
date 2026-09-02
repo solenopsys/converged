@@ -1,0 +1,11 @@
+{
+	"actions": {
+		"files.list": {
+			"brief": "Show all files",
+			"description": "Show the complete files list",
+			"category": "files",
+			"exposure": "user",
+			"priority": "normal"
+		}
+	}
+}

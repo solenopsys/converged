@@ -37,7 +37,9 @@ class ZmqClientImpl {
 		if (!method) throw new Error(`Method ${methodName} not found in service ${this.metadata.serviceName}`);
 		const payload = encoder.encode(JSON.stringify(this.prepareParams(method.parameters, params)));
 		const request = {
-			target: this.config.target,
+			// Same rule as the browser client: the service's own peer, declared in
+			// its metadata, wins over the caller's connection target.
+			target: this.metadata.target ?? this.config.target,
 			service: this.metadata.serviceName,
 			method: methodName,
 			scope: this.resolve(this.config.scope) ?? getRegisteredWorkspaceContext()?.scope,

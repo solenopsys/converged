@@ -15,6 +15,7 @@ export type CentimanusWorkflowResult = {
 export const metadata: ServiceMetadata = {
   "interfaceName": "CentimanusService",
   "serviceName": "centimanus",
+  "target": "centimanus",
   "filePath": "automation/centimanus.ts",
   "methods": [
     {

@@ -105,6 +105,40 @@ describe("function argument step", () => {
 		).toEqual({ patch: { args: { to: "bla@badf.com" } } });
 	});
 
+	test("refuses to call a function with nothing when no arguments came back", () => {
+		// What this prevents: the model answered "I\u2019ll package your request into
+		// a manufacturing request with the uploaded files mapped" and called
+		// nothing. Going on with `{}` created a request with no files at all and
+		// showed it as done.
+		const steps = createFunctionSteps({
+			catalog: {
+				search: () => [],
+				listCategories: () => [],
+				meta: () => ({
+					id: "requests.request.create",
+					description: "Create a request for uploaded files.",
+					parameters: {
+						type: "object",
+						properties: { files: { type: "object" } },
+					},
+				}),
+				invoke: () => undefined,
+			},
+		});
+		const args = steps.find((step) => step.name === "args");
+
+		expect(() =>
+			args?.apply(
+				{
+					userText: "create a request",
+					candidates: [],
+					id: "requests.request.create",
+				},
+				{ text: "I\u2019ll package your request.", toolCalls: [] },
+			),
+		).toThrow("produced no arguments for requests.request.create");
+	});
+
 	test("applies schema defaults when the argument model returns no call", () => {
 		const steps = createFunctionSteps({
 			catalog: {

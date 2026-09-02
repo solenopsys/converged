@@ -1,9 +1,16 @@
+import { brotliDecompressSync, gunzipSync, inflateSync } from "node:zlib";
 import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { basename, extname, join } from "node:path";
-import { CACHE_BLOB_TTL_SECONDS, type CacheAdapter } from "back-core";
+import {
+	CACHE_BLOB_TTL_SECONDS,
+	type CacheAdapter,
+	createServerNrpcClientConfig,
+} from "back-core";
+import { createFilesServiceClient } from "g-files";
+import { createStoreServiceClient } from "g-store";
 import type {
 	CacheRef,
 	ConvertFormat,
@@ -18,6 +25,33 @@ type BinaryConvertResult = {
 };
 
 const DEFAULT_FORMAT: ConvertFormat = "glb2";
+
+/** Chunks are stored compressed; ms-store records which codec was used. */
+function decompressChunk(data: Uint8Array, compression: string): Uint8Array {
+	switch (compression) {
+		case "none":
+			return data;
+		case "deflate":
+			return inflateSync(data);
+		case "gzip":
+			return new Uint8Array(gunzipSync(data));
+		case "brotli":
+			return new Uint8Array(brotliDecompressSync(data));
+		default:
+			throw new Error(`Unsupported chunk compression: ${compression}`);
+	}
+}
+
+function concatBytes(parts: Uint8Array[]): Uint8Array {
+	const total = parts.reduce((sum, part) => sum + part.length, 0);
+	const out = new Uint8Array(total);
+	let offset = 0;
+	for (const part of parts) {
+		out.set(part, offset);
+		offset += part.length;
+	}
+	return out;
+}
 const CADASSISTANT_TIMEOUT_MS = 10000;
 const ASSIMP_TIMEOUT_MS = 30000;
 const requireFromHere = createRequire(import.meta.url);
@@ -285,10 +319,45 @@ export class ModelConvertorServiceImpl implements ModelConvertorService {
 		return { cacheKey, sizeBytes: data.byteLength };
 	}
 
+	/** Read the stored file's fragments and join them back into the source blob.
+	 *
+	 * Storage is chunked, so a file is several blobs in ms-store; only the keys
+	 * ever cross a boundary. The service that needs the whole thing is the one
+	 * that reads them — which is here, not in the caller. */
+	private async readStoredFile(
+		fileId: string,
+	): Promise<{ bytes: Uint8Array; name: string }> {
+		const config = createServerNrpcClientConfig();
+		const files = createFilesServiceClient(config);
+		const store = createStoreServiceClient(config);
+
+		const metadata = await files.get(fileId);
+		if (!metadata) throw new Error(`File metadata not found: ${fileId}`);
+		const chunks = await files.getChunks(fileId);
+		if (!chunks.length && metadata.fileSize > 0) {
+			throw new Error(`File has no chunks: ${fileId}`);
+		}
+
+		const cache = this.requiredCache();
+		const parts: Uint8Array[] = [];
+		for (const chunk of [...chunks].sort(
+			(left, right) => left.chunkNumber - right.chunkNumber,
+		)) {
+			const stored = await store.getWithMeta(chunk.hash);
+			const raw = await cache.getBytes(stored.dataRef.cacheKey);
+			if (!raw) {
+				throw new Error(`Cache entry not found: ${stored.dataRef.cacheKey}`);
+			}
+			parts.push(decompressChunk(raw, stored.compression));
+		}
+		return { bytes: concatBytes(parts), name: metadata.name };
+	}
+
 	async convert(input: ModelConvertInput): Promise<ModelConvertResult> {
 		const format = resolveFormat(input.format);
-		const sourceName = normalizeSourceName(input.sourceName);
-		const sourceData = await this.readRef(input.sourceRef);
+		const stored = await this.readStoredFile(input.fileId);
+		const sourceName = normalizeSourceName(input.sourceName ?? stored.name);
+		const sourceData = stored.bytes;
 
 		let converted: BinaryConvertResult;
 		if (isStepSource(sourceName)) {

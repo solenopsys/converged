@@ -49,7 +49,14 @@ export type ConversationOptions = {
 	/** Streaming port for the conversational answer. */
 	driver: ChatDriver;
 	catalog?: ConversationCatalog;
-	steps?: ReadonlyArray<Step<PlanContext>>;
+	/**
+	 * Replaces the built-in flow. As a factory it composes with it instead —
+	 * `(catalog) => [myStep, ...createFunctionSteps({ catalog })]` — which is the
+	 * only way to get the catalog the kernel freezes for the turn.
+	 */
+	steps?:
+		| ReadonlyArray<Step<PlanContext>>
+		| ((catalog: OrchestratorCatalog) => ReadonlyArray<Step<PlanContext>>);
 	systemPrompt?: () => Promise<string | undefined>;
 	budget?: TurnBudget;
 	tier?: (step: string) => Tier | undefined;
@@ -164,7 +171,10 @@ export function createConversation({
 		// Frozen for the whole turn: a function chosen by `select` must still be
 		// there at `invoke`.
 		const frozen: OrchestratorCatalog = catalog.snapshot();
-		const table = steps ?? createFunctionSteps({ catalog: frozen });
+		const table =
+			typeof steps === "function"
+				? steps(frozen)
+				: (steps ?? createFunctionSteps({ catalog: frozen }));
 		const open = new Map<string, string>();
 
 		const machine = createMachine<PlanContext>({

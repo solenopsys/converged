@@ -131,7 +131,13 @@ class MessagingClientImpl {
 		return {
 			kind: "request",
 			requestId: crypto.randomUUID(),
-			to: { target: this.config.target, service: this.metadata.serviceName },
+			// Where the service lives wins over where the caller is connected: a
+			// native peer is not in the microservice runtime, and a call that
+			// forgets that reaches a peer with no such service and fails.
+			to: {
+				target: this.metadata.target ?? this.config.target,
+				service: this.metadata.serviceName,
+			},
 			method,
 			codec: "json",
 			deadlineMs: this.config.deadlineMs,

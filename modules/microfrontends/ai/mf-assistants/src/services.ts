@@ -11,10 +11,7 @@ import { createFrontNrpcClientConfig, signalChannel } from "signal-channel";
 const chatClient = createSignalAssistantClient(signalChannel);
 
 const centimanusClient = createCentimanusServiceClient(
-	createFrontNrpcClientConfig({
-		target: "centimanus",
-		deadlineMs: 120_000,
-	}),
+	createFrontNrpcClientConfig({ deadlineMs: 120_000 }),
 );
 const assistantClient = createAssistantServiceClient(
 	createFrontNrpcClientConfig(),

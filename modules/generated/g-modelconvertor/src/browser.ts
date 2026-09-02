@@ -13,8 +13,14 @@ export type CacheRef = {
 };
 
 export type ModelConvertInput = {
-  sourceRef: CacheRef;
-  sourceName: string;
+  /**
+   * The stored file to convert. The service reads its fragments itself — that
+   * is what ms-files and ms-store are for — so a caller that has an id never
+   * has to move bytes or assemble chunks to get a preview.
+   */
+  fileId: string;
+  /** Overrides the stored name; the extension decides the source parser. */
+  sourceName?: string;
   format?: ConvertFormat;
 };
 
@@ -62,7 +68,7 @@ export const metadata: ServiceMetadata = {
     {
       "name": "ModelConvertInput",
       "kind": "type",
-      "definition": "{\n  sourceRef: CacheRef;\n  sourceName: string;\n  format?: ConvertFormat;\n}"
+      "definition": "{\n  /**\n   * The stored file to convert. The service reads its fragments itself — that\n   * is what ms-files and ms-store are for — so a caller that has an id never\n   * has to move bytes or assemble chunks to get a preview.\n   */\n  fileId: string;\n  /** Overrides the stored name; the extension decides the source parser. */\n  sourceName?: string;\n  format?: ConvertFormat;\n}"
     },
     {
       "name": "ConvertedFileRef",

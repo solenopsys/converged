@@ -1,4 +1,5 @@
-import type { CacheAdapter } from "back-core";
+import { type CacheAdapter, createServerNrpcClientConfig } from "back-core";
+import { createStoreServiceClient } from "g-store";
 import type {
 	DetectTypeInput,
 	ExtractTextInput,
@@ -16,7 +17,9 @@ import type {
 	UUID,
 } from "g-files";
 import {
+	chunkKey,
 	concatBytes,
+	decompressChunk,
 	contentTypeForName,
 	DEFAULT_CHUNK_SIZE,
 	detectFileType,
@@ -114,7 +117,7 @@ export class FilesServiceImpl implements FilesService {
 		);
 		const parts: Uint8Array[] = [];
 		for (const chunk of ordered) {
-			parts.push(await readChunkBytes(this.stores.chunkStore, chunk.hash));
+			parts.push(await this.readChunk(cache, chunk.hash));
 		}
 
 		const ref = await writeCacheRef(
@@ -124,6 +127,29 @@ export class FilesServiceImpl implements FilesService {
 			fileId,
 		);
 		return { ref, metadata };
+	}
+
+	/** One chunk's plain bytes, wherever they were written.
+	 *
+	 * Two paths fill a file. `persist` chunks a staged blob into this service's
+	 * own store; an upload and an unpacked archive hand their blocks to ms-store
+	 * (`store.save`) and register only the hash here. Reading has to cover both,
+	 * or every file that came from a browser or out of a zip is unreadable —
+	 * which is exactly what "Chunk not found" meant. */
+	private async readChunk(
+		cache: CacheAdapter,
+		hash: string,
+	): Promise<Uint8Array> {
+		if (await this.stores.chunkStore.exists(chunkKey(hash))) {
+			return readChunkBytes(this.stores.chunkStore, hash);
+		}
+		const store = createStoreServiceClient(createServerNrpcClientConfig());
+		const stored = await store.getWithMeta(hash);
+		const raw = await cache.getBytes(stored.dataRef.cacheKey);
+		if (!raw) {
+			throw new Error(`Cache entry not found: ${stored.dataRef.cacheKey}`);
+		}
+		return decompressChunk(raw, stored.compression);
 	}
 
 	/** Detect a staged blob's file type from its name and magic bytes. */

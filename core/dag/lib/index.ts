@@ -103,11 +103,7 @@ export const requests = contractClient<{
 });
 
 export const models = contractClient<{
-	convert(input: {
-		sourceRef: CacheRef;
-		sourceName: string;
-		format?: string;
-	}): {
+	convert(input: { fileId: UUID; sourceName?: string; format?: string }): {
 		files: { name: string; ref: CacheRef }[];
 	};
 }>("modelconvertor", { convert: ["input"] });
@@ -226,6 +222,8 @@ export function step<T>(
 export type StagedFile = {
 	fileId: string;
 	name: string;
+	/** The whole file staged in the cache — what the estimators read. The
+	 *  converter does not need it: it reads the file from its id. */
 	ref: CacheRef;
 	metadata: FileMetadata;
 	type: string;
@@ -461,6 +459,7 @@ export function analyzeFile(
 ): void {
 	const { fileId, name, ref } = staged;
 
+
 	if (staged.type === "gcode") {
 		// A raw g-code file has no native estimator (ptah slices/CAMs models,
 		// it does not re-parse g-code); nothing to do.
@@ -476,7 +475,7 @@ export function analyzeFile(
 			`convert-preview:${fileId}`,
 			fileId,
 			() =>
-				models.convert({ sourceRef: ref, sourceName: name, format: "glb2" }),
+				models.convert({ fileId, format: "glb2" }),
 		);
 		for (const [i, out] of (converted?.files ?? []).entries()) {
 			keep(

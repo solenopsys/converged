@@ -258,6 +258,9 @@ solutions:
       - usage
       - files
       - store
+      # wf-file-analyze converts every model to a GLB through it; without the
+      # service a request gets no previews.
+      - modelconvertor
       - requests
     microfrontends:
       - auth

@@ -12,7 +12,9 @@
 	"dependencies": {
 		"assimpjs": "^0.0.10",
 		"back-core": "workspace:*",
+		"g-files": "workspace:*",
 		"g-modelconvertor": "workspace:*",
+		"g-store": "workspace:*",
 		"nrpc": "workspace:*"
 	}
 }
