@@ -4,7 +4,11 @@ import {
 	EntityListView,
 	useMicrofrontendTranslation,
 } from "front-core";
-import { objectRef, presentReference, type SetRef } from "front-core/object-runtime";
+import {
+	objectRef,
+	presentReference,
+	type SetRef,
+} from "front-core/object-runtime";
 import type { RequestListParams } from "g-requests";
 import { useMemo } from "preact/compat";
 import { createRequestsColumns } from "../config";

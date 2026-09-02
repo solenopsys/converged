@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Processes uploaded files in batches: it expands archives, identifies model files, and creates one manufacturing request when models are present.
+Intake for uploaded files: it expands archives and classifies everything that came out, reporting which files are production models. It does not create a request and does not analyse anything — that is the assistant's decision followed by `wf-request-analyze`.
 
 ## Responsibility boundary
 

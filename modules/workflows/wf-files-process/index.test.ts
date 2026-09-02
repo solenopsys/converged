@@ -10,7 +10,7 @@ beforeAll(async () => {
 });
 
 describe("wf-files-process", () => {
-	test("unpacks an archive and creates a request for model files", () => {
+	test("expands an archive and classifies what came out", () => {
 		const u = createFileUniverse();
 		const zipId = u.addArchive("upload.zip", [
 			{ name: "part.stl", data: "solid part" },
@@ -30,18 +30,22 @@ describe("wf-files-process", () => {
 				(entry: { name: string }) => entry.name,
 			),
 		).toEqual(["part.stl", "readme.txt"]);
+
+		// both entries are reported, only the STL is flagged as a model
+		expect(
+			outcome.result.contents.map((file: { name: string; model: boolean }) => [
+				file.name,
+				file.model,
+			]),
+		).toEqual([
+			["part.stl", true],
+			["readme.txt", false],
+		]);
 		expect(outcome.result.modelFileIds).toHaveLength(1);
-		expect(outcome.result.requestId).toBeDefined();
-		expect(u.requests.get(outcome.result.requestId)?.files).toEqual({
-			"part.stl": outcome.result.modelFileIds[0],
-		});
-		expect(u.calls).toContain("compressors.unpack");
-		expect(u.calls).toContain("requests.createRequest");
-		expect(u.calls).not.toContain("modelconvertor.convert");
-		expect(u.calls).not.toContain("ptah.analyze");
+		expect(outcome.result.collections[zipId]).toBeDefined();
 	});
 
-	test("creates a request for a direct model file", () => {
+	test("intake never creates a request and never analyses", () => {
 		const u = createFileUniverse();
 		const fileId = u.addFile("part.stl", "solid part");
 
@@ -49,16 +53,17 @@ describe("wf-files-process", () => {
 		expect(outcome.ok).toBe(true);
 		if (!outcome.ok) return;
 
-		expect(outcome.result.files).toEqual([
-			expect.objectContaining({ fileId, archive: false }),
-		]);
-		expect(outcome.result.extracted).toEqual([]);
 		expect(outcome.result.modelFileIds).toEqual([fileId]);
-		expect(outcome.result.requestId).toBeDefined();
-		expect(u.calls).toEqual(["files.get", "requests.createRequest"]);
+		expect(outcome.result.contents).toEqual([
+			expect.objectContaining({ fileId, model: true }),
+		]);
+		// deciding this is a request belongs to the assistant, analysis to
+		// wf-request-analyze — intake only reads metadata
+		expect(u.calls).toEqual(["files.get"]);
+		expect(u.requests.size).toBe(0);
 	});
 
-	test("does not create a request when an archive has no model files", () => {
+	test("a non-model upload is reported without a model flag", () => {
 		const u = createFileUniverse();
 		const zipId = u.addArchive("notes.zip", [
 			{ name: "readme.txt", data: "notes" },
@@ -70,7 +75,6 @@ describe("wf-files-process", () => {
 
 		expect(outcome.result.extracted).toHaveLength(1);
 		expect(outcome.result.modelFileIds).toEqual([]);
-		expect(outcome.result.requestId).toBeUndefined();
 		expect(u.calls).not.toContain("requests.createRequest");
 	});
 });

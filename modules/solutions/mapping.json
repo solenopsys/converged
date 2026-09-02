@@ -10,13 +10,20 @@
 			"name": "wf-files-process",
 			"script": "workflows/wf-files-process.js",
 			"brief": "Process uploaded files",
-			"description": "Unpack ZIP archives, identify model files, and create a manufacturing request from them.",
+			"description": "Expand ZIP archives and classify every uploaded file, reporting which of them are production models. Does not create a request.",
 			"parameters": {
 				"type": "object",
 				"properties": {
-					"fileIds": { "type": "array", "items": { "type": "string" } }
+					"fileIds": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						}
+					}
 				},
-				"required": ["fileIds"]
+				"required": [
+					"fileIds"
+				]
 			}
 		},
 		{
@@ -27,9 +34,25 @@
 			"description": "Extract a ZIP archive and return IDs of its entries.",
 			"parameters": {
 				"type": "object",
-				"properties": { "fileId": { "type": "string" } },
-				"required": ["fileId"]
+				"properties": {
+					"fileId": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"fileId"
+				]
 			}
+		},
+		{
+			"id": "file-analyze",
+			"name": "wf-file-analyze",
+			"script": "workflows/wf-file-analyze.js"
+		},
+		{
+			"id": "request-analyze",
+			"name": "wf-request-analyze",
+			"script": "workflows/wf-request-analyze.js"
 		}
 	]
 }

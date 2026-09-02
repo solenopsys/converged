@@ -1,5 +1,7 @@
 import { useUnit } from "effector-preact";
 import { downloadRequested, services } from "files-state";
+import { $activeLocale, useMicrofrontendTranslation } from "front-core";
+import { ModelViewer } from "front-core/model3d";
 import { createFilesServiceClient, type FileMetadata } from "g-files";
 import {
 	createRequestsServiceClient,
@@ -7,10 +9,8 @@ import {
 	type RequestModel,
 } from "g-requests";
 import { createStoreServiceClient } from "g-store";
-import { $activeLocale, useMicrofrontendTranslation } from "front-core";
-import { createFrontNrpcClientConfig } from "signal-channel";
-import { ModelViewer } from "front-core/model3d";
 import { type ReactNode, useEffect, useMemo, useState } from "preact/compat";
+import { createFrontNrpcClientConfig } from "signal-channel";
 import { RequestQr } from "../components/RequestQr";
 import {
 	$requestError,
@@ -21,16 +21,21 @@ import {
 } from "../domain-requests";
 import "./RequestDetailView.css";
 
-const requestsClient = createRequestsServiceClient(createFrontNrpcClientConfig());
+const requestsClient = createRequestsServiceClient(
+	createFrontNrpcClientConfig(),
+);
 
 if (typeof window !== "undefined" && !services.getFilesService()) {
-	services.setFilesService(createFilesServiceClient(createFrontNrpcClientConfig()));
-	services.setStoreService(createStoreServiceClient(createFrontNrpcClientConfig()));
+	services.setFilesService(
+		createFilesServiceClient(createFrontNrpcClientConfig()),
+	);
+	services.setStoreService(
+		createStoreServiceClient(createFrontNrpcClientConfig()),
+	);
 }
 
 type Translate = (key: string) => string;
 type I18n = { t: Translate; locale: string };
-
 
 function interpolate(
 	template: string,
@@ -40,7 +45,6 @@ function interpolate(
 		key in vars ? String(vars[key]) : `{${key}}`,
 	);
 }
-
 
 function tr(t: Translate, key: string, fallback: string): string {
 	const value = t(key);
@@ -109,7 +113,10 @@ function FieldCard({ field, i18n }: { field: RequestFieldState; i18n: I18n }) {
 	const isMissing = field.status === "missing" && field.required;
 	const isReview = field.status === "needs_review";
 	return (
-		<div className="request-field" data-state={isMissing ? "missing" : isReview ? "review" : "filled"}>
+		<div
+			className="request-field"
+			data-state={isMissing ? "missing" : isReview ? "review" : "filled"}
+		>
 			<div className="request-field__label">
 				{field.label}
 				{field.description ? (
@@ -133,13 +140,7 @@ type ModelPreviewRenderer = (payload: {
 }) => ReactNode;
 
 function DefaultModelPreview({ alt, fileId }: { alt: string; fileId: string }) {
-	return (
-		<ModelViewer
-			fileId={fileId}
-			alt={alt}
-			style={{ height: "100%" }}
-		/>
-	);
+	return <ModelViewer fileId={fileId} alt={alt} style={{ height: "100%" }} />;
 }
 
 function asNumber(value: unknown): number | undefined {
@@ -147,7 +148,11 @@ function asNumber(value: unknown): number | undefined {
 	return Number.isFinite(number) ? number : undefined;
 }
 
-function formatNumber(value: unknown, digits: number, locale: string): string | null {
+function formatNumber(
+	value: unknown,
+	digits: number,
+	locale: string,
+): string | null {
 	const number = asNumber(value);
 	if (number === undefined) return null;
 	return number.toLocaleString(locale, {
@@ -189,29 +194,50 @@ function getAnalysisErrors(model: RequestModel): Array<Record<string, any>> {
 	);
 }
 
-function estimateRows(estimate: AnalysisEstimate, i18n: I18n): Array<[string, string]> {
+function estimateRows(
+	estimate: AnalysisEstimate,
+	i18n: I18n,
+): Array<[string, string]> {
 	const { t, locale } = i18n;
 	const data = estimate.data ?? {};
 	const mm = t("analysis.units.mm");
 	const rows: Array<[string, string | null]> = [];
 	if (estimate.type === "printing" || estimate.type === "gcode") {
-		rows.push([t("analysis.rows.printTime"), formatDuration(data.timeSeconds, i18n)]);
+		rows.push([
+			t("analysis.rows.printTime"),
+			formatDuration(data.timeSeconds, i18n),
+		]);
 		rows.push([
 			t("analysis.rows.weight"),
-			withUnit(formatNumber(data.weightGrams, 1, locale), t("analysis.units.grams")),
+			withUnit(
+				formatNumber(data.weightGrams, 1, locale),
+				t("analysis.units.grams"),
+			),
 		]);
 		rows.push([
 			t("analysis.rows.filament"),
-			withUnit(formatNumber(data.filamentLengthMeters, 2, locale), t("analysis.units.meters")),
+			withUnit(
+				formatNumber(data.filamentLengthMeters, 2, locale),
+				t("analysis.units.meters"),
+			),
 		]);
 		rows.push([
 			t("analysis.rows.materialVolume"),
-			withUnit(formatNumber(data.materialVolumeMm3, 0, locale), t("analysis.units.mm3")),
+			withUnit(
+				formatNumber(data.materialVolumeMm3, 0, locale),
+				t("analysis.units.mm3"),
+			),
 		]);
 	}
 	if (estimate.type === "milling") {
-		rows.push([t("analysis.rows.machiningTime"), formatDuration(data.totalTimeSec, i18n)]);
-		rows.push([t("analysis.rows.passes"), formatNumber(data.passes, 0, locale)]);
+		rows.push([
+			t("analysis.rows.machiningTime"),
+			formatDuration(data.totalTimeSec, i18n),
+		]);
+		rows.push([
+			t("analysis.rows.passes"),
+			formatNumber(data.passes, 0, locale),
+		]);
 		rows.push([
 			t("analysis.rows.cut"),
 			withUnit(formatNumber(data.cutLengthMm, 0, locale), mm),
@@ -225,7 +251,8 @@ function estimateRows(estimate: AnalysisEstimate, i18n: I18n): Array<[string, st
 		const x = formatNumber(data.dimensionsMm.x, 1, locale);
 		const y = formatNumber(data.dimensionsMm.y, 1, locale);
 		const z = formatNumber(data.dimensionsMm.z, 1, locale);
-		if (x && y && z) rows.push([t("analysis.rows.dimensions"), `${x} × ${y} × ${z} ${mm}`]);
+		if (x && y && z)
+			rows.push([t("analysis.rows.dimensions"), `${x} × ${y} × ${z} ${mm}`]);
 	} else if (
 		asNumber(data.maxX) !== undefined &&
 		asNumber(data.minX) !== undefined &&
@@ -239,7 +266,10 @@ function estimateRows(estimate: AnalysisEstimate, i18n: I18n): Array<[string, st
 			`${formatNumber(asNumber(data.maxX)! - asNumber(data.minX)!, 1, locale)} × ${formatNumber(asNumber(data.maxY)! - asNumber(data.minY)!, 1, locale)} × ${formatNumber(asNumber(data.maxZ)! - asNumber(data.minZ)!, 1, locale)} ${mm}`,
 		]);
 	}
-	rows.push([t("analysis.rows.source"), typeof data.estimator === "string" ? data.estimator : null]);
+	rows.push([
+		t("analysis.rows.source"),
+		typeof data.estimator === "string" ? data.estimator : null,
+	]);
 	return rows.filter((row): row is [string, string] => Boolean(row[1]));
 }
 
@@ -250,11 +280,18 @@ function estimateTypeLabel(estimate: AnalysisEstimate, t: Translate): string {
 	return estimate.type ?? t("analysis.type.fallback");
 }
 
-function estimatePrimaryMetric(estimate: AnalysisEstimate, i18n: I18n): [string, string] {
+function estimatePrimaryMetric(
+	estimate: AnalysisEstimate,
+	i18n: I18n,
+): [string, string] {
 	const { t, locale } = i18n;
 	const data = estimate.data ?? {};
 	const weight = formatNumber(data.weightGrams, 1, locale);
-	if (weight) return [t("analysis.metric.weight"), `${weight} ${t("analysis.units.grams")}`];
+	if (weight)
+		return [
+			t("analysis.metric.weight"),
+			`${weight} ${t("analysis.units.grams")}`,
+		];
 
 	const printTime = formatDuration(data.timeSeconds, i18n);
 	if (printTime) return [t("analysis.metric.printTime"), printTime];
@@ -263,12 +300,19 @@ function estimatePrimaryMetric(estimate: AnalysisEstimate, i18n: I18n): [string,
 	if (millTime) return [t("analysis.metric.machiningTime"), millTime];
 
 	const materialVolume = formatNumber(data.materialVolumeMm3, 0, locale);
-	if (materialVolume) return [t("analysis.metric.volume"), `${materialVolume} ${t("analysis.units.mm3")}`];
+	if (materialVolume)
+		return [
+			t("analysis.metric.volume"),
+			`${materialVolume} ${t("analysis.units.mm3")}`,
+		];
 
 	return [t("analysis.metric.status"), t("analysis.metric.calculated")];
 }
 
-function estimateSecondaryMetric(estimate: AnalysisEstimate, i18n: I18n): string | null {
+function estimateSecondaryMetric(
+	estimate: AnalysisEstimate,
+	i18n: I18n,
+): string | null {
 	const { t, locale } = i18n;
 	const data = estimate.data ?? {};
 	const printTime = formatDuration(data.timeSeconds, i18n);
@@ -276,19 +320,20 @@ function estimateSecondaryMetric(estimate: AnalysisEstimate, i18n: I18n): string
 		return interpolate(t("analysis.metric.timePrefix"), { value: printTime });
 
 	const filament = formatNumber(data.filamentLengthMeters, 2, locale);
-	if (filament) return interpolate(t("analysis.metric.filamentPrefix"), { value: filament });
+	if (filament)
+		return interpolate(t("analysis.metric.filamentPrefix"), {
+			value: filament,
+		});
 
 	const cutLength = formatNumber(data.cutLengthMm, 0, locale);
-	if (cutLength) return interpolate(t("analysis.metric.cutPrefix"), { value: cutLength });
+	if (cutLength)
+		return interpolate(t("analysis.metric.cutPrefix"), { value: cutLength });
 
 	return null;
 }
 
 function fileLeafName(name: string): string {
-	return name
-		.replace(/\\/g, "/")
-		.split("/")
-		.pop()!;
+	return name.replace(/\\/g, "/").split("/").pop()!;
 }
 
 function fileBaseName(name: string): string {
@@ -342,7 +387,9 @@ function findEstimateDownloadTarget(
 		typeof estimate.data?.sourceName === "string"
 			? estimate.data.sourceName
 			: sourceLabel;
-	const sourceLeaf = sourceName ? fileLeafName(sourceName).toLowerCase() : undefined;
+	const sourceLeaf = sourceName
+		? fileLeafName(sourceName).toLowerCase()
+		: undefined;
 
 	if (sourceLeaf) {
 		const exactSource = files.find(([label, fileId]) => {
@@ -363,7 +410,10 @@ function findEstimateDownloadTarget(
 			sourceLabel ??
 			sourceName ??
 			"source-file";
-		return [fileMetadata[estimate.sourceFileId]?.name ?? label, estimate.sourceFileId];
+		return [
+			fileMetadata[estimate.sourceFileId]?.name ?? label,
+			estimate.sourceFileId,
+		];
 	}
 
 	if (sourceName) {
@@ -439,7 +489,9 @@ function AnalysisSection({
 							sourceLabel ||
 							(typeof estimate.data?.sourceName === "string"
 								? estimate.data.sourceName
-								: interpolate(t("analysis.estimateFallback"), { index: index + 1 }));
+								: interpolate(t("analysis.estimateFallback"), {
+										index: index + 1,
+									}));
 						return (
 							<div
 								key={`${estimate.sourceFileId ?? "estimate"}:${index}`}
@@ -459,7 +511,9 @@ function AnalysisSection({
 										<details className="request-estimate__details">
 											<summary className="request-estimate__summary">
 												<span className="request-estimate__identity">
-													<span className="request-estimate__title">{title}</span>
+													<span className="request-estimate__title">
+														{title}
+													</span>
 													<span className="request-estimate__type">
 														{estimateTypeLabel(estimate, t)}
 													</span>
@@ -487,7 +541,10 @@ function AnalysisSection({
 														{t("analysis.download")}
 													</button>
 												) : null}
-												<span className="request-estimate__more" aria-hidden="true" />
+												<span
+													className="request-estimate__more"
+													aria-hidden="true"
+												/>
 											</summary>
 											{detailRows.length > 0 ? (
 												<div className="request-metric-list">
@@ -594,7 +651,11 @@ function fileStats(
 	});
 }
 
-function uniqueFileLabel(files: Record<string, string>, name: string, fileId: string) {
+function uniqueFileLabel(
+	files: Record<string, string>,
+	name: string,
+	fileId: string,
+) {
 	let key = name;
 	let suffix = 2;
 	while (files[key] && files[key] !== fileId) {
@@ -609,14 +670,17 @@ function uniqueFileLabel(files: Record<string, string>, name: string, fileId: st
 }
 
 function useFileMetadata(fileIds: string[]): Record<string, FileMetadata> {
-	const [fileMetadata, setFileMetadata] = useState<Record<string, FileMetadata>>({});
+	const [fileMetadata, setFileMetadata] = useState<
+		Record<string, FileMetadata>
+	>({});
 	const key = fileIds.join(",");
 
 	useEffect(() => {
 		if (!fileIds.length) return;
 		Promise.all(
 			fileIds.map((id) =>
-				filesClient.get(id)
+				filesClient
+					.get(id)
 					.then((meta) => [id, meta] as const)
 					.catch(() => null),
 			),
@@ -632,7 +696,9 @@ function useFileMetadata(fileIds: string[]): Record<string, FileMetadata> {
 	return fileMetadata;
 }
 
-function useCollectionFiles(collectionIds: string[]): Record<string, FileMetadata> {
+function useCollectionFiles(
+	collectionIds: string[],
+): Record<string, FileMetadata> {
 	const [filesById, setFilesById] = useState<Record<string, FileMetadata>>({});
 	const key = [...collectionIds].sort().join(",");
 
@@ -656,13 +722,7 @@ function useCollectionFiles(collectionIds: string[]): Record<string, FileMetadat
 	return filesById;
 }
 
-function RequestHero({
-	model,
-	i18n,
-}: {
-	model: RequestModel;
-	i18n: I18n;
-}) {
+function RequestHero({ model, i18n }: { model: RequestModel; i18n: I18n }) {
 	const { t } = i18n;
 	return (
 		<header className="request-card request-hero">
@@ -681,7 +741,9 @@ function RequestHero({
 				<h1 className="request-title">
 					{model.title || t("detail.defaultTitle")}
 				</h1>
-				{model.summary ? <p className="request-summary">{model.summary}</p> : null}
+				{model.summary ? (
+					<p className="request-summary">{model.summary}</p>
+				) : null}
 			</div>
 		</header>
 	);
@@ -766,7 +828,13 @@ function RequestFieldsSection({
 	);
 }
 
-function RequestStatusSection({ model, i18n }: { model: RequestModel; i18n: I18n }) {
+function RequestStatusSection({
+	model,
+	i18n,
+}: {
+	model: RequestModel;
+	i18n: I18n;
+}) {
 	const { t, locale } = i18n;
 	return (
 		<section className="request-card request-card--status">
@@ -878,7 +946,13 @@ function RequestFilesSection({
 	);
 }
 
-function RequestMissingSection({ model, i18n }: { model: RequestModel; i18n: I18n }) {
+function RequestMissingSection({
+	model,
+	i18n,
+}: {
+	model: RequestModel;
+	i18n: I18n;
+}) {
 	if (model.missingRequired.length === 0) return null;
 
 	return (
@@ -947,8 +1021,14 @@ export function ManufacturingRequestPage({
 	const sortedFiles = useMemo(
 		() =>
 			[...files].sort(([leftLabel, leftId], [rightLabel, rightId]) => {
-				const leftIsModel = isModelFile(leftLabel, fileMetadata[leftId]?.fileType);
-				const rightIsModel = isModelFile(rightLabel, fileMetadata[rightId]?.fileType);
+				const leftIsModel = isModelFile(
+					leftLabel,
+					fileMetadata[leftId]?.fileType,
+				);
+				const rightIsModel = isModelFile(
+					rightLabel,
+					fileMetadata[rightId]?.fileType,
+				);
 				if (leftIsModel !== rightIsModel) return leftIsModel ? -1 : 1;
 				return leftLabel.localeCompare(rightLabel);
 			}),
@@ -960,7 +1040,11 @@ export function ManufacturingRequestPage({
 			<div className="request-detail__wrap">
 				<div className="request-bento">
 					<RequestHero model={model} i18n={i18n} />
-					<RequestProgressCard fileCount={files.length} model={model} i18n={i18n} />
+					<RequestProgressCard
+						fileCount={files.length}
+						model={model}
+						i18n={i18n}
+					/>
 					<RequestMissingSection model={model} i18n={i18n} />
 					<RequestShareCard url={url} i18n={i18n} />
 					<AnalysisSection

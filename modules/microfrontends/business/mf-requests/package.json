@@ -10,6 +10,7 @@
 		"effector-preact": "workspace:*",
 		"files-state": "workspace:*",
 		"front-core": "workspace:*",
+		"g-centimanus": "workspace:*",
 		"g-files": "workspace:*",
 		"g-requests": "workspace:*",
 		"g-store": "workspace:*",

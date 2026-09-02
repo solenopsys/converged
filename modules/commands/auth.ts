@@ -209,7 +209,7 @@ function resolveGatewayUrl(): string {
   // shows up as a 404 that looks like a broken endpoint, so demand the address.
   if (!configured) {
     throw new Error(
-      "AUTH_GATEWAY_URL is not set: point it at the UI host that serves /auth/* (front/landing, PORT 3002 by default)",
+      "AUTH_GATEWAY_URL is not set: point it at the UI host that serves /auth/* (club/core/frontend/landing, PORT 3002 by default)",
     );
   }
   return configured.replace(/\/+$/, "");

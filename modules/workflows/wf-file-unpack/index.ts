@@ -4,7 +4,7 @@
 import {
 	type FlowCtx,
 	isArchive,
-	loadFileForUnpack,
+	loadFileMeta,
 	type StepError,
 	unpackArchive,
 } from "dag-file-steps";
@@ -45,7 +45,7 @@ rt.workflow = (input: Input) => {
 		errors: ctx.errors,
 	};
 
-	const staged = loadFileForUnpack(ctx, input.fileId);
+	const staged = loadFileMeta(ctx, input.fileId);
 	if (!staged) return report;
 	report.name = staged.metadata.name;
 	report.type = fileKind(staged.metadata.name, staged.metadata.fileType);

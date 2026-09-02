@@ -28,7 +28,6 @@ const SYSTEM_PROMPT = [
 ].join(" ");
 
 const DEFAULTS = {
-
 	maxMessageChars: 1024,
 
 	limit: 50,
@@ -42,37 +41,58 @@ type Input = Partial<typeof DEFAULTS> & { provider: string; model: string };
 
 type Summary = { title: string; description: string; flud: boolean };
 
-const clip = (text: string, max: number) => (text.length <= max ? text : `${text.slice(0, max).trimEnd()}…`);
-
+const clip = (text: string, max: number) =>
+	text.length <= max ? text : `${text.slice(0, max).trimEnd()}…`;
 
 function parseSummary(body: string): Summary {
-	const cleaned = body.replace(/^```(?:json)?\s*([\s\S]*?)\s*```$/, "$1").trim();
+	const cleaned = body
+		.replace(/^```(?:json)?\s*([\s\S]*?)\s*```$/, "$1")
+		.trim();
 	try {
 		const parsed = JSON.parse(cleaned) as Partial<Summary>;
 		const title = String(parsed.title ?? "").trim();
 		const description = String(parsed.description ?? "").trim();
-		if (title || description) return { title, description, flud: parsed.flud === true };
+		if (title || description)
+			return { title, description, flud: parsed.flud === true };
 	} catch {
 		// not JSON — fall through
 	}
 	const flat = cleaned.replace(/\s+/g, " ").trim();
-	return { title: clip(flat, 60).replace(/…$/, ""), description: flat, flud: flat.length === 0 };
+	return {
+		title: clip(flat, 60).replace(/…$/, ""),
+		description: flat,
+		flud: flat.length === 0,
+	};
 }
 
 rt.workflow = (input: Input) => {
 	if (!input?.provider || !input?.model) {
-		throw new Error("dialogue-summary requires params.provider and params.model");
+		throw new Error(
+			"dialogue-summary requires params.provider and params.model",
+		);
 	}
 	const o = { ...DEFAULTS, ...input };
 	const line = (who: string, text: string, assistant: boolean) =>
 		`${assistant ? "Assistant" : "User"}: ${assistant ? clip(text, o.maxMessageChars) : text}`;
 
-	const rooms = rt.node("list-chats", () => chats.listRooms({ offset: 0, limit: o.limit, processed: false }));
-	const callList = rt.node("list-calls", () => calls.listCalls({ offset: 0, limit: o.limit, processed: false }));
+	const rooms = rt.node("list-chats", () =>
+		chats.listRooms({ offset: 0, limit: o.limit, processed: false }),
+	);
+	const callList = rt.node("list-calls", () =>
+		calls.listCalls({ offset: 0, limit: o.limit, processed: false }),
+	);
 
 	const dialogues = [
-		...rooms.items.map((r) => ({ kind: "chat" as const, id: r.id, threadId: r.threadId as string | undefined })),
-		...callList.items.map((c) => ({ kind: "call" as const, id: c.id, threadId: c.threadId })),
+		...rooms.items.map((r) => ({
+			kind: "chat" as const,
+			id: r.id,
+			threadId: r.threadId as string | undefined,
+		})),
+		...callList.items.map((c) => ({
+			kind: "call" as const,
+			id: c.id,
+			threadId: c.threadId,
+		})),
 	];
 
 	const items: Record<string, unknown>[] = [];
@@ -85,7 +105,9 @@ rt.workflow = (input: Input) => {
 		// transcript: chat → thread messages, call → recognized dialogue
 		const got = rt.attempt(`read:${key}`, () => {
 			if (ref.kind === "call") {
-				return calls.getDialogue(ref.id).map((d) => line(d.who, d.text.trim(), d.who === "assistant"));
+				return calls
+					.getDialogue(ref.id)
+					.map((d) => line(d.who, d.text.trim(), d.who === "assistant"));
 			}
 			if (!ref.threadId) return [];
 			return threads
@@ -94,7 +116,12 @@ rt.workflow = (input: Input) => {
 				.map((m) => line(m.user, m.data.trim(), m.user === "assistant"));
 		});
 		if (!got.ok) {
-			items.push({ kind: ref.kind, id: ref.id, status: "error", error: got.error });
+			items.push({
+				kind: ref.kind,
+				id: ref.id,
+				status: "error",
+				error: got.error,
+			});
 			continue;
 		}
 		const transcript = got.value.filter(Boolean).join("\n");
@@ -116,7 +143,12 @@ rt.workflow = (input: Input) => {
 			}),
 		);
 		if (!answered.ok) {
-			items.push({ kind: ref.kind, id: ref.id, status: "error", error: answered.error });
+			items.push({
+				kind: ref.kind,
+				id: ref.id,
+				status: "error",
+				error: answered.error,
+			});
 			continue;
 		}
 		const summary = parseSummary(answered.value.text);
@@ -129,20 +161,34 @@ rt.workflow = (input: Input) => {
 				flud: summary.flud,
 			};
 			const persisted = rt.attempt(`persist:${key}`, () =>
-				ref.kind === "chat" ? chats.updateRoom(ref.id, patch) : calls.updateCall(ref.id, patch),
+				ref.kind === "chat"
+					? chats.updateRoom(ref.id, patch)
+					: calls.updateCall(ref.id, patch),
 			);
 			if (!persisted.ok) {
-				items.push({ kind: ref.kind, id: ref.id, status: "error", error: persisted.error });
+				items.push({
+					kind: ref.kind,
+					id: ref.id,
+					status: "error",
+					error: persisted.error,
+				});
 				continue;
 			}
 		}
 
 		updated += 1;
-		items.push({ kind: ref.kind, id: ref.id, status: o.dryRun ? "dry-run" : "updated", ...summary });
+		items.push({
+			kind: ref.kind,
+			id: ref.id,
+			status: o.dryRun ? "dry-run" : "updated",
+			...summary,
+		});
 	}
 
 	const result = { total: dialogues.length, updated, skipped, items };
 	rt.set("dialogue-summary:last-result", result);
-	rt.log(`dialogue-summary: total=${result.total} updated=${updated} skipped=${skipped}`);
+	rt.log(
+		`dialogue-summary: total=${result.total} updated=${updated} skipped=${skipped}`,
+	);
 	return result;
 };

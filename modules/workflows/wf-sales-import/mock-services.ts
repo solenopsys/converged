@@ -18,7 +18,12 @@ export type ImportUniverse = {
 	addFile(fileId: string, name: string, text: string): void;
 	setParsed(leads: any[], format?: string): void;
 	failOn(service: string, method: string, message: string): void;
-	handler(service: string, method: string, params: any, cache: Map<string, string>): unknown;
+	handler(
+		service: string,
+		method: string,
+		params: any,
+		cache: Map<string, string>,
+	): unknown;
 };
 
 export function createImportUniverse(): ImportUniverse {
@@ -89,7 +94,9 @@ export function createImportUniverse(): ImportUniverse {
 							dropped++;
 							continue;
 						}
-						const leadId = raw.id ?? `lead-${description.toLowerCase().replace(/\W+/g, "-")}`;
+						const leadId =
+							raw.id ??
+							`lead-${description.toLowerCase().replace(/\W+/g, "-")}`;
 						items.push({
 							lead: {
 								id: leadId,

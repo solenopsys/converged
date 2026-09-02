@@ -1,0 +1,14 @@
+{
+	"name": "wf-request-analyze",
+	"version": "0.0.0",
+	"type": "module",
+	"private": true,
+	"module": "index.ts",
+	"dependencies": {
+		"dag-core": "workspace:*",
+		"dag-file-steps": "workspace:*",
+		"g-files": "workspace:*",
+		"g-requests": "workspace:*",
+		"g-store": "workspace:*"
+	}
+}

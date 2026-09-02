@@ -77,7 +77,12 @@ rt.workflow = (input: Input) => {
 
 	// ---- 1. text sources ---------------------------------------------------
 	const texts: string[] = [];
-	const sources: { fileId: string; name: string; chars: number; truncated: boolean }[] = [];
+	const sources: {
+		fileId: string;
+		name: string;
+		chars: number;
+		truncated: boolean;
+	}[] = [];
 	for (const fileId of fileIds) {
 		const read = rt.attempt(`read-file:${fileId}`, () => {
 			const staged = files.materialize(fileId);
@@ -199,7 +204,9 @@ rt.workflow = (input: Input) => {
 	// ---- 3. persist --------------------------------------------------------
 	for (const item of normalized.items) {
 		const lead = item.lead;
-		const written = rt.attempt(`add-lead:${lead.id}`, () => sales.addLead(lead));
+		const written = rt.attempt(`add-lead:${lead.id}`, () =>
+			sales.addLead(lead),
+		);
 		if (written.ok) {
 			result.leadsCreated += 1;
 		} else if (isConflict(written.error)) {
@@ -215,7 +222,8 @@ rt.workflow = (input: Input) => {
 			);
 			if (saved.ok) result.contactsCreated += 1;
 			else if (isConflict(saved.error)) result.contactsSkipped += 1;
-			else errors.push({ id: contact.id, stage: "contact", message: saved.error });
+			else
+				errors.push({ id: contact.id, stage: "contact", message: saved.error });
 		}
 
 		for (const tag of item.tags) {

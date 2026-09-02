@@ -121,7 +121,7 @@ converged/
 │   ├── workflows/            # wf-<name>, compiled for centimanus
 │   ├── commands/             # CLI commands
 │   └── solutions/            # solution definitions + mapping registry
-└── front/landing/            # landing content blocks
+└── core/frontend/landing/    # shared landing content blocks
 ```
 
 A downstream product (for example `club`) is a sibling directory with the same

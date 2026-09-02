@@ -4,7 +4,12 @@
 import { join } from "node:path";
 import { buildWorkflow } from "./core/build.ts";
 
-const WORKFLOWS = ["wf-file-unpack", "wf-file-analyze", "wf-files-process"];
+const WORKFLOWS = [
+	"wf-file-unpack",
+	"wf-file-analyze",
+	"wf-files-process",
+	"wf-request-analyze",
+];
 
 const token = (
 	await Bun.file(

@@ -26,7 +26,11 @@ export type ReviewUniverse = {
 	/** when set, smtp.sendEmail answers { success: false, error } */
 	sendError: string | null;
 
-	setCandidate(lang: string, lead: Partial<MockCandidate["lead"]>, contact: Partial<MockCandidate["contact"]>): void;
+	setCandidate(
+		lang: string,
+		lead: Partial<MockCandidate["lead"]>,
+		contact: Partial<MockCandidate["contact"]>,
+	): void;
 	failOn(service: string, method: string, message: string): void;
 	handler(service: string, method: string, params: any): unknown;
 };

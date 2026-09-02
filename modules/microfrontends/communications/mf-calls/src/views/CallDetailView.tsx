@@ -108,75 +108,74 @@ export const CallDetailView: React.FC<CallDetailViewProps> = ({ sessionId, onBac
       </div>
 
 
-      <div className="flex-1 min-h-0 overflow-auto">
-        <div className="grid h-full grid-cols-1 lg:grid-cols-[1fr_380px]">
+      {/* Recording on top, transcript filling the rest underneath. */}
+      <div className="flex-1 min-h-0 flex flex-col">
 
 
-          <div className="flex flex-col gap-4 p-4 border-r border-border min-h-0">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">
-              Recordings
-            </p>
+        <div className="flex flex-col gap-4 p-4 border-b border-border shrink-0">
+          <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">
+            Recordings
+          </p>
 
-            {loading ? (
-              <div className="flex items-center justify-center flex-1 text-sm text-muted-foreground">
-                Loading…
-              </div>
-            ) : !hasUserAudio && !hasAssistantAudio ? (
-              <div className="flex flex-col items-center justify-center flex-1 gap-3 text-muted-foreground">
-                <MicOff size={32} className="opacity-30" />
-                <p className="text-sm">No recordings available for this session.</p>
-              </div>
-            ) : (
-              <StereoCallPlayer userSrc={userAudioUrl} aiSrc={assistantAudioUrl} />
-            )}
-
-
-            {!loading && transcript.length > 0 && (
-              <div className="mt-auto pt-4 border-t border-border grid grid-cols-3 gap-3">
-                <MetaStat
-                  label="Lines"
-                  value={String(transcript.length)}
-                />
-                <MetaStat
-                  label="You said"
-                  value={String(transcript.filter((t) => t.source === "user").length)}
-                />
-                <MetaStat
-                  label="AI said"
-                  value={String(transcript.filter((t) => t.source === "assistant").length)}
-                />
-              </div>
-            )}
-          </div>
-
-
-          <div className="flex flex-col min-h-0">
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-border shrink-0">
-              <MessageSquare size={14} className="text-muted-foreground" />
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                Transcript
-              </span>
-              {transcript.length > 0 && (
-                <Badge variant="outline" className="text-xs ml-auto">
-                  {transcript.length} lines
-                </Badge>
-              )}
+          {loading ? (
+            <div className="flex items-center justify-center py-6 text-sm text-muted-foreground">
+              Loading…
             </div>
-
-            <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2">
-              {loading ? (
-                <p className="text-sm text-muted-foreground">Loading…</p>
-              ) : transcript.length === 0 ? (
-                <p className="text-sm text-muted-foreground italic">No transcript available.</p>
-              ) : (
-                transcript.map((line, i) => (
-                  <TranscriptLine key={i} line={line} />
-                ))
-              )}
+          ) : !hasUserAudio && !hasAssistantAudio ? (
+            <div className="flex flex-col items-center justify-center py-6 gap-3 text-muted-foreground">
+              <MicOff size={32} className="opacity-30" />
+              <p className="text-sm">No recordings available for this session.</p>
             </div>
-          </div>
+          ) : (
+            <StereoCallPlayer userSrc={userAudioUrl} aiSrc={assistantAudioUrl} />
+          )}
 
+
+          {!loading && transcript.length > 0 && (
+            <div className="pt-4 border-t border-border grid grid-cols-3 gap-3">
+              <MetaStat
+                label="Lines"
+                value={String(transcript.length)}
+              />
+              <MetaStat
+                label="You said"
+                value={String(transcript.filter((t) => t.source === "user").length)}
+              />
+              <MetaStat
+                label="AI said"
+                value={String(transcript.filter((t) => t.source === "assistant").length)}
+              />
+            </div>
+          )}
         </div>
+
+
+        <div className="flex flex-col min-h-0 flex-1">
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-border shrink-0">
+            <MessageSquare size={14} className="text-muted-foreground" />
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Transcript
+            </span>
+            {transcript.length > 0 && (
+              <Badge variant="outline" className="text-xs ml-auto">
+                {transcript.length} lines
+              </Badge>
+            )}
+          </div>
+
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 flex flex-col gap-2">
+            {loading ? (
+              <p className="text-sm text-muted-foreground">Loading…</p>
+            ) : transcript.length === 0 ? (
+              <p className="text-sm text-muted-foreground italic">No transcript available.</p>
+            ) : (
+              transcript.map((line, i) => (
+                <TranscriptLine key={i} line={line} />
+              ))
+            )}
+          </div>
+        </div>
+
       </div>
     </div>
   );
@@ -198,11 +197,12 @@ const TranscriptLine: React.FC<{ line: GateTranscriptItem }> = ({ line }) => {
       <div
         className={`max-w-[88%] rounded-2xl px-3 py-2 ${
           isUser
-            ? "bg-blue-900/40 text-blue-100 rounded-br-sm"
+            ? // Dark surface in both themes, matching the chat panel's user bubble.
+              "bg-[#252625] text-[#f7f7f5] rounded-br-sm"
             : "bg-muted text-foreground rounded-bl-sm"
         }`}
       >
-        <div className="text-[10px] opacity-50 mb-0.5 font-mono">
+        <div className="text-[10px] opacity-60 mb-0.5 font-mono">
           {isUser ? "You" : "AI"} · {new Date(line.time * 1000).toLocaleTimeString()}
         </div>
         {line.text}

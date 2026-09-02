@@ -15,7 +15,7 @@ import {
 } from "./commands";
 import { requestModelReceived } from "./domain-requests";
 import Panel from "./Panel";
-import { requestsClient } from "./services";
+import { requestsClient, workflowClient } from "./services";
 
 type OpenRequestParams = {
 	requestId?: string;
@@ -151,6 +151,23 @@ const requestProperties = {
 	},
 };
 
+/** Build a preview and an estimate for every production model on the request.
+ * Deterministic follow-up to creation, never a step the assistant has to think
+ * about: it fails soft so a slicer outage cannot lose the request itself. */
+async function analyzeRequestFiles(requestId: string): Promise<void> {
+	try {
+		const run = await workflowClient.runWorkflow(
+			"workflows/wf-request-analyze.js",
+			{ requestId },
+		);
+		if (!run.ok) {
+			console.error("[requests] analysis failed", requestId, run.error);
+		}
+	} catch (error) {
+		console.error("[requests] analysis unavailable", requestId, error);
+	}
+}
+
 const createRequestAction: CreateAction<RequestMutation> = () => ({
 	id: CREATE_REQUEST,
 	access: "public",
@@ -166,6 +183,7 @@ const createRequestAction: CreateAction<RequestMutation> = () => ({
 			...input,
 			fields: input.fields ?? {},
 		});
+		await analyzeRequestFiles(id);
 		const model = await requestsClient.getRequestModel(id);
 		return {
 			...(model ?? { id }),

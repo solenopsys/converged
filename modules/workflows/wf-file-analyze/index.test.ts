@@ -3,9 +3,9 @@
 
 import { beforeAll, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { runWorkflow } from "../../../core/native/apps/centimanus/test/bun/centimanus-mock";
 import { buildWorkflow } from "../../../core/dag/core/build";
 import { createFileUniverse } from "../../../core/dag/lib/mock-services";
+import { runWorkflow } from "../../../core/native/apps/centimanus/test/bun/centimanus-mock";
 
 let source: string;
 beforeAll(async () => {
@@ -58,7 +58,11 @@ describe("wf-file-analyze", () => {
 		expect(outcome.result.converted).toEqual([]);
 		expect(outcome.result.estimates).toEqual([]);
 		expect(outcome.result.errors).toEqual([
-			{ stage: "print-estimate", fileId: stlId, message: "no native print estimator without a definition file" },
+			{
+				stage: "print-estimate",
+				fileId: stlId,
+				message: "no native print estimator without a definition file",
+			},
 		]);
 		expect(u.calls).toEqual(["files.materialize", "files.detectType"]);
 	});
@@ -72,7 +76,12 @@ describe("wf-file-analyze", () => {
 			source,
 			{
 				fileId: stlId,
-				options: { target: "print", convertPreview: false, includeGcode: true, definitionFileId: defId },
+				options: {
+					target: "print",
+					convertPreview: false,
+					includeGcode: true,
+					definitionFileId: defId,
+				},
 			},
 			u.handler,
 		);
@@ -104,7 +113,9 @@ describe("wf-file-analyze", () => {
 
 	test("an archive is redirected to wf-file-unpack", () => {
 		const u = createFileUniverse();
-		const zipId = u.addArchive("models.zip", [{ name: "a.stl", data: "solid a" }]);
+		const zipId = u.addArchive("models.zip", [
+			{ name: "a.stl", data: "solid a" },
+		]);
 
 		const outcome = runWorkflow(source, { fileId: zipId }, u.handler);
 		expect(outcome.ok).toBe(true);
@@ -112,7 +123,11 @@ describe("wf-file-analyze", () => {
 
 		expect(outcome.result.estimates).toEqual([]);
 		expect(outcome.result.errors).toEqual([
-			{ stage: "load", fileId: zipId, message: "archives are handled by wf-file-unpack" },
+			{
+				stage: "load",
+				fileId: zipId,
+				message: "archives are handled by wf-file-unpack",
+			},
 		]);
 	});
 
@@ -121,11 +136,17 @@ describe("wf-file-analyze", () => {
 		const stlId = u.addFile("part.stl", "solid p");
 		u.failOn("ptah", "analyze", "no cutting tool fits");
 
-		const outcome = runWorkflow(source, { fileId: stlId, options: { target: "cnc" } }, u.handler);
+		const outcome = runWorkflow(
+			source,
+			{ fileId: stlId, options: { target: "cnc" } },
+			u.handler,
+		);
 		expect(outcome.ok).toBe(true);
 		if (!outcome.ok) return;
 
-		expect(outcome.result.converted.map((c: any) => c.kind)).toEqual(["preview"]);
+		expect(outcome.result.converted.map((c: any) => c.kind)).toEqual([
+			"preview",
+		]);
 		expect(outcome.result.estimates).toEqual([]);
 		expect(outcome.result.errors.length).toBe(1);
 		expect(outcome.result.errors[0].stage).toBe("milling-extract");

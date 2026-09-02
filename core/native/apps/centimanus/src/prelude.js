@@ -9,6 +9,12 @@
 //
 // The engine evaluates: <this prelude> + <workflow source> + ";__step();" after
 // injecting globalThis.__execId and globalThis.__params.
+//
+// A workflow delegates one step to another workflow with rt.sub/rt.subAttempt.
+// That is a YIELD carrying a request, never a nested call: the engine runs the
+// child from its step loop, when no JS is on the stack, and persists the child's
+// outcome under the parent's task key. On re-entry the parent replays and reads
+// it back, so delegation caches and resumes exactly like an ordinary node.
 
 (function () {
   function host(payload) {
@@ -27,6 +33,9 @@
   // try/catch (node failures come back as values via rt.attempt), so it always
   // reaches __step uncaught.
   var YIELD = { __rtYield: true };
+
+  // Set alongside YIELD when the step is a delegation the engine must fulfil.
+  var pendingSub = null;
 
   function taskKey(name) {
     return "rt:task:" + execId + ":" + name;
@@ -48,6 +57,20 @@
     }
     rt.set(taskKey(name), outcome);
     throw YIELD; // one node per step — the engine re-enters for the next
+  }
+
+  // Delegate to another workflow. The engine writes { ok, value } | { ok, error }
+  // to this node's task key, then re-enters; the replay above returns it.
+  function runSubOrReplay(name, scriptPath, params) {
+    var cached = rt.get(taskKey(name));
+    if (cached) return cached;
+    if (!scriptPath) throw new Error("rt.sub: scriptPath is required");
+    pendingSub = {
+      node: name,
+      script: String(scriptPath),
+      params: params === undefined ? {} : params,
+    };
+    throw YIELD;
   }
 
   var rt = {
@@ -96,6 +119,18 @@
     attempt: function (name, fn) {
       return runOrReplay(name, fn);
     },
+
+    // ---- delegation to another workflow ------------------------------------
+    // Strict: returns the child's result, or throws on its failure.
+    sub: function (name, scriptPath, params) {
+      var outcome = runSubOrReplay(name, scriptPath, params);
+      if (outcome.ok) return outcome.value;
+      throw new Error(outcome.error);
+    },
+    // Lenient: { ok, value } | { ok, error }, so a batch survives one bad child.
+    subAttempt: function (name, scriptPath, params) {
+      return runSubOrReplay(name, scriptPath, params);
+    },
   };
 
   globalThis.rt = rt;
@@ -103,6 +138,7 @@
   // One engine step: replay to the current frontier, run one node (which yields),
   // or — if every node is already done — finish and return the result.
   globalThis.__step = function () {
+    pendingSub = null;
     var entry =
       (typeof rt.workflow === "function" && rt.workflow) ||
       (typeof workflow === "function" && workflow);
@@ -113,7 +149,17 @@
       var out = entry(globalThis.__params);
       return JSON.stringify({ status: "done", result: out === undefined ? null : out });
     } catch (e) {
-      if (e === YIELD) return JSON.stringify({ status: "yielded" });
+      if (e === YIELD) {
+        if (pendingSub) {
+          return JSON.stringify({
+            status: "sub",
+            node: pendingSub.node,
+            script: pendingSub.script,
+            params: pendingSub.params,
+          });
+        }
+        return JSON.stringify({ status: "yielded" });
+      }
       return JSON.stringify({ status: "failed", error: String((e && e.message) || e) });
     }
   };

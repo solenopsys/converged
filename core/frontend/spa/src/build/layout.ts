@@ -49,7 +49,7 @@ export function microfrontendContractRoots(): string[] {
 /**
  * A child project owns its landing host while the base project supplies shared
  * frontend packages. Prefer the child so SSR and the browser register the
- * same block map; retain legacy `front/landing` support during migration.
+ * same block map.
  */
 function landingProjectDir(): string {
 	const projectDirs = [process.env.CHILD_PROJECT_DIR, process.env.PROJECT_DIR]
@@ -57,11 +57,9 @@ function landingProjectDir(): string {
 		.map((value) => resolve(value));
 
 	for (const projectDir of projectDirs) {
-		for (const relativePath of ["core/frontend/landing", "front/landing"]) {
-			const landingDir = join(projectDir, relativePath);
-			if (existsSync(join(landingDir, "src", "blocks", "index.tsx"))) {
-				return landingDir;
-			}
+		const landingDir = join(projectDir, "core", "frontend", "landing");
+		if (existsSync(join(landingDir, "src", "blocks", "index.tsx"))) {
+			return landingDir;
 		}
 	}
 

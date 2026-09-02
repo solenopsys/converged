@@ -2,7 +2,11 @@ import { createDomain } from "effector";
 import { useUnit } from "effector-preact";
 import { createInfiniteTableStore, HeaderPanelLayout, InfiniteScrollDataTable } from "front-core";
 import { PhoneCall, RefreshCw } from "front-core";
-import type { SetRef } from "front-core/object-runtime";
+import {
+	objectRef,
+	presentReference,
+	type SetRef,
+} from "front-core/object-runtime";
 import type { CallsListParams } from "g-calls";
 import { useEffect, useMemo } from "preact/compat";
 import {
@@ -11,9 +15,9 @@ import {
 } from "../domain-calls";
 import { callsColumns, type CallRow } from "../config";
 
-type CallsListViewProps = { bus?: any; reference?: SetRef };
+type CallsListViewProps = { reference?: SetRef };
 
-export const CallsListView = ({ bus, reference }: CallsListViewProps) => {
+export const CallsListView = ({ reference }: CallsListViewProps) => {
 	const store = useMemo(() => {
 		const domain = createDomain(`calls-${crypto.randomUUID()}`);
 		return createInfiniteTableStore(domain, (params) => callsClient.listCalls(params as CallsListParams));
@@ -46,10 +50,10 @@ export const CallsListView = ({ bus, reference }: CallsListViewProps) => {
   };
 
   const handleRowClick = (row: CallRow) => {
-    if (!row?.id || !bus) return;
-    // Mount the call's transcript view (CallTranscriptView) in the right
-    // sidebar — the VIEW_CALL action already presents it as a widget.
-    bus.run("calls.view", { sessionId: row.id });
+    if (!row?.id) return;
+    // Present the call itself; the shell resolves calls.call.detail and opens
+    // CallDetailView in a workspace tab, same as the other list views.
+    void presentReference(objectRef("calls.call", row.id));
   };
 
   return (

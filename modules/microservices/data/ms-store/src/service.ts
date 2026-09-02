@@ -13,6 +13,11 @@ import { CACHE_BLOB_TTL_SECONDS, type CacheAdapter } from "back-core";
 
 const MS_ID = "store-ms";
 
+type ChunkMetadata = {
+	compression: CompressionType;
+	originalSize: number;
+};
+
 export class StoreServiceImpl implements StoreService {
 	stores!: StoresController;
 	private initPromise?: Promise<void>;
@@ -69,19 +74,24 @@ export class StoreServiceImpl implements StoreService {
 		return data;
 	}
 
-	private async writeCacheRef(
+	/** The file store materializes the blob into scoped Valkey and hands back the
+	 * key; the stored size comes from chunk metadata. Bytes never enter this
+	 * service — callers read them from Valkey by reference. */
+	private async readChunkRef(
 		hash: HashString,
-		data: Uint8Array,
-	): Promise<CacheRef> {
-		const cache = this.requiredCache();
-		const cacheKey = cache.buildKey(
-			"ms-store",
-			"blocks",
-			hash,
-			crypto.randomUUID(),
-		);
-		await cache.setBytes(cacheKey, data, CACHE_BLOB_TTL_SECONDS);
-		return { cacheKey, sizeBytes: data.byteLength };
+	): Promise<{ ref: CacheRef; meta: ChunkMetadata }> {
+		const stored = await this.stores.fileStore.get(this.toKey(hash));
+		if (!stored) {
+			throw new Error(`Chunk not found: ${hash}`);
+		}
+		const meta = await this.stores.metadataService.get(hash);
+		return {
+			ref: { cacheKey: stored.cacheKey, sizeBytes: meta?.size ?? 0 },
+			meta: {
+				compression: meta?.compression ?? "none",
+				originalSize: meta?.originalSize ?? meta?.size ?? 0,
+			},
+		};
 	}
 
 	@Access("public")
@@ -134,11 +144,7 @@ export class StoreServiceImpl implements StoreService {
 
 	@Access("public")
 	async get(hash: HashString): Promise<CacheRef> {
-		const data = await this.stores.fileStore.get(this.toKey(hash));
-		if (!data) {
-			throw new Error(`Chunk not found: ${hash}`);
-		}
-		return this.writeCacheRef(hash, data);
+		return (await this.readChunkRef(hash)).ref;
 	}
 
 	@Access("public")
@@ -147,15 +153,11 @@ export class StoreServiceImpl implements StoreService {
 		compression: CompressionType;
 		originalSize: number;
 	}> {
-		const data = await this.stores.fileStore.get(this.toKey(hash));
-		if (!data) {
-			throw new Error(`Chunk not found: ${hash}`);
-		}
-		const meta = await this.stores.metadataService.get(hash);
+		const { ref, meta } = await this.readChunkRef(hash);
 		return {
-			dataRef: await this.writeCacheRef(hash, data),
-			compression: meta?.compression ?? "none",
-			originalSize: meta?.originalSize ?? data.length,
+			dataRef: ref,
+			compression: meta.compression,
+			originalSize: meta.originalSize,
 		};
 	}
 

@@ -1,5 +1,5 @@
-import QRCode from "qrcode";
 import { useEffect, useState } from "preact/compat";
+import QRCode from "qrcode";
 
 export function RequestQr({ url }: { url: string }) {
 	const [dataUrl, setDataUrl] = useState("");

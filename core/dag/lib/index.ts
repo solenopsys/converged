@@ -8,7 +8,12 @@
 import { contractClient } from "dag-core";
 import type { CompressedChunk } from "g-compressors/rt";
 import type { FileCollection, FileMetadata, UUID } from "g-files/rt";
-import type { RequestId, RequestInput } from "g-requests/rt";
+import type {
+	RequestId,
+	RequestInput,
+	RequestModel,
+	RequestModelPatch,
+} from "g-requests/rt";
 import type { CacheRef } from "g-store/rt";
 
 export type { CacheRef };
@@ -84,7 +89,18 @@ export const compressors = contractClient<{
 
 export const requests = contractClient<{
 	createRequest(input: RequestInput): RequestId;
-}>("requests", { createRequest: ["input"] });
+	getRequestModel(id: RequestId): RequestModel;
+	applyRequestUpdate(
+		id: RequestId,
+		patch: RequestModelPatch,
+		actor: string,
+		comment?: string,
+	): RequestModel;
+}>("requests", {
+	createRequest: ["input"],
+	getRequestModel: ["id"],
+	applyRequestUpdate: ["id", "patch", "actor", "comment"],
+});
 
 export const models = contractClient<{
 	convert(input: {
@@ -110,6 +126,38 @@ export const ptah = contractClient<{
 }>("ptah", { analyze: ["plugin", "task", "inputs", "outputs"] });
 
 export const MODEL_TYPES = ["step", "stl", "obj", "ply", "3mf"];
+
+/** Mime types that make a stored file a 3D model. MODEL_TYPES above is the
+ * *detected* kind; these are what `files.get` reports before anything has been
+ * staged, so intake can classify a file without materializing it. */
+const MODEL_MIME_TYPES = [
+	"model/stl",
+	"model/step",
+	"model/obj",
+	"model/ply",
+	"model/3mf",
+	"model/gltf-binary",
+	"model/gltf+json",
+];
+
+/** Source formats an estimate can be produced from. glTF is deliberately absent:
+ * it is what the preview converter *emits*, so treating it as an input would make
+ * a second analysis run pick up the previews the first run just created. */
+const ANALYZABLE_MIME_TYPES = [
+	"model/stl",
+	"model/step",
+	"model/obj",
+	"model/ply",
+	"model/3mf",
+];
+
+export function isModelMime(fileType: string): boolean {
+	return MODEL_MIME_TYPES.indexOf(fileType) >= 0;
+}
+
+export function isAnalyzableMime(fileType: string): boolean {
+	return ANALYZABLE_MIME_TYPES.indexOf(fileType) >= 0;
+}
 
 export const ANALYZE_DEFAULTS = {
 	target: "cnc" as "cnc" | "print" | "generic",
@@ -247,7 +295,7 @@ export type UnpackResult = {
 	entries: { fileId: string; name: string }[];
 };
 
-export type UnpackableFile = {
+export type StoredFile = {
 	fileId: string;
 	metadata: FileMetadata;
 };
@@ -259,11 +307,12 @@ export function isArchive(metadata: FileMetadata): boolean {
 	);
 }
 
-/** Resolve file metadata. Bytes and chunk refs stay outside the workflow VM. */
-export function loadFileForUnpack(
+/** Read stored file metadata. Bytes and chunk refs stay outside the workflow VM,
+ * so this is the cheap way to classify a file before staging it. */
+export function loadFileMeta(
 	ctx: FlowCtx,
 	fileId: string,
-): UnpackableFile | undefined {
+): StoredFile | undefined {
 	const metadata = step(ctx, "load", `file:${fileId}`, fileId, () =>
 		files.get(fileId),
 	);
@@ -304,7 +353,7 @@ function loadArchiveChunks(
 
 export function unpackArchive(
 	ctx: FlowCtx,
-	staged: UnpackableFile,
+	staged: StoredFile,
 ): UnpackResult | undefined {
 	const { fileId, metadata } = staged;
 	const name = metadata.name;
@@ -543,4 +592,53 @@ export function analyzeFile(
 		fileId,
 		message: "no native print estimator without a definition file",
 	});
+}
+
+/** Add one file to a request's display-name -> fileId map, keeping names unique. */
+export function addRequestFile(
+	files: Record<string, string>,
+	name: string,
+	fileId: string,
+): void {
+	const base = name || fileId;
+	let key = base;
+	let suffix = 2;
+	while (files[key]) key = `${base} (${suffix++})`;
+	files[key] = fileId;
+}
+
+/** Write everything this run computed back onto the request in one node:
+ * the GLB previews join `files` (the detail view matches a model's preview by
+ * base name), the estimates and errors ride as typed `analysis` parameters. */
+export function attachAnalysis(
+	ctx: FlowCtx,
+	requestId: string,
+	previewFiles: Record<string, string>,
+): RequestModel | undefined {
+	return step(ctx, "request", `attach-analysis:${requestId}`, requestId, () =>
+		requests.applyRequestUpdate(
+			requestId,
+			{
+				files: previewFiles,
+				parameters: [
+					{
+						key: "file_analysis_estimates",
+						label: "File analysis estimates",
+						type: "json",
+						group: "analysis",
+						value: ctx.estimates,
+					},
+					{
+						key: "file_analysis_errors",
+						label: "File analysis errors",
+						type: "json",
+						group: "analysis",
+						value: ctx.errors,
+					},
+				],
+			},
+			ctx.owner,
+			"file analysis",
+		),
+	);
 }

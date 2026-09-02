@@ -48,27 +48,75 @@ function RequestConversionSvg({ data }: { data: ChartAreaPoint[] }) {
 	const right = 48;
 	const top = 12;
 	const bottom = 28;
-	const x = scalePoint().domain(data.map((point) => point.date)).range([left, width - right]);
-	const primaryMax = Math.max(1, max(data.flatMap((point) => [point.requests, point.orders])) ?? 0);
-	const conversionMax = Math.max(1, max(data, (point) => point.conversion) ?? 0);
-	const primaryY = scaleLinear().domain([0, primaryMax]).nice().range([height - bottom, top]);
-	const conversionY = scaleLinear().domain([0, conversionMax]).nice().range([height - bottom, top]);
+	const x = scalePoint()
+		.domain(data.map((point) => point.date))
+		.range([left, width - right]);
+	const primaryMax = Math.max(
+		1,
+		max(data.flatMap((point) => [point.requests, point.orders])) ?? 0,
+	);
+	const conversionMax = Math.max(
+		1,
+		max(data, (point) => point.conversion) ?? 0,
+	);
+	const primaryY = scaleLinear()
+		.domain([0, primaryMax])
+		.nice()
+		.range([height - bottom, top]);
+	const conversionY = scaleLinear()
+		.domain([0, conversionMax])
+		.nice()
+		.range([height - bottom, top]);
 	const draw = (value: (point: ChartAreaPoint) => number, y: typeof primaryY) =>
 		line<ChartAreaPoint>()
 			.x((point) => x(point.date) ?? left)
 			.y((point) => y(value(point)))(data) ?? "";
 
 	return (
-		<svg viewBox={`0 0 ${width} ${height}`} className="h-full w-full" role="img" aria-label="Request to order conversion chart">
+		<svg
+			viewBox={`0 0 ${width} ${height}`}
+			className="h-full w-full"
+			role="img"
+			aria-label="Request to order conversion chart"
+		>
 			{primaryY.ticks(4).map((value) => (
 				<g key={value}>
-					<line x1={left} x2={width - right} y1={primaryY(value)} y2={primaryY(value)} stroke="currentColor" stroke-opacity="0.12" />
-					<text x={left - 6} y={primaryY(value) + 4} text-anchor="end" className="fill-muted-foreground text-[10px]">{value}</text>
+					<line
+						x1={left}
+						x2={width - right}
+						y1={primaryY(value)}
+						y2={primaryY(value)}
+						stroke="currentColor"
+						stroke-opacity="0.12"
+					/>
+					<text
+						x={left - 6}
+						y={primaryY(value) + 4}
+						text-anchor="end"
+						className="fill-muted-foreground text-[10px]"
+					>
+						{value}
+					</text>
 				</g>
 			))}
-			<path d={draw((point) => point.requests, primaryY)} fill="none" stroke="var(--ui-chart-1)" stroke-width="2" />
-			<path d={draw((point) => point.orders, primaryY)} fill="none" stroke="var(--ui-chart-2)" stroke-width="2" />
-			<path d={draw((point) => point.conversion, conversionY)} fill="none" stroke="var(--ui-chart-3)" stroke-width="2" />
+			<path
+				d={draw((point) => point.requests, primaryY)}
+				fill="none"
+				stroke="var(--ui-chart-1)"
+				stroke-width="2"
+			/>
+			<path
+				d={draw((point) => point.orders, primaryY)}
+				fill="none"
+				stroke="var(--ui-chart-2)"
+				stroke-width="2"
+			/>
+			<path
+				d={draw((point) => point.conversion, conversionY)}
+				fill="none"
+				stroke="var(--ui-chart-3)"
+				stroke-width="2"
+			/>
 		</svg>
 	);
 }
@@ -117,7 +165,6 @@ export function ChartAreaInteractive({
 			return new Date(item.date) >= startDate;
 		});
 	}, [chartData, timeRange]);
-
 
 	return (
 		<Card className="@container/card" dashboardPin={dashboardPin}>

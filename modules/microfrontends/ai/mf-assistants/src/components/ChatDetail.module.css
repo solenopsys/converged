@@ -1,46 +1,21 @@
+/* Colors derive from the --hw-* design tokens, which the theme bootstrap flips
+   on :root.dark. Never key off prefers-color-scheme here: the OS preference is
+   only a seed for that bootstrap, and an explicit light theme under a dark OS
+   would otherwise paint dark-theme ink on the light canvas. */
 .chatRoot {
-  color: var(--foreground, #111827);
+  color: var(--hw-ink);
   min-width: 0;
   overflow: hidden;
-  --chat-user-bg: #f1f5f9;
-  --chat-user-fg: #0f172a;
-  --chat-user-border: rgba(15, 23, 42, 0.14);
-  --chat-assistant-fg: var(--foreground, #111827);
-  --chat-muted-fg: #64748b;
-  --chat-icon-fg: #64748b;
-  --chat-muted-bg: rgba(15, 23, 42, 0.07);
-  --chat-border: rgba(15, 23, 42, 0.14);
-  --chat-link: #2563eb;
-}
-
-:global(.dark) .chatRoot,
-:global([data-theme="dark"]) .chatRoot,
-:global([data-mode="dark"]) .chatRoot {
-  color: var(--foreground, #e5e7eb);
-  --chat-user-bg: #262626;
-  --chat-user-fg: #f8fafc;
-  --chat-user-border: rgba(255, 255, 255, 0.12);
-  --chat-assistant-fg: var(--foreground, #e5e7eb);
-  --chat-muted-fg: #a3a3a3;
-  --chat-icon-fg: #a3a3a3;
-  --chat-muted-bg: rgba(255, 255, 255, 0.08);
-  --chat-border: rgba(255, 255, 255, 0.14);
-  --chat-link: #93c5fd;
-}
-
-@media (prefers-color-scheme: dark) {
-  .chatRoot {
-    color: var(--foreground, #e5e7eb);
-    --chat-user-bg: #262626;
-    --chat-user-fg: #f8fafc;
-    --chat-user-border: rgba(255, 255, 255, 0.12);
-    --chat-assistant-fg: var(--foreground, #e5e7eb);
-    --chat-muted-fg: #a3a3a3;
-    --chat-icon-fg: #a3a3a3;
-    --chat-muted-bg: rgba(255, 255, 255, 0.08);
-    --chat-border: rgba(255, 255, 255, 0.14);
-    --chat-link: #93c5fd;
-  }
+  /* User messages keep a dark surface in both themes, mirroring the chat panel. */
+  --chat-user-bg: #252625;
+  --chat-user-fg: #f7f7f5;
+  --chat-user-border: #3b3b3a;
+  --chat-assistant-fg: var(--hw-ink);
+  --chat-muted-fg: var(--hw-ink-muted);
+  --chat-icon-fg: var(--hw-ink-muted);
+  --chat-muted-bg: color-mix(in srgb, var(--hw-ink) 8%, transparent);
+  --chat-border: var(--hw-panel-border);
+  --chat-link: var(--hw-accent);
 }
 
 

@@ -29,7 +29,7 @@ export const createFilesProcessTool = (
 ): ExecutableTool => ({
 	name: "startFilesProcess",
 	description:
-		"Process uploaded files: unpack ZIP archives, identify model files, and create a request when models are present",
+		"Process uploaded files: unpack ZIP archives and report what was uploaded, including which files are production models. Does not create a request — decide that separately",
 	parameters: {
 		type: "object",
 		properties: {
@@ -40,42 +40,6 @@ export const createFilesProcessTool = (
 					type: "string",
 					description: "ms-files file ID",
 				},
-			},
-			target: {
-				type: "string",
-				description: "Analysis target",
-				enum: ["cnc", "print", "generic"],
-			},
-			convertPreview: {
-				type: "boolean",
-				description:
-					"Whether the workflow should try to create preview model artifacts",
-			},
-			includeGcode: {
-				type: "boolean",
-				description: "Whether extractors may return generated G-code artifacts",
-			},
-			definitionFileId: {
-				type: "string",
-				description:
-					"Optional Cura printer definition JSON file ID for exact STL print slicing estimates",
-			},
-			density: {
-				type: "number",
-				description: "Filament density g/cm³, default 1.24 for PLA",
-			},
-			filamentDiameter: {
-				type: "number",
-				description: "Filament diameter in mm, default 1.75",
-			},
-			infillPercent: {
-				type: "number",
-				description:
-					"Infill percent for rough STL geometry print estimate when no Cura definition is provided",
-			},
-			maxArchiveDepth: {
-				type: "number",
-				description: "Maximum archive recursion depth",
 			},
 		},
 		required: ["fileIds"],

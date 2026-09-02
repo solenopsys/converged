@@ -131,9 +131,16 @@ rt.workflow = (input: Input) => {
 	};
 
 	if (o.dryRun) {
-		const result = { ...preview, status: "ready", dryRun: true, body: email.body };
+		const result = {
+			...preview,
+			status: "ready",
+			dryRun: true,
+			body: email.body,
+		};
 		rt.set("sales-review-outreach:last-result", result);
-		rt.log(`sales-review-outreach: DRY-RUN ${contact.value} — ${email.subject}`);
+		rt.log(
+			`sales-review-outreach: DRY-RUN ${contact.value} — ${email.subject}`,
+		);
 		return result;
 	}
 
@@ -155,7 +162,9 @@ rt.workflow = (input: Input) => {
 	if (!sent.success) {
 		const result = { ...preview, status: "send-failed", error: sent.error };
 		rt.set("sales-review-outreach:last-result", result);
-		rt.log(`sales-review-outreach: send failed for ${contact.value} — ${sent.error}`);
+		rt.log(
+			`sales-review-outreach: send failed for ${contact.value} — ${sent.error}`,
+		);
 		return result;
 	}
 

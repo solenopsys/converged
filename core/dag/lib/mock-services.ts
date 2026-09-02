@@ -95,10 +95,44 @@ export function createFileUniverse(): FileUniverse {
 				return filesHandler(universe, method, params, cache, nextId);
 			if (service === "store")
 				return storeHandler(universe, method, params, cache);
-			if (service === "requests" && method === "createRequest") {
-				const id = nextId("request");
-				universe.requests.set(id, params.input);
-				return id;
+			if (service === "requests") {
+				if (method === "createRequest") {
+					const id = nextId("request");
+					universe.requests.set(id, {
+						...params.input,
+						id,
+						files: { ...(params.input.files ?? {}) },
+					});
+					return id;
+				}
+				if (method === "getRequestModel") {
+					const model = universe.requests.get(params.id);
+					if (!model) throw new Error(`Request not found: ${params.id}`);
+					return model;
+				}
+				if (method === "applyRequestUpdate") {
+					const model = universe.requests.get(params.id);
+					if (!model) throw new Error(`Request not found: ${params.id}`);
+					// ms-requests merges files onto the previous model and turns
+					// parameters into fields; the mock mirrors just that much.
+					const patch = params.patch as {
+						files?: Record<string, string>;
+						parameters?: { key: string; value: unknown }[];
+					};
+					const files = {
+						...((model.files as Record<string, string>) ?? {}),
+						...(patch.files ?? {}),
+					};
+					const fields = {
+						...((model.fields as Record<string, unknown>) ?? {}),
+					};
+					for (const parameter of patch.parameters ?? []) {
+						fields[parameter.key] = parameter.value;
+					}
+					const next = { ...model, files, fields };
+					universe.requests.set(params.id, next);
+					return next;
+				}
 			}
 			if (service === "compressors" && method === "unpack") {
 				const source = params.input.chunks

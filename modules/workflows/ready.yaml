@@ -1,8 +1,9 @@
 # ready | _
 modules:
   wf-dialogue-summary: _
-  wf-file-analyze: _
+  wf-file-analyze: ready
   wf-file-unpack: ready
   wf-files-process: ready
+  wf-request-analyze: ready
   wf-sales-import: _
   wf-sales-review-outreach: _
