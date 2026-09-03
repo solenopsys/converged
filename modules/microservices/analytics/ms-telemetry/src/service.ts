@@ -3,7 +3,8 @@ import type {
   TelemetryEvent,
   TelemetryEventInput,
   TelemetryQueryParams,
-  TelemetryStatistic,
+	TelemetryStatistic,
+	TelemetryStatisticKey,
   PaginatedResult,
   SelectionDescriptor,
   SelectionStats,
@@ -78,9 +79,23 @@ export class TelemetryServiceImpl implements TelemetryService {
     return { totalCount: await this.stores.hot.count(filter) };
   }
 
-  async getStatistic(): Promise<TelemetryStatistic> {
-    await this.ensureReady();
-    const [hotStats, coldStats] = await Promise.all([
+	async getStatistic(keys?: TelemetryStatisticKey[]): Promise<TelemetryStatistic> {
+		await this.ensureReady();
+		if (keys?.includes("title")) {
+			const [hot, cold] = await Promise.all([
+				this.stores.hot.getTitleStatistic(),
+				this.stores.cold.getTitleStatistic(),
+			]);
+			return {
+				totalHot: hot.total,
+				totalCold: cold.total,
+				devices: new Set([...hot.devices, ...cold.devices]).size,
+				parameters: new Set([...hot.parameters, ...cold.parameters]).size,
+				byDevice: {},
+				byParam: {},
+			};
+		}
+		const [hotStats, coldStats] = await Promise.all([
       this.stores.hot.getStatistic(),
       this.stores.cold.getStatistic(),
     ]);

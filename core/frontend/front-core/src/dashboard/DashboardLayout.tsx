@@ -8,5 +8,9 @@ export function DashboardLayout({
 	children?: ReactNode;
 	pinScopeId?: string;
 }) {
-	return <DashboardPinScope scopeId={pinScopeId}>{children}</DashboardPinScope>;
+	return (
+		<DashboardPinScope scopeId={pinScopeId}>
+			<div className="flex flex-col gap-4">{children}</div>
+		</DashboardPinScope>
+	);
 }

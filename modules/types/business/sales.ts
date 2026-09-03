@@ -210,12 +210,15 @@ export type OutreachCandidate = {
 export type Statistic = {
 	leads: number;
 	touches: number;
+	daily?: Record<string, { leads: number; touches: number }>;
 	byType?: Record<string, number>;
 	byLang?: Record<string, number>;
 	contactsByType?: Record<string, number>;
 	touchesByCompanyName?: Record<string, number>;
 	outreachProgress?: OutreachProgressStat[];
 };
+
+export type SalesStatisticKey = "title";
 
 export type PaginationParams = {
 	offset: number;
@@ -261,7 +264,7 @@ export interface SalesService {
 	updateOutreachTargetStatus(
 		update: OutreachTargetStatusUpdate,
 	): Promise<OutreachTarget | null>;
-	getStatistic(): Promise<Statistic>;
+	getStatistic(keys?: SalesStatisticKey[]): Promise<Statistic>;
 	getDailyStatistic(): Promise<{ [key: string]: Statistic }>;
 	listLeads(params: LeadListParams): Promise<PaginatedResult<Lead>>;
 	listContacts(params: PaginationParams): Promise<PaginatedResult<Contact>>;

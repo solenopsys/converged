@@ -3,7 +3,8 @@ import type {
   LogEvent,
   LogEventInput,
   LogQueryParams,
-  LogsStatistic,
+	LogsStatistic,
+	LogsStatisticKey,
   PaginatedResult,
   SelectionDescriptor,
   SelectionStats,
@@ -72,9 +73,23 @@ export class LogsServiceImpl implements LogsService {
     return { totalCount: await this.stores.hot.count(filter) };
   }
 
-  async getStatistic(): Promise<LogsStatistic> {
-    await this.ensureReady();
-    const [hotStats, coldStats] = await Promise.all([
+	async getStatistic(keys?: LogsStatisticKey[]): Promise<LogsStatistic> {
+		await this.ensureReady();
+		if (keys?.includes("title")) {
+			const [hot, cold] = await Promise.all([
+				this.stores.hot.getTitleStatistic(),
+				this.stores.cold.getTitleStatistic(),
+			]);
+			return {
+				totalHot: hot.total,
+				totalCold: cold.total,
+				errors: hot.errors + cold.errors,
+				warnings: hot.warnings + cold.warnings,
+				byLevel: {},
+				bySource: {},
+			};
+		}
+		const [hotStats, coldStats] = await Promise.all([
       this.stores.hot.getStatistic(),
       this.stores.cold.getStatistic(),
     ]);

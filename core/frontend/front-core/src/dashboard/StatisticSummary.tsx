@@ -1,5 +1,7 @@
+import { invokeAction } from "front-core/core";
 import type { ComponentChildren } from "preact";
 import { cn } from "../lib/utils";
+import { useStatisticAction } from "./statistic-actions";
 
 // The readout a collapsed section shows: a few headline numbers and one
 // monochrome trend line. It is the camera's LCD panel — legible at a glance,
@@ -121,15 +123,32 @@ export function SummaryMetric({
 	label: string;
 	value: number | string;
 }) {
-	return (
-		<div className="flex min-w-0 shrink-0 flex-col gap-0.5">
+	const actionId = useStatisticAction(label);
+	const content = (
+		<>
 			<span className="truncate text-[0.6875rem] leading-none uppercase tracking-wide text-muted-foreground">
 				{label}
 			</span>
 			<span className="text-lg leading-none font-semibold text-foreground">
 				{formatSummaryValue(value)}
 			</span>
-		</div>
+		</>
+	);
+
+	if (actionId) {
+		return (
+			<button
+				type="button"
+				className="flex min-w-0 shrink-0 flex-col gap-0.5 text-left text-primary underline decoration-dotted underline-offset-4 transition hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+				onClick={() => void invokeAction(actionId)}
+			>
+				{content}
+			</button>
+		);
+	}
+
+	return (
+		<span className="flex min-w-0 shrink-0 flex-col gap-0.5">{content}</span>
 	);
 }
 

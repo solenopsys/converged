@@ -66,6 +66,14 @@ export type UsageFunctionStatsItem = {
   total: number;
 };
 
+export type UsageStatistic = {
+	total: number;
+	daily: UsageDailyStatsItem[];
+	functions: number;
+};
+
+export type UsageStatisticKey = "title";
+
 export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
@@ -180,6 +188,21 @@ const metadata: ServiceMetadata = {
       "isAsync": true,
       "returnTypeIsArray": true,
       "isAsyncIterable": false
+    },
+    {
+      "name": "getStatistic",
+      "parameters": [
+        {
+          "name": "keys",
+          "type": "UsageStatisticKey",
+          "optional": true,
+          "isArray": true
+        }
+      ],
+      "returnType": "UsageStatistic",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -239,6 +262,16 @@ const metadata: ServiceMetadata = {
       "definition": "{\n  function: string;\n  total: number;\n}"
     },
     {
+      "name": "UsageStatistic",
+      "kind": "type",
+      "definition": "{\n\ttotal: number;\n\tdaily: UsageDailyStatsItem[];\n\tfunctions: number;\n}"
+    },
+    {
+      "name": "UsageStatisticKey",
+      "kind": "type",
+      "definition": "\"title\""
+    },
+    {
       "name": "PaginatedResult",
       "kind": "type",
       "typeParameters": "<T>",
@@ -256,6 +289,7 @@ export interface UsageServiceRtClient {
   getUsageTotal(params?: UsageStatsParams): UsageTotalStats;
   getUsageDaily(params?: UsageStatsParams): UsageDailyStatsItem[];
   getUsageByFunction(params?: UsageStatsParams): UsageFunctionStatsItem[];
+  getStatistic(keys?: UsageStatisticKey[]): UsageStatistic;
 }
 
 export function createUsageServiceRtClient(): UsageServiceRtClient {

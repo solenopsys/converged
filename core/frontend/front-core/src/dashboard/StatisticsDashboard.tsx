@@ -1,10 +1,12 @@
 import { useUnit } from "effector-preact";
+import { invokeAction } from "front-core/core";
 import { $objectRegistryRevision } from "front-core/object-runtime";
 import { translator } from "i18n";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
 import { ChevronDown, ChevronRight, RotateCcw, X } from "../icons";
 import { cn } from "../lib/utils";
+import { StatisticActionsProvider } from "./statistic-actions";
 import {
 	collectStatisticSections,
 	loadStatisticSection,
@@ -22,6 +24,7 @@ import {
 } from "./statistic-preferences";
 
 const t = translator(CHAT_MESSAGES_NAMESPACE);
+const SUMMARY_LOAD_CONCURRENCY = 3;
 
 function Widget({
 	widget,
@@ -41,7 +44,9 @@ function Widget({
 			)}
 		>
 			{mounted ? (
-				<mounted.Component {...mounted.props} />
+				<StatisticActionsProvider actions={widget.statistic?.actions?.metrics}>
+					<mounted.Component {...mounted.props} />
+				</StatisticActionsProvider>
 			) : (
 				<div className="flex h-full flex-col justify-center rounded-xl border bg-muted/20 px-3 py-2.5 text-sm">
 					<div className="font-medium text-foreground">{widget.label}</div>
@@ -77,7 +82,14 @@ function SectionReadout({
 }) {
 	const mounted = section.summary ? resolveStatistic(section.summary) : null;
 
-	if (mounted) return <mounted.Component {...mounted.props} />;
+	if (mounted)
+		return (
+			<StatisticActionsProvider
+				actions={section.summary?.statistic?.actions?.metrics}
+			>
+				<mounted.Component {...mounted.props} />
+			</StatisticActionsProvider>
+		);
 	if (!section.summary) return null;
 
 	return (
@@ -117,7 +129,7 @@ function Section({
 			<div className="flex items-center gap-4 px-4 py-3">
 				<button
 					type="button"
-					className="flex w-44 shrink-0 items-center gap-2 text-left md:w-56"
+					className="shrink-0 text-muted-foreground"
 					aria-expanded={expanded}
 					onClick={onToggle}
 				>
@@ -125,11 +137,25 @@ function Section({
 						aria-hidden="true"
 						className="h-4 w-4 shrink-0 text-muted-foreground"
 					/>
-					<span className="truncate font-semibold">{section.label}</span>
-					<span className="ml-auto text-sm text-muted-foreground">
-						{visible.length}
-					</span>
 				</button>
+				<button
+					type="button"
+					className={cn(
+						"w-36 shrink-0 truncate text-left font-semibold md:w-48",
+						section.summary?.statistic?.actions?.title &&
+							"text-primary underline decoration-dotted underline-offset-4 hover:no-underline",
+					)}
+					onClick={() => {
+						const actionId = section.summary?.statistic?.actions?.title;
+						if (actionId) void invokeAction(actionId);
+						else onToggle();
+					}}
+				>
+					{section.label}
+				</button>
+				<span className="ml-2 text-sm text-muted-foreground">
+					{visible.length}
+				</span>
 
 				{/* The readout stays up whether the section is open or shut: it is what
 				    makes a fully collapsed dashboard worth looking at. */}
@@ -191,8 +217,6 @@ export function StatisticsDashboard() {
 	// background pass asks for the same module twice.
 	const requested = useRef<Set<string>>(new Set());
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: the registry is
-	// mutable and reports its changes through the revision store, not by identity.
 	const sections = useMemo(() => collectStatisticSections(), [revision]);
 
 	const expanded = new Set(preferences.expanded);
@@ -230,16 +254,20 @@ export function StatisticsDashboard() {
 
 	// A service that publishes a readout is fetched without waiting to be opened
 	// — the point of the readout is that a collapsed dashboard already shows the
-	// numbers. One at a time, and only in idle time: loading a section bumps the
-	// registry revision, which re-runs this effect for the next one, so the page
-	// stays responsive instead of importing every microfrontend at once.
+	// numbers. A small pool avoids a long skeleton queue while keeping imports and
+	// each summary's initial aggregate request from arriving all at once.
 	useEffect(() => {
-		const pending = sections.find(
-			(section) => section.summary && !section.loaded,
-		);
-		if (!pending || requested.current.has(pending.owner)) return;
+		const pending = sections
+			.filter(
+				(section) =>
+					section.summary &&
+					!section.loaded &&
+					!requested.current.has(section.owner),
+			)
+			.slice(0, SUMMARY_LOAD_CONCURRENCY);
+		if (pending.length === 0) return;
 
-		const start = () => load(pending);
+		const start = () => pending.forEach(load);
 		if (typeof requestIdleCallback !== "function") {
 			const timer = setTimeout(start, 0);
 			return () => clearTimeout(timer);

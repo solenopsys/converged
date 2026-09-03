@@ -27,6 +27,7 @@ import { setActiveSelectionResolver } from "../select/runtime";
 import { AttachButton, PanelToggle } from "../ui/buttons";
 import { Composer } from "../ui/Composer";
 import { WithTooltip } from "../ui/tooltip";
+import { ConsoleRoot } from "./ConsoleRoot";
 import { availableChatPanelTabs, resolveChatPanelTab } from "./chat-panel-tabs";
 import { PinnedViews } from "./PinnedViews";
 import {
@@ -50,6 +51,8 @@ import {
 } from "./panel";
 import { Surface } from "./SurfaceView";
 import { $currentSurface } from "./surface";
+import { workspaceReset } from "./workspace";
+import { isConsolePath } from "./workspace-url";
 import "./reference-presenter";
 import "./legacy-widget-presenter";
 
@@ -67,6 +70,12 @@ const devTraceEnabled =
 	typeof __EFFECTOR_DEBUG__ !== "undefined" && __EFFECTOR_DEBUG__;
 
 const CONVERGED_LOGO_URL = "/assets/converged.svg";
+
+function isConsoleRoute(): boolean {
+	return (
+		typeof window !== "undefined" && isConsolePath(window.location.pathname)
+	);
+}
 
 function defaultMagicPrompts(language: string): MagicPrompt[] {
 	const action = language.toLocaleLowerCase().startsWith("ru")
@@ -444,11 +453,14 @@ export function AppShell({
 			style={{ "--hw-panel-stage-offset": `${panelWidth}px` }}
 		>
 			<div class="app-shell-stage">
-				{surface ? <Surface brand={brand} /> : null}
+				{surface ? (
+					<Surface brand={brand} onBrandClick={workspaceReset} />
+				) : null}
+				{!surface && isConsoleRoute() ? <ConsoleRoot brand={brand} /> : null}
 				{landing ? (
 					<LandingView
 						payload={landing}
-						hidden={Boolean(surface)}
+						hidden={Boolean(surface) || isConsoleRoute()}
 						composer={shellPlacement === "hero" ? composer(false) : null}
 					/>
 				) : (

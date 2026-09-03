@@ -58,12 +58,14 @@ export type LogsStatistic = {
   warnings: number;
 };
 
+export type LogsStatisticKey = "title";
+
 export interface LogsService {
   write(event: LogEventInput): Promise<void>;
   listHot(params: LogQueryParams): Promise<PaginatedResult<LogEvent>>;
   listCold(params: LogQueryParams): Promise<PaginatedResult<LogEvent>>;
   describeSelection(objectType: string): Promise<SelectionDescriptor>;
   inspectLogs(filter?: FilterObject): Promise<SelectionStats>;
-  getStatistic(): Promise<LogsStatistic>;
+	getStatistic(keys?: LogsStatisticKey[]): Promise<LogsStatistic>;
   archiveHotToCold(): Promise<number>;
 }

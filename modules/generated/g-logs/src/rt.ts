@@ -61,6 +61,8 @@ export type LogsStatistic = {
   warnings: number;
 };
 
+export type LogsStatisticKey = "title";
+
 const metadata: ServiceMetadata = {
   "interfaceName": "LogsService",
   "serviceName": "logs",
@@ -143,7 +145,14 @@ const metadata: ServiceMetadata = {
     },
     {
       "name": "getStatistic",
-      "parameters": [],
+      "parameters": [
+        {
+          "name": "keys",
+          "type": "LogsStatisticKey",
+          "optional": true,
+          "isArray": true
+        }
+      ],
       "returnType": "LogsStatistic",
       "isAsync": true,
       "returnTypeIsArray": false,
@@ -204,6 +213,11 @@ const metadata: ServiceMetadata = {
       "name": "LogsStatistic",
       "kind": "type",
       "definition": "{\n  totalHot: number;\n  totalCold: number;\n  byLevel: Record<number, number>;\n  bySource: Record<string, number>;\n  errors: number;\n  warnings: number;\n}"
+    },
+    {
+      "name": "LogsStatisticKey",
+      "kind": "type",
+      "definition": "\"title\""
     }
   ]
 };
@@ -215,7 +229,7 @@ export interface LogsServiceRtClient {
   listCold(params: LogQueryParams): PaginatedResult<LogEvent>;
   describeSelection(objectType: string): SelectionDescriptor;
   inspectLogs(filter?: FilterObject): SelectionStats;
-  getStatistic(): LogsStatistic;
+  getStatistic(keys?: LogsStatisticKey[]): LogsStatistic;
   archiveHotToCold(): number;
 }
 

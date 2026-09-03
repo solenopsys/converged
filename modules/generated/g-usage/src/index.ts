@@ -70,6 +70,14 @@ export type UsageFunctionStatsItem = {
   total: number;
 };
 
+export type UsageStatistic = {
+	total: number;
+	daily: UsageDailyStatsItem[];
+	functions: number;
+};
+
+export type UsageStatisticKey = "title";
+
 export type PaginatedResult<T> = {
   items: T[];
   totalCount?: number;
@@ -184,6 +192,21 @@ export const metadata: ServiceMetadata = {
       "isAsync": true,
       "returnTypeIsArray": true,
       "isAsyncIterable": false
+    },
+    {
+      "name": "getStatistic",
+      "parameters": [
+        {
+          "name": "keys",
+          "type": "UsageStatisticKey",
+          "optional": true,
+          "isArray": true
+        }
+      ],
+      "returnType": "UsageStatistic",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -243,6 +266,16 @@ export const metadata: ServiceMetadata = {
       "definition": "{\n  function: string;\n  total: number;\n}"
     },
     {
+      "name": "UsageStatistic",
+      "kind": "type",
+      "definition": "{\n\ttotal: number;\n\tdaily: UsageDailyStatsItem[];\n\tfunctions: number;\n}"
+    },
+    {
+      "name": "UsageStatisticKey",
+      "kind": "type",
+      "definition": "\"title\""
+    },
+    {
       "name": "PaginatedResult",
       "kind": "type",
       "typeParameters": "<T>",
@@ -260,6 +293,7 @@ export interface UsageService {
   getUsageTotal(params?: UsageStatsParams): Promise<UsageTotalStats>;
   getUsageDaily(params?: UsageStatsParams): Promise<UsageDailyStatsItem[]>;
   getUsageByFunction(params?: UsageStatsParams): Promise<UsageFunctionStatsItem[]>;
+  getStatistic(keys?: UsageStatisticKey[]): Promise<UsageStatistic>;
 }
 
 // Client interface
@@ -271,6 +305,7 @@ export interface UsageServiceClient {
   getUsageTotal(params?: UsageStatsParams): Promise<UsageTotalStats>;
   getUsageDaily(params?: UsageStatsParams): Promise<UsageDailyStatsItem[]>;
   getUsageByFunction(params?: UsageStatsParams): Promise<UsageFunctionStatsItem[]>;
+  getStatistic(keys?: UsageStatisticKey[]): Promise<UsageStatistic>;
 }
 
 // Native factory: cruller-transport -> Fujin -> cluster peer.

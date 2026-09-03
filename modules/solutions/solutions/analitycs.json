@@ -1,0 +1,5 @@
+{
+	"microservices": ["logs", "telemetry", "counters", "usage", "dashboard"],
+	"microfrontends": ["logs", "telemetry", "usage", "dasboards"],
+	"dependencies": ["security"]
+}

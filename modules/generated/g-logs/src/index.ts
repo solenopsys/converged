@@ -65,6 +65,8 @@ export type LogsStatistic = {
   warnings: number;
 };
 
+export type LogsStatisticKey = "title";
+
 export const metadata: ServiceMetadata = {
   "interfaceName": "LogsService",
   "serviceName": "logs",
@@ -147,7 +149,14 @@ export const metadata: ServiceMetadata = {
     },
     {
       "name": "getStatistic",
-      "parameters": [],
+      "parameters": [
+        {
+          "name": "keys",
+          "type": "LogsStatisticKey",
+          "optional": true,
+          "isArray": true
+        }
+      ],
       "returnType": "LogsStatistic",
       "isAsync": true,
       "returnTypeIsArray": false,
@@ -208,6 +217,11 @@ export const metadata: ServiceMetadata = {
       "name": "LogsStatistic",
       "kind": "type",
       "definition": "{\n  totalHot: number;\n  totalCold: number;\n  byLevel: Record<number, number>;\n  bySource: Record<string, number>;\n  errors: number;\n  warnings: number;\n}"
+    },
+    {
+      "name": "LogsStatisticKey",
+      "kind": "type",
+      "definition": "\"title\""
     }
   ]
 };
@@ -219,7 +233,7 @@ export interface LogsService {
   listCold(params: LogQueryParams): Promise<PaginatedResult<LogEvent>>;
   describeSelection(objectType: string): Promise<SelectionDescriptor>;
   inspectLogs(filter?: FilterObject): Promise<SelectionStats>;
-  getStatistic(): Promise<LogsStatistic>;
+  getStatistic(keys?: LogsStatisticKey[]): Promise<LogsStatistic>;
   archiveHotToCold(): Promise<number>;
 }
 
@@ -230,7 +244,7 @@ export interface LogsServiceClient {
   listCold(params: LogQueryParams): Promise<PaginatedResult<LogEvent>>;
   describeSelection(objectType: string): Promise<SelectionDescriptor>;
   inspectLogs(filter?: FilterObject): Promise<SelectionStats>;
-  getStatistic(): Promise<LogsStatistic>;
+  getStatistic(keys?: LogsStatisticKey[]): Promise<LogsStatistic>;
   archiveHotToCold(): Promise<number>;
 }
 

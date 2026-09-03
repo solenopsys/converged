@@ -23,7 +23,14 @@ export default defineMicrofrontend({
 			id: "usage.statistic.summary",
 			label: "Usage",
 			categories: ["core.statistic"],
-			statistic: { role: "summary", component: UsageSummary },
+			statistic: {
+				role: "summary",
+				component: UsageSummary,
+				actions: {
+					title: "usage.list.show",
+					metrics: { Calls: "usage.list.show", Functions: "usage.stats.show" },
+				},
+			},
 		},
 		{
 			id: "usage.statistic",

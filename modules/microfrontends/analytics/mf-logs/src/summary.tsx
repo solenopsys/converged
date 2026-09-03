@@ -1,7 +1,7 @@
 import { useUnit } from "effector-preact";
 import { StatisticSummary, SummaryMetric } from "front-core";
 import { useEffect } from "preact/compat";
-import { $logsStats, logsStatsViewMounted } from "./domain-stats";
+import { $logsStats, logsTitleStatsViewMounted } from "./domain-stats";
 
 // The Logs section's readout while it is collapsed. The statistic is a set of
 // current totals with no daily series behind it, so there is nothing to plot.
@@ -10,7 +10,7 @@ export function LogsSummary() {
 	const stats = useUnit($logsStats);
 
 	useEffect(() => {
-		logsStatsViewMounted();
+		logsTitleStatsViewMounted();
 	}, []);
 
 	return (

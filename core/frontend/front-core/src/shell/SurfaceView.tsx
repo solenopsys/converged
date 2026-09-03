@@ -1,15 +1,17 @@
 import { useUnit } from "effector-preact";
 import type { ComponentChildren } from "preact";
 import { useEffect } from "preact/hooks";
-import { $activeWorkspaceTab, activeWorkspaceTabClosed } from "./workspace";
 import { WorkspaceTopBar } from "./WorkspaceTopBar";
+import { $activeWorkspaceTab, activeWorkspaceTabClosed } from "./workspace";
 
 export function Surface({
 	brand,
 	brandHref,
+	onBrandClick,
 }: {
 	brand: ComponentChildren;
 	brandHref?: string;
+	onBrandClick?: () => void;
 }) {
 	const current = useUnit($activeWorkspaceTab);
 
@@ -27,7 +29,11 @@ export function Surface({
 
 	return (
 		<section class="surface">
-			<WorkspaceTopBar brand={brand} brandHref={brandHref} />
+			<WorkspaceTopBar
+				brand={brand}
+				brandHref={brandHref}
+				onBrandClick={onBrandClick}
+			/>
 			<div class="surface-content">
 				<View {...current.props} />
 			</div>

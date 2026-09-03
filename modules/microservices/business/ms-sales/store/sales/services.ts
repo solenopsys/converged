@@ -170,6 +170,54 @@ export class SalesStoreService {
 		return result;
 	}
 
+	async getRecentDailyStatistics(
+		days = 12,
+	): Promise<Record<string, { leads: number; touches: number }>> {
+		const dateExpression = sql<string>`DATE(datetime(createdAt, 'unixepoch'))`;
+		const currentDayStart = new Date();
+		currentDayStart.setUTCHours(0, 0, 0, 0);
+		const since =
+			Math.floor(currentDayStart.getTime() / 1000) - (days - 1) * 24 * 60 * 60;
+		const [leadsStats, touchesStats] = await Promise.all([
+			this.store.db
+				.selectFrom("leads")
+				.select(({ fn }) => [
+					dateExpression.as("date"),
+					fn.count<number>("id").as("count"),
+				])
+				.where("createdAt", ">=", since)
+				.groupBy(dateExpression)
+				.execute(),
+			this.store.db
+				.selectFrom("touches")
+				.select(({ fn }) => [
+					dateExpression.as("date"),
+					fn.count<number>("id").as("count"),
+				])
+				.where("createdAt", ">=", since)
+				.groupBy(dateExpression)
+				.execute(),
+		]);
+
+		const byDate: Record<string, { leads: number; touches: number }> = {};
+		for (const row of leadsStats as DailyStatsRow[]) {
+			if (!row.date) continue;
+			byDate[row.date] ??= { leads: 0, touches: 0 };
+			byDate[row.date].leads = readCount(row);
+		}
+		for (const row of touchesStats as DailyStatsRow[]) {
+			if (!row.date) continue;
+			byDate[row.date] ??= { leads: 0, touches: 0 };
+			byDate[row.date].touches = readCount(row);
+		}
+
+		return Object.fromEntries(
+			Object.entries(byDate).sort(([left], [right]) =>
+				left.localeCompare(right),
+			),
+		);
+	}
+
 	async getLeadTypeStats(): Promise<Record<string, number>> {
 		const rows = await this.store.db
 			.selectFrom("leads")

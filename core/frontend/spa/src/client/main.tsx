@@ -5,7 +5,7 @@ import {
 } from "front-core/landing";
 import { AppShell, bootstrapAppShell } from "front-core/shell";
 import { render } from "preact";
-import { blocks, BrandLogo, header } from "./landing-blocks";
+import { BrandLogo, blocks, header } from "./landing-blocks";
 
 function readLandingPayload(): LandingPayload {
 	const element = document.getElementById("__INITIAL_DATA__");
@@ -24,6 +24,7 @@ function readLandingPayload(): LandingPayload {
 const route =
 	window.location.pathname.replace(/^\/(?:en|ru|de|fr|es|it|pt)(?=\/|$)/, "") ||
 	"/";
+const isConsoleRoute = route === "/console" || route === "/console/";
 
 if (route === "/audit" || route === "/audit/print") {
 	void import("audit")
@@ -48,7 +49,7 @@ if (route === "/audit" || route === "/audit/print") {
 		render(
 			<AppShell
 				config={config}
-				landing={readLandingPayload()}
+				landing={isConsoleRoute ? undefined : readLandingPayload()}
 				brand={<BrandLogo />}
 			/>,
 			root,

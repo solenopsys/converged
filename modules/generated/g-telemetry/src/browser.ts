@@ -56,11 +56,15 @@ export type PaginatedResult<T> = {
 };
 
 export type TelemetryStatistic = {
-  totalHot: number;
-  totalCold: number;
-  byDevice: Record<string, number>;
-  byParam: Record<string, number>;
+	totalHot: number;
+	totalCold: number;
+	devices?: number;
+	parameters?: number;
+	byDevice: Record<string, number>;
+	byParam: Record<string, number>;
 };
+
+export type TelemetryStatisticKey = "title";
 
 export const metadata: ServiceMetadata = {
   "interfaceName": "TelemetryService",
@@ -144,7 +148,14 @@ export const metadata: ServiceMetadata = {
     },
     {
       "name": "getStatistic",
-      "parameters": [],
+      "parameters": [
+        {
+          "name": "keys",
+          "type": "TelemetryStatisticKey",
+          "optional": true,
+          "isArray": true
+        }
+      ],
       "returnType": "TelemetryStatistic",
       "isAsync": true,
       "returnTypeIsArray": false,
@@ -204,7 +215,12 @@ export const metadata: ServiceMetadata = {
     {
       "name": "TelemetryStatistic",
       "kind": "type",
-      "definition": "{\n  totalHot: number;\n  totalCold: number;\n  byDevice: Record<string, number>;\n  byParam: Record<string, number>;\n}"
+      "definition": "{\n\ttotalHot: number;\n\ttotalCold: number;\n\tdevices?: number;\n\tparameters?: number;\n\tbyDevice: Record<string, number>;\n\tbyParam: Record<string, number>;\n}"
+    },
+    {
+      "name": "TelemetryStatisticKey",
+      "kind": "type",
+      "definition": "\"title\""
     }
   ]
 };
@@ -216,7 +232,7 @@ export interface TelemetryServiceClient {
   listCold(params: TelemetryQueryParams): Promise<PaginatedResult<TelemetryEvent>>;
   describeSelection(objectType: string): Promise<SelectionDescriptor>;
   inspectTelemetry(filter?: FilterObject): Promise<SelectionStats>;
-  getStatistic(): Promise<TelemetryStatistic>;
+  getStatistic(keys?: TelemetryStatisticKey[]): Promise<TelemetryStatistic>;
   archiveHotToCold(): Promise<number>;
 }
 

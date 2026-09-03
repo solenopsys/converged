@@ -6,7 +6,9 @@ import type {
   UsageEvent,
   UsageDailyStatsItem,
   UsageFunctionStatsItem,
-  UsageTotalStats,
+	UsageTotalStats,
+	UsageStatistic,
+	UsageStatisticKey,
   PaginatedResult,
   SelectionDescriptor,
   SelectionStats,
@@ -91,10 +93,20 @@ export class UsageServiceImpl implements UsageService {
     return this.stores.usage.getUsageDaily(params ?? {});
   }
 
-  async getUsageByFunction(params?: UsageStatsParams): Promise<UsageFunctionStatsItem[]> {
+	async getUsageByFunction(params?: UsageStatsParams): Promise<UsageFunctionStatsItem[]> {
     await this.ensureReady();
     return this.stores.usage.getUsageByFunction(params ?? {});
-  }
+	}
+
+	async getStatistic(_keys?: UsageStatisticKey[]): Promise<UsageStatistic> {
+		await this.ensureReady();
+		const [total, daily, functions] = await Promise.all([
+			this.stores.usage.getUsageTotal({}),
+			this.stores.usage.getUsageDaily({}),
+			this.stores.usage.getUsageByFunction({}),
+		]);
+		return { total: total.total, daily, functions: functions.length };
+	}
 
   private async ensureReady(): Promise<void> {
     await this.initPromise;

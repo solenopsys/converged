@@ -1,11 +1,22 @@
+import { invokeAction } from "front-core/core";
 import type * as React from "preact/compat";
+import { useStatisticAction } from "../../dashboard/statistic-actions";
 import { cn } from "../../lib/utils";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, type DashboardPinMeta } from "./card";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+	type DashboardPinMeta,
+} from "./card";
 
 type TrendDirection = "up" | "down" | "neutral";
 
 export interface StatisticCardProps {
 	title: string;
+	/** Stable statistic key used to resolve a dashboard action independently of UI locale. */
+	actionKey?: string;
 	value: string | number;
 	description?: string;
 	icon?: React.ComponentType<{ className?: string }>;
@@ -26,6 +37,7 @@ const trendClasses: Record<TrendDirection, string> = {
 
 export function StatisticCard({
 	title,
+	actionKey,
 	value,
 	description,
 	icon: Icon,
@@ -33,14 +45,33 @@ export function StatisticCard({
 	dashboardPin,
 	className,
 }: StatisticCardProps) {
-	const trendClass = trend?.direction ? trendClasses[trend.direction] : "text-muted-foreground";
+	const actionId = useStatisticAction(actionKey ?? title);
+	const trendClass = trend?.direction
+		? trendClasses[trend.direction]
+		: "text-muted-foreground";
 
 	return (
 		<Card className={className} dashboardPin={dashboardPin}>
 			<CardHeader className="flex flex-row items-start justify-between gap-4">
 				<div className="space-y-1">
-					<CardDescription className="text-xs uppercase tracking-wide">{title}</CardDescription>
-					<CardTitle className="text-3xl font-semibold tabular-nums">{value}</CardTitle>
+					{actionId ? (
+						<button
+							type="button"
+							className="block text-left text-primary underline decoration-dotted underline-offset-4 transition hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+							onClick={() => void invokeAction(actionId)}
+						>
+							<CardDescription className="text-xs uppercase tracking-wide">
+								{title}
+							</CardDescription>
+						</button>
+					) : (
+						<CardDescription className="text-xs uppercase tracking-wide">
+							{title}
+						</CardDescription>
+					)}
+					<CardTitle className="text-3xl font-semibold tabular-nums">
+						{value}
+					</CardTitle>
 				</div>
 				{Icon && (
 					<div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
@@ -56,7 +87,9 @@ export function StatisticCard({
 							{trend.label ? ` ${trend.label}` : ""}
 						</div>
 					)}
-					{description && <div className="text-xs text-muted-foreground">{description}</div>}
+					{description && (
+						<div className="text-xs text-muted-foreground">{description}</div>
+					)}
 				</CardContent>
 			)}
 		</Card>

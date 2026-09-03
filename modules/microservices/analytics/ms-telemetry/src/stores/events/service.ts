@@ -61,7 +61,7 @@ export class TelemetryStoreService {
     return Number(result?.count ?? 0);
   }
 
-  async getStatistic(): Promise<{ total: number; byDevice: Record<string, number>; byParam: Record<string, number> }> {
+	async getStatistic(): Promise<{ total: number; byDevice: Record<string, number>; byParam: Record<string, number> }> {
     const [countResult, deviceStats, paramStats] = await Promise.all([
       this.store.db
         .selectFrom(TABLE_NAME)
@@ -91,8 +91,36 @@ export class TelemetryStoreService {
       byParam[row.param as string] = Number(row.count);
     }
 
-    return { total: Number(countResult?.count ?? 0), byDevice, byParam };
-  }
+		return { total: Number(countResult?.count ?? 0), byDevice, byParam };
+	}
+
+	async getTitleStatistic(): Promise<{
+		total: number;
+		devices: string[];
+		parameters: string[];
+	}> {
+		const [total, devices, parameters] = await Promise.all([
+			this.store.db
+				.selectFrom(TABLE_NAME)
+				.select(sql<number>`count(*)`.as("total"))
+				.executeTakeFirst(),
+			this.store.db
+				.selectFrom(TABLE_NAME)
+				.select("device_id")
+				.distinct()
+				.execute(),
+			this.store.db
+				.selectFrom(TABLE_NAME)
+				.select("param")
+				.distinct()
+				.execute(),
+		]);
+		return {
+			total: Number(total?.total ?? 0),
+			devices: devices.map((row) => row.device_id),
+			parameters: parameters.map((row) => row.param),
+		};
+	}
 
   async moveOldestTo(target: TelemetryStoreService, limit = 1000): Promise<number> {
     const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 1000;

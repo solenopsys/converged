@@ -2,18 +2,24 @@ import { type DomainRef, presentReference } from "front-core/object-runtime";
 import {
 	$activeWorkspaceTab,
 	$workspaceTabs,
+	workspaceReset,
 	workspaceTabActivated,
 } from "./workspace";
 
-const CONSOLE_PATH = "/console";
+export const CONSOLE_PATH = "/console/";
+const LEGACY_CONSOLE_PATH = "/console";
 const REF_PARAM = "ref";
 
 let installed = false;
 let restoring = false;
 
+export function isConsolePath(pathname: string): boolean {
+	return pathname === CONSOLE_PATH || pathname === LEGACY_CONSOLE_PATH;
+}
+
 export function referenceFromUrl(href: string): DomainRef | null {
 	const url = new URL(href, "http://localhost");
-	if (url.pathname !== CONSOLE_PATH) return null;
+	if (!isConsolePath(url.pathname)) return null;
 	const encoded = url.searchParams.get(REF_PARAM);
 	if (!encoded) return null;
 	try {
@@ -46,7 +52,10 @@ function sameReference(left: DomainRef, right: DomainRef): boolean {
 
 async function restoreFromLocation(): Promise<void> {
 	const ref = referenceFromUrl(window.location.href);
-	if (!ref) return;
+	if (!ref) {
+		if (isConsolePath(window.location.pathname)) workspaceReset();
+		return;
+	}
 	const matched = $workspaceTabs
 		.getState()
 		.find((tab) => tab.ref && sameReference(tab.ref, ref));

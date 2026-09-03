@@ -28,6 +28,11 @@ test("resolves the configured solution set and workflow links", () => {
 		// service there is no preview to attach and no card to draw.
 		"modelconvertor",
 		"requests",
+		"logs",
+		"telemetry",
+		"counters",
+		"usage",
+		"dashboard",
 	]);
 	expect(resolved.solution.spec.microfrontends).toEqual([
 		"auth",
@@ -36,6 +41,11 @@ test("resolves the configured solution set and workflow links", () => {
 		"contexts",
 		"threads",
 		"requests",
+		"files",
+		"logs",
+		"telemetry",
+		"usage",
+		"dasboards",
 	]);
 	expect(resolved.solution.spec.processors).toEqual([
 		"curaengine",

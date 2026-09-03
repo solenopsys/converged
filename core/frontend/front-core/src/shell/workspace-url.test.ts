@@ -19,6 +19,7 @@ describe("workspace URL", () => {
 			"https://example.test/console?language=ru",
 			ref,
 		);
+		expect(url).toStartWith("/console/?");
 		expect(referenceFromUrl(`https://example.test${url}`)).toEqual(ref);
 	});
 });

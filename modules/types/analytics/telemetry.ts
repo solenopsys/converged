@@ -49,11 +49,15 @@ export type PaginatedResult<T> = {
 }
 
 export type TelemetryStatistic = {
-  totalHot: number;
-  totalCold: number;
-  byDevice: Record<string, number>;
-  byParam: Record<string, number>;
+	totalHot: number;
+	totalCold: number;
+	devices?: number;
+	parameters?: number;
+	byDevice: Record<string, number>;
+	byParam: Record<string, number>;
 };
+
+export type TelemetryStatisticKey = "title";
 
 export interface TelemetryService {
   write(event: TelemetryEventInput): Promise<void>;
@@ -61,6 +65,6 @@ export interface TelemetryService {
   listCold(params: TelemetryQueryParams): Promise<PaginatedResult<TelemetryEvent>>;
   describeSelection(objectType: string): Promise<SelectionDescriptor>;
   inspectTelemetry(filter?: FilterObject): Promise<SelectionStats>;
-  getStatistic(): Promise<TelemetryStatistic>;
+	getStatistic(keys?: TelemetryStatisticKey[]): Promise<TelemetryStatistic>;
   archiveHotToCold(): Promise<number>;
 }

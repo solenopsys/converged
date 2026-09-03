@@ -62,6 +62,11 @@ export type StatisticDefinition = {
 	size?: StatisticWidgetSize;
 	/** Defaults to "block". */
 	role?: StatisticRole;
+	/** Actions declared by the owning MF; the dashboard invokes them itself. */
+	actions?: {
+		title?: string;
+		metrics?: Record<string, string>;
+	};
 };
 
 export type ObjectDefinition = {

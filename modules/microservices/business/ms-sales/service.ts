@@ -22,6 +22,7 @@ import type {
 	PaginatedResult,
 	PaginationParams,
 	SalesService,
+	SalesStatisticKey,
 	Statistic,
 	Touch,
 } from "./types";
@@ -478,8 +479,17 @@ class SalesServiceImpl
 		return target ? this.toOutreachTarget(target) : null;
 	}
 
-	async getStatistic(): Promise<Statistic> {
+	async getStatistic(keys?: SalesStatisticKey[]): Promise<Statistic> {
 		await this.ready();
+		const title = keys?.includes("title") ?? false;
+		if (title) {
+			const [leads, touches, daily] = await Promise.all([
+				this.stores.salesStoreSevice.leadRepo.count(),
+				this.stores.salesStoreSevice.touchRepo.count(),
+				this.stores.salesStoreSevice.getRecentDailyStatistics(),
+			]);
+			return { leads, touches, daily };
+		}
 		const [
 			leads,
 			touches,

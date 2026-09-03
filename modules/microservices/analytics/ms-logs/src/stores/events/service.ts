@@ -62,7 +62,7 @@ export class LogsStoreService {
     return Number(result?.count ?? 0);
   }
 
-  async getStatistic(): Promise<LogsStatistic> {
+	async getStatistic(): Promise<LogsStatistic> {
     const [countResult, levelStats, sourceStats] = await Promise.all([
       this.store.db
         .selectFrom(TABLE_NAME)
@@ -85,9 +85,9 @@ export class LogsStoreService {
     const byLevel: Record<number, number> = {};
     for (const row of levelStats) {
       byLevel[row.level as number] = Number(row.count);
-    }
+	}
 
-    const bySource: Record<string, number> = {};
+		const bySource: Record<string, number> = {};
     for (const row of sourceStats) {
       bySource[row.source as string] = Number(row.count);
     }
@@ -98,8 +98,30 @@ export class LogsStoreService {
       bySource,
       errors: byLevel[3] ?? 0,
       warnings: byLevel[2] ?? 0,
-    };
-  }
+		};
+	}
+
+	async getTitleStatistic(): Promise<{
+		total: number;
+		errors: number;
+		warnings: number;
+	}> {
+		const row = await this.store.db
+			.selectFrom(TABLE_NAME)
+			.select([
+				sql<number>`count(*)`.as("total"),
+				sql<number>`sum(case when level = 3 then 1 else 0 end)`.as("errors"),
+				sql<number>`sum(case when level = 2 then 1 else 0 end)`.as(
+					"warnings",
+				),
+			])
+			.executeTakeFirst();
+		return {
+			total: Number(row?.total ?? 0),
+			errors: Number(row?.errors ?? 0),
+			warnings: Number(row?.warnings ?? 0),
+		};
+	}
 
   async moveOldestTo(target: LogsStoreService, limit = 1000): Promise<number> {
     const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 1000;

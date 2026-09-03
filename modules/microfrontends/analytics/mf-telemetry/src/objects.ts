@@ -23,7 +23,19 @@ export default defineMicrofrontend({
 			id: "telemetry.statistic.summary",
 			label: "Telemetry",
 			categories: ["core.statistic"],
-			statistic: { role: "summary", component: TelemetrySummary },
+			statistic: {
+				role: "summary",
+				component: TelemetrySummary,
+				actions: {
+					title: "telemetry.stats.show",
+					metrics: {
+						Hot: "telemetry.hot.show",
+						Cold: "telemetry.cold.show",
+						Devices: "telemetry.stats.show",
+						Parameters: "telemetry.stats.show",
+					},
+				},
+			},
 		},
 		{
 			id: "telemetry.statistic",

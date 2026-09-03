@@ -14,8 +14,8 @@ export type SeoConfig = {
 	ogImage?: string;
 };
 
-function serializeInitialData(landing: LandingPayload): string {
-	return JSON.stringify({ landing })
+function serializeInitialData(landing?: LandingPayload): string {
+	return JSON.stringify(landing ? { landing } : {})
 		.replace(/</g, "\\u003c")
 		.replace(/\u2028/g, "\\u2028")
 		.replace(/\u2029/g, "\\u2029");
@@ -32,7 +32,7 @@ export function Document({
 	lang: string;
 	seo: SeoConfig;
 	mount: MountConfig;
-	landing: LandingPayload;
+	landing?: LandingPayload;
 	themeColor: string;
 	// Analytics counters, resolved from ms-counters (CountersService) by scope at SSR.
 	counters: Counter[];
@@ -81,7 +81,7 @@ export function Document({
 					dangerouslySetInnerHTML={{ __html: serializeInitialData(landing) }}
 				/>
 				<AppShellFrame mount={mount}>
-					<LandingView payload={landing} />
+					{landing ? <LandingView payload={landing} /> : null}
 				</AppShellFrame>
 			</body>
 		</html>

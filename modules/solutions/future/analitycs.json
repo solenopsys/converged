@@ -1,5 +1,0 @@
-{
-	"microservices": ["logs", "telemetry", "counters", "usage"],
-	"microfrontends": ["logs", "telemetry", "usage"],
-	"dependencies": ["security"]
-}

@@ -99,4 +99,46 @@ describe("SalesStoreService.listLeadsFiltered", () => {
 		expect(result.items).toEqual([]);
 		expect(result.totalCount).toBe(0);
 	});
+
+	it("returns a compact recent daily aggregate", async () => {
+		const today = new Date();
+		today.setUTCHours(12, 0, 0, 0);
+
+		for (let offset = 0; offset < 14; offset++) {
+			const createdAt = Math.floor(
+				(today.getTime() - offset * 24 * 60 * 60 * 1000) / 1000,
+			);
+			await sales.leadRepo.create({
+				id: `summary-lead-${offset}`,
+				createdAt,
+				description: "Dashboard summary lead",
+				lang: "en",
+				type: "cnc",
+				catalogId: "summary",
+				disabled: false,
+			});
+			await sales.touchRepo.create({
+				id: `summary-touch-${offset}`,
+				contactId: "c1",
+				createdAt,
+				description: "Dashboard summary touch",
+				companyName: null,
+				outreachId: null,
+			});
+		}
+
+		const [leads, touches, daily] = await Promise.all([
+			sales.leadRepo.count(),
+			sales.touchRepo.count(),
+			sales.getRecentDailyStatistics(),
+		]);
+
+		expect(leads).toBe(17);
+		expect(touches).toBe(14);
+		expect(Object.values(daily)).toHaveLength(12);
+		expect(Object.values(daily).at(-1)).toMatchObject({
+			leads: 4,
+			touches: 1,
+		});
+	});
 });

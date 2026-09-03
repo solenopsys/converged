@@ -23,7 +23,19 @@ export default defineMicrofrontend({
 			id: "logs.statistic.summary",
 			label: "Logs",
 			categories: ["core.statistic"],
-			statistic: { role: "summary", component: LogsSummary },
+			statistic: {
+				role: "summary",
+				component: LogsSummary,
+				actions: {
+					title: "logs.stats.show",
+					metrics: {
+						Hot: "logs.hot.show",
+						Cold: "logs.cold.show",
+						Errors: "logs.stats.show",
+						Warnings: "logs.stats.show",
+					},
+				},
+			},
 		},
 		{
 			id: "logs.statistic",

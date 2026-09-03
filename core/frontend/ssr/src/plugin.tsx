@@ -150,6 +150,10 @@ export default function ssrPlugin(config: SsrPluginConfig): ServerPlugin {
 		return normalizeBaseUrl(resolveRequestOrigin(request));
 	}
 
+	function isConsoleRoute(pathname: string): boolean {
+		return pathname === "/console" || pathname === "/console/";
+	}
+
 	return (app: ServerApp) => {
 		app
 			.onStart(async () => {
@@ -191,13 +195,16 @@ export default function ssrPlugin(config: SsrPluginConfig): ServerPlugin {
 				const seoConfig = await ensureSeo();
 				const workspace = resolveWorkspaceFromRequest(request);
 				const origin = publicOrigin(request);
+				const consoleRoute = isConsoleRoute(url.pathname);
 				const [payload, counters] = await Promise.all([
-					landingPayload(url.pathname, workspace),
-					resolveCounters(workspace),
+					consoleRoute
+						? Promise.resolve(undefined)
+						: landingPayload(url.pathname, workspace),
+					consoleRoute ? Promise.resolve([]) : resolveCounters(workspace),
 				]);
 
 				const locale =
-					payload.locale ??
+					payload?.locale ??
 					(typeof config.locale === "function"
 						? config.locale(url.pathname)
 						: config.locale);

@@ -28,7 +28,20 @@ export const objects = [
 		id: "threads.statistic.summary",
 		label: "Threads",
 		categories: ["core.statistic"],
-		statistic: { role: "summary", component: ThreadsSummary },
+		statistic: {
+			role: "summary",
+			component: ThreadsSummary,
+			actions: {
+				title: "threads.show",
+				metrics: {
+					Threads: "threads.show",
+					Messages: "threads.show",
+					Chat: "threads.show",
+					Audio: "threads.show",
+					Forum: "threads.show",
+				},
+			},
+		},
 	},
 	{
 		id: "threads.statistic",

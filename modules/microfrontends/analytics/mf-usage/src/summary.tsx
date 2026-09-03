@@ -3,9 +3,9 @@ import { Sparkline, StatisticSummary, SummaryMetric } from "front-core";
 import { useEffect, useMemo } from "preact/compat";
 import {
 	$dailyStats,
-	$functionStats,
+	$functionCount,
 	$totalStats,
-	usageStatsViewMounted,
+	usageTitleStatsViewMounted,
 } from "./domain-stats";
 
 // The Usage section's readout while it is collapsed.
@@ -13,10 +13,10 @@ import {
 export function UsageSummary() {
 	const total = useUnit($totalStats);
 	const daily = useUnit($dailyStats);
-	const functions = useUnit($functionStats);
+	const functions = useUnit($functionCount);
 
 	useEffect(() => {
-		usageStatsViewMounted();
+		usageTitleStatsViewMounted();
 	}, []);
 
 	const callsPerDay = useMemo(
@@ -27,7 +27,7 @@ export function UsageSummary() {
 	return (
 		<StatisticSummary>
 			<SummaryMetric label="Calls" value={total ?? 0} />
-			<SummaryMetric label="Functions" value={functions.length} />
+			<SummaryMetric label="Functions" value={functions} />
 			<Sparkline
 				values={callsPerDay}
 				label="Calls per day"

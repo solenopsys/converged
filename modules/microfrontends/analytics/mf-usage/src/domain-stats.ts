@@ -4,6 +4,7 @@ import type {
 	UsageFunctionStatsItem,
 	UsageStatsParams,
 	UsageTotalStats,
+	UsageStatistic,
 } from "g-usage";
 import usageService from "./service";
 
@@ -14,6 +15,14 @@ export const usageStatsViewMounted =
 export const refreshUsageStatsClicked = domain.createEvent(
 	"REFRESH_USAGE_STATS_CLICKED",
 );
+export const usageTitleStatsViewMounted = domain.createEvent(
+	"USAGE_TITLE_STATS_VIEW_MOUNTED",
+);
+
+const loadTitleStatsFx = domain.createEffect<void, UsageStatistic>({
+	name: "LOAD_USAGE_TITLE_STATS",
+	handler: () => usageService.getStatistic(["title"]),
+});
 
 const loadDailyStatsFx = domain.createEffect<
 	UsageStatsParams | void,
@@ -56,6 +65,15 @@ export const $totalStats = domain
 export const $functionStats = domain
 	.createStore<UsageFunctionStatsItem[]>([])
 	.on(loadFunctionStatsFx.doneData, (_state, data) => data ?? []);
+export const $functionCount = domain
+	.createStore(0)
+	.on(loadFunctionStatsFx.doneData, (_, data) => data?.length ?? 0)
+	.on(loadTitleStatsFx.doneData, (_, stats) => stats.functions);
+
+$totalStats.on(loadTitleStatsFx.doneData, (_, stats) => stats.total);
+$dailyStats.on(loadTitleStatsFx.doneData, (_, stats) => stats.daily);
+
+sample({ clock: usageTitleStatsViewMounted, target: loadTitleStatsFx });
 
 sample({
 	clock: usageStatsViewMounted,

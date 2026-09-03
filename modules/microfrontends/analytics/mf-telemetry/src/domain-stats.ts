@@ -6,10 +6,15 @@ import telemetryService from "./service";
 const TELEMETRY_HOT_CHART_LIMIT = 2000;
 
 export const telemetryStatsViewMounted = createEvent();
+export const telemetryTitleStatsViewMounted = createEvent();
 export const refreshTelemetryStatsClicked = createEvent();
 
 export const fetchTelemetryStatsFx = createEffect(async () => {
 	return telemetryService.getStatistic();
+});
+
+export const fetchTelemetryTitleStatsFx = createEffect(async () => {
+	return telemetryService.getStatistic(["title"]);
 });
 
 export const fetchTelemetryHotChartFx = createEffect(
@@ -29,6 +34,8 @@ export const $telemetryStats = createStore<TelemetryStatistic>({
 	byParam: {},
 }).on(fetchTelemetryStatsFx.doneData, (_, stats) => stats);
 
+$telemetryStats.on(fetchTelemetryTitleStatsFx.doneData, (_, stats) => stats);
+
 export const $telemetryHotChartEvents = createStore<TelemetryEvent[]>([]).on(
 	fetchTelemetryHotChartFx.doneData,
 	(_, items) => items,
@@ -37,6 +44,11 @@ export const $telemetryHotChartEvents = createStore<TelemetryEvent[]>([]).on(
 sample({
 	clock: [telemetryStatsViewMounted, refreshTelemetryStatsClicked],
 	target: fetchTelemetryStatsFx,
+});
+
+sample({
+	clock: telemetryTitleStatsViewMounted,
+	target: fetchTelemetryTitleStatsFx,
 });
 
 sample({

@@ -186,10 +186,10 @@ export default function authGatewayPlugin(_config: PluginConfig = {} as PluginCo
 		// LANDING_DEMO_MODE gets a sandboxed demo session; everyone else is sent
 		// to the normal sign-in splash — no token, no hole.
 		app.get("/demo-login", async (context) => {
-			if (!settings.demo.landingDemoMode()) return redirectResponse("/console");
+			if (!settings.demo.landingDemoMode()) return redirectResponse("/console/");
 			try {
 				const session = await createDemoSession();
-				return redirectResponse("/console", {
+				return redirectResponse("/console/", {
 					cookie: refreshCookie(
 						session.refreshToken,
 						isSecureRequest(context.headers),
@@ -197,7 +197,7 @@ export default function authGatewayPlugin(_config: PluginConfig = {} as PluginCo
 				});
 			} catch (error) {
 				console.error("[auth-gateway] demo session failed", error);
-				return redirectResponse("/console");
+				return redirectResponse("/console/");
 			}
 		});
 

@@ -8,11 +8,13 @@ import { workspaceTabActivated, workspaceTabPinToggled } from "./workspace";
 export function WorkspaceTopBar({
 	brand,
 	brandHref,
+	onBrandClick,
 	links,
 	controls,
 }: {
 	brand: ComponentChildren;
 	brandHref?: string;
+	onBrandClick?: () => void;
 	links?: TopBarLink[];
 	controls?: ComponentChildren;
 }) {
@@ -24,6 +26,7 @@ export function WorkspaceTopBar({
 		<TopBar
 			brand={brand}
 			brandHref={brandHref}
+			onBrandClick={onBrandClick}
 			tabs={tabs}
 			links={links}
 			onTabSelect={workspaceTabActivated}

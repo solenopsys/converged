@@ -205,12 +205,15 @@ export type OutreachCandidate = {
 export type Statistic = {
 	leads: number;
 	touches: number;
+	daily?: Record<string, { leads: number; touches: number }>;
 	byType?: Record<string, number>;
 	byLang?: Record<string, number>;
 	contactsByType?: Record<string, number>;
 	touchesByCompanyName?: Record<string, number>;
 	outreachProgress?: OutreachProgressStat[];
 };
+
+export type SalesStatisticKey = "title";
 
 export type PaginationParams = {
 	offset: number;
@@ -542,7 +545,14 @@ const metadata: ServiceMetadata = {
     },
     {
       "name": "getStatistic",
-      "parameters": [],
+      "parameters": [
+        {
+          "name": "keys",
+          "type": "SalesStatisticKey",
+          "optional": true,
+          "isArray": true
+        }
+      ],
       "returnType": "Statistic",
       "isAsync": true,
       "returnTypeIsArray": false,
@@ -911,7 +921,12 @@ const metadata: ServiceMetadata = {
     {
       "name": "Statistic",
       "kind": "type",
-      "definition": "{\n\tleads: number;\n\ttouches: number;\n\tbyType?: Record<string, number>;\n\tbyLang?: Record<string, number>;\n\tcontactsByType?: Record<string, number>;\n\ttouchesByCompanyName?: Record<string, number>;\n\toutreachProgress?: OutreachProgressStat[];\n}"
+      "definition": "{\n\tleads: number;\n\ttouches: number;\n\tdaily?: Record<string, { leads: number; touches: number }>;\n\tbyType?: Record<string, number>;\n\tbyLang?: Record<string, number>;\n\tcontactsByType?: Record<string, number>;\n\ttouchesByCompanyName?: Record<string, number>;\n\toutreachProgress?: OutreachProgressStat[];\n}"
+    },
+    {
+      "name": "SalesStatisticKey",
+      "kind": "type",
+      "definition": "\"title\""
     },
     {
       "name": "PaginationParams",
@@ -953,7 +968,7 @@ export interface SalesServiceRtClient {
   listOutreachTargets(params: OutreachTargetListParams): PaginatedResult<OutreachTarget>;
   claimNextOutreachTarget(outreachId: string): OutreachTarget | any;
   updateOutreachTargetStatus(update: OutreachTargetStatusUpdate): OutreachTarget | any;
-  getStatistic(): Statistic;
+  getStatistic(keys?: SalesStatisticKey[]): Statistic;
   getDailyStatistic(): any;
   listLeads(params: LeadListParams): PaginatedResult<Lead>;
   listContacts(params: PaginationParams): PaginatedResult<Contact>;

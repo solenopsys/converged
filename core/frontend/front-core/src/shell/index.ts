@@ -9,11 +9,7 @@ export {
 	type AppShellMountConfig,
 } from "./AppShellFrame";
 export { bootstrapAppShell } from "./bootstrap";
-export {
-	bootstrapWorkspaceUrl,
-	referenceFromUrl,
-	urlForReference,
-} from "./workspace-url";
+export { ConsoleRoot } from "./ConsoleRoot";
 export {
 	loadMicrofrontend,
 	loadMicrofrontendForOperation,
@@ -71,3 +67,9 @@ export {
 	workspaceTabPinToggled,
 	workspaceUnpinnedTabsCleared,
 } from "./workspace";
+export {
+	bootstrapWorkspaceUrl,
+	isConsolePath,
+	referenceFromUrl,
+	urlForReference,
+} from "./workspace-url";
