@@ -1,12 +1,15 @@
 import { useUnit } from "effector-preact";
 import {
+	ClipboardList,
 	type DashboardWidgetEntry,
+	Gauge,
+	PackageCheck,
+	Printer,
 	registerDashboardWidgets,
 	StatisticCard,
 } from "front-core";
 import type { OrderDailyPoint } from "g-orders";
 import type { RequestDailyPoint } from "g-requests";
-import { ClipboardList, Gauge, PackageCheck, Printer } from "front-core";
 import { useEffect, useMemo } from "preact/compat";
 import { OrderConversionChart } from "./components/OrderConversionChart";
 import { $dashboardState, ordersViewMounted } from "./domain-orders";
@@ -55,7 +58,7 @@ function useOrdersDashboardLive() {
 	return dashboardState;
 }
 
-function RequestsIndicator() {
+export function RequestsIndicator() {
 	const dashboardState = useOrdersDashboardLive();
 	return (
 		<StatisticCard
@@ -73,7 +76,7 @@ function RequestsIndicator() {
 	);
 }
 
-function OrdersIndicator() {
+export function OrdersIndicator() {
 	const stats = useOrdersDashboardLive().orders?.stats;
 	return (
 		<StatisticCard
@@ -91,7 +94,7 @@ function OrdersIndicator() {
 	);
 }
 
-function PrintingIndicator() {
+export function PrintingIndicator() {
 	const stats = useOrdersDashboardLive().orders?.stats;
 	return (
 		<StatisticCard
@@ -109,7 +112,7 @@ function PrintingIndicator() {
 	);
 }
 
-function UtilizationIndicator() {
+export function UtilizationIndicator() {
 	const stats = useOrdersDashboardLive().orders?.stats;
 	return (
 		<StatisticCard
@@ -132,7 +135,7 @@ function UtilizationIndicator() {
 	);
 }
 
-function ConversionIndicator() {
+export function ConversionIndicator() {
 	const dashboardState = useOrdersDashboardLive();
 	const data = useMemo(
 		() =>

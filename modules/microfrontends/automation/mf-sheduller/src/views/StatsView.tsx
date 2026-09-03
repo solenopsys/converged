@@ -1,11 +1,14 @@
 import { useUnit } from "effector-preact";
 import {
+	Activity,
+	Clock,
 	DashboardLayout,
 	HeaderPanelLayout,
+	History,
+	RefreshCw,
 	ScrollArea,
 	StatisticCard,
 } from "front-core";
-import { Activity, Clock, History, RefreshCw } from "front-core";
 import { useEffect } from "preact/compat";
 import { CronRunsLineChart } from "../components/CronRunsLineChart";
 import { CronStatusPieChart } from "../components/CronStatusPieChart";

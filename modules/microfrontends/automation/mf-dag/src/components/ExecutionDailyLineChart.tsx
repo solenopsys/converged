@@ -26,12 +26,26 @@ export function ExecutionDailyLineChart({
 			description={description}
 			dashboardPin={dashboardPin}
 			series={[
-				{ key: "total", label: "Total", color: "var(--ui-chart-1)", areaOpacity: 0.2 },
+				{
+					key: "total",
+					label: "Total",
+					color: "var(--ui-chart-1)",
+					areaOpacity: 0.2,
+				},
 
-
-				{ key: "running", label: "Running", color: "var(--ui-warning)", area: false },
+				{
+					key: "running",
+					label: "Running",
+					color: "var(--ui-warning)",
+					area: false,
+				},
 				{ key: "done", label: "Done", color: "var(--ui-success)", area: false },
-				{ key: "failed", label: "Failed", color: "var(--ui-destructive)", area: false },
+				{
+					key: "failed",
+					label: "Failed",
+					color: "var(--ui-destructive)",
+					area: false,
+				},
 			]}
 		/>
 	);

@@ -487,30 +487,25 @@ const ControlPlane = struct {
 
     fn openSession(self: *ControlPlane, a: std.mem.Allocator, scope: []const u8, payload: std.json.ObjectMap) ![]u8 {
         const session_id = stringField(payload, "sessionId") orelse return error.SessionIdMissing;
-        const gop = try self.sessions.getOrPut(self.gpa, session_id);
-        if (gop.found_existing) {
-            if (!std.mem.eql(u8, gop.value_ptr.scope, scope)) return error.SessionScopeMismatch;
-        } else {
-            gop.key_ptr.* = try self.gpa.dupe(u8, session_id);
-            gop.value_ptr.* = .{ .scope = try self.gpa.dupe(u8, scope) };
-        }
+        _ = try self.ensureSession(scope, session_id);
         return try response(a, "sessionId", session_id, "state", "open");
     }
 
     fn bindSession(self: *ControlPlane, a: std.mem.Allocator, scope: []const u8, payload: std.json.ObjectMap, llm: *LlmHub) ![]u8 {
         const session_id = stringField(payload, "sessionId") orelse return error.SessionIdMissing;
         const endpoint = stringField(payload, "endpoint") orelse return error.EndpointMissing;
-        const session_entry = try self.session(scope, session_id);
-        if (!session_entry.bindings.contains(endpoint)) {
-            try llm.bindEndpoint(endpoint, session_id);
-            try session_entry.bindings.put(self.gpa, try self.gpa.dupe(u8, endpoint), {});
-        }
+        const session_entry = try self.ensureSession(scope, session_id);
+        try self.bindTo(session_entry, session_id, endpoint, llm);
         return try response(a, "sessionId", session_id, "endpoint", endpoint);
     }
 
     fn closeSession(self: *ControlPlane, a: std.mem.Allocator, scope: []const u8, payload: std.json.ObjectMap, llm: *LlmHub) ![]u8 {
         const session_id = stringField(payload, "sessionId") orelse return error.SessionIdMissing;
-        const removed = self.sessions.fetchRemove(session_id) orelse return error.SessionUnknown;
+        // Closing a session this process never had is the state the caller
+        // asked for. Saying otherwise turns every teardown that follows a peer
+        // replacement into an error the host can do nothing about.
+        const removed = self.sessions.fetchRemove(session_id) orelse
+            return try response(a, "sessionId", session_id, "state", "closed");
         if (!std.mem.eql(u8, removed.value.scope, scope)) {
             try self.sessions.put(self.gpa, removed.key, removed.value);
             return error.SessionScopeMismatch;
@@ -518,7 +513,7 @@ const ControlPlane = struct {
         llm.releaseSession(session_id);
         self.gpa.free(removed.key);
         var owned = removed.value;
-        owned.deinit(a);
+        owned.deinit(self.gpa);
         return try response(a, "sessionId", session_id, "state", "closed");
     }
 
@@ -571,7 +566,7 @@ const ControlPlane = struct {
         }
         self.gpa.free(removed.key);
         var owned = removed.value;
-        owned.deinit(a);
+        owned.deinit(self.gpa);
         return try response(a, "contextId", context_id, "state", "deleted");
     }
 
@@ -596,8 +591,8 @@ const ControlPlane = struct {
         const endpoint = stringField(payload, "endpoint") orelse return error.EndpointMissing;
         const context_id = stringField(payload, "contextId") orelse return error.ContextIdMissing;
         const output_id = stringField(payload, "outputMessageId");
-        const session_entry = try self.session(request.envelope.scope, session_id);
-        if (!session_entry.bindings.contains(endpoint)) return error.EndpointNotBound;
+        const session_entry = try self.ensureSession(request.envelope.scope, session_id);
+        try self.bindTo(session_entry, session_id, endpoint, llm);
         const context_entry = try self.context(request.envelope.scope, context_id);
         const generation = payload.get("generation") orelse return error.GenerationMissing;
         if (generation != .object) return error.GenerationInvalid;
@@ -627,10 +622,45 @@ const ControlPlane = struct {
         };
     }
 
-    fn session(self: *ControlPlane, scope: []const u8, session_id: []const u8) !*ControlSession {
-        const value = self.sessions.getPtr(session_id) orelse return error.SessionUnknown;
-        if (!std.mem.eql(u8, value.scope, scope)) return error.SessionScopeMismatch;
-        return value;
+    /// The session for `session_id`, created if this process does not have it.
+    ///
+    /// A session carries an id, a scope and its endpoint bindings — nothing a
+    /// caller could not restate, and nothing that survives a restart anyway:
+    /// this state is process-local. The browser's socket terminates at the
+    /// signalling peer, not here, so a resonus replacement leaves a live client
+    /// holding an id no process knows, with no event to notice it by. Refusing
+    /// that turn costs the user their message to protect state that was already
+    /// gone; recreating it costs one hash insert. Scope is still enforced — an
+    /// absent session is recreated for its caller, never adopted from another.
+    fn ensureSession(self: *ControlPlane, scope: []const u8, session_id: []const u8) !*ControlSession {
+        if (self.sessions.getPtr(session_id)) |existing| {
+            if (!std.mem.eql(u8, existing.scope, scope)) return error.SessionScopeMismatch;
+            return existing;
+        }
+        const key = try self.gpa.dupe(u8, session_id);
+        errdefer self.gpa.free(key);
+        const owned_scope = try self.gpa.dupe(u8, scope);
+        errdefer self.gpa.free(owned_scope);
+        try self.sessions.put(self.gpa, key, .{ .scope = owned_scope });
+        return self.sessions.getPtr(key).?;
+    }
+
+    /// Attach an endpoint to a session, once. Idempotent for the same reason
+    /// `ensureSession` is: a binding is a pool lease this process either holds
+    /// or can take again, so a generation naming an unbound endpoint is a
+    /// binding to make, not a request to refuse.
+    fn bindTo(
+        self: *ControlPlane,
+        entry: *ControlSession,
+        session_id: []const u8,
+        endpoint: []const u8,
+        llm: *LlmHub,
+    ) !void {
+        if (entry.bindings.contains(endpoint)) return;
+        try llm.bindEndpoint(endpoint, session_id);
+        const owned = try self.gpa.dupe(u8, endpoint);
+        errdefer self.gpa.free(owned);
+        try entry.bindings.put(self.gpa, owned, {});
     }
 
     fn context(self: *ControlPlane, scope: []const u8, context_id: []const u8) !*ContextSnapshot {

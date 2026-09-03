@@ -1,4 +1,4 @@
-import { CreateAction, CreateWidget } from "front-core";
+import type { CreateAction, CreateWidget } from "front-core";
 import { UsageListView } from "../views/UsageListView";
 import { UsageStatsView } from "../views/UsageStatsView";
 
@@ -6,32 +6,37 @@ const SHOW_USAGE_LIST = "usage.list.show";
 const SHOW_USAGE_STATS = "usage.stats.show";
 
 const createUsageListWidget: CreateWidget<typeof UsageListView> = () => ({
-  view: UsageListView,
-  placement: () => "center",
-  config: {},
+	view: UsageListView,
+	placement: () => "center",
+	config: {},
 });
 
 const createUsageStatsWidget: CreateWidget<typeof UsageStatsView> = () => ({
-  view: UsageStatsView,
-  placement: () => "center",
-  config: {},
+	view: UsageStatsView,
+	placement: () => "center",
+	config: {},
 });
 
 const createShowUsageListAction: CreateAction<any> = (bus) => ({
-  id: SHOW_USAGE_LIST,
-  invoke: () => {
-    bus.present({ widget: createUsageListWidget(bus) });
-  },
+	id: SHOW_USAGE_LIST,
+	invoke: () => {
+		bus.present({ widget: createUsageListWidget(bus) });
+	},
 });
 
 const createShowUsageStatsAction: CreateAction<any> = (bus) => ({
-  id: SHOW_USAGE_STATS,
-  invoke: () => {
-    bus.present({ widget: createUsageStatsWidget(bus) });
-  },
+	id: SHOW_USAGE_STATS,
+	invoke: () => {
+		bus.present({ widget: createUsageStatsWidget(bus) });
+	},
 });
 
-export { SHOW_USAGE_LIST, SHOW_USAGE_STATS, createShowUsageListAction, createShowUsageStatsAction };
+export {
+	createShowUsageListAction,
+	createShowUsageStatsAction,
+	SHOW_USAGE_LIST,
+	SHOW_USAGE_STATS,
+};
 
 const ACTIONS = [createShowUsageListAction, createShowUsageStatsAction];
 

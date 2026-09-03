@@ -1,4 +1,4 @@
-import { type CreateAction, type CreateWidget } from "front-core";
+import type { CreateAction, CreateWidget } from "front-core";
 import { ScriptsListView } from "../views/ScriptsListView";
 
 const SHOW_SCRIPTS_LIST = "dag.scripts.list";
@@ -20,4 +20,3 @@ const ACTIONS = [createShowScriptsListAction];
 
 export { SHOW_SCRIPTS_LIST };
 export default ACTIONS;
-

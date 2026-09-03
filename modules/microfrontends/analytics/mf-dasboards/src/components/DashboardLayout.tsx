@@ -1,54 +1,26 @@
-import { ReactNode, useEffect } from "preact/compat";
 import {
-  Slot,
-  dashboardSlots,
-  layoutReady,
-  HeaderPanel,
-  DashboardWidget,
+	HeaderPanelLayout,
+	ScrollArea,
+	StatisticsDashboard,
+	useMicrofrontendTranslation,
 } from "front-core";
 
+const DASHBOARDS_MF_ID = "dasboards-mf";
 
-export const DashboardLayout = ({
-  children,
-  basePath = "dashboard",
-  groups = ["acquisition", "retention"]
-}: {
-  children?: ReactNode;
-  basePath?: string;
-  groups?: string[];
-}) => {
+/**
+ * The admin's single dashboard. It owns no charts of its own: every block comes
+ * from the object catalog's `core.statistic` types, grouped back into a section
+ * per microfrontend. Sections start collapsed, so opening the page costs
+ * nothing until the user asks for a service.
+ */
+export const DashboardLayout = () => {
+	const { t } = useMicrofrontendTranslation(DASHBOARDS_MF_ID);
 
-  useEffect(() => {
-    layoutReady("dashboard");
-    dashboardSlots.restoreWidgets();
-
-    return () => {
-      dashboardSlots.saveWidgets();
-    };
-  }, []);
-
-  const headerConfig = {
-    title: 'Dashboard'
-  };
-
-  return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <HeaderPanel config={headerConfig} />
-      <div className="flex-1 min-h-0 overflow-auto p-4">
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 auto-rows-[200px]">
-          {dashboardSlots.list.map((slotId, index) => {
-            const spanClass =
-              index === 0
-                ? "md:col-span-4 md:row-span-2"
-                : "md:col-span-2";
-            return (
-              <DashboardWidget key={slotId} className={spanClass}>
-                <Slot id={`${basePath}:${slotId}`} />
-              </DashboardWidget>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
+	return (
+		<HeaderPanelLayout config={{ title: t("dashboard.title") as string }}>
+			<ScrollArea className="h-full">
+				<StatisticsDashboard />
+			</ScrollArea>
+		</HeaderPanelLayout>
+	);
 };

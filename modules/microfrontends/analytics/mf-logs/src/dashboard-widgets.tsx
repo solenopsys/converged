@@ -1,10 +1,12 @@
 import { useUnit } from "effector-preact";
 import {
+	AlertCircle,
+	AlertTriangle,
+	Database,
 	registerDashboardWidgets,
 	StatisticCard,
 	useMicrofrontendTranslation,
 } from "front-core";
-import { AlertCircle, AlertTriangle, Database } from "front-core";
 import type { ComponentType } from "preact/compat";
 import { useEffect } from "preact/compat";
 import { $logsStats, logsStatsViewMounted } from "./domain-stats";

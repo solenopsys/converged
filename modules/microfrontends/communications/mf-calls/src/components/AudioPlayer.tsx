@@ -1,34 +1,36 @@
-import React from "preact/compat";
 import { Badge } from "front-core";
+import type React from "preact/compat";
 
 type AudioPlayerProps = {
-
-  src: string;
-  label?: string;
-  variant?: "user" | "assistant";
+	src: string;
+	label?: string;
+	variant?: "user" | "assistant";
 };
 
+export const AudioPlayer: React.FC<AudioPlayerProps> = ({
+	src,
+	label,
+	variant = "user",
+}) => {
+	const badgeClass =
+		variant === "user"
+			? "bg-blue-900/30 text-blue-300 border-blue-800"
+			: "bg-green-900/30 text-green-300 border-green-800";
 
-export const AudioPlayer: React.FC<AudioPlayerProps> = ({ src, label, variant = "user" }) => {
-  const badgeClass =
-    variant === "user"
-      ? "bg-blue-900/30 text-blue-300 border-blue-800"
-      : "bg-green-900/30 text-green-300 border-green-800";
-
-  return (
-    <div className="flex items-center gap-3 py-1">
-      {label && (
-        <Badge variant="outline" className={`shrink-0 text-xs ${badgeClass}`}>
-          {label}
-        </Badge>
-      )}
-      <audio
-        src={src}
-        controls
-        preload="metadata"
-        className="h-8 flex-1 min-w-0"
-        style={{ colorScheme: "dark" }}
-      />
-    </div>
-  );
+	return (
+		<div className="flex items-center gap-3 py-1">
+			{label && (
+				<Badge variant="outline" className={`shrink-0 text-xs ${badgeClass}`}>
+					{label}
+				</Badge>
+			)}
+			<audio
+				src={src}
+				controls
+				preload="metadata"
+				className="h-8 flex-1 min-w-0"
+				style={{ colorScheme: "dark" }}
+			/>
+		</div>
+	);
 };

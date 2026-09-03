@@ -1,9 +1,33 @@
 {
-  "actions": {
-    "docs.show.home": { "brief": "Show docs", "description": "Show docs", "category": "docs", "exposure": "user", "priority": "normal" }
-  },
-  "patterns": [
-    { "prefix": "docs.source.", "meta": { "brief": "Open a documentation page", "description": "Open the documentation page identified by the action id.", "category": "docs", "exposure": "user", "priority": "secondary" } },
-    { "prefix": "docs.section.", "meta": { "brief": "Open a documentation section", "description": "Open the documentation section identified by the action id.", "category": "docs", "exposure": "user", "priority": "secondary" } }
-  ]
+	"actions": {
+		"docs.show.home": {
+			"brief": "Show docs",
+			"description": "Show docs",
+			"category": "docs",
+			"exposure": "user",
+			"priority": "normal"
+		}
+	},
+	"patterns": [
+		{
+			"prefix": "docs.source.",
+			"meta": {
+				"brief": "Open a documentation page",
+				"description": "Open the documentation page identified by the action id.",
+				"category": "docs",
+				"exposure": "user",
+				"priority": "secondary"
+			}
+		},
+		{
+			"prefix": "docs.section.",
+			"meta": {
+				"brief": "Open a documentation section",
+				"description": "Open the documentation section identified by the action id.",
+				"category": "docs",
+				"exposure": "user",
+				"priority": "secondary"
+			}
+		}
+	]
 }

@@ -4,6 +4,6 @@ import { logoutPressed } from "../model";
 export const LOGOUT = "auth.logout";
 
 export const createLogoutAction: CreateAction<any> = () => ({
-  id: LOGOUT,
-  invoke: () => logoutPressed(),
+	id: LOGOUT,
+	invoke: () => logoutPressed(),
 });

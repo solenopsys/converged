@@ -1,5 +1,5 @@
 {
-  "menu.webhooks": "Вебхуки",
-  "menu.webhooks.endpoints": "Эндпоинты",
-  "menu.webhooks.logs": "Логи"
+	"menu.webhooks": "Вебхуки",
+	"menu.webhooks.endpoints": "Эндпоинты",
+	"menu.webhooks.logs": "Логи"
 }

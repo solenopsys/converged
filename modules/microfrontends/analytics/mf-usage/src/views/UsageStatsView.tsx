@@ -5,8 +5,8 @@ import {
 	CardHeader,
 	CardTitle,
 	HeaderPanel,
+	RefreshCw,
 } from "front-core";
-import { RefreshCw } from "front-core";
 import { useEffect } from "preact/compat";
 import { UsagePieChart } from "../components/UsagePieChart";
 import { UsageStatsChart } from "../components/UsageStatsChart";

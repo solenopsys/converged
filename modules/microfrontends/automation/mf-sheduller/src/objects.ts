@@ -5,6 +5,7 @@ import {
 	setOf,
 } from "front-core/object-runtime";
 import shedullerService from "./service";
+import { ShedullerSummary } from "./summary";
 import { CronsListView } from "./views/CronsListView";
 import { HistoryView } from "./views/HistoryView";
 import { StatsView } from "./views/StatsView";
@@ -41,6 +42,12 @@ export default defineMicrofrontend({
 				load: (params) => shedullerService.listHistory(params),
 				inspect: (filter) => shedullerService.inspectHistory(filter),
 			},
+		},
+		{
+			id: "scheduler.statistic.summary",
+			label: "Scheduler",
+			categories: ["core.statistic", "core.automation"],
+			statistic: { role: "summary", component: ShedullerSummary },
 		},
 		{
 			id: "scheduler.statistic",

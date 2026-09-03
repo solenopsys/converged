@@ -6,7 +6,9 @@ import scriptsService from "./scripts-service";
 const domain = createDomain("dag-scripts");
 
 export const scriptsViewMounted = domain.createEvent("SCRIPTS_VIEW_MOUNTED");
-export const refreshScriptsClicked = domain.createEvent("REFRESH_SCRIPTS_CLICKED");
+export const refreshScriptsClicked = domain.createEvent(
+	"REFRESH_SCRIPTS_CLICKED",
+);
 export const createScriptClicked = domain.createEvent<ScriptFile>();
 export const openScriptClicked = domain.createEvent<ScriptListItem>();
 export const scriptContentChanged = domain.createEvent<string>();
@@ -16,7 +18,9 @@ export const deleteScriptClicked = domain.createEvent("DELETE_SCRIPT_CLICKED");
 export const $selectedScript = domain.createStore<ScriptFile | null>(null);
 
 $selectedScript
-	.on(scriptContentChanged, (script, content) => script ? { ...script, content } : script)
+	.on(scriptContentChanged, (script, content) =>
+		script ? { ...script, content } : script,
+	)
 	.on(createScriptClicked, (_state, script) => script)
 	.reset(deleteScriptClicked);
 
@@ -104,4 +108,3 @@ sample({
 });
 
 export default domain;
-

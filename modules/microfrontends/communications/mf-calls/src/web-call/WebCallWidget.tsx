@@ -11,7 +11,6 @@ const STATUS_LABEL: Record<WebCallStatus, string> = {
 	ended: "Call ended",
 };
 
-
 export function WebCallWidget() {
 	const state = useUnit($webCall);
 	if (state.status === "idle") return null;

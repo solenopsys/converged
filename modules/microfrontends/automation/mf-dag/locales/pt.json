@@ -1,43 +1,43 @@
 {
-  "menu": {
-    "dag": "Processos",
-    "workflows": "Fluxos",
-    "nodes": "Nós",
-    "providers": "Fornecedores",
-    "executions": "Execuções",
-    "tasks": "Tarefas"
-  },
-  "cards": {
-    "workflows": {
-      "title": "Fluxos",
-      "badge": {
-        "iconName": "IconTrendingUp",
-        "text": "+15.3%",
-        "className": ""
-      },
-      "footerTitle": "Crescimento do número de fluxos",
-      "footerIconName": "IconTrendingUp",
-      "footerDescription": "Novos fluxos na última semana"
-    },
-    "processes": {
-      "title": "Processos",
-      "badge": {
-        "iconName": "IconPackage",
-        "text": "8 novos",
-        "className": "bg-green-50 dark:bg-green-950"
-      },
-      "footerTitle": "Processos ativos",
-      "footerIconName": "IconPackage",
-      "footerDescription": "Processos em andamento"
-    }
-  },
-  "versions": {
-    "loading": "Carregando versoes...",
-    "selectCode": "Selecione um codigo da lista",
-    "empty": "Nenhuma versao disponivel"
-  },
-  "dagViewer": {
-    "loading": "Carregando...",
-    "descriptionError": "Falha ao carregar a descricao"
-  }
+	"menu": {
+		"dag": "Processos",
+		"workflows": "Fluxos",
+		"nodes": "Nós",
+		"providers": "Fornecedores",
+		"executions": "Execuções",
+		"tasks": "Tarefas"
+	},
+	"cards": {
+		"workflows": {
+			"title": "Fluxos",
+			"badge": {
+				"iconName": "IconTrendingUp",
+				"text": "+15.3%",
+				"className": ""
+			},
+			"footerTitle": "Crescimento do número de fluxos",
+			"footerIconName": "IconTrendingUp",
+			"footerDescription": "Novos fluxos na última semana"
+		},
+		"processes": {
+			"title": "Processos",
+			"badge": {
+				"iconName": "IconPackage",
+				"text": "8 novos",
+				"className": "bg-green-50 dark:bg-green-950"
+			},
+			"footerTitle": "Processos ativos",
+			"footerIconName": "IconPackage",
+			"footerDescription": "Processos em andamento"
+		}
+	},
+	"versions": {
+		"loading": "Carregando versoes...",
+		"selectCode": "Selecione um codigo da lista",
+		"empty": "Nenhuma versao disponivel"
+	},
+	"dagViewer": {
+		"loading": "Carregando...",
+		"descriptionError": "Falha ao carregar a descricao"
+	}
 }

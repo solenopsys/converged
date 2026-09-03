@@ -11,7 +11,11 @@ interface UsagePieChartProps {
 	dashboardPin?: DashboardPinMeta;
 }
 
-export function UsagePieChart({ data = [], title, dashboardPin }: UsagePieChartProps) {
+export function UsagePieChart({
+	data = [],
+	title,
+	dashboardPin,
+}: UsagePieChartProps) {
 	const chartData = useMemo(
 		() =>
 			data.map((item) => ({

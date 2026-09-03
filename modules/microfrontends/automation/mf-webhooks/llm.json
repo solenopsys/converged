@@ -1,25 +1,25 @@
 {
-  "actions": {
-    "webhooks.logs.show": {
-      "brief": "Show webhook logs",
-      "description": "Show webhook logs",
-      "category": "webhooks",
-      "exposure": "user",
-      "priority": "normal"
-    },
-    "webhooks.endpoints.show": {
-      "brief": "Show webhook endpoints",
-      "description": "Show webhook endpoints",
-      "category": "webhooks",
-      "exposure": "user",
-      "priority": "normal"
-    },
-    "webhooks.endpoint_form.show": {
-      "brief": "Show webhook endpoint form",
-      "description": "Show webhook endpoint form",
-      "category": "webhooks",
-      "exposure": "user",
-      "priority": "normal"
-    }
-  }
+	"actions": {
+		"webhooks.logs.show": {
+			"brief": "Show webhook logs",
+			"description": "Show webhook logs",
+			"category": "webhooks",
+			"exposure": "user",
+			"priority": "normal"
+		},
+		"webhooks.endpoints.show": {
+			"brief": "Show webhook endpoints",
+			"description": "Show webhook endpoints",
+			"category": "webhooks",
+			"exposure": "user",
+			"priority": "normal"
+		},
+		"webhooks.endpoint_form.show": {
+			"brief": "Show webhook endpoint form",
+			"description": "Show webhook endpoint form",
+			"category": "webhooks",
+			"exposure": "user",
+			"priority": "normal"
+		}
+	}
 }

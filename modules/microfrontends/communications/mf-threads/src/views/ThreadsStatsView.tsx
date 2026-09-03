@@ -1,18 +1,16 @@
 import { useUnit } from "effector-preact";
 import {
-	HeaderPanelLayout,
-	ScrollArea,
-	StatisticCard,
-	useMicrofrontendTranslation,
-} from "front-core";
-import {
 	Hash,
+	HeaderPanelLayout,
 	MessageCircle,
 	MessageSquare,
 	MessagesSquare,
 	Phone,
 	RefreshCw,
+	ScrollArea,
+	StatisticCard,
 	Users,
+	useMicrofrontendTranslation,
 } from "front-core";
 import { useEffect } from "preact/compat";
 import {
@@ -60,7 +58,10 @@ export const ThreadsStatsView = ({ bus: _bus }: { bus?: unknown }) => {
 						value={stats.totalMessages}
 						icon={MessagesSquare}
 						description={t("stats.messagesDescription")}
-						dashboardPin={{ id: "threads.messages", title: t("stats.messages") }}
+						dashboardPin={{
+							id: "threads.messages",
+							title: t("stats.messages"),
+						}}
 					/>
 					<StatisticCard
 						title={t("stats.chat")}

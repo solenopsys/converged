@@ -1,46 +1,46 @@
 {
-  "actions": {
-    "auth.login": {
-      "brief": "Auth user",
-      "description": "Auth user",
-      "category": "auth",
-      "exposure": "llm",
-      "priority": "normal"
-    },
-    "auth.send-magic-link": {
-      "brief": "Send a magic login link",
-      "description": "Send a magic login link to the supplied email address.",
-      "category": "auth",
-      "exposure": "llm",
-      "priority": "normal"
-    },
-    "auth.ensure-temporary-session": {
-      "brief": "Ensure temporary auth session",
-      "description": "Ensure temporary auth session",
-      "category": "auth",
-      "exposure": "llm",
-      "priority": "normal"
-    },
-    "show_social": {
-      "brief": "Show social login",
-      "description": "Show social login",
-      "category": "show_social",
-      "exposure": "user",
-      "priority": "normal"
-    },
-    "auth.logout": {
-      "brief": "Logout user",
-      "description": "Logout user",
-      "category": "auth",
-      "exposure": "user",
-      "priority": "normal"
-    },
-    "auth.show-login": {
-      "brief": "Show login form",
-      "description": "Show login form",
-      "category": "auth",
-      "exposure": "user",
-      "priority": "normal"
-    }
-  }
+	"actions": {
+		"auth.login": {
+			"brief": "Auth user",
+			"description": "Auth user",
+			"category": "auth",
+			"exposure": "llm",
+			"priority": "normal"
+		},
+		"auth.send-magic-link": {
+			"brief": "Send a magic login link",
+			"description": "Send a magic login link to the supplied email address.",
+			"category": "auth",
+			"exposure": "llm",
+			"priority": "normal"
+		},
+		"auth.ensure-temporary-session": {
+			"brief": "Ensure temporary auth session",
+			"description": "Ensure temporary auth session",
+			"category": "auth",
+			"exposure": "llm",
+			"priority": "normal"
+		},
+		"show_social": {
+			"brief": "Show social login",
+			"description": "Show social login",
+			"category": "show_social",
+			"exposure": "user",
+			"priority": "normal"
+		},
+		"auth.logout": {
+			"brief": "Logout user",
+			"description": "Logout user",
+			"category": "auth",
+			"exposure": "user",
+			"priority": "normal"
+		},
+		"auth.show-login": {
+			"brief": "Show login form",
+			"description": "Show login form",
+			"category": "auth",
+			"exposure": "user",
+			"priority": "normal"
+		}
+	}
 }

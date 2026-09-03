@@ -1,5 +1,6 @@
 import { defineMicrofrontend, setOf } from "front-core/object-runtime";
 import logs from "./service";
+import { LogsSummary } from "./summary";
 import { LogsStatsView } from "./views/LogsStatsView";
 import { LogsView } from "./views/LogsView";
 
@@ -17,6 +18,12 @@ export default defineMicrofrontend({
 				load: (params) => logs.listHot(params),
 				inspect: (filter) => logs.inspectLogs(filter),
 			},
+		},
+		{
+			id: "logs.statistic.summary",
+			label: "Logs",
+			categories: ["core.statistic"],
+			statistic: { role: "summary", component: LogsSummary },
 		},
 		{
 			id: "logs.statistic",

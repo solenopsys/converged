@@ -1,4 +1,3 @@
-
 import { createEvent, createStore } from "effector";
 import { authToken, resolveEmbeddedMicrofrontendMessage } from "front-core";
 import { signalChannel } from "signal-channel";
@@ -35,7 +34,6 @@ type AudioSourceSnapshot = {
 	totalSamplesDuration?: number;
 };
 
-
 export const webCallRequested = createEvent<string | undefined>();
 export const webCallHangupRequested = createEvent();
 
@@ -64,7 +62,6 @@ function currentUser(): string {
 	if (subject) return subject;
 	return window.sessionStorage.getItem("tempUserId") ?? "";
 }
-
 
 function ensureWebCallUser(): string {
 	const existing = currentUser();
@@ -147,7 +144,6 @@ function failCall(error: string, details?: unknown): void {
 	cleanup();
 	scheduleIdleReset();
 }
-
 
 function scheduleIdleReset(): void {
 	if (resetTimer) clearTimeout(resetTimer);
@@ -289,9 +285,11 @@ export async function startWebCall(contextName?: string): Promise<void> {
 			onClipChange: (clipping) => {
 				setWarning(
 					clipping
-						? ((resolveEmbeddedMicrofrontendMessage("calls-mf", "active_call.mic_overloaded") as
-								| string
-								| undefined) ?? "Microphone is overloaded — lower its volume in system settings")
+						? ((resolveEmbeddedMicrofrontendMessage(
+								"calls-mf",
+								"active_call.mic_overloaded",
+							) as string | undefined) ??
+								"Microphone is overloaded — lower its volume in system settings")
 						: null,
 				);
 			},

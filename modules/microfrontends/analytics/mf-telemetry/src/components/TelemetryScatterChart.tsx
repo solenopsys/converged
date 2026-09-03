@@ -9,8 +9,6 @@ import {
 import { useMemo } from "preact/compat";
 import type { TelemetryEvent } from "../functions/types";
 
-
-
 const OK = "var(--ui-success)";
 const ELEVATED = "var(--ui-warning)";
 const HIGH = "var(--ui-destructive)";
@@ -41,21 +39,62 @@ function TelemetryScatterSvg({
 		.range([height - bottom, top]);
 
 	return (
-		<svg viewBox={`0 0 ${width} ${height}`} className="h-full w-full" role="img" aria-label="Telemetry scatter chart">
+		<svg
+			viewBox={`0 0 ${width} ${height}`}
+			className="h-full w-full"
+			role="img"
+			aria-label="Telemetry scatter chart"
+		>
 			{y.ticks(4).map((value) => (
 				<g key={value}>
-					<line x1={left} x2={width - right} y1={y(value)} y2={y(value)} stroke="currentColor" stroke-opacity="0.12" />
-					<text x={left - 6} y={y(value) + 4} text-anchor="end" className="fill-muted-foreground text-[10px]">{value}</text>
+					<line
+						x1={left}
+						x2={width - right}
+						y1={y(value)}
+						y2={y(value)}
+						stroke="currentColor"
+						stroke-opacity="0.12"
+					/>
+					<text
+						x={left - 6}
+						y={y(value) + 4}
+						text-anchor="end"
+						className="fill-muted-foreground text-[10px]"
+					>
+						{value}
+					</text>
 				</g>
 			))}
-			{[metrics.avg, metrics.p95].filter((value) => value > 0).map((value) => (
-				<line key={value} x1={left} x2={width - right} y1={y(value)} y2={y(value)} stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="4 4" />
-			))}
+			{[metrics.avg, metrics.p95]
+				.filter((value) => value > 0)
+				.map((value) => (
+					<line
+						key={value}
+						x1={left}
+						x2={width - right}
+						y1={y(value)}
+						y2={y(value)}
+						stroke="currentColor"
+						stroke-opacity="0.35"
+						stroke-dasharray="4 4"
+					/>
+				))}
 			{data.map((point, index) => {
 				const value = point.value[1];
-				const radius = value >= metrics.p95 ? 6 : value >= metrics.avg ? 4 : 2.5;
-				const color = value >= metrics.p95 ? HIGH : value >= metrics.avg ? ELEVATED : OK;
-				return <circle key={`${point.value[0]}-${index}`} cx={x(new Date(point.value[0]))} cy={y(value)} r={radius} fill={color} fill-opacity="0.82" />;
+				const radius =
+					value >= metrics.p95 ? 6 : value >= metrics.avg ? 4 : 2.5;
+				const color =
+					value >= metrics.p95 ? HIGH : value >= metrics.avg ? ELEVATED : OK;
+				return (
+					<circle
+						key={`${point.value[0]}-${index}`}
+						cx={x(new Date(point.value[0]))}
+						cy={y(value)}
+						r={radius}
+						fill={color}
+						fill-opacity="0.82"
+					/>
+				);
 			})}
 		</svg>
 	);
@@ -131,7 +170,10 @@ export function TelemetryScatterChart({
 					</div>
 				) : (
 					<div className="h-full min-h-[220px] w-full overflow-hidden">
-						<TelemetryScatterSvg data={chartData.map((value) => ({ value }))} metrics={metrics} />
+						<TelemetryScatterSvg
+							data={chartData.map((value) => ({ value }))}
+							metrics={metrics}
+						/>
 					</div>
 				)}
 			</CardContent>

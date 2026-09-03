@@ -1,5 +1,6 @@
 import { defineMicrofrontend, setOf } from "front-core/object-runtime";
 import usage from "./service";
+import { UsageSummary } from "./summary";
 import { UsageListView } from "./views/UsageListView";
 import { UsageStatsView } from "./views/UsageStatsView";
 
@@ -17,6 +18,12 @@ export default defineMicrofrontend({
 				load: (params) => usage.listUsage(params),
 				inspect: (filter) => usage.inspectUsage(filter),
 			},
+		},
+		{
+			id: "usage.statistic.summary",
+			label: "Usage",
+			categories: ["core.statistic"],
+			statistic: { role: "summary", component: UsageSummary },
 		},
 		{
 			id: "usage.statistic",

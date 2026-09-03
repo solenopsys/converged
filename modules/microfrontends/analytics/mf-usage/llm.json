@@ -1,18 +1,18 @@
 {
-  "actions": {
-    "usage.list.show": {
-      "brief": "Show usage events",
-      "description": "Show usage events",
-      "category": "usage",
-      "exposure": "user",
-      "priority": "normal"
-    },
-    "usage.stats.show": {
-      "brief": "Show usage statistics",
-      "description": "Show usage statistics",
-      "category": "usage",
-      "exposure": "user",
-      "priority": "normal"
-    }
-  }
+	"actions": {
+		"usage.list.show": {
+			"brief": "Show usage events",
+			"description": "Show usage events",
+			"category": "usage",
+			"exposure": "user",
+			"priority": "normal"
+		},
+		"usage.stats.show": {
+			"brief": "Show usage statistics",
+			"description": "Show usage statistics",
+			"category": "usage",
+			"exposure": "user",
+			"priority": "normal"
+		}
+	}
 }

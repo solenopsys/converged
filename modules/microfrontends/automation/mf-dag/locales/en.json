@@ -1,43 +1,43 @@
 {
-  "menu": {
-    "dag": "Processes",
-    "workflows": "Flows",
-    "nodes": "Nodes",
-    "providers": "Providers",
-    "executions": "Executions",
-    "tasks": "Tasks"
-  },
-  "cards": {
-    "workflows": {
-      "title": "Flows",
-      "badge": {
-        "iconName": "IconTrendingUp",
-        "text": "+15.3%",
-        "className": ""
-      },
-      "footerTitle": "Flow growth",
-      "footerIconName": "IconTrendingUp",
-      "footerDescription": "New flows last week"
-    },
-    "processes": {
-      "title": "Processes",
-      "badge": {
-        "iconName": "IconPackage",
-        "text": "8 new",
-        "className": "bg-green-50 dark:bg-green-950"
-      },
-      "footerTitle": "Active processes",
-      "footerIconName": "IconPackage",
-      "footerDescription": "Processes in progress"
-    }
-  },
-  "versions": {
-    "loading": "Loading versions...",
-    "selectCode": "Select code from the list",
-    "empty": "No versions available"
-  },
-  "dagViewer": {
-    "loading": "Loading...",
-    "descriptionError": "Failed to load description"
-  }
+	"menu": {
+		"dag": "Processes",
+		"workflows": "Flows",
+		"nodes": "Nodes",
+		"providers": "Providers",
+		"executions": "Executions",
+		"tasks": "Tasks"
+	},
+	"cards": {
+		"workflows": {
+			"title": "Flows",
+			"badge": {
+				"iconName": "IconTrendingUp",
+				"text": "+15.3%",
+				"className": ""
+			},
+			"footerTitle": "Flow growth",
+			"footerIconName": "IconTrendingUp",
+			"footerDescription": "New flows last week"
+		},
+		"processes": {
+			"title": "Processes",
+			"badge": {
+				"iconName": "IconPackage",
+				"text": "8 new",
+				"className": "bg-green-50 dark:bg-green-950"
+			},
+			"footerTitle": "Active processes",
+			"footerIconName": "IconPackage",
+			"footerDescription": "Processes in progress"
+		}
+	},
+	"versions": {
+		"loading": "Loading versions...",
+		"selectCode": "Select code from the list",
+		"empty": "No versions available"
+	},
+	"dagViewer": {
+		"loading": "Loading...",
+		"descriptionError": "Failed to load description"
+	}
 }

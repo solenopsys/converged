@@ -3,7 +3,10 @@ import type { ReactNode } from "preact/compat";
 
 export type SlotId = string;
 
-export const slotContentSet = createEvent<{ slotId: SlotId; content: ReactNode }>();
+export const slotContentSet = createEvent<{
+	slotId: SlotId;
+	content: ReactNode;
+}>();
 export const slotContentCleared = createEvent<SlotId>();
 export const layoutReady = createEvent<string>();
 

@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from "preact/compat";
-import { Button } from "front-core";
-import { useMicrofrontendTranslation } from "front-core";
+import { Button, useMicrofrontendTranslation } from "front-core";
 import type { OAuthProviderName } from "g-oauth";
+import { useEffect, useMemo, useState } from "preact/compat";
 import { listAuthProviders, oauthStartUrl } from "../service";
 
 const AUTH_MF_ID = "auth-mf";

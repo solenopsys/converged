@@ -1,6 +1,11 @@
 import { useUnit } from "effector-preact";
-import { HeaderPanelLayout, ScrollArea, StatisticCard } from "front-core";
-import { Database, RefreshCw } from "front-core";
+import {
+	Database,
+	HeaderPanelLayout,
+	RefreshCw,
+	ScrollArea,
+	StatisticCard,
+} from "front-core";
 import { useEffect } from "preact/compat";
 import { TelemetryDeviceParamPieChart } from "../components/TelemetryDeviceParamPieChart";
 import { TelemetryScatterChart } from "../components/TelemetryScatterChart";

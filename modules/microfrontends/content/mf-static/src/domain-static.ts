@@ -1,32 +1,34 @@
 import { createDomain, sample } from "effector";
 import { createInfiniteTableStore } from "front-core/table";
-import staticService from "./service";
 import type {
-  PaginationParams,
-  StaticContentType,
-  StaticFilters,
-  StaticStatus,
+	PaginationParams,
+	StaticContentType,
+	StaticFilters,
+	StaticStatus,
 } from "./functions/types";
+import staticService from "./service";
 
 const domain = createDomain("static-cache");
 
 export const staticOpened = domain.createEvent("STATIC_OPENED");
 export const staticClosed = domain.createEvent("STATIC_CLOSED");
 export const $screen = domain
-  .createStore<"closed" | "cache">("closed", { name: "SCREEN" })
-  .on(staticOpened, () => "cache")
-  .on(staticClosed, () => "closed");
+	.createStore<"closed" | "cache">("closed", { name: "SCREEN" })
+	.on(staticOpened, () => "cache")
+	.on(staticClosed, () => "closed");
 
 export const staticViewMounted = domain.createEvent("STATIC_VIEW_MOUNTED");
-export const refreshStaticClicked = domain.createEvent("REFRESH_STATIC_CLICKED");
+export const refreshStaticClicked = domain.createEvent(
+	"REFRESH_STATIC_CLICKED",
+);
 export const flushStaticClicked = domain.createEvent("FLUSH_STATIC_CLICKED");
 export const createStaticMetaClicked = domain.createEvent<{
-  id: string;
-  contentType: StaticContentType;
+	id: string;
+	contentType: StaticContentType;
 }>();
 export const setStatusPatternClicked = domain.createEvent<{
-  pattern: string;
-  status: StaticStatus;
+	pattern: string;
+	status: StaticStatus;
 }>();
 export const filterChanged = domain.createEvent<StaticFilters>();
 
@@ -35,132 +37,132 @@ export const $filters = domain.createStore<StaticFilters>({});
 $filters.on(filterChanged, (_state, filters) => filters);
 
 const listStaticFx = domain.createEffect<PaginationParams, any>({
-  name: "LIST_STATIC_CACHE",
-  handler: async (params: PaginationParams) => {
-    return await staticService.listMeta({
-      ...params,
-      ...$filters.getState(),
-    });
-  },
+	name: "LIST_STATIC_CACHE",
+	handler: async (params: PaginationParams) => {
+		return await staticService.listMeta({
+			...params,
+			...$filters.getState(),
+		});
+	},
 });
 
 const flushStaticFx = domain.createEffect<void, any>({
-  name: "FLUSH_STATIC_CACHE",
-  handler: async () => {
-    return await staticService.flush();
-  },
+	name: "FLUSH_STATIC_CACHE",
+	handler: async () => {
+		return await staticService.flush();
+	},
 });
 
 const createStaticMetaFx = domain.createEffect<
-  { id: string; contentType: StaticContentType },
-  any
+	{ id: string; contentType: StaticContentType },
+	any
 >({
-  name: "CREATE_STATIC_META",
-  handler: async (params) => {
-    return await staticService.setMeta({
-      ...params,
-      status: "todo" as StaticStatus,
-    });
-  },
+	name: "CREATE_STATIC_META",
+	handler: async (params) => {
+		return await staticService.setMeta({
+			...params,
+			status: "todo" as StaticStatus,
+		});
+	},
 });
 
 const setStatusPatternFx = domain.createEffect<
-  { pattern: string; status: StaticStatus },
-  any
+	{ pattern: string; status: StaticStatus },
+	any
 >({
-  name: "SET_STATIC_STATUS_PATTERN",
-  handler: async (params) => {
-    return await staticService.setStatusPattern(params);
-  },
+	name: "SET_STATIC_STATUS_PATTERN",
+	handler: async (params) => {
+		return await staticService.setStatusPattern(params);
+	},
 });
 
 export const $staticStore = createInfiniteTableStore(domain, listStaticFx);
 
 sample({
-  clock: staticViewMounted,
-  fn: () => ({}),
-  target: $staticStore.reset,
+	clock: staticViewMounted,
+	fn: () => ({}),
+	target: $staticStore.reset,
 });
 
 sample({
-  clock: staticViewMounted,
-  fn: () => ({}),
-  target: $staticStore.loadMore,
+	clock: staticViewMounted,
+	fn: () => ({}),
+	target: $staticStore.loadMore,
 });
 
 sample({
-  clock: refreshStaticClicked,
-  fn: () => ({}),
-  target: $staticStore.reset,
+	clock: refreshStaticClicked,
+	fn: () => ({}),
+	target: $staticStore.reset,
 });
 
 sample({
-  clock: refreshStaticClicked,
-  fn: () => ({}),
-  target: $staticStore.loadMore,
+	clock: refreshStaticClicked,
+	fn: () => ({}),
+	target: $staticStore.loadMore,
 });
 
 sample({
-  clock: filterChanged,
-  fn: () => ({}),
-  target: $staticStore.reset,
+	clock: filterChanged,
+	fn: () => ({}),
+	target: $staticStore.reset,
 });
 
 sample({
-  clock: filterChanged,
-  fn: () => ({}),
-  target: $staticStore.loadMore,
+	clock: filterChanged,
+	fn: () => ({}),
+	target: $staticStore.loadMore,
 });
 
 sample({
-  clock: flushStaticClicked,
-  target: flushStaticFx,
+	clock: flushStaticClicked,
+	target: flushStaticFx,
 });
 
 sample({
-  clock: flushStaticFx.done,
-  fn: () => ({}),
-  target: $staticStore.reset,
+	clock: flushStaticFx.done,
+	fn: () => ({}),
+	target: $staticStore.reset,
 });
 
 sample({
-  clock: flushStaticFx.done,
-  fn: () => ({}),
-  target: $staticStore.loadMore,
+	clock: flushStaticFx.done,
+	fn: () => ({}),
+	target: $staticStore.loadMore,
 });
 
 sample({
-  clock: createStaticMetaClicked,
-  target: createStaticMetaFx,
+	clock: createStaticMetaClicked,
+	target: createStaticMetaFx,
 });
 
 sample({
-  clock: createStaticMetaFx.done,
-  fn: () => ({}),
-  target: $staticStore.reset,
+	clock: createStaticMetaFx.done,
+	fn: () => ({}),
+	target: $staticStore.reset,
 });
 
 sample({
-  clock: createStaticMetaFx.done,
-  fn: () => ({}),
-  target: $staticStore.loadMore,
+	clock: createStaticMetaFx.done,
+	fn: () => ({}),
+	target: $staticStore.loadMore,
 });
 
 sample({
-  clock: setStatusPatternClicked,
-  target: setStatusPatternFx,
+	clock: setStatusPatternClicked,
+	target: setStatusPatternFx,
 });
 
 sample({
-  clock: setStatusPatternFx.done,
-  fn: () => ({}),
-  target: $staticStore.reset,
+	clock: setStatusPatternFx.done,
+	fn: () => ({}),
+	target: $staticStore.reset,
 });
 
 sample({
-  clock: setStatusPatternFx.done,
-  fn: () => ({}),
-  target: $staticStore.loadMore,
+	clock: setStatusPatternFx.done,
+	fn: () => ({}),
+	target: $staticStore.loadMore,
 });
 
 export default domain;

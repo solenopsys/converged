@@ -34,13 +34,26 @@ export type ResonusTransportOptions = {
 const DEFAULT_TARGET = "resonus";
 const DEFAULT_DEADLINE_MS = 120_000;
 
+// A refused call carries its reason in the payload — the runtime answers with
+// `{"error":"<Reason>"}` and a generic `errorCode`. Reading only the code turns
+// every server-side refusal into "application_error", which the session layer
+// cannot tell a lost session from a real failure by.
+function reasonFromPayload(payload: unknown): string | undefined {
+	if (!payload || typeof payload !== "object") return undefined;
+	const reason = (payload as { error?: unknown }).error;
+	return typeof reason === "string" && reason ? reason : undefined;
+}
+
 function detail(reply: EnvelopeReply): string | undefined {
 	if (typeof reply.error === "string") return reply.error;
 	if (reply.error && typeof reply.error === "object" && "message" in reply.error) {
 		const message = (reply.error as { message?: unknown }).message;
 		if (typeof message === "string") return message;
 	}
-	return typeof reply.errorCode === "string" ? reply.errorCode : undefined;
+	return (
+		reasonFromPayload(reply.payload) ??
+		(typeof reply.errorCode === "string" ? reply.errorCode : undefined)
+	);
 }
 
 function assertReply(method: string, reply: EnvelopeReply): void {

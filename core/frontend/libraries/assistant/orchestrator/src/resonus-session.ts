@@ -34,6 +34,23 @@ type ControlStreamEvent = {
 const DEFAULT_ENDPOINT = "fast";
 const DEFAULT_MAX_TOKENS = 256;
 
+/**
+ * Server-side session state Resonus can lose without this side noticing.
+ *
+ * A session is process-local there, while the socket goes to the signalling
+ * peer in front of it: when the Resonus process behind that peer is replaced,
+ * the browser keeps a perfectly healthy connection and an id nothing knows any
+ * more. Neither of these is a failed turn — a session is an id and its endpoint
+ * bindings, and the messages and context of a turn are re-sent by `ask` on
+ * every call, so opening and binding again restores everything that was lost.
+ */
+const RECOVERABLE = ["SessionUnknown", "EndpointNotBound"];
+
+function isRecoverable(error: unknown): boolean {
+	const message = error instanceof Error ? error.message : String(error);
+	return RECOVERABLE.some((code) => message.includes(code));
+}
+
 function eventError(event: ControlStreamEvent): Error | undefined {
 	if (event.type !== "response.error") return undefined;
 	return new Error(
@@ -98,12 +115,25 @@ export function createResonusSession({
 				if (closing) throw new Error("Resonus session is closed");
 				await transport.command("session.open", { sessionId });
 				await bind(endpoint);
-			})();
+			})().catch((error: unknown) => {
+				// An open that never happened must not be remembered as the
+				// session's state: without this the first failure — a dropped
+				// socket, a peer still starting — is replayed to every later
+				// turn for as long as the page lives.
+				starting = undefined;
+				throw error;
+			});
 		}
 		return starting;
 	};
 
-	const ask: OneShotAsk = async ({ system, user, tier, tools }) => {
+	/** Forget what the server no longer has, so the next `start` really opens. */
+	const reset = (): void => {
+		starting = undefined;
+		bindings.clear();
+	};
+
+	const attempt: OneShotAsk = async ({ system, user, tier, tools }) => {
 		await start();
 		if (closing) throw new Error("Resonus session is closed");
 		const target = endpointForTier(tier) || endpoint;
@@ -144,6 +174,16 @@ export function createResonusSession({
 		}
 	};
 
+	const ask: OneShotAsk = async (input) => {
+		try {
+			return await attempt(input);
+		} catch (error) {
+			if (closing || !isRecoverable(error)) throw error;
+			reset();
+			return attempt(input);
+		}
+	};
+
 	return {
 		sessionId,
 		start,
@@ -152,7 +192,9 @@ export function createResonusSession({
 			if (closing) return;
 			closing = true;
 			if (starting) await starting.catch(() => {});
-			await transport.command("session.close", { sessionId });
+			// Closing a session the server has already forgotten is the state
+			// the caller asked for, not an error to propagate out of teardown.
+			await transport.command("session.close", { sessionId }).catch(() => {});
 		},
 	};
 }

@@ -1,93 +1,93 @@
 {
-  "menu": {
-    "chats": "Chats",
-    "audio": "Audio",
-    "text": "Textuales",
-    "contexts": "Contextos",
-    "commands": "Comandos"
-  },
-  "chatsList": {
-    "title": "Lista de chats",
-    "actions": {
-      "newChat": "Nuevo chat",
-      "refresh": "Actualizar"
-    },
-    "columns": {
-      "name": "Nombre",
-      "messages": "Mensajes",
-      "createdAt": "Creado",
-      "updatedAt": "Actualizado"
-    }
-  },
-  "contextsList": {
-    "title": "Contextos",
-    "columns": {
-      "chatId": "ID de chat",
-      "updatedAt": "Actualizado",
-      "size": "Tamano"
-    },
-    "contextJson": "JSON del contexto",
-    "selectRow": "Seleccione una fila para ver el contexto.",
-    "errors": {
-      "loadFailed": "No se pudo cargar el contexto"
-    }
-  },
-  "commandsList": {
-    "title": "Comandos",
-    "searchPlaceholder": "Buscar comandos...",
-    "available": "{count} comandos disponibles",
-    "execute": "Ejecutar comando",
-    "empty": "No se encontraron comandos",
-    "functionInterface": "Interfaz de funcion AI",
-    "functionHint": "Use esta funcion desde el chat AI para ejecutar comandos de UI"
-  },
-  "common": {
-    "refresh": "Actualizar",
-    "loading": "Cargando...",
-    "error": "Error"
-  },
-  "toolAction": {
-    "thinking": "Estoy pensando en tu solicitud...",
-    "request": "Estoy trabajando en la solicitud...",
-    "file": "Estoy procesando archivos...",
-    "search": "Estoy buscando informacion...",
-    "analyze": "Estoy analizando datos...",
-    "convert": "Estoy convirtiendo archivos...",
-    "update": "Estoy actualizando datos...",
-    "create": "Estoy creando un registro...",
-    "load": "Estoy cargando datos...",
-    "delete": "Estoy eliminando un registro...",
-    "notify": "Estoy enviando una notificacion..."
-  },
-  "toolCall": {
-    "title": "Llamada de función",
-    "actions": {
-      "createCncRequest": "Creando solicitud",
-      "patchCncRequest": "Actualizando solicitud",
-      "getCncRequest": "Cargando solicitud",
-      "getCncRequestRequirements": "Comprobando requisitos",
-      "getUploadedChatFiles": "Comprobando archivos",
-      "startFileAnalysis": "Analizando archivos",
-      "listUIActions": "Buscando acciones",
-      "invokeUIAction": "Abriendo vista",
-      "weather": "Comprobando el tiempo"
-    }
-  },
-  "chatCard": {
-    "untitled": "Sin titulo"
-  },
-  "chatHistory": {
-    "fileUploadedPrefix": "Archivo subido: "
-  },
-  "composer": {
-    "placeholder": "Escribe un mensaje..."
-  },
-  "files": {
-    "status": {
-      "uploading": "Subiendo",
-      "paused": "Pausado",
-      "error": "Error",
-      "uploaded": "Listo"
-    }
-  }
+	"menu": {
+		"chats": "Chats",
+		"audio": "Audio",
+		"text": "Textuales",
+		"contexts": "Contextos",
+		"commands": "Comandos"
+	},
+	"chatsList": {
+		"title": "Lista de chats",
+		"actions": {
+			"newChat": "Nuevo chat",
+			"refresh": "Actualizar"
+		},
+		"columns": {
+			"name": "Nombre",
+			"messages": "Mensajes",
+			"createdAt": "Creado",
+			"updatedAt": "Actualizado"
+		}
+	},
+	"contextsList": {
+		"title": "Contextos",
+		"columns": {
+			"chatId": "ID de chat",
+			"updatedAt": "Actualizado",
+			"size": "Tamano"
+		},
+		"contextJson": "JSON del contexto",
+		"selectRow": "Seleccione una fila para ver el contexto.",
+		"errors": {
+			"loadFailed": "No se pudo cargar el contexto"
+		}
+	},
+	"commandsList": {
+		"title": "Comandos",
+		"searchPlaceholder": "Buscar comandos...",
+		"available": "{count} comandos disponibles",
+		"execute": "Ejecutar comando",
+		"empty": "No se encontraron comandos",
+		"functionInterface": "Interfaz de funcion AI",
+		"functionHint": "Use esta funcion desde el chat AI para ejecutar comandos de UI"
+	},
+	"common": {
+		"refresh": "Actualizar",
+		"loading": "Cargando...",
+		"error": "Error"
+	},
+	"toolAction": {
+		"thinking": "Estoy pensando en tu solicitud...",
+		"request": "Estoy trabajando en la solicitud...",
+		"file": "Estoy procesando archivos...",
+		"search": "Estoy buscando informacion...",
+		"analyze": "Estoy analizando datos...",
+		"convert": "Estoy convirtiendo archivos...",
+		"update": "Estoy actualizando datos...",
+		"create": "Estoy creando un registro...",
+		"load": "Estoy cargando datos...",
+		"delete": "Estoy eliminando un registro...",
+		"notify": "Estoy enviando una notificacion..."
+	},
+	"toolCall": {
+		"title": "Llamada de función",
+		"actions": {
+			"createCncRequest": "Creando solicitud",
+			"patchCncRequest": "Actualizando solicitud",
+			"getCncRequest": "Cargando solicitud",
+			"getCncRequestRequirements": "Comprobando requisitos",
+			"getUploadedChatFiles": "Comprobando archivos",
+			"startFileAnalysis": "Analizando archivos",
+			"listUIActions": "Buscando acciones",
+			"invokeUIAction": "Abriendo vista",
+			"weather": "Comprobando el tiempo"
+		}
+	},
+	"chatCard": {
+		"untitled": "Sin titulo"
+	},
+	"chatHistory": {
+		"fileUploadedPrefix": "Archivo subido: "
+	},
+	"composer": {
+		"placeholder": "Escribe un mensaje..."
+	},
+	"files": {
+		"status": {
+			"uploading": "Subiendo",
+			"paused": "Pausado",
+			"error": "Error",
+			"uploaded": "Listo"
+		}
+	}
 }

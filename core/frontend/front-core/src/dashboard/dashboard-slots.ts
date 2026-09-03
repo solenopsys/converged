@@ -6,6 +6,7 @@ import {
 } from "g-dashboard";
 import { createElement, type ReactNode } from "preact/compat";
 import { createFrontNrpcClientConfig } from "signal-channel";
+import { $readyLayouts, $slotContents, mount, mountWhenReady } from "./slots";
 import {
 	type DashboardWidgetSize,
 	getDashboardWidgetSize,
@@ -13,7 +14,6 @@ import {
 	resolveDashboardWidget,
 	subscribeDashboardWidgetRegistry,
 } from "./widget-registry";
-import { $readyLayouts, $slotContents, mount, mountWhenReady } from "./slots";
 
 // Maps a pin's componentKey prefix to the microfrontend module that owns its
 // live widget factory. Used to lazily load that module on the State Stream
@@ -37,11 +37,15 @@ const inflightWidgetModules = new Map<string, Promise<void>>();
 function resolveRuntimeModuleSpecifier(moduleName: string): string {
 	if (typeof document === "undefined") return moduleName;
 
-	const script = document.querySelector<HTMLScriptElement>('script[type="importmap"]');
+	const script = document.querySelector<HTMLScriptElement>(
+		'script[type="importmap"]',
+	);
 	if (!script?.textContent) return `/mf/${moduleName}.js`;
 
 	try {
-		const parsed = JSON.parse(script.textContent) as { imports?: Record<string, string> };
+		const parsed = JSON.parse(script.textContent) as {
+			imports?: Record<string, string>;
+		};
 		return parsed.imports?.[moduleName] ?? `/mf/${moduleName}.js`;
 	} catch {
 		return `/mf/${moduleName}.js`;
@@ -66,7 +70,9 @@ async function ensureWidgetModuleLoaded(componentKey: string): Promise<void> {
 
 	const loadPromise = (async () => {
 		try {
-			await import(/* @vite-ignore */ resolveRuntimeModuleSpecifier(moduleName));
+			await import(
+				/* @vite-ignore */ resolveRuntimeModuleSpecifier(moduleName)
+			);
 			loadedWidgetModules.add(moduleName);
 		} catch (error) {
 			console.error("[dashboard-slots] Failed to load widget module", {
@@ -84,10 +90,13 @@ async function ensureWidgetModuleLoaded(componentKey: string): Promise<void> {
 }
 
 const DASHBOARD_PIN_EVENT = "front-core:dashboard-pin";
-const DASHBOARD_INDICATORS_CHANGED_EVENT = "front-core:dashboard-indicators-changed";
+const DASHBOARD_INDICATORS_CHANGED_EVENT =
+	"front-core:dashboard-indicators-changed";
 const DASHBOARD_RUNTIME_KEY = "__front_core_dashboard_runtime__";
 
-const dashboardClient = createDashboardServiceClient(createFrontNrpcClientConfig());
+const dashboardClient = createDashboardServiceClient(
+	createFrontNrpcClientConfig(),
+);
 
 export type DashboardIndicator = {
 	widgetId: string;
@@ -97,7 +106,10 @@ export type DashboardIndicator = {
 	pin: DashboardIndicatorPin;
 };
 
-export type DashboardPinRegistration = Omit<DashboardIndicatorPinInput, "widgetId">;
+export type DashboardPinRegistration = Omit<
+	DashboardIndicatorPinInput,
+	"widgetId"
+>;
 
 type RegisteredWidget = {
 	component: ReactNode;
@@ -209,18 +221,27 @@ function emitIndicatorsChanged() {
 	);
 }
 
-function createPendingIndicator(pin: DashboardIndicatorPin, loading: boolean): ReactNode {
+function createPendingIndicator(
+	pin: DashboardIndicatorPin,
+	loading: boolean,
+): ReactNode {
 	return createElement(
 		"div",
 		{
 			className:
 				"flex min-h-24 flex-col justify-center rounded-md bg-muted/20 px-3 py-2.5 text-sm text-muted-foreground",
 		},
-		createElement("div", { className: "font-medium text-foreground" }, pin.title ?? pin.widgetId),
+		createElement(
+			"div",
+			{ className: "font-medium text-foreground" },
+			pin.title ?? pin.widgetId,
+		),
 		createElement(
 			"div",
 			{ className: "mt-1 text-xs leading-5" },
-			loading ? "Loading live widget…" : "Live widget unavailable — open its dashboard to render it.",
+			loading
+				? "Loading live widget…"
+				: "Live widget unavailable — open its dashboard to render it.",
 		),
 	);
 }
@@ -234,13 +255,17 @@ function materializeIndicators(
 		// Prefer the standalone live factory (survives reloads); fall back to the
 		// a transient placeholder while the owning microfrontend loads.
 		const liveComponent =
-			resolveDashboardWidget(componentKey) ?? registeredWidgets.get(pin.widgetId)?.component ?? null;
+			resolveDashboardWidget(componentKey) ??
+			registeredWidgets.get(pin.widgetId)?.component ??
+			null;
 
 		const slotId = `dashboard:${resolveSlot(pin.widgetId)}`;
 		return {
 			widgetId: pin.widgetId,
 			slotId,
-			component: liveComponent ?? createPendingIndicator(pin, Boolean(widgetModuleFor(componentKey))),
+			component:
+				liveComponent ??
+				createPendingIndicator(pin, Boolean(widgetModuleFor(componentKey))),
 			size: getDashboardWidgetSize(componentKey),
 			pin,
 		};
@@ -300,10 +325,16 @@ class DashboardSlots {
 	}
 
 	isPinned(widgetId: string): boolean {
-		return getRuntime().indicatorPins.some((item) => item.widgetId === widgetId);
+		return getRuntime().indicatorPins.some(
+			(item) => item.widgetId === widgetId,
+		);
 	}
 
-	register(widgetId: string, component: ReactNode, meta?: DashboardPinRegistration) {
+	register(
+		widgetId: string,
+		component: ReactNode,
+		meta?: DashboardPinRegistration,
+	) {
 		const normalized = widgetId.trim();
 		if (!normalized) return;
 
@@ -313,7 +344,11 @@ class DashboardSlots {
 		}
 	}
 
-	pin(widgetId: string, component: ReactNode, meta?: DashboardPinRegistration): string {
+	pin(
+		widgetId: string,
+		component: ReactNode,
+		meta?: DashboardPinRegistration,
+	): string {
 		const normalized = widgetId.trim();
 		if (!normalized) {
 			throw new Error("widgetId is required");
@@ -339,7 +374,9 @@ class DashboardSlots {
 			try {
 				const remotePins = await dashboardClient.listIndicators();
 				const legacyPins = remotePins.filter(isLegacyGeneratedPin);
-				const loadedPins = remotePins.filter((pin) => !isLegacyGeneratedPin(pin));
+				const loadedPins = remotePins.filter(
+					(pin) => !isLegacyGeneratedPin(pin),
+				);
 				for (const pin of legacyPins) {
 					void dashboardClient.unpinIndicator(pin.widgetId).catch((error) => {
 						console.warn("[dashboard-slots] Failed to remove legacy pin", {
@@ -370,24 +407,35 @@ class DashboardSlots {
 		const normalized = widgetId.trim();
 		if (!normalized) return;
 
-		setPinSnapshot(getRuntime().indicatorPins.filter((item) => item.widgetId !== normalized));
+		setPinSnapshot(
+			getRuntime().indicatorPins.filter((item) => item.widgetId !== normalized),
+		);
 		this.syncMaterializedIndicators();
 
 		try {
 			await dashboardClient.unpinIndicator(normalized);
 			await this.loadIndicators();
 		} catch (error) {
-			console.warn("[dashboard-slots] Failed to unpin indicator", { widgetId: normalized, error });
+			console.warn("[dashboard-slots] Failed to unpin indicator", {
+				widgetId: normalized,
+				error,
+			});
 		}
 	}
 
-	private async persistPin(widgetId: string, meta?: DashboardPinRegistration): Promise<void> {
+	private async persistPin(
+		widgetId: string,
+		meta?: DashboardPinRegistration,
+	): Promise<void> {
 		try {
 			const saved = await dashboardClient.pinIndicator({ widgetId, ...meta });
 			upsertPinSnapshot(saved);
 			this.syncMaterializedIndicators();
 		} catch (error) {
-			console.warn("[dashboard-slots] Failed to save indicator pin", { widgetId, error });
+			console.warn("[dashboard-slots] Failed to save indicator pin", {
+				widgetId,
+				error,
+			});
 		}
 	}
 
@@ -402,14 +450,18 @@ class DashboardSlots {
 		}
 
 		this.pendingMounts.get(fullSlotId)?.();
-		const cancel = mountWhenReady(component, fullSlotId, { layoutName: "dashboard" });
+		const cancel = mountWhenReady(component, fullSlotId, {
+			layoutName: "dashboard",
+		});
 		this.pendingMounts.set(fullSlotId, cancel);
 		return slotId;
 	}
 
 	private syncMaterializedIndicators() {
 		const runtime = getRuntime();
-		runtime.indicatorItems = materializeIndicators((widgetId) => this.next("pinned", widgetId));
+		runtime.indicatorItems = materializeIndicators((widgetId) =>
+			this.next("pinned", widgetId),
+		);
 
 		for (const indicator of runtime.indicatorItems) {
 			this.savedWidgets.set(indicator.slotId, indicator.component);
@@ -421,7 +473,10 @@ class DashboardSlots {
 		// Kick off lazy loading of microfrontends owning any still-unresolved pin.
 		for (const pin of runtime.indicatorPins) {
 			const componentKey = pin.componentKey ?? pin.widgetId;
-			if (!hasDashboardWidget(componentKey) && !runtime.registeredWidgets.has(pin.widgetId)) {
+			if (
+				!hasDashboardWidget(componentKey) &&
+				!runtime.registeredWidgets.has(pin.widgetId)
+			) {
 				void ensureWidgetModuleLoaded(componentKey);
 			}
 		}
@@ -442,7 +497,11 @@ class DashboardSlots {
 		});
 	}
 
-	private broadcastPin(widgetId: string, component: ReactNode, meta?: DashboardPinRegistration) {
+	private broadcastPin(
+		widgetId: string,
+		component: ReactNode,
+		meta?: DashboardPinRegistration,
+	) {
 		if (typeof window === "undefined") return;
 
 		window.dispatchEvent(

@@ -6,7 +6,11 @@ import {
 	objectRef,
 	setOf,
 } from "front-core/object-runtime";
-import { callsClient, openCallDetail, startNewCallClicked } from "./domain-calls";
+import {
+	callsClient,
+	openCallDetail,
+	startNewCallClicked,
+} from "./domain-calls";
 import { ActiveCallView } from "./views/ActiveCallView";
 import { CallDetailView } from "./views/CallDetailView";
 import { CallsListView } from "./views/CallsListView";

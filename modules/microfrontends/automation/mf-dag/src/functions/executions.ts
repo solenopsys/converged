@@ -1,25 +1,25 @@
-import { CreateAction, CreateWidget } from "front-core";
+import type { CreateAction, CreateWidget } from "front-core";
 import { ExecutionsView } from "../views/ExecutionsView";
 
 const SHOW_EXECUTIONS_LIST = "executions.show_list";
 
 const createExecutionsWidget: CreateWidget<typeof ExecutionsView> = (bus) => ({
-  view: ExecutionsView,
-  placement: () => "center",
-  config: {
-    bus: bus,
-  },
-  commands: {},
+	view: ExecutionsView,
+	placement: () => "center",
+	config: {
+		bus: bus,
+	},
+	commands: {},
 });
 
 const createShowExecutionsListAction: CreateAction<any> = (bus) => ({
-  id: SHOW_EXECUTIONS_LIST,
-  invoke: () => {
-    bus.present({ widget: createExecutionsWidget(bus) });
-  },
+	id: SHOW_EXECUTIONS_LIST,
+	invoke: () => {
+		bus.present({ widget: createExecutionsWidget(bus) });
+	},
 });
 
-export { SHOW_EXECUTIONS_LIST, createShowExecutionsListAction };
+export { createShowExecutionsListAction, SHOW_EXECUTIONS_LIST };
 
 const ACTIONS = [createShowExecutionsListAction];
 

@@ -1,7 +1,13 @@
-import React, { useEffect } from "preact/compat";
 import { useUnit } from "effector-preact";
-import { Button, HeaderPanelLayout, ScrollArea } from "front-core";
-import { ChevronDown, ChevronRight, RefreshCw } from "front-core";
+import {
+	Button,
+	ChevronDown,
+	ChevronRight,
+	HeaderPanelLayout,
+	RefreshCw,
+	ScrollArea,
+} from "front-core";
+import React, { useEffect } from "preact/compat";
 import {
 	$classifierTreeStore,
 	CLASSIFIER_TREE_ROOT,

@@ -1,6 +1,6 @@
 {
-  "menu": {
-    "sheduller": "Scheduler",
-    "crons": "Crons"
-  }
+	"menu": {
+		"sheduller": "Scheduler",
+		"crons": "Crons"
+	}
 }

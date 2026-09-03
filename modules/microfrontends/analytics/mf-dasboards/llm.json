@@ -1,18 +1,18 @@
 {
-  "actions": {
-    "dashboard.mount": {
-      "brief": "Mount dashboard",
-      "description": "Mount dashboard",
-      "category": "dashboard",
-      "exposure": "llm",
-      "priority": "normal"
-    },
-    "dashboard.register_widget": {
-      "brief": "Register widget for dashboard",
-      "description": "Register widget for dashboard",
-      "category": "dashboard",
-      "exposure": "llm",
-      "priority": "normal"
-    }
-  }
+	"actions": {
+		"dashboard.mount": {
+			"brief": "Mount dashboard",
+			"description": "Mount dashboard",
+			"category": "dashboard",
+			"exposure": "llm",
+			"priority": "normal"
+		},
+		"dashboard.register_widget": {
+			"brief": "Register widget for dashboard",
+			"description": "Register widget for dashboard",
+			"category": "dashboard",
+			"exposure": "llm",
+			"priority": "normal"
+		}
+	}
 }

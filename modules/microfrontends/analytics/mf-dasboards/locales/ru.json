@@ -1,5 +1,8 @@
 {
-  "menu": {
-    "dashboard": "Дашборд"
-  }
+	"menu": {
+		"dashboard": "Дашборд"
+	},
+	"dashboard": {
+		"title": "Дашборд"
+	}
 }

@@ -23,7 +23,9 @@ export type DashboardWidgetResolver = (
 ) => DashboardWidgetDefinition | DashboardWidgetFactory | null | undefined;
 
 // A registration is either a bare factory (default "sm") or a full definition.
-export type DashboardWidgetEntry = DashboardWidgetFactory | DashboardWidgetDefinition;
+export type DashboardWidgetEntry =
+	| DashboardWidgetFactory
+	| DashboardWidgetDefinition;
 
 const REGISTRY_KEY = "__front_core_dashboard_widget_registry__";
 
@@ -53,18 +55,25 @@ function notify() {
 	}
 }
 
-function normalizeEntry(entry: DashboardWidgetEntry): DashboardWidgetDefinition {
+function normalizeEntry(
+	entry: DashboardWidgetEntry,
+): DashboardWidgetDefinition {
 	return typeof entry === "function" ? { render: entry } : entry;
 }
 
-export function registerDashboardWidget(componentKey: string, entry: DashboardWidgetEntry): void {
+export function registerDashboardWidget(
+	componentKey: string,
+	entry: DashboardWidgetEntry,
+): void {
 	const key = componentKey.trim();
 	if (!key) return;
 	getRegistry().factories.set(key, normalizeEntry(entry));
 	notify();
 }
 
-export function registerDashboardWidgets(entries: Record<string, DashboardWidgetEntry>): void {
+export function registerDashboardWidgets(
+	entries: Record<string, DashboardWidgetEntry>,
+): void {
 	const { factories } = getRegistry();
 	let changed = false;
 	for (const [componentKey, entry] of Object.entries(entries)) {
@@ -86,7 +95,9 @@ export function registerDashboardWidgetResolver(
 	notify();
 }
 
-function resolveDashboardWidgetDefinition(componentKey: string): DashboardWidgetDefinition | null {
+function resolveDashboardWidgetDefinition(
+	componentKey: string,
+): DashboardWidgetDefinition | null {
 	const key = componentKey.trim();
 	const exact = getRegistry().factories.get(key);
 	if (exact) return exact;
@@ -112,11 +123,15 @@ export function resolveDashboardWidget(componentKey: string): ReactNode | null {
 	return definition ? definition.render() : null;
 }
 
-export function getDashboardWidgetSize(componentKey: string): DashboardWidgetSize {
+export function getDashboardWidgetSize(
+	componentKey: string,
+): DashboardWidgetSize {
 	return resolveDashboardWidgetDefinition(componentKey)?.size ?? "sm";
 }
 
-export function subscribeDashboardWidgetRegistry(listener: () => void): () => void {
+export function subscribeDashboardWidgetRegistry(
+	listener: () => void,
+): () => void {
 	getRegistry().listeners.add(listener);
 	return () => {
 		getRegistry().listeners.delete(listener);

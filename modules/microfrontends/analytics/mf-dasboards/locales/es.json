@@ -1,5 +1,8 @@
 {
-  "menu": {
-    "dashboard": "Panel de control"
-  }
+	"menu": {
+		"dashboard": "Panel de control"
+	},
+	"dashboard": {
+		"title": "Panel"
+	}
 }

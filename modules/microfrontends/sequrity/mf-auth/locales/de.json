@@ -1,38 +1,38 @@
 {
-  "welcome": {
-    "heading": "Willkommen",
-    "description": "Melden Sie sich bei Ihrem Acme Inc-Konto an"
-  },
-  "form": {
-    "email": "E-Mail-Adresse",
-    "password": "Passwort",
-    "forgotPassword": "Passwort vergessen?"
-  },
-  "button": {
-    "login": "Anmelden",
-    "sendAuthLink": "Anmeldelink senden",
-    "sendingLink": "Link wird gesendet...",
-    "loggingIn": "Anmeldung läuft...",
-    "continueWith": "Oder fortfahren mit",
-    "loginWithApple": "Mit Apple anmelden",
-    "loginWithGoogle": "Mit Google anmelden",
-    "loginWithMeta": "Mit Meta anmelden",
-    "loginWithMicrosoft": "Mit Microsoft anmelden",
-    "loginWithGithub": "Mit GitHub anmelden"
-  },
-  "signup": {
-    "text": "Noch kein Konto?",
-    "link": "Registrieren"
-  },
-  "legal": {
-    "agreement": "Indem Sie auf „Fortfahren“ klicken, stimmen Sie unseren {{termsLink}} und {{privacyLink}} zu.",
-    "termsOfService": "Nutzungsbedingungen",
-    "privacyPolicy": "Datenschutzrichtlinie"
-  },
-  "notification": {
-    "linkSent": "Anmeldelink wurde gesendet",
-    "checkEmail": "Bitte prüfen Sie Ihre E-Mails",
-    "loginFailed": "Anmeldung fehlgeschlagen",
-    "tryAgain": "Bitte versuchen Sie es erneut"
-  }
+	"welcome": {
+		"heading": "Willkommen",
+		"description": "Melden Sie sich bei Ihrem Acme Inc-Konto an"
+	},
+	"form": {
+		"email": "E-Mail-Adresse",
+		"password": "Passwort",
+		"forgotPassword": "Passwort vergessen?"
+	},
+	"button": {
+		"login": "Anmelden",
+		"sendAuthLink": "Anmeldelink senden",
+		"sendingLink": "Link wird gesendet...",
+		"loggingIn": "Anmeldung läuft...",
+		"continueWith": "Oder fortfahren mit",
+		"loginWithApple": "Mit Apple anmelden",
+		"loginWithGoogle": "Mit Google anmelden",
+		"loginWithMeta": "Mit Meta anmelden",
+		"loginWithMicrosoft": "Mit Microsoft anmelden",
+		"loginWithGithub": "Mit GitHub anmelden"
+	},
+	"signup": {
+		"text": "Noch kein Konto?",
+		"link": "Registrieren"
+	},
+	"legal": {
+		"agreement": "Indem Sie auf „Fortfahren“ klicken, stimmen Sie unseren {{termsLink}} und {{privacyLink}} zu.",
+		"termsOfService": "Nutzungsbedingungen",
+		"privacyPolicy": "Datenschutzrichtlinie"
+	},
+	"notification": {
+		"linkSent": "Anmeldelink wurde gesendet",
+		"checkEmail": "Bitte prüfen Sie Ihre E-Mails",
+		"loginFailed": "Anmeldung fehlgeschlagen",
+		"tryAgain": "Bitte versuchen Sie es erneut"
+	}
 }

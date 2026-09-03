@@ -1,5 +1,6 @@
 import { defineMicrofrontend, setOf } from "front-core/object-runtime";
 import telemetry from "./service";
+import { TelemetrySummary } from "./summary";
 import { TelemetryStatsView } from "./views/TelemetryStatsView";
 import { TelemetryView } from "./views/TelemetryView";
 
@@ -17,6 +18,12 @@ export default defineMicrofrontend({
 				load: (params) => telemetry.listHot(params),
 				inspect: (filter) => telemetry.inspectTelemetry(filter),
 			},
+		},
+		{
+			id: "telemetry.statistic.summary",
+			label: "Telemetry",
+			categories: ["core.statistic"],
+			statistic: { role: "summary", component: TelemetrySummary },
 		},
 		{
 			id: "telemetry.statistic",

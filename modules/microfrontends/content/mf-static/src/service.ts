@@ -1,4 +1,4 @@
-import { createFrontNrpcClientConfig } from "signal-channel";
 import { createStaticServiceClient } from "g-static";
+import { createFrontNrpcClientConfig } from "signal-channel";
 
 export default createStaticServiceClient(createFrontNrpcClientConfig());

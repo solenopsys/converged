@@ -39,11 +39,11 @@ const ACTIONS = [
 ];
 
 export {
-	SHOW_LOGS_HOT,
-	SHOW_LOGS_COLD,
-	SHOW_LOGS_STATS,
-	createShowLogsHotAction,
 	createShowLogsColdAction,
+	createShowLogsHotAction,
 	createShowLogsStatsAction,
+	SHOW_LOGS_COLD,
+	SHOW_LOGS_HOT,
+	SHOW_LOGS_STATS,
 };
 export default ACTIONS;

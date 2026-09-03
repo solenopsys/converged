@@ -1,14 +1,14 @@
 {
-  "name": "mf-chats",
-  "private": true,
-  "type": "module",
-  "module": "src/index.ts",
-  "exports": {
-    ".": "./src/index.ts"
-  },
-  "dependencies": {
-    "front-core": "workspace:*",
-    "g-chats": "workspace:*",
-    "g-threads": "workspace:*"
-  }
+	"name": "mf-chats",
+	"private": true,
+	"type": "module",
+	"module": "src/index.ts",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"dependencies": {
+		"front-core": "workspace:*",
+		"g-chats": "workspace:*",
+		"g-threads": "workspace:*"
+	}
 }

@@ -1,32 +1,32 @@
 {
-  "actions": {
-    "sheduller.stats.show": {
-      "brief": "Show sheduller statistics",
-      "description": "Show sheduller statistics",
-      "category": "analytics",
-      "exposure": "user",
-      "priority": "normal"
-    },
-    "sheduller.history.show": {
-      "brief": "Show history",
-      "description": "Show history",
-      "category": "automation",
-      "exposure": "user",
-      "priority": "normal"
-    },
-    "crons.show": {
-      "brief": "Show crons list",
-      "description": "Show crons list",
-      "category": "automation",
-      "exposure": "user",
-      "priority": "primary"
-    },
-    "cron_form.show": {
-      "brief": "Show cron form",
-      "description": "Show cron form",
-      "category": "automation",
-      "exposure": "user",
-      "priority": "primary"
-    }
-  }
+	"actions": {
+		"sheduller.stats.show": {
+			"brief": "Show sheduller statistics",
+			"description": "Show sheduller statistics",
+			"category": "analytics",
+			"exposure": "user",
+			"priority": "normal"
+		},
+		"sheduller.history.show": {
+			"brief": "Show history",
+			"description": "Show history",
+			"category": "automation",
+			"exposure": "user",
+			"priority": "normal"
+		},
+		"crons.show": {
+			"brief": "Show crons list",
+			"description": "Show crons list",
+			"category": "automation",
+			"exposure": "user",
+			"priority": "primary"
+		},
+		"cron_form.show": {
+			"brief": "Show cron form",
+			"description": "Show cron form",
+			"category": "automation",
+			"exposure": "user",
+			"priority": "primary"
+		}
+	}
 }

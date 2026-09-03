@@ -1,33 +1,45 @@
-import { sample } from 'effector';
-import domain from './domain';
-import dagService from './service';
+import { sample } from "effector";
+import domain from "./domain";
+import dagService from "./service";
 
-export const showVars = domain.createEvent('SHOW_VARS');
-export const refreshVarsClicked = domain.createEvent('REFRESH_VARS_CLICKED');
-export const deleteVarClicked = domain.createEvent<string>('DELETE_VAR_CLICKED');
-export const openVarForm = domain.createEvent<{ variable: { key: string; value: any } | null }>('OPEN_VAR_FORM');
+export const showVars = domain.createEvent("SHOW_VARS");
+export const refreshVarsClicked = domain.createEvent("REFRESH_VARS_CLICKED");
+export const deleteVarClicked =
+	domain.createEvent<string>("DELETE_VAR_CLICKED");
+export const openVarForm = domain.createEvent<{
+	variable: { key: string; value: any } | null;
+}>("OPEN_VAR_FORM");
 
 export const $vars = domain.createStore<{ key: string; value: any }[]>([]);
 export const $varsLoading = domain.createStore(false);
-export const $currentVar = domain.createStore<{ key: string; value: any } | null>(null);
+export const $currentVar = domain.createStore<{
+	key: string;
+	value: any;
+} | null>(null);
 
-export const loadVarsFx = domain.createEffect<void, { key: string; value: any }[]>({
-  handler: async () => {
-    const result = await dagService.listVars();
-    return result.items;
-  },
+export const loadVarsFx = domain.createEffect<
+	void,
+	{ key: string; value: any }[]
+>({
+	handler: async () => {
+		const result = await dagService.listVars();
+		return result.items;
+	},
 });
 
 export const deleteVarFx = domain.createEffect<string, void>({
-  handler: async (key) => {
-    await dagService.deleteVar(key);
-  },
+	handler: async (key) => {
+		await dagService.deleteVar(key);
+	},
 });
 
-export const updateVarFx = domain.createEffect<{ key: string; value: any }, void>({
-  handler: async ({ key, value }) => {
-    await dagService.setVar(key, value);
-  },
+export const updateVarFx = domain.createEffect<
+	{ key: string; value: any },
+	void
+>({
+	handler: async ({ key, value }) => {
+		await dagService.setVar(key, value);
+	},
 });
 
 $varsLoading.on(loadVarsFx, () => true).on(loadVarsFx.finally, () => false);

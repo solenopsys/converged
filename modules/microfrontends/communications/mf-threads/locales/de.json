@@ -1,8 +1,8 @@
 {
-  "menu": {
-    "threads": "Threads",
-    "chats": "Chats",
-    "audio": "Audio",
-    "text": "Text"
-  }
+	"menu": {
+		"threads": "Threads",
+		"chats": "Chats",
+		"audio": "Audio",
+		"text": "Text"
+	}
 }

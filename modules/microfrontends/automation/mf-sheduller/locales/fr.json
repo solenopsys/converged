@@ -1,6 +1,6 @@
 {
-  "menu": {
-    "sheduller": "Planificateur",
-    "crons": "Programmations"
-  }
+	"menu": {
+		"sheduller": "Planificateur",
+		"crons": "Programmations"
+	}
 }

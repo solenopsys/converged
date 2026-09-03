@@ -1,5 +1,5 @@
-import { signalChannel } from "signal-channel";
 import { useCallback, useEffect, useRef, useState } from "preact/compat";
+import { signalChannel } from "signal-channel";
 import type { GateTranscriptItem } from "../services/call-transcript";
 
 export type CallStatus =

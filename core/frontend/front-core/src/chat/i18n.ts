@@ -54,10 +54,12 @@ const DEFAULT_MESSAGES = {
 		failedToStart: "Call failed to start: {reason}",
 		unknownError: "unknown error",
 		contextRequired: "Call is not set up: this workspace has no context",
-		contextUnavailable: "Call is not set up: the context service is unavailable",
+		contextUnavailable:
+			"Call is not set up: the context service is unavailable",
 		policyRejected: "Call rejected by policy",
 		policyProviderUnavailable: "Voice provider unavailable",
-		policyActionUnsupported: "This route does not support calling from the browser",
+		policyActionUnsupported:
+			"This route does not support calling from the browser",
 		missingApiKey: "Voice service is not configured",
 		dataChannelUnavailable: "Voice service unavailable",
 		buttonConnecting: "Connecting call",
@@ -118,6 +120,15 @@ const DEFAULT_MESSAGES = {
 		loadingConfig: "Loading card configuration...",
 		configNotFound: "Card configuration not found",
 	},
+	statistics: {
+		empty: "No statistics published yet.",
+		loadingSection: "Loading charts...",
+		allHidden: "Every chart in this section is hidden.",
+		widgetUnavailable: "This chart did not register a component.",
+		hideWidget: "Hide {title}",
+		loadingSummary: "Loading summary...",
+		restoreHidden: "Restore {count} hidden",
+	},
 };
 
 // The shell renders components that read this namespace (AppShell, Composer,
@@ -136,9 +147,11 @@ bootstrapChatMessagesDefaults();
 export type MessagesReader = (path: string) => Promise<unknown>;
 
 function isMissingMessageRecord(error: unknown): boolean {
-	if (error instanceof Error && error.message.includes("NOT_FOUND")) return true;
+	if (error instanceof Error && error.message.includes("NOT_FOUND"))
+		return true;
 	if (!error || typeof error !== "object") return false;
-	const code = (error as { code?: unknown; errorCode?: unknown }).code ??
+	const code =
+		(error as { code?: unknown; errorCode?: unknown }).code ??
 		(error as { errorCode?: unknown }).errorCode;
 	return code === "NOT_FOUND";
 }
@@ -152,21 +165,24 @@ export function initChatMessages(
 	setMessageSource(
 		read
 			? async (namespace, forLocale) => {
-			try {
-				const record = await read(`${forLocale}/${namespace}.json`);
-				return record && typeof record === "object"
-					? (record as Record<string, unknown>)
-					: undefined;
-			} catch (error) {
-				if (isMissingMessageRecord(error)) return undefined;
-				throw error;
-			}
-			}
+					try {
+						const record = await read(`${forLocale}/${namespace}.json`);
+						return record && typeof record === "object"
+							? (record as Record<string, unknown>)
+							: undefined;
+					} catch (error) {
+						if (isMissingMessageRecord(error)) return undefined;
+						throw error;
+					}
+				}
 			: async () => undefined,
 	);
 
 	if ((LOCALES as readonly string[]).includes(language)) setLocale(language);
-	else console.warn(`[chat] Unpublished locale "${language}"; using ${DEFAULT_LOCALE}`);
+	else
+		console.warn(
+			`[chat] Unpublished locale "${language}"; using ${DEFAULT_LOCALE}`,
+		);
 
 	if (read) {
 		// Needed by the first transcript render, not by page start.

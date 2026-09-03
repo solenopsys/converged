@@ -1,4 +1,4 @@
-import { CreateAction, CreateWidget } from "front-core";
+import type { CreateAction, CreateWidget } from "front-core";
 import { ClassifierDashboardView } from "../views/ClassifierDashboardView";
 import { ClassifierMappingsView } from "../views/ClassifierMappingsView";
 import { ClassifierNodesView } from "../views/ClassifierNodesView";
@@ -77,13 +77,13 @@ const ACTIONS = [
 ];
 
 export {
-	SHOW_CLASSIFIER_DASHBOARD,
-	SHOW_CLASSIFIER_MAPPINGS,
-	SHOW_CLASSIFIER_NODES,
-	SHOW_CLASSIFIER_TREE,
 	createShowClassifierDashboardAction,
 	createShowClassifierMappingsAction,
 	createShowClassifierNodesAction,
 	createShowClassifierTreeAction,
+	SHOW_CLASSIFIER_DASHBOARD,
+	SHOW_CLASSIFIER_MAPPINGS,
+	SHOW_CLASSIFIER_NODES,
+	SHOW_CLASSIFIER_TREE,
 };
 export default ACTIONS;

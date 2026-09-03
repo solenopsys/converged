@@ -1,5 +1,8 @@
 {
-  "menu": {
-    "dashboard": "Tableau de bord"
-  }
+	"menu": {
+		"dashboard": "Tableau de bord"
+	},
+	"dashboard": {
+		"title": "Tableau de bord"
+	}
 }

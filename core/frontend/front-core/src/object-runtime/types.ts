@@ -43,6 +43,27 @@ export type CategoryId = (typeof Category)[keyof typeof Category];
  */
 export type DiscoveryAccess = "public" | "user";
 
+/** Bento sizing hint: "lg" spans a 2x2 tile, everything else a single cell. */
+export type StatisticWidgetSize = "sm" | "lg";
+
+/**
+ * A "summary" is the service's readout while its section is collapsed: a few
+ * headline numbers and one trend line, not a chart. At most one per
+ * microfrontend; everything else is a "block" inside the opened section.
+ */
+export type StatisticRole = "summary" | "block";
+
+export type StatisticDefinition = {
+	// The chart belongs to an independently built microfrontend and carries its
+	// own prop types; the runtime only mounts it.
+	// biome-ignore lint/suspicious/noExplicitAny: mounted, never inspected
+	component?: ComponentType<any>;
+	props?: Record<string, unknown>;
+	size?: StatisticWidgetSize;
+	/** Defaults to "block". */
+	role?: StatisticRole;
+};
+
 export type ObjectDefinition = {
 	id: ObjectTypeId;
 	label: string;
@@ -56,6 +77,14 @@ export type ObjectDefinition = {
 	discover?: () => boolean;
 	/** Optional existing NRPC permission required to advertise this type. */
 	capability?: string;
+	/**
+	 * A single statistic block: one chart or one indicator, not a page of them.
+	 * The dashboard reads this straight from the catalog, so a microfrontend
+	 * publishes its charts by declaring types — it does not own a dashboard
+	 * screen anymore. `component` survives only in a loaded module: the build
+	 * index is JSON, so it arrives undefined until the owner is imported.
+	 */
+	statistic?: StatisticDefinition;
 	/** Serializable filter capability used by select, the LLM and collection views. */
 	selection?: {
 		filters: readonly {

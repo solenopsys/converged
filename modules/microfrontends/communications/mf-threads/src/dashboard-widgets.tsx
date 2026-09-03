@@ -1,16 +1,14 @@
 import { useUnit } from "effector-preact";
 import {
-	registerDashboardWidgets,
-	StatisticCard,
-	useMicrofrontendTranslation,
-} from "front-core";
-import {
 	Hash,
 	MessageCircle,
 	MessageSquare,
 	MessagesSquare,
 	Phone,
+	registerDashboardWidgets,
+	StatisticCard,
 	Users,
+	useMicrofrontendTranslation,
 } from "front-core";
 import type { ComponentType } from "preact/compat";
 import { useEffect } from "preact/compat";

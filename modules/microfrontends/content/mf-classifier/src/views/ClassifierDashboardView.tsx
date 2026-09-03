@@ -1,6 +1,5 @@
 import { useUnit } from "effector-preact";
-import { HeaderPanelLayout, StatisticCard } from "front-core";
-import { RefreshCw } from "front-core";
+import { HeaderPanelLayout, RefreshCw, StatisticCard } from "front-core";
 import { useEffect } from "preact/compat";
 import {
 	$classifierDashboard,

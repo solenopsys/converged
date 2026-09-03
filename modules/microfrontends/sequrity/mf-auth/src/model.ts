@@ -1,7 +1,4 @@
-import {
-	createAuthController,
-	type TokenStorage,
-} from "auth-controller";
+import { createAuthController, type TokenStorage } from "auth-controller";
 import { createEffect, createEvent, createStore, sample } from "effector";
 import { setSignalChannelAuth } from "signal-channel";
 import {
@@ -21,12 +18,17 @@ const TEMP_USER_ID_KEY = "tempUserId";
 const TEMP_SESSION_ID_KEY = "tempSessionId";
 const TEMP_SESSION_COOKIE = "temp_sid";
 
-export const authenticationRequested = createEvent<void>("authenticationRequested");
+export const authenticationRequested = createEvent<void>(
+	"authenticationRequested",
+);
 
 function readCookie(name: string): string | null {
 	if (typeof document === "undefined") return null;
 	const prefix = `${name}=`;
-	const item = document.cookie.split(";").map((part) => part.trim()).find((part) => part.startsWith(prefix));
+	const item = document.cookie
+		.split(";")
+		.map((part) => part.trim())
+		.find((part) => part.startsWith(prefix));
 	return item ? decodeURIComponent(item.slice(prefix.length)) : null;
 }
 
@@ -75,13 +77,15 @@ export const authController = createAuthController({
 			// before minting a new guest session for this browser tab.
 			const restored = await restoreSession();
 			if (restored) {
-				if (typeof window !== "undefined") window.sessionStorage.removeItem(TEMP_USER_ID_KEY);
+				if (typeof window !== "undefined")
+					window.sessionStorage.removeItem(TEMP_USER_ID_KEY);
 				return { accessToken: restored.token };
 			}
 			const sessionId = resolveOrCreateTempSessionId();
 			const guest = await createGuestSession(sessionId);
 			if (typeof window !== "undefined") {
-				if (guest.userId) window.sessionStorage.setItem(TEMP_USER_ID_KEY, guest.userId);
+				if (guest.userId)
+					window.sessionStorage.setItem(TEMP_USER_ID_KEY, guest.userId);
 				window.sessionStorage.setItem(TEMP_SESSION_ID_KEY, sessionId);
 			}
 			writeSessionCookie(TEMP_SESSION_COOKIE, sessionId);
@@ -100,7 +104,8 @@ export const authController = createAuthController({
 // The transport is a consumer of auth state. A state notification must not
 // start ensureSession again, otherwise a failed guest request loops forever.
 setSignalChannelAuth({
-	getCurrentAccessToken: () => authController.snapshot().tokens?.accessToken ?? null,
+	getCurrentAccessToken: () =>
+		authController.snapshot().tokens?.accessToken ?? null,
 	getAccessToken: () => authController.getAccessToken(),
 	setTokens: (tokens) => authController.setTokens(tokens),
 	subscribe: (listener) => authController.subscribe(listener),
@@ -108,7 +113,9 @@ setSignalChannelAuth({
 
 export const logoutPressed = createEvent<void>("logoutPressed");
 export const magicLinkSend = createEvent<string>("magicLinkSend");
-export const temporarySessionRequested = createEvent<void>("temporarySessionRequested");
+export const temporarySessionRequested = createEvent<void>(
+	"temporarySessionRequested",
+);
 
 export const logoutFx = createEffect("logoutFx", {
 	async handler() {
@@ -126,22 +133,40 @@ export const sendMagicLinkFx = createEffect("sendMagicLinkFx", {
 	},
 });
 
-export const ensureTemporarySessionFx = createEffect("ensureTemporarySessionFx", {
-	handler: () => authController.ensureSession(),
-});
+export const ensureTemporarySessionFx = createEffect(
+	"ensureTemporarySessionFx",
+	{
+		handler: () => authController.ensureSession(),
+	},
+);
 
-export const $authStatus = createStore<AuthStatus>("anonymous", { name: "$authStatus" });
-export const $isAuthenticated = $authStatus.map((status) => status === "authenticated");
-export const $magicLinkStatus = createStore<MagicLinkStatus>("idle", { name: "$magicLinkStatus" });
-export const $magicLinkError = createStore<string | null>(null, { name: "$magicLinkError" });
-export const $temporarySessionStatus = createStore<TemporarySessionStatus>("idle", { name: "$temporarySessionStatus" });
-export const $temporarySessionError = createStore<string | null>(null, { name: "$temporarySessionError" });
+export const $authStatus = createStore<AuthStatus>("anonymous", {
+	name: "$authStatus",
+});
+export const $isAuthenticated = $authStatus.map(
+	(status) => status === "authenticated",
+);
+export const $magicLinkStatus = createStore<MagicLinkStatus>("idle", {
+	name: "$magicLinkStatus",
+});
+export const $magicLinkError = createStore<string | null>(null, {
+	name: "$magicLinkError",
+});
+export const $temporarySessionStatus = createStore<TemporarySessionStatus>(
+	"idle",
+	{ name: "$temporarySessionStatus" },
+);
+export const $temporarySessionError = createStore<string | null>(null, {
+	name: "$temporarySessionError",
+});
 
 authController.subscribe((snapshot) => {
 	// Auth state can be published from an Effector effect handler. Defer UI
 	// notification to avoid calling a unit while that pure graph is running.
 	queueMicrotask(() => {
-		$authStatus.setState(snapshot.session === "account" ? "authenticated" : "anonymous");
+		$authStatus.setState(
+			snapshot.session === "account" ? "authenticated" : "anonymous",
+		);
 		if (typeof window !== "undefined") {
 			window.dispatchEvent(new Event("auth-token-changed"));
 		}

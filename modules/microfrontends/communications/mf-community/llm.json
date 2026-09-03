@@ -1,11 +1,11 @@
 {
-  "actions": {
-    "community.show": {
-      "brief": "Show community",
-      "description": "Show community",
-      "category": "community",
-      "exposure": "user",
-      "priority": "primary"
-    }
-  }
+	"actions": {
+		"community.show": {
+			"brief": "Show community",
+			"description": "Show community",
+			"category": "community",
+			"exposure": "user",
+			"priority": "primary"
+		}
+	}
 }

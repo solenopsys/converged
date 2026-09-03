@@ -114,6 +114,13 @@ pub const Pool = struct {
         for (self.models.items) |model| model.pool = self;
     }
 
+    /// A socket the vendor closed while nothing was on it. `SessionClosed` is
+    /// the tidy case, where the close callback had already run; more often the
+    /// turn is what discovers it, and the send is what fails.
+    fn deadSocket(err: anyerror) bool {
+        return err == error.SessionClosed or err == error.SessionSendFailed;
+    }
+
     pub fn stream(self: *Pool, allocator: std.mem.Allocator, session_id: []const u8, req: provider.ChatRequest, sink: provider.StreamSink) !provider.Completion {
         const model = self.findModel(req.model) orelse return error.ModelNotConfigured;
         // One retry on a freshly reconnected session: the leased socket can
@@ -121,13 +128,25 @@ pub const Pool = struct {
         // idle close, network blip). Without this the *current* turn still
         // fails even though the pool would have healed itself for the next
         // one — see the eviction logic in `lease`.
+        var guard = OnceEmitted{ .inner = sink };
         var attempt: u8 = 0;
         while (true) : (attempt += 1) {
             const session = try self.lease(model, session_id);
-            const result = session.stream(allocator, self.config, session_id, req, sink);
+            const result = session.stream(allocator, self.config, session_id, req, guard.sink());
             if (result) |completion| return completion else |err| {
-                if (err == error.SessionClosed and attempt == 0) {
-                    std.debug.print("resonus: chat={s} model={s}: session died mid-turn, reconnecting and retrying once\n", .{ session_id, model.name });
+                // A wedged socket answers nothing for two minutes and would
+                // answer nothing for the next turn either. Retrying it here
+                // only spends the deadline twice, but keeping it leased spends
+                // it again on every turn after this one.
+                if (err == error.SessionResponseTimedOut) {
+                    self.evict(model, session_id);
+                    return err;
+                }
+                // Once part of the answer is on the browser's screen, a retry
+                // would write the beginning of a second answer after it. From
+                // there the turn can only end honestly.
+                if (deadSocket(err) and attempt == 0 and !guard.emitted) {
+                    std.debug.print("resonus: chat={s} model={s}: session died mid-turn ({s}), reconnecting and retrying once\n", .{ session_id, model.name, @errorName(err) });
                     self.evict(model, session_id);
                     continue;
                 }
@@ -192,10 +211,7 @@ pub const Pool = struct {
         const session = blk: while (true) {
             model.mutex.lock();
             if (model.active.get(session_id)) |active| {
-                active.mutex.lock();
-                const alive = active.handle != null and !active.closed;
-                active.mutex.unlock();
-                if (alive) {
+                if (active.isAlive()) {
                     model.mutex.unlock();
                     return active;
                 }
@@ -209,6 +225,16 @@ pub const Pool = struct {
             }
             if (model.idle.pop()) |idle| {
                 model.mutex.unlock();
+                // A pooled session is only warm while the vendor keeps it open.
+                // Nothing here talks to those sockets between turns, so after a
+                // quiet stretch the whole pool can be closed — and the liveness
+                // check above covers `active` only. Handing one of these out
+                // fails the very turn the preconnect exists to make fast.
+                if (!idle.isAlive()) {
+                    std.debug.print("resonus: model={s}: discarding closed idle session (socket={d})\n", .{ model.name, idle.socket_id });
+                    idle.deinit();
+                    continue;
+                }
                 break :blk idle;
             }
 
@@ -416,6 +442,15 @@ const Session = struct {
         self.events.deinit(self.allocator);
         if (self.last_error) |e| self.allocator.free(e);
         self.allocator.destroy(self);
+    }
+
+    /// Whether this session is still worth handing to a turn. The close
+    /// callback is the only notice libdatachannel gives, and it can arrive at
+    /// any time between two turns.
+    fn isAlive(self: *Session) bool {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        return self.handle != null and !self.closed;
     }
 
     fn waitOpen(self: *Session, timeout_ms: u64) !void {
@@ -639,6 +674,24 @@ const Session = struct {
         self.mutex.lock();
         self.events.append(self.allocator, copy) catch self.allocator.free(copy);
         self.mutex.unlock();
+    }
+};
+
+/// Records whether anything reached the caller's sink, so a retry can tell a
+/// turn that failed before saying anything from one that failed halfway
+/// through an answer the user is already reading.
+const OnceEmitted = struct {
+    inner: provider.StreamSink,
+    emitted: bool = false,
+
+    fn sink(self: *OnceEmitted) provider.StreamSink {
+        return .{ .context = self, .emit_fn = emit };
+    }
+
+    fn emit(context: *anyopaque, event_json: []const u8) anyerror!void {
+        const self: *OnceEmitted = @ptrCast(@alignCast(context));
+        self.emitted = true;
+        return self.inner.emit(event_json);
     }
 };
 

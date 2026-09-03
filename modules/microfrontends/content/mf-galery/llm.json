@@ -1,11 +1,11 @@
 {
-  "actions": {
-    "galery.list": {
-      "brief": "Show galery items list",
-      "description": "Show galery items list",
-      "category": "galery",
-      "exposure": "user",
-      "priority": "normal"
-    }
-  }
+	"actions": {
+		"galery.list": {
+			"brief": "Show galery items list",
+			"description": "Show galery items list",
+			"category": "galery",
+			"exposure": "user",
+			"priority": "normal"
+		}
+	}
 }

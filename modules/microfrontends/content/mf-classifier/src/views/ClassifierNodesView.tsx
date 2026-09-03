@@ -1,7 +1,10 @@
-import React, { useEffect } from "preact/compat";
 import { useUnit } from "effector-preact";
-import { HeaderPanelLayout, InfiniteScrollDataTable } from "front-core";
-import { RefreshCw } from "front-core";
+import {
+	HeaderPanelLayout,
+	InfiniteScrollDataTable,
+	RefreshCw,
+} from "front-core";
+import React, { useEffect } from "preact/compat";
 import {
 	$classifierNodesStore,
 	classifierNodesViewMounted,

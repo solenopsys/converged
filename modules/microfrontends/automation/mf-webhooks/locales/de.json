@@ -1,5 +1,5 @@
 {
-  "menu.webhooks": "Webhooks",
-  "menu.webhooks.endpoints": "Endpunkte",
-  "menu.webhooks.logs": "Protokolle"
+	"menu.webhooks": "Webhooks",
+	"menu.webhooks.endpoints": "Endpunkte",
+	"menu.webhooks.logs": "Protokolle"
 }

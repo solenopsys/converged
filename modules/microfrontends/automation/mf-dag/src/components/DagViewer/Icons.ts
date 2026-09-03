@@ -31,7 +31,6 @@ export interface State {
 const icon = (name: keyof typeof streamlineUiIconData): IconDefinition =>
 	streamlineUiIconData[name];
 
-
 export const STREAMLINE_ICONS: Record<string, IconDefinition> = {
 	circle: icon("CircleIcon"),
 	square: icon("Square"),

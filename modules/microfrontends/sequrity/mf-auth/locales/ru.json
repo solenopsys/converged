@@ -1,39 +1,38 @@
-
 {
-    "welcome": {
-      "heading": "Добро пожаловать",
-      "description": "Войдите в свою учетную запись Acme Inc"
-    },
-    "form": {
-      "email": "Электронная почта",
-      "password": "Пароль",
-      "forgotPassword": "Забыли пароль?"
-    },
-    "button": {
-      "login": "Войти",
-      "sendAuthLink": "Отправить ссылку входа",
-      "sendingLink": "Отправляем ссылку...",
-      "loggingIn": "Выполняется вход...",
-      "continueWith": "Или продолжить с помощью",
-      "loginWithApple": "Войти через Apple",
-      "loginWithGoogle": "Войти через Google",
-      "loginWithMeta": "Войти через Meta",
-      "loginWithMicrosoft": "Войти через Microsoft",
-      "loginWithGithub": "Войти через GitHub"
-    },
-    "signup": {
-      "text": "Нет учетной записи?",
-      "link": "Зарегистрироваться"
-    },
-    "legal": {
-      "agreement": "Нажимая «продолжить», вы соглашаетесь с нашими {{termsLink}} и {{privacyLink}}.",
-      "termsOfService": "Условиями использования",
-      "privacyPolicy": "Политикой конфиденциальности"
-    },
-    "notification": {
-      "linkSent": "Ссылка для входа отправлена",
-      "checkEmail": "Проверьте почту, чтобы продолжить",
-      "loginFailed": "Ошибка входа",
-      "tryAgain": "Пожалуйста, попробуйте снова"
-    }
-  }
+	"welcome": {
+		"heading": "Добро пожаловать",
+		"description": "Войдите в свою учетную запись Acme Inc"
+	},
+	"form": {
+		"email": "Электронная почта",
+		"password": "Пароль",
+		"forgotPassword": "Забыли пароль?"
+	},
+	"button": {
+		"login": "Войти",
+		"sendAuthLink": "Отправить ссылку входа",
+		"sendingLink": "Отправляем ссылку...",
+		"loggingIn": "Выполняется вход...",
+		"continueWith": "Или продолжить с помощью",
+		"loginWithApple": "Войти через Apple",
+		"loginWithGoogle": "Войти через Google",
+		"loginWithMeta": "Войти через Meta",
+		"loginWithMicrosoft": "Войти через Microsoft",
+		"loginWithGithub": "Войти через GitHub"
+	},
+	"signup": {
+		"text": "Нет учетной записи?",
+		"link": "Зарегистрироваться"
+	},
+	"legal": {
+		"agreement": "Нажимая «продолжить», вы соглашаетесь с нашими {{termsLink}} и {{privacyLink}}.",
+		"termsOfService": "Условиями использования",
+		"privacyPolicy": "Политикой конфиденциальности"
+	},
+	"notification": {
+		"linkSent": "Ссылка для входа отправлена",
+		"checkEmail": "Проверьте почту, чтобы продолжить",
+		"loginFailed": "Ошибка входа",
+		"tryAgain": "Пожалуйста, попробуйте снова"
+	}
+}

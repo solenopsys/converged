@@ -1,4 +1,3 @@
-
 export const CHART_COLORS = [
 	"var(--ui-chart-1)",
 	"var(--ui-chart-2)",
@@ -10,9 +9,7 @@ export const CHART_COLORS = [
 	"var(--ui-chart-8)",
 ];
 
-
 export const PIE_COLORS = CHART_COLORS;
-
 
 export const ERROR_COLOR = "var(--ui-destructive)";
 

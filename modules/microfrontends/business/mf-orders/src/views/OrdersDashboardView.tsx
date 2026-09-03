@@ -2,30 +2,29 @@ import { createDomain } from "effector";
 import { useUnit } from "effector-preact";
 import {
 	Button,
+	ClipboardList,
 	cn,
 	createInfiniteTableStore,
+	Gauge,
 	HeaderPanelLayout,
 	InfiniteScrollDataTable,
-	StatisticCard,
-} from "front-core";
-import type { OrderDailyPoint, OrderListParams, OrderStatusGroup } from "g-orders";
-import type { SetRef } from "front-core/object-runtime";
-import type { RequestDailyPoint } from "g-requests";
-import {
-	ClipboardList,
-	Gauge,
 	PackageCheck,
 	Printer,
 	RefreshCw,
 	Send,
+	StatisticCard,
 } from "front-core";
+import type { SetRef } from "front-core/object-runtime";
+import type {
+	OrderDailyPoint,
+	OrderListParams,
+	OrderStatusGroup,
+} from "g-orders";
+import type { RequestDailyPoint } from "g-requests";
 import { useEffect, useMemo, useState } from "preact/compat";
 import { OrderConversionChart } from "../components/OrderConversionChart";
 import { ordersColumns } from "../config";
-import {
-	$dashboardState,
-	loadDashboardFx,
-} from "../domain-orders";
+import { $dashboardState, loadDashboardFx } from "../domain-orders";
 import { ordersClient } from "../services";
 
 const STATUS_TABS: Array<{ group: OrderStatusGroup; label: string }> = [
@@ -214,7 +213,7 @@ export const OrdersDashboardView = ({ reference }: { reference?: SetRef }) => {
 										variant={active ? "secondary" : "ghost"}
 										size="sm"
 										className={cn("h-8 gap-2", active && "shadow-sm")}
-								onClick={() => setActiveGroup(tab.group)}
+										onClick={() => setActiveGroup(tab.group)}
 									>
 										{tab.label}
 										<span className="text-xs text-muted-foreground">

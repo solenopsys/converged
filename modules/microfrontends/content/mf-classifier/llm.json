@@ -1,32 +1,32 @@
 {
-  "actions": {
-    "classifier.dashboard.show": {
-      "brief": "Show classifier dashboard",
-      "description": "Show classifier dashboard",
-      "category": "classifier",
-      "exposure": "user",
-      "priority": "normal"
-    },
-    "classifier.mappings.show": {
-      "brief": "Show classifier mappings",
-      "description": "Show classifier mappings",
-      "category": "classifier",
-      "exposure": "user",
-      "priority": "normal"
-    },
-    "classifier.nodes.show": {
-      "brief": "Show classifier entities",
-      "description": "Show classifier entities",
-      "category": "classifier",
-      "exposure": "user",
-      "priority": "normal"
-    },
-    "classifier.tree.show": {
-      "brief": "Show classifier tree",
-      "description": "Show classifier tree",
-      "category": "classifier",
-      "exposure": "user",
-      "priority": "normal"
-    }
-  }
+	"actions": {
+		"classifier.dashboard.show": {
+			"brief": "Show classifier dashboard",
+			"description": "Show classifier dashboard",
+			"category": "classifier",
+			"exposure": "user",
+			"priority": "normal"
+		},
+		"classifier.mappings.show": {
+			"brief": "Show classifier mappings",
+			"description": "Show classifier mappings",
+			"category": "classifier",
+			"exposure": "user",
+			"priority": "normal"
+		},
+		"classifier.nodes.show": {
+			"brief": "Show classifier entities",
+			"description": "Show classifier entities",
+			"category": "classifier",
+			"exposure": "user",
+			"priority": "normal"
+		},
+		"classifier.tree.show": {
+			"brief": "Show classifier tree",
+			"description": "Show classifier tree",
+			"category": "classifier",
+			"exposure": "user",
+			"priority": "normal"
+		}
+	}
 }

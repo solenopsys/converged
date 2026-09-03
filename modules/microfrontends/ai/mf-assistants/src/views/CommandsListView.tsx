@@ -1,17 +1,19 @@
-import { useEffect, useState } from "preact/compat";
 import { useUnit } from "effector-preact";
 import {
-	HeaderPanel,
 	canRunAction,
+	HeaderPanel,
 	onActionAuthorizationChanged,
+	Play,
+	RefreshCw,
+	Search,
 	useMicrofrontendTranslation,
 } from "front-core";
-import { RefreshCw, Play, Search } from "front-core";
+import { useEffect, useState } from "preact/compat";
 import {
+	$commandsFilter,
 	$registeredCommands,
 	executeCommandClicked,
 	refreshCommandsClicked,
-	$commandsFilter,
 	setCommandsFilter,
 } from "../domain-commands";
 

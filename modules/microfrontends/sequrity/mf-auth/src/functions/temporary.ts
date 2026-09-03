@@ -4,6 +4,6 @@ import { ensureTemporarySessionFx } from "../model";
 export const ENSURE_TEMPORARY_SESSION = "auth.ensure-temporary-session";
 
 export const createEnsureTemporarySessionAction: CreateAction<void> = () => ({
-  id: ENSURE_TEMPORARY_SESSION,
-  invoke: () => ensureTemporarySessionFx(),
+	id: ENSURE_TEMPORARY_SESSION,
+	invoke: () => ensureTemporarySessionFx(),
 });

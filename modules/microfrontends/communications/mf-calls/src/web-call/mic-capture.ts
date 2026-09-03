@@ -1,7 +1,4 @@
-
-
 export interface MicCaptureOptions {
-
 	echoCancellation?: boolean;
 
 	noiseSuppression?: boolean;
@@ -20,7 +17,6 @@ export interface MicCaptureOptions {
 }
 
 export interface MicCapture {
-
 	readonly stream: MediaStream;
 
 	readonly rawStream: MediaStream;
@@ -57,7 +53,6 @@ function getAudioContextCtor(): AudioContextCtor | null {
 	};
 	return w.AudioContext ?? w.webkitAudioContext ?? null;
 }
-
 
 export async function createMicCapture(
 	options: MicCaptureOptions = {},

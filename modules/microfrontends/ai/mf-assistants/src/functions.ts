@@ -1,16 +1,17 @@
+import { sample } from "effector";
 import type { CreateAction, CreateWidget } from "front-core";
 import { resolveEmbeddedMicrofrontendMessage } from "front-core";
-import { assistantClient as chatsService } from "./services";
-import { sample } from "effector";
 import domain from "./domain";
+import { assistantClient as chatsService } from "./services";
 import { ChatHistoryView } from "./views/ChatHistoryView";
 import { ChatsListView } from "./views/ChatsListView";
 import { CommandsListView } from "./views/CommandsListView";
 import { ToolCallJsonView } from "./views/ToolCallJsonView";
 
 const defaultToolCallTitle = (): string =>
-	(resolveEmbeddedMicrofrontendMessage("assistants-mf", "toolCall.title") as string | undefined) ??
-	"Function call";
+	(resolveEmbeddedMicrofrontendMessage("assistants-mf", "toolCall.title") as
+		| string
+		| undefined) ?? "Function call";
 
 const GET_CHATS_LIST = "chats.get_list";
 const SHOW_CHATS_LIST = "chats.show_list";
@@ -103,7 +104,10 @@ const createViewChatAction: CreateAction<any> = (bus) => ({
 		if (!recordId) return;
 		bus.present({
 			widget: createChatHistoryWidget(bus, { threadId: recordId }),
-			tab: { key: `${VIEW_CHAT}:${recordId}`, title: title ?? `Chat ${recordId}` },
+			tab: {
+				key: `${VIEW_CHAT}:${recordId}`,
+				title: title ?? `Chat ${recordId}`,
+			},
 		});
 	},
 });
@@ -152,19 +156,19 @@ const ACTIONS = [
 ];
 
 export {
+	createDeleteChatAction,
+	createEditChatAction,
+	createShowChatsListAction,
+	createShowCommandsListAction,
+	createViewChatAction,
+	createViewToolCallJsonAction,
+	DELETE_CHAT,
+	EDIT_CHAT,
 	GET_CHATS_LIST,
 	SHOW_CHATS_LIST,
 	SHOW_COMMANDS_LIST,
 	VIEW_CHAT,
 	VIEW_TOOL_CALL_JSON,
-	EDIT_CHAT,
-	DELETE_CHAT,
-	createShowChatsListAction,
-	createShowCommandsListAction,
-	createViewChatAction,
-	createViewToolCallJsonAction,
-	createEditChatAction,
-	createDeleteChatAction,
 };
 
 export default ACTIONS;

@@ -1,19 +1,19 @@
-import { CreateAction, CreateWidget } from "front-core";
+import type { CreateAction, CreateWidget } from "front-core";
 import { StructListView } from "./views/StructListView";
 
 const SHOW_STRUCT_LIST = "struct.list";
 
 const createStructListWidget: CreateWidget<typeof StructListView> = (_bus) => ({
-  view: StructListView,
-  placement: () => "center",
-  config: {},
+	view: StructListView,
+	placement: () => "center",
+	config: {},
 });
 
 const createShowStructListAction: CreateAction<any> = (bus) => ({
-  id: SHOW_STRUCT_LIST,
-  invoke: () => {
-    bus.present({ widget: createStructListWidget(bus) });
-  },
+	id: SHOW_STRUCT_LIST,
+	invoke: () => {
+		bus.present({ widget: createStructListWidget(bus) });
+	},
 });
 
 const ACTIONS = [createShowStructListAction];

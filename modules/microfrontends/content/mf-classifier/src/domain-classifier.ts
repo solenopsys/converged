@@ -1,11 +1,11 @@
 import { createDomain, sample } from "effector";
 import { createInfiniteTableStore } from "front-core";
-import classifierService from "./service";
 import type {
 	ClassifierMapping,
 	ClassifierTreeNode,
 	PaginationParams,
 } from "./functions/types";
+import classifierService from "./service";
 
 const domain = createDomain("classifier");
 

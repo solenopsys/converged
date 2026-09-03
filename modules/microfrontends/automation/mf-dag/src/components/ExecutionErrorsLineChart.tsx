@@ -46,9 +46,24 @@ export function ExecutionErrorsLineChart({
 			dashboardPin={dashboardPin}
 			secondaryAxis={{ primaryName: "Errors", name: "%", min: 0, max: 100 }}
 			series={[
-				{ key: "wfFailed", label: "WF errors", color: "var(--ui-destructive)", type: "bar" },
-				{ key: "nodeFailed", label: "Node errors", color: "var(--ui-warning)", type: "bar" },
-				{ key: "rate", label: "WF error rate %", color: "var(--ui-chart-4)", yAxisIndex: 1 },
+				{
+					key: "wfFailed",
+					label: "WF errors",
+					color: "var(--ui-destructive)",
+					type: "bar",
+				},
+				{
+					key: "nodeFailed",
+					label: "Node errors",
+					color: "var(--ui-warning)",
+					type: "bar",
+				},
+				{
+					key: "rate",
+					label: "WF error rate %",
+					color: "var(--ui-chart-4)",
+					yAxisIndex: 1,
+				},
 			]}
 		/>
 	);

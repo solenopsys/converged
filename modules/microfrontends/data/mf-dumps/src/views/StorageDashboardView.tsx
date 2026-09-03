@@ -121,10 +121,19 @@ export const StorageDashboardView = ({
 						</CardHeader>
 						<CardContent className="flex min-h-0 flex-1 px-4 pb-4 pt-0">
 							<div className="h-full min-h-[220px] w-full overflow-hidden">
-								<svg viewBox="0 0 240 240" className="h-full w-full" role="img" aria-label="Storage size distribution">
+								<svg
+									viewBox="0 0 240 240"
+									className="h-full w-full"
+									role="img"
+									aria-label="Storage size distribution"
+								>
 									<g transform="translate(120 120)">
 										{slices.map((slice) => (
-											<path key={slice.data.name} d={pieArc(slice) ?? ""} fill={slice.data.color}>
+											<path
+												key={slice.data.name}
+												d={pieArc(slice) ?? ""}
+												fill={slice.data.color}
+											>
 												<title>{`${slice.data.name}: ${formatSize(slice.data.value)}`}</title>
 											</path>
 										))}

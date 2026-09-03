@@ -1,6 +1,5 @@
-
-import { createFrontNrpcClientConfig } from "signal-channel";
 import { createCallsServiceClient } from "g-calls";
+import { createFrontNrpcClientConfig } from "signal-channel";
 
 const callsClient = createCallsServiceClient(createFrontNrpcClientConfig());
 

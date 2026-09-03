@@ -72,7 +72,10 @@ export async function endSession(accessToken: string | null): Promise<void> {
 	});
 }
 
-export async function sendMagicLink(email: string, returnTo?: string): Promise<void> {
+export async function sendMagicLink(
+	email: string,
+	returnTo?: string,
+): Promise<void> {
 	await post("/magic-link", { email, returnTo });
 }
 

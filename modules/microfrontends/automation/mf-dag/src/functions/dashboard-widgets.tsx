@@ -1,11 +1,12 @@
 import { useUnit } from "effector-preact";
-import { registerDashboardWidgets, StatisticCard } from "front-core";
 import {
 	BarChart3,
 	CheckCircle,
 	Network,
 	Percent,
 	Play,
+	registerDashboardWidgets,
+	StatisticCard,
 	XCircle,
 } from "front-core";
 import { useEffect, useMemo } from "preact/compat";

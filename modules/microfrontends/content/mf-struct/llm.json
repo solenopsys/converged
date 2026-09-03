@@ -1,11 +1,11 @@
 {
-  "actions": {
-    "struct.list": {
-      "brief": "Show struct files list",
-      "description": "Show struct files list",
-      "category": "struct",
-      "exposure": "user",
-      "priority": "normal"
-    }
-  }
+	"actions": {
+		"struct.list": {
+			"brief": "Show struct files list",
+			"description": "Show struct files list",
+			"category": "struct",
+			"exposure": "user",
+			"priority": "normal"
+		}
+	}
 }

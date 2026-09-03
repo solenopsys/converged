@@ -1,11 +1,11 @@
 {
-  "actions": {
-    "contexts.show": {
-      "brief": "Show contexts list",
-      "description": "Show contexts list",
-      "category": "contexts",
-      "exposure": "user",
-      "priority": "primary"
-    }
-  }
+	"actions": {
+		"contexts.show": {
+			"brief": "Show contexts list",
+			"description": "Show contexts list",
+			"category": "contexts",
+			"exposure": "user",
+			"priority": "primary"
+		}
+	}
 }

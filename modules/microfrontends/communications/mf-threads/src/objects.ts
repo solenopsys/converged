@@ -6,6 +6,7 @@ import {
 	setOf,
 } from "front-core/object-runtime";
 import { threadsClient } from "./services";
+import { ThreadsSummary } from "./summary";
 import { ThreadsListView } from "./views/ThreadsListView";
 import { ThreadsStatsView } from "./views/ThreadsStatsView";
 import { ThreadsView } from "./views/ThreadsView";
@@ -22,6 +23,12 @@ export const objects = [
 			load: (params) => threadsClient.listThreads(params),
 			inspect: (filter) => threadsClient.inspectThreads(filter),
 		},
+	},
+	{
+		id: "threads.statistic.summary",
+		label: "Threads",
+		categories: ["core.statistic"],
+		statistic: { role: "summary", component: ThreadsSummary },
 	},
 	{
 		id: "threads.statistic",

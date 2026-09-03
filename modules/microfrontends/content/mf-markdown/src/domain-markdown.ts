@@ -1,7 +1,7 @@
 import { createDomain, sample } from "effector";
 import { createInfiniteTableStore } from "front-core";
+import type { MdFile, PaginationParams } from "./functions/types";
 import markdownService from "./service";
-import type { PaginationParams, MdFile } from "./functions/types";
 
 const domain = createDomain("markdown");
 
@@ -15,60 +15,60 @@ export const $selectedMd = domain.createStore<MdFile | null>(null);
 $selectedMd.on(editMdClicked, (_, md) => md);
 
 const listMdFx = domain.createEffect<PaginationParams, any>({
-  name: "LIST_MD",
-  handler: async (params: PaginationParams) => {
-    return await markdownService.listOfMd(params);
-  },
+	name: "LIST_MD",
+	handler: async (params: PaginationParams) => {
+		return await markdownService.listOfMd(params);
+	},
 });
 
 const saveMdFx = domain.createEffect<MdFile, any>({
-  name: "SAVE_MD",
-  handler: async (mdFile: MdFile) => {
-    return await markdownService.saveMd(mdFile);
-  },
+	name: "SAVE_MD",
+	handler: async (mdFile: MdFile) => {
+		return await markdownService.saveMd(mdFile);
+	},
 });
 
 export const $mdStore = createInfiniteTableStore(domain, listMdFx);
 
 sample({
-  clock: mdViewMounted,
-  fn: () => ({}),
-  target: $mdStore.reset,
+	clock: mdViewMounted,
+	fn: () => ({}),
+	target: $mdStore.reset,
 });
 
 sample({
-  clock: mdViewMounted,
-  fn: () => ({}),
-  target: $mdStore.loadMore,
+	clock: mdViewMounted,
+	fn: () => ({}),
+	target: $mdStore.loadMore,
 });
 
 sample({
-  clock: refreshMdClicked,
-  fn: () => ({}),
-  target: $mdStore.reset,
+	clock: refreshMdClicked,
+	fn: () => ({}),
+	target: $mdStore.reset,
 });
 
 sample({
-  clock: refreshMdClicked,
-  fn: () => ({}),
-  target: $mdStore.loadMore,
+	clock: refreshMdClicked,
+	fn: () => ({}),
+	target: $mdStore.loadMore,
 });
 
 sample({
-  clock: saveMdClicked,
-  target: saveMdFx,
+	clock: saveMdClicked,
+	target: saveMdFx,
 });
 
 sample({
-  clock: saveMdFx.done,
-  fn: () => ({}),
-  target: $mdStore.reset,
+	clock: saveMdFx.done,
+	fn: () => ({}),
+	target: $mdStore.reset,
 });
 
 sample({
-  clock: saveMdFx.done,
-  fn: () => ({}),
-  target: $mdStore.loadMore,
+	clock: saveMdFx.done,
+	fn: () => ({}),
+	target: $mdStore.loadMore,
 });
 
 export default domain;

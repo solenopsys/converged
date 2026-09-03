@@ -2,6 +2,7 @@ import type { SetRef } from "front-core/object-runtime";
 import { defineMicrofrontend, setOf } from "front-core/object-runtime";
 import { h } from "preact";
 import dagService from "./service";
+import { DagSummary } from "./summary";
 import { DagEntityListView } from "./views/DagEntityListView";
 import { StatsView } from "./views/StatsView";
 
@@ -45,6 +46,12 @@ export default defineMicrofrontend({
 				inspect: (filter) => dagService.inspectSelection(id, filter),
 			},
 		})),
+		{
+			id: "dag.statistic.summary",
+			label: "Workflows",
+			categories: ["core.statistic"],
+			statistic: { role: "summary", component: DagSummary },
+		},
 		{
 			id: "dag.statistic",
 			label: "DAG statistic",

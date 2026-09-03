@@ -1,17 +1,15 @@
 import { useUnit } from "effector-preact";
 import {
-	DashboardLayout,
-	HeaderPanelLayout,
-	ScrollArea,
-	StatisticCard,
-} from "front-core";
-import {
 	BarChart3,
 	CheckCircle,
+	DashboardLayout,
+	HeaderPanelLayout,
 	Network,
 	Percent,
 	Play,
 	RefreshCw,
+	ScrollArea,
+	StatisticCard,
 	XCircle,
 } from "front-core";
 import { useEffect, useMemo } from "preact/compat";

@@ -29,14 +29,22 @@ function getFallbackScopeId(): string {
 	return normalizeScopeId(window.location.pathname || "dashboard");
 }
 
-export function DashboardPinScope({ children, enabled = true, scopeId }: DashboardPinScopeProps) {
+export function DashboardPinScope({
+	children,
+	enabled = true,
+	scopeId,
+}: DashboardPinScopeProps) {
 	const normalizedScopeId = normalizeScopeId(scopeId ?? getFallbackScopeId());
 	const value = React.useMemo(
 		() => ({ enabled, scopeId: normalizedScopeId }),
 		[enabled, normalizedScopeId],
 	);
 
-	return <DashboardPinContext.Provider value={value}>{children}</DashboardPinContext.Provider>;
+	return (
+		<DashboardPinContext.Provider value={value}>
+			{children}
+		</DashboardPinContext.Provider>
+	);
 }
 
 export function useDashboardPinScope(): DashboardPinScopeValue {

@@ -1,4 +1,4 @@
-import { CreateAction, CreateWidget } from "front-core";
+import type { CreateAction, CreateWidget } from "front-core";
 import Panel from "./Panel";
 
 const SHOW_ORDERS = "orders.show";
@@ -18,5 +18,5 @@ const createShowOrdersAction: CreateAction<any> = (bus) => ({
 
 const ACTIONS = [createShowOrdersAction];
 
-export { SHOW_ORDERS, createShowOrdersAction };
+export { createShowOrdersAction, SHOW_ORDERS };
 export default ACTIONS;

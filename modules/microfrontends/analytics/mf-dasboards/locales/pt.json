@@ -1,5 +1,8 @@
 {
-  "menu": {
-    "dashboard": "Painel"
-  }
+	"menu": {
+		"dashboard": "Painel"
+	},
+	"dashboard": {
+		"title": "Painel"
+	}
 }

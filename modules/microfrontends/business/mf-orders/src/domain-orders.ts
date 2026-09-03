@@ -1,17 +1,21 @@
 import { createDomain, sample } from "effector";
+import { createInfiniteTableStore } from "front-core";
 import type { OrderDashboard, OrderStatusGroup } from "g-orders";
 import type { RequestMetrics } from "g-requests";
-import { createInfiniteTableStore } from "front-core";
 import { ordersClient, requestsClient } from "./services";
 
 const domain = createDomain("mf-orders");
 
 export const ordersViewMounted = domain.createEvent("ORDERS_VIEW_MOUNTED");
-export const refreshOrdersClicked = domain.createEvent("REFRESH_ORDERS_CLICKED");
-export const orderStatusGroupChanged =
-	domain.createEvent<OrderStatusGroup>("ORDER_STATUS_GROUP_CHANGED");
-export const openOrderDetail =
-	domain.createEvent<{ recordId: string }>("OPEN_ORDER_DETAIL");
+export const refreshOrdersClicked = domain.createEvent(
+	"REFRESH_ORDERS_CLICKED",
+);
+export const orderStatusGroupChanged = domain.createEvent<OrderStatusGroup>(
+	"ORDER_STATUS_GROUP_CHANGED",
+);
+export const openOrderDetail = domain.createEvent<{ recordId: string }>(
+	"OPEN_ORDER_DETAIL",
+);
 
 const listOrdersFx = domain.createEffect({
 	name: "LIST_ORDERS",

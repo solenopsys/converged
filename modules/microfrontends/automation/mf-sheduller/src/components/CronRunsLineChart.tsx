@@ -21,9 +21,24 @@ export function CronRunsLineChart({
 			description="Scheduler runs by day"
 			dashboardPin={dashboardPin}
 			series={[
-				{ key: "total", label: "Runs", color: "var(--ui-chart-1)", areaOpacity: 0.18 },
-				{ key: "success", label: "Success", color: "var(--ui-success)", area: false },
-				{ key: "failed", label: "Failed", color: "var(--ui-destructive)", area: false },
+				{
+					key: "total",
+					label: "Runs",
+					color: "var(--ui-chart-1)",
+					areaOpacity: 0.18,
+				},
+				{
+					key: "success",
+					label: "Success",
+					color: "var(--ui-success)",
+					area: false,
+				},
+				{
+					key: "failed",
+					label: "Failed",
+					color: "var(--ui-destructive)",
+					area: false,
+				},
 			]}
 		/>
 	);

@@ -1,6 +1,20 @@
-import { curveLinear, curveMonotoneX, line as d3Line, max as d3Max, min as d3Min, scaleBand, scaleLinear } from "d3";
+import {
+	curveLinear,
+	curveMonotoneX,
+	line as d3Line,
+	max as d3Max,
+	min as d3Min,
+	scaleBand,
+	scaleLinear,
+} from "d3";
 import { useEffect, useMemo, useRef, useState } from "preact/compat";
-import { Card, CardContent, CardDescription, CardHeader, type DashboardPinMeta } from "../components/ui/card";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	type DashboardPinMeta,
+} from "../components/ui/card";
 import { cn } from "../lib/utils";
 
 export interface DashboardLineSeriesConfig {
@@ -67,7 +81,8 @@ export function DashboardLineChartCard({
 		const element = chartContainerRef.current;
 		if (!element) return;
 
-		const updateWidth = () => setChartWidth(Math.max(320, Math.round(element.clientWidth)));
+		const updateWidth = () =>
+			setChartWidth(Math.max(320, Math.round(element.clientWidth)));
 		updateWidth();
 		const observer = new ResizeObserver(updateWidth);
 		observer.observe(element);
@@ -88,20 +103,28 @@ export function DashboardLineChartCard({
 				.filter((s) => (s.yAxisIndex ?? 0) === yAxisIndex)
 				.flatMap((s) => rows.map((row) => Number(row[s.key] ?? 0)));
 
-		const makeYScale = (yAxisIndex: 0 | 1, axisConfig?: DashboardSecondaryAxisConfig) => {
+		const makeYScale = (
+			yAxisIndex: 0 | 1,
+			axisConfig?: DashboardSecondaryAxisConfig,
+		) => {
 			const values = valuesFor(yAxisIndex);
 			const domainMin = axisConfig?.min ?? Math.min(0, d3Min(values) ?? 0);
 			const domainMax = axisConfig?.max ?? Math.max(1, d3Max(values) ?? 1);
-			return scaleLinear().domain([domainMin, domainMax]).nice().range([innerHeight, 0]);
+			return scaleLinear()
+				.domain([domainMin, domainMax])
+				.nice()
+				.range([innerHeight, 0]);
 		};
 
 		const yScale0 = makeYScale(0);
 		const yScale1 = secondaryAxis ? makeYScale(1, secondaryAxis) : yScale0;
-		const yScaleFor = (yAxisIndex: 0 | 1) => (yAxisIndex === 1 ? yScale1 : yScale0);
+		const yScaleFor = (yAxisIndex: 0 | 1) =>
+			yAxisIndex === 1 ? yScale1 : yScale0;
 
 		const bandWidth = xScale.bandwidth();
 		const barSeries = series.filter((s) => s.type === "bar");
-		const barWidth = barSeries.length > 0 ? bandWidth / barSeries.length : bandWidth;
+		const barWidth =
+			barSeries.length > 0 ? bandWidth / barSeries.length : bandWidth;
 
 		const lineSeriesCount = series.filter((s) => s.type !== "bar").length;
 		const shapes = series.map((s) => {
@@ -147,41 +170,66 @@ export function DashboardLineChartCard({
 		});
 
 		const xTicks = xScale.domain().filter((_, index, arr) => {
-			const step = Math.max(1, Math.ceil(arr.length / Math.max(2, Math.floor(innerWidth / 76))));
+			const step = Math.max(
+				1,
+				Math.ceil(arr.length / Math.max(2, Math.floor(innerWidth / 76))),
+			);
 			return index % step === 0;
 		});
 
 		return { innerWidth, innerHeight, shapes, xScale, xTicks };
 	}, [chartWidth, rows, series, xField, secondaryAxis]);
 
-	const activePoints = activeIndex === null
-		? []
-		: chart.shapes.flatMap((shape) => shape.kind === "line" ? [shape.points[activeIndex]].filter(Boolean).map((point) => ({ point, color: shape.config.color, label: shape.config.label })) : []);
+	const activePoints =
+		activeIndex === null
+			? []
+			: chart.shapes.flatMap((shape) =>
+					shape.kind === "line"
+						? [shape.points[activeIndex]].filter(Boolean).map((point) => ({
+								point,
+								color: shape.config.color,
+								label: shape.config.label,
+							}))
+						: [],
+				);
 	const activeX = activePoints[0]?.point.x;
 
 	const updateActiveIndex = (event: MouseEvent) => {
 		const svg = event.currentTarget as SVGSVGElement;
 		const bounds = svg.getBoundingClientRect();
-		const x = ((event.clientX - bounds.left) / bounds.width) * chartWidth - MARGIN.left;
+		const x =
+			((event.clientX - bounds.left) / bounds.width) * chartWidth - MARGIN.left;
 		const entries = chart.xScale.domain();
 		if (!entries.length) return;
-		const nearest = entries.reduce((best, entry, index) => {
-			const center = (chart.xScale(entry) ?? 0) + chart.xScale.bandwidth() / 2;
-			return Math.abs(center - x) < Math.abs(best.center - x) ? { index, center } : best;
-		}, { index: 0, center: Number.POSITIVE_INFINITY });
+		const nearest = entries.reduce(
+			(best, entry, index) => {
+				const center =
+					(chart.xScale(entry) ?? 0) + chart.xScale.bandwidth() / 2;
+				return Math.abs(center - x) < Math.abs(best.center - x)
+					? { index, center }
+					: best;
+			},
+			{ index: 0, center: Number.POSITIVE_INFINITY },
+		);
 		setActiveIndex(nearest.index);
 	};
 
 	return (
 		<Card
-			className={cn("flex flex-col gap-4 py-4", height ? undefined : "h-full", className)}
+			className={cn(
+				"flex flex-col gap-4 py-4",
+				height ? undefined : "h-full",
+				className,
+			)}
 			style={height ? { height } : undefined}
 			dashboardPin={dashboardPin}
 		>
 			{(title || description) && (
 				<CardHeader className="shrink-0 px-4 pb-2">
 					{title && <CardDescription>{title}</CardDescription>}
-					{description && <div className="text-xs text-muted-foreground">{description}</div>}
+					{description && (
+						<div className="text-xs text-muted-foreground">{description}</div>
+					)}
 				</CardHeader>
 			)}
 			<CardContent className="flex min-h-0 flex-1 flex-col gap-2 px-4 pb-4 pt-0">
@@ -189,13 +237,19 @@ export function DashboardLineChartCard({
 					<div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
 						{series.map((s) => (
 							<div key={s.key} className="flex items-center gap-1.5">
-								<span className="h-2 w-2 shrink-0 rounded-[2px]" style={{ backgroundColor: s.color }} />
+								<span
+									className="h-2 w-2 shrink-0 rounded-[2px]"
+									style={{ backgroundColor: s.color }}
+								/>
 								<span>{s.label}</span>
 							</div>
 						))}
 					</div>
 				)}
-				<div ref={chartContainerRef} className="flex-1 min-h-[160px] w-full overflow-hidden">
+				<div
+					ref={chartContainerRef}
+					className="flex-1 min-h-[160px] w-full overflow-hidden"
+				>
 					<svg
 						viewBox={`0 0 ${chartWidth} ${VIEW_HEIGHT}`}
 						className="h-full w-full"
@@ -247,18 +301,46 @@ export function DashboardLineChartCard({
 								) : (
 									<g key={shape.config.key}>
 										{shape.areaPath && (
-											<path d={shape.areaPath} fill={shape.config.color} opacity={shape.areaOpacity} stroke="none" />
+											<path
+												d={shape.areaPath}
+												fill={shape.config.color}
+												opacity={shape.areaOpacity}
+												stroke="none"
+											/>
 										)}
-										<path d={shape.path} fill="none" stroke={shape.config.color} strokeWidth={2} opacity={0.9} />
+										<path
+											d={shape.path}
+											fill="none"
+											stroke={shape.config.color}
+											strokeWidth={2}
+											opacity={0.9}
+										/>
 									</g>
 								),
 							)}
 							{activeX !== undefined && (
 								<g pointerEvents="none">
-									<line x1={activeX} y1={0} x2={activeX} y2={chart.innerHeight} className="stroke-border" strokeDasharray="3 3" />
+									<line
+										x1={activeX}
+										y1={0}
+										x2={activeX}
+										y2={chart.innerHeight}
+										className="stroke-border"
+										strokeDasharray="3 3"
+									/>
 									{activePoints.map(({ point, color, label }) => (
-										<circle key={label} cx={point.x} cy={point.y} r={3.5} fill="white" stroke={color} strokeWidth={2}>
-											<title>{label}: {point.value.toLocaleString()}</title>
+										<circle
+											key={label}
+											cx={point.x}
+											cy={point.y}
+											r={3.5}
+											fill="white"
+											stroke={color}
+											strokeWidth={2}
+										>
+											<title>
+												{label}: {point.value.toLocaleString()}
+											</title>
 										</circle>
 									))}
 								</g>

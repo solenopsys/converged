@@ -1,5 +1,8 @@
 {
-  "menu": {
-    "dashboard": "Cruscotto"
-  }
+	"menu": {
+		"dashboard": "Cruscotto"
+	},
+	"dashboard": {
+		"title": "Cruscotto"
+	}
 }

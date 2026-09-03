@@ -19,6 +19,7 @@ const stubExternals = {
 			contents:
 				args.path === "front-core/object-runtime"
 					? `
+					export const NEW_OBJECT_ID = "new";
 					export const Category = {
 						Entity: "core.entity", Content: "core.content", Business: "core.business",
 						Communication: "core.communication", Automation: "core.automation",

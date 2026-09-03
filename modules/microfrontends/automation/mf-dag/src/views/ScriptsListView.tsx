@@ -1,10 +1,14 @@
-import { useEffect } from "preact/compat";
-import { HeaderPanelLayout, InfiniteScrollDataTable } from "front-core";
-import { Plus, RefreshCw } from "front-core";
 import { useUnit } from "effector-preact";
 import {
-	$selectedScript,
+	HeaderPanelLayout,
+	InfiniteScrollDataTable,
+	Plus,
+	RefreshCw,
+} from "front-core";
+import { useEffect } from "preact/compat";
+import {
 	$scriptsStore,
+	$selectedScript,
 	createScriptClicked,
 	deleteScriptClicked,
 	openScriptClicked,
@@ -80,7 +84,9 @@ export const ScriptsListView = () => {
 					}}
 				>
 					<div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-						<strong>{selectedScript?.path ?? "Select or create a script"}</strong>
+						<strong>
+							{selectedScript?.path ?? "Select or create a script"}
+						</strong>
 						{selectedScript && (
 							<>
 								<button type="button" onClick={() => saveScriptClicked()}>
@@ -104,4 +110,3 @@ export const ScriptsListView = () => {
 		</HeaderPanelLayout>
 	);
 };
-

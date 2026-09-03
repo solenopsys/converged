@@ -1,8 +1,8 @@
-import { LoginForm } from "../components/LoginForm"
+import { LoginForm } from "../components/LoginForm";
 export default function LoginView() {
-  return (
-    <div className="h-full">
-      <LoginForm />
-    </div>
-  )
+	return (
+		<div className="h-full">
+			<LoginForm />
+		</div>
+	);
 }

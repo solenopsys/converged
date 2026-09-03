@@ -1,25 +1,25 @@
 {
-  "actions": {
-    "logs.hot.show": {
-      "brief": "Open the live log stream",
-      "description": "Open recent operational events, errors, warnings and activity still in hot storage.",
-      "category": "logs",
-      "exposure": "user",
-      "priority": "normal"
-    },
-    "logs.cold.show": {
-      "brief": "Open archived logs",
-      "description": "Open older operational events that are no longer in the live log stream.",
-      "category": "logs",
-      "exposure": "user",
-      "priority": "normal"
-    },
-    "logs.stats.show": {
-      "brief": "Open log volume statistics",
-      "description": "Open aggregate log counts for hot and archived storage, errors and warnings.",
-      "category": "logs",
-      "exposure": "user",
-      "priority": "normal"
-    }
-  }
+	"actions": {
+		"logs.hot.show": {
+			"brief": "Open the live log stream",
+			"description": "Open recent operational events, errors, warnings and activity still in hot storage.",
+			"category": "logs",
+			"exposure": "user",
+			"priority": "normal"
+		},
+		"logs.cold.show": {
+			"brief": "Open archived logs",
+			"description": "Open older operational events that are no longer in the live log stream.",
+			"category": "logs",
+			"exposure": "user",
+			"priority": "normal"
+		},
+		"logs.stats.show": {
+			"brief": "Open log volume statistics",
+			"description": "Open aggregate log counts for hot and archived storage, errors and warnings.",
+			"category": "logs",
+			"exposure": "user",
+			"priority": "normal"
+		}
+	}
 }

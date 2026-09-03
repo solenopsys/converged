@@ -1,17 +1,17 @@
 {
-  "name": "mf-dag",
-  "private": true,
-  "type": "module",
-  "module": "src/index.ts",
-  "exports": {
-    ".": "./src/index.ts"
-  },
-  "dependencies": {
-    "dagre": "^0.8.5",
-    "effector": "23.4.4",
-    "effector-preact": "workspace:*",
-    "front-core": "workspace:*",
-    "g-dag": "workspace:*",
-    "g-scripts": "workspace:*"
-  }
+	"name": "mf-dag",
+	"private": true,
+	"type": "module",
+	"module": "src/index.ts",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"dependencies": {
+		"dagre": "^0.8.5",
+		"effector": "23.4.4",
+		"effector-preact": "workspace:*",
+		"front-core": "workspace:*",
+		"g-dag": "workspace:*",
+		"g-scripts": "workspace:*"
+	}
 }

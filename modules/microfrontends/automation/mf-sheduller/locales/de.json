@@ -1,6 +1,6 @@
 {
-  "menu": {
-    "sheduller": "Planer",
-    "crons": "Zeitpläne"
-  }
+	"menu": {
+		"sheduller": "Planer",
+		"crons": "Zeitpläne"
+	}
 }
