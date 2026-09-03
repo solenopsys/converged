@@ -27,6 +27,7 @@ export interface SsrPluginConfig {
 	landingConfigPath: (pathname: string) => string;
 
 	locale: string | ((pathname: string) => string);
+	chatContext?: string | ((pathname: string) => string);
 	sitemapRoutes: SitemapEntry[];
 	production?: boolean;
 
@@ -208,6 +209,10 @@ export default function ssrPlugin(config: SsrPluginConfig): ServerPlugin {
 					(typeof config.locale === "function"
 						? config.locale(url.pathname)
 						: config.locale);
+				const chatContext =
+					typeof config.chatContext === "function"
+						? config.chatContext(url.pathname)
+						: config.chatContext;
 				const html = renderToString(
 					<Document
 						lang={locale}
@@ -218,7 +223,7 @@ export default function ssrPlugin(config: SsrPluginConfig): ServerPlugin {
 								? `${normalizeBaseUrl(origin)}${seoConfig.ogImage}`
 								: seoConfig.ogImage,
 						}}
-						mount={mount}
+						mount={chatContext ? { ...mount, chatContext } : mount}
 						landing={payload}
 						themeColor={config.themeColor}
 						counters={counters}

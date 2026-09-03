@@ -105,37 +105,6 @@ export function landingBlocksStyles(): string[] {
 			: [];
 }
 
-/**
- * An isolated page style can live next to the landing, but it must become an
- * ordinary delivery artifact, not something built from sources on the server.
- */
-export function landingAuditSourceDir(): string | undefined {
-	const source = join(landingProjectDir(), "src", "audit");
-	return existsSync(source) ? source : undefined;
-}
-
-export function landingAuditClientEntry(
-	name: "document" | "print",
-): string | undefined {
-	const source = landingAuditSourceDir();
-	if (!source) return undefined;
-	const entry = join(
-		source,
-		"client",
-		`${name}.${name === "document" ? "tsx" : "ts"}`,
-	);
-	return existsSync(entry) ? entry : undefined;
-}
-
-export function landingAuditShim(): string {
-	return join(spaRoot, "src", "client", "audit-page.ts");
-}
-
-/**
- * The interactive audit's entrypoints belong to the host project. They can't
- * be built on the first HTTP request: in production they must be ordinary
- * delivery modules and use the shared import map.
- */
 export const dist = join(spaRoot, "dist");
 export const assetsDir = join(dist, "assets");
 export const vendorDir = join(dist, "vendor");

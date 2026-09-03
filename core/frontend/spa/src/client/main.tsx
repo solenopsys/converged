@@ -26,35 +26,23 @@ const route =
 	"/";
 const isConsoleRoute = route === "/console" || route === "/console/";
 
-if (route === "/audit" || route === "/audit/print") {
-	void import("audit")
-		.then(({ hasAuditPage, bootstrapAudit, bootstrapAuditPrint }) => {
-			if (!hasAuditPage) return;
-			if (route === "/audit/print") bootstrapAuditPrint();
-			else bootstrapAudit();
-		})
-		.catch((error) => {
-			console.error("[spa] failed to initialize audit", error);
-		});
-} else {
-	const root = document.getElementById("app");
-	if (!root) throw new Error("Missing #app root");
+const root = document.getElementById("app");
+if (!root) throw new Error("Missing #app root");
 
-	registerLandingBlocks(blocks);
-	registerLandingHeader(header);
+registerLandingBlocks(blocks);
+registerLandingHeader(header);
 
-	void bootstrapAppShell((config) => {
-		// SSR provides a landing placeholder only; the interactive shell has browser
-		// dependencies and must own the mounted tree instead of hydrating a different one.
-		render(
-			<AppShell
-				config={config}
-				landing={isConsoleRoute ? undefined : readLandingPayload()}
-				brand={<BrandLogo />}
-			/>,
-			root,
-		);
-	}).catch((error) => {
-		console.error("[spa] failed to initialize auth", error);
-	});
-}
+void bootstrapAppShell((config) => {
+	// SSR provides a landing placeholder only; the interactive shell has browser
+	// dependencies and must own the mounted tree instead of hydrating a different one.
+	render(
+		<AppShell
+			config={config}
+			landing={isConsoleRoute ? undefined : readLandingPayload()}
+			brand={<BrandLogo />}
+		/>,
+		root,
+	);
+}).catch((error) => {
+	console.error("[spa] failed to initialize auth", error);
+});

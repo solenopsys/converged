@@ -6,7 +6,6 @@ import {
 	assetsDir,
 	clientEntry,
 	frontCoreRoot,
-	landingAuditSourceDir,
 	landingBlocksEntry,
 	landingBlocksStyles,
 	microfrontendDir,
@@ -15,16 +14,6 @@ import {
 import { dirname } from "node:path";
 
 const stylesDir = join(frontCoreRoot, "src", "styles");
-
-async function buildAuditStyles(auditRoot: string): Promise<string> {
-	const glob = new Bun.Glob("**/*.{ts,tsx}");
-	const sources = Array.from(glob.scanSync({ cwd: auditRoot, absolute: true }));
-	const contents = await Promise.all(sources.map((file) => Bun.file(file).text()));
-	const module = await import(join(auditRoot, "theme", "uno.config.ts"));
-	const uno = await createGenerator(module.auditUnoConfig);
-	const { css } = await uno.generate(contents.join("\n"), { preflights: true });
-	return css;
-}
 
 /**
  * CSS is laid out in the same layers as the code: tokens and panel geometry
@@ -57,8 +46,7 @@ export async function buildStyles(): Promise<string[]> {
 	const { css: utilities } = await uno.generate(shellSource, { preflights: true });
 	const layer = (...parts: string[]) => Bun.file(join(...parts)).text();
 	const projectStyles = landingBlocksStyles();
-	const auditRoot = landingAuditSourceDir();
-	const [tokens, landingTokens, base, panel, chat, diagrams, productCases, vectorImage, cncLanding, surface, topBar, blocks, audit] =
+	const [tokens, landingTokens, base, panel, chat, diagrams, productCases, vectorImage, cncLanding, surface, topBar, blocks] =
 		await Promise.all([
 			layer(stylesDir, "tokens.css"),
 			layer(stylesDir, "landing-tokens.css"),
@@ -76,13 +64,12 @@ export async function buildStyles(): Promise<string[]> {
 			Promise.all(projectStyles.map((path) => Bun.file(path).text())).then(
 				(styles) => styles.join("\n"),
 			),
-			auditRoot ? buildAuditStyles(auditRoot) : "",
 		]);
 
 	await Promise.all([
 		Bun.write(
 			join(assetsDir, "index.css"),
-			[utilities, tokens, landingTokens, panel, base, topBar, surface, diagrams, productCases, vectorImage, cncLanding, blocks, audit].join("\n"),
+			[utilities, tokens, landingTokens, panel, base, topBar, surface, diagrams, productCases, vectorImage, cncLanding, blocks].join("\n"),
 		),
 		Bun.write(join(assetsDir, "chat.css"), chat),
 	]);

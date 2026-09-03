@@ -3,7 +3,6 @@ import { mkdir, rm } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 import {
 	bundleApp,
-	bundleAudit,
 	bundleMicrofrontends,
 	bundleWidget,
 } from "./bundles";
@@ -16,7 +15,6 @@ import {
 	embedPage,
 	frontCoreRoot,
 	isProduction,
-	landingAuditSourceDir,
 	landingBlocksEntry,
 	landingBlocksStyles,
 	microfrontendDir,
@@ -48,7 +46,6 @@ export function sourceFiles(): string[] {
 	const sources = (dir: string) =>
 		Array.from(glob.scanSync({ cwd: dir, absolute: true }));
 	const projectStyles = landingBlocksStyles();
-	const auditSources = landingAuditSourceDir();
 	return [
 		join(frontCoreRoot, "../../../assets/converged.svg"),
 		embedPage,
@@ -56,7 +53,6 @@ export function sourceFiles(): string[] {
 		// rebuild the delivery just like editing the shell does.
 		...sources(dirname(landingBlocksEntry())),
 		...projectStyles,
-		...(auditSources ? sources(auditSources) : []),
 		join(spaRoot, "uno.config.ts"),
 		join(spaRoot, "uno.mf.config.ts"),
 		clientEntry,
@@ -137,7 +133,6 @@ export async function buildApp() {
 	await buildVendor();
 
 	const appFiles = await bundleApp();
-	const auditFiles = await bundleAudit();
 	const widgetFiles = await bundleWidget();
 	const styleFiles = await buildStyles();
 	const logoFile = await copyConvergedLogo();
@@ -215,7 +210,7 @@ export async function buildApp() {
 	const appOutputs = [...appFiles, ...styleFiles, ...vendorLayerFiles("app")];
 
 	/** Fetched on the file's first load, not at startup. */
-	const deferredOutputs = [workerFile, ...auditFiles];
+	const deferredOutputs = [workerFile];
 
 	// Install layer: worker, manifest, and icons. Not on the critical path
 	// (registration happens on `load`), so it doesn't count toward the startup budget.
@@ -237,7 +232,6 @@ export async function buildApp() {
 			...dynamicStyleOutputs,
 			...microfrontendOutputs,
 			...widgetFiles,
-			...auditFiles,
 			// We don't brotli-compress images: PNG is already compressed, a .br next to it would just take up space.
 			...pwaOutputs.filter((path) => !path.endsWith(".png")),
 		].filter((path) => !path.endsWith(".map")),
