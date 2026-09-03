@@ -882,6 +882,24 @@ function RequestFilesSection({
 		(({ alt, fileId }) => <DefaultModelPreview alt={alt} fileId={fileId} />);
 	const stats = fileStats(files, fileMetadata, i18n);
 
+	// A preview is an artifact of the analysis, not a file the visitor attached:
+	// it belongs inside its model's card, not beside it as an entry of its own.
+	const previews = new Map<string, [string, string]>();
+	const sources = new Set<string>();
+	for (const entry of files) {
+		if (isModelFile(entry[0], fileMetadata[entry[1]]?.fileType)) {
+			previews.set(fileBaseName(entry[0]), entry);
+		} else {
+			sources.add(fileBaseName(entry[0]));
+		}
+	}
+	const listed = files.filter(
+		([label, fileId]) =>
+			!isModelFile(label, fileMetadata[fileId]?.fileType) ||
+			!sources.has(fileBaseName(label)),
+	);
+	const previewFor = (label: string) => previews.get(fileBaseName(label));
+
 	return (
 		<section className="request-card request-card--files">
 			<div className="request-card__head">
@@ -898,46 +916,48 @@ function RequestFilesSection({
 							</div>
 						))}
 					</div>
-					<details className="request-files-details">
-						<summary>{t("files.showList")}</summary>
-						<div className="request-files-list">
-							<div className="request-files">
-								{files.map(([label, fileId]) => {
-									const metadata = fileMetadata[fileId];
-									const fileName = metadata?.name ?? label;
-									const fileType = metadata?.fileType;
-									const size = formatFileSize(metadata?.fileSize);
-									const isModel = isModelFile(label, fileType);
-									const showFilePreview = isModel && analysisCount === 0;
-									return (
-										<div key={`${label}:${fileId}`} className="request-file">
-											{showFilePreview ? (
-												<div className="request-file__preview">
-													{renderPreview({ alt: label, fileId })}
-												</div>
-											) : null}
-											<div>
-												<div className="request-file__name">{fileName}</div>
-												<div className="request-file__meta">
-													{[fileType, size].filter(Boolean).join(" · ") ||
-														fileExtension(fileName, i18n)}
-												</div>
+					<div className="request-files-list">
+						<div className="request-files">
+							{listed.map(([label, fileId]) => {
+								const metadata = fileMetadata[fileId];
+								const fileName = metadata?.name ?? label;
+								const fileType = metadata?.fileType;
+								const size = formatFileSize(metadata?.fileSize);
+								// A card renders what it is: a viewable model shows itself,
+								// anything else shows the preview the analysis produced for
+								// it, matched by base name. The card asks for the bytes on
+								// its own — nothing is pushed into it.
+								const preview = isModelFile(label, fileType)
+									? ([label, fileId] as [string, string])
+									: previewFor(label);
+								return (
+									<div key={`${label}:${fileId}`} className="request-file">
+										{preview ? (
+											<div className="request-file__preview">
+												{renderPreview({ alt: preview[0], fileId: preview[1] })}
 											</div>
-											<button
-												type="button"
-												className="request-file__download"
-												onClick={() => {
-													downloadRequested({ fileId, fileName });
-												}}
-											>
-												{t("files.download")}
-											</button>
+										) : null}
+										<div>
+											<div className="request-file__name">{fileName}</div>
+											<div className="request-file__meta">
+												{[fileType, size].filter(Boolean).join(" · ") ||
+													fileExtension(fileName, i18n)}
+											</div>
 										</div>
-									);
-								})}
-							</div>
+										<button
+											type="button"
+											className="request-file__download"
+											onClick={() => {
+												downloadRequested({ fileId, fileName });
+											}}
+										>
+											{t("files.download")}
+										</button>
+									</div>
+								);
+							})}
 						</div>
-					</details>
+					</div>
 				</>
 			) : (
 				<p className="request-empty-text">{t("files.empty")}</p>

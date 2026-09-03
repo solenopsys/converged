@@ -1,5 +1,4 @@
 import { type CacheAdapter, createServerNrpcClientConfig } from "back-core";
-import { createStoreServiceClient } from "g-store";
 import type {
 	DetectTypeInput,
 	ExtractTextInput,
@@ -16,17 +15,16 @@ import type {
 	PersistInput,
 	UUID,
 } from "g-files";
+import { createStoreServiceClient } from "g-store";
 import {
-	chunkKey,
 	concatBytes,
-	decompressChunk,
 	contentTypeForName,
 	DEFAULT_CHUNK_SIZE,
+	decompressChunk,
+	deflateChunk,
 	detectFileType,
 	hashBytes,
 	readCacheRef,
-	readChunkBytes,
-	saveChunkBytes,
 	writeCacheRef,
 } from "./blobs";
 import { StoresController } from "./stores";
@@ -69,7 +67,17 @@ export class FilesServiceImpl implements FilesService {
 	update(id: UUID, file: FileMetadata): Promise<void> {
 		return this.stores.metadataService.update(id, file);
 	}
-	delete(id: UUID): Promise<void> {
+	/** Drop the record and let go of its blocks. ms-store counts references, so
+	 *  a block another file still holds survives; one nobody holds is freed —
+	 *  which never happened while the bytes sat in a store nothing cleaned. */
+	async delete(id: UUID): Promise<void> {
+		const chunks = await this.stores.metadataService.getChunks(id);
+		const store = this.store();
+		for (const chunk of chunks) {
+			await store.delete(chunk.hash).catch((error: unknown) => {
+				console.warn(`[files-ms] releasing ${chunk.hash} failed`, error);
+			});
+		}
 		return this.stores.metadataService.delete(id);
 	}
 	get(id: UUID): Promise<FileMetadata> {
@@ -129,27 +137,22 @@ export class FilesServiceImpl implements FilesService {
 		return { ref, metadata };
 	}
 
-	/** One chunk's plain bytes, wherever they were written.
-	 *
-	 * Two paths fill a file. `persist` chunks a staged blob into this service's
-	 * own store; an upload and an unpacked archive hand their blocks to ms-store
-	 * (`store.save`) and register only the hash here. Reading has to cover both,
-	 * or every file that came from a browser or out of a zip is unreadable —
-	 * which is exactly what "Chunk not found" meant. */
+	/** One chunk's plain bytes, read from ms-store. */
 	private async readChunk(
 		cache: CacheAdapter,
 		hash: string,
 	): Promise<Uint8Array> {
-		if (await this.stores.chunkStore.exists(chunkKey(hash))) {
-			return readChunkBytes(this.stores.chunkStore, hash);
-		}
-		const store = createStoreServiceClient(createServerNrpcClientConfig());
-		const stored = await store.getWithMeta(hash);
+		const stored = await this.store().getWithMeta(hash);
 		const raw = await cache.getBytes(stored.dataRef.cacheKey);
 		if (!raw) {
 			throw new Error(`Cache entry not found: ${stored.dataRef.cacheKey}`);
 		}
 		return decompressChunk(raw, stored.compression);
+	}
+
+	/** The block store. Every byte of every file is there and nowhere else. */
+	private store() {
+		return createStoreServiceClient(createServerNrpcClientConfig());
 	}
 
 	/** Detect a staged blob's file type from its name and magic bytes. */
@@ -204,13 +207,23 @@ export class FilesServiceImpl implements FilesService {
 
 		await this.save(metadata, input.processId);
 
+		// Chunks go to ms-store, the same place an upload puts them: one
+		// content-addressed home, deduplicated by hash and reference counted.
+		const cache = this.requiredCache();
+		const store = this.store();
 		for (let index = 0; index < chunksCount; index++) {
 			const start = index * DEFAULT_CHUNK_SIZE;
 			const end = Math.min(start + DEFAULT_CHUNK_SIZE, bytes.length);
-			const { hash, chunkSize } = await saveChunkBytes(
-				this.stores.chunkStore,
-				bytes.slice(start, end),
+			const part = bytes.slice(start, end);
+			const compressed = deflateChunk(part);
+			const ref = await writeCacheRef(cache, compressed, "persist", fileId);
+			const hash = await store.save(
+				ref,
+				part.length,
+				"deflate",
+				input.owner ?? "",
 			);
+			const chunkSize = compressed.length;
 			await this.saveChunk({
 				fileId,
 				hash,

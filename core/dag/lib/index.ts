@@ -459,7 +459,6 @@ export function analyzeFile(
 ): void {
 	const { fileId, name, ref } = staged;
 
-
 	if (staged.type === "gcode") {
 		// A raw g-code file has no native estimator (ptah slices/CAMs models,
 		// it does not re-parse g-code); nothing to do.
@@ -474,17 +473,24 @@ export function analyzeFile(
 			"convert-preview",
 			`convert-preview:${fileId}`,
 			fileId,
-			() =>
-				models.convert({ fileId, format: "glb2" }),
+			() => models.convert({ fileId, format: "glb2" }),
 		);
-		for (const [i, out] of (converted?.files ?? []).entries()) {
+		// The converter names its output after the exporter ("result.glb"), which
+		// says nothing about which model it belongs to. The request view pairs a
+		// preview with its model by base name, so the name is set here, where the
+		// source is known.
+		const base = name.replace(/\.[^.]+$/, "");
+		const outputs = converted?.files ?? [];
+		for (const [i, out] of outputs.entries()) {
+			const dot = out.name.lastIndexOf(".");
+			const suffix = dot > 0 ? out.name.slice(dot) : ".glb";
 			keep(
 				ctx,
 				"convert-preview",
 				`preview:${fileId}:${i}`,
 				staged,
 				out.ref,
-				out.name,
+				outputs.length === 1 ? `${base}${suffix}` : `${base}-${out.name}`,
 				"model/gltf-binary",
 				"preview",
 			);

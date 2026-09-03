@@ -1,14 +1,8 @@
-import {
-	type FileStore,
-	type SqlStore,
-	StoreControllerAbstract,
-	StoreType,
-} from "back-core";
+import { type SqlStore, StoreControllerAbstract, StoreType } from "back-core";
 import metadataMigrations from "./metadata/migrations";
 import { MetadataStoreService } from "./metadata/service";
 
 export class StoresController extends StoreControllerAbstract {
-	public chunkStore!: FileStore;
 	public metadataService: MetadataStoreService;
 
 	constructor(protected msName: string) {
@@ -16,11 +10,6 @@ export class StoresController extends StoreControllerAbstract {
 	}
 
 	async init() {
-		this.chunkStore = (await this.addStore(
-			"chunks",
-			StoreType.FILES,
-			[],
-		)) as FileStore;
 		const metadataStore = await this.addStore(
 			"metadata",
 			StoreType.SQL,

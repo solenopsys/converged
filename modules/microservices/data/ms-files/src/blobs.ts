@@ -1,6 +1,9 @@
 // Blob plumbing for the contract.md workflow methods (materialize / detectType /
-// unzip / persist). Heavy bytes are staged in Valkey as CacheRef values; final
-// chunks and their metadata remain wholly owned by ms-files.
+// unzip / persist). Heavy bytes are staged in Valkey as CacheRef values and the
+// chunks themselves live in ms-store, which is the one content-addressed store:
+// it keys blocks by hash, so the same bytes are kept once, and it counts the
+// references, so a block goes away only with the last file that holds it.
+// ms-files keeps names, collections and the chunk list — metadata, no data.
 
 import { createHash } from "node:crypto";
 import { extname, join } from "node:path";
@@ -62,29 +65,9 @@ export function decompressChunk(
 	}
 }
 
-export function chunkKey(hash: string): string {
-	return join(hash.slice(0, 3), hash);
-}
-
-/** Read one stored chunk from this service's own file store. */
-export async function readChunkBytes(
-	store: FileStore,
-	hash: string,
-): Promise<Uint8Array> {
-	const data = await store.get(chunkKey(hash));
-	if (!data) throw new Error(`Chunk not found: ${hash}`);
-	return decompressChunk(data, "deflate");
-}
-
-/** Deflate + save one chunk in this service's own file store. */
-export async function saveChunkBytes(
-	store: FileStore,
-	plain: Uint8Array,
-): Promise<{ hash: string; chunkSize: number }> {
-	const compressed = deflateSync(plain);
-	const hash = hashBytes(compressed);
-	await store.put(chunkKey(hash), compressed);
-	return { hash, chunkSize: compressed.length };
+/** The codec every chunk in the system is written with. */
+export function deflateChunk(plain: Uint8Array): Uint8Array {
+	return deflateSync(plain);
 }
 
 export function concatBytes(chunks: Uint8Array[]): Uint8Array {

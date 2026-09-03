@@ -1,16 +1,16 @@
-import { brotliDecompressSync, gunzipSync, inflateSync } from "node:zlib";
 import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { basename, extname, join } from "node:path";
+import { brotliDecompressSync, gunzipSync } from "node:zlib";
 import {
 	CACHE_BLOB_TTL_SECONDS,
 	type CacheAdapter,
 	createServerNrpcClientConfig,
 } from "back-core";
+import { inflateSync } from "fflate";
 import { createFilesServiceClient } from "g-files";
-import { createStoreServiceClient } from "g-store";
 import type {
 	CacheRef,
 	ConvertFormat,
@@ -18,7 +18,7 @@ import type {
 	ModelConvertorService,
 	ModelConvertResult,
 } from "g-modelconvertor";
-
+import { createStoreServiceClient } from "g-store";
 
 type BinaryConvertResult = {
 	files: { name: string; data: Uint8Array }[];
@@ -26,7 +26,9 @@ type BinaryConvertResult = {
 
 const DEFAULT_FORMAT: ConvertFormat = "glb2";
 
-/** Chunks are stored compressed; ms-store records which codec was used. */
+/** Chunks are stored compressed; ms-store records which codec was used.
+ *  "deflate" here is fflate's raw deflate — the codec ms-compressors and
+ *  ms-files write with — not zlib's wrapped form. */
 function decompressChunk(data: Uint8Array, compression: string): Uint8Array {
 	switch (compression) {
 		case "none":
@@ -372,7 +374,10 @@ export class ModelConvertorServiceImpl implements ModelConvertorService {
 
 		const files: ModelConvertResult["files"] = [];
 		for (const file of converted.files) {
-			files.push({ name: file.name, ref: await this.writeRef(file.data, file.name) });
+			files.push({
+				name: file.name,
+				ref: await this.writeRef(file.data, file.name),
+			});
 		}
 		return { files };
 	}
