@@ -343,11 +343,7 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 		ensureReady,
 		// Processing an upload is only half of it. What the upload finally
 		// amounts to are the files inside it — an archive of thirteen STLs is
-		// what a request is made of, and the archive itself is not. So the
-		// contents join the chat's file context, and the report goes to the
-		// assistant as a turn, because deciding what to do with them (create a
-		// request, ask the visitor, say nothing) is its call and it never gets
-		// to make it otherwise.
+		// what a request is made of, and the archive itself is not.
 		processFiles: async (fileIds) => {
 			const report = await store.invokeFunction("startFilesProcess", {
 				fileIds,
@@ -355,17 +351,21 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 			const intake = readIntake(report);
 			for (const file of intake.contents) processedFiles.set(file.fileId, file);
 			for (const archive of intake.archiveIds) unpackedArchives.add(archive);
-			if (intake.contents.length) {
-				store.noteFiles(
-					intake.contents.map((file) => ({
-						id: file.fileId,
-						name: file.fileName,
-						size: file.fileSize,
-						type: file.fileType,
-					})),
-					intake.archiveIds,
-				);
+			// Unpacking produced files, so the chat shows files: each one as the
+			// same downloadable bubble an upload leaves behind. Their names and
+			// sizes are the readable result of the operation — a report the
+			// visitor can click, instead of one they have to be told about.
+			for (const file of intake.contents) {
+				store.attach({
+					id: file.fileId,
+					name: file.fileName,
+					size: file.fileSize,
+					type: file.fileType,
+				});
 			}
+			// The assistant gets the same report as a turn, because deciding what
+			// to do with the files (create a request, ask, say nothing) is its
+			// call and it never gets to make it otherwise.
 			await store.follow(
 				`Uploaded files were processed. Report:\n${JSON.stringify(report, null, 2)}`,
 			);

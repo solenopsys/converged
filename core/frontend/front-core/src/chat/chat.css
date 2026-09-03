@@ -199,20 +199,27 @@
 	display: inline-flex;
 	align-items: center;
 	gap: var(--hw-space-2);
+	max-width: 100%;
 	font: inherit;
 	text-align: left;
 	cursor: pointer;
 }
 
+/* A flex item only shrinks below its content once min-width is cleared.
+   Without this the name keeps its full width, the size is squeezed to a
+   column of single characters, and a long file name breaks the bubble. */
 .file-bubble-name {
+	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
 .file-bubble-size {
+	flex: none;
 	color: var(--hw-field-placeholder);
 	font-size: var(--hw-font-size-sm);
+	white-space: nowrap;
 }
 
 /* ── tool call ───────────────────────────────────────────────────────── */

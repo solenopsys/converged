@@ -10,7 +10,8 @@ Owns file records and file-level operations; does not own object storage impleme
 
 ## Direct module dependencies
 
-- None
+- `ms-store` — the content-addressed block store every file's bytes live in.
+  ms-files keeps names, collections and the chunk list; it stores no data.
 
 ## Solution membership
 

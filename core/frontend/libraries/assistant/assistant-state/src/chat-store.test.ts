@@ -174,7 +174,7 @@ describe("chat view", () => {
 });
 
 describe("chat persistence", () => {
-	test("adds pending file IDs only to the next explicit user message", async () => {
+	test("an attachment is drawn, and the message stays the visitor's words", async () => {
 		const { store, saved } = harness();
 
 		store.attach({
@@ -184,55 +184,17 @@ describe("chat persistence", () => {
 			type: "model/stl",
 		});
 		await Bun.sleep(0);
+		// The file is on screen as its own entry — the bubble the chat draws.
+		expect(store.messages.map((message) => message.content)).toEqual([
+			"part.stl",
+		]);
 		expect(saved).toEqual([]);
 
 		store.send("create a request");
 		await Bun.sleep(0);
-		expect(saved[0]).toEqual({
-			user: "user",
-			data: '[FILE] id=file-1 name="part.stl" size=42 type="model/stl"\n\ncreate a request',
-		});
-
-		store.send("show requests");
-		await Bun.sleep(0);
-		expect(saved[1]).toEqual({ user: "user", data: "show requests" });
-	});
-
-	test("an archive's contents replace it in the file context, undrawn", async () => {
-		const { store, saved } = harness();
-
-		store.attach({
-			id: "zip-1",
-			name: "models.zip",
-			size: 7201924,
-			type: "application/zip",
-		});
-		// What unpacking the archive produced. The user attached one archive, so
-		// this is what the model must be able to put on a request — and the
-		// archive itself is no longer of any use to it.
-		store.noteFiles(
-			[
-				{ id: "stl-1", name: "part.stl", size: 42, type: "model/stl" },
-				{ id: "stl-2", name: "nut.stl", size: 43, type: "model/stl" },
-			],
-			["zip-1"],
-		);
-		await Bun.sleep(0);
-
-		// Only the archive was drawn: thirteen chips for one upload is noise.
-		expect(store.messages.map((message) => message.content)).toEqual([
-			"models.zip",
-		]);
-
-		store.send("create a request");
-		await Bun.sleep(0);
-		expect(saved[0]).toEqual({
-			user: "user",
-			data:
-				'[FILE] id=stl-1 name="part.stl" size=42 type="model/stl"\n' +
-				'[FILE] id=stl-2 name="nut.stl" size=43 type="model/stl"\n\n' +
-				"create a request",
-		});
+		// Identifiers do not belong in the message: the assistant learns about
+		// files from the tools, the visitor reads what they typed.
+		expect(saved[0]).toEqual({ user: "user", data: "create a request" });
 	});
 
 	test("the user's line is dumped at once, the answer only when settled", async () => {
