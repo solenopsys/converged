@@ -115,14 +115,14 @@ export function landingAuditSourceDir(): string | undefined {
 }
 
 export function landingAuditClientEntry(
-	name: "landing" | "print",
+	name: "document" | "print",
 ): string | undefined {
 	const source = landingAuditSourceDir();
 	if (!source) return undefined;
 	const entry = join(
 		source,
 		"client",
-		`${name}.${name === "landing" ? "tsx" : "ts"}`,
+		`${name}.${name === "document" ? "tsx" : "ts"}`,
 	);
 	return existsSync(entry) ? entry : undefined;
 }

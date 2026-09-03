@@ -8,29 +8,29 @@ import {
 export type ConvertFormat = "assjson" | "gltf" | "gltf2" | "glb" | "glb2";
 
 export type CacheRef = {
-  cacheKey: string;
-  sizeBytes?: number;
+	cacheKey: string;
+	sizeBytes?: number;
 };
 
 export type ModelConvertInput = {
-  /**
-   * The stored file to convert. The service reads its fragments itself — that
-   * is what ms-files and ms-store are for — so a caller that has an id never
-   * has to move bytes or assemble chunks to get a preview.
-   */
-  fileId: string;
-  /** Overrides the stored name; the extension decides the source parser. */
-  sourceName?: string;
-  format?: ConvertFormat;
+	/**
+	 * The stored file to convert. The service reads its fragments itself — that
+	 * is what ms-files and ms-store are for — so a caller that has an id never
+	 * has to move bytes or assemble chunks to get a preview.
+	 */
+	fileId: string;
+	/** Overrides the stored name; the extension decides the source parser. */
+	sourceName?: string;
+	format?: ConvertFormat;
 };
 
 export type ConvertedFileRef = {
-  name: string;
-  ref: CacheRef;
+	name: string;
+	ref: CacheRef;
 };
 
 export type ModelConvertResult = {
-  files: ConvertedFileRef[];
+	files: ConvertedFileRef[];
 };
 
 export const metadata: ServiceMetadata = {
@@ -63,22 +63,22 @@ export const metadata: ServiceMetadata = {
     {
       "name": "CacheRef",
       "kind": "type",
-      "definition": "{\n  cacheKey: string;\n  sizeBytes?: number;\n}"
+      "definition": "{\n\tcacheKey: string;\n\tsizeBytes?: number;\n}"
     },
     {
       "name": "ModelConvertInput",
       "kind": "type",
-      "definition": "{\n  /**\n   * The stored file to convert. The service reads its fragments itself — that\n   * is what ms-files and ms-store are for — so a caller that has an id never\n   * has to move bytes or assemble chunks to get a preview.\n   */\n  fileId: string;\n  /** Overrides the stored name; the extension decides the source parser. */\n  sourceName?: string;\n  format?: ConvertFormat;\n}"
+      "definition": "{\n\t/**\n\t * The stored file to convert. The service reads its fragments itself — that\n\t * is what ms-files and ms-store are for — so a caller that has an id never\n\t * has to move bytes or assemble chunks to get a preview.\n\t */\n\tfileId: string;\n\t/** Overrides the stored name; the extension decides the source parser. */\n\tsourceName?: string;\n\tformat?: ConvertFormat;\n}"
     },
     {
       "name": "ConvertedFileRef",
       "kind": "type",
-      "definition": "{\n  name: string;\n  ref: CacheRef;\n}"
+      "definition": "{\n\tname: string;\n\tref: CacheRef;\n}"
     },
     {
       "name": "ModelConvertResult",
       "kind": "type",
-      "definition": "{\n  files: ConvertedFileRef[];\n}"
+      "definition": "{\n\tfiles: ConvertedFileRef[];\n}"
     }
   ]
 };

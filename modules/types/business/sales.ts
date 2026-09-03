@@ -30,8 +30,31 @@ export type LeadTag = {
 
 export type Offer = {
 	id: string;
+	name?: string;
 	description: string;
 	template_path: string;
+	subjectTemplate?: string;
+	bodyTemplate?: string;
+};
+
+export type LeadAudience = {
+	id: string;
+	name: string;
+	description: string;
+	createdAt: Date;
+	updatedAt: Date;
+};
+
+export type LeadAudienceInput = {
+	id?: string;
+	name: string;
+	description?: string;
+};
+
+export type LeadAudienceMember = {
+	audienceId: string;
+	leadId: string;
+	createdAt: Date;
 };
 
 export enum ContactType {
@@ -74,9 +97,21 @@ export type Outreach = {
 	status: OutreachStatus | string;
 	lang: string;
 	description: string;
+	audienceId?: string;
+	templateId?: string;
+	planWorkflow?: string;
+	sendWorkflow?: string;
+	sendCronId?: string;
+	baseUrl?: string;
+	demoUrl?: string;
+	senders?: Record<string, string>;
+	jitterMaxSeconds?: number;
 	createdAt: Date;
 	updatedAt: Date;
 };
+
+/** Business-facing name. Outreach remains as a storage/API compatibility alias. */
+export type Campaign = Outreach;
 
 export type OutreachTargetStatus =
 	| "planned"
@@ -227,6 +262,8 @@ export type PaginationParams = {
 
 export type LeadListParams = PaginationParams & {
 	tags?: string[];
+	// Case-insensitive search over id, description and contact values.
+	query?: string;
 	// Case-insensitive substring match over the lead's contact values
 	// (email, domain, phone…). Combinable with tags.
 	contact?: string;
@@ -250,11 +287,29 @@ export interface SalesService {
 	listLeadTags(leadId: string): Promise<LeadTag[]>;
 	listLeadTagLinks(params: PaginationParams): Promise<PaginatedResult<LeadTag>>;
 	saveOffer(offer: Offer): Promise<string>;
+	getOffer(offerId: string): Promise<Offer | null>;
 	listOffers(params: PaginationParams): Promise<PaginatedResult<Offer>>;
+	saveAudience(audience: LeadAudienceInput): Promise<string>;
+	getAudience(audienceId: string): Promise<LeadAudience | null>;
+	listAudiences(
+		params: PaginationParams,
+	): Promise<PaginatedResult<LeadAudience>>;
+	deleteAudience(audienceId: string): Promise<boolean>;
+	addAudienceMembers(audienceId: string, leadIds: string[]): Promise<number>;
+	removeAudienceMembers(audienceId: string, leadIds: string[]): Promise<number>;
+	listAudienceMembers(
+		audienceId: string,
+		params: PaginationParams,
+	): Promise<PaginatedResult<LeadAudienceMember>>;
+	listAudienceLeads(
+		audienceId: string,
+		params: PaginationParams,
+	): Promise<PaginatedResult<Lead>>;
 	addContact(contact: Contact): Promise<string>;
 	getContact(contactId: string): Promise<Contact | null>;
 	addTouch(touch: Touch): Promise<number>;
 	saveOutreach(outreach: Outreach): Promise<string>;
+	getOutreach(outreachId: string): Promise<Outreach | null>;
 	listOutreaches(params: PaginationParams): Promise<PaginatedResult<Outreach>>;
 	addOutreachTargets(targets: OutreachTargetInput[]): Promise<number>;
 	listOutreachTargets(

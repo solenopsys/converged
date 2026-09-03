@@ -1,17 +1,28 @@
 import { randomUUID } from "node:crypto";
 import { BaseService, badRequestError, conflictError } from "back-core";
+import {
+	normalizeImportLeads as normalizeImportRows,
+	parseImportText,
+} from "./src/import";
 import { StoresController } from "./store";
+import type {
+	LeadAudienceEntity,
+	LeadEntity,
+	OfferEntity,
+	OutreachEntity,
+} from "./store/sales";
 import type {
 	Contact,
 	Lead,
-	NormalizeImportLeadsInput,
-	NormalizeImportLeadsResult,
-	ParseImportLeadsInput,
-	ParseImportLeadsResult,
+	LeadAudience,
+	LeadAudienceInput,
+	LeadAudienceMember,
 	LeadEvent,
 	LeadListParams,
 	LeadTag,
 	LeadUpdate,
+	NormalizeImportLeadsInput,
+	NormalizeImportLeadsResult,
 	Offer,
 	Outreach,
 	OutreachCandidate,
@@ -21,15 +32,13 @@ import type {
 	OutreachTargetStatusUpdate,
 	PaginatedResult,
 	PaginationParams,
+	ParseImportLeadsInput,
+	ParseImportLeadsResult,
 	SalesService,
 	SalesStatisticKey,
 	Statistic,
 	Touch,
 } from "./types";
-import {
-	normalizeImportLeads as normalizeImportRows,
-	parseImportText,
-} from "./src/import";
 
 function normalizeDate(value: unknown): Date {
 	if (value instanceof Date && !Number.isNaN(value.getTime())) {
@@ -88,7 +97,7 @@ function readBoolean(value: unknown): boolean {
 	return value === true || value === 1 || value === "1";
 }
 
-function mapLead(entity: any): Lead {
+function mapLead(entity: LeadEntity): Lead {
 	return {
 		id: entity.id,
 		description: entity.description,
@@ -97,6 +106,59 @@ function mapLead(entity: any): Lead {
 		catalogId: entity.catalogId,
 		disabled: readBoolean(entity.disabled),
 		createdAt: new Date(entity.createdAt * 1000),
+	};
+}
+
+function mapOffer(entity: OfferEntity): Offer {
+	return {
+		id: entity.id,
+		name: entity.name || entity.id,
+		description: entity.description,
+		template_path: entity.template_path,
+		subjectTemplate: entity.subjectTemplate ?? "",
+		bodyTemplate: entity.bodyTemplate ?? "",
+	};
+}
+
+function mapAudience(entity: LeadAudienceEntity): LeadAudience {
+	return {
+		id: entity.id,
+		name: entity.name,
+		description: entity.description,
+		createdAt: new Date(entity.createdAt * 1000),
+		updatedAt: new Date(entity.updatedAt * 1000),
+	};
+}
+
+function mapOutreach(entity: OutreachEntity): Outreach {
+	let senders: Record<string, string> = {};
+	try {
+		const parsed = JSON.parse(entity.senders || "[]");
+		if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+			senders = Object.fromEntries(
+				Object.entries(parsed).map(([key, value]) => [key, String(value)]),
+			);
+		}
+	} catch {
+		// Older rows may not contain JSON configuration.
+	}
+	return {
+		id: entity.id,
+		name: entity.name,
+		status: entity.status,
+		lang: entity.lang,
+		description: entity.description,
+		audienceId: entity.audienceId ?? undefined,
+		templateId: entity.templateId ?? undefined,
+		planWorkflow: entity.planWorkflow || undefined,
+		sendWorkflow: entity.sendWorkflow || undefined,
+		sendCronId: entity.sendCronId ?? undefined,
+		baseUrl: entity.baseUrl || undefined,
+		demoUrl: entity.demoUrl || undefined,
+		senders,
+		jitterMaxSeconds: Number(entity.jitterMaxSeconds ?? 0),
+		createdAt: new Date(entity.createdAt * 1000),
+		updatedAt: new Date(entity.updatedAt * 1000),
 	};
 }
 
@@ -256,10 +318,21 @@ class SalesServiceImpl
 
 		await this.stores.salesStoreSevice.saveOffer({
 			id,
+			name: offer.name?.trim() || id,
 			description: offer.description ?? "",
 			template_path: offer.template_path ?? "",
+			subjectTemplate: offer.subjectTemplate ?? "",
+			bodyTemplate: offer.bodyTemplate ?? "",
 		});
 		return id;
+	}
+
+	async getOffer(offerId: string): Promise<Offer | null> {
+		await this.ready();
+		const id = offerId?.trim();
+		if (!id) throw badRequestError("offerId is required");
+		const offer = await this.stores.salesStoreSevice.offerRepo.findById({ id });
+		return offer ? mapOffer(offer) : null;
 	}
 
 	async listOffers(params: PaginationParams): Promise<PaginatedResult<Offer>> {
@@ -273,13 +346,124 @@ class SalesServiceImpl
 		]);
 
 		return {
-			items: items.map((offer) => ({
-				id: offer.id,
-				description: offer.description,
-				template_path: offer.template_path,
-			})),
+			items: items.map(mapOffer),
 			totalCount,
 		};
+	}
+
+	async saveAudience(audience: LeadAudienceInput): Promise<string> {
+		await this.ready();
+		const name = audience.name?.trim();
+		if (!name) throw badRequestError("Audience name is required");
+		const id = audience.id?.trim() || randomUUID();
+		const existing =
+			await this.stores.salesStoreSevice.leadAudienceRepo.findById({
+				id,
+			});
+		const now = Math.floor(Date.now() / 1000);
+		await this.stores.salesStoreSevice.saveAudience({
+			id,
+			name,
+			description: audience.description?.trim() ?? "",
+			createdAt: existing?.createdAt ?? now,
+			updatedAt: now,
+		});
+		return id;
+	}
+
+	async getAudience(audienceId: string): Promise<LeadAudience | null> {
+		await this.ready();
+		const id = audienceId?.trim();
+		if (!id) throw badRequestError("audienceId is required");
+		const entity = await this.stores.salesStoreSevice.leadAudienceRepo.findById(
+			{
+				id,
+			},
+		);
+		return entity ? mapAudience(entity) : null;
+	}
+
+	async listAudiences(
+		params: PaginationParams,
+	): Promise<PaginatedResult<LeadAudience>> {
+		await this.ready();
+		const result = await this.stores.salesStoreSevice.listAudiences(params);
+		return {
+			items: result.items.map(mapAudience),
+			totalCount: result.totalCount,
+		};
+	}
+
+	async deleteAudience(audienceId: string): Promise<boolean> {
+		await this.ready();
+		const id = audienceId?.trim();
+		if (!id) throw badRequestError("audienceId is required");
+		return this.stores.salesStoreSevice.deleteAudience(id);
+	}
+
+	async addAudienceMembers(
+		audienceId: string,
+		leadIds: string[],
+	): Promise<number> {
+		await this.ready();
+		const id = audienceId?.trim();
+		const normalized = [
+			...new Set(leadIds.map((item) => item.trim()).filter(Boolean)),
+		];
+		if (!id) throw badRequestError("audienceId is required");
+		if (
+			!(await this.stores.salesStoreSevice.leadAudienceRepo.findById({ id }))
+		) {
+			throw badRequestError(`Audience '${id}' does not exist`);
+		}
+		return this.stores.salesStoreSevice.addAudienceMembers(id, normalized);
+	}
+
+	async removeAudienceMembers(
+		audienceId: string,
+		leadIds: string[],
+	): Promise<number> {
+		await this.ready();
+		const id = audienceId?.trim();
+		if (!id) throw badRequestError("audienceId is required");
+		return this.stores.salesStoreSevice.removeAudienceMembers(id, [
+			...new Set(leadIds.map((item) => item.trim()).filter(Boolean)),
+		]);
+	}
+
+	async listAudienceMembers(
+		audienceId: string,
+		params: PaginationParams,
+	): Promise<PaginatedResult<LeadAudienceMember>> {
+		await this.ready();
+		const id = audienceId?.trim();
+		if (!id) throw badRequestError("audienceId is required");
+		const result = await this.stores.salesStoreSevice.listAudienceMembers(
+			id,
+			params,
+		);
+		return {
+			items: result.items.map((item) => ({
+				audienceId: item.audienceId,
+				leadId: item.leadId,
+				createdAt: new Date(item.createdAt * 1000),
+			})),
+			totalCount: result.totalCount,
+		};
+	}
+
+	async listAudienceLeads(
+		audienceId: string,
+		params: PaginationParams,
+	): Promise<PaginatedResult<Lead>> {
+		await this.ready();
+		const id = audienceId?.trim();
+		if (!id) throw badRequestError("audienceId is required");
+		const result = await this.stores.salesStoreSevice.listAudienceLeads(
+			id,
+			params,
+		);
+		return { items: result.items.map(mapLead), totalCount: result.totalCount };
 	}
 
 	async addContact(contact: Contact): Promise<string> {
@@ -374,11 +558,30 @@ class SalesServiceImpl
 			status: outreach.status?.trim() || "draft",
 			lang: outreach.lang?.trim().toLowerCase() ?? "",
 			description: outreach.description ?? "",
+			audienceId: outreach.audienceId?.trim() || null,
+			templateId: outreach.templateId?.trim() || null,
+			planWorkflow: outreach.planWorkflow?.trim() || "",
+			sendWorkflow: outreach.sendWorkflow?.trim() || "",
+			sendCronId: outreach.sendCronId?.trim() || null,
+			baseUrl: outreach.baseUrl?.trim() || "",
+			demoUrl: outreach.demoUrl?.trim() || "",
+			senders: JSON.stringify(outreach.senders ?? {}),
+			jitterMaxSeconds: Math.max(0, Number(outreach.jitterMaxSeconds ?? 0)),
 			createdAt: toSeconds(outreach.createdAt ?? now),
 			updatedAt: now,
 		});
 
 		return id;
+	}
+
+	async getOutreach(outreachId: string): Promise<Outreach | null> {
+		await this.ready();
+		const id = outreachId?.trim();
+		if (!id) throw badRequestError("outreachId is required");
+		const entity = await this.stores.salesStoreSevice.outreachRepo.findById({
+			id,
+		});
+		return entity ? mapOutreach(entity) : null;
 	}
 
 	async listOutreaches(
@@ -387,15 +590,7 @@ class SalesServiceImpl
 		await this.ready();
 		const result = await this.stores.salesStoreSevice.listOutreaches(params);
 		return {
-			items: result.items.map((entity) => ({
-				id: entity.id,
-				name: entity.name,
-				status: entity.status,
-				lang: entity.lang,
-				description: entity.description,
-				createdAt: new Date(entity.createdAt * 1000),
-				updatedAt: new Date(entity.updatedAt * 1000),
-			})),
+			items: result.items.map(mapOutreach),
 			totalCount: result.totalCount,
 		};
 	}
@@ -528,8 +723,9 @@ class SalesServiceImpl
 		await this.ready();
 		const tags = params.tags?.map((tag) => tag.trim()).filter(Boolean) ?? [];
 		const contact = params.contact?.trim() ?? "";
+		const query = params.query?.trim() ?? "";
 		const useCursor = typeof params.after === "string";
-		if (useCursor && (tags.length || contact)) {
+		if (useCursor && (tags.length || contact || query)) {
 			throw new Error(
 				"listLeads: 'after' cursor is not supported together with filters (tags/contact)",
 			);
@@ -539,9 +735,9 @@ class SalesServiceImpl
 					params.after as string,
 					params.limit,
 				)
-			: tags.length || contact
+			: tags.length || contact || query
 				? await this.stores.salesStoreSevice.listLeadsFiltered(
-						{ tags, contact },
+						{ tags, contact, query },
 						params,
 					)
 				: {

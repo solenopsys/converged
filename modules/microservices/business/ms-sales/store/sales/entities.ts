@@ -22,8 +22,25 @@ export interface LeadTagEntity {
 
 export interface OfferEntity {
 	id: string;
+	name: string;
 	description: string;
 	template_path: string;
+	subjectTemplate: string;
+	bodyTemplate: string;
+}
+
+export interface LeadAudienceEntity {
+	id: string;
+	name: string;
+	description: string;
+	createdAt: number;
+	updatedAt: number;
+}
+
+export interface LeadAudienceMemberEntity {
+	audienceId: string;
+	leadId: string;
+	createdAt: number;
 }
 
 export interface ContactEntity {
@@ -51,6 +68,15 @@ export interface OutreachEntity {
 	status: string;
 	lang: string;
 	description: string;
+	audienceId: string | null;
+	templateId: string | null;
+	planWorkflow: string;
+	sendWorkflow: string;
+	sendCronId: string | null;
+	baseUrl: string;
+	demoUrl: string;
+	senders: string;
+	jitterMaxSeconds: number;
 	createdAt: number;
 	updatedAt: number;
 }
@@ -101,4 +127,8 @@ export class OutreachTargetRepository extends BaseRepositorySQL<
 export class LeadEventRepository extends BaseRepositorySQL<
 	StringKey,
 	LeadEventEntity
+> {}
+export class LeadAudienceRepository extends BaseRepositorySQL<
+	StringKey,
+	LeadAudienceEntity
 > {}

@@ -63,6 +63,19 @@ describe("SalesStoreService.listLeadsFiltered", () => {
 		expect(result.items.map((lead) => lead.id)).toEqual(["lead-rextek"]);
 	});
 
+	it("searches lead identity, description and contacts", async () => {
+		const byDescription = await sales.listLeadsFiltered(
+			{ query: "crazy by design" },
+			{ limit: 10, offset: 0 },
+		);
+		const byContact = await sales.listLeadsFiltered(
+			{ query: "rextek-cnc.com" },
+			{ limit: 10, offset: 0 },
+		);
+		expect(byDescription.items.map((lead) => lead.id)).toEqual(["lead-steel"]);
+		expect(byContact.items.map((lead) => lead.id)).toEqual(["lead-rextek"]);
+	});
+
 	it("does not duplicate a lead with several matching contacts", async () => {
 		const result = await sales.listLeadsFiltered(
 			{ contact: "steelcrazy" },
@@ -140,5 +153,49 @@ describe("SalesStoreService.listLeadsFiltered", () => {
 			leads: 4,
 			touches: 1,
 		});
+	});
+
+	it("keeps audience membership many-to-many and idempotent", async () => {
+		const now = Math.floor(Date.now() / 1000);
+		await sales.saveAudience({
+			id: "audience-a",
+			name: "Audience A",
+			description: "",
+			createdAt: now,
+			updatedAt: now,
+		});
+		await sales.saveAudience({
+			id: "audience-b",
+			name: "Audience B",
+			description: "",
+			createdAt: now,
+			updatedAt: now,
+		});
+
+		await sales.addAudienceMembers("audience-a", ["lead-steel", "lead-rextek"]);
+		await sales.addAudienceMembers("audience-a", ["lead-steel"]);
+		await sales.addAudienceMembers("audience-b", ["lead-steel"]);
+
+		const [audienceA, audienceB] = await Promise.all([
+			sales.listAudienceLeads("audience-a", { offset: 0, limit: 10 }),
+			sales.listAudienceLeads("audience-b", { offset: 0, limit: 10 }),
+		]);
+		expect(audienceA.totalCount).toBe(2);
+		expect(new Set(audienceA.items.map((lead) => lead.id))).toEqual(
+			new Set(["lead-steel", "lead-rextek"]),
+		);
+		expect(audienceB.items.map((lead) => lead.id)).toEqual(["lead-steel"]);
+
+		await sales.removeAudienceMembers("audience-a", ["lead-steel"]);
+		expect(
+			(
+				await sales.listAudienceLeads("audience-a", { offset: 0, limit: 10 })
+			).items.map((lead) => lead.id),
+		).toEqual(["lead-rextek"]);
+		expect(
+			(
+				await sales.listAudienceLeads("audience-b", { offset: 0, limit: 10 })
+			).items.map((lead) => lead.id),
+		).toEqual(["lead-steel"]);
 	});
 });

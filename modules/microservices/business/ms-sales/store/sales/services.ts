@@ -2,17 +2,20 @@ import { type SqlStore, sql } from "back-core";
 import {
 	type ContactEntity,
 	ContactRepository,
+	type LeadAudienceEntity,
+	type LeadAudienceMemberEntity,
+	LeadAudienceRepository,
 	type LeadEntity,
 	type LeadEventEntity,
 	LeadEventRepository,
 	LeadRepository,
+	type LeadTagEntity,
+	type OfferEntity,
+	OfferRepository,
 	type OutreachEntity,
 	OutreachRepository,
 	type OutreachTargetEntity,
 	OutreachTargetRepository,
-	type LeadTagEntity,
-	type OfferEntity,
-	OfferRepository,
 	TouchRepository,
 } from "./entities";
 
@@ -55,6 +58,7 @@ export class SalesStoreService {
 	public readonly leadEventRepo: LeadEventRepository;
 	public readonly outreachRepo: OutreachRepository;
 	public readonly outreachTargetRepo: OutreachTargetRepository;
+	public readonly leadAudienceRepo: LeadAudienceRepository;
 
 	constructor(store: SqlStore) {
 		this.store = store;
@@ -82,6 +86,16 @@ export class SalesStoreService {
 			{
 				primaryKey: "id",
 				extractKey: (target) => ({ id: target.id }),
+				buildWhereCondition: (key) => ({ id: key.id }),
+			},
+		);
+
+		this.leadAudienceRepo = new LeadAudienceRepository(
+			store,
+			"lead_audiences",
+			{
+				primaryKey: "id",
+				extractKey: (audience) => ({ id: audience.id }),
 				buildWhereCondition: (key) => ({ id: key.id }),
 			},
 		);
@@ -289,12 +303,13 @@ export class SalesStoreService {
 			completionPercent: number;
 		}>
 	> {
-		const companyNameExpression = sql<string>`coalesce(nullif(json_extract(target.payload, '$.outreach.companyName'), ''), target.outreachId)`;
+		const campaignNameExpression = sql<string>`coalesce(nullif(outreach.name, ''), nullif(json_extract(target.payload, '$.outreach.companyName'), ''), target.outreachId)`;
 		const rows = (await this.store.db
 			.selectFrom("outreach_targets as target")
+			.leftJoin("outreaches as outreach", "outreach.id", "target.outreachId")
 			.select([
-				sql<string>`min(target.outreachId)`.as("outreachId"),
-				companyNameExpression.as("name"),
+				"target.outreachId as outreachId",
+				campaignNameExpression.as("name"),
 				sql<number>`count(target.id)`.as("total"),
 				sql<number>`sum(case when target.status = 'planned' then 1 else 0 end)`.as(
 					"planned",
@@ -315,7 +330,8 @@ export class SalesStoreService {
 					"skipped",
 				),
 			])
-			.groupBy(companyNameExpression)
+			.groupBy("target.outreachId")
+			.groupBy(campaignNameExpression)
 			.orderBy("total", "desc")
 			.execute()) as OutreachProgressRow[];
 
@@ -408,11 +424,137 @@ export class SalesStoreService {
 			.values(offer)
 			.onConflict((oc) =>
 				oc.column("id").doUpdateSet({
+					name: offer.name,
 					description: offer.description,
 					template_path: offer.template_path,
+					subjectTemplate: offer.subjectTemplate,
+					bodyTemplate: offer.bodyTemplate,
 				}),
 			)
 			.execute();
+	}
+
+	async saveAudience(audience: LeadAudienceEntity): Promise<void> {
+		await this.store.db
+			.insertInto("lead_audiences")
+			.values(audience)
+			.onConflict((oc) =>
+				oc.column("id").doUpdateSet({
+					name: audience.name,
+					description: audience.description,
+					updatedAt: audience.updatedAt,
+				}),
+			)
+			.execute();
+	}
+
+	async listAudiences(params: {
+		offset?: number;
+		limit?: number;
+	}): Promise<{ items: LeadAudienceEntity[]; totalCount: number }> {
+		const limit = params.limit ?? 50;
+		const offset = params.offset ?? 0;
+		const [items, countRows] = await Promise.all([
+			this.store.db
+				.selectFrom("lead_audiences")
+				.selectAll()
+				.orderBy("updatedAt", "desc")
+				.limit(limit)
+				.offset(offset)
+				.execute() as Promise<LeadAudienceEntity[]>,
+			this.store.db
+				.selectFrom("lead_audiences")
+				.select(({ fn }) => [fn.count<number>("id").as("count")])
+				.execute(),
+		]);
+		return { items, totalCount: readCount(countRows[0]) };
+	}
+
+	async deleteAudience(audienceId: string): Promise<boolean> {
+		await this.store.db
+			.deleteFrom("lead_audience_members")
+			.where("audienceId", "=", audienceId)
+			.execute();
+		const result = await this.store.db
+			.deleteFrom("lead_audiences")
+			.where("id", "=", audienceId)
+			.executeTakeFirst();
+		return Number(result.numDeletedRows ?? 0) > 0;
+	}
+
+	async addAudienceMembers(
+		audienceId: string,
+		leadIds: string[],
+	): Promise<number> {
+		if (leadIds.length === 0) return 0;
+		const createdAt = Math.floor(Date.now() / 1000);
+		const result = await this.store.db
+			.insertInto("lead_audience_members")
+			.values(leadIds.map((leadId) => ({ audienceId, leadId, createdAt })))
+			.onConflict((oc) => oc.columns(["audienceId", "leadId"]).doNothing())
+			.executeTakeFirst();
+		return Number(result.numInsertedOrUpdatedRows ?? 0);
+	}
+
+	async removeAudienceMembers(
+		audienceId: string,
+		leadIds: string[],
+	): Promise<number> {
+		if (leadIds.length === 0) return 0;
+		const result = await this.store.db
+			.deleteFrom("lead_audience_members")
+			.where("audienceId", "=", audienceId)
+			.where("leadId", "in", leadIds)
+			.executeTakeFirst();
+		return Number(result.numDeletedRows ?? 0);
+	}
+
+	async listAudienceMembers(
+		audienceId: string,
+		params: { offset?: number; limit?: number },
+	): Promise<{ items: LeadAudienceMemberEntity[]; totalCount: number }> {
+		const limit = params.limit ?? 50;
+		const offset = params.offset ?? 0;
+		const [items, countRows] = await Promise.all([
+			this.store.db
+				.selectFrom("lead_audience_members")
+				.selectAll()
+				.where("audienceId", "=", audienceId)
+				.orderBy("createdAt", "desc")
+				.limit(limit)
+				.offset(offset)
+				.execute() as Promise<LeadAudienceMemberEntity[]>,
+			this.store.db
+				.selectFrom("lead_audience_members")
+				.select(({ fn }) => [fn.count<number>("leadId").as("count")])
+				.where("audienceId", "=", audienceId)
+				.execute(),
+		]);
+		return { items, totalCount: readCount(countRows[0]) };
+	}
+
+	async listAudienceLeads(
+		audienceId: string,
+		params: { offset?: number; limit?: number },
+	): Promise<{ items: LeadEntity[]; totalCount: number }> {
+		const limit = params.limit ?? 50;
+		const offset = params.offset ?? 0;
+		const base = this.store.db
+			.selectFrom("leads as lead")
+			.innerJoin("lead_audience_members as member", "member.leadId", "lead.id")
+			.where("member.audienceId", "=", audienceId);
+		const [items, countRows] = await Promise.all([
+			base
+				.selectAll("lead")
+				.orderBy("member.createdAt", "desc")
+				.limit(limit)
+				.offset(offset)
+				.execute() as Promise<LeadEntity[]>,
+			base
+				.select(({ fn }) => [fn.count<number>("lead.id").as("count")])
+				.execute(),
+		]);
+		return { items, totalCount: readCount(countRows[0]) };
 	}
 
 	async saveOutreach(outreach: OutreachEntity): Promise<void> {
@@ -425,6 +567,15 @@ export class SalesStoreService {
 					status: outreach.status,
 					lang: outreach.lang,
 					description: outreach.description,
+					audienceId: outreach.audienceId,
+					templateId: outreach.templateId,
+					planWorkflow: outreach.planWorkflow,
+					sendWorkflow: outreach.sendWorkflow,
+					sendCronId: outreach.sendCronId,
+					baseUrl: outreach.baseUrl,
+					demoUrl: outreach.demoUrl,
+					senders: outreach.senders,
+					jitterMaxSeconds: outreach.jitterMaxSeconds,
 					updatedAt: outreach.updatedAt,
 				}),
 			)
@@ -578,11 +729,12 @@ export class SalesStoreService {
 	}
 
 	async listLeadsFiltered(
-		filters: { tags?: string[]; contact?: string },
+		filters: { tags?: string[]; contact?: string; query?: string },
 		params: { offset?: number; limit?: number },
 	): Promise<{ items: LeadEntity[]; totalCount: number }> {
 		const tags = this.normalizeTagNames(filters.tags ?? []);
 		const contact = filters.contact?.trim().toLowerCase() ?? "";
+		const query = filters.query?.trim().toLowerCase() ?? "";
 		const limit = params.limit ?? 50;
 		const offset = params.offset ?? 0;
 
@@ -608,6 +760,18 @@ export class SalesStoreService {
         where lower(value) like ${`%${contact}%`}
       )
     `);
+		}
+
+		if (query) {
+			conditions.push(sql<boolean>`(
+        lower(leads.id) like ${`%${query}%`}
+        or lower(leads.description) like ${`%${query}%`}
+        or leads.id in (
+          select leadId
+          from contacts
+          where lower(value) like ${`%${query}%`}
+        )
+      )`);
 		}
 
 		if (conditions.length === 0) {
@@ -773,8 +937,6 @@ export class SalesStoreService {
 		return [...new Set(tagNames.map((tag) => tag.trim()).filter(Boolean))];
 	}
 
-
-
 	async resolveCodeOwner(
 		code: string,
 	): Promise<{ contactId: string | null; leadId: string | null }> {
@@ -832,7 +994,6 @@ export class SalesStoreService {
 			totalCount: readCount(countRows[0]),
 		};
 	}
-
 
 	async getEventFunnel(): Promise<Record<string, number>> {
 		const rows = await this.store.db

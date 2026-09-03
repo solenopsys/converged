@@ -33,8 +33,31 @@ export type LeadTag = {
 
 export type Offer = {
 	id: string;
+	name?: string;
 	description: string;
 	template_path: string;
+	subjectTemplate?: string;
+	bodyTemplate?: string;
+};
+
+export type LeadAudience = {
+	id: string;
+	name: string;
+	description: string;
+	createdAt: Date;
+	updatedAt: Date;
+};
+
+export type LeadAudienceInput = {
+	id?: string;
+	name: string;
+	description?: string;
+};
+
+export type LeadAudienceMember = {
+	audienceId: string;
+	leadId: string;
+	createdAt: Date;
 };
 
 export enum ContactType {
@@ -76,9 +99,20 @@ export type Outreach = {
 	status: OutreachStatus | string;
 	lang: string;
 	description: string;
+	audienceId?: string;
+	templateId?: string;
+	planWorkflow?: string;
+	sendWorkflow?: string;
+	sendCronId?: string;
+	baseUrl?: string;
+	demoUrl?: string;
+	senders?: Record<string, string>;
+	jitterMaxSeconds?: number;
 	createdAt: Date;
 	updatedAt: Date;
 };
+
+export type Campaign = Outreach;
 
 export type OutreachTargetStatus = | "planned"
 	| "claimed"
@@ -222,6 +256,8 @@ export type PaginationParams = {
 
 export type LeadListParams = PaginationParams & {
 	tags?: string[];
+	// Case-insensitive search over id, description and contact values.
+	query?: string;
 	// Case-insensitive substring match over the lead's contact values
 	// (email, domain, phone…). Combinable with tags.
 	contact?: string;
@@ -394,6 +430,21 @@ const metadata: ServiceMetadata = {
       "isAsyncIterable": false
     },
     {
+      "name": "getOffer",
+      "parameters": [
+        {
+          "name": "offerId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "Offer | any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
       "name": "listOffers",
       "parameters": [
         {
@@ -404,6 +455,150 @@ const metadata: ServiceMetadata = {
         }
       ],
       "returnType": "PaginatedResult<Offer>",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "saveAudience",
+      "parameters": [
+        {
+          "name": "audience",
+          "type": "LeadAudienceInput",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "string",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "getAudience",
+      "parameters": [
+        {
+          "name": "audienceId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "LeadAudience | any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "listAudiences",
+      "parameters": [
+        {
+          "name": "params",
+          "type": "PaginationParams",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "PaginatedResult<LeadAudience>",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "deleteAudience",
+      "parameters": [
+        {
+          "name": "audienceId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "boolean",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "addAudienceMembers",
+      "parameters": [
+        {
+          "name": "audienceId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "leadIds",
+          "type": "string",
+          "optional": false,
+          "isArray": true
+        }
+      ],
+      "returnType": "number",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "removeAudienceMembers",
+      "parameters": [
+        {
+          "name": "audienceId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "leadIds",
+          "type": "string",
+          "optional": false,
+          "isArray": true
+        }
+      ],
+      "returnType": "number",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "listAudienceMembers",
+      "parameters": [
+        {
+          "name": "audienceId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "params",
+          "type": "PaginationParams",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "PaginatedResult<LeadAudienceMember>",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "listAudienceLeads",
+      "parameters": [
+        {
+          "name": "audienceId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "params",
+          "type": "PaginationParams",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "PaginatedResult<Lead>",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -464,6 +659,21 @@ const metadata: ServiceMetadata = {
         }
       ],
       "returnType": "string",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "getOutreach",
+      "parameters": [
+        {
+          "name": "outreachId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "Outreach | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -806,7 +1016,22 @@ const metadata: ServiceMetadata = {
     {
       "name": "Offer",
       "kind": "type",
-      "definition": "{\n\tid: string;\n\tdescription: string;\n\ttemplate_path: string;\n}"
+      "definition": "{\n\tid: string;\n\tname?: string;\n\tdescription: string;\n\ttemplate_path: string;\n\tsubjectTemplate?: string;\n\tbodyTemplate?: string;\n}"
+    },
+    {
+      "name": "LeadAudience",
+      "kind": "type",
+      "definition": "{\n\tid: string;\n\tname: string;\n\tdescription: string;\n\tcreatedAt: Date;\n\tupdatedAt: Date;\n}"
+    },
+    {
+      "name": "LeadAudienceInput",
+      "kind": "type",
+      "definition": "{\n\tid?: string;\n\tname: string;\n\tdescription?: string;\n}"
+    },
+    {
+      "name": "LeadAudienceMember",
+      "kind": "type",
+      "definition": "{\n\taudienceId: string;\n\tleadId: string;\n\tcreatedAt: Date;\n}"
     },
     {
       "name": "ContactType",
@@ -831,7 +1056,12 @@ const metadata: ServiceMetadata = {
     {
       "name": "Outreach",
       "kind": "type",
-      "definition": "{\n\tid: string;\n\tname: string;\n\tstatus: OutreachStatus | string;\n\tlang: string;\n\tdescription: string;\n\tcreatedAt: Date;\n\tupdatedAt: Date;\n}"
+      "definition": "{\n\tid: string;\n\tname: string;\n\tstatus: OutreachStatus | string;\n\tlang: string;\n\tdescription: string;\n\taudienceId?: string;\n\ttemplateId?: string;\n\tplanWorkflow?: string;\n\tsendWorkflow?: string;\n\tsendCronId?: string;\n\tbaseUrl?: string;\n\tdemoUrl?: string;\n\tsenders?: Record<string, string>;\n\tjitterMaxSeconds?: number;\n\tcreatedAt: Date;\n\tupdatedAt: Date;\n}"
+    },
+    {
+      "name": "Campaign",
+      "kind": "type",
+      "definition": "Outreach"
     },
     {
       "name": "OutreachTargetStatus",
@@ -936,7 +1166,7 @@ const metadata: ServiceMetadata = {
     {
       "name": "LeadListParams",
       "kind": "type",
-      "definition": "PaginationParams & {\n\ttags?: string[];\n\t// Case-insensitive substring match over the lead's contact values\n\t// (email, domain, phone…). Combinable with tags.\n\tcontact?: string;\n\t// Keyset cursor: when set, returns leads with id > after, ordered by id ASC\n\t// (ignores offset). Not supported together with filters (tags/contact).\n\tafter?: string;\n}"
+      "definition": "PaginationParams & {\n\ttags?: string[];\n\t// Case-insensitive search over id, description and contact values.\n\tquery?: string;\n\t// Case-insensitive substring match over the lead's contact values\n\t// (email, domain, phone…). Combinable with tags.\n\tcontact?: string;\n\t// Keyset cursor: when set, returns leads with id > after, ordered by id ASC\n\t// (ignores offset). Not supported together with filters (tags/contact).\n\tafter?: string;\n}"
     },
     {
       "name": "PaginatedResult",
@@ -958,11 +1188,21 @@ export interface SalesServiceRtClient {
   listLeadTags(leadId: string): LeadTag[];
   listLeadTagLinks(params: PaginationParams): PaginatedResult<LeadTag>;
   saveOffer(offer: Offer): string;
+  getOffer(offerId: string): Offer | any;
   listOffers(params: PaginationParams): PaginatedResult<Offer>;
+  saveAudience(audience: LeadAudienceInput): string;
+  getAudience(audienceId: string): LeadAudience | any;
+  listAudiences(params: PaginationParams): PaginatedResult<LeadAudience>;
+  deleteAudience(audienceId: string): boolean;
+  addAudienceMembers(audienceId: string, leadIds: string[]): number;
+  removeAudienceMembers(audienceId: string, leadIds: string[]): number;
+  listAudienceMembers(audienceId: string, params: PaginationParams): PaginatedResult<LeadAudienceMember>;
+  listAudienceLeads(audienceId: string, params: PaginationParams): PaginatedResult<Lead>;
   addContact(contact: Contact): string;
   getContact(contactId: string): Contact | any;
   addTouch(touch: Touch): number;
   saveOutreach(outreach: Outreach): string;
+  getOutreach(outreachId: string): Outreach | any;
   listOutreaches(params: PaginationParams): PaginatedResult<Outreach>;
   addOutreachTargets(targets: OutreachTargetInput[]): number;
   listOutreachTargets(params: OutreachTargetListParams): PaginatedResult<OutreachTarget>;
