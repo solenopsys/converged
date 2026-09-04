@@ -55,7 +55,9 @@ const labels: Record<Operator, string> = {
 	open: "Open object",
 	create: "Create object",
 	add: "Add to object",
+	remove: "Remove from object",
 	save: "Save object",
+	delete: "Delete object",
 	execute: "Execute operation",
 };
 
@@ -70,7 +72,9 @@ const intents: Record<Operator, "create" | "mutate" | "read"> = {
 	open: "read",
 	create: "create",
 	add: "mutate",
+	remove: "mutate",
 	save: "mutate",
+	delete: "mutate",
 	execute: "mutate",
 };
 
@@ -80,13 +84,15 @@ const verbs: Record<Operator, string> = {
 	open: "Open",
 	create: "Create",
 	add: "Add to",
+	remove: "Remove from",
 	save: "Save",
+	delete: "Delete",
 	execute: "Execute",
 };
 
 type OperatorTarget = { id: string; label: string };
 
-const localized = (
+export const localized = (
 	owner: string | undefined,
 	key: string | undefined,
 	fallback: string | undefined,

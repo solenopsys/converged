@@ -68,6 +68,19 @@ export type BulkAction = {
   variant?: "default" | "danger" | "destructive";
 };
 
+/**
+ * A command published by the object runtime for the collection on screen. It
+ * is not configured on the table: an operation that accepts this kind of
+ * reference becomes a command here and a function for the assistant at once.
+ */
+export type TableCommand = {
+  id: string;
+  label: string;
+  description?: string;
+  icon?: TableActionIcon;
+  variant?: "default" | "destructive";
+};
+
 export type SortConfig = {
   key: string | null;
   direction: "asc" | "desc";
@@ -101,6 +114,12 @@ export interface InfiniteScrollDataTableProps<TData extends object = TableRowBas
   onBulkAction?: (actionId: string, rows: TData[], rowIds: RowId[]) => void;
   onSelectionChange?: (rowIds: RowId[], rows: TData[]) => void;
   bulkActions?: BulkAction[] | unknown;
+  commands?: TableCommand[];
+  onCommand?: (commandId: string, rowIds: RowId[], rows: TData[]) => void;
+  /** What the commands apply to while nothing is ticked: the whole selection. */
+  commandScopeLabel?: string;
+  /** Changing this clears the ticked rows — a command consumed them. */
+  selectionResetKey?: string | number;
   selectable?: unknown;
   totalCount?: unknown;
   sortConfig?: SortConfig | unknown;

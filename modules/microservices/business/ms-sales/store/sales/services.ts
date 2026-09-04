@@ -1,15 +1,20 @@
-import { type SqlStore, sql } from "back-core";
+import {
+	applyKyselyFilter,
+	type FilterInput,
+	type KyselyFilterSchema,
+	type SqlStore,
+	sql,
+} from "back-core";
 import {
 	type ContactEntity,
 	ContactRepository,
-	type LeadAudienceEntity,
-	type LeadAudienceMemberEntity,
-	LeadAudienceRepository,
 	type LeadEntity,
 	type LeadEventEntity,
 	LeadEventRepository,
 	LeadRepository,
 	type LeadTagEntity,
+	type LeadTagLinkEntity,
+	LeadTagRepository,
 	type OfferEntity,
 	OfferRepository,
 	type OutreachEntity,
@@ -18,6 +23,95 @@ import {
 	OutreachTargetRepository,
 	TouchRepository,
 } from "./entities";
+
+/**
+ * The lead query language, in logical field names. Membership in a tag and a
+ * contact value are not columns on `leads`, but they are the two things people
+ * filter by most, so they compile to subqueries and stay ordinary fields —
+ * there is no second, special-cased filtering path for them.
+ */
+const leadFilterSchema: KyselyFilterSchema = {
+	id: {
+		valueType: "string",
+		operators: ["eq", "notEq", "in", "notIn", "contains", "startsWith"],
+		column: "leads.id",
+	},
+	description: {
+		valueType: "string",
+		operators: ["eq", "contains", "startsWith"],
+		column: "leads.description",
+	},
+	lang: {
+		valueType: "string",
+		operators: ["eq", "notEq", "in", "notIn"],
+		column: "leads.lang",
+	},
+	type: {
+		valueType: "string",
+		operators: ["eq", "notEq", "in", "notIn"],
+		column: "leads.type",
+	},
+	catalogId: {
+		valueType: "string",
+		operators: ["eq", "in", "isNull", "isNotNull"],
+		column: "leads.catalogId",
+	},
+	disabled: {
+		valueType: "boolean",
+		operators: ["eq"],
+		compile: (eb, condition) =>
+			eb("leads.disabled", condition.value === true ? "=" : "!=", 1 as any),
+	},
+	createdAt: {
+		valueType: "date",
+		operators: ["gt", "gte", "lt", "lte", "between"],
+		column: "leads.createdAt",
+	},
+	tag: {
+		valueType: "string",
+		operators: ["eq", "notEq", "in", "notIn", "isNull", "isNotNull"],
+		compile: (eb, condition) => {
+			const ids =
+				condition.operator === "in" || condition.operator === "notIn"
+					? (condition.value as string[])
+					: [condition.value as string];
+			const member = sql<boolean>`
+      leads.id in (select leadId from lead_tag_links where tagId in (${sql.join(ids)}))
+    `;
+			const any = sql<boolean>`
+      leads.id in (select leadId from lead_tag_links)
+    `;
+			switch (condition.operator) {
+				case "eq":
+				case "in":
+					return member;
+				case "notEq":
+				case "notIn":
+					return eb.not(member);
+				case "isNotNull":
+					return any;
+				default:
+					return eb.not(any);
+			}
+		},
+	},
+	contact: {
+		valueType: "string",
+		operators: ["contains", "eq", "startsWith"],
+		compile: (_eb, condition) => {
+			const value = String(condition.value ?? "").toLowerCase();
+			const pattern =
+				condition.operator === "eq"
+					? value
+					: condition.operator === "startsWith"
+						? `${value}%`
+						: `%${value}%`;
+			return sql<boolean>`
+      leads.id in (select leadId from contacts where lower(value) like ${pattern})
+    `;
+		},
+	},
+};
 
 type CountRow = { count?: number | string | bigint | null };
 type KeyCountRow = CountRow & { key?: string | null };
@@ -58,7 +152,7 @@ export class SalesStoreService {
 	public readonly leadEventRepo: LeadEventRepository;
 	public readonly outreachRepo: OutreachRepository;
 	public readonly outreachTargetRepo: OutreachTargetRepository;
-	public readonly leadAudienceRepo: LeadAudienceRepository;
+	public readonly leadTagRepo: LeadTagRepository;
 
 	constructor(store: SqlStore) {
 		this.store = store;
@@ -90,15 +184,11 @@ export class SalesStoreService {
 			},
 		);
 
-		this.leadAudienceRepo = new LeadAudienceRepository(
-			store,
-			"lead_audiences",
-			{
-				primaryKey: "id",
-				extractKey: (audience) => ({ id: audience.id }),
-				buildWhereCondition: (key) => ({ id: key.id }),
-			},
-		);
+		this.leadTagRepo = new LeadTagRepository(store, "lead_tags", {
+			primaryKey: "id",
+			extractKey: (tag) => ({ id: tag.id }),
+			buildWhereCondition: (key) => ({ id: key.id }),
+		});
 
 		this.leadRepo = new LeadRepository(store, "leads", {
 			primaryKey: "id",
@@ -362,52 +452,42 @@ export class SalesStoreService {
 	}
 
 	async assignLeadTag(leadId: string, tagName: string): Promise<void> {
-		await this.store.db
-			.insertInto("lead_tags")
-			.values({
-				leadId,
-				tagName,
-				createdAt: Math.floor(Date.now() / 1000),
-			})
-			.onConflict((oc) => oc.columns(["leadId", "tagName"]).doNothing())
-			.execute();
+		const tag = await this.ensureTagByName(tagName);
+		await this.addTagLeads(tag.id, [leadId]);
 	}
 
 	async removeLeadTag(leadId: string, tagName: string): Promise<boolean> {
-		const result = await this.store.db
-			.deleteFrom("lead_tags")
-			.where("leadId", "=", leadId)
-			.where("tagName", "=", tagName)
-			.executeTakeFirst();
-
-		return Number(result.numDeletedRows ?? 0) > 0;
+		const tag = await this.findTagByName(tagName);
+		if (!tag) return false;
+		return (await this.removeTagLeads(tag.id, [leadId])) > 0;
 	}
 
 	async listLeadTags(leadId: string): Promise<LeadTagEntity[]> {
 		return this.store.db
-			.selectFrom("lead_tags")
-			.selectAll()
-			.where("leadId", "=", leadId)
-			.orderBy("tagName", "asc")
+			.selectFrom("lead_tags as tag")
+			.innerJoin("lead_tag_links as link", "link.tagId", "tag.id")
+			.selectAll("tag")
+			.where("link.leadId", "=", leadId)
+			.orderBy("tag.name", "asc")
 			.execute() as Promise<LeadTagEntity[]>;
 	}
 
 	async listLeadTagLinks(params: {
 		offset?: number;
 		limit?: number;
-	}): Promise<{ items: LeadTagEntity[]; totalCount: number }> {
+	}): Promise<{ items: LeadTagLinkEntity[]; totalCount: number }> {
 		const limit = params.limit ?? 50;
 		const offset = params.offset ?? 0;
 		const [items, countRows] = await Promise.all([
 			this.store.db
-				.selectFrom("lead_tags")
+				.selectFrom("lead_tag_links")
 				.selectAll()
 				.orderBy("createdAt", "desc")
 				.limit(limit)
 				.offset(offset)
-				.execute() as Promise<LeadTagEntity[]>,
+				.execute() as Promise<LeadTagLinkEntity[]>,
 			this.store.db
-				.selectFrom("lead_tags")
+				.selectFrom("lead_tag_links")
 				.select(({ fn }) => [fn.count<number>("leadId").as("count")])
 				.execute(),
 		]);
@@ -434,119 +514,136 @@ export class SalesStoreService {
 			.execute();
 	}
 
-	async saveAudience(audience: LeadAudienceEntity): Promise<void> {
+	async saveTag(tag: LeadTagEntity): Promise<void> {
 		await this.store.db
-			.insertInto("lead_audiences")
-			.values(audience)
+			.insertInto("lead_tags")
+			.values(tag)
 			.onConflict((oc) =>
 				oc.column("id").doUpdateSet({
-					name: audience.name,
-					description: audience.description,
-					updatedAt: audience.updatedAt,
+					name: tag.name,
+					description: tag.description,
+					updatedAt: tag.updatedAt,
 				}),
 			)
 			.execute();
 	}
 
-	async listAudiences(params: {
+	async findTagByName(name: string): Promise<LeadTagEntity | undefined> {
+		return this.store.db
+			.selectFrom("lead_tags")
+			.selectAll()
+			.where("name", "=", name)
+			.executeTakeFirst() as Promise<LeadTagEntity | undefined>;
+	}
+
+	/** Used by the import flow, which knows a tag by name and nothing else. */
+	async ensureTagByName(name: string): Promise<LeadTagEntity> {
+		const existing = await this.findTagByName(name);
+		if (existing) return existing;
+		const now = Math.floor(Date.now() / 1000);
+		const tag: LeadTagEntity = {
+			id: crypto.randomUUID(),
+			name,
+			description: "",
+			createdAt: now,
+			updatedAt: now,
+		};
+		await this.saveTag(tag);
+		return (await this.findTagByName(name)) ?? tag;
+	}
+
+	async listTags(params: {
 		offset?: number;
 		limit?: number;
-	}): Promise<{ items: LeadAudienceEntity[]; totalCount: number }> {
+	}): Promise<{ items: LeadTagEntity[]; totalCount: number }> {
 		const limit = params.limit ?? 50;
 		const offset = params.offset ?? 0;
 		const [items, countRows] = await Promise.all([
 			this.store.db
-				.selectFrom("lead_audiences")
+				.selectFrom("lead_tags")
 				.selectAll()
 				.orderBy("updatedAt", "desc")
 				.limit(limit)
 				.offset(offset)
-				.execute() as Promise<LeadAudienceEntity[]>,
+				.execute() as Promise<LeadTagEntity[]>,
 			this.store.db
-				.selectFrom("lead_audiences")
+				.selectFrom("lead_tags")
 				.select(({ fn }) => [fn.count<number>("id").as("count")])
 				.execute(),
 		]);
 		return { items, totalCount: readCount(countRows[0]) };
 	}
 
-	async deleteAudience(audienceId: string): Promise<boolean> {
+	async countTagLeads(tagId: string): Promise<number> {
+		const rows = await this.store.db
+			.selectFrom("lead_tag_links")
+			.select(({ fn }) => [fn.count<number>("leadId").as("count")])
+			.where("tagId", "=", tagId)
+			.execute();
+		return readCount(rows[0]);
+	}
+
+	async deleteTag(tagId: string): Promise<boolean> {
 		await this.store.db
-			.deleteFrom("lead_audience_members")
-			.where("audienceId", "=", audienceId)
+			.deleteFrom("lead_tag_links")
+			.where("tagId", "=", tagId)
 			.execute();
 		const result = await this.store.db
-			.deleteFrom("lead_audiences")
-			.where("id", "=", audienceId)
+			.deleteFrom("lead_tags")
+			.where("id", "=", tagId)
 			.executeTakeFirst();
 		return Number(result.numDeletedRows ?? 0) > 0;
 	}
 
-	async addAudienceMembers(
-		audienceId: string,
-		leadIds: string[],
-	): Promise<number> {
+	async addTagLeads(tagId: string, leadIds: string[]): Promise<number> {
 		if (leadIds.length === 0) return 0;
 		const createdAt = Math.floor(Date.now() / 1000);
-		const result = await this.store.db
-			.insertInto("lead_audience_members")
-			.values(leadIds.map((leadId) => ({ audienceId, leadId, createdAt })))
-			.onConflict((oc) => oc.columns(["audienceId", "leadId"]).doNothing())
-			.executeTakeFirst();
-		return Number(result.numInsertedOrUpdatedRows ?? 0);
+		let inserted = 0;
+		// SQLite caps the number of bound parameters, and a selection can cover
+		// the whole table, so the write is paged rather than one statement.
+		for (let index = 0; index < leadIds.length; index += 500) {
+			const result = await this.store.db
+				.insertInto("lead_tag_links")
+				.values(
+					leadIds
+						.slice(index, index + 500)
+						.map((leadId) => ({ tagId, leadId, createdAt })),
+				)
+				.onConflict((oc) => oc.columns(["tagId", "leadId"]).doNothing())
+				.executeTakeFirst();
+			inserted += Number(result.numInsertedOrUpdatedRows ?? 0);
+		}
+		return inserted;
 	}
 
-	async removeAudienceMembers(
-		audienceId: string,
-		leadIds: string[],
-	): Promise<number> {
+	async removeTagLeads(tagId: string, leadIds: string[]): Promise<number> {
 		if (leadIds.length === 0) return 0;
-		const result = await this.store.db
-			.deleteFrom("lead_audience_members")
-			.where("audienceId", "=", audienceId)
-			.where("leadId", "in", leadIds)
-			.executeTakeFirst();
-		return Number(result.numDeletedRows ?? 0);
+		let deleted = 0;
+		for (let index = 0; index < leadIds.length; index += 500) {
+			const result = await this.store.db
+				.deleteFrom("lead_tag_links")
+				.where("tagId", "=", tagId)
+				.where("leadId", "in", leadIds.slice(index, index + 500))
+				.executeTakeFirst();
+			deleted += Number(result.numDeletedRows ?? 0);
+		}
+		return deleted;
 	}
 
-	async listAudienceMembers(
-		audienceId: string,
-		params: { offset?: number; limit?: number },
-	): Promise<{ items: LeadAudienceMemberEntity[]; totalCount: number }> {
-		const limit = params.limit ?? 50;
-		const offset = params.offset ?? 0;
-		const [items, countRows] = await Promise.all([
-			this.store.db
-				.selectFrom("lead_audience_members")
-				.selectAll()
-				.where("audienceId", "=", audienceId)
-				.orderBy("createdAt", "desc")
-				.limit(limit)
-				.offset(offset)
-				.execute() as Promise<LeadAudienceMemberEntity[]>,
-			this.store.db
-				.selectFrom("lead_audience_members")
-				.select(({ fn }) => [fn.count<number>("leadId").as("count")])
-				.where("audienceId", "=", audienceId)
-				.execute(),
-		]);
-		return { items, totalCount: readCount(countRows[0]) };
-	}
-
-	async listAudienceLeads(
-		audienceId: string,
+	async listTagLeads(
+		tagId: string,
 		params: { offset?: number; limit?: number },
 	): Promise<{ items: LeadEntity[]; totalCount: number }> {
 		const limit = params.limit ?? 50;
 		const offset = params.offset ?? 0;
 		const base = this.store.db
 			.selectFrom("leads as lead")
-			.innerJoin("lead_audience_members as member", "member.leadId", "lead.id")
-			.where("member.audienceId", "=", audienceId);
+			.innerJoin("lead_tag_links as link", "link.leadId", "lead.id")
+			.where("link.tagId", "=", tagId);
 		const [items, countRows] = await Promise.all([
 			base
 				.selectAll("lead")
-				.orderBy("member.createdAt", "desc")
+				.orderBy("link.createdAt", "desc")
 				.limit(limit)
 				.offset(offset)
 				.execute() as Promise<LeadEntity[]>,
@@ -567,7 +664,7 @@ export class SalesStoreService {
 					status: outreach.status,
 					lang: outreach.lang,
 					description: outreach.description,
-					audienceId: outreach.audienceId,
+					tagId: outreach.tagId,
 					templateId: outreach.templateId,
 					planWorkflow: outreach.planWorkflow,
 					sendWorkflow: outreach.sendWorkflow,
@@ -729,25 +826,114 @@ export class SalesStoreService {
 	}
 
 	async listLeadsFiltered(
-		filters: { tags?: string[]; contact?: string; query?: string },
+		filters: {
+			tags?: string[];
+			contact?: string;
+			query?: string;
+			filter?: FilterInput;
+		},
 		params: { offset?: number; limit?: number },
 	): Promise<{ items: LeadEntity[]; totalCount: number }> {
+		const limit = params.limit ?? 50;
+		const offset = params.offset ?? 0;
+		const conditions = this.leadConditions(filters);
+
+		if (conditions.length === 0 && !filters.filter) {
+			const [items, totalCount] = await Promise.all([
+				this.leadRepo.findAll({ limit, offset }),
+				this.leadRepo.count(),
+			]);
+			return { items, totalCount };
+		}
+
+		let itemsQuery = this.store.db
+			.selectFrom("leads")
+			.selectAll()
+			.orderBy("createdAt", "desc")
+			.limit(limit)
+			.offset(offset);
+		let countQuery = this.store.db
+			.selectFrom("leads")
+			.select(({ fn }) => [fn.count<number>("id").as("count")]);
+
+		for (const condition of conditions) {
+			itemsQuery = itemsQuery.where(condition);
+			countQuery = countQuery.where(condition);
+		}
+
+		const [items, countRows] = await Promise.all([
+			applyKyselyFilter(
+				itemsQuery as any,
+				filters.filter,
+				leadFilterSchema,
+			).execute() as Promise<LeadEntity[]>,
+			applyKyselyFilter(
+				countQuery as any,
+				filters.filter,
+				leadFilterSchema,
+			).execute(),
+		]);
+
+		return {
+			items,
+			totalCount: readCount(countRows[0] as CountRow),
+		};
+	}
+
+	async listLeadLangs(): Promise<string[]> {
+		const rows = (await this.store.db
+			.selectFrom("leads")
+			.select("lang")
+			.distinct()
+			.orderBy("lang", "asc")
+			.execute()) as Array<{ lang: string | null }>;
+		return rows.map((row) => row.lang ?? "").filter(Boolean);
+	}
+
+	async countLeadsFiltered(filter?: FilterInput): Promise<number> {
+		const rows = await applyKyselyFilter(
+			this.store.db
+				.selectFrom("leads")
+				.select(({ fn }) => [fn.count<number>("id").as("count")]) as any,
+			filter,
+			leadFilterSchema,
+		).execute();
+		return readCount(rows[0] as CountRow);
+	}
+
+	/**
+	 * Every lead identifier a filter matches. A group operation runs over the
+	 * whole selection, not over the rows that happen to be on screen, so the
+	 * server resolves it here instead of trusting a list from the client.
+	 */
+	async listLeadIdsFiltered(filter?: FilterInput): Promise<string[]> {
+		const rows = (await applyKyselyFilter(
+			this.store.db.selectFrom("leads").select(["id"]) as any,
+			filter,
+			leadFilterSchema,
+		).execute()) as Array<{ id: string }>;
+		return rows.map((row) => row.id);
+	}
+
+	private leadConditions(filters: {
+		tags?: string[];
+		contact?: string;
+		query?: string;
+	}): Array<ReturnType<typeof sql<boolean>>> {
 		const tags = this.normalizeTagNames(filters.tags ?? []);
 		const contact = filters.contact?.trim().toLowerCase() ?? "";
 		const query = filters.query?.trim().toLowerCase() ?? "";
-		const limit = params.limit ?? 50;
-		const offset = params.offset ?? 0;
-
 		const conditions: Array<ReturnType<typeof sql<boolean>>> = [];
 
 		if (tags.length > 0) {
 			conditions.push(sql<boolean>`
       leads.id in (
-        select leadId
-        from lead_tags
-        where tagName in (${sql.join(tags)})
-        group by leadId
-        having count(distinct tagName) = ${tags.length}
+        select link.leadId
+        from lead_tag_links link
+        join lead_tags tag on tag.id = link.tagId
+        where tag.name in (${sql.join(tags)})
+        group by link.leadId
+        having count(distinct tag.name) = ${tags.length}
       )
     `);
 		}
@@ -774,38 +960,7 @@ export class SalesStoreService {
       )`);
 		}
 
-		if (conditions.length === 0) {
-			const [items, totalCount] = await Promise.all([
-				this.leadRepo.findAll({ limit, offset }),
-				this.leadRepo.count(),
-			]);
-			return { items, totalCount };
-		}
-
-		let itemsQuery = this.store.db
-			.selectFrom("leads")
-			.selectAll()
-			.orderBy("createdAt", "desc")
-			.limit(limit)
-			.offset(offset);
-		let countQuery = this.store.db
-			.selectFrom("leads")
-			.select(({ fn }) => [fn.count<number>("id").as("count")]);
-
-		for (const condition of conditions) {
-			itemsQuery = itemsQuery.where(condition);
-			countQuery = countQuery.where(condition);
-		}
-
-		const [items, countRows] = await Promise.all([
-			itemsQuery.execute() as Promise<LeadEntity[]>,
-			countQuery.execute(),
-		]);
-
-		return {
-			items,
-			totalCount: readCount(countRows[0]),
-		};
+		return conditions;
 	}
 
 	async listLeadContacts(leadId: string): Promise<ContactEntity[]> {

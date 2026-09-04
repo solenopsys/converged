@@ -8,7 +8,9 @@ export const OPERATORS = [
 	"open",
 	"create",
 	"add",
+	"remove",
 	"save",
+	"delete",
 	"execute",
 ] as const;
 

@@ -22,9 +22,25 @@ export type LeadUpdate = {
 	disabled?: boolean;
 };
 
+/** A named label a lead can carry. Naming a selection of leads is the only
+ *  way a group gets a name here: there is no second grouping entity. */
 export type LeadTag = {
+	id: string;
+	name: string;
+	description: string;
+	createdAt: Date;
+	updatedAt: Date;
+};
+
+export type LeadTagInput = {
+	id?: string;
+	name: string;
+	description?: string;
+};
+
+export type LeadTagLink = {
+	tagId: string;
 	leadId: string;
-	tagName: string;
 	createdAt: Date;
 };
 
@@ -35,26 +51,6 @@ export type Offer = {
 	template_path: string;
 	subjectTemplate?: string;
 	bodyTemplate?: string;
-};
-
-export type LeadAudience = {
-	id: string;
-	name: string;
-	description: string;
-	createdAt: Date;
-	updatedAt: Date;
-};
-
-export type LeadAudienceInput = {
-	id?: string;
-	name: string;
-	description?: string;
-};
-
-export type LeadAudienceMember = {
-	audienceId: string;
-	leadId: string;
-	createdAt: Date;
 };
 
 export enum ContactType {
@@ -97,7 +93,8 @@ export type Outreach = {
 	status: OutreachStatus | string;
 	lang: string;
 	description: string;
-	audienceId?: string;
+	/** The tag whose leads this campaign is planned into. */
+	tagId?: string;
 	templateId?: string;
 	planWorkflow?: string;
 	sendWorkflow?: string;
@@ -260,7 +257,52 @@ export type PaginationParams = {
 	limit: number;
 };
 
+export type FilterObject = Record<string, unknown>;
+
+export type SelectionValue = {
+	id: string | number | boolean | null;
+	label: string;
+	aliases?: string[];
+};
+
+export type SelectionFieldDescriptor = {
+	id: string;
+	label: string;
+	description?: string;
+	valueType: "string" | "number" | "boolean" | "date" | "enum";
+	operators: string[];
+	control?: "text" | "select" | "multi-select" | "boolean" | "date-range";
+	values?: SelectionValue[];
+	valuesComplete?: boolean;
+	lookup?: boolean;
+};
+
+export type SelectionDescriptor = {
+	objectType: string;
+	title: string;
+	description?: string;
+	fields: SelectionFieldDescriptor[];
+	filterExample?: FilterObject;
+	revision?: string;
+};
+
+export type SelectionStats = { totalCount: number };
+
+/**
+ * What a group operation is applied to. `ids` is an explicit subset — the rows
+ * a person ticked. Without it the operation runs over everything `filter`
+ * matches, so a selection of 12 000 leads never travels as 12 000 identifiers.
+ * Empty means every lead.
+ */
+export type LeadSelection = {
+	ids?: string[];
+	filter?: FilterObject;
+};
+
 export type LeadListParams = PaginationParams & {
+	// Canonical predicate shared by the table header, the assistant and
+	// group operations.
+	filter?: FilterObject;
 	tags?: string[];
 	// Case-insensitive search over id, description and contact values.
 	query?: string;
@@ -285,26 +327,27 @@ export interface SalesService {
 	assignLeadTag(leadId: string, tagName: string): Promise<void>;
 	removeLeadTag(leadId: string, tagName: string): Promise<boolean>;
 	listLeadTags(leadId: string): Promise<LeadTag[]>;
-	listLeadTagLinks(params: PaginationParams): Promise<PaginatedResult<LeadTag>>;
+	listLeadTagLinks(
+		params: PaginationParams,
+	): Promise<PaginatedResult<LeadTagLink>>;
+	saveTag(tag: LeadTagInput): Promise<string>;
+	/** Upserts by name: what "name this selection" needs and nothing more. */
+	ensureTag(name: string, description?: string): Promise<string>;
+	findTagId(name: string): Promise<string | null>;
+	getTag(tagId: string): Promise<LeadTag | null>;
+	listTags(params: PaginationParams): Promise<PaginatedResult<LeadTag>>;
+	deleteTag(tagId: string): Promise<boolean>;
+	assignTag(tagId: string, selection: LeadSelection): Promise<number>;
+	unassignTag(tagId: string, selection: LeadSelection): Promise<number>;
+	listTagLeads(
+		tagId: string,
+		params: PaginationParams,
+	): Promise<PaginatedResult<Lead>>;
+	describeSelection(objectType: string): Promise<SelectionDescriptor>;
+	inspectLeads(filter?: FilterObject): Promise<SelectionStats>;
 	saveOffer(offer: Offer): Promise<string>;
 	getOffer(offerId: string): Promise<Offer | null>;
 	listOffers(params: PaginationParams): Promise<PaginatedResult<Offer>>;
-	saveAudience(audience: LeadAudienceInput): Promise<string>;
-	getAudience(audienceId: string): Promise<LeadAudience | null>;
-	listAudiences(
-		params: PaginationParams,
-	): Promise<PaginatedResult<LeadAudience>>;
-	deleteAudience(audienceId: string): Promise<boolean>;
-	addAudienceMembers(audienceId: string, leadIds: string[]): Promise<number>;
-	removeAudienceMembers(audienceId: string, leadIds: string[]): Promise<number>;
-	listAudienceMembers(
-		audienceId: string,
-		params: PaginationParams,
-	): Promise<PaginatedResult<LeadAudienceMember>>;
-	listAudienceLeads(
-		audienceId: string,
-		params: PaginationParams,
-	): Promise<PaginatedResult<Lead>>;
 	addContact(contact: Contact): Promise<string>;
 	getContact(contactId: string): Promise<Contact | null>;
 	addTouch(touch: Touch): Promise<number>;

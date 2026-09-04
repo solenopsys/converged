@@ -208,3 +208,43 @@ describe("ObjectResolver", () => {
 		);
 	});
 });
+
+describe("ObjectResolver.operationsFor", () => {
+	test("publishes operations that accept the reference", () => {
+		const { resolver } = fixture();
+		expect(
+			resolver
+				.operationsFor(setRef("companies.company", { kind: "query" }))
+				.map((operation) => operation.id),
+		).toEqual(["sales.outreach.create"]);
+	});
+
+	test("ignores operations that accept nothing in particular", () => {
+		const { registry, resolver } = fixture();
+		registry.register("mf-noise", {
+			id: "mf-noise",
+			types: [],
+			views: [],
+			operations: [
+				{
+					id: "noise.ping",
+					operator: "execute",
+					label: "Ping",
+					invoke: async () => undefined,
+				},
+			],
+		});
+		expect(
+			resolver
+				.operationsFor(setRef("companies.company", { kind: "query" }))
+				.map((operation) => operation.id),
+		).toEqual(["sales.outreach.create"]);
+	});
+
+	test("does not offer a set operation on a single object", () => {
+		const { resolver } = fixture();
+		expect(resolver.operationsFor(objectRef("companies.company", "1"))).toEqual(
+			[],
+		);
+	});
+});

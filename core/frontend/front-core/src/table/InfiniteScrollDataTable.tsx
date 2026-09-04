@@ -84,6 +84,10 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 	onBulkAction,
 	onSelectionChange,
 	bulkActions: bulkActionsInput = [],
+	commands = [],
+	onCommand,
+	commandScopeLabel,
+	selectionResetKey,
 	selectable: selectableInput = true,
 	totalCount: totalCountInput = 0,
 	className = "",
@@ -323,6 +327,24 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 		setSelectedRows([]);
 		onSelectionChange?.([], []);
 	}, [onSelectionChange]);
+
+	const handleCommandClick = useCallback(
+		(commandId: string, selectedIds: RowId[]) => {
+			const selectedData = data.filter((row, index) =>
+				hasRowId(selectedIds, row, index),
+			);
+			onCommand?.(commandId, selectedIds, selectedData);
+		},
+		[data, onCommand],
+	);
+
+	// A command that consumed the selection reports back through this key, so
+	// the ticks disappear once the rows have moved on.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: the key is the signal
+	useEffect(() => {
+		if (selectionResetKey === undefined) return;
+		setSelectedRows([]);
+	}, [selectionResetKey]);
 
 	const isAllSelected = selectedRows.length === data.length && data.length > 0;
 	const isIndeterminate =
@@ -633,12 +655,31 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 				className,
 			)}
 		>
-			{selectedRows.length > 0 && (
-				<div class="flex flex-shrink-0 items-center justify-between border-b bg-muted px-6 py-3">
+			{(selectedRows.length > 0 || commands.length > 0) && (
+				<div class="flex flex-shrink-0 flex-wrap items-center justify-between gap-3 border-b bg-muted px-6 py-3">
 					<span class="text-sm font-medium">
-						{t("table.selected", { selected: selectedRows.length, total: data.length })}
+						{selectedRows.length > 0
+							? t("table.selected", { selected: selectedRows.length, total: data.length })
+							: (commandScopeLabel ?? "")}
 					</span>
-					<div class="flex items-center gap-3">
+					<div class="flex flex-wrap items-center gap-3">
+						{commands.map((command) => (
+							<button
+								key={command.id}
+								type="button"
+								title={command.description}
+								onClick={() => handleCommandClick(command.id, selectedRows)}
+								class={cn(
+									"flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition-colors hover:bg-background",
+									command.variant === "destructive" &&
+										"border-destructive/40 text-destructive",
+								)}
+							>
+								{command.icon && <command.icon size={14} />}
+								{command.label}
+							</button>
+						))}
+						{selectedRows.length > 0 && (
 						<button
 							type="button"
 							onClick={clearSelection}
@@ -646,7 +687,8 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 						>
 							{t("table.clearSelection")}
 						</button>
-						{bulkActions.length > 0 && (
+						)}
+						{selectedRows.length > 0 && bulkActions.length > 0 && (
 							<ShadDropdown>
 								<DropdownMenuTrigger asChild>
 									<button

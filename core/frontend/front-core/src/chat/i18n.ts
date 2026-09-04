@@ -112,6 +112,14 @@ const DEFAULT_MESSAGES = {
 		clearSelection: "Clear selection",
 		actions: "Actions",
 		select: "Select",
+		commandScopeAll: "Every matching row: {total}",
+		commandScopeFiltered: "Filtered rows: {total}",
+	},
+	operation: {
+		cancel: "Cancel",
+		run: "Run",
+		running: "Running...",
+		failed: "The command failed: {message}",
 	},
 	model3d: {
 		loadingViewer: "Loading viewer...",

@@ -30,8 +30,22 @@ export type LeadUpdate = {
 };
 
 export type LeadTag = {
+	id: string;
+	name: string;
+	description: string;
+	createdAt: Date;
+	updatedAt: Date;
+};
+
+export type LeadTagInput = {
+	id?: string;
+	name: string;
+	description?: string;
+};
+
+export type LeadTagLink = {
+	tagId: string;
 	leadId: string;
-	tagName: string;
 	createdAt: Date;
 };
 
@@ -42,26 +56,6 @@ export type Offer = {
 	template_path: string;
 	subjectTemplate?: string;
 	bodyTemplate?: string;
-};
-
-export type LeadAudience = {
-	id: string;
-	name: string;
-	description: string;
-	createdAt: Date;
-	updatedAt: Date;
-};
-
-export type LeadAudienceInput = {
-	id?: string;
-	name: string;
-	description?: string;
-};
-
-export type LeadAudienceMember = {
-	audienceId: string;
-	leadId: string;
-	createdAt: Date;
 };
 
 export enum ContactType {
@@ -103,7 +97,8 @@ export type Outreach = {
 	status: OutreachStatus | string;
 	lang: string;
 	description: string;
-	audienceId?: string;
+	/** The tag whose leads this campaign is planned into. */
+	tagId?: string;
 	templateId?: string;
 	planWorkflow?: string;
 	sendWorkflow?: string;
@@ -258,7 +253,46 @@ export type PaginationParams = {
 	limit: number;
 };
 
+export type FilterObject = Record<string, unknown>;
+
+export type SelectionValue = {
+	id: string | number | boolean | null;
+	label: string;
+	aliases?: string[];
+};
+
+export type SelectionFieldDescriptor = {
+	id: string;
+	label: string;
+	description?: string;
+	valueType: "string" | "number" | "boolean" | "date" | "enum";
+	operators: string[];
+	control?: "text" | "select" | "multi-select" | "boolean" | "date-range";
+	values?: SelectionValue[];
+	valuesComplete?: boolean;
+	lookup?: boolean;
+};
+
+export type SelectionDescriptor = {
+	objectType: string;
+	title: string;
+	description?: string;
+	fields: SelectionFieldDescriptor[];
+	filterExample?: FilterObject;
+	revision?: string;
+};
+
+export type SelectionStats = { totalCount: number };
+
+export type LeadSelection = {
+	ids?: string[];
+	filter?: FilterObject;
+};
+
 export type LeadListParams = PaginationParams & {
+	// Canonical predicate shared by the table header, the assistant and
+	// group operations.
+	filter?: FilterObject;
 	tags?: string[];
 	// Case-insensitive search over id, description and contact values.
 	query?: string;
@@ -413,7 +447,196 @@ export const metadata: ServiceMetadata = {
           "isArray": false
         }
       ],
+      "returnType": "PaginatedResult<LeadTagLink>",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "saveTag",
+      "parameters": [
+        {
+          "name": "tag",
+          "type": "LeadTagInput",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "string",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "ensureTag",
+      "parameters": [
+        {
+          "name": "name",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "string",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "findTagId",
+      "parameters": [
+        {
+          "name": "name",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "string | any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "getTag",
+      "parameters": [
+        {
+          "name": "tagId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "LeadTag | any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "listTags",
+      "parameters": [
+        {
+          "name": "params",
+          "type": "PaginationParams",
+          "optional": false,
+          "isArray": false
+        }
+      ],
       "returnType": "PaginatedResult<LeadTag>",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "deleteTag",
+      "parameters": [
+        {
+          "name": "tagId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "boolean",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "assignTag",
+      "parameters": [
+        {
+          "name": "tagId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "selection",
+          "type": "LeadSelection",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "number",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "unassignTag",
+      "parameters": [
+        {
+          "name": "tagId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "selection",
+          "type": "LeadSelection",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "number",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "listTagLeads",
+      "parameters": [
+        {
+          "name": "tagId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "params",
+          "type": "PaginationParams",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "PaginatedResult<Lead>",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "describeSelection",
+      "parameters": [
+        {
+          "name": "objectType",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "SelectionDescriptor",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "inspectLeads",
+      "parameters": [
+        {
+          "name": "filter",
+          "type": "FilterObject",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "SelectionStats",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -459,150 +682,6 @@ export const metadata: ServiceMetadata = {
         }
       ],
       "returnType": "PaginatedResult<Offer>",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "saveAudience",
-      "parameters": [
-        {
-          "name": "audience",
-          "type": "LeadAudienceInput",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "string",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "getAudience",
-      "parameters": [
-        {
-          "name": "audienceId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "LeadAudience | any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "listAudiences",
-      "parameters": [
-        {
-          "name": "params",
-          "type": "PaginationParams",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "PaginatedResult<LeadAudience>",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "deleteAudience",
-      "parameters": [
-        {
-          "name": "audienceId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "boolean",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "addAudienceMembers",
-      "parameters": [
-        {
-          "name": "audienceId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "leadIds",
-          "type": "string",
-          "optional": false,
-          "isArray": true
-        }
-      ],
-      "returnType": "number",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "removeAudienceMembers",
-      "parameters": [
-        {
-          "name": "audienceId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "leadIds",
-          "type": "string",
-          "optional": false,
-          "isArray": true
-        }
-      ],
-      "returnType": "number",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "listAudienceMembers",
-      "parameters": [
-        {
-          "name": "audienceId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "params",
-          "type": "PaginationParams",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "PaginatedResult<LeadAudienceMember>",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "listAudienceLeads",
-      "parameters": [
-        {
-          "name": "audienceId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "params",
-          "type": "PaginationParams",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "PaginatedResult<Lead>",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -1015,27 +1094,22 @@ export const metadata: ServiceMetadata = {
     {
       "name": "LeadTag",
       "kind": "type",
-      "definition": "{\n\tleadId: string;\n\ttagName: string;\n\tcreatedAt: Date;\n}"
+      "definition": "{\n\tid: string;\n\tname: string;\n\tdescription: string;\n\tcreatedAt: Date;\n\tupdatedAt: Date;\n}"
+    },
+    {
+      "name": "LeadTagInput",
+      "kind": "type",
+      "definition": "{\n\tid?: string;\n\tname: string;\n\tdescription?: string;\n}"
+    },
+    {
+      "name": "LeadTagLink",
+      "kind": "type",
+      "definition": "{\n\ttagId: string;\n\tleadId: string;\n\tcreatedAt: Date;\n}"
     },
     {
       "name": "Offer",
       "kind": "type",
       "definition": "{\n\tid: string;\n\tname?: string;\n\tdescription: string;\n\ttemplate_path: string;\n\tsubjectTemplate?: string;\n\tbodyTemplate?: string;\n}"
-    },
-    {
-      "name": "LeadAudience",
-      "kind": "type",
-      "definition": "{\n\tid: string;\n\tname: string;\n\tdescription: string;\n\tcreatedAt: Date;\n\tupdatedAt: Date;\n}"
-    },
-    {
-      "name": "LeadAudienceInput",
-      "kind": "type",
-      "definition": "{\n\tid?: string;\n\tname: string;\n\tdescription?: string;\n}"
-    },
-    {
-      "name": "LeadAudienceMember",
-      "kind": "type",
-      "definition": "{\n\taudienceId: string;\n\tleadId: string;\n\tcreatedAt: Date;\n}"
     },
     {
       "name": "ContactType",
@@ -1060,7 +1134,7 @@ export const metadata: ServiceMetadata = {
     {
       "name": "Outreach",
       "kind": "type",
-      "definition": "{\n\tid: string;\n\tname: string;\n\tstatus: OutreachStatus | string;\n\tlang: string;\n\tdescription: string;\n\taudienceId?: string;\n\ttemplateId?: string;\n\tplanWorkflow?: string;\n\tsendWorkflow?: string;\n\tsendCronId?: string;\n\tbaseUrl?: string;\n\tdemoUrl?: string;\n\tsenders?: Record<string, string>;\n\tjitterMaxSeconds?: number;\n\tcreatedAt: Date;\n\tupdatedAt: Date;\n}"
+      "definition": "{\n\tid: string;\n\tname: string;\n\tstatus: OutreachStatus | string;\n\tlang: string;\n\tdescription: string;\n\t/** The tag whose leads this campaign is planned into. */\n\ttagId?: string;\n\ttemplateId?: string;\n\tplanWorkflow?: string;\n\tsendWorkflow?: string;\n\tsendCronId?: string;\n\tbaseUrl?: string;\n\tdemoUrl?: string;\n\tsenders?: Record<string, string>;\n\tjitterMaxSeconds?: number;\n\tcreatedAt: Date;\n\tupdatedAt: Date;\n}"
     },
     {
       "name": "Campaign",
@@ -1168,9 +1242,39 @@ export const metadata: ServiceMetadata = {
       "definition": "{\n\toffset: number;\n\tlimit: number;\n}"
     },
     {
+      "name": "FilterObject",
+      "kind": "type",
+      "definition": "Record<string, unknown>"
+    },
+    {
+      "name": "SelectionValue",
+      "kind": "type",
+      "definition": "{\n\tid: string | number | boolean | null;\n\tlabel: string;\n\taliases?: string[];\n}"
+    },
+    {
+      "name": "SelectionFieldDescriptor",
+      "kind": "type",
+      "definition": "{\n\tid: string;\n\tlabel: string;\n\tdescription?: string;\n\tvalueType: \"string\" | \"number\" | \"boolean\" | \"date\" | \"enum\";\n\toperators: string[];\n\tcontrol?: \"text\" | \"select\" | \"multi-select\" | \"boolean\" | \"date-range\";\n\tvalues?: SelectionValue[];\n\tvaluesComplete?: boolean;\n\tlookup?: boolean;\n}"
+    },
+    {
+      "name": "SelectionDescriptor",
+      "kind": "type",
+      "definition": "{\n\tobjectType: string;\n\ttitle: string;\n\tdescription?: string;\n\tfields: SelectionFieldDescriptor[];\n\tfilterExample?: FilterObject;\n\trevision?: string;\n}"
+    },
+    {
+      "name": "SelectionStats",
+      "kind": "type",
+      "definition": "{ totalCount: number }"
+    },
+    {
+      "name": "LeadSelection",
+      "kind": "type",
+      "definition": "{\n\tids?: string[];\n\tfilter?: FilterObject;\n}"
+    },
+    {
       "name": "LeadListParams",
       "kind": "type",
-      "definition": "PaginationParams & {\n\ttags?: string[];\n\t// Case-insensitive search over id, description and contact values.\n\tquery?: string;\n\t// Case-insensitive substring match over the lead's contact values\n\t// (email, domain, phone…). Combinable with tags.\n\tcontact?: string;\n\t// Keyset cursor: when set, returns leads with id > after, ordered by id ASC\n\t// (ignores offset). Not supported together with filters (tags/contact).\n\tafter?: string;\n}"
+      "definition": "PaginationParams & {\n\t// Canonical predicate shared by the table header, the assistant and\n\t// group operations.\n\tfilter?: FilterObject;\n\ttags?: string[];\n\t// Case-insensitive search over id, description and contact values.\n\tquery?: string;\n\t// Case-insensitive substring match over the lead's contact values\n\t// (email, domain, phone…). Combinable with tags.\n\tcontact?: string;\n\t// Keyset cursor: when set, returns leads with id > after, ordered by id ASC\n\t// (ignores offset). Not supported together with filters (tags/contact).\n\tafter?: string;\n}"
     },
     {
       "name": "PaginatedResult",
@@ -1190,18 +1294,21 @@ export interface SalesService {
   assignLeadTag(leadId: string, tagName: string): Promise<void>;
   removeLeadTag(leadId: string, tagName: string): Promise<boolean>;
   listLeadTags(leadId: string): Promise<LeadTag[]>;
-  listLeadTagLinks(params: PaginationParams): Promise<PaginatedResult<LeadTag>>;
+  listLeadTagLinks(params: PaginationParams): Promise<PaginatedResult<LeadTagLink>>;
+  saveTag(tag: LeadTagInput): Promise<string>;
+  ensureTag(name: string, description?: string): Promise<string>;
+  findTagId(name: string): Promise<string | any>;
+  getTag(tagId: string): Promise<LeadTag | any>;
+  listTags(params: PaginationParams): Promise<PaginatedResult<LeadTag>>;
+  deleteTag(tagId: string): Promise<boolean>;
+  assignTag(tagId: string, selection: LeadSelection): Promise<number>;
+  unassignTag(tagId: string, selection: LeadSelection): Promise<number>;
+  listTagLeads(tagId: string, params: PaginationParams): Promise<PaginatedResult<Lead>>;
+  describeSelection(objectType: string): Promise<SelectionDescriptor>;
+  inspectLeads(filter?: FilterObject): Promise<SelectionStats>;
   saveOffer(offer: Offer): Promise<string>;
   getOffer(offerId: string): Promise<Offer | any>;
   listOffers(params: PaginationParams): Promise<PaginatedResult<Offer>>;
-  saveAudience(audience: LeadAudienceInput): Promise<string>;
-  getAudience(audienceId: string): Promise<LeadAudience | any>;
-  listAudiences(params: PaginationParams): Promise<PaginatedResult<LeadAudience>>;
-  deleteAudience(audienceId: string): Promise<boolean>;
-  addAudienceMembers(audienceId: string, leadIds: string[]): Promise<number>;
-  removeAudienceMembers(audienceId: string, leadIds: string[]): Promise<number>;
-  listAudienceMembers(audienceId: string, params: PaginationParams): Promise<PaginatedResult<LeadAudienceMember>>;
-  listAudienceLeads(audienceId: string, params: PaginationParams): Promise<PaginatedResult<Lead>>;
   addContact(contact: Contact): Promise<string>;
   getContact(contactId: string): Promise<Contact | any>;
   addTouch(touch: Touch): Promise<number>;
@@ -1239,18 +1346,21 @@ export interface SalesServiceClient {
   assignLeadTag(leadId: string, tagName: string): Promise<void>;
   removeLeadTag(leadId: string, tagName: string): Promise<boolean>;
   listLeadTags(leadId: string): Promise<LeadTag[]>;
-  listLeadTagLinks(params: PaginationParams): Promise<PaginatedResult<LeadTag>>;
+  listLeadTagLinks(params: PaginationParams): Promise<PaginatedResult<LeadTagLink>>;
+  saveTag(tag: LeadTagInput): Promise<string>;
+  ensureTag(name: string, description?: string): Promise<string>;
+  findTagId(name: string): Promise<string | any>;
+  getTag(tagId: string): Promise<LeadTag | any>;
+  listTags(params: PaginationParams): Promise<PaginatedResult<LeadTag>>;
+  deleteTag(tagId: string): Promise<boolean>;
+  assignTag(tagId: string, selection: LeadSelection): Promise<number>;
+  unassignTag(tagId: string, selection: LeadSelection): Promise<number>;
+  listTagLeads(tagId: string, params: PaginationParams): Promise<PaginatedResult<Lead>>;
+  describeSelection(objectType: string): Promise<SelectionDescriptor>;
+  inspectLeads(filter?: FilterObject): Promise<SelectionStats>;
   saveOffer(offer: Offer): Promise<string>;
   getOffer(offerId: string): Promise<Offer | any>;
   listOffers(params: PaginationParams): Promise<PaginatedResult<Offer>>;
-  saveAudience(audience: LeadAudienceInput): Promise<string>;
-  getAudience(audienceId: string): Promise<LeadAudience | any>;
-  listAudiences(params: PaginationParams): Promise<PaginatedResult<LeadAudience>>;
-  deleteAudience(audienceId: string): Promise<boolean>;
-  addAudienceMembers(audienceId: string, leadIds: string[]): Promise<number>;
-  removeAudienceMembers(audienceId: string, leadIds: string[]): Promise<number>;
-  listAudienceMembers(audienceId: string, params: PaginationParams): Promise<PaginatedResult<LeadAudienceMember>>;
-  listAudienceLeads(audienceId: string, params: PaginationParams): Promise<PaginatedResult<Lead>>;
   addContact(contact: Contact): Promise<string>;
   getContact(contactId: string): Promise<Contact | any>;
   addTouch(touch: Touch): Promise<number>;

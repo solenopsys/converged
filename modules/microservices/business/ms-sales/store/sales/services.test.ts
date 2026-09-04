@@ -155,47 +155,93 @@ describe("SalesStoreService.listLeadsFiltered", () => {
 		});
 	});
 
-	it("keeps audience membership many-to-many and idempotent", async () => {
+	it("keeps tag membership many-to-many and idempotent", async () => {
 		const now = Math.floor(Date.now() / 1000);
-		await sales.saveAudience({
-			id: "audience-a",
-			name: "Audience A",
+		await sales.saveTag({
+			id: "tag-a",
+			name: "Tag A",
 			description: "",
 			createdAt: now,
 			updatedAt: now,
 		});
-		await sales.saveAudience({
-			id: "audience-b",
-			name: "Audience B",
+		await sales.saveTag({
+			id: "tag-b",
+			name: "Tag B",
 			description: "",
 			createdAt: now,
 			updatedAt: now,
 		});
 
-		await sales.addAudienceMembers("audience-a", ["lead-steel", "lead-rextek"]);
-		await sales.addAudienceMembers("audience-a", ["lead-steel"]);
-		await sales.addAudienceMembers("audience-b", ["lead-steel"]);
+		await sales.addTagLeads("tag-a", ["lead-steel", "lead-rextek"]);
+		await sales.addTagLeads("tag-a", ["lead-steel"]);
+		await sales.addTagLeads("tag-b", ["lead-steel"]);
 
-		const [audienceA, audienceB] = await Promise.all([
-			sales.listAudienceLeads("audience-a", { offset: 0, limit: 10 }),
-			sales.listAudienceLeads("audience-b", { offset: 0, limit: 10 }),
+		const [tagA, tagB] = await Promise.all([
+			sales.listTagLeads("tag-a", { offset: 0, limit: 10 }),
+			sales.listTagLeads("tag-b", { offset: 0, limit: 10 }),
 		]);
-		expect(audienceA.totalCount).toBe(2);
-		expect(new Set(audienceA.items.map((lead) => lead.id))).toEqual(
+		expect(tagA.totalCount).toBe(2);
+		expect(new Set(tagA.items.map((lead) => lead.id))).toEqual(
 			new Set(["lead-steel", "lead-rextek"]),
 		);
-		expect(audienceB.items.map((lead) => lead.id)).toEqual(["lead-steel"]);
+		expect(tagB.items.map((lead) => lead.id)).toEqual(["lead-steel"]);
 
-		await sales.removeAudienceMembers("audience-a", ["lead-steel"]);
+		await sales.removeTagLeads("tag-a", ["lead-steel"]);
 		expect(
-			(
-				await sales.listAudienceLeads("audience-a", { offset: 0, limit: 10 })
-			).items.map((lead) => lead.id),
+			(await sales.listTagLeads("tag-a", { offset: 0, limit: 10 })).items.map(
+				(lead) => lead.id,
+			),
 		).toEqual(["lead-rextek"]);
 		expect(
-			(
-				await sales.listAudienceLeads("audience-b", { offset: 0, limit: 10 })
-			).items.map((lead) => lead.id),
+			(await sales.listTagLeads("tag-b", { offset: 0, limit: 10 })).items.map(
+				(lead) => lead.id,
+			),
 		).toEqual(["lead-steel"]);
+	});
+
+	it("filters leads by tag membership through the shared filter", async () => {
+		const now = Math.floor(Date.now() / 1000);
+		await sales.saveTag({
+			id: "tag-a",
+			name: "Tag A",
+			description: "",
+			createdAt: now,
+			updatedAt: now,
+		});
+		await sales.addTagLeads("tag-a", ["lead-steel"]);
+
+		const tagged = await sales.listLeadsFiltered(
+			{ filter: { tag: { eq: "tag-a" } } },
+			{ offset: 0, limit: 10 },
+		);
+		expect(tagged.items.map((lead) => lead.id)).toEqual(["lead-steel"]);
+		expect(tagged.totalCount).toBe(1);
+
+		const untagged = await sales.listLeadsFiltered(
+			{ filter: { tag: { isNull: true } } },
+			{ offset: 0, limit: 10 },
+		);
+		expect(new Set(untagged.items.map((lead) => lead.id))).toEqual(
+			new Set(["lead-rextek", "lead-empty"]),
+		);
+
+		expect(
+			await sales.countLeadsFiltered({
+				description: { contains: "CNC" },
+			}),
+		).toBe(1);
+
+		expect(
+			await sales.listLeadIdsFiltered({ tag: { eq: "tag-a" } }),
+		).toEqual(["lead-steel"]);
+	});
+
+	it("keeps the legacy tag-name filter working through named tags", async () => {
+		await sales.assignLeadTag("lead-rextek", "batch-7");
+		const result = await sales.listLeadsFiltered(
+			{ tags: ["batch-7"] },
+			{ offset: 0, limit: 10 },
+		);
+		expect(result.items.map((lead) => lead.id)).toEqual(["lead-rextek"]);
 	});
 });

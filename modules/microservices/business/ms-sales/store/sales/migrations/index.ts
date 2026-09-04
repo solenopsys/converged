@@ -15,6 +15,7 @@ import CreateOutreach from "./createOutreach";
 import CreateOutreachTargets from "./createOutreachTargets";
 import CreateTouch from "./createTouch";
 import ExtendCampaignsAndOffers from "./extendCampaignsAndOffers";
+import NamedLeadTags from "./namedLeadTags";
 import FillTouchIds from "./fillTouchIds";
 export default [
 	CreateLead,
@@ -35,4 +36,5 @@ export default [
 	AddTouchOutreachId,
 	CreateLeadAudiences,
 	ExtendCampaignsAndOffers,
+	NamedLeadTags,
 ];

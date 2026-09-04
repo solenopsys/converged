@@ -6,20 +6,21 @@ import {
 } from "./src/import";
 import { StoresController } from "./store";
 import type {
-	LeadAudienceEntity,
 	LeadEntity,
+	LeadTagEntity,
 	OfferEntity,
 	OutreachEntity,
 } from "./store/sales";
 import type {
 	Contact,
+	FilterObject,
 	Lead,
-	LeadAudience,
-	LeadAudienceInput,
-	LeadAudienceMember,
 	LeadEvent,
 	LeadListParams,
+	LeadSelection,
 	LeadTag,
+	LeadTagInput,
+	LeadTagLink,
 	LeadUpdate,
 	NormalizeImportLeadsInput,
 	NormalizeImportLeadsResult,
@@ -36,6 +37,8 @@ import type {
 	ParseImportLeadsResult,
 	SalesService,
 	SalesStatisticKey,
+	SelectionDescriptor,
+	SelectionStats,
 	Statistic,
 	Touch,
 } from "./types";
@@ -120,7 +123,7 @@ function mapOffer(entity: OfferEntity): Offer {
 	};
 }
 
-function mapAudience(entity: LeadAudienceEntity): LeadAudience {
+function mapTag(entity: LeadTagEntity): LeadTag {
 	return {
 		id: entity.id,
 		name: entity.name,
@@ -148,7 +151,7 @@ function mapOutreach(entity: OutreachEntity): Outreach {
 		status: entity.status,
 		lang: entity.lang,
 		description: entity.description,
-		audienceId: entity.audienceId ?? undefined,
+		tagId: entity.tagId ?? undefined,
 		templateId: entity.templateId ?? undefined,
 		planWorkflow: entity.planWorkflow || undefined,
 		sendWorkflow: entity.sendWorkflow || undefined,
@@ -287,23 +290,19 @@ class SalesServiceImpl
 		}
 
 		const tags = await this.stores.salesStoreSevice.listLeadTags(leadId);
-		return tags.map((tag) => ({
-			leadId: tag.leadId,
-			tagName: tag.tagName,
-			createdAt: new Date(tag.createdAt * 1000),
-		}));
+		return tags.map(mapTag);
 	}
 
 	async listLeadTagLinks(
 		params: PaginationParams,
-	): Promise<PaginatedResult<LeadTag>> {
+	): Promise<PaginatedResult<LeadTagLink>> {
 		await this.ready();
 		const result = await this.stores.salesStoreSevice.listLeadTagLinks(params);
 		return {
-			items: result.items.map((tag) => ({
-				leadId: tag.leadId,
-				tagName: tag.tagName,
-				createdAt: new Date(tag.createdAt * 1000),
+			items: result.items.map((link) => ({
+				tagId: link.tagId,
+				leadId: link.leadId,
+				createdAt: new Date(link.createdAt * 1000),
 			})),
 			totalCount: result.totalCount,
 		};
@@ -351,119 +350,216 @@ class SalesServiceImpl
 		};
 	}
 
-	async saveAudience(audience: LeadAudienceInput): Promise<string> {
+	async saveTag(tag: LeadTagInput): Promise<string> {
 		await this.ready();
-		const name = audience.name?.trim();
-		if (!name) throw badRequestError("Audience name is required");
-		const id = audience.id?.trim() || randomUUID();
-		const existing =
-			await this.stores.salesStoreSevice.leadAudienceRepo.findById({
-				id,
-			});
+		const name = tag.name?.trim();
+		if (!name) throw badRequestError("Tag name is required");
+		const id = tag.id?.trim() || randomUUID();
+		const existing = await this.stores.salesStoreSevice.leadTagRepo.findById({
+			id,
+		});
+		const clash = await this.stores.salesStoreSevice.findTagByName(name);
+		if (clash && clash.id !== id) {
+			throw conflictError(`A tag named '${name}' already exists`);
+		}
 		const now = Math.floor(Date.now() / 1000);
-		await this.stores.salesStoreSevice.saveAudience({
+		await this.stores.salesStoreSevice.saveTag({
 			id,
 			name,
-			description: audience.description?.trim() ?? "",
+			description: tag.description?.trim() ?? existing?.description ?? "",
 			createdAt: existing?.createdAt ?? now,
 			updatedAt: now,
 		});
 		return id;
 	}
 
-	async getAudience(audienceId: string): Promise<LeadAudience | null> {
+	async ensureTag(name: string, description = ""): Promise<string> {
 		await this.ready();
-		const id = audienceId?.trim();
-		if (!id) throw badRequestError("audienceId is required");
-		const entity = await this.stores.salesStoreSevice.leadAudienceRepo.findById(
-			{
-				id,
-			},
+		const normalized = name?.trim();
+		if (!normalized) throw badRequestError("Tag name is required");
+		const existing = await this.stores.salesStoreSevice.findTagByName(
+			normalized,
 		);
-		return entity ? mapAudience(entity) : null;
+		if (existing) return existing.id;
+		return this.saveTag({ name: normalized, description });
 	}
 
-	async listAudiences(
-		params: PaginationParams,
-	): Promise<PaginatedResult<LeadAudience>> {
+	async findTagId(name: string): Promise<string | null> {
 		await this.ready();
-		const result = await this.stores.salesStoreSevice.listAudiences(params);
-		return {
-			items: result.items.map(mapAudience),
-			totalCount: result.totalCount,
-		};
+		const normalized = name?.trim();
+		if (!normalized) return null;
+		const tag = await this.stores.salesStoreSevice.findTagByName(normalized);
+		return tag?.id ?? null;
 	}
 
-	async deleteAudience(audienceId: string): Promise<boolean> {
+	async getTag(tagId: string): Promise<LeadTag | null> {
 		await this.ready();
-		const id = audienceId?.trim();
-		if (!id) throw badRequestError("audienceId is required");
-		return this.stores.salesStoreSevice.deleteAudience(id);
-	}
-
-	async addAudienceMembers(
-		audienceId: string,
-		leadIds: string[],
-	): Promise<number> {
-		await this.ready();
-		const id = audienceId?.trim();
-		const normalized = [
-			...new Set(leadIds.map((item) => item.trim()).filter(Boolean)),
-		];
-		if (!id) throw badRequestError("audienceId is required");
-		if (
-			!(await this.stores.salesStoreSevice.leadAudienceRepo.findById({ id }))
-		) {
-			throw badRequestError(`Audience '${id}' does not exist`);
-		}
-		return this.stores.salesStoreSevice.addAudienceMembers(id, normalized);
-	}
-
-	async removeAudienceMembers(
-		audienceId: string,
-		leadIds: string[],
-	): Promise<number> {
-		await this.ready();
-		const id = audienceId?.trim();
-		if (!id) throw badRequestError("audienceId is required");
-		return this.stores.salesStoreSevice.removeAudienceMembers(id, [
-			...new Set(leadIds.map((item) => item.trim()).filter(Boolean)),
-		]);
-	}
-
-	async listAudienceMembers(
-		audienceId: string,
-		params: PaginationParams,
-	): Promise<PaginatedResult<LeadAudienceMember>> {
-		await this.ready();
-		const id = audienceId?.trim();
-		if (!id) throw badRequestError("audienceId is required");
-		const result = await this.stores.salesStoreSevice.listAudienceMembers(
+		const id = tagId?.trim();
+		if (!id) throw badRequestError("tagId is required");
+		const entity = await this.stores.salesStoreSevice.leadTagRepo.findById({
 			id,
-			params,
-		);
+		});
+		return entity ? mapTag(entity) : null;
+	}
+
+	async listTags(params: PaginationParams): Promise<PaginatedResult<LeadTag>> {
+		await this.ready();
+		const result = await this.stores.salesStoreSevice.listTags(params);
 		return {
-			items: result.items.map((item) => ({
-				audienceId: item.audienceId,
-				leadId: item.leadId,
-				createdAt: new Date(item.createdAt * 1000),
-			})),
+			items: result.items.map(mapTag),
 			totalCount: result.totalCount,
 		};
 	}
 
-	async listAudienceLeads(
-		audienceId: string,
+	async deleteTag(tagId: string): Promise<boolean> {
+		await this.ready();
+		const id = tagId?.trim();
+		if (!id) throw badRequestError("tagId is required");
+		return this.stores.salesStoreSevice.deleteTag(id);
+	}
+
+	async assignTag(tagId: string, selection: LeadSelection): Promise<number> {
+		await this.ready();
+		const id = await this.requireTag(tagId);
+		return this.stores.salesStoreSevice.addTagLeads(
+			id,
+			await this.resolveSelection(selection),
+		);
+	}
+
+	async unassignTag(tagId: string, selection: LeadSelection): Promise<number> {
+		await this.ready();
+		const id = await this.requireTag(tagId);
+		return this.stores.salesStoreSevice.removeTagLeads(
+			id,
+			await this.resolveSelection(selection),
+		);
+	}
+
+	async listTagLeads(
+		tagId: string,
 		params: PaginationParams,
 	): Promise<PaginatedResult<Lead>> {
 		await this.ready();
-		const id = audienceId?.trim();
-		if (!id) throw badRequestError("audienceId is required");
-		const result = await this.stores.salesStoreSevice.listAudienceLeads(
-			id,
-			params,
-		);
+		const id = tagId?.trim();
+		if (!id) throw badRequestError("tagId is required");
+		const result = await this.stores.salesStoreSevice.listTagLeads(id, params);
 		return { items: result.items.map(mapLead), totalCount: result.totalCount };
+	}
+
+	async describeSelection(objectType: string): Promise<SelectionDescriptor> {
+		await this.ready();
+		if (objectType !== "sales.lead") {
+			throw badRequestError(`Unsupported selection object: ${objectType}`);
+		}
+		const tags = await this.stores.salesStoreSevice.listTags({
+			offset: 0,
+			limit: 200,
+		});
+		const langs = await this.stores.salesStoreSevice.listLeadLangs();
+		return {
+			objectType,
+			title: "Leads",
+			description: "Companies worth writing to, and everything known of them",
+			fields: [
+				{
+					id: "description",
+					label: "Description",
+					description: "Company name and address as it was collected",
+					valueType: "string",
+					operators: ["contains", "startsWith", "eq"],
+					control: "text",
+				},
+				{
+					id: "contact",
+					label: "Contact",
+					description: "Email, domain or phone recorded for the lead",
+					valueType: "string",
+					operators: ["contains", "startsWith", "eq"],
+					control: "text",
+				},
+				{
+					id: "tag",
+					label: "Tag",
+					description: "Named group the lead belongs to",
+					valueType: "enum",
+					operators: ["eq", "notEq", "in", "notIn", "isNull", "isNotNull"],
+					control: "multi-select",
+					values: tags.items.map((tag) => ({
+						id: tag.id,
+						label: tag.name,
+						aliases: [tag.name],
+					})),
+					valuesComplete: tags.items.length === tags.totalCount,
+				},
+				{
+					id: "lang",
+					label: "Language",
+					valueType: "enum",
+					operators: ["eq", "notEq", "in", "notIn"],
+					control: "multi-select",
+					values: langs.map((lang) => ({ id: lang, label: lang })),
+					valuesComplete: true,
+				},
+				{
+					id: "type",
+					label: "Type",
+					valueType: "enum",
+					operators: ["eq", "notEq", "in", "notIn"],
+					control: "multi-select",
+					values: [
+						{ id: "cnc", label: "CNC" },
+						{ id: "3dprint", label: "3D printing" },
+					],
+				},
+				{
+					id: "disabled",
+					label: "Disabled",
+					valueType: "boolean",
+					operators: ["eq"],
+					control: "boolean",
+				},
+				{
+					id: "createdAt",
+					label: "Created",
+					valueType: "date",
+					operators: ["gte", "lte", "between"],
+					control: "date-range",
+				},
+			],
+			filterExample: tags.items[0]
+				? { tag: { eq: tags.items[0].id } }
+				: { lang: { eq: langs[0] ?? "en" } },
+			revision: `tags-${tags.totalCount}`,
+		};
+	}
+
+	async inspectLeads(filter?: FilterObject): Promise<SelectionStats> {
+		await this.ready();
+		return {
+			totalCount: await this.stores.salesStoreSevice.countLeadsFiltered(filter),
+		};
+	}
+
+	private async requireTag(tagId: string): Promise<string> {
+		const id = tagId?.trim();
+		if (!id) throw badRequestError("tagId is required");
+		if (!(await this.stores.salesStoreSevice.leadTagRepo.findById({ id }))) {
+			throw badRequestError(`Tag '${id}' does not exist`);
+		}
+		return id;
+	}
+
+	/**
+	 * Ticked rows win when there are any; otherwise the filter itself is the
+	 * selection and the identifiers never leave the server.
+	 */
+	private async resolveSelection(selection: LeadSelection): Promise<string[]> {
+		const ids = selection?.ids
+			?.map((leadId) => leadId.trim())
+			.filter(Boolean) ?? [];
+		if (ids.length > 0) return [...new Set(ids)];
+		return this.stores.salesStoreSevice.listLeadIdsFiltered(selection?.filter);
 	}
 
 	async addContact(contact: Contact): Promise<string> {
@@ -558,7 +654,7 @@ class SalesServiceImpl
 			status: outreach.status?.trim() || "draft",
 			lang: outreach.lang?.trim().toLowerCase() ?? "",
 			description: outreach.description ?? "",
-			audienceId: outreach.audienceId?.trim() || null,
+			tagId: outreach.tagId?.trim() || null,
 			templateId: outreach.templateId?.trim() || null,
 			planWorkflow: outreach.planWorkflow?.trim() || "",
 			sendWorkflow: outreach.sendWorkflow?.trim() || "",
@@ -724,10 +820,11 @@ class SalesServiceImpl
 		const tags = params.tags?.map((tag) => tag.trim()).filter(Boolean) ?? [];
 		const contact = params.contact?.trim() ?? "";
 		const query = params.query?.trim() ?? "";
+		const filter = params.filter;
 		const useCursor = typeof params.after === "string";
-		if (useCursor && (tags.length || contact || query)) {
+		if (useCursor && (tags.length || contact || query || filter)) {
 			throw new Error(
-				"listLeads: 'after' cursor is not supported together with filters (tags/contact)",
+				"listLeads: 'after' cursor is not supported together with filters",
 			);
 		}
 		const result = useCursor
@@ -735,9 +832,9 @@ class SalesServiceImpl
 					params.after as string,
 					params.limit,
 				)
-			: tags.length || contact || query
+			: tags.length || contact || query || filter
 				? await this.stores.salesStoreSevice.listLeadsFiltered(
-						{ tags, contact, query },
+						{ tags, contact, query, filter },
 						params,
 					)
 				: {

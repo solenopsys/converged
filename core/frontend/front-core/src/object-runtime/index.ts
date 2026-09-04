@@ -13,6 +13,7 @@ export {
 	catalogEntries,
 	catalogEntry,
 	invokeCatalogEntry,
+	localized,
 	invokeOperator,
 	operatorCandidateEntries,
 	operatorCatalogEntries,
@@ -41,7 +42,13 @@ export {
 	ObjectRegistry,
 	objectRegistry,
 } from "./registry";
-export { ObjectResolver, objectResolver, resolve } from "./resolver";
+export type { OwnedOperation } from "./resolver";
+export {
+	ObjectResolver,
+	objectResolver,
+	operationsFor,
+	resolve,
+} from "./resolver";
 export {
 	$objectRevisions,
 	executeOperation,

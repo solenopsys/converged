@@ -11,6 +11,9 @@ import type {
 	ViewDefinition,
 } from "./types";
 
+/** The registry stamps the owning microfrontend onto everything it holds. */
+export type OwnedOperation = OperationDefinition & { owner?: string };
+
 function expressionMatches(
 	expression: TypeExpression,
 	ref: DomainRef,
@@ -179,6 +182,35 @@ export class ObjectResolver {
 		);
 	}
 
+	/**
+	 * Operations that name this reference as an input. A collection view uses
+	 * this to publish its own commands: an operation is declared once, next to
+	 * the type, and becomes both a button over the selection and a function the
+	 * assistant can call. Operations without inputs are excluded — they apply to
+	 * nothing in particular and would otherwise match everything.
+	 */
+	operationsFor(
+		ref: DomainRef,
+		context: { discovery?: ResolveContext["discovery"] } = {},
+	): OwnedOperation[] {
+		return this.registry
+			.allOperations()
+			.filter((operation) => operation.discover?.() ?? true)
+			.filter(
+				(operation) => context.discovery !== "panel" || canDiscover(operation),
+			)
+			.filter((operation) =>
+				(operation.inputs ?? []).some((input) =>
+					expressionMatches(input.accepts, ref, this.registry),
+				),
+			)
+			.sort(
+				(left, right) =>
+					(right.priority ?? 0) - (left.priority ?? 0) ||
+					left.label.localeCompare(right.label),
+			);
+	}
+
 	resolveView(ref: DomainRef, viewId?: string): ViewDefinition | undefined {
 		if (viewId) {
 			const view = this.registry.view(viewId);
@@ -204,4 +236,11 @@ export function resolve(
 	context?: ResolveContext,
 ): ResolutionCandidate[] {
 	return objectResolver.resolve(operator, context);
+}
+
+export function operationsFor(
+	ref: DomainRef,
+	context?: { discovery?: ResolveContext["discovery"] },
+): OwnedOperation[] {
+	return objectResolver.operationsFor(ref, context);
 }
