@@ -51,4 +51,81 @@ describe("conversation catalog", () => {
 			"mailing.send.form",
 		]);
 	});
+
+	test("marks every lower-scoring search result as approximate", () => {
+		const catalog = createConversationCatalog();
+		catalog.sourceRegistered({
+			id: "ui",
+			group: "ui",
+			invoke: () => undefined,
+		});
+		catalog.functionsPublished({
+			source: "ui",
+			functions: [
+				{
+					id: "core.create:sales.audience",
+					brief: "Lead audience",
+					description: "Create a saved lead audience selection",
+				},
+				{
+					id: "core.select:sales.lead",
+					brief: "Select leads",
+					description: "Create a temporary lead list",
+				},
+			],
+		});
+
+		expect(
+			catalog.catalog
+				.search("lead audience selection")
+				.map(({ id, approximate }) => ({ id, approximate })),
+		).toEqual([
+			{ id: "core.create:sales.audience", approximate: undefined },
+			{ id: "core.select:sales.lead", approximate: true },
+		]);
+	});
+
+	test("keeps source-owned module descriptions out of function entries", () => {
+		const catalog = createConversationCatalog();
+		catalog.sourceRegistered({
+			id: "ui",
+			group: "ui",
+			modules: () => [
+				{
+					id: "mf-sales",
+					label: "Sales",
+					count: 99,
+					description: "Leads, contacts, audiences and campaigns",
+				},
+			],
+			invoke: () => undefined,
+		});
+		catalog.functionsPublished({
+			source: "ui",
+			functions: [
+				{
+					id: "core.select:sales.lead",
+					brief: "Select leads",
+					module: "mf-sales",
+					moduleLabel: "Sales",
+				},
+			],
+		});
+
+		expect(catalog.snapshot().listModules?.()).toEqual([
+			{
+				id: "mf-sales",
+				label: "Sales",
+				count: 1,
+				description: "Leads, contacts, audiences and campaigns",
+			},
+		]);
+		expect(catalog.snapshot().byModule?.("mf-sales")).toMatchObject([
+			{
+				id: "core.select:sales.lead",
+				brief: "Select leads",
+				module: "mf-sales",
+			},
+		]);
+	});
 });

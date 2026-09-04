@@ -1,11 +1,7 @@
 import { existsSync } from "node:fs";
 import { mkdir, rm } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
-import {
-	bundleApp,
-	bundleMicrofrontends,
-	bundleWidget,
-} from "./bundles";
+import { bundleApp, bundleMicrofrontends, bundleWidget } from "./bundles";
 import { writeObjectIndex } from "./object-index";
 import { versionImportMap } from "./import-map";
 import {
@@ -65,8 +61,10 @@ export function sourceFiles(): string[] {
 		...microfrontends.flatMap((name) => {
 			const moduleDir = microfrontendDir(name);
 			const localesDir = join(moduleDir, "locales");
+			const llmCatalog = join(moduleDir, "llm.json");
 			return [
 				...sources(join(moduleDir, "src")),
+				...(existsSync(llmCatalog) ? [llmCatalog] : []),
 				...(existsSync(localesDir)
 					? Array.from(
 							new Bun.Glob("*.json").scanSync({

@@ -386,6 +386,11 @@ describe("operator catalog", () => {
 						label: "Create campaign",
 						access: "public",
 						view: "probe.campaign.form",
+						parameters: {
+							type: "object",
+							properties: { name: { type: "string" } },
+							required: ["name"],
+						},
 						inputs: [
 							{
 								name: "companies",
@@ -399,6 +404,13 @@ describe("operator catalog", () => {
 						},
 					},
 				],
+			});
+		});
+
+		test("does not require persistence fields before opening the composing screen", () => {
+			expect(catalogEntry("core.create:probe.campaign")?.parameters).toEqual({
+				type: "object",
+				properties: {},
 			});
 		});
 

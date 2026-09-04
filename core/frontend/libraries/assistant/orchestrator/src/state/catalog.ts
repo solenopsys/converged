@@ -1,4 +1,9 @@
-import { createDomain, type Domain, type EventCallable, type Store } from "effector";
+import {
+	createDomain,
+	type Domain,
+	type EventCallable,
+	type Store,
+} from "effector";
 import type { FunctionBrief, OrchestratorCatalog, ToolSpec } from "../types";
 
 // The catalog is state, not a constructor argument: microfrontends arrive while
@@ -24,9 +29,14 @@ export type CatalogSource = {
 	prefix?: string;
 	/** A host where the group cannot run keeps it out of the candidates. */
 	available?: () => boolean;
+	/** Module descriptions owned by this source, independent of function entries. */
+	modules?: OrchestratorCatalog["listModules"];
 	meta?(key: string): CatalogMeta | undefined;
 	load?(key: string): Promise<ToolSpec["parameters"] | void>;
-	invoke(key: string, args: Record<string, unknown>): unknown | Promise<unknown>;
+	invoke(
+		key: string,
+		args: Record<string, unknown>,
+	): unknown | Promise<unknown>;
 };
 
 export type CatalogEntry = FunctionBrief & {
@@ -70,34 +80,31 @@ const rank = (
 ): Array<{ entry: CatalogEntry; weak: boolean }> => {
 	const words = query.toLowerCase().split(/\s+/).filter(Boolean);
 	if (words.length === 0) return [];
-	return (
-		functions
-			.map((entry) => ({
-				entry,
-				hits: words.filter((word) =>
-					`${entry.id} ${entry.brief} ${entry.description ?? ""}`
-						.toLowerCase()
-						.includes(word),
-				).length,
-			}))
-			.filter(({ hits }) => hits > 0)
-			.sort(
-				(left, right) =>
-					right.hits - left.hits ||
-					priorityWeight(right.entry.priority) -
-						priorityWeight(left.entry.priority) ||
-					left.entry.id.localeCompare(right.entry.id),
-			)
-			.slice(0, limit)
-			// One word of a several-word request is a coincidence, not a match: it is
-			// how "outreach audience configuration" reaches "Select Outreach targets".
-			// Such a candidate is still offered — it may be all there is — but it is
-			// labelled, so a call built on it is visibly a guess.
-			.map(({ entry, hits }) => ({
-				entry,
-				weak: hits === 1 && words.length > 1,
-			}))
-	);
+	const ranked = functions
+		.map((entry) => ({
+			entry,
+			hits: words.filter((word) =>
+				`${entry.id} ${entry.brief} ${entry.description ?? ""}`
+					.toLowerCase()
+					.includes(word),
+			).length,
+		}))
+		.filter(({ hits }) => hits > 0)
+		.sort(
+			(left, right) =>
+				right.hits - left.hits ||
+				priorityWeight(right.entry.priority) -
+					priorityWeight(left.entry.priority) ||
+				left.entry.id.localeCompare(right.entry.id),
+		)
+		.slice(0, limit);
+	const best = ranked[0]?.hits ?? 0;
+	return ranked.map(({ entry, hits }) => ({
+		entry,
+		// Relevance is relative to this query. Lower-scoring entries are fallback
+		// candidates, even when they share more than one generic word.
+		weak: hits < best,
+	}));
 };
 
 const priorityWeight = (priority: FunctionBrief["priority"]): number =>
@@ -200,6 +207,25 @@ export function createConversationCatalog(
 						...(weak || entry.approximate ? { approximate: true } : {}),
 					}),
 				),
+			byModule: (module) =>
+				[...entries.values()]
+					.filter((entry) => reachable(entry) && entry.module === module)
+					.sort(
+						(left, right) =>
+							priorityWeight(right.priority) - priorityWeight(left.priority) ||
+							left.id.localeCompare(right.id),
+					)
+					.map((entry) => ({
+						id: entry.id,
+						brief: entry.brief,
+						...(entry.description ? { description: entry.description } : {}),
+						category: entry.category,
+						priority: entry.priority,
+						module: entry.module,
+						...(entry.moduleLabel ? { moduleLabel: entry.moduleLabel } : {}),
+						...(entry.targetType ? { targetType: entry.targetType } : {}),
+						...(entry.intent ? { intent: entry.intent } : {}),
+					})),
 			byTarget: (types) => {
 				const wanted = new Set(types);
 				return [...entries.values()]
@@ -229,6 +255,16 @@ export function createConversationCatalog(
 			listModules: () => {
 				const counts = new Map<string, number>();
 				const labels = new Map<string, string>();
+				const descriptions = new Map<string, string>();
+				for (const source of sources.values()) {
+					if (!(source.available?.() ?? true)) continue;
+					for (const module of source.modules?.() ?? []) {
+						if (!labels.has(module.id)) labels.set(module.id, module.label);
+						if (module.description && !descriptions.has(module.id)) {
+							descriptions.set(module.id, module.description);
+						}
+					}
+				}
 				for (const entry of entries.values()) {
 					if (!reachable(entry) || !entry.module) continue;
 					counts.set(entry.module, (counts.get(entry.module) ?? 0) + 1);
@@ -239,6 +275,9 @@ export function createConversationCatalog(
 					id,
 					label: labels.get(id) ?? id,
 					count,
+					...(descriptions.has(id)
+						? { description: descriptions.get(id) }
+						: {}),
 				}));
 			},
 			listCategories: () => {
@@ -289,6 +328,7 @@ export function createConversationCatalog(
 			search: (query, limit) => live().search(query, limit),
 			listCategories: () => live().listCategories(),
 			listModules: () => live().listModules?.() ?? [],
+			byModule: (module) => live().byModule?.(module) ?? [],
 			byTarget: (types) => live().byTarget?.(types) ?? [],
 			meta: (id) => live().meta(id),
 			invoke: (id, args) => live().invoke(id, args),

@@ -290,9 +290,7 @@ export function operatorCandidateEntries(): OperatorCatalogEntry[] {
 				intent: intents[operator],
 				brief:
 					candidate.kind === "operation"
-						? operator === "create" && singular
-							? singular
-							: (operationLabel ?? candidate.label)
+						? (operationLabel ?? candidate.label)
 						: `${verbs[operator]} ${operator === "select" ? (plural ?? candidate.label) : (singular ?? candidate.label)}`,
 				description:
 					operationDescription ??
@@ -302,9 +300,10 @@ export function operatorCandidateEntries(): OperatorCatalogEntry[] {
 				category: "operator" as const,
 				priority: "primary" as const,
 				exposure: "user" as const,
-				parameters:
-					candidate.operation?.parameters ??
-					candidateParameters(candidate.targetType, operator),
+				parameters: candidate.operation?.view
+					? { type: "object", properties: {} }
+					: (candidate.operation?.parameters ??
+						candidateParameters(candidate.targetType, operator)),
 			};
 		}),
 	);

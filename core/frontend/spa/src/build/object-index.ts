@@ -5,6 +5,7 @@ import type {
 	MicrofrontendManifest,
 	ObjectIndexFile,
 } from "front-core/object-runtime";
+import type { MicrofrontendLlmCatalog } from "front-core/core";
 import { microfrontendDir, microfrontends, microfrontendsDir } from "./layout";
 
 const stubExternals = {
@@ -107,13 +108,35 @@ async function readDefinition(name: string): Promise<MicrofrontendDefinition> {
 	return definition;
 }
 
+export async function readLlmCatalog(
+	dir: string,
+	name: string,
+): Promise<MicrofrontendLlmCatalog> {
+	const file = Bun.file(join(dir, "llm.json"));
+	if (!(await file.exists())) {
+		throw new Error(`[object-index] mf-${name}: missing llm.json`);
+	}
+	const catalog = (await file.json()) as MicrofrontendLlmCatalog;
+	if (!catalog.actions || typeof catalog.actions !== "object") {
+		throw new Error(
+			`[object-index] mf-${name}: llm.json must contain an actions object`,
+		);
+	}
+	return catalog;
+}
+
 export async function collectObjectIndex(): Promise<ObjectIndexFile> {
 	const entries = await Promise.all(
 		microfrontends.map(async (name) => {
+			const dir = microfrontendDir(name);
 			const module = `mf-${name}`;
 			return [
 				name,
-				{ module, manifest: manifestOf(await readDefinition(name)) },
+				{
+					module,
+					manifest: manifestOf(await readDefinition(name)),
+					llm: await readLlmCatalog(dir, name),
+				},
 			] as const;
 		}),
 	);

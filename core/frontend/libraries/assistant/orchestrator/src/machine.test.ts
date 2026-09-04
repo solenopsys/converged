@@ -155,6 +155,37 @@ describe("orchestrator", () => {
 		expect(steps).toEqual(["route", "select", "args"]);
 	});
 
+	test("missing required arguments end as an incomplete plan instead of an error", async () => {
+		const requiredArguments: OrchestratorCatalog = {
+			...CATALOG,
+			meta: (id) => ({
+				id,
+				description: `describe ${id}`,
+				parameters: {
+					type: "object",
+					properties: { name: { type: "string" } },
+					required: ["name"],
+				},
+			}),
+		};
+		const { orchestrator, steps } = harness(
+			{
+				route: '{"intent":"function","area":"logs"}',
+				select: '{"id":"logs.cold.show"}',
+				args: "{}",
+			},
+			requiredArguments,
+		);
+
+		expect(await orchestrator.plan("create unnamed item")).toMatchObject({
+			kind: "function-incomplete",
+			id: "logs.cold.show",
+			args: {},
+			missing: ["name"],
+		});
+		expect(steps).toEqual(["route", "select", "args", "args"]);
+	});
+
 	test("an empty catalog does not invent a function", async () => {
 		const { orchestrator, steps } = harness({
 			route: '{"intent":"function","area":"billing"}',

@@ -29,6 +29,7 @@ export class ObjectRegistry {
 	private readonly types = new Map<string, Owned<ObjectTypeDefinition>>();
 	private readonly views = new Map<string, Owned<ViewDefinition>>();
 	private readonly operations = new Map<string, Owned<OperationDefinition>>();
+	private readonly moduleDescriptions = new Map<string, string>();
 	private readonly cleanups = new Map<string, () => void>();
 
 	declare(owner: string, manifest: MicrofrontendManifest): void {
@@ -66,8 +67,24 @@ export class ObjectRegistry {
 
 	ingest(index: ObjectIndexFile): void {
 		for (const entry of Object.values(index.modules)) {
+			const explicit = entry.llm?.description?.trim();
+			const actionDescriptions = [
+				...new Set(
+					Object.values(entry.llm?.actions ?? {}).flatMap((action) => {
+						const description =
+							action.description?.trim() || action.brief?.trim();
+						return description ? [description] : [];
+					}),
+				),
+			];
+			const description = explicit || actionDescriptions.join("; ");
+			if (description) this.moduleDescriptions.set(entry.module, description);
 			this.declare(entry.module, entry.manifest);
 		}
+	}
+
+	moduleDescription(id: string): string | undefined {
+		return this.moduleDescriptions.get(id);
 	}
 
 	type(id: string): Owned<ObjectTypeDefinition> | undefined {

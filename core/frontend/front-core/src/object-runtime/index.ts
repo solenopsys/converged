@@ -96,6 +96,11 @@ export type {
 	ViewId,
 	ViewRuntimeProps,
 } from "./types";
+export type {
+	LlmCatalogParameters,
+	MicrofrontendLlmAction,
+	MicrofrontendLlmCatalog,
+} from "../llm-catalog";
 export {
 	Category,
 	defineMicrofrontend,

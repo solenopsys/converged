@@ -40,7 +40,10 @@ function categories() {
  * costs one visible wrong section instead of an unrelated call.
  */
 function modules() {
-	const counts = new Map<string, { label: string; count: number }>();
+	const counts = new Map<
+		string,
+		{ label: string; count: number; description?: string }
+	>();
 	for (const entry of catalogEntries()) {
 		if (!entry.module) continue;
 		const seen = counts.get(entry.module);
@@ -49,9 +52,10 @@ function modules() {
 			counts.set(entry.module, {
 				label: entry.moduleLabel ?? entry.module,
 				count: 1,
+				description: objectRegistry.moduleDescription(entry.module),
 			});
 	}
-	return [...counts].map(([id, { label, count }]) => ({ id, label, count }));
+	return [...counts].map(([id, value]) => ({ id, ...value }));
 }
 
 // The operator's parameters carry every target type the resolver knows, which

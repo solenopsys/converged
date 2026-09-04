@@ -2,6 +2,51 @@ import { describe, expect, test } from "bun:test";
 import { createFunctionSteps } from "./steps";
 
 describe("function argument step", () => {
+	test("sends module descriptions to the route model as JSON", () => {
+		const steps = createFunctionSteps({
+			catalog: {
+				search: () => [],
+				listCategories: () => [],
+				listModules: () => [
+					{
+						id: "mf-sales",
+						label: "Sales",
+						count: 9,
+						description: "Show and select leads for campaigns",
+					},
+					{
+						id: "mf-mailing",
+						label: "Mailing",
+						count: 7,
+						description: "Send mail and inspect delivery signals",
+					},
+				],
+				meta: () => undefined,
+				invoke: () => undefined,
+			},
+		});
+		const route = steps.find((step) => step.name === "route");
+		const input = route?.ask?.({ userText: "select leads", candidates: [] });
+		const sections = JSON.parse(
+			input?.match(/^Sections: (.+)\n\nUser:/s)?.[1] ?? "",
+		);
+
+		expect(sections).toEqual([
+			{
+				id: "mf-sales",
+				label: "Sales",
+				count: 9,
+				description: "Show and select leads for campaigns",
+			},
+			{
+				id: "mf-mailing",
+				label: "Mailing",
+				count: 7,
+				description: "Send mail and inspect delivery signals",
+			},
+		]);
+	});
+
 	test("keeps focused functions inside the selected module", () => {
 		const sales = {
 			id: "sales.leads.show",
@@ -56,6 +101,42 @@ describe("function argument step", () => {
 		});
 	});
 
+	test("passes the entire chosen module to function selection without lexical filtering", () => {
+		const functions = Array.from({ length: 50 }, (_, index) => ({
+			id: `sales.function.${index}`,
+			brief: `Sales function ${index}`,
+			module: "mf-sales",
+		}));
+		const steps = createFunctionSteps({
+			catalog: {
+				search: () => {
+					throw new Error("module routing must not call lexical search");
+				},
+				byModule: (module) => (module === "mf-sales" ? functions : []),
+				listCategories: () => [],
+				meta: () => undefined,
+				invoke: () => undefined,
+			},
+		});
+		const search = steps.find((step) => step.name === "search");
+		const result = search?.apply(
+			{
+				userText: "create a lead group",
+				area: "lead group creation",
+				module: "mf-sales",
+				candidates: [],
+			},
+			undefined,
+		);
+
+		expect(result).toEqual({
+			patch: {
+				area: "lead group creation",
+				candidates: functions,
+			},
+		});
+	});
+
 	test("keeps user-intent candidates ahead of a wrong routing area", () => {
 		const workflow = {
 			id: "workflows.files-process",
@@ -86,6 +167,56 @@ describe("function argument step", () => {
 			patch: {
 				area: "catalog",
 				candidates: [workflow, company],
+			},
+		});
+	});
+
+	test("drops approximate fallbacks when the route produces exact matches", () => {
+		const fallback = {
+			id: "core.select:sales.lead",
+			brief: "Select leads",
+			module: "mf-sales",
+			approximate: true,
+		};
+		const audience = {
+			id: "core.execute:sales.audience",
+			brief: "Open lead audience manager",
+			module: "mf-sales",
+		};
+		const steps = createFunctionSteps({
+			catalog: {
+				search: (query) =>
+					query === "lead audience selection" ? [audience] : [fallback],
+				listCategories: () => [],
+				meta: () => undefined,
+				invoke: () => undefined,
+			},
+		});
+		const search = steps.find((step) => step.name === "search");
+
+		expect(
+			search?.apply(
+				{
+					userText: "create a saved lead selection for mailing",
+					area: "lead audience selection",
+					module: "mf-sales",
+					candidates: [],
+				},
+				undefined,
+			),
+		).toEqual({
+			patch: {
+				area: "lead audience selection",
+				candidates: [audience],
+				id: audience.id,
+				trail: [
+					{
+						step: "select",
+						chosen: audience.id,
+						chosenLabel: audience.brief,
+						options: [{ id: audience.id, label: audience.brief }],
+					},
+				],
 			},
 		});
 	});
@@ -159,7 +290,7 @@ describe("function argument step", () => {
 		).toEqual({ patch: { args: { to: "bla@badf.com" } } });
 	});
 
-	test("refuses to call a function with nothing when no arguments came back", () => {
+	test("returns an incomplete plan when required arguments did not come back", () => {
 		// What this prevents: the model answered "I\u2019ll package your request into
 		// a manufacturing request with the uploaded files mapped" and called
 		// nothing. Going on with `{}` created a request with no files at all and
@@ -182,7 +313,7 @@ describe("function argument step", () => {
 		});
 		const args = steps.find((step) => step.name === "args");
 
-		expect(() =>
+		expect(
 			args?.apply(
 				{
 					userText: "create a request",
@@ -191,7 +322,14 @@ describe("function argument step", () => {
 				},
 				{ text: "I\u2019ll package your request.", toolCalls: [] },
 			),
-		).toThrow("missed required arguments for requests.request.create: files");
+		).toEqual({
+			done: {
+				kind: "function-incomplete",
+				id: "requests.request.create",
+				args: {},
+				missing: ["files"],
+			},
+		});
 	});
 
 	test("invokes an optional-only function with empty arguments", () => {

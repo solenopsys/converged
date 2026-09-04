@@ -1,5 +1,6 @@
 import type { SelectionDescriptor, SelectionPreset } from "back-core";
 import type { ComponentType } from "preact";
+import type { MicrofrontendLlmCatalog } from "../llm-catalog";
 
 export const OPERATORS = [
 	"show",
@@ -260,6 +261,8 @@ export type MicrofrontendManifest = Omit<MicrofrontendDefinition, "setup"> & {
 export type ObjectIndexModule = {
 	module: string;
 	manifest: MicrofrontendManifest;
+	/** LLM metadata shipped with the lazy module and available before it loads. */
+	llm?: MicrofrontendLlmCatalog;
 };
 
 export type ObjectIndexFile = {

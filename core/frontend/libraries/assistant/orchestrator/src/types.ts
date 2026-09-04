@@ -127,7 +127,15 @@ export type OrchestratorCatalog = {
 	 * flat catalog simply skips the module step and searches everything, which is
 	 * the behaviour every host had before modules existed.
 	 */
-	listModules?(): Array<{ id: string; label: string; count: number }>;
+	listModules?(): Array<{
+		id: string;
+		label: string;
+		count: number;
+		/** What the module can do, supplied by its own LLM manifest. */
+		description?: string;
+	}>;
+	/** Every callable function owned by one module, for the second routing level. */
+	byModule?(module: string): FunctionBrief[];
 	/**
 	 * Every function acting on these kinds of thing, regardless of wording.
 	 *
@@ -176,6 +184,14 @@ export type OrchestratorPlan =
 			args: Record<string, unknown>;
 			fact: unknown;
 			/** How this function was arrived at, for the transcript to show. */
+			trail?: FunctionChoice[];
+	  }
+	| {
+			/** A function matched, but calling it would require inventing user data. */
+			kind: "function-incomplete";
+			id: string;
+			args: Record<string, unknown>;
+			missing: string[];
 			trail?: FunctionChoice[];
 	  }
 	| {

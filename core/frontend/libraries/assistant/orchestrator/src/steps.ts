@@ -243,9 +243,14 @@ export function createFunctionSteps({
 			const modules = knownModules();
 			const areas =
 				modules.length > 1
-					? modules
-							.map(({ id, label, count }) => `${label} [${id}] (${count})`)
-							.join(", ")
+					? JSON.stringify(
+							modules.map(({ id, label, count, description }) => ({
+								id,
+								label,
+								count,
+								...(description ? { description } : {}),
+							})),
+						)
 					: catalog
 							.listCategories()
 							.map(({ id, count }) => `${id} (${count})`)
@@ -290,20 +295,15 @@ export function createFunctionSteps({
 		when: ({ id }) => !id,
 		apply: (context) => {
 			const { area, userText, module } = context;
-			// `area` comes from a fast model and is only a search hint. Searching it
-			// alone lets a hallucinated area (for example "catalog") turn an
-			// unrelated singleton into an automatic invocation. The user's message
-			// is the authoritative intent and always gets the first candidate slots.
 			const query = area ?? userText;
-			// Ranking runs before the module filter, so a narrowed search asks for
-			// more than it will keep: otherwise the module's own matches fall off
-			// the end of the list and the narrowing looks like it found nothing.
-			const found = mergeCandidates(
-				catalog,
-				userText,
-				area,
-				module ? candidateLimit * 4 : candidateLimit,
-			);
+			// Routing already chose the ownership boundary. The function selector
+			// must see the complete module catalog: a second lexical filter here used
+			// to discard the correct function when the route model chose a synonym.
+			const moduleCandidates = module ? (catalog.byModule?.(module) ?? []) : [];
+			const found =
+				moduleCandidates.length > 0
+					? moduleCandidates
+					: mergeCandidates(catalog, userText, area, candidateLimit);
 			const withinModule = module
 				? found.filter((candidate) => candidate.module === module)
 				: found;
@@ -326,7 +326,7 @@ export function createFunctionSteps({
 				context.focus ?? [],
 				catalog,
 				widened ? undefined : module,
-			).slice(0, candidateLimit);
+			).slice(0, moduleCandidates.length || candidateLimit);
 			const trail: FunctionChoice[] | undefined = widened
 				? context.trail?.map((choice) =>
 						choice.step === "module"
@@ -504,7 +504,7 @@ export function createFunctionSteps({
 				.filter(Boolean)
 				.join("\n\n");
 		},
-		apply: ({ id, parameters, known = {} }, answer) => {
+		apply: ({ id, parameters, known = {}, trail }, answer) => {
 			const meta = id ? catalog.meta(id) : undefined;
 			const schema = parameters ?? meta?.parameters;
 			const filled = structured(answer, "call");
@@ -523,9 +523,15 @@ export function createFunctionSteps({
 				(key) => !Object.hasOwn(values, key),
 			);
 			if (meta && needsArgumentModel(schema) && missing.length > 0) {
-				throw new Error(
-					`[orchestrator] Step "args" missed required arguments for ${meta.id}: ${missing.join(", ")}`,
-				);
+				return {
+					done: {
+						kind: "function-incomplete",
+						id: meta.id,
+						args: values,
+						missing,
+						trail,
+					},
+				};
 			}
 			return {
 				patch: {
@@ -602,8 +608,19 @@ function mergeCandidates(
 	for (const query of [userText, area]) {
 		if (!query?.trim()) continue;
 		for (const candidate of catalog.search(query, limit)) {
-			if (!merged.has(candidate.id)) merged.set(candidate.id, candidate);
+			const previous = merged.get(candidate.id);
+			// A translated route hint can turn a language fallback into an exact
+			// match. Keep the stronger result rather than preserving the first,
+			// approximate copy from the raw user text.
+			if (!previous || (previous.approximate && !candidate.approximate)) {
+				merged.set(candidate.id, candidate);
+			}
 		}
 	}
-	return [...merged.values()].slice(0, limit);
+	const candidates = [...merged.values()];
+	const exact = candidates.filter((candidate) => !candidate.approximate);
+	// Approximate entries are an alternative when lexical search found nothing,
+	// not extra options beside real matches. Mixing both let a model choose a
+	// generic selection even when a domain-specific audience action was present.
+	return (exact.length > 0 ? exact : candidates).slice(0, limit);
 }

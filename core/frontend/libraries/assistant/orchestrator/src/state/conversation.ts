@@ -132,6 +132,14 @@ const factOf = (plan: OrchestratorPlan): string | undefined => {
 			note: "Nothing ran: no function in the catalog matched. Do not state or imply that anything was saved, created, recorded or changed. Say what you could not do, and ask for what would let you do it.",
 		});
 	}
+	if (plan.kind === "function-incomplete") {
+		return JSON.stringify({
+			id: plan.id,
+			args: plan.args,
+			missing: plan.missing,
+			note: "Nothing ran: required values are missing. Do not invent them or state that the action completed. Ask the user only for the missing values.",
+		});
+	}
 	return undefined;
 };
 

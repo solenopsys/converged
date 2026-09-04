@@ -326,6 +326,7 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 		conversation.catalog.sourceRegistered({
 			id: "ui",
 			group: "ui",
+			modules: catalog.listModules,
 			meta: (id) => catalog.meta(id),
 			load: catalog.load,
 			invoke: (id, args) => catalog.invoke(id, args),

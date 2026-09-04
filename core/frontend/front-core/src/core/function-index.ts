@@ -1,6 +1,7 @@
 import { registry } from "./registry";
+import type { MicrofrontendLlmCatalog } from "../llm-catalog";
 
-
+export type { MicrofrontendLlmCatalog } from "../llm-catalog";
 
 export type FunctionIndexEntry = {
 	id: string;
@@ -28,25 +29,22 @@ export type FunctionIndexFile = {
 	modules: Record<string, FunctionIndexModule>;
 };
 
-export type MicrofrontendLlmCatalog = {
-	actions: Record<string, Omit<FunctionIndexEntry, "id">>;
-	patterns?: Array<{
-		prefix: string;
-		meta: Omit<FunctionIndexEntry, "id" | "access" | "capability">;
-	}>;
-};
-
-
 const owners = new Map<string, string>();
-
 
 const moduleBriefs = new Map<string, string>();
 
 export function ingestFunctionIndex(index: FunctionIndexFile): void {
 	for (const entry of Object.values(index.modules)) {
-		ingestCatalog(entry.module, entry.brief, {
-			actions: Object.fromEntries(entry.functions.map(({ id, ...meta }) => [id, meta])),
-		}, true);
+		ingestCatalog(
+			entry.module,
+			entry.brief,
+			{
+				actions: Object.fromEntries(
+					entry.functions.map(({ id, ...meta }) => [id, meta]),
+				),
+			},
+			true,
+		);
 	}
 }
 
@@ -79,7 +77,6 @@ function ingestCatalog(
 	}
 }
 
-
 export function moduleForAction(actionId: string): string | undefined {
 	const known = owners.get(actionId);
 	if (known) return known;
@@ -90,7 +87,6 @@ export function moduleForAction(actionId: string): string | undefined {
 export function modules(): Array<{ module: string; brief: string }> {
 	return Array.from(moduleBriefs, ([module, brief]) => ({ module, brief }));
 }
-
 
 export async function loadFunctionIndex(url = "/mf/index.json"): Promise<void> {
 	try {
