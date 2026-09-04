@@ -1,0 +1,14 @@
+{
+	"name": "rp-sheduller",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"dependencies": {
+		"back-core": "workspace:*",
+		"g-sheduller": "workspace:*",
+		"nrpc": "workspace:*"
+	}
+}

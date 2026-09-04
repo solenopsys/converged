@@ -7,8 +7,9 @@
  * hand-written part is the prose, and that lives in the module's own README —
  * still at the source, still next to the code it describes.
  *
- *   <project>/modules/microservices/<domain>/ms-<name>
- *   <project>/modules/microfrontends/<domain>/mf-<name>
+ *   <project>/modules/repositories/<domain>/rp-<name>
+ *   <project>/modules/lambdas/<domain>/lm-<name>
+ *   <project>/modules/surfaces/<domain>/sf-<name>
  *   <project>/modules/workflows/wf-<name>
  *
  * A downstream product may drop the domain level (`club` does), so the domain
@@ -18,12 +19,13 @@
 import { existsSync, readdirSync } from "node:fs";
 import { basename, join, relative } from "node:path";
 
-export type ModuleKind = "microservice" | "microfrontend" | "workflow";
+export type ModuleKind = "repository" | "lambda" | "surface" | "workflow";
 
 /** Directory under `modules/` → what lives in it. */
 const LAYOUT: Record<string, { kind: ModuleKind; prefix: string }> = {
-	microservices: { kind: "microservice", prefix: "ms-" },
-	microfrontends: { kind: "microfrontend", prefix: "mf-" },
+	repositories: { kind: "repository", prefix: "rp-" },
+	lambdas: { kind: "lambda", prefix: "lm-" },
+	surfaces: { kind: "surface", prefix: "sf-" },
 	workflows: { kind: "workflow", prefix: "wf-" },
 };
 
@@ -33,13 +35,14 @@ const LAYOUT: Record<string, { kind: ModuleKind; prefix: string }> = {
  * ones. Either way the value is a bare name, and the prefix comes from here.
  */
 const MEMBER_KEYS: Array<{ long: string; short: string; prefix: string }> = [
-	{ long: "microservices", short: "ms", prefix: "ms-" },
-	{ long: "microfrontends", short: "mf", prefix: "mf-" },
+	{ long: "repositories", short: "rp", prefix: "rp-" },
+	{ long: "lambdas", short: "lm", prefix: "lm-" },
+	{ long: "surfaces", short: "sf", prefix: "sf-" },
 	{ long: "workflows", short: "wf", prefix: "wf-" },
 ];
 
 export type ModuleEntry = {
-	/** Package name, e.g. `ms-notify`. */
+	/** Package name, e.g. `rp-notify`. */
 	name: string;
 	kind: ModuleKind;
 	/** Folder the module sits in; empty when the project has no domain level. */
@@ -127,7 +130,7 @@ async function readDependencies(dir: string): Promise<string[]> {
 		...Object.keys(pkg.dependencies ?? {}),
 		...Object.keys(pkg.devDependencies ?? {}),
 	]
-		.filter((name) => /^(ms|mf|wf)-/.test(name))
+		.filter((name) => /^(rp|lm|sf|wf)-/.test(name))
 		.filter((name, index, values) => values.indexOf(name) === index)
 		.sort();
 }

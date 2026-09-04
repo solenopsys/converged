@@ -84,27 +84,25 @@ const solutionConfigPath =
 	resolve(PROJECT_DIR, "modules", "solutions", "converged.json");
 const resolvedConfig = resolveSolutionConfig(solutionConfigPath);
 const solution = resolvedConfig.solution;
-const microfrontends = solution.spec.microfrontends;
-const microservices = solution.spec.microservices;
+const surfaces = solution.spec.surfaces;
+const repositories = solution.spec.repositories;
+const lambdas = solution.spec.lambdas;
 
 /**
- * Storage mounts one root per microservice and refuses to create any of them:
+ * Storage mounts one root per repository and refuses to create any of them:
  * a missing directory means the volume is not mounted. Deriving the file from
  * the Solution keeps one list — adding a module to the Solution is all it takes
  * for its data root to exist.
  */
 function writeMountsConfig(): string {
 	const mounts: Record<string, string> = {};
-	for (const name of microservices) {
-		const root = resolve(dataDir, `${name}-ms`);
+	for (const name of repositories) {
+		const root = resolve(dataDir, `rp-${name}`);
 		mkdirSync(root, { recursive: true });
-		mounts[`${name}-ms`] = root;
+		mounts[`rp-${name}`] = root;
 	}
 	const path = resolve(dataDir, "mounts.json");
-	writeFileSync(
-		path,
-		`${JSON.stringify({ microservices: mounts }, null, 2)}\n`,
-	);
+	writeFileSync(path, `${JSON.stringify({ stores: mounts }, null, 2)}\n`);
 	return path;
 }
 
@@ -113,7 +111,7 @@ const solutionPath = resolve(dataDir, "resolved-solution.json");
 writeFileSync(solutionPath, `${JSON.stringify(solution, null, 2)}\n`);
 const mountsConfig = writeMountsConfig();
 console.log(
-	`[dev] storage mounts: ${mountsConfig} (${microservices.length} roots)`,
+	`[dev] storage mounts: ${mountsConfig} (${repositories.length} roots)`,
 );
 console.log(`[dev] resolved solution: ${solutionPath}`);
 
@@ -125,7 +123,8 @@ const runtimeEnv: Record<string, string> = {
 	BEHEMOTH_STORAGE_CONFIG: resolve(dataDir, "mounts.json"),
 	FUJIN_ZMQ_ENDPOINT: env.FUJIN_ZMQ_ENDPOINT || "tcp://127.0.0.1:5557",
 	FUJIN_WS_URL: env.FUJIN_WS_URL || "ws://127.0.0.1:8087/ws",
-	MICROSERVICES: JSON.stringify(microservices),
+	REPOSITORIES: JSON.stringify(repositories),
+	LAMBDAS: JSON.stringify(lambdas),
 	WORKFLOWS: JSON.stringify(solution.spec.workflows),
 };
 
@@ -143,7 +142,7 @@ if (workflowServer) {
 
 console.log(
 	`[dev] solution ${solution.metadata?.name}: ` +
-		`${microservices.length} ms, ${microfrontends.length} mf, ${solution.spec.workflows.length} wf`,
+		`${repositories.length} rp, ${lambdas.length} lm, ${surfaces.length} sf, ${solution.spec.workflows.length} wf`,
 );
 
 const procs: Subprocess[] = [];
@@ -243,7 +242,7 @@ if (startUi) {
 		env: {
 			...runtimeEnv,
 			PORT: String(landingPort),
-			MICROFRONTENDS: microfrontends.join(","),
+			SURFACES: surfaces.join(","),
 			FUJIN_TARGET: env.FUJIN_TARGET || "ui",
 		},
 		stdout: "pipe",

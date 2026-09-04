@@ -3,7 +3,7 @@ import type { ReactNode } from "preact/compat";
 // Registry of *live* dashboard widget factories, keyed by the pin's
 // componentKey (e.g. "dag.stat.failed", "logs.errors").
 // A persisted dashboard pin only stores ids — it cannot store the React
-// component. Microfrontends register a factory per pinnable widget at load
+// component. Surfaces register a factory per pinnable widget at load
 // time so that a pinned indicator can be re-materialized as the real, live
 // component instead of a placeholder.
 

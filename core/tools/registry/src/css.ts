@@ -1,8 +1,8 @@
 /**
  * CSS packed into the module, not shipped beside it.
  *
- * A delivery-time `assets/mf.css` is one stylesheet assembled from every
- * microfrontend the build knew about. That works only while the build knows the
+ * A delivery-time `assets/sf.css` is one stylesheet assembled from every
+ * surface the build knew about. That works only while the build knows the
  * set, and in the registry it does not: modules are built once and selected per
  * solution afterwards. A module whose styles lived in that shared file would
  * load into a page that has none of them.
@@ -122,7 +122,7 @@ export function withStylePrologue(
 	css: string,
 ): string {
 	if (!css.trim()) return script;
-	const id = `mf-style-${name.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+	const id = `sf-style-${name.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
 	return [
 		`const __mfStyleId=${JSON.stringify(id)};`,
 		'if(typeof document!=="undefined"&&!document.getElementById(__mfStyleId)){',

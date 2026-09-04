@@ -4,11 +4,10 @@ metadata:
   name: converged-converged
 spec:
   platform: converged
-  microservices:
+  repositories:
     - access
     - auth
     - identity
-    - ses
     - markdown
     - struct
     - galery
@@ -19,15 +18,17 @@ spec:
     - dag
     - files
     - store
-    - compressors
-    - modelconvertor
     - requests
     - logs
     - telemetry
     - counters
     - usage
     - dashboard
-  microfrontends:
+  lambdas:
+    - ses
+    - compressors
+    - modelconvertor
+  surfaces:
     - auth
     - assistants
     - calls

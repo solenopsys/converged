@@ -11,10 +11,10 @@ export {
 export { bootstrapAppShell } from "./bootstrap";
 export { ConsoleRoot } from "./ConsoleRoot";
 export {
-	loadMicrofrontend,
-	loadMicrofrontendForOperation,
-	loadMicrofrontendForType,
-} from "./mf";
+	loadSurface,
+	loadSurfaceForOperation,
+	loadSurfaceForType,
+} from "./sf";
 export {
 	$composerPlacement,
 	$draft,

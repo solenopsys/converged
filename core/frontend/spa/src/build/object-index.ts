@@ -1,12 +1,12 @@
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type {
-	MicrofrontendDefinition,
-	MicrofrontendManifest,
+	SurfaceDefinition,
+	SurfaceManifest,
 	ObjectIndexFile,
 } from "front-core/object-runtime";
-import type { MicrofrontendLlmCatalog } from "front-core/core";
-import { microfrontendDir, microfrontends, microfrontendsDir } from "./layout";
+import type { SurfaceLlmCatalog } from "front-core/core";
+import { surfaceDir, surfaces, surfacesDir } from "./layout";
 
 const stubExternals = {
 	name: "object-index-stub-externals",
@@ -28,7 +28,7 @@ const stubExternals = {
 						Selectable: "core.selectable", Creatable: "core.creatable",
 						Editable: "core.editable", Executable: "core.executable",
 					};
-				export const defineMicrofrontend = (definition) => definition;
+				export const defineSurface = (definition) => definition;
 				export const objectOf = (type) => ({ kind: "object", ...(type ? { type } : {}) });
 				export const setOf = (type) => ({ kind: "set", ...(type ? { type } : {}) });
 				export const objectRef = (type, id, options = {}) => ({ kind: "object", type, id: String(id), ...options });
@@ -56,8 +56,8 @@ const stubExternals = {
 };
 
 function manifestOf(
-	definition: MicrofrontendDefinition,
-): MicrofrontendManifest {
+	definition: SurfaceDefinition,
+): SurfaceManifest {
 	return {
 		id: definition.id,
 		types: definition.types,
@@ -70,8 +70,8 @@ function manifestOf(
 	};
 }
 
-async function readDefinition(name: string): Promise<MicrofrontendDefinition> {
-	const entrypoint = join(microfrontendDir(name), "src", "index.ts");
+async function readDefinition(name: string): Promise<SurfaceDefinition> {
+	const entrypoint = join(surfaceDir(name), "src", "index.ts");
 	const result = await Bun.build({
 		entrypoints: [entrypoint],
 		target: "bun",
@@ -81,7 +81,7 @@ async function readDefinition(name: string): Promise<MicrofrontendDefinition> {
 	if (!result.success) {
 		throw new AggregateError(
 			result.logs,
-			`[object-index] mf-${name} cannot be read`,
+			`[object-index] sf-${name} cannot be read`,
 		);
 	}
 	const text = await result.outputs[0].text();
@@ -91,7 +91,7 @@ async function readDefinition(name: string): Promise<MicrofrontendDefinition> {
 	);
 	if (!(await Bun.file(compiled).exists())) await Bun.write(compiled, text);
 	const module = (await import(compiled)) as {
-		default?: MicrofrontendDefinition;
+		default?: SurfaceDefinition;
 	};
 	const definition = module.default;
 	if (
@@ -102,7 +102,7 @@ async function readDefinition(name: string): Promise<MicrofrontendDefinition> {
 		!Array.isArray(definition.operations)
 	) {
 		throw new Error(
-			`[object-index] mf-${name} must export a microfrontend definition as default`,
+			`[object-index] sf-${name} must export a surface definition as default`,
 		);
 	}
 	return definition;
@@ -111,15 +111,15 @@ async function readDefinition(name: string): Promise<MicrofrontendDefinition> {
 export async function readLlmCatalog(
 	dir: string,
 	name: string,
-): Promise<MicrofrontendLlmCatalog> {
+): Promise<SurfaceLlmCatalog> {
 	const file = Bun.file(join(dir, "llm.json"));
 	if (!(await file.exists())) {
-		throw new Error(`[object-index] mf-${name}: missing llm.json`);
+		throw new Error(`[object-index] sf-${name}: missing llm.json`);
 	}
-	const catalog = (await file.json()) as MicrofrontendLlmCatalog;
+	const catalog = (await file.json()) as SurfaceLlmCatalog;
 	if (!catalog.actions || typeof catalog.actions !== "object") {
 		throw new Error(
-			`[object-index] mf-${name}: llm.json must contain an actions object`,
+			`[object-index] sf-${name}: llm.json must contain an actions object`,
 		);
 	}
 	return catalog;
@@ -127,9 +127,9 @@ export async function readLlmCatalog(
 
 export async function collectObjectIndex(): Promise<ObjectIndexFile> {
 	const entries = await Promise.all(
-		microfrontends.map(async (name) => {
-			const dir = microfrontendDir(name);
-			const module = `mf-${name}`;
+		surfaces.map(async (name) => {
+			const dir = surfaceDir(name);
+			const module = `sf-${name}`;
 			return [
 				name,
 				{
@@ -144,7 +144,7 @@ export async function collectObjectIndex(): Promise<ObjectIndexFile> {
 }
 
 export async function writeObjectIndex(): Promise<string> {
-	const output = join(microfrontendsDir, "index.json");
+	const output = join(surfacesDir, "index.json");
 	await Bun.write(
 		output,
 		`${JSON.stringify(await collectObjectIndex(), null, 2)}\n`,

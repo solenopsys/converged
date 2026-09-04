@@ -69,11 +69,12 @@ type LandingCopy = {
 	nav?: Array<{ blockId: string; label: string }>;
 };
 
-type StatKey = "microservice" | "microfrontend" | "workflow" | "solution";
+type StatKey = "repository" | "lambda" | "surface" | "workflow" | "solution";
 
 const STAT_ORDER: StatKey[] = [
-	"microservice",
-	"microfrontend",
+	"repository",
+	"lambda",
+	"surface",
 	"workflow",
 	"solution",
 ];
@@ -193,7 +194,7 @@ function toModule(
 /**
  * Registry grouped the way the tree is laid out: by domain, by kind for
  * workflows — which have no domain level at all — and by project for a product
- * layer that dropped the domain level from its microservices.
+ * layer that dropped the domain level from its backend modules.
  */
 function byDomain(
 	config: Config,
@@ -254,8 +255,9 @@ function bySolution(
 
 function stats(copy: LandingCopy, registry: Registry) {
 	const totals: Record<StatKey, number> = {
-		microservice: 0,
-		microfrontend: 0,
+		repository: 0,
+		lambda: 0,
+		surface: 0,
 		workflow: 0,
 		solution: registry.solutions.length,
 	};

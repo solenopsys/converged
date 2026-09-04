@@ -15,7 +15,7 @@ export type CacheRef = {
 export type ModelConvertInput = {
 	/**
 	 * The stored file to convert. The service reads its fragments itself — that
-	 * is what ms-files and ms-store are for — so a caller that has an id never
+	 * is what rp-files and rp-store are for — so a caller that has an id never
 	 * has to move bytes or assemble chunks to get a preview.
 	 */
 	fileId: string;
@@ -68,7 +68,7 @@ export const metadata: ServiceMetadata = {
     {
       "name": "ModelConvertInput",
       "kind": "type",
-      "definition": "{\n\t/**\n\t * The stored file to convert. The service reads its fragments itself — that\n\t * is what ms-files and ms-store are for — so a caller that has an id never\n\t * has to move bytes or assemble chunks to get a preview.\n\t */\n\tfileId: string;\n\t/** Overrides the stored name; the extension decides the source parser. */\n\tsourceName?: string;\n\tformat?: ConvertFormat;\n}"
+      "definition": "{\n\t/**\n\t * The stored file to convert. The service reads its fragments itself — that\n\t * is what rp-files and rp-store are for — so a caller that has an id never\n\t * has to move bytes or assemble chunks to get a preview.\n\t */\n\tfileId: string;\n\t/** Overrides the stored name; the extension decides the source parser. */\n\tsourceName?: string;\n\tformat?: ConvertFormat;\n}"
     },
     {
       "name": "ConvertedFileRef",

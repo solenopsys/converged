@@ -149,7 +149,7 @@ function mergeCatalogEntry(
 	});
 }
 
-/** Full action index, including lazy actions declared by the MF catalog. */
+/** Full action index, including lazy actions declared by the SF catalog. */
 export const $actionCatalog = domain
 	.createStore<ActionMeta[]>([], { name: "ACTION_CATALOG" })
 	.on(actionDeclared, mergeCatalogEntry)

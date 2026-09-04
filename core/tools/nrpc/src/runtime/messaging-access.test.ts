@@ -20,7 +20,7 @@ async function fixture(payload: Record<string, unknown> = {}) {
 	})
 		.setProtectedHeader({ alg: "EdDSA", kid: "test-key" })
 		.setSubject("admin")
-		.setIssuer("ms-access")
+		.setIssuer("rp-access")
 		.setAudience("cluster")
 		.setIssuedAt()
 		.setExpirationTime("5m")

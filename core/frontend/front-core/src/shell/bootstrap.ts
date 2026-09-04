@@ -2,7 +2,7 @@ import { loadObjectIndex } from "front-core/object-runtime";
 import type { ChatConfig } from "../chat/config";
 import { configFromPage } from "../chat/config/from-page";
 import { LocaleController } from "../i18n";
-import { loadMicrofrontend } from "./mf";
+import { loadSurface } from "./sf";
 import { bootstrapWorkspaceUrl } from "./workspace-url";
 
 export async function bootstrapAppShell(
@@ -10,7 +10,7 @@ export async function bootstrapAppShell(
 ): Promise<void> {
 	LocaleController.getInstance().hydrateFromPath(window.location.pathname);
 	await loadObjectIndex();
-	await loadMicrofrontend("mf-auth");
+	await loadSurface("sf-auth");
 	mount(configFromPage());
 	bootstrapWorkspaceUrl();
 }

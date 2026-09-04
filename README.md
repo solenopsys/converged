@@ -12,7 +12,7 @@ In practice: a client submits a request through the website or the mobile app �
 
 On the equipment side, Converged reads telemetry from the machines — 3D printers (Bambu Lab, Marlin, Klipper), CNC machines, robotic arms — and uses it to manage work distribution: which job goes to which machine, what's idle, what's overloaded, what's at risk of missing a deadline. The machines themselves are operated by your team as always; Converged handles the scheduling and visibility layer on top. Think of OctoPrint or OctoFarm, but one level up: instead of a window into individual printers, you get a live picture of the whole floor tied into the order and client workflow.
 
-Workflows are built on a DAG runtime — order routing, escalations, queue balancing, multi-step chains — executed by `centimanus` as replayable step-driven graphs, which keeps microservices as pure data stores. AI sits on top as the interaction layer: operators and clients communicate in natural language, the system figures out what to do. Multiple LLM providers run simultaneously (OpenAI, Anthropic, DeepSeek, Mistral, Gemini), each for its own tasks, within a unified permissions and audit model.
+Workflows are built on a DAG runtime — order routing, escalations, queue balancing, multi-step chains — executed by `centimanus` as replayable step-driven graphs, which keeps repositories as pure data stores. AI sits on top as the interaction layer: operators and clients communicate in natural language, the system figures out what to do. Multiple LLM providers run simultaneously (OpenAI, Anthropic, DeepSeek, Mistral, Gemini), each for its own tasks, within a unified permissions and audit model.
 
 The platform is modular and open-source. The same building blocks configure into any profile: 3D printing service bureau, CNC job shop, R&D lab, distributed network of workshops.
 
@@ -68,8 +68,8 @@ containers exist, how many, and with what volumes — see [Deployment](#deployme
 | Component | Language | Role |
 |---|---|---|
 | **fujin** | Zig | Message broker. One `target → connection` map; WebSocket ingress for clients, ZMQ for cluster peers. Nothing else routes. |
-| **ui** | TS on Cruller | Everything that renders and serves HTTP: SSR, SPA shell, import map, microfrontend bundles, static assets, landing. |
-| **ms** | TS on Cruller | Domain microservices. Thin typed wrappers over their own stores — no cross-service calls, no multi-step logic. |
+| **ui** | TS on Cruller | Everything that renders and serves HTTP: SSR, SPA shell, import map, surface bundles, static assets, landing. |
+| **ms** | TS on Cruller | Domain repositories. Thin typed wrappers over their own stores — no cross-service calls, no multi-step logic. |
 | **behemoth** | Zig | Multi-model storage engine (SQL, KV, column, vector, graph, files). One isolated root per microservice. |
 | **resonus** | Zig | Media and AI gateway in one process: WebRTC/SIP calls, and LLM provider adapters behind one policy. |
 | **centimanus** | Zig + QuickJS | DAG runtime. Executes workflows as replayable step graphs, persists node outcomes, resumes from the first unfinished node. |
@@ -99,7 +99,7 @@ converged/
 │   ├── dag/                  # dag-core + workflow bundler for centimanus
 │   ├── frontend/
 │   │   ├── front-core/       # shared Preact core: components, state, routing
-│   │   ├── spa/              # SPA plugin: import map, /mf/*, /vendor/*
+│   │   ├── spa/              # SPA plugin: import map, /sf/*, /vendor/*
 │   │   ├── ssr/              # server-side rendering
 │   │   ├── landing/          # landing site
 │   │   └── libraries/        # shared UI libs: assistant, effector, files, i18n, md-tools, sequrity
@@ -116,8 +116,8 @@ converged/
 ├── modules/
 │   ├── types/                # NRPC contracts, grouped by domain
 │   ├── generated/            # generated g-<service> packages
-│   ├── microservices/        # <domain>/ms-<name>
-│   ├── microfrontends/       # <domain>/mf-<name>
+│   ├── repositories/        # <domain>/ms-<name>
+│   ├── surfaces/       # <domain>/sf-<name>
 │   ├── workflows/            # wf-<name>, compiled for centimanus
 │   ├── commands/             # CLI commands
 │   └── solutions/            # solution definitions + mapping registry
@@ -126,7 +126,7 @@ converged/
 
 A downstream product (for example `club`) is a sibling directory with the same
 `modules/` shape. It declares `extends` in its solution file and adds its own
-microservices, microfrontends and workflows on top of this base.
+repositories, surfaces and workflows on top of this base.
 
 ### NRPC: contract layer
 
@@ -162,7 +162,7 @@ The mount table is a JSON file — a ConfigMap in the cluster, written by the de
 runner locally:
 
 ```json
-{ "microservices": { "orders-ms": "/app/data/converged-storage-orders", "files-ms": "/app/data/converged-storage-files" } }
+{ "repositories": { "orders-ms": "/app/data/converged-storage-orders", "files-ms": "/app/data/converged-storage-files" } }
 ```
 
 One behemoth process mounts every one of those volumes and serves all of them
@@ -172,16 +172,16 @@ change — see the profiles below.
 ### Frontend: micro-frontends
 
 `front-core` is the shared Preact core: components, Effector state, routing.
-Each microfrontend is a separate ESM bundle loaded at runtime through an import
+Each surface is a separate ESM bundle loaded at runtime through an import
 map, so a UI module ships without rebuilding the frontend.
 
 The SPA plugin serves:
 
 - `/vendor/*` — shared dependencies (Preact, Effector, front-core, nrpc)
-- `/mf/<name>.js` — one microfrontend bundle
+- `/sf/<name>.js` — one surface bundle
 - `/locales/*` — i18n resources
 
-Which microfrontends are mounted comes from the active solution, not from a
+Which surfaces are mounted comes from the active solution, not from a
 build flag.
 
 ### Workflow runtime: Centimanus
@@ -215,7 +215,7 @@ real-time media (WebRTC, SIP) and LLM access.
 Model adapters (OpenAI, Anthropic, DeepSeek, Mistral, Gemini) sit behind a
 single policy script, so provider choice is configuration rather than call-site
 code. An agent receives context from telemetry and platform data, calls
-microservices, and triggers workflows — all under the same ABAC model as a
+repositories, and triggers workflows — all under the same ABAC model as a
 human user, with the same audit trail.
 
 The trusted context comes from the envelope: resonus refuses a request without
@@ -260,7 +260,7 @@ Three cluster-scoped resources:
 | Resource | Role |
 |---|---|
 | `Platform` | The base: profile, namespace, images, cache, storage template, native apps, gateway and TLS. Boots on its own. |
-| `Solution` | An overlay contributing microservices, microfrontends, workflows and env. Owns no cluster objects — the platform folds it in. |
+| `Solution` | An overlay contributing repositories, surfaces, workflows and env. Owns no cluster objects — the platform folds it in. |
 | `Tenant` | One site on a cloud platform: its own storage shard, its own hostnames, its own scope. |
 
 Changing the active solution set is not a redeploy. Ptah publishes the merged
@@ -325,7 +325,7 @@ behind it, which creates the volume and destroys it with the claim.
 A platform that owns its disks adds a PV source template instead: ptah then
 writes the volumes too, expanding `{{volume}}`, `{{platform}}`, `{{tenant}}`
 and `{{microservice}}` into the template and refusing any that resolves two
-microservices to the same source. That form needs a class with no provisioner
+repositories to the same source. That form needs a class with no provisioner
 of its own, and `nodeAffinity` for a node-local source — see
 [ptah's README](core/native/apps/ptah/README.md).
 
@@ -363,7 +363,7 @@ none of them call each other.
 | **providers** | push, ses, sms, smtp |
 | **sequrity** | access, auth, environment, identity, oauth, secrets |
 
-28 microfrontends live under `modules/microfrontends/<domain>/mf-<name>` with
+28 surfaces live under `modules/surfaces/<domain>/sf-<name>` with
 the same domain split.
 
 ---
@@ -433,7 +433,7 @@ command structs; stdout/stderr/exit code available through API buffers.
 # Requirements: Bun, Zig (for native apps), podman (for container builds)
 
 bun install
-bun run dev       # microservices + native peers, no UI
+bun run dev       # repositories + native peers, no UI
 bun run dev:ui    # UI only, against a running dev cluster
 bun run dev:all   # everything in one process tree
 ```
@@ -444,7 +444,7 @@ behemoth mount table, and starts the native peers listed in
 `CONVERGED_DEV_APPS` in dependency order — fujin first, since its peers dial
 its socket.
 
-Default ports: microservices `:3001`, UI `:3002`, fujin WebSocket `:8087`,
+Default ports: repositories `:3001`, UI `:3002`, fujin WebSocket `:8087`,
 fujin ZMQ `:5557`.
 
 The topology is identical to production; only the addresses differ. A native
@@ -470,12 +470,12 @@ bun run check    # Biome full check
 
 1. Define the contract in `modules/types/<domain>/<name>.ts`
 2. `bun run gen` → the `g-<name>` package is generated
-3. Implement it in `modules/microservices/<domain>/ms-<name>/`
+3. Implement it in `modules/repositories/<domain>/rp-<name>/`
 4. Add the name to a solution in `modules/solutions/solutions/`
 
-**Add a microfrontend:**
+**Add a surface:**
 
-1. Create `modules/microfrontends/<domain>/mf-<name>/` with `src/index.ts(x)`
+1. Create `modules/surfaces/<domain>/sf-<name>/` with `src/index.ts(x)`
 2. Add the name to the same solution
 
 **Add a workflow:**
@@ -497,8 +497,8 @@ commercially. Technically it is a declarative set of modules:
 
 ```json
 {
-  "microservices": ["files", "store", "requests"],
-  "microfrontends": ["requests"],
+  "repositories": ["files", "store", "requests"],
+  "surfaces": ["requests"],
   "processors": ["curaengine", "opencam"],
   "workflows": ["files-process", "file-unpack"],
   "dependencies": ["security"]

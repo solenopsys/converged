@@ -778,8 +778,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microfrontends/ai/mf-agents": {
-      "name": "mf-agents",
+    "modules/surfaces/ai/sf-agents": {
+      "name": "sf-agents",
       "dependencies": {
         "effector": "23.4.4",
         "effector-preact": "workspace:*",
@@ -788,8 +788,8 @@
         "react-markdown": "^10.1.0",
       },
     },
-    "modules/microfrontends/ai/mf-assistants": {
-      "name": "mf-assistants",
+    "modules/surfaces/ai/sf-assistants": {
+      "name": "sf-assistants",
       "dependencies": {
         "assistant-state": "workspace:*",
         "effector": "23.4.4",
@@ -802,14 +802,14 @@
         "g-centimanus": "workspace:*",
         "g-store": "workspace:*",
         "g-threads": "workspace:*",
-        "mf-requests": "workspace:*",
+        "sf-requests": "workspace:*",
         "preact": "^10.29.3",
         "signal-channel": "workspace:*",
         "uuid": "^13.0.0",
       },
     },
-    "modules/microfrontends/ai/mf-contexts": {
-      "name": "mf-contexts",
+    "modules/surfaces/ai/sf-contexts": {
+      "name": "sf-contexts",
       "dependencies": {
         "effector": "23.4.4",
         "effector-preact": "workspace:*",
@@ -817,8 +817,8 @@
         "g-contexts": "workspace:*",
       },
     },
-    "modules/microfrontends/ai/mf-functions": {
-      "name": "mf-functions",
+    "modules/surfaces/ai/sf-functions": {
+      "name": "sf-functions",
       "dependencies": {
         "effector": "23.4.4",
         "effector-preact": "workspace:*",
@@ -828,14 +828,14 @@
         "signal-channel": "workspace:*",
       },
     },
-    "modules/microfrontends/analytics/mf-dasboards": {
-      "name": "mf-dasboards",
+    "modules/surfaces/analytics/sf-dasboards": {
+      "name": "sf-dasboards",
       "dependencies": {
         "front-core": "workspace:*",
       },
     },
-    "modules/microfrontends/analytics/mf-logs": {
-      "name": "mf-logs",
+    "modules/surfaces/analytics/sf-logs": {
+      "name": "sf-logs",
       "dependencies": {
         "effector": "23.4.4",
         "effector-preact": "workspace:*",
@@ -843,8 +843,8 @@
         "g-logs": "workspace:*",
       },
     },
-    "modules/microfrontends/analytics/mf-telemetry": {
-      "name": "mf-telemetry",
+    "modules/surfaces/analytics/sf-telemetry": {
+      "name": "sf-telemetry",
       "dependencies": {
         "effector": "23.4.4",
         "effector-preact": "workspace:*",
@@ -852,8 +852,8 @@
         "g-telemetry": "workspace:*",
       },
     },
-    "modules/microfrontends/analytics/mf-usage": {
-      "name": "mf-usage",
+    "modules/surfaces/analytics/sf-usage": {
+      "name": "sf-usage",
       "dependencies": {
         "effector": "23.4.4",
         "effector-preact": "workspace:*",
@@ -861,8 +861,8 @@
         "g-usage": "workspace:*",
       },
     },
-    "modules/microfrontends/automation/mf-dag": {
-      "name": "mf-dag",
+    "modules/surfaces/automation/sf-dag": {
+      "name": "sf-dag",
       "dependencies": {
         "dagre": "^0.8.5",
         "effector": "23.4.4",
@@ -872,8 +872,8 @@
         "g-scripts": "workspace:*",
       },
     },
-    "modules/microfrontends/automation/mf-sheduller": {
-      "name": "mf-sheduller",
+    "modules/surfaces/automation/sf-sheduller": {
+      "name": "sf-sheduller",
       "dependencies": {
         "effector": "23.4.4",
         "effector-preact": "workspace:*",
@@ -881,8 +881,8 @@
         "g-sheduller": "workspace:*",
       },
     },
-    "modules/microfrontends/automation/mf-webhooks": {
-      "name": "mf-webhooks",
+    "modules/surfaces/automation/sf-webhooks": {
+      "name": "sf-webhooks",
       "dependencies": {
         "effector": "23.4.4",
         "effector-preact": "workspace:*",
@@ -890,8 +890,8 @@
         "g-webhooks": "workspace:*",
       },
     },
-    "modules/microfrontends/business/mf-orders": {
-      "name": "mf-orders",
+    "modules/surfaces/business/sf-orders": {
+      "name": "sf-orders",
       "dependencies": {
         "effector": "23.4.4",
         "effector-preact": "workspace:*",
@@ -900,8 +900,8 @@
         "g-requests": "workspace:*",
       },
     },
-    "modules/microfrontends/business/mf-requests": {
-      "name": "mf-requests",
+    "modules/surfaces/business/sf-requests": {
+      "name": "sf-requests",
       "dependencies": {
         "effector-preact": "workspace:*",
         "files-state": "workspace:*",
@@ -913,8 +913,8 @@
         "qrcode": "^1.5.4",
       },
     },
-    "modules/microfrontends/communications/mf-calls": {
-      "name": "mf-calls",
+    "modules/surfaces/communications/sf-calls": {
+      "name": "sf-calls",
       "dependencies": {
         "effector": "23.4.4",
         "effector-preact": "workspace:*",
@@ -924,24 +924,24 @@
         "preact": "^10.29.3",
       },
     },
-    "modules/microfrontends/communications/mf-chats": {
-      "name": "mf-chats",
+    "modules/surfaces/communications/sf-chats": {
+      "name": "sf-chats",
       "dependencies": {
         "front-core": "workspace:*",
         "g-chats": "workspace:*",
         "g-threads": "workspace:*",
       },
     },
-    "modules/microfrontends/communications/mf-community": {
-      "name": "mf-community",
+    "modules/surfaces/communications/sf-community": {
+      "name": "sf-community",
       "dependencies": {
         "front-core": "workspace:*",
         "g-community": "workspace:*",
         "g-threads": "workspace:*",
       },
     },
-    "modules/microfrontends/communications/mf-threads": {
-      "name": "mf-threads",
+    "modules/surfaces/communications/sf-threads": {
+      "name": "sf-threads",
       "dependencies": {
         "effector": "23.4.4",
         "effector-preact": "workspace:*",
@@ -949,8 +949,8 @@
         "g-threads": "workspace:*",
       },
     },
-    "modules/microfrontends/content/mf-classifier": {
-      "name": "mf-classifier",
+    "modules/surfaces/content/sf-classifier": {
+      "name": "sf-classifier",
       "dependencies": {
         "effector": "23.4.4",
         "effector-preact": "workspace:*",
@@ -958,8 +958,8 @@
         "g-classifier": "workspace:*",
       },
     },
-    "modules/microfrontends/content/mf-docs": {
-      "name": "mf-docs",
+    "modules/surfaces/content/sf-docs": {
+      "name": "sf-docs",
       "dependencies": {
         "effector-preact": "workspace:*",
         "front-core": "workspace:*",
@@ -969,8 +969,8 @@
         "preact": "^10.29.3",
       },
     },
-    "modules/microfrontends/content/mf-galery": {
-      "name": "mf-galery",
+    "modules/surfaces/content/sf-galery": {
+      "name": "sf-galery",
       "dependencies": {
         "effector": "23.4.4",
         "effector-preact": "workspace:*",
@@ -978,16 +978,16 @@
         "g-galery": "workspace:*",
       },
     },
-    "modules/microfrontends/content/mf-landing": {
-      "name": "mf-landing",
+    "modules/surfaces/content/sf-landing": {
+      "name": "sf-landing",
       "dependencies": {
         "front-core": "workspace:*",
         "g-struct": "workspace:*",
         "preact": "^10.29.3",
       },
     },
-    "modules/microfrontends/content/mf-markdown": {
-      "name": "mf-markdown",
+    "modules/surfaces/content/sf-markdown": {
+      "name": "sf-markdown",
       "dependencies": {
         "effector": "23.4.4",
         "effector-preact": "workspace:*",
@@ -996,8 +996,8 @@
         "md-tools": "workspace:*",
       },
     },
-    "modules/microfrontends/content/mf-scripts": {
-      "name": "mf-scripts",
+    "modules/surfaces/content/sf-scripts": {
+      "name": "sf-scripts",
       "dependencies": {
         "effector": "23.4.4",
         "effector-preact": "workspace:*",
@@ -1005,8 +1005,8 @@
         "g-scripts": "workspace:*",
       },
     },
-    "modules/microfrontends/content/mf-static": {
-      "name": "mf-static",
+    "modules/surfaces/content/sf-static": {
+      "name": "sf-static",
       "dependencies": {
         "effector": "23.4.4",
         "effector-preact": "workspace:*",
@@ -1016,8 +1016,8 @@
         "signal-channel": "workspace:*",
       },
     },
-    "modules/microfrontends/content/mf-struct": {
-      "name": "mf-struct",
+    "modules/surfaces/content/sf-struct": {
+      "name": "sf-struct",
       "dependencies": {
         "effector": "23.4.4",
         "effector-preact": "workspace:*",
@@ -1025,8 +1025,8 @@
         "g-struct": "workspace:*",
       },
     },
-    "modules/microfrontends/data/mf-dumps": {
-      "name": "mf-dumps",
+    "modules/surfaces/data/sf-dumps": {
+      "name": "sf-dumps",
       "dependencies": {
         "effector": "23.4.4",
         "effector-preact": "workspace:*",
@@ -1034,8 +1034,8 @@
         "g-dumps": "workspace:*",
       },
     },
-    "modules/microfrontends/sequrity/mf-auth": {
-      "name": "mf-auth",
+    "modules/surfaces/sequrity/sf-auth": {
+      "name": "sf-auth",
       "dependencies": {
         "auth-controller": "workspace:*",
         "effector": "23.4.4",
@@ -1046,8 +1046,8 @@
         "signal-channel": "workspace:*",
       },
     },
-    "modules/microfrontends/sequrity/mf-secrets": {
-      "name": "mf-secrets",
+    "modules/surfaces/sequrity/sf-secrets": {
+      "name": "sf-secrets",
       "dependencies": {
         "effector": "23.4.4",
         "effector-preact": "workspace:*",
@@ -1064,8 +1064,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/ai/ms-assistant": {
-      "name": "ms-assistant",
+    "modules/microservices/ai/rp-assistant": {
+      "name": "rp-assistant",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1073,8 +1073,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/ai/ms-contexts": {
-      "name": "ms-contexts",
+    "modules/microservices/ai/rp-contexts": {
+      "name": "rp-contexts",
       "dependencies": {
         "back-core": "workspace:*",
         "g-contexts": "workspace:*",
@@ -1091,8 +1091,8 @@
         "openai": "latest",
       },
     },
-    "modules/microservices/analytics/ms-counters": {
-      "name": "ms-counters",
+    "modules/microservices/analytics/rp-counters": {
+      "name": "rp-counters",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1100,8 +1100,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/analytics/ms-dashboard": {
-      "name": "ms-dashboard",
+    "modules/microservices/analytics/rp-dashboard": {
+      "name": "rp-dashboard",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1109,8 +1109,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/analytics/ms-logs": {
-      "name": "ms-logs",
+    "modules/microservices/analytics/rp-logs": {
+      "name": "rp-logs",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1118,8 +1118,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/analytics/ms-telemetry": {
-      "name": "ms-telemetry",
+    "modules/microservices/analytics/rp-telemetry": {
+      "name": "rp-telemetry",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1127,8 +1127,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/analytics/ms-usage": {
-      "name": "ms-usage",
+    "modules/microservices/analytics/rp-usage": {
+      "name": "rp-usage",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1136,8 +1136,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/automation/ms-dag": {
-      "name": "ms-dag",
+    "modules/microservices/automation/rp-dag": {
+      "name": "rp-dag",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1145,8 +1145,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/automation/ms-kubernetes": {
-      "name": "ms-kubernetes",
+    "modules/microservices/automation/lm-kubernetes": {
+      "name": "lm-kubernetes",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1154,8 +1154,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/automation/ms-sheduller": {
-      "name": "ms-sheduller",
+    "modules/microservices/automation/rp-sheduller": {
+      "name": "rp-sheduller",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1163,8 +1163,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/automation/ms-webhooks": {
-      "name": "ms-webhooks",
+    "modules/microservices/automation/rp-webhooks": {
+      "name": "rp-webhooks",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1172,8 +1172,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/business/ms-billing": {
-      "name": "ms-billing",
+    "modules/microservices/business/rp-billing": {
+      "name": "rp-billing",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1181,16 +1181,16 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/business/ms-equipment": {
-      "name": "ms-equipment",
+    "modules/microservices/business/rp-equipment": {
+      "name": "rp-equipment",
       "dependencies": {
         "back-core": "workspace:*",
         "g-equipment": "workspace:*",
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/business/ms-events": {
-      "name": "ms-events",
+    "modules/microservices/business/rp-events": {
+      "name": "rp-events",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1198,32 +1198,32 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/business/ms-finance": {
-      "name": "ms-finance",
+    "modules/microservices/business/rp-finance": {
+      "name": "rp-finance",
       "dependencies": {
         "back-core": "workspace:*",
         "g-finance": "workspace:*",
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/business/ms-orders": {
-      "name": "ms-orders",
+    "modules/microservices/business/rp-orders": {
+      "name": "rp-orders",
       "dependencies": {
         "back-core": "workspace:*",
         "g-orders": "workspace:*",
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/business/ms-requests": {
-      "name": "ms-requests",
+    "modules/microservices/business/rp-requests": {
+      "name": "rp-requests",
       "dependencies": {
         "back-core": "workspace:*",
         "g-requests": "workspace:*",
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/business/ms-reviews": {
-      "name": "ms-reviews",
+    "modules/microservices/business/rp-reviews": {
+      "name": "rp-reviews",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1231,8 +1231,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/business/ms-sales": {
-      "name": "ms-sales",
+    "modules/microservices/business/rp-sales": {
+      "name": "rp-sales",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1240,16 +1240,16 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/business/ms-staff": {
-      "name": "ms-staff",
+    "modules/microservices/business/rp-staff": {
+      "name": "rp-staff",
       "dependencies": {
         "back-core": "workspace:*",
         "g-staff": "workspace:*",
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/communications/ms-calls": {
-      "name": "ms-calls",
+    "modules/microservices/communications/rp-calls": {
+      "name": "rp-calls",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1257,8 +1257,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/communications/ms-chats": {
-      "name": "ms-chats",
+    "modules/microservices/communications/rp-chats": {
+      "name": "rp-chats",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1266,8 +1266,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/communications/ms-community": {
-      "name": "ms-community",
+    "modules/microservices/communications/rp-community": {
+      "name": "rp-community",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1275,8 +1275,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/communications/ms-notify": {
-      "name": "ms-notify",
+    "modules/microservices/communications/rp-notify": {
+      "name": "rp-notify",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1284,16 +1284,16 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/communications/ms-resonus": {
-      "name": "ms-resonus",
+    "modules/microservices/communications/rp-resonus": {
+      "name": "rp-resonus",
       "dependencies": {
         "back-core": "workspace:*",
         "g-resonus": "workspace:*",
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/communications/ms-threads": {
-      "name": "ms-threads",
+    "modules/microservices/communications/rp-threads": {
+      "name": "rp-threads",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1301,8 +1301,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/content/ms-classifier": {
-      "name": "ms-classifier",
+    "modules/microservices/content/rp-classifier": {
+      "name": "rp-classifier",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1310,8 +1310,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/content/ms-galery": {
-      "name": "ms-galery",
+    "modules/microservices/content/rp-galery": {
+      "name": "rp-galery",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1320,8 +1320,8 @@
         "sharp": "latest",
       },
     },
-    "modules/microservices/content/ms-markdown": {
-      "name": "ms-markdown",
+    "modules/microservices/content/rp-markdown": {
+      "name": "rp-markdown",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1330,8 +1330,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/content/ms-scripts": {
-      "name": "ms-scripts",
+    "modules/microservices/content/rp-scripts": {
+      "name": "rp-scripts",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1339,8 +1339,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/content/ms-static": {
-      "name": "ms-static",
+    "modules/microservices/content/rp-static": {
+      "name": "rp-static",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1348,8 +1348,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/content/ms-struct": {
-      "name": "ms-struct",
+    "modules/microservices/content/rp-struct": {
+      "name": "rp-struct",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1357,8 +1357,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/convertors/ms-modelconvertor": {
-      "name": "ms-modelconvertor",
+    "modules/microservices/convertors/lm-modelconvertor": {
+      "name": "lm-modelconvertor",
       "version": "1.0.0",
       "dependencies": {
         "assimpjs": "^0.0.10",
@@ -1367,8 +1367,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/data/ms-dumps": {
-      "name": "ms-dumps",
+    "modules/microservices/data/rp-dumps": {
+      "name": "rp-dumps",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1377,8 +1377,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/data/ms-files": {
-      "name": "ms-files",
+    "modules/microservices/data/rp-files": {
+      "name": "rp-files",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1387,8 +1387,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/data/ms-store": {
-      "name": "ms-store",
+    "modules/microservices/data/rp-store": {
+      "name": "rp-store",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1396,8 +1396,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/providers/ms-push": {
-      "name": "ms-push",
+    "modules/microservices/providers/lm-push": {
+      "name": "lm-push",
       "version": "1.0.0",
       "dependencies": {
         "g-push": "workspace:*",
@@ -1405,8 +1405,8 @@
         "web-push": "latest",
       },
     },
-    "modules/microservices/providers/ms-ses": {
-      "name": "ms-ses",
+    "modules/microservices/providers/lm-ses": {
+      "name": "lm-ses",
       "version": "1.0.0",
       "dependencies": {
         "@aws-sdk/client-ses": "latest",
@@ -1414,16 +1414,16 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/providers/ms-sms": {
-      "name": "ms-sms",
+    "modules/microservices/providers/lm-sms": {
+      "name": "lm-sms",
       "version": "1.0.0",
       "dependencies": {
         "g-sms": "workspace:*",
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/providers/ms-smtp": {
-      "name": "ms-smtp",
+    "modules/microservices/providers/lm-smtp": {
+      "name": "lm-smtp",
       "version": "1.0.0",
       "dependencies": {
         "g-smtp": "workspace:*",
@@ -1431,8 +1431,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/sequrity/ms-access": {
-      "name": "ms-access",
+    "modules/microservices/sequrity/rp-access": {
+      "name": "rp-access",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1441,8 +1441,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/sequrity/ms-auth": {
-      "name": "ms-auth",
+    "modules/microservices/sequrity/rp-auth": {
+      "name": "rp-auth",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1450,8 +1450,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/sequrity/ms-environment": {
-      "name": "ms-environment",
+    "modules/microservices/sequrity/rp-environment": {
+      "name": "rp-environment",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1459,8 +1459,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/sequrity/ms-identity": {
-      "name": "ms-identity",
+    "modules/microservices/sequrity/rp-identity": {
+      "name": "rp-identity",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1468,8 +1468,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/sequrity/ms-oauth": {
-      "name": "ms-oauth",
+    "modules/microservices/sequrity/rp-oauth": {
+      "name": "rp-oauth",
       "version": "1.0.0",
       "dependencies": {
         "back-core": "workspace:*",
@@ -1477,8 +1477,8 @@
         "nrpc": "workspace:*",
       },
     },
-    "modules/microservices/sequrity/ms-secrets": {
-      "name": "ms-secrets",
+    "modules/microservices/sequrity/lm-secrets": {
+      "name": "lm-secrets",
       "version": "1.0.0",
       "dependencies": {
         "@kubernetes/client-node": "^1.0.0",
@@ -2449,61 +2449,61 @@
 
     "mdn-data": ["mdn-data@2.27.1", "", {}, "sha512-9Yubnt3e8A0OKwxYSXyhLymGW4sCufcLG6VdiDdUGVkPhpqLxlvP5vl1983gQjJl3tqbrM731mjaZaP68AgosQ=="],
 
-    "mf-agents": ["mf-agents@workspace:modules/microfrontends/ai/mf-agents"],
+    "sf-agents": ["sf-agents@workspace:modules/surfaces/ai/sf-agents"],
 
-    "mf-assistants": ["mf-assistants@workspace:modules/microfrontends/ai/mf-assistants"],
+    "sf-assistants": ["sf-assistants@workspace:modules/surfaces/ai/sf-assistants"],
 
-    "mf-auth": ["mf-auth@workspace:modules/microfrontends/sequrity/mf-auth"],
+    "sf-auth": ["sf-auth@workspace:modules/surfaces/sequrity/sf-auth"],
 
-    "mf-calls": ["mf-calls@workspace:modules/microfrontends/communications/mf-calls"],
+    "sf-calls": ["sf-calls@workspace:modules/surfaces/communications/sf-calls"],
 
-    "mf-chats": ["mf-chats@workspace:modules/microfrontends/communications/mf-chats"],
+    "sf-chats": ["sf-chats@workspace:modules/surfaces/communications/sf-chats"],
 
-    "mf-classifier": ["mf-classifier@workspace:modules/microfrontends/content/mf-classifier"],
+    "sf-classifier": ["sf-classifier@workspace:modules/surfaces/content/sf-classifier"],
 
-    "mf-community": ["mf-community@workspace:modules/microfrontends/communications/mf-community"],
+    "sf-community": ["sf-community@workspace:modules/surfaces/communications/sf-community"],
 
-    "mf-contexts": ["mf-contexts@workspace:modules/microfrontends/ai/mf-contexts"],
+    "sf-contexts": ["sf-contexts@workspace:modules/surfaces/ai/sf-contexts"],
 
-    "mf-dag": ["mf-dag@workspace:modules/microfrontends/automation/mf-dag"],
+    "sf-dag": ["sf-dag@workspace:modules/surfaces/automation/sf-dag"],
 
-    "mf-dasboards": ["mf-dasboards@workspace:modules/microfrontends/analytics/mf-dasboards"],
+    "sf-dasboards": ["sf-dasboards@workspace:modules/surfaces/analytics/sf-dasboards"],
 
-    "mf-docs": ["mf-docs@workspace:modules/microfrontends/content/mf-docs"],
+    "sf-docs": ["sf-docs@workspace:modules/surfaces/content/sf-docs"],
 
-    "mf-dumps": ["mf-dumps@workspace:modules/microfrontends/data/mf-dumps"],
+    "sf-dumps": ["sf-dumps@workspace:modules/surfaces/data/sf-dumps"],
 
-    "mf-functions": ["mf-functions@workspace:modules/microfrontends/ai/mf-functions"],
+    "sf-functions": ["sf-functions@workspace:modules/surfaces/ai/sf-functions"],
 
-    "mf-galery": ["mf-galery@workspace:modules/microfrontends/content/mf-galery"],
+    "sf-galery": ["sf-galery@workspace:modules/surfaces/content/sf-galery"],
 
-    "mf-landing": ["mf-landing@workspace:modules/microfrontends/content/mf-landing"],
+    "sf-landing": ["sf-landing@workspace:modules/surfaces/content/sf-landing"],
 
-    "mf-logs": ["mf-logs@workspace:modules/microfrontends/analytics/mf-logs"],
+    "sf-logs": ["sf-logs@workspace:modules/surfaces/analytics/sf-logs"],
 
-    "mf-markdown": ["mf-markdown@workspace:modules/microfrontends/content/mf-markdown"],
+    "sf-markdown": ["sf-markdown@workspace:modules/surfaces/content/sf-markdown"],
 
-    "mf-orders": ["mf-orders@workspace:modules/microfrontends/business/mf-orders"],
+    "sf-orders": ["sf-orders@workspace:modules/surfaces/business/sf-orders"],
 
-    "mf-requests": ["mf-requests@workspace:modules/microfrontends/business/mf-requests"],
+    "sf-requests": ["sf-requests@workspace:modules/surfaces/business/sf-requests"],
 
-    "mf-scripts": ["mf-scripts@workspace:modules/microfrontends/content/mf-scripts"],
+    "sf-scripts": ["sf-scripts@workspace:modules/surfaces/content/sf-scripts"],
 
-    "mf-secrets": ["mf-secrets@workspace:modules/microfrontends/sequrity/mf-secrets"],
+    "sf-secrets": ["sf-secrets@workspace:modules/surfaces/sequrity/sf-secrets"],
 
-    "mf-sheduller": ["mf-sheduller@workspace:modules/microfrontends/automation/mf-sheduller"],
+    "sf-sheduller": ["sf-sheduller@workspace:modules/surfaces/automation/sf-sheduller"],
 
-    "mf-static": ["mf-static@workspace:modules/microfrontends/content/mf-static"],
+    "sf-static": ["sf-static@workspace:modules/surfaces/content/sf-static"],
 
-    "mf-struct": ["mf-struct@workspace:modules/microfrontends/content/mf-struct"],
+    "sf-struct": ["sf-struct@workspace:modules/surfaces/content/sf-struct"],
 
-    "mf-telemetry": ["mf-telemetry@workspace:modules/microfrontends/analytics/mf-telemetry"],
+    "sf-telemetry": ["sf-telemetry@workspace:modules/surfaces/analytics/sf-telemetry"],
 
-    "mf-threads": ["mf-threads@workspace:modules/microfrontends/communications/mf-threads"],
+    "sf-threads": ["sf-threads@workspace:modules/surfaces/communications/sf-threads"],
 
-    "mf-usage": ["mf-usage@workspace:modules/microfrontends/analytics/mf-usage"],
+    "sf-usage": ["sf-usage@workspace:modules/surfaces/analytics/sf-usage"],
 
-    "mf-webhooks": ["mf-webhooks@workspace:modules/microfrontends/automation/mf-webhooks"],
+    "sf-webhooks": ["sf-webhooks@workspace:modules/surfaces/automation/sf-webhooks"],
 
     "micromark": ["micromark@4.0.2", "", { "dependencies": { "@types/debug": "^4.0.0", "debug": "^4.0.0", "decode-named-character-reference": "^1.0.0", "devlop": "^1.0.0", "micromark-core-commonmark": "^2.0.0", "micromark-factory-space": "^2.0.0", "micromark-util-character": "^2.0.0", "micromark-util-chunked": "^2.0.0", "micromark-util-combine-extensions": "^2.0.0", "micromark-util-decode-numeric-character-reference": "^2.0.0", "micromark-util-encode": "^2.0.0", "micromark-util-normalize-identifier": "^2.0.0", "micromark-util-resolve-all": "^2.0.0", "micromark-util-sanitize-uri": "^2.0.0", "micromark-util-subtokenize": "^2.0.0", "micromark-util-symbol": "^2.0.0", "micromark-util-types": "^2.0.0" } }, "sha512-zpe98Q6kvavpCr1NPVSCMebCKfD7CA2NqZ+rykeNhONIJBpc1tFKt9hucLGwha3jNTNI8lHpctWJWoimVF4PfA=="],
 
@@ -2563,101 +2563,101 @@
 
     "ms": ["ms@2.1.3", "", {}, "sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA=="],
 
-    "ms-access": ["ms-access@workspace:modules/microservices/sequrity/ms-access"],
+    "rp-access": ["rp-access@workspace:modules/microservices/sequrity/rp-access"],
 
     "ms-agent": ["ms-agent@workspace:modules/microservices/ai/ms-agent"],
 
-    "ms-assistant": ["ms-assistant@workspace:modules/microservices/ai/ms-assistant"],
+    "rp-assistant": ["rp-assistant@workspace:modules/microservices/ai/rp-assistant"],
 
-    "ms-auth": ["ms-auth@workspace:modules/microservices/sequrity/ms-auth"],
+    "rp-auth": ["rp-auth@workspace:modules/microservices/sequrity/rp-auth"],
 
-    "ms-billing": ["ms-billing@workspace:modules/microservices/business/ms-billing"],
+    "rp-billing": ["rp-billing@workspace:modules/microservices/business/rp-billing"],
 
-    "ms-calls": ["ms-calls@workspace:modules/microservices/communications/ms-calls"],
+    "rp-calls": ["rp-calls@workspace:modules/microservices/communications/rp-calls"],
 
-    "ms-chats": ["ms-chats@workspace:modules/microservices/communications/ms-chats"],
+    "rp-chats": ["rp-chats@workspace:modules/microservices/communications/rp-chats"],
 
-    "ms-classifier": ["ms-classifier@workspace:modules/microservices/content/ms-classifier"],
+    "rp-classifier": ["rp-classifier@workspace:modules/microservices/content/rp-classifier"],
 
-    "ms-community": ["ms-community@workspace:modules/microservices/communications/ms-community"],
+    "rp-community": ["rp-community@workspace:modules/microservices/communications/rp-community"],
 
-    "ms-contexts": ["ms-contexts@workspace:modules/microservices/ai/ms-contexts"],
+    "rp-contexts": ["rp-contexts@workspace:modules/microservices/ai/rp-contexts"],
 
-    "ms-counters": ["ms-counters@workspace:modules/microservices/analytics/ms-counters"],
+    "rp-counters": ["rp-counters@workspace:modules/microservices/analytics/rp-counters"],
 
-    "ms-dag": ["ms-dag@workspace:modules/microservices/automation/ms-dag"],
+    "rp-dag": ["rp-dag@workspace:modules/microservices/automation/rp-dag"],
 
-    "ms-dashboard": ["ms-dashboard@workspace:modules/microservices/analytics/ms-dashboard"],
+    "rp-dashboard": ["rp-dashboard@workspace:modules/microservices/analytics/rp-dashboard"],
 
-    "ms-dumps": ["ms-dumps@workspace:modules/microservices/data/ms-dumps"],
+    "rp-dumps": ["rp-dumps@workspace:modules/microservices/data/rp-dumps"],
 
-    "ms-environment": ["ms-environment@workspace:modules/microservices/sequrity/ms-environment"],
+    "rp-environment": ["rp-environment@workspace:modules/microservices/sequrity/rp-environment"],
 
-    "ms-equipment": ["ms-equipment@workspace:modules/microservices/business/ms-equipment"],
+    "rp-equipment": ["rp-equipment@workspace:modules/microservices/business/rp-equipment"],
 
-    "ms-events": ["ms-events@workspace:modules/microservices/business/ms-events"],
+    "rp-events": ["rp-events@workspace:modules/microservices/business/rp-events"],
 
-    "ms-files": ["ms-files@workspace:modules/microservices/data/ms-files"],
+    "rp-files": ["rp-files@workspace:modules/microservices/data/rp-files"],
 
-    "ms-finance": ["ms-finance@workspace:modules/microservices/business/ms-finance"],
+    "rp-finance": ["rp-finance@workspace:modules/microservices/business/rp-finance"],
 
     "ms-functions": ["ms-functions@workspace:modules/microservices/ai/ms-functions"],
 
-    "ms-galery": ["ms-galery@workspace:modules/microservices/content/ms-galery"],
+    "rp-galery": ["rp-galery@workspace:modules/microservices/content/rp-galery"],
 
-    "ms-identity": ["ms-identity@workspace:modules/microservices/sequrity/ms-identity"],
+    "rp-identity": ["rp-identity@workspace:modules/microservices/sequrity/rp-identity"],
 
-    "ms-kubernetes": ["ms-kubernetes@workspace:modules/microservices/automation/ms-kubernetes"],
+    "lm-kubernetes": ["lm-kubernetes@workspace:modules/microservices/automation/lm-kubernetes"],
 
-    "ms-logs": ["ms-logs@workspace:modules/microservices/analytics/ms-logs"],
+    "rp-logs": ["rp-logs@workspace:modules/microservices/analytics/rp-logs"],
 
-    "ms-markdown": ["ms-markdown@workspace:modules/microservices/content/ms-markdown"],
+    "rp-markdown": ["rp-markdown@workspace:modules/microservices/content/rp-markdown"],
 
-    "ms-modelconvertor": ["ms-modelconvertor@workspace:modules/microservices/convertors/ms-modelconvertor"],
+    "lm-modelconvertor": ["lm-modelconvertor@workspace:modules/microservices/convertors/lm-modelconvertor"],
 
-    "ms-notify": ["ms-notify@workspace:modules/microservices/communications/ms-notify"],
+    "rp-notify": ["rp-notify@workspace:modules/microservices/communications/rp-notify"],
 
-    "ms-oauth": ["ms-oauth@workspace:modules/microservices/sequrity/ms-oauth"],
+    "rp-oauth": ["rp-oauth@workspace:modules/microservices/sequrity/rp-oauth"],
 
-    "ms-orders": ["ms-orders@workspace:modules/microservices/business/ms-orders"],
+    "rp-orders": ["rp-orders@workspace:modules/microservices/business/rp-orders"],
 
-    "ms-push": ["ms-push@workspace:modules/microservices/providers/ms-push"],
+    "lm-push": ["lm-push@workspace:modules/microservices/providers/lm-push"],
 
-    "ms-requests": ["ms-requests@workspace:modules/microservices/business/ms-requests"],
+    "rp-requests": ["rp-requests@workspace:modules/microservices/business/rp-requests"],
 
-    "ms-resonus": ["ms-resonus@workspace:modules/microservices/communications/ms-resonus"],
+    "rp-resonus": ["rp-resonus@workspace:modules/microservices/communications/rp-resonus"],
 
-    "ms-reviews": ["ms-reviews@workspace:modules/microservices/business/ms-reviews"],
+    "rp-reviews": ["rp-reviews@workspace:modules/microservices/business/rp-reviews"],
 
-    "ms-sales": ["ms-sales@workspace:modules/microservices/business/ms-sales"],
+    "rp-sales": ["rp-sales@workspace:modules/microservices/business/rp-sales"],
 
-    "ms-scripts": ["ms-scripts@workspace:modules/microservices/content/ms-scripts"],
+    "rp-scripts": ["rp-scripts@workspace:modules/microservices/content/rp-scripts"],
 
-    "ms-secrets": ["ms-secrets@workspace:modules/microservices/sequrity/ms-secrets"],
+    "lm-secrets": ["lm-secrets@workspace:modules/microservices/sequrity/lm-secrets"],
 
-    "ms-ses": ["ms-ses@workspace:modules/microservices/providers/ms-ses"],
+    "lm-ses": ["lm-ses@workspace:modules/microservices/providers/lm-ses"],
 
-    "ms-sheduller": ["ms-sheduller@workspace:modules/microservices/automation/ms-sheduller"],
+    "rp-sheduller": ["rp-sheduller@workspace:modules/microservices/automation/rp-sheduller"],
 
-    "ms-sms": ["ms-sms@workspace:modules/microservices/providers/ms-sms"],
+    "lm-sms": ["lm-sms@workspace:modules/microservices/providers/lm-sms"],
 
-    "ms-smtp": ["ms-smtp@workspace:modules/microservices/providers/ms-smtp"],
+    "lm-smtp": ["lm-smtp@workspace:modules/microservices/providers/lm-smtp"],
 
-    "ms-staff": ["ms-staff@workspace:modules/microservices/business/ms-staff"],
+    "rp-staff": ["rp-staff@workspace:modules/microservices/business/rp-staff"],
 
-    "ms-static": ["ms-static@workspace:modules/microservices/content/ms-static"],
+    "rp-static": ["rp-static@workspace:modules/microservices/content/rp-static"],
 
-    "ms-store": ["ms-store@workspace:modules/microservices/data/ms-store"],
+    "rp-store": ["rp-store@workspace:modules/microservices/data/rp-store"],
 
-    "ms-struct": ["ms-struct@workspace:modules/microservices/content/ms-struct"],
+    "rp-struct": ["rp-struct@workspace:modules/microservices/content/rp-struct"],
 
-    "ms-telemetry": ["ms-telemetry@workspace:modules/microservices/analytics/ms-telemetry"],
+    "rp-telemetry": ["rp-telemetry@workspace:modules/microservices/analytics/rp-telemetry"],
 
-    "ms-threads": ["ms-threads@workspace:modules/microservices/communications/ms-threads"],
+    "rp-threads": ["rp-threads@workspace:modules/microservices/communications/rp-threads"],
 
-    "ms-usage": ["ms-usage@workspace:modules/microservices/analytics/ms-usage"],
+    "rp-usage": ["rp-usage@workspace:modules/microservices/analytics/rp-usage"],
 
-    "ms-webhooks": ["ms-webhooks@workspace:modules/microservices/automation/ms-webhooks"],
+    "rp-webhooks": ["rp-webhooks@workspace:modules/microservices/automation/rp-webhooks"],
 
     "msgpack-lite": ["msgpack-lite@0.1.26", "", { "dependencies": { "event-lite": "^0.1.1", "ieee754": "^1.1.8", "int64-buffer": "^0.1.9", "isarray": "^1.0.0" }, "bin": { "msgpack": "./bin/msgpack" } }, "sha512-SZ2IxeqZ1oRFGo0xFGbvBJWMp3yLIY9rlIJyxy8CGrwZn1f0ZK4r6jV/AM1r0FZMDUkWkglOk/eeKIL9g77Nxw=="],
 

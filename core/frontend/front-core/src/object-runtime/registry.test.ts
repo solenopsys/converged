@@ -7,9 +7,9 @@ describe("object registry module metadata", () => {
 		registry.ingest({
 			modules: {
 				sales: {
-					module: "mf-sales",
+					module: "sf-sales",
 					manifest: {
-						id: "mf-sales",
+						id: "sf-sales",
 						types: [],
 						views: [],
 						operations: [],
@@ -29,7 +29,7 @@ describe("object registry module metadata", () => {
 			},
 		});
 
-		expect(registry.moduleDescription("mf-sales")).toBe(
+		expect(registry.moduleDescription("sf-sales")).toBe(
 			"Show leads selected for a campaign",
 		);
 	});
@@ -39,9 +39,9 @@ describe("object registry module metadata", () => {
 		registry.ingest({
 			modules: {
 				sales: {
-					module: "mf-sales",
+					module: "sf-sales",
 					manifest: {
-						id: "mf-sales",
+						id: "sf-sales",
 						types: [],
 						views: [],
 						operations: [],
@@ -54,7 +54,7 @@ describe("object registry module metadata", () => {
 			},
 		});
 
-		expect(registry.moduleDescription("mf-sales")).toBe(
+		expect(registry.moduleDescription("sf-sales")).toBe(
 			"Leads, contacts, audiences and campaigns",
 		);
 	});

@@ -3,8 +3,8 @@ import * as React from "preact/compat";
 
 import { cn } from "../../lib/utils";
 
-// Styling lives in pell-editor.css, layered into assets/mf.css by
-// spa/src/build/styles.ts (buildMicrofrontendStyles).
+// Styling lives in pell-editor.css, layered into assets/sf.css by
+// spa/src/build/styles.ts (buildSurfaceStyles).
 
 export type PellEditorChange = {
 	html: string;

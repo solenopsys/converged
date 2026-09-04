@@ -35,10 +35,10 @@ export const createFilesProcessTool = (
 		properties: {
 			fileIds: {
 				type: "array",
-				description: "List of ms-files file IDs to analyze",
+				description: "List of rp-files file IDs to analyze",
 				items: {
 					type: "string",
-					description: "ms-files file ID",
+					description: "rp-files file ID",
 				},
 			},
 		},

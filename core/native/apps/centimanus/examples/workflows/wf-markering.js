@@ -1,7 +1,7 @@
 // wf-markering — translated from club-portal/back/workflows/wf-markering.ts
 //
 // In the old engine this workflow wired up nine node *classes*, each holding
-// logic + a provider.invoke(...). Here every node body has moved into ms-marker
+// logic + a provider.invoke(...). Here every node body has moved into rp-marker
 // (see MAPPING.md §1.2): the workflow keeps only the flow — sequence, branches,
 // error handling. No business logic, no providers, no node registry.
 //
@@ -21,12 +21,12 @@ rt.workflow = function (params) {
     return rt.call("marker", "setDomainState", { domain: domain, state: "processing" });
   });
 
-  // 3. numbered text doc (doc-assembly logic now inside ms-marker)
+  // 3. numbered text doc (doc-assembly logic now inside rp-marker)
   var doc = rt.node("build-text-doc", function () {
     return rt.call("marker", "buildTextDoc", { domain: domain });
   });
 
-  // 4. validate — ms-marker returns a verdict instead of throwing a typed error
+  // 4. validate — rp-marker returns a verdict instead of throwing a typed error
   var verdict = rt.node("validate-content", function () {
     return rt.call("marker", "validateContent", { text: doc.text });
   });
@@ -43,7 +43,7 @@ rt.workflow = function (params) {
     return rt.call("marker", "listTags", {});
   }).tags;
 
-  // 6. classify + tag in one LLM call (LLM lives inside ms-marker)
+  // 6. classify + tag in one LLM call (LLM lives inside rp-marker)
   var tagged = rt.node("ai-tag", function () {
     return rt.call("marker", "aiTag", { text: doc.text, tags: tags, provider: params.provider });
   });

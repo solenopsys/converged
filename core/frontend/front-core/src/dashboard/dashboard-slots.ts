@@ -15,20 +15,20 @@ import {
 	subscribeDashboardWidgetRegistry,
 } from "./widget-registry";
 
-// Maps a pin's componentKey prefix to the microfrontend module that owns its
+// Maps a pin's componentKey prefix to the surface module that owns its
 // live widget factory. Used to lazily load that module on the State Stream
 // page so persisted pins can re-materialize without first opening the source
 // dashboard.
 const DASHBOARD_WIDGET_MODULES: Record<string, string> = {
-	classifier: "mf-classifier",
-	dag: "mf-dag",
-	dumps: "mf-dumps",
-	logs: "mf-logs",
-	orders: "mf-orders",
-	sheduller: "mf-sheduller",
-	telemetry: "mf-telemetry",
-	threads: "mf-threads",
-	usage: "mf-usage",
+	classifier: "sf-classifier",
+	dag: "sf-dag",
+	dumps: "sf-dumps",
+	logs: "sf-logs",
+	orders: "sf-orders",
+	sheduller: "sf-sheduller",
+	telemetry: "sf-telemetry",
+	threads: "sf-threads",
+	usage: "sf-usage",
 };
 
 const loadedWidgetModules = new Set<string>();
@@ -40,15 +40,15 @@ function resolveRuntimeModuleSpecifier(moduleName: string): string {
 	const script = document.querySelector<HTMLScriptElement>(
 		'script[type="importmap"]',
 	);
-	if (!script?.textContent) return `/mf/${moduleName}.js`;
+	if (!script?.textContent) return `/sf/${moduleName}.js`;
 
 	try {
 		const parsed = JSON.parse(script.textContent) as {
 			imports?: Record<string, string>;
 		};
-		return parsed.imports?.[moduleName] ?? `/mf/${moduleName}.js`;
+		return parsed.imports?.[moduleName] ?? `/sf/${moduleName}.js`;
 	} catch {
-		return `/mf/${moduleName}.js`;
+		return `/sf/${moduleName}.js`;
 	}
 }
 
@@ -57,7 +57,7 @@ function widgetModuleFor(componentKey: string): string | undefined {
 	return DASHBOARD_WIDGET_MODULES[prefix];
 }
 
-// Loads the microfrontend that registers the widget factory for `componentKey`.
+// Loads the surface that registers the widget factory for `componentKey`.
 // Registration notifies the widget registry, which re-materializes indicators.
 async function ensureWidgetModuleLoaded(componentKey: string): Promise<void> {
 	if (hasDashboardWidget(componentKey)) return;
@@ -253,7 +253,7 @@ function materializeIndicators(
 	return indicatorPins.map((pin) => {
 		const componentKey = pin.componentKey ?? pin.widgetId;
 		// Prefer the standalone live factory (survives reloads); fall back to the
-		// a transient placeholder while the owning microfrontend loads.
+		// a transient placeholder while the owning surface loads.
 		const liveComponent =
 			resolveDashboardWidget(componentKey) ??
 			registeredWidgets.get(pin.widgetId)?.component ??
@@ -298,7 +298,7 @@ class DashboardSlots {
 
 	constructor() {
 		this.installGlobalBridge();
-		// Re-materialize whenever a microfrontend registers its widget factories,
+		// Re-materialize whenever a surface registers its widget factories,
 		// upgrading pending placeholders to live widgets after a lazy load.
 		subscribeDashboardWidgetRegistry(() => {
 			this.syncMaterializedIndicators();
@@ -470,7 +470,7 @@ class DashboardSlots {
 
 		emitIndicatorsChanged();
 
-		// Kick off lazy loading of microfrontends owning any still-unresolved pin.
+		// Kick off lazy loading of surfaces owning any still-unresolved pin.
 		for (const pin of runtime.indicatorPins) {
 			const componentKey = pin.componentKey ?? pin.widgetId;
 			if (

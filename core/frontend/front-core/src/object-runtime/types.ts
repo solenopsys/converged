@@ -1,6 +1,6 @@
 import type { SelectionDescriptor, SelectionPreset } from "back-core";
 import type { ComponentType } from "preact";
-import type { MicrofrontendLlmCatalog } from "../llm-catalog";
+import type { SurfaceLlmCatalog } from "../llm-catalog";
 
 export const OPERATORS = [
 	"show",
@@ -21,7 +21,7 @@ export type OperationId = string;
 
 /**
  * Categories are a closed vocabulary, not records contributed by individual
- * microfrontends. A type either declares a category explicitly or it does not.
+ * surfaces. A type either declares a category explicitly or it does not.
  */
 export const Category = {
 	Entity: "core.entity",
@@ -52,12 +52,12 @@ export type StatisticWidgetSize = "sm" | "lg";
 /**
  * A "summary" is the service's readout while its section is collapsed: a few
  * headline numbers and one trend line, not a chart. At most one per
- * microfrontend; everything else is a "block" inside the opened section.
+ * surface; everything else is a "block" inside the opened section.
  */
 export type StatisticRole = "summary" | "block";
 
 export type StatisticDefinition = {
-	// The chart belongs to an independently built microfrontend and carries its
+	// The chart belongs to an independently built surface and carries its
 	// own prop types; the runtime only mounts it.
 	// biome-ignore lint/suspicious/noExplicitAny: mounted, never inspected
 	component?: ComponentType<any>;
@@ -65,7 +65,7 @@ export type StatisticDefinition = {
 	size?: StatisticWidgetSize;
 	/** Defaults to "block". */
 	role?: StatisticRole;
-	/** Actions declared by the owning MF; the dashboard invokes them itself. */
+	/** Actions declared by the owning SF; the dashboard invokes them itself. */
 	actions?: {
 		title?: string;
 		metrics?: Record<string, string>;
@@ -75,7 +75,7 @@ export type StatisticDefinition = {
 export type ObjectDefinition = {
 	id: ObjectTypeId;
 	label: string;
-	/** Message keys in the owning microfrontend; static text remains the fallback. */
+	/** Message keys in the owning surface; static text remains the fallback. */
 	labelKey?: string;
 	pluralLabel?: string;
 	pluralLabelKey?: string;
@@ -91,7 +91,7 @@ export type ObjectDefinition = {
 	capability?: string;
 	/**
 	 * A single statistic block: one chart or one indicator, not a page of them.
-	 * The dashboard reads this straight from the catalog, so a microfrontend
+	 * The dashboard reads this straight from the catalog, so a surface
 	 * publishes its charts by declaring types — it does not own a dashboard
 	 * screen anymore. `component` survives only in a loaded module: the build
 	 * index is JSON, so it arrives undefined until the owner is imported.
@@ -122,7 +122,7 @@ export type ObjectDefinition = {
 		}>;
 		describe?: () => Promise<SelectionDescriptor>;
 	};
-	// Object-specific capabilities are owned by the microfrontend. The runtime
+	// Object-specific capabilities are owned by the surface. The runtime
 	// indexes identity and categories; it does not impose a generic UI schema.
 	[extension: string]: unknown;
 };
@@ -181,7 +181,7 @@ export type ViewDefinition = {
 	accepts: TypeExpression;
 	label?: string;
 	priority?: number;
-	// Components belong to independently built microfrontends and carry their own prop types.
+	// Components belong to independently built surfaces and carry their own prop types.
 	// biome-ignore lint/suspicious/noExplicitAny: the runtime only stores and mounts them
 	component?: ComponentType<any>;
 	props?: (ref: DomainRef) => Record<string, unknown>;
@@ -220,7 +220,7 @@ export type OperationDefinition = {
 	operator: Operator;
 	target?: ObjectTypeId;
 	label: string;
-	/** Message keys in the owning microfrontend; static text remains the fallback. */
+	/** Message keys in the owning surface; static text remains the fallback. */
 	labelKey?: string;
 	description?: string;
 	descriptionKey?: string;
@@ -228,7 +228,7 @@ export type OperationDefinition = {
 	output?: TypeExpression;
 	/**
 	 * The screen that builds the object, for operators that construct one. An
-	 * object is not a list of fields — only the microfrontend knows how deep it
+	 * object is not a list of fields — only the surface knows how deep it
 	 * goes — so `create` from the UI opens this view instead of anything derived
 	 * from `parameters`. Without it the operation is simply executed, which is
 	 * right for a create that needs no composing (starting a call, say).
@@ -246,7 +246,7 @@ export type OperationDefinition = {
 	invoke?: (context: OperationContext) => unknown | Promise<unknown>;
 };
 
-export type MicrofrontendDefinition = {
+export type SurfaceDefinition = {
 	id: string;
 	types: readonly ObjectDefinition[];
 	views: ViewDefinition[];
@@ -255,16 +255,16 @@ export type MicrofrontendDefinition = {
 	setup?: () => void | (() => void);
 };
 
-export type MicrofrontendManifest = Omit<MicrofrontendDefinition, "setup"> & {
+export type SurfaceManifest = Omit<SurfaceDefinition, "setup"> & {
 	views: Array<Omit<ViewDefinition, "component" | "props">>;
 	operations: Array<Omit<OperationDefinition, "invoke">>;
 };
 
 export type ObjectIndexModule = {
 	module: string;
-	manifest: MicrofrontendManifest;
+	manifest: SurfaceManifest;
 	/** LLM metadata shipped with the lazy module and available before it loads. */
-	llm?: MicrofrontendLlmCatalog;
+	llm?: SurfaceLlmCatalog;
 };
 
 export type ObjectIndexFile = {
@@ -315,9 +315,9 @@ export type PresentedReference = {
 	options: PresentReferenceOptions;
 };
 
-export function defineMicrofrontend(
-	definition: MicrofrontendDefinition,
-): MicrofrontendDefinition {
+export function defineSurface(
+	definition: SurfaceDefinition,
+): SurfaceDefinition {
 	return definition;
 }
 

@@ -295,7 +295,7 @@ const statHandler: Handler = async (client: FilesCommandClient) => {
 class FilesProcessor extends BaseCommandProcessor {
 	protected initializeCommandMap(): Map<string, CommandEntry> {
 		return new Map([
-			["upload", { handler: uploadHandler, description: "Upload local file via store-worker and ms-files metadata" }],
+			["upload", { handler: uploadHandler, description: "Upload local file via store-worker and rp-files metadata" }],
 			["info", { handler: infoHandler, description: "Show file metadata by fileId" }],
 			["chunks", { handler: chunksHandler, description: "Show file chunks by fileId" }],
 			["list", { handler: listHandler, description: "List uploaded files (default: 20)" }],

@@ -2,8 +2,8 @@ import { createDomain } from "effector";
 import { createDomainLogger } from "../../../libraries/effector/effector-logger/logger";
 import type {
 	CategoryId,
-	MicrofrontendDefinition,
-	MicrofrontendManifest,
+	SurfaceDefinition,
+	SurfaceManifest,
 	ObjectIndexFile,
 	ObjectTypeDefinition,
 	OperationDefinition,
@@ -15,15 +15,15 @@ type Owned<T> = T & { owner: string; loaded: boolean };
 const domain = createDomain("object-runtime-registry");
 createDomainLogger(domain);
 
-export const microfrontendDeclared = domain.createEvent<MicrofrontendManifest>(
-	"MICROFRONTEND_DECLARED",
+export const surfaceDeclared = domain.createEvent<SurfaceManifest>(
+	"SURFACE_DECLARED",
 );
-export const microfrontendRegistered =
-	domain.createEvent<MicrofrontendDefinition>("MICROFRONTEND_REGISTERED");
+export const surfaceRegistered =
+	domain.createEvent<SurfaceDefinition>("SURFACE_REGISTERED");
 export const $objectRegistryRevision = domain
 	.createStore(0, { name: "OBJECT_REGISTRY_REVISION" })
-	.on(microfrontendDeclared, (revision) => revision + 1)
-	.on(microfrontendRegistered, (revision) => revision + 1);
+	.on(surfaceDeclared, (revision) => revision + 1)
+	.on(surfaceRegistered, (revision) => revision + 1);
 
 export class ObjectRegistry {
 	private readonly types = new Map<string, Owned<ObjectTypeDefinition>>();
@@ -32,7 +32,7 @@ export class ObjectRegistry {
 	private readonly moduleDescriptions = new Map<string, string>();
 	private readonly cleanups = new Map<string, () => void>();
 
-	declare(owner: string, manifest: MicrofrontendManifest): void {
+	declare(owner: string, manifest: SurfaceManifest): void {
 		for (const type of manifest.types) {
 			this.types.set(type.id, { ...type, owner, loaded: false });
 		}
@@ -46,10 +46,10 @@ export class ObjectRegistry {
 				loaded: false,
 			});
 		}
-		microfrontendDeclared(manifest);
+		surfaceDeclared(manifest);
 	}
 
-	register(owner: string, definition: MicrofrontendDefinition): void {
+	register(owner: string, definition: SurfaceDefinition): void {
 		this.cleanups.get(definition.id)?.();
 		for (const type of definition.types) {
 			this.types.set(type.id, { ...type, owner, loaded: true });
@@ -62,7 +62,7 @@ export class ObjectRegistry {
 		}
 		const cleanup = definition.setup?.();
 		if (cleanup) this.cleanups.set(definition.id, cleanup);
-		microfrontendRegistered(definition);
+		surfaceRegistered(definition);
 	}
 
 	ingest(index: ObjectIndexFile): void {
@@ -134,7 +134,7 @@ export function ingestObjectIndex(index: ObjectIndexFile): void {
 	objectRegistry.ingest(index);
 }
 
-export async function loadObjectIndex(url = "/mf/index.json"): Promise<void> {
+export async function loadObjectIndex(url = "/sf/index.json"): Promise<void> {
 	const response = await fetch(url);
 	if (!response.ok)
 		throw new Error(

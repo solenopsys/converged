@@ -44,9 +44,9 @@ const DEFAULT_ECOSYSTEM: EcosystemConfig = {
 const DEFAULTS: Required<RawConfig> = {
 	projects: ["../../..", "../../../../club"],
 	out: {
-		struct: "../../../../data/club/struct-ms/struct/data",
-		markdown: "../../../../data/club/markdown-ms/markdown/data",
-		static: "../../../../data/club/galery-ms/static",
+		struct: "../../../../data/club/rp-struct/struct/data",
+		markdown: "../../../../data/club/rp-markdown/markdown/data",
+		static: "../../../../data/club/rp-galery/static",
 		readme: "../../../../build/docs/readme",
 		html: "../../../../build/docs/html",
 		pdf: "../../../../build/docs/pdf",

@@ -1,10 +1,10 @@
 /**
- * A solution is an overlay: a named set of microservices, microfrontends and
+ * A solution is an overlay: a named set of repositories, lambdas, surfaces and
  * workflows layered on top of a base platform. The base cores boot on their
  * own; solutions only widen what those cores expose.
  *
- * In the current image layout every microservice already ships inside the one
- * `ms` image and every microfrontend inside the one `ui` image, so activating
+ * In the current image layout every backend module already ships inside the one
+ * `ms` image and every surface inside the one `ui` image, so activating
  * a solution is a module-map change plus a rollout — not new pods. The merged
  * map is published as a ConfigMap and its digest is stamped on the workload
  * pod template, which is what actually triggers the rollout.
@@ -21,8 +21,9 @@ import { PolicyError } from "./types.ts";
 
 export interface MergedSolutions {
 	names: string[];
-	microservices: string[];
-	microfrontends: string[];
+	repositories: string[];
+	lambdas: string[];
+	surfaces: string[];
 	/** Compute peers to deploy; unlike modules, these are their own pods. */
 	processors: string[];
 	workflows: WorkflowRef[];
@@ -54,8 +55,9 @@ export function selectSolutions(
 }
 
 export function mergeSolutions(selected: KubeObject[]): MergedSolutions {
-	const microservices = new Set<string>();
-	const microfrontends = new Set<string>();
+	const repositories = new Set<string>();
+	const lambdas = new Set<string>();
+	const surfaces = new Set<string>();
 	const processors = new Set<string>();
 	const workflows: WorkflowRef[] = [];
 	const env: Record<string, string> = {};
@@ -64,8 +66,10 @@ export function mergeSolutions(selected: KubeObject[]): MergedSolutions {
 	for (const solution of selected) {
 		const spec = specOf(solution);
 		names.push(solution.metadata.name);
-		for (const ms of spec.microservices ?? []) microservices.add(ms);
-		for (const mf of spec.microfrontends ?? []) microfrontends.add(mf);
+		for (const repository of spec.repositories ?? [])
+			repositories.add(repository);
+		for (const lambda of spec.lambdas ?? []) lambdas.add(lambda);
+		for (const sf of spec.surfaces ?? []) surfaces.add(sf);
 		for (const processor of spec.processors ?? []) processors.add(processor);
 		for (const wf of spec.workflows ?? []) workflows.push(wf);
 		// Later solutions win on env collisions; the sort above makes that
@@ -75,8 +79,9 @@ export function mergeSolutions(selected: KubeObject[]): MergedSolutions {
 
 	const merged = {
 		names,
-		microservices: [...microservices].sort(),
-		microfrontends: [...microfrontends].sort(),
+		repositories: [...repositories].sort(),
+		lambdas: [...lambdas].sort(),
+		surfaces: [...surfaces].sort(),
 		processors: [...processors].sort(),
 		workflows: workflows.sort((a, b) => a.name.localeCompare(b.name)),
 		env,
@@ -86,7 +91,7 @@ export function mergeSolutions(selected: KubeObject[]): MergedSolutions {
 }
 
 /**
- * The ConfigMap payload consumed by the ui and ms cores at boot.
+ * The ConfigMap payload consumed by the ui and backend cores at boot.
  *
  * `registry` is folded in here rather than left to each container's own env:
  * the module list and the place those modules are fetched from have to change
@@ -99,8 +104,9 @@ export function moduleData(
 ): Record<string, string> {
 	return {
 		SOLUTIONS: merged.names.join(","),
-		MICROSERVICES: JSON.stringify(merged.microservices),
-		FRONTEND_MODULES: JSON.stringify(merged.microfrontends),
+		REPOSITORIES: JSON.stringify(merged.repositories),
+		LAMBDAS: JSON.stringify(merged.lambdas),
+		FRONTEND_MODULES: JSON.stringify(merged.surfaces),
 		PROCESSORS: JSON.stringify(merged.processors),
 		WORKFLOWS: JSON.stringify(merged.workflows),
 		...registryData(registry, controllerNamespace),

@@ -27,8 +27,9 @@ process.on("unhandledRejection", (reason) => {
 type Solution = {
 	metadata?: { name?: string };
 	spec: {
-		microservices?: string[];
-		microfrontends?: string[];
+		repositories?: string[];
+		lambdas?: string[];
+		surfaces?: string[];
 		workflows?: Array<{ name: string; script: string }>;
 		env?: Record<string, string>;
 	};
@@ -143,7 +144,7 @@ async function loadSolution(): Promise<Solution> {
 
 /**
  * In a built image there are no modules on disk. The image is the server and
- * nothing else; a microservice is fetched from ptah by digest at boot, which is
+ * nothing else; a backend module is fetched from ptah by digest at boot, which is
  * what lets one image serve any solution without carrying every module in the
  * tree — and what lets a module roll forward without rebuilding the image.
  *
@@ -159,19 +160,25 @@ if (registry) {
 }
 
 /**
- * `ms-orders` lives under some category directory, but which one is an
+ * `rp-orders` lives under some category directory, but which one is an
  * organisational detail that the Solution deliberately does not carry. One
  * glob keeps the name the only identity a module has.
  */
-function resolveServiceDir(name: string): string | null {
+type BackendKind = "repositories" | "lambdas";
+
+const backendPrefix = (kind: BackendKind): "rp-" | "lm-" =>
+	kind === "repositories" ? "rp-" : "lm-";
+
+function resolveServiceDir(name: string, kind: BackendKind): string | null {
 	const projectDirs = [CHILD_PROJECT_DIR, PROJECT_DIR].filter(
 		(value): value is string => Boolean(value),
 	);
+	const prefix = backendPrefix(kind);
 	for (const projectDir of projectDirs) {
-		const modulesDir = resolve(projectDir, "modules/microservices");
-		const direct = resolve(modulesDir, `ms-${name}`);
+		const modulesDir = resolve(projectDir, "modules", kind);
+		const direct = resolve(modulesDir, `${prefix}${name}`);
 		if (existsSync(direct)) return direct;
-		const [match] = new Bun.Glob(`*/ms-${name}`).scanSync({
+		const [match] = new Bun.Glob(`*/${prefix}${name}`).scanSync({
 			cwd: modulesDir,
 			onlyFiles: false,
 			absolute: true,
@@ -209,24 +216,26 @@ function resolveMetadataPath(name: string): string | null {
 }
 
 /**
- * A registry artifact is one file carrying both halves of a microservice — the
+ * A registry artifact is one file carrying both halves of a backend module — the
  * implementation and its generated nrpc metadata — because a digest names one
  * file. From source they are still two, so both shapes are read here rather
  * than made uniform: source resolution is what a dev run depends on.
  */
 async function importService(
 	name: string,
+	kind: BackendKind,
 ): Promise<{ implementation: unknown; metadata: unknown }> {
+	const artifact = `${backendPrefix(kind)}${name}.js`;
 	if (registry) {
 		const module = await import(
-			pathToFileURL(await registry.load(`ms-${name}.js`)).href
+			pathToFileURL(await registry.load(artifact)).href
 		);
 		return { implementation: module.implementation, metadata: module.metadata };
 	}
 
-	const svcDir = resolveServiceDir(name);
+	const svcDir = resolveServiceDir(name, kind);
 	const implementationPath = svcDir && resolveImplementationPath(svcDir);
-	if (!implementationPath) throw new Error(`No source for ms-${name}`);
+	if (!implementationPath) throw new Error(`No source for ${artifact}`);
 	const metadataPath = resolveMetadataPath(name);
 	if (!metadataPath) throw new Error(`No generated g-${name}`);
 
@@ -240,32 +249,38 @@ async function importService(
 	};
 }
 
-async function loadMicroservices(names: string[]) {
+async function loadBackendModules(
+	groups: Array<{ kind: BackendKind; names: string[] }>,
+) {
 	const services: ServiceBinding[] = [];
 	const failed: string[] = [];
 
-	for (const name of names) {
-		try {
-			const { implementation, metadata } = await importService(name);
-			if (!implementation) {
-				throw new Error(`Missing default ServiceImpl export for ${name}`);
+	for (const { kind, names } of groups) {
+		for (const name of names) {
+			try {
+				const { implementation, metadata } = await importService(name, kind);
+				if (!implementation) {
+					throw new Error(`Missing default ServiceImpl export for ${name}`);
+				}
+				if (!metadata) {
+					throw new Error(`Missing generated metadata for ${name}`);
+				}
+				services.push({
+					name,
+					implementation,
+					metadata,
+				} as ServiceBinding);
+			} catch (error) {
+				failed.push(
+					`${backendPrefix(kind)}${name}: ${error instanceof Error ? error.message : error}`,
+				);
 			}
-			if (!metadata) {
-				throw new Error(`Missing generated metadata for ${name}`);
-			}
-			services.push({
-				name,
-				implementation,
-				metadata,
-			} as ServiceBinding);
-		} catch (error) {
-			failed.push(`${name}: ${error instanceof Error ? error.message : error}`);
 		}
 	}
 
 	if (failed.length > 0) {
 		console.warn(
-			`[back-core] Missing microservices:\n  - ${failed.join("\n  - ")}`,
+			`[back-core] Missing backend modules:\n  - ${failed.join("\n  - ")}`,
 		);
 	}
 
@@ -276,7 +291,7 @@ loadDotEnvFiles(PROJECT_DIR, CHILD_PROJECT_DIR);
 
 if (!process.env.SERVICE_TOKEN?.trim()) {
 	throw new Error(
-		"SERVICE_TOKEN must be an Ed25519 service JWT issued by ms-access",
+		"SERVICE_TOKEN must be an Ed25519 service JWT issued by rp-access",
 	);
 }
 
@@ -287,13 +302,17 @@ if (!process.env.SERVICES_BASE) {
 }
 
 const solution = await loadSolution();
-const microservices = solution.spec.microservices ?? [];
+const repositories = solution.spec.repositories ?? [];
+const lambdas = solution.spec.lambdas ?? [];
 
-const services = await loadMicroservices(microservices);
+const services = await loadBackendModules([
+	{ kind: "repositories", names: repositories },
+	{ kind: "lambdas", names: lambdas },
+]);
 const plugins: PluginFactory[] = [];
 
 const servicePaths: Record<string, string> = {};
-for (const name of microservices) {
+for (const name of repositories) {
 	servicePaths[name] = resolve(dataDir, name);
 }
 

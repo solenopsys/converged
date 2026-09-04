@@ -69,7 +69,7 @@ for the calls it already made. That makes each node the durable unit of work.
 
 Node outcomes live in the state store only so a resumed execution does not
 re-issue the microservice calls the run already paid for. The durable record is
-ms-dag, which receives every node as it completes. When a run ends — finished,
+rp-dag, which receives every node as it completes. When a run ends — finished,
 failed, or out of budget — the engine deletes the `rt:task:<execId>:*` keys it wrote, so
 completed work leaves nothing behind. Keys a workflow sets itself through
 `rt.set` are its own and are never touched.
@@ -132,7 +132,7 @@ already held by the run in flight. Nesting is capped (`max_sub_depth`).
 `{ ok, value } | { ok, error }` so one bad item cannot lose the batch.
 
 A delegation is a node in every respect: same outcome shape, same key, same
-per-node log to ms-dag, and the same end-of-run cleanup. Nesting is capped at
+per-node log to rp-dag, and the same end-of-run cleanup. Nesting is capped at
 `vm.max_sub_depth` — the cap lives in the VM, not in a transport, so a
 self-delegating workflow always terminates whichever transport it runs on.
 

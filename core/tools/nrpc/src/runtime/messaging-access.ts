@@ -48,7 +48,7 @@ export class MessagingAccessGuard {
 
 	constructor(config: MessagingAccessConfig = {}) {
 		this.mode = resolveMode(config.mode);
-		this.issuer = config.issuer ?? process.env.ACCESS_JWT_ISSUER ?? "ms-access";
+		this.issuer = config.issuer ?? process.env.ACCESS_JWT_ISSUER ?? "rp-access";
 		this.audience = config.audience ?? process.env.ACCESS_JWT_AUDIENCE ?? "cluster";
 		this.cacheSize = config.cacheSize ?? 1_024;
 		this.log = config.log ?? ((message, details) => console.warn(`[nrpc auth] ${message}`, details));

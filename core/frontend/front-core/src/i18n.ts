@@ -23,29 +23,29 @@ export const $activeLocale = createStore<SupportedLocale>(DEFAULT_LOCALE)
 		(_, pathname) => extractLocaleFromPath(pathname) ?? DEFAULT_LOCALE,
 	);
 
-export type MicrofrontendMessages = Record<string, unknown>;
-export type MicrofrontendLocaleSource = string | MicrofrontendMessages;
-export type MicrofrontendLocales = Record<string, MicrofrontendLocaleSource>;
+export type SurfaceMessages = Record<string, unknown>;
+export type SurfaceLocaleSource = string | SurfaceMessages;
+export type SurfaceLocales = Record<string, SurfaceLocaleSource>;
 
 const localeCatalogRegistered = createEvent<string>();
 const $localeCatalogRevision = createStore<Record<string, number>>({}).on(
 	localeCatalogRegistered,
-	(revisions, microfrontendId) => ({
+	(revisions, surfaceId) => ({
 		...revisions,
-		[microfrontendId]: (revisions[microfrontendId] ?? 0) + 1,
+		[surfaceId]: (revisions[surfaceId] ?? 0) + 1,
 	}),
 );
 
 // namespace::locale -> parsed JSON. Shared across every hook instance so a
-// microfrontend's messages are resolved once per language, not once per view.
-const translationsCache = new Map<string, MicrofrontendMessages>();
+// surface's messages are resolved once per language, not once per view.
+const translationsCache = new Map<string, SurfaceMessages>();
 
-function cacheKey(microfrontendId: string, language: string): string {
-	return `${microfrontendId}::${language}`;
+function cacheKey(surfaceId: string, language: string): string {
+	return `${surfaceId}::${language}`;
 }
 
-function invalidateTranslations(microfrontendId: string): void {
-	const prefix = `${microfrontendId}::`;
+function invalidateTranslations(surfaceId: string): void {
+	const prefix = `${surfaceId}::`;
 	for (const key of translationsCache.keys()) {
 		if (key.startsWith(prefix)) translationsCache.delete(key);
 	}
@@ -60,7 +60,7 @@ function normalizeLocale(value: unknown): SupportedLocale | null {
 
 export class LocaleController {
 	private static instance: LocaleController | null = null;
-	private locales: Record<string, MicrofrontendLocales> = {};
+	private locales: Record<string, SurfaceLocales> = {};
 
 	private constructor() {}
 
@@ -90,17 +90,17 @@ export class LocaleController {
 		return $activeLocale.getState();
 	}
 
-	setLocales(microfrontendId: string, locales: MicrofrontendLocales): void {
-		this.locales[microfrontendId] = {
-			...this.locales[microfrontendId],
+	setLocales(surfaceId: string, locales: SurfaceLocales): void {
+		this.locales[surfaceId] = {
+			...this.locales[surfaceId],
 			...locales,
 		};
-		invalidateTranslations(microfrontendId);
-		localeCatalogRegistered(microfrontendId);
+		invalidateTranslations(surfaceId);
+		localeCatalogRegistered(surfaceId);
 	}
 
-	getLocales(microfrontendId: string): MicrofrontendLocales | undefined {
-		return this.locales[microfrontendId];
+	getLocales(surfaceId: string): SurfaceLocales | undefined {
+		return this.locales[surfaceId];
 	}
 
 	resetForTests(): void {
@@ -108,23 +108,23 @@ export class LocaleController {
 	}
 }
 
-export function registerMicrofrontendLocales(
-	microfrontendId: string,
-	locales: Record<string, MicrofrontendMessages>,
+export function registerSurfaceLocales(
+	surfaceId: string,
+	locales: Record<string, SurfaceMessages>,
 ): void {
-	LocaleController.getInstance().setLocales(microfrontendId, locales);
+	LocaleController.getInstance().setLocales(surfaceId, locales);
 }
 
-function isMessages(value: unknown): value is MicrofrontendMessages {
+function isMessages(value: unknown): value is SurfaceMessages {
 	return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
 function localeSource(
-	microfrontendId: string,
+	surfaceId: string,
 	language: string,
-): MicrofrontendLocaleSource | undefined {
+): SurfaceLocaleSource | undefined {
 	const locales =
-		LocaleController.getInstance().getLocales(microfrontendId) ?? {};
+		LocaleController.getInstance().getLocales(surfaceId) ?? {};
 	const normalized = language.toLowerCase();
 	const shortLanguage = normalized.split("-")[0];
 	return (
@@ -136,11 +136,11 @@ function localeSource(
 	);
 }
 
-export async function loadMicrofrontendTranslations(
-	microfrontendId: string,
+export async function loadSurfaceTranslations(
+	surfaceId: string,
 	language: string,
-): Promise<MicrofrontendMessages> {
-	const source = localeSource(microfrontendId, language);
+): Promise<SurfaceMessages> {
+	const source = localeSource(surfaceId, language);
 	if (isMessages(source)) return source;
 	if (!source) return {};
 
@@ -155,17 +155,17 @@ export async function loadMicrofrontendTranslations(
 }
 
 /**
- * Resolves a value from an already embedded microfrontend catalog. Action
+ * Resolves a value from an already embedded surface catalog. Action
  * metadata uses this outside Preact, so it cannot rely on the translation hook.
  * Remote locale URLs deliberately do not trigger a request here: catalog reads
  * must stay synchronous and side-effect free.
  */
-export function resolveEmbeddedMicrofrontendMessage(
-	microfrontendId: string,
+export function resolveEmbeddedSurfaceMessage(
+	surfaceId: string,
 	key: string,
 	language = $activeLocale.getState(),
 ): unknown {
-	const source = localeSource(microfrontendId, language);
+	const source = localeSource(surfaceId, language);
 	if (!isMessages(source)) return undefined;
 
 	let value: unknown = source;
@@ -178,12 +178,12 @@ export function resolveEmbeddedMicrofrontendMessage(
 	return value;
 }
 
-export function resetMicrofrontendI18nForTests(): void {
+export function resetSurfaceI18nForTests(): void {
 	LocaleController.getInstance().resetForTests();
 	translationsCache.clear();
 }
 
-export function useMicrofrontendTranslation(microfrontendId: string): {
+export function useSurfaceTranslation(surfaceId: string): {
 	t: (key: string) => unknown;
 	translations: unknown;
 	loading: boolean;
@@ -191,14 +191,14 @@ export function useMicrofrontendTranslation(microfrontendId: string): {
 } {
 	const currentLanguage = useUnit($activeLocale);
 	const catalogRevisions = useUnit($localeCatalogRevision);
-	const catalogRevision = catalogRevisions[microfrontendId] ?? 0;
-	const key = cacheKey(microfrontendId, currentLanguage);
-	const embedded = localeSource(microfrontendId, currentLanguage);
+	const catalogRevision = catalogRevisions[surfaceId] ?? 0;
+	const key = cacheKey(surfaceId, currentLanguage);
+	const embedded = localeSource(surfaceId, currentLanguage);
 	const embeddedTranslations = isMessages(embedded) ? embedded : undefined;
 
 	const [loaded, setLoaded] = useState<{
 		key: string;
-		translations: MicrofrontendMessages;
+		translations: SurfaceMessages;
 	}>(() => ({
 		key,
 		translations: embeddedTranslations ?? translationsCache.get(key) ?? {},
@@ -230,14 +230,14 @@ export function useMicrofrontendTranslation(microfrontendId: string): {
 		let cancelled = false;
 		setLoading(true);
 
-		void loadMicrofrontendTranslations(microfrontendId, currentLanguage)
+		void loadSurfaceTranslations(surfaceId, currentLanguage)
 			.then((result) => {
 				translationsCache.set(key, result);
 				if (!cancelled) setLoaded({ key, translations: result });
 			})
 			.catch((error) => {
 				console.error(
-					`[i18n] Failed to load translations for ${microfrontendId}`,
+					`[i18n] Failed to load translations for ${surfaceId}`,
 					error,
 				);
 				if (!cancelled) setLoaded({ key, translations: {} });
@@ -249,7 +249,7 @@ export function useMicrofrontendTranslation(microfrontendId: string): {
 		return () => {
 			cancelled = true;
 		};
-	}, [key, microfrontendId, currentLanguage, catalogRevision]);
+	}, [key, surfaceId, currentLanguage, catalogRevision]);
 
 	const t = useCallback(
 		(key: string): unknown => {

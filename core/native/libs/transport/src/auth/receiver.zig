@@ -18,7 +18,7 @@ pub const Receiver = struct {
 
     pub fn init(allocator: std.mem.Allocator, environ: *const std.process.Environ.Map) !Receiver {
         const mode = parseMode(environ.get("NRPC_ACCESS_MODE") orelse "off");
-        const issuer = try allocator.dupe(u8, environ.get("ACCESS_JWT_ISSUER") orelse "ms-access");
+        const issuer = try allocator.dupe(u8, environ.get("ACCESS_JWT_ISSUER") orelse "rp-access");
         errdefer allocator.free(issuer);
         const audience = try allocator.dupe(u8, environ.get("ACCESS_JWT_AUDIENCE") orelse "cluster");
         errdefer allocator.free(audience);

@@ -20,7 +20,7 @@
 	],
 	"hero": {
 		"heading": "Every module is open. The registry is yours to extend.",
-		"description": "Converged is not a box with sealed internals. Microservices, microfrontends and workflows all live in the repository: read them, fork them, rewrite one for your own machines, contribute it back. The list below is not maintained by hand — it is assembled from the source tree on every build, so a new module appears here exactly when it appears in the code.",
+		"description": "Converged is not a box with sealed internals. Repositories, lambdas, surfaces and workflows all live in the source tree: read them, fork them, rewrite one for your own machines, contribute it back. The list below is assembled from that tree on every build, so a new module appears here exactly when it appears in the code.",
 		"buttonText": "Browse the registry"
 	},
 	"stats": {
@@ -30,8 +30,9 @@
 			"url": "https://github.com/solenopsys/converged"
 		},
 		"labels": {
-			"microservice": "microservices — data domains and their APIs",
-			"microfrontend": "microfrontends — screens mounted at runtime",
+			"repository": "repositories — persistent data domains and their APIs",
+			"lambda": "lambdas — stateless integrations and computations",
+			"surface": "surfaces — screens mounted at runtime",
 			"workflow": "workflows — processes on the DAG runtime",
 			"solution": "solutions — ready-made module sets"
 		}
@@ -47,12 +48,12 @@
 			{
 				"icon": "Workflow",
 				"title": "A module is a directory",
-				"description": "To add a microservice, create a folder that follows the naming convention and put a README beside it stating its purpose and its ownership boundary. The build picks it up with no edit to any registry."
+				"description": "To add a module, create a folder that follows the naming convention and put a README beside it stating its purpose and ownership boundary. The build picks it up without a registry edit."
 			},
 			{
 				"icon": "Route",
 				"title": "Boundaries are held by contracts, not by trust",
-				"description": "Modules never call each other directly. Everything travels as typed NRPC contracts over the bus, and each microservice owns its own storage volume — a foreign module physically cannot reach another's data."
+				"description": "Modules communicate through typed NRPC contracts over the bus. Each repository owns its storage volume, while lambdas receive no persistent mount."
 			},
 			{
 				"icon": "Users",
@@ -74,7 +75,7 @@
 	"solutions": {
 		"eyebrow": "01 / SOLUTIONS",
 		"title": "Modules ship in sets",
-		"description": "A solution bundles microservices, microfrontends and workflows that together cover a whole area of work. The composition and dependencies below are read from solutions.json in the sources.",
+		"description": "A solution bundles repositories, lambdas, surfaces and workflows that together cover a whole area of work. The composition and dependencies below are read from solution files in the sources.",
 		"note": "A dependency means the solution will not come up without it: enable AI and you get security with it."
 	},
 	"registry": {
@@ -84,8 +85,9 @@
 		"note": "A module need not belong to any solution: it exists, and you can wire it in by hand or fold it into a solution of your own."
 	},
 	"kinds": {
-		"microservice": "microservice",
-		"microfrontend": "microfrontend",
+		"repository": "repository",
+		"lambda": "lambda",
+		"surface": "surface",
 		"workflow": "workflow"
 	},
 	"domains": {

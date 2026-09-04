@@ -15,7 +15,7 @@ const isScrollableNow = (element: HTMLElement) => {
 	return element.scrollHeight > element.clientHeight + 1;
 };
 
-// The rows container is not always the scrolling box: microfrontend workspaces
+// The rows container is not always the scrolling box: surface workspaces
 // render the table in normal flow and the shell surface does the scrolling.
 // Picking the nearest ancestor that actually scrolls keeps both layouts honest.
 const resolveScrollTarget = (element: HTMLElement): ScrollTarget => {

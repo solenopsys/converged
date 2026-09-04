@@ -336,7 +336,7 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 						FRONT_LOCALE: spec.env?.FRONT_LOCALE ?? "en",
 						FRONT_CHAT_CONTEXT: spec.env?.FRONT_CHAT_CONTEXT ?? "chat",
 						FRONT_CALL_CONTEXT: spec.env?.FRONT_CALL_CONTEXT ?? "voice",
-						FRONTEND_MODULES: JSON.stringify(merged.microfrontends),
+						FRONTEND_MODULES: JSON.stringify(merged.surfaces),
 						SERVICES_BASE: `http://${n.services(platform)}:80/services`,
 					}),
 					// The scope index is a ConfigMap because it changes as tenants
@@ -373,16 +373,17 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 					env: baseEnvFor(MS_PORT, {
 						...solutionEnv,
 						FUJIN_TARGET: "services",
-						// The ms calls its own HTTP surface for service-to-service
+						// The backend calls its own HTTP surface for service-to-service
 						// hops, and the startup checklist requires the value whether
-						// or not a given microservice makes one. Same address the ui
+						// or not a given module makes one. Same address the ui
 						// is given — there is one services Service per platform.
 						SERVICES_BASE: `http://${n.services(platform)}:80/services`,
 						// Only mono has one scope for every request. Multi splits by
 						// scope and cloud takes it from the edge headers, so pinning
 						// one here would override what the request actually carries.
 						...(spec.profile === "mono" ? { STORAGE_SCOPE: platform } : {}),
-						MICROSERVICES: JSON.stringify(merged.microservices),
+						REPOSITORIES: JSON.stringify(merged.repositories),
+						LAMBDAS: JSON.stringify(merged.lambdas),
 					}),
 					envFromConfigMap: n.domainsConfigMap(platform),
 					envFromSecret: spec.secretName,
@@ -440,12 +441,12 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 				owner,
 				namespace: spec.namespace,
 				name: n.monoStorage(platform),
-				microservices: merged.microservices,
+				repositories: merged.repositories,
 				storage: spec.storage,
 				fujinEndpoint: fujinEndpoint(platform, spec),
 			}),
 			// One scope, one shard — but the index is published all the same, so
-			// ui and ms resolve their storage the same way in every profile and
+			// ui and backend resolve their storage the same way in every profile and
 			// the ConfigMap they read from always exists.
 			shardIndex(platform, spec, owner, [
 				{
@@ -465,7 +466,7 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 				spec,
 				owner,
 				shards,
-				merged.microservices,
+				merged.repositories,
 				fujinEndpoint(platform, spec),
 			),
 			// Same ConfigMap and key the cloud profile publishes: a stateless
@@ -520,8 +521,9 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 			namespace: spec.namespace,
 			solutions: merged.names,
 			modulesDigest: rollout,
-			microservices: merged.microservices.length,
-			microfrontends: merged.microfrontends.length,
+			repositories: merged.repositories.length,
+			lambdas: merged.lambdas.length,
+			surfaces: merged.surfaces.length,
 			processors: merged.processors,
 			shards: shardNames,
 			registry: spec.registry?.url ?? "",

@@ -247,11 +247,11 @@ describe("scanning", () => {
 
 	test("maps one module source into its owner directory in the cache", () => {
 		write(
-			"en/modules/ms-sales.md",
+			"en/modules/rp-sales.md",
 			"# Sales\n\nOwns the production sales lifecycle.\n",
 		);
 		writeCache(
-			"ru/modules/ms-sales/ms-sales.md",
+			"ru/modules/rp-sales/rp-sales.md",
 			"# Продажи\n\nВладеет жизненным циклом продаж производства.\n",
 		);
 
@@ -259,7 +259,7 @@ describe("scanning", () => {
 			{
 				...project,
 				targetRoot: "./cache",
-				targetPrefix: "modules/ms-sales",
+				targetPrefix: "modules/rp-sales",
 				targetStripPrefix: "modules",
 			},
 			configPath,
@@ -267,7 +267,7 @@ describe("scanning", () => {
 			store,
 		);
 
-		expect(statusOf(snapshot, "modules/ms-sales.md")).toBe("unrecorded");
+		expect(statusOf(snapshot, "modules/rp-sales.md")).toBe("unrecorded");
 		expect(snapshot.orphans.ru).toEqual([]);
 	});
 });

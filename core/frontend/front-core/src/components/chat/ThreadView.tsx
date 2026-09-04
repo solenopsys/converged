@@ -3,8 +3,8 @@ import { cn } from "../../lib/utils";
 import { ThreadedChat } from "./ThreadedChat";
 import type { ThreadMessageBase } from "./types";
 
-// Styling lives in ThreadView.css, layered into assets/mf.css by
-// spa/src/build/styles.ts (buildMicrofrontendStyles).
+// Styling lives in ThreadView.css, layered into assets/sf.css by
+// spa/src/build/styles.ts (buildSurfaceStyles).
 
 export type ThreadViewMessage = ThreadMessageBase & {
 	user?: string;

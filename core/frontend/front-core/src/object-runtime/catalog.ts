@@ -1,4 +1,4 @@
-import { resolveEmbeddedMicrofrontendMessage } from "../i18n";
+import { resolveEmbeddedSurfaceMessage } from "../i18n";
 import { selectionDefinition } from "../select/descriptor";
 import type { ActiveSelectionContext } from "../select/runtime";
 import { activeSelection } from "../select/runtime";
@@ -32,7 +32,7 @@ export type OperatorCatalogEntry = {
 	/** Set when the candidate is a domain operation rather than a type. */
 	operationId?: string;
 	/**
-	 * The microfrontend that implements this. The resolver already knows it —
+	 * The surface that implements this. The resolver already knows it —
 	 * every candidate carries `owner` — and the assistant's flow uses it to pick
 	 * a section before picking a function.
 	 */
@@ -98,20 +98,20 @@ export const localized = (
 	fallback: string | undefined,
 ): string | undefined => {
 	if (!owner || !key) return fallback;
-	const value = resolveEmbeddedMicrofrontendMessage(owner, key);
+	const value = resolveEmbeddedSurfaceMessage(owner, key);
 	return typeof value === "string" ? value : fallback;
 };
 
-/** The bare operators belong to no microfrontend: they are the shell's own. */
+/** The bare operators belong to no surface: they are the shell's own. */
 const CORE_MODULE = "core";
 
 /**
- * `mf-sales` reads as "Sales" to a user and to a routing model alike. A module
+ * `sf-sales` reads as "Sales" to a user and to a routing model alike. A module
  * that wants a different name says so in its manifest; until then the id is the
- * only fact there is, and deriving beats showing `mf-sales` in the transcript.
+ * only fact there is, and deriving beats showing `sf-sales` in the transcript.
  */
 export function moduleLabel(module: string): string {
-	const bare = module.replace(/^mf-/, "").replace(/[-_]+/g, " ").trim();
+	const bare = module.replace(/^sf-/, "").replace(/[-_]+/g, " ").trim();
 	if (!bare) return module;
 	return bare.replace(/(^|\s)\S/g, (char) => char.toUpperCase());
 }

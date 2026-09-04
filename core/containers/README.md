@@ -11,7 +11,7 @@ Containerfile next to its source, under
 
 They used to be generated. The generator existed for one reason: it baked an
 exact module list into the image at build time — `runtime-map.toml` naming
-every service chunk for `ms`, a fixed `MICROFRONTENDS` delivery for `ui`. A new
+every service chunk for `ms`, a fixed `SURFACES` delivery for `ui`. A new
 solution therefore meant a new image, and a project that extended converged
 meant a second pair of images with a different list inside.
 
@@ -41,7 +41,7 @@ cd /path/to/business
 
 podman build -f converged/core/containers/ms.Containerfile \
   --ignorefile converged/core/containers/containerignore \
-  -t localhost/converged-ms:latest .
+  -t localhost/rp-converged:latest .
 
 podman build -f converged/core/containers/ui.Containerfile \
   --ignorefile converged/core/containers/containerignore \
@@ -55,7 +55,7 @@ product does not override.
 ## Runtime contract
 
 `entrypoint.sh` translates ptah's module environment into the Solution
-document the runtime reads. `MICROSERVICES` and `FRONTEND_MODULES` come from
+document the runtime reads. `REPOSITORIES`, `LAMBDAS` and `FRONTEND_MODULES` come from
 the platform's module ConfigMap; setting `SOLUTION_PATH` directly bypasses the
 translation and is what a local run does.
 
@@ -65,9 +65,9 @@ nothing, which is worse than a crash loop naming the missing variable.
 
 | Variable | Source | Notes |
 |---|---|---|
-| `MICROSERVICES` / `FRONTEND_MODULES` | ptah module ConfigMap | Which modules boot |
+| `REPOSITORIES` / `LAMBDAS` / `FRONTEND_MODULES` | ptah module ConfigMap | Which modules boot |
 | `MODULE_PROXY` | ptah module ConfigMap | The content-addressed proxy modules are fetched from |
-| `MODULE_DIGESTS` | ptah module ConfigMap | `{"ms-orders.js": "<sha256>"}` — the only place a name is resolved |
+| `MODULE_DIGESTS` | ptah module ConfigMap | `{"rp-orders.js": "<sha256>"}` — the only place a name is resolved |
 | `FUJIN_ZMQ_ENDPOINT` | ptah | The bus; nothing works without it |
 | `VALKEY_URL` | ptah (`CACHE_URL`) | Shared cache |
 | `STORAGE_TENANT_SERVICES` / `STORAGE_SCOPE` | ptah domain ConfigMap / edge headers | Which storage answers |

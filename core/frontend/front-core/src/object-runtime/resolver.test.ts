@@ -6,8 +6,8 @@ import { Category, objectOf, objectRef, setOf, setRef } from "./types";
 
 function fixture() {
 	const registry = new ObjectRegistry();
-	registry.register("mf-companies", {
-		id: "mf-companies",
+	registry.register("sf-companies", {
+		id: "sf-companies",
 		types: [
 			{
 				id: "companies.company",
@@ -30,8 +30,8 @@ function fixture() {
 		],
 		operations: [],
 	});
-	registry.register("mf-sales", {
-		id: "mf-sales",
+	registry.register("sf-sales", {
+		id: "sf-sales",
 		types: [
 			{
 				id: "sales.outreach",
@@ -52,8 +52,8 @@ function fixture() {
 			},
 		],
 	});
-	registry.register("mf-outreach-view", {
-		id: "mf-outreach-view",
+	registry.register("sf-outreach-view", {
+		id: "sf-outreach-view",
 		types: [],
 		views: [
 			{
@@ -70,8 +70,8 @@ function fixture() {
 describe("ObjectResolver", () => {
 	test("keeps internal candidates for the assistant but hides them from a guest panel", () => {
 		const { registry, resolver } = fixture();
-		registry.register("mf-public", {
-			id: "mf-public",
+		registry.register("sf-public", {
+			id: "sf-public",
 			types: [
 				{
 					id: "public.notice",
@@ -148,8 +148,8 @@ describe("ObjectResolver", () => {
 	test("omits dynamically undiscoverable types and operations", () => {
 		const { registry, resolver } = fixture();
 		let visible = false;
-		registry.register("mf-session", {
-			id: "mf-session",
+		registry.register("sf-session", {
+			id: "sf-session",
 			types: [
 				{
 					id: "auth.session",
@@ -196,8 +196,8 @@ describe("ObjectResolver", () => {
 
 	test("treats omitted categories as an empty set", () => {
 		const { registry, resolver } = fixture();
-		registry.register("mf-contexts", {
-			id: "mf-contexts",
+		registry.register("sf-contexts", {
+			id: "sf-contexts",
 			types: [{ id: "contexts.context", label: "Context" }],
 			views: [],
 			operations: [],
@@ -221,8 +221,8 @@ describe("ObjectResolver.operationsFor", () => {
 
 	test("ignores operations that accept nothing in particular", () => {
 		const { registry, resolver } = fixture();
-		registry.register("mf-noise", {
-			id: "mf-noise",
+		registry.register("sf-noise", {
+			id: "sf-noise",
 			types: [],
 			views: [],
 			operations: [

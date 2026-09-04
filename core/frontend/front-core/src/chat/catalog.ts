@@ -6,8 +6,8 @@ import {
 	focusKey,
 	invokeCatalogEntry,
 	loadObjectType,
-	microfrontendDeclared,
-	microfrontendRegistered,
+	surfaceDeclared,
+	surfaceRegistered,
 	type OperatorCatalogEntry,
 	objectRegistry,
 	onOperationAuthorizationChanged,
@@ -35,7 +35,7 @@ function categories() {
 }
 
 /**
- * The catalog's first level: which microfrontend owns each function. This is
+ * The catalog's first level: which surface owns each function. This is
  * what the routing step narrows to before a function is chosen, so a wrong pick
  * costs one visible wrong section instead of an unrelated call.
  */
@@ -70,7 +70,7 @@ function briefs(entries: OperatorCatalogEntry[]) {
 	}));
 }
 
-export function createMicrofrontendCatalog(): ChatCatalog {
+export function createSurfaceCatalog(): ChatCatalog {
 	const entries = () => catalogEntries();
 	let selectionAtTurn = activeSelection();
 
@@ -155,8 +155,8 @@ export function createMicrofrontendCatalog(): ChatCatalog {
 		},
 		label,
 		onChange: (republish) => {
-			void microfrontendRegistered.watch(republish);
-			void microfrontendDeclared.watch(republish);
+			void surfaceRegistered.watch(republish);
+			void surfaceDeclared.watch(republish);
 			void $activeLocale.watch(republish);
 			onOperationAuthorizationChanged(republish);
 		},

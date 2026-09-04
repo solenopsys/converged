@@ -7,15 +7,15 @@ import {
 	isProduction,
 	landingBlocksEntry,
 	landingBlocksShim,
-	microfrontendDir,
-	microfrontends,
-	microfrontendsDir,
+	surfaceDir,
+	surfaces,
+	surfacesDir,
 	storeWorkerBundle,
 	widgetDir,
 	widgetEntry,
 } from "./layout";
-import { localizedMicrofrontendEntry } from "./microfrontend-locales";
-import { assertMicrofrontendPublicApi } from "./vendor";
+import { localizedSurfaceEntry } from "./surface-locales";
+import { assertSurfacePublicApi } from "./vendor";
 
 /**
  * Landing blocks come from the project, not from the core, and the delivery
@@ -79,38 +79,38 @@ export async function bundleApp(): Promise<string[]> {
 }
 
 /**
- * One microfrontend — one chunk. Everything shared (preact, effector,
+ * One surface — one chunk. Everything shared (preact, effector,
  * front-core, transport) stays external: the import map already points those
- * names at vendor, and duplicating them in every MF is not allowed — it would
+ * names at vendor, and duplicating them in every SF is not allowed — it would
  * mean a second function catalog and a second socket.
  */
-export type MicrofrontendBundle = {
-	/** The module's chunk — pulled in by the import map under the name `mf-<name>`. */
+export type SurfaceBundle = {
+	/** The module's chunk — pulled in by the import map under the name `sf-<name>`. */
 	script: string;
 	/**
 	 * CSS the bundler pulled out of `import "./View.css"` inside the module. It
-	 * isn't shipped as its own file: the page includes a single `assets/mf.css`,
+	 * isn't shipped as its own file: the page includes a single `assets/sf.css`,
 	 * and the content is glued into that (see styles.ts). A separate file per
-	 * module would mean a second link and a second round trip for every MF.
+	 * module would mean a second link and a second round trip for every SF.
 	 */
 	styles: string[];
 };
 
-export async function bundleMicrofrontends(): Promise<MicrofrontendBundle[]> {
-	const entries = microfrontends.map((name) =>
-		join(microfrontendDir(name), "src", "index.ts"),
+export async function bundleSurfaces(): Promise<SurfaceBundle[]> {
+	const entries = surfaces.map((name) =>
+		join(surfaceDir(name), "src", "index.ts"),
 	);
-	if (isProduction || process.env.MICROFRONTEND_CONTRACT === "1") {
-		await assertMicrofrontendPublicApi(entries);
+	if (isProduction || process.env.SURFACE_CONTRACT === "1") {
+		await assertSurfacePublicApi(entries);
 	}
 
-	const bundles: MicrofrontendBundle[] = [];
-	for (const name of microfrontends) {
-		const sourceEntry = join(microfrontendDir(name), "src", "index.ts");
-		const localizedEntry = await localizedMicrofrontendEntry(sourceEntry, name);
+	const bundles: SurfaceBundle[] = [];
+	for (const name of surfaces) {
+		const sourceEntry = join(surfaceDir(name), "src", "index.ts");
+		const localizedEntry = await localizedSurfaceEntry(sourceEntry, name);
 		const result = await Bun.build({
 			entrypoints: [localizedEntry.entrypoint],
-			outdir: microfrontendsDir,
+			outdir: surfacesDir,
 			naming: {
 				entry: `${name}.[ext]`,
 				asset: `assets/${name}-[name]-[hash].[ext]`,
@@ -126,11 +126,11 @@ export async function bundleMicrofrontends(): Promise<MicrofrontendBundle[]> {
 		});
 
 		if (!result.success) {
-			throw new AggregateError(result.logs, `Build failed: mf-${name}`);
+			throw new AggregateError(result.logs, `Build failed: sf-${name}`);
 		}
 
 		bundles.push({
-			script: join(microfrontendsDir, `${name}.js`),
+			script: join(surfacesDir, `${name}.js`),
 			styles: result.outputs
 				.map((output) => output.path)
 				.filter((path) => path.endsWith(".css")),

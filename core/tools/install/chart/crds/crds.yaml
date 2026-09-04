@@ -102,12 +102,15 @@ spec:
         - name: Applied
           type: boolean
           jsonPath: .status.applied
-        - name: MS
+        - name: RP
           type: integer
-          jsonPath: .status.microservices
-        - name: MF
+          jsonPath: .status.repositories
+        - name: LM
           type: integer
-          jsonPath: .status.microfrontends
+          jsonPath: .status.lambdas
+        - name: SF
+          type: integer
+          jsonPath: .status.surfaces
         - name: Age
           type: date
           jsonPath: .metadata.creationTimestamp

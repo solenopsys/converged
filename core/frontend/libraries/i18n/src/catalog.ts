@@ -10,7 +10,7 @@ export type MessageSource = (
 ) => Promise<Messages | undefined>;
 
 // namespace -> locale -> messages. A namespace is a unit of ownership: the
-// shell has one, every microfrontend has its own, and none can clobber another.
+// shell has one, every surface has its own, and none can clobber another.
 type Catalog = Record<string, Record<string, Messages>>;
 
 const messagesRegistered = createEvent<{

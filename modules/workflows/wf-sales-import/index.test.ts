@@ -1,5 +1,5 @@
-// wf-sales-import on the real VM core (librt-mock.so) with mocked ms-files /
-// ms-sales and a mocked LLM hub. Build the library first:
+// wf-sales-import on the real VM core (librt-mock.so) with mocked rp-files /
+// rp-sales and a mocked LLM hub. Build the library first:
 //   cd ../../../core/native/apps/centimanus && zig build mock
 
 import { beforeAll, describe, expect, test } from "bun:test";

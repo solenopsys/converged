@@ -1,6 +1,6 @@
 /**
  * The full `preact/compat` — as its own file, not inside preact.js: it's only
- * needed by the microfrontend layer (their views are written against the
+ * needed by the surface layer (their views are written against the
  * React-compatible API), and it has no business on the critical path. The
  * difference isn't cosmetic: compat brings React prop semantics (`onChange`
  * on an input, ref objects, portals) that the core doesn't have.

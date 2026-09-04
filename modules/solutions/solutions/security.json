@@ -1,4 +1,5 @@
 {
-	"microservices": ["access", "auth", "identity", "ses"],
-	"microfrontends": ["auth"]
+	"repositories": ["access", "auth", "identity"],
+	"lambdas": ["ses"],
+	"surfaces": ["auth"]
 }

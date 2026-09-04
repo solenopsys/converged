@@ -1,15 +1,15 @@
 /**
- * The object runtime and the microfrontend UI kit. This is the shared instance:
- * the shell registers the loader and microfrontends register their definitions.
+ * The object runtime and the surface UI kit. This is the shared instance:
+ * the shell registers the loader and surfaces register their definitions.
  */
 export * from "front-core";
 // The import map resolves `front-core/shell` to this delivery facade too.
-// Keep the microfrontend loader public for mandatory bootstrap modules.
+// Keep the surface loader public for mandatory bootstrap modules.
 export {
-	loadMicrofrontend,
-	loadMicrofrontendForOperation,
-	loadMicrofrontendForType,
-} from "../../../../front-core/src/shell/mf";
+	loadSurface,
+	loadSurfaceForOperation,
+	loadSurfaceForType,
+} from "../../../../front-core/src/shell/sf";
 export {
 	AppShellFrame,
 	bootstrapAppShell,
@@ -21,7 +21,7 @@ export {
 	InfiniteScrollDataTable,
 } from "front-core/table";
 
-// The 3D preview: `mf-requests` renders it for every analysed model, so the
+// The 3D preview: `sf-requests` renders it for every analysed model, so the
 // specifier has to resolve. `@google/model-viewer` is behind a dynamic import
 // inside it, so it stays out of this bundle and loads on first render.
 export { ModelViewer } from "../../../../front-core/src/model3d";

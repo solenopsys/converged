@@ -1,5 +1,5 @@
 // The node cache exists to spare a replay the cost of re-calling microservices.
-// ms-dag holds the durable record, so a finished run must not leave its nodes
+// rp-dag holds the durable record, so a finished run must not leave its nodes
 // behind in Valkey.
 
 import { describe, expect, test } from "bun:test";

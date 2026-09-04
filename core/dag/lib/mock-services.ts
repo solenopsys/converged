@@ -135,7 +135,7 @@ export function createFileUniverse(): FileUniverse {
 				if (method === "applyRequestUpdate") {
 					const model = universe.requests.get(params.id);
 					if (!model) throw new Error(`Request not found: ${params.id}`);
-					// ms-requests merges files onto the previous model and turns
+					// rp-requests merges files onto the previous model and turns
 					// parameters into fields; the mock mirrors just that much.
 					const patch = params.patch as {
 						files?: Record<string, string>;

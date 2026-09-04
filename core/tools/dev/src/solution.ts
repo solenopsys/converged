@@ -6,8 +6,9 @@ type JsonObject = Record<string, unknown>;
 type SolutionDefinition = {
 	dependencies?: string[];
 	mappings?: Record<string, string[]>;
-	microfrontends?: string[];
-	microservices?: string[];
+	surfaces?: string[];
+	repositories?: string[];
+	lambdas?: string[];
 	processors?: string[];
 	workflows?: string[];
 };
@@ -27,8 +28,9 @@ export type ResolvedSolution = {
 	metadata: { name: string };
 	spec: {
 		mappings: Record<string, MappingEntry[]>;
-		microfrontends: string[];
-		microservices: string[];
+		surfaces: string[];
+		repositories: string[];
+		lambdas: string[];
 		processors: string[];
 		workflows: MappingEntry[];
 	};
@@ -99,8 +101,9 @@ function definitionFrom(value: JsonObject, path: string): SolutionDefinition {
 	return {
 		dependencies: strings(value.dependencies, `${path}.dependencies`),
 		mappings,
-		microfrontends: strings(value.microfrontends, `${path}.microfrontends`),
-		microservices: strings(value.microservices, `${path}.microservices`),
+		surfaces: strings(value.surfaces, `${path}.surfaces`),
+		repositories: strings(value.repositories, `${path}.repositories`),
+		lambdas: strings(value.lambdas, `${path}.lambdas`),
 		processors: strings(value.processors, `${path}.processors`),
 		workflows: strings(value.workflows, `${path}.workflows`),
 	};
@@ -187,8 +190,9 @@ export function resolveSolutionConfig(configPath: string): SolutionConfig {
 
 	const loaded = new Set<string>();
 	const visiting = new Set<string>();
-	const microservices: string[] = [];
-	const microfrontends: string[] = [];
+	const repositories: string[] = [];
+	const lambdas: string[] = [];
+	const surfaces: string[] = [];
 	const processors: string[] = [];
 	const mappingNames = new Map<string, string[]>();
 	const selectMappings = (group: string, names: string[]) => {
@@ -210,8 +214,9 @@ export function resolveSolutionConfig(configPath: string): SolutionConfig {
 		visiting.add(solutionName);
 		const definition = definitionFrom(readObject(path), path);
 		for (const dependency of definition.dependencies ?? []) load(dependency);
-		microservices.push(...(definition.microservices ?? []));
-		microfrontends.push(...(definition.microfrontends ?? []));
+		repositories.push(...(definition.repositories ?? []));
+		lambdas.push(...(definition.lambdas ?? []));
+		surfaces.push(...(definition.surfaces ?? []));
 		processors.push(...(definition.processors ?? []));
 		selectMappings("workflows", definition.workflows ?? []);
 		for (const [group, names] of Object.entries(definition.mappings ?? {})) {
@@ -261,17 +266,21 @@ export function resolveSolutionConfig(configPath: string): SolutionConfig {
 			metadata: { name },
 			spec: {
 				mappings: allMappings,
-				microfrontends: unique([
+				surfaces: unique([
 					...extensions.flatMap(
-						(extension) => extension.solution.spec.microfrontends,
+						(extension) => extension.solution.spec.surfaces,
 					),
-					...microfrontends,
+					...surfaces,
 				]),
-				microservices: unique([
+				repositories: unique([
 					...extensions.flatMap(
-						(extension) => extension.solution.spec.microservices,
+						(extension) => extension.solution.spec.repositories,
 					),
-					...microservices,
+					...repositories,
+				]),
+				lambdas: unique([
+					...extensions.flatMap((extension) => extension.solution.spec.lambdas),
+					...lambdas,
 				]),
 				processors: unique([
 					...extensions.flatMap(

@@ -4,8 +4,8 @@
 // JWT — which is exactly what an anonymous browser does not have yet. Instead
 // of poking a hole in that gate, the bootstrap flows (guest session, magic
 // link, OAuth2) run as ordinary same-origin HTTP here, in the UI process, and
-// reach the auth microservices over nrpc with the cluster SERVICE_TOKEN. The
-// microservices keep only data; redirects, cookies and provider handshakes live
+// reach the auth repositories over nrpc with the cluster SERVICE_TOKEN. The
+// repositories keep only data; redirects, cookies and provider handshakes live
 // in this file. Once the browser holds a JWT it opens the WS as usual.
 import type { PluginConfig } from "back-core";
 import type {

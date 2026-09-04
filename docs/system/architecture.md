@@ -50,7 +50,7 @@ configures workloads but does not participate in runtime messaging.
 
 ## Modules and solutions
 
-Business capabilities are delivered as microservices, microfrontends and
+Business capabilities are delivered as microservices, surfaces and
 workflows. A solution is a declarative selection of those modules for a
 particular operating scenario, such as order handling, production planning or
 equipment monitoring.

@@ -20,8 +20,9 @@ export function solutionManifest(
 		metadata: { name },
 		spec: {
 			platform: options.platform,
-			microservices: solution.spec.microservices,
-			microfrontends: solution.spec.microfrontends,
+			repositories: solution.spec.repositories,
+			lambdas: solution.spec.lambdas,
+			surfaces: solution.spec.surfaces,
 			processors: solution.spec.processors,
 			workflows: solution.spec.workflows,
 		},

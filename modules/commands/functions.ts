@@ -38,7 +38,7 @@ const pushHandler: Handler = async (client: Client, _splitter, param) => {
     process.exit(1);
   }
 
-  console.log(`Pushing ${functions.length} functions to ms-functions…`);
+  console.log(`Pushing ${functions.length} functions to rp-functions…`);
   await client.functions.registerFunctions(functions);
   console.log(`✅ Registered ${functions.length} functions`);
 };
@@ -86,7 +86,7 @@ const deleteHandler: Handler = async (client: Client, _splitter, param) => {
 class FunctionsProcessor extends BaseCommandProcessor {
   protected initializeCommandMap(): Map<string, CommandEntry> {
     return new Map([
-      ["push", { handler: pushHandler, description: "Push catalog JSON to ms-functions (--catalog=<path>)" }],
+      ["push", { handler: pushHandler, description: "Push catalog JSON to rp-functions (--catalog=<path>)" }],
       ["list", { handler: listHandler, description: "List registered functions [--type=front|back] [--category=name]" }],
       ["search", { handler: searchHandler, description: "Semantic search over registered functions" }],
       ["delete", { handler: deleteHandler, description: "Delete a function by id" }],

@@ -3,7 +3,7 @@
  * Builder-stage bundler for the `ms` and `ui` images.
  *
  * It bundles one thing: the server. Not the modules — those are not in the
- * image at all. A microservice or a microfrontend is built once by
+ * image at all. A microservice or a surface is built once by
  * `core/tools/registry`, published by digest, and fetched from ptah at boot,
  * so the set of modules is no longer a property of the image and rolling one
  * forward no longer means rebuilding one.

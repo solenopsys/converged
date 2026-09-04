@@ -75,7 +75,7 @@ pub const StateStore = struct {
     }
 
     /// Drop a key. The node cache exists only to spare a finished run the cost
-    /// of re-calling microservices; ms-dag holds the durable record, so once the
+    /// of re-calling microservices; rp-dag holds the durable record, so once the
     /// run is over its entries are dead weight.
     pub fn del(self: *StateStore, io: std.Io, alloc: std.mem.Allocator, key: []const u8) !void {
         switch (self.backend) {

@@ -5,7 +5,7 @@ export type CacheRef = {
 	sizeBytes?: number;
 };
 
-/** A stored file chunk staged by ms-store in Valkey. */
+/** A stored file chunk staged by rp-store in Valkey. */
 export type CompressedChunk = {
 	ref: CacheRef;
 	compression: CompressionType;
@@ -17,7 +17,7 @@ export type ArchiveUnpackInput = {
 	chunks: CompressedChunk[];
 };
 
-/** A chunk of an extracted file. The bytes remain in Valkey until ms-store saves it. */
+/** A chunk of an extracted file. The bytes remain in Valkey until rp-store saves it. */
 export type ProducedChunk = {
 	ref: CacheRef;
 	compression: CompressionType;

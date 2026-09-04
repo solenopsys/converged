@@ -4,7 +4,7 @@
  * Authoring happens next to the code: any directory that keeps a
  * `docs/<section>/index.json` plus the markdown files it lists is a
  * source, wherever it sits in the tree. The index format is deliberately the
- * same array of `{slug, title, order, id}` that `struct-ms` serves, so an
+ * same array of `{slug, title, order, id}` that `rp-struct` serves, so an
  * owner's index can be read as-is by anyone who already knows the site's.
  *
  * A section is a site-level chapter (`product`, `club`, ...) and more than one
@@ -40,7 +40,7 @@ export type Doc = {
 	order: number;
 	/** Absolute path of the source markdown file. */
 	source: string;
-	/** Owner that contributed the doc, e.g. `mf-docs`. */
+	/** Owner that contributed the doc, e.g. `sf-docs`. */
 	module: string;
 };
 
@@ -89,7 +89,7 @@ export type TranslationConfig = {
 
 /** Where the generated ecosystem page goes, and how to link back to sources. */
 export type EcosystemConfig = {
-	/** Locale-relative directory in `struct-ms`, e.g. `landings/ecosystem`. */
+	/** Locale-relative directory in `rp-struct`, e.g. `landings/ecosystem`. */
 	landing: string;
 	/** Project directory name → repository URL, for module source links. */
 	repos: Record<string, string>;

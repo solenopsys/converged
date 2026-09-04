@@ -8,11 +8,10 @@ test("resolves the configured solution set and workflow links", () => {
 		resolve(PROJECT_ROOT, "modules/solutions/converged.json"),
 	);
 
-	expect(resolved.solution.spec.microservices).toEqual([
+	expect(resolved.solution.spec.repositories).toEqual([
 		"access",
 		"auth",
 		"identity",
-		"ses",
 		"markdown",
 		"struct",
 		"galery",
@@ -23,10 +22,6 @@ test("resolves the configured solution set and workflow links", () => {
 		"dag",
 		"files",
 		"store",
-		"compressors",
-		// wf-file-analyze converts every model to a GLB through it: without the
-		// service there is no preview to attach and no card to draw.
-		"modelconvertor",
 		"requests",
 		"logs",
 		"telemetry",
@@ -34,7 +29,14 @@ test("resolves the configured solution set and workflow links", () => {
 		"usage",
 		"dashboard",
 	]);
-	expect(resolved.solution.spec.microfrontends).toEqual([
+	expect(resolved.solution.spec.lambdas).toEqual([
+		"ses",
+		"compressors",
+		// wf-file-analyze converts every model to a GLB through it: without the
+		// lambda there is no preview to attach and no card to draw.
+		"modelconvertor",
+	]);
+	expect(resolved.solution.spec.surfaces).toEqual([
 		"auth",
 		"assistants",
 		"calls",
@@ -79,13 +81,18 @@ test("resolves the configured solution set and workflow links", () => {
 				required: ["fileId"],
 			},
 		},
-		// Reached only through rt.sub / ms-requests, never by the assistant:
+		// Reached only through rt.sub / rp-requests, never by the assistant:
 		// without brief, description and parameters the chat catalog skips
-		// them, while ms-dag still resolves their source for centimanus.
+		// them, while rp-dag still resolves their source for centimanus.
 		{
 			id: "file-analyze",
 			name: "wf-file-analyze",
 			script: "workflows/wf-file-analyze.js",
+		},
+		{
+			id: "files-analyze",
+			name: "wf-files-analyze",
+			script: "workflows/wf-files-analyze.js",
 		},
 		{
 			id: "request-analyze",

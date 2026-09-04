@@ -7,8 +7,8 @@ import { cn } from "../../lib/utils";
 import type { ThreadMessageBase } from "./types";
 import { buildThreadTree } from "./thread-tree";
 
-// Styling lives in ThreadedChat.css, layered into assets/mf.css by
-// spa/src/build/styles.ts (buildMicrofrontendStyles) — not imported here, so
+// Styling lives in ThreadedChat.css, layered into assets/sf.css by
+// spa/src/build/styles.ts (buildSurfaceStyles) — not imported here, so
 // the shared front-core vendor chunk (fixed output filename) never has to
 // carry a second, colliding CSS asset.
 

@@ -28,7 +28,7 @@ import { cliWebSocketChannel } from "dag-cli/ws";
 //
 // The catalog the steps choose from is this CLI's own sections and commands, so
 // the whole contour runs without a browser. Where the tab publishes its
-// microfrontends, here the command map is published instead.
+// surfaces, here the command map is published instead.
 
 const CHAT_DEADLINE_MS = 120_000;
 
@@ -149,7 +149,7 @@ export function publishCliCatalog(
 	return functions;
 }
 
-// Step instructions are sections of the same ms-contexts record the chat uses:
+// Step instructions are sections of the same rp-contexts record the chat uses:
 // one read at startup, so a missing record or a missing section is an error
 // before the first message, not a silent plain chat.
 async function loadStepPrompts(
@@ -170,7 +170,7 @@ async function loadStepPrompts(
 		?.data;
 	if (!data || typeof data !== "object") {
 		throw new Error(
-			`Context "${contextName}"${language ? ` (${language})` : ""} not found in ms-contexts`,
+			`Context "${contextName}"${language ? ` (${language})` : ""} not found in rp-contexts`,
 		);
 	}
 

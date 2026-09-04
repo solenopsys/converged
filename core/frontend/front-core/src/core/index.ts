@@ -31,11 +31,11 @@ export type {
 	FunctionIndexEntry,
 	FunctionIndexFile,
 	FunctionIndexModule,
-	MicrofrontendLlmCatalog,
+	SurfaceLlmCatalog,
 } from "./function-index";
 export {
 	ingestFunctionIndex,
-	ingestMicrofrontendLlmCatalog,
+	ingestSurfaceLlmCatalog,
 	loadFunctionIndex,
 	moduleForAction,
 	modules,

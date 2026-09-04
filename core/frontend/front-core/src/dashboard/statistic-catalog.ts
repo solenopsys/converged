@@ -13,7 +13,7 @@ import type { ComponentType } from "preact";
 
 // One dashboard, assembled from the object catalog. Every statistic block is a
 // type in `core.statistic`, so the build index already lists all of them before
-// a single microfrontend is imported: the page can render its sections from the
+// a single surface is imported: the page can render its sections from the
 // index and pull the owner's code only when a section is opened.
 
 export type StatisticWidget = {
@@ -21,7 +21,7 @@ export type StatisticWidget = {
 	label: string;
 	description?: string;
 	owner: string;
-	/** Present only once the owning microfrontend has been imported. */
+	/** Present only once the owning surface has been imported. */
 	statistic?: StatisticDefinition;
 };
 
@@ -39,11 +39,11 @@ export type StatisticSection = {
 type OwnedType = ObjectTypeDefinition & { owner: string; loaded: boolean };
 
 /**
- * `mf-companies` → `Companies`. The module name is the only grouping key that
+ * `sf-companies` → `Companies`. The module name is the only grouping key that
  * exists for every type; a service does not publish a display name of its own.
  */
 export function sectionLabel(owner: string): string {
-	const name = owner.replace(/^(?:mf|ms)-/, "") || owner;
+	const name = owner.replace(/^(?:sf|ms)-/, "") || owner;
 	return name
 		.split(/[-_]/)
 		.filter(Boolean)
@@ -100,7 +100,7 @@ export function collectStatisticSections(): StatisticSection[] {
 }
 
 /**
- * Imports the microfrontend owning a section. Registration bumps
+ * Imports the surface owning a section. Registration bumps
  * `$objectRegistryRevision`, which is what re-runs `collectStatisticSections`
  * and turns the declared types into mountable components.
  */

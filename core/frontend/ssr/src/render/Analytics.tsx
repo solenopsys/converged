@@ -72,7 +72,7 @@ function CounterTag({ counter }: { counter: Counter }) {
 			if (!snippet) return null;
 			return (
 				<script
-					// biome-ignore lint/security/noDangerouslySetInnerHtml: operator-authored head snippet from ms-counters
+					// biome-ignore lint/security/noDangerouslySetInnerHtml: operator-authored head snippet from rp-counters
 					dangerouslySetInnerHTML={{ __html: snippet }}
 				/>
 			);

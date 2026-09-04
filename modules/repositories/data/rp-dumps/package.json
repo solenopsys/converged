@@ -1,0 +1,18 @@
+{
+  "name": "rp-dumps",
+  "version": "1.0.0",
+  "private": true,
+  "installConfig": {
+    "hoistingLimits": "workspaces"
+  },
+  "type": "module",
+  "exports": {
+    "./plugin": "./src/plugin.ts"
+  },
+  "dependencies": {
+    "back-core": "workspace:*",
+    "bun-transport": "workspace:*",
+    "nrpc": "workspace:*",
+    "g-dumps": "workspace:*"
+  }
+}

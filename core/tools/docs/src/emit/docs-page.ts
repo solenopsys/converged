@@ -2,7 +2,7 @@
  * The `/docs` section of the site: an index of what exists, and the landing
  * config that renders it.
  *
- * The site had no way to ask "which sections are there". `mf-docs` answered it
+ * The site had no way to ask "which sections are there". `sf-docs` answered it
  * by hard-coding a map of slugs to page groups and a list of Russian titles in
  * its own source, which is precisely the drift this tool exists to remove — a
  * new section could not appear without editing a component.

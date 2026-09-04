@@ -18,7 +18,7 @@ export type Message = {
 
 // What a thread belongs to — kept in a lightweight SQL index purely for stats.
 //   chat    — text assistant chat
-//   audio   — audio call transcript (ms-calls owns the call)
+//   audio   — audio call transcript (rp-calls owns the call)
 //   forum   — forum threads
 //   comment — comment threads under various entities
 export type ThreadKind = "chat" | "audio" | "forum" | "comment";

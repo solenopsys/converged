@@ -41,7 +41,9 @@ export function accessMaterial(): AccessMaterial | undefined {
  * across two objects would only create a way for half of a platform's identity
  * to be present.
  */
-export function accessSecretData(material: AccessMaterial): Record<string, string> {
+export function accessSecretData(
+	material: AccessMaterial,
+): Record<string, string> {
 	return {
 		ACCESS_JWT_ISSUER: material.issuer,
 		ACCESS_JWT_AUDIENCE: material.audience,

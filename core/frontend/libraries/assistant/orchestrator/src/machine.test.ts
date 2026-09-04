@@ -522,20 +522,20 @@ describe("module routing", () => {
 			{
 				id: "logs.hot.show",
 				brief: "Show hot logs",
-				module: "mf-logs",
+				module: "sf-logs",
 				moduleLabel: "Logs",
 			},
 			{
 				id: "sales.leads.show",
 				brief: "Show leads",
-				module: "mf-sales",
+				module: "sf-sales",
 				moduleLabel: "Sales",
 			},
 		],
 		listCategories: () => [{ id: "logs", count: 2 }],
 		listModules: () => [
-			{ id: "mf-logs", label: "Logs", count: 1 },
-			{ id: "mf-sales", label: "Sales", count: 1 },
+			{ id: "sf-logs", label: "Logs", count: 1 },
+			{ id: "sf-sales", label: "Sales", count: 1 },
 		],
 		meta: (id) => ({ id, description: `describe ${id}` }),
 		invoke: async (id) => ({ ok: true, id }),
@@ -544,7 +544,7 @@ describe("module routing", () => {
 	test("narrows candidates to the chosen module and records both choices", async () => {
 		const { orchestrator, steps } = harness(
 			{
-				route: '{"intent":"function","module":"mf-sales","area":"leads"}',
+				route: '{"intent":"function","module":"sf-sales","area":"leads"}',
 				args: "{}",
 			},
 			MODULAR,
@@ -558,11 +558,11 @@ describe("module routing", () => {
 		expect((plan as { trail: unknown }).trail).toEqual([
 			{
 				step: "module",
-				chosen: "mf-sales",
+				chosen: "sf-sales",
 				chosenLabel: "Sales",
 				options: [
-					{ id: "mf-logs", label: "Logs" },
-					{ id: "mf-sales", label: "Sales" },
+					{ id: "sf-logs", label: "Logs" },
+					{ id: "sf-sales", label: "Sales" },
 				],
 			},
 			{
@@ -577,7 +577,7 @@ describe("module routing", () => {
 	test("a module with no matches widens back to the whole catalog and says so", async () => {
 		const { orchestrator } = harness(
 			{
-				route: '{"intent":"function","module":"mf-geo","area":"leads"}',
+				route: '{"intent":"function","module":"sf-geo","area":"leads"}',
 				select: '{"id":"sales.leads.show"}',
 				args: "{}",
 			},
@@ -585,7 +585,7 @@ describe("module routing", () => {
 				...MODULAR,
 				listModules: () => [
 					...(MODULAR.listModules?.() ?? []),
-					{ id: "mf-geo", label: "Geo", count: 1 },
+					{ id: "sf-geo", label: "Geo", count: 1 },
 				],
 			},
 		);
@@ -595,7 +595,7 @@ describe("module routing", () => {
 		expect(plan).toMatchObject({ kind: "function", id: "sales.leads.show" });
 		expect((plan as { trail: { note?: string }[] }).trail?.[0]).toMatchObject({
 			step: "module",
-			chosen: "mf-geo",
+			chosen: "sf-geo",
 			note: "widened",
 		});
 	});
@@ -603,7 +603,7 @@ describe("module routing", () => {
 	test("a module the catalog does not have is ignored rather than obeyed", async () => {
 		const { orchestrator } = harness(
 			{
-				route: '{"intent":"function","module":"mf-invented","area":"leads"}',
+				route: '{"intent":"function","module":"sf-invented","area":"leads"}',
 				select: '{"id":"logs.hot.show"}',
 				args: "{}",
 			},

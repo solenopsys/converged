@@ -1,8 +1,8 @@
 /**
  * The production target: split the books into the two stores the site reads,
- * `struct-ms` for indexes and `markdown-ms` for the markdown itself.
+ * `rp-struct` for indexes and `rp-markdown` for the markdown itself.
  *
- * Index entries carry a bare `id`, never a path. `mf-docs` resolves a bare id
+ * Index entries carry a bare `id`, never a path. `sf-docs` resolves a bare id
  * against the folder its index came from, so bare ids keep the locale prefix
  * intact; an id containing a slash loses it and the markdown is never found.
  */

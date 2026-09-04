@@ -1,5 +1,5 @@
 {
-	"microservices": ["logs", "telemetry", "counters", "usage", "dashboard"],
-	"microfrontends": ["logs", "telemetry", "usage", "dasboards"],
+	"repositories": ["logs", "telemetry", "counters", "usage", "dashboard"],
+	"surfaces": ["logs", "telemetry", "usage", "dasboards"],
 	"dependencies": ["security"]
 }

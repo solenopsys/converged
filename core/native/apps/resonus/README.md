@@ -72,7 +72,7 @@ There is no direct service-store transport in the gate.
 - Service state: `resonus -> microservice API` with the request `scope`
   forwarded as `scope` and `workspace` headers.
 - Audio dump: on session close, the gate sends `calls.dumpAudioFragments` with
-  the array of Valkey/cache keys and fragment metadata. `ms-calls` reads the
+  the array of Valkey/cache keys and fragment metadata. `rp-calls` reads the
   cache entries through its `CacheAdapter`, writes the KVS fragment packet, and
   returns `{ received, stored, missing }`.
 

@@ -3,13 +3,13 @@ import type { Store } from "effector";
 import { translator } from "i18n";
 import { StatCard } from "../components/statcard/stat-card";
 import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
-import { useMicrofrontendTranslation } from "../i18n";
+import { useSurfaceTranslation } from "../i18n";
 import type { CardData } from "../components/statcard/types";
 
 const chrome = translator(CHAT_MESSAGES_NAMESPACE);
 
-export const StatCardView = (viewProps: { value: Store<number>; microfrontendId: string; pathCardConfig: string }) => {
-	const { t, loading } = useMicrofrontendTranslation(viewProps.microfrontendId);
+export const StatCardView = (viewProps: { value: Store<number>; surfaceId: string; pathCardConfig: string }) => {
+	const { t, loading } = useSurfaceTranslation(viewProps.surfaceId);
 	const value = useUnit(viewProps.value);
 
 	if (loading) {

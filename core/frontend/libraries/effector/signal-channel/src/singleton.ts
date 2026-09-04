@@ -5,7 +5,7 @@ declare global {
 	var __FUJIN_SIGNAL_CHANNEL_AUTOCONNECTED__: boolean | undefined;
 }
 
-// Bundles (microfrontends, the embeddable widget) can be evaluated
+// Bundles (surfaces, the embeddable widget) can be evaluated
 // independently on one page. Keep the transport instance on globalThis so
 // every bundle shares one physical socket.
 if (!globalThis.__FUJIN_SIGNAL_CHANNEL__) {

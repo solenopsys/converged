@@ -13,7 +13,7 @@ import type { DomainRef } from "./types";
 // So the list lives here, beside the registry, and changes only when something
 // is opened, dropped, or pushed out by age. Navigation does not touch it.
 //
-// It replaces the per-module variables that did this by hand — mf-audit kept a
+// It replaces the per-module variables that did this by hand — sf-audit kept a
 // `currentAuditId` set on mount and never cleared, so two open audits meant the
 // answers went to whichever mounted last.
 

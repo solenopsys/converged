@@ -9,13 +9,13 @@ describe("function argument step", () => {
 				listCategories: () => [],
 				listModules: () => [
 					{
-						id: "mf-sales",
+						id: "sf-sales",
 						label: "Sales",
 						count: 9,
 						description: "Show and select leads for campaigns",
 					},
 					{
-						id: "mf-mailing",
+						id: "sf-mailing",
 						label: "Mailing",
 						count: 7,
 						description: "Send mail and inspect delivery signals",
@@ -33,13 +33,13 @@ describe("function argument step", () => {
 
 		expect(sections).toEqual([
 			{
-				id: "mf-sales",
+				id: "sf-sales",
 				label: "Sales",
 				count: 9,
 				description: "Show and select leads for campaigns",
 			},
 			{
-				id: "mf-mailing",
+				id: "sf-mailing",
 				label: "Mailing",
 				count: 7,
 				description: "Send mail and inspect delivery signals",
@@ -51,12 +51,12 @@ describe("function argument step", () => {
 		const sales = {
 			id: "sales.leads.show",
 			brief: "Show leads",
-			module: "mf-sales",
+			module: "sf-sales",
 		};
 		const audit = {
 			id: "audit.answer.record",
 			brief: "Record an audit answer",
-			module: "mf-audit",
+			module: "sf-audit",
 			targetType: "audit.audit",
 			intent: "mutate" as const,
 		};
@@ -76,7 +76,7 @@ describe("function argument step", () => {
 				{
 					userText: "show leads",
 					area: "leads",
-					module: "mf-sales",
+					module: "sf-sales",
 					candidates: [],
 					focus: [
 						{ key: "audit.audit#a1", type: "audit.audit", label: "Audit" },
@@ -105,14 +105,14 @@ describe("function argument step", () => {
 		const functions = Array.from({ length: 50 }, (_, index) => ({
 			id: `sales.function.${index}`,
 			brief: `Sales function ${index}`,
-			module: "mf-sales",
+			module: "sf-sales",
 		}));
 		const steps = createFunctionSteps({
 			catalog: {
 				search: () => {
 					throw new Error("module routing must not call lexical search");
 				},
-				byModule: (module) => (module === "mf-sales" ? functions : []),
+				byModule: (module) => (module === "sf-sales" ? functions : []),
 				listCategories: () => [],
 				meta: () => undefined,
 				invoke: () => undefined,
@@ -123,7 +123,7 @@ describe("function argument step", () => {
 			{
 				userText: "create a lead group",
 				area: "lead group creation",
-				module: "mf-sales",
+				module: "sf-sales",
 				candidates: [],
 			},
 			undefined,
@@ -175,13 +175,13 @@ describe("function argument step", () => {
 		const fallback = {
 			id: "core.select:sales.lead",
 			brief: "Select leads",
-			module: "mf-sales",
+			module: "sf-sales",
 			approximate: true,
 		};
 		const audience = {
 			id: "core.execute:sales.audience",
 			brief: "Open lead audience manager",
-			module: "mf-sales",
+			module: "sf-sales",
 		};
 		const steps = createFunctionSteps({
 			catalog: {
@@ -199,7 +199,7 @@ describe("function argument step", () => {
 				{
 					userText: "create a saved lead selection for mailing",
 					area: "lead audience selection",
-					module: "mf-sales",
+					module: "sf-sales",
 					candidates: [],
 				},
 				undefined,

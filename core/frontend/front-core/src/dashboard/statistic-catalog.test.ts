@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, test } from "bun:test";
 import {
 	Category,
 	objectRegistry,
-	registerMicrofrontend,
+	registerSurface,
 	setOf,
 } from "front-core/object-runtime";
 import {
@@ -16,9 +16,9 @@ const LegacyStatsScreen = () => null;
 const CompaniesReadout = () => null;
 
 beforeAll(() => {
-	// A microfrontend split into blocks: one type per chart.
-	registerMicrofrontend({
-		id: "mf-companies",
+	// A surface split into blocks: one type per chart.
+	registerSurface({
+		id: "sf-companies",
 		types: [
 			{
 				id: "companies.statistic.summary",
@@ -48,9 +48,9 @@ beforeAll(() => {
 		operations: [],
 	});
 
-	// A microfrontend still on one statistics screen for the whole service.
-	registerMicrofrontend({
-		id: "mf-logs",
+	// A surface still on one statistics screen for the whole service.
+	registerSurface({
+		id: "sf-logs",
 		types: [
 			{
 				id: "logs.statistic",
@@ -69,8 +69,8 @@ beforeAll(() => {
 	});
 
 	// Declared but never imported: the index knows the type, not the component.
-	objectRegistry.declare("mf-sales", {
-		id: "mf-sales",
+	objectRegistry.declare("sf-sales", {
+		id: "sf-sales",
 		types: [
 			{
 				id: "sales.statistic",
@@ -84,18 +84,18 @@ beforeAll(() => {
 });
 
 describe("statistic catalog", () => {
-	test("groups statistic types into a section per microfrontend", () => {
+	test("groups statistic types into a section per surface", () => {
 		const sections = collectStatisticSections();
 		const owners = sections.map((section) => section.owner);
 
-		expect(owners).toContain("mf-companies");
-		expect(owners).toContain("mf-logs");
-		expect(owners).toContain("mf-sales");
+		expect(owners).toContain("sf-companies");
+		expect(owners).toContain("sf-logs");
+		expect(owners).toContain("sf-sales");
 	});
 
 	test("keeps non-statistic types out of the dashboard", () => {
 		const companies = collectStatisticSections().find(
-			(section) => section.owner === "mf-companies",
+			(section) => section.owner === "sf-companies",
 		);
 
 		expect(companies?.widgets.map((widget) => widget.typeId)).toEqual([
@@ -104,19 +104,19 @@ describe("statistic catalog", () => {
 		]);
 	});
 
-	test("reports whether a section's microfrontend is imported", () => {
+	test("reports whether a section's surface is imported", () => {
 		const sections = collectStatisticSections();
 		const loaded = (owner: string) =>
 			sections.find((section) => section.owner === owner)?.loaded;
 
-		expect(loaded("mf-companies")).toBe(true);
-		expect(loaded("mf-sales")).toBe(false);
+		expect(loaded("sf-companies")).toBe(true);
+		expect(loaded("sf-sales")).toBe(false);
 	});
 
 	test("mounts a declared chart with its declared props and size", () => {
 		const [byStatus, total] =
 			collectStatisticSections().find(
-				(section) => section.owner === "mf-companies",
+				(section) => section.owner === "sf-companies",
 			)?.widgets ?? [];
 
 		expect(resolveStatistic(total)).toEqual({
@@ -129,7 +129,7 @@ describe("statistic catalog", () => {
 
 	test("falls back to the service's own statistics view, full width", () => {
 		const [widget] =
-			collectStatisticSections().find((section) => section.owner === "mf-logs")
+			collectStatisticSections().find((section) => section.owner === "sf-logs")
 				?.widgets ?? [];
 		const mounted = resolveStatistic(widget);
 
@@ -142,9 +142,9 @@ describe("statistic catalog", () => {
 		});
 	});
 
-	test("mounts nothing until the owning microfrontend is imported", () => {
+	test("mounts nothing until the owning surface is imported", () => {
 		const [widget] =
-			collectStatisticSections().find((section) => section.owner === "mf-sales")
+			collectStatisticSections().find((section) => section.owner === "sf-sales")
 				?.widgets ?? [];
 
 		expect(resolveStatistic(widget)).toBeNull();
@@ -152,7 +152,7 @@ describe("statistic catalog", () => {
 
 	test("keeps the summary out of the block list", () => {
 		const companies = collectStatisticSections().find(
-			(section) => section.owner === "mf-companies",
+			(section) => section.owner === "sf-companies",
 		);
 
 		expect(companies?.summary?.typeId).toBe("companies.statistic.summary");
@@ -163,7 +163,7 @@ describe("statistic catalog", () => {
 
 	test("mounts the summary component for a collapsed section", () => {
 		const summary = collectStatisticSections().find(
-			(section) => section.owner === "mf-companies",
+			(section) => section.owner === "sf-companies",
 		)?.summary;
 
 		expect(resolveStatistic(summary!)?.Component).toBe(CompaniesReadout);
@@ -171,14 +171,14 @@ describe("statistic catalog", () => {
 
 	test("leaves services without a readout with no summary", () => {
 		const logs = collectStatisticSections().find(
-			(section) => section.owner === "mf-logs",
+			(section) => section.owner === "sf-logs",
 		);
 
 		expect(logs?.summary).toBeUndefined();
 	});
 
 	test("names a section after its module", () => {
-		expect(sectionLabel("mf-companies")).toBe("Companies");
-		expect(sectionLabel("mf-dag")).toBe("Dag");
+		expect(sectionLabel("sf-companies")).toBe("Companies");
+		expect(sectionLabel("sf-dag")).toBe("Dag");
 	});
 });

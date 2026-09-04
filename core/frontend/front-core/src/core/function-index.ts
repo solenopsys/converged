@@ -1,7 +1,7 @@
 import { registry } from "./registry";
-import type { MicrofrontendLlmCatalog } from "../llm-catalog";
+import type { SurfaceLlmCatalog } from "../llm-catalog";
 
-export type { MicrofrontendLlmCatalog } from "../llm-catalog";
+export type { SurfaceLlmCatalog } from "../llm-catalog";
 
 export type FunctionIndexEntry = {
 	id: string;
@@ -48,11 +48,11 @@ export function ingestFunctionIndex(index: FunctionIndexFile): void {
 	}
 }
 
-/** Registers the LLM manifest embedded in an individual microfrontend bundle. */
-export function ingestMicrofrontendLlmCatalog(
+/** Registers the LLM manifest embedded in an individual surface bundle. */
+export function ingestSurfaceLlmCatalog(
 	module: string,
 	brief: string,
-	catalog: MicrofrontendLlmCatalog,
+	catalog: SurfaceLlmCatalog,
 ): void {
 	ingestCatalog(module, brief, catalog, false);
 }
@@ -60,7 +60,7 @@ export function ingestMicrofrontendLlmCatalog(
 function ingestCatalog(
 	module: string,
 	brief: string,
-	catalog: MicrofrontendLlmCatalog,
+	catalog: SurfaceLlmCatalog,
 	authoritative: boolean,
 ): void {
 	moduleBriefs.set(module, brief);
@@ -81,14 +81,14 @@ export function moduleForAction(actionId: string): string | undefined {
 	const known = owners.get(actionId);
 	if (known) return known;
 	const domain = actionId.split(".", 1)[0]?.trim();
-	return domain ? `mf-${domain}` : undefined;
+	return domain ? `sf-${domain}` : undefined;
 }
 
 export function modules(): Array<{ module: string; brief: string }> {
 	return Array.from(moduleBriefs, ([module, brief]) => ({ module, brief }));
 }
 
-export async function loadFunctionIndex(url = "/mf/index.json"): Promise<void> {
+export async function loadFunctionIndex(url = "/sf/index.json"): Promise<void> {
 	try {
 		const response = await fetch(url);
 		if (!response.ok) {

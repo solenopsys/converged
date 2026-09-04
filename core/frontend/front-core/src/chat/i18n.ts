@@ -194,7 +194,7 @@ function activateChatLocale(language: string): void {
 }
 
 // The shell owns the active locale. Keep the older message catalog on that same
-// source of truth so changing language updates both shell chrome and MF views.
+// source of truth so changing language updates both shell chrome and SF views.
 $activeLocale.watch(activateChatLocale);
 
 export type MessagesReader = (path: string) => Promise<unknown>;

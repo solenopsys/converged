@@ -1,4 +1,4 @@
-import { microfrontends } from "./layout";
+import { surfaces } from "./layout";
 import { createImportMap, type ImportMap } from "../import-map";
 
 /**
@@ -7,13 +7,13 @@ import { createImportMap, type ImportMap } from "../import-map";
  * of preact, effector, the function catalog, or the WS transport can never
  * appear on the page.
  *
- * Microfrontends are resolved by name: `mf-functions` → `/mf/functions.js`.
- * The bundler doesn't need to know about them; `import("mf-functions")` works at runtime.
+ * Surfaces are resolved by name: `sf-functions` → `/sf/functions.js`.
+ * The bundler doesn't need to know about them; `import("sf-functions")` works at runtime.
  *
  * SSR reads the map too: it goes into the `<script type="importmap">` first,
  * before any `modulepreload` — otherwise the browser ignores it.
  */
-export const importMap = createImportMap(microfrontends);
+export const importMap = createImportMap(surfaces);
 export type { ImportMap };
 
 /**

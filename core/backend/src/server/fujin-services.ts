@@ -1,4 +1,4 @@
-// Lazily builds the ONE messaging connection back-core's microservices share
+// Lazily builds the ONE messaging connection back-core's modules share
 // to register one `services` target with Fujin, in addition to the HTTP routes
 // createHttpBackend already sets up (see createServer.ts, which threads this
 // runtime into every plugin's PluginOptions.messagingRuntime — http-backend.ts
@@ -41,7 +41,7 @@ export function getMsMessagingRuntime(): NrpcMessagingRuntime | undefined {
 		if (!warnedMissingEndpoint) {
 			warnedMissingEndpoint = true;
 			console.log(
-				"[back-core] FUJIN_ZMQ_ENDPOINT not set — microservices stay HTTP-only, no fujin registration",
+				"[back-core] FUJIN_ZMQ_ENDPOINT not set — backend modules stay HTTP-only, no fujin registration",
 			);
 		}
 		return undefined;
@@ -69,7 +69,7 @@ export function getMsMessagingRuntime(): NrpcMessagingRuntime | undefined {
  * Server-to-service calls always use Fujin's ZMQ NRPC transport — the UI auth
  * gateway and every microservice-to-microservice call go through here instead
  * of an HTTP services port. Requests carry the process SERVICE_TOKEN, which is
- * what `internal` methods (all of ms-auth's session flows) require.
+ * what `internal` methods (all of rp-auth's session flows) require.
  *
  * `target` is the destination connection target; service selection happens in
  * that process from `Envelope.to.service`.

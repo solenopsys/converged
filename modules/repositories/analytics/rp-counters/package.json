@@ -1,0 +1,14 @@
+{
+	"name": "rp-counters",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"dependencies": {
+		"back-core": "workspace:*",
+		"g-counters": "workspace:*",
+		"nrpc": "workspace:*"
+	}
+}

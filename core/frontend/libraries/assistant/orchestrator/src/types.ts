@@ -15,7 +15,7 @@ export type FunctionBrief = {
 	description?: string;
 	category?: string;
 	priority?: "primary" | "normal" | "secondary";
-	/** Owning module — the first level the flow chooses (`mf-sales`, `workflows`). */
+	/** Owning module — the first level the flow chooses (`sf-sales`, `workflows`). */
 	module?: string;
 	/** Human name of that module; travels with the function so no second registry is needed. */
 	moduleLabel?: string;
@@ -112,7 +112,7 @@ export type OneShotAsk = (input: {
 	tools: ToolSpec[];
 }) => Promise<StepAnswer>;
 
-/** Step instructions live in ms-contexts, one section per step (§4.3). */
+/** Step instructions live in rp-contexts, one section per step (§4.3). */
 export type StepPrompt = (step: string) => Promise<string | undefined>;
 
 /**

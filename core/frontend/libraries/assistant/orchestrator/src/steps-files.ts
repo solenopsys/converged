@@ -17,7 +17,7 @@ import type { PlanContext, Step, StepAnswer, ToolSpec } from "./types";
 //
 // The module is domain-free. What an intent means — which catalog function it
 // runs, how files become an argument — is configuration the host supplies, and
-// the wording that decides between intents is a `files` section in ms-contexts,
+// the wording that decides between intents is a `files` section in rp-contexts,
 // like every other step's prompt. Without that section the step asks nothing
 // and the turn falls through to the ordinary flow.
 
@@ -46,7 +46,7 @@ export type FilesStepOptions = {
 	files: () => TurnFile[];
 	/** Intent name (what the model answers) -> what it runs. */
 	intents: Record<string, FilesIntent>;
-	/** Overrides the step name, and with it the ms-contexts section it reads. */
+	/** Overrides the step name, and with it the rp-contexts section it reads. */
 	name?: string;
 };
 

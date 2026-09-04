@@ -26,7 +26,7 @@
   }
 
   // The node cache lives on the host side: it owns the key shape, the cleanup
-  // of a finished run and the per-node bookkeeping ms-dag records.
+  // of a finished run and the per-node bookkeeping rp-dag records.
   function cachedOutcome(name) {
     var res = host({ op: "nodeGet", node: String(name) });
     if (!res.ok) throw new Error(res.error || "rt: node cache read failed");

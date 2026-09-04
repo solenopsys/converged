@@ -5,7 +5,7 @@
  * library, a tool, the project root. It is recognised by its contents, not its
  * location:
  *
- *   <owner>/docs/<section>/index.json   entries, struct-ms format
+ *   <owner>/docs/<section>/index.json   entries, rp-struct format
  *   <owner>/docs/<section>/<id>.md      one file per entry
  *   <owner>/docs/<section>/meta.json    optional, group heading
  *
@@ -91,7 +91,7 @@ function walk(dir: string, found: string[]): void {
 
 /**
  * Names a docs root by the directory that owns it. Two owners can share a
- * basename — `content/mf-docs` and `ai/mf-docs` would — so a clashing name
+ * basename — `content/sf-docs` and `ai/sf-docs` would — so a clashing name
  * grows leftwards until it is unique.
  */
 function nameRoots(paths: { path: string; project: string }[]): DocsRoot[] {

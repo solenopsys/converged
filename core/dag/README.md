@@ -44,7 +44,7 @@ const js = await buildWorkflow("modules/workflows/wf-files-process/index.ts");
 ```
 
 Собранную строку centimanus забирает сам по HTTP: `listAvailableWorkflows`
-(ms-dag) отдаёт для `script` его `sourceUrl`, а `workflow_registry.zig` его
+(rp-dag) отдаёт для `script` его `sourceUrl`, а `workflow_registry.zig` его
 скачивает. В dev адрес выдаёт `core/tools/dev/src/workflows.ts` — он пересобирает
 исходник на каждый запрос, так что правка workflow видна без рестарта; в кластере
 это прокси ptah по дайджесту из `registry.workflows`.

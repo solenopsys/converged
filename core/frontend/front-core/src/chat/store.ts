@@ -37,7 +37,7 @@ export type CatalogEntryView = {
 	description?: string;
 	category?: string;
 	priority?: "primary" | "normal" | "secondary";
-	/** Owning microfrontend, and its human name — the catalog's first level. */
+	/** Owning surface, and its human name — the catalog's first level. */
 	module?: string;
 	moduleLabel?: string;
 	targetType?: string;
@@ -253,7 +253,7 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 				files: turnFiles,
 				intents: {
 					request: {
-						// The operation mf-requests publishes through the object
+						// The operation sf-requests publishes through the object
 						// resolver; it starts the analysis once the request exists.
 						id: "core.create:requests.request",
 						brief: "these files are something to manufacture",

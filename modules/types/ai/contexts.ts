@@ -1,6 +1,6 @@
-// ms-contexts — the single, utilitarian owner of LLM contexts (the prompt +
+// rp-contexts — the single, utilitarian owner of LLM contexts (the prompt +
 // language an assistant / voice gate / agent runs with). Other services
-// (ms-assistant, ms-agent, resonus, landing) only READ contexts from
+// (rp-assistant, resonus, landing) only READ contexts from
 // here; they do not store their own.
 // Storage key is `<language>/<name>` — one file per language, SAME name across
 // languages (e.g. en/request, ru/request). Consumers read by (name, language).

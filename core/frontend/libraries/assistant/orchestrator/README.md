@@ -33,7 +33,7 @@ The machine is generic over `Context` and only depends on these shapes:
 | Port | Shape | Purpose |
 |---|---|---|
 | `OneShotAsk` | `(step, system, user, tier, tools) => Promise<StepAnswer>` | One instruction, one utterance, no history. Talks to the gateway. |
-| `StepPrompt` | `(step: string) => Promise<string \| undefined>` | Fetches a step's system prompt from ms-contexts, one section per step. |
+| `StepPrompt` | `(step: string) => Promise<string \| undefined>` | Fetches a step's system prompt from rp-contexts, one section per step. |
 | `OrchestratorCatalog` | `search / listCategories / meta / invoke / load?` | The host's function registry. Kernel sees ids, briefs, and facts — never views or components. |
 | `Tier` | `"fast" \| "heavy" \| string` | Names a model *entity*, not a vendor model; the gateway resolves it to a pool, so one turn can mix models. |
 
@@ -180,7 +180,7 @@ and the only place the machine's abstract `ask` port touches a wire protocol.
            │                          │                        │
            ▼                          ▼                        ▼
   ┌──────────────────┐      ┌──────────────────┐     ┌──────────────────────┐
-  │ resonus-session.ts │      │   ms-contexts     │     │  host function        │
+  │ resonus-session.ts │      │   rp-contexts     │     │  host function        │
   │ session.open/bind  │      │ (per-step system  │     │  registry (search /   │
   │ message.put        │      │  prompt sections) │     │  meta / invoke /      │
   │ context.create      │      └──────────────────┘     │  load)                │

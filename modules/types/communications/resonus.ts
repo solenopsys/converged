@@ -82,7 +82,7 @@ export type ResonusLlmProviderConfig = {
 	model: string;
 	voice?: string;
 	transcriptionModel?: string;
-	// Secret material stays in ms-secrets; this record stores only its key.
+	// Secret material stays in lm-secrets; this record stores only its key.
 	secretRef?: string;
 	enabled?: boolean;
 	priority?: number;

@@ -4,562 +4,534 @@ This index is generated from the Converged module registry. Every entry links to
 
 ## Access and security
 
-### [mf-auth](/en/docs/modules/mf-auth)
-
-Owns Auth UI: sign-in/sign-up/reset flows, session/security screens, and authentication guard/redirect UX behavior.
-
-- Direct dependencies: none
-- Solutions: `security`
-
-### [mf-secrets](/en/docs/modules/mf-secrets)
-
-Provides the administration interface for creating, viewing, updating, and deleting named secret records.
-
-- Direct dependencies: none
-- Solutions: none
-
-### [ms-access](/en/docs/modules/ms-access)
-
-Manages access-control rules and permission checks.
-
-- Direct dependencies: none
-- Solutions: `security`
-
-### [ms-auth](/en/docs/modules/ms-auth)
-
-Handles authentication workflows and credential/session validation.
-
-- Direct dependencies: none
-- Solutions: `security`
-
-### [ms-environment](/en/docs/modules/ms-environment)
-
-Stores and retrieves environment configuration associated with platform users.
-
-- Direct dependencies: none
-- Solutions: none
-
-### [ms-identity](/en/docs/modules/ms-identity)
-
-Maintains identity profiles and identity-linked core attributes.
-
-- Direct dependencies: none
-- Solutions: `security`
-
-### [ms-oauth](/en/docs/modules/ms-oauth)
-
-Implements OAuth-specific authorization flows and provider handshakes.
-
-- Direct dependencies: none
-- Solutions: `security`
-
-### [ms-secrets](/en/docs/modules/ms-secrets)
+### [lm-secrets](/en/docs/modules/lm-secrets)
 
 Provides the service contract for storing, retrieving, and deleting named secret values.
 
 - Direct dependencies: none
 - Solutions: none
 
-## AI and agents
+### [rp-access](/en/docs/modules/rp-access)
 
-### [mf-agents](/en/docs/modules/mf-agents)
-
-Owns AI Agents UI: agent catalog/list pages, agent config forms, run/trigger controls, and execution status panels.
+rp-access is a repository in the sequrity domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
-- Solutions: `ai`
+- Solutions: `security`
 
-### [mf-assistants](/en/docs/modules/mf-assistants)
+### [rp-auth](/en/docs/modules/rp-auth)
 
-Owns Assistants UI: assistant chat/workspace views, assistant configuration panels, and assistant session interaction components.
-
-- Direct dependencies: `mf-requests`
-- Solutions: `ai`
-
-### [mf-contexts](/en/docs/modules/mf-contexts)
-
-Provides the AI workspace for listing, editing, and saving named contexts in multiple languages.
+rp-auth is a repository in the sequrity domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
-- Solutions: `ai`
+- Solutions: `security`
 
-### [mf-functions](/en/docs/modules/mf-functions)
+### [rp-environment](/en/docs/modules/rp-environment)
 
-Provides the AI workspace for browsing, searching, registering, and executing function definitions.
+Stores and retrieves environment configuration associated with platform users.
 
 - Direct dependencies: none
 - Solutions: none
 
-### [ms-agent](/en/docs/modules/ms-agent)
+### [rp-identity](/en/docs/modules/rp-identity)
 
-Runs autonomous AI-agent workflows and orchestrates multi-step LLM tasks.
+rp-identity is a repository in the sequrity domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: none
+- Solutions: `security`
+
+### [rp-oauth](/en/docs/modules/rp-oauth)
+
+rp-oauth is a repository in the sequrity domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: none
+- Solutions: none
+
+### [sf-auth](/en/docs/modules/sf-auth)
+
+sf-auth is a surface in the sequrity domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: none
+- Solutions: `security`
+
+### [sf-secrets](/en/docs/modules/sf-secrets)
+
+Provides the administration interface for creating, viewing, updating, and deleting named secret records.
+
+- Direct dependencies: none
+- Solutions: none
+
+## AI and agents
+
+### [rp-assistant](/en/docs/modules/rp-assistant)
+
+rp-assistant is a repository in the ai domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
 - Solutions: `ai`
 
-### [ms-assistant](/en/docs/modules/ms-assistant)
-
-Provides assistant-style AI interactions for end users and internal tools.
-
-- Direct dependencies: none
-- Solutions: `ai`
-
-### [ms-contexts](/en/docs/modules/ms-contexts)
+### [rp-contexts](/en/docs/modules/rp-contexts)
 
 Provides storage and retrieval of named AI contexts, including their language variants.
 
 - Direct dependencies: none
 - Solutions: `ai`
 
-### [ms-functions](/en/docs/modules/ms-functions)
+### [sf-assistants](/en/docs/modules/sf-assistants)
 
-Provides the registry and search surface for callable AI function definitions and their embeddings.
+sf-assistants is a surface in the ai domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: `sf-requests`
+- Solutions: `ai`
+
+### [sf-contexts](/en/docs/modules/sf-contexts)
+
+Provides the AI workspace for listing, editing, and saving named contexts in multiple languages.
 
 - Direct dependencies: none
-- Solutions: none
+- Solutions: `ai`
 
 ## Analytics and telemetry
 
-### [mf-dasboards](/en/docs/modules/mf-dasboards)
-
-Owns Analytics Dashboard UI: overview dashboards, KPI cards, trend charts, and dashboard-level filters/date ranges.
-
-- Direct dependencies: none
-- Solutions: none
-
-### [mf-logs](/en/docs/modules/mf-logs)
-
-Owns Logs UI: log stream/table views, log search/filter controls, and log detail drill-down panels for operators.
-
-- Direct dependencies: none
-- Solutions: `analitycs`
-
-### [mf-telemetry](/en/docs/modules/mf-telemetry)
-
-Owns Telemetry UI: technical signal views, metrics graphs, event timelines, and service-health visual components.
-
-- Direct dependencies: none
-- Solutions: `analitycs`
-
-### [mf-usage](/en/docs/modules/mf-usage)
-
-Owns Usage UI: feature-consumption charts, usage counters, quota/limit displays, and usage period comparison screens.
-
-- Direct dependencies: none
-- Solutions: `analitycs`
-
-### [ms-counters](/en/docs/modules/ms-counters)
+### [rp-counters](/en/docs/modules/rp-counters)
 
 Provides the service contract for collecting and querying analytical counters.
 
 - Direct dependencies: none
 - Solutions: `analitycs`
 
-### [ms-dashboard](/en/docs/modules/ms-dashboard)
+### [rp-dashboard](/en/docs/modules/rp-dashboard)
 
 Provides dashboard data and analytical views for platform metrics.
 
 - Direct dependencies: none
-- Solutions: none
+- Solutions: `analitycs`
 
-### [ms-logs](/en/docs/modules/ms-logs)
+### [rp-logs](/en/docs/modules/rp-logs)
 
-Collects and stores operational logs for platform services.
+rp-logs is a repository in the analytics domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
 - Solutions: `analitycs`
 
-### [ms-telemetry](/en/docs/modules/ms-telemetry)
+### [rp-telemetry](/en/docs/modules/rp-telemetry)
 
-Captures telemetry events and technical health signals from services.
+rp-telemetry is a repository in the analytics domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
 - Solutions: `analitycs`
 
-### [ms-usage](/en/docs/modules/ms-usage)
+### [rp-usage](/en/docs/modules/rp-usage)
 
-Tracks usage counters and consumption metrics for product features.
+rp-usage is a repository in the analytics domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: none
+- Solutions: `analitycs`
+
+### [sf-dasboards](/en/docs/modules/sf-dasboards)
+
+sf-dasboards is a surface in the analytics domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: none
+- Solutions: `analitycs`
+
+### [sf-logs](/en/docs/modules/sf-logs)
+
+sf-logs is a surface in the analytics domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: none
+- Solutions: `analitycs`
+
+### [sf-telemetry](/en/docs/modules/sf-telemetry)
+
+sf-telemetry is a surface in the analytics domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: none
+- Solutions: `analitycs`
+
+### [sf-usage](/en/docs/modules/sf-usage)
+
+sf-usage is a surface in the analytics domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
 - Solutions: `analitycs`
 
 ## Automation and orchestration
 
-### [mf-dag](/en/docs/modules/mf-dag)
-
-Owns DAG Automation UI: workflow graph editor/viewer, node/link configuration dialogs, and run-status monitoring screens.
-
-- Direct dependencies: none
-- Solutions: none
-
-### [mf-sheduller](/en/docs/modules/mf-sheduller)
-
-Owns Scheduler UI: recurring job configuration pages, schedule calendars/tables, and job run history/next-run indicators.
-
-- Direct dependencies: none
-- Solutions: none
-
-### [mf-webhooks](/en/docs/modules/mf-webhooks)
-
-Owns Webhooks UI: webhook endpoint list/forms, event subscription settings, delivery history, and retry controls.
-
-- Direct dependencies: none
-- Solutions: none
-
-### [ms-dag](/en/docs/modules/ms-dag)
-
-Executes DAG-based automation pipelines and dependency-aware jobs.
-
-- Direct dependencies: none
-- Solutions: `requests`
-
-### [ms-kubernetes](/en/docs/modules/ms-kubernetes)
+### [lm-kubernetes](/en/docs/modules/lm-kubernetes)
 
 Integrates platform automation with Kubernetes resources through a dedicated client and service contract.
 
 - Direct dependencies: none
 - Solutions: none
 
-### [ms-sheduller](/en/docs/modules/ms-sheduller)
+### [rp-dag](/en/docs/modules/rp-dag)
 
-Stores and serves automation schedule data and execution history.
+rp-dag is a repository in the automation domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: none
+- Solutions: `requests`
+
+### [rp-sheduller](/en/docs/modules/rp-sheduller)
+
+rp-sheduller is a repository in the automation domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
 - Solutions: none
 
-### [ms-webhooks](/en/docs/modules/ms-webhooks)
+### [rp-webhooks](/en/docs/modules/rp-webhooks)
 
-Receives and dispatches webhook events for external integrations.
+rp-webhooks is a repository in the automation domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: none
+- Solutions: none
+
+### [sf-dag](/en/docs/modules/sf-dag)
+
+sf-dag is a surface in the automation domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: none
+- Solutions: none
+
+### [sf-sheduller](/en/docs/modules/sf-sheduller)
+
+sf-sheduller is a surface in the automation domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: none
+- Solutions: none
+
+### [sf-webhooks](/en/docs/modules/sf-webhooks)
+
+sf-webhooks is a surface in the automation domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
 - Solutions: none
 
 ## Business domain
 
-### [mf-orders](/en/docs/modules/mf-orders)
+### [rp-billing](/en/docs/modules/rp-billing)
 
-Provides the sales interface for order and request lists, order details, status filtering, and operational dashboards.
-
-- Direct dependencies: none
-- Solutions: none
-
-### [mf-requests](/en/docs/modules/mf-requests)
-
-Owns Requests UI: request inbox/list screens, request detail/timeline views, and request status/action forms.
-
-- Direct dependencies: none
-- Solutions: `requests`
-
-### [ms-billing](/en/docs/modules/ms-billing)
-
-Handles billing domain operations such as plans, charges, and billing state.
+rp-billing is a repository in the business domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
 - Solutions: none
 
-### [ms-equipment](/en/docs/modules/ms-equipment)
+### [rp-equipment](/en/docs/modules/rp-equipment)
 
-Manages equipment entities, metadata, and related lifecycle operations.
+rp-equipment is a repository in the business domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
 - Solutions: none
 
-### [ms-events](/en/docs/modules/ms-events)
+### [rp-events](/en/docs/modules/rp-events)
 
 Provides creation, storage, and retrieval of business events.
 
 - Direct dependencies: none
 - Solutions: none
 
-### [ms-finance](/en/docs/modules/ms-finance)
+### [rp-finance](/en/docs/modules/rp-finance)
 
 Provides finance operations for transactions, period summaries, cashflow, receivables, and payables.
 
 - Direct dependencies: none
 - Solutions: none
 
-### [ms-orders](/en/docs/modules/ms-orders)
+### [rp-orders](/en/docs/modules/rp-orders)
 
 Provides the service contract for creating, updating, listing, and tracking business orders.
 
 - Direct dependencies: none
 - Solutions: none
 
-### [ms-requests](/en/docs/modules/ms-requests)
+### [rp-requests](/en/docs/modules/rp-requests)
 
-Processes service/business requests submitted by users or organizations.
+rp-requests is a repository in the business domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
 - Solutions: `requests`
 
-### [ms-reviews](/en/docs/modules/ms-reviews)
+### [rp-reviews](/en/docs/modules/rp-reviews)
 
-Stores and manages user or partner reviews and moderation-related metadata.
-
-- Direct dependencies: none
-- Solutions: none
-
-### [ms-sales](/en/docs/modules/ms-sales)
-
-Handles sales-domain entities, sales flows, and related metrics preparation.
+rp-reviews is a repository in the business domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
 - Solutions: none
 
-### [ms-staff](/en/docs/modules/ms-staff)
+### [rp-sales](/en/docs/modules/rp-sales)
 
-Manages staff records, roles, and staff-centric domain operations.
+rp-sales is a repository in the business domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
 - Solutions: none
+
+### [rp-staff](/en/docs/modules/rp-staff)
+
+rp-staff is a repository in the business domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: none
+- Solutions: none
+
+### [sf-orders](/en/docs/modules/sf-orders)
+
+Provides the sales interface for order and request lists, order details, status filtering, and operational dashboards.
+
+- Direct dependencies: none
+- Solutions: none
+
+### [sf-requests](/en/docs/modules/sf-requests)
+
+sf-requests is a surface in the business domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: none
+- Solutions: `requests`
 
 ## Communications
 
-### [mf-calls](/en/docs/modules/mf-calls)
+### [rp-calls](/en/docs/modules/rp-calls)
 
-Owns Calls UI: call session screens, call controls, call participant/status panels, and call history presentation widgets.
-
-- Direct dependencies: none
-- Solutions: `ai`
-
-### [mf-chats](/en/docs/modules/mf-chats)
-
-Owns Charts UI: reusable communication/report chart widgets, chart configuration controls, and chart drill-down interactions.
+rp-calls is a repository in the communications domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
 - Solutions: `ai`
 
-### [mf-community](/en/docs/modules/mf-community)
+### [rp-chats](/en/docs/modules/rp-chats)
 
-Owns Community UI: community feed/list pages, community post/detail views, and moderation/community action controls.
+rp-chats is a repository in the communications domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
 - Solutions: none
 
-### [mf-threads](/en/docs/modules/mf-threads)
+### [rp-community](/en/docs/modules/rp-community)
 
-Owns Threads UI: threaded conversation lists, thread detail panels, reply composers, and thread state indicators.
-
-- Direct dependencies: none
-- Solutions: `ai`
-
-### [ms-calls](/en/docs/modules/ms-calls)
-
-Provides call-related communication workflows and call session handling.
-
-- Direct dependencies: none
-- Solutions: `ai`
-
-### [ms-chats](/en/docs/modules/ms-chats)
-
-Generates and serves chart-oriented communication or reporting artifacts.
-
-- Direct dependencies: none
-- Solutions: `ai`
-
-### [ms-community](/en/docs/modules/ms-community)
-
-Supports community-level interactions and social communication features.
+rp-community is a repository in the communications domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
 - Solutions: none
 
-### [ms-notify](/en/docs/modules/ms-notify)
+### [rp-notify](/en/docs/modules/rp-notify)
 
-Coordinates notification workflows across channels.
+rp-notify is a repository in the communications domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
 - Solutions: none
 
-### [ms-resonus](/en/docs/modules/ms-resonus)
+### [rp-resonus](/en/docs/modules/rp-resonus)
 
 Provides communication configuration for managed phone numbers and LLM gate settings.
 
 - Direct dependencies: none
 - Solutions: none
 
-### [ms-threads](/en/docs/modules/ms-threads)
+### [rp-threads](/en/docs/modules/rp-threads)
 
-Manages threaded conversations and related message context.
+rp-threads is a repository in the communications domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: none
+- Solutions: `ai`
+
+### [sf-calls](/en/docs/modules/sf-calls)
+
+sf-calls is a surface in the communications domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: none
+- Solutions: `ai`
+
+### [sf-chats](/en/docs/modules/sf-chats)
+
+sf-chats is a surface in the communications domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: none
+- Solutions: none
+
+### [sf-community](/en/docs/modules/sf-community)
+
+sf-community is a surface in the communications domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: none
+- Solutions: none
+
+### [sf-threads](/en/docs/modules/sf-threads)
+
+sf-threads is a surface in the communications domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
 - Solutions: `ai`
 
 ## Content and documents
 
-### [mf-classifier](/en/docs/modules/mf-classifier)
+### [rp-classifier](/en/docs/modules/rp-classifier)
 
-Provides the classifier interface for navigating entities, mappings, and tree structures.
-
-- Direct dependencies: none
-- Solutions: none
-
-### [mf-docs](/en/docs/modules/mf-docs)
-
-Owns Docs UI: document browsing, document detail views, editing/preview interfaces, and documentation navigation components.
-
-- Direct dependencies: none
-- Solutions: `content`
-
-### [mf-galery](/en/docs/modules/mf-galery)
-
-Owns Gallery UI: media gallery grids, media preview/detail views, gallery organization controls, and gallery filtering/search.
-
-- Direct dependencies: none
-- Solutions: `content`
-
-### [mf-landing](/en/docs/modules/mf-landing)
-
-Owns Landing UI: landing pages, hero/section composition, and public-facing content presentation blocks.
-
-- Direct dependencies: none
-- Solutions: `content`
-
-### [mf-markdown](/en/docs/modules/mf-markdown)
-
-Owns Markdown UI: markdown editor surfaces, live preview panels, markdown content formatting controls, and publish-ready views.
-
-- Direct dependencies: none
-- Solutions: `content`
-
-### [mf-scripts](/en/docs/modules/mf-scripts)
-
-Provides the content interface for listing, reading, editing, saving, and deleting script files.
+rp-classifier is a repository in the content domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
 - Solutions: none
 
-### [mf-static](/en/docs/modules/mf-static)
+### [rp-galery](/en/docs/modules/rp-galery)
 
-Provides the operations interface for inspecting and clearing static SSR cache entries.
-
-- Direct dependencies: none
-- Solutions: none
-
-### [mf-struct](/en/docs/modules/mf-struct)
-
-Owns Structured Content UI: schema-driven content forms, structured block editors, and structured content preview/validation views.
+rp-galery is a repository in the content domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
 - Solutions: `content`
 
-### [ms-classifier](/en/docs/modules/ms-classifier)
+### [rp-markdown](/en/docs/modules/rp-markdown)
 
-Classifies incoming content/items into categories, labels, or intents.
-
-- Direct dependencies: none
-- Solutions: none
-
-### [ms-galery](/en/docs/modules/ms-galery)
-
-Manages gallery-style media collections and related metadata.
+rp-markdown is a repository in the content domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
 - Solutions: `content`
 
-### [ms-markdown](/en/docs/modules/ms-markdown)
-
-Processes markdown content, rendering/transformation workflows, and related APIs.
-
-- Direct dependencies: none
-- Solutions: `content`
-
-### [ms-scripts](/en/docs/modules/ms-scripts)
+### [rp-scripts](/en/docs/modules/rp-scripts)
 
 Provides storage operations for script files, including reading, saving, hashing, and deletion.
 
 - Direct dependencies: none
 - Solutions: none
 
-### [ms-static](/en/docs/modules/ms-static)
+### [rp-static](/en/docs/modules/rp-static)
 
 Provides the service contract for static content and SSR cache metadata.
 
 - Direct dependencies: none
 - Solutions: none
 
-### [ms-struct](/en/docs/modules/ms-struct)
+### [rp-struct](/en/docs/modules/rp-struct)
 
-Builds and serves structured content representations used by other services.
+rp-struct is a repository in the content domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
 - Solutions: `content`
 
+### [sf-classifier](/en/docs/modules/sf-classifier)
+
+Provides the classifier interface for navigating entities, mappings, and tree structures.
+
+- Direct dependencies: none
+- Solutions: none
+
+### [sf-docs](/en/docs/modules/sf-docs)
+
+sf-docs is a surface in the content domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: none
+- Solutions: none
+
+### [sf-galery](/en/docs/modules/sf-galery)
+
+sf-galery is a surface in the content domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: none
+- Solutions: none
+
+### [sf-landing](/en/docs/modules/sf-landing)
+
+sf-landing is a surface in the content domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: none
+- Solutions: none
+
+### [sf-markdown](/en/docs/modules/sf-markdown)
+
+sf-markdown is a surface in the content domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: none
+- Solutions: none
+
+### [sf-static](/en/docs/modules/sf-static)
+
+Provides the operations interface for inspecting and clearing static SSR cache entries.
+
+- Direct dependencies: none
+- Solutions: none
+
+### [sf-struct](/en/docs/modules/sf-struct)
+
+sf-struct is a surface in the content domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: none
+- Solutions: none
+
 ## Files and storage
 
-### [mf-dumps](/en/docs/modules/mf-dumps)
+### [lm-compressors](/en/docs/modules/lm-compressors)
 
-Owns Data Dumps UI: export/dump creation forms, dump history tables, download actions, and dump status/progress indicators.
-
-- Direct dependencies: none
-- Solutions: none
-
-### [ms-compressors](/en/docs/modules/ms-compressors)
-
-ms-compressors is a microservice in the data domain. Its detailed purpose is maintained with the module source.
+lm-compressors is a lambda in the data domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
 - Solutions: `requests`
 
-### [ms-dumps](/en/docs/modules/ms-dumps)
+### [rp-dumps](/en/docs/modules/rp-dumps)
 
-Creates and manages data dumps/export snapshots.
+rp-dumps is a repository in the data domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
 - Solutions: none
 
-### [ms-files](/en/docs/modules/ms-files)
+### [rp-files](/en/docs/modules/rp-files)
 
-Provides file metadata APIs and file-management workflows.
+rp-files is a repository in the data domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
 - Solutions: `requests`
 
-### [ms-store](/en/docs/modules/ms-store)
+### [rp-store](/en/docs/modules/rp-store)
 
-Implements generic storage-domain operations for service data.
+rp-store is a repository in the data domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: none
+- Solutions: `requests`
+
+### [sf-dumps](/en/docs/modules/sf-dumps)
+
+sf-dumps is a surface in the data domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: none
+- Solutions: none
+
+### [sf-files](/en/docs/modules/sf-files)
+
+sf-files is a surface in the data domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
 - Solutions: `requests`
 
 ## Message delivery providers
 
-### [ms-push](/en/docs/modules/ms-push)
+### [lm-push](/en/docs/modules/lm-push)
 
-Provider adapter for push-notification delivery.
+lm-push is a lambda in the providers domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
 - Solutions: none
 
-### [ms-ses](/en/docs/modules/ms-ses)
+### [lm-ses](/en/docs/modules/lm-ses)
 
-Provider adapter for AWS SES email delivery.
+lm-ses is a lambda in the providers domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
 - Solutions: `security`
 
-### [ms-sms](/en/docs/modules/ms-sms)
+### [lm-sms](/en/docs/modules/lm-sms)
 
-Provider adapter for SMS delivery channels.
+lm-sms is a lambda in the providers domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
 - Solutions: none
 
-### [ms-smtp](/en/docs/modules/ms-smtp)
+### [lm-smtp](/en/docs/modules/lm-smtp)
 
-Provider adapter for SMTP-based email delivery.
+lm-smtp is a lambda in the providers domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
 - Solutions: none
 
 ## Model conversion
 
-### [ms-modelconvertor](/en/docs/modules/ms-modelconvertor)
+### [lm-modelconvertor](/en/docs/modules/lm-modelconvertor)
 
-Converts models/data formats between internal and external representations.
+lm-modelconvertor is a lambda in the convertors domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
-- Solutions: none
+- Solutions: `requests`
 
 ## Workflows
 
@@ -575,7 +547,7 @@ Summarizes unprocessed chat and call dialogues with an LLM, then stores titles, 
 Analyzes one stored non-archive file, producing model previews and CNC or 3D-print estimates when supported.
 
 - Direct dependencies: none
-- Solutions: none
+- Solutions: `requests`
 
 ### [wf-file-unpack](/en/docs/modules/wf-file-unpack)
 
@@ -584,9 +556,23 @@ Expands one uploaded archive into a collection of stored files for subsequent an
 - Direct dependencies: none
 - Solutions: `requests`
 
+### [wf-files-analyze](/en/docs/modules/wf-files-analyze)
+
+wf-files-analyze is a workflow in the platform domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: none
+- Solutions: `requests`
+
 ### [wf-files-process](/en/docs/modules/wf-files-process)
 
 Processes uploaded files in batches: it expands archives, identifies model files, and creates a manufacturing request from them.
+
+- Direct dependencies: none
+- Solutions: `requests`
+
+### [wf-request-analyze](/en/docs/modules/wf-request-analyze)
+
+wf-request-analyze is a workflow in the platform domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
 - Solutions: `requests`

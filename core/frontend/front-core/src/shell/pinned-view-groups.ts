@@ -6,7 +6,7 @@ export type PinnedViewGroup = {
 };
 
 function tagForOwner(owner: string): string {
-	return owner.replace(/^(mf|ms)-/, "") || "workspace";
+	return owner.replace(/^(sf|ms)-/, "") || "workspace";
 }
 
 export function groupPinnedViews(

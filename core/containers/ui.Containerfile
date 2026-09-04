@@ -1,10 +1,10 @@
-# The UI image: SSR host, the SPA shell, microfrontend bundles and static assets.
+# The UI image: SSR host, the SPA shell, surface bundles and static assets.
 #
 # Two stages, and only the second one ships. The builder holds the checkout and
 # the workspace `node_modules`; the runtime gets the bundled landing host, the
 # client delivery and the static assets it serves. Nothing else crosses.
 #
-# There are no microfrontends in this image. Each is built once by
+# There are no surfaces in this image. Each is built once by
 # `core/tools/registry` with its own CSS packed inside, published by digest, and
 # served from ptah — the import map the browser receives is composed at runtime
 # from `FRONTEND_MODULES`, so one image serves every solution and a module rolls
@@ -41,14 +41,14 @@ RUN cd /build/converged/core/frontend/libraries/files/store-workers \
     && bun run src/tools/build.ts
 
 # The client delivery: the shell, the vendor layer, the base style layer and
-# the installable layer. `MICROFRONTENDS=` — set and empty, which the build
+# the installable layer. `SURFACES=` — set and empty, which the build
 # reads as "none" — because the modules are registry objects now: the image
 # cannot know which of them a solution will ask for, and the ui server resolves
-# `/mf/<name>.js` through ptah at request time.
+# `/sf/<name>.js` through ptah at request time.
 RUN cd /build/converged/core/frontend/spa && \
     PROJECT_DIR=/build/converged \
     CHILD_PROJECT_DIR="/build/${PROJECT}" \
-    MICROFRONTENDS= \
+    SURFACES= \
     NODE_ENV=production bun run build
 
 RUN bun /build/converged/core/containers/bundle.ts \
@@ -118,7 +118,7 @@ USER 1000
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV DATA_DIR=/app/data
-# Where fetched microfrontends land before being handed to a browser. The
+# Where fetched surfaces land before being handed to a browser. The
 # registry endpoint and mapping are deployment facts and stay unset.
 ENV MODULE_CACHE_DIR=/app/modules
 # There is no source tree in this image; the bundled host still asks for the

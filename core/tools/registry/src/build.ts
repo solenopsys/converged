@@ -14,7 +14,7 @@
  * Output layout under `--out` (default `dist/registry`):
  *
  *   objects/<sha256>     one file per module, no extension, no directories
- *   modules.json         { revision, modules: { "ms-orders.js": "<sha256>" } }
+ *   modules.json         { revision, modules: { "rp-orders.js": "<sha256>" } }
  *
  * The flat digest-named directory is not a style choice: it is byte-for-byte
  * what ptah's cache holds (`core/native/apps/ptah/src/module_cache.zig`), so
@@ -29,7 +29,7 @@
  * A module carries its own code and nothing the base already has. One artifact
  * cannot share a chunk with another — a split chunk would need a name, and
  * naming is what this layout removes — so anything bundled twice is bundled
- * once per module. `back-core` alone is 216 KiB; left in, 48 microservices cost
+ * once per module. `back-core` alone is 216 KiB; left in, 48 backend modules cost
  * 10 MiB of the same bytes instead of the 0.44 MiB they actually are. The base
  * externals below are therefore not an optimisation but the thing that makes
  * per-module artifacts viable at all.
@@ -46,9 +46,9 @@ import { brotliCompressSync, constants as zlib } from "node:zlib";
 import { OBJECT_INDEX } from "back-core/module-registry";
 import { createGenerator } from "unocss";
 import { buildWorkflow } from "../../../dag/core/build";
-import { localizedMicrofrontendEntry } from "../../../frontend/spa/src/build/microfrontend-locales";
+import { localizedSurfaceEntry } from "../../../frontend/spa/src/build/surface-locales";
 import { createImportMap } from "../../../frontend/spa/src/import-map";
-import unoMicrofrontendConfig from "../../../frontend/spa/uno.mf.config";
+import unoSurfaceConfig from "../../../frontend/spa/uno.sf.config";
 import { createCssPlugin, withStylePrologue } from "./css";
 import { discover, type Kind, type Module } from "./discover";
 import { LAYERS_PREFIX, type LayerFile, mergeLayers } from "./layers";
@@ -60,11 +60,11 @@ type Options = {
 	childProjectDir?: string;
 	outDir: string;
 	publish: boolean;
-	/** Build only these kinds; empty means all three. */
+	/** Build only these kinds; empty means all four. */
 	kinds: Kind[];
 };
 
-const ALL_KINDS: Kind[] = ["microservices", "microfrontends", "workflows"];
+const ALL_KINDS: Kind[] = ["repositories", "lambdas", "surfaces", "workflows"];
 
 function parseArgs(argv: string[]): Options {
 	const values = new Map<string, string>();
@@ -107,18 +107,18 @@ function parseArgs(argv: string[]): Options {
 }
 
 /**
- * Everything the import map already links is `external` for a microfrontend —
+ * Everything the import map already links is `external` for a surface —
  * preact, effector, front-core, the transport. A second copy of any of them on
  * the page is a second function catalogue and a second socket, so a module that
  * bundled one would break the page it was loaded into rather than just be
- * larger. Other microfrontends are external for the same reason.
+ * larger. Other surfaces are external for the same reason.
  */
 function frontendExternals(names: string[]): string[] {
 	return Object.keys(createImportMap(names).imports);
 }
 
 /**
- * What the ms base image already holds, and what a module must therefore not
+ * What the backend base image already holds, and what a module must therefore not
  * carry. Two separate reasons, and both are correctness rather than size:
  *
  * `back-core` and `nrpc` are the server the module plugs into. A bundled copy
@@ -144,7 +144,7 @@ const BASE_EXTERNALS = [
 ];
 
 /**
- * A microservice is two sources — the implementation and its generated nrpc
+ * A backend module is two sources — the implementation and its generated nrpc
  * metadata — and one registry object, because a digest names one file. This
  * entry is what joins them; the runtime loader reads both names off it.
  */
@@ -175,7 +175,7 @@ async function utilities(module: Module): Promise<string> {
 	const sources = (
 		await Promise.all(files.map((file) => Bun.file(file).text()))
 	).join("\n");
-	const uno = await createGenerator(unoMicrofrontendConfig);
+	const uno = await createGenerator(unoSurfaceConfig);
 	const { css } = await uno.generate(sources, { preflights: false });
 	return css;
 }
@@ -185,16 +185,16 @@ async function bundle(
 	module: Module,
 	externals: string[],
 ): Promise<Uint8Array> {
-	const browser = module.kind === "microfrontends";
+	const browser = module.kind === "surfaces";
 	if (module.kind === "workflows") {
 		return new TextEncoder().encode(await buildWorkflow(module.implementation));
 	}
 	const entry =
-		module.kind === "microservices"
+		module.kind === "repositories" || module.kind === "lambdas"
 			? await writeServiceEntry(options, module)
 			: module.implementation;
 	const localizedEntry = browser
-		? await localizedMicrofrontendEntry(entry, module.name)
+		? await localizedSurfaceEntry(entry, module.name)
 		: null;
 
 	// Filled by the css plugin as it converts each stylesheet the module imports.
@@ -289,7 +289,7 @@ async function buildObjectIndex(
 	// `collectObjectIndex` reads its module set from the same environment the
 	// delivery build uses. Imported dynamically for that reason: the list has to
 	// be in place before the layout module computes it.
-	process.env.MICROFRONTENDS = modules.map((module) => module.name).join(",");
+	process.env.SURFACES = modules.map((module) => module.name).join(",");
 	process.env.PROJECT_DIR = options.projectDir;
 	if (options.childProjectDir) {
 		process.env.CHILD_PROJECT_DIR = options.childProjectDir;
@@ -352,13 +352,13 @@ async function buildAll(options: Options): Promise<Built[]> {
 			);
 			continue;
 		}
-		// Microfrontends may import one another by `mf-<name>`, across layers as
+		// Surfaces may import one another by `sf-<name>`, across layers as
 		// well as within one. The externals are therefore every discovered name,
-		// not just the ones being built: a converged microfrontend is resolved
+		// not just the ones being built: a converged surface is resolved
 		// through the import map at runtime, so a product module that imports one
 		// must reference it, never bundle a second copy of it.
 		const externals =
-			kind === "microfrontends"
+			kind === "surfaces"
 				? frontendExternals(discovered.map((module) => module.name))
 				: [];
 
@@ -373,7 +373,7 @@ async function buildAll(options: Options): Promise<Built[]> {
 		// Last, and only once every module it describes has been built: the index
 		// names modules, so publishing it ahead of them would advertise functions
 		// whose code is not in the registry yet.
-		if (kind === "microfrontends") {
+		if (kind === "surfaces") {
 			await store(
 				OBJECT_INDEX,
 				await buildObjectIndex(options, modules),

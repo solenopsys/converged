@@ -6,7 +6,7 @@
  * Platform instead of appearing and disappearing with Tenant objects.
  *
  * The split is only about which pod holds a scope's data. Inside a shard the
- * granularity is unchanged: one PersistentVolume per microservice, as in every
+ * granularity is unchanged: one PersistentVolume per repository, as in every
  * other profile.
  */
 
@@ -14,8 +14,7 @@ import * as k8s from "./k8s/index.ts";
 import * as n from "./names.ts";
 import { behemothTarget, storageResources } from "./storage.ts";
 import type { KubeObject, PlatformSpec, ShardSpec } from "./types.ts";
-import { require } from "./types.ts";
-import { PolicyError } from "./types.ts";
+import { PolicyError, require } from "./types.ts";
 
 export const CATCH_ALL = "*";
 
@@ -95,7 +94,7 @@ export function shardResources(
 	spec: PlatformSpec,
 	owner: string,
 	shards: ResolvedShard[],
-	microservices: string[],
+	repositories: string[],
 	fujinEndpoint: string,
 ): KubeObject[] {
 	return shards.flatMap((shard) =>
@@ -105,7 +104,7 @@ export function shardResources(
 			owner,
 			namespace: spec.namespace,
 			name: shard.resourceName,
-			microservices,
+			repositories,
 			storage: { ...spec.storage, size: shard.size ?? spec.storage.size },
 			nodeAffinity: shard.nodeAffinity,
 			resources: shard.resources,
@@ -117,7 +116,7 @@ export function shardResources(
 /**
  * The scope index every stateless pod reads to find its storage.
  *
- * Same ConfigMap and same key as the cloud profile's tenant index: ui and ms
+ * Same ConfigMap and same key as the cloud profile's tenant index: ui and backend
  * resolve a scope to a host and do not care whether that host is a tenant's
  * pod or a shard. The catch-all is published under `*`, which is what a scope
  * with no explicit shard falls back to.
@@ -133,14 +132,18 @@ export function shardIndex(
 	// on nothing but its cache port, so a scope pointed straight at
 	// `<storage>:<storage.port>` resolves, connects to no one, and fails on the
 	// first send. Same shape as the cloud profile's tenant index.
-	const fujinPort = require(
-		spec.apps.fujin?.ports?.zmq,
-		"platform spec.apps.fujin.ports.zmq",
-	);
+	const fujinPort = require(spec.apps.fujin?.ports
+		?.zmq, "platform spec.apps.fujin.ports.zmq");
 	const fujinHost = `${n.app(platform, "fujin")}.${spec.namespace}.svc.cluster.local`;
 	const index: Record<
 		string,
-		{ host: string; port: number; target: string; cacheHost: string; cachePort: number }
+		{
+			host: string;
+			port: number;
+			target: string;
+			cacheHost: string;
+			cachePort: number;
+		}
 	> = {};
 	for (const shard of shards) {
 		const endpoint = {

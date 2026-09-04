@@ -26,44 +26,44 @@ const DOMAIN_TITLES: Record<string, string> = {
 };
 
 const MODULE_PURPOSES: Record<string, string> = {
-	"mf-secrets":
+	"sf-secrets":
 		"Provides the administration interface for creating, viewing, updating, and deleting named secret records.",
-	"ms-environment":
+	"rp-environment":
 		"Stores and retrieves environment configuration associated with platform users.",
-	"ms-secrets":
+	"lm-secrets":
 		"Provides the service contract for storing, retrieving, and deleting named secret values.",
-	"mf-contexts":
+	"sf-contexts":
 		"Provides the AI workspace for listing, editing, and saving named contexts in multiple languages.",
-	"mf-functions":
+	"sf-functions":
 		"Provides the AI workspace for browsing, searching, registering, and executing function definitions.",
-	"ms-contexts":
+	"rp-contexts":
 		"Provides storage and retrieval of named AI contexts, including their language variants.",
-	"ms-functions":
+	"rp-functions":
 		"Provides the registry and search surface for callable AI function definitions and their embeddings.",
-	"ms-counters":
+	"rp-counters":
 		"Provides the service contract for collecting and querying analytical counters.",
-	"ms-dashboard":
+	"rp-dashboard":
 		"Provides dashboard data and analytical views for platform metrics.",
-	"ms-kubernetes":
+	"lm-kubernetes":
 		"Integrates platform automation with Kubernetes resources through a dedicated client and service contract.",
-	"mf-orders":
+	"sf-orders":
 		"Provides the sales interface for order and request lists, order details, status filtering, and operational dashboards.",
-	"ms-events": "Provides creation, storage, and retrieval of business events.",
-	"ms-finance":
+	"rp-events": "Provides creation, storage, and retrieval of business events.",
+	"rp-finance":
 		"Provides finance operations for transactions, period summaries, cashflow, receivables, and payables.",
-	"ms-orders":
+	"rp-orders":
 		"Provides the service contract for creating, updating, listing, and tracking business orders.",
-	"ms-resonus":
+	"rp-resonus":
 		"Provides communication configuration for managed phone numbers and LLM gate settings.",
-	"mf-classifier":
+	"sf-classifier":
 		"Provides the classifier interface for navigating entities, mappings, and tree structures.",
-	"mf-scripts":
+	"sf-scripts":
 		"Provides the content interface for listing, reading, editing, saving, and deleting script files.",
-	"mf-static":
+	"sf-static":
 		"Provides the operations interface for inspecting and clearing static SSR cache entries.",
-	"ms-scripts":
+	"rp-scripts":
 		"Provides storage operations for script files, including reading, saving, hashing, and deletion.",
-	"ms-static":
+	"rp-static":
 		"Provides the service contract for static content and SSR cache metadata.",
 	"wf-dialogue-summary":
 		"Summarizes unprocessed chat and call dialogues with an LLM, then stores titles, descriptions, and noise classification.",

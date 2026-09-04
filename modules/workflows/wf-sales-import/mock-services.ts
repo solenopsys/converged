@@ -1,4 +1,4 @@
-// Mock ms-files / ms-sales universe for the wf-sales-import tests (test-only,
+// Mock rp-files / rp-sales universe for the wf-sales-import tests (test-only,
 // never bundled into a workflow). The parsers themselves are the service's job
 // and are tested there; this mock stands in for them with a small delimited
 // reader so the workflow's branches can be exercised.

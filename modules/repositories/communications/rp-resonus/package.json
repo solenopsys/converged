@@ -1,0 +1,14 @@
+{
+	"name": "rp-resonus",
+	"private": true,
+	"type": "module",
+	"module": "src/index.ts",
+	"dependencies": {
+		"back-core": "workspace:*",
+		"nrpc": "workspace:*",
+		"g-resonus": "workspace:*"
+	},
+	"exports": {
+		".": "./src/index.ts"
+	}
+}

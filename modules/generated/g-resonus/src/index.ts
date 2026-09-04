@@ -85,7 +85,7 @@ export type ResonusLlmProviderConfig = {
 	model: string;
 	voice?: string;
 	transcriptionModel?: string;
-	// Secret material stays in ms-secrets; this record stores only its key.
+	// Secret material stays in lm-secrets; this record stores only its key.
 	secretRef?: string;
 	enabled?: boolean;
 	priority?: number;
@@ -315,7 +315,7 @@ export const metadata: ServiceMetadata = {
     {
       "name": "ResonusLlmProviderConfig",
       "kind": "type",
-      "definition": "{\n\tprovider: ResonusLlmProvider;\n\t// Regional or private provider endpoint selected by the tenant.\n\tendpoint: string;\n\tmodel: string;\n\tvoice?: string;\n\ttranscriptionModel?: string;\n\t// Secret material stays in ms-secrets; this record stores only its key.\n\tsecretRef?: string;\n\tenabled?: boolean;\n\tpriority?: number;\n\tparameters?: Record<string, unknown>;\n}"
+      "definition": "{\n\tprovider: ResonusLlmProvider;\n\t// Regional or private provider endpoint selected by the tenant.\n\tendpoint: string;\n\tmodel: string;\n\tvoice?: string;\n\ttranscriptionModel?: string;\n\t// Secret material stays in lm-secrets; this record stores only its key.\n\tsecretRef?: string;\n\tenabled?: boolean;\n\tpriority?: number;\n\tparameters?: Record<string, unknown>;\n}"
     },
     {
       "name": "LlmGateConfig",

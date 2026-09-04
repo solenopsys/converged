@@ -6,7 +6,7 @@ import {
 } from "effector";
 import type { FunctionBrief, OrchestratorCatalog, ToolSpec } from "../types";
 
-// The catalog is state, not a constructor argument: microfrontends arrive while
+// The catalog is state, not a constructor argument: surfaces arrive while
 // the chat runs, the backend answers with its own list, rights change. A source
 // publishes `key → what it does` — enough for route/select — and the argument
 // schema is fetched lazily by key, at the step that needs it.

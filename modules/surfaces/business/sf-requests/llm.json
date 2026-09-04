@@ -1,0 +1,128 @@
+{
+	"actions": {
+		"requests.show": {
+			"brief": "Show requests",
+			"description": "Show requests",
+			"category": "requests",
+			"exposure": "user",
+			"priority": "primary"
+		},
+		"requests.open": {
+			"brief": "Open request detail",
+			"description": "Open request detail",
+			"category": "requests",
+			"exposure": "llm",
+			"priority": "normal"
+		},
+		"requests.model.update": {
+			"brief": "Apply updated request model to the opened request view",
+			"description": "Apply updated request model to the opened request view",
+			"category": "requests",
+			"exposure": "llm",
+			"priority": "normal"
+		},
+		"requests.refresh": {
+			"brief": "Refresh opened request model",
+			"description": "Refresh opened request model",
+			"category": "requests",
+			"exposure": "llm",
+			"priority": "normal"
+		},
+		"requests.create": {
+			"brief": "Create a manufacturing request",
+			"description": "Create a public manufacturing request for uploaded files or an explicitly stated need. Include every uploaded file ID and do not invent fields.",
+			"category": "requests",
+			"exposure": "llm",
+			"priority": "primary",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"source": {
+						"type": "string",
+						"description": "Short user-provided request description"
+					},
+					"title": { "type": "string", "description": "Short request title" },
+					"summary": {
+						"type": "string",
+						"description": "Structured summary of known requirements"
+					},
+					"processType": {
+						"type": "string",
+						"enum": [
+							"cnc_machining",
+							"laser_cutting",
+							"plastic_cutting",
+							"3d_printing",
+							"generic"
+						],
+						"description": "Manufacturing process; use generic when unknown"
+					},
+					"fields": {
+						"type": "object",
+						"description": "Known request fields only"
+					},
+					"files": {
+						"type": "object",
+						"description": "Uploaded file display name to rp-files ID"
+					}
+				}
+			}
+		},
+		"requests.get": {
+			"brief": "Get a request",
+			"description": "Get the current request model, including files and missing requirements.",
+			"category": "requests",
+			"exposure": "llm",
+			"priority": "normal",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"requestId": { "type": "string", "description": "Request ID" }
+				},
+				"required": ["requestId"]
+			}
+		},
+		"requests.update": {
+			"brief": "Update a request",
+			"description": "Apply explicitly supplied or extracted fields to an existing request.",
+			"category": "requests",
+			"exposure": "llm",
+			"priority": "normal",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"requestId": { "type": "string", "description": "Request ID" },
+					"source": {
+						"type": "string",
+						"description": "Short user-provided request description"
+					},
+					"title": { "type": "string", "description": "Short request title" },
+					"summary": {
+						"type": "string",
+						"description": "Structured summary of known requirements"
+					},
+					"processType": {
+						"type": "string",
+						"enum": [
+							"cnc_machining",
+							"laser_cutting",
+							"plastic_cutting",
+							"3d_printing",
+							"generic"
+						],
+						"description": "Manufacturing process"
+					},
+					"fields": {
+						"type": "object",
+						"description": "Known request fields only"
+					},
+					"files": {
+						"type": "object",
+						"description": "Uploaded file display name to rp-files ID"
+					}
+				},
+				"required": ["requestId"]
+			}
+		}
+	}
+}

@@ -2,18 +2,18 @@ import { expect, test } from "bun:test";
 import { registry } from "./registry";
 import {
 	ingestFunctionIndex,
-	ingestMicrofrontendLlmCatalog,
+	ingestSurfaceLlmCatalog,
 	moduleForAction,
 } from "./function-index";
 
-test("the function index remains the authoritative microfrontend owner", () => {
+test("the function index remains the authoritative surface owner", () => {
 	const actionId = "trace-owner-test.open";
 	const ghostId = "trace-owner-test.ghost";
 
 	ingestFunctionIndex({
 		modules: {
 			traceOwner: {
-				module: "mf-trace-owner-test",
+				module: "sf-trace-owner-test",
 				brief: "Trace owner test",
 				functions: [
 					{
@@ -29,7 +29,7 @@ test("the function index remains the authoritative microfrontend owner", () => {
 		},
 	});
 
-	ingestMicrofrontendLlmCatalog("trace-owner-test-mf", "", {
+	ingestSurfaceLlmCatalog("trace-owner-test-sf", "", {
 		actions: {
 			[actionId]: {
 				brief: "Open test",
@@ -40,7 +40,7 @@ test("the function index remains the authoritative microfrontend owner", () => {
 			},
 			[ghostId]: {
 				brief: "Ghost",
-				description: "Not implemented by the microfrontend",
+				description: "Not implemented by the surface",
 				category: "trace",
 				exposure: "llm",
 				priority: "normal",
@@ -48,6 +48,6 @@ test("the function index remains the authoritative microfrontend owner", () => {
 		},
 	});
 
-	expect(moduleForAction(actionId)).toBe("mf-trace-owner-test");
+	expect(moduleForAction(actionId)).toBe("sf-trace-owner-test");
 	expect(registry.meta(ghostId)).toBeUndefined();
 });

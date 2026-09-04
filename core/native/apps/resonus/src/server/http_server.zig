@@ -120,8 +120,8 @@ pub const HttpServer = struct {
         }
 
         // NOTE: the gate does NOT serve transcripts. It only INGESTS audio and
-        // writes recognised phrases to ms-threads. Reading a call transcript is
-        // the ms-calls microservice's job (calls.getTranscript) — the admin UI
+        // writes recognised phrases to rp-threads. Reading a call transcript is
+        // the rp-calls microservice's job (calls.getTranscript) — the admin UI
         // must never query the gate for data.
 
         return self.respondJsonError(req, .not_found, "not_found", "route not found");

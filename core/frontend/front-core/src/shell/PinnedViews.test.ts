@@ -14,12 +14,12 @@ function view(key: string, owner: string, pinned: boolean): WorkspaceTab {
 }
 
 describe("groupPinnedViews", () => {
-	test("keeps only pinned views and groups them by microfrontend", () => {
+	test("keeps only pinned views and groups them by surface", () => {
 		const groups = groupPinnedViews([
-			view("companies", "mf-companies", true),
-			view("mail-a", "mf-mailing", true),
-			view("mail-b", "ms-mailing", true),
-			view("transient", "mf-mailing", false),
+			view("companies", "sf-companies", true),
+			view("mail-a", "sf-mailing", true),
+			view("mail-b", "rp-mailing", true),
+			view("transient", "sf-mailing", false),
 		]);
 
 		expect(groups.map(({ tag }) => tag)).toEqual(["companies", "mailing"]);

@@ -28,7 +28,7 @@ export function configFromPage(): ChatConfig {
 		mount.dataset.fujinUrl,
 		"#app[data-fujin-url]",
 	);
-	// Microfrontends are loaded after the shell and use this shared bootstrap.
+	// Surfaces are loaded after the shell and use this shared bootstrap.
 	globalThis.__FUJIN_WS_URL__ = fujinWsUrl;
 
 	return {

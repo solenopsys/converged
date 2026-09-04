@@ -34,7 +34,7 @@ export function Document({
 	mount: MountConfig;
 	landing?: LandingPayload;
 	themeColor: string;
-	// Analytics counters, resolved from ms-counters (CountersService) by scope at SSR.
+	// Analytics counters, resolved from rp-counters (CountersService) by scope at SSR.
 	counters: Counter[];
 }) {
 	const keywords = seo.keywords.filter(Boolean).join(", ");

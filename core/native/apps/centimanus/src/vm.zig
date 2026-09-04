@@ -204,7 +204,7 @@ const ExecContext = struct {
     alloc: std.mem.Allocator,
     exec_id: []const u8,
     /// Node keys this run wrote. The cache spares a replay the cost of calling
-    /// microservices again; ms-dag keeps the durable record, so when the run
+    /// microservices again; rp-dag keeps the durable record, so when the run
     /// ends these entries are dropped instead of living in Valkey forever.
     task_keys: std.ArrayListUnmanaged([]const u8) = .empty,
     run_alloc: std.mem.Allocator,

@@ -9,7 +9,7 @@ export type {
 	CategorySummary,
 	CreateAction,
 	CreateWidget,
-	MicrofrontendLlmCatalog,
+	SurfaceLlmCatalog,
 	Plugin,
 	PresentRequest,
 	ScreenDecl,
@@ -33,7 +33,7 @@ export {
 	canRunAction,
 	createDomainLogger,
 	defineScreens,
-	ingestMicrofrontendLlmCatalog,
+	ingestSurfaceLlmCatalog,
 	installEffectorTrafficLogger,
 	invokeAction,
 	isEffectorDebugEnabled,
@@ -46,7 +46,7 @@ export type {
 	TableFilterConfig,
 	TableFilterValues,
 } from "front-core/table";
-// Keep the established microfrontend facade while the table implementation
+// Keep the established surface facade while the table implementation
 // remains its own delivery chunk (`front-core/table`).
 export {
 	createInfiniteTableStore,
@@ -204,16 +204,16 @@ export {
 } from "./dashboard/widget-registry";
 export { useIsMobile } from "./hooks/use-mobile";
 export type {
-	MicrofrontendLocaleSource,
-	MicrofrontendLocales,
-	MicrofrontendMessages,
+	SurfaceLocaleSource,
+	SurfaceLocales,
+	SurfaceMessages,
 } from "./i18n";
 export {
 	$activeLocale,
 	LocaleController,
-	registerMicrofrontendLocales,
-	resolveEmbeddedMicrofrontendMessage,
-	useMicrofrontendTranslation,
+	registerSurfaceLocales,
+	resolveEmbeddedSurfaceMessage,
+	useSurfaceTranslation,
 } from "./i18n";
 export * from "./icons";
 export { getIconByName } from "./icons";

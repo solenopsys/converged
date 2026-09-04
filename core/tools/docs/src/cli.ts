@@ -4,7 +4,7 @@
  *   bun run src/cli.ts <target...> [options]
  *
  * Targets: site, ecosystem, readme, html, pdf, translations, all (default: site).
- *   site          struct-ms indexes + markdown-ms files, what the site reads
+ *   site          rp-struct indexes + rp-markdown files, what the site reads
  *   ecosystem     the module registry page, derived from the source tree
  *   readme        one README per section, the GitHub shape
  *   html          static pages with a side menu

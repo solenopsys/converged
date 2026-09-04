@@ -8,19 +8,19 @@ const pwaEnabled =
 	process.env.PWA_DEV === "true";
 
 const fallbackImportMap = createImportMap(
-	(process.env.MICROFRONTENDS?.split(",") ?? ["assistants", "static"])
-		.map((name) => name.trim().replace(/^mf-/, ""))
+	(process.env.SURFACES?.split(",") ?? ["assistants", "static"])
+		.map((name) => name.trim().replace(/^sf-/, ""))
 		.filter(Boolean),
 );
 
 /**
- * Which microfrontends the page may load is a runtime decision — ptah merges
+ * Which surfaces the page may load is a runtime decision — ptah merges
  * the active solutions and publishes the result — while the delivery's own map
  * was written when the image was built. So the two are joined here: the built
  * map supplies preact, effector, front-core and the rest, and the Solution
  * supplies the module names.
  *
- * The targets stay `/mf/<name>.js`. The browser is never told a digest: the ui
+ * The targets stay `/sf/<name>.js`. The browser is never told a digest: the ui
  * server resolves the name against the registry mapping, which is what keeps a
  * rollout from having to reach the page.
  */
@@ -32,7 +32,7 @@ export function solutionModules(): string[] {
 		if (!Array.isArray(parsed)) return [];
 		return parsed
 			.filter((name): name is string => typeof name === "string")
-			.map((name) => name.trim().replace(/^mf-/, ""))
+			.map((name) => name.trim().replace(/^sf-/, ""))
 			.filter(Boolean);
 	} catch {
 		console.warn("[spa] FRONTEND_MODULES is not a JSON array, ignoring");
@@ -48,15 +48,15 @@ function withSolutionModules(map: ImportMap): ImportMap {
 			// The Solution replaces the map's module entries rather than adding to
 			// them. Merging would leave whatever the delivery was built with — the
 			// dev defaults, in the fallback map — resolvable on a page whose
-			// solution never listed it, and `/mf/<name>.js` would 404 on a
+			// solution never listed it, and `/sf/<name>.js` would 404 on a
 			// specifier the import map itself advertised.
 			...Object.fromEntries(
 				Object.entries(map.imports).filter(
-					([specifier]) => !specifier.startsWith("mf-"),
+					([specifier]) => !specifier.startsWith("sf-"),
 				),
 			),
 			...Object.fromEntries(
-				names.map((name) => [`mf-${name}`, `/mf/${name}.js`]),
+				names.map((name) => [`sf-${name}`, `/sf/${name}.js`]),
 			),
 		},
 	};

@@ -23,8 +23,9 @@
 		"core/tools/translation",
 		"modules/commands",
 		"modules/generated/*",
-		"modules/microfrontends/*/*",
-		"modules/microservices/*/*",
+		"modules/surfaces/*/*",
+		"modules/repositories/*/*",
+		"modules/lambdas/*/*",
 		"modules/workflows/*"
 	],
 	"devDependencies": {

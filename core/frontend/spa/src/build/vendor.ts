@@ -4,15 +4,15 @@ import {
 	clientBuildDefines,
 	frontCoreRoot,
 	isProduction,
-	microfrontendContractRoots,
+	surfaceContractRoots,
 	vendorDir,
 	vendorEntriesDir,
 } from "./layout";
 
 /**
  * The page's shared runtime: every import map specifier leads to exactly one
- * file in this layer. The `mf` layer is excluded from the critical path — it
- * arrives with the first microfrontend.
+ * file in this layer. The `sf` layer is excluded from the critical path — it
+ * arrives with the first surface.
  */
 
 const sharedPreactExternals = [
@@ -38,7 +38,7 @@ const preactHooksProxy: Bun.BunPlugin = {
 	},
 };
 
-// The action registry is a page singleton: microfrontends fill it via plug(bus)
+// The action registry is a page singleton: surfaces fill it via plug(bus)
 // and the delivery index declares into it, while the chat and the shell read it.
 // That holds only because "front-core/core" is external to every bundle.
 //
@@ -81,18 +81,18 @@ async function assertCoreSingleton(): Promise<void> {
 }
 
 /**
- * The delivery build keeps `front-core` external so every microfrontend uses
+ * The delivery build keeps `front-core` external so every surface uses
  * the page singleton. Build each module once more with the real source linked
  * in: Bun then validates every named ESM import before a browser sees it.
  */
-export async function assertMicrofrontendPublicApi(
+export async function assertSurfacePublicApi(
 	entries?: readonly string[],
 ): Promise<void> {
 	const contractEntries: string[] = [
 		...(entries ??
-			microfrontendContractRoots().flatMap((root) =>
+			surfaceContractRoots().flatMap((root) =>
 				Array.from(
-					new Bun.Glob("**/mf-*/src/index.ts").scanSync({
+					new Bun.Glob("**/sf-*/src/index.ts").scanSync({
 						cwd: root,
 						absolute: true,
 					}),
@@ -149,7 +149,7 @@ export async function assertMicrofrontendPublicApi(
 		)
 		.join("\n  ");
 	throw new Error(
-		`[vendor] Microfrontend public API contract failed.\n` +
+		`[vendor] Surface public API contract failed.\n` +
 			`The delivery keeps front-core external, so this linked validation prevents browser-only import errors.\n  ${details}`,
 	);
 }
@@ -160,8 +160,8 @@ export type VendorBuild = {
 	outfile: string;
 	external: readonly string[];
 	plugins?: Bun.BunPlugin[];
-	/** `mf` — the microfrontend layer: it's not in the page's startup. */
-	layer?: "app" | "mf";
+	/** `sf` — the surface layer: it's not in the page's startup. */
+	layer?: "app" | "sf";
 };
 
 export const vendorBuilds: readonly VendorBuild[] = [
@@ -177,14 +177,14 @@ export const vendorBuilds: readonly VendorBuild[] = [
 		outfile: "preact-compat.js",
 		external: ["preact", "preact/jsx-runtime"],
 		plugins: [preactHooksProxy],
-		layer: "mf",
+		layer: "sf",
 	},
 	{
 		name: "preact-compat-client",
 		entrypoint: "preact-compat-client.ts",
 		outfile: "preact-compat-client.js",
 		external: ["preact", "preact/compat"],
-		layer: "mf",
+		layer: "sf",
 	},
 	{
 		name: "effector",
@@ -208,7 +208,7 @@ export const vendorBuilds: readonly VendorBuild[] = [
 		name: "d3",
 		entrypoint: "d3.ts",
 		outfile: "d3.js",
-		layer: "mf",
+		layer: "sf",
 		external: [],
 	},
 	{
@@ -239,7 +239,7 @@ export const vendorBuilds: readonly VendorBuild[] = [
 		name: "front-core",
 		entrypoint: "front-core.ts",
 		outfile: "front-core.js",
-		layer: "mf",
+		layer: "sf",
 		// The tabs and menu machines are bundled in: the import map addresses
 		// packages by name, and `/vendor/zag.js` is a tooltip bundle from which
 		// `@zag-js/tabs` can't be reached as its own namespace. A copy of the core
@@ -259,7 +259,7 @@ export const vendorBuilds: readonly VendorBuild[] = [
 		name: "front-core-table",
 		entrypoint: "front-core-table.ts",
 		outfile: "front-core-table.js",
-		layer: "mf",
+		layer: "sf",
 		external: [
 			...sharedPreactExternals,
 			"effector",
@@ -285,7 +285,7 @@ async function assertSingleTransportOwner(config: VendorBuild): Promise<void> {
 	}
 }
 
-export function vendorLayerFiles(layer: "app" | "mf"): string[] {
+export function vendorLayerFiles(layer: "app" | "sf"): string[] {
 	return vendorBuilds
 		.filter((config) => (config.layer ?? "app") === layer)
 		.map(({ outfile }) => join(vendorDir, outfile));

@@ -43,7 +43,7 @@ pub const Engine = struct {
         return .{ .ctx = self, .call = tCall, .get = tGet, .set = tSet, .log = tLog, .on_node = tOnNode, .llm = tLlm, .run_workflow = tRunWorkflow, .del = tDel };
     }
 
-    /// Resolve `script_path` through ms-dag, fetch it from Ptah's proxy, and
+    /// Resolve `script_path` through rp-dag, fetch it from Ptah's proxy, and
     /// run it as a step-driven DAG. `alloc` (a per-request arena) owns the result.
     pub fn runWorkflow(
         self: *Engine,

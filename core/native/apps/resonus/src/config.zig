@@ -26,7 +26,7 @@ pub const Config = struct {
     dictation_transcription_delay: ?[]u8,
     openai_noise_reduction: []u8,
     // No hardcoded instructions or language: both come from the per-call call
-    // context (see ms-calls ContextStoreService). No context => the call is
+    // context (see rp-calls ContextStoreService). No context => the call is
     // refused, never answered with a generic prompt.
     openai_realtime_calls_url: []u8,
     openai_safety_identifier: ?[]u8,

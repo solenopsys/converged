@@ -1,0 +1,10 @@
+# ready | _
+modules:
+  automation/lm-kubernetes: _
+  convertors/lm-modelconvertor: _
+  data/lm-compressors: ready
+  providers/lm-push: _
+  providers/lm-ses: ready
+  providers/lm-sms: _
+  providers/lm-smtp: _
+  sequrity/lm-secrets: _

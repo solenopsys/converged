@@ -1,0 +1,19 @@
+{
+	"name": "rp-files",
+	"version": "1.0.0",
+	"private": true,
+	"installConfig": {
+		"hoistingLimits": "workspaces"
+	},
+	"type": "module",
+	"exports": {
+		"./plugin": "./src/plugin.ts"
+	},
+	"dependencies": {
+		"back-core": "workspace:*",
+		"fflate": "^0.8.3",
+		"g-files": "workspace:*",
+		"g-store": "workspace:*",
+		"nrpc": "workspace:*"
+	}
+}

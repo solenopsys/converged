@@ -1,6 +1,6 @@
 // The OAuth2 handshake itself: building the authorize URL, exchanging the code
 // and reading userinfo. Plain fetch against the external provider — no nrpc
-// here. Provider records and state tokens come from ms-oauth (see clients.ts).
+// here. Provider records and state tokens come from rp-oauth (see clients.ts).
 import type { OAuthProvider } from "g-oauth";
 
 export type ExternalIdentity = {

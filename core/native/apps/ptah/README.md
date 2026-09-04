@@ -138,7 +138,7 @@ the kind and the version live only in the mapping:
 ```json
 {
   "bla.json": "e2e2uo…",
-  "ms-agent.js": "9f41ab…"
+  "rp-assistant.js": "9f41ab…"
 }
 ```
 
@@ -216,7 +216,7 @@ also wins over `envFrom`, which matters: the platform Secret is a dump of a
 | `CACHE_URL` | Behemoth's in-process valkey. Absent under `cloud` — the shard is per tenant. |
 | `STORAGE_SCOPE` | Pinned for ui in every profile as a startup fallback, and for ms only under `mono`. Pinning ms elsewhere would answer for the wrong tenant whenever a header went missing. |
 | `DATA_DIR` | `/app/data`, stated to keep the Secret's value out. |
-| `MICROSERVICES` / `FRONTEND_MODULES` | Which modules boot, from the merged solutions. |
+| `REPOSITORIES` / `FRONTEND_MODULES` | Which modules boot, from the merged solutions. |
 
 The scope index arrives separately, as `envFrom` on the `<platform>-domains`
 ConfigMap: it changes as tenants come and go, and a pod should pick that up on
@@ -274,13 +274,13 @@ behemoth pods that set of volumes is spread across: one for `mono`, one per
 shard for `multi`, one per tenant for `cloud`.
 
 The map is keyed by **store id**, not by module name. A Solution lists
-`orders`, but the running service asks its storage for `orders-ms` — that
+`orders`, but the running service asks its storage for `rp-orders` — that
 identifier is compiled into the service, and Behemoth matches it exactly and
 refuses any root it was not given. Emitting the bare name would mount every
 disk correctly and still fail every store open:
 
 ```json
-{ "microservices": { "orders-ms": "/app/data/converged-storage-orders" } }
+{ "repositories": { "rp-orders": "/app/data/converged-storage-orders" } }
 ```
 
 A claim gets its volume one of two ways, and the Platform storage spec picks
@@ -305,7 +305,7 @@ names a UID that no longer exists.
 and pre-binds the claim to it by name. Ptah recursively replaces `{{volume}}`,
 `{{platform}}`, `{{tenant}}`, `{{shard}}`, and `{{microservice}}` in the
 template's string values, and refuses a template that resolves two
-microservices to the same source.
+repositories to the same source.
 
 Two rules come with it. The class must have **no provisioner of its own** —
 naming `local-path` here would leave that provisioner and ptah both answering

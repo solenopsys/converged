@@ -259,7 +259,7 @@ test "registry maps declared module digests to their immutable URLs" {
     const gpa = std.testing.allocator;
     const digest = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
     const json =
-        \\[{"spec":{"registry":{"url":"https://modules.example.test/","modules":{"ms-struct.js":"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"}}}}]
+        \\[{"spec":{"registry":{"url":"https://modules.example.test/","modules":{"rp-struct.js":"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"}}}}]
     ;
     var parsed = try std.json.parseFromSlice(std.json.Value, gpa, json, .{});
     defer parsed.deinit();

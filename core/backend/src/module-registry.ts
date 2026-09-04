@@ -8,7 +8,7 @@
  * module list can never be current while the mapping behind it is stale.
  *
  *   MODULE_PROXY      ptah's content-addressed proxy, e.g. http://ptah-proxy
- *   MODULE_DIGESTS    {"ms-orders.js": "<sha256>"} — the whole naming layer
+ *   MODULE_DIGESTS    {"rp-orders.js": "<sha256>"} — the whole naming layer
  *   MODULE_CACHE_DIR  where this pod keeps what it has already fetched
  *
  * Unset means there is no registry, which is what a dev run and a local image
@@ -49,7 +49,7 @@ export class ModuleRegistryError extends Error {}
  * in the builder so the side that writes it and the side that serves it agree
  * without either importing the other.
  */
-export const OBJECT_INDEX = "mf-index.json";
+export const OBJECT_INDEX = "sf-index.json";
 
 function parseDigests(raw: string): Record<string, string> {
 	let parsed: unknown;

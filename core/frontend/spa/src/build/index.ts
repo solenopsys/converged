@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { mkdir, rm } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
-import { bundleApp, bundleMicrofrontends, bundleWidget } from "./bundles";
+import { bundleApp, bundleSurfaces, bundleWidget } from "./bundles";
 import { writeObjectIndex } from "./object-index";
 import { versionImportMap } from "./import-map";
 import {
@@ -13,9 +13,9 @@ import {
 	isProduction,
 	landingBlocksEntry,
 	landingBlocksStyles,
-	microfrontendDir,
-	microfrontends,
-	microfrontendsDir,
+	surfaceDir,
+	surfaces,
+	surfacesDir,
 	pwaEnabled,
 	serviceWorkerEntry,
 	spaRoot,
@@ -26,11 +26,11 @@ import {
 } from "./layout";
 import { buildServiceWorker, copyPwaIcons, writeManifest } from "./pwa";
 import { measure, precompress, sizeRows } from "./report";
-import { buildMicrofrontendStyles, buildStyles } from "./styles";
+import { buildSurfaceStyles, buildStyles } from "./styles";
 import { buildVendor, vendorLayerFiles } from "./vendor";
 
 /**
- * Client delivery build: vendor layer, shell, microfrontends, widget, and
+ * Client delivery build: vendor layer, shell, surfaces, widget, and
  * install layer. No HTML is built here — the first screen is rendered by SSR
  * (`front-ssr`), and the delivery only hands it the import map and install
  * tags (see ../delivery.ts).
@@ -50,7 +50,7 @@ export function sourceFiles(): string[] {
 		...sources(dirname(landingBlocksEntry())),
 		...projectStyles,
 		join(spaRoot, "uno.config.ts"),
-		join(spaRoot, "uno.mf.config.ts"),
+		join(spaRoot, "uno.sf.config.ts"),
 		clientEntry,
 		widgetEntry,
 		serviceWorkerEntry,
@@ -58,8 +58,8 @@ export function sourceFiles(): string[] {
 		...sources(join(spaRoot, "src")),
 		...sources(vendorEntriesDir),
 		...sources(join(frontCoreRoot, "src")),
-		...microfrontends.flatMap((name) => {
-			const moduleDir = microfrontendDir(name);
+		...surfaces.flatMap((name) => {
+			const moduleDir = surfaceDir(name);
 			const localesDir = join(moduleDir, "locales");
 			const llmCatalog = join(moduleDir, "llm.json");
 			return [
@@ -113,16 +113,16 @@ export async function buildApp() {
 	await Promise.all([
 		mkdir(assetsDir, { recursive: true }),
 		mkdir(vendorDir, { recursive: true }),
-		mkdir(microfrontendsDir, { recursive: true }),
+		mkdir(surfacesDir, { recursive: true }),
 	]);
 
-	// The microfrontend layer is built first and separately: its CSS is glued
-	// into the shared `mf.css`, so styles can't be built in parallel with chunks.
-	const microfrontendBundles = await bundleMicrofrontends();
-	const microfrontendFiles = microfrontendBundles.map(
+	// The surface layer is built first and separately: its CSS is glued
+	// into the shared `sf.css`, so styles can't be built in parallel with chunks.
+	const surfaceBundles = await bundleSurfaces();
+	const surfaceFiles = surfaceBundles.map(
 		(bundle) => bundle.script,
 	);
-	const microfrontendModuleStyles = microfrontendBundles.flatMap(
+	const surfaceModuleStyles = surfaceBundles.flatMap(
 		(bundle) => bundle.styles,
 	);
 
@@ -135,16 +135,16 @@ export async function buildApp() {
 	const styleFiles = await buildStyles();
 	const logoFile = await copyConvergedLogo();
 	const workerFile = await copyStoreWorker();
-	const microfrontendStyles = await buildMicrofrontendStyles(
-		microfrontendModuleStyles,
+	const surfaceStyles = await buildSurfaceStyles(
+		surfaceModuleStyles,
 	);
 	const iconFiles = await copyPwaIcons();
 	const objectIndexFile = await writeObjectIndex();
 
-	// Per-file module styles are already inside `mf.css`: left next to the chunks
+	// Per-file module styles are already inside `sf.css`: left next to the chunks
 	// they'd just be files nobody requests.
 	await Promise.all(
-		microfrontendModuleStyles.map((path) => rm(path, { force: true })),
+		surfaceModuleStyles.map((path) => rm(path, { force: true })),
 	);
 
 	// The whole critical path goes into precache: a repeat app launch
@@ -175,8 +175,8 @@ export async function buildApp() {
 		...styleFiles,
 		workerFile,
 		...vendorLayerFiles("app"),
-		...vendorLayerFiles("mf"),
-		...microfrontendFiles,
+		...vendorLayerFiles("sf"),
+		...surfaceFiles,
 		...widgetFiles,
 		objectIndexFile,
 	];
@@ -201,7 +201,7 @@ export async function buildApp() {
 	]);
 
 	// Three independent deliveries: the app page loads its own files, a foreign
-	// page loads only the widget, and the microfrontend layer belongs to nobody
+	// page loads only the widget, and the surface layer belongs to nobody
 	// until the first function call. There's nothing to add them up into.
 
 	// Startup is code: what the browser must execute before the first screen.
@@ -214,13 +214,13 @@ export async function buildApp() {
 	// (registration happens on `load`), so it doesn't count toward the startup budget.
 	const pwaOutputs = [serviceWorkerFile, manifestFile, ...iconFiles];
 
-	// Shared MF libraries exist as a separate cache. They aren't part of any
-	// particular MF, so they're measured separately in the report too.
-	const dynamicVendorOutputs = vendorLayerFiles("mf");
-	// The shared UnoCSS layer is needed by every MF, but isn't a microfrontend
+	// Shared SF libraries exist as a separate cache. They aren't part of any
+	// particular SF, so they're measured separately in the report too.
+	const dynamicVendorOutputs = vendorLayerFiles("sf");
+	// The shared UnoCSS layer is needed by every SF, but isn't a surface
 	// itself and shouldn't clutter their size table.
-	const microfrontendOutputs = [...microfrontendFiles, objectIndexFile];
-	const dynamicStyleOutputs = [microfrontendStyles];
+	const surfaceOutputs = [...surfaceFiles, objectIndexFile];
+	const dynamicStyleOutputs = [surfaceStyles];
 
 	await precompress(
 		[
@@ -228,20 +228,20 @@ export async function buildApp() {
 			...deferredOutputs,
 			...dynamicVendorOutputs,
 			...dynamicStyleOutputs,
-			...microfrontendOutputs,
+			...surfaceOutputs,
 			...widgetFiles,
 			// We don't brotli-compress images: PNG is already compressed, a .br next to it would just take up space.
 			...pwaOutputs.filter((path) => !path.endsWith(".png")),
 		].filter((path) => !path.endsWith(".map")),
 	);
 
-	const [app, deferred, widget, dynamicVendors, microfrontendLayer, pwa] =
+	const [app, deferred, widget, dynamicVendors, surfaceLayer, pwa] =
 		await Promise.all([
 			measure(appOutputs),
 			measure(deferredOutputs),
 			measure(widgetFiles),
 			measure(dynamicVendorOutputs),
-			measure(microfrontendOutputs),
+			measure(surfaceOutputs),
 			measure(pwaOutputs),
 		]);
 
@@ -252,7 +252,7 @@ export async function buildApp() {
 		deferred,
 		widget,
 		dynamicVendors,
-		microfrontends: microfrontendLayer,
+		surfaces: surfaceLayer,
 		pwa: { enabled: pwaEnabled, buildId, precache, ...pwa },
 	};
 
@@ -270,10 +270,10 @@ export async function buildApp() {
 		// no per-file layout and doesn't add up with the app's numbers.
 		console.log("Widget (self-contained, CSS and worker inside JS)");
 		console.table(sizeRows(widget));
-		// The microfrontend layer doesn't participate in startup: it's fetched on
+		// The surface layer doesn't participate in startup: it's fetched on
 		// user action or a chat function call.
-		console.log("Microfrontends (on demand)");
-		console.table(sizeRows(microfrontendLayer));
+		console.log("Surfaces (on demand)");
+		console.table(sizeRows(surfaceLayer));
 		console.log(
 			pwaEnabled
 				? `Install (sw + manifest + icons), build ${buildId}`

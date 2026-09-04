@@ -82,19 +82,19 @@ export const volumeScope = (
 /**
  * The key behemoth looks a mount up by.
  *
- * A Solution names a module `orders`, but the running service asks its storage
- * for `orders-ms` — that identifier is compiled into the service and behemoth
+ * A Solution names a module `orders`, but the running repository asks its storage
+ * for `rp-orders` — that identifier is compiled into the module and behemoth
  * matches it exactly, refusing any root it was not given. Emitting the bare
  * name here would mount every disk correctly and still fail every store open.
  */
-export const storeId = (microservice: string) => `${microservice}-ms`;
+export const storeId = (repository: string) => `rp-${repository}`;
 
 /**
  * PV names also become pod volume names, so keep them within the stricter
  * 63-character DNS-label limit and retain a digest when truncation is needed.
  */
-export function storageVolume(scope: string, microservice: string): string {
-	const raw = `${scope}-${microservice}`.toLowerCase();
+export function storageVolume(scope: string, repository: string): string {
+	const raw = `${scope}-${repository}`.toLowerCase();
 	const slug = raw.replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
 	const base = slug.length > 0 ? slug : `${scope}-volume`;
 	if (base === raw && base.length <= 63) return base;

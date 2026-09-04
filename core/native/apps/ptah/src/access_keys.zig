@@ -18,7 +18,7 @@ const std = @import("std");
 const Ed25519 = std.crypto.sign.Ed25519;
 const b64 = std.base64.url_safe_no_pad.Encoder;
 
-pub const issuer = "ms-access";
+pub const issuer = "rp-access";
 pub const audience = "cluster";
 
 /// Ten years. A service token is not a session: it is renewed by redeploying,

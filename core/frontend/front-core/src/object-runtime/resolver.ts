@@ -11,7 +11,7 @@ import type {
 	ViewDefinition,
 } from "./types";
 
-/** The registry stamps the owning microfrontend onto everything it holds. */
+/** The registry stamps the owning surface onto everything it holds. */
 export type OwnedOperation = OperationDefinition & { owner?: string };
 
 function expressionMatches(

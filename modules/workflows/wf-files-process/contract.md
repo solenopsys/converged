@@ -19,7 +19,7 @@ The workflow uses NRPC in this order:
 The delegated child does the `files.getChunks` / `store.getWithMeta` /
 `compressors.unpack` sequence and persists the entries — see its contract.
 
-`ms-compressors` owns byte assembly, decompression, ZIP parsing, output chunking
-and staging. It has no `files` or `store` client. `ms-files` and `ms-store` do
-not call `ms-compressors`. The workflow carries only metadata and cache
+`lm-compressors` owns byte assembly, decompression, ZIP parsing, output chunking
+and staging. It has no `files` or `store` client. `rp-files` and `rp-store` do
+not call `lm-compressors`. The workflow carries only metadata and cache
 references between those services.

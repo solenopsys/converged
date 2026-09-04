@@ -5,8 +5,8 @@
  * build and publish — but `modules.json` claims to be the whole naming layer,
  * and every build used to write it at the same key. Whichever published last
  * therefore deleted the other's names, and a platform running the merged
- * solution then asked for a microservice the mapping no longer mentioned:
- * `MICROSERVICES` said `struct`, `MODULE_DIGESTS` had never heard of it.
+ * solution then asked for a backend module the mapping no longer mentioned:
+ * `REPOSITORIES` said `struct`, `MODULE_DIGESTS` had never heard of it.
  *
  * So each layer owns a file nobody else writes, and the mapping every consumer
  * reads is composed from all of them. Publishing order stops mattering, and no

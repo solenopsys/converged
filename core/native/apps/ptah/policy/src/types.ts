@@ -29,7 +29,7 @@ export interface KubeObject {
  *   multi  behemoth sharded by scope, one pod per shard
  *   cloud  one behemoth pod per tenant, owned by the Tenant reconciler
  *
- * In every profile a microservice still gets its own volume; the profile only
+ * In every profile a repository still gets its own volume; the profile only
  * says how many pods those volumes are spread across.
  */
 export type Profile = "mono" | "multi" | "cloud";
@@ -156,16 +156,16 @@ export interface PlatformSpec extends ExtraResources {
 		/** Required: the cluster default class differs per cluster. */
 		storageClassName: string;
 		/**
-		 * Static PV source template. Omit it and each microservice gets a claim
+		 * Static PV source template. Omit it and each repository gets a claim
 		 * alone, for the provisioner behind `storageClassName` to fill; set it
 		 * and ptah declares the volumes too, which means `storageClassName` has
 		 * to name a class with no provisioner of its own — two owners for one
 		 * claim is a race, not a configuration.
 		 *
-		 * Every active microservice gets a distinct PV/PVC pair; `{{volume}}`
+		 * Every active repository gets a distinct PV/PVC pair; `{{volume}}`
 		 * is replaced with that pair's unique name. Other available
 		 * placeholders are `{{platform}}`, `{{tenant}}`, `{{shard}}`, and
-		 * `{{microservice}}`. A node-local source additionally requires
+		 * `{{repository}}`. A node-local source additionally requires
 		 * `nodeAffinity`.
 		 */
 		volumeSource?: Record<string, unknown>;
@@ -228,8 +228,9 @@ export interface SolutionSpec extends ExtraResources {
 	/** Platform this solution is layered onto. */
 	platform: string;
 	enabled?: boolean;
-	microservices?: string[];
-	microfrontends?: string[];
+	repositories?: string[];
+	lambdas?: string[];
+	surfaces?: string[];
 	/** Names from the platform's `spec.processors` this solution needs. */
 	processors?: string[];
 	workflows?: WorkflowRef[];

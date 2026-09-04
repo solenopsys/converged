@@ -15,7 +15,7 @@ type Descriptor = { fields?: readonly DescriptorField[] } | undefined;
 
 /**
  * The table header a service says it supports. Fields come from the runtime
- * descriptor, never from a list written into the microfrontend, so a table
+ * descriptor, never from a list written into the surface, so a table
  * cannot offer a filter the owning service will refuse.
  */
 export function selectionHeaderFilters(

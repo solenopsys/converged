@@ -907,7 +907,7 @@ fn textMessage(allocator: std.mem.Allocator, block: std.json.ObjectMap) ![]u8 {
 }
 
 /// The instruction for a step. The gateway neither resolves nor invents it: the
-/// orchestrator owns prompts (it reads ms-contexts) and sends the text as a
+/// orchestrator owns prompts (it reads rp-contexts) and sends the text as a
 /// block, exactly like any other message — see docs/AI.md §4.3.
 fn systemMessage(allocator: std.mem.Allocator, block: std.json.ObjectMap) ![]u8 {
     const content = try stringValueJson(allocator, block.get("data") orelse std.json.Value{ .string = "" });

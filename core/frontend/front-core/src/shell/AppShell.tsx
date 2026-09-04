@@ -247,12 +247,12 @@ let loading: Promise<{ module: ChatModule; chat: Chat }> | null = null;
 
 function loadChat(config: ChatConfig) {
 	loading ??= Promise.all([import("../chat"), import("../chat/catalog")]).then(
-		async ([module, { createMicrofrontendCatalog }]) => ({
+		async ([module, { createSurfaceCatalog }]) => ({
 			module,
 			chat: await module.initChat(
 				config,
 				mountLinkedChatStyles,
-				createMicrofrontendCatalog(),
+				createSurfaceCatalog(),
 			),
 		}),
 	);

@@ -1,0 +1,14 @@
+{
+	"name": "rp-contexts",
+	"private": true,
+	"type": "module",
+	"module": "src/index.ts",
+	"dependencies": {
+		"back-core": "workspace:*",
+		"nrpc": "workspace:*",
+		"g-contexts": "workspace:*"
+	},
+	"exports": {
+		".": "./src/index.ts"
+	}
+}

@@ -2,7 +2,7 @@
  * Stylesheet for the static targets.
  *
  * `MarkdownRenderer` is written in the site's utility classes, so the docsite
- * has to resolve them the same way the product build does: the microfrontend
+ * has to resolve them the same way the product build does: the surface
  * UnoCSS config plus the token file that gives `--ui-*` their values. Scanning
  * the rendered markup rather than a source glob keeps the sheet to what these
  * pages actually use.
@@ -10,11 +10,11 @@
 
 import { join } from "node:path";
 import { createGenerator } from "unocss";
-import unoMicrofrontendConfig from "../../../../frontend/spa/uno.mf.config";
+import unoSurfaceConfig from "../../../../frontend/spa/uno.sf.config";
 
 const TOKENS = join(
 	import.meta.dir,
-	"../../../../frontend/front-core/src/styles/mf-tokens.css",
+	"../../../../frontend/front-core/src/styles/sf-tokens.css",
 );
 
 /** Layout the utility classes do not cover, plus the print rules for PDF. */
@@ -46,7 +46,7 @@ let cachedTokens: string | undefined;
 
 export async function buildStyles(markup: string): Promise<string> {
 	cachedTokens ??= await Bun.file(TOKENS).text();
-	const uno = await createGenerator(unoMicrofrontendConfig);
+	const uno = await createGenerator(unoSurfaceConfig);
 	const { css } = await uno.generate(markup, { preflights: true });
 	// Utilities last: they must win over the layout rules above, not the reverse.
 	return [cachedTokens, DOCS_CSS, css].join("\n");

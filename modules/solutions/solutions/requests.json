@@ -1,13 +1,12 @@
 {
-	"microservices": [
+	"repositories": [
 		"dag",
 		"files",
 		"store",
-		"compressors",
-		"modelconvertor",
 		"requests"
 	],
-	"microfrontends": ["requests", "files"],
+	"lambdas": ["compressors", "modelconvertor"],
+	"surfaces": ["requests", "files"],
 	"processors": ["curaengine", "opencamlib"],
 	"workflows": [
 		"files-process",

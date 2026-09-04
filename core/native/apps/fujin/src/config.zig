@@ -88,7 +88,7 @@ pub const Config = struct {
 
 fn initJwtConfig(allocator: std.mem.Allocator, environ: *const std.process.Environ.Map) !JwtConfig {
     const mode = accessMode(environ.get("NRPC_ACCESS_MODE") orelse "off");
-    const issuer = try owned(allocator, environ, "ACCESS_JWT_ISSUER", "ms-access");
+    const issuer = try owned(allocator, environ, "ACCESS_JWT_ISSUER", "rp-access");
     errdefer allocator.free(issuer);
     const audience = try owned(allocator, environ, "ACCESS_JWT_AUDIENCE", "cluster");
     errdefer allocator.free(audience);

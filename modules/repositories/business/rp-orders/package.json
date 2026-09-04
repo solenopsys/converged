@@ -1,0 +1,13 @@
+{
+	"name": "rp-orders",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"dependencies": {
+		"back-core": "workspace:*",
+		"nrpc": "workspace:*",
+		"g-orders": "workspace:*"
+	}
+}

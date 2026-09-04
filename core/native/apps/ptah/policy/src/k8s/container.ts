@@ -81,7 +81,8 @@ export function container(spec: ContainerSpec): Record<string, unknown> {
 	// Ptah's own output, unlike the credentials Secret above: a missing one is
 	// a bug in the operator rather than an integration nobody configured yet,
 	// so it is required and a pod waits for it instead of starting half-signed.
-	for (const name of spec.envFromSecrets ?? []) envFrom.push({ secretRef: { name } });
+	for (const name of spec.envFromSecrets ?? [])
+		envFrom.push({ secretRef: { name } });
 
 	return {
 		name: spec.name,
@@ -100,9 +101,7 @@ export function container(spec: ContainerSpec): Record<string, unknown> {
 		...(envFrom.length > 0 ? { envFrom } : {}),
 		...(spec.resources ? { resources: spec.resources } : {}),
 		...(spec.volumeMounts ? { volumeMounts: spec.volumeMounts } : {}),
-		...(spec.securityContext
-			? { securityContext: spec.securityContext }
-			: {}),
+		...(spec.securityContext ? { securityContext: spec.securityContext } : {}),
 		...probes(spec),
 	};
 }

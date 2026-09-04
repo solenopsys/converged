@@ -24,7 +24,7 @@ const contentTypes: Record<string, string> = {
 const servedRoutes = [
 	"/assets/*",
 	"/vendor/*",
-	"/mf/*",
+	"/sf/*",
 	"/icons/*",
 	"/widget/*",
 	"/sw.js",
@@ -82,7 +82,7 @@ export default function spaPlugin(config: SpaPluginConfig = {}): ServerPlugin {
 		return target.startsWith(`${root}/`) ? target : null;
 	}
 
-	// The delivery in a built image has no `mf/` directory: microfrontends are
+	// The delivery in a built image has no `sf/` directory: surfaces are
 	// registry objects, and which ones exist is decided after the image was
 	// built. Without a registry — every dev run — they are on disk beside the
 	// rest of the delivery and served from there.
@@ -90,9 +90,9 @@ export default function spaPlugin(config: SpaPluginConfig = {}): ServerPlugin {
 
 	/**
 	 * The object index, narrowed to this solution. The registry object
-	 * describes every microfrontend that was published; offering the page one
+	 * describes every surface that was published; offering the page one
 	 * whose name is not in `FRONTEND_MODULES` would declare objects whose module
-	 * `/mf/<name>.js` then answers 404 for.
+	 * `/sf/<name>.js` then answers 404 for.
 	 */
 	const serveObjectIndex = async ({ set }: { set: { status?: number } }) => {
 		if (!registry?.digest(OBJECT_INDEX)) {
@@ -136,11 +136,11 @@ export default function spaPlugin(config: SpaPluginConfig = {}): ServerPlugin {
 	}) => {
 		if (params.name === "index.json") return serveObjectIndex({ set });
 		const name = params.name.replace(/\.js$/, "");
-		if (!registry?.digest(`mf-${name}.js`)) {
+		if (!registry?.digest(`sf-${name}.js`)) {
 			set.status = 404;
 			return "Not Found";
 		}
-		return new Response(await registry.object(`mf-${name}.js`), {
+		return new Response(await registry.object(`sf-${name}.js`), {
 			headers: {
 				"content-type": contentTypes[".js"],
 				"content-encoding": "br",
@@ -209,12 +209,12 @@ export default function spaPlugin(config: SpaPluginConfig = {}): ServerPlugin {
 			);
 		};
 
-		// `/mf/*` is either the registry's or the delivery's, never both: two
+		// `/sf/*` is either the registry's or the delivery's, never both: two
 		// handlers on one prefix would leave which of them answers up to the
 		// router's ordering rules.
-		if (registry) app.get("/mf/:name", serveModule);
+		if (registry) app.get("/sf/:name", serveModule);
 		for (const route of servedRoutes) {
-			if (registry && route === "/mf/*") continue;
+			if (registry && route === "/sf/*") continue;
 			app.get(route, serve);
 		}
 

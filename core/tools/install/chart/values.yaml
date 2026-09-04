@@ -238,58 +238,55 @@ shards: []
 # platform contract and deliberately has the same name as that product.
 solutions:
   converged:
-    microservices:
+    repositories:
       - access
       - auth
       - identity
-      - oauth
       - markdown
       - struct
       - galery
-      - agent
       - assistant
       - calls
-      - chats
       - contexts
       - threads
+      - dag
+      - files
+      - store
+      - requests
       - logs
       - telemetry
       - counters
       - usage
-      - files
-      - store
+      - dashboard
+    lambdas:
+      - ses
+      - compressors
       # wf-file-analyze converts every model to a GLB through it; without the
-      # service a request gets no previews.
+      # lambda a request gets no previews.
       - modelconvertor
-      - requests
-    microfrontends:
+    surfaces:
       - auth
-      - markdown
-      - struct
-      - galery
-      - landing
-      - docs
-      - agents
       - assistants
       - calls
-      - chats
       - contexts
       - threads
+      - requests
+      - files
       - logs
       - telemetry
       - usage
-      - requests
+      - dasboards
     processors:
       - curaengine
       - opencamlib
     # The resolved form of modules/solutions/mapping.json filtered by the
     # `workflows` of modules/solutions/solutions/requests.json. Every script a
     # workflow reaches through rt.sub must be listed too: centimanus resolves a
-    # delegation through this same list (ms-dag listAvailableWorkflows), so an
+    # delegation through this same list (rp-dag listAvailableWorkflows), so an
     # unlisted child fails the parent with WorkflowNotFound.
     # brief/description/parameters are what publishes a workflow to the chat
     # catalog; the two internal ones are deliberately left without them, so the
-    # assistant cannot call what only a parent workflow or ms-requests starts.
+    # assistant cannot call what only a parent workflow or rp-requests starts.
     workflows:
       - id: files-process
         name: wf-files-process

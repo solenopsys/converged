@@ -37,8 +37,8 @@ export {
 	$objectRegistryRevision,
 	ingestObjectIndex,
 	loadObjectIndex,
-	microfrontendDeclared,
-	microfrontendRegistered,
+	surfaceDeclared,
+	surfaceRegistered,
 	ObjectRegistry,
 	objectRegistry,
 } from "./registry";
@@ -62,8 +62,8 @@ export {
 	presentReference,
 	referencePresented,
 	refreshFocusedObjects,
-	registerMicrofrontend,
-	setMicrofrontendLoader,
+	registerSurface,
+	setSurfaceLoader,
 } from "./runtime";
 export type {
 	CategoryId,
@@ -71,8 +71,8 @@ export type {
 	DomainRef,
 	ExecuteOperationRequest,
 	IdSelection,
-	MicrofrontendDefinition,
-	MicrofrontendManifest,
+	SurfaceDefinition,
+	SurfaceManifest,
 	ObjectChange,
 	ObjectDefinition,
 	ObjectIndexFile,
@@ -105,12 +105,12 @@ export type {
 } from "./types";
 export type {
 	LlmCatalogParameters,
-	MicrofrontendLlmAction,
-	MicrofrontendLlmCatalog,
+	SurfaceLlmAction,
+	SurfaceLlmCatalog,
 } from "../llm-catalog";
 export {
 	Category,
-	defineMicrofrontend,
+	defineSurface,
 	NEW_OBJECT_ID,
 	OPERATORS,
 	objectOf,

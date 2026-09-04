@@ -1,5 +1,5 @@
 // wf-file-unpack — flow only. It resolves file metadata and CacheRefs, then
-// asks ms-compressors to unpack the archive. No raw bytes enter the workflow.
+// asks lm-compressors to unpack the archive. No raw bytes enter the workflow.
 
 import {
 	type FlowCtx,

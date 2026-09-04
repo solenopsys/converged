@@ -1,0 +1,28 @@
+# ready | _
+modules:
+  ai/sf-assistants: ready
+  ai/sf-contexts: ready
+  analytics/sf-dasboards: _
+  analytics/sf-logs: _
+  analytics/sf-telemetry: _
+  analytics/sf-usage: _
+  automation/sf-dag: _
+  automation/sf-sheduller: _
+  automation/sf-webhooks: _
+  business/sf-orders: _
+  business/sf-requests: ready
+  communications/sf-calls: ready
+  communications/sf-chats: _
+  communications/sf-community: _
+  communications/sf-threads: ready
+  content/sf-classifier: _
+  content/sf-docs: _
+  content/sf-galery: _
+  content/sf-landing: _
+  content/sf-markdown: _
+  content/sf-scripts: _
+  content/sf-static: _
+  content/sf-struct: _
+  data/sf-dumps: _
+  sequrity/sf-auth: ready
+  sequrity/sf-secrets: _

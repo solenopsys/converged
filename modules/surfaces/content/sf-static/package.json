@@ -1,0 +1,18 @@
+{
+	"name": "sf-static",
+	"description": "Статический кэш SSR-страниц: состояние, размеры, сброс и инвалидация",
+	"private": true,
+	"type": "module",
+	"module": "src/index.ts",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"dependencies": {
+		"effector": "23.4.4",
+		"effector-preact": "workspace:*",
+		"g-static": "workspace:*",
+		"front-core": "workspace:*",
+		"preact": "^10.29.7",
+		"signal-channel": "workspace:*"
+	}
+}

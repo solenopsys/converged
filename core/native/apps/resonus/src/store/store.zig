@@ -423,9 +423,9 @@ pub const Store = struct {
     }
 
     pub fn putTranscriptPhrase(self: *Store, session_id: []const u8, source: Source, timestamp_unix: i64, text: []const u8) !void {
-        // Write-only: the gate persists each recognised phrase to ms-threads and
+        // Write-only: the gate persists each recognised phrase to rp-threads and
         // never reads transcripts back. Phrases are ordered by their timestamp on
-        // read (ms-calls / the UI sort by it), so no beforeId chaining is kept.
+        // read (rp-calls / the UI sort by it), so no beforeId chaining is kept.
         self.transcript_mutex.lock();
         defer self.transcript_mutex.unlock();
 

@@ -3,7 +3,7 @@ import {
 	Category,
 	objectRegistry,
 	referencePresented,
-	setMicrofrontendLoader,
+	setSurfaceLoader,
 } from "front-core/object-runtime";
 import { NEW, runCandidate } from "./run-candidate";
 
@@ -12,9 +12,9 @@ const Detail = () => null;
 let executed = 0;
 
 beforeAll(() => {
-	setMicrofrontendLoader(async () => {});
-	objectRegistry.register("mf-mailing", {
-		id: "mf-mailing",
+	setSurfaceLoader(async () => {});
+	objectRegistry.register("sf-mailing", {
+		id: "sf-mailing",
 		types: [
 			{ id: "mailing.mail", label: "Mail", categories: [Category.Creatable] },
 			{ id: "calls.call", label: "Call", categories: [Category.Creatable] },

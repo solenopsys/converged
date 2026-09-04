@@ -1,4 +1,4 @@
-//! Fetch a workflow source from the Ptah proxy URL returned by ms-dag.
+//! Fetch a workflow source from the Ptah proxy URL returned by rp-dag.
 
 const std = @import("std");
 

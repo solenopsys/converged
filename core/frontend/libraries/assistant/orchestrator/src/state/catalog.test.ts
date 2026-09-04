@@ -92,7 +92,7 @@ describe("conversation catalog", () => {
 			group: "ui",
 			modules: () => [
 				{
-					id: "mf-sales",
+					id: "sf-sales",
 					label: "Sales",
 					count: 99,
 					description: "Leads, contacts, audiences and campaigns",
@@ -106,7 +106,7 @@ describe("conversation catalog", () => {
 				{
 					id: "core.select:sales.lead",
 					brief: "Select leads",
-					module: "mf-sales",
+					module: "sf-sales",
 					moduleLabel: "Sales",
 				},
 			],
@@ -114,17 +114,17 @@ describe("conversation catalog", () => {
 
 		expect(catalog.snapshot().listModules?.()).toEqual([
 			{
-				id: "mf-sales",
+				id: "sf-sales",
 				label: "Sales",
 				count: 1,
 				description: "Leads, contacts, audiences and campaigns",
 			},
 		]);
-		expect(catalog.snapshot().byModule?.("mf-sales")).toMatchObject([
+		expect(catalog.snapshot().byModule?.("sf-sales")).toMatchObject([
 			{
 				id: "core.select:sales.lead",
 				brief: "Select leads",
-				module: "mf-sales",
+				module: "sf-sales",
 			},
 		]);
 	});

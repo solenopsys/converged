@@ -34,12 +34,12 @@ const baseImports: Record<string, string> = {
 	d3: "/vendor/d3.js",
 };
 
-export function createImportMap(microfrontends: readonly string[]): ImportMap {
+export function createImportMap(surfaces: readonly string[]): ImportMap {
 	return {
 		imports: {
 			...baseImports,
 			...Object.fromEntries(
-				microfrontends.map((name) => [`mf-${name}`, `/mf/${name}.js`]),
+				surfaces.map((name) => [`sf-${name}`, `/sf/${name}.js`]),
 			),
 		},
 	};

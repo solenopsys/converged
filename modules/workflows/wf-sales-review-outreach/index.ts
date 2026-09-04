@@ -1,7 +1,7 @@
-// wf-sales-review-outreach — flow only, one mail per run. Asks ms-sales for the
+// wf-sales-review-outreach — flow only, one mail per run. Asks rp-sales for the
 // next lead that finished an order and has not been asked for a review yet,
 // renders the review request from the flow-local templates, sends it through
-// ms-smtp and records the trail (lead event + touch). dryRun renders the mail
+// lm-smtp and records the trail (lead event + touch). dryRun renders the mail
 // and stops before sending.
 //
 // The old workflow spelled every branch as its own build-*-result node class;
@@ -157,7 +157,7 @@ rt.workflow = (input: Input) => {
 		),
 	);
 
-	// ms-smtp reports a refused mail as { success: false }, not as a throw —
+	// lm-smtp reports a refused mail as { success: false }, not as a throw —
 	// so this is a normal branch, not an error boundary.
 	if (!sent.success) {
 		const result = { ...preview, status: "send-failed", error: sent.error };

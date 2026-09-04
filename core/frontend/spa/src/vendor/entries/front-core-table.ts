@@ -1,6 +1,6 @@
 /**
  * The table is its own file, not part of the shared core bundle: not every
- * microfrontend uses it, and it weighs more than the rest. `front-core` stays
+ * surface uses it, and it weighs more than the rest. `front-core` stays
  * external — primitives and `cn` come from it, and no second copy appears.
  *
  * The path is relative, not by entrypoint name: `front-core` in the external

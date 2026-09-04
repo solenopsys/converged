@@ -51,11 +51,11 @@ club/content/static/<path>        authored gallery assets
 ```
 
 The `site` target preserves those store boundaries and copies `static/`
-verbatim into `galery-ms`. Generated documentation and the
+verbatim into `rp-galery`. Generated documentation and the
 ecosystem landing still come from their distributed sources, so they are not
 duplicated under `club/content`.
 
-`index.json` is the same format `struct-ms` serves:
+`index.json` is the same format `rp-struct` serves:
 
 ```json
 [
@@ -76,12 +76,12 @@ several owners contribute to one.
   owner's block stays intact and keeps its order. The heading comes from
   `meta.json` (`group`), defaulting to the owner's name.
 
-`mf-docs` reads both shapes. Two owners claiming the same `slug` in one section
+`sf-docs` reads both shapes. Two owners claiming the same `slug` in one section
 is a build error.
 
 With ~135 owners a section flattened into 135 groups is a dump, not a
 structure, so owners are grouped into **chapters** first. A module's chapter
-defaults to its domain — `ms-notify` is in `communications` because it sits
+defaults to its domain — `rp-notify` is in `communications` because it sits
 there — and `meta.json` overrides it. Chapter titles and order are editorial
 and live in `docs.config.json`; a chapter nobody titled shows up under its own
 id rather than disappearing.
@@ -101,15 +101,15 @@ directly on `src/cli.ts`, but are not separate package commands.
 
 | Target | Where | What it is |
 | --- | --- | --- |
-| `site` | `data/club/struct-ms/struct/data`, `data/club/markdown-ms/markdown/data`, `data/club/galery-ms/static` | product content plus generated documentation and static assets |
-| `ecosystem` | `data/club/struct-ms/struct/data/<lang>/landings/ecosystem` | the ecosystem landing |
+| `site` | `data/club/rp-struct/struct/data`, `data/club/rp-markdown/markdown/data`, `data/club/rp-galery/static` | product content plus generated documentation and static assets |
+| `ecosystem` | `data/club/rp-struct/struct/data/<lang>/landings/ecosystem` | the ecosystem landing |
 | `readme` | `build/docs/readme` | one article per section, with a table of contents |
 | `html` | `build/docs/html` | preact SSR, side menu, inline styles |
 | `pdf` | `build/docs/pdf` | the same pages, printed |
 | `translations` | `build/docs/translation-control.json` | projects for `translation-control` |
 
 HTML and PDF render through the same `MarkdownRenderer` the site uses, and
-styles are built from `uno.mf.config.ts` and `front-core` tokens, so a static
+styles are built from `uno.sf.config.ts` and `front-core` tokens, so a static
 build cannot drift from the product. PDF is printed by puppeteer when it is
 installed, otherwise by any Chrome or Chromium found (`DOCS_CHROME` overrides).
 
@@ -119,8 +119,8 @@ installed, otherwise by any Chrome or Chromium found (`DOCS_CHROME` overrides).
 tree and nowhere else:
 
 ```
-modules/microservices/<domain>/ms-<name>
-modules/microfrontends/<domain>/mf-<name>
+modules/repositories/<domain>/rp-<name>
+modules/surfaces/<domain>/sf-<name>
 modules/workflows/wf-<name>
 modules/solutions/solutions/<id>.json      (aggregate solutions.json is the fallback)
 ```
@@ -128,7 +128,7 @@ modules/solutions/solutions/<id>.json      (aggregate solutions.json is the fall
 A module is on the page because its directory exists; in a domain because it
 sits in that folder; in a solution because the solution names it. A module's
 purpose is read from its `README.md` — the first paragraph under `## Purpose`
-(`## UI Purpose` for microfrontends) and the paragraph under the ownership
+(`## UI Purpose` for surfaces) and the paragraph under the ownership
 boundary heading. Counters are computed, not written.
 
 Wording is the only hand-authored part. Public copy lives at

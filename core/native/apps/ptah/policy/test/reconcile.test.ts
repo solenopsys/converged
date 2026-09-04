@@ -254,10 +254,15 @@ describe("platform", () => {
 describe("solutions", () => {
 	test("merge into the module map and stamp a rollout digest", () => {
 		const solutions = [
-			solution("cnc", { microservices: ["geo"], microfrontends: ["geo"] }),
+			solution("cnc", {
+				repositories: ["geo"],
+				lambdas: ["compressors"],
+				surfaces: ["geo"],
+			}),
 			solution("sales", {
-				microservices: ["sales", "geo"],
-				microfrontends: ["sales"],
+				repositories: ["sales", "geo"],
+				lambdas: ["ses"],
+				surfaces: ["sales"],
 			}),
 		];
 		const { resources } = reconcile(
@@ -267,7 +272,8 @@ describe("solutions", () => {
 		const data = dataOf(modules);
 
 		expect(data.SOLUTIONS).toBe("cnc,sales");
-		expect(JSON.parse(data.MICROSERVICES)).toEqual(["geo", "sales"]);
+		expect(JSON.parse(data.REPOSITORIES)).toEqual(["geo", "sales"]);
+		expect(JSON.parse(data.LAMBDAS)).toEqual(["compressors", "ses"]);
 		expect(JSON.parse(data.FRONTEND_MODULES)).toEqual(["geo", "sales"]);
 
 		const stamp = annotationsOf(find(resources, "Deployment", "converged-ui"))[
@@ -291,7 +297,7 @@ describe("solutions", () => {
 		expect(
 			digestFor([
 				solution("cnc"),
-				solution("extra", { microservices: ["billing"] }),
+				solution("extra", { repositories: ["billing"] }),
 			]),
 		).not.toBe(base);
 	});
@@ -306,7 +312,8 @@ describe("solutions", () => {
 		);
 		const data = dataOf(find(resources, "ConfigMap", "converged-modules"));
 		expect(data.SOLUTIONS).toBe("");
-		expect(JSON.parse(data.MICROSERVICES)).toEqual([]);
+		expect(JSON.parse(data.REPOSITORIES)).toEqual([]);
+		expect(JSON.parse(data.LAMBDAS)).toEqual([]);
 	});
 
 	test("reconciling a solution owns no objects", () => {
@@ -429,7 +436,7 @@ describe("tenant", () => {
 	test("tenants narrow the platform's solutions to their own subscription", () => {
 		const solutions = [
 			solution("cnc"),
-			solution("sales", { microservices: ["sales"] }),
+			solution("sales", { repositories: ["sales"] }),
 		];
 		const { status } = reconcile(
 			input({
@@ -514,13 +521,16 @@ describe("ownership", () => {
 });
 
 describe("storage", () => {
-	test("creates one claim and one mount per microservice", () => {
+	test("creates one claim and one mount per repository, excluding lambdas", () => {
 		const { resources } = reconcile(
 			input({
 				kind: "Platform",
 				object: platform("mono"),
 				solutions: [
-					solution("suite", { microservices: ["billing", "geo", "billing"] }),
+					solution("suite", {
+						repositories: ["billing", "geo", "billing"],
+						lambdas: ["compressors", "ses"],
+					}),
 				],
 			}),
 		);
@@ -537,9 +547,9 @@ describe("storage", () => {
 			find(resources, "ConfigMap", "converged-storage-config"),
 		);
 		expect(JSON.parse(config["storage.json"])).toEqual({
-			microservices: {
-				"billing-ms": "/app/data/converged-billing",
-				"geo-ms": "/app/data/converged-geo",
+			stores: {
+				"rp-billing": "/app/data/converged-billing",
+				"rp-geo": "/app/data/converged-geo",
 			},
 		});
 
@@ -577,7 +587,7 @@ describe("storage", () => {
 			input({
 				kind: "Platform",
 				object: platform("mono"),
-				solutions: [solution("suite", { microservices: ["billing", "geo"] })],
+				solutions: [solution("suite", { repositories: ["billing", "geo"] })],
 			}),
 		);
 		// No `volumeName`: there is nothing to pre-bind to yet, and asking for
@@ -609,7 +619,7 @@ describe("storage", () => {
 			input({
 				kind: "Platform",
 				object,
-				solutions: [solution("suite", { microservices: ["billing", "geo"] })],
+				solutions: [solution("suite", { repositories: ["billing", "geo"] })],
 			}),
 		);
 		expect(
@@ -653,7 +663,7 @@ describe("storage", () => {
 				input({
 					kind: "Platform",
 					object,
-					solutions: [solution("suite", { microservices: ["geo"] })],
+					solutions: [solution("suite", { repositories: ["geo"] })],
 				}),
 			),
 		).toThrow(/node-local/);
@@ -665,7 +675,7 @@ describe("storage", () => {
 				kind: "Tenant",
 				object: tenant("democnc", { storageSize: "50Gi" }),
 				platform: platform("cloud"),
-				solutions: [solution("suite", { microservices: ["geo"] })],
+				solutions: [solution("suite", { repositories: ["geo"] })],
 			}),
 		);
 		const claim = specOf<{ resources: unknown }>(
@@ -676,7 +686,7 @@ describe("storage", () => {
 		expect(claim.resources).toEqual({ requests: { storage: "50Gi" } });
 	});
 
-	test("rejects a source template that maps microservices to the same disk", () => {
+	test("rejects a source template that maps repositories to the same disk", () => {
 		const object = platform("mono");
 		const storage = staticStorage({
 			volumeSource: { hostPath: { path: "/var/lib/ptah/shared" } },
@@ -687,7 +697,7 @@ describe("storage", () => {
 				input({
 					kind: "Platform",
 					object,
-					solutions: [solution("suite", { microservices: ["billing", "geo"] })],
+					solutions: [solution("suite", { repositories: ["billing", "geo"] })],
 				}),
 			),
 		).toThrow(/distinct source/);
@@ -696,7 +706,7 @@ describe("storage", () => {
 
 describe("multi", () => {
 	const suite = () => [
-		solution("suite", { microservices: ["billing", "geo"] }),
+		solution("suite", { repositories: ["billing", "geo"] }),
 	];
 
 	test("one behemoth per shard, each with its own disk per microservice", () => {
@@ -782,7 +792,7 @@ describe("multi", () => {
 			input({
 				kind: "Platform",
 				object,
-				solutions: [solution("s", { microservices: ["geo"] })],
+				solutions: [solution("s", { repositories: ["geo"] })],
 			}),
 		);
 		const capacity = (name: string) =>
@@ -1015,7 +1025,7 @@ describe("module registry", () => {
 	test("spec.env cannot point a pod at the registry itself", () => {
 		// The failure this prevents: pods handed the bucket URL fetch modules
 		// over the internet at boot, so a node that comes up before its egress
-		// does starts a platform with an arbitrary prefix of its microservices
+		// does starts a platform with an arbitrary prefix of its repositories
 		// missing — and reports itself healthy.
 		expect(() =>
 			reconcile(

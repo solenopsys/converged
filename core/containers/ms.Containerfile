@@ -5,9 +5,9 @@
 # bundle — `server.js`, the dlopen'd libraries and the handful of dependencies
 # that cannot be bundled. Nothing else crosses.
 #
-# There are no microservices in this image. A module is built by
+# There are no repositories in this image. A module is built by
 # `core/tools/registry`, published by digest, and fetched from ptah at boot;
-# `MICROSERVICES` says which ones and `MODULE_DIGESTS` says which bytes. So the
+# `REPOSITORIES`/`LAMBDAS` say which ones and `MODULE_DIGESTS` says which bytes. So the
 # image stops changing when a module does, and one image serves every solution
 # without carrying a single module of any of them.
 #
@@ -128,7 +128,7 @@ ENV LIBC_VARIANT=musl
 EXPOSE 3001
 
 # Required from the platform: FUJIN_ZMQ_ENDPOINT, SERVICE_TOKEN, VALKEY_URL,
-# STORAGE_TENANT_SERVICES (or STORAGE_SCOPE), MICROSERVICES, MODULE_PROXY,
+# STORAGE_TENANT_SERVICES (or STORAGE_SCOPE), REPOSITORIES, LAMBDAS, MODULE_PROXY,
 # MODULE_DIGESTS.
 ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["bun", "/app/server.js"]

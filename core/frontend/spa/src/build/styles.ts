@@ -1,15 +1,15 @@
 import { join } from "node:path";
 import { createGenerator } from "unocss";
 import unoConfig from "../../uno.config";
-import unoMicrofrontendConfig from "../../uno.mf.config";
+import unoSurfaceConfig from "../../uno.sf.config";
 import {
 	assetsDir,
 	clientEntry,
 	frontCoreRoot,
 	landingBlocksEntry,
 	landingBlocksStyles,
-	microfrontendDir,
-	microfrontends,
+	surfaceDir,
+	surfaces,
 } from "./layout";
 import { dirname } from "node:path";
 
@@ -78,24 +78,24 @@ export async function buildStyles(): Promise<string[]> {
 }
 
 /**
- * Microfrontend utility CSS — its own layer and its own preset: MF views are
+ * Surface utility CSS — its own layer and its own preset: SF views are
  * written in wind utilities, the shell in its own tokens, and there's no
- * reason to mix them. The file arrives with the first microfrontend; it's not
+ * reason to mix them. The file arrives with the first surface; it's not
  * on the critical path.
  *
  * The modules' own hand-written CSS is glued in here too: `moduleStyles` is
  * what the bundler pulled out of their `import "./View.css"`. It isn't
  * shipped as its own files, because the page includes exactly one
- * `assets/mf.css` (`front-core/src/shell/mf.ts`), and an `mf/<name>.css`
+ * `assets/sf.css` (`front-core/src/shell/sf.ts`), and an `sf/<name>.css`
  * sitting next to the chunk would never get included by anyone.
  */
-export async function buildMicrofrontendStyles(moduleStyles: string[] = []): Promise<string> {
+export async function buildSurfaceStyles(moduleStyles: string[] = []): Promise<string> {
 	const glob = new Bun.Glob("**/*.{ts,tsx}");
 	const files = [
 		...Array.from(glob.scanSync({ cwd: join(frontCoreRoot, "src"), absolute: true })),
-		...microfrontends.flatMap((name) =>
+		...surfaces.flatMap((name) =>
 			Array.from(
-				glob.scanSync({ cwd: join(microfrontendDir(name), "src"), absolute: true }),
+				glob.scanSync({ cwd: join(surfaceDir(name), "src"), absolute: true }),
 			),
 		),
 	];
@@ -103,9 +103,9 @@ export async function buildMicrofrontendStyles(moduleStyles: string[] = []): Pro
 		await Promise.all(files.map((file) => Bun.file(file).text()))
 	).join("\n");
 
-	const uno = await createGenerator(unoMicrofrontendConfig);
+	const uno = await createGenerator(unoSurfaceConfig);
 	const { css } = await uno.generate(sources, { preflights: true });
-	const tokens = await Bun.file(join(stylesDir, "mf-tokens.css")).text();
+	const tokens = await Bun.file(join(stylesDir, "sf-tokens.css")).text();
 	// Hand-written component CSS (custom class names UnoCSS can't derive from
 	// scanning utility strings) rides alongside the generated utilities.
 	const [threadedChat, threadView, pellEditor] = await Promise.all([
@@ -117,7 +117,7 @@ export async function buildMicrofrontendStyles(moduleStyles: string[] = []): Pro
 		moduleStyles.map((path) => Bun.file(path).text()),
 	);
 
-	const target = join(assetsDir, "mf.css");
+	const target = join(assetsDir, "sf.css");
 	// Utilities come last: they must override components' hand-written rules,
 	// not the other way around.
 	await Bun.write(

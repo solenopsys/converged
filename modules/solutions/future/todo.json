@@ -6,7 +6,7 @@
   },
   "spec": {
     "platform": "converged",
-    "microservices": [
+    "repositories": [
       "billing",
       "classifier",
       "community",
@@ -18,26 +18,28 @@
       "events",
 
       "functions",
-      "modelconvertor",
       "notify",
       "orders",
-      "push",
 
       "resonus",
       "reviews",
       "sales",
       "scripts",
-      "secrets",
-      "ses",
       "sheduller",
-      "sms",
-      "smtp",
       "staff",
       "static",
 
       "webhooks"
     ],
-    "microfrontends": [
+    "lambdas": [
+      "modelconvertor",
+      "push",
+      "secrets",
+      "ses",
+      "sms",
+      "smtp"
+    ],
+    "surfaces": [
       "classifier",
       "community",
       "dag",

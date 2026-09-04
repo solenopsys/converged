@@ -1,11 +1,11 @@
 {
-	"microservices": [
+	"repositories": [
 		"assistant",
 		"calls",
 		"contexts",
 		"threads"
 	],
-	"microfrontends": [
+	"surfaces": [
 	  "assistants",
 		"calls",
 		"contexts",

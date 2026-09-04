@@ -19,8 +19,9 @@ test("the chart bootstrap solution matches the converged product", () => {
 	) as ChartValues;
 
 	expect(values.solutions?.converged).toEqual({
-		microservices: configured.spec.microservices,
-		microfrontends: configured.spec.microfrontends,
+		repositories: configured.spec.repositories,
+		lambdas: configured.spec.lambdas,
+		surfaces: configured.spec.surfaces,
 		processors: configured.spec.processors,
 		workflows: configured.spec.workflows,
 	});
@@ -34,6 +35,7 @@ test("renders a cluster Solution from the resolved product", () => {
 
 	expect(manifest.metadata.name).toBe("converged-converged");
 	expect(manifest.spec.platform).toBe("converged");
-	expect(manifest.spec.microservices).toEqual(configured.spec.microservices);
+	expect(manifest.spec.repositories).toEqual(configured.spec.repositories);
+	expect(manifest.spec.lambdas).toEqual(configured.spec.lambdas);
 	expect(manifest.spec.workflows).toEqual(configured.spec.workflows);
 });

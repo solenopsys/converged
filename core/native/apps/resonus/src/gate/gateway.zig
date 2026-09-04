@@ -933,8 +933,8 @@ pub const Gateway = struct {
         return error.TransportUnavailable;
     }
 
-    /// Register the session in the ms-threads SQL thread_index so the thread
-    /// becomes visible in the UI/stats via the ms-threads HTTP API. Non-fatal.
+    /// Register the session in the rp-threads SQL thread_index so the thread
+    /// becomes visible in the UI/stats via the rp-threads HTTP API. Non-fatal.
     pub fn registerThreadAudio(self: *Gateway, session_id: []const u8) void {
         const store = if (self.store) |s| s else {
             std.log.warn("registerThreadAudio: store unavailable, session {s} not indexed", .{session_id});

@@ -7,7 +7,7 @@ import { objectResolver } from "./resolver";
 import {
 	type DomainRef,
 	type ExecuteOperationRequest,
-	type MicrofrontendDefinition,
+	type SurfaceDefinition,
 	NEW_OBJECT_ID,
 	type ObjectChange,
 	type ObjectRef,
@@ -60,7 +60,7 @@ export function refreshFocusedObjects(): void {
 	}
 }
 
-export function setMicrofrontendLoader(next: ModuleLoader): void {
+export function setSurfaceLoader(next: ModuleLoader): void {
 	loader = next;
 }
 
@@ -72,8 +72,8 @@ export async function loadObjectType(type: string): Promise<void> {
 	await ensureLoaded(objectRegistry.ownerForType(type));
 }
 
-export function registerMicrofrontend(
-	definition: MicrofrontendDefinition,
+export function registerSurface(
+	definition: SurfaceDefinition,
 ): void {
 	objectRegistry.register(definition.id, definition);
 }

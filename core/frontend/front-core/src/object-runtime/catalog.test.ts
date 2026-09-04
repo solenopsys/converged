@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, test } from "bun:test";
-import { LocaleController, registerMicrofrontendLocales } from "../i18n";
+import { LocaleController, registerSurfaceLocales } from "../i18n";
 import { setActiveSelectionResolver } from "../select/runtime";
 import {
 	catalogEntries,
@@ -16,8 +16,8 @@ import { referencePresented } from "./runtime";
 import { Category, OPERATORS } from "./types";
 
 beforeAll(() => {
-	objectRegistry.declare("mf-companies", {
-		id: "mf-companies",
+	objectRegistry.declare("sf-companies", {
+		id: "sf-companies",
 		types: [
 			{
 				id: "companies.company",
@@ -52,8 +52,8 @@ beforeAll(() => {
 });
 
 describe("operator catalog", () => {
-	test("resolves user-facing operation labels from the active MF locale", () => {
-		registerMicrofrontendLocales("mf-localized-probe", {
+	test("resolves user-facing operation labels from the active SF locale", () => {
+		registerSurfaceLocales("sf-localized-probe", {
 			en: {
 				catalog: {
 					operation: { label: "Record answer", description: "Save it" },
@@ -65,8 +65,8 @@ describe("operator catalog", () => {
 				},
 			},
 		});
-		objectRegistry.register("mf-localized-probe", {
-			id: "mf-localized-probe",
+		objectRegistry.register("sf-localized-probe", {
+			id: "sf-localized-probe",
 			types: [{ id: "probe.localized", label: "Localized probe" }],
 			views: [],
 			operations: [
@@ -142,8 +142,8 @@ describe("operator catalog", () => {
 	});
 
 	test("select candidate without service filters still has a valid selection command", () => {
-		objectRegistry.register("mf-unfiltered-probe", {
-			id: "mf-unfiltered-probe",
+		objectRegistry.register("sf-unfiltered-probe", {
+			id: "sf-unfiltered-probe",
 			types: [
 				{
 					id: "probe.unfiltered",
@@ -187,8 +187,8 @@ describe("operator catalog", () => {
 	});
 
 	test("an incoming-mail hint finds the mail selection instead of generic open", () => {
-		objectRegistry.register("mf-mail-search-probe", {
-			id: "mf-mail-search-probe",
+		objectRegistry.register("sf-mail-search-probe", {
+			id: "sf-mail-search-probe",
 			types: [
 				{
 					id: "mail-search.incoming",
@@ -226,8 +226,8 @@ describe("operator catalog", () => {
 	test("an unserializable operation result does not travel to the transcript", async () => {
 		const live: Record<string, unknown> = {};
 		live.self = live;
-		objectRegistry.register("mf-probe", {
-			id: "mf-probe",
+		objectRegistry.register("sf-probe", {
+			id: "sf-probe",
 			types: [],
 			views: [],
 			operations: [
@@ -252,8 +252,8 @@ describe("operator catalog", () => {
 	});
 
 	test("select returns a set reference and compact statistics", async () => {
-		objectRegistry.register("mf-select-probe", {
-			id: "mf-select-probe",
+		objectRegistry.register("sf-select-probe", {
+			id: "sf-select-probe",
 			types: [
 				{
 					id: "probe.item",
@@ -362,8 +362,8 @@ describe("operator catalog", () => {
 		let composed = 0;
 
 		beforeAll(() => {
-			objectRegistry.register("mf-compose-probe", {
-				id: "mf-compose-probe",
+			objectRegistry.register("sf-compose-probe", {
+				id: "sf-compose-probe",
 				types: [
 					{
 						id: "probe.campaign",

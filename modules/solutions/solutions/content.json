@@ -1,4 +1,4 @@
 {
-	"microservices": ["markdown", "struct", "galery"],
+	"repositories": ["markdown", "struct", "galery"],
 	"dependencies": ["security"]
 }

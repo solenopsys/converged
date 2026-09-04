@@ -29,7 +29,7 @@ export type MachineOptions<Context> = {
 	ask: OneShotAsk;
 	prompt: StepPrompt;
 	onStep?: (trace: StepTrace) => void;
-	/** Overrides a step's own tier — the section in ms-contexts configures it. */
+	/** Overrides a step's own tier — the section in rp-contexts configures it. */
 	tier?: (step: string) => Tier | undefined;
 };
 
@@ -56,7 +56,7 @@ export function createMachine<Context>({
 		const system = await prompt(step.name);
 		if (!system) {
 			console.warn(
-				`[orchestrator] Step "${step.name}" has no prompt: add the section to the chat context in ms-contexts`,
+				`[orchestrator] Step "${step.name}" has no prompt: add the section to the chat context in rp-contexts`,
 			);
 			return undefined;
 		}

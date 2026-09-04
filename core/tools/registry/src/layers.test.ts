@@ -9,19 +9,19 @@ const layer = (
 
 describe("registry layers", () => {
 	const converged = layer("converged", {
-		"ms-struct.js": "aaa",
-		"ms-auth.js": "bbb",
+		"rp-struct.js": "aaa",
+		"rp-auth.js": "bbb",
 	});
-	const club = layer("club", { "ms-companies.js": "ccc" }, ["converged"]);
+	const club = layer("club", { "rp-companies.js": "ccc" }, ["converged"]);
 
 	test("a product's names do not replace the base layer's", () => {
 		// The regression this exists for: club published, converged's twenty
-		// microservices vanished from the mapping, and every pod running the
+		// repositories vanished from the mapping, and every pod running the
 		// merged solution failed to resolve `struct`.
 		expect(mergeLayers([converged, club])).toEqual({
-			"ms-struct.js": "aaa",
-			"ms-auth.js": "bbb",
-			"ms-companies.js": "ccc",
+			"rp-struct.js": "aaa",
+			"rp-auth.js": "bbb",
+			"rp-companies.js": "ccc",
 		});
 	});
 
@@ -32,22 +32,22 @@ describe("registry layers", () => {
 	});
 
 	test("a product overriding a base module wins whatever the order", () => {
-		const fork = layer("club", { "ms-auth.js": "own" }, ["converged"]);
+		const fork = layer("club", { "rp-auth.js": "own" }, ["converged"]);
 		for (const order of [
 			[converged, fork],
 			[fork, converged],
 		]) {
-			expect(mergeLayers(order)["ms-auth.js"]).toBe("own");
+			expect(mergeLayers(order)["rp-auth.js"]).toBe("own");
 		}
 	});
 
 	test("a base that has not published yet still leaves the product usable", () => {
-		expect(mergeLayers([club])).toEqual({ "ms-companies.js": "ccc" });
+		expect(mergeLayers([club])).toEqual({ "rp-companies.js": "ccc" });
 	});
 
 	test("a cycle is reported rather than folded silently", () => {
-		const a = layer("a", { "ms-a.js": "1" }, ["b"]);
-		const b = layer("b", { "ms-b.js": "2" }, ["a"]);
+		const a = layer("a", { "rp-a.js": "1" }, ["b"]);
+		const b = layer("b", { "lm-b.js": "2" }, ["a"]);
 		expect(() => mergeLayers([a, b])).toThrow(/layer cycle/);
 	});
 });

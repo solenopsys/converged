@@ -11,7 +11,7 @@ afterEach(() => {
 });
 
 describe("object index LLM metadata", () => {
-	test("reads the microfrontend llm.json alongside its object manifest", async () => {
+	test("reads the surface llm.json alongside its object manifest", async () => {
 		const root = mkdtempSync(join(tmpdir(), "object-index-llm-"));
 		roots.push(root);
 		writeFileSync(

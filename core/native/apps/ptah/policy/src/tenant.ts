@@ -67,7 +67,7 @@ export function reconcileTenant(input: ReconcileInput): ReconcileOutput {
 		owner,
 		namespace,
 		name: storageName,
-		microservices: merged.microservices,
+		repositories: merged.repositories,
 		storage: { ...platformSpec.storage, size },
 		fujinEndpoint: `tcp://${n.app(platform, "fujin")}:${fujinZmq}`,
 		scope,
@@ -119,7 +119,7 @@ export function reconcileTenant(input: ReconcileInput): ReconcileOutput {
 
 /**
  * Cloud platforms publish one scope -> storage host index that the stateless
- * ms and ui pods read. It is owned by the Platform, not by any single tenant,
+ * backend and ui pods read. It is owned by the Platform, not by any single tenant,
  * so it lives here but is emitted from the platform reconcile pass.
  */
 export function domainIndexData(
@@ -128,14 +128,18 @@ export function domainIndexData(
 ): Record<string, string> {
 	const name = platform.metadata.name;
 	const spec = platform.spec as PlatformSpec;
-	const fujinPort = require(
-		spec.apps.fujin?.ports?.zmq,
-		"platform spec.apps.fujin.ports.zmq",
-	);
+	const fujinPort = require(spec.apps.fujin?.ports
+		?.zmq, "platform spec.apps.fujin.ports.zmq");
 	const fujinHost = `${n.app(name, "fujin")}.${spec.namespace}.svc.cluster.local`;
 	const index: Record<
 		string,
-		{ host: string; port: number; target: string; cacheHost: string; cachePort: number }
+		{
+			host: string;
+			port: number;
+			target: string;
+			cacheHost: string;
+			cachePort: number;
+		}
 	> = {};
 	for (const tenant of tenants) {
 		const tenantSpec = (tenant.spec ?? {}) as TenantSpec;

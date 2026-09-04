@@ -1,8 +1,8 @@
 /**
  * Behemoth storage topology.
  *
- * One behemoth process serves many microservices, but their persistence is
- * isolated: every microservice receives one claim and all of its stores live
+ * One behemoth process serves many repositories, but their persistence is
+ * isolated: every repository receives one claim and all of its stores live
  * below that single mounted root. The ConfigMap is the exact mount table that
  * behemoth validates at startup.
  *
@@ -55,7 +55,7 @@ interface StorageResourcesSpec {
 	owner: string;
 	namespace: string;
 	name: string;
-	microservices: string[];
+	repositories: string[];
 	storage: PlatformSpec["storage"];
 	fujinEndpoint: string;
 	scope?: string;
@@ -105,7 +105,7 @@ export function storageResources(spec: StorageResourcesSpec): KubeObject[] {
 			"spec.storage.volumeSource is node-local, so it needs a nodeAffinity: set spec.storage.nodeAffinity, or one per shard, to pin the data to the node that holds it",
 		);
 	}
-	const microservices = [...new Set(spec.microservices)].sort();
+	const repositories = [...new Set(spec.repositories)].sort();
 	// The component label distinguishes one behemoth from another; it is part
 	// of the immutable Deployment selector, so it has to be derived from the
 	// shard or tenant rather than shared.
@@ -133,11 +133,11 @@ export function storageResources(spec: StorageResourcesSpec): KubeObject[] {
 	const resources: KubeObject[] = [];
 	const renderedSources = new Set<string>();
 
-	for (const microservice of microservices) {
-		const volume = n.storageVolume(volumeScope, microservice);
+	for (const repository of repositories) {
+		const volume = n.storageVolume(volumeScope, repository);
 		const mountPath = `${mountBase}/${volume}`;
 
-		mounts[n.storeId(microservice)] = mountPath;
+		mounts[n.storeId(repository)] = mountPath;
 		podVolumes.push(k8s.claimVolume(volume, volume));
 		volumeMounts.push({ name: volume, mountPath });
 
@@ -147,12 +147,12 @@ export function storageResources(spec: StorageResourcesSpec): KubeObject[] {
 				platform: spec.platform,
 				tenant: spec.tenant ?? "",
 				shard: spec.shard ?? "",
-				microservice,
+				repository,
 			}) as Record<string, unknown>;
 			const sourceIdentity = JSON.stringify(source);
 			if (renderedSources.has(sourceIdentity)) {
 				throw new PolicyError(
-					"spec.storage.volumeSource must resolve to a distinct source for every microservice",
+					"spec.storage.volumeSource must resolve to a distinct source for every repository",
 				);
 			}
 			renderedSources.add(sourceIdentity);
@@ -200,21 +200,27 @@ export function storageResources(spec: StorageResourcesSpec): KubeObject[] {
 	// the caller sees `AccessDenied` from a storage that reported every mount
 	// as mounted. Runs as root and only touches the data mounts.
 	const storageUid = spec.storage.runAsUser ?? DEFAULT_STORAGE_UID;
-	const dataMounts = volumeMounts.filter((mount) => mount.name !== CONFIG_VOLUME);
+	const dataMounts = volumeMounts.filter(
+		(mount) => mount.name !== CONFIG_VOLUME,
+	);
 	const chownInit = {
 		name: "storage-own",
 		image: spec.storage.image,
 		command: ["/bin/sh", "-c"],
 		args: [
 			dataMounts
-				.map((mount) => `chown ${storageUid}:${storageUid} '${mount.mountPath}'`)
+				.map(
+					(mount) => `chown ${storageUid}:${storageUid} '${mount.mountPath}'`,
+				)
 				.join(" && ") || "true",
 		],
 		securityContext: { runAsUser: 0, runAsGroup: 0 },
 		volumeMounts: dataMounts,
 	};
 
-	const config = JSON.stringify({ microservices: mounts }, null, 2);
+	// `repositories` is the deployment/module classification. Behemoth owns
+	// stores, so its private mount contract deliberately uses that vocabulary.
+	const config = JSON.stringify({ stores: mounts }, null, 2);
 	resources.push(
 		k8s.configMap(n.storageConfigMap(spec.name), spec.namespace, labels, {
 			[CONFIG_KEY]: config,

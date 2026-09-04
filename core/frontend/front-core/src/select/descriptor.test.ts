@@ -3,7 +3,7 @@ import type { ObjectTypeDefinition } from "../object-runtime";
 import { loadSelectionDescriptor, selectionDefinition } from "./descriptor";
 
 describe("selection descriptor", () => {
-	test("replaces the MF fallback with fields supplied by the service", async () => {
+	test("replaces the SF fallback with fields supplied by the service", async () => {
 		const type: ObjectTypeDefinition = {
 			id: "test.machine",
 			label: "Machine",

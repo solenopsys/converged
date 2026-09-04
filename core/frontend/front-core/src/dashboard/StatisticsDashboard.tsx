@@ -203,9 +203,9 @@ function Section({
 }
 
 /**
- * The whole admin's statistics on one page: a section per microfrontend, every
+ * The whole admin's statistics on one page: a section per surface, every
  * one collapsed to start with. Nothing but the section headers is rendered
- * until a section is opened — that is also when its microfrontend is imported.
+ * until a section is opened — that is also when its surface is imported.
  */
 export function StatisticsDashboard() {
 	const revision = useUnit($objectRegistryRevision);

@@ -11,23 +11,23 @@ import { join, resolve } from "node:path";
 export const spaRoot = resolve(import.meta.dir, "..", "..");
 export const frontRoot = resolve(spaRoot, "..");
 export const frontCoreRoot = join(frontRoot, "front-core");
-export const microfrontendsRoot = join(
+export const surfacesRoot = join(
 	resolve(spaRoot, "..", "..", ".."),
 	"modules",
-	"microfrontends",
+	"surfaces",
 );
-const projectMicrofrontendsRoots = [
+const projectSurfacesRoots = [
 	process.env.CHILD_PROJECT_DIR,
 	process.env.PROJECT_DIR,
 ]
 	.filter((projectDir): projectDir is string => Boolean(projectDir?.trim()))
 	.flatMap((projectDir) => [
-		join(resolve(projectDir), "front", "microfrontends"),
-		join(resolve(projectDir), "modules", "microfrontends"),
+		join(resolve(projectDir), "front", "surfaces"),
+		join(resolve(projectDir), "modules", "surfaces"),
 	]);
-export const microfrontendsRoots = [
-	...projectMicrofrontendsRoots,
-	microfrontendsRoot,
+export const surfacesRoots = [
+	...projectSurfacesRoots,
+	surfacesRoot,
 ].filter((root) => existsSync(root));
 
 /**
@@ -35,15 +35,15 @@ export const microfrontendsRoots = [
  * modules, but an incompatible public import in any maintained delivery must
  * be caught before it reaches a browser.
  *
- * A function, not a constant: this used to glob `*​/front/microfrontends` from
+ * A function, not a constant: this used to glob `*​/front/surfaces` from
  * a directory derived by walking up out of this file. Bundled, `import.meta.dir`
  * collapses and that walk lands on `/`, so merely importing this module scanned
  * the whole filesystem and died on the first unreadable directory. The roots
  * the rest of the build already agrees on are the same deliveries, so they are
  * reused rather than rediscovered.
  */
-export function microfrontendContractRoots(): string[] {
-	return [...new Set(microfrontendsRoots)];
+export function surfaceContractRoots(): string[] {
+	return [...new Set(surfacesRoots)];
 }
 
 /**
@@ -108,7 +108,7 @@ export function landingBlocksStyles(): string[] {
 export const dist = join(spaRoot, "dist");
 export const assetsDir = join(dist, "assets");
 export const vendorDir = join(dist, "vendor");
-export const microfrontendsDir = join(dist, "mf");
+export const surfacesDir = join(dist, "sf");
 export const iconsDir = join(dist, "icons");
 export const widgetDir = join(dist, "widget");
 
@@ -158,37 +158,37 @@ export const pwaEnabled =
 	isProduction || process.env.PWA_DEV === "1" || process.env.PWA_DEV === "true";
 
 /**
- * Microfrontends included in the delivery. Every module exposes a typed object
+ * Surfaces included in the delivery. Every module exposes a typed object
  * definition; this list only selects which definitions are bundled.
  */
-export const microfrontends =
+export const surfaces =
 	// Set-but-empty is not the same as unset, and the difference is what an image
-	// build relies on: it carries no microfrontends at all, because they are
+	// build relies on: it carries no surfaces at all, because they are
 	// fetched from the registry at runtime. Unset stays the dev default.
 	(
-		process.env.MICROFRONTENDS === undefined
+		process.env.SURFACES === undefined
 			? ["assistants", "static"]
-			: process.env.MICROFRONTENDS.split(",")
+			: process.env.SURFACES.split(",")
 	)
-		.map((name) => name.trim().replace(/^mf-/, ""))
+		.map((name) => name.trim().replace(/^sf-/, ""))
 		.filter(Boolean);
 
 /**
- * Microfrontends are laid out in topic folders, but addressed in the delivery
- * by their short name: `assistants` → `modules/microfrontends/ai/mf-assistants`.
+ * Surfaces are laid out in topic folders, but addressed in the delivery
+ * by their short name: `assistants` → `modules/surfaces/ai/sf-assistants`.
  */
-export function microfrontendDir(name: string): string {
-	for (const root of microfrontendsRoots) {
-		const direct = join(root, `mf-${name}`);
+export function surfaceDir(name: string): string {
+	for (const root of surfacesRoots) {
+		const direct = join(root, `sf-${name}`);
 		if (existsSync(direct)) return direct;
 
-		const [match] = new Bun.Glob(`*/mf-${name}`).scanSync({
+		const [match] = new Bun.Glob(`*/sf-${name}`).scanSync({
 			cwd: root,
 			onlyFiles: false,
 		});
 		if (match) return join(root, match);
 	}
 	throw new Error(
-		`Microfrontend not found: mf-${name} in ${microfrontendsRoots.join(", ")}`,
+		`Surface not found: sf-${name} in ${surfacesRoots.join(", ")}`,
 	);
 }

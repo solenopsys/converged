@@ -1,4 +1,4 @@
-// Mock ms-sales / ms-smtp universe for the wf-sales-review-outreach tests
+// Mock rp-sales / lm-smtp universe for the wf-sales-review-outreach tests
 // (test-only, never bundled into a workflow). One CallHandler for the
 // centimanus mock harness; state is plain in-memory arrays, so a test can
 // assert on the rows the workflow wrote (mails, events, touches).
@@ -17,7 +17,7 @@ export type MockSentMail = {
 };
 
 export type ReviewUniverse = {
-	/** lang -> the candidate ms-sales hands out for it */
+	/** lang -> the candidate rp-sales hands out for it */
 	candidates: Map<string, MockCandidate>;
 	mails: MockSentMail[];
 	events: Record<string, unknown>[];

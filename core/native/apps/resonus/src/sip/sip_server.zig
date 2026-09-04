@@ -1049,7 +1049,7 @@ fn sipRegisterThreadAudio(store: ?*store_mod.Store, session_id: []const u8) void
         std.log.warn("sip: store unavailable, session {s} not indexed", .{session_id});
         return;
     };
-    // Service API write into the ms-threads thread_index. Non-fatal.
+    // Service API write into the rp-threads thread_index. Non-fatal.
     s.registerThreadIndex(session_id, "audio") catch |err| {
         std.log.warn("sip: registerThreadAudio index write failed (session={s}): {s}", .{ session_id, @errorName(err) });
         return;

@@ -1,5 +1,5 @@
 // wf-sales-review-outreach on the real VM core (librt-mock.so) with mocked
-// ms-sales / ms-smtp. Build the library first:
+// rp-sales / lm-smtp. Build the library first:
 //   cd ../../../core/native/apps/centimanus && zig build mock
 
 import { beforeAll, describe, expect, test } from "bun:test";

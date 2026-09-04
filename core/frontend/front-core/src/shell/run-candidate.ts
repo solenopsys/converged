@@ -19,7 +19,7 @@ export const NEW = NEW_OBJECT_ID;
  * than a detail of the panel.
  *
  * An object is not a couple of fields — it can be arbitrarily deep, and only
- * the microfrontend that owns the type knows how it is built. So the shell
+ * the surface that owns the type knows how it is built. So the shell
  * never constructs one from a schema: an operation that composes its object
  * names the screen that does it, and that screen opens in the workspace like
  * any other view. An operation without one is just run — that is the whole of

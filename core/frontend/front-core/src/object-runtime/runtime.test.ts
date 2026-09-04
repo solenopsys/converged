@@ -11,8 +11,8 @@ import { objectRef } from "./types";
 describe("object runtime changes", () => {
 	test("an operation can notify every view of a persisted object change", async () => {
 		const ref = objectRef("probe.changed", "42");
-		objectRegistry.register("mf-change-probe", {
-			id: "mf-change-probe",
+		objectRegistry.register("sf-change-probe", {
+			id: "sf-change-probe",
 			types: [{ id: ref.type, label: "Changed probe" }],
 			views: [],
 			operations: [

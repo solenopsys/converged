@@ -1,7 +1,7 @@
 // wf-sales-import — flow only. Turns uploaded lead lists (xlsx / csv / json /
 // free text) and/or pasted text into sales leads with their contacts. The LLM
 // gets first pass at the text; whatever it fails to produce falls back to the
-// deterministic parsers in ms-sales. Every insert is its own attempt, so a row
+// deterministic parsers in rp-sales. Every insert is its own attempt, so a row
 // that clashes with an existing one is counted as skipped instead of sinking
 // the import.
 //
@@ -60,7 +60,7 @@ function parseLeadsJson(body: string): Record<string, unknown>[] {
 	return [];
 }
 
-/** ms-sales answers a duplicate row with a conflict; that is a skip, not a
+/** rp-sales answers a duplicate row with a conflict; that is a skip, not a
  *  failure — re-importing the same file must be harmless. */
 function isConflict(message: string): boolean {
 	return /already exists|conflict|409|constraint/i.test(message);
