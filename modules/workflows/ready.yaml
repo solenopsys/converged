@@ -3,6 +3,7 @@ modules:
   wf-dialogue-summary: _
   wf-file-analyze: ready
   wf-file-unpack: ready
+  wf-files-analyze: ready
   wf-files-process: ready
   wf-request-analyze: ready
   wf-sales-import: _

@@ -29,8 +29,16 @@ export type Cache = Map<string, string>;
 
 /** Answers one `rt.call(service, method, params)`. The shared cache lets a
  *  handler stash a blob and return a ref that a later handler reads back. Throw
- *  to simulate a microservice failure. */
-export type CallHandler = (service: string, method: string, params: any, cache: Cache) => unknown;
+ *  to simulate a microservice failure. `target` is the Fujin peer the call was
+ *  routed to — empty for a microservice, the peer's own name for a service that
+ *  is its own container, so a test can assert where a call actually went. */
+export type CallHandler = (
+	service: string,
+	method: string,
+	params: any,
+	cache: Cache,
+	target: string,
+) => unknown;
 
 export type WorkflowOutcome =
 	| { ok: true; result: any; cache: Cache }
@@ -65,12 +73,13 @@ export function runWorkflow(source: string, params: unknown, handler: CallHandle
 	let subReply: Uint8Array | null = null;
 
 	const callCb = new JSCallback(
-		(servicePtr: number, methodPtr: number, bodyPtr: number): number => {
+		(targetPtr: number, servicePtr: number, methodPtr: number, bodyPtr: number): number => {
 			try {
+				const target = new CString(targetPtr).toString();
 				const service = new CString(servicePtr).toString();
 				const method = new CString(methodPtr).toString();
 				const body = JSON.parse(new CString(bodyPtr).toString());
-				const result = handler(service, method, body, cache);
+				const result = handler(service, method, body, cache, target);
 				callReply = Buffer.from(`${JSON.stringify(result ?? null)}\0`);
 				return Number(ptr(callReply));
 			} catch (error) {
@@ -83,7 +92,10 @@ export function runWorkflow(source: string, params: unknown, handler: CallHandle
 				return Number(ptr(callReply));
 			}
 		},
-		{ args: [FFIType.ptr, FFIType.ptr, FFIType.ptr], returns: FFIType.ptr },
+		{
+			args: [FFIType.ptr, FFIType.ptr, FFIType.ptr, FFIType.ptr],
+			returns: FFIType.ptr,
+		},
 	);
 
 	const getCb = new JSCallback(

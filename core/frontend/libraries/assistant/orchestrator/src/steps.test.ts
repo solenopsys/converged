@@ -2,6 +2,60 @@ import { describe, expect, test } from "bun:test";
 import { createFunctionSteps } from "./steps";
 
 describe("function argument step", () => {
+	test("keeps focused functions inside the selected module", () => {
+		const sales = {
+			id: "sales.leads.show",
+			brief: "Show leads",
+			module: "mf-sales",
+		};
+		const audit = {
+			id: "audit.answer.record",
+			brief: "Record an audit answer",
+			module: "mf-audit",
+			targetType: "audit.audit",
+			intent: "mutate" as const,
+		};
+		const steps = createFunctionSteps({
+			catalog: {
+				search: () => [sales],
+				byTarget: () => [audit],
+				listCategories: () => [],
+				meta: () => undefined,
+				invoke: () => undefined,
+			},
+		});
+		const search = steps.find((step) => step.name === "search");
+
+		expect(
+			search?.apply(
+				{
+					userText: "show leads",
+					area: "leads",
+					module: "mf-sales",
+					candidates: [],
+					focus: [
+						{ key: "audit.audit#a1", type: "audit.audit", label: "Audit" },
+					],
+				},
+				undefined,
+			),
+		).toEqual({
+			patch: {
+				area: "leads",
+				candidates: [sales],
+				id: sales.id,
+				trail: [
+					{
+						step: "select",
+						chosen: sales.id,
+						chosenLabel: sales.brief,
+						options: [{ id: sales.id, label: sales.brief }],
+					},
+				],
+			},
+		});
+	});
+
 	test("keeps user-intent candidates ahead of a wrong routing area", () => {
 		const workflow = {
 			id: "workflows.files-process",
@@ -120,6 +174,7 @@ describe("function argument step", () => {
 					parameters: {
 						type: "object",
 						properties: { files: { type: "object" } },
+						required: ["files"],
 					},
 				}),
 				invoke: () => undefined,
@@ -136,7 +191,37 @@ describe("function argument step", () => {
 				},
 				{ text: "I\u2019ll package your request.", toolCalls: [] },
 			),
-		).toThrow("produced no arguments for requests.request.create");
+		).toThrow("missed required arguments for requests.request.create: files");
+	});
+
+	test("invokes an optional-only function with empty arguments", () => {
+		const steps = createFunctionSteps({
+			catalog: {
+				search: () => [],
+				listCategories: () => [],
+				meta: () => ({
+					id: "audit.audit.create",
+					description: "Start an audit interview.",
+					parameters: {
+						type: "object",
+						properties: { title: { type: "string" } },
+					},
+				}),
+				invoke: () => undefined,
+			},
+		});
+		const args = steps.find((step) => step.name === "args");
+
+		expect(
+			args?.apply(
+				{
+					userText: "Start the audit",
+					candidates: [],
+					id: "audit.audit.create",
+				},
+				{ text: "", toolCalls: [] },
+			),
+		).toEqual({ patch: { args: {} } });
 	});
 
 	test("applies schema defaults when the argument model returns no call", () => {

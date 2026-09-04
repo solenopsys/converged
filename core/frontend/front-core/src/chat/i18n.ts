@@ -5,6 +5,7 @@ import {
 	setLocale,
 	setMessageSource,
 } from "i18n";
+import { $activeLocale, LocaleController } from "../i18n";
 
 // The shell has bundled chat messages. A host may additionally provide records
 // at `<locale>/<namespace>.json`, but their absence must never block the chat.
@@ -129,6 +130,33 @@ const DEFAULT_MESSAGES = {
 		loadingSummary: "Loading summary...",
 		restoreHidden: "Restore {count} hidden",
 	},
+	toolCall: {
+		kind: "Function",
+		stepModule: "Section",
+		stepFunction: "Function",
+		noteWidened: "no match in this section — searched everything",
+		noteApproximate: "no exact match — nearest offered",
+		alsoOffered: "also offered: {options}",
+		noAlternatives: "no alternatives",
+		statusRunning: "Running",
+		statusFailed: "Failed",
+		statusCompleted: "Done",
+	},
+};
+
+const RU_MESSAGES = {
+	toolCall: {
+		kind: "Функция",
+		stepModule: "Раздел",
+		stepFunction: "Функция",
+		noteWidened: "в этом разделе совпадений нет — выполнен общий поиск",
+		noteApproximate: "точного совпадения нет — выбран ближайший вариант",
+		alsoOffered: "другие варианты: {options}",
+		noAlternatives: "других вариантов нет",
+		statusRunning: "Выполняется",
+		statusFailed: "Ошибка",
+		statusCompleted: "Готово",
+	},
 };
 
 // The shell renders components that read this namespace (AppShell, Composer,
@@ -141,8 +169,25 @@ const DEFAULT_MESSAGES = {
 export function bootstrapChatMessagesDefaults(): void {
 	configureI18n({ locales: LOCALES, defaultLocale: DEFAULT_LOCALE });
 	registerMessages(CHAT_MESSAGES_NAMESPACE, DEFAULT_LOCALE, DEFAULT_MESSAGES);
+	registerMessages(CHAT_MESSAGES_NAMESPACE, "ru", RU_MESSAGES);
 }
 bootstrapChatMessagesDefaults();
+
+let messagesReader: MessagesReader | undefined;
+
+function activateChatLocale(language: string): void {
+	if (!(LOCALES as readonly string[]).includes(language)) return;
+	setLocale(language);
+	if (messagesReader) {
+		void loadMessages(CHAT_MESSAGES_NAMESPACE, language).catch((error) =>
+			console.warn("[chat] Messages unavailable:", error),
+		);
+	}
+}
+
+// The shell owns the active locale. Keep the older message catalog on that same
+// source of truth so changing language updates both shell chrome and MF views.
+$activeLocale.watch(activateChatLocale);
 
 export type MessagesReader = (path: string) => Promise<unknown>;
 
@@ -161,6 +206,7 @@ export function initChatMessages(
 	language: string,
 ): void {
 	bootstrapChatMessagesDefaults();
+	messagesReader = read;
 
 	setMessageSource(
 		read
@@ -178,7 +224,8 @@ export function initChatMessages(
 			: async () => undefined,
 	);
 
-	if ((LOCALES as readonly string[]).includes(language)) setLocale(language);
+	const initialLocale = LocaleController.getInstance().setLocale(language);
+	if (initialLocale) activateChatLocale(initialLocale);
 	else
 		console.warn(
 			`[chat] Unpublished locale "${language}"; using ${DEFAULT_LOCALE}`,
@@ -186,8 +233,8 @@ export function initChatMessages(
 
 	if (read) {
 		// Needed by the first transcript render, not by page start.
-		void loadMessages(CHAT_MESSAGES_NAMESPACE).catch((error) =>
-			console.warn("[chat] Messages unavailable:", error),
+		void loadMessages(CHAT_MESSAGES_NAMESPACE, $activeLocale.getState()).catch(
+			(error) => console.warn("[chat] Messages unavailable:", error),
 		);
 	}
 }

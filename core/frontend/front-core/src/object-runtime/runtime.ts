@@ -1,14 +1,18 @@
 import { createDomain } from "effector";
 import { createDomainLogger } from "../../../libraries/effector/effector-logger/logger";
 import { authorizeOperation } from "./authorization";
+import { attachToFocus, focusItems } from "./focus";
 import { objectRegistry } from "./registry";
 import { objectResolver } from "./resolver";
-import type {
-	DomainRef,
-	ExecuteOperationRequest,
-	MicrofrontendDefinition,
-	PresentedReference,
-	PresentReferenceOptions,
+import {
+	type DomainRef,
+	type ExecuteOperationRequest,
+	type MicrofrontendDefinition,
+	NEW_OBJECT_ID,
+	type ObjectChange,
+	type ObjectRef,
+	type PresentedReference,
+	type PresentReferenceOptions,
 } from "./types";
 
 type ModuleLoader = (moduleName: string) => Promise<void>;
@@ -26,11 +30,35 @@ export const operationExecutionFailed = domain.createEvent<{
 	request: ExecuteOperationRequest;
 	error: unknown;
 }>("OPERATION_EXECUTION_FAILED");
+export const objectChanged = domain.createEvent<ObjectChange>("OBJECT_CHANGED");
+export const objectRefreshRequested = domain.createEvent<ObjectRef>(
+	"OBJECT_REFRESH_REQUESTED",
+);
+export const objectRevisionKey = (ref: ObjectRef): string =>
+	`${ref.type}#${ref.id}`;
+const bumpObjectRevision = (
+	revisions: Record<string, number>,
+	ref: ObjectRef,
+): Record<string, number> => {
+	const key = objectRevisionKey(ref);
+	return { ...revisions, [key]: (revisions[key] ?? 0) + 1 };
+};
+export const $objectRevisions = domain
+	.createStore<Record<string, number>>({}, { name: "OBJECT_REVISIONS" })
+	.on(objectChanged, (revisions, { ref }) => bumpObjectRevision(revisions, ref))
+	.on(objectRefreshRequested, bumpObjectRevision);
 export const referencePresented = domain.createEvent<PresentedReference>(
 	"REFERENCE_PRESENTED",
 );
 
 let loader: ModuleLoader | null = null;
+
+/** Revalidate live views after a chat turn may have changed focused objects. */
+export function refreshFocusedObjects(): void {
+	for (const { ref } of focusItems()) {
+		if (ref.kind === "object") objectRefreshRequested(ref);
+	}
+}
 
 export function setMicrofrontendLoader(next: ModuleLoader): void {
 	loader = next;
@@ -70,6 +98,16 @@ export async function presentReference(
 			`[object-runtime] View did not register a component: ${options.viewId ?? ref.type}`,
 		);
 	}
+	// Opening something is the moment work on it starts, whoever opened it. This
+	// is the only signal that does not have to be remembered by every module and
+	// does not lie when a second tab is opened. A `new` object is not a thing yet
+	// — it becomes one when the create returns a real id, and that presents again.
+	if (!(ref.kind === "object" && ref.id === NEW_OBJECT_ID)) {
+		attachToFocus(
+			ref,
+			ref.title ?? objectRegistry.type(ref.type)?.label ?? ref.type,
+		);
+	}
 	referencePresented({ ref, view, options });
 }
 
@@ -106,6 +144,13 @@ export async function executeOperation(
 		const result = await operation.invoke({
 			references: request.references ?? [],
 			params: request.params ?? {},
+			changed: (ref, payload) =>
+				objectChanged({
+					ref,
+					operationId: operation.id,
+					...(payload === undefined ? {} : { payload }),
+					...(request.source ? { source: request.source } : {}),
+				}),
 			present: (ref, options) =>
 				presentReference(ref, {
 					...options,

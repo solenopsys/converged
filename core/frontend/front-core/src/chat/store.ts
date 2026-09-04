@@ -16,6 +16,7 @@ import {
 	type TurnFile,
 } from "assistant-state";
 import { $files, filesPickerOpened, uploadCompleted } from "files-state";
+import { refreshFocusedObjects } from "front-core/object-runtime";
 import { registerBuiltinSlashCommands } from "./commands/builtin";
 import { isSlashInput, runSlashCommand } from "./commands/registry";
 import type { ChatConfig } from "./config";
@@ -36,6 +37,11 @@ export type CatalogEntryView = {
 	description?: string;
 	category?: string;
 	priority?: "primary" | "normal" | "secondary";
+	/** Owning microfrontend, and its human name — the catalog's first level. */
+	module?: string;
+	moduleLabel?: string;
+	targetType?: string;
+	intent?: "create" | "mutate" | "read";
 	parameters?: {
 		type: "object";
 		properties: Record<string, unknown>;
@@ -57,6 +63,8 @@ export type CatalogView = {
 export type ChatCatalog = {
 	catalog: OrchestratorCatalog;
 	turnContext?: () => unknown;
+	/** What the conversation is working on; see object-runtime/focus.ts. */
+	focus?: () => Array<{ key: string; type: string; label: string }>;
 
 	// The meta-tool contour lists by category and by recency; the orchestrator
 	// ports do neither, so handing it `catalog` gives the model tools that throw
@@ -126,6 +134,26 @@ function readIntake(report: unknown): IntakeReport {
 			return archive === true && typeof fileId === "string" ? [fileId] : [];
 		}),
 	};
+}
+
+/** Analysis is the second half of an upload and by far the slower one: a CAM
+ *  pass or a slice runs in a native container for as long as it takes, while
+ *  the visitor is watching their files appear. So it is started here and never
+ *  awaited by intake — the run's own turn reports it when it lands.
+ *
+ *  Never rejects: a slicer that is down must cost the estimates and nothing
+ *  else, and the returned promise is held across an await, where a rejection
+ *  with no handler yet would surface as an unhandled one. */
+function startFileAnalysis(
+	workflow: { runWorkflow(script: string, params: Record<string, unknown>): Promise<unknown> },
+	fileIds: string[],
+): Promise<unknown | null> {
+	return workflow
+		.runWorkflow("workflows/wf-files-analyze.js", { fileIds })
+		.catch((error: unknown) => {
+			console.error("[chat] file analysis unavailable", error);
+			return null;
+		});
 }
 
 let instance: Chat | null = null;
@@ -214,6 +242,7 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 			}),
 		model: "fast",
 		turnContext: host?.turnContext,
+		focus: host?.focus,
 		// The built-in flow reads the user's words to find a function and to fill
 		// its arguments. Files are not words: after an archive is unpacked the
 		// turn holds identifiers nobody typed, and the only question worth a model
@@ -240,6 +269,7 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 			...createFunctionSteps({ catalog }),
 		],
 	});
+	conversation.turn.turnFinished.watch(refreshFocusedObjects);
 
 	const workflows = new Map<
 		string,
@@ -279,6 +309,8 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 					brief: workflow.brief ?? workflow.script,
 					description: workflow.description ?? workflow.script,
 					category: "workflows",
+					module: "workflows",
+					moduleLabel: "Workflows",
 					parameters: workflow.parameters,
 				})),
 			});
@@ -308,6 +340,14 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 						description: entry.description ?? entry.brief ?? entry.id,
 						category: entry.category,
 						priority: entry.priority,
+						// Without these the published catalog is flat and the flow has
+						// no section to narrow to before it picks a function.
+						module: entry.module,
+						moduleLabel: entry.moduleLabel,
+						// Without these the flow cannot tell a function that continues
+						// the open work from one that starts it over.
+						targetType: entry.targetType,
+						intent: entry.intent,
 						parameters: "parameters" in entry ? entry.parameters : undefined,
 					};
 				}),
@@ -351,6 +391,17 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 			const intake = readIntake(report);
 			for (const file of intake.contents) processedFiles.set(file.fileId, file);
 			for (const archive of intake.archiveIds) unpackedArchives.add(archive);
+			// Start the processors on everything intake called a production model,
+			// archives already expanded. Started before the intake turn so the
+			// containers are working while the assistant is still talking, and
+			// reported after it, because two turns opened at once interleave in
+			// the transcript.
+			const modelIds = intake.contents
+				.filter((file) => file.model)
+				.map((file) => file.fileId);
+			const analysis = modelIds.length
+				? startFileAnalysis(dagClient, modelIds)
+				: null;
 			// Unpacking produced files, so the chat shows files: each one as the
 			// same downloadable bubble an upload leaves behind. Their names and
 			// sizes are the readable result of the operation — a report the
@@ -369,6 +420,17 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 			await store.follow(
 				`Uploaded files were processed. Report:\n${JSON.stringify(report, null, 2)}`,
 			);
+
+			// The estimates are the point of the upload, so they get a turn of
+			// their own rather than being left in a workflow's return value.
+			if (analysis) {
+				void analysis.then((result) => {
+					if (result === null) return;
+					return store.follow(
+						`Uploaded models were analysed. Report:\n${JSON.stringify(result, null, 2)}`,
+					);
+				});
+			}
 		},
 	});
 

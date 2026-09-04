@@ -11,11 +11,23 @@ import { createRtClient, type ServiceMetadata } from "nrpc";
 
 export type ContractSpec<T> = { [K in keyof T]: string[] };
 
-export function contractClient<T>(serviceName: string, methods: ContractSpec<T>): T {
+/** The Fujin peer the service is reachable behind — the inline equivalent of
+ *  `@nrpcTarget <peer>` in a service file. Microservices share the caller's
+ *  runtime and leave it unset; a native peer that is its own container (a
+ *  processor) must name itself, or the call goes to the default `services`
+ *  peer and Fujin drops it as unroutable. */
+export type ContractOptions = { target?: string };
+
+export function contractClient<T>(
+	serviceName: string,
+	methods: ContractSpec<T>,
+	options: ContractOptions = {},
+): T {
 	const metadata: ServiceMetadata = {
 		serviceName,
 		interfaceName: serviceName,
 		filePath: "",
+		...(options.target ? { target: options.target } : {}),
 		types: [],
 		methods: (Object.entries(methods) as [string, string[]][]).map(([name, params]) => ({
 			name,

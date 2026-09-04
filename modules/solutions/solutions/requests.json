@@ -13,6 +13,7 @@
 		"files-process",
 		"file-unpack",
 		"file-analyze",
+		"files-analyze",
 		"request-analyze"
 	]
 }

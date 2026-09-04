@@ -1,3 +1,4 @@
+import { resolveEmbeddedMicrofrontendMessage } from "../i18n";
 import { selectionDefinition } from "../select/descriptor";
 import type { ActiveSelectionContext } from "../select/runtime";
 import { activeSelection } from "../select/runtime";
@@ -30,6 +31,17 @@ export type OperatorCatalogEntry = {
 	targetType?: string;
 	/** Set when the candidate is a domain operation rather than a type. */
 	operationId?: string;
+	/**
+	 * The microfrontend that implements this. The resolver already knows it —
+	 * every candidate carries `owner` — and the assistant's flow uses it to pick
+	 * a section before picking a function.
+	 */
+	module?: string;
+	moduleLabel?: string;
+	/** What this does to `targetType` — see `intents`. */
+	intent?: "create" | "mutate" | "read";
+	/** Offered as a near miss by the search fallback, not as a match. */
+	approximate?: boolean;
 	parameters: {
 		type: "object";
 		properties: Record<string, unknown>;
@@ -47,6 +59,21 @@ const labels: Record<Operator, string> = {
 	execute: "Execute operation",
 };
 
+/**
+ * What each operator does to the thing it names. The assistant uses this to tell
+ * continuing a piece of work from starting it over: with an audit already open,
+ * `create` competes with it and everything else carries it forward.
+ */
+const intents: Record<Operator, "create" | "mutate" | "read"> = {
+	show: "read",
+	select: "read",
+	open: "read",
+	create: "create",
+	add: "mutate",
+	save: "mutate",
+	execute: "mutate",
+};
+
 const verbs: Record<Operator, string> = {
 	show: "Show",
 	select: "Select",
@@ -58,6 +85,30 @@ const verbs: Record<Operator, string> = {
 };
 
 type OperatorTarget = { id: string; label: string };
+
+const localized = (
+	owner: string | undefined,
+	key: string | undefined,
+	fallback: string | undefined,
+): string | undefined => {
+	if (!owner || !key) return fallback;
+	const value = resolveEmbeddedMicrofrontendMessage(owner, key);
+	return typeof value === "string" ? value : fallback;
+};
+
+/** The bare operators belong to no microfrontend: they are the shell's own. */
+const CORE_MODULE = "core";
+
+/**
+ * `mf-sales` reads as "Sales" to a user and to a routing model alike. A module
+ * that wants a different name says so in its manifest; until then the id is the
+ * only fact there is, and deriving beats showing `mf-sales` in the transcript.
+ */
+export function moduleLabel(module: string): string {
+	const bare = module.replace(/^mf-/, "").replace(/[-_]+/g, " ").trim();
+	if (!bare) return module;
+	return bare.replace(/(^|\s)\S/g, (char) => char.toUpperCase());
+}
 
 /**
  * What the operator can actually be pointed at right now. The model never sees
@@ -74,7 +125,10 @@ export function operatorTargets(operator: Operator): OperatorTarget[] {
 		for (const type of objectRegistry.allTypes()) {
 			if (type.discover?.() === false) continue;
 			if (objectResolver.resolveView(objectRef(type.id, "")))
-				targets.set(type.id, type.label);
+				targets.set(
+					type.id,
+					localized(type.owner, type.labelKey, type.label) ?? type.label,
+				);
 		}
 	} else {
 		for (const candidate of objectResolver.resolve(operator)) {
@@ -137,6 +191,9 @@ export function operatorCatalogEntries(): OperatorCatalogEntry[] {
 		category: "operator",
 		priority: "primary",
 		exposure: "user",
+		module: CORE_MODULE,
+		moduleLabel: moduleLabel(CORE_MODULE),
+		intent: intents[operator],
 		parameters: operatorParameters(operatorTargets(operator), operator),
 	}));
 }
@@ -199,6 +256,29 @@ export function operatorCandidateEntries(): OperatorCatalogEntry[] {
 			const id = `core.${operator}:${target}`;
 			if (seen.has(id)) return [];
 			seen.add(id);
+			// The resolver carries the owner all the way here (resolver.ts); dropping
+			// it at the last step is what left the assistant with a flat catalog.
+			const owner = candidate.owner ?? objectRegistry.ownerForType(target);
+			const singular = type
+				? localized(type.owner, type.labelKey, type.label)
+				: undefined;
+			const plural = type
+				? localized(
+						type.owner,
+						type.pluralLabelKey,
+						type.pluralLabel ?? type.label,
+					)
+				: undefined;
+			const operationLabel = localized(
+				owner,
+				candidate.operation?.labelKey,
+				candidate.label,
+			);
+			const operationDescription = localized(
+				owner,
+				candidate.operation?.descriptionKey,
+				candidate.description,
+			);
 			return {
 				id,
 				operator,
@@ -206,12 +286,16 @@ export function operatorCandidateEntries(): OperatorCatalogEntry[] {
 				...(candidate.kind === "operation"
 					? { operationId: candidate.id }
 					: {}),
+				...(owner ? { module: owner, moduleLabel: moduleLabel(owner) } : {}),
+				intent: intents[operator],
 				brief:
 					candidate.kind === "operation"
-						? candidate.label
-						: `${verbs[operator]} ${candidate.label}`,
+						? operator === "create" && singular
+							? singular
+							: (operationLabel ?? candidate.label)
+						: `${verbs[operator]} ${operator === "select" ? (plural ?? candidate.label) : (singular ?? candidate.label)}`,
 				description:
-					candidate.description ??
+					operationDescription ??
 					(operator === "select"
 						? `Create or update a ${names || target} set. Use for lists, groups, searches, and every request with a condition or filter.`
 						: `${labels[operator]} of ${names || target}`),
@@ -408,10 +492,14 @@ export function searchOperatorCatalog(
 	);
 	// Keep room for the route hint in `mergeCandidates`: a Russian request falls
 	// back here, while its translated area can still append the specific type.
-	return (selections.length > 0 ? selections : searchable()).slice(
-		0,
-		Math.min(limit, FALLBACK_SELECTION_LIMIT),
-	);
+	//
+	// These are guesses, and they are marked as such. Unmarked, a fallback is
+	// indistinguishable from a hit: every request in a language the catalog is
+	// not written in "finds" something, gets called, and the failure looks like
+	// the model choosing badly rather than the search never matching.
+	return (selections.length > 0 ? selections : searchable())
+		.slice(0, Math.min(limit, FALLBACK_SELECTION_LIMIT))
+		.map((entry) => ({ ...entry, approximate: true }));
 }
 
 type OperatorInvocation = {

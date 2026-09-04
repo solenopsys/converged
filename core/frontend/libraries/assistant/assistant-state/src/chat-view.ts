@@ -25,7 +25,9 @@ export type ChatViewOptions = {
 
 const summarize = (args: Record<string, unknown>): string | undefined =>
 	Object.entries(args)
-		.filter(([, value]) => value !== undefined && value !== null && value !== "")
+		.filter(
+			([, value]) => value !== undefined && value !== null && value !== "",
+		)
 		.slice(0, 4)
 		.map(([key, value]) => {
 			const raw = typeof value === "string" ? value : JSON.stringify(value);
@@ -75,10 +77,14 @@ function toMessage(
 						entry.status === "failed"
 							? { args: entry.args, error: entry.error }
 							: { args: entry.args, result: entry.result },
+					// The trail is the catalog and the choice made in it, never a
+					// prompt or a step outcome — see `CallEntry.trail`.
+					...(entry.trail?.length ? { steps: entry.trail } : {}),
 				},
 			};
 		// Steps stay in the model's own log: they are the machine reasoning, not
-		// something the user reads.
+		// something the user reads. What *is* readable — which function was picked
+		// out of which alternatives — rides on the call entry as `trail`.
 		default:
 			return undefined;
 	}

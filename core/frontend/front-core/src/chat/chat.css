@@ -336,6 +336,51 @@
 	color: var(--hw-ink-muted);
 }
 
+/* The route the call took: one row per decision, alternatives underneath. */
+.tool-call-steps {
+	display: grid;
+	gap: var(--hw-space-2);
+	margin: 0 0 var(--hw-space-3);
+	padding: 0;
+	list-style: none;
+}
+
+.tool-call-step {
+	display: grid;
+	grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+	gap: var(--hw-space-2);
+	align-items: baseline;
+}
+
+.tool-call-step-kind {
+	color: var(--hw-ink-muted);
+	font-size: calc(var(--hw-unit) * 3);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.tool-call-step-body {
+	display: grid;
+	gap: calc(var(--hw-unit) * 0.5);
+	min-width: 0;
+}
+
+.tool-call-step-chosen {
+	font-weight: 600;
+}
+
+.tool-call-step-note {
+	color: var(--hw-ink-muted);
+	font-size: calc(var(--hw-unit) * 3);
+	font-style: italic;
+}
+
+.tool-call-step-options {
+	color: var(--hw-ink-muted);
+	font-size: calc(var(--hw-unit) * 3);
+	overflow-wrap: anywhere;
+}
+
 .tool-call-json {
 	max-height: calc(var(--hw-unit) * 40);
 	margin: 0;

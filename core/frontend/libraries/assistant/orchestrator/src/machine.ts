@@ -37,6 +37,10 @@ export type Machine<Context> = {
 	run(initial: Context): Promise<OrchestratorPlan>;
 };
 
+const isEmpty = (answer: StepAnswer): boolean =>
+	answer.toolCalls.every((call) => Object.keys(call.args).length === 0) &&
+	!answer.text.trim();
+
 export function createMachine<Context>({
 	steps,
 	ask,
@@ -68,18 +72,45 @@ export function createMachine<Context>({
 		};
 		onStep?.(trace);
 		try {
-			const answer = await ask({ step: step.name, system, user, tier: level, tools });
+			let answer = await ask({
+				step: step.name,
+				system,
+				user,
+				tier: level,
+				tools,
+			});
+			// A light model intermittently answers a tool-call step with nothing at
+			// all — no call, no prose. That is not a decision and not a failure of
+			// the request either, so the step is asked once more before anything is
+			// concluded from it. One retry, and only for a step that says an empty
+			// answer is meaningless to it: this is not a retry loop, the run stays
+			// finite, and a step where empty is a valid answer never pays for it.
+			if (
+				step.retryWhen?.(context, answer) ||
+				(step.retryWhenEmpty && isEmpty(answer))
+			) {
+				onStep?.({
+					...trace,
+					finishedAt: Date.now(),
+					outcome: "empty: asking once more",
+				});
+				answer = await ask({
+					step: step.name,
+					system,
+					user,
+					tier: level,
+					tools,
+				});
+			}
 			const outcome = answer.toolCalls.length
-				? answer.toolCalls.map((call) => `${call.name}(${JSON.stringify(call.args)})`).join(" ")
+				? answer.toolCalls
+						.map((call) => `${call.name}(${JSON.stringify(call.args)})`)
+						.join(" ")
 				: answer.text;
 			onStep?.({ ...trace, finishedAt: Date.now(), outcome });
 			// Neither a call nor a word is not an answer: treating it as one makes
 			// the run degrade into "no function needed" and look like a decision.
-			if (
-				!step.allowEmptyAnswer &&
-				answer.toolCalls.length === 0 &&
-				!answer.text.trim()
-			) {
+			if (!step.allowEmptyAnswer && isEmpty(answer)) {
 				throw new Error(
 					`[orchestrator] Step "${step.name}" came back empty from the ${level} model`,
 				);
@@ -87,7 +118,11 @@ export function createMachine<Context>({
 			return answer;
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
-			onStep?.({ ...trace, finishedAt: Date.now(), outcome: `error: ${message}` });
+			onStep?.({
+				...trace,
+				finishedAt: Date.now(),
+				outcome: `error: ${message}`,
+			});
 			throw error;
 		}
 	}
@@ -119,7 +154,8 @@ export function createMachine<Context>({
 						outcome: JSON.stringify(result),
 					});
 				} catch (error) {
-					const message = error instanceof Error ? error.message : String(error);
+					const message =
+						error instanceof Error ? error.message : String(error);
 					onStep?.({
 						...trace,
 						finishedAt: Date.now(),

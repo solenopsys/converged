@@ -15,6 +15,66 @@ export type FunctionBrief = {
 	description?: string;
 	category?: string;
 	priority?: "primary" | "normal" | "secondary";
+	/** Owning module — the first level the flow chooses (`mf-sales`, `workflows`). */
+	module?: string;
+	/** Human name of that module; travels with the function so no second registry is needed. */
+	moduleLabel?: string;
+	/**
+	 * The catalog offered this as a near miss, not as a match. A flow that treats
+	 * a guess as a hit calls something the user never asked for, so the choice is
+	 * carried to the transcript instead of being smoothed over.
+	 */
+	approximate?: boolean;
+	/**
+	 * The kind of thing this acts on, compared for equality against what the
+	 * conversation is working on. Opaque to the kernel — it never interprets the
+	 * value, only matches it.
+	 */
+	targetType?: string;
+	/**
+	 * What it does to that kind. `create` starts a new one and therefore competes
+	 * with work already in progress; the others continue it.
+	 */
+	intent?: "create" | "mutate" | "read";
+};
+
+/**
+ * One thing the conversation is working on right now.
+ *
+ * This is the answer to "which audit", "which request" — a question the user
+ * answers by opening something, and never by naming an id. The kernel holds no
+ * state (see machine.ts), so the list arrives per turn from the host, which owns
+ * it and decides when something joins or leaves.
+ */
+export type FocusEntry = {
+	/** Opaque address of the thing. The kernel carries it; the host decodes it. */
+	key: string;
+	/** Matched against a function's `targetType`. */
+	type: string;
+	label: string;
+};
+
+/**
+ * One decision the flow made out of a list it was given. This is the catalog and
+ * the app's own choice — not the model's reasoning: no prompt, no outcome text,
+ * nothing a step said to itself. That distinction is what lets it be shown in
+ * the conversation while `StepEntry` stays in the log.
+ */
+export type FunctionChoice = {
+	/** The deciding step: `module`, `select`, or a host's own. */
+	step: string;
+	/** Id of what was chosen. */
+	chosen: string;
+	chosenLabel?: string;
+	/** Everything that was on the table, chosen one included. */
+	options: Array<{ id: string; label: string }>;
+	/**
+	 * A qualifier on the decision, as a code rather than prose: the kernel has no
+	 * locale and must not invent user-facing wording. `widened` — the narrowing
+	 * found nothing and the whole catalog was searched anyway; `approximate` —
+	 * the options were near misses rather than matches.
+	 */
+	note?: "widened" | "approximate";
 };
 
 /**
@@ -62,6 +122,21 @@ export type StepPrompt = (step: string) => Promise<string | undefined>;
 export type OrchestratorCatalog = {
 	search(query: string, limit?: number): FunctionBrief[];
 	listCategories(): Array<{ id: string; count: number }>;
+	/**
+	 * The modules the catalog is divided into. Optional: a host that publishes a
+	 * flat catalog simply skips the module step and searches everything, which is
+	 * the behaviour every host had before modules existed.
+	 */
+	listModules?(): Array<{ id: string; label: string; count: number }>;
+	/**
+	 * Every function acting on these kinds of thing, regardless of wording.
+	 *
+	 * Search is lexical, and the reply that continues a piece of work does not
+	 * repeat its vocabulary: "about 5%" shares no word with "Record an audit
+	 * answer", so ranking drops it before priority can matter. What the user is
+	 * working on has to admit its own functions, not merely reorder them.
+	 */
+	byTarget?(types: readonly string[]): FunctionBrief[];
 	meta(id: string):
 		| {
 				id: string;
@@ -100,8 +175,15 @@ export type OrchestratorPlan =
 			id: string;
 			args: Record<string, unknown>;
 			fact: unknown;
+			/** How this function was arrived at, for the transcript to show. */
+			trail?: FunctionChoice[];
 	  }
-	| { kind: "function-missed"; area: string; candidates: FunctionBrief[] };
+	| {
+			kind: "function-missed";
+			area: string;
+			candidates: FunctionBrief[];
+			trail?: FunctionChoice[];
+	  };
 
 /**
  * A step module. `ask` returning undefined means the step is local — it costs no
@@ -115,6 +197,18 @@ export type Step<Context> = {
 	ask?(context: Readonly<Context>): string | undefined;
 	/** An empty model reply is a valid fallback for this optional step. */
 	allowEmptyAnswer?: boolean;
+	/**
+	 * An empty reply means nothing to this step, so ask once more before acting
+	 * on it. For a deciding step that always wants a tool call — light models
+	 * return nothing often enough that one retry is cheaper than a dead turn.
+	 */
+	retryWhenEmpty?: boolean;
+	/**
+	 * Step-specific retry predicate for structured answers that are present but
+	 * incomplete. Like `retryWhenEmpty`, it is evaluated once: the machine never
+	 * turns it into an unbounded retry loop.
+	 */
+	retryWhen?(context: Readonly<Context>, answer: StepAnswer): boolean;
 	/** The shape the step wants back; empty means a plain text answer. */
 	tools?(context: Readonly<Context>): ToolSpec[];
 	apply(
@@ -133,9 +227,15 @@ export type PlanContext = {
 	userText: string;
 	/** Compact host state captured once at the beginning of a turn. */
 	hostContext?: unknown;
+	/** What the conversation is working on, captured once with `hostContext`. */
+	focus?: FocusEntry[];
 	area?: string;
+	/** Module the route step narrowed to; absent means search everything. */
+	module?: string;
 	candidates: FunctionBrief[];
 	id?: string;
+	/** Decisions made so far, in order. Carried into the plan for the transcript. */
+	trail?: FunctionChoice[];
 	/** Server-owned argument schema fetched after the function was selected. */
 	parameters?: ToolSpec["parameters"];
 	/**

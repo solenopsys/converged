@@ -322,6 +322,9 @@ solutions:
       - id: file-analyze
         name: wf-file-analyze
         script: workflows/wf-file-analyze.js
+      - id: files-analyze
+        name: wf-files-analyze
+        script: workflows/wf-files-analyze.js
       - id: request-analyze
         name: wf-request-analyze
         script: workflows/wf-request-analyze.js

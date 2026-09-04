@@ -11,7 +11,12 @@ import type { ServiceMetadata, ParameterMetadata } from "../types";
 import { deserializeValue, serializeValue } from "./serialization";
 
 interface RtHostBridge {
-	call(service: string, method: string, params: Record<string, unknown>): unknown;
+	call(
+		service: string,
+		method: string,
+		params: Record<string, unknown>,
+		target?: string,
+	): unknown;
 }
 
 function hostBridge(): RtHostBridge {
@@ -46,7 +51,17 @@ export function createRtClient<T>(metadata: ServiceMetadata): T {
 				throw new Error(`nrpc rt-client: streaming method ${method.name} is not supported in the RT VM`);
 			}
 			const params = prepareParams(method.parameters, args);
-			const raw = hostBridge().call(metadata.serviceName, method.name, params);
+			// `metadata.target` is the Fujin peer the service lives behind. The ws
+			// and zmq clients already honour it; dropping it here is what sent
+			// every workflow call to the default `services` peer, so a service
+			// that is its own peer — a native processor — was unreachable from a
+			// workflow no matter what name it was called by.
+			const raw = hostBridge().call(
+				metadata.serviceName,
+				method.name,
+				params,
+				metadata.target,
+			);
 			if (method.returnType === "void") return undefined;
 			return deserializeValue(raw, method.returnType);
 		};

@@ -36,11 +36,11 @@ describe("wf-file-analyze", () => {
 
 		expect(report.estimates.length).toBe(1);
 		expect(report.estimates[0].type).toBe("milling");
-		expect(report.estimates[0].data.estimator).toBe("ptah:opencamlib");
+		expect(report.estimates[0].data.estimator).toBe("opencamlib");
 		expect(report.estimates[0].data.totalTimeSec).toBe(21.2);
 		expect(report.estimates[0].artifactFileIds.length).toBe(1);
-		// the model rode to ptah by CacheRef, not inline
-		expect(u.calls).toContain("ptah.analyze");
+		// the model rode to the processor by CacheRef, not inline
+		expect(u.calls).toContain("opencamlib.analyze");
 	});
 
 	test("stl + print without a definition: no native estimator, recorded error", () => {
@@ -67,7 +67,7 @@ describe("wf-file-analyze", () => {
 		expect(u.calls).toEqual(["files.materialize", "files.detectType"]);
 	});
 
-	test("stl + print with a definition: curaengine slice via ptah", () => {
+	test("stl + print with a definition: curaengine slice", () => {
 		const u = createFileUniverse();
 		const stlId = u.addFile("vase.stl", "solid vase");
 		const defId = u.addFile("printer.def.json", '{"version":2}');
@@ -90,7 +90,7 @@ describe("wf-file-analyze", () => {
 
 		expect(outcome.result.estimates.length).toBe(1);
 		expect(outcome.result.estimates[0].type).toBe("printing");
-		expect(outcome.result.estimates[0].data.estimator).toBe("ptah:curaengine");
+		expect(outcome.result.estimates[0].data.estimator).toBe("curaengine");
 		// gcode came back as a ref and was persisted as a file
 		expect(outcome.result.converted.map((c: any) => c.kind)).toEqual(["gcode"]);
 	});
@@ -134,7 +134,7 @@ describe("wf-file-analyze", () => {
 	test("a failing estimator is an error entry, preview still persists", () => {
 		const u = createFileUniverse();
 		const stlId = u.addFile("part.stl", "solid p");
-		u.failOn("ptah", "analyze", "no cutting tool fits");
+		u.failOn("opencamlib", "analyze", "no cutting tool fits");
 
 		const outcome = runWorkflow(
 			source,

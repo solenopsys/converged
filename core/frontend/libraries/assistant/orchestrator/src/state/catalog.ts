@@ -67,27 +67,37 @@ const rank = (
 	functions: CatalogEntry[],
 	query: string,
 	limit: number,
-): CatalogEntry[] => {
+): Array<{ entry: CatalogEntry; weak: boolean }> => {
 	const words = query.toLowerCase().split(/\s+/).filter(Boolean);
 	if (words.length === 0) return [];
-	return functions
-		.map((entry) => ({
-			entry,
-			hits: words.filter((word) =>
-				`${entry.id} ${entry.brief} ${entry.description ?? ""}`
-					.toLowerCase()
-					.includes(word),
-			).length,
-		}))
-		.filter(({ hits }) => hits > 0)
-		.sort(
-			(left, right) =>
-				right.hits - left.hits ||
-				priorityWeight(right.entry.priority) - priorityWeight(left.entry.priority) ||
-				left.entry.id.localeCompare(right.entry.id),
-		)
-		.slice(0, limit)
-		.map(({ entry }) => entry);
+	return (
+		functions
+			.map((entry) => ({
+				entry,
+				hits: words.filter((word) =>
+					`${entry.id} ${entry.brief} ${entry.description ?? ""}`
+						.toLowerCase()
+						.includes(word),
+				).length,
+			}))
+			.filter(({ hits }) => hits > 0)
+			.sort(
+				(left, right) =>
+					right.hits - left.hits ||
+					priorityWeight(right.entry.priority) -
+						priorityWeight(left.entry.priority) ||
+					left.entry.id.localeCompare(right.entry.id),
+			)
+			.slice(0, limit)
+			// One word of a several-word request is a coincidence, not a match: it is
+			// how "outreach audience configuration" reaches "Select Outreach targets".
+			// Such a candidate is still offered — it may be all there is — but it is
+			// labelled, so a call built on it is visibly a guess.
+			.map(({ entry, hits }) => ({
+				entry,
+				weak: hits === 1 && words.length > 1,
+			}))
+	);
 };
 
 const priorityWeight = (priority: FunctionBrief["priority"]): number =>
@@ -96,7 +106,8 @@ const priorityWeight = (priority: FunctionBrief["priority"]): number =>
 export function createConversationCatalog(
 	domain: Domain = createDomain("conversation-catalog"),
 ): ConversationCatalog {
-	const sourceRegistered = domain.createEvent<CatalogSource>("SOURCE_REGISTERED");
+	const sourceRegistered =
+		domain.createEvent<CatalogSource>("SOURCE_REGISTERED");
 	const sourceRemoved = domain.createEvent<string>("SOURCE_REMOVED");
 	const functionsPublished = domain.createEvent<{
 		source: string;
@@ -136,6 +147,14 @@ export function createConversationCatalog(
 					...(fn.description ? { description: fn.description } : {}),
 					category: fn.category ?? owner.group,
 					priority: fn.priority ?? "normal",
+					// A function belongs to the module that implements it. Falling back
+					// to the source keeps every entry addressable by module even when a
+					// source publishes a flat list (workflows, a host's own tools).
+					module: fn.module ?? source,
+					...(fn.moduleLabel ? { moduleLabel: fn.moduleLabel } : {}),
+					...(fn.approximate ? { approximate: true } : {}),
+					...(fn.targetType ? { targetType: fn.targetType } : {}),
+					...(fn.intent ? { intent: fn.intent } : {}),
 					source,
 					group: owner.group,
 				});
@@ -168,14 +187,60 @@ export function createConversationCatalog(
 		return {
 			search: (query, limit = DEFAULT_LIMIT) =>
 				rank([...entries.values()].filter(reachable), query, limit).map(
-					({ id, brief, description, category, priority }) => ({
-						id,
-						brief,
-						...(description ? { description } : {}),
-						category,
-						priority,
+					({ entry, weak }) => ({
+						id: entry.id,
+						brief: entry.brief,
+						...(entry.description ? { description: entry.description } : {}),
+						category: entry.category,
+						priority: entry.priority,
+						...(entry.module ? { module: entry.module } : {}),
+						...(entry.moduleLabel ? { moduleLabel: entry.moduleLabel } : {}),
+						...(entry.targetType ? { targetType: entry.targetType } : {}),
+						...(entry.intent ? { intent: entry.intent } : {}),
+						...(weak || entry.approximate ? { approximate: true } : {}),
 					}),
 				),
+			byTarget: (types) => {
+				const wanted = new Set(types);
+				return [...entries.values()]
+					.filter(
+						(entry) =>
+							reachable(entry) &&
+							entry.targetType !== undefined &&
+							wanted.has(entry.targetType),
+					)
+					.sort(
+						(left, right) =>
+							priorityWeight(right.priority) - priorityWeight(left.priority) ||
+							left.id.localeCompare(right.id),
+					)
+					.map((entry) => ({
+						id: entry.id,
+						brief: entry.brief,
+						...(entry.description ? { description: entry.description } : {}),
+						category: entry.category,
+						priority: entry.priority,
+						...(entry.module ? { module: entry.module } : {}),
+						...(entry.moduleLabel ? { moduleLabel: entry.moduleLabel } : {}),
+						targetType: entry.targetType,
+						...(entry.intent ? { intent: entry.intent } : {}),
+					}));
+			},
+			listModules: () => {
+				const counts = new Map<string, number>();
+				const labels = new Map<string, string>();
+				for (const entry of entries.values()) {
+					if (!reachable(entry) || !entry.module) continue;
+					counts.set(entry.module, (counts.get(entry.module) ?? 0) + 1);
+					if (entry.moduleLabel && !labels.has(entry.module))
+						labels.set(entry.module, entry.moduleLabel);
+				}
+				return [...counts].map(([id, count]) => ({
+					id,
+					label: labels.get(id) ?? id,
+					count,
+				}));
+			},
 			listCategories: () => {
 				const counts = new Map<string, number>();
 				for (const entry of entries.values()) {
@@ -223,6 +288,8 @@ export function createConversationCatalog(
 		catalog: {
 			search: (query, limit) => live().search(query, limit),
 			listCategories: () => live().listCategories(),
+			listModules: () => live().listModules?.() ?? [],
+			byTarget: (types) => live().byTarget?.(types) ?? [],
 			meta: (id) => live().meta(id),
 			invoke: (id, args) => live().invoke(id, args),
 			load: (id) => live().load?.(id) ?? Promise.resolve(),

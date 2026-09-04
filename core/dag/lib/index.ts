@@ -112,14 +112,36 @@ export type Estimate = Record<string, unknown>;
 
 export type OutputRef = { cacheKey: string; sizeBytes?: number };
 
-export const ptah = contractClient<{
+/** One native processor: a Fujin peer of its own, answering the single method
+ *  `analyze`. The envelope is what `processors/interface/src/serve.zig` reads —
+ *  `task` at the top level, `inputs` mapping a task field to a Valkey cacheKey
+ *  it stages into a temp file, `outputs` naming the fields it writes back as
+ *  cache refs. `stream` is deliberately never set: rt.call is unary and rejects
+ *  the progress chunks a streaming reply would send. */
+type ProcessorService = {
 	analyze(
-		plugin: string,
 		task: Record<string, unknown>,
 		inputs?: Record<string, string>,
 		outputs?: string[],
 	): { result: Estimate; outputs: Record<string, OutputRef> };
-}>("ptah", { analyze: ["plugin", "task", "inputs", "outputs"] });
+};
+
+const ANALYZE_SPEC = { analyze: ["task", "inputs", "outputs"] } as const;
+
+/** A processor is its own container, so it is its own routing target: without
+ *  naming it the call lands on the default `services` peer and Fujin drops it.
+ *  Mirrors `@nrpcTarget` in native/types/{opencamlib,curaengine}.ts. */
+export const opencamlib = contractClient<ProcessorService>(
+	"opencamlib",
+	ANALYZE_SPEC,
+	{ target: "opencamlib" },
+);
+
+export const curaengine = contractClient<ProcessorService>(
+	"curaengine",
+	ANALYZE_SPEC,
+	{ target: "curaengine" },
+);
 
 export const MODEL_TYPES = ["step", "stl", "obj", "ply", "3mf"];
 
@@ -460,8 +482,8 @@ export function analyzeFile(
 	const { fileId, name, ref } = staged;
 
 	if (staged.type === "gcode") {
-		// A raw g-code file has no native estimator (ptah slices/CAMs models,
-		// it does not re-parse g-code); nothing to do.
+		// A raw g-code file has no native estimator (the processors slice/CAM
+		// models, they do not re-parse g-code); nothing to do.
 		return;
 	}
 
@@ -503,8 +525,7 @@ export function analyzeFile(
 	// from Valkey); tool params are small and shaped here. --------------------
 	if (o.target === "cnc") {
 		const out = step(ctx, "milling-extract", `milling:${fileId}`, fileId, () =>
-			ptah.analyze(
-				"opencamlib",
+			opencamlib.analyze(
 				compact({
 					toolDiameter: o.toolDiameter,
 					toolLength: o.toolLength,
@@ -533,7 +554,7 @@ export function analyzeFile(
 		ctx.estimates.push({
 			sourceFileId: fileId,
 			type: "milling",
-			data: { ...out.result, estimator: "ptah:opencamlib", sourceName: name },
+			data: { ...out.result, estimator: "opencamlib", sourceName: name },
 			artifactFileIds: gcode ? [gcode.id] : [],
 		});
 		return;
@@ -552,8 +573,7 @@ export function analyzeFile(
 		const sliced =
 			def &&
 			step(ctx, "print-slice", `print-slice:${fileId}`, fileId, () =>
-				ptah.analyze(
-					"curaengine",
+				curaengine.analyze(
 					compact({
 						modelName: name,
 						definitionName: o.definitionName ?? "definition.def.json",
@@ -584,7 +604,7 @@ export function analyzeFile(
 				type: "printing",
 				data: {
 					...sliced.result,
-					estimator: "ptah:curaengine",
+					estimator: "curaengine",
 					sourceName: name,
 				},
 				artifactFileIds: gcode ? [gcode.id] : [],

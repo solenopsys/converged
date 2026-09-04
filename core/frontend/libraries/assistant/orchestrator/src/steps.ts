@@ -1,6 +1,8 @@
 import { parseJsonObject, readString } from "./json";
 import type {
+	FocusEntry,
 	FunctionBrief,
+	FunctionChoice,
 	OrchestratorCatalog,
 	PlanContext,
 	Step,
@@ -18,6 +20,14 @@ import type {
 // answer arrives structured. Prose is the fallback, not the contract: light
 // models otherwise wrap JSON in fences, argue with the instruction, or reply
 // with nothing at all.
+//
+// The route step also picks the module, so narrowing the catalog to one owner
+// costs no extra round-trip: it replaces the free-text `area` guess that used to
+// be the only hint. Both that choice and the function choice are recorded in
+// `trail` — the list that was offered and the one taken — so the transcript can
+// show how a call was arrived at. `trail` is deliberately not derived from
+// `StepTrace`: a trace carries the step's prompt and outcome, which is the
+// model's reasoning and stays in the log.
 
 const CANDIDATE_LIMIT = 12;
 
@@ -40,14 +50,21 @@ const candidateLine = (fn: FunctionBrief): string =>
 		: `${fn.id} — ${fn.brief}`;
 
 function hostContextLine(context: PlanContext): string {
-	if (context.hostContext === undefined) return "";
+	// What is being worked on comes first and in words: it is the answer to
+	// "which one", and every step from routing to arguments needs it.
+	const working = context.focus?.length
+		? `\n\nCurrently working on: ${context.focus
+				.map((entry) => `${entry.label} (${entry.type})`)
+				.join(", ")}`
+		: "";
+	if (context.hostContext === undefined) return working;
 	try {
 		const encoded = JSON.stringify(context.hostContext);
 		return encoded && encoded.length <= 4096
-			? `\n\nCurrent application context: ${encoded}`
-			: "";
+			? `${working}\n\nCurrent application context: ${encoded}`
+			: working;
 	} catch {
-		return "";
+		return working;
 	}
 }
 
@@ -120,31 +137,98 @@ function structured(
 	return answer?.text ? parseJsonObject(answer.text) : undefined;
 }
 
+/** Appends one decision, keeping `trail` immutable for the context patch. */
+const record = (
+	context: Readonly<PlanContext>,
+	choice: FunctionChoice,
+): FunctionChoice[] => [...(context.trail ?? []), choice];
+
+const optionsOf = (
+	functions: ReadonlyArray<FunctionBrief>,
+): FunctionChoice["options"] =>
+	functions.map(({ id, brief }) => ({ id, label: brief }));
+
+/**
+ * Puts the functions of whatever is being worked on at the front of the list,
+ * adding the ones lexical search could not have found, and sends `create` for a
+ * type already in focus to the back. Order is the whole mechanism: `select` sees
+ * a list, and what stands first is what continues the work.
+ */
+function admitFocus(
+	ranked: FunctionBrief[],
+	focus: ReadonlyArray<FocusEntry>,
+	catalog: OrchestratorCatalog,
+	module?: string,
+): FunctionBrief[] {
+	if (focus.length === 0) return ranked;
+	const types = [...new Set(focus.map((entry) => entry.type))];
+	const onFocus = new Map<string, FunctionBrief>();
+	for (const fn of catalog.byTarget?.(types) ?? []) {
+		if (fn.intent !== "create" && (!module || fn.module === module))
+			onFocus.set(fn.id, fn);
+	}
+	// A function search already found keeps what search learned about it.
+	for (const fn of ranked) {
+		if (
+			fn.targetType &&
+			types.includes(fn.targetType) &&
+			fn.intent !== "create"
+		)
+			onFocus.set(fn.id, fn);
+	}
+	const rest = ranked.filter((fn) => !onFocus.has(fn.id));
+	const competing = (fn: FunctionBrief) =>
+		fn.intent === "create" && fn.targetType && types.includes(fn.targetType);
+	return [
+		...onFocus.values(),
+		...rest.filter((fn) => !competing(fn)),
+		...rest.filter(competing),
+	];
+}
+
 export function createFunctionSteps({
 	catalog,
 	candidateLimit = CANDIDATE_LIMIT,
 	factLimitBytes = FACT_LIMIT_BYTES,
 }: FunctionStepsOptions): ReadonlyArray<Step<PlanContext>> {
-	const routeTool: ToolSpec = {
-		name: "route",
-		description: "Say whether the user asked the application to do something.",
-		parameters: {
-			type: "object",
-			properties: {
-				intent: {
-					type: "string",
-					enum: ["function", "answer"],
-					description:
-						'"function" when the user asks the application to act, "answer" for anything else',
+	// A single module is not a choice, and a host without modules keeps the old
+	// flat behaviour. Read once per turn: the catalog is frozen for the turn.
+	const knownModules = () => catalog.listModules?.() ?? [];
+
+	const routeTool = (): ToolSpec => {
+		const modules = knownModules();
+		return {
+			name: "route",
+			description:
+				"Say whether the user asked the application to do something.",
+			parameters: {
+				type: "object",
+				properties: {
+					intent: {
+						type: "string",
+						enum: ["function", "answer"],
+						description:
+							'"function" when the user asks the application to act, "answer" for anything else',
+					},
+					...(modules.length > 1
+						? {
+								module: {
+									type: "string",
+									enum: modules.map(({ id }) => id),
+									description:
+										"Section of the application that owns the wanted function. Omit only when no section fits.",
+								},
+							}
+						: {}),
+					area: {
+						type: "string",
+						description:
+							"Search words for the local function catalog, in English: 'logs', 'orders list', 'cron'",
+					},
 				},
-				area: {
-					type: "string",
-					description:
-						"Search words for the local function catalog, in English: 'logs', 'orders list', 'cron'",
-				},
+				required: ["intent"],
 			},
-			required: ["intent"],
-		},
+		};
 	};
 
 	// Every step from here to `select` decides *what* to run. A step earlier in
@@ -153,20 +237,49 @@ export function createFunctionSteps({
 	const route: Step<PlanContext> = {
 		name: "route",
 		when: ({ id }) => !id,
-		tools: () => [routeTool],
+		retryWhenEmpty: true,
+		tools: () => [routeTool()],
 		ask: (context) => {
-			const areas = catalog
-				.listCategories()
-				.map(({ id, count }) => `${id} (${count})`)
-				.join(", ");
-			return `Areas: ${areas || "none"}${hostContextLine(context)}\n\nUser: ${context.userText}`;
+			const modules = knownModules();
+			const areas =
+				modules.length > 1
+					? modules
+							.map(({ id, label, count }) => `${label} [${id}] (${count})`)
+							.join(", ")
+					: catalog
+							.listCategories()
+							.map(({ id, count }) => `${id} (${count})`)
+							.join(", ");
+			return `Sections: ${areas || "none"}${hostContextLine(context)}\n\nUser: ${context.userText}`;
 		},
-		apply: (_context, answer) => {
-			const decision = structured(answer, routeTool.name);
+		apply: (context, answer) => {
+			const decision = structured(answer, "route");
 			if (readString(decision, "intent") !== "function") {
 				return { done: { kind: "answer" } };
 			}
-			return { patch: { area: readString(decision, "area") } };
+			const modules = knownModules();
+			const picked = readString(decision, "module");
+			// An invented module would narrow the search to nothing; treated as no
+			// choice, so the flow degrades to the flat search rather than missing.
+			const module = modules.some(({ id }) => id === picked)
+				? picked
+				: undefined;
+			return {
+				patch: {
+					area: readString(decision, "area"),
+					module,
+					...(module
+						? {
+								trail: record(context, {
+									step: "module",
+									chosen: module,
+									chosenLabel: modules.find(({ id }) => id === module)?.label,
+									options: modules.map(({ id, label }) => ({ id, label })),
+								}),
+							}
+						: {}),
+				},
+			};
 		},
 	};
 
@@ -175,28 +288,85 @@ export function createFunctionSteps({
 	const search: Step<PlanContext> = {
 		name: "search",
 		when: ({ id }) => !id,
-		apply: ({ area, userText }) => {
+		apply: (context) => {
+			const { area, userText, module } = context;
 			// `area` comes from a fast model and is only a search hint. Searching it
 			// alone lets a hallucinated area (for example "catalog") turn an
 			// unrelated singleton into an automatic invocation. The user's message
 			// is the authoritative intent and always gets the first candidate slots.
 			const query = area ?? userText;
-			const candidates = mergeCandidates(
+			// Ranking runs before the module filter, so a narrowed search asks for
+			// more than it will keep: otherwise the module's own matches fall off
+			// the end of the list and the narrowing looks like it found nothing.
+			const found = mergeCandidates(
 				catalog,
 				userText,
 				area,
-				candidateLimit,
+				module ? candidateLimit * 4 : candidateLimit,
 			);
+			const withinModule = module
+				? found.filter((candidate) => candidate.module === module)
+				: found;
+			// The module was a hint from a fast model, not a constraint the user
+			// stated. Rather than miss, the flow widens back to the whole catalog
+			// and says so — a silent widening is what makes a wrong call look like
+			// a considered one.
+			const widened = module !== undefined && withinModule.length === 0;
+			const ranked = widened ? found : withinModule;
+			// What the conversation is working on admits its own functions, ahead of
+			// anything the wording turned up. This is not a preference: the reply
+			// that continues a piece of work ("about 5%") has no word in common with
+			// the function that records it, so lexical search drops it every time and
+			// the turn ends by starting the work over. `create` for something already
+			// in focus goes last for the same reason — it competes with the work
+			// instead of continuing it — but it stays available, because "start
+			// another one" is a real request.
+			const candidates = admitFocus(
+				ranked,
+				context.focus ?? [],
+				catalog,
+				widened ? undefined : module,
+			).slice(0, candidateLimit);
+			const trail: FunctionChoice[] | undefined = widened
+				? context.trail?.map((choice) =>
+						choice.step === "module"
+							? { ...choice, note: "widened" as const }
+							: choice,
+					)
+				: context.trail;
+
 			if (candidates.length === 0) {
-				return { done: { kind: "function-missed", area: query, candidates } };
+				return {
+					done: { kind: "function-missed", area: query, candidates, trail },
+				};
 			}
 
-			// One candidate is not worth a round-trip to pick it.
+			// One candidate is not worth a round-trip to pick it. It is still the
+			// decision that picked the function, so it is recorded as one — with an
+			// option list of one, which is exactly what the user should see.
+			const only = candidates.length === 1 ? candidates[0] : undefined;
 			return {
 				patch: {
 					area: query,
 					candidates,
-					id: candidates.length === 1 ? candidates[0]?.id : undefined,
+					...(widened ? { module: undefined } : {}),
+					...(only
+						? {
+								id: only.id,
+								trail: [
+									...(trail ?? []),
+									{
+										step: "select",
+										chosen: only.id,
+										chosenLabel: only.brief,
+										options: optionsOf(candidates),
+										...(only.approximate
+											? { note: "approximate" as const }
+											: {}),
+									},
+								],
+							}
+						: { trail }),
 				},
 			};
 		},
@@ -205,6 +375,12 @@ export function createFunctionSteps({
 	const select: Step<PlanContext> = {
 		name: "select",
 		when: ({ id }) => !id,
+		// The step wants a call and nothing else, so an empty reply is worth one
+		// more ask. If the second is empty too the turn still has somewhere to go:
+		// `apply` reports a miss and the assistant answers in words. Throwing here
+		// killed the whole turn over one flaky reply from a light model.
+		retryWhenEmpty: true,
+		allowEmptyAnswer: true,
 		tools: ({ candidates }) => [
 			{
 				name: "select",
@@ -224,20 +400,34 @@ export function createFunctionSteps({
 		],
 		ask: (context) =>
 			`Candidates:\n${context.candidates.map(candidateLine).join("\n")}${hostContextLine(context)}\n\nUser: ${context.userText}`,
-		apply: async ({ candidates, area, userText }, answer) => {
+		apply: async (context, answer) => {
+			const { candidates, area, userText } = context;
 			const id = readString(structured(answer, "select"), "id");
 			// An id the model invented is not a function: better to miss than to
 			// call something the user did not ask for.
-			if (!id || !candidates.some((fn) => fn.id === id)) {
+			const chosen = id ? candidates.find((fn) => fn.id === id) : undefined;
+			if (!chosen) {
 				return {
 					done: {
 						kind: "function-missed",
 						area: area ?? userText,
 						candidates,
+						trail: context.trail,
 					},
 				};
 			}
-			return { patch: { id } };
+			return {
+				patch: {
+					id: chosen.id,
+					trail: record(context, {
+						step: "select",
+						chosen: chosen.id,
+						chosenLabel: chosen.brief,
+						options: optionsOf(candidates),
+						...(chosen.approximate ? { note: "approximate" as const } : {}),
+					}),
+				},
+			};
 		},
 	};
 
@@ -265,6 +455,21 @@ export function createFunctionSteps({
 		name: "args",
 		when: ({ argumentsFinal }) => !argumentsFinal,
 		allowEmptyAnswer: true,
+		// A provider can return either no call or a provisional `{}` call. Both are
+		// incomplete when the chosen function has required fields, so give the model
+		// one bounded retry before the existing hard failure protects the invocation.
+		retryWhen: (context, answer) => {
+			const meta = context.id ? catalog.meta(context.id) : undefined;
+			const schema = context.parameters ?? meta?.parameters;
+			const required = schema?.required ?? [];
+			if (required.length === 0) return false;
+			const values = {
+				...schemaDefaults(schema),
+				...(context.known ?? {}),
+				...(structured(answer, "call") ?? {}),
+			};
+			return required.some((key) => !Object.hasOwn(values, key));
+		},
 		// The tool is the target function itself when the host publishes a schema:
 		// then the model fills real parameters instead of describing them.
 		tools: ({ id, parameters }) => {
@@ -307,25 +512,24 @@ export function createFunctionSteps({
 			// answer: more specific than a default, and still overridable by what
 			// the user actually said this turn.
 			const defaults = { ...schemaDefaults(schema), ...known };
-			// The step was asked for arguments and produced none, and the schema
-			// has no defaults to stand in: calling the function now sends nothing.
-			// That is how a request was created without the files that were the
-			// whole point of it, and reported as a success. A failure the user can
-			// see is the honest outcome; a schema that does carry defaults still
-			// goes through on them.
-			if (
-				meta &&
-				needsArgumentModel(schema) &&
-				filled === undefined &&
-				Object.keys(defaults).length === 0
-			) {
+			// The step was asked for required arguments and produced none, and the
+			// schema has no defaults to stand in: calling the function now sends
+			// nothing. That is how a request was created without the files that were
+			// the whole point of it, and reported as a success. An optional-only
+			// schema, on the other hand, explicitly permits `{}` (for example,
+			// starting an interview that collects its values later).
+			const values = { ...defaults, ...(filled ?? {}) };
+			const missing = (schema?.required ?? []).filter(
+				(key) => !Object.hasOwn(values, key),
+			);
+			if (meta && needsArgumentModel(schema) && missing.length > 0) {
 				throw new Error(
-					`[orchestrator] Step "args" produced no arguments for ${meta.id}`,
+					`[orchestrator] Step "args" missed required arguments for ${meta.id}: ${missing.join(", ")}`,
 				);
 			}
 			return {
 				patch: {
-					args: { ...defaults, ...(filled ?? {}) },
+					args: values,
 				},
 			};
 		},
@@ -337,7 +541,7 @@ export function createFunctionSteps({
 		name: "invoke",
 		// `args` is what the argument step produced; `known` is what the host
 		// filled when that step had nothing left to ask and was skipped.
-		apply: async ({ id, args, known }) => {
+		apply: async ({ id, args, known, trail }) => {
 			const params = args ?? known ?? {};
 			if (!id) {
 				throw new Error(
@@ -347,7 +551,7 @@ export function createFunctionSteps({
 			try {
 				const fact = await catalog.invoke(id, params);
 				return {
-					done: { kind: "function", id, args: params, fact: cap(fact) },
+					done: { kind: "function", id, args: params, fact: cap(fact), trail },
 				};
 			} catch (error) {
 				return {
@@ -355,6 +559,7 @@ export function createFunctionSteps({
 						kind: "function",
 						id,
 						args: params,
+						trail,
 						fact: {
 							ok: false,
 							error: error instanceof Error ? error.message : String(error),

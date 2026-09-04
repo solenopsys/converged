@@ -73,8 +73,18 @@
 
   var rt = {
     // ---- dumb host primitives ----------------------------------------------
-    call: function (service, method, params) {
-      var res = host({ op: "call", service: service, method: method, body: JSON.stringify(params || {}) });
+    // `target` is the Fujin peer the service answers behind; omitted for a
+    // microservice, which lives in the peer the engine already dials. A native
+    // peer of its own — a processor container — names itself, and without it
+    // the call is routed to `services` and dropped as unroutable.
+    call: function (service, method, params, target) {
+      var res = host({
+        op: "call",
+        service: service,
+        method: method,
+        target: target || "",
+        body: JSON.stringify(params || {}),
+      });
       if (!res.ok) {
         throw new Error((res.body && res.body.error) || ("HTTP " + res.status + " " + service + "/" + method));
       }

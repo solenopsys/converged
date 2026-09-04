@@ -27,7 +27,22 @@ export type FileUniverse = {
 	addArchive(name: string, entries: { name: string; data: string }[]): string;
 
 	failOn(service: string, method: string, message: string): void;
-	handler(service: string, method: string, params: any, cache: Cache): unknown;
+	handler(
+		service: string,
+		method: string,
+		params: any,
+		cache: Cache,
+		target?: string,
+	): unknown;
+};
+
+/** Where each service must be routed. A microservice shares the engine's own
+ *  peer and names no target; a processor is its own container and must name
+ *  itself, so a call that arrives with the wrong target is a routing bug the
+ *  tests should fail on rather than silently answer. */
+const PROCESSOR_TARGETS: Record<string, string> = {
+	opencamlib: "opencamlib",
+	curaengine: "curaengine",
 };
 
 function extension(name: string): string {
@@ -86,10 +101,17 @@ export function createFileUniverse(): FileUniverse {
 			failures.set(`${service}.${method}`, message);
 		},
 
-		handler(service, method, params, cache) {
+		handler(service, method, params, cache, target) {
 			universe.calls.push(`${service}.${method}`);
 			const failure = failures.get(`${service}.${method}`);
 			if (failure) throw new Error(failure);
+
+			const expectedTarget = PROCESSOR_TARGETS[service] ?? "";
+			if ((target ?? "") !== expectedTarget) {
+				throw new Error(
+					`${service}.${method} routed to target ${JSON.stringify(target ?? "")}, expected ${JSON.stringify(expectedTarget)}`,
+				);
+			}
 
 			if (service === "files")
 				return filesHandler(universe, method, params, cache, nextId);
@@ -177,35 +199,30 @@ export function createFileUniverse(): FileUniverse {
 				cache.set(outKey, `glb(${blob})`);
 				return { files: [{ name: outName, ref: { cacheKey: outKey } }] };
 			}
-			if (service === "ptah" && method === "analyze") {
-				// ptah reads model bytes from Valkey by ref (inputs field->cacheKey)
-				// and writes any produced file back as a ref (outputs field list).
-				const { plugin, inputs, outputs } = params as {
-					plugin: string;
+			if (PROCESSOR_TARGETS[service] && method === "analyze") {
+				// A processor reads model bytes from Valkey by ref (inputs
+				// field->cacheKey) and writes any produced file back as a ref
+				// (outputs field list). `task` rides at the top level, which is
+				// what processors/interface/src/serve.zig parses.
+				const { task, inputs, outputs } = params as {
 					task?: Record<string, unknown>;
 					inputs?: Record<string, string>;
 					outputs?: string[];
 				};
+				if (!task || typeof task !== "object") {
+					throw new Error(`${service}.analyze: task is required`);
+				}
 				for (const key of Object.values(inputs ?? {})) readBlob(cache, key);
 
-				let result: Record<string, unknown>;
-				if (plugin === "opencamlib") {
-					result = {
-						triangles: 1894,
-						passes: 6,
-						points: 348,
-						totalTimeSec: 21.2,
-					};
-				} else if (plugin === "curaengine") {
-					result = { gcodeBytes: 128, exitCode: 0 };
-				} else {
-					throw new Error(`unexpected ptah plugin: ${plugin}`);
-				}
+				const result: Record<string, unknown> =
+					service === "opencamlib"
+						? { triangles: 1894, passes: 6, points: 348, totalTimeSec: 21.2 }
+						: { gcodeBytes: 128, exitCode: 0 };
 
 				const outRefs: Record<string, { cacheKey: string; sizeBytes: number }> =
 					{};
 				for (const field of outputs ?? []) {
-					const key = `blob:ptah:${plugin}:${field}:${universe.calls.length}`;
+					const key = `blob:${service}:${field}:${universe.calls.length}`;
 					cache.set(key, "G1 X0 Y0");
 					outRefs[field] = { cacheKey: key, sizeBytes: 8 };
 				}

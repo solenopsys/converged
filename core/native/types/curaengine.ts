@@ -5,6 +5,8 @@
  * `libcuraengine.so` and answers `analyze` synchronously; scaling and restarts
  * belong to the ptah operator (Deployment replicas), routing to Fujin.
  *
+ * @nrpcTarget curaengine
+ *
  * Heavy bytes never ride the wire: `inputs` maps a task field to a Valkey
  * cacheKey which the processor GETs into a temp file and binds to that field,
  * and `outputs` lists the task fields the processor writes as files, which are

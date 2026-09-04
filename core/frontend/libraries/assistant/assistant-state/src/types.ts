@@ -113,6 +113,18 @@ export type ChatMessage = {
 		status?: "running" | "completed" | "failed";
 		summary?: string;
 		details?: Record<string, unknown> | unknown[] | string;
+		/**
+		 * The decisions that led to this call — section, then function — each with
+		 * the alternatives it was chosen from. Shown when the bubble is expanded so
+		 * a call is inspectable rather than something that just happens.
+		 */
+		steps?: Array<{
+			step: string;
+			chosen: string;
+			chosenLabel?: string;
+			options: Array<{ id: string; label: string }>;
+			note?: "widened" | "approximate";
+		}>;
 	};
 	fileData?: {
 		fileId: string;

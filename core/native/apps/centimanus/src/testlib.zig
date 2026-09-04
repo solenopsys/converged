@@ -13,9 +13,12 @@ const vm = @import("vm.zig");
 
 const c_allocator = std.heap.c_allocator;
 
-/// JS handler for `rt.call`: receives NUL-terminated service/method/body and
-/// returns a NUL-terminated JSON result (or null to signal a failed call).
+/// JS handler for `rt.call`: receives NUL-terminated target/service/method/body
+/// and returns a NUL-terminated JSON result (or null to signal a failed call).
+/// `target` is the Fujin peer the call is routed to, empty when the caller did
+/// not name one — the test sees exactly what the transport would.
 pub const CallHandler = *const fn (
+    target: [*:0]const u8,
     service: [*:0]const u8,
     method: [*:0]const u8,
     body: [*:0]const u8,
@@ -147,14 +150,15 @@ fn mockRunWorkflow(ctx: *anyopaque, a: std.mem.Allocator, script_path: []const u
     return .{ .ok = result.ok, .status = if (result.ok) 200 else 500, .body = result.output };
 }
 
-fn mockCall(ctx: *anyopaque, a: std.mem.Allocator, service: []const u8, method: []const u8, body: []const u8) anyerror!vm.Reply {
+fn mockCall(ctx: *anyopaque, a: std.mem.Allocator, target: []const u8, service: []const u8, method: []const u8, body: []const u8) anyerror!vm.Reply {
     _ = ctx;
     const handler = g_handler orelse return error.NoCallHandler;
+    const t = try a.dupeZ(u8, target);
     const s = try a.dupeZ(u8, service);
     const m = try a.dupeZ(u8, method);
     const b = try a.dupeZ(u8, body);
 
-    const ret = handler(s.ptr, m.ptr, b.ptr) orelse
+    const ret = handler(t.ptr, s.ptr, m.ptr, b.ptr) orelse
         return .{ .ok = false, .status = 500, .body = try a.dupe(u8, "{\"error\":\"mock call handler threw\"}") };
     const span = std.mem.span(ret);
     // A leading 0x01 means the host handler threw: the rest is the JSON error

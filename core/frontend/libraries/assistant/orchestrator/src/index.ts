@@ -43,6 +43,7 @@ export * from "./state";
 export { parseJsonObject, readString } from "./json";
 export type {
 	FunctionBrief,
+	FunctionChoice,
 	OneShotAsk,
 	OrchestratorCatalog,
 	OrchestratorPlan,

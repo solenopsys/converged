@@ -52,7 +52,7 @@ describe("wf-request-analyze", () => {
 
 		expect(outcome.result.estimates).toHaveLength(1);
 		expect(outcome.result.estimates[0].type).toBe("milling");
-		expect(outcome.result.estimates[0].data.estimator).toBe("ptah:opencamlib");
+		expect(outcome.result.estimates[0].data.estimator).toBe("opencamlib");
 		expect(outcome.result.estimates[0].data.sourceName).toBe("bracket.stl");
 
 		const request = stored(u, requestId);
@@ -65,7 +65,7 @@ describe("wf-request-analyze", () => {
 			outcome.result.estimates,
 		);
 		expect(request.fields.file_analysis_errors).toEqual([]);
-		expect(u.calls).toContain("ptah.analyze");
+		expect(u.calls).toContain("opencamlib.analyze");
 		expect(u.calls).toContain("requests.applyRequestUpdate");
 	});
 
@@ -93,7 +93,7 @@ describe("wf-request-analyze", () => {
 		const u = createFileUniverse();
 		const stlId = u.addFile("part.stl", "solid part");
 		const requestId = seedRequest(u, { "part.stl": stlId });
-		u.failOn("ptah", "analyze", "no cutting tool fits");
+		u.failOn("opencamlib", "analyze", "no cutting tool fits");
 
 		const outcome = runWorkflow(source, { requestId }, u.handler, { workflows });
 		expect(outcome.ok).toBe(true);

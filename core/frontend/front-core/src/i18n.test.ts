@@ -2,19 +2,27 @@ import { afterEach, describe, expect, test } from "bun:test";
 import {
 	LocaleController,
 	loadMicrofrontendTranslations,
-	resolveEmbeddedMicrofrontendMessage,
 	registerMicrofrontendLocales,
 	resetMicrofrontendI18nForTests,
+	resolveEmbeddedMicrofrontendMessage,
 } from "./i18n";
 
 const originalFetch = globalThis.fetch;
 
 afterEach(() => {
 	globalThis.fetch = originalFetch;
+	LocaleController.getInstance().setLocale("en");
 	resetMicrofrontendI18nForTests();
 });
 
 describe("microfrontend translations", () => {
+	test("hydrates the shared locale from a localized route", () => {
+		expect(LocaleController.getInstance().hydrateFromPath("/ru/audit/42")).toBe(
+			"ru",
+		);
+		expect(LocaleController.getInstance().getActiveLocale()).toBe("ru");
+	});
+
 	test("uses embedded messages without a network request", async () => {
 		let fetches = 0;
 		globalThis.fetch = (() => {
@@ -76,7 +84,11 @@ describe("microfrontend translations", () => {
 		});
 
 		expect(
-			resolveEmbeddedMicrofrontendMessage("orders-mf", "actions.orders.brief", "en"),
+			resolveEmbeddedMicrofrontendMessage(
+				"orders-mf",
+				"actions.orders.brief",
+				"en",
+			),
 		).toBe("Open orders");
 	});
 });

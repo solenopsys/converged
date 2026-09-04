@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, test } from "bun:test";
+import { LocaleController, registerMicrofrontendLocales } from "../i18n";
 import { setActiveSelectionResolver } from "../select/runtime";
 import {
 	catalogEntries,
@@ -51,6 +52,44 @@ beforeAll(() => {
 });
 
 describe("operator catalog", () => {
+	test("resolves user-facing operation labels from the active MF locale", () => {
+		registerMicrofrontendLocales("mf-localized-probe", {
+			en: {
+				catalog: {
+					operation: { label: "Record answer", description: "Save it" },
+				},
+			},
+			ru: {
+				catalog: {
+					operation: { label: "Записать ответ", description: "Сохранить его" },
+				},
+			},
+		});
+		objectRegistry.register("mf-localized-probe", {
+			id: "mf-localized-probe",
+			types: [{ id: "probe.localized", label: "Localized probe" }],
+			views: [],
+			operations: [
+				{
+					id: "probe.localized.record",
+					operator: "execute",
+					target: "probe.localized",
+					label: "Record answer",
+					labelKey: "catalog.operation.label",
+					description: "Save it",
+					descriptionKey: "catalog.operation.description",
+				},
+			],
+		});
+		LocaleController.getInstance().setLocale("ru");
+
+		const entry = catalogEntry("core.execute:probe.localized");
+		expect(entry?.brief).toBe("Записать ответ");
+		expect(entry?.description).toBe("Сохранить его");
+
+		LocaleController.getInstance().setLocale("en");
+	});
+
 	test("publishes only the fixed object vocabulary", () => {
 		expect(operatorCatalogEntries().map((entry) => entry.operator)).toEqual([
 			...OPERATORS,

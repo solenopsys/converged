@@ -32,9 +32,15 @@ const stubExternals = {
 				export const setOf = (type) => ({ kind: "set", ...(type ? { type } : {}) });
 				export const objectRef = (type, id, options = {}) => ({ kind: "object", type, id: String(id), ...options });
 				export const setRef = (type, selection, options = {}) => ({ kind: "set", type, selection, ...options });
-				export const executeOperation = () => {};
-				export const presentReference = () => {};
-				export const setOperationAuthorizationController = () => {};
+					export const executeOperation = () => {};
+					export const presentReference = () => {};
+					export const attachToFocus = () => {};
+					export const focusedObject = () => undefined;
+					export const objectChanged = { watch: () => () => {} };
+					export const objectRefreshRequested = { watch: () => () => {} };
+					export const objectRevisionKey = (ref) => ref.type + "#" + ref.id;
+					export const $objectRevisions = {};
+					export const setOperationAuthorizationController = () => {};
 				`
 					: `
 				const hit = () => new Proxy(function(){}, {

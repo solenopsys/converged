@@ -72,8 +72,12 @@ export type StatisticDefinition = {
 export type ObjectDefinition = {
 	id: ObjectTypeId;
 	label: string;
+	/** Message keys in the owning microfrontend; static text remains the fallback. */
+	labelKey?: string;
 	pluralLabel?: string;
+	pluralLabelKey?: string;
 	description?: string;
+	descriptionKey?: string;
 	categories?: readonly CategoryId[];
 	idField?: string;
 	/** Controls whether generic commands may advertise this type to a guest. */
@@ -197,6 +201,15 @@ export type OperationContext = {
 	references: DomainRef[];
 	params: Record<string, unknown>;
 	present: (ref: DomainRef, options?: PresentReferenceOptions) => Promise<void>;
+	/** Publish a persisted object mutation to every mounted view of that object. */
+	changed: (ref: ObjectRef, payload?: unknown) => void;
+};
+
+export type ObjectChange = {
+	ref: ObjectRef;
+	operationId: OperationId;
+	payload?: unknown;
+	source?: PresentationSource;
 };
 
 export type OperationDefinition = {
@@ -204,7 +217,10 @@ export type OperationDefinition = {
 	operator: Operator;
 	target?: ObjectTypeId;
 	label: string;
+	/** Message keys in the owning microfrontend; static text remains the fallback. */
+	labelKey?: string;
 	description?: string;
+	descriptionKey?: string;
 	inputs?: OperationInput[];
 	output?: TypeExpression;
 	/**

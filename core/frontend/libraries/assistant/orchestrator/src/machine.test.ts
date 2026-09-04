@@ -1,13 +1,14 @@
 import { describe, expect, test } from "bun:test";
-import { createOrchestrator, createMachine, parseJsonObject } from "./index";
-import { createFunctionSteps } from "./steps";
 import type {
+	FunctionChoice,
 	OrchestratorCatalog,
 	PlanContext,
 	Step,
 	StepAnswer,
 	StepName,
 } from "./index";
+import { createMachine, createOrchestrator, parseJsonObject } from "./index";
+import { createFunctionSteps } from "./steps";
 
 const CATALOG: OrchestratorCatalog = {
 	search: (query) =>
@@ -90,6 +91,19 @@ describe("orchestrator", () => {
 			id: "logs.cold.show",
 			args: { limit: 10 },
 			fact: { ok: true, id: "logs.cold.show", args: { limit: 10 } },
+			// The choice travels with the plan: which function was taken, and what
+			// else was on offer when it was.
+			trail: [
+				{
+					step: "select",
+					chosen: "logs.cold.show",
+					chosenLabel: "Show cold logs",
+					options: [
+						{ id: "logs.hot.show", label: "Show hot logs" },
+						{ id: "logs.cold.show", label: "Show cold logs" },
+					],
+				},
+			],
 		});
 		// Search, descriptor loading and invoke are local, so exactly three vendor
 		// calls are made.
@@ -465,6 +479,347 @@ describe("parseJsonObject", () => {
 	test("does not claim to parse invalid text", () => {
 		expect(parseJsonObject("plain text")).toBeUndefined();
 		expect(parseJsonObject("[1,2,3]")).toBeUndefined();
+	});
+});
+
+// The section is chosen inside `route`, so narrowing the catalog costs no extra
+// vendor call — and both levels end up in `trail`, which is what the transcript
+// renders when a call is expanded.
+describe("module routing", () => {
+	const MODULAR: OrchestratorCatalog = {
+		search: () => [
+			{
+				id: "logs.hot.show",
+				brief: "Show hot logs",
+				module: "mf-logs",
+				moduleLabel: "Logs",
+			},
+			{
+				id: "sales.leads.show",
+				brief: "Show leads",
+				module: "mf-sales",
+				moduleLabel: "Sales",
+			},
+		],
+		listCategories: () => [{ id: "logs", count: 2 }],
+		listModules: () => [
+			{ id: "mf-logs", label: "Logs", count: 1 },
+			{ id: "mf-sales", label: "Sales", count: 1 },
+		],
+		meta: (id) => ({ id, description: `describe ${id}` }),
+		invoke: async (id) => ({ ok: true, id }),
+	};
+
+	test("narrows candidates to the chosen module and records both choices", async () => {
+		const { orchestrator, steps } = harness(
+			{
+				route: '{"intent":"function","module":"mf-sales","area":"leads"}',
+				args: "{}",
+			},
+			MODULAR,
+		);
+
+		const plan = await orchestrator.plan("show me the leads");
+
+		// One candidate survives the narrowing, so `select` is not worth a call.
+		expect(steps).toEqual(["route", "args"]);
+		expect(plan).toMatchObject({ kind: "function", id: "sales.leads.show" });
+		expect((plan as { trail: unknown }).trail).toEqual([
+			{
+				step: "module",
+				chosen: "mf-sales",
+				chosenLabel: "Sales",
+				options: [
+					{ id: "mf-logs", label: "Logs" },
+					{ id: "mf-sales", label: "Sales" },
+				],
+			},
+			{
+				step: "select",
+				chosen: "sales.leads.show",
+				chosenLabel: "Show leads",
+				options: [{ id: "sales.leads.show", label: "Show leads" }],
+			},
+		]);
+	});
+
+	test("a module with no matches widens back to the whole catalog and says so", async () => {
+		const { orchestrator } = harness(
+			{
+				route: '{"intent":"function","module":"mf-geo","area":"leads"}',
+				select: '{"id":"sales.leads.show"}',
+				args: "{}",
+			},
+			{
+				...MODULAR,
+				listModules: () => [
+					...(MODULAR.listModules?.() ?? []),
+					{ id: "mf-geo", label: "Geo", count: 1 },
+				],
+			},
+		);
+
+		const plan = await orchestrator.plan("show me the leads");
+
+		expect(plan).toMatchObject({ kind: "function", id: "sales.leads.show" });
+		expect((plan as { trail: { note?: string }[] }).trail?.[0]).toMatchObject({
+			step: "module",
+			chosen: "mf-geo",
+			note: "widened",
+		});
+	});
+
+	test("a module the catalog does not have is ignored rather than obeyed", async () => {
+		const { orchestrator } = harness(
+			{
+				route: '{"intent":"function","module":"mf-invented","area":"leads"}',
+				select: '{"id":"logs.hot.show"}',
+				args: "{}",
+			},
+			MODULAR,
+		);
+
+		const plan = await orchestrator.plan("show me the leads");
+
+		expect(plan).toMatchObject({ kind: "function", id: "logs.hot.show" });
+		// No module was really chosen, so nothing claims one was.
+		expect((plan as { trail: FunctionChoice[] }).trail).toEqual([
+			{
+				step: "select",
+				chosen: "logs.hot.show",
+				chosenLabel: "Show hot logs",
+				options: [
+					{ id: "logs.hot.show", label: "Show hot logs" },
+					{ id: "sales.leads.show", label: "Show leads" },
+				],
+			},
+		]);
+	});
+});
+
+// The reply that continues a piece of work does not repeat its vocabulary:
+// "about 5%" has no word in common with "Record an audit answer". Lexical search
+// drops that function every turn, and the run ends by starting the audit over —
+// or, worse, by telling the user it saved something it never called.
+describe("working context", () => {
+	const AUDIT: OrchestratorCatalog = {
+		// Search only ever finds the two that mention an audit by name.
+		search: (query) =>
+			query.toLowerCase().includes("audit")
+				? [
+						{
+							id: "core.create:audit.audit",
+							brief: "Company audit",
+							targetType: "audit.audit",
+							intent: "create",
+						},
+						{
+							id: "core.show:audit.audit",
+							brief: "Show Company audit",
+							targetType: "audit.audit",
+							intent: "read",
+						},
+					]
+				: [],
+		byTarget: (types) =>
+			types.includes("audit.audit")
+				? [
+						{
+							id: "core.execute:audit.setParameter",
+							brief: "Record an audit answer",
+							targetType: "audit.audit",
+							intent: "mutate",
+						},
+						{
+							id: "core.create:audit.audit",
+							brief: "Company audit",
+							targetType: "audit.audit",
+							intent: "create",
+						},
+					]
+				: [],
+		listCategories: () => [{ id: "audit", count: 2 }],
+		meta: (id) => ({ id, description: `describe ${id}` }),
+		invoke: async (id, args) => ({ ok: true, id, args }),
+	};
+
+	const working = [
+		{ key: "audit.audit#a1", type: "audit.audit", label: "Company audit" },
+	];
+
+	test("admits the functions of the open thing when wording finds nothing", async () => {
+		const machine = createMachine<PlanContext>({
+			steps: createFunctionSteps({ catalog: AUDIT }),
+			prompt: async () => "p",
+			ask: async ({ step, tools }) =>
+				replyOf(
+					step,
+					step === "route"
+						? '{"intent":"function","area":"loss of inquiries about 5%"}'
+						: "{}",
+					tools,
+				),
+		});
+
+		const plan = await machine.run({
+			userText: "примерно 5%",
+			candidates: [],
+			focus: working,
+		});
+
+		// Neither the message nor the routing hint contains a word of this
+		// function's wording; the open audit is the only reason it was reachable.
+		expect(plan).toMatchObject({
+			kind: "function",
+			id: "core.execute:audit.setParameter",
+		});
+	});
+
+	test("the same message without an open audit finds nothing at all", async () => {
+		const machine = createMachine<PlanContext>({
+			steps: createFunctionSteps({ catalog: AUDIT }),
+			prompt: async () => "p",
+			ask: async ({ step, tools }) =>
+				replyOf(
+					step,
+					step === "route"
+						? '{"intent":"function","area":"loss of inquiries about 5%"}'
+						: "{}",
+					tools,
+				),
+		});
+
+		expect(
+			await machine.run({ userText: "примерно 5%", candidates: [] }),
+		).toMatchObject({ kind: "function-missed" });
+	});
+
+	test("starting over is offered last, behind continuing the work", async () => {
+		let offered = "";
+		const machine = createMachine<PlanContext>({
+			steps: createFunctionSteps({ catalog: AUDIT }),
+			prompt: async () => "p",
+			ask: async ({ step, user, tools }) => {
+				if (step === "select") offered = user;
+				return replyOf(
+					step,
+					step === "route"
+						? '{"intent":"function","area":"audit"}'
+						: step === "select"
+							? '{"id":"core.execute:audit.setParameter"}'
+							: "{}",
+					tools,
+				);
+			},
+		});
+
+		await machine.run({
+			userText: "audit",
+			candidates: [],
+			focus: working,
+		});
+
+		const lines = offered
+			.split("\n")
+			.filter((line) => line.startsWith("core."));
+		expect(lines.at(-1)).toContain("core.create:audit.audit");
+		expect(lines[0]).toContain("core.execute:audit.setParameter");
+	});
+
+	test("without an open thing nothing is admitted and search decides alone", async () => {
+		let offered = "";
+		const machine = createMachine<PlanContext>({
+			steps: createFunctionSteps({ catalog: AUDIT }),
+			prompt: async () => "p",
+			ask: async ({ step, user, tools }) => {
+				if (step === "select") offered = user;
+				return replyOf(
+					step,
+					step === "route"
+						? '{"intent":"function","area":"audit"}'
+						: step === "select"
+							? '{"id":"core.create:audit.audit"}'
+							: "{}",
+					tools,
+				);
+			},
+		});
+
+		await machine.run({ userText: "audit", candidates: [] });
+
+		expect(offered).not.toContain("core.execute:audit.setParameter");
+	});
+});
+
+// A light model answers a tool-call step with nothing often enough that it has
+// to be survivable: before this, one empty reply ended the turn with a raw
+// orchestrator error in the user's face.
+describe("empty reply from a deciding step", () => {
+	test("select is asked once more and the retry decides the turn", async () => {
+		let attempt = 0;
+		const { orchestrator, steps } = harness({
+			route: '{"intent":"function","area":"logs"}',
+			select: () => (attempt++ === 0 ? "text:" : '{"id":"logs.cold.show"}'),
+			args: "{}",
+		});
+
+		expect(await orchestrator.plan("show cold logs")).toMatchObject({
+			kind: "function",
+			id: "logs.cold.show",
+		});
+		expect(steps).toEqual(["route", "select", "select", "args"]);
+	});
+
+	test("two empty replies end as a miss, not as a thrown turn", async () => {
+		const { orchestrator } = harness({
+			route: '{"intent":"function","area":"logs"}',
+			select: "text:",
+		});
+
+		expect(await orchestrator.plan("show cold logs")).toMatchObject({
+			kind: "function-missed",
+		});
+	});
+
+	test("route is retried too rather than dying on one empty reply", async () => {
+		let attempt = 0;
+		const { orchestrator, steps } = harness({
+			route: () => (attempt++ === 0 ? "text:" : '{"intent":"answer"}'),
+		});
+
+		expect(await orchestrator.plan("hello")).toEqual({ kind: "answer" });
+		expect(steps).toEqual(["route", "route"]);
+	});
+
+	test("args retries an empty provisional call before invoking", async () => {
+		let attempt = 0;
+		const requiredArguments: OrchestratorCatalog = {
+			...CATALOG,
+			meta: (id) => ({
+				id,
+				description: `describe ${id}`,
+				parameters: {
+					type: "object",
+					properties: { value: { type: "number" } },
+					required: ["value"],
+				},
+			}),
+		};
+		const { orchestrator, steps } = harness(
+			{
+				route: '{"intent":"function","area":"logs"}',
+				select: '{"id":"logs.cold.show"}',
+				args: () => (attempt++ === 0 ? "{}" : '{"value":5}'),
+			},
+			requiredArguments,
+		);
+
+		expect(await orchestrator.plan("about 5")).toMatchObject({
+			kind: "function",
+			id: "logs.cold.show",
+			args: { value: 5 },
+		});
+		expect(steps).toEqual(["route", "select", "args", "args"]);
 	});
 });
 

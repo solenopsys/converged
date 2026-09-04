@@ -1,6 +1,9 @@
 import {
 	catalogEntries,
 	catalogEntry,
+	focusedRef,
+	focusItems,
+	focusKey,
 	invokeCatalogEntry,
 	loadObjectType,
 	microfrontendDeclared,
@@ -11,6 +14,7 @@ import {
 	operatorCatalogEntries,
 	searchOperatorCatalog,
 } from "front-core/object-runtime";
+import { $activeLocale } from "../i18n";
 import { loadSelectionDescriptor } from "../select/descriptor";
 import { activeSelection } from "../select/runtime";
 import { selectCommandSchema } from "../select/schema";
@@ -30,6 +34,26 @@ function categories() {
 	return [{ id: "operator", count: catalogEntries().length }];
 }
 
+/**
+ * The catalog's first level: which microfrontend owns each function. This is
+ * what the routing step narrows to before a function is chosen, so a wrong pick
+ * costs one visible wrong section instead of an unrelated call.
+ */
+function modules() {
+	const counts = new Map<string, { label: string; count: number }>();
+	for (const entry of catalogEntries()) {
+		if (!entry.module) continue;
+		const seen = counts.get(entry.module);
+		if (seen) seen.count += 1;
+		else
+			counts.set(entry.module, {
+				label: entry.moduleLabel ?? entry.module,
+				count: 1,
+			});
+	}
+	return [...counts].map(([id, { label, count }]) => ({ id, label, count }));
+}
+
 // The operator's parameters carry every target type the resolver knows, which
 // is the point of `describeFunction` and far too much for a listing: a bare
 // `listFunctions` would answer with the whole registry seven times over.
@@ -47,6 +71,14 @@ export function createMicrofrontendCatalog(): ChatCatalog {
 	let selectionAtTurn = activeSelection();
 
 	return {
+		// The list is the answer to "which one", so it travels as words the steps
+		// can use, not as an opaque blob.
+		focus: () =>
+			focusItems().map((item) => ({
+				key: focusKey(item.ref),
+				type: item.ref.type,
+				label: item.label,
+			})),
 		turnContext: () => {
 			const current = activeSelection();
 			selectionAtTurn = current;
@@ -61,9 +93,24 @@ export function createMicrofrontendCatalog(): ChatCatalog {
 		catalog: {
 			search: (query, limit) => searchOperatorCatalog(query, limit),
 			listCategories: categories,
+			listModules: modules,
 			meta: catalogEntry,
-			invoke: (id, params) =>
-				invokeCatalogEntry(id, params, "assistant", selectionAtTurn),
+			invoke: (id, params) => {
+				// The identifier of the thing being worked on is not something to ask
+				// a model for: it has been known since the screen was opened. The
+				// operator runtime already reads `references` and nobody filled it,
+				// so a function aimed at what is in focus is pointed at it here.
+				const entry = catalogEntry(id);
+				const target = entry?.targetType;
+				const reference =
+					target && !("references" in params) ? focusedRef(target) : undefined;
+				return invokeCatalogEntry(
+					id,
+					reference ? { ...params, references: [reference] } : params,
+					"assistant",
+					selectionAtTurn,
+				);
+			},
 			load: async (id) => {
 				const entry = catalogEntry(id);
 				if (!entry?.targetType) return entry?.parameters;
@@ -106,6 +153,7 @@ export function createMicrofrontendCatalog(): ChatCatalog {
 		onChange: (republish) => {
 			void microfrontendRegistered.watch(republish);
 			void microfrontendDeclared.watch(republish);
+			void $activeLocale.watch(republish);
 			onOperationAuthorizationChanged(republish);
 		},
 		diagnostics: {

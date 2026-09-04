@@ -35,7 +35,9 @@ pub const LlmReply = struct {
 /// provider hub (optional — a transport without it rejects `rt.llm` loudly).
 pub const Transport = struct {
     ctx: *anyopaque,
-    call: *const fn (ctx: *anyopaque, a: std.mem.Allocator, service: []const u8, method: []const u8, body: []const u8) anyerror!Reply,
+    /// `target` is the Fujin peer the service answers behind, empty when the
+    /// caller does not name one — a microservice shares the engine's own peer.
+    call: *const fn (ctx: *anyopaque, a: std.mem.Allocator, target: []const u8, service: []const u8, method: []const u8, body: []const u8) anyerror!Reply,
     get: *const fn (ctx: *anyopaque, a: std.mem.Allocator, key: []const u8) anyerror!?[]const u8,
     set: *const fn (ctx: *anyopaque, a: std.mem.Allocator, key: []const u8, value: []const u8) anyerror!void,
     log: *const fn (ctx: *anyopaque, msg: []const u8) void,
@@ -269,7 +271,8 @@ fn dispatch(ctx: *ExecContext, request: []const u8) ![]u8 {
         const service = getStr(obj, "service") orelse return cdupe("{\"ok\":false,\"error\":\"call: missing service\"}");
         const method = getStr(obj, "method") orelse return cdupe("{\"ok\":false,\"error\":\"call: missing method\"}");
         const body = getStr(obj, "body") orelse "{}";
-        const reply = t.call(t.ctx, a, service, method, body) catch |e|
+        const target = getStr(obj, "target") orelse "";
+        const reply = t.call(t.ctx, a, target, service, method, body) catch |e|
             return cReply(try errReplyFmt(a, "call transport: {s}", .{@errorName(e)}));
         const resp_body = if (reply.body.len == 0) "null" else reply.body;
         return cReply(try std.fmt.allocPrint(a, "{{\"ok\":{},\"status\":{d},\"body\":{s}}}", .{ reply.ok, reply.status, resp_body }));

@@ -8,6 +8,7 @@ import { type ChatBlock, type ChatDriver, wantsTools } from "../chat-driver";
 import { createMachine } from "../machine";
 import { createFunctionSteps } from "../steps";
 import type {
+	FocusEntry,
 	OneShotAsk,
 	OrchestratorCatalog,
 	OrchestratorPlan,
@@ -64,6 +65,12 @@ export type ConversationOptions = {
 	model?: string;
 	/** Captures compact host state once so deciding steps share the same view. */
 	turnContext?: () => unknown;
+	/**
+	 * What the conversation is working on, read once per turn. The host owns the
+	 * list — the kernel keeps no state — and the flow uses it to decide which
+	 * functions are on the table at all, not merely in which order.
+	 */
+	focus?: () => FocusEntry[];
 	domain?: Domain;
 };
 
@@ -118,7 +125,11 @@ const factOf = (plan: OrchestratorPlan): string | undefined => {
 		return JSON.stringify({
 			requested: plan.area,
 			available: plan.candidates.map((fn) => fn.id),
-			note: "No matching function in the catalog; answer with words.",
+			// "Answer with words" alone invites the model to narrate the action it
+			// could not perform — an audit answer comes back as "Saved: about 5%"
+			// with nothing saved and an empty screen behind it. Nothing ran, and the
+			// reply has to say so.
+			note: "Nothing ran: no function in the catalog matched. Do not state or imply that anything was saved, created, recorded or changed. Say what you could not do, and ask for what would let you do it.",
 		});
 	}
 	return undefined;
@@ -135,6 +146,7 @@ export function createConversation({
 	tier,
 	model,
 	turnContext,
+	focus,
 	domain = createDomain("conversation"),
 }: ConversationOptions): Conversation {
 	const entries = createConversationEntries(domain);
@@ -222,10 +234,12 @@ export function createConversation({
 
 		const startedAt = Date.now();
 		const hostContext = turnContext?.();
+		const working = focus?.() ?? [];
 		const plan = await machine.run({
 			userText: text,
 			candidates: [],
 			...(hostContext === undefined ? {} : { hostContext }),
+			...(working.length > 0 ? { focus: working } : {}),
 		});
 		if (plan.kind === "function") {
 			const failure =
@@ -243,6 +257,7 @@ export function createConversation({
 				elapsedMs: Date.now() - startedAt,
 				result: failure ? undefined : plan.fact,
 				error: failure ? (plan.fact as { error?: string }).error : undefined,
+				...(plan.trail?.length ? { trail: plan.trail } : {}),
 			});
 		}
 		return plan;

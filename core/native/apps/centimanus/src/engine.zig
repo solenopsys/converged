@@ -117,7 +117,7 @@ pub const Engine = struct {
 
     fn fetchSource(self: *Engine, alloc: std.mem.Allocator, t: vm.Transport, script_path: []const u8) ![]const u8 {
         _ = self;
-        const reply = try t.call(t.ctx, alloc, "dag", "listAvailableWorkflows", "{}");
+        const reply = try t.call(t.ctx, alloc, "", "dag", "listAvailableWorkflows", "{}");
         if (!reply.ok) return error.WorkflowNotFound;
         const parsed = std.json.parseFromSliceLeaky(std.json.Value, alloc, reply.body, .{}) catch return error.WorkflowSourceInvalid;
         const items = switch (parsed) {
@@ -148,9 +148,9 @@ pub const Engine = struct {
 
     // ---- transport vtable: production backends -----------------------------
 
-    fn tCall(ctx: *anyopaque, a: std.mem.Allocator, service: []const u8, method: []const u8, body: []const u8) anyerror!vm.Reply {
+    fn tCall(ctx: *anyopaque, a: std.mem.Allocator, target: []const u8, service: []const u8, method: []const u8, body: []const u8) anyerror!vm.Reply {
         const self: *Engine = @ptrCast(@alignCast(ctx));
-        const res = try self.callService(a, service, method, body, self.current_scope);
+        const res = try self.callServiceAt(a, target, service, method, body, self.current_scope);
         return .{ .ok = res.ok(), .status = if (res.ok()) 200 else 502, .body = res.body };
     }
 
@@ -237,7 +237,13 @@ pub const Engine = struct {
     }
 
     pub fn callService(self: *Engine, allocator: std.mem.Allocator, service: []const u8, method: []const u8, body: []const u8, scope: []const u8) !fujin_transport.RuntimeReply {
-        return self.runtime.call(allocator, .{
+        return self.callServiceAt(allocator, "", service, method, body, scope);
+    }
+
+    /// `target` names the Fujin peer to route to; empty keeps the transport's
+    /// default (`services`), which is where every microservice answers.
+    pub fn callServiceAt(self: *Engine, allocator: std.mem.Allocator, target: []const u8, service: []const u8, method: []const u8, body: []const u8, scope: []const u8) !fujin_transport.RuntimeReply {
+        const base: fujin_transport.RuntimeOutgoing = .{
             .service = service,
             .method = method,
             .scope = scope,
@@ -246,9 +252,21 @@ pub const Engine = struct {
             // service call is made by this trusted runtime principal instead.
             .auth = self.service_token,
             .body = body,
-        });
+            .deadline_ms = call_deadline_ms,
+        };
+        if (target.len == 0) return self.runtime.call(allocator, base);
+        var outgoing = base;
+        outgoing.target = target;
+        return self.runtime.call(allocator, outgoing);
     }
 };
+
+/// A workflow call is not a UI call. The transport's 5s default is sized for a
+/// request a browser is waiting on; a workflow waits on a native slice or a CAM
+/// pass, which the CLI already budgets 180s for (modules/commands/ptah.ts).
+/// The workflow's own JS budget is unaffected — vm.zig credits back whatever a
+/// host call spends waiting, so this bounds the service, not the script.
+const call_deadline_ms: u32 = 600_000;
 
 fn stateKey(allocator: std.mem.Allocator, scope: []const u8, key: []const u8) ![]const u8 {
     if (scope.len == 0) return allocator.dupe(u8, key);

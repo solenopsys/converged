@@ -21,6 +21,18 @@ export {
 	searchOperatorCatalog,
 } from "./catalog";
 export {
+	$focus,
+	attachToFocus,
+	type FocusItem,
+	focusCleared,
+	focusDetached,
+	focusedObject,
+	focusedRef,
+	focusedRefs,
+	focusItems,
+	focusKey,
+} from "./focus";
+export {
 	$objectRegistryRevision,
 	ingestObjectIndex,
 	loadObjectIndex,
@@ -31,13 +43,18 @@ export {
 } from "./registry";
 export { ObjectResolver, objectResolver, resolve } from "./resolver";
 export {
+	$objectRevisions,
 	executeOperation,
 	loadObjectType,
+	objectChanged,
+	objectRefreshRequested,
+	objectRevisionKey,
 	operationExecutionFailed,
 	operationExecutionStarted,
 	operationExecutionSucceeded,
 	presentReference,
 	referencePresented,
+	refreshFocusedObjects,
 	registerMicrofrontend,
 	setMicrofrontendLoader,
 } from "./runtime";
@@ -49,6 +66,7 @@ export type {
 	IdSelection,
 	MicrofrontendDefinition,
 	MicrofrontendManifest,
+	ObjectChange,
 	ObjectDefinition,
 	ObjectIndexFile,
 	ObjectIndexModule,

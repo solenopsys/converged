@@ -1,4 +1,8 @@
-export { contractClient, type ContractSpec } from "./contract-client";
+export {
+	contractClient,
+	type ContractOptions,
+	type ContractSpec,
+} from "./contract-client";
 export type {
 	Attempt,
 	LlmMessage,

@@ -1,5 +1,5 @@
 import { createDomain, type Domain, type EventCallable, type Store } from "effector";
-import type { Tier } from "../types";
+import type { FunctionChoice, Tier } from "../types";
 
 // Message content lives here once, in `$entries`, keyed by id. Everything else
 // — the per-model logs and the conversation the user reads — is an ordered list
@@ -69,6 +69,13 @@ export type CallEntry = Common & {
 	elapsedMs?: number;
 	result?: unknown;
 	error?: string;
+	/**
+	 * How the flow arrived at this function: what it was offered at each deciding
+	 * step and what it took. Unlike `StepEntry` this holds no prompt and no step
+	 * outcome — it is the catalog and the app's own choice, so it belongs to the
+	 * conversation rather than to the model's log.
+	 */
+	trail?: FunctionChoice[];
 };
 
 export type Entry = UserEntry | AssistantEntry | StepEntry | CallEntry;
