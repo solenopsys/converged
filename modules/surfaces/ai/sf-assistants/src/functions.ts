@@ -1,10 +1,10 @@
 import { sample } from "effector";
 import type { CreateAction, CreateWidget } from "front-core";
 import { resolveEmbeddedSurfaceMessage } from "front-core";
+import { presentReference, setRef } from "front-core/object-runtime";
 import domain from "./domain";
 import { assistantClient as chatsService } from "./services";
 import { ChatHistoryView } from "./views/ChatHistoryView";
-import { ChatsListView } from "./views/ChatsListView";
 import { CommandsListView } from "./views/CommandsListView";
 import { ToolCallJsonView } from "./views/ToolCallJsonView";
 
@@ -35,14 +35,6 @@ const editChatEvent = domain.createEvent<{ recordId: string }>(
 
 sample({ clock: deleteChatEvent, target: deleteChatFx });
 
-const createChatsListWidget: CreateWidget<typeof ChatsListView> = (bus) => ({
-	view: ChatsListView,
-	placement: () => "center",
-	config: {
-		bus,
-	},
-});
-
 const createCommandsListWidget: CreateWidget<typeof CommandsListView> = (
 	bus,
 ) => ({
@@ -67,7 +59,7 @@ const createChatHistoryWidget = (bus, params: { threadId: string }) => ({
 });
 
 const createToolCallJsonWidget = (
-	bus,
+	_bus,
 	params: {
 		threadId: string;
 		title: string;
@@ -84,21 +76,21 @@ const createToolCallJsonWidget = (
 	commands: {},
 });
 
-const createShowChatsListAction: CreateAction<any> = (bus) => ({
+const createShowChatsListAction: CreateAction = () => ({
 	id: SHOW_CHATS_LIST,
 	invoke: () => {
-		bus.present({ widget: createChatsListWidget(bus) });
+		void presentReference(setRef("assistants.chat", { kind: "query" }));
 	},
 });
 
-const createShowCommandsListAction: CreateAction<any> = (bus) => ({
+const createShowCommandsListAction: CreateAction = (bus) => ({
 	id: SHOW_COMMANDS_LIST,
 	invoke: () => {
 		bus.present({ widget: createCommandsListWidget(bus) });
 	},
 });
 
-const createViewChatAction: CreateAction<any> = (bus) => ({
+const createViewChatAction: CreateAction = (bus) => ({
 	id: VIEW_CHAT,
 	invoke: ({ recordId, title }) => {
 		if (!recordId) return;
@@ -112,7 +104,7 @@ const createViewChatAction: CreateAction<any> = (bus) => ({
 	},
 });
 
-const createViewToolCallJsonAction: CreateAction<any> = (bus) => ({
+const createViewToolCallJsonAction: CreateAction = (bus) => ({
 	id: VIEW_TOOL_CALL_JSON,
 	invoke: ({ threadId, title, toolCallId, summary, details }) => {
 		if (!threadId) return;
@@ -132,14 +124,14 @@ const createViewToolCallJsonAction: CreateAction<any> = (bus) => ({
 	},
 });
 
-const createEditChatAction: CreateAction<any> = () => ({
+const createEditChatAction: CreateAction = () => ({
 	id: EDIT_CHAT,
 	invoke: ({ recordId }) => {
 		editChatEvent({ recordId });
 	},
 });
 
-const createDeleteChatAction: CreateAction<any> = () => ({
+const createDeleteChatAction: CreateAction = () => ({
 	id: DELETE_CHAT,
 	invoke: ({ recordId }) => {
 		deleteChatEvent({ recordId });

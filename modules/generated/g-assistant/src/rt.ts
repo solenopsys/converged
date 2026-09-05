@@ -4,7 +4,10 @@ import { createRtClient, type ServiceMetadata } from "nrpc";
 export type PaginationParams = {
 	offset: number;
 	limit: number;
+	filter?: FilterObject;
 };
+
+export type FilterObject = Record<string, unknown>;
 
 export type PaginatedResult<T> = {
 	items: T[];
@@ -135,7 +138,12 @@ const metadata: ServiceMetadata = {
     {
       "name": "PaginationParams",
       "kind": "type",
-      "definition": "{\n\toffset: number;\n\tlimit: number;\n}"
+      "definition": "{\n\toffset: number;\n\tlimit: number;\n\tfilter?: FilterObject;\n}"
+    },
+    {
+      "name": "FilterObject",
+      "kind": "type",
+      "definition": "Record<string, unknown>"
     },
     {
       "name": "PaginatedResult",

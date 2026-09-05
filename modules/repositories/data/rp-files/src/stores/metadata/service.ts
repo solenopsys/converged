@@ -1,21 +1,63 @@
-import { SqlStore } from "back-core";
 import {
-	FileMetadataRepository,
-	FileChunkRepository,
-	FileCollectionRepository,
-	FileMetadataKey,
-	FileChunkKey,
-	FileCollectionKey,
-} from "./entities";
-import {
-	FileMetadata,
+	applyKyselyFilter,
+	type KyselyFilterSchema,
+	type SqlStore,
+} from "back-core";
+import type {
 	FileChunk,
 	FileCollection,
-	UUID,
+	FileMetadata,
 	HashString,
-	PaginationParams,
 	PaginatedResult,
+	PaginationParams,
+	UUID,
 } from "../../types";
+import {
+	FileChunkKey,
+	FileChunkRepository,
+	FileCollectionKey,
+	FileCollectionRepository,
+	type FileMetadataKey,
+	FileMetadataRepository,
+} from "./entities";
+
+const fileFilterSchema: KyselyFilterSchema = {
+	id: {
+		valueType: "string",
+		operators: ["eq", "in", "contains", "startsWith"],
+		column: "id",
+	},
+	name: {
+		valueType: "string",
+		operators: ["eq", "in", "contains", "startsWith"],
+		column: "name",
+	},
+	fileType: {
+		valueType: "string",
+		operators: ["eq", "in", "contains", "startsWith"],
+		column: "fileType",
+	},
+	owner: {
+		valueType: "string",
+		operators: ["eq", "in", "contains", "startsWith"],
+		column: "owner",
+	},
+	status: {
+		valueType: "string",
+		operators: ["eq", "in", "notEq", "notIn"],
+		column: "status",
+	},
+	fileSize: {
+		valueType: "number",
+		operators: ["eq", "gt", "gte", "lt", "lte", "between"],
+		column: "fileSize",
+	},
+	createdAt: {
+		valueType: "date",
+		operators: ["gt", "gte", "lt", "lte", "between"],
+		column: "createdAt",
+	},
+};
 
 export class MetadataStoreService {
 	private readonly store: SqlStore;
@@ -143,6 +185,8 @@ export class MetadataStoreService {
 			filesQuery = filesQuery.where(whereMatchesKey);
 			countQuery = countQuery.where(whereMatchesKey);
 		}
+		filesQuery = applyKyselyFilter(filesQuery, params.filter, fileFilterSchema);
+		countQuery = applyKyselyFilter(countQuery, params.filter, fileFilterSchema);
 
 		const [items, count] = await Promise.all([
 			filesQuery

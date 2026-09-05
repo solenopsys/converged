@@ -1,13 +1,14 @@
+import { EntityListView } from "front-core";
 import {
 	defineSurface,
 	objectOf,
 	objectRef,
 	setOf,
 } from "front-core/object-runtime";
+import type { CronHistoryListParams, CronListParams } from "g-sheduller";
+import { cronsColumns, historyColumns } from "./functions/columns";
 import shedullerService from "./service";
 import { ShedullerSummary } from "./summary";
-import { CronsListView } from "./views/CronsListView";
-import { HistoryView } from "./views/HistoryView";
 import { StatsView } from "./views/StatsView";
 
 export default defineSurface({
@@ -32,6 +33,31 @@ export default defineSurface({
 				load: (params) => shedullerService.listCrons(params),
 				inspect: (filter) => shedullerService.inspectCrons(filter),
 			},
+			infinity: {
+				tableId: "scheduler-crons",
+				title: "Crons",
+				columns: cronsColumns,
+				load: (params) => shedullerService.listCrons(params as CronListParams),
+				rowRef: (cron) =>
+					objectRef("scheduler.cron", String(cron.id), {
+						title: typeof cron.name === "string" ? cron.name : undefined,
+					}),
+				filters: [
+					{ id: "name", label: "Name", type: "search", operator: "contains" },
+					{ id: "provider", label: "Provider", type: "search", operator: "eq" },
+					{ id: "action", label: "Action", type: "search", operator: "eq" },
+					{
+						id: "status",
+						label: "Status",
+						type: "select",
+						operator: "eq",
+						options: [
+							{ value: "active", label: "Active" },
+							{ value: "paused", label: "Paused" },
+						],
+					},
+				],
+			},
 		},
 		{
 			id: "scheduler.history",
@@ -43,6 +69,30 @@ export default defineSurface({
 				describe: () => shedullerService.describeSelection("scheduler.history"),
 				load: (params) => shedullerService.listHistory(params),
 				inspect: (filter) => shedullerService.inspectHistory(filter),
+			},
+			infinity: {
+				tableId: "scheduler-history",
+				title: "History",
+				columns: historyColumns,
+				load: (params) =>
+					shedullerService.listHistory(params as CronHistoryListParams),
+				rowRef: (entry) => objectRef("scheduler.history", String(entry.id)),
+				filters: [
+					{ id: "cronId", label: "Schedule", type: "search", operator: "eq" },
+					{ id: "provider", label: "Provider", type: "search", operator: "eq" },
+					{ id: "action", label: "Action", type: "search", operator: "eq" },
+					{
+						id: "success",
+						label: "Success",
+						type: "select",
+						operator: "eq",
+						valueType: "boolean",
+						options: [
+							{ value: "true", label: "Success" },
+							{ value: "false", label: "Failed" },
+						],
+					},
+				],
 			},
 		},
 		{
@@ -62,12 +112,12 @@ export default defineSurface({
 		{
 			id: "scheduler.cron.table",
 			accepts: setOf("scheduler.cron"),
-			component: CronsListView,
+			component: EntityListView,
 		},
 		{
 			id: "scheduler.history.table",
 			accepts: setOf("scheduler.history"),
-			component: HistoryView,
+			component: EntityListView,
 		},
 		{
 			id: "scheduler.statistic.dashboard",

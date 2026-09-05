@@ -1,17 +1,20 @@
 export type PaginatedResult<T> = {
-  items: T[];
-  totalCount?: number;
-}
+	items: T[];
+	totalCount?: number;
+};
 
 export type PaginationParams = {
-  offset: number;
-  limit: number;
-}
+	offset: number;
+	limit: number;
+	filter?: FilterObject;
+};
+
+export type FilterObject = Record<string, unknown>;
 
 export interface StructService {
-  saveJson(path: string, data: any): Promise<string>;
-  readJson(path: string): Promise<any>;
-  readJsonBatch(paths: string[]): Promise<any[]>;
-  deleteJson(path: string): Promise<void>;
-  listJson(params: PaginationParams): Promise<PaginatedResult<string>>;
+	saveJson(path: string, data: any): Promise<string>;
+	readJson(path: string): Promise<any>;
+	readJsonBatch(paths: string[]): Promise<any[]>;
+	deleteJson(path: string): Promise<void>;
+	listJson(params: PaginationParams): Promise<PaginatedResult<string>>;
 }

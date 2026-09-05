@@ -1,7 +1,9 @@
-import { defineSurface, setOf } from "front-core/object-runtime";
+import { EntityListView } from "front-core";
+import { defineSurface, objectRef, setOf } from "front-core/object-runtime";
+import type { UsageListParams } from "g-usage";
+import { usageColumns } from "./functions/columns";
 import usage from "./service";
 import { UsageSummary } from "./summary";
-import { UsageListView } from "./views/UsageListView";
 import { UsageStatsView } from "./views/UsageStatsView";
 
 export default defineSurface({
@@ -19,6 +21,34 @@ export default defineSurface({
 				describe: () => usage.describeSelection("usage.record"),
 				load: (params) => usage.listUsage(params),
 				inspect: (filter) => usage.inspectUsage(filter),
+			},
+			infinity: {
+				tableId: "usage",
+				title: "Usage events",
+				columns: usageColumns,
+				load: (params) => usage.listUsage(params as UsageListParams),
+				rowRef: (row) => objectRef("usage.record", String(row.id)),
+				filters: [
+					{
+						id: "function",
+						label: "Function",
+						type: "search",
+						operator: "contains",
+					},
+					{
+						id: "user",
+						label: "User",
+						type: "search",
+						operator: "contains",
+					},
+					{
+						id: "date",
+						label: "Date",
+						type: "date-range",
+						operator: "between",
+						valueType: "date",
+					},
+				],
 			},
 		},
 		{
@@ -45,7 +75,7 @@ export default defineSurface({
 		{
 			id: "usage.record.table",
 			accepts: setOf("usage.record"),
-			component: UsageListView,
+			component: EntityListView,
 		},
 		{
 			id: "usage.statistic.dashboard",

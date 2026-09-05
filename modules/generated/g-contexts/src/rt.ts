@@ -31,7 +31,10 @@ export type ContextListParams = {
   limit?: number;
 
   language?: ContextLanguage;
+  filter?: FilterObject;
 };
+
+export type FilterObject = Record<string, unknown>;
 
 export type PaginatedResult<T> = {
   items: T[];
@@ -145,7 +148,12 @@ const metadata: ServiceMetadata = {
     {
       "name": "ContextListParams",
       "kind": "type",
-      "definition": "{\n  offset?: number;\n  limit?: number;\n\n  language?: ContextLanguage;\n}"
+      "definition": "{\n  offset?: number;\n  limit?: number;\n\n  language?: ContextLanguage;\n  filter?: FilterObject;\n}"
+    },
+    {
+      "name": "FilterObject",
+      "kind": "type",
+      "definition": "Record<string, unknown>"
     },
     {
       "name": "PaginatedResult",

@@ -1,23 +1,16 @@
-import type { CreateAction, CreateWidget } from "front-core";
-import { ContextsListView } from "./views/ContextsListView";
+import type { CreateAction } from "front-core";
+import { presentReference, setRef } from "front-core/object-runtime";
+import { ContextObject } from "./context";
 
 // ── Action IDs ───────────────────────────────────────────────────────────────
 export const SHOW_CONTEXTS = "contexts.show";
 
 // ── Widget factories ─────────────────────────────────────────────────────────
-const createContextsListWidget: CreateWidget<typeof ContextsListView> = (
-	bus,
-) => ({
-	view: ContextsListView,
-	placement: () => "center",
-	config: { bus },
-});
-
 // ── Action creators ──────────────────────────────────────────────────────────
-const createShowContextsAction: CreateAction<any> = (bus) => ({
+const createShowContextsAction: CreateAction = () => ({
 	id: SHOW_CONTEXTS,
 	invoke: () => {
-		bus.present({ widget: createContextsListWidget(bus) });
+		void presentReference(setRef(ContextObject.type, { kind: "query" }));
 	},
 });
 

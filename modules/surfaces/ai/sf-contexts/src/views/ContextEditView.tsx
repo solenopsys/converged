@@ -2,7 +2,7 @@ import { Button } from "front-core";
 import { DEFAULT_LOCALE as defaultLanguage } from "front-core/landing";
 import type React from "preact/compat";
 import { useEffect, useState } from "preact/compat";
-import { refreshContextsClicked } from "../domain-contexts";
+import { notifyContextChanged } from "../context";
 import { contextsClient } from "../services";
 
 type ContextEditViewProps = {
@@ -60,8 +60,8 @@ export const ContextEditView: React.FC<ContextEditViewProps> = ({
 				language: lang,
 				data: prompt,
 			});
+			notifyContextChanged({ name: n, language: lang });
 			setStatus("saved");
-			refreshContextsClicked();
 			setTimeout(() => setStatus("idle"), 1500);
 		} catch (e) {
 			setError(e instanceof Error ? e.message : "Failed to save");
@@ -72,7 +72,7 @@ export const ContextEditView: React.FC<ContextEditViewProps> = ({
 	const handleDelete = async () => {
 		if (isNew) return;
 		await contextsClient.deleteContext(name.trim(), language.trim());
-		refreshContextsClicked();
+		notifyContextChanged({ name: name.trim(), language: language.trim() });
 		setData("");
 	};
 

@@ -1,12 +1,16 @@
+import { EntityListView } from "front-core";
 import {
 	defineSurface,
 	objectOf,
 	objectRef,
 	setOf,
 } from "front-core/object-runtime";
+import type {
+	WebhookEndpointListParams,
+	WebhookLogListParams,
+} from "g-webhooks";
+import { endpointColumns, logColumns } from "./functions/columns";
 import webhooksService from "./service";
-import { EndpointsListView } from "./views/EndpointsListView";
-import { WebhookLogsView } from "./views/WebhookLogsView";
 
 export default defineSurface({
 	id: "sf-webhooks",
@@ -29,6 +33,33 @@ export default defineSurface({
 				load: (params) => webhooksService.listEndpoints(params),
 				inspect: (filter) => webhooksService.inspectEndpoints(filter),
 			},
+			infinity: {
+				tableId: "webhook-endpoints",
+				title: "Webhook endpoints",
+				columns: endpointColumns,
+				load: (params) =>
+					webhooksService.listEndpoints(params as WebhookEndpointListParams),
+				rowRef: (endpoint) =>
+					objectRef("webhooks.endpoint", String(endpoint.id), {
+						title:
+							typeof endpoint.name === "string" ? endpoint.name : undefined,
+					}),
+				filters: [
+					{ id: "name", label: "Name", type: "search", operator: "contains" },
+					{ id: "provider", label: "Provider", type: "search", operator: "eq" },
+					{
+						id: "enabled",
+						label: "Enabled",
+						type: "select",
+						operator: "eq",
+						valueType: "boolean",
+						options: [
+							{ value: "true", label: "Enabled" },
+							{ value: "false", label: "Disabled" },
+						],
+					},
+				],
+			},
 		},
 		{
 			id: "webhooks.log",
@@ -41,18 +72,44 @@ export default defineSurface({
 				load: (params) => webhooksService.listLogs(params),
 				inspect: (filter) => webhooksService.inspectLogs(filter),
 			},
+			infinity: {
+				tableId: "webhook-logs",
+				title: "Webhook logs",
+				columns: logColumns,
+				load: (params) =>
+					webhooksService.listLogs(params as WebhookLogListParams),
+				rowRef: (entry) => objectRef("webhooks.log", String(entry.id)),
+				filters: [
+					{
+						id: "endpointId",
+						label: "Endpoint",
+						type: "search",
+						operator: "eq",
+					},
+					{ id: "provider", label: "Provider", type: "search", operator: "eq" },
+					{ id: "method", label: "Method", type: "search", operator: "eq" },
+					{ id: "path", label: "Path", type: "search", operator: "contains" },
+					{
+						id: "status",
+						label: "Status",
+						type: "search",
+						operator: "eq",
+						valueType: "number",
+					},
+				],
+			},
 		},
 	],
 	views: [
 		{
 			id: "webhooks.endpoint.table",
 			accepts: setOf("webhooks.endpoint"),
-			component: EndpointsListView,
+			component: EntityListView,
 		},
 		{
 			id: "webhooks.log.table",
 			accepts: setOf("webhooks.log"),
-			component: WebhookLogsView,
+			component: EntityListView,
 		},
 	],
 	operations: [

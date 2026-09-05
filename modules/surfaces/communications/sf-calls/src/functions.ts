@@ -1,11 +1,11 @@
-import type { CreateAction, CreateWidget } from "front-core";
+import type { CreateAction } from "front-core";
+import { presentReference, setRef } from "front-core/object-runtime";
 import {
 	openCallDetail,
 	returnToListClicked,
 	startNewCallClicked,
 } from "./domain-calls";
 import { ActiveCallView } from "./views/ActiveCallView";
-import { CallsListView } from "./views/CallsListView";
 import { CallTranscriptView } from "./views/CallTranscriptView";
 import { webCallRequested } from "./web-call/controller";
 import { mountWebCallWidget } from "./web-call/mount";
@@ -24,12 +24,6 @@ export const START_WEB_CALL = "calls.web.start";
 const CALL_TRANSCRIPT_TAB_ID = "call-transcript";
 
 // ── Widget factories ─────────────────────────────────────────────────────────
-const createCallsListWidget: CreateWidget<typeof CallsListView> = (bus) => ({
-	view: CallsListView,
-	placement: () => "center",
-	config: { bus },
-});
-
 const createActiveCallWidget = (bus: any) => ({
 	view: ActiveCallView,
 	placement: () => "center" as const,
@@ -47,12 +41,12 @@ const createCallTranscriptWidget = (_bus: any, sessionId: string) => ({
 });
 
 // ── Action creators ──────────────────────────────────────────────────────────
-const createShowCallsAction: CreateAction<any> = (bus) => ({
+const createShowCallsAction: CreateAction = () => ({
 	id: SHOW_CALLS,
 	invoke: () => {
 		// Reset any lingering active-call / detail state so the list is shown
 		returnToListClicked();
-		bus.present({ widget: createCallsListWidget(bus) });
+		void presentReference(setRef("calls.call", { kind: "query" }));
 	},
 });
 
@@ -76,11 +70,11 @@ const createViewCallAction: CreateAction<any> = (bus) => ({
 	},
 });
 
-const createReturnToCallsAction: CreateAction<any> = (bus) => ({
+const createReturnToCallsAction: CreateAction = () => ({
 	id: RETURN_TO_CALLS,
 	invoke: () => {
 		returnToListClicked();
-		bus.present({ widget: createCallsListWidget(bus) });
+		void presentReference(setRef("calls.call", { kind: "query" }));
 	},
 });
 

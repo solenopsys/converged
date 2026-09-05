@@ -69,4 +69,18 @@ describe("MetadataStoreService.list", () => {
 		expect(firstPage.items).toHaveLength(1);
 		expect(firstPage.totalCount).toBe(2);
 	});
+
+	it("applies canonical filters in the repository", async () => {
+		const filtered = await metadataService.list({
+			offset: 0,
+			limit: 20,
+			filter: {
+				owner: { contains: "bob" },
+				status: { eq: "uploaded" },
+			},
+		});
+
+		expect(filtered.totalCount).toBe(1);
+		expect(filtered.items[0]?.id).toBe("list-beta-file");
+	});
 });

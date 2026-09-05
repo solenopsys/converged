@@ -12,10 +12,13 @@ export type UUID = string;
 export type ISODateString = string;
 
 export type PaginationParams = {
-	key: string;
+	key?: string;
 	offset: number;
 	limit: number;
+	filter?: FilterObject;
 };
+
+export type FilterObject = Record<string, unknown>;
 
 export type PaginatedResult<T> = {
 	items: T[];
@@ -374,7 +377,12 @@ export const metadata: ServiceMetadata = {
     {
       "name": "PaginationParams",
       "kind": "type",
-      "definition": "{\n\tkey: string;\n\toffset: number;\n\tlimit: number;\n}"
+      "definition": "{\n\tkey?: string;\n\toffset: number;\n\tlimit: number;\n\tfilter?: FilterObject;\n}"
+    },
+    {
+      "name": "FilterObject",
+      "kind": "type",
+      "definition": "Record<string, unknown>"
     },
     {
       "name": "PaginatedResult",

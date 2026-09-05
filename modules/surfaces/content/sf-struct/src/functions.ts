@@ -1,18 +1,12 @@
-import type { CreateAction, CreateWidget } from "front-core";
-import { StructListView } from "./views/StructListView";
+import type { CreateAction } from "front-core";
+import { presentReference, setRef } from "front-core/object-runtime";
 
 const SHOW_STRUCT_LIST = "struct.list";
 
-const createStructListWidget: CreateWidget<typeof StructListView> = (_bus) => ({
-	view: StructListView,
-	placement: () => "center",
-	config: {},
-});
-
-const createShowStructListAction: CreateAction<any> = (bus) => ({
+const createShowStructListAction: CreateAction = () => ({
 	id: SHOW_STRUCT_LIST,
 	invoke: () => {
-		bus.present({ widget: createStructListWidget(bus) });
+		void presentReference(setRef("struct.node", { kind: "query" }));
 	},
 });
 

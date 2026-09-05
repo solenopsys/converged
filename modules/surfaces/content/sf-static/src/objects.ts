@@ -1,12 +1,22 @@
+import { EntityListView } from "front-core";
 import {
 	defineSurface,
 	objectOf,
 	objectRef,
 	setOf,
 } from "front-core/object-runtime";
+import { COLUMN_TYPES } from "front-core/table";
+import type { ListMetaParams } from "g-static";
 import staticService from "./service";
 import { StaticCacheEntryView } from "./views/StaticCacheEntryView";
-import { StaticCacheListView } from "./views/StaticCacheListView";
+
+const staticCacheColumns = [
+	{ id: "id", title: "Page", type: COLUMN_TYPES.TEXT, primary: true },
+	{ id: "status", title: "Status", type: COLUMN_TYPES.STATUS },
+	{ id: "contentType", title: "Type", type: COLUMN_TYPES.TEXT },
+	{ id: "size", title: "Size", type: COLUMN_TYPES.NUMBER },
+	{ id: "updatedAt", title: "Updated", type: COLUMN_TYPES.DATE },
+];
 
 type CacheEntryMutation = {
 	id?: string;
@@ -35,6 +45,60 @@ export default defineSurface({
 				load: (params) => staticService.listMeta(params),
 				inspect: (filter) => staticService.inspectCacheEntries(filter),
 			},
+			infinity: {
+				tableId: "static-cache-entries",
+				title: "SSR cache",
+				columns: staticCacheColumns,
+				load: (params) => staticService.listMeta(params as ListMetaParams),
+				rowRef: (row) => {
+					const entry = row as { id?: unknown };
+					const id = String(entry.id ?? "");
+					return objectRef("static.cache-entry", id, { title: id });
+				},
+				filters: [
+					{
+						id: "id",
+						label: "Page",
+						type: "search",
+						operator: "contains",
+					},
+					{
+						id: "status",
+						label: "Status",
+						type: "select",
+						operator: "eq",
+						options: [
+							{ value: "todo", label: "Todo" },
+							{ value: "loaded", label: "Loaded" },
+							{ value: "outdated", label: "Outdated" },
+						],
+					},
+					{
+						id: "contentType",
+						label: "Type",
+						type: "select",
+						operator: "eq",
+						options: [
+							{ value: "html", label: "HTML" },
+							{ value: "svg", label: "SVG" },
+						],
+					},
+					{
+						id: "size",
+						label: "Size",
+						type: "search",
+						operator: "gte",
+						valueType: "number",
+					},
+					{
+						id: "updatedAt",
+						label: "Updated",
+						type: "search",
+						operator: "gte",
+						valueType: "number",
+					},
+				],
+			},
 		},
 	],
 	views: [
@@ -47,7 +111,7 @@ export default defineSurface({
 		{
 			id: "static.cache-entry.table",
 			accepts: setOf("static.cache-entry"),
-			component: StaticCacheListView,
+			component: EntityListView,
 		},
 	],
 	operations: [

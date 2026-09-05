@@ -1,21 +1,12 @@
-import type { CreateAction, CreateWidget } from "front-core";
-import { ExecutionsView } from "../views/ExecutionsView";
+import type { CreateAction } from "front-core";
+import { presentReference, setRef } from "front-core/object-runtime";
 
 const SHOW_EXECUTIONS_LIST = "executions.show_list";
 
-const createExecutionsWidget: CreateWidget<typeof ExecutionsView> = (bus) => ({
-	view: ExecutionsView,
-	placement: () => "center",
-	config: {
-		bus: bus,
-	},
-	commands: {},
-});
-
-const createShowExecutionsListAction: CreateAction<any> = (bus) => ({
+const createShowExecutionsListAction: CreateAction = () => ({
 	id: SHOW_EXECUTIONS_LIST,
 	invoke: () => {
-		bus.present({ widget: createExecutionsWidget(bus) });
+		void presentReference(setRef("dag.execution", { kind: "query" }));
 	},
 });
 

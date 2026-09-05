@@ -1,13 +1,16 @@
+import { EntityListView } from "front-core";
 import {
 	Category,
 	defineSurface,
 	type ObjectDefinition,
 	objectOf,
+	objectRef,
 	setOf,
 } from "front-core/object-runtime";
+import type { PaginationParams } from "g-assistant";
+import { chatsColumns } from "./config";
 import { assistantClient } from "./services";
 import { ChatHistoryView } from "./views/ChatHistoryView";
-import { ChatsListView } from "./views/ChatsListView";
 import { CommandsListView } from "./views/CommandsListView";
 import { ToolCallJsonView } from "./views/ToolCallJsonView";
 
@@ -21,6 +24,24 @@ export const objects = [
 			Category.Selectable,
 			Category.Editable,
 		],
+		infinity: {
+			tableId: "assistants-chats",
+			title: "Assistant chats",
+			columns: chatsColumns,
+			load: (params) => assistantClient.listOfChats(params as PaginationParams),
+			rowRef: (chat) =>
+				objectRef("assistants.chat", String(chat.id), {
+					title: typeof chat.name === "string" ? chat.name : undefined,
+				}),
+			filters: [
+				{
+					id: "name",
+					label: "Name",
+					type: "search",
+					operator: "contains",
+				},
+			],
+		},
 	},
 	{
 		id: "assistants.tool-call",
@@ -54,7 +75,7 @@ export default defineSurface({
 		{
 			id: "assistants.chat.table",
 			accepts: setOf("assistants.chat"),
-			component: ChatsListView,
+			component: EntityListView,
 		},
 		{
 			id: "assistants.tool-call.detail",

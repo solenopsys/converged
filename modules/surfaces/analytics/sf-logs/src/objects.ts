@@ -1,8 +1,19 @@
-import { defineSurface, setOf } from "front-core/object-runtime";
+import { EntityListView } from "front-core";
+import { defineSurface, objectRef, setOf } from "front-core/object-runtime";
+import type { LogQueryParams } from "g-logs";
+import { logsColumns } from "./functions/columns";
 import logs from "./service";
 import { LogsSummary } from "./summary";
 import { LogsStatsView } from "./views/LogsStatsView";
-import { LogsView } from "./views/LogsView";
+
+const hasPreset = (params: Record<string, unknown>, id: string) =>
+	Array.isArray(params.presets) &&
+	params.presets.some(
+		(preset) =>
+			typeof preset === "object" &&
+			preset !== null &&
+			(preset as { id?: unknown }).id === id,
+	);
 
 export default defineSurface({
 	id: "sf-logs",
@@ -19,6 +30,62 @@ export default defineSurface({
 				describe: () => logs.describeSelection("logs.entry"),
 				load: (params) => logs.listHot(params),
 				inspect: (filter) => logs.inspectLogs(filter),
+			},
+			infinity: {
+				tableId: "logs",
+				title: "Logs",
+				columns: logsColumns,
+				load: (params) =>
+					hasPreset(params, "logs.cold")
+						? logs.listCold(params as LogQueryParams)
+						: logs.listHot(params as LogQueryParams),
+				rowRef: (row) =>
+					objectRef(
+						"logs.entry",
+						`${String(row.ts)}:${String(row.source)}:${String(row.code)}`,
+					),
+				filters: [
+					{
+						id: "source",
+						label: "Source",
+						type: "search",
+						operator: "contains",
+					},
+					{
+						id: "level",
+						label: "Level",
+						type: "search",
+						operator: "eq",
+						valueType: "number",
+					},
+					{
+						id: "code",
+						label: "Code",
+						type: "search",
+						operator: "eq",
+						valueType: "number",
+					},
+					{
+						id: "message",
+						label: "Message",
+						type: "search",
+						operator: "contains",
+					},
+				],
+				presets: [
+					{
+						id: "logs.hot",
+						label: "Hot",
+						control: "tab",
+						group: "logs-storage",
+					},
+					{
+						id: "logs.cold",
+						label: "Cold",
+						control: "tab",
+						group: "logs-storage",
+					},
+				],
 			},
 		},
 		{
@@ -48,19 +115,10 @@ export default defineSurface({
 	],
 	views: [
 		{
-			id: "logs.entry.hot",
-			label: "Hot logs",
+			id: "logs.entry.table",
+			label: "Logs",
 			accepts: setOf("logs.entry"),
-			component: LogsView,
-			props: () => ({ mode: "hot" }),
-		},
-		{
-			id: "logs.entry.cold",
-			label: "Cold logs",
-			accepts: setOf("logs.entry"),
-			component: LogsView,
-			props: () => ({ mode: "cold" }),
-			priority: -1,
+			component: EntityListView,
 		},
 		{
 			id: "logs.statistic.dashboard",

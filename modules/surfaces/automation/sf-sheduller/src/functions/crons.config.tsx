@@ -5,15 +5,20 @@ import {
 	type CreateWidget,
 	getAllFormFields,
 } from "front-core";
-import React, { useEffect, useRef, useState } from "preact/compat";
+import {
+	objectChanged,
+	objectRef,
+	presentReference,
+	setRef,
+} from "front-core/object-runtime";
+import { useEffect, useState } from "preact/compat";
 import {
 	$currentCron,
 	$providers,
 	openCronForm,
-	refreshCronsClicked,
+	providersRequested,
 } from "../domain-crons";
 import shedullerService from "../service";
-import { CronsListView } from "../views/CronsListView";
 import { cronsFields } from "./fields";
 
 const SHOW_CRONS_LIST = "crons.show";
@@ -47,10 +52,6 @@ const CronFormView = () => {
 	const [selectedProvider, setSelectedProvider] = useState<string>(
 		currentCron?.provider ?? "",
 	);
-	const formRef = useRef<{ resetField?: (id: string, value: any) => void }>(
-		null,
-	);
-
 	useEffect(() => {
 		setSelectedProvider(currentCron?.provider ?? "");
 	}, [currentCron?.id]);
@@ -97,18 +98,18 @@ const CronFormView = () => {
 
 		if (currentCron?.id) {
 			await shedullerService.updateCron(currentCron.id, payload);
+			objectChanged({ ref: objectRef("scheduler.cron", currentCron.id) });
 		} else {
 			const { id } = await shedullerService.createCron(payload);
 			openCronForm({ cron: { ...payload, id } });
+			objectChanged({ ref: objectRef("scheduler.cron", id) });
 		}
-
-		refreshCronsClicked();
 	};
 
 	const handleDelete = currentCron?.id
 		? async () => {
 				await shedullerService.deleteCron(currentCron.id);
-				refreshCronsClicked();
+				objectChanged({ ref: objectRef("scheduler.cron", currentCron.id) });
 				openCronForm({ cron: null });
 			}
 		: undefined;
@@ -135,24 +136,17 @@ export const createCronFormWidget: CreateWidget<typeof CronFormView> = () => ({
 	commands: {},
 });
 
-const createCronsListWidget: CreateWidget<typeof CronsListView> = (bus) => ({
-	view: CronsListView,
-	placement: () => "center",
-	config: {
-		bus,
-	},
-});
-
-const createShowCronsListAction: CreateAction<any> = (bus) => ({
+const createShowCronsListAction: CreateAction = () => ({
 	id: SHOW_CRONS_LIST,
 	invoke: () => {
-		bus.present({ widget: createCronsListWidget(bus) });
+		void presentReference(setRef("scheduler.cron", { kind: "query" }));
 	},
 });
 
 const createShowCronFormAction: CreateAction<any> = (bus) => ({
 	id: SHOW_CRON_FORM,
 	invoke: ({ cron }: { cron?: any }) => {
+		providersRequested();
 		openCronForm({ cron });
 		bus.present({ widget: createCronFormWidget(bus) });
 	},

@@ -10,46 +10,53 @@ export type ContextName = string;
 export type ContextLanguage = string;
 
 export type Context = {
-  name: ContextName;
-  language: ContextLanguage;
+	name: ContextName;
+	language: ContextLanguage;
 
-  data: unknown;
-  updatedAt: number;
+	data: unknown;
+	updatedAt: number;
 };
 
 export type ContextInput = {
-  name: ContextName;
-  language: ContextLanguage;
-  data: unknown;
+	name: ContextName;
+	language: ContextLanguage;
+	data: unknown;
 };
 
 export type ContextSummary = {
-  name: ContextName;
-  language: ContextLanguage;
-  updatedAt: number;
-  size?: number;
+	name: ContextName;
+	language: ContextLanguage;
+	updatedAt: number;
+	size?: number;
 };
 
 export type ContextListParams = {
-  offset?: number;
-  limit?: number;
+	offset?: number;
+	limit?: number;
 
-  language?: ContextLanguage;
+	language?: ContextLanguage;
+	filter?: FilterObject;
 };
 
+export type FilterObject = Record<string, unknown>;
+
 export type PaginatedResult<T> = {
-  items: T[];
-  totalCount: number;
+	items: T[];
+	totalCount: number;
 };
 
 export interface ContextsService {
+	saveContext(input: ContextInput): Promise<ContextSummary>;
 
-  saveContext(input: ContextInput): Promise<ContextSummary>;
-
-  getContext(
-    name: ContextName,
-    language?: ContextLanguage,
-  ): Promise<Context | null>;
-  listContexts(params: ContextListParams): Promise<PaginatedResult<ContextSummary>>;
-  deleteContext(name: ContextName, language?: ContextLanguage): Promise<boolean>;
+	getContext(
+		name: ContextName,
+		language?: ContextLanguage,
+	): Promise<Context | null>;
+	listContexts(
+		params: ContextListParams,
+	): Promise<PaginatedResult<ContextSummary>>;
+	deleteContext(
+		name: ContextName,
+		language?: ContextLanguage,
+	): Promise<boolean>;
 }

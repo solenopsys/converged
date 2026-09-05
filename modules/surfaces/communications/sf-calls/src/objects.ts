@@ -1,3 +1,4 @@
+import { EntityListView } from "front-core";
 import {
 	Category,
 	defineSurface,
@@ -6,6 +7,8 @@ import {
 	objectRef,
 	setOf,
 } from "front-core/object-runtime";
+import type { CallsListParams } from "g-calls";
+import { callsColumns } from "./config";
 import {
 	callsClient,
 	openCallDetail,
@@ -13,7 +16,6 @@ import {
 } from "./domain-calls";
 import { ActiveCallView } from "./views/ActiveCallView";
 import { CallDetailView } from "./views/CallDetailView";
-import { CallsListView } from "./views/CallsListView";
 import { webCallRequested } from "./web-call/controller";
 import { mountWebCallWidget } from "./web-call/mount";
 
@@ -33,6 +35,34 @@ export const objects = [
 			describe: () => callsClient.describeSelection("calls.call"),
 			load: (params) => callsClient.listCalls(params),
 			inspect: (filter) => callsClient.inspectCalls(filter),
+		},
+		infinity: {
+			tableId: "calls",
+			title: "Calls",
+			columns: callsColumns,
+			load: (params) => callsClient.listCalls(params as CallsListParams),
+			rowRef: (call) => objectRef("calls.call", String(call.id)),
+			filters: [
+				{ id: "phone", label: "Phone", type: "search", operator: "contains" },
+				{
+					id: "processed",
+					label: "Processed",
+					type: "select",
+					operator: "eq",
+					valueType: "boolean",
+					options: [
+						{ value: "true", label: "Processed" },
+						{ value: "false", label: "Unprocessed" },
+					],
+				},
+				{
+					id: "startedAt",
+					label: "Started",
+					type: "search",
+					operator: "gte",
+					valueType: "number",
+				},
+			],
 		},
 	},
 ] satisfies readonly ObjectDefinition[];
@@ -56,7 +86,7 @@ export default defineSurface({
 		{
 			id: "calls.call.table",
 			accepts: setOf("calls.call"),
-			component: CallsListView,
+			component: EntityListView,
 		},
 		{
 			id: "calls.call.active",

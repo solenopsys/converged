@@ -5,15 +5,19 @@ import {
 	type CreateWidget,
 	getAllFormFields,
 } from "front-core";
-import React from "preact/compat";
+import {
+	objectChanged,
+	objectRef,
+	presentReference,
+	setRef,
+} from "front-core/object-runtime";
 import {
 	$currentEndpoint,
 	$providers,
 	openEndpointForm,
-	refreshEndpointsClicked,
+	providersRequested,
 } from "../domain-endpoints";
 import webhooksService from "../service";
-import { EndpointsListView } from "../views/EndpointsListView";
 import { endpointFields } from "./fields";
 
 const SHOW_ENDPOINTS_LIST = "webhooks.endpoints.show";
@@ -67,11 +71,14 @@ const EndpointFormView = () => {
 
 		if (currentEndpoint?.id) {
 			await webhooksService.updateEndpoint(currentEndpoint.id, payload);
+			objectChanged({
+				ref: objectRef("webhooks.endpoint", currentEndpoint.id),
+			});
 		} else {
-			await webhooksService.createEndpoint(payload);
+			const { id } = await webhooksService.createEndpoint(payload);
+			objectChanged({ ref: objectRef("webhooks.endpoint", id) });
 		}
 
-		refreshEndpointsClicked();
 		openEndpointForm({ endpoint: null });
 	};
 
@@ -98,26 +105,17 @@ export const createEndpointFormWidget: CreateWidget<
 	commands: {},
 });
 
-const createEndpointsListWidget: CreateWidget<typeof EndpointsListView> = (
-	bus,
-) => ({
-	view: EndpointsListView,
-	placement: () => "center",
-	config: {
-		bus,
-	},
-});
-
-const createShowEndpointsListAction: CreateAction<any> = (bus) => ({
+const createShowEndpointsListAction: CreateAction = () => ({
 	id: SHOW_ENDPOINTS_LIST,
 	invoke: () => {
-		bus.present({ widget: createEndpointsListWidget(bus) });
+		void presentReference(setRef("webhooks.endpoint", { kind: "query" }));
 	},
 });
 
 const createShowEndpointFormAction: CreateAction<any> = (bus) => ({
 	id: SHOW_ENDPOINT_FORM,
 	invoke: ({ endpoint }: { endpoint?: any }) => {
+		providersRequested();
 		openEndpointForm({ endpoint });
 		bus.present({ widget: createEndpointFormWidget(bus) });
 	},

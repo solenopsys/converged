@@ -1,20 +1,12 @@
-import type { CreateAction, CreateWidget } from "front-core";
-import { HistoryView } from "../views/HistoryView";
+import type { CreateAction } from "front-core";
+import { presentReference, setRef } from "front-core/object-runtime";
 
 const SHOW_HISTORY = "sheduller.history.show";
 
-const createHistoryWidget: CreateWidget<typeof HistoryView> = (bus) => ({
-	view: HistoryView,
-	placement: () => "center",
-	config: {
-		bus,
-	},
-});
-
-const createShowHistoryAction: CreateAction<any> = (bus) => ({
+const createShowHistoryAction: CreateAction = () => ({
 	id: SHOW_HISTORY,
 	invoke: () => {
-		bus.present({ widget: createHistoryWidget(bus) });
+		void presentReference(setRef("scheduler.history", { kind: "query" }));
 	},
 });
 

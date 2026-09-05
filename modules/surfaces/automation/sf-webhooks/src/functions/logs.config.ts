@@ -1,22 +1,12 @@
-import type { CreateAction, CreateWidget } from "front-core";
-import { WebhookLogsView } from "../views/WebhookLogsView";
+import type { CreateAction } from "front-core";
+import { presentReference, setRef } from "front-core/object-runtime";
 
 const SHOW_WEBHOOK_LOGS = "webhooks.logs.show";
 
-const createWebhookLogsWidget: CreateWidget<typeof WebhookLogsView> = (
-	bus,
-) => ({
-	view: WebhookLogsView,
-	placement: () => "center",
-	config: {
-		bus,
-	},
-});
-
-const createShowWebhookLogsAction: CreateAction<any> = (bus) => ({
+const createShowWebhookLogsAction: CreateAction = () => ({
 	id: SHOW_WEBHOOK_LOGS,
 	invoke: () => {
-		bus.present({ widget: createWebhookLogsWidget(bus) });
+		void presentReference(setRef("webhooks.log", { kind: "query" }));
 	},
 });
 

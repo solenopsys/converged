@@ -1,22 +1,10 @@
 import type { CreateAction, CreateWidget } from "front-core";
+import { presentReference, setRef } from "front-core/object-runtime";
 import { TelemetryStatsView } from "./views/TelemetryStatsView";
-import { TelemetryView } from "./views/TelemetryView";
 
 const SHOW_TELEMETRY_HOT = "telemetry.hot.show";
 const SHOW_TELEMETRY_COLD = "telemetry.cold.show";
 const SHOW_TELEMETRY_STATS = "telemetry.stats.show";
-
-const createTelemetryHotWidget: CreateWidget<typeof TelemetryView> = () => ({
-	view: TelemetryView,
-	placement: () => "center",
-	config: { mode: "hot" },
-});
-
-const createTelemetryColdWidget: CreateWidget<typeof TelemetryView> = () => ({
-	view: TelemetryView,
-	placement: () => "center",
-	config: { mode: "cold" },
-});
 
 const createTelemetryStatsWidget: CreateWidget<typeof TelemetryStatsView> = (
 	bus,
@@ -26,21 +14,31 @@ const createTelemetryStatsWidget: CreateWidget<typeof TelemetryStatsView> = (
 	config: { bus },
 });
 
-const createShowTelemetryHotAction: CreateAction<any> = (bus) => ({
+const createShowTelemetryHotAction: CreateAction = () => ({
 	id: SHOW_TELEMETRY_HOT,
 	invoke: () => {
-		bus.present({ widget: createTelemetryHotWidget(bus) });
+		void presentReference(
+			setRef("telemetry.entry", {
+				kind: "query",
+				presets: [{ id: "telemetry.hot" }],
+			}),
+		);
 	},
 });
 
-const createShowTelemetryColdAction: CreateAction<any> = (bus) => ({
+const createShowTelemetryColdAction: CreateAction = () => ({
 	id: SHOW_TELEMETRY_COLD,
 	invoke: () => {
-		bus.present({ widget: createTelemetryColdWidget(bus) });
+		void presentReference(
+			setRef("telemetry.entry", {
+				kind: "query",
+				presets: [{ id: "telemetry.cold" }],
+			}),
+		);
 	},
 });
 
-const createShowTelemetryStatsAction: CreateAction<any> = (bus) => ({
+const createShowTelemetryStatsAction: CreateAction = (bus) => ({
 	id: SHOW_TELEMETRY_STATS,
 	invoke: () => {
 		bus.present({ widget: createTelemetryStatsWidget(bus) });

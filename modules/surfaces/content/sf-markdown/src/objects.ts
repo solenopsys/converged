@@ -1,12 +1,22 @@
+import { EntityListView } from "front-core";
 import {
 	defineSurface,
 	objectOf,
 	objectRef,
 	setOf,
 } from "front-core/object-runtime";
+import { COLUMN_TYPES } from "front-core/table";
+import type { PaginationParams } from "g-markdown";
 import { editMdClicked, saveMdClicked } from "./domain-markdown";
+import markdownService from "./service";
+
+type MarkdownMutation = { path: string; content: string };
+
 import { MdEditView } from "./views/MdEditView";
-import { MdListView } from "./views/MdListView";
+
+const markdownColumns = [
+	{ id: "path", title: "Path", type: COLUMN_TYPES.TEXT, primary: true },
+];
 
 export default defineSurface({
 	id: "sf-markdown",
@@ -23,6 +33,29 @@ export default defineSurface({
 				"core.creatable",
 				"core.editable",
 			],
+			selection: {
+				filters: [],
+				load: (params) => markdownService.listOfMd(params),
+			},
+			infinity: {
+				tableId: "markdown",
+				title: "Markdown Files",
+				columns: markdownColumns,
+				load: (params) => markdownService.listOfMd(params as PaginationParams),
+				rowRef: (row) => {
+					const file = row as { path?: unknown };
+					const path = String(file.path ?? "");
+					return objectRef("markdown.document", path, { title: path });
+				},
+				filters: [
+					{
+						id: "path",
+						label: "Path",
+						type: "search",
+						operator: "contains",
+					},
+				],
+			},
 		},
 	],
 	views: [
@@ -31,14 +64,14 @@ export default defineSurface({
 			accepts: objectOf("markdown.document"),
 			component: MdEditView,
 			props: (ref) => {
-				if (ref.kind === "object") editMdClicked({ path: ref.id } as any);
+				if (ref.kind === "object") editMdClicked({ path: ref.id, content: "" });
 				return {};
 			},
 		},
 		{
 			id: "markdown.document.table",
 			accepts: setOf("markdown.document"),
-			component: MdListView,
+			component: EntityListView,
 		},
 	],
 	operations: [
@@ -54,7 +87,7 @@ export default defineSurface({
 				required: ["path", "content"],
 			},
 			invoke: ({ params }) => {
-				saveMdClicked(params as any);
+				saveMdClicked(params as MarkdownMutation);
 				return objectRef("markdown.document", String(params.path));
 			},
 		},

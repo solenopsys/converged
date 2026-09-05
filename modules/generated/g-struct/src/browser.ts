@@ -13,7 +13,10 @@ export type PaginatedResult<T> = {
 export type PaginationParams = {
   offset: number;
   limit: number;
+  filter?: FilterObject;
 };
+
+export type FilterObject = Record<string, unknown>;
 
 export const metadata: ServiceMetadata = {
   "interfaceName": "StructService",
@@ -112,7 +115,12 @@ export const metadata: ServiceMetadata = {
     {
       "name": "PaginationParams",
       "kind": "type",
-      "definition": "{\n  offset: number;\n  limit: number;\n}"
+      "definition": "{\n  offset: number;\n  limit: number;\n  filter?: FilterObject;\n}"
+    },
+    {
+      "name": "FilterObject",
+      "kind": "type",
+      "definition": "Record<string, unknown>"
     }
   ]
 };

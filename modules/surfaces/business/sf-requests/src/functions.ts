@@ -1,4 +1,5 @@
 import { authToken, type CreateAction, type CreateWidget } from "front-core";
+import { presentReference, setRef } from "front-core/object-runtime";
 import type {
 	RequestFiles,
 	RequestModel,
@@ -14,8 +15,8 @@ import {
 	UPDATE_REQUEST_MODEL,
 } from "./commands";
 import { requestModelReceived } from "./domain-requests";
-import Panel from "./Panel";
 import { requestsClient, workflowClient } from "./services";
+import { RequestDetailView } from "./views/RequestDetailView";
 
 type OpenRequestParams = {
 	requestId?: string;
@@ -25,22 +26,15 @@ type OpenRequestParams = {
 	replaceUrl?: boolean;
 };
 
-const createRequestsWidget: CreateWidget<typeof Panel> = (bus) => ({
-	view: Panel,
+const createRequestDetailWidget: CreateWidget = () => ({
+	view: RequestDetailView,
 	placement: () => "center",
-	config: { bus },
 });
 
-const createRequestDetailWidget: CreateWidget<typeof Panel> = (bus) => ({
-	view: Panel,
-	placement: () => "center",
-	config: { bus },
-});
-
-const createShowRequestsAction: CreateAction<unknown> = (bus) => ({
+const createShowRequestsAction: CreateAction<unknown> = () => ({
 	id: SHOW_REQUESTS,
 	invoke: () => {
-		bus.present({ widget: createRequestsWidget(bus) });
+		void presentReference(setRef("requests.request", { kind: "query" }));
 	},
 });
 

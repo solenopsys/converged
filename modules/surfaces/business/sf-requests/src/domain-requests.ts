@@ -1,14 +1,9 @@
 import { createDomain, sample } from "effector";
-import { createInfiniteTableStore } from "front-core";
 import type { RequestModel } from "g-requests";
 import { requestsClient } from "./services";
 
 const domain = createDomain("sf-requests");
 
-export const requestsListMounted = domain.createEvent("REQUESTS_LIST_MOUNTED");
-export const refreshRequestsClicked = domain.createEvent(
-	"REFRESH_REQUESTS_CLICKED",
-);
 export const openRequestDetail = domain.createEvent<{ recordId: string }>(
 	"OPEN_REQUEST_DETAIL",
 );
@@ -19,15 +14,6 @@ export const requestDetailOpened = domain.createEvent<{
 export const requestModelReceived = domain.createEvent<RequestModel>(
 	"REQUEST_MODEL_RECEIVED",
 );
-
-const listRequestsFx = domain.createEffect({
-	name: "LIST_REQUESTS",
-	handler: async (params: { offset: number; limit: number }) => {
-		return requestsClient.listRequests(params);
-	},
-});
-
-export const $requestsStore = createInfiniteTableStore(domain, listRequestsFx);
 
 const isIncomingModelStale = (
 	current: RequestModel | null,
@@ -99,28 +85,6 @@ sample({
 	clock: requestDetailOpened,
 	fn: ({ requestId }) => requestId,
 	target: loadRequestModelFx,
-});
-
-sample({
-	clock: requestsListMounted,
-	filter: () => {
-		const s = $requestsStore.$state.getState();
-		return !s.isInitialized && !s.loading;
-	},
-	fn: () => ({}),
-	target: $requestsStore.loadMore,
-});
-
-sample({
-	clock: refreshRequestsClicked,
-	fn: () => ({}),
-	target: $requestsStore.reset,
-});
-
-sample({
-	clock: refreshRequestsClicked,
-	fn: () => ({}),
-	target: $requestsStore.loadMore,
 });
 
 export default domain;

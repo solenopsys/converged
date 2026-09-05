@@ -46,14 +46,14 @@ class AssistantMetadataService {
 
 	async listOfChats(params: PaginationParams): Promise<PaginatedResult<Chat>> {
 		await this.ensureInit();
-		const conversations =
-			await this.stores.metadataService.conversationRepo.findAll({
-				limit: params.limit,
-				offset: params.offset,
-				orderBy: [{ field: "updatedAt", direction: "desc" }],
-			});
-		const totalCount =
-			await this.stores.metadataService.conversationRepo.count();
+		const conversations = await this.stores.metadataService.listConversations({
+			limit: params.limit,
+			offset: params.offset,
+			filter: params.filter,
+		});
+		const totalCount = await this.stores.metadataService.countConversations(
+			params.filter,
+		);
 
 		return {
 			items: conversations.map((conversation) => this.toChat(conversation)),
@@ -92,7 +92,9 @@ class AssistantMetadataService {
 	async getChat(chatId: string): Promise<Chat> {
 		await this.ensureInit();
 		const conversation =
-			await this.stores.metadataService.conversationRepo.findById({ id: chatId });
+			await this.stores.metadataService.conversationRepo.findById({
+				id: chatId,
+			});
 		if (!conversation) throw new Error(`Chat not found: ${chatId}`);
 		return this.toChat(conversation);
 	}

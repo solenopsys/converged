@@ -1,4 +1,10 @@
-import { type ObjectRef, objectRef } from "front-core/object-runtime";
+import { createEffect, createEvent, sample } from "effector";
+import {
+	type ObjectRef,
+	objectChanged,
+	objectRef,
+	presentReference,
+} from "front-core/object-runtime";
 import type { ContextLanguage, ContextName } from "g-contexts";
 
 export const ContextObject = {
@@ -17,6 +23,8 @@ export type ContextIdentity = {
 
 const NEW_CONTEXT_ID = "new";
 
+export const newContextClicked = createEvent<void>("NEW_CONTEXT_CLICKED");
+
 export function contextRef(context: ContextIdentity): ObjectRef {
 	return objectRef(
 		ContextObject.type,
@@ -29,6 +37,15 @@ export function newContextRef(): ObjectRef {
 	return objectRef(ContextObject.type, NEW_CONTEXT_ID, {
 		title: "New context",
 	});
+}
+
+const presentNewContextFx = createEffect(() =>
+	presentReference(newContextRef()),
+);
+sample({ clock: newContextClicked, target: presentNewContextFx });
+
+export function notifyContextChanged(context: ContextIdentity): void {
+	objectChanged({ ref: contextRef(context) });
 }
 
 export function contextFromRef(ref: ObjectRef): ContextIdentity | undefined {

@@ -1,15 +1,9 @@
 import type { CreateAction, CreateWidget } from "front-core";
+import { presentReference, setRef } from "front-core/object-runtime";
 import { MdEditView } from "./views/MdEditView";
-import { MdListView } from "./views/MdListView";
 
 const SHOW_MD_LIST = "markdown.list";
 const SHOW_MD_EDIT = "markdown.edit";
-
-const createMdListWidget: CreateWidget<typeof MdListView> = (_bus) => ({
-	view: MdListView,
-	placement: () => "center",
-	config: {},
-});
 
 const createMdEditWidget: CreateWidget<typeof MdEditView> = (_bus) => ({
 	view: MdEditView,
@@ -17,14 +11,14 @@ const createMdEditWidget: CreateWidget<typeof MdEditView> = (_bus) => ({
 	config: {},
 });
 
-const createShowMdListAction: CreateAction<any> = (bus) => ({
+const createShowMdListAction: CreateAction = () => ({
 	id: SHOW_MD_LIST,
 	invoke: () => {
-		bus.present({ widget: createMdListWidget(bus) });
+		void presentReference(setRef("markdown.document", { kind: "query" }));
 	},
 });
 
-const createShowMdEditAction: CreateAction<any> = (bus) => ({
+const createShowMdEditAction: CreateAction = (bus) => ({
 	id: SHOW_MD_EDIT,
 	invoke: () => {
 		bus.present({ widget: createMdEditWidget(bus) });

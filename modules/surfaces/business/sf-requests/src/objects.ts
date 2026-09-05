@@ -1,14 +1,19 @@
+import { EntityListView } from "front-core";
 import {
 	defineSurface,
 	objectOf,
 	objectRef,
 	setOf,
 } from "front-core/object-runtime";
-import type { RequestFiles, RequestProcessType } from "g-requests";
+import type {
+	RequestFiles,
+	RequestListParams,
+	RequestProcessType,
+} from "g-requests";
+import { requestsColumns } from "./config";
 import { requestModelReceived } from "./domain-requests";
 import { requestsClient, workflowClient } from "./services";
 import { RequestDetailView } from "./views/RequestDetailView";
-import { RequestsListView } from "./views/RequestsListView";
 
 type RequestMutation = {
 	source?: string;
@@ -90,6 +95,55 @@ export default defineSurface({
 				load: (params) => requestsClient.listRequests(params),
 				inspect: (filter) => requestsClient.inspectRequests(filter),
 			},
+			infinity: {
+				tableId: "requests",
+				title: "Requests",
+				columns: requestsColumns,
+				load: (params) =>
+					requestsClient.listRequests(params as RequestListParams),
+				rowRef: (row) => {
+					const request = row as {
+						id?: unknown;
+						model?: { title?: unknown };
+					};
+					const id = String(request.id ?? "");
+					return objectRef("requests.request", id, {
+						title:
+							typeof request.model?.title === "string"
+								? request.model.title
+								: `Request ${id}`,
+					});
+				},
+				filters: [
+					{
+						id: "source",
+						label: "Source",
+						type: "search",
+						operator: "contains",
+					},
+					{
+						id: "status",
+						label: "Status",
+						type: "select",
+						operator: "eq",
+						options: [
+							{ value: "new", label: "New" },
+							{ value: "draft", label: "Draft" },
+							{ value: "needs_clarification", label: "Needs clarification" },
+							{ value: "ready", label: "Ready" },
+							{ value: "in_production", label: "In production" },
+							{ value: "done", label: "Done" },
+						],
+					},
+					{
+						id: "createdAt",
+						label: "Created",
+						type: "date-range",
+						operator: "between",
+						valueType: "date",
+					},
+				],
+			},
 		},
 	],
 	views: [
@@ -104,7 +158,7 @@ export default defineSurface({
 		{
 			id: "requests.request.table",
 			accepts: setOf("requests.request"),
-			component: RequestsListView,
+			component: EntityListView,
 		},
 	],
 	operations: [

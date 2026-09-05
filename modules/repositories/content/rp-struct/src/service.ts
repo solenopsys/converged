@@ -72,7 +72,29 @@ export class StructServiceImpl implements StructService {
 
 	async listJson(params: PaginationParams): Promise<PaginatedResult<string>> {
 		const allKeys = await this.stores.fileStore.listKeys();
-		const jsonKeys = allKeys.filter((k) => k.endsWith(".json"));
+		const pathFilter = params.filter?.path;
+		const jsonKeys = allKeys.filter((path) => {
+			if (!path.endsWith(".json")) return false;
+			if (!pathFilter || typeof pathFilter !== "object") return true;
+			const filter = pathFilter as Record<string, unknown>;
+			if (typeof filter.eq === "string" && path !== filter.eq) return false;
+			if (
+				Array.isArray(filter.in) &&
+				!filter.in.some((value) => typeof value === "string" && value === path)
+			)
+				return false;
+			if (
+				typeof filter.contains === "string" &&
+				!path.includes(filter.contains)
+			)
+				return false;
+			if (
+				typeof filter.startsWith === "string" &&
+				!path.startsWith(filter.startsWith)
+			)
+				return false;
+			return true;
+		});
 
 		const start = params.offset;
 		const end = params.offset + params.limit;

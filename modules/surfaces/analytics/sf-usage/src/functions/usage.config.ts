@@ -1,15 +1,9 @@
 import type { CreateAction, CreateWidget } from "front-core";
-import { UsageListView } from "../views/UsageListView";
+import { presentReference, setRef } from "front-core/object-runtime";
 import { UsageStatsView } from "../views/UsageStatsView";
 
 const SHOW_USAGE_LIST = "usage.list.show";
 const SHOW_USAGE_STATS = "usage.stats.show";
-
-const createUsageListWidget: CreateWidget<typeof UsageListView> = () => ({
-	view: UsageListView,
-	placement: () => "center",
-	config: {},
-});
 
 const createUsageStatsWidget: CreateWidget<typeof UsageStatsView> = () => ({
 	view: UsageStatsView,
@@ -17,14 +11,14 @@ const createUsageStatsWidget: CreateWidget<typeof UsageStatsView> = () => ({
 	config: {},
 });
 
-const createShowUsageListAction: CreateAction<any> = (bus) => ({
+const createShowUsageListAction: CreateAction = () => ({
 	id: SHOW_USAGE_LIST,
 	invoke: () => {
-		bus.present({ widget: createUsageListWidget(bus) });
+		void presentReference(setRef("usage.record", { kind: "query" }));
 	},
 });
 
-const createShowUsageStatsAction: CreateAction<any> = (bus) => ({
+const createShowUsageStatsAction: CreateAction = (bus) => ({
 	id: SHOW_USAGE_STATS,
 	invoke: () => {
 		bus.present({ widget: createUsageStatsWidget(bus) });

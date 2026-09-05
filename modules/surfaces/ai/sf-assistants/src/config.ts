@@ -14,17 +14,17 @@ const formatBytes = (value: unknown) => {
 	return `${size.toFixed(precision)} ${units[unitIndex]}`;
 };
 
-export const createChatsColumns = (t: (key: string) => string) => [
+export const chatsColumns = [
 	{ id: "id", title: "ID", type: COLUMN_TYPES.TEXT, width: 300, primary: true },
 	{
 		id: "name",
-		title: t("chatsList.columns.name"),
+		title: "Name",
 		type: COLUMN_TYPES.TEXT,
 		width: 180,
 	},
 	{
 		id: "messagesCount",
-		title: t("chatsList.columns.messages"),
+		title: "Messages",
 		type: COLUMN_TYPES.NUMBER,
 		width: 120,
 	},
@@ -38,13 +38,13 @@ export const createChatsColumns = (t: (key: string) => string) => [
 	},
 	{
 		id: "createdAt",
-		title: t("chatsList.columns.createdAt"),
+		title: "Created",
 		type: COLUMN_TYPES.DATE,
 		width: 190,
 	},
 	{
 		id: "updatedAt",
-		title: t("chatsList.columns.updatedAt"),
+		title: "Updated",
 		type: COLUMN_TYPES.DATE,
 		width: 190,
 	},

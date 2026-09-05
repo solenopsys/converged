@@ -3,10 +3,13 @@ export type UUID = string;
 export type ISODateString = string; // ISO-8601 UTC
 
 export type PaginationParams = {
-	key: string;
+	key?: string;
 	offset: number;
 	limit: number;
+	filter?: FilterObject;
 };
+
+export type FilterObject = Record<string, unknown>;
 
 export type PaginatedResult<T> = {
 	items: T[];

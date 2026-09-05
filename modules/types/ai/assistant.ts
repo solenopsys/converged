@@ -1,7 +1,10 @@
 export type PaginationParams = {
 	offset: number;
 	limit: number;
+	filter?: FilterObject;
 };
+
+export type FilterObject = Record<string, unknown>;
 
 export type PaginatedResult<T> = {
 	items: T[];
@@ -19,7 +22,6 @@ export type Chat = {
 	createdAt?: number;
 	updatedAt?: number;
 };
-
 
 export interface AssistantService {
 	listOfChats(params: PaginationParams): Promise<PaginatedResult<Chat>>;
