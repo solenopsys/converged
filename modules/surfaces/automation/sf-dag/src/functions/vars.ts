@@ -4,13 +4,13 @@ import {
 	type CreateWidget,
 	getAllFormFields,
 } from "front-core";
+import { presentReference, setRef } from "front-core/object-runtime";
 import { $currentVar, openVarForm, updateVarFx } from "../domain-vars";
-import { VarsView } from "../views/VarsView";
 
 const SHOW_VARS_LIST = "vars.show_list";
 const SHOW_VAR_FORM = "var_form.show";
 
-const varsFormFields = getAllFormFields([
+export const varsFormFields = getAllFormFields([
 	{
 		id: "value",
 		title: "Value",
@@ -57,18 +57,10 @@ export const createVarFormWidget: CreateWidget<typeof BasicFormView> = () => ({
 	},
 });
 
-const createVarsWidget: CreateWidget<typeof VarsView> = (bus) => ({
-	view: VarsView,
-	placement: () => "center",
-	config: { bus },
-	commands: {},
-});
-
-const createShowVarsListAction: CreateAction<any> = (bus) => ({
+const createShowVarsListAction: CreateAction = () => ({
 	id: SHOW_VARS_LIST,
-	invoke: () => {
-		bus.present({ widget: createVarsWidget(bus) });
-	},
+	invoke: () =>
+		void presentReference(setRef("dag.variable", { kind: "query" })),
 });
 
 const createShowVarFormAction: CreateAction<any> = (bus) => ({

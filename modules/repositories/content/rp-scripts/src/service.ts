@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import {
 	BaseService,
 	badRequestError,
+	createJsonFilterAdapter,
 	notFoundError,
 } from "back-core";
 import type {
@@ -14,6 +15,13 @@ import type {
 	ScriptsService,
 } from "g-scripts";
 import { StoresController } from "./stores";
+
+const scriptFilters = createJsonFilterAdapter<ScriptListItem>({
+	path: {
+		valueType: "string",
+		operators: ["eq", "in", "contains", "startsWith"],
+	},
+});
 
 function ensurePath(path: string): string {
 	const normalized = path.trim().replace(/^\/+/, "");
@@ -86,18 +94,20 @@ export class ScriptsServiceImpl
 	async listScripts(params: PaginationParams): Promise<ScriptListResult> {
 		await this.ready();
 		const keys = (await this.stores.fileStore.listKeys()).sort();
-		const start = params.offset;
-		const end = params.offset + params.limit;
 		const items: ScriptListItem[] = [];
 
-		for (const path of keys.slice(start, end)) {
+		for (const path of keys) {
 			const hash = await this.calculateHash(path);
 			items.push({ path, hash: hash ?? "" });
 		}
 
+		const filtered = items.filter(scriptFilters.predicate(params.filter));
+		const start = params.offset;
+		const end = params.offset + params.limit;
+
 		return {
-			items,
-			totalCount: keys.length,
+			items: filtered.slice(start, end),
+			totalCount: filtered.length,
 		};
 	}
 

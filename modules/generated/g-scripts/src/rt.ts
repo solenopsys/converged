@@ -24,9 +24,12 @@ export type ScriptHashMap = {
 	[path: string]: string;
 };
 
+export type FilterObject = Record<string, unknown>;
+
 export type PaginationParams = {
 	offset: number;
 	limit: number;
+	filter?: FilterObject;
 };
 
 const metadata: ServiceMetadata = {
@@ -145,9 +148,14 @@ const metadata: ServiceMetadata = {
       "definition": "{\n\t[path: string]: string;\n}"
     },
     {
+      "name": "FilterObject",
+      "kind": "type",
+      "definition": "Record<string, unknown>"
+    },
+    {
       "name": "PaginationParams",
       "kind": "type",
-      "definition": "{\n\toffset: number;\n\tlimit: number;\n}"
+      "definition": "{\n\toffset: number;\n\tlimit: number;\n\tfilter?: FilterObject;\n}"
     }
   ]
 };

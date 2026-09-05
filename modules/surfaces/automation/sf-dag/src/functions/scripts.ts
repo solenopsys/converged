@@ -1,19 +1,11 @@
-import type { CreateAction, CreateWidget } from "front-core";
-import { ScriptsListView } from "../views/ScriptsListView";
+import type { CreateAction } from "front-core";
+import { presentReference, setRef } from "front-core/object-runtime";
 
 const SHOW_SCRIPTS_LIST = "dag.scripts.list";
 
-const createScriptsListWidget: CreateWidget<typeof ScriptsListView> = () => ({
-	view: ScriptsListView,
-	placement: () => "center",
-	config: {},
-});
-
-const createShowScriptsListAction: CreateAction<any> = (bus) => ({
+const createShowScriptsListAction: CreateAction = () => ({
 	id: SHOW_SCRIPTS_LIST,
-	invoke: () => {
-		bus.present({ widget: createScriptsListWidget(bus) });
-	},
+	invoke: () => void presentReference(setRef("dag.script", { kind: "query" })),
 });
 
 const ACTIONS = [createShowScriptsListAction];

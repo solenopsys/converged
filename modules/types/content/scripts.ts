@@ -21,9 +21,12 @@ export type ScriptHashMap = {
 	[path: string]: string;
 };
 
+export type FilterObject = Record<string, unknown>;
+
 export type PaginationParams = {
 	offset: number;
 	limit: number;
+	filter?: FilterObject;
 };
 
 export interface ScriptsService {

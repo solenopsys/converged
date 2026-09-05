@@ -6,12 +6,12 @@ import {
 	getAllFormFields,
 	StatCard,
 } from "front-core";
+import { presentReference, setRef } from "front-core/object-runtime";
 import { createDagServiceClient } from "g-dag";
 import { createFrontNrpcClientConfig } from "signal-channel";
 import domain from "../domain";
 import { $currentWorkflow, openWorkflowForm } from "../domain-workflows";
 import DagView from "../views/DagView";
-import { WorkflowsListView } from "../views/WorkflowsListView";
 import { workflowsFields } from "./fields";
 
 const dagClient = createDagServiceClient(createFrontNrpcClientConfig());
@@ -90,22 +90,10 @@ const createWorkflowsStatisticWidget: CreateWidget<typeof StatCard> = () => ({
 	},
 });
 
-// List widget - opens in center
-const createWorkflowsListWidget: CreateWidget<typeof WorkflowsListView> = (
-	bus,
-) => ({
-	view: WorkflowsListView,
-	placement: () => "center",
-	config: {
-		bus,
-	},
-});
-
-const createShowWorkflowsListAction: CreateAction<any> = (bus) => ({
+const createShowWorkflowsListAction: CreateAction = () => ({
 	id: SHOW_WORKFLOWS_LIST,
-	invoke: () => {
-		bus.present({ widget: createWorkflowsListWidget(bus) });
-	},
+	invoke: () =>
+		void presentReference(setRef("dag.workflow", { kind: "query" })),
 });
 
 const createShowWorkflowFormAction: CreateAction<any> = (bus) => ({

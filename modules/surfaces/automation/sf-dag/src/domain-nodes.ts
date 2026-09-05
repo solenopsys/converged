@@ -4,19 +4,24 @@ import dagClient from "./service";
 
 const domain = createDomain("dag-nodes");
 
-export const nodesViewMounted = domain.createEvent("NODES_VIEW_MOUNTED");
-export const refreshNodesClicked = domain.createEvent("REFRESH_NODES_CLICKED");
-export const addNodeClicked = domain.createEvent("ADD_NODE_CLICKED");
 export const openNodeForm = domain.createEvent<{ node: any }>("OPEN_NODE_FORM");
 
 const listNodesFx = domain.createEffect<PaginationParams, any>({
 	name: "LIST_NODES",
 	handler: async (params: PaginationParams) => {
 		const result = await dagClient.nodeList();
-		const items = result.names.map((name: string) => ({
-			name,
-			codeSource: "",
-		}));
+		const items = result.names
+			.filter((name: string) => {
+				const filter = (
+					params.filter as { name?: Record<string, unknown> } | undefined
+				)?.name;
+				const value = filter?.contains ?? filter?.startsWith ?? filter?.eq;
+				return typeof value !== "string" || name.includes(value);
+			})
+			.map((name: string) => ({
+				name,
+				codeSource: "",
+			}));
 		return {
 			items,
 			totalCount: items.length,
@@ -54,29 +59,6 @@ sample({
 
 sample({
 	clock: createNodeFx.done,
-	fn: () => ({}),
-	target: $nodesStore.loadMore,
-});
-
-sample({
-	clock: nodesViewMounted,
-	filter: () => {
-		const state = $nodesStore.$state.getState();
-		return !state.isInitialized && !state.loading;
-	},
-	fn: () => ({}),
-	target: $nodesStore.loadMore,
-});
-
-// Refresh action
-sample({
-	clock: refreshNodesClicked,
-	fn: () => ({}),
-	target: $nodesStore.reset,
-});
-
-sample({
-	clock: refreshNodesClicked,
 	fn: () => ({}),
 	target: $nodesStore.loadMore,
 });

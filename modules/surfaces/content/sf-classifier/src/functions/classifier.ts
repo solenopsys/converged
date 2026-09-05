@@ -1,7 +1,6 @@
 import type { CreateAction, CreateWidget } from "front-core";
+import { presentReference, setRef } from "front-core/object-runtime";
 import { ClassifierDashboardView } from "../views/ClassifierDashboardView";
-import { ClassifierMappingsView } from "../views/ClassifierMappingsView";
-import { ClassifierNodesView } from "../views/ClassifierNodesView";
 import { ClassifierTreeView } from "../views/ClassifierTreeView";
 
 const SHOW_CLASSIFIER_DASHBOARD = "classifier.dashboard.show";
@@ -13,22 +12,6 @@ const createClassifierDashboardWidget: CreateWidget<
 	typeof ClassifierDashboardView
 > = (bus) => ({
 	view: ClassifierDashboardView,
-	placement: () => "center",
-	config: { bus },
-});
-
-const createClassifierMappingsWidget: CreateWidget<
-	typeof ClassifierMappingsView
-> = (bus) => ({
-	view: ClassifierMappingsView,
-	placement: () => "center",
-	config: { bus },
-});
-
-const createClassifierNodesWidget: CreateWidget<typeof ClassifierNodesView> = (
-	bus,
-) => ({
-	view: ClassifierNodesView,
 	placement: () => "center",
 	config: { bus },
 });
@@ -48,18 +31,16 @@ const createShowClassifierDashboardAction: CreateAction<any> = (bus) => ({
 	},
 });
 
-const createShowClassifierMappingsAction: CreateAction<any> = (bus) => ({
+const createShowClassifierMappingsAction: CreateAction = () => ({
 	id: SHOW_CLASSIFIER_MAPPINGS,
-	invoke: () => {
-		bus.present({ widget: createClassifierMappingsWidget(bus) });
-	},
+	invoke: () =>
+		void presentReference(setRef("classifier.mapping", { kind: "query" })),
 });
 
-const createShowClassifierNodesAction: CreateAction<any> = (bus) => ({
+const createShowClassifierNodesAction: CreateAction = () => ({
 	id: SHOW_CLASSIFIER_NODES,
-	invoke: () => {
-		bus.present({ widget: createClassifierNodesWidget(bus) });
-	},
+	invoke: () =>
+		void presentReference(setRef("classifier.node", { kind: "query" })),
 });
 
 const createShowClassifierTreeAction: CreateAction<any> = (bus) => ({

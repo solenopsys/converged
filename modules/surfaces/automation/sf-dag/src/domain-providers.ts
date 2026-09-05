@@ -4,13 +4,6 @@ import dagClient from "./service";
 
 const domain = createDomain("dag-providers");
 
-export const providersViewMounted = domain.createEvent(
-	"PROVIDERS_VIEW_MOUNTED",
-);
-export const refreshProvidersClicked = domain.createEvent(
-	"REFRESH_PROVIDERS_CLICKED",
-);
-export const addProviderClicked = domain.createEvent("ADD_PROVIDER_CLICKED");
 export const openProviderForm = domain.createEvent<{ provider: any }>(
 	"OPEN_PROVIDER_FORM",
 );
@@ -19,10 +12,18 @@ const listProvidersFx = domain.createEffect<PaginationParams, any>({
 	name: "LIST_PROVIDERS",
 	handler: async (params: PaginationParams) => {
 		const result = await dagClient.providerList();
-		const items = result.names.map((name: string) => ({
-			name,
-			codeSource: "",
-		}));
+		const items = result.names
+			.filter((name: string) => {
+				const filter = (
+					params.filter as { name?: Record<string, unknown> } | undefined
+				)?.name;
+				const value = filter?.contains ?? filter?.startsWith ?? filter?.eq;
+				return typeof value !== "string" || name.includes(value);
+			})
+			.map((name: string) => ({
+				name,
+				codeSource: "",
+			}));
 		return {
 			items,
 			totalCount: items.length,
@@ -71,29 +72,6 @@ sample({
 
 sample({
 	clock: createProviderFx.done,
-	fn: () => ({}),
-	target: $providersStore.loadMore,
-});
-
-sample({
-	clock: providersViewMounted,
-	filter: () => {
-		const state = $providersStore.$state.getState();
-		return !state.isInitialized && !state.loading;
-	},
-	fn: () => ({}),
-	target: $providersStore.loadMore,
-});
-
-// Refresh action
-sample({
-	clock: refreshProvidersClicked,
-	fn: () => ({}),
-	target: $providersStore.reset,
-});
-
-sample({
-	clock: refreshProvidersClicked,
 	fn: () => ({}),
 	target: $providersStore.loadMore,
 });

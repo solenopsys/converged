@@ -1,22 +1,12 @@
-import type { CreateAction, CreateWidget } from "front-core";
-import { ContextsView } from "../views/ContextsView";
+import type { CreateAction } from "front-core";
+import { presentReference, setRef } from "front-core/object-runtime";
 
 const SHOW_CONTEXTS_LIST = "contexts.show_list";
 
-const createContextsWidget: CreateWidget<typeof ContextsView> = (bus) => ({
-	view: ContextsView,
-	placement: () => "center",
-	config: {
-		bus: bus,
-	},
-	commands: {},
-});
-
-const createShowContextsListAction: CreateAction<any> = (bus) => ({
+const createShowContextsListAction: CreateAction = () => ({
 	id: SHOW_CONTEXTS_LIST,
-	invoke: () => {
-		bus.present({ widget: createContextsWidget(bus) });
-	},
+	invoke: () =>
+		void presentReference(setRef("dag.execution", { kind: "query" })),
 });
 
 export { createShowContextsListAction, SHOW_CONTEXTS_LIST };

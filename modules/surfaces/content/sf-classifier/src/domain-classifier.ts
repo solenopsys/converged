@@ -1,10 +1,6 @@
 import { createDomain, sample } from "effector";
 import { createInfiniteTableStore } from "front-core";
-import type {
-	ClassifierMapping,
-	ClassifierTreeNode,
-	PaginationParams,
-} from "./functions/types";
+import type { ClassifierTreeNode, PaginationParams } from "./functions/types";
 import classifierService from "./service";
 
 const domain = createDomain("classifier");
@@ -12,18 +8,6 @@ const domain = createDomain("classifier");
 export const CLASSIFIER_SERVICES_GROUP = "company.services";
 export const CLASSIFIER_TREE_ROOT = "__root__";
 
-export const classifierNodesViewMounted = domain.createEvent(
-	"CLASSIFIER_NODES_VIEW_MOUNTED",
-);
-export const refreshClassifierNodesClicked = domain.createEvent(
-	"REFRESH_CLASSIFIER_NODES_CLICKED",
-);
-export const classifierMappingsViewMounted = domain.createEvent(
-	"CLASSIFIER_MAPPINGS_VIEW_MOUNTED",
-);
-export const refreshClassifierMappingsClicked = domain.createEvent(
-	"REFRESH_CLASSIFIER_MAPPINGS_CLICKED",
-);
 export const classifierDashboardViewMounted = domain.createEvent(
 	"CLASSIFIER_DASHBOARD_VIEW_MOUNTED",
 );
@@ -48,18 +32,6 @@ export const classifierTreeNodeToggled = domain.createEvent<{
 const listNodesFx = domain.createEffect<PaginationParams, any>({
 	name: "LIST_CLASSIFIER_NODES",
 	handler: async (params) => classifierService.listNodes(params),
-});
-
-const listMappingsFx = domain.createEffect<string, ClassifierMapping[]>({
-	name: "LIST_CLASSIFIER_MAPPINGS",
-	handler: async (groupId) => {
-		const mappings = await classifierService.listMappings(groupId);
-		return mappings.sort(
-			(a, b) =>
-				Number(b.priority ?? 0) - Number(a.priority ?? 0) ||
-				a.key.localeCompare(b.key),
-		);
-	},
 });
 
 const loadDashboardFx = domain.createEffect<
@@ -100,8 +72,6 @@ export const $classifierNodesStore = createInfiniteTableStore(
 	domain,
 	listNodesFx,
 );
-export const $classifierMappings = domain.createStore<ClassifierMapping[]>([]);
-export const $classifierMappingsLoading = listMappingsFx.pending;
 export const $classifierDashboard = domain.createStore({
 	nodes: 0,
 	mappings: 0,
@@ -162,44 +132,7 @@ export const $classifierTreeStore = domain
 	}))
 	.on(refreshClassifierTreeClicked, () => treeInitialState);
 
-$classifierMappings.on(listMappingsFx.doneData, (_state, mappings) => mappings);
 $classifierDashboard.on(loadDashboardFx.doneData, (_state, stats) => stats);
-
-sample({
-	clock: classifierNodesViewMounted,
-	filter: () => {
-		const state = $classifierNodesStore.$state.getState();
-		return !state.isInitialized && !state.loading;
-	},
-	fn: () => ({}),
-	target: $classifierNodesStore.loadMore,
-});
-
-sample({
-	clock: refreshClassifierNodesClicked,
-	fn: () => ({}),
-	target: $classifierNodesStore.reset,
-});
-
-sample({
-	clock: refreshClassifierNodesClicked,
-	fn: () => ({}),
-	target: $classifierNodesStore.loadMore,
-});
-
-sample({
-	clock: classifierMappingsViewMounted,
-	source: $classifierMappings,
-	filter: (mappings) => mappings.length === 0,
-	fn: () => CLASSIFIER_SERVICES_GROUP,
-	target: listMappingsFx,
-});
-
-sample({
-	clock: refreshClassifierMappingsClicked,
-	fn: () => CLASSIFIER_SERVICES_GROUP,
-	target: listMappingsFx,
-});
 
 sample({
 	clock: classifierDashboardViewMounted,

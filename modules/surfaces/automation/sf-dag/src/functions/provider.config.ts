@@ -1,9 +1,9 @@
 import type { CreateAction, CreateWidget } from "front-core";
+import { presentReference, setRef } from "front-core/object-runtime";
 import {
 	ProviderConfigForm,
 	providerFormReset,
 } from "../views/ProviderConfigForm";
-import { ProvidersListView } from "../views/ProvidersListView";
 
 const SHOW_PROVIDERS_LIST = "providers.show";
 const SHOW_PROVIDER_FORM = "provider_form.show";
@@ -25,22 +25,10 @@ export const createProviderFormWidget: CreateWidget<
 	},
 });
 
-// List widget - opens in center
-const createProvidersListWidget: CreateWidget<typeof ProvidersListView> = (
-	bus,
-) => ({
-	view: ProvidersListView,
-	placement: () => "center",
-	config: {
-		bus,
-	},
-});
-
-const createShowProvidersListAction: CreateAction<any> = (bus) => ({
+const createShowProvidersListAction: CreateAction = () => ({
 	id: SHOW_PROVIDERS_LIST,
-	invoke: () => {
-		bus.present({ widget: createProvidersListWidget(bus) });
-	},
+	invoke: () =>
+		void presentReference(setRef("dag.provider", { kind: "query" })),
 });
 
 const createShowProviderFormAction: CreateAction<any> = (bus) => ({

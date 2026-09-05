@@ -1,28 +1,34 @@
 import { createDomain, sample } from "effector";
 import { createInfiniteTableStore } from "front-core";
+import type { InfiniteTableDataFunction } from "front-core/table";
 import domain from "./domain";
 import secretsService from "./service";
 
 const secretsDomain = createDomain("secrets-list");
 
-export const secretsViewMounted = secretsDomain.createEvent(
-	"SECRETS_VIEW_MOUNTED",
-);
-export const refreshSecretsClicked = secretsDomain.createEvent(
-	"REFRESH_SECRETS_CLICKED",
-);
 export const openSecretDetail = secretsDomain.createEvent<{ name: string }>(
 	"OPEN_SECRET_DETAIL",
 );
 
-const listSecretsFx = secretsDomain.createEffect({
+const listSecretsFx = secretsDomain.createEffect<
+	Parameters<InfiniteTableDataFunction>[0],
+	{ items: { name: string }[]; hasMore: boolean; total: number }
+>({
 	name: "LIST_SECRETS",
-	handler: async () => {
+	handler: async (params) => {
 		const names = await secretsService.listSecrets();
+		const filter = (
+			params.filter as { name?: Record<string, unknown> } | undefined
+		)?.name;
+		const value = filter?.contains ?? filter?.startsWith ?? filter?.eq;
+		const filtered =
+			typeof value === "string"
+				? names.filter((name) => name.includes(value))
+				: names;
 		return {
-			items: names.map((name) => ({ name })),
+			items: filtered.map((name) => ({ name })),
 			hasMore: false,
-			total: names.length,
+			total: filtered.length,
 		};
 	},
 });
@@ -59,28 +65,6 @@ sample({
 	source: openSecretDetail,
 	fn: (event, data) => ({ name: event.name, data }),
 	target: $currentSecret,
-});
-
-sample({
-	clock: secretsViewMounted,
-	filter: () => {
-		const state = $secretsStore.$state.getState();
-		return !state.isInitialized && !state.loading;
-	},
-	fn: () => ({}),
-	target: $secretsStore.loadMore,
-});
-
-// Refresh
-sample({
-	clock: refreshSecretsClicked,
-	fn: () => ({}),
-	target: $secretsStore.reset,
-});
-sample({
-	clock: refreshSecretsClicked,
-	fn: () => ({}),
-	target: $secretsStore.loadMore,
 });
 
 // Reload list after save/delete

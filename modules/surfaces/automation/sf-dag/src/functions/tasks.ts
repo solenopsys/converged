@@ -1,25 +1,14 @@
-import type { CreateAction, CreateWidget } from "front-core";
-import { TasksView } from "../views/TasksView";
+import type { CreateAction } from "front-core";
+import { presentReference, setRef } from "front-core/object-runtime";
 
 const SHOW_TASKS_LIST = "tasks.show_list";
 
-const createTasksWidget: CreateWidget<typeof TasksView> = (bus) => ({
-	view: TasksView,
-	placement: () => "center",
-	config: {
-		bus: bus,
-	},
-	commands: {},
-});
-
-const createShowTasksListAction: CreateAction<any> = (bus) => ({
+const createShowTasksListAction: CreateAction = () => ({
 	id: SHOW_TASKS_LIST,
-	invoke: () => {
-		bus.present({ widget: createTasksWidget(bus) });
-	},
+	invoke: () => void presentReference(setRef("dag.task", { kind: "query" })),
 });
 
-export { createShowTasksListAction, createTasksWidget, SHOW_TASKS_LIST };
+export { createShowTasksListAction, SHOW_TASKS_LIST };
 
 const ACTIONS = [createShowTasksListAction];
 

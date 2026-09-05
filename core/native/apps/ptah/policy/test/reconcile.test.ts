@@ -900,16 +900,29 @@ describe("processors", () => {
 		expect(status.processors).toEqual(["curaengine"]);
 	});
 
-	test("an unknown processor fails loudly instead of being skipped", () => {
-		expect(() =>
-			reconcile(
-				input({
-					kind: "Platform",
-					object: withProcessors(),
-					solutions: [solution("cam", { processors: ["slic3r"] })],
-				}),
-			),
-		).toThrow(/requires processor slic3r/);
+	test("an unknown processor is skipped and named, not thrown on", () => {
+		const { resources, status } = reconcile(
+			input({
+				kind: "Platform",
+				object: withProcessors(),
+				solutions: [solution("cam", { processors: ["curaengine", "slic3r"] })],
+			}),
+		);
+		// The rest of the platform still converges: throwing here returned an
+		// empty desired set, which left the module ConfigMap and every workload
+		// pinned to the previous solution.
+		expect(find(resources, "Deployment", "converged-curaengine")).toBeDefined();
+		expect(find(resources, "ConfigMap", "converged-modules")).toBeDefined();
+		expect(find(resources, "Deployment", "converged-slic3r")).toBeUndefined();
+
+		expect(status.processors).toEqual(["curaengine"]);
+		expect(status.processorsMissing).toEqual(["slic3r"]);
+		expect(status.ready).toBe(true);
+		expect(status.reason).toMatch(/slic3r/);
+
+		// A peer with no pod behind it must not be advertised to workflows.
+		const data = dataOf(find(resources, "ConfigMap", "converged-modules"));
+		expect(JSON.parse(data.PROCESSORS)).toEqual(["curaengine"]);
 	});
 
 	test("the module map lists the active processors", () => {

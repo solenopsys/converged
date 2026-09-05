@@ -38,7 +38,7 @@ import type {
 	ReconcileInput,
 	ReconcileOutput,
 } from "./types.ts";
-import { PolicyError, require } from "./types.ts";
+import { require } from "./types.ts";
 
 const UI_PORT = 3000;
 const MS_PORT = 3001;
@@ -223,6 +223,19 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 	const baseEnvFor = (port: number, extra: Record<string, string>) =>
 		baseEnv(platform, spec, port, extra, input.controllerNamespace);
 	const merged = mergeSolutions(selectSolutions(input.solutions, platform));
+	// A solution can name a peer the platform never declared — most often one
+	// processor renamed on one platform and not on the other. That used to
+	// throw, and throwing returns an empty desired set: a single unknown name
+	// then stops the module ConfigMap and every workload from being rewritten,
+	// so the platform silently keeps serving the previous solution's module
+	// list and nothing says why. The peer is still not deployed, but it is
+	// named in the status instead of taking the whole pass down with it.
+	const activeProcessors = merged.processors.filter(
+		(name) => spec.processors?.[name] !== undefined,
+	);
+	const missingProcessors = merged.processors.filter(
+		(name) => spec.processors?.[name] === undefined,
+	);
 	// The rollout stamp covers the registry as well as the module set: pointing
 	// the platform at a new revision changes nothing the pods can observe
 	// unless they restart, so the digest has to move with it.
@@ -267,7 +280,14 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 			n.modulesConfigMap(platform),
 			spec.namespace,
 			n.labels(platform, "modules", owner),
-			moduleData(merged, spec.registry, input.controllerNamespace),
+			// Only the peers that actually get a Deployment: publishing a name
+			// with no pod behind it makes a workflow wait for a peer that was
+			// never scheduled.
+			moduleData(
+				{ ...merged, processors: activeProcessors },
+				spec.registry,
+				input.controllerNamespace,
+			),
 		),
 	);
 
@@ -279,16 +299,9 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 
 	// Processors are peers like any other, but they exist only while a solution
 	// asks for them: a platform with no slicing solution should not be running
-	// a slicer. Naming one that the platform never declared is a typo worth
-	// failing on — the alternative is a workflow that waits forever for a peer
-	// that was quietly skipped.
-	for (const name of merged.processors) {
-		const processor = spec.processors?.[name];
-		if (!processor) {
-			throw new PolicyError(
-				`solution requires processor ${name}, absent from spec.processors`,
-			);
-		}
+	// a slicer.
+	for (const name of activeProcessors) {
+		const processor = spec.processors?.[name] as NativeApp;
 		resources.push(
 			...nativeApp(
 				platform,
@@ -516,7 +529,12 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 			// A failed reconcile records ready=false. State the successful
 			// counterpart explicitly so a later pass clears that stale condition.
 			ready: true,
-			reason: "",
+			// The pass converged, so ready stays true — but a skipped peer has
+			// to be visible somewhere, and this is what `kubectl get platform`
+			// prints.
+			reason: missingProcessors.length
+				? `skipped processors absent from spec.processors: ${missingProcessors.join(", ")}`
+				: "",
 			profile: spec.profile,
 			namespace: spec.namespace,
 			solutions: merged.names,
@@ -524,7 +542,8 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 			repositories: merged.repositories.length,
 			lambdas: merged.lambdas.length,
 			surfaces: merged.surfaces.length,
-			processors: merged.processors,
+			processors: activeProcessors,
+			processorsMissing: missingProcessors,
 			shards: shardNames,
 			registry: spec.registry?.url ?? "",
 			observedGeneration: input.object.metadata.generation ?? 0,

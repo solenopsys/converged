@@ -1,6 +1,6 @@
 import type { CreateAction, CreateWidget } from "front-core";
+import { presentReference, setRef } from "front-core/object-runtime";
 import { formReset, NodeConfigForm } from "../views/NodeConfigForm";
-import { NodesListView } from "../views/NodesListView";
 
 const SHOW_NODES_LIST = "nodes.show";
 const SHOW_NODE_FORM = "node_form.show";
@@ -22,20 +22,9 @@ export const createNodeFormWidget: CreateWidget<typeof NodeConfigForm> = (
 	},
 });
 
-// List widget - opens in center
-const createNodesListWidget: CreateWidget<typeof NodesListView> = (bus) => ({
-	view: NodesListView,
-	placement: () => "center",
-	config: {
-		bus,
-	},
-});
-
-const createShowNodesListAction: CreateAction<any> = (bus) => ({
+const createShowNodesListAction: CreateAction = () => ({
 	id: SHOW_NODES_LIST,
-	invoke: () => {
-		bus.present({ widget: createNodesListWidget(bus) });
-	},
+	invoke: () => void presentReference(setRef("dag.node", { kind: "query" })),
 });
 
 const createShowNodeFormAction: CreateAction<any> = (bus) => ({

@@ -5,10 +5,6 @@ import scriptsService from "./scripts-service";
 
 const domain = createDomain("dag-scripts");
 
-export const scriptsViewMounted = domain.createEvent("SCRIPTS_VIEW_MOUNTED");
-export const refreshScriptsClicked = domain.createEvent(
-	"REFRESH_SCRIPTS_CLICKED",
-);
 export const createScriptClicked = domain.createEvent<ScriptFile>();
 export const openScriptClicked = domain.createEvent<ScriptListItem>();
 export const scriptContentChanged = domain.createEvent<string>();
@@ -51,30 +47,6 @@ export const $scriptsStore = createInfiniteTableStore(domain, listScriptsFx);
 $selectedScript.on(readScriptFx.doneData, (_state, script) => script);
 
 sample({
-	clock: scriptsViewMounted,
-	fn: () => ({}),
-	target: $scriptsStore.reset,
-});
-
-sample({
-	clock: scriptsViewMounted,
-	fn: () => ({}),
-	target: $scriptsStore.loadMore,
-});
-
-sample({
-	clock: refreshScriptsClicked,
-	fn: () => ({}),
-	target: $scriptsStore.reset,
-});
-
-sample({
-	clock: refreshScriptsClicked,
-	fn: () => ({}),
-	target: $scriptsStore.loadMore,
-});
-
-sample({
 	clock: openScriptClicked,
 	fn: (item) => item.path,
 	target: readScriptFx,
@@ -91,7 +63,7 @@ sample({
 	source: $selectedScript,
 	clock: deleteScriptClicked,
 	filter: (script): script is ScriptFile => Boolean(script),
-	fn: (script) => script.path,
+	fn: (script) => script?.path ?? "",
 	target: deleteScriptFx,
 });
 

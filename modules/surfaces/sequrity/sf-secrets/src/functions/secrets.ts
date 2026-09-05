@@ -1,6 +1,6 @@
 import type { CreateAction, CreateWidget } from "front-core";
+import { presentReference, setRef } from "front-core/object-runtime";
 import { SecretDetailView } from "../views/SecretDetailView";
-import { SecretsListView } from "../views/SecretsListView";
 
 const SHOW_SECRETS = "secrets.show";
 
@@ -12,19 +12,10 @@ export const createSecretDetailWidget: CreateWidget<
 	commands: {},
 });
 
-const createSecretsListWidget: CreateWidget<typeof SecretsListView> = (
-	bus,
-) => ({
-	view: SecretsListView,
-	placement: () => "center",
-	config: { bus },
-});
-
-const createShowSecretsAction: CreateAction<any> = (bus) => ({
+const createShowSecretsAction: CreateAction = () => ({
 	id: SHOW_SECRETS,
-	invoke: () => {
-		bus.present({ widget: createSecretsListWidget(bus) });
-	},
+	invoke: () =>
+		void presentReference(setRef("secrets.secret", { kind: "query" })),
 });
 
 export { createShowSecretsAction, SHOW_SECRETS };

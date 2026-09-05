@@ -1,6 +1,13 @@
-import { defineSurface, objectOf, setOf } from "front-core/object-runtime";
+import { EntityListView } from "front-core";
+import {
+	defineSurface,
+	objectOf,
+	objectRef,
+	setOf,
+} from "front-core/object-runtime";
+import { $secretsStore, getSecretFx, openSecretDetail } from "./domain-secrets";
+import { secretsColumns } from "./functions/columns";
 import { SecretDetailView } from "./views/SecretDetailView";
-import { SecretsListView } from "./views/SecretsListView";
 
 export default defineSurface({
 	id: "sf-secrets",
@@ -17,6 +24,16 @@ export default defineSurface({
 				"core.creatable",
 				"core.editable",
 			],
+			infinity: {
+				tableId: "secrets",
+				title: "Secrets",
+				columns: secretsColumns,
+				store: $secretsStore,
+				rowRef: (row) => objectRef("secrets.secret", String(row.name)),
+				filters: [
+					{ id: "name", label: "Name", type: "search", operator: "contains" },
+				],
+			},
 		},
 	],
 	views: [
@@ -24,11 +41,18 @@ export default defineSurface({
 			id: "secrets.secret.detail",
 			accepts: objectOf("secrets.secret"),
 			component: SecretDetailView,
+			props: (ref) => {
+				if (ref.kind === "object") {
+					openSecretDetail({ name: ref.id });
+					getSecretFx(ref.id);
+				}
+				return {};
+			},
 		},
 		{
 			id: "secrets.secret.table",
 			accepts: setOf("secrets.secret"),
-			component: SecretsListView,
+			component: EntityListView,
 		},
 	],
 	operations: [],
