@@ -44,6 +44,13 @@ function resolveTtlSeconds(configTtl?: number): number {
 
 	return DEFAULT_TTL_SECONDS;
 }
+
+function requiredEnvironment(name: string): string {
+	const value = process.env[name]?.trim();
+	if (!value) throw new Error(`${name} is required`);
+	return value;
+}
+
 // Permission management and JWT issuance are cluster-internal operations.
 // Auth calls these with SERVICE_TOKEN while issuing a browser session.
 @Access("internal")
@@ -62,8 +69,8 @@ export class AccessServiceImpl implements AccessService {
 		this.userJwtIssuer = new UserJwtIssuer({
 			privateJwk: privateKey,
 			kid: config.accessJwtKid ?? process.env.ACCESS_JWT_KID ?? "",
-			issuer: config.accessJwtIssuer ?? process.env.ACCESS_JWT_ISSUER ?? "rp-access",
-			audience: config.accessJwtAudience ?? process.env.ACCESS_JWT_AUDIENCE ?? "cluster",
+			issuer: config.accessJwtIssuer ?? requiredEnvironment("ACCESS_JWT_ISSUER"),
+			audience: config.accessJwtAudience ?? requiredEnvironment("ACCESS_JWT_AUDIENCE"),
 		});
 		this.init();
 	}

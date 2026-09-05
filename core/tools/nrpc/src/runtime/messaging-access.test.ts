@@ -20,7 +20,7 @@ async function fixture(payload: Record<string, unknown> = {}) {
 	})
 		.setProtectedHeader({ alg: "EdDSA", kid: "test-key" })
 		.setSubject("admin")
-		.setIssuer("rp-access")
+		.setIssuer("test-issuer")
 		.setAudience("cluster")
 		.setIssuedAt()
 		.setExpirationTime("5m")
@@ -31,7 +31,7 @@ async function fixture(payload: Record<string, unknown> = {}) {
 describe("MessagingAccessGuard", () => {
 	test("uses JWT claims instead of untrusted envelope identity", async () => {
 		const { token, jwks } = await fixture();
-		const guard = new MessagingAccessGuard({ mode: "required", jwks });
+		const guard = new MessagingAccessGuard({ mode: "required", issuer: "test-issuer", audience: "cluster", jwks });
 		await expect(guard.authorize({ ...request, token })).resolves.toEqual({
 			user: "admin",
 			scope: "club",
@@ -41,14 +41,14 @@ describe("MessagingAccessGuard", () => {
 
 	test("rejects a scope substitution and missing permission", async () => {
 		const { token, jwks } = await fixture({ perm: ["fujin/reload(w)"] });
-		const guard = new MessagingAccessGuard({ mode: "required", jwks });
+		const guard = new MessagingAccessGuard({ mode: "required", issuer: "test-issuer", audience: "cluster", jwks });
 		await expect(guard.authorize({ ...request, token })).rejects.toMatchObject({ code: "forbidden" });
 		await expect(guard.authorize({ ...request, token, envelopeScope: "other" })).rejects.toMatchObject({ code: "unauthenticated" });
 	});
 
 	test("requires service JWT for internal methods", async () => {
 		const { token, jwks } = await fixture();
-		const guard = new MessagingAccessGuard({ mode: "required", jwks });
+		const guard = new MessagingAccessGuard({ mode: "required", issuer: "test-issuer", audience: "cluster", jwks });
 		await expect(guard.authorize({ ...request, token, access: "internal" })).rejects.toMatchObject({ code: "internal_only" });
 	});
 
@@ -58,7 +58,7 @@ describe("MessagingAccessGuard", () => {
 			perm: ["fujin/getState(r)"],
 			scope: undefined,
 		});
-		const guard = new MessagingAccessGuard({ mode: "required", jwks });
+		const guard = new MessagingAccessGuard({ mode: "required", issuer: "test-issuer", audience: "cluster", jwks });
 		await expect(guard.authorize({ ...request, token })).resolves.toEqual({
 			user: "admin",
 			scope: undefined,
@@ -68,7 +68,7 @@ describe("MessagingAccessGuard", () => {
 
 	test("allows public methods without a bearer token", async () => {
 		const { jwks } = await fixture();
-		const guard = new MessagingAccessGuard({ mode: "required", jwks });
+		const guard = new MessagingAccessGuard({ mode: "required", issuer: "test-issuer", audience: "cluster", jwks });
 		await expect(guard.authorize({ ...request, token: undefined, access: "public" })).resolves.toBeUndefined();
 	});
 
@@ -78,7 +78,7 @@ describe("MessagingAccessGuard", () => {
 			perm: ["fujin/getState(r)"],
 			scope: undefined,
 		});
-		const guard = new MessagingAccessGuard({ mode: "required", jwks });
+		const guard = new MessagingAccessGuard({ mode: "required", issuer: "test-issuer", audience: "cluster", jwks });
 		await expect(guard.authorize({ ...request, token, envelopeScope: undefined, access: "internal" })).resolves.toEqual({
 			user: "admin",
 			scope: undefined,

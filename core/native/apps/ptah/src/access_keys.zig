@@ -1,10 +1,7 @@
 //! The platform's own signing key.
 //!
-//! `ACCESS_JWT_*` are not credentials an operator supplies. The issuer and the
-//! audience are constants of the protocol, and the key is something a platform
-//! mints for itself — so requiring a human to produce an Ed25519 pair before an
-//! empty platform will start is what made a zero-configuration install
-//! impossible.
+//! The signing key is minted from a persisted seed. Issuer and audience are
+//! supplied by the controller environment and are never inferred here.
 //!
 //! The key is derived from a 32-byte seed the reconciler stores once. Rotating
 //! it invalidates every token already issued under it, so the seed is written
@@ -17,9 +14,6 @@ const std = @import("std");
 
 const Ed25519 = std.crypto.sign.Ed25519;
 const b64 = std.base64.url_safe_no_pad.Encoder;
-
-pub const issuer = "rp-access";
-pub const audience = "cluster";
 
 /// Ten years. A service token is not a session: it is renewed by redeploying,
 /// and an expiry short enough to matter would take the platform down with it.
@@ -58,6 +52,8 @@ pub fn derive(
     gpa: std.mem.Allocator,
     seed: [32]u8,
     subject: []const u8,
+    issuer: []const u8,
+    audience: []const u8,
     now_seconds: i64,
 ) !Material {
     const pair = try Ed25519.KeyPair.generateDeterministic(seed);
@@ -85,7 +81,7 @@ pub fn derive(
     );
     errdefer gpa.free(public_jwks);
 
-    const service_token = try signServiceToken(gpa, pair, kid, subject, now_seconds);
+    const service_token = try signServiceToken(gpa, pair, kid, subject, issuer, audience, now_seconds);
     errdefer gpa.free(service_token);
 
     return .{
@@ -104,6 +100,8 @@ fn signServiceToken(
     pair: Ed25519.KeyPair,
     kid: []const u8,
     subject: []const u8,
+    issuer: []const u8,
+    audience: []const u8,
     now_seconds: i64,
 ) ![]u8 {
     const header_json = try std.fmt.allocPrint(
@@ -139,9 +137,9 @@ test "the same seed derives the same key and token" {
     const gpa = std.testing.allocator;
     const seed = [_]u8{7} ** 32;
 
-    var first = try derive(gpa, seed, "converged-runtime", 1_700_000_000);
+    var first = try derive(gpa, seed, "converged-runtime", "test-issuer", "test-audience", 1_700_000_000);
     defer first.deinit(gpa);
-    var second = try derive(gpa, seed, "converged-runtime", 1_700_000_000);
+    var second = try derive(gpa, seed, "converged-runtime", "test-issuer", "test-audience", 1_700_000_000);
     defer second.deinit(gpa);
 
     try std.testing.expectEqualStrings(first.kid, second.kid);
@@ -151,9 +149,9 @@ test "the same seed derives the same key and token" {
 
 test "a different seed derives a different key" {
     const gpa = std.testing.allocator;
-    var a = try derive(gpa, [_]u8{1} ** 32, "x", 0);
+    var a = try derive(gpa, [_]u8{1} ** 32, "x", "test-issuer", "test-audience", 0);
     defer a.deinit(gpa);
-    var b = try derive(gpa, [_]u8{2} ** 32, "x", 0);
+    var b = try derive(gpa, [_]u8{2} ** 32, "x", "test-issuer", "test-audience", 0);
     defer b.deinit(gpa);
     try std.testing.expect(!std.mem.eql(u8, a.kid, b.kid));
 }
@@ -161,7 +159,7 @@ test "a different seed derives a different key" {
 test "the service token verifies under the published key" {
     const gpa = std.testing.allocator;
     const seed = [_]u8{3} ** 32;
-    var material = try derive(gpa, seed, "converged-runtime", 1_700_000_000);
+    var material = try derive(gpa, seed, "converged-runtime", "test-issuer", "test-audience", 1_700_000_000);
     defer material.deinit(gpa);
 
     const last_dot = std.mem.lastIndexOfScalar(u8, material.service_token, '.').?;

@@ -8,12 +8,12 @@ test("UserJwtIssuer creates an EdDSA JWT with cluster claims", async () => {
 	const issuer = new UserJwtIssuer({
 		privateJwk: JSON.stringify(privateJwk),
 		kid: "current",
-		issuer: "rp-access",
+		issuer: "platform",
 		audience: "cluster",
 	});
 	const token = await issuer.issue("admin", "club", ["fujin/getState(r)"], 60);
 	const result = await jwtVerify(token, publicKey, {
-		issuer: "rp-access",
+		issuer: "platform",
 		audience: "cluster",
 		algorithms: ["EdDSA"],
 	});
@@ -28,13 +28,13 @@ test("UserJwtIssuer creates an expiring EdDSA service token", async () => {
 	const issuer = new UserJwtIssuer({
 		privateJwk: JSON.stringify(privateJwk),
 		kid: "service-key",
-		issuer: "rp-access",
+		issuer: "platform",
 		audience: "cluster",
 	});
 
 	const token = await issuer.issueService("resonus", ["resonus/call.offer(w)"], 60);
 	const verified = await jwtVerify(token, await importJWK(publicJwk, "EdDSA"), {
-		issuer: "rp-access",
+		issuer: "platform",
 		audience: "cluster",
 		algorithms: ["EdDSA"],
 	});

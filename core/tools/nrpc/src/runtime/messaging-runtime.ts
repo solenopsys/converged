@@ -479,9 +479,11 @@ function isVerboseErrorsEnabled(): boolean {
 function decodeRemoteError(message: IncomingMessage): Error {
 	try {
 		const body = JSON.parse(decoder.decode(message.payload));
-		const error = new Error(body.error || message.envelope.errorCode || "remote nrpc error") as Error & { code?: string; details?: unknown };
+		const error = new Error(body.error || message.envelope.errorCode || "remote nrpc error") as Error & { code?: string; details?: unknown; statusCode?: number };
 		error.code = body.code || message.envelope.errorCode;
 		error.details = body.details;
+		if (error.code === "unauthenticated") error.statusCode = 401;
+		else if (error.code === "forbidden" || error.code === "internal_only") error.statusCode = 403;
 		return error;
 	} catch {
 		return new Error(message.envelope.errorCode || "remote nrpc error");

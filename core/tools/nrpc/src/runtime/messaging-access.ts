@@ -48,8 +48,8 @@ export class MessagingAccessGuard {
 
 	constructor(config: MessagingAccessConfig = {}) {
 		this.mode = resolveMode(config.mode);
-		this.issuer = config.issuer ?? process.env.ACCESS_JWT_ISSUER ?? "rp-access";
-		this.audience = config.audience ?? process.env.ACCESS_JWT_AUDIENCE ?? "cluster";
+		this.issuer = requiredSetting(config.issuer ?? process.env.ACCESS_JWT_ISSUER, "ACCESS_JWT_ISSUER");
+		this.audience = requiredSetting(config.audience ?? process.env.ACCESS_JWT_AUDIENCE, "ACCESS_JWT_AUDIENCE");
 		this.cacheSize = config.cacheSize ?? 1_024;
 		this.log = config.log ?? ((message, details) => console.warn(`[nrpc auth] ${message}`, details));
 
@@ -148,6 +148,12 @@ function resolveMode(configMode: MessagingAccessMode | undefined): MessagingAcce
 	if (raw === "required" || raw === "strict") return "required";
 	if (raw === "audit" || raw === "optional") return "audit";
 	return "off";
+}
+
+function requiredSetting(value: string | undefined, name: string): string {
+	const trimmed = value?.trim();
+	if (!trimmed) throw new Error(`${name} is required`);
+	return trimmed;
 }
 
 function parseJwks(value: string): { keys: JWK[] } {

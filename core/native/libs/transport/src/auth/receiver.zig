@@ -18,9 +18,9 @@ pub const Receiver = struct {
 
     pub fn init(allocator: std.mem.Allocator, environ: *const std.process.Environ.Map) !Receiver {
         const mode = parseMode(environ.get("NRPC_ACCESS_MODE") orelse "off");
-        const issuer = try allocator.dupe(u8, environ.get("ACCESS_JWT_ISSUER") orelse "rp-access");
+        const issuer = try requiredSetting(allocator, environ, "ACCESS_JWT_ISSUER");
         errdefer allocator.free(issuer);
-        const audience = try allocator.dupe(u8, environ.get("ACCESS_JWT_AUDIENCE") orelse "cluster");
+        const audience = try requiredSetting(allocator, environ, "ACCESS_JWT_AUDIENCE");
         errdefer allocator.free(audience);
         const cache_size = parseCacheSize(environ.get("NRPC_ACCESS_CACHE_SIZE") orelse "1024");
         if (mode == .off) return .{ .allocator = allocator, .mode = mode, .issuer = issuer, .audience = audience, .key_set = null, .verified_cache = cache.Cache.init(allocator, cache_size) };
@@ -85,6 +85,13 @@ pub const Receiver = struct {
         });
     }
 };
+
+fn requiredSetting(allocator: std.mem.Allocator, environ: *const std.process.Environ.Map, name: []const u8) ![]u8 {
+    const value = environ.get(name) orelse return error.JwtSettingRequired;
+    const trimmed = std.mem.trim(u8, value, " \t\r\n");
+    if (trimmed.len == 0) return error.JwtSettingRequired;
+    return allocator.dupe(u8, trimmed);
+}
 
 fn parseMode(raw: []const u8) Mode {
     if (std.ascii.eqlIgnoreCase(raw, "required") or std.ascii.eqlIgnoreCase(raw, "strict")) return .required;

@@ -128,6 +128,14 @@ export function createRuntimeImagesPlugin(options: ImagesPluginOptions) {
 			ref = await galery.ensureStaticCached(rest);
 		} catch (error) {
 			console.error(`[images] galery.ensureStaticCached failed for ${rest}`, error);
+			const statusCode =
+				typeof (error as { statusCode?: unknown }).statusCode === "number"
+					? (error as { statusCode: number }).statusCode
+					: undefined;
+			if (statusCode === 401 || statusCode === 403) {
+				set.status = statusCode;
+				return statusCode === 401 ? "Unauthorized" : "Forbidden";
+			}
 			set.status = 502;
 			return "Gallery service is unavailable";
 		}

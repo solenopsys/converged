@@ -263,12 +263,12 @@ test "EdDSA JWT verifies claims and preserves trusted context" {
     const seed = [_]u8{42} ** 32;
     const key_pair = try std.crypto.sign.Ed25519.KeyPair.generateDeterministic(seed);
     const keys = [_]Key{.{ .kid = "current", .public_key = key_pair.public_key }};
-    const config = Config{ .issuer = "rp-access", .audience = "cluster", .keys = &keys };
+    const config = Config{ .issuer = "test-issuer", .audience = "test-audience", .keys = &keys };
     const token = try makeToken(
         std.testing.allocator,
         key_pair,
         "{\"alg\":\"EdDSA\",\"kid\":\"current\"}",
-        "{\"typ\":\"user\",\"sub\":\"admin\",\"scope\":\"club\",\"perm\":[\"fujin/state(r)\"],\"iat\":100,\"exp\":200,\"iss\":\"rp-access\",\"aud\":\"cluster\"}",
+        "{\"typ\":\"user\",\"sub\":\"admin\",\"scope\":\"club\",\"perm\":[\"fujin/state(r)\"],\"iat\":100,\"exp\":200,\"iss\":\"test-issuer\",\"aud\":\"test-audience\"}",
     );
     defer std.testing.allocator.free(token);
 
@@ -285,12 +285,12 @@ test "EdDSA JWT rejects tampering and invalid mandatory claims" {
     const seed = [_]u8{7} ** 32;
     const key_pair = try std.crypto.sign.Ed25519.KeyPair.generateDeterministic(seed);
     const keys = [_]Key{.{ .kid = "current", .public_key = key_pair.public_key }};
-    const config = Config{ .issuer = "rp-access", .audience = "cluster", .keys = &keys };
+    const config = Config{ .issuer = "test-issuer", .audience = "test-audience", .keys = &keys };
     const token = try makeToken(
         std.testing.allocator,
         key_pair,
         "{\"alg\":\"EdDSA\",\"kid\":\"current\"}",
-        "{\"typ\":\"user\",\"sub\":\"admin\",\"scope\":\"club\",\"perm\":[],\"iat\":100,\"exp\":200,\"iss\":\"rp-access\",\"aud\":\"cluster\"}",
+        "{\"typ\":\"user\",\"sub\":\"admin\",\"scope\":\"club\",\"perm\":[],\"iat\":100,\"exp\":200,\"iss\":\"test-issuer\",\"aud\":\"test-audience\"}",
     );
     defer std.testing.allocator.free(token);
 
@@ -300,5 +300,5 @@ test "EdDSA JWT rejects tampering and invalid mandatory claims" {
     tampered[payload_start] = if (tampered[payload_start] == 'A') 'B' else 'A';
     try std.testing.expectError(error.SignatureInvalid, verify(std.testing.allocator, tampered, config, 150));
     try std.testing.expectError(error.TokenExpired, verify(std.testing.allocator, token, config, 200));
-    try std.testing.expectError(error.AudienceRejected, verify(std.testing.allocator, token, .{ .issuer = "rp-access", .audience = "other", .keys = &keys }, 150));
+    try std.testing.expectError(error.AudienceRejected, verify(std.testing.allocator, token, .{ .issuer = "test-issuer", .audience = "other", .keys = &keys }, 150));
 }

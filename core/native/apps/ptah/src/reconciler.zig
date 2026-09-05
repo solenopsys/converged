@@ -41,6 +41,13 @@ fn stringField(value: std.json.Value, name: []const u8) ?[]const u8 {
     };
 }
 
+fn requiredEnvironment(environ: *const std.process.Environ.Map, name: []const u8) ![]const u8 {
+    const value = environ.get(name) orelse return error.JwtSettingRequired;
+    const trimmed = std.mem.trim(u8, value, " \t\r\n");
+    if (trimmed.len == 0) return error.JwtSettingRequired;
+    return trimmed;
+}
+
 fn metaName(object: std.json.Value) ?[]const u8 {
     const meta = objectField(object, "metadata") orelse return null;
     return stringField(meta, "name");
@@ -99,6 +106,7 @@ pub const Reconciler = struct {
     gpa: std.mem.Allocator,
     client: *kube.Client,
     config: *const Config,
+    environ: *const std.process.Environ.Map,
     registry: *module_cache.Registry,
     registry_tls: *tls.Context,
     /// When set, nothing is written to the cluster; used by `ptah apply --dry`.
@@ -418,15 +426,17 @@ pub const Reconciler = struct {
 
         const seed = try self.accessSeed(arena, platform, namespace_value.string);
         const subject = try std.fmt.allocPrint(arena, "{s}-runtime", .{platform});
-        var material = try access_keys.derive(arena, seed, subject, nowSeconds());
+        const issuer = try requiredEnvironment(self.environ, "ACCESS_JWT_ISSUER");
+        const audience = try requiredEnvironment(self.environ, "ACCESS_JWT_AUDIENCE");
+        var material = try access_keys.derive(arena, seed, subject, issuer, audience, nowSeconds());
         defer material.deinit(arena);
 
         return try std.fmt.allocPrint(
             arena,
             "{{\"issuer\":\"{s}\",\"audience\":\"{s}\",\"kid\":\"{s}\",\"privateJwk\":{s},\"publicJwks\":{s},\"serviceToken\":\"{s}\"}}",
             .{
-                access_keys.issuer,
-                access_keys.audience,
+                issuer,
+                audience,
                 material.kid,
                 material.private_jwk,
                 material.public_jwks,

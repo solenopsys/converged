@@ -124,6 +124,16 @@ function logged(name: string, handler: RouteHandler): RouteHandler {
 			return await handler(context);
 		} catch (error) {
 			console.error(`[auth-gateway] ${name} failed:`, error);
+			const statusCode =
+				typeof (error as { statusCode?: unknown }).statusCode === "number"
+					? (error as { statusCode: number }).statusCode
+					: undefined;
+			if (statusCode === 401 || statusCode === 403) {
+				return jsonResponse(
+					{ error: statusCode === 401 ? "unauthorized" : "forbidden" },
+					{ status: statusCode },
+				);
+			}
 			throw error;
 		}
 	};

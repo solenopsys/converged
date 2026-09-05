@@ -97,7 +97,7 @@ const lambdas = solution.spec.lambdas;
 function writeMountsConfig(): string {
 	const mounts: Record<string, string> = {};
 	for (const name of repositories) {
-		const root = resolve(dataDir, `rp-${name}`);
+		const root = resolve(dataDir, name);
 		mkdirSync(root, { recursive: true });
 		mounts[`rp-${name}`] = root;
 	}

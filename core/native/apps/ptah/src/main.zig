@@ -116,6 +116,7 @@ fn runController(
         .gpa = gpa,
         .client = &client,
         .config = &config,
+        .environ = environ,
         .registry = &registry,
         .registry_tls = &registry_tls,
         .dry_run = dry_run,
