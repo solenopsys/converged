@@ -142,14 +142,21 @@ export function createResonusSession({
 		const systemId = crypto.randomUUID();
 		const inputId = crypto.randomUUID();
 		const contextId = crypto.randomUUID();
-		await transport.command("message.put", {
-			messageId: systemId,
-			message: { role: "system", content: system },
-		});
-		await transport.command("message.put", {
-			messageId: inputId,
-			message: { role: "user", content: user },
-		});
+		// The two messages do not depend on each other, so they go together; only
+		// the context needs both to exist. This used to be four round-trips in
+		// single file before the model was even asked, and every one of them now
+		// stands between the user and a visible change on screen — each step of
+		// the surface flow commits as soon as it answers (steps-surface.ts).
+		await Promise.all([
+			transport.command("message.put", {
+				messageId: systemId,
+				message: { role: "system", content: system },
+			}),
+			transport.command("message.put", {
+				messageId: inputId,
+				message: { role: "user", content: user },
+			}),
+		]);
 		await transport.command("context.create", {
 			contextId,
 			revision: "1",
@@ -170,7 +177,9 @@ export function createResonusSession({
 			}
 			return answer;
 		} finally {
-			await transport.command("context.delete", { contextId }).catch(() => {});
+			// Nothing waits on the cleanup: the answer is already in hand, and the
+			// step after this one should not be held up by a delete.
+			void transport.command("context.delete", { contextId }).catch(() => {});
 		}
 	};
 

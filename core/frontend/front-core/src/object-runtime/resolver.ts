@@ -161,6 +161,16 @@ export class ObjectResolver {
 							this.registry.hasCategory(type.id, category),
 						),
 					)
+					// A type nobody can render is not somewhere to be taken. Statistic
+					// types are the case that matters: they are dashboard widgets, they
+					// declare no view of their own, and offering them as `show` gave the
+					// assistant nine "Show Companies" candidates whose every call ends
+					// in "No view for object<companies.statistic.summary>".
+					.filter((type) =>
+						this.registry
+							.allViews()
+							.some((view) => view.accepts.type === type.id),
+					)
 					.map<ResolutionCandidate>((type) => ({
 						id: `${operator}:${type.id}`,
 						kind: "type",

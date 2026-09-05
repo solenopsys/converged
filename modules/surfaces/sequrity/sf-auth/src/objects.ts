@@ -32,6 +32,8 @@ export const objects = [
 
 export default defineSurface({
 	id: "sf-auth",
+	label: "Account",
+	purpose: "Signing in and out of the current session",
 	types: objects,
 	views: [
 		{

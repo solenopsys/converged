@@ -53,6 +53,8 @@ export const objects = [
 
 export default defineSurface({
 	id: "sf-threads",
+	label: "Threads",
+	purpose: "Assistant conversation threads and their statistics",
 	types: objects,
 	views: [
 		{

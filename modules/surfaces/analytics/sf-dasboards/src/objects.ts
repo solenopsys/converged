@@ -1,8 +1,4 @@
-import {
-	defineSurface,
-	objectOf,
-	objectRef,
-} from "front-core/object-runtime";
+import { defineSurface, objectOf, objectRef } from "front-core/object-runtime";
 import { DashboardLayout } from "./components/DashboardLayout";
 
 const DASHBOARD_REF = () =>
@@ -10,6 +6,8 @@ const DASHBOARD_REF = () =>
 
 export default defineSurface({
 	id: "sf-dasboards",
+	label: "Dashboards",
+	purpose: "Saved dashboards assembled from statistic widgets",
 	types: [
 		{
 			id: "dashboard.dashboard",

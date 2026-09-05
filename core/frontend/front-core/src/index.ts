@@ -9,11 +9,11 @@ export type {
 	CategorySummary,
 	CreateAction,
 	CreateWidget,
-	SurfaceLlmCatalog,
 	Plugin,
 	PresentRequest,
 	ScreenDecl,
 	Surface,
+	SurfaceLlmCatalog,
 	Widget,
 } from "front-core/core";
 export {
@@ -222,14 +222,24 @@ export * from "./object-runtime";
 export * from "./select";
 export { AppShell } from "./shell/AppShell";
 export { type OpenRecordTabRequest, openRecordTab } from "./shell/record-tabs";
-export type { OpenWorkspaceTab, WorkspaceTab } from "./shell/workspace";
+export type {
+	OpenSubtab,
+	SurfaceTab,
+	WorkspaceSubtab,
+} from "./shell/workspace";
 export {
-	$activeWorkspaceTab,
-	$workspaceTabs,
-	workspaceTabActivated,
-	workspaceTabClosed,
-	workspaceTabOpened,
-	workspaceTabPinToggled,
+	$activeSubtabs,
+	$activeSurface,
+	$pressedSubtab,
+	$surfaceTabs,
+	subtabActivated,
+	subtabClosed,
+	subtabOpened,
+	subtabReleased,
+	surfaceActivated,
+	surfaceClosed,
+	surfaceMounted,
+	surfacePinToggled,
 } from "./shell/workspace";
 export { upsertSidebarTab } from "./sidebar-tabs";
 export {

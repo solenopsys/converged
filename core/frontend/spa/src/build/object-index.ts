@@ -1,11 +1,11 @@
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { SurfaceLlmCatalog } from "front-core/core";
 import type {
+	ObjectIndexFile,
 	SurfaceDefinition,
 	SurfaceManifest,
-	ObjectIndexFile,
 } from "front-core/object-runtime";
-import type { SurfaceLlmCatalog } from "front-core/core";
 import { surfaceDir, surfaces, surfacesDir } from "./layout";
 
 const stubExternals = {
@@ -55,11 +55,15 @@ const stubExternals = {
 	},
 };
 
-function manifestOf(
-	definition: SurfaceDefinition,
-): SurfaceManifest {
+function manifestOf(definition: SurfaceDefinition): SurfaceManifest {
 	return {
 		id: definition.id,
+		// A surface has to name itself in the index: the first orchestrator step
+		// and the tab strip both read it before the module is ever imported.
+		label: definition.label,
+		...(definition.labelKey ? { labelKey: definition.labelKey } : {}),
+		purpose: definition.purpose,
+		...(definition.purposeKey ? { purposeKey: definition.purposeKey } : {}),
 		types: definition.types,
 		views: definition.views.map(
 			({ component: _component, props: _props, ...view }) => view,
@@ -103,6 +107,14 @@ async function readDefinition(name: string): Promise<SurfaceDefinition> {
 	) {
 		throw new Error(
 			`[object-index] sf-${name} must export a surface definition as default`,
+		);
+	}
+	// Caught here rather than at runtime: a surface without these is invisible to
+	// the tab strip and unpickable by the first orchestrator step, and neither
+	// failure says why.
+	if (!definition.label?.trim() || !definition.purpose?.trim()) {
+		throw new Error(
+			`[object-index] sf-${name} must declare a label and a purpose`,
 		);
 	}
 	return definition;

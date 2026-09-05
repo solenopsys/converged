@@ -22,6 +22,8 @@ const listView = (kind: DagEntityType) =>
 
 export default defineSurface({
 	id: "sf-dag",
+	label: "Workflows",
+	purpose: "Background workflows, their runs, variables and failures",
 	types: [
 		...selectableTypes.map(([id, label, pluralLabel]) => ({
 			id,

@@ -1,18 +1,16 @@
 import { combine, createEvent, createStore } from "effector";
-import type { ComponentType } from "preact";
 import { translator } from "i18n";
+import type { ComponentType } from "preact";
 import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
-import { Pin, Trash2, X } from "../icons";
-
-const t = translator(CHAT_MESSAGES_NAMESPACE);
+import { Pin, X } from "../icons";
 import {
-	$workspace,
-	type WorkspaceTab,
-	workspaceTabClosed,
-	workspaceTabPinToggled,
-	workspaceUnpinnedTabsCleared,
+	$surfaceTabs,
+	type SurfaceTab,
+	surfaceClosed,
+	surfacePinToggled,
 } from "./workspace";
 
+const t = translator(CHAT_MESSAGES_NAMESPACE);
 
 export type WorkspaceTabActionIcon = ComponentType<{
 	size?: number;
@@ -27,11 +25,11 @@ export type WorkspaceTabAction = {
 };
 
 export type WorkspaceTabActionDecl = WorkspaceTabAction & {
-	run: (tab: WorkspaceTab) => void;
+	run: (tab: SurfaceTab) => void;
 };
 
 export type WorkspaceTabActionProvider = (
-	tab: WorkspaceTab,
+	tab: SurfaceTab,
 ) => WorkspaceTabActionDecl[];
 
 export type WorkspaceTabView = {
@@ -47,45 +45,42 @@ export const workspaceTabActionInvoked = createEvent<{
 	actionId: string;
 }>("WORKSPACE_TAB_ACTION_INVOKED");
 
-const providerRegistered = createEvent<string>("WORKSPACE_TAB_ACTIONS_REGISTERED");
+const providerRegistered = createEvent<string>(
+	"WORKSPACE_TAB_ACTIONS_REGISTERED",
+);
 
 const providers = new Map<string, WorkspaceTabActionProvider>();
 
-
 export function registerWorkspaceTabActions(
-	owner: string,
+	surface: string,
 	provider: WorkspaceTabActionProvider,
 ): void {
-	providers.set(owner, provider);
-	providerRegistered(owner);
+	providers.set(surface, provider);
+	providerRegistered(surface);
 }
 
-function baseActions(tab: WorkspaceTab): WorkspaceTabActionDecl[] {
+function baseActions(tab: SurfaceTab): WorkspaceTabActionDecl[] {
 	return [
 		{
+			// Pinning now means "keep this surface in the strip", the opposite of
+			// what it meant when the strip showed only unpinned tabs and pinning
+			// filed a view away in a panel.
 			id: "pin",
 			label: tab.pinned ? t("tab.unpin") : t("tab.pin"),
 			icon: Pin,
-			run: (target) => workspaceTabPinToggled(target.key),
+			run: (target) => surfacePinToggled(target.id),
 		},
 		{
 			id: "close",
 			label: t("tab.close"),
 			icon: X,
-			run: (target) => workspaceTabClosed(target.key),
-		},
-		{
-			id: "close-transient",
-			label: t("tab.closeUnpinned"),
-			icon: Trash2,
-			danger: true,
-			run: () => workspaceUnpinnedTabsCleared(),
+			run: (target) => surfaceClosed(target.id),
 		},
 	];
 }
 
-function actionsFor(tab: WorkspaceTab): WorkspaceTabActionDecl[] {
-	const extra = providers.get(tab.owner)?.(tab) ?? [];
+function actionsFor(tab: SurfaceTab): WorkspaceTabActionDecl[] {
+	const extra = providers.get(tab.id)?.(tab) ?? [];
 	return [...baseActions(tab), ...extra];
 }
 
@@ -94,25 +89,27 @@ const $providerRevision = createStore(0, {
 }).on(providerRegistered, (revision) => revision + 1);
 
 export const $workspaceTabViews = combine(
-	$workspace,
+	$surfaceTabs,
 	$providerRevision,
-	(state): WorkspaceTabView[] =>
-		state.tabs.map((tab) => ({
-			key: tab.key,
-			title: tab.title,
+	(tabs): WorkspaceTabView[] =>
+		tabs.map((tab) => ({
+			key: tab.id,
+			title: tab.label,
 			pinned: tab.pinned,
-			active: tab.key === state.activeKey,
+			active: tab.active,
 			actions: actionsFor(tab).map(({ run: _run, ...action }) => action),
 		})),
 );
 
 workspaceTabActionInvoked.watch(({ key, actionId }) => {
-	const tab = $workspace.getState().tabs.find((entry) => entry.key === key);
+	const tab = $surfaceTabs.getState().find((entry) => entry.id === key);
 	if (!tab) return;
 
 	const action = actionsFor(tab).find((entry) => entry.id === actionId);
 	if (!action) {
-		console.warn(`[shell] unknown workspace tab action "${actionId}" for ${key}`);
+		console.warn(
+			`[shell] unknown workspace tab action "${actionId}" for ${key}`,
+		);
 		return;
 	}
 

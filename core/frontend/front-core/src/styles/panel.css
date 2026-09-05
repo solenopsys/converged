@@ -9,31 +9,17 @@ textarea {
 	font: inherit;
 }
 
-.pinned-views {
+.surface-nav {
 	min-height: 0;
 	overflow-y: auto;
 	padding: var(--hw-space-3) var(--hw-space-4);
 }
 
-.pinned-view-group + .pinned-view-group {
-	margin-top: var(--hw-space-5);
+.surface-nav-group + .surface-nav-group {
+	margin-top: var(--hw-space-4);
 }
 
-.pinned-view-group h2 {
-	margin: 0 0 var(--hw-space-2);
-	color: var(--hw-ink-muted);
-	font-size: var(--hw-font-size-xs);
-	font-weight: 700;
-	line-height: 1.2;
-}
-
-.pinned-view-group ol {
-	margin: 0;
-	padding: 0;
-	list-style: none;
-}
-
-.pinned-view-group li {
+.surface-nav-head {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) auto;
 	align-items: center;
@@ -41,16 +27,13 @@ textarea {
 	border-bottom: 1px solid var(--hw-panel-border);
 }
 
-.pinned-view-group li[data-active="true"] {
-	background: color-mix(in srgb, var(--hw-focus) 10%, transparent);
-}
-
-.pinned-view-open {
+.surface-nav-open {
 	min-width: 0;
 	padding: var(--hw-space-3) 0;
 	border: 0;
 	background: transparent;
 	color: var(--hw-ink);
+	font-weight: 600;
 	overflow: hidden;
 	text-align: left;
 	text-overflow: ellipsis;
@@ -58,13 +41,12 @@ textarea {
 	cursor: pointer;
 }
 
-.pinned-view-actions {
-	display: inline-flex;
-	align-items: center;
-	gap: 2px;
+.surface-nav-group[data-active="true"] .surface-nav-open {
+	color: var(--hw-focus);
 }
 
-.pinned-view-actions button {
+.surface-nav-pin,
+.surface-nav-close {
 	display: grid;
 	place-items: center;
 	width: calc(var(--hw-unit) * 5);
@@ -77,10 +59,47 @@ textarea {
 	cursor: pointer;
 }
 
-.pinned-view-actions button:hover,
-.pinned-view-actions button:focus-visible,
-.pinned-view-open:hover,
-.pinned-view-open:focus-visible {
+.surface-nav-pin[aria-pressed="true"] {
+	color: var(--hw-focus);
+}
+
+.surface-nav-subtabs {
+	margin: 0;
+	padding: 0 0 0 var(--hw-space-3);
+	list-style: none;
+}
+
+.surface-nav-subtabs li {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	gap: var(--hw-space-2);
+}
+
+.surface-nav-subtab {
+	min-width: 0;
+	padding: var(--hw-space-2) 0;
+	border: 0;
+	background: transparent;
+	color: var(--hw-ink-muted);
+	overflow: hidden;
+	text-align: left;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.surface-nav-subtabs li[data-pressed="true"] .surface-nav-subtab {
+	color: var(--hw-ink);
+	font-weight: 600;
+}
+
+.surface-nav-open:hover,
+.surface-nav-open:focus-visible,
+.surface-nav-subtab:hover,
+.surface-nav-subtab:focus-visible,
+.surface-nav-pin:hover,
+.surface-nav-close:hover {
 	outline: 0;
 	color: var(--hw-focus);
 }

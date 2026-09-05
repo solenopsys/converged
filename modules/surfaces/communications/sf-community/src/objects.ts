@@ -1,14 +1,12 @@
-import {
-	defineSurface,
-	objectOf,
-	setOf,
-} from "front-core/object-runtime";
+import { defineSurface, objectOf, setOf } from "front-core/object-runtime";
 import { communityClient } from "./services";
 import { TopicsListView } from "./views/TopicsListView";
 import { TopicView } from "./views/TopicView";
 
 export default defineSurface({
 	id: "sf-community",
+	label: "Community",
+	purpose: "Public forum topics and discussions",
 	types: [
 		{
 			id: "community.topic",

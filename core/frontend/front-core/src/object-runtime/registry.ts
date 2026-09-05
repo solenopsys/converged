@@ -2,11 +2,11 @@ import { createDomain } from "effector";
 import { createDomainLogger } from "../../../libraries/effector/effector-logger/logger";
 import type {
 	CategoryId,
-	SurfaceDefinition,
-	SurfaceManifest,
 	ObjectIndexFile,
 	ObjectTypeDefinition,
 	OperationDefinition,
+	SurfaceDefinition,
+	SurfaceManifest,
 	ViewDefinition,
 } from "./types";
 
@@ -15,9 +15,8 @@ type Owned<T> = T & { owner: string; loaded: boolean };
 const domain = createDomain("object-runtime-registry");
 createDomainLogger(domain);
 
-export const surfaceDeclared = domain.createEvent<SurfaceManifest>(
-	"SURFACE_DECLARED",
-);
+export const surfaceDeclared =
+	domain.createEvent<SurfaceManifest>("SURFACE_DECLARED");
 export const surfaceRegistered =
 	domain.createEvent<SurfaceDefinition>("SURFACE_REGISTERED");
 export const $objectRegistryRevision = domain
@@ -25,14 +24,47 @@ export const $objectRegistryRevision = domain
 	.on(surfaceDeclared, (revision) => revision + 1)
 	.on(surfaceRegistered, (revision) => revision + 1);
 
+/** What a surface says about itself, available before its module is loaded. */
+export type SurfaceIdentity = {
+	id: string;
+	label: string;
+	labelKey?: string;
+	purpose: string;
+	purposeKey?: string;
+	/** Owns operations but is not a tab. */
+	hidden: boolean;
+	/** False until the module itself has been imported and registered. */
+	loaded: boolean;
+};
+
 export class ObjectRegistry {
 	private readonly types = new Map<string, Owned<ObjectTypeDefinition>>();
 	private readonly views = new Map<string, Owned<ViewDefinition>>();
 	private readonly operations = new Map<string, Owned<OperationDefinition>>();
-	private readonly moduleDescriptions = new Map<string, string>();
+	private readonly surfaces = new Map<string, SurfaceIdentity>();
 	private readonly cleanups = new Map<string, () => void>();
 
+	private identify(
+		owner: string,
+		definition: Pick<
+			SurfaceDefinition,
+			"label" | "labelKey" | "purpose" | "purposeKey" | "hidden"
+		>,
+		loaded: boolean,
+	): void {
+		this.surfaces.set(owner, {
+			id: owner,
+			label: definition.label,
+			...(definition.labelKey ? { labelKey: definition.labelKey } : {}),
+			purpose: definition.purpose,
+			...(definition.purposeKey ? { purposeKey: definition.purposeKey } : {}),
+			hidden: definition.hidden ?? false,
+			loaded,
+		});
+	}
+
 	declare(owner: string, manifest: SurfaceManifest): void {
+		this.identify(owner, manifest, false);
 		for (const type of manifest.types) {
 			this.types.set(type.id, { ...type, owner, loaded: false });
 		}
@@ -51,6 +83,7 @@ export class ObjectRegistry {
 
 	register(owner: string, definition: SurfaceDefinition): void {
 		this.cleanups.get(definition.id)?.();
+		this.identify(owner, definition, true);
 		for (const type of definition.types) {
 			this.types.set(type.id, { ...type, owner, loaded: true });
 		}
@@ -67,24 +100,21 @@ export class ObjectRegistry {
 
 	ingest(index: ObjectIndexFile): void {
 		for (const entry of Object.values(index.modules)) {
-			const explicit = entry.llm?.description?.trim();
-			const actionDescriptions = [
-				...new Set(
-					Object.values(entry.llm?.actions ?? {}).flatMap((action) => {
-						const description =
-							action.description?.trim() || action.brief?.trim();
-						return description ? [description] : [];
-					}),
-				),
-			];
-			const description = explicit || actionDescriptions.join("; ");
-			if (description) this.moduleDescriptions.set(entry.module, description);
 			this.declare(entry.module, entry.manifest);
 		}
 	}
 
+	surface(id: string): SurfaceIdentity | undefined {
+		return this.surfaces.get(id);
+	}
+
+	allSurfaces(): SurfaceIdentity[] {
+		return [...this.surfaces.values()];
+	}
+
+	/** The surface's own line about itself — never a join of its action texts. */
 	moduleDescription(id: string): string | undefined {
-		return this.moduleDescriptions.get(id);
+		return this.surfaces.get(id)?.purpose;
 	}
 
 	type(id: string): Owned<ObjectTypeDefinition> | undefined {

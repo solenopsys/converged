@@ -5,49 +5,62 @@ import type {
 	OrchestratorCatalog,
 	OrchestratorPlan,
 	PlanContext,
+	Position,
 	Step,
 	StepPrompt,
 	StepTrace,
 	Tier,
 } from "./types";
 
-export { createMachine } from "./machine";
-export type { Machine, MachineOptions } from "./machine";
-export { createFunctionSteps } from "./steps";
-export type { FunctionStepsOptions } from "./steps";
-export { createFilesStep } from "./steps-files";
-export type { FilesIntent, FilesStepOptions, TurnFile } from "./steps-files";
-export { createResonusSession } from "./resonus-session";
-export type {
-	ResonusCommandTransport,
-	ResonusSession,
-	ResonusSessionOptions,
-} from "./resonus-session";
-export { createResonusChatDriver, wantsTools } from "./chat-driver";
 export type {
 	ChatBlock,
 	ChatDriver,
 	ChatEvent,
 	ResonusChatDriverOptions,
 } from "./chat-driver";
-export { createResonusCommandTransport } from "./resonus-transport";
+export { createResonusChatDriver, wantsTools } from "./chat-driver";
+export { parseJsonObject, readString } from "./json";
+export type { Machine, MachineOptions } from "./machine";
+export { createMachine } from "./machine";
+export type {
+	ResonusCommandTransport,
+	ResonusSession,
+	ResonusSessionOptions,
+} from "./resonus-session";
+export { createResonusSession } from "./resonus-session";
 export type {
 	CommandEnvelope,
 	EnvelopeChannel,
 	EnvelopeReply,
 	ResonusTransportOptions,
 } from "./resonus-transport";
+export { createResonusCommandTransport } from "./resonus-transport";
 // The stateful half: conversation entries, the catalog as a store, the turn
 // budget and the engine that drives one turn end to end.
 export * from "./state";
-export { parseJsonObject, readString } from "./json";
+export type { FunctionStepsOptions } from "./steps";
+export { createFunctionSteps } from "./steps";
+export type { FilesIntent, FilesStepOptions, TurnFile } from "./steps-files";
+export { createFilesStep } from "./steps-files";
 export type {
+	SurfaceCommitIds,
+	SurfaceStepsOptions,
+} from "./steps-surface";
+export {
+	chosenNumber,
+	createSurfaceSteps,
+	DEFAULT_COMMITS,
+	positionLine,
+} from "./steps-surface";
+export type {
+	Choice,
 	FunctionBrief,
 	FunctionChoice,
 	OneShotAsk,
 	OrchestratorCatalog,
 	OrchestratorPlan,
 	PlanContext,
+	Position,
 	Step,
 	StepAnswer,
 	StepPrompt,

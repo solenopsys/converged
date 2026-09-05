@@ -1,3 +1,8 @@
+export type {
+	LlmCatalogParameters,
+	SurfaceLlmAction,
+	SurfaceLlmCatalog,
+} from "../llm-catalog";
 export type { OperationAuthorizationController } from "./authorization";
 export {
 	authorizeObjectType,
@@ -13,8 +18,8 @@ export {
 	catalogEntries,
 	catalogEntry,
 	invokeCatalogEntry,
-	localized,
 	invokeOperator,
+	localized,
 	operatorCandidateEntries,
 	operatorCatalogEntries,
 	operatorCatalogEntry,
@@ -33,14 +38,15 @@ export {
 	focusItems,
 	focusKey,
 } from "./focus";
+export type { SurfaceIdentity } from "./registry";
 export {
 	$objectRegistryRevision,
 	ingestObjectIndex,
 	loadObjectIndex,
-	surfaceDeclared,
-	surfaceRegistered,
 	ObjectRegistry,
 	objectRegistry,
+	surfaceDeclared,
+	surfaceRegistered,
 } from "./registry";
 export type { OwnedOperation } from "./resolver";
 export {
@@ -66,13 +72,23 @@ export {
 	setSurfaceLoader,
 } from "./runtime";
 export type {
+	SurfaceConfig,
+	SurfaceConfigEntry,
+	SurfaceEntry,
+} from "./surfaces";
+export {
+	$surfaceConfig,
+	availableSurface,
+	availableSurfaces,
+	onSurfacesChanged,
+	surfaceConfigured,
+} from "./surfaces";
+export type {
 	CategoryId,
 	DiscoveryAccess,
 	DomainRef,
 	ExecuteOperationRequest,
 	IdSelection,
-	SurfaceDefinition,
-	SurfaceManifest,
 	ObjectChange,
 	ObjectDefinition,
 	ObjectIndexFile,
@@ -98,16 +114,13 @@ export type {
 	StatisticDefinition,
 	StatisticRole,
 	StatisticWidgetSize,
+	SurfaceDefinition,
+	SurfaceManifest,
 	TypeExpression,
 	ViewDefinition,
 	ViewId,
 	ViewRuntimeProps,
 } from "./types";
-export type {
-	LlmCatalogParameters,
-	SurfaceLlmAction,
-	SurfaceLlmCatalog,
-} from "../llm-catalog";
 export {
 	Category,
 	defineSurface,

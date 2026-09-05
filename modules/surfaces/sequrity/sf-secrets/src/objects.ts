@@ -1,13 +1,11 @@
-import {
-	defineSurface,
-	objectOf,
-	setOf,
-} from "front-core/object-runtime";
+import { defineSurface, objectOf, setOf } from "front-core/object-runtime";
 import { SecretDetailView } from "./views/SecretDetailView";
 import { SecretsListView } from "./views/SecretsListView";
 
 export default defineSurface({
 	id: "sf-secrets",
+	label: "Secrets",
+	purpose: "Stored credentials and secret values",
 	types: [
 		{
 			id: "secrets.secret",

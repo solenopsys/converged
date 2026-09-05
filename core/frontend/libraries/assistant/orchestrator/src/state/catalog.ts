@@ -33,6 +33,8 @@ export type CatalogSource = {
 	modules?: OrchestratorCatalog["listModules"];
 	meta?(key: string): CatalogMeta | undefined;
 	load?(key: string): Promise<ToolSpec["parameters"] | void>;
+	/** Buttons already open in one module; see `OrchestratorCatalog.subtabs`. */
+	subtabs?: OrchestratorCatalog["subtabs"];
 	invoke(
 		key: string,
 		args: Record<string, unknown>,
@@ -256,9 +258,21 @@ export function createConversationCatalog(
 				const counts = new Map<string, number>();
 				const labels = new Map<string, string>();
 				const descriptions = new Map<string, string>();
+				// A source that publishes a module list is stating which sections it
+				// has. That list is the answer — not a set of labels decorating one
+				// derived from the entries. Deriving it put every internal grouping
+				// on the table: `core` (the bare operator vocabulary), and the
+				// shell's own `workspace` controls, neither of which is a place a
+				// user can be taken to.
+				const declared = new Set<string>();
+				const declaring = new Set<string>();
 				for (const source of sources.values()) {
 					if (!(source.available?.() ?? true)) continue;
-					for (const module of source.modules?.() ?? []) {
+					const own = source.modules?.();
+					if (!own) continue;
+					declaring.add(source.id);
+					for (const module of own) {
+						declared.add(module.id);
 						if (!labels.has(module.id)) labels.set(module.id, module.label);
 						if (module.description && !descriptions.has(module.id)) {
 							descriptions.set(module.id, module.description);
@@ -267,9 +281,18 @@ export function createConversationCatalog(
 				}
 				for (const entry of entries.values()) {
 					if (!reachable(entry) || !entry.module) continue;
+					// A source that declared nothing still contributes its modules;
+					// this is what keeps a flat publisher (workflows) addressable.
+					if (declaring.has(entry.source) && !declared.has(entry.module))
+						continue;
 					counts.set(entry.module, (counts.get(entry.module) ?? 0) + 1);
 					if (entry.moduleLabel && !labels.has(entry.module))
 						labels.set(entry.module, entry.moduleLabel);
+				}
+				// A declared section with no entries of its own is still a section:
+				// it is on screen, and a model that cannot name it cannot go there.
+				for (const id of declared) {
+					if (!counts.has(id)) counts.set(id, 0);
 				}
 				return [...counts].map(([id, count]) => ({
 					id,
@@ -311,6 +334,14 @@ export function createConversationCatalog(
 				const found = owner(id);
 				return await found?.source.load?.(found.entry.key);
 			},
+			subtabs: (module) => {
+				for (const source of sources.values()) {
+					if (!(source.available?.() ?? true)) continue;
+					const open = source.subtabs?.(module);
+					if (open?.length) return open;
+				}
+				return [];
+			},
 		};
 	};
 
@@ -333,6 +364,7 @@ export function createConversationCatalog(
 			meta: (id) => live().meta(id),
 			invoke: (id, args) => live().invoke(id, args),
 			load: (id) => live().load?.(id) ?? Promise.resolve(),
+			subtabs: (module) => live().subtabs?.(module) ?? [],
 		},
 		snapshot: () =>
 			viewOf(new Map($functions.getState()), new Map($sources.getState())),

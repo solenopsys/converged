@@ -3,6 +3,8 @@ import { FilesListView } from "./views/FilesListView";
 
 export default defineSurface({
 	id: "sf-files",
+	label: "Files",
+	purpose: "Uploaded files and everything extracted from them",
 	types: [
 		{
 			id: "files.file",

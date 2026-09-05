@@ -29,7 +29,6 @@ import { Composer } from "../ui/Composer";
 import { WithTooltip } from "../ui/tooltip";
 import { ConsoleRoot } from "./ConsoleRoot";
 import { availableChatPanelTabs, resolveChatPanelTab } from "./chat-panel-tabs";
-import { PinnedViews } from "./PinnedViews";
 import {
 	$composerPlacement,
 	$draft,
@@ -49,14 +48,26 @@ import {
 	panelToggled,
 	panelWidthChanged,
 } from "./panel";
+import { SurfaceNav } from "./SurfaceNav";
 import { Surface } from "./SurfaceView";
-import { $currentSurface } from "./surface";
-import { workspaceReset } from "./workspace";
+import {
+	$activeSurface,
+	$pressedSubtab,
+	$surfaceTabs,
+	workspaceReset,
+} from "./workspace";
 import { isConsolePath } from "./workspace-url";
 import "./reference-presenter";
 import "./legacy-widget-presenter";
+import {
+	installWorkspaceReader,
+	registerWorkspaceSurface,
+} from "./workspace-surface";
 
 installEffectorTrafficLogger();
+// Where the user is standing, for the deciding steps to read. Free of charge:
+// it publishes nothing to the catalog.
+installWorkspaceReader();
 
 type ChatModule = typeof import("../chat");
 type Chat = Awaited<ReturnType<ChatModule["initChat"]>>;
@@ -284,7 +295,9 @@ export function AppShell({
 		null,
 	);
 	const inputRef = useRef<HTMLTextAreaElement>(null);
-	const surface = useUnit($currentSurface);
+	// The stage is up as soon as a surface is mounted — a surface with no
+	// button pressed shows its own screen, which is the normal resting state.
+	const surface = useUnit($activeSurface);
 	const placement = useUnit($composerPlacement);
 	const shellPlacement =
 		!landing && placement === "hero" ? "floating" : placement;
@@ -296,9 +309,13 @@ export function AppShell({
 	const panelWidth = useUnit($panelWidth);
 	const isResizing = useUnit($panelResizing);
 	const isAuthenticated = useUserStatus();
+	const surfaceTabs = useUnit($surfaceTabs);
 	const availableTabs = availableChatPanelTabs({
 		isAuthenticated,
 		isDevelopment: devTraceEnabled,
+		// Nothing to navigate to means no menu. For a guest that is the usual
+		// case: the sections it could reach are the ones it is permitted.
+		hasSurfaces: surfaceTabs.length > 0,
 	});
 	const activePanelTab = resolveChatPanelTab(panelTab, availableTabs);
 	const magicPrompts = useMemo(
@@ -308,13 +325,20 @@ export function AppShell({
 
 	useEffect(() => {
 		setActiveSelectionResolver(() => {
-			const active = $currentSurface.getState();
-			return active?.ref?.kind === "set"
-				? { ref: active.ref, tabKey: active.key }
+			const pressed = $pressedSubtab.getState();
+			return pressed?.ref?.kind === "set"
+				? { ref: pressed.ref, tabKey: pressed.key }
 				: null;
 		});
 		return () => setActiveSelectionResolver(undefined);
 	}, []);
+
+	// The shell's own navigation, callable like any other function — this is what
+	// lets an orchestrator step commit its choice to the screen. Skipped for the
+	// old flow, which would only see three more entries it never calls.
+	useEffect(() => {
+		if (!config.functionFlow) registerWorkspaceSurface();
+	}, [config.functionFlow]);
 
 	useEffect(() => {
 		warmUpChat(config);
@@ -546,7 +570,7 @@ export function AppShell({
 								</div>
 							)
 						) : null}
-						{activePanelTab === "views" ? <PinnedViews /> : null}
+						{activePanelTab === "navigation" ? <SurfaceNav /> : null}
 						{activePanelTab === "events" ? (
 							panelEvents.length > 0 ? (
 								<ol class="panel-events">

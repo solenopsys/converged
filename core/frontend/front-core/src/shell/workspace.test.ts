@@ -1,64 +1,224 @@
 import { beforeEach, describe, expect, test } from "bun:test";
+import { objectRegistry, surfaceConfigured } from "front-core/object-runtime";
 import {
-	$activeWorkspaceTab,
-	$workspaceTabs,
+	$activeSubtabs,
+	$activeSurface,
+	$pressedSubtab,
+	$surfaceTabs,
+	subtabActivated,
+	subtabClosed,
+	subtabOpened,
+	subtabReleased,
+	surfaceActivated,
+	surfaceMounted,
+	surfacePinToggled,
 	workspaceReset,
-	workspaceTabActivated,
-	workspaceTabOpened,
-	workspaceTabPinToggled,
 } from "./workspace";
 
 const View = () => null;
 
-function open(
-	key: string,
-	pinned = false,
-	source: "assistant" | "user" = "user",
+function declare(
+	id: string,
+	label: string,
+	access: "public" | "user" = "public",
 ): void {
-	workspaceTabOpened({
+	objectRegistry.declare(id, {
+		id,
+		label,
+		purpose: `Test surface ${label}`,
+		types: [],
+		views: [],
+		// A surface is offered only when the session can reach something in it,
+		// so a fixture needs one discoverable operation to exist at all.
+		operations: [
+			{
+				id: `${id}.probe`,
+				operator: "execute",
+				label: `${label} probe`,
+				access,
+			},
+		],
+	});
+}
+
+declare("sf-orders", "Orders");
+declare("sf-companies", "Companies");
+
+function open(surface: string, key: string, permanent = false): void {
+	subtabOpened({
 		key,
-		owner: key.split(".", 1)[0] ?? key,
+		surface,
 		title: key,
 		view: View,
 		props: {},
-		...(pinned ? { pinned: true } : {}),
-		source,
+		...(permanent ? { permanent: true } : {}),
 	});
 }
 
 describe("workspace", () => {
-	beforeEach(() => workspaceReset());
-
-	test("keeps pinned tabs and replaces transient tabs for an assistant presentation", () => {
-		open("orders.list", true);
-		open("orders.detail.42");
-		open("companies.list", false, "assistant");
-
-		expect($workspaceTabs.getState().map((tab) => tab.key)).toEqual([
-			"orders.list",
-			"companies.list",
-		]);
-		expect($activeWorkspaceTab.getState()?.key).toBe("companies.list");
+	beforeEach(() => {
+		workspaceReset();
+		surfaceConfigured({
+			surfaces: [
+				{ id: "sf-orders", order: 1 },
+				{ id: "sf-companies", order: 2 },
+			],
+		});
 	});
 
-	test("reopens an existing tab without losing its pin", () => {
-		open("orders.list");
-		workspaceTabPinToggled("orders.list");
-		open("orders.list");
+	test("opening something presses a button inside its own surface", () => {
+		open("sf-orders", "orders.list");
+		open("sf-orders", "orders.detail.42");
 
-		expect($workspaceTabs.getState()).toHaveLength(1);
-		expect($workspaceTabs.getState()[0]?.pinned).toBe(true);
-	});
-
-	test("activates an existing tab without changing its order", () => {
-		open("orders.list");
-		open("orders.detail.42");
-		workspaceTabActivated("orders.list");
-
-		expect($activeWorkspaceTab.getState()?.key).toBe("orders.list");
-		expect($workspaceTabs.getState().map((tab) => tab.key)).toEqual([
+		// One tab, two buttons — not two tabs.
+		expect($surfaceTabs.getState().map((tab) => tab.id)).toEqual(["sf-orders"]);
+		expect($activeSubtabs.getState().map((subtab) => subtab.key)).toEqual([
 			"orders.list",
 			"orders.detail.42",
 		]);
+		expect($pressedSubtab.getState()?.key).toBe("orders.detail.42");
+	});
+
+	test("a second surface is a second tab, and each keeps its own pressed button", () => {
+		open("sf-orders", "orders.list");
+		open("sf-companies", "companies.list");
+		surfaceActivated("sf-orders");
+
+		expect($activeSurface.getState()).toBe("sf-orders");
+		expect($pressedSubtab.getState()?.key).toBe("orders.list");
+
+		surfaceActivated("sf-companies");
+		expect($pressedSubtab.getState()?.key).toBe("companies.list");
+	});
+
+	test("a mounted surface with nothing pressed shows its own screen", () => {
+		surfaceMounted("sf-orders");
+
+		expect($activeSurface.getState()).toBe("sf-orders");
+		expect($pressedSubtab.getState()).toBeNull();
+		expect($surfaceTabs.getState()[0]?.pressed).toBeNull();
+	});
+
+	test("releasing a button returns to the surface, keeping the tab", () => {
+		open("sf-orders", "orders.list");
+		subtabReleased("sf-orders");
+
+		expect($activeSurface.getState()).toBe("sf-orders");
+		expect($pressedSubtab.getState()).toBeNull();
+		expect($activeSubtabs.getState()).toHaveLength(1);
+	});
+
+	test("closing the pressed button releases the bar instead of pressing a neighbour", () => {
+		open("sf-orders", "orders.list");
+		open("sf-orders", "orders.detail.42");
+		subtabClosed("orders.detail.42");
+
+		expect($pressedSubtab.getState()).toBeNull();
+		expect($activeSubtabs.getState().map((subtab) => subtab.key)).toEqual([
+			"orders.list",
+		]);
+	});
+
+	test("reopening the same thing reuses its button", () => {
+		open("sf-orders", "orders.list");
+		open("sf-orders", "orders.list");
+
+		expect($activeSubtabs.getState()).toHaveLength(1);
+	});
+
+	test("pinning keeps a surface in the strip with nothing open in it", () => {
+		surfacePinToggled("sf-companies");
+
+		const tabs = $surfaceTabs.getState();
+		expect(tabs.map((tab) => tab.id)).toEqual(["sf-companies"]);
+		expect(tabs[0]?.pinned).toBe(true);
+	});
+
+	test("dynamic buttons are capped, permanent ones are not", () => {
+		open("sf-orders", "orders.view", true);
+		for (let index = 0; index < 12; index += 1) {
+			open("sf-orders", `orders.detail.${index}`);
+		}
+
+		const keys = $activeSubtabs.getState().map((subtab) => subtab.key);
+		expect(keys).toContain("orders.view");
+		expect(keys.filter((key) => key !== "orders.view")).toHaveLength(8);
+		expect(keys).not.toContain("orders.detail.0");
+		expect(keys).toContain("orders.detail.11");
+	});
+
+	test("a surface the configuration does not list is not offered", () => {
+		surfaceConfigured({ surfaces: [{ id: "sf-orders" }] });
+		// Pinning is the offer: an unlisted surface cannot be put in the strip
+		// this way. Opening one still can, and that is tested separately —
+		// being offered and being open are different questions.
+		surfacePinToggled("sf-companies");
+
+		expect($surfaceTabs.getState().map((tab) => tab.id)).toEqual([]);
+	});
+
+	test("activating a button switches to its surface", () => {
+		open("sf-orders", "orders.list");
+		open("sf-companies", "companies.list");
+		subtabActivated("orders.list");
+
+		expect($activeSurface.getState()).toBe("sf-orders");
+	});
+});
+
+describe("the strip follows the registry", () => {
+	test("a surface declared after start-up appears without anything re-mounting", () => {
+		workspaceReset();
+		surfaceConfigured({
+			surfaces: [
+				{ id: "sf-orders", order: 1 },
+				{ id: "sf-late", order: 2 },
+			],
+		});
+		surfacePinToggled("sf-orders");
+		expect($surfaceTabs.getState().map((tab) => tab.id)).toEqual(["sf-orders"]);
+
+		declare("sf-late", "Late");
+		surfacePinToggled("sf-late");
+
+		// Without a revision the combine would be stale here and the tab strip
+		// would keep showing the answer it computed before the surface existed.
+		expect($surfaceTabs.getState().map((tab) => tab.id)).toEqual([
+			"sf-orders",
+			"sf-late",
+		]);
+	});
+});
+
+describe("authorization decides what is offered", () => {
+	test("a surface needing an account is still offered to a guest", () => {
+		workspaceReset();
+		declare("sf-private", "Private", "user");
+		surfaceConfigured({
+			surfaces: [{ id: "sf-orders" }, { id: "sf-private" }],
+		});
+		surfacePinToggled("sf-orders");
+		surfacePinToggled("sf-private");
+
+		// Authorization here is a step in the flow, not a filter on it. The guest
+		// is shown the section and signs in when they try to open it; hiding it
+		// instead leaves them with nothing to click and no way to reach the
+		// prompt — the turn just ends in words.
+		expect($surfaceTabs.getState().map((tab) => tab.id)).toEqual([
+			"sf-orders",
+			"sf-private",
+		]);
+	});
+
+	test("a surface already open stays in the strip even when it stops being offered", () => {
+		workspaceReset();
+		surfaceConfigured({ surfaces: [{ id: "sf-orders" }] });
+		open("sf-unlisted", "unlisted.view");
+
+		// It is on screen: dropping its tab would leave the user looking at a
+		// screen they cannot navigate away from.
+		expect($surfaceTabs.getState().map((tab) => tab.id)).toContain(
+			"sf-unlisted",
+		);
 	});
 });

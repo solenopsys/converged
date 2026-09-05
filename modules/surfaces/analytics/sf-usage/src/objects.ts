@@ -6,6 +6,8 @@ import { UsageStatsView } from "./views/UsageStatsView";
 
 export default defineSurface({
 	id: "sf-usage",
+	label: "Usage",
+	purpose: "Consumption records per tenant: what was used and how much",
 	types: [
 		{
 			id: "usage.record",

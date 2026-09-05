@@ -4,7 +4,7 @@ import {
 	type SetRef,
 	type ViewDefinition,
 } from "front-core/object-runtime";
-import { $activeWorkspaceTab, workspaceReset } from "./workspace";
+import { $pressedSubtab, workspaceReset } from "./workspace";
 import "./reference-presenter";
 
 const View = () => null;
@@ -27,7 +27,7 @@ describe("reference presenter", () => {
 	test("passes the domain reference as a regular component prop", () => {
 		referencePresented({ ref: reference, view, options: {} });
 
-		expect($activeWorkspaceTab.getState()?.props).toMatchObject({ reference });
-		expect($activeWorkspaceTab.getState()?.props.ref).toBeUndefined();
+		expect($pressedSubtab.getState()?.props).toMatchObject({ reference });
+		expect($pressedSubtab.getState()?.props.ref).toBeUndefined();
 	});
 });

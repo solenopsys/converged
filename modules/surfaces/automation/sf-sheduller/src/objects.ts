@@ -12,6 +12,8 @@ import { StatsView } from "./views/StatsView";
 
 export default defineSurface({
 	id: "sf-sheduller",
+	label: "Schedules",
+	purpose: "Recurring jobs, their cron schedules and run history",
 	types: [
 		{
 			id: "scheduler.cron",

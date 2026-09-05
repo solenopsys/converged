@@ -6,6 +6,8 @@ import { TelemetryView } from "./views/TelemetryView";
 
 export default defineSurface({
 	id: "sf-telemetry",
+	label: "Telemetry",
+	purpose: "Service telemetry: timings, volumes and error rates",
 	types: [
 		{
 			id: "telemetry.entry",

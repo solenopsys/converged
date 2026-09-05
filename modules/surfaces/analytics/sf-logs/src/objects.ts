@@ -6,6 +6,8 @@ import { LogsView } from "./views/LogsView";
 
 export default defineSurface({
 	id: "sf-logs",
+	label: "Logs",
+	purpose: "Application log entries, hot and cold, and log statistics",
 	types: [
 		{
 			id: "logs.entry",

@@ -8,6 +8,8 @@ function fixture() {
 	const registry = new ObjectRegistry();
 	registry.register("sf-companies", {
 		id: "sf-companies",
+		label: "Companies",
+		purpose: "Test surface companies",
 		types: [
 			{
 				id: "companies.company",
@@ -32,6 +34,8 @@ function fixture() {
 	});
 	registry.register("sf-sales", {
 		id: "sf-sales",
+		label: "Sales",
+		purpose: "Test surface sales",
 		types: [
 			{
 				id: "sales.outreach",
@@ -54,6 +58,8 @@ function fixture() {
 	});
 	registry.register("sf-outreach-view", {
 		id: "sf-outreach-view",
+		label: "Outreach View",
+		purpose: "Test surface outreach view",
 		types: [],
 		views: [
 			{
@@ -72,6 +78,8 @@ describe("ObjectResolver", () => {
 		const { registry, resolver } = fixture();
 		registry.register("sf-public", {
 			id: "sf-public",
+			label: "Public",
+			purpose: "Test surface public",
 			types: [
 				{
 					id: "public.notice",
@@ -80,7 +88,14 @@ describe("ObjectResolver", () => {
 					access: "public",
 				},
 			],
-			views: [],
+			// A selectable type with nowhere to render it is not a candidate: the
+			// resolver drops it, so the fixture has to give it its set view.
+			views: [
+				{
+					id: "public.notice.table",
+					accepts: { kind: "set", type: "public.notice" },
+				},
+			],
 			operations: [],
 		});
 		setOperationAuthorizationController({
@@ -150,6 +165,8 @@ describe("ObjectResolver", () => {
 		let visible = false;
 		registry.register("sf-session", {
 			id: "sf-session",
+			label: "Session",
+			purpose: "Test surface session",
 			types: [
 				{
 					id: "auth.session",
@@ -188,9 +205,7 @@ describe("ObjectResolver", () => {
 			"companies.company",
 		);
 		expect(
-			resolver.resolveView(
-				setRef("companies.company", { kind: "query" }),
-			)?.id,
+			resolver.resolveView(setRef("companies.company", { kind: "query" }))?.id,
 		).toBe("companies.companies");
 	});
 
@@ -198,6 +213,8 @@ describe("ObjectResolver", () => {
 		const { registry, resolver } = fixture();
 		registry.register("sf-contexts", {
 			id: "sf-contexts",
+			label: "Contexts",
+			purpose: "Test surface contexts",
 			types: [{ id: "contexts.context", label: "Context" }],
 			views: [],
 			operations: [],
@@ -223,6 +240,8 @@ describe("ObjectResolver.operationsFor", () => {
 		const { registry, resolver } = fixture();
 		registry.register("sf-noise", {
 			id: "sf-noise",
+			label: "Noise",
+			purpose: "Test surface noise",
 			types: [],
 			views: [],
 			operations: [

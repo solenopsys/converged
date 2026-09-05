@@ -1,5 +1,5 @@
 import { widgetPresented } from "front-core/core";
-import { workspaceTabOpened } from "./workspace";
+import { subtabOpened } from "./workspace";
 
 widgetPresented.watch(({ params, widget, tab }) => {
 	const View = widget.view;
@@ -11,12 +11,11 @@ widgetPresented.watch(({ params, widget, tab }) => {
 		]),
 	);
 
-	workspaceTabOpened({
+	subtabOpened({
 		key: tab?.key ?? `legacy:${viewName}`,
-		owner: "legacy",
+		surface: "legacy",
 		title: tab?.title ?? viewName,
 		view: View,
 		props: { ...widget.config, ...params, ...commands },
-		...(tab?.pinned === undefined ? {} : { pinned: tab.pinned }),
 	});
 });

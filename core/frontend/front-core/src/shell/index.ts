@@ -11,11 +11,6 @@ export {
 export { bootstrapAppShell } from "./bootstrap";
 export { ConsoleRoot } from "./ConsoleRoot";
 export {
-	loadSurface,
-	loadSurfaceForOperation,
-	loadSurfaceForType,
-} from "./sf";
-export {
 	$composerPlacement,
 	$draft,
 	$panelOpen,
@@ -30,7 +25,11 @@ export {
 export { type OpenRecordTabRequest, openRecordTab } from "./record-tabs";
 export { Surface } from "./SurfaceView";
 export {
-	$canGoBack,
+	loadSurface,
+	loadSurfaceForOperation,
+	loadSurfaceForType,
+} from "./sf";
+export {
 	$currentSurface,
 	$surfaceStack,
 	closeSurface,
@@ -53,19 +52,24 @@ export {
 	workspaceTabActionInvoked,
 } from "./tab-actions";
 export { WorkspaceTopBar } from "./WorkspaceTopBar";
-export type { OpenWorkspaceTab, WorkspaceTab } from "./workspace";
+export type { OpenSubtab, SurfaceTab, WorkspaceSubtab } from "./workspace";
 export {
-	$activeWorkspaceTab,
-	$activeWorkspaceTabKey,
+	$activeSubtabs,
+	$activeSurface,
+	$pressedSubtab,
+	$surfaceTabs,
 	$workspace,
-	$workspaceTabs,
-	activeWorkspaceTabClosed,
+	$workspaceMounted,
+	$workspaceSubtabs,
+	subtabActivated,
+	subtabClosed,
+	subtabOpened,
+	subtabReleased,
+	surfaceActivated,
+	surfaceClosed,
+	surfaceMounted,
+	surfacePinToggled,
 	workspaceReset,
-	workspaceTabActivated,
-	workspaceTabClosed,
-	workspaceTabOpened,
-	workspaceTabPinToggled,
-	workspaceUnpinnedTabsCleared,
 } from "./workspace";
 export {
 	bootstrapWorkspaceUrl,

@@ -6,6 +6,8 @@ import { ClassifierTreeView } from "./views/ClassifierTreeView";
 
 export default defineSurface({
 	id: "sf-classifier",
+	label: "Classifier",
+	purpose: "Classification tree and the mappings that place things in it",
 	types: [
 		{
 			id: "classifier.node",

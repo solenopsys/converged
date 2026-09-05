@@ -2,9 +2,88 @@
 
 .surface {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  /* Tabs, then the button bar, then the stage. The bar keeps its row even when
+     it renders nothing, so pressing and releasing a button does not shift the
+     content under the pointer. */
+  grid-template-rows: auto auto minmax(0, 1fr);
   height: 100dvh;
   background: var(--hw-canvas);
+}
+
+.subtab-bar {
+  display: flex;
+  gap: var(--hw-space-1);
+  align-items: center;
+  padding: var(--hw-space-2) var(--hw-space-4);
+  border-bottom: 1px solid var(--hw-panel-border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.subtab {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.subtab[data-pressed="true"] {
+  background: color-mix(in srgb, var(--hw-focus) 14%, transparent);
+}
+
+.subtab-select {
+  padding: var(--hw-space-1) var(--hw-space-3);
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--hw-ink-muted);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.subtab[data-pressed="true"] .subtab-select {
+  color: var(--hw-ink);
+}
+
+.subtab-close {
+  display: grid;
+  place-items: center;
+  width: calc(var(--hw-unit) * 4);
+  height: calc(var(--hw-unit) * 4);
+  margin-right: 4px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--hw-ink-muted);
+  opacity: 0;
+  cursor: pointer;
+}
+
+.subtab:hover .subtab-close,
+.subtab-close:focus-visible {
+  opacity: 1;
+}
+
+.subtab-select:hover,
+.subtab-select:focus-visible,
+.subtab-close:hover {
+  outline: 0;
+  color: var(--hw-focus);
+}
+
+.surface-home {
+  padding: var(--hw-space-6) var(--hw-space-4);
+}
+
+.surface-home h1 {
+  margin: 0 0 var(--hw-space-2);
+}
+
+.surface-home p {
+  margin: 0;
+  color: var(--hw-ink-muted);
 }
 
 .surface-content {

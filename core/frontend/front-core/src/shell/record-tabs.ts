@@ -1,32 +1,28 @@
 import type { ComponentType } from "preact";
-import { workspaceTabOpened } from "./workspace";
+import { subtabOpened } from "./workspace";
 
 export type OpenRecordTabRequest<TProps extends Record<string, unknown>> = {
-
-	owner: string;
-
+	/** The surface this record belongs to — the tab its button appears under. */
+	surface: string;
 	recordId: string;
 	title: string;
 	view: ComponentType<TProps>;
 	props?: TProps;
-	pinned?: boolean;
 };
 
-
+/** Opens one record as a button inside its own surface, not as a new tab. */
 export function openRecordTab<TProps extends Record<string, unknown>>({
-	owner,
+	surface,
 	recordId,
 	title,
 	view,
 	props,
-	pinned,
 }: OpenRecordTabRequest<TProps>): void {
-	workspaceTabOpened({
-		key: `${owner}:${recordId}`,
-		owner,
+	subtabOpened({
+		key: `${surface}:${recordId}`,
+		surface,
 		title,
 		view: view as ComponentType<Record<string, unknown>>,
 		props: props ?? ({} as TProps),
-		...(pinned === undefined ? {} : { pinned }),
 	});
 }

@@ -70,6 +70,9 @@ async function analyzeRequestFiles(requestId: string): Promise<void> {
 
 export default defineSurface({
 	id: "sf-requests",
+	label: "Requests",
+	purpose:
+		"Manufacturing requests from files and specs, before they become orders",
 	types: [
 		{
 			id: "requests.request",

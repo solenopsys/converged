@@ -1,14 +1,12 @@
-import {
-	defineSurface,
-	objectOf,
-	setOf,
-} from "front-core/object-runtime";
+import { defineSurface, objectOf, setOf } from "front-core/object-runtime";
 import { DumpsView } from "./views/DumpsView";
 import { StorageDashboardView } from "./views/StorageDashboardView";
 import { StoragesView } from "./views/StoragesView";
 
 export default defineSurface({
 	id: "sf-dumps",
+	label: "Dumps",
+	purpose: "Database dumps and the storages they are kept in",
 	types: [
 		{
 			id: "dumps.dump",

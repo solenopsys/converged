@@ -10,6 +10,8 @@ import { MdListView } from "./views/MdListView";
 
 export default defineSurface({
 	id: "sf-markdown",
+	label: "Markdown",
+	purpose: "Markdown documents and their editor",
 	types: [
 		{
 			id: "markdown.document",

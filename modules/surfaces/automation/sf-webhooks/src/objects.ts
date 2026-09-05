@@ -10,6 +10,8 @@ import { WebhookLogsView } from "./views/WebhookLogsView";
 
 export default defineSurface({
 	id: "sf-webhooks",
+	label: "Webhooks",
+	purpose: "Incoming webhook endpoints and their delivery log",
 	types: [
 		{
 			id: "webhooks.endpoint",

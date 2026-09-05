@@ -106,14 +106,25 @@ export const localized = (
 const CORE_MODULE = "core";
 
 /**
- * `sf-sales` reads as "Sales" to a user and to a routing model alike. A module
- * that wants a different name says so in its manifest; until then the id is the
- * only fact there is, and deriving beats showing `sf-sales` in the transcript.
+ * A surface declares its own name (`SurfaceDefinition.label`), localized
+ * through its own messages. Deriving one from the id stays as the fallback for
+ * the shell's own pseudo-module `core`, which is not a surface and has no
+ * manifest to declare anything in.
  */
 export function moduleLabel(module: string): string {
+	const surface = objectRegistry.surface(module);
+	if (surface)
+		return localized(module, surface.labelKey, surface.label) ?? surface.label;
 	const bare = module.replace(/^sf-/, "").replace(/[-_]+/g, " ").trim();
 	if (!bare) return module;
 	return bare.replace(/(^|\s)\S/g, (char) => char.toUpperCase());
+}
+
+/** The surface's own line about what it is for; localized like its label. */
+export function modulePurpose(module: string): string | undefined {
+	const surface = objectRegistry.surface(module);
+	if (!surface) return undefined;
+	return localized(module, surface.purposeKey, surface.purpose);
 }
 
 /**

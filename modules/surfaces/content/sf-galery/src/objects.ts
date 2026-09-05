@@ -3,6 +3,8 @@ import { GaleryListView } from "./views/GaleryListView";
 
 export default defineSurface({
 	id: "sf-galery",
+	label: "Gallery",
+	purpose: "Image and media assets",
 	types: [
 		{
 			id: "gallery.asset",

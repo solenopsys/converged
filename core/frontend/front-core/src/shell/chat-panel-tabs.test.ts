@@ -2,14 +2,14 @@ import { describe, expect, test } from "bun:test";
 import { availableChatPanelTabs, resolveChatPanelTab } from "./chat-panel-tabs";
 
 describe("chat panel tabs", () => {
-	test("a guest sees only chat in production", () => {
+	test("a guest still gets the menu: navigation is not gated on a session", () => {
 		const tabs = availableChatPanelTabs({
 			isAuthenticated: false,
 			isDevelopment: false,
 		});
 
-		expect(tabs.map((tab) => tab.id)).toEqual(["chat"]);
-		expect(resolveChatPanelTab("views", tabs)).toBe("chat");
+		expect(tabs.map((tab) => tab.id)).toEqual(["navigation", "chat"]);
+		expect(resolveChatPanelTab("events", tabs)).toBe("chat");
 	});
 
 	test("a guest retains the development log", () => {
@@ -18,7 +18,7 @@ describe("chat panel tabs", () => {
 			isDevelopment: true,
 		});
 
-		expect(tabs.map((tab) => tab.id)).toEqual(["chat", "trace"]);
+		expect(tabs.map((tab) => tab.id)).toEqual(["navigation", "chat", "trace"]);
 	});
 
 	test("an account sees the authenticated tabs", () => {
@@ -27,6 +27,6 @@ describe("chat panel tabs", () => {
 			isDevelopment: false,
 		});
 
-		expect(tabs.map((tab) => tab.id)).toEqual(["views", "chat", "events"]);
+		expect(tabs.map((tab) => tab.id)).toEqual(["navigation", "chat", "events"]);
 	});
 });

@@ -20,6 +20,8 @@ export const objects = [
 
 export default defineSurface({
 	id: ContextObject.surface,
+	label: "Contexts",
+	purpose: "Prompt contexts the assistant is given before it answers",
 	types: objects,
 	views: [
 		{

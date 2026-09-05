@@ -18,6 +18,8 @@ import { Category, OPERATORS } from "./types";
 beforeAll(() => {
 	objectRegistry.declare("sf-companies", {
 		id: "sf-companies",
+		label: "Companies",
+		purpose: "Test surface companies",
 		types: [
 			{
 				id: "companies.company",
@@ -67,6 +69,8 @@ describe("operator catalog", () => {
 		});
 		objectRegistry.register("sf-localized-probe", {
 			id: "sf-localized-probe",
+			label: "Localized Probe",
+			purpose: "Test surface localized probe",
 			types: [{ id: "probe.localized", label: "Localized probe" }],
 			views: [],
 			operations: [
@@ -144,6 +148,8 @@ describe("operator catalog", () => {
 	test("select candidate without service filters still has a valid selection command", () => {
 		objectRegistry.register("sf-unfiltered-probe", {
 			id: "sf-unfiltered-probe",
+			label: "Unfiltered Probe",
+			purpose: "Test surface unfiltered probe",
 			types: [
 				{
 					id: "probe.unfiltered",
@@ -189,6 +195,8 @@ describe("operator catalog", () => {
 	test("an incoming-mail hint finds the mail selection instead of generic open", () => {
 		objectRegistry.register("sf-mail-search-probe", {
 			id: "sf-mail-search-probe",
+			label: "Mail Search Probe",
+			purpose: "Test surface mail search probe",
 			types: [
 				{
 					id: "mail-search.incoming",
@@ -228,6 +236,8 @@ describe("operator catalog", () => {
 		live.self = live;
 		objectRegistry.register("sf-probe", {
 			id: "sf-probe",
+			label: "Probe",
+			purpose: "Test surface probe",
 			types: [],
 			views: [],
 			operations: [
@@ -254,6 +264,8 @@ describe("operator catalog", () => {
 	test("select returns a set reference and compact statistics", async () => {
 		objectRegistry.register("sf-select-probe", {
 			id: "sf-select-probe",
+			label: "Select Probe",
+			purpose: "Test surface select probe",
 			types: [
 				{
 					id: "probe.item",
@@ -364,6 +376,8 @@ describe("operator catalog", () => {
 		beforeAll(() => {
 			objectRegistry.register("sf-compose-probe", {
 				id: "sf-compose-probe",
+				label: "Compose Probe",
+				purpose: "Test surface compose probe",
 				types: [
 					{
 						id: "probe.campaign",

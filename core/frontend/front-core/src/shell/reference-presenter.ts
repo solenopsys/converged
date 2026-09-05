@@ -1,7 +1,7 @@
 import { bus } from "front-core/core";
 import type { DomainRef } from "front-core/object-runtime";
 import { objectRegistry, referencePresented } from "front-core/object-runtime";
-import { workspaceTabOpened } from "./workspace";
+import { subtabOpened } from "./workspace";
 
 function selectionKey(ref: DomainRef): string {
 	if (ref.kind === "object") return ref.id;
@@ -16,9 +16,12 @@ referencePresented.watch(({ ref, view, options }) => {
 	const type = objectRegistry.type(ref.type);
 	const View = view.component;
 	if (!View) return;
-	workspaceTabOpened({
+	// Presenting something is pressing a button inside the tab that owns it, not
+	// opening a tab of its own. The owner has been recorded here all along; it is
+	// the surface, and this is the one line that makes the second level real.
+	subtabOpened({
 		key: options.key ?? `${ref.kind}:${ref.type}:${selectionKey(ref)}`,
-		owner: type?.owner ?? ref.type.split(".", 1)[0] ?? "workspace",
+		surface: type?.owner ?? ref.type.split(".", 1)[0] ?? "workspace",
 		title:
 			options.title ??
 			ref.title ??
@@ -28,7 +31,6 @@ referencePresented.watch(({ ref, view, options }) => {
 		props: { reference: ref, bus, ...(view.props?.(ref) ?? {}) },
 		ref,
 		viewId: view.id,
-		...(options.pinned === undefined ? {} : { pinned: options.pinned }),
 		...(options.source === undefined ? {} : { source: options.source }),
 	});
 });

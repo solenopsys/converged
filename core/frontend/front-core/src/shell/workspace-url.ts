@@ -1,9 +1,9 @@
 import { type DomainRef, presentReference } from "front-core/object-runtime";
 import {
-	$activeWorkspaceTab,
-	$workspaceTabs,
+	$pressedSubtab,
+	$workspaceSubtabs,
+	subtabActivated,
 	workspaceReset,
-	workspaceTabActivated,
 } from "./workspace";
 
 export const CONSOLE_PATH = "/console/";
@@ -56,11 +56,11 @@ async function restoreFromLocation(): Promise<void> {
 		if (isConsolePath(window.location.pathname)) workspaceReset();
 		return;
 	}
-	const matched = $workspaceTabs
+	const matched = $workspaceSubtabs
 		.getState()
-		.find((tab) => tab.ref && sameReference(tab.ref, ref));
+		.find((subtab) => subtab.ref && sameReference(subtab.ref, ref));
 	if (matched) {
-		workspaceTabActivated(matched.key);
+		subtabActivated(matched.key);
 		return;
 	}
 
@@ -79,9 +79,11 @@ export function bootstrapWorkspaceUrl(): void {
 	if (installed || typeof window === "undefined") return;
 	installed = true;
 
-	$activeWorkspaceTab.updates.watch((tab) => {
+	// The address is the pressed subtab: the surface alone is a place to look,
+	// while the reference is the thing being looked at.
+	$pressedSubtab.updates.watch((subtab) => {
 		if (restoring) return;
-		const next = urlForReference(window.location.href, tab?.ref ?? null);
+		const next = urlForReference(window.location.href, subtab?.ref ?? null);
 		const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
 		if (current !== next)
 			window.history.pushState(window.history.state, "", next);

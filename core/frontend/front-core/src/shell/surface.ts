@@ -1,20 +1,25 @@
 import {
-	$activeWorkspaceTab,
-	$workspaceTabs,
-	activeWorkspaceTabClosed,
+	$activeSubtabs,
+	$activeSurface,
+	$pressedSubtab,
+	subtabClosed,
+	subtabOpened,
+	subtabReleased,
 	workspaceReset,
-	workspaceTabClosed,
-	workspaceTabOpened,
 } from "./workspace";
 
-export type SurfaceEntry = import("./workspace").WorkspaceTab;
+export type SurfaceEntry = import("./workspace").WorkspaceSubtab;
 
-// Compatibility aliases while callers move from a stack vocabulary to workspace tabs.
-export const pushSurface = workspaceTabOpened;
-export const replaceSurface = workspaceTabOpened;
-export const popSurface = activeWorkspaceTabClosed;
-export const closeSurface = workspaceTabClosed;
+// Compatibility aliases for callers still speaking the old stack vocabulary.
+// They now act on the second level: what used to be "push a surface" is
+// "press a button inside one".
+export const pushSurface = subtabOpened;
+export const replaceSurface = subtabOpened;
+export const popSurface = () => {
+	const surface = $activeSurface.getState();
+	if (surface) subtabReleased(surface);
+};
+export const closeSurface = subtabClosed;
 export const resetSurfaces = workspaceReset;
-export const $surfaceStack = $workspaceTabs;
-export const $currentSurface = $activeWorkspaceTab;
-export const $canGoBack = $workspaceTabs.map((tabs) => tabs.length > 1);
+export const $surfaceStack = $activeSubtabs;
+export const $currentSurface = $pressedSubtab;

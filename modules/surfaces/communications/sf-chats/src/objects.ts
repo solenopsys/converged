@@ -1,14 +1,12 @@
-import {
-	defineSurface,
-	objectOf,
-	setOf,
-} from "front-core/object-runtime";
+import { defineSurface, objectOf, setOf } from "front-core/object-runtime";
 import { chatsClient } from "./services";
 import { ChatRoomsListView } from "./views/ChatRoomsListView";
 import { ChatRoomView } from "./views/ChatRoomView";
 
 export default defineSurface({
 	id: "sf-chats",
+	label: "Chats",
+	purpose: "Chat conversations with visitors and customers",
 	types: [
 		{
 			id: "chats.chat",

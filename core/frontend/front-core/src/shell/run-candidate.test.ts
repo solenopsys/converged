@@ -15,6 +15,8 @@ beforeAll(() => {
 	setSurfaceLoader(async () => {});
 	objectRegistry.register("sf-mailing", {
 		id: "sf-mailing",
+		label: "Mailing",
+		purpose: "Test surface mailing",
 		types: [
 			{ id: "mailing.mail", label: "Mail", categories: [Category.Creatable] },
 			{ id: "calls.call", label: "Call", categories: [Category.Creatable] },

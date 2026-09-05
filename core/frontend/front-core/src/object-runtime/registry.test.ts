@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { ObjectRegistry } from "./registry";
 
-describe("object registry module metadata", () => {
-	test("keeps module descriptions from the object index LLM catalog", () => {
+describe("object registry surface identity", () => {
+	test("a declared surface names itself before its module is loaded", () => {
 		const registry = new ObjectRegistry();
 		registry.ingest({
 			modules: {
@@ -10,6 +10,8 @@ describe("object registry module metadata", () => {
 					module: "sf-sales",
 					manifest: {
 						id: "sf-sales",
+						label: "Sales",
+						purpose: "Leads, contacts, audiences and campaigns",
 						types: [],
 						views: [],
 						operations: [],
@@ -29,12 +31,21 @@ describe("object registry module metadata", () => {
 			},
 		});
 
+		expect(registry.surface("sf-sales")).toEqual({
+			id: "sf-sales",
+			label: "Sales",
+			purpose: "Leads, contacts, audiences and campaigns",
+			hidden: false,
+			loaded: false,
+		});
+		// The purpose is the surface's own line. It used to be every action
+		// description joined by "; " — a paragraph where one line was needed.
 		expect(registry.moduleDescription("sf-sales")).toBe(
-			"Show leads selected for a campaign",
+			"Leads, contacts, audiences and campaigns",
 		);
 	});
 
-	test("prefers an explicit module description", () => {
+	test("registering the module marks the same surface loaded", () => {
 		const registry = new ObjectRegistry();
 		registry.ingest({
 			modules: {
@@ -42,20 +53,27 @@ describe("object registry module metadata", () => {
 					module: "sf-sales",
 					manifest: {
 						id: "sf-sales",
+						label: "Sales",
+						purpose: "Leads, contacts, audiences and campaigns",
 						types: [],
 						views: [],
 						operations: [],
 					},
-					llm: {
-						description: "Leads, contacts, audiences and campaigns",
-						actions: {},
-					},
+					llm: { actions: {} },
 				},
 			},
 		});
 
-		expect(registry.moduleDescription("sf-sales")).toBe(
-			"Leads, contacts, audiences and campaigns",
-		);
+		registry.register("sf-sales", {
+			id: "sf-sales",
+			label: "Sales",
+			purpose: "Leads, contacts, audiences and campaigns",
+			types: [],
+			views: [],
+			operations: [],
+		});
+
+		expect(registry.surface("sf-sales")?.loaded).toBe(true);
+		expect(registry.allSurfaces()).toHaveLength(1);
 	});
 });

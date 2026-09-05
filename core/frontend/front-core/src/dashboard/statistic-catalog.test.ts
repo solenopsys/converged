@@ -19,6 +19,8 @@ beforeAll(() => {
 	// A surface split into blocks: one type per chart.
 	registerSurface({
 		id: "sf-companies",
+		label: "Companies",
+		purpose: "Test surface companies",
 		types: [
 			{
 				id: "companies.statistic.summary",
@@ -51,6 +53,8 @@ beforeAll(() => {
 	// A surface still on one statistics screen for the whole service.
 	registerSurface({
 		id: "sf-logs",
+		label: "Logs",
+		purpose: "Test surface logs",
 		types: [
 			{
 				id: "logs.statistic",
@@ -71,6 +75,8 @@ beforeAll(() => {
 	// Declared but never imported: the index knows the type, not the component.
 	objectRegistry.declare("sf-sales", {
 		id: "sf-sales",
+		label: "Sales",
+		purpose: "Test surface sales",
 		types: [
 			{
 				id: "sales.statistic",

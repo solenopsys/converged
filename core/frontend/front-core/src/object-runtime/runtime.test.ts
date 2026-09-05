@@ -13,6 +13,8 @@ describe("object runtime changes", () => {
 		const ref = objectRef("probe.changed", "42");
 		objectRegistry.register("sf-change-probe", {
 			id: "sf-change-probe",
+			label: "Change Probe",
+			purpose: "Test surface change probe",
 			types: [{ id: ref.type, label: "Changed probe" }],
 			views: [],
 			operations: [

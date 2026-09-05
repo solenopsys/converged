@@ -13,6 +13,7 @@ import type {
 	OrchestratorCatalog,
 	OrchestratorPlan,
 	PlanContext,
+	Position,
 	Step,
 	StepPrompt,
 	StepToolCall,
@@ -71,6 +72,12 @@ export type ConversationOptions = {
 	 * functions are on the table at all, not merely in which order.
 	 */
 	focus?: () => FocusEntry[];
+	/**
+	 * Where the user is standing, read once per turn. Unlike `focus` this is a
+	 * single place, and the steps use it to decide whether the request continues
+	 * it — which is what lets the first two steps be skipped entirely.
+	 */
+	position?: () => Position | undefined;
 	domain?: Domain;
 };
 
@@ -155,6 +162,7 @@ export function createConversation({
 	model,
 	turnContext,
 	focus,
+	position,
 	domain = createDomain("conversation"),
 }: ConversationOptions): Conversation {
 	const entries = createConversationEntries(domain);
@@ -243,11 +251,13 @@ export function createConversation({
 		const startedAt = Date.now();
 		const hostContext = turnContext?.();
 		const working = focus?.() ?? [];
+		const standing = position?.();
 		const plan = await machine.run({
 			userText: text,
 			candidates: [],
 			...(hostContext === undefined ? {} : { hostContext }),
 			...(working.length > 0 ? { focus: working } : {}),
+			...(standing ? { position: standing } : {}),
 		});
 		if (plan.kind === "function") {
 			const failure =

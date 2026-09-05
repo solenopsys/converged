@@ -39,6 +39,8 @@ export const objects = [
 
 export default defineSurface({
 	id: "sf-calls",
+	label: "Calls",
+	purpose: "Phone and web calls, recordings and transcripts",
 	types: objects,
 	views: [
 		{

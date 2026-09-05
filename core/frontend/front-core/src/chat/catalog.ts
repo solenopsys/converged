@@ -1,4 +1,6 @@
 import {
+	authorizeObjectType,
+	availableSurfaces,
 	catalogEntries,
 	catalogEntry,
 	focusedRef,
@@ -6,11 +8,10 @@ import {
 	focusKey,
 	invokeCatalogEntry,
 	loadObjectType,
-	surfaceDeclared,
-	surfaceRegistered,
 	type OperatorCatalogEntry,
 	objectRegistry,
 	onOperationAuthorizationChanged,
+	onSurfacesChanged,
 	operatorCatalogEntries,
 	searchOperatorCatalog,
 } from "front-core/object-runtime";
@@ -18,6 +19,7 @@ import { $activeLocale } from "../i18n";
 import { loadSelectionDescriptor } from "../select/descriptor";
 import { activeSelection } from "../select/runtime";
 import { selectCommandSchema } from "../select/schema";
+import { workspacePosition, workspaceSubtabs } from "../workspace-view";
 import type { ChatCatalog } from "./store";
 
 type FunctionParameters = {
@@ -35,27 +37,24 @@ function categories() {
 }
 
 /**
- * The catalog's first level: which surface owns each function. This is
- * what the routing step narrows to before a function is chosen, so a wrong pick
- * costs one visible wrong section instead of an unrelated call.
+ * The catalog's first level: the surfaces the interface offers. This is what
+ * the first step picks from, so it is the configured list (§2.4) rather than a
+ * tally of the function catalog — a surface whose functions are all currently
+ * unavailable is still a tab on screen, and a model that cannot name it cannot
+ * take the user there.
  */
 function modules() {
-	const counts = new Map<
-		string,
-		{ label: string; count: number; description?: string }
-	>();
+	const counts = new Map<string, number>();
 	for (const entry of catalogEntries()) {
 		if (!entry.module) continue;
-		const seen = counts.get(entry.module);
-		if (seen) seen.count += 1;
-		else
-			counts.set(entry.module, {
-				label: entry.moduleLabel ?? entry.module,
-				count: 1,
-				description: objectRegistry.moduleDescription(entry.module),
-			});
+		counts.set(entry.module, (counts.get(entry.module) ?? 0) + 1);
 	}
-	return [...counts].map(([id, value]) => ({ id, ...value }));
+	return availableSurfaces().map((surface) => ({
+		id: surface.id,
+		label: surface.label,
+		count: counts.get(surface.id) ?? 0,
+		description: surface.purpose,
+	}));
 }
 
 // The operator's parameters carry every target type the resolver knows, which
@@ -83,6 +82,9 @@ export function createSurfaceCatalog(): ChatCatalog {
 				type: item.ref.type,
 				label: item.label,
 			})),
+		// Where the user is standing. Unlike `focus` this is one place, and it is
+		// what lets the first two steps be skipped when the request continues it.
+		position: workspacePosition,
 		turnContext: () => {
 			const current = activeSelection();
 			selectionAtTurn = current;
@@ -115,6 +117,7 @@ export function createSurfaceCatalog(): ChatCatalog {
 					selectionAtTurn,
 				);
 			},
+			subtabs: workspaceSubtabs,
 			load: async (id) => {
 				const entry = catalogEntry(id);
 				if (!entry?.targetType) return entry?.parameters;
@@ -127,6 +130,12 @@ export function createSurfaceCatalog(): ChatCatalog {
 				}
 				if (entry.operator !== "select" || !type.selection?.describe)
 					return catalogEntry(id)?.parameters;
+				// Asking the service to describe its selection is already a call
+				// against it, so it is subject to the same rights as using it. This
+				// is where a guest gets the login prompt: without it the descriptor
+				// comes back "missing r permission", the step throws, and the raw
+				// service error is what the user is shown instead of a way in.
+				await authorizeObjectType(type);
 				// The descriptor is a live microservice capability. In development it
 				// may change without a shell reload; production also benefits when a
 				// service exposes tenant-specific fields or presets.
@@ -155,8 +164,7 @@ export function createSurfaceCatalog(): ChatCatalog {
 		},
 		label,
 		onChange: (republish) => {
-			void surfaceRegistered.watch(republish);
-			void surfaceDeclared.watch(republish);
+			onSurfacesChanged(republish);
 			void $activeLocale.watch(republish);
 			onOperationAuthorizationChanged(republish);
 		},

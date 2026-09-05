@@ -246,8 +246,34 @@ export type OperationDefinition = {
 	invoke?: (context: OperationContext) => unknown | Promise<unknown>;
 };
 
+/**
+ * A surface is a tab: one place in the interface that gathers functionality by
+ * meaning. What it calls itself and what it is for are therefore part of the
+ * definition, not something to derive from the id — `sf-sales` reading as
+ * "Sales" is a guess that happens to work, and `purpose` has no such fallback
+ * at all (module descriptions used to be every action description joined by
+ * "; ", which is a paragraph where one line was needed).
+ */
 export type SurfaceDefinition = {
 	id: string;
+	/** Tab title. */
+	label: string;
+	/** Message key in this surface's own locales; `label` stays the fallback. */
+	labelKey?: string;
+	/**
+	 * One line: what this surface is for. This is what the first orchestrator
+	 * step reads to pick a surface in a single pass, so it has to separate this
+	 * surface from its neighbours — not advertise it. Name the things it works
+	 * on, in the words a user would use.
+	 */
+	purpose: string;
+	purposeKey?: string;
+	/**
+	 * Owns operations but is not a place: the shell's own controls register this
+	 * way, so they resolve like anything else without becoming a tab nobody
+	 * asked for.
+	 */
+	hidden?: boolean;
 	types: readonly ObjectDefinition[];
 	views: ViewDefinition[];
 	operations: OperationDefinition[];

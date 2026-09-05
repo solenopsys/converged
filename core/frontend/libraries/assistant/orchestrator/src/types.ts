@@ -55,6 +55,37 @@ export type FocusEntry = {
 };
 
 /**
+ * Where the user is standing: the tab, the button pressed inside it, and what
+ * that button is showing.
+ *
+ * Not the same as the focus list, and it replaces it as the thing every step
+ * reads. The list answers "what has been worked on lately"; this answers "what
+ * is on screen right now", which is what decides whether a request continues
+ * the current place or moves somewhere else — and therefore whether the first
+ * two steps have to run at all.
+ */
+export type Position = {
+	/** Id of the active surface; absent when nothing is mounted. */
+	surface?: string;
+	surfaceLabel?: string;
+	/** Key of the pressed subtab; absent is the normal state, not an error. */
+	subtab?: string;
+	subtabLabel?: string;
+	/** Type of the thing the pressed subtab shows, matched against `targetType`. */
+	type?: string;
+	/** One short line about the current state — a filter, a count. Never JSON. */
+	state?: string;
+};
+
+/** One choice offered to a numbered step, in the order it was listed. */
+export type Choice = {
+	id: string;
+	label: string;
+	/** Second line: what it is for, or what it does. */
+	detail?: string;
+};
+
+/**
  * One decision the flow made out of a list it was given. This is the catalog and
  * the app's own choice — not the model's reasoning: no prompt, no outcome text,
  * nothing a step said to itself. That distinction is what lets it be shown in
@@ -162,6 +193,14 @@ export type OrchestratorCatalog = {
 	 * server-owned argument capabilities before the argument model runs.
 	 */
 	load?(id: string): Promise<ToolSpec["parameters"] | void>;
+	/**
+	 * The buttons already open inside one module. They are choices at the same
+	 * level as its functions — pressing one is what the user meant by naming
+	 * something already on screen — so the action step offers both together.
+	 */
+	subtabs?(
+		module: string,
+	): Array<{ key: string; title: string; pressed: boolean }>;
 };
 
 export type StepTrace = {
@@ -245,6 +284,8 @@ export type PlanContext = {
 	hostContext?: unknown;
 	/** What the conversation is working on, captured once with `hostContext`. */
 	focus?: FocusEntry[];
+	/** Where the user is standing, captured once at the start of the turn. */
+	position?: Position;
 	area?: string;
 	/** Module the route step narrowed to; absent means search everything. */
 	module?: string;
@@ -254,6 +295,8 @@ export type PlanContext = {
 	trail?: FunctionChoice[];
 	/** Server-owned argument schema fetched after the function was selected. */
 	parameters?: ToolSpec["parameters"];
+	/** What the chosen function acts on; compared against the position's type. */
+	targetType?: string;
 	/**
 	 * Argument values the host already knows — ids of the files this turn is
 	 * about, the record a screen is open on. They are merged under whatever the

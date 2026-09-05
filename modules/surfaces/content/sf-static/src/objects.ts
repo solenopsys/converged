@@ -16,6 +16,8 @@ type CacheEntryMutation = {
 
 export default defineSurface({
 	id: "sf-static",
+	label: "SSR cache",
+	purpose: "Server-rendered page cache: entries, freshness and invalidation",
 	types: [
 		{
 			id: "static.cache-entry",

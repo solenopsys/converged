@@ -35,13 +35,17 @@ const DEFAULT_MESSAGES = {
 		pin: "Pin",
 		unpin: "Unpin",
 		close: "Close",
-		closeUnpinned: "Close unpinned",
+		subtabs: "Section buttons",
 		pinTab: "Pin tab",
 		unpinTab: "Unpin tab",
 		closeTab: "Close tab",
 		closeNamed: "Close {title}",
 		hiddenCount: "{label}: {count} more",
 		hiddenTabs: "Hidden tabs: {count}",
+	},
+	nav: {
+		empty: "No sections available.",
+		showAll: "Show all sections ({count})",
 	},
 	topbar: {
 		interfaceLanguage: "Interface language",
@@ -164,6 +168,20 @@ const RU_MESSAGES = {
 		statusRunning: "Выполняется",
 		statusFailed: "Ошибка",
 		statusCompleted: "Готово",
+	},
+	tab: {
+		pin: "Закрепить",
+		unpin: "Открепить",
+		close: "Закрыть",
+		subtabs: "Кнопки раздела",
+		pinTab: "Закрепить вкладку",
+		unpinTab: "Открепить вкладку",
+		closeTab: "Закрыть вкладку",
+		closeNamed: "Закрыть {title}",
+	},
+	nav: {
+		empty: "Разделы недоступны.",
+		showAll: "Показать все разделы ({count})",
 	},
 };
 

@@ -3,6 +3,8 @@ import { presentLanding } from "./functions";
 
 export default defineSurface({
 	id: "sf-landing",
+	label: "Landing",
+	purpose: "The public landing page",
 	types: [],
 	views: [],
 	operations: [

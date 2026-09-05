@@ -8,6 +8,8 @@ import DocsView from "./views/DocsView";
 
 export default defineSurface({
 	id: "sf-docs",
+	label: "Documentation",
+	purpose: "Product and system documentation pages",
 	types: [
 		{
 			id: "docs.document",

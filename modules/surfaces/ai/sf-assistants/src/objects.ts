@@ -38,6 +38,9 @@ export const objects = [
 
 export default defineSurface({
 	id: "sf-assistants",
+	label: "Assistants",
+	purpose:
+		"Assistant chat history, recorded tool calls and registered commands",
 	types: objects,
 	views: [
 		{

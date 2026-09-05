@@ -8,10 +8,12 @@ import {
 	createFilesStep,
 	createFunctionCatalogTools,
 	createFunctionSteps,
+	createSurfaceSteps,
 	createUploadedChatFilesTool,
 	type ExecutableTool,
 	type FunctionCatalogContext,
 	type OrchestratorCatalog,
+	type Position,
 	type StepName,
 	type TurnFile,
 } from "assistant-state";
@@ -65,6 +67,8 @@ export type ChatCatalog = {
 	turnContext?: () => unknown;
 	/** What the conversation is working on; see object-runtime/focus.ts. */
 	focus?: () => Array<{ key: string; type: string; label: string }>;
+	/** Where the user is standing; see workspace-view.ts. */
+	position?: () => Position | undefined;
 
 	// The meta-tool contour lists by category and by recency; the orchestrator
 	// ports do neither, so handing it `catalog` gives the model tools that throw
@@ -145,7 +149,12 @@ function readIntake(report: unknown): IntakeReport {
  *  else, and the returned promise is held across an await, where a rejection
  *  with no handler yet would surface as an unhandled one. */
 function startFileAnalysis(
-	workflow: { runWorkflow(script: string, params: Record<string, unknown>): Promise<unknown> },
+	workflow: {
+		runWorkflow(
+			script: string,
+			params: Record<string, unknown>,
+		): Promise<unknown>;
+	},
 	fileIds: string[],
 ): Promise<unknown | null> {
 	return workflow
@@ -177,17 +186,20 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 		section: "answer",
 	});
 
-	// Deciding steps read sections only: the conversation prompt is noise on
-	// `route`. Without sections the machine answers straight away and the chat
-	// falls back to the meta-tool contour below.
+	// Deciding steps read sections only: the conversation prompt is noise on a
+	// routing step. Without sections the machine answers straight away and the
+	// chat falls back to the meta-tool contour below. Both flows are covered:
+	// the sections a flow does not use simply go unread.
 	const stepResolvers = new Map(
-		(["route", "select", "args", "files"] as const).map((step) => [
-			step as string,
-			createContextPromptResolver(contextsClient, {
-				section: step,
-				requireSection: true,
-			}),
-		]),
+		(["route", "select", "surface", "action", "args", "files"] as const).map(
+			(step) => [
+				step as string,
+				createContextPromptResolver(contextsClient, {
+					section: step,
+					requireSection: true,
+				}),
+			],
+		),
 	);
 	// A step with no section of its own falls back to the conversation prompt.
 	// A deciding step must not: answering a landing visitor is not the same job,
@@ -243,6 +255,7 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 		model: "fast",
 		turnContext: host?.turnContext,
 		focus: host?.focus,
+		position: host?.position,
 		// The built-in flow reads the user's words to find a function and to fill
 		// its arguments. Files are not words: after an archive is unpacked the
 		// turn holds identifiers nobody typed, and the only question worth a model
@@ -266,7 +279,13 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 					},
 				},
 			}),
-			...createFunctionSteps({ catalog }),
+			// Surface → action → state. Each step commits its level to the screen
+			// before the next one is asked, and each is given only what it needs to
+			// decide: a numbered list, one line of position, the user's sentence.
+			// `functionFlow` falls back to the old route/search/select/args table.
+			...(config.functionFlow
+				? createFunctionSteps({ catalog })
+				: createSurfaceSteps({ catalog })),
 		],
 	});
 	conversation.turn.turnFinished.watch(refreshFocusedObjects);

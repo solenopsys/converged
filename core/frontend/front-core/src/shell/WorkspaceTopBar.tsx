@@ -2,8 +2,12 @@ import { useUnit } from "effector-preact";
 import type { ComponentChildren } from "preact";
 import { TopBar, type TopBarLink } from "./TopBar";
 import { TopBarSettings } from "./TopBarControls";
-import { $workspaceTabViews } from "./tab-actions";
-import { workspaceTabActivated, workspaceTabPinToggled } from "./workspace";
+import { $workspaceTabViews, workspaceTabActionInvoked } from "./tab-actions";
+import {
+	surfaceActivated,
+	surfaceClosed,
+	surfacePinToggled,
+} from "./workspace";
 
 export function WorkspaceTopBar({
 	brand,
@@ -18,9 +22,9 @@ export function WorkspaceTopBar({
 	links?: TopBarLink[];
 	controls?: ComponentChildren;
 }) {
-	const tabs = useUnit($workspaceTabViews)
-		.filter((tab) => !tab.pinned)
-		.map(({ actions: _actions, ...tab }) => ({ ...tab, actions: [] }));
+	// Every surface in the strip, pinned ones included: pinning keeps a tab here
+	// rather than filing it away somewhere else.
+	const tabs = useUnit($workspaceTabViews);
 
 	return (
 		<TopBar
@@ -29,8 +33,12 @@ export function WorkspaceTopBar({
 			onBrandClick={onBrandClick}
 			tabs={tabs}
 			links={links}
-			onTabSelect={workspaceTabActivated}
-			onTabPinToggle={workspaceTabPinToggled}
+			onTabSelect={surfaceActivated}
+			onTabClose={surfaceClosed}
+			onTabPinToggle={surfacePinToggled}
+			onTabAction={(key, actionId) =>
+				workspaceTabActionInvoked({ key, actionId })
+			}
 			controls={
 				<>
 					{controls}

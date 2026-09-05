@@ -1,8 +1,4 @@
-import {
-	Category,
-	defineSurface,
-	setOf,
-} from "front-core/object-runtime";
+import { Category, defineSurface, setOf } from "front-core/object-runtime";
 import {
 	ConversionIndicator,
 	OrdersIndicator,
@@ -16,6 +12,8 @@ import { OrdersDashboardView } from "./views/OrdersDashboardView";
 
 export default defineSurface({
 	id: "sf-orders",
+	label: "Orders",
+	purpose: "Customer orders, their status and production statistics",
 	types: [
 		{
 			id: "orders.order",

@@ -3,6 +3,8 @@ import { StructListView } from "./views/StructListView";
 
 export default defineSurface({
 	id: "sf-struct",
+	label: "Structure",
+	purpose: "Structured content nodes shown on public pages",
 	types: [
 		{
 			id: "struct.node",
