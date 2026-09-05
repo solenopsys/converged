@@ -77,26 +77,36 @@ export type StatisticDefinition = {
 };
 
 /** The complete configuration for an object's default infinite-list projection. */
-export type InfinityDefinition<TData extends object = Record<string, unknown>> = {
-	/** Stable identity used by the generic table and persisted UI state. */
-	tableId?: string;
-	title?: string;
-	columns: readonly ColumnConfig<TData>[];
-	filters?: readonly (TableFilterConfig & { operator?: string })[];
-	/** An existing domain store, when the projection already owns request lifecycle. */
-	store?: InfiniteTableStore<TData>;
-	/** Declarative source for projections that do not need a domain-level store. */
-	load?: (params: Record<string, unknown>) => Promise<unknown>;
-	rowRef?: (row: TData) => ObjectRef;
-	actions?: readonly HeaderAction[];
-	mobile?: {
-		title: string;
-		subtitle?: string;
-		badge?: string;
-		image?: string;
+export type InfinityDefinition<TData extends object = Record<string, unknown>> =
+	{
+		/** Stable identity used by the generic table and persisted UI state. */
+		tableId?: string;
+		title?: string;
+		columns: readonly ColumnConfig<TData>[];
+		filters?: readonly (TableFilterConfig & {
+			operator?: string;
+			valueType?: "string" | "number" | "boolean" | "date";
+		})[];
+		/** An existing domain store, when the projection already owns request lifecycle. */
+		store?: InfiniteTableStore;
+		/** Declarative source for projections that do not need a domain-level store. */
+		load?: (params: Record<string, unknown>) => Promise<unknown>;
+		rowRef?: (row: TData) => ObjectRef | SetRef;
+		actions?: readonly HeaderAction[];
+		presets?: readonly {
+			id: string;
+			label: string;
+			group?: string;
+			control?: "tab" | "button" | "menu";
+			defaults?: Record<string, unknown>;
+		}[];
+		mobile?: {
+			title: string;
+			subtitle?: string;
+			badge?: string;
+			image?: string;
+		};
 	};
-};
-
 
 export type ObjectDefinition = {
 	id: ObjectTypeId;
@@ -208,6 +218,8 @@ export type ViewRuntimeProps = {
 export type ViewDefinition = {
 	id: ViewId;
 	accepts: TypeExpression;
+	/** Visual role of a set projection in the workspace subtab bar. */
+	presentation?: "table" | "tool";
 	label?: string;
 	priority?: number;
 	// Components belong to independently built surfaces and carry their own prop types.

@@ -1,9 +1,24 @@
 import { translator } from "i18n";
 import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
-import { X } from "../icons";
+import { objectRegistry } from "front-core/object-runtime";
+import { Form, Table, Tool, X } from "../icons";
 import type { WorkspaceSubtab } from "./workspace";
 
 const t = translator(CHAT_MESSAGES_NAMESPACE);
+
+function SubtabIcon({ subtab }: { subtab: WorkspaceSubtab }) {
+	const type = subtab.ref ? objectRegistry.type(subtab.ref.type) : undefined;
+	const view = subtab.viewId ? objectRegistry.view(subtab.viewId) : undefined;
+	const Icon =
+		subtab.ref?.kind === "object"
+			? Form
+			: type?.infinity ||
+					view?.presentation === "table" ||
+					view?.id.endsWith(".table")
+				? Table
+				: Tool;
+	return <Icon className="subtab-icon" size={13} aria-hidden="true" />;
+}
 
 /**
  * The second level: the buttons of the active surface.
@@ -45,9 +60,10 @@ export function SubtabBar({
 							role="tab"
 							aria-selected={isPressed}
 							title={subtab.title}
-							onClick={() => (isPressed ? onRelease() : onPress(subtab.key))}
-						>
-							{subtab.title}
+								onClick={() => (isPressed ? onRelease() : onPress(subtab.key))}
+							>
+								<SubtabIcon subtab={subtab} />
+								{subtab.title}
 						</button>
 						{subtab.permanent ? null : (
 							<button

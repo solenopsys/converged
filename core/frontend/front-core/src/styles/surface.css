@@ -33,6 +33,9 @@
 }
 
 .subtab-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: var(--hw-space-1) var(--hw-space-3);
   border: 0;
   border-radius: 999px;
@@ -40,6 +43,10 @@
   color: var(--hw-ink-muted);
   white-space: nowrap;
   cursor: pointer;
+}
+
+.subtab-icon {
+  flex: 0 0 auto;
 }
 
 .subtab[data-pressed="true"] .subtab-select {

@@ -90,6 +90,7 @@ export type {
 	DomainRef,
 	ExecuteOperationRequest,
 	IdSelection,
+	InfinityDefinition,
 	ObjectChange,
 	ObjectDefinition,
 	ObjectIndexFile,

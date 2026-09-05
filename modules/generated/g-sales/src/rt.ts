@@ -245,8 +245,8 @@ export type Statistic = {
 export type SalesStatisticKey = "title";
 
 export type PaginationParams = {
-	offset: number;
-	limit: number;
+  offset: number;
+  limit: number;
 };
 
 export type FilterObject = Record<string, unknown>;

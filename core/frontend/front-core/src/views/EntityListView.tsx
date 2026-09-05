@@ -65,7 +65,7 @@ export type EntityListTab<TData extends object = Record<string, unknown>> = {
 export interface EntityListViewProps<
 	TData extends object = Record<string, unknown>,
 > {
-	tableId: string;
+	tableId?: string;
 	/**
 	 * What this table is a view of. With it the list publishes the operations
 	 * the runtime says apply to this collection, so a command is declared next
@@ -112,8 +112,14 @@ const cleanFilters = (values: TableFilterValues): TableFilterValues => {
 	return result;
 };
 
-function referenceBaseFilters(reference: DomainRef | undefined): TableFilterValues | undefined {
-	if (!reference || reference.kind !== "set" || reference.selection.kind !== "query") {
+export function referenceBaseFilters(
+	reference: DomainRef | undefined,
+): TableFilterValues | undefined {
+	if (
+		!reference ||
+		reference.kind !== "set" ||
+		reference.selection.kind !== "query"
+	) {
 		return undefined;
 	}
 	const { filter, presets } = reference.selection;
@@ -124,21 +130,47 @@ function referenceBaseFilters(reference: DomainRef | undefined): TableFilterValu
 	};
 }
 
-function infinityFilterParams(
+export function infinityFilterParams(
 	values: TableFilterValues,
 	base: TableFilterValues | undefined,
-	filters: readonly { id: string; operator?: string }[] | undefined,
+	filters:
+		| readonly (TableFilterConfig & {
+				operator?: string;
+				valueType?: "string" | "number" | "boolean" | "date";
+		  })[]
+		| undefined,
 ): TableFilterValues {
-	const definitions = new Map((filters ?? []).map((filter) => [filter.id, filter]));
+	const definitions = new Map(
+		(filters ?? []).map((filter) => [filter.id, filter]),
+	);
 	const clauses: Record<string, unknown> = {};
 	for (const [field, value] of Object.entries(values)) {
 		if (value === undefined || value === null || value === "") continue;
-		const operator = definitions.get(field)?.operator;
+		const definition = definitions.get(field);
+		const operator = definition?.operator;
 		if (Array.isArray(value)) {
-			if (value.length > 0) clauses[field] = { [operator ?? "in"]: value };
+			if (value.length === 0) continue;
+			if (operator === "between") {
+				const [from, to] = value;
+				if (from && to) clauses[field] = { between: [from, to] };
+				else if (from) clauses[field] = { gte: from };
+				else if (to) clauses[field] = { lte: to };
+				continue;
+			}
+			clauses[field] = { [operator ?? "in"]: value };
 			continue;
 		}
-		clauses[field] = { [operator ?? "contains"]: value };
+		let normalized: unknown = value;
+		if (
+			definition?.valueType === "boolean" &&
+			(value === "true" || value === "false")
+		) {
+			normalized = value === "true";
+		} else if (definition?.valueType === "number" && value !== "") {
+			const number = Number(value);
+			if (Number.isFinite(number)) normalized = number;
+		}
+		clauses[field] = { [operator ?? "contains"]: normalized };
 	}
 	const baseFilter = base?.filter as Record<string, unknown> | undefined;
 	const filter =
@@ -182,20 +214,47 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 	className,
 }: EntityListViewProps<TData>) {
 	// biome-ignore lint/correctness/useExhaustiveDependencies: tab state must be created once per instance
-	const objectType = reference ? objectRegistry.type(reference.type) : undefined;
+	const objectType = reference
+		? objectRegistry.type(reference.type)
+		: undefined;
 	const infinity = objectType?.infinity;
 	const projectionStore = useMemo(() => {
 		if (infinity?.store) return infinity.store;
-		if (!infinity?.load || !objectType) return undefined;
-		const domain = createDomain(`infinity-${objectType.id}-${crypto.randomUUID()}`);
-		return createInfiniteTableStore(domain, (params) => infinity.load(params));
+		const load = infinity?.load;
+		if (!load || !objectType) return undefined;
+		const domain = createDomain(
+			`infinity-${objectType.id}-${crypto.randomUUID()}`,
+		);
+		return createInfiniteTableStore<unknown>(
+			domain,
+			(params) =>
+				load(params) as Promise<
+					| {
+							items?: unknown[];
+							totalCount?: number;
+					  }
+					| null
+					| undefined
+				>,
+		);
 	}, [infinity, objectType]);
-	const resolvedTableId = tableId ?? infinity?.tableId ?? reference?.type ?? "entity-list";
+	const resolvedTableId =
+		tableId ?? infinity?.tableId ?? reference?.type ?? "entity-list";
 	const resolvedBaseFilters = baseFilters ?? referenceBaseFilters(reference);
 	const resolvedFilters = filters ?? infinity?.filters;
 	const resolvedColumns = columns ?? infinity?.columns;
-	const resolvedTitle = title ?? infinity?.title ?? objectType?.pluralLabel ?? objectType?.label;
+	const resolvedTitle =
+		title ?? infinity?.title ?? objectType?.pluralLabel ?? objectType?.label;
 	const resolvedActions = actions ?? infinity?.actions;
+	const configuredTabs = useMemo<EntityListTab<TData>[]>(
+		() =>
+			infinity?.presets
+				?.filter((preset) => preset.control === "tab")
+				.map((preset) => ({ id: preset.id, label: preset.label })) ?? [],
+		[infinity?.presets],
+	);
+	const resolvedTabs =
+		tabs ?? (configuredTabs.length > 0 ? configuredTabs : undefined);
 	const resolvedSerializeFilters =
 		serializeFilters ??
 		(infinity
@@ -203,20 +262,66 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 					infinityFilterParams(values, base, infinity.filters)
 			: undefined);
 
+	const initialTabId = resolvedTabs?.[0]?.id ?? "";
 	const internalTabState = useMemo(() => {
 		const changed = createEvent<string>();
-		const $active = createStore(tabs?.[0]?.id ?? "").on(
-			changed,
-			(_, value) => value,
-		);
+		const $active = createStore(initialTabId).on(changed, (_, value) => value);
 		return { $active, changed };
-	}, []);
+	}, [initialTabId]);
 
 	const $tab = $activeTab ?? internalTabState.$active;
-	const onTabChanged = tabChanged ?? internalTabState.changed;
+	const configuredTabChanged = useCallback(
+		(tabId: string) => {
+			if (!infinity?.presets || !reference || reference.kind !== "set") {
+				internalTabState.changed(tabId);
+				return;
+			}
+			const selected = infinity.presets.find((preset) => preset.id === tabId);
+			if (!selected) return;
+			const current =
+				reference.selection.kind === "query"
+					? reference.selection
+					: { kind: "query" as const };
+			const nextPresets = (current.presets ?? []).filter((preset) => {
+				const definition = infinity.presets?.find(
+					(item) => item.id === preset.id,
+				);
+				return definition?.group !== selected.group;
+			});
+			nextPresets.push({
+				id: selected.id,
+				...(selected.defaults ? { params: selected.defaults } : {}),
+			});
+			void presentReference(
+				setRef(reference.type, {
+					kind: "query",
+					...(current.filter ? { filter: current.filter } : {}),
+					presets: nextPresets,
+				}),
+				{ title: reference.title },
+			);
+		},
+		[infinity, internalTabState, reference],
+	);
+	const onTabChanged =
+		tabChanged ??
+		(configuredTabs.length > 0
+			? configuredTabChanged
+			: internalTabState.changed);
 	const activeTabId = useUnit($tab);
 
-	const activeTab = tabs?.find((tab) => tab.id === activeTabId) ?? tabs?.[0];
+	const activeTab =
+		resolvedTabs?.find((tab) => tab.id === activeTabId) ?? resolvedTabs?.[0];
+	const selectedConfiguredPreset =
+		reference?.kind === "set" && reference.selection.kind === "query"
+			? reference.selection.presets?.find((preset) =>
+					infinity?.presets?.some((definition) => definition.id === preset.id),
+				)
+			: undefined;
+	useEffect(() => {
+		if (selectedConfiguredPreset)
+			internalTabState.changed(selectedConfiguredPreset.id);
+	}, [internalTabState, selectedConfiguredPreset]);
 	const activeStore = activeTab?.store ?? store ?? projectionStore;
 	if (!activeStore) {
 		throw new Error(
@@ -392,9 +497,9 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 	const headerConfig: HeaderPanelConfig = {
 		title: resolvedTitle,
 		subtitle,
-		...(tabs && tabs.length > 0
+		...(resolvedTabs && resolvedTabs.length > 0
 			? {
-					tabs: tabs.map((tab) => ({
+					tabs: resolvedTabs.map((tab) => ({
 						id: tab.id,
 						label: tab.label,
 						value: tab.id,
@@ -411,7 +516,7 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 						{
 							id: "__list_refresh",
 							label: refreshLabel,
-							icon: RefreshCw,
+							icon: RefreshCw as HeaderAction["icon"],
 							event: activeStore.refresh,
 							variant: "outline" as const,
 						},
@@ -437,7 +542,9 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 			)}
 			<div className="min-h-0 flex-1">
 				<InfiniteScrollDataTable<TData>
-						tableId={tabs ? `${resolvedTableId}:${activeTabId}` : resolvedTableId}
+					tableId={
+						resolvedTabs ? `${resolvedTableId}:${activeTabId}` : resolvedTableId
+					}
 					columns={activeTab?.columns ?? resolvedColumns}
 					data={state.items as TData[]}
 					hasMore={state.hasMore}
@@ -449,16 +556,18 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 					onLoadMore={activeStore.loadMore}
 					onRowClick={
 						onRowClick ??
-							(infinity
-								? (row) => {
+						(infinity
+							? (row) => {
 									const item = row as Record<string, unknown>;
 									const target = infinity.rowRef
 										? infinity.rowRef(row as Record<string, unknown>)
 										: objectRef(reference?.type ?? "", String(item.id));
 									void presentReference(
-										target.kind === "object" ? { ...target, data: item } : target,
+										target.kind === "object"
+											? { ...target, data: item }
+											: target,
 									);
-							}
+								}
 							: undefined)
 					}
 					CardComponent={activeTab?.CardComponent ?? CardComponent}
@@ -483,9 +592,7 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 						localized(pending.owner, pending.labelKey, pending.label) ??
 						pending.label
 					}
-					{...(pending.description
-						? { description: pending.description }
-						: {})}
+					{...(pending.description ? { description: pending.description } : {})}
 					parameters={pending.parameters}
 					busy={commandBusy}
 					{...(commandError ? { error: commandError } : {})}
