@@ -761,7 +761,8 @@ class HttpBackend {
 				isSingleParam &&
 				safeParams &&
 				typeof safeParams === "object" &&
-				!Array.isArray(safeParams)
+				!Array.isArray(safeParams) &&
+				Object.keys(safeParams).length > 0
 			) {
 				rawValue = safeParams;
 			}

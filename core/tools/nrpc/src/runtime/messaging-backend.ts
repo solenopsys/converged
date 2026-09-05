@@ -174,7 +174,14 @@ function buildMethodArgs(
 	const singleParameter = method.parameters.length === 1;
 	return method.parameters.map((parameter) => {
 		let raw = params?.[parameter.name];
-		if (raw === undefined && singleParameter && params && typeof params === "object" && !Array.isArray(params)) {
+		if (
+			raw === undefined &&
+			singleParameter &&
+			params &&
+			typeof params === "object" &&
+			!Array.isArray(params) &&
+			Object.keys(params).length > 0
+		) {
 			raw = params;
 		}
 		return deserializeValue(raw, parameter.type);

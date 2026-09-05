@@ -36,6 +36,14 @@ const metadata: ServiceMetadata = {
 			returnTypeIsArray: false,
 			isAsyncIterable: true,
 		},
+		{
+			name: "getStatistic",
+			parameters: [{ name: "keys", type: "string", optional: true, isArray: true }],
+			returnType: "string",
+			isAsync: false,
+			returnTypeIsArray: false,
+			isAsyncIterable: false,
+		},
 	],
 };
 
@@ -117,9 +125,13 @@ describe("nrpc messaging runtime", () => {
 		createMessagingBackend({
 			runtime: serverRuntime,
 			metadata,
+			access: { mode: "off" },
 			serviceImpl: {
 				inspect(value: string) {
 					return { value, scope: getCurrentWorkspaceContext()?.scope, auth: getCurrentWorkspaceContext()?.auth };
+				},
+				getStatistic(keys?: string[]) {
+					return keys?.join(",") ?? "all";
 				},
 				async *count(limit: number) {
 					for (let index = 1; index <= limit; index++) yield index;
@@ -133,6 +145,7 @@ describe("nrpc messaging runtime", () => {
 
 		const client = createZmqClient<{
 			inspect(value: string): Promise<{ value: string; scope: string; auth: string }>;
+			getStatistic(keys?: string[]): Promise<string>;
 			count(limit: number): AsyncIterable<number>;
 		}>(metadata, {
 			runtime: clientRuntime,
@@ -144,6 +157,8 @@ describe("nrpc messaging runtime", () => {
 
 		const inspected = await drive(client.inspect("hello"), [serverRuntime, clientRuntime]);
 		expect(inspected).toEqual({ value: "hello", scope: "tenant-a", auth: "session.jwt" });
+		expect(await drive(client.getStatistic(), [serverRuntime, clientRuntime])).toBe("all");
+		expect(await drive(client.getStatistic(["title"]), [serverRuntime, clientRuntime])).toBe("title");
 
 		const iterator = client.count(3)[Symbol.asyncIterator]();
 		expect((await drive(iterator.next(), [serverRuntime, clientRuntime])).value).toBe(1);

@@ -49,12 +49,14 @@ export default defineSurface({
 	views: [
 		{
 			id: "telemetry.entry.hot",
+			label: "Hot telemetry",
 			accepts: setOf("telemetry.entry"),
 			component: TelemetryView,
 			props: () => ({ mode: "hot" }),
 		},
 		{
 			id: "telemetry.entry.cold",
+			label: "Cold telemetry",
 			accepts: setOf("telemetry.entry"),
 			component: TelemetryView,
 			props: () => ({ mode: "cold" }),
@@ -62,6 +64,7 @@ export default defineSurface({
 		},
 		{
 			id: "telemetry.statistic.dashboard",
+			label: "Telemetry statistics",
 			accepts: setOf("telemetry.statistic"),
 			component: TelemetryStatsView,
 		},

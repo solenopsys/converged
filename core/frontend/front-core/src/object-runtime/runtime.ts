@@ -51,6 +51,25 @@ export const referencePresented = domain.createEvent<PresentedReference>(
 	"REFERENCE_PRESENTED",
 );
 
+const objectSnapshots = new Map<string, Record<string, unknown>>();
+
+const snapshotKey = (type: string, id: string): string => `${type}:${id}`;
+
+/** Retains row data for a detail view opened from a list projection. */
+export function rememberObjectSnapshot(
+	type: string,
+	id: string | number,
+	data: Record<string, unknown>,
+): void {
+	objectSnapshots.set(snapshotKey(type, String(id)), data);
+}
+
+function withObjectSnapshot(ref: DomainRef): DomainRef {
+	if (ref.kind !== "object" || ref.data) return ref;
+	const data = objectSnapshots.get(snapshotKey(ref.type, ref.id));
+	return data ? { ...ref, data } : ref;
+}
+
 let loader: ModuleLoader | null = null;
 
 /** Revalidate live views after a chat turn may have changed focused objects. */
@@ -82,16 +101,17 @@ export async function presentReference(
 	ref: DomainRef,
 	options: PresentReferenceOptions = {},
 ): Promise<void> {
-	let view = objectResolver.resolveView(ref, options.viewId);
+	const presentedRef = withObjectSnapshot(ref);
+	let view = objectResolver.resolveView(presentedRef, options.viewId);
 	if (!view) {
-		await ensureLoaded(objectRegistry.ownerForType(ref.type));
-		view = objectResolver.resolveView(ref, options.viewId);
+		await ensureLoaded(objectRegistry.ownerForType(presentedRef.type));
+		view = objectResolver.resolveView(presentedRef, options.viewId);
 	}
 	if (!view)
 		throw new Error(`[object-runtime] No view for ${ref.kind}<${ref.type}>`);
 	if (!view.component) {
 		await ensureLoaded(objectRegistry.ownerForView(view.id));
-		view = objectResolver.resolveView(ref, options.viewId);
+		view = objectResolver.resolveView(presentedRef, options.viewId);
 	}
 	if (!view?.component) {
 		throw new Error(
@@ -102,13 +122,15 @@ export async function presentReference(
 	// is the only signal that does not have to be remembered by every module and
 	// does not lie when a second tab is opened. A `new` object is not a thing yet
 	// — it becomes one when the create returns a real id, and that presents again.
-	if (!(ref.kind === "object" && ref.id === NEW_OBJECT_ID)) {
+	if (!(presentedRef.kind === "object" && presentedRef.id === NEW_OBJECT_ID)) {
 		attachToFocus(
-			ref,
-			ref.title ?? objectRegistry.type(ref.type)?.label ?? ref.type,
+			presentedRef,
+			presentedRef.title ??
+				objectRegistry.type(presentedRef.type)?.label ??
+				presentedRef.type,
 		);
 	}
-	referencePresented({ ref, view, options });
+	referencePresented({ ref: presentedRef, view, options });
 }
 
 function isDomainRef(value: unknown): value is DomainRef {

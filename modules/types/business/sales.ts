@@ -314,6 +314,10 @@ export type LeadListParams = PaginationParams & {
 	after?: string;
 };
 
+export type ContactListParams = PaginationParams & {
+	filter?: FilterObject;
+};
+
 export type PaginatedResult<T> = {
 	items: T[];
 	totalCount?: number;
@@ -365,7 +369,7 @@ export interface SalesService {
 	getStatistic(keys?: SalesStatisticKey[]): Promise<Statistic>;
 	getDailyStatistic(): Promise<{ [key: string]: Statistic }>;
 	listLeads(params: LeadListParams): Promise<PaginatedResult<Lead>>;
-	listContacts(params: PaginationParams): Promise<PaginatedResult<Contact>>;
+	listContacts(params: ContactListParams): Promise<PaginatedResult<Contact>>;
 	listLeadContacts(leadId: string): Promise<PaginatedResult<Contact>>;
 	listTouches(params: PaginationParams): Promise<PaginatedResult<Touch>>;
 	recordEvent(event: LeadEvent): Promise<string>;

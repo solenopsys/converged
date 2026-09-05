@@ -113,6 +113,29 @@ const leadFilterSchema: KyselyFilterSchema = {
 	},
 };
 
+const contactFilterSchema: KyselyFilterSchema = {
+	id: {
+		valueType: "string",
+		operators: ["eq", "notEq", "in", "notIn", "contains", "startsWith"],
+		column: "contacts.id",
+	},
+	leadId: {
+		valueType: "string",
+		operators: ["eq", "notEq", "in", "notIn", "contains", "startsWith"],
+		column: "contacts.leadId",
+	},
+	type: {
+		valueType: "string",
+		operators: ["eq", "notEq", "in", "notIn"],
+		column: "contacts.contactType",
+	},
+	role: {
+		valueType: "string",
+		operators: ["eq", "contains", "startsWith"],
+		column: "contacts.role",
+	},
+};
+
 type CountRow = { count?: number | string | bigint | null };
 type KeyCountRow = CountRow & { key?: string | null };
 type DailyStatsRow = CountRow & { date?: string | null };
@@ -874,6 +897,32 @@ export class SalesStoreService {
 			).execute(),
 		]);
 
+		return {
+			items,
+			totalCount: readCount(countRows[0] as CountRow),
+		};
+	}
+
+	async listContactsFiltered(
+		filter: FilterInput,
+		params: { offset?: number; limit?: number },
+	): Promise<{ items: ContactEntity[]; totalCount: number }> {
+		const limit = params.limit ?? 50;
+		const offset = params.offset ?? 0;
+		const itemsQuery = this.store.db
+			.selectFrom("contacts")
+			.selectAll()
+			.orderBy("createdAt", "desc")
+			.limit(limit)
+			.offset(offset);
+		const countQuery = this.store.db
+			.selectFrom("contacts")
+			.select(({ fn }) => [fn.count<number>("id").as("count")]);
+		const [items, countRows] = await Promise.all([
+			applyKyselyFilter(itemsQuery as any, filter, contactFilterSchema)
+				.execute() as Promise<ContactEntity[]>,
+			applyKyselyFilter(countQuery as any, filter, contactFilterSchema).execute(),
+		]);
 		return {
 			items,
 			totalCount: readCount(countRows[0] as CountRow),

@@ -62,6 +62,7 @@ export {
 	objectChanged,
 	objectRefreshRequested,
 	objectRevisionKey,
+	rememberObjectSnapshot,
 	operationExecutionFailed,
 	operationExecutionStarted,
 	operationExecutionSucceeded,

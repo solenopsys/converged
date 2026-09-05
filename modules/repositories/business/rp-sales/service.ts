@@ -13,6 +13,7 @@ import type {
 } from "./store/sales";
 import type {
 	Contact,
+	ContactListParams,
 	FilterObject,
 	Lead,
 	LeadEvent,
@@ -854,18 +855,23 @@ class SalesServiceImpl
 	}
 
 	async listContacts(
-		params: PaginationParams,
+		params: ContactListParams,
 	): Promise<PaginatedResult<Contact>> {
 		await this.ready();
-		const [contacts, totalCount] = await Promise.all([
-			this.stores.salesStoreSevice.contactRepo.findAll({
-				limit: params.limit,
-				offset: params.offset,
-			}),
-			this.stores.salesStoreSevice.contactRepo.count(),
-		]);
+		const result = params.filter
+			? await this.stores.salesStoreSevice.listContactsFiltered(
+					params.filter,
+					params,
+				)
+			: {
+					items: await this.stores.salesStoreSevice.contactRepo.findAll({
+						limit: params.limit,
+						offset: params.offset,
+					}),
+					totalCount: await this.stores.salesStoreSevice.contactRepo.count(),
+				};
 
-		const items = contacts.map((entity) => ({
+		const items = result.items.map((entity) => ({
 			id: entity.id,
 			leadId: entity.leadId,
 			type: entity.contactType as Contact["type"],
@@ -877,7 +883,7 @@ class SalesServiceImpl
 
 		return {
 			items,
-			totalCount,
+			totalCount: result.totalCount,
 		};
 	}
 

@@ -1,6 +1,12 @@
 import { useUnit } from "effector-preact";
 import type { ComponentChildren } from "preact";
 import { useEffect } from "preact/hooks";
+import { $objectRegistryRevision } from "front-core/object-runtime";
+import {
+	collectStatisticSections,
+	resolveStatistic,
+} from "../dashboard/statistic-catalog";
+import { StatisticActionsProvider } from "../dashboard/statistic-actions";
 import { SubtabBar } from "./SubtabBar";
 import { WorkspaceTopBar } from "./WorkspaceTopBar";
 import {
@@ -12,6 +18,35 @@ import {
 	subtabClosed,
 	subtabReleased,
 } from "./workspace";
+
+function SurfaceStatistics({ surface }: { surface: string }) {
+	useUnit($objectRegistryRevision);
+	const section = collectStatisticSections().find(
+		(section) => section.owner === surface,
+	);
+	const widgets = (section?.widgets ?? [])
+		.map((widget) => ({ widget, mounted: resolveStatistic(widget) }))
+		.filter(
+			(entry): entry is { widget: (typeof section.widgets)[number]; mounted: NonNullable<typeof entry.mounted> } =>
+				entry.mounted !== null,
+		);
+	if (widgets.length === 0) return null;
+
+	return (
+		<div class="surface-home-statistics">
+			{widgets.map(({ widget, mounted }) => (
+				<section
+					key={widget.typeId}
+					class={mounted.size === "full" ? "surface-statistic-full" : "surface-statistic-tile"}
+				>
+					<StatisticActionsProvider actions={widget.statistic?.actions?.metrics}>
+						<mounted.Component {...mounted.props} embedded />
+					</StatisticActionsProvider>
+				</section>
+			))}
+		</div>
+	);
+}
 
 /**
  * The stage: the active surface, its button bar, and whatever is pressed.
@@ -69,8 +104,17 @@ export function Surface({
 					<View {...(pressed?.props ?? {})} />
 				) : (
 					<div class="surface-home">
-						<h1>{tab?.label ?? surface}</h1>
-						{tab?.purpose ? <p>{tab.purpose}</p> : null}
+						<SurfaceStatistics surface={surface} />
+						{!collectStatisticSections().some(
+							(section) =>
+								section.owner === surface &&
+								section.widgets.some((widget) => resolveStatistic(widget)),
+						) && (
+							<>
+								<h1>{tab?.label ?? surface}</h1>
+								{tab?.purpose ? <p>{tab.purpose}</p> : null}
+							</>
+						)}
 					</div>
 				)}
 			</div>

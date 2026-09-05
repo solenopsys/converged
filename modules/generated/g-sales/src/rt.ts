@@ -300,6 +300,10 @@ export type LeadListParams = PaginationParams & {
 	after?: string;
 };
 
+export type ContactListParams = PaginationParams & {
+	filter?: FilterObject;
+};
+
 export type PaginatedResult<T> = {
 	items: T[];
 	totalCount?: number;
@@ -875,7 +879,7 @@ const metadata: ServiceMetadata = {
       "parameters": [
         {
           "name": "params",
-          "type": "PaginationParams",
+          "type": "ContactListParams",
           "optional": false,
           "isArray": false
         }
@@ -1273,6 +1277,11 @@ const metadata: ServiceMetadata = {
       "definition": "PaginationParams & {\n\t// Canonical predicate shared by the table header, the assistant and\n\t// group operations.\n\tfilter?: FilterObject;\n\ttags?: string[];\n\t// Case-insensitive search over id, description and contact values.\n\tquery?: string;\n\t// Case-insensitive substring match over the lead's contact values\n\t// (email, domain, phone…). Combinable with tags.\n\tcontact?: string;\n\t// Keyset cursor: when set, returns leads with id > after, ordered by id ASC\n\t// (ignores offset). Not supported together with filters (tags/contact).\n\tafter?: string;\n}"
     },
     {
+      "name": "ContactListParams",
+      "kind": "type",
+      "definition": "PaginationParams & {\n\tfilter?: FilterObject;\n}"
+    },
+    {
       "name": "PaginatedResult",
       "kind": "type",
       "typeParameters": "<T>",
@@ -1318,7 +1327,7 @@ export interface SalesServiceRtClient {
   getStatistic(keys?: SalesStatisticKey[]): Statistic;
   getDailyStatistic(): any;
   listLeads(params: LeadListParams): PaginatedResult<Lead>;
-  listContacts(params: PaginationParams): PaginatedResult<Contact>;
+  listContacts(params: ContactListParams): PaginatedResult<Contact>;
   listLeadContacts(leadId: string): PaginatedResult<Contact>;
   listTouches(params: PaginationParams): PaginatedResult<Touch>;
   recordEvent(event: LeadEvent): string;

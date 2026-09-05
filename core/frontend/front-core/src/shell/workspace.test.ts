@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { objectRegistry, surfaceConfigured } from "front-core/object-runtime";
+import {
+	objectOf,
+	objectRegistry,
+	registerSurface,
+	setOf,
+	surfaceConfigured,
+} from "front-core/object-runtime";
 import {
 	$activeSubtabs,
 	$activeSurface,
@@ -16,6 +22,7 @@ import {
 } from "./workspace";
 
 const View = () => null;
+let projectionPrepared = 0;
 
 function declare(
 	id: string,
@@ -43,6 +50,36 @@ function declare(
 
 declare("sf-orders", "Orders");
 declare("sf-companies", "Companies");
+declare("sf-projections", "Projections");
+registerSurface({
+	id: "sf-projections",
+	label: "Projections",
+	purpose: "A surface with declared views",
+	types: [
+		{
+			id: "projection.item",
+			label: "Projection item",
+			pluralLabel: "Projection items",
+		},
+	],
+	views: [
+		{
+			id: "projection.item.table",
+			accepts: setOf("projection.item"),
+			component: View,
+			props: () => {
+				projectionPrepared += 1;
+				return {};
+			},
+		},
+		{
+			id: "projection.item.detail",
+			accepts: objectOf("projection.item"),
+			component: View,
+		},
+	],
+	operations: [],
+});
 
 function open(surface: string, key: string, permanent = false): void {
 	subtabOpened({
@@ -58,6 +95,7 @@ function open(surface: string, key: string, permanent = false): void {
 describe("workspace", () => {
 	beforeEach(() => {
 		workspaceReset();
+		projectionPrepared = 0;
 		surfaceConfigured({
 			surfaces: [
 				{ id: "sf-orders", order: 1 },
@@ -97,6 +135,40 @@ describe("workspace", () => {
 		expect($activeSurface.getState()).toBe("sf-orders");
 		expect($pressedSubtab.getState()).toBeNull();
 		expect($surfaceTabs.getState()[0]?.pressed).toBeNull();
+	});
+
+	test("mounting registers unpressed permanent set projections", () => {
+		surfaceMounted("sf-projections");
+
+		const projections = $activeSubtabs.getState();
+		expect(projections).toMatchObject([
+			{
+				key: "projection:projection.item.table",
+				title: "Projection items",
+				permanent: true,
+				ref: {
+					kind: "set",
+					type: "projection.item",
+					selection: { kind: "query" },
+				},
+			},
+		]);
+		expect($pressedSubtab.getState()).toBeNull();
+	});
+
+	test("a permanent projection cannot be closed", () => {
+		surfaceMounted("sf-projections");
+		subtabClosed("projection:projection.item.table");
+
+		expect($activeSubtabs.getState()).toHaveLength(1);
+	});
+
+	test("a projection prepares its data only when it is pressed", () => {
+		surfaceMounted("sf-projections");
+		expect(projectionPrepared).toBe(0);
+
+		subtabActivated("projection:projection.item.table");
+		expect(projectionPrepared).toBe(1);
 	});
 
 	test("releasing a button returns to the surface, keeping the tab", () => {

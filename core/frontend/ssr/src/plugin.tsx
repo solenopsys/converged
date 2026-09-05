@@ -152,7 +152,7 @@ export default function ssrPlugin(config: SsrPluginConfig): ServerPlugin {
 	}
 
 	function isConsoleRoute(pathname: string): boolean {
-		return pathname === "/console" || pathname === "/console/";
+		return pathname === "/console" || pathname.startsWith("/console/");
 	}
 
 	return (app: ServerApp) => {

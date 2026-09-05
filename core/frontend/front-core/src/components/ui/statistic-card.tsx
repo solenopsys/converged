@@ -1,6 +1,7 @@
 import { invokeAction } from "front-core/core";
 import type * as React from "preact/compat";
 import { useStatisticAction } from "../../dashboard/statistic-actions";
+import { Loader2 } from "../../icons";
 import { cn } from "../../lib/utils";
 import {
 	Card,
@@ -26,6 +27,7 @@ export interface StatisticCardProps {
 		direction?: TrendDirection;
 	};
 	dashboardPin?: DashboardPinMeta;
+	loading?: boolean;
 	className?: string;
 }
 
@@ -43,6 +45,7 @@ export function StatisticCard({
 	icon: Icon,
 	trend,
 	dashboardPin,
+	loading = false,
 	className,
 }: StatisticCardProps) {
 	const actionId = useStatisticAction(actionKey ?? title);
@@ -70,7 +73,16 @@ export function StatisticCard({
 						</CardDescription>
 					)}
 					<CardTitle className="text-3xl font-semibold tabular-nums">
-						{value}
+						{loading ? (
+							<span className="inline-flex" role="status">
+								<Loader2
+									aria-label="Loading"
+									className="h-6 w-6 animate-spin text-muted-foreground"
+								/>
+							</span>
+						) : (
+							value
+						)}
 					</CardTitle>
 				</div>
 				{Icon && (

@@ -15,6 +15,7 @@ import {
 	CardHeader,
 	type DashboardPinMeta,
 } from "../components/ui/card";
+import { Loader2 } from "../icons";
 import { cn } from "../lib/utils";
 
 export interface DashboardLineSeriesConfig {
@@ -47,6 +48,7 @@ export interface DashboardLineChartCardProps {
 	dashboardPin?: DashboardPinMeta | false;
 	height?: number;
 	legend?: boolean;
+	loading?: boolean;
 	className?: string;
 }
 
@@ -70,6 +72,7 @@ export function DashboardLineChartCard({
 	dashboardPin,
 	height,
 	legend = true,
+	loading = false,
 	className,
 }: DashboardLineChartCardProps) {
 	const rows = data as Record<string, unknown>[];
@@ -233,23 +236,32 @@ export function DashboardLineChartCard({
 				</CardHeader>
 			)}
 			<CardContent className="flex min-h-0 flex-1 flex-col gap-2 px-4 pb-4 pt-0">
-				{legend && (
-					<div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-						{series.map((s) => (
-							<div key={s.key} className="flex items-center gap-1.5">
-								<span
-									className="h-2 w-2 shrink-0 rounded-[2px]"
-									style={{ backgroundColor: s.color }}
-								/>
-								<span>{s.label}</span>
-							</div>
-						))}
+				{loading ? (
+					<div
+						className="flex flex-1 items-center justify-center text-muted-foreground"
+						role="status"
+					>
+						<Loader2 aria-label="Loading" className="h-5 w-5 animate-spin" />
 					</div>
-				)}
-				<div
-					ref={chartContainerRef}
-					className="flex-1 min-h-[160px] w-full overflow-hidden"
-				>
+				) : (
+					<>
+						{legend && (
+							<div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+								{series.map((s) => (
+									<div key={s.key} className="flex items-center gap-1.5">
+										<span
+											className="h-2 w-2 shrink-0 rounded-[2px]"
+											style={{ backgroundColor: s.color }}
+										/>
+										<span>{s.label}</span>
+									</div>
+								))}
+							</div>
+						)}
+						<div
+							ref={chartContainerRef}
+							className="flex-1 min-h-[160px] w-full overflow-hidden"
+						>
 					<svg
 						viewBox={`0 0 ${chartWidth} ${VIEW_HEIGHT}`}
 						className="h-full w-full"
@@ -346,8 +358,10 @@ export function DashboardLineChartCard({
 								</g>
 							)}
 						</g>
-					</svg>
-				</div>
+							</svg>
+						</div>
+					</>
+				)}
 			</CardContent>
 		</Card>
 	);

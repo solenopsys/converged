@@ -6,6 +6,7 @@ import {
 	registerSurface,
 	setSurfaceLoader,
 } from "front-core/object-runtime";
+import { surfaceMounted } from "./workspace";
 
 const loads = new Map<string, Promise<void>>();
 let stylesMounted = false;
@@ -93,3 +94,11 @@ export function loadSurfaceForOperation(
 }
 
 setSurfaceLoader(loadSurface);
+
+// Mounting can come from the strip as well as an assistant command. Both paths
+// load the owner so its declared projections appear in the surface immediately.
+surfaceMounted.watch((surface) => {
+	if (typeof document === "undefined") return;
+	if (objectRegistry.surface(surface)?.loaded) return;
+	void loadSurface(surface).catch(() => undefined);
+});

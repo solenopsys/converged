@@ -1,4 +1,5 @@
 import { combine, createEvent, createStore, sample } from "effector";
+import { bus } from "front-core/core";
 import type {
 	DomainRef,
 	PresentationSource,
@@ -9,6 +10,7 @@ import {
 	availableSurfaces,
 	objectRegistry,
 	onOperationAuthorizationChanged,
+	setRef,
 	surfaceDeclared,
 	surfaceRegistered,
 } from "front-core/object-runtime";
@@ -46,6 +48,8 @@ export type WorkspaceSubtab = {
 	title: string;
 	view: ComponentType<Record<string, unknown>>;
 	props: Record<string, unknown>;
+	/** Deferred so an inactive projection does not start loading its data. */
+	prepareProps?: () => Record<string, unknown>;
 	/**
 	 * Declared by the surface and always present, as opposed to opened by
 	 * someone and closable. Only dynamic subtabs are subject to the cap below.
@@ -100,6 +104,9 @@ export const subtabClosed = createEvent<string>("SUBTAB_CLOSED");
 export const subtabReleased = createEvent<string>("SUBTAB_RELEASED");
 export const workspaceReset = createEvent("WORKSPACE_RESET");
 
+/** A stable identity for a view a surface exposes before anything is opened. */
+export const projectionKey = (viewId: string): string => `projection:${viewId}`;
+
 const mount = (state: WorkspaceState, surface: string): string[] =>
 	state.mounted.includes(surface) ? state.mounted : [...state.mounted, surface];
 
@@ -118,14 +125,93 @@ function capped(
 	return subtabs.filter((subtab) => !dropped.has(subtab.key));
 }
 
+/**
+ * A set view is a surface capability: it is available before the user opens
+ * a record or applies a filter. Object views remain dynamic by definition.
+ */
+function projectionsOf(surface: string): WorkspaceSubtab[] {
+	return objectRegistry
+		.allViews()
+		.filter(
+			(view) =>
+				view.owner === surface &&
+				view.loaded &&
+				view.accepts.kind === "set" &&
+				Boolean(view.accepts.type && view.component),
+		)
+		.map((view) => {
+			const typeId = view.accepts.type as string;
+			const type = objectRegistry.type(typeId);
+			const ref = setRef(typeId, { kind: "query" });
+			const props = { reference: ref, bus };
+			return {
+				key: projectionKey(view.id),
+				surface,
+				title: view.label ?? type?.pluralLabel ?? type?.label ?? view.id,
+				view: view.component as ComponentType<Record<string, unknown>>,
+				props,
+				...(view.props
+					? { prepareProps: () => ({ ...props, ...view.props?.(ref) }) }
+					: {}),
+				ref,
+				viewId: view.id,
+				permanent: true,
+			};
+		});
+}
+
+/** Replaces only declared projections, retaining any record or filtered tabs. */
+function registerProjections(
+	state: WorkspaceState,
+	surface: string,
+): WorkspaceState {
+	const projections = projectionsOf(surface);
+	if (projections.length === 0) return state;
+	const keys = new Set(projections.map((projection) => projection.key));
+	return {
+		...state,
+		subtabs: [
+			...projections,
+			...state.subtabs.filter((subtab) => !keys.has(subtab.key)),
+		],
+	};
+}
+
+function activateSubtab(
+	state: WorkspaceState,
+	subtab: WorkspaceSubtab,
+): WorkspaceState {
+	const activated = subtab.prepareProps
+		? { ...subtab, props: subtab.prepareProps(), prepareProps: undefined }
+		: subtab;
+	return {
+		...state,
+		subtabs:
+			activated === subtab
+				? state.subtabs
+				: state.subtabs.map((entry) =>
+						entry.key === subtab.key ? activated : entry,
+					),
+		mounted: mount(state, subtab.surface),
+		activeSurface: subtab.surface,
+		pressed: { ...state.pressed, [subtab.surface]: subtab.key },
+	};
+}
+
 export const $workspace = createStore<WorkspaceState>(initialState, {
 	name: "WORKSPACE",
 })
-	.on(surfaceMounted, (state, surface) => ({
-		...state,
-		mounted: mount(state, surface),
-		activeSurface: surface,
-	}))
+	.on(surfaceMounted, (state, surface) =>
+		registerProjections(
+			{ ...state, mounted: mount(state, surface), activeSurface: surface },
+			surface,
+		),
+	)
+	.on(surfaceRegistered, (state, definition) =>
+		state.mounted.includes(definition.id)
+			? registerProjections(state, definition.id)
+			: state,
+	)
 	.on(surfaceActivated, (state, surface) =>
 		state.mounted.includes(surface)
 			? { ...state, activeSurface: surface }
@@ -154,12 +240,7 @@ export const $workspace = createStore<WorkspaceState>(initialState, {
 	.on(subtabActivated, (state, key) => {
 		const subtab = state.subtabs.find((entry) => entry.key === key);
 		if (!subtab) return state;
-		return {
-			...state,
-			mounted: mount(state, subtab.surface),
-			activeSurface: subtab.surface,
-			pressed: { ...state.pressed, [subtab.surface]: key },
-		};
+		return activateSubtab(state, subtab);
 	})
 	.on(subtabReleased, (state, surface) => ({
 		...state,
@@ -167,7 +248,7 @@ export const $workspace = createStore<WorkspaceState>(initialState, {
 	}))
 	.on(subtabClosed, (state, key) => {
 		const subtab = state.subtabs.find((entry) => entry.key === key);
-		if (!subtab) return state;
+		if (!subtab || subtab.permanent) return state;
 		// Closing a button releases the bar rather than pressing a neighbour: the
 		// surface's own screen is the resting state, not whatever was next to it.
 		return {

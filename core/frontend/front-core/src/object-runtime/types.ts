@@ -1,6 +1,10 @@
 import type { SelectionDescriptor, SelectionPreset } from "back-core";
 import type { ComponentType } from "preact";
 import type { SurfaceLlmCatalog } from "../llm-catalog";
+import type { HeaderAction } from "../components/HeaderPanel";
+import type { TableFilterConfig } from "../table/filter-header";
+import type { InfiniteTableStore } from "../table/infinite-table-store";
+import type { ColumnConfig } from "../table/types";
 
 export const OPERATORS = [
 	"show",
@@ -72,6 +76,28 @@ export type StatisticDefinition = {
 	};
 };
 
+/** The complete configuration for an object's default infinite-list projection. */
+export type InfinityDefinition<TData extends object = Record<string, unknown>> = {
+	/** Stable identity used by the generic table and persisted UI state. */
+	tableId?: string;
+	title?: string;
+	columns: readonly ColumnConfig<TData>[];
+	filters?: readonly (TableFilterConfig & { operator?: string })[];
+	/** An existing domain store, when the projection already owns request lifecycle. */
+	store?: InfiniteTableStore<TData>;
+	/** Declarative source for projections that do not need a domain-level store. */
+	load?: (params: Record<string, unknown>) => Promise<unknown>;
+	rowRef?: (row: TData) => ObjectRef;
+	actions?: readonly HeaderAction[];
+	mobile?: {
+		title: string;
+		subtitle?: string;
+		badge?: string;
+		image?: string;
+	};
+};
+
+
 export type ObjectDefinition = {
 	id: ObjectTypeId;
 	label: string;
@@ -97,6 +123,7 @@ export type ObjectDefinition = {
 	 * index is JSON, so it arrives undefined until the owner is imported.
 	 */
 	statistic?: StatisticDefinition;
+	infinity?: InfinityDefinition;
 	/** Serializable filter capability used by select, the LLM and collection views. */
 	selection?: {
 		filters: readonly {
@@ -134,6 +161,8 @@ export type ObjectRef = {
 	type: ObjectTypeId;
 	id: string;
 	title?: string;
+	/** Row data available when a record is opened from a list projection. */
+	data?: Record<string, unknown>;
 };
 
 export type IdSelection = {
@@ -353,7 +382,7 @@ export const NEW_OBJECT_ID = "new";
 export function objectRef(
 	type: ObjectTypeId,
 	id: string | number,
-	options: Pick<ObjectRef, "title"> = {},
+	options: Pick<ObjectRef, "title" | "data"> = {},
 ): ObjectRef {
 	return { kind: "object", type, id: String(id), ...options };
 }

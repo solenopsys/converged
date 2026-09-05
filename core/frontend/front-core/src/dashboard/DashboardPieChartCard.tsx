@@ -7,6 +7,7 @@ import {
 	CardHeader,
 	type DashboardPinMeta,
 } from "../components/ui/card";
+import { Loader2 } from "../icons";
 import { cn } from "../lib/utils";
 import {
 	isErrorLike as defaultIsErrorLike,
@@ -34,6 +35,7 @@ export interface DashboardPieChartCardProps {
 	maxSlices?: number;
 	otherLabel?: string;
 	legend?: boolean;
+	loading?: boolean;
 	className?: string;
 }
 
@@ -53,6 +55,7 @@ export function DashboardPieChartCard({
 	maxSlices,
 	otherLabel = "Other",
 	legend = true,
+	loading = false,
 	className,
 }: DashboardPieChartCardProps) {
 	const chartData = useMemo(() => {
@@ -113,7 +116,14 @@ export function DashboardPieChartCard({
 				</CardHeader>
 			)}
 			<CardContent className="flex min-h-0 flex-1 px-4 pb-4 pt-0">
-				{chartData.length === 0 ? (
+				{loading ? (
+					<div
+						className="flex flex-1 items-center justify-center text-muted-foreground"
+						role="status"
+					>
+						<Loader2 aria-label="Loading" className="h-5 w-5 animate-spin" />
+					</div>
+				) : chartData.length === 0 ? (
 					<div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
 						{emptyLabel}
 					</div>
@@ -136,7 +146,7 @@ export function DashboardPieChartCard({
 					</div>
 				)}
 			</CardContent>
-			{legend && chartData.length > 0 && (
+			{!loading && legend && chartData.length > 0 && (
 				<div className="flex flex-wrap gap-x-4 gap-y-2 px-4 pb-4 text-xs">
 					{chartData.map((item) => (
 						<div

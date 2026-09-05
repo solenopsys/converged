@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "preact/compat";
 import { useUnit } from "effector-preact";
 import type { Store } from "effector";
+import type { ObjectRef } from "front-core/object-runtime";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { Label } from "../components/ui/label";
@@ -26,6 +27,7 @@ const FIELD_TYPES = {
 interface BasicFormViewProps {
 	fields: FieldConfig[];
 
+	reference?: ObjectRef;
 	entity?: any;
 	entityStore?: Store<any>;
 	title?: string;
@@ -33,6 +35,7 @@ interface BasicFormViewProps {
 	relatedSections?: RelatedSectionConfig[];
 	onSave?: (data: any) => void | Promise<void>;
 	onCancel?: () => void;
+	onClose?: () => void;
 	saveButtonText?: string;
 	cancelButtonText?: string;
 	loading?: boolean;
@@ -148,6 +151,7 @@ const RelatedSection = ({ section, entity }: { section: RelatedSectionConfig; en
 
 export const BasicFormView: React.FC<BasicFormViewProps> = ({
 	fields,
+	reference,
 	entity: entityProp,
 	entityStore,
 	title = "Form",
@@ -155,12 +159,17 @@ export const BasicFormView: React.FC<BasicFormViewProps> = ({
 	relatedSections = [],
 	onSave,
 	onCancel,
+	onClose,
 	saveButtonText = "Save",
 	cancelButtonText = "Cancel",
 	loading = false,
 }) => {
 	const storedEntity = entityStore ? useUnit(entityStore) : null;
-	const entity = entityProp ?? storedEntity;
+	const entity = entityProp ?? reference?.data ?? storedEntity;
+	const handleCancel = () => {
+		onCancel?.();
+		onClose?.();
+	};
 
 	// Initialize form data from entity or default values
 	const [formData, setFormData] = useState<Record<string, any>>(() => {
@@ -398,8 +407,8 @@ export const BasicFormView: React.FC<BasicFormViewProps> = ({
 
 			<div className="border-t px-6 py-4">
 				<div className="flex justify-end gap-3">
-					{onCancel && (
-						<Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting || loading}>
+					{(onCancel || onClose) && (
+						<Button type="button" variant="outline" onClick={handleCancel} disabled={isSubmitting || loading}>
 							{cancelButtonText}
 						</Button>
 					)}

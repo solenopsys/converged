@@ -24,7 +24,7 @@ function readLandingPayload(): LandingPayload {
 const route =
 	window.location.pathname.replace(/^\/(?:en|ru|de|fr|es|it|pt)(?=\/|$)/, "") ||
 	"/";
-const isConsoleRoute = route === "/console" || route === "/console/";
+const isConsoleRoute = route === "/console" || route.startsWith("/console/");
 
 const root = document.getElementById("app");
 if (!root) throw new Error("Missing #app root");

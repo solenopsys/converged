@@ -1,5 +1,5 @@
 import type { Store } from "effector";
-import { createEvent, createStore } from "effector";
+import { createDomain, createEvent, createStore } from "effector";
 import { useUnit } from "effector-preact";
 import { translator } from "i18n";
 import type * as React from "preact/compat";
@@ -9,12 +9,16 @@ import {
 	$objectRegistryRevision,
 	type DomainRef,
 	executeOperation,
+	objectRef,
 	objectChanged,
+	objectRegistry,
 	localized,
+	rememberObjectSnapshot,
 	operationsFor,
 	type OwnedOperation,
+	presentReference,
 	setRef,
-} from "../object-runtime";
+} from "front-core/object-runtime";
 import {
 	hasParameters,
 	OperationParametersDialog,
@@ -32,6 +36,7 @@ import type {
 } from "../table/filter-header";
 import { valuesFromSelectionFilter } from "../table/filter-header";
 import { InfiniteScrollDataTable } from "../table/InfiniteScrollDataTable";
+import { createInfiniteTableStore } from "../table/infinite-table-store";
 import type { InfiniteTableStore } from "../table/infinite-table-store";
 import type {
 	BulkAction,
@@ -68,7 +73,7 @@ export interface EntityListViewProps<
 	 */
 	reference?: DomainRef;
 	store?: InfiniteTableStore;
-	columns: Array<ColumnConfig<TData>>;
+	columns?: Array<ColumnConfig<TData>>;
 	title?: string;
 	subtitle?: string;
 
@@ -107,6 +112,49 @@ const cleanFilters = (values: TableFilterValues): TableFilterValues => {
 	return result;
 };
 
+function referenceBaseFilters(reference: DomainRef | undefined): TableFilterValues | undefined {
+	if (!reference || reference.kind !== "set" || reference.selection.kind !== "query") {
+		return undefined;
+	}
+	const { filter, presets } = reference.selection;
+	if (!filter && !presets?.length) return undefined;
+	return {
+		...(filter ? { filter } : {}),
+		...(presets?.length ? { presets } : {}),
+	};
+}
+
+function infinityFilterParams(
+	values: TableFilterValues,
+	base: TableFilterValues | undefined,
+	filters: readonly { id: string; operator?: string }[] | undefined,
+): TableFilterValues {
+	const definitions = new Map((filters ?? []).map((filter) => [filter.id, filter]));
+	const clauses: Record<string, unknown> = {};
+	for (const [field, value] of Object.entries(values)) {
+		if (value === undefined || value === null || value === "") continue;
+		const operator = definitions.get(field)?.operator;
+		if (Array.isArray(value)) {
+			if (value.length > 0) clauses[field] = { [operator ?? "in"]: value };
+			continue;
+		}
+		clauses[field] = { [operator ?? "contains"]: value };
+	}
+	const baseFilter = base?.filter as Record<string, unknown> | undefined;
+	const filter =
+		baseFilter && Object.keys(clauses).length > 0
+			? { AND: [baseFilter, clauses] }
+			: Object.keys(clauses).length > 0
+				? clauses
+				: baseFilter;
+	return {
+		...(filter ? { filter } : {}),
+		...(Array.isArray(base?.presets) && base.presets.length > 0
+			? { presets: base.presets }
+			: {}),
+	};
+}
+
 export function EntityListView<TData extends object = Record<string, unknown>>({
 	tableId,
 	reference,
@@ -134,6 +182,27 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 	className,
 }: EntityListViewProps<TData>) {
 	// biome-ignore lint/correctness/useExhaustiveDependencies: tab state must be created once per instance
+	const objectType = reference ? objectRegistry.type(reference.type) : undefined;
+	const infinity = objectType?.infinity;
+	const projectionStore = useMemo(() => {
+		if (infinity?.store) return infinity.store;
+		if (!infinity?.load || !objectType) return undefined;
+		const domain = createDomain(`infinity-${objectType.id}-${crypto.randomUUID()}`);
+		return createInfiniteTableStore(domain, (params) => infinity.load(params));
+	}, [infinity, objectType]);
+	const resolvedTableId = tableId ?? infinity?.tableId ?? reference?.type ?? "entity-list";
+	const resolvedBaseFilters = baseFilters ?? referenceBaseFilters(reference);
+	const resolvedFilters = filters ?? infinity?.filters;
+	const resolvedColumns = columns ?? infinity?.columns;
+	const resolvedTitle = title ?? infinity?.title ?? objectType?.pluralLabel ?? objectType?.label;
+	const resolvedActions = actions ?? infinity?.actions;
+	const resolvedSerializeFilters =
+		serializeFilters ??
+		(infinity
+			? (values: TableFilterValues, base: TableFilterValues | undefined) =>
+					infinityFilterParams(values, base, infinity.filters)
+			: undefined);
+
 	const internalTabState = useMemo(() => {
 		const changed = createEvent<string>();
 		const $active = createStore(tabs?.[0]?.id ?? "").on(
@@ -148,18 +217,32 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 	const activeTabId = useUnit($tab);
 
 	const activeTab = tabs?.find((tab) => tab.id === activeTabId) ?? tabs?.[0];
-	const activeStore = activeTab?.store ?? store;
+	const activeStore = activeTab?.store ?? store ?? projectionStore;
 	if (!activeStore) {
 		throw new Error(
-			`EntityListView(${tableId}): no store — pass "store" or per-tab "store"`,
+			`EntityListView(${resolvedTableId}): no store — configure infinity.store or infinity.load`,
+		);
+	}
+	if (!resolvedColumns) {
+		throw new Error(
+			`EntityListView(${resolvedTableId}): no columns — configure infinity on '${reference?.type ?? "unknown"}'`,
 		);
 	}
 
 	const state = useUnit(activeStore.$state);
+
+	useEffect(() => {
+		if (!reference) return;
+		for (const row of state.items) {
+			const item = row as Record<string, unknown>;
+			if (item.id !== undefined && item.id !== null)
+				rememberObjectSnapshot(reference.type, String(item.id), item);
+		}
+	}, [reference, state.items]);
 	const [filterValues, setFilterValues] = useState<TableFilterValues>({});
 	const selectionFilterValues = useMemo(
-		() => valuesFromSelectionFilter(filters, baseFilters),
-		[baseFilters, filters],
+		() => valuesFromSelectionFilter(resolvedFilters, resolvedBaseFilters),
+		[resolvedBaseFilters, resolvedFilters],
 	);
 	const displayedFilterValues = useMemo(
 		() => ({ ...selectionFilterValues, ...filterValues }),
@@ -168,10 +251,15 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 
 	const mergedFilters = useMemo(() => {
 		const values = cleanFilters({ ...activeTab?.filters, ...filterValues });
-		return serializeFilters
-			? cleanFilters(serializeFilters(values, baseFilters))
-			: cleanFilters({ ...baseFilters, ...values });
-	}, [activeTab?.filters, baseFilters, filterValues, serializeFilters]);
+		return resolvedSerializeFilters
+			? cleanFilters(resolvedSerializeFilters(values, resolvedBaseFilters))
+			: cleanFilters({ ...resolvedBaseFilters, ...values });
+	}, [
+		activeTab?.filters,
+		filterValues,
+		resolvedBaseFilters,
+		resolvedSerializeFilters,
+	]);
 
 	// Push filters into the store only when they actually differ; setFilters
 	// resets pagination and triggers a reload by itself.
@@ -302,7 +390,7 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 			: undefined;
 
 	const headerConfig: HeaderPanelConfig = {
-		title,
+		title: resolvedTitle,
 		subtitle,
 		...(tabs && tabs.length > 0
 			? {
@@ -317,7 +405,7 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 				}
 			: {}),
 		actions: [
-			...(actions ?? []),
+			...(resolvedActions ?? []),
 			...(refreshable
 				? [
 						{
@@ -349,8 +437,8 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 			)}
 			<div className="min-h-0 flex-1">
 				<InfiniteScrollDataTable<TData>
-					tableId={tabs ? `${tableId}:${activeTabId}` : tableId}
-					columns={activeTab?.columns ?? columns}
+						tableId={tabs ? `${resolvedTableId}:${activeTabId}` : resolvedTableId}
+					columns={activeTab?.columns ?? resolvedColumns}
 					data={state.items as TData[]}
 					hasMore={state.hasMore}
 					loading={state.loading}
@@ -359,7 +447,20 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 					sortConfig={state.sortConfig}
 					onSort={handleSort}
 					onLoadMore={activeStore.loadMore}
-					onRowClick={onRowClick}
+					onRowClick={
+						onRowClick ??
+							(infinity
+								? (row) => {
+									const item = row as Record<string, unknown>;
+									const target = infinity.rowRef
+										? infinity.rowRef(row as Record<string, unknown>)
+										: objectRef(reference?.type ?? "", String(item.id));
+									void presentReference(
+										target.kind === "object" ? { ...target, data: item } : target,
+									);
+							}
+							: undefined)
+					}
 					CardComponent={activeTab?.CardComponent ?? CardComponent}
 					viewMode={viewMode}
 					selectable={selectable}
@@ -371,7 +472,7 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 					selectionResetKey={selectionResetKey}
 					onSelectionChange={setSelectedIds}
 					emptyMessage={activeTab?.emptyMessage ?? emptyMessage}
-					filters={filters}
+					filters={resolvedFilters ? [...resolvedFilters] : undefined}
 					filterValues={displayedFilterValues}
 					onFilterValuesChange={setFilterValues}
 				/>

@@ -19,14 +19,20 @@ describe("SalesStoreService.listLeadsFiltered", () => {
 		});
 	};
 
-	const addContact = async (id: string, leadId: string, value: string) => {
+	const addContact = async (
+		id: string,
+		leadId: string,
+		value: string,
+		contactType = "EMAIL",
+		role = "",
+	) => {
 		await sales.contactRepo.create({
 			id,
 			leadId,
 			createdAt: Math.floor(Date.now() / 1000),
-			contactType: "email",
+			contactType,
 			value,
-			role: "",
+			role,
 			description: "",
 		});
 	};
@@ -111,6 +117,23 @@ describe("SalesStoreService.listLeadsFiltered", () => {
 		);
 		expect(result.items).toEqual([]);
 		expect(result.totalCount).toBe(0);
+	});
+
+	it("filters contacts by type and role", async () => {
+		await addContact("c4", "lead-rextek", "ceo@rextek-cnc.com", "EMAIL", "CEO");
+		await addContact("c5", "lead-rextek", "+15551234567", "PHONE", "main");
+
+		const byType = await sales.listContactsFiltered(
+			{ type: { in: ["PHONE"] } },
+			{ offset: 0, limit: 10 },
+		);
+		expect(byType.items.map((contact) => contact.id)).toEqual(["c5"]);
+
+		const byRole = await sales.listContactsFiltered(
+			{ role: { contains: "ceo" } },
+			{ offset: 0, limit: 10 },
+		);
+		expect(byRole.items.map((contact) => contact.id)).toEqual(["c4"]);
 	});
 
 	it("returns a compact recent daily aggregate", async () => {

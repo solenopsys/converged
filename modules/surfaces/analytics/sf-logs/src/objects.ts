@@ -49,12 +49,14 @@ export default defineSurface({
 	views: [
 		{
 			id: "logs.entry.hot",
+			label: "Hot logs",
 			accepts: setOf("logs.entry"),
 			component: LogsView,
 			props: () => ({ mode: "hot" }),
 		},
 		{
 			id: "logs.entry.cold",
+			label: "Cold logs",
 			accepts: setOf("logs.entry"),
 			component: LogsView,
 			props: () => ({ mode: "cold" }),
@@ -62,6 +64,7 @@ export default defineSurface({
 		},
 		{
 			id: "logs.statistic.dashboard",
+			label: "Log statistics",
 			accepts: setOf("logs.statistic"),
 			component: LogsStatsView,
 		},

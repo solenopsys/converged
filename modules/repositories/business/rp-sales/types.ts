@@ -1,6 +1,7 @@
 export type {
 	Campaign,
 	Contact,
+	ContactListParams,
 	FilterObject,
 	ImportContact,
 	ImportItem,
