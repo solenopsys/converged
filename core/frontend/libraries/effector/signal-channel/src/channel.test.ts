@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { SignalChannel, type SignalAuthController } from "./channel";
+import { type SignalAuthController, SignalChannel } from "./channel";
 
 class FakeSocket {
 	readyState = WebSocket.CONNECTING;
@@ -155,7 +155,10 @@ describe("SignalChannel", () => {
 		);
 		channel.send("resonus", "call.offer", { sdp: "offer" });
 		sockets[0].readyState = WebSocket.OPEN;
-		sockets[0].onopen?.call(sockets[0] as unknown as WebSocket, new Event("open"));
+		sockets[0].onopen?.call(
+			sockets[0] as unknown as WebSocket,
+			new Event("open"),
+		);
 		sockets[0].message({ type: "ready", authRequired: true });
 		await Bun.sleep(0);
 		expect(sockets[0].sent).toEqual([
@@ -217,7 +220,9 @@ describe("SignalChannel", () => {
 		const auth: SignalAuthController = {
 			getCurrentAccessToken: () => "header.payload.signature",
 			getAccessToken: async () => "header.payload.signature",
-			setTokens: (token) => { cleared = token === null; },
+			setTokens: (token) => {
+				cleared = token === null;
+			},
 			subscribe: () => () => {},
 		};
 		const channel = new SignalChannel(
@@ -238,5 +243,37 @@ describe("SignalChannel", () => {
 		expect(cleared).toBe(true);
 		expect(sockets[0].readyState).toBe(WebSocket.CLOSED);
 		channel.disconnect();
+	});
+
+	test("a wildcard subscriber receives events it was never told the name of", () => {
+		const { channel, sockets } = setup();
+		const seen: string[] = [];
+		const named: string[] = [];
+		channel.subscribeAll((event) => seen.push(event.name ?? ""));
+		channel.subscribe("order.created", (event) => named.push(event.name ?? ""));
+
+		channel.connect();
+		sockets[0].open();
+		sockets[0].message({ type: "push", name: "order.created", id: "a" });
+		sockets[0].message({ type: "push", name: "invoice.overdue", id: "b" });
+		// Not an event: no name to dispatch on, so no listener hears it.
+		sockets[0].message({ type: "pong" });
+
+		expect(seen).toEqual(["order.created", "invoice.overdue"]);
+		expect(named).toEqual(["order.created"]);
+	});
+
+	test("a wildcard subscription can be cancelled", () => {
+		const { channel, sockets } = setup();
+		const seen: string[] = [];
+		const stop = channel.subscribeAll((event) => seen.push(event.name ?? ""));
+
+		channel.connect();
+		sockets[0].open();
+		sockets[0].message({ type: "push", name: "first", id: "a" });
+		stop();
+		sockets[0].message({ type: "push", name: "second", id: "b" });
+
+		expect(seen).toEqual(["first"]);
 	});
 });

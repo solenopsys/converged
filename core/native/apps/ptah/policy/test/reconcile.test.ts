@@ -20,6 +20,19 @@ function input(
 	return { solutions: [], tenants: [], ...over };
 }
 
+/** Fujin's container env as a plain map, which is what these cases assert on. */
+function fujinEnv(object: KubeObject): Record<string, string> {
+	const { resources } = reconcile(input({ kind: "Platform", object }));
+	const spec = specOf<{
+		template: {
+			spec: { containers: { env?: { name: string; value: string }[] }[] };
+		};
+	}>(resources, "Deployment", "converged-fujin");
+	return Object.fromEntries(
+		(spec.template.spec.containers[0].env ?? []).map((e) => [e.name, e.value]),
+	);
+}
+
 interface RouteRuleShape {
 	matches: { path: { type: string; value: string } }[];
 	filters?: {
@@ -244,10 +257,63 @@ describe("platform", () => {
 			"tcp://converged-fujin:5557",
 		);
 		// Fujin gets no endpoint — it binds the socket — but it does need the
-		// browser scope, without which it exits at startup.
+		// browser scope, without which it exits at startup. The collector is
+		// stated as off rather than left absent, so the Deployment shows it.
 		expect(envOf("converged-fujin")).toEqual({
 			FUJIN_BROWSER_SCOPE: "converged",
+			FUJIN_FLUENTBIT: "off",
 		});
+	});
+
+	test("log collection stays off until a platform asks for it", () => {
+		const env = fujinEnv(platform("mono", { pushReplayCapacity: 4096 }));
+
+		expect(env.FUJIN_FLUENTBIT).toBe("off");
+		expect(env.FUJIN_PUSH_CAPACITY).toBe("4096");
+		// None of the collector's knobs are emitted while it is off: an env var
+		// that does nothing is a question an operator has to answer later.
+		expect(env.FUJIN_INGEST_SCOPE).toBeUndefined();
+		expect(env.FUJIN_INGEST_BLOCK_SIZE).toBeUndefined();
+	});
+
+	test("an enabled collector carries its parameters but never its keys", () => {
+		const object = platform("mono", {
+			logging: {
+				enabled: true,
+				listen: "0.0.0.0",
+				blockSize: 250,
+				maxBlocks: 32,
+				flushMs: 2000,
+			},
+		});
+		(object.spec as Record<string, any>).apps.fujin.ports.fluentbit = 24224;
+
+		const env = fujinEnv(object);
+
+		expect(env.FUJIN_FLUENTBIT).toBe("on");
+		expect(env.FUJIN_FLUENTBIT_HOST).toBe("0.0.0.0");
+		expect(env.FUJIN_FLUENTBIT_PORT).toBe("24224");
+		expect(env.FUJIN_INGEST_BLOCK_SIZE).toBe("250");
+		expect(env.FUJIN_INGEST_MAX_BLOCKS).toBe("32");
+		expect(env.FUJIN_INGEST_FLUSH_MS).toBe("2000");
+		// Rows are stored under the platform unless the spec says otherwise.
+		expect(env.FUJIN_INGEST_SCOPE).toBe("converged");
+		// The two shared keys are secrets: they arrive through the platform
+		// Secret, and putting either in a Deployment would publish it to
+		// anyone who can read the object.
+		expect(env.FUJIN_INGEST_KEY).toBeUndefined();
+		expect(env.FUJIN_FLUENTBIT_SHARED_KEY).toBeUndefined();
+	});
+
+	test("a platform can override a collector parameter through app env", () => {
+		const object = platform("mono", {
+			logging: { enabled: true, blockSize: 250 },
+		});
+		(object.spec as Record<string, any>).apps.fujin.env = {
+			FUJIN_INGEST_BLOCK_SIZE: "10",
+		};
+
+		expect(fujinEnv(object).FUJIN_INGEST_BLOCK_SIZE).toBe("10");
 	});
 });
 
@@ -705,9 +771,7 @@ describe("storage", () => {
 });
 
 describe("multi", () => {
-	const suite = () => [
-		solution("suite", { repositories: ["billing", "geo"] }),
-	];
+	const suite = () => [solution("suite", { repositories: ["billing", "geo"] })];
 
 	test("one behemoth per shard, each with its own disk per microservice", () => {
 		const { resources, status } = reconcile(

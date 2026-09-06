@@ -4,7 +4,6 @@ type PendingEntry<T> = {
 	timer: ReturnType<typeof setTimeout>;
 };
 
-
 export class PendingMap<T> {
 	private entries = new Map<string, PendingEntry<T>>();
 

@@ -257,6 +257,14 @@ pub const Hub = struct {
         try self.sendToClient(client_id, reply);
     }
 
+    /// Delivers one already-encoded frame to the sessions an audience selects
+    /// and answers how many of them were reachable. Zero is a useful answer,
+    /// not a failure: it tells the caller nobody was connected, so a durable
+    /// channel (mail, web push) is the only way this message lands.
+    pub fn deliver(self: *Hub, payload: []const u8, audience: Audience) usize {
+        return self.broadcastForAudience(payload, audience);
+    }
+
     pub fn onTransportEvent(self: *Hub, payload: []const u8) !void {
         if (payload.len == 0 or payload.len > self.max_control_bytes) return error.ControlFrameInvalid;
         var parsed = try std.json.parseFromSlice(std.json.Value, self.allocator, payload, .{});
@@ -268,7 +276,7 @@ pub const Hub = struct {
         else
             try self.allocator.dupe(u8, payload);
         defer self.allocator.free(signal);
-        self.broadcastForAudience(signal, audience);
+        _ = self.broadcastForAudience(signal, audience);
     }
 
     pub fn announceBulk(self: *Hub, bytes: usize) void {
@@ -300,10 +308,10 @@ pub const Hub = struct {
     }
 
     fn broadcast(self: *Hub, payload: []const u8) void {
-        self.broadcastForAudience(payload, .{});
+        _ = self.broadcastForAudience(payload, .{});
     }
 
-    fn broadcastForAudience(self: *Hub, payload: []const u8, audience: EventAudience) void {
+    fn broadcastForAudience(self: *Hub, payload: []const u8, audience: Audience) usize {
         _ = std.c.pthread_mutex_lock(&self.mutex);
         defer _ = std.c.pthread_mutex_unlock(&self.mutex);
         var sent: usize = 0;
@@ -313,6 +321,7 @@ pub const Hub = struct {
             sent += 1;
         }
         std.log.info("signal broadcast bytes={d} clients={d}", .{ payload.len, sent });
+        return sent;
     }
 
     fn sendToClient(self: *Hub, client_id: u64, payload: []const u8) !void {
@@ -366,7 +375,7 @@ fn stringField(object: std.json.ObjectMap, key: []const u8) ?[]const u8 {
     };
 }
 
-const EventAudience = struct {
+pub const Audience = struct {
     scope: ?[]const u8 = null,
     user: ?[]const u8 = null,
 };
@@ -374,7 +383,7 @@ const EventAudience = struct {
 /// Transport events can explicitly target a tenant and optionally one user.
 /// Unaddressed operational events remain broadcasts; addressed events never
 /// cross either the verified scope or subject boundary.
-fn eventAudience(value: std.json.Value) EventAudience {
+fn eventAudience(value: std.json.Value) Audience {
     if (value != .object) return .{};
     const object = value.object;
     const payload = object.get("payload");
@@ -385,7 +394,7 @@ fn eventAudience(value: std.json.Value) EventAudience {
     };
 }
 
-fn matchesAudience(client: *const Hub.Client, audience: EventAudience) bool {
+fn matchesAudience(client: *const Hub.Client, audience: Audience) bool {
     if (audience.scope) |scope| if (!std.mem.eql(u8, client.scope, scope)) return false;
     if (audience.user) |user| if (!std.mem.eql(u8, client.user, user)) return false;
     return true;

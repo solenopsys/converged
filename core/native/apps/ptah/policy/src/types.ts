@@ -34,6 +34,33 @@ export interface KubeObject {
  */
 export type Profile = "mono" | "multi" | "cloud";
 
+/**
+ * Fluent Bit runs inside the Fujin pod, receives the deployment's log and
+ * telemetry streams on the forward port, and hands them back to Fujin, which
+ * groups them into blocks and writes each block to `rp-logs` / `rp-telemetry`
+ * with a single call. Everything here is a tuning knob; the two shared keys
+ * that authenticate the hops are secrets and arrive through the platform
+ * Secret, not through this spec.
+ */
+export interface LoggingSpec {
+	/** Starts the collector. Off leaves the forward port closed. */
+	enabled: boolean;
+	/**
+	 * Address the forward receiver binds inside the pod. Loopback keeps the
+	 * port off the pod network, which is what a sidecar-less deployment wants;
+	 * `0.0.0.0` is for collectors running in other pods.
+	 */
+	listen?: string;
+	/** Records per `writeBatch`. The reason the collector exists. */
+	blockSize?: number;
+	/** Blocks that may wait for `services` before the oldest is dropped. */
+	maxBlocks?: number;
+	/** How long a partial block may wait before it ships anyway. */
+	flushMs?: number;
+	/** Tenant the collected rows are stored under. Defaults to the platform. */
+	scope?: string;
+}
+
 export interface Resources {
 	requests?: { cpu?: string; memory?: string };
 	limits?: { cpu?: string; memory?: string };
@@ -41,7 +68,10 @@ export interface Resources {
 
 export interface NativeApp {
 	image: string;
-	/** Named container ports. `fujin` must declare `ws` and `zmq`. */
+	/**
+	 * Named container ports. `fujin` must declare `ws` and `zmq`, and declares
+	 * `fluentbit` as well when `spec.logging` turns the collector on.
+	 */
 	ports?: Record<string, number>;
 	/** Fujin routing target this peer registers under. */
 	fujinTarget?: string;
@@ -187,6 +217,20 @@ export interface PlatformSpec extends ExtraResources {
 	registry?: RegistrySpec;
 	/** Always-on peers of the bus: fujin, centimanus, resonus. */
 	apps: Record<string, NativeApp>;
+	/**
+	 * Log and telemetry collection inside the Fujin pod. Absent means off: the
+	 * forward port stays closed and nothing is written to the analytics
+	 * repositories, which is the right default for a platform that ships its
+	 * logs somewhere else entirely.
+	 */
+	logging?: LoggingSpec;
+	/**
+	 * How many user notifications Fujin keeps so a browser that reconnects can
+	 * replay what it missed. In-memory and shared by every recipient, so this
+	 * bounds the router's memory rather than any one person's history; durable
+	 * history belongs in a repository.
+	 */
+	pushReplayCapacity?: number;
 	/**
 	 * Compute peers deployed only when a solution asks for them — slicers, CAM,
 	 * converters. Declaring one here costs nothing until it is selected.

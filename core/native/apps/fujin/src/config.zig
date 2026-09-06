@@ -35,6 +35,10 @@ pub const Config = struct {
     /// never exceed it. Reads walk only the requested tail, so depth here costs
     /// memory (a few hundred bytes per entry), not response time.
     journal_capacity: usize,
+    /// Ring size of the user notification replay window, shared by every
+    /// recipient. Sized in messages, not per user: it bounds Fujin's memory
+    /// regardless of how many sessions connect.
+    push_capacity: usize,
     max_control_bytes: usize,
     max_payload_bytes: usize,
     qjs_lib: []u8,
@@ -43,6 +47,24 @@ pub const Config = struct {
     fluentbit_enabled: bool,
     fluentbit_listen: []u8,
     fluentbit_port: u16,
+    /// Fluent Bit forward-protocol shared key. Producers that cannot present it
+    /// are refused at the handshake, before a single record is accepted. Empty
+    /// leaves the port open, which is only defensible on a loopback bind.
+    fluentbit_shared_key: []u8,
+    /// Bearer key Fluent Bit puts on the batches it posts back to this process.
+    /// The ingest route listens on the same address as the browser WebSocket,
+    /// so without it anything that can reach the port could forge log rows.
+    ingest_key: []u8,
+    /// Tenant the collected rows are stored under.
+    ingest_scope: []u8,
+    /// Records per `writeBatch`. The whole reason the collector exists.
+    ingest_block_size: usize,
+    /// Blocks that may wait for `services`; beyond this the oldest is dropped.
+    ingest_max_blocks: usize,
+    /// How long a partial block may wait before it ships anyway.
+    ingest_flush_ms: i64,
+    /// Service JWT used for Fujin's own outbound calls to the repositories.
+    service_token: []u8,
     debug: bool,
     trace_packets: bool,
     jwt: JwtConfig,
@@ -51,21 +73,36 @@ pub const Config = struct {
         const root = environ.get("CONVERGED_ROOT") orelse "/home/alexstorm/distrib/4ir/gestalt/clarity/projects/converged-portal";
         var jwt = try initJwtConfig(allocator, environ);
         errdefer jwt.deinit();
+        const browser_scope = try requiredOwned(allocator, environ, "FUJIN_BROWSER_SCOPE");
+        errdefer allocator.free(browser_scope);
+        const fluentbit_enabled = std.mem.eql(u8, environ.get("FUJIN_FLUENTBIT") orelse "off", "on");
+        // Refused at startup rather than at the first batch: an ingest port
+        // that silently accepts unauthenticated rows is worse than one that
+        // never came up, because nothing about the running system reveals it.
+        if (fluentbit_enabled and trimmedValue(environ, "FUJIN_INGEST_KEY").len == 0) return error.IngestKeyRequired;
         return .{
             .allocator = allocator,
             .zmq_endpoint = try owned(allocator, environ, "FUJIN_ZMQ_BIND", "tcp://0.0.0.0:5557"),
             .ws_host = try owned(allocator, environ, "FUJIN_WS_HOST", "0.0.0.0"),
             .ws_port = try port(environ, "FUJIN_WS_PORT", 8087),
-            .browser_scope = try requiredOwned(allocator, environ, "FUJIN_BROWSER_SCOPE"),
+            .browser_scope = browser_scope,
             .journal_capacity = try positive(environ, "FUJIN_JOURNAL_CAPACITY", 4096),
+            .push_capacity = try positive(environ, "FUJIN_PUSH_CAPACITY", 1024),
             .max_control_bytes = try number(environ, "FUJIN_MAX_CONTROL_BYTES", 60 * 1024),
             .max_payload_bytes = try number(environ, "FUJIN_MAX_PAYLOAD_BYTES", 16 * 1024 * 1024),
             .qjs_lib = try ownedFormat(allocator, environ, "FUJIN_QJS_LIB", "{s}/native/wrapers/qjs/zig-out/lib/libqjs.so", .{root}),
             .event_policy_path = if (environ.get("FUJIN_EVENT_POLICY")) |value| try allocator.dupe(u8, value) else null,
             .fluentbit_lib = try ownedFormat(allocator, environ, "FUJIN_FLUENTBIT_LIB", "{s}/native/wrapers/fluentbit/zig-out/lib/libfluentbit.so", .{root}),
-            .fluentbit_enabled = std.mem.eql(u8, environ.get("FUJIN_FLUENTBIT") orelse "off", "on"),
+            .fluentbit_enabled = fluentbit_enabled,
             .fluentbit_listen = try owned(allocator, environ, "FUJIN_FLUENTBIT_HOST", "127.0.0.1"),
             .fluentbit_port = try port(environ, "FUJIN_FLUENTBIT_PORT", 24224),
+            .fluentbit_shared_key = try owned(allocator, environ, "FUJIN_FLUENTBIT_SHARED_KEY", ""),
+            .ingest_key = try owned(allocator, environ, "FUJIN_INGEST_KEY", ""),
+            .ingest_scope = try owned(allocator, environ, "FUJIN_INGEST_SCOPE", browser_scope),
+            .ingest_block_size = try positive(environ, "FUJIN_INGEST_BLOCK_SIZE", 100),
+            .ingest_max_blocks = try positive(environ, "FUJIN_INGEST_MAX_BLOCKS", 64),
+            .ingest_flush_ms = @intCast(try positive(environ, "FUJIN_INGEST_FLUSH_MS", 5_000)),
+            .service_token = try owned(allocator, environ, "SERVICE_TOKEN", ""),
             .debug = std.mem.eql(u8, environ.get("FUJIN_DEBUG") orelse "off", "on"),
             .trace_packets = std.mem.eql(u8, environ.get("FUJIN_TRACE") orelse "", "packets"),
             .jwt = jwt,
@@ -81,6 +118,10 @@ pub const Config = struct {
         if (self.event_policy_path) |path| a.free(path);
         a.free(self.fluentbit_lib);
         a.free(self.fluentbit_listen);
+        a.free(self.fluentbit_shared_key);
+        a.free(self.ingest_key);
+        a.free(self.ingest_scope);
+        a.free(self.service_token);
         self.jwt.deinit();
         self.* = undefined;
     }
@@ -108,6 +149,10 @@ fn accessMode(raw: []const u8) AccessMode {
 
 fn owned(a: std.mem.Allocator, env: *const std.process.Environ.Map, key: []const u8, fallback: []const u8) ![]u8 {
     return a.dupe(u8, env.get(key) orelse fallback);
+}
+
+fn trimmedValue(env: *const std.process.Environ.Map, key: []const u8) []const u8 {
+    return std.mem.trim(u8, env.get(key) orelse "", " \t\r\n");
 }
 
 fn requiredOwned(a: std.mem.Allocator, env: *const std.process.Environ.Map, key: []const u8) ![]u8 {

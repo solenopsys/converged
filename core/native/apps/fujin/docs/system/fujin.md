@@ -30,6 +30,28 @@ Keeping those decisions separate is important. Fujin remains a small message
 broker rather than becoming a registry of every business service, storage unit
 or workflow.
 
+## Three streams
+
+Fujin carries three kinds of traffic that share a transport but nothing else.
+Service messaging moves requests between peers. Log ingest receives whatever
+the deployment's collectors emit, groups it and hands whole blocks to the
+analytics repositories, so storage sees batches rather than a stream of single
+rows. User notifications are business messages addressed at a person: an order
+arrived, a job finished, a letter is waiting.
+
+The third is the one that needs a name of its own. `pushrouter` is a service
+Fujin hosts rather than routes to, because delivery is a property of the live
+sessions Fujin already owns — no other process knows which of a person's
+browsers are currently connected. It answers with how many sessions a message
+reached, which is what lets a caller decide whether a durable channel is also
+needed, and it keeps a bounded replay window so a browser that reconnects sees
+what it missed. Anything that has to survive a restart belongs in a repository,
+not here.
+
+Notifications carry translation keys rather than sentences. The service that
+publishes one does not know the reader's language, so a rendered string could
+only ever be right for one of them.
+
 ## Browser and cluster traffic
 
 Native peers connect through the cluster transport. Browsers and mobile clients

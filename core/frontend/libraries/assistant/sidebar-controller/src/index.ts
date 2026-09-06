@@ -10,6 +10,7 @@ export {
 	$menuSectionsState,
 	$rightPanelEvents,
 	$rightPanelTab,
+	$rightPanelUnreadCount,
 	$rightSidebarState,
 	$rightSidebarWidth,
 	$sidebarTabs,
@@ -20,6 +21,9 @@ export {
 	persistState,
 	restoreState,
 	rightPanelEventRecorded,
+	rightPanelEventsCleared,
+	rightPanelEventsHydrated,
+	rightPanelEventsRead,
 	rightPanelTabActivated,
 	sidebarCollapsed,
 	sidebarExpanded,
@@ -35,6 +39,8 @@ export {
 export { setIconRenderer } from "./tabs";
 export type {
 	RightPanelEvent,
+	RightPanelEventLevel,
+	RightPanelEventLink,
 	RightPanelTab,
 	SidebarConfig,
 	SidebarControllerAPI,

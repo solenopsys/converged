@@ -3,7 +3,6 @@ type Waiter<T> = {
 	reject: (error: Error) => void;
 };
 
-
 export class StreamQueue<T> implements AsyncIterableIterator<T> {
 	private values: T[] = [];
 	private waiters: Waiter<T>[] = [];

@@ -58,6 +58,7 @@ export class SignalChannel {
 	private streams = new Map<string, StreamQueue<WebSocketResponseMessage>>();
 	private requestListeners = new Map<string, Set<Listener>>();
 	private eventListeners = new Map<string, Set<Listener>>();
+	private allEventListeners = new Set<Listener>();
 	private auth: SignalAuthController | null;
 	private unsubscribeAuth?: () => void;
 
@@ -264,7 +265,8 @@ export class SignalChannel {
 		const socket = this.socket;
 		if (!socket || socket.readyState !== WebSocket.OPEN) return;
 		const token = this.auth?.getCurrentAccessToken() ?? null;
-		if (!token || this.socket !== socket || token === this.lastAuthToken) return;
+		if (!token || this.socket !== socket || token === this.lastAuthToken)
+			return;
 		this.lastAuthToken = token;
 		socket.send(JSON.stringify({ type: "auth", token }));
 	}
@@ -316,7 +318,10 @@ export class SignalChannel {
 				this.commandPending.resolve(event.requestId, event);
 			}
 		}
-		if (event.name) this.notify(this.eventListeners, event.name, event);
+		if (event.name) {
+			this.notify(this.eventListeners, event.name, event);
+			for (const listener of this.allEventListeners) listener(event);
+		}
 	}
 
 	private dispatchNrpcReply(message: WebSocketResponseMessage): void {
@@ -344,7 +349,10 @@ export class SignalChannel {
 		const event = eventFromPayload(message.payload);
 		if (event) {
 			this.notify(this.requestListeners, message.requestId, event);
-			if (event.name) this.notify(this.eventListeners, event.name, event);
+			if (event.name) {
+				this.notify(this.eventListeners, event.name, event);
+				for (const listener of this.allEventListeners) listener(event);
+			}
 			this.commandPending.resolve(message.requestId, event);
 			return;
 		}
@@ -380,6 +388,19 @@ export class SignalChannel {
 
 	subscribe(name: string, listener: Listener): () => void {
 		return this.addListener(this.eventListeners, name, listener);
+	}
+
+	/**
+	 * Every named event, whatever it is called. A notification feed has to show
+	 * messages it was never told the names of — a service can start emitting
+	 * `invoice.overdue` without the shell being rebuilt — which a per-name
+	 * subscription cannot express.
+	 */
+	subscribeAll(listener: Listener): () => void {
+		this.allEventListeners.add(listener);
+		return () => {
+			this.allEventListeners.delete(listener);
+		};
 	}
 
 	subscribeRequest(requestId: string, listener: Listener): () => void {

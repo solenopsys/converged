@@ -30,7 +30,10 @@ export const tabsCleared = domain.createEvent();
 
 /** Content state of the application's right sidebar. */
 export const rightPanelTabActivated = domain.createEvent<RightPanelTab>();
-export const rightPanelEventRecorded = domain.createEvent<string>();
+export const rightPanelEventRecorded = domain.createEvent<RightPanelEvent>();
+export const rightPanelEventsHydrated = domain.createEvent<RightPanelEvent[]>();
+export const rightPanelEventsRead = domain.createEvent();
+export const rightPanelEventsCleared = domain.createEvent();
 
 export const menuSectionToggled = domain.createEvent<{
 	id: string;
@@ -120,18 +123,47 @@ export const $rightPanelTab = domain
 	.createStore<RightPanelTab>("chat")
 	.on(rightPanelTabActivated, (_, tab) => tab);
 
+const EVENT_FEED_LIMIT = 50;
+
+// Deduplicated by id, because the same notification legitimately arrives twice:
+// once live over the socket and once from the replay a reconnect asks for.
+function mergeEvents(
+	existing: readonly RightPanelEvent[],
+	incoming: readonly RightPanelEvent[],
+): RightPanelEvent[] {
+	const byId = new Map(existing.map((event) => [event.id, event]));
+	for (const event of incoming) {
+		const known = byId.get(event.id);
+		byId.set(event.id, known ? { ...event, read: known.read } : event);
+	}
+	return Array.from(byId.values())
+		.sort((left, right) => right.at - left.at)
+		.slice(0, EVENT_FEED_LIMIT);
+}
+
 export const $rightPanelEvents = domain
 	.createStore<RightPanelEvent[]>([])
-	.on(rightPanelEventRecorded, (events, label) =>
-		[
-			{
-				id: crypto.randomUUID(),
-				label,
-				at: Date.now(),
-			},
-			...events,
-		].slice(0, 50),
-	);
+	.on(rightPanelEventRecorded, (events, event) => mergeEvents(events, [event]))
+	.on(rightPanelEventsHydrated, (events, incoming) =>
+		mergeEvents(events, incoming),
+	)
+	.on(rightPanelEventsRead, (events) =>
+		events.every((event) => event.read)
+			? events
+			: events.map((event) => ({ ...event, read: true })),
+	)
+	.reset(rightPanelEventsCleared);
+
+/** Drives the badge on the Events tab. */
+export const $rightPanelUnreadCount = $rightPanelEvents.map(
+	(events) => events.filter((event) => !event.read).length,
+);
+
+// Opening the tab is what marks the feed seen; there is no separate gesture.
+sample({
+	clock: rightPanelTabActivated.filter({ fn: (tab) => tab === "events" }),
+	target: rightPanelEventsRead,
+});
 
 export const $menuSectionsState = domain
 	.createStore<Record<string, boolean>>({})

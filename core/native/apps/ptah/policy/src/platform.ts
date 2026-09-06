@@ -50,6 +50,52 @@ function fujinEndpoint(platform: string, spec: PlatformSpec): string {
 }
 
 /**
+ * Fujin's own knobs, seeded before `app.env` so a platform can still override
+ * any one of them.
+ *
+ * `FUJIN_BROWSER_SCOPE` is here because Fujin refuses to start without it and
+ * the value is a property of the platform rather than of the image. The log
+ * collector is here because its parameters are a deployment decision — how big
+ * a block is, how long a partial one may wait, how much backlog is tolerable
+ * while `services` restarts. The two keys that authenticate the collector's
+ * hops are deliberately absent: they are secrets and arrive through
+ * `spec.secretName`, alongside `SERVICE_TOKEN`.
+ */
+function fujinEnv(
+	platform: string,
+	spec: PlatformSpec,
+): Record<string, string> {
+	const env: Record<string, string> = { FUJIN_BROWSER_SCOPE: platform };
+	if (spec.pushReplayCapacity !== undefined) {
+		env.FUJIN_PUSH_CAPACITY = String(spec.pushReplayCapacity);
+	}
+
+	const logging = spec.logging;
+	// An absent block and a disabled one mean the same thing to the pod, and
+	// stating it explicitly beats relying on the binary's default: an operator
+	// reading the Deployment can see the collector is off.
+	if (!logging?.enabled) return { ...env, FUJIN_FLUENTBIT: "off" };
+
+	env.FUJIN_FLUENTBIT = "on";
+	env.FUJIN_FLUENTBIT_HOST = logging.listen ?? "127.0.0.1";
+	const forwardPort = spec.apps.fujin?.ports?.fluentbit;
+	if (forwardPort !== undefined) {
+		env.FUJIN_FLUENTBIT_PORT = String(forwardPort);
+	}
+	env.FUJIN_INGEST_SCOPE = logging.scope ?? platform;
+	if (logging.blockSize !== undefined) {
+		env.FUJIN_INGEST_BLOCK_SIZE = String(logging.blockSize);
+	}
+	if (logging.maxBlocks !== undefined) {
+		env.FUJIN_INGEST_MAX_BLOCKS = String(logging.maxBlocks);
+	}
+	if (logging.flushMs !== undefined) {
+		env.FUJIN_INGEST_FLUSH_MS = String(logging.flushMs);
+	}
+	return env;
+}
+
+/**
  * The behemoth whose in-process valkey the stateless pods use, or null when
  * there is no single one — the cloud profile has a shard per tenant, and the
  * scope index is what resolves it per request.
@@ -145,10 +191,7 @@ function nativeApp(
 				: { RT_STATE_BACKEND: "memory" };
 
 	const env: Record<string, string> = {
-		// Fujin refuses to start without a browser scope, and the value is a
-		// property of the platform rather than of the image. Seeded before
-		// `app.env` so a platform can still override it.
-		...(name === "fujin" ? { FUJIN_BROWSER_SCOPE: platform } : {}),
+		...(name === "fujin" ? fujinEnv(platform, spec) : {}),
 		...stateEnv,
 		...(app.env ?? {}),
 	};

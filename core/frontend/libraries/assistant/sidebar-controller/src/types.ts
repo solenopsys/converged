@@ -4,10 +4,37 @@ export type SidebarState = "expanded" | "collapsed";
 
 export type RightPanelTab = "navigation" | "chat" | "events" | "trace";
 
+export type RightPanelEventLevel = "info" | "success" | "warning" | "error";
+
+export type RightPanelEventLink = {
+	surface?: string;
+	ref?: string;
+	href?: string;
+};
+
+/**
+ * One business notification in the right panel's feed: a letter arrived, an
+ * order came in, a job finished. Published by `pushrouter` and addressed at a
+ * person, so this is not a place for local UI chatter.
+ *
+ * Headline and body arrive as translation keys wherever the sender had one —
+ * the service that emitted the event does not know the reader's locale.
+ * `title`/`body` carry the literals no catalog can hold: a mail subject, an
+ * order number, a device name.
+ */
 export type RightPanelEvent = {
 	id: string;
-	label: string;
+	/** Business event name, e.g. `order.created`. */
+	name: string;
+	level: RightPanelEventLevel;
 	at: number;
+	titleKey?: string;
+	title?: string;
+	bodyKey?: string;
+	body?: string;
+	params?: Record<string, string | number>;
+	link?: RightPanelEventLink;
+	read?: boolean;
 };
 
 export interface SidebarTab {

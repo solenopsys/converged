@@ -26,7 +26,6 @@ export function isNrpcReply(
 	);
 }
 
-
 export function eventFromPayload(payload: unknown): SignalEvent | null {
 	if (typeof payload !== "object" || payload === null) return null;
 	const candidate = payload as SignalEvent;

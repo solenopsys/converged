@@ -1,4 +1,4 @@
-import { SignalChannel, type SignalAuthController } from "./channel";
+import { type SignalAuthController, SignalChannel } from "./channel";
 
 declare global {
 	var __FUJIN_SIGNAL_CHANNEL__: SignalChannel | undefined;
@@ -14,7 +14,9 @@ if (!globalThis.__FUJIN_SIGNAL_CHANNEL__) {
 export const signalChannel = globalThis.__FUJIN_SIGNAL_CHANNEL__;
 
 /** Called by the host composition layer after it creates its auth controller. */
-export function setSignalChannelAuth(controller: SignalAuthController | null): void {
+export function setSignalChannelAuth(
+	controller: SignalAuthController | null,
+): void {
 	signalChannel.setAuthController(controller);
 }
 

@@ -7,7 +7,21 @@ const FluentBit = @import("fluentbit.zig").Receiver;
 const WebSocket = @import("websocket.zig").Server;
 const Registry = @import("registry.zig").Registry;
 const Journal = @import("messages.zig").Journal;
+const Notifications = @import("notifications.zig").Store;
+const pushrouter = @import("pushrouter.zig");
+const Collector = @import("ingest.zig").Collector;
 const fujin_nrpc = @import("generated/fujin_nrpc.zig");
+
+/// Fujin's own address. Packets carrying it terminate here instead of being
+/// looked up in the peer registry — that is what makes `pushrouter` reachable
+/// from a backend service and not only from a browser session.
+const local_target = "fujin";
+
+/// Peer that owns the repositories Fujin ships collected rows to.
+const services_target = "services";
+
+/// Where Fluent Bit posts its batches back to this process.
+const ingest_path = "/ingest/fluentbit";
 
 /// A container runs this binary as PID 1, and the kernel gives PID 1 no default
 /// signal disposition: with no handler installed SIGTERM is discarded outright,
@@ -44,10 +58,32 @@ pub fn main(init: std.process.Init) !void {
     var hub = Hub.init(allocator, &policy, config.max_control_bytes, config.jwt.mode == .required);
     defer hub.deinit();
 
+    var collector = Collector.init(allocator, config.ingest_block_size, config.ingest_max_blocks);
+    defer collector.deinit();
+
     var fluentbit: ?FluentBit = null;
     if (config.fluentbit_enabled) {
-        fluentbit = try FluentBit.init(allocator, config.fluentbit_lib, config.fluentbit_listen, config.fluentbit_port);
-        std.log.info("Fluent Bit forward receiver listening on {s}:{d}", .{ config.fluentbit_listen, config.fluentbit_port });
+        // The engine posts back to this process over loopback regardless of the
+        // address the browser socket is published on: the ingest hop never has
+        // to leave the pod.
+        fluentbit = try FluentBit.init(allocator, config.fluentbit_lib, .{
+            .listen = config.fluentbit_listen,
+            .port = config.fluentbit_port,
+            .shared_key = config.fluentbit_shared_key,
+            .ingest_host = "127.0.0.1",
+            .ingest_port = config.ws_port,
+            .ingest_path = ingest_path,
+            .ingest_key = config.ingest_key,
+        });
+        std.log.info("Fluent Bit forward receiver listening on {s}:{d}, blocks of {d} to rp-logs/rp-telemetry scope={s}", .{
+            config.fluentbit_listen,
+            config.fluentbit_port,
+            config.ingest_block_size,
+            config.ingest_scope,
+        });
+        if (config.service_token.len == 0) {
+            std.log.warn("SERVICE_TOKEN is empty: collected blocks will be refused by the repositories", .{});
+        }
     }
     defer if (fluentbit) |*receiver| receiver.deinit();
 
@@ -64,9 +100,17 @@ pub fn main(init: std.process.Init) !void {
     defer registry.deinit();
     var messages = try Journal.init(allocator, config.journal_capacity);
     defer messages.deinit();
+    var notifications = try Notifications.init(allocator, config.push_capacity);
+    defer notifications.deinit();
     if (config.debug) std.log.info("debug mode enabled: compact external RPC activity", .{});
     if (config.trace_packets) std.log.info("packet trace enabled: logging every routed envelope", .{});
-    const worker = try std.Thread.spawn(.{}, transportLoop, .{ &router, &hub, &registry, &messages, &config.jwt, config.debug, config.trace_packets });
+    const shipping = Shipping{
+        .collector = &collector,
+        .scope = config.ingest_scope,
+        .auth = config.service_token,
+        .flush_ms = config.ingest_flush_ms,
+    };
+    const worker = try std.Thread.spawn(.{}, transportLoop, .{ &router, &hub, &registry, &messages, &notifications, shipping, &config.jwt, config.debug, config.trace_packets });
     worker.detach();
 
     var websocket = WebSocket{
@@ -75,6 +119,11 @@ pub fn main(init: std.process.Init) !void {
         .port = config.ws_port,
         .browser_scope = config.browser_scope,
         .jwt = &config.jwt,
+        .ingest = if (config.fluentbit_enabled) .{
+            .collector = &collector,
+            .path = ingest_path,
+            .key = config.ingest_key,
+        } else null,
     };
     try websocket.serve();
 }
@@ -178,9 +227,20 @@ fn isCompactDebugEnvelope(env: anytype) bool {
         isWorkflowEnvelope(env);
 }
 
-fn transportLoop(router: *transport.Router, hub: *Hub, registry: *Registry, messages: *Journal, jwt: *const @import("config.zig").JwtConfig, debug: bool, trace_packets: bool) void {
+/// Everything the transport loop needs to hand collected blocks to the
+/// repositories. The collector is filled by the HTTP ingest threads; only this
+/// loop ever touches the ZMQ socket.
+const Shipping = struct {
+    collector: *Collector,
+    scope: []const u8,
+    auth: []const u8,
+    flush_ms: i64,
+};
+
+fn transportLoop(router: *transport.Router, hub: *Hub, registry: *Registry, messages: *Journal, notifications: *Notifications, shipping: Shipping, jwt: *const @import("config.zig").JwtConfig, debug: bool, trace_packets: bool) void {
     while (true) {
-        drainBrowserCommands(router, hub, registry, messages, jwt, debug, trace_packets);
+        drainBrowserCommands(router, hub, registry, messages, notifications, jwt, debug, trace_packets);
+        shipCollectedBlocks(router, hub, registry, shipping);
 
         var incoming = (router.recv() catch |err| {
             std.log.warn("transport receive rejected: {s}", .{@errorName(err)});
@@ -241,6 +301,20 @@ fn transportLoop(router: *transport.Router, hub: *Hub, registry: *Registry, mess
                 continue;
             }
         }
+        // Fujin's own services terminate here. Without this branch a backend
+        // service could only reach `pushrouter` if something had registered
+        // "fujin" as a peer target, which nothing does and the routing contract
+        // forbids — the packet would be answered with service_unavailable.
+        if (std.mem.eql(u8, env.to.target, local_target)) {
+            if (env.kind == .request) {
+                handleLocalEnvelope(router, hub, registry, messages, notifications, jwt, incoming.identity(), env, incoming.payload());
+            } else if (env.kind == .@"error") {
+                // Fujin originates requests of its own (log shipping). A failed
+                // one is worth a line; a successful one is not.
+                std.log.warn("fujin call failed {s}.{s} id={s}: {s}", .{ env.to.service, env.method, shortId(env.request_id), env.error_code });
+            }
+            continue;
+        }
         if (webSocketConnectionId(env.to.target)) |client_id| {
             hub.sendTransportReply(client_id, env, incoming.payload()) catch |err| {
                 std.log.warn("websocket reply failed client={d}: {s}", .{ client_id, @errorName(err) });
@@ -276,18 +350,69 @@ fn transportLoop(router: *transport.Router, hub: *Hub, registry: *Registry, mess
     }
 }
 
-fn drainBrowserCommands(router: *transport.Router, hub: *Hub, registry: *Registry, messages: *Journal, jwt: *const @import("config.zig").JwtConfig, debug: bool, trace_packets: bool) void {
+/// Hands each sealed block to the repository that owns it, as one `writeBatch`
+/// request per block. Sent fire-and-forget: the reply carries only a row count,
+/// and blocking the router on a storage round-trip would stall every other
+/// message. A block that cannot be handed over goes back on the queue, so a
+/// `services` restart costs latency rather than logs.
+fn shipCollectedBlocks(router: *transport.Router, hub: *Hub, registry: *Registry, shipping: Shipping) void {
+    shipping.collector.flushStale(shipping.flush_ms);
+    while (shipping.collector.takeBlock()) |taken| {
+        var block = taken;
+        const identity = registry.identityFor(services_target) orelse {
+            shipping.collector.returnBlock(block);
+            return;
+        };
+        // A real id so the block can be followed through the journal and the
+        // repository's own logs; the reply itself is not awaited.
+        var id_buffer: [32]u8 = undefined;
+        var id_bytes: [16]u8 = undefined;
+        std.Options.debug_io.random(&id_bytes);
+        const request_id = std.fmt.bufPrint(&id_buffer, "{x}", .{&id_bytes}) catch "ingest";
+        const env = transport.Envelope{
+            .kind = .request,
+            .request_id = request_id,
+            .to = .{ .target = services_target, .service = block.kind.service() },
+            .from = .{ .target = local_target },
+            .method = "writeBatch",
+            .scope = shipping.scope,
+            .auth = shipping.auth,
+            .codec = .json,
+        };
+        const bytes = transport.envelope.encodeAlloc(hub.allocator, &env) catch {
+            block.deinit(hub.allocator);
+            return;
+        };
+        defer hub.allocator.free(bytes);
+        router.send(identity, bytes, block.body) catch |err| {
+            if (err == error.PeerUnreachable) registry.removePeer(identity);
+            shipping.collector.returnBlock(block);
+            std.log.warn("ingest block held: {s}/{s} {d} records: {s}", .{
+                services_target,
+                block.kind.service(),
+                block.count,
+                @errorName(err),
+            });
+            return;
+        };
+        std.log.info("ingest shipped {s} {d} records", .{ block.kind.service(), block.count });
+        block.deinit(hub.allocator);
+    }
+}
+
+fn drainBrowserCommands(router: *transport.Router, hub: *Hub, registry: *Registry, messages: *Journal, notifications: *Notifications, jwt: *const @import("config.zig").JwtConfig, debug: bool, trace_packets: bool) void {
     while (hub.takePending()) |pending_value| {
         var pending = pending_value;
         defer pending.deinit();
         messages.recordWebSocket("received", pending.client_id, pending.target, pending.service, pending.method, pending.request_id, pending.payload.len);
-        if (std.mem.eql(u8, pending.target, "fujin")) {
-            handleAdminCommand(hub, registry, messages, jwt, &pending) catch |err| {
+        if (std.mem.eql(u8, pending.target, local_target)) {
+            handleBrowserLocalCall(hub, registry, messages, notifications, jwt, &pending) catch |err| {
                 hub.sendAdminError(pending.client_id, pending.request_id, adminErrorCode(err), @errorName(err));
                 // Auth outcome, not just "rejected": who was refused, for what,
                 // and why. Without user/scope an access denial is unactionable.
-                std.log.warn("deny ws:{d}→fujin.{s} id={s} user={s} scope={s} reason={s}", .{
+                std.log.warn("deny ws:{d}→fujin/{s}.{s} id={s} user={s} scope={s} reason={s}", .{
                     pending.client_id,
+                    pending.service,
                     pending.method,
                     shortId(pending.request_id),
                     if (pending.user.len > 0) pending.user else "-",
@@ -343,38 +468,172 @@ fn drainBrowserCommands(router: *transport.Router, hub: *Hub, registry: *Registr
     }
 }
 
-fn handleAdminCommand(hub: *Hub, registry: *Registry, messages: *Journal, jwt: *const @import("config.zig").JwtConfig, pending: *const Hub.PendingCommand) !void {
+/// One NRPC call addressed at Fujin itself, from either transport.
+///
+/// The browser and a backend service reach the same handlers, so the identity
+/// checks live here once rather than in two loops that could drift apart.
+const LocalCall = struct {
+    service: []const u8,
+    method: []const u8,
+    auth: []const u8,
+    scope: []const u8,
+    user: []const u8,
+    payload: []const u8,
+    /// A WebSocket command is bound to an authenticated session, so the token
+    /// must still be the one that session presented. A ZMQ peer has no session
+    /// and states its identity in the token alone, so there is nothing to
+    /// cross-check — demanding a match there would reject every service call.
+    session_bound: bool,
+};
+
+const LocalReply = struct {
+    body: []u8,
+    /// `logs` answers as a single terminal stream chunk, not a response.
+    streamed: bool = false,
+};
+
+fn handleLocalCall(
+    hub: *Hub,
+    registry: *Registry,
+    messages: *Journal,
+    notifications: *Notifications,
+    jwt: *const @import("config.zig").JwtConfig,
+    call: LocalCall,
+) !LocalReply {
     if (jwt.mode != .required) return error.AdminAuthRequired;
     const verifier = jwt.verifierConfig() orelse return error.JwtVerifierUnavailable;
     const now = std.Io.Timestamp.now(std.Options.debug_io, .real).toSeconds();
-    var token = try transport.auth.jwt.verify(hub.allocator, pending.auth, verifier, now);
+    var token = try transport.auth.jwt.verify(hub.allocator, call.auth, verifier, now);
     defer token.deinit(hub.allocator);
-    if (!std.mem.eql(u8, token.subject, pending.user) or !std.mem.eql(u8, token.scope, pending.scope)) return error.SessionClaimsMismatch;
-    const policy: transport.auth.authorize.MethodPolicy = switchMethodPolicy(pending.method) orelse return error.MethodUnavailable;
+    if (call.session_bound and
+        (!std.mem.eql(u8, token.subject, call.user) or !std.mem.eql(u8, token.scope, call.scope)))
+    {
+        return error.SessionClaimsMismatch;
+    }
+    const policy = localMethodPolicy(call.service, call.method) orelse return error.MethodUnavailable;
     try transport.auth.authorize.authorize(token.toClaims(), policy);
 
-    if (std.mem.eql(u8, pending.method, "state")) {
-        const payload = try adminStateJson(hub, registry);
-        defer hub.allocator.free(payload);
-        return hub.sendAdminResponse(pending.client_id, pending.request_id, payload);
+    if (std.mem.eql(u8, call.service, pushrouter.service)) {
+        const context = pushrouter.Context{
+            .allocator = hub.allocator,
+            .hub = hub,
+            .store = notifications,
+            .policy = hub.policy,
+        };
+        // A service token is cluster-wide and carries no scope of its own, so
+        // the envelope's scope is the only tenant it can be speaking for.
+        const caller = pushrouter.Caller{
+            .scope = if (token.scope.len > 0) token.scope else call.scope,
+            .user = token.subject,
+            .is_service = token.token_type == .service,
+        };
+        if (std.mem.eql(u8, call.method, "publish")) {
+            var published = try pushrouter.publish(context, caller, call.payload);
+            errdefer published.deinit(hub.allocator);
+            std.log.info("push {s} delivered={d}{s}", .{
+                caller.scope,
+                published.delivered,
+                if (published.accepted) "" else " dropped=policy",
+            });
+            return .{ .body = published.response };
+        }
+        if (std.mem.eql(u8, call.method, "history")) {
+            return .{ .body = try pushrouter.history(context, caller, call.payload) };
+        }
+        return error.MethodUnavailable;
     }
-    if (std.mem.eql(u8, pending.method, "messages")) {
-        const limit = try messagesLimit(pending.payload);
-        const payload = try messages.snapshotJson(limit);
-        defer hub.allocator.free(payload);
-        return hub.sendAdminResponse(pending.client_id, pending.request_id, payload);
-    }
-    if (std.mem.eql(u8, pending.method, "logs")) {
-        const limit = try messagesLimit(pending.payload);
-        const payload = try messages.snapshotJson(limit);
-        defer hub.allocator.free(payload);
-        return hub.sendAdminStreamChunk(pending.client_id, pending.request_id, 0, payload, true);
+
+    if (std.mem.eql(u8, call.service, fujin_nrpc.service)) {
+        if (std.mem.eql(u8, call.method, "state")) return .{ .body = try adminStateJson(hub, registry) };
+        if (std.mem.eql(u8, call.method, "messages")) {
+            return .{ .body = try messages.snapshotJson(try messagesLimit(call.payload)) };
+        }
+        if (std.mem.eql(u8, call.method, "logs")) {
+            return .{ .body = try messages.snapshotJson(try messagesLimit(call.payload)), .streamed = true };
+        }
     }
     return error.MethodUnavailable;
 }
 
-fn switchMethodPolicy(method: []const u8) ?transport.auth.authorize.MethodPolicy {
-    return fujin_nrpc.policy(method);
+fn localMethodPolicy(service: []const u8, method: []const u8) ?transport.auth.authorize.MethodPolicy {
+    if (std.mem.eql(u8, service, pushrouter.service)) return pushrouter.policy(method);
+    if (std.mem.eql(u8, service, fujin_nrpc.service)) return fujin_nrpc.policy(method);
+    return null;
+}
+
+fn handleBrowserLocalCall(
+    hub: *Hub,
+    registry: *Registry,
+    messages: *Journal,
+    notifications: *Notifications,
+    jwt: *const @import("config.zig").JwtConfig,
+    pending: *const Hub.PendingCommand,
+) !void {
+    const reply = try handleLocalCall(hub, registry, messages, notifications, jwt, .{
+        .service = pending.service,
+        .method = pending.method,
+        .auth = pending.auth,
+        .scope = pending.scope,
+        .user = pending.user,
+        .payload = pending.payload,
+        .session_bound = true,
+    });
+    defer hub.allocator.free(reply.body);
+    if (reply.streamed) return hub.sendAdminStreamChunk(pending.client_id, pending.request_id, 0, reply.body, true);
+    return hub.sendAdminResponse(pending.client_id, pending.request_id, reply.body);
+}
+
+fn handleLocalEnvelope(
+    router: *transport.Router,
+    hub: *Hub,
+    registry: *Registry,
+    messages: *Journal,
+    notifications: *Notifications,
+    jwt: *const @import("config.zig").JwtConfig,
+    identity: []const u8,
+    env: transport.Envelope,
+    payload: []const u8,
+) void {
+    const reply = handleLocalCall(hub, registry, messages, notifications, jwt, .{
+        .service = env.to.service,
+        .method = env.method,
+        .auth = env.auth,
+        .scope = env.scope,
+        .user = env.user,
+        .payload = payload,
+        .session_bound = false,
+    }) catch |err| {
+        messages.recordEnvelope("zmq", "dropped", env, payload.len);
+        logDecision("deny", env, payload.len, @errorName(err));
+        replyUnroutable(router, identity, env, adminErrorCode(err));
+        return;
+    };
+    defer hub.allocator.free(reply.body);
+
+    const answer = transport.Envelope{
+        // Streamed replies start at seq 1: the NRPC client counts from there
+        // and fails a stream that opens on 0.
+        .kind = if (reply.streamed) .stream_chunk else .response,
+        .request_id = env.request_id,
+        .to = env.from,
+        .from = .{ .target = local_target, .service = env.to.service },
+        .method = env.method,
+        .scope = env.scope,
+        .codec = .json,
+        .seq = if (reply.streamed) 1 else 0,
+        .fin = reply.streamed,
+    };
+    const bytes = transport.envelope.encodeAlloc(hub.allocator, &answer) catch |err| {
+        logDecision("fail", env, reply.body.len, @errorName(err));
+        return;
+    };
+    defer hub.allocator.free(bytes);
+    router.send(identity, bytes, reply.body) catch |err| {
+        messages.recordEnvelope("zmq", "failed", env, payload.len);
+        logDecision("fail", env, reply.body.len, @errorName(err));
+        return;
+    };
+    messages.recordEnvelope("zmq", "handled", env, payload.len);
 }
 
 fn adminStateJson(hub: *Hub, registry: *Registry) ![]u8 {
@@ -407,9 +666,20 @@ fn routeErrorCode(err: anyerror) []const u8 {
 
 fn adminErrorCode(err: anyerror) []const u8 {
     return switch (err) {
-        error.PermissionDenied => "forbidden",
+        error.PermissionDenied, error.PushScopeForbidden => "forbidden",
         error.UserTokenRequired, error.ServiceTokenRequired => "unauthenticated",
         error.MethodUnavailable => "method_unavailable",
+        // A malformed notification is the caller's bug, not a refusal: saying
+        // "unauthenticated" would send them off checking their token instead.
+        error.PushNameMissing,
+        error.PushScopeMissing,
+        error.PushLevelInvalid,
+        error.PushMessageMissing,
+        error.InvalidHistoryLimit,
+        error.InvalidMessageLimit,
+        error.SyntaxError,
+        error.UnexpectedEndOfInput,
+        => "invalid_request",
         else => "unauthenticated",
     };
 }
@@ -421,6 +691,27 @@ test "Fujin admin contract has user methods and validates message limit" {
     try std.testing.expectEqual(Journal.default_limit, try messagesLimit("{}"));
     try std.testing.expectEqual(@as(usize, 10), try messagesLimit("{\"limit\":10}"));
     try std.testing.expectError(error.InvalidMessageLimit, messagesLimit("{\"limit\":0}"));
+}
+
+test "the local target resolves both of Fujin's own services and nothing else" {
+    try std.testing.expectEqual(
+        transport.auth.authorize.Level.any,
+        localMethodPolicy("pushrouter", "publish").?.level,
+    );
+    try std.testing.expectEqual(
+        transport.auth.authorize.Level.user,
+        localMethodPolicy("fujin", "state").?.level,
+    );
+    // A browser naming an arbitrary service on the fujin target must not reach
+    // a handler by accident; it gets method_unavailable, not a route.
+    try std.testing.expect(localMethodPolicy("services", "state") == null);
+    try std.testing.expect(localMethodPolicy("pushrouter", "state") == null);
+}
+
+test "a malformed notification is reported as a bad request, not a refusal" {
+    try std.testing.expectEqualStrings("invalid_request", adminErrorCode(error.PushNameMissing));
+    try std.testing.expectEqualStrings("forbidden", adminErrorCode(error.PushScopeForbidden));
+    try std.testing.expectEqualStrings("method_unavailable", adminErrorCode(error.MethodUnavailable));
 }
 
 /// System packets terminate at Fujin. They are never passed through the

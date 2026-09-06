@@ -63,6 +63,37 @@ pub fn build(b: *std.Build) void {
     journal_tests.root_module.link_libc = true;
     test_step.dependOn(&b.addRunArtifact(journal_tests).step);
 
+    const notification_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/notifications.zig"),
+            .target = runtime_target,
+            .optimize = optimize,
+        }),
+    });
+    notification_tests.root_module.link_libc = true;
+    test_step.dependOn(&b.addRunArtifact(notification_tests).step);
+
+    const pushrouter_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/pushrouter.zig"),
+            .target = runtime_target,
+            .optimize = optimize,
+        }),
+    });
+    pushrouter_tests.root_module.link_libc = true;
+    pushrouter_tests.root_module.addImport("transport", transport_dep.module("transport"));
+    test_step.dependOn(&b.addRunArtifact(pushrouter_tests).step);
+
+    const ingest_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/ingest.zig"),
+            .target = runtime_target,
+            .optimize = optimize,
+        }),
+    });
+    ingest_tests.root_module.link_libc = true;
+    test_step.dependOn(&b.addRunArtifact(ingest_tests).step);
+
     const websocket_tests = b.addTest(.{
         .root_module = b.createModule(.{
             .root_source_file = b.path("src/websocket.zig"),

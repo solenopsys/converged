@@ -2,7 +2,13 @@ const std = @import("std");
 const Hub = @import("hub.zig").Hub;
 const JwtConfig = @import("config.zig").JwtConfig;
 const AccessMode = @import("config.zig").AccessMode;
+const Collector = @import("ingest.zig").Collector;
 const transport = @import("transport");
+
+/// Largest Fluent Bit batch accepted in one POST. A block is a hundred records;
+/// this leaves room for very fat ones without letting a single request decide
+/// how much memory the router may allocate.
+const max_ingest_bytes = 8 * 1024 * 1024;
 
 pub const Server = struct {
     hub: *Hub,
@@ -10,6 +16,14 @@ pub const Server = struct {
     port: u16,
     browser_scope: []const u8,
     jwt: *const JwtConfig,
+    /// Absent when log shipping is off; the route then does not exist.
+    ingest: ?Ingest = null,
+
+    pub const Ingest = struct {
+        collector: *Collector,
+        path: []const u8,
+        key: []const u8,
+    };
 
     pub fn serve(self: *Server) !void {
         const io = std.Options.debug_io;
@@ -20,11 +34,11 @@ pub const Server = struct {
 
         while (true) {
             const stream = try listener.accept(io);
-            const thread = std.Thread.spawn(.{}, handleConnectionThread, .{ self.hub, self.browser_scope, self.jwt, stream }) catch |err| {
+            const thread = std.Thread.spawn(.{}, handleConnectionThread, .{ self.hub, self.browser_scope, self.jwt, self.ingest, stream }) catch |err| {
                 var fallback = stream;
                 defer fallback.close(io);
                 std.log.warn("websocket worker unavailable: {s}", .{@errorName(err)});
-                handleConnection(self.hub, self.browser_scope, self.jwt, fallback) catch {};
+                handleConnection(self.hub, self.browser_scope, self.jwt, self.ingest, fallback) catch {};
                 continue;
             };
             thread.detach();
@@ -32,14 +46,14 @@ pub const Server = struct {
     }
 };
 
-fn handleConnectionThread(hub: *Hub, browser_scope: []const u8, jwt: *const JwtConfig, stream: std.Io.net.Stream) void {
+fn handleConnectionThread(hub: *Hub, browser_scope: []const u8, jwt: *const JwtConfig, ingest: ?Server.Ingest, stream: std.Io.net.Stream) void {
     const io = std.Options.debug_io;
     var owned = stream;
     defer owned.close(io);
-    handleConnection(hub, browser_scope, jwt, owned) catch |err| std.log.debug("websocket closed: {s}", .{@errorName(err)});
+    handleConnection(hub, browser_scope, jwt, ingest, owned) catch |err| std.log.debug("websocket closed: {s}", .{@errorName(err)});
 }
 
-fn handleConnection(hub: *Hub, browser_scope: []const u8, jwt: *const JwtConfig, stream: std.Io.net.Stream) !void {
+fn handleConnection(hub: *Hub, browser_scope: []const u8, jwt: *const JwtConfig, ingest: ?Server.Ingest, stream: std.Io.net.Stream) !void {
     const io = std.Options.debug_io;
     var read_buffer: [32 * 1024]u8 = undefined;
     var write_buffer: [32 * 1024]u8 = undefined;
@@ -50,6 +64,11 @@ fn handleConnection(hub: *Hub, browser_scope: []const u8, jwt: *const JwtConfig,
     var request = try http.receiveHead();
     const path = request.head.target[0 .. std.mem.indexOfScalar(u8, request.head.target, '?') orelse request.head.target.len];
     const handshake_token = bearerToken(requestHeader(&request, "authorization") orelse "");
+    if (ingest) |route| {
+        if (request.head.method == .POST and std.mem.eql(u8, path, route.path)) {
+            return handleIngest(hub.allocator, &request, route, handshake_token);
+        }
+    }
     if (request.head.method != .GET or !std.mem.eql(u8, path, "/ws")) {
         try request.respond("not found\n", .{ .status = .not_found });
         return;
@@ -109,6 +128,63 @@ fn handleConnection(hub: *Hub, browser_scope: []const u8, jwt: *const JwtConfig,
             else => {},
         }
     }
+}
+
+/// Accepts one Fluent Bit batch. The key is compared before the body is read:
+/// an unauthenticated caller must not be able to make this process allocate
+/// megabytes just by opening a connection.
+fn handleIngest(
+    allocator: std.mem.Allocator,
+    request: *std.http.Server.Request,
+    route: Server.Ingest,
+    presented_key: []const u8,
+) !void {
+    if (route.key.len == 0 or !constantTimeEql(presented_key, route.key)) {
+        std.log.warn("ingest rejected: key mismatch", .{});
+        return request.respond("forbidden\n", .{ .status = .forbidden });
+    }
+    // Every header string dies the moment the body reader is created, so the
+    // tag — the only source name an unstructured line has — is copied first.
+    var tag_buffer: [128]u8 = undefined;
+    const tag = copyInto(&tag_buffer, requestHeader(request, "x-fluentbit-tag") orelse "fluentbit");
+
+    var body_buffer: [64 * 1024]u8 = undefined;
+    const reader = request.readerExpectNone(&body_buffer);
+    const body = reader.allocRemaining(allocator, .limited(max_ingest_bytes)) catch |err| {
+        std.log.warn("ingest body rejected: {s}", .{@errorName(err)});
+        return request.respond("payload rejected\n", .{ .status = .payload_too_large });
+    };
+    defer allocator.free(body);
+
+    const accepted = route.collector.ingestJson(body, tag) catch |err| {
+        std.log.warn("ingest batch rejected tag={s}: {s}", .{ tag, @errorName(err) });
+        return request.respond("bad request\n", .{ .status = .bad_request });
+    };
+    if (accepted.rejected > 0) {
+        std.log.warn("ingest tag={s} logs={d} telemetry={d} rejected={d}", .{ tag, accepted.logs, accepted.telemetry, accepted.rejected });
+    }
+    var answer: [96]u8 = undefined;
+    const summary = try std.fmt.bufPrint(
+        &answer,
+        "{{\"logs\":{d},\"telemetry\":{d},\"rejected\":{d}}}\n",
+        .{ accepted.logs, accepted.telemetry, accepted.rejected },
+    );
+    return request.respond(summary, .{ .status = .ok });
+}
+
+fn copyInto(buffer: []u8, value: []const u8) []const u8 {
+    const length = @min(buffer.len, value.len);
+    @memcpy(buffer[0..length], value[0..length]);
+    return buffer[0..length];
+}
+
+/// Length is not secret here, but the comparison still runs to the end so a
+/// caller cannot learn the key one byte at a time from response timing.
+fn constantTimeEql(presented: []const u8, expected: []const u8) bool {
+    if (presented.len != expected.len) return false;
+    var difference: u8 = 0;
+    for (presented, expected) |left, right| difference |= left ^ right;
+    return difference == 0;
 }
 
 fn authenticateClient(hub: *Hub, jwt: *const JwtConfig, client: *Hub.Client, token: []const u8) !bool {
@@ -193,6 +269,13 @@ fn requestHeader(request: *std.http.Server.Request, name: []const u8) ?[]const u
         if (std.ascii.eqlIgnoreCase(header.name, name)) return header.value;
     }
     return null;
+}
+
+test "the ingest key is compared without leaking where it differs" {
+    try std.testing.expect(constantTimeEql("secret", "secret"));
+    try std.testing.expect(!constantTimeEql("secret", "secreT"));
+    try std.testing.expect(!constantTimeEql("secret", "secret-longer"));
+    try std.testing.expect(!constantTimeEql("", "secret"));
 }
 
 test "browser connections use the configured scope and native clients retain theirs" {
