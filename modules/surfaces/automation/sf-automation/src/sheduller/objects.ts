@@ -1,20 +1,20 @@
 import { EntityListView } from "front-core";
-import {
-	defineSurface,
-	objectOf,
-	objectRef,
-	setOf,
-} from "front-core/object-runtime";
-import type { CronHistoryListParams, CronListParams } from "g-sheduller";
+import type { SurfaceDefinition } from "front-core/object-runtime";
+import { objectOf, objectRef, setOf } from "front-core/object-runtime";
+import type {
+	CronHistoryListParams,
+	CronInput,
+	CronListParams,
+} from "g-sheduller";
 import { cronsColumns, historyColumns } from "./functions/columns";
 import shedullerService from "./service";
 import { ShedullerSummary } from "./summary";
 import { StatsView } from "./views/StatsView";
 
-export default defineSurface({
-	id: "sf-sheduller",
-	label: "Schedules",
-	purpose: "Recurring jobs, their cron schedules and run history",
+export const shedullerContribution: Pick<
+	SurfaceDefinition,
+	"types" | "views" | "operations"
+> = {
 	types: [
 		{
 			id: "scheduler.cron",
@@ -134,12 +134,14 @@ export default defineSurface({
 			output: objectOf("scheduler.cron"),
 			parameters: { type: "object", properties: {} },
 			invoke: async ({ params }) => {
-				const result = await shedullerService.createCron(params as any);
+				const result = (await shedullerService.createCron(
+					params as CronInput,
+				)) as { id?: string | number } | undefined;
 				return objectRef(
 					"scheduler.cron",
-					String((result as any)?.id ?? params.id ?? crypto.randomUUID()),
+					String(result?.id ?? params.id ?? crypto.randomUUID()),
 				);
 			},
 		},
 	],
-});
+};

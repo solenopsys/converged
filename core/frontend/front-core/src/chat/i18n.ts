@@ -29,6 +29,7 @@ const DEFAULT_MESSAGES = {
 	shell: {
 		guestStatus: "Guest",
 		authenticatedStatus: "Signed in",
+		login: "Log in",
 		logout: "Log out",
 	},
 	tab: {

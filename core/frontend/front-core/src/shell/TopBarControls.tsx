@@ -1,7 +1,13 @@
 import { useUnit } from "effector-preact";
 import { translator } from "i18n";
+import { useEffect, useState } from "preact/hooks";
 import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
-import { Globe, Moon, Sun } from "../icons";
+import {
+	onOperationAuthorizationChanged,
+	operationAuthorizationSession,
+	requestOperationAuthentication,
+} from "../object-runtime";
+import { Globe, LogIn, Moon, Sun } from "../icons";
 import { $activeLocale, LocaleController } from "../i18n";
 import { AVAILABLE_LANGS } from "../landing/i18n";
 import { toggleTheme } from "../theme";
@@ -46,10 +52,33 @@ export function LanguageMenu() {
 	);
 }
 
+function LoginControl() {
+	const [session, setSession] = useState(operationAuthorizationSession);
+
+	useEffect(
+		() => onOperationAuthorizationChanged(() => setSession(operationAuthorizationSession())),
+		[],
+	);
+
+	if (session !== "guest") return null;
+
+	return (
+		<button
+			class="top-bar-control"
+			type="button"
+			aria-label="Log in"
+			title="Log in"
+			onClick={() => void requestOperationAuthentication()}
+		>
+			<LogIn size={16} aria-hidden="true" />
+		</button>
+	);
+}
 
 export function TopBarSettings() {
 	return (
 		<>
+			<LoginControl />
 			<LanguageMenu />
 			<ThemeToggle />
 		</>

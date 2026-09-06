@@ -4,6 +4,7 @@ import {
 	$objectRegistryRevision,
 	executeOperation,
 	objectResolver,
+	requestOperationAuthentication,
 } from "front-core/object-runtime";
 import { translator } from "i18n";
 import type { Entry } from "orchestrator";
@@ -21,7 +22,7 @@ import type { ChatConfig } from "../chat/config";
 import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
 import { mountLinkedChatStyles } from "../chat/styles/link";
 import { type MagicPrompt, MagicPrompts } from "../chat/ui/MagicPrompts";
-import { Copy, LogOut } from "../icons";
+import { Copy, LogIn, LogOut } from "../icons";
 import { LandingView } from "../landing/LandingView";
 import type { LandingPayload } from "../landing/types";
 import { setActiveSelectionResolver } from "../select/runtime";
@@ -61,10 +62,7 @@ import {
 import { isConsolePath } from "./workspace-url";
 import "./reference-presenter";
 import "./legacy-widget-presenter";
-import {
-	installWorkspaceReader,
-	registerWorkspaceSurface,
-} from "./workspace-surface";
+import { installWorkspaceReader } from "./workspace-surface";
 
 installEffectorTrafficLogger();
 // Where the user is standing, for the deciding steps to read. Free of charge:
@@ -352,13 +350,6 @@ export function AppShell({
 		return () => setActiveSelectionResolver(undefined);
 	}, []);
 
-	// The shell's own navigation, callable like any other function — this is what
-	// lets an orchestrator step commit its choice to the screen. Skipped for the
-	// old flow, which would only see three more entries it never calls.
-	useEffect(() => {
-		if (!config.functionFlow) registerWorkspaceSurface();
-	}, [config.functionFlow]);
-
 	useEffect(() => {
 		warmUpChat(config);
 	}, [config]);
@@ -422,6 +413,8 @@ export function AppShell({
 			source: "user",
 		});
 	};
+
+	const login = () => void requestOperationAuthentication();
 
 	const updatePanelWidth = useCallback((width: number) => {
 		panelWidthChanged(clampPanelWidth(width));
@@ -564,7 +557,17 @@ export function AppShell({
 								>
 									<LogOut aria-hidden="true" size={15} />
 								</button>
-							) : null}
+							) : (
+								<button
+									type="button"
+									class="panel-login"
+									aria-label={t("shell.login")}
+									title={t("shell.login")}
+									onClick={login}
+								>
+									<LogIn aria-hidden="true" size={15} />
+								</button>
+							)}
 						</div>
 					</header>
 					<div

@@ -21,11 +21,11 @@ import {
 // dashboard.
 const DASHBOARD_WIDGET_MODULES: Record<string, string> = {
 	classifier: "sf-classifier",
-	dag: "sf-dag",
+	dag: "sf-automation",
 	dumps: "sf-dumps",
 	logs: "sf-logs",
 	orders: "sf-orders",
-	sheduller: "sf-sheduller",
+	sheduller: "sf-automation",
 	telemetry: "sf-telemetry",
 	threads: "sf-threads",
 	usage: "sf-usage",

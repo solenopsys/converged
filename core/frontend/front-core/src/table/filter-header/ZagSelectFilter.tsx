@@ -117,7 +117,7 @@ export function ZagSelectFilter({
 										type="button"
 										className="hover:bg-accent flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm"
 										onClick={() => {
-											api.clearValue();
+											onValueChange([]);
 											api.setOpen(false);
 										}}
 									>

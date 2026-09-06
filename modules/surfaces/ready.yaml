@@ -6,9 +6,7 @@ modules:
   analytics/sf-logs: _
   analytics/sf-telemetry: _
   analytics/sf-usage: _
-  automation/sf-dag: _
-  automation/sf-sheduller: _
-  automation/sf-webhooks: _
+  automation/sf-automation: _
   business/sf-orders: _
   business/sf-requests: ready
   communications/sf-calls: ready

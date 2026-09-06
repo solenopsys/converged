@@ -1,0 +1,5 @@
+{
+	"repositories": ["dag","sheduller","webhooks"],
+	"surfaces": ["automation"],
+	"dependencies": ["security"]
+}

@@ -1,5 +1,7 @@
 import { invokeAction } from "front-core/core";
+import { useUnit } from "effector-preact";
 import type { ComponentChildren } from "preact";
+import { $activeLocale } from "../i18n";
 import { cn } from "../lib/utils";
 import { useStatisticAction } from "./statistic-actions";
 
@@ -10,13 +12,16 @@ import { useStatisticAction } from "./statistic-actions";
 // section, which only render once it is opened.
 
 /** 1,284 below ten thousand; 12.9K above it. Proportional figures, not tabular. */
-export function formatSummaryValue(value: number | string): string {
+export function formatSummaryValue(
+	value: number | string,
+	locale = $activeLocale.getState(),
+): string {
 	if (typeof value === "string") return value;
 	if (!Number.isFinite(value)) return "—";
 
 	return Math.abs(value) < 10_000
-		? new Intl.NumberFormat(undefined).format(value)
-		: new Intl.NumberFormat(undefined, {
+		? new Intl.NumberFormat(locale).format(value)
+		: new Intl.NumberFormat(locale, {
 				notation: "compact",
 				maximumFractionDigits: 1,
 			}).format(value);
@@ -124,13 +129,14 @@ export function SummaryMetric({
 	value: number | string;
 }) {
 	const actionId = useStatisticAction(label);
+	const locale = useUnit($activeLocale);
 	const content = (
 		<>
 			<span className="truncate text-[0.6875rem] leading-none uppercase tracking-wide text-muted-foreground">
 				{label}
 			</span>
 			<span className="text-lg leading-none font-semibold text-foreground">
-				{formatSummaryValue(value)}
+				{formatSummaryValue(value, locale)}
 			</span>
 		</>
 	);

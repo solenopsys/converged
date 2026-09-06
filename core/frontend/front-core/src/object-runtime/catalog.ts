@@ -370,6 +370,7 @@ export async function invokeCatalogEntry(
 		const ref = applySelectCommand(entry.targetType, command, current?.ref);
 		await loadObjectType(entry.targetType);
 		const type = objectRegistry.type(entry.targetType);
+		if (type) await authorizeObjectType(type);
 		const stats =
 			ref.selection.kind === "query" && type?.selection?.inspect
 				? await type.selection.inspect(

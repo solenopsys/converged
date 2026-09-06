@@ -152,6 +152,7 @@ export {
 	type StatisticCardProps,
 } from "./components/ui/statistic-card";
 export { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
+export { Textarea } from "./components/ui/textarea";
 export { Toggle, toggleVariants } from "./components/ui/toggle";
 export { ToggleGroup, ToggleGroupItem } from "./components/ui/toggle-group";
 export { DashboardLayout } from "./dashboard/DashboardLayout";

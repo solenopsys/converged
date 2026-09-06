@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, test } from "bun:test";
+import { afterEach, beforeAll, describe, expect, test } from "bun:test";
 import { LocaleController, registerSurfaceLocales } from "../i18n";
 import { setActiveSelectionResolver } from "../select/runtime";
 import {
@@ -13,6 +13,7 @@ import {
 } from "./catalog";
 import { objectRegistry } from "./registry";
 import { referencePresented } from "./runtime";
+import { setOperationAuthorizationController } from "./authorization";
 import { Category, OPERATORS } from "./types";
 
 beforeAll(() => {
@@ -53,7 +54,29 @@ beforeAll(() => {
 	});
 });
 
+afterEach(() => setOperationAuthorizationController(null));
+
 describe("operator catalog", () => {
+	test("a protected selection opens login before it can inspect or present data", async () => {
+		let authenticateCalls = 0;
+		setOperationAuthorizationController({
+			snapshot: () => ({ session: "guest" }),
+			ensureSession: async () => undefined,
+			authenticate: async () => {
+				authenticateCalls += 1;
+			},
+			can: () => false,
+		});
+
+		await expect(
+			invokeCatalogEntry("core.select:companies.company", {
+				scope: "new",
+				mode: "replace",
+			}),
+		).rejects.toThrow("Authentication is required");
+		expect(authenticateCalls).toBe(1);
+	});
+
 	test("resolves user-facing operation labels from the active SF locale", () => {
 		registerSurfaceLocales("sf-localized-probe", {
 			en: {
@@ -267,10 +290,11 @@ describe("operator catalog", () => {
 			label: "Select Probe",
 			purpose: "Test surface select probe",
 			types: [
-				{
-					id: "probe.item",
-					label: "Probe",
-					categories: [Category.Selectable],
+			{
+				id: "probe.item",
+				label: "Probe",
+				access: "public",
+				categories: [Category.Selectable],
 					selection: {
 						filters: [
 							{

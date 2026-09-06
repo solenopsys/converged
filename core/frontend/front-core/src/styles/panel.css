@@ -460,6 +460,7 @@ textarea {
 	gap: var(--hw-space-2);
 }
 
+.panel-login,
 .panel-logout {
 	width: calc(var(--hw-unit) * 5);
 	height: calc(var(--hw-unit) * 5);
@@ -473,11 +474,13 @@ textarea {
 	cursor: pointer;
 }
 
+.panel-login:hover,
 .panel-logout:hover {
 	background: color-mix(in srgb, var(--hw-ink) 8%, transparent);
 	color: var(--hw-ink);
 }
 
+.panel-login:focus-visible,
 .panel-logout:focus-visible,
 .panel-tabs button:focus-visible,
 .panel-command-heading:focus-visible,

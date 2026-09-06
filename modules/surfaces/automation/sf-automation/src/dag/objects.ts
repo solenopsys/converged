@@ -2,13 +2,9 @@ import { EntityListView } from "front-core";
 import type {
 	InfinityDefinition,
 	ObjectDefinition,
+	SurfaceDefinition,
 } from "front-core/object-runtime";
-import {
-	defineSurface,
-	objectOf,
-	objectRef,
-	setOf,
-} from "front-core/object-runtime";
+import { objectOf, objectRef, setOf } from "front-core/object-runtime";
 import { COLUMN_TYPES } from "front-core/table";
 import type { PaginationParams } from "g-dag";
 import { $selectedContext, openContextDetail } from "./domain-contexts";
@@ -219,10 +215,10 @@ const dagConfigurationTypes: ObjectDefinition[] = [
 	},
 ];
 
-export default defineSurface({
-	id: "sf-dag",
-	label: "Workflows",
-	purpose: "Background workflows, their runs, variables and failures",
+export const dagContribution: Pick<
+	SurfaceDefinition,
+	"types" | "views" | "operations"
+> = {
 	types: [
 		...dagEntityTypes,
 		...dagConfigurationTypes,
@@ -320,4 +316,4 @@ export default defineSurface({
 				dagService.setVar(String(params.key), params.value),
 		},
 	],
-});
+};

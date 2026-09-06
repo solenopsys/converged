@@ -43,6 +43,23 @@ export function onOperationAuthorizationChanged(
 	return () => listeners.delete(listener);
 }
 
+/** The current session is exposed for shell controls, never as authorization. */
+export function operationAuthorizationSession(): RuntimeSessionKind {
+	return controller?.snapshot().session ?? "unknown";
+}
+
+/** Opens the host's authentication flow without inventing an auth surface id. */
+export async function requestOperationAuthentication(): Promise<void> {
+	if (!controller) {
+		throw new OperationAuthorizationError(
+			"authorization_unavailable",
+			"Authorization is not configured",
+		);
+	}
+	await controller.ensureSession();
+	if (controller.snapshot().session !== "account") await controller.authenticate();
+}
+
 export function canExecuteOperation(operation: {
 	access?: "public" | "user";
 	capability?: string;

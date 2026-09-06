@@ -185,6 +185,6 @@ describe("statistic catalog", () => {
 
 	test("names a section after its module", () => {
 		expect(sectionLabel("sf-companies")).toBe("Companies");
-		expect(sectionLabel("sf-dag")).toBe("Dag");
+		expect(sectionLabel("sf-automation")).toBe("Automation");
 	});
 });

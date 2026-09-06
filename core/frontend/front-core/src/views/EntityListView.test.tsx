@@ -56,6 +56,21 @@ describe("EntityListView infinity contract", () => {
 		expect(restored).toEqual({ type: ["EMAIL"], role: "founder" });
 	});
 
+	test("keeps a relation predicate from a navigated group in the table request", () => {
+		const reference = setRef("sales.lead", {
+			kind: "query",
+			filter: { tag: { eq: "tag-a" } },
+		});
+
+		expect(
+			infinityFilterParams(
+				{},
+				referenceBaseFilters(reference),
+				[{ id: "tag", label: "Tags", type: "multi-select" }],
+			),
+		).toEqual({ filter: { tag: { eq: "tag-a" } } });
+	});
+
 	test("a SetRef selected by ids carries no base filter to restore", () => {
 		const reference = setRef("sales.contact", {
 			kind: "ids",

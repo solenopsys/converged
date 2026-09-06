@@ -1,5 +1,5 @@
 {
-	"name": "sf-sheduller",
+	"name": "sf-automation",
 	"private": true,
 	"type": "module",
 	"module": "src/index.ts",
@@ -7,9 +7,13 @@
 		".": "./src/index.ts"
 	},
 	"dependencies": {
+		"dagre": "^0.8.5",
 		"effector": "23.4.4",
 		"effector-preact": "workspace:*",
 		"front-core": "workspace:*",
-		"g-sheduller": "workspace:*"
+		"g-dag": "workspace:*",
+		"g-scripts": "workspace:*",
+		"g-sheduller": "workspace:*",
+		"g-webhooks": "workspace:*"
 	}
 }

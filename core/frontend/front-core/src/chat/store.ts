@@ -8,7 +8,6 @@ import {
 	createFilesStep,
 	createFunctionCatalogTools,
 	createFunctionSteps,
-	createSurfaceSteps,
 	createUploadedChatFilesTool,
 	type ExecutableTool,
 	type FunctionCatalogContext,
@@ -279,13 +278,7 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 					},
 				},
 			}),
-			// Surface → action → state. Each step commits its level to the screen
-			// before the next one is asked, and each is given only what it needs to
-			// decide: a numbered list, one line of position, the user's sentence.
-			// `functionFlow` falls back to the old route/search/select/args table.
-			...(config.functionFlow
-				? createFunctionSteps({ catalog })
-				: createSurfaceSteps({ catalog })),
+			...createFunctionSteps({ catalog }),
 		],
 	});
 	conversation.turn.turnFinished.watch(refreshFocusedObjects);

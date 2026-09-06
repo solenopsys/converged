@@ -11,6 +11,8 @@ export {
 	canExecuteOperation,
 	OperationAuthorizationError,
 	onOperationAuthorizationChanged,
+	operationAuthorizationSession,
+	requestOperationAuthentication,
 	setOperationAuthorizationController,
 } from "./authorization";
 export type { OperatorCatalogEntry } from "./catalog";

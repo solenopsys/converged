@@ -3,7 +3,7 @@ import { createDomain, createEvent, createStore } from "effector";
 import { useUnit } from "effector-preact";
 import { translator } from "i18n";
 import type * as React from "preact/compat";
-import { useCallback, useEffect, useMemo, useState } from "preact/compat";
+import { useCallback, useEffect, useMemo, useRef, useState } from "preact/compat";
 import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
 import {
 	$objectRegistryRevision,
@@ -241,6 +241,17 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 	const resolvedTableId =
 		tableId ?? infinity?.tableId ?? reference?.type ?? "entity-list";
 	const resolvedBaseFilters = baseFilters ?? referenceBaseFilters(reference);
+	const referenceQueryKey = useMemo(
+		() =>
+			JSON.stringify(
+				reference?.kind === "set"
+					? { type: reference.type, selection: reference.selection }
+					: reference
+						? { type: reference.type, kind: reference.kind, id: reference.id }
+						: null,
+			),
+		[reference],
+	);
 	const resolvedFilters = filters ?? infinity?.filters;
 	const resolvedColumns = columns ?? infinity?.columns;
 	const resolvedTitle =
@@ -335,6 +346,10 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 	}
 
 	const state = useUnit(activeStore.$state);
+	const lastReferenceQuery = useRef<{
+		store: unknown;
+		key: string;
+	} | null>(null);
 
 	useEffect(() => {
 		if (!reference) return;
@@ -366,14 +381,24 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 		resolvedSerializeFilters,
 	]);
 
-	// Push filters into the store only when they actually differ; setFilters
-	// resets pagination and triggers a reload by itself.
+	// A query reference can replace this view while reusing the same table store.
+	// In that case stale rows must not survive merely because the store already
+	// remembers an equal predicate: selecting a group is a navigation and must
+	// issue a fresh query.
 	useEffect(() => {
+		const referenceChanged =
+			lastReferenceQuery.current?.store !== activeStore ||
+			lastReferenceQuery.current.key !== referenceQueryKey;
+		lastReferenceQuery.current = { store: activeStore, key: referenceQueryKey };
 		const current = activeStore.$state.getState().filters;
 		if (JSON.stringify(current) !== JSON.stringify(mergedFilters)) {
 			activeStore.setFilters(mergedFilters);
+			return;
 		}
-	}, [activeStore, mergedFilters]);
+		if (referenceChanged && state.isInitialized) {
+			activeStore.setFilters(mergedFilters);
+		}
+	}, [activeStore, mergedFilters, referenceQueryKey, state.isInitialized]);
 
 	// A record of this type was written somewhere — a form, a command, the
 	// assistant — so the list showing it is stale. The view does not need to

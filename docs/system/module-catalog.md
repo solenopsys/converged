@@ -185,26 +185,12 @@ rp-webhooks is a repository in the automation domain. Its detailed purpose is ma
 - Direct dependencies: none
 - Solutions: none
 
-### [sf-dag](/en/docs/modules/sf-dag)
+### [sf-automation](/en/docs/modules/sf-automation)
 
-sf-dag is a surface in the automation domain. Its detailed purpose is maintained with the module source.
-
-- Direct dependencies: none
-- Solutions: none
-
-### [sf-sheduller](/en/docs/modules/sf-sheduller)
-
-sf-sheduller is a surface in the automation domain. Its detailed purpose is maintained with the module source.
+sf-automation is the surface in the automation domain for workflows, schedules, webhook endpoints, and their execution history.
 
 - Direct dependencies: none
-- Solutions: none
-
-### [sf-webhooks](/en/docs/modules/sf-webhooks)
-
-sf-webhooks is a surface in the automation domain. Its detailed purpose is maintained with the module source.
-
-- Direct dependencies: none
-- Solutions: none
+- Solutions: `automation`
 
 ## Business domain
 

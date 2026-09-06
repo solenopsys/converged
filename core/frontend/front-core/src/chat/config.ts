@@ -11,14 +11,6 @@ export type ChatConfig = {
 
 	language: string;
 
-	/**
-	 * Fall back to the old function flow (route → search → select → args)
-	 * instead of the surface flow. An escape hatch for a delivery whose chat
-	 * context has no `surface` and `action` sections yet: a deciding step with
-	 * no instructions decides nothing, and every turn ends as a plain answer.
-	 */
-	functionFlow?: boolean;
-
 	createWorker: () => Worker;
 };
 

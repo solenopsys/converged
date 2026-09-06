@@ -1,21 +1,18 @@
 import { EntityListView } from "front-core";
-import {
-	defineSurface,
-	objectOf,
-	objectRef,
-	setOf,
-} from "front-core/object-runtime";
+import type { SurfaceDefinition } from "front-core/object-runtime";
+import { objectOf, objectRef, setOf } from "front-core/object-runtime";
 import type {
+	WebhookEndpointInput,
 	WebhookEndpointListParams,
 	WebhookLogListParams,
 } from "g-webhooks";
 import { endpointColumns, logColumns } from "./functions/columns";
 import webhooksService from "./service";
 
-export default defineSurface({
-	id: "sf-webhooks",
-	label: "Webhooks",
-	purpose: "Incoming webhook endpoints and their delivery log",
+export const webhooksContribution: Pick<
+	SurfaceDefinition,
+	"types" | "views" | "operations"
+> = {
 	types: [
 		{
 			id: "webhooks.endpoint",
@@ -121,12 +118,14 @@ export default defineSurface({
 			output: objectOf("webhooks.endpoint"),
 			parameters: { type: "object", properties: {} },
 			invoke: async ({ params }) => {
-				const result = await webhooksService.createEndpoint(params as any);
+				const result = (await webhooksService.createEndpoint(
+					params as WebhookEndpointInput,
+				)) as { id?: string | number } | undefined;
 				return objectRef(
 					"webhooks.endpoint",
-					String((result as any)?.id ?? params.id ?? crypto.randomUUID()),
+					String(result?.id ?? params.id ?? crypto.randomUUID()),
 				);
 			},
 		},
 	],
-});
+};
