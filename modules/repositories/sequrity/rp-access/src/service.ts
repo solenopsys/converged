@@ -3,7 +3,7 @@ import { StoresController } from "./stores";
 import { Access, getCurrentWorkspaceContext } from "nrpc";
 import { UserJwtIssuer } from "./jwt";
 
-const DEFAULT_TTL_SECONDS = 30 * 24 * 60 * 60;
+const DEFAULT_TTL_SECONDS = 90 * 24 * 60 * 60;
 
 type PresetResolution = {
 	presetName: string;

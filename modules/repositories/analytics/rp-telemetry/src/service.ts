@@ -46,6 +46,19 @@ export class TelemetryServiceImpl implements TelemetryService {
     await this.stores.hot.insert([{ ...event, ts, unit }]);
   }
 
+  // One batchInsert per block instead of one per record: the Fluent Bit
+  // collector hands over whole blocks, and per-record inserts would make the
+  // ingest rate a function of round-trips rather than of disk.
+  async writeBatch(events: TelemetryEventInput[]): Promise<number> {
+    if (!events?.length) return 0;
+    await this.ensureReady();
+    const now = Date.now();
+    await this.stores.hot.insert(
+      events.map((event) => ({ ...event, ts: event.ts ?? now, unit: event.unit ?? "" })),
+    );
+    return events.length;
+  }
+
   async listHot(params: TelemetryQueryParams): Promise<PaginatedResult<TelemetryEvent>> {
     await this.ensureReady();
     return this.stores.hot.list(params);

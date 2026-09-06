@@ -87,6 +87,21 @@ export const metadata: ServiceMetadata = {
       "isAsyncIterable": false
     },
     {
+      "name": "writeBatch",
+      "parameters": [
+        {
+          "name": "events",
+          "type": "TelemetryEventInput",
+          "optional": false,
+          "isArray": true
+        }
+      ],
+      "returnType": "number",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
       "name": "listHot",
       "parameters": [
         {
@@ -228,6 +243,7 @@ export const metadata: ServiceMetadata = {
 // Client interface
 export interface TelemetryServiceClient {
   write(event: TelemetryEventInput): Promise<void>;
+  writeBatch(events: TelemetryEventInput[]): Promise<number>;
   listHot(params: TelemetryQueryParams): Promise<PaginatedResult<TelemetryEvent>>;
   listCold(params: TelemetryQueryParams): Promise<PaginatedResult<TelemetryEvent>>;
   describeSelection(objectType: string): Promise<SelectionDescriptor>;

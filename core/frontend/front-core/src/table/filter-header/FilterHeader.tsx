@@ -33,7 +33,9 @@ export function FilterHeader<TData extends object>({
 	onChange,
 	selectionOffset = 0,
 }: FilterHeaderProps<TData>) {
-	const filterByColumn = new Map(filters.map((filter) => [filter.id, filter]));
+	const filterByColumn = new Map(
+		filters.map((filter) => [filter.columnId ?? filter.id, filter]),
+	);
 	const visibleFilterCount = columns.filter((column) =>
 		filterByColumn.has(column.id),
 	).length;

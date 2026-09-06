@@ -61,6 +61,8 @@ export type TelemetryStatisticKey = "title";
 
 export interface TelemetryService {
   write(event: TelemetryEventInput): Promise<void>;
+  /** Bulk ingest path used by the Fluent Bit collector; returns rows stored. */
+  writeBatch(events: TelemetryEventInput[]): Promise<number>;
   listHot(params: TelemetryQueryParams): Promise<PaginatedResult<TelemetryEvent>>;
   listCold(params: TelemetryQueryParams): Promise<PaginatedResult<TelemetryEvent>>;
   describeSelection(objectType: string): Promise<SelectionDescriptor>;

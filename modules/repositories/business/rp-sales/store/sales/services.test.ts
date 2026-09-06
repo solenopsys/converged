@@ -220,6 +220,15 @@ describe("SalesStoreService.listLeadsFiltered", () => {
 				(lead) => lead.id,
 			),
 		).toEqual(["lead-steel"]);
+
+	const tagsByLeadId = await sales.listLeadTagsByLeadIds([
+		"lead-steel",
+		"lead-rextek",
+	]);
+	expect(tagsByLeadId.get("lead-steel")?.map((tag) => tag.name)).toEqual(["Tag B"]);
+		expect(tagsByLeadId.get("lead-rextek")?.map((tag) => tag.name)).toEqual([
+			"Tag A",
+		]);
 	});
 
 	it("filters leads by tag membership through the shared filter", async () => {

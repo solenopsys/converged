@@ -48,8 +48,12 @@ export class MessagingAccessGuard {
 
 	constructor(config: MessagingAccessConfig = {}) {
 		this.mode = resolveMode(config.mode);
-		this.issuer = requiredSetting(config.issuer ?? process.env.ACCESS_JWT_ISSUER, "ACCESS_JWT_ISSUER");
-		this.audience = requiredSetting(config.audience ?? process.env.ACCESS_JWT_AUDIENCE, "ACCESS_JWT_AUDIENCE");
+		this.issuer = this.mode === "off"
+			? config.issuer ?? process.env.ACCESS_JWT_ISSUER
+			: requiredSetting(config.issuer ?? process.env.ACCESS_JWT_ISSUER, "ACCESS_JWT_ISSUER");
+		this.audience = this.mode === "off"
+			? config.audience ?? process.env.ACCESS_JWT_AUDIENCE
+			: requiredSetting(config.audience ?? process.env.ACCESS_JWT_AUDIENCE, "ACCESS_JWT_AUDIENCE");
 		this.cacheSize = config.cacheSize ?? 1_024;
 		this.log = config.log ?? ((message, details) => console.warn(`[nrpc auth] ${message}`, details));
 
@@ -121,8 +125,11 @@ export class MessagingAccessGuard {
 }
 
 export class MessagingAuthorizationError extends Error {
+	readonly statusCode: 401 | 403;
+
 	constructor(readonly code: "unauthenticated" | "forbidden" | "internal_only", message: string) {
 		super(message);
+		this.statusCode = code === "unauthenticated" ? 401 : 403;
 	}
 }
 

@@ -164,6 +164,15 @@ authController.subscribe((snapshot) => {
 	// Auth state can be published from an Effector effect handler. Defer UI
 	// notification to avoid calling a unit while that pure graph is running.
 	queueMicrotask(() => {
+		if (
+			snapshot.session === "guest" &&
+			typeof window !== "undefined" &&
+			(window.location.pathname === "/console" ||
+				window.location.pathname.startsWith("/console/"))
+		) {
+			window.location.replace("/");
+			return;
+		}
 		$authStatus.setState(
 			snapshot.session === "account" ? "authenticated" : "anonymous",
 		);

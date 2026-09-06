@@ -2,6 +2,7 @@ import { createEvent, createStore, sample } from "effector";
 import {
 	$rightPanelEvents,
 	$rightPanelTab,
+	$rightPanelUnreadCount,
 	$rightSidebarState,
 	$rightSidebarWidth,
 	rightPanelEventRecorded,
@@ -53,6 +54,7 @@ export const $panelResizing = createStore(false)
 export {
 	$rightPanelEvents as $panelEvents,
 	$rightPanelTab as $panelTab,
+	$rightPanelUnreadCount as $panelUnreadCount,
 	rightPanelEventRecorded as panelEventRecorded,
 	rightPanelTabActivated as panelTabActivated,
 };

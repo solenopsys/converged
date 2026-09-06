@@ -11,6 +11,8 @@ export type Lead = {
 	catalogId: string;
 	disabled?: boolean;
 	createdAt: Date;
+	/** Present on list and detail projections when tag membership is requested. */
+	tags?: LeadTag[];
 };
 
 export type LeadUpdate = {

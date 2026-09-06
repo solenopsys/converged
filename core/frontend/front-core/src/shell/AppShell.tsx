@@ -15,6 +15,7 @@ import {
 	useRef,
 	useState,
 } from "preact/hooks";
+import type { RightPanelEvent } from "sidebar-controller";
 import { authToken } from "../auth-token";
 import type { ChatConfig } from "../chat/config";
 import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
@@ -29,6 +30,7 @@ import { Composer } from "../ui/Composer";
 import { WithTooltip } from "../ui/tooltip";
 import { ConsoleRoot } from "./ConsoleRoot";
 import { availableChatPanelTabs, resolveChatPanelTab } from "./chat-panel-tabs";
+import { startNotifications } from "./notifications";
 import {
 	$composerPlacement,
 	$draft,
@@ -36,11 +38,11 @@ import {
 	$panelOpen,
 	$panelResizing,
 	$panelTab,
+	$panelUnreadCount,
 	$panelWidth,
 	draftChanged,
 	draftCleared,
 	pageScrolled,
-	panelEventRecorded,
 	panelOpened,
 	panelResizeFinished,
 	panelResizeStarted,
@@ -76,6 +78,22 @@ declare const __EFFECTOR_DEBUG__: boolean;
 
 // SSR loads this source before Bun applies browser build defines.
 const t = translator(CHAT_MESSAGES_NAMESPACE);
+
+/**
+ * A notification's headline is a catalog key whenever the sender had one: the
+ * publishing service cannot know the reader's locale. A literal `title` is for
+ * data no catalog holds — a mail subject, an order number — and the event name
+ * is the last resort, which at least says what happened.
+ */
+function eventHeadline(event: RightPanelEvent): string {
+	if (event.titleKey) return t(event.titleKey, event.params);
+	return event.title ?? event.name;
+}
+
+function eventBody(event: RightPanelEvent): string | undefined {
+	if (event.bodyKey) return t(event.bodyKey, event.params);
+	return event.body;
+}
 
 const devTraceEnabled =
 	typeof __EFFECTOR_DEBUG__ !== "undefined" && __EFFECTOR_DEBUG__;
@@ -305,6 +323,7 @@ export function AppShell({
 	const draft = useUnit($draft);
 	const panelTab = useUnit($panelTab);
 	const panelEvents = useUnit($panelEvents);
+	const unreadEvents = useUnit($panelUnreadCount);
 	const objectRegistryRevision = useUnit($objectRegistryRevision);
 	const panelWidth = useUnit($panelWidth);
 	const isResizing = useUnit($panelResizing);
@@ -344,6 +363,11 @@ export function AppShell({
 		warmUpChat(config);
 	}, [config]);
 
+	// The Events tab is a live feed from `pushrouter`, not a log of what this
+	// browser just did. Subscribing here rather than in the tab keeps arriving
+	// notifications counted while the panel is closed.
+	useEffect(() => startNotifications(), []);
+
 	useEffect(() => {
 		const report = () =>
 			pageScrolled({ offset: window.scrollY, viewport: window.innerHeight });
@@ -377,7 +401,6 @@ export function AppShell({
 		draftCleared();
 		panelOpened();
 		panelTabActivated("chat");
-		panelEventRecorded("Message sent");
 		if (inputRef.current) inputRef.current.style.height = "";
 		void ready().then((instance) => instance.sendMessage(text));
 	};
@@ -390,19 +413,13 @@ export function AppShell({
 	const attach = (files: File[]) => {
 		if (files.length === 0) return;
 		panelOpened();
-		panelEventRecorded(
-			`Attached ${files.length} file${files.length === 1 ? "" : "s"}`,
-		);
 		void ready().then((instance) => instance.attachFiles(files));
 	};
 
 	const logout = () => {
-		panelEventRecorded("Logout requested");
 		void executeOperation({
 			operationId: "auth.session.logout",
 			source: "user",
-		}).catch(() => {
-			panelEventRecorded("Logout failed");
 		});
 	};
 
@@ -575,8 +592,13 @@ export function AppShell({
 							panelEvents.length > 0 ? (
 								<ol class="panel-events">
 									{panelEvents.map((event) => (
-										<li key={event.id}>
-											<span>{event.label}</span>
+										<li
+											key={event.id}
+											data-level={event.level}
+											data-unread={event.read ? undefined : "true"}
+										>
+											<span>{eventHeadline(event)}</span>
+											{eventBody(event) ? <p>{eventBody(event)}</p> : null}
 											<time>
 												{new Intl.DateTimeFormat(undefined, {
 													hour: "2-digit",
@@ -587,19 +609,19 @@ export function AppShell({
 									))}
 								</ol>
 							) : (
-								<p class="panel-empty-state">No events yet.</p>
+								<p class="panel-empty-state">{t("panel.noEvents")}</p>
 							)
 						) : null}
 						{activePanelTab === "trace" && devTraceEnabled ? (
 							chat ? (
 								<OrchestratorTrace chat={chat.chat} />
 							) : (
-								<p class="panel-empty-state">Chat is not initialized.</p>
+								<p class="panel-empty-state">{t("panel.chatNotInitialized")}</p>
 							)
 						) : null}
 					</div>
 					{availableTabs.length > 1 ? (
-						<div class="panel-tabs" aria-label="Chat panel tabs" role="tablist">
+						<div class="panel-tabs" aria-label={t("panel.tabs")} role="tablist">
 							{availableTabs.map((tab) => (
 								<button
 									type="button"
@@ -609,7 +631,15 @@ export function AppShell({
 									class={activePanelTab === tab.id ? "is-active" : undefined}
 									onClick={() => panelTabActivated(tab.id)}
 								>
-									{tab.label}
+									{t(tab.labelKey)}
+									{tab.id === "events" && unreadEvents > 0 ? (
+										<span
+											class="panel-tab-badge"
+											title={t("panel.unreadEvents", { count: unreadEvents })}
+										>
+											{unreadEvents}
+										</span>
+									) : null}
 								</button>
 							))}
 						</div>

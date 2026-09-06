@@ -101,7 +101,7 @@ function readBoolean(value: unknown): boolean {
 	return value === true || value === 1 || value === "1";
 }
 
-function mapLead(entity: LeadEntity): Lead {
+function mapLead(entity: LeadEntity, tags?: LeadTag[]): Lead {
 	return {
 		id: entity.id,
 		description: entity.description,
@@ -110,6 +110,7 @@ function mapLead(entity: LeadEntity): Lead {
 		catalogId: entity.catalogId,
 		disabled: readBoolean(entity.disabled),
 		createdAt: new Date(entity.createdAt * 1000),
+		...(tags ? { tags } : {}),
 	};
 }
 
@@ -217,7 +218,8 @@ class SalesServiceImpl
 		});
 		if (!entity) return null;
 
-		return mapLead(entity);
+		const tags = await this.stores.salesStoreSevice.listLeadTags(entity.id);
+		return mapLead(entity, tags.map(mapTag));
 	}
 
 	async updateLead(lead: LeadUpdate): Promise<boolean> {
@@ -445,7 +447,10 @@ class SalesServiceImpl
 		const id = tagId?.trim();
 		if (!id) throw badRequestError("tagId is required");
 		const result = await this.stores.salesStoreSevice.listTagLeads(id, params);
-		return { items: result.items.map(mapLead), totalCount: result.totalCount };
+		return {
+			items: await this.mapLeadsWithTags(result.items),
+			totalCount: result.totalCount,
+		};
 	}
 
 	async describeSelection(objectType: string): Promise<SelectionDescriptor> {
@@ -846,12 +851,22 @@ class SalesServiceImpl
 						totalCount: await this.stores.salesStoreSevice.leadRepo.count(),
 					};
 
-		const items = result.items.map(mapLead);
+		const items = await this.mapLeadsWithTags(result.items);
 
 		return {
 			items,
 			totalCount: result.totalCount,
 		};
+	}
+
+	private async mapLeadsWithTags(entities: LeadEntity[]): Promise<Lead[]> {
+		const tagsByLeadId =
+			await this.stores.salesStoreSevice.listLeadTagsByLeadIds(
+				entities.map((entity) => entity.id),
+			);
+		return entities.map((entity) =>
+			mapLead(entity, (tagsByLeadId.get(entity.id) ?? []).map(mapTag)),
+		);
 	}
 
 	async listContacts(

@@ -6,14 +6,14 @@ import {
 } from "nrpc";
 
 export type PaginatedResult<T> = {
-  items: T[];
-  totalCount?: number;
+	items: T[];
+	totalCount?: number;
 };
 
 export type PaginationParams = {
-  offset: number;
-  limit: number;
-  filter?: FilterObject;
+	offset: number;
+	limit: number;
+	filter?: FilterObject;
 };
 
 export type FilterObject = Record<string, unknown>;
@@ -110,12 +110,12 @@ export const metadata: ServiceMetadata = {
       "name": "PaginatedResult",
       "kind": "type",
       "typeParameters": "<T>",
-      "definition": "{\n  items: T[];\n  totalCount?: number;\n}"
+      "definition": "{\n\titems: T[];\n\ttotalCount?: number;\n}"
     },
     {
       "name": "PaginationParams",
       "kind": "type",
-      "definition": "{\n  offset: number;\n  limit: number;\n  filter?: FilterObject;\n}"
+      "definition": "{\n\toffset: number;\n\tlimit: number;\n\tfilter?: FilterObject;\n}"
     },
     {
       "name": "FilterObject",

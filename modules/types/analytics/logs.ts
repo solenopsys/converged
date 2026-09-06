@@ -62,6 +62,8 @@ export type LogsStatisticKey = "title";
 
 export interface LogsService {
   write(event: LogEventInput): Promise<void>;
+  /** Bulk ingest path used by the Fluent Bit collector; returns rows stored. */
+  writeBatch(events: LogEventInput[]): Promise<number>;
   listHot(params: LogQueryParams): Promise<PaginatedResult<LogEvent>>;
   listCold(params: LogQueryParams): Promise<PaginatedResult<LogEvent>>;
   describeSelection(objectType: string): Promise<SelectionDescriptor>;

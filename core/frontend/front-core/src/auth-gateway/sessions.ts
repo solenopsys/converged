@@ -25,6 +25,21 @@ function normalizeSessionId(sessionId?: string): string {
 	return raw.replace(/[^a-zA-Z0-9:_-]/g, "").slice(0, 128) || crypto.randomUUID();
 }
 
+function isGuestUser(userId: string): boolean {
+	return userId.startsWith("temp:");
+}
+
+async function provisionGuestAccess(userId: string): Promise<void> {
+	const access = accessClient();
+	const directPermissions = await access.getPermissionsFromUser(userId);
+	await Promise.all(
+		directPermissions.map((permission) =>
+			access.removePermissionFromUser(userId, permission),
+		),
+	);
+	await access.linkPresetToUser(userId, ANONYMOUS_PRESET);
+}
+
 async function syncAccessPreset(userId: string, preset: string): Promise<void> {
 	const access = accessClient();
 	const resolved = preset === ROOT_PRESET ? ROOT_PRESET : USER_PRESET;
@@ -74,14 +89,7 @@ export async function createGuestSession(sessionId?: string): Promise<GatewaySes
 		});
 		await identity.linkAuthMethod(user.id, "temporary", normalizedSessionId, user.email);
 	}
-	const access = accessClient();
-	const directPermissions = await access.getPermissionsFromUser(user.id);
-	await Promise.all(
-		directPermissions.map((permission) =>
-			access.removePermissionFromUser(user.id, permission),
-		),
-	);
-	await access.linkPresetToUser(user.id, ANONYMOUS_PRESET);
+	await provisionGuestAccess(user.id);
 	return issueSession(user.id, user.email, `guest:${normalizedSessionId}`);
 }
 
@@ -132,6 +140,9 @@ export async function refreshGatewaySession(refreshToken: string): Promise<Gatew
 	const refresh = await authClient().refreshSession(refreshToken);
 	const user = await identityClient().getUser(refresh.userId);
 	if (!user) throw new Error("refresh session references a missing user");
+	// Refresh tokens can outlive the migration from direct guest permissions to
+	// the anonymous preset. Repair them before minting the next access JWT.
+	if (isGuestUser(user.id)) await provisionGuestAccess(user.id);
 	const token = await accessClient().emitJWT(user.id);
 	return { token, refreshToken: refresh.refreshToken, userId: user.id, email: user.email };
 }

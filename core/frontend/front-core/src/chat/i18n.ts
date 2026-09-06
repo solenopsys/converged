@@ -95,6 +95,14 @@ const DEFAULT_MESSAGES = {
 		collapseChat: "Collapse chat",
 		openChat: "Open chat",
 		attachFile: "Attach file",
+		tabs: "Chat panel tabs",
+		tabNavigation: "Menu",
+		tabChat: "Chat",
+		tabEvents: "Events",
+		tabTrace: "Log",
+		noEvents: "No events yet.",
+		unreadEvents: "Unread notifications: {count}",
+		chatNotInitialized: "Chat is not initialized.",
 	},
 	uploads: {
 		statusUploading: "Uploading",
@@ -157,6 +165,19 @@ const DEFAULT_MESSAGES = {
 };
 
 const RU_MESSAGES = {
+	panel: {
+		collapseChat: "Свернуть чат",
+		openChat: "Открыть чат",
+		attachFile: "Прикрепить файл",
+		tabs: "Вкладки панели чата",
+		tabNavigation: "Меню",
+		tabChat: "Чат",
+		tabEvents: "События",
+		tabTrace: "Журнал",
+		noEvents: "Событий пока нет.",
+		unreadEvents: "Непрочитанных уведомлений: {count}",
+		chatNotInitialized: "Чат не инициализирован.",
+	},
 	toolCall: {
 		kind: "Функция",
 		stepModule: "Раздел",

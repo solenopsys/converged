@@ -63,6 +63,8 @@
 		"build:modules": "bun run --env-file=../confs/prod/cli-converged.env core/tools/registry/src/build.ts",
 		"build:solution": "bun run core/tools/install/solution.ts --project-dir=$PWD",
 		"build:ui": "bun run --cwd ../club cli release ship converged ui",
+		"build:ms": "bun run --cwd ../club cli release ship converged ms",
+
 		"build:doc": "bun run --env-file=../confs/dev/converged.env core/tools/docs/src/cli.ts site ecosystem translations",
 		"cli": "bun run --env-file=../confs/dev/cli-converged-dev.env core/tools/cli/src/cli.ts --commands=modules/commands",
 		"clip": "bun run --env-file=../confs/prod/cli-converged.env core/tools/cli/src/cli.ts --commands=modules/commands",

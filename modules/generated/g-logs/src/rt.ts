@@ -84,6 +84,21 @@ const metadata: ServiceMetadata = {
       "isAsyncIterable": false
     },
     {
+      "name": "writeBatch",
+      "parameters": [
+        {
+          "name": "events",
+          "type": "LogEventInput",
+          "optional": false,
+          "isArray": true
+        }
+      ],
+      "returnType": "number",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
       "name": "listHot",
       "parameters": [
         {
@@ -225,6 +240,7 @@ const metadata: ServiceMetadata = {
 // RT client interface — synchronous (one QuickJS evaluation per workflow run).
 export interface LogsServiceRtClient {
   write(event: LogEventInput): void;
+  writeBatch(events: LogEventInput[]): number;
   listHot(params: LogQueryParams): PaginatedResult<LogEvent>;
   listCold(params: LogQueryParams): PaginatedResult<LogEvent>;
   describeSelection(objectType: string): SelectionDescriptor;

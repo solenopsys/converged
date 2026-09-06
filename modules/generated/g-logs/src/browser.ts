@@ -88,6 +88,21 @@ export const metadata: ServiceMetadata = {
       "isAsyncIterable": false
     },
     {
+      "name": "writeBatch",
+      "parameters": [
+        {
+          "name": "events",
+          "type": "LogEventInput",
+          "optional": false,
+          "isArray": true
+        }
+      ],
+      "returnType": "number",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
       "name": "listHot",
       "parameters": [
         {
@@ -229,6 +244,7 @@ export const metadata: ServiceMetadata = {
 // Client interface
 export interface LogsServiceClient {
   write(event: LogEventInput): Promise<void>;
+  writeBatch(events: LogEventInput[]): Promise<number>;
   listHot(params: LogQueryParams): Promise<PaginatedResult<LogEvent>>;
   listCold(params: LogQueryParams): Promise<PaginatedResult<LogEvent>>;
   describeSelection(objectType: string): Promise<SelectionDescriptor>;

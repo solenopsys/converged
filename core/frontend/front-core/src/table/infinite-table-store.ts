@@ -46,7 +46,6 @@ const initialState: InfiniteTableState = {
 	isInitialized: false,
 };
 
-
 // biome-ignore lint/suspicious/noExplicitAny: legacy call sites pass untyped rows
 export const createInfiniteTableStore = <TItem = any>(
 	domain: Domain,
@@ -78,7 +77,8 @@ export const createInfiniteTableStore = <TItem = any>(
 
 			return {
 				items: result?.items || [],
-				totalCount: result?.totalCount || 0,
+				totalCount: result?.totalCount,
+				limit: limit as number,
 				append: Boolean(append),
 			};
 		},
@@ -124,15 +124,18 @@ export const createInfiniteTableStore = <TItem = any>(
 			}
 			return { ...state, loading: false, loadingMore: false };
 		})
-		.on(loadDataFx.doneData, (state, { items, totalCount, append }) => {
+		.on(loadDataFx.doneData, (state, { items, totalCount, limit, append }) => {
 			const newItems = append ? [...state.items, ...items] : items;
+			const hasTotalCount = typeof totalCount === "number";
 
 			return {
 				...state,
 				items: newItems,
-				totalCount: totalCount || 0,
+				totalCount: hasTotalCount ? totalCount : newItems.length,
 				offset: newItems.length,
-				hasMore: newItems.length < totalCount,
+				hasMore: hasTotalCount
+					? newItems.length < totalCount
+					: items.length >= limit,
 				loading: false,
 				loadingMore: false,
 				error: null,

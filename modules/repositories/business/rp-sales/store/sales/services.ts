@@ -495,6 +495,41 @@ export class SalesStoreService {
 			.execute() as Promise<LeadTagEntity[]>;
 	}
 
+	/**
+	 * Hydrates one page of leads in one query. Keeping this beside the relation
+	 * avoids a list view issuing a query per lead to render its tags.
+	 */
+	async listLeadTagsByLeadIds(
+		leadIds: readonly string[],
+	): Promise<Map<string, LeadTagEntity[]>> {
+		const uniqueIds = [...new Set(leadIds.filter(Boolean))];
+		const tagsByLeadId = new Map<string, LeadTagEntity[]>();
+		if (uniqueIds.length === 0) return tagsByLeadId;
+
+		const rows = (await this.store.db
+			.selectFrom("lead_tag_links as link")
+			.innerJoin("lead_tags as tag", "tag.id", "link.tagId")
+			.selectAll("tag")
+			.select("link.leadId as leadId")
+			.where("link.leadId", "in", uniqueIds)
+			.orderBy("tag.name", "asc")
+			.execute()) as Array<LeadTagEntity & { leadId: string }>;
+
+		for (const row of rows) {
+			const tags = tagsByLeadId.get(row.leadId) ?? [];
+			tags.push({
+				id: row.id,
+				name: row.name,
+				description: row.description,
+				createdAt: row.createdAt,
+				updatedAt: row.updatedAt,
+			});
+			tagsByLeadId.set(row.leadId, tags);
+		}
+
+		return tagsByLeadId;
+	}
+
 	async listLeadTagLinks(params: {
 		offset?: number;
 		limit?: number;

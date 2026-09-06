@@ -532,59 +532,65 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 
 	return (
 		<HeaderPanelLayout config={headerConfig} className={className}>
-			{commandError && !pending && (
-				<div
-					className="border-b border-destructive/40 bg-destructive/10 px-6 py-2 text-sm text-destructive"
-					role="alert"
-				>
-					{commandError}
+			{/* The layout slot is a plain block, so the table only gets a bounded
+			    height — and therefore a scrollbar — through this flex column. */}
+			<div className="flex h-full min-h-0 flex-col">
+				{commandError && !pending && (
+					<div
+						className="shrink-0 border-b border-destructive/40 bg-destructive/10 px-6 py-2 text-sm text-destructive"
+						role="alert"
+					>
+						{commandError}
+					</div>
+				)}
+				<div className="min-h-0 flex-1">
+					<InfiniteScrollDataTable<TData>
+						tableId={
+							resolvedTabs
+								? `${resolvedTableId}:${activeTabId}`
+								: resolvedTableId
+						}
+						columns={activeTab?.columns ?? resolvedColumns}
+						data={state.items as TData[]}
+						hasMore={state.hasMore}
+						loading={state.loading}
+						loadingMore={state.loadingMore}
+						totalCount={state.totalCount}
+						sortConfig={state.sortConfig}
+						onSort={handleSort}
+						onLoadMore={activeStore.loadMore}
+						onRowClick={
+							onRowClick ??
+							(infinity
+								? (row) => {
+										const item = row as Record<string, unknown>;
+										const target = infinity.rowRef
+											? infinity.rowRef(row as Record<string, unknown>)
+											: objectRef(reference?.type ?? "", String(item.id));
+										void presentReference(
+											target.kind === "object"
+												? { ...target, data: item }
+												: target,
+										);
+									}
+								: undefined)
+						}
+						CardComponent={activeTab?.CardComponent ?? CardComponent}
+						viewMode={viewMode}
+						selectable={selectable}
+						bulkActions={bulkActions}
+						onBulkAction={onBulkAction}
+						commands={commands}
+						onCommand={handleCommand}
+						{...(commandScopeLabel ? { commandScopeLabel } : {})}
+						selectionResetKey={selectionResetKey}
+						onSelectionChange={setSelectedIds}
+						emptyMessage={activeTab?.emptyMessage ?? emptyMessage}
+						filters={resolvedFilters ? [...resolvedFilters] : undefined}
+						filterValues={displayedFilterValues}
+						onFilterValuesChange={setFilterValues}
+					/>
 				</div>
-			)}
-			<div className="min-h-0 flex-1">
-				<InfiniteScrollDataTable<TData>
-					tableId={
-						resolvedTabs ? `${resolvedTableId}:${activeTabId}` : resolvedTableId
-					}
-					columns={activeTab?.columns ?? resolvedColumns}
-					data={state.items as TData[]}
-					hasMore={state.hasMore}
-					loading={state.loading}
-					loadingMore={state.loadingMore}
-					totalCount={state.totalCount}
-					sortConfig={state.sortConfig}
-					onSort={handleSort}
-					onLoadMore={activeStore.loadMore}
-					onRowClick={
-						onRowClick ??
-						(infinity
-							? (row) => {
-									const item = row as Record<string, unknown>;
-									const target = infinity.rowRef
-										? infinity.rowRef(row as Record<string, unknown>)
-										: objectRef(reference?.type ?? "", String(item.id));
-									void presentReference(
-										target.kind === "object"
-											? { ...target, data: item }
-											: target,
-									);
-								}
-							: undefined)
-					}
-					CardComponent={activeTab?.CardComponent ?? CardComponent}
-					viewMode={viewMode}
-					selectable={selectable}
-					bulkActions={bulkActions}
-					onBulkAction={onBulkAction}
-					commands={commands}
-					onCommand={handleCommand}
-					{...(commandScopeLabel ? { commandScopeLabel } : {})}
-					selectionResetKey={selectionResetKey}
-					onSelectionChange={setSelectedIds}
-					emptyMessage={activeTab?.emptyMessage ?? emptyMessage}
-					filters={resolvedFilters ? [...resolvedFilters] : undefined}
-					filterValues={displayedFilterValues}
-					onFilterValuesChange={setFilterValues}
-				/>
 			</div>
 			{pending && pending.parameters && (
 				<OperationParametersDialog

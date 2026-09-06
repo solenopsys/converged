@@ -10,39 +10,39 @@ export type ContextName = string;
 export type ContextLanguage = string;
 
 export type Context = {
-  name: ContextName;
-  language: ContextLanguage;
+	name: ContextName;
+	language: ContextLanguage;
 
-  data: unknown;
-  updatedAt: number;
+	data: unknown;
+	updatedAt: number;
 };
 
 export type ContextInput = {
-  name: ContextName;
-  language: ContextLanguage;
-  data: unknown;
+	name: ContextName;
+	language: ContextLanguage;
+	data: unknown;
 };
 
 export type ContextSummary = {
-  name: ContextName;
-  language: ContextLanguage;
-  updatedAt: number;
-  size?: number;
+	name: ContextName;
+	language: ContextLanguage;
+	updatedAt: number;
+	size?: number;
 };
 
 export type ContextListParams = {
-  offset?: number;
-  limit?: number;
+	offset?: number;
+	limit?: number;
 
-  language?: ContextLanguage;
-  filter?: FilterObject;
+	language?: ContextLanguage;
+	filter?: FilterObject;
 };
 
 export type FilterObject = Record<string, unknown>;
 
 export type PaginatedResult<T> = {
-  items: T[];
-  totalCount: number;
+	items: T[];
+	totalCount: number;
 };
 
 export const metadata: ServiceMetadata = {
@@ -137,22 +137,22 @@ export const metadata: ServiceMetadata = {
     {
       "name": "Context",
       "kind": "type",
-      "definition": "{\n  name: ContextName;\n  language: ContextLanguage;\n\n  data: unknown;\n  updatedAt: number;\n}"
+      "definition": "{\n\tname: ContextName;\n\tlanguage: ContextLanguage;\n\n\tdata: unknown;\n\tupdatedAt: number;\n}"
     },
     {
       "name": "ContextInput",
       "kind": "type",
-      "definition": "{\n  name: ContextName;\n  language: ContextLanguage;\n  data: unknown;\n}"
+      "definition": "{\n\tname: ContextName;\n\tlanguage: ContextLanguage;\n\tdata: unknown;\n}"
     },
     {
       "name": "ContextSummary",
       "kind": "type",
-      "definition": "{\n  name: ContextName;\n  language: ContextLanguage;\n  updatedAt: number;\n  size?: number;\n}"
+      "definition": "{\n\tname: ContextName;\n\tlanguage: ContextLanguage;\n\tupdatedAt: number;\n\tsize?: number;\n}"
     },
     {
       "name": "ContextListParams",
       "kind": "type",
-      "definition": "{\n  offset?: number;\n  limit?: number;\n\n  language?: ContextLanguage;\n  filter?: FilterObject;\n}"
+      "definition": "{\n\toffset?: number;\n\tlimit?: number;\n\n\tlanguage?: ContextLanguage;\n\tfilter?: FilterObject;\n}"
     },
     {
       "name": "FilterObject",
@@ -163,7 +163,7 @@ export const metadata: ServiceMetadata = {
       "name": "PaginatedResult",
       "kind": "type",
       "typeParameters": "<T>",
-      "definition": "{\n  items: T[];\n  totalCount: number;\n}"
+      "definition": "{\n\titems: T[];\n\ttotalCount: number;\n}"
     }
   ]
 };

@@ -8,7 +8,7 @@ export const REFRESH_COOKIE = "auth_refresh";
 // One tenant per domain, so a single host-scoped cookie is enough — there is no
 // cross-tenant session sharing to support.
 const COOKIE_PATH = "/";
-const REFRESH_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
+const REFRESH_MAX_AGE_SECONDS = 90 * 24 * 60 * 60;
 
 export function readCookie(headers: HeaderMap, name: string): string | undefined {
 	const header = headers.cookie ?? headers.Cookie;

@@ -14,7 +14,7 @@ import { createHash } from "node:crypto";
 import { StoresController } from "./stores";
 
 const MAGIC_LINK_TTL_MS = 365 * 24 * 60 * 60 * 1000;
-const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const REFRESH_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 
 // This service owns only auth-local state: magic links and refresh tokens.
 // User lookup, permissions and JWT signing are orchestrated by the UI gateway,

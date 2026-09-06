@@ -83,6 +83,21 @@ const metadata: ServiceMetadata = {
       "isAsyncIterable": false
     },
     {
+      "name": "writeBatch",
+      "parameters": [
+        {
+          "name": "events",
+          "type": "TelemetryEventInput",
+          "optional": false,
+          "isArray": true
+        }
+      ],
+      "returnType": "number",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
       "name": "listHot",
       "parameters": [
         {
@@ -224,6 +239,7 @@ const metadata: ServiceMetadata = {
 // RT client interface — synchronous (one QuickJS evaluation per workflow run).
 export interface TelemetryServiceRtClient {
   write(event: TelemetryEventInput): void;
+  writeBatch(events: TelemetryEventInput[]): number;
   listHot(params: TelemetryQueryParams): PaginatedResult<TelemetryEvent>;
   listCold(params: TelemetryQueryParams): PaginatedResult<TelemetryEvent>;
   describeSelection(objectType: string): SelectionDescriptor;

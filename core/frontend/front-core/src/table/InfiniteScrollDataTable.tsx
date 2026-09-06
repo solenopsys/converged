@@ -133,7 +133,7 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 		[columns, currentViewMode],
 	);
 	const hasVisibleFilters = filters.some((filter) =>
-		visibleColumns.some((column) => column.id === filter.id),
+		visibleColumns.some((column) => column.id === (filter.columnId ?? filter.id)),
 	);
 
 	const tableColumnsState = useUnit($tableColumnsState);
@@ -545,14 +545,23 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 						})}
 					</div>
 
-					<div
-						ref={rowsRef}
-						style={{
-							position: "relative",
-							height: `${rowVirtualizer.totalSize}px`,
-						}}
-					>
-						{virtualItems.map((virtualRow) => {
+					{loading && data.length === 0 ? (
+						<div class="flex h-24 w-full items-center justify-center">
+							<p class="text-muted-foreground">{t("table.loading")}</p>
+						</div>
+					) : data.length === 0 ? (
+						<div class="flex h-24 w-full items-center justify-center">
+							<p class="text-muted-foreground">{emptyMessage}</p>
+						</div>
+					) : (
+						<div
+							ref={rowsRef}
+							style={{
+								position: "relative",
+								height: `${rowVirtualizer.totalSize}px`,
+							}}
+						>
+							{virtualItems.map((virtualRow) => {
 							const isLoaderRow = virtualRow.index > data.length - 1;
 							const row = data[virtualRow.index];
 
@@ -640,8 +649,9 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 									})}
 								</div>
 							);
-						})}
-					</div>
+							})}
+						</div>
+					)}
 				</div>
 			</div>
 		);
@@ -760,16 +770,14 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 				</div>
 			)}
 
-			{loading && data.length === 0 ? (
-				<div class="flex h-24 w-full items-center justify-center">
-					<p class="text-muted-foreground">{t("table.loading")}</p>
-				</div>
+			{currentViewMode === "table" ? (
+				renderTable()
 			) : data.length === 0 ? (
 				<div class="flex h-24 w-full items-center justify-center">
-					<p class="text-muted-foreground">{emptyMessage}</p>
+					<p class="text-muted-foreground">
+						{loading ? t("table.loading") : emptyMessage}
+					</p>
 				</div>
-			) : currentViewMode === "table" ? (
-				renderTable()
 			) : (
 				renderCards()
 			)}

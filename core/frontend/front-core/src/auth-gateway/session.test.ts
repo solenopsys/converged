@@ -18,6 +18,7 @@ describe("cookies", () => {
 		expect(secure).toContain("HttpOnly");
 		expect(secure).toContain("SameSite=Lax");
 		expect(secure).toContain("Secure");
+		expect(secure).toContain("Max-Age=7776000");
 		expect(refreshCookie("t", false)).not.toContain("Secure");
 	});
 

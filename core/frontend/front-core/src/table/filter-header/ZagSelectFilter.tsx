@@ -1,7 +1,7 @@
 import { normalizeProps, Portal, useMachine } from "@zag-js/preact";
 import * as select from "@zag-js/select";
-import { useId, useMemo } from "preact/hooks";
-import { CheckIcon, ChevronDown, X } from "../../icons";
+import { useEffect, useId, useMemo, useState } from "preact/hooks";
+import { CheckIcon, ChevronDown } from "../../icons";
 import { cn } from "../../lib/utils";
 import type { TableFilterConfig, TableFilterOption } from "./types";
 
@@ -18,7 +18,32 @@ export function ZagSelectFilter({
 	multiple = false,
 	onValueChange,
 }: ZagSelectFilterProps) {
-	const options = filter.options ?? [];
+	const [loadedOptions, setLoadedOptions] = useState<
+		readonly TableFilterOption[]
+	>(filter.options ?? []);
+
+	useEffect(() => {
+		let cancelled = false;
+		if (!filter.loadOptions) {
+			setLoadedOptions(filter.options ?? []);
+			return () => {
+				cancelled = true;
+			};
+		}
+		void filter
+			.loadOptions()
+			.then((options) => {
+				if (!cancelled) setLoadedOptions(options);
+			})
+			.catch(() => {
+				if (!cancelled) setLoadedOptions([]);
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [filter]);
+
+	const options = loadedOptions;
 	const collection = useMemo(
 		() =>
 			select.collection({
@@ -58,19 +83,6 @@ export function ZagSelectFilter({
 					<ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
 				</button>
 			</div>
-			{value.length > 0 && (
-				<button
-					type="button"
-					aria-label={`Clear ${filter.label ?? filter.id}`}
-					className="absolute top-1/2 right-6 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-					onClick={(event) => {
-						event.stopPropagation();
-						onValueChange([]);
-					}}
-				>
-					<X className="h-3 w-3" />
-				</button>
-			)}
 			{api.open && (
 				<Portal>
 					<div {...api.getPositionerProps()}>
@@ -99,6 +111,20 @@ export function ZagSelectFilter({
 									</div>
 								))}
 							</div>
+							{value.length > 0 && (
+								<div className="mt-1 border-t pt-1">
+									<button
+										type="button"
+										className="hover:bg-accent flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm"
+										onClick={() => {
+											api.clearValue();
+											api.setOpen(false);
+										}}
+									>
+										Reset
+									</button>
+								</div>
+							)}
 						</div>
 					</div>
 				</Portal>

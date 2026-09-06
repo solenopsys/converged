@@ -9,7 +9,8 @@ export type ChatPanelTabContext = {
 
 type ChatPanelTabDefinition = {
 	id: RightPanelTab;
-	label: string;
+	/** Key in the shell's `chat` namespace; never a rendered label. */
+	labelKey: string;
 	requiresAuthentication?: boolean;
 	available?: (context: ChatPanelTabContext) => boolean;
 };
@@ -22,14 +23,14 @@ const chatPanelTabs: readonly ChatPanelTabDefinition[] = [
 	// guest with no public surface is the usual case.
 	{
 		id: "navigation",
-		label: "Menu",
+		labelKey: "panel.tabNavigation",
 		available: ({ hasSurfaces }) => hasSurfaces !== false,
 	},
-	{ id: "chat", label: "Chat" },
-	{ id: "events", label: "Events", requiresAuthentication: true },
+	{ id: "chat", labelKey: "panel.tabChat" },
+	{ id: "events", labelKey: "panel.tabEvents", requiresAuthentication: true },
 	{
 		id: "trace",
-		label: "Log",
+		labelKey: "panel.tabTrace",
 		available: ({ isDevelopment }) => isDevelopment,
 	},
 ];

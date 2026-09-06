@@ -14,6 +14,8 @@ export type Lead = {
 	catalogId: string;
 	disabled?: boolean;
 	createdAt: Date;
+	/** Present on list and detail projections when tag membership is requested. */
+	tags?: LeadTag[];
 };
 
 export type LeadUpdate = {
@@ -245,8 +247,8 @@ export type Statistic = {
 export type SalesStatisticKey = "title";
 
 export type PaginationParams = {
-  offset: number;
-  limit: number;
+	offset: number;
+	limit: number;
 };
 
 export type FilterObject = Record<string, unknown>;
@@ -1084,7 +1086,7 @@ const metadata: ServiceMetadata = {
     {
       "name": "Lead",
       "kind": "type",
-      "definition": "{\n\tid: string;\n\tdescription: string;\n\tlang: string;\n\ttype: LeadType | string;\n\tcatalogId: string;\n\tdisabled?: boolean;\n\tcreatedAt: Date;\n}"
+      "definition": "{\n\tid: string;\n\tdescription: string;\n\tlang: string;\n\ttype: LeadType | string;\n\tcatalogId: string;\n\tdisabled?: boolean;\n\tcreatedAt: Date;\n\t/** Present on list and detail projections when tag membership is requested. */\n\ttags?: LeadTag[];\n}"
     },
     {
       "name": "LeadUpdate",

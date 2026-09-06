@@ -67,7 +67,12 @@ export interface NativeApp {
 	libDirs?: string[];
 	/** Milliseconds to wait after spawn before starting the next app. */
 	readyDelayMs?: number;
-	env?: () => Record<string, string>;
+	/**
+	 * Extra environment for this peer, layered over the run's own. Receives it
+	 * so a default can be conditioned on what the env file already said — the
+	 * process environment is not the same map.
+	 */
+	env?: (base: Record<string, string>) => Record<string, string>;
 }
 
 const FUJIN_ZMQ = "tcp://127.0.0.1:5557";
@@ -107,6 +112,28 @@ function processorPath(name: string, ...parts: string[]): string {
 }
 
 /**
+ * Fluent Bit is opt-in in dev and needs its own wrapper artifact, so the
+ * library path is resolved only once the env file has asked for the collector.
+ * Resolving it unconditionally would make every dev run depend on a wrapper
+ * build nothing else needs.
+ */
+export function fluentbitEnv(
+	base: Record<string, string>,
+): Record<string, string> {
+	if (base.FUJIN_FLUENTBIT !== "on") return { FUJIN_FLUENTBIT: "off" };
+	return {
+		FUJIN_FLUENTBIT: "on",
+		FUJIN_FLUENTBIT_LIB: wrapperLib("protocols/fluentbit"),
+		FUJIN_FLUENTBIT_HOST: base.FUJIN_FLUENTBIT_HOST ?? "127.0.0.1",
+		FUJIN_FLUENTBIT_PORT: base.FUJIN_FLUENTBIT_PORT ?? "24224",
+		FUJIN_INGEST_SCOPE:
+			base.FUJIN_INGEST_SCOPE ?? base.STORAGE_SCOPE ?? "converged",
+		FUJIN_INGEST_BLOCK_SIZE: base.FUJIN_INGEST_BLOCK_SIZE ?? "100",
+		FUJIN_INGEST_FLUSH_MS: base.FUJIN_INGEST_FLUSH_MS ?? "5000",
+	};
+}
+
+/**
  * The native peers of the cluster. In production each is its own container;
  * dev runs the same set as local processes so the topology is identical and
  * only the addresses differ.
@@ -117,13 +144,18 @@ export const NATIVE_APPS: NativeApp[] = [
 		order: 0,
 		bin: "zig-out/x86_64-gnu/bin/fujin",
 		readyDelayMs: 500,
-		env: () => ({
+		// The log collector is off unless the env file turns it on: it needs a
+		// built libfluentbit and a running `services` peer to write blocks to,
+		// neither of which a bare `bun dev` has. Everything about it is read
+		// through, so switching it on is one line in confs — the two shared
+		// keys are already there.
+		env: (base) => ({
 			FUJIN_ZMQ_BIND: FUJIN_ZMQ,
 			FUJIN_WS_HOST: "127.0.0.1",
 			FUJIN_WS_PORT: "8087",
-			FUJIN_FLUENTBIT: "off",
 			FUJIN_QJS_LIB: wrapperLib("rt/qjs"),
 			FUJIN_ZIMQ_LIB: wrapperLib("protocols/zimq"),
+			...fluentbitEnv(base),
 		}),
 	},
 	{
@@ -315,7 +347,7 @@ export function resolveNativeApps(
 			readyDelayMs: app.readyDelayMs ?? 0,
 			env: {
 				...baseEnv,
-				...(app.env?.() ?? {}),
+				...(app.env?.(baseEnv) ?? {}),
 				...(ldPath ? { LD_LIBRARY_PATH: ldPath } : {}),
 			},
 		};

@@ -15,6 +15,7 @@
     "g-logs": "workspace:*",
     "g-centimanus": "workspace:*",
     "g-fujin": "workspace:*",
+    "g-pushrouter": "workspace:*",
     "g-sheduller": "workspace:*",
     "g-telemetry": "workspace:*",
     "nrpc": "workspace:*",

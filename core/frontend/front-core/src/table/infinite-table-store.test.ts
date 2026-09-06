@@ -35,4 +35,43 @@ describe("createInfiniteTableStore", () => {
 			filters: { filter: { status: { eq: "active" } } },
 		});
 	});
+
+	test("continues loading when a paginated source omits totalCount", async () => {
+		const requests: Array<Record<string, unknown>> = [];
+		const store = createInfiniteTableStore(
+			createDomain("unknown-total-table-test"),
+			async (params) => {
+				requests.push(params);
+				const offset = Number(params.offset);
+				return {
+					items:
+						offset === 0
+							? Array.from({ length: 20 }, (_, id) => ({ id }))
+							: [{ id: 20 }],
+				};
+			},
+		);
+
+		const waitForLoad = () =>
+			new Promise<void>((resolve) => {
+				const stop = store.loadDataFx.done.watch(() => {
+					stop();
+					resolve();
+				});
+			});
+
+		let loaded = waitForLoad();
+		store.loadMore();
+		await loaded;
+		expect(store.$state.getState().hasMore).toBe(true);
+
+		loaded = waitForLoad();
+		store.loadMore();
+		await loaded;
+		expect(requests.map((request) => request.offset)).toEqual([0, 20]);
+		expect(store.$state.getState()).toMatchObject({
+			items: Array.from({ length: 21 }, (_, id) => ({ id })),
+			hasMore: false,
+		});
+	});
 });

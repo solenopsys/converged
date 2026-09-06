@@ -39,6 +39,17 @@ export class LogsServiceImpl implements LogsService {
     await this.stores.hot.insert([{ ...event, ts }]);
   }
 
+  // One batchInsert per block instead of one per record: the Fluent Bit
+  // collector hands over whole blocks, and per-record inserts would make the
+  // ingest rate a function of round-trips rather than of disk.
+  async writeBatch(events: LogEventInput[]): Promise<number> {
+    if (!events?.length) return 0;
+    await this.ensureReady();
+    const now = Date.now();
+    await this.stores.hot.insert(events.map((event) => ({ ...event, ts: event.ts ?? now })));
+    return events.length;
+  }
+
   async listHot(params: LogQueryParams): Promise<PaginatedResult<LogEvent>> {
     await this.ensureReady();
     return this.stores.hot.list(params);

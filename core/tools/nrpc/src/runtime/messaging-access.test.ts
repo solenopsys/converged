@@ -42,14 +42,23 @@ describe("MessagingAccessGuard", () => {
 	test("rejects a scope substitution and missing permission", async () => {
 		const { token, jwks } = await fixture({ perm: ["fujin/reload(w)"] });
 		const guard = new MessagingAccessGuard({ mode: "required", issuer: "test-issuer", audience: "cluster", jwks });
-		await expect(guard.authorize({ ...request, token })).rejects.toMatchObject({ code: "forbidden" });
-		await expect(guard.authorize({ ...request, token, envelopeScope: "other" })).rejects.toMatchObject({ code: "unauthenticated" });
+		await expect(guard.authorize({ ...request, token })).rejects.toMatchObject({
+			code: "forbidden",
+			statusCode: 403,
+		});
+		await expect(guard.authorize({ ...request, token, envelopeScope: "other" })).rejects.toMatchObject({
+			code: "unauthenticated",
+			statusCode: 401,
+		});
 	});
 
 	test("requires service JWT for internal methods", async () => {
 		const { token, jwks } = await fixture();
 		const guard = new MessagingAccessGuard({ mode: "required", issuer: "test-issuer", audience: "cluster", jwks });
-		await expect(guard.authorize({ ...request, token, access: "internal" })).rejects.toMatchObject({ code: "internal_only" });
+		await expect(guard.authorize({ ...request, token, access: "internal" })).rejects.toMatchObject({
+			code: "internal_only",
+			statusCode: 403,
+		});
 	});
 
 	test("keeps scope absent for a cluster-wide service JWT", async () => {
