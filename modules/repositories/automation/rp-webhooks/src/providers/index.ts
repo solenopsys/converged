@@ -5,16 +5,20 @@ export type ProviderParam = {
   description?: string;
 };
 
+export type WebhookVerification = "none" | "secret" | "hmac";
+
 export type ProviderDefinition = {
   code: string;
   title?: string;
   params?: ProviderParam[];
+  verify?: WebhookVerification;
 };
 
 export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
   delivery: {
     code: "delivery",
     title: "Delivery Updates",
+    verify: "secret",
     params: [
       { name: "secret", type: "string", description: "Shared secret" },
       { name: "source", type: "string", description: "Delivery provider name" },
@@ -23,6 +27,9 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
   payment: {
     code: "payment",
     title: "Payment Notifications",
+    // Money moves on these, and a signature over the body is the only check a
+    // replayed or edited delivery cannot pass.
+    verify: "hmac",
     params: [
       { name: "secret", type: "string", description: "Shared secret" },
       { name: "currency", type: "string" },
@@ -31,6 +38,7 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
   order: {
     code: "order",
     title: "Order Status",
+    verify: "secret",
     params: [
       { name: "secret", type: "string" },
     ],
@@ -38,6 +46,7 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
   status: {
     code: "status",
     title: "External Status",
+    verify: "secret",
     params: [
       { name: "secret", type: "string" },
     ],
@@ -45,6 +54,7 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
   log: {
     code: "log",
     title: "External Logs",
+    verify: "secret",
     params: [
       { name: "secret", type: "string" },
       { name: "source", type: "string" },
@@ -53,6 +63,7 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
   generic: {
     code: "generic",
     title: "Generic Webhook",
+    verify: "secret",
     params: [
       { name: "secret", type: "string" },
     ],

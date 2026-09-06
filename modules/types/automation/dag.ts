@@ -86,6 +86,44 @@ export type AvailableWorkflow = {
 
 export type DagVariable = { key: string; value: unknown };
 
+/**
+ * "When this topic appears on the bus, run that workflow."
+ *
+ * The topic is a bus pattern, so `order.paid.>` follows every order and
+ * `order.paid.42` follows one. Triggers are system configuration: there are
+ * tens of them, the runtime holds the whole set in memory and matches an
+ * arriving event against it without touching storage.
+ */
+export type WorkflowTrigger = {
+	id: string;
+	name: string;
+	/** Bus topic pattern: `*` is one segment, `>` is the tail. */
+	topic: string;
+	/** Workflow script path, exactly as `listAvailableWorkflows` reports it. */
+	script: string;
+	/** Merged under the event when the workflow starts. */
+	params?: Record<string, unknown>;
+	enabled: boolean;
+	createdAt: string;
+	updatedAt?: string;
+};
+
+export type WorkflowTriggerInput = {
+	name: string;
+	topic: string;
+	script: string;
+	params?: Record<string, unknown>;
+	enabled?: boolean;
+};
+
+export type WorkflowTriggerUpdate = {
+	name?: string;
+	topic?: string;
+	script?: string;
+	params?: Record<string, unknown>;
+	enabled?: boolean;
+};
+
 export type ResumeExecutionsResult = {
 	resumed: number;
 	skipped: number;
@@ -100,6 +138,15 @@ export type TaskTicket = {
 
 export interface DagService {
 	listAvailableWorkflows(): Promise<{ items: AvailableWorkflow[] }>;
+	createTrigger(input: WorkflowTriggerInput): Promise<{ id: string }>;
+	updateTrigger(
+		id: string,
+		updates: WorkflowTriggerUpdate,
+	): Promise<WorkflowTrigger | null>;
+	deleteTrigger(id: string): Promise<boolean>;
+	listTriggers(params: PaginationParams): Promise<PaginatedResult<WorkflowTrigger>>;
+	/** Enabled triggers only, for the workflow runtime's own cache. */
+	activeTriggers(): Promise<{ items: WorkflowTrigger[] }>;
 	listWorkflows(params: PaginationParams): Promise<PaginatedResult<AvailableWorkflow>>;
 	openExecution(
 		id: string,

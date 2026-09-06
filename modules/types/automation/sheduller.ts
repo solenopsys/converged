@@ -12,6 +12,14 @@ export type CronEntry = {
   id: string;
   name: string;
   expression: string;
+  /**
+   * Bus topic emitted when the expression elapses. Defaults to
+   * `cron.<name>`. The schedule is a source of events now: what should happen
+   * is decided by whoever subscribed, not by this row.
+   */
+  topic?: string;
+  /** IANA zone the expression is read in. Defaults to the cluster's own. */
+  timezone?: string;
   provider: string;
   action: string;
   params?: Record<string, any>;
@@ -24,6 +32,8 @@ export type CronEntry = {
 export type CronInput = {
   name: string;
   expression: string;
+  topic?: string;
+  timezone?: string;
   provider: string;
   action: string;
   params?: Record<string, any>;
@@ -34,6 +44,8 @@ export type CronInput = {
 export type CronUpdate = {
   name?: string;
   expression?: string;
+  topic?: string;
+  timezone?: string;
   provider?: string;
   action?: string;
   params?: Record<string, any>;
@@ -100,7 +112,34 @@ export type ShedullerDailyRun = {
   failed: number;
 };
 
+/**
+ * One schedule entry, already reduced to numbers.
+ *
+ * Cron expressions, time zones and DST are interpreted here, where a real cron
+ * library lives; what leaves this service is a list of absolute instants. The
+ * ticker that fires them needs no calendar at all.
+ */
+export type ScheduledTopic = {
+  cronId: string;
+  name: string;
+  topic: string;
+  payload?: Record<string, unknown>;
+  /** Epoch milliseconds, ascending, inside the requested window. */
+  occurrences: number[];
+};
+
+export type SchedulePlan = {
+  items: ScheduledTopic[];
+  /** Window this plan covers, from the moment it was computed. */
+  horizonMs: number;
+};
+
 export interface ShedullerService {
+  /**
+   * Every occurrence due in the next `horizonMs`. Called by the ticker on a
+   * cycle shorter than the window, so a missed poll is caught by the next one.
+   */
+  schedule(params: { horizonMs?: number }): Promise<SchedulePlan>;
   createCron(input: CronInput): Promise<{ id: string }>;
   updateCron(id: string, updates: CronUpdate): Promise<CronEntry | null>;
   deleteCron(id: string): Promise<boolean>;

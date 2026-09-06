@@ -153,6 +153,10 @@ export const NATIVE_APPS: NativeApp[] = [
 			FUJIN_ZMQ_BIND: FUJIN_ZMQ,
 			FUJIN_WS_HOST: "127.0.0.1",
 			FUJIN_WS_PORT: "8087",
+			// The schedule ticker. It belongs to whichever process there is
+			// exactly one of, which in dev is this one; it connects back over
+			// loopback as an ordinary bus peer.
+			FUJIN_SCHEDULER: "on",
 			FUJIN_QJS_LIB: wrapperLib("rt/qjs"),
 			FUJIN_ZIMQ_LIB: wrapperLib("protocols/zimq"),
 			...fluentbitEnv(base),

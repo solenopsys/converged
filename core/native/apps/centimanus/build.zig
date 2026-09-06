@@ -209,4 +209,17 @@ pub fn build(b: *Build) void {
     const run_tests = b.addRunArtifact(tests);
     const test_step = b.step("test", "Run Centimanus protocol unit tests");
     test_step.dependOn(&run_tests.step);
+
+    // Trigger matching and parsing: the bus-facing half, which decides whether
+    // an arriving event starts a workflow at all.
+    const trigger_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/triggers.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    trigger_tests.root_module.addImport("transport", addTransportModule(b, target, optimize));
+    trigger_tests.root_module.link_libc = true;
+    test_step.dependOn(&b.addRunArtifact(trigger_tests).step);
 }

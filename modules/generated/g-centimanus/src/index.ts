@@ -12,6 +12,11 @@ export type CentimanusWorkflowResult = {
 	error?: string;
 };
 
+export type CentimanusEventResult = {
+	/** Execution ids the event started, one per matching trigger. */
+	started: string[];
+};
+
 export const metadata: ServiceMetadata = {
   "interfaceName": "CentimanusService",
   "serviceName": "centimanus",
@@ -38,6 +43,21 @@ export const metadata: ServiceMetadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
+    },
+    {
+      "name": "onEvent",
+      "parameters": [
+        {
+          "name": "event",
+          "type": "Record<string, unknown>",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "CentimanusEventResult",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -45,6 +65,11 @@ export const metadata: ServiceMetadata = {
       "name": "CentimanusWorkflowResult",
       "kind": "type",
       "definition": "{\n\texecutionId: string;\n\tok: boolean;\n\tresult?: unknown;\n\terror?: string;\n}"
+    },
+    {
+      "name": "CentimanusEventResult",
+      "kind": "type",
+      "definition": "{\n\t/** Execution ids the event started, one per matching trigger. */\n\tstarted: string[];\n}"
     }
   ]
 };
@@ -52,11 +77,13 @@ export const metadata: ServiceMetadata = {
 // Server interface (to be implemented in microservice)
 export interface CentimanusService {
   runWorkflow(scriptPath: string, params: Record<string, unknown>): Promise<CentimanusWorkflowResult>;
+  onEvent(event: Record<string, unknown>): Promise<CentimanusEventResult>;
 }
 
 // Client interface
 export interface CentimanusServiceClient {
   runWorkflow(scriptPath: string, params: Record<string, unknown>): Promise<CentimanusWorkflowResult>;
+  onEvent(event: Record<string, unknown>): Promise<CentimanusEventResult>;
 }
 
 // Native factory: cruller-transport -> Fujin -> cluster peer.

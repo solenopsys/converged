@@ -12,6 +12,7 @@ pub fn bind(runtime: *transport.Runtime, handler: transport.RuntimeHandler) !voi
 /// before its handwritten handler; this generated code never knows the handler.
 pub const method_policies = [_]transport.auth.authorize.MethodPolicy{
     .{ .service = service, .method = "runWorkflow", .level = .user, .mode = null },
+    .{ .service = service, .method = "onEvent", .level = .user, .mode = null },
 };
 
 pub fn policy(method: []const u8) ?transport.auth.authorize.MethodPolicy {
@@ -44,6 +45,20 @@ pub fn runWorkflow(
     return runtime.request(.{
         .service = service,
         .method = "runWorkflow",
+        .scope = scope,
+        .body = body,
+    }, completion);
+}
+
+pub fn onEvent(
+    runtime: *transport.Runtime,
+    scope: []const u8,
+    body: []const u8,
+    completion: transport.RuntimeCompletion,
+) !void {
+    return runtime.request(.{
+        .service = service,
+        .method = "onEvent",
         .scope = scope,
         .body = body,
     }, completion);

@@ -1,9 +1,13 @@
 const std = @import("std");
 const Policy = @import("qjs_policy.zig").Policy;
+const topics = @import("topics.zig");
 
 pub const Hub = struct {
     allocator: std.mem.Allocator,
     policy: *Policy,
+    /// Bus subscriptions, so a closing socket takes its own topic interests
+    /// with it. Set once at startup; the hub never reads it for routing.
+    subscriptions: ?*topics.Table = null,
     max_control_bytes: usize,
     authentication_required: bool,
     clients: std.ArrayList(*Client) = .empty,
@@ -123,18 +127,24 @@ pub const Hub = struct {
     }
 
     pub fn removeClient(self: *Hub, client: *Client) void {
-        _ = std.c.pthread_mutex_lock(&self.mutex);
-        defer _ = std.c.pthread_mutex_unlock(&self.mutex);
-        for (self.clients.items, 0..) |item, index| {
-            if (item == client) {
+        const client_id = client.id;
+        {
+            _ = std.c.pthread_mutex_lock(&self.mutex);
+            defer _ = std.c.pthread_mutex_unlock(&self.mutex);
+            for (self.clients.items, 0..) |item, index| {
+                if (item != client) continue;
                 _ = self.clients.orderedRemove(index);
                 self.allocator.free(client.scope);
                 self.allocator.free(client.user);
                 self.allocator.free(client.auth);
                 self.allocator.destroy(client);
-                return;
+                break;
             }
         }
+        // Outside the lock on purpose: publishing takes the subscription table
+        // first and the hub second, so taking them in that order here too is
+        // what keeps the two paths from meeting head-on.
+        if (self.subscriptions) |table| table.removeOwner(.{ .session = client_id });
     }
 
     pub fn onWebSocketEvent(self: *Hub, client: *Client, payload: []const u8) void {
@@ -263,6 +273,28 @@ pub const Hub = struct {
     /// channel (mail, web push) is the only way this message lands.
     pub fn deliver(self: *Hub, payload: []const u8, audience: Audience) usize {
         return self.broadcastForAudience(payload, audience);
+    }
+
+    /// Hands one frame to the named sessions that are still in `scope`.
+    ///
+    /// The scope check is not redundant with the subscription: a pattern says
+    /// what a session wants, never what it may have, and the tenant boundary is
+    /// the one thing a client does not get to state for itself.
+    pub fn deliverToSessions(self: *Hub, ids: []const u64, scope: []const u8, payload: []const u8) usize {
+        _ = std.c.pthread_mutex_lock(&self.mutex);
+        defer _ = std.c.pthread_mutex_unlock(&self.mutex);
+        var sent: usize = 0;
+        for (self.clients.items) |client| {
+            if (!std.mem.eql(u8, client.scope, scope)) continue;
+            var wanted = false;
+            for (ids) |id| {
+                if (id == client.id) wanted = true;
+            }
+            if (!wanted) continue;
+            self.sendLocked(client, payload, .text) catch continue;
+            sent += 1;
+        }
+        return sent;
     }
 
     pub fn onTransportEvent(self: *Hub, payload: []const u8) !void {

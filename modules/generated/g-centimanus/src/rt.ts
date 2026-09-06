@@ -8,6 +8,11 @@ export type CentimanusWorkflowResult = {
 	error?: string;
 };
 
+export type CentimanusEventResult = {
+	/** Execution ids the event started, one per matching trigger. */
+	started: string[];
+};
+
 const metadata: ServiceMetadata = {
   "interfaceName": "CentimanusService",
   "serviceName": "centimanus",
@@ -34,6 +39,21 @@ const metadata: ServiceMetadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
+    },
+    {
+      "name": "onEvent",
+      "parameters": [
+        {
+          "name": "event",
+          "type": "Record<string, unknown>",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "CentimanusEventResult",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -41,6 +61,11 @@ const metadata: ServiceMetadata = {
       "name": "CentimanusWorkflowResult",
       "kind": "type",
       "definition": "{\n\texecutionId: string;\n\tok: boolean;\n\tresult?: unknown;\n\terror?: string;\n}"
+    },
+    {
+      "name": "CentimanusEventResult",
+      "kind": "type",
+      "definition": "{\n\t/** Execution ids the event started, one per matching trigger. */\n\tstarted: string[];\n}"
     }
   ]
 };
@@ -48,6 +73,7 @@ const metadata: ServiceMetadata = {
 // RT client interface — synchronous (one QuickJS evaluation per workflow run).
 export interface CentimanusServiceRtClient {
   runWorkflow(scriptPath: string, params: Record<string, unknown>): CentimanusWorkflowResult;
+  onEvent(event: Record<string, unknown>): CentimanusEventResult;
 }
 
 export function createCentimanusServiceRtClient(): CentimanusServiceRtClient {

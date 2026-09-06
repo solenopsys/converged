@@ -150,6 +150,21 @@ pub const Registry = struct {
         self.removeAt(index, true);
     }
 
+    /// Removes the peer and reports which target it was holding, so the caller
+    /// can cascade the removal to anything keyed by target — bus subscriptions,
+    /// today. Returns null when this identity owned nothing, which is exactly
+    /// the late-disconnect case: a replaced identity must not take its
+    /// successor's subscriptions with it.
+    pub fn takePeerTarget(self: *Registry, identity: []const u8, allocator: std.mem.Allocator) !?[]u8 {
+        _ = std.c.pthread_mutex_lock(&self.mutex);
+        defer _ = std.c.pthread_mutex_unlock(&self.mutex);
+        const index = self.findIdentity(identity) orelse return null;
+        const target = try allocator.dupe(u8, self.peers.items[index].target);
+        errdefer allocator.free(target);
+        self.removeAt(index, true);
+        return target;
+    }
+
     pub fn identityFor(self: *Registry, target: []const u8) ?[]const u8 {
         _ = std.c.pthread_mutex_lock(&self.mutex);
         defer _ = std.c.pthread_mutex_unlock(&self.mutex);

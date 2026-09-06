@@ -6,11 +6,13 @@ import type {
   WebhookEndpointListParams,
   WebhookLogEntry,
   WebhookLogListParams,
+  WebhookVerification,
   PaginatedResult,
 } from "../../types";
 
 const endpointFilterSchema: KyselyFilterSchema = {
   id: { valueType: "string", operators: ["eq", "in"], column: "id" },
+  slug: { valueType: "string", operators: ["eq", "in", "contains", "startsWith"], column: "slug" },
   name: { valueType: "string", operators: ["eq", "in", "contains", "startsWith"], column: "name" },
   provider: { valueType: "string", operators: ["eq", "in", "notEq", "notIn"], column: "provider" },
   enabled: { valueType: "boolean", operators: ["eq", "notEq"], column: "enabled" },
@@ -34,13 +36,18 @@ export class WebhooksStoreService {
     const id = generateULID();
     const createdAt = new Date().toISOString();
     const enabled = input.enabled ?? true;
+    const slug = await this.uniqueSlug(input.slug ?? input.name, id);
+    const verify: WebhookVerification = input.verify ?? "secret";
 
     await this.store.db
       .insertInto("webhook_endpoints")
       .values({
         id,
+        slug,
         name: input.name,
         provider: input.provider,
+        topic: input.topic ?? null,
+        verify,
         params: input.params ? JSON.stringify(input.params) : null,
         enabled: enabled ? 1 : 0,
         createdAt,
@@ -50,13 +57,47 @@ export class WebhooksStoreService {
 
     return {
       id,
+      slug,
       name: input.name,
       provider: input.provider,
+      topic: input.topic,
+      verify,
       params: input.params,
       enabled,
       createdAt,
       updatedAt: createdAt,
     };
+  }
+
+  async getEndpointBySlug(slug: string): Promise<WebhookEndpoint | null> {
+    const row = await this.store.db
+      .selectFrom("webhook_endpoints")
+      .selectAll()
+      .where("slug", "=", slug)
+      .executeTakeFirst();
+
+    return row ? this.mapEndpointRow(row as any) : null;
+  }
+
+  /**
+   * A readable slug derived from the name, kept unique by suffixing. Falls back
+   * to the id, which is unique by construction, when the name has nothing
+   * URL-safe in it at all.
+   */
+  private async uniqueSlug(source: string, id: string): Promise<string> {
+    const base = source
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 48);
+    if (!base) return id;
+
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const candidate = attempt === 0 ? base : `${base}-${attempt + 1}`;
+      const taken = await this.getEndpointBySlug(candidate);
+      if (!taken) return candidate;
+    }
+    return id;
   }
 
   async updateEndpoint(id: string, updates: WebhookEndpointUpdate): Promise<WebhookEndpoint | null> {
@@ -76,8 +117,11 @@ export class WebhooksStoreService {
     await this.store.db
       .updateTable("webhook_endpoints")
       .set({
+        slug: next.slug,
         name: next.name,
         provider: next.provider,
+        topic: next.topic ?? null,
+        verify: next.verify,
         params: next.params ? JSON.stringify(next.params) : null,
         enabled: next.enabled ? 1 : 0,
         updatedAt,
@@ -252,8 +296,11 @@ export class WebhooksStoreService {
   private mapEndpointRow(row: any): WebhookEndpoint {
     return {
       id: row.id,
+      slug: row.slug ?? row.id,
       name: row.name,
       provider: row.provider,
+      topic: row.topic ?? undefined,
+      verify: (row.verify ?? "secret") as WebhookVerification,
       params: row.params ? JSON.parse(row.params) : undefined,
       enabled: Boolean(row.enabled ?? 0),
       createdAt: row.createdAt,

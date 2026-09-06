@@ -31,6 +31,8 @@ export class CronsStoreService {
       id,
       name: input.name,
       expression: input.expression,
+      topic: input.topic,
+      timezone: input.timezone,
       provider: input.provider,
       action: input.action,
       params: input.params,

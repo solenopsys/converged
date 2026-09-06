@@ -39,6 +39,10 @@ pub const Config = struct {
     /// recipient. Sized in messages, not per user: it bounds Fujin's memory
     /// regardless of how many sessions connect.
     push_capacity: usize,
+    /// Ceiling on live bus subscriptions across every connection. A client
+    /// cannot subscribe the router out of memory, and the limit is per process
+    /// rather than per client because the memory is.
+    subscriptions_max: usize,
     max_control_bytes: usize,
     max_payload_bytes: usize,
     qjs_lib: []u8,
@@ -65,6 +69,18 @@ pub const Config = struct {
     ingest_flush_ms: i64,
     /// Service JWT used for Fujin's own outbound calls to the repositories.
     service_token: []u8,
+    /// The schedule ticker. Off by default: it is the one component of this
+    /// process that must exist exactly once in the cluster, so switching it on
+    /// is a deployment decision rather than a default.
+    scheduler_enabled: bool,
+    /// Where the ticker's own NRPC client connects. Fujin's bind address is a
+    /// listen address and need not be connectable, so this is derived from it
+    /// (0.0.0.0 → 127.0.0.1) unless stated.
+    scheduler_endpoint: []u8,
+    /// Routing target the ticker registers as. It is an ordinary peer of the
+    /// bus, not part of the router, and `fujin` itself may never be reused.
+    scheduler_target: []u8,
+    scheduler_refresh_ms: i64,
     debug: bool,
     trace_packets: bool,
     jwt: JwtConfig,
@@ -88,6 +104,7 @@ pub const Config = struct {
             .browser_scope = browser_scope,
             .journal_capacity = try positive(environ, "FUJIN_JOURNAL_CAPACITY", 4096),
             .push_capacity = try positive(environ, "FUJIN_PUSH_CAPACITY", 1024),
+            .subscriptions_max = try positive(environ, "FUJIN_SUBSCRIPTIONS_MAX", 4096),
             .max_control_bytes = try number(environ, "FUJIN_MAX_CONTROL_BYTES", 60 * 1024),
             .max_payload_bytes = try number(environ, "FUJIN_MAX_PAYLOAD_BYTES", 16 * 1024 * 1024),
             .qjs_lib = try ownedFormat(allocator, environ, "FUJIN_QJS_LIB", "{s}/native/wrapers/qjs/zig-out/lib/libqjs.so", .{root}),
@@ -103,6 +120,10 @@ pub const Config = struct {
             .ingest_max_blocks = try positive(environ, "FUJIN_INGEST_MAX_BLOCKS", 64),
             .ingest_flush_ms = @intCast(try positive(environ, "FUJIN_INGEST_FLUSH_MS", 5_000)),
             .service_token = try owned(allocator, environ, "SERVICE_TOKEN", ""),
+            .scheduler_enabled = std.mem.eql(u8, environ.get("FUJIN_SCHEDULER") orelse "off", "on"),
+            .scheduler_endpoint = try schedulerEndpoint(allocator, environ),
+            .scheduler_target = try owned(allocator, environ, "FUJIN_SCHEDULER_TARGET", "scheduler"),
+            .scheduler_refresh_ms = @intCast(try positive(environ, "FUJIN_SCHEDULE_REFRESH_MS", 30_000)),
             .debug = std.mem.eql(u8, environ.get("FUJIN_DEBUG") orelse "off", "on"),
             .trace_packets = std.mem.eql(u8, environ.get("FUJIN_TRACE") orelse "", "packets"),
             .jwt = jwt,
@@ -122,10 +143,34 @@ pub const Config = struct {
         a.free(self.ingest_key);
         a.free(self.ingest_scope);
         a.free(self.service_token);
+        a.free(self.scheduler_endpoint);
+        a.free(self.scheduler_target);
         self.jwt.deinit();
         self.* = undefined;
     }
 };
+
+/// A bind address is not a connect address: `tcp://0.0.0.0:5557` means "every
+/// interface" to a server and nothing usable to a client. The ticker connects
+/// over loopback because it lives in this very process.
+fn schedulerEndpoint(a: std.mem.Allocator, env: *const std.process.Environ.Map) ![]u8 {
+    if (env.get("FUJIN_SCHEDULER_ENDPOINT")) |value| return a.dupe(u8, value);
+    const bind = env.get("FUJIN_ZMQ_BIND") orelse "tcp://0.0.0.0:5557";
+    const wildcard = "0.0.0.0";
+    if (std.mem.indexOf(u8, bind, wildcard)) |index| {
+        return std.fmt.allocPrint(a, "{s}127.0.0.1{s}", .{ bind[0..index], bind[index + wildcard.len ..] });
+    }
+    return a.dupe(u8, bind);
+}
+
+test "the ticker connects over loopback rather than to a wildcard bind" {
+    const allocator = std.testing.allocator;
+    var env = std.process.Environ.Map.init(allocator);
+    defer env.deinit();
+    const derived = try schedulerEndpoint(allocator, &env);
+    defer allocator.free(derived);
+    try std.testing.expectEqualStrings("tcp://127.0.0.1:5557", derived);
+}
 
 fn initJwtConfig(allocator: std.mem.Allocator, environ: *const std.process.Environ.Map) !JwtConfig {
     const mode = accessMode(environ.get("NRPC_ACCESS_MODE") orelse "off");

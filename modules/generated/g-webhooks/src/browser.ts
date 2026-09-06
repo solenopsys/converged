@@ -12,25 +12,60 @@ export type ProviderParam = {
   description?: string;
 };
 
+export type WebhookVerification = "none" | "secret" | "hmac";
+
 export type ProviderDefinition = {
   code: string;
   title?: string;
   params?: ProviderParam[];
+  /** What a new endpoint of this provider defaults to. */
+  verify?: WebhookVerification;
 };
 
 export type WebhookEndpoint = {
   id: string;
+  /** Last path segment of the public URL: `/webhooks/<slug>`. */
+  slug: string;
   name: string;
   provider: string;
+  /** Topic published on arrival. Defaults to `webhook.<provider>.<slug>`. */
+  topic?: string;
+  verify: WebhookVerification;
   params?: Record<string, any>;
   enabled: boolean;
   createdAt: string;
   updatedAt?: string;
 };
 
+export type WebhookResolution = {
+  id: string;
+  slug: string;
+  provider: string;
+  topic: string;
+  verify: WebhookVerification;
+  secret?: string;
+  enabled: boolean;
+};
+
+export type WebhookDelivery = {
+  endpointId: string;
+  provider: string;
+  method: string;
+  path: string;
+  headers?: Record<string, any>;
+  body?: string;
+  ip?: string;
+  status?: number;
+  error?: string;
+};
+
 export type WebhookEndpointInput = {
   name: string;
   provider: string;
+  /** Generated from the name when omitted. */
+  slug?: string;
+  topic?: string;
+  verify?: WebhookVerification;
   params?: Record<string, any>;
   enabled?: boolean;
 };
@@ -38,6 +73,9 @@ export type WebhookEndpointInput = {
 export type WebhookEndpointUpdate = {
   name?: string;
   provider?: string;
+  slug?: string;
+  topic?: string;
+  verify?: WebhookVerification;
   params?: Record<string, any>;
   enabled?: boolean;
 };
@@ -96,6 +134,36 @@ export const metadata: ServiceMetadata = {
       "returnType": "ProviderDefinition",
       "isAsync": true,
       "returnTypeIsArray": true,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "resolveEndpoint",
+      "parameters": [
+        {
+          "name": "slug",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "WebhookResolution | any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "recordDelivery",
+      "parameters": [
+        {
+          "name": "delivery",
+          "type": "WebhookDelivery",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "void",
+      "isAsync": true,
+      "returnTypeIsArray": false,
       "isAsyncIterable": false
     },
     {
@@ -247,24 +315,39 @@ export const metadata: ServiceMetadata = {
       "definition": "{\n  name: string;\n  type: string;\n  required?: boolean;\n  description?: string;\n}"
     },
     {
+      "name": "WebhookVerification",
+      "kind": "type",
+      "definition": "\"none\" | \"secret\" | \"hmac\""
+    },
+    {
       "name": "ProviderDefinition",
       "kind": "type",
-      "definition": "{\n  code: string;\n  title?: string;\n  params?: ProviderParam[];\n}"
+      "definition": "{\n  code: string;\n  title?: string;\n  params?: ProviderParam[];\n  /** What a new endpoint of this provider defaults to. */\n  verify?: WebhookVerification;\n}"
     },
     {
       "name": "WebhookEndpoint",
       "kind": "type",
-      "definition": "{\n  id: string;\n  name: string;\n  provider: string;\n  params?: Record<string, any>;\n  enabled: boolean;\n  createdAt: string;\n  updatedAt?: string;\n}"
+      "definition": "{\n  id: string;\n  /** Last path segment of the public URL: `/webhooks/<slug>`. */\n  slug: string;\n  name: string;\n  provider: string;\n  /** Topic published on arrival. Defaults to `webhook.<provider>.<slug>`. */\n  topic?: string;\n  verify: WebhookVerification;\n  params?: Record<string, any>;\n  enabled: boolean;\n  createdAt: string;\n  updatedAt?: string;\n}"
+    },
+    {
+      "name": "WebhookResolution",
+      "kind": "type",
+      "definition": "{\n  id: string;\n  slug: string;\n  provider: string;\n  topic: string;\n  verify: WebhookVerification;\n  secret?: string;\n  enabled: boolean;\n}"
+    },
+    {
+      "name": "WebhookDelivery",
+      "kind": "type",
+      "definition": "{\n  endpointId: string;\n  provider: string;\n  method: string;\n  path: string;\n  headers?: Record<string, any>;\n  body?: string;\n  ip?: string;\n  status?: number;\n  error?: string;\n}"
     },
     {
       "name": "WebhookEndpointInput",
       "kind": "type",
-      "definition": "{\n  name: string;\n  provider: string;\n  params?: Record<string, any>;\n  enabled?: boolean;\n}"
+      "definition": "{\n  name: string;\n  provider: string;\n  /** Generated from the name when omitted. */\n  slug?: string;\n  topic?: string;\n  verify?: WebhookVerification;\n  params?: Record<string, any>;\n  enabled?: boolean;\n}"
     },
     {
       "name": "WebhookEndpointUpdate",
       "kind": "type",
-      "definition": "{\n  name?: string;\n  provider?: string;\n  params?: Record<string, any>;\n  enabled?: boolean;\n}"
+      "definition": "{\n  name?: string;\n  provider?: string;\n  slug?: string;\n  topic?: string;\n  verify?: WebhookVerification;\n  params?: Record<string, any>;\n  enabled?: boolean;\n}"
     },
     {
       "name": "WebhookEndpointListParams",
@@ -313,6 +396,8 @@ export const metadata: ServiceMetadata = {
 // Client interface
 export interface WebhooksServiceClient {
   listProviders(): Promise<ProviderDefinition[]>;
+  resolveEndpoint(slug: string): Promise<WebhookResolution | any>;
+  recordDelivery(delivery: WebhookDelivery): Promise<void>;
   createEndpoint(input: WebhookEndpointInput): Promise<any>;
   updateEndpoint(id: string, updates: WebhookEndpointUpdate): Promise<WebhookEndpoint | any>;
   deleteEndpoint(id: string): Promise<boolean>;

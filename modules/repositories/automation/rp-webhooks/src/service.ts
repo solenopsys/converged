@@ -1,5 +1,7 @@
 import type {
   WebhooksService,
+  WebhookDelivery,
+  WebhookResolution,
   WebhookEndpoint,
   WebhookEndpointInput,
   WebhookEndpointUpdate,
@@ -40,6 +42,44 @@ export class WebhooksServiceImpl implements WebhooksService {
 
   listProviders(): Promise<ProviderDefinition[]> {
     return Promise.resolve(listProviderDefinitions());
+  }
+
+  /**
+   * Everything the UI gateway needs to accept one delivery: the topic to
+   * publish under and the secret to check it against. A disabled endpoint is
+   * still returned — the gateway refuses it and logs why, which is far easier
+   * to diagnose than a 404 on a URL that plainly exists.
+   */
+  async resolveEndpoint(slug: string): Promise<WebhookResolution | null> {
+    await this.init();
+    if (!slug) return null;
+    const endpoint = await this.stores.webhooks.getEndpointBySlug(slug);
+    if (!endpoint) return null;
+
+    const secret = endpoint.params?.secret;
+    return {
+      id: endpoint.id,
+      slug: endpoint.slug,
+      provider: endpoint.provider,
+      topic: endpoint.topic?.trim() || `webhook.${endpoint.provider}.${endpoint.slug}`,
+      verify: endpoint.verify,
+      secret: typeof secret === "string" && secret ? secret : undefined,
+      enabled: endpoint.enabled,
+    };
+  }
+
+  /**
+   * The delivery log. Written after the answer has gone back to the producer,
+   * so a slow write costs nothing at the edge; a failure here must never turn
+   * an accepted delivery into a retry storm, so it is logged and swallowed.
+   */
+  async recordDelivery(delivery: WebhookDelivery): Promise<void> {
+    await this.init();
+    try {
+      await this.stores.webhooks.createLog(delivery);
+    } catch (error) {
+      console.error("[rp-webhooks] delivery log failed", error);
+    }
   }
 
   async createEndpoint(input: WebhookEndpointInput): Promise<{ id: string }> {

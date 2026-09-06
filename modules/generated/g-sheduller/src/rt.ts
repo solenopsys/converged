@@ -15,6 +15,14 @@ export type CronEntry = {
   id: string;
   name: string;
   expression: string;
+  /**
+   * Bus topic emitted when the expression elapses. Defaults to
+   * `cron.<name>`. The schedule is a source of events now: what should happen
+   * is decided by whoever subscribed, not by this row.
+   */
+  topic?: string;
+  /** IANA zone the expression is read in. Defaults to the cluster's own. */
+  timezone?: string;
   provider: string;
   action: string;
   params?: Record<string, any>;
@@ -27,6 +35,8 @@ export type CronEntry = {
 export type CronInput = {
   name: string;
   expression: string;
+  topic?: string;
+  timezone?: string;
   provider: string;
   action: string;
   params?: Record<string, any>;
@@ -37,6 +47,8 @@ export type CronInput = {
 export type CronUpdate = {
   name?: string;
   expression?: string;
+  topic?: string;
+  timezone?: string;
   provider?: string;
   action?: string;
   params?: Record<string, any>;
@@ -106,11 +118,41 @@ export type ShedullerDailyRun = {
   failed: number;
 };
 
+export type ScheduledTopic = {
+  cronId: string;
+  name: string;
+  topic: string;
+  payload?: Record<string, unknown>;
+  /** Epoch milliseconds, ascending, inside the requested window. */
+  occurrences: number[];
+};
+
+export type SchedulePlan = {
+  items: ScheduledTopic[];
+  /** Window this plan covers, from the moment it was computed. */
+  horizonMs: number;
+};
+
 const metadata: ServiceMetadata = {
   "interfaceName": "ShedullerService",
   "serviceName": "sheduller",
   "filePath": "automation/sheduller.ts",
   "methods": [
+    {
+      "name": "schedule",
+      "parameters": [
+        {
+          "name": "params",
+          "type": "any",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "SchedulePlan",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
     {
       "name": "createCron",
       "parameters": [
@@ -303,17 +345,17 @@ const metadata: ServiceMetadata = {
     {
       "name": "CronEntry",
       "kind": "type",
-      "definition": "{\n  id: string;\n  name: string;\n  expression: string;\n  provider: string;\n  action: string;\n  params?: Record<string, any>;\n  providerSettings?: ProviderSettings;\n  status: CronStatus;\n  createdAt: string;\n  updatedAt?: string;\n}"
+      "definition": "{\n  id: string;\n  name: string;\n  expression: string;\n  /**\n   * Bus topic emitted when the expression elapses. Defaults to\n   * `cron.<name>`. The schedule is a source of events now: what should happen\n   * is decided by whoever subscribed, not by this row.\n   */\n  topic?: string;\n  /** IANA zone the expression is read in. Defaults to the cluster's own. */\n  timezone?: string;\n  provider: string;\n  action: string;\n  params?: Record<string, any>;\n  providerSettings?: ProviderSettings;\n  status: CronStatus;\n  createdAt: string;\n  updatedAt?: string;\n}"
     },
     {
       "name": "CronInput",
       "kind": "type",
-      "definition": "{\n  name: string;\n  expression: string;\n  provider: string;\n  action: string;\n  params?: Record<string, any>;\n  providerSettings?: ProviderSettings;\n  status?: CronStatus;\n}"
+      "definition": "{\n  name: string;\n  expression: string;\n  topic?: string;\n  timezone?: string;\n  provider: string;\n  action: string;\n  params?: Record<string, any>;\n  providerSettings?: ProviderSettings;\n  status?: CronStatus;\n}"
     },
     {
       "name": "CronUpdate",
       "kind": "type",
-      "definition": "{\n  name?: string;\n  expression?: string;\n  provider?: string;\n  action?: string;\n  params?: Record<string, any>;\n  providerSettings?: ProviderSettings;\n  status?: CronStatus;\n}"
+      "definition": "{\n  name?: string;\n  expression?: string;\n  topic?: string;\n  timezone?: string;\n  provider?: string;\n  action?: string;\n  params?: Record<string, any>;\n  providerSettings?: ProviderSettings;\n  status?: CronStatus;\n}"
     },
     {
       "name": "CronListParams",
@@ -370,12 +412,23 @@ const metadata: ServiceMetadata = {
       "name": "ShedullerDailyRun",
       "kind": "type",
       "definition": "{\n  date: string;\n  total: number;\n  success: number;\n  failed: number;\n}"
+    },
+    {
+      "name": "ScheduledTopic",
+      "kind": "type",
+      "definition": "{\n  cronId: string;\n  name: string;\n  topic: string;\n  payload?: Record<string, unknown>;\n  /** Epoch milliseconds, ascending, inside the requested window. */\n  occurrences: number[];\n}"
+    },
+    {
+      "name": "SchedulePlan",
+      "kind": "type",
+      "definition": "{\n  items: ScheduledTopic[];\n  /** Window this plan covers, from the moment it was computed. */\n  horizonMs: number;\n}"
     }
   ]
 };
 
 // RT client interface — synchronous (one QuickJS evaluation per workflow run).
 export interface ShedullerServiceRtClient {
+  schedule(params: any): SchedulePlan;
   createCron(input: CronInput): any;
   updateCron(id: string, updates: CronUpdate): CronEntry | any;
   deleteCron(id: string): boolean;

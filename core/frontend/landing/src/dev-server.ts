@@ -7,6 +7,7 @@ import {
 } from "back-core/server";
 import type { ServerPlugin } from "back-core/server-app";
 import { authGatewayPlugin } from "front-core/auth-gateway";
+import { webhooksGatewayPlugin } from "front-core/webhooks-gateway";
 
 export interface LandingDevServerOptions {
 	name: string;
@@ -55,7 +56,9 @@ export async function startLandingDevServer(options: LandingDevServerOptions) {
 				valkey: runtimeCache,
 			},
 		},
-		plugins: [authGatewayPlugin],
+		// Both mount at the server root: one is how a person gets in, the other
+		// is how an external system does.
+		plugins: [authGatewayPlugin, webhooksGatewayPlugin],
 	});
 
 	server.app

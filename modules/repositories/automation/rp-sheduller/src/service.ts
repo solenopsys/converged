@@ -1,4 +1,5 @@
 import type {
+  SchedulePlan,
   ShedullerService,
   CronEntry,
   CronInput,
@@ -16,6 +17,7 @@ import type {
 } from "./types";
 import { StoresController } from "./stores";
 import { getProviderDefinition, listProviderDefinitions } from "./providers";
+import { planFor } from "./schedule";
 
 const REPOSITORY_ID = "rp-sheduller";
 
@@ -82,6 +84,22 @@ export class ShedullerServiceImpl implements ShedullerService {
 
   listProviders(): Promise<ProviderDefinition[]> {
     return Promise.resolve(listProviderDefinitions());
+  }
+
+  /**
+   * The formalized schedule: every occurrence due in the next window, as
+   * absolute milliseconds.
+   *
+   * The ticker polls this on a cycle shorter than the horizon, so an occurrence
+   * appears in several consecutive plans. Firing it once is the caller's job —
+   * it de-duplicates on `cronId:at`, which is also what keeps a restart from
+   * replaying the last minute.
+   */
+  async schedule(params: { horizonMs?: number }): Promise<SchedulePlan> {
+    await this.init();
+    const horizonMs = Math.min(Math.max(params?.horizonMs ?? 60_000, 1_000), 3_600_000);
+    const active = await this.stores.crons.list({ offset: 0, limit: 1000, status: "active" });
+    return { items: planFor(active.items, new Date(), horizonMs), horizonMs };
   }
 
   async recordHistory(entry: CronHistoryInput): Promise<CronHistoryEntry> {

@@ -11,6 +11,9 @@ import type {
 	SelectionStats,
 	Task,
 	TaskTicket,
+	WorkflowTrigger,
+	WorkflowTriggerInput,
+	WorkflowTriggerUpdate,
 } from "g-dag";
 import { Access } from "nrpc";
 import { StoresController } from "./store";
@@ -296,6 +299,56 @@ export default class DagServiceImpl implements DagService {
 				this.stores.statsStoreService.getNodeDailyStats({ days: 30 }),
 			]);
 		return { executions, tasks, executionsDaily, executionsTypes, nodesDaily };
+	}
+
+	async createTrigger(input: WorkflowTriggerInput): Promise<{ id: string }> {
+		await this.ensureStoresReady();
+		if (!input?.name?.trim() || !input?.topic?.trim() || !input?.script?.trim()) {
+			const error = new Error("name, topic and script are required") as Error & {
+				statusCode?: number;
+			};
+			error.statusCode = 400;
+			throw error;
+		}
+		const trigger = await this.stores.triggersStoreService.create(input);
+		return { id: trigger.id };
+	}
+
+	async updateTrigger(
+		id: string,
+		updates: WorkflowTriggerUpdate,
+	): Promise<WorkflowTrigger | null> {
+		await this.ensureStoresReady();
+		return this.stores.triggersStoreService.update(id, updates);
+	}
+
+	async deleteTrigger(id: string): Promise<boolean> {
+		await this.ensureStoresReady();
+		return this.stores.triggersStoreService.delete(id);
+	}
+
+	async listTriggers(
+		params: PaginationParams,
+	): Promise<PaginatedResult<WorkflowTrigger>> {
+		await this.ensureStoresReady();
+		const all = await this.stores.triggersStoreService.listAll();
+		const offset = params.offset ?? 0;
+		const limit = params.limit ?? 50;
+		return {
+			items: all.slice(offset, offset + limit),
+			totalCount: all.length,
+		};
+	}
+
+	/**
+	 * What Centimanus pulls to build its subscription set. Disabled triggers are
+	 * filtered here rather than in the runtime, so switching one off takes
+	 * effect on the next refresh without a redeploy.
+	 */
+	async activeTriggers(): Promise<{ items: WorkflowTrigger[] }> {
+		await this.ensureStoresReady();
+		const all = await this.stores.triggersStoreService.listAll();
+		return { items: all.filter((trigger) => trigger.enabled) };
 	}
 
 	async listVars(): Promise<{ items: { key: string; value: any }[] }> {

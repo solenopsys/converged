@@ -53,6 +53,49 @@ pub fn build(b: *std.Build) void {
     const registry_test_run = b.addRunArtifact(registry_tests);
     test_step.dependOn(&registry_test_run.step);
 
+    const topic_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/topics.zig"),
+            .target = runtime_target,
+            .optimize = optimize,
+        }),
+    });
+    topic_tests.root_module.link_libc = true;
+    test_step.dependOn(&b.addRunArtifact(topic_tests).step);
+
+    const bus_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/bus.zig"),
+            .target = runtime_target,
+            .optimize = optimize,
+        }),
+    });
+    bus_tests.root_module.link_libc = true;
+    bus_tests.root_module.addImport("transport", transport_dep.module("transport"));
+    test_step.dependOn(&b.addRunArtifact(bus_tests).step);
+
+    const scheduler_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/scheduler.zig"),
+            .target = runtime_target,
+            .optimize = optimize,
+        }),
+    });
+    scheduler_tests.root_module.link_libc = true;
+    scheduler_tests.root_module.addImport("transport", transport_dep.module("transport"));
+    test_step.dependOn(&b.addRunArtifact(scheduler_tests).step);
+
+    const config_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/config.zig"),
+            .target = runtime_target,
+            .optimize = optimize,
+        }),
+    });
+    config_tests.root_module.link_libc = true;
+    config_tests.root_module.addImport("transport", transport_dep.module("transport"));
+    test_step.dependOn(&b.addRunArtifact(config_tests).step);
+
     const journal_tests = b.addTest(.{
         .root_module = b.createModule(.{
             .root_source_file = b.path("src/messages.zig"),

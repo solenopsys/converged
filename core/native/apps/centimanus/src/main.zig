@@ -8,7 +8,7 @@ const transport = @import("transport");
 const env = @import("env.zig");
 const Engine = @import("engine.zig").Engine;
 const StateStore = @import("state.zig").StateStore;
-const Scheduler = @import("cron.zig").Scheduler;
+const triggers = @import("triggers.zig");
 const signal_provider = @import("signal_provider.zig");
 const centimanus_nrpc = @import("generated/centimanus_nrpc.zig");
 
@@ -73,7 +73,12 @@ pub fn main(init: std.process.Init) !void {
         return err;
     };
     var engine = try Engine.init(gpa, io, &store, runtime, service_token);
-    const fujin_thread = std.Thread.spawn(.{}, fujinLoop, .{ runtime, endpoint, gpa, &engine, &auth_receiver }) catch |err| {
+    // Built before the transport thread so the request handler can already see
+    // it: an event that arrives during startup must find the trigger list, not
+    // a null pointer.
+    var registry = triggers.Registry.init(gpa, &engine, init.environ_map.get("RT_SCOPE") orelse "");
+    defer registry.deinit();
+    const fujin_thread = std.Thread.spawn(.{}, fujinLoop, .{ runtime, endpoint, gpa, &engine, &auth_receiver, &registry }) catch |err| {
         runtime.deinit();
         gpa.destroy(runtime);
         gpa.free(endpoint);
@@ -85,25 +90,28 @@ pub fn main(init: std.process.Init) !void {
     while (!runtime.isRunning()) io.sleep(std.Io.Duration.fromMilliseconds(1), .awake) catch {};
     std.debug.print("[fujin] service registered target={s} endpoint={s}\n", .{ target, endpoint });
 
-    var scheduler = Scheduler.init(gpa, &engine);
-    const scheduler_on = if (env.opt("RT_SCHEDULER")) |value| std.mem.eql(u8, value, "on") else false;
-    const scheduler_thread = if (scheduler_on)
-        try std.Thread.spawn(.{}, Scheduler.run, .{&scheduler})
+    // Timing belongs to Fujin now: it reads the schedule and emits `cron.*`
+    // events, and a scheduled workflow is an ordinary trigger on one of them.
+    // This runtime no longer owns a clock of its own.
+    const triggers_on = if (env.opt("RT_TRIGGERS")) |value| std.mem.eql(u8, value, "on") else true;
+    const trigger_thread = if (triggers_on)
+        try std.Thread.spawn(.{}, triggers.Registry.run, .{&registry})
     else
         null;
-    defer if (scheduler_thread) |thread| thread.join();
+    defer if (trigger_thread) |thread| thread.join();
 
-    std.debug.print("centimanus: RT VM ready (transport=Fujin, backend={s}, scheduler={})\n", .{ @tagName(store.backend), scheduler_on });
+    std.debug.print("centimanus: RT VM ready (transport=Fujin, backend={s}, triggers={})\n", .{ @tagName(store.backend), triggers_on });
     while (true) {
         io.sleep(std.Io.Duration.fromMilliseconds(1_000), .awake) catch {};
     }
 }
 
-fn fujinLoop(runtime: *transport.Runtime, endpoint: [:0]u8, allocator: std.mem.Allocator, engine: *Engine, auth_receiver: *transport.auth.receiver.Receiver) void {
+fn fujinLoop(runtime: *transport.Runtime, endpoint: [:0]u8, allocator: std.mem.Allocator, engine: *Engine, auth_receiver: *transport.auth.receiver.Receiver, registry: *triggers.Registry) void {
     defer allocator.free(endpoint);
     defer allocator.destroy(runtime);
     defer runtime.deinit();
     var provider = signal_provider.Provider.init(allocator, engine, auth_receiver);
+    provider.triggers = registry;
     defer provider.deinit();
     centimanus_nrpc.bind(runtime, provider.transportHandler()) catch |err| {
         std.log.err("centimanus transport handler registration failed: {s}", .{@errorName(err)});

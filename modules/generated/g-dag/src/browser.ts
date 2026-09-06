@@ -95,6 +95,36 @@ export type AvailableWorkflow = {
 
 export type DagVariable = { key: string; value: unknown };
 
+export type WorkflowTrigger = {
+	id: string;
+	name: string;
+	/** Bus topic pattern: `*` is one segment, `>` is the tail. */
+	topic: string;
+	/** Workflow script path, exactly as `listAvailableWorkflows` reports it. */
+	script: string;
+	/** Merged under the event when the workflow starts. */
+	params?: Record<string, unknown>;
+	enabled: boolean;
+	createdAt: string;
+	updatedAt?: string;
+};
+
+export type WorkflowTriggerInput = {
+	name: string;
+	topic: string;
+	script: string;
+	params?: Record<string, unknown>;
+	enabled?: boolean;
+};
+
+export type WorkflowTriggerUpdate = {
+	name?: string;
+	topic?: string;
+	script?: string;
+	params?: Record<string, unknown>;
+	enabled?: boolean;
+};
+
 export type ResumeExecutionsResult = {
 	resumed: number;
 	skipped: number;
@@ -114,6 +144,80 @@ export const metadata: ServiceMetadata = {
   "methods": [
     {
       "name": "listAvailableWorkflows",
+      "parameters": [],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "createTrigger",
+      "parameters": [
+        {
+          "name": "input",
+          "type": "WorkflowTriggerInput",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "updateTrigger",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "updates",
+          "type": "WorkflowTriggerUpdate",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "WorkflowTrigger | any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "deleteTrigger",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "boolean",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "listTriggers",
+      "parameters": [
+        {
+          "name": "params",
+          "type": "PaginationParams",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "PaginatedResult<WorkflowTrigger>",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "activeTriggers",
       "parameters": [],
       "returnType": "any",
       "isAsync": true,
@@ -503,6 +607,21 @@ export const metadata: ServiceMetadata = {
       "definition": "{ key: string; value: unknown }"
     },
     {
+      "name": "WorkflowTrigger",
+      "kind": "type",
+      "definition": "{\n\tid: string;\n\tname: string;\n\t/** Bus topic pattern: `*` is one segment, `>` is the tail. */\n\ttopic: string;\n\t/** Workflow script path, exactly as `listAvailableWorkflows` reports it. */\n\tscript: string;\n\t/** Merged under the event when the workflow starts. */\n\tparams?: Record<string, unknown>;\n\tenabled: boolean;\n\tcreatedAt: string;\n\tupdatedAt?: string;\n}"
+    },
+    {
+      "name": "WorkflowTriggerInput",
+      "kind": "type",
+      "definition": "{\n\tname: string;\n\ttopic: string;\n\tscript: string;\n\tparams?: Record<string, unknown>;\n\tenabled?: boolean;\n}"
+    },
+    {
+      "name": "WorkflowTriggerUpdate",
+      "kind": "type",
+      "definition": "{\n\tname?: string;\n\ttopic?: string;\n\tscript?: string;\n\tparams?: Record<string, unknown>;\n\tenabled?: boolean;\n}"
+    },
+    {
       "name": "ResumeExecutionsResult",
       "kind": "type",
       "definition": "{\n\tresumed: number;\n\tskipped: number;\n\tfailed: number;\n\tids: string[];\n}"
@@ -518,6 +637,11 @@ export const metadata: ServiceMetadata = {
 // Client interface
 export interface DagServiceClient {
   listAvailableWorkflows(): Promise<any>;
+  createTrigger(input: WorkflowTriggerInput): Promise<any>;
+  updateTrigger(id: string, updates: WorkflowTriggerUpdate): Promise<WorkflowTrigger | any>;
+  deleteTrigger(id: string): Promise<boolean>;
+  listTriggers(params: PaginationParams): Promise<PaginatedResult<WorkflowTrigger>>;
+  activeTriggers(): Promise<any>;
   listWorkflows(params: PaginationParams): Promise<PaginatedResult<AvailableWorkflow>>;
   openExecution(id: string, workflowName: string, params: Record<string, any>): Promise<void>;
   setExecutionStatus(id: string, status: ExecutionStatus): Promise<void>;

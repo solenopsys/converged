@@ -10,6 +10,9 @@ const Journal = @import("messages.zig").Journal;
 const Notifications = @import("notifications.zig").Store;
 const pushrouter = @import("pushrouter.zig");
 const Collector = @import("ingest.zig").Collector;
+const topics = @import("topics.zig");
+const bus = @import("bus.zig");
+const scheduler_mod = @import("scheduler.zig");
 const fujin_nrpc = @import("generated/fujin_nrpc.zig");
 
 /// Fujin's own address. Packets carrying it terminate here instead of being
@@ -102,6 +105,12 @@ pub fn main(init: std.process.Init) !void {
     defer messages.deinit();
     var notifications = try Notifications.init(allocator, config.push_capacity);
     defer notifications.deinit();
+    var subscriptions = topics.Table.init(allocator, config.subscriptions_max);
+    defer subscriptions.deinit();
+    // The hub clears a session's topic interests when its socket closes; that
+    // is the whole expiry mechanism the bus has.
+    hub.subscriptions = &subscriptions;
+    const event_bus = Bus{ .table = &subscriptions, .auth = config.service_token };
     if (config.debug) std.log.info("debug mode enabled: compact external RPC activity", .{});
     if (config.trace_packets) std.log.info("packet trace enabled: logging every routed envelope", .{});
     const shipping = Shipping{
@@ -110,8 +119,10 @@ pub fn main(init: std.process.Init) !void {
         .auth = config.service_token,
         .flush_ms = config.ingest_flush_ms,
     };
-    const worker = try std.Thread.spawn(.{}, transportLoop, .{ &router, &hub, &registry, &messages, &notifications, shipping, &config.jwt, config.debug, config.trace_packets });
+    const worker = try std.Thread.spawn(.{}, transportLoop, .{ &router, &hub, &registry, &messages, &notifications, shipping, event_bus, &config.jwt, config.debug, config.trace_packets });
     worker.detach();
+
+    if (isScheduleLeader(&config)) try startScheduler(allocator, &config);
 
     var websocket = WebSocket{
         .hub = &hub,
@@ -126,6 +137,52 @@ pub fn main(init: std.process.Init) !void {
         } else null,
     };
     try websocket.serve();
+}
+
+/// Whether this process owns the schedule.
+///
+/// The single question the ticker asks, and the only place the answer lives.
+/// Today it is a deployment flag, because there is one Fujin. When several
+/// nodes balance the cluster and Raft elects one of them, this function is what
+/// changes — not the scheduler, which will keep asking exactly this.
+fn isScheduleLeader(config: *const Config) bool {
+    return config.scheduler_enabled;
+}
+
+/// Starts the ticker as an ordinary peer of this very bus.
+///
+/// It gets its own DEALER connection and its own routing target, and talks NRPC
+/// like everything else does — the router learned nothing new to make this
+/// work. It lives in this process only because a schedule needs exactly one
+/// clock, and Fujin is the component there is exactly one of.
+fn startScheduler(allocator: std.mem.Allocator, config: *const Config) !void {
+    const endpoint = try allocator.dupeZ(u8, config.scheduler_endpoint);
+    const runtime = try allocator.create(transport.Runtime);
+    runtime.* = transport.Runtime.init(allocator, .{
+        .endpoint = endpoint,
+        .target = config.scheduler_target,
+        .limits = .{ .max_envelope_bytes = config.max_control_bytes, .max_payload_bytes = config.max_payload_bytes },
+        .recv_timeout_ms = 1_000,
+        .send_timeout_ms = 1_000,
+        .workers = 0,
+    }) catch |err| {
+        allocator.destroy(runtime);
+        allocator.free(endpoint);
+        return err;
+    };
+
+    const scheduler = try allocator.create(scheduler_mod.Scheduler);
+    scheduler.* = scheduler_mod.Scheduler.init(allocator, runtime, .{
+        .endpoint = endpoint,
+        .target = config.scheduler_target,
+        .scope = config.ingest_scope,
+        .auth = config.service_token,
+        .refresh_ms = config.scheduler_refresh_ms,
+    });
+
+    (try std.Thread.spawn(.{}, transport.Runtime.run, .{runtime})).detach();
+    (try std.Thread.spawn(.{}, scheduler_mod.Scheduler.run, .{scheduler})).detach();
+    std.log.info("schedule ticker enabled target={s}", .{config.scheduler_target});
 }
 
 fn kindName(kind: transport.envelope.Kind) []const u8 {
@@ -227,6 +284,14 @@ fn isCompactDebugEnvelope(env: anytype) bool {
         isWorkflowEnvelope(env);
 }
 
+/// What the event bus needs from the process: the subscription table and the
+/// token Fujin signs its own outbound events with. Small enough to pass by
+/// value, which keeps it out of the loop's growing parameter list.
+const Bus = struct {
+    table: *topics.Table,
+    auth: []const u8,
+};
+
 /// Everything the transport loop needs to hand collected blocks to the
 /// repositories. The collector is filled by the HTTP ingest threads; only this
 /// loop ever touches the ZMQ socket.
@@ -237,9 +302,9 @@ const Shipping = struct {
     flush_ms: i64,
 };
 
-fn transportLoop(router: *transport.Router, hub: *Hub, registry: *Registry, messages: *Journal, notifications: *Notifications, shipping: Shipping, jwt: *const @import("config.zig").JwtConfig, debug: bool, trace_packets: bool) void {
+fn transportLoop(router: *transport.Router, hub: *Hub, registry: *Registry, messages: *Journal, notifications: *Notifications, shipping: Shipping, event_bus: Bus, jwt: *const @import("config.zig").JwtConfig, debug: bool, trace_packets: bool) void {
     while (true) {
-        drainBrowserCommands(router, hub, registry, messages, notifications, jwt, debug, trace_packets);
+        drainBrowserCommands(router, hub, registry, messages, notifications, event_bus, jwt, debug, trace_packets);
         shipCollectedBlocks(router, hub, registry, shipping);
 
         var incoming = (router.recv() catch |err| {
@@ -252,7 +317,7 @@ fn transportLoop(router: *transport.Router, hub: *Hub, registry: *Registry, mess
         // envelope ever legitimately empty. Cascade-remove everything this
         // peer registered before it can leave stale routes behind.
         if (incoming.envelopeBytes().len == 0) {
-            registry.removePeer(incoming.identity());
+            dropPeer(registry, event_bus, hub.allocator, incoming.identity());
             continue;
         }
 
@@ -307,7 +372,7 @@ fn transportLoop(router: *transport.Router, hub: *Hub, registry: *Registry, mess
         // forbids — the packet would be answered with service_unavailable.
         if (std.mem.eql(u8, env.to.target, local_target)) {
             if (env.kind == .request) {
-                handleLocalEnvelope(router, hub, registry, messages, notifications, jwt, incoming.identity(), env, incoming.payload());
+                handleLocalEnvelope(router, hub, registry, messages, notifications, event_bus, jwt, incoming.identity(), env, incoming.payload());
             } else if (env.kind == .@"error") {
                 // Fujin originates requests of its own (log shipping). A failed
                 // one is worth a line; a successful one is not.
@@ -340,7 +405,7 @@ fn transportLoop(router: *transport.Router, hub: *Hub, registry: *Registry, mess
             // A peer that is gone leaves a route behind until its disconnect
             // notification lands, so drop the stale entry here rather than
             // handing the next caller the same dead identity.
-            if (err == error.PeerUnreachable) registry.removePeer(identity);
+            if (err == error.PeerUnreachable) dropPeer(registry, event_bus, hub.allocator, identity);
             replyUnroutable(router, incoming.identity(), env, routeErrorCode(err));
             continue;
         };
@@ -400,13 +465,13 @@ fn shipCollectedBlocks(router: *transport.Router, hub: *Hub, registry: *Registry
     }
 }
 
-fn drainBrowserCommands(router: *transport.Router, hub: *Hub, registry: *Registry, messages: *Journal, notifications: *Notifications, jwt: *const @import("config.zig").JwtConfig, debug: bool, trace_packets: bool) void {
+fn drainBrowserCommands(router: *transport.Router, hub: *Hub, registry: *Registry, messages: *Journal, notifications: *Notifications, event_bus: Bus, jwt: *const @import("config.zig").JwtConfig, debug: bool, trace_packets: bool) void {
     while (hub.takePending()) |pending_value| {
         var pending = pending_value;
         defer pending.deinit();
         messages.recordWebSocket("received", pending.client_id, pending.target, pending.service, pending.method, pending.request_id, pending.payload.len);
         if (std.mem.eql(u8, pending.target, local_target)) {
-            handleBrowserLocalCall(hub, registry, messages, notifications, jwt, &pending) catch |err| {
+            handleBrowserLocalCall(router, hub, registry, messages, notifications, event_bus, jwt, &pending) catch |err| {
                 hub.sendAdminError(pending.client_id, pending.request_id, adminErrorCode(err), @errorName(err));
                 // Auth outcome, not just "rejected": who was refused, for what,
                 // and why. Without user/scope an access denial is unactionable.
@@ -460,7 +525,7 @@ fn drainBrowserCommands(router: *transport.Router, hub: *Hub, registry: *Registr
             messages.recordWebSocket("failed", pending.client_id, pending.target, pending.service, pending.method, pending.request_id, pending.payload.len);
             hub.serviceUnavailable(&pending);
             logDecision("fail", env, pending.payload.len, @errorName(err));
-            if (err == error.PeerUnreachable) registry.removePeer(identity);
+            if (err == error.PeerUnreachable) dropPeer(registry, event_bus, hub.allocator, identity);
             continue;
         };
         messages.recordWebSocket("routed", pending.client_id, pending.target, pending.service, pending.method, pending.request_id, pending.payload.len);
@@ -484,6 +549,10 @@ const LocalCall = struct {
     /// and states its identity in the token alone, so there is nothing to
     /// cross-check — demanding a match there would reject every service call.
     session_bound: bool,
+    /// Which connection is speaking, for the bus: a subscription belongs to it
+    /// and dies with it. One of the two is always empty.
+    client_id: u64 = 0,
+    source_target: []const u8 = "",
 };
 
 const LocalReply = struct {
@@ -493,10 +562,12 @@ const LocalReply = struct {
 };
 
 fn handleLocalCall(
+    router: *transport.Router,
     hub: *Hub,
     registry: *Registry,
     messages: *Journal,
     notifications: *Notifications,
+    event_bus: Bus,
     jwt: *const @import("config.zig").JwtConfig,
     call: LocalCall,
 ) !LocalReply {
@@ -543,6 +614,10 @@ fn handleLocalCall(
         return error.MethodUnavailable;
     }
 
+    if (std.mem.eql(u8, call.service, bus.service)) {
+        return handleBusCall(router, hub, registry, event_bus, &token, call);
+    }
+
     if (std.mem.eql(u8, call.service, fujin_nrpc.service)) {
         if (std.mem.eql(u8, call.method, "state")) return .{ .body = try adminStateJson(hub, registry) };
         if (std.mem.eql(u8, call.method, "messages")) {
@@ -555,21 +630,152 @@ fn handleLocalCall(
     return error.MethodUnavailable;
 }
 
+/// One call to the `bus` service: publish, subscribe, or read what is live.
+///
+/// The owner of a subscription is the connection that made the call, taken from
+/// the transport and never from the body — otherwise a client could subscribe
+/// somebody else, or unsubscribe them.
+fn handleBusCall(
+    router: *transport.Router,
+    hub: *Hub,
+    registry: *Registry,
+    event_bus: Bus,
+    token: *const transport.auth.jwt.VerifiedToken,
+    call: LocalCall,
+) !LocalReply {
+    const allocator = hub.allocator;
+    if (std.mem.eql(u8, call.method, "publish")) {
+        const caller = bus.Caller{
+            // A service token is cluster-wide and carries no scope of its own,
+            // so the envelope's scope is the only tenant it speaks for.
+            .scope = if (token.scope.len > 0) token.scope else call.scope,
+            .user = token.subject,
+            .is_service = token.token_type == .service,
+        };
+        var prepared = try bus.prepare(.{
+            .allocator = allocator,
+            .table = event_bus.table,
+            .policy = hub.policy,
+        }, caller, call.payload);
+        defer prepared.deinit();
+        if (prepared.dropped) {
+            std.log.info("event {s} dropped=policy", .{prepared.topic});
+            return .{ .body = try bus.publishResponseJson(allocator, prepared.id, 0, 0) };
+        }
+        const peers = deliverToPeers(router, registry, allocator, event_bus, &prepared);
+        const sessions = hub.deliverToSessions(prepared.sessions, prepared.scope, prepared.thin_frame);
+        std.log.info("event {s} scope={s} peers={d} sessions={d}", .{ prepared.topic, prepared.scope, peers, sessions });
+        return .{ .body = try bus.publishResponseJson(allocator, prepared.id, peers, sessions) };
+    }
+
+    const adding = std.mem.eql(u8, call.method, "subscribe");
+    if (adding or std.mem.eql(u8, call.method, "unsubscribe")) {
+        const owner = try busOwner(call);
+        const body = try bus.subscribe(allocator, event_bus.table, owner, call.payload, adding);
+        std.log.info("bus {s} owner={s} live={d}", .{
+            call.method,
+            switch (owner) {
+                .peer => |name| name,
+                .session => "session",
+            },
+            event_bus.table.count(),
+        });
+        return .{ .body = body };
+    }
+
+    if (std.mem.eql(u8, call.method, "subscriptions")) {
+        return .{ .body = try event_bus.table.snapshotJson(allocator) };
+    }
+    return error.MethodUnavailable;
+}
+
+/// A ZMQ peer subscribes as its target; a browser as its session. A peer that
+/// has not registered a target has nothing to be addressed by, so it cannot
+/// hold a subscription either.
+fn busOwner(call: LocalCall) !topics.Owner {
+    if (call.session_bound) return .{ .session = call.client_id };
+    if (call.source_target.len == 0) return error.SubscriberUnaddressable;
+    if (isBrowserTarget(call.source_target)) {
+        const id = webSocketConnectionId(call.source_target) orelse return error.SubscriberUnaddressable;
+        return .{ .session = id };
+    }
+    return .{ .peer = call.source_target };
+}
+
+/// Hands one event to every subscribed peer, as an ordinary request they may
+/// answer or ignore. Fire-and-forget: the bus is not a queue, and a peer that
+/// is mid-restart is expected to catch up from the journal rather than hold the
+/// router hostage while it comes back.
+fn deliverToPeers(
+    router: *transport.Router,
+    registry: *Registry,
+    allocator: std.mem.Allocator,
+    event_bus: Bus,
+    prepared: *const bus.Prepared,
+) usize {
+    var delivered: usize = 0;
+    for (prepared.peers) |target| {
+        const identity = registry.identityFor(target) orelse {
+            std.log.info("event {s} skipped target={s} reason=no_route", .{ prepared.topic, target });
+            continue;
+        };
+        var id_buffer: [32]u8 = undefined;
+        var id_bytes: [16]u8 = undefined;
+        std.Options.debug_io.random(&id_bytes);
+        const request_id = std.fmt.bufPrint(&id_buffer, "{x}", .{&id_bytes}) catch "event";
+        const env = transport.Envelope{
+            .kind = .request,
+            .request_id = request_id,
+            .to = .{ .target = target, .service = bus.service },
+            .from = .{ .target = local_target },
+            .method = "onEvent",
+            .scope = prepared.scope,
+            .auth = event_bus.auth,
+            .codec = .json,
+        };
+        const bytes = transport.envelope.encodeAlloc(allocator, &env) catch continue;
+        defer allocator.free(bytes);
+        router.send(identity, bytes, prepared.frame) catch |err| {
+            if (err == error.PeerUnreachable) dropPeer(registry, event_bus, allocator, identity);
+            std.log.warn("event {s} not delivered target={s}: {s}", .{ prepared.topic, target, @errorName(err) });
+            continue;
+        };
+        delivered += 1;
+    }
+    return delivered;
+}
+
+/// Drops a peer's route and, with it, everything that peer had subscribed to.
+/// Only the identity that still owns the target clears anything, so a late
+/// disconnect cannot unsubscribe its own replacement.
+fn dropPeer(registry: *Registry, event_bus: Bus, allocator: std.mem.Allocator, identity: []const u8) void {
+    const target = registry.takePeerTarget(identity, allocator) catch {
+        registry.removePeer(identity);
+        return;
+    };
+    const owned = target orelse return;
+    defer allocator.free(owned);
+    event_bus.table.removeOwner(.{ .peer = owned });
+}
+
 fn localMethodPolicy(service: []const u8, method: []const u8) ?transport.auth.authorize.MethodPolicy {
     if (std.mem.eql(u8, service, pushrouter.service)) return pushrouter.policy(method);
+    if (std.mem.eql(u8, service, bus.service)) return bus.policy(method);
     if (std.mem.eql(u8, service, fujin_nrpc.service)) return fujin_nrpc.policy(method);
     return null;
 }
 
 fn handleBrowserLocalCall(
+    router: *transport.Router,
     hub: *Hub,
     registry: *Registry,
     messages: *Journal,
     notifications: *Notifications,
+    event_bus: Bus,
     jwt: *const @import("config.zig").JwtConfig,
     pending: *const Hub.PendingCommand,
 ) !void {
-    const reply = try handleLocalCall(hub, registry, messages, notifications, jwt, .{
+    const reply = try handleLocalCall(router, hub, registry, messages, notifications, event_bus, jwt, .{
         .service = pending.service,
         .method = pending.method,
         .auth = pending.auth,
@@ -577,6 +783,7 @@ fn handleBrowserLocalCall(
         .user = pending.user,
         .payload = pending.payload,
         .session_bound = true,
+        .client_id = pending.client_id,
     });
     defer hub.allocator.free(reply.body);
     if (reply.streamed) return hub.sendAdminStreamChunk(pending.client_id, pending.request_id, 0, reply.body, true);
@@ -589,12 +796,13 @@ fn handleLocalEnvelope(
     registry: *Registry,
     messages: *Journal,
     notifications: *Notifications,
+    event_bus: Bus,
     jwt: *const @import("config.zig").JwtConfig,
     identity: []const u8,
     env: transport.Envelope,
     payload: []const u8,
 ) void {
-    const reply = handleLocalCall(hub, registry, messages, notifications, jwt, .{
+    const reply = handleLocalCall(router, hub, registry, messages, notifications, event_bus, jwt, .{
         .service = env.to.service,
         .method = env.method,
         .auth = env.auth,
@@ -602,6 +810,7 @@ fn handleLocalEnvelope(
         .user = env.user,
         .payload = payload,
         .session_bound = false,
+        .source_target = env.from.target,
     }) catch |err| {
         messages.recordEnvelope("zmq", "dropped", env, payload.len);
         logDecision("deny", env, payload.len, @errorName(err));
@@ -666,11 +875,24 @@ fn routeErrorCode(err: anyerror) []const u8 {
 
 fn adminErrorCode(err: anyerror) []const u8 {
     return switch (err) {
-        error.PermissionDenied, error.PushScopeForbidden => "forbidden",
+        error.PermissionDenied, error.PushScopeForbidden, error.EventScopeForbidden => "forbidden",
+        error.SubscriptionLimitReached => "overloaded",
+        error.SubscriberUnaddressable => "invalid_request",
         error.UserTokenRequired, error.ServiceTokenRequired => "unauthenticated",
         error.MethodUnavailable => "method_unavailable",
         // A malformed notification is the caller's bug, not a refusal: saying
         // "unauthenticated" would send them off checking their token instead.
+        error.EventNameMissing,
+        error.EventScopeMissing,
+        error.EventBodyMissing,
+        error.PatternsMissing,
+        error.PatternEmpty,
+        error.PatternSegmentEmpty,
+        error.PatternTailNotLast,
+        error.TopicEmpty,
+        error.TopicSegmentEmpty,
+        error.TopicWildcard,
+        error.TopicCharInvalid,
         error.PushNameMissing,
         error.PushScopeMissing,
         error.PushLevelInvalid,
@@ -706,6 +928,25 @@ test "the local target resolves both of Fujin's own services and nothing else" {
     // a handler by accident; it gets method_unavailable, not a route.
     try std.testing.expect(localMethodPolicy("services", "state") == null);
     try std.testing.expect(localMethodPolicy("pushrouter", "state") == null);
+}
+
+test "the bus is reachable on the local target and states its own owner rules" {
+    try std.testing.expectEqual(
+        transport.auth.authorize.Level.any,
+        localMethodPolicy("bus", "publish").?.level,
+    );
+    try std.testing.expect(localMethodPolicy("bus", "nonsense") == null);
+
+    // A browser subscribes as its session, a peer as its target, and a peer
+    // that never registered one cannot subscribe at all.
+    const session = try busOwner(.{ .service = "bus", .method = "subscribe", .auth = "", .scope = "club", .user = "alice", .payload = "[]", .session_bound = true, .client_id = 7 });
+    try std.testing.expectEqual(@as(u64, 7), session.session);
+    const peer = try busOwner(.{ .service = "bus", .method = "subscribe", .auth = "", .scope = "club", .user = "", .payload = "[]", .session_bound = false, .source_target = "centimanus" });
+    try std.testing.expectEqualStrings("centimanus", peer.peer);
+    try std.testing.expectError(
+        error.SubscriberUnaddressable,
+        busOwner(.{ .service = "bus", .method = "subscribe", .auth = "", .scope = "club", .user = "", .payload = "[]", .session_bound = false }),
+    );
 }
 
 test "a malformed notification is reported as a bad request, not a refusal" {

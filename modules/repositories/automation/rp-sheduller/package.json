@@ -8,6 +8,7 @@
 	},
 	"dependencies": {
 		"back-core": "workspace:*",
+		"croner": "^10.0.1",
 		"g-sheduller": "workspace:*",
 		"nrpc": "workspace:*"
 	}

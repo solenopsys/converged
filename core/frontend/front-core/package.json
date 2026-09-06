@@ -20,6 +20,7 @@
 		"./geo-map/engine": "./src/geo-map/engine.ts",
 		"./landing": "./src/landing/index.ts",
 		"./auth-gateway": "./src/auth-gateway/index.ts",
+		"./webhooks-gateway": "./src/webhooks-gateway/index.ts",
 		"./ui": "./src/ui/index.ts",
 		"./audio": "./src/audio/index.ts",
 		"./styles/*": "./src/styles/*"
@@ -45,6 +46,7 @@
 		"g-assistant": "workspace:*",
 		"g-access": "workspace:*",
 		"g-auth": "workspace:*",
+		"g-bus": "workspace:*",
 		"g-contexts": "workspace:*",
 		"g-dashboard": "workspace:*",
 		"g-files": "workspace:*",
@@ -52,6 +54,7 @@
 		"g-identity": "workspace:*",
 		"g-oauth": "workspace:*",
 		"g-pushrouter": "workspace:*",
+		"g-webhooks": "workspace:*",
 		"g-centimanus": "workspace:*",
 		"g-store": "workspace:*",
 		"g-struct": "workspace:*",
