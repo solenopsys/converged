@@ -18,6 +18,7 @@
     "g-pushrouter": "workspace:*",
     "g-sheduller": "workspace:*",
     "g-telemetry": "workspace:*",
+    "jose": "^6.1.0",
     "nrpc": "workspace:*",
     "orchestrator": "workspace:*"
   }

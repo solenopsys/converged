@@ -3,7 +3,7 @@ import { createRtClient, type ServiceMetadata } from "nrpc";
 
 export type Permission = string;
 
-export type GrantMethods = string | { [mode: string]: string[] };
+export type GrantMethods = string | { [method: string]: string };
 
 export type GrantTree = {
   [kind: string]: { [service: string]: GrantMethods };
@@ -259,7 +259,7 @@ const metadata: ServiceMetadata = {
     {
       "name": "GrantMethods",
       "kind": "type",
-      "definition": "string | { [mode: string]: string[] }"
+      "definition": "string | { [method: string]: string }"
     },
     {
       "name": "GrantTree",

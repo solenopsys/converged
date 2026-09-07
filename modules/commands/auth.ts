@@ -1,6 +1,7 @@
-import { mkdirSync, readFileSync, rmSync, writeFileSync, chmodSync } from "fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync, chmodSync, copyFileSync } from "fs";
 import { dirname, join } from "path";
 import { homedir } from "os";
+import { importJWK, SignJWT } from "jose";
 import { BaseCommandProcessor, type Handler, type CommandEntry } from "dag-cli/base";
 import { createCliNrpcClientConfig } from "dag-cli/ws";
 import { createAuthServiceClient, type AuthServiceClient } from "g-auth/browser";
@@ -306,12 +307,145 @@ const logoutHandler: Handler = async (
   console.log(`Session removed: ${resolveSessionPath()}`);
 };
 
+// Service tokens are minted by rp-access over NRPC — which itself requires a
+// valid service token. After a breaking claim-format change that channel is
+// dead (chicken-and-egg), so this command signs locally with the cluster
+// private key instead. Server-side only: never run it where the private JWK
+// is not supposed to live.
+const DEFAULT_SERVICE_PERMS: GrantTree = { "*": { all: "rw" } };
+const DEFAULT_SERVICE_TTL = 315360000; // 10y, matches the shipped dev tokens
+
+function parseServiceTokenParams(rawParam?: string): {
+  serviceName: string;
+  permissions: GrantTree;
+  ttlSeconds: number;
+  issuer: string;
+  writeTarget?: { envFile: string; variable: string };
+} {
+  const parts = (rawParam ?? "").trim().split(/\s+/).filter(Boolean);
+  const positional: string[] = [];
+  const flags = new Map<string, string>();
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    if (part.startsWith("--")) {
+      const eq = part.indexOf("=");
+      if (eq > 2) {
+        flags.set(part.slice(2, eq), part.slice(eq + 1));
+      } else {
+        const key = part.slice(2);
+        const next = parts[i + 1];
+        if (next !== undefined && !next.startsWith("--")) {
+          flags.set(key, next);
+          i++;
+        } else {
+          flags.set(key, "true");
+        }
+      }
+    } else {
+      positional.push(part);
+    }
+  }
+
+  const serviceName = (positional[0] ?? "").trim();
+  if (!serviceName) {
+    throw new Error(
+      "Usage: auth service-token <name> [--perm JSON] [--full] [--ttl seconds] [--issuer iss] [--write envfile:VAR]",
+    );
+  }
+
+  let permissions = DEFAULT_SERVICE_PERMS;
+  if (flags.has("perm")) {
+    try {
+      permissions = JSON.parse(flags.get("perm")!);
+    } catch {
+      throw new Error("--perm must be a JSON grant tree, e.g. '{\"*\":{\"all\":\"rw\"}}'");
+    }
+  } else if (flags.get("full") === "true") {
+    permissions = { "*": { "*": "rwx" } };
+  }
+  if (countGrants(permissions) === 0) {
+    throw new Error("Refusing to mint a token with zero grants: check --perm");
+  }
+
+  const ttlRaw = flags.get("ttl");
+  const ttlSeconds = ttlRaw === undefined ? DEFAULT_SERVICE_TTL : Number(ttlRaw);
+  if (!Number.isSafeInteger(ttlSeconds) || ttlSeconds <= 0) {
+    throw new Error("--ttl must be a positive number of seconds");
+  }
+
+  let writeTarget: { envFile: string; variable: string } | undefined;
+  const writeRaw = flags.get("write");
+  if (writeRaw !== undefined) {
+    const sep = writeRaw.lastIndexOf(":");
+    // Windows drive letters aside, env paths here are posix: split on last ":".
+    const envFile = writeRaw.slice(0, sep).trim();
+    const variable = writeRaw.slice(sep + 1).trim();
+    if (!envFile || !variable || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(variable)) {
+      throw new Error("--write must look like path/to/file.env:VARIABLE");
+    }
+    writeTarget = { envFile, variable };
+  }
+
+  return {
+    serviceName,
+    permissions,
+    ttlSeconds,
+    issuer: flags.get("issuer")?.trim() || process.env.ACCESS_JWT_ISSUER?.trim() || "platform",
+    writeTarget,
+  };
+}
+
+const serviceTokenHandler: Handler = async (_client, _splitter, param) => {
+  const { serviceName, permissions, ttlSeconds, issuer, writeTarget } = parseServiceTokenParams(param);
+
+  const privateJwk = process.env.ACCESS_JWT_PRIVATE_KEY?.trim();
+  const kid = process.env.ACCESS_JWT_KID?.trim();
+  const audience = process.env.ACCESS_JWT_AUDIENCE?.trim() || "cluster";
+  if (!privateJwk) throw new Error("ACCESS_JWT_PRIVATE_KEY is not set (run with the cluster env file)");
+  if (!kid) throw new Error("ACCESS_JWT_KID is not set (run with the cluster env file)");
+
+  let parsedKey: any;
+  try {
+    parsedKey = JSON.parse(privateJwk);
+  } catch {
+    throw new Error("ACCESS_JWT_PRIVATE_KEY is not valid JSON");
+  }
+  const signingKey = await importJWK({ ...parsedKey, kid } as any, "EdDSA");
+  const token = await new SignJWT({ typ: "service", perm: permissions })
+    .setProtectedHeader({ alg: "EdDSA", kid })
+    .setSubject(serviceName)
+    .setIssuer(issuer)
+    .setAudience(audience)
+    .setIssuedAt()
+    .setExpirationTime(`${ttlSeconds}s`)
+    .sign(signingKey);
+
+  const grants = toPermissionEntries(permissions);
+  console.log(`Service token for "${serviceName}" (iss=${issuer}, ttl=${ttlSeconds}s, grants=${grants.length}):`);
+  for (const grant of grants) {
+    console.log(`  - ${serializePermission(grant)}`);
+  }
+
+  if (writeTarget) {
+    const content = readFileSync(writeTarget.envFile, "utf8").split("\n");
+    const idx = content.findIndex((line) => line.startsWith(`${writeTarget.variable}=`));
+    if (idx === -1) throw new Error(`${writeTarget.variable} not found in ${writeTarget.envFile}: refusing to append blindly`);
+    copyFileSync(writeTarget.envFile, `${writeTarget.envFile}.bak`);
+    content[idx] = `${writeTarget.variable}=${token}`;
+    writeFileSync(writeTarget.envFile, content.join("\n"), "utf8");
+    console.log(`Wrote ${writeTarget.variable} in ${writeTarget.envFile} (backup: ${writeTarget.envFile}.bak)`);
+  } else {
+    console.log(token);
+  }
+};
+
 class AuthProcessor extends BaseCommandProcessor {
   protected initializeCommandMap(): Map<string, CommandEntry> {
     return new Map([
       ["login", { handler: loginHandler, description: "Send a magic link to an email, or sign in with the link/token from it: auth login <email> | <magic-link-or-token>" }],
       ["status", { handler: statusHandler, description: "Show current auth status (email, permissions, raw token)" }],
       ["logout", { handler: logoutHandler, description: "Logout and remove local session" }],
+      ["service-token", { handler: serviceTokenHandler, description: "Mint a service JWT locally (no channel needed): auth service-token <name> [--perm JSON] [--full] [--ttl seconds] [--issuer iss] [--write envfile:VAR]" }],
     ]);
   }
 }

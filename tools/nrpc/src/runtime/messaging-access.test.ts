@@ -15,7 +15,7 @@ async function fixture(payload: Record<string, unknown> = {}) {
 	const token = await new SignJWT({
 		typ: "user",
 		scope: "club",
-		perm: ["fujin/getState(r)"],
+		perm: { "*": { fujin: { getState: "r" } } },
 		...payload,
 	})
 		.setProtectedHeader({ alg: "EdDSA", kid: "test-key" })
@@ -40,7 +40,7 @@ describe("MessagingAccessGuard", () => {
 	});
 
 	test("rejects a scope substitution and missing permission", async () => {
-		const { token, jwks } = await fixture({ perm: ["fujin/reload(w)"] });
+		const { token, jwks } = await fixture({ perm: { "*": { fujin: { reload: "w" } } } });
 		const guard = new MessagingAccessGuard({ mode: "required", issuer: "test-issuer", audience: "cluster", jwks });
 		await expect(guard.authorize({ ...request, token })).rejects.toMatchObject({
 			code: "forbidden",
@@ -64,7 +64,7 @@ describe("MessagingAccessGuard", () => {
 	test("keeps scope absent for a cluster-wide service JWT", async () => {
 		const { token, jwks } = await fixture({
 			typ: "service",
-			perm: ["fujin/getState(r)"],
+			perm: { "*": { fujin: { getState: "r" } } },
 			scope: undefined,
 		});
 		const guard = new MessagingAccessGuard({ mode: "required", issuer: "test-issuer", audience: "cluster", jwks });
@@ -84,7 +84,7 @@ describe("MessagingAccessGuard", () => {
 	test("allows a permitted service JWT for internal methods", async () => {
 		const { token, jwks } = await fixture({
 			typ: "service",
-			perm: ["fujin/getState(r)"],
+			perm: { "*": { fujin: { getState: "r" } } },
 			scope: undefined,
 		});
 		const guard = new MessagingAccessGuard({ mode: "required", issuer: "test-issuer", audience: "cluster", jwks });

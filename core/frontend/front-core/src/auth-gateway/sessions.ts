@@ -1,3 +1,4 @@
+import { serializePermission, toPermissionEntries } from "nrpc";
 import { accessClient, authClient, identityClient } from "./clients";
 
 const ROOT_PRESET = "root";
@@ -33,8 +34,8 @@ async function provisionGuestAccess(userId: string): Promise<void> {
 	const access = accessClient();
 	const directPermissions = await access.getPermissionsFromUser(userId);
 	await Promise.all(
-		directPermissions.map((permission) =>
-			access.removePermissionFromUser(userId, permission),
+		toPermissionEntries(directPermissions).map((entry) =>
+			access.removePermissionFromUser(userId, serializePermission(entry)),
 		),
 	);
 	await access.linkPresetToUser(userId, ANONYMOUS_PRESET);

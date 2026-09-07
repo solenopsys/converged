@@ -67,6 +67,7 @@
 		"build:doc": "bun run --env-file=../confs/dev/converged.env tools/docs/src/cli.ts site ecosystem translations",
 		"cli": "bun run --env-file=../confs/dev/cli-converged-dev.env tools/cli/src/cli.ts --commands=modules/commands",
 		"clip": "bun run --env-file=../confs/prod/cli-converged.env tools/cli/src/cli.ts --commands=modules/commands",
+		"mint:service-token": "bun run --env-file=../confs/dev/converged.env tools/cli/src/cli.ts --commands=modules/commands auth service-token",
 		"secrets": "bun run tools/secrets/src/cli.ts --project=converged --env=../confs/prod/converged.env",
 		"format": "biome format --write .",
 		"lint": "biome lint .",

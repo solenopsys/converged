@@ -7,20 +7,20 @@
  */
 export type Permission = string;
 
-/** The methods a service grants: a mode per group, or one mode for all of them. */
-export type GrantMethods = string | { [mode: string]: string[] };
+/** The methods a service grants: a mode per method, or one mode for all of them. */
+export type GrantMethods = string | { [method: string]: string };
 
 /**
- * A set of grants, stored and carried as `kind -> service -> mode -> methods`.
+ * A set of grants, stored and carried as `kind -> service -> method -> mode`.
  *
  * Each level is named once, so a service granting thirteen write methods writes
- * the kind, the service and `w` once each instead of on every line:
+ * the kind and the service once each instead of on every line:
  *
  * ```json
  * {
- *   "ap": { "resonus": { "w": ["session.open", "session.close"] } },
- *   "rp": { "files": { "r": ["get"], "w": ["save"] } },
- *   "wf": { "workflows": { "x": ["wf-file-analyze.js"] } }
+ *   "ap": { "resonus": { "session.open": "w", "session.close": "w" } },
+ *   "rp": { "files": { "get": "r", "save": "w" } },
+ *   "wf": { "workflows": { "wf-file-analyze.js": "x" } }
  * }
  * ```
  *

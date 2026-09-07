@@ -10,7 +10,7 @@ const guestUser = {
 mock.module("./clients", () => ({
 	accessClient: () => ({
 		emitJWT: async () => "access-token",
-		getPermissionsFromUser: async () => ["legacy/read(r)"],
+		getPermissionsFromUser: async () => ({ "*": { legacy: { read: "r" } } }),
 		linkPresetToUser: async (userId: string, preset: string) => {
 			calls.push({ userId, preset });
 		},
@@ -44,7 +44,7 @@ test("guest sessions receive the anonymous preset", async () => {
 	const session = await createGuestSession("browser-session");
 
 	expect(session.token).toBe("access-token");
-	expect(removed).toEqual(["legacy/read(r)"]);
+	expect(removed).toEqual(["*/legacy/read(r)"]);
 	expect(calls).toEqual([{ userId: session.userId, preset: "anonymous" }]);
 });
 
@@ -56,6 +56,6 @@ test("refresh repairs legacy guest permissions before issuing a token", async ()
 		refreshToken: "rotated-refresh-token",
 		userId: guestUser.id,
 	});
-	expect(removed).toEqual(["legacy/read(r)"]);
+	expect(removed).toEqual(["*/legacy/read(r)"]);
 	expect(calls).toEqual([{ userId: guestUser.id, preset: "anonymous" }]);
 });
