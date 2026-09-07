@@ -1,11 +1,11 @@
 {
 	"menu": {
-		"dag": "Processes",
-		"workflows": "Flows",
-		"nodes": "Nodes",
-		"providers": "Providers",
-		"executions": "Executions",
-		"tasks": "Tasks"
+		"dag": "Workflows",
+		"workflows": "Workflows",
+		"executions": "Runs",
+		"triggers": "Triggers",
+		"vars": "Variables",
+		"run": "Run"
 	},
 	"cards": {
 		"workflows": {
@@ -30,14 +30,5 @@
 			"footerIconName": "IconPackage",
 			"footerDescription": "Processes in progress"
 		}
-	},
-	"versions": {
-		"loading": "Loading versions...",
-		"selectCode": "Select code from the list",
-		"empty": "No versions available"
-	},
-	"dagViewer": {
-		"loading": "Loading...",
-		"descriptionError": "Failed to load description"
 	}
 }

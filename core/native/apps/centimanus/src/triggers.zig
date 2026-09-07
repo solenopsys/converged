@@ -18,9 +18,19 @@
 const std = @import("std");
 const Engine = @import("engine.zig").Engine;
 
-/// How often the trigger list is re-read and the subscription re-sent. Also the
-/// worst-case delay before a newly configured trigger starts firing.
-const refresh_ms: i64 = 30_000;
+/// How often the trigger list is re-read and the subscription re-sent.
+///
+/// This is the backstop, not the mechanism: rp-dag announces an edit on
+/// `control_topic` and the runtime refreshes on that, so a new trigger fires on
+/// the next event rather than after this interval. What the timer still buys is
+/// recovery from a missed announcement — the bus is at-most-once — and a
+/// re-subscribe after Fujin restarts.
+const refresh_ms: i64 = 300_000;
+
+/// The topic rp-dag publishes when a trigger is created, changed or removed.
+/// The runtime subscribes to it alongside the triggers' own topics, so its
+/// configuration reaches it over the same bus its work does.
+pub const control_topic = "dag.triggers.changed";
 
 pub const Trigger = struct {
     id: []const u8,
@@ -102,7 +112,7 @@ pub const Registry = struct {
         return found.toOwnedSlice(allocator);
     }
 
-    fn refresh(self: *Registry) !void {
+    pub fn refresh(self: *Registry) !void {
         var next = std.heap.ArenaAllocator.init(self.gpa);
         errdefer next.deinit();
         const allocator = next.allocator();
@@ -135,15 +145,18 @@ pub const Registry = struct {
 
         var out: std.Io.Writer.Allocating = .init(allocator);
         const writer = &out.writer;
-        try writer.writeAll("{\"patterns\":[");
-        var written: usize = 0;
+        // The control topic is always in the set: without it an operator's very
+        // first trigger would still have to wait out the backstop timer.
+        try writer.print("{{\"patterns\":[\"{s}\"", .{control_topic});
+        var written: usize = 1;
         for (entries, 0..) |entry, index| {
             var duplicate = false;
             for (entries[0..index]) |earlier| {
                 if (std.mem.eql(u8, earlier.topic, entry.topic)) duplicate = true;
             }
             if (duplicate) continue;
-            if (written > 0) try writer.writeByte(',');
+            if (std.mem.eql(u8, entry.topic, control_topic)) continue;
+            try writer.writeByte(',');
             written += 1;
             const encoded = try std.json.Stringify.valueAlloc(allocator, std.json.Value{ .string = entry.topic }, .{});
             try writer.writeAll(encoded);

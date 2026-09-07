@@ -1,12 +1,5 @@
 import { DashboardLineChartCard, type DashboardPinMeta } from "front-core";
-
-type DailyPoint = {
-	date: string;
-	total: number;
-	running: number;
-	done: number;
-	failed: number;
-};
+import type { DagStatsPoint } from "g-dag";
 
 export function ExecutionDailyLineChart({
 	data = [],
@@ -14,7 +7,7 @@ export function ExecutionDailyLineChart({
 	description,
 	dashboardPin,
 }: {
-	data: DailyPoint[];
+	data: DagStatsPoint[];
 	title?: string;
 	description?: string;
 	dashboardPin?: DashboardPinMeta;
@@ -31,13 +24,6 @@ export function ExecutionDailyLineChart({
 					label: "Total",
 					color: "var(--ui-chart-1)",
 					areaOpacity: 0.2,
-				},
-
-				{
-					key: "running",
-					label: "Running",
-					color: "var(--ui-warning)",
-					area: false,
 				},
 				{ key: "done", label: "Done", color: "var(--ui-success)", area: false },
 				{

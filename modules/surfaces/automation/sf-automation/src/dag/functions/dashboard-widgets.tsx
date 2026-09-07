@@ -2,7 +2,6 @@ import { useUnit } from "effector-preact";
 import {
 	BarChart3,
 	CheckCircle,
-	Network,
 	Percent,
 	Play,
 	registerDashboardWidgets,
@@ -11,14 +10,13 @@ import {
 } from "front-core";
 import { useEffect, useMemo } from "preact/compat";
 import { ExecutionDailyLineChart } from "../components/ExecutionDailyLineChart";
-import { ExecutionErrorsLineChart } from "../components/ExecutionErrorsLineChart";
 import { ExecutionStatusPieChart } from "../components/ExecutionStatusPieChart";
+import { ExecutionWorkflowBarChart } from "../components/ExecutionWorkflowBarChart";
 import { $dagStats, statsViewMounted } from "../domain-stats";
 
-// Live dashboard widgets for sf-dag. Each factory renders the same component as
-// the DAG Statistics view, bound to the shared $dagStats store, so a pinned
-// indicator re-materializes as a live widget after a reload. Keys must match
-// the `dashboardPin.id`s used in StatsView.
+// Live dashboard widgets. Each renders the same component the statistics view
+// does, bound to the shared $dagStats store, so a pinned indicator comes back
+// as a live widget after a reload. Keys must match the `dashboardPin.id`s.
 
 function useDagStatsLive() {
 	const stats = useUnit($dagStats);
@@ -29,15 +27,10 @@ function useDagStatsLive() {
 }
 
 const STAT_META = {
-	total: { label: "WF Runs", icon: BarChart3, description: "executions" },
-	running: { label: "Running", icon: Play, description: "executions" },
-	done: { label: "Done", icon: CheckCircle, description: "executions" },
-	failed: { label: "Failed", icon: XCircle, description: "executions" },
-	tasksTotal: {
-		label: "Node executions",
-		icon: Network,
-		description: "executions",
-	},
+	total: { label: "Runs", icon: BarChart3, description: "workflow runs" },
+	running: { label: "Running", icon: Play, description: "workflow runs" },
+	done: { label: "Done", icon: CheckCircle, description: "workflow runs" },
+	failed: { label: "Failed", icon: XCircle, description: "workflow runs" },
 	failedRate: {
 		label: "Failed rate %",
 		icon: Percent,
@@ -51,12 +44,12 @@ function DagStatIndicator({ statKey }: { statKey: DagStatKey }) {
 	const stats = useDagStatsLive();
 	const meta = STAT_META[statKey];
 	const value = useMemo(() => {
-		if (statKey === "failedRate") {
-			const total = Number(stats.total ?? 0);
-			const failed = Number(stats.failed ?? 0);
-			return total ? Number(((failed / total) * 100).toFixed(2)) : 0;
-		}
-		return Number(stats[statKey] ?? 0);
+		const runs = stats.executions;
+		if (statKey === "failedRate")
+			return runs.total
+				? Number(((runs.failed / runs.total) * 100).toFixed(2))
+				: 0;
+		return runs[statKey];
 	}, [stats, statKey]);
 
 	return (
@@ -75,21 +68,8 @@ function DagDailyDensityIndicator() {
 	return (
 		<ExecutionDailyLineChart
 			data={stats.daily}
-			title="Daily execution density"
+			title="Daily run density"
 			description="Run activity by day and status"
-			dashboardPin={{ enabled: false }}
-		/>
-	);
-}
-
-function DagDailyErrorsIndicator() {
-	const stats = useDagStatsLive();
-	return (
-		<ExecutionErrorsLineChart
-			data={stats.daily}
-			nodesData={stats.nodesDaily}
-			title="Daily errors"
-			description="Errors count and error rate by day"
 			dashboardPin={{ enabled: false }}
 		/>
 	);
@@ -99,15 +79,15 @@ function DagStatusDistributionIndicator() {
 	const stats = useDagStatsLive();
 	const data = useMemo(
 		() => [
-			{ key: "running", label: "Running", value: Number(stats.running ?? 0) },
-			{ key: "done", label: "Done", value: Number(stats.done ?? 0) },
-			{ key: "failed", label: "Failed", value: Number(stats.failed ?? 0) },
+			{ key: "running", label: "Running", value: stats.executions.running },
+			{ key: "done", label: "Done", value: stats.executions.done },
+			{ key: "failed", label: "Failed", value: stats.executions.failed },
 		],
 		[stats],
 	);
 	return (
 		<ExecutionStatusPieChart
-			title="Execution status distribution"
+			title="Run status distribution"
 			description="Current status split across runs"
 			data={data}
 			dashboardPin={{ enabled: false }}
@@ -115,42 +95,21 @@ function DagStatusDistributionIndicator() {
 	);
 }
 
-function DagSuccessVsErrorIndicator() {
-	const stats = useDagStatsLive();
-	const data = useMemo(
-		() => [
-			{ key: "success", label: "Success", value: Number(stats.done ?? 0) },
-			{ key: "error", label: "Error", value: Number(stats.failed ?? 0) },
-		],
-		[stats],
-	);
-	return (
-		<ExecutionStatusPieChart
-			title="Success vs error"
-			description="Completed and failed runs"
-			data={data}
-			dashboardPin={{ enabled: false }}
-		/>
-	);
-}
-
-function DagTypesDistributionIndicator() {
+function DagWorkflowDistributionIndicator() {
 	const stats = useDagStatsLive();
 	const data = useMemo(
 		() =>
-			Object.entries(stats.types ?? {})
-				.map(([key, value]) => ({
-					key,
-					label: key === "unknown" ? "Unknown workflow" : key,
-					value: Number(value ?? 0),
-				}))
-				.filter((item) => item.value > 0),
+			Object.entries(stats.byWorkflow ?? {})
+				.map(([workflow, total]) => ({ workflow, total: Number(total ?? 0) }))
+				.filter((item) => item.total > 0)
+				.sort((a, b) => b.total - a.total)
+				.slice(0, 10),
 		[stats],
 	);
 	return (
-		<ExecutionStatusPieChart
-			title="Execution types distribution"
-			description="Runs grouped by workflow"
+		<ExecutionWorkflowBarChart
+			title="Runs by workflow"
+			description="Busiest ten"
 			data={data}
 			dashboardPin={{ enabled: false }}
 		/>
@@ -162,23 +121,17 @@ registerDashboardWidgets({
 	"dag.stat.running": () => <DagStatIndicator statKey="running" />,
 	"dag.stat.done": () => <DagStatIndicator statKey="done" />,
 	"dag.stat.failed": () => <DagStatIndicator statKey="failed" />,
-	"dag.stat.tasksTotal": () => <DagStatIndicator statKey="tasksTotal" />,
 	"dag.stat.failedRate": () => <DagStatIndicator statKey="failedRate" />,
 	"dag.daily-execution-density": {
 		render: () => <DagDailyDensityIndicator />,
 		size: "lg",
 	},
-	"dag.daily-errors": { render: () => <DagDailyErrorsIndicator />, size: "lg" },
 	"dag.execution-status-distribution": {
 		render: () => <DagStatusDistributionIndicator />,
 		size: "lg",
 	},
-	"dag.success-vs-error": {
-		render: () => <DagSuccessVsErrorIndicator />,
-		size: "lg",
-	},
 	"dag.execution-types-distribution": {
-		render: () => <DagTypesDistributionIndicator />,
+		render: () => <DagWorkflowDistributionIndicator />,
 		size: "lg",
 	},
 });

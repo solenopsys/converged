@@ -99,7 +99,7 @@ fn addNrpcGeneration(b: *Build) *Build.Step {
     const command = b.addSystemCommand(&.{
         "bun",
         "run",
-        "../../../tools/nrpc/src/zig-generator.ts",
+        "../../../../tools/nrpc/src/zig-generator.ts",
         "../../../../modules/types/automation/centimanus.ts",
         "src/generated/centimanus_nrpc.zig",
         "transport",
@@ -222,4 +222,17 @@ pub fn build(b: *Build) void {
     trigger_tests.root_module.addImport("transport", addTransportModule(b, target, optimize));
     trigger_tests.root_module.link_libc = true;
     test_step.dependOn(&b.addRunArtifact(trigger_tests).step);
+
+    // Log key construction and commit-reply parsing: the contract the log write
+    // path shares with rp-dag, which is what a wrong key would silently break.
+    const log_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/dag_log.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    log_tests.root_module.addImport("transport", addTransportModule(b, target, optimize));
+    log_tests.root_module.link_libc = true;
+    test_step.dependOn(&b.addRunArtifact(log_tests).step);
 }

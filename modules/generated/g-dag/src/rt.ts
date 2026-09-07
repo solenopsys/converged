@@ -3,7 +3,9 @@ import { createRtClient, type ServiceMetadata } from "nrpc";
 
 export type ExecutionStatus = "running" | "done" | "failed";
 
-export type TaskState = "queued" | "processing" | "done" | "failed";
+export type NodeState = "running" | "done" | "failed";
+
+export type NodeKind = "node" | "sub";
 
 export type PaginationParams = {
 	offset: number;
@@ -35,45 +37,6 @@ export type PaginatedResult<T> = {
 	totalCount?: number;
 };
 
-export type Execution = {
-	id: string;
-	workflowName: string;
-	status: ExecutionStatus;
-	startedAt: number;
-	updatedAt: number;
-	createdAt: number;
-};
-
-export type Task = {
-	id: number;
-	executionId: string;
-	nodeId: string;
-	state: TaskState;
-	startedAt: number | null;
-	completedAt: number | null;
-	errorMessage: string | null;
-	retryCount: number;
-	createdAt: number;
-	data?: any;
-	result?: any;
-};
-
-export type ExecutionEventType = | "started"
-	| "task_update"
-	| "completed"
-	| "failed";
-
-export type ExecutionEvent = {
-	type: ExecutionEventType;
-	executionId: string;
-	task?: Task;
-	error?: string;
-};
-
-export type ExecutionResult = {
-	id: string;
-};
-
 export type AvailableWorkflow = {
 	id: string;
 	name: string;
@@ -88,8 +51,6 @@ export type AvailableWorkflow = {
 	/** Internal Ptah-proxy URL for the runtime; UI clients must ignore it. */
 	sourceUrl?: string;
 };
-
-export type DagVariable = { key: string; value: unknown };
 
 export type WorkflowTrigger = {
 	id: string;
@@ -121,16 +82,73 @@ export type WorkflowTriggerUpdate = {
 	enabled?: boolean;
 };
 
-export type ResumeExecutionsResult = {
-	resumed: number;
-	skipped: number;
-	failed: number;
-	ids: string[];
+export type Execution = {
+	id: string;
+	workflow: string;
+	status: ExecutionStatus;
+	params?: any;
+	startedAt: number;
+	endedAt: number | null;
+	error?: string;
+	/** Set when `rt.sub` in another run opened this one. */
+	parentExecutionId?: string;
+	/** The node in the parent run that delegated here. */
+	parentNode?: string;
 };
 
-export type TaskTicket = {
-	id: number;
-	createdAt: number;
+export type ExecutionNode = {
+	/** Order of opening within the run. Monotonic, assigned by this service. */
+	seq: number;
+	node: string;
+	kind: NodeKind;
+	state: NodeState;
+	startedAt: number;
+	endedAt: number | null;
+	input?: any;
+	result?: any;
+	error?: string;
+	/** Set on a `sub` node: the run the delegation opened. */
+	childExecutionId?: string;
+};
+
+export type ExecutionLogEntry = Execution;
+
+export type ExecutionTreeRow = ExecutionNode & {
+	depth: number;
+	/** The run this node belongs to — the root's id, or a delegated child's. */
+	executionId: string;
+};
+
+export type ExecutionTree = {
+	execution: Execution;
+	rows: ExecutionTreeRow[];
+	/** Every run in the tree, the root first, for headers and timings. */
+	executions: Execution[];
+};
+
+export type LogCommitResult = {
+	committed: string[];
+	failed: string[];
+};
+
+export type DagVariable = { key: string; value: unknown };
+
+export type DagStatsPoint = {
+	date: string;
+	total: number;
+	done: number;
+	failed: number;
+};
+
+export type DagStats = {
+	executions: {
+		total: number;
+		running: number;
+		done: number;
+		failed: number;
+	};
+	daily: DagStatsPoint[];
+	byWorkflow: Record<string, number>;
 };
 
 const metadata: ServiceMetadata = {
@@ -140,6 +158,44 @@ const metadata: ServiceMetadata = {
   "methods": [
     {
       "name": "listAvailableWorkflows",
+      "parameters": [],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "listWorkflows",
+      "parameters": [
+        {
+          "name": "params",
+          "type": "PaginationParams",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "PaginatedResult<AvailableWorkflow>",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "listTriggers",
+      "parameters": [
+        {
+          "name": "params",
+          "type": "PaginationParams",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "PaginatedResult<WorkflowTrigger>",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "activeTriggers",
       "parameters": [],
       "returnType": "any",
       "isAsync": true,
@@ -198,213 +254,16 @@ const metadata: ServiceMetadata = {
       "isAsyncIterable": false
     },
     {
-      "name": "listTriggers",
+      "name": "commitLog",
       "parameters": [
         {
-          "name": "params",
-          "type": "PaginationParams",
+          "name": "keys",
+          "type": "string",
           "optional": false,
-          "isArray": false
+          "isArray": true
         }
       ],
-      "returnType": "PaginatedResult<WorkflowTrigger>",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "activeTriggers",
-      "parameters": [],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "listWorkflows",
-      "parameters": [
-        {
-          "name": "params",
-          "type": "PaginationParams",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "PaginatedResult<AvailableWorkflow>",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "openExecution",
-      "parameters": [
-        {
-          "name": "id",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "workflowName",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "params",
-          "type": "Record<string, any>",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "void",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "setExecutionStatus",
-      "parameters": [
-        {
-          "name": "id",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "status",
-          "type": "ExecutionStatus",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "void",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "createTask",
-      "parameters": [
-        {
-          "name": "executionId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "nodeId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "startedAt",
-          "type": "number",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "input",
-          "type": "any",
-          "optional": true,
-          "isArray": false
-        }
-      ],
-      "returnType": "TaskTicket",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "setTaskDone",
-      "parameters": [
-        {
-          "name": "taskId",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "executionId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "nodeId",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "completedAt",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "result",
-          "type": "any",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "void",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "setTaskFailed",
-      "parameters": [
-        {
-          "name": "taskId",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "completedAt",
-          "type": "number",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "errorMessage",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "executionId",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        },
-        {
-          "name": "nodeId",
-          "type": "string",
-          "optional": true,
-          "isArray": false
-        }
-      ],
-      "returnType": "void",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "statusExecution",
-      "parameters": [
-        {
-          "name": "id",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "any",
+      "returnType": "LogCommitResult",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -425,22 +284,16 @@ const metadata: ServiceMetadata = {
       "isAsyncIterable": false
     },
     {
-      "name": "listTasks",
+      "name": "executionTree",
       "parameters": [
         {
-          "name": "executionId",
-          "type": "string | any",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "params",
-          "type": "PaginationParams",
+          "name": "id",
+          "type": "string",
           "optional": false,
           "isArray": false
         }
       ],
-      "returnType": "PaginatedResult<Task>",
+      "returnType": "ExecutionTree",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -448,15 +301,7 @@ const metadata: ServiceMetadata = {
     {
       "name": "stats",
       "parameters": [],
-      "returnType": "any",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "listVars",
-      "parameters": [],
-      "returnType": "any",
+      "returnType": "DagStats",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -556,9 +401,14 @@ const metadata: ServiceMetadata = {
       "definition": "\"running\" | \"done\" | \"failed\""
     },
     {
-      "name": "TaskState",
+      "name": "NodeState",
       "kind": "type",
-      "definition": "\"queued\" | \"processing\" | \"done\" | \"failed\""
+      "definition": "\"running\" | \"done\" | \"failed\""
+    },
+    {
+      "name": "NodeKind",
+      "kind": "type",
+      "definition": "\"node\" | \"sub\""
     },
     {
       "name": "PaginationParams",
@@ -592,39 +442,9 @@ const metadata: ServiceMetadata = {
       "definition": "{\n\titems: T[];\n\ttotalCount?: number;\n}"
     },
     {
-      "name": "Execution",
-      "kind": "type",
-      "definition": "{\n\tid: string;\n\tworkflowName: string;\n\tstatus: ExecutionStatus;\n\tstartedAt: number;\n\tupdatedAt: number;\n\tcreatedAt: number;\n}"
-    },
-    {
-      "name": "Task",
-      "kind": "type",
-      "definition": "{\n\tid: number;\n\texecutionId: string;\n\tnodeId: string;\n\tstate: TaskState;\n\tstartedAt: number | null;\n\tcompletedAt: number | null;\n\terrorMessage: string | null;\n\tretryCount: number;\n\tcreatedAt: number;\n\tdata?: any;\n\tresult?: any;\n}"
-    },
-    {
-      "name": "ExecutionEventType",
-      "kind": "type",
-      "definition": "| \"started\"\n\t| \"task_update\"\n\t| \"completed\"\n\t| \"failed\""
-    },
-    {
-      "name": "ExecutionEvent",
-      "kind": "type",
-      "definition": "{\n\ttype: ExecutionEventType;\n\texecutionId: string;\n\ttask?: Task;\n\terror?: string;\n}"
-    },
-    {
-      "name": "ExecutionResult",
-      "kind": "type",
-      "definition": "{\n\tid: string;\n}"
-    },
-    {
       "name": "AvailableWorkflow",
       "kind": "type",
       "definition": "{\n\tid: string;\n\tname: string;\n\tscript: string;\n\tbrief?: string;\n\tdescription?: string;\n\tparameters?: {\n\t\ttype: \"object\";\n\t\tproperties: Record<string, unknown>;\n\t\trequired?: string[];\n\t};\n\t/** Internal Ptah-proxy URL for the runtime; UI clients must ignore it. */\n\tsourceUrl?: string;\n}"
-    },
-    {
-      "name": "DagVariable",
-      "kind": "type",
-      "definition": "{ key: string; value: unknown }"
     },
     {
       "name": "WorkflowTrigger",
@@ -642,14 +462,49 @@ const metadata: ServiceMetadata = {
       "definition": "{\n\tname?: string;\n\ttopic?: string;\n\tscript?: string;\n\tparams?: Record<string, unknown>;\n\tenabled?: boolean;\n}"
     },
     {
-      "name": "ResumeExecutionsResult",
+      "name": "Execution",
       "kind": "type",
-      "definition": "{\n\tresumed: number;\n\tskipped: number;\n\tfailed: number;\n\tids: string[];\n}"
+      "definition": "{\n\tid: string;\n\tworkflow: string;\n\tstatus: ExecutionStatus;\n\tparams?: any;\n\tstartedAt: number;\n\tendedAt: number | null;\n\terror?: string;\n\t/** Set when `rt.sub` in another run opened this one. */\n\tparentExecutionId?: string;\n\t/** The node in the parent run that delegated here. */\n\tparentNode?: string;\n}"
     },
     {
-      "name": "TaskTicket",
+      "name": "ExecutionNode",
       "kind": "type",
-      "definition": "{\n\tid: number;\n\tcreatedAt: number;\n}"
+      "definition": "{\n\t/** Order of opening within the run. Monotonic, assigned by this service. */\n\tseq: number;\n\tnode: string;\n\tkind: NodeKind;\n\tstate: NodeState;\n\tstartedAt: number;\n\tendedAt: number | null;\n\tinput?: any;\n\tresult?: any;\n\terror?: string;\n\t/** Set on a `sub` node: the run the delegation opened. */\n\tchildExecutionId?: string;\n}"
+    },
+    {
+      "name": "ExecutionLogEntry",
+      "kind": "type",
+      "definition": "Execution"
+    },
+    {
+      "name": "ExecutionTreeRow",
+      "kind": "type",
+      "definition": "ExecutionNode & {\n\tdepth: number;\n\t/** The run this node belongs to — the root's id, or a delegated child's. */\n\texecutionId: string;\n}"
+    },
+    {
+      "name": "ExecutionTree",
+      "kind": "type",
+      "definition": "{\n\texecution: Execution;\n\trows: ExecutionTreeRow[];\n\t/** Every run in the tree, the root first, for headers and timings. */\n\texecutions: Execution[];\n}"
+    },
+    {
+      "name": "LogCommitResult",
+      "kind": "type",
+      "definition": "{\n\tcommitted: string[];\n\tfailed: string[];\n}"
+    },
+    {
+      "name": "DagVariable",
+      "kind": "type",
+      "definition": "{ key: string; value: unknown }"
+    },
+    {
+      "name": "DagStatsPoint",
+      "kind": "type",
+      "definition": "{\n\tdate: string;\n\ttotal: number;\n\tdone: number;\n\tfailed: number;\n}"
+    },
+    {
+      "name": "DagStats",
+      "kind": "type",
+      "definition": "{\n\texecutions: {\n\t\ttotal: number;\n\t\trunning: number;\n\t\tdone: number;\n\t\tfailed: number;\n\t};\n\tdaily: DagStatsPoint[];\n\tbyWorkflow: Record<string, number>;\n}"
     }
   ]
 };
@@ -657,22 +512,16 @@ const metadata: ServiceMetadata = {
 // RT client interface — synchronous (one QuickJS evaluation per workflow run).
 export interface DagServiceRtClient {
   listAvailableWorkflows(): any;
+  listWorkflows(params: PaginationParams): PaginatedResult<AvailableWorkflow>;
+  listTriggers(params: PaginationParams): PaginatedResult<WorkflowTrigger>;
+  activeTriggers(): any;
   createTrigger(input: WorkflowTriggerInput): any;
   updateTrigger(id: string, updates: WorkflowTriggerUpdate): WorkflowTrigger | any;
   deleteTrigger(id: string): boolean;
-  listTriggers(params: PaginationParams): PaginatedResult<WorkflowTrigger>;
-  activeTriggers(): any;
-  listWorkflows(params: PaginationParams): PaginatedResult<AvailableWorkflow>;
-  openExecution(id: string, workflowName: string, params: Record<string, any>): void;
-  setExecutionStatus(id: string, status: ExecutionStatus): void;
-  createTask(executionId: string, nodeId: string, startedAt?: number, input?: any): TaskTicket;
-  setTaskDone(taskId: number, executionId: string, nodeId: string, completedAt: number, result: any): void;
-  setTaskFailed(taskId: number, completedAt: number, errorMessage: string, executionId?: string, nodeId?: string): void;
-  statusExecution(id: string): any;
+  commitLog(keys: string[]): LogCommitResult;
   listExecutions(params: PaginationParams): PaginatedResult<Execution>;
-  listTasks(executionId: string | any, params: PaginationParams): PaginatedResult<Task>;
-  stats(): any;
-  listVars(): any;
+  executionTree(id: string): ExecutionTree;
+  stats(): DagStats;
   listVariables(params: PaginationParams): PaginatedResult<DagVariable>;
   setVar(key: string, value: any): void;
   deleteVar(key: string): void;

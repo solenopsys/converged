@@ -1,22 +1,44 @@
-import { createJsonFilterAdapter } from "back-core";
+import {
+	createJsonFilterAdapter,
+	createServerNrpcClientConfig,
+} from "back-core";
+import { createBusServiceClient } from "g-bus";
 import type {
 	AvailableWorkflow,
 	DagService,
+	DagStats,
+	DagStatsPoint,
 	DagVariable,
 	Execution,
+	ExecutionStatus,
+	ExecutionTree,
+	ExecutionTreeRow,
 	FilterObject,
+	LogCommitResult,
 	PaginatedResult,
 	PaginationParams,
 	SelectionDescriptor,
 	SelectionStats,
-	Task,
-	TaskTicket,
 	WorkflowTrigger,
 	WorkflowTriggerInput,
 	WorkflowTriggerUpdate,
 } from "g-dag";
 import { Access } from "nrpc";
 import { StoresController } from "./store";
+import { SEQ_WIDTH } from "./store/processing";
+
+/**
+ * The topic the runtime listens on to learn its trigger set changed. Publishing
+ * it is what makes a new trigger take effect at once instead of on the
+ * runtime's next scheduled refresh.
+ */
+const TRIGGERS_CHANGED_TOPIC = "dag.triggers.changed";
+
+/** Prefix of every cache key the runtime is allowed to commit from. */
+const LOG_KEY_PREFIX = "dag:log:";
+
+/** How deep `executionTree` follows `rt.sub` before it stops descending. */
+const MAX_TREE_DEPTH = 8;
 
 const workflowFilters = createJsonFilterAdapter<AvailableWorkflow>({
 	id: {
@@ -31,6 +53,39 @@ const workflowFilters = createJsonFilterAdapter<AvailableWorkflow>({
 		valueType: "string",
 		operators: ["eq", "in", "contains", "startsWith"],
 	},
+});
+
+const executionFilters = createJsonFilterAdapter<Execution>({
+	id: {
+		valueType: "string",
+		operators: ["eq", "in", "contains", "startsWith"],
+	},
+	workflow: {
+		valueType: "string",
+		operators: ["eq", "in", "notEq", "notIn", "contains"],
+	},
+	status: { valueType: "string", operators: ["eq", "in", "notEq", "notIn"] },
+	startedAt: {
+		valueType: "number",
+		operators: ["gt", "gte", "lt", "lte", "between"],
+	},
+});
+
+const triggerFilters = createJsonFilterAdapter<WorkflowTrigger>({
+	id: { valueType: "string", operators: ["eq", "in"] },
+	name: {
+		valueType: "string",
+		operators: ["eq", "in", "contains", "startsWith"],
+	},
+	topic: {
+		valueType: "string",
+		operators: ["eq", "in", "contains", "startsWith"],
+	},
+	script: {
+		valueType: "string",
+		operators: ["eq", "in", "contains", "startsWith"],
+	},
+	enabled: { valueType: "boolean", operators: ["eq", "notEq"] },
 });
 
 const variableFilters = createJsonFilterAdapter<DagVariable>({
@@ -52,10 +107,26 @@ export default class DagServiceImpl implements DagService {
 		});
 	}
 
-	private async ensureStoresReady(): Promise<void> {
+	private async ready(): Promise<void> {
 		await this.storesReady;
 	}
 
+	private get log() {
+		return this.stores.processingStoreService;
+	}
+
+	private get triggers() {
+		return this.stores.triggersStoreService;
+	}
+
+	// ---- catalogue -----------------------------------------------------------
+
+	/**
+	 * The active Solution's workflow descriptors, as Ptah left them in this
+	 * service's environment. Nothing here is stored: the catalogue belongs to
+	 * the Solution, and this service only republishes it in the shape the
+	 * runtime and the UI read.
+	 */
 	@Access("public")
 	async listAvailableWorkflows(): Promise<{ items: AvailableWorkflow[] }> {
 		const raw = process.env.WORKFLOWS ?? "[]";
@@ -70,6 +141,7 @@ export default class DagServiceImpl implements DagService {
 		}
 		if (!Array.isArray(parsed))
 			throw new Error("[rp-dag] WORKFLOWS must be an array");
+
 		return {
 			items: parsed.flatMap((value): AvailableWorkflow[] => {
 				if (!value || typeof value !== "object") return [];
@@ -107,230 +179,20 @@ export default class DagServiceImpl implements DagService {
 	async listWorkflows(
 		params: PaginationParams,
 	): Promise<PaginatedResult<AvailableWorkflow>> {
-		const workflows = (await this.listAvailableWorkflows()).items.filter(
+		const items = (await this.listAvailableWorkflows()).items.filter(
 			workflowFilters.predicate(params.filter),
 		);
-		const offset = params.offset ?? 0;
-		const limit = params.limit ?? 50;
-		return {
-			items: workflows.slice(offset, offset + limit),
-			totalCount: workflows.length,
-		};
+		return page(items, params);
 	}
 
-	async openExecution(
-		id: string,
-		workflowName: string,
-		params: Record<string, any>,
-	): Promise<void> {
-		await this.ensureStoresReady();
-		await this.stores.statsStoreService.ensureProcess({
-			id,
-			workflowId: workflowName,
-			status: "running",
-		});
-		this.stores.processingStoreService.saveExecutionContext(workflowName, id, {
-			workflowName,
-			params,
-		});
-		this.stores.processingStoreService.setStatus(id, "running");
-	}
-
-	async setExecutionStatus(
-		id: string,
-		status: "running" | "done" | "failed",
-	): Promise<void> {
-		await this.ensureStoresReady();
-		await this.stores.statsStoreService.updateProcess(id, {
-			status: status as any,
-			updated_at: Date.now(),
-		} as any);
-		this.stores.processingStoreService.setStatus(id, status);
-	}
-
-	/** Opening a node is where its input is known, so the record is written here
-	 *  and `setTaskDone` only fills in the result. A node that fails keeps the
-	 *  record it got at open time. */
-	async createTask(
-		executionId: string,
-		nodeId: string,
-		startedAt?: number,
-		input?: any,
-	): Promise<TaskTicket> {
-		await this.ensureStoresReady();
-		const recordId = `${executionId}:${nodeId}`;
-		const kv = this.stores.processingStoreService;
-		kv.setRecord(recordId, { data: input ?? null, result: null });
-		kv.setStep(executionId, nodeId, recordId);
-		const row = await this.stores.statsStoreService.createNode({
-			processId: executionId,
-			nodeId,
-			state: "processing",
-			startedAt: startedAt ?? Date.now(),
-			recordId,
-		});
-
-		return {
-			id: row.id,
-			createdAt: (row as any).created_at ?? Date.now(),
-		};
-	}
-
-	async setTaskDone(
-		taskId: number,
-		executionId: string,
-		nodeId: string,
-		completedAt: number,
-		result: any,
-	): Promise<void> {
-		await this.ensureStoresReady();
-		const kv = this.stores.processingStoreService;
-		const recordId = `${executionId}:${nodeId}`;
-		// keep whatever createTask recorded as the node's input
-		const data = kv.getRecord(recordId)?.data ?? null;
-		kv.setRecord(recordId, { data, result });
-		kv.setStep(executionId, nodeId, recordId);
-		await this.stores.statsStoreService.updateNode(taskId, {
-			state: "done",
-			completed_at: completedAt,
-			record_id: recordId,
-		} as any);
-	}
-
-	async setTaskFailed(
-		taskId: number,
-		completedAt: number,
-		errorMessage: string,
-		executionId?: string,
-		nodeId?: string,
-	): Promise<void> {
-		await this.ensureStoresReady();
-		const recordId =
-			executionId && nodeId ? `${executionId}:${nodeId}` : undefined;
-		await this.stores.statsStoreService.updateNode(taskId, {
-			state: "failed",
-			error_message: errorMessage,
-			completed_at: completedAt,
-			...(recordId ? { record_id: recordId } : {}),
-		} as any);
-	}
-
-	async statusExecution(
-		id: string,
-	): Promise<{ execution: Execution; tasks: Task[] }> {
-		await this.ensureStoresReady();
-		const process = await this.stores.statsStoreService.getProcess(id);
-		if (!process) {
-			throw Object.assign(new Error("Execution not found"), {
-				statusCode: 404,
-			});
-		}
-
-		const kv = this.stores.processingStoreService;
-		const tasksResult = await this.stores.statsStoreService.listNodes({
-			offset: 0,
-			limit: 100,
-			processId: id,
-		} as any);
-
-		return {
-			execution: {
-				id: process.id,
-				workflowName:
-					(process as any).workflow_id ?? (process as any).workflowId ?? "",
-				status: process.status as any,
-				startedAt:
-					(process as any).started_at ?? (process as any).startedAt ?? 0,
-				updatedAt:
-					(process as any).updated_at ?? (process as any).updatedAt ?? 0,
-				createdAt:
-					(process as any).created_at ?? (process as any).createdAt ?? 0,
-			},
-			tasks: tasksResult.items.map((task) => {
-				const record = task.recordId ? kv.getRecord(task.recordId) : undefined;
-				return {
-					id: task.id,
-					executionId: task.processId,
-					nodeId: task.nodeId,
-					state: task.state as any,
-					startedAt: task.startedAt ?? null,
-					completedAt: task.completedAt ?? null,
-					errorMessage: task.errorMessage ?? null,
-					retryCount: task.retryCount,
-					createdAt: task.createdAt ?? 0,
-					data: record?.data,
-					result: record?.result,
-				};
-			}),
-		};
-	}
-
-	async listExecutions(
-		params: PaginationParams,
-	): Promise<PaginatedResult<Execution>> {
-		await this.ensureStoresReady();
-		const result = await this.stores.statsStoreService.listProcesses(
-			params as any,
-		);
-		return {
-			items: result.items.map((process) => ({
-				id: process.id,
-				workflowName: process.workflowId ?? "",
-				status: process.status as any,
-				startedAt: process.startedAt ?? 0,
-				updatedAt: process.updatedAt ?? 0,
-				createdAt: process.createdAt ?? 0,
-			})),
-			totalCount: result.totalCount,
-		};
-	}
-
-	async listTasks(
-		executionId: string | null,
-		params: PaginationParams,
-	): Promise<PaginatedResult<Task>> {
-		await this.ensureStoresReady();
-		const filter = executionId ? { ...params, processId: executionId } : params;
-		const result = await this.stores.statsStoreService.listNodes(filter as any);
-		return {
-			items: result.items.map((task) => ({
-				id: task.id,
-				executionId: task.processId,
-				nodeId: task.nodeId,
-				state: task.state as any,
-				startedAt: task.startedAt ?? null,
-				completedAt: task.completedAt ?? null,
-				errorMessage: task.errorMessage ?? null,
-				retryCount: task.retryCount,
-				createdAt: task.createdAt ?? 0,
-			})),
-			totalCount: result.totalCount,
-		};
-	}
-
-	async stats() {
-		await this.ensureStoresReady();
-		const [executions, tasks, executionsDaily, executionsTypes, nodesDaily] =
-			await Promise.all([
-				this.stores.statsStoreService.getProcessStats(),
-				this.stores.statsStoreService.getNodeStats(),
-				this.stores.statsStoreService.getProcessDailyStats({ days: 30 }),
-				this.stores.statsStoreService.getProcessTypeStats(),
-				this.stores.statsStoreService.getNodeDailyStats({ days: 30 }),
-			]);
-		return { executions, tasks, executionsDaily, executionsTypes, nodesDaily };
-	}
+	// ---- triggers ------------------------------------------------------------
 
 	async createTrigger(input: WorkflowTriggerInput): Promise<{ id: string }> {
-		await this.ensureStoresReady();
-		if (!input?.name?.trim() || !input?.topic?.trim() || !input?.script?.trim()) {
-			const error = new Error("name, topic and script are required") as Error & {
-				statusCode?: number;
-			};
-			error.statusCode = 400;
-			throw error;
-		}
-		const trigger = await this.stores.triggersStoreService.create(input);
+		await this.ready();
+		if (!input?.name?.trim() || !input?.topic?.trim() || !input?.script?.trim())
+			throw badRequest("name, topic and script are required");
+		const trigger = await this.triggers.create(input);
+		this.announceTriggers();
 		return { id: trigger.id };
 	}
 
@@ -338,142 +200,189 @@ export default class DagServiceImpl implements DagService {
 		id: string,
 		updates: WorkflowTriggerUpdate,
 	): Promise<WorkflowTrigger | null> {
-		await this.ensureStoresReady();
-		return this.stores.triggersStoreService.update(id, updates);
+		await this.ready();
+		const updated = await this.triggers.update(id, updates);
+		if (updated) this.announceTriggers();
+		return updated;
 	}
 
 	async deleteTrigger(id: string): Promise<boolean> {
-		await this.ensureStoresReady();
-		return this.stores.triggersStoreService.delete(id);
+		await this.ready();
+		const deleted = await this.triggers.delete(id);
+		if (deleted) this.announceTriggers();
+		return deleted;
 	}
 
 	async listTriggers(
 		params: PaginationParams,
 	): Promise<PaginatedResult<WorkflowTrigger>> {
-		await this.ensureStoresReady();
-		const all = await this.stores.triggersStoreService.listAll();
-		const offset = params.offset ?? 0;
-		const limit = params.limit ?? 50;
-		return {
-			items: all.slice(offset, offset + limit),
-			totalCount: all.length,
-		};
+		await this.ready();
+		const all = (await this.triggers.listAll()).filter(
+			triggerFilters.predicate(params.filter),
+		);
+		return page(all, params);
 	}
 
 	/**
-	 * What Centimanus pulls to build its subscription set. Disabled triggers are
-	 * filtered here rather than in the runtime, so switching one off takes
+	 * What the runtime pulls to build its subscription set. Disabled triggers
+	 * are filtered here rather than in the runtime, so switching one off takes
 	 * effect on the next refresh without a redeploy.
 	 */
 	async activeTriggers(): Promise<{ items: WorkflowTrigger[] }> {
-		await this.ensureStoresReady();
-		const all = await this.stores.triggersStoreService.listAll();
+		await this.ready();
+		const all = await this.triggers.listAll();
 		return { items: all.filter((trigger) => trigger.enabled) };
 	}
 
-	async listVars(): Promise<{ items: { key: string; value: any }[] }> {
-		await this.ensureStoresReady();
-		const items = this.stores.processingStoreService.listVars();
-		return { items };
+	/**
+	 * Tell the bus the trigger set moved. The runtime subscribes to this topic
+	 * like any other peer, so its own configuration reaches it the same way its
+	 * work does — and a new trigger fires on the next event instead of waiting
+	 * out a polling interval.
+	 *
+	 * Best effort on purpose: a bus that is down must not fail an operator's
+	 * edit. The runtime's periodic refresh is the backstop.
+	 */
+	private announceTriggers(): void {
+		createBusServiceClient(createServerNrpcClientConfig())
+			.publish({ name: TRIGGERS_CHANGED_TOPIC, payload: {} })
+			.catch((error) =>
+				console.warn("[rp-dag] trigger change not announced", error),
+			);
 	}
+
+	// ---- execution log -------------------------------------------------------
+
+	/**
+	 * Commit entries the runtime already cached, by name.
+	 *
+	 * Storage reads each cache entry and writes it to the store itself, so a
+	 * batch costs this process one call per key and no payload at all. Keys are
+	 * derived from the run and the node's sequence, so a repeat is a rewrite —
+	 * which is what lets the runtime re-send a batch it is unsure about after a
+	 * crash instead of reasoning about what got through.
+	 *
+	 * A key that fails is reported rather than thrown: one expired cache entry
+	 * must not cost the batch the entries around it.
+	 */
+	async commitLog(keys: string[]): Promise<LogCommitResult> {
+		await this.ready();
+		const committed: string[] = [];
+		const failed: string[] = [];
+
+		for (const key of keys ?? []) {
+			const target = storeKeyFor(key);
+			if (!target) {
+				failed.push(key);
+				continue;
+			}
+			try {
+				this.log.commit(target, key);
+				committed.push(key);
+			} catch (error) {
+				console.warn(`[rp-dag] log entry ${key} not committed`, error);
+				failed.push(key);
+			}
+		}
+
+		return { committed, failed };
+	}
+
+	// ---- reading -------------------------------------------------------------
+
+	async listExecutions(
+		params: PaginationParams,
+	): Promise<PaginatedResult<Execution>> {
+		await this.ready();
+		const items = this.log
+			.listExecutions()
+			.filter(executionFilters.predicate(params.filter));
+		return page(items, params);
+	}
+
+	/**
+	 * One run flattened depth-first: each node in the order it opened, and
+	 * immediately after a delegating node the nodes of the run it delegated to.
+	 * The link is the node's own `childExecutionId`, so the walk needs no index
+	 * and a child that was never recorded simply ends that branch.
+	 */
+	async executionTree(id: string): Promise<ExecutionTree> {
+		await this.ready();
+		const execution = this.log.getExecution(id);
+		if (!execution) throw notFound(`Execution ${id} not found`);
+
+		const rows: ExecutionTreeRow[] = [];
+		const executions: Execution[] = [execution];
+		// A malformed childExecutionId cycle would otherwise walk forever.
+		const seen = new Set<string>([id]);
+
+		const walk = (executionId: string, depth: number): void => {
+			for (const node of this.log.listNodes(executionId)) {
+				rows.push({ ...node, depth, executionId });
+				const childId = node.childExecutionId;
+				if (!childId || depth >= MAX_TREE_DEPTH || seen.has(childId)) continue;
+				seen.add(childId);
+				const child = this.log.getExecution(childId);
+				if (child) executions.push(child);
+				walk(childId, depth + 1);
+			}
+		};
+		walk(id, 0);
+
+		return { execution, rows, executions };
+	}
+
+	async stats(): Promise<DagStats> {
+		await this.ready();
+		const all = this.log.listExecutions();
+
+		const executions = {
+			total: all.length,
+			running: all.filter((item) => item.status === "running").length,
+			done: all.filter((item) => item.status === "done").length,
+			failed: all.filter((item) => item.status === "failed").length,
+		};
+
+		const byWorkflow: Record<string, number> = {};
+		for (const item of all)
+			byWorkflow[item.workflow] = (byWorkflow[item.workflow] ?? 0) + 1;
+
+		return { executions, daily: daily(all, 30), byWorkflow };
+	}
+
+	// ---- variables -----------------------------------------------------------
 
 	async listVariables(
 		params: PaginationParams,
 	): Promise<PaginatedResult<DagVariable>> {
-		await this.ensureStoresReady();
-		const items = this.stores.processingStoreService
+		await this.ready();
+		const items = this.log
 			.listVars()
 			.filter(variableFilters.predicate(params.filter));
-		const offset = params.offset ?? 0;
-		const limit = params.limit ?? 50;
-		return {
-			items: items.slice(offset, offset + limit),
-			totalCount: items.length,
-		};
+		return page(items, params);
 	}
 
 	async setVar(key: string, value: any): Promise<void> {
-		await this.ensureStoresReady();
-		this.stores.processingStoreService.set(key, value);
+		await this.ready();
+		this.log.setVar(key, value);
 	}
 
 	async deleteVar(key: string): Promise<void> {
-		await this.ensureStoresReady();
-		this.stores.processingStoreService.delete(key);
+		await this.ready();
+		this.log.deleteVar(key);
 	}
 
+	// ---- selection -----------------------------------------------------------
+
 	async describeSelection(objectType: string): Promise<SelectionDescriptor> {
-		const fields = {
-			"dag.workflow": [
-				{
-					id: "name",
-					label: "Workflow",
-					valueType: "string" as const,
-					operators: ["eq", "in", "contains", "startsWith"],
-				},
-				{
-					id: "script",
-					label: "Script",
-					valueType: "string" as const,
-					operators: ["eq", "in", "contains", "startsWith"],
-				},
-			],
-			"dag.execution": [
-				{
-					id: "workflowName",
-					label: "Workflow",
-					valueType: "string" as const,
-					operators: ["eq", "in", "notEq", "notIn"],
-				},
-				{
-					id: "status",
-					label: "Status",
-					valueType: "enum" as const,
-					operators: ["eq", "in", "notEq", "notIn"],
-				},
-				{
-					id: "updatedAt",
-					label: "Updated",
-					valueType: "number" as const,
-					operators: ["gt", "gte", "lt", "lte", "between"],
-				},
-			],
-			"dag.task": [
-				{
-					id: "executionId",
-					label: "Execution",
-					valueType: "string" as const,
-					operators: ["eq", "in", "notEq", "notIn"],
-				},
-				{
-					id: "nodeId",
-					label: "Node",
-					valueType: "string" as const,
-					operators: ["eq", "in", "notEq", "notIn"],
-				},
-				{
-					id: "state",
-					label: "State",
-					valueType: "enum" as const,
-					operators: ["eq", "in", "notEq", "notIn"],
-				},
-			],
-			"dag.variable": [
-				{
-					id: "key",
-					label: "Key",
-					valueType: "string" as const,
-					operators: ["eq", "in", "contains", "startsWith"],
-				},
-			],
-		}[objectType];
+		const fields = SELECTION_FIELDS[objectType];
 		if (!fields)
 			throw new Error(`Unsupported DAG selection object: ${objectType}`);
 		return {
 			objectType,
 			title: objectType.replace("dag.", "DAG "),
 			fields,
-			revision: "dag-v1",
+			revision: "dag-v2",
 		};
 	}
 
@@ -481,36 +390,162 @@ export default class DagServiceImpl implements DagService {
 		objectType: string,
 		filter?: FilterObject,
 	): Promise<SelectionStats> {
-		if (objectType === "dag.workflow") {
-			return {
-				totalCount:
-					(await this.listWorkflows({ offset: 0, limit: 0, filter }))
-						.totalCount ?? 0,
-			};
+		const empty = { offset: 0, limit: 0, filter };
+		switch (objectType) {
+			case "dag.workflow":
+				return {
+					totalCount: (await this.listWorkflows(empty)).totalCount ?? 0,
+				};
+			case "dag.execution":
+				return {
+					totalCount: (await this.listExecutions(empty)).totalCount ?? 0,
+				};
+			case "dag.trigger":
+				return { totalCount: (await this.listTriggers(empty)).totalCount ?? 0 };
+			case "dag.variable":
+				return {
+					totalCount: (await this.listVariables(empty)).totalCount ?? 0,
+				};
+			default:
+				throw new Error(`Unsupported DAG selection object: ${objectType}`);
 		}
-		if (objectType === "dag.execution") {
-			return {
-				totalCount:
-					(await this.listExecutions({ offset: 0, limit: 0, filter }))
-						.totalCount ?? 0,
-			};
-		}
-		if (objectType === "dag.task") {
-			return {
-				totalCount:
-					(await this.listTasks(null, { offset: 0, limit: 0, filter }))
-						.totalCount ?? 0,
-			};
-		}
-		if (objectType === "dag.variable") {
-			return {
-				totalCount:
-					(await this.listVariables({ offset: 0, limit: 0, filter }))
-						.totalCount ?? 0,
-			};
-		}
-		throw new Error(`Unsupported DAG selection object: ${objectType}`);
 	}
+}
+
+const SELECTION_FIELDS: Record<
+	string,
+	SelectionDescriptor["fields"] | undefined
+> = {
+	"dag.workflow": [
+		{
+			id: "name",
+			label: "Workflow",
+			valueType: "string",
+			operators: ["eq", "in", "contains", "startsWith"],
+		},
+		{
+			id: "script",
+			label: "Script",
+			valueType: "string",
+			operators: ["eq", "in", "contains", "startsWith"],
+		},
+	],
+	"dag.execution": [
+		{
+			id: "workflow",
+			label: "Workflow",
+			valueType: "string",
+			operators: ["eq", "in", "notEq", "notIn"],
+		},
+		{
+			id: "status",
+			label: "Status",
+			valueType: "enum",
+			operators: ["eq", "in", "notEq", "notIn"],
+		},
+		{
+			id: "startedAt",
+			label: "Started",
+			valueType: "number",
+			operators: ["gt", "gte", "lt", "lte", "between"],
+		},
+	],
+	"dag.trigger": [
+		{
+			id: "name",
+			label: "Name",
+			valueType: "string",
+			operators: ["eq", "in", "contains", "startsWith"],
+		},
+		{
+			id: "topic",
+			label: "Topic",
+			valueType: "string",
+			operators: ["eq", "in", "contains", "startsWith"],
+		},
+		{
+			id: "enabled",
+			label: "Enabled",
+			valueType: "boolean",
+			operators: ["eq", "notEq"],
+		},
+	],
+	"dag.variable": [
+		{
+			id: "key",
+			label: "Key",
+			valueType: "string",
+			operators: ["eq", "in", "contains", "startsWith"],
+		},
+	],
+};
+
+function page<T>(items: T[], params: PaginationParams): PaginatedResult<T> {
+	const offset = params.offset ?? 0;
+	const limit = params.limit ?? 50;
+	return {
+		items: limit === 0 ? [] : items.slice(offset, offset + limit),
+		totalCount: items.length,
+	};
+}
+
+/** Runs per day over the trailing window, oldest day first. */
+function daily(executions: Execution[], days: number): DagStatsPoint[] {
+	const buckets = new Map<string, DagStatsPoint>();
+	const dayMs = 24 * 60 * 60 * 1000;
+	const today = new Date();
+	for (let back = days - 1; back >= 0; back -= 1) {
+		const date = new Date(today.getTime() - back * dayMs)
+			.toISOString()
+			.slice(0, 10);
+		buckets.set(date, { date, total: 0, done: 0, failed: 0 });
+	}
+	for (const execution of executions) {
+		const date = new Date(execution.startedAt).toISOString().slice(0, 10);
+		const bucket = buckets.get(date);
+		if (!bucket) continue;
+		bucket.total += 1;
+		if (execution.status === "done") bucket.done += 1;
+		if (execution.status === "failed") bucket.failed += 1;
+	}
+	return [...buckets.values()];
+}
+
+/**
+ * The store key a cache key stands for.
+ *
+ * The runtime composes `dag:log:<executionId>:exec` for a run and
+ * `dag:log:<executionId>:n:<seq>` for one of its nodes; those map onto the two
+ * prefixes this store keeps. Deriving the target here rather than taking it
+ * from the caller means a runtime cannot write outside the log by naming a key
+ * of its own choosing.
+ */
+function storeKeyFor(cacheKey: string): string[] | null {
+	if (!cacheKey?.startsWith(LOG_KEY_PREFIX)) return null;
+	const rest = cacheKey.slice(LOG_KEY_PREFIX.length);
+
+	if (rest.endsWith(":exec")) {
+		const executionId = rest.slice(0, -":exec".length);
+		return executionId ? ["exec", executionId] : null;
+	}
+
+	const marker = rest.lastIndexOf(":n:");
+	if (marker <= 0) return null;
+	const executionId = rest.slice(0, marker);
+	const seq = rest.slice(marker + ":n:".length);
+	// The sequence is already zero-padded by the runtime; it has to stay that
+	// way, because the store reads a run's nodes as an ordered key range.
+	if (!executionId || seq.length !== SEQ_WIDTH || !/^\d+$/.test(seq))
+		return null;
+	return ["node", executionId, seq];
+}
+
+function badRequest(message: string): Error {
+	return Object.assign(new Error(message), { statusCode: 400 });
+}
+
+function notFound(message: string): Error {
+	return Object.assign(new Error(message), { statusCode: 404 });
 }
 
 function asParameters(

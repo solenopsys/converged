@@ -1,187 +1,32 @@
 import { COLUMN_TYPES } from "front-core/table";
 
-export const nodesColumns = [
-	{
-		id: "name",
-		title: "Name",
-		type: COLUMN_TYPES.TEXT,
-		primary: true,
-		minWidth: 180,
-	},
-	{
-		id: "codeSource",
-		title: "Code source",
-		type: COLUMN_TYPES.TEXT,
-		minWidth: 180,
-	},
-	{ id: "provider", title: "Provider", type: COLUMN_TYPES.TEXT, minWidth: 140 },
-];
-
-export const providersColumns = [
-	{
-		id: "name",
-		title: "Name",
-		type: COLUMN_TYPES.TEXT,
-		primary: true,
-		minWidth: 180,
-	},
-	{
-		id: "codeSource",
-		title: "Code source",
-		type: COLUMN_TYPES.TEXT,
-		minWidth: 180,
-	},
-	{ id: "status", title: "Status", type: COLUMN_TYPES.STATUS, minWidth: 120 },
-];
-
 export const workflowsColumns = [
 	{
 		id: "name",
-		title: "Name",
-		type: COLUMN_TYPES.TEXT,
-		primary: true,
-		minWidth: 200,
-	},
-	{
-		id: "description",
-		title: "Description",
-		type: COLUMN_TYPES.TEXT,
-		minWidth: 260,
-	},
-	{ id: "version", title: "Version", type: COLUMN_TYPES.TEXT, minWidth: 100 },
-];
-
-export const contextsColumns = [
-	{
-		id: "id",
-		title: "ID",
-		type: COLUMN_TYPES.TEXT,
-		primary: true,
-		minWidth: 200,
-		width: 300,
-	},
-	{
-		id: "workflowName",
 		title: "Workflow",
 		type: COLUMN_TYPES.TEXT,
-		minWidth: 150,
-		width: 200,
-	},
-	{
-		id: "status",
-		title: "Status",
-		type: COLUMN_TYPES.STATUS,
-		minWidth: 100,
-		width: 120,
-	},
-	{
-		id: "startedAt",
-		title: "Started",
-		type: COLUMN_TYPES.DATE,
-		minWidth: 150,
-		width: 180,
-	},
-	{
-		id: "updatedAt",
-		title: "Updated",
-		type: COLUMN_TYPES.DATE,
-		minWidth: 150,
-		width: 180,
-	},
-];
-
-export const tasksColumns = [
-	{
-		id: "id",
-		title: "ID",
-		type: COLUMN_TYPES.TEXT,
-		primary: true,
-		minWidth: 80,
-		width: 100,
-	},
-	{
-		id: "nodeId",
-		title: "Node",
-		type: COLUMN_TYPES.TEXT,
-		minWidth: 150,
-		width: 200,
-	},
-	{
-		id: "state",
-		title: "State",
-		type: COLUMN_TYPES.STATUS,
-		minWidth: 100,
-		width: 120,
-		statusConfig: {
-			done: { label: "done", variant: "success" },
-			failed: { label: "failed", variant: "destructive" },
-			processing: { label: "processing", variant: "secondary" },
-			queued: { label: "queued", variant: "outline" },
-		},
-	},
-	{
-		id: "startedAt",
-		title: "Started",
-		type: COLUMN_TYPES.DATE,
-		minWidth: 150,
-		width: 180,
-	},
-	{
-		id: "completedAt",
-		title: "Completed",
-		type: COLUMN_TYPES.DATE,
-		minWidth: 150,
-		width: 180,
-	},
-	{
-		id: "retryCount",
-		title: "Retries",
-		type: COLUMN_TYPES.TEXT,
-		minWidth: 80,
-		width: 100,
-	},
-	{
-		id: "errorMessage",
-		title: "Error",
-		type: COLUMN_TYPES.TEXT,
-		minWidth: 200,
-		width: 300,
-	},
-];
-
-export const varsColumns = [
-	{
-		id: "key",
-		title: "Key",
-		type: COLUMN_TYPES.TEXT,
 		primary: true,
 		minWidth: 200,
-		width: 300,
 	},
-	{
-		id: "value",
-		title: "Value",
-		type: COLUMN_TYPES.TEXT,
-		minWidth: 200,
-		width: 400,
-	},
+	{ id: "script", title: "Script", type: COLUMN_TYPES.TEXT, minWidth: 240 },
+	{ id: "brief", title: "Brief", type: COLUMN_TYPES.TEXT, minWidth: 260 },
 ];
 
 export const executionsColumns = [
 	{
 		id: "id",
-		title: "ID",
+		title: "Run",
 		type: COLUMN_TYPES.TEXT,
 		primary: true,
 		minWidth: 200,
-		width: 300,
+		width: 260,
 	},
 	{
-		id: "workflowName",
+		id: "workflow",
 		title: "Workflow",
 		type: COLUMN_TYPES.TEXT,
-		minWidth: 150,
-		width: 200,
+		minWidth: 180,
+		width: 240,
 	},
 	{
 		id: "status",
@@ -203,10 +48,52 @@ export const executionsColumns = [
 		width: 180,
 	},
 	{
-		id: "updatedAt",
-		title: "Updated",
+		id: "endedAt",
+		title: "Ended",
 		type: COLUMN_TYPES.DATE,
 		minWidth: 150,
 		width: 180,
+	},
+	{ id: "error", title: "Error", type: COLUMN_TYPES.TEXT, minWidth: 200 },
+];
+
+export const triggersColumns = [
+	{
+		id: "name",
+		title: "Name",
+		type: COLUMN_TYPES.TEXT,
+		primary: true,
+		minWidth: 180,
+	},
+	{ id: "topic", title: "Topic", type: COLUMN_TYPES.TEXT, minWidth: 200 },
+	{ id: "script", title: "Workflow", type: COLUMN_TYPES.TEXT, minWidth: 200 },
+	{
+		id: "enabled",
+		title: "Enabled",
+		type: COLUMN_TYPES.STATUS,
+		minWidth: 100,
+		width: 120,
+		statusConfig: {
+			true: { label: "on", variant: "success" },
+			false: { label: "off", variant: "outline" },
+		},
+	},
+];
+
+export const varsColumns = [
+	{
+		id: "key",
+		title: "Key",
+		type: COLUMN_TYPES.TEXT,
+		primary: true,
+		minWidth: 200,
+		width: 300,
+	},
+	{
+		id: "value",
+		title: "Value",
+		type: COLUMN_TYPES.TEXT,
+		minWidth: 200,
+		width: 400,
 	},
 ];

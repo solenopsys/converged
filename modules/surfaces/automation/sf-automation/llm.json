@@ -1,30 +1,9 @@
 {
   "actions": {
-    "value": {
-      "brief": "Show vars list",
-      "description": "Show vars list",
-      "category": "value",
-      "exposure": "user",
-      "priority": "normal"
-    },
-    "dag.scripts.list": {
-      "brief": "Show scripts list",
-      "description": "Show scripts list",
-      "category": "dag",
-      "exposure": "user",
-      "priority": "normal"
-    },
     "workflows.show": {
       "brief": "Show workflows list",
-      "description": "Show workflows list",
+      "description": "List the workflows the active Solution publishes",
       "category": "workflows",
-      "exposure": "user",
-      "priority": "primary"
-    },
-    "workflow_form.show": {
-      "brief": "Show workflow form",
-      "description": "Show workflow form",
-      "category": "workflow_form",
       "exposure": "user",
       "priority": "primary"
     },
@@ -35,59 +14,45 @@
       "exposure": "user",
       "priority": "primary"
     },
+    "workflow.run": {
+      "brief": "Run a workflow",
+      "description": "Start a workflow by hand with JSON parameters",
+      "category": "workflows",
+      "exposure": "user",
+      "priority": "primary"
+    },
+    "executions.show_list": {
+      "brief": "Show runs list",
+      "description": "List workflow runs and their status",
+      "category": "executions",
+      "exposure": "user",
+      "priority": "primary"
+    },
+    "execution.tree.show": {
+      "brief": "Show a run's tree",
+      "description": "Show what a run did: every node, and the sub-workflows under it",
+      "category": "executions",
+      "exposure": "user",
+      "priority": "primary"
+    },
+    "triggers.show": {
+      "brief": "Show triggers list",
+      "description": "List the bus topics that start a workflow",
+      "category": "triggers",
+      "exposure": "user",
+      "priority": "primary"
+    },
+    "trigger_form.show": {
+      "brief": "Show trigger form",
+      "description": "Create or edit a bus trigger",
+      "category": "triggers",
+      "exposure": "user",
+      "priority": "normal"
+    },
     "workflows.statistic.show": {
       "brief": "Show workflows statistic",
       "description": "Show workflows statistic",
       "category": "workflows",
-      "exposure": "user",
-      "priority": "normal"
-    },
-    "show_context": {
-      "brief": "Show context",
-      "description": "Show context",
-      "category": "show_context",
-      "exposure": "user",
-      "priority": "normal"
-    },
-    "executions.show_list": {
-      "brief": "Show executions list",
-      "description": "Show executions list",
-      "category": "executions",
-      "exposure": "user",
-      "priority": "normal"
-    },
-    "var_form.show": {
-      "brief": "Show variable form",
-      "description": "Show variable form",
-      "category": "var_form",
-      "exposure": "user",
-      "priority": "primary"
-    },
-    "show_versions": {
-      "brief": "Show code versions",
-      "description": "Show code versions",
-      "category": "show_versions",
-      "exposure": "user",
-      "priority": "normal"
-    },
-    "get_versions": {
-      "brief": "Get code versions",
-      "description": "Get code versions",
-      "category": "get_versions",
-      "exposure": "llm",
-      "priority": "normal"
-    },
-    "tasks.show_list": {
-      "brief": "Show tasks list",
-      "description": "Show tasks list",
-      "category": "tasks",
-      "exposure": "user",
-      "priority": "normal"
-    },
-    "contexts.show_list": {
-      "brief": "Show contexts list",
-      "description": "Show contexts list",
-      "category": "contexts",
       "exposure": "user",
       "priority": "normal"
     },
@@ -98,47 +63,19 @@
       "exposure": "user",
       "priority": "normal"
     },
-    "providers.show": {
-      "brief": "Show providers list",
-      "description": "Show providers list",
-      "category": "providers",
-      "exposure": "user",
-      "priority": "primary"
-    },
-    "provider_form.show": {
-      "brief": "Show provider form",
-      "description": "Show provider form",
-      "category": "provider_form",
-      "exposure": "user",
-      "priority": "primary"
-    },
-    "show_lambda": {
-      "brief": "Show lambda",
-      "description": "Show lambda",
-      "category": "show_lambda",
-      "exposure": "user",
-      "priority": "normal"
-    },
-    "nodes.show": {
-      "brief": "Show nodes list",
-      "description": "Show nodes list",
-      "category": "nodes",
-      "exposure": "user",
-      "priority": "primary"
-    },
-    "node_form.show": {
-      "brief": "Show node form",
-      "description": "Show node form",
-      "category": "node_form",
-      "exposure": "user",
-      "priority": "primary"
-    },
     "vars.show_list": {
       "brief": "vars.show_list",
       "description": "Execute vars.show_list.",
       "category": "vars",
       "exposure": "llm",
       "priority": "normal"
+    },
+    "var_form.show": {
+      "brief": "Show variable form",
+      "description": "Show variable form",
+      "category": "var_form",
+      "exposure": "user",
+      "priority": "primary"
     },
     "sheduller.stats.show": {
       "brief": "Show sheduller statistics",

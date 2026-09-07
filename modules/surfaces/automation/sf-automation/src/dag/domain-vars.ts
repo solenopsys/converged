@@ -1,5 +1,5 @@
 import { sample } from "effector";
-import domain from "./domain";
+import domain from "./domain-stats";
 import dagService from "./service";
 
 export const openVarForm = domain.createEvent<{
@@ -16,9 +16,7 @@ export const updateVarFx = domain.createEffect<
 	{ key: string; value: any },
 	void
 >({
-	handler: async ({ key, value }) => {
-		await dagService.setVar(key, value);
-	},
+	handler: ({ key, value }) => dagService.setVar(key, value),
 });
 
 const loadVarDetailFx = domain.createEffect<

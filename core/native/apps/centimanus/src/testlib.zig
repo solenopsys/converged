@@ -144,6 +144,7 @@ fn mockTransport() vm.Transport {
         .llm = mockLlm,
         .run_workflow = mockRunWorkflow,
         .del = mockDel,
+        .on_node_open = mockOnNodeOpen,
         .on_node = mockOnNode,
         .now_ms = mockNowMs,
     };
@@ -155,16 +156,27 @@ fn mockNowMs(ctx: *anyopaque) i64 {
     return g_clock;
 }
 
+/// Hand the test the sequence the node would have been logged under. The mock
+/// keeps no log, so the number only has to be unique and monotonic per run —
+/// which is all the VM asks of it.
+/// The VM numbers its own nodes now; the mock only has to accept the call.
+fn mockOnNodeOpen(ctx: *anyopaque, a: std.mem.Allocator, exec_id: []const u8, node: []const u8, kind: []const u8, seq: u32, started_ms: i64) void {
+    _ = .{ ctx, a, exec_id, node, kind, seq, started_ms };
+}
+
 fn mockOnNode(ctx: *anyopaque, a: std.mem.Allocator, report: vm.NodeReport) void {
     _ = ctx;
     const sink = g_report orelse return;
-    const json = std.fmt.allocPrintSentinel(a, "{{\"execId\":{s},\"node\":{s},\"ok\":{},\"error\":{s},\"result\":{s},\"input\":{s},\"startedMs\":{d},\"completedMs\":{d}}}", .{
+    const json = std.fmt.allocPrintSentinel(a, "{{\"execId\":{s},\"seq\":{d},\"node\":{s},\"kind\":{s},\"ok\":{},\"error\":{s},\"result\":{s},\"input\":{s},\"childExecId\":{s},\"startedMs\":{d},\"completedMs\":{d}}}", .{
         vm.jsonStr(a, report.exec_id) catch return,
+        report.seq,
         vm.jsonStr(a, report.node) catch return,
+        vm.jsonStr(a, report.kind) catch return,
         report.ok,
         vm.jsonStr(a, report.err) catch return,
         report.result,
         report.input,
+        vm.jsonStr(a, report.child_exec_id) catch return,
         report.started_ms,
         report.completed_ms,
     }, 0) catch return;
@@ -174,18 +186,25 @@ fn mockOnNode(ctx: *anyopaque, a: std.mem.Allocator, report: vm.NodeReport) void
 /// Resolve the delegated workflow's source through the test, then run it on the
 /// real VM. Called while the parent is blocked in its host call, so this is a fresh top-level
 /// evaluation and never re-enters QuickJS.
-fn mockRunWorkflow(ctx: *anyopaque, a: std.mem.Allocator, script_path: []const u8, params_json: []const u8) anyerror!vm.Reply {
-    _ = ctx;
+fn mockRunWorkflow(
+    ctx: *anyopaque,
+    a: std.mem.Allocator,
+    script_path: []const u8,
+    params_json: []const u8,
+    parent_exec_id: []const u8,
+    parent_node: []const u8,
+) anyerror!vm.SubReply {
+    _ = .{ ctx, parent_exec_id, parent_node };
     const resolver = g_sub orelse
-        return .{ .ok = false, .status = 500, .body = try a.dupe(u8, "rt.sub: no workflow resolver registered") };
+        return .{ .ok = false, .body = try a.dupe(u8, "rt.sub: no workflow resolver registered"), .exec_id = "" };
     const sp = try a.dupeZ(u8, script_path);
     const ret = resolver(sp.ptr) orelse
-        return .{ .ok = false, .status = 500, .body = try std.fmt.allocPrint(a, "rt.sub: unknown workflow {s}", .{script_path}) };
+        return .{ .ok = false, .body = try std.fmt.allocPrint(a, "rt.sub: unknown workflow {s}", .{script_path}), .exec_id = "" };
 
     g_seq += 1;
     const child_id = try std.fmt.allocPrint(a, "test-{d}", .{g_seq});
     const result = try vm.run(a, c_allocator, mockTransport(), child_id, std.mem.span(ret), params_json);
-    return .{ .ok = result.ok, .status = if (result.ok) 200 else 500, .body = result.output };
+    return .{ .ok = result.ok, .body = result.output, .exec_id = child_id };
 }
 
 fn mockCall(ctx: *anyopaque, a: std.mem.Allocator, target: []const u8, service: []const u8, method: []const u8, body: []const u8) anyerror!vm.Reply {

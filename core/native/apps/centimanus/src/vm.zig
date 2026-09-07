@@ -22,6 +22,15 @@ pub const Reply = struct {
     body: []const u8,
 };
 
+/// Result of a delegated run. The child's own execution id travels back with
+/// its output: that is the link that turns the flat node log into a tree, and
+/// nothing else knows it — the parent never sees the child's `run`.
+pub const SubReply = struct {
+    ok: bool,
+    body: []const u8,
+    exec_id: []const u8,
+};
+
 /// Result of an `rt.llm` call: `body` is the uniform response JSON when ok,
 /// or a human-readable error line otherwise (surfaced to the script as-is).
 pub const LlmReply = struct {
@@ -41,6 +50,11 @@ pub const Transport = struct {
     get: *const fn (ctx: *anyopaque, a: std.mem.Allocator, key: []const u8) anyerror!?[]const u8,
     set: *const fn (ctx: *anyopaque, a: std.mem.Allocator, key: []const u8, value: []const u8) anyerror!void,
     log: *const fn (ctx: *anyopaque, msg: []const u8) void,
+    /// Called when a node opens, before its body runs, so a run in flight shows
+    /// the node it is sitting on rather than nothing at all. The sequence comes
+    /// from the VM: numbering a node is not worth a round trip, and a number
+    /// derived from the run makes the record idempotent to rewrite.
+    on_node_open: ?*const fn (ctx: *anyopaque, a: std.mem.Allocator, exec_id: []const u8, node: []const u8, kind: []const u8, seq: u32, started_ms: i64) void = null,
     on_node: ?*const fn (ctx: *anyopaque, a: std.mem.Allocator, report: NodeReport) void = null,
     /// Wall clock in milliseconds. The VM has no `std.Io`, so the host owns it.
     now_ms: ?*const fn (ctx: *anyopaque) i64 = null,
@@ -48,7 +62,7 @@ pub const Transport = struct {
     /// Runs another workflow to completion and returns its result as `body`.
     /// The child gets its own QuickJS runtime, so running it while the parent
     /// is blocked in a host call re-enters nothing.
-    run_workflow: ?*const fn (ctx: *anyopaque, a: std.mem.Allocator, script_path: []const u8, params_json: []const u8) anyerror!Reply = null,
+    run_workflow: ?*const fn (ctx: *anyopaque, a: std.mem.Allocator, script_path: []const u8, params_json: []const u8, parent_exec_id: []const u8, parent_node: []const u8) anyerror!SubReply = null,
     /// Drop a state key. Used to clear a finished run's node cache.
     del: ?*const fn (ctx: *anyopaque, a: std.mem.Allocator, key: []const u8) anyerror!void = null,
 };
@@ -58,11 +72,17 @@ pub const Transport = struct {
 /// so what it asked of the microservices is the only input there is.
 pub const NodeReport = struct {
     exec_id: []const u8,
+    /// The sequence this node opened under. Never 0 for a node that ran.
+    seq: u32,
     node: []const u8,
+    /// `"node"` for `rt.node`/`rt.attempt`, `"sub"` for a delegation.
+    kind: []const u8,
     ok: bool,
     err: []const u8,
     result: []const u8,
     input: []const u8,
+    /// The run a delegation opened; empty for a plain node.
+    child_exec_id: []const u8 = "",
     started_ms: i64,
     completed_ms: i64,
 };
@@ -171,6 +191,9 @@ const SubOutcome = struct {
     json: []const u8,
     ok: bool,
     err: []const u8,
+    /// The child's execution id, so the parent's node can point at it. Empty
+    /// when the delegation never got as far as opening a run.
+    child_exec_id: []const u8 = "",
 };
 
 /// Run the delegated workflow and shape its result the way runOrReplay stores a
@@ -181,17 +204,26 @@ fn runSub(
     transport: Transport,
     script_path: []const u8,
     params_json: []const u8,
+    parent_exec_id: []const u8,
+    parent_node: []const u8,
 ) !SubOutcome {
     const runner = transport.run_workflow orelse
         return failedSub(a, "rt.sub: no sub-workflow transport wired");
-    const reply = runner(transport.ctx, a, script_path, params_json) catch |e|
+    const reply = runner(transport.ctx, a, script_path, params_json, parent_exec_id, parent_node) catch |e|
         return failedSub(a, try std.fmt.allocPrint(a, "sub transport: {s}", .{@errorName(e)}));
-    if (!reply.ok) return failedSub(a, reply.body);
+    // A failed child still ran and still has a log of its own, so its id is
+    // kept either way: that is the only way to see why it failed.
+    if (!reply.ok) {
+        var outcome = try failedSub(a, reply.body);
+        outcome.child_exec_id = reply.exec_id;
+        return outcome;
+    }
     const value = if (reply.body.len == 0) "null" else reply.body;
     return .{
         .json = try std.fmt.allocPrint(a, "{{\"ok\":true,\"value\":{s}}}", .{value}),
         .ok = true,
         .err = "",
+        .child_exec_id = reply.exec_id,
     };
 }
 
@@ -233,6 +265,9 @@ const ExecContext = struct {
     /// one slot is enough.
     node_open: bool = false,
     node_started_ms: i64 = 0,
+    /// Nodes opened so far. The current node's sequence, and what makes its log
+    /// key unique within the run without asking anyone for a number.
+    node_seq: u32 = 0,
     /// Service calls made since the node opened, each already JSON.
     node_calls: std.ArrayListUnmanaged([]const u8) = .empty,
 };
@@ -353,8 +388,15 @@ fn dispatch(ctx: *ExecContext, request: []const u8) ![]u8 {
         t.log(t.ctx, msg);
         return cdupe("{\"ok\":true}");
     } else if (std.mem.eql(u8, op, "nodeBegin")) {
+        const node = getStr(obj, "node") orelse return cdupe("{\"ok\":false,\"error\":\"nodeBegin: missing node\"}");
+        const kind = getStr(obj, "kind") orelse "node";
         ctx.node_open = true;
         ctx.node_started_ms = nowMs(t);
+        ctx.node_seq += 1;
+        // Record the node now, not when it finishes: a node still waiting on a
+        // service is exactly the one worth being able to see.
+        if (t.on_node_open) |open|
+            open(t.ctx, a, ctx.exec_id, node, kind, ctx.node_seq, ctx.node_started_ms);
         resetNodeCalls(ctx);
         return cdupe("{\"ok\":true}");
     } else if (std.mem.eql(u8, op, "nodeGet")) {
@@ -374,7 +416,9 @@ fn dispatch(ctx: *ExecContext, request: []const u8) ![]u8 {
             const err_text = if (outcome) |o| (getStr(o, "error") orelse "") else "";
             hook(t.ctx, a, .{
                 .exec_id = ctx.exec_id,
+                .seq = ctx.node_seq,
                 .node = node,
+                .kind = "node",
                 .ok = node_ok,
                 .err = err_text,
                 .result = json,
@@ -397,17 +441,20 @@ fn dispatch(ctx: *ExecContext, request: []const u8) ![]u8 {
         const outcome = if (ctx.depth >= max_sub_depth)
             try failedSub(a, try std.fmt.allocPrint(a, "rt.sub: delegation deeper than {d}", .{max_sub_depth}))
         else
-            try runSub(a, t, script_path, child_params);
+            try runSub(a, t, script_path, child_params, ctx.exec_id, node);
         const key = try taskKey(a, ctx.exec_id, node);
         try t.set(t.ctx, a, key, outcome.json);
         try ctx.task_keys.append(ctx.run_alloc, try ctx.run_alloc.dupe(u8, key));
         if (t.on_node) |hook| hook(t.ctx, a, .{
             .exec_id = ctx.exec_id,
+            .seq = ctx.node_seq,
             .node = node,
+            .kind = "sub",
             .ok = outcome.ok,
             .err = outcome.err,
             .result = outcome.json,
             .input = child_params,
+            .child_exec_id = outcome.child_exec_id,
             .started_ms = ctx.node_started_ms,
             .completed_ms = nowMs(t),
         });

@@ -12,21 +12,23 @@ export function DagSummary() {
 		statsViewMounted();
 	}, []);
 
+	const runs = stats.executions;
+
 	const runsPerDay = useMemo(
 		() => (stats.daily ?? []).map((point) => Number(point.total ?? 0)),
 		[stats.daily],
 	);
-	const failedRate = useMemo(() => {
-		const total = Number(stats.total ?? 0);
-		return total ? Math.round((Number(stats.failed ?? 0) / total) * 100) : 0;
-	}, [stats.total, stats.failed]);
+	const failedRate = useMemo(
+		() => (runs.total ? Math.round((runs.failed / runs.total) * 100) : 0),
+		[runs.total, runs.failed],
+	);
 
 	return (
 		<StatisticSummary>
-			<SummaryMetric label="Runs" value={stats.total ?? 0} />
-			<SummaryMetric label="Running" value={stats.running ?? 0} />
-			<SummaryMetric label="Done" value={stats.done ?? 0} />
-			<SummaryMetric label="Failed" value={stats.failed ?? 0} />
+			<SummaryMetric label="Runs" value={runs.total} />
+			<SummaryMetric label="Running" value={runs.running} />
+			<SummaryMetric label="Done" value={runs.done} />
+			<SummaryMetric label="Failed" value={runs.failed} />
 			<SummaryMetric label="Failed rate" value={`${failedRate}%`} />
 			<Sparkline values={runsPerDay} label="Runs per day" className="ml-auto" />
 		</StatisticSummary>

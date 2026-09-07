@@ -1,5 +1,20 @@
+/**
+ * The DAG service owns two things and nothing else:
+ *
+ * 1. The triggers — "when this bus topic appears, run that workflow".
+ * 2. The execution log — a tree of what a run actually did.
+ *
+ * The workflow catalogue is not its own: Ptah puts the active Solution's
+ * descriptors into this service's environment and it republishes them. It
+ * executes nothing. Centimanus reads the catalogue and the triggers, runs the
+ * JavaScript, and reports back here while the script runs.
+ */
+
 export type ExecutionStatus = "running" | "done" | "failed";
-export type TaskState = "queued" | "processing" | "done" | "failed";
+export type NodeState = "running" | "done" | "failed";
+
+/** `node` is `rt.node`/`rt.attempt`; `sub` is a delegation to another workflow. */
+export type NodeKind = "node" | "sub";
 
 export type PaginationParams = {
 	offset: number;
@@ -8,12 +23,14 @@ export type PaginationParams = {
 };
 
 export type FilterObject = Record<string, unknown>;
+
 export type SelectionFieldDescriptor = {
 	id: string;
 	label: string;
 	valueType: "string" | "number" | "boolean" | "date" | "enum";
 	operators: string[];
 };
+
 export type SelectionDescriptor = {
 	objectType: string;
 	title: string;
@@ -21,6 +38,7 @@ export type SelectionDescriptor = {
 	filterExample?: FilterObject;
 	revision?: string;
 };
+
 export type SelectionStats = { totalCount: number };
 
 export type PaginatedResult<T> = {
@@ -28,45 +46,7 @@ export type PaginatedResult<T> = {
 	totalCount?: number;
 };
 
-export type Execution = {
-	id: string;
-	workflowName: string;
-	status: ExecutionStatus;
-	startedAt: number;
-	updatedAt: number;
-	createdAt: number;
-};
-
-export type Task = {
-	id: number;
-	executionId: string;
-	nodeId: string;
-	state: TaskState;
-	startedAt: number | null;
-	completedAt: number | null;
-	errorMessage: string | null;
-	retryCount: number;
-	createdAt: number;
-	data?: any;
-	result?: any;
-};
-
-export type ExecutionEventType =
-	| "started"
-	| "task_update"
-	| "completed"
-	| "failed";
-
-export type ExecutionEvent = {
-	type: ExecutionEventType;
-	executionId: string;
-	task?: Task;
-	error?: string;
-};
-
-export type ExecutionResult = {
-	id: string;
-};
+// ---- catalogue -------------------------------------------------------------
 
 /** A Solution-selected workflow. Source bytes remain behind Ptah-proxy. */
 export type AvailableWorkflow = {
@@ -84,15 +64,13 @@ export type AvailableWorkflow = {
 	sourceUrl?: string;
 };
 
-export type DagVariable = { key: string; value: unknown };
+// ---- triggers --------------------------------------------------------------
 
 /**
  * "When this topic appears on the bus, run that workflow."
  *
- * The topic is a bus pattern, so `order.paid.>` follows every order and
- * `order.paid.42` follows one. Triggers are system configuration: there are
- * tens of them, the runtime holds the whole set in memory and matches an
- * arriving event against it without touching storage.
+ * Triggers are system configuration: tens of rows, held whole in the runtime's
+ * memory, matched against an arriving event by a loop rather than a query.
  */
 export type WorkflowTrigger = {
 	id: string;
@@ -124,94 +102,155 @@ export type WorkflowTriggerUpdate = {
 	enabled?: boolean;
 };
 
-export type ResumeExecutionsResult = {
-	resumed: number;
-	skipped: number;
-	failed: number;
-	ids: string[];
+// ---- execution log ---------------------------------------------------------
+
+export type Execution = {
+	id: string;
+	workflow: string;
+	status: ExecutionStatus;
+	params?: any;
+	startedAt: number;
+	endedAt: number | null;
+	error?: string;
+	/** Set when `rt.sub` in another run opened this one. */
+	parentExecutionId?: string;
+	/** The node in the parent run that delegated here. */
+	parentNode?: string;
 };
 
-export type TaskTicket = {
-	id: number;
-	createdAt: number;
+/**
+ * One node of a run, as the runtime reported it.
+ *
+ * `input` is what the node was asked to do: for a plain node, the array of
+ * service calls it made — `rt.node(name, fn)` takes a closure, so the calls are
+ * the only input there is — and for a `sub`, the parameters the child got.
+ */
+export type ExecutionNode = {
+	/** Order of opening within the run. Monotonic, assigned by this service. */
+	seq: number;
+	node: string;
+	kind: NodeKind;
+	state: NodeState;
+	startedAt: number;
+	endedAt: number | null;
+	input?: any;
+	result?: any;
+	error?: string;
+	/** Set on a `sub` node: the run the delegation opened. */
+	childExecutionId?: string;
+};
+
+/**
+ * A cache entry the runtime wrote for a run. `commitLog` moves it into the
+ * store verbatim, so this is the shape that ends up there.
+ */
+export type ExecutionLogEntry = Execution;
+
+/**
+ * One row of the flattened tree. Depth-first, a parent immediately before the
+ * nodes of the run it delegated to, so a client renders the tree by indenting
+ * `depth` and nothing else.
+ */
+export type ExecutionTreeRow = ExecutionNode & {
+	depth: number;
+	/** The run this node belongs to — the root's id, or a delegated child's. */
+	executionId: string;
+};
+
+export type ExecutionTree = {
+	execution: Execution;
+	rows: ExecutionTreeRow[];
+	/** Every run in the tree, the root first, for headers and timings. */
+	executions: Execution[];
+};
+
+/**
+ * The result of committing a batch of log entries.
+ *
+ * `committed` is what actually landed. A key the runtime asked for but that is
+ * missing from the answer is one whose cache entry had already expired or was
+ * never written — the runtime drops it rather than retrying forever.
+ */
+export type LogCommitResult = {
+	committed: string[];
+	failed: string[];
+};
+
+// ---- variables -------------------------------------------------------------
+
+export type DagVariable = { key: string; value: unknown };
+
+// ---- statistics ------------------------------------------------------------
+
+export type DagStatsPoint = {
+	date: string;
+	total: number;
+	done: number;
+	failed: number;
+};
+
+export type DagStats = {
+	executions: {
+		total: number;
+		running: number;
+		done: number;
+		failed: number;
+	};
+	daily: DagStatsPoint[];
+	byWorkflow: Record<string, number>;
 };
 
 export interface DagService {
+	// ---- catalogue, republished from the Solution's environment ----
 	listAvailableWorkflows(): Promise<{ items: AvailableWorkflow[] }>;
+	listWorkflows(
+		params: PaginationParams,
+	): Promise<PaginatedResult<AvailableWorkflow>>;
+
+	// ---- triggers ----
+	listTriggers(
+		params: PaginationParams,
+	): Promise<PaginatedResult<WorkflowTrigger>>;
+	/** Enabled triggers only, for the runtime's own cache. */
+	activeTriggers(): Promise<{ items: WorkflowTrigger[] }>;
 	createTrigger(input: WorkflowTriggerInput): Promise<{ id: string }>;
 	updateTrigger(
 		id: string,
 		updates: WorkflowTriggerUpdate,
 	): Promise<WorkflowTrigger | null>;
 	deleteTrigger(id: string): Promise<boolean>;
-	listTriggers(params: PaginationParams): Promise<PaginatedResult<WorkflowTrigger>>;
-	/** Enabled triggers only, for the workflow runtime's own cache. */
-	activeTriggers(): Promise<{ items: WorkflowTrigger[] }>;
-	listWorkflows(params: PaginationParams): Promise<PaginatedResult<AvailableWorkflow>>;
-	openExecution(
-		id: string,
-		workflowName: string,
-		params: Record<string, any>,
-	): Promise<void>;
-	setExecutionStatus(id: string, status: ExecutionStatus): Promise<void>;
-	/** `startedAt` and `input` are what the runtime observed when the node
-	 *  opened: the wall clock, and the service calls the node went on to make.
-	 *  Both are optional so an older caller keeps working. */
-	createTask(
-		executionId: string,
-		nodeId: string,
-		startedAt?: number,
-		input?: any,
-	): Promise<TaskTicket>;
-	setTaskDone(
-		taskId: number,
-		executionId: string,
-		nodeId: string,
-		completedAt: number,
-		result: any,
-	): Promise<void>;
-	/** `executionId` and `nodeId` let a failed node keep its record, so the UI
-	 *  can still show what it was asked to do. */
-	setTaskFailed(
-		taskId: number,
-		completedAt: number,
-		errorMessage: string,
-		executionId?: string,
-		nodeId?: string,
-	): Promise<void>;
 
-	statusExecution(id: string): Promise<{
-		execution: Execution;
-		tasks: Task[];
-	}>;
+	// ---- execution log ----
+	/**
+	 * Commit log entries the runtime has already written to the cache.
+	 *
+	 * The runtime writes each entry to Valkey under a key it composes itself and
+	 * then hands over the keys — never the entries. Storage reads the cache and
+	 * writes the store directly, so a run's log costs the transport a few keys
+	 * per batch instead of two round trips per node.
+	 *
+	 * Keys are `dag:log:<executionId>:exec` for a run and
+	 * `dag:log:<executionId>:n:<seq>` for one of its nodes. They are derived
+	 * from the run and the node's sequence, so re-committing one is a rewrite
+	 * rather than a duplicate — which is what makes recovery after a crash safe
+	 * to repeat.
+	 */
+	commitLog(keys: string[]): Promise<LogCommitResult>;
 
+	// ---- reading ----
 	listExecutions(params: PaginationParams): Promise<PaginatedResult<Execution>>;
+	/** One run and everything under it, flattened depth-first. */
+	executionTree(id: string): Promise<ExecutionTree>;
+	stats(): Promise<DagStats>;
 
-	listTasks(
-		executionId: string | null,
-		params: PaginationParams,
-	): Promise<PaginatedResult<Task>>;
-
-	stats(): Promise<{
-		executions: {
-			total: number;
-			running: number;
-			done: number;
-			failed: number;
-		};
-		tasks: {
-			total: number;
-			queued: number;
-			processing: number;
-			done: number;
-			failed: number;
-		};
-	}>;
-
-	listVars(): Promise<{ items: { key: string; value: any }[] }>;
+	// ---- variables ----
 	listVariables(params: PaginationParams): Promise<PaginatedResult<DagVariable>>;
 	setVar(key: string, value: any): Promise<void>;
 	deleteVar(key: string): Promise<void>;
+
 	describeSelection(objectType: string): Promise<SelectionDescriptor>;
-	inspectSelection(objectType: string, filter?: FilterObject): Promise<SelectionStats>;
+	inspectSelection(
+		objectType: string,
+		filter?: FilterObject,
+	): Promise<SelectionStats>;
 }

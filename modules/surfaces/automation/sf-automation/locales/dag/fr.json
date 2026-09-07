@@ -1,11 +1,11 @@
 {
 	"menu": {
-		"dag": "Processus",
+		"dag": "Flux",
 		"workflows": "Flux",
-		"nodes": "Nœuds",
-		"providers": "Fournisseurs",
 		"executions": "Exécutions",
-		"tasks": "Tâches"
+		"triggers": "Déclencheurs",
+		"vars": "Variables",
+		"run": "Exécuter"
 	},
 	"cards": {
 		"workflows": {
@@ -30,14 +30,5 @@
 			"footerIconName": "IconPackage",
 			"footerDescription": "Processus en cours"
 		}
-	},
-	"versions": {
-		"loading": "Chargement des versions...",
-		"selectCode": "Selectionnez un code dans la liste",
-		"empty": "Aucune version disponible"
-	},
-	"dagViewer": {
-		"loading": "Chargement...",
-		"descriptionError": "Echec du chargement de la description"
 	}
 }

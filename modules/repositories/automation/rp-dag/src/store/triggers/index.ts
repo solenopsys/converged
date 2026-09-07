@@ -14,7 +14,10 @@ class TriggerKey extends BaseKeyJson {
 	readonly type = "trigger";
 }
 
-class TriggersRepository extends BaseRepositoryJson<TriggerKey, WorkflowTrigger> {}
+class TriggersRepository extends BaseRepositoryJson<
+	TriggerKey,
+	WorkflowTrigger
+> {}
 
 /**
  * Workflow triggers: "when this topic appears on the bus, run that workflow".

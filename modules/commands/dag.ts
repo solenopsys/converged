@@ -1,8 +1,3 @@
-import { createDagServiceClient, type DagServiceClient } from "g-dag/browser";
-import {
-	createCentimanusServiceClient,
-	type CentimanusServiceClient,
-} from "g-centimanus/browser";
 import {
 	BaseCommandProcessor,
 	type CommandEntry,
@@ -10,6 +5,11 @@ import {
 	printJson,
 } from "dag-cli/base";
 import { createCliNrpcClientConfig } from "dag-cli/ws";
+import {
+	type CentimanusServiceClient,
+	createCentimanusServiceClient,
+} from "g-centimanus/browser";
+import { createDagServiceClient, type DagServiceClient } from "g-dag/browser";
 
 type DagCommandClient = {
 	dag: DagServiceClient;
@@ -51,16 +51,18 @@ const runHandler: Handler = async (
 	printJson(result);
 };
 
-const statusHandler: Handler = async (
+/** The whole run as a tree: every node, and under a delegating node the nodes
+ *  of the run it delegated to. */
+const treeHandler: Handler = async (
 	client: DagCommandClient,
 	_splitter: string,
 	param?: string,
 ) => {
 	if (!param) {
-		console.error("Usage: dag status <executionId>");
+		console.error("Usage: dag tree <executionId>");
 		return;
 	}
-	printJson(await client.dag.statusExecution(param));
+	printJson(await client.dag.executionTree(param));
 };
 
 const listHandler: Handler = async (
@@ -77,23 +79,8 @@ const listHandler: Handler = async (
 	);
 };
 
-const tasksHandler: Handler = async (
-	client: DagCommandClient,
-	_splitter: string,
-	param?: string,
-) => {
-	if (!param) {
-		console.error("Usage: dag tasks <executionId> [limit]");
-		return;
-	}
-	const [executionId, limitText] = param.split(" ");
-	const limit = Number.parseInt(limitText ?? "20", 10);
-	printJson(
-		await client.dag.listTasks(executionId, {
-			offset: 0,
-			limit: Number.isFinite(limit) && limit > 0 ? limit : 20,
-		}),
-	);
+const triggersHandler: Handler = async (client: DagCommandClient) => {
+	printJson(await client.dag.listTriggers({ offset: 0, limit: 100 }));
 };
 
 const statsHandler: Handler = async (client: DagCommandClient) => {
@@ -107,14 +94,11 @@ class DagProcessor extends BaseCommandProcessor {
 				"run",
 				{ handler: runHandler, description: "Run a workflow in Centimanus" },
 			],
-			[
-				"status",
-				{ handler: statusHandler, description: "Show stored execution status" },
-			],
+			["tree", { handler: treeHandler, description: "Show a run's node tree" }],
 			["list", { handler: listHandler, description: "List stored executions" }],
 			[
-				"tasks",
-				{ handler: tasksHandler, description: "List stored execution tasks" },
+				"triggers",
+				{ handler: triggersHandler, description: "List configured triggers" },
 			],
 			[
 				"stats",

@@ -1,11 +1,11 @@
 {
 	"menu": {
-		"dag": "Procesos",
+		"dag": "Flujos",
 		"workflows": "Flujos",
-		"nodes": "Nodos",
-		"providers": "Proveedores",
 		"executions": "Ejecuciones",
-		"tasks": "Tareas"
+		"triggers": "Disparadores",
+		"vars": "Variables",
+		"run": "Ejecutar"
 	},
 	"cards": {
 		"workflows": {
@@ -30,14 +30,5 @@
 			"footerIconName": "IconPackage",
 			"footerDescription": "Procesos en curso"
 		}
-	},
-	"versions": {
-		"loading": "Cargando versiones...",
-		"selectCode": "Seleccione un codigo de la lista",
-		"empty": "No hay versiones disponibles"
-	},
-	"dagViewer": {
-		"loading": "Cargando...",
-		"descriptionError": "No se pudo cargar la descripcion"
 	}
 }

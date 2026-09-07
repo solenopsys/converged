@@ -5,55 +5,33 @@ import type {
 	SurfaceDefinition,
 } from "front-core/object-runtime";
 import { objectOf, objectRef, setOf } from "front-core/object-runtime";
-import { COLUMN_TYPES } from "front-core/table";
-import type { PaginationParams } from "g-dag";
-import { $selectedContext, openContextDetail } from "./domain-contexts";
-import { $nodesStore } from "./domain-nodes";
-import { $providersStore } from "./domain-providers";
-import { $scriptsStore, openScriptClicked } from "./domain-scripts";
+import type { PaginationParams, WorkflowTrigger } from "g-dag";
+import { openExecution } from "./domain-executions";
+import { openTriggerForm } from "./domain-triggers";
 import { loadVarDetail } from "./domain-vars";
-import { openWorkflowForm } from "./domain-workflows";
+import { openRunForm } from "./domain-workflows";
 import {
 	executionsColumns,
-	nodesColumns,
-	providersColumns,
-	tasksColumns,
+	triggersColumns,
 	varsColumns,
 	workflowsColumns,
 } from "./functions/columns";
 import dagService from "./service";
 import { DagSummary } from "./summary";
-import ContextViewer from "./views/ContextView";
-import { NodeConfigForm } from "./views/NodeConfigForm";
-import { ProviderConfigForm } from "./views/ProviderConfigForm";
-import { ScriptDetailView } from "./views/ScriptDetailView";
+import { ExecutionTreeView } from "./views/ExecutionTreeView";
+import { RunWorkflowView } from "./views/RunWorkflowView";
 import { StatsView } from "./views/StatsView";
+import { TriggerFormView } from "./views/TriggerFormView";
 import { VarDetailView } from "./views/VarDetailView";
-import { WorkflowDetailView } from "./views/WorkflowDetailView";
 
-const scriptColumns = [
-	{ id: "path", title: "Path", type: COLUMN_TYPES.TEXT, primary: true },
-	{ id: "hash", title: "Hash", type: COLUMN_TYPES.TEXT },
-];
-
-const selectableTypes = [
-	["dag.workflow", "Workflow", "Workflows"],
-	["dag.execution", "Execution", "Executions"],
-	["dag.task", "Task", "Tasks"],
-	["dag.variable", "Variable", "Variables"],
-] as const;
-
-type DagEntityType = (typeof selectableTypes)[number][0];
-
-const dagInfinity: Record<DagEntityType, InfinityDefinition> = {
+const infinity: Record<string, InfinityDefinition> = {
 	"dag.workflow": {
 		tableId: "dag-workflows",
 		title: "Workflows",
 		columns: workflowsColumns,
-		load: (params: Record<string, unknown>) =>
-			dagService.listWorkflows(params as PaginationParams),
-		rowRef: (row: Record<string, unknown>) =>
-			objectRef("dag.workflow", String(row.id ?? row.name), {
+		load: (params) => dagService.listWorkflows(params as PaginationParams),
+		rowRef: (row) =>
+			objectRef("dag.workflow", String(row.script ?? row.name), {
 				title: typeof row.name === "string" ? row.name : undefined,
 			}),
 		filters: [
@@ -63,19 +41,12 @@ const dagInfinity: Record<DagEntityType, InfinityDefinition> = {
 	},
 	"dag.execution": {
 		tableId: "dag-executions",
-		title: "Executions",
+		title: "Runs",
 		columns: executionsColumns,
-		load: (params: Record<string, unknown>) =>
-			dagService.listExecutions(params as PaginationParams),
-		rowRef: (row: Record<string, unknown>) =>
-			objectRef("dag.execution", String(row.id)),
+		load: (params) => dagService.listExecutions(params as PaginationParams),
+		rowRef: (row) => objectRef("dag.execution", String(row.id)),
 		filters: [
-			{
-				id: "workflowName",
-				label: "Workflow",
-				type: "search",
-				operator: "eq",
-			},
+			{ id: "workflow", label: "Workflow", type: "search", operator: "eq" },
 			{
 				id: "status",
 				label: "Status",
@@ -89,139 +60,66 @@ const dagInfinity: Record<DagEntityType, InfinityDefinition> = {
 			},
 		],
 	},
-	"dag.task": {
-		tableId: "dag-tasks",
-		title: "Tasks",
-		columns: tasksColumns,
-		load: (params: Record<string, unknown>) =>
-			dagService.listTasks(null, params as PaginationParams),
-		rowRef: (row: Record<string, unknown>) =>
-			objectRef("dag.task", String(row.id)),
+	"dag.trigger": {
+		tableId: "dag-triggers",
+		title: "Triggers",
+		columns: triggersColumns,
+		load: (params) => dagService.listTriggers(params as PaginationParams),
+		rowRef: (row) =>
+			objectRef("dag.trigger", String(row.id), {
+				title: typeof row.name === "string" ? row.name : undefined,
+			}),
 		filters: [
-			{ id: "executionId", label: "Execution", type: "search", operator: "eq" },
-			{ id: "nodeId", label: "Node", type: "search", operator: "eq" },
-			{
-				id: "state",
-				label: "State",
-				type: "select",
-				operator: "eq",
-				options: [
-					{ value: "queued", label: "Queued" },
-					{ value: "processing", label: "Processing" },
-					{ value: "done", label: "Done" },
-					{ value: "failed", label: "Failed" },
-				],
-			},
+			{ id: "name", label: "Name", type: "search", operator: "contains" },
+			{ id: "topic", label: "Topic", type: "search", operator: "contains" },
 		],
 	},
 	"dag.variable": {
 		tableId: "dag-variables",
 		title: "Variables",
 		columns: varsColumns,
-		load: (params: Record<string, unknown>) =>
-			dagService.listVariables(params as PaginationParams),
-		rowRef: (row: Record<string, unknown>) =>
-			objectRef("dag.variable", String(row.key)),
+		load: (params) => dagService.listVariables(params as PaginationParams),
+		rowRef: (row) => objectRef("dag.variable", String(row.key)),
 		filters: [
 			{ id: "key", label: "Key", type: "search", operator: "contains" },
 		],
 	},
 };
 
-const dagEntityTypes: ObjectDefinition[] = selectableTypes.map(
-	([id, label, pluralLabel]) => ({
-		id,
-		label,
-		pluralLabel,
-		categories: ["core.automation", "core.selectable"],
-		selection: {
-			filters: [],
-			describe: () => dagService.describeSelection(id),
-			load: (params) => {
-				switch (id) {
-					case "dag.workflow":
-						return dagService.listWorkflows(params);
-					case "dag.execution":
-						return dagService.listExecutions(params);
-					case "dag.task":
-						return dagService.listTasks(null, params);
-					case "dag.variable":
-						return dagService.listVariables(params);
-				}
-			},
-			inspect: (filter) => dagService.inspectSelection(id, filter),
-		},
-		infinity: dagInfinity[id],
-	}),
-);
+const selectionLoad: Record<string, (params: any) => Promise<any>> = {
+	"dag.workflow": (params) => dagService.listWorkflows(params),
+	"dag.execution": (params) => dagService.listExecutions(params),
+	"dag.trigger": (params) => dagService.listTriggers(params),
+	"dag.variable": (params) => dagService.listVariables(params),
+};
 
-const dagConfigurationTypes: ObjectDefinition[] = [
-	{
-		id: "dag.node",
-		label: "Node",
-		pluralLabel: "Nodes",
-		categories: ["core.automation", "core.selectable"],
-		infinity: {
-			tableId: "dag-nodes",
-			title: "Nodes",
-			columns: nodesColumns,
-			store: $nodesStore,
-			filters: [
-				{ id: "name", label: "Name", type: "search", operator: "contains" },
-			],
-			rowRef: (row) =>
-				objectRef("dag.node", String(row.name ?? row.id), {
-					title: typeof row.name === "string" ? row.name : undefined,
-				}),
-		},
+const types: ObjectDefinition[] = (
+	[
+		["dag.workflow", "Workflow", "Workflows"],
+		["dag.execution", "Run", "Runs"],
+		["dag.trigger", "Trigger", "Triggers"],
+		["dag.variable", "Variable", "Variables"],
+	] as const
+).map(([id, label, pluralLabel]) => ({
+	id,
+	label,
+	pluralLabel,
+	categories: ["core.automation", "core.selectable"],
+	selection: {
+		filters: [],
+		describe: () => dagService.describeSelection(id),
+		load: (params) => selectionLoad[id](params),
+		inspect: (filter) => dagService.inspectSelection(id, filter),
 	},
-	{
-		id: "dag.provider",
-		label: "Provider",
-		pluralLabel: "Providers",
-		categories: ["core.automation", "core.selectable"],
-		infinity: {
-			tableId: "dag-providers",
-			title: "Providers",
-			columns: providersColumns,
-			store: $providersStore,
-			filters: [
-				{ id: "name", label: "Name", type: "search", operator: "contains" },
-			],
-			rowRef: (row) =>
-				objectRef("dag.provider", String(row.name ?? row.id), {
-					title: typeof row.name === "string" ? row.name : undefined,
-				}),
-		},
-	},
-	{
-		id: "dag.script",
-		label: "Script",
-		pluralLabel: "Scripts",
-		categories: ["core.automation", "core.selectable"],
-		infinity: {
-			tableId: "dag-scripts",
-			title: "Scripts",
-			columns: scriptColumns,
-			store: $scriptsStore,
-			rowRef: (row) =>
-				objectRef("dag.script", String(row.path), {
-					title: typeof row.path === "string" ? row.path : undefined,
-				}),
-			filters: [
-				{ id: "path", label: "Path", type: "search", operator: "contains" },
-			],
-		},
-	},
-];
+	infinity: infinity[id],
+}));
 
 export const dagContribution: Pick<
 	SurfaceDefinition,
 	"types" | "views" | "operations"
 > = {
 	types: [
-		...dagEntityTypes,
-		...dagConfigurationTypes,
+		...types,
 		{
 			id: "dag.statistic.summary",
 			label: "Workflows",
@@ -236,43 +134,37 @@ export const dagContribution: Pick<
 		},
 	],
 	views: [
-		...selectableTypes.map(([id]) => ({
-			id: `${id}.table`,
-			accepts: setOf(id),
-			component: EntityListView,
-		})),
-		...dagConfigurationTypes.map(({ id }) => ({
+		...types.map(({ id }) => ({
 			id: `${id}.table`,
 			accepts: setOf(id),
 			component: EntityListView,
 		})),
 		{
-			id: "dag.node.detail",
-			accepts: objectOf("dag.node"),
-			component: NodeConfigForm,
-		},
-		{
-			id: "dag.provider.detail",
-			accepts: objectOf("dag.provider"),
-			component: ProviderConfigForm,
-		},
-		{
-			id: "dag.script.detail",
-			accepts: objectOf("dag.script"),
-			component: ScriptDetailView,
+			// Opening a workflow is asking to run it: the catalogue is read-only,
+			// so there is nothing else to do with one from here.
+			id: "dag.workflow.detail",
+			accepts: objectOf("dag.workflow"),
+			component: RunWorkflowView,
 			props: (ref) => {
-				if (ref.kind === "object")
-					openScriptClicked({ path: ref.id, hash: "" });
+				if (ref.kind === "object") openRunForm({ script: ref.id });
 				return {};
 			},
 		},
 		{
-			id: "dag.workflow.detail",
-			accepts: objectOf("dag.workflow"),
-			component: WorkflowDetailView,
+			id: "dag.execution.detail",
+			accepts: objectOf("dag.execution"),
+			component: ExecutionTreeView,
 			props: (ref) => {
-				if (ref.kind === "object")
-					openWorkflowForm({ workflow: { name: ref.id } });
+				if (ref.kind === "object") openExecution(ref.id);
+				return {};
+			},
+		},
+		{
+			id: "dag.trigger.detail",
+			accepts: objectOf("dag.trigger"),
+			component: TriggerFormView,
+			props: (ref) => {
+				if (ref.kind === "object") loadTrigger(ref.id);
 				return {};
 			},
 		},
@@ -286,22 +178,23 @@ export const dagContribution: Pick<
 			},
 		},
 		{
-			id: "dag.execution.detail",
-			accepts: objectOf("dag.execution"),
-			component: ContextViewer,
-			props: (ref) => {
-				const executionId = ref.kind === "object" ? ref.id : "";
-				if (executionId) openContextDetail({ contextId: executionId });
-				return { contextStore: $selectedContext };
-			},
-		},
-		{
 			id: "dag.statistic.dashboard",
 			accepts: setOf("dag.statistic"),
 			component: StatsView,
 		},
 	],
 	operations: [
+		{
+			id: "dag.trigger.create",
+			operator: "create",
+			target: "dag.trigger",
+			label: "New trigger",
+			parameters: { type: "object", properties: {} },
+			invoke: () => {
+				openTriggerForm({ trigger: null });
+				return Promise.resolve();
+			},
+		},
 		{
 			id: "dag.variable.save",
 			operator: "save",
@@ -317,3 +210,14 @@ export const dagContribution: Pick<
 		},
 	],
 };
+
+/** The list holds the row; the form wants the record, so fetch the one row. */
+async function loadTrigger(id: string): Promise<void> {
+	const result = await dagService.listTriggers({
+		offset: 0,
+		limit: 1,
+		filter: { id: { eq: id } },
+	});
+	const trigger = (result.items?.[0] as WorkflowTrigger) ?? null;
+	openTriggerForm({ trigger });
+}

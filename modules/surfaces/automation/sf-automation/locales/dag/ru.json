@@ -1,11 +1,11 @@
 {
 	"menu": {
-		"dag": "Процессы",
-		"workflows": "Потоки",
-		"nodes": "Узлы",
-		"providers": "Поставщики",
+		"dag": "Воркфлоу",
+		"workflows": "Воркфлоу",
 		"executions": "Запуски",
-		"tasks": "Задачи"
+		"triggers": "Триггеры",
+		"vars": "Переменные",
+		"run": "Запустить"
 	},
 	"cards": {
 		"workflows": {
@@ -30,14 +30,5 @@
 			"footerIconName": "IconPackage",
 			"footerDescription": "Процессов в работе"
 		}
-	},
-	"versions": {
-		"loading": "Загрузка версий...",
-		"selectCode": "Выберите код из списка",
-		"empty": "Нет доступных версий"
-	},
-	"dagViewer": {
-		"loading": "Загрузка...",
-		"descriptionError": "Ошибка загрузки описания"
 	}
 }

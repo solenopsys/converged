@@ -60,6 +60,16 @@ pub const Provider = struct {
         const topic = stringField(event, "name") orelse return error.EventNameMissing;
 
         const registry = self.triggers orelse return .{ .payload = try allocator.dupe(u8, "{\"started\":[]}") };
+
+        // rp-dag announcing that the trigger set moved. Re-read it now so an
+        // operator's edit is live for the next event instead of the next
+        // refresh interval. A failure here is harmless: the timer still runs.
+        if (std.mem.eql(u8, topic, triggers.control_topic)) {
+            registry.refresh() catch |err|
+                std.debug.print("centimanus: trigger refresh on announcement failed: {s}\n", .{@errorName(err)});
+            return .{ .payload = try allocator.dupe(u8, "{\"started\":[]}") };
+        }
+
         const matched = try registry.matching(allocator, topic);
         if (matched.len == 0) return .{ .payload = try allocator.dupe(u8, "{\"started\":[]}") };
 

@@ -9,6 +9,7 @@ const env = @import("env.zig");
 const Engine = @import("engine.zig").Engine;
 const StateStore = @import("state.zig").StateStore;
 const triggers = @import("triggers.zig");
+const dag_log = @import("dag_log.zig");
 const signal_provider = @import("signal_provider.zig");
 const centimanus_nrpc = @import("generated/centimanus_nrpc.zig");
 
@@ -73,6 +74,18 @@ pub fn main(init: std.process.Init) !void {
         return err;
     };
     var engine = try Engine.init(gpa, io, &store, runtime, service_token);
+
+    // The log writer. Attached before the transport thread starts, so the very
+    // first run already has somewhere to put its entries. It writes to the same
+    // Valkey the state store uses; without one configured it stays inert and
+    // the runtime simply keeps no log.
+    const log_port: u16 = if (env.opt("VALKEY_PORT")) |raw|
+        std.fmt.parseInt(u16, raw, 10) catch 0
+    else
+        0;
+    var log_writer = dag_log.Logger.init(gpa, &engine, env.opt("VALKEY_HOST") orelse "", log_port);
+    defer log_writer.deinit();
+    engine.log = &log_writer;
     // Built before the transport thread so the request handler can already see
     // it: an event that arrives during startup must find the trigger list, not
     // a null pointer.
@@ -93,6 +106,14 @@ pub fn main(init: std.process.Init) !void {
     // Timing belongs to Fujin now: it reads the schedule and emits `cron.*`
     // events, and a scheduled workflow is an ordinary trigger on one of them.
     // This runtime no longer owns a clock of its own.
+    // Started after the reactor: its first act is to commit whatever a previous
+    // process left uncommitted, and that is an ordinary NRPC call.
+    const log_thread = std.Thread.spawn(.{}, dag_log.Logger.run, .{&log_writer}) catch |err| {
+        std.debug.print("centimanus: dag log writer not started: {s}\n", .{@errorName(err)});
+        return err;
+    };
+    log_thread.detach();
+
     const triggers_on = if (env.opt("RT_TRIGGERS")) |value| std.mem.eql(u8, value, "on") else true;
     const trigger_thread = if (triggers_on)
         try std.Thread.spawn(.{}, triggers.Registry.run, .{&registry})

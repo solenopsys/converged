@@ -1,142 +1,158 @@
-import { KVStore, generateULID } from "back-core";
+import type { KVStore } from "back-core";
+import type { Execution, ExecutionNode } from "g-dag";
 import {
-  ContextKey,
-  ContextRepository,
-  ContextValue,
-  PersistentKey,
-  PersistentRepository,
-  PersistentValue,
-  RecordKey,
-  RecordRepository,
-  type RecordValue,
+	ExecutionKey,
+	ExecutionRepository,
+	NodeKey,
+	NodeRepository,
+	VariableKey,
+	VariableRepository,
 } from "./entities";
 
+/** How many runs to keep. The log is diagnostics, not an archive. */
+const DEFAULT_MAX_EXECUTIONS = 5000;
 
+/** Prune every N committed entries rather than on each one. */
+const PRUNE_INTERVAL = 500;
+
+const JSON_HEADER = "KVJ0";
+const BUFFER_HEADER = "KVB0";
+const HEADER_LENGTH = 4;
+const MAX_TEXT_PREVIEW = 2048;
+
+/**
+ * The DAG log.
+ *
+ * A run is a tree: one `exec:<id>` record, its `node:<id>:<seq>` children in
+ * the order they opened, and — for a node that delegated through `rt.sub` — the
+ * child run its `childExecutionId` points at. Walking the tree therefore needs
+ * no parent index: the link is the node that made it.
+ *
+ * Nothing here writes a log entry. The runtime does, into Valkey, and `commit`
+ * only tells storage to pick it up: the entries are high volume and their
+ * payload has no reason to pass through this process at all. What this class
+ * owns is reading them back and keeping the log from growing without end.
+ */
 export class ProcessingStoreService {
-  private static readonly JSON_HEADER = "KVJ0";
-  private static readonly BUFFER_HEADER = "KVB0";
-  private static readonly HEADER_LENGTH = 4;
-  private static readonly MAX_TEXT_PREVIEW = 2048;
+	private readonly executions: ExecutionRepository;
+	private readonly nodes: NodeRepository;
+	private readonly variables: VariableRepository;
 
-  private readonly contextRepo: ContextRepository;
-  private readonly persistentRepo: PersistentRepository;
-  private readonly recordRepo: RecordRepository;
+	private committed = 0;
 
-  constructor(private kvStore: KVStore) {
-    this.contextRepo = new ContextRepository(kvStore);
-    this.persistentRepo = new PersistentRepository(kvStore);
-    this.recordRepo = new RecordRepository(kvStore);
-  }
+	constructor(
+		private readonly kvStore: KVStore,
+		private readonly maxExecutions = DEFAULT_MAX_EXECUTIONS,
+	) {
+		this.executions = new ExecutionRepository(kvStore);
+		this.nodes = new NodeRepository(kvStore);
+		this.variables = new VariableRepository(kvStore);
+	}
 
+	// ---- committing what the runtime cached -----------------------------------
 
-  createContext(workflowId: string, meta?: any): string {
-    const contextId = generateULID();
-    const key = new ContextKey(workflowId, contextId);
-    const value: ContextValue = { createdAt: new Date().toISOString(), meta };
-    return this.contextRepo.save(key, value);
-  }
+	/**
+	 * Move a cached entry into the store without reading it.
+	 *
+	 * The runtime wrote the bytes to Valkey; storage reads them from there and
+	 * writes the store itself, so nothing about the entry passes through this
+	 * process. That is the whole point — the log is high volume, and its payload
+	 * has no business crossing the transport twice.
+	 */
+	commit(storeKey: string[], cacheKey: string): void {
+		this.kvStore.putFromCache(storeKey, cacheKey);
+		this.committed += 1;
+		if (this.committed % PRUNE_INTERVAL === 0) this.prune();
+	}
 
-  saveExecutionContext(workflowId: string, executionId: string, meta?: any): string {
-    const key = new ContextKey(workflowId, executionId);
-    const value: ContextValue = { createdAt: new Date().toISOString(), meta };
-    return this.contextRepo.save(key, value);
-  }
+	getExecution(id: string): Execution | undefined {
+		return this.executions.get(new ExecutionKey(id));
+	}
 
-  getExecutionContext(workflowId: string, executionId: string): ContextValue | undefined {
-    return this.contextRepo.get(new ContextKey(workflowId, executionId));
-  }
+	/** Every run, newest first. */
+	listExecutions(): Execution[] {
+		return this.executions
+			.listValues()
+			.filter((execution): execution is Execution => Boolean(execution?.id))
+			.sort((a, b) => b.startedAt - a.startedAt);
+	}
 
+	// ---- nodes ---------------------------------------------------------------
 
-  setRecord(recordId: string, value: RecordValue): void {
-    this.recordRepo.save(new RecordKey(recordId), value);
-  }
+	/** A run's nodes in the order they opened. */
+	listNodes(executionId: string): ExecutionNode[] {
+		return this.nodes
+			.listValuesByPrefix([executionId])
+			.filter((node): node is ExecutionNode => typeof node?.seq === "number");
+	}
 
-  getRecord(recordId: string): RecordValue | undefined {
-    return this.recordRepo.get(new RecordKey(recordId));
-  }
+	// ---- retention -----------------------------------------------------------
 
+	/** Drop the oldest runs, and their nodes, once the log outgrows its cap. */
+	private prune(): void {
+		const all = this.listExecutions();
+		if (all.length <= this.maxExecutions) return;
+		for (const execution of all.slice(this.maxExecutions)) {
+			for (const node of this.listNodes(execution.id))
+				this.nodes.delete(new NodeKey(execution.id, node.seq));
+			this.executions.delete(new ExecutionKey(execution.id));
+		}
+	}
 
-  getStep(workflowId: string, nodeName: string): string | undefined {
-    return this.kvStore.getDirect(`${workflowId}:${nodeName}`) as string | undefined;
-  }
+	// ---- variables -----------------------------------------------------------
 
-  setStep(workflowId: string, nodeName: string, nodeRecordId: string): void {
-    this.kvStore.put([workflowId, nodeName], nodeRecordId);
-  }
+	setVar<T = any>(key: string, value: T): void {
+		this.variables.save(new VariableKey(key), value);
+	}
 
-  setStatus(workflowId: string, status: string): void {
-    this.kvStore.put([workflowId, "__status__"], status);
-  }
+	getVar<T = any>(key: string): T | undefined {
+		return this.variables.get(new VariableKey(key)) as T | undefined;
+	}
 
+	deleteVar(key: string): void {
+		this.variables.delete(new VariableKey(key));
+	}
 
-  set<T = any>(key: string, value: T): void {
-    this.persistentRepo.save(new PersistentKey(key), value);
-  }
-
-  get<T = any>(key: string): T | undefined {
-    return this.persistentRepo.get(new PersistentKey(key)) as T | undefined;
-  }
-
-  delete(key: string): void {
-    this.persistentRepo.delete(new PersistentKey(key));
-  }
-
-  listVars(): { key: string; value: any }[] {
-    const keys = this.persistentRepo.listKeys();
-    return keys.map((rawKey) => {
-      const key = rawKey.replace(/^persistent:/, "");
-      const rawValue = this.kvStore.getRawDirect(rawKey);
-      return { key, value: this.buildVarPreview(rawValue) };
-    });
-  }
-
-  private buildVarPreview(rawValue: Buffer | null): any {
-    if (!rawValue) {
-      return undefined;
-    }
-
-    if (rawValue.length < ProcessingStoreService.HEADER_LENGTH) {
-      return this.truncateText(rawValue.toString("utf8"));
-    }
-
-    const header = rawValue.subarray(0, ProcessingStoreService.HEADER_LENGTH).toString("utf8");
-    const payload = rawValue.subarray(ProcessingStoreService.HEADER_LENGTH);
-
-    if (header === ProcessingStoreService.BUFFER_HEADER) {
-      return `[binary ${payload.length} bytes]`;
-    }
-
-    if (header === ProcessingStoreService.JSON_HEADER) {
-      if (payload.length > ProcessingStoreService.MAX_TEXT_PREVIEW) {
-        return this.truncateBuffer(payload);
-      }
-      const text = payload.toString("utf8");
-      try {
-        return JSON.parse(text);
-      } catch {
-        return text;
-      }
-    }
-
-    return this.truncateBuffer(rawValue);
-  }
-
-  private truncateText(text: string): string {
-    if (text.length <= ProcessingStoreService.MAX_TEXT_PREVIEW) {
-      return text;
-    }
-    return `${text.slice(0, ProcessingStoreService.MAX_TEXT_PREVIEW)}… [truncated ${text.length} chars]`;
-  }
-
-  private truncateBuffer(buffer: Buffer): string {
-    if (buffer.length <= ProcessingStoreService.MAX_TEXT_PREVIEW) {
-      return buffer.toString("utf8");
-    }
-    const preview = buffer
-      .subarray(0, ProcessingStoreService.MAX_TEXT_PREVIEW)
-      .toString("utf8");
-    return `${preview}… [truncated ${buffer.length} bytes]`;
-  }
+	/**
+	 * Variables with their values summarised. A workflow may park a whole
+	 * document under one key, and the list view only needs enough of it to be
+	 * recognisable.
+	 */
+	listVars(): { key: string; value: any }[] {
+		return this.variables.listKeys().map((rawKey) => ({
+			key: rawKey.replace(/^persistent:/, ""),
+			value: preview(this.kvStore.getRawDirect(rawKey)),
+		}));
+	}
 }
 
-export type { ContextValue, PersistentValue };
+function preview(raw: Buffer | null): any {
+	if (!raw) return undefined;
+	if (raw.length < HEADER_LENGTH) return truncateText(raw.toString("utf8"));
+
+	const header = raw.subarray(0, HEADER_LENGTH).toString("utf8");
+	const payload = raw.subarray(HEADER_LENGTH);
+
+	if (header === BUFFER_HEADER) return `[binary ${payload.length} bytes]`;
+	if (header === JSON_HEADER) {
+		if (payload.length > MAX_TEXT_PREVIEW) return truncateBuffer(payload);
+		const text = payload.toString("utf8");
+		try {
+			return JSON.parse(text);
+		} catch {
+			return text;
+		}
+	}
+	return truncateBuffer(raw);
+}
+
+function truncateText(text: string): string {
+	if (text.length <= MAX_TEXT_PREVIEW) return text;
+	return `${text.slice(0, MAX_TEXT_PREVIEW)}… [truncated ${text.length} chars]`;
+}
+
+function truncateBuffer(buffer: Buffer): string {
+	if (buffer.length <= MAX_TEXT_PREVIEW) return buffer.toString("utf8");
+	const head = buffer.subarray(0, MAX_TEXT_PREVIEW).toString("utf8");
+	return `${head}… [truncated ${buffer.length} bytes]`;
+}

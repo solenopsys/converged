@@ -44,15 +44,17 @@
   // Tell the host a node is opening: it timestamps the start and, until the
   // node closes, attributes every rt.call to it. That is what rp-dag records as
   // the node's input — `rt.node(name, fn)` has no input of its own.
-  function openNode(name) {
-    host({ op: "nodeBegin", node: String(name) });
+  // `kind` tells the log what it is looking at: a plain node, or a delegation
+  // whose own run hangs underneath it.
+  function openNode(name, kind) {
+    host({ op: "nodeBegin", node: String(name), kind: kind || "node" });
   }
 
   function runNode(name, fn) {
     var cached = cachedOutcome(name);
     if (cached) return cached;
 
-    openNode(name);
+    openNode(name, "node");
     var outcome;
     try {
       var value = fn();
@@ -71,7 +73,7 @@
     var cached = cachedOutcome(name);
     if (cached) return cached;
     if (!scriptPath) throw new Error("rt.sub: scriptPath is required");
-    openNode(name);
+    openNode(name, "sub");
     return host({
       op: "sub",
       node: String(name),
