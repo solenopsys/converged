@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { basename, resolve } from "node:path";
-import { buildWorkflow } from "../../../dag/core/build";
+import { buildWorkflow } from "../../../core/dag/core/build";
 
 export type WorkflowServer = {
 	endpoints: Record<string, string>;

@@ -15,7 +15,7 @@
  * look like: callers fall back to resolving modules from source. That is a
  * different mode, not a degraded one, so this returns null rather than throwing.
  *
- * Objects are brotli — see `core/tools/registry/src/build.ts`. The digest covers
+ * Objects are brotli — see `tools/registry/src/build.ts`. The digest covers
  * the compressed bytes, so verification happens on exactly what came off the
  * wire, before anything decodes it. A digest that does not match is never
  * written and never returned: without that check content addressing is

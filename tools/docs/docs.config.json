@@ -1,13 +1,13 @@
 {
-	"projects": ["../../..", "../../../../club"],
-	"content": "../../../../club/content",
+	"projects": ["../..", "../../../club"],
+	"content": "../../../club/content",
 	"out": {
-		"struct": "../../../../data/club/rp-struct/struct/data",
-		"markdown": "../../../../data/club/rp-markdown/markdown/data",
-		"static": "../../../../data/club/rp-galery/static",
-		"readme": "../../../../build/docs/readme",
-		"html": "../../../../build/docs/html",
-		"pdf": "../../../../build/docs/pdf"
+		"struct": "../../../data/club/struct",
+		"markdown": "../../../data/club/markdown",
+		"static": "../../../data/club/galery",
+		"readme": "../../../build/docs/readme",
+		"html": "../../../build/docs/html",
+		"pdf": "../../../build/docs/pdf"
 	},
 	"sections": {
 		"system": {
@@ -65,8 +65,8 @@
 		}
 	},
 	"translation": {
-		"config": "../../../content/docs-cache/.translation/control.json",
-		"stateDir": "../../../content/docs-cache/.translation",
+		"config": "../../content/docs-cache/.translation/control.json",
+		"stateDir": "../../content/docs-cache/.translation",
 		"sourceLocale": "en",
 		"targetLocales": []
 	}

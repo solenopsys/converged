@@ -2,8 +2,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { type Subprocess, spawn, which } from "bun";
 
-/** The converged project root: `<root>/core/tools/dev/src` is this file. */
-export const PROJECT_ROOT = resolve(import.meta.dir, "../../../..");
+/** The converged project root: `<root>/tools/dev/src` is this file. */
+export const PROJECT_ROOT = resolve(import.meta.dir, "../../..");
 const WRAPPERS = resolve(PROJECT_ROOT, "core/native/wrappers");
 const ARTIFACTS = resolve(WRAPPERS, "artifacts/libs");
 

@@ -1,5 +1,5 @@
 /**
- * Pack the ptah chart into `core/tools/install/install.sh`.
+ * Pack the ptah chart into `tools/install/install.sh`.
  *
  * The installer is served over plain HTTP and piped straight into a shell, so
  * it has to be one file: a chart fetched separately at install time is a

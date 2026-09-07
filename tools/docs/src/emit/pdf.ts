@@ -106,7 +106,7 @@ async function resolvePrinter(scratch: string): Promise<Printer> {
 	if (chrome) return chromePrinter(chrome, scratch);
 
 	throw new Error(
-		"PDF output needs a headless browser: install chromium, or set DOCS_CHROME to a Chrome binary, or `bun add -d puppeteer` in core/tools/docs",
+		"PDF output needs a headless browser: install chromium, or set DOCS_CHROME to a Chrome binary, or `bun add -d puppeteer` in tools/docs",
 	);
 }
 

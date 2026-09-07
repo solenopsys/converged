@@ -4,7 +4,7 @@
  *
  * It bundles one thing: the server. Not the modules — those are not in the
  * image at all. A microservice or a surface is built once by
- * `core/tools/registry`, published by digest, and fetched from ptah at boot,
+ * `tools/registry`, published by digest, and fetched from ptah at boot,
  * so the set of modules is no longer a property of the image and rolling one
  * forward no longer means rebuilding one.
  *
@@ -81,7 +81,7 @@ function parseArgs(argv: string[]): Options {
 /**
  * The landing host belongs to the product, not to converged: it statically
  * imports its own blocks, SPA plugin and locale set. The dev runner picks it
- * the same way (`core/tools/dev/src/cli.ts`), and a built image that used the
+ * the same way (`tools/dev/src/cli.ts`), and a built image that used the
  * base host instead would serve converged blocks against a delivery compiled
  * from the product's — the exact mismatch `spa/src/build/layout.ts` guards.
  */

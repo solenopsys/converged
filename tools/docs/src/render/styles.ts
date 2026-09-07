@@ -10,11 +10,11 @@
 
 import { join } from "node:path";
 import { createGenerator } from "unocss";
-import unoSurfaceConfig from "../../../../frontend/spa/uno.sf.config";
+import unoSurfaceConfig from "../../../../core/frontend/spa/uno.sf.config.ts";
 
 const TOKENS = join(
 	import.meta.dir,
-	"../../../../frontend/front-core/src/styles/sf-tokens.css",
+	"../../../../core/frontend/front-core/src/styles/sf-tokens.css",
 );
 
 /** Layout the utility classes do not cover, plus the print rules for PDF. */

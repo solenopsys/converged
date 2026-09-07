@@ -8,7 +8,7 @@ import type {
 	TranslationConfig,
 } from "./types";
 
-/** Tool directory: `<business>/converged/core/tools/docs`. */
+/** Tool directory: `<business>/converged/tools/docs`. */
 const TOOL_ROOT = resolve(import.meta.dir, "..");
 
 export const DEFAULT_CONFIG_PATH = resolve(TOOL_ROOT, "docs.config.json");
@@ -30,8 +30,8 @@ type RawConfig = {
  * Everything here is overridable from `docs.config.json`.
  */
 const DEFAULT_TRANSLATION: TranslationConfig = {
-	config: "../../../content/docs-cache/.translation/control.json",
-	stateDir: "../../../content/docs-cache/.translation",
+	config: "../../content/docs-cache/.translation/control.json",
+	stateDir: "../../content/docs-cache/.translation",
 	sourceLocale: "en",
 	targetLocales: [],
 };
@@ -42,17 +42,17 @@ const DEFAULT_ECOSYSTEM: EcosystemConfig = {
 };
 
 const DEFAULTS: Required<RawConfig> = {
-	projects: ["../../..", "../../../../club"],
+	projects: ["../..", "../../../club"],
 	out: {
-		struct: "../../../../data/club/rp-struct/struct/data",
-		markdown: "../../../../data/club/rp-markdown/markdown/data",
-		static: "../../../../data/club/rp-galery/static",
-		readme: "../../../../build/docs/readme",
-		html: "../../../../build/docs/html",
-		pdf: "../../../../build/docs/pdf",
+		struct: "../../../data/club/struct",
+		markdown: "../../../data/club/markdown",
+		static: "../../../data/club/galery",
+		readme: "../../../build/docs/readme",
+		html: "../../../build/docs/html",
+		pdf: "../../../build/docs/pdf",
 	},
 	sections: {},
-	content: "../../../../club/content",
+	content: "../../../club/content",
 	docsCache: "content/docs-cache",
 	docsPage: {},
 	ecosystem: DEFAULT_ECOSYSTEM,

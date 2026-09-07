@@ -36,15 +36,15 @@
     },
     {
       "owner": "cli",
-      "path": "core/tools/cli/docs",
+      "path": "tools/cli/docs",
       "sections": [
         {
           "id": "system",
-          "index": "core/tools/cli/docs/system/index.json",
+          "index": "tools/cli/docs/system/index.json",
           "articles": [
             {
               "slug": "cli",
-              "file": "core/tools/cli/docs/system/cli.md"
+              "file": "tools/cli/docs/system/cli.md"
             }
           ]
         }
@@ -168,15 +168,15 @@
     },
     {
       "owner": "nrpc",
-      "path": "core/tools/nrpc/docs",
+      "path": "tools/nrpc/docs",
       "sections": [
         {
           "id": "system",
-          "index": "core/tools/nrpc/docs/system/index.json",
+          "index": "tools/nrpc/docs/system/index.json",
           "articles": [
             {
               "slug": "nrpc",
-              "file": "core/tools/nrpc/docs/system/nrpc.md"
+              "file": "tools/nrpc/docs/system/nrpc.md"
             }
           ]
         }

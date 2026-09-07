@@ -1,5 +1,5 @@
 /**
- * Stitches the docs tree into `core/tools/translation`.
+ * Stitches the docs tree into `tools/translation`.
  *
  * That tool compares `<root>/<locale>/<rest>` trees and takes one root per
  * project. A `docs` directory is exactly that shape — language first, section

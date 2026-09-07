@@ -3,7 +3,7 @@
  * registry.
  *
  * A registry module is bundled without them — see the base externals in
- * `core/tools/registry/src/build.ts` — so at boot it asks for them by name. In
+ * `tools/registry/src/build.ts` — so at boot it asks for them by name. In
  * the image there is nothing to resolve that name against: the server is a
  * single bundle and carries no `node_modules` for its own packages.
  *

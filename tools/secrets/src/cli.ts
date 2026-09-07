@@ -4,7 +4,7 @@
  * Turns an env file into the Kubernetes Secret the cluster runs on.
  *
  *   bun run secrets                                  # club/converged package script
- *   bun run core/tools/secrets/src/cli.ts \
+ *   bun run tools/secrets/src/cli.ts \
  *     --project=club --env=../confs/prod/club.env    # directly
  *
  * This used to be `configurator secrets`, one subcommand of a tool that also
