@@ -41,10 +41,18 @@
   // Run the node's body once and keep what it produced. A failure is recorded
   // as data — the caller decides whether it ends the workflow (rt.node) or is
   // handed back (rt.attempt).
+  // Tell the host a node is opening: it timestamps the start and, until the
+  // node closes, attributes every rt.call to it. That is what rp-dag records as
+  // the node's input — `rt.node(name, fn)` has no input of its own.
+  function openNode(name) {
+    host({ op: "nodeBegin", node: String(name) });
+  }
+
   function runNode(name, fn) {
     var cached = cachedOutcome(name);
     if (cached) return cached;
 
+    openNode(name);
     var outcome;
     try {
       var value = fn();
@@ -63,6 +71,7 @@
     var cached = cachedOutcome(name);
     if (cached) return cached;
     if (!scriptPath) throw new Error("rt.sub: scriptPath is required");
+    openNode(name);
     return host({
       op: "sub",
       node: String(name),

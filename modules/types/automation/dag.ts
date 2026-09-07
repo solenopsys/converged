@@ -154,7 +154,15 @@ export interface DagService {
 		params: Record<string, any>,
 	): Promise<void>;
 	setExecutionStatus(id: string, status: ExecutionStatus): Promise<void>;
-	createTask(executionId: string, nodeId: string): Promise<TaskTicket>;
+	/** `startedAt` and `input` are what the runtime observed when the node
+	 *  opened: the wall clock, and the service calls the node went on to make.
+	 *  Both are optional so an older caller keeps working. */
+	createTask(
+		executionId: string,
+		nodeId: string,
+		startedAt?: number,
+		input?: any,
+	): Promise<TaskTicket>;
 	setTaskDone(
 		taskId: number,
 		executionId: string,
@@ -162,10 +170,14 @@ export interface DagService {
 		completedAt: number,
 		result: any,
 	): Promise<void>;
+	/** `executionId` and `nodeId` let a failed node keep its record, so the UI
+	 *  can still show what it was asked to do. */
 	setTaskFailed(
 		taskId: number,
 		completedAt: number,
 		errorMessage: string,
+		executionId?: string,
+		nodeId?: string,
 	): Promise<void>;
 
 	statusExecution(id: string): Promise<{

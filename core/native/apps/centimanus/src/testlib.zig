@@ -41,7 +41,16 @@ pub const LlmHandler = *const fn (request: [*:0]const u8) callconv(.c) ?[*:0]con
 /// real rather than stubbed.
 pub const SubResolver = *const fn (script: [*:0]const u8) callconv(.c) ?[*:0]const u8;
 
+/// JS sink for the per-node report the engine sends to rp-dag in production.
+/// It receives one NUL-terminated JSON object per executed node, so a test can
+/// assert what would have been logged.
+pub const NodeReporter = *const fn (report: [*:0]const u8) callconv(.c) void;
+
 var g_handler: ?CallHandler = null;
+var g_report: ?NodeReporter = null;
+/// The mock clock: tests need reproducible timings, so it ticks by one on
+/// every read instead of following the wall clock.
+var g_clock: i64 = 0;
 var g_get: ?StateGetFn = null;
 var g_set: ?StateSetFn = null;
 var g_del: ?StateDelFn = null;
@@ -73,12 +82,17 @@ export fn rt_set_llm_handler(handler: ?LlmHandler) void {
 }
 
 /// Register the workflow source resolver used by rt.sub.
+export fn rt_set_node_reporter(reporter: ?NodeReporter) void {
+    g_report = reporter;
+}
+
 export fn rt_set_sub_resolver(resolver: ?SubResolver) void {
     g_sub = resolver;
 }
 
 /// Clear the state store between tests.
 export fn rt_reset() void {
+    g_clock = 0;
     var it = g_state.iterator();
     while (it.next()) |e| {
         c_allocator.free(e.key_ptr.*);
@@ -130,7 +144,31 @@ fn mockTransport() vm.Transport {
         .llm = mockLlm,
         .run_workflow = mockRunWorkflow,
         .del = mockDel,
+        .on_node = mockOnNode,
+        .now_ms = mockNowMs,
     };
+}
+
+fn mockNowMs(ctx: *anyopaque) i64 {
+    _ = ctx;
+    g_clock += 1;
+    return g_clock;
+}
+
+fn mockOnNode(ctx: *anyopaque, a: std.mem.Allocator, report: vm.NodeReport) void {
+    _ = ctx;
+    const sink = g_report orelse return;
+    const json = std.fmt.allocPrintSentinel(a, "{{\"execId\":{s},\"node\":{s},\"ok\":{},\"error\":{s},\"result\":{s},\"input\":{s},\"startedMs\":{d},\"completedMs\":{d}}}", .{
+        vm.jsonStr(a, report.exec_id) catch return,
+        vm.jsonStr(a, report.node) catch return,
+        report.ok,
+        vm.jsonStr(a, report.err) catch return,
+        report.result,
+        report.input,
+        report.started_ms,
+        report.completed_ms,
+    }, 0) catch return;
+    sink(json.ptr);
 }
 
 /// Resolve the delegated workflow's source through the test, then run it on the

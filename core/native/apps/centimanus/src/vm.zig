@@ -41,7 +41,9 @@ pub const Transport = struct {
     get: *const fn (ctx: *anyopaque, a: std.mem.Allocator, key: []const u8) anyerror!?[]const u8,
     set: *const fn (ctx: *anyopaque, a: std.mem.Allocator, key: []const u8, value: []const u8) anyerror!void,
     log: *const fn (ctx: *anyopaque, msg: []const u8) void,
-    on_node: ?*const fn (ctx: *anyopaque, a: std.mem.Allocator, exec_id: []const u8, node: []const u8, ok: bool, err: []const u8) void = null,
+    on_node: ?*const fn (ctx: *anyopaque, a: std.mem.Allocator, report: NodeReport) void = null,
+    /// Wall clock in milliseconds. The VM has no `std.Io`, so the host owns it.
+    now_ms: ?*const fn (ctx: *anyopaque) i64 = null,
     llm: ?*const fn (ctx: *anyopaque, a: std.mem.Allocator, request_json: []const u8) anyerror!LlmReply = null,
     /// Runs another workflow to completion and returns its result as `body`.
     /// The child gets its own QuickJS runtime, so running it while the parent
@@ -49,6 +51,20 @@ pub const Transport = struct {
     run_workflow: ?*const fn (ctx: *anyopaque, a: std.mem.Allocator, script_path: []const u8, params_json: []const u8) anyerror!Reply = null,
     /// Drop a state key. Used to clear a finished run's node cache.
     del: ?*const fn (ctx: *anyopaque, a: std.mem.Allocator, key: []const u8) anyerror!void = null,
+};
+
+/// Everything the host needs to record one executed node. `input` is the JSON
+/// array of service calls the node made — `rt.node(name, fn)` takes a closure,
+/// so what it asked of the microservices is the only input there is.
+pub const NodeReport = struct {
+    exec_id: []const u8,
+    node: []const u8,
+    ok: bool,
+    err: []const u8,
+    result: []const u8,
+    input: []const u8,
+    started_ms: i64,
+    completed_ms: i64,
 };
 
 pub const RunResult = struct {
@@ -212,7 +228,42 @@ const ExecContext = struct {
     depth: u8 = 0,
     /// Nodes and delegations this run has executed, against `max_nodes`.
     nodes_run: usize = 0,
+    /// The node opened by `nodeBegin` and still running. Nodes do not nest
+    /// inside one execution — a delegated child gets its own ExecContext — so
+    /// one slot is enough.
+    node_open: bool = false,
+    node_started_ms: i64 = 0,
+    /// Service calls made since the node opened, each already JSON.
+    node_calls: std.ArrayListUnmanaged([]const u8) = .empty,
 };
+
+/// A node's calls are kept for the UI, not for replay, so a big body is cut
+/// rather than stored whole.
+const max_call_body: usize = 4096;
+const max_node_calls: usize = 64;
+
+fn nowMs(t: Transport) i64 {
+    const clock = t.now_ms orelse return 0;
+    return clock(t.ctx);
+}
+
+/// The calls the open node made, as a JSON array, and reset for the next node.
+fn takeNodeCalls(ctx: *ExecContext, a: std.mem.Allocator) []const u8 {
+    if (ctx.node_calls.items.len == 0) return "[]";
+    var out = std.ArrayListUnmanaged(u8).empty;
+    out.append(a, '[') catch return "[]";
+    for (ctx.node_calls.items, 0..) |call, i| {
+        if (i > 0) out.append(a, ',') catch return "[]";
+        out.appendSlice(a, call) catch return "[]";
+    }
+    out.append(a, ']') catch return "[]";
+    return out.items;
+}
+
+fn resetNodeCalls(ctx: *ExecContext) void {
+    for (ctx.node_calls.items) |call| ctx.run_alloc.free(call);
+    ctx.node_calls.clearRetainingCapacity();
+}
 
 /// The state key a node's outcome lives under. The host owns this shape: the
 /// script names a node, the engine decides where it is kept.
@@ -272,6 +323,15 @@ fn dispatch(ctx: *ExecContext, request: []const u8) ![]u8 {
         const method = getStr(obj, "method") orelse return cdupe("{\"ok\":false,\"error\":\"call: missing method\"}");
         const body = getStr(obj, "body") orelse "{}";
         const target = getStr(obj, "target") orelse "";
+        if (ctx.node_open and ctx.node_calls.items.len < max_node_calls) {
+            const cut = @min(body.len, max_call_body);
+            const entry = std.fmt.allocPrint(ctx.run_alloc, "{{\"service\":{s},\"method\":{s},\"params\":{s}}}", .{
+                try jsonStr(ctx.run_alloc, service),
+                try jsonStr(ctx.run_alloc, method),
+                if (cut == body.len) body else try jsonStr(ctx.run_alloc, body[0..cut]),
+            }) catch null;
+            if (entry) |value| try ctx.node_calls.append(ctx.run_alloc, value);
+        }
         const reply = t.call(t.ctx, a, target, service, method, body) catch |e|
             return cReply(try errReplyFmt(a, "call transport: {s}", .{@errorName(e)}));
         const resp_body = if (reply.body.len == 0) "null" else reply.body;
@@ -292,6 +352,11 @@ fn dispatch(ctx: *ExecContext, request: []const u8) ![]u8 {
         const msg = getStr(obj, "message") orelse "";
         t.log(t.ctx, msg);
         return cdupe("{\"ok\":true}");
+    } else if (std.mem.eql(u8, op, "nodeBegin")) {
+        ctx.node_open = true;
+        ctx.node_started_ms = nowMs(t);
+        resetNodeCalls(ctx);
+        return cdupe("{\"ok\":true}");
     } else if (std.mem.eql(u8, op, "nodeGet")) {
         const node = getStr(obj, "node") orelse return cdupe("{\"ok\":false,\"error\":\"nodeGet: missing node\"}");
         const val = try t.get(t.ctx, a, try taskKey(a, ctx.exec_id, node));
@@ -307,8 +372,19 @@ fn dispatch(ctx: *ExecContext, request: []const u8) ![]u8 {
             const outcome = parseObject(a, json);
             const node_ok = if (outcome) |o| (if (o.get("ok")) |v| (v == .bool and v.bool) else false) else false;
             const err_text = if (outcome) |o| (getStr(o, "error") orelse "") else "";
-            hook(t.ctx, a, ctx.exec_id, node, node_ok, err_text);
+            hook(t.ctx, a, .{
+                .exec_id = ctx.exec_id,
+                .node = node,
+                .ok = node_ok,
+                .err = err_text,
+                .result = json,
+                .input = takeNodeCalls(ctx, a),
+                .started_ms = ctx.node_started_ms,
+                .completed_ms = nowMs(t),
+            });
         }
+        ctx.node_open = false;
+        resetNodeCalls(ctx);
         return cdupe("{\"ok\":true}");
     } else if (std.mem.eql(u8, op, "sub")) {
         const node = getStr(obj, "node") orelse return cdupe("{\"ok\":false,\"error\":\"rt.sub: missing node\"}");
@@ -325,7 +401,18 @@ fn dispatch(ctx: *ExecContext, request: []const u8) ![]u8 {
         const key = try taskKey(a, ctx.exec_id, node);
         try t.set(t.ctx, a, key, outcome.json);
         try ctx.task_keys.append(ctx.run_alloc, try ctx.run_alloc.dupe(u8, key));
-        if (t.on_node) |hook| hook(t.ctx, a, ctx.exec_id, node, outcome.ok, outcome.err);
+        if (t.on_node) |hook| hook(t.ctx, a, .{
+            .exec_id = ctx.exec_id,
+            .node = node,
+            .ok = outcome.ok,
+            .err = outcome.err,
+            .result = outcome.json,
+            .input = child_params,
+            .started_ms = ctx.node_started_ms,
+            .completed_ms = nowMs(t),
+        });
+        ctx.node_open = false;
+        resetNodeCalls(ctx);
         return cReply(outcome.json);
     } else if (std.mem.eql(u8, op, "llm")) {
         const json = getStr(obj, "json") orelse return cdupe("{\"ok\":false,\"error\":\"llm: missing json\"}");

@@ -68,6 +68,7 @@ type NodeInput = {
   retryCount?: number;
   createdAt?: number | null;
   updatedAt?: number | null;
+  recordId?: string | null;
 };
 
 type NodePatch = Partial<Omit<NodeEntity, "error_message">> & {
@@ -153,6 +154,7 @@ export class StatsStoreService {
       retry_count: input.retryCount ?? 0,
       created_at: input.createdAt ?? now,
       updated_at: input.updatedAt ?? now,
+      record_id: input.recordId ?? null,
     });
   }
 

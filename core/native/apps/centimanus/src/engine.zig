@@ -40,7 +40,7 @@ pub const Engine = struct {
     };
 
     fn transport(self: *Engine) vm.Transport {
-        return .{ .ctx = self, .call = tCall, .get = tGet, .set = tSet, .log = tLog, .on_node = tOnNode, .llm = tLlm, .run_workflow = tRunWorkflow, .del = tDel };
+        return .{ .ctx = self, .call = tCall, .get = tGet, .set = tSet, .log = tLog, .on_node = tOnNode, .llm = tLlm, .run_workflow = tRunWorkflow, .del = tDel, .now_ms = tNowMs };
     }
 
     /// Resolve `script_path` through rp-dag, fetch it from Ptah's proxy, and
@@ -185,9 +185,14 @@ pub const Engine = struct {
         return .{ .ok = reply.ok(), .body = reply.body };
     }
 
-    fn tOnNode(ctx: *anyopaque, a: std.mem.Allocator, exec_id: []const u8, node: []const u8, ok: bool, err_text: []const u8) void {
+    fn tOnNode(ctx: *anyopaque, a: std.mem.Allocator, report: vm.NodeReport) void {
         const self: *Engine = @ptrCast(@alignCast(ctx));
-        self.dagLogNode(a, exec_id, node, ok, err_text);
+        self.dagLogNode(a, report);
+    }
+
+    fn tNowMs(ctx: *anyopaque) i64 {
+        const self: *Engine = @ptrCast(@alignCast(ctx));
+        return std.Io.Timestamp.now(self.io, .real).toMilliseconds();
     }
 
     // ---- dag microservice logging (best-effort: observability, never fatal) -
@@ -206,9 +211,14 @@ pub const Engine = struct {
 
     /// Record one executed node as a numbered task: createTask -> setTaskDone /
     /// setTaskFailed. Nodes run in a loop simply get successive task ids.
-    fn dagLogNode(self: *Engine, a: std.mem.Allocator, exec_id: []const u8, node: []const u8, ok: bool, err_text: []const u8) void {
-        const ct_body = std.fmt.allocPrint(a, "{{\"executionId\":{s},\"nodeId\":{s}}}", .{
+    /// `createTask` carries the node's start time and the calls it made, so the
+    /// record rp-dag keeps has both sides and not two nulls.
+    fn dagLogNode(self: *Engine, a: std.mem.Allocator, report: vm.NodeReport) void {
+        const exec_id = report.exec_id;
+        const node = report.node;
+        const ct_body = std.fmt.allocPrint(a, "{{\"executionId\":{s},\"nodeId\":{s},\"startedAt\":{d},\"input\":{s}}}", .{
             vm.jsonStr(a, exec_id) catch return, vm.jsonStr(a, node) catch return,
+            report.started_ms, report.input,
         }) catch return;
         const res = self.callService(a, "dag", "createTask", ct_body, self.current_scope) catch return;
         if (!res.ok()) return;
@@ -221,16 +231,17 @@ pub const Engine = struct {
             },
             else => return,
         };
-        const now = std.Io.Timestamp.now(self.io, .real).toMilliseconds();
+        const now = if (report.completed_ms != 0) report.completed_ms else std.Io.Timestamp.now(self.io, .real).toMilliseconds();
 
-        if (ok) {
-            const body = std.fmt.allocPrint(a, "{{\"taskId\":{d},\"executionId\":{s},\"nodeId\":{s},\"completedAt\":{d},\"result\":null}}", .{
-                task_id, vm.jsonStr(a, exec_id) catch return, vm.jsonStr(a, node) catch return, now,
+        if (report.ok) {
+            const body = std.fmt.allocPrint(a, "{{\"taskId\":{d},\"executionId\":{s},\"nodeId\":{s},\"completedAt\":{d},\"result\":{s}}}", .{
+                task_id, vm.jsonStr(a, exec_id) catch return, vm.jsonStr(a, node) catch return, now, report.result,
             }) catch return;
             _ = self.callService(a, "dag", "setTaskDone", body, self.current_scope) catch return;
         } else {
-            const body = std.fmt.allocPrint(a, "{{\"taskId\":{d},\"completedAt\":{d},\"errorMessage\":{s}}}", .{
-                task_id, now, vm.jsonStr(a, err_text) catch return,
+            const body = std.fmt.allocPrint(a, "{{\"taskId\":{d},\"completedAt\":{d},\"errorMessage\":{s},\"executionId\":{s},\"nodeId\":{s}}}", .{
+                task_id, now, vm.jsonStr(a, report.err) catch return,
+                vm.jsonStr(a, exec_id) catch return, vm.jsonStr(a, node) catch return,
             }) catch return;
             _ = self.callService(a, "dag", "setTaskFailed", body, self.current_scope) catch return;
         }

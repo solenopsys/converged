@@ -301,6 +301,18 @@ export const metadata: ServiceMetadata = {
           "type": "string",
           "optional": false,
           "isArray": false
+        },
+        {
+          "name": "startedAt",
+          "type": "number",
+          "optional": true,
+          "isArray": false
+        },
+        {
+          "name": "input",
+          "type": "any",
+          "optional": true,
+          "isArray": false
         }
       ],
       "returnType": "TaskTicket",
@@ -366,6 +378,18 @@ export const metadata: ServiceMetadata = {
           "name": "errorMessage",
           "type": "string",
           "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "executionId",
+          "type": "string",
+          "optional": true,
+          "isArray": false
+        },
+        {
+          "name": "nodeId",
+          "type": "string",
+          "optional": true,
           "isArray": false
         }
       ],
@@ -645,9 +669,9 @@ export interface DagServiceClient {
   listWorkflows(params: PaginationParams): Promise<PaginatedResult<AvailableWorkflow>>;
   openExecution(id: string, workflowName: string, params: Record<string, any>): Promise<void>;
   setExecutionStatus(id: string, status: ExecutionStatus): Promise<void>;
-  createTask(executionId: string, nodeId: string): Promise<TaskTicket>;
+  createTask(executionId: string, nodeId: string, startedAt?: number, input?: any): Promise<TaskTicket>;
   setTaskDone(taskId: number, executionId: string, nodeId: string, completedAt: number, result: any): Promise<void>;
-  setTaskFailed(taskId: number, completedAt: number, errorMessage: string): Promise<void>;
+  setTaskFailed(taskId: number, completedAt: number, errorMessage: string, executionId?: string, nodeId?: string): Promise<void>;
   statusExecution(id: string): Promise<any>;
   listExecutions(params: PaginationParams): Promise<PaginatedResult<Execution>>;
   listTasks(executionId: string | any, params: PaginationParams): Promise<PaginatedResult<Task>>;

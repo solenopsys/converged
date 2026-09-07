@@ -16,6 +16,7 @@ const lib = dlopen(libPath(), {
 	rt_set_cache_handlers: { args: [FFIType.ptr, FFIType.ptr], returns: FFIType.void },
 	rt_set_llm_handler: { args: [FFIType.ptr], returns: FFIType.void },
 	rt_set_sub_resolver: { args: [FFIType.ptr], returns: FFIType.void },
+	rt_set_node_reporter: { args: [FFIType.ptr], returns: FFIType.void },
 	rt_set_cache_del: { args: [FFIType.ptr], returns: FFIType.void },
 	rt_run: { args: [FFIType.cstring, FFIType.cstring, FFIType.ptr], returns: FFIType.ptr },
 	rt_free: { args: [FFIType.ptr, FFIType.u64], returns: FFIType.void },
@@ -40,9 +41,23 @@ export type CallHandler = (
 	target: string,
 ) => unknown;
 
+/** One executed node, exactly as the production engine reports it to rp-dag. */
+export type NodeReport = {
+	execId: string;
+	node: string;
+	ok: boolean;
+	error: string;
+	/** the node's outcome, `{ ok, value }` or `{ ok, error }` */
+	result: any;
+	/** the service calls the node made, which is what rp-dag stores as its input */
+	input: { service: string; method: string; params: any }[];
+	startedMs: number;
+	completedMs: number;
+};
+
 export type WorkflowOutcome =
-	| { ok: true; result: any; cache: Cache }
-	| { ok: false; error: string; cache: Cache };
+	| { ok: true; result: any; cache: Cache; nodes: NodeReport[] }
+	| { ok: false; error: string; cache: Cache; nodes: NodeReport[] };
 
 /** Answers one `rt.llm(request)` with a uniform completion, e.g.
  *  { provider, model, text, toolCalls: [], finishReason: "stop",
@@ -141,6 +156,14 @@ export function runWorkflow(source: string, params: unknown, handler: CallHandle
 			)
 		: null;
 
+	const nodes: NodeReport[] = [];
+	const reportCb = new JSCallback(
+		(reportPtr: number): void => {
+			nodes.push(JSON.parse(new CString(reportPtr).toString()));
+		},
+		{ args: [FFIType.ptr], returns: FFIType.void },
+	);
+
 	const subWorkflows = opts.workflows;
 	const subCb = subWorkflows
 		? new JSCallback(
@@ -161,6 +184,7 @@ export function runWorkflow(source: string, params: unknown, handler: CallHandle
 		s.rt_set_cache_del(delCb.ptr);
 		s.rt_set_llm_handler(llmCb ? llmCb.ptr : null);
 		s.rt_set_sub_resolver(subCb ? subCb.ptr : null);
+		s.rt_set_node_reporter(reportCb.ptr);
 
 		const lenBuf = new BigUint64Array(1);
 		const outPtr = s.rt_run(
@@ -176,13 +200,19 @@ export function runWorkflow(source: string, params: unknown, handler: CallHandle
 		const len = Number(lenBuf[0]);
 		const json = new CString(outPtr, 0, len).toString();
 		s.rt_free(outPtr, BigInt(len));
-		return { ...(JSON.parse(json) as Omit<WorkflowOutcome, "cache">), cache } as WorkflowOutcome;
+		return {
+			...(JSON.parse(json) as Omit<WorkflowOutcome, "cache" | "nodes">),
+			cache,
+			nodes,
+		} as WorkflowOutcome;
 	} finally {
 		s.rt_set_call_handler(null);
 		s.rt_set_cache_handlers(null, null);
 		s.rt_set_cache_del(null);
 		s.rt_set_llm_handler(null);
 		s.rt_set_sub_resolver(null);
+		s.rt_set_node_reporter(null);
+		reportCb.close();
 		callCb.close();
 		getCb.close();
 		setCb.close();

@@ -354,4 +354,59 @@ describe("DagServiceImpl storage API with mocked stores", () => {
 		expect(status.tasks[0].result).toEqual({ value: 42 });
 	});
 
+	test("keeps the node input recorded at open time alongside the result", async () => {
+		const service = createService();
+		const executionId = "exec-2";
+		const calls = [
+			{ service: "sales", method: "addLead", params: { lead: { id: "l-1" } } },
+		];
+
+		await service.openExecution(executionId, "wf.mock", {});
+		const ticket = await service.createTask(
+			executionId,
+			"add-lead:l-1",
+			1000,
+			calls,
+		);
+		await service.setTaskDone(
+			ticket.id,
+			executionId,
+			"add-lead:l-1",
+			1200,
+			"l-1",
+		);
+
+		const status = await service.statusExecution(executionId);
+		const task = status.tasks[0];
+		expect(task.startedAt).toBe(1000);
+		expect(task.completedAt).toBe(1200);
+		expect(task.result).toBe("l-1");
+		expect(latestStores?.processingStoreService.getRecord(
+			`${executionId}:add-lead:l-1`,
+		)).toEqual({ data: calls, result: "l-1" });
+	});
+
+	test("a failed node keeps the record, so its input is still visible", async () => {
+		const service = createService();
+		const executionId = "exec-3";
+		const calls = [{ service: "sales", method: "addLead", params: {} }];
+
+		await service.openExecution(executionId, "wf.mock", {});
+		const ticket = await service.createTask(executionId, "add-lead:l-2", 1000, calls);
+		await service.setTaskFailed(
+			ticket.id,
+			1100,
+			"sales is down",
+			executionId,
+			"add-lead:l-2",
+		);
+
+		const status = await service.statusExecution(executionId);
+		const task = status.tasks[0];
+		expect(task.state).toBe("failed");
+		expect(task.errorMessage).toBe("sales is down");
+		expect(latestStores?.processingStoreService.getRecord(
+			`${executionId}:add-lead:l-2`,
+		)?.data).toEqual(calls);
+	});
 });

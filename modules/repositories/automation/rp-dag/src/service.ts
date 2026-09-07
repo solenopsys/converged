@@ -148,13 +148,26 @@ export default class DagServiceImpl implements DagService {
 		this.stores.processingStoreService.setStatus(id, status);
 	}
 
-	async createTask(executionId: string, nodeId: string): Promise<TaskTicket> {
+	/** Opening a node is where its input is known, so the record is written here
+	 *  and `setTaskDone` only fills in the result. A node that fails keeps the
+	 *  record it got at open time. */
+	async createTask(
+		executionId: string,
+		nodeId: string,
+		startedAt?: number,
+		input?: any,
+	): Promise<TaskTicket> {
 		await this.ensureStoresReady();
+		const recordId = `${executionId}:${nodeId}`;
+		const kv = this.stores.processingStoreService;
+		kv.setRecord(recordId, { data: input ?? null, result: null });
+		kv.setStep(executionId, nodeId, recordId);
 		const row = await this.stores.statsStoreService.createNode({
 			processId: executionId,
 			nodeId,
-			state: "queued",
-			startedAt: null,
+			state: "processing",
+			startedAt: startedAt ?? Date.now(),
+			recordId,
 		});
 
 		return {
@@ -173,7 +186,9 @@ export default class DagServiceImpl implements DagService {
 		await this.ensureStoresReady();
 		const kv = this.stores.processingStoreService;
 		const recordId = `${executionId}:${nodeId}`;
-		kv.setRecord(recordId, { data: null, result });
+		// keep whatever createTask recorded as the node's input
+		const data = kv.getRecord(recordId)?.data ?? null;
+		kv.setRecord(recordId, { data, result });
 		kv.setStep(executionId, nodeId, recordId);
 		await this.stores.statsStoreService.updateNode(taskId, {
 			state: "done",
@@ -186,12 +201,17 @@ export default class DagServiceImpl implements DagService {
 		taskId: number,
 		completedAt: number,
 		errorMessage: string,
+		executionId?: string,
+		nodeId?: string,
 	): Promise<void> {
 		await this.ensureStoresReady();
+		const recordId =
+			executionId && nodeId ? `${executionId}:${nodeId}` : undefined;
 		await this.stores.statsStoreService.updateNode(taskId, {
 			state: "failed",
 			error_message: errorMessage,
 			completed_at: completedAt,
+			...(recordId ? { record_id: recordId } : {}),
 		} as any);
 	}
 
