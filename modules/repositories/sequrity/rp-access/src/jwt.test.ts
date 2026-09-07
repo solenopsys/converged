@@ -11,14 +11,14 @@ test("UserJwtIssuer creates an EdDSA JWT with cluster claims", async () => {
 		issuer: "platform",
 		audience: "cluster",
 	});
-	const token = await issuer.issue("admin", "club", ["fujin/getState(r)"], 60);
+	const token = await issuer.issue("admin", "club", { ap: { fujin: { r: ["getState"] } } }, 60);
 	const result = await jwtVerify(token, publicKey, {
 		issuer: "platform",
 		audience: "cluster",
 		algorithms: ["EdDSA"],
 	});
 	expect(result.protectedHeader.kid).toBe("current");
-	expect(result.payload).toMatchObject({ typ: "user", sub: "admin", scope: "club", perm: ["fujin/getState(r)"] });
+	expect(result.payload).toMatchObject({ typ: "user", sub: "admin", scope: "club", perm: { ap: { fujin: { r: ["getState"] } } } });
 });
 
 test("UserJwtIssuer creates an expiring EdDSA service token", async () => {
@@ -32,7 +32,7 @@ test("UserJwtIssuer creates an expiring EdDSA service token", async () => {
 		audience: "cluster",
 	});
 
-	const token = await issuer.issueService("resonus", ["resonus/call.offer(w)"], 60);
+	const token = await issuer.issueService("resonus", { ap: { resonus: { w: ["call.offer"] } } }, 60);
 	const verified = await jwtVerify(token, await importJWK(publicJwk, "EdDSA"), {
 		issuer: "platform",
 		audience: "cluster",
@@ -41,6 +41,6 @@ test("UserJwtIssuer creates an expiring EdDSA service token", async () => {
 
 	expect(verified.payload.typ).toBe("service");
 	expect(verified.payload.sub).toBe("resonus");
-	expect(verified.payload.perm).toEqual(["resonus/call.offer(w)"]);
+	expect(verified.payload.perm).toEqual({ ap: { resonus: { w: ["call.offer"] } } });
 	expect(verified.payload.exp).toBeTypeOf("number");
 });

@@ -17,7 +17,7 @@ test("creates one guest session and exposes its permissions", async () => {
 		flow: {
 			createGuest: async () => {
 				created += 1;
-				return { accessToken: jwt({ sub: "temp:1", exp: 10_000, perm: ["catalog/list(r)"] }) };
+				return { accessToken: jwt({ sub: "temp:1", exp: 10_000, perm: { "*": { catalog: { list: "r" } } } }) };
 			},
 		},
 		now: () => 1_000,
@@ -38,7 +38,7 @@ test("refreshes an expired token once for concurrent callers", async () => {
 			refresh: async (current) => {
 				refreshes += 1;
 				expect(current.refreshToken).toBe("refresh-1");
-				return { accessToken: jwt({ sub: "user:1", exp: 10_000, perm: [] }), refreshToken: "refresh-2" };
+				return { accessToken: jwt({ sub: "user:1", exp: 10_000, perm: {} }), refreshToken: "refresh-2" };
 			},
 		},
 		now: () => 2_000,
@@ -55,7 +55,7 @@ test("refreshes a valid guest token on startup to pick up preset changes", async
 	let refreshes = 0;
 	const controller = createAuthController({
 		storage: createMemoryTokenStorage({
-			accessToken: jwt({ sub: "temp:1", exp: 10_000, perm: ["resonus/chat.message(w)"] }),
+			accessToken: jwt({ sub: "temp:1", exp: 10_000, perm: { ap: { resonus: { "chat.message": "w" } } } }),
 			refreshToken: "refresh-1",
 		}),
 		flow: {
@@ -65,7 +65,7 @@ test("refreshes a valid guest token on startup to pick up preset changes", async
 					accessToken: jwt({
 						sub: "temp:1",
 						exp: 10_000,
-						perm: ["resonus/chat.message(w)", "resonus/call.offer(w)"],
+						perm: { ap: { resonus: { "chat.message": "w", "call.offer": "w" } } },
 					}),
 				};
 			},

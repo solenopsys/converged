@@ -10,6 +10,8 @@ export {
 
 export type {
   AccessMode,
+  GrantMethods,
+  GrantTree,
   PermissionEntry,
   PermissionIndex,
 } from "./runtime/access-control";
@@ -17,12 +19,16 @@ export {
   AccessMatcher,
   buildPermissionIndex,
   canCallMethod,
-  deserializePermissions,
+  countGrants,
   extractPermissionsFromPayload,
+  grantPermission,
+  mergeGrantTrees,
   parsePermission,
   resolveAccessForMethod,
+  revokePermission,
   serializePermission,
-  serializePermissions,
+  toGrantTree,
+  toPermissionEntries,
 } from "./runtime/access-control";
 
 export type {

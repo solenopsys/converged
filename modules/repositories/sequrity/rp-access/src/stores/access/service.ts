@@ -7,7 +7,8 @@ import {
   PresetKey,
   PRESET_PREFIX,
 } from "./entities";
-import type { Permission } from "../../types";
+import { grantPermission, revokePermission } from "nrpc";
+import type { GrantTree, Permission } from "../../types";
 
 export class AccessStoreService {
   private readonly accessStore: KVStore;
@@ -30,8 +31,8 @@ export class AccessStoreService {
       if (this.presetRepo.exists(key)) continue;
 
       const legacyValue = this.accessStore.getDirect(legacyKey);
-      if (!Array.isArray(legacyValue)) continue;
-      await this.presetRepo.save(key, legacyValue as Permission[]);
+      if (!legacyValue || typeof legacyValue !== "object" || Array.isArray(legacyValue)) continue;
+      await this.presetRepo.save(key, legacyValue as GrantTree);
     }
   }
 
@@ -40,7 +41,7 @@ export class AccessStoreService {
     if (existing) {
       return existing;
     }
-    return { userId, presets: [], permissions: [] };
+    return { userId, presets: [], permissions: {} };
   }
 
   findUserAccess(userId: string): UserAccessValue | null {
@@ -55,31 +56,31 @@ export class AccessStoreService {
     return this.userAccessRepo.get(new UserAccessKey(userId)) !== null;
   }
 
-  getPermissionsFromUser(userId: string): Permission[] {
+  getPermissionsFromUser(userId: string): GrantTree {
     return this.getUserAccess(userId).permissions;
   }
 
   async getPermissionsFromPresetWithMeta(
     presetName: string,
-  ): Promise<{ permissions: Permission[]; found: boolean }> {
+  ): Promise<{ permissions: GrantTree; found: boolean }> {
     const preset = await this.presetRepo.get(new PresetKey(presetName));
     if (!preset) {
-      return { permissions: [], found: false };
+      return { permissions: {}, found: false };
     }
     return { permissions: preset, found: true };
   }
 
-  async getPermissionsFromPreset(presetName: string): Promise<Permission[]> {
+  async getPermissionsFromPreset(presetName: string): Promise<GrantTree> {
     const preset = await this.getPermissionsFromPresetWithMeta(presetName);
     return preset.permissions;
   }
 
   async getPresetWithMeta(
     presetName: string,
-  ): Promise<{ exists: boolean; permissions: Permission[] }> {
+  ): Promise<{ exists: boolean; permissions: GrantTree }> {
     const key = new PresetKey(presetName);
     const exists = this.presetRepo.exists(key);
-    const permissions = (await this.presetRepo.get(key)) ?? [];
+    const permissions = (await this.presetRepo.get(key)) ?? {};
     return { exists, permissions };
   }
 
@@ -104,11 +105,11 @@ export class AccessStoreService {
     this.saveUserAccess(userId, data);
   }
 
-  async createPreset(presetName: string, permissions: Permission[]): Promise<void> {
+  async createPreset(presetName: string, permissions: GrantTree): Promise<void> {
     await this.presetRepo.save(new PresetKey(presetName), permissions);
   }
 
-  async updatePreset(presetName: string, permissions: Permission[]): Promise<void> {
+  async updatePreset(presetName: string, permissions: GrantTree): Promise<void> {
     await this.presetRepo.save(new PresetKey(presetName), permissions);
   }
 
@@ -118,15 +119,13 @@ export class AccessStoreService {
 
   addPermissionToUser(userId: string, permission: Permission): void {
     const data = this.getUserAccess(userId);
-    if (!data.permissions.includes(permission)) {
-      data.permissions.push(permission);
-      this.saveUserAccess(userId, data);
-    }
+    data.permissions = grantPermission(data.permissions, permission);
+    this.saveUserAccess(userId, data);
   }
 
   removePermissionFromUser(userId: string, permission: Permission): void {
     const data = this.getUserAccess(userId);
-    data.permissions = data.permissions.filter((p) => p !== permission);
+    data.permissions = revokePermission(data.permissions, permission);
     this.saveUserAccess(userId, data);
   }
 }

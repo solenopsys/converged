@@ -5,14 +5,14 @@ import { BaseCommandProcessor, type Handler, type CommandEntry } from "dag-cli/b
 import { createCliNrpcClientConfig } from "dag-cli/ws";
 import { createAuthServiceClient, type AuthServiceClient } from "g-auth/browser";
 import { createIdentityServiceClient, type IdentityServiceClient } from "g-identity/browser";
-import { AccessMatcher } from "nrpc";
+import { AccessMatcher, countGrants, serializePermission, toPermissionEntries, type GrantTree } from "nrpc";
 
 type AuthSession = {
   baseUrl: string;
   email: string;
   userId: string;
   token: string;
-  permissions: string[];
+  permissions: GrantTree;
   savedAt: string;
 };
 
@@ -46,18 +46,10 @@ function parseJwtPayload(token: string): any {
   return JSON.parse(json);
 }
 
-function extractPermissionsFromPayload(payload: any): string[] {
+function extractPermissionsFromPayload(payload: any): GrantTree {
   const raw = payload?.perm ?? payload?.permissions;
-  if (Array.isArray(raw)) {
-    return raw.filter((value) => typeof value === "string");
-  }
-  if (typeof raw === "string") {
-    return raw
-      .split(",")
-      .map((value) => value.trim())
-      .filter(Boolean);
-  }
-  return [];
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  return raw as GrantTree;
 }
 
 function saveSession(session: AuthSession): string {
@@ -154,7 +146,7 @@ async function printStatus(session: AuthSession): Promise<void> {
   }
 
   const tokenPermissions = extractPermissionsFromPayload(payload);
-  const permissions = tokenPermissions.length > 0 ? tokenPermissions : session.permissions;
+  const permissions = countGrants(tokenPermissions) > 0 ? tokenPermissions : session.permissions;
   const canReadIdentity = new AccessMatcher(permissions).can("identity", "getUser", "r");
 
   let identityEmail = session.email;
@@ -188,11 +180,12 @@ async function printStatus(session: AuthSession): Promise<void> {
   if (expiresAt) console.log(`expiresAt:   ${expiresAt}`);
 
   console.log("permissions:");
-  if (permissions.length === 0) {
+  const grants = toPermissionEntries(permissions);
+  if (grants.length === 0) {
     console.log("  (empty)");
   } else {
-    for (const permission of permissions) {
-      console.log(`  - ${permission}`);
+    for (const grant of grants) {
+      console.log(`  - ${serializePermission(grant)}`);
     }
   }
   console.log("token:");

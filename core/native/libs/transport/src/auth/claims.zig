@@ -1,3 +1,5 @@
+const access = @import("access.zig");
+
 pub const TokenType = enum {
     user,
     service,
@@ -9,7 +11,7 @@ pub const Claims = struct {
     token_type: TokenType,
     subject: []const u8,
     scope: []const u8 = "",
-    permissions: []const []const u8 = &.{},
+    permissions: []const access.Grant = &.{},
     expires_at: i64,
 };
 

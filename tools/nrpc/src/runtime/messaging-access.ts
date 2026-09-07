@@ -1,5 +1,5 @@
 import { createLocalJWKSet, jwtVerify, type JWK, type JWTVerifyResult } from "jose";
-import { resolveAccessForMethod, AccessMatcher } from "./access-control";
+import { resolveAccessForMethod, AccessMatcher, type GrantTree } from "./access-control";
 import type { AccessLevel } from "../decorator/access.decorator";
 
 export type MessagingAccessMode = "off" | "audit" | "required";
@@ -29,7 +29,7 @@ export interface MessagingAuthorizationRequest {
 
 type VerifiedToken = TrustedMessagingContext & {
 	type: "user" | "service";
-	permissions: string[];
+	permissions: GrantTree;
 	expiresAt: number;
 };
 
@@ -140,14 +140,14 @@ function claimsFrom(result: JWTVerifyResult, token: string): VerifiedToken {
 	if (typeof payload.sub !== "string" || payload.sub.length === 0) throw new MessagingAuthorizationError("unauthenticated", "missing subject");
 	if (typeof payload.exp !== "number" || !Number.isFinite(payload.exp)) throw new MessagingAuthorizationError("unauthenticated", "missing expiry");
 	if (typeof payload.iat !== "number" || !Number.isFinite(payload.iat)) throw new MessagingAuthorizationError("unauthenticated", "missing issued-at time");
-	if (!Array.isArray(payload.perm) || !payload.perm.every((value) => typeof value === "string")) {
+	if (!payload.perm || typeof payload.perm !== "object" || Array.isArray(payload.perm)) {
 		throw new MessagingAuthorizationError("unauthenticated", "missing permissions");
 	}
 	// Service identities are cluster-wide. Keep an absent service scope undefined
 	// so the authenticated caller does not erase the tenant scope in the envelope.
 	const scope = typeof payload.scope === "string" && payload.scope.trim() ? payload.scope.trim() : undefined;
 	if (type === "user" && !scope) throw new MessagingAuthorizationError("unauthenticated", "missing user scope");
-	return { user: payload.sub, scope, auth: token, type, permissions: payload.perm as string[], expiresAt: payload.exp };
+	return { user: payload.sub, scope, auth: token, type, permissions: payload.perm as GrantTree, expiresAt: payload.exp };
 }
 
 function resolveMode(configMode: MessagingAccessMode | undefined): MessagingAccessMode {

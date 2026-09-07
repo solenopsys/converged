@@ -1,6 +1,8 @@
 const std = @import("std");
+const access = @import("access.zig");
 const authz = @import("authorize.zig");
 const cache = @import("cache.zig");
+const claims = @import("claims.zig");
 const jwks = @import("jwks.zig");
 const jwt = @import("jwt.zig");
 
@@ -52,7 +54,14 @@ pub const Receiver = struct {
         self.verified_cache.put(raw_token, &token) catch |err| {
             std.log.warn("JWT verification cache skipped: {s}", .{@errorName(err)});
         };
-        if (!std.mem.eql(u8, token.subject, envelope_user) or !std.mem.eql(u8, token.scope, envelope_scope)) {
+        // A user token is bound to one user and one tenant. A service token is
+        // the trusted runtime principal used for delegated work: it must retain
+        // the originating actor and scope in the envelope so downstream calls
+        // operate in the same tenant and audit trail.
+        if (token.token_type == .user and
+            (!std.mem.eql(u8, token.subject, envelope_user) or
+                !std.mem.eql(u8, token.scope, envelope_scope)))
+        {
             self.logDenied(policy, envelope_user, envelope_scope, "EnvelopeClaimsMismatch");
             if (self.mode == .audit) {
                 token.deinit(self.allocator);
@@ -61,7 +70,13 @@ pub const Receiver = struct {
             return error.EnvelopeClaimsMismatch;
         }
         authz.authorize(token.toClaims(), policy) catch |err| {
-            self.logDenied(policy, envelope_user, envelope_scope, @errorName(err));
+            self.logAuthorizationDenied(
+                policy,
+                envelope_user,
+                envelope_scope,
+                token.toClaims(),
+                @errorName(err),
+            );
             if (self.mode == .audit) {
                 token.deinit(self.allocator);
                 return null;
@@ -83,6 +98,39 @@ pub const Receiver = struct {
             reason,
             @tagName(self.mode),
         });
+    }
+
+    /// Permission strings are authorization metadata, not credentials. Logging
+    /// them on a verified-token denial makes a stale or incorrectly minted JWT
+    /// distinguishable from a policy mismatch without exposing the JWT itself.
+    fn logAuthorizationDenied(
+        self: *const Receiver,
+        policy: authz.MethodPolicy,
+        user: []const u8,
+        scope: []const u8,
+        token: claims.Claims,
+        reason: []const u8,
+    ) void {
+        const required = policy.mode orelse access.resolveMode(policy.method);
+        std.log.warn(
+            "deny {s}.{s} level={s} user={s} scope={s} reason={s} mode={s} token_type={s} perm_count={d} permissions={f} expected={s}/{s}/{s}({s})",
+            .{
+                policy.service,
+                policy.method,
+                @tagName(policy.level),
+                if (user.len > 0) user else "-",
+                if (scope.len > 0) scope else "-",
+                reason,
+                @tagName(self.mode),
+                @tagName(token.token_type),
+                token.permissions.len,
+                access.GrantList{ .grants = token.permissions },
+                if (policy.kind.len > 0) policy.kind else "*",
+                policy.service,
+                policy.method,
+                required.name(),
+            },
+        );
     }
 };
 

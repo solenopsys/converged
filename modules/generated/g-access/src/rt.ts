@@ -3,9 +3,15 @@ import { createRtClient, type ServiceMetadata } from "nrpc";
 
 export type Permission = string;
 
+export type GrantMethods = string | { [mode: string]: string[] };
+
+export type GrantTree = {
+  [kind: string]: { [service: string]: GrantMethods };
+};
+
 export type AccessPreset = {
   name: string;
-  permissions: Permission[];
+  permissions: GrantTree;
 };
 
 const metadata: ServiceMetadata = {
@@ -39,9 +45,9 @@ const metadata: ServiceMetadata = {
         },
         {
           "name": "permissions",
-          "type": "Permission",
+          "type": "GrantTree",
           "optional": false,
-          "isArray": true
+          "isArray": false
         }
       ],
       "returnType": "string",
@@ -101,9 +107,9 @@ const metadata: ServiceMetadata = {
           "isArray": false
         }
       ],
-      "returnType": "Permission",
+      "returnType": "GrantTree",
       "isAsync": true,
-      "returnTypeIsArray": true,
+      "returnTypeIsArray": false,
       "isAsyncIterable": false
     },
     {
@@ -116,9 +122,9 @@ const metadata: ServiceMetadata = {
           "isArray": false
         }
       ],
-      "returnType": "Permission",
+      "returnType": "GrantTree",
       "isAsync": true,
-      "returnTypeIsArray": true,
+      "returnTypeIsArray": false,
       "isAsyncIterable": false
     },
     {
@@ -174,9 +180,9 @@ const metadata: ServiceMetadata = {
         },
         {
           "name": "permissions",
-          "type": "Permission",
+          "type": "GrantTree",
           "optional": false,
-          "isArray": true
+          "isArray": false
         }
       ],
       "returnType": "void",
@@ -195,9 +201,9 @@ const metadata: ServiceMetadata = {
         },
         {
           "name": "permissions",
-          "type": "Permission",
+          "type": "GrantTree",
           "optional": false,
-          "isArray": true
+          "isArray": false
         }
       ],
       "returnType": "void",
@@ -230,7 +236,7 @@ const metadata: ServiceMetadata = {
           "isArray": false
         }
       ],
-      "returnType": "Permission | any",
+      "returnType": "GrantTree | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -251,9 +257,19 @@ const metadata: ServiceMetadata = {
       "definition": "string"
     },
     {
+      "name": "GrantMethods",
+      "kind": "type",
+      "definition": "string | { [mode: string]: string[] }"
+    },
+    {
+      "name": "GrantTree",
+      "kind": "type",
+      "definition": "{\n  [kind: string]: { [service: string]: GrantMethods };\n}"
+    },
+    {
       "name": "AccessPreset",
       "kind": "type",
-      "definition": "{\n  name: string;\n  permissions: Permission[];\n}"
+      "definition": "{\n  name: string;\n  permissions: GrantTree;\n}"
     }
   ]
 };
@@ -261,17 +277,17 @@ const metadata: ServiceMetadata = {
 // RT client interface — synchronous (one QuickJS evaluation per workflow run).
 export interface AccessServiceRtClient {
   emitJWT(userId: string): string;
-  issueServiceJWT(serviceName: string, permissions: Permission[]): string;
+  issueServiceJWT(serviceName: string, permissions: GrantTree): string;
   addPermissionToUser(userId: string, permission: Permission): void;
   removePermissionFromUser(userId: string, permission: Permission): void;
-  getPermissionsFromUser(userId: string): Permission[];
-  getPermissionsMixinFromUser(userId: string): Permission[];
+  getPermissionsFromUser(userId: string): GrantTree;
+  getPermissionsMixinFromUser(userId: string): GrantTree;
   linkPresetToUser(userId: string, presetName: string): void;
   unlinkPresetFromUser(userId: string, presetName: string): void;
-  createPreset(presetName: string, permissions: Permission[]): void;
-  updatePreset(presetName: string, permissions: Permission[]): void;
+  createPreset(presetName: string, permissions: GrantTree): void;
+  updatePreset(presetName: string, permissions: GrantTree): void;
   deletePreset(presetName: string): void;
-  getPreset(presetName: string): Permission | any;
+  getPreset(presetName: string): GrantTree | any;
   getAllPresets(): AccessPreset[];
 }
 

@@ -1,5 +1,5 @@
 import { PrefixedRepositoryKV, SimpleKey, BaseKeyJson, BaseRepositoryJson } from "back-core";
-import type { Permission } from "../../types";
+import type { GrantTree } from "../../types";
 
 const USER_ACCESS_PREFIX = "user_access";
 class UserAccessKey extends SimpleKey {
@@ -9,7 +9,7 @@ class UserAccessKey extends SimpleKey {
 export type UserAccessValue = {
   userId: string;
   presets: string[];
-  permissions: Permission[];
+  permissions: GrantTree;
 };
 
 class UserAccessRepository extends PrefixedRepositoryKV<
@@ -26,7 +26,7 @@ class PresetKey extends BaseKeyJson {
   readonly type = PRESET_PREFIX;
 }
 
-export type PresetValue = Permission[];
+export type PresetValue = GrantTree;
 
 class PresetRepository extends BaseRepositoryJson<PresetKey, PresetValue> {}
 

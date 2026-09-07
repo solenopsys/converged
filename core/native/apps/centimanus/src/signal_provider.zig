@@ -142,7 +142,7 @@ pub const Provider = struct {
             const group = if (cut) |at| script_path[0..at] else script_path;
             const name = if (cut) |at| script_path[at + 1 ..] else "*";
 
-            const matcher = transport.auth.access.Matcher{ .permissions = claims.permissions };
+            const matcher = transport.auth.access.Matcher{ .grants = claims.permissions };
             if (!matcher.can("wf", group, name, .execute)) {
                 std.log.warn("deny wf/{s} user={s} scope={s} reason=WorkflowNotPermitted", .{
                     script_path, claims.subject, request.envelope.scope,

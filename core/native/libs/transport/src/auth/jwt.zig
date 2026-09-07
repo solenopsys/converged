@@ -1,4 +1,5 @@
 const std = @import("std");
+const access = @import("access.zig");
 const claims = @import("claims.zig");
 
 pub const Key = struct {
@@ -17,7 +18,7 @@ pub const VerifiedToken = struct {
     token_type: claims.TokenType,
     subject: []u8,
     scope: []u8,
-    permissions: []const []const u8,
+    permissions: []const access.Grant,
     expires_at: i64,
 
     pub fn toClaims(self: *const VerifiedToken) claims.Claims {
@@ -33,8 +34,7 @@ pub const VerifiedToken = struct {
     pub fn deinit(self: *VerifiedToken, allocator: std.mem.Allocator) void {
         allocator.free(self.subject);
         allocator.free(self.scope);
-        for (self.permissions) |permission| allocator.free(permission);
-        allocator.free(self.permissions);
+        access.freeGrants(allocator, self.permissions);
         self.* = undefined;
     }
 
@@ -45,8 +45,8 @@ pub const VerifiedToken = struct {
         errdefer allocator.free(subject);
         const scope = try allocator.dupe(u8, self.scope);
         errdefer allocator.free(scope);
-        const permissions = try copyPermissionSlices(allocator, self.permissions);
-        errdefer freePermissions(allocator, permissions);
+        const permissions = try access.cloneGrants(allocator, self.permissions);
+        errdefer access.freeGrants(allocator, permissions);
         return .{
             .raw_token = self.raw_token,
             .token_type = self.token_type,
@@ -112,14 +112,17 @@ pub fn verify(
 
     const scope = stringField(payload, "scope") orelse "";
     if (token_type == .user and scope.len == 0) return error.ClaimsInvalid;
-    const permission_values = stringArrayField(payload, "perm") orelse return error.ClaimsInvalid;
+    // The claim is a grant tree — `kind -> service -> mode -> methods`. An
+    // array is the format this build no longer speaks.
+    const permission_tree = payload.get("perm") orelse return error.ClaimsInvalid;
+    if (permission_tree != .object) return error.ClaimsInvalid;
 
     const subject_copy = try allocator.dupe(u8, subject);
     errdefer allocator.free(subject_copy);
     const scope_copy = try allocator.dupe(u8, scope);
     errdefer allocator.free(scope_copy);
-    const permissions = try copyPermissions(allocator, permission_values);
-    errdefer freePermissions(allocator, permissions);
+    const permissions = try access.parseTree(allocator, permission_tree);
+    errdefer access.freeGrants(allocator, permissions);
 
     allocator.free(payload_bytes);
     return .{
@@ -180,13 +183,6 @@ fn integerField(object: std.json.ObjectMap, name: []const u8) ?i64 {
     return if (value == .integer) value.integer else null;
 }
 
-fn stringArrayField(object: std.json.ObjectMap, name: []const u8) ?[]const std.json.Value {
-    const value = object.get(name) orelse return null;
-    if (value != .array) return null;
-    for (value.array.items) |item| if (item != .string) return null;
-    return value.array.items;
-}
-
 fn parseTokenType(value: []const u8) ?claims.TokenType {
     if (std.mem.eql(u8, value, "user")) return .user;
     if (std.mem.eql(u8, value, "service")) return .service;
@@ -198,39 +194,6 @@ fn findKey(keys: []const Key, kid: []const u8) ?Key {
         if (std.mem.eql(u8, key.kid, kid)) return key;
     }
     return null;
-}
-
-fn copyPermissions(allocator: std.mem.Allocator, values: []const std.json.Value) std.mem.Allocator.Error![]const []const u8 {
-    const result = try allocator.alloc([]const u8, values.len);
-    var copied: usize = 0;
-    errdefer {
-        for (result[0..copied]) |value| allocator.free(value);
-        allocator.free(result);
-    }
-    for (values, 0..) |value, index| {
-        result[index] = try allocator.dupe(u8, value.string);
-        copied += 1;
-    }
-    return result;
-}
-
-fn freePermissions(allocator: std.mem.Allocator, permissions: []const []const u8) void {
-    for (permissions) |permission| allocator.free(permission);
-    allocator.free(permissions);
-}
-
-fn copyPermissionSlices(allocator: std.mem.Allocator, values: []const []const u8) std.mem.Allocator.Error![]const []const u8 {
-    const result = try allocator.alloc([]const u8, values.len);
-    var copied: usize = 0;
-    errdefer {
-        for (result[0..copied]) |value| allocator.free(value);
-        allocator.free(result);
-    }
-    for (values, 0..) |value, index| {
-        result[index] = try allocator.dupe(u8, value);
-        copied += 1;
-    }
-    return result;
 }
 
 fn encode(allocator: std.mem.Allocator, value: []const u8) std.mem.Allocator.Error![]u8 {
@@ -268,7 +231,7 @@ test "EdDSA JWT verifies claims and preserves trusted context" {
         std.testing.allocator,
         key_pair,
         "{\"alg\":\"EdDSA\",\"kid\":\"current\"}",
-        "{\"typ\":\"user\",\"sub\":\"admin\",\"scope\":\"club\",\"perm\":[\"fujin/state(r)\"],\"iat\":100,\"exp\":200,\"iss\":\"test-issuer\",\"aud\":\"test-audience\"}",
+        "{\"typ\":\"user\",\"sub\":\"admin\",\"scope\":\"club\",\"perm\":{\"ap\":{\"fujin\":{\"state\":\"r\"}}},\"iat\":100,\"exp\":200,\"iss\":\"test-issuer\",\"aud\":\"test-audience\"}",
     );
     defer std.testing.allocator.free(token);
 
@@ -278,7 +241,10 @@ test "EdDSA JWT verifies claims and preserves trusted context" {
     try std.testing.expectEqual(claims.TokenType.user, result.token_type);
     try std.testing.expectEqualStrings("admin", result.subject);
     try std.testing.expectEqualStrings("club", result.scope);
-    try std.testing.expectEqualStrings("fujin/state(r)", result.permissions[0]);
+    try std.testing.expectEqualStrings("ap", result.permissions[0].kind);
+    try std.testing.expectEqualStrings("fujin", result.permissions[0].service);
+    try std.testing.expectEqualStrings("state", result.permissions[0].method);
+    try std.testing.expectEqual(access.Mode.read, result.permissions[0].mode);
 }
 
 test "EdDSA JWT rejects tampering and invalid mandatory claims" {
@@ -290,7 +256,7 @@ test "EdDSA JWT rejects tampering and invalid mandatory claims" {
         std.testing.allocator,
         key_pair,
         "{\"alg\":\"EdDSA\",\"kid\":\"current\"}",
-        "{\"typ\":\"user\",\"sub\":\"admin\",\"scope\":\"club\",\"perm\":[],\"iat\":100,\"exp\":200,\"iss\":\"test-issuer\",\"aud\":\"test-audience\"}",
+        "{\"typ\":\"user\",\"sub\":\"admin\",\"scope\":\"club\",\"perm\":{},\"iat\":100,\"exp\":200,\"iss\":\"test-issuer\",\"aud\":\"test-audience\"}",
     );
     defer std.testing.allocator.free(token);
 

@@ -1,4 +1,5 @@
 const std = @import("std");
+const access = @import("access.zig");
 const jwt = @import("jwt.zig");
 
 /// Bounded positive cache for verified JWT claims. Entries are valid only
@@ -71,7 +72,9 @@ pub const Cache = struct {
 test "positive cache expires entries and returns independent claims" {
     var cache = Cache.init(std.testing.allocator, 1);
     defer cache.deinit();
-    const permissions = try std.testing.allocator.dupe([]const u8, &[_][]const u8{try std.testing.allocator.dupe(u8, "fujin/state(r)")});
+    const permissions = try access.cloneGrants(std.testing.allocator, &[_]access.Grant{
+        .{ .kind = "ap", .service = "fujin", .method = "state", .mode = .read },
+    });
     var token = jwt.VerifiedToken{
         .raw_token = "token",
         .token_type = .user,

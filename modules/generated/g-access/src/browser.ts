@@ -7,9 +7,15 @@ import {
 
 export type Permission = string;
 
+export type GrantMethods = string | { [mode: string]: string[] };
+
+export type GrantTree = {
+  [kind: string]: { [service: string]: GrantMethods };
+};
+
 export type AccessPreset = {
   name: string;
-  permissions: Permission[];
+  permissions: GrantTree;
 };
 
 export const metadata: ServiceMetadata = {
@@ -43,9 +49,9 @@ export const metadata: ServiceMetadata = {
         },
         {
           "name": "permissions",
-          "type": "Permission",
+          "type": "GrantTree",
           "optional": false,
-          "isArray": true
+          "isArray": false
         }
       ],
       "returnType": "string",
@@ -105,9 +111,9 @@ export const metadata: ServiceMetadata = {
           "isArray": false
         }
       ],
-      "returnType": "Permission",
+      "returnType": "GrantTree",
       "isAsync": true,
-      "returnTypeIsArray": true,
+      "returnTypeIsArray": false,
       "isAsyncIterable": false
     },
     {
@@ -120,9 +126,9 @@ export const metadata: ServiceMetadata = {
           "isArray": false
         }
       ],
-      "returnType": "Permission",
+      "returnType": "GrantTree",
       "isAsync": true,
-      "returnTypeIsArray": true,
+      "returnTypeIsArray": false,
       "isAsyncIterable": false
     },
     {
@@ -178,9 +184,9 @@ export const metadata: ServiceMetadata = {
         },
         {
           "name": "permissions",
-          "type": "Permission",
+          "type": "GrantTree",
           "optional": false,
-          "isArray": true
+          "isArray": false
         }
       ],
       "returnType": "void",
@@ -199,9 +205,9 @@ export const metadata: ServiceMetadata = {
         },
         {
           "name": "permissions",
-          "type": "Permission",
+          "type": "GrantTree",
           "optional": false,
-          "isArray": true
+          "isArray": false
         }
       ],
       "returnType": "void",
@@ -234,7 +240,7 @@ export const metadata: ServiceMetadata = {
           "isArray": false
         }
       ],
-      "returnType": "Permission | any",
+      "returnType": "GrantTree | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -255,9 +261,19 @@ export const metadata: ServiceMetadata = {
       "definition": "string"
     },
     {
+      "name": "GrantMethods",
+      "kind": "type",
+      "definition": "string | { [mode: string]: string[] }"
+    },
+    {
+      "name": "GrantTree",
+      "kind": "type",
+      "definition": "{\n  [kind: string]: { [service: string]: GrantMethods };\n}"
+    },
+    {
       "name": "AccessPreset",
       "kind": "type",
-      "definition": "{\n  name: string;\n  permissions: Permission[];\n}"
+      "definition": "{\n  name: string;\n  permissions: GrantTree;\n}"
     }
   ]
 };
@@ -265,17 +281,17 @@ export const metadata: ServiceMetadata = {
 // Client interface
 export interface AccessServiceClient {
   emitJWT(userId: string): Promise<string>;
-  issueServiceJWT(serviceName: string, permissions: Permission[]): Promise<string>;
+  issueServiceJWT(serviceName: string, permissions: GrantTree): Promise<string>;
   addPermissionToUser(userId: string, permission: Permission): Promise<void>;
   removePermissionFromUser(userId: string, permission: Permission): Promise<void>;
-  getPermissionsFromUser(userId: string): Promise<Permission[]>;
-  getPermissionsMixinFromUser(userId: string): Promise<Permission[]>;
+  getPermissionsFromUser(userId: string): Promise<GrantTree>;
+  getPermissionsMixinFromUser(userId: string): Promise<GrantTree>;
   linkPresetToUser(userId: string, presetName: string): Promise<void>;
   unlinkPresetFromUser(userId: string, presetName: string): Promise<void>;
-  createPreset(presetName: string, permissions: Permission[]): Promise<void>;
-  updatePreset(presetName: string, permissions: Permission[]): Promise<void>;
+  createPreset(presetName: string, permissions: GrantTree): Promise<void>;
+  updatePreset(presetName: string, permissions: GrantTree): Promise<void>;
   deletePreset(presetName: string): Promise<void>;
-  getPreset(presetName: string): Promise<Permission | any>;
+  getPreset(presetName: string): Promise<GrantTree | any>;
   getAllPresets(): Promise<AccessPreset[]>;
 }
 

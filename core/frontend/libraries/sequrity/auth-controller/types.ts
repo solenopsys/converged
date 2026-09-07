@@ -1,10 +1,10 @@
-import type { PermissionEntry } from "nrpc";
+import type { GrantTree, PermissionEntry } from "nrpc";
 
 export type JwtPayload = {
 	sub?: string;
 	exp?: number;
 	iat?: number;
-	perm?: string[];
+	perm?: GrantTree;
 	[key: string]: unknown;
 };
 

@@ -1,1 +1,1 @@
-export type { AccessService, AccessPreset, Permission } from "g-access";
+export type { AccessService, AccessPreset, GrantMethods, GrantTree, Permission } from "g-access";

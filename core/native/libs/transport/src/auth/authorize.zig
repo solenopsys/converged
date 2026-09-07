@@ -40,13 +40,13 @@ pub fn authorize(token: claims.Claims, policy: MethodPolicy) Error!void {
     }
 
     const required = policy.mode orelse access.resolveMode(policy.method);
-    const matcher = access.Matcher{ .permissions = token.permissions };
+    const matcher = access.Matcher{ .grants = token.permissions };
     if (!matcher.can(policy.kind, policy.service, policy.method, required)) return error.PermissionDenied;
 }
 
 test "authorization enforces token kind and method policy" {
-    const permissions = [_][]const u8{"fujin/state(r)"};
-    const service_permissions = [_][]const u8{"fujin/reload(w)"};
+    const permissions = [_]access.Grant{.{ .service = "fujin", .method = "state", .mode = .read }};
+    const service_permissions = [_]access.Grant{.{ .service = "fujin", .method = "reload", .mode = .write }};
     const user = claims.Claims{
         .token_type = .user,
         .subject = "admin",
@@ -69,7 +69,7 @@ test "authorization enforces token kind and method policy" {
 }
 
 test "a kinded policy is answered by a kinded grant" {
-    const permissions = [_][]const u8{"rp/files/save(w)"};
+    const permissions = [_]access.Grant{.{ .kind = "rp", .service = "files", .method = "save", .mode = .write }};
     const claims_of = claims.Claims{
         .token_type = .user,
         .subject = "alice",
@@ -86,8 +86,8 @@ test "a kinded policy is answered by a kinded grant" {
 }
 
 test "any level admits both token kinds but still enforces permissions" {
-    const publish = [_][]const u8{"pushrouter/publish(w)"};
-    const unrelated = [_][]const u8{"logs/write(w)"};
+    const publish = [_]access.Grant{.{ .service = "pushrouter", .method = "publish", .mode = .write }};
+    const unrelated = [_]access.Grant{.{ .service = "logs", .method = "write", .mode = .write }};
     const policy = MethodPolicy{ .service = "pushrouter", .method = "publish", .level = .any, .mode = .write };
 
     try authorize(.{ .token_type = .user, .subject = "alice", .scope = "club", .permissions = &publish, .expires_at = 1 }, policy);

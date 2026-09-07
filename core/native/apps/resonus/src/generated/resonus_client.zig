@@ -11,16 +11,16 @@ pub fn bind(runtime: *transport.Runtime, handler: transport.RuntimeHandler) !voi
 /// Server-side NRPC descriptor. A native application calls verifyAndAuthorize
 /// before its handwritten handler; this generated code never knows the handler.
 pub const method_policies = [_]transport.auth.authorize.MethodPolicy{
-    .{ .service = service, .method = "savePhoneNumber", .level = .user, .mode = null },
-    .{ .service = service, .method = "updatePhoneNumber", .level = .user, .mode = null },
-    .{ .service = service, .method = "getPhoneNumber", .level = .user, .mode = null },
-    .{ .service = service, .method = "deletePhoneNumber", .level = .user, .mode = null },
-    .{ .service = service, .method = "listPhoneNumbers", .level = .user, .mode = null },
-    .{ .service = service, .method = "getPrimaryPhoneNumber", .level = .user, .mode = null },
-    .{ .service = service, .method = "saveLlmGateConfig", .level = .user, .mode = null },
-    .{ .service = service, .method = "getLlmGateConfig", .level = .user, .mode = null },
-    .{ .service = service, .method = "listLlmGateConfigs", .level = .user, .mode = null },
-    .{ .service = service, .method = "deleteLlmGateConfig", .level = .user, .mode = null },
+    .{ .kind = "ap", .service = service, .method = "savePhoneNumber", .level = .user, .mode = null },
+    .{ .kind = "ap", .service = service, .method = "updatePhoneNumber", .level = .user, .mode = null },
+    .{ .kind = "ap", .service = service, .method = "getPhoneNumber", .level = .user, .mode = null },
+    .{ .kind = "ap", .service = service, .method = "deletePhoneNumber", .level = .user, .mode = null },
+    .{ .kind = "ap", .service = service, .method = "listPhoneNumbers", .level = .user, .mode = null },
+    .{ .kind = "ap", .service = service, .method = "getPrimaryPhoneNumber", .level = .user, .mode = null },
+    .{ .kind = "ap", .service = service, .method = "saveLlmGateConfig", .level = .user, .mode = null },
+    .{ .kind = "ap", .service = service, .method = "getLlmGateConfig", .level = .user, .mode = null },
+    .{ .kind = "ap", .service = service, .method = "listLlmGateConfigs", .level = .user, .mode = null },
+    .{ .kind = "ap", .service = service, .method = "deleteLlmGateConfig", .level = .user, .mode = null },
 };
 
 pub fn policy(method: []const u8) ?transport.auth.authorize.MethodPolicy {

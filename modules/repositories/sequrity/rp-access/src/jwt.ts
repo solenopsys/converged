@@ -1,4 +1,5 @@
 import { importJWK, SignJWT, type JWK } from "jose";
+import type { GrantTree } from "./types";
 
 export interface UserJwtIssuerConfig {
 	privateJwk: string;
@@ -16,7 +17,7 @@ export class UserJwtIssuer {
 		this.signingKey = importJWK(parsePrivateJwk(config.privateJwk), "EdDSA");
 	}
 
-	async issue(userId: string, scope: string, permissions: string[], ttlSeconds: number): Promise<string> {
+	async issue(userId: string, scope: string, permissions: GrantTree, ttlSeconds: number): Promise<string> {
 		if (!scope.trim()) throw new Error("JWT scope is required for user JWT signing");
 		return new SignJWT({ typ: "user", scope, perm: permissions })
 			.setProtectedHeader({ alg: "EdDSA", kid: this.config.kid })
@@ -28,7 +29,7 @@ export class UserJwtIssuer {
 			.sign(await this.signingKey);
 	}
 
-	async issueService(serviceName: string, permissions: string[], ttlSeconds: number): Promise<string> {
+	async issueService(serviceName: string, permissions: GrantTree, ttlSeconds: number): Promise<string> {
 		if (!serviceName.trim()) throw new Error("service name is required for service JWT signing");
 		return new SignJWT({ typ: "service", perm: permissions })
 			.setProtectedHeader({ alg: "EdDSA", kid: this.config.kid })
