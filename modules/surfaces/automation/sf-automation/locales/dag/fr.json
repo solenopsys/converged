@@ -4,7 +4,6 @@
 		"workflows": "Flux",
 		"executions": "Exécutions",
 		"triggers": "Déclencheurs",
-		"vars": "Variables",
 		"run": "Exécuter"
 	},
 	"cards": {

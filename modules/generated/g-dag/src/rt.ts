@@ -119,6 +119,11 @@ export type ExecutionTreeRow = ExecutionNode & {
 	executionId: string;
 };
 
+export type CacheRef = {
+	cacheKey: string;
+	sizeBytes: number;
+};
+
 export type ExecutionTree = {
 	execution: Execution;
 	rows: ExecutionTreeRow[];
@@ -130,8 +135,6 @@ export type LogCommitResult = {
 	committed: string[];
 	failed: string[];
 };
-
-export type DagVariable = { key: string; value: unknown };
 
 export type DagStatsPoint = {
 	date: string;
@@ -293,7 +296,7 @@ const metadata: ServiceMetadata = {
           "isArray": false
         }
       ],
-      "returnType": "ExecutionTree",
+      "returnType": "CacheRef",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -302,57 +305,6 @@ const metadata: ServiceMetadata = {
       "name": "stats",
       "parameters": [],
       "returnType": "DagStats",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "listVariables",
-      "parameters": [
-        {
-          "name": "params",
-          "type": "PaginationParams",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "PaginatedResult<DagVariable>",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "setVar",
-      "parameters": [
-        {
-          "name": "key",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "value",
-          "type": "any",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "void",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "deleteVar",
-      "parameters": [
-        {
-          "name": "key",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "void",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -482,6 +434,11 @@ const metadata: ServiceMetadata = {
       "definition": "ExecutionNode & {\n\tdepth: number;\n\t/** The run this node belongs to — the root's id, or a delegated child's. */\n\texecutionId: string;\n}"
     },
     {
+      "name": "CacheRef",
+      "kind": "type",
+      "definition": "{\n\tcacheKey: string;\n\tsizeBytes: number;\n}"
+    },
+    {
       "name": "ExecutionTree",
       "kind": "type",
       "definition": "{\n\texecution: Execution;\n\trows: ExecutionTreeRow[];\n\t/** Every run in the tree, the root first, for headers and timings. */\n\texecutions: Execution[];\n}"
@@ -490,11 +447,6 @@ const metadata: ServiceMetadata = {
       "name": "LogCommitResult",
       "kind": "type",
       "definition": "{\n\tcommitted: string[];\n\tfailed: string[];\n}"
-    },
-    {
-      "name": "DagVariable",
-      "kind": "type",
-      "definition": "{ key: string; value: unknown }"
     },
     {
       "name": "DagStatsPoint",
@@ -520,11 +472,8 @@ export interface DagServiceRtClient {
   deleteTrigger(id: string): boolean;
   commitLog(keys: string[]): LogCommitResult;
   listExecutions(params: PaginationParams): PaginatedResult<Execution>;
-  executionTree(id: string): ExecutionTree;
+  executionTree(id: string): CacheRef;
   stats(): DagStats;
-  listVariables(params: PaginationParams): PaginatedResult<DagVariable>;
-  setVar(key: string, value: any): void;
-  deleteVar(key: string): void;
   describeSelection(objectType: string): SelectionDescriptor;
   inspectSelection(objectType: string, filter?: FilterObject): SelectionStats;
 }

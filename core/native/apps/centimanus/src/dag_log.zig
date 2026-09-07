@@ -125,7 +125,7 @@ pub const Logger = struct {
     /// commit whatever the workflows produce.
     pub fn run(self: *Logger) void {
         if (!self.enabled) {
-            std.debug.print("centimanus: dag log disabled (no valkey configured)\n", .{});
+            std.debug.print("centimanus: no cache configured, dag log off — runs will not be recorded\n", .{});
             return;
         }
         std.debug.print("centimanus: dag log writer started\n", .{});

@@ -52,7 +52,8 @@ const runHandler: Handler = async (
 };
 
 /** The whole run as a tree: every node, and under a delegating node the nodes
- *  of the run it delegated to. */
+ *  of the run it delegated to. The service names it in the cache; the bytes
+ *  come over HTTP. */
 const treeHandler: Handler = async (
 	client: DagCommandClient,
 	_splitter: string,
@@ -62,7 +63,20 @@ const treeHandler: Handler = async (
 		console.error("Usage: dag tree <executionId>");
 		return;
 	}
-	printJson(await client.dag.executionTree(param));
+	const ref = await client.dag.executionTree(param);
+	const origin = (
+		process.env.SERVICES_URL ||
+		process.env.SERVICES_BASE ||
+		"http://127.0.0.1:3000/services"
+	).replace(/\/services\/*$/, "");
+	const response = await fetch(
+		`${origin}/cache/blob/${encodeURIComponent(ref.cacheKey)}`,
+	);
+	if (!response.ok) {
+		console.error(`Run log unavailable (${response.status})`);
+		return;
+	}
+	printJson(await response.json());
 };
 
 const listHandler: Handler = async (

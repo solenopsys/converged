@@ -1,4 +1,4 @@
-import { EntityListView } from "front-core";
+import { EntityListView, Plus } from "front-core";
 import type {
 	InfinityDefinition,
 	ObjectDefinition,
@@ -7,13 +7,11 @@ import type {
 import { objectOf, objectRef, setOf } from "front-core/object-runtime";
 import type { PaginationParams, WorkflowTrigger } from "g-dag";
 import { openExecution } from "./domain-executions";
-import { openTriggerForm } from "./domain-triggers";
-import { loadVarDetail } from "./domain-vars";
+import { addTriggerClicked, openTriggerForm } from "./domain-triggers";
 import { openRunForm } from "./domain-workflows";
 import {
 	executionsColumns,
 	triggersColumns,
-	varsColumns,
 	workflowsColumns,
 } from "./functions/columns";
 import dagService from "./service";
@@ -22,7 +20,6 @@ import { ExecutionTreeView } from "./views/ExecutionTreeView";
 import { RunWorkflowView } from "./views/RunWorkflowView";
 import { StatsView } from "./views/StatsView";
 import { TriggerFormView } from "./views/TriggerFormView";
-import { VarDetailView } from "./views/VarDetailView";
 
 const infinity: Record<string, InfinityDefinition> = {
 	"dag.workflow": {
@@ -73,15 +70,14 @@ const infinity: Record<string, InfinityDefinition> = {
 			{ id: "name", label: "Name", type: "search", operator: "contains" },
 			{ id: "topic", label: "Topic", type: "search", operator: "contains" },
 		],
-	},
-	"dag.variable": {
-		tableId: "dag-variables",
-		title: "Variables",
-		columns: varsColumns,
-		load: (params) => dagService.listVariables(params as PaginationParams),
-		rowRef: (row) => objectRef("dag.variable", String(row.key)),
-		filters: [
-			{ id: "key", label: "Key", type: "search", operator: "contains" },
+		actions: [
+			{
+				id: "add",
+				label: "New trigger",
+				icon: Plus,
+				event: addTriggerClicked,
+				variant: "default" as const,
+			},
 		],
 	},
 };
@@ -90,7 +86,6 @@ const selectionLoad: Record<string, (params: any) => Promise<any>> = {
 	"dag.workflow": (params) => dagService.listWorkflows(params),
 	"dag.execution": (params) => dagService.listExecutions(params),
 	"dag.trigger": (params) => dagService.listTriggers(params),
-	"dag.variable": (params) => dagService.listVariables(params),
 };
 
 const types: ObjectDefinition[] = (
@@ -98,7 +93,6 @@ const types: ObjectDefinition[] = (
 		["dag.workflow", "Workflow", "Workflows"],
 		["dag.execution", "Run", "Runs"],
 		["dag.trigger", "Trigger", "Triggers"],
-		["dag.variable", "Variable", "Variables"],
 	] as const
 ).map(([id, label, pluralLabel]) => ({
 	id,
@@ -169,15 +163,6 @@ export const dagContribution: Pick<
 			},
 		},
 		{
-			id: "dag.variable.detail",
-			accepts: objectOf("dag.variable"),
-			component: VarDetailView,
-			props: (ref) => {
-				if (ref.kind === "object") loadVarDetail(ref.id);
-				return {};
-			},
-		},
-		{
 			id: "dag.statistic.dashboard",
 			accepts: setOf("dag.statistic"),
 			component: StatsView,
@@ -195,24 +180,18 @@ export const dagContribution: Pick<
 				return Promise.resolve();
 			},
 		},
-		{
-			id: "dag.variable.save",
-			operator: "save",
-			target: "dag.variable",
-			label: "Save variable",
-			parameters: {
-				type: "object",
-				properties: { key: { type: "string" }, value: {} },
-				required: ["key"],
-			},
-			invoke: ({ params }) =>
-				dagService.setVar(String(params.key), params.value),
-		},
 	],
 };
 
-/** The list holds the row; the form wants the record, so fetch the one row. */
+/**
+ * The list holds the row; the form wants the record, so fetch the one row.
+ * `new` is not a row — it is how the header button asks for a blank form.
+ */
 async function loadTrigger(id: string): Promise<void> {
+	if (id === "new") {
+		openTriggerForm({ trigger: null });
+		return;
+	}
 	const result = await dagService.listTriggers({
 		offset: 0,
 		limit: 1,

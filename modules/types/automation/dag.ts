@@ -157,6 +157,16 @@ export type ExecutionTreeRow = ExecutionNode & {
 	executionId: string;
 };
 
+/**
+ * A payload left in the cache instead of sent. `cacheKey` is a whole capability:
+ * it carries the deployment's cache prefix, which is what `/cache/blob` admits,
+ * and a random component, which is what keeps one reference from naming another.
+ */
+export type CacheRef = {
+	cacheKey: string;
+	sizeBytes: number;
+};
+
 export type ExecutionTree = {
 	execution: Execution;
 	rows: ExecutionTreeRow[];
@@ -177,8 +187,6 @@ export type LogCommitResult = {
 };
 
 // ---- variables -------------------------------------------------------------
-
-export type DagVariable = { key: string; value: unknown };
 
 // ---- statistics ------------------------------------------------------------
 
@@ -239,14 +247,15 @@ export interface DagService {
 
 	// ---- reading ----
 	listExecutions(params: PaginationParams): Promise<PaginatedResult<Execution>>;
-	/** One run and everything under it, flattened depth-first. */
-	executionTree(id: string): Promise<ExecutionTree>;
+	/**
+	 * One run and everything under it, flattened depth-first, staged in the
+	 * cache. The reference comes back over NRPC; the tree itself is read from
+	 * `/cache/blob/<key>`.
+	 */
+	executionTree(id: string): Promise<CacheRef>;
 	stats(): Promise<DagStats>;
 
 	// ---- variables ----
-	listVariables(params: PaginationParams): Promise<PaginatedResult<DagVariable>>;
-	setVar(key: string, value: any): Promise<void>;
-	deleteVar(key: string): Promise<void>;
 
 	describeSelection(objectType: string): Promise<SelectionDescriptor>;
 	inspectSelection(

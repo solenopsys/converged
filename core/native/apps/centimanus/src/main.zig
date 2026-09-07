@@ -76,14 +76,15 @@ pub fn main(init: std.process.Init) !void {
     var engine = try Engine.init(gpa, io, &store, runtime, service_token);
 
     // The log writer. Attached before the transport thread starts, so the very
-    // first run already has somewhere to put its entries. It writes to the same
-    // Valkey the state store uses; without one configured it stays inert and
-    // the runtime simply keeps no log.
-    const log_port: u16 = if (env.opt("VALKEY_PORT")) |raw|
-        std.fmt.parseInt(u16, raw, 10) catch 0
-    else
-        0;
-    var log_writer = dag_log.Logger.init(gpa, &engine, env.opt("VALKEY_HOST") orelse "", log_port);
+    // first run already has somewhere to put its entries.
+    //
+    // It writes to the Valkey the state store already holds rather than reading
+    // an endpoint of its own: one cache, named once. The only deployment with
+    // no single endpoint to name is the per-tenant one, and there the state
+    // store is on memory — so that is also the only case with no log, and it
+    // says so on startup instead of leaving an operator to find an empty Runs
+    // list.
+    var log_writer = dag_log.Logger.init(gpa, &engine, store.vk_host, store.vk_port);
     defer log_writer.deinit();
     engine.log = &log_writer;
     // Built before the transport thread so the request handler can already see

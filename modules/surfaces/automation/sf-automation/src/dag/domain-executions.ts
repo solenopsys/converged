@@ -20,9 +20,18 @@ export const openExecution = domain.createEvent<string>("OPEN_EXECUTION");
 export const refreshExecution = domain.createEvent("REFRESH_EXECUTION");
 export const nodeToggled = domain.createEvent<string>("NODE_TOGGLED");
 
+/** The service stages the tree in the cache and names it; the bytes come over HTTP. */
 const loadTreeFx = domain.createEffect<string, ExecutionTree>({
 	name: "LOAD_EXECUTION_TREE",
-	handler: (id) => dagService.executionTree(id),
+	handler: async (id) => {
+		const ref = await dagService.executionTree(id);
+		const response = await fetch(
+			`/cache/blob/${encodeURIComponent(ref.cacheKey)}`,
+		);
+		if (!response.ok)
+			throw new Error(`Run log unavailable (${response.status})`);
+		return (await response.json()) as ExecutionTree;
+	},
 });
 
 export const $executionId = domain

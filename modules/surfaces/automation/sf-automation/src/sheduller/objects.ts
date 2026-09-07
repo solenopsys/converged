@@ -1,4 +1,4 @@
-import { EntityListView } from "front-core";
+import { EntityListView, Plus } from "front-core";
 import type { SurfaceDefinition } from "front-core/object-runtime";
 import { objectOf, objectRef, setOf } from "front-core/object-runtime";
 import type {
@@ -6,9 +6,11 @@ import type {
 	CronInput,
 	CronListParams,
 } from "g-sheduller";
+import { addCronClicked, openCronForm } from "./domain-crons";
 import { cronsColumns, historyColumns } from "./functions/columns";
 import shedullerService from "./service";
 import { ShedullerSummary } from "./summary";
+import { CronFormView } from "./views/CronFormView";
 import { StatsView } from "./views/StatsView";
 
 export const shedullerContribution: Pick<
@@ -55,6 +57,15 @@ export const shedullerContribution: Pick<
 							{ value: "active", label: "Active" },
 							{ value: "paused", label: "Paused" },
 						],
+					},
+				],
+				actions: [
+					{
+						id: "add",
+						label: "New schedule",
+						icon: Plus,
+						event: addCronClicked,
+						variant: "default" as const,
 					},
 				],
 			},
@@ -115,6 +126,15 @@ export const shedullerContribution: Pick<
 			component: EntityListView,
 		},
 		{
+			id: "scheduler.cron.detail",
+			accepts: objectOf("scheduler.cron"),
+			component: CronFormView,
+			props: (ref) => {
+				if (ref.kind === "object") loadCron(ref.id);
+				return {};
+			},
+		},
+		{
 			id: "scheduler.history.table",
 			accepts: setOf("scheduler.history"),
 			component: EntityListView,
@@ -145,3 +165,20 @@ export const shedullerContribution: Pick<
 		},
 	],
 };
+
+/**
+ * The list holds the row; the form wants the record, so fetch the one row.
+ * `new` is not a row — it is how the header button asks for a blank form.
+ */
+async function loadCron(id: string): Promise<void> {
+	if (id === "new") {
+		openCronForm({ cron: null });
+		return;
+	}
+	const result = await shedullerService.listCrons({
+		offset: 0,
+		limit: 1,
+		filter: { id: { eq: id } },
+	} as CronListParams);
+	openCronForm({ cron: result?.items?.[0] ?? null });
+}

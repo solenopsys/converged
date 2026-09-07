@@ -1,4 +1,4 @@
-import { EntityListView } from "front-core";
+import { EntityListView, Plus } from "front-core";
 import type { SurfaceDefinition } from "front-core/object-runtime";
 import { objectOf, objectRef, setOf } from "front-core/object-runtime";
 import type {
@@ -6,8 +6,10 @@ import type {
 	WebhookEndpointListParams,
 	WebhookLogListParams,
 } from "g-webhooks";
+import { addEndpointClicked, openEndpointForm } from "./domain-endpoints";
 import { endpointColumns, logColumns } from "./functions/columns";
 import webhooksService from "./service";
+import { EndpointFormView } from "./views/EndpointFormView";
 
 export const webhooksContribution: Pick<
 	SurfaceDefinition,
@@ -54,6 +56,15 @@ export const webhooksContribution: Pick<
 							{ value: "true", label: "Enabled" },
 							{ value: "false", label: "Disabled" },
 						],
+					},
+				],
+				actions: [
+					{
+						id: "add",
+						label: "New endpoint",
+						icon: Plus,
+						event: addEndpointClicked,
+						variant: "default" as const,
 					},
 				],
 			},
@@ -104,6 +115,15 @@ export const webhooksContribution: Pick<
 			component: EntityListView,
 		},
 		{
+			id: "webhooks.endpoint.detail",
+			accepts: objectOf("webhooks.endpoint"),
+			component: EndpointFormView,
+			props: (ref) => {
+				if (ref.kind === "object") loadEndpoint(ref.id);
+				return {};
+			},
+		},
+		{
 			id: "webhooks.log.table",
 			accepts: setOf("webhooks.log"),
 			component: EntityListView,
@@ -129,3 +149,20 @@ export const webhooksContribution: Pick<
 		},
 	],
 };
+
+/**
+ * The list holds the row; the form wants the record, so fetch the one row.
+ * `new` is not a row — it is how the header button asks for a blank form.
+ */
+async function loadEndpoint(id: string): Promise<void> {
+	if (id === "new") {
+		openEndpointForm({ endpoint: null });
+		return;
+	}
+	const result = await webhooksService.listEndpoints({
+		offset: 0,
+		limit: 1,
+		filter: { id: { eq: id } },
+	} as WebhookEndpointListParams);
+	openEndpointForm({ endpoint: result?.items?.[0] ?? null });
+}

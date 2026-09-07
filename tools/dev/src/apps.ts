@@ -78,6 +78,14 @@ export interface NativeApp {
 const FUJIN_ZMQ = "tcp://127.0.0.1:5557";
 
 /**
+ * The cache behemoth is started against. centimanus writes its DAG log there
+ * and then names the keys to rp-dag, so both sides have to mean the same
+ * Valkey — a dev runtime pointed at another one keeps no log at all.
+ */
+const VALKEY_HOST = "127.0.0.1";
+const VALKEY_PORT = "6379";
+
+/**
  * A native library resonus dlopens by absolute path, as installed next to its
  * binary by `core/native/apps/resonus/build.sh`.
  *
@@ -176,7 +184,7 @@ export const NATIVE_APPS: NativeApp[] = [
 			"--fujin",
 			FUJIN_ZMQ,
 			"--valkey",
-			"127.0.0.1:6379",
+			`${VALKEY_HOST}:${VALKEY_PORT}`,
 		],
 		libDirs: ["zig-out/x86_64-gnu/lib"],
 		readyDelayMs: 300,
@@ -194,9 +202,15 @@ export const NATIVE_APPS: NativeApp[] = [
 		bin: "zig-out/x86_64-gnu/bin/centimanus",
 		args: ["127.0.0.1:9100"],
 		libDirs: ["zig-out/x86_64-gnu/lib"],
+		// The same cache behemoth was started against, and the same backend ptah
+		// gives a single-cache cluster. Dev on an in-process state store was its
+		// own runtime: workflow state died with the process and the DAG log had
+		// nowhere to go, so runs executed and left no record behind them.
 		env: () => ({
 			CENTIMANUS_FUJIN_ZMQ_ENDPOINT: FUJIN_ZMQ,
-			RT_STATE_BACKEND: "memory",
+			RT_STATE_BACKEND: "valkey",
+			VALKEY_HOST,
+			VALKEY_PORT,
 		}),
 	},
 	{

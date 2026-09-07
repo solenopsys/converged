@@ -1,14 +1,16 @@
 import {
+	CACHE_BLOB_TTL_SECONDS,
+	type CacheAdapter,
 	createJsonFilterAdapter,
 	createServerNrpcClientConfig,
 } from "back-core";
 import { createBusServiceClient } from "g-bus";
 import type {
 	AvailableWorkflow,
+	CacheRef,
 	DagService,
 	DagStats,
 	DagStatsPoint,
-	DagVariable,
 	Execution,
 	ExecutionStatus,
 	ExecutionTree,
@@ -88,23 +90,26 @@ const triggerFilters = createJsonFilterAdapter<WorkflowTrigger>({
 	enabled: { valueType: "boolean", operators: ["eq", "notEq"] },
 });
 
-const variableFilters = createJsonFilterAdapter<DagVariable>({
-	key: {
-		valueType: "string",
-		operators: ["eq", "in", "contains", "startsWith"],
-	},
-});
-
 export default class DagServiceImpl implements DagService {
 	private stores: StoresController;
 	private readonly storesReady: Promise<void>;
 
-	constructor(_config?: any) {
+	private readonly cache?: CacheAdapter;
+
+	constructor(config?: { cache?: CacheAdapter; valkey?: CacheAdapter }) {
+		this.cache = config?.cache ?? config?.valkey;
 		this.stores = new StoresController("rp-dag");
 		this.storesReady = this.stores.init().catch((error) => {
 			console.error("[rp-dag] store init error", error);
 			throw error;
 		});
+	}
+
+	private requiredCache(): CacheAdapter {
+		if (!this.cache) {
+			throw new Error("rp-dag requires the Valkey cache adapter");
+		}
+		return this.cache;
 	}
 
 	private async ready(): Promise<void> {
@@ -300,13 +305,30 @@ export default class DagServiceImpl implements DagService {
 		return page(items, params);
 	}
 
+	/** Staged in the cache; the caller reads it from `/cache/blob/<key>`. */
+	async executionTree(id: string): Promise<CacheRef> {
+		const tree = await this.buildTree(id);
+		const bytes = new TextEncoder().encode(JSON.stringify(tree));
+		const cacheKey = this.requiredCache().buildKey(
+			"dag",
+			"tree",
+			crypto.randomUUID(),
+		);
+		await this.requiredCache().setBytes(
+			cacheKey,
+			bytes,
+			CACHE_BLOB_TTL_SECONDS,
+		);
+		return { cacheKey, sizeBytes: bytes.byteLength };
+	}
+
 	/**
 	 * One run flattened depth-first: each node in the order it opened, and
 	 * immediately after a delegating node the nodes of the run it delegated to.
 	 * The link is the node's own `childExecutionId`, so the walk needs no index
 	 * and a child that was never recorded simply ends that branch.
 	 */
-	async executionTree(id: string): Promise<ExecutionTree> {
+	private async buildTree(id: string): Promise<ExecutionTree> {
 		await this.ready();
 		const execution = this.log.getExecution(id);
 		if (!execution) throw notFound(`Execution ${id} not found`);
@@ -350,28 +372,6 @@ export default class DagServiceImpl implements DagService {
 		return { executions, daily: daily(all, 30), byWorkflow };
 	}
 
-	// ---- variables -----------------------------------------------------------
-
-	async listVariables(
-		params: PaginationParams,
-	): Promise<PaginatedResult<DagVariable>> {
-		await this.ready();
-		const items = this.log
-			.listVars()
-			.filter(variableFilters.predicate(params.filter));
-		return page(items, params);
-	}
-
-	async setVar(key: string, value: any): Promise<void> {
-		await this.ready();
-		this.log.setVar(key, value);
-	}
-
-	async deleteVar(key: string): Promise<void> {
-		await this.ready();
-		this.log.deleteVar(key);
-	}
-
 	// ---- selection -----------------------------------------------------------
 
 	async describeSelection(objectType: string): Promise<SelectionDescriptor> {
@@ -402,10 +402,6 @@ export default class DagServiceImpl implements DagService {
 				};
 			case "dag.trigger":
 				return { totalCount: (await this.listTriggers(empty)).totalCount ?? 0 };
-			case "dag.variable":
-				return {
-					totalCount: (await this.listVariables(empty)).totalCount ?? 0,
-				};
 			default:
 				throw new Error(`Unsupported DAG selection object: ${objectType}`);
 		}
@@ -468,14 +464,6 @@ const SELECTION_FIELDS: Record<
 			label: "Enabled",
 			valueType: "boolean",
 			operators: ["eq", "notEq"],
-		},
-	],
-	"dag.variable": [
-		{
-			id: "key",
-			label: "Key",
-			valueType: "string",
-			operators: ["eq", "in", "contains", "startsWith"],
 		},
 	],
 };

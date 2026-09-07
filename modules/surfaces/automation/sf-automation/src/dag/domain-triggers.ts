@@ -1,5 +1,6 @@
 import { sample } from "effector";
 import { createInfiniteTableStore } from "front-core";
+import { objectRef, presentReference } from "front-core/object-runtime";
 import type {
 	PaginationParams,
 	WorkflowTrigger,
@@ -46,6 +47,16 @@ export const deleteTriggerClicked = domain.createEvent(
 	"DELETE_TRIGGER_CLICKED",
 );
 export const triggerFormClosed = domain.createEvent("TRIGGER_FORM_CLOSED");
+
+/**
+ * The list's own header button. It opens the blank form the way any record is
+ * opened — as a reference, in its own tab — so "new" is just an id the detail
+ * view knows.
+ */
+export const addTriggerClicked = domain.createEvent("ADD_TRIGGER_CLICKED");
+addTriggerClicked.watch(() => {
+	void presentReference(objectRef("dag.trigger", "new"));
+});
 
 const saveRejected = domain.createEvent<string>("TRIGGER_SAVE_REJECTED");
 
