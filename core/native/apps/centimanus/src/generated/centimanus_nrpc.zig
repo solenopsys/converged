@@ -11,8 +11,8 @@ pub fn bind(runtime: *transport.Runtime, handler: transport.RuntimeHandler) !voi
 /// Server-side NRPC descriptor. A native application calls verifyAndAuthorize
 /// before its handwritten handler; this generated code never knows the handler.
 pub const method_policies = [_]transport.auth.authorize.MethodPolicy{
-    .{ .service = service, .method = "runWorkflow", .level = .user, .mode = null },
-    .{ .service = service, .method = "onEvent", .level = .user, .mode = null },
+    .{ .kind = "ap", .service = service, .method = "runWorkflow", .level = .user, .mode = null },
+    .{ .kind = "ap", .service = service, .method = "onEvent", .level = .user, .mode = null },
 };
 
 pub fn policy(method: []const u8) ?transport.auth.authorize.MethodPolicy {

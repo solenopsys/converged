@@ -44,7 +44,7 @@ pub const Provider = struct {
         if (std.mem.eql(u8, request.envelope.method, "onEvent")) {
             return self.handleEvent(allocator, request);
         }
-        return self.handleRunWorkflow(allocator, request);
+        return self.handleRunWorkflow(allocator, request, if (verified) |token| token.toClaims() else null);
     }
 
     /// One business event from the bus.
@@ -110,12 +110,46 @@ pub const Provider = struct {
         return .{ .payload = try std.fmt.allocPrint(allocator, "{{\"started\":[{s}]}}", .{joined}) };
     }
 
-    fn handleRunWorkflow(self: *Provider, allocator: std.mem.Allocator, request: transport.RuntimeRequest) !transport.RuntimeResponse {
+    /// Starting a workflow needs two answers, not one.
+    ///
+    /// The method policy says whether this caller may ask the runtime to run
+    /// anything at all. It cannot say *which* workflow, because a method
+    /// permission names a method — so on its own it is all workflows or none.
+    /// The second check asks about the workflow itself: `wf/<script>(x)`. A
+    /// guest can then be given one workflow without being given the runtime.
+    ///
+    /// A caller with no verified token got here because verification is off
+    /// (`RT_AUTH_MODE=off` in development); it is not refused here, since the
+    /// deployment has already said it is not checking.
+    fn handleRunWorkflow(
+        self: *Provider,
+        allocator: std.mem.Allocator,
+        request: transport.RuntimeRequest,
+        caller: ?transport.auth.claims.Claims,
+    ) !transport.RuntimeResponse {
         var parsed = try std.json.parseFromSlice(std.json.Value, allocator, request.payload, .{});
         defer parsed.deinit();
         if (parsed.value != .object) return error.PayloadInvalid;
 
         const script_path = stringField(parsed.value.object, "scriptPath") orelse return error.ScriptPathMissing;
+        if (caller) |claims| {
+            // A descriptor's script is a path — `workflows/wf-files-process.js` —
+            // which already has the shape a permission wants: the directory in
+            // the service position, the file in the method's. So
+            // `wf/workflows/wf-files-process.js(x)` grants one workflow and
+            // `wf/workflows/*(x)` grants the catalogue.
+            const cut = std.mem.lastIndexOfScalar(u8, script_path, '/');
+            const group = if (cut) |at| script_path[0..at] else script_path;
+            const name = if (cut) |at| script_path[at + 1 ..] else "*";
+
+            const matcher = transport.auth.access.Matcher{ .permissions = claims.permissions };
+            if (!matcher.can("wf", group, name, .execute)) {
+                std.log.warn("deny wf/{s} user={s} scope={s} reason=WorkflowNotPermitted", .{
+                    script_path, claims.subject, request.envelope.scope,
+                });
+                return error.PermissionDenied;
+            }
+        }
         const params_value = parsed.value.object.get("params") orelse return error.WorkflowParamsMissing;
         const params_json = try std.json.Stringify.valueAlloc(allocator, params_value, .{});
         const result = try self.engine.runWorkflowScoped(
@@ -134,7 +168,7 @@ pub const Provider = struct {
 /// express. Same reason `pushrouter`'s policies are written by hand.
 fn methodPolicy(method: []const u8) ?transport.auth.authorize.MethodPolicy {
     if (std.mem.eql(u8, method, "onEvent")) {
-        return .{ .service = centimanus_nrpc.service, .method = "onEvent", .level = .internal, .mode = .write };
+        return .{ .kind = "ap", .service = centimanus_nrpc.service, .method = "onEvent", .level = .internal, .mode = .write };
     }
     return centimanus_nrpc.policy(method);
 }

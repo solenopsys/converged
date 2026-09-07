@@ -15,6 +15,10 @@ pub const Level = enum {
 /// Generated from the NRPC method declaration. Transport deliberately does not
 /// know generated contracts or application handlers.
 pub const MethodPolicy = struct {
+    /// Which kind of thing the service is: `rp` for a repository microservice,
+    /// `ap` for a native application. Empty asks about any kind, which is what
+    /// a policy written before kinds existed does.
+    kind: []const u8 = "",
     service: []const u8,
     method: []const u8,
     level: Level = .user,
@@ -37,7 +41,7 @@ pub fn authorize(token: claims.Claims, policy: MethodPolicy) Error!void {
 
     const required = policy.mode orelse access.resolveMode(policy.method);
     const matcher = access.Matcher{ .permissions = token.permissions };
-    if (!matcher.can(policy.service, policy.method, required)) return error.PermissionDenied;
+    if (!matcher.can(policy.kind, policy.service, policy.method, required)) return error.PermissionDenied;
 }
 
 test "authorization enforces token kind and method policy" {
@@ -62,6 +66,23 @@ test "authorization enforces token kind and method policy" {
     try std.testing.expectError(error.PermissionDenied, authorize(user, .{ .service = "fujin", .method = "messages", .mode = .read }));
     try std.testing.expectError(error.UserTokenRequired, authorize(service, state));
     try authorize(service, .{ .service = "fujin", .method = "reload", .level = .internal, .mode = .write });
+}
+
+test "a kinded policy is answered by a kinded grant" {
+    const permissions = [_][]const u8{"rp/files/save(w)"};
+    const claims_of = claims.Claims{
+        .token_type = .user,
+        .subject = "alice",
+        .scope = "club",
+        .permissions = &permissions,
+        .expires_at = 1,
+    };
+    try authorize(claims_of, .{ .kind = "rp", .service = "files", .method = "save", .mode = .write });
+    // The same method name reached through a native application is not covered.
+    try std.testing.expectError(error.PermissionDenied, authorize(
+        claims_of,
+        .{ .kind = "ap", .service = "files", .method = "save", .mode = .write },
+    ));
 }
 
 test "any level admits both token kinds but still enforces permissions" {

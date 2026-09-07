@@ -10,11 +10,42 @@ describe("AccessMatcher", () => {
 		expect(parsePermission(" Files / List ")).toEqual({
 			service: "Files",
 			method: "List",
-			mode: "rw",
+			mode: "rwx",
 		});
 		expect(parsePermission("files/list(wr)")?.mode).toBe("rw");
 		expect(parsePermission("files list(r)")).toBeNull();
-		expect(parsePermission("files/list(rx)")).toBeNull();
+		expect(parsePermission("files/list(rz)")).toBeNull();
+	});
+
+	test("a third segment names the kind the permission is about", () => {
+		expect(parsePermission("rp/files/save(w)")).toEqual({
+			kind: "rp",
+			service: "files",
+			method: "save",
+			mode: "w",
+		});
+		expect(parsePermission("wf/file-processing/*(x)")?.mode).toBe("x");
+	});
+
+	test("execute is its own capability, not a step above write", () => {
+		const matcher = new AccessMatcher(["wf/report/*(x)", "rp/files/save(w)"]);
+		expect(matcher.canKind("wf", "report", "run", "x")).toBe(true);
+		expect(matcher.canKind("wf", "report", "run", "w")).toBe(false);
+		expect(matcher.canKind("rp", "files", "save", "x")).toBe(false);
+	});
+
+	test("a kinded grant does not leak across kinds", () => {
+		const matcher = new AccessMatcher(["wf/report/*(x)"]);
+		expect(matcher.canKind("wf", "report", "run", "x")).toBe(true);
+		expect(matcher.canKind("rp", "report", "run", "x")).toBe(false);
+		expect(matcher.canKind("wf", "other", "run", "x")).toBe(false);
+	});
+
+	test("a kindless grant still answers a kinded question", () => {
+		// Every preset written before kinds existed looks like this.
+		const matcher = new AccessMatcher(["files/save(w)"]);
+		expect(matcher.canKind("rp", "files", "save", "w")).toBe(true);
+		expect(matcher.can("files", "save", "w")).toBe(true);
 	});
 
 	test("requires every requested capability and supports both wildcards", () => {

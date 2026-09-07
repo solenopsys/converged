@@ -34,9 +34,16 @@ const methods = metadata.methods
 	)
 	.join("\n\n");
 
+// The zig generator only ever runs for a native application, so every policy it
+// emits is about one: `ap`. Repository methods are generated on the TypeScript
+// side and stay `rp`. The kind is what lets a permission distinguish a method
+// call from a workflow execution, which no method name can.
+const KIND = "ap";
+
 const policies = metadata.methods
 	.map(
-		(method) => `    .{ .service = service, .method = "${method.name}", .level = .user, .mode = null },`,
+		(method) =>
+			`    .{ .kind = "${KIND}", .service = service, .method = "${method.name}", .level = .user, .mode = null },`,
 	)
 	.join("\n");
 
