@@ -89,22 +89,38 @@ export type OutreachStatus =
 	| "paused"
 	| "done";
 
+/**
+ * A campaign is five answers and nothing else.
+ *
+ *   audience              — who        (step 0)
+ *   enrichWorkflow/Params — how targets are built from them (step 1)
+ *   templateId + lang     — what they get (step 2)
+ *   sendWorkflow/Params   — how one letter leaves (step 3)
+ *
+ * The schedule (step 4) lives in rp-sheduller and rp-dag, keyed by the bus
+ * topic `campaign.<id>.send`, so it is not a column here.
+ *
+ * `enrichParams` and `sendParams` are opaque on purpose: they are validated by
+ * the workflow's own `parameters` JSON Schema, which is also what draws their
+ * form. Adding a workflow therefore costs no field here and no field in the UI.
+ */
 export type Outreach = {
 	id: string;
 	name: string;
 	status: OutreachStatus | string;
 	lang: string;
 	description: string;
-	/** The tag whose leads this campaign is planned into. */
-	tagId?: string;
-	templateId?: string;
-	planWorkflow?: string;
+	/** Who it mails: the same canonical predicate the lead table and the
+	 *  assistant build, so `listLeads` and `inspectLeads` both take it as-is and
+	 *  there is no second way to say "these leads". */
+	audience?: FilterObject;
+	/** Declared workflow id, exactly as `dag.listAvailableWorkflows` reports it.
+	 *  Never a script path: resolving id → script belongs to whoever runs it. */
+	enrichWorkflow?: string;
+	enrichParams?: Record<string, unknown>;
 	sendWorkflow?: string;
-	sendCronId?: string;
-	baseUrl?: string;
-	demoUrl?: string;
-	senders?: Record<string, string>;
-	jitterMaxSeconds?: number;
+	sendParams?: Record<string, unknown>;
+	templateId?: string;
 	createdAt: Date;
 	updatedAt: Date;
 };
@@ -120,12 +136,30 @@ export type OutreachTargetStatus =
 	| "failed"
 	| "skipped";
 
+/**
+ * One future send, frozen.
+ *
+ * `vars` is a flat map because delivery must not know a single variable name:
+ * enrichment decides what a template may interpolate, and two enrichment
+ * workflows with different ideas (a plain catalogue pitch, a tech-stack one)
+ * therefore share one delivery workflow instead of forking it.
+ */
+export type OutreachTargetPayload = {
+	/** Where this one letter goes. */
+	email: string;
+	/** The trail back to the lead — not template input. */
+	leadId: string;
+	contactId: string;
+	/** Everything the template may interpolate. */
+	vars: Record<string, string>;
+};
+
 export type OutreachTarget = {
 	id: string;
 	outreachId: string;
 	status: OutreachTargetStatus | string;
 	position: number;
-	payload: Record<string, unknown>;
+	payload: OutreachTargetPayload;
 	createdAt: Date;
 	updatedAt: Date;
 };
@@ -135,7 +169,7 @@ export type OutreachTargetInput = {
 	outreachId: string;
 	status?: OutreachTargetStatus | string;
 	position?: number;
-	payload: Record<string, unknown>;
+	payload: OutreachTargetPayload;
 };
 
 export type OutreachTargetListParams = PaginationParams & {

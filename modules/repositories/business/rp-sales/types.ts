@@ -1,5 +1,6 @@
 export type {
 	Campaign,
+
 	Contact,
 	ContactListParams,
 	FilterObject,
@@ -22,6 +23,7 @@ export type {
 	OutreachTarget,
 	OutreachTargetInput,
 	OutreachTargetListParams,
+	OutreachTargetPayload,
 	OutreachTargetStatusUpdate,
 	PaginatedResult,
 	PaginationParams,

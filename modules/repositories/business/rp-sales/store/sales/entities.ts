@@ -62,15 +62,14 @@ export interface OutreachEntity {
 	status: string;
 	lang: string;
 	description: string;
-	tagId: string | null;
 	templateId: string | null;
-	planWorkflow: string;
+	/** JSON: the canonical lead predicate this campaign mails. */
+	audience: string;
+	enrichWorkflow: string;
+	/** JSON: opaque here, validated by the workflow's own parameters schema. */
+	enrichParams: string;
 	sendWorkflow: string;
-	sendCronId: string | null;
-	baseUrl: string;
-	demoUrl: string;
-	senders: string;
-	jitterMaxSeconds: number;
+	sendParams: string;
 	createdAt: number;
 	updatedAt: number;
 }

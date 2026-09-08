@@ -99,16 +99,17 @@ export type Outreach = {
 	status: OutreachStatus | string;
 	lang: string;
 	description: string;
-	/** The tag whose leads this campaign is planned into. */
-	tagId?: string;
-	templateId?: string;
-	planWorkflow?: string;
+	/** Who it mails: the same canonical predicate the lead table and the
+	 *  assistant build, so `listLeads` and `inspectLeads` both take it as-is and
+	 *  there is no second way to say "these leads". */
+	audience?: FilterObject;
+	/** Declared workflow id, exactly as `dag.listAvailableWorkflows` reports it.
+	 *  Never a script path: resolving id → script belongs to whoever runs it. */
+	enrichWorkflow?: string;
+	enrichParams?: Record<string, unknown>;
 	sendWorkflow?: string;
-	sendCronId?: string;
-	baseUrl?: string;
-	demoUrl?: string;
-	senders?: Record<string, string>;
-	jitterMaxSeconds?: number;
+	sendParams?: Record<string, unknown>;
+	templateId?: string;
 	createdAt: Date;
 	updatedAt: Date;
 };
@@ -122,12 +123,22 @@ export type OutreachTargetStatus = | "planned"
 	| "failed"
 	| "skipped";
 
+export type OutreachTargetPayload = {
+	/** Where this one letter goes. */
+	email: string;
+	/** The trail back to the lead — not template input. */
+	leadId: string;
+	contactId: string;
+	/** Everything the template may interpolate. */
+	vars: Record<string, string>;
+};
+
 export type OutreachTarget = {
 	id: string;
 	outreachId: string;
 	status: OutreachTargetStatus | string;
 	position: number;
-	payload: Record<string, unknown>;
+	payload: OutreachTargetPayload;
 	createdAt: Date;
 	updatedAt: Date;
 };
@@ -137,7 +148,7 @@ export type OutreachTargetInput = {
 	outreachId: string;
 	status?: OutreachTargetStatus | string;
 	position?: number;
-	payload: Record<string, unknown>;
+	payload: OutreachTargetPayload;
 };
 
 export type OutreachTargetListParams = PaginationParams & {
@@ -1140,7 +1151,7 @@ export const metadata: ServiceMetadata = {
     {
       "name": "Outreach",
       "kind": "type",
-      "definition": "{\n\tid: string;\n\tname: string;\n\tstatus: OutreachStatus | string;\n\tlang: string;\n\tdescription: string;\n\t/** The tag whose leads this campaign is planned into. */\n\ttagId?: string;\n\ttemplateId?: string;\n\tplanWorkflow?: string;\n\tsendWorkflow?: string;\n\tsendCronId?: string;\n\tbaseUrl?: string;\n\tdemoUrl?: string;\n\tsenders?: Record<string, string>;\n\tjitterMaxSeconds?: number;\n\tcreatedAt: Date;\n\tupdatedAt: Date;\n}"
+      "definition": "{\n\tid: string;\n\tname: string;\n\tstatus: OutreachStatus | string;\n\tlang: string;\n\tdescription: string;\n\t/** Who it mails: the same canonical predicate the lead table and the\n\t *  assistant build, so `listLeads` and `inspectLeads` both take it as-is and\n\t *  there is no second way to say \"these leads\". */\n\taudience?: FilterObject;\n\t/** Declared workflow id, exactly as `dag.listAvailableWorkflows` reports it.\n\t *  Never a script path: resolving id → script belongs to whoever runs it. */\n\tenrichWorkflow?: string;\n\tenrichParams?: Record<string, unknown>;\n\tsendWorkflow?: string;\n\tsendParams?: Record<string, unknown>;\n\ttemplateId?: string;\n\tcreatedAt: Date;\n\tupdatedAt: Date;\n}"
     },
     {
       "name": "Campaign",
@@ -1153,14 +1164,19 @@ export const metadata: ServiceMetadata = {
       "definition": "| \"planned\"\n\t| \"claimed\"\n\t| \"sent\"\n\t| \"completed\"\n\t| \"failed\"\n\t| \"skipped\""
     },
     {
+      "name": "OutreachTargetPayload",
+      "kind": "type",
+      "definition": "{\n\t/** Where this one letter goes. */\n\temail: string;\n\t/** The trail back to the lead — not template input. */\n\tleadId: string;\n\tcontactId: string;\n\t/** Everything the template may interpolate. */\n\tvars: Record<string, string>;\n}"
+    },
+    {
       "name": "OutreachTarget",
       "kind": "type",
-      "definition": "{\n\tid: string;\n\toutreachId: string;\n\tstatus: OutreachTargetStatus | string;\n\tposition: number;\n\tpayload: Record<string, unknown>;\n\tcreatedAt: Date;\n\tupdatedAt: Date;\n}"
+      "definition": "{\n\tid: string;\n\toutreachId: string;\n\tstatus: OutreachTargetStatus | string;\n\tposition: number;\n\tpayload: OutreachTargetPayload;\n\tcreatedAt: Date;\n\tupdatedAt: Date;\n}"
     },
     {
       "name": "OutreachTargetInput",
       "kind": "type",
-      "definition": "{\n\tid?: string;\n\toutreachId: string;\n\tstatus?: OutreachTargetStatus | string;\n\tposition?: number;\n\tpayload: Record<string, unknown>;\n}"
+      "definition": "{\n\tid?: string;\n\toutreachId: string;\n\tstatus?: OutreachTargetStatus | string;\n\tposition?: number;\n\tpayload: OutreachTargetPayload;\n}"
     },
     {
       "name": "OutreachTargetListParams",

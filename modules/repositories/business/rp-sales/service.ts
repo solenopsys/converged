@@ -31,6 +31,7 @@ import type {
 	OutreachTarget,
 	OutreachTargetInput,
 	OutreachTargetListParams,
+	OutreachTargetPayload,
 	OutreachTargetStatusUpdate,
 	PaginatedResult,
 	PaginationParams,
@@ -70,14 +71,32 @@ function normalizePayload(value: unknown): Record<string, unknown> {
 	return value as Record<string, unknown>;
 }
 
-function parsePayload(value: string): Record<string, unknown> {
+const EMPTY_PAYLOAD: OutreachTargetPayload = {
+	email: "",
+	leadId: "",
+	contactId: "",
+	vars: {},
+};
+
+/** A target written by an older build parses into an empty one rather than
+ *  failing the list it appears in; delivery refuses it on the missing address. */
+function parsePayload(value: string): OutreachTargetPayload {
 	try {
 		const parsed = JSON.parse(value);
-		return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-			? (parsed as Record<string, unknown>)
-			: {};
+		if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
+			return EMPTY_PAYLOAD;
+		const payload = parsed as Partial<OutreachTargetPayload>;
+		return {
+			email: String(payload.email ?? ""),
+			leadId: String(payload.leadId ?? ""),
+			contactId: String(payload.contactId ?? ""),
+			vars:
+				payload.vars && typeof payload.vars === "object"
+					? (payload.vars as Record<string, string>)
+					: {},
+		};
 	} catch {
-		return {};
+		return EMPTY_PAYLOAD;
 	}
 }
 
@@ -135,33 +154,32 @@ function mapTag(entity: LeadTagEntity): LeadTag {
 	};
 }
 
-function mapOutreach(entity: OutreachEntity): Outreach {
-	let senders: Record<string, string> = {};
+/** JSON columns are opaque to this service: their shape is the workflow's
+ *  business, not the store's. A row written by an older build simply reads as
+ *  empty rather than failing the whole list. */
+function readJson<T>(value: string | null | undefined, fallback: T): T {
+	if (!value) return fallback;
 	try {
-		const parsed = JSON.parse(entity.senders || "[]");
-		if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-			senders = Object.fromEntries(
-				Object.entries(parsed).map(([key, value]) => [key, String(value)]),
-			);
-		}
+		const parsed = JSON.parse(value);
+		return parsed && typeof parsed === "object" ? (parsed as T) : fallback;
 	} catch {
-		// Older rows may not contain JSON configuration.
+		return fallback;
 	}
+}
+
+function mapOutreach(entity: OutreachEntity): Outreach {
 	return {
 		id: entity.id,
 		name: entity.name,
 		status: entity.status,
 		lang: entity.lang,
 		description: entity.description,
-		tagId: entity.tagId ?? undefined,
 		templateId: entity.templateId ?? undefined,
-		planWorkflow: entity.planWorkflow || undefined,
+		audience: readJson<FilterObject>(entity.audience, {}),
+		enrichWorkflow: entity.enrichWorkflow || undefined,
+		enrichParams: readJson<Record<string, unknown>>(entity.enrichParams, {}),
 		sendWorkflow: entity.sendWorkflow || undefined,
-		sendCronId: entity.sendCronId ?? undefined,
-		baseUrl: entity.baseUrl || undefined,
-		demoUrl: entity.demoUrl || undefined,
-		senders,
-		jitterMaxSeconds: Number(entity.jitterMaxSeconds ?? 0),
+		sendParams: readJson<Record<string, unknown>>(entity.sendParams, {}),
 		createdAt: new Date(entity.createdAt * 1000),
 		updatedAt: new Date(entity.updatedAt * 1000),
 	};
@@ -660,15 +678,12 @@ class SalesServiceImpl
 			status: outreach.status?.trim() || "draft",
 			lang: outreach.lang?.trim().toLowerCase() ?? "",
 			description: outreach.description ?? "",
-			tagId: outreach.tagId?.trim() || null,
 			templateId: outreach.templateId?.trim() || null,
-			planWorkflow: outreach.planWorkflow?.trim() || "",
+			audience: JSON.stringify(outreach.audience ?? {}),
+			enrichWorkflow: outreach.enrichWorkflow?.trim() || "",
+			enrichParams: JSON.stringify(outreach.enrichParams ?? {}),
 			sendWorkflow: outreach.sendWorkflow?.trim() || "",
-			sendCronId: outreach.sendCronId?.trim() || null,
-			baseUrl: outreach.baseUrl?.trim() || "",
-			demoUrl: outreach.demoUrl?.trim() || "",
-			senders: JSON.stringify(outreach.senders ?? {}),
-			jitterMaxSeconds: Math.max(0, Number(outreach.jitterMaxSeconds ?? 0)),
+			sendParams: JSON.stringify(outreach.sendParams ?? {}),
 			createdAt: toSeconds(outreach.createdAt ?? now),
 			updatedAt: now,
 		});

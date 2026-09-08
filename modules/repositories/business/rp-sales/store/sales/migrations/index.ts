@@ -5,6 +5,7 @@ import AddLeadDisabled from "./addLeadDisabled";
 import AddLeadFields from "./addLeadFields";
 import AddTouchCompanyName from "./addTouchCompanyName";
 import AddTouchOutreachId from "./addTouchOutreachId";
+import CampaignWorkflows from "./campaignWorkflows";
 import CreateContacts from "./createContacts";
 import CreateLeadAudiences from "./createLeadAudiences";
 import CreateLeadEvents from "./createLeadEvents";
@@ -37,4 +38,5 @@ export default [
 	CreateLeadAudiences,
 	ExtendCampaignsAndOffers,
 	NamedLeadTags,
+	CampaignWorkflows,
 ];

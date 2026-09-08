@@ -4,14 +4,17 @@ import migrations from "./index";
 import NamedLeadTags from "./namedLeadTags";
 
 /** The conversion is one-way and runs against live data, so it is checked on a
- *  database built by every migration that came before it. */
+ *  database built by every migration that came before it — named explicitly,
+ *  because "all but the last" silently starts including this one as soon as
+ *  another migration is appended. */
+const before = migrations.slice(0, migrations.indexOf(NamedLeadTags));
 describe("named_lead_tags migration", () => {
 	let store: SqlStore;
 
 	beforeEach(async () => {
 		store = new SqlStore(
 			":memory:",
-			migrations.slice(0, -1),
+			before,
 			new InMemoryMigrationState(),
 		);
 		await store.open();
