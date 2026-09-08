@@ -78,26 +78,78 @@ const EMPTY_PAYLOAD: OutreachTargetPayload = {
 	vars: {},
 };
 
-/** A target written by an older build parses into an empty one rather than
- *  failing the list it appears in; delivery refuses it on the missing address. */
+/**
+ * A target's frozen variables, whichever build wrote it.
+ *
+ * Enrichment used to store `{ outreach, lead, contact, company, tech }` and
+ * delivery reached into it by name. It stores a flat variable map now, so one
+ * delivery workflow serves any enrichment — but rows written before that are
+ * still in the queue, and reading them as empty would blank out a campaign's
+ * whole history. So the old shape is flattened here rather than migrated.
+ */
 function parsePayload(value: string): OutreachTargetPayload {
+	let parsed: unknown;
 	try {
-		const parsed = JSON.parse(value);
-		if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
-			return EMPTY_PAYLOAD;
-		const payload = parsed as Partial<OutreachTargetPayload>;
+		parsed = JSON.parse(value);
+	} catch {
+		return EMPTY_PAYLOAD;
+	}
+	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
+		return EMPTY_PAYLOAD;
+
+	const payload = parsed as Record<string, unknown>;
+	if (payload.vars && typeof payload.vars === "object") {
 		return {
 			email: String(payload.email ?? ""),
 			leadId: String(payload.leadId ?? ""),
 			contactId: String(payload.contactId ?? ""),
-			vars:
-				payload.vars && typeof payload.vars === "object"
-					? (payload.vars as Record<string, string>)
-					: {},
+			vars: payload.vars as Record<string, string>,
 		};
-	} catch {
-		return EMPTY_PAYLOAD;
 	}
+	return flattenLegacyPayload(payload);
+}
+
+type LegacyRecord = Record<string, unknown>;
+
+const legacyObject = (value: unknown): LegacyRecord =>
+	value && typeof value === "object" && !Array.isArray(value)
+		? (value as LegacyRecord)
+		: {};
+
+const legacyText = (source: LegacyRecord, key: string): string => {
+	const value = source[key];
+	return value === undefined || value === null ? "" : String(value);
+};
+
+/** The pre-flat shape, read back as the variables a template would have used. */
+function flattenLegacyPayload(payload: LegacyRecord): OutreachTargetPayload {
+	const lead = legacyObject(payload.lead);
+	const contact = legacyObject(payload.contact);
+	const company = legacyObject(payload.company);
+	const tech = legacyObject(payload.tech);
+	const email = legacyText(contact, "email") || legacyText(contact, "value");
+	const companyAlias =
+		legacyText(company, "alias") || legacyText(company, "id");
+
+	return {
+		email,
+		leadId: legacyText(lead, "id"),
+		contactId: legacyText(contact, "id"),
+		vars: {
+			...Object.fromEntries(
+				Object.entries(tech).map(([key, value]) => [key, String(value ?? "")]),
+			),
+			companyId: legacyText(company, "id"),
+			companyAlias,
+			companyName: legacyText(company, "name") || companyAlias,
+			companyDomain: legacyText(company, "domain"),
+			contactId: legacyText(contact, "id"),
+			contactRole: legacyText(contact, "role"),
+			leadId: legacyText(lead, "id"),
+			leadDescription: legacyText(lead, "description"),
+			recipientEmail: email,
+		},
+	};
 }
 
 function createTouchId(): string {
