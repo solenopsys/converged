@@ -3,9 +3,9 @@ import {
 	registerLandingBlocks,
 	registerLandingHeader,
 } from "front-core/landing";
-import { AppShell, bootstrapAppShell } from "front-core/shell";
+import { AppShell, bootstrapAppShell, registerTopBarCommands } from "front-core/shell";
 import { render } from "preact";
-import { BrandLogo, blocks, header } from "./landing-blocks";
+import { BrandLogo, blocks, header, topbarCommands } from "./landing-blocks";
 
 function readLandingPayload(): LandingPayload {
 	const element = document.getElementById("__INITIAL_DATA__");
@@ -31,6 +31,7 @@ if (!root) throw new Error("Missing #app root");
 
 registerLandingBlocks(blocks);
 registerLandingHeader(header);
+registerTopBarCommands(topbarCommands ?? []);
 
 void bootstrapAppShell((config) => {
 	// SSR provides a landing placeholder only; the interactive shell has browser

@@ -1,6 +1,7 @@
 import type { ComponentChildren } from "preact";
 import { TopBar, type TopBarLink } from "../shell/TopBar";
 import { ThemeToggle, TopBarSettings } from "../shell/TopBarControls";
+import { TopBarCommands } from "../shell/topbar-commands";
 
 export type LandingHeaderLink = TopBarLink;
 
@@ -27,6 +28,7 @@ export function LandingHeader({
 			controls={
 				<>
 					{controls}
+					<TopBarCommands />
 					{controls ? <ThemeToggle /> : <TopBarSettings />}
 				</>
 			}

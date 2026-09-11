@@ -12,6 +12,7 @@ import { $activeLocale, LocaleController } from "../i18n";
 import { AVAILABLE_LANGS } from "../landing/i18n";
 import { toggleTheme } from "../theme";
 import { ActionMenu } from "./ActionMenu";
+import { TopBarCommands } from "./topbar-commands";
 
 const t = translator(CHAT_MESSAGES_NAMESPACE);
 
@@ -78,6 +79,7 @@ function LoginControl() {
 export function TopBarSettings() {
 	return (
 		<>
+			<TopBarCommands />
 			<LoginControl />
 			<LanguageMenu />
 			<ThemeToggle />

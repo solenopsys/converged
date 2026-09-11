@@ -13,7 +13,11 @@ export {
 export {
 	AppShellFrame,
 	bootstrapAppShell,
+	getTopBarCommands,
+	registerTopBarCommands,
+	TopBarCommands,
 	type AppShellMountConfig,
+	type TopBarCommand,
 } from "../../../../front-core/src/shell";
 export {
 	createInfiniteTableStore,

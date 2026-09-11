@@ -60,6 +60,12 @@ async function syncFile(
 	english: string,
 	targets: string[],
 	writer: Writer,
+	/** When set, missing locale files are left missing instead of being
+	 * seeded with the English baseline. The translator treats a
+	 * byte-identical English copy as an intentional fallback and skips it,
+	 * so seeding before a translation run would make a deleted (stale)
+	 * translation untranslatable — it would come back as English forever. */
+	noCreate = false,
 ) {
 	const content = readFileSync(source);
 	const previousEnglish = existsSync(english)
@@ -70,7 +76,7 @@ async function syncFile(
 	for (const target of targets) {
 		if (same(target, content)) continue;
 		if (!existsSync(target)) {
-			await writer.copy(target, source);
+			if (!noCreate) await writer.copy(target, source);
 			continue;
 		}
 		if (previousEnglish && readFileSync(target).equals(previousEnglish)) {
@@ -114,6 +120,7 @@ export async function syncCaches(
 	roots: DocsRoot[],
 	config: Config,
 	dryRun = false,
+	noCreate = false,
 ): Promise<number> {
 	const writer = new Writer(dryRun);
 	const sourceLocale = config.translation.sourceLocale;
@@ -138,6 +145,7 @@ export async function syncCaches(
 				join(cache, sourceLocale, rel),
 				targetLocales.map((locale) => join(cache, locale, rel)),
 				writer,
+				noCreate,
 			);
 		}
 	}
@@ -154,6 +162,7 @@ export async function syncCaches(
 						join(config.contentCache, store, locale, rel),
 					),
 					writer,
+					noCreate,
 				);
 			}
 		}

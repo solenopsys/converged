@@ -83,14 +83,12 @@
   opacity: 0;
 }
 
-.v2-edge-message circle {
-  fill: #f7f7f4;
-  stroke: #9a9a92;
-  stroke-width: 0.25;
+.v2-edge-message rect {
+  fill: #101110;
 }
 
 .v2-edge-message text {
-  fill: currentColor;
+  fill: #fbfbf8;
   font-size: 1.45px;
   font-weight: 800;
   letter-spacing: 0;
@@ -105,7 +103,7 @@
   width: calc(var(--v2-w) * var(--v2-grid));
   height: calc(var(--v2-h) * var(--v2-grid));
   display: grid;
-  grid-template-columns: 40px 1fr;
+  grid-template-columns: 46px 1fr;
   grid-template-rows: auto 1fr;
   gap: 10px;
   box-sizing: border-box;
@@ -117,11 +115,52 @@
   z-index: 2;
 }
 
+.v2-group {
+  position: absolute;
+  left: calc(var(--v2-x) * var(--v2-grid));
+  top: calc(var(--v2-y) * var(--v2-grid));
+  width: calc(var(--v2-w) * var(--v2-grid));
+  height: calc(var(--v2-h) * var(--v2-grid));
+  box-sizing: border-box;
+  border: 1px dashed #9a9a92;
+  border-radius: 8px;
+  background: transparent;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.v2-group-title {
+  position: absolute;
+  top: -10px;
+  left: 10px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  max-width: calc(100% - 12px);
+  padding: 0 10px;
+  overflow: hidden;
+  background: #fbfbf8;
+  color: #565650;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.v2-group-title small {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  opacity: 0.75;
+}
+
 .v2-symbol-icon {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  align-self: start;
+  width: 46px;
+  height: 46px;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -129,13 +168,15 @@
 }
 
 .v2-symbol-icon svg {
-  width: 20px;
-  height: 20px;
+  width: 25px;
+  height: 25px;
+  overflow: visible;
 }
 
 .v2-symbol-copy {
   min-width: 0;
-  align-self: center;
+  align-self: start;
+  padding-top: 3px;
 }
 
 .v2-symbol-copy strong {
@@ -151,9 +192,9 @@
 
 .v2-symbol-copy small {
   display: block;
-  margin-top: 4px;
+  margin-top: 5px;
   color: #6f6f66;
-  font-size: 10px;
+  font-size: 11.5px;
   font-weight: 760;
   line-height: 1.15;
   overflow: hidden;
@@ -216,16 +257,16 @@
 
 .v2-processor-gear {
   position: absolute;
-  right: 12px;
-  bottom: 10px;
-  width: 28px;
-  height: 28px;
+  right: 10px;
+  bottom: 8px;
+  width: 18px;
+  height: 18px;
   color: #565650;
 }
 
 .v2-processor-gear svg {
-  width: 28px;
-  height: 28px;
+  width: 18px;
+  height: 18px;
 }
 
 .v2-diagram .v2-processor-gear {
@@ -237,33 +278,11 @@
 }
 
 .v2-gateway {
-  grid-template-columns: 30px 1fr;
-  gap: 0;
   padding: 10px;
   border-color: #c7c7bd;
 }
 
-.v2-gateway .v2-symbol-icon,
-.v2-channel .v2-symbol-icon {
-  width: 30px;
-  height: 30px;
-}
-
-.v2-gateway .v2-symbol-icon svg,
-.v2-channel .v2-symbol-icon svg {
-  width: 22px;
-  height: 22px;
-}
-
-.v2-gateway .v2-symbol-copy strong,
-.v2-channel .v2-symbol-copy strong {
-  font-size: 11px;
-  line-height: 1;
-}
-
 .v2-channel {
-  grid-template-columns: 30px 1fr;
-  gap: 0;
   padding: 10px;
 }
 
@@ -492,8 +511,6 @@
 }
 
 .v2-ink .v2-symbol-icon svg {
-  width: 23px;
-  height: 23px;
   stroke-width: 1.7;
 }
 
@@ -506,7 +523,6 @@
 
 .v2-ink .v2-symbol-copy small {
   color: rgba(10, 27, 12, 0.68);
-  font-size: 10px;
   font-weight: 760;
 }
 
@@ -567,23 +583,23 @@
 }
 
 .v2-ink .v2-storage {
-  grid-template-columns: 38px 1fr;
-  grid-template-rows: 1fr;
-  gap: 8px;
-  align-items: center;
+  grid-template-columns: 46px 1fr;
+  grid-template-rows: auto 1fr;
+  gap: 10px;
+  align-items: start;
   justify-items: start;
-  padding: 8px 10px;
+  padding: 10px;
   border: 1.4px solid #0a1b0c;
 }
 
 .v2-ink .v2-storage .v2-symbol-icon {
-  width: 38px;
-  height: 38px;
+  width: 46px;
+  height: 46px;
 }
 
 .v2-ink .v2-storage .v2-symbol-icon svg {
-  width: 28px;
-  height: 28px;
+  width: 25px;
+  height: 25px;
   stroke-width: 1.5;
 }
 
@@ -592,11 +608,11 @@
 }
 
 .v2-ink .v2-storage .v2-symbol-copy strong {
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .v2-ink .v2-storage .v2-symbol-copy small {
-  font-size: 9px;
+  font-size: 11.5px;
 }
 
 .v2-ink .v2-smartphone {
@@ -618,30 +634,12 @@
 }
 
 .v2-ink .v2-recipient {
-  grid-template-columns: 34px 1fr;
-  grid-template-rows: 1fr;
-  gap: 8px;
-  align-items: center;
-  padding: 8px;
+  grid-template-columns: 46px 1fr;
+  grid-template-rows: auto 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 10px;
   border-width: 1.2px;
-}
-
-.v2-ink .v2-recipient .v2-symbol-icon {
-  width: 34px;
-  height: 34px;
-}
-
-.v2-ink .v2-recipient .v2-symbol-icon svg {
-  width: 24px;
-  height: 24px;
-}
-
-.v2-ink .v2-recipient .v2-symbol-copy strong {
-  font-size: 11px;
-}
-
-.v2-ink .v2-recipient .v2-symbol-copy small {
-  font-size: 9px;
 }
 
 .landing-v2-motion {

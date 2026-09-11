@@ -1,6 +1,8 @@
 /** Emits one manifest per project for every distributed documentation root. */
 
+import { existsSync } from "node:fs";
 import { join, relative } from "node:path";
+import { MODULES_SECTION } from "../discover";
 import type { Writer } from "../fs";
 import type { Config, DocsRoot, IndexEntry } from "../types";
 
@@ -14,17 +16,20 @@ export async function emitContentIndexes(
 		for (const root of roots.filter((item) => item.project === project)) {
 			const sections = [];
 			for (const id of root.sections) {
-				const indexPath = join(root.path, id, "index.json");
+				// A flat `docs/index.json` is the module layout: the index and
+				// its articles sit in the docs root itself.
+				const dir =
+					id === MODULES_SECTION && existsSync(join(root.path, "index.json"))
+						? root.path
+						: join(root.path, id);
+				const indexPath = join(dir, "index.json");
 				const entries = (await Bun.file(indexPath).json()) as IndexEntry[];
 				sections.push({
 					id,
 					index: relative(project, indexPath),
 					articles: entries.map((entry) => ({
 						slug: entry.slug,
-						file: relative(
-							project,
-							join(root.path, id, `${entry.id ?? entry.slug}.md`),
-						),
+						file: relative(project, join(dir, `${entry.id ?? entry.slug}.md`)),
 					})),
 				});
 			}

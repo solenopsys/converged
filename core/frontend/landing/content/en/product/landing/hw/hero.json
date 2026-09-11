@@ -1,12 +1,12 @@
 {
   "wordmark": {
-    "label": "4IR",
-    "suffix": " / PRODUCT",
+    "label": "Converged",
+    "suffix": " — Smart Workshop",
     "href": "#product"
   },
-  "kicker": "04IR / OPERATING PLATFORM",
-  "headline": "One operating system for your workshop.",
-  "description": "Единое рабочее пространство для заказов, оборудования и коммуникации с клиентами. Данные производства становятся планом действий для всей команды.",
+  "kicker": "Converged — Smart Workshop",
+  "headline": "Smart Workshop — like a smart home, but for your workshop.",
+  "description": "Converged is the open platform behind it: machines, orders, files, calls, mail and AI in one connected system. From Raspberry Pi to Kubernetes, with no vendor lock-in.",
   "explore": {
     "href": "#capabilities",
     "label": "Explore the platform"

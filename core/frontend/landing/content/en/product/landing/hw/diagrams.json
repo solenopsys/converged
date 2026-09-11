@@ -613,7 +613,7 @@
       {
         "id": "controller",
         "kind": "processor",
-        "title": "Convered - Smart Worshop",
+        "title": "Converged — Smart Workshop",
         "subtitle": "control center",
         "rect": {
           "x": 44,
@@ -934,7 +934,7 @@
       {
         "id": "analyzer",
         "kind": "processor",
-        "title": "Convered - Smart Worshop",
+        "title": "Converged — Smart Workshop",
         "subtitle": "log analyzer",
         "rect": {
           "x": 44,
@@ -1482,7 +1482,7 @@
       {
         "id": "unit",
         "kind": "processor",
-        "title": "Convered - Smart Worshop",
+        "title": "Converged — Smart Workshop",
         "subtitle": "grouping",
         "rect": {
           "x": 54,
@@ -1717,7 +1717,7 @@
       {
         "id": "controller",
         "kind": "processor",
-        "title": "Convered - Smart Worshop",
+        "title": "Converged — Smart Workshop",
         "subtitle": "integrations",
         "rect": {
           "x": 44,
@@ -2150,7 +2150,7 @@
       {
         "id": "controller",
         "kind": "processor",
-        "title": "Convered - Smart Worshop",
+        "title": "Converged — Smart Workshop",
         "subtitle": "rag search",
         "rect": {
           "x": 44,

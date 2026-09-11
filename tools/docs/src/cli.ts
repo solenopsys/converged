@@ -19,9 +19,13 @@
  *   --dry-run         report what would change, write nothing
  *   --list            print the discovered docs roots and books, then exit
  *   -t, --translate   translate missing or stale locale files before rebuilding
+ *   -c, --copy-cache  copy club/content/docs-cache subfolders (struct,
+ *                     markdown) into data/club as-is, bypassing the
+ *                     source-locale filter of the site target
  */
 
-import { resolve } from "node:path";
+import { existsSync, readdirSync } from "node:fs";
+import { join, relative, resolve } from "node:path";
 import { syncCaches } from "./cache";
 import { loadConfig } from "./config";
 import { assertModuleDocs, missingModuleDocs } from "./coverage";
@@ -59,6 +63,7 @@ type Args = {
 	dryRun: boolean;
 	list: boolean;
 	translate: boolean;
+	copyCache: boolean;
 };
 
 function parseArgs(argv: string[]): Args {
@@ -70,6 +75,7 @@ function parseArgs(argv: string[]): Args {
 		dryRun: false,
 		list: false,
 		translate: false,
+		copyCache: false,
 	};
 
 	for (let i = 0; i < argv.length; i += 1) {
@@ -96,6 +102,10 @@ function parseArgs(argv: string[]): Args {
 			case "-t":
 			case "--translate":
 				args.translate = true;
+				break;
+			case "-c":
+			case "--copy-cache":
+				args.copyCache = true;
 				break;
 			case "all":
 				args.targets.push(...TARGETS);
@@ -188,7 +198,7 @@ let { books, summary } = await build(config, {
 });
 
 if (!args.list) {
-	const synced = await syncCaches(summary.roots, config, args.dryRun);
+	const synced = await syncCaches(summary.roots, config, args.dryRun, args.translate);
 	console.log(`[docs] cache: ${synced} files synchronized`);
 	if (synced > 0 && !args.dryRun) {
 		({ books, summary } = await build(config, {
@@ -265,5 +275,36 @@ if (args.translate) {
 	for (const target of ["site", "ecosystem"] as const) {
 		await run(target, books, summary, config, args, manifest, registry);
 	}
+}
+if (args.copyCache) {
+	const writer = new Writer(args.dryRun);
+	const requested = args.langs.length ? new Set(args.langs) : null;
+	for (const { store, output } of [
+		{ store: "struct", output: config.out.struct },
+		{ store: "markdown", output: config.out.markdown },
+	] as const) {
+		const cacheRoot = join(config.contentCache, store);
+		if (!config.contentCache || !existsSync(cacheRoot)) continue;
+		const visit = async (dir: string) => {
+			for (const entry of readdirSync(dir, { withFileTypes: true })) {
+				if (entry.name.startsWith(".")) continue;
+				const source = join(dir, entry.name);
+				if (entry.isDirectory()) {
+					await visit(source);
+					continue;
+				}
+				if (!entry.isFile()) continue;
+				const rel = relative(cacheRoot, source);
+				const lang = rel.split("/")[0] as string;
+				if (requested && !requested.has(lang)) continue;
+				await writer.copy(join(output, rel), source);
+			}
+		};
+		await visit(cacheRoot);
+	}
+	const removed = manifest.prune("copy-cache", writer, args.prune);
+	const suffix = removed.length ? `, ${removed.length} removed` : "";
+	console.log(`[docs] copy-cache: ${writer.written.size} files${suffix}`);
+	for (const path of removed) console.log(`[docs]   - ${path}`);
 }
 await manifest.save();

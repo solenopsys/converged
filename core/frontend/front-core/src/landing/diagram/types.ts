@@ -28,6 +28,14 @@ export interface V2Symbol {
   rows?: string[];
 }
 
+export interface V2Group {
+  id: string;
+  title: string;
+  subtitle?: string;
+  rect: V2GridRect;
+  tone?: "default" | "accent" | "warning" | "muted";
+}
+
 export type V2Anchor = "top" | "right" | "bottom" | "left" | "center";
 
 export interface V2Point {
@@ -93,6 +101,7 @@ export interface V2DiagramData {
   height: number;
   symbols: V2Symbol[];
   connections: V2Connection[];
+  groups?: V2Group[];
   machine?: V2Machine;
 }
 

@@ -482,7 +482,11 @@ export function VectorImage({
 				class="vector-image-frame"
 				ref={frameRef}
 				data-tool={data.image.settings?.tool ?? DEFAULT_TOOL}
-				style={data.image.settings?.size ? { width: `${data.image.settings.size}%` } : undefined}
+				style={
+					data.image.settings?.size
+						? { width: `${data.image.settings.size}%`, margin: "0 auto" }
+						: undefined
+				}
 			>
 				{svgMarkup ? (
 					<svg

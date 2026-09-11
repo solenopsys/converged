@@ -7,6 +7,7 @@ import {
   type V2Connection,
   type V2DiagramData,
   type V2GridRect,
+  type V2Group,
   type V2Symbol,
 } from "./types";
 
@@ -56,6 +57,20 @@ export function V2StreamlineIcon({ icon }: { icon: string }) {
   );
 }
 
+export function V2GroupNode({ group }: { group: V2Group }) {
+  return (
+    <div
+      className={`v2-group tone-${group.tone ?? "default"}`}
+      data-v2-group-id={group.id}
+      style={gridStyle(group.rect)}
+    >
+      <span className="v2-group-title">
+        <strong>{group.title}</strong>
+        {group.subtitle ? <small>{group.subtitle}</small> : null}
+      </span>
+    </div>
+  );
+}
 export function V2SymbolNode({ symbol }: { symbol: V2Symbol }) {
   const icon = symbol.icon ?? streamlineIconByKind[symbol.kind];
 
@@ -121,7 +136,7 @@ function anchorPoint(rect: V2GridRect, anchor: V2Anchor, offset = 0) {
   return { x: x + w / 2, y: y + h / 2 };
 }
 
-function roundedOrthogonalPath(points: Array<{ x: number; y: number }>, radius = 2.2) {
+function roundedOrthogonalPath(points: Array<{ x: number; y: number }>, radius = 1.2) {
   if (points.length < 2) return "";
 
   const commands = [`M ${points[0].x} ${points[0].y}`];
@@ -226,6 +241,11 @@ function V2ConnectionLayer({ diagram }: { diagram: V2DiagramData }) {
       </defs>
       {diagram.connections.map((connection) => {
         const path = connectionPath(connection, symbols);
+        const label = [connection.message?.title, connection.message?.reply]
+          .filter((value): value is string => typeof value === "string" && value.length > 0)
+          .sort((a, b) => b.length - a.length)[0];
+        // Monospace advance ~0.66em at 1.45px font + minimal side padding (~2px on screen).
+        const labelWidth = label ? label.length * 0.95 + 0.7 : 0;
 
         return (
           <g className={`v2-connection tone-${connection.tone ?? "default"}`} data-v2-connection-id={connection.id} key={connection.id}>
@@ -238,8 +258,8 @@ function V2ConnectionLayer({ diagram }: { diagram: V2DiagramData }) {
             />
             {connection.message ? (
               <g className="v2-edge-message">
-                <circle r="1.8" />
-                <text y="0.38">{connection.message.title}</text>
+                <rect x={-labelWidth / 2} y={-1.2} width={labelWidth} height={2.4} rx={1.0} />
+                <text y={0.5}>{connection.message.title}</text>
               </g>
             ) : null}
           </g>
@@ -260,6 +280,9 @@ export function V2Diagram({ diagram, className }: { diagram: V2DiagramData; clas
         />
       ) : null}
       <V2ConnectionLayer diagram={diagram} />
+      {diagram.groups?.map((group) => (
+        <V2GroupNode key={group.id} group={group} />
+      ))}
       {diagram.symbols.map((symbol) => (
         <V2SymbolNode key={symbol.id} symbol={symbol} />
       ))}

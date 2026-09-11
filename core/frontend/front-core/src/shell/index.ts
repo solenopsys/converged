@@ -41,6 +41,12 @@ export {
 } from "./surface";
 export { TabStrip } from "./TabStrip";
 export { TopBar, type TopBarLink, type TopBarTab } from "./TopBar";
+export {
+	getTopBarCommands,
+	registerTopBarCommands,
+	TopBarCommands,
+	type TopBarCommand,
+} from "./topbar-commands";
 export { LanguageMenu, ThemeToggle, TopBarSettings } from "./TopBarControls";
 export {
 	$workspaceTabViews,

@@ -167,6 +167,134 @@
       ]
     },
     {
+      "owner": "lm-compressors",
+      "path": "modules/lambdas/data/lm-compressors/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/lambdas/data/lm-compressors/docs/index.json",
+          "articles": [
+            {
+              "slug": "lm-compressors",
+              "file": "modules/lambdas/data/lm-compressors/docs/lm-compressors.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "lm-kubernetes",
+      "path": "modules/lambdas/automation/lm-kubernetes/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/lambdas/automation/lm-kubernetes/docs/index.json",
+          "articles": [
+            {
+              "slug": "lm-kubernetes",
+              "file": "modules/lambdas/automation/lm-kubernetes/docs/lm-kubernetes.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "lm-modelconvertor",
+      "path": "modules/lambdas/convertors/lm-modelconvertor/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/lambdas/convertors/lm-modelconvertor/docs/index.json",
+          "articles": [
+            {
+              "slug": "lm-modelconvertor",
+              "file": "modules/lambdas/convertors/lm-modelconvertor/docs/lm-modelconvertor.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "lm-push",
+      "path": "modules/lambdas/providers/lm-push/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/lambdas/providers/lm-push/docs/index.json",
+          "articles": [
+            {
+              "slug": "lm-push",
+              "file": "modules/lambdas/providers/lm-push/docs/lm-push.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "lm-secrets",
+      "path": "modules/lambdas/sequrity/lm-secrets/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/lambdas/sequrity/lm-secrets/docs/index.json",
+          "articles": [
+            {
+              "slug": "lm-secrets",
+              "file": "modules/lambdas/sequrity/lm-secrets/docs/lm-secrets.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "lm-ses",
+      "path": "modules/lambdas/providers/lm-ses/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/lambdas/providers/lm-ses/docs/index.json",
+          "articles": [
+            {
+              "slug": "lm-ses",
+              "file": "modules/lambdas/providers/lm-ses/docs/lm-ses.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "lm-sms",
+      "path": "modules/lambdas/providers/lm-sms/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/lambdas/providers/lm-sms/docs/index.json",
+          "articles": [
+            {
+              "slug": "lm-sms",
+              "file": "modules/lambdas/providers/lm-sms/docs/lm-sms.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "lm-smtp",
+      "path": "modules/lambdas/providers/lm-smtp/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/lambdas/providers/lm-smtp/docs/index.json",
+          "articles": [
+            {
+              "slug": "lm-smtp",
+              "file": "modules/lambdas/providers/lm-smtp/docs/lm-smtp.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "owner": "nrpc",
       "path": "tools/nrpc/docs",
       "sections": [
@@ -209,6 +337,1142 @@
             {
               "slug": "resonus",
               "file": "core/native/apps/resonus/docs/system/resonus.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-access",
+      "path": "modules/repositories/sequrity/rp-access/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/sequrity/rp-access/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-access",
+              "file": "modules/repositories/sequrity/rp-access/docs/rp-access.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-assistant",
+      "path": "modules/repositories/ai/rp-assistant/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/ai/rp-assistant/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-assistant",
+              "file": "modules/repositories/ai/rp-assistant/docs/rp-assistant.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-auth",
+      "path": "modules/repositories/sequrity/rp-auth/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/sequrity/rp-auth/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-auth",
+              "file": "modules/repositories/sequrity/rp-auth/docs/rp-auth.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-billing",
+      "path": "modules/repositories/business/rp-billing/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/business/rp-billing/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-billing",
+              "file": "modules/repositories/business/rp-billing/docs/rp-billing.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-calls",
+      "path": "modules/repositories/communications/rp-calls/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/communications/rp-calls/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-calls",
+              "file": "modules/repositories/communications/rp-calls/docs/rp-calls.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-chats",
+      "path": "modules/repositories/communications/rp-chats/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/communications/rp-chats/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-chats",
+              "file": "modules/repositories/communications/rp-chats/docs/rp-chats.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-classifier",
+      "path": "modules/repositories/content/rp-classifier/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/content/rp-classifier/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-classifier",
+              "file": "modules/repositories/content/rp-classifier/docs/rp-classifier.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-community",
+      "path": "modules/repositories/communications/rp-community/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/communications/rp-community/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-community",
+              "file": "modules/repositories/communications/rp-community/docs/rp-community.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-contexts",
+      "path": "modules/repositories/ai/rp-contexts/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/ai/rp-contexts/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-contexts",
+              "file": "modules/repositories/ai/rp-contexts/docs/rp-contexts.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-counters",
+      "path": "modules/repositories/analytics/rp-counters/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/analytics/rp-counters/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-counters",
+              "file": "modules/repositories/analytics/rp-counters/docs/rp-counters.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-dag",
+      "path": "modules/repositories/automation/rp-dag/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/automation/rp-dag/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-dag",
+              "file": "modules/repositories/automation/rp-dag/docs/rp-dag.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-dashboard",
+      "path": "modules/repositories/analytics/rp-dashboard/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/analytics/rp-dashboard/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-dashboard",
+              "file": "modules/repositories/analytics/rp-dashboard/docs/rp-dashboard.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-dumps",
+      "path": "modules/repositories/data/rp-dumps/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/data/rp-dumps/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-dumps",
+              "file": "modules/repositories/data/rp-dumps/docs/rp-dumps.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-environment",
+      "path": "modules/repositories/sequrity/rp-environment/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/sequrity/rp-environment/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-environment",
+              "file": "modules/repositories/sequrity/rp-environment/docs/rp-environment.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-equipment",
+      "path": "modules/repositories/business/rp-equipment/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/business/rp-equipment/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-equipment",
+              "file": "modules/repositories/business/rp-equipment/docs/rp-equipment.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-events",
+      "path": "modules/repositories/business/rp-events/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/business/rp-events/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-events",
+              "file": "modules/repositories/business/rp-events/docs/rp-events.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-files",
+      "path": "modules/repositories/data/rp-files/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/data/rp-files/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-files",
+              "file": "modules/repositories/data/rp-files/docs/rp-files.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-finance",
+      "path": "modules/repositories/business/rp-finance/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/business/rp-finance/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-finance",
+              "file": "modules/repositories/business/rp-finance/docs/rp-finance.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-galery",
+      "path": "modules/repositories/content/rp-galery/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/content/rp-galery/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-galery",
+              "file": "modules/repositories/content/rp-galery/docs/rp-galery.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-identity",
+      "path": "modules/repositories/sequrity/rp-identity/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/sequrity/rp-identity/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-identity",
+              "file": "modules/repositories/sequrity/rp-identity/docs/rp-identity.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-logs",
+      "path": "modules/repositories/analytics/rp-logs/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/analytics/rp-logs/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-logs",
+              "file": "modules/repositories/analytics/rp-logs/docs/rp-logs.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-markdown",
+      "path": "modules/repositories/content/rp-markdown/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/content/rp-markdown/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-markdown",
+              "file": "modules/repositories/content/rp-markdown/docs/rp-markdown.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-notify",
+      "path": "modules/repositories/communications/rp-notify/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/communications/rp-notify/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-notify",
+              "file": "modules/repositories/communications/rp-notify/docs/rp-notify.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-oauth",
+      "path": "modules/repositories/sequrity/rp-oauth/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/sequrity/rp-oauth/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-oauth",
+              "file": "modules/repositories/sequrity/rp-oauth/docs/rp-oauth.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-orders",
+      "path": "modules/repositories/business/rp-orders/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/business/rp-orders/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-orders",
+              "file": "modules/repositories/business/rp-orders/docs/rp-orders.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-requests",
+      "path": "modules/repositories/business/rp-requests/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/business/rp-requests/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-requests",
+              "file": "modules/repositories/business/rp-requests/docs/rp-requests.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-resonus",
+      "path": "modules/repositories/communications/rp-resonus/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/communications/rp-resonus/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-resonus",
+              "file": "modules/repositories/communications/rp-resonus/docs/rp-resonus.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-reviews",
+      "path": "modules/repositories/business/rp-reviews/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/business/rp-reviews/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-reviews",
+              "file": "modules/repositories/business/rp-reviews/docs/rp-reviews.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-sales",
+      "path": "modules/repositories/business/rp-sales/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/business/rp-sales/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-sales",
+              "file": "modules/repositories/business/rp-sales/docs/rp-sales.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-scripts",
+      "path": "modules/repositories/content/rp-scripts/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/content/rp-scripts/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-scripts",
+              "file": "modules/repositories/content/rp-scripts/docs/rp-scripts.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-sheduller",
+      "path": "modules/repositories/automation/rp-sheduller/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/automation/rp-sheduller/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-sheduller",
+              "file": "modules/repositories/automation/rp-sheduller/docs/rp-sheduller.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-staff",
+      "path": "modules/repositories/business/rp-staff/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/business/rp-staff/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-staff",
+              "file": "modules/repositories/business/rp-staff/docs/rp-staff.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-static",
+      "path": "modules/repositories/content/rp-static/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/content/rp-static/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-static",
+              "file": "modules/repositories/content/rp-static/docs/rp-static.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-store",
+      "path": "modules/repositories/data/rp-store/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/data/rp-store/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-store",
+              "file": "modules/repositories/data/rp-store/docs/rp-store.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-struct",
+      "path": "modules/repositories/content/rp-struct/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/content/rp-struct/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-struct",
+              "file": "modules/repositories/content/rp-struct/docs/rp-struct.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-telemetry",
+      "path": "modules/repositories/analytics/rp-telemetry/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/analytics/rp-telemetry/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-telemetry",
+              "file": "modules/repositories/analytics/rp-telemetry/docs/rp-telemetry.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-threads",
+      "path": "modules/repositories/communications/rp-threads/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/communications/rp-threads/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-threads",
+              "file": "modules/repositories/communications/rp-threads/docs/rp-threads.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-usage",
+      "path": "modules/repositories/analytics/rp-usage/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/analytics/rp-usage/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-usage",
+              "file": "modules/repositories/analytics/rp-usage/docs/rp-usage.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-webhooks",
+      "path": "modules/repositories/automation/rp-webhooks/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/automation/rp-webhooks/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-webhooks",
+              "file": "modules/repositories/automation/rp-webhooks/docs/rp-webhooks.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "sf-assistants",
+      "path": "modules/surfaces/ai/sf-assistants/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/surfaces/ai/sf-assistants/docs/index.json",
+          "articles": [
+            {
+              "slug": "sf-assistants",
+              "file": "modules/surfaces/ai/sf-assistants/docs/sf-assistants.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "sf-auth",
+      "path": "modules/surfaces/sequrity/sf-auth/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/surfaces/sequrity/sf-auth/docs/index.json",
+          "articles": [
+            {
+              "slug": "sf-auth",
+              "file": "modules/surfaces/sequrity/sf-auth/docs/sf-auth.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "sf-automation",
+      "path": "modules/surfaces/automation/sf-automation/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/surfaces/automation/sf-automation/docs/index.json",
+          "articles": [
+            {
+              "slug": "automation",
+              "file": "modules/surfaces/automation/sf-automation/docs/automation.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "sf-calls",
+      "path": "modules/surfaces/communications/sf-calls/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/surfaces/communications/sf-calls/docs/index.json",
+          "articles": [
+            {
+              "slug": "sf-calls",
+              "file": "modules/surfaces/communications/sf-calls/docs/sf-calls.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "sf-chats",
+      "path": "modules/surfaces/communications/sf-chats/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/surfaces/communications/sf-chats/docs/index.json",
+          "articles": [
+            {
+              "slug": "sf-chats",
+              "file": "modules/surfaces/communications/sf-chats/docs/sf-chats.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "sf-classifier",
+      "path": "modules/surfaces/content/sf-classifier/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/surfaces/content/sf-classifier/docs/index.json",
+          "articles": [
+            {
+              "slug": "sf-classifier",
+              "file": "modules/surfaces/content/sf-classifier/docs/sf-classifier.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "sf-community",
+      "path": "modules/surfaces/communications/sf-community/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/surfaces/communications/sf-community/docs/index.json",
+          "articles": [
+            {
+              "slug": "sf-community",
+              "file": "modules/surfaces/communications/sf-community/docs/sf-community.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "sf-contexts",
+      "path": "modules/surfaces/ai/sf-contexts/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/surfaces/ai/sf-contexts/docs/index.json",
+          "articles": [
+            {
+              "slug": "sf-contexts",
+              "file": "modules/surfaces/ai/sf-contexts/docs/sf-contexts.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "sf-dasboards",
+      "path": "modules/surfaces/analytics/sf-dasboards/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/surfaces/analytics/sf-dasboards/docs/index.json",
+          "articles": [
+            {
+              "slug": "sf-dasboards",
+              "file": "modules/surfaces/analytics/sf-dasboards/docs/sf-dasboards.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "sf-docs",
+      "path": "modules/surfaces/content/sf-docs/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/surfaces/content/sf-docs/docs/index.json",
+          "articles": [
+            {
+              "slug": "sf-docs",
+              "file": "modules/surfaces/content/sf-docs/docs/sf-docs.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "sf-dumps",
+      "path": "modules/surfaces/data/sf-dumps/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/surfaces/data/sf-dumps/docs/index.json",
+          "articles": [
+            {
+              "slug": "sf-dumps",
+              "file": "modules/surfaces/data/sf-dumps/docs/sf-dumps.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "sf-files",
+      "path": "modules/surfaces/data/sf-files/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/surfaces/data/sf-files/docs/index.json",
+          "articles": [
+            {
+              "slug": "sf-files",
+              "file": "modules/surfaces/data/sf-files/docs/sf-files.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "sf-galery",
+      "path": "modules/surfaces/content/sf-galery/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/surfaces/content/sf-galery/docs/index.json",
+          "articles": [
+            {
+              "slug": "sf-galery",
+              "file": "modules/surfaces/content/sf-galery/docs/sf-galery.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "sf-landing",
+      "path": "modules/surfaces/content/sf-landing/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/surfaces/content/sf-landing/docs/index.json",
+          "articles": [
+            {
+              "slug": "sf-landing",
+              "file": "modules/surfaces/content/sf-landing/docs/sf-landing.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "sf-logs",
+      "path": "modules/surfaces/analytics/sf-logs/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/surfaces/analytics/sf-logs/docs/index.json",
+          "articles": [
+            {
+              "slug": "sf-logs",
+              "file": "modules/surfaces/analytics/sf-logs/docs/sf-logs.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "sf-markdown",
+      "path": "modules/surfaces/content/sf-markdown/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/surfaces/content/sf-markdown/docs/index.json",
+          "articles": [
+            {
+              "slug": "sf-markdown",
+              "file": "modules/surfaces/content/sf-markdown/docs/sf-markdown.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "sf-orders",
+      "path": "modules/surfaces/business/sf-orders/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/surfaces/business/sf-orders/docs/index.json",
+          "articles": [
+            {
+              "slug": "sf-orders",
+              "file": "modules/surfaces/business/sf-orders/docs/sf-orders.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "sf-requests",
+      "path": "modules/surfaces/business/sf-requests/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/surfaces/business/sf-requests/docs/index.json",
+          "articles": [
+            {
+              "slug": "sf-requests",
+              "file": "modules/surfaces/business/sf-requests/docs/sf-requests.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "sf-secrets",
+      "path": "modules/surfaces/sequrity/sf-secrets/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/surfaces/sequrity/sf-secrets/docs/index.json",
+          "articles": [
+            {
+              "slug": "sf-secrets",
+              "file": "modules/surfaces/sequrity/sf-secrets/docs/sf-secrets.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "sf-static",
+      "path": "modules/surfaces/content/sf-static/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/surfaces/content/sf-static/docs/index.json",
+          "articles": [
+            {
+              "slug": "sf-static",
+              "file": "modules/surfaces/content/sf-static/docs/sf-static.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "sf-struct",
+      "path": "modules/surfaces/content/sf-struct/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/surfaces/content/sf-struct/docs/index.json",
+          "articles": [
+            {
+              "slug": "sf-struct",
+              "file": "modules/surfaces/content/sf-struct/docs/sf-struct.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "sf-telemetry",
+      "path": "modules/surfaces/analytics/sf-telemetry/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/surfaces/analytics/sf-telemetry/docs/index.json",
+          "articles": [
+            {
+              "slug": "sf-telemetry",
+              "file": "modules/surfaces/analytics/sf-telemetry/docs/sf-telemetry.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "sf-threads",
+      "path": "modules/surfaces/communications/sf-threads/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/surfaces/communications/sf-threads/docs/index.json",
+          "articles": [
+            {
+              "slug": "sf-threads",
+              "file": "modules/surfaces/communications/sf-threads/docs/sf-threads.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "sf-usage",
+      "path": "modules/surfaces/analytics/sf-usage/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/surfaces/analytics/sf-usage/docs/index.json",
+          "articles": [
+            {
+              "slug": "sf-usage",
+              "file": "modules/surfaces/analytics/sf-usage/docs/sf-usage.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "wf-dialogue-summary",
+      "path": "modules/workflows/wf-dialogue-summary/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/workflows/wf-dialogue-summary/docs/index.json",
+          "articles": [
+            {
+              "slug": "wf-dialogue-summary",
+              "file": "modules/workflows/wf-dialogue-summary/docs/wf-dialogue-summary.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "wf-file-analyze",
+      "path": "modules/workflows/wf-file-analyze/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/workflows/wf-file-analyze/docs/index.json",
+          "articles": [
+            {
+              "slug": "wf-file-analyze",
+              "file": "modules/workflows/wf-file-analyze/docs/wf-file-analyze.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "wf-file-unpack",
+      "path": "modules/workflows/wf-file-unpack/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/workflows/wf-file-unpack/docs/index.json",
+          "articles": [
+            {
+              "slug": "wf-file-unpack",
+              "file": "modules/workflows/wf-file-unpack/docs/wf-file-unpack.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "wf-files-analyze",
+      "path": "modules/workflows/wf-files-analyze/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/workflows/wf-files-analyze/docs/index.json",
+          "articles": [
+            {
+              "slug": "wf-files-analyze",
+              "file": "modules/workflows/wf-files-analyze/docs/wf-files-analyze.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "wf-files-process",
+      "path": "modules/workflows/wf-files-process/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/workflows/wf-files-process/docs/index.json",
+          "articles": [
+            {
+              "slug": "wf-files-process",
+              "file": "modules/workflows/wf-files-process/docs/wf-files-process.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "wf-request-analyze",
+      "path": "modules/workflows/wf-request-analyze/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/workflows/wf-request-analyze/docs/index.json",
+          "articles": [
+            {
+              "slug": "wf-request-analyze",
+              "file": "modules/workflows/wf-request-analyze/docs/wf-request-analyze.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "wf-sales-import",
+      "path": "modules/workflows/wf-sales-import/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/workflows/wf-sales-import/docs/index.json",
+          "articles": [
+            {
+              "slug": "wf-sales-import",
+              "file": "modules/workflows/wf-sales-import/docs/wf-sales-import.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "wf-sales-review-outreach",
+      "path": "modules/workflows/wf-sales-review-outreach/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/workflows/wf-sales-review-outreach/docs/index.json",
+          "articles": [
+            {
+              "slug": "wf-sales-review-outreach",
+              "file": "modules/workflows/wf-sales-review-outreach/docs/wf-sales-review-outreach.md"
             }
           ]
         }

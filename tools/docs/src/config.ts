@@ -43,10 +43,13 @@ const DEFAULT_ECOSYSTEM: EcosystemConfig = {
 
 const DEFAULTS: Required<RawConfig> = {
 	projects: ["../..", "../../../club"],
+	// Behemoth serves FILES stores from <mount>/<store>/data/<key>, so the
+	// outputs must point at the store data dirs, not at the mount roots.
+	// E.g. rp-struct (store "struct") reads <mount>/struct/data/<key>.
 	out: {
-		struct: "../../../data/club/struct",
-		markdown: "../../../data/club/markdown",
-		static: "../../../data/club/galery",
+		struct: "../../../data/club/struct/struct/data",
+		markdown: "../../../data/club/markdown/markdown/data",
+		static: "../../../data/club/galery/static/data",
 		readme: "../../../build/docs/readme",
 		html: "../../../build/docs/html",
 		pdf: "../../../build/docs/pdf",

@@ -113,7 +113,7 @@ fn signServiceToken(
 
     const payload_json = try std.fmt.allocPrint(
         gpa,
-        "{{\"typ\":\"service\",\"perm\":[\"all/all(rw)\"],\"sub\":\"{s}\",\"iss\":\"{s}\",\"aud\":\"{s}\",\"iat\":{d},\"exp\":{d}}}",
+        "{{\"typ\":\"service\",\"perm\":{{\"*\":{{\"*\":\"rwx\"}}}},\"sub\":\"{s}\",\"iss\":\"{s}\",\"aud\":\"{s}\",\"iat\":{d},\"exp\":{d}}}",
         .{ subject, issuer, audience, now_seconds, now_seconds + token_lifetime_seconds },
     );
     defer gpa.free(payload_json);

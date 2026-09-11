@@ -84,8 +84,8 @@ html.dark .product-case-scroll {
   grid-template-columns: 210px minmax(0, 1fr);
   gap: clamp(28px, 3vw, 48px);
   align-items: center;
-  width: min(1380px, 100%);
-  height: min(590px, calc(100dvh - 102px));
+  width: min(1760px, 100%);
+  height: min(680px, calc(100dvh - 102px));
   min-height: 0;
   margin: 0 auto;
 }
@@ -131,7 +131,7 @@ html.dark .product-case-scroll {
   position: absolute;
   inset: 0;
   display: grid;
-  grid-template-columns: minmax(360px, 420px) minmax(0, 1fr);
+  grid-template-columns: 400px minmax(0, 1fr);
   gap: clamp(28px, 3vw, 48px);
   align-items: start;
   opacity: 0;
@@ -152,12 +152,14 @@ html.dark .product-case-scroll {
 
 .product-case-diagram {
   display: flex;
-  --product-case-diagram-scale: 0.62;
+  --product-case-diagram-scale: 0.9;
   align-items: flex-start;
-  justify-content: flex-start;
+  justify-content: center;
   min-width: 0;
-  height: 400px;
-  padding: 0;
+  width: 100%;
+  max-width: 1080px;
+  height: min(560px, calc(100dvh - 240px));
+  padding: 20px 0 0;
   border: 0;
   overflow: hidden;
   background: transparent;
@@ -175,6 +177,29 @@ html.dark .product-case-scroll {
   transform-origin: top left;
 }
 
+/* Vector-image visual (alternative to a v2 diagram): fills the host. */
+.product-case-diagram .vector-image {
+  width: 100%;
+  align-self: center;
+}
+
+.product-case-diagram .vector-image-frame img,
+.product-case-diagram .vector-image-frame svg {
+  width: 100%;
+  height: auto;
+  max-height: 540px;
+  object-fit: contain;
+}
+
+/* Case without any visual: copy takes the full panel width. */
+.product-case-panel--no-visual {
+  grid-template-columns: minmax(360px, 640px);
+}
+
+.product-case-panel--no-visual .product-case-diagram {
+  display: none;
+}
+
 /* Scope the dark treatment to the product cases; standalone diagram pages remain light. */
 .product-case-diagram .product-case-v2 .v2-symbol {
   border-color: var(--product-case-node-border);
@@ -189,13 +214,15 @@ html.dark .product-case-scroll {
 
 .product-case-diagram .product-case-v2 .v2-connection,
 .product-case-diagram .product-case-v2 .v2-edge-message { color: var(--product-case-connection); }
-.product-case-diagram .product-case-v2 .v2-connection-path { stroke-width: 0.62; }
+.product-case-diagram .product-case-v2 .v2-connection-path { stroke-width: 0.34; }
 .product-case-diagram .product-case-v2 .v2-connections marker path { fill: var(--product-case-connection); }
 
-.product-case-diagram .product-case-v2 .v2-edge-message circle {
-  fill: var(--product-case-message-bg);
-  stroke: var(--product-case-connection);
-  stroke-width: 0.28;
+.product-case-diagram .product-case-v2 .v2-edge-message rect {
+  fill: var(--product-case-active);
+}
+
+.product-case-diagram .product-case-v2 .v2-edge-message text {
+  fill: var(--product-case-canvas);
 }
 
 .product-case-diagram .product-case-v2 .v2-processor {

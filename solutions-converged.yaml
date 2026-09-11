@@ -24,6 +24,8 @@ spec:
     - counters
     - usage
     - dashboard
+    - sheduller
+    - webhooks
   lambdas:
     - ses
     - compressors
@@ -40,6 +42,7 @@ spec:
     - telemetry
     - usage
     - dasboards
+    - automation
   processors:
     - curaengine
     - opencamlib

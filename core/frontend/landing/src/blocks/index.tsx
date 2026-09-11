@@ -26,9 +26,10 @@ import {
 	type ShopProofData,
 	type ProductCasesData,
 } from "front-core/landing";
+import type { TopBarCommand } from "front-core/shell";
 
 
-export const brand = "4IR";
+export const brand = "Converged";
 
 // The shared SPA uses this in the workspace surface after authentication.
 // Keep it alongside the landing header so every project exposes the same
@@ -40,6 +41,10 @@ export function BrandLogo() {
 export const header: LandingHeaderRenderer = (context) => (
 	<LandingHeader brand={brand} brandHref="#product" links={context.menu ?? []} />
 );
+
+// Workspace top-bar icon commands. Projects override this via their own
+// landing-blocks entry (same `topbarCommands` export name).
+export const topbarCommands: TopBarCommand[] = [];
 
 
 export const blocks: LandingBlockMap = {

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import { initDiagramRuntime } from "../diagram/client";
 import { V2Diagram } from "../diagram/components";
 import type { V2DiagramData } from "../diagram/types";
+import { VectorImage, type VectorImageData } from "./VectorImage";
 
 
 
@@ -14,7 +15,8 @@ export type ProductCase = {
 	markdown?: string;
 	description?: string;
 
-	diagram: string;
+	diagram?: string;
+	image?: VectorImageData["image"];
 };
 
 export type ProductCasesData = {
@@ -31,7 +33,7 @@ export function ProductCasesBlock({
 }: {
 	id: string;
 	data: ProductCasesData;
-	diagrams: DiagramsData;
+	diagrams?: DiagramsData;
 }) {
 	const [activeIndex, setActiveIndex] = useState(0);
 	const sectionRef = useRef<HTMLElement>(null);
@@ -50,12 +52,14 @@ export function ProductCasesBlock({
 	useEffect(() => {
 		const hosts = [...(sectionRef.current?.querySelectorAll<HTMLElement>(".product-case-diagram") ?? [])];
 		const updateScale = () => {
-			const maximumScale = window.matchMedia("(max-width: 900px)").matches ? 0.31 : 0.62;
+			const maximumScale = window.matchMedia("(max-width: 900px)").matches ? 0.5 : 0.9;
 			hosts.forEach((host) => {
 				const stage = host.querySelector<HTMLElement>(".product-case-v2.v2-stage");
 				if (!stage || !host.clientWidth || !host.clientHeight) return;
 
-				const scale = Math.min(maximumScale, host.clientWidth / stage.offsetWidth, host.clientHeight / stage.offsetHeight);
+				// Top padding reserves room for group legends above the stage.
+				const availHeight = host.clientHeight - 20;
+				const scale = Math.min(maximumScale, host.clientWidth / stage.offsetWidth, availHeight / stage.offsetHeight);
 				host.style.setProperty("--product-case-diagram-scale", String(scale));
 			});
 		};
@@ -129,7 +133,7 @@ export function ProductCasesBlock({
 						{cases.map((item, index) => (
 							<article
 								aria-hidden={activeIndex !== index}
-								class={`product-case-panel${activeIndex === index ? " is-active" : ""}`}
+								class={`product-case-panel${activeIndex === index ? " is-active" : ""}${item.image || item.diagram ? "" : " product-case-panel--no-visual"}`}
 								id={`${id}-case-${index}`}
 								key={item.title}
 								role="tabpanel"
@@ -146,10 +150,14 @@ export function ProductCasesBlock({
 									</div>
 								</div>
 								<div class="product-case-diagram">
-									<V2Diagram
-										className="v2-ink product-case-v2"
-										diagram={resolveDiagram(diagrams, item.diagram)}
-									/>
+									{item.image ? (
+										<VectorImage data={{ image: item.image }} />
+									) : item.diagram ? (
+										<V2Diagram
+											className="v2-ink product-case-v2"
+											diagram={resolveDiagram(diagrams, item.diagram)}
+										/>
+									) : null}
 								</div>
 							</article>
 						))}
@@ -172,7 +180,7 @@ function descriptionParagraphs(description?: string): Array<{ text: string; isOu
 }
 
 
-function resolveDiagram(diagrams: DiagramsData, name: string): V2DiagramData {
+function resolveDiagram(diagrams: DiagramsData | undefined, name: string): V2DiagramData {
 	const diagram = diagrams?.[name];
 	if (!diagram) {
 		throw new Error(`[landing] unknown diagram scene: ${name}`);

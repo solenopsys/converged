@@ -50,11 +50,16 @@ function subdirs(path: string): string[] {
 }
 
 /**
- * A `docs` directory counts only when it holds at least one
- * `<lang>/<section>/index.json`. Third-party checkouts are full of `docs`
- * folders, and the index is what separates ours from theirs.
+ * A `docs` directory counts when it holds at least one
+ * `<section>/index.json`, or a flat `index.json` — the module layout
+ * (`docs/index.json` + `docs/<name>.md`, see `scaffold/modules.ts`).
+ * Third-party checkouts are full of `docs` folders, and the index is what
+ * separates ours from theirs.
  */
+export const MODULES_SECTION = "modules";
+
 function holdsDocs(path: string): boolean {
+	if (existsSync(join(path, "index.json"))) return true;
 	for (const section of subdirs(path)) {
 		if (existsSync(join(path, section, "index.json"))) return true;
 	}
@@ -123,9 +128,14 @@ function nameRoots(paths: { path: string; project: string }[]): DocsRoot[] {
 			owner,
 			path: entry.path,
 			project: entry.project,
-			sections: subdirs(entry.path).filter((section) =>
-				existsSync(join(entry.path, section, "index.json")),
-			),
+			sections: [
+				...(existsSync(join(entry.path, "index.json"))
+					? [MODULES_SECTION]
+					: []),
+				...subdirs(entry.path).filter((section) =>
+					existsSync(join(entry.path, section, "index.json")),
+				),
+			],
 		});
 	}
 
@@ -281,7 +291,13 @@ export async function scan(
 	langs.add(sourceLocale);
 	for (const { owner, path, sections } of roots) {
 		for (const section of sections) {
-			const contribution = await readContribution(owner, join(path, section));
+			// A flat `docs/index.json` is the module layout: it contributes to
+			// the shared `modules` section from the docs root itself.
+			const dir =
+				section === MODULES_SECTION && existsSync(join(path, "index.json"))
+					? path
+					: join(path, section);
+			const contribution = await readContribution(owner, dir);
 			if (!contribution) continue;
 			const key = `${section}/${sourceLocale}`;
 			contributions.set(key, [...(contributions.get(key) ?? []), contribution]);
