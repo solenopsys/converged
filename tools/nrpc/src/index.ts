@@ -77,6 +77,13 @@ export { NrpcMessagingRuntime } from "./runtime/messaging-runtime";
 export { createRtClient } from "./runtime/rt-client";
 export { generateServiceToken } from "./runtime/service-token";
 export type { ServiceMetadata } from "./types";
+export {
+  ACCESS_TAG_KIND,
+  PERSONAL_TAG_PREFIX,
+  getCurrentAccessTags,
+  personalTag,
+  tagsFromGrantTree,
+} from "./runtime/access-tags";
 export type { WorkspaceContext } from "./runtime/workspace-context-registry";
 export {
   getCurrentWorkspace,

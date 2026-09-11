@@ -7,7 +7,14 @@ import {
   PresetKey,
   PRESET_PREFIX,
 } from "./entities";
-import { grantPermission, revokePermission } from "nrpc";
+import {
+  ACCESS_TAG_KIND,
+  grantPermission,
+  parsePermission,
+  revokePermission,
+  tagsFromGrantTree,
+  toGrantTree,
+} from "nrpc";
 import type { GrantTree, Permission } from "../../types";
 
 export class AccessStoreService {
@@ -39,7 +46,7 @@ export class AccessStoreService {
   getUserAccess(userId: string): UserAccessValue {
     const existing = this.findUserAccess(userId);
     if (existing) {
-      return existing;
+      return { ...existing, permissions: normalizePermissions(existing.permissions) };
     }
     return { userId, presets: [], permissions: {} };
   }
@@ -128,4 +135,57 @@ export class AccessStoreService {
     data.permissions = revokePermission(data.permissions, permission);
     this.saveUserAccess(userId, data);
   }
+
+  /**
+   * Access tags are ordinary grants under the `tg` kind, so putting a user in a
+   * group is one permission write and needs no store of its own. The wrappers
+   * exist so callers never hand-assemble the grant string and cannot land a tag
+   * under the wrong kind, where nothing would ever read it.
+   */
+  addTagToUser(userId: string, tag: string, mode: string = "r"): void {
+    this.addPermissionToUser(userId, tagGrant(tag, mode) as Permission);
+  }
+
+  removeTagFromUser(userId: string, tag: string, mode: string = "rwx"): void {
+    this.removePermissionFromUser(userId, tagGrant(tag, mode) as Permission);
+  }
+
+  getTagsOfUser(userId: string): string[] {
+    return tagsFromGrantTree(this.getPermissionsFromUser(userId));
+  }
+}
+
+/**
+ * Records written before grants were stored as a tree hold a flat array of
+ * permission strings instead. Nothing reads that shape any more, so such a user
+ * silently resolves to no permissions at all — and worse, granting anything to
+ * them used to rewrite the record from an empty parse, dropping whatever was
+ * there. Converting on read keeps both from happening while the old rows last.
+ */
+export function normalizePermissions(permissions: unknown): GrantTree {
+  if (!Array.isArray(permissions)) return (permissions as GrantTree) ?? {};
+  const entries = permissions
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => parsePermission(value))
+    .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+  return toGrantTree(entries);
+}
+
+/**
+ * A tag must survive two grammars: the permission string it is written as, and
+ * the key it later becomes in a key-value store. Rejecting the separators of
+ * both here keeps a malformed tag from being stored as something that silently
+ * matches the wrong objects.
+ */
+const TAG_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+
+function tagGrant(tag: string, mode: string): string {
+  const normalized = tag.trim();
+  if (!TAG_RE.test(normalized)) {
+    throw new Error(
+      `invalid access tag "${tag}": expected letters, digits, dot, dash or underscore`,
+    );
+  }
+  if (!/^[rwx]+$/i.test(mode)) throw new Error(`invalid access tag mode "${mode}"`);
+  return `${ACCESS_TAG_KIND}/${normalized}/*(${mode.toLowerCase()})`;
 }

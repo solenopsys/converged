@@ -1,6 +1,12 @@
 import type { AccessService, AccessPreset, GrantTree, Permission } from "./types";
 import { StoresController } from "./stores";
-import { Access, countGrants, getCurrentWorkspaceContext, mergeGrantTrees } from "nrpc";
+import {
+	Access,
+	countGrants,
+	getCurrentWorkspaceContext,
+	mergeGrantTrees,
+	tagsFromGrantTree,
+} from "nrpc";
 import { UserJwtIssuer } from "./jwt";
 
 const DEFAULT_TTL_SECONDS = 90 * 24 * 60 * 60;
@@ -226,6 +232,28 @@ export class AccessServiceImpl implements AccessService {
 	async getPermissionsFromUser(userId: string): Promise<GrantTree> {
 		await this.ready();
 		return this.stores.access.getPermissionsFromUser(userId);
+	}
+
+	/**
+	 * Puts a user in a group. Takes effect in tokens issued from now on — a tag
+	 * rides the JWT, so an already-issued one keeps the old set until it expires.
+	 * Access that has to change at once is granted on the object instead, with
+	 * the user's own tag.
+	 */
+	async addTagToUser(userId: string, tag: string, mode = "r"): Promise<void> {
+		await this.ready();
+		this.stores.access.addTagToUser(userId, tag, mode);
+	}
+
+	async removeTagFromUser(userId: string, tag: string, mode = "rwx"): Promise<void> {
+		await this.ready();
+		this.stores.access.removeTagFromUser(userId, tag, mode);
+	}
+
+	/** Every tag the user holds, including the ones their presets bring in. */
+	async getTagsOfUser(userId: string): Promise<string[]> {
+		await this.ready();
+		return tagsFromGrantTree((await this.resolvePermissions(userId)).permissions);
 	}
 
 	async getPermissionsMixinFromUser(userId: string): Promise<GrantTree> {

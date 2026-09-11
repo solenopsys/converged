@@ -3,6 +3,13 @@ export interface WorkspaceContext {
 	scope?: string;
 	user?: string;
 	auth?: string;
+	/**
+	 * Group access tags of the actor, taken from the verified token and never
+	 * from the envelope — an envelope field is client-supplied, and a forged tag
+	 * is a forged permission. The actor's own personal tag is not in here: it is
+	 * derived from `user`, see `getCurrentAccessTags`.
+	 */
+	accessTags?: readonly string[];
 	headers?: Record<string, string | undefined>;
 }
 

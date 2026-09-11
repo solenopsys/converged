@@ -4,5 +4,11 @@
     "title": "rp-access",
     "order": 0,
     "id": "rp-access"
+  },
+  {
+    "slug": "object-access",
+    "title": "Object access",
+    "order": 1,
+    "id": "object-access"
   }
 ]

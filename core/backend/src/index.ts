@@ -1,4 +1,5 @@
 export * from "./utils";
+export * from "./access";
 export * from "./base-service";
 export * from "./env";
 export * from "./request-context";

@@ -45,6 +45,19 @@ export interface AccessService {
   getPermissionsFromUser(userId: string): Promise<GrantTree>;
   getPermissionsMixinFromUser(userId: string): Promise<GrantTree>;
 
+  /**
+   * Group membership for object access. A tag is an ordinary grant under the
+   * `tg` kind, so these are conveniences over the permission calls above rather
+   * than a second mechanism.
+   *
+   * Tags ride the JWT, so removing one applies to tokens issued afterwards.
+   * Access that must change immediately is granted on the object itself, with
+   * the holder's own tag, and never passes through here.
+   */
+  addTagToUser(userId: string, tag: string, mode?: string): Promise<void>;
+  removeTagFromUser(userId: string, tag: string, mode?: string): Promise<void>;
+  getTagsOfUser(userId: string): Promise<string[]>;
+
   linkPresetToUser(userId: string, presetName: string): Promise<void>;
   unlinkPresetFromUser(userId: string, presetName: string): Promise<void>;
 

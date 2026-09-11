@@ -1,6 +1,7 @@
 import type { IncomingMessage } from "bun-transport/messaging";
 import { resolveMethodAccess, resolveServiceName } from "../decorator/access.decorator";
 import type { ServiceMetadata } from "../types";
+import { tagsFromGrantTree } from "./access-tags";
 import { MessagingAccessGuard, type MessagingAccessConfig } from "./messaging-access";
 import { deserializeValue, serializeValue } from "./serialization";
 import { runWithWorkspaceContext } from "./workspace-context";
@@ -91,6 +92,11 @@ export class MessagingBackend implements MessagingServiceHandler {
 			scope: (trusted?.scope ?? message.envelope.scope) || undefined,
 			user: (trusted?.user ?? message.envelope.user) || undefined,
 			auth: (trusted?.auth ?? message.envelope.auth) || undefined,
+			// Only from the verified token. The envelope is written by the caller,
+			// so a tag taken from it would be a permission the caller granted
+			// themselves — unlike `scope` and `user`, there is no envelope
+			// fallback here on purpose.
+			accessTags: tagsFromGrantTree(trusted?.permissions),
 		};
 		const invoke = async () => {
 			await this.ensureStoresForContext();
