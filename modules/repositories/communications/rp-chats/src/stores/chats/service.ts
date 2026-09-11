@@ -10,6 +10,7 @@ import type {
   ChatUserId,
   CreateChatRoomInput,
   UpdateChatRoomInput,
+  Visibility,
 } from "../../types";
 
 const chatFilterSchema: KyselyFilterSchema = {
@@ -45,17 +46,28 @@ export class ChatsStoreService {
     });
   }
 
-  async createRoom(input: CreateChatRoomInput): Promise<ChatRoom> {
+  /**
+   * Creates a room and mints its thread id.
+   *
+   * The thread id is generated here rather than accepted from the caller for
+   * the same reason the room id is: an id a client may choose is an id it may
+   * steal, and `access_tags` stores no object type to catch the collision. The
+   * thread itself is not registered here — that would be `rp-chats` calling
+   * `rp-threads`, and services do not call each other; the caller does it with
+   * the id this returns.
+   */
+  async createRoom(input: CreateChatRoomInput, actor: string): Promise<ChatRoom> {
     const roomId = generateULID();
     const now = new Date().toISOString();
 
     const roomEntity: ChatRoomEntity = {
       id: roomId,
       title: input.title ?? null,
-      description: null,
+      description: input.description ?? null,
       type: input.type,
-      threadId: input.threadId,
-      createdBy: input.createdBy ?? null,
+      threadId: generateULID(),
+      createdBy: actor,
+      visibility: input.visibility ?? "tagged",
       archived: 0,
       processed: 0,
       flud: 0,
@@ -65,13 +77,12 @@ export class ChatsStoreService {
 
     await this.roomRepo.create(roomEntity as any);
 
-    const userSet = new Set<string>(input.userIds ?? []);
-    if (input.createdBy) {
-      userSet.add(input.createdBy);
-    }
+    // The creator is always a member, whatever the caller listed: a room its
+    // own owner cannot open is not a room.
+    const userSet = new Set<string>([actor, ...(input.userIds ?? [])]);
 
     for (const userId of userSet) {
-      const role: ChatRoomRole = input.createdBy && userId === input.createdBy ? "owner" : "member";
+      const role: ChatRoomRole = userId === actor ? "owner" : "member";
       await this.createOrUpdateRoomUser(roomId, userId, role, now);
     }
 
@@ -107,8 +118,8 @@ export class ChatsStoreService {
     if (patch.description !== undefined) {
       update.description = patch.description ?? null;
     }
-    if (patch.threadId !== undefined) {
-      update.threadId = patch.threadId;
+    if (patch.visibility !== undefined) {
+      update.visibility = patch.visibility;
     }
     if (patch.archived !== undefined) {
       update.archived = patch.archived ? 1 : 0;
@@ -135,7 +146,15 @@ export class ChatsStoreService {
     return this.roomRepo.delete({ id: roomId });
   }
 
-  async listRooms(params: ChatRoomsListParams): Promise<ChatRoomsListResult> {
+  /**
+   * Lists the rooms `actor` belongs to.
+   *
+   * Membership used to come from `params.userId`, which meant substituting
+   * somebody else's id read somebody else's rooms. The caller is now the only
+   * source, and the predicate is part of the query rather than a filter applied
+   * afterwards, so `totalCount` cannot leak the number of rooms it hid.
+   */
+  async listRooms(params: ChatRoomsListParams, actor: string): Promise<ChatRoomsListResult> {
     const limit = params.limit ?? 50;
     const offset = params.offset ?? 0;
 
@@ -156,17 +175,15 @@ export class ChatsStoreService {
       query = query.where("title", "like", `%${textQuery}%`);
     }
 
-    if (params.userId) {
-      query = query.where((eb) =>
-        eb.exists(
-          eb
-            .selectFrom("chart_room_users")
-            .select("id")
-            .whereRef("chart_room_users.roomId", "=", "chart_rooms.id")
-            .where("chart_room_users.userId", "=", params.userId as string),
-        ),
-      );
-    }
+    query = query.where((eb) =>
+      eb.exists(
+        eb
+          .selectFrom("chart_room_users")
+          .select("id")
+          .whereRef("chart_room_users.roomId", "=", "chart_rooms.id")
+          .where("chart_room_users.userId", "=", actor),
+      ),
+    );
 		query = applyKyselyFilter(query, params.filter, chatFilterSchema);
 
     const rows = await query
@@ -192,17 +209,15 @@ export class ChatsStoreService {
       countQuery = countQuery.where("title", "like", `%${textQuery}%`);
     }
 
-    if (params.userId) {
-      countQuery = countQuery.where((eb) =>
-        eb.exists(
-          eb
-            .selectFrom("chart_room_users")
-            .select("id")
-            .whereRef("chart_room_users.roomId", "=", "chart_rooms.id")
-            .where("chart_room_users.userId", "=", params.userId as string),
-        ),
-      );
-    }
+    countQuery = countQuery.where((eb) =>
+      eb.exists(
+        eb
+          .selectFrom("chart_room_users")
+          .select("id")
+          .whereRef("chart_room_users.roomId", "=", "chart_rooms.id")
+          .where("chart_room_users.userId", "=", actor),
+      ),
+    );
 		countQuery = applyKyselyFilter(countQuery, params.filter, chatFilterSchema);
 
     const countResult = await countQuery.executeTakeFirst();
@@ -257,11 +272,25 @@ export class ChatsStoreService {
     return (rows as ChatRoomUserEntity[]).map((row) => this.toRoomUser(row));
   }
 
-  async listUserRooms(userId: ChatUserId, params: ChatRoomsListParams): Promise<ChatRoomsListResult> {
-    return this.listRooms({
-      ...params,
-      userId,
-    });
+  /** True when `userId` is in the room — the membership check every read needs. */
+  async isRoomMember(roomId: ChatRoomId, userId: ChatUserId): Promise<boolean> {
+    const row = await this.store.db
+      .selectFrom("chart_room_users")
+      .select("id")
+      .where("roomId", "=", roomId)
+      .where("userId", "=", userId)
+      .executeTakeFirst();
+    return Boolean(row);
+  }
+
+  /** The room's members, which is the audience a live update is addressed to. */
+  async listRoomMemberIds(roomId: ChatRoomId): Promise<ChatUserId[]> {
+    const rows = await this.store.db
+      .selectFrom("chart_room_users")
+      .select("userId")
+      .where("roomId", "=", roomId)
+      .execute();
+    return (rows as Array<{ userId: string }>).map((row) => row.userId);
   }
 
   private async createOrUpdateRoomUser(
@@ -331,6 +360,7 @@ export class ChatsStoreService {
       type: entity.type,
       threadId: entity.threadId,
       createdBy: entity.createdBy ?? undefined,
+      visibility: (entity.visibility ?? "tagged") as Visibility,
       archived: entity.archived === 1,
       processed: entity.processed === 1,
       flud: entity.flud === 1,

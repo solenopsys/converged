@@ -1,9 +1,11 @@
+import { Access, getCurrentWorkspaceContext } from "nrpc";
 import type {
   CommunityService,
   CommunitySection,
   CommunitySectionInput,
   CommunityTopic,
   CommunityTopicInput,
+  CreateTopicInput,
   PaginatedResult,
   SectionId,
   SectionListParams,
@@ -17,6 +19,21 @@ import type {
 import { StoresController } from "./stores";
 
 const REPOSITORY_ID = "rp-community";
+
+/**
+ * Who is calling, from the verified token and from nothing else.
+ *
+ * `messaging-backend` puts the token's subject into the request context and
+ * prefers it over whatever the envelope claimed, so this is the one value in
+ * the process a caller cannot choose for itself. Everything that records
+ * authorship goes through here; the forum's input types no longer carry a
+ * `createdBy` field for a client to fill in.
+ */
+function requireActor(): string {
+  const actor = getCurrentWorkspaceContext()?.user?.trim();
+  if (!actor) throw new Error("Authenticated caller is required");
+  return actor;
+}
 
 export class CommunityServiceImpl implements CommunityService {
   private stores: StoresController;
@@ -43,51 +60,77 @@ export class CommunityServiceImpl implements CommunityService {
     await this.init();
   }
 
+  // Every method carries a deliberate level. The decorator is not redundant
+  // with the default: an undecorated method also resolves to `"user"`, so a
+  // reader cannot tell a considered decision from an oversight — and
+  // `deleteSection` cascades every topic under it.
+  @Access("user")
   async saveSection(input: CommunitySectionInput): Promise<SectionId> {
     await this.ready();
-    return this.stores.community.saveSection(input);
+    return this.stores.community.saveSection(input, requireActor());
   }
 
+  @Access("user")
   async readSection(id: SectionId): Promise<CommunitySection | null> {
     await this.ready();
     return this.stores.community.readSection(id);
   }
 
+  @Access("user")
   async deleteSection(id: SectionId): Promise<boolean> {
     await this.ready();
     return this.stores.community.deleteSection(id);
   }
 
+  @Access("user")
   async listSections(params: SectionListParams): Promise<PaginatedResult<CommunitySection>> {
     await this.ready();
     return this.stores.community.listSections(params);
   }
 
+  @Access("user")
   async readSectionsTree(rootId?: SectionId, includeHidden?: boolean): Promise<SectionTreeNode[]> {
     await this.ready();
     return this.stores.community.readSectionsTree(rootId, includeHidden);
   }
 
-  async saveTopic(input: CommunityTopicInput): Promise<TopicId> {
+  @Access("user")
+  async createTopic(input: CreateTopicInput): Promise<CommunityTopic> {
     await this.ready();
-    return this.stores.community.saveTopic(input);
+    return this.stores.community.createTopic(input, requireActor());
   }
 
+  @Access("user")
+  async saveTopic(input: CommunityTopicInput): Promise<TopicId> {
+    await this.ready();
+    return this.stores.community.saveTopic(input, requireActor());
+  }
+
+  @Access("user")
   async readTopic(id: TopicId): Promise<CommunityTopic | null> {
     await this.ready();
     return this.stores.community.readTopic(id);
   }
 
+  @Access("user")
   async deleteTopic(id: TopicId): Promise<boolean> {
     await this.ready();
     return this.stores.community.deleteTopic(id);
   }
 
+  @Access("user")
+  async touchTopicActivity(id: TopicId): Promise<boolean> {
+    await this.ready();
+    return this.stores.community.touchTopicActivity(id);
+  }
+
+  @Access("user")
   async listTopics(params: TopicListParams): Promise<PaginatedResult<CommunityTopic>> {
     await this.ready();
     return this.stores.community.listTopics(params);
   }
 
+  @Access("user")
   async describeSelection(objectType: string): Promise<SelectionDescriptor> {
     if (objectType !== "community.topic") {
       throw new Error(`Unsupported community selection object: ${objectType}`);
@@ -106,6 +149,7 @@ export class CommunityServiceImpl implements CommunityService {
     };
   }
 
+  @Access("user")
   async inspectTopics(filter?: FilterObject): Promise<SelectionStats> {
     await this.ready();
     return { totalCount: await this.stores.community.countTopics(filter) };

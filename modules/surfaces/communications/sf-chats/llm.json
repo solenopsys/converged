@@ -1,11 +1,33 @@
 {
+	"description": "Chat rooms, their conversations and their membership.",
 	"actions": {
-		"chats.show": {
-			"brief": "Show chats",
-			"description": "Show chats",
+		"chats.chat.create": {
+			"brief": "Create a chat room",
+			"description": "Create a chat room and add its first members",
 			"category": "chats",
 			"exposure": "user",
 			"priority": "primary"
+		},
+		"chats.chat.members": {
+			"brief": "Show room members",
+			"description": "Open the membership of a chat room as its own tab",
+			"category": "chats",
+			"exposure": "user",
+			"priority": "normal"
+		},
+		"chats.member.add": {
+			"brief": "Add a member to a room",
+			"description": "Add a user to a chat room, optionally with a role",
+			"category": "chats",
+			"exposure": "user",
+			"priority": "normal"
+		},
+		"chats.member.remove": {
+			"brief": "Remove a member from a room",
+			"description": "Remove a user from a chat room",
+			"category": "chats",
+			"exposure": "user",
+			"priority": "secondary"
 		}
 	}
 }

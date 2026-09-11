@@ -1,0 +1,8 @@
+{
+	"title": "Tema del foro",
+	"composer": {
+		"post": "Escribe una publicación...",
+		"reply": "Escribe una respuesta...",
+		"locked": "Este tema está cerrado"
+	}
+}

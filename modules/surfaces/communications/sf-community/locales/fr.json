@@ -1,0 +1,8 @@
+{
+	"title": "Sujet du forum",
+	"composer": {
+		"post": "Écrire un message...",
+		"reply": "Écrire une réponse...",
+		"locked": "Ce sujet est verrouillé"
+	}
+}

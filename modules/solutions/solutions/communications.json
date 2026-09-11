@@ -1,0 +1,14 @@
+{
+	"repositories": [
+		"threads",
+		"community",
+		"chats",
+		"files"
+	],
+	"surfaces": [
+		"community",
+		"chats",
+		"threads"
+	],
+	"dependencies": ["security"]
+}

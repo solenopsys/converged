@@ -12,6 +12,7 @@ export interface ChatRoomEntity {
   type: ChatRoomType;
   threadId: string;
   createdBy?: string | null;
+  visibility: string;
   archived: number;
   processed: number;
   flud: number;

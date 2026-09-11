@@ -12,6 +12,8 @@ export interface CommunitySectionEntity {
   description?: string | null;
   sortOrder: number;
   isHidden: number;
+  visibility: string;
+  createdBy?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -34,6 +36,7 @@ export interface CommunityTopicEntity {
   isPinned: number;
   isLocked: number;
   isArchived: number;
+  visibility: string;
   lastActivityAt: string;
   createdAt: string;
   updatedAt: string;

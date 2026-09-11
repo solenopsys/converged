@@ -1,15 +1,16 @@
 {
-  "name": "assistant-state",
-  "private": true,
-  "version": "0.0.1",
-  "type": "module",
-  "module": "src/index.ts",
+	"name": "assistant-state",
+	"private": true,
+	"version": "0.0.1",
+	"type": "module",
+	"module": "src/index.ts",
 	"dependencies": {
 		"effector-logger": "workspace:*",
 		"g-threads": "workspace:*",
-		"orchestrator": "workspace:*"
-  },
-  "peerDependencies": {
-    "effector": "^23"
-  }
+		"orchestrator": "workspace:*",
+		"threads-state": "workspace:*"
+	},
+	"peerDependencies": {
+		"effector": "^23"
+	}
 }

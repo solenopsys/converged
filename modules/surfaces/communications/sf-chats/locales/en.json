@@ -1,4 +1,6 @@
 {
+	"title": "Chat",
+	"members": "Members",
 	"composer": {
 		"placeholder": "Write a message..."
 	}

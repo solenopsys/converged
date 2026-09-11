@@ -16,6 +16,7 @@ import type {
   PaginatedResult,
   PaginationParams,
   UpdateChatRoomInput,
+  Visibility,
 	SelectionDescriptor,
 	SelectionStats,
 } from "g-chats";
@@ -38,6 +39,7 @@ export type {
   PaginatedResult,
   PaginationParams,
   UpdateChatRoomInput,
+  Visibility,
 	SelectionDescriptor,
 	SelectionStats,
 };

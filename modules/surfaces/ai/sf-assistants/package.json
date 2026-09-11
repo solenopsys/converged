@@ -14,14 +14,15 @@
 		"files-state": "workspace:*",
 		"front-core": "workspace:*",
 		"g-assistant": "workspace:*",
+		"g-centimanus": "workspace:*",
 		"g-files": "workspace:*",
 		"g-requests": "workspace:*",
-		"g-centimanus": "workspace:*",
 		"g-store": "workspace:*",
 		"g-threads": "workspace:*",
-		"sf-requests": "workspace:*",
 		"preact": "^10.29.3",
+		"sf-requests": "workspace:*",
 		"signal-channel": "workspace:*",
+		"threads-state": "workspace:*",
 		"uuid": "^13.0.0"
 	}
 }

@@ -9,6 +9,22 @@ import type {
 
 const DEFAULT_LANGUAGE = "en";
 
+/**
+ * A context id becomes a path segment, and it arrives from the caller.
+ *
+ * Two things follow. A separator or a dot segment walks out of the store, and
+ * `access-control.md` needs ids that cannot be chosen to collide, because the
+ * tag table records no object type to catch it. Room ids are ULIDs, so
+ * restricting the shape costs nothing and closes both.
+ */
+const ID_SHAPE = /^[A-Za-z0-9_-]{1,64}$/;
+
+function requireStorableId(chatId: string): string {
+  const id = chatId?.trim() ?? "";
+  if (!ID_SHAPE.test(id)) throw new Error(`Unusable context id: ${chatId}`);
+  return id;
+}
+
 export class ContextStoreService {
   constructor(private readonly store: FileStore) {}
 
@@ -18,11 +34,11 @@ export class ContextStoreService {
   }
 
   private buildKey(chatId: string, language: string): string {
-    return `${language}/${chatId}.json`;
+    return `${language}/${requireStorableId(chatId)}.json`;
   }
 
   private buildLegacyKey(chatId: string): string {
-    return `${chatId}.json`;
+    return `${requireStorableId(chatId)}.json`;
   }
 
   async saveContext(

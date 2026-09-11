@@ -353,6 +353,10 @@
             {
               "slug": "rp-access",
               "file": "modules/repositories/sequrity/rp-access/docs/rp-access.md"
+            },
+            {
+              "slug": "object-access",
+              "file": "modules/repositories/sequrity/rp-access/docs/object-access.md"
             }
           ]
         }

@@ -1,5 +1,6 @@
+import { attachFileToThread } from "threads-state";
 import type { ChatStore } from "./chat-store";
-import { MessageType, type ThreadsService } from "./types";
+import type { ThreadsService } from "./types";
 
 export type UploadedFileInfo = {
 	fileName: string;
@@ -51,6 +52,9 @@ export const bindChatFiles = (options: ChatFilesOptions): void => {
 	});
 };
 
+// Writing the attachment, finding its parent and encoding the payload are all
+// `threads-state`'s job now — the forum, chats and support need the same three
+// things, and each copy of them was drifting from the others.
 const persistFileLink = async (
 	options: ChatFilesOptions,
 	fileId: string,
@@ -59,26 +63,17 @@ const persistFileLink = async (
 	const { threadsService, store } = options;
 	const threadId = store.threadId;
 
-	const rows = await threadsService.readThread(threadId).catch(() => []);
-	const parent = [...rows].sort(
-		(left, right) => (right.timestamp ?? 0) - (left.timestamp ?? 0),
-	)[0];
-
-	await threadsService.saveMessage({
+	const known = await threadsService.readThread(threadId).catch(() => []);
+	await attachFileToThread({
+		client: threadsService,
 		threadId,
-		id: `file_${fileId}`,
-		beforeId: parent?.id,
-		user: "user",
-		type: MessageType.link,
-		data: JSON.stringify({
-			kind: "file",
-			target: "store:file",
-			label: file.fileName,
+		file: {
 			fileId,
 			fileName: file.fileName,
 			fileSize: file.fileSize,
 			fileType: file.fileType,
-		}),
+		},
+		known,
 	});
 
 	await options.registry?.recordChatFile(threadId, file.fileSize);

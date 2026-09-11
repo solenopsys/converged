@@ -15,6 +15,8 @@ export type ChatRoomType = "direct" | "group" | "channel";
 
 export type ChatRoomRole = "owner" | "admin" | "member";
 
+export type Visibility = "public" | "authenticated" | "private" | "tagged";
+
 export type ChatRoom = {
   id: ChatRoomId;
   title?: string;
@@ -23,6 +25,7 @@ export type ChatRoom = {
   type: ChatRoomType;
   threadId: ChatThreadId;
   createdBy?: ChatUserId;
+  visibility: Visibility;
   archived: boolean;
 
   processed?: boolean;
@@ -44,16 +47,16 @@ export type ChatRoomUser = {
 
 export type CreateChatRoomInput = {
   title?: string;
+  description?: string;
   type: ChatRoomType;
-  threadId: ChatThreadId;
-  createdBy?: ChatUserId;
+  visibility?: Visibility;
   userIds: ChatUserId[];
 };
 
 export type UpdateChatRoomInput = {
   title?: string;
   description?: string;
-  threadId?: ChatThreadId;
+  visibility?: Visibility;
   archived?: boolean;
   processed?: boolean;
   flud?: boolean;
@@ -62,7 +65,6 @@ export type UpdateChatRoomInput = {
 export type ChatRoomsListParams = {
   offset: number;
   limit: number;
-  userId?: ChatUserId;
   query?: string;
   type?: ChatRoomType;
   archived?: boolean;
@@ -286,27 +288,6 @@ export const metadata: ServiceMetadata = {
       "isAsyncIterable": false
     },
     {
-      "name": "listUserRooms",
-      "parameters": [
-        {
-          "name": "userId",
-          "type": "ChatUserId",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "params",
-          "type": "ChatRoomsListParams",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "ChatRoomsListResult",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
       "name": "saveContext",
       "parameters": [
         {
@@ -397,9 +378,14 @@ export const metadata: ServiceMetadata = {
       "definition": "\"owner\" | \"admin\" | \"member\""
     },
     {
+      "name": "Visibility",
+      "kind": "type",
+      "definition": "\"public\" | \"authenticated\" | \"private\" | \"tagged\""
+    },
+    {
       "name": "ChatRoom",
       "kind": "type",
-      "definition": "{\n  id: ChatRoomId;\n  title?: string;\n\n  description?: string;\n  type: ChatRoomType;\n  threadId: ChatThreadId;\n  createdBy?: ChatUserId;\n  archived: boolean;\n\n  processed?: boolean;\n\n  flud?: boolean;\n  createdAt: string;\n  updatedAt: string;\n  membersCount?: number;\n}"
+      "definition": "{\n  id: ChatRoomId;\n  title?: string;\n\n  description?: string;\n  type: ChatRoomType;\n  threadId: ChatThreadId;\n  createdBy?: ChatUserId;\n  visibility: Visibility;\n  archived: boolean;\n\n  processed?: boolean;\n\n  flud?: boolean;\n  createdAt: string;\n  updatedAt: string;\n  membersCount?: number;\n}"
     },
     {
       "name": "ChatRoomUser",
@@ -409,17 +395,17 @@ export const metadata: ServiceMetadata = {
     {
       "name": "CreateChatRoomInput",
       "kind": "type",
-      "definition": "{\n  title?: string;\n  type: ChatRoomType;\n  threadId: ChatThreadId;\n  createdBy?: ChatUserId;\n  userIds: ChatUserId[];\n}"
+      "definition": "{\n  title?: string;\n  description?: string;\n  type: ChatRoomType;\n  visibility?: Visibility;\n  userIds: ChatUserId[];\n}"
     },
     {
       "name": "UpdateChatRoomInput",
       "kind": "type",
-      "definition": "{\n  title?: string;\n  description?: string;\n  threadId?: ChatThreadId;\n  archived?: boolean;\n  processed?: boolean;\n  flud?: boolean;\n}"
+      "definition": "{\n  title?: string;\n  description?: string;\n  visibility?: Visibility;\n  archived?: boolean;\n  processed?: boolean;\n  flud?: boolean;\n}"
     },
     {
       "name": "ChatRoomsListParams",
       "kind": "type",
-      "definition": "{\n  offset: number;\n  limit: number;\n  userId?: ChatUserId;\n  query?: string;\n  type?: ChatRoomType;\n  archived?: boolean;\n\n  processed?: boolean;\n\tfilter?: FilterObject;\n}"
+      "definition": "{\n  offset: number;\n  limit: number;\n  query?: string;\n  type?: ChatRoomType;\n  archived?: boolean;\n\n  processed?: boolean;\n\tfilter?: FilterObject;\n}"
     },
     {
       "name": "FilterObject",
@@ -482,7 +468,6 @@ export interface ChatsServiceClient {
   addRoomUser(roomId: ChatRoomId, userId: ChatUserId, role?: ChatRoomRole): Promise<void>;
   removeRoomUser(roomId: ChatRoomId, userId: ChatUserId): Promise<void>;
   listRoomUsers(roomId: ChatRoomId): Promise<ChatRoomUser[]>;
-  listUserRooms(userId: ChatUserId, params: ChatRoomsListParams): Promise<ChatRoomsListResult>;
   saveContext(chatId: string, context: any, language?: string): Promise<ChatContextSummary>;
   getContext(chatId: string, language?: string): Promise<ChatContext | any>;
   listContexts(params: PaginationParams): Promise<PaginatedResult<ChatContextSummary>>;

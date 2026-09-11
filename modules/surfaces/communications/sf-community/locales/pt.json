@@ -1,0 +1,8 @@
+{
+	"title": "Tópico do fórum",
+	"composer": {
+		"post": "Escrever uma publicação...",
+		"reply": "Escrever uma resposta...",
+		"locked": "Este tópico está bloqueado"
+	}
+}

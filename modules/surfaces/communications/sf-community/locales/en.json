@@ -1,1 +1,8 @@
-{}
+{
+	"title": "Forum topic",
+	"composer": {
+		"post": "Write a post...",
+		"reply": "Write a reply...",
+		"locked": "This topic is locked"
+	}
+}

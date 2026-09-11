@@ -4,6 +4,7 @@ import type {
   CommunitySectionInput,
   CommunityTopic,
   CommunityTopicInput,
+  CreateTopicInput,
   PaginatedResult,
   SectionId,
   SectionListParams,
@@ -11,6 +12,7 @@ import type {
   TopicId,
   TopicListParams,
   FilterObject,
+  Visibility,
 } from "../../types";
 import {
   CommunitySectionRepository,
@@ -53,7 +55,7 @@ export class CommunityStoreService {
     });
   }
 
-  async saveSection(input: CommunitySectionInput): Promise<SectionId> {
+  async saveSection(input: CommunitySectionInput, actor?: string): Promise<SectionId> {
     const now = new Date().toISOString();
 
     if (input.id) {
@@ -68,6 +70,7 @@ export class CommunityStoreService {
             description: input.description ?? null,
             sortOrder: input.sortOrder ?? existing.sortOrder ?? 0,
             isHidden: input.isHidden === true ? 1 : 0,
+            visibility: input.visibility ?? existing.visibility ?? "authenticated",
             updatedAt: now,
           },
         );
@@ -84,6 +87,8 @@ export class CommunityStoreService {
       description: input.description ?? null,
       sortOrder: input.sortOrder ?? 0,
       isHidden: input.isHidden === true ? 1 : 0,
+      visibility: input.visibility ?? "authenticated",
+      createdBy: actor ?? null,
       createdAt: now,
       updatedAt: now,
     };
@@ -228,7 +233,7 @@ export class CommunityStoreService {
     return rootNode ? [rootNode] : [];
   }
 
-  async saveTopic(input: CommunityTopicInput): Promise<TopicId> {
+  async saveTopic(input: CommunityTopicInput, actor: string): Promise<TopicId> {
     const now = new Date().toISOString();
 
     if (input.id) {
@@ -240,10 +245,10 @@ export class CommunityStoreService {
             sectionId: input.sectionId,
             threadId: input.threadId,
             title: input.title,
-            createdBy: input.createdBy,
             isPinned: input.isPinned === true ? 1 : 0,
             isLocked: input.isLocked === true ? 1 : 0,
             isArchived: input.isArchived === true ? 1 : 0,
+            visibility: input.visibility ?? existing.visibility ?? "authenticated",
             lastActivityAt: input.lastActivityAt ?? now,
             updatedAt: now,
           },
@@ -258,10 +263,11 @@ export class CommunityStoreService {
       sectionId: input.sectionId,
       threadId: input.threadId,
       title: input.title,
-      createdBy: input.createdBy,
+      createdBy: actor,
       isPinned: input.isPinned === true ? 1 : 0,
       isLocked: input.isLocked === true ? 1 : 0,
       isArchived: input.isArchived === true ? 1 : 0,
+      visibility: input.visibility ?? "authenticated",
       lastActivityAt: input.lastActivityAt ?? now,
       createdAt: now,
       updatedAt: now,
@@ -269,6 +275,62 @@ export class CommunityStoreService {
 
     await this.topicRepo.create(entity as any);
     return topicId;
+  }
+
+  /**
+   * Starts a topic. Both ids are minted here, never accepted from the caller:
+   * an id a client may choose is an id it may steal, and the access tags that
+   * will hang off it in `access_tags` carry no object type to catch the
+   * collision (`access-control.md`, "Требования к идентификаторам").
+   *
+   * The opening post is NOT written here. Writing it would mean `rp-community`
+   * calling `rp-threads`, and services do not call each other. The caller
+   * registers the returned `threadId` and posts the body itself.
+   *
+   * A new topic inherits its section's visibility unless it asks for something
+   * narrower — the inheritance rule from `access-control.md` runs here, on the
+   * server, and not in the browser, for the same reason authorship does.
+   */
+  async createTopic(input: CreateTopicInput, actor: string): Promise<CommunityTopic> {
+    const section = await this.sectionRepo.findById({ id: input.sectionId });
+    if (!section) throw new Error(`Unknown section: ${input.sectionId}`);
+
+    const title = input.title?.trim();
+    if (!title) throw new Error("Topic title is required");
+
+    const now = new Date().toISOString();
+    const entity: CommunityTopicEntity = {
+      id: generateULID(),
+      sectionId: input.sectionId,
+      threadId: generateULID(),
+      title,
+      createdBy: actor,
+      isPinned: 0,
+      isLocked: 0,
+      isArchived: 0,
+      visibility: input.visibility ?? section.visibility ?? "authenticated",
+      lastActivityAt: now,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await this.topicRepo.create(entity as any);
+    return this.toTopic(entity);
+  }
+
+  /**
+   * Bumps a topic after a reply. Refuses a locked one, which is the only place
+   * the lock can be enforced at all: `rp-threads` accepts the message and has
+   * no idea a topic exists, so this is what a screen has to call before it
+   * treats a post as delivered.
+   */
+  async touchTopicActivity(id: TopicId): Promise<boolean> {
+    const existing = await this.topicRepo.findById({ id });
+    if (!existing) return false;
+    if (existing.isLocked === 1) throw new Error("Topic is locked");
+    const now = new Date().toISOString();
+    await this.topicRepo.update({ id }, { lastActivityAt: now, updatedAt: now });
+    return true;
   }
 
   async readTopic(id: TopicId): Promise<CommunityTopic | null> {
@@ -354,6 +416,8 @@ export class CommunityStoreService {
       description: entity.description ?? undefined,
       sortOrder: entity.sortOrder,
       isHidden: entity.isHidden === 1,
+      visibility: (entity.visibility ?? "authenticated") as Visibility,
+      createdBy: entity.createdBy ?? undefined,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
     };
@@ -369,6 +433,7 @@ export class CommunityStoreService {
       isPinned: entity.isPinned === 1,
       isLocked: entity.isLocked === 1,
       isArchived: entity.isArchived === 1,
+      visibility: (entity.visibility ?? "authenticated") as Visibility,
       lastActivityAt: entity.lastActivityAt,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,

@@ -3,6 +3,7 @@ import { useSurfaceTranslation } from "front-core";
 import { MessageType, type Message as ThreadMessage } from "g-threads";
 import type React from "preact/compat";
 import { useEffect, useMemo, useState } from "preact/compat";
+import { parseFileLink } from "threads-state";
 
 import { ChatDetail } from "../components/ChatDetail";
 import { threadsClient } from "../services";
@@ -21,22 +22,6 @@ type ChatHistoryViewProps = {
 	}) => void;
 };
 
-type LinkData = {
-	kind?: string;
-	target?: string;
-	label?: string;
-	fileId?: string;
-	fileName?: string;
-	fileSize?: number;
-	fileType?: string;
-	file?: {
-		fileId?: string;
-		fileName?: string;
-		fileSize?: number;
-		fileType?: string;
-	};
-};
-
 type ToolCallResultData = {
 	toolCallId?: string;
 	parsed?: Record<string, unknown> | Array<unknown>;
@@ -44,15 +29,6 @@ type ToolCallResultData = {
 };
 
 const TOOL_CALL_RESULT_RE = /^Tool call\s+(\S+)\s+result:\s*([\s\S]*)$/i;
-
-function parseLinkData(data: string): LinkData | null {
-	try {
-		const parsed = JSON.parse(data) as unknown;
-		return parsed && typeof parsed === "object" ? (parsed as LinkData) : null;
-	} catch {
-		return null;
-	}
-}
 
 function parseToolCallResult(data: string): ToolCallResultData | null {
 	const match = TOOL_CALL_RESULT_RE.exec(data);
@@ -101,27 +77,37 @@ function toChatMessage(
 	const user = message.user === "assistant" ? "assistant" : "user";
 
 	if (message.type === MessageType.link || message.type === "link") {
-		const linkData = parseLinkData(message.data ?? "");
-		const fileId = linkData?.fileId ?? linkData?.file?.fileId;
-		const fileName =
-			linkData?.fileName ?? linkData?.file?.fileName ?? linkData?.label;
+		// The shape of a `link` payload is `threads-state`'s to know. This used
+		// to be a private parser here, which is how the format managed to fork
+		// into a flat and a nested variant with a single consumer.
+		const file = parseFileLink(message.data ?? "");
 
-		if (fileId && fileName) {
+		if (file) {
 			return {
 				id:
 					message.id ??
 					`history-file-${index}-${message.timestamp ?? Date.now()}`,
 				beforeId: message.beforeId,
 				type: user,
-				content: `${fileUploadedPrefix}${fileName}`,
+				content: `${fileUploadedPrefix}${file.fileName}`,
 				timestamp: message.timestamp ?? 0,
 				fileData: {
-					fileId,
-					fileName,
-					fileSize: linkData?.fileSize ?? linkData?.file?.fileSize,
-					fileType: linkData?.fileType ?? linkData?.file?.fileType,
+					fileId: file.fileId,
+					fileName: file.fileName,
+					fileSize: file.fileSize,
+					fileType: file.fileType,
 				},
 			};
+		}
+
+		// Not every `link` is an attachment; a plain hyperlink renders from its
+		// label, which is why `parseFileLink` returns null rather than guessing.
+		let label: string | undefined;
+		try {
+			const parsed = JSON.parse(message.data ?? "") as { label?: unknown };
+			if (typeof parsed?.label === "string") label = parsed.label;
+		} catch {
+			label = undefined;
 		}
 
 		return {
@@ -130,7 +116,7 @@ function toChatMessage(
 				`history-link-${index}-${message.timestamp ?? Date.now()}`,
 			beforeId: message.beforeId,
 			type: user,
-			content: linkData?.label ?? message.data ?? "",
+			content: label ?? message.data ?? "",
 			timestamp: message.timestamp ?? 0,
 		};
 	}

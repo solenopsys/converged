@@ -132,6 +132,75 @@ export const metadata: ServiceMetadata = {
       "isAsyncIterable": false
     },
     {
+      "name": "addTagToUser",
+      "parameters": [
+        {
+          "name": "userId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "tag",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "mode",
+          "type": "string",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "void",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "removeTagFromUser",
+      "parameters": [
+        {
+          "name": "userId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "tag",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "mode",
+          "type": "string",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "void",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "getTagsOfUser",
+      "parameters": [
+        {
+          "name": "userId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "string",
+      "isAsync": true,
+      "returnTypeIsArray": true,
+      "isAsyncIterable": false
+    },
+    {
       "name": "linkPresetToUser",
       "parameters": [
         {
@@ -286,6 +355,9 @@ export interface AccessService {
   removePermissionFromUser(userId: string, permission: Permission): Promise<void>;
   getPermissionsFromUser(userId: string): Promise<GrantTree>;
   getPermissionsMixinFromUser(userId: string): Promise<GrantTree>;
+  addTagToUser(userId: string, tag: string, mode?: string): Promise<void>;
+  removeTagFromUser(userId: string, tag: string, mode?: string): Promise<void>;
+  getTagsOfUser(userId: string): Promise<string[]>;
   linkPresetToUser(userId: string, presetName: string): Promise<void>;
   unlinkPresetFromUser(userId: string, presetName: string): Promise<void>;
   createPreset(presetName: string, permissions: GrantTree): Promise<void>;
@@ -303,6 +375,9 @@ export interface AccessServiceClient {
   removePermissionFromUser(userId: string, permission: Permission): Promise<void>;
   getPermissionsFromUser(userId: string): Promise<GrantTree>;
   getPermissionsMixinFromUser(userId: string): Promise<GrantTree>;
+  addTagToUser(userId: string, tag: string, mode?: string): Promise<void>;
+  removeTagFromUser(userId: string, tag: string, mode?: string): Promise<void>;
+  getTagsOfUser(userId: string): Promise<string[]>;
   linkPresetToUser(userId: string, presetName: string): Promise<void>;
   unlinkPresetFromUser(userId: string, presetName: string): Promise<void>;
   createPreset(presetName: string, permissions: GrantTree): Promise<void>;

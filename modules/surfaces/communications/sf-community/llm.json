@@ -1,11 +1,33 @@
 {
+	"description": "Forum sections and topics. A section lists its topics; a topic is one discussion thread.",
 	"actions": {
-		"community.show": {
-			"brief": "Show community",
-			"description": "Show community",
+		"community.section.create": {
+			"brief": "Create a forum section",
+			"description": "Add a forum section and open the list of its topics",
+			"category": "community",
+			"exposure": "user",
+			"priority": "normal"
+		},
+		"community.section.delete": {
+			"brief": "Delete a forum section",
+			"description": "Delete a section together with every topic under it",
+			"category": "community",
+			"exposure": "user",
+			"priority": "secondary"
+		},
+		"community.topic.create": {
+			"brief": "Start a forum topic",
+			"description": "Create a topic in a section and write its opening post",
 			"category": "community",
 			"exposure": "user",
 			"priority": "primary"
+		},
+		"community.topic.set-flags": {
+			"brief": "Pin, lock or archive a topic",
+			"description": "Change the moderation flags of one forum topic",
+			"category": "community",
+			"exposure": "user",
+			"priority": "normal"
 		}
 	}
 }

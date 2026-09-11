@@ -128,6 +128,75 @@ const metadata: ServiceMetadata = {
       "isAsyncIterable": false
     },
     {
+      "name": "addTagToUser",
+      "parameters": [
+        {
+          "name": "userId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "tag",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "mode",
+          "type": "string",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "void",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "removeTagFromUser",
+      "parameters": [
+        {
+          "name": "userId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "tag",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "mode",
+          "type": "string",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "void",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "getTagsOfUser",
+      "parameters": [
+        {
+          "name": "userId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "string",
+      "isAsync": true,
+      "returnTypeIsArray": true,
+      "isAsyncIterable": false
+    },
+    {
       "name": "linkPresetToUser",
       "parameters": [
         {
@@ -282,6 +351,9 @@ export interface AccessServiceRtClient {
   removePermissionFromUser(userId: string, permission: Permission): void;
   getPermissionsFromUser(userId: string): GrantTree;
   getPermissionsMixinFromUser(userId: string): GrantTree;
+  addTagToUser(userId: string, tag: string, mode?: string): void;
+  removeTagFromUser(userId: string, tag: string, mode?: string): void;
+  getTagsOfUser(userId: string): string[];
   linkPresetToUser(userId: string, presetName: string): void;
   unlinkPresetFromUser(userId: string, presetName: string): void;
   createPreset(presetName: string, permissions: GrantTree): void;

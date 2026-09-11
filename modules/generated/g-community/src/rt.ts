@@ -21,6 +21,8 @@ export type ListParams = {
   limit: number;
 };
 
+export type Visibility = "public" | "authenticated" | "private" | "tagged";
+
 export type CommunitySection = {
   id: SectionId;
   parentId?: SectionId;
@@ -29,6 +31,8 @@ export type CommunitySection = {
   description?: string;
   sortOrder: number;
   isHidden: boolean;
+  visibility: Visibility;
+  createdBy?: UserId;
   createdAt: ISODateString;
   updatedAt: ISODateString;
 };
@@ -41,6 +45,7 @@ export type CommunitySectionInput = {
   description?: string;
   sortOrder?: number;
   isHidden?: boolean;
+  visibility?: Visibility;
 };
 
 export type CommunityTopic = {
@@ -52,6 +57,7 @@ export type CommunityTopic = {
   isPinned: boolean;
   isLocked: boolean;
   isArchived: boolean;
+  visibility: Visibility;
   lastActivityAt: ISODateString;
   createdAt: ISODateString;
   updatedAt: ISODateString;
@@ -62,11 +68,17 @@ export type CommunityTopicInput = {
   sectionId: SectionId;
   threadId: ThreadId;
   title: string;
-  createdBy: UserId;
   isPinned?: boolean;
   isLocked?: boolean;
   isArchived?: boolean;
+  visibility?: Visibility;
   lastActivityAt?: ISODateString;
+};
+
+export type CreateTopicInput = {
+  sectionId: SectionId;
+  title: string;
+  visibility?: Visibility;
 };
 
 export type SectionListParams = ListParams & {
@@ -180,6 +192,21 @@ const metadata: ServiceMetadata = {
       "isAsyncIterable": false
     },
     {
+      "name": "createTopic",
+      "parameters": [
+        {
+          "name": "input",
+          "type": "CreateTopicInput",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "CommunityTopic",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
       "name": "saveTopic",
       "parameters": [
         {
@@ -211,6 +238,21 @@ const metadata: ServiceMetadata = {
     },
     {
       "name": "deleteTopic",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "TopicId",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "boolean",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "touchTopicActivity",
       "parameters": [
         {
           "name": "id",
@@ -308,24 +350,34 @@ const metadata: ServiceMetadata = {
       "definition": "{\n  offset: number;\n  limit: number;\n}"
     },
     {
+      "name": "Visibility",
+      "kind": "type",
+      "definition": "\"public\" | \"authenticated\" | \"private\" | \"tagged\""
+    },
+    {
       "name": "CommunitySection",
       "kind": "type",
-      "definition": "{\n  id: SectionId;\n  parentId?: SectionId;\n  slug: string;\n  title: string;\n  description?: string;\n  sortOrder: number;\n  isHidden: boolean;\n  createdAt: ISODateString;\n  updatedAt: ISODateString;\n}"
+      "definition": "{\n  id: SectionId;\n  parentId?: SectionId;\n  slug: string;\n  title: string;\n  description?: string;\n  sortOrder: number;\n  isHidden: boolean;\n  visibility: Visibility;\n  createdBy?: UserId;\n  createdAt: ISODateString;\n  updatedAt: ISODateString;\n}"
     },
     {
       "name": "CommunitySectionInput",
       "kind": "type",
-      "definition": "{\n  id?: SectionId;\n  parentId?: SectionId;\n  slug: string;\n  title: string;\n  description?: string;\n  sortOrder?: number;\n  isHidden?: boolean;\n}"
+      "definition": "{\n  id?: SectionId;\n  parentId?: SectionId;\n  slug: string;\n  title: string;\n  description?: string;\n  sortOrder?: number;\n  isHidden?: boolean;\n  visibility?: Visibility;\n}"
     },
     {
       "name": "CommunityTopic",
       "kind": "type",
-      "definition": "{\n  id: TopicId;\n  sectionId: SectionId;\n  threadId: ThreadId;\n  title: string;\n  createdBy: UserId;\n  isPinned: boolean;\n  isLocked: boolean;\n  isArchived: boolean;\n  lastActivityAt: ISODateString;\n  createdAt: ISODateString;\n  updatedAt: ISODateString;\n}"
+      "definition": "{\n  id: TopicId;\n  sectionId: SectionId;\n  threadId: ThreadId;\n  title: string;\n  createdBy: UserId;\n  isPinned: boolean;\n  isLocked: boolean;\n  isArchived: boolean;\n  visibility: Visibility;\n  lastActivityAt: ISODateString;\n  createdAt: ISODateString;\n  updatedAt: ISODateString;\n}"
     },
     {
       "name": "CommunityTopicInput",
       "kind": "type",
-      "definition": "{\n  id?: TopicId;\n  sectionId: SectionId;\n  threadId: ThreadId;\n  title: string;\n  createdBy: UserId;\n  isPinned?: boolean;\n  isLocked?: boolean;\n  isArchived?: boolean;\n  lastActivityAt?: ISODateString;\n}"
+      "definition": "{\n  id?: TopicId;\n  sectionId: SectionId;\n  threadId: ThreadId;\n  title: string;\n  isPinned?: boolean;\n  isLocked?: boolean;\n  isArchived?: boolean;\n  visibility?: Visibility;\n  lastActivityAt?: ISODateString;\n}"
+    },
+    {
+      "name": "CreateTopicInput",
+      "kind": "type",
+      "definition": "{\n  sectionId: SectionId;\n  title: string;\n  visibility?: Visibility;\n}"
     },
     {
       "name": "SectionListParams",
@@ -372,9 +424,11 @@ export interface CommunityServiceRtClient {
   deleteSection(id: SectionId): boolean;
   listSections(params: SectionListParams): PaginatedResult<CommunitySection>;
   readSectionsTree(rootId?: SectionId, includeHidden?: boolean): SectionTreeNode[];
+  createTopic(input: CreateTopicInput): CommunityTopic;
   saveTopic(input: CommunityTopicInput): TopicId;
   readTopic(id: TopicId): CommunityTopic | any;
   deleteTopic(id: TopicId): boolean;
+  touchTopicActivity(id: TopicId): boolean;
   listTopics(params: TopicListParams): PaginatedResult<CommunityTopic>;
   describeSelection(objectType: string): SelectionDescriptor;
   inspectTopics(filter?: FilterObject): SelectionStats;

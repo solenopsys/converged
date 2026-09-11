@@ -1,0 +1,8 @@
+{
+	"title": "Argomento del forum",
+	"composer": {
+		"post": "Scrivi un messaggio...",
+		"reply": "Scrivi una risposta...",
+		"locked": "Questo argomento è bloccato"
+	}
+}
