@@ -1147,6 +1147,22 @@
       ]
     },
     {
+      "owner": "sf-equipment",
+      "path": "modules/surfaces/business/sf-equipment/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/surfaces/business/sf-equipment/docs/index.json",
+          "articles": [
+            {
+              "slug": "sf-equipment",
+              "file": "modules/surfaces/business/sf-equipment/docs/sf-equipment.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "owner": "sf-files",
       "path": "modules/surfaces/data/sf-files/docs",
       "sections": [
