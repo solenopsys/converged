@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import { InMemoryMigrationState, SqlStore } from "back-core";
+import { runWithWorkspaceContext } from "nrpc";
 import requestsMigrations from "./stores/requests/migrations";
 import { RequestsStoreService } from "./stores/requests/service";
 import type { RequestInput, RequestRequirementProfile } from "./types";
@@ -97,13 +98,27 @@ describe("RequestsService in-memory", () => {
 			testProfiles.map((profile) => [profile.processType, profile]),
 		);
 		const requirements = {
-			getProfile: async (processType: RequestRequirementProfile["processType"]) =>
-				profiles.get(processType),
+			getProfile: async (
+				processType: RequestRequirementProfile["processType"],
+			) => profiles.get(processType),
 			getProfileSync: (processType: RequestRequirementProfile["processType"]) =>
 				profiles.get(processType),
 			listProfiles: async () => Array.from(profiles.values()),
 		};
-		requests = new RequestsStoreService(store, requirements);
+		// Requests are access-narrowed now, so every call in this suite runs as
+		// one operator. What is under test here is the request model and its
+		// processing log; who sees what is `access.test.ts`.
+		const impl = new RequestsStoreService(store, requirements);
+		requests = new Proxy(impl, {
+			get(target, property, receiver) {
+				const value = Reflect.get(target, property, receiver);
+				if (typeof value !== "function") return value;
+				return (...args: unknown[]) =>
+					runWithWorkspaceContext({ user: "operator" }, () =>
+						(value as (...a: unknown[]) => unknown).apply(target, args),
+					);
+			},
+		}) as RequestsStoreService;
 	});
 
 	it("creates and reads a request", async () => {
@@ -342,7 +357,9 @@ describe("RequestsService in-memory", () => {
 		expect(model.fields.material.value).toBe("ABS");
 		expect(model.fields.quantity.value).toBe(10);
 		expect(model.remainingRequired).toContain("dimensions");
-		expect(model.remainingDelta.map((field) => field.key)).toEqual(["dimensions"]);
+		expect(model.remainingDelta.map((field) => field.key)).toEqual([
+			"dimensions",
+		]);
 	});
 
 	it("uses file analysis dimensions to satisfy 3D printing size requirement", async () => {

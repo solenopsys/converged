@@ -10,6 +10,14 @@ export interface WorkspaceContext {
 	 * derived from `user`, see `getCurrentAccessTags`.
 	 */
 	accessTags?: readonly string[];
+	/**
+	 * Whether the caller is a person or a service, from the verified token.
+	 *
+	 * A service may act for somebody else and so may name an owner in its input;
+	 * a person may not, and their claim is replaced by their own identity. Absent
+	 * when there is no verified token at all, which is the same as untrusted.
+	 */
+	actorType?: "user" | "service";
 	headers?: Record<string, string | undefined>;
 }
 

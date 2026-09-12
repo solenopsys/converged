@@ -193,7 +193,17 @@ export default defineSurface({
 					visibility: (params.visibility as never) || undefined,
 					userIds,
 				});
-				await threadsClient.registerThread(room.threadId, "chat");
+				// The room and its conversation live in different repositories, and
+				// those never call each other — so the access the room was just
+				// given has to be repeated here against the thread. `rp-threads`
+				// accepts it because this caller owns the thread it just minted:
+				// a client may hand out access it holds, never access it wants.
+				await threadsClient.registerThread(room.threadId, "chat", {
+					visibility: room.visibility,
+				});
+				for (const userId of userIds) {
+					await threadsClient.grantThreadAccess(room.threadId, userId);
+				}
 				return objectRef("chats.chat", room.id, { title });
 			},
 		},
@@ -243,7 +253,13 @@ export default defineSurface({
 				const userId = String(params.userId ?? "").trim();
 				if (!roomId) throw new Error("Room reference is required");
 				if (!userId) throw new Error("User is required");
-				return chatsClient.addRoomUser(roomId, userId, params.role as never);
+				await chatsClient.addRoomUser(roomId, userId, params.role as never);
+				// Membership without the thread grant is a member who can see the
+				// room and not read a word in it.
+				const room = await chatsClient.getRoom(roomId);
+				if (room?.threadId) {
+					await threadsClient.grantThreadAccess(room.threadId, userId);
+				}
 			},
 		},
 		{
@@ -269,7 +285,11 @@ export default defineSurface({
 				const userId = String(params.userId ?? "").trim();
 				if (!roomId) throw new Error("Room reference is required");
 				if (!userId) throw new Error("User is required");
-				return chatsClient.removeRoomUser(roomId, userId);
+				const room = await chatsClient.getRoom(roomId);
+				await chatsClient.removeRoomUser(roomId, userId);
+				if (room?.threadId) {
+					await threadsClient.revokeThreadAccess(room.threadId, userId);
+				}
 			},
 		},
 	],

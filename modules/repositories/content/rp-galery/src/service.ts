@@ -1,20 +1,27 @@
 import { imageMimeFromPath } from "back-core";
-import { Access } from "nrpc";
+import { Access, getCurrentWorkspaceContext } from "nrpc";
+import { StoresController } from "./stores";
 import type {
-	GaleryService,
+	CachedImageRef,
 	Galery,
 	GaleryId,
-	GaleryInput,
 	GaleryImage,
 	GaleryImageId,
 	GaleryImageInput,
-	CachedImageRef,
-	PaginationParams,
+	GaleryInput,
+	GaleryService,
 	PaginatedResult,
+	PaginationParams,
 } from "./types";
-import { StoresController } from "./stores";
 
 const REPOSITORY_ID = "rp-galery";
+
+/** Who is calling, from the verified token and from nothing else. */
+function requireActor(): string {
+	const actor = getCurrentWorkspaceContext()?.user?.trim();
+	if (!actor) throw new Error("Authenticated caller is required");
+	return actor;
+}
 // File reads materialize the content in shared Valkey; only the cache key
 // crosses the service boundary.
 export class GaleryServiceImpl implements GaleryService {
@@ -42,9 +49,12 @@ export class GaleryServiceImpl implements GaleryService {
 		await this.init();
 	}
 
+	// Every method carries a deliberate level: an undecorated one also resolves
+	// to `"user"`, so the decorator is what separates a decision from an
+	// oversight.
 	async createGalery(input: GaleryInput): Promise<GaleryId> {
 		await this.ready();
-		return this.stores.galeries.create(input);
+		return this.stores.galeries.create(input, requireActor());
 	}
 
 	async getGalery(id: GaleryId): Promise<Galery | null> {
@@ -64,8 +74,17 @@ export class GaleryServiceImpl implements GaleryService {
 		return this.stores.galeries.delete(id);
 	}
 
+	/**
+	 * Stores an image and files it under a gallery.
+	 *
+	 * The write check comes before the bytes are written: the file store keeps
+	 * no tags of its own, so a thumbnail produced for a gallery the caller
+	 * cannot touch is disk spent on nothing plus a file nobody will reach.
+	 */
 	async saveImage(input: GaleryImageInput): Promise<GaleryImage> {
 		await this.ready();
+		const actor = requireActor();
+		await this.stores.galeries.access.requireWrite(input.galeryId);
 
 		const { filePath, thumbPath } =
 			await this.stores.filesService.saveImageWithThumbnail(
@@ -74,7 +93,7 @@ export class GaleryServiceImpl implements GaleryService {
 				input.mimeType,
 			);
 
-		return this.stores.images.create(input, filePath, thumbPath);
+		return this.stores.images.create(input, filePath, thumbPath, actor);
 	}
 
 	async getImage(id: GaleryImageId): Promise<GaleryImage | null> {
@@ -97,6 +116,9 @@ export class GaleryServiceImpl implements GaleryService {
 			return false;
 		}
 
+		// `delete` re-checks the write tag; the bytes go first because a record
+		// without its file is worse than a file without its record.
+		await this.stores.images.access.requireWrite(id);
 		await this.stores.filesService.deleteImage(image.filePath, image.thumbPath);
 		return this.stores.images.delete(id);
 	}

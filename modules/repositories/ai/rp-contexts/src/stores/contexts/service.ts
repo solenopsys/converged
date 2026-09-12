@@ -14,6 +14,32 @@ const DEFAULT_LANGUAGE = (process.env.CONTEXTS_DEFAULT_LANGUAGE || "en")
 	.trim()
 	.toLowerCase();
 
+/**
+ * A context name and its language both become path segments, and both arrive
+ * from the caller. A separator or a dot segment walks out of the store, so the
+ * shape is fixed here — the same guard `rp-chats` puts on its own context keys.
+ *
+ * This store keeps no tags of its own, and per `access-control.md` it should
+ * not: the file name is the object id, and access to it is the access of the
+ * record that points at it. Contexts are addressed by name rather than owned,
+ * so the thing worth defending is the path, not a row.
+ */
+const NAME_SHAPE = /^[A-Za-z0-9_.-]{1,128}$/;
+const LANGUAGE_SHAPE = /^[a-z]{2,8}(-[a-z0-9]{2,8})?$/;
+
+function requireStorableName(name: string): string {
+	const trimmed = name?.trim() ?? "";
+	if (!NAME_SHAPE.test(trimmed) || trimmed.includes(".."))
+		throw new Error(`Unusable context name: ${name}`);
+	return trimmed;
+}
+
+function requireStorableLanguage(language: string): string {
+	if (!LANGUAGE_SHAPE.test(language))
+		throw new Error(`Unusable context language: ${language}`);
+	return language;
+}
+
 export class ContextStoreService {
 	constructor(private readonly store: JsonStore) {}
 
@@ -23,7 +49,7 @@ export class ContextStoreService {
 	}
 
 	private buildKey(name: ContextName, language: ContextLanguage): string {
-		return `${language}/${name}`;
+		return `${requireStorableLanguage(language)}/${requireStorableName(name)}`;
 	}
 
 	async saveContext(input: ContextInput): Promise<ContextSummary> {

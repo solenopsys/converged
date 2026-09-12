@@ -21,6 +21,17 @@ export type Message = {
 
 export type ThreadKind = "chat" | "audio" | "forum" | "comment";
 
+export type ThreadVisibility =
+	| "public"
+	| "authenticated"
+	| "private"
+	| "tagged";
+
+export type ThreadAccessInput = {
+	visibility?: ThreadVisibility;
+	tags?: string[];
+};
+
 export type ThreadInfo = {
 	threadId: ULID;
 	kind: ThreadKind;
@@ -67,267 +78,354 @@ export type ThreadStats = {
 };
 
 const metadata: ServiceMetadata = {
-  "interfaceName": "ThreadsService",
-  "serviceName": "threads",
-  "filePath": "communications/threads.ts",
-  "methods": [
-    {
-      "name": "saveMessage",
-      "parameters": [
-        {
-          "name": "message",
-          "type": "Message",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "string",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "readMessage",
-      "parameters": [
-        {
-          "name": "threadId",
-          "type": "ULID",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "messageId",
-          "type": "ULID",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "Message",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "readMessageVersions",
-      "parameters": [
-        {
-          "name": "threadId",
-          "type": "ULID",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "messageId",
-          "type": "ULID",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "Message",
-      "isAsync": true,
-      "returnTypeIsArray": true,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "readThreadAllVersions",
-      "parameters": [
-        {
-          "name": "threadId",
-          "type": "ULID",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "Message",
-      "isAsync": true,
-      "returnTypeIsArray": true,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "readThread",
-      "parameters": [
-        {
-          "name": "threadId",
-          "type": "ULID",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "Message",
-      "isAsync": true,
-      "returnTypeIsArray": true,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "deleteThread",
-      "parameters": [
-        {
-          "name": "threadId",
-          "type": "ULID",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "number",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "registerThread",
-      "parameters": [
-        {
-          "name": "threadId",
-          "type": "ULID",
-          "optional": false,
-          "isArray": false
-        },
-        {
-          "name": "kind",
-          "type": "ThreadKind",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "void",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "listThreads",
-      "parameters": [
-        {
-          "name": "params",
-          "type": "ThreadListParams",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "PaginatedResult<ThreadInfo>",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "getThreadStats",
-      "parameters": [],
-      "returnType": "ThreadStats",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "describeSelection",
-      "parameters": [
-        {
-          "name": "objectType",
-          "type": "string",
-          "optional": false,
-          "isArray": false
-        }
-      ],
-      "returnType": "SelectionDescriptor",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    },
-    {
-      "name": "inspectThreads",
-      "parameters": [
-        {
-          "name": "filter",
-          "type": "FilterObject",
-          "optional": true,
-          "isArray": false
-        }
-      ],
-      "returnType": "SelectionStats",
-      "isAsync": true,
-      "returnTypeIsArray": false,
-      "isAsyncIterable": false
-    }
-  ],
-  "types": [
-    {
-      "name": "ULID",
-      "kind": "type",
-      "definition": "string"
-    },
-    {
-      "name": "MessageType",
-      "kind": "raw",
-      "definition": "export enum MessageType {\n\tmessage = \"message\",\n\tlink = \"link\",\n\tpartition = \"partition\",\n}"
-    },
-    {
-      "name": "Message",
-      "kind": "type",
-      "definition": "{\n\tthreadId: ULID;\n\tid?: ULID;\n\ttimestamp?: number;\n\tbeforeId?: ULID;\n\tuser: string;\n\ttype: MessageType;\n\tdata: string;\n}"
-    },
-    {
-      "name": "ThreadKind",
-      "kind": "type",
-      "definition": "\"chat\" | \"audio\" | \"forum\" | \"comment\""
-    },
-    {
-      "name": "ThreadInfo",
-      "kind": "type",
-      "definition": "{\n\tthreadId: ULID;\n\tkind: ThreadKind;\n\tmessageCount: number;\n\tcreatedAt: number;\n\tupdatedAt: number;\n}"
-    },
-    {
-      "name": "ThreadListParams",
-      "kind": "type",
-      "definition": "{\n\toffset?: number;\n\tlimit?: number;\n\tkind?: ThreadKind;\n\tfilter?: FilterObject;\n}"
-    },
-    {
-      "name": "FilterObject",
-      "kind": "type",
-      "definition": "Record<string, unknown>"
-    },
-    {
-      "name": "SelectionFieldDescriptor",
-      "kind": "type",
-      "definition": "{\n\tid: string;\n\tlabel: string;\n\tvalueType: \"string\" | \"number\" | \"boolean\" | \"date\" | \"enum\";\n\toperators: string[];\n}"
-    },
-    {
-      "name": "SelectionDescriptor",
-      "kind": "type",
-      "definition": "{\n\tobjectType: string;\n\ttitle: string;\n\tfields: SelectionFieldDescriptor[];\n\tfilterExample?: FilterObject;\n\trevision?: string;\n}"
-    },
-    {
-      "name": "SelectionStats",
-      "kind": "type",
-      "definition": "{ totalCount: number }"
-    },
-    {
-      "name": "PaginatedResult",
-      "kind": "type",
-      "typeParameters": "<T>",
-      "definition": "{\n\titems: T[];\n\ttotalCount?: number;\n}"
-    },
-    {
-      "name": "ThreadStats",
-      "kind": "type",
-      "definition": "{\n\ttotal: number;\n\ttotalMessages: number;\n\tbyKind: Record<ThreadKind, number>;\n}"
-    }
-  ]
+	interfaceName: "ThreadsService",
+	serviceName: "threads",
+	filePath: "communications/threads.ts",
+	methods: [
+		{
+			name: "saveMessage",
+			parameters: [
+				{
+					name: "message",
+					type: "Message",
+					optional: false,
+					isArray: false,
+				},
+			],
+			returnType: "string",
+			isAsync: true,
+			returnTypeIsArray: false,
+			isAsyncIterable: false,
+		},
+		{
+			name: "readMessage",
+			parameters: [
+				{
+					name: "threadId",
+					type: "ULID",
+					optional: false,
+					isArray: false,
+				},
+				{
+					name: "messageId",
+					type: "ULID",
+					optional: false,
+					isArray: false,
+				},
+			],
+			returnType: "Message",
+			isAsync: true,
+			returnTypeIsArray: false,
+			isAsyncIterable: false,
+		},
+		{
+			name: "readMessageVersions",
+			parameters: [
+				{
+					name: "threadId",
+					type: "ULID",
+					optional: false,
+					isArray: false,
+				},
+				{
+					name: "messageId",
+					type: "ULID",
+					optional: false,
+					isArray: false,
+				},
+			],
+			returnType: "Message",
+			isAsync: true,
+			returnTypeIsArray: true,
+			isAsyncIterable: false,
+		},
+		{
+			name: "readThreadAllVersions",
+			parameters: [
+				{
+					name: "threadId",
+					type: "ULID",
+					optional: false,
+					isArray: false,
+				},
+			],
+			returnType: "Message",
+			isAsync: true,
+			returnTypeIsArray: true,
+			isAsyncIterable: false,
+		},
+		{
+			name: "readThread",
+			parameters: [
+				{
+					name: "threadId",
+					type: "ULID",
+					optional: false,
+					isArray: false,
+				},
+			],
+			returnType: "Message",
+			isAsync: true,
+			returnTypeIsArray: true,
+			isAsyncIterable: false,
+		},
+		{
+			name: "deleteThread",
+			parameters: [
+				{
+					name: "threadId",
+					type: "ULID",
+					optional: false,
+					isArray: false,
+				},
+			],
+			returnType: "number",
+			isAsync: true,
+			returnTypeIsArray: false,
+			isAsyncIterable: false,
+		},
+		{
+			name: "registerThread",
+			parameters: [
+				{
+					name: "threadId",
+					type: "ULID",
+					optional: false,
+					isArray: false,
+				},
+				{
+					name: "kind",
+					type: "ThreadKind",
+					optional: false,
+					isArray: false,
+				},
+				{
+					name: "access",
+					type: "ThreadAccessInput",
+					optional: true,
+					isArray: false,
+				},
+			],
+			returnType: "void",
+			isAsync: true,
+			returnTypeIsArray: false,
+			isAsyncIterable: false,
+		},
+		{
+			name: "grantThreadAccess",
+			parameters: [
+				{
+					name: "threadId",
+					type: "ULID",
+					optional: false,
+					isArray: false,
+				},
+				{
+					name: "userId",
+					type: "string",
+					optional: false,
+					isArray: false,
+				},
+			],
+			returnType: "void",
+			isAsync: true,
+			returnTypeIsArray: false,
+			isAsyncIterable: false,
+		},
+		{
+			name: "revokeThreadAccess",
+			parameters: [
+				{
+					name: "threadId",
+					type: "ULID",
+					optional: false,
+					isArray: false,
+				},
+				{
+					name: "userId",
+					type: "string",
+					optional: false,
+					isArray: false,
+				},
+			],
+			returnType: "void",
+			isAsync: true,
+			returnTypeIsArray: false,
+			isAsyncIterable: false,
+		},
+		{
+			name: "readThreadAccess",
+			parameters: [
+				{
+					name: "threadId",
+					type: "ULID",
+					optional: false,
+					isArray: false,
+				},
+			],
+			returnType: "string",
+			isAsync: true,
+			returnTypeIsArray: true,
+			isAsyncIterable: false,
+		},
+		{
+			name: "listThreads",
+			parameters: [
+				{
+					name: "params",
+					type: "ThreadListParams",
+					optional: false,
+					isArray: false,
+				},
+			],
+			returnType: "PaginatedResult<ThreadInfo>",
+			isAsync: true,
+			returnTypeIsArray: false,
+			isAsyncIterable: false,
+		},
+		{
+			name: "getThreadStats",
+			parameters: [],
+			returnType: "ThreadStats",
+			isAsync: true,
+			returnTypeIsArray: false,
+			isAsyncIterable: false,
+		},
+		{
+			name: "describeSelection",
+			parameters: [
+				{
+					name: "objectType",
+					type: "string",
+					optional: false,
+					isArray: false,
+				},
+			],
+			returnType: "SelectionDescriptor",
+			isAsync: true,
+			returnTypeIsArray: false,
+			isAsyncIterable: false,
+		},
+		{
+			name: "inspectThreads",
+			parameters: [
+				{
+					name: "filter",
+					type: "FilterObject",
+					optional: true,
+					isArray: false,
+				},
+			],
+			returnType: "SelectionStats",
+			isAsync: true,
+			returnTypeIsArray: false,
+			isAsyncIterable: false,
+		},
+	],
+	types: [
+		{
+			name: "ULID",
+			kind: "type",
+			definition: "string",
+		},
+		{
+			name: "MessageType",
+			kind: "raw",
+			definition:
+				'export enum MessageType {\n\tmessage = "message",\n\tlink = "link",\n\tpartition = "partition",\n}',
+		},
+		{
+			name: "Message",
+			kind: "type",
+			definition:
+				"{\n\tthreadId: ULID;\n\tid?: ULID;\n\ttimestamp?: number;\n\tbeforeId?: ULID;\n\tuser: string;\n\ttype: MessageType;\n\tdata: string;\n}",
+		},
+		{
+			name: "ThreadKind",
+			kind: "type",
+			definition: '"chat" | "audio" | "forum" | "comment"',
+		},
+		{
+			name: "ThreadVisibility",
+			kind: "type",
+			definition: '"public" | "authenticated" | "private" | "tagged"',
+		},
+		{
+			name: "ThreadAccessInput",
+			kind: "type",
+			definition: "{\n\tvisibility?: ThreadVisibility;\n\ttags?: string[];\n}",
+		},
+		{
+			name: "ThreadInfo",
+			kind: "type",
+			definition:
+				"{\n\tthreadId: ULID;\n\tkind: ThreadKind;\n\tmessageCount: number;\n\tcreatedAt: number;\n\tupdatedAt: number;\n}",
+		},
+		{
+			name: "ThreadListParams",
+			kind: "type",
+			definition:
+				"{\n\toffset?: number;\n\tlimit?: number;\n\tkind?: ThreadKind;\n\tfilter?: FilterObject;\n}",
+		},
+		{
+			name: "FilterObject",
+			kind: "type",
+			definition: "Record<string, unknown>",
+		},
+		{
+			name: "SelectionFieldDescriptor",
+			kind: "type",
+			definition:
+				'{\n\tid: string;\n\tlabel: string;\n\tvalueType: "string" | "number" | "boolean" | "date" | "enum";\n\toperators: string[];\n}',
+		},
+		{
+			name: "SelectionDescriptor",
+			kind: "type",
+			definition:
+				"{\n\tobjectType: string;\n\ttitle: string;\n\tfields: SelectionFieldDescriptor[];\n\tfilterExample?: FilterObject;\n\trevision?: string;\n}",
+		},
+		{
+			name: "SelectionStats",
+			kind: "type",
+			definition: "{ totalCount: number }",
+		},
+		{
+			name: "PaginatedResult",
+			kind: "type",
+			typeParameters: "<T>",
+			definition: "{\n\titems: T[];\n\ttotalCount?: number;\n}",
+		},
+		{
+			name: "ThreadStats",
+			kind: "type",
+			definition:
+				"{\n\ttotal: number;\n\ttotalMessages: number;\n\tbyKind: Record<ThreadKind, number>;\n}",
+		},
+	],
 };
 
 // RT client interface — synchronous (one QuickJS evaluation per workflow run).
 export interface ThreadsServiceRtClient {
-  saveMessage(message: Message): string;
-  readMessage(threadId: ULID, messageId: ULID): Message;
-  readMessageVersions(threadId: ULID, messageId: ULID): Message[];
-  readThreadAllVersions(threadId: ULID): Message[];
-  readThread(threadId: ULID): Message[];
-  deleteThread(threadId: ULID): number;
-  registerThread(threadId: ULID, kind: ThreadKind): void;
-  listThreads(params: ThreadListParams): PaginatedResult<ThreadInfo>;
-  getThreadStats(): ThreadStats;
-  describeSelection(objectType: string): SelectionDescriptor;
-  inspectThreads(filter?: FilterObject): SelectionStats;
+	saveMessage(message: Message): string;
+	readMessage(threadId: ULID, messageId: ULID): Message;
+	readMessageVersions(threadId: ULID, messageId: ULID): Message[];
+	readThreadAllVersions(threadId: ULID): Message[];
+	readThread(threadId: ULID): Message[];
+	deleteThread(threadId: ULID): number;
+	registerThread(
+		threadId: ULID,
+		kind: ThreadKind,
+		access?: ThreadAccessInput,
+	): void;
+	grantThreadAccess(threadId: ULID, userId: string): void;
+	revokeThreadAccess(threadId: ULID, userId: string): void;
+	readThreadAccess(threadId: ULID): string[];
+	listThreads(params: ThreadListParams): PaginatedResult<ThreadInfo>;
+	getThreadStats(): ThreadStats;
+	describeSelection(objectType: string): SelectionDescriptor;
+	inspectThreads(filter?: FilterObject): SelectionStats;
 }
 
 export function createThreadsServiceRtClient(): ThreadsServiceRtClient {
-  return createRtClient<ThreadsServiceRtClient>(metadata);
+	return createRtClient<ThreadsServiceRtClient>(metadata);
 }

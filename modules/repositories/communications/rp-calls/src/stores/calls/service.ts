@@ -1,9 +1,13 @@
-import { applyKyselyFilter, type CacheAdapter, type KyselyFilterSchema } from "back-core";
 import {
+	AccessTags,
+	applyKyselyFilter,
 	CACHE_BLOB_TTL_SECONDS,
+	type CacheAdapter,
 	generateULID,
 	type KVStore,
+	type KyselyFilterSchema,
 	type SqlStore,
+	visibleFrom,
 } from "back-core";
 import type {
 	CacheRef,
@@ -18,9 +22,9 @@ import type {
 	CallRecordingInput,
 	CallRecordingResult,
 	CallsListParams,
-	FilterObject,
 	DumpAudioFragmentsInput,
 	DumpAudioFragmentsResult,
+	FilterObject,
 	PaginatedResult,
 	RegisterCallInput,
 	UpdateCallInput,
@@ -35,20 +39,38 @@ import {
 import { writeWebMOpus } from "./webm";
 
 const callFilterSchema: KyselyFilterSchema = {
-	id: { valueType: "string", operators: ["eq", "in"], column: "id" },
-	phone: { valueType: "string", operators: ["eq", "in", "contains"], column: "phone" },
-	threadId: { valueType: "string", operators: ["eq", "in", "isNull"], column: "threadId" },
-	startedAt: { valueType: "number", operators: ["gt", "gte", "lt", "lte", "between"], column: "startedAt" },
-	processed: { valueType: "boolean", operators: ["eq", "notEq"], column: "processed" },
-	flud: { valueType: "boolean", operators: ["eq", "notEq"], column: "flud" },
+	id: { valueType: "string", operators: ["eq", "in"], column: "obj.id" },
+	phone: {
+		valueType: "string",
+		operators: ["eq", "in", "contains"],
+		column: "obj.phone",
+	},
+	threadId: {
+		valueType: "string",
+		operators: ["eq", "in", "isNull"],
+		column: "obj.threadId",
+	},
+	startedAt: {
+		valueType: "number",
+		operators: ["gt", "gte", "lt", "lte", "between"],
+		column: "obj.startedAt",
+	},
+	processed: {
+		valueType: "boolean",
+		operators: ["eq", "notEq"],
+		column: "obj.processed",
+	},
+	flud: {
+		valueType: "boolean",
+		operators: ["eq", "notEq"],
+		column: "obj.flud",
+	},
 };
 
 const RECORDING_PREFIX = "recordings";
 const FRAGMENT_PREFIX = "fragments";
 
-
 const GATE_AUDIO_PREFIX = "llm-audio";
-
 
 const OPUS_SAMPLE_RATE = 48000;
 const OPUS_CHANNELS = 1;
@@ -69,6 +91,14 @@ type CallFragmentEntity = {
 export class CallsStoreService {
 	private readonly repo: CallRepository;
 	private readonly silenceTrim: SilenceTrimConfig = silenceTrimConfigFromEnv();
+	/**
+	 * Who may hear which call.
+	 *
+	 * A call record is a recording of a conversation and its transcript, so the
+	 * listing and the audio answer to the same tags. Fragments and recordings
+	 * follow their call — they are reachable only through it.
+	 */
+	readonly access: AccessTags;
 
 	constructor(
 		private store: SqlStore,
@@ -76,6 +106,7 @@ export class CallsStoreService {
 		private fragments: KVStore,
 		private readonly cache?: CacheAdapter,
 	) {
+		this.access = new AccessTags(store);
 		this.repo = new CallRepository(store, "calls", {
 			primaryKey: "id",
 			extractKey: (entry) => ({ id: entry.id }),
@@ -83,9 +114,17 @@ export class CallsStoreService {
 		});
 	}
 
-	async registerCall(input: RegisterCallInput): Promise<Call> {
+	/**
+	 * Registers a call, or updates one the caller already holds.
+	 *
+	 * `callId` comes from the caller — the telephony side mints it — so the guard
+	 * is on the second registration: an id that is already somebody's cannot be
+	 * re-registered by anybody else.
+	 */
+	async registerCall(input: RegisterCallInput, actor?: string): Promise<Call> {
 		const id = input.callId;
 		const existing = await this.repo.findById({ id });
+		if (existing) await this.access.requireWrite(id);
 		const entity: CallEntity = {
 			id,
 			startedAt: input.startedAt,
@@ -104,6 +143,7 @@ export class CallsStoreService {
 			await this.repo.update({ id }, entity);
 		} else {
 			await this.repo.create(entity);
+			await this.access.tagNew(id, { visibility: "private", owner: actor });
 		}
 
 		const saved = await this.repo.findById({ id });
@@ -113,7 +153,10 @@ export class CallsStoreService {
 		return this.toCall(saved);
 	}
 
-	async saveRecording(input: CallRecordingInput): Promise<CallRecordingResult> {
+	async saveRecording(
+		input: CallRecordingInput,
+		actor?: string,
+	): Promise<CallRecordingResult> {
 		const data = await this.readCacheRef(input.audioRef);
 		const id = generateULID();
 		const startedAt = input.startedAt ?? Date.now();
@@ -137,6 +180,7 @@ export class CallsStoreService {
 		};
 
 		await this.repo.create(entity as any);
+		await this.access.tagNew(id, { visibility: "private", owner: actor });
 		return { callId: id, recordId, audioId };
 	}
 
@@ -145,6 +189,7 @@ export class CallsStoreService {
 		if (!existing) {
 			throw new Error(`Call not found: ${input.callId}`);
 		}
+		await this.access.requireWrite(input.callId);
 		const data = await this.readCacheRef(input.audioRef);
 
 		const id = generateULID();
@@ -185,6 +230,7 @@ export class CallsStoreService {
 		if (!existing) {
 			throw new Error(`Call not found: ${input.callId}`);
 		}
+		await this.access.requireWrite(input.callId);
 
 		const cache = this.requiredCache();
 		const audioId = input.audioId ?? existing.audioId ?? input.callId;
@@ -231,6 +277,7 @@ export class CallsStoreService {
 		if (!existing) {
 			throw new Error(`Call not found: ${input.callId}`);
 		}
+		await this.access.requireWrite(input.callId);
 
 		const update: Partial<CallEntity> = {
 			threadId: input.threadId ?? existing.threadId ?? null,
@@ -241,6 +288,7 @@ export class CallsStoreService {
 	}
 
 	async getDialogue(id: CallId): Promise<CallDialogueItem[]> {
+		await this.access.requireRead(id);
 		const existing = await this.repo.findById({ id });
 		if (!existing) {
 			return [];
@@ -249,6 +297,7 @@ export class CallsStoreService {
 	}
 
 	async updateCall(id: CallId, patch: UpdateCallInput): Promise<Call> {
+		await this.access.requireWrite(id);
 		const existing = await this.repo.findById({ id });
 		if (!existing) {
 			throw new Error(`Call not found: ${id}`);
@@ -288,7 +337,9 @@ export class CallsStoreService {
 		}
 	}
 
+	/** A call the caller holds no tag for reads as absent. */
 	async getCall(id: CallId): Promise<Call | undefined> {
+		if (!(await this.access.canRead(id))) return undefined;
 		const entity = await this.repo.findById({ id });
 		if (!entity) {
 			return undefined;
@@ -300,43 +351,72 @@ export class CallsStoreService {
 		const limit = params.limit ?? 50;
 		const offset = params.offset ?? 0;
 
-		let query = this.applyFilters(this.store.db.selectFrom("calls").selectAll(), params);
-
-		const items = await query
-			.orderBy("startedAt", "desc")
+		const items = await this.applyFilters(this.visible(), params)
+			.orderBy("obj.startedAt", "desc")
 			.limit(limit)
 			.offset(offset)
+			.selectAll("obj")
 			.execute();
 
-		let countQuery = this.store.db
-			.selectFrom("calls")
-			.select(({ fn }) => fn.countAll().as("count"));
-		countQuery = this.applyFilters(countQuery, params);
-		const countResult = await countQuery.executeTakeFirst();
-		const totalCount = Number(countResult?.count ?? 0);
+		const countResult = await this.applyFilters(this.visible(), params)
+			.select((eb: any) => eb.fn.countAll().as("count"))
+			.executeTakeFirst();
 
 		return {
 			items: (items as CallEntity[]).map((item) => this.toCall(item)),
-			totalCount,
+			totalCount: Number(countResult?.count ?? 0),
 		};
 	}
 
 	async countCalls(filter?: FilterObject): Promise<number> {
-		const query = applyKyselyFilter(this.store.db.selectFrom("calls").select(({ fn }) => fn.countAll().as("count")), filter, callFilterSchema);
-		const result = await query.executeTakeFirst();
+		const result = await applyKyselyFilter(
+			this.visible(),
+			filter,
+			callFilterSchema,
+		)
+			.select((eb: any) => eb.fn.countAll().as("count"))
+			.executeTakeFirst();
 		return Number(result?.count ?? 0);
+	}
+
+	/**
+	 * Calls the caller may hear, as the base of every listing.
+	 *
+	 * A call record carries a phone number, a title and a transcript, so an
+	 * unnarrowed list is the substance of every conversation in the deployment.
+	 */
+	private visible() {
+		return visibleFrom(this.store.db, "calls");
 	}
 
 	private applyFilters(query: any, params: CallsListParams) {
 		let next = query;
-		if (params.phone) next = next.where("phone", "=", params.phone);
-		if (params.fromTime !== undefined) next = next.where("startedAt", ">=", params.fromTime);
-		if (params.toTime !== undefined) next = next.where("startedAt", "<=", params.toTime);
-		if (params.processed !== undefined) next = next.where("processed", "=", params.processed ? 1 : 0);
+		if (params.phone) next = next.where("obj.phone", "=", params.phone);
+		if (params.fromTime !== undefined)
+			next = next.where("obj.startedAt", ">=", params.fromTime);
+		if (params.toTime !== undefined)
+			next = next.where("obj.startedAt", "<=", params.toTime);
+		if (params.processed !== undefined)
+			next = next.where("obj.processed", "=", params.processed ? 1 : 0);
 		return applyKyselyFilter(next, params.filter, callFilterSchema);
 	}
 
+	/**
+	 * The stored recording behind a `recordId`.
+	 *
+	 * `recordId` is a content hash rather than a call id, so the tags are looked
+	 * up through the call that carries it: without this, knowing a hash would be
+	 * enough to play somebody else's conversation.
+	 */
 	async getRecording(recordId: CallRecordId): Promise<CacheRef | undefined> {
+		const owningCall = (await this.store.db
+			.selectFrom("calls")
+			.select("id")
+			.where("recordId", "=", recordId)
+			.executeTakeFirst()) as { id: string } | undefined;
+		if (!owningCall) return undefined;
+		await this.access.requireRead(owningCall.id);
+
 		const data = this.recordings.get(this.buildRecordingKey(recordId));
 		if (!data) {
 			return undefined;
@@ -357,11 +437,12 @@ export class CallsStoreService {
 		return undefined;
 	}
 
-
 	async getCallAudio(
 		callId: CallId,
 		source: CallAudioSource,
 	): Promise<CacheRef> {
+		// The audio is the call. Same tags, checked before a byte is muxed.
+		await this.access.requireRead(callId);
 		// Drop the dead air the gate captured (leading/trailing silence + long
 		// mid-call pauses) before muxing, so playback and the waveform reflect the
 		// actual conversation instead of seconds of nothing. See silence.ts.
@@ -377,8 +458,12 @@ export class CallsStoreService {
 		return this.writeCacheRef("assembled", callId, data, source);
 	}
 
-
-	hasCallAudio(callId: CallId): boolean {
+	/**
+	 * Whether a call has audio at all. Answers `false` for a call the caller
+	 * cannot hear, rather than confirming that one exists.
+	 */
+	async hasCallAudio(callId: CallId): Promise<boolean> {
+		if (!(await this.access.canRead(callId))) return false;
 		return (
 			this.countAudioFrames(callId, "user") > 0 ||
 			this.countAudioFrames(callId, "assistant") > 0
@@ -388,7 +473,6 @@ export class CallsStoreService {
 	private countAudioFrames(callId: CallId, source: CallAudioSource): number {
 		return this.fragments.listKeys([GATE_AUDIO_PREFIX, callId, source]).length;
 	}
-
 
 	private readOpusFrames(
 		callId: CallId,
@@ -451,6 +535,7 @@ export class CallsStoreService {
 		if (!existing) {
 			return { deleted: false, fragmentsDeleted: 0 };
 		}
+		await this.access.requireWrite(id);
 
 		const fragmentRows = (await this.store.db
 			.selectFrom("call_fragments")
@@ -483,6 +568,7 @@ export class CallsStoreService {
 
 		this.recordings.delete(this.buildRecordingKey(existing.recordId));
 		const deleted = await this.repo.delete({ id });
+		if (deleted) await this.access.dropObject(id);
 
 		return { deleted, fragmentsDeleted };
 	}

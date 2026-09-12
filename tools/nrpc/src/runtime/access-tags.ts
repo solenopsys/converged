@@ -55,6 +55,17 @@ export function tagsFromGrantTree(
  * This is the list that goes into the `IN (...)` of an access-filtered query.
  * An anonymous caller gets an empty list, which selects nothing but `public`.
  */
+/**
+ * Whether the current caller is a service rather than a person.
+ *
+ * Services are trusted to act for others: a workflow that files a document on a
+ * user's behalf names that user as the owner, and is believed. A person naming
+ * an owner is naming somebody to impersonate, and is not.
+ */
+export function isServiceActor(): boolean {
+	return getCurrentWorkspaceContext()?.actorType === "service";
+}
+
 export function getCurrentAccessTags(): string[] {
 	const context = getCurrentWorkspaceContext();
 	const user = context?.user?.trim();

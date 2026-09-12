@@ -268,7 +268,13 @@ export default defineSurface({
 				if (!title) throw new Error("Topic title is required");
 
 				const topic = await communityClient.createTopic({ sectionId, title });
-				await threadsClient.registerThread(topic.threadId, "forum");
+				// The thread is opened to the same audience as the topic. They are
+				// separate repositories with separate tag tables, so the only thing
+				// that keeps them in step is this call, made by the client that
+				// just created both.
+				await threadsClient.registerThread(topic.threadId, "forum", {
+					visibility: topic.visibility,
+				});
 
 				const body = String(params.body ?? "").trim();
 				if (body) {

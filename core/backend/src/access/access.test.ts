@@ -1,8 +1,8 @@
+import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Database } from "bun:sqlite";
 import { runWithWorkspaceContext } from "nrpc";
 import { SqlStore } from "../engines/sql/sql-store";
 import { InMemoryMigrationState } from "../migrations";
@@ -42,7 +42,11 @@ async function addTopic(id: string, title: string, tags: string[]) {
 
 beforeEach(async () => {
 	dir = mkdtempSync(join(tmpdir(), "access-test-"));
-	store = new SqlStore(join(dir, "data.db"), [CreateTopics, AccessTagsMigration], new InMemoryMigrationState());
+	store = new SqlStore(
+		join(dir, "data.db"),
+		[CreateTopics, AccessTagsMigration],
+		new InMemoryMigrationState(),
+	);
 	await store.open();
 	await store.migrate();
 	access = new AccessTags(store);
@@ -53,7 +57,8 @@ afterEach(async () => {
 	rmSync(dir, { recursive: true, force: true });
 });
 
-const asAlice = <T>(fn: () => T) => runWithWorkspaceContext({ user: "alice" }, fn);
+const asAlice = <T>(fn: () => T) =>
+	runWithWorkspaceContext({ user: "alice" }, fn);
 const asBob = <T>(fn: () => T) =>
 	runWithWorkspaceContext({ user: "bob", accessTags: ["team-support"] }, fn);
 const anonymous = <T>(fn: () => T) => runWithWorkspaceContext({}, fn);
@@ -65,11 +70,15 @@ describe("selecting what an actor may see", () => {
 		await addTopic("t3", "open to all", [PUBLIC_TAG]);
 		await addTopic("t4", "nobody's", ["u-carol"]);
 
-		const alice = await asAlice(() => listVisible<{ id: string }>(store.db, "topics"));
+		const alice = await asAlice(() =>
+			listVisible<{ id: string }>(store.db, "topics"),
+		);
 		expect(alice.items.map((row) => row.id).sort()).toEqual(["t1", "t3"]);
 		expect(alice.totalCount).toBe(2);
 
-		const bob = await asBob(() => listVisible<{ id: string }>(store.db, "topics"));
+		const bob = await asBob(() =>
+			listVisible<{ id: string }>(store.db, "topics"),
+		);
 		expect(bob.items.map((row) => row.id).sort()).toEqual(["t2", "t3"]);
 	});
 
@@ -77,21 +86,26 @@ describe("selecting what an actor may see", () => {
 		await addTopic("t1", "open", [PUBLIC_TAG]);
 		await addTopic("t2", "closed", ["u-alice"]);
 
-		const page = await anonymous(() => listVisible<{ id: string }>(store.db, "topics"));
+		const page = await anonymous(() =>
+			listVisible<{ id: string }>(store.db, "topics"),
+		);
 		expect(page.items.map((row) => row.id)).toEqual(["t1"]);
 	});
 
 	test("an object matched by two of the actor's tags is returned once", async () => {
 		await addTopic("t1", "both", ["u-bob", "team-support", PUBLIC_TAG]);
 
-		const page = await asBob(() => listVisible<{ id: string }>(store.db, "topics"));
+		const page = await asBob(() =>
+			listVisible<{ id: string }>(store.db, "topics"),
+		);
 		expect(page.items.map((row) => row.id)).toEqual(["t1"]);
 		expect(page.totalCount).toBe(1);
 	});
 
 	test("the count matches the selection, so hidden objects do not leak through it", async () => {
 		for (let i = 0; i < 30; i++) await addTopic(`open-${i}`, "x", [PUBLIC_TAG]);
-		for (let i = 0; i < 70; i++) await addTopic(`hidden-${i}`, "x", ["u-carol"]);
+		for (let i = 0; i < 70; i++)
+			await addTopic(`hidden-${i}`, "x", ["u-carol"]);
 
 		const page = await asAlice(() =>
 			listVisible<{ id: string }>(store.db, "topics", { limit: 10 }),
@@ -155,7 +169,10 @@ describe("granting and revoking", () => {
 	});
 
 	test("a new object carries its owner and chosen visibility", async () => {
-		await store.db.insertInto("topics").values({ id: "t1", title: "x" }).execute();
+		await store.db
+			.insertInto("topics")
+			.values({ id: "t1", title: "x" })
+			.execute();
 		await access.tagNew("t1", { owner: "alice", visibility: "public" });
 
 		expect((await access.tagsOf("t1")).sort()).toEqual(["public", "u-alice"]);
@@ -235,5 +252,75 @@ describe("the query plan", () => {
 			),
 		);
 		expect(plan.join("\n")).not.toMatch(/SCAN obj\b/);
+	});
+});
+
+describe("visibility as a tag", () => {
+	test("narrowing an object drops it from other people's lists at once", async () => {
+		await store.db
+			.insertInto("topics")
+			.values({ id: "t1", title: "x" })
+			.execute();
+		await access.tagNew("t1", { owner: "alice", visibility: "authenticated" });
+		expect(await asBob(() => access.canRead("t1"))).toBe(true);
+
+		await access.setVisibility("t1", "private");
+		expect(await asBob(() => access.canRead("t1"))).toBe(false);
+		// The owner keeps their own tag: only the well-known ones are re-pointed.
+		expect(await asAlice(() => access.canRead("t1"))).toBe(true);
+	});
+
+	test("widening leaves group grants in place", async () => {
+		await addTopic("t1", "x", ["team-support"]);
+		await access.setVisibility("t1", "public");
+		expect((await access.tagsOf("t1")).sort()).toEqual([
+			"public",
+			"team-support",
+		]);
+	});
+});
+
+describe("writing", () => {
+	test("being able to see an object is not being able to change it", async () => {
+		await addTopic("t1", "x", [PUBLIC_TAG, "u-carol"]);
+		expect(await asAlice(() => access.canRead("t1"))).toBe(true);
+		expect(await asAlice(() => access.canWrite("t1"))).toBe(false);
+		await asAlice(async () => {
+			expect(access.requireWrite("t1")).rejects.toThrow(AccessDeniedError);
+		});
+	});
+
+	test("a group tag the object carries makes it writable — that is moderation", async () => {
+		await addTopic("t1", "x", ["team-support"]);
+		expect(await asBob(() => access.canWrite("t1"))).toBe(true);
+		expect(await asAlice(() => access.canWrite("t1"))).toBe(false);
+	});
+
+	test("an anonymous caller writes nothing, public or not", async () => {
+		await addTopic("t1", "x", [PUBLIC_TAG]);
+		expect(await anonymous(() => access.canWrite("t1"))).toBe(false);
+	});
+});
+
+describe("the owner of a new object", () => {
+	test("defaults to the acting subject rather than to nobody", async () => {
+		await store.db
+			.insertInto("topics")
+			.values({ id: "t1", title: "x" })
+			.execute();
+		await asAlice(() => access.tagNew("t1"));
+
+		expect(await access.tagsOf("t1")).toEqual(["u-alice"]);
+		expect(await asAlice(() => access.canRead("t1"))).toBe(true);
+	});
+
+	test("an explicit owner still wins, for a service filing on someone's behalf", async () => {
+		await store.db
+			.insertInto("topics")
+			.values({ id: "t1", title: "x" })
+			.execute();
+		await asAlice(() => access.tagNew("t1", { owner: "carol" }));
+
+		expect(await access.tagsOf("t1")).toEqual(["u-carol"]);
 	});
 });

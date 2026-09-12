@@ -16,6 +16,7 @@ import type {
 	UUID,
 } from "g-files";
 import { createStoreServiceClient } from "g-store";
+import { getCurrentWorkspaceContext, isServiceActor } from "nrpc";
 import {
 	concatBytes,
 	contentTypeForName,
@@ -31,6 +32,30 @@ import { StoresController } from "./stores";
 import { extractTextFromBytes } from "./text";
 
 const REPOSITORY_ID = "rp-files";
+
+/**
+ * Who is calling, from the verified token and from nothing else.
+ */
+function requireActor(): string {
+	const actor = getCurrentWorkspaceContext()?.user?.trim();
+	if (!actor) throw new Error("Authenticated caller is required");
+	return actor;
+}
+
+/**
+ * The owner a new record is filed under.
+ *
+ * A person owns what they upload, whatever the payload claims — the `owner`
+ * field arrives from the browser and is therefore a wish, not a fact. A service
+ * is trusted with the claim, because a workflow legitimately files a document
+ * for the user it is running on behalf of; if it names nobody, it owns the
+ * result itself.
+ */
+function ownerFor(claimed: string | undefined): string {
+	const actor = requireActor();
+	if (!isServiceActor()) return actor;
+	return claimed?.trim() || actor;
+}
 
 export class FilesServiceImpl implements FilesService {
 	stores: StoresController;
@@ -57,14 +82,27 @@ export class FilesServiceImpl implements FilesService {
 		return this.cache;
 	}
 
+	/**
+	 * Files a metadata record.
+	 *
+	 * The id stays the caller's, because the upload flow mints it before the
+	 * chunks are sent and refers to it throughout. What that costs is covered by
+	 * it being a v4 UUID and by the record being tagged to its owner here: a
+	 * collided id lands on a row the collider cannot read anyway. The owner,
+	 * unlike the id, is overwritten — see `ownerFor`.
+	 */
 	async save(file: FileMetadata, _processId?: string): Promise<UUID> {
-		const id = await this.stores.metadataService.save(file);
-		return id;
+		const owner = ownerFor(file.owner);
+		return this.stores.metadataService.save({ ...file, owner });
 	}
+
 	saveChunk(chunk: FileChunk): Promise<HashString> {
 		return this.stores.metadataService.saveChunk(chunk);
 	}
+
 	update(id: UUID, file: FileMetadata): Promise<void> {
+		// `owner` is not re-derived here: handing a file to somebody else is a
+		// grant, which is `access_tags`, not a column edit.
 		return this.stores.metadataService.update(id, file);
 	}
 	/** Drop the record and let go of its blocks. rp-store counts references, so
@@ -83,31 +121,44 @@ export class FilesServiceImpl implements FilesService {
 	get(id: UUID): Promise<FileMetadata> {
 		return this.stores.metadataService.get(id);
 	}
+
 	getChunks(id: UUID): Promise<FileChunk[]> {
 		return this.stores.metadataService.getChunks(id);
 	}
+
 	list(params: PaginationParams): Promise<PaginatedResult<FileMetadata>> {
 		return this.stores.metadataService.list(params);
 	}
+
 	statistic(): Promise<unknown> {
 		return this.stores.metadataService.statistic();
 	}
+
 	saveCollection(collection: FileCollection): Promise<UUID> {
-		return this.stores.metadataService.saveCollection(collection);
+		const owner = ownerFor(collection.owner);
+		return this.stores.metadataService.saveCollection({ ...collection, owner });
 	}
+
 	getCollection(id: UUID): Promise<FileCollection> {
 		return this.stores.metadataService.getCollection(id);
 	}
+
 	deleteCollection(id: UUID): Promise<void> {
 		return this.stores.metadataService.deleteCollection(id);
 	}
+
 	listByCollection(collectionId: UUID): Promise<FileMetadata[]> {
 		return this.stores.metadataService.listByCollection(collectionId);
 	}
 
 	// ---- workflow contract (contract.md): bytes travel as CacheRef ----------
 
-	/** Assemble a stored file's chunks into one Valkey blob. */
+	/**
+	 * Assemble a stored file's chunks into one Valkey blob.
+	 *
+	 * Guarded by `getChunks` below, which refuses a file the caller holds no tag
+	 * for — the cache ref this hands back is a capability to the bytes.
+	 */
 	async materialize(fileId: UUID): Promise<MaterializedFile> {
 		const cache = this.requiredCache();
 		const metadata = await this.stores.metadataService.get(fileId);

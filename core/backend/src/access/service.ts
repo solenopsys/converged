@@ -1,6 +1,14 @@
 import type { SqlStore } from "../engines/sql/sql-store";
 import { ACCESS_TAGS_TABLE } from "./migration";
-import { actorTags, personalTag, tagsForNew, type Visibility } from "./tags";
+import {
+	AUTHENTICATED_TAG,
+	actorTags,
+	identityTags,
+	PUBLIC_TAG,
+	personalTag,
+	tagsForNew,
+	type Visibility,
+} from "./tags";
 
 export class AccessDeniedError extends Error {
 	constructor(objectId: string) {
@@ -45,6 +53,29 @@ export class AccessTags {
 			.where("objectId", "=", objectId)
 			.where("tag", "=", tag)
 			.execute();
+	}
+
+	/**
+	 * Re-points an object at the visibility it now declares, leaving every other
+	 * tag alone.
+	 *
+	 * Visibility is stored twice on purpose: as a column, because that is what an
+	 * editor shows and a contract carries, and as one of the well-known tags,
+	 * because that is what a selection can be driven by. This is the one place
+	 * that keeps the two in step, so an object narrowed from `public` to
+	 * `private` stops being listed on the next request rather than the next
+	 * migration.
+	 */
+	async setVisibility(objectId: string, visibility: Visibility): Promise<void> {
+		await this.db
+			.deleteFrom(ACCESS_TAGS_TABLE)
+			.where("objectId", "=", objectId)
+			.where("tag", "in", [PUBLIC_TAG, AUTHENTICATED_TAG])
+			.execute();
+
+		if (visibility === "public") await this.grant(objectId, PUBLIC_TAG);
+		if (visibility === "authenticated")
+			await this.grant(objectId, AUTHENTICATED_TAG);
 	}
 
 	/** Replaces the object's whole tag set. Used when access is edited wholesale. */
@@ -104,6 +135,32 @@ export class AccessTags {
 	/** Same check, but throws — for the top of a read handler. */
 	async requireRead(objectId: string): Promise<void> {
 		if (!(await this.canRead(objectId))) throw new AccessDeniedError(objectId);
+	}
+
+	/**
+	 * Whether the object is the actor's own — matched by their personal tag or by
+	 * one of their groups, and not merely by being open.
+	 *
+	 * The distinction is the whole of "a user edits only what is theirs, a
+	 * moderator edits anything in their section": the moderator holds a group tag
+	 * the object also carries, the passer-by holds nothing but `public`.
+	 */
+	async canWrite(objectId: string): Promise<boolean> {
+		const tags = identityTags();
+		if (tags.length === 0) return false;
+		const row = await this.db
+			.selectFrom(ACCESS_TAGS_TABLE)
+			.select("objectId")
+			.where("objectId", "=", objectId)
+			.where("tag", "in", tags)
+			.limit(1)
+			.executeTakeFirst();
+		return row !== undefined;
+	}
+
+	/** Same check, but throws — for the top of a write handler. */
+	async requireWrite(objectId: string): Promise<void> {
+		if (!(await this.canWrite(objectId))) throw new AccessDeniedError(objectId);
 	}
 
 	/** Whether a specific person is matched, regardless of who is calling. */

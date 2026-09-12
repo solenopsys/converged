@@ -1,4 +1,5 @@
 import type { CacheAdapter } from "back-core";
+import { getCurrentWorkspaceContext } from "nrpc";
 import { StoresController } from "./stores";
 import type {
 	CacheRef,
@@ -6,7 +7,6 @@ import type {
 	CallDeleteResult,
 	CallDialogueInput,
 	CallDialogueItem,
-	CallTranscriptItem,
 	CallFragmentInfo,
 	CallFragmentInput,
 	CallFragmentSource,
@@ -15,10 +15,11 @@ import type {
 	CallRecordingInput,
 	CallRecordingResult,
 	CallsListParams,
-	FilterObject,
 	CallsService,
+	CallTranscriptItem,
 	DumpAudioFragmentsInput,
 	DumpAudioFragmentsResult,
+	FilterObject,
 	PaginatedResult,
 	RegisterCallInput,
 	SelectionDescriptor,
@@ -27,6 +28,13 @@ import type {
 } from "./types";
 
 const REPOSITORY_ID = "rp-calls";
+
+/** Who is calling, from the verified token and from nothing else. */
+function requireActor(): string {
+	const actor = getCurrentWorkspaceContext()?.user?.trim();
+	if (!actor) throw new Error("Authenticated caller is required");
+	return actor;
+}
 
 export class CallsServiceImpl implements CallsService {
 	private stores!: StoresController;
@@ -57,12 +65,12 @@ export class CallsServiceImpl implements CallsService {
 
 	async registerCall(input: RegisterCallInput): Promise<Call> {
 		await this.ready();
-		return this.stores.calls.registerCall(input);
+		return this.stores.calls.registerCall(input, requireActor());
 	}
 
 	async saveRecording(input: CallRecordingInput): Promise<CallRecordingResult> {
 		await this.ready();
-		return this.stores.calls.saveRecording(input);
+		return this.stores.calls.saveRecording(input, requireActor());
 	}
 
 	async saveFragment(input: CallFragmentInput): Promise<CallFragmentInfo> {
@@ -114,12 +122,33 @@ export class CallsServiceImpl implements CallsService {
 	}
 
 	async describeSelection(objectType: string): Promise<SelectionDescriptor> {
-		if (objectType !== "calls.call") throw new Error(`Unsupported calls selection object: ${objectType}`);
-		return { objectType, title: "Calls", fields: [
-			{ id: "phone", label: "Phone", valueType: "string", operators: ["eq", "in", "contains"] },
-			{ id: "startedAt", label: "Started", valueType: "number", operators: ["gt", "gte", "lt", "lte", "between"] },
-			{ id: "processed", label: "Processed", valueType: "boolean", operators: ["eq", "notEq"] },
-		], revision: "calls-v1" };
+		if (objectType !== "calls.call")
+			throw new Error(`Unsupported calls selection object: ${objectType}`);
+		return {
+			objectType,
+			title: "Calls",
+			fields: [
+				{
+					id: "phone",
+					label: "Phone",
+					valueType: "string",
+					operators: ["eq", "in", "contains"],
+				},
+				{
+					id: "startedAt",
+					label: "Started",
+					valueType: "number",
+					operators: ["gt", "gte", "lt", "lte", "between"],
+				},
+				{
+					id: "processed",
+					label: "Processed",
+					valueType: "boolean",
+					operators: ["eq", "notEq"],
+				},
+			],
+			revision: "calls-v1",
+		};
 	}
 
 	async inspectCalls(filter?: FilterObject): Promise<SelectionStats> {

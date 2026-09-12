@@ -1,3 +1,4 @@
+import { getCurrentWorkspaceContext } from "nrpc";
 import { StoresController } from "./stores";
 import type {
 	PaginatedResult,
@@ -20,6 +21,13 @@ import type {
 } from "./types";
 
 const REPOSITORY_ID = "rp-requests";
+
+/** Who is calling, from the verified token and from nothing else. */
+function requireActor(): string {
+	const actor = getCurrentWorkspaceContext()?.user?.trim();
+	if (!actor) throw new Error("Authenticated caller is required");
+	return actor;
+}
 
 export class RequestsServiceImpl implements RequestsService {
 	stores: StoresController;
@@ -44,7 +52,7 @@ export class RequestsServiceImpl implements RequestsService {
 
 	async createRequest(input: RequestInput): Promise<RequestId> {
 		await this.init();
-		return this.stores.requests.createRequest(input);
+		return this.stores.requests.createRequest(input, requireActor());
 	}
 
 	getRequest(id: RequestId): Promise<Request | undefined> {
@@ -67,7 +75,7 @@ export class RequestsServiceImpl implements RequestsService {
 
 	async createRequestModel(input: RequestModelInput): Promise<RequestModel> {
 		await this.init();
-		return this.stores.requests.createRequestModel(input);
+		return this.stores.requests.createRequestModel(input, requireActor());
 	}
 
 	applyRequestUpdate(
@@ -100,16 +108,33 @@ export class RequestsServiceImpl implements RequestsService {
 			objectType,
 			title: "Manufacturing requests",
 			fields: [
-				{ id: "source", label: "Source", valueType: "string", operators: ["eq", "in", "contains", "isNull"] },
-				{ id: "status", label: "Status", valueType: "enum", operators: ["eq", "in", "notEq", "notIn"] },
-				{ id: "createdAt", label: "Created", valueType: "date", operators: ["gte", "lte", "between"] },
+				{
+					id: "source",
+					label: "Source",
+					valueType: "string",
+					operators: ["eq", "in", "contains", "isNull"],
+				},
+				{
+					id: "status",
+					label: "Status",
+					valueType: "enum",
+					operators: ["eq", "in", "notEq", "notIn"],
+				},
+				{
+					id: "createdAt",
+					label: "Created",
+					valueType: "date",
+					operators: ["gte", "lte", "between"],
+				},
 			],
 			filterExample: { status: { eq: "new" } },
 			revision: "requests-v1",
 		};
 	}
 
-	async inspectRequests(filter?: Record<string, unknown>): Promise<SelectionStats> {
+	async inspectRequests(
+		filter?: Record<string, unknown>,
+	): Promise<SelectionStats> {
 		await this.init();
 		return { totalCount: await this.stores.requests.countRequests(filter) };
 	}

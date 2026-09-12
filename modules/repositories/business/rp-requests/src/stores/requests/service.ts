@@ -1,9 +1,11 @@
 import {
+	AccessTags,
 	applyKyselyFilter,
 	generateULID,
-	sql,
 	type KyselyFilterSchema,
 	type SqlStore,
+	sql,
+	visibleFrom,
 } from "back-core";
 import type {
 	FilterObject,
@@ -26,24 +28,49 @@ import type {
 	RequestRequirementProfile,
 	RequestStatus,
 } from "../../types";
+import type { RequestRequirementsProvider } from "../requirements/service";
 import type { RequestEntity, RequestProcessingEntity } from "./entities";
 import { RequestRepository } from "./entities";
-import type { RequestRequirementsProvider } from "../requirements/service";
-import { buildRequestModel, inferRequestProcessType, snapshotFields } from "./model";
+import {
+	buildRequestModel,
+	inferRequestProcessType,
+	snapshotFields,
+} from "./model";
 
 const requestFilterSchema: KyselyFilterSchema = {
-	source: { valueType: "string", operators: ["eq", "in", "contains", "isNull"], column: "source" },
-	status: { valueType: "string", operators: ["eq", "in", "notEq", "notIn"], column: "status" },
-	createdAt: { valueType: "date", operators: ["gte", "lte", "between"], column: "createdAt" },
+	source: {
+		valueType: "string",
+		operators: ["eq", "in", "contains", "isNull"],
+		column: "obj.source",
+	},
+	status: {
+		valueType: "string",
+		operators: ["eq", "in", "notEq", "notIn"],
+		column: "obj.status",
+	},
+	createdAt: {
+		valueType: "date",
+		operators: ["gte", "lte", "between"],
+		column: "obj.createdAt",
+	},
 };
 
 export class RequestsStoreService {
 	private readonly repo: RequestRepository;
+	/**
+	 * Who may see which request.
+	 *
+	 * The JSON store next door holds requirement profiles, not requests, and
+	 * keeps no tags of its own — per `access-control.md` a file store's access is
+	 * the access of the record pointing at it, which here is the request.
+	 */
+	readonly access: AccessTags;
 
 	constructor(
 		private store: SqlStore,
 		private requirements?: RequestRequirementsProvider,
 	) {
+		this.access = new AccessTags(store);
 		this.repo = new RequestRepository(store, "requests", {
 			primaryKey: "id",
 			extractKey: (entry) => ({ id: entry.id }),
@@ -51,18 +78,21 @@ export class RequestsStoreService {
 		});
 	}
 
-	async createRequest(input: RequestInput): Promise<RequestId> {
+	async createRequest(input: RequestInput, actor?: string): Promise<RequestId> {
 		const id = generateULID();
 		const createdAt = new Date().toISOString();
 		const status = input.status ?? "new";
 		const profiles = await this.listRequirementProfiles();
-		const processType = inferRequestProcessType({
-			source: input.source,
-			processType: input.processType,
-			title: input.title,
-			summary: input.summary,
-			fields: input.fields,
-		}, profiles);
+		const processType = inferRequestProcessType(
+			{
+				source: input.source,
+				processType: input.processType,
+				title: input.title,
+				summary: input.summary,
+				fields: input.fields,
+			},
+			profiles,
+		);
 		const requirementProfile = await this.getRequirementProfile(processType);
 		const model = buildRequestModel({
 			id,
@@ -96,29 +126,44 @@ export class RequestsStoreService {
 			.insertInto("requests")
 			.values(entity as any)
 			.execute();
+		// A request belongs to whoever filed it. Opening it to the team that
+		// handles it is a grant on top, not a wider default: `authenticated`
+		// here would publish every customer enquiry to every account.
+		await this.access.tagNew(id, { visibility: "private", owner: actor });
 		return id;
 	}
 
-	async createRequestModel(input: RequestModelInput): Promise<RequestModel> {
-		const id = await this.createRequest({
-			source: input.source,
-			status: input.status,
-			processType: input.processType,
-			title: input.title,
-			summary: input.summary,
-			fields: input.fields ?? {},
-			parameters: input.parameters,
-			fieldDefinitions: input.fieldDefinitions,
-			files: input.files,
-		});
-		const model = await this.getRequestModel(id);
-		if (!model) {
+	async createRequestModel(
+		input: RequestModelInput,
+		actor?: string,
+	): Promise<RequestModel> {
+		const id = await this.createRequest(
+			{
+				source: input.source,
+				status: input.status,
+				processType: input.processType,
+				title: input.title,
+				summary: input.summary,
+				fields: input.fields ?? {},
+				parameters: input.parameters,
+				fieldDefinitions: input.fieldDefinitions,
+				files: input.files,
+			},
+			actor,
+		);
+		// Read back without the access check: this row was written a line ago by
+		// this caller, and routing through the public getter would make the answer
+		// depend on tags that are only meaningful on a later request.
+		const entity = await this.repo.findById({ id });
+		if (!entity) {
 			throw new Error(`Request not found after creation: ${id}`);
 		}
-		return model;
+		return this.toModel(entity);
 	}
 
+	/** A request the caller holds no tag for reads as absent. */
 	async getRequest(id: RequestId): Promise<Request | undefined> {
+		if (!(await this.access.canRead(id))) return undefined;
 		const entity = await this.repo.findById({ id });
 		if (!entity) {
 			return undefined;
@@ -127,6 +172,7 @@ export class RequestsStoreService {
 	}
 
 	async getRequestModel(id: RequestId): Promise<RequestModel | undefined> {
+		if (!(await this.access.canRead(id))) return undefined;
 		const entity = await this.repo.findById({ id });
 		if (!entity) {
 			return undefined;
@@ -150,6 +196,7 @@ export class RequestsStoreService {
 		actor: string,
 		comment?: string,
 	): Promise<RequestModel> {
+		await this.access.requireWrite(id);
 		const existing = await this.repo.findById({ id });
 		if (!existing) {
 			throw new Error(`Request not found: ${id}`);
@@ -160,14 +207,17 @@ export class RequestsStoreService {
 		const profiles = await this.listRequirementProfiles();
 		const processType =
 			patch.processType ??
-			inferRequestProcessType({
-				source: patch.source ?? existing.source ?? previous.source,
-				processType: previous.processType,
-				title: patch.title ?? previous.title,
-				summary: patch.summary ?? previous.summary,
-				fields: patch.fields,
-				previous,
-			}, profiles);
+			inferRequestProcessType(
+				{
+					source: patch.source ?? existing.source ?? previous.source,
+					processType: previous.processType,
+					title: patch.title ?? previous.title,
+					summary: patch.summary ?? previous.summary,
+					fields: patch.fields,
+					previous,
+				},
+				profiles,
+			);
 		const requirementProfile = await this.getRequirementProfile(processType);
 		const model = buildRequestModel({
 			id,
@@ -187,18 +237,15 @@ export class RequestsStoreService {
 			previous,
 		});
 
-		await this.repo.update(
-			{ id },
-			{
-				source: model.source ?? "",
-				status: model.status,
-				fields: this.serializeMap(snapshotFields(model)),
-				files: this.serializeMap(model.files),
-				collections: this.serializeMap(model.collections ?? {}),
-				model: this.serializeJson(model),
-				updatedAt: model.updatedAt,
-			} as any,
-		);
+		await this.repo.update({ id }, {
+			source: model.source ?? "",
+			status: model.status,
+			fields: this.serializeMap(snapshotFields(model)),
+			files: this.serializeMap(model.files),
+			collections: this.serializeMap(model.collections ?? {}),
+			model: this.serializeJson(model),
+			updatedAt: model.updatedAt,
+		} as any);
 
 		await this.recordProcessing(
 			id,
@@ -216,7 +263,12 @@ export class RequestsStoreService {
 		actor: string,
 		comment?: string,
 	): Promise<void> {
-		await this.applyRequestUpdate(id, patch, actor, comment ?? "patched request");
+		await this.applyRequestUpdate(
+			id,
+			patch,
+			actor,
+			comment ?? "patched request",
+		);
 	}
 
 	async listRequests(
@@ -225,44 +277,44 @@ export class RequestsStoreService {
 		const limit = params.limit ?? 50;
 		const offset = params.offset ?? 0;
 
-		let query = this.applyFilters(this.store.db.selectFrom("requests").selectAll(), params);
-
-		const items = await query
-			.orderBy("createdAt", "desc")
+		const items = await this.applyFilters(this.visible(), params)
+			.selectAll("obj")
+			.orderBy("obj.createdAt", "desc")
 			.limit(limit)
 			.offset(offset)
 			.execute();
 
-		let countQuery = this.store.db
-			.selectFrom("requests")
-			.select(({ fn }) => fn.countAll().as("count"));
-		countQuery = this.applyFilters(countQuery, params);
-		const countResult = await countQuery.executeTakeFirst();
-		const totalCount = Number(countResult?.count ?? 0);
+		const countResult = await this.applyFilters(this.visible(), params)
+			.select((eb: any) => eb.fn.countAll().as("count"))
+			.executeTakeFirst();
 
 		return {
 			items: await Promise.all(
 				(items as RequestEntity[]).map((item) => this.toRequest(item)),
 			),
-			totalCount,
+			totalCount: Number(countResult?.count ?? 0),
 		};
 	}
 
 	async countRequests(filter?: FilterObject): Promise<number> {
-		const query = applyKyselyFilter(
-			this.store.db
-				.selectFrom("requests")
-				.select(({ fn }) => fn.countAll().as("count")),
+		const result = await applyKyselyFilter(
+			this.visible(),
 			filter,
 			requestFilterSchema,
-		);
-		const result = await query.executeTakeFirst();
+		)
+			.select((eb: any) => eb.fn.countAll().as("count"))
+			.executeTakeFirst();
 		return Number(result?.count ?? 0);
+	}
+
+	/** Requests the caller may see, as the base of every listing and count. */
+	private visible() {
+		return visibleFrom(this.store.db, "requests");
 	}
 
 	private applyFilters(query: any, params: RequestListParams) {
 		let next = query;
-		if (params.source) next = next.where("source", "=", params.source);
+		if (params.source) next = next.where("obj.source", "=", params.source);
 		return applyKyselyFilter(next, params.filter, requestFilterSchema);
 	}
 
@@ -272,6 +324,7 @@ export class RequestsStoreService {
 		actor: string,
 		comment?: string,
 	): Promise<void> {
+		await this.access.requireWrite(id);
 		const existing = await this.repo.findById({ id });
 		if (!existing) {
 			throw new Error(`Request not found: ${id}`);
@@ -282,9 +335,11 @@ export class RequestsStoreService {
 		await this.recordProcessing(id, status, actor, comment ?? "");
 	}
 
+	/** The audit trail of one request, guarded by that request. */
 	async listProcessing(
 		requestId: RequestId,
 	): Promise<RequestProcessingEntry[]> {
+		await this.access.requireRead(requestId);
 		const items = await this.store.db
 			.selectFrom("request_processing")
 			.selectAll()
@@ -295,16 +350,18 @@ export class RequestsStoreService {
 		return items as RequestProcessingEntry[];
 	}
 
+	/**
+	 * Totals over the requests the caller may see. Counting the rest would report
+	 * exactly how many requests are being kept from them.
+	 */
 	async getRequestMetrics(): Promise<RequestMetrics> {
-		const countResult = await this.store.db
-			.selectFrom("requests")
-			.select(({ fn }) => fn.countAll().as("count"))
+		const countResult = await this.visible()
+			.select((eb: any) => eb.fn.countAll().as("count"))
 			.executeTakeFirst();
-		const dailyRows = await this.store.db
-			.selectFrom("requests")
-			.select(sql<string>`substr(createdAt, 1, 10)`.as("date"))
-			.select(({ fn }) => fn.countAll().as("requests"))
-			.groupBy(sql`substr(createdAt, 1, 10)`)
+		const dailyRows = await this.visible()
+			.select(sql<string>`substr(obj.createdAt, 1, 10)`.as("date"))
+			.select((eb: any) => eb.fn.countAll().as("requests"))
+			.groupBy(sql`substr(obj.createdAt, 1, 10)`)
 			.orderBy("date", "asc")
 			.execute();
 
@@ -376,7 +433,9 @@ export class RequestsStoreService {
 		return this.requirements?.getProfile(processType);
 	}
 
-	private async listRequirementProfiles(): Promise<RequestRequirementProfile[]> {
+	private async listRequirementProfiles(): Promise<
+		RequestRequirementProfile[]
+	> {
 		return this.requirements?.listProfiles() ?? [];
 	}
 
@@ -417,7 +476,8 @@ export class RequestsStoreService {
 			status: entity.status,
 			fields: this.parseMap(entity.fields) as RequestFields,
 			files: this.parseMap(entity.files) as RequestFiles,
-			collections: Object.keys(collections).length > 0 ? collections : undefined,
+			collections:
+				Object.keys(collections).length > 0 ? collections : undefined,
 			createdAt: entity.createdAt,
 			updatedAt: entity.updatedAt ?? entity.createdAt,
 			model,

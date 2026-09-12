@@ -1,15 +1,15 @@
-import {
+import { CACHE_BLOB_TTL_SECONDS, type CacheAdapter } from "back-core";
+import type {
 	CacheRef,
+	CompressionType,
 	HashString,
 	PaginatedResult,
 	PaginationParams,
 	StoreService,
-	CompressionType,
 } from "g-store";
-import { Access } from "nrpc";
-import { StoresController } from "./stores";
+import { Access, getCurrentWorkspaceContext } from "nrpc";
 import * as path from "path";
-import { CACHE_BLOB_TTL_SECONDS, type CacheAdapter } from "back-core";
+import { StoresController } from "./stores";
 
 const REPOSITORY_ID = "rp-store";
 
@@ -135,8 +135,14 @@ export class StoreServiceImpl implements StoreService {
 	}
 
 	async delete(hash: HashString): Promise<void> {
-
-		const shouldDelete = await this.stores.metadataService.decrementRef(hash);
+		// The caller releasing the block is the holder losing it, so their tag
+		// goes with the reference. Who that is comes from the token when there is
+		// one; on the legacy unauthenticated path there is nobody to revoke.
+		const holder = getCurrentWorkspaceContext()?.user?.trim();
+		const shouldDelete = await this.stores.metadataService.decrementRef(
+			hash,
+			holder,
+		);
 		if (shouldDelete) {
 			await this.stores.fileStore.delete(this.toKey(hash));
 		}
@@ -166,17 +172,19 @@ export class StoreServiceImpl implements StoreService {
 		return this.stores.fileStore.exists(this.toKey(hash));
 	}
 
+	/**
+	 * The blocks the caller holds.
+	 *
+	 * It used to walk the file store's directory and hand back everything in it
+	 * — a map of every file in the deployment, page by page. Reading one block by
+	 * hash still needs no more than the hash, but nothing hands out the list of
+	 * hashes any more.
+	 */
 	async list(params: PaginationParams): Promise<PaginatedResult<HashString>> {
-		const allKeys = await this.stores.fileStore.listKeys();
-		const start = params.offset;
-		const end = params.offset + params.limit;
-		return {
-			items: allKeys.slice(start, end).map((key) => path.basename(key)),
-			totalCount: allKeys.length,
-		};
+		return this.stores.metadataService.list(params.limit, params.offset);
 	}
 
 	async storeStatistic(): Promise<any> {
-		return this.stores.fileStore.getStats();
+		return this.stores.metadataService.statistic();
 	}
 }

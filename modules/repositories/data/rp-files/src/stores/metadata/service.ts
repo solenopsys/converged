@@ -1,7 +1,9 @@
 import {
+	AccessTags,
 	applyKyselyFilter,
 	type KyselyFilterSchema,
 	type SqlStore,
+	visibleFrom,
 } from "back-core";
 import type {
 	FileChunk,
@@ -25,48 +27,58 @@ const fileFilterSchema: KyselyFilterSchema = {
 	id: {
 		valueType: "string",
 		operators: ["eq", "in", "contains", "startsWith"],
-		column: "id",
+		column: "obj.id",
 	},
 	name: {
 		valueType: "string",
 		operators: ["eq", "in", "contains", "startsWith"],
-		column: "name",
+		column: "obj.name",
 	},
 	fileType: {
 		valueType: "string",
 		operators: ["eq", "in", "contains", "startsWith"],
-		column: "fileType",
+		column: "obj.fileType",
 	},
 	owner: {
 		valueType: "string",
 		operators: ["eq", "in", "contains", "startsWith"],
-		column: "owner",
+		column: "obj.owner",
 	},
 	status: {
 		valueType: "string",
 		operators: ["eq", "in", "notEq", "notIn"],
-		column: "status",
+		column: "obj.status",
 	},
 	fileSize: {
 		valueType: "number",
 		operators: ["eq", "gt", "gte", "lt", "lte", "between"],
-		column: "fileSize",
+		column: "obj.fileSize",
 	},
 	createdAt: {
 		valueType: "date",
 		operators: ["gt", "gte", "lt", "lte", "between"],
-		column: "createdAt",
+		column: "obj.createdAt",
 	},
 };
 
 export class MetadataStoreService {
 	private readonly store: SqlStore;
+	/**
+	 * Who may see which file record.
+	 *
+	 * The bytes are not here — they live in `rp-store`, content-addressed by
+	 * hash — so this record is what access to a file actually means. Per
+	 * `access-control.md` a file store keeps no tags of its own: the name is the
+	 * object id, and the record pointing at it is what carries the decision.
+	 */
+	public readonly access: AccessTags;
 	public readonly fileMetadataRepo: FileMetadataRepository;
 	public readonly fileChunkRepo: FileChunkRepository;
 	public readonly fileCollectionRepo: FileCollectionRepository;
 
 	constructor(store: SqlStore) {
 		this.store = store;
+		this.access = new AccessTags(store);
 		this.fileMetadataRepo = new FileMetadataRepository(store, "file_metadata", {
 			primaryKey: "id",
 			extractKey: (file) => ({ id: file.id }),
@@ -94,9 +106,20 @@ export class MetadataStoreService {
 		);
 	}
 
+	/**
+	 * Records a file and tags it to its owner.
+	 *
+	 * The owner is settled by the caller in `service.ts` — from the token for a
+	 * person, from the input only when a trusted service is filing on somebody's
+	 * behalf — so by the time it reaches here it is already the truth.
+	 */
 	async save(file: FileMetadata): Promise<UUID> {
 		const { createdAt, ...rest } = file as any;
 		await this.fileMetadataRepo.create(rest);
+		await this.access.tagNew(file.id, {
+			visibility: "private",
+			owner: file.owner,
+		});
 		return file.id;
 	}
 
@@ -118,6 +141,7 @@ export class MetadataStoreService {
 	}
 
 	async update(id: UUID, file: Partial<FileMetadata>): Promise<void> {
+		await this.access.requireWrite(id);
 		const key: FileMetadataKey = { id };
 
 		// Filter out undefined, null, objects, arrays - keep only primitives
@@ -143,15 +167,24 @@ export class MetadataStoreService {
 	}
 
 	async delete(id: UUID): Promise<void> {
+		await this.access.requireWrite(id);
 		const key: FileMetadataKey = { id };
 		await this.fileMetadataRepo.delete(key);
+		await this.access.dropObject(id);
 	}
 
+	/** A file the caller holds no tag for reads as absent, not as forbidden. */
 	async get(id: UUID): Promise<FileMetadata | undefined> {
+		if (!(await this.access.canRead(id))) return undefined;
 		return await this.fileMetadataRepo.findById({ id });
 	}
 
+	/**
+	 * A file's chunk list. Guarded by the file: a chunk hash is a key into
+	 * `rp-store`, so handing the list out is handing out the bytes.
+	 */
 	async getChunks(id: UUID): Promise<FileChunk[]> {
+		await this.access.requireRead(id);
 		const rows = await this.store.db
 			.selectFrom("file_chunks")
 			.selectAll()
@@ -162,43 +195,53 @@ export class MetadataStoreService {
 		return rows as FileChunk[];
 	}
 
+	/**
+	 * The caller's files, narrowed by tag before the search text is applied.
+	 *
+	 * The `key` search used to run across every record in the store, including
+	 * the `owner` column — so typing somebody's name listed their files. Access
+	 * comes first now, and the search only ever shrinks what was already open.
+	 */
+	private visible(params: {
+		key?: string;
+		filter?: PaginationParams["filter"];
+	}) {
+		let query = visibleFrom(this.store.db, "file_metadata");
+
+		const key = params.key?.trim();
+		if (key) {
+			const pattern = `%${key}%`;
+			query = query.where((eb: any) =>
+				eb.or([
+					eb("obj.name", "like", pattern),
+					eb("obj.fileType", "like", pattern),
+					eb("obj.owner", "like", pattern),
+					eb("obj.id", "like", pattern),
+				]),
+			);
+		}
+
+		return applyKyselyFilter(query, params.filter, fileFilterSchema);
+	}
+
 	async list(params: PaginationParams): Promise<PaginatedResult<FileMetadata>> {
 		const limit = Math.min(Math.max(params.limit ?? 20, 1), 100);
 		const offset = Math.max(params.offset ?? 0, 0);
-		const key = params.key?.trim();
-
-		let filesQuery = this.store.db.selectFrom("file_metadata").selectAll();
-		let countQuery = this.store.db
-			.selectFrom("file_metadata")
-			.select(({ fn }) => fn.countAll().as("count"));
-
-		if (key) {
-			const pattern = `%${key}%`;
-			const whereMatchesKey = (eb: any) =>
-				eb.or([
-					eb("name", "like", pattern),
-					eb("fileType", "like", pattern),
-					eb("owner", "like", pattern),
-					eb("id", "like", pattern),
-				]);
-
-			filesQuery = filesQuery.where(whereMatchesKey);
-			countQuery = countQuery.where(whereMatchesKey);
-		}
-		filesQuery = applyKyselyFilter(filesQuery, params.filter, fileFilterSchema);
-		countQuery = applyKyselyFilter(countQuery, params.filter, fileFilterSchema);
 
 		const [items, count] = await Promise.all([
-			filesQuery
-				.orderBy("createdAt", "desc")
+			this.visible(params)
+				.selectAll("obj")
+				.orderBy("obj.createdAt", "desc")
 				.limit(limit)
 				.offset(offset)
 				.execute(),
-			countQuery.executeTakeFirst(),
+			this.visible(params)
+				.select((eb: any) => eb.fn.countAll().as("count"))
+				.executeTakeFirst(),
 		]);
 
 		return {
-			items: items.map((item) => item as FileMetadata),
+			items: items.map((item: unknown) => item as FileMetadata),
 			totalCount: Number(count?.count ?? 0),
 		};
 	}
@@ -210,23 +253,35 @@ export class MetadataStoreService {
 	async saveCollection(collection: FileCollection): Promise<UUID> {
 		const { createdAt, ...rest } = collection as any;
 		await this.fileCollectionRepo.create(rest);
+		await this.access.tagNew(collection.id, {
+			visibility: "private",
+			owner: collection.owner,
+		});
 		return collection.id;
 	}
 
 	async getCollection(id: UUID): Promise<FileCollection | undefined> {
+		if (!(await this.access.canRead(id))) return undefined;
 		return await this.fileCollectionRepo.findById({ id });
 	}
 
 	async deleteCollection(id: UUID): Promise<void> {
+		await this.access.requireWrite(id);
 		await this.fileCollectionRepo.delete({ id });
+		await this.access.dropObject(id);
 	}
 
+	/**
+	 * Files in a collection, narrowed twice over: the collection has to be open
+	 * to the caller, and then only the files that are open to them come back. A
+	 * collection is a grouping, not a grant.
+	 */
 	async listByCollection(collectionId: UUID): Promise<FileMetadata[]> {
-		const rows = await this.store.db
-			.selectFrom("file_metadata")
-			.selectAll()
-			.where("collectionId", "=", collectionId)
-			.orderBy("createdAt", "asc")
+		await this.access.requireRead(collectionId);
+		const rows = await visibleFrom(this.store.db, "file_metadata")
+			.selectAll("obj")
+			.where("obj.collectionId", "=", collectionId)
+			.orderBy("obj.createdAt", "asc")
 			.execute();
 		return rows as FileMetadata[];
 	}

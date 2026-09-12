@@ -1,6 +1,15 @@
-import { createLocalJWKSet, jwtVerify, type JWK, type JWTVerifyResult } from "jose";
-import { resolveAccessForMethod, AccessMatcher, type GrantTree } from "./access-control";
+import {
+	createLocalJWKSet,
+	type JWK,
+	type JWTVerifyResult,
+	jwtVerify,
+} from "jose";
 import type { AccessLevel } from "../decorator/access.decorator";
+import {
+	AccessMatcher,
+	type GrantTree,
+	resolveAccessForMethod,
+} from "./access-control";
 
 export type MessagingAccessMode = "off" | "audit" | "required";
 
@@ -17,6 +26,21 @@ export interface TrustedMessagingContext {
 	user: string;
 	scope?: string;
 	auth: string;
+	/**
+	 * Whether the subject is a person or a service.
+	 *
+	 * A service identity is trusted to act for somebody else — a workflow files a
+	 * document on a user's behalf — while a user identity may only ever act as
+	 * itself. Handlers that accept an owner in their input need to tell the two
+	 * apart; without this they either trust every caller's claim or none.
+	 */
+	type: "user" | "service";
+	/**
+	 * The verified permission tree. Carried on because it holds more than the
+	 * method grant that was just checked: access tags ride it under kind `tg`,
+	 * and they are what row-level visibility is decided by downstream.
+	 */
+	permissions: GrantTree;
 }
 
 export interface MessagingAuthorizationRequest {
@@ -44,28 +68,46 @@ export class MessagingAccessGuard {
 	private readonly keySet?: ReturnType<typeof createLocalJWKSet>;
 	private readonly cache = new Map<string, VerifiedToken>();
 	private readonly cacheSize: number;
-	private readonly log: (message: string, details: Record<string, unknown>) => void;
+	private readonly log: (
+		message: string,
+		details: Record<string, unknown>,
+	) => void;
 
 	constructor(config: MessagingAccessConfig = {}) {
 		this.mode = resolveMode(config.mode);
-		this.issuer = this.mode === "off"
-			? config.issuer ?? process.env.ACCESS_JWT_ISSUER
-			: requiredSetting(config.issuer ?? process.env.ACCESS_JWT_ISSUER, "ACCESS_JWT_ISSUER");
-		this.audience = this.mode === "off"
-			? config.audience ?? process.env.ACCESS_JWT_AUDIENCE
-			: requiredSetting(config.audience ?? process.env.ACCESS_JWT_AUDIENCE, "ACCESS_JWT_AUDIENCE");
+		this.issuer =
+			this.mode === "off"
+				? (config.issuer ?? process.env.ACCESS_JWT_ISSUER)
+				: requiredSetting(
+						config.issuer ?? process.env.ACCESS_JWT_ISSUER,
+						"ACCESS_JWT_ISSUER",
+					);
+		this.audience =
+			this.mode === "off"
+				? (config.audience ?? process.env.ACCESS_JWT_AUDIENCE)
+				: requiredSetting(
+						config.audience ?? process.env.ACCESS_JWT_AUDIENCE,
+						"ACCESS_JWT_AUDIENCE",
+					);
 		this.cacheSize = config.cacheSize ?? 1_024;
-		this.log = config.log ?? ((message, details) => console.warn(`[nrpc auth] ${message}`, details));
+		this.log =
+			config.log ??
+			((message, details) => console.warn(`[nrpc auth] ${message}`, details));
 
 		const jwks = config.jwks ?? process.env.ACCESS_JWT_PUBLIC_JWKS;
 		if (this.mode !== "off") {
-			if (!jwks) throw new Error("ACCESS_JWT_PUBLIC_JWKS is required when NRPC access control is enabled");
+			if (!jwks)
+				throw new Error(
+					"ACCESS_JWT_PUBLIC_JWKS is required when NRPC access control is enabled",
+				);
 			const parsed = typeof jwks === "string" ? parseJwks(jwks) : jwks;
 			this.keySet = createLocalJWKSet(parsed);
 		}
 	}
 
-	async authorize(request: MessagingAuthorizationRequest): Promise<TrustedMessagingContext | undefined> {
+	async authorize(
+		request: MessagingAuthorizationRequest,
+	): Promise<TrustedMessagingContext | undefined> {
 		if (this.mode === "off") return undefined;
 		// Public methods are deliberately callable without credentials. This must
 		// happen before JWT parsing: SSR and unauthenticated browser requests do
@@ -74,7 +116,13 @@ export class MessagingAccessGuard {
 		try {
 			const verified = await this.verify(request.token);
 			this.enforce(verified, request);
-			return { user: verified.user, scope: verified.scope, auth: verified.auth };
+			return {
+				user: verified.user,
+				scope: verified.scope,
+				auth: verified.auth,
+				type: verified.type,
+				permissions: verified.permissions,
+			};
 		} catch (cause) {
 			if (this.mode === "audit") {
 				this.log("would reject incoming NRPC request", {
@@ -90,7 +138,11 @@ export class MessagingAccessGuard {
 
 	private async verify(token: string | undefined): Promise<VerifiedToken> {
 		const normalized = token?.trim();
-		if (!normalized) throw new MessagingAuthorizationError("unauthenticated", "missing bearer token");
+		if (!normalized)
+			throw new MessagingAuthorizationError(
+				"unauthenticated",
+				"missing bearer token",
+			);
 		const cached = this.cache.get(normalized);
 		if (cached && cached.expiresAt > nowSeconds()) return cached;
 		if (cached) this.cache.delete(normalized);
@@ -102,24 +154,47 @@ export class MessagingAccessGuard {
 		});
 		const verified = claimsFrom(result, normalized);
 		this.cache.set(normalized, verified);
-		while (this.cache.size > this.cacheSize) this.cache.delete(this.cache.keys().next().value!);
+		while (this.cache.size > this.cacheSize)
+			this.cache.delete(this.cache.keys().next().value!);
 		return verified;
 	}
 
-	private enforce(token: VerifiedToken, request: MessagingAuthorizationRequest): void {
-		if (token.type === "user" && request.envelopeScope && request.envelopeScope !== token.scope) {
-			throw new MessagingAuthorizationError("unauthenticated", "envelope scope does not match JWT scope");
+	private enforce(
+		token: VerifiedToken,
+		request: MessagingAuthorizationRequest,
+	): void {
+		if (
+			token.type === "user" &&
+			request.envelopeScope &&
+			request.envelopeScope !== token.scope
+		) {
+			throw new MessagingAuthorizationError(
+				"unauthenticated",
+				"envelope scope does not match JWT scope",
+			);
 		}
 		if (request.access === "internal" && token.type !== "service") {
-			throw new MessagingAuthorizationError("internal_only", "service JWT required");
+			throw new MessagingAuthorizationError(
+				"internal_only",
+				"service JWT required",
+			);
 		}
 		// A service JWT is the standard identity for service-to-service calls.
 		// `user` describes the browser-facing caller class, not an exclusion of
 		// trusted services. Its permissions still have to grant this exact method.
 
 		const required = resolveAccessForMethod(request.methodName);
-		if (!new AccessMatcher(token.permissions).can(request.serviceName, request.methodName, required)) {
-			throw new MessagingAuthorizationError("forbidden", `missing ${required} permission`);
+		if (
+			!new AccessMatcher(token.permissions).can(
+				request.serviceName,
+				request.methodName,
+				required,
+			)
+		) {
+			throw new MessagingAuthorizationError(
+				"forbidden",
+				`missing ${required} permission`,
+			);
 		}
 	}
 }
@@ -127,7 +202,10 @@ export class MessagingAccessGuard {
 export class MessagingAuthorizationError extends Error {
 	readonly statusCode: 401 | 403;
 
-	constructor(readonly code: "unauthenticated" | "forbidden" | "internal_only", message: string) {
+	constructor(
+		readonly code: "unauthenticated" | "forbidden" | "internal_only",
+		message: string,
+	) {
 		super(message);
 		this.statusCode = code === "unauthenticated" ? 401 : 403;
 	}
@@ -136,22 +214,59 @@ export class MessagingAuthorizationError extends Error {
 function claimsFrom(result: JWTVerifyResult, token: string): VerifiedToken {
 	const payload = result.payload;
 	const type = payload.typ;
-	if (type !== "user" && type !== "service") throw new MessagingAuthorizationError("unauthenticated", "invalid token type");
-	if (typeof payload.sub !== "string" || payload.sub.length === 0) throw new MessagingAuthorizationError("unauthenticated", "missing subject");
-	if (typeof payload.exp !== "number" || !Number.isFinite(payload.exp)) throw new MessagingAuthorizationError("unauthenticated", "missing expiry");
-	if (typeof payload.iat !== "number" || !Number.isFinite(payload.iat)) throw new MessagingAuthorizationError("unauthenticated", "missing issued-at time");
-	if (!payload.perm || typeof payload.perm !== "object" || Array.isArray(payload.perm)) {
-		throw new MessagingAuthorizationError("unauthenticated", "missing permissions");
+	if (type !== "user" && type !== "service")
+		throw new MessagingAuthorizationError(
+			"unauthenticated",
+			"invalid token type",
+		);
+	if (typeof payload.sub !== "string" || payload.sub.length === 0)
+		throw new MessagingAuthorizationError("unauthenticated", "missing subject");
+	if (typeof payload.exp !== "number" || !Number.isFinite(payload.exp))
+		throw new MessagingAuthorizationError("unauthenticated", "missing expiry");
+	if (typeof payload.iat !== "number" || !Number.isFinite(payload.iat))
+		throw new MessagingAuthorizationError(
+			"unauthenticated",
+			"missing issued-at time",
+		);
+	if (
+		!payload.perm ||
+		typeof payload.perm !== "object" ||
+		Array.isArray(payload.perm)
+	) {
+		throw new MessagingAuthorizationError(
+			"unauthenticated",
+			"missing permissions",
+		);
 	}
 	// Service identities are cluster-wide. Keep an absent service scope undefined
 	// so the authenticated caller does not erase the tenant scope in the envelope.
-	const scope = typeof payload.scope === "string" && payload.scope.trim() ? payload.scope.trim() : undefined;
-	if (type === "user" && !scope) throw new MessagingAuthorizationError("unauthenticated", "missing user scope");
-	return { user: payload.sub, scope, auth: token, type, permissions: payload.perm as GrantTree, expiresAt: payload.exp };
+	const scope =
+		typeof payload.scope === "string" && payload.scope.trim()
+			? payload.scope.trim()
+			: undefined;
+	if (type === "user" && !scope)
+		throw new MessagingAuthorizationError(
+			"unauthenticated",
+			"missing user scope",
+		);
+	return {
+		user: payload.sub,
+		scope,
+		auth: token,
+		type,
+		permissions: payload.perm as GrantTree,
+		expiresAt: payload.exp,
+	};
 }
 
-function resolveMode(configMode: MessagingAccessMode | undefined): MessagingAccessMode {
-	const raw = (configMode ?? process.env.NRPC_ACCESS_MODE ?? "off").toLowerCase();
+function resolveMode(
+	configMode: MessagingAccessMode | undefined,
+): MessagingAccessMode {
+	const raw = (
+		configMode ??
+		process.env.NRPC_ACCESS_MODE ??
+		"off"
+	).toLowerCase();
 	if (raw === "required" || raw === "strict") return "required";
 	if (raw === "audit" || raw === "optional") return "audit";
 	return "off";
@@ -166,16 +281,23 @@ function requiredSetting(value: string | undefined, name: string): string {
 function parseJwks(value: string): { keys: JWK[] } {
 	try {
 		const parsed = JSON.parse(value) as { keys?: unknown };
-		if (!Array.isArray(parsed.keys) || parsed.keys.length === 0) throw new Error("keys must be a non-empty array");
+		if (!Array.isArray(parsed.keys) || parsed.keys.length === 0)
+			throw new Error("keys must be a non-empty array");
 		return { keys: parsed.keys as JWK[] };
 	} catch (cause) {
 		throw new Error(`ACCESS_JWT_PUBLIC_JWKS is invalid: ${messageOf(cause)}`);
 	}
 }
 
-function asAuthorizationError(cause: unknown, request: MessagingAuthorizationRequest): MessagingAuthorizationError {
+function asAuthorizationError(
+	cause: unknown,
+	request: MessagingAuthorizationRequest,
+): MessagingAuthorizationError {
 	if (cause instanceof MessagingAuthorizationError) return cause;
-	return new MessagingAuthorizationError("unauthenticated", `JWT rejected for ${request.serviceName}.${request.methodName}`);
+	return new MessagingAuthorizationError(
+		"unauthenticated",
+		`JWT rejected for ${request.serviceName}.${request.methodName}`,
+	);
 }
 
 function messageOf(cause: unknown): string {

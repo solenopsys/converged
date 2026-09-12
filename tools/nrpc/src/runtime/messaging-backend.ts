@@ -1,16 +1,22 @@
 import type { IncomingMessage } from "bun-transport/messaging";
-import { resolveMethodAccess, resolveServiceName } from "../decorator/access.decorator";
+import {
+	resolveMethodAccess,
+	resolveServiceName,
+} from "../decorator/access.decorator";
 import type { ServiceMetadata } from "../types";
 import { tagsFromGrantTree } from "./access-tags";
-import { MessagingAccessGuard, type MessagingAccessConfig } from "./messaging-access";
-import { deserializeValue, serializeValue } from "./serialization";
-import { runWithWorkspaceContext } from "./workspace-context";
-import type { WorkspaceContext } from "./workspace-context-registry";
+import {
+	type MessagingAccessConfig,
+	MessagingAccessGuard,
+} from "./messaging-access";
 import type {
 	MessagingDispatchResult,
 	MessagingServiceHandler,
 	NrpcMessagingRuntime,
 } from "./messaging-runtime";
+import { deserializeValue, serializeValue } from "./serialization";
+import { runWithWorkspaceContext } from "./workspace-context";
+import type { WorkspaceContext } from "./workspace-context-registry";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -26,7 +32,9 @@ export interface MessagingBackendConfig {
 	access?: MessagingAccessConfig;
 }
 
-export function createMessagingBackend(config: MessagingBackendConfig): MessagingBackend {
+export function createMessagingBackend(
+	config: MessagingBackendConfig,
+): MessagingBackend {
 	return new MessagingBackend(config);
 }
 
@@ -38,10 +46,12 @@ export class MessagingBackend implements MessagingServiceHandler {
 	private readonly access: MessagingAccessGuard;
 
 	constructor(private readonly config: MessagingBackendConfig) {
-		const implementation = typeof config.serviceImpl === "function"
-			? config.serviceImpl.prototype
-			: config.serviceImpl;
-		const serviceName = resolveServiceName(implementation) ?? config.metadata.serviceName;
+		const implementation =
+			typeof config.serviceImpl === "function"
+				? config.serviceImpl.prototype
+				: config.serviceImpl;
+		const serviceName =
+			resolveServiceName(implementation) ?? config.metadata.serviceName;
 		this.descriptor = {
 			name: serviceName,
 			methods: config.metadata.methods.map((method) => ({
@@ -51,7 +61,9 @@ export class MessagingBackend implements MessagingServiceHandler {
 		};
 		this.access = new MessagingAccessGuard(config.access);
 		config.runtime.registerService(this);
-		config.registerStartupTask?.(`nrpc:${serviceName}`, () => this.waitUntilReady());
+		config.registerStartupTask?.(`nrpc:${serviceName}`, () =>
+			this.waitUntilReady(),
+		);
 		config.registerShutdownTask?.(`nrpc:${serviceName}`, () => this.shutdown());
 	}
 
@@ -67,10 +79,19 @@ export class MessagingBackend implements MessagingServiceHandler {
 
 	async dispatch(message: IncomingMessage): Promise<MessagingDispatchResult> {
 		await this.waitUntilReady();
-		const method = this.config.metadata.methods.find((candidate) => candidate.name === message.envelope.method);
-		if (!method) throw withCode(new Error(`method not found: ${message.envelope.method}`), "method_unavailable");
+		const method = this.config.metadata.methods.find(
+			(candidate) => candidate.name === message.envelope.method,
+		);
+		if (!method)
+			throw withCode(
+				new Error(`method not found: ${message.envelope.method}`),
+				"method_unavailable",
+			);
 		if (typeof this.serviceInstance?.[method.name] !== "function") {
-			throw withCode(new Error(`method is not implemented: ${method.name}`), "method_unavailable");
+			throw withCode(
+				new Error(`method is not implemented: ${method.name}`),
+				"method_unavailable",
+			);
 		}
 
 		const trusted = await this.access.authorize({
@@ -78,14 +99,12 @@ export class MessagingBackend implements MessagingServiceHandler {
 			envelopeScope: message.envelope.scope,
 			serviceName: this.descriptor.name,
 			methodName: method.name,
-			access: resolveMethodAccess(
-				this.serviceInstance,
-				method.name,
-			),
+			access: resolveMethodAccess(this.serviceInstance, method.name),
 		});
-		const params = message.payload.byteLength === 0
-			? {}
-			: JSON.parse(decoder.decode(message.payload));
+		const params =
+			message.payload.byteLength === 0
+				? {}
+				: JSON.parse(decoder.decode(message.payload));
 		const args = buildMethodArgs(method, params);
 		const context: WorkspaceContext = {
 			workspace: (trusted?.scope ?? message.envelope.scope) || undefined,
@@ -97,6 +116,7 @@ export class MessagingBackend implements MessagingServiceHandler {
 			// themselves — unlike `scope` and `user`, there is no envelope
 			// fallback here on purpose.
 			accessTags: tagsFromGrantTree(trusted?.permissions),
+			actorType: trusted?.type,
 		};
 		const invoke = async () => {
 			await this.ensureStoresForContext();
@@ -106,25 +126,41 @@ export class MessagingBackend implements MessagingServiceHandler {
 		if (method.isAsyncIterable) {
 			const iterable = await this.runWithContext(context, invoke);
 			if (!iterable || typeof iterable[Symbol.asyncIterator] !== "function") {
-				throw new Error(`method ${method.name} did not return an AsyncIterable`);
+				throw new Error(
+					`method ${method.name} did not return an AsyncIterable`,
+				);
 			}
-			return { stream: this.serializeStream(iterable, method.returnType, context) };
+			return {
+				stream: this.serializeStream(iterable, method.returnType, context),
+			};
 		}
 
 		const result = await this.runWithContext(context, invoke);
-		return { payload: encoder.encode(JSON.stringify(serializeValue(result, method.returnType) ?? null)) };
+		return {
+			payload: encoder.encode(
+				JSON.stringify(serializeValue(result, method.returnType) ?? null),
+			),
+		};
 	}
 
 	private async initializeService(): Promise<void> {
-		if (typeof this.config.serviceImpl === "object" && this.config.serviceImpl !== null) {
+		if (
+			typeof this.config.serviceImpl === "object" &&
+			this.config.serviceImpl !== null
+		) {
 			this.serviceInstance = this.config.serviceImpl;
 		} else if (typeof this.config.serviceImpl === "function") {
-			this.serviceInstance = new this.config.serviceImpl(this.config.serviceOptions ?? {});
+			this.serviceInstance = new this.config.serviceImpl(
+				this.config.serviceOptions ?? {},
+			);
 		} else {
-			throw new Error(`invalid service implementation for ${this.descriptor.name}`);
+			throw new Error(
+				`invalid service implementation for ${this.descriptor.name}`,
+			);
 		}
 		const initPromise = this.serviceInstance?.initPromise;
-		if (initPromise && typeof initPromise.then === "function") await initPromise;
+		if (initPromise && typeof initPromise.then === "function")
+			await initPromise;
 	}
 
 	private async doShutdown(): Promise<void> {
@@ -145,7 +181,8 @@ export class MessagingBackend implements MessagingServiceHandler {
 			await service.stores.destroy();
 			return;
 		}
-		if (typeof service.stores?.closeAll === "function") await service.stores.closeAll();
+		if (typeof service.stores?.closeAll === "function")
+			await service.stores.closeAll();
 	}
 
 	private async *serializeStream(
@@ -157,19 +194,24 @@ export class MessagingBackend implements MessagingServiceHandler {
 		while (true) {
 			const next = await this.runWithContext(context, () => iterator.next());
 			if (next.done) return;
-			yield encoder.encode(JSON.stringify(serializeValue(next.value, returnType) ?? null));
+			yield encoder.encode(
+				JSON.stringify(serializeValue(next.value, returnType) ?? null),
+			);
 		}
 	}
 
 	private runWithContext<T>(context: WorkspaceContext, callback: () => T): T {
 		return runWithWorkspaceContext(context, () =>
-			this.config.runWithContext ? this.config.runWithContext(context, callback) : callback(),
+			this.config.runWithContext
+				? this.config.runWithContext(context, callback)
+				: callback(),
 		);
 	}
 
 	private async ensureStoresForContext(): Promise<void> {
 		const stores = this.serviceInstance?.stores;
-		if (typeof stores?.ensureCurrentScopeReady === "function") await stores.ensureCurrentScopeReady();
+		if (typeof stores?.ensureCurrentScopeReady === "function")
+			await stores.ensureCurrentScopeReady();
 	}
 }
 

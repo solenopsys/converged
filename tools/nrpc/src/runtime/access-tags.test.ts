@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { GrantTree } from "./access-control";
 import {
 	getCurrentAccessTags,
+	isServiceActor,
 	personalTag,
 	tagsFromGrantTree,
 } from "./access-tags";
@@ -45,7 +46,9 @@ describe("tags of the acting subject", () => {
 	});
 
 	test("an anonymous caller is matched by nothing", () => {
-		expect(runWithWorkspaceContext({}, () => getCurrentAccessTags())).toEqual([]);
+		expect(runWithWorkspaceContext({}, () => getCurrentAccessTags())).toEqual(
+			[],
+		);
 	});
 
 	test("a tag repeated in the token is listed once", () => {
@@ -54,5 +57,22 @@ describe("tags of the acting subject", () => {
 			() => getCurrentAccessTags(),
 		);
 		expect(tags).toEqual(["u-bob", "team-a"]);
+	});
+});
+
+describe("the permission tree reaching the handler", () => {
+	test("a service caller is distinguishable from a person", () => {
+		expect(
+			runWithWorkspaceContext({ user: "svc", actorType: "service" }, () =>
+				isServiceActor(),
+			),
+		).toBe(true);
+		expect(
+			runWithWorkspaceContext({ user: "alice", actorType: "user" }, () =>
+				isServiceActor(),
+			),
+		).toBe(false);
+		// No verified token at all is not a service.
+		expect(runWithWorkspaceContext({}, () => isServiceActor())).toBe(false);
 	});
 });

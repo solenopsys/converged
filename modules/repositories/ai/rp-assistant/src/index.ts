@@ -1,7 +1,15 @@
 import type { Chat, PaginatedResult, PaginationParams } from "g-assistant";
+import { getCurrentWorkspaceContext } from "nrpc";
 import { StoresController } from "./stores";
 
 const REPOSITORY_ID = "rp-assistant";
+
+/** Who is calling, from the verified token and from nothing else. */
+function requireActor(): string {
+	const actor = getCurrentWorkspaceContext()?.user?.trim();
+	if (!actor) throw new Error("Authenticated caller is required");
+	return actor;
+}
 
 type ConversationRecord = {
 	id: string;
@@ -66,6 +74,7 @@ class AssistantMetadataService {
 		const conversation = await this.stores.metadataService.registerConversation(
 			threadId,
 			title || `Chat ${threadId.slice(0, 8)}`,
+			requireActor(),
 		);
 		return this.toChat(conversation);
 	}
@@ -73,28 +82,41 @@ class AssistantMetadataService {
 	async recordChatMessage(threadId: string): Promise<Chat> {
 		await this.ensureInit();
 		return this.toChat(
-			await this.stores.metadataService.recordMessage(threadId),
+			await this.stores.metadataService.recordMessage(threadId, requireActor()),
 		);
 	}
 
 	async recordChatFile(threadId: string, fileSize?: number): Promise<Chat> {
 		await this.ensureInit();
 		return this.toChat(
-			await this.stores.metadataService.recordFile(threadId, fileSize),
+			await this.stores.metadataService.recordFile(
+				threadId,
+				fileSize,
+				requireActor(),
+			),
 		);
 	}
 
 	async deleteChat(chatId: string): Promise<void> {
 		await this.ensureInit();
+		await this.stores.metadataService.access.requireWrite(chatId);
 		await this.stores.metadataService.conversationRepo.delete({ id: chatId });
+		await this.stores.metadataService.access.dropObject(chatId);
 	}
 
+	/**
+	 * Someone else's conversation reports as missing rather than as forbidden:
+	 * the title alone is most of what the chat was about.
+	 */
 	async getChat(chatId: string): Promise<Chat> {
 		await this.ensureInit();
-		const conversation =
-			await this.stores.metadataService.conversationRepo.findById({
-				id: chatId,
-			});
+		const conversation = (await this.stores.metadataService.access.canRead(
+			chatId,
+		))
+			? await this.stores.metadataService.conversationRepo.findById({
+					id: chatId,
+				})
+			: undefined;
 		if (!conversation) throw new Error(`Chat not found: ${chatId}`);
 		return this.toChat(conversation);
 	}
