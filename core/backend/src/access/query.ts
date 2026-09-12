@@ -7,6 +7,16 @@ export type VisibleOptions = {
 	idColumn?: string;
 	/** Overrides the acting subject's tags. For admin tools and tests only. */
 	tags?: readonly string[];
+	/**
+	 * The alias the object table is given, `obj` by default.
+	 *
+	 * Pass the table's own name where the query being narrowed already refers to
+	 * its columns by it — a filter schema written as `leads.lang`, a raw `sql`
+	 * fragment, a join. Renaming those to `obj` is a change with no upside and
+	 * one failure mode: a fragment that still says `leads` keeps compiling
+	 * against the unnarrowed table.
+	 */
+	alias?: string;
 };
 
 /** The distinct ids the given tags open, as a subquery to join against. */
@@ -39,10 +49,10 @@ export function visibleFrom(
 	table: string,
 	options: VisibleOptions = {},
 ) {
-	const { idColumn = "id", tags = actorTags() } = options;
-	return (db.selectFrom(`${table} as obj`) as any).innerJoin(
+	const { idColumn = "id", tags = actorTags(), alias = "obj" } = options;
+	return (db.selectFrom(`${table} as ${alias}`) as any).innerJoin(
 		(eb: any) => visibleIds(eb, tags).as("ids"),
-		(join: any) => join.onRef("ids.objectId", "=", `obj.${idColumn}`),
+		(join: any) => join.onRef("ids.objectId", "=", `${alias}.${idColumn}`),
 	);
 }
 
@@ -91,10 +101,14 @@ export async function listVisible<T>(
 ): Promise<VisiblePage<T>> {
 	const { limit = 50, offset = 0, orderBy, ...visible } = options;
 	const idColumn = visible.idColumn ?? "id";
-	const order = orderBy ?? { column: `obj.${idColumn}`, direction: "asc" as const };
+	const alias = visible.alias ?? "obj";
+	const order = orderBy ?? {
+		column: `${alias}.${idColumn}`,
+		direction: "asc" as const,
+	};
 
 	const items = await visibleFrom(db, table, visible)
-		.selectAll("obj")
+		.selectAll(alias)
 		.orderBy(order.column as any, order.direction ?? "asc")
 		.limit(limit)
 		.offset(offset)

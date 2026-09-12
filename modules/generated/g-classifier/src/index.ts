@@ -27,7 +27,6 @@ export type ClassifierMapping = {
 };
 
 export type ClassifierMappingInput = {
-	id?: string;
 	groupId: string;
 	key: string;
 	value: string;
@@ -68,7 +67,7 @@ export const metadata: ServiceMetadata = {
       "parameters": [
         {
           "name": "node",
-          "type": "any",
+          "type": "Omit<ClassifierNode, \"id\">",
           "optional": false,
           "isArray": false
         }
@@ -282,7 +281,7 @@ export const metadata: ServiceMetadata = {
     {
       "name": "ClassifierMappingInput",
       "kind": "type",
-      "definition": "{\n\tid?: string;\n\tgroupId: string;\n\tkey: string;\n\tvalue: string;\n\tpriority?: number;\n}"
+      "definition": "{\n\tgroupId: string;\n\tkey: string;\n\tvalue: string;\n\tpriority?: number;\n}"
     },
     {
       "name": "PaginationParams",
@@ -310,7 +309,7 @@ export const metadata: ServiceMetadata = {
 
 // Server interface (to be implemented in microservice)
 export interface ClassifierService {
-  addNode(node: any): Promise<string>;
+  addNode(node: Omit<ClassifierNode, "id">): Promise<string>;
   getNode(id: string): Promise<ClassifierNode | any>;
   getChildren(parentId: string): Promise<ClassifierNode[]>;
   listRoots(): Promise<ClassifierNode[]>;
@@ -327,7 +326,7 @@ export interface ClassifierService {
 
 // Client interface
 export interface ClassifierServiceClient {
-  addNode(node: any): Promise<string>;
+  addNode(node: Omit<ClassifierNode, "id">): Promise<string>;
   getNode(id: string): Promise<ClassifierNode | any>;
   getChildren(parentId: string): Promise<ClassifierNode[]>;
   listRoots(): Promise<ClassifierNode[]>;

@@ -1,4 +1,9 @@
-import { generateULID, type SqlStore } from "back-core";
+import {
+  AccessTags,
+  generateULID,
+  type SqlStore,
+  visibleFrom,
+} from "back-core";
 import { ScheduleSlotRepository } from "./entities";
 import type {
   ScheduleSlot,
@@ -12,8 +17,19 @@ import type { ScheduleSlotEntity } from "./entities";
 
 export class ScheduleStoreService {
   private readonly repo: ScheduleSlotRepository;
+  /**
+   * Who may see which slot. Like logs, slots sit in their own store and are
+   * written with the tags of the machine they occupy, handed over by
+   * `service.ts`.
+   */
+  readonly access: AccessTags;
 
-  constructor(private store: SqlStore) {
+  constructor(
+    private store: SqlStore,
+    /** The equipment store's relation; see the logs store for why. */
+    private readonly equipmentAccess?: AccessTags,
+  ) {
+    this.access = new AccessTags(store);
     this.repo = new ScheduleSlotRepository(store, "schedule_slots", {
       primaryKey: "id",
       extractKey: (entry) => ({ id: entry.id }),
@@ -21,7 +37,9 @@ export class ScheduleStoreService {
     });
   }
 
+  /** Booking a machine the caller cannot see is refused for the same reason. */
   async createSlot(input: ScheduleSlotInput): Promise<ScheduleSlotId> {
+    const tags = await this.tagsOfMachine(input.equipmentId);
     const id = generateULID();
     const now = new Date().toISOString();
     const entity: ScheduleSlotEntity = {
@@ -37,6 +55,7 @@ export class ScheduleStoreService {
       updatedAt: now,
     };
     await this.repo.create(entity as any);
+    await this.access.setTags(id, tags);
     return id;
   }
 
@@ -44,20 +63,16 @@ export class ScheduleStoreService {
     const limit = params.limit ?? 50;
     const offset = params.offset ?? 0;
 
-    let query = this.store.db.selectFrom("schedule_slots").selectAll();
-    if (params.equipmentId) query = query.where("equipmentId", "=", params.equipmentId);
-    if (params.status) query = query.where("status", "=", params.status);
-    if (params.from) query = query.where("endAt", ">=", params.from);
-    if (params.to) query = query.where("startAt", "<=", params.to);
+    const items = await this.applyFilters(this.visible(), params)
+      .selectAll("obj")
+      .orderBy("obj.startAt", "asc")
+      .limit(limit)
+      .offset(offset)
+      .execute();
 
-    const items = await query.orderBy("startAt", "asc").limit(limit).offset(offset).execute();
-
-    let countQuery = this.store.db
-      .selectFrom("schedule_slots")
-      .select(({ fn }) => fn.countAll().as("count"));
-    if (params.equipmentId) countQuery = countQuery.where("equipmentId", "=", params.equipmentId);
-    if (params.status) countQuery = countQuery.where("status", "=", params.status);
-    const countResult = await countQuery.executeTakeFirst();
+    const countResult = await this.applyFilters(this.visible(), params)
+      .select((eb: any) => eb.fn.countAll().as("count"))
+      .executeTakeFirst();
 
     return {
       items: (items as ScheduleSlotEntity[]).map(this.toSlot),
@@ -65,7 +80,31 @@ export class ScheduleStoreService {
     };
   }
 
+  private async tagsOfMachine(equipmentId: string): Promise<string[]> {
+    if (!this.equipmentAccess) return [];
+    await this.equipmentAccess.requireRead(equipmentId);
+    return this.equipmentAccess.tagsOf(equipmentId);
+  }
+
+  /** Slots the caller may see, as the base of the listing and its count. */
+  private visible() {
+    return visibleFrom(this.store.db, "schedule_slots");
+  }
+
+  private applyFilters(query: any, params: ScheduleListParams) {
+    let next = query;
+    if (params.equipmentId)
+      next = next.where("obj.equipmentId", "=", params.equipmentId);
+    if (params.status) next = next.where("obj.status", "=", params.status);
+    if (params.from) next = next.where("obj.endAt", ">=", params.from);
+    if (params.to) next = next.where("obj.startAt", "<=", params.to);
+    return next;
+  }
+
   async patchSlot(id: ScheduleSlotId, patch: ScheduleSlotPatch): Promise<void> {
+    // Moving somebody else's booking is a write on the machine's slot, not a
+    // read of the calendar.
+    await this.access.requireWrite(id);
     const existing = await this.repo.findById({ id });
     if (!existing) throw new Error(`ScheduleSlot not found: ${id}`);
 

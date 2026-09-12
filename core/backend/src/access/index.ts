@@ -1,3 +1,4 @@
+export * from "./kv";
 export * from "./migration";
 export * from "./query";
 export * from "./service";

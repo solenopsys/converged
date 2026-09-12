@@ -1,4 +1,9 @@
-import { generateULID, type SqlStore } from "back-core";
+import {
+	AccessTags,
+	generateULID,
+	type SqlStore,
+	visibleFrom,
+} from "back-core";
 import type { BusinessEvent, BusinessEventInput, EventId } from "../../types";
 
 type EventEntity = {
@@ -18,7 +23,21 @@ type EventsDatabase = {
 const TABLE_NAME = "events";
 
 export class EventsStoreService {
-	constructor(private store: SqlStore<EventsDatabase>) {}
+	/**
+	 * Who may see which event.
+	 *
+	 * An event names an object in another service, and this service cannot ask
+	 * that service who may see it — that is the invariant the whole scheme is
+	 * built on. So the decision is made here, at publish time, from the caller
+	 * that is publishing: the event is `authenticated`, which is the activity
+	 * feed the business had before, and carries the publisher's tag so a feed
+	 * for one team is a grant away rather than a rewrite.
+	 */
+	readonly access: AccessTags;
+
+	constructor(private store: SqlStore<EventsDatabase>) {
+		this.access = new AccessTags(store as any);
+	}
 
 	async publish(input: BusinessEventInput): Promise<EventId> {
 		this.validateInput(input);
@@ -35,16 +54,18 @@ export class EventsStoreService {
 		};
 
 		await this.store.db.insertInto(TABLE_NAME).values(entity).execute();
+		// `tags` from the payload would be the caller granting itself an audience,
+		// so there are none: the owner comes from the token and nothing else.
+		await this.access.tagNew(id, { visibility: "authenticated" });
 
 		return id;
 	}
 
 	async listEvents(offset: number, limit: number): Promise<BusinessEvent[]> {
-		const rows = await this.store.db
-			.selectFrom(TABLE_NAME)
-			.selectAll()
-			.orderBy("createdAt", "desc")
-			.orderBy("id", "desc")
+		const rows = await visibleFrom(this.store.db as any, TABLE_NAME)
+			.selectAll("obj")
+			.orderBy("obj.createdAt", "desc")
+			.orderBy("obj.id", "desc")
 			.limit(limit)
 			.offset(offset)
 			.execute();

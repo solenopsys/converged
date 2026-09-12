@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { InMemoryMigrationState, SqlStore } from "back-core";
+import { runWithWorkspaceContext } from "nrpc";
 import ordersMigrations from "./stores/orders/migrations";
 import { OrdersStoreService } from "./stores/orders/service";
 
@@ -15,7 +16,20 @@ describe("OrdersStoreService in-memory", () => {
 		);
 		await store.open();
 		await store.migrate();
-		orders = new OrdersStoreService(store);
+		// Orders are access-narrowed now, so this suite runs as one operator.
+		// What is under test here is the order model and its dashboard; who sees
+		// what is `access.test.ts`.
+		const impl = new OrdersStoreService(store);
+		orders = new Proxy(impl, {
+			get(target, property, receiver) {
+				const value = Reflect.get(target, property, receiver);
+				if (typeof value !== "function") return value;
+				return (...args: unknown[]) =>
+					runWithWorkspaceContext({ user: "operator" }, () =>
+						(value as (...a: unknown[]) => unknown).apply(target, args),
+					);
+			},
+		}) as OrdersStoreService;
 	});
 
 	it("creates and lists production orders separately from requests", async () => {

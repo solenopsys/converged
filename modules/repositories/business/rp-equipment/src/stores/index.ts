@@ -21,8 +21,17 @@ export class StoresController extends StoreControllerAbstract {
     const scheduleStore = await this.addStore("schedule", StoreType.SQL, scheduleMigrations);
 
     this.equipment = new EquipmentStoreService(equipmentStore as SqlStore);
-    this.logs = new EquipmentLogsStoreService(logsStore as SqlStore);
-    this.schedule = new ScheduleStoreService(scheduleStore as SqlStore);
+    // Logs and slots answer to the machine they hang on, which lives in another
+    // store: they are handed its relation so a line is written with the tags
+    // that machine carries.
+    this.logs = new EquipmentLogsStoreService(
+      logsStore as SqlStore,
+      this.equipment.access,
+    );
+    this.schedule = new ScheduleStoreService(
+      scheduleStore as SqlStore,
+      this.equipment.access,
+    );
 
     await this.startAll();
     await this.migrateAll();

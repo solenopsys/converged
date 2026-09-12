@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { InMemoryMigrationState, SqlStore } from "back-core";
+import { runWithWorkspaceContext } from "nrpc";
 import eventsMigrations from "./stores/events/migrations";
 import { EventsStoreService } from "./stores/events/service";
 
@@ -15,7 +16,19 @@ describe("EventsStoreService", () => {
 		);
 		await store.open();
 		await store.migrate();
-		events = new EventsStoreService(store);
+		// Events are access-narrowed now, so this suite publishes and reads as one
+		// service account. Who sees what is `access.test.ts`.
+		const impl = new EventsStoreService(store);
+		events = new Proxy(impl, {
+			get(target, property, receiver) {
+				const value = Reflect.get(target, property, receiver);
+				if (typeof value !== "function") return value;
+				return (...args: unknown[]) =>
+					runWithWorkspaceContext({ user: "rp-requests" }, () =>
+						(value as (...a: unknown[]) => unknown).apply(target, args),
+					);
+			},
+		}) as EventsStoreService;
 	});
 
 	it("publishes and lists business event references", async () => {

@@ -13,7 +13,10 @@ import type {
 } from "./types";
 import { StoresController } from "./store";
 
-class ClassifierServiceImpl extends BaseService<StoresController> implements ClassifierService {
+class ClassifierServiceImpl
+	extends BaseService<StoresController>
+	implements ClassifierService
+{
 	constructor() {
 		super("rp-classifier");
 	}
@@ -22,11 +25,17 @@ class ClassifierServiceImpl extends BaseService<StoresController> implements Cla
 		return new StoresController(repositoryId);
 	}
 
-	async addNode(
-		node: Omit<ClassifierNode, "id"> & { id?: string },
-	): Promise<string> {
+	/**
+	 * The id is minted here and is never taken from the caller.
+	 *
+	 * An id a client may choose is an id it may occupy: the access tags hanging
+	 * off it in `access_tags` carry no object type, so a node created on a
+	 * borrowed id would answer to somebody else's tags
+	 * (`access-control.md`, "Требования к идентификаторам").
+	 */
+	async addNode(node: Omit<ClassifierNode, "id">): Promise<string> {
 		await this.ready();
-		const id = node.id || randomUUID();
+		const id = randomUUID();
 		await this.stores.sqlStoreService.addNode({
 			id,
 			parentId: node.parentId ?? null,
@@ -101,11 +110,15 @@ class ClassifierServiceImpl extends BaseService<StoresController> implements Cla
 		}));
 	}
 
+	/**
+	 * Upserts one mapping. Which row it is is decided by `groupId` and `key` —
+	 * the two the caller already names — so the id is minted here for the same
+	 * reason it is in `addNode`, and an existing row keeps the one it has.
+	 */
 	async setMapping(mapping: ClassifierMappingInput): Promise<string> {
 		await this.ready();
-		const id = mapping.id || randomUUID();
 		return this.stores.sqlStoreService.setMapping({
-			id,
+			id: randomUUID(),
 			groupId: mapping.groupId,
 			key: mapping.key,
 			value: mapping.value,

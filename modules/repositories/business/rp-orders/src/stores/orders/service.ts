@@ -1,8 +1,10 @@
 import {
+	AccessTags,
 	applyKyselyFilter,
 	generateULID,
 	type KyselyFilterSchema,
 	type SqlStore,
+	visibleFrom,
 } from "back-core";
 import type {
 	FilterObject,
@@ -33,17 +35,49 @@ const STATUS_GROUPS: Record<OrderStatusGroup, OrderStatus[]> = {
 };
 
 const orderFilterSchema: KyselyFilterSchema = {
-	requestId: { valueType: "string", operators: ["eq", "in", "isNull"], column: "requestId" },
-	status: { valueType: "string", operators: ["eq", "in", "notEq", "notIn"], column: "status" },
-	productionMethod: { valueType: "string", operators: ["eq", "in"], column: "productionMethod" },
-	dueAt: { valueType: "date", operators: ["isNull", "isNotNull", "gte", "lte", "between"], column: "dueAt" },
-	createdAt: { valueType: "date", operators: ["gte", "lte", "between"], column: "createdAt" },
+	requestId: {
+		valueType: "string",
+		operators: ["eq", "in", "isNull"],
+		column: "obj.requestId",
+	},
+	status: {
+		valueType: "string",
+		operators: ["eq", "in", "notEq", "notIn"],
+		column: "obj.status",
+	},
+	productionMethod: {
+		valueType: "string",
+		operators: ["eq", "in"],
+		column: "obj.productionMethod",
+	},
+	dueAt: {
+		valueType: "date",
+		operators: ["isNull", "isNotNull", "gte", "lte", "between"],
+		column: "obj.dueAt",
+	},
+	createdAt: {
+		valueType: "date",
+		operators: ["gte", "lte", "between"],
+		column: "obj.createdAt",
+	},
 };
 
 export class OrdersStoreService {
 	private readonly repo: OrderRepository;
+	/**
+	 * Who may see which order.
+	 *
+	 * A production order is shop-wide by meaning — the queue on the floor is the
+	 * same queue for everyone working it — so it is created `authenticated` and
+	 * additionally carries its author's tag. That keeps the existing screens
+	 * showing what they showed, and leaves the narrowing available: drop the
+	 * `authenticated` tag and grant `team-*` instead, and the order becomes that
+	 * team's alone without any other change.
+	 */
+	readonly access: AccessTags;
 
 	constructor(private store: SqlStore) {
+		this.access = new AccessTags(store);
 		this.repo = new OrderRepository(store, "orders", {
 			primaryKey: "id",
 			extractKey: (entry) => ({ id: entry.id }),
@@ -71,10 +105,13 @@ export class OrdersStoreService {
 		};
 
 		await this.repo.create(entity as any);
+		await this.access.tagNew(id, { visibility: "authenticated" });
 		return id;
 	}
 
+	/** An order the caller holds no tag for reads as absent. */
 	async getOrder(id: OrderId): Promise<Order | undefined> {
+		if (!(await this.access.canRead(id))) return undefined;
 		const entity = await this.repo.findById({ id });
 		return entity ? this.toOrder(entity) : undefined;
 	}
@@ -84,19 +121,20 @@ export class OrdersStoreService {
 		const offset = params.offset ?? 0;
 		const statuses = this.resolveStatusFilter(params);
 
-		let query = this.applyFilters(this.store.db.selectFrom("orders").selectAll(), params, statuses);
-
-		const items = await query
-			.orderBy("updatedAt", "desc")
+		const items = await this.applyFilters(this.visible(), params, statuses)
+			.selectAll("obj")
+			.orderBy("obj.updatedAt", "desc")
 			.limit(limit)
 			.offset(offset)
 			.execute();
 
-		let countQuery = this.store.db
-			.selectFrom("orders")
-			.select(({ fn }) => fn.countAll().as("count"));
-		countQuery = this.applyFilters(countQuery, params, statuses);
-		const countResult = await countQuery.executeTakeFirst();
+		const countResult = await this.applyFilters(
+			this.visible(),
+			params,
+			statuses,
+		)
+			.select((eb: any) => eb.fn.countAll().as("count"))
+			.executeTakeFirst();
 
 		return {
 			items: (items as OrderEntity[]).map((item) => this.toOrder(item)),
@@ -105,26 +143,39 @@ export class OrdersStoreService {
 	}
 
 	async countOrders(filter?: FilterObject): Promise<number> {
-		const query = applyKyselyFilter(
-			this.store.db
-				.selectFrom("orders")
-				.select(({ fn }) => fn.countAll().as("count")),
+		const result = await applyKyselyFilter(
+			this.visible(),
 			filter,
 			orderFilterSchema,
-		);
-		const result = await query.executeTakeFirst();
+		)
+			.select((eb: any) => eb.fn.countAll().as("count"))
+			.executeTakeFirst();
 		return Number(result?.count ?? 0);
 	}
 
-	private applyFilters(query: any, params: OrderListParams, statuses: OrderStatus[]) {
+	/** Orders the caller may see, as the base of every listing, count and total. */
+	private visible() {
+		return visibleFrom(this.store.db, "orders");
+	}
+
+	private applyFilters(
+		query: any,
+		params: OrderListParams,
+		statuses: OrderStatus[],
+	) {
 		let next = query;
-		if (params.requestId) next = next.where("requestId", "=", params.requestId);
-		if (params.productionMethod) next = next.where("productionMethod", "=", params.productionMethod);
-		if (statuses.length > 0) next = next.where("status", "in", statuses);
+		if (params.requestId)
+			next = next.where("obj.requestId", "=", params.requestId);
+		if (params.productionMethod)
+			next = next.where("obj.productionMethod", "=", params.productionMethod);
+		if (statuses.length > 0) next = next.where("obj.status", "in", statuses);
 		return applyKyselyFilter(next, params.filter, orderFilterSchema);
 	}
 
 	async patchOrder(id: OrderId, patch: OrderPatch): Promise<Order> {
+		// Editing is not reading: an order open to the floor is still edited by
+		// the people it belongs to, so this asks for an identity tag.
+		await this.access.requireWrite(id);
 		const existing = await this.repo.findById({ id });
 		if (!existing) {
 			throw new Error(`Order not found: ${id}`);
@@ -135,17 +186,20 @@ export class OrdersStoreService {
 			updatedAt,
 		};
 
-		if (patch.requestId !== undefined) next.requestId = normalizeOptional(patch.requestId);
+		if (patch.requestId !== undefined)
+			next.requestId = normalizeOptional(patch.requestId);
 		if (patch.modelName !== undefined) next.modelName = patch.modelName;
 		if (patch.productionMethod !== undefined) {
 			next.productionMethod = patch.productionMethod;
 		}
 		if (patch.status !== undefined) next.status = patch.status;
-		if (patch.quantity !== undefined) next.quantity = normalizeQuantity(patch.quantity);
+		if (patch.quantity !== undefined)
+			next.quantity = normalizeQuantity(patch.quantity);
 		if (patch.weightGrams !== undefined) {
 			next.weightGrams = normalizeOptionalNumber(patch.weightGrams);
 		}
-		if (patch.material !== undefined) next.material = normalizeOptional(patch.material);
+		if (patch.material !== undefined)
+			next.material = normalizeOptional(patch.material);
 		if (patch.equipmentId !== undefined) {
 			next.equipmentId = normalizeOptional(patch.equipmentId);
 		}
@@ -164,17 +218,28 @@ export class OrdersStoreService {
 		await this.patchOrder(id, { status });
 	}
 
+	/**
+	 * The dashboard totals, over the orders the caller may see. Counting the rest
+	 * would report exactly how much work is being kept from them.
+	 */
 	async getOrderDashboard(): Promise<OrderDashboard> {
-		const rows = (await this.store.db
-			.selectFrom("orders")
-			.selectAll()
+		const rows = (await this.visible()
+			.selectAll("obj")
 			.execute()) as OrderEntity[];
 		const orders = rows.map((row) => this.toOrder(row));
 
-		const queuedTotal = orders.filter((o) => STATUS_GROUPS.queued.includes(o.status)).length;
-		const inProgressTotal = orders.filter((o) => STATUS_GROUPS.in_progress.includes(o.status)).length;
-		const completedTotal = orders.filter((o) => STATUS_GROUPS.completed.includes(o.status)).length;
-		const blockedTotal = orders.filter((o) => STATUS_GROUPS.blocked.includes(o.status)).length;
+		const queuedTotal = orders.filter((o) =>
+			STATUS_GROUPS.queued.includes(o.status),
+		).length;
+		const inProgressTotal = orders.filter((o) =>
+			STATUS_GROUPS.in_progress.includes(o.status),
+		).length;
+		const completedTotal = orders.filter((o) =>
+			STATUS_GROUPS.completed.includes(o.status),
+		).length;
+		const blockedTotal = orders.filter((o) =>
+			STATUS_GROUPS.blocked.includes(o.status),
+		).length;
 		const printingTotal = inProgressTotal;
 		const materialWeightGrams = orders.reduce(
 			(total, order) => total + (order.weightGrams ?? 0) * order.quantity,
@@ -182,9 +247,10 @@ export class OrdersStoreService {
 		);
 		const printerCapacity = 8;
 		const availablePrinters = printerCapacity;
-		const utilizationPercent = orders.length > 0
-			? Math.round((inProgressTotal / orders.length) * 100)
-			: 0;
+		const utilizationPercent =
+			orders.length > 0
+				? Math.round((inProgressTotal / orders.length) * 100)
+				: 0;
 
 		return {
 			stats: {
@@ -212,12 +278,14 @@ export class OrdersStoreService {
 	}
 
 	private buildStatusCounts(orders: Order[]): OrderStatusCount[] {
-		return (["queued", "in_progress", "completed", "blocked"] as OrderStatusGroup[]).map(
-			(group) => ({
-				group,
-				count: orders.filter((order) => STATUS_GROUPS[group].includes(order.status)).length,
-			}),
-		);
+		return (
+			["queued", "in_progress", "completed", "blocked"] as OrderStatusGroup[]
+		).map((group) => ({
+			group,
+			count: orders.filter((order) =>
+				STATUS_GROUPS[group].includes(order.status),
+			).length,
+		}));
 	}
 
 	private buildDailyPoints(orders: Order[]): OrderDailyPoint[] {
@@ -259,7 +327,8 @@ export class OrdersStoreService {
 			id: entity.id,
 			requestId: normalizeUndefined(entity.requestId),
 			modelName: entity.modelName,
-			productionMethod: (entity.productionMethod || "generic") as OrderProductionMethod,
+			productionMethod: (entity.productionMethod ||
+				"generic") as OrderProductionMethod,
 			status: (entity.status || DEFAULT_STATUS) as OrderStatus,
 			quantity: normalizeQuantity(entity.quantity),
 			weightGrams: normalizeUndefinedNumber(entity.weightGrams),
@@ -291,7 +360,9 @@ function normalizeOptionalNumber(value: number | undefined): number | null {
 	return Number(value);
 }
 
-function normalizeUndefined(value: string | null | undefined): string | undefined {
+function normalizeUndefined(
+	value: string | null | undefined,
+): string | undefined {
 	if (!value) return undefined;
 	return value;
 }

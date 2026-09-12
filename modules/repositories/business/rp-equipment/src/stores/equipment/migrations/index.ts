@@ -1,4 +1,6 @@
-import CreateEquipment from "./createEquipment";
+import { AccessTagsMigration } from "back-core";
 import AddEquipmentDetails from "./addEquipmentDetails";
+import CreateEquipment from "./createEquipment";
 
-export default [CreateEquipment, AddEquipmentDetails];
+// One tag relation for the store, added last so `equipment` already exists.
+export default [CreateEquipment, AddEquipmentDetails, AccessTagsMigration];

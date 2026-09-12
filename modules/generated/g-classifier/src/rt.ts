@@ -23,7 +23,6 @@ export type ClassifierMapping = {
 };
 
 export type ClassifierMappingInput = {
-	id?: string;
 	groupId: string;
 	key: string;
 	value: string;
@@ -64,7 +63,7 @@ const metadata: ServiceMetadata = {
       "parameters": [
         {
           "name": "node",
-          "type": "any",
+          "type": "Omit<ClassifierNode, \"id\">",
           "optional": false,
           "isArray": false
         }
@@ -278,7 +277,7 @@ const metadata: ServiceMetadata = {
     {
       "name": "ClassifierMappingInput",
       "kind": "type",
-      "definition": "{\n\tid?: string;\n\tgroupId: string;\n\tkey: string;\n\tvalue: string;\n\tpriority?: number;\n}"
+      "definition": "{\n\tgroupId: string;\n\tkey: string;\n\tvalue: string;\n\tpriority?: number;\n}"
     },
     {
       "name": "PaginationParams",
@@ -306,7 +305,7 @@ const metadata: ServiceMetadata = {
 
 // RT client interface — synchronous (one QuickJS evaluation per workflow run).
 export interface ClassifierServiceRtClient {
-  addNode(node: any): string;
+  addNode(node: Omit<ClassifierNode, "id">): string;
   getNode(id: string): ClassifierNode | any;
   getChildren(parentId: string): ClassifierNode[];
   listRoots(): ClassifierNode[];

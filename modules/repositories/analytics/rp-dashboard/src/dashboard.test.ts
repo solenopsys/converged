@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { InMemoryMigrationState, SqlStore } from "back-core";
+import { runWithWorkspaceContext } from "nrpc";
 import pinsMigrations from "./stores/pins/migrations";
 import { DashboardPinsStoreService } from "./stores/pins/service";
 
@@ -15,7 +16,19 @@ describe("DashboardPinsStoreService", () => {
 		);
 		await store.open();
 		await store.migrate();
-		pins = new DashboardPinsStoreService(store);
+		// A pin belongs to a dashboard, and a dashboard to a person, so this suite
+		// runs as one. Whose pin is whose is `access.test.ts`.
+		const impl = new DashboardPinsStoreService(store);
+		pins = new Proxy(impl, {
+			get(target, property, receiver) {
+				const value = Reflect.get(target, property, receiver);
+				if (typeof value !== "function") return value;
+				return (...args: unknown[]) =>
+					runWithWorkspaceContext({ user: "operator" }, () =>
+						(value as (...a: unknown[]) => unknown).apply(target, args),
+					);
+			},
+		}) as DashboardPinsStoreService;
 	});
 
 	it("stores selected indicator pins without duplicating widget ids", async () => {

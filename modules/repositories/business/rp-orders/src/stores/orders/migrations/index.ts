@@ -1,3 +1,5 @@
+import { AccessTagsMigration } from "back-core";
 import CreateOrders from "./createOrders";
 
-export default [CreateOrders];
+// One tag relation for the store, added last so `orders` already exists.
+export default [CreateOrders, AccessTagsMigration];

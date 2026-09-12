@@ -1,4 +1,3 @@
-
 export type ClassifierNode = {
 	id: string;
 	parentId: string | null;
@@ -9,7 +8,6 @@ export type ClassifierNode = {
 export type ClassifierTreeNode = ClassifierNode & {
 	childrenCount: number;
 };
-
 
 export type ClassifierMapping = {
 	id: string;
@@ -22,7 +20,6 @@ export type ClassifierMapping = {
 };
 
 export type ClassifierMappingInput = {
-	id?: string;
 	groupId: string;
 	key: string;
 	value: string;
@@ -56,7 +53,9 @@ export type ClassifierMappingGroup = {
 };
 
 export interface ClassifierService {
-	addNode(node: Omit<ClassifierNode, "id"> & { id?: string }): Promise<string>;
+	/** The id is the server's to mint; a caller-chosen one is a caller-chosen
+	 *  audience, see `access-control.md`. */
+	addNode(node: Omit<ClassifierNode, "id">): Promise<string>;
 	getNode(id: string): Promise<ClassifierNode | null>;
 	getChildren(parentId: string): Promise<ClassifierNode[]>;
 	listRoots(): Promise<ClassifierNode[]>;

@@ -1,9 +1,11 @@
 import {
+	AccessTags,
 	applyKyselyFilter,
 	type FilterInput,
 	type KyselyFilterSchema,
 	type SqlStore,
 	sql,
+	visibleFrom,
 } from "back-core";
 import {
 	type ContactEntity,
@@ -177,8 +179,28 @@ export class SalesStoreService {
 	public readonly outreachTargetRepo: OutreachTargetRepository;
 	public readonly leadTagRepo: LeadTagRepository;
 
+	/**
+	 * Who may see which lead, tag, offer and campaign.
+	 *
+	 * Four objects carry tags; everything else in this store hangs off one of
+	 * them and is narrowed by it — a contact through its lead, a touch through
+	 * its contact's lead, an event through the lead it attributes to, a campaign
+	 * target through its campaign. That is the same arrangement `rp-requests`
+	 * uses for its processing trail, and it is what keeps the relation's ids
+	 * unique: only the four root tables put ids into it.
+	 *
+	 * All four are created `authenticated`, which is the reach the CRM screens
+	 * had, and carry the tag of whoever created them. What that buys immediately
+	 * is that editing is the owner's or a `team-*` holder's, and that an
+	 * untokened caller reads nothing — this store holds names, addresses and
+	 * correspondence of every prospect. Narrowing a desk to its own book is then
+	 * dropping the open tag and granting `team-*`, with no query to rewrite.
+	 */
+	public readonly access: AccessTags;
+
 	constructor(store: SqlStore) {
 		this.store = store;
+		this.access = new AccessTags(store);
 		this.touchRepo = new TouchRepository(store, "touches", {
 			primaryKey: "id",
 			extractKey: (conversation) => ({ id: conversation.id }),
@@ -232,19 +254,179 @@ export class SalesStoreService {
 		});
 	}
 
-	createLead(threadId: string, title: string) {
-		this.leadRepo.create({
+	/**
+	 * Objects of `table` the caller may see.
+	 *
+	 * Aliased to the table's own name rather than `obj`, because the filter
+	 * schemas and the raw `sql` fragments in this file address columns as
+	 * `leads.lang` and `leads.id`; a fragment left pointing at an alias that no
+	 * longer exists is a query that either fails or, worse, resolves against the
+	 * unnarrowed table.
+	 */
+	private visible(table: string) {
+		return visibleFrom(this.store.db, table, { alias: table });
+	}
+
+	/** The same set as bare ids, for narrowing what hangs off it. */
+	private visibleIds(table: string) {
+		return this.visible(table).select(`${table}.id` as any);
+	}
+
+	/**
+	 * Refuses an id that something else in this store already answers for.
+	 *
+	 * Ids here come from outside — a lead is named by the thread it came from, a
+	 * campaign and an offer by their slug — and the relation is keyed by id
+	 * alone, with no object type in it. Without this check, filing a lead under
+	 * an existing campaign's id would hand its author a tag on that campaign,
+	 * which is the escalation `access-control.md` warns about; with it, the id is
+	 * simply taken and the write is refused.
+	 */
+	private async claimId(id: string): Promise<void> {
+		if ((await this.access.tagsOf(id)).length > 0) {
+			const error = new Error(`id is already taken: ${id}`) as Error & {
+				statusCode?: number;
+			};
+			error.statusCode = 409;
+			throw error;
+		}
+	}
+
+	/**
+	 * Files a lead and tags it to the caller.
+	 *
+	 * The id comes from outside — a lead is a company or a thread the world
+	 * already has a name for — so a repeated id is a primary-key conflict and
+	 * not a takeover: the row it would occupy is already somebody's, and the tag
+	 * relation is written only after the insert succeeds.
+	 */
+	async addLead(lead: LeadEntity): Promise<void> {
+		await this.claimId(lead.id);
+		await this.leadRepo.create(lead as any);
+		await this.access.tagNew(lead.id, { visibility: "authenticated" });
+	}
+
+	/** A lead the caller holds no tag for reads as absent. */
+	async getLead(id: string): Promise<LeadEntity | undefined> {
+		if (!(await this.access.canRead(id))) return undefined;
+		return this.leadRepo.findById({ id });
+	}
+
+	async updateLead(
+		id: string,
+		patch: Record<string, unknown>,
+	): Promise<boolean> {
+		await this.access.requireWrite(id);
+		return Boolean(await this.leadRepo.update({ id }, patch as any));
+	}
+
+	/**
+	 * Adding a contact or a touch is annotating a lead, not owning it: the check
+	 * is read, so the desk that works the book keeps working it, while renaming
+	 * or disabling the lead itself stays with its own people. The alternative —
+	 * demanding a write tag here — would stop an outreach workflow recording a
+	 * send against a lead it did not import.
+	 */
+	async addContact(contact: ContactEntity): Promise<void> {
+		await this.access.requireRead(contact.leadId);
+		await this.contactRepo.create(contact as any);
+	}
+
+	/** A contact is seen by whoever sees its lead. */
+	async getContact(id: string): Promise<ContactEntity | undefined> {
+		const contact = (await this.contactRepo.findById({ id })) as
+			| ContactEntity
+			| undefined;
+		if (!contact) return undefined;
+		return (await this.access.canRead(contact.leadId)) ? contact : undefined;
+	}
+
+	async addTouch(touch: {
+		id: string;
+		contactId: string;
+		createdAt: number;
+		description: string;
+		companyName: string;
+		outreachId: string | null;
+	}): Promise<{ id: string } | undefined> {
+		const contact = (await this.contactRepo.findById({
+			id: touch.contactId,
+		})) as ContactEntity | undefined;
+		if (!contact) throw new Error(`Unknown contact: ${touch.contactId}`);
+		await this.access.requireRead(contact.leadId);
+		return this.touchRepo.create(touch as any);
+	}
+
+	async listTouches(params: {
+		offset?: number;
+		limit?: number;
+	}): Promise<{ items: any[]; totalCount: number }> {
+		const limit = params.limit ?? 50;
+		const offset = params.offset ?? 0;
+		const [items, countRows] = await Promise.all([
+			this.visibleTouches()
+				.selectAll()
+				.orderBy("createdAt", "desc")
+				.limit(limit)
+				.offset(offset)
+				.execute(),
+			this.visibleTouches()
+				.select(({ fn }) => [fn.count<number>("id").as("count")])
+				.execute(),
+		]);
+		return { items, totalCount: readCount(countRows[0] as CountRow) };
+	}
+
+	async getOffer(id: string): Promise<OfferEntity | undefined> {
+		if (!(await this.access.canRead(id))) return undefined;
+		return this.offerRepo.findById({ id });
+	}
+
+	async listOffers(params: {
+		offset?: number;
+		limit?: number;
+	}): Promise<{ items: OfferEntity[]; totalCount: number }> {
+		const limit = params.limit ?? 50;
+		const offset = params.offset ?? 0;
+		const [items, countRows] = await Promise.all([
+			this.visible("offers")
+				.selectAll("offers")
+				.orderBy("offers.id", "asc")
+				.limit(limit)
+				.offset(offset)
+				.execute() as Promise<OfferEntity[]>,
+			this.visible("offers")
+				.select(({ fn }: any) => [fn.count<number>("offers.id").as("count")])
+				.execute(),
+		]);
+		return { items, totalCount: readCount(countRows[0] as CountRow) };
+	}
+
+	async getTag(id: string): Promise<LeadTagEntity | undefined> {
+		if (!(await this.access.canRead(id))) return undefined;
+		return this.leadTagRepo.findById({ id });
+	}
+
+	async getOutreach(id: string): Promise<OutreachEntity | undefined> {
+		if (!(await this.access.canRead(id))) return undefined;
+		return this.outreachRepo.findById({ id });
+	}
+
+	async createLead(threadId: string, title: string) {
+		await this.leadRepo.create({
 			id: threadId,
 			title,
 			createdAt: Date.now(),
 			messagesCount: 1,
 		});
+		await this.access.tagNew(threadId, { visibility: "authenticated" });
 	}
 
 	async updateLeadCatalogId(
 		leadId: string,
 		catalogId: string,
 	): Promise<boolean> {
+		await this.access.requireWrite(leadId);
 		const existing = await this.leadRepo.findById({ id: leadId });
 		if (!existing) return false;
 
@@ -256,21 +438,21 @@ export class SalesStoreService {
 		[key: string]: { leads: number; touches: number };
 	}> {
 		const [leadsStats, touchesStats] = await Promise.all([
-			this.store.db
-				.selectFrom("leads")
-				.select(({ fn }) => [
-					sql<string>`DATE(datetime(createdAt, 'unixepoch'))`.as("date"),
-					fn.count<number>("id").as("count"),
+			this.visible("leads")
+				.select(({ fn }: any) => [
+					sql<string>`DATE(datetime(leads.createdAt, 'unixepoch'))`.as("date"),
+					fn.count<number>("leads.id").as("count"),
 				])
-				.groupBy(sql`DATE(datetime(createdAt, 'unixepoch'))`)
+				.groupBy(sql`DATE(datetime(leads.createdAt, 'unixepoch'))`)
 				.execute(),
-			this.store.db
-				.selectFrom("touches")
-				.select(({ fn }) => [
-					sql<string>`DATE(datetime(createdAt, 'unixepoch'))`.as("date"),
-					fn.count<number>("id").as("count"),
+			this.visibleTouches()
+				.select(({ fn }: any) => [
+					sql<string>`DATE(datetime(touches.createdAt, 'unixepoch'))`.as(
+						"date",
+					),
+					fn.count<number>("touches.id").as("count"),
 				])
-				.groupBy(sql`DATE(datetime(createdAt, 'unixepoch'))`)
+				.groupBy(sql`DATE(datetime(touches.createdAt, 'unixepoch'))`)
 				.execute(),
 		]);
 
@@ -300,29 +482,28 @@ export class SalesStoreService {
 	async getRecentDailyStatistics(
 		days = 12,
 	): Promise<Record<string, { leads: number; touches: number }>> {
-		const dateExpression = sql<string>`DATE(datetime(createdAt, 'unixepoch'))`;
+		const leadDate = sql<string>`DATE(datetime(leads.createdAt, 'unixepoch'))`;
+		const touchDate = sql<string>`DATE(datetime(touches.createdAt, 'unixepoch'))`;
 		const currentDayStart = new Date();
 		currentDayStart.setUTCHours(0, 0, 0, 0);
 		const since =
 			Math.floor(currentDayStart.getTime() / 1000) - (days - 1) * 24 * 60 * 60;
 		const [leadsStats, touchesStats] = await Promise.all([
-			this.store.db
-				.selectFrom("leads")
-				.select(({ fn }) => [
-					dateExpression.as("date"),
-					fn.count<number>("id").as("count"),
+			this.visible("leads")
+				.select(({ fn }: any) => [
+					leadDate.as("date"),
+					fn.count<number>("leads.id").as("count"),
 				])
-				.where("createdAt", ">=", since)
-				.groupBy(dateExpression)
+				.where("leads.createdAt", ">=", since)
+				.groupBy(leadDate)
 				.execute(),
-			this.store.db
-				.selectFrom("touches")
-				.select(({ fn }) => [
-					dateExpression.as("date"),
-					fn.count<number>("id").as("count"),
+			this.visibleTouches()
+				.select(({ fn }: any) => [
+					touchDate.as("date"),
+					fn.count<number>("touches.id").as("count"),
 				])
-				.where("createdAt", ">=", since)
-				.groupBy(dateExpression)
+				.where("touches.createdAt", ">=", since)
+				.groupBy(touchDate)
 				.execute(),
 		]);
 
@@ -346,13 +527,12 @@ export class SalesStoreService {
 	}
 
 	async getLeadTypeStats(): Promise<Record<string, number>> {
-		const rows = await this.store.db
-			.selectFrom("leads")
-			.select(({ fn }) => [
-				sql<string>`coalesce(nullif(type, ''), 'unknown')`.as("key"),
-				fn.count<number>("id").as("count"),
+		const rows = await this.visible("leads")
+			.select(({ fn }: any) => [
+				sql<string>`coalesce(nullif(leads.type, ''), 'unknown')`.as("key"),
+				fn.count<number>("leads.id").as("count"),
 			])
-			.groupBy(sql`coalesce(nullif(type, ''), 'unknown')`)
+			.groupBy(sql`coalesce(nullif(leads.type, ''), 'unknown')`)
 			.orderBy("count", "desc")
 			.execute();
 
@@ -360,13 +540,12 @@ export class SalesStoreService {
 	}
 
 	async getLeadLangStats(): Promise<Record<string, number>> {
-		const rows = await this.store.db
-			.selectFrom("leads")
-			.select(({ fn }) => [
-				sql<string>`coalesce(nullif(lang, ''), 'unknown')`.as("key"),
-				fn.count<number>("id").as("count"),
+		const rows = await this.visible("leads")
+			.select(({ fn }: any) => [
+				sql<string>`coalesce(nullif(leads.lang, ''), 'unknown')`.as("key"),
+				fn.count<number>("leads.id").as("count"),
 			])
-			.groupBy(sql`coalesce(nullif(lang, ''), 'unknown')`)
+			.groupBy(sql`coalesce(nullif(leads.lang, ''), 'unknown')`)
 			.orderBy("count", "desc")
 			.execute();
 
@@ -374,13 +553,14 @@ export class SalesStoreService {
 	}
 
 	async getContactTypeStats(): Promise<Record<string, number>> {
-		const rows = await this.store.db
-			.selectFrom("contacts")
-			.select(({ fn }) => [
-				sql<string>`coalesce(nullif(contactType, ''), 'unknown')`.as("key"),
-				fn.count<number>("id").as("count"),
+		const rows = await this.visibleContacts()
+			.select(({ fn }: any) => [
+				sql<string>`coalesce(nullif(contacts.contactType, ''), 'unknown')`.as(
+					"key",
+				),
+				fn.count<number>("contacts.id").as("count"),
 			])
-			.groupBy(sql`coalesce(nullif(contactType, ''), 'unknown')`)
+			.groupBy(sql`coalesce(nullif(contacts.contactType, ''), 'unknown')`)
 			.orderBy("count", "desc")
 			.execute();
 
@@ -388,17 +568,43 @@ export class SalesStoreService {
 	}
 
 	async getTouchCompanyNameStats(): Promise<Record<string, number>> {
-		const rows = await this.store.db
-			.selectFrom("touches")
-			.select(({ fn }) => [
-				sql<string>`coalesce(nullif(companyName, ''), 'unknown')`.as("key"),
-				fn.count<number>("id").as("count"),
+		const rows = await this.visibleTouches()
+			.select(({ fn }: any) => [
+				sql<string>`coalesce(nullif(touches.companyName, ''), 'unknown')`.as(
+					"key",
+				),
+				fn.count<number>("touches.id").as("count"),
 			])
-			.groupBy(sql`coalesce(nullif(companyName, ''), 'unknown')`)
+			.groupBy(sql`coalesce(nullif(touches.companyName, ''), 'unknown')`)
 			.orderBy("count", "desc")
 			.execute();
 
 		return groupCountRows(rows);
+	}
+
+	/**
+	 * Contacts of the leads the caller may see. A contact carries no tags of its
+	 * own: it is a way of reaching a lead, and reaching the lead is what the
+	 * decision was about.
+	 */
+	private visibleContacts() {
+		return this.store.db
+			.selectFrom("contacts")
+			.where("contacts.leadId", "in", this.visibleIds("leads"));
+	}
+
+	/** Touches of those contacts, one step further out. */
+	private visibleTouches() {
+		return this.store.db
+			.selectFrom("touches")
+			.where(
+				"touches.contactId",
+				"in",
+				this.store.db
+					.selectFrom("contacts")
+					.select("contacts.id")
+					.where("contacts.leadId", "in", this.visibleIds("leads")),
+			);
 	}
 
 	async getOutreachProgressStats(): Promise<
@@ -420,6 +626,7 @@ export class SalesStoreService {
 		const rows = (await this.store.db
 			.selectFrom("outreach_targets as target")
 			.leftJoin("outreaches as outreach", "outreach.id", "target.outreachId")
+			.where("target.outreachId", "in", this.visibleIds("outreaches"))
 			.select([
 				"target.outreachId as outreachId",
 				campaignNameExpression.as("name"),
@@ -485,13 +692,14 @@ export class SalesStoreService {
 		return (await this.removeTagLeads(tag.id, [leadId])) > 0;
 	}
 
+	/** The tags on one lead — those of them the caller may see. */
 	async listLeadTags(leadId: string): Promise<LeadTagEntity[]> {
-		return this.store.db
-			.selectFrom("lead_tags as tag")
-			.innerJoin("lead_tag_links as link", "link.tagId", "tag.id")
-			.selectAll("tag")
+		return this.visible("lead_tags")
+			.innerJoin("lead_tag_links as link", "link.tagId", "lead_tags.id")
+			.selectAll("lead_tags")
 			.where("link.leadId", "=", leadId)
-			.orderBy("tag.name", "asc")
+			.where("link.leadId", "in", this.visibleIds("leads"))
+			.orderBy("lead_tags.name", "asc")
 			.execute() as Promise<LeadTagEntity[]>;
 	}
 
@@ -506,13 +714,13 @@ export class SalesStoreService {
 		const tagsByLeadId = new Map<string, LeadTagEntity[]>();
 		if (uniqueIds.length === 0) return tagsByLeadId;
 
-		const rows = (await this.store.db
-			.selectFrom("lead_tag_links as link")
-			.innerJoin("lead_tags as tag", "tag.id", "link.tagId")
-			.selectAll("tag")
+		const rows = (await this.visible("lead_tags")
+			.innerJoin("lead_tag_links as link", "link.tagId", "lead_tags.id")
+			.selectAll("lead_tags")
 			.select("link.leadId as leadId")
 			.where("link.leadId", "in", uniqueIds)
-			.orderBy("tag.name", "asc")
+			.where("link.leadId", "in", this.visibleIds("leads"))
+			.orderBy("lead_tags.name", "asc")
 			.execute()) as Array<LeadTagEntity & { leadId: string }>;
 
 		for (const row of rows) {
@@ -536,16 +744,21 @@ export class SalesStoreService {
 	}): Promise<{ items: LeadTagLinkEntity[]; totalCount: number }> {
 		const limit = params.limit ?? 50;
 		const offset = params.offset ?? 0;
-		const [items, countRows] = await Promise.all([
+		// A link is only meaningful where both ends are: a tag the caller may see,
+		// on a lead the caller may see.
+		const visibleLinks = () =>
 			this.store.db
 				.selectFrom("lead_tag_links")
+				.where("lead_tag_links.tagId", "in", this.visibleIds("lead_tags"))
+				.where("lead_tag_links.leadId", "in", this.visibleIds("leads"));
+		const [items, countRows] = await Promise.all([
+			visibleLinks()
 				.selectAll()
 				.orderBy("createdAt", "desc")
 				.limit(limit)
 				.offset(offset)
 				.execute() as Promise<LeadTagLinkEntity[]>,
-			this.store.db
-				.selectFrom("lead_tag_links")
+			visibleLinks()
 				.select(({ fn }) => [fn.count<number>("leadId").as("count")])
 				.execute(),
 		]);
@@ -556,7 +769,11 @@ export class SalesStoreService {
 		};
 	}
 
+	/** Rewriting an offer is the offer's people's; a new one is the caller's. */
 	async saveOffer(offer: OfferEntity): Promise<void> {
+		const known = Boolean(await this.offerRepo.findById({ id: offer.id }));
+		if (known) await this.access.requireWrite(offer.id);
+		else await this.claimId(offer.id);
 		await this.store.db
 			.insertInto("offers")
 			.values(offer)
@@ -570,9 +787,15 @@ export class SalesStoreService {
 				}),
 			)
 			.execute();
+		if (!known) {
+			await this.access.tagNew(offer.id, { visibility: "authenticated" });
+		}
 	}
 
 	async saveTag(tag: LeadTagEntity): Promise<void> {
+		const known = Boolean(await this.leadTagRepo.findById({ id: tag.id }));
+		if (known) await this.access.requireWrite(tag.id);
+		else await this.claimId(tag.id);
 		await this.store.db
 			.insertInto("lead_tags")
 			.values(tag)
@@ -584,13 +807,15 @@ export class SalesStoreService {
 				}),
 			)
 			.execute();
+		if (!known) {
+			await this.access.tagNew(tag.id, { visibility: "authenticated" });
+		}
 	}
 
 	async findTagByName(name: string): Promise<LeadTagEntity | undefined> {
-		return this.store.db
-			.selectFrom("lead_tags")
-			.selectAll()
-			.where("name", "=", name)
+		return this.visible("lead_tags")
+			.selectAll("lead_tags")
+			.where("lead_tags.name", "=", name)
 			.executeTakeFirst() as Promise<LeadTagEntity | undefined>;
 	}
 
@@ -617,31 +842,33 @@ export class SalesStoreService {
 		const limit = params.limit ?? 50;
 		const offset = params.offset ?? 0;
 		const [items, countRows] = await Promise.all([
-			this.store.db
-				.selectFrom("lead_tags")
-				.selectAll()
-				.orderBy("updatedAt", "desc")
+			this.visible("lead_tags")
+				.selectAll("lead_tags")
+				.orderBy("lead_tags.updatedAt", "desc")
 				.limit(limit)
 				.offset(offset)
 				.execute() as Promise<LeadTagEntity[]>,
-			this.store.db
-				.selectFrom("lead_tags")
-				.select(({ fn }) => [fn.count<number>("id").as("count")])
+			this.visible("lead_tags")
+				.select(({ fn }: any) => [fn.count<number>("lead_tags.id").as("count")])
 				.execute(),
 		]);
 		return { items, totalCount: readCount(countRows[0]) };
 	}
 
+	/** How many of the tag's leads the caller may see, which is the only count
+	 *  that can honestly be shown beside a tag. */
 	async countTagLeads(tagId: string): Promise<number> {
 		const rows = await this.store.db
 			.selectFrom("lead_tag_links")
 			.select(({ fn }) => [fn.count<number>("leadId").as("count")])
 			.where("tagId", "=", tagId)
+			.where("leadId", "in", this.visibleIds("leads"))
 			.execute();
 		return readCount(rows[0]);
 	}
 
 	async deleteTag(tagId: string): Promise<boolean> {
+		await this.access.requireWrite(tagId);
 		await this.store.db
 			.deleteFrom("lead_tag_links")
 			.where("tagId", "=", tagId)
@@ -650,10 +877,19 @@ export class SalesStoreService {
 			.deleteFrom("lead_tags")
 			.where("id", "=", tagId)
 			.executeTakeFirst();
+		// The tags go with the row: a leftover link would later match a reused id.
+		await this.access.dropObject(tagId);
 		return Number(result.numDeletedRows ?? 0) > 0;
 	}
 
+	/**
+	 * Labelling is a write on the tag and a read of the leads: a caller may only
+	 * put their tag on leads they can see, and only a tag that is theirs.
+	 */
 	async addTagLeads(tagId: string, leadIds: string[]): Promise<number> {
+		if (leadIds.length === 0) return 0;
+		await this.access.requireWrite(tagId);
+		leadIds = await this.narrowToVisibleLeads(leadIds);
 		if (leadIds.length === 0) return 0;
 		const createdAt = Math.floor(Date.now() / 1000);
 		let inserted = 0;
@@ -676,6 +912,9 @@ export class SalesStoreService {
 
 	async removeTagLeads(tagId: string, leadIds: string[]): Promise<number> {
 		if (leadIds.length === 0) return 0;
+		await this.access.requireWrite(tagId);
+		leadIds = await this.narrowToVisibleLeads(leadIds);
+		if (leadIds.length === 0) return 0;
 		let deleted = 0;
 		for (let index = 0; index < leadIds.length; index += 500) {
 			const result = await this.store.db
@@ -688,31 +927,51 @@ export class SalesStoreService {
 		return deleted;
 	}
 
+	/** The leads under a tag, narrowed to the ones the caller may see. */
+	private narrowToVisibleLeads(leadIds: string[]): Promise<string[]> {
+		return (async () => {
+			const visible: string[] = [];
+			for (let index = 0; index < leadIds.length; index += 500) {
+				const rows = (await this.visible("leads")
+					.select("leads.id")
+					.where("leads.id", "in", leadIds.slice(index, index + 500))
+					.execute()) as Array<{ id: string }>;
+				visible.push(...rows.map((row) => row.id));
+			}
+			return visible;
+		})();
+	}
+
 	async listTagLeads(
 		tagId: string,
 		params: { offset?: number; limit?: number },
 	): Promise<{ items: LeadEntity[]; totalCount: number }> {
 		const limit = params.limit ?? 50;
 		const offset = params.offset ?? 0;
-		const base = this.store.db
-			.selectFrom("leads as lead")
-			.innerJoin("lead_tag_links as link", "link.leadId", "lead.id")
-			.where("link.tagId", "=", tagId);
+		const base = () =>
+			this.visible("leads")
+				.innerJoin("lead_tag_links as link", "link.leadId", "leads.id")
+				.where("link.tagId", "=", tagId);
 		const [items, countRows] = await Promise.all([
-			base
-				.selectAll("lead")
+			base()
+				.selectAll("leads")
 				.orderBy("link.createdAt", "desc")
 				.limit(limit)
 				.offset(offset)
 				.execute() as Promise<LeadEntity[]>,
-			base
-				.select(({ fn }) => [fn.count<number>("lead.id").as("count")])
+			base()
+				.select(({ fn }: any) => [fn.count<number>("leads.id").as("count")])
 				.execute(),
 		]);
 		return { items, totalCount: readCount(countRows[0]) };
 	}
 
 	async saveOutreach(outreach: OutreachEntity): Promise<void> {
+		const known = Boolean(
+			await this.outreachRepo.findById({ id: outreach.id }),
+		);
+		if (known) await this.access.requireWrite(outreach.id);
+		else await this.claimId(outreach.id);
 		await this.store.db
 			.insertInto("outreaches")
 			.values(outreach)
@@ -732,6 +991,9 @@ export class SalesStoreService {
 				}),
 			)
 			.execute();
+		if (!known) {
+			await this.access.tagNew(outreach.id, { visibility: "authenticated" });
+		}
 	}
 
 	async listOutreaches(params: {
@@ -741,16 +1003,16 @@ export class SalesStoreService {
 		const limit = params.limit ?? 50;
 		const offset = params.offset ?? 0;
 		const [items, countRows] = await Promise.all([
-			this.store.db
-				.selectFrom("outreaches")
-				.selectAll()
-				.orderBy("createdAt", "desc")
+			this.visible("outreaches")
+				.selectAll("outreaches")
+				.orderBy("outreaches.createdAt", "desc")
 				.limit(limit)
 				.offset(offset)
 				.execute() as Promise<OutreachEntity[]>,
-			this.store.db
-				.selectFrom("outreaches")
-				.select(({ fn }) => [fn.count<number>("id").as("count")])
+			this.visible("outreaches")
+				.select(({ fn }: any) => [
+					fn.count<number>("outreaches.id").as("count"),
+				])
 				.execute(),
 		]);
 
@@ -760,8 +1022,16 @@ export class SalesStoreService {
 		};
 	}
 
+	/**
+	 * Loading a campaign's queue is a write on the campaign. The targets carry no
+	 * tags themselves — they are the campaign's work list and are read through
+	 * it.
+	 */
 	async addOutreachTargets(targets: OutreachTargetEntity[]): Promise<number> {
 		if (targets.length === 0) return 0;
+		for (const outreachId of new Set(targets.map((t) => t.outreachId))) {
+			await this.access.requireWrite(outreachId);
+		}
 
 		const result = await this.store.db
 			.insertInto("outreach_targets")
@@ -794,6 +1064,7 @@ export class SalesStoreService {
 		const offset = params.offset ?? 0;
 		let itemsQuery = this.store.db
 			.selectFrom("outreach_targets")
+			.where("outreach_targets.outreachId", "in", this.visibleIds("outreaches"))
 			.selectAll()
 			.orderBy("position", "asc")
 			.orderBy("createdAt", "asc")
@@ -801,6 +1072,7 @@ export class SalesStoreService {
 			.offset(offset);
 		let countQuery = this.store.db
 			.selectFrom("outreach_targets")
+			.where("outreach_targets.outreachId", "in", this.visibleIds("outreaches"))
 			.select(({ fn }) => [fn.count<number>("id").as("count")]);
 
 		if (params.outreachId) {
@@ -823,9 +1095,11 @@ export class SalesStoreService {
 		};
 	}
 
+	/** Taking work off a campaign's queue is a write on that campaign. */
 	async claimNextOutreachTarget(
 		outreachId: string,
 	): Promise<OutreachTargetEntity | null> {
+		await this.access.requireWrite(outreachId);
 		const now = Math.floor(Date.now() / 1000);
 		const result = await sql<OutreachTargetEntity>`
 			update outreach_targets
@@ -850,6 +1124,9 @@ export class SalesStoreService {
 		id: string;
 		status: string;
 	}): Promise<OutreachTargetEntity | null> {
+		const existing = await this.outreachTargetRepo.findById({ id: data.id });
+		if (!existing) return null;
+		await this.access.requireWrite(existing.outreachId);
 		const now = Math.floor(Date.now() / 1000);
 		const patch: Partial<OutreachTargetEntity> = {
 			status: data.status,
@@ -865,17 +1142,19 @@ export class SalesStoreService {
 		after: string,
 		limit: number,
 	): Promise<{ items: LeadEntity[]; totalCount: number }> {
-		const base = this.store.db
-			.selectFrom("leads")
-			.selectAll()
-			.orderBy("id", "asc")
+		const base = this.visible("leads")
+			.selectAll("leads")
+			.orderBy("leads.id", "asc")
 			.limit(limit);
-		const query = after.length > 0 ? base.where("id", ">", after) : base;
+		const query = after.length > 0 ? base.where("leads.id", ">", after) : base;
 
-		const [items, totalCount] = await Promise.all([
+		const [items, countRows] = await Promise.all([
 			query.execute() as Promise<LeadEntity[]>,
-			this.leadRepo.count(),
+			this.visible("leads")
+				.select(({ fn }: any) => [fn.count<number>("leads.id").as("count")])
+				.execute(),
 		]);
+		const totalCount = readCount(countRows[0] as CountRow);
 
 		return { items, totalCount };
 	}
@@ -893,23 +1172,14 @@ export class SalesStoreService {
 		const offset = params.offset ?? 0;
 		const conditions = this.leadConditions(filters);
 
-		if (conditions.length === 0 && !filters.filter) {
-			const [items, totalCount] = await Promise.all([
-				this.leadRepo.findAll({ limit, offset }),
-				this.leadRepo.count(),
-			]);
-			return { items, totalCount };
-		}
-
-		let itemsQuery = this.store.db
-			.selectFrom("leads")
-			.selectAll()
-			.orderBy("createdAt", "desc")
+		let itemsQuery = this.visible("leads")
+			.selectAll("leads")
+			.orderBy("leads.createdAt", "desc")
 			.limit(limit)
 			.offset(offset);
-		let countQuery = this.store.db
-			.selectFrom("leads")
-			.select(({ fn }) => [fn.count<number>("id").as("count")]);
+		let countQuery = this.visible("leads").select(({ fn }: any) => [
+			fn.count<number>("leads.id").as("count"),
+		]);
 
 		for (const condition of conditions) {
 			itemsQuery = itemsQuery.where(condition);
@@ -941,19 +1211,25 @@ export class SalesStoreService {
 	): Promise<{ items: ContactEntity[]; totalCount: number }> {
 		const limit = params.limit ?? 50;
 		const offset = params.offset ?? 0;
-		const itemsQuery = this.store.db
-			.selectFrom("contacts")
+		const itemsQuery = this.visibleContacts()
 			.selectAll()
 			.orderBy("createdAt", "desc")
 			.limit(limit)
 			.offset(offset);
-		const countQuery = this.store.db
-			.selectFrom("contacts")
-			.select(({ fn }) => [fn.count<number>("id").as("count")]);
+		const countQuery = this.visibleContacts().select(({ fn }) => [
+			fn.count<number>("id").as("count"),
+		]);
 		const [items, countRows] = await Promise.all([
-			applyKyselyFilter(itemsQuery as any, filter, contactFilterSchema)
-				.execute() as Promise<ContactEntity[]>,
-			applyKyselyFilter(countQuery as any, filter, contactFilterSchema).execute(),
+			applyKyselyFilter(
+				itemsQuery as any,
+				filter,
+				contactFilterSchema,
+			).execute() as Promise<ContactEntity[]>,
+			applyKyselyFilter(
+				countQuery as any,
+				filter,
+				contactFilterSchema,
+			).execute(),
 		]);
 		return {
 			items,
@@ -962,9 +1238,8 @@ export class SalesStoreService {
 	}
 
 	async listLeadLangs(): Promise<string[]> {
-		const rows = (await this.store.db
-			.selectFrom("leads")
-			.select("lang")
+		const rows = (await this.visible("leads")
+			.select("leads.lang as lang")
 			.distinct()
 			.orderBy("lang", "asc")
 			.execute()) as Array<{ lang: string | null }>;
@@ -973,9 +1248,9 @@ export class SalesStoreService {
 
 	async countLeadsFiltered(filter?: FilterInput): Promise<number> {
 		const rows = await applyKyselyFilter(
-			this.store.db
-				.selectFrom("leads")
-				.select(({ fn }) => [fn.count<number>("id").as("count")]) as any,
+			this.visible("leads").select(({ fn }: any) => [
+				fn.count<number>("leads.id").as("count"),
+			]) as any,
 			filter,
 			leadFilterSchema,
 		).execute();
@@ -989,7 +1264,7 @@ export class SalesStoreService {
 	 */
 	async listLeadIdsFiltered(filter?: FilterInput): Promise<string[]> {
 		const rows = (await applyKyselyFilter(
-			this.store.db.selectFrom("leads").select(["id"]) as any,
+			this.visible("leads").select(["leads.id"]) as any,
 			filter,
 			leadFilterSchema,
 		).execute()) as Array<{ id: string }>;
@@ -1045,10 +1320,9 @@ export class SalesStoreService {
 	}
 
 	async listLeadContacts(leadId: string): Promise<ContactEntity[]> {
-		const itemsQuery = this.store.db
-			.selectFrom("contacts")
+		const itemsQuery = this.visibleContacts()
 			.selectAll()
-			.where("leadId", "=", leadId);
+			.where("contacts.leadId", "=", leadId);
 
 		return itemsQuery.execute() as Promise<ContactEntity[]>;
 	}
@@ -1063,6 +1337,7 @@ export class SalesStoreService {
 			.selectFrom("contacts as c")
 			.innerJoin("leads as l", "l.id", "c.leadId")
 			.leftJoin("touches as t", "t.contactId", "c.id")
+			.where("c.leadId", "in", this.visibleIds("leads"))
 			.select([
 				"c.id as contactId",
 				"c.leadId as contactLeadId",
@@ -1116,11 +1391,10 @@ export class SalesStoreService {
 		const normalizedLang = lang.trim();
 		if (!normalizedLang) return null;
 
-		const row = await this.store.db
-			.selectFrom("leads")
-			.selectAll()
-			.where("lang", "=", normalizedLang)
-			.where(sql<boolean>`coalesce(disabled, false) = false`)
+		const row = await this.visible("leads")
+			.selectAll("leads")
+			.where("leads.lang", "=", normalizedLang)
+			.where(sql<boolean>`coalesce(leads.disabled, false) = false`)
 			.orderBy(sql`RANDOM()`)
 			.limit(1)
 			.executeTakeFirst();
@@ -1134,6 +1408,7 @@ export class SalesStoreService {
 			.innerJoin("touches as t", "t.contactId", "c.id")
 			.select(({ fn }) => [fn.count<number>("t.id").as("count")])
 			.where("c.leadId", "=", leadId)
+			.where("c.leadId", "in", this.visibleIds("leads"))
 			.executeTakeFirst();
 
 		return readCount(row) > 0;
@@ -1148,6 +1423,7 @@ export class SalesStoreService {
 			.innerJoin("touches as t", "t.contactId", "c.id")
 			.select(({ fn }) => [fn.count<number>("t.id").as("count")])
 			.where("c.leadId", "=", leadId)
+			.where("c.leadId", "in", this.visibleIds("leads"))
 			.where("t.companyName", "=", companyName)
 			.executeTakeFirst();
 
@@ -1163,6 +1439,7 @@ export class SalesStoreService {
 			.innerJoin("touches as t", "t.contactId", "c.id")
 			.select(({ fn }) => [fn.count<number>("t.id").as("count")])
 			.where("c.leadId", "=", leadId)
+			.where("c.leadId", "in", this.visibleIds("leads"))
 			.where("t.outreachId", "=", outreachId)
 			.executeTakeFirst();
 
@@ -1173,6 +1450,14 @@ export class SalesStoreService {
 		return [...new Set(tagNames.map((tag) => tag.trim()).filter(Boolean))];
 	}
 
+	/**
+	 * Which contact a tracking code belongs to.
+	 *
+	 * Not narrowed, and cannot be: it runs for an anonymous click on a link in a
+	 * sent email, where there is no actor at all. The code is the credential —
+	 * it is minted per send and returns nothing but the ids the click is
+	 * attributed to.
+	 */
 	async resolveCodeOwner(
 		code: string,
 	): Promise<{ contactId: string | null; leadId: string | null }> {
@@ -1205,22 +1490,31 @@ export class SalesStoreService {
 		return this.leadEventRepo.create(event);
 	}
 
+	/**
+	 * The events of the leads the caller may see.
+	 *
+	 * An event that was never attributed to a lead — a click on a code nobody
+	 * recognised — belongs to nobody and is left out of the listing rather than
+	 * shown to everybody.
+	 */
 	async listLeadEvents(params: {
 		offset?: number;
 		limit?: number;
 	}): Promise<{ items: LeadEventEntity[]; totalCount: number }> {
 		const limit = params.limit ?? 50;
 		const offset = params.offset ?? 0;
-		const [items, countRows] = await Promise.all([
+		const visibleEvents = () =>
 			this.store.db
 				.selectFrom("lead_events")
+				.where("lead_events.leadId", "in", this.visibleIds("leads"));
+		const [items, countRows] = await Promise.all([
+			visibleEvents()
 				.selectAll()
 				.orderBy("createdAt", "desc")
 				.limit(limit)
 				.offset(offset)
 				.execute() as Promise<LeadEventEntity[]>,
-			this.store.db
-				.selectFrom("lead_events")
+			visibleEvents()
 				.select(({ fn }) => [fn.count<number>("id").as("count")])
 				.execute(),
 		]);
@@ -1234,6 +1528,7 @@ export class SalesStoreService {
 	async getEventFunnel(): Promise<Record<string, number>> {
 		const rows = await this.store.db
 			.selectFrom("lead_events")
+			.where("lead_events.leadId", "in", this.visibleIds("leads"))
 			.select(({ fn }) => ["type as key", fn.count<number>("id").as("count")])
 			.groupBy("type")
 			.execute();

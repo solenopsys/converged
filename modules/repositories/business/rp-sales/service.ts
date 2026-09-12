@@ -266,7 +266,7 @@ class SalesServiceImpl
 				catalogId: lead.catalogId ?? "",
 				disabled: Boolean(lead.disabled),
 			};
-			await this.stores.salesStoreSevice.leadRepo.create(leadEntity);
+			await this.stores.salesStoreSevice.addLead(leadEntity);
 			return lead.id;
 		} catch (err) {
 			if (isPrimaryKeyConflict(err)) {
@@ -283,9 +283,7 @@ class SalesServiceImpl
 			throw badRequestError("leadId is required");
 		}
 
-		const entity = await this.stores.salesStoreSevice.leadRepo.findById({
-			id: normalizedLeadId,
-		});
+		const entity = await this.stores.salesStoreSevice.getLead(normalizedLeadId);
 		if (!entity) return null;
 
 		const tags = await this.stores.salesStoreSevice.listLeadTags(entity.id);
@@ -308,11 +306,7 @@ class SalesServiceImpl
 
 		if (Object.keys(patch).length === 0) return false;
 
-		const updated = await this.stores.salesStoreSevice.leadRepo.update(
-			{ id: normalizedLeadId },
-			patch,
-		);
-		return Boolean(updated);
+		return this.stores.salesStoreSevice.updateLead(normalizedLeadId, patch);
 	}
 
 	async updateLeadCatalogId(
@@ -403,19 +397,14 @@ class SalesServiceImpl
 		await this.ready();
 		const id = offerId?.trim();
 		if (!id) throw badRequestError("offerId is required");
-		const offer = await this.stores.salesStoreSevice.offerRepo.findById({ id });
+		const offer = await this.stores.salesStoreSevice.getOffer(id);
 		return offer ? mapOffer(offer) : null;
 	}
 
 	async listOffers(params: PaginationParams): Promise<PaginatedResult<Offer>> {
 		await this.ready();
-		const [items, totalCount] = await Promise.all([
-			this.stores.salesStoreSevice.offerRepo.findAll({
-				limit: params.limit,
-				offset: params.offset,
-			}),
-			this.stores.salesStoreSevice.offerRepo.count(),
-		]);
+		const { items, totalCount } =
+			await this.stores.salesStoreSevice.listOffers(params);
 
 		return {
 			items: items.map(mapOffer),
@@ -427,32 +416,38 @@ class SalesServiceImpl
 		await this.ready();
 		const name = tag.name?.trim();
 		if (!name) throw badRequestError("Tag name is required");
-		const id = tag.id?.trim() || randomUUID();
-		const existing = await this.stores.salesStoreSevice.leadTagRepo.findById({
-			id,
-		});
+		// An id in the payload names the tag being edited; it does not reserve a
+		// new one. A name the caller has never seen produces a fresh id here,
+		// because an id a caller may choose is an id it may occupy, and the
+		// relation carries no object type to catch the collision
+		// (`access-control.md`, "Требования к идентификаторам").
+		const claimed = tag.id?.trim();
+		const existing = claimed
+			? await this.stores.salesStoreSevice.getTag(claimed)
+			: undefined;
+		const id = existing?.id;
 		const clash = await this.stores.salesStoreSevice.findTagByName(name);
 		if (clash && clash.id !== id) {
 			throw conflictError(`A tag named '${name}' already exists`);
 		}
+		const tagId = id ?? randomUUID();
 		const now = Math.floor(Date.now() / 1000);
 		await this.stores.salesStoreSevice.saveTag({
-			id,
+			id: tagId,
 			name,
 			description: tag.description?.trim() ?? existing?.description ?? "",
 			createdAt: existing?.createdAt ?? now,
 			updatedAt: now,
 		});
-		return id;
+		return tagId;
 	}
 
 	async ensureTag(name: string, description = ""): Promise<string> {
 		await this.ready();
 		const normalized = name?.trim();
 		if (!normalized) throw badRequestError("Tag name is required");
-		const existing = await this.stores.salesStoreSevice.findTagByName(
-			normalized,
-		);
+		const existing =
+			await this.stores.salesStoreSevice.findTagByName(normalized);
 		if (existing) return existing.id;
 		return this.saveTag({ name: normalized, description });
 	}
@@ -469,9 +464,7 @@ class SalesServiceImpl
 		await this.ready();
 		const id = tagId?.trim();
 		if (!id) throw badRequestError("tagId is required");
-		const entity = await this.stores.salesStoreSevice.leadTagRepo.findById({
-			id,
-		});
+		const entity = await this.stores.salesStoreSevice.getTag(id);
 		return entity ? mapTag(entity) : null;
 	}
 
@@ -631,9 +624,8 @@ class SalesServiceImpl
 	 * selection and the identifiers never leave the server.
 	 */
 	private async resolveSelection(selection: LeadSelection): Promise<string[]> {
-		const ids = selection?.ids
-			?.map((leadId) => leadId.trim())
-			.filter(Boolean) ?? [];
+		const ids =
+			selection?.ids?.map((leadId) => leadId.trim()).filter(Boolean) ?? [];
 		if (ids.length > 0) return [...new Set(ids)];
 		return this.stores.salesStoreSevice.listLeadIdsFiltered(selection?.filter);
 	}
@@ -655,7 +647,7 @@ class SalesServiceImpl
 				role: contact.role ?? "",
 				description: contact.description ?? "",
 			};
-			await this.stores.salesStoreSevice.contactRepo.create(contactEntity);
+			await this.stores.salesStoreSevice.addContact(contactEntity);
 			return contact.id;
 		} catch (err) {
 			if (isPrimaryKeyConflict(err)) {
@@ -672,9 +664,8 @@ class SalesServiceImpl
 			throw badRequestError("contactId is required");
 		}
 
-		const entity = await this.stores.salesStoreSevice.contactRepo.findById({
-			id: normalizedContactId,
-		});
+		const entity =
+			await this.stores.salesStoreSevice.getContact(normalizedContactId);
 		if (!entity) return null;
 
 		return {
@@ -704,8 +695,7 @@ class SalesServiceImpl
 				companyName: touch.companyName ?? "",
 				outreachId: touch.outreachId ?? null,
 			};
-			const result =
-				await this.stores.salesStoreSevice.touchRepo.create(touchEntity);
+			const result = await this.stores.salesStoreSevice.addTouch(touchEntity);
 			return result?.id ? Number(result.id) : 0;
 		} catch (err) {
 			if (isPrimaryKeyConflict(err)) {
@@ -747,9 +737,7 @@ class SalesServiceImpl
 		await this.ready();
 		const id = outreachId?.trim();
 		if (!id) throw badRequestError("outreachId is required");
-		const entity = await this.stores.salesStoreSevice.outreachRepo.findById({
-			id,
-		});
+		const entity = await this.stores.salesStoreSevice.getOutreach(id);
 		return entity ? mapOutreach(entity) : null;
 	}
 
@@ -777,6 +765,10 @@ class SalesServiceImpl
 			const payload = normalizePayload(target.payload);
 
 			return {
+				// A target's id is the caller's to choose, and has to be: reloading a
+				// campaign's queue upserts by it. It is safe because a target never
+				// enters `access_tags` — it is read through its campaign — so there is
+				// no audience for a chosen id to inherit.
 				id: target.id?.trim() || randomUUID(),
 				outreachId,
 				status: target.status?.trim() || "planned",
@@ -905,18 +897,10 @@ class SalesServiceImpl
 					params.after as string,
 					params.limit,
 				)
-			: tags.length || contact || query || filter
-				? await this.stores.salesStoreSevice.listLeadsFiltered(
-						{ tags, contact, query, filter },
-						params,
-					)
-				: {
-						items: await this.stores.salesStoreSevice.leadRepo.findAll({
-							limit: params.limit,
-							offset: params.offset,
-						}),
-						totalCount: await this.stores.salesStoreSevice.leadRepo.count(),
-					};
+			: await this.stores.salesStoreSevice.listLeadsFiltered(
+					{ tags, contact, query, filter },
+					params,
+				);
 
 		const items = await this.mapLeadsWithTags(result.items);
 
@@ -940,18 +924,10 @@ class SalesServiceImpl
 		params: ContactListParams,
 	): Promise<PaginatedResult<Contact>> {
 		await this.ready();
-		const result = params.filter
-			? await this.stores.salesStoreSevice.listContactsFiltered(
-					params.filter,
-					params,
-				)
-			: {
-					items: await this.stores.salesStoreSevice.contactRepo.findAll({
-						limit: params.limit,
-						offset: params.offset,
-					}),
-					totalCount: await this.stores.salesStoreSevice.contactRepo.count(),
-				};
+		const result = await this.stores.salesStoreSevice.listContactsFiltered(
+			params.filter,
+			params,
+		);
 
 		const items = result.items.map((entity) => ({
 			id: entity.id,
@@ -992,15 +968,10 @@ class SalesServiceImpl
 
 	async listTouches(params: PaginationParams): Promise<PaginatedResult<Touch>> {
 		await this.ready();
-		const [touches, totalCount] = await Promise.all([
-			this.stores.salesStoreSevice.touchRepo.findAll({
-				limit: params.limit,
-				offset: params.offset,
-			}),
-			this.stores.salesStoreSevice.touchRepo.count(),
-		]);
+		const { items: touches, totalCount } =
+			await this.stores.salesStoreSevice.listTouches(params);
 
-		const items = touches.map((entity) => ({
+		const items = touches.map((entity: any) => ({
 			id: parseInt(entity.id, 10),
 			contactId: entity.contactId,
 			description: entity.description,

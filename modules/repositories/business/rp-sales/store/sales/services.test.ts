@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { InMemoryMigrationState, SqlStore } from "back-core";
+import { runWithWorkspaceContext } from "nrpc";
 import migrations from "./migrations";
 import { SalesStoreService } from "./services";
 
@@ -8,7 +9,7 @@ describe("SalesStoreService.listLeadsFiltered", () => {
 	let sales: SalesStoreService;
 
 	const addLead = async (id: string, description: string) => {
-		await sales.leadRepo.create({
+		await sales.addLead({
 			id,
 			createdAt: Math.floor(Date.now() / 1000),
 			description,
@@ -26,7 +27,7 @@ describe("SalesStoreService.listLeadsFiltered", () => {
 		contactType = "EMAIL",
 		role = "",
 	) => {
-		await sales.contactRepo.create({
+		await sales.addContact({
 			id,
 			leadId,
 			createdAt: Math.floor(Date.now() / 1000),
@@ -41,7 +42,19 @@ describe("SalesStoreService.listLeadsFiltered", () => {
 		store = new SqlStore(":memory:", migrations, new InMemoryMigrationState());
 		await store.open();
 		await store.migrate();
-		sales = new SalesStoreService(store);
+		// Leads, tags, offers and campaigns are access-narrowed now, so this suite
+		// runs as one salesperson. Who sees whose book is `access.test.ts`.
+		const impl = new SalesStoreService(store);
+		sales = new Proxy(impl, {
+			get(target, property, receiver) {
+				const value = Reflect.get(target, property, receiver);
+				if (typeof value !== "function") return value;
+				return (...args: unknown[]) =>
+					runWithWorkspaceContext({ user: "operator" }, () =>
+						(value as (...a: unknown[]) => unknown).apply(target, args),
+					);
+			},
+		}) as SalesStoreService;
 
 		await addLead("lead-steel", "Steel Crazy by Design");
 		await addLead("lead-rextek", "Rextek CNC");
@@ -144,7 +157,7 @@ describe("SalesStoreService.listLeadsFiltered", () => {
 			const createdAt = Math.floor(
 				(today.getTime() - offset * 24 * 60 * 60 * 1000) / 1000,
 			);
-			await sales.leadRepo.create({
+			await sales.addLead({
 				id: `summary-lead-${offset}`,
 				createdAt,
 				description: "Dashboard summary lead",
@@ -221,11 +234,13 @@ describe("SalesStoreService.listLeadsFiltered", () => {
 			),
 		).toEqual(["lead-steel"]);
 
-	const tagsByLeadId = await sales.listLeadTagsByLeadIds([
-		"lead-steel",
-		"lead-rextek",
-	]);
-	expect(tagsByLeadId.get("lead-steel")?.map((tag) => tag.name)).toEqual(["Tag B"]);
+		const tagsByLeadId = await sales.listLeadTagsByLeadIds([
+			"lead-steel",
+			"lead-rextek",
+		]);
+		expect(tagsByLeadId.get("lead-steel")?.map((tag) => tag.name)).toEqual([
+			"Tag B",
+		]);
 		expect(tagsByLeadId.get("lead-rextek")?.map((tag) => tag.name)).toEqual([
 			"Tag A",
 		]);
@@ -263,9 +278,9 @@ describe("SalesStoreService.listLeadsFiltered", () => {
 			}),
 		).toBe(1);
 
-		expect(
-			await sales.listLeadIdsFiltered({ tag: { eq: "tag-a" } }),
-		).toEqual(["lead-steel"]);
+		expect(await sales.listLeadIdsFiltered({ tag: { eq: "tag-a" } })).toEqual([
+			"lead-steel",
+		]);
 	});
 
 	it("keeps the legacy tag-name filter working through named tags", async () => {
