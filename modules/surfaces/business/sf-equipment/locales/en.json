@@ -1,0 +1,69 @@
+{
+	"surface": {
+		"label": "Equipment",
+		"purpose": "Machines on the shop floor: their state, the jobs they run, their journal and schedule"
+	},
+	"menu": {
+		"equipment": "Equipment",
+		"journal": "Journal",
+		"schedule": "Schedule"
+	},
+	"status": {
+		"running": "Running",
+		"idle": "Idle",
+		"maintenance": "Maintenance",
+		"error": "Error",
+		"offline": "Offline"
+	},
+	"severity": {
+		"info": "Info",
+		"warning": "Warning",
+		"error": "Error",
+		"critical": "Critical"
+	},
+	"slot": {
+		"planned": "Planned",
+		"in_progress": "In progress",
+		"completed": "Completed",
+		"cancelled": "Cancelled"
+	},
+	"stats": {
+		"machines": "Machines",
+		"running": "Running",
+		"idle": "Idle",
+		"service": "Service",
+		"down": "Down",
+		"utilization": "Utilization",
+		"attention": "Needs attention"
+	},
+	"floor": {
+		"title": "Floor",
+		"next": "Next up",
+		"empty": "No machines registered yet.",
+		"nothingScheduled": "Nothing scheduled.",
+		"loading": "Loading…"
+	},
+	"detail": {
+		"kind": "Kind",
+		"location": "Location",
+		"serial": "Serial",
+		"lastService": "Last service",
+		"currentJob": "Current job",
+		"parameters": "Live parameters",
+		"schedule": "Schedule",
+		"journal": "Journal",
+		"noTelemetry": "No telemetry for this machine yet.",
+		"notRunning": "Not running anything.",
+		"nothingBooked": "Nothing booked.",
+		"nothingLogged": "Nothing logged.",
+		"notSelected": "No machine selected.",
+		"notFound": "Machine not found."
+	},
+	"order": {
+		"order": "Order",
+		"method": "Method",
+		"quantity": "Quantity",
+		"material": "Material",
+		"due": "Due"
+	}
+}

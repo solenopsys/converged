@@ -13,6 +13,15 @@ export type Equipment = {
   id: EquipmentId;
   kind: string;
   name?: string;
+  /**
+   * The model this machine is, as a node of the shared classifier
+   * (`rp-classifier`). It is the machine's link to reference data: build
+   * volume, materials, which adapter speaks to it, which parameters it
+   * reports. None of that is copied onto the record — an operator types the
+   * brand and the model, and everything else is read back from the classifier
+   * whenever it is needed, so a corrected catalogue corrects every shop at once.
+   */
+  classifierNodeId?: string;
   serialNumber?: string;
   location?: string;
   description?: string;
@@ -27,6 +36,7 @@ export type Equipment = {
 export type EquipmentInput = {
   kind: string;
   name?: string;
+  classifierNodeId?: string;
   serialNumber?: string;
   location?: string;
   description?: string;
@@ -37,6 +47,7 @@ export type EquipmentInput = {
 
 export type EquipmentPatch = {
   name?: string;
+  classifierNodeId?: string;
   serialNumber?: string;
   location?: string;
   description?: string;
@@ -53,6 +64,7 @@ export type EquipmentListParams = {
   offset: number;
   limit: number;
   kind?: string;
+  classifierNodeId?: string;
   status?: EquipmentStatus;
   jobId?: JobId;
 };

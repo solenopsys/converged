@@ -1,0 +1,69 @@
+{
+	"surface": {
+		"label": "Equipos",
+		"purpose": "Máquinas del taller: su estado, los trabajos que ejecutan, su historial y su agenda"
+	},
+	"menu": {
+		"equipment": "Equipos",
+		"journal": "Historial",
+		"schedule": "Agenda"
+	},
+	"status": {
+		"running": "En marcha",
+		"idle": "Libre",
+		"maintenance": "Mantenimiento",
+		"error": "Error",
+		"offline": "Sin conexión"
+	},
+	"severity": {
+		"info": "Info",
+		"warning": "Aviso",
+		"error": "Error",
+		"critical": "Crítico"
+	},
+	"slot": {
+		"planned": "Planificado",
+		"in_progress": "En curso",
+		"completed": "Completado",
+		"cancelled": "Cancelado"
+	},
+	"stats": {
+		"machines": "Máquinas",
+		"running": "En marcha",
+		"idle": "Libres",
+		"service": "Mantenimiento",
+		"down": "Paradas",
+		"utilization": "Utilización",
+		"attention": "Requieren atención"
+	},
+	"floor": {
+		"title": "Taller",
+		"next": "Próximos",
+		"empty": "Aún no hay máquinas registradas.",
+		"nothingScheduled": "Nada programado.",
+		"loading": "Cargando…"
+	},
+	"detail": {
+		"kind": "Tipo",
+		"location": "Ubicación",
+		"serial": "Número de serie",
+		"lastService": "Último mantenimiento",
+		"currentJob": "Trabajo actual",
+		"parameters": "Parámetros en vivo",
+		"schedule": "Agenda",
+		"journal": "Historial",
+		"noTelemetry": "Todavía no hay telemetría de esta máquina.",
+		"notRunning": "No está ejecutando nada.",
+		"nothingBooked": "Nada reservado.",
+		"nothingLogged": "Sin registros.",
+		"notSelected": "Ninguna máquina seleccionada.",
+		"notFound": "Máquina no encontrada."
+	},
+	"order": {
+		"order": "Pedido",
+		"method": "Método",
+		"quantity": "Cantidad",
+		"material": "Material",
+		"due": "Entrega"
+	}
+}

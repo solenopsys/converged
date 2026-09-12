@@ -9,7 +9,8 @@
 		"requests",
 		"analitycs",
 		"automation",
-		"communications"
+		"communications",
+		"production"
 	],
 	"containers": [
 		"ui",

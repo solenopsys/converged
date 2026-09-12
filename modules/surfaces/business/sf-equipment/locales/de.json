@@ -1,0 +1,69 @@
+{
+	"surface": {
+		"label": "Maschinen",
+		"purpose": "Maschinen in der Werkstatt: Status, laufende Aufträge, Journal und Zeitplan"
+	},
+	"menu": {
+		"equipment": "Maschinen",
+		"journal": "Journal",
+		"schedule": "Zeitplan"
+	},
+	"status": {
+		"running": "Läuft",
+		"idle": "Frei",
+		"maintenance": "Wartung",
+		"error": "Fehler",
+		"offline": "Offline"
+	},
+	"severity": {
+		"info": "Info",
+		"warning": "Warnung",
+		"error": "Fehler",
+		"critical": "Kritisch"
+	},
+	"slot": {
+		"planned": "Geplant",
+		"in_progress": "Läuft",
+		"completed": "Abgeschlossen",
+		"cancelled": "Storniert"
+	},
+	"stats": {
+		"machines": "Maschinen",
+		"running": "Läuft",
+		"idle": "Frei",
+		"service": "Wartung",
+		"down": "Ausgefallen",
+		"utilization": "Auslastung",
+		"attention": "Braucht Aufmerksamkeit"
+	},
+	"floor": {
+		"title": "Werkstatt",
+		"next": "Als Nächstes",
+		"empty": "Noch keine Maschinen erfasst.",
+		"nothingScheduled": "Nichts geplant.",
+		"loading": "Wird geladen…"
+	},
+	"detail": {
+		"kind": "Art",
+		"location": "Standort",
+		"serial": "Seriennummer",
+		"lastService": "Letzte Wartung",
+		"currentJob": "Aktueller Auftrag",
+		"parameters": "Live-Parameter",
+		"schedule": "Zeitplan",
+		"journal": "Journal",
+		"noTelemetry": "Für diese Maschine gibt es noch keine Telemetrie.",
+		"notRunning": "Führt nichts aus.",
+		"nothingBooked": "Nichts gebucht.",
+		"nothingLogged": "Nichts protokolliert.",
+		"notSelected": "Keine Maschine ausgewählt.",
+		"notFound": "Maschine nicht gefunden."
+	},
+	"order": {
+		"order": "Auftrag",
+		"method": "Verfahren",
+		"quantity": "Menge",
+		"material": "Material",
+		"due": "Fällig"
+	}
+}

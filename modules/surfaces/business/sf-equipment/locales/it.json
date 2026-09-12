@@ -1,0 +1,69 @@
+{
+	"surface": {
+		"label": "Macchine",
+		"purpose": "Macchine in officina: stato, lavori in corso, giornale e pianificazione"
+	},
+	"menu": {
+		"equipment": "Macchine",
+		"journal": "Giornale",
+		"schedule": "Pianificazione"
+	},
+	"status": {
+		"running": "In funzione",
+		"idle": "Libera",
+		"maintenance": "Manutenzione",
+		"error": "Errore",
+		"offline": "Offline"
+	},
+	"severity": {
+		"info": "Info",
+		"warning": "Avviso",
+		"error": "Errore",
+		"critical": "Critico"
+	},
+	"slot": {
+		"planned": "Pianificato",
+		"in_progress": "In corso",
+		"completed": "Completato",
+		"cancelled": "Annullato"
+	},
+	"stats": {
+		"machines": "Macchine",
+		"running": "In funzione",
+		"idle": "Libere",
+		"service": "Manutenzione",
+		"down": "Ferme",
+		"utilization": "Utilizzo",
+		"attention": "Da controllare"
+	},
+	"floor": {
+		"title": "Officina",
+		"next": "Prossimi",
+		"empty": "Nessuna macchina registrata.",
+		"nothingScheduled": "Niente in programma.",
+		"loading": "Caricamento…"
+	},
+	"detail": {
+		"kind": "Tipo",
+		"location": "Posizione",
+		"serial": "Numero di serie",
+		"lastService": "Ultima manutenzione",
+		"currentJob": "Lavoro corrente",
+		"parameters": "Parametri live",
+		"schedule": "Pianificazione",
+		"journal": "Giornale",
+		"noTelemetry": "Nessuna telemetria per questa macchina.",
+		"notRunning": "Non sta eseguendo nulla.",
+		"nothingBooked": "Nessuna prenotazione.",
+		"nothingLogged": "Nessuna voce.",
+		"notSelected": "Nessuna macchina selezionata.",
+		"notFound": "Macchina non trovata."
+	},
+	"order": {
+		"order": "Ordine",
+		"method": "Metodo",
+		"quantity": "Quantità",
+		"material": "Materiale",
+		"due": "Scadenza"
+	}
+}

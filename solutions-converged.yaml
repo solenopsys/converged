@@ -26,6 +26,11 @@ spec:
     - dashboard
     - sheduller
     - webhooks
+    - community
+    - chats
+    - orders
+    - equipment
+    - events
   lambdas:
     - ses
     - compressors
@@ -43,6 +48,10 @@ spec:
     - usage
     - dasboards
     - automation
+    - community
+    - chats
+    - orders
+    - equipment
   processors:
     - curaengine
     - opencamlib

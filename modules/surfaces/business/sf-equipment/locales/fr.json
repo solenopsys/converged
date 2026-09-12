@@ -1,0 +1,69 @@
+{
+	"surface": {
+		"label": "Équipements",
+		"purpose": "Machines de l'atelier : leur état, les travaux en cours, leur journal et leur planning"
+	},
+	"menu": {
+		"equipment": "Équipements",
+		"journal": "Journal",
+		"schedule": "Planning"
+	},
+	"status": {
+		"running": "En marche",
+		"idle": "Libre",
+		"maintenance": "Maintenance",
+		"error": "Erreur",
+		"offline": "Hors ligne"
+	},
+	"severity": {
+		"info": "Info",
+		"warning": "Avertissement",
+		"error": "Erreur",
+		"critical": "Critique"
+	},
+	"slot": {
+		"planned": "Planifié",
+		"in_progress": "En cours",
+		"completed": "Terminé",
+		"cancelled": "Annulé"
+	},
+	"stats": {
+		"machines": "Machines",
+		"running": "En marche",
+		"idle": "Libres",
+		"service": "Maintenance",
+		"down": "Arrêtées",
+		"utilization": "Utilisation",
+		"attention": "À surveiller"
+	},
+	"floor": {
+		"title": "Atelier",
+		"next": "À venir",
+		"empty": "Aucune machine enregistrée pour l'instant.",
+		"nothingScheduled": "Rien de planifié.",
+		"loading": "Chargement…"
+	},
+	"detail": {
+		"kind": "Type",
+		"location": "Emplacement",
+		"serial": "Numéro de série",
+		"lastService": "Dernier entretien",
+		"currentJob": "Travail en cours",
+		"parameters": "Paramètres en direct",
+		"schedule": "Planning",
+		"journal": "Journal",
+		"noTelemetry": "Pas encore de télémétrie pour cette machine.",
+		"notRunning": "N'exécute rien.",
+		"nothingBooked": "Rien de réservé.",
+		"nothingLogged": "Aucune entrée.",
+		"notSelected": "Aucune machine sélectionnée.",
+		"notFound": "Machine introuvable."
+	},
+	"order": {
+		"order": "Commande",
+		"method": "Procédé",
+		"quantity": "Quantité",
+		"material": "Matériau",
+		"due": "Échéance"
+	}
+}

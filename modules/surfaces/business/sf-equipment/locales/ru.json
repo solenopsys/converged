@@ -1,0 +1,69 @@
+{
+	"surface": {
+		"label": "Оборудование",
+		"purpose": "Станки в цехе: состояние, текущие задания, журнал и расписание"
+	},
+	"menu": {
+		"equipment": "Оборудование",
+		"journal": "Журнал",
+		"schedule": "Расписание"
+	},
+	"status": {
+		"running": "В работе",
+		"idle": "Простой",
+		"maintenance": "Обслуживание",
+		"error": "Ошибка",
+		"offline": "Не на связи"
+	},
+	"severity": {
+		"info": "Инфо",
+		"warning": "Предупреждение",
+		"error": "Ошибка",
+		"critical": "Критично"
+	},
+	"slot": {
+		"planned": "Запланирован",
+		"in_progress": "Выполняется",
+		"completed": "Завершён",
+		"cancelled": "Отменён"
+	},
+	"stats": {
+		"machines": "Станков",
+		"running": "В работе",
+		"idle": "Простой",
+		"service": "Обслуживание",
+		"down": "Не работают",
+		"utilization": "Загрузка",
+		"attention": "Требуют внимания"
+	},
+	"floor": {
+		"title": "Цех",
+		"next": "Ближайшие",
+		"empty": "Оборудование ещё не заведено.",
+		"nothingScheduled": "Ничего не запланировано.",
+		"loading": "Загрузка…"
+	},
+	"detail": {
+		"kind": "Тип",
+		"location": "Расположение",
+		"serial": "Серийный номер",
+		"lastService": "Последнее ТО",
+		"currentJob": "Текущее задание",
+		"parameters": "Параметры",
+		"schedule": "Расписание",
+		"journal": "Журнал",
+		"noTelemetry": "По этому станку телеметрии пока нет.",
+		"notRunning": "Ничего не выполняет.",
+		"nothingBooked": "Слотов нет.",
+		"nothingLogged": "Записей нет.",
+		"notSelected": "Станок не выбран.",
+		"notFound": "Станок не найден."
+	},
+	"order": {
+		"order": "Заказ",
+		"method": "Метод",
+		"quantity": "Количество",
+		"material": "Материал",
+		"due": "Срок"
+	}
+}

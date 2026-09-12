@@ -1,0 +1,72 @@
+{
+	"actions": {
+		"equipment.machine.create": {
+			"brief": "Register a machine",
+			"description": "Add a machine to the shop floor. Kind is required (fdm, sla, cnc, laser, robot); name, location and serial number can follow later.",
+			"category": "equipment",
+			"exposure": "llm",
+			"priority": "normal",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"kind": { "type": "string" },
+					"name": { "type": "string" },
+					"serialNumber": { "type": "string" },
+					"location": { "type": "string" }
+				},
+				"required": ["kind"]
+			}
+		},
+		"equipment.machine.set-state": {
+			"brief": "Set machine state",
+			"description": "Mark a machine as running, idle, in maintenance, in error or offline. Needs a machine in context.",
+			"category": "equipment",
+			"exposure": "llm",
+			"priority": "primary",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"status": {
+						"type": "string",
+						"enum": ["running", "idle", "maintenance", "error", "offline"]
+					},
+					"jobId": { "type": "string" }
+				},
+				"required": ["status"]
+			}
+		},
+		"equipment.log.create": {
+			"brief": "Log a machine event",
+			"description": "Write an incident, a service record or a note into a machine's journal.",
+			"category": "equipment",
+			"exposure": "llm",
+			"priority": "normal",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"description": { "type": "string" },
+					"eventType": { "type": "string" },
+					"severity": { "type": "string" }
+				},
+				"required": ["description"]
+			}
+		},
+		"equipment.slot.create": {
+			"brief": "Book a machine slot",
+			"description": "Reserve a time window on a machine, optionally tied to an order.",
+			"category": "equipment",
+			"exposure": "llm",
+			"priority": "normal",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"startAt": { "type": "string" },
+					"endAt": { "type": "string" },
+					"orderId": { "type": "string" },
+					"note": { "type": "string" }
+				},
+				"required": ["startAt", "endAt"]
+			}
+		}
+	}
+}

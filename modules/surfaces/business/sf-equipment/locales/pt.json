@@ -1,0 +1,69 @@
+{
+	"surface": {
+		"label": "Equipamentos",
+		"purpose": "Máquinas da oficina: estado, trabalhos em curso, registo e agenda"
+	},
+	"menu": {
+		"equipment": "Equipamentos",
+		"journal": "Registo",
+		"schedule": "Agenda"
+	},
+	"status": {
+		"running": "Em funcionamento",
+		"idle": "Livre",
+		"maintenance": "Manutenção",
+		"error": "Erro",
+		"offline": "Offline"
+	},
+	"severity": {
+		"info": "Info",
+		"warning": "Aviso",
+		"error": "Erro",
+		"critical": "Crítico"
+	},
+	"slot": {
+		"planned": "Planeado",
+		"in_progress": "Em curso",
+		"completed": "Concluído",
+		"cancelled": "Cancelado"
+	},
+	"stats": {
+		"machines": "Máquinas",
+		"running": "Em funcionamento",
+		"idle": "Livres",
+		"service": "Manutenção",
+		"down": "Paradas",
+		"utilization": "Utilização",
+		"attention": "Precisam de atenção"
+	},
+	"floor": {
+		"title": "Oficina",
+		"next": "A seguir",
+		"empty": "Ainda não há máquinas registadas.",
+		"nothingScheduled": "Nada agendado.",
+		"loading": "A carregar…"
+	},
+	"detail": {
+		"kind": "Tipo",
+		"location": "Localização",
+		"serial": "Número de série",
+		"lastService": "Última manutenção",
+		"currentJob": "Trabalho atual",
+		"parameters": "Parâmetros em direto",
+		"schedule": "Agenda",
+		"journal": "Registo",
+		"noTelemetry": "Ainda não há telemetria desta máquina.",
+		"notRunning": "Não está a executar nada.",
+		"nothingBooked": "Nada reservado.",
+		"nothingLogged": "Sem registos.",
+		"notSelected": "Nenhuma máquina selecionada.",
+		"notFound": "Máquina não encontrada."
+	},
+	"order": {
+		"order": "Encomenda",
+		"method": "Método",
+		"quantity": "Quantidade",
+		"material": "Material",
+		"due": "Prazo"
+	}
+}
