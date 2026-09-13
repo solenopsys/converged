@@ -21,7 +21,9 @@
 						}
 					}
 				},
-				"required": ["fileIds"]
+				"required": [
+					"fileIds"
+				]
 			}
 		},
 		{
@@ -37,7 +39,9 @@
 						"type": "string"
 					}
 				},
-				"required": ["fileId"]
+				"required": [
+					"fileId"
+				]
 			}
 		},
 		{
@@ -64,12 +68,22 @@
 			"parameters": {
 				"type": "object",
 				"properties": {
-					"from": { "type": "string" },
-					"shopName": { "type": "string" },
-					"delayHours": { "type": "number" },
-					"dryRun": { "type": "boolean" }
+					"from": {
+						"type": "string"
+					},
+					"shopName": {
+						"type": "string"
+					},
+					"delayHours": {
+						"type": "number"
+					},
+					"dryRun": {
+						"type": "boolean"
+					}
 				},
-				"required": ["from"]
+				"required": [
+					"from"
+				]
 			}
 		},
 		{
@@ -81,13 +95,86 @@
 			"parameters": {
 				"type": "object",
 				"properties": {
-					"from": { "type": "string" },
-					"shopName": { "type": "string" },
-					"delayDays": { "type": "number" },
-					"maxFollowups": { "type": "number" },
-					"dryRun": { "type": "boolean" }
+					"from": {
+						"type": "string"
+					},
+					"shopName": {
+						"type": "string"
+					},
+					"delayDays": {
+						"type": "number"
+					},
+					"maxFollowups": {
+						"type": "number"
+					},
+					"dryRun": {
+						"type": "boolean"
+					}
 				},
-				"required": ["from"]
+				"required": [
+					"from"
+				]
+			}
+		},
+		{
+			"id": "team-invite",
+			"name": "wf-team-invite",
+			"script": "workflows/wf-team-invite.js",
+			"brief": "Add people to the console from a list",
+			"description": "Turn a pasted list of people (name + email, in any shape) or an uploaded file into user accounts with a role, staff cards and invitations, and send each of them a sign-in link. Re-running the same list adds nobody twice. Roles it may grant: manager, operator, viewer. dryRun reports what it would do and touches nothing.",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"rawText": {
+						"type": "string",
+						"description": "The pasted list itself"
+					},
+					"fileIds": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						},
+						"description": "rp-files ids of csv/xlsx/text lists"
+					},
+					"preset": {
+						"type": "string",
+						"enum": [
+							"manager",
+							"operator",
+							"viewer"
+						],
+						"description": "Role for everyone in this list"
+					},
+					"tags": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						},
+						"description": "Group access tags, e.g. team-ops"
+					},
+					"invitedBy": {
+						"type": "string"
+					},
+					"from": {
+						"type": "string",
+						"description": "Sender address; without it no letters are sent"
+					},
+					"consoleUrl": {
+						"type": "string"
+					},
+					"subject": {
+						"type": "string"
+					},
+					"provider": {
+						"type": "string"
+					},
+					"model": {
+						"type": "string"
+					},
+					"dryRun": {
+						"type": "boolean"
+					}
+				}
 			}
 		}
 	]

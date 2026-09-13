@@ -11,7 +11,12 @@
     "telemetry": "rw",
     "logs": "r",
     "dashboard": "r",
-    "counters": "r"
+    "counters": "r",
+    "identity": {
+      "listInvites": "r",
+      "getInvite": "r",
+      "revokeInvite": "w"
+    }
   },
   "wf": {
     "workflows": {

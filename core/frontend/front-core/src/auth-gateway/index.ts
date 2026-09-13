@@ -3,8 +3,8 @@ export {
 	clearedRefreshCookie,
 	isSecureRequest,
 	publicBaseUrl,
+	REFRESH_COOKIE,
 	readCookie,
 	refreshCookie,
-	REFRESH_COOKIE,
 	safeReturnTo,
 } from "./session";

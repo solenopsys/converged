@@ -390,6 +390,53 @@ solutions:
               type: boolean
           required:
             - from
+      # The team contour: "here are ten people, they work here now" is one
+      # sentence in the chat, and four services moving together behind it.
+      # Who may run it is the ordinary grant wf/workflows/wf-team-invite.js(x),
+      # which is the whole of "who may add people" in this product.
+      - id: team-invite
+        name: wf-team-invite
+        script: workflows/wf-team-invite.js
+        brief: Add people to the console from a list
+        description: >-
+          Turn a pasted list of people (name + email, in any shape) or an
+          uploaded file into user accounts with a role, staff cards and
+          invitations, and send each of them a sign-in link. Re-running the same
+          list adds nobody twice. Roles it may grant: manager, operator, viewer.
+          dryRun reports what it would do and touches nothing.
+        parameters:
+          type: object
+          properties:
+            rawText:
+              type: string
+            fileIds:
+              type: array
+              items:
+                type: string
+            preset:
+              type: string
+              enum:
+                - manager
+                - operator
+                - viewer
+            tags:
+              type: array
+              items:
+                type: string
+            invitedBy:
+              type: string
+            from:
+              type: string
+            consoleUrl:
+              type: string
+            subject:
+              type: string
+            provider:
+              type: string
+            model:
+              type: string
+            dryRun:
+              type: boolean
 
 # Tenants are created as sites are sold, not at install. Only meaningful for
 # the `cloud` profile.

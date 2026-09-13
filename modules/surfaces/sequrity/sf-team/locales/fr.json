@@ -1,0 +1,152 @@
+{
+	"surface": {
+		"label": "Équipe",
+		"purpose": "Qui travaille ici, ce que chacun a le droit de faire, et qui a été invité sans être encore arrivé"
+	},
+	"menu": {
+		"members": "Équipe",
+		"invites": "Invitations",
+		"shifts": "Planning",
+		"access": "Droits",
+		"overview": "Vue d'ensemble"
+	},
+	"role": {
+		"owner": "Propriétaire",
+		"manager": "Responsable",
+		"operator": "Opérateur",
+		"viewer": "Observateur",
+		"none": "sans rôle"
+	},
+	"active": {
+		"true": "En poste",
+		"false": "Parti"
+	},
+	"invite": {
+		"pending": "Non envoyée",
+		"sent": "Envoyée",
+		"accepted": "Connecté",
+		"revoked": "Révoquée",
+		"expired": "Expirée"
+	},
+	"consoleState": {
+		"active": "Connecté",
+		"invited": "Invité",
+		"none": "Aucun accès"
+	},
+	"stats": {
+		"working": "En poste",
+		"withConsole": "Avec console",
+		"invited": "Invités",
+		"undelivered": "Courrier non parti",
+		"cardOnly": "{count} fiche seule"
+	},
+	"overview": {
+		"team": "Équipe",
+		"waiting": "En attente d'arrivée",
+		"loading": "Chargement…",
+		"empty": "Personne ici pour l'instant. Collez une liste dans le chat — nom et e-mail, sous n'importe quelle forme — et chacun recevra un rôle et un lien de connexion.",
+		"noneWaiting": "Personne n'attend d'invitation.",
+		"hasConsole": "a accès à la console",
+		"noConsole": "pas d'accès à la console"
+	},
+	"detail": {
+		"notFound": "Cette personne n'existe pas.",
+		"loading": "Chargement…",
+		"noAddress": "aucune adresse enregistrée",
+		"status": "Statut",
+		"console": "Console",
+		"canSignIn": "Peut se connecter",
+		"cardOnly": "Fiche seule",
+		"language": "Langue",
+		"contact": "Contact",
+		"access": "Accès",
+		"invitedBy": "invité par {who}",
+		"groupTags": "Étiquettes de groupe",
+		"rolesNote": "Les rôles sont des fichiers de preset : en modifier un le modifie partout. Retirer un rôle prend effet à la prochaine connexion — un jeton déjà émis garde ses droits jusqu'à expiration.",
+		"noInvite": "Aucune invitation. Cette personne a une fiche mais n'a jamais été invitée dans la console.",
+		"shifts": "Postes",
+		"noShifts": "Rien de planifié.",
+		"away": "Absences",
+		"noAbsences": "Aucun congé enregistré.",
+		"empty": "—"
+	},
+	"columns": {
+		"name": "Nom",
+		"email": "E-mail",
+		"role": "Rôle",
+		"contact": "Contact",
+		"status": "Statut",
+		"added": "Ajouté",
+		"address": "Adresse",
+		"delivery": "Envoi",
+		"invitedBy": "Invité par",
+		"sent": "Envoyée",
+		"expires": "Expire",
+		"from": "De",
+		"to": "À",
+		"who": "Qui",
+		"work": "Travail",
+		"note": "Note",
+		"person": "Personne",
+		"rolePreset": "Preset de rôle",
+		"groupTags": "Étiquettes de groupe",
+		"console": "Console",
+		"search": "Recherche"
+	},
+	"tabs": {
+		"working": "En poste",
+		"left": "Partis",
+		"all": "Tous"
+	},
+	"types": {
+		"member": {
+			"label": "Membre de l'équipe",
+			"description": "Une personne qui travaille ici : sa fiche, son rôle et si elle peut se connecter"
+		},
+		"invite": {
+			"label": "Invitation",
+			"description": "Une adresse autorisée et le rôle qu'elle reçoit à l'arrivée, ainsi que le sort de son courrier"
+		},
+		"shift": {
+			"label": "Poste",
+			"description": "Qui travaille, et quand"
+		},
+		"access": {
+			"label": "Accès",
+			"description": "Ce qui a été donné à chacun : le preset de rôle, les étiquettes de groupe et s'il peut entrer"
+		}
+	},
+	"operations": {
+		"member_import": {
+			"label": "Ajouter des personnes depuis une liste",
+			"description": "Collez une liste — nom et e-mail, sous n'importe quelle forme — ou nommez des fichiers téléversés. Chacun reçoit un compte, le rôle choisi, une fiche et un lien de connexion. Rejouer la même liste ne double personne."
+		},
+		"member_create": {
+			"label": "Ajouter une personne",
+			"description": "Une fiche pour quelqu'un qui travaille ici. Cela ne donne pas accès à la console — c'est l'import qui le fait."
+		},
+		"member_save": {
+			"label": "Enregistrer la fiche"
+		},
+		"member_setRole": {
+			"label": "Changer de rôle",
+			"description": "Donner un autre rôle à une personne. Les rôles sont des fichiers de preset ; propriétaire ne peut pas être attribué ici."
+		},
+		"member_deactivate": {
+			"label": "Couper l'accès",
+			"description": "Indiquer que quelqu'un ne travaille plus ici et révoquer son invitation ouverte. Un jeton déjà émis reste valable jusqu'à expiration."
+		},
+		"invite_revoke": {
+			"label": "Révoquer l'invitation",
+			"description": "Fermer une adresse avant que l'invitation ne serve. Immédiat — la porte lit l'invitation à chaque requête."
+		},
+		"shift_create": {
+			"label": "Planifier un poste"
+		}
+	},
+	"errors": {
+		"noEmail": "Cette fiche n'a pas d'e-mail, il n'y a donc aucun compte à qui donner un rôle",
+		"inviteFailed": "échec de l'invitation d'équipe",
+		"imported": "{count} ajoutés"
+	}
+}

@@ -1,0 +1,75 @@
+{
+	"actions": {
+		"team.member.import": {
+			"brief": "Add people to the console from a list",
+			"description": "Paste a list of people — name and email in any shape, or the ids of uploaded files — and everyone in it gets an account, the chosen role, a staff card and a sign-in link. Running the same list twice adds nobody twice. Roles: manager, operator, viewer. Answers with the table of exactly these people.",
+			"category": "team",
+			"exposure": "llm",
+			"priority": "primary",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"rawText": { "type": "string" },
+					"fileIds": { "type": "array", "items": { "type": "string" } },
+					"preset": {
+						"type": "string",
+						"enum": ["manager", "operator", "viewer"]
+					},
+					"tags": { "type": "array", "items": { "type": "string" } },
+					"dryRun": { "type": "boolean" }
+				}
+			}
+		},
+		"team.member.setRole": {
+			"brief": "Change somebody's role",
+			"description": "Give a person a different role. Roles are preset files; owner cannot be handed out this way. Needs a team member in context.",
+			"category": "team",
+			"exposure": "llm",
+			"priority": "normal",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"preset": {
+						"type": "string",
+						"enum": ["manager", "operator", "viewer"]
+					},
+					"tags": { "type": "array", "items": { "type": "string" } }
+				},
+				"required": ["preset"]
+			}
+		},
+		"team.member.deactivate": {
+			"brief": "Switch off somebody's access",
+			"description": "Mark a person as no longer working here and revoke their open invitation. A token already issued keeps working until it expires. Needs a team member in context.",
+			"category": "team",
+			"exposure": "llm",
+			"priority": "normal",
+			"parameters": { "type": "object", "properties": {} }
+		},
+		"team.member.create": {
+			"brief": "File a card for one person",
+			"description": "Record somebody who works here without giving them console access. Use the import when they need to sign in.",
+			"category": "team",
+			"exposure": "llm",
+			"priority": "normal",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"name": { "type": "string" },
+					"email": { "type": "string" },
+					"contact": { "type": "string" },
+					"role": { "type": "string" }
+				},
+				"required": ["name"]
+			}
+		},
+		"team.invite.revoke": {
+			"brief": "Revoke an invitation",
+			"description": "Shut an address out before the invitation has been used. Takes effect at once. Needs an invitation in context.",
+			"category": "team",
+			"exposure": "llm",
+			"priority": "normal",
+			"parameters": { "type": "object", "properties": {} }
+		}
+	}
+}

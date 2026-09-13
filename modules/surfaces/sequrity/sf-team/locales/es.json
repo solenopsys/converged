@@ -1,0 +1,152 @@
+{
+	"surface": {
+		"label": "Equipo",
+		"purpose": "Quién trabaja aquí, qué puede hacer cada uno y a quién se ha invitado sin que haya llegado todavía"
+	},
+	"menu": {
+		"members": "Equipo",
+		"invites": "Invitaciones",
+		"shifts": "Turnos",
+		"access": "Permisos",
+		"overview": "Resumen"
+	},
+	"role": {
+		"owner": "Propietario",
+		"manager": "Responsable",
+		"operator": "Operario",
+		"viewer": "Observador",
+		"none": "sin rol"
+	},
+	"active": {
+		"true": "Trabajando",
+		"false": "Baja"
+	},
+	"invite": {
+		"pending": "Sin enviar",
+		"sent": "Enviada",
+		"accepted": "Ha entrado",
+		"revoked": "Revocada",
+		"expired": "Caducada"
+	},
+	"consoleState": {
+		"active": "Ha entrado",
+		"invited": "Invitado",
+		"none": "Sin acceso"
+	},
+	"stats": {
+		"working": "Trabajando",
+		"withConsole": "Con consola",
+		"invited": "Invitados",
+		"undelivered": "Carta sin enviar",
+		"cardOnly": "{count} solo ficha"
+	},
+	"overview": {
+		"team": "Equipo",
+		"waiting": "Pendientes de llegar",
+		"loading": "Cargando…",
+		"empty": "Aquí todavía no hay nadie. Pega una lista en el chat — nombre y correo, en cualquier formato — y todos recibirán un rol y un enlace de acceso.",
+		"noneWaiting": "Nadie está esperando una invitación.",
+		"hasConsole": "tiene acceso a la consola",
+		"noConsole": "sin acceso a la consola"
+	},
+	"detail": {
+		"notFound": "Esa persona no existe.",
+		"loading": "Cargando…",
+		"noAddress": "sin dirección registrada",
+		"status": "Estado",
+		"console": "Consola",
+		"canSignIn": "Puede entrar",
+		"cardOnly": "Solo ficha",
+		"language": "Idioma",
+		"contact": "Contacto",
+		"access": "Acceso",
+		"invitedBy": "invitado por {who}",
+		"groupTags": "Etiquetas de grupo",
+		"rolesNote": "Los roles son archivos de preset, así que cambiar uno lo cambia en todas partes. Quitar un rol surte efecto en el siguiente acceso: un token ya emitido conserva sus permisos hasta caducar.",
+		"noInvite": "No hay invitación. Esta persona tiene ficha pero nunca se la invitó a la consola.",
+		"shifts": "Turnos",
+		"noShifts": "Nada programado.",
+		"away": "Ausencias",
+		"noAbsences": "Sin vacaciones registradas.",
+		"empty": "—"
+	},
+	"columns": {
+		"name": "Nombre",
+		"email": "Correo",
+		"role": "Rol",
+		"contact": "Contacto",
+		"status": "Estado",
+		"added": "Alta",
+		"address": "Dirección",
+		"delivery": "Entrega",
+		"invitedBy": "Invitado por",
+		"sent": "Enviada",
+		"expires": "Caduca",
+		"from": "Desde",
+		"to": "Hasta",
+		"who": "Quién",
+		"work": "Trabajo",
+		"note": "Nota",
+		"person": "Persona",
+		"rolePreset": "Preset de rol",
+		"groupTags": "Etiquetas de grupo",
+		"console": "Consola",
+		"search": "Buscar"
+	},
+	"tabs": {
+		"working": "Trabajando",
+		"left": "Baja",
+		"all": "Todos"
+	},
+	"types": {
+		"member": {
+			"label": "Miembro del equipo",
+			"description": "Una persona que trabaja aquí: su ficha, su rol y si puede entrar"
+		},
+		"invite": {
+			"label": "Invitación",
+			"description": "Una dirección admitida y el rol que recibirá al llegar, además de si su carta llegó"
+		},
+		"shift": {
+			"label": "Turno",
+			"description": "Quién trabaja y cuándo"
+		},
+		"access": {
+			"label": "Acceso",
+			"description": "Qué se le dio a cada persona: el preset de rol, las etiquetas de grupo y si puede entrar"
+		}
+	},
+	"operations": {
+		"member_import": {
+			"label": "Añadir personas desde una lista",
+			"description": "Pega una lista — nombre y correo en cualquier formato — o indica archivos subidos. Cada uno recibe una cuenta, el rol elegido, una ficha y un enlace de acceso. Ejecutar la misma lista dos veces no duplica a nadie."
+		},
+		"member_create": {
+			"label": "Añadir una persona",
+			"description": "Una ficha para quien trabaja aquí. No da acceso a la consola: para eso está la importación."
+		},
+		"member_save": {
+			"label": "Guardar ficha"
+		},
+		"member_setRole": {
+			"label": "Cambiar el rol",
+			"description": "Dar otro rol a una persona. Los roles son archivos de preset; propietario no se puede otorgar desde aquí."
+		},
+		"member_deactivate": {
+			"label": "Quitar el acceso",
+			"description": "Marcar que alguien ya no trabaja aquí y revocar su invitación abierta. Un token ya emitido sigue valiendo hasta caducar."
+		},
+		"invite_revoke": {
+			"label": "Revocar la invitación",
+			"description": "Cerrar una dirección antes de que se use la invitación. Inmediato: la puerta lee la invitación en cada petición."
+		},
+		"shift_create": {
+			"label": "Programar un turno"
+		}
+	},
+	"errors": {
+		"noEmail": "Esta ficha no tiene correo, así que no hay cuenta a la que darle un rol",
+		"inviteFailed": "no se pudo invitar al equipo",
+		"imported": "Añadidos: {count}"
+	}
+}

@@ -110,7 +110,9 @@ function normalizeEmail(value: string): string {
 
 /** The model is asked for bare JSON and often wraps it in a fence. */
 function parsePeopleJson(body: string): Person[] {
-	const cleaned = body.replace(/^```(?:json)?\s*([\s\S]*?)\s*```$/, "$1").trim();
+	const cleaned = body
+		.replace(/^```(?:json)?\s*([\s\S]*?)\s*```$/, "$1")
+		.trim();
 	const parsed = JSON.parse(cleaned) as any;
 	const rows = Array.isArray(parsed) ? parsed : (parsed?.people ?? []);
 	if (!Array.isArray(rows)) return [];
@@ -190,7 +192,9 @@ function letterBody(name: string, link: string, consoleUrl: string): string {
 		`<p>Hello${name ? `, ${name}` : ""}!</p>`,
 		"<p>You have been added to the workshop console. This link signs you in:</p>",
 		`<p><a href="${link}">${link}</a></p>`,
-		consoleUrl ? `<p>The console lives at <a href="${consoleUrl}">${consoleUrl}</a>.</p>` : "",
+		consoleUrl
+			? `<p>The console lives at <a href="${consoleUrl}">${consoleUrl}</a>.</p>`
+			: "",
 		"<p>If you were not expecting this, ignore the message.</p>",
 	]
 		.filter(Boolean)
@@ -210,7 +214,9 @@ rt.workflow = (input: Input) => {
 			`team-invite refuses to grant "${preset}"; allowed: ${GRANTABLE_PRESETS.join(", ")}`,
 		);
 
-	const tags = (input?.tags ?? []).map((tag) => String(tag).trim()).filter(Boolean);
+	const tags = (input?.tags ?? [])
+		.map((tag) => String(tag).trim())
+		.filter(Boolean);
 	const invitedBy = (input?.invitedBy ?? "").trim() || "owner";
 	const consoleUrl = (input?.consoleUrl ?? "").trim();
 	const errors: { id?: string; stage: string; message: string }[] = [];
@@ -256,7 +262,9 @@ rt.workflow = (input: Input) => {
 			}),
 		);
 		if (answered.ok) {
-			const parsed = rt.attempt("llm-parse", () => parsePeopleJson(answered.value.text));
+			const parsed = rt.attempt("llm-parse", () =>
+				parsePeopleJson(answered.value.text),
+			);
 			if (parsed.ok && parsed.value.length > 0) {
 				people = parsed.value;
 				format = "llm";
@@ -307,7 +315,11 @@ rt.workflow = (input: Input) => {
 
 	// ---- 3. one attempt per person ------------------------------------------
 	for (const person of people) {
-		const outcome: Outcome = { email: person.email, name: person.name, status: "failed" };
+		const outcome: Outcome = {
+			email: person.email,
+			name: person.name,
+			status: "failed",
+		};
 
 		const done = rt.attempt(`invite:${person.email}`, () => {
 			// An address already known is not an error and not a second account:
@@ -337,7 +349,11 @@ rt.workflow = (input: Input) => {
 			// arrive.
 			const card = staff.getStaffByEmail(person.email);
 			if (card) {
-				staff.updateStaff(card.id, { userId: user.id, role: preset, active: true });
+				staff.updateStaff(card.id, {
+					userId: user.id,
+					role: preset,
+					active: true,
+				});
 				outcome.staffId = card.id;
 			} else {
 				outcome.staffId = staff.createStaff({

@@ -10,3 +10,4 @@ modules:
   wf-request-analyze: ready
   wf-sales-import: _
   wf-sales-review-outreach: _
+  wf-team-invite: ready

@@ -1,0 +1,152 @@
+{
+	"surface": {
+		"label": "Team",
+		"purpose": "Wer hier arbeitet, was jeder darf und wer eingeladen wurde, aber noch nicht da ist"
+	},
+	"menu": {
+		"members": "Team",
+		"invites": "Einladungen",
+		"shifts": "Dienstplan",
+		"access": "Rechte",
+		"overview": "Überblick"
+	},
+	"role": {
+		"owner": "Inhaber",
+		"manager": "Manager",
+		"operator": "Bediener",
+		"viewer": "Betrachter",
+		"none": "keine Rolle"
+	},
+	"active": {
+		"true": "Arbeitet",
+		"false": "Ausgeschieden"
+	},
+	"invite": {
+		"pending": "Nicht gesendet",
+		"sent": "Gesendet",
+		"accepted": "Angemeldet",
+		"revoked": "Widerrufen",
+		"expired": "Abgelaufen"
+	},
+	"consoleState": {
+		"active": "Angemeldet",
+		"invited": "Eingeladen",
+		"none": "Kein Zugang"
+	},
+	"stats": {
+		"working": "Arbeiten",
+		"withConsole": "Mit Konsole",
+		"invited": "Eingeladen",
+		"undelivered": "Brief nicht gesendet",
+		"cardOnly": "{count} nur Karte"
+	},
+	"overview": {
+		"team": "Team",
+		"waiting": "Warten auf Ankunft",
+		"loading": "Wird geladen…",
+		"empty": "Noch niemand hier. Fügen Sie eine Liste in den Chat ein — Name und E-Mail, in beliebiger Form — und alle erhalten eine Rolle und einen Anmeldelink.",
+		"noneWaiting": "Niemand wartet auf eine Einladung.",
+		"hasConsole": "hat Konsolenzugang",
+		"noConsole": "kein Konsolenzugang"
+	},
+	"detail": {
+		"notFound": "Diese Person gibt es nicht.",
+		"loading": "Wird geladen…",
+		"noAddress": "keine Adresse hinterlegt",
+		"status": "Status",
+		"console": "Konsole",
+		"canSignIn": "Kann sich anmelden",
+		"cardOnly": "Nur Karte",
+		"language": "Sprache",
+		"contact": "Kontakt",
+		"access": "Zugang",
+		"invitedBy": "eingeladen von {who}",
+		"groupTags": "Gruppen-Tags",
+		"rolesNote": "Rollen sind Preset-Dateien: Eine Änderung wirkt überall. Der Entzug einer Rolle greift bei der nächsten Anmeldung — ein bereits ausgestelltes Token behält seine Rechte bis zum Ablauf.",
+		"noInvite": "Keine Einladung vorhanden. Diese Person hat eine Karte, wurde aber nie in die Konsole eingeladen.",
+		"shifts": "Schichten",
+		"noShifts": "Nichts geplant.",
+		"away": "Abwesend",
+		"noAbsences": "Kein Urlaub eingetragen.",
+		"empty": "—"
+	},
+	"columns": {
+		"name": "Name",
+		"email": "E-Mail",
+		"role": "Rolle",
+		"contact": "Kontakt",
+		"status": "Status",
+		"added": "Hinzugefügt",
+		"address": "Adresse",
+		"delivery": "Zustellung",
+		"invitedBy": "Eingeladen von",
+		"sent": "Gesendet",
+		"expires": "Läuft ab",
+		"from": "Von",
+		"to": "Bis",
+		"who": "Wer",
+		"work": "Arbeit",
+		"note": "Notiz",
+		"person": "Person",
+		"rolePreset": "Rollen-Preset",
+		"groupTags": "Gruppen-Tags",
+		"console": "Konsole",
+		"search": "Suche"
+	},
+	"tabs": {
+		"working": "Arbeiten",
+		"left": "Ausgeschieden",
+		"all": "Alle"
+	},
+	"types": {
+		"member": {
+			"label": "Teammitglied",
+			"description": "Eine Person, die hier arbeitet: ihre Karte, ihre Rolle und ob sie sich anmelden kann"
+		},
+		"invite": {
+			"label": "Einladung",
+			"description": "Eine zugelassene Adresse und die Rolle, die sie bei Ankunft erhält, sowie ob ihr Brief ankam"
+		},
+		"shift": {
+			"label": "Schicht",
+			"description": "Wer wann arbeitet"
+		},
+		"access": {
+			"label": "Zugang",
+			"description": "Was jede Person erhalten hat: das Rollen-Preset, die Gruppen-Tags und ob sie hineinkommt"
+		}
+	},
+	"operations": {
+		"member_import": {
+			"label": "Personen aus einer Liste hinzufügen",
+			"description": "Fügen Sie eine Liste ein — Name und E-Mail in beliebiger Form — oder nennen Sie hochgeladene Dateien. Jeder erhält ein Konto, die gewählte Rolle, eine Personalkarte und einen Anmeldelink. Dieselbe Liste zweimal auszuführen fügt niemanden doppelt hinzu."
+		},
+		"member_create": {
+			"label": "Eine Person anlegen",
+			"description": "Eine Karte für jemanden, der hier arbeitet. Konsolenzugang gibt sie nicht — dafür ist der Import da."
+		},
+		"member_save": {
+			"label": "Karte speichern"
+		},
+		"member_setRole": {
+			"label": "Rolle ändern",
+			"description": "Einer Person eine andere Rolle geben. Rollen sind Preset-Dateien; Inhaber kann hier nicht vergeben werden."
+		},
+		"member_deactivate": {
+			"label": "Zugang abschalten",
+			"description": "Markieren, dass jemand nicht mehr hier arbeitet, und seine offene Einladung widerrufen. Ein bereits ausgestelltes Token gilt bis zum Ablauf."
+		},
+		"invite_revoke": {
+			"label": "Einladung widerrufen",
+			"description": "Eine Adresse sperren, bevor die Einladung genutzt wurde. Sofort wirksam — das Tor liest die Einladung bei jeder Anfrage."
+		},
+		"shift_create": {
+			"label": "Schicht planen"
+		}
+	},
+	"errors": {
+		"noEmail": "Diese Karte hat keine E-Mail, also gibt es kein Konto, dem eine Rolle gegeben werden könnte",
+		"inviteFailed": "Team-Einladung fehlgeschlagen",
+		"imported": "{count} hinzugefügt"
+	}
+}

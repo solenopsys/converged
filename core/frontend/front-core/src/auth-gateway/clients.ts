@@ -3,8 +3,8 @@
 // Direct path, not the "back-core" barrel: the barrel re-exports ./stores and
 // would drag the native storage transport into this UI-side bundle.
 import { createServerNrpcClientConfig } from "back-core/fujin-services";
-import { createAuthServiceClient } from "g-auth";
 import { createAccessServiceClient } from "g-access";
+import { createAuthServiceClient } from "g-auth";
 import { createIdentityServiceClient } from "g-identity";
 import { createOAuthServiceClient } from "g-oauth";
 import { createSesServiceClient } from "g-ses";

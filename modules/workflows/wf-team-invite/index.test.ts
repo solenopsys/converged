@@ -58,11 +58,9 @@ describe("wf-team-invite", () => {
 			"maria@shop.test",
 			"petr@shop.test",
 		]);
-		expect([...u.invites.values()].map((invite: any) => invite.email).sort()).toEqual([
-			"ivan@shop.test",
-			"maria@shop.test",
-			"petr@shop.test",
-		]);
+		expect(
+			[...u.invites.values()].map((invite: any) => invite.email).sort(),
+		).toEqual(["ivan@shop.test", "maria@shop.test", "petr@shop.test"]);
 	});
 
 	test("reads the name whichever side of the address it was written on", () => {
@@ -98,7 +96,11 @@ describe("wf-team-invite", () => {
 		const u = createTeamUniverse();
 
 		for (const preset of ["owner", "root"]) {
-			const outcome = runWorkflow(source, { rawText: "ivan@shop.test", preset }, u.handler);
+			const outcome = runWorkflow(
+				source,
+				{ rawText: "ivan@shop.test", preset },
+				u.handler,
+			);
 			expect(outcome.ok).toBe(false);
 			if (!outcome.ok) expect(outcome.error).toContain("refuses to grant");
 		}
@@ -124,7 +126,11 @@ describe("wf-team-invite", () => {
 		const u = createTeamUniverse();
 		const staffId = u.addStaff("ivan@shop.test", "Ivan from the wall chart");
 
-		const outcome = runWorkflow(source, { rawText: "ivan@shop.test" }, u.handler);
+		const outcome = runWorkflow(
+			source,
+			{ rawText: "ivan@shop.test" },
+			u.handler,
+		);
 		if (!outcome.ok) throw new Error(outcome.error);
 
 		expect(u.staff.size).toBe(1);
@@ -135,7 +141,11 @@ describe("wf-team-invite", () => {
 	test("sends one letter per person and writes the delivery journal", () => {
 		const u = createTeamUniverse();
 
-		const outcome = runWorkflow(source, { rawText: PASTED, ...MAIL }, u.handler);
+		const outcome = runWorkflow(
+			source,
+			{ rawText: PASTED, ...MAIL },
+			u.handler,
+		);
 		if (!outcome.ok) throw new Error(outcome.error);
 
 		expect(outcome.result.mailed).toBe(3);
@@ -144,16 +154,24 @@ describe("wf-team-invite", () => {
 			"maria@shop.test",
 			"petr@shop.test",
 		]);
-		expect(u.mails[0].body).toContain("https://console.example.test/auth/verify?token=");
+		expect(u.mails[0].body).toContain(
+			"https://console.example.test/auth/verify?token=",
+		);
 		expect(u.journal).toHaveLength(3);
-		expect([...u.invites.values()].every((invite: any) => invite.status === "sent")).toBe(true);
+		expect(
+			[...u.invites.values()].every((invite: any) => invite.status === "sent"),
+		).toBe(true);
 	});
 
 	test("a refused relay is a branch, not a lost account", () => {
 		const u = createTeamUniverse();
 		u.failOn("smtp", "sendEmail", "relay refused");
 
-		const outcome = runWorkflow(source, { rawText: PASTED, ...MAIL }, u.handler);
+		const outcome = runWorkflow(
+			source,
+			{ rawText: PASTED, ...MAIL },
+			u.handler,
+		);
 		expect(outcome.ok).toBe(true);
 		if (!outcome.ok) return;
 
@@ -162,8 +180,12 @@ describe("wf-team-invite", () => {
 		expect(outcome.result.mailed).toBe(0);
 		expect(u.users.size).toBe(3);
 		expect(u.staff.size).toBe(3);
-		expect(outcome.result.errors.every((error: any) => error.stage === "mail")).toBe(true);
-		expect(u.journal.every((entry: any) => entry.status === "failed")).toBe(true);
+		expect(
+			outcome.result.errors.every((error: any) => error.stage === "mail"),
+		).toBe(true);
+		expect(u.journal.every((entry: any) => entry.status === "failed")).toBe(
+			true,
+		);
 	});
 
 	test("one bad row does not sink the batch", () => {
@@ -180,7 +202,8 @@ describe("wf-team-invite", () => {
 		expect(outcome.result.failed).toBe(1);
 		expect(outcome.result.staffIds).toHaveLength(2);
 		expect(
-			outcome.result.items.find((item: any) => item.email === "maria@shop.test").reason,
+			outcome.result.items.find((item: any) => item.email === "maria@shop.test")
+				.reason,
 		).toContain("card is locked");
 	});
 
@@ -227,14 +250,21 @@ describe("wf-team-invite", () => {
 		if (!outcome.ok) throw new Error(outcome.error);
 
 		expect(outcome.result.parsed).toBe(1);
-		expect(outcome.result.sources[0]).toMatchObject({ fileId: "file-1", name: "team.csv" });
+		expect(outcome.result.sources[0]).toMatchObject({
+			fileId: "file-1",
+			name: "team.csv",
+		});
 		expect([...u.users.keys()]).toEqual(["ivan@shop.test"]);
 	});
 
 	test("dryRun reports what it would do and touches nothing", () => {
 		const u = createTeamUniverse();
 
-		const outcome = runWorkflow(source, { rawText: PASTED, dryRun: true }, u.handler);
+		const outcome = runWorkflow(
+			source,
+			{ rawText: PASTED, dryRun: true },
+			u.handler,
+		);
 		if (!outcome.ok) throw new Error(outcome.error);
 
 		expect(outcome.result.status).toBe("dry-run");

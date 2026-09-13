@@ -5,9 +5,9 @@ import {
 	isSecureRequest,
 	noSessionResponse,
 	publicBaseUrl,
+	REFRESH_COOKIE,
 	readCookie,
 	refreshCookie,
-	REFRESH_COOKIE,
 	safeReturnTo,
 } from "./session";
 

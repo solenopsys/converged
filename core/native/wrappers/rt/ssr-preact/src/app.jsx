@@ -26,15 +26,16 @@ function Page({ path }) {
 // Deterministic CPU workload: 32-bit integer hash chain. Same result on
 // every engine (JSC/V8/QuickJS) — the bench harness compares it exactly,
 // so any engine divergence shows up as a mismatch, not noise.
-function calcChecksum(iterations) {
-  let h = 0x811c9dc5 >>> 0;
-  for (let i = 0; i < iterations; i++) {
-    h ^= Math.imul(i + 1, 2654435761);
-    h = Math.imul(h ^ (h >>> 13), 16777619) >>> 0;
-  }
-  return h >>> 0;
-}
-
+//
+// NOTE: the loop is deliberately INLINED into handleCalc rather than kept in
+// a separate calcChecksum() helper. V8 refuses to inline a hot 100k-iteration
+// loop that lives in a separate function reached through the SSR dispatch
+// chain, leaves it as an OSR function, and repeatedly deopts on the post-loop
+// `>>> 0` ("Insufficient type feedback for binary operation"). That costs V8
+// ~4.5x on this vector and is a measurement artifact of V8's inliner, not a
+// throughput difference (it reproduces identically in plain Node). Keeping the
+// loop in the handler makes V8 optimize it properly, so the comparison is
+// about the engine, not about an inlining quirk.
 const CALC_DEFAULT_ITERATIONS = 100000;
 const CALC_MAX_ITERATIONS = 1000000;
 
@@ -47,7 +48,12 @@ function handleCalc(path) {
     if (Number.isSafeInteger(n) && n >= 1 && n <= CALC_MAX_ITERATIONS)
       iterations = n;
   }
-  const result = calcChecksum(iterations);
+  let h = 0x811c9dc5 >>> 0;
+  for (let i = 0; i < iterations; i++) {
+    h ^= Math.imul(i + 1, 2654435761);
+    h = Math.imul(h ^ (h >>> 13), 16777619) >>> 0;
+  }
+  const result = h >>> 0;
   return JSON.stringify({
     status: 200,
     headers: [["content-type", "application/json; charset=utf-8"]],

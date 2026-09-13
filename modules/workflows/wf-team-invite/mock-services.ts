@@ -5,7 +5,10 @@
 
 export type TeamUniverse = {
 	filesById: Map<string, { name: string; text: string }>;
-	users: Map<string, { id: string; email: string; name: string; preset?: string }>;
+	users: Map<
+		string,
+		{ id: string; email: string; name: string; preset?: string }
+	>;
 	/** userId -> linked preset names, in the order they were linked */
 	presets: Map<string, string[]>;
 	/** userId -> group tags */
@@ -79,7 +82,11 @@ export function createTeamUniverse(): TeamUniverse {
 					cache.set(cacheKey, file.text);
 					return {
 						ref: { cacheKey, sizeBytes: file.text.length },
-						metadata: { id: params.fileId, name: file.name, fileSize: file.text.length },
+						metadata: {
+							id: params.fileId,
+							name: file.name,
+							fileSize: file.text.length,
+						},
 					};
 				}
 				case "files.extractText": {
@@ -111,7 +118,8 @@ export function createTeamUniverse(): TeamUniverse {
 
 				case "access.linkPresetToUser": {
 					const linked = u.presets.get(params.userId) ?? [];
-					if (!linked.includes(params.presetName)) linked.push(params.presetName);
+					if (!linked.includes(params.presetName))
+						linked.push(params.presetName);
 					u.presets.set(params.userId, linked);
 					return null;
 				}
@@ -130,7 +138,11 @@ export function createTeamUniverse(): TeamUniverse {
 				}
 				case "staff.createStaff": {
 					const id = nextId("staff");
-					u.staff.set(id, { id, ...params.input, email: normalize(params.input.email) });
+					u.staff.set(id, {
+						id,
+						...params.input,
+						email: normalize(params.input.email),
+					});
 					return id;
 				}
 				case "staff.updateStaff": {
@@ -176,7 +188,11 @@ export function createTeamUniverse(): TeamUniverse {
 				}
 
 				case "auth.getMagicLink":
-					return { ok: true, token: `magic-${normalize(params.email)}`, expiresAt: 0 };
+					return {
+						ok: true,
+						token: `magic-${normalize(params.email)}`,
+						expiresAt: 0,
+					};
 
 				case "ses.sendEmail":
 				case "smtp.sendEmail": {

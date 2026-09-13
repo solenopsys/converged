@@ -27,13 +27,16 @@ mock.module("./clients", () => ({
 	}),
 	identityClient: () => ({
 		getAuthMethodByProvider: async () => null,
-		getUser: async (userId: string) => (userId === guestUser.id ? guestUser : null),
+		getUser: async (userId: string) =>
+			userId === guestUser.id ? guestUser : null,
 		createUser: async (user: { id: string; email: string }) => user,
 		linkAuthMethod: async () => undefined,
 	}),
 }));
 
-const { createGuestSession, refreshGatewaySession } = await import("./sessions");
+const { createGuestSession, refreshGatewaySession } = await import(
+	"./sessions"
+);
 
 beforeEach(() => {
 	calls.length = 0;

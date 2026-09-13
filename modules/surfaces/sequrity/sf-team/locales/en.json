@@ -1,0 +1,152 @@
+{
+	"surface": {
+		"label": "Team",
+		"purpose": "Who works here, what each of them may do, and who has been asked in but has not arrived yet"
+	},
+	"menu": {
+		"members": "Team",
+		"invites": "Invitations",
+		"shifts": "Schedule",
+		"access": "Rights",
+		"overview": "Overview"
+	},
+	"role": {
+		"owner": "Owner",
+		"manager": "Manager",
+		"operator": "Operator",
+		"viewer": "Viewer",
+		"none": "no role"
+	},
+	"active": {
+		"true": "Working",
+		"false": "Left"
+	},
+	"invite": {
+		"pending": "Not sent",
+		"sent": "Sent",
+		"accepted": "Signed in",
+		"revoked": "Revoked",
+		"expired": "Expired"
+	},
+	"consoleState": {
+		"active": "Signed in",
+		"invited": "Invited",
+		"none": "No access"
+	},
+	"stats": {
+		"working": "Working",
+		"withConsole": "With console",
+		"invited": "Invited",
+		"undelivered": "Letter not sent",
+		"cardOnly": "{count} card only"
+	},
+	"overview": {
+		"team": "Team",
+		"waiting": "Waiting to arrive",
+		"loading": "Loading…",
+		"empty": "Nobody here yet. Paste a list of people into the chat — name and email, any shape — and they will be added with a role and a sign-in link.",
+		"noneWaiting": "Nobody is waiting on an invitation.",
+		"hasConsole": "has console access",
+		"noConsole": "no console access"
+	},
+	"detail": {
+		"notFound": "No such person.",
+		"loading": "Loading…",
+		"noAddress": "no address on file",
+		"status": "Status",
+		"console": "Console",
+		"canSignIn": "Can sign in",
+		"cardOnly": "Card only",
+		"language": "Language",
+		"contact": "Contact",
+		"access": "Access",
+		"invitedBy": "invited by {who}",
+		"groupTags": "Group tags",
+		"rolesNote": "Roles are preset files, so changing one changes it everywhere. Switching a role off takes effect on the next sign-in — a token already issued carries its rights until it expires.",
+		"noInvite": "No invitation on file. This person has a card but was never asked into the console.",
+		"shifts": "Shifts",
+		"noShifts": "Nothing scheduled.",
+		"away": "Away",
+		"noAbsences": "No leave booked.",
+		"empty": "—"
+	},
+	"columns": {
+		"name": "Name",
+		"email": "Email",
+		"role": "Role",
+		"contact": "Contact",
+		"status": "Status",
+		"added": "Added",
+		"address": "Address",
+		"delivery": "Delivery",
+		"invitedBy": "Invited by",
+		"sent": "Sent",
+		"expires": "Expires",
+		"from": "From",
+		"to": "To",
+		"who": "Who",
+		"work": "Work",
+		"note": "Note",
+		"person": "Person",
+		"rolePreset": "Role preset",
+		"groupTags": "Group tags",
+		"console": "Console",
+		"search": "Search"
+	},
+	"tabs": {
+		"working": "Working",
+		"left": "Left",
+		"all": "All"
+	},
+	"types": {
+		"member": {
+			"label": "Team member",
+			"description": "One person who works here: their card, their role and whether they can sign in"
+		},
+		"invite": {
+			"label": "Invitation",
+			"description": "An address that is allowed in and the role it gets on arrival, plus whether its letter landed"
+		},
+		"shift": {
+			"label": "Shift",
+			"description": "Who is on, when"
+		},
+		"access": {
+			"label": "Access",
+			"description": "What each person was given: the role preset, the group tags, and whether they can get in"
+		}
+	},
+	"operations": {
+		"member_import": {
+			"label": "Add people from a list",
+			"description": "Paste a list of people — name and email, in any shape — or name uploaded files. Everyone gets an account, the role you choose, a staff card and a sign-in link. Running the same list twice adds nobody twice."
+		},
+		"member_create": {
+			"label": "Add one person",
+			"description": "File a card for somebody who works here. This does not give them console access — use the import for that."
+		},
+		"member_save": {
+			"label": "Save card"
+		},
+		"member_setRole": {
+			"label": "Change role",
+			"description": "Give somebody a different role. Roles are preset files; owner is not among the ones that can be handed out here."
+		},
+		"member_deactivate": {
+			"label": "Switch off access",
+			"description": "Mark somebody as no longer working here and revoke their open invitation. A token already issued keeps working until it expires."
+		},
+		"invite_revoke": {
+			"label": "Revoke invitation",
+			"description": "Shut an address out before it has been used. Immediate — the gate reads the invitation on every request."
+		},
+		"shift_create": {
+			"label": "Schedule a shift"
+		}
+	},
+	"errors": {
+		"noEmail": "This card has no email, so there is no account to give a role to",
+		"inviteFailed": "team invite failed",
+		"imported": "Added {count}"
+	}
+}

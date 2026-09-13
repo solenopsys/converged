@@ -1,0 +1,152 @@
+{
+	"surface": {
+		"label": "Equipa",
+		"purpose": "Quem trabalha aqui, o que cada um pode fazer e quem foi convidado mas ainda não chegou"
+	},
+	"menu": {
+		"members": "Equipa",
+		"invites": "Convites",
+		"shifts": "Turnos",
+		"access": "Permissões",
+		"overview": "Resumo"
+	},
+	"role": {
+		"owner": "Proprietário",
+		"manager": "Gestor",
+		"operator": "Operador",
+		"viewer": "Observador",
+		"none": "sem função"
+	},
+	"active": {
+		"true": "A trabalhar",
+		"false": "Saiu"
+	},
+	"invite": {
+		"pending": "Por enviar",
+		"sent": "Enviado",
+		"accepted": "Entrou",
+		"revoked": "Revogado",
+		"expired": "Expirado"
+	},
+	"consoleState": {
+		"active": "Entrou",
+		"invited": "Convidado",
+		"none": "Sem acesso"
+	},
+	"stats": {
+		"working": "A trabalhar",
+		"withConsole": "Com consola",
+		"invited": "Convidados",
+		"undelivered": "Carta por enviar",
+		"cardOnly": "{count} só ficha"
+	},
+	"overview": {
+		"team": "Equipa",
+		"waiting": "À espera de chegar",
+		"loading": "A carregar…",
+		"empty": "Ainda não há ninguém aqui. Cole uma lista no chat — nome e e-mail, em qualquer formato — e todos receberão uma função e um link de acesso.",
+		"noneWaiting": "Ninguém está à espera de um convite.",
+		"hasConsole": "tem acesso à consola",
+		"noConsole": "sem acesso à consola"
+	},
+	"detail": {
+		"notFound": "Essa pessoa não existe.",
+		"loading": "A carregar…",
+		"noAddress": "sem endereço registado",
+		"status": "Estado",
+		"console": "Consola",
+		"canSignIn": "Pode entrar",
+		"cardOnly": "Só ficha",
+		"language": "Idioma",
+		"contact": "Contacto",
+		"access": "Acesso",
+		"invitedBy": "convidado por {who}",
+		"groupTags": "Etiquetas de grupo",
+		"rolesNote": "As funções são ficheiros de preset, por isso alterar uma altera-a em todo o lado. Retirar uma função produz efeito no acesso seguinte — um token já emitido mantém os seus direitos até expirar.",
+		"noInvite": "Sem convite. Esta pessoa tem ficha mas nunca foi convidada para a consola.",
+		"shifts": "Turnos",
+		"noShifts": "Nada agendado.",
+		"away": "Ausências",
+		"noAbsences": "Sem férias registadas.",
+		"empty": "—"
+	},
+	"columns": {
+		"name": "Nome",
+		"email": "E-mail",
+		"role": "Função",
+		"contact": "Contacto",
+		"status": "Estado",
+		"added": "Adicionado",
+		"address": "Endereço",
+		"delivery": "Entrega",
+		"invitedBy": "Convidado por",
+		"sent": "Enviado",
+		"expires": "Expira",
+		"from": "De",
+		"to": "Até",
+		"who": "Quem",
+		"work": "Trabalho",
+		"note": "Nota",
+		"person": "Pessoa",
+		"rolePreset": "Preset da função",
+		"groupTags": "Etiquetas de grupo",
+		"console": "Consola",
+		"search": "Procurar"
+	},
+	"tabs": {
+		"working": "A trabalhar",
+		"left": "Saíram",
+		"all": "Todos"
+	},
+	"types": {
+		"member": {
+			"label": "Membro da equipa",
+			"description": "Uma pessoa que trabalha aqui: a sua ficha, a sua função e se pode entrar"
+		},
+		"invite": {
+			"label": "Convite",
+			"description": "Um endereço autorizado e a função que recebe à chegada, além do destino da carta"
+		},
+		"shift": {
+			"label": "Turno",
+			"description": "Quem trabalha e quando"
+		},
+		"access": {
+			"label": "Acesso",
+			"description": "O que foi dado a cada pessoa: o preset da função, as etiquetas de grupo e se consegue entrar"
+		}
+	},
+	"operations": {
+		"member_import": {
+			"label": "Adicionar pessoas a partir de uma lista",
+			"description": "Cole uma lista — nome e e-mail, em qualquer formato — ou indique ficheiros carregados. Cada um recebe uma conta, a função escolhida, uma ficha e um link de acesso. Correr a mesma lista duas vezes não duplica ninguém."
+		},
+		"member_create": {
+			"label": "Adicionar uma pessoa",
+			"description": "Uma ficha para quem trabalha aqui. Não dá acesso à consola — para isso existe a importação."
+		},
+		"member_save": {
+			"label": "Guardar ficha"
+		},
+		"member_setRole": {
+			"label": "Mudar de função",
+			"description": "Dar outra função a uma pessoa. As funções são ficheiros de preset; proprietário não pode ser atribuído aqui."
+		},
+		"member_deactivate": {
+			"label": "Desligar o acesso",
+			"description": "Marcar que alguém já não trabalha aqui e revogar o seu convite aberto. Um token já emitido continua válido até expirar."
+		},
+		"invite_revoke": {
+			"label": "Revogar o convite",
+			"description": "Fechar um endereço antes de o convite ser usado. Imediato — a porta lê o convite em cada pedido."
+		},
+		"shift_create": {
+			"label": "Agendar um turno"
+		}
+	},
+	"errors": {
+		"noEmail": "Esta ficha não tem e-mail, por isso não há conta a quem dar uma função",
+		"inviteFailed": "não foi possível convidar a equipa",
+		"imported": "Adicionados: {count}"
+	}
+}

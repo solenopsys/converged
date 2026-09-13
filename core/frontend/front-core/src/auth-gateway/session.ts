@@ -10,7 +10,10 @@ export const REFRESH_COOKIE = "auth_refresh";
 const COOKIE_PATH = "/";
 const REFRESH_MAX_AGE_SECONDS = 90 * 24 * 60 * 60;
 
-export function readCookie(headers: HeaderMap, name: string): string | undefined {
+export function readCookie(
+	headers: HeaderMap,
+	name: string,
+): string | undefined {
 	const header = headers.cookie ?? headers.Cookie;
 	if (!header) return undefined;
 	for (const part of header.split(";")) {
@@ -60,7 +63,8 @@ export function clearedRefreshCookie(secure: boolean): string {
  * Host at the edge, so a pinned URL would be wrong for every tenant but one.
  */
 export function publicBaseUrl(headers: HeaderMap): string {
-	const host = headers["x-forwarded-host"]?.split(",")[0]?.trim() || headers.host;
+	const host =
+		headers["x-forwarded-host"]?.split(",")[0]?.trim() || headers.host;
 	if (!host) throw new Error("[auth-gateway] request has no Host header");
 	return `${isSecureRequest(headers) ? "https" : "http"}://${host}`;
 }

@@ -1,6 +1,25 @@
 {
-	"repositories": ["orders", "equipment", "events", "reviews"],
-	"surfaces": ["orders", "equipment", "reviews"],
-	"workflows": ["order-review-request", "order-review-followup"],
-	"dependencies": ["security", "analitycs"]
+	"repositories": [
+		"orders",
+		"equipment",
+		"events",
+		"reviews",
+		"staff",
+		"notify"
+	],
+	"surfaces": [
+		"orders",
+		"equipment",
+		"reviews",
+		"team"
+	],
+	"workflows": [
+		"order-review-request",
+		"order-review-followup",
+		"team-invite"
+	],
+	"dependencies": [
+		"security",
+		"analitycs"
+	]
 }

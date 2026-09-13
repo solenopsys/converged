@@ -9,17 +9,17 @@
 // in this file. Once the browser holds a JWT it opens the WS as usual.
 import type { PluginConfig } from "back-core";
 import type {
-	ServerApp,
 	RouteContext,
 	RouteHandler,
+	ServerApp,
 } from "back-core/server-app";
 import { settings } from "back-core/settings";
 import type { OAuthProviderName } from "g-oauth";
 import {
 	createLocalJWKSet,
 	decodeJwt,
-	jwtVerify,
 	type JSONWebKeySet,
+	jwtVerify,
 } from "jose";
 import { authClient, oauthClient } from "./clients";
 import { sendMagicLinkEmail } from "./mail";
@@ -30,16 +30,17 @@ import {
 	jsonResponse,
 	noSessionResponse,
 	publicBaseUrl,
+	REFRESH_COOKIE,
 	readCookie,
 	redirectResponse,
 	refreshCookie,
-	REFRESH_COOKIE,
 	safeReturnTo,
 } from "./session";
 import {
 	createDemoSession,
 	createGuestSession,
 	createProviderSession,
+	isAddressAllowedIn,
 	refreshGatewaySession,
 	verifyMagicLink,
 } from "./sessions";
@@ -68,7 +69,9 @@ function isUnprovisionedGuestToken(token: string): boolean {
  * the cluster JWKS. Trusting a userId from the request body would let anyone
  * revoke anyone else's sessions.
  */
-async function verifiedUserId(context: RouteContext): Promise<string | undefined> {
+async function verifiedUserId(
+	context: RouteContext,
+): Promise<string | undefined> {
 	const header = context.headers.authorization ?? context.headers.Authorization;
 	const token = header?.replace(/^Bearer\s+/i, "").trim();
 	if (!token) return undefined;
@@ -97,18 +100,29 @@ async function rotateSession(context: RouteContext): Promise<Response> {
 		// Never hand the browser a valid-but-useless JWT: clearing the cookie
 		// makes the auth controller bootstrap a new anonymous session instead.
 		if (isUnprovisionedGuestToken(session.token)) {
-			console.warn("[auth-gateway] dropping unprovisioned guest refresh session");
-			return noSessionResponse(clearedRefreshCookie(isSecureRequest(context.headers)));
+			console.warn(
+				"[auth-gateway] dropping unprovisioned guest refresh session",
+			);
+			return noSessionResponse(
+				clearedRefreshCookie(isSecureRequest(context.headers)),
+			);
 		}
 		return jsonResponse(
 			{ token: session.token },
-			{ cookie: refreshCookie(session.refreshToken, isSecureRequest(context.headers)) },
+			{
+				cookie: refreshCookie(
+					session.refreshToken,
+					isSecureRequest(context.headers),
+				),
+			},
 		);
 	} catch {
 		// A rejected refresh token is spent or revoked: drop it so the browser
 		// falls back to a fresh guest session instead of retrying forever. This is
 		// an ordinary post-deploy/browser-state recovery path, not a UI error.
-		return noSessionResponse(clearedRefreshCookie(isSecureRequest(context.headers)));
+		return noSessionResponse(
+			clearedRefreshCookie(isSecureRequest(context.headers)),
+		);
 	}
 }
 
@@ -139,64 +153,100 @@ function logged(name: string, handler: RouteHandler): RouteHandler {
 	};
 }
 
-export default function authGatewayPlugin(_config: PluginConfig = {} as PluginConfig) {
+export default function authGatewayPlugin(
+	_config: PluginConfig = {} as PluginConfig,
+) {
 	return (app: ServerApp) => {
-		app.post("/auth/guest", logged("POST /auth/guest", async (context) => {
-			const session = await createGuestSession(
-				stringField(context.body, "sessionId"),
-			);
-			return jsonResponse(
-				{
-					token: session.token,
-					userId: session.userId,
-					email: session.email,
-					temporary: true,
-				},
-				{ cookie: refreshCookie(session.refreshToken, isSecureRequest(context.headers)) },
-			);
-		}));
+		app.post(
+			"/auth/guest",
+			logged("POST /auth/guest", async (context) => {
+				const session = await createGuestSession(
+					stringField(context.body, "sessionId"),
+				);
+				return jsonResponse(
+					{
+						token: session.token,
+						userId: session.userId,
+						email: session.email,
+						temporary: true,
+					},
+					{
+						cookie: refreshCookie(
+							session.refreshToken,
+							isSecureRequest(context.headers),
+						),
+					},
+				);
+			}),
+		);
 
-		app.get("/auth/session", logged("GET /auth/session", (context) => rotateSession(context)));
-		app.post("/auth/refresh", logged("POST /auth/refresh", (context) => rotateSession(context)));
+		app.get(
+			"/auth/session",
+			logged("GET /auth/session", (context) => rotateSession(context)),
+		);
+		app.post(
+			"/auth/refresh",
+			logged("POST /auth/refresh", (context) => rotateSession(context)),
+		);
 
-		app.post("/auth/logout", logged("POST /auth/logout", async (context) => {
-			const userId = await verifiedUserId(context);
-			if (userId) await authClient().logout(userId);
-			return jsonResponse(
-				{ ok: true },
-				{ cookie: clearedRefreshCookie(isSecureRequest(context.headers)) },
-			);
-		}));
+		app.post(
+			"/auth/logout",
+			logged("POST /auth/logout", async (context) => {
+				const userId = await verifiedUserId(context);
+				if (userId) await authClient().logout(userId);
+				return jsonResponse(
+					{ ok: true },
+					{ cookie: clearedRefreshCookie(isSecureRequest(context.headers)) },
+				);
+			}),
+		);
 
-		app.post("/auth/magic-link", logged("POST /auth/magic-link", async (context) => {
-			const email = stringField(context.body, "email");
-			if (!email) return jsonResponse({ error: "email is required" }, { status: 400 });
-			const returnTo = safeReturnTo(stringField(context.body, "returnTo"));
+		app.post(
+			"/auth/magic-link",
+			logged("POST /auth/magic-link", async (context) => {
+				const email = stringField(context.body, "email");
+				if (!email)
+					return jsonResponse({ error: "email is required" }, { status: 400 });
+				const returnTo = safeReturnTo(stringField(context.body, "returnTo"));
 
-			const link = await authClient().getMagicLink(email, returnTo);
-			const url = `${publicBaseUrl(context.headers)}/auth/verify?token=${encodeURIComponent(link.token)}`;
-			await sendMagicLinkEmail({ to: email, link: url });
-			// Always the same answer: whether an address is registered is not
-			// something an unauthenticated caller gets to probe.
-			return jsonResponse({ ok: true });
-		}));
+				// The gate. An address that is not the bootstrap owner, not already a
+				// user and not carrying a live invitation gets no link — which is what
+				// keeps the company console from being open to anyone with a mailbox.
+				if (await isAddressAllowedIn(email)) {
+					const link = await authClient().getMagicLink(email, returnTo);
+					const url = `${publicBaseUrl(context.headers)}/auth/verify?token=${encodeURIComponent(link.token)}`;
+					await sendMagicLinkEmail({ to: email, link: url });
+				}
+				// Always the same answer, link or no link: whether an address is
+				// registered is not something an unauthenticated caller gets to probe.
+				return jsonResponse({ ok: true });
+			}),
+		);
 
-		app.get("/auth/verify", logged("GET /auth/verify", async (context) => {
-			const token = context.query.token?.trim();
-			if (!token) return jsonResponse({ error: "token is required" }, { status: 400 });
-			const session = await verifyMagicLink(token);
-			// The access token stays out of the URL — the SPA picks it up from
-			// /auth/session using the cookie set here.
-			return redirectResponse(safeReturnTo(session.returnTo), {
-				cookie: refreshCookie(session.refreshToken, isSecureRequest(context.headers)),
-			});
-		}));
+		app.get(
+			"/auth/verify",
+			logged("GET /auth/verify", async (context) => {
+				const token = context.query.token?.trim();
+				if (!token)
+					return jsonResponse({ error: "token is required" }, { status: 400 });
+				const session = await verifyMagicLink(token);
+				// The access token stays out of the URL — the SPA picks it up from
+				// /auth/session using the cookie set here.
+				return redirectResponse(safeReturnTo(session.returnTo), {
+					cookie: refreshCookie(
+						session.refreshToken,
+						isSecureRequest(context.headers),
+					),
+				});
+			}),
+		);
 
 		// Demo "Admin login". Fail-closed: only a tenant that opted in via
 		// LANDING_DEMO_MODE gets a sandboxed demo session; everyone else is sent
 		// to the normal sign-in splash — no token, no hole.
 		app.get("/demo-login", async (context) => {
-			if (!settings.demo.landingDemoMode()) return redirectResponse("/console/");
+			if (!settings.demo.landingDemoMode())
+				return redirectResponse("/console/");
 			try {
 				const session = await createDemoSession();
 				return redirectResponse("/console/", {
@@ -211,73 +261,101 @@ export default function authGatewayPlugin(_config: PluginConfig = {} as PluginCo
 			}
 		});
 
-		app.get("/auth/providers", logged("GET /auth/providers", async () => {
-			const oauth = oauthClient();
-			const [enabled, templates] = await Promise.all([
-				oauth.listEnabledProviders(),
-				oauth.listProviderTemplates(),
-			]);
-			const displayNames = new Map(
-				templates.map((template) => [template.provider, template.displayName]),
-			);
-			return jsonResponse(
-				enabled.map((provider) => ({
-					provider: provider.provider,
-					displayName: displayNames.get(provider.provider) ?? provider.provider,
-				})),
-			);
-		}));
+		app.get(
+			"/auth/providers",
+			logged("GET /auth/providers", async () => {
+				const oauth = oauthClient();
+				const [enabled, templates] = await Promise.all([
+					oauth.listEnabledProviders(),
+					oauth.listProviderTemplates(),
+				]);
+				const displayNames = new Map(
+					templates.map((template) => [
+						template.provider,
+						template.displayName,
+					]),
+				);
+				return jsonResponse(
+					enabled.map((provider) => ({
+						provider: provider.provider,
+						displayName:
+							displayNames.get(provider.provider) ?? provider.provider,
+					})),
+				);
+			}),
+		);
 
-		app.get("/auth/oauth/:provider", logged("GET /auth/oauth/:provider", async (context) => {
-			const name = context.params.provider as OAuthProviderName;
-			const provider = await oauthClient().getProvider(name);
-			if (!provider || !provider.enabled) {
-				return jsonResponse({ error: `Unknown provider: ${name}` }, { status: 404 });
-			}
-			const returnTo = safeReturnTo(context.query.returnTo);
-			const state = await oauthClient().generateState(name, returnTo);
-			return redirectResponse(
-				authorizeUrl(
+		app.get(
+			"/auth/oauth/:provider",
+			logged("GET /auth/oauth/:provider", async (context) => {
+				const name = context.params.provider as OAuthProviderName;
+				const provider = await oauthClient().getProvider(name);
+				if (!provider || !provider.enabled) {
+					return jsonResponse(
+						{ error: `Unknown provider: ${name}` },
+						{ status: 404 },
+					);
+				}
+				const returnTo = safeReturnTo(context.query.returnTo);
+				const state = await oauthClient().generateState(name, returnTo);
+				return redirectResponse(
+					authorizeUrl(
+						provider,
+						state,
+						redirectUri(publicBaseUrl(context.headers), name),
+					),
+				);
+			}),
+		);
+
+		app.get(
+			"/auth/oauth/:provider/callback",
+			logged("GET /auth/oauth/:provider/callback", async (context) => {
+				const name = context.params.provider as OAuthProviderName;
+				const code = context.query.code?.trim();
+				const stateToken = context.query.state?.trim();
+				if (!code || !stateToken) {
+					return jsonResponse(
+						{ error: "code and state are required" },
+						{ status: 400 },
+					);
+				}
+
+				// consumeState is single-use, which is what makes it a CSRF guard.
+				const state = await oauthClient().consumeState(stateToken);
+				if (!state || state.provider !== name) {
+					return jsonResponse(
+						{ error: "Invalid or expired state" },
+						{ status: 400 },
+					);
+				}
+				const provider = await oauthClient().getProvider(name);
+				if (!provider || !provider.enabled) {
+					return jsonResponse(
+						{ error: `Unknown provider: ${name}` },
+						{ status: 404 },
+					);
+				}
+
+				const identity = await resolveExternalIdentity(
 					provider,
-					state,
+					code,
 					redirectUri(publicBaseUrl(context.headers), name),
-				),
-			);
-		}));
-
-		app.get("/auth/oauth/:provider/callback", logged("GET /auth/oauth/:provider/callback", async (context) => {
-			const name = context.params.provider as OAuthProviderName;
-			const code = context.query.code?.trim();
-			const stateToken = context.query.state?.trim();
-			if (!code || !stateToken) {
-				return jsonResponse({ error: "code and state are required" }, { status: 400 });
-			}
-
-			// consumeState is single-use, which is what makes it a CSRF guard.
-			const state = await oauthClient().consumeState(stateToken);
-			if (!state || state.provider !== name) {
-				return jsonResponse({ error: "Invalid or expired state" }, { status: 400 });
-			}
-			const provider = await oauthClient().getProvider(name);
-			if (!provider || !provider.enabled) {
-				return jsonResponse({ error: `Unknown provider: ${name}` }, { status: 404 });
-			}
-
-			const identity = await resolveExternalIdentity(
-				provider,
-				code,
-				redirectUri(publicBaseUrl(context.headers), name),
-			);
-			const session = await createProviderSession(
-				name,
-				identity.providerUserId,
-				identity.email,
-				identity.name,
-			);
-			return redirectResponse(safeReturnTo(state.returnTo), {
-				cookie: refreshCookie(session.refreshToken, isSecureRequest(context.headers)),
-			});
-		}));
+				);
+				const session = await createProviderSession(
+					name,
+					identity.providerUserId,
+					identity.email,
+					identity.name,
+				);
+				return redirectResponse(safeReturnTo(state.returnTo), {
+					cookie: refreshCookie(
+						session.refreshToken,
+						isSecureRequest(context.headers),
+					),
+				});
+			}),
+		);
 
 		return app;
 	};
