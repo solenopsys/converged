@@ -1,0 +1,24 @@
+{
+  "rp": {
+    "requests": "rw",
+    "orders": "rw",
+    "equipment": "rw",
+    "reviews": "rw",
+    "events": "rw",
+    "calls": "rw",
+    "telemetry": "r",
+    "staff": "r",
+    "dashboard": "r",
+    "counters": "r"
+  },
+  "wf": {
+    "workflows": {
+      "wf-request-analyze.js": "x",
+      "wf-order-review-request.js": "x",
+      "wf-order-review-followup.js": "x"
+    }
+  },
+  "tg": {
+    "team-ops": "rwx"
+  }
+}

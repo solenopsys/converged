@@ -1,4 +1,14 @@
-import type { IdentityService, User, UserInput, UserUpdate, AuthMethod } from "./types";
+import type {
+  IdentityService,
+  User,
+  UserInput,
+  UserUpdate,
+  AuthMethod,
+  Invite,
+  InviteInput,
+  InviteList,
+  InviteListParams,
+} from "./types";
 import { Access } from "nrpc";
 import { StoresController } from "./stores";
 
@@ -84,6 +94,41 @@ export class IdentityServiceImpl implements IdentityService {
   async getUserAuthMethods(userId: string): Promise<AuthMethod[]> {
     await this.ready();
     return this.stores.users.getUserAuthMethods(userId);
+  }
+
+  async createInvite(input: InviteInput): Promise<Invite> {
+    await this.ready();
+    return this.stores.users.createInvite(input);
+  }
+
+  async listInvites(params?: InviteListParams): Promise<InviteList> {
+    await this.ready();
+    return this.stores.users.listInvites(params ?? {});
+  }
+
+  async getInvite(id: string): Promise<Invite | null> {
+    await this.ready();
+    return this.stores.users.getInvite(id);
+  }
+
+  async getInviteByEmail(email: string): Promise<Invite | null> {
+    await this.ready();
+    return this.stores.users.getInviteByEmail(email);
+  }
+
+  async markInviteSent(id: string): Promise<Invite | null> {
+    await this.ready();
+    return this.stores.users.markInviteSent(id);
+  }
+
+  async revokeInvite(id: string): Promise<Invite | null> {
+    await this.ready();
+    return this.stores.users.revokeInvite(id);
+  }
+
+  async consumeInvite(email: string): Promise<Invite | null> {
+    await this.ready();
+    return this.stores.users.consumeInvite(email);
   }
 }
 

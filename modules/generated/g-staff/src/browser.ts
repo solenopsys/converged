@@ -19,8 +19,19 @@ export type StaffMember = {
   id: StaffId;
   userId?: string;
   name: string;
+  /**
+   * The address the card is joined to an identity by.
+   *
+   * Separate from `contact` on purpose: that one is free text — a phone, a
+   * telegram handle, whatever HR wrote down — and nothing can be matched on it.
+   * A card exists before its first sign-in, so the email is what later points
+   * at a user row.
+   */
+  email?: string;
   contact?: string;
   role?: string;
+  /** Language of letters to this person; falls back to company, then `en`. */
+  lang?: string;
   active: boolean;
   createdAt: ISODateString;
   updatedAt: ISODateString;
@@ -29,8 +40,10 @@ export type StaffMember = {
 export type StaffInput = {
   userId?: string;
   name: string;
+  email?: string;
   contact?: string;
   role?: string;
+  lang?: string;
   active?: boolean;
 };
 
@@ -77,6 +90,7 @@ export type StaffListParams = {
   offset: number;
   limit: number;
   active?: boolean;
+  role?: string;
   query?: string;
 };
 
@@ -184,6 +198,21 @@ export const metadata: ServiceMetadata = {
         }
       ],
       "returnType": "PaginatedResult<StaffMember>",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "getStaffByEmail",
+      "parameters": [
+        {
+          "name": "email",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "StaffMember | any",
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
@@ -344,12 +373,12 @@ export const metadata: ServiceMetadata = {
     {
       "name": "StaffMember",
       "kind": "type",
-      "definition": "{\n  id: StaffId;\n  userId?: string;\n  name: string;\n  contact?: string;\n  role?: string;\n  active: boolean;\n  createdAt: ISODateString;\n  updatedAt: ISODateString;\n}"
+      "definition": "{\n  id: StaffId;\n  userId?: string;\n  name: string;\n  /**\n   * The address the card is joined to an identity by.\n   *\n   * Separate from `contact` on purpose: that one is free text — a phone, a\n   * telegram handle, whatever HR wrote down — and nothing can be matched on it.\n   * A card exists before its first sign-in, so the email is what later points\n   * at a user row.\n   */\n  email?: string;\n  contact?: string;\n  role?: string;\n  /** Language of letters to this person; falls back to company, then `en`. */\n  lang?: string;\n  active: boolean;\n  createdAt: ISODateString;\n  updatedAt: ISODateString;\n}"
     },
     {
       "name": "StaffInput",
       "kind": "type",
-      "definition": "{\n  userId?: string;\n  name: string;\n  contact?: string;\n  role?: string;\n  active?: boolean;\n}"
+      "definition": "{\n  userId?: string;\n  name: string;\n  email?: string;\n  contact?: string;\n  role?: string;\n  lang?: string;\n  active?: boolean;\n}"
     },
     {
       "name": "StaffUpdate",
@@ -384,7 +413,7 @@ export const metadata: ServiceMetadata = {
     {
       "name": "StaffListParams",
       "kind": "type",
-      "definition": "{\n  offset: number;\n  limit: number;\n  active?: boolean;\n  query?: string;\n}"
+      "definition": "{\n  offset: number;\n  limit: number;\n  active?: boolean;\n  role?: string;\n  query?: string;\n}"
     },
     {
       "name": "ShiftListParams",
@@ -412,6 +441,7 @@ export interface StaffServiceClient {
   updateStaff(id: StaffId, patch: StaffUpdate): Promise<void>;
   deleteStaff(id: StaffId): Promise<boolean>;
   listStaff(params: StaffListParams): Promise<PaginatedResult<StaffMember>>;
+  getStaffByEmail(email: string): Promise<StaffMember | any>;
   createShift(input: ShiftInput): Promise<ShiftId>;
   getShift(id: ShiftId): Promise<Shift | any>;
   updateShift(id: ShiftId, patch: ShiftUpdate): Promise<void>;

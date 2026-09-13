@@ -61,6 +61,10 @@ export class StaffServiceImpl implements StaffService {
     return this.stores.staff.listStaff(params);
   }
 
+  getStaffByEmail(email: string): Promise<StaffMember | undefined> {
+    return this.stores.staff.getStaffByEmail(email);
+  }
+
   createShift(input: ShiftInput): Promise<ShiftId> {
     return this.stores.staff.createShift(input);
   }

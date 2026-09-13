@@ -1,0 +1,13 @@
+{
+  "rp": {
+    "requests": "r",
+    "orders": "r",
+    "equipment": "r",
+    "reviews": "r",
+    "staff": "r",
+    "events": "r",
+    "telemetry": "r",
+    "dashboard": "r",
+    "counters": "r"
+  }
+}

@@ -8,8 +8,19 @@ export type StaffMember = {
   id: StaffId;
   userId?: string;
   name: string;
+  /**
+   * The address the card is joined to an identity by.
+   *
+   * Separate from `contact` on purpose: that one is free text — a phone, a
+   * telegram handle, whatever HR wrote down — and nothing can be matched on it.
+   * A card exists before its first sign-in, so the email is what later points
+   * at a user row.
+   */
+  email?: string;
   contact?: string;
   role?: string;
+  /** Language of letters to this person; falls back to company, then `en`. */
+  lang?: string;
   active: boolean;
   createdAt: ISODateString;
   updatedAt: ISODateString;
@@ -18,8 +29,10 @@ export type StaffMember = {
 export type StaffInput = {
   userId?: string;
   name: string;
+  email?: string;
   contact?: string;
   role?: string;
+  lang?: string;
   active?: boolean;
 };
 
@@ -66,6 +79,7 @@ export type StaffListParams = {
   offset: number;
   limit: number;
   active?: boolean;
+  role?: string;
   query?: string;
 };
 
@@ -97,6 +111,8 @@ export interface StaffService {
   updateStaff(id: StaffId, patch: StaffUpdate): Promise<void>;
   deleteStaff(id: StaffId): Promise<boolean>;
   listStaff(params: StaffListParams): Promise<PaginatedResult<StaffMember>>;
+  /** The join the team import needs: a card already filed for this address. */
+  getStaffByEmail(email: string): Promise<StaffMember | undefined>;
 
   createShift(input: ShiftInput): Promise<ShiftId>;
   getShift(id: ShiftId): Promise<Shift | undefined>;

@@ -12,6 +12,7 @@ export interface UserEntity {
   picture?: string | null;
   emailVerified: number;
   preset: string;
+  lang?: string | null;
   createdAt: ISODateString;
 }
 
@@ -32,3 +33,29 @@ export interface AuthMethodEntity {
 }
 
 export class AuthMethodRepository extends BaseRepositorySQL<AuthMethodKey, AuthMethodEntity> {}
+
+export interface InviteKey extends KeySQL {
+  id: string;
+}
+
+/** `tags` is a JSON array in one column: it is read and written whole, never
+ *  searched by, so a second table would buy nothing. */
+export interface InviteEntity {
+  id: string;
+  email: string;
+  name?: string | null;
+  preset: string;
+  tags: string;
+  invitedBy: string;
+  status: string;
+  expiresAt: ISODateString;
+  sentAt?: ISODateString | null;
+  acceptedAt?: ISODateString | null;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+export class InviteRepository extends BaseRepositorySQL<
+  InviteKey,
+  InviteEntity
+> {}

@@ -1,0 +1,54 @@
+{
+  "rp": {
+    "requests": {
+      "listRequests": "r",
+      "listProcessing": "r",
+      "getRequest": "r",
+      "getRequestModel": "r",
+      "getRequestMetrics": "r",
+      "getRequestRequirementProfile": "r",
+      "listRequestRequirementProfiles": "r"
+    },
+    "threads": {
+      "listThreads": "r",
+      "getThreadStats": "r",
+      "readThread": "r",
+      "readMessage": "r",
+      "readMessageVersions": "r",
+      "readThreadAllVersions": "r"
+    },
+    "calls": {
+      "listCalls": "r",
+      "getCall": "r",
+      "getCallAudio": "r",
+      "getDialogue": "r",
+      "getRecording": "r",
+      "getTranscript": "r",
+      "hasCallAudio": "r"
+    },
+    "files": {
+      "get": "r",
+      "getChunks": "r"
+    },
+    "store": {
+      "get": "r"
+    },
+    "assistant": {
+      "listOfChats": "r",
+      "getChat": "r",
+      "getContext": "r",
+      "listContexts": "r",
+      "createSession": "w",
+      "sendMessage": "w"
+    },
+    "events": {
+      "listEvents": "r"
+    },
+    "dag": {
+      "listWorkflows": "r"
+    },
+    "usage": {
+      "recordUsage": "w"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+	"name": "wf-team-invite",
+	"version": "0.0.0",
+	"type": "module",
+	"private": true,
+	"module": "index.ts",
+	"dependencies": {
+		"dag-core": "workspace:*",
+		"g-access": "workspace:*",
+		"g-auth": "workspace:*",
+		"g-files": "workspace:*",
+		"g-identity": "workspace:*",
+		"g-notify": "workspace:*",
+		"g-ses": "workspace:*",
+		"g-smtp": "workspace:*",
+		"g-staff": "workspace:*"
+	}
+}

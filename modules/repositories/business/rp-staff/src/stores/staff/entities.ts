@@ -9,8 +9,10 @@ export interface StaffMemberEntity {
   id: string;
   userId?: string | null;
   name: string;
+  email?: string | null;
   contact?: string | null;
   role?: string | null;
+  lang?: string | null;
   active: number;
   createdAt: ISODateString;
   updatedAt: ISODateString;

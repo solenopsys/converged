@@ -33,6 +33,12 @@ import type {
   AbsenceEntity,
 } from "./entities";
 
+/** Addresses are matched on, so they are stored the way they are matched. */
+function normalizeEmail(email?: string | null): string | null {
+  const normalized = email?.trim().toLowerCase();
+  return normalized ? normalized : null;
+}
+
 export class StaffStoreService {
   private readonly staffRepo: StaffMemberRepository;
   private readonly shiftRepo: ShiftRepository;
@@ -83,8 +89,10 @@ export class StaffStoreService {
       id,
       userId: input.userId ?? null,
       name: input.name,
+      email: normalizeEmail(input.email),
       contact: input.contact ?? null,
       role: input.role ?? null,
+      lang: input.lang ?? null,
       active: input.active === false ? 0 : 1,
       createdAt: now,
       updatedAt: now,
@@ -109,6 +117,25 @@ export class StaffStoreService {
     return this.toStaff(entity);
   }
 
+  /**
+   * The card filed for an address, if the caller is shown it.
+   *
+   * The import needs this to tell "already hired" from "new hire", and it has
+   * to run inside the narrowing like every other read: answering "yes, there is
+   * a card" for a colleague the caller cannot see would turn the roster into a
+   * way to probe for addresses.
+   */
+  async getStaffByEmail(email: string): Promise<StaffMember | undefined> {
+    const normalized = normalizeEmail(email);
+    if (!normalized) return undefined;
+    const found = await this.visible("staff_members")
+      .selectAll("obj")
+      .where("obj.email", "=", normalized)
+      .limit(1)
+      .executeTakeFirst();
+    return found ? this.toStaff(found as StaffMemberEntity) : undefined;
+  }
+
   async updateStaff(id: StaffId, patch: StaffUpdate): Promise<void> {
     // Editing is not reading: a record everyone can see is still edited by the
     // person it describes, whoever filed it, or HR through a group tag.
@@ -128,8 +155,14 @@ export class StaffStoreService {
     if (patch.name !== undefined) {
       update.name = patch.name;
     }
+    if (patch.email !== undefined) {
+      update.email = normalizeEmail(patch.email);
+    }
     if (patch.contact !== undefined) {
       update.contact = patch.contact ?? null;
+    }
+    if (patch.lang !== undefined) {
+      update.lang = patch.lang ?? null;
     }
     if (patch.role !== undefined) {
       update.role = patch.role ?? null;
@@ -197,6 +230,9 @@ export class StaffStoreService {
     if (params.active !== undefined) {
       next = next.where("obj.active", "=", params.active ? 1 : 0);
     }
+    if (params.role) {
+      next = next.where("obj.role", "=", params.role);
+    }
     const textQuery = params.query?.trim();
     if (textQuery) {
       const pattern = `%${textQuery}%`;
@@ -206,6 +242,7 @@ export class StaffStoreService {
       next = next.where((eb: any) =>
         eb.or([
           eb("obj.name", "like", pattern),
+          eb("obj.email", "like", pattern),
           eb("obj.contact", "like", pattern),
           eb("obj.role", "like", pattern),
         ]),
@@ -392,8 +429,10 @@ export class StaffStoreService {
       id: entity.id,
       userId: entity.userId ?? undefined,
       name: entity.name,
+      email: entity.email ?? undefined,
       contact: entity.contact ?? undefined,
       role: entity.role ?? undefined,
+      lang: entity.lang ?? undefined,
       active: entity.active === 1,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,

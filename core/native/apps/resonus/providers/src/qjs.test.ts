@@ -16,10 +16,10 @@ import {
 	ptr,
 	read,
 	suffix,
-	write,
+	toArrayBuffer,
 } from "bun:ffi";
-import { createHash } from "node:crypto";
 import { afterAll, beforeAll, expect, test } from "bun:test";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -72,6 +72,20 @@ const { symbols, close } = dlopen(LIB, {
  * takes out of the sandbox, rather than asserting against a stub the production
  * code never uses.
  */
+/**
+ * Poke a value into raw library memory.
+ *
+ * `bun:ffi` no longer exports the `write` helper (removed after Bun 1.3), so a
+ * view over the target bytes is the portable way to fill an out-parameter.
+ */
+function pokeU8(p: Pointer, offset: number, value: number): void {
+	new Uint8Array(toArrayBuffer(p, offset, 1))[0] = value;
+}
+
+function pokeU64(p: Pointer, offset: number, value: number): void {
+	new BigUint64Array(toArrayBuffer(p, offset, 8))[0] = BigInt(value);
+}
+
 const hostFn = new JSCallback(
 	(_user: Pointer | null, arg: Pointer, argLen: number, outPtr: Pointer, outLen: Pointer) => {
 		const request = JSON.parse(new CString(arg, 0, argLen).toString());
@@ -82,9 +96,9 @@ const hostFn = new JSCallback(
 		// allocator, so it must come from malloc.
 		const buf = Buffer.from(digest, "utf8");
 		const mem = symbols.malloc(BigInt(buf.length)) as Pointer;
-		for (let i = 0; i < buf.length; i++) write.u8(mem, i, buf[i] as number);
-		write.ptr(outPtr, 0, mem);
-		write.u64(outLen, 0, BigInt(buf.length));
+		for (let i = 0; i < buf.length; i++) pokeU8(mem, i, buf[i] as number);
+		pokeU64(outPtr, 0, mem as unknown as number);
+		pokeU64(outLen, 0, buf.length);
 		return 0;
 	},
 	{
@@ -264,6 +278,45 @@ test("openai decodeResponse recovers from unparsable tool arguments", () => {
 	);
 	expect(decoded.toolCalls[0].args).toEqual({});
 	expect(decoded.finishReason).toBe("tool_calls");
+});
+
+test("openrouter encodeTurn sends max_tokens and requests stream usage", () => {
+	const wire = JSON.parse(call("openrouter__encodeTurn", [TURN, true]));
+	const body = JSON.parse(wire.body);
+	expect(body.model).toBe("claude-sonnet-4");
+	// OpenRouter does not know `max_completion_tokens`; sending it would drop
+	// the cap silently.
+	expect(body.max_tokens).toBe(512);
+	expect(body.max_completion_tokens).toBeUndefined();
+	// Usage rides on a top-level field, unlike OpenAI's `stream_options`.
+	expect(body.usage).toEqual({ include: true });
+	expect(body.stream_options).toBeUndefined();
+	expect(body.messages[0]).toEqual({ role: "system", content: "Be terse." });
+});
+
+test("openrouter decodeResponse folds the OpenAI-shaped completion", () => {
+	const decoded = JSON.parse(
+		call("openrouter__decodeResponse", [
+			{
+				choices: [
+					{
+						message: {
+							content: "hello",
+							tool_calls: [
+								{ id: "c1", function: { name: "f", arguments: '{"x":1}' } },
+							],
+						},
+						finish_reason: "tool_calls",
+					},
+				],
+				usage: { prompt_tokens: 4, completion_tokens: 6 },
+			},
+		]),
+	);
+	expect(decoded.text).toBe("hello");
+	expect(decoded.toolCalls).toEqual([{ id: "c1", name: "f", args: { x: 1 } }]);
+	expect(decoded.finishReason).toBe("tool_calls");
+	expect(decoded.usage).toEqual({ input: 4, output: 6 });
 });
 
 test("realtime encodeTurn flattens history into out-of-band instructions", () => {

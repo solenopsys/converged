@@ -1,0 +1,62 @@
+{
+  "rp": {
+    "dag": {
+      "listAvailableWorkflows": "r"
+    },
+    "usage": {
+      "recordUsage": "w"
+    },
+    "assistant": {
+      "registerChat": "w",
+      "recordChatMessage": "w",
+      "recordChatFile": "w"
+    },
+    "contexts": {
+      "getContext": "r"
+    },
+    "threads": {
+      "saveMessage": "w",
+      "readThread": "r"
+    },
+    "store": {
+      "save": "w",
+      "get": "r"
+    },
+    "files": {
+      "save": "w",
+      "saveChunk": "w",
+      "update": "w",
+      "get": "r",
+      "getChunks": "r",
+      "listByCollection": "r"
+    }
+  },
+  "ap": {
+    "centimanus": {
+      "runWorkflow": "w"
+    },
+    "resonus": {
+      "call.offer": "w",
+      "call.hangup": "w",
+      "call.ice": "w",
+      "dictation.start": "w",
+      "dictation.stop": "w",
+      "chat.message": "w",
+      "session.open": "w",
+      "session.bind": "w",
+      "session.close": "w",
+      "message.put": "w",
+      "context.create": "w",
+      "context.delete": "w",
+      "llm.generate": "w"
+    }
+  },
+  "wf": {
+    "workflows": {
+      "wf-files-process.js": "x",
+      "wf-files-analyze.js": "x",
+      "wf-file-unpack.js": "x",
+      "wf-file-analyze.js": "x"
+    }
+  }
+}

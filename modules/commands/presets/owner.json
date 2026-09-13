@@ -1,0 +1,28 @@
+{
+  "rp": {
+    "requests": "rw",
+    "orders": "rw",
+    "equipment": "rw",
+    "reviews": "rw",
+    "staff": "rw",
+    "events": "rw",
+    "notify": "rw",
+    "calls": "rw",
+    "telemetry": "rw",
+    "logs": "r",
+    "dashboard": "r",
+    "counters": "r"
+  },
+  "wf": {
+    "workflows": {
+      "wf-team-invite.js": "x",
+      "wf-request-analyze.js": "x",
+      "wf-order-review-request.js": "x",
+      "wf-order-review-followup.js": "x"
+    }
+  },
+  "tg": {
+    "team-hr": "rwx",
+    "team-ops": "rwx"
+  }
+}

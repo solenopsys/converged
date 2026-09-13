@@ -66,6 +66,22 @@ worth the extra file.
 Hook files import types only. Nothing else belongs in them: whatever reaches
 QuickJS should be business logic, and anything heavy stays in Zig.
 
+## Providers
+
+| Descriptor | Dialect | Secret |
+| --- | --- | --- |
+| `openai` | Chat Completions | `${secret:openai}` → `OPENAI_API_KEY` |
+| `openrouter` | Chat Completions (OpenAI-compatible) | `${secret:openrouter}` → `OPENROUTER_API_KEY` |
+| `anthropic` | Messages | `${secret:anthropic}` → `ANTHROPIC_API_KEY` |
+| `gemini` | generateContent | `${secret:gemini}` → `GEMINI_API_KEY` |
+| `openai-realtime` | Realtime WebSocket + SDP | `${secret:openai}` → `OPENAI_API_KEY` |
+
+`openrouter` shares OpenAI's decode table verbatim — same `choices[].delta`
+frames, same `[DONE]` sentinel — and differs only in the request body, which its
+hook supplies: `max_tokens` instead of `max_completion_tokens`, and top-level
+`usage: {include: true}` rather than `stream_options`. That is the shape of an
+OpenAI-compatible vendor: a new descriptor and hook file, no core change.
+
 ## Build
 
 ```bash

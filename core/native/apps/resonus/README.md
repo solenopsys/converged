@@ -280,6 +280,13 @@ middle and end of the utterance survive.
 ## Main env vars
 
 - `OPENAI_API_KEY`
+- `OPENROUTER_API_KEY` (for the `openrouter` chat provider)
+- `RT_OPENROUTER_BASE_URL` (default `https://openrouter.ai/api/v1`)
+- `AI_CHAT_PROVIDER` (provider `chat.message` uses when the caller omits one)
+- `RESONUS_MODEL_<PROVIDER>` (deployment default model, e.g.
+  `RESONUS_MODEL_OPENROUTER`; provider names are uppercased with `-` → `_`)
+- `RESONUS_ENDPOINT_FAST`, `RESONUS_ENDPOINT_HEAVY` (`<provider>:<model>` for the
+  `fast` / `heavy` command-layer endpoints)
 - `OPENAI_REALTIME_IDLE_PER_MODEL` (number of preconnected idle text-Realtime sessions per configured model; default `3`, allowed range `1..16`)
 - `OPENAI_REALTIME_MODEL` (default `gpt-realtime-2.1`)
 - `OPENAI_REALTIME_VOICE` (default `marin`; old `OPENAI_VOICE` is also accepted)

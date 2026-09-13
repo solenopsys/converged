@@ -61,3 +61,6 @@
 [submodule "docs-cache"]
 	path = content/docs-cache
 	url = https://github.com/solenopsys/converged_docs
+[submodule "core/native/wrappers/rt/v8"]
+	path = core/native/wrappers/rt/v8
+	url = https://github.com/solenopsys/v8-zig.git
