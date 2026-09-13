@@ -17,6 +17,9 @@ export interface OrderEntity {
 	equipmentId?: string | null;
 	dueAt?: ISODateString | null;
 	notes?: string | null;
+	customerName?: string | null;
+	customerEmail?: string | null;
+	customerLang?: string | null;
 	createdAt: ISODateString;
 	updatedAt: ISODateString;
 }

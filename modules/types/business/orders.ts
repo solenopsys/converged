@@ -41,6 +41,18 @@ export type Order = {
 	equipmentId?: EquipmentId;
 	dueAt?: ISODateString;
 	notes?: string;
+	/**
+	 * Who the work is for, and how to reach them.
+	 *
+	 * There is no customer directory in this platform — the shop's contact with
+	 * the person is the order itself. The review funnel is the first thing that
+	 * needs to write to that person after the work is done, and a contact it has
+	 * to be told on every run is a contact that is wrong half the time.
+	 */
+	customerName?: string;
+	customerEmail?: string;
+	/** Language the customer is written to in; falls back to the shop's. */
+	customerLang?: string;
 	createdAt: ISODateString;
 	updatedAt: ISODateString;
 };
@@ -56,6 +68,9 @@ export type OrderInput = {
 	equipmentId?: EquipmentId;
 	dueAt?: ISODateString;
 	notes?: string;
+	customerName?: string;
+	customerEmail?: string;
+	customerLang?: string;
 };
 
 export type OrderPatch = {
@@ -69,6 +84,9 @@ export type OrderPatch = {
 	equipmentId?: EquipmentId;
 	dueAt?: ISODateString;
 	notes?: string;
+	customerName?: string;
+	customerEmail?: string;
+	customerLang?: string;
 };
 
 export type FilterObject = Record<string, unknown>;

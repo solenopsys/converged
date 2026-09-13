@@ -1,0 +1,13 @@
+{
+	"name": "wf-order-review-request",
+	"version": "0.0.0",
+	"type": "module",
+	"private": true,
+	"module": "index.ts",
+	"dependencies": {
+		"dag-core": "workspace:*",
+		"g-orders": "workspace:*",
+		"g-reviews": "workspace:*",
+		"g-ses": "workspace:*"
+	}
+}

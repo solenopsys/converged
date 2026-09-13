@@ -7,7 +7,9 @@ modules:
   analytics/sf-telemetry: _
   analytics/sf-usage: _
   automation/sf-automation: _
+  business/sf-equipment: ready
   business/sf-orders: _
+  business/sf-reviews: ready
   business/sf-requests: ready
   communications/sf-calls: ready
   communications/sf-chats: _

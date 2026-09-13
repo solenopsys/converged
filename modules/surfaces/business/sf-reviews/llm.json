@@ -1,0 +1,67 @@
+{
+	"actions": {
+		"reviews.review.publish": {
+			"brief": "Publish a review",
+			"description": "Put a review on the public site. Until this it is visible only in the console. Needs a review in context.",
+			"category": "reviews",
+			"exposure": "llm",
+			"priority": "primary",
+			"parameters": { "type": "object", "properties": {} }
+		},
+		"reviews.review.reject": {
+			"brief": "Reject a review",
+			"description": "Keep a review off the site. It stays readable in the console. Needs a review in context.",
+			"category": "reviews",
+			"exposure": "llm",
+			"priority": "normal",
+			"parameters": { "type": "object", "properties": {} }
+		},
+		"reviews.review.reply": {
+			"brief": "Answer a review",
+			"description": "Write the shop's answer, which is shown together with the review. Needs a review in context.",
+			"category": "reviews",
+			"exposure": "llm",
+			"priority": "primary",
+			"parameters": {
+				"type": "object",
+				"properties": { "reply": { "type": "string" } },
+				"required": ["reply"]
+			}
+		},
+		"reviews.review.create": {
+			"brief": "Record a review",
+			"description": "Enter a review the shop received elsewhere — by phone, in person, or copied from a platform. It arrives on moderation like any other.",
+			"category": "reviews",
+			"exposure": "llm",
+			"priority": "normal",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"author": { "type": "string" },
+					"text": { "type": "string" },
+					"rating": { "type": "number" },
+					"orderId": { "type": "string" },
+					"contact": { "type": "string" },
+					"externalPlatform": { "type": "string" }
+				},
+				"required": ["author", "text", "rating"]
+			}
+		},
+		"reviews.invite.create": {
+			"brief": "Ask a customer for a review",
+			"description": "Mint a personal one-shot review link for one order and one address. The outreach workflow sends it on its next run.",
+			"category": "reviews",
+			"exposure": "llm",
+			"priority": "normal",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"orderId": { "type": "string" },
+					"contact": { "type": "string" },
+					"lang": { "type": "string" }
+				},
+				"required": ["orderId", "contact"]
+			}
+		}
+	}
+}

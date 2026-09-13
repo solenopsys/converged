@@ -1,0 +1,77 @@
+{
+	"surface": {
+		"label": "Avaliações",
+		"purpose": "O que os clientes disseram sobre o trabalho, o que está no site e como vai a solicitação"
+	},
+	"menu": {
+		"reviews": "Avaliações",
+		"invites": "Convites",
+		"overview": "Visão geral"
+	},
+	"status": {
+		"pending": "Em moderação",
+		"published": "Publicada",
+		"rejected": "Rejeitada"
+	},
+	"source": {
+		"site": "Site",
+		"invite": "Convite",
+		"staff": "Registada pela equipa",
+		"external": "Plataforma externa"
+	},
+	"invite": {
+		"queued": "Na fila",
+		"sent": "Enviado",
+		"opened": "Aberto",
+		"answered": "Respondido",
+		"expired": "Expirado",
+		"failed": "Falhou"
+	},
+	"stats": {
+		"rating": "Classificação",
+		"reviews": "Avaliações",
+		"pending": "Em moderação",
+		"unanswered": "Sem resposta",
+		"asked": "Pedidas",
+		"answered": "Recebidas",
+		"answerRate": "Taxa de resposta",
+		"shared": "Partilhadas publicamente"
+	},
+	"overview": {
+		"title": "Visão geral",
+		"queue": "À espera de moderação",
+		"inFlight": "Pedidas, ainda em silêncio",
+		"emptyQueue": "Nada à espera.",
+		"emptyInFlight": "Nada em curso.",
+		"noPlatforms": "Não há plataformas externas configuradas, por isso o formulário público não tem para onde enviar um cliente satisfeito.",
+		"loading": "A carregar…"
+	},
+	"detail": {
+		"publish": "Publicar",
+		"reject": "Rejeitar",
+		"backToModeration": "Voltar à moderação",
+		"visible": "Visível para qualquer pessoa no site.",
+		"hidden": "Não visível fora desta consola.",
+		"received": "Recebida",
+		"published": "Publicada",
+		"contact": "Contacto",
+		"sharedOn": "Partilhada em",
+		"keptToSite": "Apenas no site",
+		"about": "Sobre",
+		"answer": "Resposta da oficina",
+		"answerPlaceholder": "A resposta acompanha a avaliação onde quer que seja mostrada.",
+		"answerAction": "Responder",
+		"updateAnswer": "Atualizar resposta",
+		"positive": "No limiar ou acima — o formulário ofereceu primeiro as plataformas públicas.",
+		"negative": "Abaixo do limiar — o formulário ofereceu primeiro falar com a oficina, com as plataformas ainda visíveis.",
+		"notSelected": "Nenhuma avaliação selecionada.",
+		"notFound": "Avaliação não encontrada."
+	},
+	"order": {
+		"order": "Encomenda",
+		"method": "Método",
+		"quantity": "Quantidade",
+		"customer": "Cliente",
+		"gone": "Esta encomenda já não está neste espaço de trabalho."
+	}
+}

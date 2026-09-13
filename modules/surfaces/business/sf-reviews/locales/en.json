@@ -1,0 +1,77 @@
+{
+	"surface": {
+		"label": "Reviews",
+		"purpose": "What customers said about the work, which of it is on the site, and how the asking is going"
+	},
+	"menu": {
+		"reviews": "Reviews",
+		"invites": "Invitations",
+		"overview": "Overview"
+	},
+	"status": {
+		"pending": "On moderation",
+		"published": "Published",
+		"rejected": "Rejected"
+	},
+	"source": {
+		"site": "Site",
+		"invite": "Invitation",
+		"staff": "Entered by staff",
+		"external": "External"
+	},
+	"invite": {
+		"queued": "Queued",
+		"sent": "Sent",
+		"opened": "Opened",
+		"answered": "Answered",
+		"expired": "Expired",
+		"failed": "Failed"
+	},
+	"stats": {
+		"rating": "Rating",
+		"reviews": "Reviews",
+		"pending": "On moderation",
+		"unanswered": "Unanswered",
+		"asked": "Asked",
+		"answered": "Answered",
+		"answerRate": "Answer rate",
+		"shared": "Shared publicly"
+	},
+	"overview": {
+		"title": "Overview",
+		"queue": "Waiting for moderation",
+		"inFlight": "Asked, still quiet",
+		"emptyQueue": "Nothing is waiting.",
+		"emptyInFlight": "Nothing in flight.",
+		"noPlatforms": "No external platforms are configured, so the public form has nowhere to send a happy customer.",
+		"loading": "Loading…"
+	},
+	"detail": {
+		"publish": "Publish",
+		"reject": "Reject",
+		"backToModeration": "Back to moderation",
+		"visible": "Visible to anyone on the site.",
+		"hidden": "Not visible outside this console.",
+		"received": "Received",
+		"published": "Published",
+		"contact": "Contact",
+		"sharedOn": "Shared on",
+		"keptToSite": "Kept to the site",
+		"about": "About",
+		"answer": "The shop's answer",
+		"answerPlaceholder": "An answer travels with the review wherever it is shown.",
+		"answerAction": "Answer",
+		"updateAnswer": "Update answer",
+		"positive": "At or above the shop's threshold — the form offered the public platforms first.",
+		"negative": "Below the shop's threshold — the form offered a word with the shop first, with the platforms still shown.",
+		"notSelected": "No review selected.",
+		"notFound": "Review not found."
+	},
+	"order": {
+		"order": "Order",
+		"method": "Method",
+		"quantity": "Quantity",
+		"customer": "Customer",
+		"gone": "This order is no longer in this workspace."
+	}
+}

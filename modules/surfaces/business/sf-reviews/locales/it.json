@@ -1,0 +1,77 @@
+{
+	"surface": {
+		"label": "Recensioni",
+		"purpose": "Cosa hanno detto i clienti del lavoro, cosa è sul sito e come procede la richiesta"
+	},
+	"menu": {
+		"reviews": "Recensioni",
+		"invites": "Inviti",
+		"overview": "Panoramica"
+	},
+	"status": {
+		"pending": "In moderazione",
+		"published": "Pubblicata",
+		"rejected": "Respinta"
+	},
+	"source": {
+		"site": "Sito",
+		"invite": "Invito",
+		"staff": "Inserita dal team",
+		"external": "Piattaforma esterna"
+	},
+	"invite": {
+		"queued": "In coda",
+		"sent": "Inviato",
+		"opened": "Aperto",
+		"answered": "Con risposta",
+		"expired": "Scaduto",
+		"failed": "Fallito"
+	},
+	"stats": {
+		"rating": "Valutazione",
+		"reviews": "Recensioni",
+		"pending": "In moderazione",
+		"unanswered": "Senza risposta",
+		"asked": "Richieste",
+		"answered": "Ricevute",
+		"answerRate": "Tasso di risposta",
+		"shared": "Condivise in pubblico"
+	},
+	"overview": {
+		"title": "Panoramica",
+		"queue": "In attesa di moderazione",
+		"inFlight": "Richieste, ancora in silenzio",
+		"emptyQueue": "Nulla in attesa.",
+		"emptyInFlight": "Nulla in corso.",
+		"noPlatforms": "Nessuna piattaforma esterna configurata: il modulo pubblico non ha dove indirizzare un cliente soddisfatto.",
+		"loading": "Caricamento…"
+	},
+	"detail": {
+		"publish": "Pubblica",
+		"reject": "Respingi",
+		"backToModeration": "Rimetti in moderazione",
+		"visible": "Visibile a chiunque sul sito.",
+		"hidden": "Non visibile fuori da questa console.",
+		"received": "Ricevuta",
+		"published": "Pubblicata",
+		"contact": "Contatto",
+		"sharedOn": "Condivisa su",
+		"keptToSite": "Solo sul sito",
+		"about": "Riguardo a",
+		"answer": "Risposta dell'officina",
+		"answerPlaceholder": "La risposta accompagna la recensione ovunque venga mostrata.",
+		"answerAction": "Rispondi",
+		"updateAnswer": "Aggiorna risposta",
+		"positive": "Alla soglia o sopra — il modulo ha proposto prima le piattaforme pubbliche.",
+		"negative": "Sotto la soglia — il modulo ha proposto prima un contatto con l'officina, con le piattaforme comunque visibili.",
+		"notSelected": "Nessuna recensione selezionata.",
+		"notFound": "Recensione non trovata."
+	},
+	"order": {
+		"order": "Ordine",
+		"method": "Metodo",
+		"quantity": "Quantità",
+		"customer": "Cliente",
+		"gone": "Questo ordine non è più in questo spazio di lavoro."
+	}
+}

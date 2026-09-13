@@ -1,0 +1,77 @@
+{
+	"surface": {
+		"label": "Reseñas",
+		"purpose": "Lo que los clientes dijeron del trabajo, qué parte está en la web y cómo va la solicitud"
+	},
+	"menu": {
+		"reviews": "Reseñas",
+		"invites": "Invitaciones",
+		"overview": "Resumen"
+	},
+	"status": {
+		"pending": "En moderación",
+		"published": "Publicada",
+		"rejected": "Rechazada"
+	},
+	"source": {
+		"site": "Sitio",
+		"invite": "Invitación",
+		"staff": "Registrada por el equipo",
+		"external": "Plataforma externa"
+	},
+	"invite": {
+		"queued": "En cola",
+		"sent": "Enviada",
+		"opened": "Abierta",
+		"answered": "Respondida",
+		"expired": "Caducada",
+		"failed": "Fallida"
+	},
+	"stats": {
+		"rating": "Valoración",
+		"reviews": "Reseñas",
+		"pending": "En moderación",
+		"unanswered": "Sin responder",
+		"asked": "Solicitadas",
+		"answered": "Respondidas",
+		"answerRate": "Tasa de respuesta",
+		"shared": "Compartidas en público"
+	},
+	"overview": {
+		"title": "Resumen",
+		"queue": "Esperando moderación",
+		"inFlight": "Solicitadas, aún en silencio",
+		"emptyQueue": "No hay nada esperando.",
+		"emptyInFlight": "Nada en curso.",
+		"noPlatforms": "No hay plataformas externas configuradas, así que el formulario público no tiene dónde enviar a un cliente satisfecho.",
+		"loading": "Cargando…"
+	},
+	"detail": {
+		"publish": "Publicar",
+		"reject": "Rechazar",
+		"backToModeration": "Volver a moderación",
+		"visible": "Visible para cualquiera en el sitio.",
+		"hidden": "No visible fuera de esta consola.",
+		"received": "Recibida",
+		"published": "Publicada",
+		"contact": "Contacto",
+		"sharedOn": "Compartida en",
+		"keptToSite": "Solo en el sitio",
+		"about": "Sobre",
+		"answer": "Respuesta del taller",
+		"answerPlaceholder": "La respuesta acompaña a la reseña allá donde se muestre.",
+		"answerAction": "Responder",
+		"updateAnswer": "Actualizar respuesta",
+		"positive": "En el umbral o por encima — el formulario ofreció primero las plataformas públicas.",
+		"negative": "Por debajo del umbral — el formulario ofreció primero hablar con el taller, con las plataformas aún visibles.",
+		"notSelected": "Ninguna reseña seleccionada.",
+		"notFound": "Reseña no encontrada."
+	},
+	"order": {
+		"order": "Pedido",
+		"method": "Método",
+		"quantity": "Cantidad",
+		"customer": "Cliente",
+		"gone": "Este pedido ya no está en este espacio de trabajo."
+	}
+}

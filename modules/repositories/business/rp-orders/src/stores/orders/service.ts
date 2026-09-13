@@ -60,6 +60,13 @@ const orderFilterSchema: KyselyFilterSchema = {
 		operators: ["gte", "lte", "between"],
 		column: "obj.createdAt",
 	},
+	// The moment an order last changed, which for a completed one is the moment
+	// it completed — the only handle a process has on "finished a while ago".
+	updatedAt: {
+		valueType: "date",
+		operators: ["gte", "lte", "between"],
+		column: "obj.updatedAt",
+	},
 };
 
 export class OrdersStoreService {
@@ -100,6 +107,9 @@ export class OrdersStoreService {
 			equipmentId: normalizeOptional(input.equipmentId),
 			dueAt: normalizeOptional(input.dueAt),
 			notes: normalizeOptional(input.notes),
+			customerName: normalizeOptional(input.customerName),
+			customerEmail: normalizeOptional(input.customerEmail),
+			customerLang: normalizeOptional(input.customerLang),
 			createdAt,
 			updatedAt: createdAt,
 		};
@@ -205,6 +215,12 @@ export class OrdersStoreService {
 		}
 		if (patch.dueAt !== undefined) next.dueAt = normalizeOptional(patch.dueAt);
 		if (patch.notes !== undefined) next.notes = normalizeOptional(patch.notes);
+		if (patch.customerName !== undefined)
+			next.customerName = normalizeOptional(patch.customerName);
+		if (patch.customerEmail !== undefined)
+			next.customerEmail = normalizeOptional(patch.customerEmail);
+		if (patch.customerLang !== undefined)
+			next.customerLang = normalizeOptional(patch.customerLang);
 
 		await this.repo.update({ id }, next as any);
 		const updated = await this.repo.findById({ id });
@@ -336,6 +352,9 @@ export class OrdersStoreService {
 			equipmentId: normalizeUndefined(entity.equipmentId),
 			dueAt: normalizeUndefined(entity.dueAt),
 			notes: normalizeUndefined(entity.notes),
+			customerName: normalizeUndefined(entity.customerName),
+			customerEmail: normalizeUndefined(entity.customerEmail),
+			customerLang: normalizeUndefined(entity.customerLang),
 			createdAt: entity.createdAt,
 			updatedAt: entity.updatedAt ?? entity.createdAt,
 		};

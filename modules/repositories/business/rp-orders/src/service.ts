@@ -61,6 +61,7 @@ export class OrdersServiceImpl implements OrdersService {
 				{ id: "productionMethod", label: "Production method", valueType: "string", operators: ["eq", "in"] },
 				{ id: "dueAt", label: "Due date", valueType: "date", operators: ["isNull", "isNotNull", "gte", "lte", "between"] },
 				{ id: "createdAt", label: "Created", valueType: "date", operators: ["gte", "lte", "between"] },
+				{ id: "updatedAt", label: "Last change", valueType: "date", operators: ["gte", "lte", "between"] },
 			],
 			filterExample: { status: { eq: "queued" } },
 			revision: "orders-v1",

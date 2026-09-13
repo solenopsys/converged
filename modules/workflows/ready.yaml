@@ -5,6 +5,8 @@ modules:
   wf-file-unpack: ready
   wf-files-analyze: ready
   wf-files-process: ready
+  wf-order-review-followup: ready
+  wf-order-review-request: ready
   wf-request-analyze: ready
   wf-sales-import: _
   wf-sales-review-outreach: _

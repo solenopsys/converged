@@ -1,5 +1,6 @@
 {
-	"repositories": ["orders", "equipment", "events"],
-	"surfaces": ["orders", "equipment"],
+	"repositories": ["orders", "equipment", "events", "reviews"],
+	"surfaces": ["orders", "equipment", "reviews"],
+	"workflows": ["order-review-request", "order-review-followup"],
 	"dependencies": ["security", "analitycs"]
 }

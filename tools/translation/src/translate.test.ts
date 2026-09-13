@@ -17,6 +17,8 @@ let root: string;
 const originalFetch = globalThis.fetch;
 const originalApiKey = process.env.OPENAI_API_KEY;
 const originalModel = process.env.DOCS_TRANSLATION_MODEL;
+const originalProvider = process.env.DOCS_TRANSLATION_PROVIDER;
+const originalOpenrouterKey = process.env.OPENROUTER_API_KEY;
 
 const project: ProjectConfig = {
 	name: "docs",
@@ -41,6 +43,12 @@ afterEach(() => {
 	else process.env.OPENAI_API_KEY = originalApiKey;
 	if (originalModel === undefined) delete process.env.DOCS_TRANSLATION_MODEL;
 	else process.env.DOCS_TRANSLATION_MODEL = originalModel;
+	if (originalProvider === undefined)
+		delete process.env.DOCS_TRANSLATION_PROVIDER;
+	else process.env.DOCS_TRANSLATION_PROVIDER = originalProvider;
+	if (originalOpenrouterKey === undefined)
+		delete process.env.OPENROUTER_API_KEY;
+	else process.env.OPENROUTER_API_KEY = originalOpenrouterKey;
 	rmSync(root, { recursive: true, force: true });
 });
 
@@ -93,6 +101,73 @@ test("translates actionable files and writes the locale target", async () => {
 	);
 	expect(requestBody.model).toBe("test-translation-model");
 	expect(store.read("a".repeat(64))?.translations.ru).toHaveLength(1);
+});
+
+test("openrouter provider sends chat completions and reads its answer", async () => {
+	process.env.DOCS_TRANSLATION_PROVIDER = "openrouter";
+	process.env.OPENROUTER_API_KEY = "or-key";
+	let url = "";
+	let requestBody: Record<string, unknown> = {};
+	let auth = "";
+	globalThis.fetch = (async (input, init) => {
+		url = String(input);
+		auth = new Headers(init?.headers).get("Authorization") ?? "";
+		requestBody = JSON.parse(String(init?.body)) as Record<string, unknown>;
+		return new Response(
+			JSON.stringify({
+				choices: [
+					{
+						message: {
+							content: JSON.stringify({
+								items: [
+									{
+										id: "docs:guide.md:ru",
+										translation: "# Руководство\n\nРусский текст.\n",
+									},
+								],
+							}),
+						},
+					},
+				],
+			}),
+			{ status: 200, headers: { "Content-Type": "application/json" } },
+		);
+	}) as typeof fetch;
+
+	const snapshot: ProjectSnapshot = {
+		root: join(root, "docs"),
+		targetRoot: join(root, "cache"),
+		sourceLocale: "en",
+		targetLocales: ["ru"],
+		files: {
+			"guide.md": {
+				fileType: "markdown",
+				sourceHash: "a".repeat(64),
+				targets: {
+					ru: {
+						exists: false,
+						hash: "",
+						status: "missing",
+						reasons: [],
+					},
+				},
+			},
+		},
+		orphans: {},
+		routes: [],
+	};
+
+	const store = new TranslationStore(join(root, ".index"));
+	expect(await translateProject(project, snapshot, store)).toBe(1);
+	expect(url).toBe("https://openrouter.ai/api/v1/chat/completions");
+	expect(auth).toBe("Bearer or-key");
+	expect(requestBody.model).toBe("test-translation-model");
+	const messages = requestBody.messages as Array<{ role: string }>;
+	expect(messages.map((message) => message.role)).toEqual(["system", "user"]);
+	expect(readFileSync(join(root, "cache", "ru", "guide.md"), "utf8")).toBe(
+		"# Руководство\n\nРусский текст.\n",
+	);
+	store.close();
 });
 
 test("skips invalid translated JSON without overwriting the target", async () => {

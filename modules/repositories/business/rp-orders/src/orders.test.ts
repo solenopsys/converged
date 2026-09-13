@@ -106,4 +106,34 @@ describe("OrdersStoreService in-memory", () => {
 		expect(list.items[0].modelName).toBe("Queued part");
 		expect(await orders.countOrders(filter)).toBe(1);
 	});
+
+	it("keeps the customer the work was done for, and finds orders by when they changed", async () => {
+		const id = await orders.createOrder({
+			modelName: "Bracket",
+			productionMethod: "fdm",
+			status: "completed",
+			customerName: "Ann",
+			customerEmail: "ann@example.com",
+			customerLang: "en",
+		});
+
+		expect(await orders.getOrder(id)).toMatchObject({
+			customerName: "Ann",
+			customerEmail: "ann@example.com",
+			customerLang: "en",
+		});
+
+		// How the review funnel asks for "completed, and left alone since".
+		const future = new Date(Date.now() + 60_000).toISOString();
+		const due = await orders.listOrders({
+			offset: 0,
+			limit: 10,
+			status: "completed",
+			filter: { updatedAt: { lte: future } },
+		});
+		expect(due.items.map((order) => order.id)).toContain(id);
+
+		const past = new Date(Date.now() - 60_000).toISOString();
+		expect(await orders.countOrders({ updatedAt: { lte: past } })).toBe(0);
+	});
 });

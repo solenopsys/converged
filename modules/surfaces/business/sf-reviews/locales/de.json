@@ -1,0 +1,77 @@
+{
+	"surface": {
+		"label": "Bewertungen",
+		"purpose": "Was Kunden über die Arbeit gesagt haben, was davon auf der Website steht und wie das Einholen läuft"
+	},
+	"menu": {
+		"reviews": "Bewertungen",
+		"invites": "Einladungen",
+		"overview": "Überblick"
+	},
+	"status": {
+		"pending": "In Moderation",
+		"published": "Veröffentlicht",
+		"rejected": "Abgelehnt"
+	},
+	"source": {
+		"site": "Website",
+		"invite": "Einladung",
+		"staff": "Vom Team erfasst",
+		"external": "Externe Plattform"
+	},
+	"invite": {
+		"queued": "In Warteschlange",
+		"sent": "Gesendet",
+		"opened": "Geöffnet",
+		"answered": "Beantwortet",
+		"expired": "Abgelaufen",
+		"failed": "Fehlgeschlagen"
+	},
+	"stats": {
+		"rating": "Bewertung",
+		"reviews": "Bewertungen",
+		"pending": "In Moderation",
+		"unanswered": "Unbeantwortet",
+		"asked": "Angefragt",
+		"answered": "Beantwortet",
+		"answerRate": "Antwortquote",
+		"shared": "Öffentlich geteilt"
+	},
+	"overview": {
+		"title": "Überblick",
+		"queue": "Wartet auf Moderation",
+		"inFlight": "Angefragt, noch still",
+		"emptyQueue": "Nichts wartet.",
+		"emptyInFlight": "Nichts unterwegs.",
+		"noPlatforms": "Es sind keine externen Plattformen eingerichtet, das öffentliche Formular hat also kein Ziel für zufriedene Kunden.",
+		"loading": "Lädt…"
+	},
+	"detail": {
+		"publish": "Veröffentlichen",
+		"reject": "Ablehnen",
+		"backToModeration": "Zurück in die Moderation",
+		"visible": "Für alle auf der Website sichtbar.",
+		"hidden": "Außerhalb dieser Konsole nicht sichtbar.",
+		"received": "Eingegangen",
+		"published": "Veröffentlicht",
+		"contact": "Kontakt",
+		"sharedOn": "Geteilt auf",
+		"keptToSite": "Nur auf der Website",
+		"about": "Zur Arbeit",
+		"answer": "Antwort der Werkstatt",
+		"answerPlaceholder": "Eine Antwort begleitet die Bewertung überall, wo sie gezeigt wird.",
+		"answerAction": "Antworten",
+		"updateAnswer": "Antwort aktualisieren",
+		"positive": "Auf oder über der Schwelle — das Formular bot zuerst die öffentlichen Plattformen an.",
+		"negative": "Unter der Schwelle — das Formular bot zuerst ein Gespräch an, die Plattformen blieben sichtbar.",
+		"notSelected": "Keine Bewertung ausgewählt.",
+		"notFound": "Bewertung nicht gefunden."
+	},
+	"order": {
+		"order": "Auftrag",
+		"method": "Verfahren",
+		"quantity": "Menge",
+		"customer": "Kunde",
+		"gone": "Dieser Auftrag ist nicht mehr in diesem Arbeitsbereich."
+	}
+}

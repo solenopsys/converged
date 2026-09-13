@@ -44,6 +44,18 @@ export type Order = {
 	equipmentId?: EquipmentId;
 	dueAt?: ISODateString;
 	notes?: string;
+	/**
+	 * Who the work is for, and how to reach them.
+	 *
+	 * There is no customer directory in this platform — the shop's contact with
+	 * the person is the order itself. The review funnel is the first thing that
+	 * needs to write to that person after the work is done, and a contact it has
+	 * to be told on every run is a contact that is wrong half the time.
+	 */
+	customerName?: string;
+	customerEmail?: string;
+	/** Language the customer is written to in; falls back to the shop's. */
+	customerLang?: string;
 	createdAt: ISODateString;
 	updatedAt: ISODateString;
 };
@@ -59,6 +71,9 @@ export type OrderInput = {
 	equipmentId?: EquipmentId;
 	dueAt?: ISODateString;
 	notes?: string;
+	customerName?: string;
+	customerEmail?: string;
+	customerLang?: string;
 };
 
 export type OrderPatch = {
@@ -72,6 +87,9 @@ export type OrderPatch = {
 	equipmentId?: EquipmentId;
 	dueAt?: ISODateString;
 	notes?: string;
+	customerName?: string;
+	customerEmail?: string;
+	customerLang?: string;
 };
 
 export type FilterObject = Record<string, unknown>;
@@ -311,17 +329,17 @@ const metadata: ServiceMetadata = {
     {
       "name": "Order",
       "kind": "type",
-      "definition": "{\n\tid: OrderId;\n\trequestId?: RequestId;\n\tmodelName: string;\n\tproductionMethod: OrderProductionMethod;\n\tstatus: OrderStatus;\n\tquantity: number;\n\tweightGrams?: number;\n\tmaterial?: string;\n\tequipmentId?: EquipmentId;\n\tdueAt?: ISODateString;\n\tnotes?: string;\n\tcreatedAt: ISODateString;\n\tupdatedAt: ISODateString;\n}"
+      "definition": "{\n\tid: OrderId;\n\trequestId?: RequestId;\n\tmodelName: string;\n\tproductionMethod: OrderProductionMethod;\n\tstatus: OrderStatus;\n\tquantity: number;\n\tweightGrams?: number;\n\tmaterial?: string;\n\tequipmentId?: EquipmentId;\n\tdueAt?: ISODateString;\n\tnotes?: string;\n\t/**\n\t * Who the work is for, and how to reach them.\n\t *\n\t * There is no customer directory in this platform — the shop's contact with\n\t * the person is the order itself. The review funnel is the first thing that\n\t * needs to write to that person after the work is done, and a contact it has\n\t * to be told on every run is a contact that is wrong half the time.\n\t */\n\tcustomerName?: string;\n\tcustomerEmail?: string;\n\t/** Language the customer is written to in; falls back to the shop's. */\n\tcustomerLang?: string;\n\tcreatedAt: ISODateString;\n\tupdatedAt: ISODateString;\n}"
     },
     {
       "name": "OrderInput",
       "kind": "type",
-      "definition": "{\n\trequestId?: RequestId;\n\tmodelName: string;\n\tproductionMethod: OrderProductionMethod;\n\tstatus?: OrderStatus;\n\tquantity?: number;\n\tweightGrams?: number;\n\tmaterial?: string;\n\tequipmentId?: EquipmentId;\n\tdueAt?: ISODateString;\n\tnotes?: string;\n}"
+      "definition": "{\n\trequestId?: RequestId;\n\tmodelName: string;\n\tproductionMethod: OrderProductionMethod;\n\tstatus?: OrderStatus;\n\tquantity?: number;\n\tweightGrams?: number;\n\tmaterial?: string;\n\tequipmentId?: EquipmentId;\n\tdueAt?: ISODateString;\n\tnotes?: string;\n\tcustomerName?: string;\n\tcustomerEmail?: string;\n\tcustomerLang?: string;\n}"
     },
     {
       "name": "OrderPatch",
       "kind": "type",
-      "definition": "{\n\trequestId?: RequestId;\n\tmodelName?: string;\n\tproductionMethod?: OrderProductionMethod;\n\tstatus?: OrderStatus;\n\tquantity?: number;\n\tweightGrams?: number;\n\tmaterial?: string;\n\tequipmentId?: EquipmentId;\n\tdueAt?: ISODateString;\n\tnotes?: string;\n}"
+      "definition": "{\n\trequestId?: RequestId;\n\tmodelName?: string;\n\tproductionMethod?: OrderProductionMethod;\n\tstatus?: OrderStatus;\n\tquantity?: number;\n\tweightGrams?: number;\n\tmaterial?: string;\n\tequipmentId?: EquipmentId;\n\tdueAt?: ISODateString;\n\tnotes?: string;\n\tcustomerName?: string;\n\tcustomerEmail?: string;\n\tcustomerLang?: string;\n}"
     },
     {
       "name": "FilterObject",

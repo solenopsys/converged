@@ -50,6 +50,11 @@ export {
 	withRetry,
 } from "./pool";
 export {
+	type ProviderName,
+	type ResolvedProvider,
+	resolveProvider,
+} from "./providers";
+export {
 	buildQueue,
 	chunks,
 	type Job,

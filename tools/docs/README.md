@@ -93,9 +93,12 @@ bun run build:doc       # synchronize caches and build all runtime content
 bun run build:doc -t    # translate missing/stale files, validate, then rebuild
 ```
 
-`-t` uses the OpenAI Responses API and requires both `OPENAI_API_KEY` and
-`DOCS_TRANSLATION_MODEL`. Internal targets and diagnostic flags remain available
-directly on `src/cli.ts`, but are not separate package commands.
+`-t` requires `DOCS_TRANSLATION_MODEL` and a provider key. The provider is
+chosen with `DOCS_TRANSLATION_PROVIDER` and defaults to `openai`, which uses the
+Responses API and `OPENAI_API_KEY`; set it to `openrouter` to use the
+OpenAI-compatible chat completions endpoint and `OPENROUTER_API_KEY` instead.
+Internal targets and diagnostic flags remain available directly on
+`src/cli.ts`, but are not separate package commands.
 
 ## Outputs
 

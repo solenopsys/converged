@@ -2,8 +2,9 @@
 
 Tracks translation files: what is missing, what drifted, what was never
 translated, and what has gone stale since it was. The docs builder can also use
-the report as a queue and translate the affected files through the OpenAI
-Responses API.
+the report as a queue and translate the affected files through a provider:
+OpenAI's Responses API by default, or OpenRouter's OpenAI-compatible chat
+completions endpoint.
 
 Platform infrastructure, so it lives here rather than in a product layer. A
 product keeps only its own configuration and state; club's is in
@@ -118,6 +119,23 @@ Every write still happens on the single thread that owns the SQLite handle,
 after the network and in input order, so nothing about the store had to become
 thread-safe and a run stays reproducible.
 
+## Providers
+
+The translate pass asks a model for the same JSON either way; only the request
+envelope differs.
+
+| Provider | Selected by | Key | Endpoint |
+| --- | --- | --- | --- |
+| `openai` (default) | `DOCS_TRANSLATION_PROVIDER=openai` | `OPENAI_API_KEY` | `POST /v1/responses` |
+| `openrouter` | `DOCS_TRANSLATION_PROVIDER=openrouter` | `OPENROUTER_API_KEY` | `POST /api/v1/chat/completions` |
+
+`DOCS_TRANSLATION_MODEL` names the model for both, so an env file can hold one
+key per provider and a run spends only the one it selected. `OPENAI_BASE_URL`
+and `OPENROUTER_BASE_URL` override the endpoint, which is what a gateway or a
+mirror needs; OpenRouter also reads `OPENROUTER_REFERER` and `OPENROUTER_TITLE`
+for its attribution headers. `providers.ts` owns this difference and
+`translate.ts` never sees it.
+
 ## Migrating from `.translation`
 
 ```bash
@@ -221,6 +239,7 @@ offending strings rather than a rendered summary.
 | `hashcache.ts` | content hashes memoized on size and mtime |
 | `queue.ts` | what a translate run would do, decided once |
 | `pool.ts` | bounded concurrency, retry and backoff |
+| `providers.ts` | the request envelope and key for OpenAI or OpenRouter |
 | `stats.ts` | the volume table and the run ledger |
 | `status.ts` | evidence → one status |
 | `scan.ts` | one project, every file, every locale |

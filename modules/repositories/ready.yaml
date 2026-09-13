@@ -16,7 +16,7 @@ modules:
   business/rp-finance: _
   business/rp-orders: _
   business/rp-requests: ready
-  business/rp-reviews: _
+  business/rp-reviews: ready
   business/rp-sales: _
   business/rp-staff: _
   communications/rp-calls: ready

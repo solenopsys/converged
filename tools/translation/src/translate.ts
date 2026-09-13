@@ -12,6 +12,7 @@ import { compareJson } from "./compare";
 import { isTechnicalString } from "./heuristics";
 import { flattenStrings } from "./json-tree";
 import { configuredConcurrency, HttpError, pool, withRetry } from "./pool";
+import { type ResolvedProvider, resolveProvider } from "./providers";
 import {
 	buildQueue,
 	chunks,
@@ -23,14 +24,6 @@ import {
 import { type RunHandle, recordItem } from "./stats";
 import type { TranslationStore } from "./store";
 import type { JsonValue, ProjectConfig, ProjectSnapshot } from "./types";
-
-type TranslationResponse = {
-	output_text?: string;
-	output?: Array<{
-		content?: Array<{ type?: string; text?: string }>;
-	}>;
-	error?: { message?: string };
-};
 
 /** Counters a concurrent run still has to total up correctly. */
 export type Tally = {
@@ -61,18 +54,6 @@ function setPathValue(root: JsonValue, path: string, value: string): void {
 	node[segments[segments.length - 1]] = value;
 }
 
-function outputText(response: TranslationResponse): string {
-	if (response.output_text) return response.output_text;
-	for (const item of response.output ?? []) {
-		for (const content of item.content ?? []) {
-			if (content.type === "output_text" && content.text) return content.text;
-		}
-	}
-	throw new Error(
-		response.error?.message ?? "OpenAI response has no output text",
-	);
-}
-
 function localeName(locale: string): string {
 	return (
 		new Intl.DisplayNames(["en"], { type: "language" }).of(locale) ?? locale
@@ -80,71 +61,41 @@ function localeName(locale: string): string {
 }
 
 type Client = {
-	apiKey: string;
-	model: string;
+	provider: ResolvedProvider;
 	tally: Tally;
 };
+
+function instructionsFor(locale: string): string {
+	return (
+		`Translate every item from English to ${localeName(locale)} (${locale}). ` +
+		"Preserve the exact document format. For JSON, keep every key, type, array order, ID, slug, URL, path, icon and code value; translate only human-readable string values. " +
+		"For Markdown, preserve heading levels, links, URLs, placeholders, inline code and fenced code. Return every input id exactly once."
+	);
+}
 
 async function requestBatch(
 	jobs: Job[],
 	locale: string,
 	client: Client,
 ): Promise<Map<string, string>> {
+	const { provider } = client;
 	client.tally.requests += 1;
-	const response = await fetch("https://api.openai.com/v1/responses", {
+	const response = await fetch(provider.endpoint, {
 		method: "POST",
-		headers: {
-			Authorization: `Bearer ${client.apiKey}`,
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify({
-			model: client.model,
-			store: false,
-			instructions:
-				`Translate every item from English to ${localeName(locale)} (${locale}). ` +
-				"Preserve the exact document format. For JSON, keep every key, type, array order, ID, slug, URL, path, icon and code value; translate only human-readable string values. " +
-				"For Markdown, preserve heading levels, links, URLs, placeholders, inline code and fenced code. Return every input id exactly once.",
-			input: JSON.stringify({
-				items: jobs.map(({ id, type, content }) => ({ id, type, content })),
-			}),
-			text: {
-				format: {
-					type: "json_schema",
-					name: "document_translations",
-					strict: true,
-					schema: {
-						type: "object",
-						properties: {
-							items: {
-								type: "array",
-								items: {
-									type: "object",
-									properties: {
-										id: { type: "string" },
-										translation: { type: "string" },
-									},
-									required: ["id", "translation"],
-									additionalProperties: false,
-								},
-							},
-						},
-						required: ["items"],
-						additionalProperties: false,
-					},
-				},
-			},
-		}),
+		headers: provider.headers,
+		body: JSON.stringify(provider.body(jobs, instructionsFor(locale))),
 	});
-	const body = (await response.json()) as TranslationResponse;
+	const body = (await response.json()) as Record<string, unknown>;
 	if (!response.ok) {
 		// Typed so the backoff in pool.ts can tell a rate limit from a bad
 		// request and stop hammering the one it cannot fix by waiting.
+		const error = body.error as { message?: string } | undefined;
 		throw new HttpError(
 			response.status,
-			`OpenAI ${response.status}: ${body.error?.message ?? "request failed"}`,
+			`${provider.label} ${response.status}: ${error?.message ?? "request failed"}`,
 		);
 	}
-	const parsed = JSON.parse(outputText(body)) as {
+	const parsed = JSON.parse(provider.outputText(body)) as {
 		items?: Array<{ id?: string; translation?: string }>;
 	};
 	const translations = new Map(
@@ -152,7 +103,9 @@ async function requestBatch(
 	);
 	for (const job of jobs) {
 		if (!translations.get(job.id)) {
-			throw new Error(`OpenAI response omitted translation id ${job.id}`);
+			throw new Error(
+				`${provider.label} response omitted translation id ${job.id}`,
+			);
 		}
 	}
 	return translations;
@@ -466,18 +419,13 @@ export async function translateProject(
 	const queue = options.queue ?? buildQueue(config, snapshot, store);
 	if (queue.length === 0) return 0;
 
-	const apiKey = process.env.OPENAI_API_KEY;
-	if (!apiKey) throw new Error("OPENAI_API_KEY is required for build:doc -t");
-	const model = process.env.DOCS_TRANSLATION_MODEL;
-	if (!model) {
-		throw new Error("DOCS_TRANSLATION_MODEL is required for build:doc -t");
-	}
+	const provider = resolveProvider();
 	const concurrency = options.concurrency ?? configuredConcurrency();
 	const { run } = options;
 
 	const tally = options.tally ?? emptyTally();
 	tally.sourceChars += queue.reduce((sum, job) => sum + job.content.length, 0);
-	const client: Client = { apiKey, model, tally };
+	const client: Client = { provider, tally };
 
 	const byLocale = new Map<string, Job[]>();
 	for (const job of queue) {
@@ -486,7 +434,7 @@ export async function translateProject(
 
 	console.log(
 		`  ${config.name}: ${queue.length} files, ${byLocale.size} locales, ` +
-			`${model}, concurrency ${concurrency}`,
+			`${provider.label} ${provider.model}, concurrency ${concurrency}`,
 	);
 
 	let translated = 0;

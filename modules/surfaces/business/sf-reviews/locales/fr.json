@@ -1,0 +1,77 @@
+{
+	"surface": {
+		"label": "Avis",
+		"purpose": "Ce que les clients ont dit du travail, ce qui est publié sur le site et comment avance la sollicitation"
+	},
+	"menu": {
+		"reviews": "Avis",
+		"invites": "Invitations",
+		"overview": "Aperçu"
+	},
+	"status": {
+		"pending": "En modération",
+		"published": "Publié",
+		"rejected": "Rejeté"
+	},
+	"source": {
+		"site": "Site",
+		"invite": "Invitation",
+		"staff": "Saisi par l'équipe",
+		"external": "Plateforme externe"
+	},
+	"invite": {
+		"queued": "En file",
+		"sent": "Envoyée",
+		"opened": "Ouverte",
+		"answered": "Répondue",
+		"expired": "Expirée",
+		"failed": "Échouée"
+	},
+	"stats": {
+		"rating": "Note",
+		"reviews": "Avis",
+		"pending": "En modération",
+		"unanswered": "Sans réponse",
+		"asked": "Demandés",
+		"answered": "Reçus",
+		"answerRate": "Taux de réponse",
+		"shared": "Partagés publiquement"
+	},
+	"overview": {
+		"title": "Aperçu",
+		"queue": "En attente de modération",
+		"inFlight": "Demandés, toujours silencieux",
+		"emptyQueue": "Rien en attente.",
+		"emptyInFlight": "Rien en cours.",
+		"noPlatforms": "Aucune plateforme externe n'est configurée : le formulaire public n'a nulle part où envoyer un client satisfait.",
+		"loading": "Chargement…"
+	},
+	"detail": {
+		"publish": "Publier",
+		"reject": "Rejeter",
+		"backToModeration": "Remettre en modération",
+		"visible": "Visible par tous sur le site.",
+		"hidden": "Invisible hors de cette console.",
+		"received": "Reçu",
+		"published": "Publié",
+		"contact": "Contact",
+		"sharedOn": "Partagé sur",
+		"keptToSite": "Gardé sur le site",
+		"about": "À propos",
+		"answer": "Réponse de l'atelier",
+		"answerPlaceholder": "Une réponse accompagne l'avis partout où il est montré.",
+		"answerAction": "Répondre",
+		"updateAnswer": "Mettre à jour la réponse",
+		"positive": "Au seuil ou au-dessus — le formulaire a proposé d'abord les plateformes publiques.",
+		"negative": "Sous le seuil — le formulaire a proposé d'abord un échange avec l'atelier, les plateformes restant visibles.",
+		"notSelected": "Aucun avis sélectionné.",
+		"notFound": "Avis introuvable."
+	},
+	"order": {
+		"order": "Commande",
+		"method": "Méthode",
+		"quantity": "Quantité",
+		"customer": "Client",
+		"gone": "Cette commande n'est plus dans cet espace de travail."
+	}
+}
