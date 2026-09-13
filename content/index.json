@@ -1275,6 +1275,22 @@
       ]
     },
     {
+      "owner": "sf-reviews",
+      "path": "modules/surfaces/business/sf-reviews/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/surfaces/business/sf-reviews/docs/index.json",
+          "articles": [
+            {
+              "slug": "sf-reviews",
+              "file": "modules/surfaces/business/sf-reviews/docs/sf-reviews.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "owner": "sf-secrets",
       "path": "modules/surfaces/sequrity/sf-secrets/docs",
       "sections": [
@@ -1317,6 +1333,22 @@
             {
               "slug": "sf-struct",
               "file": "modules/surfaces/content/sf-struct/docs/sf-struct.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "sf-team",
+      "path": "modules/surfaces/sequrity/sf-team/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/surfaces/sequrity/sf-team/docs/index.json",
+          "articles": [
+            {
+              "slug": "sf-team",
+              "file": "modules/surfaces/sequrity/sf-team/docs/sf-team.md"
             }
           ]
         }
@@ -1451,6 +1483,38 @@
       ]
     },
     {
+      "owner": "wf-order-review-followup",
+      "path": "modules/workflows/wf-order-review-followup/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/workflows/wf-order-review-followup/docs/index.json",
+          "articles": [
+            {
+              "slug": "wf-order-review-followup",
+              "file": "modules/workflows/wf-order-review-followup/docs/wf-order-review-followup.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "wf-order-review-request",
+      "path": "modules/workflows/wf-order-review-request/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/workflows/wf-order-review-request/docs/index.json",
+          "articles": [
+            {
+              "slug": "wf-order-review-request",
+              "file": "modules/workflows/wf-order-review-request/docs/wf-order-review-request.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "owner": "wf-request-analyze",
       "path": "modules/workflows/wf-request-analyze/docs",
       "sections": [
@@ -1493,6 +1557,22 @@
             {
               "slug": "wf-sales-review-outreach",
               "file": "modules/workflows/wf-sales-review-outreach/docs/wf-sales-review-outreach.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "wf-team-invite",
+      "path": "modules/workflows/wf-team-invite/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/workflows/wf-team-invite/docs/index.json",
+          "articles": [
+            {
+              "slug": "wf-team-invite",
+              "file": "modules/workflows/wf-team-invite/docs/wf-team-invite.md"
             }
           ]
         }
