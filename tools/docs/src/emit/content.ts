@@ -3,6 +3,7 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join, relative } from "node:path";
 import type { Writer } from "../fs";
+import { isLocale } from "../locales";
 import type { Config } from "../types";
 
 function files(root: string): string[] {
@@ -36,6 +37,34 @@ async function publishLocale(
 	}
 }
 
+/**
+ * Publishes the parts of a store that sit outside the language tree.
+ *
+ * A store is keyed `<locale>/<rest>`, which is right for anything a translator
+ * touches and wrong for anything they must not. Diagram geometry is the second
+ * kind: one layout serves every language, and keeping seven copies of it only
+ * creates seven chances to translate a grid coordinate. Those documents live in
+ * a named directory at the root of the store instead, and travel unchanged.
+ */
+async function publishShared(root: string, output: string, writer: Writer) {
+	if (!existsSync(root)) return;
+	for (const entry of readdirSync(root, { withFileTypes: true })) {
+		if (
+			!entry.isDirectory() ||
+			entry.name.startsWith(".") ||
+			isLocale(entry.name)
+		)
+			continue;
+		const dir = join(root, entry.name);
+		for (const source of files(dir)) {
+			await writer.copy(
+				join(output, entry.name, relative(dir, source)),
+				source,
+			);
+		}
+	}
+}
+
 export async function emitContent(
 	config: Config,
 	writer: Writer,
@@ -49,6 +78,8 @@ export async function emitContent(
 		{ store: "struct", output: config.out.struct },
 		{ store: "markdown", output: config.out.markdown },
 	]) {
+		await publishShared(join(config.content, store), output, writer);
+
 		const sourceRoot = join(config.content, store, sourceLocale);
 		const sourceFiles = new Set(
 			files(sourceRoot).map((path) => relative(sourceRoot, path)),
@@ -60,7 +91,7 @@ export async function emitContent(
 		const cacheRoot = join(config.contentCache, store);
 		if (!config.contentCache || !existsSync(cacheRoot)) continue;
 		for (const entry of readdirSync(cacheRoot, { withFileTypes: true })) {
-			if (!entry.isDirectory() || !/^[a-z]{2,3}$/.test(entry.name)) continue;
+			if (!entry.isDirectory() || !isLocale(entry.name)) continue;
 			if (requested && !requested.has(entry.name)) continue;
 			await publishLocale(
 				join(cacheRoot, entry.name),

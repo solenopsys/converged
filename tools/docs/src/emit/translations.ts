@@ -15,6 +15,7 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join, relative } from "node:path";
 import type { Writer } from "../fs";
+import { isLocale } from "../locales";
 import type { Book, Config, DocsRoot, ScanSummary } from "../types";
 
 type Project = {
@@ -24,6 +25,7 @@ type Project = {
 	targetRoot?: string;
 	targetPrefix?: string;
 	targetStripPrefix?: string;
+	indexContentRoot?: string;
 	sourceLocale: string;
 	targetLocales: string[];
 	include: string[];
@@ -38,7 +40,7 @@ function relativeTo(from: string, path: string): string {
 function cacheLocales(path: string): string[] {
 	if (!path || !existsSync(path)) return [];
 	return readdirSync(path, { withFileTypes: true })
-		.filter((entry) => entry.isDirectory() && /^[a-z]{2,3}$/.test(entry.name))
+		.filter((entry) => entry.isDirectory() && isLocale(entry.name))
 		.map((entry) => entry.name);
 }
 
@@ -79,10 +81,10 @@ export async function emitTranslations(
 								targetStripPrefix: "modules",
 							}
 						: {}),
-					translationIndex: relativeTo(dir, join(docsCache, ".translation")),
+					translationIndex: relativeTo(dir, join(docsCache, ".index")),
 				}
 			: {
-					translationIndex: relativeTo(dir, join(stateDir, ".translation")),
+					translationIndex: relativeTo(dir, stateDir),
 				};
 
 		projects.push({
@@ -109,16 +111,21 @@ export async function emitTranslations(
 		projects.push({
 			name,
 			root: relativeTo(dir, source),
+			// `struct` holds the indexes, `markdown` the documents they point
+			// at. An entry id is a key into the sibling store, never a file
+			// beside its own index, so the validator has to be told where to
+			// look or it declares every entry dangling.
+			...(store === "struct" ? { indexContentRoot: "../markdown" } : {}),
 			...(config.contentCache
 				? {
 						targetRoot: relativeTo(dir, cache),
 						translationIndex: relativeTo(
 							dir,
-							join(config.contentCache, ".translation"),
+							join(config.contentCache, ".index"),
 						),
 					}
 				: {
-						translationIndex: relativeTo(dir, join(stateDir, ".translation")),
+						translationIndex: relativeTo(dir, stateDir),
 					}),
 			sourceLocale,
 			targetLocales: (targetLocales.length

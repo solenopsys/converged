@@ -34,6 +34,7 @@ export {
 } from "./blocks/VectorImage";
 export { VectorImageBlock } from "./blocks/VectorImageBlock";
 export {
+	type DiagramTextsData,
 	type DiagramsData,
 	ProductCasesBlock,
 	type ProductCase,

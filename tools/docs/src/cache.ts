@@ -3,13 +3,8 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { Writer } from "./fs";
+import { isLocale } from "./locales";
 import type { Config, DocsRoot } from "./types";
-
-const NON_LOCALES = new Set(["html", "pdf", "readme"]);
-
-function isLocale(name: string): boolean {
-	return /^[a-z]{2,3}$/.test(name) && !NON_LOCALES.has(name);
-}
 
 function files(root: string): string[] {
 	if (!existsSync(root)) return [];
@@ -85,10 +80,7 @@ async function syncFile(
 	}
 }
 
-function docsRelative(
-	root: DocsRoot,
-	source: string,
-): string {
+function docsRelative(root: DocsRoot, source: string): string {
 	const rel = relative(root.path, source);
 	if (!root.path.includes("/modules/")) return rel;
 	const prefix = "modules/";
@@ -132,7 +124,9 @@ export async function syncCaches(
 		}
 	}
 	const sharedSections = new Set(
-		[...sectionOwners].filter(([, count]) => count > 1).map(([section]) => section),
+		[...sectionOwners]
+			.filter(([, count]) => count > 1)
+			.map(([section]) => section),
 	);
 
 	for (const root of roots) {

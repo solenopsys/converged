@@ -30,8 +30,8 @@ type RawConfig = {
  * Everything here is overridable from `docs.config.json`.
  */
 const DEFAULT_TRANSLATION: TranslationConfig = {
-	config: "../../content/docs-cache/.translation/control.json",
-	stateDir: "../../content/docs-cache/.translation",
+	config: "../../content/docs-cache/.index/control.json",
+	stateDir: "../../content/docs-cache/.index",
 	sourceLocale: "en",
 	targetLocales: [],
 };

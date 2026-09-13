@@ -3,19 +3,18 @@ import type { Equipment } from "g-equipment";
 /**
  * The key this machine's samples arrive under in rp-telemetry.
  *
- * Telemetry rows carry a free-form `device_id` and the equipment record has no
- * field for it yet, so the serial number is the one identifier both sides can
- * plausibly agree on — an adapter reads it off the machine, and a human typed
- * it into the record. The id is the fallback for a machine registered without
- * one, which keeps the card working instead of showing nothing.
- *
- * This is the seam the planned `Equipment.deviceId` migration closes; when it
- * lands, this function reads that field and nothing else changes.
+ * `deviceId` is the record's own answer and the only one that is stated rather
+ * than inferred. The serial number stays as the fallback because it is what
+ * the guess used to be, and a shop that has been sending samples keyed by
+ * serial keeps its charts while the field is filled in; the id is the last
+ * resort, which keeps the card working instead of showing nothing.
  */
 export function deviceKeyOf(
 	machine: Equipment | undefined,
 ): string | undefined {
 	if (!machine) return undefined;
+	const device = machine.deviceId?.trim();
+	if (device) return device;
 	const serial = machine.serialNumber?.trim();
 	return serial || machine.id;
 }

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { initDiagramRuntime } from "../diagram/client";
 import { V2Diagram } from "../diagram/components";
-import type { V2DiagramData } from "../diagram/types";
+import type { V2DiagramConfig, V2DiagramTexts } from "../diagram/types";
 import { VectorImage, type VectorImageData } from "./VectorImage";
 
 
@@ -24,16 +24,19 @@ export type ProductCasesData = {
 	cases: ProductCase[];
 };
 
-export type DiagramsData = Record<string, V2DiagramData>;
+export type DiagramsData = Record<string, V2DiagramConfig>;
+export type DiagramTextsData = Record<string, V2DiagramTexts>;
 
 export function ProductCasesBlock({
 	id,
 	data,
 	diagrams,
+	diagramTexts,
 }: {
 	id: string;
 	data: ProductCasesData;
 	diagrams?: DiagramsData;
+	diagramTexts?: DiagramTextsData;
 }) {
 	const [activeIndex, setActiveIndex] = useState(0);
 	const sectionRef = useRef<HTMLElement>(null);
@@ -155,7 +158,8 @@ export function ProductCasesBlock({
 									) : item.diagram ? (
 										<V2Diagram
 											className="v2-ink product-case-v2"
-											diagram={resolveDiagram(diagrams, item.diagram)}
+											config={resolveDiagram(diagrams, item.diagram)}
+											texts={diagramTexts?.[item.diagram]}
 										/>
 									) : null}
 								</div>
@@ -180,7 +184,7 @@ function descriptionParagraphs(description?: string): Array<{ text: string; isOu
 }
 
 
-function resolveDiagram(diagrams: DiagramsData | undefined, name: string): V2DiagramData {
+function resolveDiagram(diagrams: DiagramsData | undefined, name: string): V2DiagramConfig {
 	const diagram = diagrams?.[name];
 	if (!diagram) {
 		throw new Error(`[landing] unknown diagram scene: ${name}`);

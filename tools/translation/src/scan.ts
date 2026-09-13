@@ -6,10 +6,11 @@
  * surfaces instead of quietly living on.
  */
 
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { compareJson, compareMarkdown } from "./compare";
-import { hashFile, readText, selectFiles, walk } from "./fs";
+import { readText, selectFiles, walk } from "./fs";
+import { directHasher, type Hasher } from "./hashcache";
 import { flattenTree, readTree, treeHash } from "./json-tree";
 import { type MarkdownBlock, outlineHash, parseMarkdown } from "./markdown";
 import { statusFor } from "./status";
@@ -28,19 +29,29 @@ import type {
 
 type SourceView = {
 	hash: string;
+	bytes: number;
+	mtimeMs: number;
 	structureHash?: string;
 	json?: JsonValue;
 	markdown?: MarkdownBlock[];
 	error?: string;
 };
 
-function readView(file: FileEntry): SourceView {
-	const hash = hashFile(file.abs);
+/**
+ * `shape` is false for files the caller has already decided it will not diff.
+ * Parsing every locale copy of every document to build a tree nobody compares
+ * is most of a scan's CPU time once the hash cache has removed the I/O.
+ */
+function readView(file: FileEntry, hasher: Hasher, shape = true): SourceView {
+	const hash = hasher.hash(file.abs);
+	const stat = statSync(file.abs);
+	const base = { hash, bytes: stat.size, mtimeMs: Math.floor(stat.mtimeMs) };
+	if (!shape) return base;
 
 	if (file.type === "json") {
 		const tree = readTree(file.abs);
 		return {
-			hash,
+			...base,
 			structureHash: tree.hash,
 			json: tree.value,
 			error: tree.error,
@@ -48,9 +59,9 @@ function readView(file: FileEntry): SourceView {
 	}
 	if (file.type === "markdown") {
 		const blocks = parseMarkdown(readText(file.abs));
-		return { hash, structureHash: outlineHash(blocks), markdown: blocks };
+		return { ...base, structureHash: outlineHash(blocks), markdown: blocks };
 	}
-	return { hash };
+	return base;
 }
 
 function diffFor(
@@ -120,6 +131,7 @@ export function scanProject(
 	configPath: string,
 	state: ControlState,
 	store: TranslationStore,
+	hasher: Hasher = directHasher(),
 ): ProjectSnapshot {
 	const root = projectRoot(config, configPath);
 	const targetRoot = projectTargetRoot(config, configPath);
@@ -142,7 +154,7 @@ export function scanProject(
 	const files: Record<string, FileSnapshot> = {};
 
 	for (const sourceFile of sourceFiles) {
-		const source = readView(sourceFile);
+		const source = readView(sourceFile, hasher);
 		const previousFile = previous?.files[sourceFile.rel];
 		const sourceChanged = Boolean(
 			previousFile && previousFile.sourceHash !== source.hash,
@@ -157,16 +169,36 @@ export function scanProject(
 				sourceFile.rel,
 			);
 			const targetExists = existsSync(targetFile);
-			const target = targetExists
-				? readView({ ...sourceFile, abs: targetFile })
+			// Hash first, shape only if the verdict needs it. A target the
+			// index already links to this exact source is settled: nothing a
+			// diff could say would change its status, so it is not parsed.
+			const probe = targetExists
+				? readView({ ...sourceFile, abs: targetFile }, hasher, false)
 				: undefined;
-			const targetHash = target?.hash ?? "";
+			const targetHash = probe?.hash ?? "";
 			const previousTarget = previousFile?.targets[locale];
 			const indexVerdict = targetExists
 				? store.verdict(source.hash, locale, targetHash)
 				: "unrecorded";
+			// Same source, same bytes on disk, index still links them, and the
+			// last scan called it ok: the shape comparison can only reach the
+			// same verdict, so it is not run. This is what makes a rescan of
+			// both caches cheap enough to precede every translate.
+			const settled =
+				indexVerdict === "ok" &&
+				previousTarget?.status === "ok" &&
+				previousTarget.hash === targetHash &&
+				previousFile?.sourceHash === source.hash;
+			const target =
+				targetExists && !settled
+					? readView({ ...sourceFile, abs: targetFile }, hasher)
+					: probe;
 
-			const diff = target ? diffFor(source, target, config, locale) : undefined;
+			const diff = settled
+				? undefined
+				: target
+					? diffFor(source, target, config, locale)
+					: undefined;
 			const { status, reasons } = statusFor({
 				tracked: Boolean(previousTarget),
 				targetExists,
@@ -186,6 +218,7 @@ export function scanProject(
 				status,
 				reasons,
 				diff,
+				bytes: target?.bytes ?? 0,
 			};
 		}
 
@@ -194,6 +227,8 @@ export function scanProject(
 			sourceHash: source.hash,
 			sourceStructureHash: source.structureHash,
 			targets,
+			bytes: source.bytes,
+			mtimeMs: source.mtimeMs,
 		};
 	}
 

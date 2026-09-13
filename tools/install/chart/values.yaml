@@ -258,6 +258,15 @@ solutions:
       - counters
       - usage
       - dashboard
+      - sheduller
+      - webhooks
+      - community
+      - chats
+      # The production floor: orders, the machines that run them, and the
+      # event log the two write into.
+      - orders
+      - equipment
+      - events
     lambdas:
       - ses
       - compressors
@@ -276,6 +285,11 @@ solutions:
       - telemetry
       - usage
       - dasboards
+      - automation
+      - community
+      - chats
+      - orders
+      - equipment
     processors:
       - curaengine
       - opencamlib

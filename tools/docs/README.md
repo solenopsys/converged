@@ -202,11 +202,12 @@ also the translation target for `content/struct` and `content/markdown`. An
 absent cache means "no translations", never an error.
 
 `core/tools/translation` compares each authored root against the matching cache.
-Reports stay in `build/docs/translation`; durable freshness links live as
-individual `content/docs-cache/.translation/<sourceHash>.json` nodes.
-Each locale points to the hash of its existing target file. A changed source
-hash invalidates all locales, while a missing or hash-mismatched target
-invalidates only that locale. Deleting a bad file schedules it for translation.
+Reports stay in `build/docs/translation`; durable freshness links live in
+`content/docs-cache/.index/index.sqlite`, one row per source hash, locale and
+target hash. A changed source hash invalidates all locales, while a missing or
+hash-mismatched target invalidates only that locale. Deleting a bad file
+schedules it for translation, and so does
+`--invalidate <folder>` when a whole section has to be redone.
 See [`../translation/README.md`](../translation/README.md).
 
 ### Root index and coverage

@@ -9,6 +9,8 @@ export interface EquipmentEntity {
   id: string;
   kind: string;
   name: string;
+  classifierNodeId?: string | null;
+  deviceId?: string | null;
   serialNumber?: string | null;
   location?: string | null;
   description?: string | null;

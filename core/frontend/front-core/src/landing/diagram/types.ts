@@ -17,23 +17,20 @@ export interface V2GridRect {
   h: number;
 }
 
+export type V2Tone = "default" | "accent" | "warning" | "muted";
+
 export interface V2Symbol {
   id: string;
   kind: V2SymbolKind;
-  title: string;
   icon?: string;
-  subtitle?: string;
   rect: V2GridRect;
-  tone?: "default" | "accent" | "warning" | "muted";
-  rows?: string[];
+  tone?: V2Tone;
 }
 
 export interface V2Group {
   id: string;
-  title: string;
-  subtitle?: string;
   rect: V2GridRect;
-  tone?: "default" | "accent" | "warning" | "muted";
+  tone?: V2Tone;
 }
 
 export type V2Anchor = "top" | "right" | "bottom" | "left" | "center";
@@ -53,12 +50,7 @@ export interface V2Connection {
   toOffset?: number;
   via?: V2Point[];
   bidirectional?: boolean;
-  tone?: "default" | "accent" | "warning" | "muted";
-  label?: string;
-  message?: {
-    title: string;
-    reply?: string;
-  };
+  tone?: V2Tone;
 }
 
 export interface V2SelectStep {
@@ -94,9 +86,14 @@ export interface V2Machine {
   steps: V2MachineStep[];
 }
 
-export interface V2DiagramData {
+/**
+ * A diagram's geometry and animation — the half that is the same in every
+ * language. Configs live outside the locale tree in `struct` (`diagrams/<set>/`)
+ * and are stored one file per diagram; the strings that go on top of them come
+ * from a locale document and are merged in by `mergeDiagram`.
+ */
+export interface V2DiagramConfig {
   id: string;
-  title: string;
   width: number;
   height: number;
   symbols: V2Symbol[];
@@ -105,10 +102,65 @@ export interface V2DiagramData {
   machine?: V2Machine;
 }
 
-export interface V2SymbolDefinition {
-  kind: V2SymbolKind;
-  title: string;
-  description: string;
-  icon: string;
-  sample: V2Symbol;
+/** Manifest that names the diagrams in one `diagrams/<set>` directory. */
+export interface V2DiagramSetIndex {
+  id: string;
+  entries: string[];
 }
+
+export interface V2NodeTexts {
+  title?: string;
+  subtitle?: string;
+  rows?: string[];
+}
+
+export interface V2ConnectionTexts {
+  label?: string;
+  /** Rides the edge from source to target. */
+  title?: string;
+  /** Shown instead of `title` while a step replays the edge in reverse. */
+  reply?: string;
+}
+
+/** Everything a single diagram says, keyed by the ids used in its config. */
+export interface V2DiagramTexts {
+  title?: string;
+  symbols?: Record<string, V2NodeTexts>;
+  groups?: Record<string, V2NodeTexts>;
+  connections?: Record<string, V2ConnectionTexts>;
+}
+
+export type V2DiagramConfigs = Record<string, V2DiagramConfig>;
+export type V2DiagramTextsByDiagram = Record<string, V2DiagramTexts>;
+
+export interface V2RenderedSymbol extends V2Symbol {
+  title: string;
+  subtitle?: string;
+  rows?: string[];
+}
+
+export interface V2RenderedGroup extends V2Group {
+  title: string;
+  subtitle?: string;
+}
+
+export interface V2RenderedConnection extends V2Connection {
+  label?: string;
+  message?: {
+    title: string;
+    reply?: string;
+  };
+}
+
+/** A config with its locale applied: what the renderer and the runtime read. */
+export interface V2DiagramData {
+  id: string;
+  title: string;
+  width: number;
+  height: number;
+  symbols: V2RenderedSymbol[];
+  connections: V2RenderedConnection[];
+  groups?: V2RenderedGroup[];
+  machine?: V2Machine;
+}
+

@@ -36,6 +36,7 @@ export const machineColumns = [
 		type: COLUMN_TYPES.TEXT,
 		width: 160,
 	},
+	{ id: "deviceId", title: "Device", type: COLUMN_TYPES.TEXT, width: 160 },
 	{
 		id: "lastMaintenanceAt",
 		title: "Last service",

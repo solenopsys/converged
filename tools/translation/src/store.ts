@@ -1,14 +1,8 @@
-/** Content-addressed translation links, persisted one source hash at a time. */
+/** Content-addressed translation links, held in the SQLite index. */
 
-import {
-	existsSync,
-	mkdirSync,
-	readdirSync,
-	readFileSync,
-	unlinkSync,
-} from "node:fs";
-import { join } from "node:path";
-import { hashText, writeJsonAtomic, writeTextAtomic } from "./fs";
+import type { Database } from "bun:sqlite";
+import { closeIndex, openIndex } from "./db";
+import { hashText, writeTextAtomic } from "./fs";
 
 export type TranslationRecord = {
 	version: 1;
@@ -23,45 +17,45 @@ function assertHash(hash: string): void {
 }
 
 export class TranslationStore {
-	private cache = new Map<string, TranslationRecord | undefined>();
+	readonly db: Database;
+	/** Set when this run wrote links, so `close` compacts the committed file. */
+	private dirty = false;
 
-	constructor(readonly indexRoot: string) {}
-
-	private recordPath(sourceHash: string): string {
-		assertHash(sourceHash);
-		return join(this.indexRoot, `${sourceHash}.json`);
+	/** `indexRoot` is the `.index` directory; the database lives inside it. */
+	constructor(readonly indexRoot: string) {
+		this.db = openIndex(indexRoot);
 	}
 
+	/**
+	 * The record shape the JSON nodes used, rebuilt from rows. Kept because it
+	 * is what `rebuild` takes and what the migration writes, not because
+	 * anything still stores it that way.
+	 */
 	read(sourceHash: string): TranslationRecord | undefined {
-		if (this.cache.has(sourceHash)) return this.cache.get(sourceHash);
-		const path = this.recordPath(sourceHash);
-		if (!existsSync(path)) {
-			this.cache.set(sourceHash, undefined);
-			return undefined;
+		assertHash(sourceHash);
+		const rows = this.db
+			.query<{ locale: string; target_hash: string }, [string]>(
+				"SELECT locale, target_hash FROM translation WHERE source_hash = ? ORDER BY locale, target_hash",
+			)
+			.all(sourceHash);
+		if (rows.length === 0) return undefined;
+		const translations: Record<string, string[]> = {};
+		for (const row of rows) {
+			const links = translations[row.locale] ?? [];
+			links.push(row.target_hash);
+			translations[row.locale] = links;
 		}
-		const record = JSON.parse(readFileSync(path, "utf8")) as TranslationRecord;
-		if (
-			record.version !== 1 ||
-			record.sourceHash !== sourceHash ||
-			!record.translations
-		) {
-			throw new Error(`Invalid translation index record: ${path}`);
-		}
-		for (const [locale, links] of Object.entries(record.translations)) {
-			if (!Array.isArray(links)) {
-				const legacy = links as unknown as { targetHash?: string };
-				record.translations[locale] = legacy.targetHash
-					? [legacy.targetHash]
-					: [];
-			}
-		}
-		this.cache.set(sourceHash, record);
-		return record;
+		return { version: 1, sourceHash, translations };
 	}
 
 	has(sourceHash: string, locale: string, targetHash: string): boolean {
+		if (!targetHash) return false;
 		return (
-			this.read(sourceHash)?.translations[locale]?.includes(targetHash) ?? false
+			this.db
+				.query<{ one: number }, [string, string, string]>(
+					"SELECT 1 AS one FROM translation WHERE source_hash = ? AND locale = ? AND target_hash = ?",
+				)
+				.get(sourceHash, locale, targetHash) !== null
 		);
 	}
 
@@ -74,28 +68,95 @@ export class TranslationStore {
 		return "unrecorded";
 	}
 
-	rebuild(records: Iterable<TranslationRecord>): number {
+	/**
+	 * Every `locale:targetHash` pair already on file and the source it was
+	 * linked to. One indexed query where the directory format needed a readdir
+	 * plus a JSON parse per node.
+	 */
+	knownTargets(): Map<string, string> {
+		const known = new Map<string, string>();
+		const rows = this.db
+			.query<{ locale: string; target_hash: string; source_hash: string }, []>(
+				"SELECT locale, target_hash, source_hash FROM translation ORDER BY created_at, source_hash, locale, target_hash",
+			)
+			.all();
+		for (const row of rows) {
+			const key = `${row.locale}:${row.target_hash}`;
+			if (!known.has(key)) known.set(key, row.source_hash);
+		}
+		return known;
+	}
+
+	/**
+	 * Adopt the given links. Returns the number of source hashes whose link
+	 * set changed, so the reindex log keeps meaning what it meant when a
+	 * source hash was one file.
+	 *
+	 * `prune` drops links no record mentions, which is only correct when the
+	 * caller scanned every project sharing this index. One index serves about
+	 * a hundred module projects here, so a `--project`-filtered reindex must
+	 * pass false or it deletes the ninety-nine it did not look at.
+	 */
+	rebuild(records: Iterable<TranslationRecord>, prune = true): number {
 		const next = new Map(
 			[...records].map((record) => [record.sourceHash, record]),
 		);
-		mkdirSync(this.indexRoot, { recursive: true });
+		const before = this.snapshotBySource();
+		const now = new Date().toISOString();
+
+		this.db.transaction(() => {
+			if (prune) this.db.query("DELETE FROM translation").run();
+			const insert = this.db.query(
+				"INSERT OR IGNORE INTO translation (source_hash, locale, target_hash, created_at) VALUES (?, ?, ?, ?)",
+			);
+			for (const record of next.values()) {
+				assertHash(record.sourceHash);
+				for (const [locale, links] of Object.entries(record.translations)) {
+					for (const targetHash of links) {
+						insert.run(record.sourceHash, locale, targetHash, now);
+					}
+				}
+			}
+		})();
+		this.dirty = true;
+
+		const after = this.snapshotBySource();
 		let changed = 0;
-		for (const record of next.values()) {
-			const path = this.recordPath(record.sourceHash);
-			const expected = `${JSON.stringify(record, null, 2)}\n`;
-			if (existsSync(path) && readFileSync(path, "utf8") === expected) continue;
-			writeJsonAtomic(path, record);
-			changed += 1;
+		for (const key of new Set([...before.keys(), ...after.keys()])) {
+			if (before.get(key) !== after.get(key)) changed += 1;
 		}
-		for (const name of readdirSync(this.indexRoot)) {
-			if (!/^[a-f0-9]{64}\.json$/.test(name)) continue;
-			const sourceHash = name.slice(0, -5);
-			if (next.has(sourceHash)) continue;
-			unlinkSync(join(this.indexRoot, name));
-			changed += 1;
-		}
-		this.cache = new Map(next);
 		return changed;
+	}
+
+	/** `sourceHash → canonical link set`, for cheap before/after comparison. */
+	private snapshotBySource(): Map<string, string> {
+		const rows = this.db
+			.query<{ source_hash: string; links: string }, []>(
+				"SELECT source_hash, group_concat(locale || ':' || target_hash) AS links FROM (SELECT source_hash, locale, target_hash FROM translation ORDER BY source_hash, locale, target_hash) GROUP BY source_hash",
+			)
+			.all();
+		return new Map(rows.map((row) => [row.source_hash, row.links]));
+	}
+
+	/**
+	 * Drop translation links the validator proved bogus. Removing a locale
+	 * requeues the file for the next `-t` run; omitting it drops every locale.
+	 * Returns true when anything was removed.
+	 */
+	forget(sourceHash: string, locale?: string): boolean {
+		assertHash(sourceHash);
+		const result =
+			locale === undefined
+				? this.db
+						.query("DELETE FROM translation WHERE source_hash = ?")
+						.run(sourceHash)
+				: this.db
+						.query(
+							"DELETE FROM translation WHERE source_hash = ? AND locale = ?",
+						)
+						.run(sourceHash, locale);
+		if (result.changes > 0) this.dirty = true;
+		return result.changes > 0;
 	}
 
 	save(
@@ -104,19 +165,38 @@ export class TranslationStore {
 		content: string,
 		target: string,
 	): string {
+		assertHash(sourceHash);
 		const targetHash = hashText(content);
 		writeTextAtomic(target, content);
-
-		const record = this.read(sourceHash) ?? {
-			version: 1 as const,
-			sourceHash,
-			translations: {},
-		};
-		const links = record.translations[locale] ?? [];
-		if (!links.includes(targetHash)) links.push(targetHash);
-		record.translations[locale] = links;
-		writeJsonAtomic(this.recordPath(sourceHash), record);
-		this.cache.set(sourceHash, record);
+		this.link(sourceHash, locale, targetHash);
 		return targetHash;
+	}
+
+	link(sourceHash: string, locale: string, targetHash: string): void {
+		this.db
+			.query(
+				"INSERT OR IGNORE INTO translation (source_hash, locale, target_hash, created_at) VALUES (?, ?, ?, ?)",
+			)
+			.run(sourceHash, locale, targetHash, new Date().toISOString());
+		this.dirty = true;
+	}
+
+	/** Number of distinct source hashes carrying at least one link. */
+	linkedSources(): number {
+		return (
+			this.db
+				.query<{ count: number }, []>(
+					"SELECT COUNT(DISTINCT source_hash) AS count FROM translation",
+				)
+				.get()?.count ?? 0
+		);
+	}
+
+	markDirty(): void {
+		this.dirty = true;
+	}
+
+	close(): void {
+		closeIndex(this.db, this.dirty);
 	}
 }

@@ -17,6 +17,18 @@ const DEFAULT_STATUS = "idle";
 
 const ALL_STATUSES = ["idle", "running", "maintenance", "error", "offline"] as const;
 
+/**
+ * A blank text field is absence, not a value.
+ *
+ * This matters for `deviceId` in particular: its index counts many NULLs as
+ * distinct but two empty strings as the same key, so a form that submits ""
+ * for the machine nobody has wired up yet would collide on the second one.
+ */
+const text = (value: string | undefined | null): string | null => {
+  const trimmed = typeof value === "string" ? value.trim() : "";
+  return trimmed.length > 0 ? trimmed : null;
+};
+
 export class EquipmentStoreService {
   private readonly repo: EquipmentRepository;
   /**
@@ -39,13 +51,43 @@ export class EquipmentStoreService {
     });
   }
 
+  /**
+   * Refuses a device key another machine already answers to.
+   *
+   * The index would refuse it anyway; this is here so the operator reads which
+   * machine holds the key instead of a constraint name. Deliberately not
+   * narrowed by access: a collision with a machine this caller cannot see is
+   * still a collision, and suffixing the key the way readable slugs are made
+   * unique would be wrong — the key is what the hardware reports, not
+   * something we get to invent.
+   */
+  private async requireFreeDevice(
+    deviceId: string | null,
+    selfId?: EquipmentId,
+  ): Promise<void> {
+    if (!deviceId) return;
+    const holder = await this.store.db
+      .selectFrom("equipment")
+      .select(["id", "name"])
+      .where("deviceId", "=", deviceId)
+      .executeTakeFirst();
+    if (!holder || holder.id === selfId) return;
+    throw new Error(
+      `Device key already used: ${deviceId} belongs to ${holder.name || holder.id}`,
+    );
+  }
+
   async registerEquipment(input: EquipmentInput): Promise<EquipmentId> {
     const id = generateULID();
     const now = new Date().toISOString();
+    const deviceId = text(input.deviceId);
+    await this.requireFreeDevice(deviceId);
     const entity: EquipmentEntity = {
       id,
       kind: input.kind,
       name: input.name ?? "",
+      classifierNodeId: text(input.classifierNodeId),
+      deviceId,
       serialNumber: input.serialNumber ?? null,
       location: input.location ?? null,
       description: input.description ?? null,
@@ -99,6 +141,11 @@ export class EquipmentStoreService {
   private applyFilters(query: any, params: EquipmentListParams) {
     let next = query;
     if (params.kind) next = next.where("obj.kind", "=", params.kind);
+    if (params.classifierNodeId)
+      next = next.where("obj.classifierNodeId", "=", params.classifierNodeId);
+    // How a telemetry row finds its machine: one filtered listing, no new method.
+    if (params.deviceId)
+      next = next.where("obj.deviceId", "=", params.deviceId);
     if (params.status) next = next.where("obj.status", "=", params.status);
     if (params.jobId) next = next.where("obj.jobId", "=", params.jobId);
     return next;
@@ -111,6 +158,12 @@ export class EquipmentStoreService {
 
     const next: Partial<EquipmentEntity> = { updatedAt: new Date().toISOString() };
     if (patch.name !== undefined) next.name = patch.name;
+    if (patch.classifierNodeId !== undefined)
+      next.classifierNodeId = text(patch.classifierNodeId);
+    if (patch.deviceId !== undefined) {
+      next.deviceId = text(patch.deviceId);
+      await this.requireFreeDevice(next.deviceId, id);
+    }
     if (patch.serialNumber !== undefined) next.serialNumber = patch.serialNumber ?? null;
     if (patch.location !== undefined) next.location = patch.location ?? null;
     if (patch.description !== undefined) next.description = patch.description ?? null;
@@ -175,6 +228,8 @@ export class EquipmentStoreService {
       id: entity.id,
       kind: entity.kind,
       name: entity.name?.length ? entity.name : undefined,
+      classifierNodeId: entity.classifierNodeId ?? undefined,
+      deviceId: entity.deviceId ?? undefined,
       serialNumber: entity.serialNumber ?? undefined,
       location: entity.location ?? undefined,
       description: entity.description ?? undefined,

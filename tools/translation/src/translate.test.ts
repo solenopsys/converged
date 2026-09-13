@@ -8,8 +8,9 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { hashText } from "./fs";
 import { TranslationStore } from "./store";
-import { translateProject } from "./translate";
+import { emptyTally, translateProject } from "./translate";
 import type { ProjectConfig, ProjectSnapshot } from "./types";
 
 let root: string;
@@ -154,7 +155,9 @@ test("skips translated JSON with missing source fields", async () => {
 		new Response(
 			JSON.stringify({
 				output_text: JSON.stringify({
-					items: [{ id: "docs:config.json:ru", translation: '{"title":"Перевод"}' }],
+					items: [
+						{ id: "docs:config.json:ru", translation: '{"title":"Перевод"}' },
+					],
 				}),
 			}),
 		)) as typeof fetch;
@@ -168,15 +171,30 @@ test("skips translated JSON with missing source fields", async () => {
 			"config.json": {
 				fileType: "json",
 				sourceHash: "a".repeat(64),
-				targets: { ru: { exists: true, hash: "target", status: "untranslated-text", reasons: [] } },
+				targets: {
+					ru: {
+						exists: true,
+						hash: "target",
+						status: "untranslated-text",
+						reasons: [],
+					},
+				},
 			},
 		},
 		orphans: { ru: [] },
 		routes: [],
 	};
 
-	expect(await translateProject(project, snapshot, new TranslationStore(join(root, ".translation")))).toBe(0);
-	expect(readFileSync(target, "utf8")).toBe('{"title":"Previous","labels":{"of":"of"}}\n');
+	expect(
+		await translateProject(
+			project,
+			snapshot,
+			new TranslationStore(join(root, ".translation")),
+		),
+	).toBe(0);
+	expect(readFileSync(target, "utf8")).toBe(
+		'{"title":"Previous","labels":{"of":"of"}}\n',
+	);
 });
 
 test("skips an existing target with the linked target hash", async () => {
@@ -222,13 +240,246 @@ test("skips an existing target with the linked target hash", async () => {
 	expect(calls).toBe(0);
 });
 
-test("skips an existing target identical to the English source", async () => {
-	const sourceHash = "b".repeat(64);
+test("skips a linked identical target, requeues an unlinked copy", async () => {
+	const sourceText = "# Guide\n\nEnglish text for the workshop manual.\n";
+	const sourceHash = hashText(sourceText);
+	writeFileSync(join(root, "docs", "guide.md"), sourceText);
+	mkdirSync(join(root, "cache", "ru"), { recursive: true });
+	const target = join(root, "cache", "ru", "guide.md");
 	const store = new TranslationStore(join(root, ".translation"));
 	let calls = 0;
 	globalThis.fetch = (async (_input, _init) => {
 		calls += 1;
-		return new Response("{}", { status: 500 });
+		return new Response(
+			JSON.stringify({
+				output_text: JSON.stringify({
+					items: [
+						{
+							id: "docs:guide.md:ru",
+							translation: "# Руководство\n\nРусский текст.\n",
+						},
+					],
+				}),
+			}),
+			{ status: 200, headers: { "Content-Type": "application/json" } },
+		);
+	}) as typeof fetch;
+
+	const snapshotFor = (linked: boolean): ProjectSnapshot => {
+		writeFileSync(target, sourceText);
+		let targetHash = sourceHash;
+		if (linked) {
+			targetHash = store.save(sourceHash, "ru", sourceText, target);
+		}
+		return {
+			root: join(root, "docs"),
+			targetRoot: join(root, "cache"),
+			sourceLocale: "en",
+			targetLocales: ["ru"],
+			files: {
+				"guide.md": {
+					fileType: "markdown",
+					sourceHash,
+					targets: {
+						ru: {
+							exists: true,
+							hash: targetHash,
+							status: "ok",
+							reasons: [],
+						},
+					},
+				},
+			},
+			orphans: { ru: [] },
+			routes: [],
+		};
+	};
+
+	// Linked copy: intentional fallback, no API calls.
+	expect(await translateProject(project, snapshotFor(true), store)).toBe(0);
+	expect(calls).toBe(0);
+
+	// Unlinked copy: a seed the build left behind, gets translated.
+	const store2 = new TranslationStore(join(root, ".translation2"));
+	expect(await translateProject(project, snapshotFor(false), store2)).toBe(1);
+	expect(calls).toBe(1);
+	expect(readFileSync(target, "utf8")).toBe(
+		"# Руководство\n\nРусский текст.\n",
+	);
+});
+
+test("large JSON goes string-by-string and keeps structure", async () => {
+	const big = {
+		title: "English title",
+		id: "scene-1",
+		coords: Array.from({ length: 5000 }, (_, i) => i),
+		nested: { subtitle: "English subtitle", tone: "accent" },
+	};
+	writeFileSync(join(root, "docs", "big.json"), JSON.stringify(big));
+	mkdirSync(join(root, "cache", "ru"), { recursive: true });
+	const seen: string[] = [];
+	globalThis.fetch = (async (_input, init) => {
+		const body = JSON.parse(String(init?.body)) as {
+			input: string;
+		};
+		const items = JSON.parse(body.input).items as Array<{
+			id: string;
+			content: string;
+		}>;
+		seen.push(...items.map((item) => item.content));
+		return new Response(
+			JSON.stringify({
+				output_text: JSON.stringify({
+					items: items.map((item) => ({
+						id: item.id,
+						translation: `RU:${item.content}`,
+					})),
+				}),
+			}),
+			{ status: 200, headers: { "Content-Type": "application/json" } },
+		);
+	}) as typeof fetch;
+
+	const snapshot: ProjectSnapshot = {
+		root: join(root, "docs"),
+		targetRoot: join(root, "cache"),
+		sourceLocale: "en",
+		targetLocales: ["ru"],
+		files: {
+			"big.json": {
+				fileType: "json",
+				sourceHash: "c".repeat(64),
+				targets: {
+					ru: {
+						exists: false,
+						hash: "",
+						status: "missing",
+						reasons: ["missing"],
+					},
+				},
+			},
+		},
+		orphans: { ru: [] },
+		routes: [],
+	};
+
+	const store = new TranslationStore(join(root, ".translation"));
+	expect(await translateProject(project, snapshot, store)).toBe(1);
+	// Only human strings travel; numbers and ids stay local.
+	expect(seen.sort()).toEqual(["English subtitle", "English title"]);
+	const target = JSON.parse(
+		readFileSync(join(root, "cache", "ru", "big.json"), "utf8"),
+	);
+	expect(target.title).toBe("RU:English title");
+	expect(target.nested.subtitle).toBe("RU:English subtitle");
+	expect(target.id).toBe("scene-1");
+	expect(target.nested.tone).toBe("accent");
+	expect(target.coords).toHaveLength(5000);
+});
+
+/**
+ * Concurrency is the point of the pool, so it is asserted directly: six
+ * locales of small files used to be six strictly sequential requests.
+ */
+test("batches from every locale share one pool and stay within the limit", async () => {
+	const locales = ["ru", "de", "es", "fr", "it", "pt"];
+	for (let i = 0; i < 12; i += 1) {
+		writeFileSync(join(root, "docs", `doc-${i}.md`), `# Doc ${i}\n`);
+	}
+
+	let live = 0;
+	let peak = 0;
+	let requests = 0;
+	globalThis.fetch = (async (_input, init) => {
+		live += 1;
+		peak = Math.max(peak, live);
+		requests += 1;
+		const body = JSON.parse(String(init?.body)) as { input: string };
+		const { items } = JSON.parse(body.input) as {
+			items: Array<{ id: string; content: string }>;
+		};
+		await Bun.sleep(5);
+		live -= 1;
+		return new Response(
+			JSON.stringify({
+				output_text: JSON.stringify({
+					items: items.map((item) => ({
+						id: item.id,
+						translation: `${item.content}translated\n`,
+					})),
+				}),
+			}),
+			{ status: 200, headers: { "Content-Type": "application/json" } },
+		);
+	}) as typeof fetch;
+
+	const files: ProjectSnapshot["files"] = {};
+	for (let i = 0; i < 12; i += 1) {
+		files[`doc-${i}.md`] = {
+			fileType: "markdown",
+			sourceHash: i.toString(16).padStart(64, "0"),
+			targets: Object.fromEntries(
+				locales.map((locale) => [
+					locale,
+					{ exists: false, hash: "", status: "missing" as const, reasons: [] },
+				]),
+			),
+		};
+	}
+	const snapshot: ProjectSnapshot = {
+		root: join(root, "docs"),
+		targetRoot: join(root, "cache"),
+		sourceLocale: "en",
+		targetLocales: locales,
+		files,
+		orphans: {},
+		routes: [],
+	};
+
+	const store = new TranslationStore(join(root, ".index"));
+	const tally = emptyTally();
+	const translated = await translateProject(
+		{ ...project, targetLocales: locales },
+		snapshot,
+		store,
+		{ concurrency: 3, tally },
+	);
+
+	expect(translated).toBe(72);
+	// 12 files over 6 locales, batched by 8: two batches per locale.
+	expect(requests).toBe(12);
+	expect(peak).toBe(3);
+	expect(peak).toBeLessThanOrEqual(3);
+	expect(tally.requests).toBe(12);
+	expect(tally.translated).toBe(72);
+	expect(readFileSync(join(root, "cache", "pt", "doc-0.md"), "utf8")).toBe(
+		"# Doc 0\ntranslated\n",
+	);
+	store.close();
+});
+
+test("a rate limit is waited out rather than failing the run", async () => {
+	let attempts = 0;
+	globalThis.fetch = (async (_input, init) => {
+		attempts += 1;
+		if (attempts === 1) {
+			return new Response(JSON.stringify({ error: { message: "slow down" } }), {
+				status: 429,
+				headers: { "Content-Type": "application/json" },
+			});
+		}
+		const body = JSON.parse(String(init?.body)) as { input: string };
+		const { items } = JSON.parse(body.input) as {
+			items: Array<{ id: string }>;
+		};
+		return new Response(
+			JSON.stringify({
+				output_text: JSON.stringify({
+					items: items.map((item) => ({ id: item.id, translation: "ok\n" })),
+				}),
+			}),
+			{ status: 200, headers: { "Content-Type": "application/json" } },
+		);
 	}) as typeof fetch;
 
 	const snapshot: ProjectSnapshot = {
@@ -239,21 +490,22 @@ test("skips an existing target identical to the English source", async () => {
 		files: {
 			"guide.md": {
 				fileType: "markdown",
-				sourceHash,
+				sourceHash: "a".repeat(64),
 				targets: {
-					ru: {
-						exists: true,
-						hash: sourceHash,
-						status: "ok",
-						reasons: [],
-					},
+					ru: { exists: false, hash: "", status: "missing", reasons: [] },
 				},
 			},
 		},
-		orphans: { ru: [] },
+		orphans: {},
 		routes: [],
 	};
 
-	expect(await translateProject(project, snapshot, store)).toBe(0);
-	expect(calls).toBe(0);
+	const store = new TranslationStore(join(root, ".index"));
+	const tally = emptyTally();
+	expect(
+		await translateProject(project, snapshot, store, { concurrency: 1, tally }),
+	).toBe(1);
+	expect(attempts).toBe(2);
+	expect(tally.retries).toBe(1);
+	store.close();
 });

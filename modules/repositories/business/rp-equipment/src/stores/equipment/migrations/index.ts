@@ -1,5 +1,6 @@
 import { AccessTagsMigration } from "back-core";
 import AddEquipmentDetails from "./addEquipmentDetails";
+import AddEquipmentDevice from "./addEquipmentDevice";
 import AddEquipmentModel from "./addEquipmentModel";
 import CreateEquipment from "./createEquipment";
 
@@ -8,5 +9,6 @@ export default [
   CreateEquipment,
   AddEquipmentDetails,
   AddEquipmentModel,
+  AddEquipmentDevice,
   AccessTagsMigration,
 ];

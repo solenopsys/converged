@@ -8,8 +8,6 @@
  * erase the only evidence that a retranslation is needed.
  */
 
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import type { TranslationRecord, TranslationStore } from "./store";
 import type { ProjectSnapshot } from "./types";
 
@@ -24,43 +22,18 @@ export type ReindexSummary = {
 	changed: number;
 };
 
-/** Every known `locale:targetHash` pair and the source hash it was linked to. */
-function knownTargets(indexRoot: string): Map<string, string> {
-	const known = new Map<string, string>();
-	let names: string[] = [];
-	try {
-		names = readdirSync(indexRoot);
-	} catch {
-		return known;
-	}
-	for (const name of names) {
-		if (!/^[a-f0-9]{64}\.json$/.test(name)) continue;
-		let record: TranslationRecord;
-		try {
-			record = JSON.parse(
-				readFileSync(join(indexRoot, name), "utf8"),
-			) as TranslationRecord;
-		} catch {
-			continue;
-		}
-		if (record.version !== 1 || !record.translations) continue;
-		for (const [locale, links] of Object.entries(record.translations)) {
-			if (!Array.isArray(links)) continue;
-			for (const targetHash of links) {
-				const key = `${locale}:${targetHash}`;
-				if (!known.has(key)) known.set(key, record.sourceHash);
-			}
-		}
-	}
-	return known;
-}
-
 export function rebuildIndex(
 	store: TranslationStore,
 	snapshots: ProjectSnapshot[],
+	/**
+	 * True when `snapshots` covers every project that shares this index. Only
+	 * then may links absent from them be dropped; a filtered run adopts what
+	 * it saw and leaves the rest alone.
+	 */
+	complete = true,
 ): ReindexSummary {
 	const records = new Map<string, TranslationRecord>();
-	const previous = knownTargets(store.indexRoot);
+	const previous = store.knownTargets();
 	const summary: ReindexSummary = {
 		sources: 0,
 		targets: 0,
@@ -120,6 +93,6 @@ export function rebuildIndex(
 	for (const record of records.values()) {
 		for (const links of Object.values(record.translations)) links.sort();
 	}
-	summary.changed = store.rebuild(records.values());
+	summary.changed = store.rebuild(records.values(), complete);
 	return summary;
 }

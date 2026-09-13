@@ -23,6 +23,27 @@ export type Equipment = {
   id: EquipmentId;
   kind: string;
   name?: string;
+  /**
+   * The model this machine is, as a node of the shared classifier
+   * (`rp-classifier`). It is the machine's link to reference data: build
+   * volume, materials, which adapter speaks to it, which parameters it
+   * reports. None of that is copied onto the record — an operator types the
+   * brand and the model, and everything else is read back from the classifier
+   * whenever it is needed, so a corrected catalogue corrects every shop at once.
+   */
+  classifierNodeId?: string;
+  /**
+   * The key this machine's samples and log lines arrive under.
+   *
+   * Telemetry addresses a device by a free-form `device_id`, written by
+   * whatever speaks to the machine — an adapter reads it off the hardware, an
+   * operator types it in. Holding it on the record is what lets the machine's
+   * card ask `rp-telemetry` for this machine's numbers, and a telemetry row
+   * point back at the machine that produced it. Unset until something reports:
+   * a machine can stand on the floor and be scheduled without ever being
+   * wired up.
+   */
+  deviceId?: string;
   serialNumber?: string;
   location?: string;
   description?: string;
@@ -37,6 +58,8 @@ export type Equipment = {
 export type EquipmentInput = {
   kind: string;
   name?: string;
+  classifierNodeId?: string;
+  deviceId?: string;
   serialNumber?: string;
   location?: string;
   description?: string;
@@ -47,6 +70,8 @@ export type EquipmentInput = {
 
 export type EquipmentPatch = {
   name?: string;
+  classifierNodeId?: string;
+  deviceId?: string;
   serialNumber?: string;
   location?: string;
   description?: string;
@@ -63,6 +88,9 @@ export type EquipmentListParams = {
   offset: number;
   limit: number;
   kind?: string;
+  classifierNodeId?: string;
+  /** Resolves a telemetry row back to the machine that produced it. */
+  deviceId?: string;
   status?: EquipmentStatus;
   jobId?: JobId;
 };
@@ -396,17 +424,17 @@ const metadata: ServiceMetadata = {
     {
       "name": "Equipment",
       "kind": "type",
-      "definition": "{\n  id: EquipmentId;\n  kind: string;\n  name?: string;\n  serialNumber?: string;\n  location?: string;\n  description?: string;\n  maintenanceIntervalDays?: number;\n  lastMaintenanceAt?: ISODateString;\n  status: EquipmentStatus;\n  jobId?: JobId;\n  createdAt: ISODateString;\n  updatedAt: ISODateString;\n}"
+      "definition": "{\n  id: EquipmentId;\n  kind: string;\n  name?: string;\n  /**\n   * The model this machine is, as a node of the shared classifier\n   * (`rp-classifier`). It is the machine's link to reference data: build\n   * volume, materials, which adapter speaks to it, which parameters it\n   * reports. None of that is copied onto the record — an operator types the\n   * brand and the model, and everything else is read back from the classifier\n   * whenever it is needed, so a corrected catalogue corrects every shop at once.\n   */\n  classifierNodeId?: string;\n  /**\n   * The key this machine's samples and log lines arrive under.\n   *\n   * Telemetry addresses a device by a free-form `device_id`, written by\n   * whatever speaks to the machine — an adapter reads it off the hardware, an\n   * operator types it in. Holding it on the record is what lets the machine's\n   * card ask `rp-telemetry` for this machine's numbers, and a telemetry row\n   * point back at the machine that produced it. Unset until something reports:\n   * a machine can stand on the floor and be scheduled without ever being\n   * wired up.\n   */\n  deviceId?: string;\n  serialNumber?: string;\n  location?: string;\n  description?: string;\n  maintenanceIntervalDays?: number;\n  lastMaintenanceAt?: ISODateString;\n  status: EquipmentStatus;\n  jobId?: JobId;\n  createdAt: ISODateString;\n  updatedAt: ISODateString;\n}"
     },
     {
       "name": "EquipmentInput",
       "kind": "type",
-      "definition": "{\n  kind: string;\n  name?: string;\n  serialNumber?: string;\n  location?: string;\n  description?: string;\n  maintenanceIntervalDays?: number;\n  status?: EquipmentStatus;\n  jobId?: JobId;\n}"
+      "definition": "{\n  kind: string;\n  name?: string;\n  classifierNodeId?: string;\n  deviceId?: string;\n  serialNumber?: string;\n  location?: string;\n  description?: string;\n  maintenanceIntervalDays?: number;\n  status?: EquipmentStatus;\n  jobId?: JobId;\n}"
     },
     {
       "name": "EquipmentPatch",
       "kind": "type",
-      "definition": "{\n  name?: string;\n  serialNumber?: string;\n  location?: string;\n  description?: string;\n  maintenanceIntervalDays?: number;\n  lastMaintenanceAt?: ISODateString;\n}"
+      "definition": "{\n  name?: string;\n  classifierNodeId?: string;\n  deviceId?: string;\n  serialNumber?: string;\n  location?: string;\n  description?: string;\n  maintenanceIntervalDays?: number;\n  lastMaintenanceAt?: ISODateString;\n}"
     },
     {
       "name": "EquipmentStateInput",
@@ -416,7 +444,7 @@ const metadata: ServiceMetadata = {
     {
       "name": "EquipmentListParams",
       "kind": "type",
-      "definition": "{\n  offset: number;\n  limit: number;\n  kind?: string;\n  status?: EquipmentStatus;\n  jobId?: JobId;\n}"
+      "definition": "{\n  offset: number;\n  limit: number;\n  kind?: string;\n  classifierNodeId?: string;\n  /** Resolves a telemetry row back to the machine that produced it. */\n  deviceId?: string;\n  status?: EquipmentStatus;\n  jobId?: JobId;\n}"
     },
     {
       "name": "EquipmentLog",

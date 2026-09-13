@@ -106,16 +106,13 @@ test("namespaces additional owners in a shared section", async () => {
 		"English v1\n",
 	);
 	expect(
-		readFileSync(
-			join(cache, "en", "guide", "runtime", "runtime.md"),
-			"utf8",
-		),
+		readFileSync(join(cache, "en", "guide", "runtime", "runtime.md"), "utf8"),
 	).toBe("Runtime guide\n");
 
 	const scanned = await scan([project], new Map([[project, cache]]));
 	const translated = scanned.contributions.get("guide/ru") ?? [];
 	expect(translated).toHaveLength(2);
-	expect(translated.some((contribution) => contribution.module === "runtime")).toBe(
-		true,
-	);
+	expect(
+		translated.some((contribution) => contribution.module === "runtime"),
+	).toBe(true);
 });

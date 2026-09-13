@@ -1,4 +1,5 @@
 import type {
+	LandingBlockConfig,
 	LandingConfig,
 	LandingMenuLink,
 	LandingNavigationConfig,
@@ -66,6 +67,56 @@ function resolveNavigation(
 	return menuLinks.length > 0 ? { menuLinks } : undefined;
 }
 
+type StructReader = { readJsonBatch(paths: string[]): Promise<unknown[]> };
+
+/**
+ * Loads the language-free document sets a page asks for.
+ *
+ * A collection is a directory in the root of `struct`, outside any locale, with
+ * an `index.json` naming its members. Two round trips read the whole thing: one
+ * for every manifest, one for every member across every collection — so adding
+ * a diagram costs a file, not a request.
+ */
+async function readCollections(
+	struct: StructReader,
+	blocks: LandingBlockConfig[],
+): Promise<Map<string, Record<string, unknown>>> {
+	const dirs = [
+		...new Set(
+			blocks.flatMap((block) =>
+				Object.values(block.collections ?? {}).filter(
+					(value): value is string => typeof value === "string" && value.trim().length > 0,
+				),
+			),
+		),
+	];
+	if (dirs.length === 0) return new Map();
+
+	const indexes = (await struct.readJsonBatch(
+		dirs.map((dir) => `${dir}/index.json`),
+	)) as Array<{ entries?: string[] } | undefined>;
+
+	const members = dirs.map((dir, index) => {
+		const ids = indexes[index]?.entries;
+		if (!Array.isArray(ids)) {
+			throw new Error(`[landing] collection ${dir} has no index.json manifest`);
+		}
+		return { dir, ids };
+	});
+
+	const paths = members.flatMap(({ dir, ids }) => ids.map((id) => `${dir}/${id}.json`));
+	const documents = await struct.readJsonBatch(paths);
+
+	const result = new Map<string, Record<string, unknown>>();
+	let cursor = 0;
+	for (const { dir, ids } of members) {
+		const entries: Record<string, unknown> = {};
+		for (const id of ids) entries[id] = documents[cursor++];
+		result.set(dir, entries);
+	}
+	return result;
+}
+
 export async function prefetchLanding(
 	configPath: string,
 	workspace?: string,
@@ -98,12 +149,21 @@ export async function prefetchLanding(
 		sourceMap.set(path, Array.isArray(sourceValues) ? sourceValues[index] : undefined);
 	});
 
+	const collections = await readCollections(struct, blocks);
+
 	const resolved: ResolvedBlock[] = blocks.map((block, index) => {
 		const data: Record<string, unknown> = {};
 		for (const [alias, sourcePath] of Object.entries(block.sources ?? {})) {
 			const value = sourceMap.get(localize(sourcePath));
 			if (value === undefined || value === null) {
 				throw new Error(`[landing] missing source ${sourcePath} for block ${block.type}`);
+			}
+			data[alias] = value;
+		}
+		for (const [alias, dir] of Object.entries(block.collections ?? {})) {
+			const value = collections.get(dir);
+			if (!value) {
+				throw new Error(`[landing] missing collection ${dir} for block ${block.type}`);
 			}
 			data[alias] = value;
 		}

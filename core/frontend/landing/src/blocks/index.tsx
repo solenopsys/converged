@@ -7,6 +7,7 @@ import {
 	ContactsMapBlock,
 	type AssistantStageData,
 	type BusinessImpactData,
+	type DiagramTextsData,
 	type DiagramsData,
 	HeroBlock,
 	type HeroData,
@@ -76,6 +77,7 @@ export const blocks: LandingBlockMap = {
 			id={block.id}
 			data={block.data.cases as ProductCasesData}
 			diagrams={block.data.diagrams as DiagramsData}
+			diagramTexts={block.data.diagramTexts as DiagramTextsData}
 		/>
 	),
 };

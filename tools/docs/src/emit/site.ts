@@ -10,10 +10,9 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join, relative } from "node:path";
 import type { Writer } from "../fs";
+import { isLocale } from "../locales";
 import type { Book, CompoundIndexEntry, Config, Doc, DocsRoot } from "../types";
 import { emitDocsPage } from "./docs-page";
-
-const NON_LOCALES = new Set(["html", "pdf", "readme"]);
 
 function entries(
 	docs: Doc[],
@@ -139,12 +138,7 @@ async function emitNestedDocs(
 
 	for (const cache of config.docsCaches.values()) {
 		for (const lang of readdirSync(cache, { withFileTypes: true })
-			.filter(
-				(entry) =>
-					entry.isDirectory() &&
-					/^[a-z]{2,3}$/.test(entry.name) &&
-					!NON_LOCALES.has(entry.name),
-			)
+			.filter((entry) => entry.isDirectory() && isLocale(entry.name))
 			.map((entry) => entry.name)
 			.filter((lang) => lang !== config.translation.sourceLocale)) {
 			await copyNestedDocs(join(cache, lang), lang, config, writer);

@@ -1,14 +1,17 @@
 import type { ComponentChildren } from "preact";
 import type { CSSProperties } from "preact/compat";
 import { getStreamlineIcon, streamlineCogIcon, streamlineIconByKind } from "./icons";
+import { mergeDiagram } from "./merge";
 import {
   V2_GRID_SIZE,
   type V2Anchor,
-  type V2Connection,
+  type V2DiagramConfig,
   type V2DiagramData,
+  type V2DiagramTexts,
   type V2GridRect,
-  type V2Group,
-  type V2Symbol,
+  type V2RenderedConnection,
+  type V2RenderedGroup,
+  type V2RenderedSymbol,
 } from "./types";
 
 function gridStyle(rect: V2GridRect): CSSProperties {
@@ -20,7 +23,7 @@ function gridStyle(rect: V2GridRect): CSSProperties {
   } as CSSProperties;
 }
 
-function symbolStyle(symbol: V2Symbol): CSSProperties {
+function symbolStyle(symbol: V2RenderedSymbol): CSSProperties {
   return {
     ...gridStyle(symbol.rect),
     "--v2-row-count": symbol.rows?.length ?? 0,
@@ -57,7 +60,7 @@ export function V2StreamlineIcon({ icon }: { icon: string }) {
   );
 }
 
-export function V2GroupNode({ group }: { group: V2Group }) {
+export function V2GroupNode({ group }: { group: V2RenderedGroup }) {
   return (
     <div
       className={`v2-group tone-${group.tone ?? "default"}`}
@@ -71,7 +74,7 @@ export function V2GroupNode({ group }: { group: V2Group }) {
     </div>
   );
 }
-export function V2SymbolNode({ symbol }: { symbol: V2Symbol }) {
+export function V2SymbolNode({ symbol }: { symbol: V2RenderedSymbol }) {
   const icon = symbol.icon ?? streamlineIconByKind[symbol.kind];
 
   return (
@@ -189,7 +192,7 @@ function orthogonalPoints(points: Array<{ x: number; y: number }>, startsHorizon
   return result;
 }
 
-function connectionPath(connection: V2Connection, symbols: Map<string, V2Symbol>) {
+function connectionPath(connection: V2RenderedConnection, symbols: Map<string, V2RenderedSymbol>) {
   const from = symbols.get(connection.from);
   const to = symbols.get(connection.to);
 
@@ -269,7 +272,17 @@ function V2ConnectionLayer({ diagram }: { diagram: V2DiagramData }) {
   );
 }
 
-export function V2Diagram({ diagram, className }: { diagram: V2DiagramData; className?: string }) {
+export function V2Diagram({
+  config,
+  texts,
+  className,
+}: {
+  config: V2DiagramConfig;
+  texts: V2DiagramTexts | undefined;
+  className?: string;
+}) {
+  const diagram = mergeDiagram(config, texts);
+
   return (
     <V2Stage className={`v2-diagram${className ? ` ${className}` : ""}`} diagramId={diagram.id} height={diagram.height} width={diagram.width}>
       {diagram.machine ? (

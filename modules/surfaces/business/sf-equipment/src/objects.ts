@@ -44,6 +44,16 @@ const machineProperties = {
 			"Machine family as the shop names it: fdm, sla, cnc, laser, robot",
 	},
 	name: { type: "string", description: "Human name on the floor" },
+	classifierNodeId: {
+		type: "string",
+		description:
+			"Model of the machine in the shared classifier; reference data is read from there, not copied here",
+	},
+	deviceId: {
+		type: "string",
+		description:
+			"Key this machine's telemetry arrives under; leave empty until something reports for it",
+	},
 	serialNumber: { type: "string" },
 	location: { type: "string", description: "Where it physically stands" },
 	description: { type: "string" },
@@ -118,6 +128,8 @@ export const objects = [
 				},
 				{ id: "kind", label: "Kind", type: "search", operator: "contains" },
 				{ id: "jobId", label: "Job", type: "search", operator: "eq" },
+				// The way back from a telemetry row: its device key finds the machine.
+				{ id: "deviceId", label: "Device", type: "search", operator: "eq" },
 			],
 			// Working, free, then trouble — the order the floor is read in.
 			presets: [

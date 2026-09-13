@@ -16,6 +16,7 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import type { Writer } from "../fs";
+import { isLocale } from "../locales";
 import type { ModuleEntry, Registry, SolutionEntry } from "../registry";
 import type { Config } from "../types";
 
@@ -345,7 +346,7 @@ function authoredLangs(config: Config): string[] {
 	for (const root of roots) {
 		if (!existsSync(root)) continue;
 		for (const entry of readdirSync(root, { withFileTypes: true })) {
-			if (!entry.isDirectory()) continue;
+			if (!entry.isDirectory() || !isLocale(entry.name)) continue;
 			if (existsSync(join(root, entry.name, "ecosystem", "landing.json"))) {
 				langs.add(entry.name);
 			}

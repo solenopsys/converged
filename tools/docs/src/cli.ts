@@ -19,6 +19,8 @@
  *   --dry-run         report what would change, write nothing
  *   --list            print the discovered docs roots and books, then exit
  *   -t, --translate   translate missing or stale locale files before rebuilding
+ *   -v, --validate    list files that fail structural validation. Read-only:
+ *                     it reports and repairs nothing.
  *   -c, --copy-cache  copy club/content/docs-cache subfolders (struct,
  *                     markdown) into data/club as-is, bypassing the
  *                     source-locale filter of the site target
@@ -63,6 +65,7 @@ type Args = {
 	dryRun: boolean;
 	list: boolean;
 	translate: boolean;
+	validate: boolean;
 	copyCache: boolean;
 };
 
@@ -75,6 +78,7 @@ function parseArgs(argv: string[]): Args {
 		dryRun: false,
 		list: false,
 		translate: false,
+		validate: false,
 		copyCache: false,
 	};
 
@@ -102,6 +106,10 @@ function parseArgs(argv: string[]): Args {
 			case "-t":
 			case "--translate":
 				args.translate = true;
+				break;
+			case "-v":
+			case "--validate":
+				args.validate = true;
 				break;
 			case "-c":
 			case "--copy-cache":
@@ -198,7 +206,12 @@ let { books, summary } = await build(config, {
 });
 
 if (!args.list) {
-	const synced = await syncCaches(summary.roots, config, args.dryRun, args.translate);
+	const synced = await syncCaches(
+		summary.roots,
+		config,
+		args.dryRun,
+		args.translate,
+	);
 	console.log(`[docs] cache: ${synced} files synchronized`);
 	if (synced > 0 && !args.dryRun) {
 		({ books, summary } = await build(config, {
@@ -275,6 +288,28 @@ if (args.translate) {
 	for (const target of ["site", "ecosystem"] as const) {
 		await run(target, books, summary, config, args, manifest, registry);
 	}
+}
+if (args.validate) {
+	const translationCli = resolve(
+		import.meta.dir,
+		"../../translation/src/cli.ts",
+	);
+	const validateArgs = [
+		process.execPath,
+		translationCli,
+		"--validate",
+		"--config",
+		config.translation.config,
+	];
+	const child = Bun.spawn(validateArgs, {
+		cwd: config.root,
+		env: process.env,
+		stdout: "inherit",
+		stderr: "inherit",
+	});
+	const exitCode = await child.exited;
+	if (exitCode !== 0)
+		throw new Error(`Validation failed with exit code ${exitCode}`);
 }
 if (args.copyCache) {
 	const writer = new Writer(args.dryRun);

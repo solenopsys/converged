@@ -15,6 +15,7 @@
 
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { basename, dirname, join, relative, sep } from "node:path";
+import { isLocale } from "./locales";
 import type {
 	Contribution,
 	ContributionMeta,
@@ -38,8 +39,6 @@ const SKIP = new Set([
 	"target",
 	"tmp",
 ]);
-
-const NON_LOCALES = new Set(["html", "pdf", "readme"]);
 
 function subdirs(path: string): string[] {
 	if (!existsSync(path)) return [];
@@ -250,10 +249,7 @@ async function readCache(
 	sourceLocale: string,
 ): Promise<void> {
 	for (const lang of subdirs(cache).filter(
-		(lang) =>
-			/^[a-z]{2,3}$/.test(lang) &&
-			!NON_LOCALES.has(lang) &&
-			lang !== sourceLocale,
+		(lang) => isLocale(lang) && lang !== sourceLocale,
 	)) {
 		for (const section of subdirs(join(cache, lang))) {
 			if (section === "content") continue;

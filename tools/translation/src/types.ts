@@ -54,6 +54,12 @@ export type ProjectConfig = {
 	targetPrefix?: string;
 	/** Source-relative prefix removed before applying `targetPrefix`. */
 	targetStripPrefix?: string;
+	/**
+	 * Root holding the documents an `index.json` entry points at, relative to
+	 * `targetRoot`, when they live in a sibling store instead of beside the
+	 * index. Locale is appended, then the entry id.
+	 */
+	indexContentRoot?: string;
 	sourceLocale: string;
 	targetLocales: string[];
 	routes?: Array<{ path: string; config: string }>;
@@ -116,6 +122,8 @@ export type TargetSnapshot = {
 	status: TargetStatus;
 	reasons: string[];
 	diff?: TreeDiff;
+	/** Size on disk. Recorded so the volume table needs no second stat pass. */
+	bytes?: number;
 };
 
 export type FileSnapshot = {
@@ -123,6 +131,9 @@ export type FileSnapshot = {
 	sourceHash: string;
 	sourceStructureHash?: string;
 	targets: Record<string, TargetSnapshot>;
+	/** Size on disk, and the mtime the hash cache was keyed on. */
+	bytes?: number;
+	mtimeMs?: number;
 };
 
 export type RouteSnapshot = {

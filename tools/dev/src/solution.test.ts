@@ -28,6 +28,15 @@ test("resolves the configured solution set and workflow links", () => {
 		"counters",
 		"usage",
 		"dashboard",
+		"sheduller",
+		"webhooks",
+		"community",
+		"chats",
+		// The production floor: orders, the machines that run them, and the
+		// event log the two write into.
+		"orders",
+		"equipment",
+		"events",
 	]);
 	expect(resolved.solution.spec.lambdas).toEqual([
 		"ses",
@@ -48,6 +57,11 @@ test("resolves the configured solution set and workflow links", () => {
 		"telemetry",
 		"usage",
 		"dasboards",
+		"automation",
+		"community",
+		"chats",
+		"orders",
+		"equipment",
 	]);
 	expect(resolved.solution.spec.processors).toEqual([
 		"curaengine",

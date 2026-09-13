@@ -22,6 +22,18 @@ export type Equipment = {
    * whenever it is needed, so a corrected catalogue corrects every shop at once.
    */
   classifierNodeId?: string;
+  /**
+   * The key this machine's samples and log lines arrive under.
+   *
+   * Telemetry addresses a device by a free-form `device_id`, written by
+   * whatever speaks to the machine — an adapter reads it off the hardware, an
+   * operator types it in. Holding it on the record is what lets the machine's
+   * card ask `rp-telemetry` for this machine's numbers, and a telemetry row
+   * point back at the machine that produced it. Unset until something reports:
+   * a machine can stand on the floor and be scheduled without ever being
+   * wired up.
+   */
+  deviceId?: string;
   serialNumber?: string;
   location?: string;
   description?: string;
@@ -37,6 +49,7 @@ export type EquipmentInput = {
   kind: string;
   name?: string;
   classifierNodeId?: string;
+  deviceId?: string;
   serialNumber?: string;
   location?: string;
   description?: string;
@@ -48,6 +61,7 @@ export type EquipmentInput = {
 export type EquipmentPatch = {
   name?: string;
   classifierNodeId?: string;
+  deviceId?: string;
   serialNumber?: string;
   location?: string;
   description?: string;
@@ -65,6 +79,8 @@ export type EquipmentListParams = {
   limit: number;
   kind?: string;
   classifierNodeId?: string;
+  /** Resolves a telemetry row back to the machine that produced it. */
+  deviceId?: string;
   status?: EquipmentStatus;
   jobId?: JobId;
 };

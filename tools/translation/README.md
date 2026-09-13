@@ -9,39 +9,126 @@ Platform infrastructure, so it lives here rather than in a product layer. A
 product keeps only its own configuration and state; club's is in
 [`club/tools/translation`](../../../../club/tools/translation).
 
-## Content-addressed index
+## The index
 
-Every source file is hashed. Its atomic index node is
-`.translation/<sourceHash>.json` and contains the target hash for each
-translated locale:
+One SQLite database per content cache, at `.index/index.sqlite`, opened with
+`bun:sqlite`. It replaced a directory of `<sourceHash>.json` nodes, which
+carried the links correctly but could not answer anything else.
 
-```json
-{
-  "version": 1,
-  "sourceHash": "...",
-  "translations": {
-    "de": ["target-hash-a", "target-hash-b"]
-  }
-}
-```
+| Table | Holds |
+| --- | --- |
+| `translation` | `(source_hash, locale, target_hash)` — the content-addressed link |
+| `project` | one row per configured project |
+| `source_file` | every source, with its folder, kind, size and hash |
+| `target_file` | every locale target, with its folder, hash and last verdict |
+| `hash_cache` | `path → hash`, keyed on size and mtime |
+| `run`, `run_item` | what each translate run queued, sent, saved and skipped |
 
 Source and target paths have the same relative structure, so no file lookup or
-content copy is needed. A target is current when its file exists and its hash is
-in the current source-hash node's locale list. Changing a source hash
+content copy is needed. A target is current when its file exists and
+`(source_hash, locale, target_hash)` is present. Changing a source hash
 invalidates every locale; deleting or changing one target invalidates that
-locale. Each successful translation writes its target and source-hash node
-atomically before the next request.
+locale. Each successful translation writes its target and its link before the
+next request.
+
+`source_file` and `target_file` are the half the JSON nodes never had. A hash
+has no location, so "retranslate `product/`" had no query to run; storing the
+folder beside the path gives it one, and gives the volume table its per-folder
+breakdown for free. They are also the scanner's own memory of the previous
+run: without it every target came back `untracked` because the state file the
+scanner read was never written.
+
+The database is committed. Its `-wal`/`-shm` journal is not: the process holds
+WAL for speed and checkpoints it back into the single file on exit.
 
 ## Running
 
 ```bash
-bun run src/cli.ts --config <path>            # scan, write state and report
-bun run src/cli.ts --check --config <path>    # read-only, exit 1 on issues
-bun run src/cli.ts --reindex --config <path>  # rebuild links from cache files
+bun run src/cli.ts --config <path>             # scan and report
+bun run src/cli.ts --check --config <path>     # read-only, exit 1 on issues
+bun run src/cli.ts --stats --config <path>     # volume table + run history
+bun run src/cli.ts --reindex --config <path>   # rebuild links from cache files
 bun run src/cli.ts --translate --config <path> # translate missing hash links
+bun run src/cli.ts --invalidate product --locale ru --config <path>
 ```
 
-`--project <name>` limits a run, and repeats.
+`--project <name>` limits a run, and repeats. A filtered `--reindex` adopts
+what it scanned and prunes nothing, because one index serves about a hundred
+module projects and the other ninety-nine were not looked at.
+
+`--no-cache` hashes every file instead of trusting size and mtime.
+
+## Volume, before anything is spent
+
+A translate run costs money and tens of minutes. `--stats` — and the first
+thing `--translate` prints — is the same queue the translator is about to
+consume, counted three ways:
+
+```
+  project        files  targets   ok  queued  source  ~req
+  converged         19      114   93       3  3.9 KB     1
+
+  locale  targets  ok  queued  file  string  source  ~req
+  ru           19  13       3     3       0  3.9 KB     1
+
+  folder     project    queued  source
+  ecosystem  converged       3  3.9 KB
+
+  status             targets
+  ok                     787
+  untranslated-text      755
+
+  total: 3 of 1542 targets queued (787 ok), 3.9 KB of source, ~1 requests
+```
+
+The queue is built once, in `queue.ts`, and both the table and the run read
+it, so the table cannot promise a number the run then disagrees with. The
+status table is the other half of the picture: a target can be linked — and so
+never queued — and still be structurally wrong.
+
+Making that table cheap is what `hash_cache` is for. A full rescan of both
+caches hashes about 3300 files; on the second run essentially all of them are
+cache hits and the whole pass takes under half a second.
+
+## Invalidating a folder
+
+```bash
+bun run src/cli.ts --config <path> --project converged --invalidate ecosystem --locale ru
+```
+
+Drops the links of every source under that folder and its subfolders, so the
+next `--translate` redoes exactly those files. The unit is the source hash
+rather than the path: two files with identical content share one link, and
+dropping it for one necessarily drops it for the other. `--project` and
+`--locale` narrow it; omit both and it applies everywhere.
+
+## Concurrency
+
+Batches run several at a time. The work is network-bound — one HTTPS request
+the model spends tens of seconds answering — so this is a bounded async pool,
+not worker threads: there is no CPU to spread. Six locales of one project used
+to run strictly one after another even though the requests are independent.
+
+`DOCS_TRANSLATION_CONCURRENCY` sets the limit (default 4, capped at 32);
+`--concurrency <n>` overrides it for one run. Rate limits and transport
+failures back off exponentially with jitter, which matters here because a 429
+arrives for every in-flight request at once.
+
+Every write still happens on the single thread that owns the SQLite handle,
+after the network and in input order, so nothing about the store had to become
+thread-safe and a run stays reproducible.
+
+## Migrating from `.translation`
+
+```bash
+bun run scripts/migrate-index.ts <docs-cache>...            # write the database
+bun run scripts/migrate-index.ts --verify <docs-cache>...   # prove nothing was lost
+```
+
+Additive by design: it reads the old directory, writes `.index/index.sqlite`,
+copies `control.json` next to it and touches nothing else. Deleting
+`.translation` is a separate decision, made after `--verify` reports zero
+missing links.
 
 ## Statuses
 
@@ -99,7 +186,7 @@ locale legitimately keeps verbatim.
     },
     "stateFile": "./state.json",
 	"reportFile": "./report.json",
-	"translationIndex": "./.translation"
+	"translationIndex": "./.index"
   }]
 }
 ```
@@ -128,7 +215,13 @@ offending strings rather than a rendered summary.
 | `markdown.ts` | markdown reduced to a heading outline |
 | `heuristics.ts` | which strings a human was supposed to translate |
 | `compare.ts` | source against target, one `TreeDiff` either way |
-| `store.ts` | atomic `sourceHash` to locale/`targetHash` links |
+| `db.ts` | the SQLite schema, and opening/closing it without a stray journal |
+| `store.ts` | `sourceHash` to locale/`targetHash` links |
+| `placement.ts` | where files are; folder invalidation; the previous scan |
+| `hashcache.ts` | content hashes memoized on size and mtime |
+| `queue.ts` | what a translate run would do, decided once |
+| `pool.ts` | bounded concurrency, retry and backoff |
+| `stats.ts` | the volume table and the run ledger |
 | `status.ts` | evidence → one status |
 | `scan.ts` | one project, every file, every locale |
 | `report.ts` | the machine-readable output |
