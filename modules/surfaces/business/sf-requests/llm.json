@@ -41,7 +41,10 @@
 						"type": "string",
 						"description": "Short user-provided request description"
 					},
-					"title": { "type": "string", "description": "Short request title" },
+					"title": {
+						"type": "string",
+						"description": "Short request title"
+					},
 					"summary": {
 						"type": "string",
 						"description": "Structured summary of known requirements"
@@ -68,6 +71,52 @@
 				}
 			}
 		},
+		"requests.request.to-order": {
+			"brief": "Turn a request into a shop order",
+			"description": "Create the production order for an accepted manufacturing request. The order carries the requestId, the request moves to in_production and the step lands in the journal. Quantity, material, deadline and contact are read off the request unless given here. Running it twice opens the order that already exists. Needs a request in context.",
+			"category": "requests",
+			"exposure": "llm",
+			"priority": "primary",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"productionMethod": {
+						"type": "string",
+						"enum": [
+							"fdm",
+							"sla",
+							"sls",
+							"dmls",
+							"polyjet",
+							"cnc",
+							"laser",
+							"generic"
+						]
+					},
+					"quantity": {
+						"type": "number"
+					},
+					"material": {
+						"type": "string"
+					},
+					"dueAt": {
+						"type": "string"
+					},
+					"equipmentId": {
+						"type": "string"
+					},
+					"customerName": {
+						"type": "string"
+					},
+					"customerEmail": {
+						"type": "string"
+					},
+					"notes": {
+						"type": "string"
+					}
+				}
+			}
+		},
 		"requests.get": {
 			"brief": "Get a request",
 			"description": "Get the current request model, including files and missing requirements.",
@@ -77,7 +126,10 @@
 			"parameters": {
 				"type": "object",
 				"properties": {
-					"requestId": { "type": "string", "description": "Request ID" }
+					"requestId": {
+						"type": "string",
+						"description": "Request ID"
+					}
 				},
 				"required": ["requestId"]
 			}
@@ -91,12 +143,18 @@
 			"parameters": {
 				"type": "object",
 				"properties": {
-					"requestId": { "type": "string", "description": "Request ID" },
+					"requestId": {
+						"type": "string",
+						"description": "Request ID"
+					},
 					"source": {
 						"type": "string",
 						"description": "Short user-provided request description"
 					},
-					"title": { "type": "string", "description": "Short request title" },
+					"title": {
+						"type": "string",
+						"description": "Short request title"
+					},
 					"summary": {
 						"type": "string",
 						"description": "Structured summary of known requirements"

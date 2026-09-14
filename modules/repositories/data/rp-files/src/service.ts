@@ -143,6 +143,12 @@ export class FilesServiceImpl implements FilesService {
 		return this.stores.metadataService.getCollection(id);
 	}
 
+	listCollections(
+		params: PaginationParams,
+	): Promise<PaginatedResult<FileCollection>> {
+		return this.stores.metadataService.listCollections(params);
+	}
+
 	deleteCollection(id: UUID): Promise<void> {
 		return this.stores.metadataService.deleteCollection(id);
 	}

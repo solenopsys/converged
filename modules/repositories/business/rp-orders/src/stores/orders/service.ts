@@ -261,8 +261,6 @@ export class OrdersStoreService {
 			(total, order) => total + (order.weightGrams ?? 0) * order.quantity,
 			0,
 		);
-		const printerCapacity = 8;
-		const availablePrinters = printerCapacity;
 		const utilizationPercent =
 			orders.length > 0
 				? Math.round((inProgressTotal / orders.length) * 100)
@@ -277,9 +275,6 @@ export class OrdersStoreService {
 				completedTotal,
 				blockedTotal,
 				materialWeightGrams,
-				estimatedPrintingHours: 0,
-				availablePrinters,
-				printerCapacity,
 				utilizationPercent,
 			},
 			daily: this.buildDailyPoints(orders),

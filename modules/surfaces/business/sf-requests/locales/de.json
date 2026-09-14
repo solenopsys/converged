@@ -126,6 +126,15 @@
 	"errors": {
 		"title": "Anfrage konnte nicht geöffnet werden",
 		"loading": "Anfrage wird geladen...",
-		"notSelected": "Keine Anfrage ausgewählt"
+		"notSelected": "Keine Anfrage ausgewählt",
+		"noRequestRef": "Eine Anfrage muss im Kontext sein.",
+		"orderFailed": "Der Auftrag konnte nicht erstellt werden.",
+		"noOrderReturned": "Die Umwandlung hat keinen Auftrag zurückgegeben."
+	},
+	"operations": {
+		"to_order": {
+			"label": "Auftrag aus Anfrage erstellen",
+			"description": "Diese Anfrage in Produktion geben: der Auftrag trägt die Anfrage-ID, die Anfrage geht auf „in Arbeit“, der Schritt landet im Journal. Menge, Material, Termin und Kontakt werden aus der Anfrage gelesen, sofern hier nichts angegeben ist. Ein zweiter Lauf öffnet den bereits vorhandenen Auftrag."
+		}
 	}
 }

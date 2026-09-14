@@ -14,12 +14,14 @@
 		"team"
 	],
 	"workflows": [
+		"request-to-order",
 		"order-review-request",
 		"order-review-followup",
 		"team-invite"
 	],
 	"dependencies": [
 		"security",
-		"analitycs"
+		"analitycs",
+		"requests"
 	]
 }

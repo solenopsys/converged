@@ -8,6 +8,7 @@ modules:
   wf-order-review-followup: ready
   wf-order-review-request: ready
   wf-request-analyze: ready
+  wf-request-to-order: ready
   wf-sales-import: _
   wf-sales-review-outreach: _
   wf-team-invite: ready

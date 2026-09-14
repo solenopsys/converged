@@ -1,1 +1,13 @@
-{}
+{
+	"operations": {
+		"to_order": {
+			"label": "Create order from request",
+			"description": "Put this request into production: the order carries the request id, the request moves to in production and the step lands in the journal. Quantity, material, deadline and contact are read off the request unless given here. Running it twice opens the order that already exists."
+		}
+	},
+	"errors": {
+		"noRequestRef": "A request has to be in context.",
+		"orderFailed": "Could not create the order.",
+		"noOrderReturned": "The conversion returned no order."
+	}
+}

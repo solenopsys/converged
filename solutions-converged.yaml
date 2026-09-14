@@ -97,6 +97,54 @@ spec:
     - id: request-analyze
       name: wf-request-analyze
       script: workflows/wf-request-analyze.js
+    - id: request-to-order
+      name: wf-request-to-order
+      script: workflows/wf-request-to-order.js
+      brief: Turn a request into a shop order
+      description: "Create the production order for an accepted manufacturing request:
+        the order carries the requestId, the request moves to in_production and
+        the step lands in the journal. Quantity, material, deadline and contact
+        are read off the request; anything given here overrides them. Running it
+        twice answers with the order that already exists."
+      parameters:
+        type: object
+        properties:
+          requestId:
+            type: string
+            description: The request to convert
+          productionMethod:
+            type: string
+            enum:
+              - fdm
+              - sla
+              - sls
+              - dmls
+              - polyjet
+              - cnc
+              - laser
+              - generic
+            description: Overrides the method derived from the request's process type
+          quantity:
+            type: number
+          material:
+            type: string
+          weightGrams:
+            type: number
+          dueAt:
+            type: string
+            description: ISO date the job is due
+          equipmentId:
+            type: string
+            description: Assign the job to a machine straight away
+          customerName:
+            type: string
+          customerEmail:
+            type: string
+            description: Where the review request will be sent once the job ships
+          notes:
+            type: string
+        required:
+          - requestId
     - id: order-review-request
       name: wf-order-review-request
       script: workflows/wf-order-review-request.js

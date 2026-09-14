@@ -1,5 +1,127 @@
 {
+	"surface": {
+		"label": "Commandes",
+		"purpose": "La file de travail de l'atelier : ce qui est fabriqué, sur quelle machine, pour quand et de quelle demande cela vient"
+	},
 	"menu": {
-		"orders": "Commandes"
+		"orders": "Commandes",
+		"dashboard": "Vue d'ensemble"
+	},
+	"types": {
+		"order": {
+			"label": "Commande",
+			"description": "Un travail de production : quoi, sur quelle machine, pour quand et d'où cela vient"
+		}
+	},
+	"columns": {
+		"model": "Modèle",
+		"method": "Procédé",
+		"status": "Statut",
+		"quantity": "Quantité",
+		"weight": "Poids",
+		"material": "Matériau",
+		"machine": "Machine",
+		"due": "Échéance",
+		"request": "Demande",
+		"updated": "Modifié"
+	},
+	"status": {
+		"draft": "Brouillon",
+		"queued": "En file",
+		"in_progress": "En cours",
+		"paused": "En pause",
+		"completed": "Terminée",
+		"cancelled": "Annulée",
+		"blocked": "Bloquée"
+	},
+	"method": {
+		"fdm": "FDM",
+		"sla": "SLA",
+		"sls": "SLS",
+		"dmls": "DMLS",
+		"polyjet": "PolyJet",
+		"cnc": "CNC",
+		"laser": "Laser",
+		"generic": "Générique"
+	},
+	"tabs": {
+		"all": "Toutes",
+		"queued": "En file",
+		"in_progress": "En cours",
+		"completed": "Terminées",
+		"blocked": "Bloquées"
+	},
+	"detail": {
+		"empty": "—",
+		"loading": "Chargement…",
+		"notFound": "Cette commande n'existe pas.",
+		"unassigned": "non affectée",
+		"noRequest": "créée directement",
+		"customer": "Client",
+		"created": "Créée",
+		"notes": "Notes",
+		"files": "Fichiers",
+		"noFiles": "La demande ne contenait aucun fichier.",
+		"openFile": "Ouvrir le fichier",
+		"downloadFile": "Télécharger"
+	},
+	"operations": {
+		"create": {
+			"label": "Créer une commande",
+			"description": "Mettre un travail dans la file directement. Un travail issu d'une demande se crée en convertissant la demande, pour que le lien existe."
+		},
+		"save": {
+			"label": "Enregistrer la commande"
+		},
+		"updateStatus": {
+			"label": "Changer le statut",
+			"description": "Faire avancer le travail : en file, en cours, en pause, terminée, annulée ou bloquée."
+		},
+		"assign": {
+			"label": "Affecter à une machine",
+			"description": "Affecter un travail à une machine et réserver le créneau dans son planning. Sans heure de fin, l'échéance est utilisée ; sans échéance non plus, il faut l'indiquer."
+		}
+	},
+	"errors": {
+		"noOrder": "Une commande doit être dans le contexte.",
+		"noEndAt": "Indiquez la fin du créneau, ou donnez une échéance au travail."
+	},
+	"summary": {
+		"orders": "Commandes",
+		"queued": "En file",
+		"printing": "Impression",
+		"material": "Matériau",
+		"inProgress": "En cours",
+		"perDay": "Commandes par jour"
+	},
+	"widgets": {
+		"conversion": {
+			"title": "Conversion des demandes en commandes"
+		},
+		"requests": {
+			"title": "Demandes",
+			"description": "Demandes entrantes, pas des commandes"
+		},
+		"orders": {
+			"title": "Commandes",
+			"description": "Travail de production accepté",
+			"queued": "en file"
+		},
+		"printing": {
+			"title": "Impression",
+			"description": "Commandes actuellement sur les machines",
+			"inProgress": "en cours"
+		},
+		"progress": {
+			"title": "En cours",
+			"description": "Part des commandes en cours de fabrication",
+			"material": "matériau"
+		}
+	},
+	"actions": {
+		"refresh": "Actualiser"
+	},
+	"overview": {
+		"hint": "Appuyez sur « Commandes » pour ouvrir la file elle-même."
 	}
 }

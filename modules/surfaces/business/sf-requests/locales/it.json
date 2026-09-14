@@ -126,6 +126,15 @@
 	"errors": {
 		"title": "Impossibile aprire la richiesta",
 		"loading": "Caricamento della richiesta...",
-		"notSelected": "Nessuna richiesta selezionata"
+		"notSelected": "Nessuna richiesta selezionata",
+		"noRequestRef": "Serve una richiesta nel contesto.",
+		"orderFailed": "Non è stato possibile creare l'ordine.",
+		"noOrderReturned": "La conversione non ha restituito alcun ordine."
+	},
+	"operations": {
+		"to_order": {
+			"label": "Crea ordine dalla richiesta",
+			"description": "Mandare questa richiesta in produzione: l'ordine porta l'id della richiesta, la richiesta passa a «in corso» e il passo finisce nel giornale. Quantità, materiale, scadenza e contatto si leggono dalla richiesta se non indicati qui. Un secondo avvio apre l'ordine che esiste già."
+		}
 	}
 }

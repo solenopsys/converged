@@ -1,11 +1,56 @@
 {
 	"actions": {
-		"files.list": {
-			"brief": "Show all files",
-			"description": "Show the complete files list",
+		"files.file.upload": {
+			"brief": "Upload files from the console",
+			"description": "Open the file picker and upload what the person chooses. Large files are chunked and can be paused, resumed and retried; identical content is stored once. Takes no parameters — only a user gesture can hand over actual files — and progress appears on the Files overview rather than in the answer.",
 			"category": "files",
-			"exposure": "user",
-			"priority": "normal"
+			"exposure": "llm",
+			"priority": "primary",
+			"parameters": { "type": "object", "properties": {} }
+		},
+		"files.file.download": {
+			"brief": "Download a file",
+			"description": "Fetch a file's chunks, reassemble them and save the file. Needs a file in context. A file that is still uploading cannot be downloaded.",
+			"category": "files",
+			"exposure": "llm",
+			"priority": "primary",
+			"parameters": { "type": "object", "properties": {} }
+		},
+		"files.file.setCollection": {
+			"brief": "Move a file into a collection",
+			"description": "Put a file in a collection, or take it out of one by passing an empty collectionId. Needs a file in context.",
+			"category": "files",
+			"exposure": "llm",
+			"priority": "normal",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"collectionId": { "type": "string" }
+				}
+			}
+		},
+		"files.file.delete": {
+			"brief": "Delete a file",
+			"description": "Remove a file's record. Chunks shared with another file by hash are left alone. Needs a file in context.",
+			"category": "files",
+			"exposure": "llm",
+			"priority": "normal",
+			"parameters": { "type": "object", "properties": {} }
+		},
+		"files.collection.create": {
+			"brief": "Create a file collection",
+			"description": "Name a grouping for files and open it. A collection groups and nothing more — it grants nobody access to what is in it.",
+			"category": "files",
+			"exposure": "llm",
+			"priority": "normal",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"name": { "type": "string" },
+					"description": { "type": "string" }
+				},
+				"required": ["name"]
+			}
 		}
 	}
 }

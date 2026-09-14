@@ -1,5 +1,127 @@
 {
+	"surface": {
+		"label": "Pedidos",
+		"purpose": "A fila de trabalho da oficina: o que é feito, em qual máquina, para quando e de qual solicitação veio"
+	},
 	"menu": {
-		"orders": "Pedidos"
+		"orders": "Pedidos",
+		"dashboard": "Visão geral"
+	},
+	"types": {
+		"order": {
+			"label": "Pedido",
+			"description": "Um trabalho de produção: o que, em qual máquina, para quando e de onde veio"
+		}
+	},
+	"columns": {
+		"model": "Modelo",
+		"method": "Método",
+		"status": "Estado",
+		"quantity": "Quantidade",
+		"weight": "Peso",
+		"material": "Material",
+		"machine": "Máquina",
+		"due": "Prazo",
+		"request": "Solicitação",
+		"updated": "Atualizado"
+	},
+	"status": {
+		"draft": "Rascunho",
+		"queued": "Na fila",
+		"in_progress": "Em andamento",
+		"paused": "Pausado",
+		"completed": "Concluído",
+		"cancelled": "Cancelado",
+		"blocked": "Bloqueado"
+	},
+	"method": {
+		"fdm": "FDM",
+		"sla": "SLA",
+		"sls": "SLS",
+		"dmls": "DMLS",
+		"polyjet": "PolyJet",
+		"cnc": "CNC",
+		"laser": "Laser",
+		"generic": "Genérico"
+	},
+	"tabs": {
+		"all": "Todos",
+		"queued": "Na fila",
+		"in_progress": "Em andamento",
+		"completed": "Concluídos",
+		"blocked": "Bloqueados"
+	},
+	"detail": {
+		"empty": "—",
+		"loading": "Carregando…",
+		"notFound": "Esse pedido não existe.",
+		"unassigned": "não atribuída",
+		"noRequest": "criado diretamente",
+		"customer": "Cliente",
+		"created": "Criado",
+		"notes": "Notas",
+		"files": "Arquivos",
+		"noFiles": "A solicitação não trazia arquivos.",
+		"openFile": "Abrir o arquivo",
+		"downloadFile": "Baixar"
+	},
+	"operations": {
+		"create": {
+			"label": "Criar pedido",
+			"description": "Colocar um trabalho na fila diretamente. Um trabalho que vem de uma solicitação é criado convertendo a solicitação, para que o vínculo exista."
+		},
+		"save": {
+			"label": "Salvar pedido"
+		},
+		"updateStatus": {
+			"label": "Alterar status",
+			"description": "Mover o trabalho: na fila, em andamento, pausado, concluído, cancelado ou bloqueado."
+		},
+		"assign": {
+			"label": "Atribuir a uma máquina",
+			"description": "Colocar um trabalho em uma máquina e reservar o horário na agenda dela. Sem hora de fim usa-se o prazo; se também não houver, é preciso informá-la."
+		}
+	},
+	"errors": {
+		"noOrder": "É preciso um pedido no contexto.",
+		"noEndAt": "Informe quando o horário termina, ou dê um prazo ao trabalho."
+	},
+	"summary": {
+		"orders": "Pedidos",
+		"queued": "Na fila",
+		"printing": "Imprimindo",
+		"material": "Material",
+		"inProgress": "Em andamento",
+		"perDay": "Pedidos por dia"
+	},
+	"widgets": {
+		"conversion": {
+			"title": "Conversão de solicitações em pedidos"
+		},
+		"requests": {
+			"title": "Solicitações",
+			"description": "Solicitações recebidas, não pedidos"
+		},
+		"orders": {
+			"title": "Pedidos",
+			"description": "Trabalho de produção aceito",
+			"queued": "na fila"
+		},
+		"printing": {
+			"title": "Imprimindo",
+			"description": "Pedidos que estão agora nas máquinas",
+			"inProgress": "em andamento"
+		},
+		"progress": {
+			"title": "Em andamento",
+			"description": "Proporção de pedidos em que se trabalha",
+			"material": "material"
+		}
+	},
+	"actions": {
+		"refresh": "Atualizar"
+	},
+	"overview": {
+		"hint": "Pressione «Pedidos» para abrir a própria fila."
 	}
 }

@@ -264,6 +264,21 @@ const metadata: ServiceMetadata = {
       "isAsyncIterable": false
     },
     {
+      "name": "listCollections",
+      "parameters": [
+        {
+          "name": "params",
+          "type": "PaginationParams",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "PaginatedResult<FileCollection>",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
       "name": "deleteCollection",
       "parameters": [
         {
@@ -461,6 +476,7 @@ export interface FilesServiceRtClient {
   statistic(): any;
   saveCollection(collection: FileCollection): UUID;
   getCollection(id: UUID): FileCollection;
+  listCollections(params: PaginationParams): PaginatedResult<FileCollection>;
   deleteCollection(id: UUID): void;
   listByCollection(collectionId: UUID): FileMetadata[];
   materialize(fileId: UUID): MaterializedFile;

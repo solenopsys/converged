@@ -1,11 +1,100 @@
 {
 	"actions": {
-		"orders.show": {
-			"brief": "Show orders",
-			"description": "Show orders",
+		"orders.order.create": {
+			"brief": "Put a job on the queue",
+			"description": "Create a production order directly. A job that comes from a manufacturing request should be created by converting that request instead, so the link between the two exists.",
 			"category": "orders",
-			"exposure": "user",
-			"priority": "primary"
+			"exposure": "llm",
+			"priority": "primary",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"modelName": { "type": "string" },
+					"productionMethod": {
+						"type": "string",
+						"enum": [
+							"fdm",
+							"sla",
+							"sls",
+							"dmls",
+							"polyjet",
+							"cnc",
+							"laser",
+							"generic"
+						]
+					},
+					"quantity": { "type": "number" },
+					"material": { "type": "string" },
+					"weightGrams": { "type": "number" },
+					"dueAt": { "type": "string" },
+					"notes": { "type": "string" },
+					"customerName": { "type": "string" },
+					"customerEmail": { "type": "string" }
+				},
+				"required": ["modelName", "productionMethod"]
+			}
+		},
+		"orders.order.updateStatus": {
+			"brief": "Move a job along",
+			"description": "Change an order's status: queued, in_progress, paused, completed, cancelled or blocked. Needs an order in context.",
+			"category": "orders",
+			"exposure": "llm",
+			"priority": "primary",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"status": {
+						"type": "string",
+						"enum": [
+							"draft",
+							"queued",
+							"in_progress",
+							"paused",
+							"completed",
+							"cancelled",
+							"blocked"
+						]
+					}
+				},
+				"required": ["status"]
+			}
+		},
+		"orders.order.assignEquipment": {
+			"brief": "Put a job on a machine",
+			"description": "Assign an order to a machine and book the slot in that machine's schedule. Without endAt the order's due date is used; an order with neither has to be given one. Needs an order in context.",
+			"category": "orders",
+			"exposure": "llm",
+			"priority": "normal",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"equipmentId": { "type": "string" },
+					"startAt": { "type": "string" },
+					"endAt": { "type": "string" }
+				},
+				"required": ["equipmentId"]
+			}
+		},
+		"orders.order.save": {
+			"brief": "Edit a job",
+			"description": "Apply explicitly supplied fields to an existing order. Needs an order in context.",
+			"category": "orders",
+			"exposure": "llm",
+			"priority": "normal",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"modelName": { "type": "string" },
+					"productionMethod": { "type": "string" },
+					"quantity": { "type": "number" },
+					"material": { "type": "string" },
+					"weightGrams": { "type": "number" },
+					"dueAt": { "type": "string" },
+					"notes": { "type": "string" },
+					"customerName": { "type": "string" },
+					"customerEmail": { "type": "string" }
+				}
+			}
 		}
 	}
 }

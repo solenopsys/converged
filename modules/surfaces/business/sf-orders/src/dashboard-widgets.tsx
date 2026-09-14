@@ -7,11 +7,13 @@ import {
 	Printer,
 	registerDashboardWidgets,
 	StatisticCard,
+	useSurfaceTranslation,
 } from "front-core";
 import type { OrderDailyPoint } from "g-orders";
 import type { RequestDailyPoint } from "g-requests";
 import { useEffect, useMemo } from "preact/compat";
 import { OrderConversionChart } from "./components/OrderConversionChart";
+import { SURFACE_ID } from "./config";
 import { $dashboardState, ordersViewMounted } from "./domain-orders";
 
 function buildConversionData(
@@ -46,48 +48,47 @@ function formatPercent(value: number | undefined) {
 	return `${Math.round(value ?? 0)}%`;
 }
 
-function formatHours(value: number | undefined) {
-	return `${Math.round(value ?? 0)} h`;
+function formatWeight(grams: number | undefined) {
+	const value = grams ?? 0;
+	return value >= 1000 ? `${(value / 1000).toFixed(1)} kg` : `${value} g`;
 }
 
+/** Every tile wants the same two things: the numbers, and the words for them. */
 function useOrdersDashboardLive() {
 	const dashboardState = useUnit($dashboardState);
+	const { t } = useSurfaceTranslation(SURFACE_ID);
 	useEffect(() => {
 		ordersViewMounted();
 	}, []);
-	return dashboardState;
+	return { state: dashboardState, text: (key: string) => String(t(key)) };
 }
 
 export function RequestsIndicator() {
-	const dashboardState = useOrdersDashboardLive();
+	const { state, text } = useOrdersDashboardLive();
 	return (
 		<StatisticCard
-			title="Requests"
-			value={dashboardState.requests?.total ?? 0}
+			title={text("widgets.requests.title")}
+			value={state.requests?.total ?? 0}
 			icon={ClipboardList}
-			description="Incoming requests, not orders"
+			description={text("widgets.requests.description")}
 			dashboardPin={{ enabled: false }}
-			trend={{
-				value: "+15.3%",
-				label: "request flow",
-				direction: "up",
-			}}
 		/>
 	);
 }
 
 export function OrdersIndicator() {
-	const stats = useOrdersDashboardLive().orders?.stats;
+	const { state, text } = useOrdersDashboardLive();
+	const stats = state.orders?.stats;
 	return (
 		<StatisticCard
-			title="Orders"
+			title={text("widgets.orders.title")}
 			value={stats?.ordersTotal ?? 0}
 			icon={PackageCheck}
-			description="Accepted production work"
+			description={text("widgets.orders.description")}
 			dashboardPin={{ enabled: false }}
 			trend={{
 				value: `${stats?.queuedTotal ?? 0}`,
-				label: "queued",
+				label: text("widgets.orders.queued"),
 				direction: "neutral",
 			}}
 		/>
@@ -95,17 +96,18 @@ export function OrdersIndicator() {
 }
 
 export function PrintingIndicator() {
-	const stats = useOrdersDashboardLive().orders?.stats;
+	const { state, text } = useOrdersDashboardLive();
+	const stats = state.orders?.stats;
 	return (
 		<StatisticCard
-			title="Printing"
+			title={text("widgets.printing.title")}
 			value={stats?.printingTotal ?? 0}
 			icon={Printer}
-			description={`Estimated time: ${formatHours(stats?.estimatedPrintingHours)}`}
+			description={text("widgets.printing.description")}
 			dashboardPin={{ enabled: false }}
 			trend={{
 				value: `${stats?.inProgressTotal ?? 0}`,
-				label: "in progress",
+				label: text("widgets.printing.inProgress"),
 				direction: "neutral",
 			}}
 		/>
@@ -113,37 +115,33 @@ export function PrintingIndicator() {
 }
 
 export function UtilizationIndicator() {
-	const stats = useOrdersDashboardLive().orders?.stats;
+	const { state, text } = useOrdersDashboardLive();
+	const stats = state.orders?.stats;
 	return (
 		<StatisticCard
-			title="Utilization"
+			title={text("widgets.progress.title")}
 			value={formatPercent(stats?.utilizationPercent)}
 			icon={Gauge}
-			description={`Available: ${stats?.availablePrinters ?? 0} of ${stats?.printerCapacity ?? 0} printers`}
+			description={text("widgets.progress.description")}
 			dashboardPin={{ enabled: false }}
 			trend={{
-				value:
-					stats?.utilizationPercent && stats.utilizationPercent > 80
-						? "high"
-						: "normal",
-				direction:
-					stats?.utilizationPercent && stats.utilizationPercent > 80
-						? "up"
-						: "neutral",
+				value: formatWeight(stats?.materialWeightGrams),
+				label: text("widgets.progress.material"),
+				direction: "neutral",
 			}}
 		/>
 	);
 }
 
 export function ConversionIndicator() {
-	const dashboardState = useOrdersDashboardLive();
+	const { state } = useOrdersDashboardLive();
 	const data = useMemo(
 		() =>
 			buildConversionData(
-				dashboardState.requests?.daily ?? [],
-				dashboardState.orders?.daily ?? [],
+				state.requests?.daily ?? [],
+				state.orders?.daily ?? [],
 			),
-		[dashboardState.orders?.daily, dashboardState.requests?.daily],
+		[state.orders?.daily, state.requests?.daily],
 	);
 	return <OrderConversionChart dashboardPin={{ enabled: false }} data={data} />;
 }

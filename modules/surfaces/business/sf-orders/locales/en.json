@@ -1,5 +1,127 @@
 {
+	"surface": {
+		"label": "Orders",
+		"purpose": "The shop floor's queue of production jobs: what is being made, on which machine, by when, and which request it came from"
+	},
 	"menu": {
-		"orders": "Orders"
+		"orders": "Orders",
+		"dashboard": "Overview"
+	},
+	"types": {
+		"order": {
+			"label": "Order",
+			"description": "One production job: what is made, on what machine, by when, and where it came from"
+		}
+	},
+	"columns": {
+		"model": "Model",
+		"method": "Method",
+		"status": "Status",
+		"quantity": "Quantity",
+		"weight": "Weight",
+		"material": "Material",
+		"machine": "Machine",
+		"due": "Due",
+		"request": "Request",
+		"updated": "Updated"
+	},
+	"status": {
+		"draft": "Draft",
+		"queued": "Queued",
+		"in_progress": "In progress",
+		"paused": "Paused",
+		"completed": "Completed",
+		"cancelled": "Cancelled",
+		"blocked": "Blocked"
+	},
+	"method": {
+		"fdm": "FDM",
+		"sla": "SLA",
+		"sls": "SLS",
+		"dmls": "DMLS",
+		"polyjet": "PolyJet",
+		"cnc": "CNC",
+		"laser": "Laser",
+		"generic": "Generic"
+	},
+	"tabs": {
+		"all": "All",
+		"queued": "Queued",
+		"in_progress": "In progress",
+		"completed": "Completed",
+		"blocked": "Blocked"
+	},
+	"detail": {
+		"empty": "—",
+		"loading": "Loading…",
+		"notFound": "No such order.",
+		"unassigned": "not assigned",
+		"noRequest": "created directly",
+		"customer": "Customer",
+		"created": "Created",
+		"notes": "Notes",
+		"files": "Files",
+		"noFiles": "The request carried no files.",
+		"openFile": "Open the file",
+		"downloadFile": "Download"
+	},
+	"operations": {
+		"create": {
+			"label": "Create order",
+			"description": "Put a job on the queue directly. A job that comes from a request is created by converting the request instead, so that the link between the two exists."
+		},
+		"save": {
+			"label": "Save order"
+		},
+		"updateStatus": {
+			"label": "Change status",
+			"description": "Move a job along: queued, in progress, paused, completed, cancelled or blocked."
+		},
+		"assign": {
+			"label": "Assign to a machine",
+			"description": "Put a job on a machine and book the slot in that machine's schedule. Without an end time the job's due date is used; a job with neither has to be told one."
+		}
+	},
+	"errors": {
+		"noOrder": "An order has to be in context.",
+		"noEndAt": "Say when the slot ends, or give the job a due date."
+	},
+	"summary": {
+		"orders": "Orders",
+		"queued": "Queued",
+		"printing": "Printing",
+		"material": "Material",
+		"inProgress": "In progress",
+		"perDay": "Orders per day"
+	},
+	"widgets": {
+		"conversion": {
+			"title": "Request to order conversion"
+		},
+		"requests": {
+			"title": "Requests",
+			"description": "Incoming requests, not orders"
+		},
+		"orders": {
+			"title": "Orders",
+			"description": "Accepted production work",
+			"queued": "queued"
+		},
+		"printing": {
+			"title": "Printing",
+			"description": "Orders on the machines right now",
+			"inProgress": "in progress"
+		},
+		"progress": {
+			"title": "In progress",
+			"description": "Share of orders being worked on",
+			"material": "material"
+		}
+	},
+	"actions": {
+		"refresh": "Refresh"
+	},
+	"overview": {
+		"hint": "Press Orders for the queue itself."
 	}
 }

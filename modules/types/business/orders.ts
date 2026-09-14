@@ -139,9 +139,13 @@ export type OrderDashboardStats = {
 	completedTotal: number;
 	blockedTotal: number;
 	materialWeightGrams: number;
-	estimatedPrintingHours: number;
-	availablePrinters: number;
-	printerCapacity: number;
+	/**
+	 * Share of these orders that are being worked on right now.
+	 *
+	 * Not machine utilisation — this service has no right to know what a machine
+	 * is. How busy the shop floor actually is comes from `rp-equipment`, and the
+	 * two numbers are composed in the UI, never here.
+	 */
 	utilizationPercent: number;
 };
 

@@ -1,5 +1,127 @@
 {
+	"surface": {
+		"label": "Pedidos",
+		"purpose": "La cola de trabajo del taller: qué se fabrica, en qué máquina, para cuándo y de qué solicitud viene"
+	},
 	"menu": {
-		"orders": "Pedidos"
+		"orders": "Pedidos",
+		"dashboard": "Resumen"
+	},
+	"types": {
+		"order": {
+			"label": "Pedido",
+			"description": "Un trabajo de producción: qué se hace, en qué máquina, para cuándo y de dónde viene"
+		}
+	},
+	"columns": {
+		"model": "Modelo",
+		"method": "Método",
+		"status": "Estado",
+		"quantity": "Cantidad",
+		"weight": "Peso",
+		"material": "Material",
+		"machine": "Máquina",
+		"due": "Entrega",
+		"request": "Solicitud",
+		"updated": "Actualizado"
+	},
+	"status": {
+		"draft": "Borrador",
+		"queued": "En cola",
+		"in_progress": "En curso",
+		"paused": "Pausado",
+		"completed": "Completado",
+		"cancelled": "Cancelado",
+		"blocked": "Bloqueado"
+	},
+	"method": {
+		"fdm": "FDM",
+		"sla": "SLA",
+		"sls": "SLS",
+		"dmls": "DMLS",
+		"polyjet": "PolyJet",
+		"cnc": "CNC",
+		"laser": "Láser",
+		"generic": "Genérico"
+	},
+	"tabs": {
+		"all": "Todos",
+		"queued": "En cola",
+		"in_progress": "En curso",
+		"completed": "Completados",
+		"blocked": "Bloqueados"
+	},
+	"detail": {
+		"empty": "—",
+		"loading": "Cargando…",
+		"notFound": "No existe ese pedido.",
+		"unassigned": "sin asignar",
+		"noRequest": "creado directamente",
+		"customer": "Cliente",
+		"created": "Creado",
+		"notes": "Notas",
+		"files": "Archivos",
+		"noFiles": "La solicitud no traía archivos.",
+		"openFile": "Abrir el archivo",
+		"downloadFile": "Descargar"
+	},
+	"operations": {
+		"create": {
+			"label": "Crear pedido",
+			"description": "Poner un trabajo en la cola directamente. El trabajo que viene de una solicitud se crea convirtiendo la solicitud, para que exista el vínculo."
+		},
+		"save": {
+			"label": "Guardar pedido"
+		},
+		"updateStatus": {
+			"label": "Cambiar estado",
+			"description": "Mover el trabajo: en cola, en curso, pausado, completado, cancelado o bloqueado."
+		},
+		"assign": {
+			"label": "Asignar a una máquina",
+			"description": "Poner un trabajo en una máquina y reservar el hueco en su calendario. Sin hora de fin se usa la fecha de entrega; si tampoco la hay, hay que indicarla."
+		}
+	},
+	"errors": {
+		"noOrder": "Hace falta un pedido en contexto.",
+		"noEndAt": "Indique cuándo termina el hueco, o dé al trabajo una fecha de entrega."
+	},
+	"summary": {
+		"orders": "Pedidos",
+		"queued": "En cola",
+		"printing": "Imprimiendo",
+		"material": "Material",
+		"inProgress": "En curso",
+		"perDay": "Pedidos por día"
+	},
+	"widgets": {
+		"conversion": {
+			"title": "Conversión de solicitudes en pedidos"
+		},
+		"requests": {
+			"title": "Solicitudes",
+			"description": "Solicitudes entrantes, no pedidos"
+		},
+		"orders": {
+			"title": "Pedidos",
+			"description": "Trabajo de producción aceptado",
+			"queued": "en cola"
+		},
+		"printing": {
+			"title": "Imprimiendo",
+			"description": "Pedidos que están ahora en las máquinas",
+			"inProgress": "en curso"
+		},
+		"progress": {
+			"title": "En curso",
+			"description": "Proporción de pedidos en los que se trabaja",
+			"material": "material"
+		}
+	},
+	"actions": {
+		"refresh": "Actualizar"
+	},
+	"overview": {
+		"hint": "Pulse «Pedidos» para abrir la cola en sí."
 	}
 }

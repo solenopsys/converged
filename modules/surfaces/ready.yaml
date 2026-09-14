@@ -8,7 +8,7 @@ modules:
   analytics/sf-usage: _
   automation/sf-automation: _
   business/sf-equipment: ready
-  business/sf-orders: _
+  business/sf-orders: ready
   business/sf-reviews: ready
   business/sf-requests: ready
   communications/sf-calls: ready
@@ -24,5 +24,7 @@ modules:
   content/sf-static: _
   content/sf-struct: _
   data/sf-dumps: _
+  data/sf-files: ready
   sequrity/sf-auth: ready
   sequrity/sf-secrets: _
+  sequrity/sf-team: ready

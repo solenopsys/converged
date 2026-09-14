@@ -126,6 +126,15 @@
 	"errors": {
 		"title": "Não foi possível abrir o pedido",
 		"loading": "Carregando pedido...",
-		"notSelected": "Nenhum pedido selecionado"
+		"notSelected": "Nenhum pedido selecionado",
+		"noRequestRef": "É preciso uma solicitação no contexto.",
+		"orderFailed": "Não foi possível criar o pedido.",
+		"noOrderReturned": "A conversão não devolveu nenhum pedido."
+	},
+	"operations": {
+		"to_order": {
+			"label": "Criar pedido a partir da solicitação",
+			"description": "Colocar esta solicitação em produção: o pedido carrega o id da solicitação, a solicitação passa a «em andamento» e o passo entra no diário. Quantidade, material, prazo e contato são lidos da solicitação se não informados aqui. Executar duas vezes abre o pedido que já existe."
+		}
 	}
 }

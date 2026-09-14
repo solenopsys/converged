@@ -1,4 +1,18 @@
+import { resolveEmbeddedSurfaceMessage } from "front-core";
 import { COLUMN_TYPES } from "front-core/table";
+
+export const SURFACE_ID = "sf-requests";
+
+/**
+ * Operation metadata and thrown messages are read outside Preact — the object
+ * catalog is built before a component exists — so they cannot use the
+ * translation hook. The key itself is the fallback, which is what makes a
+ * missing translation visible rather than silent.
+ */
+export function tr(key: string): string {
+	const value = resolveEmbeddedSurfaceMessage(SURFACE_ID, key);
+	return typeof value === "string" ? value : key;
+}
 
 export const requestsColumns = [
 	{

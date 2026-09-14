@@ -142,9 +142,13 @@ export type OrderDashboardStats = {
 	completedTotal: number;
 	blockedTotal: number;
 	materialWeightGrams: number;
-	estimatedPrintingHours: number;
-	availablePrinters: number;
-	printerCapacity: number;
+	/**
+	 * Share of these orders that are being worked on right now.
+	 *
+	 * Not machine utilisation — this service has no right to know what a machine
+	 * is. How busy the shop floor actually is comes from `rp-equipment`, and the
+	 * two numbers are composed in the UI, never here.
+	 */
 	utilizationPercent: number;
 };
 
@@ -379,7 +383,7 @@ const metadata: ServiceMetadata = {
     {
       "name": "OrderDashboardStats",
       "kind": "type",
-      "definition": "{\n\tordersTotal: number;\n\tqueuedTotal: number;\n\tinProgressTotal: number;\n\tprintingTotal: number;\n\tcompletedTotal: number;\n\tblockedTotal: number;\n\tmaterialWeightGrams: number;\n\testimatedPrintingHours: number;\n\tavailablePrinters: number;\n\tprinterCapacity: number;\n\tutilizationPercent: number;\n}"
+      "definition": "{\n\tordersTotal: number;\n\tqueuedTotal: number;\n\tinProgressTotal: number;\n\tprintingTotal: number;\n\tcompletedTotal: number;\n\tblockedTotal: number;\n\tmaterialWeightGrams: number;\n\t/**\n\t * Share of these orders that are being worked on right now.\n\t *\n\t * Not machine utilisation — this service has no right to know what a machine\n\t * is. How busy the shop floor actually is comes from `rp-equipment`, and the\n\t * two numbers are composed in the UI, never here.\n\t */\n\tutilizationPercent: number;\n}"
     },
     {
       "name": "OrderDashboard",

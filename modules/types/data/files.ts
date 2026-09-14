@@ -110,6 +110,17 @@ export interface FilesService {
 	statistic(): Promise<any>;
 	saveCollection(collection: FileCollection): Promise<UUID>;
 	getCollection(id: UUID): Promise<FileCollection>;
+	/**
+	 * Collections the caller may see.
+	 *
+	 * `listByCollection` answered "what is in this one" from the start, but there
+	 * was no way to ask which ones exist — so a console could show a file's
+	 * `collectionId` and never the collection. Narrowed the same way files are:
+	 * a collection is a grouping, not a grant.
+	 */
+	listCollections(
+		params: PaginationParams,
+	): Promise<PaginatedResult<FileCollection>>;
 	deleteCollection(id: UUID): Promise<void>;
 	listByCollection(collectionId: UUID): Promise<FileMetadata[]>;
 	materialize(fileId: UUID): Promise<MaterializedFile>;

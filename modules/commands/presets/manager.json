@@ -19,6 +19,7 @@
   "wf": {
     "workflows": {
       "wf-request-analyze.js": "x",
+      "wf-request-to-order.js": "x",
       "wf-order-review-request.js": "x",
       "wf-order-review-followup.js": "x"
     }

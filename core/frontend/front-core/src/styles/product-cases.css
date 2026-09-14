@@ -235,6 +235,59 @@ html.dark .product-case-scroll {
   box-shadow: var(--product-case-processing-shadow);
 }
 
+/* Row lists (stream feeds, smartphone screens) follow the case theme too.
+   Without this the light-theme row ink stays dark-on-dark and the rows
+   vanish in dark mode while the animation keeps running underneath. */
+.product-case-diagram .product-case-v2 .v2-symbol-rows span {
+  border-color: var(--product-case-node-border);
+  background: transparent;
+  color: var(--product-case-node-copy);
+}
+
+.product-case-diagram .product-case-v2 .v2-stream .v2-symbol-rows {
+  border-top-color: var(--product-case-node-border);
+}
+
+.product-case-diagram .product-case-v2 .v2-stream .v2-symbol-rows span {
+  border-bottom-color: var(--product-case-node-border);
+  color: var(--product-case-node-copy);
+}
+
+.product-case-diagram .product-case-v2 .v2-stream .v2-symbol-row-track span.is-active {
+  background: var(--product-case-dot);
+  color: var(--product-case-canvas);
+}
+
+.product-case-diagram .product-case-v2 .v2-stream .v2-symbol-rows::after {
+  border-color: var(--product-case-dot-border);
+}
+
+.product-case-diagram .product-case-v2.v2-smartphone::before,
+.product-case-diagram .product-case-v2 .v2-smartphone::before {
+  background: var(--product-case-node-border);
+}
+
+/* Smartphone / stream frames and group legends also carry hardcoded light
+   ink; re-tint them so they stay visible in dark mode. */
+.product-case-diagram .product-case-v2.v2-smartphone,
+.product-case-diagram .product-case-v2 .v2-smartphone,
+.product-case-diagram .product-case-v2 .v2-stream {
+  border-color: var(--product-case-node-border);
+}
+
+.product-case-diagram .product-case-v2 .v2-group {
+  border-color: var(--product-case-node-border);
+}
+
+.product-case-diagram .product-case-v2 .v2-group-title {
+  background: var(--product-case-canvas);
+  color: var(--product-case-node-copy);
+}
+
+.product-case-diagram .product-case-v2 .v2-group-title strong {
+  color: var(--product-case-node-heading);
+}
+
 @media (max-width: 900px) {
   .product-case-stage { padding: 18px 20px 20px; }
   .product-case-topline { font-size: 10px; }

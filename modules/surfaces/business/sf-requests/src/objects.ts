@@ -10,7 +10,7 @@ import type {
 	RequestListParams,
 	RequestProcessType,
 } from "g-requests";
-import { requestsColumns } from "./config";
+import { requestsColumns, tr } from "./config";
 import { requestModelReceived } from "./domain-requests";
 import { requestsClient, workflowClient } from "./services";
 import { RequestDetailView } from "./views/RequestDetailView";
@@ -51,6 +51,9 @@ const requestProperties = {
 			'Every file the message lists, as display name to rp-files file ID, for example {"part.stl": "file-id"}. An archive that was unpacked is listed by its contents, and those are what belongs here.',
 	},
 };
+
+/** The script that turns an accepted request into a job on the floor. */
+const REQUEST_TO_ORDER_SCRIPT = "workflows/wf-request-to-order.js";
 
 /** Build a preview and an estimate for every production model on the request.
  * Deterministic follow-up to creation, never a step the assistant has to think
@@ -184,6 +187,88 @@ export default defineSurface({
 				if (model) requestModelReceived(model);
 				return objectRef("requests.request", id, {
 					title: model?.title ?? `Request ${id}`,
+				});
+			},
+		},
+		{
+			/**
+			 * The step the product is for: an accepted request becomes work.
+			 *
+			 * It is a workflow call and not three calls from here because it spans
+			 * rp-requests, rp-orders and rp-events, and a screen that got halfway
+			 * through that leaves a job nobody ordered or a request nobody is
+			 * making (§0, rule 1). Running it twice is safe — the workflow answers
+			 * with the order that already exists — so the button needs no guard of
+			 * its own.
+			 */
+			id: "requests.request.to-order",
+			operator: "execute",
+			target: "requests.request",
+			label: "Create order from request",
+			labelKey: "operations.to_order.label",
+			description:
+				"Put this request into production: the order carries the request id, the request moves to in_production and the step lands in the journal. Quantity, material, deadline and contact are read off the request unless given here. Running it twice opens the order that already exists.",
+			descriptionKey: "operations.to_order.description",
+			inputs: [{ name: "request", accepts: objectOf("requests.request") }],
+			output: objectOf("orders.order"),
+			parameters: {
+				type: "object",
+				properties: {
+					productionMethod: {
+						type: "string",
+						enum: [
+							"fdm",
+							"sla",
+							"sls",
+							"dmls",
+							"polyjet",
+							"cnc",
+							"laser",
+							"generic",
+						],
+						description: "Overrides the method implied by the process type",
+					},
+					quantity: { type: "number" },
+					material: { type: "string" },
+					dueAt: { type: "string", description: "ISO date the job is owed" },
+					equipmentId: {
+						type: "string",
+						description: "Assign the job to a machine straight away",
+					},
+					customerName: { type: "string" },
+					customerEmail: { type: "string" },
+					notes: { type: "string" },
+				},
+			},
+			presentOutput: true,
+			invoke: async ({ references, params }) => {
+				const ref = references.find(
+					(item) => item.kind === "object" && item.type === "requests.request",
+				);
+				if (ref?.kind !== "object") throw new Error(tr("errors.noRequestRef"));
+
+				const run = await workflowClient.runWorkflow(REQUEST_TO_ORDER_SCRIPT, {
+					requestId: ref.id,
+					...params,
+				});
+				// A refused run is an ordinary outcome — most often the caller's role
+				// has no `wf/workflows/wf-request-to-order.js(x)` grant — and saying
+				// so is what makes the screen report it instead of doing nothing.
+				if (!run.ok) throw new Error(run.error ?? tr("errors.orderFailed"));
+				const report = (run.result ?? {}) as {
+					orderId?: string;
+					modelName?: string;
+				};
+				if (!report.orderId) throw new Error(tr("errors.noOrderReturned"));
+
+				// The request's own status changed on the way through, so the card
+				// behind this button has to be told.
+				const model = await requestsClient.getRequestModel(ref.id);
+				if (model) requestModelReceived(model);
+
+				// The order, not a sentence: the runtime opens its card.
+				return objectRef("orders.order", report.orderId, {
+					...(report.modelName ? { title: report.modelName } : {}),
 				});
 			},
 		},

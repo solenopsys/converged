@@ -1,5 +1,127 @@
 {
+	"surface": {
+		"label": "Ordini",
+		"purpose": "La coda di lavoro dell'officina: cosa si produce, su quale macchina, entro quando e da quale richiesta arriva"
+	},
 	"menu": {
-		"orders": "Ordini"
+		"orders": "Ordini",
+		"dashboard": "Panoramica"
+	},
+	"types": {
+		"order": {
+			"label": "Ordine",
+			"description": "Un lavoro di produzione: cosa, su quale macchina, entro quando e da dove arriva"
+		}
+	},
+	"columns": {
+		"model": "Modello",
+		"method": "Metodo",
+		"status": "Stato",
+		"quantity": "Quantità",
+		"weight": "Peso",
+		"material": "Materiale",
+		"machine": "Macchina",
+		"due": "Scadenza",
+		"request": "Richiesta",
+		"updated": "Aggiornato"
+	},
+	"status": {
+		"draft": "Bozza",
+		"queued": "In coda",
+		"in_progress": "In corso",
+		"paused": "In pausa",
+		"completed": "Completato",
+		"cancelled": "Annullato",
+		"blocked": "Bloccato"
+	},
+	"method": {
+		"fdm": "FDM",
+		"sla": "SLA",
+		"sls": "SLS",
+		"dmls": "DMLS",
+		"polyjet": "PolyJet",
+		"cnc": "CNC",
+		"laser": "Laser",
+		"generic": "Generico"
+	},
+	"tabs": {
+		"all": "Tutti",
+		"queued": "In coda",
+		"in_progress": "In corso",
+		"completed": "Completati",
+		"blocked": "Bloccati"
+	},
+	"detail": {
+		"empty": "—",
+		"loading": "Caricamento…",
+		"notFound": "Questo ordine non esiste.",
+		"unassigned": "non assegnata",
+		"noRequest": "creato direttamente",
+		"customer": "Cliente",
+		"created": "Creato",
+		"notes": "Note",
+		"files": "File",
+		"noFiles": "La richiesta non aveva file.",
+		"openFile": "Apri il file",
+		"downloadFile": "Scarica"
+	},
+	"operations": {
+		"create": {
+			"label": "Crea ordine",
+			"description": "Mettere un lavoro in coda direttamente. Un lavoro che nasce da una richiesta si crea convertendo la richiesta, così il collegamento esiste."
+		},
+		"save": {
+			"label": "Salva ordine"
+		},
+		"updateStatus": {
+			"label": "Cambia stato",
+			"description": "Far avanzare il lavoro: in coda, in corso, in pausa, completato, annullato o bloccato."
+		},
+		"assign": {
+			"label": "Assegna a una macchina",
+			"description": "Assegnare un lavoro a una macchina e prenotare lo slot nel suo calendario. Senza ora di fine si usa la scadenza; se manca anche quella, va indicata."
+		}
+	},
+	"errors": {
+		"noOrder": "Serve un ordine nel contesto.",
+		"noEndAt": "Indica quando finisce lo slot, oppure dai una scadenza al lavoro."
+	},
+	"summary": {
+		"orders": "Ordini",
+		"queued": "In coda",
+		"printing": "In stampa",
+		"material": "Materiale",
+		"inProgress": "In corso",
+		"perDay": "Ordini al giorno"
+	},
+	"widgets": {
+		"conversion": {
+			"title": "Conversione da richieste a ordini"
+		},
+		"requests": {
+			"title": "Richieste",
+			"description": "Richieste in arrivo, non ordini"
+		},
+		"orders": {
+			"title": "Ordini",
+			"description": "Lavoro di produzione accettato",
+			"queued": "in coda"
+		},
+		"printing": {
+			"title": "In stampa",
+			"description": "Ordini attualmente sulle macchine",
+			"inProgress": "in corso"
+		},
+		"progress": {
+			"title": "In corso",
+			"description": "Quota di ordini su cui si sta lavorando",
+			"material": "materiale"
+		}
+	},
+	"actions": {
+		"refresh": "Aggiorna"
+	},
+	"overview": {
+		"hint": "Premi «Ordini» per aprire la coda stessa."
 	}
 }

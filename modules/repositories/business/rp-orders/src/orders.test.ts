@@ -81,7 +81,7 @@ describe("OrdersStoreService in-memory", () => {
 		expect(dashboard.stats.ordersTotal).toBe(2);
 		expect(dashboard.stats.inProgressTotal).toBe(1);
 		expect(dashboard.stats.printingTotal).toBe(1);
-		expect(dashboard.stats.availablePrinters).toBe(8);
+		expect(dashboard.stats.utilizationPercent).toBe(50);
 		expect(dashboard.stats.completedTotal).toBe(1);
 		expect(dashboard.stats.materialWeightGrams).toBe(161);
 		expect(dashboard.daily).toHaveLength(90);

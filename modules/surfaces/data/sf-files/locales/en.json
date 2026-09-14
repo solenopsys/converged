@@ -1,1 +1,94 @@
-{}
+{
+	"surface": {
+		"label": "Files",
+		"purpose": "Uploaded files and everything extracted from them: upload from the console, look inside, download, and see which collection a file belongs to"
+	},
+	"menu": {
+		"files": "Files",
+		"collections": "Collections",
+		"overview": "Overview"
+	},
+	"types": {
+		"file": {
+			"label": "File",
+			"description": "One uploaded file: what it is, who put it here, how big it is and which collection it belongs to"
+		},
+		"collection": {
+			"label": "Collection",
+			"description": "A named grouping of files. A grouping only — it grants nobody access to anything"
+		}
+	},
+	"columns": {
+		"name": "Name",
+		"type": "Type",
+		"size": "Size",
+		"status": "Status",
+		"owner": "Owner",
+		"collection": "Collection",
+		"description": "Description",
+		"created": "Created"
+	},
+	"status": {
+		"uploading": "Uploading",
+		"uploaded": "Uploaded",
+		"failed": "Failed"
+	},
+	"upload": {
+		"uploading": "Uploading",
+		"paused": "Paused",
+		"error": "Error",
+		"uploaded": "Done",
+		"pause": "Pause",
+		"resume": "Resume",
+		"retry": "Retry",
+		"cancel": "Cancel"
+	},
+	"detail": {
+		"empty": "—",
+		"loading": "Loading…",
+		"notFound": "No such file.",
+		"chunks": "Chunks",
+		"compression": "Compression",
+		"hash": "Content hash",
+		"noCollection": "no collection",
+		"collectionHidden": "a collection you cannot see"
+	},
+	"overview": {
+		"storedFiles": "Files stored",
+		"collections": "Collections",
+		"inFlight": "Uploading now",
+		"uploading": "In flight",
+		"hint": "Press Files for the list, or Collections for the groupings."
+	},
+	"actions": {
+		"upload": "Upload files",
+		"download": "Download",
+		"refresh": "Refresh"
+	},
+	"operations": {
+		"upload": {
+			"label": "Upload files",
+			"description": "Open the file picker and upload what is chosen. Large files are chunked and can be paused, resumed and retried; identical content is stored once. Progress is on the Files overview."
+		},
+		"download": {
+			"label": "Download",
+			"description": "Fetch a file's chunks, put them back together and save it. Asks where to save when the browser allows it."
+		},
+		"delete": {
+			"label": "Delete file",
+			"description": "Remove a file's record. Chunks shared with another file by hash stay where they are — de-duplication means the blob is not this file's to drop."
+		},
+		"setCollection": {
+			"label": "Move to a collection",
+			"description": "Put a file in a collection, or take it out of one by leaving the collection empty."
+		},
+		"collectionCreate": {
+			"label": "Create collection",
+			"description": "Name a grouping for files. It groups and nothing more: a collection grants nobody access to what is in it."
+		}
+	},
+	"errors": {
+		"noFile": "A file has to be in context.",
+		"notUploaded": "This file has not finished uploading."
+	}
+}

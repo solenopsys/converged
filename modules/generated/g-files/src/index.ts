@@ -268,6 +268,21 @@ export const metadata: ServiceMetadata = {
       "isAsyncIterable": false
     },
     {
+      "name": "listCollections",
+      "parameters": [
+        {
+          "name": "params",
+          "type": "PaginationParams",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "PaginatedResult<FileCollection>",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
       "name": "deleteCollection",
       "parameters": [
         {
@@ -465,6 +480,7 @@ export interface FilesService {
   statistic(): Promise<any>;
   saveCollection(collection: FileCollection): Promise<UUID>;
   getCollection(id: UUID): Promise<FileCollection>;
+  listCollections(params: PaginationParams): Promise<PaginatedResult<FileCollection>>;
   deleteCollection(id: UUID): Promise<void>;
   listByCollection(collectionId: UUID): Promise<FileMetadata[]>;
   materialize(fileId: UUID): Promise<MaterializedFile>;
@@ -485,6 +501,7 @@ export interface FilesServiceClient {
   statistic(): Promise<any>;
   saveCollection(collection: FileCollection): Promise<UUID>;
   getCollection(id: UUID): Promise<FileCollection>;
+  listCollections(params: PaginationParams): Promise<PaginatedResult<FileCollection>>;
   deleteCollection(id: UUID): Promise<void>;
   listByCollection(collectionId: UUID): Promise<FileMetadata[]>;
   materialize(fileId: UUID): Promise<MaterializedFile>;

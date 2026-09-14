@@ -126,6 +126,15 @@
 	"errors": {
 		"title": "Impossible d'ouvrir la demande",
 		"loading": "Chargement de la demande...",
-		"notSelected": "Aucune demande sélectionnée"
+		"notSelected": "Aucune demande sélectionnée",
+		"noRequestRef": "Une demande doit être dans le contexte.",
+		"orderFailed": "La commande n'a pas pu être créée.",
+		"noOrderReturned": "La conversion n'a renvoyé aucune commande."
+	},
+	"operations": {
+		"to_order": {
+			"label": "Créer une commande depuis la demande",
+			"description": "Mettre cette demande en production : la commande porte l'id de la demande, la demande passe « en cours » et l'étape est journalisée. Quantité, matériau, échéance et contact sont lus sur la demande sauf indication ici. Un second lancement ouvre la commande qui existe déjà."
+		}
 	}
 }

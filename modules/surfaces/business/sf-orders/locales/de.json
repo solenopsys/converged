@@ -1,5 +1,127 @@
 {
+	"surface": {
+		"label": "Aufträge",
+		"purpose": "Die Auftragswarteschlange der Werkstatt: was gefertigt wird, auf welcher Maschine, bis wann und aus welcher Anfrage"
+	},
 	"menu": {
-		"orders": "Aufträge"
+		"orders": "Aufträge",
+		"dashboard": "Übersicht"
+	},
+	"types": {
+		"order": {
+			"label": "Auftrag",
+			"description": "Ein Fertigungsauftrag: was, auf welcher Maschine, bis wann und woher er kommt"
+		}
+	},
+	"columns": {
+		"model": "Modell",
+		"method": "Verfahren",
+		"status": "Status",
+		"quantity": "Menge",
+		"weight": "Gewicht",
+		"material": "Material",
+		"machine": "Maschine",
+		"due": "Fällig",
+		"request": "Anfrage",
+		"updated": "Aktualisiert"
+	},
+	"status": {
+		"draft": "Entwurf",
+		"queued": "In Warteschlange",
+		"in_progress": "In Arbeit",
+		"paused": "Pausiert",
+		"completed": "Abgeschlossen",
+		"cancelled": "Storniert",
+		"blocked": "Blockiert"
+	},
+	"method": {
+		"fdm": "FDM",
+		"sla": "SLA",
+		"sls": "SLS",
+		"dmls": "DMLS",
+		"polyjet": "PolyJet",
+		"cnc": "CNC",
+		"laser": "Laser",
+		"generic": "Allgemein"
+	},
+	"tabs": {
+		"all": "Alle",
+		"queued": "In Warteschlange",
+		"in_progress": "In Arbeit",
+		"completed": "Abgeschlossen",
+		"blocked": "Blockiert"
+	},
+	"detail": {
+		"empty": "—",
+		"loading": "Wird geladen…",
+		"notFound": "Diesen Auftrag gibt es nicht.",
+		"unassigned": "nicht zugewiesen",
+		"noRequest": "direkt erstellt",
+		"customer": "Kunde",
+		"created": "Erstellt",
+		"notes": "Notizen",
+		"files": "Dateien",
+		"noFiles": "Die Anfrage hatte keine Dateien.",
+		"openFile": "Datei öffnen",
+		"downloadFile": "Herunterladen"
+	},
+	"operations": {
+		"create": {
+			"label": "Auftrag anlegen",
+			"description": "Einen Auftrag direkt in die Warteschlange stellen. Ein Auftrag aus einer Anfrage entsteht durch Umwandeln der Anfrage, damit die Verknüpfung existiert."
+		},
+		"save": {
+			"label": "Auftrag speichern"
+		},
+		"updateStatus": {
+			"label": "Status ändern",
+			"description": "Einen Auftrag weiterbewegen: Warteschlange, in Arbeit, pausiert, abgeschlossen, storniert oder blockiert."
+		},
+		"assign": {
+			"label": "Maschine zuweisen",
+			"description": "Einen Auftrag einer Maschine zuweisen und den Slot in deren Zeitplan buchen. Ohne Endzeit gilt der Fälligkeitstermin; fehlt auch der, muss eine Zeit genannt werden."
+		}
+	},
+	"errors": {
+		"noOrder": "Ein Auftrag muss im Kontext sein.",
+		"noEndAt": "Geben Sie das Ende des Slots an oder setzen Sie dem Auftrag einen Termin."
+	},
+	"summary": {
+		"orders": "Aufträge",
+		"queued": "Warteschlange",
+		"printing": "Im Druck",
+		"material": "Material",
+		"inProgress": "In Arbeit",
+		"perDay": "Aufträge pro Tag"
+	},
+	"widgets": {
+		"conversion": {
+			"title": "Umwandlung von Anfragen in Aufträge"
+		},
+		"requests": {
+			"title": "Anfragen",
+			"description": "Eingehende Anfragen, keine Aufträge"
+		},
+		"orders": {
+			"title": "Aufträge",
+			"description": "Angenommene Fertigungsarbeit",
+			"queued": "in Warteschlange"
+		},
+		"printing": {
+			"title": "Im Druck",
+			"description": "Aufträge, die jetzt auf den Maschinen laufen",
+			"inProgress": "in Arbeit"
+		},
+		"progress": {
+			"title": "In Arbeit",
+			"description": "Anteil der Aufträge, an denen gearbeitet wird",
+			"material": "Material"
+		}
+	},
+	"actions": {
+		"refresh": "Aktualisieren"
+	},
+	"overview": {
+		"hint": "Für die Warteschlange selbst auf „Aufträge“ drücken."
 	}
 }

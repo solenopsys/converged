@@ -23,6 +23,29 @@ import {
 	FileMetadataRepository,
 } from "./entities";
 
+const collectionFilterSchema: KyselyFilterSchema = {
+	id: {
+		valueType: "string",
+		operators: ["eq", "in"],
+		column: "obj.id",
+	},
+	name: {
+		valueType: "string",
+		operators: ["eq", "contains", "startsWith"],
+		column: "obj.name",
+	},
+	owner: {
+		valueType: "string",
+		operators: ["eq", "in", "contains"],
+		column: "obj.owner",
+	},
+	createdAt: {
+		valueType: "date",
+		operators: ["gte", "lte", "between"],
+		column: "obj.createdAt",
+	},
+};
+
 const fileFilterSchema: KyselyFilterSchema = {
 	id: {
 		valueType: "string",
@@ -263,6 +286,53 @@ export class MetadataStoreService {
 	async getCollection(id: UUID): Promise<FileCollection | undefined> {
 		if (!(await this.access.canRead(id))) return undefined;
 		return await this.fileCollectionRepo.findById({ id });
+	}
+
+	/**
+	 * Collections the caller may see, newest first.
+	 *
+	 * Same narrowing as `list`, on the collections table: `visibleFrom` is what
+	 * keeps a grouping from becoming a way to enumerate other people's work. The
+	 * free-text `key` searches the two fields a person would type — name and
+	 * description.
+	 */
+	async listCollections(
+		params: PaginationParams,
+	): Promise<PaginatedResult<FileCollection>> {
+		const limit = Math.min(Math.max(params.limit ?? 20, 1), 100);
+		const offset = Math.max(params.offset ?? 0, 0);
+
+		const base = () => {
+			let query = visibleFrom(this.store.db, "file_collections");
+			const key = params.key?.trim();
+			if (key) {
+				const pattern = `%${key}%`;
+				query = query.where((eb: any) =>
+					eb.or([
+						eb("obj.name", "like", pattern),
+						eb("obj.description", "like", pattern),
+					]),
+				);
+			}
+			return applyKyselyFilter(query, params.filter, collectionFilterSchema);
+		};
+
+		const [items, count] = await Promise.all([
+			base()
+				.selectAll("obj")
+				.orderBy("obj.createdAt", "desc")
+				.limit(limit)
+				.offset(offset)
+				.execute(),
+			base()
+				.select((eb: any) => eb.fn.countAll().as("count"))
+				.executeTakeFirst(),
+		]);
+
+		return {
+			items: items.map((item: unknown) => item as FileCollection),
+			totalCount: Number(count?.count ?? 0),
+		};
 	}
 
 	async deleteCollection(id: UUID): Promise<void> {
