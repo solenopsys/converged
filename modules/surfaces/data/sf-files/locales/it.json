@@ -1,0 +1,94 @@
+{
+	"surface": {
+		"label": "File",
+		"purpose": "File caricati e tutto ciò che ne è stato estratto: caricamento dalla console, visione, download e collezione a cui appartiene il file"
+	},
+	"menu": {
+		"files": "File",
+		"collections": "Collezioni",
+		"overview": "Panoramica"
+	},
+	"types": {
+		"file": {
+			"label": "File",
+			"description": "Un file caricato: cosa è, chi l'ha messo, quanto è grande e in quale collezione sta"
+		},
+		"collection": {
+			"label": "Collezione",
+			"description": "Un raggruppamento di file con un nome. Solo un raggruppamento: non concede accesso a nessuno"
+		}
+	},
+	"columns": {
+		"name": "Nome",
+		"type": "Tipo",
+		"size": "Dimensione",
+		"status": "Stato",
+		"owner": "Proprietario",
+		"collection": "Collezione",
+		"description": "Descrizione",
+		"created": "Creato"
+	},
+	"status": {
+		"uploading": "In caricamento",
+		"uploaded": "Caricato",
+		"failed": "Non riuscito"
+	},
+	"upload": {
+		"uploading": "In caricamento",
+		"paused": "In pausa",
+		"error": "Errore",
+		"uploaded": "Fatto",
+		"pause": "Pausa",
+		"resume": "Riprendi",
+		"retry": "Riprova",
+		"cancel": "Annulla"
+	},
+	"detail": {
+		"empty": "—",
+		"loading": "Caricamento…",
+		"notFound": "Questo file non esiste.",
+		"chunks": "Parti",
+		"compression": "Compressione",
+		"hash": "Hash del contenuto",
+		"noCollection": "nessuna collezione",
+		"collectionHidden": "una collezione che non puoi vedere"
+	},
+	"overview": {
+		"storedFiles": "File",
+		"collections": "Collezioni",
+		"inFlight": "In caricamento ora",
+		"uploading": "In corso",
+		"hint": "Premi «File» per l'elenco, o «Collezioni» per i raggruppamenti."
+	},
+	"actions": {
+		"upload": "Carica file",
+		"download": "Scarica",
+		"refresh": "Aggiorna"
+	},
+	"operations": {
+		"upload": {
+			"label": "Carica file",
+			"description": "Aprire il selettore e caricare quanto scelto. I file grandi vanno a parti e si possono mettere in pausa, riprendere e ritentare; contenuto identico si salva una volta. L'avanzamento è nella panoramica."
+		},
+		"download": {
+			"label": "Scarica",
+			"description": "Recuperare le parti del file, ricomporlo e salvarlo. Chiede dove salvare se il browser lo consente."
+		},
+		"delete": {
+			"label": "Elimina file",
+			"description": "Rimuovere il record del file. Le parti condivise per hash con un altro file restano: con la deduplicazione il contenuto non è solo di questo file."
+		},
+		"setCollection": {
+			"label": "Sposta in una collezione",
+			"description": "Mettere un file in una collezione, o togliercelo lasciando la collezione vuota."
+		},
+		"collectionCreate": {
+			"label": "Crea collezione",
+			"description": "Dare un nome a un raggruppamento di file. Solo raggruppamento: una collezione non concede accesso al suo contenuto."
+		}
+	},
+	"errors": {
+		"noFile": "Serve un file nel contesto.",
+		"notUploaded": "Il caricamento di questo file non è finito."
+	}
+}

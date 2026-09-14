@@ -1,0 +1,94 @@
+{
+	"surface": {
+		"label": "Dateien",
+		"purpose": "Hochgeladene Dateien und alles, was aus ihnen gewonnen wurde: Upload aus der Konsole, Ansicht, Download und die Sammlung, zu der eine Datei gehört"
+	},
+	"menu": {
+		"files": "Dateien",
+		"collections": "Sammlungen",
+		"overview": "Übersicht"
+	},
+	"types": {
+		"file": {
+			"label": "Datei",
+			"description": "Eine hochgeladene Datei: was sie ist, wer sie abgelegt hat, wie groß sie ist und zu welcher Sammlung sie gehört"
+		},
+		"collection": {
+			"label": "Sammlung",
+			"description": "Eine benannte Gruppe von Dateien. Nur eine Gruppierung — sie gewährt niemandem Zugriff"
+		}
+	},
+	"columns": {
+		"name": "Name",
+		"type": "Typ",
+		"size": "Größe",
+		"status": "Status",
+		"owner": "Eigentümer",
+		"collection": "Sammlung",
+		"description": "Beschreibung",
+		"created": "Erstellt"
+	},
+	"status": {
+		"uploading": "Wird geladen",
+		"uploaded": "Geladen",
+		"failed": "Fehlgeschlagen"
+	},
+	"upload": {
+		"uploading": "Wird geladen",
+		"paused": "Pausiert",
+		"error": "Fehler",
+		"uploaded": "Fertig",
+		"pause": "Pause",
+		"resume": "Fortsetzen",
+		"retry": "Wiederholen",
+		"cancel": "Abbrechen"
+	},
+	"detail": {
+		"empty": "—",
+		"loading": "Wird geladen…",
+		"notFound": "Diese Datei gibt es nicht.",
+		"chunks": "Teile",
+		"compression": "Kompression",
+		"hash": "Inhalts-Hash",
+		"noCollection": "keine Sammlung",
+		"collectionHidden": "eine Sammlung, die Sie nicht sehen können"
+	},
+	"overview": {
+		"storedFiles": "Dateien",
+		"collections": "Sammlungen",
+		"inFlight": "Läuft gerade",
+		"uploading": "Laufend",
+		"hint": "Für die Liste auf „Dateien“ drücken, für die Gruppierungen auf „Sammlungen“."
+	},
+	"actions": {
+		"upload": "Dateien hochladen",
+		"download": "Herunterladen",
+		"refresh": "Aktualisieren"
+	},
+	"operations": {
+		"upload": {
+			"label": "Dateien hochladen",
+			"description": "Die Dateiauswahl öffnen und das Gewählte hochladen. Große Dateien werden in Teilen übertragen, pausierbar, fortsetzbar und wiederholbar; gleicher Inhalt wird einmal gespeichert. Fortschritt in der Übersicht."
+		},
+		"download": {
+			"label": "Herunterladen",
+			"description": "Die Teile einer Datei holen, zusammensetzen und speichern. Fragt nach dem Ort, wenn der Browser es erlaubt."
+		},
+		"delete": {
+			"label": "Datei löschen",
+			"description": "Den Eintrag der Datei entfernen. Teile, die per Hash mit einer anderen Datei geteilt werden, bleiben — bei Deduplizierung gehört der Inhalt nicht dieser Datei allein."
+		},
+		"setCollection": {
+			"label": "In eine Sammlung verschieben",
+			"description": "Eine Datei in eine Sammlung legen — oder herausnehmen, indem die Sammlung leer bleibt."
+		},
+		"collectionCreate": {
+			"label": "Sammlung anlegen",
+			"description": "Eine Gruppe für Dateien benennen. Nur Gruppierung: eine Sammlung gewährt keinen Zugriff auf ihren Inhalt."
+		}
+	},
+	"errors": {
+		"noFile": "Eine Datei muss im Kontext sein.",
+		"notUploaded": "Diese Datei ist noch nicht fertig hochgeladen."
+	}
+}

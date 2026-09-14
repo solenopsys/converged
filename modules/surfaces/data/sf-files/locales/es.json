@@ -1,0 +1,94 @@
+{
+	"surface": {
+		"label": "Archivos",
+		"purpose": "Archivos subidos y todo lo extraído de ellos: subir desde la consola, ver, descargar y la colección a la que pertenece el archivo"
+	},
+	"menu": {
+		"files": "Archivos",
+		"collections": "Colecciones",
+		"overview": "Resumen"
+	},
+	"types": {
+		"file": {
+			"label": "Archivo",
+			"description": "Un archivo subido: qué es, quién lo puso, qué tamaño tiene y a qué colección pertenece"
+		},
+		"collection": {
+			"label": "Colección",
+			"description": "Una agrupación de archivos con nombre. Solo agrupa: no concede acceso a nadie"
+		}
+	},
+	"columns": {
+		"name": "Nombre",
+		"type": "Tipo",
+		"size": "Tamaño",
+		"status": "Estado",
+		"owner": "Propietario",
+		"collection": "Colección",
+		"description": "Descripción",
+		"created": "Creado"
+	},
+	"status": {
+		"uploading": "Subiendo",
+		"uploaded": "Subido",
+		"failed": "Fallido"
+	},
+	"upload": {
+		"uploading": "Subiendo",
+		"paused": "Pausado",
+		"error": "Error",
+		"uploaded": "Listo",
+		"pause": "Pausar",
+		"resume": "Reanudar",
+		"retry": "Reintentar",
+		"cancel": "Cancelar"
+	},
+	"detail": {
+		"empty": "—",
+		"loading": "Cargando…",
+		"notFound": "No existe ese archivo.",
+		"chunks": "Fragmentos",
+		"compression": "Compresión",
+		"hash": "Hash del contenido",
+		"noCollection": "sin colección",
+		"collectionHidden": "una colección que no puede ver"
+	},
+	"overview": {
+		"storedFiles": "Archivos",
+		"collections": "Colecciones",
+		"inFlight": "Subiendo ahora",
+		"uploading": "En curso",
+		"hint": "Pulse «Archivos» para la lista, o «Colecciones» para las agrupaciones."
+	},
+	"actions": {
+		"upload": "Subir archivos",
+		"download": "Descargar",
+		"refresh": "Actualizar"
+	},
+	"operations": {
+		"upload": {
+			"label": "Subir archivos",
+			"description": "Abrir el selector y subir lo elegido. Los archivos grandes van por fragmentos y se pueden pausar, reanudar y reintentar; el contenido idéntico se guarda una vez. El progreso está en el resumen."
+		},
+		"download": {
+			"label": "Descargar",
+			"description": "Recuperar los fragmentos del archivo, recomponerlo y guardarlo. Pregunta dónde guardar si el navegador lo permite."
+		},
+		"delete": {
+			"label": "Eliminar archivo",
+			"description": "Quitar el registro del archivo. Los fragmentos compartidos por hash con otro archivo se quedan: con deduplicación el contenido no es solo de este archivo."
+		},
+		"setCollection": {
+			"label": "Mover a una colección",
+			"description": "Poner un archivo en una colección, o sacarlo dejando la colección vacía."
+		},
+		"collectionCreate": {
+			"label": "Crear colección",
+			"description": "Dar nombre a una agrupación de archivos. Solo agrupa: una colección no concede acceso a su contenido."
+		}
+	},
+	"errors": {
+		"noFile": "Hace falta un archivo en contexto.",
+		"notUploaded": "Este archivo aún no ha terminado de subirse."
+	}
+}

@@ -1,0 +1,94 @@
+{
+	"surface": {
+		"label": "Fichiers",
+		"purpose": "Fichiers envoyés et tout ce qui en est extrait : envoi depuis la console, consultation, téléchargement et collection à laquelle appartient le fichier"
+	},
+	"menu": {
+		"files": "Fichiers",
+		"collections": "Collections",
+		"overview": "Vue d'ensemble"
+	},
+	"types": {
+		"file": {
+			"label": "Fichier",
+			"description": "Un fichier envoyé : ce qu'il est, qui l'a déposé, sa taille et sa collection"
+		},
+		"collection": {
+			"label": "Collection",
+			"description": "Un regroupement nommé de fichiers. Un regroupement seulement : il n'accorde aucun accès"
+		}
+	},
+	"columns": {
+		"name": "Nom",
+		"type": "Type",
+		"size": "Taille",
+		"status": "Statut",
+		"owner": "Propriétaire",
+		"collection": "Collection",
+		"description": "Description",
+		"created": "Créé"
+	},
+	"status": {
+		"uploading": "Envoi",
+		"uploaded": "Envoyé",
+		"failed": "Échec"
+	},
+	"upload": {
+		"uploading": "Envoi",
+		"paused": "En pause",
+		"error": "Erreur",
+		"uploaded": "Terminé",
+		"pause": "Pause",
+		"resume": "Reprendre",
+		"retry": "Réessayer",
+		"cancel": "Annuler"
+	},
+	"detail": {
+		"empty": "—",
+		"loading": "Chargement…",
+		"notFound": "Ce fichier n'existe pas.",
+		"chunks": "Fragments",
+		"compression": "Compression",
+		"hash": "Empreinte du contenu",
+		"noCollection": "aucune collection",
+		"collectionHidden": "une collection que vous ne pouvez pas voir"
+	},
+	"overview": {
+		"storedFiles": "Fichiers",
+		"collections": "Collections",
+		"inFlight": "En cours d'envoi",
+		"uploading": "En cours",
+		"hint": "Appuyez sur « Fichiers » pour la liste, ou « Collections » pour les regroupements."
+	},
+	"actions": {
+		"upload": "Envoyer des fichiers",
+		"download": "Télécharger",
+		"refresh": "Actualiser"
+	},
+	"operations": {
+		"upload": {
+			"label": "Envoyer des fichiers",
+			"description": "Ouvrir le sélecteur et envoyer ce qui est choisi. Les gros fichiers partent par fragments, avec pause, reprise et nouvelle tentative ; un contenu identique n'est stocké qu'une fois. La progression est dans la vue d'ensemble."
+		},
+		"download": {
+			"label": "Télécharger",
+			"description": "Récupérer les fragments du fichier, le reconstituer et l'enregistrer. Demande où enregistrer si le navigateur le permet."
+		},
+		"delete": {
+			"label": "Supprimer le fichier",
+			"description": "Retirer l'enregistrement du fichier. Les fragments partagés par empreinte avec un autre fichier restent : avec la déduplication, le contenu n'appartient pas qu'à ce fichier."
+		},
+		"setCollection": {
+			"label": "Déplacer vers une collection",
+			"description": "Mettre un fichier dans une collection, ou l'en retirer en laissant la collection vide."
+		},
+		"collectionCreate": {
+			"label": "Créer une collection",
+			"description": "Nommer un regroupement de fichiers. Regroupement seulement : une collection n'accorde pas l'accès à son contenu."
+		}
+	},
+	"errors": {
+		"noFile": "Un fichier doit être dans le contexte.",
+		"notUploaded": "L'envoi de ce fichier n'est pas terminé."
+	}
+}
