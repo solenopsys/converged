@@ -50,6 +50,7 @@
 		"g-bus": "workspace:*",
 		"g-contexts": "workspace:*",
 		"g-dashboard": "workspace:*",
+		"g-environment": "workspace:*",
 		"g-files": "workspace:*",
 		"g-dag": "workspace:*",
 		"g-identity": "workspace:*",

@@ -1,11 +1,15 @@
 ## Technologies
 
-The server side of Converged is built on **Bun** and **Elysia**. Bun starts JavaScript and TypeScript quickly, uses memory efficiently, and fits compact edge deployments. Elysia is used as the HTTP layer for backend plugins and microservices.
+Converged is built on a compact systems foundation designed for high performance and efficient resource usage across Kubernetes environments of any scale — from a single microcomputer to a distributed cluster.
 
-Service contracts are described with types. NRPC binds TypeScript interfaces to implementations and generates client packages, so the frontend, Runtime, and backend work with the same contracts instead of disconnected string-based APIs.
+At the core of the infrastructure is **Zig** — a modern, extremely fast, and simple systems programming language. Zig is used for infrastructure elements where performance, resource efficiency, hardware access, and low-level control matter.
 
-Data storage uses a set of lightweight stores for different tasks: SQL, key-value, files, column data, vector indexes, and graph relations. The native Behemoth layer and Zig adapters cover tasks where low overhead, equipment access, Unix sockets, or FFI matter.
+**Cruller** provides the execution environment for TypeScript and JavaScript. It is a specialized runtime derived from Bun and adapted to the architecture and requirements of Converged.
 
-The frontend is a React platform with micro-frontends. The shared shell loads separate UI modules, and product scenarios can evolve independently. This matters for a platform with many solutions: the interface should not become one heavy monolith.
+**Behemoth** provides a unified data layer supporting different storage models, including SQL, key-value data, files, vectors, and other specialized data structures. Storage can be distributed and scaled according to the requirements of each deployment.
 
-Orchestration and delivery are built around k3s, Helm, and configuration profiles. The same component set can be assembled into a compact mono profile or split into groups for production.
+**Fujin** provides the communication layer, connecting Services, interfaces, events, and equipment through a unified real-time communication fabric. **Centimanus** executes Workflows and manages their dependencies, parallel execution, events, retries, and long-running operations.
+
+Converged always runs in **Kubernetes**. The base environment is **k3s**, a lightweight Kubernetes distribution that makes the same deployment model practical even on small edge devices such as Raspberry Pi. On a single machine, Converged runs as a compact single-node cluster; when required, the same cluster can be distributed across multiple machines.
+
+This provides one consistent technology foundation across the entire infrastructure — from a small edge device to a distributed cloud cluster.

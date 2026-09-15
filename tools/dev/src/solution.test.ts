@@ -12,6 +12,8 @@ test("resolves the configured solution set and workflow links", () => {
 		"access",
 		"auth",
 		"identity",
+		"environment",
+		"notify",
 		"markdown",
 		"struct",
 		"galery",
@@ -37,6 +39,8 @@ test("resolves the configured solution set and workflow links", () => {
 		"orders",
 		"equipment",
 		"events",
+		"reviews",
+		"staff",
 	]);
 	expect(resolved.solution.spec.lambdas).toEqual([
 		"ses",
@@ -62,12 +66,28 @@ test("resolves the configured solution set and workflow links", () => {
 		"chats",
 		"orders",
 		"equipment",
+		"reviews",
+		"team",
 	]);
 	expect(resolved.solution.spec.processors).toEqual([
 		"curaengine",
 		"opencamlib",
 	]);
-	expect(resolved.solution.spec.workflows).toEqual([
+	expect(resolved.solution.spec.workflows.map(({ id }) => id)).toEqual([
+		"files-process",
+		"file-unpack",
+		"file-analyze",
+		"files-analyze",
+		"request-analyze",
+		"request-to-order",
+		"equipment-incident",
+		"order-review-request",
+		"order-review-followup",
+		"team-invite",
+	]);
+	// The published and the internal shape, on the file workflows that have
+	// both; the product workflows after them are checked by their own tests.
+	expect(resolved.solution.spec.workflows.slice(0, 5)).toEqual([
 		{
 			id: "files-process",
 			name: "wf-files-process",

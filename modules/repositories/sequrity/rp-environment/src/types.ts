@@ -1,6 +1,7 @@
 export type {
-  EnvironmentService,
-  SavedWindow,
-  CommandLayout,
-  UserEnvironment,
+	CommandLayout,
+	EnvironmentService,
+	SavedWindow,
+	SurfaceLayout,
+	UserEnvironment,
 } from "g-environment";

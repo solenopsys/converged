@@ -9,7 +9,13 @@ import type {
 import type { Order } from "g-orders";
 import type { TelemetryEvent } from "g-telemetry";
 import { deviceKeyOf } from "./device";
-import { equipmentClient, ordersClient, telemetryClient } from "./services";
+import {
+	equipmentClient,
+	type IncidentReport,
+	ordersClient,
+	reportIncident,
+	telemetryClient,
+} from "./services";
 
 const domain = createDomain("sf-equipment");
 
@@ -191,18 +197,52 @@ export const setStateFx = domain.createEffect({
 		id: string;
 		status: EquipmentStatus;
 		jobId?: string;
-	}) => {
+		description?: string;
+	}): Promise<{ id: string; incident?: IncidentReport }> => {
+		if (input.status === "error") {
+			const incident = await reportIncident(input.id, {
+				description: input.description,
+			});
+			return { id: input.id, incident };
+		}
 		await equipmentClient.updateState(input.id, {
 			status: input.status,
 			...(input.jobId ? { jobId: input.jobId } : {}),
 		});
-		return input.id;
+		return { id: input.id };
 	},
 });
 
+/**
+ * What the last state change on the open card did beyond the state itself —
+ * the incident's cascade, or why it did not happen. Cleared when another
+ * machine opens, so one printer's report is never read under another's name.
+ */
+export const $stateOutcome = domain
+	.createStore<{
+		machineId: string;
+		incident?: IncidentReport;
+		error?: string;
+	} | null>(null, { name: "EQUIPMENT_STATE_OUTCOME" })
+	.on(setStateFx, () => null)
+	.on(setStateFx.doneData, (_state, { id, incident }) =>
+		incident ? { machineId: id, incident } : null,
+	)
+	.on(setStateFx.fail, (_state, { params, error }) => ({
+		machineId: params.id,
+		error: error instanceof Error ? error.message : String(error),
+	}))
+	.on(machineOpened, (state, { machineId }) =>
+		state?.machineId === machineId ? state : null,
+	);
+
 // A state change is the one write whose result the whole surface cares about:
 // the card shows it, the floor counts it, and the schedule reads from it.
-sample({ clock: setStateFx.doneData, target: loadMachineFx });
+sample({
+	clock: setStateFx.doneData,
+	fn: ({ id }) => id,
+	target: loadMachineFx,
+});
 sample({ clock: setStateFx.done, target: loadFloorFx });
 
 // ---- derived ----------------------------------------------------------------

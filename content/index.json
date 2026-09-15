@@ -1419,6 +1419,22 @@
       ]
     },
     {
+      "owner": "wf-equipment-incident",
+      "path": "modules/workflows/wf-equipment-incident/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/workflows/wf-equipment-incident/docs/index.json",
+          "articles": [
+            {
+              "slug": "wf-equipment-incident",
+              "file": "modules/workflows/wf-equipment-incident/docs/wf-equipment-incident.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "owner": "wf-file-analyze",
       "path": "modules/workflows/wf-file-analyze/docs",
       "sections": [

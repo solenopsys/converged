@@ -1,9 +1,13 @@
 ## AI Layer
 
-AI in Converged is not a separate chat added for appearance. It is a control layer over data, interface, and processes. A user can ask what is happening with an order, request a client reply, find a delay, launch an allowed workflow, or collect a summary of machine load.
+AI in Converged is not an add-on or a separate chat interface. **LLM is the primary interface to the platform.** Instead of learning how to use dozens of complex functions and navigating through layers of menus, users can simply describe what they need in chat — ask a question, give a command, or request an action.
 
-The model receives context from the platform: requests, statuses, files, telemetry, client history, access rights, and current tasks. The answer is therefore based on company data, not generic reasoning. If an action is needed, AI does not bypass the system directly: it calls allowed functions, microservices, or workflows through a controlled layer.
+Converged was designed as an **AI-first platform from the beginning**. Its architecture, data model, Services, Workflows, and UI are designed to work naturally with AI. This makes the interface simpler: users do not need to learn the internal structure of the system to use its capabilities. They can interact with the platform in the same way they communicate with a person.
 
-Model providers connect through adapters. A single installation can use GPT, Claude, DeepSeek, Mistral, Gemini, or other engines if they fit the task and the client’s policy. One model can communicate with clients, another can parse technical requirements, and a third can analyze documents or production statuses.
+At the same time, LLM is more than a conversational interface. It is an intelligent control layer over the platform's data, interfaces, and processes. A user can ask what is happening with an order, request a client reply, find the cause of a delay, launch an allowed Workflow, or get a summary of machine load.
 
-The key principle is control. AI has its own access profile, every action is logged, and critical operations run under the same rights and policies as human actions. This allows agents to handle routine work without giving them uncontrolled power over production.
+The model receives context directly from the platform: requests, statuses, files, telemetry, client history, access rights, and current tasks. Responses and actions are therefore based on the company's actual data rather than generic model knowledge. When an action is required, AI does not bypass the system — it uses permitted functions, Services, and Workflows through a controlled layer.
+
+Models connect through adapters, so Converged is not tied to a single AI provider. A single installation can use GPT, Claude, DeepSeek, Mistral,Muse, Gemini, or other models depending on the task and the company's policy. Different models can handle different roles: communicating with customers, interpreting technical requirements, processing documents, or analyzing production data.
+
+The key principle is **controlled intelligence**. AI has its own access profile, every action is logged, and critical operations follow the same permissions and policies as human actions. This allows AI to take over routine work while keeping people and the platform in control of important decisions and production operations.

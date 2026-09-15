@@ -2,7 +2,7 @@
   "rp": {
     "dag": { "listAvailableWorkflows": "r" },
     "usage": { "recordUsage": "w" },
-    "environment": { "getCurrent": "r", "saveWindows": "w", "saveCommandLayout": "w" },
+    "environment": { "getCurrent": "r", "saveWindows": "w", "saveCommandLayout": "w", "saveSurfaceLayout": "w" },
     "assistant": { "registerChat": "w", "recordChatMessage": "w", "recordChatFile": "w" },
     "contexts": { "getContext": "r" },
     "threads": { "saveMessage": "w", "readThread": "r" },

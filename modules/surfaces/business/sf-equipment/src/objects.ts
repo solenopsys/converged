@@ -15,7 +15,8 @@ import type {
 } from "g-equipment";
 import { logColumns, machineColumns, slotColumns } from "./config";
 import { machineChanged } from "./domain-equipment";
-import { equipmentClient } from "./services";
+import { flatListParams } from "./list-params";
+import { equipmentClient, reportIncident } from "./services";
 import { EquipmentSummary } from "./summary";
 import { EquipmentDashboardView } from "./views/EquipmentDashboardView";
 import { MachineDetailView } from "./views/MachineDetailView";
@@ -36,6 +37,29 @@ const STATUS_OPTIONS: Array<{ value: EquipmentStatus; label: string }> = [
 	{ value: "error", label: "Error" },
 	{ value: "offline", label: "Offline" },
 ];
+
+const MACHINE_FIELDS = [
+	"status",
+	"kind",
+	"jobId",
+	"deviceId",
+	"classifierNodeId",
+];
+const LOG_FIELDS = ["equipmentId", "eventType", "severity"];
+const SLOT_FIELDS = ["equipmentId", "status"];
+
+const loadMachines = (params: Record<string, unknown>) =>
+	equipmentClient.listEquipment(
+		flatListParams<EquipmentListParams>(params, MACHINE_FIELDS),
+	);
+const loadLogs = (params: Record<string, unknown>) =>
+	equipmentClient.listLogs(
+		flatListParams<EquipmentLogListParams>(params, LOG_FIELDS),
+	);
+const loadSlots = (params: Record<string, unknown>) =>
+	equipmentClient.listSchedule(
+		flatListParams<ScheduleListParams>(params, SLOT_FIELDS),
+	);
 
 const machineProperties = {
 	kind: {
@@ -93,14 +117,13 @@ export const objects = [
 					operators: ["eq", "in"],
 				},
 			],
-			load: (params) => equipmentClient.listEquipment(params),
+			load: loadMachines,
 		},
 		infinity: {
 			tableId: "equipment",
 			title: "Equipment",
 			columns: machineColumns,
-			load: (params) =>
-				equipmentClient.listEquipment(params as EquipmentListParams),
+			load: loadMachines,
 			rowRef: (row) => {
 				const machine = row as {
 					id?: unknown;
@@ -165,14 +188,13 @@ export const objects = [
 		categories: [Category.Business, Category.Selectable],
 		selection: {
 			filters: [],
-			load: (params) => equipmentClient.listLogs(params),
+			load: loadLogs,
 		},
 		infinity: {
 			tableId: "equipment-logs",
 			title: "Journal",
 			columns: logColumns,
-			load: (params) =>
-				equipmentClient.listLogs(params as EquipmentLogListParams),
+			load: loadLogs,
 			rowRef: (row) => {
 				const entry = row as { equipmentId?: unknown };
 				return objectRef("equipment.machine", String(entry.equipmentId ?? ""));
@@ -221,14 +243,13 @@ export const objects = [
 		categories: [Category.Business, Category.Selectable, Category.Creatable],
 		selection: {
 			filters: [],
-			load: (params) => equipmentClient.listSchedule(params),
+			load: loadSlots,
 		},
 		infinity: {
 			tableId: "equipment-schedule",
 			title: "Schedule",
 			columns: slotColumns,
-			load: (params) =>
-				equipmentClient.listSchedule(params as ScheduleListParams),
+			load: loadSlots,
 			rowRef: (row) => {
 				const slot = row as { equipmentId?: unknown };
 				return objectRef("equipment.machine", String(slot.equipmentId ?? ""));
@@ -363,7 +384,7 @@ export default defineSurface({
 			target: "equipment.machine",
 			label: "Set machine state",
 			description:
-				"Mark a machine as running, idle, in maintenance, in error or offline",
+				"Mark a machine as running, idle, in maintenance, in error or offline. Error reports a breakdown: the running slot is released and the order on it is blocked.",
 			inputs: [{ name: "machine", accepts: objectOf("equipment.machine") }],
 			parameters: {
 				type: "object",
@@ -376,6 +397,10 @@ export default defineSurface({
 						type: "string",
 						description: "Order or job the machine is running, when it is",
 					},
+					description: {
+						type: "string",
+						description: "What happened, when the state is error",
+					},
 				},
 				required: ["status"],
 			},
@@ -385,12 +410,24 @@ export default defineSurface({
 				);
 				if (ref?.kind !== "object")
 					throw new Error("Machine reference is required");
-				await equipmentClient.updateState(ref.id, {
-					status: params.status as EquipmentStatus,
-					...(params.jobId ? { jobId: params.jobId as string } : {}),
-				});
+				const status = params.status as EquipmentStatus;
+				// Same path as the card's button: a breakdown is a cascade, not a
+				// column, so the assistant cannot set `error` without it.
+				const incident =
+					status === "error"
+						? await reportIncident(ref.id, {
+								description: params.description as string | undefined,
+							})
+						: undefined;
+				if (!incident) {
+					await equipmentClient.updateState(ref.id, {
+						status,
+						...(params.jobId ? { jobId: params.jobId as string } : {}),
+					});
+				}
 				const machine = await equipmentClient.getEquipment(ref.id);
 				if (machine) machineChanged(machine);
+				return incident;
 			},
 		},
 		{

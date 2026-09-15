@@ -25,6 +25,7 @@
 	],
 	"workflows": [
 		"request-to-order",
+		"equipment-incident",
 		"order-review-request",
 		"order-review-followup",
 		"team-invite"

@@ -17,6 +17,7 @@ import {
 	subtabReleased,
 	surfaceActivated,
 	surfaceMounted,
+	surfacePinsRestored,
 	surfacePinToggled,
 	workspaceReset,
 } from "./workspace";
@@ -95,6 +96,7 @@ function open(surface: string, key: string, permanent = false): void {
 describe("workspace", () => {
 	beforeEach(() => {
 		workspaceReset();
+		surfacePinsRestored({});
 		projectionPrepared = 0;
 		surfaceConfigured({
 			surfaces: [
@@ -206,6 +208,17 @@ describe("workspace", () => {
 		expect(tabs[0]?.pinned).toBe(true);
 	});
 
+	test("going home keeps what the user pinned", () => {
+		surfacePinToggled("sf-companies");
+		open("sf-orders", "orders.list");
+		workspaceReset();
+
+		// Reset is navigation. Pins are the saved workspace and outlive it.
+		expect($surfaceTabs.getState().map((tab) => tab.id)).toEqual([
+			"sf-companies",
+		]);
+	});
+
 	test("dynamic buttons are capped, permanent ones are not", () => {
 		open("sf-orders", "orders.view", true);
 		for (let index = 0; index < 12; index += 1) {
@@ -241,6 +254,7 @@ describe("workspace", () => {
 describe("the strip follows the registry", () => {
 	test("a surface declared after start-up appears without anything re-mounting", () => {
 		workspaceReset();
+		surfacePinsRestored({});
 		surfaceConfigured({
 			surfaces: [
 				{ id: "sf-orders", order: 1 },
@@ -265,6 +279,7 @@ describe("the strip follows the registry", () => {
 describe("authorization decides what is offered", () => {
 	test("a surface needing an account is still offered to a guest", () => {
 		workspaceReset();
+		surfacePinsRestored({});
 		declare("sf-private", "Private", "user");
 		surfaceConfigured({
 			surfaces: [{ id: "sf-orders" }, { id: "sf-private" }],
@@ -284,6 +299,7 @@ describe("authorization decides what is offered", () => {
 
 	test("a surface already open stays in the strip even when it stops being offered", () => {
 		workspaceReset();
+		surfacePinsRestored({});
 		surfaceConfigured({ surfaces: [{ id: "sf-orders" }] });
 		open("sf-unlisted", "unlisted.view");
 

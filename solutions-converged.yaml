@@ -8,6 +8,8 @@ spec:
     - access
     - auth
     - identity
+    - environment
+    - notify
     - markdown
     - struct
     - galery
@@ -33,7 +35,6 @@ spec:
     - events
     - reviews
     - staff
-    - notify
   lambdas:
     - ses
     - compressors
@@ -145,6 +146,35 @@ spec:
             type: string
         required:
           - requestId
+    - id: equipment-incident
+      name: wf-equipment-incident
+      script: workflows/wf-equipment-incident.js
+      brief: Report a machine breakdown
+      description: "Report that a machine is down: it is set to error, the incident
+        lands in its journal, the slot it was running is cancelled and the order
+        on that slot is blocked, and everyone in the workspace is notified.
+        Future bookings are not moved — they come back as at risk for the shop
+        to re-plan."
+      parameters:
+        type: object
+        properties:
+          equipmentId:
+            type: string
+            description: The machine that broke
+          description:
+            type: string
+            description: What happened, in the reporter's words
+          severity:
+            type: string
+            enum:
+              - warning
+              - error
+              - critical
+          dryRun:
+            type: boolean
+            description: Show what would be cancelled and blocked without changing anything
+        required:
+          - equipmentId
     - id: order-review-request
       name: wf-order-review-request
       script: workflows/wf-order-review-request.js
@@ -160,10 +190,17 @@ spec:
             description: Envelope sender; omit to use the deployment's configured address
           shopName:
             type: string
+            description: Name in the letter; omit to use the company's brand
           delayHours:
             type: number
           dryRun:
             type: boolean
+          transport:
+            type: string
+            enum:
+              - ses
+              - smtp
+            description: Which relay this deployment runs; defaults to ses
     - id: order-review-followup
       name: wf-order-review-followup
       script: workflows/wf-order-review-followup.js
@@ -179,12 +216,19 @@ spec:
             description: Envelope sender; omit to use the deployment's configured address
           shopName:
             type: string
+            description: Name in the letter; omit to use the company's brand
           delayDays:
             type: number
           maxFollowups:
             type: number
           dryRun:
             type: boolean
+          transport:
+            type: string
+            enum:
+              - ses
+              - smtp
+            description: Which relay this deployment runs; defaults to ses
     - id: team-invite
       name: wf-team-invite
       script: workflows/wf-team-invite.js
@@ -221,10 +265,8 @@ spec:
             type: string
           from:
             type: string
-            description: Sender address; without it no letters are sent
+            description: Envelope sender; omit to use the deployment's configured address
           consoleUrl:
-            type: string
-          subject:
             type: string
           provider:
             type: string

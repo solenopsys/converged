@@ -59,6 +59,7 @@ import {
 	$surfaceTabs,
 	workspaceReset,
 } from "./workspace";
+import { startWorkspacePins } from "./workspace-pins";
 import { isConsolePath } from "./workspace-url";
 import "./reference-presenter";
 import "./legacy-widget-presenter";
@@ -358,6 +359,10 @@ export function AppShell({
 	// browser just did. Subscribing here rather than in the tab keeps arriving
 	// notifications counted while the panel is closed.
 	useEffect(() => startNotifications(), []);
+
+	// Pinned surfaces are the saved workspace: without this they live in the
+	// page and a reload loses them.
+	useEffect(() => startWorkspacePins(), []);
 
 	useEffect(() => {
 		const report = () =>

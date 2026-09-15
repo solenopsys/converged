@@ -9,7 +9,8 @@
   },
   "wf": {
     "workflows": {
-      "wf-request-analyze.js": "x"
+      "wf-request-analyze.js": "x",
+      "wf-equipment-incident.js": "x"
     }
   },
   "tg": {

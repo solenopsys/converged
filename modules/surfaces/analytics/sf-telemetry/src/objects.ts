@@ -1,5 +1,5 @@
 import { EntityListView } from "front-core";
-import { defineSurface, objectRef, setOf } from "front-core/object-runtime";
+import { defineSurface, setOf, setRef } from "front-core/object-runtime";
 import type { TelemetryQueryParams } from "g-telemetry";
 import { telemetryColumns } from "./functions/columns";
 import telemetry from "./service";
@@ -39,10 +39,18 @@ export default defineSurface({
 					hasPreset(params, "telemetry.cold")
 						? telemetry.listCold(params as TelemetryQueryParams)
 						: telemetry.listHot(params as TelemetryQueryParams),
+				// A sample has no card of its own; the thing worth opening is the
+				// machine that sent it. The ref names `equipment.machine` and nothing
+				// else — whichever surface owns that type opens its table narrowed to
+				// this device key, and this one never imports it.
 				rowRef: (row) =>
-					objectRef(
-						"telemetry.entry",
-						`${String(row.ts)}:${String(row.device_id)}:${String(row.param)}`,
+					setRef(
+						"equipment.machine",
+						{
+							kind: "query",
+							filter: { deviceId: { eq: String(row.device_id ?? "") } },
+						},
+						{ title: String(row.device_id ?? "") },
 					),
 				filters: [
 					{

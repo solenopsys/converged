@@ -2,7 +2,12 @@ import { createDomain, sample } from "effector";
 import type { FileMetadata } from "g-files";
 import type { Order, OrderDashboard } from "g-orders";
 import type { RequestMetrics } from "g-requests";
-import { filesClient, ordersClient, requestsClient } from "./services";
+import {
+	equipmentClient,
+	filesClient,
+	ordersClient,
+	requestsClient,
+} from "./services";
 
 const domain = createDomain("sf-orders");
 
@@ -108,17 +113,37 @@ export const $dashboardState = domain
 		error: error.message,
 	}));
 
+/** The machine the job is on, for its name. Owned by rp-equipment, so the card
+ *  reads it beside the order rather than asking rp-orders to know machines. */
+const loadOrderMachineFx = domain.createEffect({
+	name: "LOAD_ORDER_MACHINE",
+	handler: async (equipmentId: string) => {
+		const machine = await equipmentClient.getEquipment(equipmentId);
+		return machine
+			? {
+					id: machine.id,
+					name: machine.name || machine.kind,
+					status: machine.status,
+				}
+			: null;
+	},
+});
+
+export type OrderMachine = { id: string; name: string; status: string };
+
 export const $orderCard = domain
 	.createStore<{
 		order: Order | null;
 		files: AttachedFile[];
 		filesLoading: boolean;
+		machine: OrderMachine | null;
 		loading: boolean;
 		error: string | null;
 	}>({
 		order: null,
 		files: [],
 		filesLoading: false,
+		machine: null,
 		loading: false,
 		error: null,
 	})
@@ -126,6 +151,7 @@ export const $orderCard = domain
 		...state,
 		order: null,
 		files: [],
+		machine: null,
 		error: null,
 	}))
 	.on(loadOrderFx.pending, (state, loading) => ({ ...state, loading }))
@@ -158,7 +184,12 @@ export const $orderCard = domain
 		...state,
 		files: [],
 		filesLoading: false,
-	}));
+	}))
+	// A machine answer that arrives after the job moved to another is stale.
+	.on(loadOrderMachineFx.done, (state, { params, result }) =>
+		state.order?.equipmentId === params ? { ...state, machine: result } : state,
+	)
+	.on(loadOrderMachineFx.fail, (state) => ({ ...state, machine: null }));
 
 sample({
 	clock: orderOpened,
@@ -173,6 +204,15 @@ sample({
 	filter: (order): order is Order => Boolean(order?.requestId),
 	fn: (order) => order.requestId as string,
 	target: loadOrderFilesFx,
+});
+
+// The machine's name rather than its id — a read that may fail (no rights on
+// equipment, machine removed), in which case the card keeps showing the id.
+sample({
+	clock: [loadOrderFx.doneData, orderChanged],
+	filter: (order): order is Order => Boolean(order?.equipmentId),
+	fn: (order) => order.equipmentId as string,
+	target: loadOrderMachineFx,
 });
 
 // Five statistic tiles report mounting, and they all want the same two reads.

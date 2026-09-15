@@ -1,6 +1,6 @@
 {
 	"title": "Access and identity",
-	"summary": "Accounts, sign-in, permissions, and the mail layer — sender, letter templates and delivery journal — every other solution authenticates and writes through.",
+	"summary": "Accounts, sign-in, permissions, each user's saved workspace, and the mail layer — sender, letter templates and delivery journal — every other solution authenticates and writes through.",
 	"keywords": [
 		"auth",
 		"login",
@@ -13,6 +13,7 @@
 		"access",
 		"auth",
 		"identity",
+		"environment",
 		"notify"
 	],
 	"lambdas": [

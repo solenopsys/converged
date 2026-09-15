@@ -96,6 +96,13 @@ export const surfaceMounted = createEvent<string>("SURFACE_MOUNTED");
 export const surfaceActivated = createEvent<string>("SURFACE_ACTIVATED");
 export const surfaceClosed = createEvent<string>("SURFACE_CLOSED");
 export const surfacePinToggled = createEvent<string>("SURFACE_PIN_TOGGLED");
+/**
+ * Replaces the pin overrides wholesale — with what the environment service
+ * remembered for this user, or with nothing when the user changes.
+ */
+export const surfacePinsRestored = createEvent<Record<string, boolean>>(
+	"SURFACE_PINS_RESTORED",
+);
 
 export const subtabOpened = createEvent<OpenSubtab>("SUBTAB_OPENED");
 export const subtabActivated = createEvent<string>("SUBTAB_ACTIVATED");
@@ -278,7 +285,13 @@ export const $workspace = createStore<WorkspaceState>(initialState, {
 		...state,
 		pins: { ...state.pins, [surface]: !isPinned(state, surface) },
 	}))
-	.reset(workspaceReset);
+	.on(surfacePinsRestored, (state, pins) => ({ ...state, pins }))
+	// Resetting is navigation — the brand button, a restored URL — and pins are
+	// the user's preference, not a position. Dropping them here would also make
+	// the next toggle save a layout with every other pin missing.
+	.on(workspaceReset, (state) => ({ ...initialState, pins: state.pins }));
+
+export const $surfacePins = $workspace.map((state) => state.pins);
 
 /** Configured pin, overridden by whatever the user did this session. */
 function isPinned(state: WorkspaceState, surface: string): boolean {

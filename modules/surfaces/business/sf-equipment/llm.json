@@ -19,7 +19,7 @@
 		},
 		"equipment.machine.set-state": {
 			"brief": "Set machine state",
-			"description": "Mark a machine as running, idle, in maintenance, in error or offline. Needs a machine in context.",
+			"description": "Mark a machine as running, idle, in maintenance, in error or offline. Needs a machine in context. Error reports a breakdown: the running slot is released, the order on it is blocked and the workspace is notified — pass what happened as description.",
 			"category": "equipment",
 			"exposure": "llm",
 			"priority": "primary",
@@ -30,7 +30,11 @@
 						"type": "string",
 						"enum": ["running", "idle", "maintenance", "error", "offline"]
 					},
-					"jobId": { "type": "string" }
+					"jobId": { "type": "string" },
+					"description": {
+						"type": "string",
+						"description": "What happened, when the state is error"
+					}
 				},
 				"required": ["status"]
 			}

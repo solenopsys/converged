@@ -1,9 +1,11 @@
 ## Security
 
-Converged starts from the assumption that production data should not be thrown into one shared pile. Orders, client files, technological parameters, payments, messages, and equipment telemetry must be separated by workspaces and responsibility zones.
+Security in Converged starts with transparency and control. **The entire Converged codebase is open source under AGPL-3.0.** There are no hidden proprietary components that users have to trust blindly. The code can be inspected, audited, modified, and deployed independently.
 
-Architecturally, this is supported by data isolation. Microservices own their stores, and workspaces can have separate directories, keys, files, and access boundaries. This simplifies export, self-hosted migration, backups, and audit.
+Converged uses AI-assisted security validation throughout the development and publication process. Code is automatically checked by AI models for vulnerabilities, unsafe patterns, architectural violations, and compliance with platform security rules before modules are accepted into the ecosystem. This creates a continuous security gate rather than relying only on manual review.
 
-Access rights apply not only to people, but also to AI agents. If a model launches an action, reads data, or calls a workflow, it must happen within its permission profile. Actions are logged, so it is possible to reconstruct who or which agent initiated a step, what data was affected, and how the scenario ended.
+Data is isolated by workspace, tenant, and access boundary. Orders, customer files, production data, payments, messages, equipment data, and other business information remain separated according to the structure and permissions of the installation. Access is enforced for both human users and AI agents: an AI agent can only access data and perform operations allowed by its own permission profile, and actions are recorded for audit.
 
-Self-hosted and private deployments give the client full control over infrastructure: network, secrets, API keys, backups, and physical data location. Cloud mode is operationally easier, but should not become vendor lock-in: data must remain portable, and scenarios must remain reproducible in another installation.
+**Enterprise provides the highest level of control.** Converged is deployed directly into your infrastructure and your cloud accounts, using your own API keys and credentials. Your data, storage, network, secrets, backups, and AI resources remain inside **your own control perimeter**. 4IR does not require you to move your business data into a separate shared environment.
+
+This model gives companies a choice between convenience and control without giving up ownership of their technology or data. The platform remains open source, the data remains portable, and Enterprise customers can operate Converged entirely within their own infrastructure and security policies.

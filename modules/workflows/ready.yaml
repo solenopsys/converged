@@ -1,6 +1,7 @@
 # ready | _
 modules:
   wf-dialogue-summary: _
+  wf-equipment-incident: ready
   wf-file-analyze: ready
   wf-file-unpack: ready
   wf-files-analyze: ready

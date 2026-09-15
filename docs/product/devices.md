@@ -1,9 +1,15 @@
-## Equipment and Shop Floor
+# Converged
 
-Converged does not replace machine firmware and does not try to control production blindly. It connects above the equipment, reads telemetry, links machine state to orders, and shows what is really happening on the shop floor.
+**Converged is a Smart Workshop platform — like a smart home, but for your workshop.**
 
-The platform is designed for different equipment types: Bambu Lab, Marlin, and Klipper 3D printers, CNC machines, robotic cells, and specialized adapters. Where possible, Converged receives statuses, errors, execution progress, temperature, task queues, and other technical data. Where direct control is risky or unavailable, the system remains a layer of observation and coordination.
+Converged is an open-source platform that connects machines, orders, files, calls, email, external services, and AI into one business system. It can run anywhere from a Raspberry Pi to a Kubernetes cluster, without vendor lock-in.
 
-For the owner, this means one simple thing: equipment stops being a set of separate windows. You can see which machines are busy, where there is idle time, what is late, which order is tied to a specific operation, and where an operator needs to intervene. As the fleet grows, this visibility becomes more important than manually switching between separate printer or machine interfaces.
+A Smart Workshop adds a business layer above the production floor, connecting AI, equipment, people, and external services into one system. Converged works with existing machine firmware and control systems rather than replacing them. It collects equipment data, connects machine state to orders and workflows, and can interact with equipment where appropriate.
 
-Converged also connects equipment to the business process. A task is not merely “printing” or “milling”; it sits in the context of an order, deadline, client, material, payment, and next step. The shop floor becomes part of the shared system instead of a separate island.
+The goal is not simply to monitor machines. **You do the production — Converged takes care of everything around it.** Requests, files, estimates, scheduling, queues, customer communication, order status, payments, delivery, notifications, external services, and routine operational work become part of the same system.
+
+Converged supports different types of equipment, including Bambu Lab, Marlin and Klipper 3D printers, CNC machines, robotic cells, and specialized equipment through adapters. AI works in the same business context and can use equipment data and business operations through Services and Workflows.
+
+The result is a workshop that operates as one connected system instead of a collection of separate machines, applications, and services.
+
+**Machines make parts. People handle engineering. Converged takes care of everything else.**

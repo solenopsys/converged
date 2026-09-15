@@ -120,6 +120,41 @@
 			}
 		},
 		{
+			"id": "equipment-incident",
+			"name": "wf-equipment-incident",
+			"script": "workflows/wf-equipment-incident.js",
+			"brief": "Report a machine breakdown",
+			"description": "Report that a machine is down: it is set to error, the incident lands in its journal, the slot it was running is cancelled and the order on that slot is blocked, and everyone in the workspace is notified. Future bookings are not moved — they come back as at risk for the shop to re-plan.",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"equipmentId": {
+						"type": "string",
+						"description": "The machine that broke"
+					},
+					"description": {
+						"type": "string",
+						"description": "What happened, in the reporter's words"
+					},
+					"severity": {
+						"type": "string",
+						"enum": [
+							"warning",
+							"error",
+							"critical"
+						]
+					},
+					"dryRun": {
+						"type": "boolean",
+						"description": "Show what would be cancelled and blocked without changing anything"
+					}
+				},
+				"required": [
+					"equipmentId"
+				]
+			}
+		},
+		{
 			"id": "order-review-request",
 			"name": "wf-order-review-request",
 			"script": "workflows/wf-order-review-request.js",

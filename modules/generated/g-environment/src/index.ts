@@ -6,22 +6,28 @@ import {
 } from "nrpc";
 
 export type SavedWindow = {
-  key: string;
-  actionId: string;
-  params?: Record<string, unknown>;
-  pinned?: boolean;
+	key: string;
+	actionId: string;
+	params?: Record<string, unknown>;
+	pinned?: boolean;
 };
 
 export type CommandLayout = {
-  pinned: string[];
-  hidden: string[];
-  order: string[];
+	pinned: string[];
+	hidden: string[];
+	order: string[];
+};
+
+export type SurfaceLayout = {
+	pinned: string[];
+	unpinned: string[];
 };
 
 export type UserEnvironment = {
-  windows: SavedWindow[];
-  commands: CommandLayout;
-  updatedAt: string;
+	windows: SavedWindow[];
+	commands: CommandLayout;
+	surfaces: SurfaceLayout;
+	updatedAt: string;
 };
 
 export const metadata: ServiceMetadata = {
@@ -66,23 +72,43 @@ export const metadata: ServiceMetadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
+    },
+    {
+      "name": "saveSurfaceLayout",
+      "parameters": [
+        {
+          "name": "layout",
+          "type": "SurfaceLayout",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "UserEnvironment",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     }
   ],
   "types": [
     {
       "name": "SavedWindow",
       "kind": "type",
-      "definition": "{\n  key: string;\n  actionId: string;\n  params?: Record<string, unknown>;\n  pinned?: boolean;\n}"
+      "definition": "{\n\tkey: string;\n\tactionId: string;\n\tparams?: Record<string, unknown>;\n\tpinned?: boolean;\n}"
     },
     {
       "name": "CommandLayout",
       "kind": "type",
-      "definition": "{\n  pinned: string[];\n  hidden: string[];\n  order: string[];\n}"
+      "definition": "{\n\tpinned: string[];\n\thidden: string[];\n\torder: string[];\n}"
+    },
+    {
+      "name": "SurfaceLayout",
+      "kind": "type",
+      "definition": "{\n\tpinned: string[];\n\tunpinned: string[];\n}"
     },
     {
       "name": "UserEnvironment",
       "kind": "type",
-      "definition": "{\n  windows: SavedWindow[];\n  commands: CommandLayout;\n  updatedAt: string;\n}"
+      "definition": "{\n\twindows: SavedWindow[];\n\tcommands: CommandLayout;\n\tsurfaces: SurfaceLayout;\n\tupdatedAt: string;\n}"
     }
   ]
 };
@@ -92,6 +118,7 @@ export interface EnvironmentService {
   getCurrent(): Promise<UserEnvironment>;
   saveWindows(windows: SavedWindow[]): Promise<UserEnvironment>;
   saveCommandLayout(layout: CommandLayout): Promise<UserEnvironment>;
+  saveSurfaceLayout(layout: SurfaceLayout): Promise<UserEnvironment>;
 }
 
 // Client interface
@@ -99,6 +126,7 @@ export interface EnvironmentServiceClient {
   getCurrent(): Promise<UserEnvironment>;
   saveWindows(windows: SavedWindow[]): Promise<UserEnvironment>;
   saveCommandLayout(layout: CommandLayout): Promise<UserEnvironment>;
+  saveSurfaceLayout(layout: SurfaceLayout): Promise<UserEnvironment>;
 }
 
 // Native factory: cruller-transport -> Fujin -> cluster peer.

@@ -95,6 +95,42 @@ function AttachedFileRow({
 	);
 }
 
+/** The machine the job is on. Opening it hands off to whichever surface owns
+ *  `equipment.machine`; this card does not import it. */
+function MachineField({
+	label,
+	equipmentId,
+	name,
+	unassigned,
+}: {
+	label: string;
+	equipmentId?: string;
+	name?: string;
+	unassigned: string;
+}) {
+	if (!equipmentId) return <Field label={label} value={unassigned} />;
+	return (
+		<div class="flex flex-col gap-0.5">
+			<span class="text-[11px] uppercase tracking-wide text-muted-foreground">
+				{label}
+			</span>
+			<button
+				type="button"
+				class="truncate text-left text-sm hover:underline"
+				onClick={() =>
+					void presentReference(
+						objectRef("equipment.machine", equipmentId, {
+							title: name ?? equipmentId,
+						}),
+					)
+				}
+			>
+				{name ?? equipmentId}
+			</button>
+		</div>
+	);
+}
+
 function Field({ label, value }: { label: string; value: string }) {
 	return (
 		<div class="flex flex-col gap-0.5">
@@ -153,9 +189,15 @@ export function OrderDetailView({ orderId }: { orderId?: string }) {
 					label={text(t, "columns.due")}
 					value={formatDate(order.dueAt, dash)}
 				/>
-				<Field
+				<MachineField
 					label={text(t, "columns.machine")}
-					value={order.equipmentId ?? text(t, "detail.unassigned")}
+					equipmentId={order.equipmentId}
+					name={
+						card.machine?.id === order.equipmentId
+							? card.machine.name
+							: undefined
+					}
+					unassigned={text(t, "detail.unassigned")}
 				/>
 			</section>
 

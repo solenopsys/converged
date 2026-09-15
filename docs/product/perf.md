@@ -1,9 +1,11 @@
 ## Performance
 
-Converged is designed for production sites that do not always have a large server fleet. The system therefore avoids unnecessary weight: Bun reduces backend process overhead, Runtime stays stateless, and microservices can be grouped by load type instead of running hundreds of separate containers.
+Converged is designed for production systems that need to run fast and efficiently, even on compact hardware.
 
-Performance comes from architecture, not from one trick. Data does not pass through unnecessary layers, services own their stores, Runtime parallelizes workflows and cron jobs, and native adapters are used where HTTP or a regular JS layer would add too much overhead.
+At the core of Converged's system **infrastructure elements** is **Zig** — a modern, extremely fast, and simple systems programming language. It enables compact software with high performance and minimal resource requirements.
 
-A compact installation can run on a small server or single-board computer if the workload matches the scale of the workshop. As the company grows, Runtime, microservices, and storage groups can be separated to use more CPU cores, isolate heavy tasks, and prevent one bottleneck from stopping the whole system.
+TypeScript runs through **Cruller** — a specialized runtime derived from Bun and adapted to the Converged architecture.
 
-The platform does not promise infinite performance “out of the box”. Bottlenecks depend on equipment, file volume, order count, AI providers, and integrations. Converged’s architecture allows a company to start compactly and scale only the parts that actually become hot.
+This allows Converged to run on everything from small microcomputers to server clusters. As the workload grows, the system can scale without changing the platform itself — from a single machine to distributed infrastructure.
+
+**Fewer resources. More performance. Scaling without adding unnecessary complexity.**

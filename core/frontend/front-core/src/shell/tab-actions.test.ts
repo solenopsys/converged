@@ -9,6 +9,7 @@ import {
 	$surfaceTabs,
 	subtabOpened,
 	surfaceMounted,
+	surfacePinsRestored,
 	workspaceReset,
 } from "./workspace";
 
@@ -38,6 +39,7 @@ function open(surface: string, key: string): void {
 describe("workspace tab actions", () => {
 	beforeEach(() => {
 		workspaceReset();
+		surfacePinsRestored({});
 		surfaceConfigured({
 			surfaces: [
 				{ id: "sf-orders", order: 1 },

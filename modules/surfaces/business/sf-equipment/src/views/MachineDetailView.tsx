@@ -3,7 +3,7 @@ import { Sparkline } from "front-core";
 import { objectRef, presentReference } from "front-core/object-runtime";
 import type { EquipmentStatus } from "g-equipment";
 import type { Order } from "g-orders";
-import { useEffect, useMemo } from "preact/compat";
+import { useEffect, useMemo, useState } from "preact/compat";
 import {
 	logSeverityConfig,
 	machineStatusConfig,
@@ -12,6 +12,7 @@ import {
 import { deviceKeyOf } from "../device";
 import {
 	$machine,
+	$stateOutcome,
 	latestParameters,
 	machineOpened,
 	seriesOf,
@@ -84,9 +85,67 @@ function CurrentJob({ order }: { order: Order }) {
 	);
 }
 
+/**
+ * What reporting the breakdown did: the slot released, the job blocked, what is
+ * booked next and now in doubt. Shown because the operator pressed one button
+ * and three other screens changed.
+ */
+function StateOutcome({ machineId }: { machineId: string }) {
+	const outcome = useUnit($stateOutcome);
+	if (!outcome || outcome.machineId !== machineId) return null;
+	if (outcome.error) {
+		return <p class="text-sm text-rose-700">{outcome.error}</p>;
+	}
+	const incident = outcome.incident;
+	if (!incident) return null;
+	return (
+		<div class="flex flex-col gap-1 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-100">
+			<p>
+				Incident logged. Slots released: {incident.cancelledSlots.length}.
+				Orders blocked: {incident.blockedOrders.length}.
+			</p>
+			{incident.blockedOrders.length > 0 ? (
+				<p class="flex flex-wrap gap-2">
+					{incident.blockedOrders.map((orderId) => (
+						<button
+							key={orderId}
+							type="button"
+							class="font-mono text-xs underline"
+							onClick={() =>
+								void presentReference(objectRef("orders.order", orderId))
+							}
+						>
+							{orderId}
+						</button>
+					))}
+				</p>
+			) : null}
+			{incident.atRiskSlots.length > 0 ? (
+				<p>
+					Booked later on this machine and not moved:{" "}
+					{incident.atRiskSlots.length}. Re-plan them or keep them once it is
+					fixed.
+				</p>
+			) : null}
+			{incident.errors.length > 0 ? (
+				<p class="text-rose-700 dark:text-rose-300">
+					Not done:{" "}
+					{incident.errors
+						.map((error) => `${error.stage}${error.id ? ` ${error.id}` : ""}`)
+						.join(", ")}
+				</p>
+			) : null}
+		</div>
+	);
+}
+
 export function MachineDetailView({ machineId }: { machineId?: string }) {
 	const state = useUnit($machine);
 	const pending = useUnit(setStateFx.pending);
+	// Error is the one state that asks a question first: what happened goes into
+	// the journal, and the orders it blocks are read by people who were not here.
+	const [reporting, setReporting] = useState(false);
+	const [description, setDescription] = useState("");
 
 	useEffect(() => {
 		if (machineId) machineOpened({ machineId });
@@ -151,13 +210,67 @@ export function MachineDetailView({ machineId }: { machineId?: string }) {
 						key={status}
 						type="button"
 						disabled={pending || status === machine.status}
-						onClick={() => setStateFx({ id: machine.id, status })}
+						onClick={() =>
+							status === "error"
+								? setReporting(true)
+								: setStateFx({ id: machine.id, status })
+						}
 						class="rounded border border-border px-2.5 py-1 text-xs transition-colors hover:bg-accent disabled:opacity-40"
 					>
 						{machineStatusConfig[status]?.label ?? status}
 					</button>
 				))}
 			</section>
+
+			{reporting ? (
+				<form
+					class="flex flex-col gap-2 rounded-lg border border-border bg-card p-3"
+					onSubmit={(event) => {
+						event.preventDefault();
+						setStateFx({
+							id: machine.id,
+							status: "error",
+							description: description.trim() || undefined,
+						});
+						setReporting(false);
+						setDescription("");
+					}}
+				>
+					<label
+						class="text-xs text-muted-foreground"
+						for="incident-description"
+					>
+						What happened? The running slot is released and its order is
+						blocked.
+					</label>
+					<textarea
+						id="incident-description"
+						class="min-h-16 rounded border border-border bg-background p-2 text-sm"
+						value={description}
+						onInput={(event) =>
+							setDescription((event.target as HTMLTextAreaElement).value)
+						}
+					/>
+					<div class="flex gap-2">
+						<button
+							type="submit"
+							disabled={pending}
+							class="rounded bg-rose-600 px-2.5 py-1 text-xs text-white hover:bg-rose-700 disabled:opacity-40"
+						>
+							Report breakdown
+						</button>
+						<button
+							type="button"
+							onClick={() => setReporting(false)}
+							class="rounded border border-border px-2.5 py-1 text-xs hover:bg-accent"
+						>
+							Cancel
+						</button>
+					</div>
+				</form>
+			) : null}
+
+			<StateOutcome machineId={machine.id} />
 
 			<section class="grid grid-cols-2 gap-4 rounded-lg border border-border bg-card p-3 md:grid-cols-4">
 				<Field label="Kind" value={machine.kind} />
