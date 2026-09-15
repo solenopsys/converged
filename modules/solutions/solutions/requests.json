@@ -1,13 +1,33 @@
 {
+	"title": "Requests and files",
+	"summary": "Incoming requests with file upload, archive unpacking, model conversion and slicing.",
+	"keywords": [
+		"requests",
+		"files",
+		"upload",
+		"models",
+		"cad",
+		"slicing",
+		"quote"
+	],
 	"repositories": [
 		"dag",
 		"files",
 		"store",
 		"requests"
 	],
-	"lambdas": ["compressors", "modelconvertor"],
-	"surfaces": ["requests", "files"],
-	"processors": ["curaengine", "opencamlib"],
+	"lambdas": [
+		"compressors",
+		"modelconvertor"
+	],
+	"surfaces": [
+		"requests",
+		"files"
+	],
+	"processors": [
+		"curaengine",
+		"opencamlib"
+	],
 	"workflows": [
 		"files-process",
 		"file-unpack",

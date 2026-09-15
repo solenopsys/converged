@@ -1,4 +1,19 @@
 {
-	"repositories": ["markdown", "struct", "galery"],
-	"dependencies": ["security"]
+	"title": "Content",
+	"summary": "Markdown documents, structured records and image galleries.",
+	"keywords": [
+		"content",
+		"markdown",
+		"gallery",
+		"images",
+		"documents"
+	],
+	"repositories": [
+		"markdown",
+		"struct",
+		"galery"
+	],
+	"dependencies": [
+		"security"
+	]
 }

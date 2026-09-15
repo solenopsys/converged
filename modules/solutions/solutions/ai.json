@@ -1,4 +1,14 @@
 {
+	"title": "Assistant",
+	"summary": "Chat assistants, voice calls, conversation threads and the contexts they answer from.",
+	"keywords": [
+		"assistant",
+		"ai",
+		"chat",
+		"calls",
+		"threads",
+		"context"
+	],
 	"repositories": [
 		"assistant",
 		"calls",
@@ -6,10 +16,12 @@
 		"threads"
 	],
 	"surfaces": [
-	  "assistants",
+		"assistants",
 		"calls",
 		"contexts",
 		"threads"
 	],
-	"dependencies": ["security"]
+	"dependencies": [
+		"security"
+	]
 }

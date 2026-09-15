@@ -1,5 +1,23 @@
 {
-	"repositories": ["access", "auth", "identity"],
-	"lambdas": ["ses"],
-	"surfaces": ["auth"]
+	"title": "Access and identity",
+	"summary": "Accounts, sign-in, permissions and the mail sender every other solution authenticates through.",
+	"keywords": [
+		"auth",
+		"login",
+		"accounts",
+		"permissions",
+		"identity",
+		"email"
+	],
+	"repositories": [
+		"access",
+		"auth",
+		"identity"
+	],
+	"lambdas": [
+		"ses"
+	],
+	"surfaces": [
+		"auth"
+	]
 }

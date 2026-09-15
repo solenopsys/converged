@@ -1,9 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
-type JsonObject = Record<string, unknown>;
+export type JsonObject = Record<string, unknown>;
 
-type SolutionDefinition = {
+export type SolutionDefinition = {
 	dependencies?: string[];
 	mappings?: Record<string, string[]>;
 	surfaces?: string[];
@@ -13,7 +13,7 @@ type SolutionDefinition = {
 	workflows?: string[];
 };
 
-type MappingEntry = {
+export type MappingEntry = {
 	id?: string;
 	name: string;
 	script: string;
@@ -42,7 +42,7 @@ export type SolutionConfig = {
 	solution: ResolvedSolution;
 };
 
-function readObject(path: string): JsonObject {
+export function readObject(path: string): JsonObject {
 	let value: unknown;
 	try {
 		value = JSON.parse(readFileSync(path, "utf8"));
@@ -83,7 +83,10 @@ function mergeMappings(
 	return merged;
 }
 
-function definitionFrom(value: JsonObject, path: string): SolutionDefinition {
+export function definitionFrom(
+	value: JsonObject,
+	path: string,
+): SolutionDefinition {
 	const mappings: Record<string, string[]> = {};
 	if (value.mappings !== undefined) {
 		if (
@@ -109,7 +112,7 @@ function definitionFrom(value: JsonObject, path: string): SolutionDefinition {
 	};
 }
 
-function mappingsFrom(
+export function mappingsFrom(
 	value: JsonObject,
 	path: string,
 ): Map<string, Map<string, MappingEntry>> {

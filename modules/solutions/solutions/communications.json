@@ -1,4 +1,13 @@
 {
+	"title": "Communications",
+	"summary": "Community spaces, chats, threads and the files shared in them.",
+	"keywords": [
+		"community",
+		"chat",
+		"threads",
+		"messages",
+		"files"
+	],
 	"repositories": [
 		"threads",
 		"community",
@@ -10,5 +19,7 @@
 		"chats",
 		"threads"
 	],
-	"dependencies": ["security"]
+	"dependencies": [
+		"security"
+	]
 }

@@ -52,6 +52,13 @@ import unoSurfaceConfig from "../../../core/frontend/spa/uno.sf.config.ts";
 import { createCssPlugin, withStylePrologue } from "./css";
 import { discover, type Kind, type Module } from "./discover";
 import { LAYERS_PREFIX, type LayerFile, mergeLayers } from "./layers";
+import {
+	entriesOf,
+	missingArtifacts,
+	SOLUTIONS_PREFIX,
+	type SolutionsFile,
+	solutionCatalog,
+} from "./solutions";
 
 type Options = {
 	/** Converged checkout — the base layer. */
@@ -662,6 +669,7 @@ async function publish(
 	options: Options,
 	built: Built[],
 	layer: LayerFile,
+	catalog: SolutionsFile,
 	url: string | undefined,
 ): Promise<Manifest> {
 	const { client, description } = registryTarget();
@@ -711,6 +719,17 @@ async function publish(
 			.map((entry) => `${entry.layer}(${Object.keys(entry.modules).length})`)
 			.join(", ")}`,
 	);
+	// The catalogue goes out only once the mapping it is checked against exists,
+	// and only if the check passes. A solution naming a module no layer publishes
+	// is the one failure this registry cannot let through: the CR applies, and the
+	// pod dies at boot asking ptah for a digest nobody ever pushed.
+	verifyCatalog(catalog, mapping);
+	await client
+		.file(objectKey(`${SOLUTIONS_PREFIX}/${catalog.layer}.json`))
+		.write(JSON.stringify(catalog, null, "\t"), {
+			type: "application/json",
+		});
+
 	await client
 		.file(objectKey("modules.json"))
 		.write(JSON.stringify(mapping, null, "\t"), {
@@ -729,7 +748,32 @@ async function publish(
 	console.log(
 		`[registry] published ${uploaded} new object(s), ${built.length - uploaded} already present`,
 	);
+	console.log(
+		`[registry] catalogue ${catalog.layer}: ${Object.keys(catalog.solutions).length} solution(s), ` +
+			`revision ${catalog.revision.slice(0, 12)}…`,
+	);
 	return mapping;
+}
+
+/**
+ * Refuse a catalogue whose solutions name modules the mapping cannot resolve.
+ *
+ * The mapping is the merged one, so a product solution may legitimately name a
+ * converged module — what it may not do is name something nobody published.
+ */
+function verifyCatalog(catalog: SolutionsFile, mapping: Manifest): void {
+	const known = new Set([
+		...Object.keys(mapping.modules),
+		...Object.keys(mapping.workflows),
+	]);
+	const missing = missingArtifacts(entriesOf(catalog), known);
+	if (missing.length === 0) return;
+	throw new Error(
+		`[registry] catalogue "${catalog.layer}" names ${missing.length} module(s) ` +
+			`no layer publishes:\n  - ${missing
+				.map(({ solution, artifact }) => `${solution}: ${artifact}`)
+				.join("\n  - ")}`,
+	);
 }
 
 const options = parseArgs(Bun.argv.slice(2));
@@ -737,6 +781,14 @@ const built = await buildAll(options);
 if (built.length === 0) throw new Error("[registry] nothing was built");
 
 const layer = layerFile(options, built);
+// The catalogue is this layer's own, for the same reason its names are: a
+// product build publishes the product's solutions, and converged's are
+// converged's to publish.
+const catalog = solutionCatalog({
+	projectDir: options.childProjectDir ?? options.projectDir,
+	layer: layer.layer,
+	extends: layer.extends,
+});
 const url = registryUrl();
 
 // Publishing composes the mapping from every layer in the registry and hands
@@ -745,7 +797,7 @@ const url = registryUrl();
 // the whole fix: a partial mapping written as if it were the complete one is
 // what let a product build erase the base layer's names.
 const mapping = options.publish
-	? await publish(options, built, layer, url)
+	? await publish(options, built, layer, catalog, url)
 	: manifest(layer.modules, layer.workflows);
 if (!options.publish && layer.extends.length > 0) {
 	console.warn(
@@ -757,6 +809,10 @@ if (!options.publish && layer.extends.length > 0) {
 await Bun.write(
 	join(options.outDir, `${LAYERS_PREFIX}/${layer.layer}.json`),
 	`${JSON.stringify(layer, null, "\t")}\n`,
+);
+await Bun.write(
+	join(options.outDir, `${SOLUTIONS_PREFIX}/${catalog.layer}.json`),
+	`${JSON.stringify(catalog, null, "\t")}\n`,
 );
 await Bun.write(
 	join(options.outDir, "modules.json"),
@@ -781,7 +837,8 @@ if (values) {
 const shipped = built.reduce((sum, entry) => sum + entry.size, 0);
 const raw = built.reduce((sum, entry) => sum + entry.raw, 0);
 console.log(
-	`[registry] ${built.length} module(s) → ${options.outDir}, revision ${mapping.revision.slice(0, 12)}…\n` +
+	`[registry] ${Object.keys(catalog.solutions).length} solution(s) → ${join(options.outDir, SOLUTIONS_PREFIX)}\n` +
+		`[registry] ${built.length} module(s) → ${options.outDir}, revision ${mapping.revision.slice(0, 12)}…\n` +
 		`[registry] ${(shipped / 1024 / 1024).toFixed(2)} MiB br, ${(raw / 1024 / 1024).toFixed(2)} MiB uncompressed`,
 );
 

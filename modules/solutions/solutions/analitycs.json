@@ -1,5 +1,28 @@
 {
-	"repositories": ["logs", "telemetry", "counters", "usage", "dashboard"],
-	"surfaces": ["logs", "telemetry", "usage", "dasboards"],
-	"dependencies": ["security"]
+	"title": "Analytics",
+	"summary": "Logs, telemetry, usage counters and dashboards over them.",
+	"keywords": [
+		"analytics",
+		"logs",
+		"telemetry",
+		"usage",
+		"dashboards",
+		"metrics"
+	],
+	"repositories": [
+		"logs",
+		"telemetry",
+		"counters",
+		"usage",
+		"dashboard"
+	],
+	"surfaces": [
+		"logs",
+		"telemetry",
+		"usage",
+		"dasboards"
+	],
+	"dependencies": [
+		"security"
+	]
 }

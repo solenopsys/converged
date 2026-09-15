@@ -1,5 +1,22 @@
 {
-	"repositories": ["dag","sheduller","webhooks"],
-	"surfaces": ["automation"],
-	"dependencies": ["security"]
+	"title": "Automation",
+	"summary": "Workflows, schedules and webhooks that run them.",
+	"keywords": [
+		"automation",
+		"workflows",
+		"scheduler",
+		"webhooks",
+		"integration"
+	],
+	"repositories": [
+		"dag",
+		"sheduller",
+		"webhooks"
+	],
+	"surfaces": [
+		"automation"
+	],
+	"dependencies": [
+		"security"
+	]
 }

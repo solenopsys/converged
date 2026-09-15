@@ -1,4 +1,15 @@
 {
+	"title": "Production",
+	"summary": "Orders, equipment, shifts and customer reviews.",
+	"keywords": [
+		"orders",
+		"production",
+		"equipment",
+		"shop floor",
+		"cnc",
+		"reviews",
+		"staff"
+	],
 	"repositories": [
 		"orders",
 		"equipment",
