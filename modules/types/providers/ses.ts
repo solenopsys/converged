@@ -1,5 +1,13 @@
 export interface SesService {
-  sendEmail(payload: EmailPayload, credentials: SesCredentials): Promise<EmailResult>;
+  /**
+   * `credentials` is an override, not the normal path. Left out, the lambda
+   * reads its own environment — the same `<workspace>-secrets` k8s Secret ptah
+   * projects into its container. A caller that passes them is a test pinning a
+   * fake, or a deployment sending through a second account; a workflow never
+   * does, because a credential in a call parameter travels through the browser
+   * and through the assistant's tool catalogue to get here.
+   */
+  sendEmail(payload: EmailPayload, credentials?: SesCredentials): Promise<EmailResult>;
 }
 
 export type SesCredentials = {

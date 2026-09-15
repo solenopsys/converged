@@ -10,6 +10,7 @@
 		".": "./src/index.ts"
 	},
 	"dependencies": {
+		"back-core": "workspace:*",
 		"nodemailer": "latest",
 		"nrpc": "workspace:*",
 		"g-smtp": "workspace:*"

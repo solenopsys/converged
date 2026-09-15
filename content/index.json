@@ -1531,6 +1531,22 @@
       ]
     },
     {
+      "owner": "wf-request-to-order",
+      "path": "modules/workflows/wf-request-to-order/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/workflows/wf-request-to-order/docs/index.json",
+          "articles": [
+            {
+              "slug": "wf-request-to-order",
+              "file": "modules/workflows/wf-request-to-order/docs/wf-request-to-order.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "owner": "wf-sales-import",
       "path": "modules/workflows/wf-sales-import/docs",
       "sections": [

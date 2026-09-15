@@ -129,7 +129,8 @@
 				"type": "object",
 				"properties": {
 					"from": {
-						"type": "string"
+						"type": "string",
+						"description": "Envelope sender; omit to use the deployment's configured address"
 					},
 					"shopName": {
 						"type": "string"
@@ -140,10 +141,7 @@
 					"dryRun": {
 						"type": "boolean"
 					}
-				},
-				"required": [
-					"from"
-				]
+				}
 			}
 		},
 		{
@@ -156,7 +154,8 @@
 				"type": "object",
 				"properties": {
 					"from": {
-						"type": "string"
+						"type": "string",
+						"description": "Envelope sender; omit to use the deployment's configured address"
 					},
 					"shopName": {
 						"type": "string"
@@ -170,10 +169,7 @@
 					"dryRun": {
 						"type": "boolean"
 					}
-				},
-				"required": [
-					"from"
-				]
+				}
 			}
 		},
 		{
@@ -233,6 +229,14 @@
 					},
 					"dryRun": {
 						"type": "boolean"
+					},
+					"transport": {
+						"type": "string",
+						"enum": [
+							"ses",
+							"smtp"
+						],
+						"description": "Which relay this deployment runs; defaults to ses"
 					}
 				}
 			}

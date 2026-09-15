@@ -10,6 +10,7 @@
 		".": "./src/index.ts"
 	},
 	"dependencies": {
+		"back-core": "workspace:*",
 		"@aws-sdk/client-ses": "latest",
 		"nrpc": "workspace:*",
 		"g-ses": "workspace:*"

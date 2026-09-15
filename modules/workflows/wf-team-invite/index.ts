@@ -23,7 +23,7 @@ import { createAuthServiceRtClient } from "g-auth/rt";
 import { createFilesServiceRtClient } from "g-files/rt";
 import { createIdentityServiceRtClient } from "g-identity/rt";
 import { createNotifyServiceRtClient } from "g-notify/rt";
-import { createSesServiceRtClient, type SesCredentials } from "g-ses/rt";
+import { createSesServiceRtClient } from "g-ses/rt";
 import { createSmtpServiceRtClient } from "g-smtp/rt";
 import { createStaffServiceRtClient } from "g-staff/rt";
 
@@ -68,10 +68,14 @@ type Input = Partial<typeof DEFAULTS> & {
 	tags?: string[];
 	/** who is doing the inviting, for the journal; see §2.2 of team-contour.md */
 	invitedBy?: string;
+	/** Envelope sender; left out, the lambda uses the deployment's MAIL_FROM. */
 	from?: string;
-	/** transport override; without credentials the letters are simply skipped */
-	ses?: SesCredentials;
-	smtp?: Record<string, unknown>;
+	/**
+	 * Which relay the deployment runs. Not a credential — those live in the
+	 * lambda's own environment — only the shape of the deployment, and the
+	 * one thing a global script cannot work out for itself.
+	 */
+	transport?: "ses" | "smtp";
 	consoleUrl?: string;
 	/** provider+model enable the LLM pass; without them only the regex runs */
 	provider?: string;
@@ -392,49 +396,48 @@ rt.workflow = (input: Input) => {
 		// A refused SMTP relay must not undo an account that already exists. The
 		// address is in, the role is granted; what failed is one delivery, and
 		// that is what "resend" is for.
-		if (input.from && (input.ses || input.smtp)) {
-			const mailed = rt.attempt(`mail:${person.email}`, () => {
-				const link = auth.getMagicLink(person.email, consoleUrl || undefined);
-				const url = consoleUrl
-					? `${consoleUrl.replace(/\/+$/, "")}/auth/verify?token=${encodeURIComponent(link.token)}`
-					: link.token;
-				const payload = {
-					from: input.from as string,
-					to: person.email,
-					subject: o.subject,
-					body: letterBody(person.name, url, consoleUrl),
-					type: "html" as const,
-				};
-				const sent = input.ses
-					? ses.sendEmail(payload, input.ses)
-					: smtp.sendEmail(payload, input.smtp as any);
-				if (!sent.success) throw new Error(sent.error ?? "delivery refused");
-				return sent;
-			});
+		const mailed = rt.attempt(`mail:${person.email}`, () => {
+			const link = auth.getMagicLink(person.email, consoleUrl || undefined);
+			const url = consoleUrl
+				? `${consoleUrl.replace(/\/+$/, "")}/auth/verify?token=${encodeURIComponent(link.token)}`
+				: link.token;
+			const payload = {
+				from: input.from,
+				to: person.email,
+				subject: o.subject,
+				body: letterBody(person.name, url, consoleUrl),
+				type: "html" as const,
+			};
+			const sent =
+				input.transport === "smtp"
+					? smtp.sendEmail(payload)
+					: ses.sendEmail(payload);
+			if (!sent.success) throw new Error(sent.error ?? "delivery refused");
+			return sent;
+		});
 
-			if (mailed.ok) {
-				outcome.mailed = true;
-				result.mailed += 1;
-				const invite = identity.getInviteByEmail(person.email);
-				if (invite) identity.markInviteSent(invite.id);
-			} else {
-				outcome.mailed = false;
-				outcome.reason = mailed.error;
-				errors.push({ id: person.email, stage: "mail", message: mailed.error });
-			}
-
-			// The delivery journal is the same one every other letter writes to,
-			// so "was this person actually told" is one question with one answer.
-			rt.attempt(`journal:${person.email}`, () =>
-				notify.recordSend({
-					templateId: "team-invite",
-					channel: "email",
-					recipient: person.email,
-					params: { preset, invitedBy },
-					status: outcome.mailed ? "sent" : "failed",
-				}),
-			);
+		if (mailed.ok) {
+			outcome.mailed = true;
+			result.mailed += 1;
+			const invite = identity.getInviteByEmail(person.email);
+			if (invite) identity.markInviteSent(invite.id);
+		} else {
+			outcome.mailed = false;
+			outcome.reason = mailed.error;
+			errors.push({ id: person.email, stage: "mail", message: mailed.error });
 		}
+
+		// The delivery journal is the same one every other letter writes to,
+		// so "was this person actually told" is one question with one answer.
+		rt.attempt(`journal:${person.email}`, () =>
+			notify.recordSend({
+				templateId: "team-invite",
+				channel: "email",
+				recipient: person.email,
+				params: { preset, invitedBy },
+				status: outcome.mailed ? "sent" : "failed",
+			}),
+		);
 
 		if (outcome.status === "created") result.created += 1;
 		else if (outcome.status === "updated") result.updated += 1;

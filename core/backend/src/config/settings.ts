@@ -71,33 +71,41 @@ export const settings = {
 		// on a real customer tenant never mints a demo token. No default.
 		landingDemoMode: () => raw("LANDING_DEMO_MODE") === "true",
 	},
-	// Magic-link delivery for the UI auth-gateway. The transport is a deployment
-	// choice (AWS SES or a plain SMTP relay); credentials belong to whichever one
-	// is selected, and are read only when a link is actually sent.
-	authMail: {
+	// Outbound mail for the whole platform: the magic link the UI auth-gateway
+	// sends, and every letter lm-ses / lm-smtp put on the wire for a workflow.
+	// One block, because ptah projects the same `<workspace>-secrets` Secret into
+	// both the `ui` and the `services` container — a second set of credentials
+	// would be the same values under a second name.
+	//
+	// The transport is a deployment choice (AWS SES or a plain SMTP relay);
+	// credentials belong to whichever one is selected, and are read only when a
+	// letter is actually sent. Nothing here ever travels as a call parameter:
+	// a workflow is a global script with no environment, a lambda is a deployed
+	// container that has one, so the credentials live with the lambda.
+	mail: {
 		transport: (): "ses" | "smtp" => {
-			const value = requireRaw("AUTH_MAIL_TRANSPORT").toLowerCase();
+			const value = requireRaw("MAIL_TRANSPORT").toLowerCase();
 			if (value !== "ses" && value !== "smtp") {
 				throw new SettingsError(
-					`Env AUTH_MAIL_TRANSPORT must be "ses" or "smtp", got "${value}"`,
+					`Env MAIL_TRANSPORT must be "ses" or "smtp", got "${value}"`,
 				);
 			}
 			return value;
 		},
-		from: () => requireRaw("AUTH_MAIL_FROM"),
+		from: () => requireRaw("MAIL_FROM"),
 		ses: () => ({
-			accessKeyId: requireRaw("AUTH_MAIL_SES_ACCESS_KEY_ID"),
-			secretAccessKey: requireRaw("AUTH_MAIL_SES_SECRET_ACCESS_KEY"),
-			region: requireRaw("AUTH_MAIL_SES_REGION"),
+			accessKeyId: requireRaw("MAIL_SES_ACCESS_KEY_ID"),
+			secretAccessKey: requireRaw("MAIL_SES_SECRET_ACCESS_KEY"),
+			region: requireRaw("MAIL_SES_REGION"),
 		}),
 		smtp: () => ({
-			host: requireRaw("AUTH_MAIL_SMTP_HOST"),
-			port: requireInt("AUTH_MAIL_SMTP_PORT"),
-			secure: requireRaw("AUTH_MAIL_SMTP_SECURE") === "true",
-			auth: raw("AUTH_MAIL_SMTP_USER")
+			host: requireRaw("MAIL_SMTP_HOST"),
+			port: requireInt("MAIL_SMTP_PORT"),
+			secure: requireRaw("MAIL_SMTP_SECURE") === "true",
+			auth: raw("MAIL_SMTP_USER")
 				? {
-						user: requireRaw("AUTH_MAIL_SMTP_USER"),
-						pass: requireRaw("AUTH_MAIL_SMTP_PASS"),
+						user: requireRaw("MAIL_SMTP_USER"),
+						pass: requireRaw("MAIL_SMTP_PASS"),
 					}
 				: undefined,
 		}),
@@ -140,17 +148,17 @@ export const SETTINGS_REGISTRY: SettingDescriptor[] = [
 	{ name: "STORAGE_VALKEY_PORT" },
 	// demo
 	{ name: "LANDING_DEMO_MODE" },
-	// auth-gateway magic-link delivery
-	{ name: "AUTH_MAIL_TRANSPORT" },
-	{ name: "AUTH_MAIL_FROM" },
-	{ name: "AUTH_MAIL_SES_ACCESS_KEY_ID", secret: true },
-	{ name: "AUTH_MAIL_SES_SECRET_ACCESS_KEY", secret: true },
-	{ name: "AUTH_MAIL_SES_REGION" },
-	{ name: "AUTH_MAIL_SMTP_HOST" },
-	{ name: "AUTH_MAIL_SMTP_PORT" },
-	{ name: "AUTH_MAIL_SMTP_SECURE" },
-	{ name: "AUTH_MAIL_SMTP_USER" },
-	{ name: "AUTH_MAIL_SMTP_PASS", secret: true },
+	// outbound mail: the gateway's magic link and every lambda-sent letter
+	{ name: "MAIL_TRANSPORT" },
+	{ name: "MAIL_FROM" },
+	{ name: "MAIL_SES_ACCESS_KEY_ID", secret: true },
+	{ name: "MAIL_SES_SECRET_ACCESS_KEY", secret: true },
+	{ name: "MAIL_SES_REGION" },
+	{ name: "MAIL_SMTP_HOST" },
+	{ name: "MAIL_SMTP_PORT" },
+	{ name: "MAIL_SMTP_SECURE" },
+	{ name: "MAIL_SMTP_USER" },
+	{ name: "MAIL_SMTP_PASS", secret: true },
 	// ai providers
 	{ name: "OPENAI_API_KEY", secret: true },
 	{ name: "OPENAI_MODEL" },

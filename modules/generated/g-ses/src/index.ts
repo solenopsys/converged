@@ -42,7 +42,7 @@ export const metadata: ServiceMetadata = {
         {
           "name": "credentials",
           "type": "SesCredentials",
-          "optional": false,
+          "optional": true,
           "isArray": false
         }
       ],
@@ -73,12 +73,12 @@ export const metadata: ServiceMetadata = {
 
 // Server interface (to be implemented in microservice)
 export interface SesService {
-  sendEmail(payload: EmailPayload, credentials: SesCredentials): Promise<EmailResult>;
+  sendEmail(payload: EmailPayload, credentials?: SesCredentials): Promise<EmailResult>;
 }
 
 // Client interface
 export interface SesServiceClient {
-  sendEmail(payload: EmailPayload, credentials: SesCredentials): Promise<EmailResult>;
+  sendEmail(payload: EmailPayload, credentials?: SesCredentials): Promise<EmailResult>;
 }
 
 // Native factory: cruller-transport -> Fujin -> cluster peer.

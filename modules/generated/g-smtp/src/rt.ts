@@ -42,7 +42,7 @@ const metadata: ServiceMetadata = {
         {
           "name": "credentials",
           "type": "SmtpCredentials",
-          "optional": false,
+          "optional": true,
           "isArray": false
         }
       ],
@@ -73,7 +73,7 @@ const metadata: ServiceMetadata = {
 
 // RT client interface — synchronous (one QuickJS evaluation per workflow run).
 export interface SmtpServiceRtClient {
-  sendEmail(payload: EmailPayload, credentials: SmtpCredentials): EmailResult;
+  sendEmail(payload: EmailPayload, credentials?: SmtpCredentials): EmailResult;
 }
 
 export function createSmtpServiceRtClient(): SmtpServiceRtClient {

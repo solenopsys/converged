@@ -42,7 +42,7 @@ export const metadata: ServiceMetadata = {
         {
           "name": "credentials",
           "type": "SesCredentials",
-          "optional": false,
+          "optional": true,
           "isArray": false
         }
       ],
@@ -73,7 +73,7 @@ export const metadata: ServiceMetadata = {
 
 // Client interface
 export interface SesServiceClient {
-  sendEmail(payload: EmailPayload, credentials: SesCredentials): Promise<EmailResult>;
+  sendEmail(payload: EmailPayload, credentials?: SesCredentials): Promise<EmailResult>;
 }
 
 // Browser factory: frontend builds select this entrypoint automatically.

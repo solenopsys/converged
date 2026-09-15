@@ -1,4 +1,5 @@
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
+import { settings } from "back-core/settings";
 import { Access } from "nrpc";
 import type { EmailPayload, EmailResult, SesCredentials, SesService } from "./types";
 
@@ -6,19 +7,23 @@ export class SesServiceImpl implements SesService {
   @Access("internal")
   async sendEmail(
     payload: EmailPayload,
-    credentials: SesCredentials,
+    credentials?: SesCredentials,
   ): Promise<EmailResult> {
+    // The credentials belong here, not to the caller. This lambda is a deployed
+    // container and has an environment; a workflow is a global script and has
+    // none, so anything it had to pass would have come through the browser.
+    const creds = credentials ?? settings.mail.ses();
     const client = new SESClient({
-      region: credentials.region,
+      region: creds.region,
       credentials: {
-        accessKeyId: credentials.accessKeyId,
-        secretAccessKey: credentials.secretAccessKey,
+        accessKeyId: creds.accessKeyId,
+        secretAccessKey: creds.secretAccessKey,
       },
     });
 
     try {
       const command = new SendEmailCommand({
-        Source: payload.from,
+        Source: payload.from ?? settings.mail.from(),
         Destination: {
           ToAddresses: Array.isArray(payload.to) ? payload.to : [payload.to],
         },

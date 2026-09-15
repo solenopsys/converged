@@ -20,9 +20,11 @@ const PASTED = [
 	"petr@shop.test",
 ].join("\n");
 
+// No credentials: lm-smtp reads its own environment. `transport` only says
+// which relay this deployment runs — the one thing the flow cannot work out.
 const MAIL = {
 	from: "shop@example.test",
-	smtp: { host: "localhost", port: 25 },
+	transport: "smtp" as const,
 	consoleUrl: "https://console.example.test",
 };
 

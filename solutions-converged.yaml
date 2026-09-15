@@ -157,14 +157,13 @@ spec:
         properties:
           from:
             type: string
+            description: Envelope sender; omit to use the deployment's configured address
           shopName:
             type: string
           delayHours:
             type: number
           dryRun:
             type: boolean
-        required:
-          - from
     - id: order-review-followup
       name: wf-order-review-followup
       script: workflows/wf-order-review-followup.js
@@ -177,6 +176,7 @@ spec:
         properties:
           from:
             type: string
+            description: Envelope sender; omit to use the deployment's configured address
           shopName:
             type: string
           delayDays:
@@ -185,8 +185,6 @@ spec:
             type: number
           dryRun:
             type: boolean
-        required:
-          - from
     - id: team-invite
       name: wf-team-invite
       script: workflows/wf-team-invite.js
@@ -234,3 +232,9 @@ spec:
             type: string
           dryRun:
             type: boolean
+          transport:
+            type: string
+            enum:
+              - ses
+              - smtp
+            description: Which relay this deployment runs; defaults to ses

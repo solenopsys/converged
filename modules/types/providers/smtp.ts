@@ -1,5 +1,6 @@
 export interface SmtpService {
-  sendEmail(payload: EmailPayload, credentials: SmtpCredentials): Promise<EmailResult>;
+  /** An override, not the normal path — see `SesService.sendEmail`. */
+  sendEmail(payload: EmailPayload, credentials?: SmtpCredentials): Promise<EmailResult>;
 }
 
 export type SmtpCredentials = {

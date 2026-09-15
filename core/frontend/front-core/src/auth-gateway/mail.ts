@@ -1,5 +1,5 @@
 // Magic-link delivery. The transport is a deployment choice (AWS SES or a plain
-// SMTP relay) — both are supported and selected by AUTH_MAIL_TRANSPORT; the
+// SMTP relay) — both are supported and selected by MAIL_TRANSPORT; the
 // credentials for the selected one are required, with no silent fallback.
 import { settings } from "back-core/settings";
 import { sesClient, smtpClient } from "./clients";
@@ -18,9 +18,9 @@ function body(link: string): string {
 }
 
 export async function sendMagicLinkEmail(email: MagicLinkEmail): Promise<void> {
-	const transport = settings.authMail.transport();
+	const transport = settings.mail.transport();
 	const payload = {
-		from: settings.authMail.from(),
+		from: settings.mail.from(),
 		to: email.to,
 		subject: "Sign-in link",
 		body: body(email.link),
@@ -29,8 +29,8 @@ export async function sendMagicLinkEmail(email: MagicLinkEmail): Promise<void> {
 
 	const result =
 		transport === "ses"
-			? await sesClient().sendEmail(payload, settings.authMail.ses())
-			: await smtpClient().sendEmail(payload, settings.authMail.smtp());
+			? await sesClient().sendEmail(payload, settings.mail.ses())
+			: await smtpClient().sendEmail(payload, settings.mail.smtp());
 
 	if (!result.success) {
 		throw new Error(

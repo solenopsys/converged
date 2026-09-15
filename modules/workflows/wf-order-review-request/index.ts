@@ -12,12 +12,16 @@
 //
 // Services used: orders.listOrders, reviews.getSettings / listInvites /
 // createInvite / patchInvite, ses.sendEmail — all of them already exist.
+//
+// No mail credentials here: lm-ses reads them from its own environment. A flow
+// is a global script with no environment, so a credential it carried would have
+// arrived through the browser and the assistant's tool catalogue.
 
 import "dag-core/env";
 
 import { createOrdersServiceRtClient } from "g-orders/rt";
 import { createReviewsServiceRtClient } from "g-reviews/rt";
-import { createSesServiceRtClient, type SesCredentials } from "g-ses/rt";
+import { createSesServiceRtClient } from "g-ses/rt";
 
 const orders = createOrdersServiceRtClient();
 const reviews = createReviewsServiceRtClient();
@@ -27,8 +31,8 @@ const ses = createSesServiceRtClient();
 const BATCH = 50;
 
 type Input = {
-	from: string;
-	ses: SesCredentials;
+	/** Envelope sender; left out, lm-ses uses the deployment's MAIL_FROM. */
+	from?: string;
 	shopName?: string;
 	/** Overrides the delay held in the shop's settings, for a one-off catch-up. */
 	delayHours?: number;
@@ -53,10 +57,6 @@ function reviewUrlOf(base: string, token: string): string {
 }
 
 rt.workflow = (input: Input) => {
-	if (!(input?.from ?? "").trim())
-		throw new Error("order-review-request requires params.from");
-	if (!input.ses) throw new Error("order-review-request requires params.ses");
-
 	const settings = rt.node("read-settings", () => reviews.getSettings());
 	const delayHours = input.delayHours ?? settings.requestDelayHours;
 	const cutoff = new Date(Date.now() - delayHours * 3600_000).toISOString();
@@ -149,16 +149,13 @@ rt.workflow = (input: Input) => {
 	const body = renderTemplate(settings.bodyTemplate, vars);
 
 	const sent = rt.node(`send-email:${invite.id}`, () =>
-		ses.sendEmail(
-			{
-				from: input.from,
-				to: order.customerEmail,
-				subject,
-				body,
-				type: "text",
-			},
-			input.ses,
-		),
+		ses.sendEmail({
+			from: input.from,
+			to: order.customerEmail,
+			subject,
+			body,
+			type: "text",
+		}),
 	);
 
 	// lm-ses reports a refused mail as { success: false }, not as a throw — so

@@ -38,7 +38,7 @@ const metadata: ServiceMetadata = {
         {
           "name": "credentials",
           "type": "SesCredentials",
-          "optional": false,
+          "optional": true,
           "isArray": false
         }
       ],
@@ -69,7 +69,7 @@ const metadata: ServiceMetadata = {
 
 // RT client interface — synchronous (one QuickJS evaluation per workflow run).
 export interface SesServiceRtClient {
-  sendEmail(payload: EmailPayload, credentials: SesCredentials): EmailResult;
+  sendEmail(payload: EmailPayload, credentials?: SesCredentials): EmailResult;
 }
 
 export function createSesServiceRtClient(): SesServiceRtClient {

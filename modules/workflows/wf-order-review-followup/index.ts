@@ -15,15 +15,15 @@ import "dag-core/env";
 
 import { createOrdersServiceRtClient } from "g-orders/rt";
 import { createReviewsServiceRtClient } from "g-reviews/rt";
-import { createSesServiceRtClient, type SesCredentials } from "g-ses/rt";
+import { createSesServiceRtClient } from "g-ses/rt";
 
 const orders = createOrdersServiceRtClient();
 const reviews = createReviewsServiceRtClient();
 const ses = createSesServiceRtClient();
 
 type Input = {
-	from: string;
-	ses: SesCredentials;
+	/** Envelope sender; left out, lm-ses uses the deployment's MAIL_FROM. */
+	from?: string;
 	shopName?: string;
 	/** Overrides the settings for a one-off catch-up. */
 	delayDays?: number;
@@ -48,10 +48,6 @@ function reviewUrlOf(base: string, token: string): string {
 }
 
 rt.workflow = (input: Input) => {
-	if (!(input?.from ?? "").trim())
-		throw new Error("order-review-followup requires params.from");
-	if (!input.ses) throw new Error("order-review-followup requires params.ses");
-
 	const settings = rt.node("read-settings", () => reviews.getSettings());
 	const delayDays = input.delayDays ?? settings.followupDelayDays;
 	const maxFollowups = input.maxFollowups ?? settings.maxFollowups;
@@ -106,16 +102,13 @@ rt.workflow = (input: Input) => {
 	}
 
 	const sent = rt.node(`send-email:${invite.id}`, () =>
-		ses.sendEmail(
-			{
-				from: input.from,
-				to: invite.contact,
-				subject,
-				body,
-				type: "text",
-			},
-			input.ses,
-		),
+		ses.sendEmail({
+			from: input.from,
+			to: invite.contact,
+			subject,
+			body,
+			type: "text",
+		}),
 	);
 
 	if (!sent.success) {
