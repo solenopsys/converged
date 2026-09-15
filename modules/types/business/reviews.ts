@@ -176,6 +176,10 @@ export type ReviewPlatform = {
  * visible to everybody and only the order of the offer changes. The safe
  * behaviour is the default because the unsafe one is a complaint waiting to
  * happen, not a setting.
+ *
+ * The wording of the ask and the chase is not here: it is the
+ * `order-review-request` / `order-review-followup` templates in rp-notify, one
+ * per language, like every other letter.
  */
 export type ReviewSettings = {
 	platforms: ReviewPlatform[];
@@ -188,10 +192,6 @@ export type ReviewSettings = {
 	inviteTtlDays: number;
 	/** Base of the personal link; the token is appended by the sender. */
 	publicFormUrl: string;
-	subjectTemplate: string;
-	bodyTemplate: string;
-	followupSubjectTemplate: string;
-	followupBodyTemplate: string;
 	/** Sender address used by the outreach workflow. */
 	fromAddress?: string;
 	updatedAt?: ISODateString;

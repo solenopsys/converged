@@ -303,7 +303,7 @@ export class SalesStoreService {
 	async addLead(lead: LeadEntity): Promise<void> {
 		await this.claimId(lead.id);
 		await this.leadRepo.create(lead as any);
-		await this.access.tagNew(lead.id, { visibility: "authenticated" });
+		await this.access.tagNew(lead.id, { visibility: "authenticated", tags: ["sales"] });
 	}
 
 	/** A lead the caller holds no tag for reads as absent. */
@@ -419,7 +419,7 @@ export class SalesStoreService {
 			createdAt: Date.now(),
 			messagesCount: 1,
 		});
-		await this.access.tagNew(threadId, { visibility: "authenticated" });
+		await this.access.tagNew(threadId, { visibility: "authenticated", tags: ["sales"] });
 	}
 
 	async updateLeadCatalogId(
@@ -788,7 +788,7 @@ export class SalesStoreService {
 			)
 			.execute();
 		if (!known) {
-			await this.access.tagNew(offer.id, { visibility: "authenticated" });
+			await this.access.tagNew(offer.id, { visibility: "authenticated", tags: ["sales"] });
 		}
 	}
 
@@ -808,7 +808,7 @@ export class SalesStoreService {
 			)
 			.execute();
 		if (!known) {
-			await this.access.tagNew(tag.id, { visibility: "authenticated" });
+			await this.access.tagNew(tag.id, { visibility: "authenticated", tags: ["sales"] });
 		}
 	}
 
@@ -992,7 +992,7 @@ export class SalesStoreService {
 			)
 			.execute();
 		if (!known) {
-			await this.access.tagNew(outreach.id, { visibility: "authenticated" });
+			await this.access.tagNew(outreach.id, { visibility: "authenticated", tags: ["sales"] });
 		}
 	}
 

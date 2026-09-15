@@ -3,6 +3,8 @@
 // answer the question the workflow asks it, so the assertions can be about the
 // cascade rather than about any one repository.
 
+import { createNotifyMock } from "../../../core/dag/mail/mock-notify";
+
 export type TeamUniverse = {
 	filesById: Map<string, { name: string; text: string }>;
 	users: Map<
@@ -15,9 +17,16 @@ export type TeamUniverse = {
 	tags: Map<string, string[]>;
 	staff: Map<string, any>;
 	invites: Map<string, any>;
-	mails: { to: string; subject: string; body: string }[];
+	mails: {
+		to: string;
+		subject: string;
+		body: string;
+		text?: string;
+		type?: string;
+	}[];
 	journal: any[];
 	calls: string[];
+	notify: ReturnType<typeof createNotifyMock>;
 
 	addFile(fileId: string, name: string, text: string): void;
 	addUser(email: string, name?: string): string;
@@ -47,6 +56,7 @@ export function createTeamUniverse(): TeamUniverse {
 		mails: [],
 		journal: [],
 		calls: [],
+		notify: createNotifyMock(),
 
 		addFile(fileId, name, text) {
 			u.filesById.set(fileId, { name, text });
@@ -201,6 +211,8 @@ export function createTeamUniverse(): TeamUniverse {
 						to: payload.to,
 						subject: payload.subject,
 						body: payload.body,
+						text: payload.text,
+						type: payload.type,
 					});
 					return { success: true, messageId: nextId("msg") };
 				}
@@ -210,8 +222,11 @@ export function createTeamUniverse(): TeamUniverse {
 					return nextId("send");
 				}
 
-				default:
+				default: {
+					const answered = u.notify.handle(key, params);
+					if (answered) return answered.value;
 					throw new Error(`unexpected call ${key}`);
+				}
 			}
 		},
 	};

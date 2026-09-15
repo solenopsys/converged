@@ -15,8 +15,7 @@
 		"equipment",
 		"events",
 		"reviews",
-		"staff",
-		"notify"
+		"staff"
 	],
 	"surfaces": [
 		"orders",

@@ -1,6 +1,6 @@
 {
 	"title": "Access and identity",
-	"summary": "Accounts, sign-in, permissions and the mail sender every other solution authenticates through.",
+	"summary": "Accounts, sign-in, permissions, and the mail layer — sender, letter templates and delivery journal — every other solution authenticates and writes through.",
 	"keywords": [
 		"auth",
 		"login",
@@ -12,7 +12,8 @@
 	"repositories": [
 		"access",
 		"auth",
-		"identity"
+		"identity",
+		"notify"
 	],
 	"lambdas": [
 		"ses"

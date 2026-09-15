@@ -6,8 +6,11 @@
 	"module": "index.ts",
 	"dependencies": {
 		"dag-core": "workspace:*",
+		"dag-mail": "workspace:*",
+		"g-notify": "workspace:*",
 		"g-orders": "workspace:*",
 		"g-reviews": "workspace:*",
-		"g-ses": "workspace:*"
+		"g-ses": "workspace:*",
+		"g-smtp": "workspace:*"
 	}
 }

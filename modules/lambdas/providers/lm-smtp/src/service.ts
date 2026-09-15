@@ -20,7 +20,7 @@ export class SmtpServiceImpl implements SmtpService {
         from: payload.from ?? settings.mail.from(),
         to: Array.isArray(payload.to) ? payload.to.join(", ") : payload.to,
         subject: payload.subject,
-        text: payload.type === "text" ? payload.body : undefined,
+        text: payload.type === "text" ? payload.body : payload.text,
         html: payload.type === "html" ? payload.body : undefined,
       });
 

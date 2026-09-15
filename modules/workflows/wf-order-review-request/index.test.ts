@@ -13,9 +13,9 @@ beforeAll(async () => {
 	source = await buildWorkflow(join(import.meta.dir, "index.ts"));
 });
 
+// No credentials: lm-ses reads its own environment.
 const PARAMS = {
 	from: "shop@example.com",
-	ses: { accessKeyId: "k", secretAccessKey: "s", region: "eu-central-1" },
 	shopName: "Acme Works",
 };
 
@@ -36,12 +36,23 @@ describe("wf-order-review-request", () => {
 		expect(u.mails[0]).toMatchObject({
 			from: "shop@example.com",
 			to: "ann@example.com",
-			type: "text",
+			type: "html",
 		});
 		expect(u.mails[0].subject).toBe("How did we do with Bracket?");
 		// The link carries the token, so the review always knows its order.
 		expect(u.mails[0].body).toContain("https://shop.test/review/token-1");
-		expect(u.mails[0].body).toContain("Hello Ann");
+		// html with its text alternative, both from the shipped template
+		expect(u.mails[0].body).toContain('<html lang="en">');
+		expect(u.mails[0].text).toContain("Hello, Ann!");
+		expect(u.mails[0].text).toContain("Acme Works");
+		expect(u.transports).toEqual(["ses"]);
+
+		expect(u.notify.sends).toHaveLength(1);
+		expect(u.notify.sends[0]).toMatchObject({
+			templateId: "order-review-request",
+			recipient: "ann@example.com",
+			status: "sent",
+		});
 
 		expect(u.invites).toHaveLength(1);
 		expect(u.invites[0]).toMatchObject({
@@ -51,6 +62,42 @@ describe("wf-order-review-request", () => {
 			status: "sent",
 		});
 		expect(u.invites[0].sentAt).toBeDefined();
+	});
+
+	test("writes in the customer's language, else the company's", () => {
+		const u = createReviewUniverse();
+		u.addOrder({ customerLang: "de" });
+		u.addOrder({ customerLang: "zh", customerEmail: "li@example.com" });
+		u.notify.profile = { lang: "ru", brand: "Мастерская" };
+
+		runWorkflow(source, { from: "shop@example.com" }, u.handler);
+		expect(u.mails[0].subject).toBe("Wie war Bracket?");
+		expect(u.mails[0].text).toContain("Мастерская");
+
+		runWorkflow(source, { from: "shop@example.com" }, u.handler);
+		// No Chinese template: the company's language, not English.
+		expect(u.mails[1].subject).toBe("Как вам Bracket?");
+	});
+
+	test("goes through smtp when the deployment says so", () => {
+		const u = createReviewUniverse();
+		u.addOrder({});
+
+		runWorkflow(source, { ...PARAMS, transport: "smtp" }, u.handler);
+		expect(u.transports).toEqual(["smtp"]);
+	});
+
+	test("an unseeded template stops the run before a link is minted", () => {
+		const u = createReviewUniverse();
+		u.addOrder({});
+		u.notify.templates.clear();
+
+		const outcome = runWorkflow(source, PARAMS, u.handler);
+		expect(outcome.ok).toBe(false);
+		if (outcome.ok) return;
+		expect(outcome.error).toContain("notify template seed");
+		expect(u.invites).toEqual([]);
+		expect(u.mails).toEqual([]);
 	});
 
 	test("asks one customer per run, not the whole backlog", () => {
@@ -132,5 +179,6 @@ describe("wf-order-review-request", () => {
 			status: "failed",
 			error: "mailbox full",
 		});
+		expect(u.notify.sends[0]).toMatchObject({ status: "failed" });
 	});
 });

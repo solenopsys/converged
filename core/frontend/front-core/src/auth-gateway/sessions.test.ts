@@ -8,6 +8,10 @@ const guestUser = {
 };
 
 mock.module("./clients", () => ({
+	// Bun shares module mocks across files in one run; mail.test links these.
+	notifyClient: () => ({}),
+	sesClient: () => ({}),
+	smtpClient: () => ({}),
 	accessClient: () => ({
 		emitJWT: async () => "access-token",
 		getPermissionsFromUser: async () => ({ "*": { legacy: { read: "r" } } }),

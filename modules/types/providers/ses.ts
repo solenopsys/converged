@@ -22,6 +22,12 @@ export type EmailPayload = {
   subject: string;
   body?: string;
   type?: "html" | "text";
+  /**
+   * The plain-text alternative of an html `body`, sent alongside it as
+   * multipart/alternative. An html letter without one reads as spam to filters
+   * and as nothing to a text-only client.
+   */
+  text?: string;
 };
 
 export type EmailResult = {

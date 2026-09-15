@@ -6,6 +6,7 @@
 	"module": "index.ts",
 	"dependencies": {
 		"dag-core": "workspace:*",
+		"dag-mail": "workspace:*",
 		"g-access": "workspace:*",
 		"g-auth": "workspace:*",
 		"g-files": "workspace:*",

@@ -5,6 +5,7 @@
   "module": "./logs.ts",
   "dependencies": {
     "dag-cli": "workspace:*",
+    "dag-mail": "workspace:*",
     "g-access": "workspace:*",
     "g-auth": "workspace:*",
     "g-behemoth": "workspace:*",
@@ -16,6 +17,7 @@
     "g-functions": "workspace:*",
     "g-identity": "workspace:*",
     "g-logs": "workspace:*",
+    "g-notify": "workspace:*",
     "g-pushrouter": "workspace:*",
     "g-sheduller": "workspace:*",
     "g-staff": "workspace:*",

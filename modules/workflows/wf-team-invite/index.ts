@@ -18,6 +18,7 @@
 
 import "dag-core/env";
 
+import { pickLang, renderMail } from "dag-mail";
 import { createAccessServiceRtClient } from "g-access/rt";
 import { createAuthServiceRtClient } from "g-auth/rt";
 import { createFilesServiceRtClient } from "g-files/rt";
@@ -40,6 +41,9 @@ const staff = createStaffServiceRtClient();
  *  is how presets inherit — rp-access unions every linked tree. */
 const BASE_PRESET = "user";
 
+/** The letter itself lives in rp-notify, seeded from modules/commands/mail. */
+const TEMPLATE_ID = "team-invite";
+
 /**
  * Roles this workflow is allowed to hand out.
  *
@@ -57,7 +61,6 @@ const DEFAULTS = {
 	/** how much of one file to read; same cap the sales import uses */
 	maxCharsPerFile: 120000,
 	maxTokens: 4096,
-	subject: "You have been added to the workshop console",
 	dryRun: false,
 };
 
@@ -92,6 +95,8 @@ type Outcome = {
 	userId?: string;
 	invited?: boolean;
 	mailed?: boolean;
+	/** the language the letter went out in */
+	lang?: string;
 	reason?: string;
 };
 
@@ -189,20 +194,6 @@ function dedupe(people: Person[]): Person[] {
 		unique.push({ email: person.email, name: nameFor(person) });
 	}
 	return unique;
-}
-
-function letterBody(name: string, link: string, consoleUrl: string): string {
-	return [
-		`<p>Hello${name ? `, ${name}` : ""}!</p>`,
-		"<p>You have been added to the workshop console. This link signs you in:</p>",
-		`<p><a href="${link}">${link}</a></p>`,
-		consoleUrl
-			? `<p>The console lives at <a href="${consoleUrl}">${consoleUrl}</a>.</p>`
-			: "",
-		"<p>If you were not expecting this, ignore the message.</p>",
-	]
-		.filter(Boolean)
-		.join("\n");
 }
 
 rt.workflow = (input: Input) => {
@@ -317,6 +308,18 @@ rt.workflow = (input: Input) => {
 		return result;
 	}
 
+	// The letter, read once for the batch. Missing is loud and early — before a
+	// single account exists — because a batch that creates people and then
+	// cannot tell them is worse than one that did nothing and can be re-run.
+	const template = rt.node(`read-template:${TEMPLATE_ID}`, () =>
+		notify.getTemplate(TEMPLATE_ID),
+	);
+	if (!template)
+		throw new Error(
+			`mail template "${TEMPLATE_ID}" is not seeded; run \`notify template seed\``,
+		);
+	const profile = rt.node("read-profile", () => notify.getProfile());
+
 	// ---- 3. one attempt per person ------------------------------------------
 	for (const person of people) {
 		const outcome: Outcome = {
@@ -340,6 +343,7 @@ rt.workflow = (input: Input) => {
 					preset,
 				});
 			outcome.userId = user.id;
+			outcome.lang = (user as { lang?: string }).lang;
 			outcome.status = existing ? "updated" : "created";
 
 			// The role: base plus exactly one domain preset. Linking is idempotent
@@ -352,6 +356,7 @@ rt.workflow = (input: Input) => {
 			// the moment the import finishes rather than filling in as people
 			// arrive.
 			const card = staff.getStaffByEmail(person.email);
+			outcome.lang = outcome.lang || card?.lang;
 			if (card) {
 				staff.updateStaff(card.id, {
 					userId: user.id,
@@ -396,16 +401,29 @@ rt.workflow = (input: Input) => {
 		// A refused SMTP relay must not undo an account that already exists. The
 		// address is in, the role is granted; what failed is one delivery, and
 		// that is what "resend" is for.
+		// Their own language if the row or the card has one, else the company's.
+		const lang = pickLang(template, [done.value.lang, profile.lang]);
+		outcome.lang = lang;
 		const mailed = rt.attempt(`mail:${person.email}`, () => {
 			const link = auth.getMagicLink(person.email, consoleUrl || undefined);
 			const url = consoleUrl
 				? `${consoleUrl.replace(/\/+$/, "")}/auth/verify?token=${encodeURIComponent(link.token)}`
 				: link.token;
+			const mail = renderMail(template, lang, {
+				brand: profile.brand,
+				supportEmail: profile.supportEmail ?? "",
+				address: profile.address ?? "",
+				name: person.name,
+				url,
+				consoleUrl,
+				role: preset,
+			});
 			const payload = {
 				from: input.from,
 				to: person.email,
-				subject: o.subject,
-				body: letterBody(person.name, url, consoleUrl),
+				subject: mail.subject,
+				body: mail.html,
+				text: mail.text,
 				type: "html" as const,
 			};
 			const sent =
@@ -431,10 +449,10 @@ rt.workflow = (input: Input) => {
 		// so "was this person actually told" is one question with one answer.
 		rt.attempt(`journal:${person.email}`, () =>
 			notify.recordSend({
-				templateId: "team-invite",
+				templateId: TEMPLATE_ID,
 				channel: "email",
 				recipient: person.email,
-				params: { preset, invitedBy },
+				params: { preset, invitedBy, lang },
 				status: outcome.mailed ? "sent" : "failed",
 			}),
 		);

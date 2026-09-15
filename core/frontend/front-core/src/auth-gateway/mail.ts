@@ -1,29 +1,132 @@
 // Magic-link delivery. The transport is a deployment choice (AWS SES or a plain
 // SMTP relay) — both are supported and selected by MAIL_TRANSPORT; the
 // credentials for the selected one are required, with no silent fallback.
+//
+// The letter is the `magic-link` template in rp-notify, rendered by dag-mail —
+// the same template layer every workflow letter goes through. It is the first
+// thing any customer sees of the product, so it goes out in their language:
+// the account's, else the invitation's, else what their browser asked for,
+// else the company's.
 import { settings } from "back-core/settings";
-import { sesClient, smtpClient } from "./clients";
+import { pickLang, renderMail } from "dag-mail";
+import { identityClient, notifyClient, sesClient, smtpClient } from "./clients";
+
+const TEMPLATE_ID = "magic-link";
 
 export type MagicLinkEmail = {
 	to: string;
 	link: string;
+	/** the request's Accept-Language, as a hint when the account has no language */
+	acceptLanguage?: string;
+	/** the request's User-Agent, shown back so a stranger's request stands out */
+	userAgent?: string;
 };
 
-function body(link: string): string {
-	return [
-		"<p>Sign-in link:</p>",
-		`<p><a href="${link}">${link}</a></p>`,
-		"<p>If you did not request it, ignore this message.</p>",
-	].join("\n");
+/** `de-CH,de;q=0.9,en;q=0.8` → `["de-ch", "de", "en"]`, best first. */
+export function acceptedLangs(header: string | undefined): string[] {
+	return String(header ?? "")
+		.split(",")
+		.map((part) => {
+			const [tag, ...params] = part.trim().split(";");
+			const q = params.find((p) => p.trim().startsWith("q="));
+			return {
+				tag: tag.trim().toLowerCase(),
+				q: q ? Number(q.split("=")[1]) : 1,
+			};
+		})
+		.filter((entry) => entry.tag && entry.tag !== "*" && entry.q > 0)
+		.sort((a, b) => b.q - a.q)
+		.map((entry) => entry.tag);
+}
+
+/** "Firefox, Linux" — enough to recognise one's own device, and no more. */
+export function describeClient(userAgent: string | undefined): string {
+	const ua = String(userAgent ?? "");
+	if (!ua) return "";
+	const browser = /Edg\//.test(ua)
+		? "Edge"
+		: /OPR\//.test(ua)
+			? "Opera"
+			: /Firefox\//.test(ua)
+				? "Firefox"
+				: /Chrome\//.test(ua)
+					? "Chrome"
+					: /Safari\//.test(ua)
+						? "Safari"
+						: "";
+	const os = /iPhone|iPad/.test(ua)
+		? "iOS"
+		: /Android/.test(ua)
+			? "Android"
+			: /Mac OS X/.test(ua)
+				? "macOS"
+				: /Windows/.test(ua)
+					? "Windows"
+					: /Linux/.test(ua)
+						? "Linux"
+						: "";
+	return [browser, os].filter(Boolean).join(", ");
+}
+
+function requestedAt(lang: string, now: Date): string {
+	try {
+		return (
+			new Intl.DateTimeFormat(lang, {
+				dateStyle: "long",
+				timeStyle: "short",
+				timeZone: "UTC",
+			}).format(now) + " UTC"
+		);
+	} catch {
+		return `${now.toISOString().slice(0, 16).replace("T", " ")} UTC`;
+	}
 }
 
 export async function sendMagicLinkEmail(email: MagicLinkEmail): Promise<void> {
+	const notify = notifyClient();
+	const template = await notify.getTemplate(TEMPLATE_ID);
+	// Loud, not a bare three-line fallback: an unseeded install is found on its
+	// first sign-in rather than after months of letters nobody designed.
+	if (!template) {
+		throw new Error(
+			`[auth-gateway] mail template "${TEMPLATE_ID}" is not seeded; run \`notify template seed\``,
+		);
+	}
+	const profile = await notify.getProfile();
+
+	const identity = identityClient();
+	const [user, invite] = await Promise.all([
+		identity.getUserByEmail(email.to).catch(() => null),
+		identity.getInviteByEmail(email.to).catch(() => null),
+	]);
+	const lang = pickLang(template, [
+		user?.lang,
+		invite?.lang,
+		...acceptedLangs(email.acceptLanguage),
+		profile.lang,
+	]);
+
+	const mail = renderMail(template, lang, {
+		brand: profile.brand,
+		supportEmail: profile.supportEmail ?? "",
+		address: profile.address ?? "",
+		url: email.link,
+		email: email.to,
+		requestInfo: [
+			requestedAt(lang, new Date()),
+			describeClient(email.userAgent),
+		]
+			.filter(Boolean)
+			.join(" · "),
+	});
+
 	const transport = settings.mail.transport();
 	const payload = {
 		from: settings.mail.from(),
 		to: email.to,
-		subject: "Sign-in link",
-		body: body(email.link),
+		subject: mail.subject,
+		body: mail.html,
+		text: mail.text,
 		type: "html" as const,
 	};
 
@@ -31,6 +134,20 @@ export async function sendMagicLinkEmail(email: MagicLinkEmail): Promise<void> {
 		transport === "ses"
 			? await sesClient().sendEmail(payload, settings.mail.ses())
 			: await smtpClient().sendEmail(payload, settings.mail.smtp());
+
+	// The journal is written either way and never fails the sign-in: whether
+	// the letter left is the question support gets asked.
+	await notify
+		.recordSend({
+			templateId: TEMPLATE_ID,
+			channel: "email",
+			recipient: email.to,
+			params: { lang, transport },
+			status: result.success ? "sent" : "failed",
+		})
+		.catch((error) =>
+			console.warn("[auth-gateway] delivery journal failed", error),
+		);
 
 	if (!result.success) {
 		throw new Error(

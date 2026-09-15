@@ -159,10 +159,58 @@ describe("wf-team-invite", () => {
 		expect(u.mails[0].body).toContain(
 			"https://console.example.test/auth/verify?token=",
 		);
+		// The shipped template, html with its text alternative.
+		expect(u.mails[0].type).toBe("html");
+		expect(u.mails[0].subject).toBe("You have been added to Converge");
+		expect(u.mails[0].text).toContain(
+			"https://console.example.test/auth/verify?token=",
+		);
 		expect(u.journal).toHaveLength(3);
+		expect(u.journal[0]).toMatchObject({ templateId: "team-invite" });
 		expect(
 			[...u.invites.values()].every((invite: any) => invite.status === "sent"),
 		).toBe(true);
+	});
+
+	test("writes to a known person in their language, to the rest in the company's", () => {
+		const u = createTeamUniverse();
+		u.addUser("ivan@shop.test", "Ivan Petrov");
+		(u.users.get("ivan@shop.test") as any).lang = "de";
+		u.notify.profile = { lang: "ru", brand: "Мастерская" };
+
+		const outcome = runWorkflow(
+			source,
+			{ rawText: PASTED, ...MAIL },
+			u.handler,
+		);
+		if (!outcome.ok) throw new Error(outcome.error);
+
+		const subjectOf = (to: string) =>
+			u.mails.find((mail) => mail.to === to)?.subject;
+		expect(subjectOf("ivan@shop.test")).toBe(
+			"Sie wurden zu Мастерская hinzugefügt",
+		);
+		expect(subjectOf("maria@shop.test")).toBe("Вас добавили в Мастерская");
+		expect(u.journal.map((entry: any) => entry.params.lang).sort()).toEqual([
+			"de",
+			"ru",
+			"ru",
+		]);
+	});
+
+	test("an unseeded letter stops the batch before anyone is created", () => {
+		const u = createTeamUniverse();
+		u.notify.templates.clear();
+
+		const outcome = runWorkflow(
+			source,
+			{ rawText: PASTED, ...MAIL },
+			u.handler,
+		);
+		expect(outcome.ok).toBe(false);
+		if (outcome.ok) return;
+		expect(outcome.error).toContain("notify template seed");
+		expect(u.users.size).toBe(0);
 	});
 
 	test("a refused relay is a branch, not a lost account", () => {

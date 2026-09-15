@@ -39,6 +39,21 @@ export type NotifySendInput = {
   status?: string;
 };
 
+export type NotifyProfile = {
+  lang: string;
+  brand: string;
+  supportEmail?: string;
+  address?: string;
+  updatedAt?: ISODateString;
+};
+
+export type NotifyProfilePatch = {
+  lang?: string;
+  brand?: string;
+  supportEmail?: string;
+  address?: string;
+};
+
 export type NotifyChannelId = string;
 
 export type NotifyChannel = {
@@ -165,6 +180,29 @@ export const metadata: ServiceMetadata = {
       "isAsyncIterable": false
     },
     {
+      "name": "getProfile",
+      "parameters": [],
+      "returnType": "NotifyProfile",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "saveProfile",
+      "parameters": [
+        {
+          "name": "patch",
+          "type": "NotifyProfilePatch",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "NotifyProfile",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
       "name": "recordSend",
       "parameters": [
         {
@@ -240,6 +278,16 @@ export const metadata: ServiceMetadata = {
       "definition": "{\n  templateId: NotifyTemplateId;\n  channel: string;\n  recipient: string;\n  params?: Record<string, string | number | boolean | null>;\n  status?: string;\n}"
     },
     {
+      "name": "NotifyProfile",
+      "kind": "type",
+      "definition": "{\n  lang: string;\n  brand: string;\n  supportEmail?: string;\n  address?: string;\n  updatedAt?: ISODateString;\n}"
+    },
+    {
+      "name": "NotifyProfilePatch",
+      "kind": "type",
+      "definition": "{\n  lang?: string;\n  brand?: string;\n  supportEmail?: string;\n  address?: string;\n}"
+    },
+    {
       "name": "NotifyChannelId",
       "kind": "type",
       "definition": "string"
@@ -267,6 +315,8 @@ export interface NotifyServiceClient {
   getChannel(id: NotifyChannelId): Promise<NotifyChannel | any>;
   listChannels(): Promise<NotifyChannel[]>;
   deleteChannel(id: NotifyChannelId): Promise<boolean>;
+  getProfile(): Promise<NotifyProfile>;
+  saveProfile(patch: NotifyProfilePatch): Promise<NotifyProfile>;
   recordSend(input: NotifySendInput): Promise<NotifySendId>;
   getSend(id: NotifySendId): Promise<NotifySend | any>;
   listSends(): Promise<NotifySend[]>;

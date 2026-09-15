@@ -1,5 +1,5 @@
 // wf-sales-review-outreach on the real VM core (librt-mock.so) with mocked
-// rp-sales / lm-smtp. Build the library first:
+// rp-sales / rp-notify / lm-ses / lm-smtp. Build the library first:
 //   cd ../../../core/native/apps/centimanus && zig build mock
 
 import { beforeAll, describe, expect, test } from "bun:test";
@@ -13,10 +13,10 @@ beforeAll(async () => {
 	source = await buildWorkflow(join(import.meta.dir, "index.ts"));
 });
 
+// No credentials: the lambda reads its own environment.
 const PARAMS = {
 	lang: "en",
 	from: "sales@4ir.club",
-	smtp: { host: "smtp.test", port: 587, secure: false },
 	reviewUrl: "https://4ir.club/r/lead-1",
 	googleMapsReviewUrl: "https://maps.test/review",
 };
@@ -45,10 +45,17 @@ describe("wf-sales-review-outreach", () => {
 		expect(u.mails[0]).toMatchObject({
 			from: "sales@4ir.club",
 			to: "owner@acme.test",
-			type: "text",
+			type: "html",
 		});
 		expect(u.mails[0].body).toContain("https://4ir.club/r/lead-1");
 		expect(u.mails[0].body).toContain("https://maps.test/review");
+		expect(u.mails[0].text).toContain("Google Maps (https://maps.test/review)");
+		expect(u.transports).toEqual(["ses"]);
+		expect(u.notify.sends[0]).toMatchObject({
+			templateId: "sales-review-outreach",
+			recipient: "owner@acme.test",
+			status: "sent",
+		});
 
 		expect(u.events[0]).toMatchObject({
 			type: "email_sent",
@@ -113,14 +120,16 @@ describe("wf-sales-review-outreach", () => {
 		expect(u.touches).toEqual([]);
 	});
 
-	test("custom templates win over the defaults", () => {
-		const u = seed();
+	test("writes in the lead's language through the relay it is told", () => {
+		const u = createReviewUniverse();
+		u.setCandidate("es", {}, {});
+
 		const outcome = runWorkflow(
 			source,
 			{
 				...PARAMS,
-				subjectTemplate: "{{leadDescription}} — how did we do?",
-				bodyTemplate: "Hi {{recipientEmail}}, review us: {{reviewUrl}}",
+				lang: "es",
+				transport: "smtp",
 				touchDescriptionTemplate: "review ask {{trackingCode}}",
 			},
 			u.handler,
@@ -128,20 +137,23 @@ describe("wf-sales-review-outreach", () => {
 		expect(outcome.ok).toBe(true);
 		if (!outcome.ok) return;
 
-		expect(outcome.result.subject).toBe("Acme order #42 — how did we do?");
-		expect(u.mails[0].body).toBe(
-			"Hi owner@acme.test, review us: https://4ir.club/r/lead-1",
+		expect(outcome.result.letterLang).toBe("es");
+		expect(u.mails[0].subject).toBe(
+			"¿Nos dejas una breve reseña sobre tu pedido completado?",
 		);
+		expect(u.transports).toEqual(["smtp"]);
 		expect(String(u.touches[0].description)).toBe(
 			`review ask ${outcome.result.trackingCode}`,
 		);
 	});
 
-	test("missing credentials fail the run loudly", () => {
+	test("an unseeded template fails the run loudly", () => {
 		const u = seed();
-		const outcome = runWorkflow(source, { ...PARAMS, from: "" }, u.handler);
+		u.notify.templates.clear();
+		const outcome = runWorkflow(source, PARAMS, u.handler);
 		expect(outcome.ok).toBe(false);
 		if (outcome.ok) return;
-		expect(outcome.error).toContain("params.from");
+		expect(outcome.error).toContain("notify template seed");
+		expect(u.mails).toEqual([]);
 	});
 });

@@ -1,57 +1,50 @@
 // wf-sales-review-outreach — flow only, one mail per run. Asks rp-sales for the
 // next lead that finished an order and has not been asked for a review yet,
-// renders the review request from the flow-local templates, sends it through
-// lm-smtp and records the trail (lead event + touch). dryRun renders the mail
-// and stops before sending.
+// renders the review request from the `sales-review-outreach` template in
+// rp-notify, sends it and records the trail (lead event + touch + delivery
+// journal). dryRun renders the mail and stops before sending.
 //
 // The old workflow spelled every branch as its own build-*-result node class;
-// here the branches are plain returns and the templates are flow-local strings.
+// here the branches are plain returns and the wording is a template in
+// rp-notify, one per language, like every other letter.
 // Service methods used: sales.findOutreachCandidate / recordEvent / addTouch,
-// smtp.sendEmail — all of them already exist, nothing new is needed in the MS.
+// notify.getTemplate / getProfile / recordSend, ses.sendEmail (or smtp) — all
+// of them already exist, nothing new is needed in the MS.
+//
+// No mail credentials here: the lambda reads them from its own environment.
 
 import "dag-core/env";
 
+import { pickLang, renderMail, substitute } from "dag-mail";
+import { createNotifyServiceRtClient } from "g-notify/rt";
 import { ContactType, createSalesServiceRtClient } from "g-sales/rt";
-import { createSmtpServiceRtClient, type SmtpCredentials } from "g-smtp/rt";
+import { createSesServiceRtClient } from "g-ses/rt";
+import { createSmtpServiceRtClient } from "g-smtp/rt";
 
+const notify = createNotifyServiceRtClient();
 const sales = createSalesServiceRtClient();
+const ses = createSesServiceRtClient();
 const smtp = createSmtpServiceRtClient();
 
+const TEMPLATE_ID = "sales-review-outreach";
+
 const DEFAULTS = {
-	subjectTemplate: "Could you leave a quick review about your completed order?",
-	bodyTemplate: [
-		"Hi,",
-		"",
-		"Thank you for working with us. Could you leave a short review about your completed order?",
-		"",
-		"Review page: {{reviewUrl}}",
-		"",
-		"If everything was excellent, we will also help you share the review on Google Maps:",
-		"{{googleMapsReviewUrl}}",
-	].join("\n"),
+	/** Not a letter: the line written on the lead's touch, for the sales team. */
 	touchDescriptionTemplate:
 		"Review outreach email sent to {{recipientEmail}}; messageId={{messageId}}",
-	emailType: "text" as "html" | "text",
 	reviewUrl: "",
 	googleMapsReviewUrl: "",
 	dryRun: false,
 };
 
 type Input = Partial<typeof DEFAULTS> & {
+	/** Which lead queue to take from; also the letter's language. */
 	lang: string;
-	from: string;
-	smtp: SmtpCredentials;
+	/** Envelope sender; left out, the lambda uses the deployment's MAIL_FROM. */
+	from?: string;
+	/** Which relay the deployment runs; not a credential. Defaults to ses. */
+	transport?: "ses" | "smtp";
 };
-
-function renderTemplate(
-	template: string,
-	vars: Record<string, string>,
-): string {
-	return template.replace(
-		/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g,
-		(_m: string, key: string) => vars[key] ?? "",
-	);
-}
 
 const hex8 = (n: number): string => (n >>> 0).toString(16).padStart(8, "0");
 
@@ -68,10 +61,6 @@ function trackingCode(): string {
 rt.workflow = (input: Input) => {
 	if (!(input?.lang ?? "").trim())
 		throw new Error("sales-review-outreach requires params.lang");
-	if (!(input.from ?? "").trim())
-		throw new Error("sales-review-outreach requires params.from");
-	if (!input.smtp)
-		throw new Error("sales-review-outreach requires params.smtp");
 
 	const o = { ...DEFAULTS, ...input };
 	const lang = input.lang.trim();
@@ -97,27 +86,37 @@ rt.workflow = (input: Input) => {
 		return result;
 	}
 
+	const template = rt.node(`read-template:${TEMPLATE_ID}`, () =>
+		notify.getTemplate(TEMPLATE_ID),
+	);
+	if (!template)
+		throw new Error(
+			`mail template "${TEMPLATE_ID}" is not seeded; run \`notify template seed\``,
+		);
+	const profile = rt.node("read-profile", () => notify.getProfile());
+	const mailLang = pickLang(template, [lead.lang, lang, profile.lang]);
+
 	// The tracking code is random, so the whole draft lives in one node: a
 	// replay must reuse the very same code instead of rolling a new one.
 	const email = rt.node(`build-email:${contact.id}`, () => {
 		const code = trackingCode();
-		const vars: Record<string, string> = {
+		const mail = renderMail(template, mailLang, {
+			brand: profile.brand,
+			supportEmail: profile.supportEmail ?? "",
+			address: profile.address ?? "",
 			leadId: lead.id,
 			leadDescription: lead.description,
-			leadLang: lead.lang,
-			leadType: String(lead.type),
-			contactId: contact.id,
 			recipientEmail: contact.value,
-			contactRole: contact.role ?? "",
-			contactDescription: contact.description ?? "",
 			reviewUrl: o.reviewUrl,
 			googleMapsReviewUrl: o.googleMapsReviewUrl,
 			trackingCode: code,
-		};
+		});
 		return {
 			trackingCode: code,
-			subject: renderTemplate(o.subjectTemplate, vars),
-			body: renderTemplate(o.bodyTemplate, vars),
+			lang: mail.lang,
+			subject: mail.subject,
+			html: mail.html,
+			text: mail.text,
 		};
 	});
 
@@ -126,6 +125,8 @@ rt.workflow = (input: Input) => {
 		leadId: lead.id,
 		contactId: contact.id,
 		recipientEmail: contact.value,
+		/** the language the letter is in; `lang` above is the queue it came from */
+		letterLang: email.lang,
 		subject: email.subject,
 		trackingCode: email.trackingCode,
 	};
@@ -135,7 +136,7 @@ rt.workflow = (input: Input) => {
 			...preview,
 			status: "ready",
 			dryRun: true,
-			body: email.body,
+			body: email.text,
 		};
 		rt.set("sales-review-outreach:last-result", result);
 		rt.log(
@@ -144,20 +145,35 @@ rt.workflow = (input: Input) => {
 		return result;
 	}
 
+	const payload = {
+		from: input.from,
+		to: contact.value,
+		subject: email.subject,
+		body: email.html,
+		text: email.text,
+		type: "html" as const,
+	};
 	const sent = rt.node(`send-email:${contact.id}`, () =>
-		smtp.sendEmail(
-			{
-				from: input.from,
-				to: contact.value,
-				subject: email.subject,
-				body: email.body,
-				type: o.emailType,
-			},
-			input.smtp,
-		),
+		input.transport === "smtp"
+			? smtp.sendEmail(payload)
+			: ses.sendEmail(payload),
 	);
 
-	// lm-smtp reports a refused mail as { success: false }, not as a throw —
+	rt.attempt(`journal:${contact.id}`, () =>
+		notify.recordSend({
+			templateId: TEMPLATE_ID,
+			channel: "email",
+			recipient: contact.value,
+			params: {
+				leadId: lead.id,
+				trackingCode: email.trackingCode,
+				lang: email.lang,
+			},
+			status: sent.success ? "sent" : "failed",
+		}),
+	);
+
+	// The lambda reports a refused mail as { success: false }, not as a throw —
 	// so this is a normal branch, not an error boundary.
 	if (!sent.success) {
 		const result = { ...preview, status: "send-failed", error: sent.error };
@@ -182,7 +198,7 @@ rt.workflow = (input: Input) => {
 		}),
 	);
 
-	const description = renderTemplate(o.touchDescriptionTemplate, {
+	const description = substitute(o.touchDescriptionTemplate, {
 		leadId: lead.id,
 		leadDescription: lead.description,
 		leadLang: lead.lang,

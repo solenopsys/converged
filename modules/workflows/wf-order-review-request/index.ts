@@ -11,7 +11,11 @@
 // the schedule decides the rate. dryRun renders the mail and mints nothing.
 //
 // Services used: orders.listOrders, reviews.getSettings / listInvites /
-// createInvite / patchInvite, ses.sendEmail — all of them already exist.
+// createInvite / patchInvite, notify.getTemplate / getProfile / recordSend,
+// ses.sendEmail (or smtp) — all of them already exist.
+//
+// The wording is the `order-review-request` template in rp-notify, rendered by
+// dag-mail in the customer's language, falling back to the company's.
 //
 // No mail credentials here: lm-ses reads them from its own environment. A flow
 // is a global script with no environment, so a credential it carried would have
@@ -19,13 +23,20 @@
 
 import "dag-core/env";
 
+import { pickLang, renderMail } from "dag-mail";
+import { createNotifyServiceRtClient } from "g-notify/rt";
 import { createOrdersServiceRtClient } from "g-orders/rt";
 import { createReviewsServiceRtClient } from "g-reviews/rt";
 import { createSesServiceRtClient } from "g-ses/rt";
+import { createSmtpServiceRtClient } from "g-smtp/rt";
 
+const notify = createNotifyServiceRtClient();
 const orders = createOrdersServiceRtClient();
 const reviews = createReviewsServiceRtClient();
 const ses = createSesServiceRtClient();
+const smtp = createSmtpServiceRtClient();
+
+const TEMPLATE_ID = "order-review-request";
 
 /** How many finished orders one run looks at before giving up for now. */
 const BATCH = 50;
@@ -33,21 +44,14 @@ const BATCH = 50;
 type Input = {
 	/** Envelope sender; left out, lm-ses uses the deployment's MAIL_FROM. */
 	from?: string;
+	/** Which relay the deployment runs; not a credential. Defaults to ses. */
+	transport?: "ses" | "smtp";
+	/** The name in the letter; left out, the company's brand from the profile. */
 	shopName?: string;
 	/** Overrides the delay held in the shop's settings, for a one-off catch-up. */
 	delayHours?: number;
 	dryRun?: boolean;
 };
-
-function renderTemplate(
-	template: string,
-	vars: Record<string, string>,
-): string {
-	return template.replace(
-		/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g,
-		(_m: string, key: string) => vars[key] ?? "",
-	);
-}
 
 /** `publicFormUrl` may or may not end in a slash; the token appends either way. */
 function reviewUrlOf(base: string, token: string): string {
@@ -105,29 +109,44 @@ rt.workflow = (input: Input) => {
 		return result;
 	}
 
-	const shopName = (input.shopName ?? "").trim();
+	const template = rt.node(`read-template:${TEMPLATE_ID}`, () =>
+		notify.getTemplate(TEMPLATE_ID),
+	);
+	if (!template)
+		throw new Error(
+			`mail template "${TEMPLATE_ID}" is not seeded; run \`notify template seed\``,
+		);
+	const profile = rt.node("read-profile", () => notify.getProfile());
+	const lang = pickLang(template, [order.customerLang, profile.lang]);
+
+	const brand = (input.shopName ?? "").trim() || profile.brand;
 	const vars: Record<string, string> = {
 		orderId: order.id,
 		orderName: order.modelName ?? order.id,
 		customerName: (order.customerName ?? "").trim(),
 		customerEmail: order.customerEmail,
-		shopName,
+		brand,
+		shopName: brand,
+		supportEmail: profile.supportEmail ?? "",
+		address: profile.address ?? "",
 		reviewUrl: "",
 	};
 
 	if (input.dryRun) {
 		// Nothing is minted: a rehearsal that leaves a live one-shot link behind
 		// would have the next real run skip this order as already asked.
+		const draft = renderMail(template, lang, {
+			...vars,
+			reviewUrl: reviewUrlOf(settings.publicFormUrl, "<token>"),
+		});
 		const result = {
 			status: "ready",
 			dryRun: true,
 			orderId: order.id,
 			recipientEmail: order.customerEmail,
-			subject: renderTemplate(settings.subjectTemplate, vars),
-			body: renderTemplate(settings.bodyTemplate, {
-				...vars,
-				reviewUrl: reviewUrlOf(settings.publicFormUrl, "<token>"),
-			}),
+			lang,
+			subject: draft.subject,
+			body: draft.text,
 		};
 		rt.set("order-review-request:last-result", result);
 		rt.log(
@@ -145,16 +164,32 @@ rt.workflow = (input: Input) => {
 	);
 	vars.reviewUrl = reviewUrlOf(settings.publicFormUrl, invite.token);
 
-	const subject = renderTemplate(settings.subjectTemplate, vars);
-	const body = renderTemplate(settings.bodyTemplate, vars);
+	const mail = renderMail(template, lang, vars);
+	const subject = mail.subject;
+	const payload = {
+		from: input.from,
+		to: order.customerEmail,
+		subject,
+		body: mail.html,
+		text: mail.text,
+		type: "html" as const,
+	};
 
 	const sent = rt.node(`send-email:${invite.id}`, () =>
-		ses.sendEmail({
-			from: input.from,
-			to: order.customerEmail,
-			subject,
-			body,
-			type: "text",
+		input.transport === "smtp"
+			? smtp.sendEmail(payload)
+			: ses.sendEmail(payload),
+	);
+
+	// The same delivery journal every letter writes to; a journal that is down
+	// does not undo a letter that already left.
+	rt.attempt(`journal:${invite.id}`, () =>
+		notify.recordSend({
+			templateId: TEMPLATE_ID,
+			channel: "email",
+			recipient: order.customerEmail,
+			params: { orderId: order.id, inviteId: invite.id, lang },
+			status: sent.success ? "sent" : "failed",
 		}),
 	);
 

@@ -1,0 +1,205 @@
+{
+	"en": {
+		"subject": "Could you leave a quick review about your completed order?",
+		"preheader": "A short review helps {{brand}} more than you might think.",
+		"heading": "A quick review?",
+		"cta": "Leave a review",
+		"blocks": [
+			{
+				"p": "Hi! Thank you for working with {{brand}}. Could you leave a short review about your completed order?"
+			},
+			{ "button": "{{reviewUrl}}", "when": "reviewUrl" },
+			{
+				"p": "If everything was excellent, we will also help you share the review on [Google Maps]({{googleMapsReviewUrl}}).",
+				"when": "googleMapsReviewUrl"
+			},
+			{
+				"fallback": "{{reviewUrl}}",
+				"label": "If the button does not work",
+				"when": "reviewUrl"
+			}
+		],
+		"footer": [
+			"{{brand}} · you are receiving this because you completed an order with us",
+			{
+				"text": "Questions — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	},
+	"ru": {
+		"subject": "Оставите короткий отзыв о выполненном заказе?",
+		"preheader": "Короткий отзыв помогает {{brand}} больше, чем кажется.",
+		"heading": "Короткий отзыв?",
+		"cta": "Оставить отзыв",
+		"blocks": [
+			{
+				"p": "Здравствуйте! Спасибо, что работаете с {{brand}}. Не могли бы вы оставить короткий отзыв о выполненном заказе?"
+			},
+			{ "button": "{{reviewUrl}}", "when": "reviewUrl" },
+			{
+				"p": "Если всё было отлично, мы поможем опубликовать отзыв и на [Google Картах]({{googleMapsReviewUrl}}).",
+				"when": "googleMapsReviewUrl"
+			},
+			{
+				"fallback": "{{reviewUrl}}",
+				"label": "Если кнопка не работает",
+				"when": "reviewUrl"
+			}
+		],
+		"footer": [
+			"{{brand}} · вы получили это письмо, потому что у вас был заказ у нас",
+			{
+				"text": "Вопросы — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	},
+	"de": {
+		"subject": "Hätten Sie Zeit für eine kurze Bewertung Ihres abgeschlossenen Auftrags?",
+		"preheader": "Eine kurze Bewertung hilft {{brand}} mehr, als Sie denken.",
+		"heading": "Eine kurze Bewertung?",
+		"cta": "Bewertung abgeben",
+		"blocks": [
+			{
+				"p": "Hallo! Danke für die Zusammenarbeit mit {{brand}}. Würden Sie eine kurze Bewertung zu Ihrem abgeschlossenen Auftrag hinterlassen?"
+			},
+			{ "button": "{{reviewUrl}}", "when": "reviewUrl" },
+			{
+				"p": "Wenn alles hervorragend war, helfen wir Ihnen auch, die Bewertung auf [Google Maps]({{googleMapsReviewUrl}}) zu teilen.",
+				"when": "googleMapsReviewUrl"
+			},
+			{
+				"fallback": "{{reviewUrl}}",
+				"label": "Falls die Schaltfläche nicht funktioniert",
+				"when": "reviewUrl"
+			}
+		],
+		"footer": [
+			"{{brand}} · Sie erhalten diese E-Mail, weil Sie einen Auftrag bei uns abgeschlossen haben",
+			{
+				"text": "Fragen — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	},
+	"es": {
+		"subject": "¿Nos dejas una breve reseña sobre tu pedido completado?",
+		"preheader": "Una breve reseña ayuda a {{brand}} más de lo que imaginas.",
+		"heading": "¿Una reseña rápida?",
+		"cta": "Dejar una reseña",
+		"blocks": [
+			{
+				"p": "¡Hola! Gracias por trabajar con {{brand}}. ¿Podrías dejar una breve reseña sobre tu pedido completado?"
+			},
+			{ "button": "{{reviewUrl}}", "when": "reviewUrl" },
+			{
+				"p": "Si todo fue excelente, también te ayudaremos a compartir la reseña en [Google Maps]({{googleMapsReviewUrl}}).",
+				"when": "googleMapsReviewUrl"
+			},
+			{
+				"fallback": "{{reviewUrl}}",
+				"label": "Si el botón no funciona",
+				"when": "reviewUrl"
+			}
+		],
+		"footer": [
+			"{{brand}} · recibes este correo porque completaste un pedido con nosotros",
+			{
+				"text": "Preguntas — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	},
+	"fr": {
+		"subject": "Pourriez-vous laisser un court avis sur votre commande terminée ?",
+		"preheader": "Un court avis aide {{brand}} plus que vous ne le pensez.",
+		"heading": "Un petit avis ?",
+		"cta": "Laisser un avis",
+		"blocks": [
+			{
+				"p": "Bonjour ! Merci d’avoir travaillé avec {{brand}}. Pourriez-vous laisser un court avis sur votre commande terminée ?"
+			},
+			{ "button": "{{reviewUrl}}", "when": "reviewUrl" },
+			{
+				"p": "Si tout était excellent, nous vous aiderons aussi à partager l’avis sur [Google Maps]({{googleMapsReviewUrl}}).",
+				"when": "googleMapsReviewUrl"
+			},
+			{
+				"fallback": "{{reviewUrl}}",
+				"label": "Si le bouton ne fonctionne pas",
+				"when": "reviewUrl"
+			}
+		],
+		"footer": [
+			"{{brand}} · vous recevez ce message parce que vous avez finalisé une commande chez nous",
+			{
+				"text": "Questions — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	},
+	"it": {
+		"subject": "Ci lasceresti una breve recensione sul tuo ordine completato?",
+		"preheader": "Una breve recensione aiuta {{brand}} più di quanto pensi.",
+		"heading": "Una recensione veloce?",
+		"cta": "Lascia una recensione",
+		"blocks": [
+			{
+				"p": "Ciao! Grazie per aver lavorato con {{brand}}. Potresti lasciare una breve recensione sul tuo ordine completato?"
+			},
+			{ "button": "{{reviewUrl}}", "when": "reviewUrl" },
+			{
+				"p": "Se è andato tutto benissimo, ti aiuteremo anche a condividere la recensione su [Google Maps]({{googleMapsReviewUrl}}).",
+				"when": "googleMapsReviewUrl"
+			},
+			{
+				"fallback": "{{reviewUrl}}",
+				"label": "Se il pulsante non funziona",
+				"when": "reviewUrl"
+			}
+		],
+		"footer": [
+			"{{brand}} · ricevi questa email perché hai completato un ordine con noi",
+			{
+				"text": "Domande — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	},
+	"pt": {
+		"subject": "Pode deixar uma breve avaliação sobre a sua encomenda concluída?",
+		"preheader": "Uma breve avaliação ajuda o {{brand}} mais do que imagina.",
+		"heading": "Uma avaliação rápida?",
+		"cta": "Deixar uma avaliação",
+		"blocks": [
+			{
+				"p": "Olá! Obrigado por trabalhar com o {{brand}}. Pode deixar uma breve avaliação sobre a sua encomenda concluída?"
+			},
+			{ "button": "{{reviewUrl}}", "when": "reviewUrl" },
+			{
+				"p": "Se correu tudo muito bem, também o ajudamos a partilhar a avaliação no [Google Maps]({{googleMapsReviewUrl}}).",
+				"when": "googleMapsReviewUrl"
+			},
+			{
+				"fallback": "{{reviewUrl}}",
+				"label": "Se o botão não funcionar",
+				"when": "reviewUrl"
+			}
+		],
+		"footer": [
+			"{{brand}} · recebe este email porque concluiu uma encomenda connosco",
+			{
+				"text": "Perguntas — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	}
+}

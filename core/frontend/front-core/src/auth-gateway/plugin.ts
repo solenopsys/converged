@@ -215,7 +215,12 @@ export default function authGatewayPlugin(
 				if (await isAddressAllowedIn(email)) {
 					const link = await authClient().getMagicLink(email, returnTo);
 					const url = `${publicBaseUrl(context.headers)}/auth/verify?token=${encodeURIComponent(link.token)}`;
-					await sendMagicLinkEmail({ to: email, link: url });
+					await sendMagicLinkEmail({
+						to: email,
+						link: url,
+						acceptLanguage: context.headers["accept-language"],
+						userAgent: context.headers["user-agent"],
+					});
 				}
 				// Always the same answer, link or no link: whether an address is
 				// registered is not something an unauthenticated caller gets to probe.

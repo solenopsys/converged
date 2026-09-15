@@ -1,0 +1,229 @@
+{
+	"en": {
+		"subject": "Sign in to {{brand}}",
+		"preheader": "Your sign-in link for {{brand}}. Open it on the device you want to stay signed in on.",
+		"heading": "Your sign-in link",
+		"cta": "Sign in to {{brand}}",
+		"blocks": [
+			{
+				"p": "Press the button below to sign in to {{brand}}. No password needed — this device will remember you, and next time you are straight in."
+			},
+			{ "button": "{{url}}" },
+			{
+				"note": "The link opens once. Open it on the device you want to stay signed in on."
+			},
+			{ "fallback": "{{url}}", "label": "If the button does not work" },
+			{
+				"meta": "Requested for {{email}}",
+				"detail": "{{requestInfo}}",
+				"when": "email"
+			},
+			{
+				"note": "Did not ask to sign in? Just delete this letter — nothing happens unless the link is opened."
+			}
+		],
+		"footer": [
+			"{{brand}} · a service letter about access to your account",
+			{
+				"text": "Questions — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	},
+	"ru": {
+		"subject": "Вход в {{brand}}",
+		"preheader": "Ссылка для входа в {{brand}}. Открывайте её на том устройстве, где хотите остаться в системе.",
+		"heading": "Ваша ссылка для входа",
+		"cta": "Войти в {{brand}}",
+		"blocks": [
+			{
+				"p": "Нажмите кнопку ниже, чтобы войти в {{brand}}. Пароль не нужен — устройство запомнит вас, и дальше вход будет сразу."
+			},
+			{ "button": "{{url}}" },
+			{
+				"note": "Ссылка открывается один раз. Открывайте её на том устройстве, с которого хотите остаться в системе."
+			},
+			{ "fallback": "{{url}}", "label": "Если кнопка не работает" },
+			{
+				"meta": "Запрос для {{email}}",
+				"detail": "{{requestInfo}}",
+				"when": "email"
+			},
+			{
+				"note": "Вы не запрашивали вход? Просто удалите письмо — без перехода по ссылке ничего не произойдёт."
+			}
+		],
+		"footer": [
+			"{{brand}} · служебное письмо о доступе к аккаунту",
+			{
+				"text": "Вопросы — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	},
+	"de": {
+		"subject": "Anmeldung bei {{brand}}",
+		"preheader": "Ihr Anmeldelink für {{brand}}. Öffnen Sie ihn auf dem Gerät, auf dem Sie angemeldet bleiben möchten.",
+		"heading": "Ihr Anmeldelink",
+		"cta": "Bei {{brand}} anmelden",
+		"blocks": [
+			{
+				"p": "Klicken Sie auf die Schaltfläche unten, um sich bei {{brand}} anzumelden. Kein Passwort nötig — dieses Gerät merkt sich Sie, und beim nächsten Mal sind Sie sofort drin."
+			},
+			{ "button": "{{url}}" },
+			{
+				"note": "Der Link lässt sich nur einmal öffnen. Öffnen Sie ihn auf dem Gerät, auf dem Sie angemeldet bleiben möchten."
+			},
+			{
+				"fallback": "{{url}}",
+				"label": "Falls die Schaltfläche nicht funktioniert"
+			},
+			{
+				"meta": "Angefordert für {{email}}",
+				"detail": "{{requestInfo}}",
+				"when": "email"
+			},
+			{
+				"note": "Sie haben keine Anmeldung angefordert? Löschen Sie diese E-Mail einfach — ohne Klick auf den Link passiert nichts."
+			}
+		],
+		"footer": [
+			"{{brand}} · Service-E-Mail zum Zugang zu Ihrem Konto",
+			{
+				"text": "Fragen — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	},
+	"es": {
+		"subject": "Acceso a {{brand}}",
+		"preheader": "Tu enlace de acceso a {{brand}}. Ábrelo en el dispositivo en el que quieras mantener la sesión.",
+		"heading": "Tu enlace de acceso",
+		"cta": "Entrar en {{brand}}",
+		"blocks": [
+			{
+				"p": "Pulsa el botón de abajo para entrar en {{brand}}. No hace falta contraseña: este dispositivo te recordará y la próxima vez entrarás directamente."
+			},
+			{ "button": "{{url}}" },
+			{
+				"note": "El enlace solo se abre una vez. Ábrelo en el dispositivo en el que quieras mantener la sesión."
+			},
+			{ "fallback": "{{url}}", "label": "Si el botón no funciona" },
+			{
+				"meta": "Solicitado para {{email}}",
+				"detail": "{{requestInfo}}",
+				"when": "email"
+			},
+			{
+				"note": "¿No has pedido acceder? Simplemente borra este correo: sin abrir el enlace no ocurre nada."
+			}
+		],
+		"footer": [
+			"{{brand}} · correo de servicio sobre el acceso a tu cuenta",
+			{
+				"text": "Preguntas — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	},
+	"fr": {
+		"subject": "Connexion à {{brand}}",
+		"preheader": "Votre lien de connexion à {{brand}}. Ouvrez-le sur l’appareil sur lequel vous voulez rester connecté.",
+		"heading": "Votre lien de connexion",
+		"cta": "Se connecter à {{brand}}",
+		"blocks": [
+			{
+				"p": "Cliquez sur le bouton ci-dessous pour vous connecter à {{brand}}. Pas de mot de passe : cet appareil se souviendra de vous, et la prochaine fois vous entrerez directement."
+			},
+			{ "button": "{{url}}" },
+			{
+				"note": "Le lien ne s’ouvre qu’une fois. Ouvrez-le sur l’appareil sur lequel vous voulez rester connecté."
+			},
+			{ "fallback": "{{url}}", "label": "Si le bouton ne fonctionne pas" },
+			{
+				"meta": "Demandé pour {{email}}",
+				"detail": "{{requestInfo}}",
+				"when": "email"
+			},
+			{
+				"note": "Vous n’avez pas demandé de connexion ? Supprimez simplement ce message : sans ouvrir le lien, rien ne se passe."
+			}
+		],
+		"footer": [
+			"{{brand}} · message de service concernant l’accès à votre compte",
+			{
+				"text": "Questions — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	},
+	"it": {
+		"subject": "Accesso a {{brand}}",
+		"preheader": "Il tuo link di accesso a {{brand}}. Aprilo sul dispositivo su cui vuoi restare connesso.",
+		"heading": "Il tuo link di accesso",
+		"cta": "Accedi a {{brand}}",
+		"blocks": [
+			{
+				"p": "Premi il pulsante qui sotto per accedere a {{brand}}. Nessuna password: questo dispositivo si ricorderà di te e la prossima volta entrerai subito."
+			},
+			{ "button": "{{url}}" },
+			{
+				"note": "Il link si apre una sola volta. Aprilo sul dispositivo su cui vuoi restare connesso."
+			},
+			{ "fallback": "{{url}}", "label": "Se il pulsante non funziona" },
+			{
+				"meta": "Richiesto per {{email}}",
+				"detail": "{{requestInfo}}",
+				"when": "email"
+			},
+			{
+				"note": "Non hai chiesto di accedere? Elimina semplicemente questa email: senza aprire il link non succede nulla."
+			}
+		],
+		"footer": [
+			"{{brand}} · email di servizio sull’accesso al tuo account",
+			{
+				"text": "Domande — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	},
+	"pt": {
+		"subject": "Acesso ao {{brand}}",
+		"preheader": "O seu link de acesso ao {{brand}}. Abra-o no dispositivo em que quer continuar com a sessão iniciada.",
+		"heading": "O seu link de acesso",
+		"cta": "Entrar no {{brand}}",
+		"blocks": [
+			{
+				"p": "Carregue no botão abaixo para entrar no {{brand}}. Não precisa de palavra-passe: este dispositivo vai lembrar-se de si e da próxima vez entra logo."
+			},
+			{ "button": "{{url}}" },
+			{
+				"note": "O link só abre uma vez. Abra-o no dispositivo em que quer continuar com a sessão iniciada."
+			},
+			{ "fallback": "{{url}}", "label": "Se o botão não funcionar" },
+			{
+				"meta": "Pedido para {{email}}",
+				"detail": "{{requestInfo}}",
+				"when": "email"
+			},
+			{
+				"note": "Não pediu para entrar? Basta apagar este email — sem abrir o link, nada acontece."
+			}
+		],
+		"footer": [
+			"{{brand}} · email de serviço sobre o acesso à sua conta",
+			{
+				"text": "Perguntas — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	}
+}

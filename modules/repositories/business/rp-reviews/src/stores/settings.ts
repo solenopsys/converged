@@ -22,30 +22,6 @@ export const DEFAULT_SETTINGS: ReviewSettings = {
 	maxFollowups: 1,
 	inviteTtlDays: 30,
 	publicFormUrl: "",
-	subjectTemplate: "How did we do with your order?",
-	bodyTemplate: [
-		"Hello {{customerName}},",
-		"",
-		"Your order {{orderName}} is finished and on its way to you.",
-		"Could you spare a minute to say how it went?",
-		"",
-		"{{reviewUrl}}",
-		"",
-		"Thank you,",
-		"{{shopName}}",
-	].join("\n"),
-	followupSubjectTemplate: "A minute for a quick word about your order?",
-	followupBodyTemplate: [
-		"Hello {{customerName}},",
-		"",
-		"We asked a few days ago how your order {{orderName}} turned out.",
-		"If you have a minute, the form is still open:",
-		"",
-		"{{reviewUrl}}",
-		"",
-		"This is the last time we will ask.",
-		"{{shopName}}",
-	].join("\n"),
 };
 
 export class ReviewSettingsStoreService {

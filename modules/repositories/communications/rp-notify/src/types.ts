@@ -9,6 +9,8 @@ import type {
   NotifySend,
   NotifySendInput,
   NotifySendId,
+  NotifyProfile,
+  NotifyProfilePatch,
   ISODateString,
 } from "g-notify";
 
@@ -23,5 +25,7 @@ export type {
   NotifySend,
   NotifySendInput,
   NotifySendId,
+  NotifyProfile,
+  NotifyProfilePatch,
   ISODateString,
 };

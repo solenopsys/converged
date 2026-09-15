@@ -10,36 +10,39 @@
 // read the ask and decided not to write, and asking again is how a review
 // request becomes spam. That condition lives in the repository query, where it
 // cannot be forgotten by a caller.
+//
+// The wording is the `order-review-followup` template in rp-notify, in the
+// language the first ask went out in, falling back to the company's.
 
 import "dag-core/env";
 
+import { pickLang, renderMail } from "dag-mail";
+import { createNotifyServiceRtClient } from "g-notify/rt";
 import { createOrdersServiceRtClient } from "g-orders/rt";
 import { createReviewsServiceRtClient } from "g-reviews/rt";
 import { createSesServiceRtClient } from "g-ses/rt";
+import { createSmtpServiceRtClient } from "g-smtp/rt";
 
+const notify = createNotifyServiceRtClient();
 const orders = createOrdersServiceRtClient();
 const reviews = createReviewsServiceRtClient();
 const ses = createSesServiceRtClient();
+const smtp = createSmtpServiceRtClient();
+
+const TEMPLATE_ID = "order-review-followup";
 
 type Input = {
 	/** Envelope sender; left out, lm-ses uses the deployment's MAIL_FROM. */
 	from?: string;
+	/** Which relay the deployment runs; not a credential. Defaults to ses. */
+	transport?: "ses" | "smtp";
+	/** The name in the letter; left out, the company's brand from the profile. */
 	shopName?: string;
 	/** Overrides the settings for a one-off catch-up. */
 	delayDays?: number;
 	maxFollowups?: number;
 	dryRun?: boolean;
 };
-
-function renderTemplate(
-	template: string,
-	vars: Record<string, string>,
-): string {
-	return template.replace(
-		/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g,
-		(_m: string, key: string) => vars[key] ?? "",
-	);
-}
 
 function reviewUrlOf(base: string, token: string): string {
 	const trimmed = (base ?? "").trim();
@@ -74,17 +77,33 @@ rt.workflow = (input: Input) => {
 		orders.getOrder(invite.orderId),
 	);
 
-	const vars: Record<string, string> = {
+	const template = rt.node(`read-template:${TEMPLATE_ID}`, () =>
+		notify.getTemplate(TEMPLATE_ID),
+	);
+	if (!template)
+		throw new Error(
+			`mail template "${TEMPLATE_ID}" is not seeded; run \`notify template seed\``,
+		);
+	const profile = rt.node("read-profile", () => notify.getProfile());
+	const lang = pickLang(template, [
+		invite.lang,
+		order?.customerLang,
+		profile.lang,
+	]);
+
+	const brand = (input.shopName ?? "").trim() || profile.brand;
+	const mail = renderMail(template, lang, {
 		orderId: invite.orderId,
 		orderName: order?.modelName ?? invite.orderId,
 		customerName: (order?.customerName ?? "").trim(),
 		customerEmail: invite.contact,
-		shopName: (input.shopName ?? "").trim(),
+		brand,
+		shopName: brand,
+		supportEmail: profile.supportEmail ?? "",
+		address: profile.address ?? "",
 		reviewUrl: reviewUrlOf(settings.publicFormUrl, invite.token),
-	};
-
-	const subject = renderTemplate(settings.followupSubjectTemplate, vars);
-	const body = renderTemplate(settings.followupBodyTemplate, vars);
+	});
+	const subject = mail.subject;
 
 	if (input.dryRun) {
 		const result = {
@@ -93,21 +112,36 @@ rt.workflow = (input: Input) => {
 			inviteId: invite.id,
 			orderId: invite.orderId,
 			recipientEmail: invite.contact,
+			lang,
 			subject,
-			body,
+			body: mail.text,
 		};
 		rt.set("order-review-followup:last-result", result);
 		rt.log(`order-review-followup: DRY-RUN ${invite.contact} (${invite.id})`);
 		return result;
 	}
 
+	const payload = {
+		from: input.from,
+		to: invite.contact,
+		subject,
+		body: mail.html,
+		text: mail.text,
+		type: "html" as const,
+	};
 	const sent = rt.node(`send-email:${invite.id}`, () =>
-		ses.sendEmail({
-			from: input.from,
-			to: invite.contact,
-			subject,
-			body,
-			type: "text",
+		input.transport === "smtp"
+			? smtp.sendEmail(payload)
+			: ses.sendEmail(payload),
+	);
+
+	rt.attempt(`journal:${invite.id}`, () =>
+		notify.recordSend({
+			templateId: TEMPLATE_ID,
+			channel: "email",
+			recipient: invite.contact,
+			params: { orderId: invite.orderId, inviteId: invite.id, lang },
+			status: sent.success ? "sent" : "failed",
 		}),
 	);
 

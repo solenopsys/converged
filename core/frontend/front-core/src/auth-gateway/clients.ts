@@ -6,6 +6,7 @@ import { createServerNrpcClientConfig } from "back-core/fujin-services";
 import { createAccessServiceClient } from "g-access";
 import { createAuthServiceClient } from "g-auth";
 import { createIdentityServiceClient } from "g-identity";
+import { createNotifyServiceClient } from "g-notify";
 import { createOAuthServiceClient } from "g-oauth";
 import { createSesServiceClient } from "g-ses";
 import { createSmtpServiceClient } from "g-smtp";
@@ -20,6 +21,10 @@ export function accessClient() {
 
 export function identityClient() {
 	return createIdentityServiceClient(createServerNrpcClientConfig());
+}
+
+export function notifyClient() {
+	return createNotifyServiceClient(createServerNrpcClientConfig());
 }
 
 export function oauthClient() {

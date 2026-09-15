@@ -7,6 +7,7 @@
 		"core/backend",
 		"core/dag/core",
 		"core/dag/lib",
+		"core/dag/mail",
 		"core/frontend/front-core",
 		"core/frontend/landing",
 		"core/frontend/spa",

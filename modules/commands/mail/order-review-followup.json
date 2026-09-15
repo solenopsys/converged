@@ -1,0 +1,198 @@
+{
+	"en": {
+		"subject": "A minute for {{orderName}}?",
+		"preheader": "The review form for your order is still open.",
+		"heading": "Still have a minute?",
+		"cta": "Leave a review",
+		"blocks": [
+			{ "p": "Hello, {{customerName}}!", "when": "customerName" },
+			{ "p": "Hello!", "when": "!customerName" },
+			{
+				"p": "A few days ago we asked how your order {{orderName}} turned out. If you have a minute, the form is still open."
+			},
+			{ "button": "{{reviewUrl}}", "when": "reviewUrl" },
+			{
+				"fallback": "{{reviewUrl}}",
+				"label": "If the button does not work",
+				"when": "reviewUrl"
+			},
+			{ "note": "This is the last time we will ask. Thank you — {{brand}}." }
+		],
+		"footer": [
+			"{{brand}} · you are receiving this because you placed an order with us",
+			{
+				"text": "Questions — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	},
+	"ru": {
+		"subject": "Минутка для {{orderName}}?",
+		"preheader": "Форма отзыва о вашем заказе всё ещё открыта.",
+		"heading": "Найдётся минутка?",
+		"cta": "Оставить отзыв",
+		"blocks": [
+			{ "p": "Здравствуйте, {{customerName}}!", "when": "customerName" },
+			{ "p": "Здравствуйте!", "when": "!customerName" },
+			{
+				"p": "Несколько дней назад мы спрашивали, как получился ваш заказ {{orderName}}. Если найдётся минута — форма всё ещё открыта."
+			},
+			{ "button": "{{reviewUrl}}", "when": "reviewUrl" },
+			{
+				"fallback": "{{reviewUrl}}",
+				"label": "Если кнопка не работает",
+				"when": "reviewUrl"
+			},
+			{ "note": "Больше мы спрашивать не будем. Спасибо — {{brand}}." }
+		],
+		"footer": [
+			"{{brand}} · вы получили это письмо, потому что оформили у нас заказ",
+			{
+				"text": "Вопросы — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	},
+	"de": {
+		"subject": "Eine Minute für {{orderName}}?",
+		"preheader": "Das Bewertungsformular für Ihre Bestellung ist noch offen.",
+		"heading": "Haben Sie noch eine Minute?",
+		"cta": "Bewertung abgeben",
+		"blocks": [
+			{ "p": "Hallo {{customerName}}!", "when": "customerName" },
+			{ "p": "Hallo!", "when": "!customerName" },
+			{
+				"p": "Vor ein paar Tagen haben wir gefragt, wie Ihre Bestellung {{orderName}} geworden ist. Wenn Sie eine Minute haben: Das Formular ist noch offen."
+			},
+			{ "button": "{{reviewUrl}}", "when": "reviewUrl" },
+			{
+				"fallback": "{{reviewUrl}}",
+				"label": "Falls die Schaltfläche nicht funktioniert",
+				"when": "reviewUrl"
+			},
+			{ "note": "Wir fragen nicht noch einmal. Vielen Dank — {{brand}}." }
+		],
+		"footer": [
+			"{{brand}} · Sie erhalten diese E-Mail, weil Sie bei uns bestellt haben",
+			{
+				"text": "Fragen — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	},
+	"es": {
+		"subject": "¿Un minuto para {{orderName}}?",
+		"preheader": "El formulario de reseña de tu pedido sigue abierto.",
+		"heading": "¿Tienes un minuto?",
+		"cta": "Dejar una reseña",
+		"blocks": [
+			{ "p": "¡Hola, {{customerName}}!", "when": "customerName" },
+			{ "p": "¡Hola!", "when": "!customerName" },
+			{
+				"p": "Hace unos días te preguntamos qué tal salió tu pedido {{orderName}}. Si tienes un minuto, el formulario sigue abierto."
+			},
+			{ "button": "{{reviewUrl}}", "when": "reviewUrl" },
+			{
+				"fallback": "{{reviewUrl}}",
+				"label": "Si el botón no funciona",
+				"when": "reviewUrl"
+			},
+			{ "note": "No volveremos a preguntar. Gracias — {{brand}}." }
+		],
+		"footer": [
+			"{{brand}} · recibes este correo porque hiciste un pedido con nosotros",
+			{
+				"text": "Preguntas — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	},
+	"fr": {
+		"subject": "Une minute pour {{orderName}} ?",
+		"preheader": "Le formulaire d’avis sur votre commande est toujours ouvert.",
+		"heading": "Vous avez encore une minute ?",
+		"cta": "Laisser un avis",
+		"blocks": [
+			{ "p": "Bonjour {{customerName}} !", "when": "customerName" },
+			{ "p": "Bonjour !", "when": "!customerName" },
+			{
+				"p": "Il y a quelques jours, nous vous avons demandé comment s’était passée votre commande {{orderName}}. Si vous avez une minute, le formulaire est toujours ouvert."
+			},
+			{ "button": "{{reviewUrl}}", "when": "reviewUrl" },
+			{
+				"fallback": "{{reviewUrl}}",
+				"label": "Si le bouton ne fonctionne pas",
+				"when": "reviewUrl"
+			},
+			{ "note": "Nous ne vous le redemanderons pas. Merci — {{brand}}." }
+		],
+		"footer": [
+			"{{brand}} · vous recevez ce message parce que vous avez passé commande chez nous",
+			{
+				"text": "Questions — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	},
+	"it": {
+		"subject": "Un minuto per {{orderName}}?",
+		"preheader": "Il modulo per la recensione del tuo ordine è ancora aperto.",
+		"heading": "Hai ancora un minuto?",
+		"cta": "Lascia una recensione",
+		"blocks": [
+			{ "p": "Ciao {{customerName}}!", "when": "customerName" },
+			{ "p": "Ciao!", "when": "!customerName" },
+			{
+				"p": "Qualche giorno fa ti abbiamo chiesto com’è venuto il tuo ordine {{orderName}}. Se hai un minuto, il modulo è ancora aperto."
+			},
+			{ "button": "{{reviewUrl}}", "when": "reviewUrl" },
+			{
+				"fallback": "{{reviewUrl}}",
+				"label": "Se il pulsante non funziona",
+				"when": "reviewUrl"
+			},
+			{ "note": "Non te lo chiederemo di nuovo. Grazie — {{brand}}." }
+		],
+		"footer": [
+			"{{brand}} · ricevi questa email perché hai effettuato un ordine da noi",
+			{
+				"text": "Domande — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	},
+	"pt": {
+		"subject": "Um minuto para {{orderName}}?",
+		"preheader": "O formulário de avaliação da sua encomenda continua aberto.",
+		"heading": "Ainda tem um minuto?",
+		"cta": "Deixar uma avaliação",
+		"blocks": [
+			{ "p": "Olá, {{customerName}}!", "when": "customerName" },
+			{ "p": "Olá!", "when": "!customerName" },
+			{
+				"p": "Há alguns dias perguntámos como correu a sua encomenda {{orderName}}. Se tiver um minuto, o formulário continua aberto."
+			},
+			{ "button": "{{reviewUrl}}", "when": "reviewUrl" },
+			{
+				"fallback": "{{reviewUrl}}",
+				"label": "Se o botão não funcionar",
+				"when": "reviewUrl"
+			},
+			{ "note": "Não voltaremos a perguntar. Obrigado — {{brand}}." }
+		],
+		"footer": [
+			"{{brand}} · recebe este email porque fez uma encomenda connosco",
+			{
+				"text": "Perguntas — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	}
+}

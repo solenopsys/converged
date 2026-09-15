@@ -1,0 +1,198 @@
+{
+	"en": {
+		"subject": "How did we do with {{orderName}}?",
+		"preheader": "A minute to tell {{brand}} how your order went.",
+		"heading": "How did it go?",
+		"cta": "Leave a review",
+		"blocks": [
+			{ "p": "Hello, {{customerName}}!", "when": "customerName" },
+			{ "p": "Hello!", "when": "!customerName" },
+			{
+				"p": "Your order {{orderName}} is finished. Could you spare a minute to tell us how it went?"
+			},
+			{ "button": "{{reviewUrl}}", "when": "reviewUrl" },
+			{
+				"fallback": "{{reviewUrl}}",
+				"label": "If the button does not work",
+				"when": "reviewUrl"
+			},
+			{ "note": "Thank you for choosing {{brand}}." }
+		],
+		"footer": [
+			"{{brand}} · you are receiving this because you placed an order with us",
+			{
+				"text": "Questions — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	},
+	"ru": {
+		"subject": "Как вам {{orderName}}?",
+		"preheader": "Минута, чтобы рассказать {{brand}}, как прошёл заказ.",
+		"heading": "Как всё прошло?",
+		"cta": "Оставить отзыв",
+		"blocks": [
+			{ "p": "Здравствуйте, {{customerName}}!", "when": "customerName" },
+			{ "p": "Здравствуйте!", "when": "!customerName" },
+			{
+				"p": "Ваш заказ {{orderName}} готов. Найдётся минута рассказать, как всё прошло?"
+			},
+			{ "button": "{{reviewUrl}}", "when": "reviewUrl" },
+			{
+				"fallback": "{{reviewUrl}}",
+				"label": "Если кнопка не работает",
+				"when": "reviewUrl"
+			},
+			{ "note": "Спасибо, что выбрали {{brand}}." }
+		],
+		"footer": [
+			"{{brand}} · вы получили это письмо, потому что оформили у нас заказ",
+			{
+				"text": "Вопросы — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	},
+	"de": {
+		"subject": "Wie war {{orderName}}?",
+		"preheader": "Eine Minute, um {{brand}} zu sagen, wie Ihre Bestellung gelaufen ist.",
+		"heading": "Wie ist es gelaufen?",
+		"cta": "Bewertung abgeben",
+		"blocks": [
+			{ "p": "Hallo {{customerName}}!", "when": "customerName" },
+			{ "p": "Hallo!", "when": "!customerName" },
+			{
+				"p": "Ihre Bestellung {{orderName}} ist fertig. Hätten Sie eine Minute, um uns zu sagen, wie es gelaufen ist?"
+			},
+			{ "button": "{{reviewUrl}}", "when": "reviewUrl" },
+			{
+				"fallback": "{{reviewUrl}}",
+				"label": "Falls die Schaltfläche nicht funktioniert",
+				"when": "reviewUrl"
+			},
+			{ "note": "Danke, dass Sie sich für {{brand}} entschieden haben." }
+		],
+		"footer": [
+			"{{brand}} · Sie erhalten diese E-Mail, weil Sie bei uns bestellt haben",
+			{
+				"text": "Fragen — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	},
+	"es": {
+		"subject": "¿Qué tal {{orderName}}?",
+		"preheader": "Un minuto para contarle a {{brand}} cómo fue tu pedido.",
+		"heading": "¿Qué tal fue?",
+		"cta": "Dejar una reseña",
+		"blocks": [
+			{ "p": "¡Hola, {{customerName}}!", "when": "customerName" },
+			{ "p": "¡Hola!", "when": "!customerName" },
+			{
+				"p": "Tu pedido {{orderName}} está terminado. ¿Tienes un minuto para contarnos qué tal fue?"
+			},
+			{ "button": "{{reviewUrl}}", "when": "reviewUrl" },
+			{
+				"fallback": "{{reviewUrl}}",
+				"label": "Si el botón no funciona",
+				"when": "reviewUrl"
+			},
+			{ "note": "Gracias por elegir {{brand}}." }
+		],
+		"footer": [
+			"{{brand}} · recibes este correo porque hiciste un pedido con nosotros",
+			{
+				"text": "Preguntas — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	},
+	"fr": {
+		"subject": "Comment s’est passé {{orderName}} ?",
+		"preheader": "Une minute pour dire à {{brand}} comment s’est passée votre commande.",
+		"heading": "Comment ça s’est passé ?",
+		"cta": "Laisser un avis",
+		"blocks": [
+			{ "p": "Bonjour {{customerName}} !", "when": "customerName" },
+			{ "p": "Bonjour !", "when": "!customerName" },
+			{
+				"p": "Votre commande {{orderName}} est terminée. Auriez-vous une minute pour nous dire comment ça s’est passé ?"
+			},
+			{ "button": "{{reviewUrl}}", "when": "reviewUrl" },
+			{
+				"fallback": "{{reviewUrl}}",
+				"label": "Si le bouton ne fonctionne pas",
+				"when": "reviewUrl"
+			},
+			{ "note": "Merci d’avoir choisi {{brand}}." }
+		],
+		"footer": [
+			"{{brand}} · vous recevez ce message parce que vous avez passé commande chez nous",
+			{
+				"text": "Questions — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	},
+	"it": {
+		"subject": "Com’è andata con {{orderName}}?",
+		"preheader": "Un minuto per dire a {{brand}} com’è andato il tuo ordine.",
+		"heading": "Com’è andata?",
+		"cta": "Lascia una recensione",
+		"blocks": [
+			{ "p": "Ciao {{customerName}}!", "when": "customerName" },
+			{ "p": "Ciao!", "when": "!customerName" },
+			{
+				"p": "Il tuo ordine {{orderName}} è pronto. Hai un minuto per dirci com’è andata?"
+			},
+			{ "button": "{{reviewUrl}}", "when": "reviewUrl" },
+			{
+				"fallback": "{{reviewUrl}}",
+				"label": "Se il pulsante non funziona",
+				"when": "reviewUrl"
+			},
+			{ "note": "Grazie per aver scelto {{brand}}." }
+		],
+		"footer": [
+			"{{brand}} · ricevi questa email perché hai effettuato un ordine da noi",
+			{
+				"text": "Domande — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	},
+	"pt": {
+		"subject": "Como correu {{orderName}}?",
+		"preheader": "Um minuto para dizer ao {{brand}} como correu a sua encomenda.",
+		"heading": "Como correu?",
+		"cta": "Deixar uma avaliação",
+		"blocks": [
+			{ "p": "Olá, {{customerName}}!", "when": "customerName" },
+			{ "p": "Olá!", "when": "!customerName" },
+			{
+				"p": "A sua encomenda {{orderName}} está concluída. Tem um minuto para nos contar como correu?"
+			},
+			{ "button": "{{reviewUrl}}", "when": "reviewUrl" },
+			{
+				"fallback": "{{reviewUrl}}",
+				"label": "Se o botão não funcionar",
+				"when": "reviewUrl"
+			},
+			{ "note": "Obrigado por escolher o {{brand}}." }
+		],
+		"footer": [
+			"{{brand}} · recebe este email porque fez uma encomenda connosco",
+			{
+				"text": "Perguntas — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	}
+}

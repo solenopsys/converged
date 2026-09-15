@@ -24,6 +24,10 @@ const tagged: Array<{ userId: string; tag: string }> = [];
 const consumed: string[] = [];
 
 mock.module("./clients", () => ({
+	// Bun shares module mocks across files in one run; mail.test links these.
+	notifyClient: () => ({}),
+	sesClient: () => ({}),
+	smtpClient: () => ({}),
 	accessClient: () => ({
 		emitJWT: async () => "access-token",
 		getPermissionsFromUser: async () => ({}),

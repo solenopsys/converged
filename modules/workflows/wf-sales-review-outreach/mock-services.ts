@@ -1,7 +1,9 @@
-// Mock rp-sales / lm-smtp universe for the wf-sales-review-outreach tests
+// Mock rp-sales / rp-notify / lm-ses / lm-smtp universe for the wf-sales-review-outreach tests
 // (test-only, never bundled into a workflow). One CallHandler for the
 // centimanus mock harness; state is plain in-memory arrays, so a test can
 // assert on the rows the workflow wrote (mails, events, touches).
+
+import { createNotifyMock } from "../../../core/dag/mail/mock-notify";
 
 export type MockCandidate = {
 	lead: Record<string, unknown>;
@@ -13,6 +15,7 @@ export type MockSentMail = {
 	to: string;
 	subject: string;
 	body?: string;
+	text?: string;
 	type?: string;
 };
 
@@ -23,7 +26,9 @@ export type ReviewUniverse = {
 	events: Record<string, unknown>[];
 	touches: Record<string, unknown>[];
 	calls: string[];
-	/** when set, smtp.sendEmail answers { success: false, error } */
+	notify: ReturnType<typeof createNotifyMock>;
+	transports: string[];
+	/** when set, sendEmail answers { success: false, error } */
 	sendError: string | null;
 
 	setCandidate(
@@ -47,6 +52,8 @@ export function createReviewUniverse(): ReviewUniverse {
 		events: [],
 		touches: [],
 		calls: [],
+		notify: createNotifyMock(),
+		transports: [],
 		sendError: null,
 
 		setCandidate(lang, lead, contact) {
@@ -95,13 +102,18 @@ export function createReviewUniverse(): ReviewUniverse {
 					u.touches.push({ ...params.touch, id: u.touches.length + 1 });
 					return u.touches.length;
 				}
+				case "ses.sendEmail":
 				case "smtp.sendEmail": {
 					if (u.sendError) return { success: false, error: u.sendError };
+					u.transports.push(service);
 					u.mails.push(params.payload);
 					return { success: true, messageId: `msg-${++messageSeq}` };
 				}
-				default:
+				default: {
+					const answered = u.notify.handle(key, params);
+					if (answered) return answered.value;
 					throw new Error(`unexpected call ${key}`);
+				}
 			}
 		},
 	};

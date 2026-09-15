@@ -267,13 +267,14 @@ describe("who sees which leads, tags and campaigns", () => {
 		expect(await sales.access.tagsOf("shared-id")).toEqual([
 			"u-alice",
 			"authenticated",
+			"sales",
 		]);
 	});
 
 	it("opens a desk's book to a team through a group tag", async () => {
 		await lead("alice", "lead-1");
 		await sales.access.setVisibility("lead-1", "private");
-		await sales.access.grant("lead-1", "team-sales");
+		await sales.access.grant("lead-1", "sales");
 
 		expect(
 			(
@@ -287,7 +288,7 @@ describe("who sees which leads, tags and campaigns", () => {
 				await as(
 					"clerk",
 					() => sales.listLeadsFiltered({}, { offset: 0, limit: 10 }),
-					["team-sales"],
+					["sales"],
 				)
 			).totalCount,
 		).toBe(1);

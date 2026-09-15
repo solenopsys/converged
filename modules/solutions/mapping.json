@@ -133,13 +133,22 @@
 						"description": "Envelope sender; omit to use the deployment's configured address"
 					},
 					"shopName": {
-						"type": "string"
+						"type": "string",
+						"description": "Name in the letter; omit to use the company's brand"
 					},
 					"delayHours": {
 						"type": "number"
 					},
 					"dryRun": {
 						"type": "boolean"
+					},
+					"transport": {
+						"type": "string",
+						"enum": [
+							"ses",
+							"smtp"
+						],
+						"description": "Which relay this deployment runs; defaults to ses"
 					}
 				}
 			}
@@ -158,7 +167,8 @@
 						"description": "Envelope sender; omit to use the deployment's configured address"
 					},
 					"shopName": {
-						"type": "string"
+						"type": "string",
+						"description": "Name in the letter; omit to use the company's brand"
 					},
 					"delayDays": {
 						"type": "number"
@@ -168,6 +178,14 @@
 					},
 					"dryRun": {
 						"type": "boolean"
+					},
+					"transport": {
+						"type": "string",
+						"enum": [
+							"ses",
+							"smtp"
+						],
+						"description": "Which relay this deployment runs; defaults to ses"
 					}
 				}
 			}
@@ -213,12 +231,9 @@
 					},
 					"from": {
 						"type": "string",
-						"description": "Sender address; without it no letters are sent"
+						"description": "Envelope sender; omit to use the deployment's configured address"
 					},
 					"consoleUrl": {
-						"type": "string"
-					},
-					"subject": {
 						"type": "string"
 					},
 					"provider": {

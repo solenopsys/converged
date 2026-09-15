@@ -149,10 +149,6 @@ export type ReviewSettings = {
 	inviteTtlDays: number;
 	/** Base of the personal link; the token is appended by the sender. */
 	publicFormUrl: string;
-	subjectTemplate: string;
-	bodyTemplate: string;
-	followupSubjectTemplate: string;
-	followupBodyTemplate: string;
 	/** Sender address used by the outreach workflow. */
 	fromAddress?: string;
 	updatedAt?: ISODateString;
@@ -644,7 +640,7 @@ export const metadata: ServiceMetadata = {
     {
       "name": "ReviewSettings",
       "kind": "type",
-      "definition": "{\n\tplatforms: ReviewPlatform[];\n\tpositiveThreshold: number;\n\t/** Hours after an order completes before the first ask goes out. */\n\trequestDelayHours: number;\n\t/** Days of silence before the single chase. */\n\tfollowupDelayDays: number;\n\tmaxFollowups: number;\n\tinviteTtlDays: number;\n\t/** Base of the personal link; the token is appended by the sender. */\n\tpublicFormUrl: string;\n\tsubjectTemplate: string;\n\tbodyTemplate: string;\n\tfollowupSubjectTemplate: string;\n\tfollowupBodyTemplate: string;\n\t/** Sender address used by the outreach workflow. */\n\tfromAddress?: string;\n\tupdatedAt?: ISODateString;\n}"
+      "definition": "{\n\tplatforms: ReviewPlatform[];\n\tpositiveThreshold: number;\n\t/** Hours after an order completes before the first ask goes out. */\n\trequestDelayHours: number;\n\t/** Days of silence before the single chase. */\n\tfollowupDelayDays: number;\n\tmaxFollowups: number;\n\tinviteTtlDays: number;\n\t/** Base of the personal link; the token is appended by the sender. */\n\tpublicFormUrl: string;\n\t/** Sender address used by the outreach workflow. */\n\tfromAddress?: string;\n\tupdatedAt?: ISODateString;\n}"
     },
     {
       "name": "ReviewSettingsPatch",

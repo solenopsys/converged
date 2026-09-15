@@ -30,10 +30,14 @@ export class SesServiceImpl implements SesService {
         Message: {
           Subject: { Data: payload.subject, Charset: "UTF-8" },
           Body: {
+            // An html letter carries its text alternative; SES sends the two
+            // as multipart/alternative when both are present.
             Text:
               payload.type === "text"
                 ? { Data: payload.body, Charset: "UTF-8" }
-                : undefined,
+                : payload.text
+                  ? { Data: payload.text, Charset: "UTF-8" }
+                  : undefined,
             Html:
               payload.type === "html"
                 ? { Data: payload.body, Charset: "UTF-8" }

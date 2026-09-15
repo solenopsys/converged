@@ -18,6 +18,7 @@ import CreateOutreachTargets from "./createOutreachTargets";
 import CreateTouch from "./createTouch";
 import ExtendCampaignsAndOffers from "./extendCampaignsAndOffers";
 import NamedLeadTags from "./namedLeadTags";
+import BackfillSalesAccessTags from "./backfillSalesAccessTags";
 import FillTouchIds from "./fillTouchIds";
 
 // One relation for the whole store. It covers the four objects that are
@@ -48,4 +49,5 @@ export default [
 	NamedLeadTags,
 	CampaignWorkflows,
 	AccessTagsMigration,
+	BackfillSalesAccessTags,
 ];

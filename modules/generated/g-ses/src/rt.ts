@@ -13,6 +13,12 @@ export type EmailPayload = {
   subject: string;
   body?: string;
   type?: "html" | "text";
+  /**
+   * The plain-text alternative of an html `body`, sent alongside it as
+   * multipart/alternative. An html letter without one reads as spam to filters
+   * and as nothing to a text-only client.
+   */
+  text?: string;
 };
 
 export type EmailResult = {
@@ -57,7 +63,7 @@ const metadata: ServiceMetadata = {
     {
       "name": "EmailPayload",
       "kind": "type",
-      "definition": "{\n  from?: string;\n  to: string | string[];\n  subject: string;\n  body?: string;\n  type?: \"html\" | \"text\";\n}"
+      "definition": "{\n  from?: string;\n  to: string | string[];\n  subject: string;\n  body?: string;\n  type?: \"html\" | \"text\";\n  /**\n   * The plain-text alternative of an html `body`, sent alongside it as\n   * multipart/alternative. An html letter without one reads as spam to filters\n   * and as nothing to a text-only client.\n   */\n  text?: string;\n}"
     },
     {
       "name": "EmailResult",

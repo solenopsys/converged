@@ -1,0 +1,202 @@
+{
+	"en": {
+		"subject": "You have been added to {{brand}}",
+		"preheader": "Your way into the {{brand}} console — no password needed.",
+		"heading": "Welcome to the team",
+		"cta": "Open the console",
+		"blocks": [
+			{ "p": "Hello, {{name}}!", "when": "name" },
+			{
+				"p": "You have been added to the {{brand}} console. The button below signs you in — no password needed."
+			},
+			{ "button": "{{url}}" },
+			{
+				"p": "The console lives at [{{consoleUrl}}]({{consoleUrl}}).",
+				"when": "consoleUrl"
+			},
+			{ "fallback": "{{url}}", "label": "If the button does not work" },
+			{ "note": "If you were not expecting this, just ignore the message." }
+		],
+		"footer": [
+			"{{brand}} · a service letter about access to your account",
+			{
+				"text": "Questions — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	},
+	"ru": {
+		"subject": "Вас добавили в {{brand}}",
+		"preheader": "Ваш вход в консоль {{brand}} — без пароля.",
+		"heading": "Добро пожаловать в команду",
+		"cta": "Открыть консоль",
+		"blocks": [
+			{ "p": "Здравствуйте, {{name}}!", "when": "name" },
+			{
+				"p": "Вас добавили в консоль {{brand}}. Кнопка ниже выполнит вход — пароль не нужен."
+			},
+			{ "button": "{{url}}" },
+			{
+				"p": "Адрес консоли: [{{consoleUrl}}]({{consoleUrl}}).",
+				"when": "consoleUrl"
+			},
+			{ "fallback": "{{url}}", "label": "Если кнопка не работает" },
+			{
+				"note": "Если вы этого не ждали, просто не обращайте внимания на письмо."
+			}
+		],
+		"footer": [
+			"{{brand}} · служебное письмо о доступе к аккаунту",
+			{
+				"text": "Вопросы — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	},
+	"de": {
+		"subject": "Sie wurden zu {{brand}} hinzugefügt",
+		"preheader": "Ihr Zugang zur {{brand}}-Konsole — ohne Passwort.",
+		"heading": "Willkommen im Team",
+		"cta": "Konsole öffnen",
+		"blocks": [
+			{ "p": "Hallo {{name}}!", "when": "name" },
+			{
+				"p": "Sie wurden zur {{brand}}-Konsole hinzugefügt. Die Schaltfläche unten meldet Sie an — kein Passwort nötig."
+			},
+			{ "button": "{{url}}" },
+			{
+				"p": "Die Konsole finden Sie unter [{{consoleUrl}}]({{consoleUrl}}).",
+				"when": "consoleUrl"
+			},
+			{
+				"fallback": "{{url}}",
+				"label": "Falls die Schaltfläche nicht funktioniert"
+			},
+			{
+				"note": "Falls Sie das nicht erwartet haben, ignorieren Sie diese Nachricht einfach."
+			}
+		],
+		"footer": [
+			"{{brand}} · Service-E-Mail zum Zugang zu Ihrem Konto",
+			{
+				"text": "Fragen — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	},
+	"es": {
+		"subject": "Te han añadido a {{brand}}",
+		"preheader": "Tu acceso a la consola de {{brand}}, sin contraseña.",
+		"heading": "Bienvenido al equipo",
+		"cta": "Abrir la consola",
+		"blocks": [
+			{ "p": "¡Hola, {{name}}!", "when": "name" },
+			{
+				"p": "Te han añadido a la consola de {{brand}}. El botón de abajo te da acceso, sin contraseña."
+			},
+			{ "button": "{{url}}" },
+			{
+				"p": "La consola está en [{{consoleUrl}}]({{consoleUrl}}).",
+				"when": "consoleUrl"
+			},
+			{ "fallback": "{{url}}", "label": "Si el botón no funciona" },
+			{ "note": "Si no esperabas este mensaje, simplemente ignóralo." }
+		],
+		"footer": [
+			"{{brand}} · correo de servicio sobre el acceso a tu cuenta",
+			{
+				"text": "Preguntas — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	},
+	"fr": {
+		"subject": "Vous avez été ajouté à {{brand}}",
+		"preheader": "Votre accès à la console {{brand}}, sans mot de passe.",
+		"heading": "Bienvenue dans l’équipe",
+		"cta": "Ouvrir la console",
+		"blocks": [
+			{ "p": "Bonjour {{name}} !", "when": "name" },
+			{
+				"p": "Vous avez été ajouté à la console {{brand}}. Le bouton ci-dessous vous connecte, sans mot de passe."
+			},
+			{ "button": "{{url}}" },
+			{
+				"p": "La console se trouve à l’adresse [{{consoleUrl}}]({{consoleUrl}}).",
+				"when": "consoleUrl"
+			},
+			{ "fallback": "{{url}}", "label": "Si le bouton ne fonctionne pas" },
+			{
+				"note": "Si vous ne vous attendiez pas à ce message, ignorez-le simplement."
+			}
+		],
+		"footer": [
+			"{{brand}} · message de service concernant l’accès à votre compte",
+			{
+				"text": "Questions — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	},
+	"it": {
+		"subject": "Sei stato aggiunto a {{brand}}",
+		"preheader": "Il tuo accesso alla console di {{brand}}, senza password.",
+		"heading": "Benvenuto nel team",
+		"cta": "Apri la console",
+		"blocks": [
+			{ "p": "Ciao {{name}}!", "when": "name" },
+			{
+				"p": "Sei stato aggiunto alla console di {{brand}}. Il pulsante qui sotto ti fa accedere, senza password."
+			},
+			{ "button": "{{url}}" },
+			{
+				"p": "La console si trova su [{{consoleUrl}}]({{consoleUrl}}).",
+				"when": "consoleUrl"
+			},
+			{ "fallback": "{{url}}", "label": "Se il pulsante non funziona" },
+			{
+				"note": "Se non te lo aspettavi, ignora semplicemente questo messaggio."
+			}
+		],
+		"footer": [
+			"{{brand}} · email di servizio sull’accesso al tuo account",
+			{
+				"text": "Domande — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	},
+	"pt": {
+		"subject": "Foi adicionado ao {{brand}}",
+		"preheader": "O seu acesso à consola do {{brand}}, sem palavra-passe.",
+		"heading": "Bem-vindo à equipa",
+		"cta": "Abrir a consola",
+		"blocks": [
+			{ "p": "Olá, {{name}}!", "when": "name" },
+			{
+				"p": "Foi adicionado à consola do {{brand}}. O botão abaixo faz o seu login, sem palavra-passe."
+			},
+			{ "button": "{{url}}" },
+			{
+				"p": "A consola está em [{{consoleUrl}}]({{consoleUrl}}).",
+				"when": "consoleUrl"
+			},
+			{ "fallback": "{{url}}", "label": "Se o botão não funcionar" },
+			{ "note": "Se não estava à espera desta mensagem, basta ignorá-la." }
+		],
+		"footer": [
+			"{{brand}} · email de serviço sobre o acesso à sua conta",
+			{
+				"text": "Perguntas — [{{supportEmail}}](mailto:{{supportEmail}})",
+				"when": "supportEmail"
+			},
+			{ "text": "{{address}}", "when": "address" }
+		]
+	}
+}

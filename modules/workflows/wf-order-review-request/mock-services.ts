@@ -4,6 +4,8 @@
 // assert on what the workflow actually wrote — the links it minted and the
 // mails it sent.
 
+import { createNotifyMock } from "../../../core/dag/mail/mock-notify";
+
 export type MockOrder = {
 	id: string;
 	modelName: string;
@@ -35,6 +37,7 @@ export type MockSentMail = {
 	to: string;
 	subject: string;
 	body?: string;
+	text?: string;
 	type?: string;
 };
 
@@ -49,11 +52,6 @@ export const DEFAULT_SETTINGS = {
 	maxFollowups: 1,
 	inviteTtlDays: 30,
 	publicFormUrl: "https://shop.test/review",
-	subjectTemplate: "How did we do with {{orderName}}?",
-	bodyTemplate:
-		"Hello {{customerName}}, tell us about {{orderName}}: {{reviewUrl}}",
-	followupSubjectTemplate: "A minute for {{orderName}}?",
-	followupBodyTemplate: "Still open, {{customerName}}: {{reviewUrl}}",
 };
 
 export type ReviewUniverse = {
@@ -66,6 +64,10 @@ export type ReviewUniverse = {
 	sendError: string | null;
 	/** what reviews.findInvitesToFollowUp hands out, in order */
 	followupQueue: MockInvite[];
+	/** rp-notify: templates from modules/commands/mail, profile, journal */
+	notify: ReturnType<typeof createNotifyMock>;
+	/** which relay the letters went through */
+	transports: string[];
 
 	addOrder(order: Partial<MockOrder>): MockOrder;
 	addInvite(invite: Partial<MockInvite>): MockInvite;
@@ -85,6 +87,8 @@ export function createReviewUniverse(): ReviewUniverse {
 		calls: [],
 		sendError: null,
 		followupQueue: [],
+		notify: createNotifyMock(),
+		transports: [],
 
 		addOrder(order) {
 			const entry: MockOrder = {
@@ -156,13 +160,18 @@ export function createReviewUniverse(): ReviewUniverse {
 				}
 				case "reviews.findInvitesToFollowUp":
 					return u.followupQueue;
-				case "ses.sendEmail": {
+				case "ses.sendEmail":
+				case "smtp.sendEmail": {
 					if (u.sendError) return { success: false, error: u.sendError };
+					u.transports.push(service);
 					u.mails.push(params.payload);
 					return { success: true, messageId: `msg-${++messageSeq}` };
 				}
-				default:
+				default: {
+					const answered = u.notify.handle(key, params);
+					if (answered) return answered.value;
 					throw new Error(`unexpected call ${key}`);
+				}
 			}
 		},
 	};

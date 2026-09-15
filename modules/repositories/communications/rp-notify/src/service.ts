@@ -9,6 +9,8 @@ import type {
   NotifySend,
   NotifySendId,
   NotifySendInput,
+  NotifyProfile,
+  NotifyProfilePatch,
 } from "./types";
 import { StoresController } from "./stores";
 
@@ -75,6 +77,17 @@ export class NotifyServiceImpl implements NotifyService {
   async deleteChannel(id: NotifyChannelId): Promise<boolean> {
     await this.ready();
     return this.stores.channels.delete(id);
+  }
+
+
+  async getProfile(): Promise<NotifyProfile> {
+    await this.ready();
+    return this.stores.profile.get();
+  }
+
+  async saveProfile(patch: NotifyProfilePatch): Promise<NotifyProfile> {
+    await this.ready();
+    return this.stores.profile.save(patch);
   }
 
 

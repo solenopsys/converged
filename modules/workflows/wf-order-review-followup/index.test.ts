@@ -13,9 +13,9 @@ beforeAll(async () => {
 	source = await buildWorkflow(join(import.meta.dir, "index.ts"));
 });
 
+// No credentials: lm-ses reads its own environment.
 const PARAMS = {
 	from: "shop@example.com",
-	ses: { accessKeyId: "k", secretAccessKey: "s", region: "eu-central-1" },
 	shopName: "Acme Works",
 };
 
@@ -46,10 +46,23 @@ describe("wf-order-review-followup", () => {
 		expect(u.mails[0].subject).toBe("A minute for Bracket?");
 		// The same link, not a new one: the customer's original mail still works.
 		expect(u.mails[0].body).toContain("https://shop.test/review/token-1");
+		expect(u.mails[0].text).toContain("This is the last time we will ask.");
+		expect(u.notify.sends[0]).toMatchObject({
+			templateId: "order-review-followup",
+			status: "sent",
+		});
 
 		// Counting it is what makes this the *single* chase.
 		expect(u.invites[0]).toMatchObject({ followupCount: 1, status: "sent" });
 		expect(u.invites[0].lastFollowupAt).toBeDefined();
+	});
+
+	test("chases in the language the first ask went out in", () => {
+		const u = seed();
+		u.invites[0].lang = "fr";
+
+		runWorkflow(source, PARAMS, u.handler);
+		expect(u.mails[0].subject).toBe("Une minute pour Bracket ?");
 	});
 
 	test("does nothing when no link is due", () => {
